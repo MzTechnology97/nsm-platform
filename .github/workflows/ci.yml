@@ -51,6 +51,23 @@ jobs:
           bash -n update.sh install_core.sh manage.sh
           find scripts -type f -name '*.sh' -print0 | xargs -0 -r -n1 bash -n
 
+      - name: Smoke import application
+        env:
+          POSTGRES_PASSWORD: ci-postgres-password
+          REDIS_PASSWORD: ci-redis-password
+          APP_SECRET_KEY: ci-app-secret-key-not-for-production
+          ENCRYPTION_MASTER_KEY: ci-encryption-key-not-for-production
+        run: |
+          PYTHONPATH=app python - <<'PY'
+          from app.entrypoint import app
+          paths = {route.path for route in app.routes}
+          assert app.version == '0.3.0'
+          assert '/profile' in paths
+          assert '/admin/branding' in paths
+          assert '/branding/logo' in paths
+          print(f'Core {app.version}: {len(paths)} routes loaded')
+          PY
+
       - name: Prepare dummy runtime env for Compose validation
         run: |
           cp .env.example .env
