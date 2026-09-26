@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Nuova sede · {{ customer.name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/customers">Clienti</a><span>›</span><a href="/customers/{{ customer.id }}">{{ customer.name }}</a><span>›</span><span>Nuova sede</span></div>
+<div class="page-header"><div><h1>Nuova sede</h1><p>Aggiungi una sede logica a {{ customer.name }}.</p></div></div>
+<section class="panel form-page-single">
+  <div class="panel-header"><div><h2>Informazioni sede</h2><p>La sede è opzionale: usala per separare POP, filiali, hotel, uffici o siti tecnici.</p></div></div>
+  <form method="post" action="/customers/{{ customer.id }}/sites" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Nome sede<input name="name" required autofocus placeholder="Es. Sede principale"></label>
+    <label>Indirizzo / descrizione<input name="address" placeholder="Via, località o descrizione tecnica"></label>
+    <label>Note<textarea name="notes" rows="5"></textarea></label>
+    <div class="form-actions split-actions"><a class="button ghost" href="/customers/{{ customer.id }}#sites">Annulla</a><button class="button primary">Aggiungi sede</button></div>
+  </form>
+</section>
+{% endblock %}
