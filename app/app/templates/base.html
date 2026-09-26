@@ -1,55 +1,93 @@
+{% set ui = ui_context(request) %}
 <!doctype html>
-<html lang="it">
+<html lang="it" data-theme="{{ ui.theme }}" style="--brand-primary: {{ ui.branding.primary_color }}; --brand-sidebar: {{ ui.branding.sidebar_color }}; --brand-highlight: {{ ui.branding.highlight_color }};">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="{{ ui.branding.sidebar_color }}">
+  <title>{% block title %}{{ ui.branding.portal_name }}{% endblock %}</title>
+  <script>
+    (function(){
+      try {
+        var serverTheme = {{ ui.theme|tojson }};
+        var storedTheme = localStorage.getItem('nsm-theme');
+        var theme = serverTheme || storedTheme || 'light';
+        document.documentElement.dataset.theme = theme;
+        if (serverTheme) localStorage.setItem('nsm-theme', serverTheme);
+      } catch (e) {}
+    })();
+  </script>
   <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='/theme.css') }}">
+  <script defer src="{{ url_for('static', path='/ui.js') }}"></script>
 </head>
 <body>
 {% if user %}
-<div class="app-shell">
-  <aside class="sidebar">
+<div class="app-shell" data-app-shell>
+  <div class="sidebar-scrim" data-sidebar-close></div>
+  <aside class="sidebar" id="main-sidebar">
     <div class="sidebar-brand">
-      <div class="brand-mark">NSM</div>
-      <div>
-        <strong>{{ app_name }}</strong>
-        <small>v{{ app_version }}</small>
-      </div>
+      <a class="brand-identity" href="/" aria-label="{{ ui.branding.portal_name }}">
+        {% if ui.branding.has_logo %}
+          <span class="brand-logo-wrap"><img class="brand-logo" src="/branding/logo?v={{ ui.branding.logo_version }}" alt="Logo"></span>
+        {% else %}
+          <span class="brand-mark">NSM</span>
+        {% endif %}
+        <span class="brand-copy">
+          <strong>{{ ui.branding.portal_name }}</strong>
+          <small>v{{ app_version }}</small>
+        </span>
+      </a>
+      <button type="button" class="sidebar-collapse" data-sidebar-collapse aria-label="Comprimi menu" title="Comprimi menu">‹</button>
+      <button type="button" class="sidebar-mobile-close" data-sidebar-close aria-label="Chiudi menu">×</button>
     </div>
 
-    <nav class="sidebar-nav">
-      <a class="nav-item" href="/"><span class="nav-icon">▦</span>Dashboard</a>
+    <nav class="sidebar-nav" aria-label="Menu principale">
+      <a class="nav-item {% if request.url.path == '/' %}active{% endif %}" href="/"><span class="nav-icon">▦</span><span class="nav-label">Dashboard</span></a>
+
       <div class="nav-section">Inventory</div>
-      <a class="nav-item" href="/customers"><span class="nav-icon">◎</span>Clienti</a>
-      <a class="nav-item" href="/devices"><span class="nav-icon">▣</span>Apparati</a>
+      <a class="nav-item {% if request.url.path.startswith('/customers') %}active{% endif %}" href="/customers"><span class="nav-icon">◎</span><span class="nav-label">Clienti</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/devices') %}active{% endif %}" href="/devices"><span class="nav-icon">▣</span><span class="nav-label">Apparati</span></a>
+
       <div class="nav-section">Operations</div>
-      <a class="nav-item" href="/operations/monitoring"><span class="nav-icon">⌁</span>Monitoring</a>
-      <a class="nav-item" href="/operations/backups"><span class="nav-icon">⇩</span>Backup</a>
-      <a class="nav-item" href="/operations/firmware"><span class="nav-icon">↻</span>Firmware</a>
+      <a class="nav-item {% if request.url.path.startswith('/operations/monitoring') %}active{% endif %}" href="/operations/monitoring"><span class="nav-icon">⌁</span><span class="nav-label">Monitoring</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/operations/backups') %}active{% endif %}" href="/operations/backups"><span class="nav-icon">⇩</span><span class="nav-label">Backup</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/operations/firmware') %}active{% endif %}" href="/operations/firmware"><span class="nav-icon">↻</span><span class="nav-label">Firmware</span></a>
+
       <div class="nav-section">Security</div>
-      <a class="nav-item" href="/security/vulnerabilities"><span class="nav-icon">◈</span>Vulnerabilità</a>
-      <a class="nav-item" href="/security/lifecycle"><span class="nav-icon">⌛</span>EOL / EOS</a>
-      <a class="nav-item attention-link" href="/action-center"><span class="nav-icon">!</span>Action Center</a>
+      <a class="nav-item {% if request.url.path.startswith('/security/vulnerabilities') %}active{% endif %}" href="/security/vulnerabilities"><span class="nav-icon">◈</span><span class="nav-label">Vulnerabilità</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/security/lifecycle') %}active{% endif %}" href="/security/lifecycle"><span class="nav-icon">⌛</span><span class="nav-label">EOL / EOS</span></a>
+      <a class="nav-item attention-link {% if request.url.path.startswith('/action-center') %}active{% endif %}" href="/action-center"><span class="nav-icon">!</span><span class="nav-label">Action Center</span></a>
+
       <div class="nav-section">Audit</div>
-      <a class="nav-item" href="/audit/events"><span class="nav-icon">≡</span>Eventi</a>
-      <a class="nav-item" href="/audit/reports"><span class="nav-icon">▤</span>Report</a>
+      <a class="nav-item {% if request.url.path.startswith('/audit/events') %}active{% endif %}" href="/audit/events"><span class="nav-icon">≡</span><span class="nav-label">Eventi</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/audit/reports') %}active{% endif %}" href="/audit/reports"><span class="nav-icon">▤</span><span class="nav-label">Report</span></a>
+
       <div class="nav-section">Platform</div>
-      <a class="nav-item" href="/integrations"><span class="nav-icon">⌘</span>Integrazioni</a>
+      <a class="nav-item {% if request.url.path.startswith('/integrations') %}active{% endif %}" href="/integrations"><span class="nav-icon">⌘</span><span class="nav-label">Integrazioni</span></a>
       {% if has_permission(user, 'users.manage') %}
-      <a class="nav-item" href="/admin/users"><span class="nav-icon">⚙</span>Amministrazione</a>
+      <a class="nav-item {% if request.url.path.startswith('/admin') %}active{% endif %}" href="/admin/users"><span class="nav-icon">⚙</span><span class="nav-label">Amministrazione</span></a>
       {% endif %}
     </nav>
   </aside>
 
   <div class="workspace">
     <header class="topbar">
+      <button type="button" class="mobile-menu-button" data-sidebar-open aria-controls="main-sidebar" aria-label="Apri menu">☰</button>
+
       <form class="global-search" method="get" action="/search">
         <span class="search-icon">⌕</span>
-        <input name="q" value="{{ request.query_params.get('q','') if request.url.path == '/search' else '' }}" placeholder="Cerca cliente, apparato, MAC, seriale, IP...">
+        <input name="q" value="{{ request.query_params.get('q','') if request.url.path == '/search' else '' }}" placeholder="Cerca cliente, apparato, MAC, seriale, IP..." aria-label="Ricerca globale">
       </form>
 
       <div class="top-actions">
+        <form method="post" action="/profile/theme" class="theme-toggle-form">
+          <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+          <input type="hidden" name="theme" value="{{ 'light' if ui.theme == 'dark' else 'dark' }}">
+          <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+          <button class="icon-button theme-toggle" aria-label="{{ 'Tema chiaro' if ui.theme == 'dark' else 'Tema scuro' }}" title="{{ 'Tema chiaro' if ui.theme == 'dark' else 'Tema scuro' }}">{{ '☀' if ui.theme == 'dark' else '◐' }}</button>
+        </form>
+
         <details class="notification-menu">
           <summary class="icon-button bell" aria-label="Notifiche">
             <span>♢</span>
@@ -71,9 +109,10 @@
         <details class="user-menu">
           <summary class="user-chip">
             <span class="avatar">{{ (user.display_name or user.username)[0]|upper }}</span>
-            <span><strong>{{ user.display_name or user.username }}</strong><small>{{ role_labels.get(user.role, user.role) }}</small></span>
+            <span class="user-chip-copy"><strong>{{ user.display_name or user.username }}</strong><small>{{ role_labels.get(user.role, user.role) }}</small></span>
           </summary>
           <div class="user-dropdown">
+            <a href="/profile">Profilo e sicurezza</a>
             {% if has_permission(user, 'users.manage') %}<a href="/admin/users">Amministrazione</a>{% endif %}
             <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="menu-button">Esci</button></form>
           </div>
