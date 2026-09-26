@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Agent MikroTik · {{ device.display_name or device.device_identity or device.name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/devices">Apparati</a><span>›</span><a href="/devices/{{ device.id }}">{{ device.display_name or device.device_identity or device.name }}</a><span>›</span><span>Agent MikroTik</span></div>
+<div class="page-header">
+  <div><h1>Agent MikroTik</h1><p>Gestione outbound dell'apparato senza porte di management esposte verso il server.</p></div>
+  <div class="page-actions"><a class="button ghost" href="/devices/{{ device.id }}">Torna all'apparato</a></div>
+</div>
+{% if not transport_secure %}<div class="attention-banner"><strong>Trasporto HTTP</strong><span>Questa installazione è adatta solo ai test su rete privata fidata. Prima dell'uso attraverso Internet abiliteremo HTTPS con certificato valido.</span></div>{% endif %}
+{% if enrollment_command %}
+<section class="panel enrollment-panel">
+  <div class="panel-header"><div><h2>Comando di installazione</h2><p>Token one-shot valido 30 minuti. Incollalo nel Terminal del RouterOS che vuoi associare a questa scheda.</p></div><span class="severity-badge severity-warning">MOSTRATO UNA SOLA VOLTA</span></div>
+  <div class="command-box"><code id="agent-enrollment-command">{{ enrollment_command }}</code><button class="button" type="button" onclick="navigator.clipboard.writeText(document.getElementById('agent-enrollment-command').innerText)">Copia</button></div>
+  <div class="move-note">Il bootstrap raccoglie l'inventario di base, crea una credenziale unica per questo router e installa uno scheduler <strong>nsm-agent</strong> che invia un heartbeat outbound ogni 5 minuti.</div>
+</section>
+{% endif %}
+<div class="detail-grid">
+  <section class="panel">
+    <div class="panel-header"><div><h2>Stato agent</h2><p>Credenziale e ultima comunicazione registrata.</p></div></div>
+    {% if credential %}
+    <dl class="kv-list"><div><dt>Stato</dt><dd><span class="device-status status-{{ device.status }}">{{ status_label(device.status) }}</span></dd></div><div><dt>Versione agent</dt><dd>{{ credential.agent_version }}</dd></div><div><dt>Installato</dt><dd>{{ fmt_dt(credential.enrolled_at) }}</dd></div><div><dt>Ultimo heartbeat</dt><dd>{{ fmt_dt(credential.last_heartbeat_at) }}</dd></div><div><dt>IP sorgente</dt><dd><code>{{ credential.last_source_ip or '—' }}</code></dd></div><div><dt>Intervallo</dt><dd>{{ credential.heartbeat_interval_seconds }} secondi</dd></div></dl>
+    {% else %}<div class="empty-state warning">L'agent persistente non è ancora installato su questo apparato.</div>{% endif %}
+    {% if has_permission(user, 'devices.enroll') %}<form method="post" action="/devices/{{ device.id }}/agent/enrollment" style="margin-top:16px"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">{{ 'Reinstalla / ruota credenziale' if credential else 'Genera comando di installazione' }}</button></form>{% endif %}
+  </section>
+  <section class="panel">
+    <div class="panel-header"><div><h2>Ultime metriche</h2><p>Valori ricevuti con l'ultimo heartbeat.</p></div></div>
+    <dl class="kv-list"><div><dt>Identity</dt><dd>{{ device.device_identity or '—' }}</dd></div><div><dt>Modello</dt><dd>{{ device.model or '—' }}</dd></div><div><dt>RouterOS</dt><dd>{{ device.firmware_version or '—' }}</dd></div><div><dt>Uptime</dt><dd>{{ health.get('uptime') or '—' }}</dd></div><div><dt>CPU load</dt><dd>{% if health.get('cpu_load') is not none %}{{ health.get('cpu_load') }}%{% else %}—{% endif %}</dd></div><div><dt>Memoria libera</dt><dd>{% if health.get('free_memory') is not none %}{{ health.get('free_memory') }} bytes{% else %}—{% endif %}</dd></div><div><dt>Memoria totale</dt><dd>{% if health.get('total_memory') is not none %}{{ health.get('total_memory') }} bytes{% else %}—{% endif %}</dd></div><div><dt>Ultima osservazione</dt><dd>{{ health.get('observed_at') or '—' }}</dd></div></dl>
+  </section>
+</div>
+<section class="panel"><div class="panel-header"><div><h2>Cosa fa questa prima versione</h2><p>Funzionalità volutamente limitate prima di introdurre comandi operativi.</p></div></div><div class="option-card-grid"><div class="option-card"><span><strong>Inventario</strong><small>Identity, board, seriale, architecture, RouterOS e RouterBOOT.</small></span></div><div class="option-card"><span><strong>Heartbeat</strong><small>Uptime, CPU, memoria, last seen e rilevamento offline.</small></span></div><div class="option-card"><span><strong>Credenziale unica</strong><small>Il server conserva solo l'hash del secret specifico del router.</small></span></div><div class="option-card"><span><strong>Nessuna shell remota</strong><small>Non viene esposto alcun terminale generico. I job futuri saranno azioni predefinite.</small></span></div></div></section>
+{% endblock %}
