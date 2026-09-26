@@ -32,6 +32,14 @@ DEFAULT_OPTIONS = {
     "verify_hash": True,
 }
 
+SCOPE_PRIORITY = {
+    "global": 10,
+    "vendor": 20,
+    "customer": 30,
+    "site": 40,
+    "device": 50,
+}
+
 
 def _remove_route(app, path, method):
     method = method.upper()
@@ -160,6 +168,45 @@ def _schedule_label(settings, policy):
     if settings.schedule_kind == "monthly":
         return f"Giorno {settings.schedule_monthday or 1} · {settings.schedule_time}"
     return f"Ogni giorno · {settings.schedule_time}"
+
+
+def _policy_matches_device(policy, settings, device):
+    if not policy.is_enabled:
+        return False
+    if policy.scope_type == "global":
+        return True
+    if policy.scope_type == "vendor":
+        return bool(policy.vendor and policy.vendor == device.vendor)
+    if policy.scope_type == "customer":
+        return bool(policy.customer_id and policy.customer_id == device.customer_id)
+    if policy.scope_type == "site":
+        return bool(
+            settings
+            and settings.scope_site_id
+            and device.site_id
+            and settings.scope_site_id == device.site_id
+        )
+    if policy.scope_type == "device":
+        return bool(policy.device_id and policy.device_id == device.id)
+    return False
+
+
+def _effective_policy(device, policies, settings_map):
+    candidates = [
+        p
+        for p in policies
+        if _policy_matches_device(p, settings_map.get(p.id), device)
+    ]
+    if not candidates:
+        return None
+    return max(
+        candidates,
+        key=lambda p: (
+            SCOPE_PRIORITY.get(p.scope_type, 0),
+            p.updated_at,
+            str(p.id),
+        ),
+    )
 
 
 def _policy_form_state(policy=None, settings=None, clone=False):
@@ -304,19 +351,39 @@ def backup_center(request: Request):
             }
             for p in policies
         ]
+        coverage_rows = []
+        for device in sorted(
+            devices.values(),
+            key=lambda d: ((d.customer.name if d.customer else ""), (d.display_name or d.device_identity or d.name or "")),
+        ):
+            effective = _effective_policy(device, policies, settings_map)
+            coverage_rows.append(
+                {
+                    "device": device,
+                    "policy": effective,
+                    "schedule": _schedule_label(settings_map.get(effective.id), effective) if effective else None,
+                    "scope": _scope_label(effective, settings_map.get(effective.id), customers, sites, devices) if effective else None,
+                }
+            )
+        protected_count = sum(1 for row in coverage_rows if row["policy"])
+        unprotected_count = len(coverage_rows) - protected_count
+
         return core.render(
             request,
             db,
             user,
             "backup_center.html",
             policy_rows=policy_rows,
+            coverage_rows=coverage_rows,
             runs=runs,
             devices=devices,
             customers=customers,
             sites=sites,
             artifacts_by_run=artifacts_by_run,
             artifacts=artifacts,
-            device_total=db.scalar(select(func.count(Device.id))) or 0,
+            device_total=len(devices),
+            protected_count=protected_count,
+            unprotected_count=unprotected_count,
             active_policy_count=sum(1 for p in policies if p.is_enabled),
             success_count=sum(1 for r in runs if r.status == "success"),
             failed_count=sum(1 for r in runs if r.status == "failed"),
