@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Backup Center · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header backup-page-header">
+  <div><h1>Backup Center</h1><p>Policy, copertura, esecuzioni e archivio dei file di configurazione.</p></div>
+  <div class="page-actions">{% if has_permission(user, 'backup.configure') %}<a class="button primary" href="/operations/backups/policies/new">+ Nuova policy</a>{% endif %}</div>
+</div>
+<div class="backup-overview-grid backup-overview-grid-6">
+  <div class="backup-status-card"><span class="metric-label">Apparati</span><strong>{{ device_total }}</strong><small class="muted">inventario gestito</small></div>
+  <div class="backup-status-card"><span class="metric-label">Policy attive</span><strong>{{ active_policy_count }}</strong><small class="muted">regole applicabili</small></div>
+  <div class="backup-status-card"><span class="metric-label">Backup riusciti</span><strong>{{ success_count }}</strong><small class="muted">ultime 100 esecuzioni</small></div>
+  <div class="backup-status-card {% if failed_count %}backup-card-danger{% endif %}"><span class="metric-label">Falliti</span><strong>{{ failed_count }}</strong><small class="muted">richiedono verifica</small></div>
+  <div class="backup-status-card"><span class="metric-label">Archivio</span><strong>{{ artifacts|length }}</strong><small class="muted">file disponibili</small></div>
+  <div class="backup-status-card"><span class="metric-label">Spazio</span><strong>{{ '%.1f'|format(storage_bytes / 1048576) }} MB</strong><small class="muted">file indicizzati</small></div>
+</div>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Policy</h2><p>Precedenza: apparato → cliente → vendor → globale.</p></div></div>
+  {% if policy_rows %}
+  <div class="backup-policy-list">
+  {% for row in policy_rows %}{% set p=row.policy %}
+    <div class="backup-policy-card backup-policy-card-v2">
+      <div class="backup-policy-title"><strong>{{ p.name }}</strong><small>{{ row.scope }}</small>{% if row.settings and row.settings.description %}<small>{{ row.settings.description }}</small>{% endif %}</div>
+      <div class="backup-policy-meta"><span class="metric-label">Pianificazione</span><strong>{{ row.schedule }}</strong></div>
+      <div class="backup-policy-meta"><span class="metric-label">Retention</span><strong>{{ p.retention_daily }}G · {{ p.retention_weekly }}S · {{ p.retention_monthly }}M</strong></div>
+      <div class="backup-policy-meta"><span class="status-pill">{{ 'Attiva' if p.is_enabled else 'Pausa' }}</span></div>
+      {% if has_permission(user, 'backup.configure') %}
+      <div class="row-actions">
+        <a class="button compact" href="/operations/backups/policies/{{ p.id }}/edit">Modifica</a>
+        <a class="button compact" href="/operations/backups/policies/{{ p.id }}/clone">Duplica</a>
+        <form method="post" action="/operations/backups/policies/{{ p.id }}/toggle"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button compact ghost">{{ 'Disattiva' if p.is_enabled else 'Attiva' }}</button></form>
+        <details class="inline-danger"><summary class="button compact ghost">Elimina</summary><form method="post" action="/operations/backups/policies/{{ p.id }}/delete" class="danger-popover"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><small>Digita <strong>{{ p.name }}</strong></small><input name="confirm_name" required autocomplete="off"><button class="button danger compact">Elimina policy</button></form></details>
+      </div>
+      {% endif %}
+    </div>
+  {% endfor %}
+  </div>
+  {% else %}<div class="empty-state warning">Nessuna policy configurata. {% if has_permission(user, 'backup.configure') %}<a href="/operations/backups/policies/new">Crea la prima policy</a>.{% endif %}</div>{% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Ultime esecuzioni</h2><p>Stato dei job e file prodotti.</p></div></div>
+  {% if runs %}<div class="table-wrap"><table class="data-table"><thead><tr><th>Data</th><th>Apparato</th><th>Cliente</th><th>Stato</th><th>File</th><th>Errore</th></tr></thead><tbody>
+  {% for r in runs %}{% set d=devices.get(r.device_id) %}
+  <tr><td>{{ fmt_dt(r.started_at) }}</td><td>{% if d %}<a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a><small>{{ d.vendor }} · {{ d.primary_mac or d.serial_number or '—' }}</small>{% else %}<code>{{ r.device_id }}</code>{% endif %}</td><td>{{ d.customer.name if d and d.customer else '—' }}</td><td><span class="status-pill">{{ r.status }}</span></td><td>{% set files=artifacts_by_run.get(r.id,[]) %}{% if files %}<div class="artifact-chip-list">{% for a in files %}<a class="artifact-chip" href="/operations/backups/artifacts/{{ a.id }}/download">{{ a.filename }}</a>{% endfor %}</div>{% else %}—{% endif %}</td><td>{{ r.error_message or '—' }}</td></tr>
+  {% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state">Nessuna esecuzione registrata.</div>{% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Archivio file</h2><p>Download e gestione dei file realmente presenti nello storage.</p></div></div>
+  {% if artifacts %}<div class="table-wrap"><table class="data-table"><thead><tr><th>Creato</th><th>File</th><th>Tipo</th><th>Dimensione</th><th>SHA256</th><th></th></tr></thead><tbody>
+  {% for a in artifacts %}<tr><td>{{ fmt_dt(a.created_at) }}</td><td><strong>{{ a.filename }}</strong></td><td>{{ a.artifact_type }}</td><td>{{ '%.1f'|format((a.size_bytes or 0)/1024) }} KB</td><td><code title="{{ a.sha256 or '' }}">{{ (a.sha256 or '—')[:16] }}{% if a.sha256 %}…{% endif %}</code></td><td><div class="row-actions"><a class="button compact" href="/operations/backups/artifacts/{{ a.id }}/download">Scarica</a>{% if has_permission(user, 'backup.configure') %}<form method="post" action="/operations/backups/artifacts/{{ a.id }}/delete" onsubmit="return confirm('Eliminare definitivamente questo file di backup?')"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button compact danger ghost">Elimina</button></form>{% endif %}</div></td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state">Nessun file disponibile nello storage.</div>{% endif %}
+</section>
+{% endblock %}
