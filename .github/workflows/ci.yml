@@ -145,7 +145,7 @@ jobs:
       - name: Run audited CRUD smoke test
         run: |
           cd app
-          python tests/crud_smoke.py
+          PYTHONPATH=. python tests/crud_smoke.py
 
   promote-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
