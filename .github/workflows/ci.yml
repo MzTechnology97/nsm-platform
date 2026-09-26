@@ -54,6 +54,9 @@ jobs:
           assert (root / 'backup_center.html').exists()
           assert (root / 'backup_policy_form.html').exists()
           assert (root / 'customer_devices_manage.html').exists()
+          assert Path('app/app/static/core04.css').exists()
+          assert Path('app/alembic/versions/0004_core04_workflows.py').exists()
+          assert Path('app/app/demo.py').exists()
           print(f'Parsed {len(files)} templates')
           PY
 
