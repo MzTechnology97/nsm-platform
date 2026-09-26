@@ -41,8 +41,8 @@ jobs:
           env = Environment(loader=FileSystemLoader(str(root)))
           files = sorted(root.glob('*.html'))
           for path in files:
-              env.get_template(path.name)
-              print(f'OK {path.name}')
+            env.get_template(path.name)
+            print(f'OK {path.name}')
           print(f'Parsed {len(files)} templates')
           PY
 
@@ -58,7 +58,8 @@ jobs:
           APP_SECRET_KEY: ci-app-secret-key-not-for-production
           ENCRYPTION_MASTER_KEY: ci-encryption-key-not-for-production
         run: |
-          PYTHONPATH=app python - <<'PY'
+          cd app
+          python - <<'PY'
           from app.entrypoint import app
           paths = {route.path for route in app.routes}
           assert app.version == '0.3.0'
@@ -90,7 +91,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout validated commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@14
         with:
           fetch-depth: 0
 
