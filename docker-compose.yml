@@ -56,6 +56,8 @@ services:
       - ./.env
       - ./secrets/bootstrap.env
     command: ["uvicorn", "app.entrypoint:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]
+    volumes:
+      - ./data/backups:/data/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -79,6 +81,8 @@ services:
       - ./.env
       - ./secrets/bootstrap.env
     command: ["python", "-m", "app.worker"]
+    volumes:
+      - ./data/backups:/data/backups
     depends_on:
       postgres:
         condition: service_healthy
