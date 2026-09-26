@@ -2,7 +2,7 @@ name: NSM Core CI
 
 on:
   push:
-    branches: [main, core-0.2]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -46,6 +46,11 @@ jobs:
           print(f'Parsed {len(files)} templates')
           PY
 
+      - name: Validate shell scripts
+        run: |
+          bash -n update.sh install_core.sh manage.sh
+          find scripts -type f -name '*.sh' -print0 | xargs -0 -r -n1 bash -n
+
       - name: Prepare dummy runtime env for Compose validation
         run: |
           cp .env.example .env
@@ -59,3 +64,18 @@ jobs:
 
       - name: Validate Docker Compose
         run: docker compose config --quiet
+
+  promote-deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: static-checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Promote validated main commit to deploy branch
+        run: git push origin "${GITHUB_SHA}:refs/heads/deploy" --force
