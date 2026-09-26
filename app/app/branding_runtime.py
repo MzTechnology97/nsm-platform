@@ -20,23 +20,14 @@ def _safe_color(value: str | None, fallback: str) -> str:
 
 
 def branding_theme_css():
-    """Serve the persisted branding palette directly from PostgreSQL."""
+    """Serve persisted branding plus the versioned Core 0.4 UI layer."""
     with SessionLocal() as db:
         item = db.get(PlatformBranding, 1)
-        primary = _safe_color(
-            item.primary_color if item else None,
-            _DEFAULT_PRIMARY,
-        )
-        sidebar = _safe_color(
-            item.sidebar_color if item else None,
-            _DEFAULT_SIDEBAR,
-        )
-        highlight = _safe_color(
-            item.highlight_color if item else None,
-            _DEFAULT_HIGHLIGHT,
-        )
+        primary = _safe_color(item.primary_color if item else None, _DEFAULT_PRIMARY)
+        sidebar = _safe_color(item.sidebar_color if item else None, _DEFAULT_SIDEBAR)
+        highlight = _safe_color(item.highlight_color if item else None, _DEFAULT_HIGHLIGHT)
 
-    css = f"""
+    css = f"""@import url('/static/core04.css?v=0.4.0');
 :root {{
   --brand-primary: {primary} !important;
   --brand-sidebar: {sidebar} !important;
@@ -48,28 +39,12 @@ def branding_theme_css():
 .sidebar {{ background: {sidebar} !important; }}
 a, .text-link, .customer-item:hover .customer-main strong {{ color: {primary}; }}
 .button.primary,
-.branding-preview-button {{
-  background: {primary} !important;
-  border-color: {primary} !important;
-  color: #fff !important;
-}}
-.button.primary:hover {{
-  background: color-mix(in srgb, {primary} 82%, #000) !important;
-  border-color: color-mix(in srgb, {primary} 82%, #000) !important;
-}}
-.nav-item.active {{
-  background: color-mix(in srgb, {primary} 30%, transparent) !important;
-}}
-.avatar {{
-  color: {primary} !important;
-  background: color-mix(in srgb, {primary} 12%, var(--panel)) !important;
-}}
-input:focus, textarea:focus, select:focus {{
-  border-color: {primary} !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, {primary} 16%, transparent) !important;
-}}
-.preference-card.active,
-.admin-tabs a.active {{ border-color: {primary} !important; }}
+.branding-preview-button {{ background: {primary} !important; border-color: {primary} !important; color: #fff !important; }}
+.button.primary:hover {{ background: color-mix(in srgb, {primary} 82%, #000) !important; border-color: color-mix(in srgb, {primary} 82%, #000) !important; }}
+.nav-item.active {{ background: color-mix(in srgb, {primary} 30%, transparent) !important; }}
+.avatar {{ color: {primary} !important; background: color-mix(in srgb, {primary} 12%, var(--panel)) !important; }}
+input:focus, textarea:focus, select:focus {{ border-color: {primary} !important; box-shadow: 0 0 0 3px color-mix(in srgb, {primary} 16%, transparent) !important; }}
+.preference-card.active, .admin-tabs a.active {{ border-color: {primary} !important; }}
 .admin-tabs a.active {{ color: {primary} !important; }}
 .attention-link .nav-icon {{ color: {highlight} !important; }}
 ::selection {{ background: color-mix(in srgb, {primary} 32%, transparent); }}
