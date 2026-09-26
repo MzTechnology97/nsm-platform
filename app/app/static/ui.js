@@ -1,4 +1,12 @@
 (function () {
+  // Load the persisted branding palette from PostgreSQL after all static CSS.
+  // The endpoint is no-store and the timestamp also defeats intermediary/browser caches.
+  const brandingCss = document.createElement('link');
+  brandingCss.rel = 'stylesheet';
+  brandingCss.href = '/branding/theme.css?v=' + Date.now();
+  brandingCss.dataset.runtimeBranding = '1';
+  document.head.appendChild(brandingCss);
+
   const shell = document.querySelector('[data-app-shell]');
   if (!shell) return;
 
