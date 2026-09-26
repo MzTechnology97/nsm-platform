@@ -16,6 +16,8 @@ case "$cmd" in
   shell) docker compose exec api /bin/sh ;;
   db-shell) docker compose exec postgres psql -U network_platform -d network_platform ;;
   health) curl -fsS http://127.0.0.1/health && echo ;;
+  seed-demo) docker compose run --rm api python -m app.demo seed ;;
+  clear-demo) docker compose run --rm api python -m app.demo clear ;;
   backup-db)
     mkdir -p data/backups/platform-db
     out="data/backups/platform-db/network_platform_$(date -u +%Y%m%dT%H%M%SZ).sql.gz"
@@ -37,6 +39,8 @@ Uso: ./manage.sh <comando>
   db-shell       psql nel database
   health         Health check via Caddy
   backup-db      Crea pg_dump compresso
+  seed-demo      Crea dataset demo reversibile con backup fittizi
+  clear-demo     Rimuove esclusivamente il dataset demo
 TXT
     ;;
 esac
