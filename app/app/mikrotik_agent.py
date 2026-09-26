@@ -24,7 +24,6 @@ MAX_AGENT_BODY = 64 * 1024
 
 def _parse_line_body(raw: bytes) -> dict[str, str]:
     text = raw.decode("utf-8", errors="replace")
-    # Accept both real newlines and literal RouterOS \\n sequences.
     text = text.replace("\\n", "\n")
     values: dict[str, str] = {}
     for line in text.splitlines():
@@ -94,7 +93,6 @@ def _apply_inventory(device: Device, values: dict[str, str]):
 
 
 def _agent_script(device_id: uuid.UUID, secret: str, heartbeat_url: str) -> str:
-    # Returned inside the bootstrap .rsc as a RouterOS source={...} block.
     return f'''/system script add name="nsm-agent" policy=read,test source={{
     :local nsmDeviceId "{device_id}"
     :local nsmSecret "{secret}"
@@ -206,9 +204,7 @@ def create_agent_enrollment(
     return RedirectResponse(f"/devices/{device_id}/agent", status_code=303)
 
 
-@router.get(
-    "/api/v1/agent/mikrotik/bootstrap", response_class=PlainTextResponse
-)
+@router.get("/api/v1/agent/mikrotik/bootstrap", response_class=PlainTextResponse)
 def agent_bootstrap(request: Request, token: str):
     with SessionLocal() as db:
         enrollment = core.get_valid_enrollment(db, token)
@@ -288,7 +284,11 @@ async def agent_complete(request: Request):
                 )
             )
         db.commit()
-        return {"status": "ok", "device_id": str(device.id), "agent_version": AGENT_VERSION}
+        return {
+            "status": "ok",
+            "device_id": str(device.id),
+            "agent_version": AGENT_VERSION,
+        }
 
 
 @router.post("/api/v1/agent/mikrotik/heartbeat")
@@ -358,8 +358,6 @@ async def agent_heartbeat(request: Request):
                 "FIRMWARE_CHANGED",
                 {"before": previous_firmware, "after": device.firmware_version},
             )
-        # Inventory differences other than identity/firmware remain queryable without
-        # generating an event on every heartbeat.
         if before != after:
             device.inventory_last_verified_at = now
         db.commit()
