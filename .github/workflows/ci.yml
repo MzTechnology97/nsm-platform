@@ -41,8 +41,8 @@ jobs:
           env = Environment(loader=FileSystemLoader(str(root)))
           files = sorted(root.glob('*.html'))
           for path in files:
-              env.get_template(path.name)
-              print(f'OK {path.name}')
+            env.get_template(path.name)
+            print(f'OK {path.name}')
           print(f'Parsed {len(files)} templates')
           PY
 
@@ -50,6 +50,22 @@ jobs:
         run: |
           bash -n update.sh install_core.sh manage.sh
           find scripts -type f -name '*.sh' -print0 | xargs -0 -r -n1 bash -n
+
+      - name: Smoke import application
+        env:
+          POSTGRES_PASSWORD: ci-postgres-password
+          REDIS_PASSWORD: ci-redis-password
+          APP_SECRET_KEY: ci-app-secret-key-not-for-production
+          ENCRYPTION_MASTER_KEY: ci-encryption-key-not-for-production
+        run: |
+          cd app
+          python - <<'PY'
+          from app.entrypoint import app
+          assert app.version == '0.3.0'
+          assert app.state.nsm_templates is not None
+          assert len(app.routes) > 10
+          print(f'Core {app.version}: application imported successfully')
+          PY
 
       - name: Prepare dummy runtime env for Compose validation
         run: |
@@ -73,7 +89,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout validated commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@14
         with:
           fetch-depth: 0
 

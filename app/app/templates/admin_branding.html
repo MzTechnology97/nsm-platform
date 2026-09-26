@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Branding · {{ ui_context(request).branding.portal_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Amministrazione</h1><p>Identità grafica e personalizzazione della piattaforma.</p></div></div>
+<div class="admin-tabs"><a href="/admin/users">Utenti</a><span>Ruoli & permessi</span><span>Notification rules</span><a class="active" href="/admin/branding">Branding</a><span>Retention</span><span>System settings</span></div>
+
+{% if status == 'saved' %}<div class="alert success">Branding aggiornato correttamente.</div>{% endif %}
+{% if status == 'logo_saved' %}<div class="alert success">Logo aggiornato correttamente.</div>{% endif %}
+{% if status == 'logo_removed' %}<div class="alert success">Logo rimosso.</div>{% endif %}
+{% if error == 'invalid_color' %}<div class="alert error">Uno dei colori non è valido.</div>{% endif %}
+{% if error == 'invalid_name' %}<div class="alert error">Inserisci un nome piattaforma valido.</div>{% endif %}
+{% if error == 'logo_size' %}<div class="alert error">Il logo deve essere inferiore a 2 MB.</div>{% endif %}
+{% if error == 'logo_type' %}<div class="alert error">Formato logo non supportato. Usa PNG, JPEG o WebP.</div>{% endif %}
+
+<div class="content-split compact">
+  <section class="panel">
+    <div class="panel-header"><div><h2>Identità visiva</h2><p>Nome, sottotitolo e colori vengono applicati a login, sidebar e controlli principali.</p></div></div>
+    <form method="post" action="/admin/branding" class="form-stack">
+      <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+      <label>Nome piattaforma<input name="portal_name" maxlength="160" value="{{ branding_settings.portal_name }}" required></label>
+      <label>Sottotitolo<input name="tagline" maxlength="240" value="{{ branding_settings.tagline or '' }}" placeholder="Network operations & security management"></label>
+      <div class="color-grid">
+        <label>Colore principale<div class="color-input"><input type="color" name="primary_color" value="{{ branding_settings.primary_color }}"><code>{{ branding_settings.primary_color }}</code></div><small>Pulsanti, link e selezioni.</small></label>
+        <label>Colore sidebar<div class="color-input"><input type="color" name="sidebar_color" value="{{ branding_settings.sidebar_color }}"><code>{{ branding_settings.sidebar_color }}</code></div><small>Menu laterale e colore browser mobile.</small></label>
+        <label>Colore evidenza<div class="color-input"><input type="color" name="highlight_color" value="{{ branding_settings.highlight_color }}"><code>{{ branding_settings.highlight_color }}</code></div><small>Elementi di attenzione e highlight.</small></label>
+      </div>
+      <div class="form-actions"><button class="button primary">Salva grafica</button></div>
+    </form>
+  </section>
+
+  <section class="panel side-form">
+    <div class="panel-header"><div><h2>Logo</h2><p>PNG, JPEG o WebP. Dimensione massima 2 MB.</p></div></div>
+    <div class="logo-admin-row">
+      <div class="logo-admin-preview">
+        {% if branding_settings.logo_data %}<img src="/branding/logo?v={{ branding_settings.updated_at.timestamp()|int }}" alt="Logo attuale">{% else %}<strong>NSM</strong>{% endif %}
+      </div>
+      <div class="grow">
+        <form method="post" action="/admin/branding/logo" enctype="multipart/form-data" class="form-stack">
+          <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+          <label>Nuovo logo<input type="file" name="logo" accept="image/png,image/jpeg,image/webp" required></label>
+          <button class="button primary">Carica logo</button>
+        </form>
+        {% if branding_settings.logo_data %}
+        <form method="post" action="/admin/branding/logo/remove" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button ghost">Rimuovi logo</button></form>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Anteprima</h2><p>Rappresentazione sintetica della configurazione corrente.</p></div></div>
+  <div class="branding-preview" style="--brand-primary:{{ branding_settings.primary_color }};--brand-sidebar:{{ branding_settings.sidebar_color }};--brand-highlight:{{ branding_settings.highlight_color }}">
+    <div class="branding-preview-header">
+      <div class="branding-preview-logo">{% if branding_settings.logo_data %}<img src="/branding/logo?v={{ branding_settings.updated_at.timestamp()|int }}" alt="Logo">{% else %}NSM{% endif %}</div>
+      <div><strong>{{ branding_settings.portal_name }}</strong><small style="display:block;opacity:.72;margin-top:3px">{{ branding_settings.tagline or 'Network operations & security management' }}</small></div>
+    </div>
+    <div class="branding-preview-body"><p class="muted">Contenuti applicativi e dashboard mantengono contrasto e leggibilità in entrambi i temi.</p><span class="branding-preview-button">Azione primaria</span></div>
+  </div>
+</section>
+{% endblock %}
