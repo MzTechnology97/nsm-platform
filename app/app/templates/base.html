@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v={{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', path='/theme.css') }}?v={{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', path='/workflow.css') }}?v={{ app_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='/core06.css') }}?v={{ app_version }}">
   <link rel="stylesheet" href="/branding/theme.css?v={{ app_version }}" data-runtime-branding>
   <script defer src="{{ url_for('static', path='/ui.js') }}?v={{ app_version }}"></script>
 </head>
@@ -45,6 +46,7 @@
       <a class="nav-item {% if request.url.path == '/' %}active{% endif %}" href="/"><span class="nav-icon">▦</span><span class="nav-label">Dashboard</span></a>
       <div class="nav-section">Inventory</div>
       <a class="nav-item {% if request.url.path.startswith('/customers') %}active{% endif %}" href="/customers"><span class="nav-icon">◎</span><span class="nav-label">Clienti</span></a>
+      <a class="nav-item {% if request.url.path == '/sites' %}active{% endif %}" href="/sites"><span class="nav-icon">⌖</span><span class="nav-label">Sedi</span></a>
       <a class="nav-item {% if request.url.path.startswith('/devices') %}active{% endif %}" href="/devices"><span class="nav-icon">▣</span><span class="nav-label">Apparati</span></a>
       <div class="nav-section">Operations</div>
       <a class="nav-item {% if request.url.path.startswith('/operations/monitoring') %}active{% endif %}" href="/operations/monitoring"><span class="nav-icon">⌁</span><span class="nav-label">Monitoring</span></a>
