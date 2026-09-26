@@ -46,5 +46,16 @@ jobs:
           print(f'Parsed {len(files)} templates')
           PY
 
+      - name: Prepare dummy runtime env for Compose validation
+        run: |
+          cp .env.example .env
+          mkdir -p secrets
+          cat > secrets/bootstrap.env <<'EOF'
+          POSTGRES_PASSWORD=ci-postgres-password
+          REDIS_PASSWORD=ci-redis-password
+          APP_SECRET_KEY=ci-app-secret-key-not-for-production
+          ENCRYPTION_MASTER_KEY=ci-encryption-key-not-for-production
+          EOF
+
       - name: Validate Docker Compose
-        run: docker compose --env-file .env.example config --quiet
+        run: docker compose config --quiet
