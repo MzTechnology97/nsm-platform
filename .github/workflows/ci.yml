@@ -61,7 +61,7 @@ jobs:
           cd app
           python - <<'PY'
           from app.entrypoint import app
-          assert app.version == '0.3.0'
+          assert app.version == '0.3.1'
           assert app.state.nsm_templates is not None
           assert len(app.routes) > 10
           print(f'Core {app.version}: application imported successfully')
