@@ -214,6 +214,46 @@ def main():
     )
     assert invalid.status_code == 400, invalid.text
 
+    # Even a manipulated request cannot persist incompatible capabilities on MikroTik.
+    compatible = client.post(
+        f"/customers/{customer_a}/backups/policies/create",
+        data={
+            "csrf": csrf,
+            "name": "CI09 MikroTik capability guard",
+            "is_enabled": "1",
+            "scope_type": "device",
+            "customer_id": str(customer_a),
+            "device_id": str(device_a),
+            "vendor": "ubiquiti",
+            "schedule_kind": "daily",
+            "backup_time": "03:00",
+            "retention_daily": "30",
+            "retention_weekly": "12",
+            "retention_monthly": "12",
+            "retry_count": "3",
+            "mikrotik_binary": "1",
+            "mikrotik_export": "1",
+            "ubiquiti_connector_config": "1",
+            "tr069_config": "1",
+            "generic_snapshot": "1",
+            "pre_firmware": "1",
+            "verify_hash": "1",
+        },
+        follow_redirects=False,
+    )
+    assert compatible.status_code == 303, compatible.text
+    with SessionLocal() as db:
+        policy = db.scalar(select(BackupPolicy).where(BackupPolicy.name == "CI09 MikroTik capability guard"))
+        assert policy and policy.device_id == device_a and policy.customer_id == customer_a
+        settings = db.get(BackupPolicySettings, policy.id)
+        assert settings.options["mikrotik_binary"] is True
+        assert settings.options["mikrotik_export"] is True
+        assert settings.options["ubiquiti_connector_config"] is False
+        assert settings.options["tr069_config"] is False
+        assert settings.options["generic_snapshot"] is False
+        assert settings.options["pre_firmware"] is True
+        assert settings.options["verify_hash"] is True
+
     # Both customers retain their own independent "Sede principale".
     with SessionLocal() as db:
         a = db.get(Site, site_a)
