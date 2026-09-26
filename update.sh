@@ -11,16 +11,18 @@ info(){ printf '\033[1;34m[INFO]\033[0m %s\n' "$*"; }
 ok(){ printf '\033[1;32m[ OK ]\033[0m %s\n' "$*"; }
 die(){ printf '\033[1;31m[FAIL]\033[0m %s\n' "$*" >&2; exit 1; }
 
+git_repo(){ git -c safe.directory="$SOURCE_DIR" -C "$SOURCE_DIR" "$@"; }
+
 [[ -f "$SOURCE_DIR/docker-compose.yml" ]] || die "Repository sorgente non valido."
 [[ -f "$PLATFORM_DIR/docker-compose.yml" ]] || die "Installazione attiva non trovata in $PLATFORM_DIR."
 [[ -f "$PLATFORM_DIR/secrets/bootstrap.env" ]] || die "Secret runtime non trovati."
 docker info >/dev/null 2>&1 || die "Docker non disponibile."
 
-if git -C "$SOURCE_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  if ! git -C "$SOURCE_DIR" diff --quiet || ! git -C "$SOURCE_DIR" diff --cached --quiet; then
+if git_repo rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if ! git_repo diff --quiet || ! git_repo diff --cached --quiet; then
     die "Il repository contiene modifiche locali non committate. Risolvile prima dell'upgrade."
   fi
-  info "Deploy commit $(git -C "$SOURCE_DIR" rev-parse --short HEAD) da branch $(git -C "$SOURCE_DIR" branch --show-current)."
+  info "Deploy commit $(git_repo rev-parse --short HEAD) da branch $(git_repo branch --show-current)."
 fi
 
 info "Creo backup PostgreSQL pre-upgrade..."
@@ -47,6 +49,21 @@ sudo chown -R root:docker "$PLATFORM_DIR/app" "$PLATFORM_DIR/config" "$PLATFORM_
 sudo chmod -R g+rX "$PLATFORM_DIR/app" "$PLATFORM_DIR/config"
 sudo chown -R 70:70 "$PLATFORM_DIR/data/postgres"
 sudo chmod 0700 "$PLATFORM_DIR/data/postgres"
+
+# If automatic deployment is already installed, refresh its executable and units
+# from the same validated commit. Replacing the running executable is safe: the
+# current process keeps using its open inode and the next timer run uses the new one.
+if [[ -f "$SOURCE_DIR/scripts/nsm-auto-update.sh" && -f /etc/systemd/system/nsm-auto-update.service ]]; then
+  info "Aggiorno componenti auto-update..."
+  sudo install -m 0755 "$SOURCE_DIR/scripts/nsm-auto-update.sh" /usr/local/sbin/nsm-auto-update
+  if [[ -f "$SOURCE_DIR/deploy/systemd/nsm-auto-update.service" ]]; then
+    sudo install -m 0644 "$SOURCE_DIR/deploy/systemd/nsm-auto-update.service" /etc/systemd/system/nsm-auto-update.service
+  fi
+  if [[ -f "$SOURCE_DIR/deploy/systemd/nsm-auto-update.timer" ]]; then
+    sudo install -m 0644 "$SOURCE_DIR/deploy/systemd/nsm-auto-update.timer" /etc/systemd/system/nsm-auto-update.timer
+  fi
+  sudo systemctl daemon-reload
+fi
 
 cd "$PLATFORM_DIR"
 info "Build immagini e applico migrazioni..."
