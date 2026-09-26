@@ -48,9 +48,15 @@ jobs:
           assert "styles.css') }}?v={{ app_version }}" in base
           assert "theme.css') }}?v={{ app_version }}" in base
           assert "workflow.css') }}?v={{ app_version }}" in base
+          assert "core06.css') }}?v={{ app_version }}" in base
           assert "ui.js') }}?v={{ app_version }}" in base
           assert 'data-global-search-input' in base
           assert 'data-search-suggestions' in base
+          backup_form = (root / 'backup_policy_form.html').read_text()
+          assert 'name="schedule_cron"' not in backup_form
+          assert 'mikrotik_binary' in backup_form
+          assert 'ubiquiti_connector_config' in backup_form
+          assert 'tr069_config' in backup_form
           print(f'Parsed {len(files)} templates')
           PY
 
@@ -65,18 +71,21 @@ jobs:
           REDIS_PASSWORD: ci-redis-password
           APP_SECRET_KEY: ci-app-secret-key-not-for-production
           ENCRYPTION_MASTER_KEY: ci-encryption-key-not-for-production
+          BACKUP_STORAGE_ROOT: /tmp/nsm-ci-backups
         run: |
           cd app
           python - <<'PY'
           from app.entrypoint import app
-          assert app.version == '0.5.0'
+          assert app.version == '0.6.0'
           assert app.state.nsm_templates is not None
           assert str(app.url_path_for('branding_theme_css')) == '/branding/theme.css'
           assert str(app.url_path_for('search_suggest')) == '/api/v1/search/suggest'
           assert str(app.url_path_for('customer_new')) == '/customers/new/form'
-          assert str(app.url_path_for('backup_policy_new')) == '/operations/backups/policies/new'
+          assert str(app.url_path_for('backup_center')) == '/operations/backups'
+          assert str(app.url_path_for('backup_policy_new_v2')) == '/operations/backups/policies/new'
+          assert str(app.url_path_for('admin_demo')) == '/admin/demo'
           assert str(app.url_path_for('device_manage_page', device_id='00000000-0000-0000-0000-000000000001')) == '/devices/00000000-0000-0000-0000-000000000001/manage'
-          assert len(app.routes) > 20
+          assert len(app.routes) > 30
           print(f'Core {app.version}: application imported successfully')
           PY
 
@@ -94,7 +103,7 @@ jobs:
       - name: Validate Docker Compose
         run: docker compose config --quiet
 
-  crud-integration:
+  integration:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -121,6 +130,7 @@ jobs:
       ENCRYPTION_MASTER_KEY: ci-encryption-key-not-for-production
       SESSION_COOKIE_SECURE: "false"
       APP_TIMEZONE: Europe/Rome
+      BACKUP_STORAGE_ROOT: /tmp/nsm-ci-backups
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -147,9 +157,14 @@ jobs:
           cd app
           PYTHONPATH=. python tests/crud_smoke.py
 
+      - name: Run Core 0.6 backup and live-search smoke test
+        run: |
+          cd app
+          PYTHONPATH=. python tests/core06_smoke.py
+
   promote-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [static-checks, crud-integration]
+    needs: [static-checks, integration]
     runs-on: ubuntu-latest
     permissions:
       contents: write
