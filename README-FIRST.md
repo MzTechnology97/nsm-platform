@@ -2,9 +2,22 @@
 
 Private WISP network operations and security management platform.
 
-## Core 0.2
+## Core 0.3
 
-Core 0.2 introduces the long-term application structure:
+Core 0.3 extends the operator experience while preserving the Core 0.2 inventory and security model:
+
+- self-service password change for the signed-in user;
+- per-user persistent Light/Dark theme;
+- responsive mobile navigation and collapsible desktop sidebar;
+- configurable platform name, tagline and GUI colors;
+- custom PNG/JPEG/WebP logo stored in PostgreSQL;
+- branding applied to login and navigation;
+- audited password, theme and branding changes;
+- modular UI extension loaded through `app.entrypoint`.
+
+## Core 0.2 foundation
+
+Core 0.2 introduced the long-term application structure:
 
 - professional sidebar/topbar UI and global search;
 - Customer → optional Site → Device inventory;
@@ -37,23 +50,9 @@ Active runtime:
 
 Runtime secrets, PostgreSQL data and `.env` are **not** stored in Git.
 
-## Upgrade workflow
-
-After a release is merged into `main`:
-
-```bash
-cd ~/nsm-platform
-git switch main
-git pull --ff-only
-./update.sh
-```
-
-`update.sh` creates a compressed `pg_dump`, deploys only application/config files,
-builds the containers, runs Alembic through Compose and verifies `/health`.
-
 ## Automatic validated deployment
 
-The optional unattended flow is:
+The unattended flow is:
 
 ```text
 main -> GitHub Actions CI -> deploy -> NSM-CDA systemd timer -> update.sh
@@ -64,6 +63,9 @@ Install it once with:
 ```bash
 sudo ./scripts/install-auto-update.sh
 ```
+
+`update.sh` creates a compressed `pg_dump`, deploys only application/config files,
+builds the containers, runs Alembic through Compose and verifies `/health`.
 
 If a deployment fails, the server publishes a sanitized diagnostic file named
 `log` on the `runtime-logs` branch. Runtime secrets are not intentionally
