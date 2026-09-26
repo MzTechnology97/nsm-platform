@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Profilo · {{ ui_context(request).branding.portal_name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="breadcrumbs"><a href="/">Dashboard</a><span>›</span><span>Profilo</span></div>
+    <h1>Profilo e sicurezza</h1>
+    <p>Preferenze personali e credenziali del tuo account.</p>
+  </div>
+</div>
+
+{% if status == 'password_changed' %}<div class="alert success">Password aggiornata correttamente.</div>{% endif %}
+{% if error == 'current_password' %}<div class="alert error">La password attuale non è corretta.</div>{% endif %}
+{% if error == 'password_mismatch' %}<div class="alert error">Le due nuove password non coincidono.</div>{% endif %}
+{% if error == 'password_same' %}<div class="alert error">La nuova password deve essere diversa da quella attuale.</div>{% endif %}
+{% if error == 'password_strength' %}<div class="alert error">La password deve avere almeno 12 caratteri, una maiuscola, una minuscola e un numero.</div>{% endif %}
+
+<div class="profile-grid">
+  <div>
+    <section class="panel">
+      <div class="panel-header"><div><h2>Account</h2><p>Informazioni dell'utente attualmente connesso.</p></div></div>
+      <dl class="kv-list">
+        <div><dt>Nome</dt><dd>{{ user.display_name or '—' }}</dd></div>
+        <div><dt>Username</dt><dd>{{ user.username }}</dd></div>
+        <div><dt>Email</dt><dd>{{ user.email or '—' }}</dd></div>
+        <div><dt>Ruolo</dt><dd>{{ role_labels.get(user.role, user.role) }}</dd></div>
+        <div><dt>Ultimo login</dt><dd>{{ fmt_dt(user.last_login_at) }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header"><div><h2>Aspetto</h2><p>Il tema è salvato sul tuo account e ti segue anche su altri browser.</p></div></div>
+      <div class="preference-cards">
+        <div class="preference-card {% if theme == 'light' %}active{% endif %}">
+          <strong>Chiaro</strong><small>Interfaccia luminosa per ambienti ben illuminati.</small>
+          <form method="post" action="/profile/theme"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="theme" value="light"><input type="hidden" name="next_url" value="/profile"><button class="button {% if theme != 'light' %}primary{% endif %}" {% if theme == 'light' %}disabled{% endif %}>{{ 'Attivo' if theme == 'light' else 'Usa tema chiaro' }}</button></form>
+        </div>
+        <div class="preference-card {% if theme == 'dark' %}active{% endif %}">
+          <strong>Scuro</strong><small>Riduce la luminosità mantenendo leggibilità e contrasto.</small>
+          <form method="post" action="/profile/theme"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="theme" value="dark"><input type="hidden" name="next_url" value="/profile"><button class="button {% if theme != 'dark' %}primary{% endif %}" {% if theme == 'dark' %}disabled{% endif %}>{{ 'Attivo' if theme == 'dark' else 'Usa tema scuro' }}</button></form>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel side-form">
+    <div class="panel-header"><div><h2>Cambia password</h2><p>L'operazione richiede la password attuale e viene registrata nell'audit trail.</p></div></div>
+    <form method="post" action="/profile/password" class="form-stack">
+      <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+      <label>Password attuale<input type="password" name="current_password" autocomplete="current-password" required></label>
+      <label>Nuova password<input type="password" name="new_password" autocomplete="new-password" minlength="12" required><small>Minimo 12 caratteri, con maiuscola, minuscola e numero.</small></label>
+      <label>Conferma nuova password<input type="password" name="confirm_password" autocomplete="new-password" minlength="12" required></label>
+      <div class="form-actions"><button class="button primary">Aggiorna password</button></div>
+    </form>
+  </section>
+</div>
+{% endblock %}
