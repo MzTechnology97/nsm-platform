@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import DateTime, ForeignKey, Integer, LargeBinary, String, Uuid
@@ -13,7 +14,7 @@ def utcnow():
 class UserPreference(Base):
     __tablename__ = "user_preferences"
 
-    user_id: Mapped[object] = mapped_column(
+    user_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
     theme: Mapped[str] = mapped_column(String(20), default="light", nullable=False)
