@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Modifica sede · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/customers">Clienti</a><span>›</span><a href="/customers/{{ site.customer_id }}">{{ site.customer.name }}</a><span>›</span><a href="/customers/{{ site.customer_id }}/sites/manage">Sedi</a><span>›</span><span>{{ site.name }}</span></div>
+<div class="page-header"><div><h1>Modifica sede</h1><p>{{ site.devices|length }} apparati attualmente associati.</p></div></div>
+<section class="panel form-page-single"><form method="post" action="/sites/{{ site.id }}/edit" class="form-stack"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><label>Nome sede<input name="name" value="{{ site.name }}" required autofocus></label><label>Indirizzo / descrizione<input name="address" value="{{ site.address or '' }}"></label><label>Note<textarea name="notes" rows="5">{{ site.notes or '' }}</textarea></label><div class="form-actions split-actions"><a class="button ghost" href="/customers/{{ site.customer_id }}/sites/manage">Annulla</a><button class="button primary">Salva sede</button></div></form></section>
+{% endblock %}
