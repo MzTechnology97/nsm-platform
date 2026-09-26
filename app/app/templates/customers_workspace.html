@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Clienti · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header compact-heading">
+  <div><h1>Clienti</h1><p>Vista sintetica dello stato operativo di ogni cliente.</p></div>
+  {% if has_permission(user, 'customers.write') %}<a class="button primary" href="/customers/new/form">+ Aggiungi cliente</a>{% endif %}
+</div>
+<section class="panel compact-panel customer-filter-panel">
+  <form class="filter-bar" method="get">
+    <label class="grow">Cerca cliente<input name="q" value="{{ q }}" placeholder="Nome o codice interno"></label>
+    <button class="button primary">Cerca</button>
+    {% if q %}<a class="button ghost" href="/customers">Reset</a>{% endif %}
+  </form>
+</section>
+<section class="panel customer-directory-panel">
+  <div class="panel-header"><div><h2>Elenco clienti</h2><p>{{ total }} clienti · pagina {{ page }} di {{ pages }}</p></div></div>
+  {% if customer_rows %}
+  <div class="customer-health-table">
+    <div class="customer-health-head">
+      <span>Cliente</span><span>Apparati</span><span>Da aggiornare</span><span>CVE gravi</span><span>Allarmi</span><span></span>
+    </div>
+    {% for row in customer_rows %}
+    {% set c = row.customer %}{% set m = row.metrics %}
+    <a class="customer-health-row" href="/customers/{{ c.id }}">
+      <span class="customer-health-name"><span class="customer-avatar small">{{ c.name[0]|upper }}</span><span><strong>{{ c.name }}</strong><small>{{ c.code or 'Nessun codice interno' }} · {{ m.sites }} {{ 'sede' if m.sites == 1 else 'sedi' }}</small></span></span>
+      <span class="customer-health-cell"><strong>{{ m.devices }}</strong><small>apparati</small></span>
+      <span class="customer-health-cell {% if m.updates %}health-warning{% endif %}"><strong>{{ m.updates }}</strong><small>firmware</small></span>
+      <span class="customer-health-cell {% if m.severe_cve_devices %}health-critical{% endif %}"><strong>{{ m.severe_cve_devices }}</strong><small>apparati</small></span>
+      <span class="customer-health-cell {% if m.alerts %}health-danger{% endif %}"><strong>{{ m.alerts }}</strong><small>aperti</small></span>
+      <span class="customer-health-open">Apri ›</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% if pages > 1 %}<div class="pagination-bar"><span>Pagina {{ page }} / {{ pages }}</span><div>{% if page > 1 %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&page={{ page-1 }}">← Precedente</a>{% endif %}{% if page < pages %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&page={{ page+1 }}">Successiva →</a>{% endif %}</div></div>{% endif %}
+  {% else %}<div class="empty-state">Nessun cliente trovato.{% if has_permission(user, 'customers.write') %} <a href="/customers/new/form">Crea il primo cliente</a>.{% endif %}</div>{% endif %}
+</section>
+{% endblock %}
