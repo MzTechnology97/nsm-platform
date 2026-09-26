@@ -19,6 +19,7 @@ def upgrade():
         "backup_policy_settings",
         sa.Column("policy_id", sa.Uuid(), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
+        sa.Column("scope_site_id", sa.Uuid(), nullable=True),
         sa.Column("schedule_kind", sa.String(30), nullable=False, server_default="daily"),
         sa.Column("schedule_time", sa.String(5), nullable=False, server_default="03:00"),
         sa.Column("schedule_weekday", sa.Integer(), nullable=True),
@@ -27,7 +28,13 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.ForeignKeyConstraint(["policy_id"], ["backup_policies.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["scope_site_id"], ["sites.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("policy_id"),
+    )
+    op.create_index(
+        "ix_backup_policy_settings_scope_site_id",
+        "backup_policy_settings",
+        ["scope_site_id"],
     )
     op.create_table(
         "backup_artifacts",
@@ -55,4 +62,5 @@ def downgrade():
     op.drop_index("ix_backup_artifacts_created_at", table_name="backup_artifacts")
     op.drop_index("ix_backup_artifacts_run_id", table_name="backup_artifacts")
     op.drop_table("backup_artifacts")
+    op.drop_index("ix_backup_policy_settings_scope_site_id", table_name="backup_policy_settings")
     op.drop_table("backup_policy_settings")
