@@ -91,7 +91,8 @@ def main():
 
     new_policy = client.get("/operations/backups/policies/new")
     assert new_policy.status_code == 200
-    assert "cron" not in new_policy.text.lower()
+    assert 'name="schedule_cron"' not in new_policy.text
+    assert 'value="site"' in new_policy.text
 
     create = client.post(
         "/operations/backups/policies/create",
@@ -103,6 +104,7 @@ def main():
             "scope_type": "vendor",
             "vendor": "mikrotik",
             "customer_id": str(customer_id),
+            "site_id": str(site_id),
             "device_id": str(device_id),
             "schedule_kind": "daily",
             "backup_time": "02:30",
@@ -127,6 +129,7 @@ def main():
         assert policy.schedule_cron == "30 2 * * *"
         settings = db.get(BackupPolicySettings, policy.id)
         assert settings and settings.schedule_kind == "daily"
+        assert settings.scope_site_id is None
         assert settings.options.get("mikrotik_binary") is True
         policy_id = policy.id
 
@@ -134,6 +137,43 @@ def main():
     clone_page = client.get(f"/operations/backups/policies/{policy_id}/clone")
     assert clone_page.status_code == 200
     assert "Copia di CI06 MikroTik Daily" in clone_page.text
+
+    site_update = client.post(
+        f"/operations/backups/policies/{policy_id}/edit",
+        data={
+            "csrf": csrf,
+            "name": "CI06 MikroTik Daily",
+            "description": "Site scoped",
+            "is_enabled": "1",
+            "scope_type": "site",
+            "site_id": str(site_id),
+            "vendor": "mikrotik",
+            "customer_id": str(customer_id),
+            "device_id": str(device_id),
+            "schedule_kind": "weekly",
+            "backup_time": "01:15",
+            "weekday": "1",
+            "mikrotik_binary": "1",
+            "mikrotik_export": "1",
+            "pre_firmware": "1",
+            "verify_hash": "1",
+            "retention_daily": "14",
+            "retention_weekly": "8",
+            "retention_monthly": "6",
+            "retry_count": "2",
+        },
+        follow_redirects=False,
+    )
+    assert site_update.status_code == 303
+    with SessionLocal() as db:
+        policy = db.get(BackupPolicy, policy_id)
+        settings = db.get(BackupPolicySettings, policy_id)
+        assert policy.scope_type == "site"
+        assert policy.customer_id == customer_id
+        assert policy.vendor is None
+        assert policy.device_id is None
+        assert policy.schedule_cron == "15 1 * * 1"
+        assert settings.scope_site_id == site_id
 
     toggle = client.post(
         f"/operations/backups/policies/{policy_id}/toggle",
@@ -191,7 +231,7 @@ def main():
 
     delete_policy = client.post(
         f"/operations/backups/policies/{policy_id}/delete",
-        data={"csrf": csrf},
+        data={"csrf": csrf, "confirm_name": "CI06 MikroTik Daily"},
         follow_redirects=False,
     )
     assert delete_policy.status_code == 303
