@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}EOL / EOS · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>EOL / EOS</h1><p>Apparati non più supportati o fuori lifecycle vendor.</p></div></div>
+<section class="panel">{% if devices %}<div class="table-wrap"><table class="data-table"><thead><tr><th>Apparato</th><th>Cliente</th><th>Vendor</th><th>Modello</th><th>Stato</th><th>EOL</th><th>EOS</th><th>Fonte</th></tr></thead><tbody>{% for d in devices %}<tr><td><a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a></td><td><a href="/customers/{{ d.customer.id }}">{{ d.customer.name }}</a></td><td>{{ d.vendor }}</td><td>{{ d.model or '—' }}</td><td><span class="severity-badge severity-warning">{{ d.lifecycle_status|upper }}</span></td><td>{{ d.eol_date or '—' }}</td><td>{{ d.eos_date or '—' }}</td><td>{% if d.lifecycle_source %}<a href="{{ d.lifecycle_source }}" target="_blank" rel="noopener">Vendor ↗</a>{% else %}—{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state success">Nessun apparato marcato EOL/EOS.</div>{% endif %}</section>
+{% endblock %}

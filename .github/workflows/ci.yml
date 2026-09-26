@@ -1,0 +1,61 @@
+name: NSM Core CI
+
+on:
+  push:
+    branches: [main, core-0.2]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: app/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r app/requirements.txt
+
+      - name: Compile Python
+        run: python -m compileall -q app/app app/alembic
+
+      - name: Parse Jinja templates
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from jinja2 import Environment, FileSystemLoader
+
+          root = Path('app/app/templates')
+          env = Environment(loader=FileSystemLoader(str(root)))
+          files = sorted(root.glob('*.html'))
+          for path in files:
+              env.get_template(path.name)
+              print(f'OK {path.name}')
+          print(f'Parsed {len(files)} templates')
+          PY
+
+      - name: Prepare dummy runtime env for Compose validation
+        run: |
+          cp .env.example .env
+          mkdir -p secrets
+          cat > secrets/bootstrap.env <<'EOF'
+          POSTGRES_PASSWORD=ci-postgres-password
+          REDIS_PASSWORD=ci-redis-password
+          APP_SECRET_KEY=ci-app-secret-key-not-for-production
+          ENCRYPTION_MASTER_KEY=ci-encryption-key-not-for-production
+          EOF
+
+      - name: Validate Docker Compose
+        run: docker compose config --quiet

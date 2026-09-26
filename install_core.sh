@@ -1,41 +1,61 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+
 PLATFORM_DIR="${PLATFORM_DIR:-/srv/network-platform}"
+
 info(){ printf '\033[1;34m[INFO]\033[0m %s\n' "$*"; }
 ok(){ printf '\033[1;32m[ OK ]\033[0m %s\n' "$*"; }
 die(){ printf '\033[1;31m[FAIL]\033[0m %s\n' "$*" >&2; exit 1; }
-[[ -f docker-compose.yml ]] || die "Esegui lo script dalla directory estratta del core."
+
+[[ -f docker-compose.yml ]] || die "Esegui lo script dalla root del repository."
+[[ -d app && -d config ]] || die "Sorgenti app/config non trovati."
 docker info >/dev/null 2>&1 || die "Docker non è utilizzabile dall'utente corrente."
 docker network inspect network-platform-net >/dev/null 2>&1 || die "Rete network-platform-net non trovata."
-[[ -f "$PLATFORM_DIR/secrets/bootstrap.env" ]] || die "Secret bootstrap non trovati."
-info "Preparo permessi dei secret per il gruppo docker..."
-sudo chown root:docker "$PLATFORM_DIR/secrets" "$PLATFORM_DIR/secrets/bootstrap.env"
-sudo chmod 750 "$PLATFORM_DIR/secrets"
-sudo chmod 640 "$PLATFORM_DIR/secrets/bootstrap.env"
-info "Copio il core in $PLATFORM_DIR preservando data/ e secrets/..."
-sudo mkdir -p "$PLATFORM_DIR/data/postgres"
-sudo cp -a docker-compose.yml .env manage.sh config app "$PLATFORM_DIR/"
-sudo chown -R root:docker "$PLATFORM_DIR/app" "$PLATFORM_DIR/config" "$PLATFORM_DIR/docker-compose.yml" "$PLATFORM_DIR/.env" "$PLATFORM_DIR/manage.sh"
+[[ -f "$PLATFORM_DIR/secrets/bootstrap.env" ]] || die "Secret bootstrap non trovati in $PLATFORM_DIR/secrets/bootstrap.env."
+
+info "Preparo directory e permessi..."
+sudo mkdir -p "$PLATFORM_DIR/data/postgres" "$PLATFORM_DIR/data/redis" "$PLATFORM_DIR/data/backups" "$PLATFORM_DIR/data/reports" "$PLATFORM_DIR/data/evidence" "$PLATFORM_DIR/logs"
+sudo chown root:docker "$PLATFORM_DIR" "$PLATFORM_DIR/secrets" "$PLATFORM_DIR/secrets/bootstrap.env"
+sudo chmod 0750 "$PLATFORM_DIR" "$PLATFORM_DIR/secrets"
+sudo chmod 0640 "$PLATFORM_DIR/secrets/bootstrap.env"
+sudo chown -R 70:70 "$PLATFORM_DIR/data/postgres"
+sudo chmod 0700 "$PLATFORM_DIR/data/postgres"
+
+info "Installo il core preservando data/, secrets/ e configurazione runtime..."
+sudo rm -rf "$PLATFORM_DIR/app" "$PLATFORM_DIR/config"
+sudo cp -a app config "$PLATFORM_DIR/"
+sudo install -m 0755 manage.sh "$PLATFORM_DIR/manage.sh"
+sudo install -m 0755 update.sh "$PLATFORM_DIR/update.sh"
+sudo install -m 0640 docker-compose.yml "$PLATFORM_DIR/docker-compose.yml"
+
+if [[ ! -f "$PLATFORM_DIR/.env" ]]; then
+  info "Creo .env runtime da .env.example..."
+  sudo install -m 0640 .env.example "$PLATFORM_DIR/.env"
+else
+  info "Preservo .env runtime esistente."
+fi
+
+sudo chown -R root:docker "$PLATFORM_DIR/app" "$PLATFORM_DIR/config" "$PLATFORM_DIR/docker-compose.yml" "$PLATFORM_DIR/.env" "$PLATFORM_DIR/manage.sh" "$PLATFORM_DIR/update.sh"
 sudo chmod -R g+rX "$PLATFORM_DIR/app" "$PLATFORM_DIR/config"
-sudo chmod 750 "$PLATFORM_DIR"
-sudo chmod 755 "$PLATFORM_DIR/manage.sh"
-sudo chmod 640 "$PLATFORM_DIR/docker-compose.yml" "$PLATFORM_DIR/.env"
+
 cd "$PLATFORM_DIR"
-info "Build e avvio dello stack..."
+info "Build, migrazioni e avvio stack..."
 docker compose up -d --build
+
 info "Attendo health check..."
-for i in $(seq 1 60); do
+for _ in $(seq 1 60); do
   if curl -fsS http://127.0.0.1/health >/dev/null 2>&1; then
     ok "Core avviato e health check OK."
     echo
     docker compose ps
     echo
-    echo "Ora crea l'amministratore con:"
+    echo "Per creare un amministratore:"
     echo "  cd $PLATFORM_DIR && ./manage.sh create-admin"
     exit 0
   fi
   sleep 2
 done
+
 docker compose ps || true
-docker compose logs --tail=120 || true
+docker compose logs --tail=150 || true
 die "Health check non superato."
