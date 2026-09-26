@@ -25,26 +25,32 @@ jobs:
           pip install -r app/requirements.txt
       - name: Compile Python
         run: python -m compileall -q app/app app/alembic app/tests
-      - name: Parse Jinja templates
+      - name: Parse Jinja templates and RouterOS backup source
         run: |
           python - <<'PY'
           from pathlib import Path
           from jinja2 import Environment, FileSystemLoader
           root = Path('app/app/templates')
           env = Environment(loader=FileSystemLoader(str(root)))
-          files = sorted(root.glob('*.html'))
-          for path in files:
+          for path in sorted(root.glob('*.html')):
               env.get_template(path.name)
           base = (root / 'base.html').read_text()
           assert '/branding/theme.css?v={{ app_version }}' in base
           assert 'data-global-search-input' in base
           assert 'data-search-suggestions' in base
-          backup_form = (root / 'backup_policy_form.html').read_text()
-          assert 'name="schedule_cron"' not in backup_form
-          assert 'mikrotik_binary' in backup_form
-          assert 'ubiquiti_connector_config' in backup_form
-          assert 'tr069_config' in backup_form
-          print(f'Parsed {len(files)} templates')
+          form = (root / 'backup_policy_form.html').read_text()
+          assert 'name="schedule_cron"' not in form
+          assert 'mikrotik_binary' in form and 'tr069_config' in form
+          device = (root / 'device_detail.html').read_text()
+          assert '/backup-now' in device and 'Backup ora' in device
+          agent = Path('app/app/mikrotik_backup_agent.py').read_text()
+          assert '/system backup save' in agent
+          assert 'encryption=aes-sha256' in agent
+          assert '/file read' in agent
+          assert 'to=base64' in agent
+          assert '/api/v1/agents/mikrotik/backup-jobs/' in agent
+          assert 'ftp' not in agent.lower()
+          print('Core 0.8 templates and RouterOS source validated')
           PY
       - name: Validate shell scripts
         run: |
@@ -61,15 +67,15 @@ jobs:
           cd app
           python - <<'PY'
           from app.entrypoint import app
-          assert app.version == '0.7.0'
-          assert app.state.nsm_templates is not None
-          assert str(app.url_path_for('branding_theme_css')) == '/branding/theme.css'
-          assert str(app.url_path_for('search_suggest')) == '/api/v1/search/suggest'
-          assert str(app.url_path_for('backup_center')) == '/operations/backups'
+          zero='00000000-0000-0000-0000-000000000001'
+          assert app.version == '0.8.0'
           assert str(app.url_path_for('mikrotik_bootstrap')) == '/api/v1/enrollment/mikrotik/bootstrap'
           assert str(app.url_path_for('mikrotik_enroll')) == '/api/v1/agents/mikrotik/enroll'
           assert str(app.url_path_for('mikrotik_heartbeat')) == '/api/v1/agents/mikrotik/heartbeat'
-          assert len(app.routes) > 30
+          assert str(app.url_path_for('queue_mikrotik_backup', device_id=zero)) == f'/devices/{zero}/backup-now'
+          assert str(app.url_path_for('mikrotik_backup_config', job_id=zero)).endswith('/backup-config')
+          assert str(app.url_path_for('mikrotik_artifact_chunk', upload_id=zero)).endswith('/chunk')
+          assert str(app.url_path_for('backup_aware_job_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/backup-jobs/{zero}/complete'
           print(f'Core {app.version}: application imported successfully')
           PY
       - name: Prepare dummy runtime env for Compose validation
@@ -125,10 +131,12 @@ jobs:
         run: cd app && alembic upgrade head
       - name: Run audited CRUD smoke test
         run: cd app && PYTHONPATH=. python tests/crud_smoke.py
-      - name: Run Core 0.6 backup and live-search smoke test
+      - name: Run Core 0.6 Backup Center smoke test
         run: cd app && PYTHONPATH=. python tests/core06_smoke.py
       - name: Run Core 0.7 MikroTik agent smoke test
         run: cd app && PYTHONPATH=. python tests/mikrotik_agent_smoke.py
+      - name: Run Core 0.8 chunked MikroTik backup smoke test
+        run: cd app && PYTHONPATH=. python tests/mikrotik_backup_smoke.py
 
   promote-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

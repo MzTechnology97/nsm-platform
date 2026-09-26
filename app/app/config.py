@@ -47,6 +47,10 @@ class Settings:
         return required("APP_SECRET_KEY")
 
     @property
+    def encryption_master_key(self):
+        return required("ENCRYPTION_MASTER_KEY")
+
+    @property
     def database_url(self):
         return (
             f"postgresql+psycopg://{self.db_user}:"
