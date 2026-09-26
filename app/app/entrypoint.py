@@ -1,6 +1,7 @@
 """NSM Core 0.8 application entrypoint."""
 from app import main as core
 from app.backup_core import install_backup_core
+from app.backup_policy_bridge import install_backup_policy_bridge
 from app.branding_runtime import install_branding_runtime
 from app.crud_extension import install_crud
 from app.demo_ui import install_demo_ui
@@ -21,6 +22,7 @@ install_workflow_ui(core.app, core.templates)
 install_crud(core.app)
 install_sites_ui(core.app)
 install_backup_core(core.app, core.templates)
+install_backup_policy_bridge()
 install_demo_ui(core.app)
 install_mikrotik_agent(core.app)
 install_mikrotik_backup(core.app)
