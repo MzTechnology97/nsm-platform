@@ -1,11 +1,33 @@
-import logging,time,json
+import json
+import logging
+import time
+
 from redis import Redis
+
+from app.backup_maintenance import maintenance_tick
 from app.config import settings
-logging.basicConfig(level=logging.INFO); log=logging.getLogger('worker'); r=Redis.from_url(settings.redis_url,decode_responses=True)
-log.info('Worker avviato')
+
+logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
+log = logging.getLogger("worker")
+r = Redis.from_url(settings.redis_url, decode_responses=True)
+
+MAINTENANCE_INTERVAL_SECONDS = 60
+last_maintenance = 0.0
+
+log.info("Worker avviato")
 while True:
     try:
-        item=r.blpop('nsp:jobs:default',timeout=5)
+        now_mono = time.monotonic()
+        if now_mono - last_maintenance >= MAINTENANCE_INTERVAL_SECONDS:
+            stats = maintenance_tick()
+            if any(stats.values()):
+                log.info("Backup maintenance: %s", stats)
+            last_maintenance = now_mono
+
+        item = r.blpop("nsp:jobs:default", timeout=5)
         if item:
-            job=json.loads(item[1]); log.info('Job ricevuto type=%s id=%s',job.get('type'),job.get('id'))
-    except Exception: log.exception('Errore worker'); time.sleep(5)
+            job = json.loads(item[1])
+            log.info("Job ricevuto type=%s id=%s", job.get("type"), job.get("id"))
+    except Exception:
+        log.exception("Errore worker")
+        time.sleep(5)
