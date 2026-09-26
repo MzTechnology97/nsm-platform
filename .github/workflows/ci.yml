@@ -48,6 +48,7 @@ jobs:
           assert 'encryption=aes-sha256' in agent
           assert '/file read' in agent
           assert 'to=base64' in agent
+          assert '/api/v1/agents/mikrotik/backup-jobs/' in agent
           assert 'ftp' not in agent.lower()
           print('Core 0.8 templates and RouterOS source validated')
           PY
@@ -66,13 +67,15 @@ jobs:
           cd app
           python - <<'PY'
           from app.entrypoint import app
+          zero='00000000-0000-0000-0000-000000000001'
           assert app.version == '0.8.0'
           assert str(app.url_path_for('mikrotik_bootstrap')) == '/api/v1/enrollment/mikrotik/bootstrap'
           assert str(app.url_path_for('mikrotik_enroll')) == '/api/v1/agents/mikrotik/enroll'
           assert str(app.url_path_for('mikrotik_heartbeat')) == '/api/v1/agents/mikrotik/heartbeat'
-          assert str(app.url_path_for('queue_mikrotik_backup', device_id='00000000-0000-0000-0000-000000000001')) == '/devices/00000000-0000-0000-0000-000000000001/backup-now'
-          assert str(app.url_path_for('mikrotik_backup_config', job_id='00000000-0000-0000-0000-000000000001')).endswith('/backup-config')
-          assert str(app.url_path_for('mikrotik_artifact_chunk', upload_id='00000000-0000-0000-0000-000000000001')).endswith('/chunk')
+          assert str(app.url_path_for('queue_mikrotik_backup', device_id=zero)) == f'/devices/{zero}/backup-now'
+          assert str(app.url_path_for('mikrotik_backup_config', job_id=zero)).endswith('/backup-config')
+          assert str(app.url_path_for('mikrotik_artifact_chunk', upload_id=zero)).endswith('/chunk')
+          assert str(app.url_path_for('backup_aware_job_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/backup-jobs/{zero}/complete'
           print(f'Core {app.version}: application imported successfully')
           PY
       - name: Prepare dummy runtime env for Compose validation
