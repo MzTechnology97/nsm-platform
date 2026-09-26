@@ -1,0 +1,12 @@
+[Unit]
+Description=Check for validated NSM Platform deployments
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+RandomizedDelaySec=20s
+Persistent=true
+Unit=nsm-auto-update.service
+
+[Install]
+WantedBy=timers.target
