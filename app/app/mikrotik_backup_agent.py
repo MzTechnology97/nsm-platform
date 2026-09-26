@@ -15,18 +15,6 @@ _ORIGINAL_BOOTSTRAP = agent_module._bootstrap_script
 AGENT_VERSION = "0.8.0"
 
 
-def _remove_route(app, path: str, method: str):
-    method = method.upper()
-    app.router.routes[:] = [
-        route
-        for route in app.router.routes
-        if not (
-            getattr(route, "path", None) == path
-            and method in (getattr(route, "methods", set()) or set())
-        )
-    ]
-
-
 def _cert_arg(enabled: bool):
     return " check-certificate=yes" if enabled else ""
 
@@ -124,7 +112,7 @@ def enhanced_agent_source(base_url: str, device_id: uuid.UUID, raw_secret: str, 
           }}
         }}
       }} on-error={{ :set nsmJobOk false; :set nsmJobError "RouterOS backup/upload failed" }}
-      :local nsmDoneUrl ($nsmBase . "/api/v1/agents/mikrotik/jobs/" . $nsmJobId . "/complete")
+      :local nsmDoneUrl ($nsmBase . "/api/v1/agents/mikrotik/backup-jobs/" . $nsmJobId . "/complete")
       :local nsmDoneStatus "failed"
       :if ($nsmJobOk) do={{ :set nsmDoneStatus "success" }}
       :local nsmDoneBody [:serialize value={{"status"=$nsmDoneStatus;"error"=$nsmJobError;"result"={{"agent_version"="{AGENT_VERSION}"}}}} to=json options=json.no-string-conversion]
@@ -148,14 +136,14 @@ def enhanced_bootstrap_script(base_url: str, token: str):
     return script
 
 
-@router.post("/api/v1/agents/mikrotik/jobs/{job_id}/complete")
+@router.post("/api/v1/agents/mikrotik/backup-jobs/{job_id}/complete", name="backup_aware_job_complete")
 async def backup_aware_job_complete(request: Request, job_id: uuid.UUID):
     payload = await _json_body(request)
     with SessionLocal() as db:
         device, _ = _authenticate_agent(db, request)
         job = db.get(DeviceJob, job_id)
-        if not job or job.device_id != device.id:
-            raise HTTPException(404, "Job non trovato.")
+        if not job or job.device_id != device.id or job.job_type != "backup_mikrotik":
+            raise HTTPException(404, "Backup job non trovato.")
         status = str(payload.get("status", "failed")).strip().lower()
         if status not in {"success", "failed"}:
             raise HTTPException(400, "Stato job non valido.")
@@ -165,19 +153,7 @@ async def backup_aware_job_complete(request: Request, job_id: uuid.UUID):
         job.result = result
         job.last_error = error
         job.completed_at = utcnow()
-        if job.job_type == "backup_mikrotik":
-            finalize_backup_job(db, device, job, status == "success", error)
-        else:
-            core.add_event(
-                db,
-                "DEVICE_JOB_COMPLETED",
-                customer_id=device.customer_id,
-                device_id=device.id,
-                details={"job_id": str(job.id), "job_type": job.job_type, "status": status},
-                severity="warning" if status == "failed" else "info",
-                result=status,
-                source="mikrotik_agent",
-            )
+        finalize_backup_job(db, device, job, status == "success", error)
         db.commit()
         return {"status": "ok"}
 
@@ -186,5 +162,4 @@ def install_mikrotik_backup_agent(app):
     agent_module.AGENT_VERSION = AGENT_VERSION
     agent_module._agent_source = enhanced_agent_source
     agent_module._bootstrap_script = enhanced_bootstrap_script
-    _remove_route(app, "/api/v1/agents/mikrotik/jobs/{job_id}/complete", "POST")
     app.include_router(router)
