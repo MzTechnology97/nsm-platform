@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Nuovo cliente · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/customers">Clienti</a><span>›</span><span>Nuovo cliente</span></div>
+<div class="page-header"><div><h1>Nuovo cliente</h1><p>Crea il contenitore anagrafico. Sedi e apparati potranno essere aggiunti subito dopo.</p></div></div>
+<div class="form-page-grid">
+  <section class="panel form-page-main">
+    <div class="panel-header"><div><h2>Informazioni cliente</h2><p>Inserisci solo le informazioni utili all'organizzazione interna.</p></div></div>
+    <form method="post" action="/customers" class="form-stack">
+      <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+      <label>Nome cliente<input name="name" required autofocus placeholder="Es. Hotel Mediterraneo"></label>
+      <label>Codice interno<input name="code" placeholder="Opzionale, es. CLI-0042"><small>Può essere usato nella ricerca globale e nei report.</small></label>
+      <label>Note<textarea name="notes" rows="6" placeholder="Riferimenti, indicazioni operative o note amministrative"></textarea></label>
+      <div class="form-actions split-actions"><a class="button ghost" href="/customers">Annulla</a><button class="button primary">Crea cliente</button></div>
+    </form>
+  </section>
+  <aside class="panel form-page-help"><h2>Flusso consigliato</h2><ol class="step-list"><li><strong>Crea il cliente</strong><span>Anagrafica minima e codice interno.</span></li><li><strong>Aggiungi le sedi</strong><span>Solo se servono per raggruppare gli apparati.</span></li><li><strong>Collega gli apparati</strong><span>Il dato tecnico verrà rilevato dalla sorgente autorevole.</span></li></ol></aside>
+</div>
+{% endblock %}

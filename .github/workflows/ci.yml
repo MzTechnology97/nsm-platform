@@ -47,7 +47,10 @@ jobs:
           assert '/branding/theme.css?v={{ app_version }}' in base
           assert "styles.css') }}?v={{ app_version }}" in base
           assert "theme.css') }}?v={{ app_version }}" in base
+          assert "workflow.css') }}?v={{ app_version }}" in base
           assert "ui.js') }}?v={{ app_version }}" in base
+          assert 'data-global-search-input' in base
+          assert 'data-search-suggestions' in base
           print(f'Parsed {len(files)} templates')
           PY
 
@@ -66,10 +69,13 @@ jobs:
           cd app
           python - <<'PY'
           from app.entrypoint import app
-          assert app.version == '0.3.3'
+          assert app.version == '0.4.0'
           assert app.state.nsm_templates is not None
           assert str(app.url_path_for('branding_theme_css')) == '/branding/theme.css'
-          assert len(app.routes) > 10
+          assert str(app.url_path_for('search_suggest')) == '/api/v1/search/suggest'
+          assert str(app.url_path_for('customer_new')) == '/customers/new/form'
+          assert str(app.url_path_for('backup_policy_new')) == '/operations/backups/policies/new'
+          assert len(app.routes) > 15
           print(f'Core {app.version}: application imported successfully')
           PY
 

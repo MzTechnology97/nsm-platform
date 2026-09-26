@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Nuovo apparato · {{ customer.name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/customers">Clienti</a><span>›</span><a href="/customers/{{ customer.id }}">{{ customer.name }}</a><span>›</span><span>Nuovo apparato</span></div>
+<div class="page-header"><div><h1>Nuovo apparato</h1><p>Seleziona il vendor e inserisci solo i dati che la piattaforma non può scoprire automaticamente.</p></div></div>
+<section class="panel form-page-single wide-form">
+<form method="post" action="/customers/{{ customer.id }}/devices" class="device-wizard" id="device-wizard">
+  <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+  <div class="form-section"><div class="form-section-title"><span>1</span><div><strong>Tipo di apparato</strong><small>Determina il metodo di associazione.</small></div></div>
+    <div class="form-grid">
+      <label>Vendor<select name="vendor" id="vendor-select" required><option value="mikrotik">MikroTik</option><option value="ubiquiti">Ubiquiti</option><option value="tp-link">TP-Link / TR-069</option><option value="generic">Generic / Legacy</option></select></label>
+      <label>Tipo apparato<select name="device_type"><option value="router">Router</option><option value="switch">Switch</option><option value="wireless_cpe">Wireless CPE</option><option value="wireless_ap">Wireless AP</option><option value="olt">OLT</option><option value="ont">ONT</option><option value="other">Altro</option></select></label>
+    </div>
+  </div>
+  <div class="form-section"><div class="form-section-title"><span>2</span><div><strong>Organizzazione</strong><small>Alias e sede sono gestiti dall'operatore.</small></div></div>
+    <div class="form-grid"><label>Alias personalizzato<input name="display_name" placeholder="Es. Router principale Hotel"><small>Opzionale. L'identità reale resta separata.</small></label><label>Sede<select name="site_id"><option value="">Nessuna sede</option>{% for s in customer.sites %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select></label></div>
+  </div>
+  <div class="form-section"><div class="form-section-title"><span>3</span><div><strong>Associazione</strong><small>Il metodo cambia in base al vendor.</small></div></div>
+    <div class="onboarding-hint" data-vendor="mikrotik"><strong>MikroTik outbound enrollment</strong><p>Dopo la creazione verrà generato un comando one-shot da incollare nel Terminal RouterOS. Identity, modello, seriale, RouterOS, architecture e RouterBOOT verranno rilevati automaticamente.</p></div>
+    <div class="vendor-fields hidden" data-vendor="ubiquiti"><div class="onboarding-hint"><strong>Associazione tramite UISP</strong><p>Inserisci il MAC dell'apparato. Il connector UISP recupererà modello, nome, firmware e identificativo stabile.</p></div><label>MAC principale<input name="primary_mac" placeholder="AA:BB:CC:DD:EE:FF"></label></div>
+    <div class="vendor-fields hidden" data-vendor="tp-link"><div class="onboarding-hint"><strong>Associazione TR-069 / ACS</strong><p>Inserisci MAC o seriale. I dati osservati saranno letti dall'ACS.</p></div><div class="form-grid"><label>MAC<input name="primary_mac"></label><label>Seriale<input name="serial_number"></label></div></div>
+    <div class="vendor-fields hidden" data-vendor="generic"><div class="onboarding-hint"><strong>Inserimento manuale legacy</strong><p>Usalo solo quando non esiste una sorgente autorevole.</p></div><div class="form-grid"><label>MAC<input name="primary_mac"></label><label>Seriale<input name="serial_number"></label><label>Modello<input name="model"></label><label>IP management<input name="management_ip"></label><label>Firmware<input name="firmware_version"></label></div></div>
+  </div>
+  <div class="form-actions split-actions"><a class="button ghost" href="/customers/{{ customer.id }}#devices">Annulla</a><button class="button primary">Crea e continua onboarding</button></div>
+</form>
+</section>
+<script>(()=>{const s=document.getElementById('vendor-select');if(!s)return;const u=()=>document.querySelectorAll('[data-vendor]').forEach(e=>e.classList.toggle('hidden',e.dataset.vendor!==s.value));s.addEventListener('change',u);u();})();</script>
+{% endblock %}
