@@ -69,14 +69,18 @@ jobs:
           cd app
           python - <<'PY'
           from app.entrypoint import app
-          assert app.version == '0.5.0'
+          assert app.version == '0.6.0'
           assert app.state.nsm_templates is not None
           assert str(app.url_path_for('branding_theme_css')) == '/branding/theme.css'
           assert str(app.url_path_for('search_suggest')) == '/api/v1/search/suggest'
           assert str(app.url_path_for('customer_new')) == '/customers/new/form'
           assert str(app.url_path_for('backup_policy_new')) == '/operations/backups/policies/new'
           assert str(app.url_path_for('device_manage_page', device_id='00000000-0000-0000-0000-000000000001')) == '/devices/00000000-0000-0000-0000-000000000001/manage'
-          assert len(app.routes) > 20
+          assert str(app.url_path_for('agent_page', device_id='00000000-0000-0000-0000-000000000001')) == '/devices/00000000-0000-0000-0000-000000000001/agent'
+          assert str(app.url_path_for('agent_bootstrap')) == '/api/v1/agent/mikrotik/bootstrap'
+          assert str(app.url_path_for('agent_complete')) == '/api/v1/agent/mikrotik/complete'
+          assert str(app.url_path_for('agent_heartbeat')) == '/api/v1/agent/mikrotik/heartbeat'
+          assert len(app.routes) > 24
           print(f'Core {app.version}: application imported successfully')
           PY
 
@@ -94,7 +98,7 @@ jobs:
       - name: Validate Docker Compose
         run: docker compose config --quiet
 
-  crud-integration:
+  integration:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -147,9 +151,14 @@ jobs:
           cd app
           PYTHONPATH=. python tests/crud_smoke.py
 
+      - name: Run MikroTik agent smoke test
+        run: |
+          cd app
+          PYTHONPATH=. python tests/mikrotik_agent_smoke.py
+
   promote-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [static-checks, crud-integration]
+    needs: [static-checks, integration]
     runs-on: ubuntu-latest
     permissions:
       contents: write
