@@ -178,10 +178,19 @@ def main():
     assert "Radio B" not in backups.text
     assert "CI09 Cliente A policy" in backups.text
 
+    backup_routes = [
+        (getattr(route, "name", None), getattr(route, "path", None))
+        for route in app.router.routes
+        if getattr(route, "path", None) == "/operations/backups"
+        and "GET" in (getattr(route, "methods", set()) or set())
+    ]
+    assert backup_routes, "No GET /operations/backups route registered"
+    assert backup_routes[0][0] == "backup_customer_overview", backup_routes
+
     global_backups = client.get("/operations/backups")
     assert global_backups.status_code == 200
     assert "CI09 Cliente A" in global_backups.text and "CI09 Cliente B" in global_backups.text
-    assert "Stato backup per cliente" in global_backups.text
+    assert "Stato backup per cliente" in global_backups.text, global_backups.text[:1200]
     assert "Una riga per cliente" in global_backups.text
     assert "Apparato / cliente" not in global_backups.text
 
