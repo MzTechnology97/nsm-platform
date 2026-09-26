@@ -181,7 +181,9 @@ def main():
     global_backups = client.get("/operations/backups")
     assert global_backups.status_code == 200
     assert "CI09 Cliente A" in global_backups.text and "CI09 Cliente B" in global_backups.text
-    assert "Router A" not in global_backups.text and "Radio B" not in global_backups.text
+    assert "Stato backup per cliente" in global_backups.text
+    assert "Una riga per cliente" in global_backups.text
+    assert "Apparato / cliente" not in global_backups.text
 
     device_policy = client.get(f"/customers/{customer_a}/backups/policies/new?device_id={device_a}")
     assert device_policy.status_code == 200
