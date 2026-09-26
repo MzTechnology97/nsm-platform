@@ -120,6 +120,48 @@ html[data-theme="dark"] .command-box{background:#080d16}
 .alert.success{padding:10px 11px;background:#eef9f0;color:#246b35;border:1px solid #cce9d2;border-radius:7px;margin-bottom:14px}
 html[data-theme="dark"] .alert.success{background:#10261a;color:#9bd7aa;border-color:#285f37}
 
+/* Branding colors are authoritative over the legacy Core 0.2 palette. */
+html{
+  --accent:var(--brand-primary)!important;
+  --sidebar:var(--brand-sidebar)!important;
+}
+.sidebar{background:var(--brand-sidebar)!important}
+a,.text-link{color:var(--brand-primary)}
+.nav-item.active{background:color-mix(in srgb,var(--brand-primary) 34%,transparent)!important}
+.attention-link .nav-icon{color:var(--brand-highlight)!important}
+.button.primary,
+.branding-preview-button{
+  background:var(--brand-primary)!important;
+  border-color:var(--brand-primary)!important;
+  color:#fff!important;
+}
+.button.primary:hover,
+.branding-preview-button:hover{
+  background:color-mix(in srgb,var(--brand-primary) 82%,#000)!important;
+  border-color:color-mix(in srgb,var(--brand-primary) 82%,#000)!important;
+}
+input:focus,textarea:focus,select:focus{
+  border-color:var(--brand-primary)!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--brand-primary) 18%,transparent)!important;
+}
+.avatar,
+.customer-avatar,
+.result-icon{
+  background:color-mix(in srgb,var(--brand-primary) 12%,var(--panel))!important;
+  color:var(--brand-primary)!important;
+}
+.preference-card.active{
+  border-color:var(--brand-primary)!important;
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--brand-primary) 16%,transparent)!important;
+}
+.admin-tabs a.active,
+.quick-filters a.active{
+  background:color-mix(in srgb,var(--brand-primary) 12%,var(--panel))!important;
+  border-color:color-mix(in srgb,var(--brand-primary) 35%,var(--border))!important;
+  color:var(--brand-primary)!important;
+}
+.brand-mark{color:var(--brand-sidebar)!important}
+
 @media(min-width:901px){
   .app-shell{transition:grid-template-columns .18s ease}
   .app-shell.sidebar-collapsed{grid-template-columns:78px minmax(0,1fr)}
