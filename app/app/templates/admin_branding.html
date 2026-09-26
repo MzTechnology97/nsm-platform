@@ -2,7 +2,7 @@
 {% block title %}Branding · {{ ui_context(request).branding.portal_name }}{% endblock %}
 {% block content %}
 <div class="page-header"><div><h1>Amministrazione</h1><p>Identità grafica e personalizzazione della piattaforma.</p></div></div>
-<div class="admin-tabs"><a href="/admin/users">Utenti</a><span>Ruoli & permessi</span><span>Notification rules</span><a class="active" href="/admin/branding">Branding</a><span>Retention</span><span>System settings</span></div>
+<div class="admin-tabs"><a href="/admin/users">Utenti</a><span>Ruoli & permessi</span><span>Notification rules</span><a class="active" href="/admin/branding">Branding</a><a href="/admin/demo">Demo Lab</a><span>Retention</span><span>System settings</span></div>
 {% if status == 'saved' %}<div class="alert success">Branding aggiornato correttamente.</div>{% endif %}
 {% if status == 'color_reset' %}<div class="alert success">Colore ripristinato al valore predefinito.</div>{% endif %}
 {% if status == 'logo_saved' %}<div class="alert success">Logo aggiornato correttamente.</div>{% endif %}

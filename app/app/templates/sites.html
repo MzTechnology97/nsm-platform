@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Sedi · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Sedi</h1><p>Vista trasversale di POP, filiali, hotel, uffici e siti tecnici.</p></div></div>
+<section class="panel compact-panel"><form class="filter-bar" method="get"><label class="grow">Cerca sede<input name="q" value="{{ q }}" placeholder="Nome sede o indirizzo"></label><button class="button primary">Cerca</button>{% if q %}<a class="button ghost" href="/sites">Reset</a>{% endif %}</form></section>
+<section class="panel"><div class="panel-header"><div><h2>Elenco sedi</h2><p>{{ sites|length }} risultati</p></div></div>{% if sites %}<div class="customer-list-modern">{% for s in sites %}<a class="customer-card" href="/customers/{{ s.customer_id }}#sites"><div class="customer-card-main"><span class="customer-avatar">⌖</span><span class="customer-card-copy"><strong>{{ s.name }}</strong><small>{{ s.customer.name }} · {{ s.address or 'Nessun indirizzo' }}</small></span></div><div class="customer-card-stats"><span><strong>{{ s.devices|length }}</strong><small>apparati</small></span><span class="customer-card-chevron">›</span></div></a>{% endfor %}</div>{% else %}<div class="empty-state">Nessuna sede trovata.</div>{% endif %}</section>
+{% endblock %}

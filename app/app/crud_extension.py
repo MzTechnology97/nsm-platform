@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app import main as core
+from app.backup_cleanup import cleanup_device_backup_files
 from app.db import SessionLocal
 from app.models import ActionIssue, Customer, Device, Notification, Site
 from app.security import validate_csrf
@@ -37,6 +38,39 @@ def _device_snapshot(device: Device):
         "customer_id": str(device.customer_id),
         "site_id": str(device.site_id) if device.site_id else None,
     }
+
+
+def _sync_related_customer(db, device_id: uuid.UUID, customer_id: uuid.UUID):
+    active_issues = list(
+        db.scalars(
+            select(ActionIssue).where(
+                ActionIssue.device_id == device_id,
+                ActionIssue.status.in_(["open", "acknowledged"]),
+            )
+        )
+    )
+    for issue in active_issues:
+        issue.customer_id = customer_id
+    active_notifications = list(
+        db.scalars(
+            select(Notification).where(
+                Notification.device_id == device_id,
+                Notification.is_active.is_(True),
+            )
+        )
+    )
+    for notification in active_notifications:
+        notification.customer_id = customer_id
+
+
+def _parse_device_ids(values):
+    parsed = []
+    for raw in values:
+        try:
+            parsed.append(uuid.UUID(str(raw)))
+        except (TypeError, ValueError):
+            continue
+    return list(dict.fromkeys(parsed))
 
 
 @router.get("/customers/{customer_id}/edit", response_class=HTMLResponse)
@@ -108,12 +142,15 @@ def customer_delete(
             return RedirectResponse(
                 f"/customers/{customer_id}/edit?error=confirm_name", status_code=303
             )
+        device_ids = [d.id for d in customer.devices]
+        removed_files = cleanup_device_backup_files(db, device_ids)
         snapshot = {
             "customer_id": str(customer.id),
             "name": customer.name,
             "code": customer.code,
             "device_count": len(customer.devices),
             "site_count": len(customer.sites),
+            "backup_files_removed": removed_files,
             "devices": [_device_snapshot(d) for d in customer.devices],
         }
         core.add_event(
@@ -291,26 +328,7 @@ def device_manage(
         device.site_id = target_site_id
 
         if old_customer_id != target_customer_id:
-            active_issues = list(
-                db.scalars(
-                    select(ActionIssue).where(
-                        ActionIssue.device_id == device.id,
-                        ActionIssue.status.in_(["open", "acknowledged"]),
-                    )
-                )
-            )
-            for issue in active_issues:
-                issue.customer_id = target_customer_id
-            active_notifications = list(
-                db.scalars(
-                    select(Notification).where(
-                        Notification.device_id == device.id,
-                        Notification.is_active.is_(True),
-                    )
-                )
-            )
-            for notification in active_notifications:
-                notification.customer_id = target_customer_id
+            _sync_related_customer(db, device.id, target_customer_id)
 
         after = _device_snapshot(device)
         core.add_event(
@@ -342,6 +360,7 @@ def device_delete(
             raise HTTPException(404)
         customer_id = device.customer_id
         snapshot = _device_snapshot(device)
+        snapshot["backup_files_removed"] = cleanup_device_backup_files(db, [device.id])
         core.add_event(
             db,
             "DEVICE_DELETED",
@@ -362,22 +381,13 @@ async def bulk_delete_devices(request: Request, customer_id: uuid.UUID):
     validate_csrf(request, str(form.get("csrf", "")))
     if str(form.get("confirm", "")) != "DELETE":
         raise HTTPException(400, "Conferma eliminazione non valida.")
-    raw_ids = form.getlist("device_ids")
-    if not raw_ids:
+    parsed = _parse_device_ids(form.getlist("device_ids"))
+    if not parsed:
         return RedirectResponse(f"/customers/{customer_id}#devices", status_code=303)
-    parsed = []
-    for raw in raw_ids:
-        try:
-            parsed.append(uuid.UUID(str(raw)))
-        except ValueError:
-            continue
     with SessionLocal() as db:
         user = core.require_permission(request, db, "devices.write")
-        devices = list(
-            db.scalars(
-                select(Device).where(Device.customer_id == customer_id, Device.id.in_(parsed))
-            )
-        ) if parsed else []
+        devices = list(db.scalars(select(Device).where(Device.customer_id == customer_id, Device.id.in_(parsed))))
+        removed_files = cleanup_device_backup_files(db, [d.id for d in devices])
         for device in devices:
             core.add_event(
                 db,
@@ -395,11 +405,86 @@ async def bulk_delete_devices(request: Request, customer_id: uuid.UUID):
                 "CUSTOMER_DEVICES_BULK_DELETED",
                 actor=user,
                 customer_id=customer_id,
-                details={"count": len(devices), "device_ids": [str(d.id) for d in devices]},
+                details={"count": len(devices), "device_ids": [str(d.id) for d in devices], "backup_files_removed": removed_files},
                 severity="warning",
             )
         db.commit()
     return RedirectResponse(f"/customers/{customer_id}#devices", status_code=303)
+
+
+@router.get("/customers/{customer_id}/devices/manage", response_class=HTMLResponse)
+def customer_devices_manage(request: Request, customer_id: uuid.UUID):
+    with SessionLocal() as db:
+        user = core.current_user(request, db)
+        if not user:
+            return core.login_redirect()
+        if not core.has_permission(user, "devices.write"):
+            raise HTTPException(403)
+        customer = _customer_with_inventory(db, customer_id)
+        if not customer:
+            raise HTTPException(404)
+        customers = list(db.scalars(select(Customer).order_by(Customer.name)))
+        sites = list(db.scalars(select(Site).order_by(Site.name)))
+        return core.render(
+            request,
+            db,
+            user,
+            "customer_devices_manage.html",
+            customer=customer,
+            customers=customers,
+            sites=sites,
+        )
+
+
+@router.post("/customers/{customer_id}/devices/bulk")
+async def customer_devices_bulk(request: Request, customer_id: uuid.UUID):
+    form = await request.form()
+    validate_csrf(request, str(form.get("csrf", "")))
+    parsed = _parse_device_ids(form.getlist("device_ids"))
+    if not parsed:
+        raise HTTPException(400, "Seleziona almeno un apparato.")
+    action = str(form.get("action", "")).strip()
+    with SessionLocal() as db:
+        user = core.require_permission(request, db, "devices.write")
+        devices = list(db.scalars(select(Device).where(Device.customer_id == customer_id, Device.id.in_(parsed))))
+        if len(devices) != len(parsed):
+            raise HTTPException(400, "Uno o più apparati non appartengono al cliente.")
+
+        if action == "delete":
+            removed_files = cleanup_device_backup_files(db, [d.id for d in devices])
+            for device in devices:
+                core.add_event(db, "DEVICE_DELETED", actor=user, customer_id=customer_id, device_id=device.id, details={**_device_snapshot(device), "bulk_operation": True}, severity="warning")
+                db.delete(device)
+            core.add_event(db, "CUSTOMER_DEVICES_BULK_DELETED", actor=user, customer_id=customer_id, details={"count": len(devices), "backup_files_removed": removed_files}, severity="warning")
+        elif action == "move":
+            try:
+                target_customer_id = uuid.UUID(str(form.get("target_customer_id", "")))
+            except ValueError:
+                raise HTTPException(400, "Cliente destinazione non valido.")
+            if not db.get(Customer, target_customer_id):
+                raise HTTPException(400, "Cliente destinazione non valido.")
+            target_site_id = None
+            if str(form.get("target_site_id", "")).strip():
+                try:
+                    target_site_id = uuid.UUID(str(form.get("target_site_id")))
+                except ValueError:
+                    raise HTTPException(400, "Sede destinazione non valida.")
+                site = db.get(Site, target_site_id)
+                if not site or site.customer_id != target_customer_id:
+                    raise HTTPException(400, "La sede selezionata non appartiene al cliente destinazione.")
+            for device in devices:
+                before = _device_snapshot(device)
+                old_customer_id = device.customer_id
+                device.customer_id = target_customer_id
+                device.site_id = target_site_id
+                if old_customer_id != target_customer_id:
+                    _sync_related_customer(db, device.id, target_customer_id)
+                core.add_event(db, "DEVICE_ASSIGNMENT_CHANGED", actor=user, customer_id=target_customer_id, device_id=device.id, details={"before": before, "after": _device_snapshot(device), "bulk_operation": True})
+            core.add_event(db, "CUSTOMER_DEVICES_BULK_MOVED", actor=user, customer_id=target_customer_id, details={"count": len(devices), "from_customer_id": str(customer_id), "to_customer_id": str(target_customer_id), "to_site_id": str(target_site_id) if target_site_id else None})
+        else:
+            raise HTTPException(400, "Azione non valida.")
+        db.commit()
+    return RedirectResponse(f"/customers/{customer_id}/devices/manage", status_code=303)
 
 
 def install_crud(app):

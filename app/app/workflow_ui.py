@@ -1,8 +1,9 @@
+import re
 import uuid
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
 from app import main as core
@@ -101,32 +102,6 @@ def device_new(request: Request, customer_id: uuid.UUID):
         return core.render(request, db, user, "device_new.html", customer=customer)
 
 
-@router.get("/operations/backups/policies/new", response_class=HTMLResponse)
-def backup_policy_new(request: Request):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "backup.configure"):
-            raise HTTPException(403)
-        customers = list(db.scalars(select(Customer).order_by(Customer.name)))
-        devices = list(
-            db.scalars(
-                select(Device)
-                .options(selectinload(Device.customer))
-                .order_by(Device.display_name.nullslast(), Device.name)
-            )
-        )
-        return core.render(
-            request,
-            db,
-            user,
-            "backup_policy_new.html",
-            customers=customers,
-            devices=devices,
-        )
-
-
 @router.get("/api/v1/search/suggest")
 def search_suggest(request: Request, q: str = ""):
     with SessionLocal() as db:
@@ -138,6 +113,7 @@ def search_suggest(request: Request, q: str = ""):
             return {"results": []}
         like = f"%{term}%"
         normalized_mac = core.search_mac(term)
+        compact_mac = re.sub(r"[^0-9A-Fa-f]", "", term).upper()
 
         customers = list(
             db.scalars(
@@ -159,10 +135,13 @@ def search_suggest(request: Request, q: str = ""):
         ]
         if normalized_mac:
             device_filters.append(Device.primary_mac == normalized_mac)
+        if len(compact_mac) >= 2:
+            normalized_db_mac = func.replace(func.replace(Device.primary_mac, ":", ""), "-", "")
+            device_filters.append(normalized_db_mac.ilike(f"%{compact_mac}%"))
         devices = list(
             db.scalars(
                 select(Device)
-                .options(selectinload(Device.customer))
+                .options(selectinload(Device.customer), selectinload(Device.site))
                 .where(or_(*device_filters))
                 .order_by(Device.display_name.nullslast(), Device.name)
                 .limit(8)
@@ -180,19 +159,20 @@ def search_suggest(request: Request, q: str = ""):
         )
 
         results = []
+        for item in devices:
+            location = item.site.name if item.site else "senza sede"
+            results.append({
+                "type": "Apparato",
+                "title": item.display_name or item.device_identity or item.name,
+                "subtitle": f"{item.customer.name} · {location} · {item.vendor} · {item.management_ip or item.primary_mac or item.serial_number or 'identificazione in attesa'}",
+                "url": f"/devices/{item.id}",
+            })
         for item in customers:
             results.append({
                 "type": "Cliente",
                 "title": item.name,
                 "subtitle": item.code or "Cliente",
                 "url": f"/customers/{item.id}",
-            })
-        for item in devices:
-            results.append({
-                "type": "Apparato",
-                "title": item.display_name or item.device_identity or item.name,
-                "subtitle": f"{item.customer.name} · {item.vendor} · {item.primary_mac or item.serial_number or item.management_ip or 'identificazione in attesa'}",
-                "url": f"/devices/{item.id}",
             })
         for item in sites:
             results.append({
@@ -201,7 +181,7 @@ def search_suggest(request: Request, q: str = ""):
                 "subtitle": f"{item.customer.name} · {item.address or 'nessun indirizzo'}",
                 "url": f"/customers/{item.customer_id}#sites",
             })
-        return {"results": results[:12], "query": term}
+        return {"results": results[:15], "query": term}
 
 
 @router.post("/admin/branding/colors/{color_key}/reset")
