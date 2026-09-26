@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 cd "$(dirname "$0")"
-cmd="${1:-help}"; shift || true
+
+cmd="${1:-help}"
+shift || true
+
 case "$cmd" in
   up) docker compose up -d --build ;;
   down) docker compose down ;;
@@ -13,7 +16,15 @@ case "$cmd" in
   shell) docker compose exec api /bin/sh ;;
   db-shell) docker compose exec postgres psql -U network_platform -d network_platform ;;
   health) curl -fsS http://127.0.0.1/health && echo ;;
-  *) cat <<'TXT'
+  backup-db)
+    mkdir -p data/backups/platform-db
+    out="data/backups/platform-db/network_platform_$(date -u +%Y%m%dT%H%M%SZ).sql.gz"
+    docker compose exec -T postgres pg_dump -U network_platform -d network_platform | gzip -9 > "$out"
+    chmod 640 "$out"
+    echo "$out"
+    ;;
+  *)
+    cat <<'TXT'
 Uso: ./manage.sh <comando>
   up             Build e avvia lo stack
   down           Ferma lo stack
@@ -25,6 +36,7 @@ Uso: ./manage.sh <comando>
   shell          Shell nel container API
   db-shell       psql nel database
   health         Health check via Caddy
+  backup-db      Crea pg_dump compresso
 TXT
-  ;;
+    ;;
 esac

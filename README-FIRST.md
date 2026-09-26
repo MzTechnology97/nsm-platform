@@ -1,35 +1,59 @@
-# Network Security Platform Core 0.1
+# NSM Platform
 
-Core iniziale con FastAPI/Uvicorn, PostgreSQL 18, Redis, worker, Caddy, Alembic, login Argon2, CSRF, Clienti, Sedi, Apparati e audit events.
+Private WISP network operations and security management platform.
 
-## Installazione
+## Core 0.2
 
-Dalla directory estratta:
+Core 0.2 introduces the long-term application structure:
 
-```bash
-chmod +x install_core.sh manage.sh
-./install_core.sh
+- professional sidebar/topbar UI and global search;
+- Customer → optional Site → Device inventory;
+- operator alias (`display_name`) separated from observed device identity;
+- server-side device filters and pagination;
+- one-shot MikroTik enrollment token and bootstrap inventory;
+- Notification Center with per-user unread state;
+- Action Center foundation;
+- CVE/security advisory → impacted device data model;
+- lifecycle EOL/EOS fields;
+- backup policies with global/vendor/customer/device precedence;
+- backup run evidence fields and SHA256;
+- administration users and initial RBAC roles;
+- append-only audit events;
+- safe update script with pre-migration PostgreSQL dump.
+
+## Runtime layout
+
+Git repository:
+
+```text
+~/nsm-platform
 ```
 
-Poi:
+Active runtime:
 
-```bash
-cd /srv/network-platform
-./manage.sh create-admin
+```text
+/srv/network-platform
 ```
 
-Apri `http://IP-DEL-SERVER/`.
+Runtime secrets, PostgreSQL data and `.env` are **not** stored in Git.
 
-Per ora il portale usa HTTP in LAN e `SESSION_COOKIE_SECURE=false`. Prima di esporlo pubblicamente configureremo FQDN + HTTPS e abiliteremo il cookie Secure.
+## Upgrade workflow
 
-Comandi utili:
+After a release is merged into `main`:
 
 ```bash
-./manage.sh status
-./manage.sh logs
-./manage.sh logs api
-./manage.sh health
-./manage.sh db-shell
+cd ~/nsm-platform
+git switch main
+git pull --ff-only
+./update.sh
 ```
 
-Non condividere `/srv/network-platform/secrets/bootstrap.env`.
+`update.sh` creates a compressed `pg_dump`, deploys only application/config files,
+builds the containers, runs Alembic through Compose and verifies `/health`.
+
+## Security note
+
+The current MikroTik bootstrap is a one-shot enrollment/inventory mechanism. It
+does not implement arbitrary remote command execution. Persistent authenticated
+agent jobs (backup, heartbeat, firmware workflow) are intentionally implemented
+as a separate capability layer.
