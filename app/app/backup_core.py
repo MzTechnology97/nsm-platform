@@ -10,7 +10,7 @@ from app import main as core
 from app.backup_models import BackupArtifact, BackupPolicySettings
 from app.backup_storage import remove_artifact_file, resolve_artifact_path
 from app.db import SessionLocal
-from app.models import BackupPolicy, BackupRun, Customer, Device, utcnow
+from app.models import BackupPolicy, BackupRun, Customer, Device, Site, utcnow
 from app.security import validate_csrf
 
 router = APIRouter()
@@ -93,25 +93,31 @@ def _build_schedule(kind, time_value, weekday=None, monthday=None):
     return f"{minute} {hour} * * *", "daily", normalized, None, None
 
 
-def _scope_target(db, scope_type, vendor, customer_id, device_id):
+def _scope_target(db, scope_type, vendor, customer_id, site_id, device_id):
     if scope_type == "global":
-        return None, None, None
+        return None, None, None, None
     if scope_type == "vendor":
         vendor = (vendor or "").strip().lower()
         if vendor not in VENDOR_LABELS:
             raise HTTPException(400, "Vendor richiesto.")
-        return vendor, None, None
+        return vendor, None, None, None
     if scope_type == "customer":
         cid = _parse_uuid(customer_id, "Cliente")
         if not db.get(Customer, cid):
             raise HTTPException(400, "Cliente non valido.")
-        return None, cid, None
+        return None, cid, None, None
+    if scope_type == "site":
+        sid = _parse_uuid(site_id, "Sede")
+        site = db.get(Site, sid)
+        if not site:
+            raise HTTPException(400, "Sede non valida.")
+        return None, site.customer_id, sid, None
     if scope_type == "device":
         did = _parse_uuid(device_id, "Apparato")
         device = db.get(Device, did)
         if not device:
             raise HTTPException(400, "Apparato non valido.")
-        return None, None, did
+        return None, None, None, did
     raise HTTPException(400, "Destinazione policy non valida.")
 
 
@@ -122,7 +128,7 @@ def _form_options(form):
     }
 
 
-def _scope_label(policy, customers, devices):
+def _scope_label(policy, settings, customers, sites, devices):
     if policy.scope_type == "global":
         return "Tutti gli apparati"
     if policy.scope_type == "vendor":
@@ -130,6 +136,12 @@ def _scope_label(policy, customers, devices):
     if policy.scope_type == "customer":
         customer = customers.get(policy.customer_id)
         return f"Cliente · {customer.name if customer else 'non disponibile'}"
+    if policy.scope_type == "site":
+        site = sites.get(settings.scope_site_id) if settings and settings.scope_site_id else None
+        if not site:
+            return "Sede · non disponibile"
+        customer = customers.get(site.customer_id)
+        return f"Sede · {site.name} · {customer.name if customer else 'cliente non disponibile'}"
     if policy.scope_type == "device":
         device = devices.get(policy.device_id)
         return f"Apparato · {(device.display_name or device.device_identity or device.name) if device else 'non disponibile'}"
@@ -162,6 +174,7 @@ def _policy_form_state(policy=None, settings=None, clone=False):
         "scope_type": policy.scope_type if policy else "global",
         "vendor": policy.vendor if policy else "mikrotik",
         "customer_id": str(policy.customer_id) if policy and policy.customer_id else "",
+        "site_id": str(settings.scope_site_id) if settings and settings.scope_site_id else "",
         "device_id": str(policy.device_id) if policy and policy.device_id else "",
         "schedule_kind": settings.schedule_kind if settings else "daily",
         "schedule_time": settings.schedule_time if settings else "03:00",
@@ -177,6 +190,13 @@ def _policy_form_state(policy=None, settings=None, clone=False):
 
 def _targets(db):
     customers = list(db.scalars(select(Customer).order_by(Customer.name)))
+    sites = list(
+        db.scalars(
+            select(Site)
+            .options(selectinload(Site.customer))
+            .order_by(Site.name)
+        )
+    )
     devices = list(
         db.scalars(
             select(Device)
@@ -184,7 +204,7 @@ def _targets(db):
             .order_by(Device.display_name.nullslast(), Device.name)
         )
     )
-    return customers, devices
+    return customers, sites, devices
 
 
 def _apply_policy_form(db, policy, settings, form):
@@ -192,11 +212,12 @@ def _apply_policy_form(db, policy, settings, form):
     if not name:
         raise HTTPException(400, "Nome policy richiesto.")
     scope_type = str(form.get("scope_type", "global"))
-    vendor, customer_id, device_id = _scope_target(
+    vendor, customer_id, site_id, device_id = _scope_target(
         db,
         scope_type,
         form.get("vendor"),
         form.get("customer_id"),
+        form.get("site_id"),
         form.get("device_id"),
     )
     cron, kind, time_value, weekday, monthday = _build_schedule(
@@ -225,6 +246,7 @@ def _apply_policy_form(db, policy, settings, form):
     except (TypeError, ValueError):
         raise HTTPException(400, "Valori di retention non validi.")
     settings.description = str(form.get("description", "")).strip() or None
+    settings.scope_site_id = site_id
     settings.schedule_kind = kind
     settings.schedule_time = time_value
     settings.schedule_weekday = weekday
@@ -253,6 +275,7 @@ def backup_center(request: Request):
             db.commit()
 
         customers = {c.id: c for c in db.scalars(select(Customer))}
+        sites = {s.id: s for s in db.scalars(select(Site).options(selectinload(Site.customer)))}
         devices = {
             d.id: d
             for d in db.scalars(
@@ -276,7 +299,7 @@ def backup_center(request: Request):
             {
                 "policy": p,
                 "settings": settings_map.get(p.id),
-                "scope": _scope_label(p, customers, devices),
+                "scope": _scope_label(p, settings_map.get(p.id), customers, sites, devices),
                 "schedule": _schedule_label(settings_map.get(p.id), p),
             }
             for p in policies
@@ -290,6 +313,7 @@ def backup_center(request: Request):
             runs=runs,
             devices=devices,
             customers=customers,
+            sites=sites,
             artifacts_by_run=artifacts_by_run,
             artifacts=artifacts,
             device_total=db.scalar(select(func.count(Device.id))) or 0,
@@ -308,10 +332,10 @@ def backup_policy_new(request: Request):
             return core.login_redirect()
         if not core.has_permission(user, "backup.configure"):
             raise HTTPException(403)
-        customers, devices = _targets(db)
+        customers, sites, devices = _targets(db)
         return core.render(
             request, db, user, "backup_policy_form.html",
-            state=_policy_form_state(), customers=customers, devices=devices,
+            state=_policy_form_state(), customers=customers, sites=sites, devices=devices,
             form_action="/operations/backups/policies/create", mode="create",
         )
 
@@ -351,10 +375,10 @@ def backup_policy_edit(request: Request, policy_id: uuid.UUID):
         settings = _policy_settings(db, policy, create=True)
         if settings in db.new:
             db.commit()
-        customers, devices = _targets(db)
+        customers, sites, devices = _targets(db)
         return core.render(
             request, db, user, "backup_policy_form.html",
-            state=_policy_form_state(policy, settings), customers=customers, devices=devices,
+            state=_policy_form_state(policy, settings), customers=customers, sites=sites, devices=devices,
             form_action=f"/operations/backups/policies/{policy.id}/edit", mode="edit",
         )
 
@@ -394,10 +418,10 @@ def backup_policy_clone(request: Request, policy_id: uuid.UUID):
         settings = _policy_settings(db, policy, create=True)
         if settings in db.new:
             db.commit()
-        customers, devices = _targets(db)
+        customers, sites, devices = _targets(db)
         return core.render(
             request, db, user, "backup_policy_form.html",
-            state=_policy_form_state(policy, settings, clone=True), customers=customers, devices=devices,
+            state=_policy_form_state(policy, settings, clone=True), customers=customers, sites=sites, devices=devices,
             form_action="/operations/backups/policies/create", mode="clone",
         )
 
