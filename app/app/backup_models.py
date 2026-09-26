@@ -10,6 +10,7 @@ from app.models import utcnow
 
 class BackupPolicySettings(Base):
     __tablename__ = "backup_policy_settings"
+    __table_args__ = (Index("ix_backup_policy_settings_scope_site_id", "scope_site_id"),)
 
     policy_id: Mapped[uuid.UUID] = mapped_column(
         Uuid,
@@ -17,6 +18,10 @@ class BackupPolicySettings(Base):
         primary_key=True,
     )
     description: Mapped[str | None] = mapped_column(Text)
+    scope_site_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("sites.id", ondelete="SET NULL"),
+    )
     schedule_kind: Mapped[str] = mapped_column(String(30), default="daily")
     schedule_time: Mapped[str] = mapped_column(String(5), default="03:00")
     schedule_weekday: Mapped[int | None] = mapped_column(Integer)
