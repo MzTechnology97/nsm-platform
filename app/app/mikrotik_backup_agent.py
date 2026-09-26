@@ -5,13 +5,14 @@ from fastapi import APIRouter, HTTPException, Request
 from app import main as core
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
-from app.mikrotik_agent import AGENT_VERSION, _authenticate_agent, _json_body
+from app.mikrotik_agent import _authenticate_agent, _json_body
 from app.mikrotik_backup import finalize_backup_job
 from app.models import utcnow
 import app.mikrotik_agent as agent_module
 
 router = APIRouter()
 _ORIGINAL_BOOTSTRAP = agent_module._bootstrap_script
+AGENT_VERSION = "0.8.0"
 
 
 def _remove_route(app, path: str, method: str):
@@ -56,9 +57,9 @@ def enhanced_agent_source(base_url: str, device_id: uuid.UUID, raw_secret: str, 
 :do {{ :set nsmSoftwareId [/system license get software-id] }} on-error={{}}
 :do {{ :set nsmRouterboot [/system routerboard get current-firmware] }} on-error={{}}
 :do {{ :local nsmEth [/interface ethernet find]; :if ([:len $nsmEth] > 0) do={{ :set nsmMac [/interface ethernet get ($nsmEth->0) mac-address] }} }} on-error={{}}
-:local nsmInventory {{"identity"=$nsmIdentity;"model"=$nsmModel;"routeros_version"=$nsmVersion;"architecture"=$nsmArch;"serial_number"=$nsmSerial;"software_id"=$nsmSoftwareId;"routerboot_version"=$nsmRouterboot;"primary_mac"=$nsmMac;"uptime"=$nsmUptime;"cpu"=$nsmCpu;"cpu_count"=$nsmCpuCount;"total_memory"=$nsmTotalMemory;"free_memory"=$nsmFreeMemory;"agent_version"="0.8.0"}}
+:local nsmInventory {{"identity"=$nsmIdentity;"model"=$nsmModel;"routeros_version"=$nsmVersion;"architecture"=$nsmArch;"serial_number"=$nsmSerial;"software_id"=$nsmSoftwareId;"routerboot_version"=$nsmRouterboot;"primary_mac"=$nsmMac;"uptime"=$nsmUptime;"cpu"=$nsmCpu;"cpu_count"=$nsmCpuCount;"total_memory"=$nsmTotalMemory;"free_memory"=$nsmFreeMemory;"agent_version"="{AGENT_VERSION}"}}
 :local nsmMetrics {{"cpu_load"=[:tostr $nsmCpuLoad];"free_memory"=[:tostr $nsmFreeMemory];"uptime"=[:tostr $nsmUptime]}}
-:local nsmPayload {{"inventory"=$nsmInventory;"metrics"=$nsmMetrics;"agent_version"="0.8.0"}}
+:local nsmPayload {{"inventory"=$nsmInventory;"metrics"=$nsmMetrics;"agent_version"="{AGENT_VERSION}"}}
 :local nsmJson [:serialize value=$nsmPayload to=json options=json.no-string-conversion]
 :local nsmHeartbeatResult ""
 :do {{ :set nsmHeartbeatResult [/tool fetch url=$nsmHeartbeat http-method=post http-header-field=$nsmHeaders http-data=$nsmJson output=user as-value{cert}] }} on-error={{ :log warning "NSM agent heartbeat failed"; :return }}
@@ -126,7 +127,7 @@ def enhanced_agent_source(base_url: str, device_id: uuid.UUID, raw_secret: str, 
       :local nsmDoneUrl ($nsmBase . "/api/v1/agents/mikrotik/jobs/" . $nsmJobId . "/complete")
       :local nsmDoneStatus "failed"
       :if ($nsmJobOk) do={{ :set nsmDoneStatus "success" }}
-      :local nsmDoneBody [:serialize value={{"status"=$nsmDoneStatus;"error"=$nsmJobError;"result"={{"agent_version"="0.8.0"}}}} to=json options=json.no-string-conversion]
+      :local nsmDoneBody [:serialize value={{"status"=$nsmDoneStatus;"error"=$nsmJobError;"result"={{"agent_version"="{AGENT_VERSION}"}}}} to=json options=json.no-string-conversion]
       :do {{ /tool fetch url=$nsmDoneUrl http-method=post http-header-field=$nsmHeaders http-data=$nsmDoneBody output=user as-value{cert} }} on-error={{ :log warning "NSM backup completion report failed" }}
     }}
   }}
@@ -137,8 +138,8 @@ def enhanced_agent_source(base_url: str, device_id: uuid.UUID, raw_secret: str, 
 def enhanced_bootstrap_script(base_url: str, token: str):
     script = _ORIGINAL_BOOTSTRAP(base_url, token)
     script = script.replace(
-        'policy=read,test source=$nsmAgentSource comment="NSM managed agent 0.7.0"',
-        'policy=read,write,test,sensitive source=$nsmAgentSource comment="NSM managed agent 0.8.0"',
+        'policy=read,test source=$nsmAgentSource',
+        'policy=read,write,test,sensitive source=$nsmAgentSource',
     )
     script = script.replace(
         'policy=read,test comment="NSM managed agent"',
@@ -182,6 +183,7 @@ async def backup_aware_job_complete(request: Request, job_id: uuid.UUID):
 
 
 def install_mikrotik_backup_agent(app):
+    agent_module.AGENT_VERSION = AGENT_VERSION
     agent_module._agent_source = enhanced_agent_source
     agent_module._bootstrap_script = enhanced_bootstrap_script
     _remove_route(app, "/api/v1/agents/mikrotik/jobs/{job_id}/complete", "POST")
