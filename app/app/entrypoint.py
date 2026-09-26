@@ -1,6 +1,7 @@
 """NSM Core 0.9 application entrypoint."""
 from app import main as core
 from app.agent_ui import install_agent_ui
+from app.backup_capability_guard import install_backup_capability_guard
 from app.backup_core import install_backup_core
 from app.backup_policy_bridge import install_backup_policy_bridge
 from app.backup_scope_guard import install_backup_scope_guard
@@ -24,6 +25,7 @@ install_workflow_ui(core.app, core.templates)
 install_crud(core.app)
 install_backup_core(core.app, core.templates)
 install_backup_scope_guard()
+install_backup_capability_guard()
 install_backup_policy_bridge()
 install_demo_ui(core.app)
 install_mikrotik_agent(core.app)
