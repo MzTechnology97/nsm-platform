@@ -6,7 +6,7 @@ from app import main as core
 from app.branding_runtime import install_branding_runtime
 from app.ui_extension import install_ui
 
-APP_VERSION = "0.3.2"
+APP_VERSION = "0.3.3"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
