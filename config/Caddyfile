@@ -1,0 +1,20 @@
+{
+	admin off
+}
+
+:80 {
+	encode zstd gzip
+	header {
+		-Server
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Content-Security-Policy "default-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'self'"
+	}
+	reverse_proxy api:8000 {
+		health_uri /health
+		health_interval 15s
+		health_timeout 3s
+	}
+}
