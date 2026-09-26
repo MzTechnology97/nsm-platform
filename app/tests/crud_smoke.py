@@ -176,12 +176,11 @@ def main():
 
     response = client.post(
         f"/customers/{b_id}/devices/bulk-delete",
-        data=[
-            ("csrf", csrf),
-            ("confirm", "DELETE"),
-            ("device_ids", str(device_id)),
-            ("device_ids", str(device2_id)),
-        ],
+        data={
+            "csrf": csrf,
+            "confirm": "DELETE",
+            "device_ids": [str(device_id), str(device2_id)],
+        },
         follow_redirects=False,
     )
     assert response.status_code == 303
