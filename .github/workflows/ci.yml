@@ -61,8 +61,9 @@ jobs:
           cd app
           python - <<'PY'
           from app.entrypoint import app
-          assert app.version == '0.3.1'
+          assert app.version == '0.3.2'
           assert app.state.nsm_templates is not None
+          assert any(getattr(route, 'path', None) == '/branding/theme.css' for route in app.routes)
           assert len(app.routes) > 10
           print(f'Core {app.version}: application imported successfully')
           PY
