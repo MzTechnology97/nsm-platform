@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import re
+import uuid
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -116,6 +117,21 @@ def upload(client, headers, job_id, artifact_type, payload: bytes):
 
 
 def main():
+    completion_routes = [
+        route
+        for route in app.routes
+        if getattr(route, "path", None) == "/api/v1/agents/mikrotik/jobs/{job_id}/complete"
+        and "POST" in (getattr(route, "methods", set()) or set())
+    ]
+    assert len(completion_routes) == 1, [
+        (route.name, getattr(route.endpoint, "__module__", "?"))
+        for route in completion_routes
+    ]
+    assert completion_routes[0].endpoint.__module__ == "app.mikrotik_backup_agent", (
+        completion_routes[0].name,
+        completion_routes[0].endpoint.__module__,
+    )
+
     device_id, token = seed()
     client = TestClient(app)
 
@@ -168,7 +184,7 @@ def main():
         )
         assert job and job.status == "pending"
         job_id = job.id
-        run_id = job.payload["run_id"]
+        run_id = uuid.UUID(str(job.payload["run_id"]))
         stored_secret = db.get(MikrotikBackupJobSecret, job.id)
         assert stored_secret
         assert "CI08" not in stored_secret.encrypted_backup_password
@@ -214,7 +230,20 @@ def main():
         job = db.get(DeviceJob, job_id)
         run = db.get(BackupRun, run_id)
         assert job.status == "success"
-        assert run.status == "success"
+        assert run.status == "success", {
+            "status": run.status,
+            "error": run.error_message,
+            "job_status": job.status,
+            "job_error": job.last_error,
+            "expected": job.payload.get("formats"),
+            "artifacts": [
+                (item.artifact_type, item.status, item.received_size, item.expected_size)
+                for item in db.scalars(
+                    select(__import__("app.mikrotik_backup_models", fromlist=["BackupUploadSession"]).BackupUploadSession)
+                    .where(__import__("app.mikrotik_backup_models", fromlist=["BackupUploadSession"]).BackupUploadSession.job_id == job.id)
+                )
+            ],
+        }
         artifacts = list(db.scalars(select(BackupArtifact).where(BackupArtifact.run_id == run.id)))
         assert {a.artifact_type for a in artifacts} == {"mikrotik_binary", "mikrotik_export"}
         assert sum(a.size_bytes for a in artifacts) == len(binary_payload) + len(export_payload)
