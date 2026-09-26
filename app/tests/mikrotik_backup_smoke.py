@@ -11,7 +11,7 @@ from app.agent_models import DeviceJob
 from app.backup_models import BackupArtifact, BackupPolicySettings
 from app.db import SessionLocal
 from app.entrypoint import app
-from app.mikrotik_backup_models import MikrotikBackupJobSecret
+from app.mikrotik_backup_models import BackupUploadSession, MikrotikBackupJobSecret
 from app.models import BackupPolicy, BackupRun, Customer, Device, User
 from app.secret_vault import decrypt_text
 from app.security import hash_password
@@ -117,20 +117,11 @@ def upload(client, headers, job_id, artifact_type, payload: bytes):
 
 
 def main():
-    completion_routes = [
-        route
-        for route in app.routes
-        if getattr(route, "path", None) == "/api/v1/agents/mikrotik/jobs/{job_id}/complete"
-        and "POST" in (getattr(route, "methods", set()) or set())
-    ]
-    assert len(completion_routes) == 1, [
-        (route.name, getattr(route.endpoint, "__module__", "?"))
-        for route in completion_routes
-    ]
-    assert completion_routes[0].endpoint.__module__ == "app.mikrotik_backup_agent", (
-        completion_routes[0].name,
-        completion_routes[0].endpoint.__module__,
+    route = app.url_path_for(
+        "backup_aware_job_complete",
+        job_id="00000000-0000-0000-0000-000000000001",
     )
+    assert str(route) == "/api/v1/agents/mikrotik/backup-jobs/00000000-0000-0000-0000-000000000001/complete"
 
     device_id, token = seed()
     client = TestClient(app)
@@ -220,7 +211,7 @@ def main():
     export_artifact_id = upload(client, headers, job_id, "mikrotik_export", export_payload)
 
     complete = client.post(
-        f"/api/v1/agents/mikrotik/jobs/{job_id}/complete",
+        f"/api/v1/agents/mikrotik/backup-jobs/{job_id}/complete",
         headers=headers,
         json={"status": "success", "result": {"agent_version": "0.8.0"}},
     )
@@ -230,18 +221,16 @@ def main():
         job = db.get(DeviceJob, job_id)
         run = db.get(BackupRun, run_id)
         assert job.status == "success"
+        uploads = list(db.scalars(select(BackupUploadSession).where(BackupUploadSession.job_id == job.id)))
         assert run.status == "success", {
             "status": run.status,
             "error": run.error_message,
             "job_status": job.status,
             "job_error": job.last_error,
             "expected": job.payload.get("formats"),
-            "artifacts": [
+            "uploads": [
                 (item.artifact_type, item.status, item.received_size, item.expected_size)
-                for item in db.scalars(
-                    select(__import__("app.mikrotik_backup_models", fromlist=["BackupUploadSession"]).BackupUploadSession)
-                    .where(__import__("app.mikrotik_backup_models", fromlist=["BackupUploadSession"]).BackupUploadSession.job_id == job.id)
-                )
+                for item in uploads
             ],
         }
         artifacts = list(db.scalars(select(BackupArtifact).where(BackupArtifact.run_id == run.id)))
