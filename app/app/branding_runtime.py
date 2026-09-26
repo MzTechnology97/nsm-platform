@@ -1,11 +1,7 @@
-from fastapi import APIRouter
 from fastapi.responses import Response
 
-from app.config import settings
 from app.db import SessionLocal
 from app.preferences import PlatformBranding
-
-router = APIRouter()
 
 _DEFAULT_PRIMARY = "#1f5f8b"
 _DEFAULT_SIDEBAR = "#111827"
@@ -23,13 +19,8 @@ def _safe_color(value: str | None, fallback: str) -> str:
     return fallback
 
 
-@router.get("/branding/theme.css", include_in_schema=False)
 def branding_theme_css():
-    """Serve the persisted branding palette directly from PostgreSQL.
-
-    This endpoint is deliberately non-cacheable so a branding change becomes
-    visible immediately and cannot be masked by stale static CSS assets.
-    """
+    """Serve the persisted branding palette directly from PostgreSQL."""
     with SessionLocal() as db:
         item = db.get(PlatformBranding, 1)
         primary = _safe_color(
@@ -54,7 +45,6 @@ def branding_theme_css():
   --sidebar: {sidebar} !important;
   --accent-soft: color-mix(in srgb, {primary} 12%, transparent) !important;
 }}
-
 .sidebar {{ background: {sidebar} !important; }}
 a, .text-link, .customer-item:hover .customer-main strong {{ color: {primary}; }}
 .button.primary,
@@ -97,4 +87,10 @@ input:focus, textarea:focus, select:focus {{
 
 
 def install_branding_runtime(app):
-    app.include_router(router)
+    app.add_api_route(
+        "/branding/theme.css",
+        branding_theme_css,
+        methods=["GET"],
+        include_in_schema=False,
+        name="branding_theme_css",
+    )
