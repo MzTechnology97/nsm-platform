@@ -51,6 +51,24 @@ git pull --ff-only
 `update.sh` creates a compressed `pg_dump`, deploys only application/config files,
 builds the containers, runs Alembic through Compose and verifies `/health`.
 
+## Automatic validated deployment
+
+The optional unattended flow is:
+
+```text
+main -> GitHub Actions CI -> deploy -> NSM-CDA systemd timer -> update.sh
+```
+
+Install it once with:
+
+```bash
+sudo ./scripts/install-auto-update.sh
+```
+
+If a deployment fails, the server publishes a sanitized diagnostic file named
+`log` on the `runtime-logs` branch. Runtime secrets are not intentionally
+included in that report.
+
 ## Security note
 
 The current MikroTik bootstrap is a one-shot enrollment/inventory mechanism. It
