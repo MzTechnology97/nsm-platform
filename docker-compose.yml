@@ -55,7 +55,7 @@ services:
     env_file:
       - ./.env
       - ./secrets/bootstrap.env
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]
+    command: ["uvicorn", "app.entrypoint:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]
     depends_on:
       postgres:
         condition: service_healthy
