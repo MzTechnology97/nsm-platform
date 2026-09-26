@@ -1,1 +1,90 @@
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{% block title %}{{ app_name }}{% endblock %}</title><link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}"></head><body><header class="topbar"><div class="brand"><a href="/">{{ app_name }}</a></div>{% if user %}<nav><a href="/">Dashboard</a><a href="/customers">Clienti</a><span class="user">{{ user.username }}</span><form method="post" action="/logout" class="inline"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="link-button">Esci</button></form></nav>{% endif %}</header><main class="container">{% block content %}{% endblock %}</main></body></html>
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+</head>
+<body>
+{% if user %}
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">NSM</div>
+      <div>
+        <strong>{{ app_name }}</strong>
+        <small>v{{ app_version }}</small>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="/"><span class="nav-icon">▦</span>Dashboard</a>
+      <div class="nav-section">Inventory</div>
+      <a class="nav-item" href="/customers"><span class="nav-icon">◎</span>Clienti</a>
+      <a class="nav-item" href="/devices"><span class="nav-icon">▣</span>Apparati</a>
+      <div class="nav-section">Operations</div>
+      <a class="nav-item" href="/operations/monitoring"><span class="nav-icon">⌁</span>Monitoring</a>
+      <a class="nav-item" href="/operations/backups"><span class="nav-icon">⇩</span>Backup</a>
+      <a class="nav-item" href="/operations/firmware"><span class="nav-icon">↻</span>Firmware</a>
+      <div class="nav-section">Security</div>
+      <a class="nav-item" href="/security/vulnerabilities"><span class="nav-icon">◈</span>Vulnerabilità</a>
+      <a class="nav-item" href="/security/lifecycle"><span class="nav-icon">⌛</span>EOL / EOS</a>
+      <a class="nav-item attention-link" href="/action-center"><span class="nav-icon">!</span>Action Center</a>
+      <div class="nav-section">Audit</div>
+      <a class="nav-item" href="/audit/events"><span class="nav-icon">≡</span>Eventi</a>
+      <a class="nav-item" href="/audit/reports"><span class="nav-icon">▤</span>Report</a>
+      <div class="nav-section">Platform</div>
+      <a class="nav-item" href="/integrations"><span class="nav-icon">⌘</span>Integrazioni</a>
+      {% if has_permission(user, 'users.manage') %}
+      <a class="nav-item" href="/admin/users"><span class="nav-icon">⚙</span>Amministrazione</a>
+      {% endif %}
+    </nav>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar">
+      <form class="global-search" method="get" action="/search">
+        <span class="search-icon">⌕</span>
+        <input name="q" value="{{ request.query_params.get('q','') if request.url.path == '/search' else '' }}" placeholder="Cerca cliente, apparato, MAC, seriale, IP...">
+      </form>
+
+      <div class="top-actions">
+        <details class="notification-menu">
+          <summary class="icon-button bell" aria-label="Notifiche">
+            <span>♢</span>
+            {% if unread_notification_count %}<b class="notification-count">{{ unread_notification_count }}</b>{% endif %}
+          </summary>
+          <div class="notification-dropdown">
+            <div class="dropdown-header"><strong>Notifiche</strong><a href="/notifications">Vedi tutte</a></div>
+            {% if recent_notifications %}
+              {% for n in recent_notifications %}
+              <a class="notification-row" href="{{ n.source_url or '/notifications' }}" {% if n.source_url %}target="_blank" rel="noopener"{% endif %}>
+                <span class="severity-dot severity-{{ n.severity }}"></span>
+                <span><strong>{{ n.title }}</strong><small>{{ n.message or n.category }} · {{ fmt_dt(n.created_at) }}</small></span>
+              </a>
+              {% endfor %}
+            {% else %}<div class="empty-mini">Nessuna nuova notifica.</div>{% endif %}
+          </div>
+        </details>
+
+        <details class="user-menu">
+          <summary class="user-chip">
+            <span class="avatar">{{ (user.display_name or user.username)[0]|upper }}</span>
+            <span><strong>{{ user.display_name or user.username }}</strong><small>{{ role_labels.get(user.role, user.role) }}</small></span>
+          </summary>
+          <div class="user-dropdown">
+            {% if has_permission(user, 'users.manage') %}<a href="/admin/users">Amministrazione</a>{% endif %}
+            <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="menu-button">Esci</button></form>
+          </div>
+        </details>
+      </div>
+    </header>
+    <main class="main-content">{% block content %}{% endblock %}</main>
+  </div>
+</div>
+{% else %}
+<main class="login-surface">{% block login_content %}{% endblock %}</main>
+{% endif %}
+</body>
+</html>

@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>{{ title }}</h1><p>{{ subtitle }}</p></div></div>
+{% if cards %}<div class="metric-grid metric-grid-4">{% for label,value in cards %}<div class="metric-card"><span class="metric-label">{{ label }}</span><strong>{{ value }}</strong></div>{% endfor %}</div>{% endif %}
+<section class="panel"><div class="empty-state">{{ message }}</div></section>
+{% endblock %}
