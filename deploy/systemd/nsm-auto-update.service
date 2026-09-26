@@ -13,9 +13,7 @@ TimeoutStartSec=20min
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7
-ProtectSystem=full
 PrivateTmp=true
-NoNewPrivileges=false
 
 [Install]
 WantedBy=multi-user.target
