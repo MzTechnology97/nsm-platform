@@ -41,8 +41,8 @@ jobs:
           env = Environment(loader=FileSystemLoader(str(root)))
           files = sorted(root.glob('*.html'))
           for path in files:
-            env.get_template(path.name)
-            print(f'OK {path.name}')
+              env.get_template(path.name)
+              print(f'OK {path.name}')
           print(f'Parsed {len(files)} templates')
           PY
 
@@ -89,7 +89,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout validated commit
-        uses: actions/checkout@14
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
