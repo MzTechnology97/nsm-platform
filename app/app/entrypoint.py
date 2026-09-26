@@ -1,5 +1,6 @@
-"""NSM Core 0.8 application entrypoint."""
+"""NSM Core 0.9 application entrypoint."""
 from app import main as core
+from app.agent_ui import install_agent_ui
 from app.backup_core import install_backup_core
 from app.backup_policy_bridge import install_backup_policy_bridge
 from app.branding_runtime import install_branding_runtime
@@ -12,7 +13,7 @@ from app.sites_ui import install_sites_ui
 from app.ui_extension import install_ui
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.8.0"
+APP_VERSION = "0.9.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -27,6 +28,7 @@ install_demo_ui(core.app)
 install_mikrotik_agent(core.app)
 install_mikrotik_backup(core.app)
 install_mikrotik_backup_agent(core.app)
+install_agent_ui(core.app)
 install_branding_runtime(core.app)
 
 app = core.app
