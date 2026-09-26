@@ -51,6 +51,9 @@ jobs:
           assert "ui.js') }}?v={{ app_version }}" in base
           assert 'data-global-search-input' in base
           assert 'data-search-suggestions' in base
+          assert (root / 'backup_center.html').exists()
+          assert (root / 'backup_policy_form.html').exists()
+          assert (root / 'customer_devices_manage.html').exists()
           print(f'Parsed {len(files)} templates')
           PY
 
@@ -69,13 +72,19 @@ jobs:
           cd app
           python - <<'PY'
           from app.entrypoint import app
+          from app.backup_models import BackupArtifact, BackupPolicySettings
           assert app.version == '0.4.0'
           assert app.state.nsm_templates is not None
           assert str(app.url_path_for('branding_theme_css')) == '/branding/theme.css'
           assert str(app.url_path_for('search_suggest')) == '/api/v1/search/suggest'
           assert str(app.url_path_for('customer_new')) == '/customers/new/form'
-          assert str(app.url_path_for('backup_policy_new')) == '/operations/backups/policies/new'
-          assert len(app.routes) > 15
+          assert str(app.url_path_for('backup_policy_new_v2')) == '/operations/backups/policies/new'
+          assert str(app.url_path_for('backup_center')) == '/operations/backups'
+          assert str(app.url_path_for('customer_edit')) == '/customers/{customer_id}/edit'
+          assert str(app.url_path_for('customer_devices_manage')) == '/customers/{customer_id}/devices/manage'
+          assert BackupArtifact.__tablename__ == 'backup_artifacts'
+          assert BackupPolicySettings.__tablename__ == 'backup_policy_settings'
+          assert len(app.routes) > 20
           print(f'Core {app.version}: application imported successfully')
           PY
 
