@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Demo Lab · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Demo Lab</h1><p>Dataset isolato per testare UI e workflow senza usare clienti reali.</p></div></div>
+<div class="admin-tabs"><a href="/admin/users">Utenti</a><a href="/admin/branding">Branding</a><a class="active" href="/admin/demo">Demo Lab</a><span>Retention</span><span>System settings</span></div>
+{% if status=='seeded' %}<div class="alert success">Dataset demo creato.</div>{% endif %}{% if status=='cleared' %}<div class="alert success">Dataset demo rimosso.</div>{% endif %}
+<div class="content-split compact">
+<section class="panel"><div class="panel-header"><div><h2>Dataset demo</h2><p>Clienti, sedi, apparati multi-vendor, policy, esecuzioni e file backup fittizi scaricabili.</p></div></div><div class="metric-grid metric-grid-4"><div class="metric-card"><span class="metric-label">Clienti demo</span><strong>{{ demo_customers }}</strong><small>codice DEMO-*</small></div></div>{% if not demo_customers %}<form method="post" action="/admin/demo/seed"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Genera dati demo</button></form>{% else %}<p class="muted">Usali per ricerca live, spostamenti, cancellazioni, policy e download backup.</p>{% endif %}</section>
+<section class="panel danger-zone"><h2>Rimuovi dataset demo</h2><p>Rimuove esclusivamente oggetti identificati come demo e i file nella cartella backup demo.</p><form method="post" action="/admin/demo/clear" class="form-stack"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><label>Digita DEMO<input name="confirm" autocomplete="off" required></label><button class="button danger" {% if not demo_customers %}disabled{% endif %}>Rimuovi dati demo</button></form></section>
+</div>
+{% endblock %}
