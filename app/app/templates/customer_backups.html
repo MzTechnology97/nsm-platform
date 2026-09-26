@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Backup · {{ customer.name }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/customers">Clienti</a><span>›</span><a href="/customers/{{ customer.id }}">{{ customer.name }}</a><span>›</span><span>Backup</span></div>
+<div class="page-header compact-heading">
+  <div><h1>Backup · {{ customer.name }}</h1><p>Protezione e storico limitati agli apparati di questo cliente.</p></div>
+  <div class="page-actions">{% if has_permission(user, 'backup.configure') %}<a class="button" href="/customers/{{ customer.id }}/backups/policies/new">+ Policy cliente</a>{% endif %}<a class="button ghost" href="/operations/backups">Overview globale</a></div>
+</div>
+<div class="customer-kpi-grid backup-kpi-grid">
+  <div class="customer-kpi"><span class="kpi-symbol">✓</span><span><strong>{{ protected_count }}</strong><small>Protetti da policy</small></span></div>
+  <div class="customer-kpi"><span class="kpi-symbol">●</span><span><strong>{{ success_count }}</strong><small>Ultimo backup OK</small></span></div>
+  <div class="customer-kpi {% if failed_count %}kpi-danger{% endif %}"><span class="kpi-symbol">!</span><span><strong>{{ failed_count }}</strong><small>Ultimo backup fallito</small></span></div>
+  <div class="customer-kpi {% if never_count %}kpi-warning{% endif %}"><span class="kpi-symbol">○</span><span><strong>{{ never_count }}</strong><small>Mai eseguiti</small></span></div>
+</div>
+<section class="panel compact-panel">
+  <form class="filter-bar" method="get">
+    <label>Sede<select name="site_id"><option value="">Tutte le sedi del cliente</option>{% for site in customer.sites|sort(attribute='name') %}<option value="{{ site.id }}" {% if selected_site and selected_site.id == site.id %}selected{% endif %}>{{ site.name }}</option>{% endfor %}</select></label>
+    <label>Stato ultimo backup<select name="status"><option value="">Tutti</option>{% for value,label in [('success','Riuscito'),('failed','Fallito'),('pending','In attesa'),('never','Mai eseguito')] %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <button class="button primary">Filtra</button>
+    {% if selected_site or selected_status %}<a class="button ghost" href="/customers/{{ customer.id }}/backups">Reset</a>{% endif %}
+  </form>
+</section>
+<section class="panel">
+  <div class="panel-header"><div><h2>Apparati protetti</h2><p>Ogni riga appartiene esclusivamente a {{ customer.name }}. Le sedi sono locali a questo cliente.</p></div></div>
+  {% if rows %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Apparato</th><th>Sede</th><th>Metodo</th><th>Policy effettiva</th><th>Ultima esecuzione</th><th>Stato</th><th>Artefatti</th><th></th></tr></thead><tbody>{% for row in rows %}{% set d=row.device %}{% set r=row.latest %}<tr><td><a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a><small>{{ d.vendor }} · {{ d.model or '—' }}</small></td><td>{{ d.site.name if d.site else 'Nessuna sede' }}</td><td>{% if d.vendor == 'mikrotik' %}Agent MikroTik{% elif d.vendor == 'ubiquiti' %}Connector Ubiquiti{% elif d.vendor == 'tp-link' %}ACS / TR-069{% else %}Metodo compatibile{% endif %}</td><td>{% if row.policy %}<strong>{{ row.policy.name }}</strong><small>{{ row.schedule }}</small>{% else %}<span class="warning-text">Nessuna policy</span>{% endif %}</td><td>{{ fmt_dt(r.started_at) if r else 'Mai' }}</td><td><span class="status-pill backup-state-{{ row.state }}">{{ 'Mai eseguito' if row.state == 'never' else row.state }}</span>{% if r and r.error_message %}<small class="error-text">{{ r.error_message|truncate(80) }}</small>{% endif %}</td><td>{% if row.artifacts %}{% for artifact in row.artifacts %}<a class="artifact-chip" href="/operations/backups/artifacts/{{ artifact.id }}/download">{{ artifact.filename }}</a>{% endfor %}{% else %}—{% endif %}</td><td>{% if has_permission(user, 'backup.configure') %}<a class="button tiny ghost" href="/customers/{{ customer.id }}/backups/policies/new?device_id={{ d.id }}">Policy ›</a>{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessun apparato corrisponde ai filtri selezionati.</div>{% endif %}
+</section>
+<section class="panel">
+  <div class="panel-header"><div><h2>Policy applicabili al cliente</h2><p>Incluse policy ereditate globali/vendor e policy specifiche cliente/sede/apparato.</p></div>{% if has_permission(user, 'backup.configure') %}<a class="button" href="/customers/{{ customer.id }}/backups/policies/new">Nuova policy</a>{% endif %}</div>
+  {% if policy_rows %}<div class="backup-policy-list compact-policy-list">{% for row in policy_rows %}<div class="backup-policy-card"><div class="grow"><strong>{{ row.policy.name }}</strong><small>{{ row.scope }}</small></div><div class="backup-policy-meta"><span class="metric-label">Pianificazione</span><strong>{{ row.schedule }}</strong></div><div class="backup-policy-meta"><span class="status-pill">{{ 'Attiva' if row.policy.is_enabled else 'Disattivata' }}</span></div>{% if has_permission(user, 'backup.configure') %}<a class="button tiny ghost" href="/operations/backups/policies/{{ row.policy.id }}/edit">Modifica</a>{% endif %}</div>{% endfor %}</div>{% else %}<div class="empty-state warning">Nessuna policy applicabile a questo cliente.</div>{% endif %}
+</section>
+{% endblock %}
