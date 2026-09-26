@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Backup · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header compact-heading">
+  <div><h1>Backup</h1><p>Overview globale per cliente. Il dettaglio apparati resta confinato nella scheda backup del singolo cliente.</p></div>
+  {% if has_permission(user, 'backup.configure') %}<a class="button primary" href="/operations/backups/policies/new">+ Nuova policy globale</a>{% endif %}
+</div>
+<div class="backup-overview-grid">
+  <div class="backup-status-card"><span class="metric-label">Apparati</span><strong>{{ total_devices }}</strong><small>totali</small></div>
+  <div class="backup-status-card"><span class="metric-label">Protetti</span><strong>{{ protected_total }}</strong><small>con policy effettiva</small></div>
+  <div class="backup-status-card {% if unprotected_total %}metric-warning{% endif %}"><span class="metric-label">Senza policy</span><strong>{{ unprotected_total }}</strong><small>da configurare</small></div>
+  <div class="backup-status-card {% if failed_runs %}metric-critical{% endif %}"><span class="metric-label">Backup falliti</span><strong>{{ failed_runs }}</strong><small>storico complessivo</small></div>
+</div>
+<section class="panel">
+  <div class="panel-header"><div><h2>Stato backup per cliente</h2><p>Una riga per cliente; apri il cliente solo quando serve il dettaglio.</p></div></div>
+  {% if customer_rows %}<div class="customer-health-table backup-customer-table"><div class="customer-health-head"><span>Cliente</span><span>Apparati</span><span>Protetti</span><span>Senza policy</span><span>Allarmi backup</span><span></span></div>{% for row in customer_rows %}<a class="customer-health-row" href="/customers/{{ row.customer.id }}/backups"><span class="customer-health-name"><span class="customer-avatar small">{{ row.customer.name[0]|upper }}</span><span><strong>{{ row.customer.name }}</strong><small>{{ row.customer.code or 'Nessun codice interno' }}</small></span></span><span class="customer-health-cell"><strong>{{ row.devices }}</strong><small>apparati</small></span><span class="customer-health-cell"><strong>{{ row.protected }}</strong><small>protetti</small></span><span class="customer-health-cell {% if row.unprotected %}health-warning{% endif %}"><strong>{{ row.unprotected }}</strong><small>senza policy</small></span><span class="customer-health-cell {% if row.backup_alerts %}health-danger{% endif %}"><strong>{{ row.backup_alerts }}</strong><small>aperti</small></span><span class="customer-health-open">Apri ›</span></a>{% endfor %}</div>{% else %}<div class="empty-state">Nessun cliente configurato.</div>{% endif %}
+</section>
+<section class="panel">
+  <div class="panel-header"><div><h2>Policy</h2><p>{{ active_policy_count }} policy attive. Le policy più specifiche prevalgono su quelle generali.</p></div>{% if has_permission(user, 'backup.configure') %}<a class="button" href="/operations/backups/policies/new">Configura policy</a>{% endif %}</div>
+  {% if policy_rows %}<div class="backup-policy-list compact-policy-list">{% for row in policy_rows %}<div class="backup-policy-card"><div class="grow"><strong>{{ row.policy.name }}</strong><small>{{ row.scope }}</small></div><div class="backup-policy-meta"><span class="metric-label">Pianificazione</span><strong>{{ row.schedule }}</strong></div><div class="backup-policy-meta"><span class="status-pill">{{ 'Attiva' if row.policy.is_enabled else 'Disattivata' }}</span></div>{% if has_permission(user, 'backup.configure') %}<a class="button tiny ghost" href="/operations/backups/policies/{{ row.policy.id }}/edit">Modifica</a>{% endif %}</div>{% endfor %}</div>{% else %}<div class="empty-state warning">Nessuna policy configurata.</div>{% endif %}
+</section>
+{% endblock %}
