@@ -46,23 +46,30 @@ def normalize_vendor(value: str | None) -> str:
     return _VENDOR_ALIASES.get(raw, raw)
 
 
-def _active_mikrotik_agent(db, device_id) -> bool:
-    return bool(
-        db.scalar(
-            select(DeviceAgentCredential.id).where(
-                DeviceAgentCredential.device_id == device_id,
-                DeviceAgentCredential.agent_type == "mikrotik_agent",
-                DeviceAgentCredential.is_active.is_(True),
-            )
-        )
+def active_mikrotik_agent_device_ids(db, device_ids=None) -> set:
+    stmt = select(DeviceAgentCredential.device_id).where(
+        DeviceAgentCredential.agent_type == "mikrotik_agent",
+        DeviceAgentCredential.is_active.is_(True),
     )
+    if device_ids is not None:
+        ids = list(device_ids)
+        if not ids:
+            return set()
+        stmt = stmt.where(DeviceAgentCredential.device_id.in_(ids))
+    return set(db.scalars(stmt))
 
 
-def capability_for_device(db, device) -> BackupCapability:
+def _active_mikrotik_agent(db, device_id) -> bool:
+    return device_id in active_mikrotik_agent_device_ids(db, [device_id])
+
+
+def capability_for_device(db, device, *, active_agent: bool | None = None) -> BackupCapability:
     vendor = normalize_vendor(getattr(device, "vendor", None))
 
     if vendor == "mikrotik":
-        if _active_mikrotik_agent(db, device.id):
+        if active_agent is None:
+            active_agent = _active_mikrotik_agent(db, device.id)
+        if active_agent:
             return BackupCapability(
                 vendor=vendor,
                 method_key="mikrotik_agent",
@@ -124,8 +131,15 @@ def policy_method_enabled(policy_settings, capability: BackupCapability) -> bool
     return any(bool(options.get(key, False)) for key in capability.policy_option_keys)
 
 
-def backup_readiness(db, device, policy=None, policy_settings=None) -> BackupReadiness:
-    capability = capability_for_device(db, device)
+def backup_readiness(
+    db,
+    device,
+    policy=None,
+    policy_settings=None,
+    *,
+    active_agent: bool | None = None,
+) -> BackupReadiness:
+    capability = capability_for_device(db, device, active_agent=active_agent)
     if policy is None:
         return BackupReadiness(
             capability=capability,
