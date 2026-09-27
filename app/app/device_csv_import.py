@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, PlainTextResponse
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app import main as core
@@ -40,6 +40,17 @@ CSV_COLUMNS = (
     "firmware_version",
 )
 REQUIRED_COLUMNS = {"customer_code", "vendor", "device_type", "name"}
+FORBIDDEN_CREDENTIAL_COLUMNS = {
+    "password",
+    "ssh_password",
+    "ssh_user",
+    "ssh_username",
+    "api_key",
+    "token",
+    "secret",
+    "snmp_community",
+    "community",
+}
 _VENDOR_ALIASES = {
     "mikrotik": "mikrotik",
     "routeros": "mikrotik",
@@ -102,7 +113,19 @@ def _parse_csv(raw: bytes):
     if not reader.fieldnames:
         raise HTTPException(400, "Intestazione CSV mancante.")
     normalized_fields = [str(name or "").strip().lower() for name in reader.fieldnames]
-    missing = sorted(REQUIRED_COLUMNS - set(normalized_fields))
+    if len(set(normalized_fields)) != len(normalized_fields):
+        raise HTTPException(400, "Il CSV contiene colonne duplicate.")
+    field_set = set(normalized_fields)
+    credential_columns = sorted(field_set & FORBIDDEN_CREDENTIAL_COLUMNS)
+    if credential_columns:
+        raise HTTPException(
+            400,
+            "Colonne credenziali non consentite: " + ", ".join(credential_columns) + ". Usa l'enrollment NSM per-device.",
+        )
+    unknown = sorted(field_set - set(CSV_COLUMNS))
+    if unknown:
+        raise HTTPException(400, "Colonne non supportate: " + ", ".join(unknown))
+    missing = sorted(REQUIRED_COLUMNS - field_set)
     if missing:
         raise HTTPException(400, "Colonne obbligatorie mancanti: " + ", ".join(missing))
     rows = []
@@ -347,15 +370,15 @@ async def device_csv_import_submit(
     mode = str(mode or "validate").strip().lower()
     if mode not in {"validate", "import"}:
         raise HTTPException(400, "Modalità import non valida.")
-    raw = await csv_file.read(MAX_CSV_BYTES + 1)
-    parsed_rows = _parse_csv(raw)
-    filename = _clean(csv_file.filename, 255) or "devices.csv"
 
     with SessionLocal() as db:
         user = core.current_user(request, db)
         if not user:
             return core.login_redirect()
         core.require_admin(user)
+        raw = await csv_file.read(MAX_CSV_BYTES + 1)
+        parsed_rows = _parse_csv(raw)
+        filename = _clean(csv_file.filename, 255) or "devices.csv"
         rows = _validate_rows(db, parsed_rows)
         if mode == "import":
             rows = _import_ready_rows(db, user, rows)
