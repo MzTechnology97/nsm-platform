@@ -1,4 +1,4 @@
-"""NSM Core 0.18 application entrypoint."""
+"""NSM Core 0.19 application entrypoint."""
 from app import main as core
 from app.agent_ui import install_agent_ui
 from app.backup_capability_guard import install_backup_capability_guard
@@ -23,13 +23,14 @@ from app.mikrotik_backup_agent import install_mikrotik_backup_agent
 from app.mikrotik_snapshot_agent import install_mikrotik_snapshot_agent
 from app.mikrotik_diagnostics_agent import install_mikrotik_diagnostics_agent
 from app.mikrotik_workspace import install_mikrotik_workspace
+from app.mikrotik_telemetry import install_mikrotik_telemetry
 from app.route_precedence import promote_customer_workspace_routes
 from app.search_enhancement import install_search_enhancement
 from app.security_drilldown import install_security_drilldown
 from app.ui_extension import install_ui
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.18.0"
+APP_VERSION = "0.19.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -59,6 +60,7 @@ install_firmware_worklist(core.app)
 install_customer_tabs(core.app)
 install_search_enhancement(core.app)
 install_mikrotik_workspace(core.app)
+install_mikrotik_telemetry(core.app)
 install_dashboard_ui(core.app)
 install_inventory_ui(core.app)
 install_branding_runtime(core.app)

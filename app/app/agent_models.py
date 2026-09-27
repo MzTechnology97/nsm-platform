@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, Uuid
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -55,3 +55,24 @@ class DeviceJob(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     last_error: Mapped[str | None] = mapped_column(Text)
+
+
+class DeviceMetricSample(Base):
+    __tablename__ = "device_metric_samples"
+    __table_args__ = (
+        Index("ix_device_metric_samples_device_observed", "device_id", "observed_at"),
+        Index("ix_device_metric_samples_observed_at", "observed_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    device_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    cpu_load: Mapped[float | None] = mapped_column(Float)
+    free_memory_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    total_memory_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    uptime_text: Mapped[str | None] = mapped_column(String(100))
+    source: Mapped[str] = mapped_column(String(40), default="mikrotik_agent", nullable=False)
