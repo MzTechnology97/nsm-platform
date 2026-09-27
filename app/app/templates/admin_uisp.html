@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Integrazioni · UISP · {{ ui_context(request).branding.portal_name }}{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1>Integrazioni · UISP</h1><p>Connettore read-only verso UISP Network per inventario e associazione apparati Ubiquiti.</p></div><a class="button ghost" href="/admin/users">Amministrazione</a></div>
-<div class="admin-tabs"><a href="/admin/users">Utenti</a><span>Ruoli & permessi</span><a href="/admin/api-keys">API Keys</a><a class="active" href="/admin/integrations/uisp">Integrazioni</a><a href="/admin/branding">Branding</a><a href="/admin/demo">Demo Lab</a><span>Retention</span><span>System settings</span></div>
+<div class="page-header"><div><h1>Integrazioni · UISP</h1><p>Connettore read-only verso UISP Network per inventario e associazione apparati Ubiquiti.</p></div><a class="button ghost" href="/admin/integrations">Tutte le integrazioni</a></div>
+<div class="admin-tabs"><a href="/admin/users">Utenti</a><span>Ruoli & permessi</span><a href="/admin/api-keys">API Keys</a><a class="active" href="/admin/integrations">Integrazioni</a><a href="/admin/branding">Branding</a><a href="/admin/demo">Demo Lab</a><span>Retention</span><span>System settings</span></div>
 
 {% if message %}<div class="alert success">{{ message }}</div>{% endif %}
 {% if error %}<div class="alert warning">{{ error }}</div>{% endif %}
