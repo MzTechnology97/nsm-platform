@@ -23,7 +23,6 @@
   <link rel="stylesheet" href="{{ url_for('static', path='/core06.css') }}?v={{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', path='/customer_workspace.css') }}?v={{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', path='/search_enhancement.css') }}?v={{ app_version }}">
-  <link rel="stylesheet" href="{{ url_for('static', path='/mikrotik_workspace.css') }}?v={{ app_version }}">
   <link rel="stylesheet" href="/branding/theme.css?v={{ app_version }}" data-runtime-branding>
   <script defer src="{{ url_for('static', path='/ui.js') }}?v={{ app_version }}"></script>
 </head>
@@ -79,24 +78,31 @@
         <div class="search-suggestions" id="global-search-suggestions" data-search-suggestions role="listbox"></div>
       </div>
 
-      <div class="topbar-actions">
-        <button type="button" class="icon-button theme-toggle" data-theme-toggle aria-label="Cambia tema" title="Cambia tema"><span data-theme-icon>◐</span></button>
-        <div class="dropdown" data-dropdown>
-          <button type="button" class="icon-button notification-button" data-dropdown-toggle aria-label="Notifiche" title="Notifiche">♢{% if unread_notifications %}<span class="notification-count">{{ unread_notifications }}</span>{% endif %}</button>
-          <div class="dropdown-menu notification-menu"><div class="dropdown-header"><strong>Notifiche</strong><a href="/notifications">Vedi tutte</a></div>{% if notification_preview %}{% for n in notification_preview %}<a class="notification-item" href="{{ n.target_url or '/notifications' }}"><span class="severity-dot severity-{{ n.severity }}"></span><span><strong>{{ n.title }}</strong><small>{{ fmt_dt(n.created_at) }}</small></span></a>{% endfor %}{% else %}<div class="dropdown-empty">Nessuna nuova notifica.</div>{% endif %}</div>
-        </div>
-        <div class="dropdown user-dropdown" data-dropdown>
-          <button type="button" class="user-chip" data-dropdown-toggle><span class="avatar">{{ (user.display_name or user.username)[0]|upper }}</span><span class="user-copy"><strong>{{ user.display_name or user.username }}</strong><small>{{ role_label(user.role) }}</small></span><span class="chevron">⌄</span></button>
-          <div class="dropdown-menu user-menu"><a href="/profile">Profilo e sicurezza</a>{% if has_permission(user, 'users.manage') %}<a href="/admin/users">Gestione utenti</a><a href="/admin/branding">Branding</a><a href="/admin/demo">Demo Lab</a>{% endif %}<div class="dropdown-divider"></div><form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button type="submit">Logout</button></form></div>
-        </div>
+      <div class="top-actions">
+        <form method="post" action="/profile/theme" class="theme-toggle-form">
+          <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+          <input type="hidden" name="theme" value="{{ 'light' if ui.theme == 'dark' else 'dark' }}">
+          <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+          <button class="icon-button theme-toggle" aria-label="{{ 'Tema chiaro' if ui.theme == 'dark' else 'Tema scuro' }}" title="{{ 'Tema chiaro' if ui.theme == 'dark' else 'Tema scuro' }}">{{ '☀' if ui.theme == 'dark' else '◐' }}</button>
+        </form>
+        <details class="notification-menu">
+          <summary class="icon-button bell" aria-label="Notifiche"><span>♢</span>{% if unread_notification_count %}<b class="notification-count">{{ unread_notification_count }}</b>{% endif %}</summary>
+          <div class="notification-dropdown">
+            <div class="dropdown-header"><strong>Notifiche</strong><a href="/notifications">Vedi tutte</a></div>
+            {% if recent_notifications %}{% for n in recent_notifications %}<a class="notification-row" href="{{ n.source_url or '/notifications' }}" {% if n.source_url %}target="_blank" rel="noopener"{% endif %}><span class="severity-dot severity-{{ n.severity }}"></span><span><strong>{{ n.title }}</strong><small>{{ n.message or n.category }} · {{ fmt_dt(n.created_at) }}</small></span></a>{% endfor %}{% else %}<div class="empty-mini">Nessuna nuova notifica.</div>{% endif %}
+          </div>
+        </details>
+        <details class="user-menu">
+          <summary class="user-chip"><span class="avatar">{{ (user.display_name or user.username)[0]|upper }}</span><span class="user-chip-copy"><strong>{{ user.display_name or user.username }}</strong><small>{{ role_labels.get(user.role, user.role) }}</small></span></summary>
+          <div class="user-dropdown"><a href="/profile">Profilo e sicurezza</a>{% if has_permission(user, 'users.manage') %}<a href="/admin/users">Amministrazione</a>{% endif %}<form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="menu-button">Esci</button></form></div>
+        </details>
       </div>
     </header>
-
-    <main class="page-content">{% block content %}{% endblock %}</main>
+    <main class="main-content">{% block content %}{% endblock %}</main>
   </div>
 </div>
 {% else %}
-<main>{% block public_content %}{% endblock %}</main>
+<main class="login-surface">{% block login_content %}{% endblock %}</main>
 {% endif %}
 </body>
 </html>
