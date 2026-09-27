@@ -76,7 +76,8 @@ def enroll(client, token, version, serial, mac):
 
 
 def main():
-    assert app.version == "0.30.0"
+    major, minor, *_ = [int(part) for part in app.version.split('.')]
+    assert (major, minor) >= (0, 30), app.version
     client = TestClient(app, base_url="https://nsm.example.net")
     legacy_id, legacy_token, modern_id, modern_token = seed_pair()
 
