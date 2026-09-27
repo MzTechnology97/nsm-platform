@@ -2,6 +2,7 @@ CUSTOMER_WORKSPACE_ROUTE_NAMES = {
     "customer_workspace_list",
     "customer_workspace_detail",
     "legacy_sites_redirect",
+    "customer_backups",
 }
 
 
@@ -20,19 +21,30 @@ def _remove_exact_route(app, path: str, method: str):
 def promote_customer_workspace_routes(app):
     """Make customer-centric routes deterministic over legacy compatibility UI.
 
-    The backup landing page is registered canonically here after all legacy
-    backup routers have been installed. This guarantees exactly one static
-    GET /operations/backups handler, while the other customer routes are moved
-    ahead of any broad legacy patterns.
+    Backup landing and per-customer backup workspace are registered canonically
+    after all incremental/legacy routers have been installed. This guarantees
+    one effective handler for each path while preserving stable route names.
     """
-    from app.customer_workspace import backup_customer_overview
+    from app.backup_workspace_capabilities import (
+        backup_customer_overview,
+        customer_backups,
+    )
 
     _remove_exact_route(app, "/operations/backups", "GET")
+    _remove_exact_route(app, "/customers/{customer_id}/backups", "GET")
+
     app.add_api_route(
         "/operations/backups",
         backup_customer_overview,
         methods=["GET"],
         name="backup_customer_overview",
+        include_in_schema=False,
+    )
+    app.add_api_route(
+        "/customers/{customer_id}/backups",
+        customer_backups,
+        methods=["GET"],
+        name="customer_backups",
         include_in_schema=False,
     )
 

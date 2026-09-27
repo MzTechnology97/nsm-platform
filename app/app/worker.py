@@ -5,6 +5,7 @@ import time
 from redis import Redis
 
 from app.backup_maintenance import maintenance_tick
+from app.backup_scheduler_capability_guard import install_backup_scheduler_capability_guard
 from app.config import settings
 
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
@@ -13,6 +14,8 @@ r = Redis.from_url(settings.redis_url, decode_responses=True)
 
 MAINTENANCE_INTERVAL_SECONDS = 60
 last_maintenance = 0.0
+
+install_backup_scheduler_capability_guard()
 
 log.info("Worker avviato")
 while True:
