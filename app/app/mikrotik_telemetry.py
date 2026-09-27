@@ -37,14 +37,16 @@ _MEMORY_MULTIPLIERS = {
 }
 
 
+def _route_matches(route, path: str, method: str):
+    return (
+        getattr(route, "path", None) == path
+        and method.upper() in (getattr(route, "methods", set()) or set())
+    )
+
+
 def _remove_route(app, path: str, method: str):
-    method = method.upper()
     app.router.routes[:] = [
-        route for route in app.router.routes
-        if not (
-            getattr(route, "path", None) == path
-            and method in (getattr(route, "methods", set()) or set())
-        )
+        route for route in app.router.routes if not _route_matches(route, path, method)
     ]
 
 
@@ -136,6 +138,7 @@ async def mikrotik_heartbeat(request: Request):
             "device_id": str(device.id),
             "server_time": now.isoformat(),
             "next_poll_seconds": agent.HEARTBEAT_INTERVAL_SECONDS,
+            "telemetry_sampled": sample is not None,
             "jobs": response_jobs,
         }
 
@@ -249,20 +252,26 @@ def telemetry_cleanup():
         return int(result.rowcount or 0)
 
 
+def _canonicalize_route(app, path: str, method: str, endpoint):
+    matches = [route for route in app.router.routes if _route_matches(route, path, method)]
+    canonical = next((route for route in reversed(matches) if getattr(route, "endpoint", None) is endpoint), None)
+    if canonical is None:
+        canonical = next((route for route in reversed(matches) if getattr(getattr(route, "endpoint", None), "__module__", None) == __name__), None)
+    if canonical is None:
+        raise RuntimeError(f"Canonical telemetry route missing: {method} {path}")
+    remaining = [route for route in app.router.routes if not _route_matches(route, path, method)]
+    app.router.routes[:] = [canonical] + remaining
+
+
 def install_mikrotik_telemetry(app):
     _remove_route(app, "/api/v1/agents/mikrotik/heartbeat", "POST")
     _remove_route(app, "/devices/{device_id}/monitor", "GET")
     app.include_router(router)
-    promoted = []
-    rest = []
-    paths = {
-        "/api/v1/agents/mikrotik/heartbeat",
-        "/api/v1/devices/{device_id}/metrics",
-        "/devices/{device_id}/monitor",
-    }
-    for route in app.router.routes:
-        if getattr(route, "path", None) in paths:
-            promoted.append(route)
-        else:
-            rest.append(route)
-    app.router.routes[:] = promoted + rest
+    _canonicalize_route(app, "/api/v1/agents/mikrotik/heartbeat", "POST", mikrotik_heartbeat)
+    _canonicalize_route(app, "/devices/{device_id}/monitor", "GET", telemetry_monitor)
+    metrics_routes = [
+        route for route in app.router.routes
+        if _route_matches(route, "/api/v1/devices/{device_id}/metrics", "GET")
+    ]
+    if len(metrics_routes) != 1:
+        raise RuntimeError("Device metrics route must be unique")
