@@ -120,7 +120,9 @@ def _parse_csv(raw: bytes):
     if credential_columns:
         raise HTTPException(
             400,
-            "Colonne credenziali non consentite: " + ", ".join(credential_columns) + ". Usa l'enrollment NSM per-device.",
+            "Colonne credenziali non consentite: "
+            + ", ".join(credential_columns)
+            + ". Usa l'enrollment NSM per-device.",
         )
     unknown = sorted(field_set - set(CSV_COLUMNS))
     if unknown:
@@ -144,8 +146,12 @@ def _parse_csv(raw: bytes):
 
 
 def _inventory_maps(db):
-    customers = list(db.scalars(select(Customer).where(Customer.is_active.is_(True)).order_by(Customer.name)))
-    customer_by_code = {str(c.code or "").strip().casefold(): c for c in customers if c.code}
+    customers = list(
+        db.scalars(select(Customer).where(Customer.is_active.is_(True)).order_by(Customer.name))
+    )
+    customer_by_code = {
+        str(c.code or "").strip().casefold(): c for c in customers if c.code
+    }
     sites = list(db.scalars(select(Site).order_by(Site.name)))
     site_map = {}
     ambiguous_sites = set()
@@ -158,7 +164,9 @@ def _inventory_maps(db):
 
     existing_mac = set()
     existing_serial = set()
-    for vendor, mac, serial in db.execute(select(Device.vendor, Device.primary_mac, Device.serial_number)):
+    for vendor, mac, serial in db.execute(
+        select(Device.vendor, Device.primary_mac, Device.serial_number)
+    ):
         vendor_key = str(vendor or "").casefold()
         if mac:
             existing_mac.add((vendor_key, str(mac).upper()))
@@ -176,17 +184,23 @@ def _validate_rows(db, parsed_rows):
             customer_code = _clean(raw.get("customer_code"), 80)
             customer = customer_by_code.get(customer_code.casefold())
             if not customer:
-                raise ValueError(f"Cliente con codice '{customer_code}' non trovato o disattivato.")
+                raise ValueError(
+                    f"Cliente con codice '{customer_code}' non trovato o disattivato."
+                )
 
             site_name = _clean(raw.get("site"), 200)
             site = None
             if site_name:
                 key = (customer.id, site_name.casefold())
                 if key in ambiguous_sites:
-                    raise ValueError(f"Più sedi del cliente hanno nome '{site_name}': usare un nome univoco.")
+                    raise ValueError(
+                        f"Più sedi del cliente hanno nome '{site_name}': usare un nome univoco."
+                    )
                 site = site_map.get(key)
                 if not site:
-                    raise ValueError(f"Sede '{site_name}' non trovata per il cliente {customer_code}.")
+                    raise ValueError(
+                        f"Sede '{site_name}' non trovata per il cliente {customer_code}."
+                    )
 
             vendor = _normalize_vendor(raw.get("vendor"))
             device_type = _clean(raw.get("device_type"), 60).lower()
@@ -229,14 +243,23 @@ def _validate_rows(db, parsed_rows):
             if serial_key and serial_key in seen_serial:
                 duplicate_reasons.append(f"seriale {serial}")
             if duplicate_reasons:
-                results.append(ImportRow(row_number, "already_exists", "Già presente: " + ", ".join(duplicate_reasons), data))
+                results.append(
+                    ImportRow(
+                        row_number,
+                        "already_exists",
+                        "Già presente: " + ", ".join(duplicate_reasons),
+                        data,
+                    )
+                )
                 continue
 
             if mac_key:
                 seen_mac.add(mac_key)
             if serial_key:
                 seen_serial.add(serial_key)
-            results.append(ImportRow(row_number, "ready", "Pronto per l'importazione.", data))
+            results.append(
+                ImportRow(row_number, "ready", "Pronto per l'importazione.", data)
+            )
         except ValueError as exc:
             safe_data = {
                 "customer_code": _clean(raw.get("customer_code"), 80),
@@ -334,28 +357,44 @@ def _render(request, db, user, rows=None, summary=None, filename=None, dry_run=T
 @router.get("/devices/import", response_class=HTMLResponse, name="device_csv_import_page")
 def device_csv_import_page(request: Request):
     with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        core.require_admin(user)
+        user = core.require_admin(request, db)
         return _render(request, db, user)
 
 
-@router.get("/devices/import/template.csv", response_class=PlainTextResponse, name="device_csv_import_template")
+@router.get(
+    "/devices/import/template.csv",
+    response_class=PlainTextResponse,
+    name="device_csv_import_template",
+)
 def device_csv_import_template(request: Request):
     with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        core.require_admin(user)
+        core.require_admin(request, db)
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(CSV_COLUMNS)
-    writer.writerow(["CLIENTE01", "POP Centro", "mikrotik", "router", "CCR Centro", "Core Centro", "", "192.0.2.10", "02:00:00:00:00:10", "", "CCR2004-1G-12S+2XS", ""])
+    writer.writerow(
+        [
+            "CLIENTE01",
+            "POP Centro",
+            "mikrotik",
+            "router",
+            "CCR Centro",
+            "Core Centro",
+            "",
+            "192.0.2.10",
+            "02:00:00:00:00:10",
+            "",
+            "CCR2004-1G-12S+2XS",
+            "",
+        ]
+    )
     return PlainTextResponse(
         output.getvalue(),
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": 'attachment; filename="nsm-device-import-template.csv"', "Cache-Control": "no-store"},
+        headers={
+            "Content-Disposition": 'attachment; filename="nsm-device-import-template.csv"',
+            "Cache-Control": "no-store",
+        },
     )
 
 
@@ -372,10 +411,7 @@ async def device_csv_import_submit(
         raise HTTPException(400, "Modalità import non valida.")
 
     with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        core.require_admin(user)
+        user = core.require_admin(request, db)
         raw = await csv_file.read(MAX_CSV_BYTES + 1)
         parsed_rows = _parse_csv(raw)
         filename = _clean(csv_file.filename, 255) or "devices.csv"
