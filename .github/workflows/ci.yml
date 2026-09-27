@@ -127,6 +127,12 @@ jobs:
           for label in ('Panoramica','Monitor','Configurazione','Diagnostica','Job & attività','Neighbor discovery','DHCP lookup','Support snapshot'):
               assert label in mt, label
           assert 'Nessuna shell o comando RouterOS arbitrario' in mt
+          for marker in ('Completa onboarding MikroTik','Device-mode in sola lettura','Pairing one-shot','flagged=yes','Copia comando'):
+              assert marker in mt, marker
+          onboarding = Path('app/app/mikrotik_onboarding.py').read_text()
+          for marker in ('/system/device-mode/get fetch','/system/device-mode/get scheduler','/system/device-mode/get flagged',':resolve','check-certificate=yes','install_mikrotik_onboarding'):
+              assert marker in onboarding, marker
+          assert '/system/device-mode/update' not in onboarding
           workspace = Path('app/app/mikrotik_workspace.py').read_text()
           for section in ('ip_addresses','routes','interfaces','firewall','ppp_active','dhcp_leases','logs'):
               assert section in workspace
@@ -159,7 +165,7 @@ jobs:
 
           security = Path('app/app/security_drilldown.py').read_text()
           assert 'SEVERE_LEVELS' in security and 'severity.lower() == "severe"' in security
-          print('Core 0.24 scoped read-only API, CSV import, telemetry and backup contracts validated')
+          print('Core 0.25 guided MikroTik onboarding, scoped API, CSV import, telemetry and backup contracts validated')
           PY
 
       - name: Validate shell scripts
@@ -179,7 +185,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.24.0'
+          assert app.version == '0.25.0'
           assert str(app.url_path_for('dashboard')) == '/'
           assert str(app.url_path_for('dashboard_summary')) == '/api/v1/dashboard/summary'
           assert str(app.url_path_for('devices')) == '/devices'
@@ -277,7 +283,7 @@ jobs:
       - name: Apply migrations
         run: cd app && alembic upgrade head
 
-      - name: Run full Core smoke suite 0.5 through 0.24
+      - name: Run full Core smoke suite 0.5 through 0.25
         run: |
           cd app
           for test in \
@@ -301,7 +307,8 @@ jobs:
             backup_rsc_tools_smoke.py \
             device_csv_import_smoke.py \
             api_keys_smoke.py \
-            api_operations_smoke.py
+            api_operations_smoke.py \
+            mikrotik_onboarding_smoke.py
           do
             echo "===== $test ====="
             PYTHONPATH=. python "tests/$test"
