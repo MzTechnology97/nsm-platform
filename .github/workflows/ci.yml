@@ -40,89 +40,74 @@ jobs:
               env.get_template(path.name)
 
           base = (root / 'base.html').read_text()
-          for asset in (
-              'customer_workspace.css',
-              'search_enhancement.css',
-              'mikrotik_workspace.css',
-              'ui_foundation.css',
-          ):
+          for asset in ('customer_workspace.css','search_enhancement.css','mikrotik_workspace.css','ui_foundation.css'):
               assert asset in base, asset
           assert '/branding/theme.css?v={{ app_version }}' in base
-          assert 'data-global-search-input' in base
-          assert 'data-search-suggestions' in base
+          assert 'data-global-search-input' in base and 'data-search-suggestions' in base
           assert 'href="/sites"' not in base
 
           dashboard = (root / 'dashboard.html').read_text()
-          for marker in (
-              'data-dashboard-live',
-              'Copertura operativa',
-              'Distribuzione inventario',
-              'Backup protetti',
-              'CVE High / Critical',
-              'dashboard_live.js',
-          ):
+          for marker in ('data-dashboard-live','Copertura operativa','Distribuzione inventario','Backup protetti','CVE High / Critical','dashboard_live.js'):
               assert marker in dashboard, marker
           components = (root / '_ui_components.html').read_text()
-          assert 'macro kpi_card' in components
-          assert 'macro distribution_panel' in components
-          assert 'macro donut' in components
+          assert 'macro kpi_card' in components and 'macro distribution_panel' in components and 'macro donut' in components
+
+          devices = (root / 'devices.html').read_text()
+          for marker in ('inventory_ui.css','inventory-kpis','Per pagina','Software ID','Cliente / sede','Identificativi','Management'):
+              assert marker in devices, marker
+          inventory = Path('app/app/inventory_ui.py').read_text()
+          assert 'PER_PAGE_OPTIONS = (25, 50, 100)' in inventory
+          assert 'Device.software_id.ilike' in inventory
+          assert 'firmware_attention_count' in inventory and 'severe_count' in inventory
+          inventory_css = Path('app/app/static/inventory_ui.css').read_text()
+          assert '.inventory-kpis' in inventory_css and '.inventory-table' in inventory_css
 
           customers = (root / 'customers_workspace.html').read_text()
           assert 'Da aggiornare' in customers and 'CVE gravi' in customers and 'Allarmi' in customers
           tabs = (root / '_customer_tabs.html').read_text()
-          for suffix in ('devices', 'sites', 'backups', 'security', 'history'):
+          for suffix in ('devices','sites','backups','security','history'):
               assert f'/{suffix}' in tabs
           customer_devices = (root / 'customer_devices.html').read_text()
           assert 'Seriale' in customer_devices and 'MAC' in customer_devices and 'IP' in customer_devices
           customer_backups = (root / 'customer_backups.html').read_text()
           assert 'Backup eseguibile' in customer_backups and 'Metodo non pronto' in customer_backups
           global_backup = (root / 'backup_customer_overview.html').read_text()
-          assert 'Stato backup per cliente' not in global_backup
-          assert 'backup realmente eseguibile' in global_backup
+          assert 'Stato backup per cliente' not in global_backup and 'backup realmente eseguibile' in global_backup
 
           search_page = (root / 'search.html').read_text()
-          assert 'Seriale {{ d.serial_number }}' in search_page
-          assert 'MAC {{ d.primary_mac }}' in search_page
-          assert 'IP {{ d.management_ip }}' in search_page
+          assert 'Seriale {{ d.serial_number }}' in search_page and 'MAC {{ d.primary_mac }}' in search_page and 'IP {{ d.management_ip }}' in search_page
           search_code = Path('app/app/search_enhancement.py').read_text()
           assert 'match_field' in search_code and 'completion' in search_code
           ui_js = Path('app/app/static/ui.js').read_text()
-          assert "event.key === 'Tab'" in ui_js
-          assert 'search-meta-chip' in ui_js
+          assert "event.key === 'Tab'" in ui_js and 'search-meta-chip' in ui_js
 
           mt = (root / 'mikrotik_workspace.html').read_text()
-          for label in ('Panoramica', 'Monitor', 'Configurazione', 'Diagnostica', 'Job & attività'):
+          for label in ('Panoramica','Monitor','Configurazione','Diagnostica','Job & attività'):
               assert label in mt
           assert 'Nessuna shell o comando arbitrario' in mt
           workspace = Path('app/app/mikrotik_workspace.py').read_text()
-          for section in ('ip_addresses', 'routes', 'interfaces', 'firewall', 'ppp_active', 'dhcp_leases', 'logs'):
+          for section in ('ip_addresses','routes','interfaces','firewall','ppp_active','dhcp_leases','logs'):
               assert section in workspace
           snapshot_agent = Path('app/app/mikrotik_snapshot_agent.py').read_text()
-          assert 'snapshot_section' in snapshot_agent
-          assert '/ip firewall filter print as-value' in snapshot_agent
+          assert 'snapshot_section' in snapshot_agent and '/ip firewall filter print as-value' in snapshot_agent
           diagnostics_agent = Path('app/app/mikrotik_diagnostics_agent.py').read_text()
           assert 'diagnostic_ping' in diagnostics_agent and 'diagnostic_traceroute' in diagnostics_agent
           assert ':execute script=' not in diagnostics_agent
 
           backup_agent = Path('app/app/mikrotik_backup_agent.py').read_text()
-          assert '/system backup save' in backup_agent
-          assert 'encryption=aes-sha256' in backup_agent
-          assert '/api/v1/agents/mikrotik/backup-jobs/' in backup_agent
-          assert 'ftp' not in backup_agent.lower()
+          assert '/system backup save' in backup_agent and 'encryption=aes-sha256' in backup_agent
+          assert '/api/v1/agents/mikrotik/backup-jobs/' in backup_agent and 'ftp' not in backup_agent.lower()
 
           dashboard_backend = Path('app/app/dashboard_ui.py').read_text()
-          assert '_dashboard_summary' in dashboard_backend
-          assert 'backup_readiness' in dashboard_backend
-          assert 'dashboard_summary' in dashboard_backend
+          assert '_dashboard_summary' in dashboard_backend and 'backup_readiness' in dashboard_backend and 'dashboard_summary' in dashboard_backend
           live_js = Path('app/app/static/dashboard_live.js').read_text()
-          assert '/api/v1/dashboard/summary' in live_js
-          assert 'setInterval' in live_js
+          assert '/api/v1/dashboard/summary' in live_js and 'setInterval' in live_js
           foundation = Path('app/app/static/ui_foundation.css').read_text()
           assert '.ui-kpi-grid' in foundation and '.ui-donut' in foundation
 
           security = Path('app/app/security_drilldown.py').read_text()
           assert 'SEVERE_LEVELS' in security and 'severity.lower() == "severe"' in security
-          print('Core 0.17 UI contracts validated')
+          print('Core 0.18 UI contracts validated')
           PY
 
       - name: Validate shell scripts
@@ -141,11 +126,11 @@ jobs:
           cd app
           python - <<'PY'
           from app.entrypoint import app
-
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.17.0'
+          assert app.version == '0.18.0'
           assert str(app.url_path_for('dashboard')) == '/'
           assert str(app.url_path_for('dashboard_summary')) == '/api/v1/dashboard/summary'
+          assert str(app.url_path_for('devices')) == '/devices'
           assert str(app.url_path_for('mikrotik_bootstrap')) == '/api/v1/enrollment/mikrotik/bootstrap'
           assert str(app.url_path_for('mikrotik_enroll')) == '/api/v1/agents/mikrotik/enroll'
           assert str(app.url_path_for('mikrotik_heartbeat')) == '/api/v1/agents/mikrotik/heartbeat'
@@ -164,7 +149,6 @@ jobs:
           assert str(app.url_path_for('customer_history', customer_id=zero)) == f'/customers/{zero}/history'
           assert str(app.url_path_for('backup_customer_overview')) == '/operations/backups'
           assert str(app.url_path_for('search_suggest')) == '/api/v1/search/suggest'
-          assert str(app.url_path_for('devices')) == '/devices'
           assert str(app.url_path_for('action_center')) == '/action-center'
           assert str(app.url_path_for('vulnerabilities')) == '/security/vulnerabilities'
           assert str(app.url_path_for('lifecycle')) == '/security/lifecycle'
@@ -227,7 +211,7 @@ jobs:
       - name: Apply migrations
         run: cd app && alembic upgrade head
 
-      - name: Run full Core smoke suite 0.5 through 0.17
+      - name: Run full Core smoke suite 0.5 through 0.18
         run: |
           cd app
           for test in \
@@ -244,7 +228,8 @@ jobs:
             firmware_worklist_smoke.py \
             customer_tabs_search_smoke.py \
             mikrotik_workspace_smoke.py \
-            dashboard_ui_smoke.py
+            dashboard_ui_smoke.py \
+            inventory_ui_smoke.py
           do
             echo "===== $test ====="
             PYTHONPATH=. python "tests/$test"
