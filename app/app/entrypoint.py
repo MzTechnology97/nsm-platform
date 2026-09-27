@@ -1,4 +1,4 @@
-"""NSM Core 0.26 application entrypoint."""
+"""NSM Core 0.29 application entrypoint."""
 from app import main as core
 from app import mikrotik_agent as mikrotik_agent_core
 from app.agent_ui import install_agent_ui
@@ -25,6 +25,7 @@ from app.inventory_ui import install_inventory_ui
 from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
 from app.mikrotik_legacy import _legacy_bootstrap_script, router as mikrotik_legacy_router
+from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
 from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
 from app.mikrotik_snapshot_agent import install_mikrotik_snapshot_agent
@@ -40,7 +41,7 @@ from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.26.0"
+APP_VERSION = "0.29.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -83,11 +84,11 @@ install_inventory_ui(core.app)
 install_branding_runtime(core.app)
 promote_device_csv_import_routes(core.app)
 
-# Keep the canonical bootstrap route registered by mikrotik_agent. Its handler
-# resolves _bootstrap_script at request time, so replacing only the generator
-# makes guided onboarding RouterOS 7.12-compatible without touching the modern
-# agent source (jobs/backups/snapshots/diagnostics remain fully enabled there).
+# Core 0.28: RouterOS 7.12-compatible bootstrap/enrollment/heartbeat transport.
 mikrotik_agent_core._bootstrap_script = _legacy_bootstrap_script
 core.app.include_router(mikrotik_legacy_router)
+
+# Core 0.29: allow-listed plain-text job transport for legacy RouterOS agents.
+install_mikrotik_legacy_jobs(core.app)
 
 app = core.app
