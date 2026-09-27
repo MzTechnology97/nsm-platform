@@ -1,37 +1,40 @@
 {% extends "base.html" %}
 {% block title %}Clienti · {{ app_name }}{% endblock %}
 {% block content %}
-<div class="page-header compact-heading">
+<div class="page-header compact-heading customer-page-heading">
   <div><h1>Clienti</h1><p>Vista sintetica dello stato operativo di ogni cliente.</p></div>
   {% if has_permission(user, 'customers.write') %}<a class="button primary" href="/customers/new/form">+ Aggiungi cliente</a>{% endif %}
 </div>
-<section class="panel compact-panel customer-filter-panel">
+<section class="panel compact-panel customer-filter-panel customer-filter-compact">
   <form class="filter-bar" method="get">
-    <label class="grow">Cerca cliente<input name="q" value="{{ q }}" placeholder="Nome o codice interno"></label>
+    <label class="grow customer-search-label">Cerca cliente<input name="q" value="{{ q }}" placeholder="Nome o codice interno"></label>
     <button class="button primary">Cerca</button>
     {% if q %}<a class="button ghost" href="/customers">Reset</a>{% endif %}
   </form>
 </section>
-<section class="panel customer-directory-panel">
-  <div class="panel-header"><div><h2>Elenco clienti</h2><p>{{ total }} clienti · pagina {{ page }} di {{ pages }} · i contatori aprono direttamente il relativo dettaglio filtrato</p></div></div>
+<section class="panel customer-directory-panel compact-customer-directory">
+  <div class="panel-header compact-directory-header"><div><h2>Elenco clienti</h2><p>{{ total }} clienti · pagina {{ page }} di {{ pages }} · clicca un indicatore per aprire il relativo dettaglio</p></div></div>
   {% if customer_rows %}
-  <div class="customer-health-table">
+  <div class="customer-health-table compact-customer-health">
     <div class="customer-health-head">
       <span>Cliente</span><span>Apparati</span><span>Da aggiornare</span><span>CVE gravi</span><span>Allarmi</span><span></span>
     </div>
     {% for row in customer_rows %}
     {% set c = row.customer %}{% set m = row.metrics %}
     <div class="customer-health-row">
-      <a class="customer-health-name" href="/customers/{{ c.id }}"><span class="customer-avatar small">{{ c.name[0]|upper }}</span><span><strong>{{ c.name }}</strong><small>{{ c.code or 'Nessun codice interno' }} · {{ m.sites }} {{ 'sede' if m.sites == 1 else 'sedi' }}</small></span></a>
+      <a class="customer-health-name" href="/customers/{{ c.id }}"><span class="customer-avatar small">{{ c.name[0]|upper }}</span><span><strong>{{ c.name }}</strong><small>{{ c.code or '—' }} · {{ m.sites }} {{ 'sede' if m.sites == 1 else 'sedi' }}</small></span></a>
       <a class="customer-health-cell" href="/devices?customer={{ c.id }}" title="Apri gli apparati di {{ c.name }}"><strong>{{ m.devices }}</strong><small>apparati</small></a>
       <a class="customer-health-cell {% if m.updates %}health-warning{% endif %}" href="/devices?customer={{ c.id }}&firmware=attention" title="Apri gli apparati da aggiornare"><strong>{{ m.updates }}</strong><small>firmware</small></a>
       <a class="customer-health-cell {% if m.severe_cve_devices %}health-critical{% endif %}" href="/devices?customer={{ c.id }}&security=severe" title="Apri gli apparati con CVE High/Critical"><strong>{{ m.severe_cve_devices }}</strong><small>apparati</small></a>
       <a class="customer-health-cell {% if m.alerts %}health-danger{% endif %}" href="/action-center?customer={{ c.id }}" title="Apri l'Action Center del cliente"><strong>{{ m.alerts }}</strong><small>aperti</small></a>
-      <a class="customer-health-open" href="/customers/{{ c.id }}">Profilo ›</a>
+      <a class="customer-health-open" href="/customers/{{ c.id }}" aria-label="Apri profilo {{ c.name }}">›</a>
     </div>
     {% endfor %}
   </div>
-  {% if pages > 1 %}<div class="pagination-bar"><span>Pagina {{ page }} / {{ pages }}</span><div>{% if page > 1 %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&page={{ page-1 }}">← Precedente</a>{% endif %}{% if page < pages %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&page={{ page+1 }}">Successiva →</a>{% endif %}</div></div>{% endif %}
+  {% if pages > 1 %}<div class="pagination-bar compact-pagination"><span>Pagina {{ page }} / {{ pages }}</span><div>{% if page > 1 %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&page={{ page-1 }}">← Precedente</a>{% endif %}{% if page < pages %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&page={{ page+1 }}">Successiva →</a>{% endif %}</div></div>{% endif %}
   {% else %}<div class="empty-state">Nessun cliente trovato.{% if has_permission(user, 'customers.write') %} <a href="/customers/new/form">Crea il primo cliente</a>.{% endif %}</div>{% endif %}
 </section>
+<style>
+.customer-page-heading{margin-bottom:10px}.customer-filter-compact{padding:10px 12px;margin-bottom:10px}.customer-filter-compact .filter-bar{gap:8px;align-items:end}.customer-search-label{margin:0}.customer-search-label input{min-height:34px}.compact-customer-directory{padding:0;overflow:hidden}.compact-directory-header{padding:12px 14px 8px;margin:0}.compact-directory-header h2{margin-bottom:2px}.compact-directory-header p{margin:0}.compact-customer-health .customer-health-head,.compact-customer-health .customer-health-row{grid-template-columns:minmax(230px,2.2fr) repeat(4,minmax(78px,.72fr)) 34px}.compact-customer-health .customer-health-head{padding:6px 12px;font-size:11px}.compact-customer-health .customer-health-row{min-height:48px;padding:5px 12px}.compact-customer-health .customer-health-name{gap:9px;min-width:0}.compact-customer-health .customer-avatar.small{width:30px;height:30px;font-size:12px;flex:0 0 30px}.compact-customer-health .customer-health-name strong{font-size:13px;line-height:1.2}.compact-customer-health .customer-health-name small{font-size:10.5px;margin-top:1px}.compact-customer-health .customer-health-cell{min-height:34px;padding:3px 7px;border-radius:7px}.compact-customer-health .customer-health-cell strong{font-size:15px;line-height:1}.compact-customer-health .customer-health-cell small{font-size:9.5px;margin-top:2px}.compact-customer-health .customer-health-open{font-size:21px;padding:4px;text-align:center}.compact-pagination{padding:8px 12px}.compact-customer-health a{text-decoration:none}.compact-customer-health .customer-health-cell:hover,.compact-customer-health .customer-health-name:hover{background:var(--surface-soft)}@media(max-width:900px){.compact-customer-health .customer-health-head{display:none}.compact-customer-health .customer-health-row{grid-template-columns:minmax(180px,1fr) repeat(4,58px) 24px}.compact-customer-health .customer-health-cell small{display:none}}@media(max-width:650px){.compact-customer-health .customer-health-row{grid-template-columns:1fr repeat(2,54px);gap:3px}.compact-customer-health .customer-health-cell:nth-of-type(4),.compact-customer-health .customer-health-cell:nth-of-type(5){display:flex}.compact-customer-health .customer-health-open{display:none}}
+</style>
 {% endblock %}
