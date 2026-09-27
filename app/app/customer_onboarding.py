@@ -153,13 +153,21 @@ def device_new(request: Request, customer_id: uuid.UUID, site_id: str = ""):
                 raise HTTPException(400, "La sede non appartiene a questo cliente.")
             selected_site_id = selected_site.id
 
+        site_rows = [
+            {
+                "site": site,
+                "selected": bool(selected_site_id and site.id == selected_site_id),
+            }
+            for site in customer.sites
+        ]
+
         return core.render(
             request,
             db,
             user,
             "device_new.html",
             customer=customer,
-            selected_site_id=selected_site_id,
+            site_rows=site_rows,
         )
 
 
