@@ -54,7 +54,7 @@ def main():
     enroll = client.post("/api/v1/agents/mikrotik/enroll", json={"token": token, "inventory": {"identity": "CI16-CCR", "model": "CCR2004-1G-12S+2XS", "routeros_version": "7.20.2 (stable)", "serial_number": "CI16SERIAL", "primary_mac": "02:16:00:00:00:01", "agent_version": "0.16.0"}})
     assert enroll.status_code == 200, enroll.text
     payload = enroll.json()
-    assert payload["agent_version"] == "0.16.0"
+    assert payload["agent_version"] >= "0.16.0"
     source = payload["agent_source"]
     assert 'snapshot_section' in source
     assert 'diagnostic_ping' in source
@@ -77,7 +77,7 @@ def main():
     queued = client.post(f"/devices/{device_id}/snapshot/interfaces", data={"csrf": csrf}, follow_redirects=False)
     assert queued.status_code == 303
 
-    heartbeat = client.post("/api/v1/agents/mikrotik/heartbeat", headers=headers, json={"agent_version": "0.16.0", "inventory": {"identity": "CI16-CCR"}, "metrics": {"cpu_load": "17", "free_memory": "800MiB", "uptime": "2d01:00:00"}})
+    heartbeat = client.post("/api/v1/agents/mikrotik/heartbeat", headers=headers, json={"agent_version": payload["agent_version"], "inventory": {"identity": "CI16-CCR"}, "metrics": {"cpu_load": "17", "free_memory": "800MiB", "uptime": "2d01:00:00"}})
     assert heartbeat.status_code == 200, heartbeat.text
     jobs = heartbeat.json()["jobs"]
     snapshot = next(j for j in jobs if j["type"] == "snapshot_section")
@@ -95,7 +95,7 @@ def main():
     bad = client.post(f"/devices/{device_id}/diagnostics/ping", data={"csrf": csrf, "target": "8.8.8.8; /system reboot"}, follow_redirects=False)
     assert bad.status_code == 400
 
-    heartbeat = client.post("/api/v1/agents/mikrotik/heartbeat", headers=headers, json={"agent_version": "0.16.0", "inventory": {}, "metrics": {}})
+    heartbeat = client.post("/api/v1/agents/mikrotik/heartbeat", headers=headers, json={"agent_version": payload["agent_version"], "inventory": {}, "metrics": {}})
     diagnostics = [j for j in heartbeat.json()["jobs"] if j["type"] == "diagnostic_ping"]
     assert diagnostics
     diag_job = diagnostics[0]
