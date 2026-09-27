@@ -50,9 +50,13 @@ def main():
     client = TestClient(app)
     login(client)
 
+    global_page = client.get("/devices?per_page=25")
+    assert global_page.status_code == 200
+    assert "Inventario globale operativo" in global_page.text
+
     page = client.get(f"/devices?customer={customer_id}&per_page=25")
     assert page.status_code == 200, page.text
-    for marker in ("Inventario globale operativo", "Per pagina", "CI18 Router", "CI18 CPE", "CI18SERIAL01", "02:18:00:00:00:01", "10.18.0.1", "inventory_ui.css"):
+    for marker in ("Inventario confinato al cliente selezionato", "Per pagina", "CI18 Router", "CI18 CPE", "CI18SERIAL01", "02:18:00:00:00:01", "10.18.0.1", "inventory_ui.css"):
         assert marker in page.text, marker
 
     offline = client.get(f"/devices?customer={customer_id}&status=offline")
