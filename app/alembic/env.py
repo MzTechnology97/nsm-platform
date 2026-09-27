@@ -10,6 +10,7 @@ from app import preferences  # noqa: F401
 from app import backup_models  # noqa: F401
 from app import agent_models  # noqa: F401
 from app import mikrotik_backup_models  # noqa: F401
+from app import firmware_upgrade_models  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
