@@ -1,4 +1,4 @@
-"""Allow-listed job transport for RouterOS legacy agents (Core 0.29).
+"""Allow-listed job transport for RouterOS legacy agents.
 
 RouterOS releases such as 7.12.1 do not expose :serialize/:deserialize. The
 legacy agent therefore uses a tiny pipe-delimited control protocol and fixed
@@ -19,6 +19,7 @@ from app import mikrotik_legacy as legacy
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
 from app.mikrotik_backup import finalize_backup_job
+from app.mikrotik_firmware_readiness import apply_firmware_readiness, parse_legacy_firmware_output
 from app.models import utcnow
 
 router = APIRouter()
@@ -30,6 +31,7 @@ LEGACY_JOB_TYPES = {
     "diagnostic_neighbors",
     "diagnostic_dhcp_lookup",
     "diagnostic_logs",
+    "firmware_readiness",
 }
 LEGACY_DEFERRED_JOB_TYPES = {
     "snapshot_section",
@@ -105,6 +107,20 @@ def _legacy_agent_extension(base_url: str, check_certificate: bool) -> str:
               :if ($nsmArg2 = "mac") do={{ :set nsmJobOutput [:tostr [/ip dhcp-server lease print as-value where mac-address=$nsmArg1]] }}
             }}
             :if ($nsmJobType = "diagnostic_logs") do={{ :set nsmJobOutput [:tostr [/log print as-value where topics~"warning|error|critical"]] }}
+            :if ($nsmJobType = "firmware_readiness") do={{
+              :local nsmChannel [/system package update get channel]
+              /system package update check-for-updates once
+              :delay 2s
+              :local nsmInstalled [/system package update get installed-version]
+              :local nsmLatest [/system package update get latest-version]
+              :local nsmUpdateStatus [/system package update get status]
+              :local nsmFreeHdd [/system resource get free-hdd-space]
+              :local nsmRbCurrent ""
+              :local nsmRbUpgrade ""
+              :do {{ :set nsmRbCurrent [/system routerboard get current-firmware] }} on-error={{}}
+              :do {{ :set nsmRbUpgrade [/system routerboard get upgrade-firmware] }} on-error={{}}
+              :set nsmJobOutput ("channel=" . $nsmChannel . ";installed=" . $nsmInstalled . ";latest=" . $nsmLatest . ";status=" . $nsmUpdateStatus . ";free_hdd=" . $nsmFreeHdd . ";rb_current=" . $nsmRbCurrent . ";rb_upgrade=" . $nsmRbUpgrade)
+            }}
           }} on-error={{ :set nsmJobStatus "failed"; :set nsmJobOutput "RouterOS legacy job execution failed" }}
           :local nsmDoneUrl ("{done_base}" . $nsmJobId . "/complete?status=" . $nsmJobStatus)
           :local nsmDoneHeaders ("Content-Type:text/plain," . $nsmLegacyHeaders)
@@ -144,8 +160,6 @@ def _fail_deferred_jobs(db, device, now):
             try:
                 finalize_backup_job(db, device, job, False, error)
             except HTTPException:
-                # Malformed historical jobs must still fail closed without
-                # breaking the legacy agent polling endpoint.
                 pass
     return rows
 
@@ -214,7 +228,12 @@ async def legacy_job_complete(request: Request, job_id: uuid.UUID, status: str =
         if not job or job.device_id != device.id or job.job_type not in LEGACY_JOB_TYPES:
             raise HTTPException(404, "Job legacy non trovato.")
         job.status = normalized
-        job.result = {"output": output, "legacy_transport": True}
+        if normalized == "success" and job.job_type == "firmware_readiness":
+            parsed = parse_legacy_firmware_output(output)
+            readiness = apply_firmware_readiness(db, device, parsed, source="mikrotik_agent_legacy")
+            job.result = {**readiness, "legacy_transport": True}
+        else:
+            job.result = {"output": output, "legacy_transport": True}
         job.last_error = output[:4000] if normalized == "failed" else None
         job.completed_at = utcnow()
         core.add_event(
