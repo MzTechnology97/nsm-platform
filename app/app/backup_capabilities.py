@@ -124,11 +124,21 @@ def capability_for_device(db, device, *, active_agent: bool | None = None) -> Ba
     )
 
 
-def policy_method_enabled(policy_settings, capability: BackupCapability) -> bool:
+def policy_method_enabled(policy_settings, capability: BackupCapability, policy=None) -> bool:
     if not capability.policy_option_keys:
         return False
     options = dict(getattr(policy_settings, "options", None) or {})
-    return any(bool(options.get(key, False)) for key in capability.policy_option_keys)
+    if any(bool(options.get(key, False)) for key in capability.policy_option_keys):
+        return True
+
+    # Compatibility with Core 0.6-0.9 policies where MikroTik format flags
+    # also lived directly on backup_policies.
+    if policy is not None and capability.vendor == "mikrotik":
+        return bool(
+            getattr(policy, "binary_backup", False)
+            or getattr(policy, "text_export", False)
+        )
+    return False
 
 
 def backup_readiness(
@@ -150,7 +160,7 @@ def backup_readiness(
             reason="Nessuna backup policy effettiva è applicata a questo apparato.",
         )
 
-    method_enabled = policy_method_enabled(policy_settings, capability)
+    method_enabled = policy_method_enabled(policy_settings, capability, policy)
     if not method_enabled:
         return BackupReadiness(
             capability=capability,
