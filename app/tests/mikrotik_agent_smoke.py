@@ -49,6 +49,123 @@ def seed():
         return customer.id, device.id, enrollment.id, token
 
 
+def legacy_seed():
+    with SessionLocal() as db:
+        old = db.scalar(select(Customer).where(Customer.code == "CI07L"))
+        if old:
+            db.delete(old)
+        old_user = db.scalar(select(User).where(User.username == "ci07legacy"))
+        if old_user:
+            db.delete(old_user)
+        db.commit()
+        user = User(
+            username="ci07legacy",
+            password_hash=hash_password(PASSWORD),
+            display_name="CI07 Legacy Admin",
+            role="admin",
+            is_active=True,
+        )
+        customer = Customer(name="CI07 RouterOS 7.12 Lab", code="CI07L")
+        db.add_all([user, customer])
+        db.flush()
+        device = Device(
+            customer_id=customer.id,
+            vendor="mikrotik",
+            device_type="router",
+            name="RouterOS 7.12 legacy device",
+            display_name="CI07 Legacy Router",
+            management_source="mikrotik_agent",
+            status="pending_enrollment",
+        )
+        db.add(device)
+        db.flush()
+        token, enrollment = core.create_enrollment(db, device, user)
+        db.commit()
+        return device.id, enrollment.id, token
+
+
+def legacy_transport_smoke(client: TestClient):
+    device_id, enrollment_id, token = legacy_seed()
+    bootstrap = client.get(
+        "/api/v1/enrollment/mikrotik/bootstrap", params={"token": token}
+    )
+    assert bootstrap.status_code == 200, bootstrap.text
+    assert "/api/v1/agents/mikrotik/enroll-legacy" in bootstrap.text
+    assert ":local nsmEscape do=" in bootstrap.text
+    assert ":serialize" not in bootstrap.text
+    assert ":deserialize" not in bootstrap.text
+
+    enroll = client.post(
+        "/api/v1/agents/mikrotik/enroll-legacy",
+        json={
+            "token": token,
+            "inventory": {
+                "identity": "CI07-WAP-R",
+                "model": "wAP R",
+                "routeros_version": "7.12.1 (stable)",
+                "architecture": "mipsbe",
+                "serial_number": "CI07LEGACY",
+                "primary_mac": "02:07:00:00:00:12",
+                "uptime": "2h03m",
+                "agent_version": "legacy",
+            },
+        },
+    )
+    assert enroll.status_code == 200, enroll.text
+    source = enroll.text
+    assert "/api/v1/agents/mikrotik/heartbeat-legacy" in source
+    assert ":local nsmEscape do=" in source
+    assert ":serialize" not in source
+    assert ":deserialize" not in source
+    secret_match = re.search(r':local nsmSecret "([^"]+)"', source)
+    id_match = re.search(r':local nsmDeviceId "([^"]+)"', source)
+    assert secret_match and id_match
+    assert id_match.group(1) == str(device_id)
+    raw_secret = secret_match.group(1)
+
+    with SessionLocal() as db:
+        enrollment = db.get(DeviceEnrollment, enrollment_id)
+        assert enrollment.status == "used"
+        device = db.get(Device, device_id)
+        assert device.firmware_version == "7.12.1 (stable)"
+        job = DeviceJob(
+            device_id=device_id,
+            job_type="inventory_refresh",
+            payload={"reason": "must remain queued for legacy agent"},
+        )
+        db.add(job)
+        db.commit()
+        legacy_job_id = job.id
+
+    headers = {
+        "X-NSM-Device-ID": str(device_id),
+        "X-NSM-Device-Secret": raw_secret,
+    }
+    heartbeat = client.post(
+        "/api/v1/agents/mikrotik/heartbeat-legacy",
+        headers=headers,
+        json={
+            "agent_version": "0.7.0-legacy",
+            "inventory": {
+                "identity": "CI07-WAP-R",
+                "routeros_version": "7.12.1 (stable)",
+                "uptime": "2h08m",
+            },
+            "metrics": {"cpu_load": "8", "free_memory": "32MiB"},
+        },
+    )
+    assert heartbeat.status_code == 200, heartbeat.text
+    body = heartbeat.json()
+    assert body["status"] == "ok"
+    assert body["jobs"] == []
+    with SessionLocal() as db:
+        device = db.get(Device, device_id)
+        assert device.inventory_data["legacy_agent"] is True
+        assert device.inventory_data["metrics"]["cpu_load"] == "8"
+        job = db.get(DeviceJob, legacy_job_id)
+        assert job.status == "pending"
+
+
 def main():
     customer_id, device_id, enrollment_id, token = seed()
     client = TestClient(app)
@@ -192,7 +309,8 @@ def main():
             )
         )
 
-    print("Core 0.7 MikroTik agent smoke test passed")
+    legacy_transport_smoke(client)
+    print("Core 0.7 MikroTik agent smoke test passed with RouterOS 7.12 legacy transport")
 
 
 if __name__ == "__main__":
