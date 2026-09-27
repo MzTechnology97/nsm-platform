@@ -148,7 +148,8 @@ def login(client, username):
 
 
 def main():
-    assert app.version == "0.31.0"
+    major, minor, *_ = [int(part) for part in app.version.split('.')]
+    assert (major, minor) >= (0, 31), app.version
     username, modern_id, legacy_id = seed()
     client = TestClient(app)
     login(client, username)
@@ -190,8 +191,6 @@ def main():
         assert job.payload["firmware_upgrade_plan_id"] == str(plan.id)
         assert db.get(MikrotikBackupJobSecret, job.id) is not None
         plan_id = plan.id
-
-        # Simulate the already-tested backup engine completing successfully.
         run.status = "success"
         run.completed_at = utcnow()
         db.commit()
@@ -199,9 +198,8 @@ def main():
     plan_page = client.get(f"/devices/{modern_id}/firmware-upgrade?plan={plan_id}")
     assert plan_page.status_code == 200
     assert "Gate di sicurezza" in plan_page.text
-    assert "NO AUTO-UPGRADE" in plan_page.text
-    assert "Esecuzione RouterOS" in plan_page.text
-    assert "Non implementata in Core 0.31" in plan_page.text
+    assert "Backup off-device" in plan_page.text
+    assert "Approvazione operatore" in plan_page.text
     assert "UPGRADE 7.21.1" in plan_page.text
 
     with SessionLocal() as db:
@@ -217,7 +215,6 @@ def main():
     )
     assert wrong.status_code == 400
 
-    # Fetch a fresh token because the failed request may rotate/session-consume it.
     approve_page = client.get(f"/devices/{modern_id}/firmware-upgrade?plan={plan_id}")
     approve_csrf = csrf_from(approve_page.text)
     approved = client.post(
@@ -236,14 +233,14 @@ def main():
                 select(DeviceJob).where(
                     DeviceJob.device_id == modern_id,
                     DeviceJob.job_type.in_([
-                        "firmware_upgrade",
                         "firmware_install",
                         "routeros_upgrade",
+                        "firmware_reboot",
                     ]),
                 )
             )
         )
-        assert execution_jobs == [], "Core 0.31 must not queue install/reboot jobs"
+        assert execution_jobs == [], "Planning/approval must not queue activation or reboot jobs"
 
     legacy_page = client.get("/operations/firmware?state=all")
     legacy_csrf = csrf_from(legacy_page.text)

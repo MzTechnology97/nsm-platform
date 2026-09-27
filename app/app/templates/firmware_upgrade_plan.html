@@ -3,10 +3,10 @@
 {% block title %}Piano firmware · {{ title }} · {{ app_name }}{% endblock %}
 {% block content %}
 <div class="breadcrumbs"><a href="/customers/{{ device.customer_id }}">{{ device.customer.name }}</a><span>›</span><a href="/devices/{{ device.id }}">{{ title }}</a><span>›</span><span>Piano firmware</span></div>
-<div class="page-header compact-heading"><div><h1>Piano aggiornamento RouterOS</h1><p>{{ title }} · workflow protetto da backup pre-upgrade e approvazione esplicita.</p></div><div class="page-actions"><a class="button ghost" href="/operations/firmware">Firmware</a><a class="button ghost" href="/devices/{{ device.id }}">Apparato</a></div></div>
+<div class="page-header compact-heading"><div><h1>Piano aggiornamento RouterOS</h1><p>{{ title }} · workflow protetto da backup pre-upgrade, approvazione e staging separato.</p></div><div class="page-actions"><a class="button ghost" href="/operations/firmware">Firmware</a><a class="button ghost" href="/devices/{{ device.id }}">Apparato</a></div></div>
 
 <section class="panel">
-  <div class="panel-header"><div><h2>Prerequisiti osservati</h2><p>Questa versione prepara e approva il piano; non invia ancora comandi di installazione o reboot.</p></div><span class="severity-badge severity-warning">NO AUTO-UPGRADE</span></div>
+  <div class="panel-header"><div><h2>Prerequisiti osservati</h2><p>Core 0.32 può scaricare i pacchetti approvati, ma non installa e non riavvia automaticamente il router.</p></div><span class="severity-badge severity-warning">DOWNLOAD ONLY</span></div>
   <div class="policy-summary six">
     <div><span>Installato</span><strong>{{ device.firmware_version or '—' }}</strong></div>
     <div><span>Target rilevato</span><strong>{{ readiness.get('latest_version') or device.recommended_firmware_version or '—' }}</strong></div>
@@ -27,25 +27,26 @@
     <div><span>Backup run</span><strong>{% if backup_run %}{{ backup_run.status }}{% else %}—{% endif %}</strong></div>
     <div><span>Ready</span><strong>{{ fmt_dt(plan.ready_at) if plan.ready_at else '—' }}</strong></div>
     <div><span>Approvato</span><strong>{{ fmt_dt(plan.approved_at) if plan.approved_at else '—' }}</strong></div>
-    <div><span>Avviato</span><strong>{{ fmt_dt(plan.started_at) if plan.started_at else '—' }}</strong></div>
+    <div><span>Staging avviato</span><strong>{{ fmt_dt(plan.started_at) if plan.started_at else '—' }}</strong></div>
     <div><span>Concluso</span><strong>{{ fmt_dt(plan.completed_at) if plan.completed_at else '—' }}</strong></div>
   </div>
   {% if plan.last_error %}<div class="alert danger">{{ plan.last_error }}</div>{% endif %}
 </section>
 
 <section class="panel">
-  <div class="panel-header"><div><h2>Gate di sicurezza</h2><p>Tutti i passaggi devono essere soddisfatti prima della futura esecuzione firmware.</p></div></div>
+  <div class="panel-header"><div><h2>Gate di sicurezza</h2><p>Ogni fase è separata e auditata. Lo staging non implica installazione o reboot.</p></div></div>
   <div class="compact-list">
     <div class="compact-row"><span><strong>1. Readiness recente</strong><small>Versione target e prerequisiti osservati prima della creazione.</small></span><span class="status-pill">OK</span></div>
     <div class="compact-row"><span><strong>2. Backup off-device</strong><small>Backup NSM associato al piano: {{ plan.backup_run_id or '—' }}</small></span><span class="status-pill">{% if backup_run %}{{ backup_run.status }}{% else %}missing{% endif %}</span></div>
     <div class="compact-row"><span><strong>3. Approvazione operatore</strong><small>Richiede permission firmware.execute e conferma letterale del target.</small></span><span class="status-pill">{% if plan.approved_at %}approved{% else %}pending{% endif %}</span></div>
-    <div class="compact-row"><span><strong>4. Esecuzione RouterOS</strong><small>Non implementata in Core 0.31: nessun download/install/reboot viene accodato.</small></span><span class="status-pill">disabled</span></div>
+    <div class="compact-row"><span><strong>4. Download pacchetti</strong><small>Core 0.32 ricontrolla il target sul MikroTik e può eseguire soltanto il download dei pacchetti.</small></span><span class="status-pill">{% if plan.status == 'staged' %}staged{% elif plan.status == 'staging' %}running{% else %}pending{% endif %}</span></div>
+    <div class="compact-row"><span><strong>5. Attivazione / reboot</strong><small>Disabilitata in Core 0.32. Nessun comando install/reboot viene inviato.</small></span><span class="status-pill">disabled</span></div>
   </div>
 </section>
 
 {% if plan.status == 'ready' and has_permission(user, 'firmware.execute') %}
 <section class="panel danger-zone">
-  <div class="panel-header"><div><h2>Approva piano</h2><p>Il backup è riuscito. L'approvazione non avvia ancora l'upgrade in Core 0.31.</p></div></div>
+  <div class="panel-header"><div><h2>Approva piano</h2><p>Il backup è riuscito. L'approvazione non scarica ancora pacchetti.</p></div></div>
   <form method="post" action="/devices/{{ device.id }}/firmware-upgrade/{{ plan.id }}/approve" class="stack-form">
     <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
     <label>Conferma esatta<input name="confirmation" required autocomplete="off" placeholder="UPGRADE {{ plan.target_version }}"></label>
@@ -54,7 +55,22 @@
 </section>
 {% endif %}
 
-{% if plan.status not in ['executing','success','cancelled'] and has_permission(user, 'firmware.execute') %}
+{% if plan.status == 'approved' and has_permission(user, 'firmware.execute') %}
+<section class="panel danger-zone">
+  <div class="panel-header"><div><h2>Scarica pacchetti RouterOS</h2><p>Il router ricontrollerà che latest-version coincida ancora con {{ plan.target_version }}. Questa azione esegue solo download, senza installazione o reboot.</p></div><span class="severity-badge severity-warning">DOWNLOAD ONLY</span></div>
+  <form method="post" action="/devices/{{ device.id }}/firmware-upgrade/{{ plan.id }}/stage" class="stack-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Seconda conferma esatta<input name="confirmation" required autocomplete="off" placeholder="DOWNLOAD {{ plan.target_version }}"></label>
+    <button class="button primary" type="submit">Avvia download pacchetti</button>
+  </form>
+</section>
+{% elif plan.status == 'staging' %}
+<div class="alert info">Download pacchetti in corso. L'agent aggiornerà il piano quando RouterOS restituisce l'esito.</div>
+{% elif plan.status == 'staged' %}
+<div class="alert success"><strong>Pacchetti scaricati.</strong> Il piano è in stato staged. L'attivazione/reboot resta intenzionalmente disabilitata in Core 0.32.</div>
+{% endif %}
+
+{% if plan.status not in ['staging','staged','executing','success','cancelled'] and has_permission(user, 'firmware.execute') %}
 <section class="panel"><form method="post" action="/devices/{{ device.id }}/firmware-upgrade/{{ plan.id }}/cancel"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button danger" type="submit">Annulla piano</button></form></section>
 {% endif %}
 {% endif %}
