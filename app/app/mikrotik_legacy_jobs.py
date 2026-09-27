@@ -1,14 +1,13 @@
 """Allow-listed job transport for RouterOS legacy agents (Core 0.29).
 
-RouterOS releases such as 7.12.1 do not expose :serialize/:deserialize.  The
+RouterOS releases such as 7.12.1 do not expose :serialize/:deserialize. The
 legacy agent therefore uses a tiny pipe-delimited control protocol and fixed
-handlers compiled into the agent source.  The server never sends RouterOS
-source code or arbitrary commands.
+handlers compiled into the agent source. The server never sends RouterOS source
+code or arbitrary commands.
 """
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse
@@ -25,22 +24,16 @@ router = APIRouter()
 MAX_LEGACY_RESULT = 256 * 1024
 LEGACY_JOB_TYPES = {
     "inventory_refresh",
-    "snapshot_section",
     "diagnostic_ping",
     "diagnostic_traceroute",
     "diagnostic_neighbors",
     "diagnostic_dhcp_lookup",
     "diagnostic_logs",
 }
-LEGACY_SNAPSHOT_SECTIONS = {
-    "resources",
-    "ip_addresses",
-    "routes",
-    "interfaces",
-    "firewall",
-    "ppp_active",
-    "dhcp_leases",
-    "logs",
+LEGACY_DEFERRED_JOB_TYPES = {
+    "snapshot_section",
+    "support_snapshot",
+    "backup_mikrotik",
 }
 
 
@@ -65,10 +58,6 @@ def _job_line(job: DeviceJob) -> str:
         arg2 = _field(payload.get("lookup_type"), 8)
         if not arg1 or arg2 not in {"ip", "mac"}:
             raise HTTPException(409, "Job DHCP legacy non valido.")
-    elif job.job_type == "snapshot_section":
-        arg1 = _field(payload.get("section"), 40)
-        if arg1 not in LEGACY_SNAPSHOT_SECTIONS:
-            raise HTTPException(409, "Sezione snapshot legacy non supportata.")
     return f"{job.id}|{job.job_type}|{arg1}|{arg2}"
 
 
@@ -115,16 +104,6 @@ def _legacy_agent_extension(base_url: str, check_certificate: bool) -> str:
               :if ($nsmArg2 = "mac") do={{ :set nsmJobOutput [:tostr [/ip dhcp-server lease print as-value where mac-address=$nsmArg1]] }}
             }}
             :if ($nsmJobType = "diagnostic_logs") do={{ :set nsmJobOutput [:tostr [/log print as-value where topics~"warning|error|critical"]] }}
-            :if ($nsmJobType = "snapshot_section") do={{
-              :if ($nsmArg1 = "resources") do={{ :set nsmJobOutput ("identity=" . [/system identity get name] . "; model=" . [/system resource get board-name] . "; routeros=" . [/system resource get version] . "; architecture=" . [/system resource get architecture-name] . "; cpu_load=" . [/system resource get cpu-load] . "; total_memory=" . [/system resource get total-memory] . "; free_memory=" . [/system resource get free-memory] . "; uptime=" . [/system resource get uptime]) }}
-              :if ($nsmArg1 = "ip_addresses") do={{ :set nsmJobOutput [:tostr [/ip address print as-value]] }}
-              :if ($nsmArg1 = "routes") do={{ :set nsmJobOutput [:tostr [/ip route print as-value]] }}
-              :if ($nsmArg1 = "interfaces") do={{ :set nsmJobOutput [:tostr [/interface print as-value]] }}
-              :if ($nsmArg1 = "firewall") do={{ :set nsmJobOutput ("filter=" . [:tostr [/ip firewall filter print as-value]] . "\nNAT=" . [:tostr [/ip firewall nat print as-value]]) }}
-              :if ($nsmArg1 = "ppp_active") do={{ :set nsmJobOutput [:tostr [/ppp active print as-value]] }}
-              :if ($nsmArg1 = "dhcp_leases") do={{ :set nsmJobOutput [:tostr [/ip dhcp-server lease print as-value]] }}
-              :if ($nsmArg1 = "logs") do={{ :set nsmJobOutput [:tostr [/log print as-value where topics~"warning|error|critical"]] }}
-            }}
           }} on-error={{ :set nsmJobStatus "failed"; :set nsmJobOutput "RouterOS legacy job execution failed" }}
           :local nsmDoneUrl ("{done_base}" . $nsmJobId . "/complete?status=" . $nsmJobStatus)
           :local nsmDoneHeaders ("Content-Type:text/plain," . $nsmLegacyHeaders)
@@ -144,11 +123,41 @@ def _extend_source(previous):
     return wrapped
 
 
+def _fail_deferred_jobs(db, device_id, now):
+    rows = list(
+        db.scalars(
+            select(DeviceJob).where(
+                DeviceJob.device_id == device_id,
+                DeviceJob.status == "pending",
+                DeviceJob.job_type.in_(LEGACY_DEFERRED_JOB_TYPES),
+                or_(DeviceJob.not_before.is_(None), DeviceJob.not_before <= now),
+            )
+        )
+    )
+    for job in rows:
+        job.status = "failed"
+        job.last_error = "Operazione non ancora disponibile sul trasporto RouterOS legacy; nessun comando è stato eseguito."
+        job.completed_at = now
+    return rows
+
+
 @router.get("/api/v1/agents/mikrotik/legacy/jobs/next", response_class=PlainTextResponse, name="mikrotik_legacy_job_next")
 def legacy_job_next(request: Request):
     with SessionLocal() as db:
         device, _ = agent._authenticate_agent(db, request)
         now = utcnow()
+        deferred = _fail_deferred_jobs(db, device.id, now)
+        for job in deferred:
+            core.add_event(
+                db,
+                "DEVICE_JOB_COMPLETED",
+                customer_id=device.customer_id,
+                device_id=device.id,
+                details={"job_id": str(job.id), "job_type": job.job_type, "status": "failed", "transport": "routeros_legacy"},
+                severity="warning",
+                result="failed",
+                source="mikrotik_agent_legacy",
+            )
         jobs = list(
             db.scalars(
                 select(DeviceJob)
@@ -168,7 +177,7 @@ def legacy_job_next(request: Request):
                 line = _job_line(job)
             except HTTPException:
                 job.status = "failed"
-                job.last_error = "Invalid payload for legacy RouterOS transport"
+                job.last_error = "Payload non valido per il trasporto RouterOS legacy."
                 job.completed_at = now
                 continue
             job.status = "delivered"
@@ -185,10 +194,7 @@ async def legacy_job_complete(request: Request, job_id: uuid.UUID, status: str =
     raw = await request.body()
     if len(raw) > MAX_LEGACY_RESULT:
         raise HTTPException(413, "Risultato job legacy troppo grande.")
-    try:
-        output = raw.decode("utf-8", errors="replace")
-    except Exception:
-        output = ""
+    output = raw.decode("utf-8", errors="replace")
     normalized = status.strip().lower()
     if normalized not in {"success", "failed"}:
         raise HTTPException(400, "Stato job legacy non valido.")
@@ -199,14 +205,7 @@ async def legacy_job_complete(request: Request, job_id: uuid.UUID, status: str =
         if not job or job.device_id != device.id or job.job_type not in LEGACY_JOB_TYPES:
             raise HTTPException(404, "Job legacy non trovato.")
         job.status = normalized
-        if job.job_type == "snapshot_section":
-            job.result = {
-                "section": str((job.payload or {}).get("section") or ""),
-                "data": output,
-                "legacy_text": True,
-            }
-        else:
-            job.result = {"output": output, "legacy_transport": True}
+        job.result = {"output": output, "legacy_transport": True}
         job.last_error = output[:4000] if normalized == "failed" else None
         job.completed_at = utcnow()
         core.add_event(
