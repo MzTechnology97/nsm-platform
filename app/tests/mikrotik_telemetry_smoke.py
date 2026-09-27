@@ -57,7 +57,7 @@ def run_memory_stage():
     assert memory_bytes("invalid") is None
 
 
-def run_heartbeat_stage():
+def enrolled_client():
     device_id, token = seed()
     client = TestClient(app)
     enroll = client.post("/api/v1/agents/mikrotik/enroll", json={"token":token,"inventory":{"identity":"CI19-CCR","model":"CCR2004","routeros_version":"7.20.2","serial_number":"CI19SERIAL","total_memory":"1024MiB","free_memory":"800MiB","uptime":"1d00:00:00","agent_version":"0.16.0"}})
@@ -65,21 +65,37 @@ def run_heartbeat_stage():
     match = re.search(r':local nsmSecret "([^"]+)"', enroll.json()["agent_source"])
     assert match
     headers={"X-NSM-Device-ID":str(device_id),"X-NSM-Device-Secret":match.group(1)}
+    return device_id, client, headers
+
+
+def heartbeat(client, headers, cpu="12", free="800MiB", uptime="1d00:05:00"):
+    return client.post("/api/v1/agents/mikrotik/heartbeat",headers=headers,json={"agent_version":"0.16.0","inventory":{"identity":"CI19-CCR","total_memory":"1024MiB","uptime":uptime},"metrics":{"cpu_load":str(cpu),"free_memory":free,"uptime":uptime}})
+
+
+def run_heartbeat_stage():
+    device_id, client, headers = enrolled_client()
     if STAGE == "enroll":
         return device_id, client
 
-    heartbeat_bodies=[]
-    for cpu, free, uptime in [(12,"800MiB","1d00:05:00"),(34,"700MiB","1d00:10:00"),(18,"760MiB","1d00:15:00")]:
-        heartbeat=client.post("/api/v1/agents/mikrotik/heartbeat",headers=headers,json={"agent_version":"0.16.0","inventory":{"identity":"CI19-CCR","total_memory":"1024MiB","uptime":uptime},"metrics":{"cpu_load":str(cpu),"free_memory":free,"uptime":uptime}})
-        assert heartbeat.status_code == 200, heartbeat.text
-        heartbeat_bodies.append(heartbeat.json())
-        assert heartbeat.json().get("telemetry_sampled") is True, heartbeat.text
+    first = heartbeat(client, headers)
+    assert first.status_code == 200, first.text
+    if STAGE == "heartbeat-http":
+        return device_id, client
+    assert first.json().get("telemetry_sampled") is True, first.text
+    if STAGE == "heartbeat-sampled":
+        return device_id, client
+
+    second = heartbeat(client, headers, 34, "700MiB", "1d00:10:00")
+    third = heartbeat(client, headers, 18, "760MiB", "1d00:15:00")
+    for response in (second, third):
+        assert response.status_code == 200, response.text
+        assert response.json().get("telemetry_sampled") is True, response.text
     if STAGE == "heartbeat-response":
         return device_id, client
 
     with SessionLocal() as db:
         count=int(db.scalar(select(func.count(DeviceMetricSample.id)).where(DeviceMetricSample.device_id==device_id)) or 0)
-        assert count == 3, f"expected 3 telemetry rows, got {count}; heartbeat={heartbeat_bodies}"
+        assert count == 3, f"expected 3 telemetry rows, got {count}"
         if STAGE == "heartbeat-count":
             return device_id, client
         rows=list(db.scalars(select(DeviceMetricSample).where(DeviceMetricSample.device_id==device_id).order_by(DeviceMetricSample.observed_at.asc(), DeviceMetricSample.id.asc())))
@@ -98,7 +114,6 @@ def run_metrics_stage(device_id, client):
     assert body["sample_count"] == 3, body
     assert [point["cpu_load"] for point in body["points"]] == [12.0,34.0,18.0], body
     assert body["points"][-1]["memory_used_percent"] > 25
-
     invalid=client.get(f"/api/v1/devices/{device_id}/metrics?range=year")
     assert invalid.status_code == 400
 
@@ -116,17 +131,14 @@ def main():
     if STAGE == "memory":
         print("Core 0.19 telemetry memory stage passed")
         return
-
     device_id, client = run_heartbeat_stage()
-    if STAGE in {"enroll", "heartbeat-response", "heartbeat-count", "heartbeat"}:
+    if STAGE in {"enroll","heartbeat-http","heartbeat-sampled","heartbeat-response","heartbeat-count","heartbeat"}:
         print(f"Core 0.19 telemetry {STAGE} stage passed")
         return
-
     run_metrics_stage(device_id, client)
     if STAGE == "metrics":
         print("Core 0.19 telemetry metrics stage passed")
         return
-
     run_monitor_stage(device_id, client)
     print("Core 0.19 MikroTik telemetry smoke test passed")
 
