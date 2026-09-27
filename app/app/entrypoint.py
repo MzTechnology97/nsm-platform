@@ -18,6 +18,7 @@ from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
 from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
+from app.mikrotik_snapshot_agent import install_mikrotik_snapshot_agent
 from app.mikrotik_workspace import install_mikrotik_workspace
 from app.route_precedence import promote_customer_workspace_routes
 from app.search_enhancement import install_search_enhancement
@@ -42,6 +43,7 @@ install_demo_ui(core.app)
 install_mikrotik_agent(core.app)
 install_mikrotik_backup(core.app)
 install_mikrotik_backup_agent(core.app)
+install_mikrotik_snapshot_agent()
 install_agent_ui(core.app)
 install_customer_workspace(core.app)
 install_backup_workspace_capabilities(core.app)
