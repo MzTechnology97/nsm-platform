@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Importa apparati CSV · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/devices">Apparati</a><span>›</span><span>Import CSV</span></div>
+<div class="page-header compact-heading">
+  <div><span class="eyebrow">Inventario · amministrazione</span><h1>Importazione massiva apparati</h1><p>Carica fino a {{ max_rows }} apparati da CSV. L'importazione contiene solo metadati inventariali: password SSH/API e altre credenziali non sono accettate.</p></div>
+  <div class="page-actions"><a class="button ghost" href="/devices/import/template.csv">Scarica template CSV</a><a class="button ghost" href="/devices">Torna agli apparati</a></div>
+</div>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Carica file</h2><p>Separatore virgola o punto e virgola · UTF-8 · massimo 1 MiB. Il codice cliente deve già esistere; anche la sede, se indicata, deve esistere nel cliente.</p></div><span class="severity-badge severity-warning">ADMIN</span></div>
+  <div class="alert warning"><strong>MikroTik:</strong> le righe importate vengono create come “In attesa enrollment”. Il pairing continua a usare esclusivamente l'agent NSM outbound per-device; il CSV non può installare credenziali.</div>
+  <form method="post" action="/devices/import" enctype="multipart/form-data" class="stacked-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>File CSV<input type="file" name="csv_file" accept=".csv,text/csv" required></label>
+    <div class="page-actions"><button class="button ghost" type="submit" name="mode" value="validate">Valida / dry-run</button><button class="button primary" type="submit" name="mode" value="import" onclick="return confirm('Importare le righe valide del CSV? Le righe con errori o duplicate verranno saltate.')">Importa righe valide</button></div>
+  </form>
+  <details class="mt-import-help"><summary>Formato colonne supportato</summary><div class="table-wrap"><table class="data-table dense"><thead><tr>{% for column in csv_columns %}<th>{{ column }}</th>{% endfor %}</tr></thead><tbody><tr><td>CLIENTE01</td><td>POP Centro</td><td>mikrotik</td><td>router</td><td>CCR Centro</td><td>Core Centro</td><td></td><td>192.0.2.10</td><td>02:00:00:00:00:10</td><td></td><td>CCR2004</td><td>7.20.2</td></tr></tbody></table></div><p class="muted">Obbligatorie: <code>customer_code</code>, <code>vendor</code>, <code>device_type</code>, <code>name</code>. Alias vendor riconosciuti: RouterOS→mikrotik, UBNT/UI→ubiquiti, tplink→tp-link.</p></details>
+</section>
+
+{% if summary %}
+<section class="panel">
+  <div class="panel-header"><div><h2>{{ 'Risultato importazione' if not dry_run else 'Risultato validazione' }}</h2><p>{{ filename }} · {{ summary.total }} righe elaborate.</p></div>{% if dry_run %}<span class="severity-badge severity-warning">DRY RUN</span>{% else %}<span class="status-pill">IMPORT COMPLETATO</span>{% endif %}</div>
+  <div class="customer-kpi-grid backup-kpi-grid">
+    {% if dry_run %}<div class="customer-kpi"><span class="kpi-symbol">✓</span><span><strong>{{ summary.ready or 0 }}</strong><small>Pronte</small></span></div>{% else %}<div class="customer-kpi"><span class="kpi-symbol">✓</span><span><strong>{{ summary.imported or 0 }}</strong><small>Importate</small></span></div>{% endif %}
+    <div class="customer-kpi"><span class="kpi-symbol">↺</span><span><strong>{{ summary.already_exists or 0 }}</strong><small>Già presenti</small></span></div>
+    <div class="customer-kpi {% if summary.error %}kpi-danger{% endif %}"><span class="kpi-symbol">!</span><span><strong>{{ summary.error or 0 }}</strong><small>Errori</small></span></div>
+    <div class="customer-kpi"><span class="kpi-symbol">Σ</span><span><strong>{{ summary.total }}</strong><small>Totale</small></span></div>
+  </div>
+  {% if dry_run and summary.ready %}<div class="alert success">Il dry-run non ha modificato il database. Per applicare l'importazione ricarica lo stesso file e scegli “Importa righe valide”.</div>{% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Dettaglio righe</h2><p>Ogni riga viene validata separatamente; errori e duplicati non bloccano le altre righe valide.</p></div></div>
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>Riga</th><th>Stato</th><th>Cliente / sede</th><th>Apparato</th><th>Identificativi</th><th>Management</th><th>Esito</th></tr></thead><tbody>
+  {% for row in rows %}{% set d=row.data %}<tr>
+    <td>{{ row.row_number }}</td>
+    <td>{% if row.status in ['ready','imported'] %}<span class="status-pill">{{ 'PRONTA' if row.status == 'ready' else 'IMPORTATA' }}</span>{% elif row.status == 'already_exists' %}<span class="severity-badge severity-warning">DUPLICATO</span>{% else %}<span class="severity-badge severity-critical">ERRORE</span>{% endif %}</td>
+    <td><strong>{{ d.get('customer_code','—') }}</strong><small>{{ d.get('site_name') or 'Nessuna sede' }}</small></td>
+    <td><strong>{{ d.get('name','—') }}</strong><small>{{ d.get('vendor','—') }} · {{ d.get('device_type','—') }}</small></td>
+    <td><code>{{ d.get('serial_number') or '—' }}</code><small><code>{{ d.get('primary_mac') or '—' }}</code></small></td>
+    <td><code>{{ d.get('management_ip') or '—' }}</code></td>
+    <td>{{ row.message }}{% if row.device_id %}<small><a href="/devices/{{ row.device_id }}">Apri apparato →</a></small>{% endif %}</td>
+  </tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endif %}
+{% endblock %}

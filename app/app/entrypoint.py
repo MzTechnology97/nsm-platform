@@ -1,4 +1,4 @@
-"""NSM Core 0.21 application entrypoint."""
+"""NSM Core 0.22 application entrypoint."""
 from app import main as core
 from app.agent_ui import install_agent_ui
 from app.backup_capability_guard import install_backup_capability_guard
@@ -15,6 +15,8 @@ from app.customer_tabs import install_customer_tabs
 from app.customer_workspace import install_customer_workspace
 from app.dashboard_ui import install_dashboard_ui
 from app.demo_ui import install_demo_ui
+from app.device_csv_import import install_device_csv_import
+from app.device_csv_route_precedence import promote_device_csv_import_routes
 from app.firmware_worklist import install_firmware_worklist
 from app.inventory_ui import install_inventory_ui
 from app.lifecycle_drilldown import install_lifecycle_drilldown
@@ -32,7 +34,7 @@ from app.security_drilldown import install_security_drilldown
 from app.ui_extension import install_ui
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.21.0"
+APP_VERSION = "0.22.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -40,6 +42,7 @@ core.templates.env.globals["app_version"] = APP_VERSION
 install_ui(core.app, core.templates)
 install_workflow_ui(core.app, core.templates)
 install_crud(core.app)
+install_device_csv_import(core.app)
 install_backup_core(core.app, core.templates)
 install_backup_text_tools(core.app)
 install_backup_scope_guard()
@@ -68,5 +71,6 @@ install_mikrotik_telemetry(core.app)
 install_dashboard_ui(core.app)
 install_inventory_ui(core.app)
 install_branding_runtime(core.app)
+promote_device_csv_import_routes(core.app)
 
 app = core.app

@@ -53,12 +53,22 @@ jobs:
           assert 'macro kpi_card' in components and 'macro distribution_panel' in components and 'macro donut' in components
 
           devices = (root / 'devices.html').read_text()
-          for marker in ('inventory_ui.css','inventory-kpis','Per pagina','Software ID','Cliente / sede','Identificativi','Management'):
+          for marker in ('inventory_ui.css','inventory-kpis','Per pagina','Software ID','Cliente / sede','Identificativi','Management','/devices/import','Importa CSV'):
               assert marker in devices, marker
           inventory = Path('app/app/inventory_ui.py').read_text()
           assert 'PER_PAGE_OPTIONS = (25, 50, 100)' in inventory
           assert 'Device.software_id.ilike' in inventory
           assert 'firmware_attention_count' in inventory and 'severe_count' in inventory
+
+          csv_page = (root / 'device_csv_import.html').read_text()
+          for marker in ('Importazione massiva apparati','Valida / dry-run','Importa righe valide','password SSH/API','template.csv'):
+              assert marker in csv_page, marker
+          csv_import = Path('app/app/device_csv_import.py').read_text()
+          for marker in ('MAX_CSV_ROWS = 1000','MAX_CSV_BYTES = 1024 * 1024','FORBIDDEN_CREDENTIAL_COLUMNS','pending_enrollment','pending_link','DEVICE_IMPORTED_FROM_CSV','DEVICE_CSV_IMPORT_COMPLETED'):
+              assert marker in csv_import, marker
+          assert 'ssh_password' in csv_import and 'api_key' in csv_import
+          assert 'credentials_imported": False' in csv_import
+          assert 'create_enrollment' not in csv_import
 
           customers = (root / 'customers_workspace.html').read_text()
           assert 'Da aggiornare' in customers and 'CVE gravi' in customers and 'Allarmi' in customers
@@ -124,7 +134,7 @@ jobs:
 
           security = Path('app/app/security_drilldown.py').read_text()
           assert 'SEVERE_LEVELS' in security and 'severity.lower() == "severe"' in security
-          print('Core 0.21 UI, telemetry, operational tools and RSC diff contracts validated')
+          print('Core 0.22 UI, CSV import, telemetry, operational tools and backup contracts validated')
           PY
 
       - name: Validate shell scripts
@@ -144,10 +154,13 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.21.0'
+          assert app.version == '0.22.0'
           assert str(app.url_path_for('dashboard')) == '/'
           assert str(app.url_path_for('dashboard_summary')) == '/api/v1/dashboard/summary'
           assert str(app.url_path_for('devices')) == '/devices'
+          assert str(app.url_path_for('device_csv_import_page')) == '/devices/import'
+          assert str(app.url_path_for('device_csv_import_template')) == '/devices/import/template.csv'
+          assert str(app.url_path_for('device_csv_import_submit')) == '/devices/import'
           assert str(app.url_path_for('mikrotik_bootstrap')) == '/api/v1/enrollment/mikrotik/bootstrap'
           assert str(app.url_path_for('mikrotik_enroll')) == '/api/v1/agents/mikrotik/enroll'
           assert str(app.url_path_for('mikrotik_heartbeat')) == '/api/v1/agents/mikrotik/heartbeat'
@@ -231,7 +244,7 @@ jobs:
       - name: Apply migrations
         run: cd app && alembic upgrade head
 
-      - name: Run full Core smoke suite 0.5 through 0.21
+      - name: Run full Core smoke suite 0.5 through 0.22
         run: |
           cd app
           for test in \
@@ -252,7 +265,8 @@ jobs:
             inventory_ui_smoke.py \
             mikrotik_telemetry_smoke.py \
             mikrotik_operational_tools_smoke.py \
-            backup_rsc_tools_smoke.py
+            backup_rsc_tools_smoke.py \
+            device_csv_import_smoke.py
           do
             echo "===== $test ====="
             PYTHONPATH=. python "tests/$test"
