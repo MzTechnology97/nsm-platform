@@ -13,7 +13,7 @@
     </div>
   </div>
   <div class="form-section"><div class="form-section-title"><span>2</span><div><strong>Organizzazione</strong><small>Alias e sede sono gestiti dall'operatore e restano confinati al cliente.</small></div></div>
-    <div class="form-grid"><label>Alias personalizzato<input name="display_name" placeholder="Es. Router principale Hotel"><small>Opzionale. L'identità reale resta separata.</small></label><label>Sede<select name="site_id"><option value="">Nessuna sede</option>{% for s in customer.sites %}<option value="{{ s.id }}" {% if selected_site_id == s.id|string %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select><small>Vengono mostrate esclusivamente le sedi di {{ customer.name }}.</small></label></div>
+    <div class="form-grid"><label>Alias personalizzato<input name="display_name" placeholder="Es. Router principale Hotel"><small>Opzionale. L'identità reale resta separata.</small></label><label>Sede<select name="site_id"><option value="">Nessuna sede</option>{% for s in customer.sites %}<option value="{{ s.id }}" {% if selected_site_id == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select><small>Vengono mostrate esclusivamente le sedi di {{ customer.name }}.</small></label></div>
   </div>
   <div class="form-section"><div class="form-section-title"><span>3</span><div><strong>Associazione</strong><small>Il metodo cambia in base al vendor.</small></div></div>
     <div class="onboarding-hint" data-vendor="mikrotik"><strong>MikroTik outbound enrollment</strong><p>Dopo la creazione verrà generato un comando one-shot da incollare nel Terminal RouterOS. Identity, modello, seriale, RouterOS, architecture e RouterBOOT verranno rilevati automaticamente.</p></div>
