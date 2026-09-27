@@ -23,7 +23,7 @@ from app.firmware_worklist import install_firmware_worklist
 from app.inventory_ui import install_inventory_ui
 from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
-from app.mikrotik_legacy import install_mikrotik_legacy
+from app.mikrotik_legacy import install_mikrotik_legacy, mikrotik_bootstrap_legacy
 from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
 from app.mikrotik_snapshot_agent import install_mikrotik_snapshot_agent
@@ -81,14 +81,34 @@ install_dashboard_ui(core.app)
 install_inventory_ui(core.app)
 install_branding_runtime(core.app)
 promote_device_csv_import_routes(core.app)
-# Apply the bootstrap transport override last so route-precedence installers
-# cannot restore an older RouterOS-incompatible bootstrap handler.
+
+# Apply the RouterOS 7.12-compatible bootstrap transport last. Starlette uses
+# first-match routing, so retain only the route whose endpoint is the legacy
+# handler and promote it ahead of any accidentally duplicated bootstrap route.
 install_mikrotik_legacy(core.app)
+_bootstrap_path = "/api/v1/enrollment/mikrotik/bootstrap"
+_legacy_bootstrap_route = None
 for _route in core.app.router.routes:
     if (
-        getattr(_route, "path", None) == "/api/v1/enrollment/mikrotik/bootstrap"
+        getattr(_route, "path", None) == _bootstrap_path
         and "GET" in (getattr(_route, "methods", set()) or set())
+        and getattr(_route, "endpoint", None) is mikrotik_bootstrap_legacy
     ):
-        _route.name = "mikrotik_bootstrap"
+        _legacy_bootstrap_route = _route
+        break
+if _legacy_bootstrap_route is None:
+    raise RuntimeError("RouterOS legacy bootstrap route was not registered")
+core.app.router.routes[:] = [
+    _route
+    for _route in core.app.router.routes
+    if _route is _legacy_bootstrap_route
+    or not (
+        getattr(_route, "path", None) == _bootstrap_path
+        and "GET" in (getattr(_route, "methods", set()) or set())
+    )
+]
+_legacy_bootstrap_route.name = "mikrotik_bootstrap"
+core.app.router.routes.remove(_legacy_bootstrap_route)
+core.app.router.routes.insert(0, _legacy_bootstrap_route)
 
 app = core.app
