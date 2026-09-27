@@ -47,8 +47,13 @@ jobs:
           assert '/backups' in detail
           backup_customer = (root / 'customer_backups.html').read_text()
           assert 'Tutte le sedi del cliente' in backup_customer
+          assert 'Backup eseguibile' in backup_customer
+          assert 'Metodo non pronto' in backup_customer
+          assert 'policy effettiva + metodo di backup realmente eseguibile' in backup_customer
           global_backup = (root / 'backup_customer_overview.html').read_text()
           assert 'Overview globale per cliente' in global_backup
+          assert 'backup realmente eseguibile' in global_backup
+          assert 'Metodo non pronto' in global_backup
           form = (root / 'backup_policy_form.html').read_text()
           assert 'name="schedule_cron"' not in form
           assert 'data-customer-select' in form
@@ -64,7 +69,11 @@ jobs:
           assert 'to=base64' in agent
           assert '/api/v1/agents/mikrotik/backup-jobs/' in agent
           assert 'ftp' not in agent.lower()
-          print('Core 0.9 templates and RouterOS source validated')
+          capabilities = Path('app/app/backup_capabilities.py').read_text()
+          assert 'connector_required' in capabilities
+          assert 'acs_required' in capabilities
+          assert 'agent_required' in capabilities
+          print('Core 0.10 templates, backup capabilities and RouterOS source validated')
           PY
       - name: Validate shell scripts
         run: |
@@ -82,7 +91,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero='00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.9.0'
+          assert app.version == '0.10.0'
           assert str(app.url_path_for('mikrotik_bootstrap')) == '/api/v1/enrollment/mikrotik/bootstrap'
           assert str(app.url_path_for('mikrotik_enroll')) == '/api/v1/agents/mikrotik/enroll'
           assert str(app.url_path_for('mikrotik_heartbeat')) == '/api/v1/agents/mikrotik/heartbeat'
@@ -158,6 +167,8 @@ jobs:
         run: cd app && PYTHONPATH=. python tests/backup_maintenance_smoke.py
       - name: Run Core 0.9 customer workspace smoke test
         run: cd app && PYTHONPATH=. python tests/customer_workspace_smoke.py
+      - name: Run Core 0.10 backup capability registry smoke test
+        run: cd app && PYTHONPATH=. python tests/backup_capabilities_smoke.py
 
   promote-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
