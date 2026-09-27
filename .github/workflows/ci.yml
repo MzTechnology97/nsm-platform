@@ -155,20 +155,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r app/requirements.txt
 
-      - name: Apply migrations
-        run: cd app && alembic upgrade head
-
-      - name: Run complete Core smoke suite
+      - name: Run complete isolated Core smoke suite
         run: |
           cd app
           count=0
           for test in $(find tests -maxdepth 1 -type f -name '*_smoke.py' -printf '%f\n' | sort); do
+            echo "===== reset DB for $test ====="
+            alembic downgrade base >/dev/null 2>&1 || true
+            alembic upgrade head >/dev/null
+            rm -rf /tmp/nsm-ci-backups
+            mkdir -p /tmp/nsm-ci-backups
             echo "===== $test ====="
             PYTHONPATH=. python "tests/$test"
             count=$((count + 1))
           done
           test "$count" -ge 20
-          echo "Executed $count smoke tests"
+          echo "Executed $count isolated smoke tests"
 
   promote-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
