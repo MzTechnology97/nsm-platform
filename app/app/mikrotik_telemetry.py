@@ -2,7 +2,7 @@ import re
 import uuid
 from datetime import timedelta
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import selectinload
@@ -13,7 +13,6 @@ from app.agent_models import DeviceJob, DeviceMetricSample
 from app.db import SessionLocal
 from app.models import Device, utcnow
 
-router = APIRouter()
 RANGES = {
     "1h": timedelta(hours=1),
     "24h": timedelta(hours=24),
@@ -93,15 +92,17 @@ def _metric_sample(device: Device, inventory: dict, metrics: dict):
     )
 
 
-@router.post("/api/v1/agents/mikrotik/heartbeat", name="mikrotik_heartbeat")
 async def mikrotik_heartbeat(request: Request):
     payload = await agent._json_body(request)
     inventory = payload.get("inventory") if isinstance(payload.get("inventory"), dict) else {}
     metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
-    inventory = {**inventory, "agent_version": payload.get("agent_version") or inventory.get("agent_version")}
+    inventory = {
+        **inventory,
+        "agent_version": payload.get("agent_version") or inventory.get("agent_version"),
+    }
 
     with SessionLocal() as db:
-        device, credential = agent._authenticate_agent(db, request)
+        device, _credential = agent._authenticate_agent(db, request)
         agent._apply_inventory(db, device, inventory, request, "mikrotik_agent")
         data = dict(device.inventory_data or {})
         data["metrics"] = {k: agent._string(v, 200) for k, v in metrics.items()}
@@ -131,7 +132,9 @@ async def mikrotik_heartbeat(request: Request):
             job.status = "delivered"
             job.delivered_at = now
             job.attempts += 1
-            response_jobs.append({"id": str(job.id), "type": job.job_type, "payload": job.payload or {}})
+            response_jobs.append(
+                {"id": str(job.id), "type": job.job_type, "payload": job.payload or {}}
+            )
         db.commit()
         return {
             "status": "ok",
@@ -157,7 +160,6 @@ def _downsample(samples, maximum=MAX_POINTS):
     return selected
 
 
-@router.get("/api/v1/devices/{device_id}/metrics", name="device_metrics")
 def device_metrics(request: Request, device_id: uuid.UUID, range: str = "24h"):
     delta = RANGES.get(range)
     if not delta:
@@ -188,7 +190,13 @@ def device_metrics(request: Request, device_id: uuid.UUID, range: str = "24h"):
             memory_percent = None
             if sample.free_memory_bytes is not None and sample.total_memory_bytes:
                 memory_percent = round(
-                    max(0, min(100, (1 - sample.free_memory_bytes / sample.total_memory_bytes) * 100)),
+                    max(
+                        0,
+                        min(
+                            100,
+                            (1 - sample.free_memory_bytes / sample.total_memory_bytes) * 100,
+                        ),
+                    ),
                     2,
                 )
             points.append(
@@ -209,7 +217,6 @@ def device_metrics(request: Request, device_id: uuid.UUID, range: str = "24h"):
         }
 
 
-@router.get("/devices/{device_id}/monitor", response_class=HTMLResponse, name="mikrotik_workspace_monitor")
 def telemetry_monitor(request: Request, device_id: uuid.UUID):
     from app.mikrotik_workspace import _workspace_context
 
@@ -247,31 +254,50 @@ def telemetry_monitor(request: Request, device_id: uuid.UUID):
 def telemetry_cleanup():
     cutoff = utcnow() - timedelta(days=RETENTION_DAYS)
     with SessionLocal() as db:
-        result = db.execute(delete(DeviceMetricSample).where(DeviceMetricSample.observed_at < cutoff))
+        result = db.execute(
+            delete(DeviceMetricSample).where(DeviceMetricSample.observed_at < cutoff)
+        )
         db.commit()
         return int(result.rowcount or 0)
 
 
-def _canonicalize_route(app, path: str, method: str, endpoint):
+def _assert_unique_route(app, path: str, method: str, endpoint):
     matches = [route for route in app.router.routes if _route_matches(route, path, method)]
-    canonical = next((route for route in reversed(matches) if getattr(route, "endpoint", None) is endpoint), None)
-    if canonical is None:
-        canonical = next((route for route in reversed(matches) if getattr(getattr(route, "endpoint", None), "__module__", None) == __name__), None)
-    if canonical is None:
-        raise RuntimeError(f"Canonical telemetry route missing: {method} {path}")
-    remaining = [route for route in app.router.routes if not _route_matches(route, path, method)]
-    app.router.routes[:] = [canonical] + remaining
+    if len(matches) != 1:
+        raise RuntimeError(f"Route must be unique: {method} {path} ({len(matches)} found)")
+    if getattr(matches[0], "endpoint", None) is not endpoint:
+        raise RuntimeError(f"Unexpected endpoint registered for {method} {path}")
 
 
 def install_mikrotik_telemetry(app):
-    _remove_route(app, "/api/v1/agents/mikrotik/heartbeat", "POST")
-    _remove_route(app, "/devices/{device_id}/monitor", "GET")
-    app.include_router(router)
-    _canonicalize_route(app, "/api/v1/agents/mikrotik/heartbeat", "POST", mikrotik_heartbeat)
-    _canonicalize_route(app, "/devices/{device_id}/monitor", "GET", telemetry_monitor)
-    metrics_routes = [
-        route for route in app.router.routes
-        if _route_matches(route, "/api/v1/devices/{device_id}/metrics", "GET")
-    ]
-    if len(metrics_routes) != 1:
-        raise RuntimeError("Device metrics route must be unique")
+    heartbeat_path = "/api/v1/agents/mikrotik/heartbeat"
+    metrics_path = "/api/v1/devices/{device_id}/metrics"
+    monitor_path = "/devices/{device_id}/monitor"
+
+    _remove_route(app, heartbeat_path, "POST")
+    _remove_route(app, metrics_path, "GET")
+    _remove_route(app, monitor_path, "GET")
+
+    app.add_api_route(
+        heartbeat_path,
+        mikrotik_heartbeat,
+        methods=["POST"],
+        name="mikrotik_heartbeat",
+    )
+    app.add_api_route(
+        metrics_path,
+        device_metrics,
+        methods=["GET"],
+        name="device_metrics",
+    )
+    app.add_api_route(
+        monitor_path,
+        telemetry_monitor,
+        methods=["GET"],
+        response_class=HTMLResponse,
+        name="mikrotik_workspace_monitor",
+    )
+
+    _assert_unique_route(app, heartbeat_path, "POST", mikrotik_heartbeat)
+    _assert_unique_route(app, metrics_path, "GET", device_metrics)
+    _assert_unique_route(app, monitor_path, "GET", telemetry_monitor)
