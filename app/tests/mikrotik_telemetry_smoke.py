@@ -65,6 +65,8 @@ def run_heartbeat_stage():
     match = re.search(r':local nsmSecret "([^"]+)"', enroll.json()["agent_source"])
     assert match
     headers={"X-NSM-Device-ID":str(device_id),"X-NSM-Device-Secret":match.group(1)}
+    if STAGE == "enroll":
+        return device_id, client
 
     heartbeat_bodies=[]
     for cpu, free, uptime in [(12,"800MiB","1d00:05:00"),(34,"700MiB","1d00:10:00"),(18,"760MiB","1d00:15:00")]:
@@ -72,13 +74,17 @@ def run_heartbeat_stage():
         assert heartbeat.status_code == 200, heartbeat.text
         heartbeat_bodies.append(heartbeat.json())
         assert heartbeat.json().get("telemetry_sampled") is True, heartbeat.text
+    if STAGE == "heartbeat-response":
+        return device_id, client
 
     with SessionLocal() as db:
         count=int(db.scalar(select(func.count(DeviceMetricSample.id)).where(DeviceMetricSample.device_id==device_id)) or 0)
         assert count == 3, f"expected 3 telemetry rows, got {count}; heartbeat={heartbeat_bodies}"
-        last=db.scalar(select(DeviceMetricSample).where(DeviceMetricSample.device_id==device_id).order_by(DeviceMetricSample.observed_at.desc(), DeviceMetricSample.id.desc()).limit(1))
-        assert last is not None
-        assert last.cpu_load == 18
+        if STAGE == "heartbeat-count":
+            return device_id, client
+        rows=list(db.scalars(select(DeviceMetricSample).where(DeviceMetricSample.device_id==device_id).order_by(DeviceMetricSample.observed_at.asc(), DeviceMetricSample.id.asc())))
+        assert [row.cpu_load for row in rows] == [12.0, 34.0, 18.0], [row.cpu_load for row in rows]
+        last=rows[-1]
         assert last.free_memory_bytes == 760 * 1024 * 1024
         assert last.total_memory_bytes == 1024 * 1024 * 1024
     return device_id, client
@@ -112,8 +118,8 @@ def main():
         return
 
     device_id, client = run_heartbeat_stage()
-    if STAGE == "heartbeat":
-        print("Core 0.19 telemetry heartbeat stage passed")
+    if STAGE in {"enroll", "heartbeat-response", "heartbeat-count", "heartbeat"}:
+        print(f"Core 0.19 telemetry {STAGE} stage passed")
         return
 
     run_metrics_stage(device_id, client)
