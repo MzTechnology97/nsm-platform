@@ -1,4 +1,4 @@
-"""NSM Core 0.16 application entrypoint."""
+"""NSM Core 0.17 application entrypoint."""
 from app import main as core
 from app.agent_ui import install_agent_ui
 from app.backup_capability_guard import install_backup_capability_guard
@@ -12,6 +12,7 @@ from app.crud_extension import install_crud
 from app.customer_drilldown import install_customer_drilldown
 from app.customer_tabs import install_customer_tabs
 from app.customer_workspace import install_customer_workspace
+from app.dashboard_ui import install_dashboard_ui
 from app.demo_ui import install_demo_ui
 from app.firmware_worklist import install_firmware_worklist
 from app.lifecycle_drilldown import install_lifecycle_drilldown
@@ -27,7 +28,7 @@ from app.security_drilldown import install_security_drilldown
 from app.ui_extension import install_ui
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.16.0"
+APP_VERSION = "0.17.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -57,6 +58,7 @@ install_firmware_worklist(core.app)
 install_customer_tabs(core.app)
 install_search_enhancement(core.app)
 install_mikrotik_workspace(core.app)
+install_dashboard_ui(core.app)
 install_branding_runtime(core.app)
 
 app = core.app
