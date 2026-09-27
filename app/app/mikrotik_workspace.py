@@ -23,6 +23,14 @@ SNAPSHOT_SECTIONS = {
     "dhcp_leases": "DHCP leases",
     "logs": "Warning / error log",
 }
+DIAGNOSTIC_TYPES = {
+    "ping": "diagnostic_ping",
+    "traceroute": "diagnostic_traceroute",
+    "neighbors": "diagnostic_neighbors",
+    "dhcp_lookup": "diagnostic_dhcp_lookup",
+    "logs": "diagnostic_logs",
+    "support_snapshot": "support_snapshot",
+}
 
 
 def _remove_route(app, path: str, method: str = "GET"):
@@ -182,21 +190,72 @@ def _safe_target(value: str) -> str:
         return value
 
 
+def _safe_source(value: str) -> str:
+    value = (value or "").strip()
+    if not value:
+        return ""
+    try:
+        address = ipaddress.ip_address(value)
+    except ValueError:
+        raise HTTPException(400, "IP sorgente non valido.")
+    return str(address)
+
+
+def _safe_dhcp_query(value: str):
+    value = (value or "").strip()
+    if not value or len(value) > 64:
+        raise HTTPException(400, "Ricerca DHCP non valida.")
+    try:
+        address = ipaddress.ip_address(value)
+        if address.version != 4:
+            raise HTTPException(400, "La ricerca DHCP supporta indirizzi IPv4 o MAC.")
+        return str(address), "ip"
+    except HTTPException:
+        raise
+    except ValueError:
+        try:
+            return core.norm_mac(value), "mac"
+        except ValueError:
+            raise HTTPException(400, "La ricerca DHCP richiede un indirizzo IPv4 o MAC valido.")
+
+
 @router.post("/devices/{device_id}/diagnostics/{diagnostic}", name="queue_mikrotik_diagnostic")
-def queue_diagnostic(request: Request, device_id: uuid.UUID, diagnostic: str, target: str = Form(...), csrf: str = Form(...)):
+def queue_diagnostic(
+    request: Request,
+    device_id: uuid.UUID,
+    diagnostic: str,
+    target: str = Form(""),
+    source: str = Form(""),
+    query: str = Form(""),
+    csrf: str = Form(...),
+):
     core.validate_csrf(request, csrf)
-    if diagnostic not in {"ping", "traceroute"}:
+    if diagnostic not in DIAGNOSTIC_TYPES:
         raise HTTPException(400, "Diagnostica non supportata.")
-    target = _safe_target(target)
+
+    payload = {}
+    details = {"diagnostic": diagnostic}
+    if diagnostic in {"ping", "traceroute"}:
+        payload["target"] = _safe_target(target)
+        payload["source"] = _safe_source(source)
+        details.update({"target": payload["target"], "source": payload["source"] or None})
+    elif diagnostic == "dhcp_lookup":
+        normalized, lookup_type = _safe_dhcp_query(query)
+        payload.update({"query": normalized, "lookup_type": lookup_type})
+        details.update({"query": normalized, "lookup_type": lookup_type})
+
     with SessionLocal() as db:
         user = core.require_permission(request, db, "devices.write")
         device = _load_device(db, device_id)
         if device.vendor != "mikrotik" or device.status != "online":
             raise HTTPException(409, "La diagnostica richiede un MikroTik online con agent NSM.")
-        job = DeviceJob(device_id=device.id, job_type=f"diagnostic_{diagnostic}", payload={"target": target}, expires_at=utcnow() + timedelta(minutes=5))
+        job_type = DIAGNOSTIC_TYPES[diagnostic]
+        expiry = timedelta(minutes=10 if diagnostic == "support_snapshot" else 5)
+        job = DeviceJob(device_id=device.id, job_type=job_type, payload=payload, expires_at=utcnow() + expiry)
         db.add(job)
         db.flush()
-        core.add_event(db, "DEVICE_DIAGNOSTIC_QUEUED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"diagnostic": diagnostic, "target": target, "job_id": str(job.id)}, source="portal")
+        details["job_id"] = str(job.id)
+        core.add_event(db, "DEVICE_DIAGNOSTIC_QUEUED", actor=user, customer_id=device.customer_id, device_id=device.id, details=details, source="portal")
         db.commit()
     return RedirectResponse(f"/devices/{device_id}/diagnostics?queued={diagnostic}", status_code=303)
 

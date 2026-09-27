@@ -1,7 +1,7 @@
-"""Allow-listed RouterOS diagnostics for Core 0.16.
+"""Allow-listed RouterOS diagnostics.
 
-Only ping and traceroute jobs are supported. The server provides a validated
-target value; arbitrary RouterOS command text is never accepted or executed.
+Only predefined diagnostics are supported. The server provides validated
+parameters; arbitrary RouterOS command text is never accepted or executed.
 """
 
 from app import mikrotik_agent as agent_module
@@ -10,28 +10,42 @@ _HANDLER = r'''
     :if ($nsmJobType = "diagnostic_ping") do={
       :local nsmPayload ($nsmJob->"payload")
       :local nsmTarget ($nsmPayload->"target")
+      :local nsmSource ($nsmPayload->"source")
       :local nsmData {}
       :local nsmOk true
       :local nsmError ""
-      :do { :set nsmData [/ping address=$nsmTarget count=10 as-value] } on-error={ :set nsmOk false; :set nsmError "RouterOS ping failed" }
+      :do {
+        :if ([:len $nsmSource] > 0) do={
+          :set nsmData [/ping address=$nsmTarget src-address=$nsmSource count=10 as-value]
+        } else={
+          :set nsmData [/ping address=$nsmTarget count=10 as-value]
+        }
+      } on-error={ :set nsmOk false; :set nsmError "RouterOS ping failed" }
       :local nsmDoneUrl ($nsmBase . "/api/v1/agents/mikrotik/jobs/" . $nsmJobId . "/complete")
       :local nsmStatus "failed"
       :if ($nsmOk) do={ :set nsmStatus "success" }
-      :local nsmBody [:serialize value={"status"=$nsmStatus;"error"=$nsmError;"result"={"target"=$nsmTarget;"data"=$nsmData}} to=json options=json.no-string-conversion]
+      :local nsmBody [:serialize value={"status"=$nsmStatus;"error"=$nsmError;"result"={"target"=$nsmTarget;"source"=$nsmSource;"data"=$nsmData}} to=json options=json.no-string-conversion]
       :do { /tool fetch url=$nsmDoneUrl http-method=post http-header-field=$nsmHeaders http-data=$nsmBody output=user as-value } on-error={ :log warning "NSM ping result upload failed" }
     }
 
     :if ($nsmJobType = "diagnostic_traceroute") do={
       :local nsmPayload ($nsmJob->"payload")
       :local nsmTarget ($nsmPayload->"target")
+      :local nsmSource ($nsmPayload->"source")
       :local nsmData {}
       :local nsmOk true
       :local nsmError ""
-      :do { :set nsmData [/tool traceroute address=$nsmTarget count=1 as-value] } on-error={ :set nsmOk false; :set nsmError "RouterOS traceroute failed" }
+      :do {
+        :if ([:len $nsmSource] > 0) do={
+          :set nsmData [/tool traceroute address=$nsmTarget src-address=$nsmSource count=1 as-value]
+        } else={
+          :set nsmData [/tool traceroute address=$nsmTarget count=1 as-value]
+        }
+      } on-error={ :set nsmOk false; :set nsmError "RouterOS traceroute failed" }
       :local nsmDoneUrl ($nsmBase . "/api/v1/agents/mikrotik/jobs/" . $nsmJobId . "/complete")
       :local nsmStatus "failed"
       :if ($nsmOk) do={ :set nsmStatus "success" }
-      :local nsmBody [:serialize value={"status"=$nsmStatus;"error"=$nsmError;"result"={"target"=$nsmTarget;"data"=$nsmData}} to=json options=json.no-string-conversion]
+      :local nsmBody [:serialize value={"status"=$nsmStatus;"error"=$nsmError;"result"={"target"=$nsmTarget;"source"=$nsmSource;"data"=$nsmData}} to=json options=json.no-string-conversion]
       :do { /tool fetch url=$nsmDoneUrl http-method=post http-header-field=$nsmHeaders http-data=$nsmBody output=user as-value } on-error={ :log warning "NSM traceroute result upload failed" }
     }
 '''
