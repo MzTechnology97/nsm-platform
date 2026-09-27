@@ -22,6 +22,22 @@ def _remove_exact_route(app, path: str, method: str):
     ]
 
 
+def _promote_route(app, path: str, name: str):
+    matches = [
+        route
+        for route in app.router.routes
+        if getattr(route, "path", None) == path
+        and getattr(route, "name", None) == name
+        and "GET" in (getattr(route, "methods", set()) or set())
+    ]
+    if not matches:
+        return
+    route = matches[-1]
+    app.router.routes[:] = [route] + [
+        item for item in app.router.routes if id(item) != id(route)
+    ]
+
+
 def _compact(value: str | None) -> str:
     return re.sub(r"[^0-9A-Za-z]", "", value or "").lower()
 
@@ -192,3 +208,4 @@ def install_search_enhancement(app):
         name="search_suggest",
         include_in_schema=False,
     )
+    _promote_route(app, "/api/v1/search/suggest", "search_suggest")
