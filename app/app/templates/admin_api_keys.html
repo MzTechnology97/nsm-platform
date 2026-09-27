@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}API Keys · {{ ui_context(request).branding.portal_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>API Keys</h1><p>Accesso programmatico alla piattaforma con chiavi revocabili e scope espliciti.</p></div><a class="button ghost" href="/admin/users">Amministrazione</a></div>
+<div class="admin-tabs"><a href="/admin/users">Utenti</a><span>Ruoli & permessi</span><a class="active" href="/admin/api-keys">API Keys</a><span>Notification rules</span><a href="/admin/branding">Branding</a><a href="/admin/demo">Demo Lab</a><span>Retention</span><span>System settings</span></div>
+
+{% if new_key %}
+<section class="panel"><div class="panel-header"><div><h2>Chiave creata</h2><p>Questo valore completo viene mostrato una sola volta. Copialo ora e conservalo in un secret manager.</p></div><span class="severity-badge severity-warning">MOSTRATA UNA VOLTA</span></div>
+  <div class="command-box"><code id="new-api-key">{{ new_key }}</code><button class="button" type="button" onclick="navigator.clipboard.writeText(document.getElementById('new-api-key').innerText)">Copia</button></div>
+  <div class="alert warning">NSM conserva soltanto l'hash SHA-256 della chiave. Se il valore viene perso, la chiave deve essere revocata e ricreata.</div>
+</section>
+{% endif %}
+
+<div class="content-split">
+<section class="panel side-form"><div class="panel-header"><div><h2>Nuova API key</h2><p>Core 0.23 espone esclusivamente inventario in sola lettura.</p></div></div>
+  <form method="post" action="/admin/api-keys" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Nome<input name="name" maxlength="160" required placeholder="es. Integrazione NOC"></label>
+    <label>Cliente<select name="customer_id"><option value="">Globale · tutti i clienti</option>{% for c in customers %}<option value="{{ c.id }}">{{ c.name }} · {{ c.code or c.id }}</option>{% endfor %}</select></label>
+    <label>Scadenza<select name="expires_days">{% for days in expiry_options %}<option value="{{ days }}" {% if days == 90 %}selected{% endif %}>{{ 'Nessuna scadenza' if days == 0 else days ~ ' giorni' }}</option>{% endfor %}</select></label>
+    <label>Scope<input value="{{ inventory_scope }}" readonly></label>
+    <button class="button primary">Crea API key</button>
+  </form>
+</section>
+<section class="panel"><div class="panel-header"><div><h2>Chiavi configurate</h2><p>{{ api_keys|length }} chiavi registrate. Il secret completo non è recuperabile.</p></div></div>
+  {% if api_keys %}<div class="table-wrap"><table class="data-table"><thead><tr><th>Nome</th><th>Prefisso</th><th>Perimetro</th><th>Scope</th><th>Scadenza</th><th>Ultimo uso</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>{% for key in api_keys %}<tr>
+    <td><strong>{{ key.name }}</strong><small>{{ fmt_dt(key.created_at) }}</small></td>
+    <td><code>{{ key.key_prefix }}…</code></td>
+    <td>{% if key.customer_id %}<strong>{{ customer_map.get(key.customer_id).name if customer_map.get(key.customer_id) else key.customer_id }}</strong><small>Solo questo cliente</small>{% else %}<strong>Globale</strong><small>Tutti i clienti</small>{% endif %}</td>
+    <td>{% for scope in key.scopes or [] %}<span class="status-pill">{{ scope }}</span>{% endfor %}</td>
+    <td>{{ fmt_dt(key.expires_at) if key.expires_at else 'Nessuna' }}</td>
+    <td>{{ fmt_dt(key.last_used_at) }}</td>
+    <td>{% if key.is_active %}<span class="device-status status-online">Attiva</span>{% else %}<span class="device-status status-offline">Revocata</span>{% endif %}</td>
+    <td><div class="row-actions">{% if key.is_active %}<form method="post" action="/admin/api-keys/{{ key.id }}/revoke" onsubmit="return confirm('Revocare immediatamente questa API key?')"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny ghost">Revoca</button></form>{% else %}<form method="post" action="/admin/api-keys/{{ key.id }}/delete" onsubmit="return confirm('Eliminare il record della API key revocata?')"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny danger ghost">Elimina</button></form>{% endif %}</div></td>
+  </tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessuna API key configurata.</div>{% endif %}
+</section>
+</div>
+
+<section class="panel"><div class="panel-header"><div><h2>Autenticazione API</h2><p>Entrambi i metodi sono supportati. Se vengono inviati contemporaneamente devono contenere la stessa chiave.</p></div></div>
+  <div class="detail-grid"><div><h3>Header dedicato</h3><pre class="json-preview">X-API-KEY: nsm_live_...</pre></div><div><h3>Bearer token</h3><pre class="json-preview">Authorization: Bearer nsm_live_...</pre></div></div>
+  <p class="muted">Endpoint Core 0.23: <code>GET /api/v1/public/customers</code>, <code>GET /api/v1/public/devices</code>, <code>GET /api/v1/public/devices/{id}</code>. Limite massimo 100 record per pagina.</p>
+</section>
+{% endblock %}
