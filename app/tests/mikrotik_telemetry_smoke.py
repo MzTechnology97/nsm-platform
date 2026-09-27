@@ -62,12 +62,15 @@ def main():
     assert match
     headers={"X-NSM-Device-ID":str(device_id),"X-NSM-Device-Secret":match.group(1)}
 
+    heartbeat_bodies=[]
     for cpu, free, uptime in [(12,"800MiB","1d00:05:00"),(34,"700MiB","1d00:10:00"),(18,"760MiB","1d00:15:00")]:
         heartbeat=client.post("/api/v1/agents/mikrotik/heartbeat",headers=headers,json={"agent_version":"0.16.0","inventory":{"identity":"CI19-CCR","total_memory":"1024MiB","uptime":uptime},"metrics":{"cpu_load":str(cpu),"free_memory":free,"uptime":uptime}})
         assert heartbeat.status_code == 200, heartbeat.text
+        heartbeat_bodies.append(heartbeat.json())
 
     with SessionLocal() as db:
         count=int(db.scalar(select(func.count(DeviceMetricSample.id)).where(DeviceMetricSample.device_id==device_id)) or 0)
+        print(f"CI19 telemetry diagnostic: device={device_id} count={count} heartbeat_keys={[sorted(body.keys()) for body in heartbeat_bodies]}")
         assert count == 3
         last=db.scalar(select(DeviceMetricSample).where(DeviceMetricSample.device_id==device_id).order_by(DeviceMetricSample.observed_at.desc()).limit(1))
         assert last.cpu_load == 18
