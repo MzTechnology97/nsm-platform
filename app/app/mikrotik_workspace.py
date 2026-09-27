@@ -55,7 +55,7 @@ def _pending_sections(db, device_id):
 def _workspace_context(db, device):
     events = list(db.scalars(select(AuditEvent).where(AuditEvent.device_id == device.id).order_by(AuditEvent.timestamp.desc()).limit(30)))
     issues = list(db.scalars(select(ActionIssue).where(ActionIssue.device_id == device.id, ActionIssue.status.in_(["open", "acknowledged"])).order_by(ActionIssue.created_at.desc()).limit(30)))
-    vulnerabilities = db.execute(select(DeviceVulnerability, SecurityAdvisory).join(SecurityAdvisory, SecurityAdvisory.id == DeviceVulnerability.advisory_id).where(DeviceVulnerability.device_id == device.id).order_by(SecurityAdvisory.cvss_score.desc().nullslast(), DeviceVulnerability.detected_at.desc())).all()
+    vulnerabilities = db.execute(select(DeviceVulnerability, SecurityAdvisory).join(SecurityAdvisory, SecurityAdvisory.id == DeviceVulnerability.advisory_id).where(DeviceVulnerability.device_id == device.id).order_by(SecurityAdvisory.cvss.desc().nullslast(), DeviceVulnerability.detected_at.desc())).all()
     backups = list(db.scalars(select(BackupRun).where(BackupRun.device_id == device.id).order_by(BackupRun.started_at.desc()).limit(10)))
     jobs = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device.id).order_by(DeviceJob.created_at.desc()).limit(30)))
     inventory = dict(device.inventory_data or {})
