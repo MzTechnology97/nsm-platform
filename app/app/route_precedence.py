@@ -2,7 +2,7 @@ CUSTOMER_WORKSPACE_ROUTE_NAMES = {
     "customer_workspace_list",
     "customer_workspace_detail",
     "legacy_sites_redirect",
-    "customer_backups_capability_aware",
+    "customer_backups",
 }
 
 
@@ -33,13 +33,11 @@ def promote_customer_workspace_routes(app):
         "/operations/backups",
         backup_customer_overview,
         methods=["GET"],
-        name="backup_customer_overview_capability_aware",
+        name="backup_customer_overview",
         include_in_schema=False,
     )
 
-    promoted_names = CUSTOMER_WORKSPACE_ROUTE_NAMES | {
-        "backup_customer_overview_capability_aware"
-    }
+    promoted_names = CUSTOMER_WORKSPACE_ROUTE_NAMES | {"backup_customer_overview"}
     promoted = [
         route
         for route in app.router.routes
