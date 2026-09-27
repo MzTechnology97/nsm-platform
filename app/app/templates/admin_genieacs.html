@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Integrazioni · GenieACS · {{ ui_context(request).branding.portal_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Integrazioni · GenieACS</h1><p>Northbound Interface read-only per associare e osservare CPE TR-069 senza eseguire task remoti.</p></div><a class="button ghost" href="/admin/integrations">Tutte le integrazioni</a></div>
+<div class="admin-tabs"><a href="/admin/users">Utenti</a><span>Ruoli & permessi</span><a href="/admin/api-keys">API Keys</a><a class="active" href="/admin/integrations">Integrazioni</a><a href="/admin/branding">Branding</a><a href="/admin/demo">Demo Lab</a><span>Retention</span><span>System settings</span></div>
+{% if message %}<div class="alert success">{{ message }}</div>{% endif %}
+{% if error %}<div class="alert warning">{{ error }}</div>{% endif %}
+
+<div class="content-split">
+<section class="panel side-form">
+  <div class="panel-header"><div><h2>GenieACS NBI</h2><p>Endpoint NBI, normalmente sulla porta 7557. NSM usa solo <code>GET /devices</code>.</p></div>{% if connection and connection.is_enabled %}<span class="device-status status-online">Abilitato</span>{% else %}<span class="device-status status-offline">Disabilitato</span>{% endif %}</div>
+  <form method="post" action="/admin/integrations/genieacs" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>URL NBI<input type="url" name="base_url" required value="{{ connection.base_url if connection else '' }}" placeholder="https://acs-nbi.example.net:7557"><small>Inserisci la base NBI, senza <code>/devices</code>.</small></label>
+    <label>Autenticazione<select name="auth_mode"><option value="none" {% if auth_mode == 'none' %}selected{% endif %}>Nessuna / rete privata</option><option value="basic" {% if auth_mode == 'basic' %}selected{% endif %}>HTTP Basic</option><option value="bearer" {% if auth_mode == 'bearer' %}selected{% endif %}>Bearer token</option></select><small>Basic/Bearer sono utili quando NBI è protetta da reverse proxy.</small></label>
+    <label>Username Basic<input name="auth_username" value="{{ auth_username }}" autocomplete="username" placeholder="Opzionale"></label>
+    <label>Password / Bearer token<input type="password" name="auth_secret" autocomplete="new-password" placeholder="Lascia vuoto per mantenere il secret salvato"><small>Il secret non viene mai mostrato nuovamente ed è cifrato nel database.</small></label>
+    <label>Finestra “online” da ultimo Inform (minuti)<input type="number" min="5" max="10080" name="online_window_minutes" value="{{ (connection.settings or {}).get('online_window_minutes', 1440) if connection else 1440 }}"><small>Influenza solo la rappresentazione di stato in NSM; non modifica PeriodicInform sul CPE.</small></label>
+    <label>Parameter path MAC<textarea name="mac_parameter_paths" rows="8" spellcheck="false">{{ mac_paths }}</textarea><small>Uno per riga. Usati solo come fallback quando il seriale non trova il CPE.</small></label>
+    <label class="check-row"><input type="checkbox" name="is_enabled" {% if not connection or connection.is_enabled %}checked{% endif %}><span>Abilita connettore</span></label>
+    <label class="check-row"><input type="checkbox" name="verify_tls" {% if not connection or connection.verify_tls %}checked{% endif %}><span>Verifica certificato TLS</span></label>
+    <button class="button primary">Salva configurazione</button>
+  </form>
+</section>
+<section class="panel">
+  <div class="panel-header"><div><h2>Stato connettore</h2><p>Il test usa una query volutamente non corrispondente e projection minima: non scarica l'inventario CPE.</p></div>{% if connection %}<form method="post" action="/admin/integrations/genieacs/test"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Test connessione</button></form>{% endif %}</div>
+  {% if connection %}<div class="policy-summary"><div><span>Endpoint</span><strong>{{ connection.base_url }}</strong></div><div><span>Modalità</span><strong>READ-ONLY NBI</strong></div><div><span>Auth</span><strong>{{ auth_label }}</strong></div><div><span>TLS</span><strong>{{ 'Verificato' if connection.verify_tls else 'Non verificato' }}</strong></div></div><dl class="kv-list"><div><dt>Ultimo test</dt><dd>{{ fmt_dt(connection.last_tested_at) }}</dd></div><div><dt>Esito</dt><dd>{{ connection.last_test_status or 'Mai eseguito' }}</dd></div><div><dt>Ultimo sync</dt><dd>{{ fmt_dt(connection.last_sync_at) }}</dd></div><div><dt>Ultimo errore</dt><dd>{{ connection.last_error or '—' }}</dd></div></dl>{% else %}<div class="empty-state">Nessuna istanza GenieACS configurata.</div>{% endif %}
+  <div class="alert info"><strong>Foundation read-only:</strong> questa release non usa <code>POST /devices/{id}/tasks</code>, non cambia parametri TR-069, non riavvia CPE e non modifica PeriodicInform.</div>
+</section>
+</div>
+<section class="panel"><div class="panel-header"><div><h2>Matching CPE</h2><p>Riduce al minimo i dati letti dalla NBI.</p></div></div><div class="role-grid"><div><strong>1 · Seriale</strong><p>Prima scelta: query esatta su <code>_deviceId._SerialNumber</code>.</p></div><div><strong>2 · MAC fallback</strong><p>Se necessario, query esatta sui parameter path configurati.</p></div><div><strong>3 · Projection</strong><p>NSM richiede solo identità, firmware, last Inform e pochi parametri operativi.</p></div><div><strong>4 · ID stabile</strong><p>Dopo conferma salva <code>_id</code> GenieACS in <code>external_device_id</code>.</p></div></div></section>
+{% endblock %}
