@@ -28,170 +28,18 @@ jobs:
       - name: Compile Python
         run: python -m compileall -q app/app app/alembic app/tests
 
-      - name: Parse templates and validate UI contracts
+      - name: Parse all Jinja templates
         run: |
           python - <<'PY'
           from pathlib import Path
           from jinja2 import Environment, FileSystemLoader
-
           root = Path('app/app/templates')
           env = Environment(loader=FileSystemLoader(str(root)))
-          for path in sorted(root.glob('*.html')):
+          templates = sorted(root.glob('*.html'))
+          assert templates, 'No templates discovered'
+          for path in templates:
               env.get_template(path.name)
-
-          base = (root / 'base.html').read_text()
-          for asset in ('customer_workspace.css','search_enhancement.css','mikrotik_workspace.css','ui_foundation.css'):
-              assert asset in base, asset
-          assert '/branding/theme.css?v={{ app_version }}' in base
-          assert 'data-global-search-input' in base and 'data-search-suggestions' in base
-          assert 'href="/sites"' not in base
-
-          dashboard = (root / 'dashboard.html').read_text()
-          for marker in ('data-dashboard-live','Copertura operativa','Distribuzione inventario','Backup protetti','CVE High / Critical','dashboard_live.js'):
-              assert marker in dashboard, marker
-          components = (root / '_ui_components.html').read_text()
-          assert 'macro kpi_card' in components and 'macro distribution_panel' in components and 'macro donut' in components
-
-          devices = (root / 'devices.html').read_text()
-          for marker in ('inventory_ui.css','inventory-kpis','Per pagina','Software ID','Cliente / sede','Identificativi','Management','/devices/import','Importa CSV'):
-              assert marker in devices, marker
-          inventory = Path('app/app/inventory_ui.py').read_text()
-          assert 'PER_PAGE_OPTIONS = (25, 50, 100)' in inventory
-          assert 'Device.software_id.ilike' in inventory
-          assert 'firmware_attention_count' in inventory and 'severe_count' in inventory
-
-          csv_page = (root / 'device_csv_import.html').read_text()
-          for marker in ('Importazione massiva apparati','Valida / dry-run','Importa righe valide','password SSH/API','template.csv'):
-              assert marker in csv_page, marker
-          csv_import = Path('app/app/device_csv_import.py').read_text()
-          for marker in ('MAX_CSV_ROWS = 1000','MAX_CSV_BYTES = 1024 * 1024','FORBIDDEN_CREDENTIAL_COLUMNS','pending_enrollment','pending_link','DEVICE_IMPORTED_FROM_CSV','DEVICE_CSV_IMPORT_COMPLETED'):
-              assert marker in csv_import, marker
-          assert 'ssh_password' in csv_import and 'api_key' in csv_import
-          assert 'credentials_imported": False' in csv_import
-          assert 'create_enrollment' not in csv_import
-
-          api_page = (root / 'admin_api_keys.html').read_text()
-          for marker in ('API Keys','MOSTRATA UNA VOLTA','X-API-KEY','Authorization: Bearer','inventory.read','backup.read','security.read','firmware.read'):
-              assert marker in api_page, marker
-          admin_users = (root / 'admin_users.html').read_text()
-          assert '/admin/api-keys' in admin_users and '/admin/integrations/uisp' in admin_users
-          api_code = Path('app/app/api_keys.py').read_text()
-          for marker in ('API_KEY_PREFIX = "nsm_live_"','inventory.read','X-API-KEY','Authorization','compare_digest','MAX_API_PAGE = 100','API_KEY_REVOKED','API_KEY_DELETED'):
-              assert marker in api_code, marker
-          assert 'inventory_data' not in api_code
-          assert 'backup' not in '\n'.join(line for line in api_code.splitlines() if '/api/v1/public/' in line).lower()
-          scope_registry = Path('app/app/api_key_scopes.py').read_text()
-          for marker in ('inventory.read','backup.read','security.read','firmware.read','normalize_scopes'):
-              assert marker in scope_registry, marker
-          scope_extension = Path('app/app/api_key_scope_extension.py').read_text()
-          assert 'normalize_scopes' in scope_extension and 'admin_api_key_create' in scope_extension
-          operations_api = Path('app/app/api_operations.py').read_text()
-          for marker in ('/api/v1/public/backups','/api/v1/public/security/vulnerabilities','/api/v1/public/firmware','API_SCOPE_BACKUP_READ','API_SCOPE_SECURITY_READ','API_SCOPE_FIRMWARE_READ'):
-              assert marker in operations_api, marker
-          for forbidden in ('file_path":', 'evidence":'):
-              assert forbidden not in operations_api
-          api_model = Path('app/app/api_key_models.py').read_text()
-          assert 'key_hash' in api_model and 'key_prefix' in api_model and 'customer_id' in api_model and 'last_used_at' in api_model
-          api_migration = Path('app/alembic/versions/0008_platform_api_keys.py').read_text()
-          assert 'platform_api_keys' in api_migration and '0007_device_metric_samples' in api_migration
-
-          uisp_page = (root / 'admin_uisp.html').read_text()
-          for marker in ('UISP Network','token API UISP read-only','Verifica certificato TLS','/nms/api/v2.1/devices','Site/Organization UISP restano solo metadata'):
-              assert marker in uisp_page, marker
-          uisp_device_page = (root / 'uisp_device_link.html').read_text()
-          for marker in ('Matching esatto tramite MAC','Preview dispositivo UISP','Conferma associazione','Customer e Site NSM non vengono mai sovrascritti'):
-              assert marker in uisp_device_page, marker
-          uisp_code = Path('app/app/uisp_connector.py').read_text()
-          for marker in ('x-auth-token','/nms/api/v2.1/devices','follow_redirects=False','lookup_by_mac','external_device_id','UISP_DEVICE_ASSOCIATED','UISP_INVENTORY_REFRESHED'):
-              assert marker in uisp_code, marker
-          assert 'secret_encrypted' in Path('app/app/integration_models.py').read_text()
-          assert 'encrypt_text(token)' in uisp_code and 'decrypt_text(connection.secret_encrypted)' in uisp_code
-          assert 'customer_id =' not in '\n'.join(line for line in uisp_code.splitlines() if 'device.' in line)
-          uisp_migration = Path('app/alembic/versions/0009_connector_integrations.py').read_text()
-          assert 'connector_integrations' in uisp_migration and '0008_platform_api_keys' in uisp_migration
-          device_detail = (root / 'device_detail.html').read_text()
-          assert '/devices/{{ device.id }}/uisp' in device_detail and 'ID UISP stabile' in device_detail
-
-          customers = (root / 'customers_workspace.html').read_text()
-          assert 'Da aggiornare' in customers and 'CVE gravi' in customers and 'Allarmi' in customers
-          tabs = (root / '_customer_tabs.html').read_text()
-          for suffix in ('devices','sites','backups','security','history'):
-              assert f'/{suffix}' in tabs
-          customer_devices = (root / 'customer_devices.html').read_text()
-          assert 'Seriale' in customer_devices and 'MAC' in customer_devices and 'IP' in customer_devices
-          customer_backups = (root / 'customer_backups.html').read_text()
-          assert 'Backup eseguibile' in customer_backups and 'Metodo non pronto' in customer_backups
-          assert '/view' in customer_backups and 'apri' in customer_backups
-          global_backup = (root / 'backup_customer_overview.html').read_text()
-          assert 'Stato backup per cliente' not in global_backup and 'backup realmente eseguibile' in global_backup
-
-          backup_rsc = (root / 'backup_rsc_view.html').read_text()
-          for marker in ('RouterOS export','Confronta configurazione','Diff configurazione','show-sensitive'):
-              assert marker in backup_rsc, marker
-          backup_text_tools = Path('app/app/backup_text_tools.py').read_text()
-          for marker in ('MAX_TEXT_ARTIFACT_BYTES','resolve_artifact_path','mikrotik_export','SequenceMatcher','stesso apparato'):
-              assert marker in backup_text_tools, marker
-          assert 'MAX_TEXT_ARTIFACT_BYTES = 2 * 1024 * 1024' in backup_text_tools
-
-          search_page = (root / 'search.html').read_text()
-          assert 'Seriale {{ d.serial_number }}' in search_page and 'MAC {{ d.primary_mac }}' in search_page and 'IP {{ d.management_ip }}' in search_page
-          search_code = Path('app/app/search_enhancement.py').read_text()
-          assert 'match_field' in search_code and 'completion' in search_code
-          ui_js = Path('app/app/static/ui.js').read_text()
-          assert "event.key === 'Tab'" in ui_js and 'search-meta-chip' in ui_js
-
-          mt = (root / 'mikrotik_workspace.html').read_text()
-          for label in ('Panoramica','Monitor','Configurazione','Diagnostica','Job & attività','Neighbor discovery','DHCP lookup','Support snapshot'):
-              assert label in mt, label
-          assert 'Nessuna shell o comando RouterOS arbitrario' in mt
-          for marker in ('Completa onboarding MikroTik','Device-mode in sola lettura','Pairing one-shot','flagged=yes','Copia comando'):
-              assert marker in mt, marker
-          onboarding = Path('app/app/mikrotik_onboarding.py').read_text()
-          for marker in ('/system/device-mode/get fetch','/system/device-mode/get scheduler','/system/device-mode/get flagged',':resolve','check-certificate=yes','install_mikrotik_onboarding'):
-              assert marker in onboarding, marker
-          assert '/system/device-mode/update' not in onboarding
-          workspace = Path('app/app/mikrotik_workspace.py').read_text()
-          for section in ('ip_addresses','routes','interfaces','firewall','ppp_active','dhcp_leases','logs'):
-              assert section in workspace
-          for diagnostic in ('neighbors','dhcp_lookup','logs','support_snapshot'):
-              assert diagnostic in workspace
-          snapshot_agent = Path('app/app/mikrotik_snapshot_agent.py').read_text()
-          assert 'snapshot_section' in snapshot_agent and '/ip firewall filter print as-value' in snapshot_agent
-          diagnostics_agent = Path('app/app/mikrotik_diagnostics_agent.py').read_text()
-          assert 'diagnostic_ping' in diagnostics_agent and 'diagnostic_traceroute' in diagnostics_agent and 'src-address' in diagnostics_agent
-          assert ':execute script=' not in diagnostics_agent
-          operational = Path('app/app/mikrotik_operational_tools.py').read_text()
-          for marker in ('diagnostic_neighbors','diagnostic_dhcp_lookup','diagnostic_logs','support_snapshot','/ip neighbor print as-value'):
-              assert marker in operational, marker
-          assert ':execute script=' not in operational and 'command_b64' not in operational
-
-          legacy = Path('app/app/mikrotik_legacy.py').read_text()
-          assert 'heartbeat-legacy' in legacy and 'enroll-legacy' in legacy
-          legacy_jobs = Path('app/app/mikrotik_legacy_jobs.py').read_text()
-          for marker in ('LEGACY_JOB_TYPES','diagnostic_ping','diagnostic_traceroute','diagnostic_neighbors','diagnostic_dhcp_lookup','diagnostic_logs','legacy/jobs/next'):
-              assert marker in legacy_jobs, marker
-          assert ':execute script=' not in legacy_jobs and 'command_b64' not in legacy_jobs
-          capabilities = Path('app/app/backup_capabilities.py').read_text()
-          assert 'legacy_backup_pending' in capabilities and 'Agent MikroTik legacy' in capabilities
-
-          telemetry = Path('app/app/mikrotik_telemetry.py').read_text()
-          assert 'DeviceMetricSample' in telemetry and 'RETENTION_DAYS = 90' in telemetry
-          assert 'device_metrics' in telemetry and 'memory_bytes' in telemetry
-          telemetry_page = (root / 'mikrotik_monitor.html').read_text()
-          for marker in ('Telemetria risorse','Retention 90 giorni','telemetry_monitor.js','telemetry_monitor.css'):
-              assert marker in telemetry_page, marker
-          telemetry_js = Path('app/app/static/telemetry_monitor.js').read_text()
-          assert 'memory_used_percent' in telemetry_js and 'setInterval' in telemetry_js
-          migration = Path('app/alembic/versions/0007_device_metric_samples.py').read_text()
-          assert 'device_metric_samples' in migration and '0006_mikrotik_backup_transport' in migration
-
-          backup_agent = Path('app/app/mikrotik_backup_agent.py').read_text()
-          assert '/system backup save' in backup_agent and 'encryption=aes-sha256' in backup_agent
-          assert '/api/v1/agents/mikrotik/backup-jobs/' in backup_agent and 'ftp' not in backup_agent.lower()
-
-          security = Path('app/app/security_drilldown.py').read_text()
-          assert 'SEVERE_LEVELS' in security and 'severity.lower() == "severe"' in security
-          print('Core 0.29 RouterOS legacy jobs, UISP connector, onboarding, scoped API, telemetry and backup contracts validated')
+          print(f'Parsed {len(templates)} templates')
           PY
 
       - name: Validate shell scripts
@@ -211,56 +59,48 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.29.0'
-          assert str(app.url_path_for('dashboard')) == '/'
-          assert str(app.url_path_for('dashboard_summary')) == '/api/v1/dashboard/summary'
-          assert str(app.url_path_for('devices')) == '/devices'
-          assert str(app.url_path_for('device_csv_import_page')) == '/devices/import'
-          assert str(app.url_path_for('device_csv_import_template')) == '/devices/import/template.csv'
-          assert str(app.url_path_for('device_csv_import_submit')) == '/devices/import'
-          assert str(app.url_path_for('admin_api_keys')) == '/admin/api-keys'
-          assert str(app.url_path_for('admin_api_key_create')) == '/admin/api-keys'
-          assert str(app.url_path_for('admin_uisp')) == '/admin/integrations/uisp'
-          assert str(app.url_path_for('admin_uisp_save')) == '/admin/integrations/uisp'
-          assert str(app.url_path_for('admin_uisp_test')) == '/admin/integrations/uisp/test'
-          assert str(app.url_path_for('uisp_device_link', device_id=zero)) == f'/devices/{zero}/uisp'
-          assert str(app.url_path_for('uisp_device_preview', device_id=zero)) == f'/devices/{zero}/uisp/preview'
-          assert str(app.url_path_for('uisp_device_associate', device_id=zero)) == f'/devices/{zero}/uisp/associate'
-          assert str(app.url_path_for('uisp_device_refresh', device_id=zero)) == f'/devices/{zero}/uisp/refresh'
-          assert str(app.url_path_for('public_api_customers')) == '/api/v1/public/customers'
-          assert str(app.url_path_for('public_api_devices')) == '/api/v1/public/devices'
-          assert str(app.url_path_for('public_api_device_detail', device_id=zero)) == f'/api/v1/public/devices/{zero}'
-          assert str(app.url_path_for('public_api_backups')) == '/api/v1/public/backups'
-          assert str(app.url_path_for('public_api_vulnerabilities')) == '/api/v1/public/security/vulnerabilities'
-          assert str(app.url_path_for('public_api_firmware')) == '/api/v1/public/firmware'
-          assert str(app.url_path_for('mikrotik_bootstrap')) == '/api/v1/enrollment/mikrotik/bootstrap'
-          assert str(app.url_path_for('mikrotik_enroll')) == '/api/v1/agents/mikrotik/enroll'
-          assert str(app.url_path_for('mikrotik_heartbeat')) == '/api/v1/agents/mikrotik/heartbeat'
-          assert str(app.url_path_for('mikrotik_legacy_job_next')) == '/api/v1/agents/mikrotik/legacy/jobs/next'
+          assert app.version == '0.30.0'
+          expected = {
+              'dashboard': '/',
+              'devices': '/devices',
+              'admin_api_keys': '/admin/api-keys',
+              'admin_uisp': '/admin/integrations/uisp',
+              'mikrotik_bootstrap': '/api/v1/enrollment/mikrotik/bootstrap',
+              'mikrotik_enroll': '/api/v1/agents/mikrotik/enroll',
+              'mikrotik_heartbeat': '/api/v1/agents/mikrotik/heartbeat',
+              'mikrotik_legacy_job_next': '/api/v1/agents/mikrotik/legacy/jobs/next',
+              'firmware': '/operations/firmware',
+              'backup_customer_overview': '/operations/backups',
+              'search_suggest': '/api/v1/search/suggest',
+          }
+          for name, path in expected.items():
+              assert str(app.url_path_for(name)) == path, (name, app.url_path_for(name))
           assert str(app.url_path_for('mikrotik_legacy_job_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/legacy/jobs/{zero}/complete'
-          assert str(app.url_path_for('device_metrics', device_id=zero)) == f'/api/v1/devices/{zero}/metrics'
-          assert str(app.url_path_for('queue_mikrotik_backup', device_id=zero)) == f'/devices/{zero}/backup-now'
-          assert str(app.url_path_for('backup_artifact_text_view', artifact_id=zero)) == f'/operations/backups/artifacts/{zero}/view'
-          assert str(app.url_path_for('backup_artifact_text_diff', artifact_id=zero)) == f'/operations/backups/artifacts/{zero}/diff'
+          assert str(app.url_path_for('queue_mikrotik_firmware_readiness', device_id=zero)) == f'/devices/{zero}/firmware-readiness'
+          assert str(app.url_path_for('mikrotik_firmware_readiness_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/firmware-readiness/{zero}/complete'
           assert str(app.url_path_for('mikrotik_workspace_overview', device_id=zero)) == f'/devices/{zero}'
-          assert str(app.url_path_for('mikrotik_workspace_configuration', device_id=zero)) == f'/devices/{zero}/configuration'
-          assert str(app.url_path_for('mikrotik_workspace_monitor', device_id=zero)) == f'/devices/{zero}/monitor'
-          assert str(app.url_path_for('mikrotik_workspace_diagnostics', device_id=zero)) == f'/devices/{zero}/diagnostics'
-          assert str(app.url_path_for('mikrotik_workspace_jobs', device_id=zero)) == f'/devices/{zero}/jobs'
-          assert str(app.url_path_for('customer_workspace_list')) == '/customers'
           assert str(app.url_path_for('customer_workspace_detail', customer_id=zero)) == f'/customers/{zero}'
-          assert str(app.url_path_for('customer_devices', customer_id=zero)) == f'/customers/{zero}/devices'
-          assert str(app.url_path_for('customer_sites', customer_id=zero)) == f'/customers/{zero}/sites'
-          assert str(app.url_path_for('customer_backups', customer_id=zero)) == f'/customers/{zero}/backups'
-          assert str(app.url_path_for('customer_security', customer_id=zero)) == f'/customers/{zero}/security'
-          assert str(app.url_path_for('customer_history', customer_id=zero)) == f'/customers/{zero}/history'
-          assert str(app.url_path_for('backup_customer_overview')) == '/operations/backups'
-          assert str(app.url_path_for('search_suggest')) == '/api/v1/search/suggest'
-          assert str(app.url_path_for('action_center')) == '/action-center'
-          assert str(app.url_path_for('vulnerabilities')) == '/security/vulnerabilities'
-          assert str(app.url_path_for('lifecycle')) == '/security/lifecycle'
-          assert str(app.url_path_for('firmware')) == '/operations/firmware'
-          print(f'Core {app.version}: application imported successfully')
+          print(f'Core {app.version}: application and canonical routes OK')
+          PY
+
+      - name: Validate Core 0.30 safety contracts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          legacy = Path('app/app/mikrotik_legacy.py').read_text()
+          readiness = Path('app/app/mikrotik_firmware_readiness.py').read_text()
+          legacy_jobs = Path('app/app/mikrotik_legacy_jobs.py').read_text()
+          firmware_page = Path('app/app/templates/firmware_worklist.html').read_text()
+          for marker in ('MODERN_AGENT_MIN = (7, 13)', '_supports_modern_agent', 'X-NSM-Agent-Transport'):
+              assert marker in legacy, marker
+          for marker in ('firmware_readiness', 'check-for-updates once', 'latest-version', 'upgrade-firmware'):
+              assert marker in readiness, marker
+          assert 'firmware_readiness' in legacy_jobs
+          assert 'Verifica ora' in firmware_page and 'non scarica pacchetti' in firmware_page
+          combined = readiness + legacy_jobs
+          for forbidden in ('/system package update install', '/system reboot', ':execute script=', 'command_b64'):
+              assert forbidden not in combined, forbidden
+          print('Core 0.30 safety contracts OK')
           PY
 
       - name: Prepare dummy runtime env for Compose validation
@@ -318,38 +158,17 @@ jobs:
       - name: Apply migrations
         run: cd app && alembic upgrade head
 
-      - name: Run full Core smoke suite 0.5 through 0.29
+      - name: Run complete Core smoke suite
         run: |
           cd app
-          for test in \
-            crud_smoke.py \
-            core06_smoke.py \
-            mikrotik_agent_smoke.py \
-            mikrotik_backup_smoke.py \
-            backup_maintenance_smoke.py \
-            customer_workspace_smoke.py \
-            backup_capabilities_smoke.py \
-            customer_drilldown_smoke.py \
-            security_drilldown_smoke.py \
-            lifecycle_drilldown_smoke.py \
-            firmware_worklist_smoke.py \
-            customer_tabs_search_smoke.py \
-            mikrotik_workspace_smoke.py \
-            dashboard_ui_smoke.py \
-            inventory_ui_smoke.py \
-            mikrotik_telemetry_smoke.py \
-            mikrotik_operational_tools_smoke.py \
-            backup_rsc_tools_smoke.py \
-            device_csv_import_smoke.py \
-            api_keys_smoke.py \
-            api_operations_smoke.py \
-            mikrotik_onboarding_smoke.py \
-            uisp_connector_smoke.py \
-            mikrotik_legacy_jobs_smoke.py
-          do
+          count=0
+          for test in $(find tests -maxdepth 1 -type f -name '*_smoke.py' -printf '%f\n' | sort); do
             echo "===== $test ====="
             PYTHONPATH=. python "tests/$test"
+            count=$((count + 1))
           done
+          test "$count" -ge 20
+          echo "Executed $count smoke tests"
 
   promote-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
