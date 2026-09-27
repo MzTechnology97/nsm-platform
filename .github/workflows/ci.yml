@@ -165,6 +165,15 @@ jobs:
               assert marker in operational, marker
           assert ':execute script=' not in operational and 'command_b64' not in operational
 
+          legacy = Path('app/app/mikrotik_legacy.py').read_text()
+          assert 'heartbeat-legacy' in legacy and 'enroll-legacy' in legacy
+          legacy_jobs = Path('app/app/mikrotik_legacy_jobs.py').read_text()
+          for marker in ('LEGACY_JOB_TYPES','diagnostic_ping','diagnostic_traceroute','diagnostic_neighbors','diagnostic_dhcp_lookup','diagnostic_logs','legacy/jobs/next'):
+              assert marker in legacy_jobs, marker
+          assert ':execute script=' not in legacy_jobs and 'command_b64' not in legacy_jobs
+          capabilities = Path('app/app/backup_capabilities.py').read_text()
+          assert 'legacy_backup_pending' in capabilities and 'Agent MikroTik legacy' in capabilities
+
           telemetry = Path('app/app/mikrotik_telemetry.py').read_text()
           assert 'DeviceMetricSample' in telemetry and 'RETENTION_DAYS = 90' in telemetry
           assert 'device_metrics' in telemetry and 'memory_bytes' in telemetry
@@ -182,7 +191,7 @@ jobs:
 
           security = Path('app/app/security_drilldown.py').read_text()
           assert 'SEVERE_LEVELS' in security and 'severity.lower() == "severe"' in security
-          print('Core 0.26 UISP connector, guided MikroTik onboarding, scoped API, CSV import, telemetry and backup contracts validated')
+          print('Core 0.29 RouterOS legacy jobs, UISP connector, onboarding, scoped API, telemetry and backup contracts validated')
           PY
 
       - name: Validate shell scripts
@@ -202,7 +211,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.26.0'
+          assert app.version == '0.29.0'
           assert str(app.url_path_for('dashboard')) == '/'
           assert str(app.url_path_for('dashboard_summary')) == '/api/v1/dashboard/summary'
           assert str(app.url_path_for('devices')) == '/devices'
@@ -227,6 +236,8 @@ jobs:
           assert str(app.url_path_for('mikrotik_bootstrap')) == '/api/v1/enrollment/mikrotik/bootstrap'
           assert str(app.url_path_for('mikrotik_enroll')) == '/api/v1/agents/mikrotik/enroll'
           assert str(app.url_path_for('mikrotik_heartbeat')) == '/api/v1/agents/mikrotik/heartbeat'
+          assert str(app.url_path_for('mikrotik_legacy_job_next')) == '/api/v1/agents/mikrotik/legacy/jobs/next'
+          assert str(app.url_path_for('mikrotik_legacy_job_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/legacy/jobs/{zero}/complete'
           assert str(app.url_path_for('device_metrics', device_id=zero)) == f'/api/v1/devices/{zero}/metrics'
           assert str(app.url_path_for('queue_mikrotik_backup', device_id=zero)) == f'/devices/{zero}/backup-now'
           assert str(app.url_path_for('backup_artifact_text_view', artifact_id=zero)) == f'/operations/backups/artifacts/{zero}/view'
@@ -307,7 +318,7 @@ jobs:
       - name: Apply migrations
         run: cd app && alembic upgrade head
 
-      - name: Run full Core smoke suite 0.5 through 0.26
+      - name: Run full Core smoke suite 0.5 through 0.29
         run: |
           cd app
           for test in \
@@ -333,7 +344,8 @@ jobs:
             api_keys_smoke.py \
             api_operations_smoke.py \
             mikrotik_onboarding_smoke.py \
-            uisp_connector_smoke.py
+            uisp_connector_smoke.py \
+            mikrotik_legacy_jobs_smoke.py
           do
             echo "===== $test ====="
             PYTHONPATH=. python "tests/$test"

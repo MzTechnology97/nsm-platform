@@ -63,12 +63,29 @@ def _active_mikrotik_agent(db, device_id) -> bool:
     return device_id in active_mikrotik_agent_device_ids(db, [device_id])
 
 
+def _legacy_mikrotik_agent(device) -> bool:
+    data = dict(getattr(device, "inventory_data", None) or {})
+    version = str(data.get("agent_version") or "").strip().lower()
+    return version.endswith("-legacy")
+
+
 def capability_for_device(db, device, *, active_agent: bool | None = None) -> BackupCapability:
     vendor = normalize_vendor(getattr(device, "vendor", None))
 
     if vendor == "mikrotik":
         if active_agent is None:
             active_agent = _active_mikrotik_agent(db, device.id)
+        if active_agent and _legacy_mikrotik_agent(device):
+            return BackupCapability(
+                vendor=vendor,
+                method_key="mikrotik_agent_legacy",
+                label="Agent MikroTik legacy",
+                status="legacy_backup_pending",
+                executable=False,
+                reason="Il trasporto RouterOS legacy supporta heartbeat, snapshot e diagnostica; il backup binario/export legacy non è ancora eseguibile e non viene dichiarato protetto.",
+                policy_option_keys=("mikrotik_binary", "mikrotik_export"),
+                artifact_types=("mikrotik_binary", "mikrotik_export"),
+            )
         if active_agent:
             return BackupCapability(
                 vendor=vendor,
@@ -197,6 +214,7 @@ def readiness_label(status: str) -> str:
         "no_policy": "Nessuna policy",
         "method_disabled": "Metodo non abilitato",
         "agent_required": "Agent richiesto",
+        "legacy_backup_pending": "Backup legacy non pronto",
         "connector_required": "Connector richiesto",
         "acs_required": "ACS richiesto",
         "unsupported": "Non supportato",
