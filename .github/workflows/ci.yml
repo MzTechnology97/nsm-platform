@@ -59,7 +59,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.32.0'
+          assert app.version == '0.33.0'
           expected = {
               'dashboard': '/',
               'devices': '/devices',
@@ -84,13 +84,14 @@ jobs:
           print(f'Core {app.version}: application and canonical routes OK')
           PY
 
-      - name: Validate Core 0.32 safety contracts
+      - name: Validate Core 0.33 safety contracts
         run: |
           python - <<'PY'
           from pathlib import Path
           staging = Path('app/app/firmware_package_staging.py').read_text()
           planner = Path('app/app/firmware_upgrade_planner.py').read_text()
           plan_page = Path('app/app/templates/firmware_upgrade_plan.html').read_text()
+          legacy = Path('app/app/mikrotik_legacy.py').read_text()
           for marker in ('firmware_stage','DOWNLOAD {plan.target_version}','download_only','latest-version','/system package update download'):
               assert marker in staging, marker
           assert 'backup_run_id' in staging and 'status != "approved"' in staging
@@ -99,7 +100,12 @@ jobs:
           combined = staging + planner
           for forbidden in ('/system package update install', '/system reboot', ':execute script=', 'command_b64'):
               assert forbidden not in combined, forbidden
-          print('Core 0.32 download-only staging contracts OK')
+          for marker in ('bodyless-v1','http-data=""','X-NSM-Legacy-Transport:headers-v1','X-NSM-Enrollment-Transport','_header_inventory'):
+              assert marker in legacy, marker
+          bootstrap_body = legacy.split('def _legacy_bootstrap_script', 1)[1].split('def _select_agent_source', 1)[0]
+          assert 'nsmJson' not in bootstrap_body
+          assert ':serialize' not in bootstrap_body and ':deserialize' not in bootstrap_body
+          print('Core 0.33 firmware staging and real RouterOS enrollment safety contracts OK')
           PY
 
       - name: Prepare dummy runtime env for Compose validation
