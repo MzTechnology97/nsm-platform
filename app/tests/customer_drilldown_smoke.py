@@ -34,11 +34,12 @@ def seed():
         old_user = db.scalar(select(User).where(User.username == "ci11admin"))
         if old_user:
             db.delete(old_user)
-        old_adv = db.scalar(
-            select(SecurityAdvisory).where(SecurityAdvisory.cve_id == "CVE-2099-1111")
-        )
-        if old_adv:
-            db.delete(old_adv)
+        for cve_id in ("CVE-2099-1111", "CVE-2099-1112"):
+            old_adv = db.scalar(
+                select(SecurityAdvisory).where(SecurityAdvisory.cve_id == cve_id)
+            )
+            if old_adv:
+                db.delete(old_adv)
         db.commit()
 
         user = User(
@@ -95,32 +96,42 @@ def seed():
         db.add_all([device_update, device_cve, device_b])
         db.flush()
 
-        advisory = SecurityAdvisory(
-            cve_id="CVE-2099-1111",
-            vendor="ubiquiti",
-            product="AirOS",
-            severity="critical",
-            cvss=9.8,
-            source="ci",
-        )
-        db.add(advisory)
+        advisories = [
+            SecurityAdvisory(
+                cve_id="CVE-2099-1111",
+                vendor="ubiquiti",
+                product="AirOS",
+                severity="critical",
+                cvss=9.8,
+                source="ci",
+            ),
+            SecurityAdvisory(
+                cve_id="CVE-2099-1112",
+                vendor="ubiquiti",
+                product="AirOS",
+                severity="high",
+                cvss=8.8,
+                source="ci",
+            ),
+        ]
+        db.add_all(advisories)
         db.flush()
-        # Two rows on one device verify that the device drilldown does not duplicate it.
+        # Two different CVEs on one device verify that the inventory row is not duplicated.
         db.add_all(
             [
                 DeviceVulnerability(
-                    advisory_id=advisory.id,
+                    advisory_id=advisories[0].id,
                     device_id=device_cve.id,
                     status="open",
                     installed_version="8.7.0",
                     fixed_version="8.7.1",
                 ),
                 DeviceVulnerability(
-                    advisory_id=advisory.id,
+                    advisory_id=advisories[1].id,
                     device_id=device_cve.id,
                     status="acknowledged",
                     installed_version="8.7.0",
-                    fixed_version="8.7.1",
+                    fixed_version="8.7.2",
                 ),
             ]
         )
