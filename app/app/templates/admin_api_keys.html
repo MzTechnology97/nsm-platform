@@ -12,13 +12,18 @@
 {% endif %}
 
 <div class="content-split">
-<section class="panel side-form"><div class="panel-header"><div><h2>Nuova API key</h2><p>Core 0.23 espone esclusivamente inventario in sola lettura.</p></div></div>
+<section class="panel side-form"><div class="panel-header"><div><h2>Nuova API key</h2><p>Gli scope sono esclusivamente di lettura. <code>inventory.read</code> è sempre incluso.</p></div></div>
   <form method="post" action="/admin/api-keys" class="form-stack">
     <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
     <label>Nome<input name="name" maxlength="160" required placeholder="es. Integrazione NOC"></label>
     <label>Cliente<select name="customer_id"><option value="">Globale · tutti i clienti</option>{% for c in customers %}<option value="{{ c.id }}">{{ c.name }} · {{ c.code or c.id }}</option>{% endfor %}</select></label>
     <label>Scadenza<select name="expires_days">{% for days in expiry_options %}<option value="{{ days }}" {% if days == 90 %}selected{% endif %}>{{ 'Nessuna scadenza' if days == 0 else days ~ ' giorni' }}</option>{% endfor %}</select></label>
-    <label>Scope<input value="{{ inventory_scope }}" readonly><small><code>inventory.read</code> · inventario in sola lettura; nessuna operazione di backup, job o remediation.</small></label>
+    <label>Scope base<input value="inventory.read" readonly><small>Clienti e inventario apparati in sola lettura.</small></label>
+    <fieldset class="scope-options"><legend>Scope aggiuntivi</legend>
+      <label><input type="checkbox" name="scopes" value="backup.read"> <span><code>backup.read</code><small>Stato ed esecuzioni backup, senza accesso ai file.</small></span></label>
+      <label><input type="checkbox" name="scopes" value="security.read"> <span><code>security.read</code><small>CVE e vulnerabilità associate agli apparati.</small></span></label>
+      <label><input type="checkbox" name="scopes" value="firmware.read"> <span><code>firmware.read</code><small>Versione installata, stato e versione raccomandata.</small></span></label>
+    </fieldset>
     <button class="button primary">Crea API key</button>
   </form>
 </section>
@@ -38,6 +43,7 @@
 
 <section class="panel"><div class="panel-header"><div><h2>Autenticazione API</h2><p>Entrambi i metodi sono supportati. Se vengono inviati contemporaneamente devono contenere la stessa chiave.</p></div></div>
   <div class="detail-grid"><div><h3>Header dedicato</h3><pre class="json-preview">X-API-KEY: nsm_live_...</pre></div><div><h3>Bearer token</h3><pre class="json-preview">Authorization: Bearer nsm_live_...</pre></div></div>
-  <p class="muted">Endpoint Core 0.23: <code>GET /api/v1/public/customers</code>, <code>GET /api/v1/public/devices</code>, <code>GET /api/v1/public/devices/{id}</code>. Limite massimo 100 record per pagina.</p>
+  <p class="muted">Inventario: <code>GET /api/v1/public/customers</code>, <code>GET /api/v1/public/devices</code>, <code>GET /api/v1/public/devices/{id}</code>.</p>
+  <p class="muted">Operazioni read-only: <code>GET /api/v1/public/backups</code>, <code>GET /api/v1/public/security/vulnerabilities</code>, <code>GET /api/v1/public/firmware</code>. Limite massimo 100 record per pagina.</p>
 </section>
 {% endblock %}
