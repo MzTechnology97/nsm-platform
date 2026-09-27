@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Firmware · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header compact-heading">
+  <div><h1>Firmware</h1><p>Worklist degli apparati che richiedono verifica o aggiornamento{% if selected_customer %} per {{ selected_customer.name }}{% endif %}.</p></div>
+</div>
+<div class="backup-overview-grid firmware-overview-grid">
+  <a class="backup-status-card {% if attention_count %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&state=attention"><span class="metric-label">Da aggiornare</span><strong>{{ attention_count }}</strong><small>attenzione firmware</small></a>
+  <a class="backup-status-card {% if security_count %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&state=security"><span class="metric-label">Security</span><strong>{{ security_count }}</strong><small>update di sicurezza</small></a>
+  <a class="backup-status-card {% if critical_count %}metric-critical{% endif %}" href="?customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&state=critical"><span class="metric-label">Critical</span><strong>{{ critical_count }}</strong><small>priorità massima</small></a>
+  <a class="backup-status-card {% if unknown_count %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&state=unknown"><span class="metric-label">Sconosciuto</span><strong>{{ unknown_count }}</strong><small>stato da verificare</small></a>
+</div>
+<section class="panel compact-panel">
+  <form class="filter-bar" method="get">
+    <label>Cerca<input type="search" name="q" value="{{ q }}" placeholder="Apparato, modello, versione..."></label>
+    <label>Cliente<select name="customer"><option value="">Tutti i clienti</option>{% for customer in customers %}<option value="{{ customer.id }}" {% if customer_filter == customer.id|string %}selected{% endif %}>{{ customer.name }}</option>{% endfor %}</select></label>
+    <label>Vendor<select name="vendor"><option value="">Tutti</option>{% for item in vendors %}<option value="{{ item }}" {% if vendor_filter == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+    <label>Stato<select name="state"><option value="attention" {% if state_filter == 'attention' %}selected{% endif %}>Da aggiornare</option><option value="security" {% if state_filter == 'security' %}selected{% endif %}>Security update</option><option value="critical" {% if state_filter == 'critical' %}selected{% endif %}>Critical security</option><option value="unknown" {% if state_filter == 'unknown' %}selected{% endif %}>Sconosciuto</option><option value="current" {% if state_filter == 'current' %}selected{% endif %}>Aggiornato</option><option value="all" {% if state_filter == 'all' %}selected{% endif %}>Tutti</option></select></label>
+    <button class="button primary">Filtra</button>
+    {% if q or customer_filter or vendor_filter or state_filter != 'attention' %}<a class="button ghost" href="/operations/firmware">Reset</a>{% endif %}
+  </form>
+</section>
+{% if selected_customer %}<div class="context-banner"><strong>{{ selected_customer.name }}</strong><span>Vista Firmware confinata agli apparati di questo cliente.</span><a href="/customers/{{ selected_customer.id }}">Torna al cliente ›</a></div>{% endif %}
+<section class="panel">
+  <div class="panel-header"><div><h2>Apparati</h2><p>{{ total }} apparati corrispondenti ai filtri selezionati.</p></div></div>
+  {% if devices %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Apparato</th><th>Cliente</th><th>Sede</th><th>Vendor / modello</th><th>Installato</th><th>Raccomandato</th><th>Stato</th><th>Ultima verifica</th></tr></thead><tbody>{% for d in devices %}<tr><td><a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a><small>{{ d.device_identity or d.serial_number or d.primary_mac or 'Identità non disponibile' }}</small></td><td><a href="/customers/{{ d.customer.id }}">{{ d.customer.name }}</a></td><td>{{ d.site.name if d.site else 'Nessuna sede' }}</td><td>{{ d.vendor }}<small>{{ d.model or '—' }}</small></td><td>{{ d.firmware_version or '—' }}</td><td>{% if d.recommended_firmware_version and d.recommended_firmware_version != d.firmware_version %}<strong class="warning-text">{{ d.recommended_firmware_version }}</strong>{% else %}{{ d.recommended_firmware_version or '—' }}{% endif %}</td><td><span class="status-pill">{{ status_label(d.firmware_status) }}</span></td><td>{{ fmt_dt(d.inventory_last_verified_at) if d.inventory_last_verified_at else 'Non verificato' }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state success-state">Nessun apparato corrisponde ai filtri firmware selezionati.</div>{% endif %}
+  {% if pages > 1 %}<div class="pagination"><span>Pagina {{ page }} di {{ pages }}</span>{% if page > 1 %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&state={{ state_filter }}&page={{ page-1 }}">‹ Precedente</a>{% endif %}{% if page < pages %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&state={{ state_filter }}&page={{ page+1 }}">Successiva ›</a>{% endif %}</div>{% endif %}
+</section>
+{% endblock %}
