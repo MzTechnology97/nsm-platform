@@ -1,4 +1,4 @@
-"""NSM Core 0.26 application entrypoint."""
+"""NSM Core 0.27 application entrypoint."""
 from app import main as core
 from app.agent_ui import install_agent_ui
 from app.api_keys import install_api_keys
@@ -20,6 +20,8 @@ from app.demo_ui import install_demo_ui
 from app.device_csv_import import install_device_csv_import
 from app.device_csv_route_precedence import promote_device_csv_import_routes
 from app.firmware_worklist import install_firmware_worklist
+from app.genieacs_connector import install_genieacs_connector
+from app.integration_hub import install_integration_hub
 from app.inventory_ui import install_inventory_ui
 from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
@@ -38,7 +40,7 @@ from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.26.0"
+APP_VERSION = "0.27.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -63,7 +65,9 @@ install_mikrotik_snapshot_agent()
 install_mikrotik_diagnostics_agent()
 install_mikrotik_operational_tools()
 install_agent_ui(core.app)
+install_integration_hub(core.app)
 install_uisp_connector(core.app)
+install_genieacs_connector(core.app)
 install_customer_workspace(core.app)
 install_backup_workspace_capabilities(core.app)
 promote_customer_workspace_routes(core.app)
