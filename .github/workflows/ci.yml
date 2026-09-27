@@ -59,7 +59,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.31.0'
+          assert app.version == '0.32.0'
           expected = {
               'dashboard': '/',
               'devices': '/devices',
@@ -75,45 +75,31 @@ jobs:
           }
           for name, path in expected.items():
               assert str(app.url_path_for(name)) == path, (name, app.url_path_for(name))
-          assert str(app.url_path_for('mikrotik_legacy_job_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/legacy/jobs/{zero}/complete'
           assert str(app.url_path_for('queue_mikrotik_firmware_readiness', device_id=zero)) == f'/devices/{zero}/firmware-readiness'
-          assert str(app.url_path_for('mikrotik_firmware_readiness_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/firmware-readiness/{zero}/complete'
           assert str(app.url_path_for('create_firmware_upgrade_plan', device_id=zero)) == f'/devices/{zero}/firmware-upgrade/plan'
           assert str(app.url_path_for('firmware_upgrade_plan_page', device_id=zero)) == f'/devices/{zero}/firmware-upgrade'
           assert str(app.url_path_for('approve_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/approve'
-          assert str(app.url_path_for('cancel_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/cancel'
-          assert str(app.url_path_for('mikrotik_workspace_overview', device_id=zero)) == f'/devices/{zero}'
-          assert str(app.url_path_for('customer_workspace_detail', customer_id=zero)) == f'/customers/{zero}'
+          assert str(app.url_path_for('stage_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/stage'
+          assert str(app.url_path_for('mikrotik_firmware_stage_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/firmware-stage/{zero}/complete'
           print(f'Core {app.version}: application and canonical routes OK')
           PY
 
-      - name: Validate Core 0.31 safety contracts
+      - name: Validate Core 0.32 safety contracts
         run: |
           python - <<'PY'
           from pathlib import Path
-          legacy = Path('app/app/mikrotik_legacy.py').read_text()
-          readiness = Path('app/app/mikrotik_firmware_readiness.py').read_text()
-          legacy_jobs = Path('app/app/mikrotik_legacy_jobs.py').read_text()
+          staging = Path('app/app/firmware_package_staging.py').read_text()
           planner = Path('app/app/firmware_upgrade_planner.py').read_text()
-          model = Path('app/app/firmware_upgrade_models.py').read_text()
-          migration = Path('app/alembic/versions/0010_firmware_upgrade_plans.py').read_text()
-          firmware_page = Path('app/app/templates/firmware_worklist.html').read_text()
           plan_page = Path('app/app/templates/firmware_upgrade_plan.html').read_text()
-          for marker in ('MODERN_AGENT_MIN = (7, 13)', '_supports_modern_agent', 'X-NSM-Agent-Transport'):
-              assert marker in legacy, marker
-          for marker in ('firmware_readiness', 'check-for-updates once', 'latest-version', 'upgrade-firmware'):
-              assert marker in readiness, marker
-          assert 'firmware_readiness' in legacy_jobs
-          for marker in ('FirmwareUpgradePlan','queue_preupgrade_backup','backup_pending','UPGRADE {plan.target_version}','execution_queued": False'):
-              assert marker in planner, marker
-          assert 'firmware_upgrade_plans' in migration and '0009_connector_integrations' in migration
-          assert 'backup_run_id' in model and 'approved_by' in model and 'precheck_data' in model
-          assert 'Verifica ora' in firmware_page and 'Prepara upgrade' in firmware_page
-          assert 'NO AUTO-UPGRADE' in plan_page and 'Non implementata in Core 0.31' in plan_page
-          combined = readiness + legacy_jobs + planner
-          for forbidden in ('/system package update install', '/system reboot', ':execute script=', 'command_b64', 'job_type="firmware_upgrade"'):
+          for marker in ('firmware_stage','DOWNLOAD {plan.target_version}','download_only','latest-version','/system package update download'):
+              assert marker in staging, marker
+          assert 'backup_run_id' in staging and 'status != "approved"' in staging
+          assert 'DOWNLOAD {{ plan.target_version }}' in plan_page
+          assert 'Pacchetti scaricati' in plan_page and 'attivazione/reboot resta intenzionalmente disabilitata' in plan_page
+          combined = staging + planner
+          for forbidden in ('/system package update install', '/system reboot', ':execute script=', 'command_b64'):
               assert forbidden not in combined, forbidden
-          print('Core 0.31 safety contracts OK')
+          print('Core 0.32 download-only staging contracts OK')
           PY
 
       - name: Prepare dummy runtime env for Compose validation
