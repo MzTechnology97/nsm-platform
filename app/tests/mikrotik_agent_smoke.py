@@ -91,10 +91,13 @@ def legacy_transport_smoke(client: TestClient):
     )
     assert bootstrap.status_code == 200, bootstrap.text
     assert "/api/v1/agents/mikrotik/enroll-legacy" in bootstrap.text
-    assert ":local nsmEscape do=" in bootstrap.text
+    assert "?token=" in bootstrap.text and "&version=" in bootstrap.text
+    assert 'http-data=""' in bootstrap.text
+    assert "nsmJson" not in bootstrap.text
     assert ":serialize" not in bootstrap.text
     assert ":deserialize" not in bootstrap.text
 
+    # Keep validating compatibility with the pre-0.33 JSON enrollment client.
     enroll = client.post(
         "/api/v1/agents/mikrotik/enroll-legacy",
         json={
@@ -114,7 +117,9 @@ def legacy_transport_smoke(client: TestClient):
     assert enroll.status_code == 200, enroll.text
     source = enroll.text
     assert "/api/v1/agents/mikrotik/heartbeat-legacy" in source
-    assert ":local nsmEscape do=" in source
+    assert ":local nsmHeaderSafe do=" in source
+    assert "X-NSM-Legacy-Transport:headers-v1" in source
+    assert "nsmJson" not in source
     assert ":serialize" not in source
     assert ":deserialize" not in source
     secret_match = re.search(r':local nsmSecret "([^"]+)"', source)
@@ -141,6 +146,7 @@ def legacy_transport_smoke(client: TestClient):
         "X-NSM-Device-ID": str(device_id),
         "X-NSM-Device-Secret": raw_secret,
     }
+    # Existing JSON heartbeat clients remain accepted until they are reinstalled.
     heartbeat = client.post(
         "/api/v1/agents/mikrotik/heartbeat-legacy",
         headers=headers,
@@ -161,6 +167,7 @@ def legacy_transport_smoke(client: TestClient):
     with SessionLocal() as db:
         device = db.get(Device, device_id)
         assert device.inventory_data["legacy_agent"] is True
+        assert device.inventory_data["legacy_heartbeat_transport"] == "json-v1"
         assert device.inventory_data["metrics"]["cpu_load"] == "8"
         job = db.get(DeviceJob, legacy_job_id)
         assert job.status == "pending"
