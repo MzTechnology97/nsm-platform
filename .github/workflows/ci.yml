@@ -51,7 +51,7 @@ jobs:
           assert 'name="next_step" value="device"' in customer_new
           assert 'confinata esclusivamente a questo cliente' in customer_new
           device_new = (root / 'device_new.html').read_text()
-          assert 'selected_site_id == s.id|string' in device_new
+          assert 'selected_site_id == s.id' in device_new
           assert 'esclusivamente le sedi di' in device_new
           detail = (root / 'customer_workspace_detail.html').read_text()
           assert 'Apparati con CVE gravi' in detail
