@@ -16,6 +16,7 @@ from app.customer_workspace import install_customer_workspace
 from app.dashboard_ui import install_dashboard_ui
 from app.demo_ui import install_demo_ui
 from app.device_csv_import import install_device_csv_import
+from app.device_csv_route_precedence import promote_device_csv_import_routes
 from app.firmware_worklist import install_firmware_worklist
 from app.inventory_ui import install_inventory_ui
 from app.lifecycle_drilldown import install_lifecycle_drilldown
@@ -70,5 +71,6 @@ install_mikrotik_telemetry(core.app)
 install_dashboard_ui(core.app)
 install_inventory_ui(core.app)
 install_branding_runtime(core.app)
+promote_device_csv_import_routes(core.app)
 
 app = core.app
