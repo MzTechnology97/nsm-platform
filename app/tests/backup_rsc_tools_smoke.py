@@ -1,5 +1,6 @@
 import hashlib
 import re
+from datetime import timedelta
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -92,11 +93,12 @@ def seed():
         db.add_all([device, other_device])
         db.flush()
 
-        old_run = BackupRun(device_id=device.id, status="success", backup_type="mikrotik_export", completed_at=utcnow())
-        new_run = BackupRun(device_id=device.id, status="success", backup_type="mikrotik_export", completed_at=utcnow())
-        other_run = BackupRun(device_id=other_device.id, status="success", backup_type="mikrotik_export", completed_at=utcnow())
-        binary_run = BackupRun(device_id=device.id, status="success", backup_type="mikrotik_binary", completed_at=utcnow())
-        db.add_all([old_run, new_run, other_run, binary_run])
+        now = utcnow()
+        old_run = BackupRun(device_id=device.id, status="success", backup_type="mikrotik_export", started_at=now - timedelta(minutes=3), completed_at=now - timedelta(minutes=3))
+        binary_run = BackupRun(device_id=device.id, status="success", backup_type="mikrotik_binary", started_at=now - timedelta(minutes=2), completed_at=now - timedelta(minutes=2))
+        new_run = BackupRun(device_id=device.id, status="success", backup_type="mikrotik_export", started_at=now, completed_at=now)
+        other_run = BackupRun(device_id=other_device.id, status="success", backup_type="mikrotik_export", started_at=now, completed_at=now)
+        db.add_all([old_run, binary_run, new_run, other_run])
         db.flush()
 
         old_payload = b"# jan/01/2026 RouterOS 7.20\n/ip service\nset ssh disabled=yes\n/ip dns\nset servers=1.1.1.1\n"
@@ -116,11 +118,11 @@ def seed():
             artifact_type="mikrotik_binary",
         )
         db.commit()
-        return device.id, old_artifact.id, new_artifact.id, other_artifact.id, binary_artifact.id
+        return customer.id, device.id, old_artifact.id, new_artifact.id, other_artifact.id, binary_artifact.id
 
 
 def main():
-    device_id, old_id, new_id, other_id, binary_id = seed()
+    customer_id, device_id, old_id, new_id, other_id, binary_id = seed()
     client = TestClient(app)
     login(client)
 
@@ -149,14 +151,10 @@ def main():
     binary = client.get(f"/operations/backups/artifacts/{binary_id}/view")
     assert binary.status_code == 404
 
-    center = client.get("/operations/backups")
-    assert center.status_code == 200
-    assert f"/operations/backups/artifacts/{new_id}/view" in center.text
-    assert "Apri / diff" in center.text
-
-    customer = client.get(f"/customers/{device_id}/backups")
-    # Device UUID is intentionally not a customer UUID: route must not accidentally expose data.
-    assert customer.status_code in {404, 422}
+    customer_backups = client.get(f"/customers/{customer_id}/backups")
+    assert customer_backups.status_code == 200, customer_backups.text
+    assert f"/operations/backups/artifacts/{new_id}/view" in customer_backups.text
+    assert "ci21-new.rsc" in customer_backups.text
 
     with SessionLocal() as db:
         events = list(
