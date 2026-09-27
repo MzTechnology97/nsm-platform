@@ -63,12 +63,12 @@ def build_onboarding_command(base_url: str, token: str) -> str:
         ':local nsmFetchAllowed true',
         ':local nsmSchedulerAllowed true',
         ':local nsmFlagged false',
-        ':do={:set nsmFetchAllowed [/system/device-mode/get fetch]; :set nsmSchedulerAllowed [/system/device-mode/get scheduler]; :set nsmFlagged [/system/device-mode/get flagged]; :set nsmDmAvailable true} on-error={}',
+        ':do { :set nsmFetchAllowed [/system/device-mode/get fetch]; :set nsmSchedulerAllowed [/system/device-mode/get scheduler]; :set nsmFlagged [/system/device-mode/get flagged]; :set nsmDmAvailable true } on-error={}',
         ':if ($nsmDmAvailable) do={:if ($nsmFlagged = true) do={:error "NSM preflight: device-mode flagged=yes; audit the router before enrollment"}; :if ($nsmFetchAllowed = false) do={:error "NSM preflight: device-mode fetch=no; enable fetch manually and confirm physically"}; :if ($nsmSchedulerAllowed = false) do={:error "NSM preflight: device-mode scheduler=no; enable scheduler manually and confirm physically"}}',
     ]
     if meta["uses_dns"]:
         parts.append(
-            f':do={{:local nsmResolved [:resolve "{host}"]; :put ("NSM DNS OK: " . $nsmResolved)}} on-error={{:error "NSM preflight: DNS resolution failed for {host}"}}'
+            f':do {{ :local nsmResolved [:resolve "{host}"]; :put ("NSM DNS OK: " . $nsmResolved) }} on-error={{:error "NSM preflight: DNS resolution failed for {host}"}}'
         )
     parts.extend(
         [
