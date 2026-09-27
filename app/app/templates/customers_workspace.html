@@ -13,7 +13,7 @@
   </form>
 </section>
 <section class="panel customer-directory-panel">
-  <div class="panel-header"><div><h2>Elenco clienti</h2><p>{{ total }} clienti · pagina {{ page }} di {{ pages }}</p></div></div>
+  <div class="panel-header"><div><h2>Elenco clienti</h2><p>{{ total }} clienti · pagina {{ page }} di {{ pages }} · i contatori aprono direttamente il relativo dettaglio filtrato</p></div></div>
   {% if customer_rows %}
   <div class="customer-health-table">
     <div class="customer-health-head">
@@ -21,14 +21,14 @@
     </div>
     {% for row in customer_rows %}
     {% set c = row.customer %}{% set m = row.metrics %}
-    <a class="customer-health-row" href="/customers/{{ c.id }}">
-      <span class="customer-health-name"><span class="customer-avatar small">{{ c.name[0]|upper }}</span><span><strong>{{ c.name }}</strong><small>{{ c.code or 'Nessun codice interno' }} · {{ m.sites }} {{ 'sede' if m.sites == 1 else 'sedi' }}</small></span></span>
-      <span class="customer-health-cell"><strong>{{ m.devices }}</strong><small>apparati</small></span>
-      <span class="customer-health-cell {% if m.updates %}health-warning{% endif %}"><strong>{{ m.updates }}</strong><small>firmware</small></span>
-      <span class="customer-health-cell {% if m.severe_cve_devices %}health-critical{% endif %}"><strong>{{ m.severe_cve_devices }}</strong><small>apparati</small></span>
-      <span class="customer-health-cell {% if m.alerts %}health-danger{% endif %}"><strong>{{ m.alerts }}</strong><small>aperti</small></span>
-      <span class="customer-health-open">Apri ›</span>
-    </a>
+    <div class="customer-health-row">
+      <a class="customer-health-name" href="/customers/{{ c.id }}"><span class="customer-avatar small">{{ c.name[0]|upper }}</span><span><strong>{{ c.name }}</strong><small>{{ c.code or 'Nessun codice interno' }} · {{ m.sites }} {{ 'sede' if m.sites == 1 else 'sedi' }}</small></span></a>
+      <a class="customer-health-cell" href="/devices?customer={{ c.id }}" title="Apri gli apparati di {{ c.name }}"><strong>{{ m.devices }}</strong><small>apparati</small></a>
+      <a class="customer-health-cell {% if m.updates %}health-warning{% endif %}" href="/devices?customer={{ c.id }}&firmware=attention" title="Apri gli apparati da aggiornare"><strong>{{ m.updates }}</strong><small>firmware</small></a>
+      <a class="customer-health-cell {% if m.severe_cve_devices %}health-critical{% endif %}" href="/devices?customer={{ c.id }}&security=severe" title="Apri gli apparati con CVE High/Critical"><strong>{{ m.severe_cve_devices }}</strong><small>apparati</small></a>
+      <a class="customer-health-cell {% if m.alerts %}health-danger{% endif %}" href="/action-center?customer={{ c.id }}" title="Apri l'Action Center del cliente"><strong>{{ m.alerts }}</strong><small>aperti</small></a>
+      <a class="customer-health-open" href="/customers/{{ c.id }}">Profilo ›</a>
+    </div>
     {% endfor %}
   </div>
   {% if pages > 1 %}<div class="pagination-bar"><span>Pagina {{ page }} / {{ pages }}</span><div>{% if page > 1 %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&page={{ page-1 }}">← Precedente</a>{% endif %}{% if page < pages %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&page={{ page+1 }}">Successiva →</a>{% endif %}</div></div>{% endif %}
