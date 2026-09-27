@@ -182,14 +182,14 @@ def main():
     customers = client.get("/customers")
     assert customers.status_code == 200
     assert f"/devices?customer={ids['customer_a']}" in customers.text
-    assert f"customer={ids['customer_a']}&amp;firmware=attention" in customers.text
-    assert f"customer={ids['customer_a']}&amp;security=severe" in customers.text
+    assert f"customer={ids['customer_a']}&firmware=attention" in customers.text
+    assert f"customer={ids['customer_a']}&security=severe" in customers.text
     assert f"/action-center?customer={ids['customer_a']}" in customers.text
 
     profile = client.get(f"/customers/{ids['customer_a']}")
     assert profile.status_code == 200
-    assert f"/devices?customer={ids['customer_a']}&amp;firmware=attention" in profile.text
-    assert f"/devices?customer={ids['customer_a']}&amp;security=severe" in profile.text
+    assert f"/devices?customer={ids['customer_a']}&firmware=attention" in profile.text
+    assert f"/devices?customer={ids['customer_a']}&security=severe" in profile.text
     assert f"/action-center?customer={ids['customer_a']}" in profile.text
 
     all_a = client.get(f"/devices?customer={ids['customer_a']}")
