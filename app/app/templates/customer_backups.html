@@ -6,6 +6,7 @@
   <div><h1>Backup · {{ customer.name }}</h1><p>Protezione, compatibilità e storico limitati esclusivamente agli apparati di questo cliente.</p></div>
   <div class="page-actions">{% if has_permission(user, 'backup.configure') %}<a class="button" href="/customers/{{ customer.id }}/backups/policies/new">+ Policy cliente</a>{% endif %}<a class="button ghost" href="/operations/backups">Overview globale</a></div>
 </div>
+{% set active_tab='backup' %}{% include "_customer_tabs.html" %}
 <div class="customer-kpi-grid backup-kpi-grid">
   <div class="customer-kpi"><span class="kpi-symbol">✓</span><span><strong>{{ protected_count }}</strong><small>Backup eseguibile</small></span></div>
   <div class="customer-kpi {% if blocked_count %}kpi-warning{% endif %}"><span class="kpi-symbol">!</span><span><strong>{{ blocked_count }}</strong><small>Policy ma metodo non pronto</small></span></div>
