@@ -51,7 +51,7 @@ jobs:
           assert 'name="next_step" value="device"' in customer_new
           assert 'confinata esclusivamente a questo cliente' in customer_new
           device_new = (root / 'device_new.html').read_text()
-          assert 'selected_site_id == s.id' in device_new
+          assert '{% if row.selected %}selected{% endif %}' in device_new
           assert 'esclusivamente le sedi di' in device_new
           detail = (root / 'customer_workspace_detail.html').read_text()
           assert 'Apparati con CVE gravi' in detail
@@ -96,6 +96,7 @@ jobs:
           onboarding = Path('app/app/customer_onboarding.py').read_text()
           assert 'SITE_ADDED' in onboarding and 'CUSTOMER_ADDED' in onboarding
           assert 'La sede non appartiene a questo cliente' in onboarding
+          assert 'site_rows' in onboarding
           print('Core 0.12 templates, customer onboarding, drilldowns and backup capabilities validated')
           PY
       - name: Validate shell scripts
