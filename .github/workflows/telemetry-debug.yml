@@ -53,13 +53,19 @@ jobs:
       - name: Telemetry stage 2a - enrollment
         env: {NSM_TELEMETRY_STAGE: enroll}
         run: cd app && PYTHONPATH=. python tests/mikrotik_telemetry_smoke.py
-      - name: Telemetry stage 2b - heartbeat response
+      - name: Telemetry stage 2b - heartbeat HTTP
+        env: {NSM_TELEMETRY_STAGE: heartbeat-http}
+        run: cd app && PYTHONPATH=. python tests/mikrotik_telemetry_smoke.py
+      - name: Telemetry stage 2c - heartbeat sampled flag
+        env: {NSM_TELEMETRY_STAGE: heartbeat-sampled}
+        run: cd app && PYTHONPATH=. python tests/mikrotik_telemetry_smoke.py
+      - name: Telemetry stage 2d - three heartbeat responses
         env: {NSM_TELEMETRY_STAGE: heartbeat-response}
         run: cd app && PYTHONPATH=. python tests/mikrotik_telemetry_smoke.py
-      - name: Telemetry stage 2c - heartbeat row count
+      - name: Telemetry stage 2e - heartbeat row count
         env: {NSM_TELEMETRY_STAGE: heartbeat-count}
         run: cd app && PYTHONPATH=. python tests/mikrotik_telemetry_smoke.py
-      - name: Telemetry stage 2d - heartbeat values
+      - name: Telemetry stage 2f - heartbeat values
         env: {NSM_TELEMETRY_STAGE: heartbeat}
         run: cd app && PYTHONPATH=. python tests/mikrotik_telemetry_smoke.py
       - name: Telemetry stage 3 - history API
