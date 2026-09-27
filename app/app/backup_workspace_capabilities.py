@@ -59,7 +59,7 @@ def _protection_bucket(readiness):
 @router.get(
     "/customers/{customer_id}/backups",
     response_class=HTMLResponse,
-    name="customer_backups_capability_aware",
+    name="customer_backups",
 )
 def customer_backups(
     request: Request,
@@ -210,7 +210,7 @@ def customer_backups(
 @router.get(
     "/operations/backups",
     response_class=HTMLResponse,
-    name="backup_customer_overview_capability_aware",
+    name="backup_customer_overview",
 )
 def backup_customer_overview(request: Request):
     with SessionLocal() as db:
