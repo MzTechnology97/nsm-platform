@@ -53,6 +53,13 @@ jobs:
           assert 'CVE High / Critical' in devices
           action = (root / 'action_center.html').read_text()
           assert 'name="customer"' in action and 'pagina {{ page }} di {{ pages }}' in action
+          vulnerabilities = (root / 'vulnerabilities.html').read_text()
+          assert 'name="customer"' in vulnerabilities
+          assert 'name="severity"' in vulnerabilities and 'name="status"' in vulnerabilities
+          assert 'Vista Security confinata al cliente selezionato' in vulnerabilities
+          vulnerability_detail = (root / 'vulnerability_detail.html').read_text()
+          assert 'Tutti i clienti interessati' in vulnerability_detail
+          assert 'Impatto CVE limitato agli apparati di questo cliente' in vulnerability_detail
           backup_customer = (root / 'customer_backups.html').read_text()
           assert 'Tutte le sedi del cliente' in backup_customer
           assert 'Backup eseguibile' in backup_customer
@@ -84,7 +91,10 @@ jobs:
           drilldown = Path('app/app/customer_drilldown.py').read_text()
           assert '_severe_cve_exists' in drilldown
           assert 'firmware == "attention"' in drilldown
-          print('Core 0.11 templates, drilldowns, backup capabilities and RouterOS source validated')
+          security = Path('app/app/security_drilldown.py').read_text()
+          assert 'affected_devices' in security and 'affected_customers' in security
+          assert '_impact_state_filter' in security
+          print('Core 0.12 templates, customer/security drilldowns, backup capabilities and RouterOS source validated')
           PY
       - name: Validate shell scripts
         run: |
@@ -102,7 +112,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero='00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.11.0'
+          assert app.version == '0.12.0'
           assert str(app.url_path_for('mikrotik_bootstrap')) == '/api/v1/enrollment/mikrotik/bootstrap'
           assert str(app.url_path_for('mikrotik_enroll')) == '/api/v1/agents/mikrotik/enroll'
           assert str(app.url_path_for('mikrotik_heartbeat')) == '/api/v1/agents/mikrotik/heartbeat'
@@ -115,6 +125,8 @@ jobs:
           assert str(app.url_path_for('backup_customer_overview')) == '/operations/backups'
           assert str(app.url_path_for('devices')) == '/devices'
           assert str(app.url_path_for('action_center')) == '/action-center'
+          assert str(app.url_path_for('vulnerabilities')) == '/security/vulnerabilities'
+          assert str(app.url_path_for('vulnerability_detail', advisory_id=zero)) == f'/security/vulnerabilities/{zero}'
           print(f'Core {app.version}: application imported successfully')
           PY
       - name: Prepare dummy runtime env for Compose validation
@@ -184,6 +196,8 @@ jobs:
         run: cd app && PYTHONPATH=. python tests/backup_capabilities_smoke.py
       - name: Run Core 0.11 customer drilldown smoke test
         run: cd app && PYTHONPATH=. python tests/customer_drilldown_smoke.py
+      - name: Run Core 0.12 security drilldown smoke test
+        run: cd app && PYTHONPATH=. python tests/security_drilldown_smoke.py
 
   promote-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
