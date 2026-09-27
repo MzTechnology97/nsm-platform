@@ -1,4 +1,4 @@
-"""NSM Core 0.15 application entrypoint."""
+"""NSM Core 0.16 application entrypoint."""
 from app import main as core
 from app.agent_ui import install_agent_ui
 from app.backup_capability_guard import install_backup_capability_guard
@@ -18,13 +18,16 @@ from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
 from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
+from app.mikrotik_snapshot_agent import install_mikrotik_snapshot_agent
+from app.mikrotik_diagnostics_agent import install_mikrotik_diagnostics_agent
+from app.mikrotik_workspace import install_mikrotik_workspace
 from app.route_precedence import promote_customer_workspace_routes
 from app.search_enhancement import install_search_enhancement
 from app.security_drilldown import install_security_drilldown
 from app.ui_extension import install_ui
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.15.0"
+APP_VERSION = "0.16.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -41,6 +44,8 @@ install_demo_ui(core.app)
 install_mikrotik_agent(core.app)
 install_mikrotik_backup(core.app)
 install_mikrotik_backup_agent(core.app)
+install_mikrotik_snapshot_agent()
+install_mikrotik_diagnostics_agent()
 install_agent_ui(core.app)
 install_customer_workspace(core.app)
 install_backup_workspace_capabilities(core.app)
@@ -51,6 +56,7 @@ install_lifecycle_drilldown(core.app)
 install_firmware_worklist(core.app)
 install_customer_tabs(core.app)
 install_search_enhancement(core.app)
+install_mikrotik_workspace(core.app)
 install_branding_runtime(core.app)
 
 app = core.app

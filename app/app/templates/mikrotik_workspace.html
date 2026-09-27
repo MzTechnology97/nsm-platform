@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% set title = device.display_name or device.device_identity or device.name %}
+{% block title %}{{ title }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/customers/{{ device.customer.id }}">{{ device.customer.name }}</a><span>›</span><a href="/customers/{{ device.customer.id }}/devices">Apparati</a><span>›</span><span>{{ title }}</span></div>
+
+<div class="mt-device-shell">
+  <aside class="mt-device-summary panel">
+    <div class="mt-summary-title"><div><span class="eyebrow">MikroTik</span><h1>{{ title }}</h1></div><span class="device-status status-{{ device.status }}">{{ status_label(device.status) }}</span></div>
+    <dl class="mt-summary-list">
+      <div><dt>Identity</dt><dd>{{ device.device_identity or '—' }}</dd></div>
+      <div><dt>Modello</dt><dd>{{ device.model or '—' }}</dd></div>
+      <div><dt>RouterOS</dt><dd>{{ device.firmware_version or '—' }}</dd></div>
+      <div><dt>Seriale</dt><dd><code>{{ device.serial_number or '—' }}</code></dd></div>
+      <div><dt>MAC</dt><dd><code>{{ device.primary_mac or '—' }}</code></dd></div>
+      <div><dt>IP gestione</dt><dd><code>{{ device.management_ip or inventory.get('last_source_ip') or '—' }}</code></dd></div>
+      <div><dt>Sede</dt><dd>{{ device.site.name if device.site else '—' }}</dd></div>
+      <div><dt>Ultimo contatto</dt><dd>{{ fmt_dt(device.last_seen) }}</dd></div>
+    </dl>
+    <div class="mt-agent-state">
+      <span class="mt-state-dot {% if device.status == 'online' %}online{% endif %}"></span>
+      <div><small>NSM Agent</small><strong>{{ inventory.get('agent_version') or 'Non rilevato' }}</strong></div>
+    </div>
+    {% if has_permission(user, 'devices.write') %}<a class="button ghost full" href="/devices/{{ device.id }}/manage">Gestisci apparato</a>{% endif %}
+  </aside>
+
+  <main class="mt-device-main">
+    <nav class="mt-device-tabs">
+      <a class="{% if active_tab == 'overview' %}active{% endif %}" href="/devices/{{ device.id }}">Panoramica</a>
+      <a class="{% if active_tab == 'monitor' %}active{% endif %}" href="/devices/{{ device.id }}/monitor">Monitor</a>
+      <a class="{% if active_tab == 'configuration' %}active{% endif %}" href="/devices/{{ device.id }}/configuration">Configurazione</a>
+      <a class="{% if active_tab == 'diagnostics' %}active{% endif %}" href="/devices/{{ device.id }}/diagnostics">Diagnostica</a>
+      <a class="{% if active_tab == 'jobs' %}active{% endif %}" href="/devices/{{ device.id }}/jobs">Job & attività</a>
+    </nav>
+
+    {% if active_tab == 'overview' %}
+      {% if enrollment_command %}
+      <section class="panel mt-onboarding"><div class="panel-header"><div><h2>Completa onboarding</h2><p>Esegui il comando one-shot sul MikroTik. La credenziale permanente viene generata solo dopo il pairing.</p></div><span class="severity-badge severity-warning">30 MIN</span></div><div class="command-box"><code id="enrollment-command">{{ enrollment_command }}</code><button class="button" type="button" onclick="navigator.clipboard.writeText(document.getElementById('enrollment-command').innerText)">Copia</button></div></section>
+      {% endif %}
+
+      <section class="mt-kpi-grid">
+        <article class="metric-card"><span>CPU</span><strong>{{ metrics.get('cpu_load', inventory.get('cpu_load', '—')) }}{% if metrics.get('cpu_load') is not none %}%{% endif %}</strong><small>Ultimo heartbeat</small></article>
+        <article class="metric-card"><span>Memoria libera</span><strong>{{ metrics.get('free_memory', inventory.get('free_memory', '—')) }}</strong><small>{{ inventory.get('total_memory') or 'Memoria totale non rilevata' }}</small></article>
+        <article class="metric-card"><span>Uptime</span><strong>{{ metrics.get('uptime') or inventory.get('uptime') or '—' }}</strong><small>RouterOS {{ device.firmware_version or '—' }}</small></article>
+        <article class="metric-card"><span>Problemi aperti</span><strong>{{ issues|length }}</strong><small>{{ vulnerabilities|length }} CVE associate</small></article>
+      </section>
+
+      <section class="panel"><div class="panel-header"><div><h2>Stato operativo</h2><p>Riepilogo osservato dal dispositivo e dal portale.</p></div><div class="page-actions"><a class="button ghost" href="/devices/{{ device.id }}/configuration">Apri configurazione →</a></div></div>
+        <div class="policy-summary six"><div><span>Architecture</span><strong>{{ device.architecture or '—' }}</strong></div><div><span>Software ID</span><strong>{{ device.software_id or '—' }}</strong></div><div><span>RouterBOOT</span><strong>{{ device.routerboot_version or '—' }}</strong></div><div><span>Firmware status</span><strong>{{ device.firmware_status|upper }}</strong></div><div><span>Lifecycle</span><strong>{{ device.lifecycle_status|upper }}</strong></div><div><span>Management</span><strong>{{ device.management_source }}</strong></div></div>
+      </section>
+
+      <div class="detail-grid">
+        <section class="panel"><div class="panel-header"><div><h2>Security</h2><p>Vulnerabilità e anomalie aperte.</p></div><a class="text-link" href="/security/vulnerabilities?customer={{ device.customer_id }}">Security →</a></div>
+          {% if vulnerabilities %}<div class="compact-list">{% for impact, advisory in vulnerabilities[:5] %}<a href="/security/vulnerabilities/{{ advisory.id }}" class="compact-row"><span><strong>{{ advisory.cve_id }}</strong><small>{{ impact.installed_version or device.firmware_version or 'Versione non nota' }}</small></span><span class="severity-badge severity-{{ advisory.severity }}">{{ advisory.severity|upper }}</span></a>{% endfor %}</div>{% else %}<div class="empty-state">Nessuna CVE associata.</div>{% endif %}
+        </section>
+        <section class="panel"><div class="panel-header"><div><h2>Backup</h2><p>Ultime esecuzioni dell'apparato.</p></div><a class="text-link" href="/customers/{{ device.customer_id }}/backups">Backup cliente →</a></div>
+          {% if backup_runs %}<div class="compact-list">{% for r in backup_runs[:5] %}<div class="compact-row"><span><strong>{{ fmt_dt(r.started_at) }}</strong><small>{{ r.backup_type or 'Backup configurazione' }}</small></span><span class="status-pill">{{ r.status }}</span></div>{% endfor %}</div>{% else %}<div class="empty-state">Nessun backup eseguito.</div>{% endif %}
+        </section>
+      </div>
+
+    {% elif active_tab == 'monitor' %}
+      <section class="mt-kpi-grid">
+        <article class="metric-card"><span>CPU load</span><strong>{{ metrics.get('cpu_load', '—') }}{% if metrics.get('cpu_load') is not none %}%{% endif %}</strong></article>
+        <article class="metric-card"><span>Free memory</span><strong>{{ metrics.get('free_memory', '—') }}</strong></article>
+        <article class="metric-card"><span>Uptime</span><strong>{{ metrics.get('uptime', '—') }}</strong></article>
+        <article class="metric-card"><span>Heartbeat</span><strong>{{ fmt_dt(device.last_seen) }}</strong></article>
+      </section>
+      <section class="panel"><div class="panel-header"><div><h2>Warning ed errori dispositivo</h2><p>Snapshot read-only del buffer RouterOS acquisito dall'agent.</p></div><form method="post" action="/devices/{{ device.id }}/snapshot/logs"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Aggiorna log</button></form></div>
+        {% set logjob = snapshots.get('logs') %}{% set logdata = (logjob.result or {}).get('data', []) if logjob else [] %}
+        {% if logdata %}<div class="mt-log-list">{% for row in logdata %}<div class="mt-log-row"><span class="severity-badge {% if 'error' in (row.get('topics','')|string) or 'critical' in (row.get('topics','')|string) %}severity-critical{% else %}severity-warning{% endif %}">{{ row.get('topics','log') }}</span><code>{{ row.get('time','') }}</code><span>{{ row.get('message','') }}</span></div>{% endfor %}</div>{% elif 'logs' in pending_sections %}<div class="empty-state">Aggiornamento log in coda. Verrà acquisito al prossimo poll dell'agent.</div>{% else %}<div class="empty-state">Nessuno snapshot log disponibile.</div>{% endif %}
+      </section>
+
+    {% elif active_tab == 'configuration' %}
+      <div class="mt-section-tabs">{% for key, label in snapshot_sections.items() %}<a class="{% if active_section == key %}active{% endif %}" href="/devices/{{ device.id }}/configuration?section={{ key }}">{{ label }}</a>{% endfor %}</div>
+      <section class="panel"><div class="panel-header"><div><h2>{{ snapshot_sections.get(active_section) }}</h2><p>Sola lettura · riflette l'ultimo snapshot ricevuto dal MikroTik.</p></div><form method="post" action="/devices/{{ device.id }}/snapshot/{{ active_section }}"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Aggiorna snapshot</button></form></div>
+        {% if request.query_params.get('queued') %}<div class="alert success">Richiesta accodata. L'agent la eseguirà al prossimo heartbeat.</div>{% endif %}
+        {% set snap = snapshots.get(active_section) %}{% set data = (snap.result or {}).get('data') if snap else none %}
+        {% if snap %}<div class="snapshot-meta"><span>Ultimo snapshot: <strong>{{ fmt_dt(snap.completed_at) }}</strong></span><span>Job <code>{{ snap.id }}</code></span></div>{% endif %}
+        {% if data %}
+          {% if active_section == 'resources' %}
+            <div class="policy-summary six">{% for key, value in data.items() %}<div><span>{{ key|replace('_',' ')|title }}</span><strong>{{ value }}</strong></div>{% endfor %}</div>
+          {% elif active_section == 'firewall' %}
+            {% for group in ['filter','nat'] %}<h3 class="subheading">Regole {{ group|upper }}</h3>{% set rows = data.get(group,[]) %}{% if rows %}<div class="table-wrap"><table class="data-table dense"><thead><tr><th>Chain</th><th>Azione</th><th>Protocollo</th><th>Origine</th><th>Destinazione</th><th>Commento</th></tr></thead><tbody>{% for row in rows %}<tr><td>{{ row.get('chain','—') }}</td><td>{{ row.get('action','—') }}</td><td>{{ row.get('protocol','—') }}</td><td>{{ row.get('src-address','—') }}</td><td>{{ row.get('dst-address','—') }}</td><td>{{ row.get('comment','—') }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessuna regola {{ group }} nello snapshot.</div>{% endif %}{% endfor %}
+          {% else %}
+            {% set rows = data if data is iterable and data is not string and data is not mapping else [] %}
+            {% if rows %}<div class="mt-json-table">{% for row in rows %}<div class="mt-record">{% for key, value in row.items() %}<div><span>{{ key }}</span><strong>{{ value }}</strong></div>{% endfor %}</div>{% endfor %}</div>{% else %}<pre class="json-preview">{{ data|tojson(indent=2) }}</pre>{% endif %}
+          {% endif %}
+        {% elif active_section in pending_sections %}<div class="empty-state">Snapshot in coda.</div>{% else %}<div class="empty-state">Nessuno snapshot disponibile. Premi “Aggiorna snapshot”.</div>{% endif %}
+      </section>
+
+    {% elif active_tab == 'diagnostics' %}
+      <section class="panel"><div class="panel-header"><div><h2>Diagnostica remota</h2><p>Solo test predefiniti. Nessuna shell o comando arbitrario viene eseguito dal portale.</p></div></div>
+        <div class="diagnostic-grid">
+          <form class="diagnostic-card" method="post" action="/devices/{{ device.id }}/diagnostics/ping"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><span class="diag-icon">⌁</span><div><h3>Ping</h3><p>Verifica raggiungibilità e latenza dal MikroTik.</p><input name="target" value="8.8.8.8" required placeholder="IP o hostname"></div><button class="button primary">Esegui</button></form>
+          <form class="diagnostic-card" method="post" action="/devices/{{ device.id }}/diagnostics/traceroute"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><span class="diag-icon">⇢</span><div><h3>Traceroute</h3><p>Analizza il percorso di rete visto dall'apparato.</p><input name="target" value="8.8.8.8" required placeholder="IP o hostname"></div><button class="button primary">Esegui</button></form>
+        </div>
+        {% if request.query_params.get('queued') %}<div class="alert success">Test {{ request.query_params.get('queued') }} accodato.</div>{% endif %}
+      </section>
+      <section class="panel"><div class="panel-header"><div><h2>Risultati recenti</h2><p>Output limitato e auditato dei test diagnostici.</p></div></div>{% set ns = namespace(found=false) %}<div class="compact-list">{% for job in jobs %}{% if job.job_type in ['diagnostic_ping','diagnostic_traceroute'] %}{% set ns.found=true %}<div class="compact-row"><span><strong>{{ job.job_type|replace('diagnostic_','')|upper }} · {{ (job.payload or {}).get('target','') }}</strong><small>{{ fmt_dt(job.created_at) }} · {{ job.status }}</small></span><code>{{ ((job.result or {}).get('output') or (job.result or {}).get('data') or job.last_error or 'In attesa')|string|truncate(180) }}</code></div>{% endif %}{% endfor %}</div>{% if not ns.found %}<div class="empty-state">Nessun test diagnostico eseguito.</div>{% endif %}</section>
+
+    {% elif active_tab == 'jobs' %}
+      <section class="panel"><div class="panel-header"><div><h2>Coda e storico job</h2><p>Operazioni consegnate all'agent per-device.</p></div></div>{% if jobs %}<div class="table-wrap"><table class="data-table"><thead><tr><th>Creato</th><th>Tipo</th><th>Stato</th><th>Tentativi</th><th>Consegnato</th><th>Completato</th><th>Errore</th></tr></thead><tbody>{% for job in jobs %}<tr><td>{{ fmt_dt(job.created_at) }}</td><td><code>{{ job.job_type }}</code></td><td><span class="status-pill">{{ job.status }}</span></td><td>{{ job.attempts }}</td><td>{{ fmt_dt(job.delivered_at) }}</td><td>{{ fmt_dt(job.completed_at) }}</td><td>{{ job.last_error or '—' }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessun job registrato.</div>{% endif %}</section>
+      <section class="panel"><div class="panel-header"><div><h2>Audit apparato</h2><p>Ultime attività rilevanti.</p></div></div>{% if events %}<div class="compact-list">{% for e in events %}<div class="compact-row"><span><strong>{{ e.event_type }}</strong><small>{{ fmt_dt(e.timestamp) }} · {{ e.source }}</small></span><span>{{ e.result }}</span></div>{% endfor %}</div>{% else %}<div class="empty-state">Nessun evento.</div>{% endif %}</section>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}
