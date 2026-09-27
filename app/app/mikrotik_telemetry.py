@@ -3,7 +3,9 @@ import uuid
 from datetime import timedelta
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from sqlalchemy import delete, or_, select
+from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app import mikrotik_agent as agent
@@ -204,6 +206,41 @@ def device_metrics(request: Request, device_id: uuid.UUID, range: str = "24h"):
         }
 
 
+@router.get("/devices/{device_id}/monitor", response_class=HTMLResponse, name="mikrotik_workspace_monitor")
+def telemetry_monitor(request: Request, device_id: uuid.UUID):
+    from app.mikrotik_workspace import _workspace_context
+
+    with SessionLocal() as db:
+        user = core.current_user(request, db)
+        if not user:
+            return core.login_redirect()
+        if not core.has_permission(user, "monitoring.read"):
+            raise HTTPException(403)
+        device = db.scalar(
+            select(Device)
+            .where(Device.id == device_id)
+            .options(selectinload(Device.customer), selectinload(Device.site))
+        )
+        if not device or device.vendor != "mikrotik":
+            raise HTTPException(404)
+        ctx = _workspace_context(db, device)
+        latest = db.scalar(
+            select(DeviceMetricSample)
+            .where(DeviceMetricSample.device_id == device.id)
+            .order_by(DeviceMetricSample.observed_at.desc())
+            .limit(1)
+        )
+        return core.render(
+            request,
+            db,
+            user,
+            "mikrotik_monitor.html",
+            device=device,
+            latest_metric=latest,
+            **ctx,
+        )
+
+
 def telemetry_cleanup():
     cutoff = utcnow() - timedelta(days=RETENTION_DAYS)
     with SessionLocal() as db:
@@ -214,10 +251,15 @@ def telemetry_cleanup():
 
 def install_mikrotik_telemetry(app):
     _remove_route(app, "/api/v1/agents/mikrotik/heartbeat", "POST")
+    _remove_route(app, "/devices/{device_id}/monitor", "GET")
     app.include_router(router)
     promoted = []
     rest = []
-    paths = {"/api/v1/agents/mikrotik/heartbeat", "/api/v1/devices/{device_id}/metrics"}
+    paths = {
+        "/api/v1/agents/mikrotik/heartbeat",
+        "/api/v1/devices/{device_id}/metrics",
+        "/devices/{device_id}/monitor",
+    }
     for route in app.router.routes:
         if getattr(route, "path", None) in paths:
             promoted.append(route)
