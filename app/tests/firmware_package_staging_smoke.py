@@ -74,7 +74,8 @@ def login(client, username):
 
 
 def main():
-    assert app.version == "0.32.0"
+    major, minor, *_ = [int(part) for part in app.version.split('.')]
+    assert (major, minor) >= (0, 32), app.version
     username, device_id, plan_id, raw_secret = seed()
     client = TestClient(app)
     login(client, username)

@@ -1,4 +1,4 @@
-"""NSM Core 0.32 application entrypoint."""
+"""NSM Core 0.33 application entrypoint."""
 from app import main as core
 from app import mikrotik_agent as mikrotik_agent_core
 from app.agent_ui import install_agent_ui
@@ -44,7 +44,7 @@ from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.32.0"
+APP_VERSION = "0.33.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -90,8 +90,8 @@ install_inventory_ui(core.app)
 install_branding_runtime(core.app)
 promote_device_csv_import_routes(core.app)
 
-# RouterOS 7.12-compatible bootstrap. Enrollment adaptively returns the modern
-# agent on 7.13+ and the legacy transport only where required.
+# RouterOS 7.12-compatible bodyless bootstrap. Enrollment adaptively returns the
+# modern agent on 7.13+ and the hardened header-based legacy transport on 7.12.
 mikrotik_agent_core._bootstrap_script = _legacy_bootstrap_script
 core.app.include_router(mikrotik_legacy_router)
 
