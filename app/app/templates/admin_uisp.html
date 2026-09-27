@@ -9,7 +9,7 @@
 
 <div class="content-split">
 <section class="panel side-form">
-  <div class="panel-header"><div><h2>UISP Network</h2><p>Usa un token dedicato con permessi di sola lettura. Il secret viene cifrato prima del salvataggio.</p></div>{% if connection and connection.is_enabled %}<span class="device-status status-online">Abilitato</span>{% else %}<span class="device-status status-offline">Disabilitato</span>{% endif %}</div>
+  <div class="panel-header"><div><h2>UISP Network</h2><p>Usa un token API UISP read-only dedicato. Il secret viene cifrato prima del salvataggio.</p></div>{% if connection and connection.is_enabled %}<span class="device-status status-online">Abilitato</span>{% else %}<span class="device-status status-offline">Disabilitato</span>{% endif %}</div>
   <form method="post" action="/admin/integrations/uisp" class="form-stack">
     <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
     <label>URL console UISP<input type="url" name="base_url" required value="{{ connection.base_url if connection else '' }}" placeholder="https://uisp.example.net"><small>Inserisci l'URL della console; NSM aggiunge automaticamente <code>/nms/api/v2.1/devices</code>.</small></label>
