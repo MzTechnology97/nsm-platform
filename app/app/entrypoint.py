@@ -1,4 +1,4 @@
-"""NSM Core 0.20 application entrypoint."""
+"""NSM Core 0.21 application entrypoint."""
 from app import main as core
 from app.agent_ui import install_agent_ui
 from app.backup_capability_guard import install_backup_capability_guard
@@ -6,6 +6,7 @@ from app.backup_core import install_backup_core
 from app.backup_policy_bridge import install_backup_policy_bridge
 from app.backup_scheduler_capability_guard import install_backup_scheduler_capability_guard
 from app.backup_scope_guard import install_backup_scope_guard
+from app.backup_text_tools import install_backup_text_tools
 from app.backup_workspace_capabilities import install_backup_workspace_capabilities
 from app.branding_runtime import install_branding_runtime
 from app.crud_extension import install_crud
@@ -31,7 +32,7 @@ from app.security_drilldown import install_security_drilldown
 from app.ui_extension import install_ui
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.20.0"
+APP_VERSION = "0.21.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -40,6 +41,7 @@ install_ui(core.app, core.templates)
 install_workflow_ui(core.app, core.templates)
 install_crud(core.app)
 install_backup_core(core.app, core.templates)
+install_backup_text_tools(core.app)
 install_backup_scope_guard()
 install_backup_capability_guard()
 install_backup_policy_bridge()
