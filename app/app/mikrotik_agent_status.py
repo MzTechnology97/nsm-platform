@@ -23,9 +23,21 @@ router = APIRouter()
 HEARTBEAT_STALE_AFTER = timedelta(minutes=15)
 
 
+def _transport(inventory: dict) -> str:
+    explicit = str(inventory.get("agent_transport") or "").strip().lower()
+    if explicit in {"modern", "legacy"}:
+        return explicit
+    version = str(inventory.get("agent_version") or "").strip().lower()
+    if inventory.get("legacy_agent") or version.endswith("-legacy"):
+        return "legacy"
+    if version:
+        return "modern"
+    return "unknown"
+
+
 def _agent_capabilities(device, credential, backup_capability):
     inventory = dict(device.inventory_data or {})
-    transport = str(inventory.get("agent_transport") or "unknown").lower()
+    transport = _transport(inventory)
     authenticated = bool(credential and credential.is_active)
     online = device.status == "online"
     modern = transport == "modern"
@@ -80,14 +92,21 @@ def _heartbeat_state(device, inventory):
     now = utcnow()
     last_seen = device.last_seen
     stale = not last_seen or (now - last_seen) > HEARTBEAT_STALE_AFTER
+    transport = _transport(inventory)
+    enrollment_transport = inventory.get("enrollment_transport")
+    if not enrollment_transport:
+        enrollment_transport = "json-v1" if inventory.get("agent_version") else "unknown"
+    heartbeat_transport = inventory.get("legacy_heartbeat_transport")
+    if not heartbeat_transport and transport == "modern":
+        heartbeat_transport = "json-v1"
     return {
         "last_seen": last_seen,
         "stale": stale,
         "last_source_ip": inventory.get("last_source_ip"),
         "last_heartbeat_at": inventory.get("last_heartbeat_at"),
-        "transport": inventory.get("agent_transport") or ("legacy" if inventory.get("legacy_agent") else "unknown"),
-        "heartbeat_transport": inventory.get("legacy_heartbeat_transport") or ("json-v1" if inventory.get("agent_transport") == "modern" else None),
-        "enrollment_transport": inventory.get("enrollment_transport") or "legacy-json-v1",
+        "transport": transport,
+        "heartbeat_transport": heartbeat_transport,
+        "enrollment_transport": enrollment_transport,
         "agent_version": inventory.get("agent_version"),
     }
 
