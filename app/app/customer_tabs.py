@@ -45,6 +45,35 @@ def _remove_exact_route(app, path: str, method: str):
     ]
 
 
+def _promote_routes(app, route_keys):
+    """Move the newly registered canonical customer routes before legacy routers.
+
+    FastAPI 0.141 can preserve included routers as wrapper routes. Removing a
+    flattened APIRoute is therefore not enough to guarantee precedence over an
+    older included router. We deliberately promote the last route registered
+    for each canonical path/name so requests always hit the Core 0.15 handler.
+    """
+    promoted = []
+    promoted_ids = set()
+    for path, name in route_keys:
+        matches = [
+            route
+            for route in app.router.routes
+            if getattr(route, "path", None) == path
+            and getattr(route, "name", None) == name
+            and "GET" in (getattr(route, "methods", set()) or set())
+        ]
+        if not matches:
+            continue
+        route = matches[-1]
+        promoted.append(route)
+        promoted_ids.add(id(route))
+    if promoted:
+        app.router.routes[:] = promoted + [
+            route for route in app.router.routes if id(route) not in promoted_ids
+        ]
+
+
 def _load_customer(db, customer_id: uuid.UUID):
     customer = db.scalar(
         select(Customer)
@@ -79,17 +108,18 @@ def _backup_summary(db, customer):
     policies, settings_map = _load_policy_context(db)
     active_agent_ids = active_mikrotik_agent_device_ids(
         db,
-        [device.id for device in devices if device.vendor == "mikrotik"],
+        [device.id for device in devices if (device.vendor or "").lower() == "mikrotik"],
     )
     summary = {"protected": 0, "blocked": 0, "no_policy": 0, "devices": len(devices)}
     for device in devices:
         policy = _effective_policy(device, policies, settings_map)
+        is_mikrotik = (device.vendor or "").lower() == "mikrotik"
         readiness = backup_readiness(
             db,
             device,
             policy,
             settings_map.get(policy.id) if policy else None,
-            active_agent=device.id in active_agent_ids if device.vendor == "mikrotik" else None,
+            active_agent=device.id in active_agent_ids if is_mikrotik else None,
         )
         if readiness.executable:
             summary["protected"] += 1
@@ -428,4 +458,14 @@ def install_customer_tabs(app):
         response_class=HTMLResponse,
         name="customer_history",
         include_in_schema=False,
+    )
+    _promote_routes(
+        app,
+        [
+            ("/customers/{customer_id}", "customer_workspace_detail"),
+            ("/customers/{customer_id}/devices", "customer_devices"),
+            ("/customers/{customer_id}/sites", "customer_sites"),
+            ("/customers/{customer_id}/security", "customer_security"),
+            ("/customers/{customer_id}/history", "customer_history"),
+        ],
     )
