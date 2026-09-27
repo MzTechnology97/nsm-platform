@@ -1,0 +1,38 @@
+{% macro kpi_card(label, value, subtitle='', href='#', icon='•', tone='default', stat_key='') -%}
+<a class="ui-kpi ui-kpi-{{ tone }}" href="{{ href }}">
+  <span class="ui-kpi-icon">{{ icon }}</span>
+  <span class="ui-kpi-copy">
+    <small>{{ label }}</small>
+    <strong{% if stat_key %} data-dashboard-stat="{{ stat_key }}"{% endif %}>{{ value }}</strong>
+    {% if subtitle %}<span>{{ subtitle }}</span>{% endif %}
+  </span>
+  <span class="ui-kpi-arrow">↗</span>
+</a>
+{%- endmacro %}
+
+{% macro distribution_panel(title, subtitle, rows, tone='accent') -%}
+<section class="panel ui-distribution-panel">
+  <div class="panel-header"><div><h2>{{ title }}</h2><p>{{ subtitle }}</p></div></div>
+  {% if rows %}
+  <div class="ui-distribution-list">
+    {% for row in rows %}
+    <div class="ui-distribution-row">
+      <div class="ui-distribution-label"><strong title="{{ row.label }}">{{ row.label }}</strong><span>{{ row.count }}</span></div>
+      <div class="ui-bar"><span class="ui-bar-fill ui-bar-{{ tone }}" style="--ui-bar-width: {{ row.percent }}%"></span></div>
+      <small>{{ row.percent }}%</small>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}<div class="empty-state">Nessun dato disponibile.</div>{% endif %}
+</section>
+{%- endmacro %}
+
+{% macro donut(title, value, total, primary_label, secondary_label='', secondary_value=0, tone='accent', href='#') -%}
+{% set percent = ((value / total * 100) if total else 0) %}
+<a class="ui-donut-card" href="{{ href }}">
+  <div class="ui-donut" style="--ui-donut-value: {{ percent }}%; --ui-donut-tone: var(--{{ tone }}, var(--accent));">
+    <div><strong>{{ value }}</strong><small>di {{ total }}</small></div>
+  </div>
+  <div class="ui-donut-copy"><h3>{{ title }}</h3><p><b>{{ primary_label }}</b> · {{ percent|round(1) }}%</p>{% if secondary_label %}<p>{{ secondary_label }} · {{ secondary_value }}</p>{% endif %}</div>
+</a>
+{%- endmacro %}
