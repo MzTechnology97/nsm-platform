@@ -23,6 +23,7 @@ from app.firmware_worklist import install_firmware_worklist
 from app.inventory_ui import install_inventory_ui
 from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
+from app.mikrotik_legacy import install_mikrotik_legacy
 from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
 from app.mikrotik_snapshot_agent import install_mikrotik_snapshot_agent
@@ -57,6 +58,7 @@ install_backup_policy_bridge()
 install_backup_scheduler_capability_guard()
 install_demo_ui(core.app)
 install_mikrotik_agent(core.app)
+install_mikrotik_legacy(core.app)
 install_mikrotik_backup(core.app)
 install_mikrotik_backup_agent(core.app)
 install_mikrotik_snapshot_agent()
