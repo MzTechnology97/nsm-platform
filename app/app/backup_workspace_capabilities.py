@@ -7,7 +7,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app import main as core
-from app.backup_capabilities import backup_readiness, readiness_label
+from app.backup_capabilities import (
+    active_mikrotik_agent_device_ids,
+    backup_readiness,
+    readiness_label,
+)
 from app.backup_core import _effective_policy, _schedule_label, _scope_label
 from app.backup_models import BackupArtifact
 from app.customer_workspace import (
@@ -54,6 +58,16 @@ def _protection_bucket(readiness):
     if not readiness.policy_present:
         return "no_policy"
     return "blocked"
+
+
+def _readiness_for_device(db, device, policy, settings_map, active_agent_ids):
+    return backup_readiness(
+        db,
+        device,
+        policy,
+        settings_map.get(policy.id) if policy else None,
+        active_agent=device.id in active_agent_ids if device.vendor == "mikrotik" else None,
+    )
 
 
 @router.get(
@@ -104,6 +118,10 @@ def customer_backups(
 
         policies, settings_map = _load_policy_context(db)
         latest_by_device = _latest_runs(db, [device.id for device in all_devices])
+        active_agent_ids = active_mikrotik_agent_device_ids(
+            db,
+            [device.id for device in all_devices if device.vendor == "mikrotik"],
+        )
 
         latest_run_ids = [run.id for run in latest_by_device.values()]
         artifacts_by_run = defaultdict(list)
@@ -125,7 +143,13 @@ def customer_backups(
         for device in all_devices:
             policy = _effective_policy(device, policies, settings_map)
             policy_settings = settings_map.get(policy.id) if policy else None
-            readiness = backup_readiness(db, device, policy, policy_settings)
+            readiness = _readiness_for_device(
+                db,
+                device,
+                policy,
+                settings_map,
+                active_agent_ids,
+            )
             latest = latest_by_device.get(device.id)
             device_state[device.id] = {
                 "policy": policy,
@@ -236,6 +260,10 @@ def backup_customer_overview(request: Request):
         }
         device_map = {device.id: device for device in devices}
         metrics = _customer_metric_maps(db, [customer.id for customer in customers])
+        active_agent_ids = active_mikrotik_agent_device_ids(
+            db,
+            [device.id for device in devices if device.vendor == "mikrotik"],
+        )
 
         coverage = defaultdict(
             lambda: {
@@ -249,8 +277,13 @@ def backup_customer_overview(request: Request):
             item = coverage[device.customer_id]
             item["devices"] += 1
             policy = _effective_policy(device, policies, settings_map)
-            policy_settings = settings_map.get(policy.id) if policy else None
-            readiness = backup_readiness(db, device, policy, policy_settings)
+            readiness = _readiness_for_device(
+                db,
+                device,
+                policy,
+                settings_map,
+                active_agent_ids,
+            )
             if readiness.executable:
                 item["protected"] += 1
             elif readiness.policy_present:
