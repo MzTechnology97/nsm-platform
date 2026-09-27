@@ -2,7 +2,9 @@ import uuid
 
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app.db import SessionLocal
@@ -56,7 +58,10 @@ async def customer_create(request: Request):
     next_step = str(form.get("next_step", "profile")).strip().lower()
 
     if create_site and not site_name:
-        raise HTTPException(400, "Inserisci il nome della prima sede oppure disattiva la creazione sede.")
+        raise HTTPException(
+            400,
+            "Inserisci il nome della prima sede oppure disattiva la creazione sede.",
+        )
     if len(site_name) > 180:
         raise HTTPException(400, "Nome sede troppo lungo.")
     if next_step not in {"profile", "device"}:
@@ -118,9 +123,50 @@ async def customer_create(request: Request):
     return RedirectResponse(f"/customers/{customer_id}", status_code=303)
 
 
+def device_new(request: Request, customer_id: uuid.UUID, site_id: str = ""):
+    with SessionLocal() as db:
+        user = core.current_user(request, db)
+        if not user:
+            return core.login_redirect()
+        if not core.has_permission(user, "devices.write"):
+            raise HTTPException(403)
+
+        customer = db.scalar(
+            select(Customer)
+            .where(Customer.id == customer_id)
+            .options(selectinload(Customer.sites))
+        )
+        if not customer:
+            raise HTTPException(404)
+
+        selected_site_id = ""
+        if site_id:
+            try:
+                selected_uuid = uuid.UUID(site_id)
+            except ValueError:
+                raise HTTPException(400, "Sede non valida.")
+            selected_site = next(
+                (site for site in customer.sites if site.id == selected_uuid),
+                None,
+            )
+            if not selected_site:
+                raise HTTPException(400, "La sede non appartiene a questo cliente.")
+            selected_site_id = str(selected_site.id)
+
+        return core.render(
+            request,
+            db,
+            user,
+            "device_new.html",
+            customer=customer,
+            selected_site_id=selected_site_id,
+        )
+
+
 def install_customer_onboarding(app):
     _remove_exact_route(app, "/customers/new/form", "GET")
     _remove_exact_route(app, "/customers/new/create", "POST")
+    _remove_exact_route(app, "/customers/{customer_id}/devices/new", "GET")
     app.add_api_route(
         "/customers/new/form",
         customer_new,
@@ -134,5 +180,13 @@ def install_customer_onboarding(app):
         customer_create,
         methods=["POST"],
         name="customer_create",
+        include_in_schema=False,
+    )
+    app.add_api_route(
+        "/customers/{customer_id}/devices/new",
+        device_new,
+        methods=["GET"],
+        response_class=HTMLResponse,
+        name="device_new",
         include_in_schema=False,
     )
