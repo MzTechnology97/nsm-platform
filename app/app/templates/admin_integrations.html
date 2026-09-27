@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Integrazioni · {{ ui_context(request).branding.portal_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Integrazioni</h1><p>Connettori esterni usati da NSM per inventario, osservabilità e gestione controllata degli apparati.</p></div><a class="button ghost" href="/admin/users">Amministrazione</a></div>
+<div class="admin-tabs"><a href="/admin/users">Utenti</a><span>Ruoli & permessi</span><a href="/admin/api-keys">API Keys</a><a class="active" href="/admin/integrations">Integrazioni</a><a href="/admin/branding">Branding</a><a href="/admin/demo">Demo Lab</a><span>Retention</span><span>System settings</span></div>
+
+<div class="role-grid">
+  {% set uisp = integrations.get('uisp') %}
+  <a class="panel integration-card" href="/admin/integrations/uisp">
+    <div class="panel-header"><div><h2>UISP Network</h2><p>Inventario Ubiquiti tramite matching MAC e ID UISP stabile.</p></div><span class="device-status {{ 'status-online' if uisp and uisp.is_enabled else 'status-offline' }}">{{ 'Attivo' if uisp and uisp.is_enabled else 'Non configurato' }}</span></div>
+    <dl class="kv-list"><div><dt>Modalità</dt><dd>Read-only</dd></div><div><dt>Ultimo test</dt><dd>{{ fmt_dt(uisp.last_tested_at) if uisp else '—' }}</dd></div><div><dt>Ultimo sync</dt><dd>{{ fmt_dt(uisp.last_sync_at) if uisp else '—' }}</dd></div></dl>
+  </a>
+  {% set acs = integrations.get('genieacs') %}
+  <a class="panel integration-card" href="/admin/integrations/genieacs">
+    <div class="panel-header"><div><h2>GenieACS / TR-069</h2><p>Inventario CPE tramite Northbound Interface senza task di modifica.</p></div><span class="device-status {{ 'status-online' if acs and acs.is_enabled else 'status-offline' }}">{{ 'Attivo' if acs and acs.is_enabled else 'Non configurato' }}</span></div>
+    <dl class="kv-list"><div><dt>Modalità</dt><dd>Read-only NBI</dd></div><div><dt>Ultimo test</dt><dd>{{ fmt_dt(acs.last_tested_at) if acs else '—' }}</dd></div><div><dt>Ultimo sync</dt><dd>{{ fmt_dt(acs.last_sync_at) if acs else '—' }}</dd></div></dl>
+  </a>
+</div>
+<section class="panel"><div class="panel-header"><div><h2>Principio di autorità</h2><p>I connettori forniscono dati osservati, ma la struttura Customer → Site → Device resta controllata da NSM.</p></div></div><div class="alert info">Un connettore non può spostare automaticamente un apparato tra clienti o sedi. Le associazioni vengono confermate esplicitamente e registrate nell'audit.</div></section>
+{% endblock %}
