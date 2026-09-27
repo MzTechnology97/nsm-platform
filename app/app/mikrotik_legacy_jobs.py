@@ -140,8 +140,13 @@ def _fail_deferred_jobs(db, device, now):
         job.status = "failed"
         job.last_error = error
         job.completed_at = now
-        if job.job_type == "backup_mikrotik":
-            finalize_backup_job(db, device, job, False, error)
+        if job.job_type == "backup_mikrotik" and (job.payload or {}).get("run_id"):
+            try:
+                finalize_backup_job(db, device, job, False, error)
+            except HTTPException:
+                # Malformed historical jobs must still fail closed without
+                # breaking the legacy agent polling endpoint.
+                pass
     return rows
 
 
