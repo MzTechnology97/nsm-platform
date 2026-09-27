@@ -39,6 +39,7 @@ jobs:
           assert 'data-global-search-input' in base
           assert 'data-search-suggestions' in base
           assert 'search_enhancement.css' in base
+          assert 'mikrotik_workspace.css' in base
           assert 'seriale' in base.lower()
           assert 'href="/sites"' not in base
           assert 'customer_workspace.css' in base
@@ -100,6 +101,12 @@ jobs:
           assert 'MikroTik · Agent NSM' in form
           device = (root / 'device_detail.html').read_text()
           assert '/backup-now' in device and 'Backup ora' in device
+          mt = (root / 'mikrotik_workspace.html').read_text()
+          for label in ('Panoramica', 'Monitor', 'Configurazione', 'Diagnostica', 'Job & attività'):
+              assert label in mt
+          for section in ('ip_addresses', 'routes', 'interfaces', 'firewall', 'ppp_active', 'dhcp_leases', 'logs'):
+              assert section in Path('app/app/mikrotik_workspace.py').read_text()
+          assert 'Nessuna shell o comando arbitrario' in mt
           search_page = (root / 'search.html').read_text()
           assert 'Seriale {{ d.serial_number }}' in search_page
           assert 'MAC {{ d.primary_mac }}' in search_page
@@ -111,6 +118,12 @@ jobs:
           assert 'to=base64' in agent
           assert '/api/v1/agents/mikrotik/backup-jobs/' in agent
           assert 'ftp' not in agent.lower()
+          snapshot_agent = Path('app/app/mikrotik_snapshot_agent.py').read_text()
+          assert 'snapshot_section' in snapshot_agent and '/ip route print as-value' in snapshot_agent
+          assert '/ip firewall filter print as-value' in snapshot_agent and '/ppp active print as-value' in snapshot_agent
+          diagnostic_agent = Path('app/app/mikrotik_diagnostics_agent.py').read_text()
+          assert 'diagnostic_ping' in diagnostic_agent and 'diagnostic_traceroute' in diagnostic_agent
+          assert ':execute script=' not in diagnostic_agent
           capabilities = Path('app/app/backup_capabilities.py').read_text()
           assert 'connector_required' in capabilities
           assert 'acs_required' in capabilities
@@ -133,7 +146,7 @@ jobs:
           ui = Path('app/app/static/ui.js').read_text()
           assert "event.key === 'Tab'" in ui
           assert 'search-meta-chip' in ui and 'match_field' in ui
-          print('Core 0.15 customer tabs, backup control plane and enhanced search validated')
+          print('Core 0.16 UI and MikroTik workspace validated')
           PY
       - name: Validate shell scripts
         run: |
@@ -151,7 +164,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero='00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.15.0'
+          assert app.version == '0.16.0'
           assert str(app.url_path_for('mikrotik_bootstrap')) == '/api/v1/enrollment/mikrotik/bootstrap'
           assert str(app.url_path_for('mikrotik_enroll')) == '/api/v1/agents/mikrotik/enroll'
           assert str(app.url_path_for('mikrotik_heartbeat')) == '/api/v1/agents/mikrotik/heartbeat'
@@ -159,6 +172,13 @@ jobs:
           assert str(app.url_path_for('mikrotik_backup_config', job_id=zero)).endswith('/backup-config')
           assert str(app.url_path_for('mikrotik_artifact_chunk', upload_id=zero)).endswith('/chunk')
           assert str(app.url_path_for('backup_aware_job_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/backup-jobs/{zero}/complete'
+          assert str(app.url_path_for('mikrotik_workspace_overview', device_id=zero)) == f'/devices/{zero}'
+          assert str(app.url_path_for('mikrotik_workspace_configuration', device_id=zero)) == f'/devices/{zero}/configuration'
+          assert str(app.url_path_for('mikrotik_workspace_monitor', device_id=zero)) == f'/devices/{zero}/monitor'
+          assert str(app.url_path_for('mikrotik_workspace_diagnostics', device_id=zero)) == f'/devices/{zero}/diagnostics'
+          assert str(app.url_path_for('mikrotik_workspace_jobs', device_id=zero)) == f'/devices/{zero}/jobs'
+          assert str(app.url_path_for('queue_mikrotik_snapshot', device_id=zero, section='interfaces')) == f'/devices/{zero}/snapshot/interfaces'
+          assert str(app.url_path_for('queue_mikrotik_diagnostic', device_id=zero, diagnostic='ping')) == f'/devices/{zero}/diagnostics/ping'
           assert str(app.url_path_for('customer_workspace_list')) == '/customers'
           assert str(app.url_path_for('customer_workspace_detail', customer_id=zero)) == f'/customers/{zero}'
           assert str(app.url_path_for('customer_devices', customer_id=zero)) == f'/customers/{zero}/devices'
@@ -251,6 +271,8 @@ jobs:
         run: cd app && PYTHONPATH=. python tests/firmware_worklist_smoke.py
       - name: Run Core 0.15 customer tabs and enhanced search smoke test
         run: cd app && PYTHONPATH=. python tests/customer_tabs_search_smoke.py
+      - name: Run Core 0.16 MikroTik device workspace smoke test
+        run: cd app && PYTHONPATH=. python tests/mikrotik_workspace_smoke.py
 
   promote-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
