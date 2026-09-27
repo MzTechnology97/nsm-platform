@@ -28,30 +28,26 @@ def _remove_post_route(app, path: str):
     ]
 
 
-def _promote_scoped_post_route(app):
-    """Keep the Core 0.24 POST handler ahead of any legacy FastAPI wrapper.
+def _canonicalize_scoped_post_route(app):
+    """Keep only the newest POST /admin/api-keys route and move it first.
 
-    Some previously included routers can retain an equivalent route wrapper even
-    after list filtering. Routing is first-match, so make the intended handler
-    canonical instead of relying on insertion order side effects.
+    ``include_router`` copies APIRoute objects, therefore endpoint identity is not
+    a reliable selector across FastAPI versions. The Core 0.24 route has just
+    been appended when this function runs, so the last exact POST match is the
+    newly registered scoped handler. Any stale equivalent wrappers are dropped.
     """
-    promoted = []
+    matches = []
     rest = []
     for route in app.router.routes:
         methods = getattr(route, "methods", set()) or set()
-        endpoint = getattr(route, "endpoint", None)
-        is_scoped = (
-            getattr(route, "path", None) == "/admin/api-keys"
-            and "POST" in methods
-            and getattr(endpoint, "__name__", "") == "admin_api_key_create_scoped"
-        )
-        if is_scoped:
-            promoted.append(route)
+        if getattr(route, "path", None) == "/admin/api-keys" and "POST" in methods:
+            matches.append(route)
         else:
             rest.append(route)
-    if not promoted:
+    if not matches:
         raise RuntimeError("Core 0.24 scoped API key POST route was not registered")
-    app.router.routes[:] = promoted + rest
+    canonical = matches[-1]
+    app.router.routes[:] = [canonical] + rest
 
 
 @router.post("/admin/api-keys", response_class=HTMLResponse, name="admin_api_key_create")
@@ -117,4 +113,4 @@ def admin_api_key_create_scoped(
 def install_api_key_scope_extension(app):
     _remove_post_route(app, "/admin/api-keys")
     app.include_router(router)
-    _promote_scoped_post_route(app)
+    _canonicalize_scoped_post_route(app)
