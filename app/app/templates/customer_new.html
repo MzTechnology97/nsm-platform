@@ -2,18 +2,53 @@
 {% block title %}Nuovo cliente · {{ app_name }}{% endblock %}
 {% block content %}
 <div class="breadcrumbs"><a href="/customers">Clienti</a><span>›</span><span>Nuovo cliente</span></div>
-<div class="page-header"><div><h1>Nuovo cliente</h1><p>Crea il contenitore anagrafico. Sedi e apparati potranno essere aggiunti subito dopo.</p></div></div>
-<div class="form-page-grid">
+<div class="page-header compact-heading"><div><h1>Nuovo cliente</h1><p>Crea il cliente e, se utile, la sua prima sede nello stesso passaggio.</p></div></div>
+<div class="form-page-grid customer-onboarding-grid">
   <section class="panel form-page-main">
-    <div class="panel-header"><div><h2>Informazioni cliente</h2><p>Inserisci solo le informazioni utili all'organizzazione interna.</p></div></div>
-    <form method="post" action="/customers" class="form-stack">
+    <form method="post" action="/customers/new/create" class="form-stack" id="customer-onboarding-form">
       <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
-      <label>Nome cliente<input name="name" required autofocus placeholder="Es. Hotel Mediterraneo"></label>
-      <label>Codice interno<input name="code" placeholder="Opzionale, es. CLI-0042"><small>Può essere usato nella ricerca globale e nei report.</small></label>
-      <label>Note<textarea name="notes" rows="6" placeholder="Riferimenti, indicazioni operative o note amministrative"></textarea></label>
-      <div class="form-actions split-actions"><a class="button ghost" href="/customers">Annulla</a><button class="button primary">Crea cliente</button></div>
+      <div class="form-section compact-form-section">
+        <div class="form-section-title"><span>1</span><div><strong>Cliente</strong><small>Anagrafica minima per organizzare apparati, backup e sicurezza.</small></div></div>
+        <div class="form-grid">
+          <label>Nome cliente<input name="name" required autofocus maxlength="180" placeholder="Es. Hotel Mediterraneo"></label>
+          <label>Codice interno<input name="code" placeholder="Opzionale, es. CLI-0042"><small>Usabile nella ricerca globale e nei report.</small></label>
+        </div>
+        <label>Note<textarea name="notes" rows="3" placeholder="Riferimenti o indicazioni operative"></textarea></label>
+      </div>
+
+      <div class="form-section compact-form-section customer-site-onboarding">
+        <div class="form-section-title"><span>2</span><div><strong>Prima sede</strong><small>Opzionale e sempre confinata esclusivamente a questo cliente.</small></div></div>
+        <label class="toggle-row onboarding-toggle"><input type="checkbox" name="create_site" value="1" data-create-site><span><strong>Crea subito una sede</strong><small>Puoi usare nomi già presenti in altri clienti: “Sede principale” di due clienti resta sempre due entità differenti.</small></span></label>
+        <div class="site-onboarding-fields hidden" data-site-fields>
+          <div class="form-grid">
+            <label>Nome sede<input name="site_name" maxlength="180" placeholder="Es. Sede principale" data-site-name></label>
+            <label>Indirizzo<input name="site_address" placeholder="Opzionale"></label>
+          </div>
+          <label>Note sede<textarea name="site_notes" rows="2" placeholder="Indicazioni tecniche o di accesso"></textarea></label>
+        </div>
+      </div>
+
+      <div class="form-section compact-form-section">
+        <div class="form-section-title"><span>3</span><div><strong>Passo successivo</strong><small>Puoi aprire subito il profilo oppure continuare con il primo apparato.</small></div></div>
+        <div class="form-actions split-actions customer-onboarding-actions">
+          <a class="button ghost" href="/customers">Annulla</a>
+          <div class="page-actions">
+            <button class="button" type="submit" name="next_step" value="profile">Crea cliente</button>
+            <button class="button primary" type="submit" name="next_step" value="device">Crea e aggiungi apparato →</button>
+          </div>
+        </div>
+      </div>
     </form>
   </section>
-  <aside class="panel form-page-help"><h2>Flusso consigliato</h2><ol class="step-list"><li><strong>Crea il cliente</strong><span>Anagrafica minima e codice interno.</span></li><li><strong>Aggiungi le sedi</strong><span>Solo se servono per raggruppare gli apparati.</span></li><li><strong>Collega gli apparati</strong><span>Il dato tecnico verrà rilevato dalla sorgente autorevole.</span></li></ol></aside>
+  <aside class="panel form-page-help customer-onboarding-help">
+    <h2>Gerarchia NSM</h2>
+    <div class="hierarchy-preview"><strong>Cliente</strong><span>→</span><strong>Sede</strong><span>→</span><strong>Apparati</strong></div>
+    <p>La sede non è un POP globale e non viene condivisa tra clienti. È soltanto un raggruppamento interno del cliente.</p>
+    <p>Se scegli “Crea e aggiungi apparato”, l'eventuale sede appena creata sarà già selezionata nel form apparato.</p>
+  </aside>
 </div>
+<style>
+.customer-onboarding-grid{align-items:start}.compact-form-section{padding-block:4px 14px}.customer-site-onboarding{border-top:1px solid var(--border);padding-top:16px}.onboarding-toggle{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface-soft);cursor:pointer}.onboarding-toggle input{margin-top:3px}.onboarding-toggle strong,.onboarding-toggle small{display:block}.onboarding-toggle small{margin-top:3px;color:var(--muted);line-height:1.4}.site-onboarding-fields{margin-top:12px}.site-onboarding-fields.hidden{display:none}.hierarchy-preview{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:12px 0;padding:10px;border-radius:9px;background:var(--surface-soft)}.hierarchy-preview span{color:var(--muted)}.customer-onboarding-help p{color:var(--muted);line-height:1.5}.customer-onboarding-actions>div{display:flex;gap:8px;flex-wrap:wrap}
+</style>
+<script>(()=>{const toggle=document.querySelector('[data-create-site]');const fields=document.querySelector('[data-site-fields]');const siteName=document.querySelector('[data-site-name]');if(!toggle||!fields)return;const sync=()=>{fields.classList.toggle('hidden',!toggle.checked);if(siteName)siteName.required=toggle.checked;};toggle.addEventListener('change',sync);sync();})();</script>
 {% endblock %}
