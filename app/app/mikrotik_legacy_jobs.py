@@ -18,6 +18,7 @@ from app import mikrotik_agent as agent
 from app import mikrotik_legacy as legacy
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
+from app.mikrotik_backup import finalize_backup_job
 from app.models import utcnow
 
 router = APIRouter()
@@ -123,11 +124,11 @@ def _extend_source(previous):
     return wrapped
 
 
-def _fail_deferred_jobs(db, device_id, now):
+def _fail_deferred_jobs(db, device, now):
     rows = list(
         db.scalars(
             select(DeviceJob).where(
-                DeviceJob.device_id == device_id,
+                DeviceJob.device_id == device.id,
                 DeviceJob.status == "pending",
                 DeviceJob.job_type.in_(LEGACY_DEFERRED_JOB_TYPES),
                 or_(DeviceJob.not_before.is_(None), DeviceJob.not_before <= now),
@@ -135,9 +136,12 @@ def _fail_deferred_jobs(db, device_id, now):
         )
     )
     for job in rows:
+        error = "Operazione non ancora disponibile sul trasporto RouterOS legacy; nessun comando è stato eseguito."
         job.status = "failed"
-        job.last_error = "Operazione non ancora disponibile sul trasporto RouterOS legacy; nessun comando è stato eseguito."
+        job.last_error = error
         job.completed_at = now
+        if job.job_type == "backup_mikrotik":
+            finalize_backup_job(db, device, job, False, error)
     return rows
 
 
@@ -146,7 +150,7 @@ def legacy_job_next(request: Request):
     with SessionLocal() as db:
         device, _ = agent._authenticate_agent(db, request)
         now = utcnow()
-        deferred = _fail_deferred_jobs(db, device.id, now)
+        deferred = _fail_deferred_jobs(db, device, now)
         for job in deferred:
             core.add_event(
                 db,
