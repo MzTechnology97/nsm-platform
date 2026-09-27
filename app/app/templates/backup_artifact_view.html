@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Export {{ artifact.filename }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/operations/backups">Backup</a><span>›</span><a href="/devices/{{ device.id }}">{{ device.display_name or device.device_identity or device.name }}</a><span>›</span><span>{{ artifact.filename }}</span></div>
+<div class="page-header compact-heading">
+  <div><h1>Viewer export RouterOS</h1><p>{{ artifact.filename }} · {{ fmt_dt(run.started_at) }} · {{ device.display_name or device.device_identity or device.name }}</p></div>
+  <div class="page-actions"><a class="button ghost" href="/operations/backups/artifacts/{{ artifact.id }}/download">Scarica originale</a></div>
+</div>
+<section class="panel"><div class="panel-header"><div><h2>Confronta con un altro export</h2><p>Il confronto è limitato agli export testuali dello stesso apparato.</p></div></div>
+  {% if peers %}<div class="compact-list">{% for peer, peer_run in peers %}<div class="compact-row"><span><strong>{{ peer.filename }}</strong><small>{{ fmt_dt(peer_run.started_at) }} · {{ peer.size_bytes or 0 }} byte</small></span><a class="button tiny ghost" href="/operations/backups/artifacts/{{ artifact.id }}/diff?other={{ peer.id }}">Confronta</a></div>{% endfor %}</div>{% else %}<div class="empty-state">Nessun altro export testuale disponibile per questo apparato.</div>{% endif %}
+</section>
+<section class="panel"><div class="panel-header"><div><h2>Configurazione</h2><p>Visualizzazione read-only. Password e segreti comuni vengono redatti nel browser; il file originale resta invariato nello storage.</p></div><span class="severity-badge severity-warning">SECRETS REDACTED</span></div><pre class="json-preview backup-rsc-viewer">{{ content }}</pre></section>
+{% endblock %}
