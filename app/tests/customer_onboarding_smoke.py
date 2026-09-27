@@ -105,9 +105,31 @@ def main():
         assert "CUSTOMER_ADDED" in event_types
         assert "SITE_ADDED" in event_types
 
+    device_new_routes = [
+        route
+        for route in app.router.routes
+        if getattr(route, "path", None) == "/customers/{customer_id}/devices/new"
+        and "GET" in (getattr(route, "methods", set()) or set())
+    ]
+    route_debug = [
+        (
+            getattr(route, "name", None),
+            getattr(getattr(route, "endpoint", None), "__module__", None),
+            getattr(getattr(route, "endpoint", None), "__name__", None),
+        )
+        for route in device_new_routes
+    ]
+    assert device_new_routes, "No GET customer device-new route registered"
+    assert len(device_new_routes) == 1, route_debug
+    assert device_new_routes[0].endpoint.__module__ == "app.customer_onboarding", route_debug
+    assert device_new_routes[0].endpoint.__name__ == "device_new", route_debug
+
     device_form = client.get(location)
     assert device_form.status_code == 200
-    assert f'value="{site_a}" selected' in device_form.text
+    assert re.search(
+        rf'<option[^>]*value="{re.escape(str(site_a))}"[^>]*\bselected\b',
+        device_form.text,
+    ), device_form.text
     assert "Vengono mostrate esclusivamente le sedi di CI12 Cliente A" in device_form.text
 
     form = client.get("/customers/new/form")
