@@ -35,7 +35,15 @@
   const suggestions = document.querySelector('[data-search-suggestions]');
   let searchTimer = null, searchAbort = null, activeIndex = -1;
 
-  function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char])); }
+  function escapeHtml(value) { return String(value ?? '').replace(/[&<>'\"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[char])); }
+  function highlightText(value, query) {
+    const text = String(value ?? '');
+    const needle = String(query ?? '').trim();
+    if (!needle) return escapeHtml(text);
+    const index = text.toLowerCase().indexOf(needle.toLowerCase());
+    if (index < 0) return escapeHtml(text);
+    return escapeHtml(text.slice(0, index)) + '<mark>' + escapeHtml(text.slice(index, index + needle.length)) + '</mark>' + escapeHtml(text.slice(index + needle.length));
+  }
   function resultIcon(type) { if (type === 'Cliente') return '◎'; if (type === 'Sede') return '⌖'; return '▣'; }
   function closeSuggestions() { if (!suggestions) return; suggestions.classList.remove('open'); suggestions.innerHTML = ''; activeIndex = -1; }
   function suggestionItems() { return suggestions ? Array.from(suggestions.querySelectorAll('.search-suggestion')) : []; }
@@ -46,14 +54,27 @@
     items.forEach((item, i) => item.classList.toggle('active', i === activeIndex));
     items[activeIndex].scrollIntoView({block: 'nearest'});
   }
-  function renderGroup(type, rows) {
+  function deviceMeta(item, query) {
+    const values = [
+      ['Seriale', item.serial],
+      ['MAC', item.mac],
+      ['IP', item.ip]
+    ].filter((entry) => entry[1]);
+    if (!values.length) return '';
+    return '<span class="search-suggestion-meta">' + values.map(([label, value]) => `<span class="search-meta-chip"><b>${label}</b> ${highlightText(value, query)}</span>`).join('') + '</span>';
+  }
+  function renderGroup(type, rows, query) {
     if (!rows.length) return '';
-    return `<div class="search-suggestions-header">${escapeHtml(type)}</div>` + rows.map((item) => `
-      <a class="search-suggestion" href="${escapeHtml(item.url)}" role="option">
+    return `<div class="search-suggestions-header">${escapeHtml(type)}</div>` + rows.map((item) => {
+      const match = item.match_field && item.match_value ? `<span class="search-match"><b>${escapeHtml(item.match_field)}</b> ${highlightText(item.match_value, query)}</span>` : '';
+      const meta = item.type === 'Apparato' ? deviceMeta(item, query) : '';
+      return `
+      <a class="search-suggestion" href="${escapeHtml(item.url)}" data-completion="${escapeHtml(item.completion || item.title)}" role="option">
         <span class="result-icon">${resultIcon(item.type)}</span>
-        <span class="search-suggestion-copy"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.subtitle)}</small></span>
+        <span class="search-suggestion-copy"><strong>${highlightText(item.title, query)}</strong><small>${escapeHtml(item.subtitle)}</small>${match}${meta}</span>
         <span class="chevron">›</span>
-      </a>`).join('');
+      </a>`;
+    }).join('');
   }
   function renderSuggestions(payload, query) {
     if (!suggestions) return;
@@ -64,7 +85,7 @@
       return;
     }
     const order = ['Apparato', 'Cliente', 'Sede'];
-    suggestions.innerHTML = order.map((type) => renderGroup(type, rows.filter((item) => item.type === type))).join('') + `<div class="search-suggestions-footer">↑ ↓ naviga · Invio apre · Esc chiude</div>`;
+    suggestions.innerHTML = order.map((type) => renderGroup(type, rows.filter((item) => item.type === type), query)).join('') + `<div class="search-suggestions-footer"><strong>Tab</strong> completa · ↑ ↓ naviga · Invio apre · Esc chiude</div>`;
     suggestions.classList.add('open');
     activeIndex = -1;
   }
@@ -88,14 +109,32 @@
   }
   if (searchInput && suggestions) {
     searchInput.setAttribute('autocomplete', 'off');
-    searchInput.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(fetchSuggestions, 160); });
+    searchInput.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(fetchSuggestions, 140); });
     searchInput.addEventListener('focus', () => { if (searchInput.value.trim().length >= 2) fetchSuggestions(); });
     searchInput.addEventListener('keydown', (event) => {
       const items = suggestionItems();
       if (event.key === 'ArrowDown' && items.length) { event.preventDefault(); setActive(activeIndex + 1); }
       else if (event.key === 'ArrowUp' && items.length) { event.preventDefault(); setActive(activeIndex <= 0 ? items.length - 1 : activeIndex - 1); }
       else if (event.key === 'Enter' && activeIndex >= 0 && items[activeIndex]) { event.preventDefault(); window.location.href = items[activeIndex].href; }
+      else if (event.key === 'Tab' && items.length && suggestions.classList.contains('open')) {
+        const target = items[activeIndex >= 0 ? activeIndex : 0];
+        const completion = target ? target.dataset.completion : '';
+        if (completion && completion.toLowerCase() !== searchInput.value.trim().toLowerCase()) {
+          event.preventDefault();
+          searchInput.value = completion;
+          searchInput.setSelectionRange(completion.length, completion.length);
+          clearTimeout(searchTimer);
+          searchTimer = setTimeout(fetchSuggestions, 40);
+        }
+      }
       else if (event.key === 'Escape') closeSuggestions();
+    });
+    suggestions.addEventListener('mousemove', (event) => {
+      const item = event.target.closest('.search-suggestion');
+      if (!item) return;
+      const items = suggestionItems();
+      const index = items.indexOf(item);
+      if (index >= 0 && index !== activeIndex) setActive(index);
     });
     document.addEventListener('click', (event) => { if (searchWrap && !searchWrap.contains(event.target)) closeSuggestions(); });
   }
