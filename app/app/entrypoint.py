@@ -1,7 +1,6 @@
 """NSM Core 0.24 application entrypoint."""
 from app import main as core
 from app.agent_ui import install_agent_ui
-from app.api_key_scope_extension import install_api_key_scope_extension
 from app.api_keys import install_api_keys
 from app.api_operations import install_api_operations
 from app.backup_capability_guard import install_backup_capability_guard
@@ -46,7 +45,6 @@ install_ui(core.app, core.templates)
 install_workflow_ui(core.app, core.templates)
 install_crud(core.app)
 install_api_keys(core.app)
-install_api_key_scope_extension(core.app)
 install_api_operations(core.app)
 install_device_csv_import(core.app)
 install_backup_core(core.app, core.templates)
