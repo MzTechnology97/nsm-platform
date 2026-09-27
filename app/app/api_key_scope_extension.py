@@ -28,6 +28,32 @@ def _remove_post_route(app, path: str):
     ]
 
 
+def _promote_scoped_post_route(app):
+    """Keep the Core 0.24 POST handler ahead of any legacy FastAPI wrapper.
+
+    Some previously included routers can retain an equivalent route wrapper even
+    after list filtering. Routing is first-match, so make the intended handler
+    canonical instead of relying on insertion order side effects.
+    """
+    promoted = []
+    rest = []
+    for route in app.router.routes:
+        methods = getattr(route, "methods", set()) or set()
+        endpoint = getattr(route, "endpoint", None)
+        is_scoped = (
+            getattr(route, "path", None) == "/admin/api-keys"
+            and "POST" in methods
+            and getattr(endpoint, "__name__", "") == "admin_api_key_create_scoped"
+        )
+        if is_scoped:
+            promoted.append(route)
+        else:
+            rest.append(route)
+    if not promoted:
+        raise RuntimeError("Core 0.24 scoped API key POST route was not registered")
+    app.router.routes[:] = promoted + rest
+
+
 @router.post("/admin/api-keys", response_class=HTMLResponse, name="admin_api_key_create")
 def admin_api_key_create_scoped(
     request: Request,
@@ -91,3 +117,4 @@ def admin_api_key_create_scoped(
 def install_api_key_scope_extension(app):
     _remove_post_route(app, "/admin/api-keys")
     app.include_router(router)
+    _promote_scoped_post_route(app)
