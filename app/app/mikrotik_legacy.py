@@ -1,8 +1,9 @@
-"""Compatibility transport for MikroTik RouterOS 7.x without :serialize/:deserialize.
+"""Compatibility bootstrap for MikroTik RouterOS 7.x.
 
-Legacy devices use dedicated plain-text enrollment and heartbeat-only telemetry
-endpoints. The modern MikroTik agent remains untouched, preserving jobs, backups,
-snapshots, diagnostics and every later agent extension.
+The bootstrap itself avoids :serialize/:deserialize so it runs on RouterOS
+7.12.1.  Enrollment then selects the richest safe agent transport supported by
+the observed RouterOS release: 7.12.x keeps the legacy transport while 7.13+
+receives the modern job/snapshot/backup capable agent.
 """
 import re
 import uuid
@@ -16,6 +17,16 @@ from app.models import Device, utcnow
 
 router = APIRouter()
 _SECRET_RE = re.compile(r':local nsmSecret "([^"]+)"')
+_VERSION_RE = re.compile(r"^\s*(\d+)\.(\d+)")
+MODERN_AGENT_MIN = (7, 13)
+
+
+def _supports_modern_agent(version: str | None) -> bool:
+    match = _VERSION_RE.match(str(version or ""))
+    if not match:
+        return False
+    major, minor = int(match.group(1)), int(match.group(2))
+    return (major, minor) >= MODERN_AGENT_MIN
 
 
 def _routeros_json_escape_function() -> str:
@@ -151,10 +162,10 @@ def _legacy_bootstrap_script(base_url: str, token: str):
 :if ([:len $nsmAgentSource] < 20) do={{ :error "NSM enrollment returned invalid agent source" }}
 :do {{ /system scheduler remove [find name="nsm-agent-heartbeat"] }} on-error={{}}
 :do {{ /system script remove [find name="nsm-agent-heartbeat"] }} on-error={{}}
-/system script add name="nsm-agent-heartbeat" policy=read,test source=$nsmAgentSource comment="NSM managed legacy agent {agent.AGENT_VERSION}"
-/system scheduler add name="nsm-agent-heartbeat" interval=5m on-event="/system script run nsm-agent-heartbeat" policy=read,test comment="NSM managed legacy agent"
+/system script add name="nsm-agent-heartbeat" policy=read,test source=$nsmAgentSource comment="NSM managed agent {agent.AGENT_VERSION}"
+/system scheduler add name="nsm-agent-heartbeat" interval=5m on-event="/system script run nsm-agent-heartbeat" policy=read,test comment="NSM managed agent"
 /system script run nsm-agent-heartbeat
-:log info "NSM legacy enrollment completed and heartbeat agent installed"
+:log info "NSM enrollment completed and heartbeat agent installed"
 :do {{ /file remove [find name="nsm-bootstrap.rsc"] }} on-error={{}}
 '''
 
@@ -177,6 +188,12 @@ def mikrotik_bootstrap_legacy(request: Request, token: str):
 
 @router.post("/api/v1/agents/mikrotik/enroll-legacy", response_class=PlainTextResponse)
 async def mikrotik_enroll_legacy(request: Request):
+    payload = await agent._json_body(request)
+    inventory = payload.get("inventory") if isinstance(payload.get("inventory"), dict) else {}
+    observed_version = str(inventory.get("routeros_version") or inventory.get("version") or "")
+
+    # request.body() is cached by Starlette, so the existing enrollment handler
+    # can safely consume the same validated request after capability detection.
     result = await agent.mikrotik_enroll(request)
     modern_source = result.get("agent_source") if isinstance(result, dict) else None
     match = _SECRET_RE.search(modern_source or "")
@@ -185,16 +202,49 @@ async def mikrotik_enroll_legacy(request: Request):
     raw_secret = match.group(1)
     device_id = uuid.UUID(result["device_id"])
     base_url = str(request.base_url).rstrip("/")
-    source = _legacy_agent_source(
-        base_url,
-        device_id,
-        raw_secret,
-        base_url.lower().startswith("https://"),
-    )
+    modern = _supports_modern_agent(observed_version)
+    if modern:
+        source = modern_source
+        transport = "modern"
+        agent_version = agent.AGENT_VERSION
+    else:
+        source = _legacy_agent_source(
+            base_url,
+            device_id,
+            raw_secret,
+            base_url.lower().startswith("https://"),
+        )
+        transport = "legacy"
+        agent_version = f"{agent.AGENT_VERSION}-legacy"
+
+    with SessionLocal() as db:
+        device = db.get(Device, device_id)
+        if device:
+            data = dict(device.inventory_data or {})
+            data["agent_transport"] = transport
+            data["agent_version"] = agent_version
+            device.inventory_data = data
+            agent.core.add_event(
+                db,
+                "MIKROTIK_AGENT_TRANSPORT_SELECTED",
+                customer_id=device.customer_id,
+                device_id=device.id,
+                details={
+                    "routeros_version": observed_version,
+                    "transport": transport,
+                    "modern_minimum": "7.13",
+                },
+                source="mikrotik_enrollment",
+            )
+            db.commit()
+
     return PlainTextResponse(
         source,
         media_type="text/plain; charset=utf-8",
-        headers={"Cache-Control": "no-store"},
+        headers={
+            "Cache-Control": "no-store",
+            "X-NSM-Agent-Transport": transport,
+        },
     )
 
 
@@ -215,6 +265,7 @@ async def mikrotik_heartbeat_legacy(request: Request):
         now = utcnow()
         data["last_heartbeat_at"] = now.isoformat()
         data["legacy_agent"] = True
+        data["agent_transport"] = "legacy"
         device.inventory_data = data
         db.commit()
         return {

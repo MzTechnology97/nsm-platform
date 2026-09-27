@@ -1,4 +1,4 @@
-"""NSM Core 0.29 application entrypoint."""
+"""NSM Core 0.30 application entrypoint."""
 from app import main as core
 from app import mikrotik_agent as mikrotik_agent_core
 from app.agent_ui import install_agent_ui
@@ -32,6 +32,7 @@ from app.mikrotik_snapshot_agent import install_mikrotik_snapshot_agent
 from app.mikrotik_diagnostics_agent import install_mikrotik_diagnostics_agent
 from app.mikrotik_onboarding import install_mikrotik_onboarding
 from app.mikrotik_operational_tools import install_mikrotik_operational_tools
+from app.mikrotik_firmware_readiness import install_mikrotik_firmware_readiness
 from app.mikrotik_workspace import install_mikrotik_workspace
 from app.mikrotik_telemetry import install_mikrotik_telemetry
 from app.route_precedence import promote_customer_workspace_routes
@@ -41,7 +42,7 @@ from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.29.0"
+APP_VERSION = "0.30.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -65,6 +66,7 @@ install_mikrotik_backup_agent(core.app)
 install_mikrotik_snapshot_agent()
 install_mikrotik_diagnostics_agent()
 install_mikrotik_operational_tools()
+install_mikrotik_firmware_readiness(core.app)
 install_agent_ui(core.app)
 install_uisp_connector(core.app)
 install_customer_workspace(core.app)
@@ -84,11 +86,12 @@ install_inventory_ui(core.app)
 install_branding_runtime(core.app)
 promote_device_csv_import_routes(core.app)
 
-# Core 0.28: RouterOS 7.12-compatible bootstrap/enrollment/heartbeat transport.
+# RouterOS 7.12-compatible bootstrap. Enrollment adaptively returns the modern
+# agent on 7.13+ and the legacy transport only where required.
 mikrotik_agent_core._bootstrap_script = _legacy_bootstrap_script
 core.app.include_router(mikrotik_legacy_router)
 
-# Core 0.29: allow-listed plain-text job transport for legacy RouterOS agents.
+# Allow-listed plain-text job transport for legacy RouterOS agents.
 install_mikrotik_legacy_jobs(core.app)
 
 app = core.app
