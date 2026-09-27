@@ -42,9 +42,17 @@ jobs:
           assert 'customer_workspace.css' in base
           customers = (root / 'customers_workspace.html').read_text()
           assert 'Da aggiornare' in customers and 'CVE gravi' in customers and 'Allarmi' in customers
+          assert 'firmware=attention' in customers and 'security=severe' in customers
+          assert '/action-center?customer=' in customers
           detail = (root / 'customer_workspace_detail.html').read_text()
           assert 'Apparati con CVE gravi' in detail
           assert '/backups' in detail
+          assert 'firmware=attention' in detail and 'security=severe' in detail
+          devices = (root / 'devices.html').read_text()
+          assert 'name="firmware"' in devices and 'name="security"' in devices
+          assert 'CVE High / Critical' in devices
+          action = (root / 'action_center.html').read_text()
+          assert 'name="customer"' in action and 'pagina {{ page }} di {{ pages }}' in action
           backup_customer = (root / 'customer_backups.html').read_text()
           assert 'Tutte le sedi del cliente' in backup_customer
           assert 'Backup eseguibile' in backup_customer
@@ -73,7 +81,10 @@ jobs:
           assert 'connector_required' in capabilities
           assert 'acs_required' in capabilities
           assert 'agent_required' in capabilities
-          print('Core 0.10 templates, backup capabilities and RouterOS source validated')
+          drilldown = Path('app/app/customer_drilldown.py').read_text()
+          assert '_severe_cve_exists' in drilldown
+          assert 'firmware == "attention"' in drilldown
+          print('Core 0.11 templates, drilldowns, backup capabilities and RouterOS source validated')
           PY
       - name: Validate shell scripts
         run: |
@@ -91,7 +102,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero='00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.10.0'
+          assert app.version == '0.11.0'
           assert str(app.url_path_for('mikrotik_bootstrap')) == '/api/v1/enrollment/mikrotik/bootstrap'
           assert str(app.url_path_for('mikrotik_enroll')) == '/api/v1/agents/mikrotik/enroll'
           assert str(app.url_path_for('mikrotik_heartbeat')) == '/api/v1/agents/mikrotik/heartbeat'
@@ -102,6 +113,8 @@ jobs:
           assert str(app.url_path_for('customer_workspace_list')) == '/customers'
           assert str(app.url_path_for('customer_backups', customer_id=zero)) == f'/customers/{zero}/backups'
           assert str(app.url_path_for('backup_customer_overview')) == '/operations/backups'
+          assert str(app.url_path_for('devices')) == '/devices'
+          assert str(app.url_path_for('action_center')) == '/action-center'
           print(f'Core {app.version}: application imported successfully')
           PY
       - name: Prepare dummy runtime env for Compose validation
@@ -169,6 +182,8 @@ jobs:
         run: cd app && PYTHONPATH=. python tests/customer_workspace_smoke.py
       - name: Run Core 0.10 backup capability registry smoke test
         run: cd app && PYTHONPATH=. python tests/backup_capabilities_smoke.py
+      - name: Run Core 0.11 customer drilldown smoke test
+        run: cd app && PYTHONPATH=. python tests/customer_drilldown_smoke.py
 
   promote-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
