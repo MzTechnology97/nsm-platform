@@ -58,7 +58,6 @@ install_backup_policy_bridge()
 install_backup_scheduler_capability_guard()
 install_demo_ui(core.app)
 install_mikrotik_agent(core.app)
-install_mikrotik_legacy(core.app)
 install_mikrotik_backup(core.app)
 install_mikrotik_backup_agent(core.app)
 install_mikrotik_snapshot_agent()
@@ -82,5 +81,8 @@ install_dashboard_ui(core.app)
 install_inventory_ui(core.app)
 install_branding_runtime(core.app)
 promote_device_csv_import_routes(core.app)
+# Apply the bootstrap transport override last so route-precedence installers
+# cannot restore an older RouterOS-incompatible bootstrap handler.
+install_mikrotik_legacy(core.app)
 
 app = core.app
