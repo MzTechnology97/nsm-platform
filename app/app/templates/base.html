@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="{{ url_for('static', path='/workflow.css') }}?v={{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', path='/core06.css') }}?v={{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', path='/customer_workspace.css') }}?v={{ app_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='/search_enhancement.css') }}?v={{ app_version }}">
   <link rel="stylesheet" href="/branding/theme.css?v={{ app_version }}" data-runtime-branding>
   <script defer src="{{ url_for('static', path='/ui.js') }}?v={{ app_version }}"></script>
 </head>
@@ -71,7 +72,7 @@
       <div class="global-search-wrap" data-global-search-wrap>
         <form class="global-search" method="get" action="/search" role="search">
           <span class="search-icon">⌕</span>
-          <input name="q" data-global-search-input value="{{ request.query_params.get('q','') if request.url.path == '/search' else '' }}" placeholder="Cerca IP, MAC, apparato, cliente o sede..." aria-label="Ricerca globale" aria-autocomplete="list" aria-controls="global-search-suggestions">
+          <input name="q" data-global-search-input value="{{ request.query_params.get('q','') if request.url.path == '/search' else '' }}" placeholder="Cerca alias, identity, IP, MAC, seriale, cliente o sede..." aria-label="Ricerca globale" aria-autocomplete="list" aria-controls="global-search-suggestions">
           <button class="search-submit" aria-label="Cerca" title="Cerca">↵</button>
         </form>
         <div class="search-suggestions" id="global-search-suggestions" data-search-suggestions role="listbox"></div>
