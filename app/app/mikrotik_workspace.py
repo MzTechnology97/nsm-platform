@@ -1,6 +1,6 @@
 import ipaddress
 import uuid
-from collections import defaultdict
+from datetime import timedelta
 
 from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -27,36 +27,18 @@ SNAPSHOT_SECTIONS = {
 
 def _remove_route(app, path: str, method: str = "GET"):
     method = method.upper()
-    app.router.routes[:] = [
-        route for route in app.router.routes
-        if not (getattr(route, "path", None) == path and method in (getattr(route, "methods", set()) or set()))
-    ]
+    app.router.routes[:] = [route for route in app.router.routes if not (getattr(route, "path", None) == path and method in (getattr(route, "methods", set()) or set()))]
 
 
 def _load_device(db, device_id):
-    device = db.scalar(
-        select(Device)
-        .where(Device.id == device_id)
-        .options(selectinload(Device.customer), selectinload(Device.site))
-    )
+    device = db.scalar(select(Device).where(Device.id == device_id).options(selectinload(Device.customer), selectinload(Device.site)))
     if not device:
         raise HTTPException(404)
     return device
 
 
 def _latest_snapshots(db, device_id):
-    rows = list(
-        db.scalars(
-            select(DeviceJob)
-            .where(
-                DeviceJob.device_id == device_id,
-                DeviceJob.job_type == "snapshot_section",
-                DeviceJob.status == "success",
-            )
-            .order_by(DeviceJob.completed_at.desc().nullslast(), DeviceJob.created_at.desc())
-            .limit(80)
-        )
-    )
+    rows = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "snapshot_section", DeviceJob.status == "success").order_by(DeviceJob.completed_at.desc().nullslast(), DeviceJob.created_at.desc()).limit(80)))
     latest = {}
     for row in rows:
         section = str((row.payload or {}).get("section") or "")
@@ -66,42 +48,19 @@ def _latest_snapshots(db, device_id):
 
 
 def _pending_sections(db, device_id):
-    rows = list(
-        db.scalars(
-            select(DeviceJob).where(
-                DeviceJob.device_id == device_id,
-                DeviceJob.job_type == "snapshot_section",
-                DeviceJob.status.in_(["pending", "delivered"]),
-            )
-        )
-    )
+    rows = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "snapshot_section", DeviceJob.status.in_(["pending", "delivered"]))))
     return {str((r.payload or {}).get("section") or "") for r in rows}
 
 
 def _workspace_context(db, device):
     events = list(db.scalars(select(AuditEvent).where(AuditEvent.device_id == device.id).order_by(AuditEvent.timestamp.desc()).limit(30)))
     issues = list(db.scalars(select(ActionIssue).where(ActionIssue.device_id == device.id, ActionIssue.status.in_(["open", "acknowledged"])).order_by(ActionIssue.created_at.desc()).limit(30)))
-    vulnerabilities = db.execute(
-        select(DeviceVulnerability, SecurityAdvisory)
-        .join(SecurityAdvisory, SecurityAdvisory.id == DeviceVulnerability.advisory_id)
-        .where(DeviceVulnerability.device_id == device.id)
-        .order_by(SecurityAdvisory.cvss_score.desc().nullslast(), DeviceVulnerability.detected_at.desc())
-    ).all()
+    vulnerabilities = db.execute(select(DeviceVulnerability, SecurityAdvisory).join(SecurityAdvisory, SecurityAdvisory.id == DeviceVulnerability.advisory_id).where(DeviceVulnerability.device_id == device.id).order_by(SecurityAdvisory.cvss_score.desc().nullslast(), DeviceVulnerability.detected_at.desc())).all()
     backups = list(db.scalars(select(BackupRun).where(BackupRun.device_id == device.id).order_by(BackupRun.started_at.desc()).limit(10)))
     jobs = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device.id).order_by(DeviceJob.created_at.desc()).limit(30)))
     inventory = dict(device.inventory_data or {})
     metrics = dict(inventory.get("metrics") or {})
-    return {
-        "events": events,
-        "issues": issues,
-        "vulnerabilities": vulnerabilities,
-        "backup_runs": backups,
-        "jobs": jobs,
-        "inventory": inventory,
-        "metrics": metrics,
-        "snapshots": _latest_snapshots(db, device.id),
-        "pending_sections": _pending_sections(db, device.id),
-    }
+    return {"events": events, "issues": issues, "vulnerabilities": vulnerabilities, "backup_runs": backups, "jobs": jobs, "inventory": inventory, "metrics": metrics, "snapshots": _latest_snapshots(db, device.id), "pending_sections": _pending_sections(db, device.id)}
 
 
 @router.get("/devices/{device_id}", response_class=HTMLResponse, name="mikrotik_workspace_overview")
@@ -114,17 +73,13 @@ def workspace_overview(request: Request, device_id: uuid.UUID):
             raise HTTPException(403)
         device = _load_device(db, device_id)
         if device.vendor != "mikrotik":
-            # Other vendors keep the generic detail page semantics for now.
             return core.device_detail(request, device_id)
         ctx = _workspace_context(db, device)
         raw_token = request.session.pop(f"enrollment_token:{device.id}", None)
         enrollment_command = None
         if raw_token:
             base_url = str(request.base_url).rstrip("/")
-            enrollment_command = (
-                f'/tool fetch url="{base_url}/api/v1/enrollment/mikrotik/bootstrap?token={raw_token}" '
-                'dst-path="nsm-bootstrap.rsc"; /import file-name="nsm-bootstrap.rsc"'
-            )
+            enrollment_command = f'/tool fetch url="{base_url}/api/v1/enrollment/mikrotik/bootstrap?token={raw_token}" dst-path="nsm-bootstrap.rsc"; /import file-name="nsm-bootstrap.rsc"'
         ctx["enrollment_command"] = enrollment_command
         ctx["backup_policy"] = core.effective_backup_policy(db, device)
         return core.render(request, db, user, "mikrotik_workspace.html", device=device, active_tab="overview", **ctx)
@@ -144,11 +99,7 @@ def workspace_configuration(request: Request, device_id: uuid.UUID, section: str
         if device.vendor != "mikrotik":
             raise HTTPException(404)
         ctx = _workspace_context(db, device)
-        return core.render(
-            request, db, user, "mikrotik_workspace.html",
-            device=device, active_tab="configuration", active_section=section,
-            snapshot_sections=SNAPSHOT_SECTIONS, **ctx,
-        )
+        return core.render(request, db, user, "mikrotik_workspace.html", device=device, active_tab="configuration", active_section=section, snapshot_sections=SNAPSHOT_SECTIONS, **ctx)
 
 
 @router.get("/devices/{device_id}/monitor", response_class=HTMLResponse, name="mikrotik_workspace_monitor")
@@ -206,31 +157,13 @@ def queue_snapshot(request: Request, device_id: uuid.UUID, section: str, csrf: s
         device = _load_device(db, device_id)
         if device.vendor != "mikrotik" or device.status != "online":
             raise HTTPException(409, "Lo snapshot richiede un MikroTik online con agent NSM.")
-        existing = db.scalar(
-            select(DeviceJob).where(
-                DeviceJob.device_id == device.id,
-                DeviceJob.job_type == "snapshot_section",
-                DeviceJob.status.in_(["pending", "delivered"]),
-            ).order_by(DeviceJob.created_at.desc())
-        )
-        if existing and (existing.payload or {}).get("section") == section:
+        pending = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device.id, DeviceJob.job_type == "snapshot_section", DeviceJob.status.in_(["pending", "delivered"]))))
+        if any((job.payload or {}).get("section") == section for job in pending):
             return RedirectResponse(f"/devices/{device.id}/configuration?section={section}&queued=already", status_code=303)
-        job = DeviceJob(
-            device_id=device.id,
-            job_type="snapshot_section",
-            payload={"section": section},
-            expires_at=utcnow() + core.timedelta(minutes=10),
-        )
+        job = DeviceJob(device_id=device.id, job_type="snapshot_section", payload={"section": section}, expires_at=utcnow() + timedelta(minutes=10))
         db.add(job)
-        core.add_event(
-            db,
-            "DEVICE_SNAPSHOT_QUEUED",
-            actor=user,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            details={"section": section, "job_id": str(job.id)},
-            source="portal",
-        )
+        db.flush()
+        core.add_event(db, "DEVICE_SNAPSHOT_QUEUED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"section": section, "job_id": str(job.id)}, source="portal")
         db.commit()
     return RedirectResponse(f"/devices/{device_id}/configuration?section={section}&queued=1", status_code=303)
 
@@ -260,13 +193,9 @@ def queue_diagnostic(request: Request, device_id: uuid.UUID, diagnostic: str, ta
         device = _load_device(db, device_id)
         if device.vendor != "mikrotik" or device.status != "online":
             raise HTTPException(409, "La diagnostica richiede un MikroTik online con agent NSM.")
-        job = DeviceJob(
-            device_id=device.id,
-            job_type=f"diagnostic_{diagnostic}",
-            payload={"target": target},
-            expires_at=utcnow() + core.timedelta(minutes=5),
-        )
+        job = DeviceJob(device_id=device.id, job_type=f"diagnostic_{diagnostic}", payload={"target": target}, expires_at=utcnow() + timedelta(minutes=5))
         db.add(job)
+        db.flush()
         core.add_event(db, "DEVICE_DIAGNOSTIC_QUEUED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"diagnostic": diagnostic, "target": target, "job_id": str(job.id)}, source="portal")
         db.commit()
     return RedirectResponse(f"/devices/{device_id}/diagnostics?queued={diagnostic}", status_code=303)
@@ -275,16 +204,9 @@ def queue_diagnostic(request: Request, device_id: uuid.UUID, diagnostic: str, ta
 def install_mikrotik_workspace(app):
     _remove_route(app, "/devices/{device_id}", "GET")
     app.include_router(router)
-    # Canonical MikroTik workspace must win over any legacy included-router copy.
     promoted = []
     rest = []
-    paths = {
-        "/devices/{device_id}",
-        "/devices/{device_id}/configuration",
-        "/devices/{device_id}/monitor",
-        "/devices/{device_id}/jobs",
-        "/devices/{device_id}/diagnostics",
-    }
+    paths = {"/devices/{device_id}", "/devices/{device_id}/configuration", "/devices/{device_id}/monitor", "/devices/{device_id}/jobs", "/devices/{device_id}/diagnostics"}
     for route in app.router.routes:
         if getattr(route, "path", None) in paths:
             promoted.append(route)
