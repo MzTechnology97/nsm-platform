@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Confronto export · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/operations/backups">Backup</a><span>›</span><a href="/devices/{{ device.id }}">{{ device.display_name or device.device_identity or device.name }}</a><span>›</span><span>Confronto export</span></div>
+<div class="page-header compact-heading"><div><h1>Confronto configurazioni RouterOS</h1><p>{{ left_artifact.filename }} ↔ {{ right_artifact.filename }}</p></div><div class="page-actions"><a class="button ghost" href="/operations/backups/artifacts/{{ left_artifact.id }}/view">Torna al viewer</a></div></div>
+<section class="mt-kpi-grid"><article class="metric-card"><span>Righe aggiunte</span><strong>+{{ additions }}</strong></article><article class="metric-card"><span>Righe rimosse</span><strong>-{{ removals }}</strong></article><article class="metric-card"><span>Export A</span><strong>{{ fmt_dt(left_run.started_at) }}</strong><small>{{ left_artifact.filename }}</small></article><article class="metric-card"><span>Export B</span><strong>{{ fmt_dt(right_run.started_at) }}</strong><small>{{ right_artifact.filename }}</small></article></section>
+<section class="panel"><div class="panel-header"><div><h2>Unified diff</h2><p>I segreti comuni sono redatti prima del confronto. Verde/logica “+” indica aggiunte, “-” rimozioni.</p></div></div>{% if diff_lines %}<pre class="json-preview backup-rsc-diff">{% for line in diff_lines %}<span class="{% if line.startswith('+') and not line.startswith('+++') %}diff-add{% elif line.startswith('-') and not line.startswith('---') %}diff-remove{% elif line.startswith('@@') %}diff-hunk{% endif %}">{{ line }}</span>
+{% endfor %}</pre>{% else %}<div class="empty-state">I due export risultano identici dopo la redazione dei segreti.</div>{% endif %}</section>
+{% endblock %}
