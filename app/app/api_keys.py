@@ -6,7 +6,7 @@ import uuid
 from datetime import timedelta
 
 from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import func, or_, select
 
 from app import main as core
@@ -242,7 +242,7 @@ def admin_api_key_revoke(request: Request, key_id: uuid.UUID, csrf: str = Form(.
                 severity="warning",
             )
             db.commit()
-    return core.redirect("/admin/api-keys")
+    return RedirectResponse("/admin/api-keys", status_code=303)
 
 
 @router.post("/admin/api-keys/{key_id}/delete", name="admin_api_key_delete")
@@ -273,7 +273,7 @@ def admin_api_key_delete(request: Request, key_id: uuid.UUID, csrf: str = Form(.
             severity="warning",
         )
         db.commit()
-    return core.redirect("/admin/api-keys")
+    return RedirectResponse("/admin/api-keys", status_code=303)
 
 
 @router.get("/api/v1/public/customers", name="public_api_customers")
@@ -353,13 +353,19 @@ def public_api_devices(
         )
         customer_ids = {d.customer_id for d in devices}
         site_ids = {d.site_id for d in devices if d.site_id}
-        customers = {
-            c.id: c.name
-            for c in db.scalars(select(Customer).where(Customer.id.in_(customer_ids)))
-        } if customer_ids else {}
-        sites = {
-            s.id: s.name for s in db.scalars(select(Site).where(Site.id.in_(site_ids)))
-        } if site_ids else {}
+        customers = (
+            {
+                c.id: c.name
+                for c in db.scalars(select(Customer).where(Customer.id.in_(customer_ids)))
+            }
+            if customer_ids
+            else {}
+        )
+        sites = (
+            {s.id: s.name for s in db.scalars(select(Site).where(Site.id.in_(site_ids)))}
+            if site_ids
+            else {}
+        )
         return {
             "count": total,
             "limit": limit,
