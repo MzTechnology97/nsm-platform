@@ -57,9 +57,12 @@ def main():
         "/api/v1/enrollment/mikrotik/bootstrap", params={"token": token}
     )
     assert bootstrap.status_code == 200
-    assert "/api/v1/agents/mikrotik/enroll" in bootstrap.text
+    assert "/api/v1/agents/mikrotik/enroll-legacy" in bootstrap.text
     assert "nsm-agent-heartbeat" in bootstrap.text
     assert token in bootstrap.text
+    assert ":local nsmEscape do=" in bootstrap.text
+    assert ":serialize" not in bootstrap.text
+    assert ":deserialize" not in bootstrap.text
 
     enroll = client.post(
         "/api/v1/agents/mikrotik/enroll",
@@ -68,11 +71,11 @@ def main():
             "inventory": {
                 "identity": "CI07-CCR2004",
                 "model": "CCR2004-1G-12S+2XS",
-                "routeros_version": "7.20.1 (stable)",
+                "routeros_version": "7.12.1 (stable)",
                 "architecture": "arm64",
                 "serial_number": "CI07SERIAL",
                 "software_id": "CI07-SOFTWARE-ID",
-                "routerboot_version": "7.20.1",
+                "routerboot_version": "7.12.1",
                 "primary_mac": "02:07:00:00:00:01",
                 "uptime": "1d02:03:04",
                 "cpu": "ARM64",
@@ -89,6 +92,9 @@ def main():
     assert body["device_id"] == str(device_id)
     assert "agent_source" in body
     assert "/api/v1/agents/mikrotik/heartbeat" in body["agent_source"]
+    assert ":local nsmEscape do=" in body["agent_source"]
+    assert ":serialize" not in body["agent_source"]
+    assert ":deserialize" not in body["agent_source"]
     match = re.search(r':local nsmSecret "([^"]+)"', body["agent_source"])
     assert match, "per-device secret not embedded in generated agent"
     raw_secret = match.group(1)
@@ -107,9 +113,9 @@ def main():
         assert device.model == "CCR2004-1G-12S+2XS"
         assert device.serial_number == "CI07SERIAL"
         assert device.primary_mac == "02:07:00:00:00:01"
-        assert device.firmware_version == "7.20.1 (stable)"
+        assert device.firmware_version == "7.12.1 (stable)"
         assert device.architecture == "arm64"
-        assert device.routerboot_version == "7.20.1"
+        assert device.routerboot_version == "7.12.1"
         assert device.status == "online"
         credential = db.scalar(
             select(DeviceAgentCredential).where(
@@ -192,7 +198,7 @@ def main():
             )
         )
 
-    print("Core 0.7 MikroTik agent smoke test passed")
+    print("Core 0.7 MikroTik agent smoke test passed with RouterOS 7.12 compatibility")
 
 
 if __name__ == "__main__":
