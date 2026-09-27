@@ -74,7 +74,7 @@ jobs:
           for marker in ('API Keys','MOSTRATA UNA VOLTA','X-API-KEY','Authorization: Bearer','inventory.read','backup.read','security.read','firmware.read'):
               assert marker in api_page, marker
           admin_users = (root / 'admin_users.html').read_text()
-          assert '/admin/api-keys' in admin_users
+          assert '/admin/api-keys' in admin_users and '/admin/integrations/uisp' in admin_users
           api_code = Path('app/app/api_keys.py').read_text()
           for marker in ('API_KEY_PREFIX = "nsm_live_"','inventory.read','X-API-KEY','Authorization','compare_digest','MAX_API_PAGE = 100','API_KEY_REVOKED','API_KEY_DELETED'):
               assert marker in api_code, marker
@@ -94,6 +94,23 @@ jobs:
           assert 'key_hash' in api_model and 'key_prefix' in api_model and 'customer_id' in api_model and 'last_used_at' in api_model
           api_migration = Path('app/alembic/versions/0008_platform_api_keys.py').read_text()
           assert 'platform_api_keys' in api_migration and '0007_device_metric_samples' in api_migration
+
+          uisp_page = (root / 'admin_uisp.html').read_text()
+          for marker in ('UISP Network','token API UISP read-only','Verifica certificato TLS','/nms/api/v2.1/devices','Site/Organization UISP restano solo metadata'):
+              assert marker in uisp_page, marker
+          uisp_device_page = (root / 'uisp_device_link.html').read_text()
+          for marker in ('Matching esatto tramite MAC','Preview dispositivo UISP','Conferma associazione','Customer e Site NSM non vengono mai sovrascritti'):
+              assert marker in uisp_device_page, marker
+          uisp_code = Path('app/app/uisp_connector.py').read_text()
+          for marker in ('x-auth-token','/nms/api/v2.1/devices','follow_redirects=False','lookup_by_mac','external_device_id','UISP_DEVICE_ASSOCIATED','UISP_INVENTORY_REFRESHED'):
+              assert marker in uisp_code, marker
+          assert 'secret_encrypted' in Path('app/app/integration_models.py').read_text()
+          assert 'encrypt_text(token)' in uisp_code and 'decrypt_text(connection.secret_encrypted)' in uisp_code
+          assert 'customer_id =' not in '\n'.join(line for line in uisp_code.splitlines() if 'device.' in line)
+          uisp_migration = Path('app/alembic/versions/0009_connector_integrations.py').read_text()
+          assert 'connector_integrations' in uisp_migration and '0008_platform_api_keys' in uisp_migration
+          device_detail = (root / 'device_detail.html').read_text()
+          assert '/devices/{{ device.id }}/uisp' in device_detail and 'ID UISP stabile' in device_detail
 
           customers = (root / 'customers_workspace.html').read_text()
           assert 'Da aggiornare' in customers and 'CVE gravi' in customers and 'Allarmi' in customers
@@ -165,7 +182,7 @@ jobs:
 
           security = Path('app/app/security_drilldown.py').read_text()
           assert 'SEVERE_LEVELS' in security and 'severity.lower() == "severe"' in security
-          print('Core 0.25 guided MikroTik onboarding, scoped API, CSV import, telemetry and backup contracts validated')
+          print('Core 0.26 UISP connector, guided MikroTik onboarding, scoped API, CSV import, telemetry and backup contracts validated')
           PY
 
       - name: Validate shell scripts
@@ -185,7 +202,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.25.0'
+          assert app.version == '0.26.0'
           assert str(app.url_path_for('dashboard')) == '/'
           assert str(app.url_path_for('dashboard_summary')) == '/api/v1/dashboard/summary'
           assert str(app.url_path_for('devices')) == '/devices'
@@ -194,6 +211,13 @@ jobs:
           assert str(app.url_path_for('device_csv_import_submit')) == '/devices/import'
           assert str(app.url_path_for('admin_api_keys')) == '/admin/api-keys'
           assert str(app.url_path_for('admin_api_key_create')) == '/admin/api-keys'
+          assert str(app.url_path_for('admin_uisp')) == '/admin/integrations/uisp'
+          assert str(app.url_path_for('admin_uisp_save')) == '/admin/integrations/uisp'
+          assert str(app.url_path_for('admin_uisp_test')) == '/admin/integrations/uisp/test'
+          assert str(app.url_path_for('uisp_device_link', device_id=zero)) == f'/devices/{zero}/uisp'
+          assert str(app.url_path_for('uisp_device_preview', device_id=zero)) == f'/devices/{zero}/uisp/preview'
+          assert str(app.url_path_for('uisp_device_associate', device_id=zero)) == f'/devices/{zero}/uisp/associate'
+          assert str(app.url_path_for('uisp_device_refresh', device_id=zero)) == f'/devices/{zero}/uisp/refresh'
           assert str(app.url_path_for('public_api_customers')) == '/api/v1/public/customers'
           assert str(app.url_path_for('public_api_devices')) == '/api/v1/public/devices'
           assert str(app.url_path_for('public_api_device_detail', device_id=zero)) == f'/api/v1/public/devices/{zero}'
@@ -283,7 +307,7 @@ jobs:
       - name: Apply migrations
         run: cd app && alembic upgrade head
 
-      - name: Run full Core smoke suite 0.5 through 0.25
+      - name: Run full Core smoke suite 0.5 through 0.26
         run: |
           cd app
           for test in \
@@ -308,7 +332,8 @@ jobs:
             device_csv_import_smoke.py \
             api_keys_smoke.py \
             api_operations_smoke.py \
-            mikrotik_onboarding_smoke.py
+            mikrotik_onboarding_smoke.py \
+            uisp_connector_smoke.py
           do
             echo "===== $test ====="
             PYTHONPATH=. python "tests/$test"
