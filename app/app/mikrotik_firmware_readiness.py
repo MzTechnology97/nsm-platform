@@ -120,8 +120,19 @@ def _install_agent_handler():
     agent_module._agent_source = source_with_firmware_readiness
 
 
+def _queue_redirect(device_id, return_to: str, state: str):
+    if return_to == "firmware":
+        return RedirectResponse(f"/operations/firmware?firmware_check={state}", status_code=303)
+    return RedirectResponse(f"/devices/{device_id}?firmware_check={state}", status_code=303)
+
+
 @router.post("/devices/{device_id}/firmware-readiness", name="queue_mikrotik_firmware_readiness")
-def queue_firmware_readiness(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
+def queue_firmware_readiness(
+    request: Request,
+    device_id: uuid.UUID,
+    csrf: str = Form(...),
+    return_to: str = Form("device"),
+):
     core.validate_csrf(request, csrf)
     with SessionLocal() as db:
         user = core.require_permission(request, db, "firmware.read")
@@ -138,7 +149,7 @@ def queue_firmware_readiness(request: Request, device_id: uuid.UUID, csrf: str =
             )
         )
         if not credential or device.status != "online":
-            raise HTTPException(409, "La verifica richiede un MikroTik online con agent NSM autenticato.")
+            return _queue_redirect(device_id, return_to, "agent_required")
         pending = db.scalar(
             select(DeviceJob.id).where(
                 DeviceJob.device_id == device.id,
@@ -146,26 +157,27 @@ def queue_firmware_readiness(request: Request, device_id: uuid.UUID, csrf: str =
                 DeviceJob.status.in_(["pending", "delivered"]),
             )
         )
-        if not pending:
-            job = DeviceJob(
-                device_id=device.id,
-                job_type=JOB_TYPE,
-                payload={"read_only": True},
-                expires_at=utcnow() + timedelta(minutes=10),
-            )
-            db.add(job)
-            db.flush()
-            core.add_event(
-                db,
-                "FIRMWARE_READINESS_QUEUED",
-                actor=user,
-                customer_id=device.customer_id,
-                device_id=device.id,
-                details={"job_id": str(job.id), "read_only": True},
-                source="portal",
-            )
-            db.commit()
-    return RedirectResponse(f"/devices/{device_id}?firmware_check=queued", status_code=303)
+        if pending:
+            return _queue_redirect(device_id, return_to, "already_queued")
+        job = DeviceJob(
+            device_id=device.id,
+            job_type=JOB_TYPE,
+            payload={"read_only": True},
+            expires_at=utcnow() + timedelta(minutes=10),
+        )
+        db.add(job)
+        db.flush()
+        core.add_event(
+            db,
+            "FIRMWARE_READINESS_QUEUED",
+            actor=user,
+            customer_id=device.customer_id,
+            device_id=device.id,
+            details={"job_id": str(job.id), "read_only": True},
+            source="portal",
+        )
+        db.commit()
+    return _queue_redirect(device_id, return_to, "queued")
 
 
 @router.post(
