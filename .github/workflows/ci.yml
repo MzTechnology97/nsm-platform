@@ -69,8 +69,17 @@ jobs:
           assert 'Seriale' in customer_devices and 'MAC' in customer_devices and 'IP' in customer_devices
           customer_backups = (root / 'customer_backups.html').read_text()
           assert 'Backup eseguibile' in customer_backups and 'Metodo non pronto' in customer_backups
+          assert '/view' in customer_backups and 'apri' in customer_backups
           global_backup = (root / 'backup_customer_overview.html').read_text()
           assert 'Stato backup per cliente' not in global_backup and 'backup realmente eseguibile' in global_backup
+
+          backup_rsc = (root / 'backup_rsc_view.html').read_text()
+          for marker in ('RouterOS export','Confronta configurazione','Diff configurazione','show-sensitive'):
+              assert marker in backup_rsc, marker
+          backup_text_tools = Path('app/app/backup_text_tools.py').read_text()
+          for marker in ('MAX_TEXT_ARTIFACT_BYTES','resolve_artifact_path','mikrotik_export','SequenceMatcher','stesso apparato'):
+              assert marker in backup_text_tools, marker
+          assert 'MAX_TEXT_ARTIFACT_BYTES = 2 * 1024 * 1024' in backup_text_tools
 
           search_page = (root / 'search.html').read_text()
           assert 'Seriale {{ d.serial_number }}' in search_page and 'MAC {{ d.primary_mac }}' in search_page and 'IP {{ d.management_ip }}' in search_page
@@ -115,7 +124,7 @@ jobs:
 
           security = Path('app/app/security_drilldown.py').read_text()
           assert 'SEVERE_LEVELS' in security and 'severity.lower() == "severe"' in security
-          print('Core 0.20 UI, telemetry and operational-tool contracts validated')
+          print('Core 0.21 UI, telemetry, operational tools and RSC diff contracts validated')
           PY
 
       - name: Validate shell scripts
@@ -135,7 +144,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.20.0'
+          assert app.version == '0.21.0'
           assert str(app.url_path_for('dashboard')) == '/'
           assert str(app.url_path_for('dashboard_summary')) == '/api/v1/dashboard/summary'
           assert str(app.url_path_for('devices')) == '/devices'
@@ -144,6 +153,8 @@ jobs:
           assert str(app.url_path_for('mikrotik_heartbeat')) == '/api/v1/agents/mikrotik/heartbeat'
           assert str(app.url_path_for('device_metrics', device_id=zero)) == f'/api/v1/devices/{zero}/metrics'
           assert str(app.url_path_for('queue_mikrotik_backup', device_id=zero)) == f'/devices/{zero}/backup-now'
+          assert str(app.url_path_for('backup_artifact_text_view', artifact_id=zero)) == f'/operations/backups/artifacts/{zero}/view'
+          assert str(app.url_path_for('backup_artifact_text_diff', artifact_id=zero)) == f'/operations/backups/artifacts/{zero}/diff'
           assert str(app.url_path_for('mikrotik_workspace_overview', device_id=zero)) == f'/devices/{zero}'
           assert str(app.url_path_for('mikrotik_workspace_configuration', device_id=zero)) == f'/devices/{zero}/configuration'
           assert str(app.url_path_for('mikrotik_workspace_monitor', device_id=zero)) == f'/devices/{zero}/monitor'
@@ -220,7 +231,7 @@ jobs:
       - name: Apply migrations
         run: cd app && alembic upgrade head
 
-      - name: Run full Core smoke suite 0.5 through 0.20
+      - name: Run full Core smoke suite 0.5 through 0.21
         run: |
           cd app
           for test in \
@@ -240,7 +251,8 @@ jobs:
             dashboard_ui_smoke.py \
             inventory_ui_smoke.py \
             mikrotik_telemetry_smoke.py \
-            mikrotik_operational_tools_smoke.py
+            mikrotik_operational_tools_smoke.py \
+            backup_rsc_tools_smoke.py
           do
             echo "===== $test ====="
             PYTHONPATH=. python "tests/$test"
