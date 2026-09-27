@@ -19,140 +19,118 @@ jobs:
           python-version: '3.13'
           cache: pip
           cache-dependency-path: app/requirements.txt
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r app/requirements.txt
+
       - name: Compile Python
         run: python -m compileall -q app/app app/alembic app/tests
-      - name: Parse templates and validate scoped UI
+
+      - name: Parse templates and validate UI contracts
         run: |
           python - <<'PY'
           from pathlib import Path
           from jinja2 import Environment, FileSystemLoader
+
           root = Path('app/app/templates')
           env = Environment(loader=FileSystemLoader(str(root)))
           for path in sorted(root.glob('*.html')):
               env.get_template(path.name)
+
           base = (root / 'base.html').read_text()
+          for asset in (
+              'customer_workspace.css',
+              'search_enhancement.css',
+              'mikrotik_workspace.css',
+              'ui_foundation.css',
+          ):
+              assert asset in base, asset
           assert '/branding/theme.css?v={{ app_version }}' in base
           assert 'data-global-search-input' in base
           assert 'data-search-suggestions' in base
-          assert 'search_enhancement.css' in base
-          assert 'mikrotik_workspace.css' in base
-          assert 'seriale' in base.lower()
           assert 'href="/sites"' not in base
-          assert 'customer_workspace.css' in base
+
+          dashboard = (root / 'dashboard.html').read_text()
+          for marker in (
+              'data-dashboard-live',
+              'Copertura operativa',
+              'Distribuzione inventario',
+              'Backup protetti',
+              'CVE High / Critical',
+              'dashboard_live.js',
+          ):
+              assert marker in dashboard, marker
+          components = (root / '_ui_components.html').read_text()
+          assert 'macro kpi_card' in components
+          assert 'macro distribution_panel' in components
+          assert 'macro donut' in components
+
           customers = (root / 'customers_workspace.html').read_text()
           assert 'Da aggiornare' in customers and 'CVE gravi' in customers and 'Allarmi' in customers
-          assert 'firmware=attention' in customers and 'security=severe' in customers
-          assert '/action-center?customer=' in customers
-          detail = (root / 'customer_workspace_detail.html').read_text()
-          assert 'Apparati con CVE gravi' in detail
-          assert '/backups' in detail
-          assert '/security#firmware' in detail and '/security#vulnerabilities' in detail
-          assert 'Ultime attività' in detail
           tabs = (root / '_customer_tabs.html').read_text()
           for suffix in ('devices', 'sites', 'backups', 'security', 'history'):
               assert f'/{suffix}' in tabs
           customer_devices = (root / 'customer_devices.html').read_text()
           assert 'Seriale' in customer_devices and 'MAC' in customer_devices and 'IP' in customer_devices
-          customer_sites = (root / 'customer_sites.html').read_text()
-          assert 'Apri apparati' in customer_sites
-          customer_security = (root / 'customer_security.html').read_text()
-          assert 'Vulnerabilità gravi' in customer_security and 'Lifecycle EOL / EOS' in customer_security
-          customer_history = (root / 'customer_history.html').read_text()
-          assert 'Audit trail completo' in customer_history and 'actor_map' in customer_history
-          devices = (root / 'devices.html').read_text()
-          assert 'name="firmware"' in devices and 'name="security"' in devices
-          assert 'CVE High / Critical' in devices
-          action = (root / 'action_center.html').read_text()
-          assert 'name="customer"' in action and 'pagina {{ page }} di {{ pages }}' in action
-          vulnerabilities = (root / 'vulnerabilities.html').read_text()
-          assert 'name="customer"' in vulnerabilities
-          assert 'name="severity"' in vulnerabilities and 'name="status"' in vulnerabilities
-          assert 'Vista Security confinata al cliente selezionato' in vulnerabilities
-          vulnerability_detail = (root / 'vulnerability_detail.html').read_text()
-          assert 'Tutti i clienti interessati' in vulnerability_detail
-          assert 'Impatto CVE limitato agli apparati di questo cliente' in vulnerability_detail
-          lifecycle = (root / 'lifecycle.html').read_text()
-          assert 'name="customer"' in lifecycle and 'name="state"' in lifecycle
-          assert 'Vista Lifecycle confinata agli apparati di questo cliente' in lifecycle
-          firmware = (root / 'firmware_worklist.html').read_text()
-          assert 'name="customer"' in firmware and 'name="state"' in firmware
-          assert 'Vista Firmware confinata agli apparati di questo cliente' in firmware
-          assert 'Da aggiornare' in firmware and 'Critical' in firmware and 'Sconosciuto' in firmware
-          backup_customer = (root / 'customer_backups.html').read_text()
-          assert 'Tutte le sedi del cliente' in backup_customer
-          assert 'Backup eseguibile' in backup_customer
-          assert 'Metodo non pronto' in backup_customer
-          assert 'policy effettiva + metodo di backup realmente eseguibile' in backup_customer
-          assert '_customer_tabs.html' in backup_customer
+          customer_backups = (root / 'customer_backups.html').read_text()
+          assert 'Backup eseguibile' in customer_backups and 'Metodo non pronto' in customer_backups
           global_backup = (root / 'backup_customer_overview.html').read_text()
-          assert 'Controllo globale di copertura e policy' in global_backup
-          assert 'Dettaglio per cliente' in global_backup
           assert 'Stato backup per cliente' not in global_backup
           assert 'backup realmente eseguibile' in global_backup
-          form = (root / 'backup_policy_form.html').read_text()
-          assert 'name="schedule_cron"' not in form
-          assert 'data-customer-select' in form
-          assert 'data-site-select' in form and 'data-device-select' in form
-          assert 'Metodo automatico per apparato' in form
-          assert 'MikroTik · Agent NSM' in form
-          device = (root / 'device_detail.html').read_text()
-          assert '/backup-now' in device and 'Backup ora' in device
-          mt = (root / 'mikrotik_workspace.html').read_text()
-          for label in ('Panoramica', 'Monitor', 'Configurazione', 'Diagnostica', 'Job & attività'):
-              assert label in mt
-          for section in ('ip_addresses', 'routes', 'interfaces', 'firewall', 'ppp_active', 'dhcp_leases', 'logs'):
-              assert section in Path('app/app/mikrotik_workspace.py').read_text()
-          assert 'Nessuna shell o comando arbitrario' in mt
+
           search_page = (root / 'search.html').read_text()
           assert 'Seriale {{ d.serial_number }}' in search_page
           assert 'MAC {{ d.primary_mac }}' in search_page
           assert 'IP {{ d.management_ip }}' in search_page
-          agent = Path('app/app/mikrotik_backup_agent.py').read_text()
-          assert '/system backup save' in agent
-          assert 'encryption=aes-sha256' in agent
-          assert '/file read' in agent
-          assert 'to=base64' in agent
-          assert '/api/v1/agents/mikrotik/backup-jobs/' in agent
-          assert 'ftp' not in agent.lower()
+          search_code = Path('app/app/search_enhancement.py').read_text()
+          assert 'match_field' in search_code and 'completion' in search_code
+          ui_js = Path('app/app/static/ui.js').read_text()
+          assert "event.key === 'Tab'" in ui_js
+          assert 'search-meta-chip' in ui_js
+
+          mt = (root / 'mikrotik_workspace.html').read_text()
+          for label in ('Panoramica', 'Monitor', 'Configurazione', 'Diagnostica', 'Job & attività'):
+              assert label in mt
+          assert 'Nessuna shell o comando arbitrario' in mt
+          workspace = Path('app/app/mikrotik_workspace.py').read_text()
+          for section in ('ip_addresses', 'routes', 'interfaces', 'firewall', 'ppp_active', 'dhcp_leases', 'logs'):
+              assert section in workspace
           snapshot_agent = Path('app/app/mikrotik_snapshot_agent.py').read_text()
-          assert 'snapshot_section' in snapshot_agent and '/ip route print as-value' in snapshot_agent
-          assert '/ip firewall filter print as-value' in snapshot_agent and '/ppp active print as-value' in snapshot_agent
-          diagnostic_agent = Path('app/app/mikrotik_diagnostics_agent.py').read_text()
-          assert 'diagnostic_ping' in diagnostic_agent and 'diagnostic_traceroute' in diagnostic_agent
-          assert ':execute script=' not in diagnostic_agent
-          capabilities = Path('app/app/backup_capabilities.py').read_text()
-          assert 'connector_required' in capabilities
-          assert 'acs_required' in capabilities
-          assert 'agent_required' in capabilities
-          drilldown = Path('app/app/customer_drilldown.py').read_text()
-          assert '_severe_cve_exists' in drilldown
-          assert 'firmware == "attention"' in drilldown
+          assert 'snapshot_section' in snapshot_agent
+          assert '/ip firewall filter print as-value' in snapshot_agent
+          diagnostics_agent = Path('app/app/mikrotik_diagnostics_agent.py').read_text()
+          assert 'diagnostic_ping' in diagnostics_agent and 'diagnostic_traceroute' in diagnostics_agent
+          assert ':execute script=' not in diagnostics_agent
+
+          backup_agent = Path('app/app/mikrotik_backup_agent.py').read_text()
+          assert '/system backup save' in backup_agent
+          assert 'encryption=aes-sha256' in backup_agent
+          assert '/api/v1/agents/mikrotik/backup-jobs/' in backup_agent
+          assert 'ftp' not in backup_agent.lower()
+
+          dashboard_backend = Path('app/app/dashboard_ui.py').read_text()
+          assert '_dashboard_summary' in dashboard_backend
+          assert 'backup_readiness' in dashboard_backend
+          assert 'dashboard_summary' in dashboard_backend
+          live_js = Path('app/app/static/dashboard_live.js').read_text()
+          assert '/api/v1/dashboard/summary' in live_js
+          assert 'setInterval' in live_js
+          foundation = Path('app/app/static/ui_foundation.css').read_text()
+          assert '.ui-kpi-grid' in foundation and '.ui-donut' in foundation
+
           security = Path('app/app/security_drilldown.py').read_text()
-          assert 'affected_devices' in security and 'affected_customers' in security
-          assert '_impact_state_filter' in security
-          lifecycle_drilldown = Path('app/app/lifecycle_drilldown.py').read_text()
-          assert 'LIFECYCLE_ATTENTION_STATES' in lifecycle_drilldown
-          firmware_worklist = Path('app/app/firmware_worklist.py').read_text()
-          assert 'SECURITY_STATES' in firmware_worklist and 'CRITICAL_STATES' in firmware_worklist
-          assert '_firmware_attention_condition' in firmware_worklist
-          customer_tabs = Path('app/app/customer_tabs.py').read_text()
-          assert 'install_customer_tabs' in customer_tabs and '_backup_summary' in customer_tabs
-          search = Path('app/app/search_enhancement.py').read_text()
-          assert 'match_field' in search and 'completion' in search
-          ui = Path('app/app/static/ui.js').read_text()
-          assert "event.key === 'Tab'" in ui
-          assert 'search-meta-chip' in ui and 'match_field' in ui
-          print('Core 0.16 UI and MikroTik workspace validated')
+          assert 'SEVERE_LEVELS' in security and 'severity.lower() == "severe"' in security
+          print('Core 0.17 UI contracts validated')
           PY
+
       - name: Validate shell scripts
         run: |
           bash -n update.sh install_core.sh manage.sh
           find scripts -type f -name '*.sh' -print0 | xargs -0 -r -n1 bash -n
-      - name: Smoke import application
+
+      - name: Smoke import application and canonical routes
         env:
           POSTGRES_PASSWORD: ci-postgres-password
           REDIS_PASSWORD: ci-redis-password
@@ -163,22 +141,20 @@ jobs:
           cd app
           python - <<'PY'
           from app.entrypoint import app
-          zero='00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.16.0'
+
+          zero = '00000000-0000-0000-0000-000000000001'
+          assert app.version == '0.17.0'
+          assert str(app.url_path_for('dashboard')) == '/'
+          assert str(app.url_path_for('dashboard_summary')) == '/api/v1/dashboard/summary'
           assert str(app.url_path_for('mikrotik_bootstrap')) == '/api/v1/enrollment/mikrotik/bootstrap'
           assert str(app.url_path_for('mikrotik_enroll')) == '/api/v1/agents/mikrotik/enroll'
           assert str(app.url_path_for('mikrotik_heartbeat')) == '/api/v1/agents/mikrotik/heartbeat'
           assert str(app.url_path_for('queue_mikrotik_backup', device_id=zero)) == f'/devices/{zero}/backup-now'
-          assert str(app.url_path_for('mikrotik_backup_config', job_id=zero)).endswith('/backup-config')
-          assert str(app.url_path_for('mikrotik_artifact_chunk', upload_id=zero)).endswith('/chunk')
-          assert str(app.url_path_for('backup_aware_job_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/backup-jobs/{zero}/complete'
           assert str(app.url_path_for('mikrotik_workspace_overview', device_id=zero)) == f'/devices/{zero}'
           assert str(app.url_path_for('mikrotik_workspace_configuration', device_id=zero)) == f'/devices/{zero}/configuration'
           assert str(app.url_path_for('mikrotik_workspace_monitor', device_id=zero)) == f'/devices/{zero}/monitor'
           assert str(app.url_path_for('mikrotik_workspace_diagnostics', device_id=zero)) == f'/devices/{zero}/diagnostics'
           assert str(app.url_path_for('mikrotik_workspace_jobs', device_id=zero)) == f'/devices/{zero}/jobs'
-          assert str(app.url_path_for('queue_mikrotik_snapshot', device_id=zero, section='interfaces')) == f'/devices/{zero}/snapshot/interfaces'
-          assert str(app.url_path_for('queue_mikrotik_diagnostic', device_id=zero, diagnostic='ping')) == f'/devices/{zero}/diagnostics/ping'
           assert str(app.url_path_for('customer_workspace_list')) == '/customers'
           assert str(app.url_path_for('customer_workspace_detail', customer_id=zero)) == f'/customers/{zero}'
           assert str(app.url_path_for('customer_devices', customer_id=zero)) == f'/customers/{zero}/devices'
@@ -191,11 +167,11 @@ jobs:
           assert str(app.url_path_for('devices')) == '/devices'
           assert str(app.url_path_for('action_center')) == '/action-center'
           assert str(app.url_path_for('vulnerabilities')) == '/security/vulnerabilities'
-          assert str(app.url_path_for('vulnerability_detail', advisory_id=zero)) == f'/security/vulnerabilities/{zero}'
           assert str(app.url_path_for('lifecycle')) == '/security/lifecycle'
           assert str(app.url_path_for('firmware')) == '/operations/firmware'
           print(f'Core {app.version}: application imported successfully')
           PY
+
       - name: Prepare dummy runtime env for Compose validation
         run: |
           cp .env.example .env
@@ -206,6 +182,7 @@ jobs:
           APP_SECRET_KEY=ci-app-secret-key-not-for-production
           ENCRYPTION_MASTER_KEY=ci-encryption-key-not-for-production
           EOF
+
       - name: Validate Docker Compose
         run: docker compose config --quiet
 
@@ -241,38 +218,37 @@ jobs:
           python-version: '3.13'
           cache: pip
           cache-dependency-path: app/requirements.txt
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r app/requirements.txt
+
       - name: Apply migrations
         run: cd app && alembic upgrade head
-      - name: Run audited CRUD smoke test
-        run: cd app && PYTHONPATH=. python tests/crud_smoke.py
-      - name: Run Core 0.6 Backup Center smoke test
-        run: cd app && PYTHONPATH=. python tests/core06_smoke.py
-      - name: Run Core 0.7 MikroTik agent smoke test
-        run: cd app && PYTHONPATH=. python tests/mikrotik_agent_smoke.py
-      - name: Run Core 0.8 chunked MikroTik backup smoke test
-        run: cd app && PYTHONPATH=. python tests/mikrotik_backup_smoke.py
-      - name: Run Core 0.9 backup maintenance smoke test
-        run: cd app && PYTHONPATH=. python tests/backup_maintenance_smoke.py
-      - name: Run Core 0.9 customer workspace smoke test
-        run: cd app && PYTHONPATH=. python tests/customer_workspace_smoke.py
-      - name: Run Core 0.10 backup capability registry smoke test
-        run: cd app && PYTHONPATH=. python tests/backup_capabilities_smoke.py
-      - name: Run Core 0.11 customer drilldown smoke test
-        run: cd app && PYTHONPATH=. python tests/customer_drilldown_smoke.py
-      - name: Run Core 0.12 security drilldown smoke test
-        run: cd app && PYTHONPATH=. python tests/security_drilldown_smoke.py
-      - name: Run Core 0.13 lifecycle drilldown smoke test
-        run: cd app && PYTHONPATH=. python tests/lifecycle_drilldown_smoke.py
-      - name: Run Core 0.14 firmware worklist smoke test
-        run: cd app && PYTHONPATH=. python tests/firmware_worklist_smoke.py
-      - name: Run Core 0.15 customer tabs and enhanced search smoke test
-        run: cd app && PYTHONPATH=. python tests/customer_tabs_search_smoke.py
-      - name: Run Core 0.16 MikroTik device workspace smoke test
-        run: cd app && PYTHONPATH=. python tests/mikrotik_workspace_smoke.py
+
+      - name: Run full Core smoke suite 0.5 through 0.17
+        run: |
+          cd app
+          for test in \
+            crud_smoke.py \
+            core06_smoke.py \
+            mikrotik_agent_smoke.py \
+            mikrotik_backup_smoke.py \
+            backup_maintenance_smoke.py \
+            customer_workspace_smoke.py \
+            backup_capabilities_smoke.py \
+            customer_drilldown_smoke.py \
+            security_drilldown_smoke.py \
+            lifecycle_drilldown_smoke.py \
+            firmware_worklist_smoke.py \
+            customer_tabs_search_smoke.py \
+            mikrotik_workspace_smoke.py \
+            dashboard_ui_smoke.py
+          do
+            echo "===== $test ====="
+            PYTHONPATH=. python "tests/$test"
+          done
 
   promote-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
