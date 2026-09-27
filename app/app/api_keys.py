@@ -1,4 +1,4 @@
-"""Scoped API keys and read-only programmatic inventory access for Core 0.23."""
+"""Scoped API keys and read-only programmatic access for Core 0.24."""
 
 import hashlib
 import secrets
@@ -11,6 +11,7 @@ from sqlalchemy import func, or_, select
 
 from app import main as core
 from app.api_key_models import PlatformApiKey
+from app.api_key_scopes import normalize_scopes
 from app.db import SessionLocal
 from app.models import Customer, Device, Site, utcnow
 from app.security import validate_csrf
@@ -168,6 +169,7 @@ def admin_api_key_create(
     customer_id: str = Form(""),
     expires_days: int = Form(90),
     csrf: str = Form(...),
+    scopes: list[str] = Form(default=[]),
 ):
     validate_csrf(request, csrf)
     name = str(name or "").strip()[:160]
@@ -175,6 +177,7 @@ def admin_api_key_create(
         raise HTTPException(400, "Nome API key obbligatorio.")
     if expires_days not in ALLOWED_EXPIRY_DAYS:
         raise HTTPException(400, "Scadenza API key non valida.")
+    selected_scopes = normalize_scopes(scopes)
 
     with SessionLocal() as db:
         user = core.require_admin(request, db)
@@ -195,7 +198,7 @@ def admin_api_key_create(
             name=name,
             key_prefix=prefix,
             key_hash=_digest(raw_key),
-            scopes=[API_KEY_SCOPE_INVENTORY_READ],
+            scopes=selected_scopes,
             customer_id=customer_uuid,
             created_by_user_id=user.id,
             expires_at=expires_at,
