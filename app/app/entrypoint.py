@@ -1,4 +1,4 @@
-"""NSM Core 0.12 application entrypoint."""
+"""NSM Core 0.13 application entrypoint."""
 from app import main as core
 from app.agent_ui import install_agent_ui
 from app.backup_capability_guard import install_backup_capability_guard
@@ -12,6 +12,7 @@ from app.crud_extension import install_crud
 from app.customer_drilldown import install_customer_drilldown
 from app.customer_workspace import install_customer_workspace
 from app.demo_ui import install_demo_ui
+from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
 from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
@@ -20,7 +21,7 @@ from app.security_drilldown import install_security_drilldown
 from app.ui_extension import install_ui
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.12.0"
+APP_VERSION = "0.13.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -43,6 +44,7 @@ install_backup_workspace_capabilities(core.app)
 promote_customer_workspace_routes(core.app)
 install_customer_drilldown(core.app)
 install_security_drilldown(core.app)
+install_lifecycle_drilldown(core.app)
 install_branding_runtime(core.app)
 
 app = core.app
