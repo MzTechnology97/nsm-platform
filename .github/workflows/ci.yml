@@ -38,6 +38,8 @@ jobs:
           assert '/branding/theme.css?v={{ app_version }}' in base
           assert 'data-global-search-input' in base
           assert 'data-search-suggestions' in base
+          assert 'search_enhancement.css' in base
+          assert 'seriale' in base.lower()
           assert 'href="/sites"' not in base
           assert 'customer_workspace.css' in base
           customers = (root / 'customers_workspace.html').read_text()
@@ -47,7 +49,19 @@ jobs:
           detail = (root / 'customer_workspace_detail.html').read_text()
           assert 'Apparati con CVE gravi' in detail
           assert '/backups' in detail
-          assert 'firmware=attention' in detail and 'security=severe' in detail
+          assert '/security#firmware' in detail and '/security#vulnerabilities' in detail
+          assert 'Ultime attività' in detail
+          tabs = (root / '_customer_tabs.html').read_text()
+          for suffix in ('devices', 'sites', 'backups', 'security', 'history'):
+              assert f'/{suffix}' in tabs
+          customer_devices = (root / 'customer_devices.html').read_text()
+          assert 'Seriale' in customer_devices and 'MAC' in customer_devices and 'IP' in customer_devices
+          customer_sites = (root / 'customer_sites.html').read_text()
+          assert 'Apri apparati' in customer_sites
+          customer_security = (root / 'customer_security.html').read_text()
+          assert 'Vulnerabilità gravi' in customer_security and 'Lifecycle EOL / EOS' in customer_security
+          customer_history = (root / 'customer_history.html').read_text()
+          assert 'Audit trail completo' in customer_history and 'actor_map' in customer_history
           devices = (root / 'devices.html').read_text()
           assert 'name="firmware"' in devices and 'name="security"' in devices
           assert 'CVE High / Critical' in devices
@@ -72,10 +86,12 @@ jobs:
           assert 'Backup eseguibile' in backup_customer
           assert 'Metodo non pronto' in backup_customer
           assert 'policy effettiva + metodo di backup realmente eseguibile' in backup_customer
+          assert '_customer_tabs.html' in backup_customer
           global_backup = (root / 'backup_customer_overview.html').read_text()
-          assert 'Overview globale per cliente' in global_backup
+          assert 'Controllo globale di copertura e policy' in global_backup
+          assert 'Dettaglio per cliente' in global_backup
+          assert 'Stato backup per cliente' not in global_backup
           assert 'backup realmente eseguibile' in global_backup
-          assert 'Metodo non pronto' in global_backup
           form = (root / 'backup_policy_form.html').read_text()
           assert 'name="schedule_cron"' not in form
           assert 'data-customer-select' in form
@@ -84,6 +100,10 @@ jobs:
           assert 'MikroTik · Agent NSM' in form
           device = (root / 'device_detail.html').read_text()
           assert '/backup-now' in device and 'Backup ora' in device
+          search_page = (root / 'search.html').read_text()
+          assert 'Seriale {{ d.serial_number }}' in search_page
+          assert 'MAC {{ d.primary_mac }}' in search_page
+          assert 'IP {{ d.management_ip }}' in search_page
           agent = Path('app/app/mikrotik_backup_agent.py').read_text()
           assert '/system backup save' in agent
           assert 'encryption=aes-sha256' in agent
@@ -106,7 +126,14 @@ jobs:
           firmware_worklist = Path('app/app/firmware_worklist.py').read_text()
           assert 'SECURITY_STATES' in firmware_worklist and 'CRITICAL_STATES' in firmware_worklist
           assert '_firmware_attention_condition' in firmware_worklist
-          print('Core 0.14 customer-aware firmware/security/lifecycle worklists validated')
+          customer_tabs = Path('app/app/customer_tabs.py').read_text()
+          assert 'install_customer_tabs' in customer_tabs and '_backup_summary' in customer_tabs
+          search = Path('app/app/search_enhancement.py').read_text()
+          assert 'match_field' in search and 'completion' in search
+          ui = Path('app/app/static/ui.js').read_text()
+          assert "event.key === 'Tab'" in ui
+          assert 'search-meta-chip' in ui and 'match_field' in ui
+          print('Core 0.15 customer tabs, backup control plane and enhanced search validated')
           PY
       - name: Validate shell scripts
         run: |
@@ -124,7 +151,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero='00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.14.0'
+          assert app.version == '0.15.0'
           assert str(app.url_path_for('mikrotik_bootstrap')) == '/api/v1/enrollment/mikrotik/bootstrap'
           assert str(app.url_path_for('mikrotik_enroll')) == '/api/v1/agents/mikrotik/enroll'
           assert str(app.url_path_for('mikrotik_heartbeat')) == '/api/v1/agents/mikrotik/heartbeat'
@@ -133,8 +160,14 @@ jobs:
           assert str(app.url_path_for('mikrotik_artifact_chunk', upload_id=zero)).endswith('/chunk')
           assert str(app.url_path_for('backup_aware_job_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/backup-jobs/{zero}/complete'
           assert str(app.url_path_for('customer_workspace_list')) == '/customers'
+          assert str(app.url_path_for('customer_workspace_detail', customer_id=zero)) == f'/customers/{zero}'
+          assert str(app.url_path_for('customer_devices', customer_id=zero)) == f'/customers/{zero}/devices'
+          assert str(app.url_path_for('customer_sites', customer_id=zero)) == f'/customers/{zero}/sites'
           assert str(app.url_path_for('customer_backups', customer_id=zero)) == f'/customers/{zero}/backups'
+          assert str(app.url_path_for('customer_security', customer_id=zero)) == f'/customers/{zero}/security'
+          assert str(app.url_path_for('customer_history', customer_id=zero)) == f'/customers/{zero}/history'
           assert str(app.url_path_for('backup_customer_overview')) == '/operations/backups'
+          assert str(app.url_path_for('search_suggest')) == '/api/v1/search/suggest'
           assert str(app.url_path_for('devices')) == '/devices'
           assert str(app.url_path_for('action_center')) == '/action-center'
           assert str(app.url_path_for('vulnerabilities')) == '/security/vulnerabilities'
@@ -216,6 +249,8 @@ jobs:
         run: cd app && PYTHONPATH=. python tests/lifecycle_drilldown_smoke.py
       - name: Run Core 0.14 firmware worklist smoke test
         run: cd app && PYTHONPATH=. python tests/firmware_worklist_smoke.py
+      - name: Run Core 0.15 customer tabs and enhanced search smoke test
+        run: cd app && PYTHONPATH=. python tests/customer_tabs_search_smoke.py
 
   promote-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
