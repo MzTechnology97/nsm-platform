@@ -5,10 +5,12 @@ fetching the existing one-shot bootstrap script. It never changes device-mode.
 """
 
 import ipaddress
-from urllib.parse import urlsplit
+import re
+from urllib.parse import parse_qs, urlsplit
 
 MIN_ROUTEROS_MAJOR = 7
 BOOTSTRAP_PATH = "/api/v1/enrollment/mikrotik/bootstrap"
+_BOOTSTRAP_URL_RE = re.compile(r'/tool fetch url="([^"]+)"')
 
 
 def _routeros_quote(value: str) -> str:
@@ -76,3 +78,48 @@ def build_onboarding_command(base_url: str, token: str) -> str:
         ]
     )
     return "; ".join(parts)
+
+
+def _legacy_command_details(command: str):
+    """Extract base URL/token from the Core <=0.24 enrollment command."""
+    match = _BOOTSTRAP_URL_RE.search(str(command or ""))
+    if not match:
+        return None
+    bootstrap_url = match.group(1)
+    parsed = urlsplit(bootstrap_url)
+    if parsed.path != BOOTSTRAP_PATH:
+        return None
+    token = (parse_qs(parsed.query).get("token") or [""])[0]
+    if not token:
+        return None
+    suffix_at = bootstrap_url.find(BOOTSTRAP_PATH)
+    if suffix_at <= 0:
+        return None
+    return bootstrap_url[:suffix_at].rstrip("/"), token
+
+
+def guided_command_from_legacy(command: str) -> tuple[str, dict | None]:
+    """Upgrade the existing one-shot command without changing its token flow."""
+    details = _legacy_command_details(command)
+    if not details:
+        return command, None
+    base_url, token = details
+    return build_onboarding_command(base_url, token), onboarding_requirements(base_url)
+
+
+def install_mikrotik_onboarding(core_module):
+    """Enrich enrollment context while leaving stable workspace routing intact."""
+    current_render = core_module.render
+    if getattr(current_render, "_nsm_guided_onboarding", False):
+        return
+
+    def guided_render(request, db, user, template: str, **context):
+        command = context.get("enrollment_command")
+        if command:
+            guided, requirements = guided_command_from_legacy(command)
+            context["enrollment_command"] = guided
+            context["onboarding_requirements"] = requirements
+        return current_render(request, db, user, template, **context)
+
+    guided_render._nsm_guided_onboarding = True
+    core_module.render = guided_render
