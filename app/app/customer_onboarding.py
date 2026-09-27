@@ -139,7 +139,7 @@ def device_new(request: Request, customer_id: uuid.UUID, site_id: str = ""):
         if not customer:
             raise HTTPException(404)
 
-        selected_site_id = ""
+        selected_site_id = None
         if site_id:
             try:
                 selected_uuid = uuid.UUID(site_id)
@@ -151,7 +151,7 @@ def device_new(request: Request, customer_id: uuid.UUID, site_id: str = ""):
             )
             if not selected_site:
                 raise HTTPException(400, "La sede non appartiene a questo cliente.")
-            selected_site_id = str(selected_site.id)
+            selected_site_id = selected_site.id
 
         return core.render(
             request,
