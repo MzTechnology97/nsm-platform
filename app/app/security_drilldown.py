@@ -9,6 +9,8 @@ from app import main as core
 from app.db import SessionLocal
 from app.models import Customer, Device, DeviceVulnerability, SecurityAdvisory
 
+SEVERE_LEVELS = ("critical", "high")
+
 
 def _remove_exact_route(app, path: str, method: str):
     method = method.upper()
@@ -74,7 +76,10 @@ def vulnerabilities(
         if vendor:
             filters.append(func.lower(SecurityAdvisory.vendor) == vendor.lower())
         if severity:
-            filters.append(func.lower(SecurityAdvisory.severity) == severity.lower())
+            if severity.lower() == "severe":
+                filters.append(func.lower(SecurityAdvisory.severity).in_(SEVERE_LEVELS))
+            else:
+                filters.append(func.lower(SecurityAdvisory.severity) == severity.lower())
 
         impact_filter = _impact_state_filter(status)
         if impact_filter is not None:
