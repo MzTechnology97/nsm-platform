@@ -18,7 +18,7 @@
     <label>Nome<input name="name" maxlength="160" required placeholder="es. Integrazione NOC"></label>
     <label>Cliente<select name="customer_id"><option value="">Globale · tutti i clienti</option>{% for c in customers %}<option value="{{ c.id }}">{{ c.name }} · {{ c.code or c.id }}</option>{% endfor %}</select></label>
     <label>Scadenza<select name="expires_days">{% for days in expiry_options %}<option value="{{ days }}" {% if days == 90 %}selected{% endif %}>{{ 'Nessuna scadenza' if days == 0 else days ~ ' giorni' }}</option>{% endfor %}</select></label>
-    <label>Scope<input value="{{ inventory_scope }}" readonly></label>
+    <label>Scope<input value="{{ inventory_scope }}" readonly><small><code>inventory.read</code> · inventario in sola lettura; nessuna operazione di backup, job o remediation.</small></label>
     <button class="button primary">Crea API key</button>
   </form>
 </section>
