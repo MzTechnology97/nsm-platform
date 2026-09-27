@@ -2,6 +2,7 @@ CUSTOMER_WORKSPACE_ROUTE_NAMES = {
     "customer_workspace_list",
     "customer_workspace_detail",
     "legacy_sites_redirect",
+    "customer_backups_capability_aware",
 }
 
 
@@ -22,21 +23,23 @@ def promote_customer_workspace_routes(app):
 
     The backup landing page is registered canonically here after all legacy
     backup routers have been installed. This guarantees exactly one static
-    GET /operations/backups handler, while the other customer routes are moved
-    ahead of any broad legacy patterns.
+    GET /operations/backups handler. Backup coverage is capability-aware from
+    Core 0.10: a policy alone does not imply an executable backup method.
     """
-    from app.customer_workspace import backup_customer_overview
+    from app.backup_workspace_capabilities import backup_customer_overview
 
     _remove_exact_route(app, "/operations/backups", "GET")
     app.add_api_route(
         "/operations/backups",
         backup_customer_overview,
         methods=["GET"],
-        name="backup_customer_overview",
+        name="backup_customer_overview_capability_aware",
         include_in_schema=False,
     )
 
-    promoted_names = CUSTOMER_WORKSPACE_ROUTE_NAMES | {"backup_customer_overview"}
+    promoted_names = CUSTOMER_WORKSPACE_ROUTE_NAMES | {
+        "backup_customer_overview_capability_aware"
+    }
     promoted = [
         route
         for route in app.router.routes
