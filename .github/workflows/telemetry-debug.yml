@@ -48,16 +48,22 @@ jobs:
       - name: Apply migrations
         run: cd app && alembic upgrade head
       - name: Telemetry stage 1 - parser
-        env:
-          NSM_TELEMETRY_STAGE: memory
+        env: {NSM_TELEMETRY_STAGE: memory}
         run: cd app && PYTHONPATH=. python tests/mikrotik_telemetry_smoke.py
-      - name: Telemetry stage 2 - heartbeat persistence
-        env:
-          NSM_TELEMETRY_STAGE: heartbeat
+      - name: Telemetry stage 2a - enrollment
+        env: {NSM_TELEMETRY_STAGE: enroll}
+        run: cd app && PYTHONPATH=. python tests/mikrotik_telemetry_smoke.py
+      - name: Telemetry stage 2b - heartbeat response
+        env: {NSM_TELEMETRY_STAGE: heartbeat-response}
+        run: cd app && PYTHONPATH=. python tests/mikrotik_telemetry_smoke.py
+      - name: Telemetry stage 2c - heartbeat row count
+        env: {NSM_TELEMETRY_STAGE: heartbeat-count}
+        run: cd app && PYTHONPATH=. python tests/mikrotik_telemetry_smoke.py
+      - name: Telemetry stage 2d - heartbeat values
+        env: {NSM_TELEMETRY_STAGE: heartbeat}
         run: cd app && PYTHONPATH=. python tests/mikrotik_telemetry_smoke.py
       - name: Telemetry stage 3 - history API
-        env:
-          NSM_TELEMETRY_STAGE: metrics
+        env: {NSM_TELEMETRY_STAGE: metrics}
         run: cd app && PYTHONPATH=. python tests/mikrotik_telemetry_smoke.py
       - name: Telemetry stage 4 - monitor page
         run: cd app && PYTHONPATH=. python tests/mikrotik_telemetry_smoke.py
