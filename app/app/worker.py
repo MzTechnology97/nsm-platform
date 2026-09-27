@@ -7,13 +7,16 @@ from redis import Redis
 from app.backup_maintenance import maintenance_tick
 from app.backup_scheduler_capability_guard import install_backup_scheduler_capability_guard
 from app.config import settings
+from app.mikrotik_telemetry import telemetry_cleanup
 
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
 log = logging.getLogger("worker")
 r = Redis.from_url(settings.redis_url, decode_responses=True)
 
 MAINTENANCE_INTERVAL_SECONDS = 60
+TELEMETRY_MAINTENANCE_INTERVAL_SECONDS = 3600
 last_maintenance = 0.0
+last_telemetry_maintenance = 0.0
 
 install_backup_scheduler_capability_guard()
 
@@ -26,6 +29,12 @@ while True:
             if any(stats.values()):
                 log.info("Backup maintenance: %s", stats)
             last_maintenance = now_mono
+
+        if now_mono - last_telemetry_maintenance >= TELEMETRY_MAINTENANCE_INTERVAL_SECONDS:
+            deleted = telemetry_cleanup()
+            if deleted:
+                log.info("Telemetry retention: rimossi %s campioni scaduti", deleted)
+            last_telemetry_maintenance = now_mono
 
         item = r.blpop("nsp:jobs:default", timeout=5)
         if item:
