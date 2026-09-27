@@ -1,7 +1,8 @@
-from app import backup_scheduler as scheduler
+from app import backup_maintenance as scheduler
 from app.backup_capabilities import backup_readiness
 
 _ORIGINAL_QUEUE_SCHEDULED_BACKUP = scheduler.queue_scheduled_backup
+_INSTALLED = False
 
 
 def capability_guarded_queue_scheduled_backup(
@@ -26,4 +27,8 @@ def capability_guarded_queue_scheduled_backup(
 
 
 def install_backup_scheduler_capability_guard():
+    global _INSTALLED
+    if _INSTALLED:
+        return
     scheduler.queue_scheduled_backup = capability_guarded_queue_scheduled_backup
+    _INSTALLED = True
