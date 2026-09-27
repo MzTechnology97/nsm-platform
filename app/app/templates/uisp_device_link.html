@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}UISP · {{ device.display_name or device.name }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/devices">Apparati</a><span>›</span><a href="/devices/{{ device.id }}">{{ device.display_name or device.device_identity or device.name }}</a><span>›</span><span>UISP</span></div>
+<div class="page-header"><div><h1>Associazione UISP</h1><p>Matching esatto tramite MAC senza importare Customer/Site dalla struttura UISP.</p></div><a class="button ghost" href="/devices/{{ device.id }}">Torna all'apparato</a></div>
+
+{% if message %}<div class="alert success">{{ message }}</div>{% endif %}
+{% if error %}<div class="alert warning">{{ error }}</div>{% endif %}
+
+<div class="detail-grid">
+<section class="panel"><div class="panel-header"><div><h2>Record NSM</h2><p>Identità organizzativa controllata dal portale.</p></div></div>
+  <dl class="kv-list"><div><dt>Cliente</dt><dd>{{ device.customer.name }}</dd></div><div><dt>Sede NSM</dt><dd>{{ device.site.name if device.site else '—' }}</dd></div><div><dt>Alias</dt><dd>{{ device.display_name or '—' }}</dd></div><div><dt>MAC</dt><dd><code>{{ device.primary_mac }}</code></dd></div><div><dt>ID UISP salvato</dt><dd><code>{{ device.external_device_id or '—' }}</code></dd></div><div><dt>Stato</dt><dd>{{ status_label(device.status) }}</dd></div></dl>
+</section>
+<section class="panel"><div class="panel-header"><div><h2>Connettore</h2><p>UISP Network API v2.1 in sola lettura.</p></div></div>
+  {% if connection %}<dl class="kv-list"><div><dt>Endpoint</dt><dd>{{ connection.base_url }}</dd></div><div><dt>Abilitato</dt><dd>{{ 'Sì' if connection.is_enabled else 'No' }}</dd></div><div><dt>TLS</dt><dd>{{ 'Verificato' if connection.verify_tls else 'Non verificato' }}</dd></div><div><dt>Ultimo test</dt><dd>{{ fmt_dt(connection.last_tested_at) }}</dd></div></dl>{% else %}<div class="empty-state warning">UISP non configurato. <a href="/admin/integrations/uisp">Apri Integrazioni</a>.</div>{% endif %}
+</section>
+</div>
+
+<section class="panel"><div class="panel-header"><div><h2>1 · Cerca corrispondenza</h2><p>NSM interroga UISP e cerca esclusivamente il MAC <code>{{ device.primary_mac }}</code>.</p></div>{% if connection and connection.is_enabled %}<form method="post" action="/devices/{{ device.id }}/uisp/preview"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Cerca in UISP</button></form>{% endif %}</div>
+  <div class="alert info">Il lookup non modifica né NSM né UISP. L'associazione richiede una conferma separata.</div>
+</section>
+
+{% if candidate %}
+<section class="panel"><div class="panel-header"><div><h2>2 · Preview dispositivo UISP</h2><p>Corrispondenza esatta trovata. Verifica i dati prima di associare.</p></div><span class="device-status status-{{ candidate.status }}">{{ status_label(candidate.status) }}</span></div>
+  <div class="policy-summary six"><div><span>ID UISP</span><strong><code>{{ candidate.external_id }}</code></strong></div><div><span>MAC</span><strong><code>{{ candidate.primary_mac }}</code></strong></div><div><span>Identity</span><strong>{{ candidate.device_identity or '—' }}</strong></div><div><span>Modello</span><strong>{{ candidate.model or '—' }}</strong></div><div><span>Seriale</span><strong>{{ candidate.serial_number or '—' }}</strong></div><div><span>Firmware</span><strong>{{ candidate.firmware_version or '—' }}</strong></div></div>
+  <dl class="kv-list"><div><dt>Management IP</dt><dd>{{ candidate.management_ip or '—' }}</dd></div><div><dt>Last seen UISP</dt><dd>{{ fmt_dt(candidate.last_seen) }}</dd></div><div><dt>Site UISP (metadata)</dt><dd>{{ candidate.site.name or '—' }}</dd></div><div><dt>Ruolo / categoria</dt><dd>{{ candidate.role or '—' }}{% if candidate.category %} · {{ candidate.category }}{% endif %}</dd></div></dl>
+  {% if has_permission(user, 'devices.write') %}<form method="post" action="/devices/{{ device.id }}/uisp/associate" onsubmit="return confirm('Associare definitivamente questo ID UISP al record NSM?')"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Conferma associazione</button></form>{% endif %}
+</section>
+{% endif %}
+
+{% if device.external_device_id %}
+<section class="panel"><div class="panel-header"><div><h2>Inventario collegato</h2><p>Il refresh verifica che lo stesso MAC continui a corrispondere allo stesso ID UISP.</p></div>{% if has_permission(user, 'devices.write') and connection and connection.is_enabled %}<form method="post" action="/devices/{{ device.id }}/uisp/refresh"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Aggiorna da UISP</button></form>{% endif %}</div>
+  <div class="alert info">Customer e Site NSM non vengono mai sovrascritti dai metadata UISP.</div>
+</section>
+{% endif %}
+{% endblock %}
