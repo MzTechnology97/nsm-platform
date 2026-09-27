@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Integrazioni · UISP · {{ ui_context(request).branding.portal_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Integrazioni · UISP</h1><p>Connettore read-only verso UISP Network per inventario e associazione apparati Ubiquiti.</p></div><a class="button ghost" href="/admin/users">Amministrazione</a></div>
+<div class="admin-tabs"><a href="/admin/users">Utenti</a><span>Ruoli & permessi</span><a href="/admin/api-keys">API Keys</a><a class="active" href="/admin/integrations/uisp">Integrazioni</a><a href="/admin/branding">Branding</a><a href="/admin/demo">Demo Lab</a><span>Retention</span><span>System settings</span></div>
+
+{% if message %}<div class="alert success">{{ message }}</div>{% endif %}
+{% if error %}<div class="alert warning">{{ error }}</div>{% endif %}
+
+<div class="content-split">
+<section class="panel side-form">
+  <div class="panel-header"><div><h2>UISP Network</h2><p>Usa un token dedicato con permessi di sola lettura. Il secret viene cifrato prima del salvataggio.</p></div>{% if connection and connection.is_enabled %}<span class="device-status status-online">Abilitato</span>{% else %}<span class="device-status status-offline">Disabilitato</span>{% endif %}</div>
+  <form method="post" action="/admin/integrations/uisp" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>URL console UISP<input type="url" name="base_url" required value="{{ connection.base_url if connection else '' }}" placeholder="https://uisp.example.net"><small>Inserisci l'URL della console; NSM aggiunge automaticamente <code>/nms/api/v2.1/devices</code>.</small></label>
+    <label>API token<input type="password" name="api_token" autocomplete="new-password" placeholder="{{ 'Lascia vuoto per mantenere il token salvato' if has_secret else 'Token read-only UISP' }}"><small>{% if has_secret %}Token presente e cifrato. Il valore non è recuperabile dalla GUI.{% else %}Richiesto al primo salvataggio.{% endif %}</small></label>
+    <label class="check-row"><input type="checkbox" name="is_enabled" {% if not connection or connection.is_enabled %}checked{% endif %}><span>Abilita connettore</span></label>
+    <label class="check-row"><input type="checkbox" name="verify_tls" {% if not connection or connection.verify_tls %}checked{% endif %}><span>Verifica certificato TLS</span></label>
+    <div class="alert info">Con TLS verification disabilitata il token viaggia su un canale non autenticato. Usare questa opzione solo temporaneamente su reti di gestione controllate.</div>
+    <button class="button primary">Salva configurazione</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Stato connettore</h2><p>Il test effettua esclusivamente una lettura della lista apparati UISP.</p></div>{% if connection %}<form method="post" action="/admin/integrations/uisp/test"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Test connessione</button></form>{% endif %}</div>
+  {% if connection %}
+  <div class="policy-summary">
+    <div><span>Endpoint</span><strong>{{ connection.base_url }}</strong></div>
+    <div><span>Modalità</span><strong>READ-ONLY</strong></div>
+    <div><span>TLS</span><strong>{{ 'Verificato' if connection.verify_tls else 'Non verificato' }}</strong></div>
+    <div><span>Ultimo test</span><strong>{{ fmt_dt(connection.last_tested_at) }}</strong></div>
+  </div>
+  <dl class="kv-list"><div><dt>Esito test</dt><dd>{{ connection.last_test_status or 'Mai eseguito' }}</dd></div><div><dt>Ultimo sync</dt><dd>{{ fmt_dt(connection.last_sync_at) }}</dd></div><div><dt>Ultimo errore</dt><dd>{{ connection.last_error or '—' }}</dd></div><div><dt>API</dt><dd><code>/nms/api/v2.1/devices</code></dd></div></dl>
+  {% else %}<div class="empty-state">Nessuna istanza UISP configurata.</div>{% endif %}
+</section>
+</div>
+
+<section class="panel"><div class="panel-header"><div><h2>Flusso di associazione</h2><p>La gerarchia cliente/sede resta quella di NSM.</p></div></div>
+  <div class="role-grid"><div><strong>1 · MAC NSM</strong><p>L'operatore crea il device Ubiquiti indicando il MAC.</p></div><div><strong>2 · Lookup UISP</strong><p>NSM normalizza il MAC e cerca una corrispondenza esatta.</p></div><div><strong>3 · Preview</strong><p>Mostra ID UISP, identity, modello, seriale, firmware e stato osservati.</p></div><div><strong>4 · Associazione</strong><p>Salva l'ID UISP stabile e aggiorna l'inventario. Site/Organization UISP restano solo metadata.</p></div></div>
+</section>
+{% endblock %}
