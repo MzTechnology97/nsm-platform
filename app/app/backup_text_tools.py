@@ -20,7 +20,7 @@ from app.models import BackupRun, Device
 
 router = APIRouter()
 MAX_TEXT_ARTIFACT_BYTES = 2 * 1024 * 1024
-MAX_DIFF_LINES = 20000
+MAX_DIFF_ROWS = 20000
 
 
 def _load_export(db, artifact_id: uuid.UUID):
@@ -69,8 +69,69 @@ def _comparison_candidates(db, device_id: uuid.UUID, current_id: uuid.UUID):
     )
 
 
-def _numbered(text: str) -> str:
-    return "\n".join(f"{index:6}  {line}" for index, line in enumerate(text.splitlines(), start=1))
+def _diff_rows(before: str, after: str):
+    old_lines = before.splitlines()
+    new_lines = after.splitlines()
+    matcher = difflib.SequenceMatcher(a=old_lines, b=new_lines, autojunk=False)
+    rows = []
+    added = removed = unchanged = 0
+
+    def append(kind, old, new, text):
+        if len(rows) < MAX_DIFF_ROWS:
+            rows.append({"kind": kind, "old": old, "new": new, "text": text})
+
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "equal":
+            for offset, text in enumerate(old_lines[i1:i2]):
+                unchanged += 1
+                append("context", i1 + offset + 1, j1 + offset + 1, text)
+        elif tag == "delete":
+            for offset, text in enumerate(old_lines[i1:i2]):
+                removed += 1
+                append("removed", i1 + offset + 1, None, text)
+        elif tag == "insert":
+            for offset, text in enumerate(new_lines[j1:j2]):
+                added += 1
+                append("added", None, j1 + offset + 1, text)
+        elif tag == "replace":
+            for offset, text in enumerate(old_lines[i1:i2]):
+                removed += 1
+                append("removed", i1 + offset + 1, None, text)
+            for offset, text in enumerate(new_lines[j1:j2]):
+                added += 1
+                append("added", None, j1 + offset + 1, text)
+
+    return rows, {
+        "added": added,
+        "removed": removed,
+        "unchanged": unchanged,
+        "truncated": (added + removed + unchanged) > MAX_DIFF_ROWS,
+    }
+
+
+def _render_view(request, db, user, artifact, run, device, against_artifact=None, against_run=None):
+    text = _read_export(artifact)
+    candidates = _comparison_candidates(db, device.id, artifact.id)
+    diff_rows = []
+    diff_summary = None
+    if against_artifact:
+        before = _read_export(against_artifact)
+        diff_rows, diff_summary = _diff_rows(before, text)
+    return core.render(
+        request,
+        db,
+        user,
+        "backup_rsc_view.html",
+        artifact=artifact,
+        run=run,
+        device=device,
+        lines=text.splitlines(),
+        candidates=candidates,
+        against_artifact=against_artifact,
+        against_run=against_run,
+        diff_rows=diff_rows,
+        diff_summary=diff_summary,
+    )
 
 
 @router.get(
@@ -78,7 +139,7 @@ def _numbered(text: str) -> str:
     response_class=HTMLResponse,
     name="backup_artifact_text_view",
 )
-def backup_artifact_text_view(request: Request, artifact_id: uuid.UUID):
+def backup_artifact_text_view(request: Request, artifact_id: uuid.UUID, against: str = ""):
     with SessionLocal() as db:
         user = core.current_user(request, db)
         if not user:
@@ -86,33 +147,31 @@ def backup_artifact_text_view(request: Request, artifact_id: uuid.UUID):
         if not core.has_permission(user, "backup.read"):
             raise HTTPException(403)
         artifact, run, device = _load_export(db, artifact_id)
-        text = _read_export(artifact)
-        candidates = _comparison_candidates(db, device.id, artifact.id)
+        against_artifact = against_run = None
+        if against:
+            try:
+                against_id = uuid.UUID(against)
+            except ValueError:
+                raise HTTPException(400, "Identificativo confronto non valido.")
+            against_artifact, against_run, against_device = _load_export(db, against_id)
+            if against_device.id != device.id:
+                raise HTTPException(400, "Il confronto è consentito solo tra backup dello stesso apparato.")
+
+        event_type = "BACKUP_EXPORT_DIFF_VIEWED" if against_artifact else "BACKUP_EXPORT_VIEWED"
+        details = {"artifact_id": str(artifact.id), "filename": artifact.filename}
+        if against_artifact:
+            details["compare_artifact_id"] = str(against_artifact.id)
         core.add_event(
             db,
-            "BACKUP_EXPORT_VIEWED",
+            event_type,
             actor=user,
             customer_id=device.customer_id,
             device_id=device.id,
-            details={"artifact_id": str(artifact.id), "filename": artifact.filename},
+            details=details,
             source="portal",
         )
         db.commit()
-        return core.render(
-            request,
-            db,
-            user,
-            "backup_rsc_view.html",
-            artifact=artifact,
-            run=run,
-            device=device,
-            numbered_text=_numbered(text),
-            comparison_candidates=candidates,
-            diff_text=None,
-            diff_stats=None,
-            compare_artifact=None,
-            compare_run=None,
-        )
+        return _render_view(request, db, user, artifact, run, device, against_artifact, against_run)
 
 
 @router.get(
@@ -121,65 +180,7 @@ def backup_artifact_text_view(request: Request, artifact_id: uuid.UUID):
     name="backup_artifact_text_diff",
 )
 def backup_artifact_text_diff(request: Request, artifact_id: uuid.UUID, compare_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "backup.read"):
-            raise HTTPException(403)
-        artifact, run, device = _load_export(db, artifact_id)
-        compare_artifact, compare_run, compare_device = _load_export(db, compare_id)
-        if compare_device.id != device.id:
-            raise HTTPException(400, "Il confronto è consentito solo tra backup dello stesso apparato.")
-
-        current_text = _read_export(artifact)
-        compare_text = _read_export(compare_artifact)
-        diff_lines = list(
-            difflib.unified_diff(
-                compare_text.splitlines(),
-                current_text.splitlines(),
-                fromfile=compare_artifact.filename,
-                tofile=artifact.filename,
-                lineterm="",
-                n=3,
-            )
-        )
-        truncated = len(diff_lines) > MAX_DIFF_LINES
-        shown_lines = diff_lines[:MAX_DIFF_LINES]
-        additions = sum(1 for line in diff_lines if line.startswith("+") and not line.startswith("+++"))
-        deletions = sum(1 for line in diff_lines if line.startswith("-") and not line.startswith("---"))
-        candidates = _comparison_candidates(db, device.id, artifact.id)
-        core.add_event(
-            db,
-            "BACKUP_EXPORT_DIFF_VIEWED",
-            actor=user,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            details={
-                "artifact_id": str(artifact.id),
-                "compare_artifact_id": str(compare_artifact.id),
-                "additions": additions,
-                "deletions": deletions,
-                "truncated": truncated,
-            },
-            source="portal",
-        )
-        db.commit()
-        return core.render(
-            request,
-            db,
-            user,
-            "backup_rsc_view.html",
-            artifact=artifact,
-            run=run,
-            device=device,
-            numbered_text=_numbered(current_text),
-            comparison_candidates=candidates,
-            diff_text="\n".join(shown_lines),
-            diff_stats={"additions": additions, "deletions": deletions, "truncated": truncated},
-            compare_artifact=compare_artifact,
-            compare_run=compare_run,
-        )
+    return backup_artifact_text_view(request, artifact_id, against=str(compare_id))
 
 
 def install_backup_text_tools(app):
