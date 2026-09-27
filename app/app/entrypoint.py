@@ -84,5 +84,11 @@ promote_device_csv_import_routes(core.app)
 # Apply the bootstrap transport override last so route-precedence installers
 # cannot restore an older RouterOS-incompatible bootstrap handler.
 install_mikrotik_legacy(core.app)
+for _route in core.app.router.routes:
+    if (
+        getattr(_route, "path", None) == "/api/v1/enrollment/mikrotik/bootstrap"
+        and "GET" in (getattr(_route, "methods", set()) or set())
+    ):
+        _route.name = "mikrotik_bootstrap"
 
 app = core.app
