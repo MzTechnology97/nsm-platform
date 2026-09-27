@@ -2,7 +2,7 @@
 {% block title %}Backup · {{ app_name }}{% endblock %}
 {% block content %}
 <div class="page-header compact-heading">
-  <div><h1>Backup</h1><p>Overview globale per cliente. Il dettaglio apparati resta confinato nella scheda backup del singolo cliente.</p></div>
+  <div><h1>Backup</h1><p>Controllo globale di copertura e policy. Il dettaglio operativo per apparato è disponibile nella scheda Backup di ogni cliente.</p></div>
   {% if has_permission(user, 'backup.configure') %}<a class="button primary" href="/operations/backups/policies/new">+ Nuova policy globale</a>{% endif %}
 </div>
 <div class="backup-overview-grid">
@@ -12,9 +12,13 @@
   <div class="backup-status-card {% if no_policy_total %}metric-warning{% endif %}"><span class="metric-label">Senza policy</span><strong>{{ no_policy_total }}</strong><small>da configurare</small></div>
   <div class="backup-status-card {% if backup_alerts_total %}metric-critical{% endif %}"><span class="metric-label">Allarmi backup</span><strong>{{ backup_alerts_total }}</strong><small>aperti</small></div>
 </div>
-<section class="panel">
-  <div class="panel-header"><div><h2>Stato backup per cliente</h2><p>Una riga per cliente. “Protetto” richiede sia la policy sia un metodo di backup effettivamente eseguibile.</p></div></div>
-  {% if customer_rows %}<div class="customer-health-table backup-customer-table"><div class="customer-health-head"><span>Cliente</span><span>Apparati</span><span>Protetti</span><span>Metodo non pronto</span><span>Senza policy</span><span>Allarmi backup</span><span></span></div>{% for row in customer_rows %}<a class="customer-health-row" href="/customers/{{ row.customer.id }}/backups"><span class="customer-health-name"><span class="customer-avatar small">{{ row.customer.name[0]|upper }}</span><span><strong>{{ row.customer.name }}</strong><small>{{ row.customer.code or 'Nessun codice interno' }}</small></span></span><span class="customer-health-cell"><strong>{{ row.devices }}</strong><small>apparati</small></span><span class="customer-health-cell"><strong>{{ row.protected }}</strong><small>eseguibili</small></span><span class="customer-health-cell {% if row.blocked %}health-warning{% endif %}"><strong>{{ row.blocked }}</strong><small>da completare</small></span><span class="customer-health-cell {% if row.no_policy %}health-warning{% endif %}"><strong>{{ row.no_policy }}</strong><small>senza policy</small></span><span class="customer-health-cell {% if row.backup_alerts %}health-danger{% endif %}"><strong>{{ row.backup_alerts }}</strong><small>aperti</small></span><span class="customer-health-open">Apri ›</span></a>{% endfor %}</div>{% else %}<div class="empty-state">Nessun cliente configurato.</div>{% endif %}
+<section class="panel backup-global-navigation">
+  <div class="panel-header"><div><h2>Gestione operativa</h2><p>Questa pagina non replica più l'elenco di tutti i clienti: con inventari grandi diventerebbe poco leggibile. Usa la scheda cliente per il dettaglio di apparati, esecuzioni e policy effettive.</p></div></div>
+  <div class="backup-global-actions">
+    <a class="overview-summary-card" href="/customers"><span class="overview-summary-icon">◎</span><div><small>Dettaglio per cliente</small><strong>Clienti</strong><span>Apri un cliente e seleziona la scheda Backup</span></div></a>
+    <a class="overview-summary-card {% if backup_alerts_total %}summary-warning{% endif %}" href="/action-center?category=backup"><span class="overview-summary-icon">!</span><div><small>Problemi operativi</small><strong>{{ backup_alerts_total }}</strong><span>Apri gli allarmi Backup nell'Action Center</span></div></a>
+    {% if has_permission(user, 'backup.configure') %}<a class="overview-summary-card" href="/operations/backups/policies/new"><span class="overview-summary-icon">⚙</span><div><small>Configurazione</small><strong>Policy</strong><span>Crea una policy globale, vendor, cliente, sede o apparato</span></div></a>{% endif %}
+  </div>
 </section>
 <section class="panel">
   <div class="panel-header"><div><h2>Policy</h2><p>{{ active_policy_count }} policy attive. Le policy più specifiche prevalgono su quelle generali, ma la capability viene validata sul dispositivo.</p></div>{% if has_permission(user, 'backup.configure') %}<a class="button" href="/operations/backups/policies/new">Configura policy</a>{% endif %}</div>
