@@ -1,5 +1,6 @@
 """NSM Core 0.26 application entrypoint."""
 from app import main as core
+from app import mikrotik_agent as mikrotik_agent_core
 from app.agent_ui import install_agent_ui
 from app.api_keys import install_api_keys
 from app.api_operations import install_api_operations
@@ -23,7 +24,7 @@ from app.firmware_worklist import install_firmware_worklist
 from app.inventory_ui import install_inventory_ui
 from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
-from app.mikrotik_legacy import install_mikrotik_legacy
+from app.mikrotik_legacy import _legacy_bootstrap_script, router as mikrotik_legacy_router
 from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
 from app.mikrotik_snapshot_agent import install_mikrotik_snapshot_agent
@@ -82,32 +83,11 @@ install_inventory_ui(core.app)
 install_branding_runtime(core.app)
 promote_device_csv_import_routes(core.app)
 
-# Apply the RouterOS 7.12-compatible bootstrap transport last. Starlette uses
-# first-match routing, so retain only the legacy bootstrap route and promote it.
-install_mikrotik_legacy(core.app)
-_bootstrap_path = "/api/v1/enrollment/mikrotik/bootstrap"
-_legacy_bootstrap_route = None
-for _route in core.app.router.routes:
-    if (
-        getattr(_route, "path", None) == _bootstrap_path
-        and "GET" in (getattr(_route, "methods", set()) or set())
-        and getattr(_route, "name", None) == "mikrotik_bootstrap_legacy"
-    ):
-        _legacy_bootstrap_route = _route
-        break
-if _legacy_bootstrap_route is None:
-    raise RuntimeError("RouterOS legacy bootstrap route was not registered")
-core.app.router.routes[:] = [
-    _route
-    for _route in core.app.router.routes
-    if _route is _legacy_bootstrap_route
-    or not (
-        getattr(_route, "path", None) == _bootstrap_path
-        and "GET" in (getattr(_route, "methods", set()) or set())
-    )
-]
-_legacy_bootstrap_route.name = "mikrotik_bootstrap"
-core.app.router.routes.remove(_legacy_bootstrap_route)
-core.app.router.routes.insert(0, _legacy_bootstrap_route)
+# Keep the canonical bootstrap route registered by mikrotik_agent. Its handler
+# resolves _bootstrap_script at request time, so replacing only the generator
+# makes guided onboarding RouterOS 7.12-compatible without touching the modern
+# agent source (jobs/backups/snapshots/diagnostics remain fully enabled there).
+mikrotik_agent_core._bootstrap_script = _legacy_bootstrap_script
+core.app.include_router(mikrotik_legacy_router)
 
 app = core.app
