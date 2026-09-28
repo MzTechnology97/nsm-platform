@@ -78,6 +78,11 @@ def interfaces_page(request: Request, device_id: uuid.UUID, q: str = "", state: 
         if device.vendor != "mikrotik":
             raise HTTPException(404)
         ctx = dict(workspace._workspace_context(db, device))
+        # Core 0.43 normally supplies these capability fields. Keep explicit
+        # fallbacks so this view remains truthful even if the base workspace
+        # context is used independently in tests or future compositions.
+        ctx.setdefault("agent_transport", "unknown")
+        ctx.setdefault("snapshot_supported", ctx["agent_transport"] == "modern")
         snapshot = ctx.get("snapshots", {}).get("interfaces")
         all_rows = _all_rows(snapshot)
         stats = {
