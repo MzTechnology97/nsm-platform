@@ -59,7 +59,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.35.0'
+          assert app.version == '0.36.0'
           expected = {
               'dashboard': '/',
               'devices': '/devices',
@@ -86,7 +86,7 @@ jobs:
           print(f'Core {app.version}: application and canonical routes OK')
           PY
 
-      - name: Validate Core 0.35 safety contracts
+      - name: Validate Core 0.36 safety contracts
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -98,6 +98,8 @@ jobs:
           workspace = Path('app/app/templates/mikrotik_workspace.html').read_text()
           agent_fleet = Path('app/app/agent_fleet.py').read_text()
           fleet_page = Path('app/app/templates/agent_fleet.html').read_text()
+          agent_health = Path('app/app/agent_health_automation.py').read_text()
+          worker = Path('app/app/worker.py').read_text()
           base = Path('app/app/templates/base.html').read_text()
           for marker in ('firmware_stage','DOWNLOAD {plan.target_version}','download_only','latest-version','/system package update download'):
               assert marker in staging, marker
@@ -120,12 +122,15 @@ jobs:
               assert marker in agent_fleet, marker
           for marker in ('Agent Fleet','Heartbeat stale','Credenziale assente','transport=legacy','/agent'):
               assert marker in fleet_page, marker
+          for marker in ('TITLE_NO_CREDENTIAL','TITLE_PENDING_ENROLLMENT','TITLE_UNKNOWN_TRANSPORT','AGENT_HEALTH_RECOVERED','recovery_notified_at'):
+              assert marker in agent_health, marker
+          assert 'agent_health_tick()' in worker
           assert 'href="/operations/agents"' in base
           assert 'secret_hash' not in fleet_page
           assert 'raw_secret' not in fleet_page
           assert 'agent_credential.secret_hash' not in workspace
           assert 'raw_secret' not in workspace
-          print('Core 0.35 agent fleet, agent diagnostics and RouterOS safety contracts OK')
+          print('Core 0.36 agent health automation, agent fleet and RouterOS safety contracts OK')
           PY
 
       - name: Prepare dummy runtime env for Compose validation
