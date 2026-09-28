@@ -59,7 +59,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.41.0'
+          assert app.version == '0.42.0'
           expected = {
               'dashboard': '/',
               'devices': '/devices',
@@ -87,7 +87,7 @@ jobs:
           print(f'Core {app.version}: application and canonical routes OK')
           PY
 
-      - name: Validate security and Core 0.41 contracts
+      - name: Validate security and Core 0.42 contracts
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -103,6 +103,9 @@ jobs:
           modern_syntax = Path('app/app/mikrotik_modern_syntax.py').read_text()
           modern_syntax_test = Path('app/tests/mikrotik_modern_syntax_smoke.py').read_text()
           agent_install = Path('app/app/templates/mikrotik_agent_status.html').read_text()
+          agent_fleet = Path('app/app/agent_fleet.py').read_text()
+          agent_fleet_page = Path('app/app/templates/agent_fleet.html').read_text()
+          agent_health = Path('app/app/agent_health_automation.py').read_text()
 
           assert '/system package update download' in staging
           assert '/system package update install' not in staging
@@ -134,6 +137,13 @@ jobs:
           for marker in ('Verifica installazione', 'Pairing one-shot', 'Heartbeat post-installazione', 'parser RouterOS'):
               assert marker in agent_install, marker
 
+          for marker in ('_installation_state', 'install_suspect', 'token_expired', 'install_filter', 'ENROLLMENT_HISTORY_WINDOW'):
+              assert marker in agent_fleet, marker
+          for marker in ('Installazione KO', 'Pairing OK / agent non avviato', 'install=suspect', 'Token scaduti'):
+              assert marker in agent_fleet_page, marker
+          for marker in ('TITLE_INSTALL_SUSPECT', 'TITLE_TOKEN_EXPIRED', '_installation_state', 'AGENT_HEALTH_RECOVERED'):
+              assert marker in agent_health, marker
+
           for marker in ('PAGE_SIZES', 'ACTIVE_JOB_STATES', 'audit_events_export_csv', 'AUDIT_EVENTS_EXPORTED', 'limit(50000)'):
               assert marker in activity, marker
           for marker in ('Coda attiva', 'Storico operativo', 'per_page', 'from_date', 'to_date'):
@@ -141,7 +151,7 @@ jobs:
           for marker in ('Esporta CSV', 'Registro eventi', 'customer', 'device', 'per_page'):
               assert marker in audit_page, marker
 
-          print('Core 0.41 safety, syntax, install verification and scalability contracts OK')
+          print('Core 0.42 safety, install verification, fleet recovery and scalability contracts OK')
           PY
 
       - name: Prepare dummy runtime env for Compose validation
