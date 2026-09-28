@@ -51,7 +51,7 @@ def main():
             name="CI36 unknown transport",
             display_name="CI36 unknown transport",
             status="online",
-            inventory_data={"agent_version": "0.36.0"},
+            inventory_data={},
         )
         db.add_all([missing, pending, unknown])
         db.flush()
