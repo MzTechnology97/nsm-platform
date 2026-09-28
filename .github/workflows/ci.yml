@@ -94,7 +94,9 @@ jobs:
           from pathlib import Path
           staging = Path('app/app/firmware_package_staging.py').read_text()
           activation = Path('app/app/firmware_activation.py').read_text()
+          activation_guard = Path('app/app/firmware_activation_privilege_guard.py').read_text()
           planner = Path('app/app/firmware_upgrade_planner.py').read_text()
+          privilege_profile = Path('app/app/mikrotik_privilege_profile.py').read_text()
           plan_page = Path('app/app/templates/firmware_upgrade_plan.html').read_text()
           legacy = Path('app/app/mikrotik_legacy.py').read_text()
           agent_status = Path('app/app/mikrotik_agent_status.py').read_text()
@@ -124,6 +126,17 @@ jobs:
           combined_pre_activation = staging + planner
           for forbidden in ('/system package update install', '/system reboot', ':execute script=', 'command_b64'):
               assert forbidden not in combined_pre_activation, forbidden
+
+          # RouterOS privilege profiles are deliberately fixed and fail closed.
+          assert 'MODERN_PROFILE = "ops-v1"' in privilege_profile
+          assert 'LEGACY_PROFILE = "legacy-read-v1"' in privilege_profile
+          assert 'MODERN_POLICIES = "ftp,reboot,read,write,test"' in privilege_profile
+          assert 'LEGACY_POLICIES = "read,test"' in privilege_profile
+          assert 'agent_privilege_profile' in privilege_profile
+          assert 'profile != MODERN_PROFILE' in activation_guard
+          assert 'Rigenera / reinstalla agent' in activation_guard
+          for forbidden_policy in ('policy,', 'password,', 'sensitive,', 'sniff,'):
+              assert forbidden_policy not in 'ftp,reboot,read,write,test', forbidden_policy
 
           for marker in ('bodyless-v1','http-data=""','X-NSM-Legacy-Transport:headers-v1','X-NSM-Enrollment-Transport','_header_inventory'):
               assert marker in legacy, marker
