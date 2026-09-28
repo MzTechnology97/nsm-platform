@@ -54,7 +54,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.44.0'
+          assert app.version == '0.45.0'
           expected = {
               'dashboard': '/', 'devices': '/devices', 'admin_api_keys': '/admin/api-keys',
               'admin_uisp': '/admin/integrations/uisp', 'mikrotik_bootstrap': '/api/v1/enrollment/mikrotik/bootstrap',
@@ -72,13 +72,14 @@ jobs:
           assert str(app.url_path_for('activate_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/activate'
           assert str(app.url_path_for('routerboot_lifecycle_page', device_id=zero)) == f'/devices/{zero}/routerboot'
           assert str(app.url_path_for('mikrotik_agent_status', device_id=zero)) == f'/devices/{zero}/agent'
+          assert str(app.url_path_for('mikrotik_interfaces', device_id=zero)) == f'/devices/{zero}/interfaces'
           assert str(app.url_path_for('mikrotik_configuration_v2', device_id=zero)) == f'/devices/{zero}/configuration'
           assert str(app.url_path_for('mikrotik_config_history', device_id=zero)) == f'/devices/{zero}/configuration/history'
           assert str(app.url_path_for('mikrotik_diagnostics_v2', device_id=zero)) == f'/devices/{zero}/diagnostics'
           assert str(app.url_path_for('mikrotik_diagnostic_result', device_id=zero, job_id=zero)) == f'/devices/{zero}/diagnostics/jobs/{zero}'
           print(f'Core {app.version}: application and canonical routes OK')
           PY
-      - name: Validate security and Core 0.44 contracts
+      - name: Validate security and Core 0.45 contracts
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -102,6 +103,8 @@ jobs:
           ui_js = Path('app/app/static/ui.js').read_text()
           drift = Path('app/app/config_drift.py').read_text()
           drift_page = Path('app/app/templates/mikrotik_config_history.html').read_text()
+          interfaces = Path('app/app/mikrotik_interfaces.py').read_text()
+          interfaces_page = Path('app/app/templates/mikrotik_interfaces.html').read_text()
 
           assert '/system package update download' in staging and '/system package update install' not in staging and '/system reboot' not in staging
           assert 'firmware_activate' in activation and '/system reboot' in activation and activation.index('/firmware-activate/') < activation.index('/system reboot')
@@ -133,13 +136,17 @@ jobs:
               assert marker in drift, marker
           for marker in ('Cronologia configurazione', 'Imposta baseline', 'DA VERIFICARE', 'BASELINE'):
               assert marker in drift_page, marker
+          for marker in ('_normalize_interface', 'actual-mtu', 'rx-byte', 'agent_transport'):
+              assert marker in interfaces, marker
+          for marker in ('Link e interfacce', 'Disabled', 'Aggiorna snapshot', 'Transport'):
+              assert marker in interfaces_page, marker
           for marker in ('PAGE_SIZES', 'ACTIVE_JOB_STATES', 'audit_events_export_csv', 'AUDIT_EVENTS_EXPORTED', 'limit(50000)'):
               assert marker in activity, marker
           for marker in ('Coda attiva', 'Storico operativo', 'per_page', 'from_date', 'to_date'):
               assert marker in device_activity, marker
           for marker in ('Esporta CSV', 'Registro eventi', 'customer', 'device', 'per_page'):
               assert marker in audit_page, marker
-          print('Core 0.44 safety, drift detection and scalability contracts OK')
+          print('Core 0.45 safety, configuration drift, interface health and scalability contracts OK')
           PY
       - name: Prepare dummy runtime env for Compose validation
         run: |
