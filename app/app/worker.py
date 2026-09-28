@@ -4,6 +4,7 @@ import time
 
 from redis import Redis
 
+from app.agent_health_automation import agent_health_tick
 from app.backup_maintenance import maintenance_tick
 from app.backup_scheduler_capability_guard import install_backup_scheduler_capability_guard
 from app.config import settings
@@ -26,8 +27,11 @@ while True:
         now_mono = time.monotonic()
         if now_mono - last_maintenance >= MAINTENANCE_INTERVAL_SECONDS:
             stats = maintenance_tick()
+            agent_stats = agent_health_tick()
             if any(stats.values()):
                 log.info("Backup maintenance: %s", stats)
+            if any(agent_stats.values()):
+                log.info("Agent health automation: %s", agent_stats)
             last_maintenance = now_mono
 
         if now_mono - last_telemetry_maintenance >= TELEMETRY_MAINTENANCE_INTERVAL_SECONDS:
