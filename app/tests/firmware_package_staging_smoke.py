@@ -120,8 +120,13 @@ def main():
         assert forbidden == []
 
     final_page = client.get(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}")
-    assert "Pacchetti scaricati" in final_page.text
-    print("Core 0.32 package staging smoke passed")
+    assert final_page.status_code == 200
+    assert "ACTIVATE 7.21.1" in final_page.text
+    assert "Attiva e riavvia MikroTik" in final_page.text
+    with SessionLocal() as db:
+        activation_jobs = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "firmware_activate")))
+        assert activation_jobs == []
+    print("Core 0.32 download-only staging smoke passed with explicit Core 0.37 activation gate")
 
 
 if __name__ == "__main__":
