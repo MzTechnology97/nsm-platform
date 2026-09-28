@@ -15,7 +15,7 @@ _HANDLER = r'''
     :if ($nsmJobType = "snapshot_section") do={
       :local nsmJobPayload ($nsmJob->"payload")
       :local nsmSection ($nsmJobPayload->"section")
-      :local nsmData {}
+      :local nsmData
       :local nsmOk true
       :local nsmError ""
       :do {
