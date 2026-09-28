@@ -11,7 +11,7 @@ _HANDLER = r'''
       :local nsmPayload ($nsmJob->"payload")
       :local nsmTarget ($nsmPayload->"target")
       :local nsmSource ($nsmPayload->"source")
-      :local nsmData {}
+      :local nsmData
       :local nsmOk true
       :local nsmError ""
       :do {
@@ -32,7 +32,7 @@ _HANDLER = r'''
       :local nsmPayload ($nsmJob->"payload")
       :local nsmTarget ($nsmPayload->"target")
       :local nsmSource ($nsmPayload->"source")
-      :local nsmData {}
+      :local nsmData
       :local nsmOk true
       :local nsmError ""
       :do {

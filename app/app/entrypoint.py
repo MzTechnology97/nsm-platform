@@ -1,4 +1,4 @@
-"""NSM Core 0.39 application entrypoint."""
+"""NSM Core 0.40 application entrypoint."""
 from app import main as core
 from app import mikrotik_agent as mikrotik_agent_core
 from app.activity_route_precedence import install_activity_route_precedence
@@ -41,6 +41,7 @@ from app.mikrotik_diagnostics_agent import install_mikrotik_diagnostics_agent
 from app.mikrotik_onboarding import install_mikrotik_onboarding
 from app.mikrotik_operational_tools import install_mikrotik_operational_tools
 from app.mikrotik_firmware_readiness import install_mikrotik_firmware_readiness
+from app.mikrotik_modern_syntax import install_mikrotik_modern_syntax_guard
 from app.mikrotik_privilege_profile import install_mikrotik_privilege_profile
 from app.mikrotik_workspace import install_mikrotik_workspace
 from app.mikrotik_telemetry import install_mikrotik_telemetry
@@ -52,7 +53,7 @@ from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.39.0"
+APP_VERSION = "0.40.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -103,6 +104,11 @@ install_inventory_ui(core.app)
 install_branding_runtime(core.app)
 promote_device_csv_import_routes(core.app)
 install_activity_worklists(core.app)
+
+# Harden the final composed modern RouterOS source after every feature module
+# has injected its allow-listed handlers. This is deliberately last in the
+# agent-source chain so syntax regressions cannot hide in a later extension.
+install_mikrotik_modern_syntax_guard()
 
 # RouterOS 7.12-compatible bodyless bootstrap. Modern agents receive only the
 # additional RouterOS policies required by allow-listed backup/staging/reboot
