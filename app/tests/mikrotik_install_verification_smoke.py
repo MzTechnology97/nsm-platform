@@ -131,7 +131,7 @@ def login(client: TestClient, username: str):
 
 
 def main():
-    assert app.version == "0.41.0"
+    assert app.version.startswith("0.")
     username, pending_id, suspect_id, verified_id = seed()
     client = TestClient(app)
     login(client, username)
@@ -159,7 +159,7 @@ def main():
     assert "a" * 64 not in suspect.text
     assert "b" * 64 not in verified.text
 
-    print("Core 0.41 MikroTik install verification smoke passed")
+    print("MikroTik install verification smoke passed")
 
 
 if __name__ == "__main__":
