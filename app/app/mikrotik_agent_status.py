@@ -1,12 +1,14 @@
-"""MikroTik agent diagnostics workspace for Core 0.34.
+"""MikroTik agent diagnostics and install-verification workspace.
 
 The page exposes operational metadata only. Secret hashes and raw agent secrets
-are never rendered.
+are never rendered. Core 0.41 adds an explicit verification state machine so a
+real-device onboarding test can distinguish token creation, pairing, credential
+activation and first post-pairing heartbeat.
 """
 from __future__ import annotations
 
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -21,6 +23,15 @@ from app.models import DeviceEnrollment, utcnow
 
 router = APIRouter()
 HEARTBEAT_STALE_AFTER = timedelta(minutes=15)
+PAIRING_HEARTBEAT_GRACE = timedelta(minutes=5)
+
+
+def _aware(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 def _transport(inventory: dict) -> str:
@@ -90,7 +101,7 @@ def _agent_capabilities(device, credential, backup_capability):
 
 def _heartbeat_state(device, inventory):
     now = utcnow()
-    last_seen = device.last_seen
+    last_seen = _aware(device.last_seen)
     stale = not last_seen or (now - last_seen) > HEARTBEAT_STALE_AFTER
     transport = _transport(inventory)
     enrollment_transport = inventory.get("enrollment_transport")
@@ -108,6 +119,110 @@ def _heartbeat_state(device, inventory):
         "heartbeat_transport": heartbeat_transport,
         "enrollment_transport": enrollment_transport,
         "agent_version": inventory.get("agent_version"),
+    }
+
+
+def _installation_state(device, credential, enrollments):
+    """Return a deterministic onboarding/installation verification state.
+
+    Pairing and script execution are intentionally separate: consuming a token
+    proves that RouterOS reached the enrollment endpoint, while a heartbeat
+    after ``used_at`` proves that the installed script parsed and ran.
+    """
+    now = utcnow()
+    latest = enrollments[0] if enrollments else None
+    used = next((item for item in enrollments if item.used_at), None)
+    used_at = _aware(used.used_at) if used else None
+    last_seen = _aware(device.last_seen)
+    credential_active = bool(credential and credential.is_active)
+    token_pending = bool(
+        latest
+        and latest.status == "pending"
+        and _aware(latest.expires_at)
+        and _aware(latest.expires_at) > now
+    )
+    token_expired = bool(
+        latest
+        and latest.status == "pending"
+        and _aware(latest.expires_at)
+        and _aware(latest.expires_at) <= now
+    )
+    heartbeat_after_pairing = bool(
+        credential_active
+        and last_seen
+        and (not used_at or last_seen >= used_at)
+    )
+
+    if heartbeat_after_pairing:
+        if (now - last_seen) > HEARTBEAT_STALE_AFTER:
+            key, label, severity = "stale", "Agent installato · heartbeat stale", "warning"
+            detail = "Il pairing è verificato, ma il dispositivo non invia heartbeat recente."
+        else:
+            key, label, severity = "verified", "Agent verificato", "success"
+            detail = "Pairing, credenziale e heartbeat post-installazione sono stati verificati."
+    elif used_at and credential_active:
+        elapsed = now - used_at
+        if elapsed <= PAIRING_HEARTBEAT_GRACE:
+            key, label, severity = "awaiting_heartbeat", "Pairing completato · attesa heartbeat", "info"
+            detail = "La credenziale è stata emessa. Attendo il primo heartbeat dell'agent installato."
+        else:
+            key, label, severity = "install_suspect", "Pairing OK · agent non avviato", "critical"
+            detail = (
+                "Il token è stato consumato e la credenziale esiste, ma non è arrivato un heartbeat "
+                "post-pairing. Verificare parser RouterOS, scheduler e log del dispositivo."
+            )
+    elif token_pending:
+        key, label, severity = "awaiting_pairing", "In attesa di pairing", "info"
+        detail = "Token one-shot valido; il router non lo ha ancora consumato."
+    elif token_expired:
+        key, label, severity = "token_expired", "Token scaduto", "warning"
+        detail = "Generare un nuovo comando di onboarding e ripetere il preflight sul MikroTik."
+    elif credential_active and last_seen:
+        # Covers credentials created before enrollment history was retained.
+        key, label, severity = "verified_legacy_record", "Agent operativo", "success"
+        detail = "Heartbeat e credenziale sono validi; lo storico pairing originario non è disponibile."
+    elif credential_active:
+        key, label, severity = "credential_no_heartbeat", "Credenziale attiva · nessun heartbeat", "critical"
+        detail = "La credenziale esiste ma non è mai stato osservato un heartbeat dell'agent."
+    else:
+        key, label, severity = "not_enrolled", "Agent non associato", "warning"
+        detail = "Nessuna credenziale agent attiva. Avviare o rigenerare l'onboarding."
+
+    steps = [
+        {
+            "key": "token",
+            "label": "Token creato",
+            "done": bool(latest),
+            "detail": latest.status if latest else "nessun enrollment",
+        },
+        {
+            "key": "pairing",
+            "label": "Pairing one-shot",
+            "done": bool(used_at),
+            "detail": used_at,
+        },
+        {
+            "key": "credential",
+            "label": "Credenziale per-device",
+            "done": credential_active,
+            "detail": credential.last_used_at if credential else None,
+        },
+        {
+            "key": "heartbeat",
+            "label": "Heartbeat post-installazione",
+            "done": heartbeat_after_pairing,
+            "detail": last_seen,
+        },
+    ]
+    return {
+        "key": key,
+        "label": label,
+        "severity": severity,
+        "detail": detail,
+        "steps": steps,
+        "paired_at": used_at,
+        "heartbeat_after_pairing": heartbeat_after_pairing,
+        "grace_minutes": int(PAIRING_HEARTBEAT_GRACE.total_seconds() // 60),
     }
 
 
@@ -149,6 +264,7 @@ def agent_status(request: Request, device_id: uuid.UUID):
                 "agent_credential": credential,
                 "agent_enrollments": enrollments,
                 "agent_heartbeat": _heartbeat_state(device, inventory),
+                "agent_installation": _installation_state(device, credential, enrollments),
                 "agent_capabilities": _agent_capabilities(device, credential, backup_capability),
                 "agent_backup_capability": backup_capability,
             }
@@ -157,7 +273,7 @@ def agent_status(request: Request, device_id: uuid.UUID):
             request,
             db,
             user,
-            "mikrotik_workspace.html",
+            "mikrotik_agent_status.html",
             device=device,
             active_tab="agent",
             **ctx,

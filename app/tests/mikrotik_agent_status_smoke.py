@@ -70,8 +70,6 @@ def seed():
             status="online",
             last_seen=now,
             management_source="mikrotik_agent",
-            # Deliberately omit agent_transport to exercise Core 0.34 inference
-            # for modern agents enrolled before Core 0.30.
             inventory_data={
                 "agent_version": "0.20.0",
                 "last_source_ip": "198.51.100.20",
@@ -135,10 +133,11 @@ def main():
         "bodyless-v1",
         "headers-v1",
         "Legacy wAP R",
-        "Agent MikroTik legacy",
+        "Transport legacy attivo",
         "Rigenera / reinstalla agent",
         "Snapshot configurazione",
         "NON DISP.",
+        "Verifica installazione",
     ):
         assert marker in legacy.text, marker
     assert "secret_hash" not in legacy.text
@@ -148,7 +147,7 @@ def main():
     assert modern.status_code == 200, modern.text
     assert "MODERN" in modern.text
     assert "Modern CCR" in modern.text
-    assert "Agent MikroTik" in modern.text
+    assert "Transport moderno attivo" in modern.text
     assert "Retention 90 giorni" in modern.text
     assert modern_hash not in modern.text
 
