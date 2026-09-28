@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}RouterBOOT Fleet · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header compact-heading">
+  <div><h1>RouterBOOT Fleet</h1><p>Readiness e lifecycle del bootloader MikroTik su tutta la flotta. Le azioni distruttive restano sempre per singolo apparato.</p></div>
+  <div class="page-actions"><a class="button ghost" href="/operations/firmware">Firmware RouterOS</a></div>
+</div>
+{% if request.query_params.get('firmware_check') == 'queued' %}<div class="alert success">Verifica RouterBOOT accodata. I valori verranno aggiornati al prossimo poll dell'agent.</div>{% elif request.query_params.get('firmware_check') == 'already_queued' %}<div class="alert info">Una verifica firmware/RouterBOOT è già in coda.</div>{% elif request.query_params.get('firmware_check') == 'agent_required' %}<div class="alert warning">La verifica richiede un MikroTik online con agent autenticato.</div>{% endif %}
+
+<div class="backup-overview-grid firmware-overview-grid">
+  <a class="backup-status-card {% if counters.pending %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&site={{ site_filter }}&q={{ q|urlencode }}&state=pending"><span class="metric-label">Da aggiornare</span><strong>{{ counters.pending }}</strong><small>pronti per workflow</small></a>
+  <a class="backup-status-card {% if counters.in_progress %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&site={{ site_filter }}&q={{ q|urlencode }}&state=in_progress"><span class="metric-label">In corso</span><strong>{{ counters.in_progress }}</strong><small>stage / reboot / verify</small></a>
+  <a class="backup-status-card {% if counters.blocked %}metric-critical{% endif %}" href="?customer={{ customer_filter }}&site={{ site_filter }}&q={{ q|urlencode }}&state=blocked"><span class="metric-label">Bloccati</span><strong>{{ counters.blocked }}</strong><small>agent/offline/profile</small></a>
+  <a class="backup-status-card {% if counters.failed %}metric-critical{% endif %}" href="?customer={{ customer_filter }}&site={{ site_filter }}&q={{ q|urlencode }}&state=failed"><span class="metric-label">Falliti</span><strong>{{ counters.failed }}</strong><small>richiedono verifica</small></a>
+  <a class="backup-status-card {% if counters.unknown %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&site={{ site_filter }}&q={{ q|urlencode }}&state=unknown"><span class="metric-label">Sconosciuti</span><strong>{{ counters.unknown }}</strong><small>readiness mancante</small></a>
+  <a class="backup-status-card" href="?customer={{ customer_filter }}&site={{ site_filter }}&q={{ q|urlencode }}&state=current"><span class="metric-label">Aggiornati</span><strong>{{ counters.current }}</strong><small>current = upgrade</small></a>
+</div>
+
+<section class="panel compact-panel">
+  <form class="filter-bar" method="get">
+    <label>Cerca<input type="search" name="q" value="{{ q }}" placeholder="Apparato, seriale, MAC, IP, cliente, sede..."></label>
+    <label>Cliente<select name="customer"><option value="">Tutti i clienti</option>{% for customer in customers %}<option value="{{ customer.id }}" {% if customer_filter == customer.id|string %}selected{% endif %}>{{ customer.name }}</option>{% endfor %}</select></label>
+    <label>Sede<select name="site"><option value="">Tutte le sedi</option>{% for item in sites %}<option value="{{ item.id }}" {% if site_filter == item.id|string %}selected{% endif %}>{{ item.name }}{% if not selected_customer %} · {{ item.customer.name }}{% endif %}</option>{% endfor %}</select></label>
+    <label>Stato<select name="state"><option value="attention" {% if state_filter == 'attention' %}selected{% endif %}>Da attenzionare</option><option value="pending" {% if state_filter == 'pending' %}selected{% endif %}>Da aggiornare</option><option value="in_progress" {% if state_filter == 'in_progress' %}selected{% endif %}>In corso</option><option value="blocked" {% if state_filter == 'blocked' %}selected{% endif %}>Bloccati</option><option value="failed" {% if state_filter == 'failed' %}selected{% endif %}>Falliti</option><option value="unknown" {% if state_filter == 'unknown' %}selected{% endif %}>Sconosciuti</option><option value="current" {% if state_filter == 'current' %}selected{% endif %}>Aggiornati</option><option value="all" {% if state_filter == 'all' %}selected{% endif %}>Tutti</option></select></label>
+    <button class="button primary">Filtra</button>
+    {% if q or customer_filter or site_filter or state_filter != 'attention' %}<a class="button ghost" href="/operations/routerboot">Reset</a>{% endif %}
+  </form>
+</section>
+
+{% if selected_customer %}<div class="context-banner"><strong>{{ selected_customer.name }}</strong><span>RouterBOOT confinato agli apparati del cliente selezionato{% if selected_site %}, sede {{ selected_site.name }}{% endif %}.</span><a href="/customers/{{ selected_customer.id }}">Scheda cliente ›</a></div>{% endif %}
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Flotta MikroTik</h2><p>{{ total }} apparati corrispondenti ai filtri. {{ counters.stale }} con readiness più vecchia di 24 ore o mai eseguita.</p></div><span class="severity-badge severity-warning">NO BULK REBOOT</span></div>
+  {% if rows %}
+  <div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Apparato</th><th>Cliente / sede</th><th>RouterOS</th><th>RouterBOOT</th><th>Agent</th><th>Readiness</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>
+    {% for row in rows %}{% set d = row.device %}
+    <tr>
+      <td><a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a><small>{{ d.model or '—' }} · {{ d.serial_number or d.primary_mac or d.management_ip or 'ID non disponibile' }}</small></td>
+      <td><a href="/customers/{{ d.customer.id }}">{{ d.customer.name }}</a><small>{{ d.site.name if d.site else 'Nessuna sede' }}</small></td>
+      <td>{{ d.firmware_version or '—' }}<small>{{ d.firmware_status or 'unknown' }}</small></td>
+      <td><strong>{{ row.current or '—' }}</strong><small>{% if row.available %}Disponibile: {{ row.available }}{% else %}Upgrade non rilevato{% endif %}</small></td>
+      <td>{{ row.transport or '—' }}<small>{{ row.profile or 'profilo non rilevato' }} · {{ d.status }}</small></td>
+      <td>{% if row.checked_at %}{{ fmt_dt(row.checked_at) }}{% else %}Mai{% endif %}{% if row.stale %}<small class="warning-text">stale &gt;24h</small>{% endif %}</td>
+      <td>{% if row.state == 'current' %}<span class="status-pill status-success">Aggiornato</span>{% elif row.state == 'pending' %}<span class="status-pill status-warning">Da aggiornare</span>{% elif row.state == 'in_progress' %}<span class="status-pill status-warning">{{ row.workflow }}</span>{% elif row.state == 'blocked' %}<span class="status-pill status-danger">Bloccato</span>{% elif row.state == 'failed' %}<span class="status-pill status-danger">Fallito</span>{% else %}<span class="status-pill">Sconosciuto</span>{% endif %}{% if row.reason %}<small>{{ row.reason }}</small>{% elif row.last_error %}<small class="danger-text">{{ row.last_error }}</small>{% endif %}</td>
+      <td><div class="page-actions compact-actions">
+        {% if d.status == 'online' and has_permission(user, 'firmware.read') %}<form method="post" action="/devices/{{ d.id }}/firmware-readiness"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="return_to" value="routerboot"><button class="button tiny ghost" type="submit">Verifica</button></form>{% endif %}
+        <a class="button tiny {% if row.state in ['pending','in_progress','failed'] %}primary{% else %}ghost{% endif %}" href="/devices/{{ d.id }}/routerboot">Workflow</a>
+        <a class="button tiny ghost" href="/devices/{{ d.id }}/agent">Agent</a>
+      </div></td>
+    </tr>
+    {% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty-state success-state">Nessun MikroTik corrisponde ai filtri RouterBOOT selezionati.</div>{% endif %}
+
+  {% if pages > 1 %}<div class="pagination"><span>Pagina {{ page }} di {{ pages }}</span>{% if page > 1 %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&site={{ site_filter }}&state={{ state_filter }}&page={{ page-1 }}">‹ Precedente</a>{% endif %}{% if page < pages %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&site={{ site_filter }}&state={{ state_filter }}&page={{ page+1 }}">Successiva ›</a>{% endif %}</div>{% endif %}
+</section>
+{% endblock %}
