@@ -1,6 +1,7 @@
-"""NSM Core 0.36 application entrypoint."""
+"""NSM Core 0.37 application entrypoint."""
 from app import main as core
 from app import mikrotik_agent as mikrotik_agent_core
+from app import mikrotik_legacy as mikrotik_legacy_core
 from app.agent_fleet import install_agent_fleet
 from app.agent_ui import install_agent_ui
 from app.api_keys import install_api_keys
@@ -21,6 +22,7 @@ from app.dashboard_ui import install_dashboard_ui
 from app.demo_ui import install_demo_ui
 from app.device_csv_import import install_device_csv_import
 from app.device_csv_route_precedence import promote_device_csv_import_routes
+from app.firmware_activation import install_firmware_activation
 from app.firmware_package_staging import install_firmware_package_staging
 from app.firmware_upgrade_planner import install_firmware_upgrade_planner
 from app.firmware_worklist import install_firmware_worklist
@@ -28,7 +30,7 @@ from app.inventory_ui import install_inventory_ui
 from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
 from app.mikrotik_agent_status import install_mikrotik_agent_status
-from app.mikrotik_legacy import _legacy_bootstrap_script, router as mikrotik_legacy_router
+from app.mikrotik_legacy import router as mikrotik_legacy_router
 from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
 from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
@@ -46,7 +48,7 @@ from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.36.0"
+APP_VERSION = "0.37.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -72,6 +74,7 @@ install_mikrotik_diagnostics_agent()
 install_mikrotik_operational_tools()
 install_mikrotik_firmware_readiness(core.app)
 install_firmware_package_staging(core.app)
+install_firmware_activation(core.app)
 install_firmware_upgrade_planner(core.app)
 install_agent_ui(core.app)
 install_uisp_connector(core.app)
@@ -94,9 +97,10 @@ install_inventory_ui(core.app)
 install_branding_runtime(core.app)
 promote_device_csv_import_routes(core.app)
 
-# RouterOS 7.12-compatible bodyless bootstrap. Enrollment adaptively returns the
-# modern agent on 7.13+ and the hardened header-based legacy transport on 7.12.
-mikrotik_agent_core._bootstrap_script = _legacy_bootstrap_script
+# RouterOS 7.12-compatible bodyless bootstrap. Core 0.37 keeps legacy agents
+# least-privilege while granting modern 7.13+ agents only the policies required
+# for backup/staging and explicitly approved reboot activation.
+mikrotik_agent_core._bootstrap_script = mikrotik_legacy_core._legacy_bootstrap_script
 core.app.include_router(mikrotik_legacy_router)
 
 # Allow-listed plain-text job transport for legacy RouterOS agents.
