@@ -1,7 +1,6 @@
 import re
 
 from fastapi.testclient import TestClient
-from sqlalchemy import select
 
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
@@ -83,16 +82,21 @@ def main():
     assert "failed" in failed.text
     assert "CI39 simulated failure" in failed.text
 
+    # 33 even-indexed PING events exist; 11 are multiples of 6 and failed,
+    # therefore the event_type + success filter must return exactly 22 rows.
     audit = client.get(f"/devices/{device_id}/jobs", params={"view": "audit", "event_type": "CI39_PING", "result": "success", "per_page": 25})
     assert audit.status_code == 200
     assert "CI39_PING" in audit.text
-    assert "CI39_LOG" not in audit.text
+    assert "22 risultati filtrati" in audit.text
 
+    # There are exactly 32 odd-indexed LOG events. Other event types may still
+    # appear in the filter select, so validate the filtered result count rather
+    # than searching the whole HTML for dropdown labels.
     global_audit = client.get("/audit/events", params={"customer": str(customer_id), "device": "CI39SERIAL", "event_type": "CI39_LOG", "per_page": 25})
     assert global_audit.status_code == 200
     assert "Registro eventi" in global_audit.text
     assert "CI39_LOG" in global_audit.text
-    assert "CI39_PING" not in global_audit.text
+    assert "32 eventi con i filtri correnti" in global_audit.text
     assert "Esporta CSV" in global_audit.text
 
     exported = client.get("/audit/events/export.csv", params={"customer": str(customer_id), "device": "CI39SERIAL", "event_type": "CI39_LOG"})
