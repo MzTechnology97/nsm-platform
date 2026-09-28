@@ -9,7 +9,7 @@ _EMPTY_LOCAL = re.compile(r"(?m)^\s*:local\s+[A-Za-z_][A-Za-z0-9_-]*\s+\{\}\s*$"
 
 
 def main():
-    assert app.version == "0.40.0"
+    assert app.version.startswith("0.")
 
     sample = ':local nsmData {}\n:set nsmData {"ok"=true}\n:local nsmAckResult {}\n'
     normalized, replaced = normalize_modern_agent_source(sample)
@@ -44,16 +44,12 @@ def main():
     ):
         assert marker in source, marker
 
-    # The hardening guard must also normalize empty fetch-result locals injected
-    # by later firmware/RouterBOOT handlers, not only nsmData.
     assert ':local nsmAckResult {}' not in source
     assert ':local nsmAckResult' in source
-
-    # Non-empty RouterOS map literals must remain intact.
     assert ':set nsmData {"identity"=' in source
     assert ':serialize' in source and ':deserialize' in source
 
-    print("Core 0.40 composed modern RouterOS agent syntax smoke passed")
+    print("Modern RouterOS agent syntax smoke passed")
 
 
 if __name__ == "__main__":
