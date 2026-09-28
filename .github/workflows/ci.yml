@@ -59,7 +59,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.40.0'
+          assert app.version == '0.41.0'
           expected = {
               'dashboard': '/',
               'devices': '/devices',
@@ -87,7 +87,7 @@ jobs:
           print(f'Core {app.version}: application and canonical routes OK')
           PY
 
-      - name: Validate security and Core 0.40 contracts
+      - name: Validate security and Core 0.41 contracts
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -102,37 +102,28 @@ jobs:
           audit_page = Path('app/app/templates/audit_events_v2.html').read_text()
           modern_syntax = Path('app/app/mikrotik_modern_syntax.py').read_text()
           modern_syntax_test = Path('app/tests/mikrotik_modern_syntax_smoke.py').read_text()
+          agent_install = Path('app/app/templates/mikrotik_agent_status.html').read_text()
 
-          # Package staging must remain download-only.
           assert '/system package update download' in staging
           assert '/system package update install' not in staging
           assert '/system reboot' not in staging
-
-          # Activation is the only RouterOS package path allowed to reboot, and
-          # acknowledgement must be present before reboot execution.
           assert 'firmware_activate' in activation
           assert '/system reboot' in activation
           assert activation.index('/firmware-activate/') < activation.index('/system reboot')
           assert '/system routerboard upgrade' not in activation
-
-          # RouterBOOT remains an explicitly separate lifecycle.
           assert '/system routerboard upgrade' in routerboot
           assert '/system reboot' in routerboot
           assert 'auto-upgrade=yes' not in routerboot
-
-          # Privilege profiles stay fixed/fail-closed.
           assert 'MODERN_PROFILE = "ops-v1"' in privilege
           assert 'LEGACY_PROFILE = "legacy-read-v1"' in privilege
           assert 'MODERN_POLICIES = "ftp,reboot,read,write,test"' in privilege
           assert 'LEGACY_POLICIES = "read,test"' in privilege
 
-          # RouterOS 7.12 bootstrap remains bodyless and avoids unsupported JSON helpers.
           bootstrap = legacy.split('def _legacy_bootstrap_script', 1)[1].split('def _select_agent_source', 1)[0]
           assert 'http-data=""' in bootstrap
           assert 'nsmJson' not in bootstrap
           assert ':serialize' not in bootstrap and ':deserialize' not in bootstrap
 
-          # Core 0.40 hardens the complete modern source generated for RouterOS.
           for marker in ('normalize_modern_agent_source', 'validate_modern_agent_source', '_EMPTY_LOCAL_RE'):
               assert marker in modern_syntax, marker
           assert 'invalid RouterOS empty local initializer survived' in modern_syntax_test
@@ -140,7 +131,9 @@ jobs:
           assert 'routerboot_stage' in modern_syntax_test
           assert 'routerboot_reboot' in modern_syntax_test
 
-          # Core 0.39 worklists remain paginated/filterable and export respects filters.
+          for marker in ('Verifica installazione', 'Pairing one-shot', 'Heartbeat post-installazione', 'parser RouterOS'):
+              assert marker in agent_install, marker
+
           for marker in ('PAGE_SIZES', 'ACTIVE_JOB_STATES', 'audit_events_export_csv', 'AUDIT_EVENTS_EXPORTED', 'limit(50000)'):
               assert marker in activity, marker
           for marker in ('Coda attiva', 'Storico operativo', 'per_page', 'from_date', 'to_date'):
@@ -148,7 +141,7 @@ jobs:
           for marker in ('Esporta CSV', 'Registro eventi', 'customer', 'device', 'per_page'):
               assert marker in audit_page, marker
 
-          print('Core 0.40 safety, syntax and scalability contracts OK')
+          print('Core 0.41 safety, syntax, install verification and scalability contracts OK')
           PY
 
       - name: Prepare dummy runtime env for Compose validation
