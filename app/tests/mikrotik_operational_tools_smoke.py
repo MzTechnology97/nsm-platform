@@ -95,7 +95,6 @@ def main():
     expected = {"diagnostic_ping", "diagnostic_traceroute", "diagnostic_neighbors", "diagnostic_dhcp_lookup", "diagnostic_logs"}
     assert expected.issubset(types), (expected, types)
 
-    # The heartbeat returns at most five jobs, so fetch the remaining support snapshot separately.
     by_type = {job["type"]: job for job in jobs}
     sample_results = {
         "diagnostic_ping": {"target": "8.8.8.8", "source": "192.0.2.1", "data": [{"time": "11ms", "status": "echo reply"}]},
@@ -114,12 +113,32 @@ def main():
     complete = client.post(f"/api/v1/agents/mikrotik/jobs/{support['id']}/complete", headers=headers, json={"status": "success", "result": {"data": {"resources": {"identity": "CI20-CCR"}, "interfaces": [{"name": "ether1"}], "logs": []}}})
     assert complete.status_code == 200
 
+    # Core 0.43 keeps the diagnostics overview compact: completed runs are listed
+    # there, while full payload/output lives on the single-job detail page.
     page = client.get(f"/devices/{device_id}/diagnostics")
     assert page.status_code == 200
-    for marker in ("POP-SW", "client-test", "test error", "SUPPORT SNAPSHOT"):
-        assert marker in page.text, marker
+    for job_type, label in (("diagnostic_neighbors", "NEIGHBORS"), ("diagnostic_dhcp_lookup", "DHCP LOOKUP"), ("diagnostic_logs", "LOGS")):
+        job_id = by_type[job_type]["id"]
+        assert f"/devices/{device_id}/diagnostics/jobs/{job_id}" in page.text
+        assert label in page.text
 
-    print("Core 0.20 MikroTik operational tools smoke test passed")
+    detail_expectations = {
+        "diagnostic_neighbors": "POP-SW",
+        "diagnostic_dhcp_lookup": "client-test",
+        "diagnostic_logs": "test error",
+    }
+    for job_type, marker in detail_expectations.items():
+        job_id = by_type[job_type]["id"]
+        detail = client.get(f"/devices/{device_id}/diagnostics/jobs/{job_id}")
+        assert detail.status_code == 200
+        assert marker in detail.text, (job_type, marker)
+
+    assert f"/devices/{device_id}/diagnostics/jobs/{support['id']}" in page.text
+    support_detail = client.get(f"/devices/{device_id}/diagnostics/jobs/{support['id']}")
+    assert support_detail.status_code == 200
+    assert "CI20-CCR" in support_detail.text
+
+    print("Core 0.20 operational tools remain covered through Core 0.43 diagnostic detail UX")
 
 
 if __name__ == "__main__":
