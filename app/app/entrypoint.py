@@ -29,7 +29,7 @@ from app.inventory_ui import install_inventory_ui
 from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
 from app.mikrotik_agent_status import install_mikrotik_agent_status
-from app.mikrotik_legacy import _legacy_bootstrap_script, router as mikrotik_legacy_router
+from app.mikrotik_legacy import router as mikrotik_legacy_router
 from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
 from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
@@ -38,6 +38,7 @@ from app.mikrotik_diagnostics_agent import install_mikrotik_diagnostics_agent
 from app.mikrotik_onboarding import install_mikrotik_onboarding
 from app.mikrotik_operational_tools import install_mikrotik_operational_tools
 from app.mikrotik_firmware_readiness import install_mikrotik_firmware_readiness
+from app.mikrotik_privilege_profile import install_mikrotik_privilege_profile
 from app.mikrotik_workspace import install_mikrotik_workspace
 from app.mikrotik_telemetry import install_mikrotik_telemetry
 from app.route_precedence import promote_customer_workspace_routes
@@ -96,9 +97,11 @@ install_inventory_ui(core.app)
 install_branding_runtime(core.app)
 promote_device_csv_import_routes(core.app)
 
-# RouterOS 7.12-compatible bodyless bootstrap. Enrollment adaptively returns the
-# modern agent on 7.13+ and the hardened header-based legacy transport on 7.12.
-mikrotik_agent_core._bootstrap_script = _legacy_bootstrap_script
+# RouterOS 7.12-compatible bodyless bootstrap. Modern agents receive only the
+# additional RouterOS policies required by allow-listed backup/staging/reboot
+# operations; the 7.12 legacy transport remains read/test only.
+privileged_bootstrap = install_mikrotik_privilege_profile()
+mikrotik_agent_core._bootstrap_script = privileged_bootstrap
 core.app.include_router(mikrotik_legacy_router)
 
 # Allow-listed plain-text job transport for legacy RouterOS agents.
