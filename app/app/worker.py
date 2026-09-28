@@ -4,10 +4,10 @@ import time
 
 from redis import Redis
 
-from app.backup_maintenance import maintenance_tick
 from app.backup_scheduler_capability_guard import install_backup_scheduler_capability_guard
 from app.config import settings
 from app.mikrotik_telemetry import telemetry_cleanup
+from app.platform_maintenance import maintenance_tick
 
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
 log = logging.getLogger("worker")
@@ -27,7 +27,7 @@ while True:
         if now_mono - last_maintenance >= MAINTENANCE_INTERVAL_SECONDS:
             stats = maintenance_tick()
             if any(stats.values()):
-                log.info("Backup maintenance: %s", stats)
+                log.info("Platform maintenance: %s", stats)
             last_maintenance = now_mono
 
         if now_mono - last_telemetry_maintenance >= TELEMETRY_MAINTENANCE_INTERVAL_SECONDS:
