@@ -1,6 +1,7 @@
-"""NSM Core 0.34 application entrypoint."""
+"""NSM Core 0.35 application entrypoint."""
 from app import main as core
 from app import mikrotik_agent as mikrotik_agent_core
+from app.agent_fleet import install_agent_fleet
 from app.agent_ui import install_agent_ui
 from app.api_keys import install_api_keys
 from app.api_operations import install_api_operations
@@ -45,7 +46,7 @@ from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.34.0"
+APP_VERSION = "0.35.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -81,6 +82,7 @@ install_customer_drilldown(core.app)
 install_security_drilldown(core.app)
 install_lifecycle_drilldown(core.app)
 install_firmware_worklist(core.app)
+install_agent_fleet(core.app)
 install_customer_tabs(core.app)
 install_search_enhancement(core.app)
 install_mikrotik_workspace(core.app)
