@@ -2,6 +2,7 @@ import re
 import uuid
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from app import main as core
 from app.agent_models import DeviceJob
@@ -75,6 +76,17 @@ def enroll(client, token, version, serial, mac):
     return response, device_id.group(1), secret.group(1)
 
 
+def handler_body(source: str, job_type: str, next_job_type: str | None = None) -> str:
+    marker = f':if ($nsmJobType = "{job_type}") do={{'
+    assert marker in source, marker
+    body = source.split(marker, 1)[1]
+    if next_job_type:
+        next_marker = f':if ($nsmJobType = "{next_job_type}") do={{'
+        assert next_marker in body, next_marker
+        body = body.split(next_marker, 1)[0]
+    return body
+
+
 def main():
     major, minor, *_ = [int(part) for part in app.version.split('.')]
     assert (major, minor) >= (0, 30), app.version
@@ -114,8 +126,18 @@ def main():
     assert "/heartbeat-legacy" not in modern_resp.text
     assert "firmware_readiness" in modern_resp.text
     assert "check-for-updates once" in modern_resp.text
-    assert "/system package update install" not in modern_resp.text
-    assert "/system reboot" not in modern_resp.text
+
+    # Core 0.37 legitimately adds an allow-listed reboot handler to the modern
+    # agent, so keep the historical Core 0.30 contract scoped to the readiness
+    # handler itself: readiness remains read-only and cannot install/reboot.
+    readiness_body = handler_body(modern_resp.text, "firmware_readiness", "firmware_stage")
+    for forbidden in (
+        "/system package update install",
+        "/system reboot",
+        "/system routerboard upgrade",
+        "firmware_activate",
+    ):
+        assert forbidden not in readiness_body, forbidden
 
     legacy_headers = {
         "X-NSM-Device-ID": str(legacy_id),
@@ -193,7 +215,18 @@ def main():
         assert modern_job.status == "success"
         assert modern_job.result["channel"] == "stable"
 
-    print("Core 0.30 adaptive enrollment and firmware readiness smoke passed")
+        # A readiness check must never create an activation/reboot job.
+        activation_jobs = list(
+            db.scalars(
+                select(DeviceJob).where(
+                    DeviceJob.device_id.in_([legacy_id, modern_id]),
+                    DeviceJob.job_type == "firmware_activate",
+                )
+            )
+        )
+        assert activation_jobs == []
+
+    print("Core 0.30 adaptive enrollment and read-only firmware readiness smoke passed")
 
 
 if __name__ == "__main__":

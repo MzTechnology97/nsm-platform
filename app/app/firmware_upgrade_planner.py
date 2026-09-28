@@ -1,9 +1,8 @@
-"""Firmware upgrade planning and pre-backup gate for Core 0.31.
+"""Firmware upgrade planning and pre-backup gate.
 
-No RouterOS install/download/reboot command is implemented here.  This module
-only creates an auditable plan, queues the mandatory off-device backup through
-the existing modern MikroTik backup transport, and permits explicit operator
-approval after that backup succeeds.
+This module creates the auditable plan, queues the mandatory off-device backup,
+and permits explicit operator approval. Download, activation and post-reboot
+verification are implemented by the later firmware workflow modules.
 """
 from __future__ import annotations
 
@@ -20,7 +19,6 @@ from sqlalchemy.orm import selectinload
 from app import main as core
 from app.agent_models import DeviceAgentCredential, DeviceJob
 from app.backup_core import _effective_policy, _policy_settings
-from app.backup_models import BackupPolicySettings
 from app.db import SessionLocal
 from app.firmware_upgrade_models import FirmwareUpgradePlan
 from app.mikrotik_backup import _backup_formats
@@ -29,7 +27,15 @@ from app.models import BackupPolicy, BackupRun, Device, utcnow
 from app.secret_vault import encrypt_text
 
 router = APIRouter()
-ACTIVE_STATES = ("backup_pending", "ready", "approved")
+ACTIVE_STATES = (
+    "backup_pending",
+    "ready",
+    "approved",
+    "staging",
+    "staged",
+    "activation_pending",
+    "reboot_pending",
+)
 _VERSION_RE = re.compile(r"^\s*(\d+)\.(\d+)")
 READINESS_MAX_AGE = timedelta(hours=6)
 
@@ -320,8 +326,8 @@ def cancel_plan(request: Request, device_id: uuid.UUID, plan_id: uuid.UUID, csrf
         plan = db.get(FirmwareUpgradePlan, plan_id)
         if not plan or plan.device_id != device.id:
             raise HTTPException(404)
-        if plan.status in {"executing", "success"}:
-            raise HTTPException(409, "Il piano non può più essere annullato.")
+        if plan.status in {"activation_pending", "reboot_pending", "success"}:
+            raise HTTPException(409, "Il piano non può più essere annullato: attivazione già avviata o completata.")
         plan.status = "cancelled"
         plan.completed_at = utcnow()
         core.add_event(
