@@ -45,6 +45,7 @@ from app.mikrotik_modern_syntax import install_mikrotik_modern_syntax_guard
 from app.mikrotik_privilege_profile import install_mikrotik_privilege_profile
 from app.mikrotik_workspace import install_mikrotik_workspace
 from app.mikrotik_workspace_ux import install_mikrotik_workspace_ux
+from app.mikrotik_workspace_ux_precedence import install_mikrotik_workspace_ux_precedence
 from app.mikrotik_telemetry import install_mikrotik_telemetry
 from app.route_precedence import promote_customer_workspace_routes
 from app.routerboot_lifecycle import install_routerboot_lifecycle
@@ -122,8 +123,9 @@ core.app.include_router(mikrotik_legacy_router)
 # Allow-listed plain-text job transport for legacy RouterOS agents.
 install_mikrotik_legacy_jobs(core.app)
 
-# These worklists replace legacy copies registered by earlier routers. Install
-# canonical handlers last so FastAPI route order is deterministic.
+# Final canonical route installers. These run after every incremental router so
+# FastAPI cannot select an older copied handler for the same path.
 install_activity_route_precedence(core.app)
+install_mikrotik_workspace_ux_precedence(core.app)
 
 app = core.app
