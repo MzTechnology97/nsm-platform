@@ -19,15 +19,12 @@ jobs:
           python-version: '3.13'
           cache: pip
           cache-dependency-path: app/requirements.txt
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r app/requirements.txt
-
       - name: Compile Python
         run: python -m compileall -q app/app app/alembic app/tests
-
       - name: Parse all Jinja templates
         run: |
           python - <<'PY'
@@ -41,12 +38,10 @@ jobs:
               env.get_template(path.name)
           print(f'Parsed {len(templates)} templates')
           PY
-
       - name: Validate shell scripts
         run: |
           bash -n update.sh install_core.sh manage.sh
           find scripts -type f -name '*.sh' -print0 | xargs -0 -r -n1 bash -n
-
       - name: Smoke import application and canonical routes
         env:
           POSTGRES_PASSWORD: ci-postgres-password
@@ -59,21 +54,14 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.42.0'
+          assert app.version == '0.43.0'
           expected = {
-              'dashboard': '/',
-              'devices': '/devices',
-              'admin_api_keys': '/admin/api-keys',
-              'admin_uisp': '/admin/integrations/uisp',
-              'mikrotik_bootstrap': '/api/v1/enrollment/mikrotik/bootstrap',
-              'mikrotik_enroll': '/api/v1/agents/mikrotik/enroll',
-              'mikrotik_heartbeat': '/api/v1/agents/mikrotik/heartbeat',
-              'mikrotik_legacy_job_next': '/api/v1/agents/mikrotik/legacy/jobs/next',
-              'firmware': '/operations/firmware',
-              'agent_fleet': '/operations/agents',
-              'backup_customer_overview': '/operations/backups',
-              'search_suggest': '/api/v1/search/suggest',
-              'audit_events_worklist': '/audit/events',
+              'dashboard': '/', 'devices': '/devices', 'admin_api_keys': '/admin/api-keys',
+              'admin_uisp': '/admin/integrations/uisp', 'mikrotik_bootstrap': '/api/v1/enrollment/mikrotik/bootstrap',
+              'mikrotik_enroll': '/api/v1/agents/mikrotik/enroll', 'mikrotik_heartbeat': '/api/v1/agents/mikrotik/heartbeat',
+              'mikrotik_legacy_job_next': '/api/v1/agents/mikrotik/legacy/jobs/next', 'firmware': '/operations/firmware',
+              'agent_fleet': '/operations/agents', 'backup_customer_overview': '/operations/backups',
+              'search_suggest': '/api/v1/search/suggest', 'audit_events_worklist': '/audit/events',
               'audit_events_export_csv': '/audit/events/export.csv',
           }
           for name, path in expected.items():
@@ -84,14 +72,15 @@ jobs:
           assert str(app.url_path_for('activate_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/activate'
           assert str(app.url_path_for('routerboot_lifecycle_page', device_id=zero)) == f'/devices/{zero}/routerboot'
           assert str(app.url_path_for('mikrotik_agent_status', device_id=zero)) == f'/devices/{zero}/agent'
+          assert str(app.url_path_for('mikrotik_configuration_v2', device_id=zero)) == f'/devices/{zero}/configuration'
+          assert str(app.url_path_for('mikrotik_diagnostics_v2', device_id=zero)) == f'/devices/{zero}/diagnostics'
+          assert str(app.url_path_for('mikrotik_diagnostic_result', device_id=zero, job_id=zero)) == f'/devices/{zero}/diagnostics/jobs/{zero}'
           print(f'Core {app.version}: application and canonical routes OK')
           PY
-
-      - name: Validate security and Core 0.42 contracts
+      - name: Validate security and Core 0.43 contracts
         run: |
           python - <<'PY'
           from pathlib import Path
-
           staging = Path('app/app/firmware_package_staging.py').read_text()
           activation = Path('app/app/firmware_activation.py').read_text()
           routerboot = Path('app/app/routerboot_lifecycle.py').read_text()
@@ -106,54 +95,46 @@ jobs:
           agent_fleet = Path('app/app/agent_fleet.py').read_text()
           agent_fleet_page = Path('app/app/templates/agent_fleet.html').read_text()
           agent_health = Path('app/app/agent_health_automation.py').read_text()
+          workspace_ux = Path('app/app/mikrotik_workspace_ux.py').read_text()
+          monitor = Path('app/app/templates/mikrotik_monitor.html').read_text()
+          diagnostics = Path('app/app/templates/mikrotik_diagnostics_v2.html').read_text()
+          ui_js = Path('app/app/static/ui.js').read_text()
 
-          assert '/system package update download' in staging
-          assert '/system package update install' not in staging
-          assert '/system reboot' not in staging
-          assert 'firmware_activate' in activation
-          assert '/system reboot' in activation
-          assert activation.index('/firmware-activate/') < activation.index('/system reboot')
-          assert '/system routerboard upgrade' not in activation
-          assert '/system routerboard upgrade' in routerboot
-          assert '/system reboot' in routerboot
-          assert 'auto-upgrade=yes' not in routerboot
-          assert 'MODERN_PROFILE = "ops-v1"' in privilege
-          assert 'LEGACY_PROFILE = "legacy-read-v1"' in privilege
-          assert 'MODERN_POLICIES = "ftp,reboot,read,write,test"' in privilege
-          assert 'LEGACY_POLICIES = "read,test"' in privilege
-
+          assert '/system package update download' in staging and '/system package update install' not in staging and '/system reboot' not in staging
+          assert 'firmware_activate' in activation and '/system reboot' in activation and activation.index('/firmware-activate/') < activation.index('/system reboot')
+          assert '/system routerboard upgrade' not in activation and '/system routerboard upgrade' in routerboot and '/system reboot' in routerboot and 'auto-upgrade=yes' not in routerboot
+          assert 'MODERN_PROFILE = "ops-v1"' in privilege and 'LEGACY_PROFILE = "legacy-read-v1"' in privilege
+          assert 'MODERN_POLICIES = "ftp,reboot,read,write,test"' in privilege and 'LEGACY_POLICIES = "read,test"' in privilege
           bootstrap = legacy.split('def _legacy_bootstrap_script', 1)[1].split('def _select_agent_source', 1)[0]
-          assert 'http-data=""' in bootstrap
-          assert 'nsmJson' not in bootstrap
-          assert ':serialize' not in bootstrap and ':deserialize' not in bootstrap
-
+          assert 'http-data=""' in bootstrap and 'nsmJson' not in bootstrap and ':serialize' not in bootstrap and ':deserialize' not in bootstrap
           for marker in ('normalize_modern_agent_source', 'validate_modern_agent_source', '_EMPTY_LOCAL_RE'):
               assert marker in modern_syntax, marker
           assert 'invalid RouterOS empty local initializer survived' in modern_syntax_test
-          assert 'firmware_activate' in modern_syntax_test
-          assert 'routerboot_stage' in modern_syntax_test
-          assert 'routerboot_reboot' in modern_syntax_test
-
+          assert 'firmware_activate' in modern_syntax_test and 'routerboot_stage' in modern_syntax_test and 'routerboot_reboot' in modern_syntax_test
           for marker in ('Verifica installazione', 'Pairing one-shot', 'Heartbeat post-installazione', 'parser RouterOS'):
               assert marker in agent_install, marker
-
           for marker in ('_installation_state', 'install_suspect', 'token_expired', 'install_filter', 'ENROLLMENT_HISTORY_WINDOW'):
               assert marker in agent_fleet, marker
           for marker in ('Installazione KO', 'Pairing OK / agent non avviato', 'install=suspect', 'Token scaduti'):
               assert marker in agent_fleet_page, marker
           for marker in ('TITLE_INSTALL_SUSPECT', 'TITLE_TOKEN_EXPIRED', '_installation_state', 'AGENT_HEALTH_RECOVERED'):
               assert marker in agent_health, marker
-
+          for marker in ('human_bytes', 'snapshot_supported', 'telemetry_history_supported', 'Support snapshot non disponibile', '409'):
+              assert marker in workspace_ux, marker
+          for marker in ('MAC', 'Storico non supportato', 'memory_used_percent'):
+              assert marker in monitor, marker
+          for marker in ('Risultati recenti', 'NON DISP.', '/diagnostics/jobs/'):
+              assert marker in diagnostics, marker
+          for marker in ('copyEnrollmentCommand', 'textContent', 'Copiato', 'Copia non riuscita'):
+              assert marker in ui_js, marker
           for marker in ('PAGE_SIZES', 'ACTIVE_JOB_STATES', 'audit_events_export_csv', 'AUDIT_EVENTS_EXPORTED', 'limit(50000)'):
               assert marker in activity, marker
           for marker in ('Coda attiva', 'Storico operativo', 'per_page', 'from_date', 'to_date'):
               assert marker in device_activity, marker
           for marker in ('Esporta CSV', 'Registro eventi', 'customer', 'device', 'per_page'):
               assert marker in audit_page, marker
-
-          print('Core 0.42 safety, install verification, fleet recovery and scalability contracts OK')
+          print('Core 0.43 safety, fleet recovery, real-device UX and scalability contracts OK')
           PY
-
       - name: Prepare dummy runtime env for Compose validation
         run: |
           cp .env.example .env
@@ -164,7 +145,6 @@ jobs:
           APP_SECRET_KEY=ci-app-secret-key-not-for-production
           ENCRYPTION_MASTER_KEY=ci-encryption-key-not-for-production
           EOF
-
       - name: Validate Docker Compose
         run: docker compose config --quiet
 
@@ -200,12 +180,10 @@ jobs:
           python-version: '3.13'
           cache: pip
           cache-dependency-path: app/requirements.txt
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r app/requirements.txt
-
       - name: Run complete isolated Core smoke suite
         run: |
           cd app
