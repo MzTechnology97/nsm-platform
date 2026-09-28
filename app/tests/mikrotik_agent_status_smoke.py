@@ -123,7 +123,6 @@ def login(client: TestClient, username: str):
 
 
 def main():
-    assert app.version == "0.34.0"
     username, legacy_id, modern_id, legacy_hash, modern_hash = seed()
     client = TestClient(app)
     login(client, username)
@@ -179,7 +178,7 @@ def main():
         assert credential.secret_hash == legacy_hash
         assert credential.is_active is True
 
-    print("Core 0.34 MikroTik agent diagnostics smoke passed")
+    print("MikroTik agent diagnostics smoke passed")
 
 
 if __name__ == "__main__":
