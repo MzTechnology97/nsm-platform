@@ -1,4 +1,4 @@
-"""NSM Core 0.41 application entrypoint."""
+"""NSM Core 0.42 application entrypoint."""
 from app import main as core
 from app import mikrotik_agent as mikrotik_agent_core
 from app.activity_route_precedence import install_activity_route_precedence
@@ -44,6 +44,7 @@ from app.mikrotik_firmware_readiness import install_mikrotik_firmware_readiness
 from app.mikrotik_modern_syntax import install_mikrotik_modern_syntax_guard
 from app.mikrotik_privilege_profile import install_mikrotik_privilege_profile
 from app.mikrotik_workspace import install_mikrotik_workspace
+from app.mikrotik_workspace_ux import install_mikrotik_workspace_ux
 from app.mikrotik_telemetry import install_mikrotik_telemetry
 from app.route_precedence import promote_customer_workspace_routes
 from app.routerboot_lifecycle import install_routerboot_lifecycle
@@ -53,7 +54,7 @@ from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.41.0"
+APP_VERSION = "0.42.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -96,6 +97,7 @@ install_agent_fleet(core.app)
 install_customer_tabs(core.app)
 install_search_enhancement(core.app)
 install_mikrotik_workspace(core.app)
+install_mikrotik_workspace_ux(core.app)
 install_mikrotik_agent_status(core.app)
 install_mikrotik_onboarding(core)
 install_mikrotik_telemetry(core.app)
