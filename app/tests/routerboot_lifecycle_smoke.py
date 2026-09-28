@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from app.agent_models import DeviceJob
+from app.agent_models import DeviceAgentCredential, DeviceJob
 from app.db import SessionLocal
 from app.entrypoint import app
 from app.mikrotik_firmware_readiness import apply_firmware_readiness
@@ -65,6 +65,16 @@ def seed():
             },
         )
         db.add(device)
+        db.flush()
+        db.add(
+            DeviceAgentCredential(
+                device_id=device.id,
+                agent_type="mikrotik_agent",
+                secret_hash="3" * 64,
+                is_active=True,
+                last_used_at=now,
+            )
+        )
         db.commit()
         return user.username, device.id
 
