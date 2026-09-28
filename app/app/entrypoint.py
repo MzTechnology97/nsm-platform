@@ -1,4 +1,4 @@
-"""NSM Core 0.44 application entrypoint."""
+"""NSM Core 0.45 application entrypoint."""
 from app import main as core
 from app import mikrotik_agent as mikrotik_agent_core
 from app.activity_route_precedence import install_activity_route_precedence
@@ -42,6 +42,7 @@ from app.mikrotik_diagnostics_agent import install_mikrotik_diagnostics_agent
 from app.mikrotik_onboarding import install_mikrotik_onboarding
 from app.mikrotik_operational_tools import install_mikrotik_operational_tools
 from app.mikrotik_firmware_readiness import install_mikrotik_firmware_readiness
+from app.mikrotik_interfaces import install_mikrotik_interfaces
 from app.mikrotik_modern_syntax import install_mikrotik_modern_syntax_guard
 from app.mikrotik_privilege_profile import install_mikrotik_privilege_profile
 from app.mikrotik_workspace import install_mikrotik_workspace
@@ -56,8 +57,7 @@ from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.44.0"
-
+APP_VERSION = "0.45.0"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -101,6 +101,7 @@ install_customer_tabs(core.app)
 install_search_enhancement(core.app)
 install_mikrotik_workspace(core.app)
 install_mikrotik_workspace_ux(core.app)
+install_mikrotik_interfaces(core.app)
 install_mikrotik_agent_status(core.app)
 install_mikrotik_onboarding(core)
 install_mikrotik_telemetry(core.app)
@@ -109,7 +110,6 @@ install_inventory_ui(core.app)
 install_branding_runtime(core.app)
 promote_device_csv_import_routes(core.app)
 install_activity_worklists(core.app)
-
 install_mikrotik_modern_syntax_guard()
 privileged_bootstrap = install_mikrotik_privilege_profile()
 mikrotik_agent_core._bootstrap_script = privileged_bootstrap
@@ -117,5 +117,4 @@ core.app.include_router(mikrotik_legacy_router)
 install_mikrotik_legacy_jobs(core.app)
 install_activity_route_precedence(core.app)
 install_mikrotik_workspace_ux_precedence(core.app)
-
 app = core.app
