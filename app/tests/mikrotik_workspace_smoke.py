@@ -101,15 +101,23 @@ def main():
     diag_job = diagnostics[0]
     complete = client.post(f"/api/v1/agents/mikrotik/jobs/{diag_job['id']}/complete", headers=headers, json={"status": "success", "result": {"target": "8.8.8.8", "data": [{"time": "12ms", "status": "echo reply"}]}})
     assert complete.status_code == 200
+
+    # Core 0.43 keeps the overview compact and moves full output to the
+    # dedicated single-job result page.
     diag_page = client.get(f"/devices/{device_id}/diagnostics")
-    assert "8.8.8.8" in diag_page.text and "echo reply" in diag_page.text
+    assert diag_page.status_code == 200
+    assert "8.8.8.8" in diag_page.text
+    assert f"/devices/{device_id}/diagnostics/jobs/{diag_job['id']}" in diag_page.text
+    detail = client.get(f"/devices/{device_id}/diagnostics/jobs/{diag_job['id']}")
+    assert detail.status_code == 200
+    assert "8.8.8.8" in detail.text and "echo reply" in detail.text and "12ms" in detail.text
 
     with SessionLocal() as db:
         snapshot_job = db.get(DeviceJob, snapshot["id"])
         assert snapshot_job.status == "success"
         assert snapshot_job.result["data"][0]["name"] == "ether1"
 
-    print("Core 0.16 MikroTik device workspace smoke test passed")
+    print("Core 0.16 workspace behavior remains covered through Core 0.43 diagnostic detail UX")
 
 
 if __name__ == "__main__":
