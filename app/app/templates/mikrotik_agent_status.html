@@ -62,7 +62,7 @@
     {% if agent_heartbeat.transport == 'legacy' %}<div class="alert info"><strong>Transport legacy attivo.</strong> Previsto per RouterOS 7.12.x: heartbeat, diagnostica e firmware readiness sono disponibili; snapshot strutturati, telemetria storica completa e backup HTTPS richiedono il transport moderno RouterOS 7.13+.</div>{% elif agent_heartbeat.transport == 'modern' %}<div class="alert success"><strong>Transport moderno attivo.</strong> Il dispositivo usa il set completo delle funzioni agent abilitate dal portale.</div>{% endif %}
 
     <div class="detail-grid">
-      <section class="panel"><div class="panel-header"><div><h2>Trasporto e pairing</h2><p>Metadati osservati; nessun secret viene esposto.</p></div></div>
+      <section class="panel"><div class="panel-header"><div><h2>Trasporto e Pairing one-shot</h2><p>Il token di onboarding viene consumato una sola volta; qui sono mostrati solo metadati osservati e nessun secret viene esposto.</p></div></div>
         <div class="policy-summary six">
           <div><span>Agent transport</span><strong>{{ agent_heartbeat.transport|upper }}</strong></div>
           <div><span>Enrollment</span><strong>{{ agent_heartbeat.enrollment_transport }}</strong></div>
