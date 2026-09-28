@@ -1,9 +1,9 @@
-"""Global MikroTik agent fleet health worklist for Core 0.35."""
+"""Global MikroTik agent fleet health and installation worklist."""
 from __future__ import annotations
 
 import math
 import uuid
-from datetime import timezone
+from datetime import timedelta, timezone
 
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -13,10 +13,12 @@ from sqlalchemy.orm import selectinload
 from app import main as core
 from app.agent_models import DeviceAgentCredential
 from app.db import SessionLocal
-from app.mikrotik_agent_status import HEARTBEAT_STALE_AFTER, _transport
+from app.mikrotik_agent_status import HEARTBEAT_STALE_AFTER, _installation_state, _transport
 from app.models import Customer, Device, DeviceEnrollment, utcnow
 
 PER_PAGE = 50
+ENROLLMENT_HISTORY_WINDOW = timedelta(days=30)
+INSTALL_FILTERS = {"", "verified", "waiting", "suspect", "expired", "not_enrolled"}
 
 
 def _uuid_or_none(value: str):
@@ -34,26 +36,56 @@ def _aware(value):
     return value
 
 
-def _fleet_row(device, credential, pending_count: int, now):
+def _install_bucket(installation: dict) -> str:
+    key = installation.get("key")
+    if key in {"verified", "verified_legacy_record", "stale"}:
+        return "verified"
+    if key in {"awaiting_pairing", "awaiting_heartbeat"}:
+        return "waiting"
+    if key in {"install_suspect", "credential_no_heartbeat"}:
+        return "suspect"
+    if key == "token_expired":
+        return "expired"
+    return "not_enrolled"
+
+
+def _fleet_row(device, credential, enrollments, pending_count: int, now):
     inventory = dict(device.inventory_data or {})
     transport = _transport(inventory)
     last_seen = _aware(device.last_seen)
     stale = not last_seen or now - last_seen > HEARTBEAT_STALE_AFTER
     credential_active = bool(credential and credential.is_active)
     offline = device.status != "online"
+    installation = _installation_state(device, credential, enrollments)
+    install_bucket = _install_bucket(installation)
 
     reasons = []
-    if not credential_active:
+    if installation["key"] in {"install_suspect", "credential_no_heartbeat", "token_expired"}:
+        reasons.append(installation["detail"])
+    elif installation["key"] == "awaiting_pairing":
+        reasons.append("Pairing one-shot ancora da completare")
+    elif installation["key"] == "awaiting_heartbeat":
+        reasons.append("Pairing completato; primo heartbeat ancora in attesa")
+    elif installation["key"] == "not_enrolled":
+        reasons.append("Agent non associato")
+
+    if not credential_active and installation["key"] not in {"awaiting_pairing", "token_expired"}:
         reasons.append("Credenziale agent assente o non attiva")
-    if offline:
+    if offline and installation["key"] not in {"awaiting_pairing", "token_expired", "not_enrolled"}:
         reasons.append("Apparato non online")
-    elif stale:
+    elif stale and credential_active and installation["key"] not in {"awaiting_heartbeat", "install_suspect", "credential_no_heartbeat"}:
         reasons.append("Heartbeat oltre 15 minuti")
-    if transport == "unknown" and credential_active:
+    if transport == "unknown" and credential_active and installation.get("heartbeat_after_pairing"):
         reasons.append("Transport agent non rilevato")
 
-    if not credential_active and pending_count:
+    if installation["key"] == "awaiting_pairing":
         health = "pending"
+    elif installation["key"] == "awaiting_heartbeat":
+        health = "awaiting_heartbeat"
+    elif installation["key"] in {"install_suspect", "credential_no_heartbeat"}:
+        health = "install_suspect"
+    elif installation["key"] == "token_expired":
+        health = "token_expired"
     elif not credential_active:
         health = "no_credential"
     elif offline:
@@ -79,8 +111,10 @@ def _fleet_row(device, credential, pending_count: int, now):
         "credential_last_used_at": _aware(credential.last_used_at) if credential else None,
         "pending_enrollments": pending_count,
         "health": health,
-        "attention": bool(reasons),
+        "attention": health != "healthy",
         "reasons": reasons,
+        "installation": installation,
+        "install_bucket": install_bucket,
     }
 
 
@@ -98,9 +132,13 @@ def _matches_health(row, state: str) -> bool:
     if state == "no_credential":
         return row["health"] == "no_credential"
     if state == "pending":
-        return row["pending_enrollments"] > 0
+        return row["pending_enrollments"] > 0 or row["health"] in {"pending", "awaiting_heartbeat"}
     if state == "unknown_transport":
         return row["health"] == "unknown_transport"
+    if state == "install_suspect":
+        return row["health"] == "install_suspect"
+    if state == "token_expired":
+        return row["health"] == "token_expired"
     return row["attention"]
 
 
@@ -110,6 +148,7 @@ def agent_fleet(
     customer: str = "",
     state: str = "attention",
     transport: str = "",
+    install: str = "",
     page: int = 1,
 ):
     with SessionLocal() as db:
@@ -122,8 +161,9 @@ def agent_fleet(
         page = max(1, int(page or 1))
         customer_id = _uuid_or_none(customer)
         term = q.strip()
-        state = state if state in {"attention", "healthy", "offline", "stale", "no_credential", "pending", "unknown_transport", "all"} else "attention"
+        state = state if state in {"attention", "healthy", "offline", "stale", "no_credential", "pending", "unknown_transport", "install_suspect", "token_expired", "all"} else "attention"
         transport = transport if transport in {"legacy", "modern", "unknown"} else ""
+        install = install if install in INSTALL_FILTERS else ""
 
         filters = [Device.vendor.ilike("mikrotik")]
         if customer_id:
@@ -154,6 +194,7 @@ def agent_fleet(
         device_ids = [device.id for device in devices]
 
         credentials = {}
+        enrollment_history = {}
         pending_counts = {}
         now = utcnow()
         if device_ids:
@@ -166,20 +207,31 @@ def agent_fleet(
                     )
                 )
             }
-            pending = list(
+            recent_enrollments = list(
                 db.scalars(
-                    select(DeviceEnrollment).where(
+                    select(DeviceEnrollment)
+                    .where(
                         DeviceEnrollment.device_id.in_(device_ids),
-                        DeviceEnrollment.status == "pending",
-                        DeviceEnrollment.expires_at > now,
+                        DeviceEnrollment.created_at >= now - ENROLLMENT_HISTORY_WINDOW,
                     )
+                    .order_by(DeviceEnrollment.device_id, DeviceEnrollment.created_at.desc())
                 )
             )
-            for enrollment in pending:
-                pending_counts[enrollment.device_id] = pending_counts.get(enrollment.device_id, 0) + 1
+            for enrollment in recent_enrollments:
+                history = enrollment_history.setdefault(enrollment.device_id, [])
+                if len(history) < 10:
+                    history.append(enrollment)
+                if enrollment.status == "pending" and _aware(enrollment.expires_at) and _aware(enrollment.expires_at) > now:
+                    pending_counts[enrollment.device_id] = pending_counts.get(enrollment.device_id, 0) + 1
 
         scope_rows = [
-            _fleet_row(device, credentials.get(device.id), pending_counts.get(device.id, 0), now)
+            _fleet_row(
+                device,
+                credentials.get(device.id),
+                enrollment_history.get(device.id, []),
+                pending_counts.get(device.id, 0),
+                now,
+            )
             for device in devices
         ]
 
@@ -189,13 +241,24 @@ def agent_fleet(
             "attention": sum(row["attention"] for row in scope_rows),
             "legacy": sum(row["transport"] == "legacy" for row in scope_rows),
             "modern": sum(row["transport"] == "modern" for row in scope_rows),
-            "pending": sum(row["pending_enrollments"] > 0 for row in scope_rows),
+            "pending": sum(row["install_bucket"] == "waiting" for row in scope_rows),
+            "verified": sum(row["install_bucket"] == "verified" for row in scope_rows),
+            "install_suspect": sum(row["install_bucket"] == "suspect" for row in scope_rows),
+            "token_expired": sum(row["install_bucket"] == "expired" for row in scope_rows),
         }
 
         rows = [row for row in scope_rows if _matches_health(row, state)]
         if transport:
             rows = [row for row in rows if row["transport"] == transport]
-        rows.sort(key=lambda row: (0 if row["attention"] else 1, row["device"].customer.name.lower(), (row["device"].display_name or row["device"].device_identity or row["device"].name).lower()))
+        if install:
+            rows = [row for row in rows if row["install_bucket"] == install]
+        rows.sort(
+            key=lambda row: (
+                0 if row["install_bucket"] == "suspect" else 1 if row["attention"] else 2,
+                row["device"].customer.name.lower(),
+                (row["device"].display_name or row["device"].device_identity or row["device"].name).lower(),
+            )
+        )
 
         total = len(rows)
         pages = max(1, math.ceil(total / PER_PAGE))
@@ -218,6 +281,7 @@ def agent_fleet(
             customer_filter=customer,
             state_filter=state,
             transport_filter=transport,
+            install_filter=install,
             total=total,
             page=page,
             pages=pages,
