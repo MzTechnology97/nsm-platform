@@ -1,6 +1,7 @@
 """NSM Core 0.39 application entrypoint."""
 from app import main as core
 from app import mikrotik_agent as mikrotik_agent_core
+from app.activity_route_precedence import install_activity_route_precedence
 from app.activity_worklists import install_activity_worklists
 from app.agent_fleet import install_agent_fleet
 from app.agent_ui import install_agent_ui
@@ -112,5 +113,9 @@ core.app.include_router(mikrotik_legacy_router)
 
 # Allow-listed plain-text job transport for legacy RouterOS agents.
 install_mikrotik_legacy_jobs(core.app)
+
+# These worklists replace legacy copies registered by earlier routers. Install
+# canonical handlers last so FastAPI route order is deterministic.
+install_activity_route_precedence(core.app)
 
 app = core.app
