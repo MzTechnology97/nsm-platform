@@ -59,7 +59,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.36.0'
+          assert app.version == '0.37.0'
           expected = {
               'dashboard': '/',
               'devices': '/devices',
@@ -81,16 +81,19 @@ jobs:
           assert str(app.url_path_for('firmware_upgrade_plan_page', device_id=zero)) == f'/devices/{zero}/firmware-upgrade'
           assert str(app.url_path_for('approve_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/approve'
           assert str(app.url_path_for('stage_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/stage'
+          assert str(app.url_path_for('activate_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/activate'
           assert str(app.url_path_for('mikrotik_firmware_stage_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/firmware-stage/{zero}/complete'
+          assert str(app.url_path_for('mikrotik_firmware_activation_started', job_id=zero)) == f'/api/v1/agents/mikrotik/firmware-activate/{zero}/started'
           assert str(app.url_path_for('mikrotik_agent_status', device_id=zero)) == f'/devices/{zero}/agent'
           print(f'Core {app.version}: application and canonical routes OK')
           PY
 
-      - name: Validate Core 0.36 safety contracts
+      - name: Validate Core 0.37 safety contracts
         run: |
           python - <<'PY'
           from pathlib import Path
           staging = Path('app/app/firmware_package_staging.py').read_text()
+          activation = Path('app/app/firmware_activation.py').read_text()
           planner = Path('app/app/firmware_upgrade_planner.py').read_text()
           plan_page = Path('app/app/templates/firmware_upgrade_plan.html').read_text()
           legacy = Path('app/app/mikrotik_legacy.py').read_text()
@@ -101,19 +104,34 @@ jobs:
           agent_health = Path('app/app/agent_health_automation.py').read_text()
           worker = Path('app/app/worker.py').read_text()
           base = Path('app/app/templates/base.html').read_text()
+
           for marker in ('firmware_stage','DOWNLOAD {plan.target_version}','download_only','latest-version','/system package update download'):
               assert marker in staging, marker
           assert 'backup_run_id' in staging and 'status != "approved"' in staging
           assert 'DOWNLOAD {{ plan.target_version }}' in plan_page
-          assert 'Pacchetti scaricati' in plan_page and 'attivazione/reboot resta intenzionalmente disabilitata' in plan_page
-          combined = staging + planner
+
+          for marker in ('firmware_activate','REBOOT {plan.target_version}','/system reboot','agent_acknowledged','POST_REBOOT_VERIFY_TIMEOUT','FIRMWARE_ACTIVATION_VERIFIED'):
+              assert marker in activation, marker
+          for marker in ('REBOOT {{ plan.target_version }}','Terza conferma esatta','Attivazione in corso','Aggiornamento verificato'):
+              assert marker in plan_page, marker
+          assert 'policy=read,test source=$nsmAgentSource' in activation
+          assert 'policy=read,write,test,sensitive,reboot source=$nsmAgentSource' in activation
+          assert 'nsmModernPolicy' in activation
+          assert '/system package update install' not in activation
+
+          # Reboot is allow-listed only in the activation module, never in generic planner/staging.
+          combined_safe = staging + planner
           for forbidden in ('/system package update install', '/system reboot', ':execute script=', 'command_b64'):
-              assert forbidden not in combined, forbidden
+              assert forbidden not in combined_safe, forbidden
+          for forbidden in (':execute script=', 'command_b64'):
+              assert forbidden not in activation, forbidden
+
           for marker in ('bodyless-v1','http-data=""','X-NSM-Legacy-Transport:headers-v1','X-NSM-Enrollment-Transport','_header_inventory'):
               assert marker in legacy, marker
           bootstrap_body = legacy.split('def _legacy_bootstrap_script', 1)[1].split('def _select_agent_source', 1)[0]
           assert 'nsmJson' not in bootstrap_body
           assert ':serialize' not in bootstrap_body and ':deserialize' not in bootstrap_body
+
           for marker in ('HEARTBEAT_STALE_AFTER','agent_transport','agent_version','DeviceAgentCredential','DeviceEnrollment'):
               assert marker in agent_status, marker
           for marker in ('href="/devices/{{ device.id }}/agent"','Rigenera / reinstalla agent','Capability effettive','Enrollment recenti'):
@@ -125,12 +143,13 @@ jobs:
           for marker in ('TITLE_NO_CREDENTIAL','TITLE_PENDING_ENROLLMENT','TITLE_UNKNOWN_TRANSPORT','AGENT_HEALTH_RECOVERED','recovery_notified_at'):
               assert marker in agent_health, marker
           assert 'agent_health_tick()' in worker
+          assert 'firmware_activation_tick()' in worker
           assert 'href="/operations/agents"' in base
           assert 'secret_hash' not in fleet_page
           assert 'raw_secret' not in fleet_page
           assert 'agent_credential.secret_hash' not in workspace
           assert 'raw_secret' not in workspace
-          print('Core 0.36 agent health automation, agent fleet and RouterOS safety contracts OK')
+          print('Core 0.37 safe firmware activation, adaptive RouterOS policy and prior safety contracts OK')
           PY
 
       - name: Prepare dummy runtime env for Compose validation
