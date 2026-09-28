@@ -59,7 +59,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.35.0'
+          assert app.version == '0.36.0'
           expected = {
               'dashboard': '/',
               'devices': '/devices',
@@ -86,7 +86,7 @@ jobs:
           print(f'Core {app.version}: application and canonical routes OK')
           PY
 
-      - name: Validate Core 0.35 safety contracts
+      - name: Validate Core 0.36 safety contracts
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -96,9 +96,15 @@ jobs:
           legacy = Path('app/app/mikrotik_legacy.py').read_text()
           agent_status = Path('app/app/mikrotik_agent_status.py').read_text()
           workspace = Path('app/app/templates/mikrotik_workspace.html').read_text()
+          agent_health = Path('app/app/agent_health.py').read_text()
+          health_actions = Path('app/app/agent_health_actions.py').read_text()
+          platform_maintenance = Path('app/app/platform_maintenance.py').read_text()
+          worker = Path('app/app/worker.py').read_text()
           agent_fleet = Path('app/app/agent_fleet.py').read_text()
           fleet_page = Path('app/app/templates/agent_fleet.html').read_text()
+          action_center = Path('app/app/templates/action_center.html').read_text()
           base = Path('app/app/templates/base.html').read_text()
+
           for marker in ('firmware_stage','DOWNLOAD {plan.target_version}','download_only','latest-version','/system package update download'):
               assert marker in staging, marker
           assert 'backup_run_id' in staging and 'status != "approved"' in staging
@@ -107,17 +113,30 @@ jobs:
           combined = staging + planner
           for forbidden in ('/system package update install', '/system reboot', ':execute script=', 'command_b64'):
               assert forbidden not in combined, forbidden
+
           for marker in ('bodyless-v1','http-data=""','X-NSM-Legacy-Transport:headers-v1','X-NSM-Enrollment-Transport','_header_inventory'):
               assert marker in legacy, marker
           bootstrap_body = legacy.split('def _legacy_bootstrap_script', 1)[1].split('def _select_agent_source', 1)[0]
           assert 'nsmJson' not in bootstrap_body
           assert ':serialize' not in bootstrap_body and ':deserialize' not in bootstrap_body
-          for marker in ('HEARTBEAT_STALE_AFTER','agent_transport','agent_version','DeviceAgentCredential','DeviceEnrollment'):
+
+          for marker in ('agent_transport','agent_version','DeviceAgentCredential','DeviceEnrollment'):
               assert marker in agent_status, marker
           for marker in ('href="/devices/{{ device.id }}/agent"','Rigenera / reinstalla agent','Capability effettive','Enrollment recenti'):
               assert marker in workspace, marker
-          for marker in ('PER_PAGE = 50','HEARTBEAT_STALE_AFTER','DeviceAgentCredential','DeviceEnrollment','/operations/agents'):
-              assert marker in agent_fleet, marker
+
+          for marker in ('AGENT_STALE_AFTER = timedelta(minutes=15)','classify_agent_health','transport_for_inventory','expects_agent','no_credential','unknown_transport'):
+              assert marker in agent_health, marker
+          assert 'classify_agent_health' in agent_fleet
+          assert 'HEARTBEAT_STALE_AFTER' not in agent_fleet
+          for marker in ('CATEGORY = "agent_health"','Heartbeat agent MikroTik stale','Agent MikroTik offline','Credenziale agent MikroTik assente','AGENT_HEALTH_ISSUE_OPENED','AGENT_HEALTH_ISSUE_RESOLVED'):
+              assert marker in health_actions, marker
+          for marker in ('schedule_due_backups','recover_stale_jobs','sync_agent_health','resolve_recovered_backup_issues','apply_retention'):
+              assert marker in platform_maintenance, marker
+          assert 'from app.platform_maintenance import maintenance_tick' in worker
+          assert 'from app.backup_maintenance import maintenance_tick' not in worker
+          assert "'agent_health'" in action_center
+
           for marker in ('Agent Fleet','Heartbeat stale','Credenziale assente','transport=legacy','/agent'):
               assert marker in fleet_page, marker
           assert 'href="/operations/agents"' in base
@@ -125,7 +144,7 @@ jobs:
           assert 'raw_secret' not in fleet_page
           assert 'agent_credential.secret_hash' not in workspace
           assert 'raw_secret' not in workspace
-          print('Core 0.35 agent fleet, agent diagnostics and RouterOS safety contracts OK')
+          print('Core 0.36 shared agent health, Action Center and RouterOS safety contracts OK')
           PY
 
       - name: Prepare dummy runtime env for Compose validation
