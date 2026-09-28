@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {% set title = device.display_name or device.device_identity or device.name %}
+{% set activation = (plan.precheck_data or {}).get('activation', {}) if plan else {} %}
 {% block title %}Piano firmware · {{ title }} · {{ app_name }}{% endblock %}
 {% block content %}
 <div class="breadcrumbs"><a href="/customers/{{ device.customer_id }}">{{ device.customer.name }}</a><span>›</span><a href="/devices/{{ device.id }}">{{ title }}</a><span>›</span><span>Piano firmware</span></div>
-<div class="page-header compact-heading"><div><h1>Piano aggiornamento RouterOS</h1><p>{{ title }} · workflow protetto da backup pre-upgrade, approvazione e staging separato.</p></div><div class="page-actions"><a class="button ghost" href="/operations/firmware">Firmware</a><a class="button ghost" href="/devices/{{ device.id }}">Apparato</a></div></div>
+<div class="page-header compact-heading"><div><h1>Piano aggiornamento RouterOS</h1><p>{{ title }} · backup pre-upgrade, approvazione, staging, attivazione e verifica post-reboot separati.</p></div><div class="page-actions"><a class="button ghost" href="/operations/firmware">Firmware</a><a class="button ghost" href="/devices/{{ device.id }}">Apparato</a></div></div>
 
 <section class="panel">
-  <div class="panel-header"><div><h2>Prerequisiti osservati</h2><p>Core 0.32 può scaricare i pacchetti approvati, ma non installa e non riavvia automaticamente il router.</p></div><span class="severity-badge severity-warning">DOWNLOAD ONLY</span></div>
+  <div class="panel-header"><div><h2>Prerequisiti osservati</h2><p>Core 0.37 attiva soltanto pacchetti già staged e considera riuscito l'upgrade solo dopo un heartbeat che riporta la versione target.</p></div><span class="severity-badge severity-warning">3 GATE + VERIFY</span></div>
   <div class="policy-summary six">
     <div><span>Installato</span><strong>{{ device.firmware_version or '—' }}</strong></div>
     <div><span>Target rilevato</span><strong>{{ readiness.get('latest_version') or device.recommended_firmware_version or '—' }}</strong></div>
@@ -15,6 +16,7 @@
     <div><span>RouterBOOT</span><strong>{{ readiness.get('routerboard_current') or device.routerboot_version or '—' }}</strong></div>
     <div><span>Agent transport</span><strong>{{ (device.inventory_data or {}).get('agent_transport') or 'non dichiarato' }}</strong></div>
   </div>
+  <div class="alert info"><strong>RouterBOOT separato.</strong> L'eventuale aggiornamento del bootloader non viene eseguito automaticamente insieme a RouterOS.</div>
 </section>
 
 {% if not plan %}
@@ -30,17 +32,19 @@
     <div><span>Staging avviato</span><strong>{{ fmt_dt(plan.started_at) if plan.started_at else '—' }}</strong></div>
     <div><span>Concluso</span><strong>{{ fmt_dt(plan.completed_at) if plan.completed_at else '—' }}</strong></div>
   </div>
+  {% if activation.get('accepted_at') %}<div class="alert info">Reboot accettato dall'agent: {{ activation.get('accepted_at') }}. NSM attende un inventario successivo al reboot prima di chiudere il piano.</div>{% endif %}
+  {% if activation.get('verified_at') %}<div class="alert success">Versione post-reboot verificata: {{ activation.get('observed_version') or plan.target_version }}.</div>{% endif %}
   {% if plan.last_error %}<div class="alert danger">{{ plan.last_error }}</div>{% endif %}
 </section>
 
 <section class="panel">
-  <div class="panel-header"><div><h2>Gate di sicurezza</h2><p>Ogni fase è separata e auditata. Lo staging non implica installazione o reboot.</p></div></div>
+  <div class="panel-header"><div><h2>Gate di sicurezza</h2><p>Ogni fase è separata e auditata. L'attivazione non viene considerata riuscita finché il router non torna online con il target previsto.</p></div></div>
   <div class="compact-list">
     <div class="compact-row"><span><strong>1. Readiness recente</strong><small>Versione target e prerequisiti osservati prima della creazione.</small></span><span class="status-pill">OK</span></div>
     <div class="compact-row"><span><strong>2. Backup off-device</strong><small>Backup NSM associato al piano: {{ plan.backup_run_id or '—' }}</small></span><span class="status-pill">{% if backup_run %}{{ backup_run.status }}{% else %}missing{% endif %}</span></div>
     <div class="compact-row"><span><strong>3. Approvazione operatore</strong><small>Richiede permission firmware.execute e conferma letterale del target.</small></span><span class="status-pill">{% if plan.approved_at %}approved{% else %}pending{% endif %}</span></div>
-    <div class="compact-row"><span><strong>4. Download pacchetti</strong><small>Core 0.32 ricontrolla il target sul MikroTik e può eseguire soltanto il download dei pacchetti.</small></span><span class="status-pill">{% if plan.status == 'staged' %}staged{% elif plan.status == 'staging' %}running{% else %}pending{% endif %}</span></div>
-    <div class="compact-row"><span><strong>5. Attivazione / reboot</strong><small>Disabilitata in Core 0.32. Nessun comando install/reboot viene inviato.</small></span><span class="status-pill">disabled</span></div>
+    <div class="compact-row"><span><strong>4. Download pacchetti</strong><small>Il target viene ricontrollato sul MikroTik prima del download.</small></span><span class="status-pill">{% if plan.status in ['staged','activation_pending','reboot_pending','success'] %}staged{% elif plan.status == 'staging' %}running{% else %}pending{% endif %}</span></div>
+    <div class="compact-row"><span><strong>5. Attivazione / reboot</strong><small>Richiede una terza conferma. L'agent invia l'ack al server prima del reboot; se l'ack fallisce il reboot viene annullato.</small></span><span class="status-pill">{% if plan.status == 'success' %}verified{% elif plan.status == 'reboot_pending' %}verifying{% elif plan.status == 'activation_pending' %}queued{% elif plan.status == 'staged' %}ready{% else %}pending{% endif %}</span></div>
   </div>
 </section>
 
@@ -57,7 +61,7 @@
 
 {% if plan.status == 'approved' and has_permission(user, 'firmware.execute') %}
 <section class="panel danger-zone">
-  <div class="panel-header"><div><h2>Scarica pacchetti RouterOS</h2><p>Il router ricontrollerà che latest-version coincida ancora con {{ plan.target_version }}. Questa azione esegue solo download, senza installazione o reboot.</p></div><span class="severity-badge severity-warning">DOWNLOAD ONLY</span></div>
+  <div class="panel-header"><div><h2>Scarica pacchetti RouterOS</h2><p>Il router ricontrollerà che latest-version coincida ancora con {{ plan.target_version }}. Questa azione esegue solo download, senza reboot.</p></div><span class="severity-badge severity-warning">DOWNLOAD ONLY</span></div>
   <form method="post" action="/devices/{{ device.id }}/firmware-upgrade/{{ plan.id }}/stage" class="stack-form">
     <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
     <label>Seconda conferma esatta<input name="confirmation" required autocomplete="off" placeholder="DOWNLOAD {{ plan.target_version }}"></label>
@@ -66,11 +70,26 @@
 </section>
 {% elif plan.status == 'staging' %}
 <div class="alert info">Download pacchetti in corso. L'agent aggiornerà il piano quando RouterOS restituisce l'esito.</div>
-{% elif plan.status == 'staged' %}
-<div class="alert success"><strong>Pacchetti scaricati.</strong> Il piano è in stato staged. L'attivazione/reboot resta intenzionalmente disabilitata in Core 0.32.</div>
 {% endif %}
 
-{% if plan.status not in ['staging','staged','executing','success','cancelled'] and has_permission(user, 'firmware.execute') %}
+{% if plan.status == 'staged' and has_permission(user, 'firmware.execute') %}
+<section class="panel danger-zone">
+  <div class="panel-header"><div><h2>Attiva pacchetti staged e riavvia</h2><p>Questa è la terza barriera. Dopo l'ack del server il MikroTik verrà riavviato per applicare i pacchetti già scaricati. NSM verificherà la versione solo quando l'agent tornerà online.</p></div><span class="severity-badge severity-critical">REBOOT</span></div>
+  <form method="post" action="/devices/{{ device.id }}/firmware-upgrade/{{ plan.id }}/activate" class="stack-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Terza conferma esatta<input name="confirmation" required autocomplete="off" placeholder="ACTIVATE {{ plan.target_version }}"></label>
+    <button class="button danger" type="submit">Attiva e riavvia MikroTik</button>
+  </form>
+</section>
+{% elif plan.status == 'activation_pending' %}
+<div class="alert info"><strong>Attivazione accodata.</strong> L'agent deve ancora eseguire il preflight e confermare al server il reboot.</div>
+{% elif plan.status == 'reboot_pending' %}
+<div class="alert info"><strong>Reboot atteso.</strong> L'agent ha confermato il preflight. Il piano resterà aperto finché un heartbeat post-reboot non riporterà RouterOS {{ plan.target_version }}.</div>
+{% elif plan.status == 'success' %}
+<div class="alert success"><strong>Upgrade verificato.</strong> Il MikroTik è tornato online e l'inventario riporta RouterOS {{ plan.target_version }}.</div>
+{% endif %}
+
+{% if plan.status not in ['staging','activation_pending','reboot_pending','success','cancelled'] and has_permission(user, 'firmware.execute') %}
 <section class="panel"><form method="post" action="/devices/{{ device.id }}/firmware-upgrade/{{ plan.id }}/cancel"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button danger" type="submit">Annulla piano</button></form></section>
 {% endif %}
 {% endif %}
