@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% set title = device.display_name or device.device_identity or device.name %}
+{% block title %}Cronologia configurazione · {{ title }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/customers/{{ device.customer.id }}">{{ device.customer.name }}</a><span>›</span><a href="/devices/{{ device.id }}">{{ title }}</a><span>›</span><a href="/devices/{{ device.id }}/configuration">Configurazione</a><span>›</span><span>Cronologia</span></div>
+<div class="page-header"><div><span class="eyebrow">MikroTik · configurazione</span><h1>Cronologia configurazione</h1><p>Export RouterOS archiviati, baseline approvata e variazioni rilevate automaticamente.</p></div><div class="page-actions"><a class="button ghost" href="/devices/{{ device.id }}/configuration">← Configurazione</a><a class="button" href="/customers/{{ device.customer.id }}/backups">Backup cliente</a></div></div>
+
+{% if request.query_params.get('baseline') == 'updated' %}<div class="alert success"><strong>Baseline aggiornata.</strong> Le prossime configurazioni verranno confrontate con questo export.</div>{% endif %}
+{% if drift_issue %}<div class="alert warning"><strong>Variazione configurazione da verificare.</strong> Sono state rilevate {{ (drift_issue.details or {}).get('added', 0) }} righe aggiunte e {{ (drift_issue.details or {}).get('removed', 0) }} rimosse rispetto alla {{ 'baseline approvata' if (drift_issue.details or {}).get('reference_kind') == 'baseline' else 'configurazione precedente' }}.</div>{% endif %}
+
+<section class="mt-kpi-grid">
+  <article class="metric-card"><span>Export archiviati</span><strong>{{ history|length }}</strong><small>ultimi 50</small></article>
+  <article class="metric-card"><span>Baseline</span><strong>{{ 'ATTIVA' if baseline_id else 'NON DEFINITA' }}</strong><small>{% if baseline_id %}<code>{{ baseline_id|string|truncate(13, true, '') }}</code>{% else %}approva un export noto{% endif %}</small></article>
+  <article class="metric-card"><span>Drift aperto</span><strong>{{ '1' if drift_issue else '0' }}</strong><small>{{ drift_issue.severity|upper if drift_issue else 'nessuna anomalia' }}</small></article>
+  <article class="metric-card"><span>Fonte</span><strong>.RSC</strong><small>backup testuale RouterOS</small></article>
+</section>
+
+<section class="panel"><div class="panel-header"><div><h2>Versioni configurazione</h2><p>Ogni riga rappresenta un export completato. Il confronto automatico ignora le intestazioni RouterOS variabili nel tempo.</p></div></div>
+{% if history %}<div class="table-wrap"><table class="data-table dense"><thead><tr><th>Data</th><th>File</th><th>SHA256</th><th>Variazione dal precedente</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>
+{% for row in history %}{% set a = row.artifact %}{% set s = row.summary %}<tr>
+<td>{{ fmt_dt(row.run.completed_at or a.created_at) }}</td>
+<td><strong>{{ a.filename }}</strong><small>{{ a.size_bytes or 0 }} byte</small></td>
+<td><code>{{ (a.sha256 or '—')[:12] }}</code></td>
+<td>{% if not row.previous %}<span class="muted">primo export</span>{% elif s and not s.get('error') %}{% if s.added or s.removed %}<span class="severity-badge severity-warning">+{{ s.added }} / -{{ s.removed }}</span>{% else %}<span class="severity-badge severity-info">nessuna modifica</span>{% endif %}{% else %}<span class="muted">non confrontabile</span>{% endif %}</td>
+<td>{% if baseline_id and baseline_id == a.id %}<span class="severity-badge severity-info">BASELINE</span>{% elif loop.first and drift_issue %}<span class="severity-badge severity-warning">DA VERIFICARE</span>{% else %}<span class="muted">archiviato</span>{% endif %}</td>
+<td class="row-actions"><a class="button ghost small" href="/operations/backups/artifacts/{{ a.id }}/view">Visualizza</a>{% if row.previous %}<a class="button ghost small" href="/operations/backups/artifacts/{{ a.id }}/view?against={{ row.previous.id }}">Diff</a>{% endif %}{% if has_permission(user, 'backup.configure') and (not baseline_id or baseline_id != a.id) %}<form method="post" action="/devices/{{ device.id }}/configuration/history/{{ a.id }}/baseline" class="inline-form"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button small">Imposta baseline</button></form>{% endif %}</td>
+</tr>{% endfor %}
+</tbody></table></div>{% else %}<div class="empty-state"><strong>Nessun export configurazione disponibile.</strong><br>La cronologia comparirà dopo il primo backup MikroTik con formato export `.rsc` attivo.</div>{% endif %}
+</section>
+{% endblock %}
