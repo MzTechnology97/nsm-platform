@@ -73,15 +73,27 @@ def seed():
                 )
             )
 
-        db.add(
-            DeviceEnrollment(
-                device_id=pending.id,
-                source="mikrotik_bootstrap",
-                token_hash="f" * 64,
-                status="pending",
-                expires_at=now + timedelta(minutes=30),
-                created_by_user_id=user.id,
-            )
+        db.add_all(
+            [
+                DeviceEnrollment(
+                    device_id=pending.id,
+                    source="mikrotik_bootstrap",
+                    token_hash="f" * 64,
+                    status="pending",
+                    expires_at=now + timedelta(minutes=30),
+                    created_by_user_id=user.id,
+                ),
+                # A healthy agent may also have a pending token while a guided
+                # reinstall is waiting to be pasted on the router.
+                DeviceEnrollment(
+                    device_id=modern.id,
+                    source="mikrotik_agent",
+                    token_hash="e" * 64,
+                    status="pending",
+                    expires_at=now + timedelta(minutes=30),
+                    created_by_user_id=user.id,
+                ),
+            ]
         )
         db.commit()
         return {
@@ -138,6 +150,7 @@ def main():
 
     pending = client.get("/operations/agents?state=pending")
     assert "CI35 Pending Enrollment" in pending.text
+    assert "CI35 Healthy Modern" in pending.text
     assert "token one-shot" in pending.text
 
     legacy = client.get("/operations/agents?state=all&transport=legacy")
