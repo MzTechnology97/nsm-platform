@@ -98,7 +98,7 @@ def _matches_health(row, state: str) -> bool:
     if state == "no_credential":
         return row["health"] == "no_credential"
     if state == "pending":
-        return row["health"] == "pending"
+        return row["pending_enrollments"] > 0
     if state == "unknown_transport":
         return row["health"] == "unknown_transport"
     return row["attention"]
