@@ -1,10 +1,18 @@
 # NSM Platform
 
-Multi-vendor operational, security, backup, lifecycle and evidence platform for ISP/WISP environments.
+Multi-vendor operational, security, backup, lifecycle and evidence platform focused primarily on **devices installed at customer premises and customer-serving edge locations**.
 
 NSM is designed to normalize device state across vendors while keeping vendor-specific execution behind explicit capability adapters. It complements NMS, UISP, ACS/TR-069 platforms and vendor tools rather than pretending every device exposes the same management functions.
 
 > **Documentation rule:** this README is a high-level project dashboard. Detailed current capabilities live in [`docs/IMPLEMENTED_CAPABILITIES.md`](docs/IMPLEMENTED_CAPABILITIES.md); remaining work lives in [`docs/NEXT_IMPLEMENTATIONS.md`](docs/NEXT_IMPLEMENTATIONS.md).
+
+## Product scope
+
+Current priority is **customer-side / customer-edge equipment management and tracking**, including inventory, health, configuration, backup, firmware, security, lifecycle, incidents and compliance evidence.
+
+The platform is **not currently intended to become a full ISP backbone/core management suite**. Features such as BGP optimization, OSPF/MPLS/VPLS engineering, POP topology analysis, backbone path simulation and traffic engineering are out of scope unless a future product decision explicitly changes this priority.
+
+See [`docs/PRODUCT_SCOPE_AND_PRIORITIES.md`](docs/PRODUCT_SCOPE_AND_PRIORITIES.md) for the durable scope decision and the planned Incident Timeline, Compliance Baseline and Scheduled Executive/NIS2 Reports capabilities.
 
 ## Project status
 
@@ -95,6 +103,7 @@ Legend:
 - [ ] Mature job cancel/retry/idempotency/result-rendering framework
 - [ ] Cross-vendor executable backup coverage and restore evidence
 - [ ] Multi-vendor firmware control plane
+- [ ] Incident Timeline / Root Cause for customer/device incidents
 
 ### Security and lifecycle
 
@@ -106,6 +115,7 @@ Legend:
 - [ ] Full remediation lifecycle and evidence
 - [ ] EOL/EOS source ingestion
 - [ ] Security/Lifecycle → Action Center automation
+- [ ] Compliance Baseline with vendor/capability-aware findings and exceptions
 
 ### Reports and compliance evidence
 
@@ -115,11 +125,13 @@ Legend:
 - [ ] CSV evidence exports beyond the existing Audit export where applicable
 - [ ] Archived report hashes and generation evidence
 - [ ] NIS2-oriented evidence packs
+- [ ] Scheduled Executive / NIS2 Reports with recurring generation and archived evidence
 
 ## Documentation
 
 | Document | Purpose |
 | --- | --- |
+| [`docs/PRODUCT_SCOPE_AND_PRIORITIES.md`](docs/PRODUCT_SCOPE_AND_PRIORITIES.md) | Customer-edge scope guardrail and durable priority decisions |
 | [`docs/IMPLEMENTED_CAPABILITIES.md`](docs/IMPLEMENTED_CAPABILITIES.md) | Only capabilities actually implemented in code |
 | [`docs/NEXT_IMPLEMENTATIONS.md`](docs/NEXT_IMPLEMENTATIONS.md) | Version-independent backlog of remaining work |
 | [`docs/PRODUCT_REQUIREMENTS.md`](docs/PRODUCT_REQUIREMENTS.md) | Durable product requirements and architecture decisions |
@@ -137,6 +149,8 @@ A development agent must not silently abandon an active objective and start anot
 - failing command/test/log;
 - files currently changed;
 - next concrete action required to resume.
+
+Before selecting a new roadmap item, development must also verify that the objective fits the current **customer-edge/customer-installed Device scope**. ISP backbone/core expansions require an explicit product decision.
 
 See [`docs/DEVELOPMENT_WORKFLOW.md`](docs/DEVELOPMENT_WORKFLOW.md) for the full continuation protocol.
 
