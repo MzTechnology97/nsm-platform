@@ -1,4 +1,4 @@
-"""NSM Core 0.43 application entrypoint."""
+"""NSM Core 0.44 application entrypoint."""
 from app import main as core
 from app import mikrotik_agent as mikrotik_agent_core
 from app.activity_route_precedence import install_activity_route_precedence
@@ -15,6 +15,7 @@ from app.backup_scope_guard import install_backup_scope_guard
 from app.backup_text_tools import install_backup_text_tools
 from app.backup_workspace_capabilities import install_backup_workspace_capabilities
 from app.branding_runtime import install_branding_runtime
+from app.config_drift import install_config_drift
 from app.crud_extension import install_crud
 from app.customer_drilldown import install_customer_drilldown
 from app.customer_tabs import install_customer_tabs
@@ -55,7 +56,7 @@ from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.43.0"
+APP_VERSION = "0.44.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -76,6 +77,7 @@ install_demo_ui(core.app)
 install_mikrotik_agent(core.app)
 install_mikrotik_backup(core.app)
 install_mikrotik_backup_agent(core.app)
+install_config_drift(core.app)
 install_mikrotik_snapshot_agent()
 install_mikrotik_diagnostics_agent()
 install_mikrotik_operational_tools()
@@ -108,23 +110,11 @@ install_branding_runtime(core.app)
 promote_device_csv_import_routes(core.app)
 install_activity_worklists(core.app)
 
-# Harden the final composed modern RouterOS source after every feature module
-# has injected its allow-listed handlers. This is deliberately last in the
-# agent-source chain so syntax regressions cannot hide in a later extension.
 install_mikrotik_modern_syntax_guard()
-
-# RouterOS 7.12-compatible bodyless bootstrap. Modern agents receive only the
-# additional RouterOS policies required by allow-listed backup/staging/reboot
-# operations; the 7.12 legacy transport remains read/test only.
 privileged_bootstrap = install_mikrotik_privilege_profile()
 mikrotik_agent_core._bootstrap_script = privileged_bootstrap
 core.app.include_router(mikrotik_legacy_router)
-
-# Allow-listed plain-text job transport for legacy RouterOS agents.
 install_mikrotik_legacy_jobs(core.app)
-
-# Final canonical route installers. These run after every incremental router so
-# FastAPI cannot select an older copied handler for the same path.
 install_activity_route_precedence(core.app)
 install_mikrotik_workspace_ux_precedence(core.app)
 
