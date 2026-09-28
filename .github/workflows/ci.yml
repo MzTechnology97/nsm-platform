@@ -54,7 +54,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.45.0'
+          assert app.version == '0.46.0'
           expected = {
               'dashboard': '/', 'devices': '/devices', 'admin_api_keys': '/admin/api-keys',
               'admin_uisp': '/admin/integrations/uisp', 'mikrotik_bootstrap': '/api/v1/enrollment/mikrotik/bootstrap',
@@ -73,13 +73,15 @@ jobs:
           assert str(app.url_path_for('routerboot_lifecycle_page', device_id=zero)) == f'/devices/{zero}/routerboot'
           assert str(app.url_path_for('mikrotik_agent_status', device_id=zero)) == f'/devices/{zero}/agent'
           assert str(app.url_path_for('mikrotik_interfaces', device_id=zero)) == f'/devices/{zero}/interfaces'
+          assert str(app.url_path_for('mikrotik_ip_addresses', device_id=zero)) == f'/devices/{zero}/ip-addresses'
+          assert str(app.url_path_for('mikrotik_routes', device_id=zero)) == f'/devices/{zero}/routes'
           assert str(app.url_path_for('mikrotik_configuration_v2', device_id=zero)) == f'/devices/{zero}/configuration'
           assert str(app.url_path_for('mikrotik_config_history', device_id=zero)) == f'/devices/{zero}/configuration/history'
           assert str(app.url_path_for('mikrotik_diagnostics_v2', device_id=zero)) == f'/devices/{zero}/diagnostics'
           assert str(app.url_path_for('mikrotik_diagnostic_result', device_id=zero, job_id=zero)) == f'/devices/{zero}/diagnostics/jobs/{zero}'
           print(f'Core {app.version}: application and canonical routes OK')
           PY
-      - name: Validate security and Core 0.45 contracts
+      - name: Validate security and Core 0.46 contracts
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -105,6 +107,9 @@ jobs:
           drift_page = Path('app/app/templates/mikrotik_config_history.html').read_text()
           interfaces = Path('app/app/mikrotik_interfaces.py').read_text()
           interfaces_page = Path('app/app/templates/mikrotik_interfaces.html').read_text()
+          network_health = Path('app/app/mikrotik_network_health.py').read_text()
+          ip_page = Path('app/app/templates/mikrotik_ip_addresses.html').read_text()
+          routes_page = Path('app/app/templates/mikrotik_routes.html').read_text()
 
           assert '/system package update download' in staging and '/system package update install' not in staging and '/system reboot' not in staging
           assert 'firmware_activate' in activation and '/system reboot' in activation and activation.index('/firmware-activate/') < activation.index('/system reboot')
@@ -140,13 +145,19 @@ jobs:
               assert marker in interfaces, marker
           for marker in ('Link e interfacce', 'Disabled', 'Aggiorna snapshot', 'Transport'):
               assert marker in interfaces_page, marker
+          for marker in ('_normalize_ip', '_normalize_route', 'routing-table', 'actual-interface', 'snapshot_supported'):
+              assert marker in network_health, marker
+          for marker in ('Indirizzi e interfacce', 'Dinamici', 'Aggiorna snapshot', 'Transport'):
+              assert marker in ip_page, marker
+          for marker in ('Routing table', 'Default route', 'Check gateway', 'Transport'):
+              assert marker in routes_page, marker
           for marker in ('PAGE_SIZES', 'ACTIVE_JOB_STATES', 'audit_events_export_csv', 'AUDIT_EVENTS_EXPORTED', 'limit(50000)'):
               assert marker in activity, marker
           for marker in ('Coda attiva', 'Storico operativo', 'per_page', 'from_date', 'to_date'):
               assert marker in device_activity, marker
           for marker in ('Esporta CSV', 'Registro eventi', 'customer', 'device', 'per_page'):
               assert marker in audit_page, marker
-          print('Core 0.45 safety, configuration drift, interface health and scalability contracts OK')
+          print('Core 0.46 safety, configuration drift, interface/IP/route health and scalability contracts OK')
           PY
       - name: Prepare dummy runtime env for Compose validation
         run: |
