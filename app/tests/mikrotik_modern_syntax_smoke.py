@@ -38,10 +38,16 @@ def main():
         'firmware_readiness',
         'firmware_stage',
         'firmware_activate',
-        'routerboot_upgrade',
+        'routerboot_stage',
+        'routerboot_reboot',
         'backup_mikrotik',
     ):
         assert marker in source, marker
+
+    # The hardening guard must also normalize empty fetch-result locals injected
+    # by later firmware/RouterBOOT handlers, not only nsmData.
+    assert ':local nsmAckResult {}' not in source
+    assert ':local nsmAckResult' in source
 
     # Non-empty RouterOS map literals must remain intact.
     assert ':set nsmData {"identity"=' in source
