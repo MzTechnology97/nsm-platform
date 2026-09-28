@@ -59,7 +59,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.37.0'
+          assert app.version == '0.38.0'
           expected = {
               'dashboard': '/',
               'devices': '/devices',
@@ -85,10 +85,15 @@ jobs:
           assert str(app.url_path_for('activate_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/activate'
           assert str(app.url_path_for('mikrotik_firmware_activation_ack', job_id=zero)) == f'/api/v1/agents/mikrotik/firmware-activate/{zero}/ack'
           assert str(app.url_path_for('mikrotik_agent_status', device_id=zero)) == f'/devices/{zero}/agent'
+          assert str(app.url_path_for('routerboot_lifecycle_page', device_id=zero)) == f'/devices/{zero}/routerboot'
+          assert str(app.url_path_for('stage_routerboot_upgrade', device_id=zero)) == f'/devices/{zero}/routerboot/stage'
+          assert str(app.url_path_for('reboot_for_routerboot_upgrade', device_id=zero)) == f'/devices/{zero}/routerboot/reboot'
+          assert str(app.url_path_for('mikrotik_routerboot_stage_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/routerboot-stage/{zero}/complete'
+          assert str(app.url_path_for('mikrotik_routerboot_reboot_ack', job_id=zero)) == f'/api/v1/agents/mikrotik/routerboot-reboot/{zero}/ack'
           print(f'Core {app.version}: application and canonical routes OK')
           PY
 
-      - name: Validate Core 0.37 safety contracts
+      - name: Validate Core 0.38 safety contracts
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -98,6 +103,8 @@ jobs:
           planner = Path('app/app/firmware_upgrade_planner.py').read_text()
           privilege_profile = Path('app/app/mikrotik_privilege_profile.py').read_text()
           plan_page = Path('app/app/templates/firmware_upgrade_plan.html').read_text()
+          routerboot = Path('app/app/routerboot_lifecycle.py').read_text()
+          routerboot_page = Path('app/app/templates/routerboot_lifecycle.html').read_text()
           legacy = Path('app/app/mikrotik_legacy.py').read_text()
           agent_status = Path('app/app/mikrotik_agent_status.py').read_text()
           workspace = Path('app/app/templates/mikrotik_workspace.html').read_text()
@@ -121,6 +128,16 @@ jobs:
           assert activation.index('/firmware-activate/') < activation.index('/system reboot')
           assert '/system routerboard upgrade' not in activation
           assert '/system package update install' not in activation
+
+          # Core 0.38 keeps RouterBOOT as an explicitly separate lifecycle.
+          for marker in ('STAGE_JOB = "routerboot_stage"','REBOOT_JOB = "routerboot_reboot"','ROUTERBOOT {target}','REBOOT ROUTERBOOT {target}','/system routerboard upgrade','/system reboot','VERIFY_TIMEOUT'):
+              assert marker in routerboot, marker
+          for marker in ('RouterBOOT lifecycle','Nessun auto-upgrade','Flash RouterBOOT','Riavvia e verifica RouterBOOT'):
+              assert marker in routerboot_page, marker
+          assert routerboot.index('/routerboot-reboot/') < routerboot.rindex('/system reboot')
+          assert 'auto-upgrade=yes' not in routerboot
+          assert '/system routerboard settings set auto-upgrade' not in routerboot
+          assert 'routerboot_verification_tick()' in worker
 
           # Planning/staging still cannot reboot or install by themselves.
           combined_pre_activation = staging + planner
@@ -160,7 +177,7 @@ jobs:
           assert 'raw_secret' not in fleet_page
           assert 'agent_credential.secret_hash' not in workspace
           assert 'raw_secret' not in workspace
-          print('Core 0.37 firmware activation, post-reboot verification and RouterOS safety contracts OK')
+          print('Core 0.38 RouterOS + RouterBOOT separated lifecycle safety contracts OK')
           PY
 
       - name: Prepare dummy runtime env for Compose validation

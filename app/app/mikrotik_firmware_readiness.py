@@ -73,6 +73,15 @@ def apply_firmware_readiness(db, device: Device, result: dict, *, source: str):
     if rb_current:
         device.routerboot_version = rb_current
     device.inventory_last_verified_at = utcnow()
+
+    # Core 0.38: a fresh read-only readiness result is also the authoritative
+    # post-reboot verifier for the separately gated RouterBOOT lifecycle.
+    try:
+        from app.routerboot_lifecycle import reconcile_from_readiness
+        reconcile_from_readiness(db, device, data["firmware_readiness"])
+    except ImportError:
+        pass
+
     return data["firmware_readiness"]
 
 

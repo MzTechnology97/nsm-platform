@@ -261,11 +261,14 @@ def main():
 
     source = agent_module._agent_source("https://nsm.example.net", device_id, raw_secret, True)
     assert 'nsmJobType = "firmware_activate"' in source
-    assert "/firmware-activate/" in source
-    assert "/system reboot" in source
-    assert source.index("firmware-activate/") < source.index("/system reboot")
-    assert "/system routerboard upgrade" not in source
-    assert "/system package update install" not in source
+    activation_start = source.index('nsmJobType = "firmware_activate"')
+    activation_end = source.index('nsmJobType = "backup_mikrotik"', activation_start)
+    activation_source = source[activation_start:activation_end]
+    assert "/firmware-activate/" in activation_source
+    assert "/system reboot" in activation_source
+    assert activation_source.index("firmware-activate/") < activation_source.index("/system reboot")
+    assert "/system routerboard upgrade" not in activation_source
+    assert "/system package update install" not in activation_source
 
     # Bodyless bootstrap selects modern elevated policies only when the returned
     # agent source includes the modern activation handler. Legacy remains read/test.

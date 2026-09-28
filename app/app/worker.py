@@ -10,6 +10,7 @@ from app.backup_scheduler_capability_guard import install_backup_scheduler_capab
 from app.config import settings
 from app.firmware_activation import reconcile_firmware_activations
 from app.mikrotik_telemetry import telemetry_cleanup
+from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
 
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
 log = logging.getLogger("worker")
@@ -30,12 +31,15 @@ while True:
             stats = maintenance_tick()
             agent_stats = agent_health_tick()
             firmware_stats = reconcile_firmware_activations()
+            routerboot_stats = routerboot_verification_tick()
             if any(stats.values()):
                 log.info("Backup maintenance: %s", stats)
             if any(agent_stats.values()):
                 log.info("Agent health automation: %s", agent_stats)
             if firmware_stats.get("success") or firmware_stats.get("failed"):
                 log.info("Firmware activation verification: %s", firmware_stats)
+            if any(routerboot_stats.values()):
+                log.info("RouterBOOT verification: %s", routerboot_stats)
             last_maintenance = now_mono
 
         if now_mono - last_telemetry_maintenance >= TELEMETRY_MAINTENANCE_INTERVAL_SECONDS:
