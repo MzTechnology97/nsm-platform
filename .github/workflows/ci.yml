@@ -137,7 +137,8 @@ jobs:
               assert marker in modern_syntax, marker
           assert 'invalid RouterOS empty local initializer survived' in modern_syntax_test
           assert 'firmware_activate' in modern_syntax_test
-          assert 'routerboot_upgrade' in modern_syntax_test
+          assert 'routerboot_stage' in modern_syntax_test
+          assert 'routerboot_reboot' in modern_syntax_test
 
           # Core 0.39 worklists remain paginated/filterable and export respects filters.
           for marker in ('PAGE_SIZES', 'ACTIVE_JOB_STATES', 'audit_events_export_csv', 'AUDIT_EVENTS_EXPORTED', 'limit(50000)'):
