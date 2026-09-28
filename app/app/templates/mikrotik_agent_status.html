@@ -47,7 +47,7 @@
     {% endif %}
 
     <section class="panel">
-      <div class="panel-header"><div><h2>Verifica installazione</h2><p>Ogni fase prova un punto diverso del percorso RouterOS → NSM. Il pairing da solo non viene considerato prova che lo script agent sia partito.</p></div><span class="severity-badge {% if agent_installation.severity == 'critical' %}severity-critical{% elif agent_installation.severity == 'warning' %}severity-warning{% elif agent_installation.severity == 'success' %}severity-low{% else %}severity-info{% endif %}">{{ agent_installation.key|replace('_',' ')|upper }}</span></div>
+      <div class="panel-header"><div><h2>Verifica installazione</h2><p>Pipeline: Token creato → Pairing one-shot → Credenziale per-device → Heartbeat post-installazione. Ogni fase prova un punto diverso del percorso RouterOS → NSM; il pairing da solo non dimostra che lo script agent sia partito.</p></div><span class="severity-badge {% if agent_installation.severity == 'critical' %}severity-critical{% elif agent_installation.severity == 'warning' %}severity-warning{% elif agent_installation.severity == 'success' %}severity-low{% else %}severity-info{% endif %}">{{ agent_installation.key|replace('_',' ')|upper }}</span></div>
       <div class="compact-list">
         {% for step in agent_installation.steps %}
         <div class="compact-row">
