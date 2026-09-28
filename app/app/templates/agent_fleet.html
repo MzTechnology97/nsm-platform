@@ -55,7 +55,7 @@
   <div class="panel-header"><div><h2>Agenti MikroTik</h2><p>{{ total }} risultati. Pairing e avvio agent sono verificati separatamente: un token consumato non equivale a un heartbeat post-installazione.</p></div></div>
   {% if rows %}
   <div class="table-wrap"><table class="data-table compact-data-table">
-    <thead><tr><th>Apparato</th><th>Cliente / sede</th><th>Installazione</th><th>Transport</th><th>Salute</th><th>Heartbeat</th><th>Credenziale</th><th>Origine</th><th>Azioni</th></tr></thead>
+    <thead><tr><th>Apparato</th><th>Cliente / sede</th><th>Installazione</th><th>Transport</th><th>Salute</th><th>Heartbeat post-installazione</th><th>Credenziale</th><th>Origine</th><th>Azioni</th></tr></thead>
     <tbody>
     {% for row in rows %}{% set d = row.device %}
       <tr>
