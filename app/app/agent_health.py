@@ -29,16 +29,18 @@ def transport_for_inventory(inventory: dict) -> str:
 
 
 def contact_reference(device, credential):
-    """Return the freshest authenticated agent contact known to the platform."""
-    candidates = [aware(getattr(device, "last_seen", None))]
-    if credential is not None:
-        candidates.extend(
-            [
-                aware(getattr(credential, "last_used_at", None)),
-                aware(getattr(credential, "created_at", None)),
-            ]
-        )
-    return max((value for value in candidates if value is not None), default=None)
+    """Return the authoritative heartbeat/contact timestamp.
+
+    ``Device.last_seen`` is populated by heartbeat and wins whenever present.
+    Credential usage is a fallback for historical agents that predate that
+    field; job/API traffic must not hide a stale heartbeat.
+    """
+    last_seen = aware(getattr(device, "last_seen", None))
+    if last_seen is not None:
+        return last_seen
+    if credential is None:
+        return None
+    return aware(getattr(credential, "last_used_at", None)) or aware(getattr(credential, "created_at", None))
 
 
 def classify_agent_health(device, credential, pending_count: int, now):
