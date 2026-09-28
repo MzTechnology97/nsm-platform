@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse
 from app import main as core
 from app.db import SessionLocal
 from app import mikrotik_workspace as workspace
-from app.mikrotik_workspace_ux import agent_transport, human_bytes
+from app.mikrotik_workspace_ux import human_bytes
 
 router = APIRouter()
 
@@ -77,7 +77,7 @@ def interfaces_page(request: Request, device_id: uuid.UUID, q: str = "", state: 
         device = workspace._load_device(db, device_id)
         if device.vendor != "mikrotik":
             raise HTTPException(404)
-        ctx = workspace._workspace_context(db, device)
+        ctx = dict(workspace._workspace_context(db, device))
         snapshot = ctx.get("snapshots", {}).get("interfaces")
         all_rows = _all_rows(snapshot)
         stats = {
@@ -86,18 +86,15 @@ def interfaces_page(request: Request, device_id: uuid.UUID, q: str = "", state: 
             "down": sum(1 for item in all_rows if item["state"] == "down"),
             "disabled": sum(1 for item in all_rows if item["state"] == "disabled"),
         }
-        return core.render(
-            request, db, user, "mikrotik_interfaces.html",
-            device=device,
-            rows=_rows(snapshot, q=q, state=state),
-            stats=stats,
-            snapshot=snapshot,
-            q=q,
-            state=state,
-            agent_transport=agent_transport(device),
-            snapshot_supported=agent_transport(device) == "modern",
-            **ctx,
-        )
+        ctx.update({
+            "device": device,
+            "rows": _rows(snapshot, q=q, state=state),
+            "stats": stats,
+            "snapshot": snapshot,
+            "q": q,
+            "state": state,
+        })
+        return core.render(request, db, user, "mikrotik_interfaces.html", **ctx)
 
 
 def install_mikrotik_interfaces(app):
