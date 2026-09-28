@@ -29,6 +29,26 @@ def _aware(value):
     return value
 
 
+def _historical_credential_activity(credential, history, now):
+    """Return recent heartbeat evidence for pre-install-verification agents.
+
+    Before Core 0.41 some agents updated ``credential.last_used_at`` without
+    persisting ``device.last_seen`` or enrollment history. That signal remains
+    valid only when no retained enrollment history exists. New pairings must
+    still prove a real post-pairing heartbeat through ``_installation_state``.
+    """
+    if not credential or history:
+        return False
+    created_at = _aware(credential.created_at)
+    last_used_at = _aware(credential.last_used_at)
+    if not created_at or not last_used_at:
+        return False
+    return bool(
+        last_used_at > created_at + timedelta(seconds=1)
+        and last_used_at > now - HEARTBEAT_STALE_AFTER
+    )
+
+
 def _open_issue(db, device, title: str, message: str, *, severity: str, details: dict | None = None):
     payload = dict(details or {})
     payload["message"] = message
@@ -222,6 +242,7 @@ def sync_agent_attention(db, now):
         credential = credentials.get(device.id)
         history = enrollment_history.get(device.id, [])
         installation = _installation_state(device, credential, history)
+        historical_activity = _historical_credential_activity(credential, history, now)
         pending = [
             item
             for item in history
@@ -287,7 +308,7 @@ def sync_agent_attention(db, now):
         changed += _resolve_issue(db, device, TITLE_PENDING_ENROLLMENT, now)
         changed += _resolve_issue(db, device, TITLE_TOKEN_EXPIRED, now)
 
-        if installation["key"] in {"install_suspect", "credential_no_heartbeat"}:
+        if installation["key"] in {"install_suspect", "credential_no_heartbeat"} and not historical_activity:
             changed += int(
                 _open_issue(
                     db,
@@ -308,11 +329,16 @@ def sync_agent_attention(db, now):
         inventory = dict(device.inventory_data or {})
         transport = _transport(inventory)
         last_seen = _aware(device.last_seen)
-        healthy_heartbeat = bool(
+        post_pairing_heartbeat = bool(
             installation.get("heartbeat_after_pairing")
             and last_seen
             and last_seen > now - HEARTBEAT_STALE_AFTER
         )
+        healthy_heartbeat = post_pairing_heartbeat or historical_activity
+        observed_heartbeat = last_seen
+        if historical_activity and not observed_heartbeat:
+            observed_heartbeat = _aware(credential.last_used_at)
+
         if transport == "unknown" and healthy_heartbeat:
             changed += int(
                 _open_issue(
@@ -323,7 +349,8 @@ def sync_agent_attention(db, now):
                     severity="warning",
                     details={
                         "agent_version": inventory.get("agent_version"),
-                        "last_heartbeat": last_seen.isoformat() if last_seen else None,
+                        "last_heartbeat": observed_heartbeat.isoformat() if observed_heartbeat else None,
+                        "heartbeat_evidence": "credential_last_used" if historical_activity and not post_pairing_heartbeat else "device_last_seen",
                     },
                 )
             )
