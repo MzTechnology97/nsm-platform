@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Audit eventi · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><span class="eyebrow">Audit</span><h1>Eventi</h1><p>Registro operativo filtrabile, paginato ed esportabile.</p></div><div class="page-actions"><a class="button ghost" href="{{ export_url }}">Esporta CSV</a></div></div>
+
+<section class="panel">
+  <form class="filter-bar" method="get" action="/audit/events">
+    <input name="q" value="{{ filters.q }}" placeholder="Cerca evento, fonte, esito o dettagli">
+    <select name="event_type"><option value="">Tutti gli eventi</option>{% for item in event_types %}<option value="{{ item }}" {% if filters.event_type == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+    <select name="result"><option value="">Tutti gli esiti</option>{% for item in ['success','failed','warning','denied'] %}<option value="{{ item }}" {% if filters.result == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+    <select name="severity"><option value="">Tutte le severità</option>{% for item in ['critical','high','warning','medium','low','info'] %}<option value="{{ item }}" {% if filters.severity == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+    <select name="customer"><option value="">Tutti i clienti</option>{% for customer in customers %}<option value="{{ customer.id }}" {% if filters.customer == customer.id|string %}selected{% endif %}>{{ customer.name }}</option>{% endfor %}</select>
+    <input name="device" value="{{ filters.device }}" placeholder="Apparato: nome, seriale, MAC o IP">
+    <input type="date" name="from_date" value="{{ filters.from_date }}" title="Da">
+    <input type="date" name="to_date" value="{{ filters.to_date }}" title="A">
+    <select name="per_page">{% for n in [25,50,100] %}<option value="{{ n }}" {% if pager.per_page == n %}selected{% endif %}>{{ n }}/pag</option>{% endfor %}</select>
+    <button class="button primary" type="submit">Filtra</button>
+    <a class="button ghost" href="/audit/events">Reset</a>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Registro eventi</h2><p>{{ pager.total }} eventi con i filtri correnti.</p></div><span class="status-pill">Pagina {{ pager.page }}/{{ pager.pages }}</span></div>
+  {% if events %}
+  <div class="table-wrap"><table class="data-table dense"><thead><tr><th>Quando</th><th>Evento</th><th>Severità</th><th>Esito</th><th>Cliente</th><th>Apparato</th><th>Fonte</th><th>Dettagli</th></tr></thead><tbody>
+  {% for event in events %}
+    {% set customer = customer_map.get(event.customer_id) %}{% set device = device_map.get(event.device_id) %}
+    <tr>
+      <td>{{ fmt_dt(event.timestamp) }}</td>
+      <td><code>{{ event.event_type }}</code></td>
+      <td><span class="severity-badge severity-{{ event.severity }}">{{ event.severity }}</span></td>
+      <td><span class="status-pill">{{ event.result }}</span></td>
+      <td>{% if customer %}<a class="text-link" href="/customers/{{ customer.id }}">{{ customer.name }}</a>{% else %}—{% endif %}</td>
+      <td>{% if device %}<a class="text-link" href="/devices/{{ device.id }}">{{ device.display_name or device.device_identity or device.id }}</a>{% else %}—{% endif %}</td>
+      <td>{{ event.source }}</td>
+      <td><code>{{ (event.details or {})|string|truncate(180) }}</code></td>
+    </tr>
+  {% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty-state">Nessun evento corrisponde ai filtri selezionati.</div>{% endif %}
+
+  <div class="pagination-bar"><span>{{ pager.total }} risultati · pagina {{ pager.page }} di {{ pager.pages }}</span><div class="page-actions">{% if pager.prev_url %}<a class="button ghost" href="{{ pager.prev_url }}">← Precedente</a>{% endif %}{% if pager.next_url %}<a class="button ghost" href="{{ pager.next_url }}">Successiva →</a>{% endif %}</div></div>
+</section>
+{% endblock %}
