@@ -8,20 +8,22 @@
   <aside class="mt-device-summary panel">
     <div class="mt-summary-title"><div><span class="eyebrow">MikroTik</span><h1>{{ title }}</h1></div><span class="device-status status-{{ device.status }}">{{ status_label(device.status) }}</span></div>
     <dl class="mt-summary-list">
-      <div><dt>Identity</dt><dd>{{ device.device_identity or '—' }}</dd></div><div><dt>Modello</dt><dd>{{ device.model or '—' }}</dd></div><div><dt>RouterOS</dt><dd>{{ device.firmware_version or '—' }}</dd></div><div><dt>Seriale</dt><dd><code>{{ device.serial_number or '—' }}</code></dd></div><div><dt>IP gestione</dt><dd><code>{{ device.management_ip or inventory.get('last_source_ip') or '—' }}</code></dd></div><div><dt>Sede</dt><dd>{{ device.site.name if device.site else '—' }}</dd></div><div><dt>Ultimo contatto</dt><dd>{{ fmt_dt(device.last_seen) }}</dd></div>
+      <div><dt>Identity</dt><dd>{{ device.device_identity or '—' }}</dd></div><div><dt>Modello</dt><dd>{{ device.model or '—' }}</dd></div><div><dt>RouterOS</dt><dd>{{ device.firmware_version or '—' }}</dd></div><div><dt>Seriale</dt><dd><code>{{ device.serial_number or '—' }}</code></dd></div><div><dt>MAC</dt><dd><code>{{ device.primary_mac or '—' }}</code></dd></div><div><dt>IP gestione</dt><dd><code>{{ device.management_ip or inventory.get('last_source_ip') or '—' }}</code></dd></div><div><dt>Sede</dt><dd>{{ device.site.name if device.site else '—' }}</dd></div><div><dt>Ultimo contatto</dt><dd>{{ fmt_dt(device.last_seen) }}</dd></div>
     </dl>
     <div class="mt-agent-state"><span class="mt-state-dot {% if device.status == 'online' %}online{% endif %}"></span><div><small>NSM Agent</small><strong>{{ inventory.get('agent_version') or 'Non rilevato' }}</strong></div></div>
   </aside>
   <main class="mt-device-main">
-    <nav class="mt-device-tabs"><a href="/devices/{{ device.id }}">Panoramica</a><a class="active" href="/devices/{{ device.id }}/monitor">Monitor</a><a href="/devices/{{ device.id }}/configuration">Configurazione</a><a href="/devices/{{ device.id }}/diagnostics">Diagnostica</a><a href="/devices/{{ device.id }}/jobs">Job & attività</a></nav>
+    <nav class="mt-device-tabs"><a href="/devices/{{ device.id }}">Panoramica</a><a class="active" href="/devices/{{ device.id }}/monitor">Monitor</a><a href="/devices/{{ device.id }}/configuration">Configurazione</a><a href="/devices/{{ device.id }}/diagnostics">Diagnostica</a><a href="/devices/{{ device.id }}/agent">Agent</a><a href="/devices/{{ device.id }}/jobs">Job & attività</a></nav>
 
     <section class="mt-kpi-grid">
-      <article class="metric-card"><span>CPU load</span><strong data-live-cpu>{{ latest_metric.cpu_load|round(1) if latest_metric and latest_metric.cpu_load is not none else metrics.get('cpu_load','—') }}{% if latest_metric and latest_metric.cpu_load is not none %}%{% endif %}</strong><small>ultimo campione</small></article>
-      <article class="metric-card"><span>Memoria utilizzata</span><strong data-live-memory>{% if latest_metric and latest_metric.free_memory_bytes is not none and latest_metric.total_memory_bytes %}{{ ((1-latest_metric.free_memory_bytes/latest_metric.total_memory_bytes)*100)|round(1) }}%{% else %}—{% endif %}</strong><small>calcolata da memoria libera/totale</small></article>
+      {% set cpu_value = latest_metric.cpu_load if latest_metric and latest_metric.cpu_load is not none else metrics.get('cpu_load') %}
+      <article class="metric-card"><span>CPU load</span><strong data-live-cpu>{{ cpu_value|round(1) if cpu_value is number else (cpu_value or '—') }}{% if cpu_value is not none %}%{% endif %}</strong><small>ultimo campione</small></article>
+      <article class="metric-card"><span>Memoria utilizzata</span><strong data-live-memory>{% if latest_metric and latest_metric.free_memory_bytes is not none and latest_metric.total_memory_bytes %}{{ ((1-latest_metric.free_memory_bytes/latest_metric.total_memory_bytes)*100)|round(1) }}%{% elif metrics.get('memory_used_percent') is not none %}{{ metrics.get('memory_used_percent') }}%{% else %}—{% endif %}</strong><small>{% if metrics.get('free_memory') %}libera {{ metrics.get('free_memory') }}{% else %}calcolata da memoria libera/totale{% endif %}</small></article>
       <article class="metric-card"><span>Uptime</span><strong data-live-uptime>{{ latest_metric.uptime_text if latest_metric else metrics.get('uptime','—') }}</strong><small>RouterOS</small></article>
       <article class="metric-card"><span>Heartbeat</span><strong>{{ fmt_dt(device.last_seen) }}</strong><small>poll agent</small></article>
     </section>
 
+    {% if telemetry_history_supported %}
     <section class="panel telemetry-panel" data-telemetry-root data-endpoint="/api/v1/devices/{{ device.id }}/metrics">
       <div class="panel-header"><div><h2>Telemetria risorse</h2><p>Serie storiche acquisite dall'agent. Retention 90 giorni.</p></div><div class="telemetry-ranges" role="group" aria-label="Intervallo telemetria"><button type="button" data-range="1h">1h</button><button type="button" data-range="24h" class="active">24h</button><button type="button" data-range="7d">7g</button><button type="button" data-range="30d">30g</button></div></div>
       <div class="telemetry-grid">
@@ -30,12 +32,15 @@
       </div>
       <div class="telemetry-footer"><span data-telemetry-samples>0 campioni</span><span>Ultimo aggiornamento <b data-telemetry-updated>—</b></span><button type="button" class="button ghost" data-telemetry-refresh>↻ Aggiorna</button></div>
     </section>
+    {% else %}
+    <section class="panel"><div class="panel-header"><div><h2>Telemetria storica</h2><p>Le metriche istantanee sopra restano disponibili.</p></div><span class="severity-badge severity-warning">NON DISP.</span></div><div class="alert info"><strong>Storico non supportato dal transport {{ agent_transport|upper }}.</strong> {{ legacy_capability_reason or 'Installare un agent moderno compatibile per acquisire serie storiche.' }}</div></section>
+    {% endif %}
 
-    <section class="panel"><div class="panel-header"><div><h2>Warning ed errori dispositivo</h2><p>Snapshot read-only del buffer RouterOS acquisito dall'agent.</p></div><form method="post" action="/devices/{{ device.id }}/snapshot/logs"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Aggiorna log</button></form></div>
+    <section class="panel"><div class="panel-header"><div><h2>Warning ed errori dispositivo</h2><p>Snapshot read-only del buffer RouterOS acquisito dall'agent.</p></div>{% if snapshot_supported %}<form method="post" action="/devices/{{ device.id }}/snapshot/logs"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Aggiorna log</button></form>{% endif %}</div>
       {% set logjob = snapshots.get('logs') %}{% set logdata = (logjob.result or {}).get('data', []) if logjob else [] %}
-      {% if logdata %}<div class="mt-log-list">{% for row in logdata %}<div class="mt-log-row"><span class="severity-badge {% if 'error' in (row.get('topics','')|string) or 'critical' in (row.get('topics','')|string) %}severity-critical{% else %}severity-warning{% endif %}">{{ row.get('topics','log') }}</span><code>{{ row.get('time','') }}</code><span>{{ row.get('message','') }}</span></div>{% endfor %}</div>{% elif 'logs' in pending_sections %}<div class="empty-state">Aggiornamento log in coda.</div>{% else %}<div class="empty-state">Nessuno snapshot log disponibile.</div>{% endif %}
+      {% if logdata %}<div class="mt-log-list">{% for row in logdata %}<div class="mt-log-row"><span class="severity-badge {% if 'error' in (row.get('topics','')|string) or 'critical' in (row.get('topics','')|string) %}severity-critical{% else %}severity-warning{% endif %}">{{ row.get('topics','log') }}</span><code>{{ row.get('time','') }}</code><span>{{ row.get('message','') }}</span></div>{% endfor %}</div>{% elif 'logs' in pending_sections %}<div class="empty-state">Aggiornamento log in coda.</div>{% elif not snapshot_supported %}<div class="empty-state">Lo snapshot strutturato dei log non è disponibile sul transport legacy. Usa “Diagnostica → Log dispositivo”, che resta supportato.</div>{% else %}<div class="empty-state">Nessuno snapshot log disponibile.</div>{% endif %}
     </section>
   </main>
 </div>
-<script defer src="{{ url_for('static', path='/telemetry_monitor.js') }}?v={{ app_version }}"></script>
+{% if telemetry_history_supported %}<script defer src="{{ url_for('static', path='/telemetry_monitor.js') }}?v={{ app_version }}"></script>{% endif %}
 {% endblock %}
