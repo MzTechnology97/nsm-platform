@@ -22,6 +22,7 @@ from app.demo_ui import install_demo_ui
 from app.device_csv_import import install_device_csv_import
 from app.device_csv_route_precedence import promote_device_csv_import_routes
 from app.firmware_activation import install_firmware_activation
+from app.firmware_activation_privilege_guard import install_firmware_activation_privilege_guard
 from app.firmware_package_staging import install_firmware_package_staging
 from app.firmware_upgrade_planner import install_firmware_upgrade_planner
 from app.firmware_worklist import install_firmware_worklist
@@ -75,6 +76,7 @@ install_mikrotik_operational_tools()
 install_mikrotik_firmware_readiness(core.app)
 install_firmware_package_staging(core.app)
 install_firmware_activation(core.app)
+install_firmware_activation_privilege_guard()
 install_firmware_upgrade_planner(core.app)
 install_agent_ui(core.app)
 install_uisp_connector(core.app)
