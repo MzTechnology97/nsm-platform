@@ -139,6 +139,46 @@
     document.addEventListener('click', (event) => { if (searchWrap && !searchWrap.contains(event.target)) closeSuggestions(); });
   }
 
+  // RouterOS onboarding commands must be copied byte-for-byte from the rendered
+  // text. Replace the legacy inline onclick with a controlled clipboard flow and
+  // visible feedback. execCommand is retained only as a browser fallback.
+  const enrollmentCommand = document.getElementById('enrollment-command');
+  const enrollmentCopyButton = enrollmentCommand ? enrollmentCommand.closest('.command-box')?.querySelector('button') : null;
+  if (enrollmentCommand && enrollmentCopyButton) {
+    enrollmentCopyButton.onclick = null;
+    const originalLabel = enrollmentCopyButton.textContent.trim() || 'Copia comando';
+    let feedbackTimer = null;
+    function setCopyFeedback(label) {
+      enrollmentCopyButton.textContent = label;
+      clearTimeout(feedbackTimer);
+      feedbackTimer = setTimeout(() => { enrollmentCopyButton.textContent = originalLabel; }, 1800);
+    }
+    async function copyEnrollmentCommand() {
+      const text = enrollmentCommand.textContent || '';
+      if (!text) { setCopyFeedback('Comando vuoto'); return; }
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const area = document.createElement('textarea');
+          area.value = text;
+          area.setAttribute('readonly', '');
+          area.style.position = 'fixed';
+          area.style.opacity = '0';
+          document.body.appendChild(area);
+          area.select();
+          const copied = document.execCommand('copy');
+          area.remove();
+          if (!copied) throw new Error('copy fallback failed');
+        }
+        setCopyFeedback('Copiato');
+      } catch (error) {
+        setCopyFeedback('Copia non riuscita');
+      }
+    }
+    enrollmentCopyButton.addEventListener('click', copyEnrollmentCommand);
+  }
+
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { closeMobileSidebar(); closeSuggestions(); } });
   let resizeTimer;
   window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { closeMobileSidebar(); applyDesktopPreference(); }, 80); });
