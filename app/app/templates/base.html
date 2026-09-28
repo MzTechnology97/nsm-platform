@@ -53,6 +53,7 @@
       <a class="nav-item {% if request.url.path.startswith('/devices') %}active{% endif %}" href="/devices"><span class="nav-icon">▣</span><span class="nav-label">Apparati</span></a>
       <div class="nav-section">Operations</div>
       <a class="nav-item {% if request.url.path.startswith('/operations/monitoring') %}active{% endif %}" href="/operations/monitoring"><span class="nav-icon">⌁</span><span class="nav-label">Monitoring</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/operations/agents') %}active{% endif %}" href="/operations/agents"><span class="nav-icon">◉</span><span class="nav-label">Agent Fleet</span></a>
       <a class="nav-item {% if request.url.path.startswith('/operations/backups') %}active{% endif %}" href="/operations/backups"><span class="nav-icon">⇩</span><span class="nav-label">Backup</span></a>
       <a class="nav-item {% if request.url.path.startswith('/operations/firmware') %}active{% endif %}" href="/operations/firmware"><span class="nav-icon">↻</span><span class="nav-label">Firmware</span></a>
       <div class="nav-section">Security</div>
