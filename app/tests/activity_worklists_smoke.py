@@ -64,12 +64,12 @@ def main():
     assert jobs.status_code == 200
     assert "Coda attiva" in jobs.text
     assert "65 risultati filtrati" in jobs.text
-    assert "Pagina 1/3" in jobs.text
+    assert ">1/3<" in jobs.text
     assert "CI39-JOB-64" in jobs.text
 
     page3 = client.get(f"/devices/{device_id}/jobs", params={"per_page": 25, "page": 3})
     assert page3.status_code == 200
-    assert "Pagina 3/3" in page3.text
+    assert ">3/3<" in page3.text
 
     failed = client.get(f"/devices/{device_id}/jobs", params={"status": "failed", "q": "CI39 simulated failure"})
     assert failed.status_code == 200
