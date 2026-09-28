@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 from app import main as core
+from app import mikrotik_workspace as workspace
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
 from app.mikrotik_workspace import _load_device
@@ -118,12 +119,29 @@ def normalize_workspace_context(device, ctx: dict):
     metrics = dict(ctx.get("metrics") or {})
     free = metrics.get("free_memory", inventory.get("free_memory"))
     total = metrics.get("total_memory", inventory.get("total_memory"))
-    ctx["display_mac"] = observed_mac(device, inventory)
+    display_mac = observed_mac(device, inventory)
+    ctx["display_mac"] = display_mac
     ctx["display_cpu"] = percent(metrics.get("cpu_load", inventory.get("cpu_load")))
     ctx["display_free_memory"] = human_bytes(free)
     ctx["display_total_memory"] = human_bytes(total)
     ctx["display_memory_used_pct"] = memory_usage(free, total)
     ctx["device_capabilities"] = capability_state(device, inventory)
+
+    # Existing workspace templates read the copied inventory/metrics dicts.
+    # Normalize those copies so older markup gets correct presentation without
+    # mutating persisted inventory values.
+    if metrics.get("cpu_load") is not None:
+        metrics["cpu_load"] = str(metrics["cpu_load"]).rstrip("%")
+    if free not in (None, ""):
+        metrics["free_memory"] = human_bytes(free)
+    if total not in (None, ""):
+        metrics["total_memory"] = human_bytes(total)
+        inventory["total_memory"] = human_bytes(total)
+    if display_mac != "—" and not device.primary_mac:
+        # Transient render fallback only; the session is never committed here.
+        device.primary_mac = display_mac
+    ctx["inventory"] = inventory
+    ctx["metrics"] = metrics
     return ctx
 
 
@@ -190,4 +208,15 @@ def install_real_device_ux(app, templates):
     templates.env.globals["human_bytes"] = human_bytes
     templates.env.globals["fmt_percent"] = percent
     templates.env.globals["memory_usage"] = memory_usage
+
+    # Workspace route functions resolve this module global at request time, so
+    # wrapping it here improves every MikroTik workspace tab without duplicating
+    # or re-registering the existing routes.
+    original = workspace._workspace_context
+    if not getattr(original, "_nsm_core40", False):
+        def normalized_context(db, device):
+            return normalize_workspace_context(device, original(db, device))
+        normalized_context._nsm_core40 = True
+        workspace._workspace_context = normalized_context
+
     app.include_router(router)
