@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 import uuid
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 
@@ -217,7 +217,12 @@ def diagnostic_result(request: Request, device_id: uuid.UUID, job_id: uuid.UUID)
         db.close()
 
 
-def _guard_snapshot(request, device_id, section, csrf):
+def _guard_snapshot(
+    request: Request,
+    device_id: uuid.UUID,
+    section: str,
+    csrf: str = Form(...),
+):
     with SessionLocal() as db:
         device = workspace._load_device(db, device_id)
         if agent_transport(device) != "modern":
@@ -229,7 +234,15 @@ def _guard_snapshot(request, device_id, section, csrf):
     return workspace.queue_snapshot(request, device_id, section, csrf)
 
 
-def _guard_diagnostic(request, device_id, diagnostic, target="", source="", query="", csrf=""):
+def _guard_diagnostic(
+    request: Request,
+    device_id: uuid.UUID,
+    diagnostic: str,
+    target: str = Form(""),
+    source: str = Form(""),
+    query: str = Form(""),
+    csrf: str = Form(...),
+):
     if diagnostic == "support_snapshot":
         with SessionLocal() as db:
             device = workspace._load_device(db, device_id)
