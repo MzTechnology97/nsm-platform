@@ -1,7 +1,7 @@
 import hashlib
 from datetime import timedelta
 
-from sqlalchemy import delete, select
+from sqlalchemy import select
 
 from app.agent_health_automation import (
     TITLE_LEGACY_UNREACHABLE,
@@ -13,7 +13,6 @@ from app.agent_health_automation import (
 from app.agent_models import DeviceAgentCredential
 from app.db import SessionLocal
 from app.models import ActionIssue, Customer, Device, DeviceEnrollment, Notification, utcnow
-from app.security import hash_token
 
 
 def main():
@@ -27,9 +26,10 @@ def main():
         customer = Customer(name="CI36 Agent Health Automation", code="CI36")
         db.add(customer)
         db.flush()
+        customer_id = customer.id
 
         missing = Device(
-            customer_id=customer.id,
+            customer_id=customer_id,
             vendor="mikrotik",
             device_type="router",
             name="CI36 missing credential",
@@ -37,7 +37,7 @@ def main():
             status="unknown",
         )
         pending = Device(
-            customer_id=customer.id,
+            customer_id=customer_id,
             vendor="mikrotik",
             device_type="router",
             name="CI36 pending enrollment",
@@ -45,7 +45,7 @@ def main():
             status="unknown",
         )
         unknown = Device(
-            customer_id=customer.id,
+            customer_id=customer_id,
             vendor="mikrotik",
             device_type="router",
             name="CI36 unknown transport",
@@ -60,7 +60,7 @@ def main():
             DeviceEnrollment(
                 device_id=pending.id,
                 source="mikrotik",
-                token_hash=hash_token("ci36-pending-token"),
+                token_hash=hashlib.sha256(b"ci36-pending-token").hexdigest(),
                 status="pending",
                 created_at=now - timedelta(minutes=11),
                 expires_at=now + timedelta(minutes=19),
@@ -178,7 +178,7 @@ def main():
             status="resolved",
             title=TITLE_LEGACY_UNREACHABLE,
             details={"message": "historical stale heartbeat"},
-            customer_id=customer.id,
+            customer_id=customer_id,
             device_id=missing_id,
             created_at=now - timedelta(minutes=20),
             updated_at=now,
@@ -204,7 +204,7 @@ def main():
             )
         )
 
-    second = agent_health_tick(now + timedelta(minutes=3))
+    agent_health_tick(now + timedelta(minutes=3))
     with SessionLocal() as db:
         recovery_count_after = len(
             list(
