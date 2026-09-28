@@ -67,7 +67,7 @@
           {% elif row.install_bucket == 'expired' %}<span class="severity-badge severity-warning">TOKEN SCADUTO</span>
           {% elif row.install_bucket == 'waiting' %}<span class="severity-badge severity-info">IN ATTESA</span>
           {% else %}<span class="severity-badge severity-warning">NON ASSOCIATO</span>{% endif %}
-          <small>{{ row.installation.label }}</small>
+          <small>{{ row.installation.label }}{% if row.pending_enrollments %} · {{ row.pending_enrollments }} token one-shot valido/i{% endif %}</small>
         </td>
         <td><span class="status-pill">{{ row.transport|upper }}</span><small>{{ row.agent_version or 'Agent non rilevato' }}{% if row.heartbeat_transport %} · {{ row.heartbeat_transport }}{% endif %}</small></td>
         <td>
