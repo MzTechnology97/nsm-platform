@@ -1,4 +1,4 @@
-"""NSM Core 0.40 application entrypoint."""
+"""NSM Core 0.41 application entrypoint."""
 from app import main as core
 from app import mikrotik_agent as mikrotik_agent_core
 from app.activity_route_precedence import install_activity_route_precedence
@@ -53,7 +53,7 @@ from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.40.0"
+APP_VERSION = "0.41.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
