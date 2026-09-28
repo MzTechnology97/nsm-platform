@@ -19,7 +19,7 @@ router = APIRouter()
 @router.get(
     "/devices/{device_id}/diagnostics/jobs/{job_id}",
     response_class=HTMLResponse,
-    name="mikrotik_diagnostic_result_v2",
+    name="mikrotik_diagnostic_result",
 )
 def diagnostic_result_v2(request: Request, device_id: uuid.UUID, job_id: uuid.UUID):
     db, user, device = workspace_ux._require_device(request, device_id, "monitoring.read")
