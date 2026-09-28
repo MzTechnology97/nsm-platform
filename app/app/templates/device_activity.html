@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% set title = device.display_name or device.device_identity or device.name %}
+{% block title %}{{ title }} · Attività · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/customers/{{ device.customer.id }}">{{ device.customer.name }}</a><span>›</span><a href="/customers/{{ device.customer.id }}/devices">Apparati</a><span>›</span><a href="/devices/{{ device.id }}">{{ title }}</a><span>›</span><span>Job & attività</span></div>
+
+<div class="mt-device-shell">
+  <aside class="mt-device-summary panel">
+    <div class="mt-summary-title"><div><span class="eyebrow">MikroTik</span><h1>{{ title }}</h1></div><span class="device-status status-{{ device.status }}">{{ status_label(device.status) }}</span></div>
+    <dl class="mt-summary-list">
+      <div><dt>Identity</dt><dd>{{ device.device_identity or '—' }}</dd></div>
+      <div><dt>Modello</dt><dd>{{ device.model or '—' }}</dd></div>
+      <div><dt>RouterOS</dt><dd>{{ device.firmware_version or '—' }}</dd></div>
+      <div><dt>Seriale</dt><dd><code>{{ device.serial_number or '—' }}</code></dd></div>
+      <div><dt>MAC</dt><dd><code>{{ device.primary_mac or '—' }}</code></dd></div>
+      <div><dt>IP gestione</dt><dd><code>{{ device.management_ip or inventory.get('last_source_ip') or '—' }}</code></dd></div>
+      <div><dt>Sede</dt><dd>{{ device.site.name if device.site else '—' }}</dd></div>
+      <div><dt>Ultimo contatto</dt><dd>{{ fmt_dt(device.last_seen) }}</dd></div>
+    </dl>
+    <a class="mt-agent-state" href="/devices/{{ device.id }}/agent"><span class="mt-state-dot {% if device.status == 'online' %}online{% endif %}"></span><div><small>NSM Agent</small><strong>{{ inventory.get('agent_version') or 'Non rilevato' }}</strong></div></a>
+  </aside>
+
+  <main class="mt-device-main">
+    <nav class="mt-device-tabs">
+      <a href="/devices/{{ device.id }}">Panoramica</a>
+      <a href="/devices/{{ device.id }}/monitor">Monitor</a>
+      <a href="/devices/{{ device.id }}/configuration">Configurazione</a>
+      <a href="/devices/{{ device.id }}/diagnostics">Diagnostica</a>
+      <a href="/devices/{{ device.id }}/agent">Agent</a>
+      <a class="active" href="/devices/{{ device.id }}/jobs">Job & attività</a>
+    </nav>
+
+    <section class="mt-kpi-grid">
+      <article class="metric-card"><span>Job attivi</span><strong>{{ active_jobs|length }}</strong><small>pending / delivered / running</small></article>
+      <article class="metric-card"><span>Vista</span><strong>{{ 'JOB' if view == 'jobs' else 'AUDIT' }}</strong><small>{{ pager.total }} risultati filtrati</small></article>
+      <article class="metric-card"><span>Pagina</span><strong>{{ pager.page }}/{{ pager.pages }}</strong><small>{{ pager.per_page }} righe per pagina</small></article>
+      <article class="metric-card"><span>RouterOS</span><strong>{{ device.firmware_version or '—' }}</strong><small>{{ inventory.get('agent_transport') or 'transport non rilevato' }}</small></article>
+    </section>
+
+    {% if active_jobs %}
+    <section class="panel">
+      <div class="panel-header"><div><h2>Coda attiva</h2><p>Operazioni non ancora concluse. Lo storico completo rimane separato.</p></div></div>
+      <div class="table-wrap"><table class="data-table dense"><thead><tr><th>Creato</th><th>Tipo</th><th>Stato</th><th>Tentativi</th><th>Consegnato</th><th>Scadenza</th></tr></thead><tbody>
+      {% for job in active_jobs %}<tr><td>{{ fmt_dt(job.created_at) }}</td><td><code>{{ job.job_type }}</code></td><td><span class="status-pill">{{ job.status }}</span></td><td>{{ job.attempts }}</td><td>{{ fmt_dt(job.delivered_at) }}</td><td>{{ fmt_dt(job.expires_at) }}</td></tr>{% endfor %}
+      </tbody></table></div>
+    </section>
+    {% endif %}
+
+    <section class="panel">
+      <div class="panel-header"><div><h2>Storico operativo</h2><p>Filtra job oppure eventi audit senza caricare l'intero storico in una sola pagina.</p></div><div class="page-actions"><a class="button {% if view == 'jobs' %}primary{% else %}ghost{% endif %}" href="/devices/{{ device.id }}/jobs?view=jobs">Job</a><a class="button {% if view == 'audit' %}primary{% else %}ghost{% endif %}" href="/devices/{{ device.id }}/jobs?view=audit">Audit</a></div></div>
+
+      <form class="filter-bar" method="get" action="/devices/{{ device.id }}/jobs">
+        <input type="hidden" name="view" value="{{ view }}">
+        <input name="q" value="{{ filters.q }}" placeholder="Cerca tipo, errore, payload o dettaglio">
+        {% if view == 'jobs' %}
+          <select name="job_type"><option value="">Tutti i tipi</option>{% for item in job_types %}<option value="{{ item }}" {% if filters.job_type == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+          <select name="status"><option value="">Tutti gli stati</option>{% for item in ['pending','delivered','running','success','failed','expired'] %}<option value="{{ item }}" {% if filters.status == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+        {% else %}
+          <select name="event_type"><option value="">Tutti gli eventi</option>{% for item in event_types %}<option value="{{ item }}" {% if filters.event_type == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+          <select name="result"><option value="">Tutti gli esiti</option>{% for item in ['success','failed','warning','denied'] %}<option value="{{ item }}" {% if filters.result == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+        {% endif %}
+        <input type="date" name="from_date" value="{{ filters.from_date }}" title="Da">
+        <input type="date" name="to_date" value="{{ filters.to_date }}" title="A">
+        <select name="per_page">{% for n in [25,50,100] %}<option value="{{ n }}" {% if pager.per_page == n %}selected{% endif %}>{{ n }}/pag</option>{% endfor %}</select>
+        <button class="button primary" type="submit">Filtra</button>
+        <a class="button ghost" href="/devices/{{ device.id }}/jobs?view={{ view }}">Reset</a>
+      </form>
+
+      {% if rows %}
+        <div class="table-wrap"><table class="data-table dense">
+          {% if view == 'jobs' %}
+            <thead><tr><th>Creato</th><th>Tipo</th><th>Stato</th><th>Tentativi</th><th>Consegnato</th><th>Completato</th><th>Errore</th></tr></thead><tbody>
+            {% for job in rows %}<tr><td>{{ fmt_dt(job.created_at) }}</td><td><code>{{ job.job_type }}</code></td><td><span class="status-pill">{{ job.status }}</span></td><td>{{ job.attempts }}</td><td>{{ fmt_dt(job.delivered_at) }}</td><td>{{ fmt_dt(job.completed_at) }}</td><td>{{ job.last_error or '—' }}</td></tr>{% endfor %}
+            </tbody>
+          {% else %}
+            <thead><tr><th>Quando</th><th>Evento</th><th>Severità</th><th>Esito</th><th>Fonte</th><th>Dettagli</th></tr></thead><tbody>
+            {% for event in rows %}<tr><td>{{ fmt_dt(event.timestamp) }}</td><td><code>{{ event.event_type }}</code></td><td><span class="severity-badge severity-{{ event.severity }}">{{ event.severity }}</span></td><td><span class="status-pill">{{ event.result }}</span></td><td>{{ event.source }}</td><td><code>{{ (event.details or {})|string|truncate(180) }}</code></td></tr>{% endfor %}
+            </tbody>
+          {% endif %}
+        </table></div>
+      {% else %}<div class="empty-state">Nessun risultato con i filtri selezionati.</div>{% endif %}
+
+      <div class="pagination-bar"><span>{{ pager.total }} risultati · pagina {{ pager.page }} di {{ pager.pages }}</span><div class="page-actions">{% if pager.prev_url %}<a class="button ghost" href="{{ pager.prev_url }}">← Precedente</a>{% endif %}{% if pager.next_url %}<a class="button ghost" href="{{ pager.next_url }}">Successiva →</a>{% endif %}</div></div>
+    </section>
+  </main>
+</div>
+{% endblock %}
