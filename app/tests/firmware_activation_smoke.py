@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app import mikrotik_agent as agent_module
+from app import mikrotik_legacy as legacy_module
 from app.agent_models import DeviceAgentCredential, DeviceJob
 from app.db import SessionLocal
 from app.entrypoint import app
@@ -52,7 +53,11 @@ def seed():
             firmware_status="update_available",
             inventory_last_verified_at=now,
             last_seen=now,
-            inventory_data={"agent_transport": "modern", "agent_version": "0.37.0"},
+            inventory_data={
+                "agent_transport": "modern",
+                "agent_version": "0.37.0",
+                "agent_privilege_profile": "ops-v1",
+            },
         )
         db.add(device)
         db.flush()
@@ -130,6 +135,31 @@ def main():
     assert "RouterBOOT separato" in page.text
     token = csrf_from(page.text)
 
+    # A pre-0.37 modern agent is not allowed to reboot until it is re-enrolled
+    # with the explicit least-privilege ops-v1 profile.
+    with SessionLocal() as db:
+        device = db.get(Device, device_id)
+        data = dict(device.inventory_data or {})
+        data.pop("agent_privilege_profile", None)
+        device.inventory_data = data
+        db.commit()
+    blocked = client.post(
+        f"/devices/{device_id}/firmware-upgrade/{plan_id}/activate",
+        data={"csrf": token, "confirmation": "ACTIVATE 7.21.1"},
+        follow_redirects=False,
+    )
+    assert blocked.status_code == 409
+    assert "Rigenera / reinstalla agent" in blocked.text
+
+    with SessionLocal() as db:
+        device = db.get(Device, device_id)
+        data = dict(device.inventory_data or {})
+        data["agent_privilege_profile"] = "ops-v1"
+        device.inventory_data = data
+        db.commit()
+
+    page = client.get(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}")
+    token = csrf_from(page.text)
     wrong = client.post(
         f"/devices/{device_id}/firmware-upgrade/{plan_id}/activate",
         data={"csrf": token, "confirmation": "ACTIVATE WRONG"},
@@ -161,7 +191,6 @@ def main():
         assert plan.precheck_data["activation"]["routerboot_upgrade"] is False
         job_id = job.id
 
-    # Normal heartbeat delivers the allow-listed modern activation job.
     headers = {
         "X-NSM-Device-ID": str(device_id),
         "X-NSM-Device-Secret": raw_secret,
@@ -207,7 +236,6 @@ def main():
         accepted_at = plan.precheck_data["activation"]["accepted_at"]
         assert accepted_at
 
-    # Once post-reboot inventory reports the approved target, worker closes plan.
     with SessionLocal() as db:
         device = db.get(Device, device_id)
         device.firmware_version = "7.21.1"
@@ -231,7 +259,6 @@ def main():
     assert final_page.status_code == 200
     assert "Upgrade verificato" in final_page.text
 
-    # Generated modern agent must acknowledge first and reboot only after ACK.
     source = agent_module._agent_source("https://nsm.example.net", device_id, raw_secret, True)
     assert 'nsmJobType = "firmware_activate"' in source
     assert "/firmware-activate/" in source
@@ -240,7 +267,15 @@ def main():
     assert "/system routerboard upgrade" not in source
     assert "/system package update install" not in source
 
-    print("Core 0.37 safe firmware activation and post-reboot verification smoke passed")
+    # Bodyless bootstrap selects modern elevated policies only when the returned
+    # agent source includes the modern activation handler. Legacy remains read/test.
+    bootstrap = legacy_module._legacy_bootstrap_script("https://nsm.example.net", "TESTTOKEN")
+    assert ':local nsmAgentPolicy "read,test"' in bootstrap
+    assert 'ftp,reboot,read,write,test' in bootstrap
+    assert 'policy=$nsmAgentPolicy' in bootstrap
+    assert 'policy,password,sensitive' not in bootstrap
+
+    print("Core 0.37 safe firmware activation, privilege gate and post-reboot verification smoke passed")
 
 
 if __name__ == "__main__":
