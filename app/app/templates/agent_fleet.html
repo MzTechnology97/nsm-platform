@@ -4,17 +4,19 @@
 <div class="page-header compact-heading">
   <div>
     <h1>Agent Fleet</h1>
-    <p>Salute operativa degli agent MikroTik: heartbeat, trasporto, credenziali ed enrollment{% if selected_customer %} per {{ selected_customer.name }}{% endif %}.</p>
+    <p>Salute operativa e verifica installazione degli agent MikroTik: pairing, heartbeat, trasporto e credenziali{% if selected_customer %} per {{ selected_customer.name }}{% endif %}.</p>
   </div>
 </div>
 
 <div class="backup-overview-grid firmware-overview-grid">
   <a class="backup-status-card" href="?customer={{ customer_filter }}&state=all"><span class="metric-label">MikroTik</span><strong>{{ summary.total }}</strong><small>apparati nel perimetro</small></a>
-  <a class="backup-status-card {% if summary.healthy %}metric-ok{% endif %}" href="?customer={{ customer_filter }}&state=healthy"><span class="metric-label">Regolari</span><strong>{{ summary.healthy }}</strong><small>agent operativi</small></a>
+  <a class="backup-status-card {% if summary.verified %}metric-ok{% endif %}" href="?customer={{ customer_filter }}&state=all&install=verified"><span class="metric-label">Installati</span><strong>{{ summary.verified }}</strong><small>pairing + heartbeat verificati</small></a>
+  <a class="backup-status-card {% if summary.install_suspect %}metric-danger{% endif %}" href="?customer={{ customer_filter }}&state=all&install=suspect"><span class="metric-label">Installazione KO</span><strong>{{ summary.install_suspect }}</strong><small>pairing senza heartbeat</small></a>
+  <a class="backup-status-card {% if summary.pending %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&state=all&install=waiting"><span class="metric-label">In attesa</span><strong>{{ summary.pending }}</strong><small>pairing / primo heartbeat</small></a>
+  <a class="backup-status-card {% if summary.token_expired %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&state=all&install=expired"><span class="metric-label">Token scaduti</span><strong>{{ summary.token_expired }}</strong><small>onboarding da rigenerare</small></a>
   <a class="backup-status-card {% if summary.attention %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&state=attention"><span class="metric-label">Attenzione</span><strong>{{ summary.attention }}</strong><small>richiedono verifica</small></a>
   <a class="backup-status-card" href="?customer={{ customer_filter }}&state=all&transport=modern"><span class="metric-label">Modern</span><strong>{{ summary.modern }}</strong><small>transport completo</small></a>
   <a class="backup-status-card {% if summary.legacy %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&state=all&transport=legacy"><span class="metric-label">Legacy</span><strong>{{ summary.legacy }}</strong><small>RouterOS 7.12.x</small></a>
-  <a class="backup-status-card {% if summary.pending %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&state=pending"><span class="metric-label">Enrollment</span><strong>{{ summary.pending }}</strong><small>token pendenti</small></a>
 </div>
 
 <section class="panel compact-panel">
@@ -26,42 +28,61 @@
       <option value="healthy" {% if state_filter == 'healthy' %}selected{% endif %}>Regolare</option>
       <option value="offline" {% if state_filter == 'offline' %}selected{% endif %}>Offline</option>
       <option value="stale" {% if state_filter == 'stale' %}selected{% endif %}>Heartbeat stale</option>
+      <option value="install_suspect" {% if state_filter == 'install_suspect' %}selected{% endif %}>Installazione sospetta</option>
+      <option value="token_expired" {% if state_filter == 'token_expired' %}selected{% endif %}>Token scaduto</option>
       <option value="no_credential" {% if state_filter == 'no_credential' %}selected{% endif %}>Credenziale assente</option>
-      <option value="pending" {% if state_filter == 'pending' %}selected{% endif %}>Enrollment pendente</option>
+      <option value="pending" {% if state_filter == 'pending' %}selected{% endif %}>Enrollment / heartbeat in attesa</option>
       <option value="unknown_transport" {% if state_filter == 'unknown_transport' %}selected{% endif %}>Transport sconosciuto</option>
       <option value="all" {% if state_filter == 'all' %}selected{% endif %}>Tutti</option>
     </select></label>
+    <label>Installazione<select name="install">
+      <option value="" {% if not install_filter %}selected{% endif %}>Tutti gli stati</option>
+      <option value="verified" {% if install_filter == 'verified' %}selected{% endif %}>Verificata</option>
+      <option value="waiting" {% if install_filter == 'waiting' %}selected{% endif %}>In attesa</option>
+      <option value="suspect" {% if install_filter == 'suspect' %}selected{% endif %}>Pairing OK / agent non avviato</option>
+      <option value="expired" {% if install_filter == 'expired' %}selected{% endif %}>Token scaduto</option>
+      <option value="not_enrolled" {% if install_filter == 'not_enrolled' %}selected{% endif %}>Non associato</option>
+    </select></label>
     <label>Transport<select name="transport"><option value="">Tutti</option><option value="modern" {% if transport_filter == 'modern' %}selected{% endif %}>Modern</option><option value="legacy" {% if transport_filter == 'legacy' %}selected{% endif %}>Legacy</option><option value="unknown" {% if transport_filter == 'unknown' %}selected{% endif %}>Sconosciuto</option></select></label>
     <button class="button primary">Filtra</button>
-    {% if q or customer_filter or transport_filter or state_filter != 'attention' %}<a class="button ghost" href="/operations/agents">Reset</a>{% endif %}
+    {% if q or customer_filter or transport_filter or install_filter or state_filter != 'attention' %}<a class="button ghost" href="/operations/agents">Reset</a>{% endif %}
   </form>
 </section>
 
 {% if selected_customer %}<div class="context-banner"><strong>{{ selected_customer.name }}</strong><span>Vista Agent Fleet confinata agli apparati MikroTik del cliente.</span><a href="/customers/{{ selected_customer.id }}">Torna al cliente ›</a></div>{% endif %}
 
 <section class="panel">
-  <div class="panel-header"><div><h2>Agenti MikroTik</h2><p>{{ total }} risultati. Un heartbeat è considerato stale dopo 15 minuti; il transport legacy resta supportato ma con capability ridotte.</p></div></div>
+  <div class="panel-header"><div><h2>Agenti MikroTik</h2><p>{{ total }} risultati. Pairing e avvio agent sono verificati separatamente: un token consumato non equivale a un heartbeat post-installazione.</p></div></div>
   {% if rows %}
   <div class="table-wrap"><table class="data-table compact-data-table">
-    <thead><tr><th>Apparato</th><th>Cliente / sede</th><th>Transport</th><th>Salute</th><th>Heartbeat</th><th>Credenziale</th><th>Enrollment</th><th>Origine</th><th>Azioni</th></tr></thead>
+    <thead><tr><th>Apparato</th><th>Cliente / sede</th><th>Installazione</th><th>Transport</th><th>Salute</th><th>Heartbeat</th><th>Credenziale</th><th>Origine</th><th>Azioni</th></tr></thead>
     <tbody>
     {% for row in rows %}{% set d = row.device %}
       <tr>
         <td><a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a><small>{{ d.device_identity or d.model or d.serial_number or 'Identità non disponibile' }}</small></td>
         <td><a href="/customers/{{ d.customer.id }}">{{ d.customer.name }}</a><small>{{ d.site.name if d.site else 'Nessuna sede' }}</small></td>
+        <td>
+          {% if row.install_bucket == 'verified' %}<span class="severity-badge severity-low">VERIFICATA</span>
+          {% elif row.install_bucket == 'suspect' %}<span class="severity-badge severity-critical">INSTALL KO</span>
+          {% elif row.install_bucket == 'expired' %}<span class="severity-badge severity-warning">TOKEN SCADUTO</span>
+          {% elif row.install_bucket == 'waiting' %}<span class="severity-badge severity-info">IN ATTESA</span>
+          {% else %}<span class="severity-badge severity-warning">NON ASSOCIATO</span>{% endif %}
+          <small>{{ row.installation.label }}</small>
+        </td>
         <td><span class="status-pill">{{ row.transport|upper }}</span><small>{{ row.agent_version or 'Agent non rilevato' }}{% if row.heartbeat_transport %} · {{ row.heartbeat_transport }}{% endif %}</small></td>
         <td>
           {% if row.health == 'healthy' %}<span class="severity-badge severity-low">REGOLARE</span>
           {% elif row.health == 'offline' %}<span class="severity-badge severity-high">OFFLINE</span>
           {% elif row.health == 'stale' %}<span class="severity-badge severity-warning">STALE</span>
-          {% elif row.health == 'pending' %}<span class="severity-badge severity-warning">PENDING</span>
+          {% elif row.health in ['pending','awaiting_heartbeat'] %}<span class="severity-badge severity-info">IN ATTESA</span>
+          {% elif row.health == 'install_suspect' %}<span class="severity-badge severity-critical">INSTALL KO</span>
+          {% elif row.health == 'token_expired' %}<span class="severity-badge severity-warning">TOKEN SCADUTO</span>
           {% elif row.health == 'no_credential' %}<span class="severity-badge severity-high">NO CRED.</span>
           {% else %}<span class="severity-badge severity-warning">DA VERIFICARE</span>{% endif %}
           <small>{{ row.reasons|join(' · ') if row.reasons else 'Nessuna anomalia rilevata' }}</small>
         </td>
-        <td>{{ fmt_dt(row.last_seen) if row.last_seen else 'Mai' }}<small>{{ 'Oltre soglia' if row.stale else 'Entro soglia' }}</small></td>
+        <td>{{ fmt_dt(row.last_seen) if row.last_seen else 'Mai' }}<small>{% if row.installation.heartbeat_after_pairing %}Post-pairing verificato{% elif row.install_bucket == 'waiting' %}In attesa{% else %}{{ 'Oltre soglia' if row.stale else 'Entro soglia' }}{% endif %}</small></td>
         <td>{% if row.credential_active %}<span class="status-pill">ATTIVA</span><small>ultimo uso {{ fmt_dt(row.credential_last_used_at) if row.credential_last_used_at else 'mai' }}</small>{% else %}<span class="severity-badge severity-warning">NON ATTIVA</span>{% endif %}</td>
-        <td>{% if row.pending_enrollments %}<strong>{{ row.pending_enrollments }}</strong><small>token one-shot valido/i</small>{% else %}<span class="muted">Nessuno</span>{% endif %}</td>
         <td>{{ row.source_ip or '—' }}<small>{{ d.management_ip or d.primary_mac or '—' }}</small></td>
         <td><div class="page-actions compact-actions"><a class="button tiny ghost" href="/devices/{{ d.id }}/agent">Agent</a><a class="button tiny ghost" href="/devices/{{ d.id }}">Dettaglio</a></div></td>
       </tr>
@@ -70,6 +91,6 @@
   </table></div>
   {% else %}<div class="empty-state success-state">Nessun agente corrisponde ai filtri selezionati.</div>{% endif %}
 
-  {% if pages > 1 %}<div class="pagination"><span>Pagina {{ page }} di {{ pages }}</span>{% if page > 1 %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&state={{ state_filter }}&transport={{ transport_filter }}&page={{ page-1 }}">‹ Precedente</a>{% endif %}{% if page < pages %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&state={{ state_filter }}&transport={{ transport_filter }}&page={{ page+1 }}">Successiva ›</a>{% endif %}</div>{% endif %}
+  {% if pages > 1 %}<div class="pagination"><span>Pagina {{ page }} di {{ pages }}</span>{% if page > 1 %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&state={{ state_filter }}&transport={{ transport_filter }}&install={{ install_filter }}&page={{ page-1 }}">‹ Precedente</a>{% endif %}{% if page < pages %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&state={{ state_filter }}&transport={{ transport_filter }}&install={{ install_filter }}&page={{ page+1 }}">Successiva ›</a>{% endif %}</div>{% endif %}
 </section>
 {% endblock %}
