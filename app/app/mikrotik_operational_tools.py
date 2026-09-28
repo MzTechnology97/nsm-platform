@@ -11,7 +11,7 @@ AGENT_VERSION = "0.20.0"
 
 _HANDLER = r'''
     :if ($nsmJobType = "diagnostic_neighbors") do={
-      :local nsmData {}
+      :local nsmData
       :local nsmOk true
       :local nsmError ""
       :do { :set nsmData [/ip neighbor print as-value] } on-error={ :set nsmOk false; :set nsmError "Unable to read RouterOS neighbors" }
@@ -26,7 +26,7 @@ _HANDLER = r'''
       :local nsmPayload ($nsmJob->"payload")
       :local nsmQuery ($nsmPayload->"query")
       :local nsmLookupType ($nsmPayload->"lookup_type")
-      :local nsmData {}
+      :local nsmData
       :local nsmOk true
       :local nsmError ""
       :do {
@@ -41,7 +41,7 @@ _HANDLER = r'''
     }
 
     :if ($nsmJobType = "diagnostic_logs") do={
-      :local nsmData {}
+      :local nsmData
       :local nsmOk true
       :local nsmError ""
       :do { :set nsmData [/log print as-value where topics~"warning|error|critical"] } on-error={ :set nsmOk false; :set nsmError "Unable to read RouterOS warning/error log" }
@@ -53,7 +53,7 @@ _HANDLER = r'''
     }
 
     :if ($nsmJobType = "support_snapshot") do={
-      :local nsmData {}
+      :local nsmData
       :local nsmOk true
       :local nsmError ""
       :do {
