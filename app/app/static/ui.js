@@ -55,11 +55,7 @@
     items[activeIndex].scrollIntoView({block: 'nearest'});
   }
   function deviceMeta(item, query) {
-    const values = [
-      ['Seriale', item.serial],
-      ['MAC', item.mac],
-      ['IP', item.ip]
-    ].filter((entry) => entry[1]);
+    const values = [['Seriale', item.serial], ['MAC', item.mac], ['IP', item.ip]].filter((entry) => entry[1]);
     if (!values.length) return '';
     return '<span class="search-suggestion-meta">' + values.map(([label, value]) => `<span class="search-meta-chip"><b>${label}</b> ${highlightText(value, query)}</span>`).join('') + '</span>';
   }
@@ -68,12 +64,7 @@
     return `<div class="search-suggestions-header">${escapeHtml(type)}</div>` + rows.map((item) => {
       const match = item.match_field && item.match_value ? `<span class="search-match"><b>${escapeHtml(item.match_field)}</b> ${highlightText(item.match_value, query)}</span>` : '';
       const meta = item.type === 'Apparato' ? deviceMeta(item, query) : '';
-      return `
-      <a class="search-suggestion" href="${escapeHtml(item.url)}" data-completion="${escapeHtml(item.completion || item.title)}" role="option">
-        <span class="result-icon">${resultIcon(item.type)}</span>
-        <span class="search-suggestion-copy"><strong>${highlightText(item.title, query)}</strong><small>${escapeHtml(item.subtitle)}</small>${match}${meta}</span>
-        <span class="chevron">›</span>
-      </a>`;
+      return `<a class="search-suggestion" href="${escapeHtml(item.url)}" data-completion="${escapeHtml(item.completion || item.title)}" role="option"><span class="result-icon">${resultIcon(item.type)}</span><span class="search-suggestion-copy"><strong>${highlightText(item.title, query)}</strong><small>${escapeHtml(item.subtitle)}</small>${match}${meta}</span><span class="chevron">›</span></a>`;
     }).join('');
   }
   function renderSuggestions(payload, query) {
@@ -120,23 +111,43 @@
         const target = items[activeIndex >= 0 ? activeIndex : 0];
         const completion = target ? target.dataset.completion : '';
         if (completion && completion.toLowerCase() !== searchInput.value.trim().toLowerCase()) {
-          event.preventDefault();
-          searchInput.value = completion;
-          searchInput.setSelectionRange(completion.length, completion.length);
-          clearTimeout(searchTimer);
-          searchTimer = setTimeout(fetchSuggestions, 40);
+          event.preventDefault(); searchInput.value = completion; searchInput.setSelectionRange(completion.length, completion.length); clearTimeout(searchTimer); searchTimer = setTimeout(fetchSuggestions, 40);
         }
-      }
-      else if (event.key === 'Escape') closeSuggestions();
+      } else if (event.key === 'Escape') closeSuggestions();
     });
     suggestions.addEventListener('mousemove', (event) => {
-      const item = event.target.closest('.search-suggestion');
-      if (!item) return;
-      const items = suggestionItems();
-      const index = items.indexOf(item);
-      if (index >= 0 && index !== activeIndex) setActive(index);
+      const item = event.target.closest('.search-suggestion'); if (!item) return;
+      const items = suggestionItems(); const index = items.indexOf(item); if (index >= 0 && index !== activeIndex) setActive(index);
     });
     document.addEventListener('click', (event) => { if (searchWrap && !searchWrap.contains(event.target)) closeSuggestions(); });
+  }
+
+  const enrollmentCommand = document.getElementById('enrollment-command');
+  const enrollmentCopyButton = enrollmentCommand ? enrollmentCommand.closest('.command-box')?.querySelector('button') : null;
+  if (enrollmentCommand && enrollmentCopyButton) {
+    enrollmentCopyButton.onclick = null;
+    const originalLabel = enrollmentCopyButton.textContent.trim() || 'Copia comando';
+    let feedbackTimer = null;
+    function setCopyFeedback(label) {
+      enrollmentCopyButton.textContent = label;
+      clearTimeout(feedbackTimer);
+      feedbackTimer = setTimeout(() => { enrollmentCopyButton.textContent = originalLabel; }, 1800);
+    }
+    async function copyEnrollmentCommand() {
+      const text = enrollmentCommand.textContent || '';
+      if (!text) { setCopyFeedback('Comando vuoto'); return; }
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const area = document.createElement('textarea');
+          area.value = text; area.setAttribute('readonly', ''); area.style.position = 'fixed'; area.style.opacity = '0'; document.body.appendChild(area); area.select();
+          const copied = document.execCommand('copy'); area.remove(); if (!copied) throw new Error('copy fallback failed');
+        }
+        setCopyFeedback('Copiato');
+      } catch (error) { setCopyFeedback('Copia non riuscita'); }
+    }
+    enrollmentCopyButton.addEventListener('click', copyEnrollmentCommand);
   }
 
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { closeMobileSidebar(); closeSuggestions(); } });
