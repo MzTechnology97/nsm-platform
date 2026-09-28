@@ -1,9 +1,4 @@
-"""Core 0.42 real-device UX refinements for the MikroTik workspace.
-
-This module deliberately does not change the RouterOS wire protocol. It improves
-presentation, makes unsupported legacy capabilities explicit and adds a focused
-read-only diagnostic result view.
-"""
+"""Core 0.42 real-device UX refinements for the MikroTik workspace."""
 from __future__ import annotations
 
 import re
@@ -24,16 +19,10 @@ _original_workspace_context = workspace._workspace_context
 
 _MEMORY_RE = re.compile(r"^\s*([0-9]+(?:\.[0-9]+)?)\s*([kmgt]?i?b)?\s*$", re.I)
 _MEMORY_FACTORS = {
-    "": 1,
-    "b": 1,
-    "kb": 1000,
-    "kib": 1024,
-    "mb": 1000**2,
-    "mib": 1024**2,
-    "gb": 1000**3,
-    "gib": 1024**3,
-    "tb": 1000**4,
-    "tib": 1024**4,
+    "": 1, "b": 1, "kb": 1000, "kib": 1024,
+    "mb": 1000**2, "mib": 1024**2,
+    "gb": 1000**3, "gib": 1024**3,
+    "tb": 1000**4, "tib": 1024**4,
 }
 
 
@@ -45,11 +34,8 @@ def _memory_bytes(value):
     match = _MEMORY_RE.match(str(value))
     if not match:
         return None
-    unit = (match.group(2) or "").lower()
-    factor = _MEMORY_FACTORS.get(unit)
-    if factor is None:
-        return None
-    return int(float(match.group(1)) * factor)
+    factor = _MEMORY_FACTORS.get((match.group(2) or "").lower())
+    return int(float(match.group(1)) * factor) if factor is not None else None
 
 
 def human_bytes(value) -> str:
@@ -62,9 +48,7 @@ def human_bytes(value) -> str:
     while amount >= 1024 and index < len(units) - 1:
         amount /= 1024.0
         index += 1
-    if index == 0:
-        return f"{int(amount)} {units[index]}"
-    return f"{amount:.1f} {units[index]}"
+    return f"{int(amount)} {units[index]}" if index == 0 else f"{amount:.1f} {units[index]}"
 
 
 def agent_transport(device) -> str:
@@ -97,39 +81,50 @@ def _enhanced_context(db, device):
         metrics["total_memory"] = human_bytes(total_raw)
         inventory["total_memory"] = human_bytes(total_raw)
     if free_bytes is not None and total_bytes and total_bytes > 0:
-        used = max(0.0, min(100.0, (1.0 - (free_bytes / total_bytes)) * 100.0))
-        metrics["memory_used_percent"] = round(used, 1)
+        metrics["memory_used_percent"] = round(
+            max(0.0, min(100.0, (1.0 - (free_bytes / total_bytes)) * 100.0)), 1
+        )
 
     transport = agent_transport(device)
-    ctx.update(
-        {
-            "inventory": inventory,
-            "metrics": metrics,
-            "agent_transport": transport,
-            "snapshot_supported": transport == "modern",
-            "telemetry_history_supported": transport == "modern",
-            "support_snapshot_supported": transport == "modern",
-            "legacy_capability_reason": (
-                "Il transport legacy RouterOS 7.12.x non supporta questa acquisizione strutturata. "
-                "Heartbeat e diagnostica di base restano disponibili."
-                if transport == "legacy"
-                else None
-            ),
-        }
-    )
+    ctx.update({
+        "inventory": inventory,
+        "metrics": metrics,
+        "agent_transport": transport,
+        "snapshot_supported": transport == "modern",
+        "telemetry_history_supported": transport == "modern",
+        "support_snapshot_supported": transport == "modern",
+        "legacy_capability_reason": (
+            "Il transport legacy RouterOS 7.12.x non supporta questa acquisizione strutturata. "
+            "Heartbeat e diagnostica di base restano disponibili."
+            if transport == "legacy" else None
+        ),
+    })
     return ctx
 
 
 def _remove_exact_route(app, path: str, method: str = "GET"):
     method = method.upper()
     app.router.routes[:] = [
-        route
-        for route in app.router.routes
+        route for route in app.router.routes
         if not (
             getattr(route, "path", None) == path
             and method in (getattr(route, "methods", set()) or set())
         )
     ]
+
+
+def _promote_exact_endpoints(app, specs):
+    wanted = {(path, method.upper()): endpoint for path, method, endpoint in specs}
+    promoted, rest = [], []
+    for route in app.router.routes:
+        path = getattr(route, "path", None)
+        methods = getattr(route, "methods", set()) or set()
+        endpoint = getattr(route, "endpoint", None)
+        if any(wanted.get((path, method.upper())) is endpoint for method in methods):
+            promoted.append(route)
+        else:
+            rest.append(route)
+    app.router.routes[:] = promoted + rest
 
 
 def _require_device(request: Request, device_id: uuid.UUID, permission: str):
@@ -160,14 +155,9 @@ def configuration_v2(request: Request, device_id: uuid.UUID, section: str = "res
     try:
         ctx = _enhanced_context(db, device)
         return core.render(
-            request,
-            db,
-            user,
-            "mikrotik_configuration_v2.html",
-            device=device,
-            active_section=section,
-            snapshot_sections=workspace.SNAPSHOT_SECTIONS,
-            **ctx,
+            request, db, user, "mikrotik_configuration_v2.html",
+            device=device, active_section=section,
+            snapshot_sections=workspace.SNAPSHOT_SECTIONS, **ctx,
         )
     finally:
         db.close()
@@ -197,21 +187,13 @@ def diagnostic_result(request: Request, device_id: uuid.UUID, job_id: uuid.UUID)
         db.close()
         return core.login_redirect()
     try:
-        job = db.scalar(
-            select(DeviceJob).where(DeviceJob.id == job_id, DeviceJob.device_id == device.id)
-        )
-        allowed = set(workspace.DIAGNOSTIC_TYPES.values())
-        if not job or job.job_type not in allowed:
+        job = db.scalar(select(DeviceJob).where(DeviceJob.id == job_id, DeviceJob.device_id == device.id))
+        if not job or job.job_type not in set(workspace.DIAGNOSTIC_TYPES.values()):
             raise HTTPException(404)
         ctx = _enhanced_context(db, device)
         return core.render(
-            request,
-            db,
-            user,
-            "mikrotik_diagnostic_result.html",
-            device=device,
-            job=job,
-            **ctx,
+            request, db, user, "mikrotik_diagnostic_result.html",
+            device=device, job=job, **ctx,
         )
     finally:
         db.close()
@@ -223,6 +205,7 @@ def _guard_snapshot(
     section: str,
     csrf: str = Form(...),
 ):
+    core.validate_csrf(request, csrf)
     with SessionLocal() as db:
         device = workspace._load_device(db, device_id)
         if agent_transport(device) != "modern":
@@ -243,6 +226,7 @@ def _guard_diagnostic(
     query: str = Form(""),
     csrf: str = Form(...),
 ):
+    core.validate_csrf(request, csrf)
     if diagnostic == "support_snapshot":
         with SessionLocal() as db:
             device = workspace._load_device(db, device_id)
@@ -256,29 +240,47 @@ def _guard_diagnostic(
 
 
 def install_mikrotik_workspace_ux(app):
-    # Enhance both workspace and telemetry presentation contexts without changing
-    # persisted inventory values or RouterOS payloads.
     workspace._workspace_context = _enhanced_context
     telemetry._workspace_context = _enhanced_context
 
-    # Replace only the two detail pages where capability-aware UX is required.
-    _remove_exact_route(app, "/devices/{device_id}/configuration", "GET")
-    _remove_exact_route(app, "/devices/{device_id}/diagnostics", "GET")
+    for path, method in (
+        ("/devices/{device_id}/configuration", "GET"),
+        ("/devices/{device_id}/diagnostics", "GET"),
+        ("/devices/{device_id}/snapshot/{section}", "POST"),
+        ("/devices/{device_id}/diagnostics/{diagnostic}", "POST"),
+    ):
+        _remove_exact_route(app, path, method)
     app.include_router(router)
+    app.add_api_route(
+        "/devices/{device_id}/snapshot/{section}", _guard_snapshot,
+        methods=["POST"], name="queue_mikrotik_snapshot",
+    )
+    app.add_api_route(
+        "/devices/{device_id}/diagnostics/{diagnostic}", _guard_diagnostic,
+        methods=["POST"], name="queue_mikrotik_diagnostic",
+    )
 
-    # Fail closed server-side as well: a manipulated form cannot queue a modern
-    # snapshot/support operation against a legacy device.
-    _remove_exact_route(app, "/devices/{device_id}/snapshot/{section}", "POST")
-    _remove_exact_route(app, "/devices/{device_id}/diagnostics/{diagnostic}", "POST")
-    app.add_api_route(
-        "/devices/{device_id}/snapshot/{section}",
-        _guard_snapshot,
-        methods=["POST"],
-        name="queue_mikrotik_snapshot",
+
+def install_mikrotik_workspace_ux_precedence(app):
+    """Re-register Core 0.42 handlers after every incremental router installer.
+
+    FastAPI copies APIRouter routes. Older NSM modules may therefore leave a
+    callable legacy copy after a later installer runs. Make the final composed
+    app deterministic instead of relying on include order.
+    """
+    specs = (
+        ("/devices/{device_id}/configuration", "GET", configuration_v2, "mikrotik_configuration_v2"),
+        ("/devices/{device_id}/diagnostics", "GET", diagnostics_v2, "mikrotik_diagnostics_v2"),
+        ("/devices/{device_id}/diagnostics/jobs/{job_id}", "GET", diagnostic_result, "mikrotik_diagnostic_result"),
+        ("/devices/{device_id}/snapshot/{section}", "POST", _guard_snapshot, "queue_mikrotik_snapshot"),
+        ("/devices/{device_id}/diagnostics/{diagnostic}", "POST", _guard_diagnostic, "queue_mikrotik_diagnostic"),
     )
-    app.add_api_route(
-        "/devices/{device_id}/diagnostics/{diagnostic}",
-        _guard_diagnostic,
-        methods=["POST"],
-        name="queue_mikrotik_diagnostic",
-    )
+    for path, method, _endpoint, _name in specs:
+        _remove_exact_route(app, path, method)
+    for path, method, endpoint, name in specs:
+        app.add_api_route(
+            path, endpoint, methods=[method], name=name,
+            response_class=HTMLResponse if method == "GET" else None,
+            include_in_schema=False,
+        )
+    _promote_exact_endpoints(app, [(path, method, endpoint) for path, method, endpoint, _name in specs])
