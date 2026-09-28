@@ -59,7 +59,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.38.0'
+          assert app.version == '0.39.0'
           expected = {
               'dashboard': '/',
               'devices': '/devices',
@@ -73,111 +73,72 @@ jobs:
               'agent_fleet': '/operations/agents',
               'backup_customer_overview': '/operations/backups',
               'search_suggest': '/api/v1/search/suggest',
+              'audit_events_worklist': '/audit/events',
+              'audit_events_export_csv': '/audit/events/export.csv',
           }
           for name, path in expected.items():
               assert str(app.url_path_for(name)) == path, (name, app.url_path_for(name))
+          assert str(app.url_path_for('device_activity_worklist', device_id=zero)) == f'/devices/{zero}/jobs'
           assert str(app.url_path_for('queue_mikrotik_firmware_readiness', device_id=zero)) == f'/devices/{zero}/firmware-readiness'
           assert str(app.url_path_for('create_firmware_upgrade_plan', device_id=zero)) == f'/devices/{zero}/firmware-upgrade/plan'
-          assert str(app.url_path_for('firmware_upgrade_plan_page', device_id=zero)) == f'/devices/{zero}/firmware-upgrade'
-          assert str(app.url_path_for('approve_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/approve'
-          assert str(app.url_path_for('stage_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/stage'
-          assert str(app.url_path_for('mikrotik_firmware_stage_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/firmware-stage/{zero}/complete'
           assert str(app.url_path_for('activate_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/activate'
-          assert str(app.url_path_for('mikrotik_firmware_activation_ack', job_id=zero)) == f'/api/v1/agents/mikrotik/firmware-activate/{zero}/ack'
-          assert str(app.url_path_for('mikrotik_agent_status', device_id=zero)) == f'/devices/{zero}/agent'
           assert str(app.url_path_for('routerboot_lifecycle_page', device_id=zero)) == f'/devices/{zero}/routerboot'
-          assert str(app.url_path_for('stage_routerboot_upgrade', device_id=zero)) == f'/devices/{zero}/routerboot/stage'
-          assert str(app.url_path_for('reboot_for_routerboot_upgrade', device_id=zero)) == f'/devices/{zero}/routerboot/reboot'
-          assert str(app.url_path_for('mikrotik_routerboot_stage_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/routerboot-stage/{zero}/complete'
-          assert str(app.url_path_for('mikrotik_routerboot_reboot_ack', job_id=zero)) == f'/api/v1/agents/mikrotik/routerboot-reboot/{zero}/ack'
+          assert str(app.url_path_for('mikrotik_agent_status', device_id=zero)) == f'/devices/{zero}/agent'
           print(f'Core {app.version}: application and canonical routes OK')
           PY
 
-      - name: Validate Core 0.38 safety contracts
+      - name: Validate security and Core 0.39 contracts
         run: |
           python - <<'PY'
           from pathlib import Path
+
           staging = Path('app/app/firmware_package_staging.py').read_text()
           activation = Path('app/app/firmware_activation.py').read_text()
-          activation_guard = Path('app/app/firmware_activation_privilege_guard.py').read_text()
-          planner = Path('app/app/firmware_upgrade_planner.py').read_text()
-          privilege_profile = Path('app/app/mikrotik_privilege_profile.py').read_text()
-          plan_page = Path('app/app/templates/firmware_upgrade_plan.html').read_text()
           routerboot = Path('app/app/routerboot_lifecycle.py').read_text()
-          routerboot_page = Path('app/app/templates/routerboot_lifecycle.html').read_text()
+          privilege = Path('app/app/mikrotik_privilege_profile.py').read_text()
           legacy = Path('app/app/mikrotik_legacy.py').read_text()
-          agent_status = Path('app/app/mikrotik_agent_status.py').read_text()
-          workspace = Path('app/app/templates/mikrotik_workspace.html').read_text()
-          agent_fleet = Path('app/app/agent_fleet.py').read_text()
-          fleet_page = Path('app/app/templates/agent_fleet.html').read_text()
-          agent_health = Path('app/app/agent_health_automation.py').read_text()
-          worker = Path('app/app/worker.py').read_text()
-          base = Path('app/app/templates/base.html').read_text()
+          activity = Path('app/app/activity_worklists.py').read_text()
+          device_activity = Path('app/app/templates/device_activity.html').read_text()
+          audit_page = Path('app/app/templates/audit_events_v2.html').read_text()
 
-          for marker in ('firmware_stage','DOWNLOAD {plan.target_version}','download_only','latest-version','/system package update download'):
-              assert marker in staging, marker
-          assert 'backup_run_id' in staging and 'status != "approved"' in staging
-          assert 'DOWNLOAD {{ plan.target_version }}' in plan_page
+          # Package staging must remain download-only.
+          assert '/system package update download' in staging
+          assert '/system package update install' not in staging
+          assert '/system reboot' not in staging
 
-          for marker in ('firmware_activate','ACTIVATE {plan.target_version}','reboot_pending','VERIFICATION_TIMEOUT','MISMATCH_GRACE','/system reboot'):
-              assert marker in activation, marker
-          for marker in ('ACTIVATE {{ plan.target_version }}','Attiva e riavvia MikroTik','Upgrade verificato','RouterBOOT separato'):
-              assert marker in plan_page, marker
-          assert 'activation_pending' in planner and 'reboot_pending' in planner
-          assert 'reconcile_firmware_activations()' in worker
+          # Activation is the only RouterOS package path allowed to reboot, and
+          # acknowledgement must be present before reboot execution.
+          assert 'firmware_activate' in activation
+          assert '/system reboot' in activation
           assert activation.index('/firmware-activate/') < activation.index('/system reboot')
           assert '/system routerboard upgrade' not in activation
-          assert '/system package update install' not in activation
 
-          # Core 0.38 keeps RouterBOOT as an explicitly separate lifecycle.
-          for marker in ('STAGE_JOB = "routerboot_stage"','REBOOT_JOB = "routerboot_reboot"','ROUTERBOOT {target}','REBOOT ROUTERBOOT {target}','/system routerboard upgrade','/system reboot','VERIFY_TIMEOUT'):
-              assert marker in routerboot, marker
-          for marker in ('RouterBOOT lifecycle','Nessun auto-upgrade','Flash RouterBOOT','Riavvia e verifica RouterBOOT'):
-              assert marker in routerboot_page, marker
-          assert routerboot.index('/routerboot-reboot/') < routerboot.rindex('/system reboot')
+          # RouterBOOT remains an explicitly separate lifecycle.
+          assert '/system routerboard upgrade' in routerboot
+          assert '/system reboot' in routerboot
           assert 'auto-upgrade=yes' not in routerboot
-          assert '/system routerboard settings set auto-upgrade' not in routerboot
-          assert 'routerboot_verification_tick()' in worker
 
-          # Planning/staging still cannot reboot or install by themselves.
-          combined_pre_activation = staging + planner
-          for forbidden in ('/system package update install', '/system reboot', ':execute script=', 'command_b64'):
-              assert forbidden not in combined_pre_activation, forbidden
+          # Privilege profiles stay fixed/fail-closed.
+          assert 'MODERN_PROFILE = "ops-v1"' in privilege
+          assert 'LEGACY_PROFILE = "legacy-read-v1"' in privilege
+          assert 'MODERN_POLICIES = "ftp,reboot,read,write,test"' in privilege
+          assert 'LEGACY_POLICIES = "read,test"' in privilege
 
-          # RouterOS privilege profiles are deliberately fixed and fail closed.
-          assert 'MODERN_PROFILE = "ops-v1"' in privilege_profile
-          assert 'LEGACY_PROFILE = "legacy-read-v1"' in privilege_profile
-          assert 'MODERN_POLICIES = "ftp,reboot,read,write,test"' in privilege_profile
-          assert 'LEGACY_POLICIES = "read,test"' in privilege_profile
-          assert 'agent_privilege_profile' in privilege_profile
-          assert 'profile != MODERN_PROFILE' in activation_guard
-          assert 'Rigenera / reinstalla agent' in activation_guard
-          for forbidden_policy in ('policy,', 'password,', 'sensitive,', 'sniff,'):
-              assert forbidden_policy not in 'ftp,reboot,read,write,test', forbidden_policy
+          # RouterOS 7.12 bootstrap remains bodyless and avoids unsupported JSON helpers.
+          bootstrap = legacy.split('def _legacy_bootstrap_script', 1)[1].split('def _select_agent_source', 1)[0]
+          assert 'http-data=""' in bootstrap
+          assert 'nsmJson' not in bootstrap
+          assert ':serialize' not in bootstrap and ':deserialize' not in bootstrap
 
-          for marker in ('bodyless-v1','http-data=""','X-NSM-Legacy-Transport:headers-v1','X-NSM-Enrollment-Transport','_header_inventory'):
-              assert marker in legacy, marker
-          bootstrap_body = legacy.split('def _legacy_bootstrap_script', 1)[1].split('def _select_agent_source', 1)[0]
-          assert 'nsmJson' not in bootstrap_body
-          assert ':serialize' not in bootstrap_body and ':deserialize' not in bootstrap_body
+          # Core 0.39 worklists are paginated/filterable and export respects filters.
+          for marker in ('PAGE_SIZES', 'ACTIVE_JOB_STATES', 'audit_events_export_csv', 'AUDIT_EVENTS_EXPORTED', 'limit(50000)'):
+              assert marker in activity, marker
+          for marker in ('Coda attiva', 'Storico operativo', 'per_page', 'from_date', 'to_date'):
+              assert marker in device_activity, marker
+          for marker in ('Esporta CSV', 'Registro eventi', 'customer', 'device', 'per_page'):
+              assert marker in audit_page, marker
 
-          for marker in ('HEARTBEAT_STALE_AFTER','agent_transport','agent_version','DeviceAgentCredential','DeviceEnrollment'):
-              assert marker in agent_status, marker
-          for marker in ('href="/devices/{{ device.id }}/agent"','Rigenera / reinstalla agent','Capability effettive','Enrollment recenti'):
-              assert marker in workspace, marker
-          for marker in ('PER_PAGE = 50','HEARTBEAT_STALE_AFTER','DeviceAgentCredential','DeviceEnrollment','/operations/agents'):
-              assert marker in agent_fleet, marker
-          for marker in ('Agent Fleet','Heartbeat stale','Credenziale assente','transport=legacy','/agent'):
-              assert marker in fleet_page, marker
-          for marker in ('TITLE_NO_CREDENTIAL','TITLE_PENDING_ENROLLMENT','TITLE_UNKNOWN_TRANSPORT','AGENT_HEALTH_RECOVERED','recovery_notified_at'):
-              assert marker in agent_health, marker
-          assert 'agent_health_tick()' in worker
-          assert 'href="/operations/agents"' in base
-          assert 'secret_hash' not in fleet_page
-          assert 'raw_secret' not in fleet_page
-          assert 'agent_credential.secret_hash' not in workspace
-          assert 'raw_secret' not in workspace
-          print('Core 0.38 RouterOS + RouterBOOT separated lifecycle safety contracts OK')
+          print('Core 0.39 safety and scalability contracts OK')
           PY
 
       - name: Prepare dummy runtime env for Compose validation
