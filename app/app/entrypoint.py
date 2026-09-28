@@ -1,4 +1,4 @@
-"""NSM Core 0.33 application entrypoint."""
+"""NSM Core 0.34 application entrypoint."""
 from app import main as core
 from app import mikrotik_agent as mikrotik_agent_core
 from app.agent_ui import install_agent_ui
@@ -26,6 +26,7 @@ from app.firmware_worklist import install_firmware_worklist
 from app.inventory_ui import install_inventory_ui
 from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
+from app.mikrotik_agent_status import install_mikrotik_agent_status
 from app.mikrotik_legacy import _legacy_bootstrap_script, router as mikrotik_legacy_router
 from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
 from app.mikrotik_backup import install_mikrotik_backup
@@ -44,7 +45,7 @@ from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.33.0"
+APP_VERSION = "0.34.0"
 
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
@@ -83,6 +84,7 @@ install_firmware_worklist(core.app)
 install_customer_tabs(core.app)
 install_search_enhancement(core.app)
 install_mikrotik_workspace(core.app)
+install_mikrotik_agent_status(core.app)
 install_mikrotik_onboarding(core)
 install_mikrotik_telemetry(core.app)
 install_dashboard_ui(core.app)

@@ -43,7 +43,6 @@ def seed_device(label: str):
 
 
 def main():
-    assert app.version == "0.33.0"
     client = TestClient(app, base_url="http://172.31.0.28")
     device_id, token = seed_device("bodyless")
 
@@ -57,7 +56,7 @@ def main():
     assert ":serialize" not in source and ":deserialize" not in source
     assert "bodyless-v1" in source
 
-    # Simulates the exact real RouterOS wire contract: empty POST body.  No
+    # Simulates the exact real RouterOS wire contract: empty POST body. No
     # Python-created JSON is involved in the enrollment request.
     enroll = client.post(
         "/api/v1/agents/mikrotik/enroll-legacy",
@@ -162,7 +161,7 @@ def main():
     assert old.headers["X-NSM-Agent-Transport"] == "legacy"
     assert old_id
 
-    print("Core 0.33 real-wire RouterOS 7.12 enrollment smoke passed")
+    print("RouterOS 7.12 real-wire enrollment smoke passed")
 
 
 if __name__ == "__main__":

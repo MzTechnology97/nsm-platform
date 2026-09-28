@@ -59,7 +59,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.33.0'
+          assert app.version == '0.34.0'
           expected = {
               'dashboard': '/',
               'devices': '/devices',
@@ -81,10 +81,11 @@ jobs:
           assert str(app.url_path_for('approve_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/approve'
           assert str(app.url_path_for('stage_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/stage'
           assert str(app.url_path_for('mikrotik_firmware_stage_complete', job_id=zero)) == f'/api/v1/agents/mikrotik/firmware-stage/{zero}/complete'
+          assert str(app.url_path_for('mikrotik_agent_status', device_id=zero)) == f'/devices/{zero}/agent'
           print(f'Core {app.version}: application and canonical routes OK')
           PY
 
-      - name: Validate Core 0.33 safety contracts
+      - name: Validate Core 0.34 safety contracts
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -92,6 +93,8 @@ jobs:
           planner = Path('app/app/firmware_upgrade_planner.py').read_text()
           plan_page = Path('app/app/templates/firmware_upgrade_plan.html').read_text()
           legacy = Path('app/app/mikrotik_legacy.py').read_text()
+          agent_status = Path('app/app/mikrotik_agent_status.py').read_text()
+          workspace = Path('app/app/templates/mikrotik_workspace.html').read_text()
           for marker in ('firmware_stage','DOWNLOAD {plan.target_version}','download_only','latest-version','/system package update download'):
               assert marker in staging, marker
           assert 'backup_run_id' in staging and 'status != "approved"' in staging
@@ -105,7 +108,13 @@ jobs:
           bootstrap_body = legacy.split('def _legacy_bootstrap_script', 1)[1].split('def _select_agent_source', 1)[0]
           assert 'nsmJson' not in bootstrap_body
           assert ':serialize' not in bootstrap_body and ':deserialize' not in bootstrap_body
-          print('Core 0.33 firmware staging and real RouterOS enrollment safety contracts OK')
+          for marker in ('HEARTBEAT_STALE_AFTER','agent_transport','agent_version','DeviceAgentCredential','DeviceEnrollment'):
+              assert marker in agent_status, marker
+          for marker in ('href="/devices/{{ device.id }}/agent"','Rigenera / reinstalla agent','Capability effettive','Enrollment recenti'):
+              assert marker in workspace, marker
+          assert 'agent_credential.secret_hash' not in workspace
+          assert 'raw_secret' not in workspace
+          print('Core 0.34 agent diagnostics and RouterOS safety contracts OK')
           PY
 
       - name: Prepare dummy runtime env for Compose validation
@@ -160,20 +169,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r app/requirements.txt
 
-      - name: Apply migrations
-        run: cd app && alembic upgrade head
-
-      - name: Run complete Core smoke suite
+      - name: Run complete isolated Core smoke suite
         run: |
           cd app
           count=0
           for test in $(find tests -maxdepth 1 -type f -name '*_smoke.py' -printf '%f\n' | sort); do
+            echo "===== reset DB for $test ====="
+            alembic downgrade base >/dev/null 2>&1 || true
+            alembic upgrade head >/dev/null
+            rm -rf /tmp/nsm-ci-backups
+            mkdir -p /tmp/nsm-ci-backups
             echo "===== $test ====="
             PYTHONPATH=. python "tests/$test"
             count=$((count + 1))
           done
           test "$count" -ge 20
-          echo "Executed $count smoke tests"
+          echo "Executed $count isolated smoke tests"
 
   promote-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
