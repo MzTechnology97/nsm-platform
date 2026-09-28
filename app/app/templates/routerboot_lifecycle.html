@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% set title = device.display_name or device.device_identity or device.name %}
+{% block title %}RouterBOOT · {{ title }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/customers/{{ device.customer_id }}">{{ device.customer.name }}</a><span>›</span><a href="/devices/{{ device.id }}">{{ title }}</a><span>›</span><span>RouterBOOT</span></div>
+<div class="page-header compact-heading"><div><h1>RouterBOOT lifecycle</h1><p>{{ title }} · bootloader separato da RouterOS, con due conferme e verifica post-reboot.</p></div><div class="page-actions"><a class="button ghost" href="/operations/firmware">Firmware</a><a class="button ghost" href="/devices/{{ device.id }}">Apparato</a></div></div>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Stato osservato</h2><p>I valori arrivano dalla verifica firmware read-only del MikroTik.</p></div><span class="severity-badge severity-warning">SEPARATE LIFECYCLE</span></div>
+  <div class="policy-summary six">
+    <div><span>RouterBOOT attivo</span><strong>{{ current or '—' }}</strong></div>
+    <div><span>RouterBOOT disponibile</span><strong>{{ target or '—' }}</strong></div>
+    <div><span>Stato workflow</span><strong>{{ state.get('status') or 'idle' }}</strong></div>
+    <div><span>Agent transport</span><strong>{{ (device.inventory_data or {}).get('agent_transport') or '—' }}</strong></div>
+    <div><span>Privilege profile</span><strong>{{ (device.inventory_data or {}).get('agent_privilege_profile') or '—' }}</strong></div>
+    <div><span>Ultima verifica</span><strong>{{ readiness.get('checked_at') or '—' }}</strong></div>
+  </div>
+  <div class="alert info"><strong>Nessun auto-upgrade.</strong> NSM non abilita <code>auto-upgrade</code> del RouterBOARD. Flash e reboot sono azioni distinte e auditabili.</div>
+  {% if state.get('last_error') %}<div class="alert danger">{{ state.get('last_error') }}</div>{% endif %}
+  {% if state.get('status') == 'success' %}<div class="alert success"><strong>RouterBOOT verificato.</strong> Versione attiva {{ state.get('observed_version') or target }} verificata dopo il reboot.</div>{% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Sequenza sicura</h2><p>Ogni fase richiede lo stato precedente e viene registrata nell'audit.</p></div></div>
+  <div class="compact-list">
+    <div class="compact-row"><span><strong>1. Readiness</strong><small>Legge current-firmware e upgrade-firmware senza modifiche.</small></span><span class="status-pill">{% if current and target %}ready{% else %}missing{% endif %}</span></div>
+    <div class="compact-row"><span><strong>2. Flash bootloader</strong><small>Esegue soltanto /system routerboard upgrade. Nessun reboot.</small></span><span class="status-pill">{% if state.get('status') in ['staged','reboot_pending','rebooting','success'] %}staged{% elif state.get('status') == 'staging' %}running{% else %}pending{% endif %}</span></div>
+    <div class="compact-row"><span><strong>3. Reboot esplicito</strong><small>Seconda conferma. Il router invia ack al server prima del riavvio.</small></span><span class="status-pill">{% if state.get('status') == 'success' %}verified{% elif state.get('status') == 'rebooting' %}verifying{% elif state.get('status') == 'reboot_pending' %}queued{% else %}pending{% endif %}</span></div>
+    <div class="compact-row"><span><strong>4. Verifica</strong><small>NSM esegue una nuova readiness e chiude il workflow solo se current-firmware coincide con il target.</small></span><span class="status-pill">{% if state.get('status') == 'success' %}success{% elif state.get('status') == 'failed' %}failed{% else %}pending{% endif %}</span></div>
+  </div>
+</section>
+
+{% if not current or not target %}
+<div class="alert warning">Esegui prima “Verifica ora” dalla pagina Firmware per aggiornare current-firmware e upgrade-firmware.</div>
+{% elif current == target and state.get('status') != 'success' %}
+<div class="alert success">RouterBOOT è già allineato alla versione disponibile: {{ current }}.</div>
+{% endif %}
+
+{% if current and target and current != target and state.get('status') not in ['staging','staged','reboot_pending','rebooting'] and can_execute %}
+<section class="panel danger-zone">
+  <div class="panel-header"><div><h2>Flash RouterBOOT {{ target }}</h2><p>Questa fase aggiorna il bootloader memorizzato ma non riavvia il router.</p></div><span class="severity-badge severity-warning">NO REBOOT</span></div>
+  <form method="post" action="/devices/{{ device.id }}/routerboot/stage" class="stack-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Conferma esatta<input name="confirmation" required autocomplete="off" placeholder="ROUTERBOOT {{ target }}"></label>
+    <button class="button primary" type="submit">Flash RouterBOOT</button>
+  </form>
+</section>
+{% endif %}
+
+{% if state.get('status') == 'staging' %}<div class="alert info">Flash RouterBOOT accodato. Attendo l'esito dell'agent.</div>{% endif %}
+
+{% if state.get('status') == 'staged' and can_execute %}
+<section class="panel danger-zone">
+  <div class="panel-header"><div><h2>Riavvia per applicare RouterBOOT</h2><p>Il bootloader è staged. Il reboot è separato e richiede una seconda conferma esplicita.</p></div><span class="severity-badge severity-critical">REBOOT</span></div>
+  <form method="post" action="/devices/{{ device.id }}/routerboot/reboot" class="stack-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Seconda conferma esatta<input name="confirmation" required autocomplete="off" placeholder="REBOOT ROUTERBOOT {{ state.get('target_version') }}"></label>
+    <button class="button danger" type="submit">Riavvia e verifica RouterBOOT</button>
+  </form>
+</section>
+{% elif state.get('status') == 'reboot_pending' %}
+<div class="alert info">Reboot RouterBOOT accodato. L'agent deve ancora confermare il preflight.</div>
+{% elif state.get('status') == 'rebooting' %}
+<div class="alert info">Reboot accettato. NSM attende il ritorno online e una nuova lettura RouterBOOT.</div>
+{% endif %}
+{% endblock %}
