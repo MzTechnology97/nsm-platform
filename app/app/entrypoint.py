@@ -61,6 +61,7 @@ from app.routerboot_lifecycle import install_routerboot_lifecycle
 from app.search_enhancement import install_search_enhancement
 from app.security_drilldown import install_security_drilldown
 from app.ui_action_feedback import install_ui_action_feedback
+from app.ui_backup_feedback import install_ui_backup_feedback
 from app.ui_extension import install_ui
 from app.ui_feedback import install_ui_feedback
 from app.ui_firmware_feedback import install_ui_firmware_feedback
@@ -144,4 +145,5 @@ install_mikrotik_workspace_ux_precedence(core.app)
 # precedence without changing agent/API JSON contracts.
 install_ui_action_feedback(core.app)
 install_ui_firmware_feedback(core.app)
+install_ui_backup_feedback(core.app)
 app = core.app
