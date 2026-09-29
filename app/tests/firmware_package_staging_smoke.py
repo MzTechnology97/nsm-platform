@@ -86,12 +86,21 @@ def main():
     token = csrf_from(page.text)
 
     wrong = client.post(f"/devices/{device_id}/firmware-upgrade/{plan_id}/stage", data={"csrf": token, "confirmation": "DOWNLOAD WRONG"}, follow_redirects=False)
-    assert wrong.status_code == 400
+    assert wrong.status_code == 303
+    assert wrong.headers["location"] == f"/devices/{device_id}/firmware-upgrade?plan={plan_id}"
+    wrong_page = client.get(wrong.headers["location"])
+    assert wrong_page.status_code == 200
+    assert "Conferma non valida" in wrong_page.text
+    assert "DOWNLOAD 7.21.1" in wrong_page.text
 
     page = client.get(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}")
     token = csrf_from(page.text)
     queued = client.post(f"/devices/{device_id}/firmware-upgrade/{plan_id}/stage", data={"csrf": token, "confirmation": "DOWNLOAD 7.21.1"}, follow_redirects=False)
     assert queued.status_code == 303
+    assert queued.headers["location"] == f"/devices/{device_id}/firmware-upgrade?plan={plan_id}"
+    queued_page = client.get(queued.headers["location"])
+    assert "Staging firmware accodato" in queued_page.text
+    assert "download-only" in queued_page.text
 
     with SessionLocal() as db:
         plan = db.get(FirmwareUpgradePlan, plan_id)
@@ -126,7 +135,7 @@ def main():
     with SessionLocal() as db:
         activation_jobs = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "firmware_activate")))
         assert activation_jobs == []
-    print("Core 0.32 download-only staging smoke passed with explicit Core 0.37 activation gate")
+    print("Core 0.32 download-only staging smoke passed with contextual UI feedback")
 
 
 if __name__ == "__main__":
