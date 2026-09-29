@@ -1,13 +1,18 @@
 """Final syntax hardening for the composed modern RouterOS agent.
 
-Real RouterOS 7.20.7 and 7.24.4 testing showed that an empty ``{}`` used as a
-``:local`` initializer is rejected by the RouterOS parser before the agent can
-start.  The modern agent is assembled by several independent feature modules,
-so this guard is intentionally installed *after* all feature installers and
-validates the final source returned to the router.
+Real RouterOS testing is the authority for syntax accepted by the generated
+agent.  This guard is intentionally installed *after* every modern-agent
+feature wrapper and normalizes a small set of patterns that have been proven
+unsafe on real devices:
 
-Only the known-invalid empty local initializer is normalized.  Non-empty
-RouterOS map/array literals and all handler logic are left untouched.
+* empty ``{}`` local initializers rejected by RouterOS 7.20.7/7.24.4;
+* raw 64-byte SHA-512 values being serialized into JSON instead of their
+  128-character hexadecimal representation;
+* bare top-level ``:return`` statements that can prompt interactively for a
+  return value when an unattended error path is executed.
+
+The guard operates only on the final composed modern source.  Legacy RouterOS
+source is kept separate and is not rewritten here.
 """
 from __future__ import annotations
 
@@ -18,29 +23,44 @@ from app import mikrotik_agent as agent_module
 _EMPTY_LOCAL_RE = re.compile(
     r"(?m)^(?P<indent>[ \t]*):local[ \t]+(?P<name>[A-Za-z_][A-Za-z0-9_-]*)[ \t]+\{\}[ \t]*$"
 )
+_RAW_SHA512_RE = re.compile(r"transform=sha512(?=\])")
+_BARE_RETURN_RE = re.compile(r"(?m):return(?=[ \t]*(?:;|\}|$))")
 
 
 def normalize_modern_agent_source(source: str) -> tuple[str, tuple[str, ...]]:
-    """Remove RouterOS-invalid empty ``{}`` initializers from local variables."""
+    """Normalize known unsafe RouterOS constructs in final modern source."""
     replaced: list[str] = []
 
-    def _replace(match: re.Match[str]) -> str:
+    def _replace_empty_local(match: re.Match[str]) -> str:
         name = match.group("name")
         replaced.append(name)
         return f'{match.group("indent")}:local {name}'
 
-    normalized = _EMPTY_LOCAL_RE.sub(_replace, source)
+    normalized = _EMPTY_LOCAL_RE.sub(_replace_empty_local, source)
+
+    normalized, sha_count = _RAW_SHA512_RE.subn("transform=sha512 to=hex", normalized)
+    replaced.extend("sha512-hex" for _ in range(sha_count))
+
+    normalized, return_count = _BARE_RETURN_RE.subn(":exit", normalized)
+    replaced.extend("bare-return" for _ in range(return_count))
+
     return normalized, tuple(replaced)
 
 
 def validate_modern_agent_source(source: str) -> None:
-    """Fail closed if a known-invalid empty local initializer survives."""
+    """Fail closed if a known unsafe construct survives final composition."""
     match = _EMPTY_LOCAL_RE.search(source)
     if match:
         raise RuntimeError(
             "RouterOS modern agent contains invalid empty local initializer: "
             f'{match.group("name")} {{}}'
         )
+    if _RAW_SHA512_RE.search(source):
+        raise RuntimeError("RouterOS modern agent contains raw SHA-512 conversion")
+    if _BARE_RETURN_RE.search(source):
+        raise RuntimeError("RouterOS modern agent contains interactive bare :return")
+    if "agent_source_sha512" in source and "transform=sha512 to=hex" not in source:
+        raise RuntimeError("RouterOS modern agent source fingerprint is not hexadecimal")
 
 
 def install_mikrotik_modern_syntax_guard() -> None:
