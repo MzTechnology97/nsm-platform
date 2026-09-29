@@ -66,7 +66,7 @@ def install_ui_action_feedback(app) -> None:
     ):
         _remove_post(app, path)
 
-    @app.post("/devices/{device_id}/snapshot/{section}", name="queue_mikrotik_snapshot_ui")
+    @app.post("/devices/{device_id}/snapshot/{section}", name="queue_mikrotik_snapshot")
     def snapshot_ui(
         request: Request,
         device_id: uuid.UUID,
@@ -85,7 +85,7 @@ def install_ui_action_feedback(app) -> None:
             add_flash(request, "success", "Aggiornamento della sezione accodato. Verrà eseguito al prossimo heartbeat.", title="Snapshot accodato")
         return response
 
-    @app.post("/devices/{device_id}/snapshot-all", name="queue_mikrotik_snapshot_all_ui")
+    @app.post("/devices/{device_id}/snapshot-all", name="queue_mikrotik_snapshot_all")
     def snapshot_all_ui(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
         return_to = f"/devices/{device_id}/configuration?section=resources"
         try:
@@ -99,7 +99,7 @@ def install_ui_action_feedback(app) -> None:
             add_flash(request, "success", "Aggiornamento completo accodato come job separati per ogni sezione.", title="Snapshot completo accodato")
         return response
 
-    @app.post("/devices/{device_id}/diagnostics/{diagnostic}", name="queue_mikrotik_diagnostic_ui")
+    @app.post("/devices/{device_id}/diagnostics/{diagnostic}", name="queue_mikrotik_diagnostic")
     def diagnostic_ui(
         request: Request,
         device_id: uuid.UUID,
@@ -133,7 +133,7 @@ def install_ui_action_feedback(app) -> None:
         add_flash(request, "success", f"{label} accodato. Il risultato comparirà in Job & attività.", title="Diagnostica accodata")
         return response
 
-    @app.post("/devices/{device_id}/agent/update", name="queue_mikrotik_agent_update_ui")
+    @app.post("/devices/{device_id}/agent/update", name="queue_mikrotik_agent_update")
     def agent_update_ui(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
         return_to = f"/devices/{device_id}/agent"
         try:
