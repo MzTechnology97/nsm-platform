@@ -4,9 +4,14 @@ RouterOS releases such as 7.12.1 do not expose :serialize/:deserialize. The
 legacy agent therefore uses a tiny pipe-delimited control protocol and fixed
 handlers compiled into the agent source. The server never sends RouterOS source
 code or arbitrary commands.
+
+Structured snapshots use the same security model: the server can only select a
+fixed read-only section, RouterOS emits sanitized rows, and the server rebuilds
+the same result shape consumed by the modern configuration workspace.
 """
 from __future__ import annotations
 
+import textwrap
 import uuid
 
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -23,7 +28,17 @@ from app.mikrotik_firmware_readiness import apply_firmware_readiness, parse_lega
 from app.models import utcnow
 
 router = APIRouter()
-MAX_LEGACY_RESULT = 256 * 1024
+MAX_LEGACY_RESULT = 512 * 1024
+LEGACY_SNAPSHOT_SECTIONS = {
+    "resources",
+    "ip_addresses",
+    "routes",
+    "interfaces",
+    "firewall",
+    "ppp_active",
+    "dhcp_leases",
+    "logs",
+}
 LEGACY_JOB_TYPES = {
     "inventory_refresh",
     "diagnostic_ping",
@@ -32,11 +47,64 @@ LEGACY_JOB_TYPES = {
     "diagnostic_dhcp_lookup",
     "diagnostic_logs",
     "firmware_readiness",
+    "snapshot_section",
 }
 LEGACY_DEFERRED_JOB_TYPES = {
-    "snapshot_section",
     "support_snapshot",
     "backup_mikrotik",
+}
+
+_RECORD_SCHEMAS = {
+    "R": (
+        "identity", "model", "routeros", "architecture", "cpu", "cpu_count",
+        "cpu_load", "total_memory", "free_memory", "uptime",
+    ),
+    "IP": (
+        "address", "network", "interface", "actual-interface", "dynamic",
+        "disabled", "invalid", "comment",
+    ),
+    "RT": (
+        "dst-address", "gateway", "immediate-gw", "distance", "routing-table",
+        "active", "dynamic", "disabled", "check-gateway", "comment",
+    ),
+    "IF": (
+        "name", "type", "default-name", "running", "disabled", "mac-address",
+        "mtu", "actual-mtu", "l2mtu", "rx-byte", "tx-byte", "comment",
+    ),
+    "FF": (
+        "chain", "action", "protocol", "src-address", "src-address-list",
+        "dst-address", "dst-address-list", "src-port", "dst-port",
+        "in-interface", "in-interface-list", "out-interface", "out-interface-list",
+        "disabled", "dynamic", "comment",
+    ),
+    "FN": (
+        "chain", "action", "protocol", "src-address", "src-address-list",
+        "dst-address", "dst-address-list", "src-port", "dst-port",
+        "in-interface", "in-interface-list", "out-interface", "out-interface-list",
+        "disabled", "dynamic", "comment",
+    ),
+    "DH": (
+        "address", "active-address", "mac-address", "active-mac-address",
+        "host-name", "active-host-name", "server", "status", "dynamic", "blocked",
+        "disabled", "expires-after", "last-seen", "comment",
+    ),
+    "PA": (
+        "name", "user", "service", "caller-id", "calling-station-id", "address",
+        "remote-address", "local-address", "uptime", "comment",
+    ),
+    "PC": (
+        "name", "user", "connect-to", "service-name", "ac-name", "remote-address",
+        "remote-address-ipv6", "local-address", "local-address-ipv6", "uptime",
+        "disabled", "running", "comment",
+    ),
+    "LG": ("time", "topics", "message"),
+}
+_PPP_GROUPS = {
+    "PS": "sstp_clients",
+    "PL": "l2tp_clients",
+    "PE": "pppoe_clients",
+    "PP": "pptp_clients",
+    "PO": "ovpn_clients",
 }
 
 
@@ -61,15 +129,191 @@ def _job_line(job: DeviceJob) -> str:
         arg2 = _field(payload.get("lookup_type"), 8)
         if not arg1 or arg2 not in {"ip", "mac"}:
             raise HTTPException(409, "Job DHCP legacy non valido.")
+    elif job.job_type == "snapshot_section":
+        arg1 = _field(payload.get("section"), 40)
+        if arg1 not in LEGACY_SNAPSHOT_SECTIONS:
+            raise HTTPException(409, "Sezione snapshot legacy non supportata.")
     return f"{job.id}|{job.job_type}|{arg1}|{arg2}"
+
+
+def _decode_record(line: str):
+    parts = line.rstrip("\r").split("|")
+    if not parts:
+        return None, None
+    tag = parts[0]
+    schema = _RECORD_SCHEMAS.get("PC" if tag in _PPP_GROUPS else tag)
+    if not schema:
+        return tag, None
+    values = parts[1:]
+    if len(values) < len(schema):
+        values.extend([""] * (len(schema) - len(values)))
+    return tag, dict(zip(schema, values[: len(schema)]))
+
+
+def parse_legacy_snapshot(section: str, output: str) -> dict:
+    """Convert the fixed legacy rows-v1 wire format to the modern result shape."""
+    if section not in LEGACY_SNAPSHOT_SECTIONS:
+        raise ValueError("unsupported legacy snapshot section")
+
+    records: list[tuple[str, dict]] = []
+    total = 0
+    limit = 0
+    truncated = False
+    for raw_line in str(output or "").splitlines():
+        line = raw_line.strip("\r")
+        if not line:
+            continue
+        if line.startswith("META|"):
+            parts = line.split("|", 3)
+            try:
+                total = int(parts[1]) if len(parts) > 1 and parts[1] else 0
+                limit = int(parts[2]) if len(parts) > 2 and parts[2] else 0
+            except ValueError:
+                total = limit = 0
+            truncated = len(parts) > 3 and parts[3].lower() in {"1", "true", "yes"}
+            continue
+        tag, row = _decode_record(line)
+        if row is not None:
+            records.append((tag, row))
+
+    if section == "resources":
+        data = next((row for tag, row in records if tag == "R"), None)
+        if data is None:
+            raise ValueError("legacy resource snapshot is empty")
+    elif section == "ip_addresses":
+        data = [row for tag, row in records if tag == "IP"]
+    elif section == "routes":
+        data = [row for tag, row in records if tag == "RT"]
+    elif section == "interfaces":
+        data = [row for tag, row in records if tag == "IF"]
+    elif section == "firewall":
+        data = {
+            "filter": [row for tag, row in records if tag == "FF"],
+            "nat": [row for tag, row in records if tag == "FN"],
+        }
+    elif section == "ppp_active":
+        data = {
+            "active": [row for tag, row in records if tag == "PA"],
+            "sstp_clients": [],
+            "l2tp_clients": [],
+            "pppoe_clients": [],
+            "pptp_clients": [],
+            "ovpn_clients": [],
+        }
+        for tag, row in records:
+            group = _PPP_GROUPS.get(tag)
+            if group:
+                data[group].append(row)
+    elif section == "dhcp_leases":
+        data = [row for tag, row in records if tag == "DH"]
+    else:
+        data = [row for tag, row in records if tag == "LG"]
+
+    inferred_total = len(data) if isinstance(data, list) else 0
+    return {
+        "section": section,
+        "data": data,
+        "truncated": truncated,
+        "total": total or inferred_total,
+        "limit": limit,
+        "legacy_transport": True,
+        "wire_format": "rows-v1",
+    }
+
+
+def _ros_row(tag: str, menu: str, fields: tuple[str, ...], *, tolerate_missing_menu: bool = False) -> str:
+    expression = f'"{tag}|"'
+    for field in fields:
+        expression += f' . [$nsmLegacyFieldSafe ($nsmRow->"{field}")]'
+        if field != fields[-1]:
+            expression += ' . "|"'
+    body = (
+        f':foreach nsmRow in=[{menu} print as-value] do={{\n'
+        f'  :local nsmLine ({expression})\n'
+        '  :set nsmJobOutput [$nsmLegacyAppend $nsmJobOutput $nsmLine]\n'
+        '}\n'
+    )
+    if tolerate_missing_menu:
+        return ':do {\n' + textwrap.indent(body, '  ') + '} on-error={}\n'
+    return body
+
+
+def _ros_section(name: str, body: str) -> str:
+    return f':if ($nsmSection = "{name}") do={{\n' + textwrap.indent(body, '  ') + '}\n'
+
+
+def _snapshot_handler_source() -> str:
+    resources = r''':local nsmLine ("R|" . [$nsmLegacyFieldSafe [/system identity get name]] . "|" . [$nsmLegacyFieldSafe [/system resource get board-name]] . "|" . [$nsmLegacyFieldSafe [/system resource get version]] . "|" . [$nsmLegacyFieldSafe [/system resource get architecture-name]] . "|" . [$nsmLegacyFieldSafe [/system resource get cpu]] . "|" . [$nsmLegacyFieldSafe [/system resource get cpu-count]] . "|" . [$nsmLegacyFieldSafe [/system resource get cpu-load]] . "|" . [$nsmLegacyFieldSafe [/system resource get total-memory]] . "|" . [$nsmLegacyFieldSafe [/system resource get free-memory]] . "|" . [$nsmLegacyFieldSafe [/system resource get uptime]])
+:set nsmJobOutput $nsmLine
+'''
+    ip_addresses = _ros_row("IP", "/ip address", _RECORD_SCHEMAS["IP"])
+    routes = _ros_row("RT", "/ip route", _RECORD_SCHEMAS["RT"])
+    interfaces = _ros_row("IF", "/interface", _RECORD_SCHEMAS["IF"])
+    firewall = (
+        _ros_row("FF", "/ip firewall filter", _RECORD_SCHEMAS["FF"])
+        + _ros_row("FN", "/ip firewall nat", _RECORD_SCHEMAS["FN"])
+    )
+    dhcp = _ros_row("DH", "/ip dhcp-server lease", _RECORD_SCHEMAS["DH"])
+    ppp = _ros_row("PA", "/ppp active", _RECORD_SCHEMAS["PA"])
+    for tag, menu in (
+        ("PS", "/interface sstp-client"),
+        ("PL", "/interface l2tp-client"),
+        ("PE", "/interface pppoe-client"),
+        ("PP", "/interface pptp-client"),
+        ("PO", "/interface ovpn-client"),
+    ):
+        ppp += _ros_row(tag, menu, _RECORD_SCHEMAS["PC"], tolerate_missing_menu=True)
+    logs = r''':local nsmRows [/log print as-value where topics~"warning|error|critical"]
+:local nsmTotal [:len $nsmRows]
+:local nsmLimit 20
+:local nsmTruncated false
+:if ($nsmTotal > $nsmLimit) do={ :set nsmRows [:pick $nsmRows ($nsmTotal - $nsmLimit) $nsmTotal]; :set nsmTruncated true }
+:foreach nsmRow in=$nsmRows do={
+  :local nsmLine ("LG|" . [$nsmLegacyFieldSafe ($nsmRow->"time")] . "|" . [$nsmLegacyFieldSafe ($nsmRow->"topics")] . "|" . [$nsmLegacyFieldSafe ($nsmRow->"message")])
+  :set nsmJobOutput [$nsmLegacyAppend $nsmJobOutput $nsmLine]
+}
+:local nsmMeta ("META|" . $nsmTotal . "|" . $nsmLimit . "|" . $nsmTruncated)
+:set nsmJobOutput [$nsmLegacyAppend $nsmJobOutput $nsmMeta]
+'''
+    body = ''.join((
+        _ros_section("resources", resources),
+        _ros_section("ip_addresses", ip_addresses),
+        _ros_section("routes", routes),
+        _ros_section("interfaces", interfaces),
+        _ros_section("firewall", firewall),
+        _ros_section("ppp_active", ppp),
+        _ros_section("dhcp_leases", dhcp),
+        _ros_section("logs", logs),
+    ))
+    return ':if ($nsmJobType = "snapshot_section") do={\n  :local nsmSection $nsmArg1\n' + textwrap.indent(body, '  ') + '}\n'
 
 
 def _legacy_agent_extension(base_url: str, check_certificate: bool) -> str:
     next_url = f"{base_url}/api/v1/agents/mikrotik/legacy/jobs/next"
     done_base = f"{base_url}/api/v1/agents/mikrotik/legacy/jobs/"
     cert = " check-certificate=yes" if check_certificate else ""
+    snapshot_handler = textwrap.indent(_snapshot_handler_source(), "            ")
     return f'''
 :local nsmLegacyHeaders ("X-NSM-Device-ID:" . $nsmDeviceId . ",X-NSM-Device-Secret:" . $nsmSecret)
+:local nsmLegacyFieldSafe do={{
+  :if ([:typeof $1] = "nil") do={{ :return "" }}
+  :local nsmValue [:tostr $1]
+  :local nsmOut ""
+  :local nsmLen [:len $nsmValue]
+  :if ($nsmLen > 0) do={{
+    :for nsmI from=0 to=($nsmLen - 1) do={{
+      :local nsmC [:pick $nsmValue $nsmI ($nsmI + 1)]
+      :if (($nsmC = "|") || ($nsmC = "\\r") || ($nsmC = "\\n")) do={{ :set nsmOut ($nsmOut . " ") }} else={{ :set nsmOut ($nsmOut . $nsmC) }}
+    }}
+  }}
+  :return $nsmOut
+}}
+:local nsmLegacyAppend do={{
+  :local nsmCurrent [:tostr $1]
+  :local nsmLine [:tostr $2]
+  :if ([:len $nsmCurrent] = 0) do={{ :return $nsmLine }}
+  :return ($nsmCurrent . "\\n" . $nsmLine)
+}}
 :local nsmLegacyJobResult ""
 :do {{ :set nsmLegacyJobResult [/tool fetch url="{next_url}" http-header-field=$nsmLegacyHeaders output=user as-value{cert}] }} on-error={{ :log warning "NSM legacy job poll failed" }}
 :if ([:typeof $nsmLegacyJobResult] != "str") do={{
@@ -121,7 +365,7 @@ def _legacy_agent_extension(base_url: str, check_certificate: bool) -> str:
               :do {{ :set nsmRbUpgrade [/system routerboard get upgrade-firmware] }} on-error={{}}
               :set nsmJobOutput ("channel=" . $nsmChannel . ";installed=" . $nsmInstalled . ";latest=" . $nsmLatest . ";status=" . $nsmUpdateStatus . ";free_hdd=" . $nsmFreeHdd . ";rb_current=" . $nsmRbCurrent . ";rb_upgrade=" . $nsmRbUpgrade)
             }}
-          }} on-error={{ :set nsmJobStatus "failed"; :set nsmJobOutput "RouterOS legacy job execution failed" }}
+{snapshot_handler}          }} on-error={{ :set nsmJobStatus "failed"; :set nsmJobOutput "RouterOS legacy job execution failed" }}
           :local nsmDoneUrl ("{done_base}" . $nsmJobId . "/complete?status=" . $nsmJobStatus)
           :local nsmDoneHeaders ("Content-Type:text/plain," . $nsmLegacyHeaders)
           :do {{ /tool fetch url=$nsmDoneUrl http-method=post http-header-field=$nsmDoneHeaders http-data=$nsmJobOutput output=user as-value{cert} }} on-error={{ :log warning "NSM legacy job completion failed" }}
@@ -232,9 +476,21 @@ async def legacy_job_complete(request: Request, job_id: uuid.UUID, status: str =
             parsed = parse_legacy_firmware_output(output)
             readiness = apply_firmware_readiness(db, device, parsed, source="mikrotik_agent_legacy")
             job.result = {**readiness, "legacy_transport": True}
+        elif normalized == "success" and job.job_type == "snapshot_section":
+            section = str((job.payload or {}).get("section") or "")
+            try:
+                job.result = parse_legacy_snapshot(section, output)
+            except ValueError as exc:
+                normalized = "failed"
+                job.status = "failed"
+                job.last_error = f"Snapshot legacy non valido: {exc}"[:4000]
+                job.result = {"output": output[:4000], "legacy_transport": True}
         else:
             job.result = {"output": output, "legacy_transport": True}
-        job.last_error = output[:4000] if normalized == "failed" else None
+        if normalized == "failed" and not job.last_error:
+            job.last_error = output[:4000]
+        if normalized == "success":
+            job.last_error = None
         job.completed_at = utcnow()
         core.add_event(
             db,
