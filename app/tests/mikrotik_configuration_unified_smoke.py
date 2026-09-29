@@ -8,7 +8,12 @@ from app.entrypoint import app
 from app.models import Customer, Device, User, utcnow
 from app.security import hash_password
 
-PASSWORD = "UnifiedConfigTestA1"
+TEST_PASSWORD = "test-only-unified-config"
+TEST_IDENTITY = "TEST-CCR-EDGE"
+TEST_PRIMARY_MAC = "02:49:00:00:00:01"
+TEST_DHCP_MAC = "02:49:00:00:00:35"
+TEST_WAN_ADDRESS = "192.0.2.2/30"
+TEST_WAN_GATEWAY = "192.0.2.1"
 
 
 def seed():
@@ -17,7 +22,7 @@ def seed():
     with SessionLocal() as db:
         user = User(
             username=f"unified-{suffix}",
-            password_hash=hash_password(PASSWORD),
+            password_hash=hash_password(TEST_PASSWORD),
             display_name="Unified Config Test",
             role="admin",
             is_active=True,
@@ -29,13 +34,13 @@ def seed():
             customer_id=customer.id,
             vendor="mikrotik",
             device_type="router",
-            name="Unified CCR",
-            display_name="Unified CCR",
-            device_identity="CCR-TEST-CENTRO",
+            name="Unified Test Router",
+            display_name="Unified Test Router",
+            device_identity=TEST_IDENTITY,
             model="CCR2004-16G-2S+",
             firmware_version="7.24.4 (stable)",
-            serial_number="UNIFIED49",
-            primary_mac="D4:01:C3:51:80:8F",
+            serial_number=f"TEST-{suffix.upper()}",
+            primary_mac=TEST_PRIMARY_MAC,
             management_ip="198.51.100.49",
             management_source="mikrotik_agent",
             status="online",
@@ -49,9 +54,12 @@ def seed():
         db.add(device)
         db.flush()
 
+        # Network addresses are RFC 5737 documentation ranges and MAC
+        # addresses use the locally administered 02: prefix. No production
+        # topology or observed hardware identifiers are stored in this fixture.
         snapshots = {
             "resources": {
-                "identity": "CCR-TEST-CENTRO",
+                "identity": TEST_IDENTITY,
                 "model": "CCR2004-16G-2S+",
                 "routeros": "7.24.4 (stable)",
                 "architecture": "arm64",
@@ -60,7 +68,7 @@ def seed():
                 "cpu_load": 7,
                 "free_memory": 3708588032,
                 "total_memory": 4294967296,
-                # Reproduces the bad display seen on a real RouterOS snapshot.
+                # Synthetic reproduction of the date-shaped uptime display bug.
                 "uptime": "1970-01-02 02:56:32",
             },
             "interfaces": [
@@ -69,27 +77,27 @@ def seed():
                     "type": "ether",
                     "running": True,
                     "disabled": False,
-                    "mac-address": "D4:01:C3:51:80:8F",
+                    "mac-address": TEST_PRIMARY_MAC,
                     "actual-mtu": 1500,
                     "l2mtu": 1596,
-                    "comment": "WAN",
+                    "comment": "TEST-WAN",
                 }
             ],
             "ip_addresses": [
                 {
-                    "address": "10.29.28.2/30",
-                    "network": "10.29.28.0",
+                    "address": TEST_WAN_ADDRESS,
+                    "network": "192.0.2.0",
                     "interface": "sfp-sfpplus1",
                     "dynamic": False,
                     "disabled": False,
                     "invalid": False,
-                    "comment": "WAN",
+                    "comment": "TEST-WAN",
                 }
             ],
             "routes": [
                 {
                     "dst-address": "0.0.0.0/0",
-                    "gateway": "10.29.28.1",
+                    "gateway": TEST_WAN_GATEWAY,
                     "distance": 1,
                     "routing-table": "main",
                     "active": True,
@@ -99,22 +107,22 @@ def seed():
             ],
             "firewall": {
                 "filter": [
-                    {"chain": "input", "action": "accept", "protocol": "udp", "comment": "Allow Wireguard"}
+                    {"chain": "input", "action": "accept", "protocol": "udp", "comment": "Synthetic VPN rule"}
                 ],
                 "nat": [
-                    {"chain": "srcnat", "action": "masquerade", "src-address": "172.31.1.0/24", "comment": "NAT-MGMT"}
+                    {"chain": "srcnat", "action": "masquerade", "src-address": "198.51.100.0/24", "comment": "TEST-NAT"}
                 ],
             },
             "ppp_active": {
                 "active": [],
                 "sstp_clients": [
                     {
-                        "name": "sstp-out1",
+                        "name": "sstp-test1",
                         "running": True,
                         "disabled": False,
-                        "connect-to": "vpn.example.net",
-                        "user": "wisp-user",
-                        "comment": "Backhaul SSTP",
+                        "connect-to": "vpn.example.test",
+                        "user": "test-user",
+                        "comment": "Synthetic SSTP",
                     }
                 ],
                 "l2tp_clients": [],
@@ -124,10 +132,10 @@ def seed():
             },
             "dhcp_leases": [
                 {
-                    "address": "10.0.1.3",
-                    "mac-address": "40:AE:30:2F:6E:35",
-                    "host-name": "EX141",
-                    "server": "dhcp2",
+                    "address": "203.0.113.3",
+                    "mac-address": TEST_DHCP_MAC,
+                    "host-name": "test-host-01",
+                    "server": "dhcp-test",
                     "status": "bound",
                     "dynamic": False,
                     "disabled": False,
@@ -162,7 +170,7 @@ def login(client, username):
     token = re.search(r'name="csrf" value="([^"]+)"', page.text).group(1)
     response = client.post(
         "/login",
-        data={"username": username, "password": PASSWORD, "csrf": token},
+        data={"username": username, "password": TEST_PASSWORD, "csrf": token},
         follow_redirects=False,
     )
     assert response.status_code == 303
@@ -182,15 +190,15 @@ def main():
 
     addresses = client.get(f"/devices/{device_id}/configuration?section=ip_addresses")
     assert addresses.status_code == 200
-    assert "10.29.28.2/30" in addresses.text and "sfp-sfpplus1" in addresses.text
+    assert TEST_WAN_ADDRESS in addresses.text and "sfp-sfpplus1" in addresses.text
 
     routes = client.get(f"/devices/{device_id}/configuration?section=routes")
     assert routes.status_code == 200
-    assert "0.0.0.0/0" in routes.text and "10.29.28.1" in routes.text and "ACTIVE" in routes.text
+    assert "0.0.0.0/0" in routes.text and TEST_WAN_GATEWAY in routes.text and "ACTIVE" in routes.text
 
     ppp = client.get(f"/devices/{device_id}/configuration?section=ppp_active")
     assert ppp.status_code == 200
-    for marker in ("PPP / Tunnel", "sstp-out1", "SSTP", "vpn.example.net", "wisp-user", "UP"):
+    for marker in ("PPP / Tunnel", "sstp-test1", "SSTP", "vpn.example.test", "test-user", "UP"):
         assert marker in ppp.text, marker
 
     resources = client.get(f"/devices/{device_id}/configuration?section=resources")
@@ -203,9 +211,9 @@ def main():
     assert old_interfaces.status_code == 303
     assert f"/devices/{device_id}/configuration?section=interfaces" in old_interfaces.headers["location"]
 
-    old_ip = client.get(f"/devices/{device_id}/ip-addresses?q=10.29", follow_redirects=False)
+    old_ip = client.get(f"/devices/{device_id}/ip-addresses?q=192.0.2", follow_redirects=False)
     assert old_ip.status_code == 303
-    assert "section=ip_addresses" in old_ip.headers["location"] and "q=10.29" in old_ip.headers["location"]
+    assert "section=ip_addresses" in old_ip.headers["location"] and "q=192.0.2" in old_ip.headers["location"]
 
     print("Unified MikroTik configuration workspace and PPP/tunnel UX smoke passed")
 
