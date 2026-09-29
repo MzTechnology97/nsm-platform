@@ -11,6 +11,7 @@ from app import backup_models  # noqa: F401
 from app import agent_models  # noqa: F401
 from app import mikrotik_backup_models  # noqa: F401
 from app import firmware_upgrade_models  # noqa: F401
+from app import restore_models  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
@@ -43,8 +44,14 @@ def run_migrations_online():
             target_metadata=target_metadata,
             compare_type=True,
         )
-        with context.begin_transaction():
-            context.run_migrations()
+        with connectable.connect() as connection:
+            context.configure(
+                connection=connection,
+                target_metadata=target_metadata,
+                compare_type=True,
+            )
+            with context.begin_transaction():
+                context.run_migrations()
 
 
 run_migrations_offline() if context.is_offline_mode() else run_migrations_online()
