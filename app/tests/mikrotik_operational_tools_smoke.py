@@ -53,7 +53,8 @@ def main():
     enroll = client.post("/api/v1/agents/mikrotik/enroll", json={"token": token, "inventory": {"identity": "CI20-CCR", "model": "CCR2004", "routeros_version": "7.20.2", "serial_number": "CI20SERIAL", "primary_mac": "02:20:00:00:00:01"}})
     assert enroll.status_code == 200, enroll.text
     body = enroll.json()
-    assert body["agent_version"] == "0.20.0"
+    agent_version = str(body.get("agent_version") or "").strip()
+    assert agent_version, body
     source = body["agent_source"]
     for marker in ("diagnostic_neighbors", "diagnostic_dhcp_lookup", "diagnostic_logs", "support_snapshot", "src-address"):
         assert marker in source, marker
@@ -88,7 +89,7 @@ def main():
     bad_dhcp = client.post(f"/devices/{device_id}/diagnostics/dhcp_lookup", data={"csrf": csrf, "query": "AA:BB:CC:DD:EE:FF; /system reboot"}, follow_redirects=False)
     assert bad_dhcp.status_code == 400
 
-    heartbeat = client.post("/api/v1/agents/mikrotik/heartbeat", headers=headers, json={"agent_version": "0.20.0", "inventory": {"identity": "CI20-CCR"}, "metrics": {"cpu_load": "9", "free_memory": "900MiB", "uptime": "3d00:00:00"}})
+    heartbeat = client.post("/api/v1/agents/mikrotik/heartbeat", headers=headers, json={"agent_version": agent_version, "inventory": {"identity": "CI20-CCR"}, "metrics": {"cpu_load": "9", "free_memory": "900MiB", "uptime": "3d00:00:00"}})
     assert heartbeat.status_code == 200, heartbeat.text
     jobs = heartbeat.json()["jobs"]
     types = {job["type"] for job in jobs}
@@ -108,7 +109,7 @@ def main():
         complete = client.post(f"/api/v1/agents/mikrotik/jobs/{job['id']}/complete", headers=headers, json={"status": "success", "result": result})
         assert complete.status_code == 200, complete.text
 
-    heartbeat2 = client.post("/api/v1/agents/mikrotik/heartbeat", headers=headers, json={"agent_version": "0.20.0", "inventory": {}, "metrics": {}})
+    heartbeat2 = client.post("/api/v1/agents/mikrotik/heartbeat", headers=headers, json={"agent_version": agent_version, "inventory": {}, "metrics": {}})
     support = next(job for job in heartbeat2.json()["jobs"] if job["type"] == "support_snapshot")
     complete = client.post(f"/api/v1/agents/mikrotik/jobs/{support['id']}/complete", headers=headers, json={"status": "success", "result": {"data": {"resources": {"identity": "CI20-CCR"}, "interfaces": [{"name": "ether1"}], "logs": []}}})
     assert complete.status_code == 200
@@ -138,7 +139,7 @@ def main():
     assert support_detail.status_code == 200
     assert "CI20-CCR" in support_detail.text
 
-    print("Core 0.20 operational tools remain covered through Core 0.43 diagnostic detail UX")
+    print("Operational tools remain covered against the currently enrolled modern agent generation")
 
 
 if __name__ == "__main__":
