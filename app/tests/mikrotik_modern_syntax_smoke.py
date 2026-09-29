@@ -6,17 +6,32 @@ from app.entrypoint import app
 from app.mikrotik_modern_syntax import normalize_modern_agent_source, validate_modern_agent_source
 
 _EMPTY_LOCAL = re.compile(r"(?m)^\s*:local\s+[A-Za-z_][A-Za-z0-9_-]*\s+\{\}\s*$")
+_RAW_SHA512 = re.compile(r"transform=sha512(?=\])")
+_BARE_RETURN = re.compile(r"(?m):return(?=\s*(?:;|\}|$))")
 
 
 def main():
     assert app.version.startswith("0.")
 
-    sample = ':local nsmData {}\n:set nsmData {"ok"=true}\n:local nsmAckResult {}\n'
+    sample = (
+        ':local nsmData {}\n'
+        ':set nsmData {"ok"=true}\n'
+        ':local nsmAckResult {}\n'
+        ':local h [:convert "test" transform=sha512]\n'
+        ':do { :log warning "failed"; :return } on-error={}\n'
+    )
     normalized, replaced = normalize_modern_agent_source(sample)
     assert normalized.splitlines()[0] == ':local nsmData'
     assert normalized.splitlines()[1] == ':set nsmData {"ok"=true}'
     assert normalized.splitlines()[2] == ':local nsmAckResult'
-    assert replaced == ("nsmData", "nsmAckResult")
+    assert 'transform=sha512 to=hex' in normalized
+    assert ':exit' in normalized
+    assert replaced == (
+        "nsmData",
+        "nsmAckResult",
+        "sha512-hex",
+        "bare-return",
+    )
     validate_modern_agent_source(normalized)
 
     source = mikrotik_agent._agent_source(
@@ -27,6 +42,10 @@ def main():
     )
 
     assert not _EMPTY_LOCAL.search(source), "invalid RouterOS empty local initializer survived"
+    assert not _RAW_SHA512.search(source), "raw SHA-512 conversion survived final composition"
+    assert not _BARE_RETURN.search(source), "interactive bare :return survived final composition"
+    assert 'transform=sha512 to=hex' in source
+    assert 'agent_source_sha512' in source
     for marker in (
         'snapshot_section',
         'diagnostic_ping',
