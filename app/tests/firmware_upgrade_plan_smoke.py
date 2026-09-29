@@ -197,6 +197,7 @@ def main():
 
     plan_page = client.get(f"/devices/{modern_id}/firmware-upgrade?plan={plan_id}")
     assert plan_page.status_code == 200
+    assert "Piano firmware pronto" in plan_page.text
     assert "Gate di sicurezza" in plan_page.text
     assert "Backup off-device" in plan_page.text
     assert "Approvazione operatore" in plan_page.text
@@ -213,7 +214,10 @@ def main():
         data={"csrf": approve_csrf, "confirmation": "UPGRADE WRONG"},
         follow_redirects=False,
     )
-    assert wrong.status_code == 400
+    assert wrong.status_code == 303
+    wrong_page = client.get(wrong.headers["location"])
+    assert "Conferma non valida" in wrong_page.text
+    assert "UPGRADE 7.21.1" in wrong_page.text
 
     approve_page = client.get(f"/devices/{modern_id}/firmware-upgrade?plan={plan_id}")
     approve_csrf = csrf_from(approve_page.text)
@@ -223,6 +227,9 @@ def main():
         follow_redirects=False,
     )
     assert approved.status_code == 303, approved.text
+    approved_page = client.get(approved.headers["location"])
+    assert "Piano firmware approvato" in approved_page.text
+    assert "non scarica pacchetti" in approved_page.text
 
     with SessionLocal() as db:
         plan = db.get(FirmwareUpgradePlan, plan_id)
@@ -249,12 +256,15 @@ def main():
         data={"csrf": legacy_csrf},
         follow_redirects=False,
     )
-    assert legacy_attempt.status_code == 409
+    assert legacy_attempt.status_code == 303
+    legacy_feedback = client.get(legacy_attempt.headers["location"])
+    assert "Operazione non disponibile" in legacy_feedback.text
+    assert "RouterOS 7.13+" in legacy_feedback.text
 
     assert str(app.url_path_for("create_firmware_upgrade_plan", device_id=str(modern_id))) == f"/devices/{modern_id}/firmware-upgrade/plan"
     assert str(app.url_path_for("firmware_upgrade_plan_page", device_id=str(modern_id))) == f"/devices/{modern_id}/firmware-upgrade"
 
-    print("Core 0.31 safe firmware upgrade planning smoke passed")
+    print("Core 0.31 safe firmware upgrade planning smoke passed with contextual UI feedback")
 
 
 if __name__ == "__main__":
