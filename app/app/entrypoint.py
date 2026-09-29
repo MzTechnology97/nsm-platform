@@ -60,7 +60,9 @@ from app.route_precedence import promote_customer_workspace_routes
 from app.routerboot_lifecycle import install_routerboot_lifecycle
 from app.search_enhancement import install_search_enhancement
 from app.security_drilldown import install_security_drilldown
+from app.ui_action_feedback import install_ui_action_feedback
 from app.ui_extension import install_ui
+from app.ui_feedback import install_ui_feedback
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
@@ -69,6 +71,7 @@ core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
 install_ui(core.app, core.templates)
+install_ui_feedback(core.app, core.templates)
 install_workflow_ui(core.app, core.templates)
 install_crud(core.app)
 install_api_keys(core.app)
@@ -136,4 +139,7 @@ install_mikrotik_modern_syntax_guard()
 install_mikrotik_agent_update_ui(core.templates)
 install_activity_route_precedence(core.app)
 install_mikrotik_workspace_ux_precedence(core.app)
+# Browser-only action wrappers are installed last so they win FastAPI route
+# precedence without changing agent/API JSON contracts.
+install_ui_action_feedback(core.app)
 app = core.app
