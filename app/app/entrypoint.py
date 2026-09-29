@@ -117,13 +117,16 @@ install_inventory_ui(core.app)
 install_branding_runtime(core.app)
 promote_device_csv_import_routes(core.app)
 install_activity_worklists(core.app)
-install_mikrotik_modern_syntax_guard()
 privileged_bootstrap = install_mikrotik_privilege_profile()
 mikrotik_agent_core._bootstrap_script = privileged_bootstrap
 core.app.include_router(mikrotik_legacy_router)
 install_mikrotik_legacy_jobs(core.app)
 install_mikrotik_compatibility_resolver()
 install_mikrotik_agent_self_update(core.app)
+# The syntax guard must wrap the final composed modern source, including the
+# Core 0.49 self-update/integrity extension. Installing it earlier would leave
+# later wrappers able to re-introduce unsafe RouterOS syntax.
+install_mikrotik_modern_syntax_guard()
 install_mikrotik_agent_update_ui(core.templates)
 install_activity_route_precedence(core.app)
 install_mikrotik_workspace_ux_precedence(core.app)
