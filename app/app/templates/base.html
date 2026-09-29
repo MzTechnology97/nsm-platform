@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="{{ url_for('static', path='/search_enhancement.css') }}?v={{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', path='/mikrotik_workspace.css') }}?v={{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', path='/ui_foundation.css') }}?v={{ app_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='/ui_feedback.css') }}?v={{ app_version }}">
   <link rel="stylesheet" href="/branding/theme.css?v={{ app_version }}" data-runtime-branding>
   <script defer src="{{ url_for('static', path='/ui.js') }}?v={{ app_version }}"></script>
 </head>
@@ -101,7 +102,21 @@
         </details>
       </div>
     </header>
-    <main class="main-content">{% block content %}{% endblock %}</main>
+    <main class="main-content">
+      {% set flash_items = consume_flash_messages(request) %}
+      {% if flash_items %}
+      <div class="flash-stack" role="region" aria-label="Messaggi operativi" aria-live="polite">
+        {% for flash in flash_items %}
+        <div class="flash-message flash-{{ flash.level }}" data-flash-message data-flash-autoclose="{{ '1' if flash.level in ['success', 'info'] else '0' }}">
+          <span class="flash-icon" aria-hidden="true">{% if flash.level == 'success' %}✓{% elif flash.level == 'warning' %}!{% elif flash.level == 'error' %}×{% else %}i{% endif %}</span>
+          <div class="flash-copy">{% if flash.title %}<strong>{{ flash.title }}</strong>{% endif %}<p>{{ flash.message }}</p></div>
+          <button type="button" class="flash-dismiss" data-flash-dismiss aria-label="Chiudi messaggio">×</button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
   </div>
 </div>
 {% else %}
