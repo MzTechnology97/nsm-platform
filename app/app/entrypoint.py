@@ -22,6 +22,7 @@ from app.customer_tabs import install_customer_tabs
 from app.customer_workspace import install_customer_workspace
 from app.dashboard_ui import install_dashboard_ui
 from app.demo_ui import install_demo_ui
+from app.device_backup_explorer import install_device_backup_explorer
 from app.device_csv_import import install_device_csv_import
 from app.device_csv_route_precedence import promote_device_csv_import_routes
 from app.firmware_activation import install_firmware_activation
@@ -80,6 +81,7 @@ install_api_operations(core.app)
 install_device_csv_import(core.app)
 install_backup_core(core.app, core.templates)
 install_backup_text_tools(core.app)
+install_device_backup_explorer(core.app)
 install_backup_scope_guard()
 install_backup_capability_guard()
 install_backup_policy_bridge()
