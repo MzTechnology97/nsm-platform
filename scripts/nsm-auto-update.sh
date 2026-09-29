@@ -11,6 +11,8 @@ KNOWN_HOSTS="${NSM_KNOWN_HOSTS:-/home/cda/.ssh/known_hosts}"
 DEPLOY_REF="${NSM_DEPLOY_REF:-refs/remotes/origin/deploy}"
 LOG_BRANCH="${NSM_LOG_BRANCH:-runtime-logs}"
 LOCAL_LOG="${NSM_LOCAL_LOG:-/var/log/nsm-auto-update.log}"
+PUBLISH_FAILURE_LOG="${NSM_PUBLISH_FAILURE_LOG:-0}"
+FAILURE_REPORT_FILE="${NSM_FAILURE_REPORT:-$STATE_DIR/last-failure.log}"
 LOCK_FILE="$STATE_DIR/lock"
 DEPLOYED_FILE="$STATE_DIR/deployed_commit"
 ATTEMPTED_FILE="$STATE_DIR/last_attempted_commit"
@@ -50,6 +52,15 @@ sanitize_report(){
     "$source" > "$destination"
 }
 
+store_local_failure_report(){
+  local source="$1"
+  local safe_report
+  safe_report="$(mktemp)"
+  sanitize_report "$source" "$safe_report"
+  install -m 0640 "$safe_report" "$FAILURE_REPORT_FILE"
+  rm -f "$safe_report"
+}
+
 publish_failure_log(){
   local report="$1" target="$2"
   local safe_report worktree group
@@ -59,8 +70,8 @@ publish_failure_log(){
   sanitize_report "$report" "$safe_report"
   chown "$GIT_USER:$group" "$worktree"
 
-  # Refresh remote refs. A GitHub/network failure is logged locally; deployment
-  # must never be marked successful merely because reporting failed.
+  # Remote publication is opt-in because repository visibility can change.
+  # A public repository would otherwise expose operational diagnostics.
   git_user fetch --prune origin >/dev/null 2>&1 || true
 
   if git_user show-ref --verify --quiet "refs/remotes/origin/$LOG_BRANCH"; then
@@ -88,7 +99,7 @@ publish_failure_log(){
   if git_tmp "$worktree" push origin "HEAD:refs/heads/$LOG_BRANCH" >/dev/null 2>&1; then
     log "Errore pubblicato su branch $LOG_BRANCH, file log."
   else
-    log "Push del log runtime fallito; copia locale conservata in $LOCAL_LOG."
+    log "Push del log runtime fallito; copia locale conservata in $FAILURE_REPORT_FILE."
   fi
 
   git_user worktree remove --force "$worktree" >/dev/null 2>&1 || rm -rf "$worktree"
@@ -115,8 +126,16 @@ fail_attempt(){
       (cd "$RUNTIME_DIR" && docker compose logs --tail=220 postgres redis migrate api worker caddy) || true
     fi
   } >> "$report" 2>&1
+
+  store_local_failure_report "$report"
   log "Deploy ${target:0:12} fallito: $reason"
-  publish_failure_log "$report" "$target" || true
+  log "Report diagnostico locale: $FAILURE_REPORT_FILE"
+
+  if [[ "$PUBLISH_FAILURE_LOG" == "1" ]]; then
+    publish_failure_log "$report" "$target" || true
+  else
+    log "Pubblicazione remota del report disabilitata (NSM_PUBLISH_FAILURE_LOG=0)."
+  fi
 }
 
 [[ $EUID -eq 0 ]] || { echo "nsm-auto-update deve essere eseguito come root." >&2; exit 1; }
