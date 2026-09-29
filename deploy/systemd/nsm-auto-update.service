@@ -8,6 +8,7 @@ Requires=docker.service
 Type=oneshot
 User=root
 Group=root
+EnvironmentFile=-/etc/default/nsm-auto-update
 ExecStart=/usr/local/sbin/nsm-auto-update
 TimeoutStartSec=20min
 Nice=10
