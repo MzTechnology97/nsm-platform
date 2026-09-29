@@ -68,19 +68,17 @@ sudo chown -R 70:70 "$PLATFORM_DIR/data/postgres"
 sudo chmod 0700 "$PLATFORM_DIR/data/postgres"
 prepare_backup_storage
 
-# If automatic deployment is already installed, refresh its executable and units
-# from the same validated commit. Replacing the running executable is safe: the
-# current process keeps using its open inode and the next timer run uses the new one.
-if [[ -f "$SOURCE_DIR/scripts/nsm-auto-update.sh" && -f /etc/systemd/system/nsm-auto-update.service ]]; then
+# If automatic deployment is already installed, refresh it from this same
+# validated commit. The installer refresh mode also creates the host-local
+# /etc/default/nsm-auto-update migration file when upgrading an installation
+# that predates environment-file based configuration. It deliberately does not
+# touch deployed_commit/last_result and does not start a nested updater run.
+if [[ -f "$SOURCE_DIR/scripts/install-auto-update.sh" && -f /etc/systemd/system/nsm-auto-update.service ]]; then
   info "Aggiorno componenti auto-update..."
-  sudo install -m 0755 "$SOURCE_DIR/scripts/nsm-auto-update.sh" /usr/local/sbin/nsm-auto-update
-  if [[ -f "$SOURCE_DIR/deploy/systemd/nsm-auto-update.service" ]]; then
-    sudo install -m 0644 "$SOURCE_DIR/deploy/systemd/nsm-auto-update.service" /etc/systemd/system/nsm-auto-update.service
-  fi
-  if [[ -f "$SOURCE_DIR/deploy/systemd/nsm-auto-update.timer" ]]; then
-    sudo install -m 0644 "$SOURCE_DIR/deploy/systemd/nsm-auto-update.timer" /etc/systemd/system/nsm-auto-update.timer
-  fi
-  sudo systemctl daemon-reload
+  sudo env \
+    NSM_REPO_DIR="$SOURCE_DIR" \
+    NSM_RUNTIME_DIR="$PLATFORM_DIR" \
+    "$SOURCE_DIR/scripts/install-auto-update.sh" --refresh-components-only
 fi
 
 cd "$PLATFORM_DIR"
