@@ -27,7 +27,7 @@ def seed():
         db.add_all([user, customer])
         db.flush()
         legacy = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Legacy Device", display_name="Legacy wAP R", device_identity="WAP-R-LEGACY", model="wAP R", serial_number="SERIAL43", primary_mac="AA:BB:CC:43:00:01", management_ip="192.0.2.43", firmware_version="7.12.1 (stable)", status="online", last_seen=now, management_source="mikrotik_agent", inventory_data={"agent_version":"0.20.0-legacy","agent_transport":"legacy","legacy_agent":True,"free_memory":"24522752","total_memory":"67108864","metrics":{"cpu_load":"8","free_memory":"24522752","total_memory":"67108864","uptime":"2d01:02:03"}})
-        modern = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Modern Device", display_name="Modern CCR", device_identity="CCR-MODERN", model="CCR2004-1G-12S+2XS", primary_mac="AA:BB:CC:43:00:02", firmware_version="7.20.7 (stable)", status="online", last_seen=now, management_source="mikrotik_agent", inventory_data={"agent_version":"0.20.0","agent_transport":"modern"})
+        modern = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Modern Device", display_name="Modern CCR", device_identity="CCR-MODERN", model="CCR2004-1G-12S+2XS", primary_mac="AA:BB:CC:43:00:02", firmware_version="7.20.7 (stable)", status="online", last_seen=now, management_source="mikrotik_agent", inventory_data={"agent_version":"0.49.2","agent_transport":"modern"})
         db.add_all([legacy, modern])
         db.flush()
         diagnostic = DeviceJob(device_id=legacy.id, job_type="diagnostic_ping", status="success", payload={"target":"8.8.8.8","source":""}, result={"output":"HOST SIZE TTL TIME STATUS\n8.8.8.8 56 117 12ms ok"}, created_at=now, delivered_at=now, completed_at=now, attempts=1)
@@ -61,8 +61,18 @@ def main():
     assert diagnostics.status_code == 200 and "NON DISP." in diagnostics.text
     assert f"/devices/{legacy_id}/diagnostics/jobs/{diagnostic_id}" in diagnostics.text
     token = csrf(diagnostics.text)
-    assert client.post(f"/devices/{legacy_id}/snapshot/resources", data={"csrf":token}).status_code == 409
-    assert client.post(f"/devices/{legacy_id}/diagnostics/support_snapshot", data={"csrf":token}).status_code == 409
+    snapshot_blocked = client.post(
+        f"/devices/{legacy_id}/snapshot/resources",
+        data={"csrf":token},
+        follow_redirects=False,
+    )
+    assert snapshot_blocked.status_code == 303
+    support_blocked = client.post(
+        f"/devices/{legacy_id}/diagnostics/support_snapshot",
+        data={"csrf":token},
+        follow_redirects=False,
+    )
+    assert support_blocked.status_code == 303
     detail = client.get(f"/devices/{legacy_id}/diagnostics/jobs/{diagnostic_id}")
     assert detail.status_code == 200 and "8.8.8.8" in detail.text and "12ms" in detail.text
     modern_configuration = client.get(f"/devices/{modern_id}/configuration")

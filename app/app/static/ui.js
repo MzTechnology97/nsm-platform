@@ -7,6 +7,19 @@
     document.head.appendChild(brandingCss);
   }
 
+  function dismissFlash(element) {
+    if (!element || element.classList.contains('is-leaving')) return;
+    element.classList.add('is-leaving');
+    window.setTimeout(() => element.remove(), 190);
+  }
+  document.querySelectorAll('[data-flash-message]').forEach((message) => {
+    const close = message.querySelector('[data-flash-dismiss]');
+    if (close) close.addEventListener('click', () => dismissFlash(message));
+    if (message.dataset.flashAutoclose === '1') {
+      window.setTimeout(() => dismissFlash(message), 6500);
+    }
+  });
+
   const shell = document.querySelector('[data-app-shell]');
   if (!shell) return;
 

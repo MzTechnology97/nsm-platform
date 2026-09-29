@@ -84,10 +84,19 @@ def main():
         response = client.post(f"/devices/{device_id}/diagnostics/{diagnostic}", data=data, follow_redirects=False)
         assert response.status_code == 303, (diagnostic, response.text)
 
+    # Human-facing validation errors remain in the workspace via PRG and a
+    # contextual warning instead of dumping a raw JSON HTTPException page.
     bad_source = client.post(f"/devices/{device_id}/diagnostics/ping", data={"csrf": csrf, "target": "8.8.8.8", "source": "192.0.2.1; /system reboot"}, follow_redirects=False)
-    assert bad_source.status_code == 400
+    assert bad_source.status_code == 303
+    assert bad_source.headers["location"] == f"/devices/{device_id}/diagnostics"
+    bad_source_feedback = client.get(bad_source.headers["location"])
+    assert "Dati non validi" in bad_source_feedback.text and "flash-warning" in bad_source_feedback.text
+
     bad_dhcp = client.post(f"/devices/{device_id}/diagnostics/dhcp_lookup", data={"csrf": csrf, "query": "AA:BB:CC:DD:EE:FF; /system reboot"}, follow_redirects=False)
-    assert bad_dhcp.status_code == 400
+    assert bad_dhcp.status_code == 303
+    assert bad_dhcp.headers["location"] == f"/devices/{device_id}/diagnostics"
+    bad_dhcp_feedback = client.get(bad_dhcp.headers["location"])
+    assert "Dati non validi" in bad_dhcp_feedback.text and "flash-warning" in bad_dhcp_feedback.text
 
     heartbeat = client.post("/api/v1/agents/mikrotik/heartbeat", headers=headers, json={"agent_version": agent_version, "inventory": {"identity": "CI20-CCR"}, "metrics": {"cpu_load": "9", "free_memory": "900MiB", "uptime": "3d00:00:00"}})
     assert heartbeat.status_code == 200, heartbeat.text

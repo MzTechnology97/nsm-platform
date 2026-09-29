@@ -102,7 +102,10 @@ def main():
     queued = client.post(f"/devices/{device_id}/diagnostics/ping", data={"csrf": csrf, "target": "8.8.8.8"}, follow_redirects=False)
     assert queued.status_code == 303
     bad = client.post(f"/devices/{device_id}/diagnostics/ping", data={"csrf": csrf, "target": "8.8.8.8; /system reboot"}, follow_redirects=False)
-    assert bad.status_code == 400
+    assert bad.status_code == 303
+    assert bad.headers["location"] == f"/devices/{device_id}/diagnostics"
+    bad_feedback = client.get(bad.headers["location"])
+    assert "Dati non validi" in bad_feedback.text and "flash-warning" in bad_feedback.text
 
     heartbeat = client.post("/api/v1/agents/mikrotik/heartbeat", headers=headers, json={"agent_version": payload["agent_version"], "inventory": {}, "metrics": {}})
     diagnostics = [j for j in heartbeat.json()["jobs"] if j["type"] == "diagnostic_ping"]
@@ -140,7 +143,7 @@ def main():
         assert set(workspace.SNAPSHOT_SECTIONS).issubset(sections), sections
         assert all((job.payload or {}).get("batch") == "configuration_full" for job in rows)
 
-    print("Core 0.16 workspace behavior remains covered through batch snapshot and bounded-log UX")
+    print("Core 0.16 workspace behavior remains covered through batch snapshot and contextual diagnostic validation")
 
 
 if __name__ == "__main__":
