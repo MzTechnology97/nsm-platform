@@ -202,7 +202,7 @@ def main():
         follow_redirects=False,
     )
     assert unsupported.status_code == 303
-    assert unsupported.headers["location"] == f"/devices/{foreign_id}/agent"
+    assert unsupported.headers["location"] == f"/devices/{foreign_id}"
     assert not unsupported.headers.get("content-type", "").startswith("application/json")
     unsupported_feedback = client.get(unsupported.headers["location"])
     assert unsupported_feedback.status_code == 200
