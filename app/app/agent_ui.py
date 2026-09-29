@@ -31,7 +31,7 @@ def _agent_reinstall_feedback(request: Request, device_id: uuid.UUID, exc: HTTPE
     if exc.status_code in {400, 409}:
         return flash_redirect(
             request,
-            f"/devices/{device_id}/agent",
+            f"/devices/{device_id}",
             "warning",
             exception_message(exc, "Reinstallazione Agent non disponibile."),
             title="Reinstallazione Agent non disponibile",
