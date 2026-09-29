@@ -1,4 +1,4 @@
-"""NSM Core 0.48 application entrypoint."""
+"""NSM Core 0.49 application entrypoint."""
 from app import main as core
 from app import mikrotik_agent as mikrotik_agent_core
 from app.activity_route_precedence import install_activity_route_precedence
@@ -33,6 +33,7 @@ from app.inventory_ui import install_inventory_ui
 from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
 from app.mikrotik_agent_status import install_mikrotik_agent_status
+from app.mikrotik_agent_update import install_mikrotik_agent_self_update
 from app.mikrotik_compatibility import install_mikrotik_compatibility_resolver
 from app.mikrotik_legacy import router as mikrotik_legacy_router
 from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
@@ -60,7 +61,7 @@ from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.48.0"
+APP_VERSION = "0.49.0"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -121,6 +122,7 @@ mikrotik_agent_core._bootstrap_script = privileged_bootstrap
 core.app.include_router(mikrotik_legacy_router)
 install_mikrotik_legacy_jobs(core.app)
 install_mikrotik_compatibility_resolver()
+install_mikrotik_agent_self_update(core.app)
 install_activity_route_precedence(core.app)
 install_mikrotik_workspace_ux_precedence(core.app)
 app = core.app
