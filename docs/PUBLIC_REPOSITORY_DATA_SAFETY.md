@@ -14,6 +14,15 @@ Use deterministic synthetic fixtures rather than production-like values:
 
 Random UUID suffixes are appropriate when a test needs uniqueness. Network fixtures used in assertions should normally remain deterministic and come from reserved documentation ranges so failures are reproducible.
 
+## Automated guard
+
+`scripts/check-public-data-safety.py` is executed by the isolated smoke suite. It performs two checks:
+
+1. a repository-wide pass for high-signal credential signatures and deployment-derived identifiers previously found during audit;
+2. a stricter fixture/documentation pass that rejects RFC1918 example addresses, globally administered unicast MAC fixtures and deployment-like home-directory paths.
+
+Do not weaken the guard to make a copied production value pass. If a literal is technically required for a regression test or explanatory document, add `public-data-safety: allow` on that line and document nearby why the value is intentionally safe and necessary.
+
 ## Real-device diagnostics
 
 A bug reproduced on physical hardware may be documented, but the public write-up must replace deployment-specific data before commit. Preserve only the technical behavior needed to understand the bug. In particular, replace:
