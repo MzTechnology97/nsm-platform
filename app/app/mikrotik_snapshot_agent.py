@@ -24,13 +24,27 @@ _HANDLER = rf'''
       :local nsmLimit 0
       :do {{
         :if ($nsmSection = "resources") do={{
-          :set nsmData {{"identity"=[/system identity get name];"model"=[/system resource get board-name];"routeros"=[/system resource get version];"architecture"=[/system resource get architecture-name];"cpu"=[/system resource get cpu];"cpu_count"=[/system resource get cpu-count];"cpu_load"=[/system resource get cpu-load];"total_memory"=[/system resource get total-memory];"free_memory"=[/system resource get free-memory];"uptime"=[/system resource get uptime]}}
+          :set nsmData {{"identity"=[/system identity get name];"model"=[/system resource get board-name];"routeros"=[/system resource get version];"architecture"=[/system resource get architecture-name];"cpu"=[/system resource get cpu];"cpu_count"=[/system resource get cpu-count];"cpu_load"=[/system resource get cpu-load];"total_memory"=[/system resource get total-memory];"free_memory"=[/system resource get free-memory];"uptime"=[:tostr [/system resource get uptime]]}}
         }}
         :if ($nsmSection = "ip_addresses") do={{ :set nsmData [/ip address print as-value] }}
         :if ($nsmSection = "routes") do={{ :set nsmData [/ip route print as-value] }}
         :if ($nsmSection = "interfaces") do={{ :set nsmData [/interface print as-value] }}
         :if ($nsmSection = "firewall") do={{ :set nsmData {{"filter"=[/ip firewall filter print as-value];"nat"=[/ip firewall nat print as-value]}} }}
-        :if ($nsmSection = "ppp_active") do={{ :set nsmData [/ppp active print as-value] }}
+        :if ($nsmSection = "ppp_active") do={{
+          :local nsmPppActive [:toarray ""]
+          :local nsmSstpClients [:toarray ""]
+          :local nsmL2tpClients [:toarray ""]
+          :local nsmPppoeClients [:toarray ""]
+          :local nsmPptpClients [:toarray ""]
+          :local nsmOvpnClients [:toarray ""]
+          :do {{ :set nsmPppActive [/ppp active print as-value] }} on-error={{}}
+          :do {{ :set nsmSstpClients [/interface sstp-client print as-value] }} on-error={{}}
+          :do {{ :set nsmL2tpClients [/interface l2tp-client print as-value] }} on-error={{}}
+          :do {{ :set nsmPppoeClients [/interface pppoe-client print as-value] }} on-error={{}}
+          :do {{ :set nsmPptpClients [/interface pptp-client print as-value] }} on-error={{}}
+          :do {{ :set nsmOvpnClients [/interface ovpn-client print as-value] }} on-error={{}}
+          :set nsmData {{"active"=$nsmPppActive;"sstp_clients"=$nsmSstpClients;"l2tp_clients"=$nsmL2tpClients;"pppoe_clients"=$nsmPppoeClients;"pptp_clients"=$nsmPptpClients;"ovpn_clients"=$nsmOvpnClients}}
+        }}
         :if ($nsmSection = "dhcp_leases") do={{ :set nsmData [/ip dhcp-server lease print as-value] }}
         :if ($nsmSection = "logs") do={{
           :set nsmData [/log print as-value where topics~"warning|error|critical"]

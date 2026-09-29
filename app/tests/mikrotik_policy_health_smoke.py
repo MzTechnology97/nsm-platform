@@ -25,8 +25,8 @@ def seed():
         user = User(username=f"policyhealth-{suffix}", password_hash=hash_password(TEST_PASSWORD), display_name="Policy Health", role="admin", is_active=True)
         customer = Customer(name=f"Policy Health {suffix}", code=f"P47{suffix[:5]}")
         db.add_all([user, customer]); db.flush()
-        modern = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Modern Router", display_name="Modern CCR", status="online", inventory_data={"agent_transport":"modern","agent_version":"0.20.0"})
-        legacy = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Legacy Router", display_name="Legacy wAP", status="online", inventory_data={"agent_transport":"legacy","agent_version":"0.20.0-legacy"})
+        modern = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Modern Router", display_name="Modern CCR", status="online", inventory_data={"agent_transport":"modern","agent_version":"0.49.2"})
+        legacy = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Legacy Router", display_name="Legacy wAP", status="online", inventory_data={"agent_transport":"legacy","agent_version":"0.49.2-legacy"})
         db.add_all([modern, legacy]); db.flush()
         firewall = {
             "filter": [
@@ -61,39 +61,43 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    firewall = client.get(f"/devices/{modern_id}/firewall")
+    old_firewall = client.get(f"/devices/{modern_id}/firewall", follow_redirects=False)
+    old_dhcp = client.get(f"/devices/{modern_id}/dhcp-leases", follow_redirects=False)
+    assert old_firewall.status_code == 303 and "section=firewall" in old_firewall.headers["location"]
+    assert old_dhcp.status_code == 303 and "section=dhcp_leases" in old_dhcp.headers["location"]
+
+    firewall = client.get(f"/devices/{modern_id}/configuration?section=firewall")
     assert firewall.status_code == 200
-    for marker in ("Modern CCR", "Winbox management", "Block telnet", "Internet NAT", "8291", "Aggiorna snapshot"):
+    for marker in ("Modern CCR", "Winbox management", "Block telnet", "Internet NAT", "8291", "Aggiorna sezione"):
         assert marker in firewall.text, marker
-    nat = client.get(f"/devices/{modern_id}/firewall?kind=nat")
+    nat = client.get(f"/devices/{modern_id}/configuration?section=firewall&kind=nat")
     assert nat.status_code == 200 and "Internet NAT" in nat.text and "Winbox management" not in nat.text
-    disabled = client.get(f"/devices/{modern_id}/firewall?state=disabled")
+    disabled = client.get(f"/devices/{modern_id}/configuration?section=firewall&state=disabled")
     assert disabled.status_code == 200 and "Old disabled rule" in disabled.text and "Block telnet" not in disabled.text
-    drop = client.get(f"/devices/{modern_id}/firewall?action=drop")
+    drop = client.get(f"/devices/{modern_id}/configuration?section=firewall&action=drop")
     assert drop.status_code == 200 and "Block telnet" in drop.text and "Internet NAT" not in drop.text
-    search = client.get(f"/devices/{modern_id}/firewall?q=8291")
+    search = client.get(f"/devices/{modern_id}/configuration?section=firewall&q=8291")
     assert search.status_code == 200 and "Winbox management" in search.text and "Block telnet" not in search.text
 
-    dhcp = client.get(f"/devices/{modern_id}/dhcp-leases")
+    dhcp = client.get(f"/devices/{modern_id}/configuration?section=dhcp_leases")
     assert dhcp.status_code == 200
     for marker in ("office-pc", "AA:BB:CC:47:00:01", "dhcp-office", "Reception", "blocked-host"):
         assert marker in dhcp.text, marker
-    bound = client.get(f"/devices/{modern_id}/dhcp-leases?state=bound")
+    bound = client.get(f"/devices/{modern_id}/configuration?section=dhcp_leases&state=bound")
     assert bound.status_code == 200 and "office-pc" in bound.text and "printer" not in bound.text and "blocked-host" not in bound.text
-    blocked = client.get(f"/devices/{modern_id}/dhcp-leases?state=blocked")
+    blocked = client.get(f"/devices/{modern_id}/configuration?section=dhcp_leases&state=blocked")
     assert blocked.status_code == 200 and "blocked-host" in blocked.text and "office-pc" not in blocked.text
-    dhcp_search = client.get(f"/devices/{modern_id}/dhcp-leases?q=printer")
+    dhcp_search = client.get(f"/devices/{modern_id}/configuration?section=dhcp_leases&q=printer")
     assert dhcp_search.status_code == 200 and "Static printer" in dhcp_search.text and "Reception" not in dhcp_search.text
 
-    legacy_fw = client.get(f"/devices/{legacy_id}/firewall")
-    legacy_dhcp = client.get(f"/devices/{legacy_id}/dhcp-leases")
+    legacy_fw = client.get(f"/devices/{legacy_id}/configuration?section=firewall")
+    legacy_dhcp = client.get(f"/devices/{legacy_id}/configuration?section=dhcp_leases")
     for response in (legacy_fw, legacy_dhcp):
         assert response.status_code == 200
-        assert "Transport LEGACY" in response.text
-        assert "Aggiorna snapshot" not in response.text
+        assert "Aggiorna sezione" not in response.text
     assert "Block telnet" in legacy_fw.text and "office-pc" in legacy_dhcp.text
 
-    print("Core 0.47 MikroTik firewall and DHCP health smoke passed")
+    print("Core 0.47 MikroTik firewall and DHCP health smoke passed in unified workspace")
 
 
 if __name__ == "__main__":

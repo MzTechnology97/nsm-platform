@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% set title = device.display_name or device.device_identity or device.name %}
+{% set snap = view.snapshot %}
+{% block title %}Configurazione · {{ title }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/customers/{{ device.customer.id }}">{{ device.customer.name }}</a><span>›</span><a href="/customers/{{ device.customer.id }}/devices">Apparati</a><span>›</span><a href="/devices/{{ device.id }}">{{ title }}</a><span>›</span><span>Configurazione</span></div>
+<div class="mt-device-shell">
+  <aside class="mt-device-summary panel">
+    <div class="mt-summary-title"><div><span class="eyebrow">MikroTik</span><h1>{{ title }}</h1></div><span class="device-status status-{{ device.status }}">{{ status_label(device.status) }}</span></div>
+    <dl class="mt-summary-list">
+      <div><dt>Identity</dt><dd>{{ device.device_identity or '—' }}</dd></div>
+      <div><dt>Modello</dt><dd>{{ device.model or '—' }}</dd></div>
+      <div><dt>RouterOS</dt><dd>{{ device.firmware_version or '—' }}</dd></div>
+      <div><dt>Seriale</dt><dd><code>{{ device.serial_number or '—' }}</code></dd></div>
+      <div><dt>MAC</dt><dd><code>{{ device.primary_mac or '—' }}</code></dd></div>
+      <div><dt>IP gestione</dt><dd><code>{{ device.management_ip or inventory.get('last_source_ip') or '—' }}</code></dd></div>
+      <div><dt>Sede</dt><dd>{{ device.site.name if device.site else '—' }}</dd></div>
+      <div><dt>Ultimo contatto</dt><dd>{{ fmt_dt(device.last_seen) }}</dd></div>
+    </dl>
+    <a class="button ghost full" href="/devices/{{ device.id }}">← Torna alla panoramica</a>
+  </aside>
+
+  <main class="mt-device-main">
+    <nav class="mt-device-tabs">
+      <a href="/devices/{{ device.id }}">Panoramica</a>
+      <a href="/devices/{{ device.id }}/monitor">Monitor</a>
+      <a class="active" href="/devices/{{ device.id }}/configuration">Configurazione</a>
+      <a href="/devices/{{ device.id }}/diagnostics">Diagnostica</a>
+      <a href="/devices/{{ device.id }}/agent">Agent</a>
+      <a href="/devices/{{ device.id }}/jobs">Job & attività</a>
+    </nav>
+
+    <div class="mt-section-tabs">
+      {% for key, label in snapshot_sections.items() %}<a class="{% if active_section == key %}active{% endif %}" href="/devices/{{ device.id }}/configuration?section={{ key }}">{{ label }}</a>{% endfor %}
+      <a href="/devices/{{ device.id }}/configuration/history">Cronologia & drift</a>
+    </div>
+
+    {% if not snapshot_supported %}<div class="alert info"><strong>Snapshot configurazione non disponibile.</strong> {{ legacy_capability_reason or 'Il transport agent corrente non supporta snapshot strutturati.' }}</div>{% endif %}
+    {% if request.query_params.get('queued') == 'all' %}<div class="alert success">Aggiornamento completo accodato. Le sezioni verranno acquisite come job separati al prossimo heartbeat.</div>{% elif request.query_params.get('queued') == 'already' %}<div class="alert info">Le sezioni risultano già in coda o consegnate all'agent.</div>{% elif request.query_params.get('queued') %}<div class="alert success">Richiesta accodata. L'agent la eseguirà al prossimo heartbeat.</div>{% endif %}
+    {% if active_section in pending_sections %}<div class="alert info">Aggiornamento {{ snapshot_sections.get(active_section) }} in coda. Fino al completamento viene mostrato l'ultimo snapshot disponibile.</div>{% endif %}
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>{{ snapshot_sections.get(active_section) }}</h2>
+          <p>{% if snap %}Ultimo snapshot {{ fmt_dt(snap.completed_at) }}{% else %}Sola lettura · nessuno snapshot acquisito{% endif %}</p>
+        </div>
+        {% if snapshot_supported and has_permission(user, 'devices.write') %}
+        <div class="page-actions">
+          <form method="post" action="/devices/{{ device.id }}/snapshot/{{ active_section }}"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button ghost">Aggiorna sezione</button></form>
+          <form method="post" action="/devices/{{ device.id }}/snapshot-all"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Aggiorna tutto</button></form>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if snap %}<div class="snapshot-meta"><span>Acquisito: <strong>{{ fmt_dt(snap.completed_at) }}</strong></span><span>Job <code>{{ snap.id }}</code></span></div>{% endif %}
+      {% if snap and (snap.result or {}).get('truncated') %}<div class="alert info">Risultato limitato per rispettare i limiti di trasporto RouterOS. Elementi disponibili: {{ (snap.result or {}).get('limit','—') }} su {{ (snap.result or {}).get('total','—') }}.</div>{% endif %}
+
+      {% if active_section == 'resources' %}
+        {% if snap %}
+        <section class="mt-kpi-grid">
+          {% for card in view.cards %}<div class="metric-card"><span>{{ card.label }}</span><strong>{{ card.value }}</strong><small>{{ card.hint }}</small></div>{% endfor %}
+        </section>
+        <div class="policy-summary six">{% for item in view.details %}<div><span>{{ item.label }}</span><strong>{{ item.value }}</strong></div>{% endfor %}</div>
+        {% else %}<div class="empty-state"><strong>Nessuno snapshot Risorse di sistema.</strong><br>Usa “Aggiorna sezione” o “Aggiorna tutto” per acquisire i dati.</div>{% endif %}
+
+      {% elif active_section == 'interfaces' %}
+        {% if snap %}
+        <section class="mt-kpi-grid">
+          <a class="metric-card" href="?section=interfaces&state=all"><span>Totali</span><strong>{{ view.stats.total }}</strong><small>interfacce note</small></a>
+          <a class="metric-card" href="?section=interfaces&state=up"><span>Up</span><strong>{{ view.stats.up }}</strong><small>running</small></a>
+          <a class="metric-card" href="?section=interfaces&state=down"><span>Down</span><strong>{{ view.stats.down }}</strong><small>abilitate ma non running</small></a>
+          <a class="metric-card" href="?section=interfaces&state=disabled"><span>Disabled</span><strong>{{ view.stats.disabled }}</strong><small>disabilitate</small></a>
+        </section>
+        <form class="filter-bar" method="get"><input type="hidden" name="section" value="interfaces"><input type="search" name="q" value="{{ view.q }}" placeholder="Nome, tipo, MAC, commento"><select name="state"><option value="all" {% if view.state=='all' %}selected{% endif %}>Tutti gli stati</option><option value="up" {% if view.state=='up' %}selected{% endif %}>Up</option><option value="down" {% if view.state=='down' %}selected{% endif %}>Down</option><option value="disabled" {% if view.state=='disabled' %}selected{% endif %}>Disabled</option></select><button class="button">Filtra</button>{% if view.q or view.state != 'all' %}<a class="button ghost" href="?section=interfaces">Reset</a>{% endif %}</form>
+        {% if view.rows %}<div class="table-wrap"><table class="data-table dense"><thead><tr><th>Interfaccia</th><th>Stato</th><th>Tipo</th><th>MAC</th><th>MTU</th><th>RX</th><th>TX</th><th>Commento</th></tr></thead><tbody>{% for row in view.rows %}<tr><td><strong>{{ row.name }}</strong></td><td>{% if row.state == 'up' %}<span class="severity-badge severity-info">UP</span>{% elif row.state == 'down' %}<span class="severity-badge severity-warning">DOWN</span>{% else %}<span class="status-pill">DISABLED</span>{% endif %}</td><td>{{ row.type }}</td><td><code>{{ row.mac }}</code></td><td>{{ row.mtu }}{% if row.l2mtu != '—' %}<small>L2 {{ row.l2mtu }}</small>{% endif %}</td><td>{{ row.rx }}</td><td>{{ row.tx }}</td><td>{{ row.comment or '—' }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessuna interfaccia corrispondente ai filtri.</div>{% endif %}
+        {% else %}<div class="empty-state"><strong>Nessuno snapshot Interfacce disponibile.</strong></div>{% endif %}
+
+      {% elif active_section == 'ip_addresses' %}
+        {% if snap %}
+        <section class="mt-kpi-grid">
+          <a class="metric-card" href="?section=ip_addresses&state=all"><span>Totali</span><strong>{{ view.stats.total }}</strong><small>indirizzi noti</small></a>
+          <a class="metric-card" href="?section=ip_addresses&state=static"><span>Statici</span><strong>{{ view.stats.static }}</strong><small>configurati</small></a>
+          <a class="metric-card" href="?section=ip_addresses&state=dynamic"><span>Dinamici</span><strong>{{ view.stats.dynamic }}</strong><small>assegnati dinamicamente</small></a>
+          <a class="metric-card" href="?section=ip_addresses&state=invalid"><span>Da verificare</span><strong>{{ view.stats.attention }}</strong><small>invalid o disabled</small></a>
+        </section>
+        <form class="filter-bar" method="get"><input type="hidden" name="section" value="ip_addresses"><input type="search" name="q" value="{{ view.q }}" placeholder="IP, rete, interfaccia, commento"><select name="state"><option value="all" {% if view.state=='all' %}selected{% endif %}>Tutti</option><option value="static" {% if view.state=='static' %}selected{% endif %}>Statici</option><option value="dynamic" {% if view.state=='dynamic' %}selected{% endif %}>Dinamici</option><option value="disabled" {% if view.state=='disabled' %}selected{% endif %}>Disabled</option><option value="invalid" {% if view.state=='invalid' %}selected{% endif %}>Invalid</option></select><button class="button">Filtra</button>{% if view.q or view.state != 'all' %}<a class="button ghost" href="?section=ip_addresses">Reset</a>{% endif %}</form>
+        {% if view.rows %}<div class="table-wrap"><table class="data-table dense"><thead><tr><th>Indirizzo</th><th>Rete</th><th>Interfaccia</th><th>Stato</th><th>Commento</th></tr></thead><tbody>{% for row in view.rows %}<tr><td><code>{{ row.address }}</code></td><td><code>{{ row.network }}</code></td><td><strong>{{ row.interface }}</strong></td><td>{% if row.state == 'static' %}<span class="severity-badge severity-info">STATIC</span>{% elif row.state == 'dynamic' %}<span class="status-pill">DYNAMIC</span>{% elif row.state == 'disabled' %}<span class="severity-badge severity-warning">DISABLED</span>{% else %}<span class="severity-badge severity-critical">INVALID</span>{% endif %}</td><td>{{ row.comment or '—' }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessun indirizzo corrispondente ai filtri.</div>{% endif %}
+        {% else %}<div class="empty-state"><strong>Nessuno snapshot Indirizzi IP disponibile.</strong></div>{% endif %}
+
+      {% elif active_section == 'routes' %}
+        {% if snap %}
+        <section class="mt-kpi-grid">
+          <a class="metric-card" href="?section=routes&state=all"><span>Totali</span><strong>{{ view.stats.total }}</strong><small>route note</small></a>
+          <a class="metric-card" href="?section=routes&state=active"><span>Attive</span><strong>{{ view.stats.active }}</strong><small>route operative</small></a>
+          <a class="metric-card" href="?section=routes&state=inactive"><span>Inattive</span><strong>{{ view.stats.inactive }}</strong><small>non attive</small></a>
+          <a class="metric-card" href="?section=routes&state=default"><span>Default</span><strong>{{ view.stats.default }}</strong><small>0.0.0.0/0 o ::/0</small></a>
+        </section>
+        <form class="filter-bar" method="get"><input type="hidden" name="section" value="routes"><input type="search" name="q" value="{{ view.q }}" placeholder="Destinazione, gateway, tabella, commento"><select name="state"><option value="all" {% if view.state=='all' %}selected{% endif %}>Tutte</option><option value="active" {% if view.state=='active' %}selected{% endif %}>Attive</option><option value="inactive" {% if view.state=='inactive' %}selected{% endif %}>Inattive</option><option value="disabled" {% if view.state=='disabled' %}selected{% endif %}>Disabled</option><option value="default" {% if view.state=='default' %}selected{% endif %}>Default route</option></select><button class="button">Filtra</button>{% if view.q or view.state != 'all' %}<a class="button ghost" href="?section=routes">Reset</a>{% endif %}</form>
+        {% if view.rows %}<div class="table-wrap"><table class="data-table dense"><thead><tr><th>Destinazione</th><th>Gateway</th><th>Stato</th><th>Distanza</th><th>Tabella</th><th>Check gateway</th><th>Commento</th></tr></thead><tbody>{% for row in view.rows %}<tr><td><code>{{ row.dst }}</code>{% if row.default %}<small>DEFAULT</small>{% endif %}</td><td><code>{{ row.gateway }}</code></td><td>{% if row.state == 'active' %}<span class="severity-badge severity-info">ACTIVE</span>{% elif row.state == 'disabled' %}<span class="severity-badge severity-warning">DISABLED</span>{% else %}<span class="severity-badge severity-warning">INACTIVE</span>{% endif %}{% if row.dynamic %}<small>DYNAMIC</small>{% endif %}</td><td>{{ row.distance }}</td><td>{{ row.table }}</td><td>{{ row.check_gateway }}</td><td>{{ row.comment or '—' }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessuna route corrispondente ai filtri.</div>{% endif %}
+        {% else %}<div class="empty-state"><strong>Nessuno snapshot Route IP disponibile.</strong></div>{% endif %}
+
+      {% elif active_section == 'firewall' %}
+        {% if snap %}
+        <section class="mt-kpi-grid">
+          <a class="metric-card" href="?section=firewall&kind=all"><span>Totali</span><strong>{{ view.stats.total }}</strong><small>regole note</small></a>
+          <a class="metric-card" href="?section=firewall&kind=filter"><span>Filter</span><strong>{{ view.stats.filter }}</strong><small>filter rules</small></a>
+          <a class="metric-card" href="?section=firewall&kind=nat"><span>NAT</span><strong>{{ view.stats.nat }}</strong><small>nat rules</small></a>
+          <a class="metric-card" href="?section=firewall&state=disabled"><span>Disabled</span><strong>{{ view.stats.disabled }}</strong><small>{{ view.stats.blocking }} blocking abilitate</small></a>
+        </section>
+        <form class="filter-bar" method="get"><input type="hidden" name="section" value="firewall"><input type="search" name="q" value="{{ view.q }}" placeholder="Chain, azione, IP, porta, interfaccia, commento"><select name="kind"><option value="all" {% if view.kind=='all' %}selected{% endif %}>Filter + NAT</option><option value="filter" {% if view.kind=='filter' %}selected{% endif %}>Filter</option><option value="nat" {% if view.kind=='nat' %}selected{% endif %}>NAT</option></select><select name="state"><option value="all" {% if view.state=='all' %}selected{% endif %}>Tutti gli stati</option><option value="enabled" {% if view.state=='enabled' %}selected{% endif %}>Enabled</option><option value="disabled" {% if view.state=='disabled' %}selected{% endif %}>Disabled</option></select><select name="action"><option value="all" {% if view.action=='all' %}selected{% endif %}>Tutte le azioni</option>{% for value in view.actions %}<option value="{{ value }}" {% if view.action==value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select><button class="button">Filtra</button>{% if view.q or view.kind != 'all' or view.state != 'all' or view.action != 'all' %}<a class="button ghost" href="?section=firewall">Reset</a>{% endif %}</form>
+        {% if view.rows %}<div class="table-wrap"><table class="data-table dense"><thead><tr><th>Tipo</th><th>Chain</th><th>Azione</th><th>Protocollo</th><th>Origine</th><th>Destinazione</th><th>Porta</th><th>Interfacce</th><th>Stato</th><th>Commento</th></tr></thead><tbody>{% for row in view.rows %}<tr><td><strong>{{ row.kind|upper }}</strong></td><td>{{ row.chain }}</td><td>{% if row.severity == 'attention' %}<span class="severity-badge severity-warning">{{ row.action|upper }}</span>{% else %}{{ row.action }}{% endif %}</td><td>{{ row.protocol }}</td><td><code>{{ row.src }}</code></td><td><code>{{ row.dst }}</code></td><td>{{ row.port }}</td><td><small>IN {{ row.in_interface }}<br>OUT {{ row.out_interface }}</small></td><td>{% if row.disabled %}<span class="status-pill">DISABLED</span>{% else %}<span class="severity-badge severity-info">ENABLED</span>{% endif %}</td><td>{{ row.comment or '—' }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessuna regola corrispondente ai filtri.</div>{% endif %}
+        {% else %}<div class="empty-state"><strong>Nessuno snapshot Firewall disponibile.</strong></div>{% endif %}
+
+      {% elif active_section == 'ppp_active' %}
+        {% if snap %}
+        <section class="mt-kpi-grid">
+          <a class="metric-card" href="?section=ppp_active&state=all"><span>Totali</span><strong>{{ view.stats.total }}</strong><small>{{ view.stats.sessions }} sessioni · {{ view.stats.clients }} client</small></a>
+          <a class="metric-card" href="?section=ppp_active&state=up"><span>Up / attivi</span><strong>{{ view.stats.up }}</strong><small>running o sessione attiva</small></a>
+          <a class="metric-card" href="?section=ppp_active&state=down"><span>Down</span><strong>{{ view.stats.down }}</strong><small>client abilitati non running</small></a>
+          <a class="metric-card" href="?section=ppp_active&state=disabled"><span>Disabled</span><strong>{{ view.stats.disabled }}</strong><small>client disabilitati</small></a>
+        </section>
+        <form class="filter-bar" method="get"><input type="hidden" name="section" value="ppp_active"><input type="search" name="q" value="{{ view.q }}" placeholder="Nome, utente, endpoint, indirizzo, commento"><select name="kind"><option value="all" {% if view.kind=='all' %}selected{% endif %}>Tutti i tipi</option>{% for value, label in view.kinds %}<option value="{{ value }}" {% if view.kind==value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><select name="state"><option value="all" {% if view.state=='all' %}selected{% endif %}>Tutti gli stati</option><option value="up" {% if view.state=='up' %}selected{% endif %}>Up / attivi</option><option value="down" {% if view.state=='down' %}selected{% endif %}>Down</option><option value="disabled" {% if view.state=='disabled' %}selected{% endif %}>Disabled</option></select><button class="button">Filtra</button>{% if view.q or view.kind != 'all' or view.state != 'all' %}<a class="button ghost" href="?section=ppp_active">Reset</a>{% endif %}</form>
+        {% if view.rows %}<div class="table-wrap"><table class="data-table dense"><thead><tr><th>Tipo</th><th>Ruolo</th><th>Nome</th><th>Stato</th><th>Utente</th><th>Endpoint</th><th>Locale</th><th>Remoto</th><th>Uptime</th><th>Commento</th></tr></thead><tbody>{% for row in view.rows %}<tr><td><strong>{{ row.protocol }}</strong></td><td>{{ row.role }}</td><td><strong>{{ row.name }}</strong></td><td>{% if row.state == 'up' %}<span class="severity-badge severity-info">UP</span>{% elif row.state == 'down' %}<span class="severity-badge severity-warning">DOWN</span>{% else %}<span class="status-pill">DISABLED</span>{% endif %}</td><td>{{ row.user }}</td><td><code>{{ row.endpoint }}</code></td><td><code>{{ row.local_address }}</code></td><td><code>{{ row.remote_address }}</code></td><td>{{ row.uptime }}</td><td>{{ row.comment or '—' }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state"><strong>Nessuna sessione o client PPP/Tunnel corrispondente.</strong><br>Lo snapshot include sessioni `/ppp active` e client SSTP, L2TP, PPPoE, PPTP e OVPN.</div>{% endif %}
+        {% else %}<div class="empty-state"><strong>Nessuno snapshot PPP / Tunnel disponibile.</strong><br>Dopo l'aggiornamento dell'agent vengono acquisiti sia le sessioni PPP attive sia i client tunnel configurati.</div>{% endif %}
+
+      {% elif active_section == 'dhcp_leases' %}
+        {% if snap %}
+        <section class="mt-kpi-grid">
+          <a class="metric-card" href="?section=dhcp_leases&state=all"><span>Totali</span><strong>{{ view.stats.total }}</strong><small>lease noti</small></a>
+          <a class="metric-card" href="?section=dhcp_leases&state=bound"><span>Bound</span><strong>{{ view.stats.bound }}</strong><small>lease assegnati</small></a>
+          <a class="metric-card" href="?section=dhcp_leases&state=all"><span>Dinamici</span><strong>{{ view.stats.dynamic }}</strong><small>dynamic=yes</small></a>
+          <a class="metric-card" href="?section=dhcp_leases&state=blocked"><span>Da verificare</span><strong>{{ view.stats.attention }}</strong><small>blocked o disabled</small></a>
+        </section>
+        <form class="filter-bar" method="get"><input type="hidden" name="section" value="dhcp_leases"><input type="search" name="q" value="{{ view.q }}" placeholder="IP, MAC, hostname, server, commento"><select name="state"><option value="all" {% if view.state=='all' %}selected{% endif %}>Tutti gli stati</option>{% for value in view.states %}<option value="{{ value }}" {% if view.state==value %}selected{% endif %}>{{ value|upper }}</option>{% endfor %}</select><button class="button">Filtra</button>{% if view.q or view.state != 'all' %}<a class="button ghost" href="?section=dhcp_leases">Reset</a>{% endif %}</form>
+        {% if view.rows %}<div class="table-wrap"><table class="data-table dense"><thead><tr><th>Indirizzo</th><th>MAC</th><th>Hostname</th><th>Server</th><th>Stato</th><th>Tipo</th><th>Scadenza</th><th>Ultimo visto</th><th>Commento</th></tr></thead><tbody>{% for row in view.rows %}<tr><td><code>{{ row.address }}</code></td><td><code>{{ row.mac }}</code></td><td><strong>{{ row.hostname }}</strong></td><td>{{ row.server }}</td><td>{% if row.state == 'bound' %}<span class="severity-badge severity-info">BOUND</span>{% elif row.state in ['blocked','disabled'] %}<span class="severity-badge severity-warning">{{ row.state|upper }}</span>{% else %}<span class="status-pill">{{ row.state|upper }}</span>{% endif %}</td><td>{% if row.dynamic %}DYNAMIC{% else %}STATIC{% endif %}</td><td>{{ row.expires }}</td><td>{{ row.last_seen }}</td><td>{{ row.comment or '—' }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessun lease corrispondente ai filtri.</div>{% endif %}
+        {% else %}<div class="empty-state"><strong>Nessuno snapshot DHCP lease disponibile.</strong></div>{% endif %}
+
+      {% elif active_section == 'logs' %}
+        {% if snap %}
+        <section class="mt-kpi-grid">
+          <div class="metric-card"><span>Totali</span><strong>{{ view.stats.total }}</strong><small>eventi acquisiti</small></div>
+          <div class="metric-card"><span>Warning</span><strong>{{ view.stats.warning }}</strong><small>topic warning</small></div>
+          <div class="metric-card"><span>Error</span><strong>{{ view.stats.error }}</strong><small>topic error</small></div>
+          <div class="metric-card"><span>Critical</span><strong>{{ view.stats.critical }}</strong><small>topic critical</small></div>
+        </section>
+        <form class="filter-bar" method="get"><input type="hidden" name="section" value="logs"><input type="search" name="q" value="{{ view.q }}" placeholder="Ora, topic o messaggio"><button class="button">Filtra</button>{% if view.q %}<a class="button ghost" href="?section=logs">Reset</a>{% endif %}</form>
+        {% if view.rows %}<div class="table-wrap"><table class="data-table dense"><thead><tr><th>Ora</th><th>Topic</th><th>Messaggio</th></tr></thead><tbody>{% for row in view.rows %}<tr><td><code>{{ row.time }}</code></td><td>{{ row.topics }}</td><td>{{ row.message }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessun warning/error/critical nello snapshot o nessun risultato per il filtro.</div>{% endif %}
+        {% else %}<div class="empty-state"><strong>Nessuno snapshot Warning / error log disponibile.</strong></div>{% endif %}
+      {% endif %}
+    </section>
+  </main>
+</div>
+{% endblock %}

@@ -1,16 +1,17 @@
 """MikroTik agent generation policy.
 
-Core and device-agent versions intentionally evolve independently.  Core 0.49
-introduced the authenticated source-v1 self-update protocol.  Agent 0.49.1 is
-the first maintenance generation after that protocol and therefore must remain
-self-updatable from an already-installed 0.49.0 agent.
+Core and device-agent versions intentionally evolve independently. Core 0.49
+introduced the authenticated source-v1 self-update protocol. Agent 0.49.2 is a
+maintenance generation that adds the unified configuration/PPP-tunnel snapshot
+improvements while remaining self-updatable from an installed modern 0.49.0+
+agent.
 """
 from __future__ import annotations
 
 from app import mikrotik_agent_update as updater
 from app import mikrotik_agent_update_ui as update_ui
 
-TARGET_AGENT_VERSION = "0.49.1"
+TARGET_AGENT_VERSION = "0.49.2"
 SELF_UPDATE_MIN_VERSION = "0.49.0"
 
 

@@ -9,7 +9,7 @@ from app.models import Device
 
 def main():
     assert app.version == "0.49.0"
-    assert TARGET_AGENT_VERSION == "0.49.1"
+    assert TARGET_AGENT_VERSION == "0.49.2"
     assert SELF_UPDATE_MIN_VERSION == "0.49.0"
 
     installed = Device(
@@ -25,7 +25,7 @@ def main():
     )
     status = agent_update_status(installed)
     assert status["current_version"] == "0.49.0"
-    assert status["target_version"] == "0.49.1"
+    assert status["target_version"] == "0.49.2"
     assert status["outdated"] is True
     assert status["source_drift"] is False
     assert status["self_update_capable"] is True
@@ -51,18 +51,19 @@ def main():
 
     source = agent._agent_source(
         "http://nsm.example.test",
-        uuid.UUID("00000000-0000-0000-0000-000000000491"),
+        uuid.UUID("00000000-0000-0000-0000-000000000492"),
         "ci-agent-secret",
         False,
     )
-    assert '"agent_version"="0.49.1"' in source
+    assert '"agent_version"="0.49.2"' in source
     assert '"agent_version"="0.49.0"' not in source
     assert "agent_self_update" in source
     assert "transform=sha512 to=hex" in source
     assert "diagnostic_logs" in source
     assert "nsmTruncated" in source
+    assert "/interface sstp-client print as-value" in source
 
-    print("MikroTik agent generation 0.49.1 in-place update policy smoke passed")
+    print("MikroTik agent generation 0.49.2 in-place update policy smoke passed")
 
 
 if __name__ == "__main__":

@@ -25,8 +25,8 @@ def seed():
         user = User(username=f"ifhealth-{suffix}", password_hash=hash_password(TEST_PASSWORD), display_name="Interface Health", role="admin", is_active=True)
         customer = Customer(name=f"Interface Health {suffix}", code=f"I45{suffix[:5]}")
         db.add_all([user, customer]); db.flush()
-        modern = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Modern Router", display_name="Modern CCR", status="online", inventory_data={"agent_transport":"modern","agent_version":"0.20.0"})
-        legacy = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Legacy Router", display_name="Legacy wAP", status="online", inventory_data={"agent_transport":"legacy","agent_version":"0.20.0-legacy"})
+        modern = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Modern Router", display_name="Modern CCR", status="online", inventory_data={"agent_transport":"modern","agent_version":"0.49.2"})
+        legacy = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Legacy Router", display_name="Legacy wAP", status="online", inventory_data={"agent_transport":"legacy","agent_version":"0.49.2-legacy"})
         db.add_all([modern, legacy]); db.flush()
         rows = [
             {"name":"ether1","type":"ether","running":True,"disabled":False,"mac-address":"AA:BB:CC:45:00:01","actual-mtu":"1500","l2mtu":"1592","rx-byte":"1048576","tx-byte":"2097152","comment":"WAN"},
@@ -50,25 +50,29 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    page = client.get(f"/devices/{modern_id}/interfaces")
+    old = client.get(f"/devices/{modern_id}/interfaces", follow_redirects=False)
+    assert old.status_code == 303
+    assert f"/devices/{modern_id}/configuration?section=interfaces" in old.headers["location"]
+
+    page = client.get(f"/devices/{modern_id}/configuration?section=interfaces")
     assert page.status_code == 200
     for marker in ("Modern CCR", "ether1", "ether2", "wlan1", "AA:BB:CC:45:00:01", "1.0 MiB", "2.0 MiB", "WAN"):
         assert marker in page.text, marker
-    assert ">3<" in page.text and ">1<" in page.text
-    assert "Aggiorna snapshot" in page.text
+    assert "Aggiorna sezione" in page.text and "Aggiorna tutto" in page.text
 
-    down = client.get(f"/devices/{modern_id}/interfaces?state=down")
+    down = client.get(f"/devices/{modern_id}/configuration?section=interfaces&state=down")
     assert down.status_code == 200 and "ether2" in down.text and "ether1" not in down.text and "wlan1" not in down.text
-    search = client.get(f"/devices/{modern_id}/interfaces?q=45%3A00%3A03")
+    search = client.get(f"/devices/{modern_id}/configuration?section=interfaces&q=45%3A00%3A03")
     assert search.status_code == 200 and "wlan1" in search.text and "ether1" not in search.text
 
-    legacy = client.get(f"/devices/{legacy_id}/interfaces")
+    legacy_old = client.get(f"/devices/{legacy_id}/interfaces", follow_redirects=False)
+    assert legacy_old.status_code == 303
+    legacy = client.get(f"/devices/{legacy_id}/configuration?section=interfaces")
     assert legacy.status_code == 200
-    assert "Transport LEGACY" in legacy.text
-    assert "Aggiorna snapshot" not in legacy.text
+    assert "Aggiorna sezione" not in legacy.text
     assert "ether1" in legacy.text
 
-    print("Core 0.45 MikroTik interface health smoke passed")
+    print("Core 0.45 MikroTik interface health smoke passed in unified workspace")
 
 
 if __name__ == "__main__":

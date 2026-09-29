@@ -53,7 +53,10 @@ def main():
     assert "8%" in monitor.text and "Storico non supportato" in monitor.text and "data-telemetry-root" not in monitor.text
     configuration = client.get(f"/devices/{legacy_id}/configuration")
     assert configuration.status_code == 200 and "Snapshot configurazione non disponibile" in configuration.text
-    assert "Aggiorna sezione" not in configuration.text and "Aggiorna tutto" not in configuration.text
+    # Guidance text may describe how the same workspace behaves on capable
+    # agents, but legacy transport must never render actionable snapshot forms.
+    assert f'action="/devices/{legacy_id}/snapshot/resources"' not in configuration.text
+    assert f'action="/devices/{legacy_id}/snapshot-all"' not in configuration.text
     diagnostics = client.get(f"/devices/{legacy_id}/diagnostics")
     assert diagnostics.status_code == 200 and "NON DISP." in diagnostics.text
     assert f"/devices/{legacy_id}/diagnostics/jobs/{diagnostic_id}" in diagnostics.text
@@ -64,7 +67,8 @@ def main():
     assert detail.status_code == 200 and "8.8.8.8" in detail.text and "12ms" in detail.text
     modern_configuration = client.get(f"/devices/{modern_id}/configuration")
     assert modern_configuration.status_code == 200
-    assert "Aggiorna sezione" in modern_configuration.text and "Aggiorna tutto" in modern_configuration.text
+    assert f'action="/devices/{modern_id}/snapshot/resources"' in modern_configuration.text
+    assert f'action="/devices/{modern_id}/snapshot-all"' in modern_configuration.text
     print("Core 0.43 real-device workspace UX smoke passed")
 
 
