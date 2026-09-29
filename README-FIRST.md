@@ -55,7 +55,7 @@ Runtime secrets, PostgreSQL data and `.env` are **not** stored in Git.
 The unattended flow is:
 
 ```text
-main -> GitHub Actions CI -> deploy -> NSM-CDA systemd timer -> update.sh
+main -> GitHub Actions CI -> deploy -> deployment host systemd timer -> update.sh
 ```
 
 Install it once with:
