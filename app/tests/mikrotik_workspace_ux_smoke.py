@@ -50,11 +50,11 @@ def main():
     assert overview.status_code == 200 and "23.4 MiB" in overview.text and "64.0 MiB" in overview.text
     monitor = client.get(f"/devices/{legacy_id}/monitor")
     assert monitor.status_code == 200 and "AA:BB:CC:43:00:01" in monitor.text
-    assert "8%" in monitor.text and "Storico non supportato" in monitor.text and "data-telemetry-root" not in monitor.text
+    assert "8%" in monitor.text and "Storico non supportato" not in monitor.text and "data-telemetry-root" in monitor.text
     configuration = client.get(f"/devices/{legacy_id}/configuration")
     assert configuration.status_code == 200 and "Snapshot configurazione non disponibile" in configuration.text
-    # Guidance text may describe how the same workspace behaves on capable
-    # agents, but legacy transport must never render actionable snapshot forms.
+    # Telemetry history becomes available, but snapshot actions remain blocked
+    # until the separate legacy configuration-snapshot capability is enabled.
     assert f'action="/devices/{legacy_id}/snapshot/resources"' not in configuration.text
     assert f'action="/devices/{legacy_id}/snapshot-all"' not in configuration.text
     diagnostics = client.get(f"/devices/{legacy_id}/diagnostics")
