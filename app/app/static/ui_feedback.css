@@ -1,0 +1,72 @@
+.flash-stack {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.flash-message {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  border: 1px solid color-mix(in srgb, var(--flash-accent) 42%, var(--border));
+  border-left: 4px solid var(--flash-accent);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--flash-accent) 9%, var(--panel));
+  box-shadow: 0 10px 28px color-mix(in srgb, #000 10%, transparent);
+}
+
+.flash-success { --flash-accent: #22a06b; }
+.flash-info { --flash-accent: var(--brand-primary); }
+.flash-warning { --flash-accent: #d99a21; }
+.flash-error { --flash-accent: #d84a4a; }
+
+.flash-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  font-weight: 800;
+  color: var(--flash-accent);
+  background: color-mix(in srgb, var(--flash-accent) 14%, transparent);
+}
+
+.flash-copy { min-width: 0; }
+.flash-copy strong {
+  display: block;
+  margin: 1px 0 3px;
+  color: var(--text);
+}
+.flash-copy p {
+  margin: 0;
+  line-height: 1.45;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.flash-dismiss {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.flash-dismiss:hover { color: var(--text); }
+
+.flash-message.is-leaving {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity .18s ease, transform .18s ease;
+}
+
+@media (max-width: 640px) {
+  .flash-message {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: 10px 11px;
+  }
+}
