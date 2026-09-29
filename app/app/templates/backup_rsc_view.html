@@ -7,7 +7,7 @@
 <div class="breadcrumbs"><a href="/customers/{{ device.customer_id }}">Cliente</a><span>›</span><a href="/customers/{{ device.customer_id }}/backups">Backup</a><span>›</span><a href="/devices/{{ device.id }}">{{ device.display_name or device.device_identity or device.name }}</a><span>›</span><span>{{ artifact.filename }}</span></div>
 <div class="page-header">
   <div><h1>RouterOS export</h1><p>{{ artifact.filename }} · {{ fmt_dt(artifact.created_at) }} · {{ artifact.size_bytes or 0 }} byte</p></div>
-  <div class="page-actions"><a class="button ghost" href="/operations/backups/artifacts/{{ artifact.id }}/download">Scarica .rsc</a><a class="button" href="/customers/{{ device.customer_id }}/backups">Torna ai backup</a></div>
+  <div class="page-actions"><a class="button ghost" href="/devices/{{ device.id }}/restore">Restore readiness</a><a class="button ghost" href="/operations/backups/artifacts/{{ artifact.id }}/download">Scarica .rsc</a><a class="button" href="/customers/{{ device.customer_id }}/backups">Torna ai backup</a></div>
 </div>
 
 <section class="panel compact-panel">
