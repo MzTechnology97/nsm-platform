@@ -76,7 +76,18 @@ def seed():
                 "last_heartbeat_at": now.isoformat(),
             },
         )
-        db.add_all([legacy, modern])
+        foreign = Device(
+            customer_id=customer.id,
+            vendor="ubiquiti",
+            device_type="cpe",
+            name="CI34 Foreign",
+            display_name="Synthetic UISP CPE",
+            model="TEST-CPE",
+            firmware_version="TEST-1.0",
+            status="online",
+            management_source="manual",
+        )
+        db.add_all([legacy, modern, foreign])
         db.flush()
         db.add_all(
             [
@@ -106,7 +117,7 @@ def seed():
             ]
         )
         db.commit()
-        return user.username, legacy.id, modern.id, legacy_hash, modern_hash
+        return user.username, legacy.id, modern.id, foreign.id, legacy_hash, modern_hash
 
 
 def login(client: TestClient, username: str):
@@ -121,7 +132,7 @@ def login(client: TestClient, username: str):
 
 
 def main():
-    username, legacy_id, modern_id, legacy_hash, modern_hash = seed()
+    username, legacy_id, modern_id, foreign_id, legacy_hash, modern_hash = seed()
     client = TestClient(app)
     login(client, username)
 
@@ -152,7 +163,8 @@ def main():
     assert modern_hash not in modern.text
 
     # Reinstall creates a new one-shot enrollment but does not reveal or rotate
-    # the active credential until the router actually pairs again.
+    # the active credential until the router actually pairs again. Browser
+    # feedback remains contextual instead of returning a raw JSON page.
     token = _csrf(legacy.text)
     reinstall = client.post(
         f"/devices/{legacy_id}/agent/reinstall",
@@ -161,6 +173,13 @@ def main():
     )
     assert reinstall.status_code == 303
     assert reinstall.headers["location"] == f"/devices/{legacy_id}?agent=reinstall"
+    assert not reinstall.headers.get("content-type", "").startswith("application/json")
+
+    reinstall_feedback = client.get(reinstall.headers["location"])
+    assert reinstall_feedback.status_code == 200
+    assert "Reinstallazione Agent preparata" in reinstall_feedback.text
+    assert "flash-success" in reinstall_feedback.text
+    assert "Reinstallazione Agent preparata" not in client.get(f"/devices/{legacy_id}").text
 
     with SessionLocal() as db:
         enrollments = list(
@@ -177,7 +196,34 @@ def main():
         assert credential.secret_hash == legacy_hash
         assert credential.is_active is True
 
-    print("MikroTik agent diagnostics smoke passed")
+    unsupported = client.post(
+        f"/devices/{foreign_id}/agent/reinstall",
+        data={"csrf": token},
+        follow_redirects=False,
+    )
+    assert unsupported.status_code == 303
+    assert unsupported.headers["location"] == f"/devices/{foreign_id}/agent"
+    assert not unsupported.headers.get("content-type", "").startswith("application/json")
+    unsupported_feedback = client.get(unsupported.headers["location"])
+    assert unsupported_feedback.status_code == 200
+    assert "Agent reinstall disponibile solo per MikroTik" in unsupported_feedback.text
+    assert "flash-warning" in unsupported_feedback.text
+
+    missing_id = uuid.uuid4()
+    missing = client.post(
+        f"/devices/{missing_id}/agent/reinstall",
+        data={"csrf": token},
+        follow_redirects=False,
+    )
+    assert missing.status_code == 303
+    assert missing.headers["location"] == "/devices"
+    assert not missing.headers.get("content-type", "").startswith("application/json")
+    missing_feedback = client.get(missing.headers["location"])
+    assert missing_feedback.status_code == 200
+    assert "Apparato non trovato" in missing_feedback.text
+    assert "flash-error" in missing_feedback.text
+
+    print("MikroTik agent diagnostics and reinstall feedback smoke passed")
 
 
 if __name__ == "__main__":
