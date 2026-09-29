@@ -8,6 +8,7 @@ from app import mikrotik_agent as agent_module
 from app import mikrotik_backup_agent as backup_agent_module
 
 AGENT_VERSION = "0.20.0"
+LOG_RESULT_LIMIT = 20
 
 _HANDLER = r'''
     :if ($nsmJobType = "diagnostic_neighbors") do={
@@ -44,11 +45,20 @@ _HANDLER = r'''
       :local nsmData
       :local nsmOk true
       :local nsmError ""
-      :do { :set nsmData [/log print as-value where topics~"warning|error|critical"] } on-error={ :set nsmOk false; :set nsmError "Unable to read RouterOS warning/error log" }
+      :local nsmTotal 0
+      :local nsmTruncated false
+      :do {
+        :set nsmData [/log print as-value where topics~"warning|error|critical"]
+        :set nsmTotal [:len $nsmData]
+        :if ($nsmTotal > 20) do={
+          :set nsmData [:pick $nsmData ($nsmTotal - 20) $nsmTotal]
+          :set nsmTruncated true
+        }
+      } on-error={ :set nsmOk false; :set nsmError "Unable to read RouterOS warning/error log" }
       :local nsmDoneUrl ($nsmBase . "/api/v1/agents/mikrotik/jobs/" . $nsmJobId . "/complete")
       :local nsmStatus "failed"
       :if ($nsmOk) do={ :set nsmStatus "success" }
-      :local nsmBody [:serialize value={"status"=$nsmStatus;"error"=$nsmError;"result"={"data"=$nsmData}} to=json options=json.no-string-conversion]
+      :local nsmBody [:serialize value={"status"=$nsmStatus;"error"=$nsmError;"result"={"data"=$nsmData;"total"=$nsmTotal;"limit"=20;"truncated"=$nsmTruncated}} to=json options=json.no-string-conversion]
       :do { /tool fetch url=$nsmDoneUrl http-method=post http-header-field=$nsmHeaders http-data=$nsmBody output=user as-value } on-error={ :log warning "NSM log result upload failed" }
     }
 
@@ -56,7 +66,16 @@ _HANDLER = r'''
       :local nsmData
       :local nsmOk true
       :local nsmError ""
+      :local nsmLogs
+      :local nsmLogsTotal 0
+      :local nsmLogsTruncated false
       :do {
+        :set nsmLogs [/log print as-value where topics~"warning|error|critical"]
+        :set nsmLogsTotal [:len $nsmLogs]
+        :if ($nsmLogsTotal > 20) do={
+          :set nsmLogs [:pick $nsmLogs ($nsmLogsTotal - 20) $nsmLogsTotal]
+          :set nsmLogsTruncated true
+        }
         :set nsmData {
           "resources"={"identity"=[/system identity get name];"model"=[/system resource get board-name];"routeros"=[/system resource get version];"architecture"=[/system resource get architecture-name];"cpu_load"=[/system resource get cpu-load];"total_memory"=[/system resource get total-memory];"free_memory"=[/system resource get free-memory];"uptime"=[/system resource get uptime]};
           "ip_addresses"=[/ip address print as-value];
@@ -64,7 +83,8 @@ _HANDLER = r'''
           "interfaces"=[/interface print as-value];
           "ppp_active"=[/ppp active print as-value];
           "dhcp_leases"=[/ip dhcp-server lease print as-value];
-          "logs"=[/log print as-value where topics~"warning|error|critical"]
+          "logs"=$nsmLogs;
+          "logs_meta"={"total"=$nsmLogsTotal;"limit"=20;"truncated"=$nsmLogsTruncated}
         }
       } on-error={ :set nsmOk false; :set nsmError "Unable to collect RouterOS support snapshot" }
       :local nsmDoneUrl ($nsmBase . "/api/v1/agents/mikrotik/jobs/" . $nsmJobId . "/complete")
