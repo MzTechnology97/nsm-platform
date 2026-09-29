@@ -2,8 +2,9 @@
 
 The installer captures the canonical POST handler already registered by the
 feature stack, removes only that browser route, and re-registers a feedback
-wrapper.  This preserves all capability/compatibility guards while leaving
-machine-facing API/agent endpoints untouched.
+wrapper.  Where the final route composition has already dropped a human action,
+the wrapper restores the known guarded canonical handler explicitly.  Machine-
+facing API/agent endpoints remain untouched.
 """
 from __future__ import annotations
 
@@ -11,7 +12,9 @@ import uuid
 
 from fastapi import Form, HTTPException, Request
 
+from app import mikrotik_agent_update as agent_update
 from app import mikrotik_snapshot_batch as snapshot_batch
+from app import mikrotik_workspace_ux as workspace_ux
 from app.ui_feedback import add_flash, exception_message, flash_redirect
 
 
@@ -65,19 +68,30 @@ def _feedback_for_exception(request: Request, exc: HTTPException, return_to: str
 
 
 def install_ui_action_feedback(app) -> None:
-    snapshot_handler = _take_post(app, "/devices/{device_id}/snapshot/{section}")
-    # The unified configuration route stack in Core 0.49 can lose the batch
-    # route while promoting canonical workspace routes.  The batch handler is
-    # itself the capability guard (online + modern transport), so using it as
-    # the explicit fallback both restores the advertised UI action and keeps
-    # the same safety contract.
+    snapshot_handler = _take_post(
+        app,
+        "/devices/{device_id}/snapshot/{section}",
+        fallback=workspace_ux._guard_snapshot,
+    )
+    # The batch handler is itself the capability guard (online + modern
+    # transport), so it is safe to restore when route composition dropped it.
     snapshot_all_handler = _take_post(
         app,
         "/devices/{device_id}/snapshot-all",
         fallback=snapshot_batch.queue_snapshot_all,
     )
-    diagnostic_handler = _take_post(app, "/devices/{device_id}/diagnostics/{diagnostic}")
-    agent_update_handler = _take_post(app, "/devices/{device_id}/agent/update")
+    diagnostic_handler = _take_post(
+        app,
+        "/devices/{device_id}/diagnostics/{diagnostic}",
+        fallback=workspace_ux._guard_diagnostic,
+    )
+    # The self-update handler owns the credential, transport, capability,
+    # version/drift and active-job guards.  Restore that exact handler only.
+    agent_update_handler = _take_post(
+        app,
+        "/devices/{device_id}/agent/update",
+        fallback=agent_update.queue_agent_update,
+    )
 
     @app.post("/devices/{device_id}/snapshot/{section}", name="queue_mikrotik_snapshot")
     def snapshot_ui(
