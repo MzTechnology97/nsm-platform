@@ -136,7 +136,7 @@ def main():
     token = csrf_from(page.text)
 
     # A pre-0.37 modern agent is not allowed to reboot until it is re-enrolled
-    # with the explicit least-privilege ops-v1 profile.
+    # with the explicit least-privilege ops-v1 profile. Browser feedback is PRG.
     with SessionLocal() as db:
         device = db.get(Device, device_id)
         data = dict(device.inventory_data or {})
@@ -148,8 +148,10 @@ def main():
         data={"csrf": token, "confirmation": "ACTIVATE 7.21.1"},
         follow_redirects=False,
     )
-    assert blocked.status_code == 409
-    assert "Rigenera / reinstalla agent" in blocked.text
+    assert blocked.status_code == 303
+    blocked_page = client.get(blocked.headers["location"])
+    assert "Operazione non disponibile" in blocked_page.text
+    assert "Rigenera / reinstalla agent" in blocked_page.text
 
     with SessionLocal() as db:
         device = db.get(Device, device_id)
@@ -165,7 +167,10 @@ def main():
         data={"csrf": token, "confirmation": "ACTIVATE WRONG"},
         follow_redirects=False,
     )
-    assert wrong.status_code == 400
+    assert wrong.status_code == 303
+    wrong_page = client.get(wrong.headers["location"])
+    assert "Conferma non valida" in wrong_page.text
+    assert "ACTIVATE 7.21.1" in wrong_page.text
 
     page = client.get(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}")
     token = csrf_from(page.text)
@@ -175,6 +180,9 @@ def main():
         follow_redirects=False,
     )
     assert queued.status_code == 303
+    queued_page = client.get(queued.headers["location"])
+    assert "Attivazione firmware accodata" in queued_page.text
+    assert "temporaneamente non raggiungibile" in queued_page.text
 
     with SessionLocal() as db:
         plan = db.get(FirmwareUpgradePlan, plan_id)
@@ -278,7 +286,7 @@ def main():
     assert 'policy=$nsmAgentPolicy' in bootstrap
     assert 'policy,password,sensitive' not in bootstrap
 
-    print("Core 0.37 safe firmware activation, privilege gate and post-reboot verification smoke passed")
+    print("Core 0.37 safe firmware activation and contextual UI feedback smoke passed")
 
 
 if __name__ == "__main__":
