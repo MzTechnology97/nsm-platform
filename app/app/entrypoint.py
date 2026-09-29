@@ -34,6 +34,7 @@ from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
 from app.mikrotik_agent_status import install_mikrotik_agent_status
 from app.mikrotik_agent_update import install_mikrotik_agent_self_update
+from app.mikrotik_agent_update_ui import install_mikrotik_agent_update_ui
 from app.mikrotik_compatibility import install_mikrotik_compatibility_resolver
 from app.mikrotik_legacy import router as mikrotik_legacy_router
 from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
@@ -123,6 +124,7 @@ core.app.include_router(mikrotik_legacy_router)
 install_mikrotik_legacy_jobs(core.app)
 install_mikrotik_compatibility_resolver()
 install_mikrotik_agent_self_update(core.app)
+install_mikrotik_agent_update_ui(core.templates)
 install_activity_route_precedence(core.app)
 install_mikrotik_workspace_ux_precedence(core.app)
 app = core.app
