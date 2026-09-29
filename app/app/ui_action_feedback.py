@@ -1,10 +1,11 @@
 """Browser-only action wrappers using contextual flash feedback.
 
 The UI layer deliberately binds to the known guarded domain handlers instead of
-selecting the first matching FastAPI route.  The Core has accumulated route
-promotion layers over time, so duplicate path registrations can exist during
-bootstrap and the first one is not necessarily the final capability-aware
-handler.  Machine-facing API/agent endpoints remain untouched.
+selecting the first matching FastAPI route.  Browser validation is performed
+with the same domain validators before queueing so expected input failures are
+rendered as contextual PRG feedback, while the underlying handler repeats the
+validation as a second server-side barrier.  Machine-facing API/agent endpoints
+remain untouched.
 """
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ from fastapi import Form, HTTPException, Request
 
 from app import mikrotik_agent_update as agent_update
 from app import mikrotik_snapshot_batch as snapshot_batch
+from app import mikrotik_workspace as workspace
 from app import mikrotik_workspace_ux as workspace_ux
 from app.ui_feedback import add_flash, exception_message, flash_redirect
 
@@ -55,6 +57,16 @@ def _feedback_for_exception(request: Request, exc: HTTPException, return_to: str
             title="Operazione non disponibile",
         )
     raise exc
+
+
+def _prevalidate_diagnostic(diagnostic: str, target: str, source: str, query: str) -> None:
+    if diagnostic not in workspace.DIAGNOSTIC_TYPES:
+        raise HTTPException(400, "Diagnostica non supportata.")
+    if diagnostic in {"ping", "traceroute"}:
+        workspace._safe_target(target)
+        workspace._safe_source(source)
+    elif diagnostic == "dhcp_lookup":
+        workspace._safe_dhcp_query(query)
 
 
 def install_ui_action_feedback(app) -> None:
@@ -127,6 +139,7 @@ def install_ui_action_feedback(app) -> None:
     ):
         return_to = f"/devices/{device_id}/diagnostics"
         try:
+            _prevalidate_diagnostic(diagnostic, target, source, query)
             response = diagnostic_handler(
                 request=request,
                 device_id=device_id,
