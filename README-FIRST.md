@@ -64,12 +64,12 @@ Install it once with:
 sudo ./scripts/install-auto-update.sh
 ```
 
+The installer derives the deployment Git user/repository from the local installation context and stores host-specific paths in `/etc/default/nsm-auto-update`, rather than hard-coding deployment identifiers in the repository.
+
 `update.sh` creates a compressed `pg_dump`, deploys only application/config files,
 builds the containers, runs Alembic through Compose and verifies `/health`.
 
-If a deployment fails, the server publishes a sanitized diagnostic file named
-`log` on the `runtime-logs` branch. Runtime secrets are not intentionally
-included in that report.
+If a deployment fails, a sanitized diagnostic report is retained locally by default at `/var/lib/nsm-auto-update/last-failure.log`. Remote publication is disabled unless `NSM_PUBLISH_FAILURE_LOG=1` is explicitly configured. Do not enable remote failure-log publication for a public repository.
 
 ## Security note
 
