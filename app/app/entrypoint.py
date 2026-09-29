@@ -1,4 +1,4 @@
-"""NSM Core 0.49 application entrypoint."""
+"""NSM Core 0.50 application entrypoint."""
 from app import main as core
 from app import mikrotik_agent as mikrotik_agent_core
 from app.activity_route_precedence import install_activity_route_precedence
@@ -50,6 +50,7 @@ from app.mikrotik_network_health import install_mikrotik_network_health
 from app.mikrotik_policy_health import install_mikrotik_policy_health
 from app.mikrotik_modern_syntax import install_mikrotik_modern_syntax_guard
 from app.mikrotik_privilege_profile import install_mikrotik_privilege_profile
+from app.mikrotik_restore_readiness import install_mikrotik_restore_readiness
 from app.mikrotik_workspace import install_mikrotik_workspace
 from app.mikrotik_workspace_ux import install_mikrotik_workspace_ux
 from app.mikrotik_workspace_ux_precedence import install_mikrotik_workspace_ux_precedence
@@ -62,7 +63,7 @@ from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.0"
+APP_VERSION = "0.50.0"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -82,6 +83,7 @@ install_demo_ui(core.app)
 install_mikrotik_agent(core.app)
 install_mikrotik_backup(core.app)
 install_mikrotik_backup_agent(core.app)
+install_mikrotik_restore_readiness(core.app)
 install_config_drift(core.app)
 install_mikrotik_snapshot_agent()
 install_mikrotik_diagnostics_agent()
