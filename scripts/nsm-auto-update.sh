@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-REPO_DIR="${NSM_REPO_DIR:-/home/cda/nsm-platform}"
 RUNTIME_DIR="${NSM_RUNTIME_DIR:-/srv/network-platform}"
 STATE_DIR="${NSM_STATE_DIR:-/var/lib/nsm-auto-update}"
-GIT_USER="${NSM_GIT_USER:-cda}"
-GIT_HOME="${NSM_GIT_HOME:-/home/cda}"
-SSH_KEY="${NSM_SSH_KEY:-/home/cda/.ssh/id_ed25519}"
-KNOWN_HOSTS="${NSM_KNOWN_HOSTS:-/home/cda/.ssh/known_hosts}"
+GIT_USER="${NSM_GIT_USER:-}"
+[[ -n "$GIT_USER" ]] || { echo "NSM_GIT_USER non configurato. Esegui scripts/install-auto-update.sh o imposta /etc/default/nsm-auto-update." >&2; exit 1; }
+
+GIT_HOME="${NSM_GIT_HOME:-}"
+if [[ -z "$GIT_HOME" ]]; then
+  GIT_HOME="$(getent passwd "$GIT_USER" 2>/dev/null | awk -F: '{print $6}' || true)"
+fi
+[[ -n "$GIT_HOME" ]] || { echo "NSM_GIT_HOME non configurato e home non trovata per $GIT_USER." >&2; exit 1; }
+
+REPO_DIR="${NSM_REPO_DIR:-$GIT_HOME/nsm-platform}"
+SSH_KEY="${NSM_SSH_KEY:-$GIT_HOME/.ssh/id_ed25519}"
+KNOWN_HOSTS="${NSM_KNOWN_HOSTS:-$GIT_HOME/.ssh/known_hosts}"
 DEPLOY_REF="${NSM_DEPLOY_REF:-refs/remotes/origin/deploy}"
 LOG_BRANCH="${NSM_LOG_BRANCH:-runtime-logs}"
 LOCAL_LOG="${NSM_LOCAL_LOG:-/var/log/nsm-auto-update.log}"
