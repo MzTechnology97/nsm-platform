@@ -15,10 +15,10 @@ from __future__ import annotations
 
 import ipaddress
 import re
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+SELF = Path(__file__).resolve()
 ALLOW_MARKER = "public-data-safety: allow"
 
 SCAN_PATHS = [
@@ -70,9 +70,12 @@ def iter_files():
         if not path.exists():
             continue
         if path.is_file():
-            yield path
+            if path.resolve() != SELF:
+                yield path
             continue
         for item in sorted(path.rglob("*")):
+            if item.resolve() == SELF:
+                continue
             if item.is_file() and item.suffix.lower() in {".py", ".md", ".txt", ".sh", ".yml", ".yaml", ".json", ".csv"}:
                 yield item
 
