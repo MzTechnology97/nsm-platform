@@ -56,13 +56,13 @@ def seed():
 
         # Healthy fixtures track the current agent generation. Older generations
         # are intentionally promoted to Attention by the agent update policy.
-        modern = device("Healthy Modern", inventory={"agent_version": "0.49.1", "agent_transport": "modern", "last_source_ip": "198.51.100.35"})
-        legacy = device("Healthy Legacy", inventory={"agent_version": "0.49.1-legacy", "agent_transport": "legacy", "legacy_agent": True, "legacy_heartbeat_transport": "headers-v1"})
+        modern = device("Healthy Modern", inventory={"agent_version": "0.49.2", "agent_transport": "modern", "last_source_ip": "198.51.100.35"})
+        legacy = device("Healthy Legacy", inventory={"agent_version": "0.49.2-legacy", "agent_transport": "legacy", "legacy_agent": True, "legacy_heartbeat_transport": "headers-v1"})
         stale = device("Stale", last_seen=now - timedelta(minutes=31), inventory={"agent_version": "0.20.0", "agent_transport": "modern"})
         offline = device("Offline", status="offline", inventory={"agent_version": "0.20.0", "agent_transport": "modern"})
         no_credential = device("No Credential", inventory={"agent_version": "0.20.0", "agent_transport": "modern"})
         pending = device("Pending Enrollment", status="pending_enrollment", last_seen=None, inventory={})
-        other = device("Other Customer", inventory={"agent_version": "0.49.1", "agent_transport": "modern"}, owner=other_customer)
+        other = device("Other Customer", inventory={"agent_version": "0.49.2", "agent_transport": "modern"}, owner=other_customer)
 
         for index, item in enumerate((modern, legacy, stale, offline, other), start=1):
             db.add(
