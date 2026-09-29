@@ -17,6 +17,7 @@ from app.integration_models import ConnectorIntegration
 from app.models import Device, utcnow
 from app.secret_vault import decrypt_text, encrypt_text
 from app.security import validate_csrf
+from app.ui_feedback import exception_message, flash_redirect
 
 router = APIRouter()
 UISP_PROVIDER = "uisp"
@@ -431,6 +432,34 @@ def _uisp_device(db, device_id):
     return device
 
 
+def _device_http_feedback(request: Request, device_id: uuid.UUID, exc: HTTPException):
+    if exc.status_code == 404:
+        return flash_redirect(
+            request,
+            "/devices",
+            "error",
+            exception_message(exc, "Apparato non trovato."),
+            title="Apparato non trovato",
+        )
+    if exc.status_code == 403:
+        return flash_redirect(
+            request,
+            f"/devices/{device_id}",
+            "error",
+            exception_message(exc, "Non hai i permessi necessari per questa operazione."),
+            title="Operazione non autorizzata",
+        )
+    if exc.status_code in {400, 409}:
+        return flash_redirect(
+            request,
+            f"/devices/{device_id}/uisp",
+            "warning",
+            exception_message(exc, "Operazione UISP non disponibile."),
+            title="Operazione UISP non disponibile",
+        )
+    raise exc
+
+
 @router.get("/devices/{device_id}/uisp", response_class=HTMLResponse, name="uisp_device_link")
 def uisp_device_link(request: Request, device_id: uuid.UUID):
     with SessionLocal() as db:
@@ -445,52 +474,87 @@ def uisp_device_link(request: Request, device_id: uuid.UUID):
 
 @router.post("/devices/{device_id}/uisp/preview", response_class=HTMLResponse, name="uisp_device_preview")
 def uisp_device_preview(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.read")
-        device = _uisp_device(db, device_id)
-        try:
-            connection = _connection(db, enabled_only=True)
-            candidate = lookup_by_mac(connection, device.primary_mac)
-            return _device_render(request, db, user, device, candidate=candidate)
-        except (UispConnectorError, ValueError) as exc:
-            return _device_render(request, db, user, device, error=str(exc))
+    try:
+        validate_csrf(request, csrf)
+        with SessionLocal() as db:
+            user = core.require_permission(request, db, "devices.read")
+            device = _uisp_device(db, device_id)
+            try:
+                connection = _connection(db, enabled_only=True)
+                candidate = lookup_by_mac(connection, device.primary_mac)
+                return _device_render(request, db, user, device, candidate=candidate)
+            except (UispConnectorError, ValueError) as exc:
+                return _device_render(request, db, user, device, error=str(exc))
+    except HTTPException as exc:
+        return _device_http_feedback(request, device_id, exc)
 
 
 @router.post("/devices/{device_id}/uisp/associate", response_class=HTMLResponse, name="uisp_device_associate")
 def uisp_device_associate(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        device = _uisp_device(db, device_id)
-        try:
-            connection = _connection(db, enabled_only=True)
-            candidate = lookup_by_mac(connection, device.primary_mac)
-            apply_candidate(db, device, candidate, user, "UISP_DEVICE_ASSOCIATED")
-            connection.last_sync_at = utcnow()
-            db.commit()
-        except (UispConnectorError, ValueError) as exc:
-            return _device_render(request, db, user, device, error=str(exc))
-    return RedirectResponse(f"/devices/{device_id}?uisp=associated", status_code=303)
+    return_to = f"/devices/{device_id}/uisp"
+    try:
+        validate_csrf(request, csrf)
+        with SessionLocal() as db:
+            user = core.require_permission(request, db, "devices.write")
+            device = _uisp_device(db, device_id)
+            try:
+                connection = _connection(db, enabled_only=True)
+                candidate = lookup_by_mac(connection, device.primary_mac)
+                apply_candidate(db, device, candidate, user, "UISP_DEVICE_ASSOCIATED")
+                connection.last_sync_at = utcnow()
+                db.commit()
+            except (UispConnectorError, ValueError) as exc:
+                return flash_redirect(
+                    request,
+                    return_to,
+                    "warning",
+                    str(exc),
+                    title="Associazione UISP non completata",
+                )
+    except HTTPException as exc:
+        return _device_http_feedback(request, device_id, exc)
+    return flash_redirect(
+        request,
+        return_to,
+        "success",
+        "Dispositivo associato a UISP e inventario aggiornato.",
+        title="Associazione UISP completata",
+    )
 
 
 @router.post("/devices/{device_id}/uisp/refresh", response_class=HTMLResponse, name="uisp_device_refresh")
 def uisp_device_refresh(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        device = _uisp_device(db, device_id)
-        try:
-            connection = _connection(db, enabled_only=True)
-            candidate = lookup_by_mac(connection, device.primary_mac)
-            if device.external_device_id and candidate["external_id"] != device.external_device_id:
-                raise UispConnectorError("Il MAC ora corrisponde a un ID UISP diverso: refresh bloccato per sicurezza.")
-            apply_candidate(db, device, candidate, user, "UISP_INVENTORY_REFRESHED")
-            connection.last_sync_at = utcnow()
-            db.commit()
-        except (UispConnectorError, ValueError) as exc:
-            return _device_render(request, db, user, device, error=str(exc))
-    return RedirectResponse(f"/devices/{device_id}?uisp=refreshed", status_code=303)
+    return_to = f"/devices/{device_id}/uisp"
+    try:
+        validate_csrf(request, csrf)
+        with SessionLocal() as db:
+            user = core.require_permission(request, db, "devices.write")
+            device = _uisp_device(db, device_id)
+            try:
+                connection = _connection(db, enabled_only=True)
+                candidate = lookup_by_mac(connection, device.primary_mac)
+                if device.external_device_id and candidate["external_id"] != device.external_device_id:
+                    raise UispConnectorError("Il MAC ora corrisponde a un ID UISP diverso: refresh bloccato per sicurezza.")
+                apply_candidate(db, device, candidate, user, "UISP_INVENTORY_REFRESHED")
+                connection.last_sync_at = utcnow()
+                db.commit()
+            except (UispConnectorError, ValueError) as exc:
+                return flash_redirect(
+                    request,
+                    return_to,
+                    "warning",
+                    str(exc),
+                    title="Refresh UISP non completato",
+                )
+    except HTTPException as exc:
+        return _device_http_feedback(request, device_id, exc)
+    return flash_redirect(
+        request,
+        return_to,
+        "success",
+        "Inventario UISP aggiornato mantenendo invariati cliente e sito NSM.",
+        title="Refresh UISP completato",
+    )
 
 
 def install_uisp_connector(app):
