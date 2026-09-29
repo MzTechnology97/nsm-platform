@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app import main as core
+from app import mikrotik_workspace as workspace
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
 from app.entrypoint import app
@@ -59,6 +60,9 @@ def main():
     assert 'snapshot_section' in source
     assert 'diagnostic_ping' in source
     assert 'diagnostic_traceroute' in source
+    assert 'diagnostic_logs' in source
+    assert 'nsmTruncated' in source
+    assert ':pick $nsmData ($nsmTotal - 20) $nsmTotal' in source
     assert 'backup_mikrotik' in source
     match = re.search(r':local nsmSecret "([^"]+)"', source)
     assert match
@@ -73,6 +77,7 @@ def main():
 
     config = client.get(f"/devices/{device_id}/configuration?section=interfaces")
     assert config.status_code == 200
+    assert "Aggiorna tutto" in config.text and f"/devices/{device_id}/snapshot-all" in config.text
     csrf = csrf_from(config.text)
     queued = client.post(f"/devices/{device_id}/snapshot/interfaces", data={"csrf": csrf}, follow_redirects=False)
     assert queued.status_code == 303
@@ -87,6 +92,19 @@ def main():
     assert result.status_code == 200, result.text
     config = client.get(f"/devices/{device_id}/configuration?section=interfaces")
     assert "ether1" in config.text and "02:16:00:00:00:01" in config.text
+
+    # A complete refresh queues every allow-listed section as an independent
+    # job. This keeps RouterOS payloads isolated while avoiding eight manual
+    # refresh clicks in the UI.
+    csrf = csrf_from(config.text)
+    batch = client.post(f"/devices/{device_id}/snapshot-all", data={"csrf": csrf}, follow_redirects=False)
+    assert batch.status_code == 303
+    assert "queued=all" in batch.headers["location"]
+    with SessionLocal() as db:
+        rows = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "snapshot_section", DeviceJob.status == "pending")))
+        sections = {str((job.payload or {}).get("section") or "") for job in rows}
+        assert set(workspace.SNAPSHOT_SECTIONS).issubset(sections), sections
+        assert all((job.payload or {}).get("batch") == "configuration_full" for job in rows)
 
     diag = client.get(f"/devices/{device_id}/diagnostics")
     csrf = csrf_from(diag.text)
@@ -117,7 +135,7 @@ def main():
         assert snapshot_job.status == "success"
         assert snapshot_job.result["data"][0]["name"] == "ether1"
 
-    print("Core 0.16 workspace behavior remains covered through Core 0.43 diagnostic detail UX")
+    print("Core 0.16 workspace behavior remains covered through batch snapshot and bounded-log UX")
 
 
 if __name__ == "__main__":
