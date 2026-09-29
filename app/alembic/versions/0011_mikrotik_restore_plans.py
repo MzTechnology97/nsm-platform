@@ -19,7 +19,7 @@ def upgrade():
         "mikrotik_restore_plans",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("device_id", sa.Uuid(), nullable=False),
-        sa.Column("backup_run_id", sa.Uuid(), nullable=False),
+        sa.Column("artifact_id", sa.Uuid(), nullable=False),
         sa.Column("restore_mode", sa.String(30), nullable=False),
         sa.Column("status", sa.String(30), nullable=False, server_default="draft"),
         sa.Column("readiness", sa.JSON(), nullable=False, server_default="{}"),
@@ -28,17 +28,17 @@ def upgrade():
         sa.Column("reviewed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("last_error", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(["device_id"], ["devices.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["backup_run_id"], ["backup_runs.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["artifact_id"], ["backup_artifacts.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["created_by_user_id"], ["users.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_mikrotik_restore_plans_device_id", "mikrotik_restore_plans", ["device_id"])
-    op.create_index("ix_mikrotik_restore_plans_backup_run_id", "mikrotik_restore_plans", ["backup_run_id"])
+    op.create_index("ix_mikrotik_restore_plans_artifact_id", "mikrotik_restore_plans", ["artifact_id"])
     op.create_index("ix_mikrotik_restore_plans_status", "mikrotik_restore_plans", ["status"])
 
 
 def downgrade():
     op.drop_index("ix_mikrotik_restore_plans_status", table_name="mikrotik_restore_plans")
-    op.drop_index("ix_mikrotik_restore_plans_backup_run_id", table_name="mikrotik_restore_plans")
+    op.drop_index("ix_mikrotik_restore_plans_artifact_id", table_name="mikrotik_restore_plans")
     op.drop_index("ix_mikrotik_restore_plans_device_id", table_name="mikrotik_restore_plans")
     op.drop_table("mikrotik_restore_plans")
