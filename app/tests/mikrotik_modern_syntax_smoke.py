@@ -8,6 +8,9 @@ from app.mikrotik_modern_syntax import normalize_modern_agent_source, validate_m
 _EMPTY_LOCAL = re.compile(r"(?m)^\s*:local\s+[A-Za-z_][A-Za-z0-9_-]*\s+\{\}\s*$")
 _RAW_SHA512 = re.compile(r"transform=sha512(?=\])")
 _BARE_RETURN = re.compile(r"(?m):return(?=\s*(?:;|\}|$))")
+_BACKUP_FILE_READ_WITHOUT_VALUE = re.compile(
+    r"/file\s+read\s+file=\$nsmFileName\s+offset=\$nsmOffset\s+chunk-size=\$nsmChunkSize(?=\])"
+)
 
 
 def main():
@@ -19,6 +22,7 @@ def main():
         ':local nsmAckResult {}\n'
         ':local h [:convert "test" transform=sha512]\n'
         ':do { :log warning "failed"; :return } on-error={}\n'
+        ':local nsmRead [/file read file=$nsmFileName offset=$nsmOffset chunk-size=$nsmChunkSize]\n'
     )
     normalized, replaced = normalize_modern_agent_source(sample)
     assert normalized.splitlines()[0] == ':local nsmData'
@@ -26,11 +30,13 @@ def main():
     assert normalized.splitlines()[2] == ':local nsmAckResult'
     assert 'transform=sha512 to=hex' in normalized
     assert ':exit' in normalized
+    assert '/file read file=$nsmFileName offset=$nsmOffset chunk-size=$nsmChunkSize as-value]' in normalized
     assert replaced == (
         "nsmData",
         "nsmAckResult",
         "sha512-hex",
         "bare-return",
+        "backup-file-read-as-value",
     )
     validate_modern_agent_source(normalized)
 
@@ -44,8 +50,10 @@ def main():
     assert not _EMPTY_LOCAL.search(source), "invalid RouterOS empty local initializer survived"
     assert not _RAW_SHA512.search(source), "raw SHA-512 conversion survived final composition"
     assert not _BARE_RETURN.search(source), "interactive bare :return survived final composition"
+    assert not _BACKUP_FILE_READ_WITHOUT_VALUE.search(source), "backup /file read without as-value survived final composition"
     assert 'transform=sha512 to=hex' in source
     assert 'agent_source_sha512' in source
+    assert '/file read file=$nsmFileName offset=$nsmOffset chunk-size=$nsmChunkSize as-value]' in source
     for marker in (
         'snapshot_section',
         'diagnostic_ping',
