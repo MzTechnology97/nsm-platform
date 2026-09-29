@@ -25,8 +25,8 @@ def seed():
         user = User(username=f"nethealth-{suffix}", password_hash=hash_password(TEST_PASSWORD), display_name="Network Health", role="admin", is_active=True)
         customer = Customer(name=f"Network Health {suffix}", code=f"N46{suffix[:5]}")
         db.add_all([user, customer]); db.flush()
-        modern = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Modern Router", display_name="Modern CCR", status="online", inventory_data={"agent_transport":"modern","agent_version":"0.20.0"})
-        legacy = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Legacy Router", display_name="Legacy wAP", status="online", inventory_data={"agent_transport":"legacy","agent_version":"0.20.0-legacy"})
+        modern = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Modern Router", display_name="Modern CCR", status="online", inventory_data={"agent_transport":"modern","agent_version":"0.49.2"})
+        legacy = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Legacy Router", display_name="Legacy wAP", status="online", inventory_data={"agent_transport":"legacy","agent_version":"0.49.2-legacy"})
         db.add_all([modern, legacy]); db.flush()
         ip_rows = [
             {"address":"192.0.2.1/24","network":"192.0.2.0","interface":"ether1","actual-interface":"ether1","dynamic":False,"disabled":False,"invalid":False,"comment":"WAN static"},
@@ -58,35 +58,39 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    ips = client.get(f"/devices/{modern_id}/ip-addresses")
+    old_ips = client.get(f"/devices/{modern_id}/ip-addresses", follow_redirects=False)
+    old_routes = client.get(f"/devices/{modern_id}/routes", follow_redirects=False)
+    assert old_ips.status_code == 303 and "section=ip_addresses" in old_ips.headers["location"]
+    assert old_routes.status_code == 303 and "section=routes" in old_routes.headers["location"]
+
+    ips = client.get(f"/devices/{modern_id}/configuration?section=ip_addresses")
     assert ips.status_code == 200
-    for marker in ("Modern CCR", "192.0.2.1/24", "10.0.0.2/24", "ether1", "WAN static", "Aggiorna snapshot"):
+    for marker in ("Modern CCR", "192.0.2.1/24", "10.0.0.2/24", "ether1", "WAN static", "Aggiorna sezione"):
         assert marker in ips.text, marker
-    dynamic = client.get(f"/devices/{modern_id}/ip-addresses?state=dynamic")
+    dynamic = client.get(f"/devices/{modern_id}/configuration?section=ip_addresses&state=dynamic")
     assert dynamic.status_code == 200 and "10.0.0.2/24" in dynamic.text and "192.0.2.1/24" not in dynamic.text
-    ip_search = client.get(f"/devices/{modern_id}/ip-addresses?q=Old+backup")
+    ip_search = client.get(f"/devices/{modern_id}/configuration?section=ip_addresses&q=Old+backup")
     assert ip_search.status_code == 200 and "198.51.100.2/24" in ip_search.text and "192.0.2.1/24" not in ip_search.text
 
-    routes = client.get(f"/devices/{modern_id}/routes")
+    routes = client.get(f"/devices/{modern_id}/configuration?section=routes")
     assert routes.status_code == 200
     for marker in ("0.0.0.0/0", "192.0.2.254", "Primary default", "10.10.0.0/16", "Connected"):
         assert marker in routes.text, marker
-    defaults = client.get(f"/devices/{modern_id}/routes?state=default")
+    defaults = client.get(f"/devices/{modern_id}/configuration?section=routes&state=default")
     assert defaults.status_code == 200 and "0.0.0.0/0" in defaults.text and "10.10.0.0/16" not in defaults.text
-    inactive = client.get(f"/devices/{modern_id}/routes?state=inactive")
+    inactive = client.get(f"/devices/{modern_id}/configuration?section=routes&state=inactive")
     assert inactive.status_code == 200 and "10.10.0.0/16" in inactive.text and "172.16.0.0/16" not in inactive.text
-    route_search = client.get(f"/devices/{modern_id}/routes?q=Connected")
+    route_search = client.get(f"/devices/{modern_id}/configuration?section=routes&q=Connected")
     assert route_search.status_code == 200 and "192.168.50.0/24" in route_search.text and "Primary default" not in route_search.text
 
-    legacy_ips = client.get(f"/devices/{legacy_id}/ip-addresses")
-    legacy_routes = client.get(f"/devices/{legacy_id}/routes")
+    legacy_ips = client.get(f"/devices/{legacy_id}/configuration?section=ip_addresses")
+    legacy_routes = client.get(f"/devices/{legacy_id}/configuration?section=routes")
     for response in (legacy_ips, legacy_routes):
         assert response.status_code == 200
-        assert "Transport LEGACY" in response.text
-        assert "Aggiorna snapshot" not in response.text
+        assert "Aggiorna sezione" not in response.text
     assert "192.0.2.1/24" in legacy_ips.text and "0.0.0.0/0" in legacy_routes.text
 
-    print("Core 0.46 MikroTik IP and route health smoke passed")
+    print("Core 0.46 MikroTik IP and route health smoke passed in unified workspace")
 
 
 if __name__ == "__main__":
