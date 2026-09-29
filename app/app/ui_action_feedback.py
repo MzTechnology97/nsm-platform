@@ -1,10 +1,10 @@
 """Browser-only action wrappers using contextual flash feedback.
 
-The installer captures the canonical POST handler already registered by the
-feature stack, removes only that browser route, and re-registers a feedback
-wrapper.  Where the final route composition has already dropped a human action,
-the wrapper restores the known guarded canonical handler explicitly.  Machine-
-facing API/agent endpoints remain untouched.
+The UI layer deliberately binds to the known guarded domain handlers instead of
+selecting the first matching FastAPI route.  The Core has accumulated route
+promotion layers over time, so duplicate path registrations can exist during
+bootstrap and the first one is not necessarily the final capability-aware
+handler.  Machine-facing API/agent endpoints remain untouched.
 """
 from __future__ import annotations
 
@@ -18,25 +18,15 @@ from app import mikrotik_workspace_ux as workspace_ux
 from app.ui_feedback import add_flash, exception_message, flash_redirect
 
 
-def _take_post(app, path: str, fallback=None):
-    endpoint = None
-    kept = []
-    for route in app.router.routes:
-        match = (
+def _remove_post(app, path: str) -> None:
+    app.router.routes[:] = [
+        route
+        for route in app.router.routes
+        if not (
             getattr(route, "path", None) == path
             and "POST" in (getattr(route, "methods", set()) or set())
         )
-        if match:
-            if endpoint is None:
-                endpoint = getattr(route, "endpoint", None)
-            continue
-        kept.append(route)
-    app.router.routes[:] = kept
-    if endpoint is None:
-        if fallback is None:
-            raise RuntimeError(f"Browser action route not found: POST {path}")
-        endpoint = fallback
-    return endpoint
+    ]
 
 
 def _feedback_for_exception(request: Request, exc: HTTPException, return_to: str):
@@ -68,30 +58,20 @@ def _feedback_for_exception(request: Request, exc: HTTPException, return_to: str
 
 
 def install_ui_action_feedback(app) -> None:
-    snapshot_handler = _take_post(
-        app,
+    for path in (
         "/devices/{device_id}/snapshot/{section}",
-        fallback=workspace_ux._guard_snapshot,
-    )
-    # The batch handler is itself the capability guard (online + modern
-    # transport), so it is safe to restore when route composition dropped it.
-    snapshot_all_handler = _take_post(
-        app,
         "/devices/{device_id}/snapshot-all",
-        fallback=snapshot_batch.queue_snapshot_all,
-    )
-    diagnostic_handler = _take_post(
-        app,
         "/devices/{device_id}/diagnostics/{diagnostic}",
-        fallback=workspace_ux._guard_diagnostic,
-    )
-    # The self-update handler owns the credential, transport, capability,
-    # version/drift and active-job guards.  Restore that exact handler only.
-    agent_update_handler = _take_post(
-        app,
         "/devices/{device_id}/agent/update",
-        fallback=agent_update.queue_agent_update,
-    )
+    ):
+        _remove_post(app, path)
+
+    # Bind explicitly to capability-aware handlers.  Do not infer handlers from
+    # route order: older registrations may share the same URL template.
+    snapshot_handler = workspace_ux._guard_snapshot
+    snapshot_all_handler = snapshot_batch.queue_snapshot_all
+    diagnostic_handler = workspace_ux._guard_diagnostic
+    agent_update_handler = agent_update.queue_agent_update
 
     @app.post("/devices/{device_id}/snapshot/{section}", name="queue_mikrotik_snapshot")
     def snapshot_ui(
