@@ -1,8 +1,9 @@
 """Browser-only action wrappers using contextual flash feedback.
 
-The underlying domain functions keep their existing behavior and machine-facing
-API contracts.  This installer replaces only human POST routes and is loaded at
-the end of the application bootstrap so its routes have canonical precedence.
+The installer captures the canonical POST handler already registered by the
+feature stack, removes only that browser route, and re-registers a feedback
+wrapper.  This preserves all capability/compatibility guards while leaving
+machine-facing API/agent endpoints untouched.
 """
 from __future__ import annotations
 
@@ -10,21 +11,26 @@ import uuid
 
 from fastapi import Form, HTTPException, Request
 
-from app import mikrotik_agent_update as agent_update
-from app import mikrotik_snapshot_batch as snapshot_batch
-from app import mikrotik_workspace as workspace
 from app.ui_feedback import add_flash, exception_message, flash_redirect
 
 
-def _remove_post(app, path: str) -> None:
-    app.router.routes[:] = [
-        route
-        for route in app.router.routes
-        if not (
+def _take_post(app, path: str):
+    endpoint = None
+    kept = []
+    for route in app.router.routes:
+        match = (
             getattr(route, "path", None) == path
             and "POST" in (getattr(route, "methods", set()) or set())
         )
-    ]
+        if match:
+            if endpoint is None:
+                endpoint = getattr(route, "endpoint", None)
+            continue
+        kept.append(route)
+    if endpoint is None:
+        raise RuntimeError(f"Browser action route not found: POST {path}")
+    app.router.routes[:] = kept
+    return endpoint
 
 
 def _feedback_for_exception(request: Request, exc: HTTPException, return_to: str):
@@ -56,15 +62,10 @@ def _feedback_for_exception(request: Request, exc: HTTPException, return_to: str
 
 
 def install_ui_action_feedback(app) -> None:
-    # Route precedence matters in FastAPI: remove the human POST routes and
-    # re-register wrappers after all feature installers have completed.
-    for path in (
-        "/devices/{device_id}/snapshot/{section}",
-        "/devices/{device_id}/snapshot-all",
-        "/devices/{device_id}/diagnostics/{diagnostic}",
-        "/devices/{device_id}/agent/update",
-    ):
-        _remove_post(app, path)
+    snapshot_handler = _take_post(app, "/devices/{device_id}/snapshot/{section}")
+    snapshot_all_handler = _take_post(app, "/devices/{device_id}/snapshot-all")
+    diagnostic_handler = _take_post(app, "/devices/{device_id}/diagnostics/{diagnostic}")
+    agent_update_handler = _take_post(app, "/devices/{device_id}/agent/update")
 
     @app.post("/devices/{device_id}/snapshot/{section}", name="queue_mikrotik_snapshot")
     def snapshot_ui(
@@ -75,7 +76,12 @@ def install_ui_action_feedback(app) -> None:
     ):
         return_to = f"/devices/{device_id}/configuration?section={section}"
         try:
-            response = workspace.queue_snapshot(request, device_id, section, csrf)
+            response = snapshot_handler(
+                request=request,
+                device_id=device_id,
+                section=section,
+                csrf=csrf,
+            )
         except HTTPException as exc:
             return _feedback_for_exception(request, exc, return_to)
         location = str(response.headers.get("location") or "")
@@ -89,7 +95,11 @@ def install_ui_action_feedback(app) -> None:
     def snapshot_all_ui(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
         return_to = f"/devices/{device_id}/configuration?section=resources"
         try:
-            response = snapshot_batch.queue_snapshot_all(request, device_id, csrf)
+            response = snapshot_all_handler(
+                request=request,
+                device_id=device_id,
+                csrf=csrf,
+            )
         except HTTPException as exc:
             return _feedback_for_exception(request, exc, return_to)
         location = str(response.headers.get("location") or "")
@@ -111,14 +121,14 @@ def install_ui_action_feedback(app) -> None:
     ):
         return_to = f"/devices/{device_id}/diagnostics"
         try:
-            response = workspace.queue_diagnostic(
-                request,
-                device_id,
-                diagnostic,
-                target,
-                source,
-                query,
-                csrf,
+            response = diagnostic_handler(
+                request=request,
+                device_id=device_id,
+                diagnostic=diagnostic,
+                target=target,
+                source=source,
+                query=query,
+                csrf=csrf,
             )
         except HTTPException as exc:
             return _feedback_for_exception(request, exc, return_to)
@@ -137,7 +147,11 @@ def install_ui_action_feedback(app) -> None:
     def agent_update_ui(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
         return_to = f"/devices/{device_id}/agent"
         try:
-            response = agent_update.queue_agent_update(request, device_id, csrf)
+            response = agent_update_handler(
+                request=request,
+                device_id=device_id,
+                csrf=csrf,
+            )
         except HTTPException as exc:
             return _feedback_for_exception(request, exc, return_to)
         add_flash(request, "success", "Aggiornamento Agent accodato. Verrà applicato dal dispositivo con rollback automatico in caso di errore.", title="Aggiornamento Agent accodato")
