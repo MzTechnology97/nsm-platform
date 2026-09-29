@@ -25,8 +25,11 @@ PUBLISH_FAILURE_LOG="${NSM_PUBLISH_FAILURE_LOG:-0}"
 CONFIG_FILE="/etc/default/nsm-auto-update"
 
 if [[ $EUID -ne 0 ]]; then
-  exec sudo --preserve-env=NSM_REPO_DIR,NSM_RUNTIME_DIR,NSM_STATE_DIR,NSM_GIT_USER,NSM_GIT_HOME,NSM_SSH_KEY,NSM_KNOWN_HOSTS,NSM_PUBLISH_FAILURE_LOG "$0" \
-    $([[ $REFRESH_COMPONENTS_ONLY -eq 1 ]] && printf '%s' '--refresh-components-only')
+  if [[ $REFRESH_COMPONENTS_ONLY -eq 1 ]]; then
+    exec sudo --preserve-env=NSM_REPO_DIR,NSM_RUNTIME_DIR,NSM_STATE_DIR,NSM_GIT_USER,NSM_GIT_HOME,NSM_SSH_KEY,NSM_KNOWN_HOSTS,NSM_PUBLISH_FAILURE_LOG \
+      "$0" --refresh-components-only
+  fi
+  exec sudo --preserve-env=NSM_REPO_DIR,NSM_RUNTIME_DIR,NSM_STATE_DIR,NSM_GIT_USER,NSM_GIT_HOME,NSM_SSH_KEY,NSM_KNOWN_HOSTS,NSM_PUBLISH_FAILURE_LOG "$0"
 fi
 
 [[ -d "$REPO_DIR/.git" ]] || { echo "Repository non trovato: $REPO_DIR" >&2; exit 1; }
@@ -53,11 +56,14 @@ fi
 # Migration path for installations created before /etc/default/nsm-auto-update
 # existed. The repository owner is the safest generic fallback when this script
 # is invoked by the root systemd updater and SUDO_USER is not available.
-GIT_USER="${NSM_GIT_USER:-${SUDO_USER:-}}"
-if [[ -z "$GIT_USER" || "$GIT_USER" == "root" ]]; then
+EXPLICIT_GIT_USER="${NSM_GIT_USER:-}"
+GIT_USER="${EXPLICIT_GIT_USER:-${SUDO_USER:-}}"
+if [[ -z "$GIT_USER" || ( "$GIT_USER" == "root" && -z "$EXPLICIT_GIT_USER" ) ]]; then
   repo_owner="$(stat -c '%U' "$REPO_DIR" 2>/dev/null || true)"
   if [[ -n "$repo_owner" && "$repo_owner" != "UNKNOWN" && "$repo_owner" != "root" ]]; then
     GIT_USER="$repo_owner"
+  elif [[ -z "$EXPLICIT_GIT_USER" ]]; then
+    GIT_USER=""
   fi
 fi
 [[ -n "$GIT_USER" && "$GIT_USER" != "UNKNOWN" ]] || { echo "Impossibile determinare l'utente Git. Imposta NSM_GIT_USER." >&2; exit 1; }
