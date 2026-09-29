@@ -65,12 +65,43 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    page = client.get(f"/devices/{device_id}/configuration/history")
+    history_url = f"/devices/{device_id}/configuration/history"
+    page = client.get(history_url)
     assert page.status_code == 200
     assert "Cronologia configurazione" in page.text and "primo export" in page.text
 
-    response = client.post(f"/devices/{device_id}/configuration/history/{first_id}/baseline", data={"csrf": csrf(page.text)}, follow_redirects=False)
+    response = client.post(
+        f"{history_url}/{first_id}/baseline",
+        data={"csrf": csrf(page.text)},
+        follow_redirects=False,
+    )
     assert response.status_code == 303
+    assert response.headers["location"] == history_url
+    assert not response.headers.get("content-type", "").startswith("application/json")
+
+    baseline_feedback = client.get(history_url)
+    assert baseline_feedback.status_code == 200
+    assert "Baseline configurazione aggiornata" in baseline_feedback.text
+    assert "flash-success" in baseline_feedback.text
+    assert "Baseline configurazione aggiornata" not in client.get(history_url).text
+
+    # A stale/deleted export reference is an expected browser-domain failure:
+    # keep the operator in configuration history and show a one-shot warning.
+    stale_artifact_id = uuid.uuid4()
+    page = client.get(history_url)
+    stale = client.post(
+        f"{history_url}/{stale_artifact_id}/baseline",
+        data={"csrf": csrf(page.text)},
+        follow_redirects=False,
+    )
+    assert stale.status_code == 303
+    assert stale.headers["location"] == history_url
+    assert not stale.headers.get("content-type", "").startswith("application/json")
+    stale_feedback = client.get(history_url)
+    assert stale_feedback.status_code == 200
+    assert "Export non disponibile per questo apparato" in stale_feedback.text
+    assert "flash-warning" in stale_feedback.text
+    assert "Export non disponibile per questo apparato" not in client.get(history_url).text
 
     with SessionLocal() as db:
         device = db.get(Device, device_id)
@@ -85,14 +116,19 @@ def main():
         assert issue is not None
         assert issue.details["reference_kind"] == "baseline"
 
-    page = client.get(f"/devices/{device_id}/configuration/history")
+    page = client.get(history_url)
     assert page.status_code == 200
     assert "Variazione configurazione da verificare" in page.text
     assert "DA VERIFICARE" in page.text and "BASELINE" in page.text
     assert f"against={first_id}" in page.text
 
-    response = client.post(f"/devices/{device_id}/configuration/history/{second_id}/baseline", data={"csrf": csrf(page.text)}, follow_redirects=False)
+    response = client.post(
+        f"{history_url}/{second_id}/baseline",
+        data={"csrf": csrf(page.text)},
+        follow_redirects=False,
+    )
     assert response.status_code == 303
+    assert response.headers["location"] == history_url
 
     with SessionLocal() as db:
         device = db.get(Device, device_id)
@@ -103,7 +139,22 @@ def main():
         issue = db.scalar(select(ActionIssue).where(ActionIssue.device_id == device_id, ActionIssue.title == DRIFT_TITLE, ActionIssue.status.in_(["open", "acknowledged"])))
         assert issue is None
 
-    print("Core 0.44 MikroTik configuration history and drift smoke passed")
+    missing_device_id = uuid.uuid4()
+    page = client.get(history_url)
+    missing = client.post(
+        f"/devices/{missing_device_id}/configuration/history/{first_id}/baseline",
+        data={"csrf": csrf(page.text)},
+        follow_redirects=False,
+    )
+    assert missing.status_code == 303
+    assert missing.headers["location"] == "/devices"
+    assert not missing.headers.get("content-type", "").startswith("application/json")
+    missing_feedback = client.get("/devices")
+    assert missing_feedback.status_code == 200
+    assert "Apparato MikroTik non trovato" in missing_feedback.text
+    assert "flash-error" in missing_feedback.text
+
+    print("Core 0.44 MikroTik configuration history, drift and contextual baseline feedback smoke passed")
 
 
 if __name__ == "__main__":

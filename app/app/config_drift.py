@@ -4,7 +4,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 
 from app import main as core
@@ -13,6 +13,7 @@ from app.backup_text_tools import _diff_rows, _read_export
 from app.db import SessionLocal
 from app.models import ActionIssue, BackupRun, Device, utcnow
 from app.security import validate_csrf
+from app.ui_feedback import exception_message, flash_redirect
 
 router = APIRouter()
 BASELINE_KEY = "config_baseline_artifact_id"
@@ -133,6 +134,43 @@ def _history_rows(db, device: Device):
     return rows
 
 
+def _baseline_http_feedback(request: Request, device_id: uuid.UUID, exc: HTTPException):
+    detail = exception_message(exc, "Baseline configurazione non aggiornata.")
+    if exc.status_code == 404 and detail == "Export non disponibile per questo apparato.":
+        return flash_redirect(
+            request,
+            f"/devices/{device_id}/configuration/history",
+            "warning",
+            detail,
+            title="Baseline non aggiornata",
+        )
+    if exc.status_code == 404:
+        return flash_redirect(
+            request,
+            "/devices",
+            "error",
+            exception_message(exc, "Apparato non trovato."),
+            title="Apparato non trovato",
+        )
+    if exc.status_code == 403:
+        return flash_redirect(
+            request,
+            f"/devices/{device_id}",
+            "error",
+            detail,
+            title="Operazione non autorizzata",
+        )
+    if exc.status_code in {400, 409}:
+        return flash_redirect(
+            request,
+            f"/devices/{device_id}/configuration/history",
+            "warning",
+            detail,
+            title="Baseline non aggiornata",
+        )
+    raise exc
+
+
 @router.get("/devices/{device_id}/configuration/history", response_class=HTMLResponse, name="mikrotik_config_history")
 def config_history(request: Request, device_id: uuid.UUID):
     with SessionLocal() as db:
@@ -146,18 +184,27 @@ def config_history(request: Request, device_id: uuid.UUID):
 
 @router.post("/devices/{device_id}/configuration/history/{artifact_id}/baseline", name="mikrotik_config_baseline_set")
 def set_config_baseline(request: Request, device_id: uuid.UUID, artifact_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "backup.configure")
-        device = db.get(Device, device_id)
-        if not device or device.vendor != "mikrotik": raise HTTPException(404)
-        if not _artifact_for_device(db, device.id, artifact_id): raise HTTPException(404, "Export non disponibile per questo apparato.")
-        inventory = dict(device.inventory_data or {}); inventory[BASELINE_KEY] = str(artifact_id); inventory[BASELINE_AT_KEY] = utcnow().isoformat(); device.inventory_data = inventory
-        issue = _open_drift_issue(db, device.id)
-        if issue: issue.status = "resolved"; issue.resolved_at = utcnow(); issue.updated_at = utcnow()
-        core.add_event(db, "CONFIG_BASELINE_APPROVED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"artifact_id": str(artifact_id)}, source="portal")
-        db.commit()
-    return RedirectResponse(f"/devices/{device_id}/configuration/history?baseline=updated", status_code=303)
+    try:
+        validate_csrf(request, csrf)
+        with SessionLocal() as db:
+            user = core.require_permission(request, db, "backup.configure")
+            device = db.get(Device, device_id)
+            if not device or device.vendor != "mikrotik": raise HTTPException(404, "Apparato MikroTik non trovato.")
+            if not _artifact_for_device(db, device.id, artifact_id): raise HTTPException(404, "Export non disponibile per questo apparato.")
+            inventory = dict(device.inventory_data or {}); inventory[BASELINE_KEY] = str(artifact_id); inventory[BASELINE_AT_KEY] = utcnow().isoformat(); device.inventory_data = inventory
+            issue = _open_drift_issue(db, device.id)
+            if issue: issue.status = "resolved"; issue.resolved_at = utcnow(); issue.updated_at = utcnow()
+            core.add_event(db, "CONFIG_BASELINE_APPROVED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"artifact_id": str(artifact_id)}, source="portal")
+            db.commit()
+    except HTTPException as exc:
+        return _baseline_http_feedback(request, device_id, exc)
+    return flash_redirect(
+        request,
+        f"/devices/{device_id}/configuration/history",
+        "success",
+        "L'export selezionato è ora la baseline di riferimento per il rilevamento delle variazioni di configurazione.",
+        title="Baseline configurazione aggiornata",
+    )
 
 
 def _install_backup_completion_hook():
