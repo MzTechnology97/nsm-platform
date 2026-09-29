@@ -25,9 +25,13 @@ A bug reproduced on physical hardware may be documented, but the public write-up
 - customer names and account identifiers;
 - credentials, enrollment tokens and per-device secrets.
 
+## Deployment configuration
+
+Do not hard-code deployment-specific operating-system usernames, home directories, SSH key paths or repository checkout paths in public source. Discover them during installation or provide them through host-local configuration such as `/etc/default/...` or environment variables.
+
 ## Runtime data
 
-Runtime `.env`, secrets, database contents, backups and diagnostic logs are not source artifacts and must not be committed. A public Git repository must not be used as an unsanitized runtime-log destination.
+Runtime `.env`, secrets, database contents, backups and diagnostic logs are not source artifacts and must not be committed. A public Git repository must not be used as an unsanitized runtime-log destination. Remote publication of sanitized diagnostics must remain explicit opt-in and should stay disabled for public repositories.
 
 ## Git history
 
