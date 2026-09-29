@@ -11,10 +11,11 @@ import uuid
 
 from fastapi import Form, HTTPException, Request
 
+from app import mikrotik_snapshot_batch as snapshot_batch
 from app.ui_feedback import add_flash, exception_message, flash_redirect
 
 
-def _take_post(app, path: str):
+def _take_post(app, path: str, fallback=None):
     endpoint = None
     kept = []
     for route in app.router.routes:
@@ -27,9 +28,11 @@ def _take_post(app, path: str):
                 endpoint = getattr(route, "endpoint", None)
             continue
         kept.append(route)
-    if endpoint is None:
-        raise RuntimeError(f"Browser action route not found: POST {path}")
     app.router.routes[:] = kept
+    if endpoint is None:
+        if fallback is None:
+            raise RuntimeError(f"Browser action route not found: POST {path}")
+        endpoint = fallback
     return endpoint
 
 
@@ -63,7 +66,16 @@ def _feedback_for_exception(request: Request, exc: HTTPException, return_to: str
 
 def install_ui_action_feedback(app) -> None:
     snapshot_handler = _take_post(app, "/devices/{device_id}/snapshot/{section}")
-    snapshot_all_handler = _take_post(app, "/devices/{device_id}/snapshot-all")
+    # The unified configuration route stack in Core 0.49 can lose the batch
+    # route while promoting canonical workspace routes.  The batch handler is
+    # itself the capability guard (online + modern transport), so using it as
+    # the explicit fallback both restores the advertised UI action and keeps
+    # the same safety contract.
+    snapshot_all_handler = _take_post(
+        app,
+        "/devices/{device_id}/snapshot-all",
+        fallback=snapshot_batch.queue_snapshot_all,
+    )
     diagnostic_handler = _take_post(app, "/devices/{device_id}/diagnostics/{diagnostic}")
     agent_update_handler = _take_post(app, "/devices/{device_id}/agent/update")
 
