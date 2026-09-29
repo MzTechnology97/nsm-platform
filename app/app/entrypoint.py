@@ -40,6 +40,7 @@ from app.mikrotik_agent_update_ui import install_mikrotik_agent_update_ui
 from app.mikrotik_compatibility import install_mikrotik_compatibility_resolver
 from app.mikrotik_legacy import router as mikrotik_legacy_router
 from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
+from app.mikrotik_legacy_snapshot_capability import install_mikrotik_legacy_snapshot_capability
 from app.mikrotik_legacy_telemetry import install_mikrotik_legacy_telemetry
 from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
@@ -124,6 +125,7 @@ install_mikrotik_interfaces(core.app)
 install_mikrotik_network_health(core.app)
 install_mikrotik_policy_health(core.app)
 install_mikrotik_agent_status(core.app)
+install_mikrotik_legacy_snapshot_capability()
 install_mikrotik_onboarding(core)
 install_mikrotik_telemetry(core.app)
 install_dashboard_ui(core.app)
