@@ -54,13 +54,15 @@ def seed():
             db.flush()
             return item
 
-        modern = device("Healthy Modern", inventory={"agent_version": "0.20.0", "agent_transport": "modern", "last_source_ip": "198.51.100.35"})
-        legacy = device("Healthy Legacy", inventory={"agent_version": "0.20.0-legacy", "agent_transport": "legacy", "legacy_agent": True, "legacy_heartbeat_transport": "headers-v1"})
+        # Healthy fixtures track the current agent generation. Older generations
+        # are intentionally promoted to Attention by Core 0.49.
+        modern = device("Healthy Modern", inventory={"agent_version": "0.49.0", "agent_transport": "modern", "last_source_ip": "198.51.100.35"})
+        legacy = device("Healthy Legacy", inventory={"agent_version": "0.49.0-legacy", "agent_transport": "legacy", "legacy_agent": True, "legacy_heartbeat_transport": "headers-v1"})
         stale = device("Stale", last_seen=now - timedelta(minutes=31), inventory={"agent_version": "0.20.0", "agent_transport": "modern"})
         offline = device("Offline", status="offline", inventory={"agent_version": "0.20.0", "agent_transport": "modern"})
         no_credential = device("No Credential", inventory={"agent_version": "0.20.0", "agent_transport": "modern"})
         pending = device("Pending Enrollment", status="pending_enrollment", last_seen=None, inventory={})
-        other = device("Other Customer", inventory={"agent_version": "0.20.0", "agent_transport": "modern"}, owner=other_customer)
+        other = device("Other Customer", inventory={"agent_version": "0.49.0", "agent_transport": "modern"}, owner=other_customer)
 
         for index, item in enumerate((modern, legacy, stale, offline, other), start=1):
             db.add(
@@ -168,7 +170,7 @@ def main():
     detail_link = f"/devices/{ids['modern_id']}/agent"
     assert detail_link in all_rows.text
 
-    print("Core 0.35 agent fleet health smoke passed")
+    print("Core 0.35 agent fleet health smoke test passed")
 
 
 if __name__ == "__main__":
