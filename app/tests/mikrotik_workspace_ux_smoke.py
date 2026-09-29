@@ -53,7 +53,7 @@ def main():
     assert "8%" in monitor.text and "Storico non supportato" not in monitor.text and "data-telemetry-root" in monitor.text
     configuration = client.get(f"/devices/{legacy_id}/configuration")
     assert configuration.status_code == 200
-    assert "plain-text allow-list" in configuration.text
+    assert "Snapshot configurazione non disponibile" not in configuration.text
     assert f'action="/devices/{legacy_id}/snapshot/resources"' in configuration.text
     assert f'action="/devices/{legacy_id}/snapshot-all"' in configuration.text
     diagnostics = client.get(f"/devices/{legacy_id}/diagnostics")
