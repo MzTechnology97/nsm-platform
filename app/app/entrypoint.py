@@ -40,6 +40,7 @@ from app.mikrotik_agent_update_ui import install_mikrotik_agent_update_ui
 from app.mikrotik_compatibility import install_mikrotik_compatibility_resolver
 from app.mikrotik_legacy import router as mikrotik_legacy_router
 from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
+from app.mikrotik_legacy_telemetry import install_mikrotik_legacy_telemetry
 from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
 from app.mikrotik_snapshot_agent import install_mikrotik_snapshot_agent
@@ -132,6 +133,8 @@ promote_device_csv_import_routes(core.app)
 install_activity_worklists(core.app)
 privileged_bootstrap = install_mikrotik_privilege_profile()
 mikrotik_agent_core._bootstrap_script = privileged_bootstrap
+# Legacy telemetry patches the APIRouter before FastAPI copies its routes.
+install_mikrotik_legacy_telemetry()
 core.app.include_router(mikrotik_legacy_router)
 install_mikrotik_legacy_jobs(core.app)
 install_mikrotik_compatibility_resolver()
