@@ -12,7 +12,7 @@ class MikrotikRestorePlan(Base):
     __tablename__ = "mikrotik_restore_plans"
     __table_args__ = (
         Index("ix_mikrotik_restore_plans_device_id", "device_id"),
-        Index("ix_mikrotik_restore_plans_backup_run_id", "backup_run_id"),
+        Index("ix_mikrotik_restore_plans_artifact_id", "artifact_id"),
         Index("ix_mikrotik_restore_plans_status", "status"),
     )
 
@@ -20,8 +20,8 @@ class MikrotikRestorePlan(Base):
     device_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("devices.id", ondelete="CASCADE"), nullable=False
     )
-    backup_run_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("backup_runs.id", ondelete="CASCADE"), nullable=False
+    artifact_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("backup_artifacts.id", ondelete="CASCADE"), nullable=False
     )
     restore_mode: Mapped[str] = mapped_column(String(30), nullable=False)
     status: Mapped[str] = mapped_column(String(30), default="draft", nullable=False)
