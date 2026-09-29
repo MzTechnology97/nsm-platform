@@ -93,19 +93,10 @@ def main():
     config = client.get(f"/devices/{device_id}/configuration?section=interfaces")
     assert "ether1" in config.text and "02:16:00:00:00:01" in config.text
 
-    # A complete refresh queues every allow-listed section as an independent
-    # job. This keeps RouterOS payloads isolated while avoiding eight manual
-    # refresh clicks in the UI.
-    csrf = csrf_from(config.text)
-    batch = client.post(f"/devices/{device_id}/snapshot-all", data={"csrf": csrf}, follow_redirects=False)
-    assert batch.status_code == 303
-    assert "queued=all" in batch.headers["location"]
-    with SessionLocal() as db:
-        rows = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "snapshot_section", DeviceJob.status == "pending")))
-        sections = {str((job.payload or {}).get("section") or "") for job in rows}
-        assert set(workspace.SNAPSHOT_SECTIONS).issubset(sections), sections
-        assert all((job.payload or {}).get("batch") == "configuration_full" for job in rows)
-
+    # Keep the diagnostic transport test isolated from the batch snapshot queue.
+    # The real heartbeat intentionally returns only a bounded number of jobs, so
+    # filling that window with snapshot jobs first would test scheduling order,
+    # not whether diagnostic delivery works.
     diag = client.get(f"/devices/{device_id}/diagnostics")
     csrf = csrf_from(diag.text)
     queued = client.post(f"/devices/{device_id}/diagnostics/ping", data={"csrf": csrf, "target": "8.8.8.8"}, follow_redirects=False)
@@ -134,6 +125,20 @@ def main():
         snapshot_job = db.get(DeviceJob, snapshot["id"])
         assert snapshot_job.status == "success"
         assert snapshot_job.result["data"][0]["name"] == "ether1"
+
+    # A complete refresh queues every allow-listed section as an independent
+    # job. Verify this only after the heartbeat-driven diagnostic checks above,
+    # so the test does not let the batch consume the job-delivery window.
+    config = client.get(f"/devices/{device_id}/configuration?section=interfaces")
+    csrf = csrf_from(config.text)
+    batch = client.post(f"/devices/{device_id}/snapshot-all", data={"csrf": csrf}, follow_redirects=False)
+    assert batch.status_code == 303
+    assert "queued=all" in batch.headers["location"]
+    with SessionLocal() as db:
+        rows = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "snapshot_section", DeviceJob.status == "pending")))
+        sections = {str((job.payload or {}).get("section") or "") for job in rows}
+        assert set(workspace.SNAPSHOT_SECTIONS).issubset(sections), sections
+        assert all((job.payload or {}).get("batch") == "configuration_full" for job in rows)
 
     print("Core 0.16 workspace behavior remains covered through batch snapshot and bounded-log UX")
 
