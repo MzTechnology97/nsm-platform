@@ -39,9 +39,9 @@ def seed():
             ],
         }
         leases = [
-            {"address":"192.168.10.10","mac-address":"AA:BB:CC:47:00:01","host-name":"office-pc","server":"dhcp-office","status":"bound","dynamic":True,"blocked":False,"disabled":False,"expires-after":"9m20s","last-seen":"40s","comment":"Reception"},
-            {"address":"192.168.10.20","mac-address":"AA:BB:CC:47:00:02","host-name":"printer","server":"dhcp-office","status":"waiting","dynamic":False,"blocked":False,"disabled":False,"comment":"Static printer"},
-            {"address":"192.168.10.99","mac-address":"AA:BB:CC:47:00:99","host-name":"blocked-host","server":"dhcp-office","status":"bound","dynamic":True,"blocked":True,"disabled":False,"comment":"Quarantine"},
+            {"address":"198.51.100.10","mac-address":"02:47:00:00:00:01","host-name":"office-pc","server":"dhcp-office","status":"bound","dynamic":True,"blocked":False,"disabled":False,"expires-after":"9m20s","last-seen":"40s","comment":"Reception"},
+            {"address":"198.51.100.20","mac-address":"02:47:00:00:00:02","host-name":"printer","server":"dhcp-office","status":"waiting","dynamic":False,"blocked":False,"disabled":False,"comment":"Static printer"},
+            {"address":"198.51.100.99","mac-address":"02:47:00:00:00:99","host-name":"blocked-host","server":"dhcp-office","status":"bound","dynamic":True,"blocked":True,"disabled":False,"comment":"Quarantine"},
         ]
         for device in (modern, legacy):
             db.add(DeviceJob(device_id=device.id, job_type="snapshot_section", status="success", payload={"section":"firewall"}, result={"section":"firewall","data":firewall}, created_at=now, completed_at=now))
@@ -81,7 +81,7 @@ def main():
 
     dhcp = client.get(f"/devices/{modern_id}/configuration?section=dhcp_leases")
     assert dhcp.status_code == 200
-    for marker in ("office-pc", "AA:BB:CC:47:00:01", "dhcp-office", "Reception", "blocked-host"):
+    for marker in ("office-pc", "02:47:00:00:00:01", "dhcp-office", "Reception", "blocked-host"):
         assert marker in dhcp.text, marker
     bound = client.get(f"/devices/{modern_id}/configuration?section=dhcp_leases&state=bound")
     assert bound.status_code == 200 and "office-pc" in bound.text and "printer" not in bound.text and "blocked-host" not in bound.text
