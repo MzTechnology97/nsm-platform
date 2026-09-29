@@ -9,7 +9,10 @@ from app.entrypoint import app
 from app.models import Customer, Device, User
 from app.security import hash_password
 
-PASSWORD = "CI33-Real-RouterOS-2026"
+TEST_PASSWORD = "test-only-ci33-routeros"
+TEST_BASE_URL = "http://192.0.2.28"
+TEST_IDENTITY = "TEST-LEGACY-ROUTER"
+TEST_PRIMARY_MAC = "02:33:00:00:00:12"
 _SECRET_RE = re.compile(r':local nsmSecret "([^"]+)"')
 _ID_RE = re.compile(r':local nsmDeviceId "([^"]+)"')
 
@@ -19,8 +22,8 @@ def seed_device(label: str):
     with SessionLocal() as db:
         user = User(
             username=f"ci33-{label}-{suffix}",
-            password_hash=hash_password(PASSWORD),
-            display_name="CI33 real RouterOS",
+            password_hash=hash_password(TEST_PASSWORD),
+            display_name="CI33 synthetic RouterOS",
             role="admin",
             is_active=True,
         )
@@ -43,7 +46,9 @@ def seed_device(label: str):
 
 
 def main():
-    client = TestClient(app, base_url="http://172.31.0.28")
+    # TEST-NET-1 keeps the RouterOS wire-format test independent from any real
+    # NSM deployment address while preserving an IPv4 HTTP origin.
+    client = TestClient(app, base_url=TEST_BASE_URL)
     device_id, token = seed_device("bodyless")
 
     bootstrap = client.get("/api/v1/enrollment/mikrotik/bootstrap", params={"token": token})
@@ -56,7 +61,7 @@ def main():
     assert ":serialize" not in source and ":deserialize" not in source
     assert "bodyless-v1" in source
 
-    # Simulates the exact real RouterOS wire contract: empty POST body. No
+    # Simulates the exact RouterOS wire contract: empty POST body. No
     # Python-created JSON is involved in the enrollment request.
     enroll = client.post(
         "/api/v1/agents/mikrotik/enroll-legacy",
@@ -90,14 +95,14 @@ def main():
         "X-NSM-Device-ID": str(device_id),
         "X-NSM-Device-Secret": secret.group(1),
         "X-NSM-Agent-Version": "0.20.0-legacy",
-        "X-NSM-Identity": "W-AP-R-CDA_NET",
+        "X-NSM-Identity": TEST_IDENTITY,
         "X-NSM-Model": "wAP R",
         "X-NSM-RouterOS": "7.12.1 (stable)",
         "X-NSM-Architecture": "mipsbe",
-        "X-NSM-Serial": f"CI33{uuid.uuid4().hex[:8]}",
-        "X-NSM-Software-ID": "CI33-SW",
+        "X-NSM-Serial": f"TEST{uuid.uuid4().hex[:8]}",
+        "X-NSM-Software-ID": "TEST-SOFTWARE-ID",
         "X-NSM-RouterBOOT": "7.12.1",
-        "X-NSM-Primary-MAC": "02:33:00:00:00:12",
+        "X-NSM-Primary-MAC": TEST_PRIMARY_MAC,
         "X-NSM-Uptime": "2d03:04:05",
         "X-NSM-CPU": "MIPS 24Kc V7.4",
         "X-NSM-CPU-Count": "1",
@@ -117,11 +122,11 @@ def main():
     with SessionLocal() as db:
         device = db.get(Device, device_id)
         assert device.status == "online"
-        assert device.device_identity == "W-AP-R-CDA_NET"
+        assert device.device_identity == TEST_IDENTITY
         assert device.model == "wAP R"
         assert device.firmware_version == "7.12.1 (stable)"
         assert device.architecture == "mipsbe"
-        assert device.primary_mac == "02:33:00:00:00:12"
+        assert device.primary_mac == TEST_PRIMARY_MAC
         data = dict(device.inventory_data or {})
         assert data["agent_transport"] == "legacy"
         assert data["enrollment_transport"] == "bodyless-v1"
@@ -148,11 +153,11 @@ def main():
         json={
             "token": old_token,
             "inventory": {
-                "identity": "CI33-OLD",
+                "identity": "TEST-LEGACY-JSON",
                 "model": "hAP ac2",
                 "routeros_version": "7.12.1 (stable)",
                 "architecture": "arm",
-                "serial_number": f"OLD{uuid.uuid4().hex[:8]}",
+                "serial_number": f"TEST{uuid.uuid4().hex[:8]}",
                 "primary_mac": "02:33:00:00:00:22",
             },
         },
@@ -161,7 +166,7 @@ def main():
     assert old.headers["X-NSM-Agent-Transport"] == "legacy"
     assert old_id
 
-    print("RouterOS 7.12 real-wire enrollment smoke passed")
+    print("RouterOS 7.12 synthetic real-wire enrollment smoke passed")
 
 
 if __name__ == "__main__":
