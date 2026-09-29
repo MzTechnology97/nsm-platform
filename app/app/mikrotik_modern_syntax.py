@@ -9,7 +9,10 @@ unsafe on real devices:
 * raw 64-byte SHA-512 values being serialized into JSON instead of their
   128-character hexadecimal representation;
 * bare top-level ``:return`` statements that can prompt interactively for a
-  return value when an unattended error path is executed.
+  return value when an unattended error path is executed;
+* ``/file read`` used without ``as-value`` in the backup uploader: on real
+  RouterOS 7.24.4 it prints the binary data but the expression evaluates to
+  ``nil``, while ``as-value`` returns the expected array containing ``data``.
 
 The guard operates only on the final composed modern source.  Legacy RouterOS
 source is kept separate and is not rewritten here.
@@ -25,6 +28,9 @@ _EMPTY_LOCAL_RE = re.compile(
 )
 _RAW_SHA512_RE = re.compile(r"transform=sha512(?=\])")
 _BARE_RETURN_RE = re.compile(r"(?m):return(?=[ \t]*(?:;|\}|$))")
+_BACKUP_FILE_READ_RE = re.compile(
+    r"(?P<read>/file[ \t]+read[ \t]+file=\$nsmFileName[ \t]+offset=\$nsmOffset[ \t]+chunk-size=\$nsmChunkSize)(?![ \t]+as-value)(?=\])"
+)
 
 
 def normalize_modern_agent_source(source: str) -> tuple[str, tuple[str, ...]]:
@@ -44,6 +50,9 @@ def normalize_modern_agent_source(source: str) -> tuple[str, tuple[str, ...]]:
     normalized, return_count = _BARE_RETURN_RE.subn(":exit", normalized)
     replaced.extend("bare-return" for _ in range(return_count))
 
+    normalized, read_count = _BACKUP_FILE_READ_RE.subn(r"\g<read> as-value", normalized)
+    replaced.extend("backup-file-read-as-value" for _ in range(read_count))
+
     return normalized, tuple(replaced)
 
 
@@ -59,6 +68,8 @@ def validate_modern_agent_source(source: str) -> None:
         raise RuntimeError("RouterOS modern agent contains raw SHA-512 conversion")
     if _BARE_RETURN_RE.search(source):
         raise RuntimeError("RouterOS modern agent contains interactive bare :return")
+    if _BACKUP_FILE_READ_RE.search(source):
+        raise RuntimeError("RouterOS modern backup file read is missing as-value")
     if "agent_source_sha512" in source and "transform=sha512 to=hex" not in source:
         raise RuntimeError("RouterOS modern agent source fingerprint is not hexadecimal")
 
