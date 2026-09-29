@@ -7,6 +7,7 @@ endpoints remain untouched and continue returning structured JSON.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterable
 
 from fastapi import Form, HTTPException, Request
 
@@ -24,6 +25,27 @@ def _remove_post(app, path: str) -> None:
             and "POST" in (getattr(route, "methods", set()) or set())
         )
     ]
+
+
+def _promote_named_routes(app, names: Iterable[str]) -> None:
+    """Move the browser wrappers ahead of historical compatible routes."""
+    ordered_names = list(names)
+    selected = []
+    remaining = []
+    for route in app.router.routes:
+        if getattr(route, "name", None) in ordered_names:
+            selected.append(route)
+        else:
+            remaining.append(route)
+
+    by_name = {}
+    for route in selected:
+        by_name.setdefault(getattr(route, "name", None), []).append(route)
+
+    promoted = []
+    for name in ordered_names:
+        promoted.extend(by_name.get(name, []))
+    app.router.routes[:] = promoted + remaining
 
 
 def _feedback_for_exception(request: Request, exc: HTTPException, return_to: str):
@@ -168,3 +190,15 @@ def install_ui_firmware_feedback(app) -> None:
             title="Reboot RouterBOOT accodato",
         )
         return response
+
+    # These routes are browser-only and intentionally installed last. Promote
+    # them so historical generic/compatible route templates cannot intercept
+    # the request before the contextual feedback wrapper executes.
+    _promote_named_routes(
+        app,
+        (
+            "queue_mikrotik_firmware_readiness",
+            "stage_routerboot_upgrade",
+            "reboot_for_routerboot_upgrade",
+        ),
+    )
