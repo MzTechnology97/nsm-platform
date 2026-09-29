@@ -32,6 +32,7 @@ from app.firmware_worklist import install_firmware_worklist
 from app.inventory_ui import install_inventory_ui
 from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
+from app.mikrotik_agent_generation import install_mikrotik_agent_generation
 from app.mikrotik_agent_status import install_mikrotik_agent_status
 from app.mikrotik_agent_update import install_mikrotik_agent_self_update
 from app.mikrotik_agent_update_ui import install_mikrotik_agent_update_ui
@@ -124,6 +125,9 @@ mikrotik_agent_core._bootstrap_script = privileged_bootstrap
 core.app.include_router(mikrotik_legacy_router)
 install_mikrotik_legacy_jobs(core.app)
 install_mikrotik_compatibility_resolver()
+# Core 0.49 keeps its product version while the independently versioned device
+# agent advances to the maintenance generation selected by this policy.
+install_mikrotik_agent_generation()
 install_mikrotik_agent_self_update(core.app)
 # The syntax guard must wrap the final composed modern source, including the
 # Core 0.49 self-update/integrity extension. Installing it earlier would leave
