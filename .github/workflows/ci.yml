@@ -54,7 +54,7 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.48.0'
+          assert app.version == '0.49.0'
           expected = {
               'dashboard': '/', 'devices': '/devices', 'admin_api_keys': '/admin/api-keys',
               'admin_uisp': '/admin/integrations/uisp', 'mikrotik_bootstrap': '/api/v1/enrollment/mikrotik/bootstrap',
@@ -72,6 +72,8 @@ jobs:
           assert str(app.url_path_for('activate_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/activate'
           assert str(app.url_path_for('routerboot_lifecycle_page', device_id=zero)) == f'/devices/{zero}/routerboot'
           assert str(app.url_path_for('mikrotik_agent_status', device_id=zero)) == f'/devices/{zero}/agent'
+          assert str(app.url_path_for('queue_mikrotik_agent_update', device_id=zero)) == f'/devices/{zero}/agent/update'
+          assert str(app.url_path_for('mikrotik_agent_update_source', job_id=zero)) == f'/api/v1/agents/mikrotik/self-update/{zero}/source'
           assert str(app.url_path_for('mikrotik_interfaces', device_id=zero)) == f'/devices/{zero}/interfaces'
           assert str(app.url_path_for('mikrotik_ip_addresses', device_id=zero)) == f'/devices/{zero}/ip-addresses'
           assert str(app.url_path_for('mikrotik_routes', device_id=zero)) == f'/devices/{zero}/routes'
@@ -83,7 +85,7 @@ jobs:
           assert str(app.url_path_for('mikrotik_diagnostic_result', device_id=zero, job_id=zero)) == f'/devices/{zero}/diagnostics/jobs/{zero}'
           print(f'Core {app.version}: application and canonical routes OK')
           PY
-      - name: Validate security and Core 0.48 contracts
+      - name: Validate security and Core 0.49 contracts
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -93,6 +95,7 @@ jobs:
           privilege = Path('app/app/mikrotik_privilege_profile.py').read_text()
           legacy = Path('app/app/mikrotik_legacy.py').read_text()
           compatibility = Path('app/app/mikrotik_compatibility.py').read_text()
+          updater = Path('app/app/mikrotik_agent_update.py').read_text()
           activity = Path('app/app/activity_worklists.py').read_text()
           device_activity = Path('app/app/templates/device_activity.html').read_text()
           audit_page = Path('app/app/templates/audit_events_v2.html').read_text()
@@ -127,6 +130,9 @@ jobs:
           for marker in ('resolve_routeros_compatibility', 'compatibility_profile', 'migration_required', 'routeros-7.12-legacy', 'routeros-7.13-plus', 'unvalidated'):
               assert marker in compatibility, marker
           assert 'parsed[0] != 7' in compatibility
+          for marker in ('TARGET_AGENT_VERSION', 'source-v1', 'previous-known-good', 'agent_expected_source_sha512', 'agent_source_drift', 'rolled_back', 'transform=sha512'):
+              assert marker in updater, marker
+          assert 'arbitrary' in updater and 'legacy' in updater and 'reinstall-only' in updater
           for marker in ('normalize_modern_agent_source', 'validate_modern_agent_source', '_EMPTY_LOCAL_RE'):
               assert marker in modern_syntax, marker
           assert 'invalid RouterOS empty local initializer survived' in modern_syntax_test
@@ -172,7 +178,7 @@ jobs:
               assert marker in device_activity, marker
           for marker in ('Esporta CSV', 'Registro eventi', 'customer', 'device', 'per_page'):
               assert marker in audit_page, marker
-          print('Core 0.48 safety, configuration and RouterOS compatibility contracts OK')
+          print('Core 0.49 safety, compatibility and agent self-update contracts OK')
           PY
       - name: Prepare dummy runtime env for Compose validation
         run: |
