@@ -2,10 +2,24 @@
 set -Eeuo pipefail
 
 PLATFORM_DIR="${PLATFORM_DIR:-/srv/network-platform}"
+APP_RUNTIME_UID="${APP_RUNTIME_UID:-10001}"
+APP_RUNTIME_GID="${APP_RUNTIME_GID:-10001}"
+DEVICE_BACKUP_DIR="$PLATFORM_DIR/data/backups/device-files"
 
 info(){ printf '\033[1;34m[INFO]\033[0m %s\n' "$*"; }
 ok(){ printf '\033[1;32m[ OK ]\033[0m %s\n' "$*"; }
 die(){ printf '\033[1;31m[FAIL]\033[0m %s\n' "$*" >&2; exit 1; }
+
+prepare_backup_storage(){
+  # The api/worker image runs as uid/gid 10001 by default. The bind-mounted
+  # backup root must therefore be traversable by that gid and device-files
+  # must be writable by the runtime user, otherwise artifact/start fails 500.
+  sudo mkdir -p "$PLATFORM_DIR/data/backups" "$DEVICE_BACKUP_DIR"
+  sudo chown root:"$APP_RUNTIME_GID" "$PLATFORM_DIR/data/backups"
+  sudo chmod 0750 "$PLATFORM_DIR/data/backups"
+  sudo chown -R "$APP_RUNTIME_UID:$APP_RUNTIME_GID" "$DEVICE_BACKUP_DIR"
+  sudo chmod 0750 "$DEVICE_BACKUP_DIR"
+}
 
 [[ -f docker-compose.yml ]] || die "Esegui lo script dalla root del repository."
 [[ -d app && -d config ]] || die "Sorgenti app/config non trovati."
@@ -20,6 +34,7 @@ sudo chmod 0750 "$PLATFORM_DIR" "$PLATFORM_DIR/secrets"
 sudo chmod 0640 "$PLATFORM_DIR/secrets/bootstrap.env"
 sudo chown -R 70:70 "$PLATFORM_DIR/data/postgres"
 sudo chmod 0700 "$PLATFORM_DIR/data/postgres"
+prepare_backup_storage
 
 info "Installo il core preservando data/, secrets/ e configurazione runtime..."
 sudo rm -rf "$PLATFORM_DIR/app" "$PLATFORM_DIR/config"

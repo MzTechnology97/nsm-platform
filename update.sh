@@ -3,8 +3,11 @@ set -Eeuo pipefail
 
 SOURCE_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLATFORM_DIR="${PLATFORM_DIR:-/srv/network-platform}"
+APP_RUNTIME_UID="${APP_RUNTIME_UID:-10001}"
+APP_RUNTIME_GID="${APP_RUNTIME_GID:-10001}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 BACKUP_DIR="$PLATFORM_DIR/data/backups/platform-db"
+DEVICE_BACKUP_DIR="$PLATFORM_DIR/data/backups/device-files"
 BACKUP_FILE="$BACKUP_DIR/network_platform_${STAMP}.sql.gz"
 
 info(){ printf '\033[1;34m[INFO]\033[0m %s\n' "$*"; }
@@ -12,6 +15,17 @@ ok(){ printf '\033[1;32m[ OK ]\033[0m %s\n' "$*"; }
 die(){ printf '\033[1;31m[FAIL]\033[0m %s\n' "$*" >&2; exit 1; }
 
 git_repo(){ git -c safe.directory="$SOURCE_DIR" -C "$SOURCE_DIR" "$@"; }
+
+prepare_backup_storage(){
+  # api/worker run as the non-root application uid/gid. Re-apply these
+  # permissions on every upgrade so existing installations self-heal after
+  # older releases created data/backups as root:root with mode 0750.
+  sudo mkdir -p "$PLATFORM_DIR/data/backups" "$DEVICE_BACKUP_DIR"
+  sudo chown root:"$APP_RUNTIME_GID" "$PLATFORM_DIR/data/backups"
+  sudo chmod 0750 "$PLATFORM_DIR/data/backups"
+  sudo chown -R "$APP_RUNTIME_UID:$APP_RUNTIME_GID" "$DEVICE_BACKUP_DIR"
+  sudo chmod 0750 "$DEVICE_BACKUP_DIR"
+}
 
 [[ -f "$SOURCE_DIR/docker-compose.yml" ]] || die "Repository sorgente non valido."
 [[ -f "$PLATFORM_DIR/docker-compose.yml" ]] || die "Installazione attiva non trovata in $PLATFORM_DIR."
@@ -24,6 +38,9 @@ if git_repo rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   fi
   info "Deploy commit $(git_repo rev-parse --short HEAD) da branch $(git_repo branch --show-current)."
 fi
+
+info "Verifico storage backup runtime..."
+prepare_backup_storage
 
 info "Creo backup PostgreSQL pre-upgrade..."
 sudo mkdir -p "$BACKUP_DIR"
@@ -49,6 +66,7 @@ sudo chown -R root:docker "$PLATFORM_DIR/app" "$PLATFORM_DIR/config" "$PLATFORM_
 sudo chmod -R g+rX "$PLATFORM_DIR/app" "$PLATFORM_DIR/config"
 sudo chown -R 70:70 "$PLATFORM_DIR/data/postgres"
 sudo chmod 0700 "$PLATFORM_DIR/data/postgres"
+prepare_backup_storage
 
 # If automatic deployment is already installed, refresh its executable and units
 # from the same validated commit. Replacing the running executable is safe: the
