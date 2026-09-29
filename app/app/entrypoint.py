@@ -63,6 +63,7 @@ from app.security_drilldown import install_security_drilldown
 from app.ui_action_feedback import install_ui_action_feedback
 from app.ui_extension import install_ui
 from app.ui_feedback import install_ui_feedback
+from app.ui_firmware_feedback import install_ui_firmware_feedback
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
@@ -142,4 +143,5 @@ install_mikrotik_workspace_ux_precedence(core.app)
 # Browser-only action wrappers are installed last so they win FastAPI route
 # precedence without changing agent/API JSON contracts.
 install_ui_action_feedback(core.app)
+install_ui_firmware_feedback(core.app)
 app = core.app
