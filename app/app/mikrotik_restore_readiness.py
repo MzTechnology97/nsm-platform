@@ -194,6 +194,7 @@ def create_restore_plan(
         )
         db.add(plan)
         db.flush()
+        plan_id = plan.id
         core.add_event(
             db,
             "MIKROTIK_RESTORE_PLAN_CREATED",
@@ -203,7 +204,7 @@ def create_restore_plan(
             severity="warning" if readiness["status"] == "blocked" else "info",
             result=readiness["status"],
             details={
-                "restore_plan_id": str(plan.id),
+                "restore_plan_id": str(plan_id),
                 "artifact_id": str(artifact.id),
                 "backup_run_id": str(run.id),
                 "restore_mode": plan.restore_mode,
@@ -212,7 +213,7 @@ def create_restore_plan(
             source="portal",
         )
         db.commit()
-    return RedirectResponse(f"/devices/{device_id}/restore?plan={plan.id}", status_code=303)
+    return RedirectResponse(f"/devices/{device_id}/restore?plan={plan_id}", status_code=303)
 
 
 @router.post("/devices/{device_id}/restore/plans/{plan_id}/recheck")
