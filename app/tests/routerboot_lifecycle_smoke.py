@@ -106,7 +106,17 @@ def main():
         data={"csrf": csrf_from(page.text), "confirmation": "ROUTERBOOT WRONG"},
         follow_redirects=False,
     )
-    assert wrong.status_code == 400
+    assert wrong.status_code == 303
+    assert wrong.headers["location"] == f"/devices/{device_id}/routerboot"
+    warning = client.get(wrong.headers["location"])
+    assert warning.status_code == 200
+    assert "Dati non validi" in warning.text
+    assert "Conferma non valida" in warning.text
+    assert "flash-warning" in warning.text
+
+    # The message is one-shot and must not leak into later page loads.
+    warning_consumed = client.get(f"/devices/{device_id}/routerboot")
+    assert "Conferma non valida" not in warning_consumed.text
 
     page = client.get(f"/devices/{device_id}/routerboot")
     queued = client.post(
@@ -163,7 +173,7 @@ def main():
     assert "auto-upgrade=yes" not in source
     assert "/system routerboard settings set auto-upgrade" not in source
 
-    print("Core 0.38 separate RouterBOOT lifecycle smoke passed")
+    print("Core 0.38 RouterBOOT lifecycle keeps domain guards with contextual UI feedback")
 
 
 if __name__ == "__main__":
