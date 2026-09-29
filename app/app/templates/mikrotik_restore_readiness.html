@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% set label = device.display_name or device.device_identity or device.name %}
+{% block title %}Restore · {{ label }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/customers/{{ device.customer_id }}">{{ device.customer.name }}</a><span>›</span><a href="/devices/{{ device.id }}">{{ label }}</a><span>›</span><span>Restore</span></div>
+<div class="page-header compact-heading"><div><h1>Restore readiness MikroTik</h1><p>{{ label }} · verifica integrità e compatibilità prima di qualunque ripristino.</p></div><div class="page-actions"><a class="button ghost" href="/devices/{{ device.id }}">Apparato</a><a class="button ghost" href="/customers/{{ device.customer_id }}/backups">Backup cliente</a></div></div>
+
+<div class="alert info"><strong>Nessun restore automatico in Core 0.50.</strong> Questa schermata crea un piano auditabile e verifica file, SHA256, appartenenza all'apparato e versione osservabile. Non esegue <code>/system backup load</code>, <code>/import</code> o reboot.</div>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Nuovo piano</h2><p>Seleziona uno specifico artefatto prodotto con successo per questo MikroTik.</p></div></div>
+  {% if candidates %}
+  <form method="post" action="/devices/{{ device.id }}/restore/plans" class="stack-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Artefatto
+      <select name="artifact_id" required>
+        {% for artifact, run, mode in candidates %}
+        <option value="{{ artifact.id }}">{{ artifact.filename }} · {{ mode }} · {{ fmt_dt(artifact.created_at) }} · {{ artifact.size_bytes or 0 }} B</option>
+        {% endfor %}
+      </select>
+    </label>
+    {% if has_permission(user, 'backup.configure') %}<button class="button primary" type="submit">Crea piano e verifica</button>{% endif %}
+  </form>
+  {% else %}<div class="empty-state">Nessun artefatto MikroTik ripristinabile disponibile per questo apparato.</div>{% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Piani recenti</h2><p>La verifica viene congelata nel piano per lasciare evidenza di ciò che era noto al momento del controllo.</p></div></div>
+  {% if plans %}
+  <div class="compact-list">
+    {% for plan in plans %}
+    {% set r = plan.readiness or {} %}
+    <div class="compact-row" style="align-items:flex-start">
+      <span style="min-width:0;flex:1">
+        <strong>{{ plan.restore_mode|upper }} · {{ plan.id|string|truncate(13, True, '') }}</strong>
+        <small>Creato {{ fmt_dt(plan.created_at) }} · verificato {{ fmt_dt(plan.reviewed_at) if plan.reviewed_at else '—' }}</small>
+        <small>RouterOS sorgente {{ r.get('source_routeros_version') or 'non rilevata' }} · corrente {{ r.get('current_routeros_version') or '—' }}</small>
+        {% if r.get('blockers') %}<small class="text-danger">Blocchi: {{ r.get('blockers')|join(' · ') }}</small>{% endif %}
+        {% if r.get('warnings') %}<small>Avvisi: {{ r.get('warnings')|join(' · ') }}</small>{% endif %}
+        <small>{{ r.get('execution_note') or '' }}</small>
+      </span>
+      <span>
+        <span class="status-pill">{{ plan.status }}</span>
+        {% if has_permission(user, 'backup.configure') %}
+        <form method="post" action="/devices/{{ device.id }}/restore/plans/{{ plan.id }}/recheck" style="margin-top:.5rem"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button ghost" type="submit">Ricontrolla</button></form>
+        {% endif %}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}<div class="empty-state">Nessun piano restore creato.</div>{% endif %}
+</section>
+{% endblock %}
