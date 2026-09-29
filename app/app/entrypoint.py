@@ -67,6 +67,7 @@ from app.ui_backup_policy_form_feedback import install_ui_backup_policy_form_fee
 from app.ui_extension import install_ui
 from app.ui_feedback import install_ui_feedback
 from app.ui_firmware_feedback import install_ui_firmware_feedback
+from app.ui_firmware_upgrade_feedback import install_ui_firmware_upgrade_feedback
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
@@ -150,4 +151,5 @@ install_ui_firmware_feedback(core.app)
 install_ui_backup_feedback(core.app)
 install_ui_backup_policy_feedback(core.app)
 install_ui_backup_policy_form_feedback(core.app)
+install_ui_firmware_upgrade_feedback(core.app)
 app = core.app
