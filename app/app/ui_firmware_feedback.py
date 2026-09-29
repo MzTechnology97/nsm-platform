@@ -13,7 +13,7 @@ from fastapi import Form, HTTPException, Request
 
 from app import mikrotik_firmware_readiness as firmware_readiness
 from app import routerboot_lifecycle as routerboot
-from app.ui_feedback import add_flash, exception_message, flash_redirect
+from app.ui_feedback import exception_message, flash_redirect, safe_internal_path
 
 
 def _remove_post(app, path: str) -> None:
@@ -76,6 +76,10 @@ def _feedback_for_exception(request: Request, exc: HTTPException, return_to: str
     raise exc
 
 
+def _handler_location(response, fallback: str) -> str:
+    return safe_internal_path(str(response.headers.get("location") or ""), fallback)
+
+
 def install_ui_firmware_feedback(app) -> None:
     """Install deterministic UI wrappers after the domain routers."""
 
@@ -111,24 +115,27 @@ def install_ui_firmware_feedback(app) -> None:
         except HTTPException as exc:
             return _feedback_for_exception(request, exc, destination)
 
-        location = str(response.headers.get("location") or "")
+        location = _handler_location(response, destination)
         if "firmware_check=queued" in location:
-            add_flash(
+            return flash_redirect(
                 request,
+                location,
                 "success",
                 "Verifica firmware accodata. RouterOS verrà interrogato al prossimo heartbeat.",
                 title="Verifica firmware accodata",
             )
-        elif "firmware_check=already_queued" in location:
-            add_flash(
+        if "firmware_check=already_queued" in location:
+            return flash_redirect(
                 request,
+                location,
                 "info",
                 "Una verifica firmware è già in coda o in esecuzione.",
                 title="Verifica già richiesta",
             )
-        elif "firmware_check=agent_required" in location:
-            add_flash(
+        if "firmware_check=agent_required" in location:
+            return flash_redirect(
                 request,
+                location,
                 "warning",
                 "La verifica firmware richiede un MikroTik online con Agent autenticato.",
                 title="Agent richiesto",
@@ -155,13 +162,13 @@ def install_ui_firmware_feedback(app) -> None:
             )
         except HTTPException as exc:
             return _feedback_for_exception(request, exc, destination)
-        add_flash(
+        return flash_redirect(
             request,
+            _handler_location(response, destination),
             "success",
             "Staging RouterBOOT accodato. Nessun reboot viene eseguito in questa fase.",
             title="RouterBOOT staging accodato",
         )
-        return response
 
     @app.post(
         "/devices/{device_id}/routerboot/reboot",
@@ -183,13 +190,13 @@ def install_ui_firmware_feedback(app) -> None:
             )
         except HTTPException as exc:
             return _feedback_for_exception(request, exc, destination)
-        add_flash(
+        return flash_redirect(
             request,
+            _handler_location(response, destination),
             "warning",
             "Reboot RouterBOOT accodato. Il dispositivo diventerà temporaneamente non raggiungibile.",
             title="Reboot RouterBOOT accodato",
         )
-        return response
 
     # These routes are browser-only and intentionally installed last. Promote
     # them so historical generic/compatible route templates cannot intercept
