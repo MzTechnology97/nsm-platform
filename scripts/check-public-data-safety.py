@@ -1,15 +1,5 @@
 #!/usr/bin/env python3
-"""Fail CI when public fixtures look copied from a real deployment.
-
-This guard intentionally scans documentation, automated tests, demo data and
-operator-facing repository docs. Application code may legitimately parse or
-validate arbitrary customer/private networks, so it is not blanket-scanned for
-RFC1918 literals.
-
-Use reserved documentation networks and locally administered MAC addresses in
-fixtures. A line can be exempted only with the explicit marker
-`public-data-safety: allow` and a nearby explanation in the source.
-"""
+"""Fail CI when public source or fixtures expose deployment-derived data."""
 
 from __future__ import annotations
 
@@ -21,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SELF = Path(__file__).resolve()
 ALLOW_MARKER = "public-data-safety: allow"
 
-SCAN_PATHS = [
+FIXTURE_PATHS = [
     ROOT / "app" / "tests",
     ROOT / "docs",
     ROOT / "app" / "app" / "demo.py",
@@ -29,6 +19,11 @@ SCAN_PATHS = [
     ROOT / "README-FIRST.md",
     ROOT / "scripts",
 ]
+
+TEXT_SUFFIXES = {
+    ".py", ".md", ".txt", ".sh", ".yml", ".yaml", ".json", ".csv",
+    ".toml", ".ini", ".env", ".example", ".html", ".js", ".css",
+}
 
 DOC_IPV4 = tuple(
     ipaddress.ip_network(value)
@@ -51,9 +46,8 @@ SECRET_PATTERNS = (
     ("Slack token", re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{20,}\b")),
 )
 
-# Values already observed during the public-repository audit. They are kept as
-# deny-list regressions so an old branch/fixture cannot accidentally copy them
-# back into main later.
+# Regression deny-list for deployment-derived identifiers observed during the
+# public-repository audit. Keeping these here prevents accidental reintroduction.
 KNOWN_DEPLOYMENT_MARKERS = (
     "172.31.0.28",
     "W-AP-R-CDA_NET",
@@ -65,18 +59,34 @@ KNOWN_DEPLOYMENT_MARKERS = (
 )
 
 
-def iter_files():
-    for path in SCAN_PATHS:
+def text_candidate(path: Path) -> bool:
+    if not path.is_file() or path.resolve() == SELF:
+        return False
+    if ".git" in path.parts:
+        return False
+    if path.name in {"Dockerfile", "Makefile"}:
+        return True
+    return path.suffix.lower() in TEXT_SUFFIXES
+
+
+def iter_repo_text_files():
+    for item in sorted(ROOT.rglob("*")):
+        if text_candidate(item):
+            yield item
+
+
+def iter_fixture_files():
+    seen: set[Path] = set()
+    for path in FIXTURE_PATHS:
         if not path.exists():
             continue
-        if path.is_file():
-            if path.resolve() != SELF:
-                yield path
-            continue
-        for item in sorted(path.rglob("*")):
-            if item.resolve() == SELF:
+        candidates = [path] if path.is_file() else sorted(path.rglob("*"))
+        for item in candidates:
+            if not text_candidate(item):
                 continue
-            if item.is_file() and item.suffix.lower() in {".py", ".md", ".txt", ".sh", ".yml", ".yaml", ".json", ".csv"}:
+            resolved = item.resolve()
+            if resolved not in seen:
+                seen.add(resolved)
                 yield item
 
 
@@ -93,29 +103,42 @@ def is_locally_administered(mac: str) -> bool:
     return bool(first & 0x02)
 
 
+def read_lines(path: Path):
+    try:
+        return path.read_text(encoding="utf-8").splitlines()
+    except UnicodeDecodeError:
+        return []
+
+
 def main() -> int:
     findings: list[str] = []
-    scanned = 0
+    repo_scanned = 0
+    fixture_scanned = 0
 
-    for path in iter_files():
-        scanned += 1
-        try:
-            text = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            continue
+    # Global repository pass: only high-signal secret signatures and identifiers
+    # previously confirmed as deployment-derived. Application code is allowed to
+    # understand arbitrary customer/private networks, so RFC1918/MAC policy is
+    # intentionally not applied globally.
+    for path in iter_repo_text_files():
+        repo_scanned += 1
         rel = path.relative_to(ROOT)
-
-        for number, line in enumerate(text.splitlines(), 1):
+        for number, line in enumerate(read_lines(path), 1):
             if ALLOW_MARKER in line:
                 continue
-
             for marker in KNOWN_DEPLOYMENT_MARKERS:
                 if marker.lower() in line.lower():
                     findings.append(f"{rel}:{number}: known deployment marker: {marker}")
-
             for label, pattern in SECRET_PATTERNS:
                 if pattern.search(line):
                     findings.append(f"{rel}:{number}: possible {label}")
+
+    # Fixture/documentation pass: enforce public-safe deterministic examples.
+    for path in iter_fixture_files():
+        fixture_scanned += 1
+        rel = path.relative_to(ROOT)
+        for number, line in enumerate(read_lines(path), 1):
+            if ALLOW_MARKER in line:
+                continue
 
             for raw in IPV4_RE.findall(line):
                 try:
@@ -146,15 +169,22 @@ def main() -> int:
                         f"{rel}:{number}: deployment-like home path /home/{user}/; derive it at runtime or use a generic placeholder"
                     )
 
-    if findings:
+    unique = sorted(set(findings))
+    if unique:
         print("Public data-safety guard failed:\n")
-        for finding in sorted(set(findings)):
+        for finding in unique:
             print(f"- {finding}")
-        print(f"\n{len(set(findings))} finding(s) across {scanned} scanned files.")
+        print(
+            f"\n{len(unique)} finding(s); scanned {repo_scanned} repository text files "
+            f"and {fixture_scanned} fixture/documentation files."
+        )
         print(f"If a literal is genuinely required, document why and add `{ALLOW_MARKER}` on that line.")
         return 1
 
-    print(f"Public data-safety guard passed across {scanned} files.")
+    print(
+        f"Public data-safety guard passed: {repo_scanned} repository text files and "
+        f"{fixture_scanned} fixture/documentation files scanned."
+    )
     return 0
 
 
