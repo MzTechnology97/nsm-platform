@@ -31,8 +31,8 @@ def seed():
         db.add_all([user, customer])
         db.flush()
         db.add_all([
-            Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="CI18 Router", display_name="CI18 Router", device_identity="CI18-CORE", model="CCR2004", serial_number="CI18SERIAL01", primary_mac="02:18:00:00:00:01", management_ip="10.18.0.1", software_id="CI18-SW", firmware_version="7.20.2", firmware_status="current", management_source="mikrotik_agent", status="online", lifecycle_status="supported"),
-            Device(customer_id=customer.id, vendor="ubiquiti", device_type="cpe", name="CI18 CPE", display_name="CI18 CPE", model="PowerBeam 5AC", serial_number="CI18SERIAL02", primary_mac="02:18:00:00:00:02", management_ip="10.18.0.2", firmware_version="8.7.19", firmware_status="unknown", management_source="uisp", status="offline", lifecycle_status="supported"),
+            Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="CI18 Router", display_name="CI18 Router", device_identity="CI18-CORE", model="CCR2004", serial_number="CI18SERIAL01", primary_mac="02:18:00:00:00:01", management_ip="192.0.2.18", software_id="CI18-SW", firmware_version="7.20.2", firmware_status="current", management_source="mikrotik_agent", status="online", lifecycle_status="supported"),
+            Device(customer_id=customer.id, vendor="ubiquiti", device_type="cpe", name="CI18 CPE", display_name="CI18 CPE", model="PowerBeam 5AC", serial_number="CI18SERIAL02", primary_mac="02:18:00:00:00:02", management_ip="192.0.2.19", firmware_version="8.7.19", firmware_status="unknown", management_source="uisp", status="offline", lifecycle_status="supported"),
         ])
         db.commit()
         return customer.id
@@ -56,7 +56,7 @@ def main():
 
     page = client.get(f"/devices?customer={customer_id}&per_page=25")
     assert page.status_code == 200, page.text
-    for marker in ("Inventario confinato al cliente selezionato", "Per pagina", "CI18 Router", "CI18 CPE", "CI18SERIAL01", "02:18:00:00:00:01", "10.18.0.1", "inventory_ui.css"):
+    for marker in ("Inventario confinato al cliente selezionato", "Per pagina", "CI18 Router", "CI18 CPE", "CI18SERIAL01", "02:18:00:00:00:01", "192.0.2.18", "inventory_ui.css"):
         assert marker in page.text, marker
 
     offline = client.get(f"/devices?customer={customer_id}&status=offline")
