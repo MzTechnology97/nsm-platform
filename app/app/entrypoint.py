@@ -38,6 +38,7 @@ from app.mikrotik_agent_status import install_mikrotik_agent_status
 from app.mikrotik_agent_update import install_mikrotik_agent_self_update
 from app.mikrotik_agent_update_ui import install_mikrotik_agent_update_ui
 from app.mikrotik_compatibility import install_mikrotik_compatibility_resolver
+from app.mikrotik_job_completion_guard import install_mikrotik_job_completion_guard
 from app.mikrotik_legacy import router as mikrotik_legacy_router
 from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
 from app.mikrotik_legacy_telemetry import install_mikrotik_legacy_telemetry
@@ -154,6 +155,7 @@ install_mikrotik_agent_self_update(core.app)
 # Core 0.49 self-update/integrity extension. Installing it earlier would leave
 # later wrappers able to re-introduce unsafe RouterOS syntax.
 install_mikrotik_modern_syntax_guard()
+install_mikrotik_job_completion_guard(core.app)
 install_mikrotik_agent_update_ui(core.templates)
 install_activity_route_precedence(core.app)
 install_mikrotik_workspace_ux_precedence(core.app)
