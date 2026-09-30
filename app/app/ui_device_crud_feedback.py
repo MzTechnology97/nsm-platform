@@ -1,7 +1,7 @@
 """Contextual feedback for browser-only Device CRUD actions.
 
 The underlying CRUD handlers remain the source of truth for validation, audit
-and persistence.  These wrappers only adapt expected HTTP validation/domain
+and persistence. These wrappers only adapt expected HTTP validation/domain
 errors into one-shot GUI feedback so operator actions do not escape into raw
 FastAPI JSON pages.
 """
@@ -24,6 +24,21 @@ def _remove_post(app, path: str) -> None:
             and "POST" in (getattr(route, "methods", set()) or set())
         )
     ]
+
+
+def _promote_named_routes(app, names: tuple[str, ...]) -> None:
+    """Put browser wrappers ahead of compatible/generic historical routes."""
+    selected = []
+    remaining = []
+    for route in app.router.routes:
+        if getattr(route, "name", None) in names:
+            selected.append(route)
+        else:
+            remaining.append(route)
+    ordered = []
+    for name in names:
+        ordered.extend(route for route in selected if getattr(route, "name", None) == name)
+    app.router.routes[:] = ordered + remaining
 
 
 def _device_error_feedback(request: Request, device_id: uuid.UUID, exc: HTTPException):
@@ -61,7 +76,7 @@ def install_ui_device_crud_feedback(app) -> None:
     ):
         _remove_post(app, path)
 
-    @app.post("/devices/{device_id}/manage", name="device_manage")
+    @app.post("/devices/{device_id}/manage", name="device_manage_ui_feedback")
     def device_manage_ui(
         request: Request,
         device_id: uuid.UUID,
@@ -89,7 +104,7 @@ def install_ui_device_crud_feedback(app) -> None:
         )
         return response
 
-    @app.post("/devices/{device_id}/delete", name="device_delete")
+    @app.post("/devices/{device_id}/delete", name="device_delete_ui_feedback")
     def device_delete_ui(
         request: Request,
         device_id: uuid.UUID,
@@ -112,3 +127,11 @@ def install_ui_device_crud_feedback(app) -> None:
             title="Apparato eliminato",
         )
         return response
+
+    # FastAPI resolves the first compatible route. Keep these exact browser
+    # routes ahead of historical/generic Device routes regardless of install
+    # order, matching the precedence strategy used by other NSM UI wrappers.
+    _promote_named_routes(
+        app,
+        ("device_manage_ui_feedback", "device_delete_ui_feedback"),
+    )
