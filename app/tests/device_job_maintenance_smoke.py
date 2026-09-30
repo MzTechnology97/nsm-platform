@@ -4,7 +4,12 @@ from sqlalchemy import select
 
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
-from app.device_job_maintenance import EXPIRED_PENDING_ERROR, expire_pending_jobs
+from app.device_job_maintenance import (
+    EXPIRED_DELIVERED_ERROR,
+    EXPIRED_PENDING_ERROR,
+    expire_delivered_jobs,
+    expire_pending_jobs,
+)
 from app.models import Customer, Device, utcnow
 
 
@@ -30,21 +35,21 @@ def seed(now):
         db.add(device)
         db.flush()
 
-        expired = DeviceJob(
+        expired_pending = DeviceJob(
             device_id=device.id,
             job_type="snapshot_section",
             payload={"section": "resources"},
             status="pending",
             expires_at=now - timedelta(seconds=1),
         )
-        live = DeviceJob(
+        live_pending = DeviceJob(
             device_id=device.id,
             job_type="diagnostic_ping",
             payload={"target": "192.0.2.1"},
             status="pending",
             expires_at=now + timedelta(minutes=5),
         )
-        delivered = DeviceJob(
+        expired_delivered = DeviceJob(
             device_id=device.id,
             job_type="firmware_readiness",
             payload={},
@@ -52,46 +57,111 @@ def seed(now):
             delivered_at=now - timedelta(minutes=20),
             expires_at=now - timedelta(minutes=10),
         )
-        backup = DeviceJob(
+        live_delivered = DeviceJob(
+            device_id=device.id,
+            job_type="diagnostic_logs",
+            payload={},
+            status="delivered",
+            delivered_at=now - timedelta(minutes=1),
+            expires_at=now + timedelta(minutes=4),
+        )
+        running = DeviceJob(
+            device_id=device.id,
+            job_type="diagnostic_traceroute",
+            payload={"target": "198.51.100.1"},
+            status="running",
+            delivered_at=now - timedelta(minutes=20),
+            expires_at=now - timedelta(minutes=10),
+        )
+        backup_pending = DeviceJob(
             device_id=device.id,
             job_type="backup_mikrotik",
             payload={},
             status="pending",
             expires_at=now - timedelta(minutes=1),
         )
-        db.add_all([expired, live, delivered, backup])
+        backup_delivered = DeviceJob(
+            device_id=device.id,
+            job_type="backup_mikrotik",
+            payload={},
+            status="delivered",
+            delivered_at=now - timedelta(minutes=20),
+            expires_at=now - timedelta(minutes=10),
+        )
+        db.add_all(
+            [
+                expired_pending,
+                live_pending,
+                expired_delivered,
+                live_delivered,
+                running,
+                backup_pending,
+                backup_delivered,
+            ]
+        )
         db.commit()
-        return expired.id, live.id, delivered.id, backup.id
+        return (
+            expired_pending.id,
+            live_pending.id,
+            expired_delivered.id,
+            live_delivered.id,
+            running.id,
+            backup_pending.id,
+            backup_delivered.id,
+        )
 
 
 def main():
     now = utcnow().replace(microsecond=0)
-    expired_id, live_id, delivered_id, backup_id = seed(now)
+    (
+        expired_pending_id,
+        live_pending_id,
+        expired_delivered_id,
+        live_delivered_id,
+        running_id,
+        backup_pending_id,
+        backup_delivered_id,
+    ) = seed(now)
 
     assert expire_pending_jobs(now) == 1
+    assert expire_delivered_jobs(now) == 1
 
     with SessionLocal() as db:
-        expired = db.get(DeviceJob, expired_id)
-        live = db.get(DeviceJob, live_id)
-        delivered = db.get(DeviceJob, delivered_id)
-        backup = db.get(DeviceJob, backup_id)
+        expired_pending = db.get(DeviceJob, expired_pending_id)
+        live_pending = db.get(DeviceJob, live_pending_id)
+        expired_delivered = db.get(DeviceJob, expired_delivered_id)
+        live_delivered = db.get(DeviceJob, live_delivered_id)
+        running = db.get(DeviceJob, running_id)
+        backup_pending = db.get(DeviceJob, backup_pending_id)
+        backup_delivered = db.get(DeviceJob, backup_delivered_id)
 
-        assert expired.status == "failed"
-        assert expired.completed_at is not None
-        assert expired.last_error == EXPIRED_PENDING_ERROR
+        assert expired_pending.status == "failed"
+        assert expired_pending.completed_at is not None
+        assert expired_pending.last_error == EXPIRED_PENDING_ERROR
 
-        assert live.status == "pending"
-        assert live.completed_at is None
+        assert live_pending.status == "pending"
+        assert live_pending.completed_at is None
 
-        assert delivered.status == "delivered"
-        assert delivered.completed_at is None
+        assert expired_delivered.status == "failed"
+        assert expired_delivered.completed_at is not None
+        assert expired_delivered.last_error == EXPIRED_DELIVERED_ERROR
+
+        assert live_delivered.status == "delivered"
+        assert live_delivered.completed_at is None
+
+        # Running jobs keep their domain-specific completion/timeout lifecycle.
+        assert running.status == "running"
+        assert running.completed_at is None
 
         # Backup expiry/retry remains owned by backup_maintenance.
-        assert backup.status == "pending"
-        assert backup.completed_at is None
+        assert backup_pending.status == "pending"
+        assert backup_pending.completed_at is None
+        assert backup_delivered.status == "delivered"
+        assert backup_delivered.completed_at is None
 
     assert expire_pending_jobs(now) == 0
-    print("Expired pending Agent job maintenance smoke test passed")
+    assert expire_delivered_jobs(now) == 0
+    print("Expired pending/delivered Agent job maintenance smoke test passed")
 
 
 if __name__ == "__main__":
