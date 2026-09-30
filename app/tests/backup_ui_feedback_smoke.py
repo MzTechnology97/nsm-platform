@@ -40,7 +40,7 @@ def seed():
             name="CI49 Backup Router",
             display_name="CI49 Backup Router",
             management_source="mikrotik_agent",
-            status="online",
+            status="offline",
             firmware_version="7.22.0",
         )
         db.add(device)
@@ -126,8 +126,6 @@ def main():
     major, minor, *_ = [int(part) for part in app.version.split(".")]
     assert (major, minor) >= (0, 49), app.version
 
-    # The contextual browser route must be deterministic and ahead of any
-    # historical compatible route.
     matching = [
         route
         for route in app.router.routes
@@ -141,7 +139,11 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    # Missing agent: historical raw HTTP 409 becomes PRG feedback.
+    detail = client.get(f"/devices/{device_id}")
+    assert detail.status_code == 200
+    assert f'action="/devices/{device_id}/backup-now"' in detail.text
+    assert "Backup ora" in detail.text
+
     missing_agent = post_backup(client, device_id)
     assert missing_agent.status_code == 303
     assert missing_agent.headers["location"] == f"/devices/{device_id}#backups"
@@ -150,7 +152,6 @@ def main():
     assert "enrollment agent" in feedback
     assert "Backup non disponibile" not in consume_feedback(client, device_id)
 
-    # Agent present but no effective policy: same contextual path, no raw JSON.
     add_agent(device_id)
     missing_policy = post_backup(client, device_id)
     assert missing_policy.status_code == 303
@@ -158,8 +159,6 @@ def main():
     feedback = consume_feedback(client, device_id)
     assert "Nessuna backup policy effettiva" in feedback
 
-    # A valid manual backup is queued and reported once without the historical
-    # duplicate query-string banner.
     add_policy(device_id)
     queued = post_backup(client, device_id)
     assert queued.status_code == 303
@@ -181,8 +180,6 @@ def main():
         assert len(jobs) == 1
         assert jobs[0].status == "pending"
 
-    # Repeating the action does not create another job and becomes an info
-    # banner rather than a second operational request.
     duplicate = post_backup(client, device_id)
     assert duplicate.status_code == 303
     assert duplicate.headers["location"] == f"/devices/{device_id}#backups"
