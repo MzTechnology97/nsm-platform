@@ -108,10 +108,10 @@ def install_ui_customer_site_crud_feedback(app) -> None:
     def customer_edit_ui(
         request: Request,
         customer_id: uuid.UUID,
-        name: str = Form(...),
+        name: str = Form(""),
         code: str = Form(""),
         notes: str = Form(""),
-        csrf: str = Form(...),
+        csrf: str = Form(""),
     ):
         try:
             response = crud.customer_edit(
@@ -136,8 +136,8 @@ def install_ui_customer_site_crud_feedback(app) -> None:
     def customer_delete_ui(
         request: Request,
         customer_id: uuid.UUID,
-        confirm_name: str = Form(...),
-        csrf: str = Form(...),
+        confirm_name: str = Form(""),
+        csrf: str = Form(""),
     ):
         try:
             response = crud.customer_delete(
@@ -173,10 +173,10 @@ def install_ui_customer_site_crud_feedback(app) -> None:
         request: Request,
         customer_id: uuid.UUID,
         site_id: uuid.UUID,
-        name: str = Form(...),
+        name: str = Form(""),
         address: str = Form(""),
         notes: str = Form(""),
-        csrf: str = Form(...),
+        csrf: str = Form(""),
     ):
         try:
             response = crud.site_edit(
@@ -206,7 +206,7 @@ def install_ui_customer_site_crud_feedback(app) -> None:
         request: Request,
         customer_id: uuid.UUID,
         site_id: uuid.UUID,
-        csrf: str = Form(...),
+        csrf: str = Form(""),
     ):
         try:
             response = crud.site_delete(
@@ -225,6 +225,9 @@ def install_ui_customer_site_crud_feedback(app) -> None:
         )
         return response
 
+    # Empty browser inputs must reach the domain validator instead of being
+    # intercepted by FastAPI as 422 responses, so required human form fields
+    # use empty defaults here and are validated by the original CRUD handlers.
     _promote_named_routes(
         app,
         (
