@@ -41,8 +41,8 @@ def queue_snapshot_all(request: Request, device_id: uuid.UUID, csrf: str = Form(
         device = workspace._load_device(db, device_id)
         if device.vendor != "mikrotik" or device.status != "online":
             raise HTTPException(409, "Lo snapshot completo richiede un MikroTik online con agent NSM.")
-        if _transport(device) != "modern":
-            raise HTTPException(409, "Lo snapshot completo richiede il transport MikroTik moderno.")
+        if _transport(device) not in {"modern", "legacy"}:
+            raise HTTPException(409, "Lo snapshot completo richiede un transport MikroTik validato.")
 
         active = list(
             db.scalars(
@@ -76,7 +76,7 @@ def queue_snapshot_all(request: Request, device_id: uuid.UUID, csrf: str = Form(
             actor=user,
             customer_id=device.customer_id,
             device_id=device.id,
-            details={"sections": queued, "already_pending": sorted(already)},
+            details={"sections": queued, "already_pending": sorted(already), "transport": _transport(device)},
             source="portal",
         )
         db.commit()
