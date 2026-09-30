@@ -24,28 +24,21 @@ GUARD_ROUTE_NAMES = {
     "guarded_mikrotik_job_complete",
     "guarded_mikrotik_legacy_job_complete",
 }
+MODERN_COMPLETE_PATH = "/api/v1/agents/mikrotik/jobs/{job_id}/complete"
+LEGACY_COMPLETE_PATH = "/api/v1/agents/mikrotik/legacy/jobs/{job_id}/complete"
 
 
-def _remove_route(app, path: str, method: str) -> None:
-    method = method.upper()
+def _remove_existing_guard_routes(app) -> None:
+    """Make repeated installation safe without depending on path internals."""
     app.router.routes[:] = [
         route
         for route in app.router.routes
-        if not (
-            getattr(route, "path", None) == path
-            and method in (getattr(route, "methods", set()) or set())
-        )
+        if getattr(route, "name", None) not in GUARD_ROUTE_NAMES
     ]
 
 
 def _promote_guard_routes(app) -> None:
-    """Put guarded completion routes before any compatibility duplicates.
-
-    FastAPI/Starlette resolves the first matching route.  The application is
-    composed from several incremental routers, so explicit precedence makes the
-    completion contract deterministic even if a later compatibility layer has
-    registered an equivalent path.
-    """
+    """Put guarded completion routes before compatibility/original routes."""
     promoted = [
         route
         for route in app.router.routes
@@ -64,10 +57,6 @@ def _terminal_response(job: DeviceJob) -> dict:
     }
 
 
-@router.post(
-    "/api/v1/agents/mikrotik/jobs/{job_id}/complete",
-    name="guarded_mikrotik_job_complete",
-)
 async def guarded_modern_job_complete(request: Request, job_id: uuid.UUID):
     # Preserve the original body/status validation before applying idempotency.
     payload = await agent_module._json_body(request)
@@ -92,10 +81,6 @@ async def guarded_modern_job_complete(request: Request, job_id: uuid.UUID):
     return await agent_module.mikrotik_job_complete(request, job_id)
 
 
-@router.post(
-    "/api/v1/agents/mikrotik/legacy/jobs/{job_id}/complete",
-    name="guarded_mikrotik_legacy_job_complete",
-)
 async def guarded_legacy_job_complete(
     request: Request,
     job_id: uuid.UUID,
@@ -127,8 +112,25 @@ async def guarded_legacy_job_complete(
 
 
 def install_mikrotik_job_completion_guard(app) -> None:
-    """Replace and promote the two generic completion routes."""
-    _remove_route(app, "/api/v1/agents/mikrotik/jobs/{job_id}/complete", "POST")
-    _remove_route(app, "/api/v1/agents/mikrotik/legacy/jobs/{job_id}/complete", "POST")
-    app.include_router(router)
+    """Register canonical completion guards directly on the final application.
+
+    Do not depend on matching/removing historical routes by ``route.path``.
+    FastAPI/Starlette route metadata can differ across versions and compatibility
+    layers.  Direct registration plus explicit promotion guarantees that the
+    guard is the first matching route while preserving the original handlers as
+    fallback contracts.
+    """
+    _remove_existing_guard_routes(app)
+    app.add_api_route(
+        MODERN_COMPLETE_PATH,
+        guarded_modern_job_complete,
+        methods=["POST"],
+        name="guarded_mikrotik_job_complete",
+    )
+    app.add_api_route(
+        LEGACY_COMPLETE_PATH,
+        guarded_legacy_job_complete,
+        methods=["POST"],
+        name="guarded_mikrotik_legacy_job_complete",
+    )
     _promote_guard_routes(app)
