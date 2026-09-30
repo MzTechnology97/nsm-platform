@@ -102,6 +102,42 @@ def _manual_backup_block_reason(
     return None
 
 
+def _artifact_browser_error(
+    request: Request, device_id: uuid.UUID, exc: HTTPException
+):
+    """Return expected Backup Explorer failures to a valid GUI workspace."""
+    message = exception_message(exc, "Operazione backup non completata.")
+    if exc.status_code == 403:
+        return flash_redirect(
+            request,
+            f"/devices/{device_id}",
+            "error",
+            message,
+            title="Operazione non autorizzata",
+        )
+    if exc.status_code == 404 and message == "Apparato non trovato.":
+        return flash_redirect(
+            request,
+            "/devices",
+            "error",
+            message,
+            title="Apparato non trovato",
+        )
+    if exc.status_code in {400, 404, 409, 413, 415}:
+        return flash_redirect(
+            request,
+            f"/devices/{device_id}/backups",
+            "warning",
+            message,
+            title=(
+                "Backup non disponibile"
+                if exc.status_code == 404
+                else "Operazione backup non disponibile"
+            ),
+        )
+    raise exc
+
+
 @router.get(
     "/devices/{device_id}/backups",
     response_class=HTMLResponse,
@@ -274,69 +310,72 @@ def device_backup_artifact_view(
     artifact_id: uuid.UUID,
     against: str = "",
 ):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "backup.read"):
-            raise HTTPException(403)
-        device = _device(db, device_id)
-        artifact, run = _artifact_for_device(db, device.id, artifact_id)
-        if not _is_human_readable(artifact):
-            raise HTTPException(415, "Questo backup è binario e può essere solo scaricato.")
+    try:
+        with SessionLocal() as db:
+            user = core.current_user(request, db)
+            if not user:
+                return core.login_redirect()
+            if not core.has_permission(user, "backup.read"):
+                raise HTTPException(403)
+            device = _device(db, device_id)
+            artifact, run = _artifact_for_device(db, device.id, artifact_id)
+            if not _is_human_readable(artifact):
+                raise HTTPException(415, "Questo backup è binario e può essere solo scaricato.")
 
-        text = _read_export(artifact)
-        candidates = _comparison_candidates(db, device.id, artifact.id)
-        against_artifact = against_run = None
-        diff_rows = []
-        diff_summary = None
-        if against:
-            try:
-                against_id = uuid.UUID(against)
-            except ValueError:
-                raise HTTPException(400, "Identificativo confronto non valido.")
-            against_artifact, against_run = _artifact_for_device(
-                db, device.id, against_id
-            )
-            if not _is_human_readable(against_artifact):
-                raise HTTPException(
-                    400,
-                    "Il confronto richiede due backup testuali dello stesso apparato.",
+            text = _read_export(artifact)
+            candidates = _comparison_candidates(db, device.id, artifact.id)
+            against_artifact = against_run = None
+            diff_rows = []
+            diff_summary = None
+            if against:
+                try:
+                    against_id = uuid.UUID(against)
+                except ValueError:
+                    raise HTTPException(400, "Identificativo confronto non valido.")
+                against_artifact, against_run = _artifact_for_device(
+                    db, device.id, against_id
                 )
-            before = _read_export(against_artifact)
-            diff_rows, diff_summary = _diff_rows(before, text)
+                if not _is_human_readable(against_artifact):
+                    raise HTTPException(
+                        400,
+                        "Il confronto richiede due backup testuali dello stesso apparato.",
+                    )
+                before = _read_export(against_artifact)
+                diff_rows, diff_summary = _diff_rows(before, text)
 
-        event_type = (
-            "BACKUP_EXPORT_DIFF_VIEWED" if against_artifact else "BACKUP_EXPORT_VIEWED"
-        )
-        details = {"artifact_id": str(artifact.id), "filename": artifact.filename}
-        if against_artifact:
-            details["compare_artifact_id"] = str(against_artifact.id)
-        core.add_event(
-            db,
-            event_type,
-            actor=user,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            details=details,
-            source="portal",
-        )
-        db.commit()
-        return core.render(
-            request,
-            db,
-            user,
-            "device_backup_rsc_view.html",
-            device=device,
-            artifact=artifact,
-            run=run,
-            lines=text.splitlines(),
-            candidates=candidates,
-            against_artifact=against_artifact,
-            against_run=against_run,
-            diff_rows=diff_rows,
-            diff_summary=diff_summary,
-        )
+            event_type = (
+                "BACKUP_EXPORT_DIFF_VIEWED" if against_artifact else "BACKUP_EXPORT_VIEWED"
+            )
+            details = {"artifact_id": str(artifact.id), "filename": artifact.filename}
+            if against_artifact:
+                details["compare_artifact_id"] = str(against_artifact.id)
+            core.add_event(
+                db,
+                event_type,
+                actor=user,
+                customer_id=device.customer_id,
+                device_id=device.id,
+                details=details,
+                source="portal",
+            )
+            db.commit()
+            return core.render(
+                request,
+                db,
+                user,
+                "device_backup_rsc_view.html",
+                device=device,
+                artifact=artifact,
+                run=run,
+                lines=text.splitlines(),
+                candidates=candidates,
+                against_artifact=against_artifact,
+                against_run=against_run,
+                diff_rows=diff_rows,
+                diff_summary=diff_summary,
+            )
+    except HTTPException as exc:
+        return _artifact_browser_error(request, device_id, exc)
 
 
 @router.post(
@@ -346,33 +385,36 @@ def device_backup_artifact_view(
 async def device_backup_artifact_delete(
     request: Request, device_id: uuid.UUID, artifact_id: uuid.UUID
 ):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf", "")))
     destination = f"/devices/{device_id}/backups"
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "backup.configure")
-        device = _device(db, device_id)
-        artifact, run = _artifact_for_device(db, device.id, artifact_id)
-        removed = remove_artifact_file(artifact.storage_path)
-        artifact.deleted_at = utcnow()
-        artifact.deleted_by_user_id = user.id
-        core.add_event(
-            db,
-            "BACKUP_ARTIFACT_DELETED",
-            actor=user,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            details={
-                "artifact_id": str(artifact.id),
-                "run_id": str(run.id),
-                "filename": artifact.filename,
-                "file_removed": removed,
-                "scope": "device_backup_explorer",
-            },
-            severity="warning",
-            source="portal",
-        )
-        db.commit()
+    try:
+        form = await request.form()
+        validate_csrf(request, str(form.get("csrf", "")))
+        with SessionLocal() as db:
+            user = core.require_permission(request, db, "backup.configure")
+            device = _device(db, device_id)
+            artifact, run = _artifact_for_device(db, device.id, artifact_id)
+            removed = remove_artifact_file(artifact.storage_path)
+            artifact.deleted_at = utcnow()
+            artifact.deleted_by_user_id = user.id
+            core.add_event(
+                db,
+                "BACKUP_ARTIFACT_DELETED",
+                actor=user,
+                customer_id=device.customer_id,
+                device_id=device.id,
+                details={
+                    "artifact_id": str(artifact.id),
+                    "run_id": str(run.id),
+                    "filename": artifact.filename,
+                    "file_removed": removed,
+                    "scope": "device_backup_explorer",
+                },
+                severity="warning",
+                source="portal",
+            )
+            db.commit()
+    except HTTPException as exc:
+        return _artifact_browser_error(request, device_id, exc)
 
     return flash_redirect(
         request,
