@@ -9,6 +9,7 @@ from app.backup_maintenance import maintenance_tick
 from app.backup_scheduler_capability_guard import install_backup_scheduler_capability_guard
 from app.config import settings
 from app.firmware_activation import reconcile_firmware_activations
+from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_finalization_cleanup
 from app.mikrotik_telemetry import telemetry_cleanup
 from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
 
@@ -21,6 +22,7 @@ TELEMETRY_MAINTENANCE_INTERVAL_SECONDS = 3600
 last_maintenance = 0.0
 last_telemetry_maintenance = 0.0
 
+install_mikrotik_backup_finalization_cleanup()
 install_backup_scheduler_capability_guard()
 
 log.info("Worker avviato")
