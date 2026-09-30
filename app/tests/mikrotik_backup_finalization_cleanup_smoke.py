@@ -2,6 +2,7 @@ import uuid
 
 from sqlalchemy import select
 
+from app import backup_maintenance
 from app import mikrotik_backup as backup
 from app import mikrotik_backup_agent as backup_agent
 from app import mikrotik_legacy_jobs as legacy_jobs
@@ -110,9 +111,13 @@ def seed():
 
 
 def main():
-    # All callers that imported the old function by value must share the wrapper.
-    assert backup_agent.finalize_backup_job is backup.finalize_backup_job
+    # Direct by-value imports share the canonical finalizer. The modern Agent
+    # path deliberately remains a composed wrapper because config drift is
+    # installed first; cleanup must wrap that callable rather than replace it.
     assert legacy_jobs.finalize_backup_job is backup.finalize_backup_job
+    assert backup_maintenance.finalize_backup_job is backup.finalize_backup_job
+    assert getattr(backup_agent, "_config_drift_hooked", False)
+    assert getattr(backup_agent.finalize_backup_job, "_nsm_backup_terminal_cleanup", False)
 
     customer_id, device_id, run_id, job_id, partial_id, completed_id, partial_path = seed()
     assert partial_path.is_file()
@@ -120,7 +125,11 @@ def main():
     with SessionLocal() as db:
         device = db.get(Device, device_id)
         job = db.get(DeviceJob, job_id)
-        backup.finalize_backup_job(db, device, job, False, "synthetic upload failure")
+        # Exercise the actual modern Agent completion callable, including the
+        # pre-existing configuration-drift composition.
+        backup_agent.finalize_backup_job(
+            db, device, job, False, "synthetic upload failure"
+        )
         db.commit()
 
     with SessionLocal() as db:
