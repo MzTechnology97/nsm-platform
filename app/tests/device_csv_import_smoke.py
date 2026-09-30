@@ -75,7 +75,7 @@ CI22;;mikrotik;router;Bad IP;;;not-an-ip;02:22:00:00:00:04;CI22-BAD-02;;
 """
 
 
-def upload(client, mode, payload=None):
+def upload(client, mode, payload=None, follow_redirects=True):
     page = client.get("/devices/import")
     assert page.status_code == 200
     csrf = csrf_from(page.text)
@@ -83,13 +83,35 @@ def upload(client, mode, payload=None):
         "/devices/import",
         data={"csrf": csrf, "mode": mode},
         files={"csv_file": ("devices.csv", payload or csv_payload(), "text/csv")},
+        follow_redirects=follow_redirects,
     )
+
+
+def assert_import_warning(client, response, expected_text):
+    assert response.status_code == 303, response.text
+    assert response.headers["location"] == "/devices/import"
+    page = client.get(response.headers["location"])
+    assert page.status_code == 200
+    assert "flash-warning" in page.text
+    assert expected_text in page.text
+    # Flash feedback is one-shot and must not survive another GET.
+    again = client.get("/devices/import")
+    assert expected_text not in again.text
 
 
 def main():
     customer_id, site_id = seed()
     client = TestClient(app)
     login(client)
+
+    post_routes = [
+        route
+        for route in app.router.routes
+        if getattr(route, "path", None) == "/devices/import"
+        and "POST" in (getattr(route, "methods", set()) or set())
+    ]
+    assert post_routes
+    assert post_routes[0].name == "device_csv_import_submit_ui_feedback"
 
     page = client.get("/devices/import")
     assert page.status_code == 200
@@ -147,14 +169,24 @@ def main():
         assert db.scalar(select(func.count(Device.id)).where(Device.customer_id == customer_id)) == 2
 
     credential_csv = "customer_code,vendor,device_type,name,ssh_password\nCI22,mikrotik,router,Unsafe,secret\n"
-    rejected = upload(client, "validate", credential_csv)
-    assert rejected.status_code == 400
-    assert "credenziali non consentite" in rejected.text
+    rejected = upload(client, "validate", credential_csv, follow_redirects=False)
+    assert_import_warning(client, rejected, "credenziali non consentite")
 
     unknown_csv = "customer_code,vendor,device_type,name,typo_field\nCI22,mikrotik,router,Typo,x\n"
-    rejected = upload(client, "validate", unknown_csv)
-    assert rejected.status_code == 400
-    assert "Colonne non supportate" in rejected.text
+    rejected = upload(client, "validate", unknown_csv, follow_redirects=False)
+    assert_import_warning(client, rejected, "Colonne non supportate")
+
+    invalid_mode = upload(client, "execute-now", follow_redirects=False)
+    assert_import_warning(client, invalid_mode, "Modalità import non valida")
+
+    missing_page = client.get("/devices/import")
+    missing_csrf = csrf_from(missing_page.text)
+    missing_file = client.post(
+        "/devices/import",
+        data={"csrf": missing_csrf, "mode": "validate"},
+        follow_redirects=False,
+    )
+    assert_import_warning(client, missing_file, "Seleziona un file CSV")
 
     tech = TestClient(app)
     login(tech, "ci22tech", TECH_PASSWORD)
