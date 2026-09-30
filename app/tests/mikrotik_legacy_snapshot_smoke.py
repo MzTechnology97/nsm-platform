@@ -79,7 +79,7 @@ def parser_contracts():
 
     ppp = parse_legacy_snapshot(
         "ppp_active",
-        "PA|client-a||pppoe|AA:BB:CC:DD:EE:FF||10.0.0.2|||1h|active\n"
+        "PA|client-a||pppoe|AA:BB:CC:DD:EE:FF||192.0.2.2|||1h|active\n"
         "PE|wan-pppoe|alice|||isp.example|||||2h|false|true|primary",
     )
     assert ppp["data"]["active"][0]["name"] == "client-a"
