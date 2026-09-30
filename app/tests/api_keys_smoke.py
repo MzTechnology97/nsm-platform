@@ -249,7 +249,14 @@ def main():
         data={"csrf": csrf},
         follow_redirects=False,
     )
-    assert active_delete.status_code == 409
+    assert active_delete.status_code == 303
+    assert active_delete.headers["location"] == "/admin/api-keys"
+    assert not active_delete.headers.get("content-type", "").startswith("application/json")
+    active_feedback = client.get(active_delete.headers["location"])
+    assert "Revoca la API key prima di eliminarla" in active_feedback.text
+    assert "flash-warning" in active_feedback.text
+    with SessionLocal() as db:
+        assert db.get(PlatformApiKey, global_key_id).is_active is True
 
     with SessionLocal() as db:
         global_row = db.get(PlatformApiKey, global_key_id)
