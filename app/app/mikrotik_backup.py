@@ -280,6 +280,8 @@ async def mikrotik_artifact_chunk(request: Request, upload_id: uuid.UUID):
         chunk = base64.b64decode(encoded, validate=True)
     except (binascii.Error, ValueError):
         raise HTTPException(400, "Chunk base64 non valido.")
+    if not chunk:
+        raise HTTPException(400, "Chunk vuoto.")
     if len(chunk) > MAX_CHUNK_BYTES:
         raise HTTPException(413, "Chunk troppo grande.")
 
