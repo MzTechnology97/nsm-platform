@@ -40,7 +40,7 @@ from app.mikrotik_agent_update_ui import install_mikrotik_agent_update_ui
 from app.mikrotik_compatibility import install_mikrotik_compatibility_resolver
 from app.mikrotik_legacy import router as mikrotik_legacy_router
 from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
-from app.mikrotik_legacy_snapshot_capability import install_legacy_snapshot_capability
+from app.mikrotik_legacy_snapshot_capability import install_mikrotik_legacy_snapshot_capability
 from app.mikrotik_legacy_telemetry import install_mikrotik_legacy_telemetry
 from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
@@ -144,7 +144,7 @@ mikrotik_agent_core._bootstrap_script = privileged_bootstrap
 install_mikrotik_legacy_telemetry()
 core.app.include_router(mikrotik_legacy_router)
 install_mikrotik_legacy_jobs(core.app)
-install_legacy_snapshot_capability()
+install_mikrotik_legacy_snapshot_capability()
 install_mikrotik_compatibility_resolver()
 # Core 0.49 keeps its product version while the independently versioned device
 # agent advances to the maintenance generation selected by this policy.
