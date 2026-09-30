@@ -75,6 +75,7 @@ from app.ui_extension import install_ui
 from app.ui_feedback import install_ui_feedback
 from app.ui_firmware_feedback import install_ui_firmware_feedback
 from app.ui_firmware_upgrade_feedback import install_ui_firmware_upgrade_feedback
+from app.ui_notification_feedback import install_ui_notification_feedback
 from app.uisp_connector import install_uisp_connector
 from app.workflow_ui import install_workflow_ui
 
@@ -167,4 +168,5 @@ install_ui_customer_site_crud_feedback(core.app)
 install_ui_customer_device_bulk_feedback(core.app)
 install_ui_api_key_feedback(core.app)
 install_ui_action_center_feedback(core.app)
+install_ui_notification_feedback(core.app)
 app = core.app
