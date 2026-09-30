@@ -9,16 +9,20 @@ cleanup semantics without changing artifact/archive behavior.
 """
 from __future__ import annotations
 
+from sqlalchemy import select
+
 from app import mikrotik_backup as backup
 from app import mikrotik_backup_agent as backup_agent
 from app import mikrotik_legacy_jobs as legacy_jobs
 from app.backup_storage import remove_artifact_file
 from app.mikrotik_backup_models import BackupUploadSession, MikrotikBackupJobSecret
 from app.models import utcnow
-from sqlalchemy import select
 
 
 def _cleanup_terminal_state(db, job) -> None:
+    if job.job_type != "backup_mikrotik":
+        return
+
     uploads = list(
         db.scalars(
             select(BackupUploadSession).where(BackupUploadSession.job_id == job.id)
