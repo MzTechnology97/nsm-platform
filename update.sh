@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-SOURCE_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+SOURCE_DIR="${NSM_REPO_DIR:-$SCRIPT_DIR}"
 PLATFORM_DIR="${PLATFORM_DIR:-/srv/network-platform}"
 APP_RUNTIME_UID="${APP_RUNTIME_UID:-10001}"
 APP_RUNTIME_GID="${APP_RUNTIME_GID:-10001}"
@@ -13,6 +14,30 @@ BACKUP_FILE="$BACKUP_DIR/network_platform_${STAMP}.sql.gz"
 info(){ printf '\033[1;34m[INFO]\033[0m %s\n' "$*"; }
 ok(){ printf '\033[1;32m[ OK ]\033[0m %s\n' "$*"; }
 die(){ printf '\033[1;31m[FAIL]\033[0m %s\n' "$*" >&2; exit 1; }
+
+if ! SOURCE_DIR="$(cd "$SOURCE_DIR" 2>/dev/null && pwd -P)"; then
+  die "Repository sorgente non trovato. Esegui update.sh dal clone Git oppure imposta NSM_REPO_DIR=/percorso/del/repository."
+fi
+[[ -d "$PLATFORM_DIR" ]] || die "Installazione attiva non trovata in $PLATFORM_DIR."
+PLATFORM_REAL="$(cd "$PLATFORM_DIR" && pwd -P)"
+
+# update.sh is also copied into the runtime directory for traceability. Running
+# that copy without an explicit repository source used to make SOURCE_DIR equal
+# to PLATFORM_DIR; the script would then delete runtime app/config and try to
+# copy them from the same directory it had just removed. Refuse that destructive
+# mode before any backup, rm, Docker operation, or other mutation takes place.
+if [[ "$SOURCE_DIR" == "$PLATFORM_REAL" ]]; then
+  die "Rifiuto aggiornamento: la sorgente coincide con il runtime ($PLATFORM_REAL). Esegui update.sh dal clone Git oppure usa NSM_REPO_DIR=/percorso/del/repository."
+fi
+
+[[ -d "$SOURCE_DIR/.git" ]] || die "Repository sorgente non valido in $SOURCE_DIR: directory .git assente."
+[[ -f "$SOURCE_DIR/docker-compose.yml" ]] || die "Repository sorgente non valido: docker-compose.yml mancante."
+[[ -d "$SOURCE_DIR/app" ]] || die "Repository sorgente non valido: app/ mancante."
+[[ -d "$SOURCE_DIR/config" ]] || die "Repository sorgente non valido: config/ mancante."
+[[ -f "$SOURCE_DIR/manage.sh" ]] || die "Repository sorgente non valido: manage.sh mancante."
+[[ -f "$SOURCE_DIR/update.sh" ]] || die "Repository sorgente non valido: update.sh mancante."
+[[ -f "$PLATFORM_DIR/docker-compose.yml" ]] || die "Installazione attiva non trovata in $PLATFORM_DIR."
+[[ -f "$PLATFORM_DIR/secrets/bootstrap.env" ]] || die "Secret runtime non trovati."
 
 git_repo(){ git -c safe.directory="$SOURCE_DIR" -C "$SOURCE_DIR" "$@"; }
 
@@ -27,9 +52,6 @@ prepare_backup_storage(){
   sudo chmod 0750 "$DEVICE_BACKUP_DIR"
 }
 
-[[ -f "$SOURCE_DIR/docker-compose.yml" ]] || die "Repository sorgente non valido."
-[[ -f "$PLATFORM_DIR/docker-compose.yml" ]] || die "Installazione attiva non trovata in $PLATFORM_DIR."
-[[ -f "$PLATFORM_DIR/secrets/bootstrap.env" ]] || die "Secret runtime non trovati."
 docker info >/dev/null 2>&1 || die "Docker non disponibile."
 
 if git_repo rev-parse --is-inside-work-tree >/dev/null 2>&1; then
