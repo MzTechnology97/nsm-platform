@@ -12,8 +12,6 @@ from app.entrypoint import app
 from app.models import AuditEvent, Customer, Device, utcnow
 
 SECRET = "ci-terminal-job-secret"
-MODERN_COMPLETE_PATH = "/api/v1/agents/mikrotik/jobs/{job_id}/complete"
-LEGACY_COMPLETE_PATH = "/api/v1/agents/mikrotik/legacy/jobs/{job_id}/complete"
 
 
 def _completion_events(db, device_id):
@@ -27,13 +25,27 @@ def _completion_events(db, device_id):
     )
 
 
-def _post_route_names(path: str) -> list[str | None]:
-    return [
-        getattr(route, "name", None)
-        for route in app.router.routes
-        if getattr(route, "path", None) == path
-        and "POST" in (getattr(route, "methods", set()) or set())
-    ]
+def _completion_route_debug():
+    rows = []
+    for route in app.router.routes:
+        name = getattr(route, "name", None)
+        endpoint = getattr(route, "endpoint", None)
+        endpoint_name = getattr(endpoint, "__name__", None)
+        path = getattr(route, "path", None)
+        path_format = getattr(route, "path_format", None)
+        methods = sorted(getattr(route, "methods", set()) or set())
+        haystack = " ".join(str(value or "") for value in (name, endpoint_name, path, path_format)).lower()
+        if "complete" in haystack and ("mikrotik" in haystack or "job" in haystack):
+            rows.append(
+                {
+                    "name": name,
+                    "endpoint": endpoint_name,
+                    "path": path,
+                    "path_format": path_format,
+                    "methods": methods,
+                }
+            )
+    return rows
 
 
 def seed():
@@ -99,10 +111,11 @@ def seed():
 
 
 def main():
-    modern_routes = _post_route_names(MODERN_COMPLETE_PATH)
-    legacy_routes = _post_route_names(LEGACY_COMPLETE_PATH)
-    assert modern_routes and modern_routes[0] == "guarded_mikrotik_job_complete", modern_routes
-    assert legacy_routes and legacy_routes[0] == "guarded_mikrotik_legacy_job_complete", legacy_routes
+    routes = _completion_route_debug()
+    route_names = [row["name"] for row in routes]
+    print("completion route metadata:", routes, flush=True)
+    assert "guarded_mikrotik_job_complete" in route_names, routes
+    assert "guarded_mikrotik_legacy_job_complete" in route_names, routes
 
     device_id, modern_id, legacy_id, expired_id = seed()
     headers = {
@@ -137,12 +150,12 @@ def main():
         },
     )
     assert duplicate.status_code == 200, duplicate.text
-    print("modern duplicate response:", duplicate.text, "routes:", modern_routes, flush=True)
+    print("modern duplicate response:", duplicate.text, flush=True)
     assert duplicate.json() == {
         "status": "ok",
         "already_terminal": True,
         "job_status": "success",
-    }, {"response": duplicate.json(), "routes": modern_routes}
+    }, {"response": duplicate.json(), "routes": routes}
 
     with SessionLocal() as db:
         modern = db.get(DeviceJob, modern_id)
@@ -152,8 +165,6 @@ def main():
         assert modern.completed_at == first_completed_at
         assert len(_completion_events(db, device_id)) == event_count
 
-    # A job failed by expiry maintenance must never be resurrected by a late
-    # success report from an Agent that was offline or delayed.
     with SessionLocal() as db:
         expired = db.get(DeviceJob, expired_id)
         expired_completed_at = expired.completed_at
@@ -176,7 +187,6 @@ def main():
         assert expired.completed_at == expired_completed_at
         assert len(_completion_events(db, device_id)) == event_count
 
-    # Idempotency must not bypass Agent authentication.
     unauthorized = client.post(
         f"/api/v1/agents/mikrotik/jobs/{expired_id}/complete",
         headers={**headers, "X-NSM-Device-Secret": "wrong-secret"},
@@ -206,11 +216,12 @@ def main():
         content="late duplicate failure",
     )
     assert legacy_duplicate.status_code == 200, legacy_duplicate.text
+    print("legacy duplicate response:", legacy_duplicate.text, flush=True)
     assert legacy_duplicate.json() == {
         "status": "ok",
         "already_terminal": True,
         "job_status": "success",
-    }, {"response": legacy_duplicate.json(), "routes": legacy_routes}
+    }, {"response": legacy_duplicate.json(), "routes": routes}
 
     with SessionLocal() as db:
         legacy = db.get(DeviceJob, legacy_id)
