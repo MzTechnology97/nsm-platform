@@ -12,6 +12,8 @@ from app.entrypoint import app
 from app.models import AuditEvent, Customer, Device, utcnow
 
 SECRET = "ci-terminal-job-secret"
+MODERN_COMPLETE_PATH = "/api/v1/agents/mikrotik/jobs/{job_id}/complete"
+LEGACY_COMPLETE_PATH = "/api/v1/agents/mikrotik/legacy/jobs/{job_id}/complete"
 
 
 def _completion_events(db, device_id):
@@ -23,6 +25,15 @@ def _completion_events(db, device_id):
             )
         )
     )
+
+
+def _post_route_names(path: str) -> list[str | None]:
+    return [
+        getattr(route, "name", None)
+        for route in app.router.routes
+        if getattr(route, "path", None) == path
+        and "POST" in (getattr(route, "methods", set()) or set())
+    ]
 
 
 def seed():
@@ -88,6 +99,11 @@ def seed():
 
 
 def main():
+    modern_routes = _post_route_names(MODERN_COMPLETE_PATH)
+    legacy_routes = _post_route_names(LEGACY_COMPLETE_PATH)
+    assert modern_routes and modern_routes[0] == "guarded_mikrotik_job_complete", modern_routes
+    assert legacy_routes and legacy_routes[0] == "guarded_mikrotik_legacy_job_complete", legacy_routes
+
     device_id, modern_id, legacy_id, expired_id = seed()
     headers = {
         "X-NSM-Device-ID": str(device_id),
@@ -101,7 +117,7 @@ def main():
         json={"status": "success", "result": {"refreshed": True}},
     )
     assert modern_complete.status_code == 200, modern_complete.text
-    assert modern_complete.json() == {"status": "ok"}
+    assert modern_complete.json() == {"status": "ok"}, modern_complete.text
 
     with SessionLocal() as db:
         modern = db.get(DeviceJob, modern_id)
@@ -125,7 +141,7 @@ def main():
         "status": "ok",
         "already_terminal": True,
         "job_status": "success",
-    }
+    }, {"response": duplicate.json(), "routes": modern_routes}
 
     with SessionLocal() as db:
         modern = db.get(DeviceJob, modern_id)
@@ -148,8 +164,8 @@ def main():
         json={"status": "success", "result": {"late": True}},
     )
     assert late_success.status_code == 200, late_success.text
-    assert late_success.json()["already_terminal"] is True
-    assert late_success.json()["job_status"] == "failed"
+    assert late_success.json()["already_terminal"] is True, late_success.text
+    assert late_success.json()["job_status"] == "failed", late_success.text
 
     with SessionLocal() as db:
         expired = db.get(DeviceJob, expired_id)
@@ -174,7 +190,7 @@ def main():
         content=legacy_output,
     )
     assert legacy_complete.status_code == 200, legacy_complete.text
-    assert legacy_complete.json() == {"status": "ok"}
+    assert legacy_complete.json() == {"status": "ok"}, legacy_complete.text
 
     with SessionLocal() as db:
         legacy = db.get(DeviceJob, legacy_id)
@@ -193,7 +209,7 @@ def main():
         "status": "ok",
         "already_terminal": True,
         "job_status": "success",
-    }
+    }, {"response": legacy_duplicate.json(), "routes": legacy_routes}
 
     with SessionLocal() as db:
         legacy = db.get(DeviceJob, legacy_id)
