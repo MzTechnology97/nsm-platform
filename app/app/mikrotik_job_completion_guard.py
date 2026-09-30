@@ -20,6 +20,10 @@ from app.db import SessionLocal
 
 router = APIRouter()
 TERMINAL_JOB_STATUSES = {"success", "failed"}
+GUARD_ROUTE_NAMES = {
+    "guarded_mikrotik_job_complete",
+    "guarded_mikrotik_legacy_job_complete",
+}
 
 
 def _remove_route(app, path: str, method: str) -> None:
@@ -34,6 +38,24 @@ def _remove_route(app, path: str, method: str) -> None:
     ]
 
 
+def _promote_guard_routes(app) -> None:
+    """Put guarded completion routes before any compatibility duplicates.
+
+    FastAPI/Starlette resolves the first matching route.  The application is
+    composed from several incremental routers, so explicit precedence makes the
+    completion contract deterministic even if a later compatibility layer has
+    registered an equivalent path.
+    """
+    promoted = [
+        route
+        for route in app.router.routes
+        if getattr(route, "name", None) in GUARD_ROUTE_NAMES
+    ]
+    promoted_ids = {id(route) for route in promoted}
+    remaining = [route for route in app.router.routes if id(route) not in promoted_ids]
+    app.router.routes[:] = promoted + remaining
+
+
 def _terminal_response(job: DeviceJob) -> dict:
     return {
         "status": "ok",
@@ -44,7 +66,7 @@ def _terminal_response(job: DeviceJob) -> dict:
 
 @router.post(
     "/api/v1/agents/mikrotik/jobs/{job_id}/complete",
-    name="mikrotik_job_complete",
+    name="guarded_mikrotik_job_complete",
 )
 async def guarded_modern_job_complete(request: Request, job_id: uuid.UUID):
     # Preserve the original body/status validation before applying idempotency.
@@ -72,7 +94,7 @@ async def guarded_modern_job_complete(request: Request, job_id: uuid.UUID):
 
 @router.post(
     "/api/v1/agents/mikrotik/legacy/jobs/{job_id}/complete",
-    name="mikrotik_legacy_job_complete",
+    name="guarded_mikrotik_legacy_job_complete",
 )
 async def guarded_legacy_job_complete(
     request: Request,
@@ -105,7 +127,8 @@ async def guarded_legacy_job_complete(
 
 
 def install_mikrotik_job_completion_guard(app) -> None:
-    """Replace only the two generic completion routes with guarded adapters."""
+    """Replace and promote the two generic completion routes."""
     _remove_route(app, "/api/v1/agents/mikrotik/jobs/{job_id}/complete", "POST")
     _remove_route(app, "/api/v1/agents/mikrotik/legacy/jobs/{job_id}/complete", "POST")
     app.include_router(router)
+    _promote_guard_routes(app)
