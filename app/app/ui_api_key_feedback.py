@@ -86,7 +86,9 @@ def install_ui_api_key_feedback(app) -> None:
         scopes: list[str] = Form(default=[]),
     ):
         try:
-            response = api_keys.admin_api_key_create(
+            # Success deliberately stays inline: this response is the only time
+            # the raw API token is rendered to the operator.
+            return api_keys.admin_api_key_create(
                 request=request,
                 name=name,
                 customer_id=customer_id,
@@ -96,15 +98,6 @@ def install_ui_api_key_feedback(app) -> None:
             )
         except HTTPException as exc:
             return _feedback(request, exc)
-        # Creation intentionally remains an inline HTML response because the
-        # raw token is shown exactly once on this response.
-        add_flash(
-            request,
-            "success",
-            "API key creata. Copia ora il token: non verrà mostrato di nuovo.",
-            title="API key creata",
-        )
-        return response
 
     @app.post(
         "/admin/api-keys/{key_id}/revoke",
