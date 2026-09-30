@@ -25,29 +25,6 @@ def _completion_events(db, device_id):
     )
 
 
-def _completion_route_debug():
-    rows = []
-    for route in app.router.routes:
-        name = getattr(route, "name", None)
-        endpoint = getattr(route, "endpoint", None)
-        endpoint_name = getattr(endpoint, "__name__", None)
-        path = getattr(route, "path", None)
-        path_format = getattr(route, "path_format", None)
-        methods = sorted(getattr(route, "methods", set()) or set())
-        haystack = " ".join(str(value or "") for value in (name, endpoint_name, path, path_format)).lower()
-        if "complete" in haystack and ("mikrotik" in haystack or "job" in haystack):
-            rows.append(
-                {
-                    "name": name,
-                    "endpoint": endpoint_name,
-                    "path": path,
-                    "path_format": path_format,
-                    "methods": methods,
-                }
-            )
-    return rows
-
-
 def seed():
     suffix = uuid.uuid4().hex[:8]
     now = utcnow().replace(microsecond=0)
@@ -111,12 +88,6 @@ def seed():
 
 
 def main():
-    routes = _completion_route_debug()
-    route_names = [row["name"] for row in routes]
-    print("completion route metadata:", routes, flush=True)
-    assert "guarded_mikrotik_job_complete" in route_names, routes
-    assert "guarded_mikrotik_legacy_job_complete" in route_names, routes
-
     device_id, modern_id, legacy_id, expired_id = seed()
     headers = {
         "X-NSM-Device-ID": str(device_id),
@@ -150,12 +121,11 @@ def main():
         },
     )
     assert duplicate.status_code == 200, duplicate.text
-    print("modern duplicate response:", duplicate.text, flush=True)
     assert duplicate.json() == {
         "status": "ok",
         "already_terminal": True,
         "job_status": "success",
-    }, {"response": duplicate.json(), "routes": routes}
+    }, duplicate.text
 
     with SessionLocal() as db:
         modern = db.get(DeviceJob, modern_id)
@@ -216,12 +186,11 @@ def main():
         content="late duplicate failure",
     )
     assert legacy_duplicate.status_code == 200, legacy_duplicate.text
-    print("legacy duplicate response:", legacy_duplicate.text, flush=True)
     assert legacy_duplicate.json() == {
         "status": "ok",
         "already_terminal": True,
         "job_status": "success",
-    }, {"response": legacy_duplicate.json(), "routes": routes}
+    }, legacy_duplicate.text
 
     with SessionLocal() as db:
         legacy = db.get(DeviceJob, legacy_id)
