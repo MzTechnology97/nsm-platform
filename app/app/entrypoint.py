@@ -66,6 +66,7 @@ from app.ui_action_feedback import install_ui_action_feedback
 from app.ui_backup_feedback import install_ui_backup_feedback
 from app.ui_backup_policy_feedback import install_ui_backup_policy_feedback
 from app.ui_backup_policy_form_feedback import install_ui_backup_policy_form_feedback
+from app.ui_customer_device_bulk_feedback import install_ui_customer_device_bulk_feedback
 from app.ui_customer_site_crud_feedback import install_ui_customer_site_crud_feedback
 from app.ui_device_crud_feedback import install_ui_device_crud_feedback
 from app.ui_extension import install_ui
@@ -161,4 +162,5 @@ install_ui_backup_policy_form_feedback(core.app)
 install_ui_firmware_upgrade_feedback(core.app)
 install_ui_device_crud_feedback(core.app)
 install_ui_customer_site_crud_feedback(core.app)
+install_ui_customer_device_bulk_feedback(core.app)
 app = core.app
