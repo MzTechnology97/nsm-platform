@@ -62,6 +62,7 @@ from app.route_precedence import promote_customer_workspace_routes
 from app.routerboot_lifecycle import install_routerboot_lifecycle
 from app.search_enhancement import install_search_enhancement
 from app.security_drilldown import install_security_drilldown
+from app.ui_action_center_feedback import install_ui_action_center_feedback
 from app.ui_action_feedback import install_ui_action_feedback
 from app.ui_api_key_feedback import install_ui_api_key_feedback
 from app.ui_backup_feedback import install_ui_backup_feedback
@@ -165,4 +166,5 @@ install_ui_device_crud_feedback(core.app)
 install_ui_customer_site_crud_feedback(core.app)
 install_ui_customer_device_bulk_feedback(core.app)
 install_ui_api_key_feedback(core.app)
+install_ui_action_center_feedback(core.app)
 app = core.app
