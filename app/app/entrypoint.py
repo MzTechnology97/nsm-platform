@@ -145,7 +145,6 @@ mikrotik_agent_core._bootstrap_script = privileged_bootstrap
 install_mikrotik_legacy_telemetry()
 core.app.include_router(mikrotik_legacy_router)
 install_mikrotik_legacy_jobs(core.app)
-install_mikrotik_job_completion_guard(core.app)
 install_mikrotik_backup_finalization_cleanup()
 install_mikrotik_compatibility_resolver()
 # Core 0.49 keeps its product version while the independently versioned device
@@ -173,4 +172,7 @@ install_ui_customer_device_bulk_feedback(core.app)
 install_ui_api_key_feedback(core.app)
 install_ui_action_center_feedback(core.app)
 install_ui_notification_feedback(core.app)
+# Machine-facing completion idempotency must be installed after every route
+# composer/promoter so no later compatibility or UI layer can shadow it.
+install_mikrotik_job_completion_guard(core.app)
 app = core.app
