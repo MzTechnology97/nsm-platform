@@ -69,7 +69,7 @@ def main():
     assert legacy_old.status_code == 303
     legacy = client.get(f"/devices/{legacy_id}/configuration?section=interfaces")
     assert legacy.status_code == 200
-    assert "Aggiorna sezione" not in legacy.text
+    assert "Aggiorna sezione" in legacy.text and "Aggiorna tutto" in legacy.text
     assert "ether1" in legacy.text
 
     print("Core 0.45 MikroTik interface health smoke passed in unified workspace")

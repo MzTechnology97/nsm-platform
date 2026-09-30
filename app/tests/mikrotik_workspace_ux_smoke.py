@@ -52,21 +52,20 @@ def main():
     assert monitor.status_code == 200 and "AA:BB:CC:43:00:01" in monitor.text
     assert "8%" in monitor.text and "Storico non supportato" not in monitor.text and "data-telemetry-root" in monitor.text
     configuration = client.get(f"/devices/{legacy_id}/configuration")
-    assert configuration.status_code == 200 and "Snapshot configurazione non disponibile" in configuration.text
-    # Telemetry history becomes available, but snapshot actions remain blocked
-    # until the separate legacy configuration-snapshot capability is enabled.
-    assert f'action="/devices/{legacy_id}/snapshot/resources"' not in configuration.text
-    assert f'action="/devices/{legacy_id}/snapshot-all"' not in configuration.text
+    assert configuration.status_code == 200
+    assert "Snapshot configurazione non disponibile" not in configuration.text
+    assert f'action="/devices/{legacy_id}/snapshot/resources"' in configuration.text
+    assert f'action="/devices/{legacy_id}/snapshot-all"' in configuration.text
     diagnostics = client.get(f"/devices/{legacy_id}/diagnostics")
     assert diagnostics.status_code == 200 and "NON DISP." in diagnostics.text
     assert f"/devices/{legacy_id}/diagnostics/jobs/{diagnostic_id}" in diagnostics.text
     token = csrf(diagnostics.text)
-    snapshot_blocked = client.post(
+    snapshot_queued = client.post(
         f"/devices/{legacy_id}/snapshot/resources",
         data={"csrf":token},
         follow_redirects=False,
     )
-    assert snapshot_blocked.status_code == 303
+    assert snapshot_queued.status_code == 303
     support_blocked = client.post(
         f"/devices/{legacy_id}/diagnostics/support_snapshot",
         data={"csrf":token},

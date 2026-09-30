@@ -94,7 +94,7 @@ def main():
     legacy_dhcp = client.get(f"/devices/{legacy_id}/configuration?section=dhcp_leases")
     for response in (legacy_fw, legacy_dhcp):
         assert response.status_code == 200
-        assert "Aggiorna sezione" not in response.text
+        assert "Aggiorna sezione" in response.text and "Aggiorna tutto" in response.text
     assert "Block telnet" in legacy_fw.text and "office-pc" in legacy_dhcp.text
 
     print("Core 0.47 MikroTik firewall and DHCP health smoke passed in unified workspace")

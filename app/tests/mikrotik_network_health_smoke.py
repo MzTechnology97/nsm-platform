@@ -87,7 +87,7 @@ def main():
     legacy_routes = client.get(f"/devices/{legacy_id}/configuration?section=routes")
     for response in (legacy_ips, legacy_routes):
         assert response.status_code == 200
-        assert "Aggiorna sezione" not in response.text
+        assert "Aggiorna sezione" in response.text and "Aggiorna tutto" in response.text
     assert "192.0.2.1/24" in legacy_ips.text and "0.0.0.0/0" in legacy_routes.text
 
     print("Core 0.46 MikroTik IP and route health smoke passed in unified workspace")
