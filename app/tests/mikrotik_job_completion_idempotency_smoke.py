@@ -137,6 +137,7 @@ def main():
         },
     )
     assert duplicate.status_code == 200, duplicate.text
+    print("modern duplicate response:", duplicate.text, "routes:", modern_routes, flush=True)
     assert duplicate.json() == {
         "status": "ok",
         "already_terminal": True,
