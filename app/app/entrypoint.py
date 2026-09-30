@@ -38,6 +38,7 @@ from app.mikrotik_agent_status import install_mikrotik_agent_status
 from app.mikrotik_agent_update import install_mikrotik_agent_self_update
 from app.mikrotik_agent_update_ui import install_mikrotik_agent_update_ui
 from app.mikrotik_compatibility import install_mikrotik_compatibility_resolver
+from app.mikrotik_job_completion_guard import install_mikrotik_job_completion_guard
 from app.mikrotik_legacy import router as mikrotik_legacy_router
 from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
 from app.mikrotik_legacy_telemetry import install_mikrotik_legacy_telemetry
@@ -171,4 +172,7 @@ install_ui_customer_device_bulk_feedback(core.app)
 install_ui_api_key_feedback(core.app)
 install_ui_action_center_feedback(core.app)
 install_ui_notification_feedback(core.app)
+# Machine-facing completion idempotency must be installed after every route
+# composer/promoter so no later compatibility or UI layer can shadow it.
+install_mikrotik_job_completion_guard(core.app)
 app = core.app
