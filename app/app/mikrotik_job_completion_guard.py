@@ -4,9 +4,9 @@ A completion retry must not mutate a job that already reached a terminal state.
 This is especially important after maintenance expires a stale delivered job:
 a late Agent response must not resurrect it as successful.
 
-Dedicated backup and firmware-readiness completion endpoints are guarded by the
-same terminal-state contract so late/duplicate reports cannot rewrite terminal
-DeviceJobs or repeat their domain side effects.
+Dedicated backup, firmware-readiness and firmware-staging completion endpoints
+are guarded by the same terminal-state contract so late/duplicate reports cannot
+rewrite terminal DeviceJobs or repeat their domain side effects.
 """
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from app import mikrotik_agent as agent_module
 from app import mikrotik_backup_agent as backup_agent_module
 from app import mikrotik_firmware_readiness as firmware_readiness_module
+from app import firmware_package_staging as firmware_staging_module
 from app import mikrotik_legacy_jobs as legacy_jobs_module
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
@@ -28,11 +29,13 @@ GUARD_ROUTE_NAMES = {
     "guarded_mikrotik_legacy_job_complete",
     "guarded_mikrotik_backup_job_complete",
     "guarded_mikrotik_firmware_readiness_complete",
+    "guarded_mikrotik_firmware_stage_complete",
 }
 MODERN_COMPLETE_PATH = "/api/v1/agents/mikrotik/jobs/{job_id}/complete"
 LEGACY_COMPLETE_PATH = "/api/v1/agents/mikrotik/legacy/jobs/{job_id}/complete"
 BACKUP_COMPLETE_PATH = "/api/v1/agents/mikrotik/backup-jobs/{job_id}/complete"
 FIRMWARE_READINESS_COMPLETE_PATH = "/api/v1/agents/mikrotik/firmware-readiness/{job_id}/complete"
+FIRMWARE_STAGE_COMPLETE_PATH = "/api/v1/agents/mikrotik/firmware-stage/{job_id}/complete"
 
 
 def _remove_existing_guard_routes(app) -> None:
@@ -65,7 +68,6 @@ def _terminal_response(job: DeviceJob) -> dict:
 
 
 async def guarded_modern_job_complete(request: Request, job_id: uuid.UUID):
-    # Preserve the original body/status validation before applying idempotency.
     payload = await agent_module._json_body(request)
     requested_status = agent_module._string(payload.get("status"), 30) or "failed"
     if requested_status not in TERMINAL_JOB_STATUSES:
@@ -78,13 +80,9 @@ async def guarded_modern_job_complete(request: Request, job_id: uuid.UUID):
             raise HTTPException(404, "Job non trovato.")
         if job.status in TERMINAL_JOB_STATUSES:
             response = _terminal_response(job)
-            # _authenticate_agent updates last_used_at; persist that normal
-            # credential activity even though the duplicate completion is a no-op.
             db.commit()
             return response
 
-    # Request.body() is cached by Starlette, so the canonical handler can parse
-    # the same payload while retaining all existing result/audit behavior.
     return await agent_module.mikrotik_job_complete(request, job_id)
 
 
@@ -93,7 +91,6 @@ async def guarded_legacy_job_complete(
     job_id: uuid.UUID,
     status: str = Query("failed"),
 ):
-    # Preserve the legacy endpoint's body-size and status contract.
     raw = await request.body()
     if len(raw) > legacy_jobs_module.MAX_LEGACY_RESULT:
         raise HTTPException(413, "Risultato job legacy troppo grande.")
@@ -165,14 +162,39 @@ async def guarded_firmware_readiness_complete(request: Request, job_id: uuid.UUI
     return await firmware_readiness_module.firmware_readiness_complete(request, job_id)
 
 
-def install_mikrotik_job_completion_guard(app) -> None:
-    """Register canonical completion guards directly on the final application.
+async def guarded_firmware_stage_complete(request: Request, job_id: uuid.UUID):
+    """Prevent duplicate staging reports from rewriting a terminal plan/job."""
+    raw = await request.body()
+    if len(raw) > firmware_staging_module.MAX_RESULT_BODY:
+        raise HTTPException(413, "Risultato staging troppo grande.")
+    payload = await agent_module._json_body(request)
 
-    Do not depend on matching/removing historical routes by ``route.path``.
-    FastAPI/Starlette route metadata can differ across versions and compatibility
-    layers. Direct registration plus explicit promotion guarantees that the
-    guard is the first matching route while preserving the original handlers as
-    fallback contracts.
+    with SessionLocal() as db:
+        device, _ = agent_module._authenticate_agent(db, request)
+        job = db.get(DeviceJob, job_id)
+        if (
+            not job
+            or job.device_id != device.id
+            or job.job_type != firmware_staging_module.JOB_TYPE
+        ):
+            raise HTTPException(404, "Job staging non trovato.")
+        requested_status = str(payload.get("status") or "failed").strip().lower()
+        if requested_status not in TERMINAL_JOB_STATUSES:
+            raise HTTPException(400, "Stato staging non valido.")
+        if job.status in TERMINAL_JOB_STATUSES:
+            response = _terminal_response(job)
+            db.commit()
+            return response
+
+    return await firmware_staging_module.stage_complete(request, job_id)
+
+
+def install_mikrotik_job_completion_guard(app) -> None:
+    """Register completion guards directly on the final application.
+
+    Direct registration plus explicit promotion guarantees that each guard is
+    the first matching route while preserving the original handler as the
+    first-completion contract.
     """
     _remove_existing_guard_routes(app)
     app.add_api_route(
@@ -198,5 +220,11 @@ def install_mikrotik_job_completion_guard(app) -> None:
         guarded_firmware_readiness_complete,
         methods=["POST"],
         name="guarded_mikrotik_firmware_readiness_complete",
+    )
+    app.add_api_route(
+        FIRMWARE_STAGE_COMPLETE_PATH,
+        guarded_firmware_stage_complete,
+        methods=["POST"],
+        name="guarded_mikrotik_firmware_stage_complete",
     )
     _promote_guard_routes(app)
