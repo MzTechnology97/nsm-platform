@@ -1,11 +1,12 @@
-"""Idempotency guard for generic MikroTik Agent job completion endpoints.
+"""Idempotency guards for MikroTik Agent job completion endpoints.
 
 A completion retry must not mutate a job that already reached a terminal state.
 This is especially important after maintenance expires a stale delivered job:
 a late Agent response must not resurrect it as successful.
 
-Backup jobs use their dedicated completion/finalization lifecycle and are not
-handled here.
+The dedicated backup completion endpoint is guarded by the same terminal-state
+contract so a late/duplicate backup report cannot rewrite the DeviceJob or run
+the backup finalizer a second time.
 """
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from app import mikrotik_agent as agent_module
+from app import mikrotik_backup_agent as backup_agent_module
 from app import mikrotik_legacy_jobs as legacy_jobs_module
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
@@ -23,9 +25,11 @@ TERMINAL_JOB_STATUSES = {"success", "failed"}
 GUARD_ROUTE_NAMES = {
     "guarded_mikrotik_job_complete",
     "guarded_mikrotik_legacy_job_complete",
+    "guarded_mikrotik_backup_job_complete",
 }
 MODERN_COMPLETE_PATH = "/api/v1/agents/mikrotik/jobs/{job_id}/complete"
 LEGACY_COMPLETE_PATH = "/api/v1/agents/mikrotik/legacy/jobs/{job_id}/complete"
+BACKUP_COMPLETE_PATH = "/api/v1/agents/mikrotik/backup-jobs/{job_id}/complete"
 
 
 def _remove_existing_guard_routes(app) -> None:
@@ -111,12 +115,39 @@ async def guarded_legacy_job_complete(
     return await legacy_jobs_module.legacy_job_complete(request, job_id, normalized)
 
 
+async def guarded_backup_job_complete(request: Request, job_id: uuid.UUID):
+    """Make the dedicated MikroTik backup completion endpoint idempotent.
+
+    Validate the request and authenticate the Agent first, matching the canonical
+    endpoint.  Only after those checks can a terminal job be acknowledged as a
+    no-op.  This prevents a stale Agent report from resurrecting a maintenance-
+    failed backup and prevents duplicate reports from invoking finalization and
+    audit/config-drift side effects again.
+    """
+    payload = await agent_module._json_body(request)
+    requested_status = str(payload.get("status", "failed")).strip().lower()
+    if requested_status not in TERMINAL_JOB_STATUSES:
+        raise HTTPException(400, "Stato job non valido.")
+
+    with SessionLocal() as db:
+        device, _ = agent_module._authenticate_agent(db, request)
+        job = db.get(DeviceJob, job_id)
+        if not job or job.device_id != device.id or job.job_type != "backup_mikrotik":
+            raise HTTPException(404, "Backup job non trovato.")
+        if job.status in TERMINAL_JOB_STATUSES:
+            response = _terminal_response(job)
+            db.commit()
+            return response
+
+    return await backup_agent_module.backup_aware_job_complete(request, job_id)
+
+
 def install_mikrotik_job_completion_guard(app) -> None:
     """Register canonical completion guards directly on the final application.
 
     Do not depend on matching/removing historical routes by ``route.path``.
     FastAPI/Starlette route metadata can differ across versions and compatibility
-    layers.  Direct registration plus explicit promotion guarantees that the
+    layers. Direct registration plus explicit promotion guarantees that the
     guard is the first matching route while preserving the original handlers as
     fallback contracts.
     """
@@ -132,5 +163,11 @@ def install_mikrotik_job_completion_guard(app) -> None:
         guarded_legacy_job_complete,
         methods=["POST"],
         name="guarded_mikrotik_legacy_job_complete",
+    )
+    app.add_api_route(
+        BACKUP_COMPLETE_PATH,
+        guarded_backup_job_complete,
+        methods=["POST"],
+        name="guarded_mikrotik_backup_job_complete",
     )
     _promote_guard_routes(app)
