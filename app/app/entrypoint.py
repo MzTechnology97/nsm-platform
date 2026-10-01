@@ -45,6 +45,7 @@ from app.mikrotik_legacy_telemetry import install_mikrotik_legacy_telemetry
 from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
 from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_finalization_cleanup
+from app.mikrotik_backup_router_cleanup import install_mikrotik_backup_router_cleanup
 from app.mikrotik_snapshot_agent import install_mikrotik_snapshot_agent
 from app.mikrotik_snapshot_batch import install_mikrotik_snapshot_batch
 from app.mikrotik_diagnostics_agent import install_mikrotik_diagnostics_agent
@@ -151,6 +152,10 @@ install_mikrotik_compatibility_resolver()
 # agent advances to the maintenance generation selected by this policy.
 install_mikrotik_agent_generation()
 install_mikrotik_agent_self_update(core.app)
+# Temporary RouterOS backup files must be removed on both successful and failed
+# upload attempts. Install this before the final source syntax guard so the
+# resulting composed Agent is still validated as one unit.
+install_mikrotik_backup_router_cleanup()
 # The syntax guard must wrap the final composed modern source, including the
 # Core 0.49 self-update/integrity extension. Installing it earlier would leave
 # later wrappers able to re-introduce unsafe RouterOS syntax.
