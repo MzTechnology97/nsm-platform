@@ -1,7 +1,12 @@
-"""Terminal cleanup for MikroTik backup jobs.
+"""Terminal cleanup and outcome consistency for MikroTik backup jobs.
 
 Backup passwords are per-job secrets and partial upload files are transient. Once
 a backup job reaches terminal finalization neither should remain available.
+
+The backup finalizer can also downgrade an Agent-reported success when required
+artifacts are missing.  Keep the DeviceJob terminal state aligned with that
+final authoritative BackupRun outcome so the operator never sees a successful
+job paired with a failed backup run.
 
 The application has multiple finalizer call sites and the modern Agent path may
 already be wrapped by configuration-drift detection. Install cleanup around the
@@ -25,6 +30,19 @@ from app.models import utcnow
 
 _INSTALLED = False
 _WRAPPER_MARKER = "_nsm_backup_terminal_cleanup"
+
+
+def _synchronize_terminal_outcome(db, job) -> None:
+    """Mirror the authoritative final BackupRun result onto its DeviceJob."""
+    if job.job_type != "backup_mikrotik":
+        return
+
+    run = backup._run_for_job(db, job)
+    if run.status not in {"success", "failed"}:
+        return
+
+    job.status = run.status
+    job.last_error = run.error_message if run.status == "failed" else None
 
 
 def _cleanup_terminal_state(db, job) -> None:
@@ -56,6 +74,7 @@ def _with_terminal_cleanup(finalizer):
     @wraps(finalizer)
     def wrapped(db, device, job, success: bool, error: str | None = None):
         result = finalizer(db, device, job, success, error)
+        _synchronize_terminal_outcome(db, job)
         _cleanup_terminal_state(db, job)
         return result
 
@@ -88,7 +107,7 @@ def install_mikrotik_backup_finalization_cleanup() -> None:
     # These modules import the finalizer by value. The modern Agent reference can
     # already be the config-drift wrapper; legacy and maintenance are normally
     # direct references. In every case retain the existing behavior and add the
-    # terminal cleanup exactly once.
+    # terminal consistency/cleanup contract exactly once.
     _patch_reference(backup_agent, previous, canonical)
     _patch_reference(legacy_jobs, previous, canonical)
     _patch_reference(backup_maintenance, previous, canonical)
