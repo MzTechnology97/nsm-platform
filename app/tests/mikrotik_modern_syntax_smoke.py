@@ -23,6 +23,9 @@ def main():
         ':local h [:convert "test" transform=sha512]\n'
         ':do { :log warning "failed"; :return } on-error={}\n'
         ':local nsmRead [/file read file=$nsmFileName offset=$nsmOffset chunk-size=$nsmChunkSize]\n'
+        ':local nsmRaw ($nsmRead->"data")\n'
+        ':local nsmChunkResponse [:deserialize from=json value="{}"]\n'
+        ':set nsmOffset [:tonum ($nsmChunkResponse->"next_offset")]\n'
     )
     normalized, replaced = normalize_modern_agent_source(sample)
     assert normalized.splitlines()[0] == ':local nsmData'
@@ -31,12 +34,20 @@ def main():
     assert 'transform=sha512 to=hex' in normalized
     assert ':exit' in normalized
     assert '/file read file=$nsmFileName offset=$nsmOffset chunk-size=$nsmChunkSize as-value]' in normalized
+    assert 'NSM backup read returned empty chunk' in normalized
+    assert ':local nsmNextOffset [:tonum ($nsmChunkResponse->"next_offset")]' in normalized
+    assert '$nsmNextOffset <= $nsmOffset' in normalized
+    assert '$nsmNextOffset > $nsmFileSize' in normalized
+    assert ':set nsmOffset $nsmNextOffset' in normalized
+    assert ':set nsmOffset [:tonum ($nsmChunkResponse->"next_offset")]' not in normalized
     assert replaced == (
         "nsmData",
         "nsmAckResult",
         "sha512-hex",
         "bare-return",
         "backup-file-read-as-value",
+        "backup-empty-read-guard",
+        "backup-offset-progress-guard",
     )
     validate_modern_agent_source(normalized)
 
@@ -54,6 +65,12 @@ def main():
     assert 'transform=sha512 to=hex' in source
     assert 'agent_source_sha512' in source
     assert '/file read file=$nsmFileName offset=$nsmOffset chunk-size=$nsmChunkSize as-value]' in source
+    assert 'NSM backup read returned empty chunk' in source
+    assert ':local nsmNextOffset [:tonum ($nsmChunkResponse->"next_offset")]' in source
+    assert '$nsmNextOffset <= $nsmOffset' in source
+    assert '$nsmNextOffset > $nsmFileSize' in source
+    assert ':set nsmOffset $nsmNextOffset' in source
+    assert ':set nsmOffset [:tonum ($nsmChunkResponse->"next_offset")]' not in source
     for marker in (
         'snapshot_section',
         'diagnostic_ping',

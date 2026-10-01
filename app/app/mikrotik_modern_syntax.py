@@ -12,7 +12,9 @@ unsafe on real devices:
   return value when an unattended error path is executed;
 * ``/file read`` used without ``as-value`` in the backup uploader: on real
   RouterOS 7.24.4 it prints the binary data but the expression evaluates to
-  ``nil``, while ``as-value`` returns the expected array containing ``data``.
+  ``nil``, while ``as-value`` returns the expected array containing ``data``;
+* backup upload loops that can otherwise spin forever when RouterOS returns an
+  empty read or the server returns a ``next_offset`` that does not advance.
 
 The guard operates only on the final composed modern source.  Legacy RouterOS
 source is kept separate and is not rewritten here.
@@ -30,6 +32,17 @@ _RAW_SHA512_RE = re.compile(r"transform=sha512(?=\])")
 _BARE_RETURN_RE = re.compile(r"(?m):return(?=[ \t]*(?:;|\}|$))")
 _BACKUP_FILE_READ_RE = re.compile(
     r"(?P<read>/file[ \t]+read[ \t]+file=\$nsmFileName[ \t]+offset=\$nsmOffset[ \t]+chunk-size=\$nsmChunkSize)(?![ \t]+as-value)(?=\])"
+)
+_BACKUP_RAW_READ_LINE = ':local nsmRaw ($nsmRead->"data")'
+_BACKUP_EMPTY_READ_GUARD = (
+    ':if ([:len $nsmRaw] = 0) do={ :error "NSM backup read returned empty chunk" }'
+)
+_BACKUP_OFFSET_LINE = ':set nsmOffset [:tonum ($nsmChunkResponse->"next_offset")]'
+_BACKUP_PROGRESS_BLOCK = (
+    ':local nsmNextOffset [:tonum ($nsmChunkResponse->"next_offset")]\n'
+    ':if (($nsmNextOffset <= $nsmOffset) || ($nsmNextOffset > $nsmFileSize)) do={ '
+    ':error "NSM backup upload offset did not advance" }\n'
+    ':set nsmOffset $nsmNextOffset'
 )
 
 
@@ -53,6 +66,18 @@ def normalize_modern_agent_source(source: str) -> tuple[str, tuple[str, ...]]:
     normalized, read_count = _BACKUP_FILE_READ_RE.subn(r"\g<read> as-value", normalized)
     replaced.extend("backup-file-read-as-value" for _ in range(read_count))
 
+    if _BACKUP_RAW_READ_LINE in normalized and _BACKUP_EMPTY_READ_GUARD not in normalized:
+        normalized = normalized.replace(
+            _BACKUP_RAW_READ_LINE,
+            _BACKUP_RAW_READ_LINE + "\n" + _BACKUP_EMPTY_READ_GUARD,
+            1,
+        )
+        replaced.append("backup-empty-read-guard")
+
+    if _BACKUP_OFFSET_LINE in normalized:
+        normalized = normalized.replace(_BACKUP_OFFSET_LINE, _BACKUP_PROGRESS_BLOCK, 1)
+        replaced.append("backup-offset-progress-guard")
+
     return normalized, tuple(replaced)
 
 
@@ -72,6 +97,19 @@ def validate_modern_agent_source(source: str) -> None:
         raise RuntimeError("RouterOS modern backup file read is missing as-value")
     if "agent_source_sha512" in source and "transform=sha512 to=hex" not in source:
         raise RuntimeError("RouterOS modern agent source fingerprint is not hexadecimal")
+    if _BACKUP_RAW_READ_LINE in source and _BACKUP_EMPTY_READ_GUARD not in source:
+        raise RuntimeError("RouterOS modern backup can upload an empty file chunk")
+    if _BACKUP_OFFSET_LINE in source:
+        raise RuntimeError("RouterOS modern backup accepts a non-advancing upload offset")
+    if "nsmChunkResponse" in source:
+        required_progress_markers = (
+            ':local nsmNextOffset [:tonum ($nsmChunkResponse->"next_offset")]',
+            '$nsmNextOffset <= $nsmOffset',
+            '$nsmNextOffset > $nsmFileSize',
+            ':set nsmOffset $nsmNextOffset',
+        )
+        if not all(marker in source for marker in required_progress_markers):
+            raise RuntimeError("RouterOS modern backup upload progress guard is incomplete")
 
 
 def install_mikrotik_modern_syntax_guard() -> None:
