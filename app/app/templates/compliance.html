@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_worklist.html" import chips, pager, context_banner %}
+{% block title %}Compliance · {{ app_name }}{% endblock %}
+{% block content %}
+{% set scope = '?customer=' ~ customer_filter ~ '&control=' ~ control_filter %}
+{% set marks = {'pass': '✓', 'fail': '✗', 'unknown': '?', 'not_applicable': '–'} %}
+<div class="page-header compact-heading">
+  <div><h1>Compliance</h1><p>Verifica della baseline di sicurezza e operatività su ogni apparato, a partire dalle evidenze raccolte da NSM.{% if last_eval %} Ultima valutazione {{ fmt_dt(last_eval) }}.{% endif %}</p></div>
+  <div class="page-actions">
+    <a class="button ghost" href="/compliance/baselines">Baseline</a>
+    {% if can_manage and has_baselines %}<form method="post" action="/compliance/evaluate"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Valuta ora</button></form>{% endif %}
+  </div>
+</div>
+
+{% if not has_baselines %}
+<section class="panel">
+  <div class="empty-state">
+    <p>Nessuna baseline configurata: la compliance non viene valutata.</p>
+    {% if can_manage %}<form method="post" action="/compliance/baselines/default"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Crea la baseline globale predefinita</button></form>{% endif %}
+  </div>
+</section>
+{% else %}
+{{ chips([
+  {'label': 'Non conformi', 'count': totals.get('fail', 0), 'href': scope ~ '&status=fail', 'active': status_filter == 'fail', 'tone': 'danger'},
+  {'label': 'Nessuna evidenza', 'count': totals.get('unknown', 0), 'href': scope ~ '&status=unknown', 'active': status_filter == 'unknown', 'tone': 'warning'},
+  {'label': 'Conformi', 'count': totals.get('pass', 0), 'href': scope ~ '&status=pass', 'active': status_filter == 'pass'},
+  {'label': 'Non applicabili', 'count': totals.get('not_applicable', 0), 'href': scope ~ '&status=not_applicable', 'active': status_filter == 'not_applicable'},
+  {'label': 'Tutti gli apparati', 'count': devices_total, 'href': scope ~ '&status=all', 'active': status_filter not in ['fail', 'unknown', 'pass', 'not_applicable']},
+], 'Esito') }}
+{{ context_banner(selected_customer, 'Compliance degli apparati di questo cliente.') }}
+
+<section class="panel">
+  <form class="filter-bar" method="get">
+    <input type="hidden" name="status" value="{{ status_filter }}">
+    <select name="customer" aria-label="Cliente"><option value="">Tutti i clienti</option>{% for c in customers %}<option value="{{ c.id }}" {% if customer_filter == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
+    <select name="control" aria-label="Controllo"><option value="">Tutti i controlli</option>{% for cid, c in controls.items() %}<option value="{{ cid }}" {% if control_filter == cid %}selected{% endif %}>{{ c.title }}</option>{% endfor %}</select>
+    <button class="button primary">Applica</button>
+    {% if customer_filter or control_filter or status_filter != 'fail' %}<a class="button ghost" href="/compliance">Reset</a>{% endif %}
+  </form>
+  <p class="muted">Legenda: ✓ conforme · ✗ non conforme · ? nessuna evidenza · – non applicabile al vendor/metodo (mai contato come non conformità).</p>
+  {% if rows %}
+  <div class="table-wrap"><table class="data-table compact-data-table compliance-matrix">
+    <thead><tr><th>Apparato</th>{% for cid in used_controls %}<th title="{{ controls[cid].description }}">{{ controls[cid].title }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for device, results, worst in rows %}
+      <tr>
+        <td><a class="strong-link" href="/devices/{{ device.id }}">{{ device.display_name or device.device_identity or device.name }}</a><small>{{ device.customer.name if device.customer else '' }} · {{ device.vendor }}</small></td>
+        {% for cid in used_controls %}{% set r = results.get(cid) %}
+          <td>{% if r %}<span class="compliance-mark compliance-{{ r.status }}" title="{{ result_labels[r.status] }}: {{ r.evidence }}">{{ marks[r.status] }}</span><small>{{ r.evidence|truncate(60) }}</small>{% else %}<span class="muted">·</span>{% endif %}</td>
+        {% endfor %}
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {{ pager(total, page, pages, scope ~ '&status=' ~ status_filter) }}
+  {% else %}
+  <div class="empty-state{% if status_filter == 'fail' %} success-state{% endif %}">{% if status_filter == 'fail' %}Nessuna non conformità.{% else %}Nessun apparato corrisponde ai filtri.{% endif %}</div>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

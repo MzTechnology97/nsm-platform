@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Baseline compliance · {{ app_name }}{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="Percorso"><a href="/compliance">Compliance</a><span>›</span><span>Baseline</span></nav>
+<div class="page-header compact-heading">
+  <div><h1>Baseline</h1><p>Le baseline si ereditano dal livello globale fino all'apparato: una baseline più specifica sovrascrive solo i controlli che imposta. Ogni modifica crea una nuova versione.</p></div>
+  {% if can_manage %}<div class="page-actions"><a class="button primary" href="/compliance/baselines/new">+ Nuova baseline</a></div>{% endif %}
+</div>
+<section class="panel">
+  {% if rows %}
+  <div class="table-wrap"><table class="data-table compact-data-table">
+    <thead><tr><th>Baseline</th><th>Ambito</th><th>Controlli impostati</th><th>Versione</th><th>Stato</th><th>Aggiornata</th><th></th></tr></thead>
+    <tbody>{% for b, scope_label in rows %}
+      <tr>
+        <td><strong>{{ b.name }}</strong>{% if b.description %}<small>{{ b.description|truncate(90) }}</small>{% endif %}</td>
+        <td>{{ scope_label }}</td>
+        <td>{% for cid, setting in (b.controls or {}).items() if cid in controls %}<span class="status-pill{% if not setting.get('enabled', True) %} muted{% endif %}" title="{{ 'Attivo' if setting.get('enabled', True) else 'Disattivato' }}">{{ controls[cid].title }}{% if not setting.get('enabled', True) %} (off){% endif %}</span> {% endfor %}</td>
+        <td>v{{ b.version }}</td>
+        <td><span class="status-pill">{{ 'Attiva' if b.is_enabled else 'Disattivata' }}</span></td>
+        <td>{{ fmt_dt(b.updated_at) }}</td>
+        <td>{% if can_manage %}<a class="button tiny ghost" href="/compliance/baselines/{{ b.id }}/edit">Modifica</a>{% endif %}</td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}
+  <div class="empty-state">Nessuna baseline. {% if can_manage %}<form method="post" action="/compliance/baselines/default" style="display:inline"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Crea la baseline globale predefinita</button></form>{% endif %}</div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -18,6 +18,7 @@ from app.routerboot_lifecycle import verification_tick as routerboot_verificatio
 from app.report_schedules import run_report_schedules
 from app.uisp_sync import sync_uisp_devices
 from app.advisory_sources import sync_security_advisories
+from app.compliance import run_scheduled_evaluation as run_compliance_evaluation
 
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
 log = logging.getLogger("worker")
@@ -25,6 +26,8 @@ r = Redis.from_url(settings.redis_url, decode_responses=True)
 
 MAINTENANCE_INTERVAL_SECONDS = 60
 TELEMETRY_MAINTENANCE_INTERVAL_SECONDS = 3600
+COMPLIANCE_INTERVAL_SECONDS = 1800
+last_compliance = 0.0
 last_maintenance = 0.0
 last_telemetry_maintenance = 0.0
 
@@ -71,6 +74,12 @@ while True:
             if advisory_stats.get("status") in {"success", "failed"}:
                 log.info("Security advisories: %s", advisory_stats)
             last_maintenance = now_mono
+
+        if now_mono - last_compliance >= COMPLIANCE_INTERVAL_SECONDS:
+            compliance_stats = run_compliance_evaluation()
+            if compliance_stats.get("changed") or compliance_stats.get("removed"):
+                log.info("Compliance: %s", compliance_stats)
+            last_compliance = now_mono
 
         if now_mono - last_telemetry_maintenance >= TELEMETRY_MAINTENANCE_INTERVAL_SECONDS:
             deleted = telemetry_cleanup()

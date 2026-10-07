@@ -455,6 +455,27 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 
 - heuristics never become facts or root causes by themselves.
 
+## 15c. Compliance baseline (COMP-01 / COMP-02)
+
+### Implemented
+
+- baselines with scope global, vendor, customer, site or Device; each lists the controls it sets (*Attivo* / *Disattivato* with parameters), the others are inherited; the effective baseline of a Device merges every enabled applicable baseline from global to Device; every save creates a new version, results record baseline and version;
+- controls, decided only from evidence NSM holds:
+  - *Firmware senza update di sicurezza* (strict mode: any update fails);
+  - *Nessuna CVE grave non gestita* (critical/high still *Aperta*; optional: exceptions fail) — MikroTik only, unknown without an advisory source or with an unknown version;
+  - *Backup recente riuscito* (max age) and *Restore test superato* (max age) — not applicable when the vendor has no executable backup method;
+  - *Apparato supportato dal vendor* (EOS fails, EOL optional);
+  - *Agent NSM attivo* (heartbeat age) — MikroTik only;
+  - *Configurazione approvata senza drift* — MikroTik only;
+  - *Servizi in chiaro disabilitati* (telnet, FTP, optional www) from the latest RouterOS export: compliant only with explicit `disabled=yes`, explicit `disabled=no` fails, missing values are *nessuna evidenza* because the compact export omits defaults;
+- results: *Conforme*, *Non conforme*, *Nessuna evidenza*, *Non applicabile*; missing vendor capability is never a failure;
+- `/compliance` (device × control matrix, quick filters, customer/control filters, *Valuta ora*), `/compliance/baselines` (list, create, edit), one-click default global baseline; worker re-evaluates every 30 minutes; audit events for baseline changes and evaluations;
+- permissions: `compliance.read` (all roles), `compliance.manage` (Technician, Admin).
+
+### Not implemented yet
+
+- findings lifecycle and Action Center link (COMP-03); Device/Customer views and report integration (COMP-04).
+
 ## 16. Lifecycle / EOL / EOS
 
 ### Implemented foundation

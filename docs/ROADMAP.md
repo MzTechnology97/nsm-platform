@@ -413,11 +413,15 @@ Approved future evidence/control feature.
 
 ### COMP-01 — baseline model and inheritance
 
+**Implemented in `main`** (`app/compliance_models.py`, `app/compliance_engine.py`).
+
 - control definitions;
 - global/vendor/customer/site/device applicability where appropriate;
 - versioned baseline/effective baseline.
 
 ### COMP-02 — capability-aware evaluation
+
+**Implemented in `main`**: eight controls, results pass / fail / unknown / not applicable, worker every 30 minutes.
 
 Every control result must distinguish at least:
 
