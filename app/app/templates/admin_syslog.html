@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Syslog · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Amministrazione</h1><p>Server syslog integrato: gli apparati inviano warning, errori e accessi; ogni dispositivo li mostra nella propria scheda Syslog.</p></div></div>
+{% set admin_tab = "syslog" %}{% include "_admin_tabs.html" %}
+{% if status == 'saved' %}<div class="alert success">Impostazioni syslog salvate: il ricevitore le applica entro un minuto.</div>
+{% elif status == 'assigned' %}<div class="alert success">Mittente associato al dispositivo: i prossimi log verranno salvati.</div>
+{% elif status == 'ignored' %}<div class="alert info">Mittente rimosso dall'elenco.</div>
+{% elif status == 'invalid' %}<div class="alert error">Richiesta non valida.</div>{% endif %}
+
+<section class="mt-kpi-grid">
+  <article class="metric-card"><span>Ricevitore</span><strong>{% if syslog_status and syslog_status.alive %}Attivo{% elif syslog_status %}Fermo{% else %}Non avviato{% endif %}</strong><small>{% if syslog_status %}UDP/TCP {{ syslog_status.port }} nel container · ultimo stato {{ syslog_status.age_seconds }} s fa{% else %}servizio Docker «syslog»{% endif %}</small></article>
+  <article class="metric-card"><span>Righe salvate oggi</span><strong>{{ stored_today }}</strong><small>da {{ senders_today }} dispositivi</small></article>
+  <article class="metric-card"><span>Dal riavvio del ricevitore</span><strong>{{ syslog_status.received if syslog_status else 0 }}</strong><small>{% if syslog_status %}{{ syslog_status.unknown }} da mittenti sconosciuti · {{ syslog_status.dropped }} scartate (limite di frequenza){% else %}nessun dato{% endif %}</small></article>
+  <article class="metric-card"><span>Indirizzi riconosciuti</span><strong>{{ syslog_status.sources if syslog_status else '—' }}</strong><small>IP associati ai dispositivi</small></article>
+</section>
+
+<div class="content-split">
+<section class="panel side-form">
+  <div class="panel-header"><div><h2>Impostazioni</h2><p>Indirizzo da comunicare agli apparati e conservazione dei log.</p></div></div>
+  <form method="post" action="/admin/syslog/settings" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Indirizzo del server syslog<input name="public_host" value="{{ settings.public_host }}" placeholder="{{ syslog_host or '203.0.113.10' }}"><small>IP pubblico (o raggiungibile dagli apparati) di questo server. Vuoto: nome host del portale ({{ syslog_host or 'n.d.' }}). RouterOS accetta solo indirizzi IP.</small></label>
+    <label>Conservazione info, notice e debug (giorni)<input name="info_retention_days" type="number" min="7" max="90" value="{{ settings.info_retention_days }}"><small>Massimo 90 giorni. Warning, error e critical restano per tutta la vita del dispositivo.</small></label>
+    <label class="check-row"><input type="checkbox" name="accept_unknown" value="1"{% if settings.accept_unknown %} checked{% endif %}> Salva anche i log di mittenti non associati a un dispositivo</label>
+    <button class="button primary">Salva impostazioni</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Mittenti sconosciuti</h2><p>Indirizzi che hanno inviato log ma non corrispondono a nessun dispositivo: associali per salvarne i log.</p></div></div>
+  {% if unknown_sources %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Mittente</th><th>Messaggi</th><th>Ultimo</th><th>Esempio</th><th>Associa</th></tr></thead>
+    <tbody>{% for source in unknown_sources %}<tr>
+      <td><code>{{ source.source_ip }}</code></td><td>{{ source.messages }}</td><td>{{ fmt_dt(source.last_seen) }}</td><td class="log-message">{{ source.sample or '' }}</td>
+      <td><form method="post" action="/admin/syslog/unknown/assign" class="inline-form">
+        <input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="source_ip" value="{{ source.source_ip }}">
+        <select name="device_id" aria-label="Dispositivo">{% for d in devices %}<option value="{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</option>{% endfor %}</select>
+        <button class="button tiny">Associa</button><button class="button tiny ghost" name="ignore" value="1">Ignora</button>
+      </form></td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty-state">Nessun mittente sconosciuto.</div>{% endif %}
+</section>
+</div>
+
+<section class="panel" id="vendors">
+  <div class="panel-header"><div><h2>Configurazione per produttore</h2><p>Le stesse istruzioni compaiono nella scheda Syslog di ogni dispositivo, già filtrate per il suo produttore.</p></div></div>
+  {% set syslog_brand = 'all' %}{% set syslog_target = settings.public_host or syslog_host %}{% include "_syslog_instructions.html" %}
+</section>
+{% endblock %}

@@ -16,6 +16,7 @@ from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_fin
 from app.mikrotik_telemetry import telemetry_cleanup
 from app.uisp_metrics import cleanup as uisp_metrics_cleanup
 from app.interface_traffic import cleanup as interface_traffic_cleanup
+from app.syslog_receiver import cleanup as syslog_cleanup
 from app.routeros_catalog import run_scheduled as run_routeros_catalog
 from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
 from app.mikrotik_device_reboot import verify_reboots
@@ -111,7 +112,7 @@ while True:
             last_compliance = now_mono
 
         if now_mono - last_telemetry_maintenance >= TELEMETRY_MAINTENANCE_INTERVAL_SECONDS:
-            deleted = run_task("telemetry_retention", telemetry_cleanup, default=0) + run_task("uisp_metrics_retention", uisp_metrics_cleanup, default=0) + run_task("interface_traffic_retention", interface_traffic_cleanup, default=0)
+            deleted = run_task("telemetry_retention", telemetry_cleanup, default=0) + run_task("uisp_metrics_retention", uisp_metrics_cleanup, default=0) + run_task("interface_traffic_retention", interface_traffic_cleanup, default=0) + run_task("syslog_retention", syslog_cleanup, default=0)
             if deleted:
                 log.info("Telemetry retention: rimossi %s campioni scaduti", deleted)
             last_telemetry_maintenance = now_mono

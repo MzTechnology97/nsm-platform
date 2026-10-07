@@ -79,4 +79,13 @@ def connectors(db, now=None) -> list[dict]:
         state = "error" if health["failed"] else ("warning" if health["stuck"] else "ok")
         out.append({"name": "Notifiche e-mail", "state": state, "href": "/admin/notifications", "last_ok": None,
                     "detail": f"24 ore: {health['sent']} inviate, {health['pending']} in coda, {health['failed']} fallite", "error": None})
+    from app.syslog_receiver import receiver_status
+
+    syslog = receiver_status()
+    if not syslog:
+        out.append({"name": "Server syslog", "state": "unconfigured", "href": "/admin/syslog", "last_ok": None, "detail": "ricevitore non in esecuzione", "error": None})
+    else:
+        out.append({"name": "Server syslog", "state": "ok" if syslog["alive"] else "error", "href": "/admin/syslog", "last_ok": None,
+                    "detail": f"{syslog['stored']} righe salvate, {syslog['unknown']} da mittenti sconosciuti, {syslog['dropped']} scartate",
+                    "error": None if syslog["alive"] else "nessuno stato dal ricevitore da oltre 90 secondi"})
     return out

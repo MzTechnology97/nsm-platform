@@ -1,0 +1,42 @@
+{% extends "device_layout.html" %}
+{% set device_tab = 'logs' %}
+{% block device_content %}
+<section class="mt-kpi-grid">
+  <article class="metric-card"><span>Critical / error oggi</span><strong>{{ (today_counts.get(0, 0) + today_counts.get(1, 0) + today_counts.get(2, 0) + today_counts.get(3, 0)) }}</strong><small>da mezzanotte (UTC)</small></article>
+  <article class="metric-card"><span>Warning oggi</span><strong>{{ today_counts.get(4, 0) }}</strong><small>da mezzanotte (UTC)</small></article>
+  <article class="metric-card"><span>Altre righe oggi</span><strong>{{ today_counts.get(5, 0) + today_counts.get(6, 0) + today_counts.get(7, 0) }}</strong><small>notice, info, debug</small></article>
+  <article class="metric-card"><span>Ultimo log</span><strong>{{ fmt_dt(last_log.received_at) if last_log else '—' }}</strong><small>{% if last_log %}da {{ last_log.source_ip }}{% else %}nessun log ricevuto{% endif %}</small></article>
+</section>
+
+<section class="panel log-panel" data-log-root data-endpoint="/api/v1/devices/{{ device.id }}/logs">
+  <div class="panel-header">
+    <div><h2>Syslog in tempo reale</h2><p>Righe syslog inviate dall'apparato al server integrato di NSM, aggiornate ogni 5 secondi. Warning ed error restano per tutta la vita del dispositivo; info fino a 3 mesi.</p></div>
+    <div class="log-actions">
+      <span class="log-live" data-log-live-state>● live</span>
+      <button type="button" class="button ghost" data-log-pause>Pausa</button>
+      <a class="button ghost" data-log-csv href="/devices/{{ device.id }}/logs.csv">Esporta CSV</a>
+    </div>
+  </div>
+  <form class="log-filters" data-log-filters>
+    <label>Gravità<select name="severity" data-log-severity>{% for value, label in severity_filters %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></label>
+    <label class="log-search">Cerca<input type="search" name="q" data-log-q placeholder="login, interface, pppoe…" autocomplete="off"></label>
+  </form>
+  <div class="table-wrap log-table-wrap">
+    <table class="log-table">
+      <thead><tr><th>Ricevuto</th><th>Gravità</th><th>Topic</th><th>Messaggio</th></tr></thead>
+      <tbody data-log-body><tr class="log-empty"><td colspan="4">Caricamento…</td></tr></tbody>
+    </table>
+  </div>
+  <div class="telemetry-footer"><span data-log-count>0 righe</span><button type="button" class="button ghost" data-log-more>Carica righe precedenti</button></div>
+</section>
+
+<section class="panel" id="syslog-setup">
+  <details{% if not last_log %} open{% endif %}>
+    <summary class="panel-header syslog-setup-summary"><div><h2>Configurazione syslog dell'apparato</h2><p>Server remoto <code>{{ syslog_host or 'indirizzo di NSM' }}</code>, porta <code>514</code> UDP. NSM associa i log a questo apparato tramite l'indirizzo IP del mittente.</p></div>
+      {% if syslog_status and syslog_status.alive %}<span class="device-status status-online">Ricevitore attivo</span>{% else %}<span class="device-status status-offline">Ricevitore non attivo</span>{% endif %}</summary>
+    {% set syslog_brand = device_brand_key %}{% set syslog_target = syslog_host %}{% include "_syslog_instructions.html" %}
+    <p class="muted">Indirizzi da cui NSM accetta i log di questo apparato: {% for ip in syslog_sources %}<code>{{ ip }}</code>{% if not loop.last %}, {% endif %}{% else %}nessuno ancora noto (si aggiorna con l'heartbeat dell'agent o con l'IP di gestione){% endfor %}.</p>
+  </details>
+</section>
+<script defer src="{{ url_for('static', path='/device_logs.js') }}?v={{ asset_version }}"></script>
+{% endblock %}

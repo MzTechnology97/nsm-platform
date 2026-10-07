@@ -15,6 +15,7 @@
 {% set device_tabs = [
   ('overview', 'Panoramica', device_base, true),
   ('monitor', 'Monitor', device_base ~ '/monitor', is_mikrotik),
+  ('logs', 'Syslog', device_base ~ '/logs', true),
   ('configuration', 'Configurazione', device_base ~ '/configuration', is_mikrotik),
   ('diagnostics', 'Diagnostica', device_base ~ '/diagnostics', is_mikrotik),
   ('backups', 'Backup', device_base ~ '/backups', true),

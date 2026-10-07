@@ -4,6 +4,25 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.45 — 2026-10-07
+
+Logs
+- **Integrated syslog server** (LOG-01 step 1): new Docker service `syslog` on UDP/TCP 514.
+  - Parses RFC 3164, RFC 5424 and the RouterOS format (topics give the severity).
+  - Each line is matched to its device by sender IP; with shared NAT the hostname picks the device.
+  - Each sender is rate limited; unknown senders are counted, not stored.
+  - Warning, error and critical lines are kept for the whole life of the device; info, notice and debug lines are kept for up to 90 days to limit storage.
+- **Syslog tab on every device** (any vendor):
+  - live log updated every 5 seconds, with pause, severity and text filters, older lines on demand and CSV export;
+  - counters for the day;
+  - remote syslog configuration for the device's own manufacturer, shown inline.
+- **Amministrazione → Syslog** (admin only):
+  - server address for the devices, retention, acceptance of unknown senders;
+  - receiver status;
+  - unknown senders, which can be assigned to a device;
+  - instructions for about 18 manufacturers.
+- The **Server syslog** connector is added to the system health page.
+
 ## 0.49.44 — 2026-10-07
 
 Inventory
