@@ -31,6 +31,23 @@
   {% endif %}
 </section>
 
+<section class="panel" data-system="capacity"><div class="panel-header"><div><h2>Capacità e retention</h2><p>Dimensione del database e dell'archivio dei backup, con la crescita degli ultimi 30 giorni.</p></div></div>
+  <div class="policy-summary six">
+    <div><span>Archivio backup</span><strong>{{ archive.bytes|filesizeformat(true) }}</strong><small>{{ archive.count }} file</small></div>
+    <div><span>Crescita 30 giorni</span><strong>{{ archive.growth_30d|filesizeformat(true) }}</strong></div>
+    <div><span>Spazio stimato</span><strong{% if archive.days_left is not none and archive.days_left < 90 %} class="warning-text"{% endif %}>{% if archive.days_left is none %}—{% elif archive.days_left > 3650 %}oltre 10 anni{% else %}circa {{ archive.days_left }} giorni{% endif %}</strong><small>al ritmo attuale</small></div>
+  </div>
+  {% if archive.days_left is not none and archive.days_left < 90 %}<div class="alert warning">Al ritmo degli ultimi 30 giorni il volume dei backup si riempie in circa {{ archive.days_left }} giorni: riduci la retention delle policy o amplia il disco.</div>{% endif %}
+  <div class="detail-grid">
+    <div>{% if tables %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Tabella</th><th>Dimensione</th><th>Righe (stima)</th></tr></thead><tbody>
+      {% for t in tables %}<tr><td><code>{{ t.name }}</code></td><td>{{ t.bytes|filesizeformat(true) }}</td><td>{{ '{:,}'.format(t.rows).replace(',', '.') }}</td></tr>{% endfor %}
+    </tbody></table></div>{% else %}<div class="empty-state">Dimensioni delle tabelle non disponibili.</div>{% endif %}</div>
+    <div><div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Dati</th><th>Retention</th></tr></thead><tbody>
+      {% for r in retention %}<tr><td>{{ r.data }}</td><td>{{ r.rule }}</td></tr>{% endfor %}
+    </tbody></table></div></div>
+  </div>
+</section>
+
 <section class="panel" data-system="secrets"><div class="panel-header"><div><h2>Cifratura dei segreti</h2><p>Credenziali dei connettori e password dei backup binari MikroTik sono cifrate con <code>ENCRYPTION_MASTER_KEY</code>. Senza quella chiave i backup <code>.backup</code> non possono essere aperti: conservane una copia fuori dall'host.</p></div>
   {% if secrets.totals.unreadable %}<span class="status-pill run-failed">Segreti illeggibili</span>{% elif secrets.totals.previous %}<span class="status-pill run-pending">Rotazione da completare</span>{% else %}<span class="status-pill run-success">Chiave attuale</span>{% endif %}</div>
   <div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Segreti</th><th>Chiave attuale</th><th>Chiave precedente</th><th>Illeggibili</th></tr></thead><tbody>

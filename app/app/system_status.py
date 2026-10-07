@@ -18,7 +18,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import text
 
 from app import main as core
-from app import secret_rotation, worker_status
+from app import capacity, secret_rotation, worker_status
 from app.db import SessionLocal
 
 router = APIRouter()
@@ -100,9 +100,12 @@ def system_page(request: Request):
         if not user:
             return core.login_redirect()
         core.require_admin(request, db)
+        disk = storage()
         return core.render(request, db, user, "admin_system.html", title="Sistema", admin_tab="system",
+                           tables=capacity.table_sizes(db), archive=capacity.backup_archive(db, disk["free"] if disk else None),
+                           retention=capacity.retention(),
                            version=core.APP_VERSION, database=database(db), worker=worker_status.status(),
-                           dumps=platform_dumps(), drills=restore_drills(), disk=storage(), secrets=secret_rotation.inventory(db),
+                           dumps=platform_dumps(), drills=restore_drills(), disk=disk, secrets=secret_rotation.inventory(db),
                            stale_seconds=worker_status.HEARTBEAT_STALE_SECONDS, dump_max_days=DUMP_MAX_AGE.days,
                            drill_max_days=DRILL_MAX_AGE.days)
 

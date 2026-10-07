@@ -80,6 +80,29 @@ health check fails (`Backup DB disponibile per recovery: …`).
 3. If the failed release had already migrated the database, restore the
    pre-upgrade dump with `restore-db`.
 
+## Capacity and retention
+
+*Amministrazione → Sistema → Capacità e retention* shows the largest tables, the size of the backup archive, its growth over the last 30 days and how long the backup volume lasts at that rate (warning under 90 days).
+
+| Data | Retention |
+|---|---|
+| MikroTik telemetry | 90 days |
+| UISP metrics | 90 days |
+| Failed-login records | 1 day (audit events stay) |
+| Device backup files | per backup policy (daily / weekly / monthly) |
+| Audit events, jobs, snapshots, incidents, generated reports | kept as evidence, no automatic deletion |
+
+Sizing rule of thumb: the backup volume dominates. Estimate *devices × average backup size × retained copies per policy* and keep at least 30% free; the database grows mostly with audit events and job results, typically far less than the backup archive.
+
+## Least-privilege deployment
+
+- **Host**: only administrators in the `docker` group; `secrets/bootstrap.env` and `.env` mode `0640` owned by `root:docker`; backup folders `0750` (the api/worker containers run as uid `10001`).
+- **Network**: publish only Caddy (80/443); PostgreSQL, Redis, the api and the worker stay on the internal Docker network. Use HTTPS with a valid certificate before enrolling agents over the internet.
+- **Portal users**: give the *Auditor* role to whoever only needs to read; *Operator* for acknowledgements and predefined jobs; *Technician* for device operations; *Administrator* only for platform administration.
+- **API keys**: one key per consumer, scoped to the needed read scopes and, when possible, to one Customer; set an expiry and rotate.
+- **MikroTik agent**: the agent user gets only the policies of its profile (`ops-v2`: `ftp,reboot,read,write,policy,test,sensitive`; legacy `legacy-ops-v1`: `ftp,reboot,read,write,test`), no `winbox`, `ssh`, `web` or `api`.
+- **UISP**: a read-only API token. **GenieACS**: the NBI only on the management network or behind a reverse proxy with authentication; NSM only reads it. **NVD**: an API key used only for reading.
+
 ## Rotating the encryption master key
 
 `ENCRYPTION_MASTER_KEY` (in `secrets/bootstrap.env`) encrypts connector credentials and the passwords of MikroTik binary backups. To rotate it, for example after a suspected leak:
