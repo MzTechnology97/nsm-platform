@@ -483,9 +483,16 @@ A production identifier must never be copied into a test merely because it repro
 - permissions: `reports.read` to browse/download, `reports.generate` to create;
 - explicit disclaimer: evidence supports NIS2-oriented programs, it does not attest compliance.
 
+### Scheduled reports (REP-03)
+
+- monthly / quarterly / annual schedules per scope (all Customers or one Customer) and format;
+- each schedule generates the last closed calendar period (application timezone) exactly once (`last_period_end` idempotency);
+- failures retry with exponential backoff (15 min → max 6 h), are audited (`REPORT_SCHEDULE_FAILED`) and open one Action Center issue after 3 consecutive failures, resolved by the next success;
+- create / suspend / delete schedules from `/audit/reports` (`reports.generate`), audited; deleting a schedule keeps its archived reports.
+
 ### Not implemented yet
 
-- scheduled generation (REP-03) and delivery channels (REP-04);
+- delivery channels (REP-04);
 - incident/compliance sections (depend on INC/COMP features).
 
 ## 21. Approved but not yet implemented product areas

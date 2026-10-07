@@ -459,6 +459,8 @@ Approved future reporting feature.
 
 ### REP-03 — scheduling engine
 
+**Implemented in `main`.**
+
 - monthly/quarterly/annual/custom recurring schedules;
 - idempotent generation;
 - retry/failure evidence;

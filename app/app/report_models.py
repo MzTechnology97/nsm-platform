@@ -1,11 +1,13 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import BigInteger, Date, DateTime, ForeignKey, Index, JSON, LargeBinary, String, Uuid
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, Index, Integer, JSON, LargeBinary, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
 from app.models import utcnow
+
+FREQUENCY_LABELS = {"monthly": "Mensile", "quarterly": "Trimestrale", "annual": "Annuale"}
 
 
 class GeneratedReport(Base):
@@ -42,3 +44,37 @@ class GeneratedReport(Base):
     generated_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="SET NULL")
     )
+    schedule_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("report_schedules.id", ondelete="SET NULL")
+    )
+
+
+class ReportSchedule(Base):
+    """Recurring report generation for a closed calendar period (REP-03).
+
+    ``last_period_end`` is the idempotency marker: a period is generated at most
+    once per schedule, however many worker ticks or retries occur.
+    """
+
+    __tablename__ = "report_schedules"
+    __table_args__ = (Index("ix_report_schedules_enabled", "is_enabled"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    customer_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("customers.id", ondelete="CASCADE")
+    )
+    output_format: Mapped[str] = mapped_column(String(10), nullable=False)
+    frequency: Mapped[str] = mapped_column(String(20), nullable=False)
+    last_period_end: Mapped[date | None] = mapped_column(Date)
+    last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_status: Mapped[str | None] = mapped_column(String(20))
+    last_error: Mapped[str | None] = mapped_column(Text)
+    last_report_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    consecutive_failures: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)

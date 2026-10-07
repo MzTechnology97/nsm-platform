@@ -22,7 +22,7 @@ from app.db import SessionLocal
 from app.models import Customer, utcnow
 from app.preferences import PlatformBranding
 from app.report_builder import REPORT_TITLE, REPORT_TYPE, collect_report_data, render_csv, render_pdf, summary
-from app.report_models import GeneratedReport
+from app.report_models import FREQUENCY_LABELS, GeneratedReport, ReportSchedule
 from app.security import validate_csrf
 from app.ui_feedback import exception_message, flash_redirect
 
@@ -58,6 +58,80 @@ def _slug(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "-", value).strip("-._")[:50] or "report"
 
 
+def create_report(
+    db,
+    *,
+    customer: Customer | None,
+    period_start: date,
+    period_end: date,
+    output_format: str,
+    actor=None,
+    schedule_id: uuid.UUID | None = None,
+) -> GeneratedReport:
+    """Render, archive and audit one report. The caller commits."""
+    report_id = uuid.uuid4()
+    generated_at = utcnow()
+    trigger = "schedule" if schedule_id else "manual"
+    data = collect_report_data(db, customer=customer, period_start=period_start, period_end=period_end)
+    if output_format == "pdf":
+        content = render_pdf(
+            data,
+            report_id=str(report_id),
+            generated_at=generated_at,
+            generated_by=(actor.display_name or actor.username) if actor else "pianificazione NSM",
+            platform_name=_platform_name(db),
+        )
+    else:
+        content = render_csv(data)
+    scope_label = customer.name if customer else "Tutti i clienti"
+    filename = (
+        f"nsm-report_{_slug(scope_label)}_{period_start.isoformat()}_{period_end.isoformat()}"
+        f"_{str(report_id)[:8]}.{output_format}"
+    )
+    sha256 = hashlib.sha256(content).hexdigest()
+    report = GeneratedReport(
+        id=report_id,
+        report_type=REPORT_TYPE,
+        title=REPORT_TITLE,
+        scope_type="customer" if customer else "all",
+        customer_id=customer.id if customer else None,
+        scope_label=scope_label[:200],
+        period_start=period_start,
+        period_end=period_end,
+        output_format=output_format,
+        filename=filename,
+        media_type=FORMATS[output_format],
+        content=content,
+        size_bytes=len(content),
+        sha256=sha256,
+        summary={**summary(data), "trigger": trigger},
+        generated_at=generated_at,
+        generated_by_user_id=actor.id if actor else None,
+        schedule_id=schedule_id,
+    )
+    db.add(report)
+    core.add_event(
+        db,
+        "REPORT_GENERATED",
+        actor=actor,
+        customer_id=customer.id if customer else None,
+        details={
+            "report_id": str(report_id),
+            "report_type": REPORT_TYPE,
+            "format": output_format,
+            "scope": scope_label,
+            "period_start": period_start.isoformat(),
+            "period_end": period_end.isoformat(),
+            "sha256": sha256,
+            "size_bytes": len(content),
+            "trigger": trigger,
+            "schedule_id": str(schedule_id) if schedule_id else None,
+        },
+        source="scheduler" if schedule_id else "portal",
+    )
+    return report
+
+
 @router.get(REPORTS_PATH, response_class=HTMLResponse, name="reports_archive")
 def reports_archive(request: Request, page: int = 1):
     with SessionLocal() as db:
@@ -88,6 +162,9 @@ def reports_archive(request: Request, page: int = 1):
             default_start=(today - timedelta(days=DEFAULT_PERIOD_DAYS - 1)).isoformat(),
             default_end=today.isoformat(),
             can_generate=core.has_permission(user, "reports.generate"),
+            schedules=list(db.scalars(select(ReportSchedule).order_by(ReportSchedule.created_at))),
+            schedule_customers={customer.id: customer.name for customer in db.scalars(select(Customer))},
+            frequencies=FREQUENCY_LABELS,
             page=page,
             pages=pages,
             total=total,
@@ -126,62 +203,15 @@ def reports_generate(
                 if not customer:
                     raise HTTPException(400, "Cliente non valido.")
 
-            report_id = uuid.uuid4()
-            generated_at = utcnow()
-            data = collect_report_data(db, customer=customer, period_start=start, period_end=end)
-            if output_format == "pdf":
-                content = render_pdf(
-                    data,
-                    report_id=str(report_id),
-                    generated_at=generated_at,
-                    generated_by=user.display_name or user.username,
-                    platform_name=_platform_name(db),
-                )
-            else:
-                content = render_csv(data)
-            scope_label = customer.name if customer else "Tutti i clienti"
-            filename = (
-                f"nsm-report_{_slug(scope_label)}_{start.isoformat()}_{end.isoformat()}"
-                f"_{str(report_id)[:8]}.{output_format}"
-            )
-            sha256 = hashlib.sha256(content).hexdigest()
-            report = GeneratedReport(
-                id=report_id,
-                report_type=REPORT_TYPE,
-                title=REPORT_TITLE,
-                scope_type="customer" if customer else "all",
-                customer_id=customer.id if customer else None,
-                scope_label=scope_label[:200],
+            report = create_report(
+                db,
+                customer=customer,
                 period_start=start,
                 period_end=end,
                 output_format=output_format,
-                filename=filename,
-                media_type=FORMATS[output_format],
-                content=content,
-                size_bytes=len(content),
-                sha256=sha256,
-                summary=summary(data),
-                generated_at=generated_at,
-                generated_by_user_id=user.id,
-            )
-            db.add(report)
-            core.add_event(
-                db,
-                "REPORT_GENERATED",
                 actor=user,
-                customer_id=customer.id if customer else None,
-                details={
-                    "report_id": str(report_id),
-                    "report_type": REPORT_TYPE,
-                    "format": output_format,
-                    "scope": scope_label,
-                    "period_start": start.isoformat(),
-                    "period_end": end.isoformat(),
-                    "sha256": sha256,
-                    "size_bytes": len(content),
-                },
-                source="portal",
             )
+            sha256 = report.sha256
             db.commit()
     except HTTPException as exc:
         if exc.status_code in {400, 403}:
