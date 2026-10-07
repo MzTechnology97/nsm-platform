@@ -13,6 +13,38 @@ import app.mikrotik_agent as agent_module
 router = APIRouter()
 _ORIGINAL_BOOTSTRAP = agent_module._bootstrap_script
 AGENT_VERSION = "0.8.0"
+# RouterOS writes `/system backup save` and `/export file=` output
+# asynchronously.  The uploader polls every 500 ms (max 30 s) until the file
+# exists with a non-zero size that is unchanged between two polls, so an empty
+# or still-growing file is never archived as a successful backup.
+FILE_SETTLE_MAX_TICKS = 60
+# Agent failure steps mapped to an operator explanation.
+STEP_HINTS = (
+    ("backup-save", "RouterOS ha rifiutato /system backup save: se l'agent è stato installato prima della 0.49.4 (profilo ops-v1) mancano le policy «policy» e «sensitive»; reinstalla l'agent."),
+    ("export", "RouterOS ha rifiutato /export file=: verifica spazio libero e permessi dell'agent."),
+    ("wait-file", "RouterOS non ha prodotto il file entro 30 secondi."),
+    ("file-missing", "Il file di backup non è stato creato su RouterOS."),
+    ("file-empty", "RouterOS ha creato un file vuoto: nessun dato da archiviare."),
+    ("file-growing", "Il file era ancora in scrittura dopo 30 secondi: backup non archiviato."),
+    ("upload-start", "NSM ha rifiutato l'apertura dell'upload (dimensione o stato del job)."),
+    ("read", "/file read non ha restituito dati: RouterOS non consente di leggere il file."),
+    ("upload-chunk", "Invio di un blocco fallito o senza avanzamento: controlla raggiungibilità di NSM e dimensione dei blocchi."),
+    ("upload-finish", "NSM ha rifiutato la chiusura dell'upload: dimensione o hash non coerenti."),
+    ("config", "L'agent non ha ottenuto la configurazione del backup da NSM."),
+)
+
+
+def explain_backup_error(error: str | None, profile: str | None = None) -> str | None:
+    """Append a human explanation to the step reported by the agent."""
+    if not error or "at step:" not in error:
+        return error
+    step = error.split("at step:", 1)[1].strip()
+    for prefix, hint in STEP_HINTS:
+        if step.startswith(prefix):
+            if prefix == "backup-save" and profile == "ops-v2":
+                hint = "RouterOS ha rifiutato /system backup save nonostante il profilo ops-v2: controlla spazio libero e log di RouterOS."
+            return f"{error} — {hint}"
+    return error
 
 
 def _cert_arg(enabled: bool):
@@ -66,6 +98,9 @@ def enhanced_agent_source(base_url: str, device_id: uuid.UUID, raw_secret: str, 
     :if ($nsmJobType = "backup_mikrotik") do={{
       :local nsmJobOk true
       :local nsmJobError ""
+      :local nsmStep "config"
+      :local nsmUploaded 0
+      :local nsmBaseName ("nsm-" . [:pick $nsmJobId 0 8])
       :do {{
         :local nsmConfigUrl ($nsmBase . "/api/v1/agents/mikrotik/jobs/" . $nsmJobId . "/backup-config")
         :local nsmConfigResult [/tool fetch url=$nsmConfigUrl http-method=post http-header-field=$nsmHeaders http-data="{{}}" output=user as-value{cert}]
@@ -75,47 +110,77 @@ def enhanced_agent_source(base_url: str, device_id: uuid.UUID, raw_secret: str, 
         :local nsmChunkSize [:tonum ($nsmConfig->"chunk_size")]
         :if (($nsmChunkSize < 1024) || ($nsmChunkSize > 32768)) do={{ :set nsmChunkSize 24576 }}
         :foreach nsmFormat in=$nsmFormats do={{
-          :local nsmBaseName ("nsm-" . [:pick $nsmJobId 0 8])
           :local nsmFileName ""
           :if ($nsmFormat = "mikrotik_binary") do={{
-            /system backup save name=$nsmBaseName password=$nsmPassword encryption=aes-sha256
+            :set nsmStep "backup-save"
             :set nsmFileName ($nsmBaseName . ".backup")
+            :do {{ /file remove [find where (name=$nsmFileName || name=("flash/" . $nsmFileName))] }} on-error={{}}
+            /system backup save name=$nsmBaseName password=$nsmPassword encryption=aes-sha256
           }}
           :if ($nsmFormat = "mikrotik_export") do={{
-            /export file=$nsmBaseName
+            :set nsmStep "export"
             :set nsmFileName ($nsmBaseName . ".rsc")
+            :do {{ /file remove [find where (name=$nsmFileName || name=("flash/" . $nsmFileName))] }} on-error={{}}
+            /export file=$nsmBaseName
           }}
           :if ($nsmFileName != "") do={{
-            :delay 500ms
-            :local nsmFileId [/file find where name=$nsmFileName]
-            :if ([:len $nsmFileId] = 0) do={{ :error "NSM backup file not created" }}
-            :local nsmFileSize [:tonum [/file get $nsmFileId size]]
+            :set nsmStep ("wait-file " . $nsmFileName)
+            :local nsmFilePath ""
+            :local nsmFileSize 0
+            :local nsmPrevSize 0
+            :local nsmWaitTicks 0
+            :while (($nsmWaitTicks < {FILE_SETTLE_MAX_TICKS}) && (($nsmFileSize = 0) || ($nsmFileSize != $nsmPrevSize))) do={{
+              :delay 500ms
+              :set nsmWaitTicks ($nsmWaitTicks + 1)
+              :local nsmIds [/file find where (name=$nsmFileName || name=("flash/" . $nsmFileName))]
+              :if ([:len $nsmIds] > 0) do={{
+                :set nsmFilePath [/file get ($nsmIds->0) name]
+                :set nsmPrevSize $nsmFileSize
+                :set nsmFileSize [:tonum [/file get ($nsmIds->0) size]]
+              }}
+            }}
+            :if ([:len $nsmFilePath] = 0) do={{ :set nsmStep ("file-missing " . $nsmFileName); :error "NSM backup file not created" }}
+            :if ($nsmFileSize = 0) do={{ :set nsmStep ("file-empty " . $nsmFilePath); :error "NSM backup file is empty" }}
+            :if ($nsmFileSize != $nsmPrevSize) do={{ :set nsmStep ("file-growing " . $nsmFilePath); :error "NSM backup file size did not settle" }}
+            :set nsmStep ("upload-start " . $nsmFormat)
             :local nsmStartUrl ($nsmBase . "/api/v1/agents/mikrotik/jobs/" . $nsmJobId . "/artifacts/start")
             :local nsmStartBody [:serialize value={{"artifact_type"=$nsmFormat;"size_bytes"=[:tostr $nsmFileSize]}} to=json options=json.no-string-conversion]
             :local nsmStartResult [/tool fetch url=$nsmStartUrl http-method=post http-header-field=$nsmHeaders http-data=$nsmStartBody output=user as-value{cert}]
             :local nsmStart [:deserialize from=json value=($nsmStartResult->"data") options=json.no-string-conversion]
-            :local nsmUploadId ($nsmStart->"upload_id")
+            :local nsmUploadId [:tostr ($nsmStart->"upload_id")]
+            :if ([:len $nsmUploadId] < 8) do={{ :error "NSM upload session not opened" }}
             :local nsmOffset 0
             :while ($nsmOffset < $nsmFileSize) do={{
-              :local nsmRead [/file read file=$nsmFileName offset=$nsmOffset chunk-size=$nsmChunkSize]
+              :set nsmStep ("read " . $nsmFormat . " @" . $nsmOffset . "/" . $nsmFileSize)
+              :local nsmRead [/file read file=$nsmFilePath offset=$nsmOffset chunk-size=$nsmChunkSize as-value]
               :local nsmRaw ($nsmRead->"data")
+              :if ([:len $nsmRaw] = 0) do={{ :error "NSM backup read returned no data" }}
+              :set nsmStep ("upload-chunk " . $nsmFormat . " @" . $nsmOffset . "/" . $nsmFileSize)
               :local nsmB64 [:convert $nsmRaw to=base64]
               :local nsmChunkBody [:serialize value={{"offset"=[:tostr $nsmOffset];"data"=$nsmB64}} to=json options=json.no-string-conversion]
               :local nsmChunkUrl ($nsmBase . "/api/v1/agents/mikrotik/uploads/" . $nsmUploadId . "/chunk")
               :local nsmChunkResult [/tool fetch url=$nsmChunkUrl http-method=post http-header-field=$nsmHeaders http-data=$nsmChunkBody output=user as-value{cert}]
               :local nsmChunkResponse [:deserialize from=json value=($nsmChunkResult->"data") options=json.no-string-conversion]
-              :set nsmOffset [:tonum ($nsmChunkResponse->"next_offset")]
+              :local nsmNext [:tonum ($nsmChunkResponse->"next_offset")]
+              :if (([:typeof $nsmNext] != "num") || ($nsmNext <= $nsmOffset) || ($nsmNext > $nsmFileSize)) do={{ :error "NSM backup upload made no progress" }}
+              :set nsmUploaded ($nsmUploaded + ($nsmNext - $nsmOffset))
+              :set nsmOffset $nsmNext
             }}
+            :set nsmStep ("upload-finish " . $nsmFormat)
             :local nsmFinishUrl ($nsmBase . "/api/v1/agents/mikrotik/uploads/" . $nsmUploadId . "/finish")
             /tool fetch url=$nsmFinishUrl http-method=post http-header-field=$nsmHeaders http-data="{{}}" output=user as-value{cert}
-            :do {{ /file remove $nsmFileId }} on-error={{}}
+            :do {{ /file remove [find where name=$nsmFilePath] }} on-error={{}}
           }}
         }}
-      }} on-error={{ :set nsmJobOk false; :set nsmJobError "RouterOS backup/upload failed" }}
+        :set nsmStep "done"
+      }} on-error={{ :set nsmJobOk false; :set nsmJobError ("RouterOS backup failed at step: " . $nsmStep) }}
+      :foreach nsmLeft in={{($nsmBaseName . ".backup");($nsmBaseName . ".rsc");("flash/" . $nsmBaseName . ".backup");("flash/" . $nsmBaseName . ".rsc")}} do={{
+        :do {{ /file remove [find where name=$nsmLeft] }} on-error={{}}
+      }}
       :local nsmDoneUrl ($nsmBase . "/api/v1/agents/mikrotik/backup-jobs/" . $nsmJobId . "/complete")
       :local nsmDoneStatus "failed"
       :if ($nsmJobOk) do={{ :set nsmDoneStatus "success" }}
-      :local nsmDoneBody [:serialize value={{"status"=$nsmDoneStatus;"error"=$nsmJobError;"result"={{"agent_version"="{AGENT_VERSION}"}}}} to=json options=json.no-string-conversion]
+      :local nsmDoneBody [:serialize value={{"status"=$nsmDoneStatus;"error"=$nsmJobError;"result"={{"agent_version"="{AGENT_VERSION}";"step"=$nsmStep;"uploaded_bytes"=[:tostr $nsmUploaded]}}}} to=json options=json.no-string-conversion]
       :do {{ /tool fetch url=$nsmDoneUrl http-method=post http-header-field=$nsmHeaders http-data=$nsmDoneBody output=user as-value{cert} }} on-error={{ :log warning "NSM backup completion report failed" }}
     }}
   }}
@@ -149,6 +214,8 @@ async def backup_aware_job_complete(request: Request, job_id: uuid.UUID):
             raise HTTPException(400, "Stato job non valido.")
         result = payload.get("result") if isinstance(payload.get("result"), dict) else {}
         error = str(payload.get("error", "")).strip()[:4000] or None
+        if status == "failed":
+            error = explain_backup_error(error, (device.inventory_data or {}).get("agent_privilege_profile"))
         job.status = status
         job.result = result
         job.last_error = error

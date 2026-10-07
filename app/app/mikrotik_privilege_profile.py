@@ -1,17 +1,26 @@
 """Least-privilege RouterOS execution profile for modern NSM agents.
 
 The legacy 7.12 transport remains read/test only.  Modern agents need the
-additional ftp/write/reboot policies for the already allow-listed backup,
-package staging and staged-package activation handlers.  No policy/password/
-sensitive/sniff/API permissions are granted.
+additional ftp/write/reboot policies for the allow-listed package staging and
+staged-package activation handlers.
+
+Profile ops-v2 (Agent 0.49.4) adds ``policy`` and ``sensitive``: RouterOS only
+lets a scheduled script run ``/system backup save`` with both, so agents
+installed with ops-v1 cannot produce binary backups.  A script cannot raise its
+own policies, therefore moving from ops-v1 to ops-v2 needs a reinstall.  No
+password/sniff/romon/API permissions are granted.
 """
 from __future__ import annotations
 
 from app import mikrotik_legacy as legacy
 
-MODERN_PROFILE = "ops-v1"
+MODERN_PROFILE = "ops-v2"
+# Every profile that can run the reboot/write operational handlers.
+OPERATIONAL_PROFILES = frozenset({"ops-v1", "ops-v2"})
+# Profiles allowed to run /system backup save from the scheduler.
+BACKUP_PROFILES = frozenset({"ops-v2"})
 LEGACY_PROFILE = "legacy-read-v1"
-MODERN_POLICIES = "ftp,reboot,read,write,test"
+MODERN_POLICIES = "ftp,reboot,read,write,policy,test,sensitive"
 LEGACY_POLICIES = "read,test"
 
 
@@ -36,7 +45,7 @@ def install_mikrotik_privilege_profile():
         dynamic_policy = (
             ':local nsmAgentPolicy "read,test"\n'
             ':if ([:find $nsmAgentSource "firmware_activate"] != nil) do={ '
-            ':set nsmAgentPolicy "ftp,reboot,read,write,test" }\n'
+            ':set nsmAgentPolicy "' + MODERN_POLICIES + '" }\n'
         )
         source = source.replace(
             script_line,

@@ -131,7 +131,8 @@ def _self_update_handler(base_url: str, check_certificate: bool) -> str:
         :local nsmNewSource ($nsmSourceResult->"data")
         :if ([:len $nsmNewSource] < 100) do={{ :error "NSM agent source invalid" }}
         :do {{ /system script remove [find where name="nsm-agent-heartbeat-prev"] }} on-error={{}}
-        /system script add name="nsm-agent-heartbeat-prev" policy=ftp,reboot,read,write,test source=$nsmOldSource comment="NSM previous-known-good agent"
+        :local nsmOldPolicy [/system script get $nsmScriptId policy]
+        /system script add name="nsm-agent-heartbeat-prev" policy=$nsmOldPolicy source=$nsmOldSource comment="NSM previous-known-good agent"
         /system script set $nsmScriptId source=$nsmNewSource
         /system script run $nsmScriptId
       }} on-error={{

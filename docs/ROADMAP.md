@@ -39,7 +39,7 @@ Current state at this snapshot:
 
 ### P0 — modern MikroTik backup no-progress guard
 
-Active focused PR: **#105** — CI green, physical validation required.
+**Superseded in `main` by Core 0.49.11 / Agent 0.49.4** (uploader rewrite with progress guard); physical acceptance on 7.24.4 tracked in issue #128.
 
 Acceptance on RouterOS 7.24.4:
 
@@ -51,7 +51,7 @@ Acceptance on RouterOS 7.24.4:
 
 ### P0 — modern MikroTik temporary backup-file cleanup
 
-Active focused PR: **#108** — CI green, physical validation required.
+**Superseded in `main` by Core 0.49.11 / Agent 0.49.4** (temporary files removed after success and failure); physical acceptance on 7.24.4 tracked in issue #128.
 
 Acceptance on RouterOS 7.24.4:
 
