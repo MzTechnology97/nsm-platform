@@ -51,6 +51,14 @@ def main():
     assert "avanzamento" in explain_backup_error("RouterOS backup failed at step: upload-chunk mikrotik_binary @0/10", None)
     assert explain_backup_error("other error", "ops-v1") == "other error"
     assert explain_backup_error(None) is None
+    # Agents installed with an older profile are told to reinstall, not to self-update.
+    from app.mikrotik_agent_update import agent_update_status
+    from app.models import Device
+
+    old = agent_update_status(Device(vendor="mikrotik", inventory_data={"agent_transport": "modern", "agent_version": "0.49.0", "agent_privilege_profile": "ops-v1"}))
+    assert old["requires_reinstall"] and old["protocol"] == "reinstall-only" and "ops-v2" in old["reinstall_reason"]
+    legacy_ro = agent_update_status(Device(vendor="mikrotik", inventory_data={"agent_transport": "legacy", "agent_version": "0.49.0-legacy", "agent_privilege_profile": "legacy-read-v1"}))
+    assert legacy_ro["requires_reinstall"] and "legacy-ops-v1" in legacy_ro["reinstall_reason"]
     print("MikroTik backup uploader 0.49.4 smoke passed")
 
 

@@ -43,6 +43,7 @@ from app.mikrotik_agent_update import install_mikrotik_agent_self_update
 from app.mikrotik_agent_update_ui import install_mikrotik_agent_update_ui
 from app.mikrotik_compatibility import install_mikrotik_compatibility_resolver
 from app.mikrotik_job_completion_guard import install_mikrotik_job_completion_guard
+from app.mikrotik_modern_early import install_mikrotik_modern_early
 from app.mikrotik_legacy import router as mikrotik_legacy_router
 from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
 from app.mikrotik_routeros6 import install_mikrotik_routeros6
@@ -97,7 +98,7 @@ from app.compliance_findings import install_compliance_findings
 from app.lifecycle_catalog import install_lifecycle_catalog
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.16"
+APP_VERSION = "0.49.17"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -188,6 +189,7 @@ install_mikrotik_agent_self_update(core.app)
 # Core 0.49 self-update/integrity extension. Installing it earlier would leave
 # later wrappers able to re-introduce unsafe RouterOS syntax.
 install_mikrotik_modern_syntax_guard()
+install_mikrotik_modern_early()
 install_mikrotik_agent_update_ui(core.templates)
 install_activity_route_precedence(core.app)
 install_mikrotik_workspace_ux_precedence(core.app)

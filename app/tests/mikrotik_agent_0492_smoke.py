@@ -8,17 +8,17 @@ from app.models import Device
 
 
 def main():
-    assert generation.TARGET_AGENT_VERSION == "0.49.7"
+    assert generation.TARGET_AGENT_VERSION == "0.49.8"
     assert generation.SELF_UPDATE_MIN_VERSION == "0.49.0"
-    assert updater.TARGET_AGENT_VERSION == "0.49.7"
+    assert updater.TARGET_AGENT_VERSION == "0.49.8"
 
     modern = Device(
         vendor="mikrotik",
         display_name="Existing 0.49.0",
-        inventory_data={"agent_transport": "modern", "agent_version": "0.49.0"},
+        inventory_data={"agent_transport": "modern", "agent_version": "0.49.0", "agent_privilege_profile": "ops-v2"},
     )
     status = updater.agent_update_status(modern)
-    assert status["target_version"] == "0.49.7"
+    assert status["target_version"] == "0.49.8"
     assert status["outdated"] is True
     assert status["self_update_capable"] is True
     assert status["requires_reinstall"] is False
@@ -41,14 +41,14 @@ def main():
         True,
     )
     for marker in (
-        '"agent_version"="0.49.7"',
-        '/ppp active print as-value',
-        '/interface sstp-client print as-value',
-        '/interface l2tp-client print as-value',
-        '/interface pppoe-client print as-value',
-        '/interface pptp-client print as-value',
-        '/interface ovpn-client print as-value',
-        '"sstp_clients"=$nsmSstpClients',
+        '"agent_version"="0.49.8"',
+        '/ppp active find',
+        '/interface sstp-client find',
+        '/interface l2tp-client find',
+        '/interface pppoe-client find',
+        '/interface pptp-client find',
+        '/interface ovpn-client find',
+        '"sstp_clients"=[$nsmTake $nsmS $nsmCap]',
         '[:tostr [/system resource get uptime]]',
     ):
         assert marker in source, marker

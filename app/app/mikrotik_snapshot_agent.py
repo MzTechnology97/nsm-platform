@@ -5,64 +5,77 @@ allow-listed snapshot job. No generic command or script text is accepted from
 the server.
 """
 
+import textwrap
+
 from app import mikrotik_agent as agent_module
+from app import mikrotik_bounded_rows as bounded
 from app import mikrotik_backup_agent as backup_agent_module
 
 AGENT_VERSION = "0.16.0"
 MAX_SNAPSHOT_BODY = 512 * 1024
 LOG_SNAPSHOT_LIMIT = 20
 
-_HANDLER = rf'''
-    :if ($nsmJobType = "snapshot_section") do={{
-      :local nsmJobPayload ($nsmJob->"payload")
-      :local nsmSection ($nsmJobPayload->"section")
-      :local nsmData
-      :local nsmOk true
-      :local nsmError ""
-      :local nsmTruncated false
-      :local nsmTotal 0
-      :local nsmLimit 0
-      :do {{
-        :if ($nsmSection = "resources") do={{
-          :set nsmData {{"identity"=[/system identity get name];"model"=[/system resource get board-name];"routeros"=[/system resource get version];"architecture"=[/system resource get architecture-name];"cpu"=[/system resource get cpu];"cpu_count"=[/system resource get cpu-count];"cpu_load"=[/system resource get cpu-load];"total_memory"=[/system resource get total-memory];"free_memory"=[/system resource get free-memory];"uptime"=[:tostr [/system resource get uptime]]}}
-        }}
-        :if ($nsmSection = "ip_addresses") do={{ :set nsmData [/ip address print as-value] }}
-        :if ($nsmSection = "routes") do={{ :set nsmData [/ip route print as-value] }}
-        :if ($nsmSection = "interfaces") do={{ :set nsmData [/interface print as-value] }}
-        :if ($nsmSection = "firewall") do={{ :set nsmData {{"filter"=[/ip firewall filter print as-value];"nat"=[/ip firewall nat print as-value]}} }}
-        :if ($nsmSection = "ppp_active") do={{
-          :local nsmPppActive [:toarray ""]
-          :local nsmSstpClients [:toarray ""]
-          :local nsmL2tpClients [:toarray ""]
-          :local nsmPppoeClients [:toarray ""]
-          :local nsmPptpClients [:toarray ""]
-          :local nsmOvpnClients [:toarray ""]
-          :do {{ :set nsmPppActive [/ppp active print as-value] }} on-error={{}}
-          :do {{ :set nsmSstpClients [/interface sstp-client print as-value] }} on-error={{}}
-          :do {{ :set nsmL2tpClients [/interface l2tp-client print as-value] }} on-error={{}}
-          :do {{ :set nsmPppoeClients [/interface pppoe-client print as-value] }} on-error={{}}
-          :do {{ :set nsmPptpClients [/interface pptp-client print as-value] }} on-error={{}}
-          :do {{ :set nsmOvpnClients [/interface ovpn-client print as-value] }} on-error={{}}
-          :set nsmData {{"active"=$nsmPppActive;"sstp_clients"=$nsmSstpClients;"l2tp_clients"=$nsmL2tpClients;"pppoe_clients"=$nsmPppoeClients;"pptp_clients"=$nsmPptpClients;"ovpn_clients"=$nsmOvpnClients}}
-        }}
-        :if ($nsmSection = "dhcp_leases") do={{ :set nsmData [/ip dhcp-server lease print as-value] }}
-        :if ($nsmSection = "logs") do={{
-          :set nsmData [/log print as-value where topics~"warning|error|critical"]
-          :set nsmTotal [:len $nsmData]
-          :set nsmLimit {LOG_SNAPSHOT_LIMIT}
-          :if ($nsmTotal > $nsmLimit) do={{
-            :set nsmData [:pick $nsmData ($nsmTotal - $nsmLimit) $nsmTotal]
-            :set nsmTruncated true
-          }}
-        }}
-      }} on-error={{ :set nsmOk false; :set nsmError "Unable to collect RouterOS snapshot" }}
-      :local nsmDoneUrl ($nsmBase . "/api/v1/agents/mikrotik/jobs/" . $nsmJobId . "/complete")
-      :local nsmDoneStatus "failed"
-      :if ($nsmOk) do={{ :set nsmDoneStatus "success" }}
-      :local nsmDoneBody [:serialize value={{"status"=$nsmDoneStatus;"error"=$nsmError;"result"={{"section"=$nsmSection;"data"=$nsmData;"truncated"=$nsmTruncated;"total"=$nsmTotal;"limit"=$nsmLimit}}}} to=json options=json.no-string-conversion]
-      :do {{ /tool fetch url=$nsmDoneUrl http-method=post http-header-field=$nsmHeaders http-data=$nsmDoneBody output=user as-value }} on-error={{ :log warning "NSM snapshot completion report failed" }}
-    }}
-'''
+_TAKE = ':local nsmTake do={ :if ($2 >= [:len $1]) do={ :return $1 }; :return [:pick $1 0 $2] }\n'
+_LISTS = ("nsmA", "nsmB", "nsmS", "nsmL", "nsmE", "nsmP", "nsmO")
+
+
+def _section(name: str, body: str) -> str:
+    return f':if ($nsmSection = "{name}") do={{\n' + textwrap.indent(body, "  ") + "}\n"
+
+
+def _handler() -> str:
+    resources = (
+        ':set nsmRes {"identity"=[/system identity get name];"model"=[/system resource get board-name];"routeros"=[/system resource get version];'
+        '"architecture"=[/system resource get architecture-name];"cpu"=[/system resource get cpu];"cpu_count"=[/system resource get cpu-count];'
+        '"cpu_load"=[/system resource get cpu-load];"total_memory"=[/system resource get total-memory];"free_memory"=[/system resource get free-memory];'
+        '"uptime"=[:tostr [/system resource get uptime]]}\n'
+    )
+    ppp = bounded.collect("/ppp active", "nsmA")
+    for var, menu in (("nsmS", "/interface sstp-client"), ("nsmL", "/interface l2tp-client"), ("nsmE", "/interface pppoe-client"),
+                      ("nsmP", "/interface pptp-client"), ("nsmO", "/interface ovpn-client")):
+        ppp += bounded.collect(menu, var, limit=bounded.TUNNEL_CLIENT_LIMIT, optional=True)
+    logs = (
+        ':set nsmA [/log print as-value where topics~"warning|error|critical"]\n'
+        ":set nsmTotal [:len $nsmA]\n"
+        f":if ($nsmTotal > {LOG_SNAPSHOT_LIMIT}) do={{ :set nsmA [:pick $nsmA ($nsmTotal - {LOG_SNAPSHOT_LIMIT}) $nsmTotal]; :set nsmTruncated true }}\n"
+    )
+    collect = "".join((
+        _section("resources", resources),
+        _section("ip_addresses", bounded.collect("/ip address", "nsmA")),
+        _section("routes", bounded.collect("/ip route", "nsmA")),
+        _section("interfaces", bounded.collect("/interface", "nsmA")),
+        _section("firewall", bounded.collect("/ip firewall filter", "nsmA") + bounded.collect("/ip firewall nat", "nsmB")),
+        _section("ppp_active", ppp),
+        _section("dhcp_leases", bounded.collect("/ip dhcp-server lease", "nsmA")),
+        _section("logs", logs),
+    ))
+    shape = (
+        ':if ($nsmSection = "resources") do={ :set nsmData $nsmRes }\n'
+        ':if (($nsmSection = "ip_addresses") || ($nsmSection = "routes") || ($nsmSection = "interfaces") || ($nsmSection = "dhcp_leases") || ($nsmSection = "logs")) do={ :set nsmData [$nsmTake $nsmA $nsmCap] }\n'
+        ':if ($nsmSection = "firewall") do={ :set nsmData {"filter"=[$nsmTake $nsmA $nsmCap];"nat"=[$nsmTake $nsmB $nsmCap]} }\n'
+        ':if ($nsmSection = "ppp_active") do={ :set nsmData {"active"=[$nsmTake $nsmA $nsmCap];"sstp_clients"=[$nsmTake $nsmS $nsmCap];"l2tp_clients"=[$nsmTake $nsmL $nsmCap];'
+        '"pppoe_clients"=[$nsmTake $nsmE $nsmCap];"pptp_clients"=[$nsmTake $nsmP $nsmCap];"ovpn_clients"=[$nsmTake $nsmO $nsmCap]} }\n'
+    )
+    serialize = (
+        '[:serialize value={"status"=$nsmDoneStatus;"error"=$nsmError;"result"={"section"=$nsmSection;"data"=$nsmData;'
+        '"truncated"=$nsmTruncated;"total"=$nsmTotal;"limit"=$nsmCap}} to=json options=json.no-string-conversion]'
+    )
+    body = (
+        ":local nsmJobPayload ($nsmJob->\"payload\")\n"
+        ":local nsmSection ($nsmJobPayload->\"section\")\n"
+        ":local nsmData\n:local nsmRes\n:local nsmOk true\n:local nsmError \"\"\n:local nsmTruncated false\n:local nsmTotal 0\n"
+        + "".join(f':local {name} [:toarray ""]\n' for name in _LISTS)
+        + _TAKE
+        + ":do {\n" + textwrap.indent(collect, "  ") + '} on-error={ :set nsmOk false; :set nsmError "Unable to collect RouterOS snapshot" }\n'
+        + ':local nsmDoneUrl ($nsmBase . "/api/v1/agents/mikrotik/jobs/" . $nsmJobId . "/complete")\n'
+        + ':local nsmDoneStatus "failed"\n:if ($nsmOk) do={ :set nsmDoneStatus "success" }\n'
+        + bounded.fit_loop(list(_LISTS), shape, serialize, "nsmDoneBody")
+        + ':do { /tool fetch url=$nsmDoneUrl http-method=post http-header-field=$nsmHeaders http-data=$nsmDoneBody output=user as-value } on-error={ :log warning "NSM snapshot completion report failed" }\n'
+    )
+    return "\n    :if ($nsmJobType = \"snapshot_section\") do={\n" + textwrap.indent(body, "      ") + "    }\n"
+
+
+_HANDLER = _handler()
 
 
 def _inject(source: str) -> str:

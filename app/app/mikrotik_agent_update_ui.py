@@ -24,6 +24,8 @@ def install_mikrotik_agent_update_ui(templates):
         if update["outdated"]:
             if update["source_drift"]:
                 reason = "Agent source drift: reinstall/update controllato richiesto"
+            elif update.get("reinstall_reason"):
+                reason = update["reinstall_reason"]
             elif update["requires_reinstall"]:
                 reason = (
                     f"Agent {update['current_version'] or 'non rilevato'}; target {update['target_version']} · "

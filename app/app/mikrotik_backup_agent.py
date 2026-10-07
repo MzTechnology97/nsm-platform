@@ -27,7 +27,7 @@ STEP_HINTS = (
     ("file-empty", "RouterOS ha creato un file vuoto: nessun dato da archiviare."),
     ("file-growing", "Il file era ancora in scrittura dopo 30 secondi: backup non archiviato."),
     ("upload-start", "NSM ha rifiutato l'apertura dell'upload (dimensione o stato del job)."),
-    ("read", "/file read non ha restituito dati: RouterOS non consente di leggere il file."),
+    ("read", "/file read non ha restituito dati o non è disponibile: su RouterOS 7.13–7.16 aggiorna a 7.17 o successivo."),
     ("upload-chunk", "Invio di un blocco fallito o senza avanzamento: controlla raggiungibilità di NSM e dimensione dei blocchi."),
     ("upload-finish", "NSM ha rifiutato la chiusura dell'upload: dimensione o hash non coerenti."),
     ("config", "L'agent non ha ottenuto la configurazione del backup da NSM."),
