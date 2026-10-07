@@ -34,6 +34,7 @@ _V7_ONLY = (
     (re.compile(r"/tool traceroute [^\]\n]*as-value"), "traceroute as-value"),
     (re.compile(r" get \$nsmId\]"), "get without property"),
     (re.compile(r"/interface wifi|/routing/|/ip/"), "v7 menu path"),
+    (re.compile(r"[!=]= ?nil\)|= nil\)"), "nil literal"),
 )
 
 
