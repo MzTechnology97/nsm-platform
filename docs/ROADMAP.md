@@ -508,7 +508,7 @@ Add delivery channels only when an actual supported implementation is selected. 
 
 Focused future work:
 
-- role/permission matrix review across all current routes;
+- role/permission matrix review across all current routes — **done**: `rbac_routes_smoke.py` walks every registered route (anonymous access refused everywhere, read-only auditor writes refused except an explained allow-list);
 - scoped/delegated administration where required;
 - credential rotation workflows;
 - session/security policy hardening;
