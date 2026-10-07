@@ -99,6 +99,8 @@ PAGES = (
     ("Agent MikroTik", "/operations/agents", "fleet heartbeat", None),
     ("Vulnerabilità", "/security/vulnerabilities", "cve sicurezza advisory nvd", None),
     ("Ciclo di vita EOL/EOS", "/security/lifecycle", "eol eos fine supporto", None),
+    ("Accessi ai dispositivi", "/security/access", "accessi login password brute force syslog tentativi", "security.read"),
+    ("Syslog", "/admin/syslog", "syslog log server remoto", "users.manage"),
     ("Action Center", "/action-center", "problemi issue azioni", None),
     ("Report", "/audit/reports", "nis2 pdf csv", None),
     ("Eventi di audit", "/audit/events", "log storico", None),

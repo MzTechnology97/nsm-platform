@@ -25,7 +25,7 @@
   };
   function rowFor(entry) {
     const tr = document.createElement('tr');
-    tr.className = `log-row log-sev-${entry.severity}`;
+    tr.className = `log-row log-sev-${entry.severity}${entry.category ? ` log-cat-${entry.category}` : ''}`;
     const cells = [fmtTime(entry.received_at), null, entry.topics || '', entry.message];
     cells.forEach((text, index) => {
       const td = document.createElement('td');

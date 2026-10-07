@@ -8,6 +8,24 @@
   <article class="metric-card"><span>Ultimo log</span><strong>{{ fmt_dt(last_log.received_at) if last_log else '—' }}</strong><small>{% if last_log %}da {{ last_log.source_ip }}{% else %}nessun log ricevuto{% endif %}</small></article>
 </section>
 
+<section class="panel" id="access">
+  <div class="panel-header"><div><h2>Accessi al dispositivo</h2><p>Login riusciti e falliti (utente o password errati) riconosciuti nei syslog. Ultime 24 ore.</p></div>
+    {% if access.failures %}<span class="severity-badge {% if access.failures >= 5 %}severity-high{% else %}severity-warning{% endif %}">{{ access.failures }} falliti</span>{% else %}<span class="device-status status-online">Nessun accesso fallito</span>{% endif %}</div>
+  <div class="access-grid">
+    <div>
+      <h3>Indirizzi con più accessi falliti</h3>
+      {% if access.top_sources %}<ul class="access-sources">{% for s in access.top_sources %}<li><code>{{ s.ip or 'sconosciuto' }}</code>{% if s.public %} <span class="severity-badge severity-high">pubblico</span>{% endif %}<span>{{ s.count }} tentativi · ultimo {{ fmt_dt(s.last) }}</span></li>{% endfor %}</ul>
+      {% else %}<p class="muted">Nessun tentativo fallito nelle ultime 24 ore.</p>{% endif %}
+      <p class="muted">Riusciti nelle ultime 24 ore: {{ access.successes }}.</p>
+    </div>
+    <div class="table-wrap">
+      <table class="access-table"><thead><tr><th>Quando</th><th>Esito</th><th>Utente</th><th>Da</th><th>Via</th></tr></thead>
+      <tbody>{% for ev in access.recent %}<tr class="access-{{ ev.outcome }}"><td>{{ fmt_dt(ev.occurred_at) }}</td><td>{% if ev.outcome == 'failure' %}<span class="severity-badge severity-high">fallito</span>{% else %}<span class="severity-badge severity-info">riuscito</span>{% endif %}</td><td>{{ ev.username or '—' }}</td><td><code>{{ ev.remote_ip or '—' }}</code></td><td>{{ ev.service or '—' }}</td></tr>
+      {% else %}<tr class="log-empty"><td colspan="5">Nessun accesso registrato: configura il syslog dell'apparato includendo i log di accesso (su RouterOS il topic «account»).</td></tr>{% endfor %}</tbody></table>
+    </div>
+  </div>
+</section>
+
 <section class="panel log-panel" data-log-root data-endpoint="/api/v1/devices/{{ device.id }}/logs">
   <div class="panel-header">
     <div><h2>Syslog in tempo reale</h2><p>Righe syslog inviate dall'apparato al server integrato di NSM, aggiornate ogni 5 secondi. Warning ed error restano per tutta la vita del dispositivo; info fino a 3 mesi.</p></div>

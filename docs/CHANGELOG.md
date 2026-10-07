@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.46 — 2026-10-08
+
+Security
+- **Access alerts from syslog** (LOG-01 step 3). Received lines are recognised as failed logins (wrong user or password) or successful logins, with user, source address and service.
+  - Vendors covered: RouterOS, OpenSSH/Dropbear (airOS, Cambium, Mimosa, Linux CPEs), Cisco IOS, Juniper, FortiGate, Huawei VRP and generic web logins.
+  - Every recognised line becomes an access event (migration 0031).
+- The worker raises Action Center alerts and notifications in the *Sicurezza* category (e-mail, Telegram and Slack, according to each user's preferences):
+  - **brute force**: 5 or more failed logins in 10 minutes from the same address (high when the address is public);
+  - **successful login after failures** from the same address (critical: possible guessed password);
+  - **successful login from a new public address** not seen in 90 days (warning).
+  - Repeated alerts are grouped for 6 hours.
+- **Device Syslog tab**: an *Accessi al dispositivo* panel with 24-hour counters, the addresses with the most failures and the latest accesses; failed and successful logins are highlighted in the live log.
+- **Security → Accessi**: alerts, most attacked devices and source addresses across the fleet (1h, 24h, 7 days, 30 days).
+
 ## 0.49.45 — 2026-10-07
 
 Logs

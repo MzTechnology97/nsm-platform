@@ -18,10 +18,10 @@ from sqlalchemy import delete, func, or_, select
 
 from app import main as core
 from app import syslog_receiver as receiver
-from app import vendor_cpe
+from app import syslog_security, vendor_cpe
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
-from app.models import Device, utcnow
+from app.models import ActionIssue, Device, utcnow
 from app.security import validate_csrf
 from app.syslog_models import DeviceLogEntry, SyslogUnknownSource
 
@@ -91,7 +91,8 @@ def logs_page(request: Request, device_id: uuid.UUID):
         last = db.scalar(select(DeviceLogEntry).where(DeviceLogEntry.device_id == device.id).order_by(DeviceLogEntry.id.desc()).limit(1))
         return core.render(request, db, user, "device_logs.html", device=device, today_counts=counts, last_log=last, device_section=None,
                            severity_filters=SEVERITY_FILTERS, syslog_host=public_host(db, request), syslog_status=receiver.receiver_status(),
-                           device_brand_key=vendor_cpe.brand(device) or "generic", syslog_sources=device_sources(device))
+                           device_brand_key=vendor_cpe.brand(device) or "generic", syslog_sources=device_sources(device),
+                           access=syslog_security.access_summary(db, device.id))
 
 
 @router.get("/devices/{device_id}/logs.csv", name="device_logs_csv")
@@ -194,6 +195,22 @@ async def assign_unknown(request: Request):
         core.add_event(db, "SYSLOG_SOURCE_ASSIGNED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"source_ip": source_ip}, source="portal")
         db.commit()
     return RedirectResponse("/admin/syslog?status=assigned", status_code=303)
+
+
+@router.get("/security/access", response_class=HTMLResponse, name="security_access")
+def security_access(request: Request, hours: int = 24):
+    with SessionLocal() as db:
+        user = core.current_user(request, db)
+        if not user:
+            return core.login_redirect()
+        if not core.has_permission(user, "security.read"):
+            raise HTTPException(403)
+        hours = hours if hours in (1, 24, 168, 720) else 24
+        summary = syslog_security.fleet_summary(db, hours=hours)
+        alerts = list(db.scalars(select(ActionIssue).where(ActionIssue.category == syslog_security.ISSUE_CATEGORY)
+                                 .order_by(ActionIssue.created_at.desc()).limit(30)))
+        names = {d.id: d for d in db.scalars(select(Device).where(Device.id.in_([a.device_id for a in alerts if a.device_id])))} if alerts else {}
+        return core.render(request, db, user, "security_access.html", title="Accessi", summary=summary, hours=hours, alerts=alerts, alert_devices=names)
 
 
 def install_device_logs(app) -> None:
