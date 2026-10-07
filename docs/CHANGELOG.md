@@ -4,6 +4,21 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.48 — 2026-10-08
+
+GUI
+- **New interface icons** (GUI-02): menu, notification bell, theme, search and sidebar controls now use a consistent outlined icon set in Material style.
+  - The set was drawn for NSM and is self-hosted as an SVG sprite (`static/ui-icons.svg`, `ui_icon()` helper).
+  - It is CSP-safe and follows light and dark theme.
+- **More polished look**:
+  - active menu item marked with a side bar;
+  - notification badge on the bell, which nudges on hover;
+  - gradient brand mark and soft sidebar light;
+  - hover shadow on the cards.
+- **ISP/WISP background**: a light line drawing (radio tower, radio links to client sites, fibre backbone) at very low contrast.
+  - It is fixed at the bottom right, so it never sits under text at readable contrast.
+  - It is disabled with high-contrast preferences and when printing; animations respect *reduced motion*.
+
 ## 0.49.47 — 2026-10-08
 
 Logs

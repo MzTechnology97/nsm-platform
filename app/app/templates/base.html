@@ -26,44 +26,44 @@
         {% endif %}
         <span class="brand-copy"><strong>{{ ui.branding.portal_name }}</strong><small>v{{ app_version }}</small></span>
       </a>
-      <button type="button" class="sidebar-collapse" data-sidebar-collapse aria-label="Comprimi menu" title="Comprimi menu">‹</button>
-      <button type="button" class="sidebar-mobile-close" data-sidebar-close aria-label="Chiudi menu">×</button>
+      <button type="button" class="sidebar-collapse" data-sidebar-collapse aria-label="Comprimi menu" title="Comprimi menu">{{ ui_icon('chevron-left', 18) }}</button>
+      <button type="button" class="sidebar-mobile-close" data-sidebar-close aria-label="Chiudi menu">{{ ui_icon('close', 20) }}</button>
     </div>
 
     <nav class="sidebar-nav" aria-label="Menu principale">
-      <a class="nav-item {% if request.url.path == '/' %}active{% endif %}" href="/"><span class="nav-icon">▦</span><span class="nav-label">Dashboard</span></a>
+      <a class="nav-item {% if request.url.path == '/' %}active{% endif %}" href="/"><span class="nav-icon">{{ ui_icon('dashboard') }}</span><span class="nav-label">Dashboard</span></a>
       <div class="nav-section">Inventory</div>
-      <a class="nav-item {% if request.url.path.startswith('/customers') %}active{% endif %}" href="/customers"><span class="nav-icon">◎</span><span class="nav-label">Clienti</span></a>
-      <a class="nav-item {% if request.url.path.startswith('/devices') %}active{% endif %}" href="/devices"><span class="nav-icon">▣</span><span class="nav-label">Apparati</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/customers') %}active{% endif %}" href="/customers"><span class="nav-icon">{{ ui_icon('customers') }}</span><span class="nav-label">Clienti</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/devices') %}active{% endif %}" href="/devices"><span class="nav-icon">{{ ui_icon('devices') }}</span><span class="nav-label">Apparati</span></a>
       <div class="nav-section">Operations</div>
-      <a class="nav-item {% if request.url.path.startswith('/operations/monitoring') %}active{% endif %}" href="/operations/monitoring"><span class="nav-icon">⌁</span><span class="nav-label">Monitoring</span></a>
-      <a class="nav-item {% if request.url.path.startswith('/operations/agents') %}active{% endif %}" href="/operations/agents"><span class="nav-icon">◉</span><span class="nav-label">Agent Fleet</span></a>
-      <a class="nav-item {% if request.url.path.startswith('/operations/backups') %}active{% endif %}" href="/operations/backups"><span class="nav-icon">⇩</span><span class="nav-label">Backup</span></a>
-      <a class="nav-item {% if request.url.path.startswith('/operations/firmware') %}active{% endif %}" href="/operations/firmware"><span class="nav-icon">↻</span><span class="nav-label">Firmware</span></a>
-      <a class="nav-item {% if request.url.path.startswith('/incidents') %}active{% endif %}" href="/incidents"><span class="nav-icon">⚑</span><span class="nav-label">Incidenti</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/operations/monitoring') %}active{% endif %}" href="/operations/monitoring"><span class="nav-icon">{{ ui_icon('monitoring') }}</span><span class="nav-label">Monitoring</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/operations/agents') %}active{% endif %}" href="/operations/agents"><span class="nav-icon">{{ ui_icon('agents') }}</span><span class="nav-label">Agent Fleet</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/operations/backups') %}active{% endif %}" href="/operations/backups"><span class="nav-icon">{{ ui_icon('backup') }}</span><span class="nav-label">Backup</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/operations/firmware') %}active{% endif %}" href="/operations/firmware"><span class="nav-icon">{{ ui_icon('firmware') }}</span><span class="nav-label">Firmware</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/incidents') %}active{% endif %}" href="/incidents"><span class="nav-icon">{{ ui_icon('incidents') }}</span><span class="nav-label">Incidenti</span></a>
       <div class="nav-section">Security</div>
-      <a class="nav-item {% if request.url.path.startswith('/security/vulnerabilities') %}active{% endif %}" href="/security/vulnerabilities"><span class="nav-icon">◈</span><span class="nav-label">Vulnerabilità</span></a>
-      <a class="nav-item {% if request.url.path.startswith('/security/access') %}active{% endif %}" href="/security/access"><span class="nav-icon">⚿</span><span class="nav-label">Accessi</span></a>
-      <a class="nav-item {% if request.url.path.startswith('/security/lifecycle') %}active{% endif %}" href="/security/lifecycle"><span class="nav-icon">⌛</span><span class="nav-label">EOL / EOS</span></a>
-      <a class="nav-item {% if request.url.path.startswith('/compliance') %}active{% endif %}" href="/compliance"><span class="nav-icon">☑</span><span class="nav-label">Compliance</span></a>
-      <a class="nav-item attention-link {% if request.url.path.startswith('/action-center') %}active{% endif %}" href="/action-center"><span class="nav-icon">!</span><span class="nav-label">Action Center</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/security/vulnerabilities') %}active{% endif %}" href="/security/vulnerabilities"><span class="nav-icon">{{ ui_icon('vulnerabilities') }}</span><span class="nav-label">Vulnerabilità</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/security/access') %}active{% endif %}" href="/security/access"><span class="nav-icon">{{ ui_icon('access') }}</span><span class="nav-label">Accessi</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/security/lifecycle') %}active{% endif %}" href="/security/lifecycle"><span class="nav-icon">{{ ui_icon('lifecycle') }}</span><span class="nav-label">EOL / EOS</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/compliance') %}active{% endif %}" href="/compliance"><span class="nav-icon">{{ ui_icon('compliance') }}</span><span class="nav-label">Compliance</span></a>
+      <a class="nav-item attention-link {% if request.url.path.startswith('/action-center') %}active{% endif %}" href="/action-center"><span class="nav-icon">{{ ui_icon('action') }}</span><span class="nav-label">Action Center</span></a>
       <div class="nav-section">Audit</div>
-      <a class="nav-item {% if request.url.path.startswith('/audit/events') %}active{% endif %}" href="/audit/events"><span class="nav-icon">≡</span><span class="nav-label">Eventi</span></a>
-      <a class="nav-item {% if request.url.path.startswith('/audit/reports') %}active{% endif %}" href="/audit/reports"><span class="nav-icon">▤</span><span class="nav-label">Report</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/audit/events') %}active{% endif %}" href="/audit/events"><span class="nav-icon">{{ ui_icon('events') }}</span><span class="nav-label">Eventi</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/audit/reports') %}active{% endif %}" href="/audit/reports"><span class="nav-icon">{{ ui_icon('reports') }}</span><span class="nav-label">Report</span></a>
       <div class="nav-section">Platform</div>
-      <a class="nav-item {% if request.url.path.startswith('/integrations') %}active{% endif %}" href="/integrations"><span class="nav-icon">⌘</span><span class="nav-label">Integrazioni</span></a>
-      {% if has_permission(user, 'users.manage') %}<a class="nav-item {% if request.url.path.startswith('/admin') %}active{% endif %}" href="/admin/users"><span class="nav-icon">⚙</span><span class="nav-label">Amministrazione</span></a>{% endif %}
+      <a class="nav-item {% if request.url.path.startswith('/integrations') %}active{% endif %}" href="/integrations"><span class="nav-icon">{{ ui_icon('integrations') }}</span><span class="nav-label">Integrazioni</span></a>
+      {% if has_permission(user, 'users.manage') %}<a class="nav-item {% if request.url.path.startswith('/admin') %}active{% endif %}" href="/admin/users"><span class="nav-icon">{{ ui_icon('admin') }}</span><span class="nav-label">Amministrazione</span></a>{% endif %}
     </nav>
   </aside>
 
   <div class="workspace">
     <header class="topbar">
-      <button type="button" class="mobile-menu-button" data-sidebar-open aria-controls="main-sidebar" aria-label="Apri menu">☰</button>
+      <button type="button" class="mobile-menu-button" data-sidebar-open aria-controls="main-sidebar" aria-label="Apri menu">{{ ui_icon('menu', 22) }}</button>
       <div class="global-search-wrap" data-global-search-wrap>
         <form class="global-search" method="get" action="/search" role="search">
-          <span class="search-icon">⌕</span>
+          <span class="search-icon">{{ ui_icon('search', 18) }}</span>
           <input name="q" data-global-search-input value="{{ request.query_params.get('q','') if request.url.path == '/search' else '' }}" placeholder="Cerca alias, identity, IP, MAC, seriale, cliente o sede..." aria-label="Ricerca globale" aria-autocomplete="list" aria-controls="global-search-suggestions">
-          <button class="search-submit" aria-label="Cerca" title="Cerca">↵</button>
+          <button class="search-submit" aria-label="Cerca" title="Cerca">{{ ui_icon('enter', 16) }}</button>
         </form>
         <div class="search-suggestions" id="global-search-suggestions" data-search-suggestions role="listbox"></div>
       </div>
@@ -73,10 +73,10 @@
           <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
           <input type="hidden" name="theme" value="{{ 'light' if ui.theme == 'dark' else 'dark' }}">
           <input type="hidden" name="next_url" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
-          <button class="icon-button theme-toggle" aria-label="{{ 'Tema chiaro' if ui.theme == 'dark' else 'Tema scuro' }}" title="{{ 'Tema chiaro' if ui.theme == 'dark' else 'Tema scuro' }}">{{ '☀' if ui.theme == 'dark' else '◐' }}</button>
+          <button class="icon-button theme-toggle" aria-label="{{ 'Tema chiaro' if ui.theme == 'dark' else 'Tema scuro' }}" title="{{ 'Tema chiaro' if ui.theme == 'dark' else 'Tema scuro' }}">{{ ui_icon('sun' if ui.theme == 'dark' else 'moon', 20) }}</button>
         </form>
         <details class="notification-menu">
-          <summary class="icon-button bell" aria-label="Notifiche"><span>♢</span>{% if unread_notification_count %}<b class="notification-count">{{ unread_notification_count }}</b>{% endif %}</summary>
+          <summary class="icon-button bell" aria-label="Notifiche">{{ ui_icon('bell', 21) }}{% if unread_notification_count %}<b class="notification-count">{{ unread_notification_count }}</b>{% endif %}</summary>
           <div class="notification-dropdown">
             <div class="dropdown-header"><strong>Notifiche</strong><a href="/notifications">Vedi tutte</a></div>
             {% if recent_notifications %}{% for n in recent_notifications %}<a class="notification-row" href="{{ n.source_url or '/notifications' }}" {% if n.source_url %}target="_blank" rel="noopener"{% endif %}><span class="severity-dot severity-{{ n.severity }}"></span><span><strong>{{ n.title }}</strong><small>{{ n.message or n.category }} · {{ fmt_dt(n.created_at) }}</small></span></a>{% endfor %}{% else %}<div class="empty-mini">Nessuna nuova notifica.</div>{% endif %}
