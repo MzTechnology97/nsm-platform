@@ -181,76 +181,85 @@ def _load_device(db, device_id):
     return device
 
 
+def open_plan(db, device: Device, user) -> tuple[uuid.UUID, bool]:
+    """Create (or return the active) upgrade plan; raises HTTPException when not allowed.
+
+    Returns (plan_id, created).  The caller commits.
+    """
+    if device.vendor != "mikrotik":
+        raise HTTPException(400, "Piano firmware disponibile solo per MikroTik in questa fase.")
+    if device.status != "online":
+        raise HTTPException(409, "Il MikroTik deve essere online.")
+    if not _modern_routeros(device):
+        raise HTTPException(409, "Upgrade remoto sicuro richiede RouterOS 7.13+ con agent moderno.")
+    if not _readiness_fresh(device):
+        raise HTTPException(409, "Esegui prima una verifica firmware recente (massimo 6 ore).")
+    readiness = _readiness(device)
+    target = str(readiness.get("latest_version") or device.recommended_firmware_version or "").strip()
+    if not target or target == str(device.firmware_version or "").strip():
+        raise HTTPException(409, "Nessun aggiornamento RouterOS disponibile.")
+    newer = is_newer_routeros_version(target, device.firmware_version)
+    if newer is None:
+        raise HTTPException(
+            409,
+            f"Impossibile confrontare RouterOS {device.firmware_version or 'sconosciuto'} con {target}: piano non creato.",
+        )
+    if not newer:
+        raise HTTPException(
+            409,
+            f"RouterOS {target} non è più recente della versione installata {device.firmware_version}: "
+            "il workflow non esegue downgrade.",
+        )
+    existing = db.scalar(
+        select(FirmwareUpgradePlan.id).where(
+            FirmwareUpgradePlan.device_id == device.id,
+            FirmwareUpgradePlan.status.in_(ACTIVE_STATES),
+        )
+    )
+    if existing:
+        return existing, False
+
+    plan = FirmwareUpgradePlan(
+        device_id=device.id,
+        target_version=target[:150],
+        channel=str(readiness.get("channel") or "")[:40] or None,
+        status="draft",
+        created_by=user.id,
+        precheck_data={
+            "installed_version": device.firmware_version,
+            "target_version": target,
+            "channel": readiness.get("channel"),
+            "free_hdd_space": readiness.get("free_hdd_space"),
+            "routerboard_current": readiness.get("routerboard_current"),
+            "routerboard_upgrade": readiness.get("routerboard_upgrade"),
+            "readiness_checked_at": readiness.get("checked_at"),
+            "agent_transport": (device.inventory_data or {}).get("agent_transport") or "modern-inferred",
+        },
+    )
+    db.add(plan)
+    db.flush()
+    queue_preupgrade_backup(db, device, user, plan)
+    core.add_event(
+        db,
+        "FIRMWARE_UPGRADE_PLAN_CREATED",
+        actor=user,
+        customer_id=device.customer_id,
+        device_id=device.id,
+        details={"plan_id": str(plan.id), "target_version": target, "status": plan.status},
+        source="portal",
+    )
+    return plan.id, True
+
+
 @router.post("/devices/{device_id}/firmware-upgrade/plan", name="create_firmware_upgrade_plan")
 def create_plan(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
     core.validate_csrf(request, csrf)
     with SessionLocal() as db:
         user = core.require_permission(request, db, "firmware.execute")
         device = _load_device(db, device_id)
-        if device.vendor != "mikrotik":
-            raise HTTPException(400, "Piano firmware disponibile solo per MikroTik in questa fase.")
-        if device.status != "online":
-            raise HTTPException(409, "Il MikroTik deve essere online.")
-        if not _modern_routeros(device):
-            raise HTTPException(409, "Upgrade remoto sicuro richiede RouterOS 7.13+ con agent moderno.")
-        if not _readiness_fresh(device):
-            raise HTTPException(409, "Esegui prima una verifica firmware recente (massimo 6 ore).")
-        readiness = _readiness(device)
-        target = str(readiness.get("latest_version") or device.recommended_firmware_version or "").strip()
-        if not target or target == str(device.firmware_version or "").strip():
-            raise HTTPException(409, "Nessun aggiornamento RouterOS disponibile.")
-        newer = is_newer_routeros_version(target, device.firmware_version)
-        if newer is None:
-            raise HTTPException(
-                409,
-                f"Impossibile confrontare RouterOS {device.firmware_version or 'sconosciuto'} con {target}: piano non creato.",
-            )
-        if not newer:
-            raise HTTPException(
-                409,
-                f"RouterOS {target} non è più recente della versione installata {device.firmware_version}: "
-                "il workflow non esegue downgrade.",
-            )
-        existing = db.scalar(
-            select(FirmwareUpgradePlan.id).where(
-                FirmwareUpgradePlan.device_id == device.id,
-                FirmwareUpgradePlan.status.in_(ACTIVE_STATES),
-            )
-        )
-        if existing:
-            return RedirectResponse(f"/devices/{device.id}/firmware-upgrade?plan={existing}", status_code=303)
-
-        plan = FirmwareUpgradePlan(
-            device_id=device.id,
-            target_version=target[:150],
-            channel=str(readiness.get("channel") or "")[:40] or None,
-            status="draft",
-            created_by=user.id,
-            precheck_data={
-                "installed_version": device.firmware_version,
-                "target_version": target,
-                "channel": readiness.get("channel"),
-                "free_hdd_space": readiness.get("free_hdd_space"),
-                "routerboard_current": readiness.get("routerboard_current"),
-                "routerboard_upgrade": readiness.get("routerboard_upgrade"),
-                "readiness_checked_at": readiness.get("checked_at"),
-                "agent_transport": (device.inventory_data or {}).get("agent_transport") or "modern-inferred",
-            },
-        )
-        db.add(plan)
-        db.flush()
-        queue_preupgrade_backup(db, device, user, plan)
-        core.add_event(
-            db,
-            "FIRMWARE_UPGRADE_PLAN_CREATED",
-            actor=user,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            details={"plan_id": str(plan.id), "target_version": target, "status": plan.status},
-            source="portal",
-        )
+        plan_id, _ = open_plan(db, device, user)
         db.commit()
-        return RedirectResponse(f"/devices/{device.id}/firmware-upgrade?plan={plan.id}", status_code=303)
+        return RedirectResponse(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}", status_code=303)
 
 
 @router.get("/devices/{device_id}/firmware-upgrade", response_class=HTMLResponse, name="firmware_upgrade_plan_page")
