@@ -34,14 +34,6 @@ PAGE_SIZE = 25
 REPORTS_PATH = "/audit/reports"
 
 
-def _remove_route(app, path: str, method: str) -> None:
-    app.router.routes[:] = [
-        route
-        for route in app.router.routes
-        if not (getattr(route, "path", None) == path and method in (getattr(route, "methods", set()) or set()))
-    ]
-
-
 def _parse_date(value: str, label: str) -> date:
     try:
         return date.fromisoformat(str(value or "").strip())
@@ -283,5 +275,4 @@ def reports_download(request: Request, report_id: uuid.UUID):
 
 
 def install_reports(app) -> None:
-    _remove_route(app, REPORTS_PATH, "GET")
     app.include_router(router)

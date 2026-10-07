@@ -1,0 +1,9 @@
+{# Shared administration navigation. Set `admin_tab` before including. #}
+{% set admin_tabs = [
+  ('users', '/admin/users', 'Utenti'),
+  ('api_keys', '/admin/api-keys', 'API Keys'),
+  ('integrations', '/admin/integrations/uisp', 'Integrazioni'),
+  ('branding', '/admin/branding', 'Branding'),
+  ('demo', '/admin/demo', 'Demo Lab'),
+] %}
+<nav class="admin-tabs" aria-label="Amministrazione">{% for key, href, label in admin_tabs %}<a href="{{ href }}"{% if admin_tab == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>

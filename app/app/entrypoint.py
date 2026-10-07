@@ -31,6 +31,8 @@ from app.firmware_activation_privilege_guard import install_firmware_activation_
 from app.firmware_package_staging import install_firmware_package_staging
 from app.firmware_upgrade_planner import install_firmware_upgrade_planner
 from app.firmware_worklist import install_firmware_worklist
+from app.fleet_monitoring import install_fleet_monitoring
+from app.integrations_hub import install_integrations_hub
 from app.inventory_ui import install_inventory_ui
 from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
@@ -52,9 +54,6 @@ from app.mikrotik_diagnostics_agent import install_mikrotik_diagnostics_agent
 from app.mikrotik_onboarding import install_mikrotik_onboarding
 from app.mikrotik_operational_tools import install_mikrotik_operational_tools
 from app.mikrotik_firmware_readiness import install_mikrotik_firmware_readiness
-from app.mikrotik_interfaces import install_mikrotik_interfaces
-from app.mikrotik_network_health import install_mikrotik_network_health
-from app.mikrotik_policy_health import install_mikrotik_policy_health
 from app.mikrotik_modern_syntax import install_mikrotik_modern_syntax_guard
 from app.mikrotik_privilege_profile import install_mikrotik_privilege_profile
 from app.mikrotik_workspace import install_mikrotik_workspace
@@ -128,15 +127,14 @@ install_customer_drilldown(core.app)
 install_security_drilldown(core.app)
 install_lifecycle_drilldown(core.app)
 install_firmware_worklist(core.app)
+install_fleet_monitoring(core.app)
+install_integrations_hub(core.app)
 install_agent_fleet(core.app)
 install_customer_tabs(core.app)
 install_search_enhancement(core.app)
 install_mikrotik_workspace(core.app)
 install_mikrotik_workspace_ux(core.app)
 install_mikrotik_snapshot_batch(core.app)
-install_mikrotik_interfaces(core.app)
-install_mikrotik_network_health(core.app)
-install_mikrotik_policy_health(core.app)
 install_mikrotik_agent_status(core.app)
 install_mikrotik_onboarding(core)
 install_mikrotik_telemetry(core.app)

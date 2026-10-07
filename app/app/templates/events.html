@@ -1,6 +1,0 @@
-{% extends "base.html" %}
-{% block title %}Eventi · {{ app_name }}{% endblock %}
-{% block content %}
-<div class="page-header"><div><h1>Audit Events</h1><p>Registro cronologico delle operazioni e delle variazioni osservate.</p></div></div>
-<section class="panel">{% if events %}<div class="table-wrap"><table class="data-table dense"><thead><tr><th>Data</th><th>Evento</th><th>Severità</th><th>Fonte</th><th>Esito</th><th>Device</th><th>Dettagli</th></tr></thead><tbody>{% for e in events %}<tr><td>{{ fmt_dt(e.timestamp) }}</td><td><code>{{ e.event_type }}</code></td><td>{{ e.severity }}</td><td>{{ e.source }}</td><td>{{ e.result }}</td><td><code>{{ e.device_id or '—' }}</code></td><td class="details-cell"><code>{{ e.details }}</code></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessun evento.</div>{% endif %}</section>
-{% endblock %}
