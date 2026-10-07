@@ -161,8 +161,6 @@ def device_activity(
         if not core.has_permission(user, "devices.read"):
             raise HTTPException(403)
         device = _load_device(db, device_id)
-        if device.vendor != "mikrotik":
-            raise HTTPException(404)
 
         active_jobs = list(
             db.scalars(

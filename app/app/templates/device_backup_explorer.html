@@ -1,18 +1,74 @@
-{% extends "base.html" %}
-{% set device_name = device.display_name or device.device_identity or device.name %}
-{% block title %}Backup · {{ device_name }} · {{ app_name }}{% endblock %}
-{% block content %}
-<style>
-.backup-shell{display:grid;grid-template-columns:250px minmax(0,1fr);gap:16px}.backup-tree{border:1px solid var(--border);border-radius:12px;background:var(--panel);padding:14px;align-self:start;position:sticky;top:18px}.backup-tree-root{display:flex;gap:9px;align-items:center;font-weight:800;margin-bottom:12px}.backup-tree-list{display:grid;gap:8px}.backup-tree-item{padding:9px 10px;border-radius:8px;background:var(--panel-muted,#f4f6f8)}.backup-tree-item span{display:block;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em}.backup-tree-item strong{display:block;margin-top:2px}.backup-browser{min-width:0}.backup-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}.backup-toolbar-left,.backup-toolbar-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.backup-path{font-family:"SFMono-Regular",Consolas,monospace;font-size:.82rem;color:var(--muted)}.backup-folder{border:1px solid var(--border);border-radius:10px;background:var(--panel);margin-bottom:10px;overflow:hidden}.backup-folder>summary{cursor:pointer;display:grid;grid-template-columns:minmax(240px,1fr) auto auto;gap:12px;align-items:center;padding:12px 14px;list-style:none}.backup-folder>summary::-webkit-details-marker{display:none}.backup-folder>summary:hover{background:var(--panel-muted,#f4f6f8)}.backup-folder-title{display:flex;gap:9px;align-items:center;min-width:0}.backup-folder-title strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.backup-folder-meta{color:var(--muted);font-size:.78rem}.backup-files{border-top:1px solid var(--border)}.backup-file{display:grid;grid-template-columns:minmax(240px,1fr) 120px 110px minmax(130px,180px) auto;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border)}.backup-file:last-child{border-bottom:0}.backup-file:hover{background:var(--panel-muted,#f4f6f8)}.backup-file-name{display:flex;gap:9px;align-items:center;min-width:0}.backup-file-name .name{min-width:0}.backup-file-name strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.backup-file-name small{display:block;color:var(--muted);margin-top:2px}.backup-file-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}.backup-file-actions form{margin:0}.backup-type{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em}.backup-hash{font-family:"SFMono-Regular",Consolas,monospace;font-size:.72rem}.backup-empty-folder{padding:18px;color:var(--muted)}.backup-run-error{padding:9px 14px;border-top:1px solid var(--border);background:rgba(239,68,68,.07);color:var(--danger,#b91c1c);font-size:.82rem}.backup-run-disabled{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:.78rem}.backup-run-disabled button{opacity:.55;cursor:not-allowed}.backup-file-icon{font-size:1.12rem}.backup-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}.backup-kpi{border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--panel)}.backup-kpi span{display:block;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em}.backup-kpi strong{display:block;font-size:1.05rem;margin-top:3px}.backup-badge{display:inline-flex;padding:4px 7px;border-radius:999px;font-size:.7rem;font-weight:800;background:var(--panel-muted,#eef2f5)}@media(max-width:1050px){.backup-shell{grid-template-columns:1fr}.backup-tree{position:static}.backup-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.backup-file{grid-template-columns:minmax(220px,1fr) 105px 100px auto}.backup-file .backup-hash{display:none}}@media(max-width:720px){.backup-kpis{grid-template-columns:1fr 1fr}.backup-folder>summary{grid-template-columns:1fr}.backup-file{grid-template-columns:1fr}.backup-file-actions{justify-content:flex-start}.backup-file .backup-hash{display:block}.backup-tree{display:none}}
-</style>
-<div class="breadcrumbs"><a href="/devices">Apparati</a><span>›</span><a href="/devices/{{ device.id }}">{{ device_name }}</a><span>›</span><span>Archivio backup</span></div>
-<div class="page-header"><div><h1>Archivio backup · {{ device_name }}</h1><p>Esplora esclusivamente i backup di questo apparato, scarica i file e confronta gli export testuali.</p></div><div class="page-actions"><a class="button ghost" href="/devices/{{ device.id }}">Torna all'apparato</a><a class="button" href="/operations/backups">Backup Center</a></div></div>
-<div class="backup-kpis"><div class="backup-kpi"><span>File archiviati</span><strong>{{ artifact_count }}</strong></div><div class="backup-kpi"><span>Export leggibili</span><strong>{{ readable_count }}</strong></div><div class="backup-kpi"><span>Spazio usato</span><strong>{% if storage_bytes >= 1048576 %}{{ '%.1f MB'|format(storage_bytes/1048576) }}{% elif storage_bytes >= 1024 %}{{ '%.1f KB'|format(storage_bytes/1024) }}{% else %}{{ storage_bytes }} B{% endif %}</strong></div><div class="backup-kpi"><span>Ultimo backup OK</span><strong>{{ fmt_dt(latest_success.completed_at or latest_success.started_at) if latest_success else 'Mai' }}</strong></div><div class="backup-kpi"><span>Ultimo restore test</span><strong><a href="/devices/{{ device.id }}/backups/restore-tests">{% if latest_restore_test %}{{ {'passed':'Superato','partial':'Parziale','failed':'Non superato'}.get(latest_restore_test.result, latest_restore_test.result) }} · {{ fmt_dt(latest_restore_test.performed_at) }}{% else %}Mai eseguito{% endif %}</a></strong></div></div>
-<div class="backup-shell">
-<aside class="backup-tree"><div class="backup-tree-root"><span>🗄️</span><span>{{ device_name }}</span></div><div class="backup-tree-list"><div class="backup-tree-item"><span>Cliente</span><strong>{{ device.customer.name if device.customer else '—' }}</strong></div><div class="backup-tree-item"><span>Sede</span><strong>{{ device.site.name if device.site else '—' }}</strong></div><div class="backup-tree-item"><span>Policy</span><strong>{{ backup_policy.name if backup_policy else 'Non configurata' }}</strong></div><div class="backup-tree-item"><span>Ambito visibile</span><strong>Solo questo apparato</strong></div></div></aside>
-<section class="backup-browser">
-<div class="backup-toolbar"><div class="backup-toolbar-left"><span class="backup-path">/backup/{{ device_name }}</span>{% if pending_backup %}<span class="backup-badge">BACKUP IN CORSO / CODA</span>{% endif %}</div><div class="backup-toolbar-right">{% if can_execute %}{% if can_run_backup %}<form method="post" action="/devices/{{ device.id }}/backups/run"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Backup adesso</button></form>{% else %}<div class="backup-run-disabled"><button class="button primary" type="button" disabled>Backup adesso</button><span>{{ run_block_reason }}</span></div>{% endif %}{% endif %}</div></div>
-{% if run_rows %}{% for row in run_rows %}{% set run=row.run %}<details class="backup-folder" {% if loop.first %}open{% endif %}><summary><div class="backup-folder-title"><span class="backup-file-icon">📁</span><div><strong>{{ fmt_dt(run.started_at) }}</strong><div class="backup-folder-meta">{{ run.backup_type or 'backup' }} · {{ row.artifacts|length }} file</div></div></div><span class="status-pill">{{ run.status }}</span><span class="backup-folder-meta">{% if run.size_bytes %}{% if run.size_bytes >= 1048576 %}{{ '%.1f MB'|format(run.size_bytes/1048576) }}{% else %}{{ '%.1f KB'|format(run.size_bytes/1024) }}{% endif %}{% else %}—{% endif %}</span></summary>
-{% if row.artifacts %}<div class="backup-files">{% for artifact in row.artifacts %}{% set readable = artifact.artifact_type == 'mikrotik_export' or artifact.filename.lower().endswith('.rsc') %}<div class="backup-file"><div class="backup-file-name"><span class="backup-file-icon">{% if readable %}📄{% else %}📦{% endif %}</span><div class="name"><strong>{{ artifact.filename }}</strong><small>{{ fmt_dt(artifact.created_at) }}</small></div></div><div><span class="backup-type">{{ 'RouterOS export' if readable else artifact.artifact_type }}</span></div><div>{% if artifact.size_bytes is not none %}{% if artifact.size_bytes >= 1048576 %}{{ '%.1f MB'|format(artifact.size_bytes/1048576) }}{% else %}{{ '%.1f KB'|format(artifact.size_bytes/1024) }}{% endif %}{% else %}—{% endif %}</div><div class="backup-hash" title="{{ artifact.sha256 or '' }}">SHA256 {{ (artifact.sha256 or '—')[:14] }}{% if artifact.sha256 %}…{% endif %}</div><div class="backup-file-actions">{% if readable %}<a class="button ghost" href="/devices/{{ device.id }}/backups/artifacts/{{ artifact.id }}/view">Apri / Diff</a>{% else %}<span class="backup-badge">BINARIO</span>{% endif %}<a class="button ghost" href="/devices/{{ device.id }}/backups/artifacts/{{ artifact.id }}/download">Scarica</a>{% set restore = restore_by_artifact.get(artifact.id) %}<a class="button ghost" href="/devices/{{ device.id }}/backups/artifacts/{{ artifact.id }}/restore-test" title="{% if restore %}Ultimo restore test: {{ restore.result }} · {{ fmt_dt(restore.performed_at) }}{% else %}Nessun restore test registrato{% endif %}">Restore test{% if restore %} · {{ {'passed':'OK','partial':'parziale','failed':'KO'}.get(restore.result, restore.result) }}{% endif %}</a>{% if can_configure %}<form method="post" action="/devices/{{ device.id }}/backups/artifacts/{{ artifact.id }}/delete" onsubmit="return confirm('Eliminare definitivamente questo backup dall\'archivio?');"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button danger" type="submit">Elimina</button></form>{% endif %}</div></div>{% endfor %}</div>{% else %}<div class="backup-empty-folder">Nessun artefatto archiviato per questa esecuzione.</div>{% endif %}{% if run.error_message %}<div class="backup-run-error"><strong>Errore:</strong> {{ run.error_message }}</div>{% endif %}</details>{% endfor %}{% else %}<div class="empty-state"><strong>Nessun backup archiviato per questo apparato.</strong><br>Usa “Backup adesso” oppure attendi la pianificazione della policy effettiva.</div>{% endif %}
-</section></div>
+{% extends "device_layout.html" %}
+{% set device_tab = 'backups' %}
+{% macro size(value) -%}
+{%- if value is none -%}—{%- elif value >= 1048576 -%}{{ '%.1f MB'|format(value / 1048576) }}{%- elif value >= 1024 -%}{{ '%.1f KB'|format(value / 1024) }}{%- else -%}{{ value }} B{%- endif -%}
+{%- endmacro %}
+{% set restore_labels = {'passed': 'OK', 'partial': 'Parziale', 'failed': 'KO'} %}
+{% block device_actions %}
+{% if can_execute %}
+  {% if can_run_backup %}
+  <form method="post" action="/devices/{{ device.id }}/backups/run"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Backup adesso</button></form>
+  {% else %}
+  <button class="button primary" type="button" disabled title="{{ run_block_reason }}">Backup adesso</button>
+  {% endif %}
+{% endif %}
+{% endblock %}
+{% block device_content %}
+<h2 class="visually-hidden">Archivio backup · {{ device.display_name or device.device_identity or device.name }}</h2>
+
+{% if can_execute and not can_run_backup and run_block_reason %}<div class="alert info">{{ run_block_reason }}</div>{% endif %}
+{% if pending_backup %}<div class="alert info"><strong>Backup in coda o in esecuzione.</strong> L'agent lo completerà al prossimo heartbeat; la pagina si aggiorna ricaricandola.</div>{% endif %}
+
+<div class="metric-grid">
+  <div class="metric-card"><span>Ultimo backup riuscito</span><strong>{{ fmt_dt(latest_success.completed_at or latest_success.started_at) if latest_success else 'Mai' }}</strong><small>{{ latest_success.backup_type if latest_success else 'nessuna esecuzione riuscita' }}</small></div>
+  <div class="metric-card"><span>Policy effettiva</span><strong class="metric-text">{{ backup_policy.name if backup_policy else 'Nessuna' }}</strong><small>{{ backup_schedule_label(backup_policy.schedule_cron) if backup_policy else 'configura una policy dal Backup Center' }}</small></div>
+  <div class="metric-card"><span>Archivio</span><strong>{{ artifact_count }} file</strong><small>{{ size(storage_bytes) }} · {{ readable_count }} export leggibili</small></div>
+  <a class="metric-card" href="/devices/{{ device.id }}/backups/restore-tests"><span>Ultimo restore test</span><strong>{% if latest_restore_test %}{{ {'passed':'Superato','partial':'Parziale','failed':'Non superato'}.get(latest_restore_test.result, latest_restore_test.result) }}{% else %}Mai eseguito{% endif %}</strong><small>{{ fmt_dt(latest_restore_test.performed_at) if latest_restore_test else 'apri lo storico' }}</small></a>
+</div>
+
+<section class="panel">
+  <div class="panel-header">
+    <div><h2>Archivio</h2><p>File di questo apparato, raggruppati per esecuzione. Gli export <code>.rsc</code> si aprono e si confrontano nel portale; i backup binari si possono solo scaricare.</p></div>
+  </div>
+  <form class="filter-bar" method="get">
+    <select name="kind" aria-label="Tipo file">{% for key, label in archive_kinds.items() %}<option value="{{ key }}" {% if archive_kind == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <select name="status" aria-label="Esito">{% for key, label in archive_statuses.items() %}<option value="{{ key }}" {% if archive_status == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <button class="button">Filtra</button>
+    {% if archive_kind != 'all' or archive_status != 'all' %}<a class="button ghost" href="/devices/{{ device.id }}/backups">Reset</a>{% endif %}
+  </form>
+
+  {% if run_rows %}
+  <div class="table-wrap"><table class="data-table backup-archive">
+    <thead><tr><th>Esecuzione</th><th>File</th><th>Dimensione</th><th>SHA-256</th><th>Restore test</th><th class="actions-col">Azioni</th></tr></thead>
+    {% for row in run_rows %}{% set run = row.run %}
+    <tbody class="backup-run">
+      {% if row.artifacts %}
+      {% for artifact in row.artifacts %}{% set readable = artifact.artifact_type == 'mikrotik_export' or artifact.filename.lower().endswith('.rsc') %}{% set restore = restore_by_artifact.get(artifact.id) %}
+      <tr>
+        {% if loop.first %}<td rowspan="{{ row.artifacts|length }}" class="run-cell"><strong>{{ fmt_dt(run.started_at) }}</strong><span class="status-pill run-{{ run.status }}">{{ run.status }}</span>{% if run.error_message %}<small class="run-error">{{ run.error_message }}</small>{% endif %}</td>{% endif %}
+        <td><span class="file-type {{ 'file-export' if readable else 'file-binary' }}">{{ '.rsc' if readable else '.backup' }}</span> <strong class="file-name" title="{{ artifact.filename }}">{{ artifact.filename }}</strong></td>
+        <td>{{ size(artifact.size_bytes) }}</td>
+        <td><code title="{{ artifact.sha256 or '' }}">{{ (artifact.sha256 or '—')[:12] }}{% if artifact.sha256 %}…{% endif %}</code></td>
+        <td>{% if restore %}<span class="status-pill restore-{{ restore.result }}" title="{{ fmt_dt(restore.performed_at) }}">{{ restore_labels.get(restore.result, restore.result) }}</span>{% else %}<small>—</small>{% endif %}</td>
+        <td class="actions-col"><div class="row-actions">
+          {% if readable %}<a class="button tiny ghost" href="/devices/{{ device.id }}/backups/artifacts/{{ artifact.id }}/view">Apri / Diff</a>{% endif %}
+          <a class="button tiny ghost" href="/devices/{{ device.id }}/backups/artifacts/{{ artifact.id }}/download">Scarica</a>
+          <a class="button tiny ghost" href="/devices/{{ device.id }}/backups/artifacts/{{ artifact.id }}/restore-test">Restore test</a>
+          {% if can_configure %}<form method="post" action="/devices/{{ device.id }}/backups/artifacts/{{ artifact.id }}/delete" onsubmit="return confirm('Eliminare definitivamente {{ artifact.filename }} dall\'archivio?');"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny danger" type="submit" title="Elimina">Elimina</button></form>{% endif %}
+        </div></td>
+      </tr>
+      {% endfor %}
+      {% else %}
+      <tr>
+        <td class="run-cell"><strong>{{ fmt_dt(run.started_at) }}</strong><span class="status-pill run-{{ run.status }}">{{ run.status }}</span></td>
+        <td colspan="5">{% if run.error_message %}<span class="run-error">{{ run.error_message }}</span>{% else %}<small>Nessun file archiviato per questa esecuzione.</small>{% endif %}</td>
+      </tr>
+      {% endif %}
+    </tbody>
+    {% endfor %}
+  </table></div>
+  {% else %}
+  <div class="empty-state">{% if archive_kind != 'all' or archive_status != 'all' %}Nessuna esecuzione corrisponde ai filtri.{% else %}<strong>Nessun backup archiviato per questo apparato.</strong><br>Usa “Backup adesso” oppure attendi la pianificazione della policy effettiva.{% endif %}</div>
+  {% endif %}
+</section>
 {% endblock %}

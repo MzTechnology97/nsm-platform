@@ -62,20 +62,19 @@ def main():
     jobs = client.get(f"/devices/{device_id}/jobs", params={"per_page": 25})
     assert jobs.status_code == 200
     assert "Coda attiva" in jobs.text
-    assert "65 risultati filtrati" in jobs.text
-    assert ">1/3<" in jobs.text
+    assert "65 risultati · pagina 1 di 3" in jobs.text
     assert "diagnostic_ping" in jobs.text
     assert "diagnostic_logs" in jobs.text
 
     page3 = client.get(f"/devices/{device_id}/jobs", params={"per_page": 25, "page": 3})
     assert page3.status_code == 200
-    assert ">3/3<" in page3.text
+    assert "pagina 3 di 3" in page3.text
 
     # Search also inspects structured job payload/result, without dumping that
     # payload into the table itself.
     payload_search = client.get(f"/devices/{device_id}/jobs", params={"q": "CI39-JOB-64"})
     assert payload_search.status_code == 200
-    assert "1 risultati filtrati" in payload_search.text
+    assert "1 risultati · pagina 1 di 1" in payload_search.text
 
     failed = client.get(f"/devices/{device_id}/jobs", params={"status": "failed", "q": "CI39 simulated failure"})
     assert failed.status_code == 200
@@ -87,7 +86,7 @@ def main():
     audit = client.get(f"/devices/{device_id}/jobs", params={"view": "audit", "event_type": "CI39_PING", "result": "success", "per_page": 25})
     assert audit.status_code == 200
     assert "CI39_PING" in audit.text
-    assert "22 risultati filtrati" in audit.text
+    assert "22 risultati · pagina 1 di 1" in audit.text
 
     # There are exactly 32 odd-indexed LOG events. Other event types may still
     # appear in the filter select, so validate the filtered result count rather

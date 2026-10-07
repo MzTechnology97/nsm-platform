@@ -188,18 +188,21 @@ def _installation_state(device, credential, enrollments):
         key, label, severity = "not_enrolled", "Agent non associato", "warning"
         detail = "Nessuna credenziale agent attiva. Avviare o rigenerare l'onboarding."
 
+    # A working Agent (credential + heartbeat) proves token and pairing even
+    # when the enrollment predates the retained history.
+    implied_paired = heartbeat_after_pairing or key == "verified_legacy_record"
     steps = [
         {
             "key": "token",
             "label": "Token creato",
-            "done": bool(latest),
-            "detail": latest.status if latest else "nessun enrollment",
+            "done": bool(latest) or implied_paired,
+            "detail": latest.status if latest else ("storico non disponibile" if implied_paired else "nessun enrollment"),
         },
         {
             "key": "pairing",
             "label": "Pairing one-shot",
-            "done": bool(used_at),
-            "detail": used_at,
+            "done": bool(used_at) or implied_paired,
+            "detail": used_at or ("storico non disponibile" if implied_paired else None),
         },
         {
             "key": "credential",

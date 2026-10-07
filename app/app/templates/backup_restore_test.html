@@ -1,10 +1,11 @@
-{% extends "base.html" %}
-{% set device_name = device.display_name or device.device_identity or device.name %}
-{% block title %}Restore test · {{ device_name }} · {{ app_name }}{% endblock %}
-{% block content %}
-<div class="breadcrumbs"><a href="/devices/{{ device.id }}">{{ device_name }}</a><span>›</span><a href="/devices/{{ device.id }}/backups">Archivio backup</a><span>›</span><span>Restore test</span></div>
-<div class="page-header compact-heading"><div><h1>Restore test · {{ artifact.filename }}</h1><p>Registra l'esito di un ripristino eseguito in un ambiente controllato. NSM non ripristina mai automaticamente un apparato in produzione.</p></div><div class="page-actions"><a class="button ghost" href="/devices/{{ device.id }}/backups/restore-tests">Storico restore test</a><a class="button ghost" href="/devices/{{ device.id }}/backups">Archivio backup</a></div></div>
-
+{% extends "device_layout.html" %}
+{% set device_tab = 'backups' %}
+{% set title = device.display_name or device.device_identity or device.name %}
+{% set device_name = title %}
+{% set device_section = 'Restore test' %}
+{% block device_actions %}<a class="button ghost" href="/devices/{{ device.id }}/backups/restore-tests">Storico restore test</a><a class="button ghost" href="/devices/{{ device.id }}/backups">Archivio backup</a>{% endblock %}
+{% block device_content %}
+<div class="section-heading"><h2>Restore test · {{ artifact.filename }}</h2><p>Registra l'esito di un ripristino eseguito in un ambiente controllato. NSM non ripristina mai automaticamente un apparato in produzione.</p></div>
 <section class="panel">
   <div class="panel-header"><div><h2>Integrità artefatto</h2><p>Verifica eseguita ora sul file archiviato rispetto all'evidenza registrata al momento del backup.</p></div><span class="status-pill">{{ 'INTEGRO' if integrity.ok else 'NON VERIFICATO' }}</span></div>
   <div class="policy-summary six">

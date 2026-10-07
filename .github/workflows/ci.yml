@@ -140,8 +140,11 @@ jobs:
               assert marker in agent_health, marker
           for marker in ('human_bytes', 'snapshot_supported', 'telemetry_history_supported', 'Support snapshot non disponibile', '409'):
               assert marker in workspace_ux, marker
-          for marker in ('MAC', 'Storico non supportato', 'memory_used_percent'):
+          for marker in ('Storico non supportato', 'memory_used_percent', 'device_layout.html'):
               assert marker in monitor, marker
+          device_layout = Path('app/app/templates/device_layout.html').read_text()
+          for marker in ('MAC', 'IP gestione', 'device-tabs', "('backups', 'Backup'", "('firmware', 'Firmware'"):
+              assert marker in device_layout, marker
           for marker in ('Risultati recenti', 'NON DISP.', '/diagnostics/jobs/'):
               assert marker in diagnostics, marker
           for marker in ('copyEnrollmentCommand', 'textContent', 'Copiato', 'Copia non riuscita'):

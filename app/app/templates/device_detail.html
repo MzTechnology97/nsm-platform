@@ -1,29 +1,66 @@
-{% extends "base.html" %}
-{% block title %}{{ device.display_name or device.device_identity or device.name }} · {{ app_name }}{% endblock %}
-{% block content %}
-<div class="breadcrumbs"><a href="/devices">Apparati</a><span>›</span><a href="/customers/{{ device.customer.id }}">{{ device.customer.name }}</a><span>›</span><span>{{ device.display_name or device.device_identity or device.name }}</span></div>
-<div class="device-hero"><div><div class="device-title-line"><h1>{{ device.display_name or device.device_identity or device.name }}</h1><span class="device-status status-{{ device.status }}">{{ status_label(device.status) }}</span></div><p class="device-identity">{{ device.device_identity or 'Nome reale non ancora rilevato' }}</p></div><div class="page-actions"><div class="header-badges"><span class="info-badge">{{ device.vendor }}</span><span class="info-badge">{{ device.management_source }}</span></div>{% if has_permission(user, 'devices.write') %}<a class="button" href="/devices/{{ device.id }}/manage">Gestisci apparato</a>{% endif %}</div></div>
-{% if issues %}<div class="attention-banner"><strong>Attenzione richiesta</strong><span>{{ issues|length }} problemi aperti per questo apparato.</span><a href="/action-center">Apri Action Center →</a></div>{% endif %}
-{% if enrollment_command %}<section class="panel enrollment-panel"><div class="panel-header"><div><h2>MikroTik enrollment / aggiornamento agent</h2><p>Token one-shot valido 30 minuti. Esegui il comando sul router per installare la versione agent corrente.</p></div><span class="severity-badge severity-warning">MOSTRATO UNA SOLA VOLTA</span></div><div class="command-box"><code id="enrollment-command">{{ enrollment_command }}</code><button class="button" type="button" onclick="navigator.clipboard.writeText(document.getElementById('enrollment-command').innerText)">Copia</button></div><p class="muted">Il bootstrap ruota la credenziale per-device e sostituisce script e scheduler NSM esistenti.</p></section>{% elif device.vendor == 'mikrotik' and device.status == 'pending_enrollment' and has_permission(user, 'devices.enroll') %}<section class="panel"><div class="panel-header"><div><h2>Enrollment in attesa</h2><p>Il comando precedente non è più visualizzabile oppure il token è scaduto.</p></div></div><form method="post" action="/devices/{{ device.id }}/enrollment"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Genera nuovo comando one-shot</button></form></section>{% endif %}
-{% if device.vendor == 'mikrotik' %}
-<section class="panel agent-status-panel" id="agent"><div class="panel-header"><div><h2>NSM Agent MikroTik</h2><p>Connessione outbound, inventario e job operativi.</p></div>{% if has_permission(user, 'devices.enroll') %}<form method="post" action="/devices/{{ device.id }}/agent/reinstall"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button ghost">Aggiorna / reinstalla agent</button></form>{% endif %}</div><div class="policy-summary"><div><span>Versione agent</span><strong>{{ (device.inventory_data or {}).get('agent_version') or 'Non rilevata' }}</strong></div><div><span>Ultimo heartbeat</span><strong>{{ fmt_dt(device.last_seen) }}</strong></div><div><span>Sorgente gestione</span><strong>{{ device.management_source }}</strong></div><div><span>Stato</span><strong>{{ status_label(device.status) }}</strong></div></div>{% if request.query_params.get('agent') == 'reinstall' %}<div class="alert warning">Nuovo bootstrap generato. Eseguilo sul MikroTik: la vecchia credenziale verrà sostituita al completamento.</div>{% endif %}</section>
-{% endif %}
+{% extends "device_layout.html" %}
+{% set device_tab = 'overview' %}
+{% block device_content %}
+{% if issues %}<div class="attention-banner"><strong>Attenzione richiesta</strong><span>{{ issues|length }} segnalazioni aperte per questo apparato.</span><a href="/action-center">Apri Action Center →</a></div>{% endif %}
+
+<div class="metric-grid">
+  <div class="metric-card"><span>Stato</span><strong class="metric-text">{{ status_label(device.status) }}</strong><small>{{ ('visto ' ~ fmt_dt(device.last_seen)) if device.last_seen else 'mai visto' }}</small></div>
+  <div class="metric-card"><span>Firmware</span><strong class="metric-text">{{ device.firmware_version or '—' }}</strong><small>{% if device.recommended_firmware_version and device.recommended_firmware_version != device.firmware_version %}raccomandato {{ device.recommended_firmware_version }}{% else %}{{ device.firmware_status or 'stato non noto' }}{% endif %}</small></div>
+  <div class="metric-card"><span>Vulnerabilità aperte</span><strong>{{ vulnerabilities|length }}</strong><small>CVE associate all'apparato</small></div>
+  <a class="metric-card" href="/devices/{{ device.id }}/backups"><span>Backup</span><strong class="metric-text">{{ backup_policy.name if backup_policy else 'Nessuna policy' }}</strong><small>{% if backup_runs %}ultimo {{ fmt_dt(backup_runs[0].started_at) }} · {{ backup_runs[0].status }}{% else %}nessuna esecuzione{% endif %}</small></a>
+</div>
+
 {% if device.vendor == 'ubiquiti' %}
-<section class="panel" id="uisp"><div class="panel-header"><div><h2>UISP Network</h2><p>Inventario osservato tramite associazione read-only per MAC.</p></div><a class="button {% if not device.external_device_id %}primary{% else %}ghost{% endif %}" href="/devices/{{ device.id }}/uisp">{{ 'Associa a UISP' if not device.external_device_id else 'Apri UISP connector' }}</a></div>
-  {% if request.query_params.get('uisp') == 'associated' %}<div class="alert success">Dispositivo associato a UISP e inventario aggiornato.</div>{% elif request.query_params.get('uisp') == 'refreshed' %}<div class="alert success">Inventario UISP aggiornato.</div>{% endif %}
-  {% if device.external_device_id %}<div class="policy-summary"><div><span>ID UISP stabile</span><strong><code>{{ device.external_device_id }}</code></strong></div><div><span>Ultima verifica</span><strong>{{ fmt_dt(device.inventory_last_verified_at) }}</strong></div><div><span>Management IP</span><strong>{{ device.management_ip or '—' }}</strong></div><div><span>Sorgente</span><strong>{{ device.inventory_source or device.management_source }}</strong></div></div>{% else %}<div class="empty-state warning">Associazione UISP ancora da completare. Il MAC NSM resta la chiave di matching e Customer/Site non verranno importati da UISP.</div>{% endif %}
+<section class="panel">
+  <div class="panel-header"><div><h2>UISP Network</h2><p>Inventario osservato tramite associazione read-only per MAC.</p></div><a class="button {% if not device.external_device_id %}primary{% else %}ghost{% endif %}" href="/devices/{{ device.id }}/uisp">{{ 'Associa a UISP' if not device.external_device_id else 'Apri UISP' }}</a></div>
+  {% if device.external_device_id %}
+  <div class="policy-summary"><div><span>ID UISP stabile</span><strong><code>{{ device.external_device_id }}</code></strong></div><div><span>Ultima verifica</span><strong>{{ fmt_dt(device.inventory_last_verified_at) }}</strong></div><div><span>Sync</span><strong>{{ ((device.inventory_data or {}).get('uisp') or {}).get('sync_state') or '—' }}</strong></div><div><span>Sorgente</span><strong>{{ device.inventory_source or device.management_source }}</strong></div></div>
+  {% else %}<div class="empty-state warning">Associazione UISP ancora da completare. Il MAC NSM resta la chiave di matching e Cliente/Sede non vengono importati da UISP.</div>{% endif %}
 </section>
+{% elif device.management_source in ['tr069', 'acs'] %}
+<div class="alert info"><strong>Gestione tramite ACS non ancora disponibile.</strong> Inventario, backup e firmware per questo apparato restano manuali finché il connettore TR-069 non è implementato.</div>
 {% endif %}
-<div class="tabbar"><a class="active" href="#overview">Overview</a>{% if device.vendor == 'mikrotik' %}<a href="#agent">Agent</a>{% elif device.vendor == 'ubiquiti' %}<a href="#uisp">UISP</a>{% endif %}<a href="#monitoring">Monitoring</a><a href="#backups">Backup</a><a href="#firmware">Firmware</a><a href="#security">Vulnerabilità</a><a href="#lifecycle">Lifecycle</a><a href="#history">History</a></div>
-<div class="detail-grid" id="overview"><section class="panel"><div class="panel-header"><div><h2>Identificazione</h2><p>Dati osservati e organizzazione del portale.</p></div></div><dl class="kv-list"><div><dt>Alias portale</dt><dd>{{ device.display_name or '—' }}</dd></div><div><dt>Device identity</dt><dd>{{ device.device_identity or '—' }}</dd></div><div><dt>Cliente</dt><dd><a href="/customers/{{ device.customer.id }}">{{ device.customer.name }}</a></dd></div><div><dt>Sede</dt><dd>{{ device.site.name if device.site else '—' }}</dd></div><div><dt>Vendor</dt><dd>{{ device.vendor }}</dd></div><div><dt>Modello</dt><dd>{{ device.model or '—' }}</dd></div><div><dt>Seriale</dt><dd><code>{{ device.serial_number or '—' }}</code></dd></div><div><dt>MAC</dt><dd><code>{{ device.primary_mac or '—' }}</code></dd></div></dl></section><section class="panel"><div class="panel-header"><div><h2>Inventario osservato</h2><p>Questi valori non sono modificabili manualmente.</p></div></div><dl class="kv-list"><div><dt>Firmware</dt><dd>{{ device.firmware_version or '—' }}</dd></div><div><dt>Architecture</dt><dd>{{ device.architecture or '—' }}</dd></div><div><dt>Software ID</dt><dd>{{ device.software_id or '—' }}</dd></div><div><dt>RouterBOOT</dt><dd>{{ device.routerboot_version or '—' }}</dd></div><div><dt>Management IP</dt><dd>{{ device.management_ip or '—' }}</dd></div><div><dt>Sorgente</dt><dd>{{ device.inventory_source or device.management_source }}</dd></div><div><dt>Ultima verifica</dt><dd>{{ fmt_dt(device.inventory_last_verified_at) }}</dd></div><div><dt>Last seen</dt><dd>{{ fmt_dt(device.last_seen) }}</dd></div></dl></section></div>
-<section class="panel" id="backups">
-  <div class="panel-header"><div><h2>Backup</h2><p>Policy effettiva, esecuzione manuale e storico.</p></div><div class="page-actions"><a class="button" href="/devices/{{ device.id }}/backups">Apri archivio backup</a><a class="text-link" href="/operations/backups">Backup Center →</a>{% if device.vendor == 'mikrotik' and device.status == 'online' and backup_policy and has_permission(user, 'backup.execute') %}<form method="post" action="/devices/{{ device.id }}/backup-now"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Backup ora</button></form>{% endif %}</div></div>
-  {% if request.query_params.get('backup') == 'queued' %}<div class="alert success">Backup accodato. L'agent MikroTik lo eseguirà al prossimo heartbeat.</div>{% elif request.query_params.get('backup') == 'already_pending' %}<div class="alert warning">È già presente un backup in attesa o in esecuzione per questo apparato.</div>{% endif %}
-  {% if backup_policy %}<div class="policy-summary"><div><span>Policy effettiva</span><strong>{{ backup_policy.name }}</strong></div><div><span>Pianificazione</span><strong>{{ backup_schedule_label(backup_policy.schedule_cron) }}</strong></div><div><span>Backup binario</span><strong>{{ 'Sì' if backup_policy.binary_backup else 'No' }}</strong></div><div><span>Export testuale</span><strong>{{ 'Sì' if backup_policy.text_export else 'No' }}</strong></div></div>{% else %}<div class="empty-state warning">Nessuna backup policy effettiva. Configura una policy globale, vendor, cliente, sede o apparato nel Backup Center.</div>{% endif %}
-  {% if backup_runs %}<div class="table-wrap"><table class="data-table"><thead><tr><th>Data</th><th>Tipo</th><th>Stato</th><th>Dimensione</th><th>SHA256</th><th>Errore</th></tr></thead><tbody>{% for r in backup_runs %}<tr><td>{{ fmt_dt(r.started_at) }}</td><td>{{ r.backup_type or '—' }}</td><td><span class="status-pill">{{ r.status }}</span></td><td>{{ ('%.1f KB'|format((r.size_bytes or 0)/1024)) if r.size_bytes else '—' }}</td><td><code title="{{ r.sha256 or '' }}">{{ (r.sha256 or '—')[:16] }}{% if r.sha256 %}…{% endif %}</code></td><td>{{ r.error_message or '—' }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessun backup ancora eseguito.</div>{% endif %}
+
+<div class="detail-grid">
+  <section class="panel">
+    <div class="panel-header"><div><h2>Identificazione</h2><p>Dati osservati e organizzazione nel portale.</p></div></div>
+    <dl class="kv-list">
+      <div><dt>Alias portale</dt><dd>{{ device.display_name or '—' }}</dd></div>
+      <div><dt>Device identity</dt><dd>{{ device.device_identity or '—' }}</dd></div>
+      <div><dt>Cliente</dt><dd><a href="/customers/{{ device.customer_id }}">{{ device.customer.name }}</a></dd></div>
+      <div><dt>Sede</dt><dd>{{ device.site.name if device.site else '—' }}</dd></div>
+      <div><dt>Vendor / tipo</dt><dd>{{ device.vendor }} · {{ device.device_type }}</dd></div>
+      <div><dt>Seriale</dt><dd><code>{{ device.serial_number or '—' }}</code></dd></div>
+      <div><dt>Gestione</dt><dd>{{ device.management_source }}</dd></div>
+    </dl>
+  </section>
+  <section class="panel">
+    <div class="panel-header"><div><h2>Ciclo di vita</h2><p>Supporto del vendor e date EOL/EOS.</p></div></div>
+    <dl class="kv-list">
+      <div><dt>Stato lifecycle</dt><dd><span class="lifecycle lifecycle-{{ device.lifecycle_status }}">{{ device.lifecycle_status|upper }}</span></dd></div>
+      <div><dt>EOL</dt><dd>{{ device.eol_date or '—' }}</dd></div>
+      <div><dt>EOS</dt><dd>{{ device.eos_date or '—' }}</dd></div>
+      <div><dt>Fonte</dt><dd>{{ device.lifecycle_source or '—' }}</dd></div>
+      <div><dt>Stato firmware</dt><dd>{{ device.firmware_status|upper }}</dd></div>
+    </dl>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Vulnerabilità</h2><p>CVE che impattano questo specifico apparato.</p></div></div>
+  {% if vulnerabilities %}
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>CVE</th><th>Severità</th><th>Installato</th><th>Fixed</th><th>Stato</th></tr></thead><tbody>
+  {% for impact, advisory in vulnerabilities %}<tr><td><a class="strong-link" href="/security/vulnerabilities/{{ advisory.id }}">{{ advisory.cve_id }}</a></td><td><span class="severity-badge severity-{{ advisory.severity }}">{{ advisory.severity|upper }}</span></td><td>{{ impact.installed_version or device.firmware_version or '—' }}</td><td>{{ impact.fixed_version or '—' }}</td><td>{{ impact.status }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty-state">Nessuna CVE associata all'apparato.</div>{% endif %}
 </section>
-<section class="panel" id="firmware"><div class="panel-header"><div><h2>Firmware</h2><p>Versione osservata e stato di aggiornamento.</p></div></div><div class="policy-summary"><div><span>Installato</span><strong>{{ device.firmware_version or '—' }}</strong></div><div><span>Raccomandato</span><strong>{{ device.recommended_firmware_version or '—' }}</strong></div><div><span>Stato</span><strong>{{ device.firmware_status|upper }}</strong></div></div></section>
-<section class="panel" id="security"><div class="panel-header"><div><h2>Vulnerabilità</h2><p>CVE che impattano questo specifico apparato.</p></div></div>{% if vulnerabilities %}<div class="table-wrap"><table class="data-table"><thead><tr><th>CVE</th><th>Severità</th><th>Installato</th><th>Fixed</th><th>Stato</th></tr></thead><tbody>{% for impact, advisory in vulnerabilities %}<tr><td><a class="strong-link" href="/security/vulnerabilities/{{ advisory.id }}">{{ advisory.cve_id }}</a></td><td><span class="severity-badge severity-{{ advisory.severity }}">{{ advisory.severity|upper }}</span></td><td>{{ impact.installed_version or device.firmware_version or '—' }}</td><td>{{ impact.fixed_version or '—' }}</td><td>{{ impact.status }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessuna CVE associata all'apparato.</div>{% endif %}</section>
-<section class="panel" id="lifecycle"><div class="panel-header"><div><h2>Lifecycle</h2><p>Supporto vendor e date EOL/EOS.</p></div></div><div class="policy-summary"><div><span>Stato</span><strong>{{ device.lifecycle_status|upper }}</strong></div><div><span>EOL</span><strong>{{ device.eol_date or '—' }}</strong></div><div><span>EOS</span><strong>{{ device.eos_date or '—' }}</strong></div><div><span>Fonte</span><strong>{{ device.lifecycle_source or '—' }}</strong></div></div></section>
-<section class="panel" id="history"><div class="panel-header"><div><h2>History</h2><p>Modifiche e operazioni registrate per questo apparato.</p></div></div>{% if events %}<div class="table-wrap"><table class="data-table"><thead><tr><th>Data</th><th>Evento</th><th>Fonte</th><th>Esito</th></tr></thead><tbody>{% for e in events %}<tr><td>{{ fmt_dt(e.timestamp) }}</td><td><code>{{ e.event_type }}</code></td><td>{{ e.source }}</td><td>{{ e.result }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessun evento.</div>{% endif %}</section>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Attività recenti</h2><p>Ultimi eventi registrati per questo apparato.</p></div><a class="text-link" href="/devices/{{ device.id }}/jobs">Tutte le attività →</a></div>
+  {% if events %}
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>Data</th><th>Evento</th><th>Fonte</th><th>Esito</th></tr></thead><tbody>
+  {% for e in events[:10] %}<tr><td>{{ fmt_dt(e.timestamp) }}</td><td><code>{{ e.event_type }}</code></td><td>{{ e.source }}</td><td>{{ e.result }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty-state">Nessun evento.</div>{% endif %}
+</section>
 {% endblock %}

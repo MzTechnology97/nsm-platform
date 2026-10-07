@@ -1,8 +1,10 @@
-{% extends "base.html" %}
-{% block title %}Gestisci apparato · {{ device.display_name or device.device_identity or device.name }}{% endblock %}
-{% block content %}
-<div class="breadcrumbs"><a href="/devices">Apparati</a><span>›</span><a href="/devices/{{ device.id }}">{{ device.display_name or device.device_identity or device.name }}</a><span>›</span><span>Gestisci</span></div>
-<div class="page-header"><div><h1>Gestisci apparato</h1><p>Modifica alias e assegnazione organizzativa. I dati osservati dal dispositivo restano read-only.</p></div></div>
+{% extends "device_layout.html" %}
+{% set device_tab = 'overview' %}
+{% set title = device.display_name or device.device_identity or device.name %}
+{% set device_name = title %}
+{% set device_section = 'Gestione' %}
+{% block device_content %}
+<div class="section-heading"><h2>Gestisci apparato</h2><p>Modifica alias e assegnazione organizzativa. I dati osservati dal dispositivo restano read-only.</p></div>
 <div class="form-page-grid">
   <section class="panel form-page-main">
     <div class="panel-header"><div><h2>Organizzazione</h2><p>Puoi spostare l'apparato tra clienti e sedi senza perdere lo storico del dispositivo.</p></div></div>
