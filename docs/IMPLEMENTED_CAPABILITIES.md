@@ -426,7 +426,6 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 ### Not implemented yet
 
 - other advisory sources and non-MikroTik product mappings;
-- full evidence/report integration (SEC-04).
 
 ## 16. Lifecycle / EOL / EOS
 
@@ -508,6 +507,16 @@ A production identifier must never be copied into a test merely because it repro
 - downloads re-verify SHA-256 and block tampered content (`REPORT_INTEGRITY_FAILED`);
 - permissions: `reports.read` to browse/download, `reports.generate` to create;
 - explicit disclaimer: evidence supports NIS2-oriented programs, it does not attest compliance.
+
+### Security evidence in reports (SEC-04)
+
+- vulnerability section states the advisory source (NVD, advisory count, last update) and warns when the automatic source has not updated for more than 7 days; manual-only data is stated as such;
+- open findings by remediation state (open, planned, in progress, exception) and critical/high still unhandled;
+- findings resolved in the period by reason (version upgraded, manual, CVE rejected) and mean days to resolve;
+- active exceptions with expiry and the justification recorded when granted;
+- table of open critical/high findings (CVE, device, installed, fixed in, state), bounded to 300 rows;
+- MikroTik devices whose version cannot be assessed are counted, never reported as not vulnerable;
+- CSV appends `unhandled_severe_vulnerabilities` and `vulnerabilities_in_exception` per Device (existing columns unchanged).
 
 ### Scheduled reports (REP-03)
 
