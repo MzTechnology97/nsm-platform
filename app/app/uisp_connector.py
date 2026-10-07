@@ -72,6 +72,41 @@ def _parse_sync_interval(value) -> int | None:
     return minutes
 
 
+def _error_chain(exc: BaseException) -> str:
+    parts, seen = [], set()
+    while exc is not None and id(exc) not in seen:
+        seen.add(id(exc))
+        parts.append(f"{type(exc).__name__}: {exc}")
+        exc = exc.__cause__ or exc.__context__
+    return " | ".join(parts).lower()
+
+
+def describe_http_error(exc: BaseException, url: str, verify_tls: bool) -> str:
+    """Operator-facing reason for a failed UISP request."""
+    target = urlsplit(url)
+    where = f"{target.hostname}:{target.port or (443 if target.scheme == 'https' else 80)}"
+    text = _error_chain(exc)
+    if isinstance(exc, httpx.TimeoutException):
+        return f"Timeout durante la connessione a UISP ({where}): verifica indirizzo, porta e firewall tra NSM e UISP."
+    if "certificate" in text or "ssl" in text or "tls" in text:
+        if verify_tls:
+            return (
+                f"Certificato TLS di UISP non valido per {target.hostname} (self-signed, scaduto o emesso per un altro nome). "
+                "Usa l'URL con il nome DNS del certificato oppure, per un UISP raggiungibile solo in rete locale, "
+                "disattiva «Verifica certificato TLS»."
+            )
+        return f"Negoziazione TLS con UISP ({where}) non riuscita: verifica che la porta indicata sia HTTPS."
+    if "name or service not known" in text or "getaddrinfo" in text or "nodename nor servname" in text or "no address associated" in text:
+        return f"Nome host UISP non risolvibile: {target.hostname}."
+    if "refused" in text:
+        return f"Connessione rifiutata da {where}: UISP non è in ascolto su questo indirizzo/porta."
+    if "unreachable" in text or "no route" in text:
+        return f"Rete non raggiungibile verso {where}."
+    if "remote protocol" in text or "server disconnected" in text:
+        return f"UISP ({where}) ha chiuso la connessione: verifica schema (http/https) e porta."
+    return f"Connessione HTTPS/HTTP a UISP non riuscita ({where})."
+
+
 def _http_get(url: str, token: str, verify_tls: bool):
     headers = {"Accept": "application/json", "x-auth-token": token}
     try:
@@ -82,10 +117,8 @@ def _http_get(url: str, token: str, verify_tls: bool):
             headers=headers,
         ) as client:
             response = client.get(url)
-    except httpx.TimeoutException as exc:
-        raise UispConnectorError("Timeout durante la connessione a UISP.") from exc
     except httpx.HTTPError as exc:
-        raise UispConnectorError("Connessione HTTPS/HTTP a UISP non riuscita.") from exc
+        raise UispConnectorError(describe_http_error(exc, url, verify_tls)) from exc
     if 300 <= response.status_code < 400:
         raise UispConnectorError("UISP ha risposto con un redirect: configura l'URL finale della console.")
     if response.status_code in {401, 403}:

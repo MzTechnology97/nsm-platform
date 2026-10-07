@@ -13,7 +13,7 @@
           <div class="mt-onboarding-step"><span>4</span><div><strong>Pairing one-shot</strong><small>Scarica <code>nsm-bootstrap.rsc</code>, lo importa e installa heartbeat/agent per-device.</small></div></div>
         </div>
         <div class="alert info"><strong>Se il preflight segnala fetch/scheduler disabilitati:</strong> verifica prima con <code>/system/device-mode/print</code>. L'eventuale modifica <code>/system/device-mode/update fetch=yes scheduler=yes</code> deve essere eseguita manualmente e, sulle versioni che lo richiedono, confermata fisicamente/power-cycle. Se compare <code>flagged=yes</code>, esegui prima un audit del router.</div>
-        <div class="command-box"><code id="enrollment-command">{{ enrollment_command }}</code><button class="button primary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('enrollment-command').innerText)">Copia comando</button></div>
+        <div class="command-box"><code id="enrollment-command">{{ enrollment_command }}</code><button class="button primary" type="button" data-copy-target="enrollment-command">Copia comando</button></div>
         <p class="mt-onboarding-note">Il token è monouso e viene mostrato una sola volta. Il comando non abilita servizi, non modifica firewall e non esegue aggiornamenti RouterOS.</p>
       </section>
       {% endif %}

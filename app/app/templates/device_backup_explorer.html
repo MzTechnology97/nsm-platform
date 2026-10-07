@@ -54,7 +54,7 @@
           {% if readable %}<a class="button tiny ghost" href="/devices/{{ device.id }}/backups/artifacts/{{ artifact.id }}/view">Apri / Diff</a>{% endif %}
           <a class="button tiny ghost" href="/devices/{{ device.id }}/backups/artifacts/{{ artifact.id }}/download">Scarica</a>
           <a class="button tiny ghost" href="/devices/{{ device.id }}/backups/artifacts/{{ artifact.id }}/restore-test">Restore test</a>
-          {% if can_configure %}<form method="post" action="/devices/{{ device.id }}/backups/artifacts/{{ artifact.id }}/delete" onsubmit="return confirm('Eliminare definitivamente {{ artifact.filename }} dall\'archivio?');"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny danger" type="submit" title="Elimina">Elimina</button></form>{% endif %}
+          {% if can_configure %}<form method="post" action="/devices/{{ device.id }}/backups/artifacts/{{ artifact.id }}/delete" data-confirm="Eliminare definitivamente {{ artifact.filename }} dall&#39;archivio?"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny danger" type="submit" title="Elimina">Elimina</button></form>{% endif %}
         </div></td>
       </tr>
       {% endfor %}
