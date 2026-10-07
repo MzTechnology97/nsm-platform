@@ -53,6 +53,8 @@
 {% endif %}
 </div>
 
+{% include "_incident_root_cause.html" %}
+
 <section class="panel" id="timeline">
   <div class="panel-header"><div><h2>Timeline</h2><p>Eventi registrati da NSM dal {{ fmt_dt(timeline.window_start) }} al {{ fmt_dt(timeline.window_end) }} per gli apparati coinvolti e il cliente. I fatti osservati e le note degli operatori sono distinti; nessuna causa viene dedotta automaticamente.</p></div></div>
   <nav class="quick-chips" aria-label="Filtro timeline">

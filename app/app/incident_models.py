@@ -8,7 +8,7 @@ the timeline is rebuilt from the records NSM already keeps (see
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text, UniqueConstraint, Uuid
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -22,6 +22,18 @@ INCIDENT_STATUSES = {
 }
 INCIDENT_SEVERITIES = {"critical": "Critico", "high": "Alto", "medium": "Medio", "low": "Basso"}
 NOTE_KINDS = {"note": "Nota", "action": "Azione eseguita"}
+ROOT_CAUSE_CATEGORIES = {
+    "configuration": "Configurazione",
+    "firmware": "Firmware / aggiornamento",
+    "hardware": "Guasto hardware",
+    "power": "Alimentazione",
+    "connectivity": "Connettività / link",
+    "upstream": "Rete a monte / provider",
+    "security": "Sicurezza",
+    "human": "Intervento manuale",
+    "other": "Altro",
+}
+HYPOTHESIS_STATUSES = {"proposed": "Da verificare", "confirmed": "Confermata", "rejected": "Scartata"}
 
 
 class Incident(Base):
@@ -43,6 +55,31 @@ class Incident(Base):
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+    # INC-03: only an operator-confirmed hypothesis becomes the root cause.
+    root_cause_hypothesis_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("incident_hypotheses.id", ondelete="SET NULL", use_alter=True)
+    )
+
+
+class IncidentHypothesis(Base):
+    """A possible cause. Suggested ones come from heuristics and stay proposals until confirmed."""
+
+    __tablename__ = "incident_hypotheses"
+    __table_args__ = (Index("ix_incident_hypotheses_incident", "incident_id", "created_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    incident_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("incidents.id", ondelete="CASCADE"), nullable=False)
+    statement: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str] = mapped_column(String(30), default="other", nullable=False)
+    origin: Mapped[str] = mapped_column(String(20), default="operator", nullable=False)
+    confidence: Mapped[str | None] = mapped_column(String(20))
+    evidence: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="proposed", nullable=False)
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    decided_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decision_note: Mapped[str | None] = mapped_column(Text)
 
 
 class IncidentDevice(Base):

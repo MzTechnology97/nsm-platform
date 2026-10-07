@@ -390,6 +390,8 @@ Split into focused PRs:
 
 ### INC-03 — correlation and Root Cause workflow
 
+**Implemented in `main`** (`app/incident_correlation.py`): heuristic candidates with reason and confidence, operator or suggested hypotheses with evidence snapshot, explicit confirmation with justification; only a confirmed hypothesis is the root cause.
+
 - candidate correlations/hypotheses;
 - explicit confidence/source;
 - operator confirmation required for final root cause;
