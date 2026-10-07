@@ -27,16 +27,23 @@
     <button class="button primary">Crea API key</button>
   </form>
 </section>
-<section class="panel"><div class="panel-header"><div><h2>Chiavi configurate</h2><p>{{ api_keys|length }} chiavi registrate. Il secret completo non è recuperabile.</p></div></div>
+<section class="panel"><div class="panel-header"><div><h2>Chiavi configurate</h2><p>{{ api_keys|length }} chiavi registrate. Il secret completo non è recuperabile. <em>Ruota</em> crea una nuova chiave con stessi scope, cliente e durata; la vecchia resta valida per il periodo scelto.</p></div></div>
+  {% set kr = api_key_review(api_keys) %}
+  {% if kr.expired or kr.expiring or kr.unused or kr.no_expiry %}<div class="alert warning" data-api-key-review>
+    {% if kr.expired %}<div><strong>{{ kr.expired }}</strong> {{ 'chiave scaduta ancora attiva' if kr.expired == 1 else 'chiavi scadute ancora attive' }}: le richieste vengono rifiutate, ruotale o revocale.</div>{% endif %}
+    {% if kr.expiring %}<div><strong>{{ kr.expiring }}</strong> in scadenza entro 14 giorni: ruotale per tempo.</div>{% endif %}
+    {% if kr.unused %}<div><strong>{{ kr.unused }}</strong> mai usate o inutilizzate da oltre 90 giorni: valuta la revoca.</div>{% endif %}
+    {% if kr.no_expiry %}<div><strong>{{ kr.no_expiry }}</strong> senza scadenza.</div>{% endif %}
+  </div>{% endif %}
   {% if api_keys %}<div class="table-wrap"><table class="data-table"><thead><tr><th>Nome</th><th>Prefisso</th><th>Perimetro</th><th>Scope</th><th>Scadenza</th><th>Ultimo uso</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>{% for key in api_keys %}<tr>
     <td><strong>{{ key.name }}</strong><small>{{ fmt_dt(key.created_at) }}</small></td>
     <td><code>{{ key.key_prefix }}…</code></td>
     <td>{% if key.customer_id %}<strong>{{ customer_map.get(key.customer_id).name if customer_map.get(key.customer_id) else key.customer_id }}</strong><small>Solo questo cliente</small>{% else %}<strong>Globale</strong><small>Tutti i clienti</small>{% endif %}</td>
     <td>{% for scope in key.scopes or [] %}<span class="status-pill">{{ scope }}</span>{% endfor %}</td>
     <td>{{ fmt_dt(key.expires_at) if key.expires_at else 'Nessuna' }}</td>
-    <td>{{ fmt_dt(key.last_used_at) }}</td>
-    <td>{% if key.is_active %}<span class="device-status status-online">Attiva</span>{% else %}<span class="device-status status-offline">Revocata</span>{% endif %}</td>
-    <td><div class="row-actions">{% if key.is_active %}<form method="post" action="/admin/api-keys/{{ key.id }}/revoke" data-confirm="Revocare immediatamente questa API key?"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny ghost">Revoca</button></form>{% else %}<form method="post" action="/admin/api-keys/{{ key.id }}/delete" data-confirm="Eliminare il record della API key revocata?"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny danger ghost">Elimina</button></form>{% endif %}</div></td>
+    <td>{% if key.last_used_at %}{{ fmt_dt(key.last_used_at) }}<small>{{ key.use_count }} {{ 'richiesta' if key.use_count == 1 else 'richieste' }}{% if key.last_used_ip %} · da {{ key.last_used_ip }}{% endif %}</small>{% else %}<span class="muted">mai</span>{% endif %}</td>
+    {% set ks = api_key_state(key) %}<td data-key-state="{{ ks.code }}"><span class="status-pill {{ {'online': 'run-success', 'warning': 'run-pending', 'offline': 'run-failed'}[ks.tone] }}">{{ ks.label }}</span>{% if ks.hint %}<small>{{ ks.hint }}</small>{% endif %}</td>
+    <td><div class="row-actions">{% if key.is_active and not key.replaced_by_id %}<form method="post" action="/admin/api-keys/{{ key.id }}/rotate" class="form-inline-plain" data-confirm="Creare una nuova chiave che sostituisce questa? Il nuovo valore viene mostrato una sola volta."><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><select name="grace_hours" aria-label="Per quanto la vecchia chiave resta valida" title="Per quanto la vecchia chiave resta valida">{% for h in api_key_grace_hours %}<option value="{{ h }}" {% if h == 24 %}selected{% endif %}>{{ 'revoca subito' if h == 0 else ('vecchia: 24 h' if h == 24 else 'vecchia: 7 gg') }}</option>{% endfor %}</select><button class="button tiny">Ruota</button></form>{% endif %}{% if key.is_active %}<form method="post" action="/admin/api-keys/{{ key.id }}/revoke" data-confirm="Revocare immediatamente questa API key?"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny ghost">Revoca</button></form>{% else %}<form method="post" action="/admin/api-keys/{{ key.id }}/delete" data-confirm="Eliminare il record della API key revocata?"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny danger ghost">Elimina</button></form>{% endif %}</div></td>
   </tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessuna API key configurata.</div>{% endif %}
 </section>
 </div>

@@ -2890,6 +2890,7 @@ html[data-theme="dark"] .success-state {
   padding: 14px;
   border-radius: 10px;
   background: var(--code-bg,#09121b);
+  color: var(--code-text,#d8e2ec);
   border: 1px solid var(--border);
   font-size: 12px;
   white-space: pre-wrap;
@@ -4390,6 +4391,7 @@ a.compliance-mark { text-decoration: none; }
 /* Utilities replacing inline style attributes (blocked by the production CSP). */
 .two-columns { grid-template-columns: 1fr 1fr; }
 .form-inline-plain { display: inline; }
+.row-actions select { width: auto; min-width: 0; padding-right: 26px; }
 .mt-10 { margin-top: 10px; }
 .mt-14 { margin-top: 14px; }
 .muted-block { display: block; opacity: .72; margin-top: 3px; }

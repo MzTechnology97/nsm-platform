@@ -512,7 +512,7 @@ Focused future work:
 - scoped/delegated administration where required;
 - credential rotation workflows;
 - session/security policy hardening;
-- API-key lifecycle and audit review;
+- API-key lifecycle and audit review — **done**: rotation with grace period, usage evidence (count, last IP), review states (expired, expiring, unused, no expiry);
 - least-privilege deployment documentation.
 
 ## 13. Production readiness / DR
