@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.37 — 2026-10-07
+
+Notifications
+- **E-mail notifications**: SMTP configuration in *Amministrazione → Notifiche* (encrypted password, test message, delivery log, re-queue); each user sets e-mail address, minimum level and categories in the profile; every in-app notification is queued for the matching users and delivered by the worker with retries and backoff; failed messages stay visible instead of being lost. Migration 0026.
+
 ## 0.49.36 — 2026-10-07
 
 TR-069 / ACS

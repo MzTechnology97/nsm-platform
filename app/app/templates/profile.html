@@ -14,6 +14,9 @@
 {% if error == 'current_password' %}<div class="alert error">La password attuale non è corretta.</div>{% endif %}
 {% if error == 'password_mismatch' %}<div class="alert error">Le due nuove password non coincidono.</div>{% endif %}
 {% if error == 'password_same' %}<div class="alert error">La nuova password deve essere diversa da quella attuale.</div>{% endif %}
+{% set nstatus = request.query_params.get('status') %}
+{% if nstatus == 'notifications_saved' %}<div class="alert success">Preferenze di notifica salvate.</div>{% elif nstatus == 'notifications_test_queued' %}<div class="alert success">Messaggio di prova inviato ai canali abilitati: controlla la ricezione (l'esito è nell'elenco qui sotto).</div>{% elif nstatus == 'notifications_test_none' %}<div class="alert warning">Nessun canale abilitato: attiva almeno un canale e salva.</div>{% endif %}
+{% if error == 'notification_email' %}<div class="alert error">Indica un indirizzo e-mail valido per ricevere le notifiche via e-mail.</div>{% endif %}
 {% if error == 'password_strength' %}<div class="alert error">La password deve avere almeno 12 caratteri, una maiuscola, una minuscola e un numero.</div>{% endif %}
 
 <div class="profile-grid">
@@ -32,6 +35,30 @@
     <section class="panel" data-profile="sessions">
       <div class="panel-header"><div><h2>Sessioni</h2><p>Una sessione si chiude dopo {{ session_idle_minutes() }} minuti di inattività. Il cambio password chiude tutte le altre sessioni.</p></div></div>
       <form method="post" action="/profile/sessions/revoke" data-confirm="Chiudere tutte le altre sessioni aperte con questo account?"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Esci dalle altre sessioni</button></form>
+    </section>
+
+    {% set np = notification_preferences(user) %}
+    <section class="panel" id="notifications" data-profile="notifications">
+      <div class="panel-header"><div><h2>Notifiche</h2><p>Ricevi fuori dal portale le notifiche che contano: scegli per ogni canale il livello minimo e le categorie (nessuna categoria selezionata = tutte).</p></div></div>
+      <form method="post" action="/profile/notifications" class="form-stack">
+        <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+        <label>La tua e-mail<input type="email" name="email" value="{{ user.email or '' }}" placeholder="nome@example.net"><small>Riceve notifiche e report via e-mail.</small></label>
+        {% for key, ch in np.channels.items() %}
+        <fieldset class="scope-options" data-channel="{{ key }}"><legend>{{ ch.label }}</legend>
+          {% if not ch.configured %}<div class="alert warning">Canale non ancora configurato dall'amministratore: le preferenze vengono salvate ma nulla viene inviato.</div>{% endif %}
+          <label class="check-row"><input type="checkbox" name="{{ key }}_enabled" {% if ch.enabled %}checked{% endif %}><span>Ricevi su {{ ch.label }}</span></label>
+          {% if key == 'telegram' %}<label>Chat ID Telegram<input name="telegram_chat_id" value="{{ ch.destination or '' }}" placeholder="123456789"><small>Avvia una chat con il bot NSM e scrivi /start: il bot risponde con il tuo chat ID.</small></label>{% endif %}
+          {% if key == 'slack' %}<label>Webhook Slack<input type="password" name="slack_webhook" autocomplete="off" placeholder="{{ 'Lascia vuoto per mantenere quello salvato' if ch.has_secret else 'https://hooks.slack.com/services/…' }}"><small>Incoming Webhook del canale o della chat in cui ricevere i messaggi; viene cifrato.</small></label>{% endif %}
+          <label>Livello minimo<select name="{{ key }}_level">{% for lk, ll in np.levels.items() %}<option value="{{ lk }}" {% if ch.min_severity == lk %}selected{% endif %}>{{ ll }}{% if lk == 'info' %} (tutto){% endif %}</option>{% endfor %}</select></label>
+          <div class="check-grid">{% for ck, cl in np.categories.items() %}<label class="check-row"><input type="checkbox" name="{{ key }}_categories" value="{{ ck }}" {% if ck in ch.categories %}checked{% endif %}><span>{{ cl }}</span></label>{% endfor %}</div>
+        </fieldset>
+        {% endfor %}
+        <div class="form-actions"><button class="button primary">Salva preferenze</button></div>
+      </form>
+      <form method="post" action="/profile/notifications/test"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Invia messaggio di prova</button></form>
+      {% if np.recent %}<details><summary>Ultimi messaggi inviati a te</summary><div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Quando</th><th>Canale</th><th>Messaggio</th><th>Stato</th></tr></thead><tbody>
+      {% for d in np.recent %}<tr><td>{{ fmt_dt(d.created_at) }}</td><td>{{ d.channel }}</td><td>{{ d.subject }}</td><td>{{ {'sent': 'inviato', 'failed': 'fallito', 'pending': 'in coda'}.get(d.status, d.status) }}{% if d.last_error %}<small class="warning-text">{{ d.last_error }}</small>{% endif %}</td></tr>{% endfor %}
+      </tbody></table></div></details>{% endif %}
     </section>
 
     <section class="panel">

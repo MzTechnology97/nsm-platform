@@ -5,6 +5,7 @@
   ('integrations', '/admin/integrations/uisp', 'Integrazioni'),
   ('branding', '/admin/branding', 'Branding'),
   ('demo', '/admin/demo', 'Demo Lab'),
+  ('notifications', '/admin/notifications', 'Notifiche'),
   ('system', '/admin/system', 'Sistema'),
 ] %}
 <nav class="admin-tabs" aria-label="Amministrazione">{% for key, href, label in admin_tabs %}<a href="{{ href }}"{% if admin_tab == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>

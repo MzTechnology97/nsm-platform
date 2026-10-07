@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Notifiche · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Amministrazione</h1><p>Invio delle notifiche e dei report fuori dal portale. Ogni utente sceglie nel proprio profilo canali, livello minimo e categorie.</p></div></div>
+{% include "_admin_tabs.html" %}
+
+<div class="content-split">
+<section class="panel side-form" data-notifications="smtp">
+  <div class="panel-header"><div><h2>Server e-mail (SMTP)</h2><p>Usato per notifiche e report via e-mail. La password viene cifrata.</p></div>{% if smtp and smtp.is_enabled %}<span class="device-status status-online">Abilitato</span>{% else %}<span class="device-status status-offline">Non attivo</span>{% endif %}</div>
+  <form method="post" action="/admin/notifications/smtp" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Server<input name="host" required value="{{ smtp_settings.get('host', '') }}" placeholder="smtp.example.net"></label>
+    <label>Porta<input type="number" name="port" min="1" max="65535" required value="{{ smtp_settings.get('port', 587) }}"></label>
+    <label>Cifratura<select name="security">{% for key, label in security_modes.items() %}<option value="{{ key }}" {% if smtp_settings.get('security', 'starttls') == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label>Utente<input name="username" autocomplete="off" value="{{ smtp_settings.get('username', '') }}"><small>Vuoto se il server non richiede autenticazione.</small></label>
+    <label>Password<input type="password" name="password" autocomplete="new-password" placeholder="{{ 'Lascia vuoto per mantenere quella salvata' if smtp else '' }}"></label>
+    <label>Mittente (e-mail)<input type="email" name="from_address" required value="{{ smtp_settings.get('from_address', '') }}" placeholder="nsm@example.net"></label>
+    <label>Nome mittente<input name="from_name" value="{{ smtp_settings.get('from_name', 'NSM') }}"></label>
+    <label>Indirizzo del portale<input type="url" name="portal_url" value="{{ smtp_settings.get('portal_url', '') }}" placeholder="https://nsm.example.net"><small>Usato per i link nei messaggi.</small></label>
+    <label class="check-row"><input type="checkbox" name="is_enabled" {% if not smtp or smtp.is_enabled %}checked{% endif %}><span>Abilita invio e-mail</span></label>
+    <button class="button primary">Salva configurazione</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Stato invii (24 ore)</h2><p>Un invio non riuscito viene ritentato fino a 6 volte (dopo 1, 5, 15, 60 e 240 minuti); quelli falliti restano qui e possono essere rimessi in coda.</p></div></div>
+  <div class="policy-summary six">
+    <div><span>Inviati</span><strong>{{ health.sent }}</strong></div>
+    <div><span>In coda</span><strong>{{ health.pending }}</strong>{% if health.stuck %}<small class="warning-text">{{ health.stuck }} da oltre un'ora</small>{% endif %}</div>
+    <div><span>Falliti</span><strong{% if health.failed %} class="warning-text"{% endif %}>{{ health.failed }}</strong></div>
+    <div><span>Destinatari attivi</span><strong>{{ subscribers }}</strong><small>canali abilitati nei profili</small></div>
+  </div>
+  {% if smtp %}<form method="post" action="/admin/notifications/smtp/test" class="filter-bar"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="email" name="to" placeholder="{{ user.email or 'destinatario@example.net' }}" aria-label="Destinatario della prova"><button class="button">Invia e-mail di prova</button></form>
+  {% if smtp.last_tested_at %}<p class="muted">Ultimo test {{ fmt_dt(smtp.last_tested_at) }}: {{ 'riuscito' if smtp.last_test_status == 'success' else 'fallito' }}{% if smtp.last_error %} — {{ smtp.last_error }}{% endif %}</p>{% endif %}{% endif %}
+</section>
+</div>
+
+<section class="panel" data-notifications="log">
+  <div class="panel-header"><div><h2>Registro invii</h2><p>Ultimi 100 messaggi verso canali esterni.</p></div>
+    {% if health.failed %}<form method="post" action="/admin/notifications/retry"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Rimetti in coda i falliti</button></form>{% endif %}</div>
+  <nav class="quick-chips" aria-label="Filtro stato">{% for key, label in [('', 'Tutti'), ('pending', 'In coda'), ('sent', 'Inviati'), ('failed', 'Falliti')] %}<a href="/admin/notifications{% if key %}?status={{ key }}{% endif %}" class="{{ 'active' if status_filter == key }}">{{ label }}</a>{% endfor %}</nav>
+  {% if deliveries %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Quando</th><th>Destinatario</th><th>Canale</th><th>Messaggio</th><th>Stato</th></tr></thead><tbody>
+  {% for d in deliveries %}{% set u = users.get(d.user_id) %}<tr data-delivery-status="{{ d.status }}"><td>{{ fmt_dt(d.created_at) }}</td><td>{{ u.username if u else '—' }}<small>{{ d.destination or '' }}</small></td><td>{{ d.channel }}</td>
+    <td>{{ d.subject }}<small>{{ categories.get(d.category, d.category) }} · {{ levels.get(d.severity, d.severity) }}</small></td>
+    <td><span class="status-pill {{ {'sent': 'run-success', 'failed': 'run-failed'}.get(d.status, 'run-pending') }}">{{ {'sent': 'inviato', 'failed': 'fallito', 'pending': 'in coda'}.get(d.status, d.status) }}</span><small>{% if d.status == 'sent' %}{{ fmt_dt(d.sent_at) }}{% else %}{{ d.attempts }} tentativi{% endif %}</small>{% if d.last_error %}<small class="warning-text">{{ d.last_error }}</small>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state">Nessun invio registrato.</div>{% endif %}
+</section>
+{% endblock %}
