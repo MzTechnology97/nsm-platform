@@ -23,7 +23,7 @@
     {% endfor %}</tbody>
   </table></div>
   {% else %}
-  <div class="empty-state">Nessuna baseline. {% if can_manage %}<form method="post" action="/compliance/baselines/default" style="display:inline"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Crea la baseline globale predefinita</button></form>{% endif %}</div>
+  <div class="empty-state">Nessuna baseline. {% if can_manage %}<form method="post" action="/compliance/baselines/default" class="form-inline-plain"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Crea la baseline globale predefinita</button></form>{% endif %}</div>
   {% endif %}
 </section>
 {% endblock %}

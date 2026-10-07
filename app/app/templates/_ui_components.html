@@ -18,7 +18,7 @@
     {% for row in rows %}
     <div class="ui-distribution-row">
       <div class="ui-distribution-label"><strong title="{{ row.label }}">{{ row.label }}</strong><span>{{ row.count }}</span></div>
-      <div class="ui-bar"><span class="ui-bar-fill ui-bar-{{ tone }}" style="--ui-bar-width: {{ row.percent }}%"></span></div>
+      <div class="ui-bar"><span class="ui-bar-fill ui-bar-{{ tone }}" data-css-vars="--ui-bar-width: {{ row.percent }}%"></span></div>
       <small>{{ row.percent }}%</small>
     </div>
     {% endfor %}
@@ -30,7 +30,7 @@
 {% macro donut(title, value, total, primary_label, secondary_label='', secondary_value=0, tone='accent', href='#') -%}
 {% set percent = ((value / total * 100) if total else 0) %}
 <a class="ui-donut-card" href="{{ href }}">
-  <div class="ui-donut" style="--ui-donut-value: {{ percent }}%; --ui-donut-tone: var(--{{ tone }}, var(--accent));">
+  <div class="ui-donut" data-css-vars="--ui-donut-value: {{ percent }}%; --ui-donut-tone: var(--{{ tone }}, var(--accent));">
     <div><strong>{{ value }}</strong><small>di {{ total }}</small></div>
   </div>
   <div class="ui-donut-copy"><h3>{{ title }}</h3><p><b>{{ primary_label }}</b> · {{ percent|round(1) }}%</p>{% if secondary_label %}<p>{{ secondary_label }} · {{ secondary_value }}</p>{% endif %}</div>

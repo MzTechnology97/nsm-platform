@@ -4368,3 +4368,10 @@ input[type="checkbox"], input[type="radio"] { width: auto; min-height: 0; height
 @media (max-width: 820px) { .control-row { grid-template-columns: minmax(0, 1fr); } }
 .compliance-exception { background: color-mix(in srgb, var(--accent) 14%, var(--panel)); color: var(--accent-text); }
 a.compliance-mark { text-decoration: none; }
+
+/* Utilities replacing inline style attributes (blocked by the production CSP). */
+.two-columns { grid-template-columns: 1fr 1fr; }
+.form-inline-plain { display: inline; }
+.mt-10 { margin-top: 10px; }
+.mt-14 { margin-top: 14px; }
+.muted-block { display: block; opacity: .72; margin-top: 3px; }

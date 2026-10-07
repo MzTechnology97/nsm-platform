@@ -30,7 +30,7 @@
         <td>{{ schedule.output_format|upper }}</td>
         <td>{{ schedule.last_period_end or '—' }}</td>
         <td>{% if schedule.last_status == 'failed' %}<span class="status-pill" title="{{ schedule.last_error or '' }}">errore ({{ schedule.consecutive_failures }})</span>{% elif schedule.last_status %}{{ schedule.last_status }} · {{ fmt_dt(schedule.last_run_at) }}{% else %}in attesa{% endif %}</td>
-        <td>{% if can_generate %}<div class="page-actions"><form method="post" action="/audit/reports/schedules/{{ schedule.id }}/toggle"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button ghost" type="submit">{{ 'Sospendi' if schedule.is_enabled else 'Attiva' }}</button></form><form method="post" action="/audit/reports/schedules/{{ schedule.id }}/delete" onsubmit="return confirm('Eliminare la pianificazione? I report archiviati restano disponibili.');"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button danger" type="submit">Elimina</button></form></div>{% endif %}</td>
+        <td>{% if can_generate %}<div class="page-actions"><form method="post" action="/audit/reports/schedules/{{ schedule.id }}/toggle"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button ghost" type="submit">{{ 'Sospendi' if schedule.is_enabled else 'Attiva' }}</button></form><form method="post" action="/audit/reports/schedules/{{ schedule.id }}/delete" data-confirm="Eliminare la pianificazione? I report archiviati restano disponibili."><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button danger" type="submit">Elimina</button></form></div>{% endif %}</td>
       </tr>
     {% endfor %}</tbody>
   </table></div>
