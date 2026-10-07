@@ -18,6 +18,7 @@ from app.customer_workspace import (
     _load_policy_context,
 )
 from app.db import SessionLocal
+from app.compliance_summary import summarize
 from app.models import (
     ActionIssue,
     AuditEvent,
@@ -27,6 +28,7 @@ from app.models import (
     SecurityAdvisory,
     Site,
     User,
+    utcnow,
 )
 
 DEVICE_PAGE_SIZE = 50
@@ -343,11 +345,13 @@ def customer_security(request: Request, customer_id: uuid.UUID):
                 .limit(50)
             )
         )
+        compliance = summarize(db, utcnow(), customer_id=customer.id) if core.has_permission(user, "compliance.read") else None
         return core.render(
             request,
             db,
             user,
             "customer_security.html",
+            compliance=compliance,
             customer=customer,
             vulnerabilities=vulnerabilities,
             firmware_devices=firmware_devices,

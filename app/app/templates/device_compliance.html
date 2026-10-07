@@ -1,0 +1,23 @@
+{% extends "device_layout.html" %}
+{% set device_tab = 'compliance' %}
+{% block device_content %}
+{% set marks = {'pass': '✓', 'fail': '✗', 'unknown': '?', 'not_applicable': '–'} %}
+<section class="panel">
+  <div class="panel-header"><div><h2>Compliance</h2><p>Controlli della baseline effettiva di questo apparato{% if last_eval %}, valutati {{ fmt_dt(last_eval) }}{% endif %}.</p></div><a class="text-link" href="/compliance?customer={{ device.customer_id }}&status=all">Vista cliente →</a></div>
+  {% if rows %}
+  <div class="table-wrap"><table class="data-table compact-data-table">
+    <thead><tr><th>Controllo</th><th>Esito</th><th>Evidenza</th><th>Gestione</th></tr></thead>
+    <tbody>{% for result, control, excepted in rows %}
+      <tr>
+        <td><a class="strong-link" href="/compliance/results/{{ result.id }}">{{ control.title if control else result.control_id }}</a><small>{{ control.category if control else '' }}</small></td>
+        <td><span class="compliance-mark compliance-{{ 'exception' if excepted else result.status }}">{{ '!' if excepted else marks[result.status] }}</span> {{ 'In eccezione' if excepted else result_labels[result.status] }}</td>
+        <td>{{ result.evidence }}</td>
+        <td>{% if excepted %}fino al {{ fmt_dt(result.exception_until) }}{% elif result.status == 'fail' and result.acknowledged_at %}presa in carico{% elif result.status == 'fail' %}<a class="button tiny ghost" href="/compliance/results/{{ result.id }}">Gestisci</a>{% else %}—{% endif %}</td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}
+  <div class="empty-state">Nessuna baseline di compliance applicabile a questo apparato. <a href="/compliance/baselines">Configura le baseline</a>.</div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -444,6 +444,8 @@ Unsupported vendor capability must not become a false failure.
 
 ### COMP-04 — UI and report integration
 
+**Implemented in `main`**: *Compliance* tab on every Device, summary in the Customer *Sicurezza* tab, report section *8. Compliance* and CSV columns.
+
 - Customer/device compliance view;
 - evidence drill-down;
 - report-ready normalized results.

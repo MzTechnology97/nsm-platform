@@ -32,6 +32,8 @@ from app.models import (
 )
 from app.pdf_writer import PdfDocument
 from app.incident_models import INCIDENT_SEVERITIES, INCIDENT_STATUSES, ROOT_CAUSE_CATEGORIES, Incident, IncidentHypothesis
+from app.compliance_engine import CONTROLS as COMPLIANCE_CONTROLS
+from app.compliance_summary import summarize as compliance_summary
 from app.integration_models import ConnectorIntegration
 from app.restore_test_models import BackupRestoreTest
 from app.routeros_version import parse_routeros_version
@@ -69,6 +71,8 @@ CSV_COLUMNS = [
     "last_restore_test_at",
     "unhandled_severe_vulnerabilities",
     "vulnerabilities_in_exception",
+    "compliance_failed_controls",
+    "compliance_exceptions",
 ]
 REMEDIATION_LABELS = {
     "open": "aperte",
@@ -338,6 +342,7 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
             worst = level
         open_vulns[device_id] = (count + 1, worst)
     security = _collect_security(db, scoped, devices, lower, upper)
+    compliance = compliance_summary(db, upper, device_ids=device_ids)
     resolved_in_period = security["resolved_in_period"]
 
     # Backup ---------------------------------------------------------------
@@ -429,6 +434,8 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
                 "last_restore_test_at": _fmt(restore.performed_at) if restore else "",
                 "unhandled_severe_vulnerabilities": security["unhandled_by_device"].get(device.id, 0),
                 "vulnerabilities_in_exception": security["exception_by_device"].get(device.id, 0),
+                "compliance_failed_controls": compliance["per_device"].get(device.id, {}).get("fail", 0),
+                "compliance_exceptions": compliance["per_device"].get(device.id, {}).get("exception", 0),
             }
         )
 
@@ -501,6 +508,21 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
         },
         "audit": {"events_in_period": db.scalar(audit_query) or 0},
         "incidents": _collect_incidents(db, customer, lower, upper),
+        "compliance": {
+            "evaluated_devices": compliance["evaluated_devices"],
+            "failing_devices": compliance["failing_devices"],
+            "counts": compliance["counts"],
+            "failing_controls": compliance["failing_controls"],
+            "exceptions": [
+                {
+                    "control": COMPLIANCE_CONTROLS[r.control_id].title if r.control_id in COMPLIANCE_CONTROLS else r.control_id,
+                    "device": _device_name(d),
+                    "until": _fmt(r.exception_until),
+                    "reason": r.exception_reason or "",
+                }
+                for r, d in compliance["exceptions"]
+            ],
+        },
     }
 
 
@@ -514,6 +536,7 @@ def summary(data: dict) -> dict:
         "backup_protected": data["backup"]["protected"],
         "open_issues": data["issues"]["open"],
         "incidents": data["incidents"]["total"],
+        "compliance_failing_devices": data["compliance"]["failing_devices"],
         "truncated": data["truncated"],
     }
 
@@ -722,7 +745,38 @@ def render_pdf(data: dict, *, report_id: str, generated_at: datetime, generated_
             gray=0.35,
         )
 
-    doc.heading("8. Apparati", 2)
+    comp = data["compliance"]
+    doc.heading("8. Compliance", 2)
+    if not comp["evaluated_devices"]:
+        doc.paragraph("Nessuna baseline di compliance applicata nell'ambito: la sezione non è valutabile.")
+    else:
+        counts = comp["counts"]
+        doc.key_values(
+            [
+                ("Apparati valutati", comp["evaluated_devices"]),
+                ("Apparati con non conformità da gestire", comp["failing_devices"]),
+                ("Controlli non conformi", counts.get("fail", 0)),
+                ("In eccezione", counts.get("exception", 0)),
+                ("Senza evidenza", counts.get("unknown", 0)),
+                ("Conformi", counts.get("pass", 0)),
+                ("Non applicabili", counts.get("not_applicable", 0)),
+                ("Non conformità per controllo", ", ".join(f"{title}: {n}" for title, n in comp["failing_controls"]) or "nessuna"),
+            ]
+        )
+        if comp["exceptions"]:
+            doc.paragraph("Eccezioni di compliance attive:", bold=True)
+            doc.table(
+                ["Controllo", "Apparato", "Valida fino al", "Motivazione"],
+                [[e["control"], e["device"], e["until"], e["reason"]] for e in comp["exceptions"][:200]],
+                [130, 110, 75, 196],
+            )
+        doc.paragraph(
+            "«Senza evidenza» e «non applicabile» non indicano conformità: NSM non dispone del dato o il vendor non lo espone.",
+            size=8.5,
+            gray=0.35,
+        )
+
+    doc.heading("9. Apparati", 2)
     device_rows = [
         [row["customer"], row["device"], row["vendor"], row["firmware_installed"], row["backup_readiness"], row["last_successful_backup"]]
         for row in data["devices"]

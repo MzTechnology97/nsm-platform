@@ -481,9 +481,12 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - one Action Center issue per Device with failing results not in exception, updated with the count and resolved automatically;
 - result page `/compliance/results/{id}` linked from every cell of the matrix; *In eccezione* quick filter.
 
-### Not implemented yet
+### Views and reports (COMP-04)
 
-- Device/Customer views and report integration (COMP-04).
+- *Compliance* tab on every Device: each control with result, evidence and handling (exception expiry, taken in charge, *Gestisci*);
+- Customer *Sicurezza* tab: evaluated Devices, Devices with unhandled non-compliance, results by state, most failing controls;
+- periodic evidence report section *8. Compliance*: evaluated Devices, results by state, failures by control, active exceptions with reason and expiry; scopes without a baseline are stated as not evaluable; *no evidence* and *not applicable* are explicitly not compliance;
+- CSV appends `compliance_failed_controls` and `compliance_exceptions` per Device; archive summary stores the number of Devices with unhandled non-compliance.
 
 ## 16. Lifecycle / EOL / EOS
 

@@ -21,6 +21,7 @@
   ('firmware', 'Firmware', device_base ~ '/firmware-upgrade', is_mikrotik),
   ('agent', 'Agent', device_base ~ '/agent', is_mikrotik),
   ('uisp', 'UISP', device_base ~ '/uisp', device.vendor == 'ubiquiti'),
+  ('compliance', 'Compliance', device_base ~ '/compliance', true),
   ('activity', 'Attività', device_base ~ '/jobs', true),
 ] %}
 {% set active_label = (device_tabs | selectattr(0, 'equalto', device_tab) | map(attribute=1) | first) if device_tab else '' %}
