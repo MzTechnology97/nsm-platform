@@ -75,17 +75,34 @@ def vulnerabilities(
             )
         if vendor:
             filters.append(func.lower(SecurityAdvisory.vendor) == vendor.lower())
-        if severity:
-            if severity.lower() == "severe":
-                filters.append(func.lower(SecurityAdvisory.severity).in_(SEVERE_LEVELS))
-            else:
-                filters.append(func.lower(SecurityAdvisory.severity) == severity.lower())
-
         impact_filter = _impact_state_filter(status)
         if impact_filter is not None:
             filters.append(impact_filter)
         if customer_id:
             filters.append(Device.customer_id == customer_id)
+
+        # Per-severity counts within the current scope drive the quick filters.
+        severity_counts = {
+            (level or "unknown").lower(): int(count)
+            for level, count in db.execute(
+                select(
+                    func.lower(SecurityAdvisory.severity),
+                    func.count(func.distinct(SecurityAdvisory.id)),
+                )
+                .outerjoin(DeviceVulnerability, DeviceVulnerability.advisory_id == SecurityAdvisory.id)
+                .outerjoin(Device, Device.id == DeviceVulnerability.device_id)
+                .where(*filters)
+                .group_by(func.lower(SecurityAdvisory.severity))
+            ).all()
+        }
+        severity_counts["severe"] = sum(severity_counts.get(level, 0) for level in SEVERE_LEVELS)
+        severity_counts["all"] = sum(v for k, v in severity_counts.items() if k != "severe")
+
+        if severity:
+            if severity.lower() == "severe":
+                filters.append(func.lower(SecurityAdvisory.severity).in_(SEVERE_LEVELS))
+            else:
+                filters.append(func.lower(SecurityAdvisory.severity) == severity.lower())
 
         base = (
             select(
@@ -148,6 +165,7 @@ def vulnerabilities(
             page=page,
             pages=pages,
             total=total,
+            severity_counts=severity_counts,
         )
 
 

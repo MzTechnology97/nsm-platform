@@ -6,7 +6,6 @@
 {% block device_actions %}<a class="button ghost" href="/devices/{{ device.id }}/configuration">← Configurazione</a>{% endblock %}
 {% block device_content %}
 <div class="section-heading"><h2>Cronologia configurazione</h2><p>Export RouterOS archiviati, baseline approvata e variazioni rilevate automaticamente.</p></div>
-{% if request.query_params.get('baseline') == 'updated' %}<div class="alert success"><strong>Baseline aggiornata.</strong> Le prossime configurazioni verranno confrontate con questo export.</div>{% endif %}
 {% if drift_issue %}<div class="alert warning"><strong>Variazione configurazione da verificare.</strong> Sono state rilevate {{ (drift_issue.details or {}).get('added', 0) }} righe aggiunte e {{ (drift_issue.details or {}).get('removed', 0) }} rimosse rispetto alla {{ 'baseline approvata' if (drift_issue.details or {}).get('reference_kind') == 'baseline' else 'configurazione precedente' }}.</div>{% endif %}
 
 <section class="mt-kpi-grid">

@@ -35,11 +35,11 @@
     <section class="ui-overview-card">
       <div class="ui-overview-card-header"><div><h2>Da attenzionare</h2><p>Indicatori che meritano una verifica immediata.</p></div><a class="text-link" href="/action-center">Apri →</a></div>
       <div class="ui-overview-card-body ui-health-list">
-        <a class="ui-health-row" href="/action-center?severity=critical"><span class="ui-health-dot danger"></span><span><strong>Issue critical</strong><small>Action Center</small></span><b data-dashboard-stat="critical_issue_count">{{ critical_issue_count }}</b></a>
+        <a class="ui-health-row" href="/action-center?severity=critical"><span class="ui-health-dot danger"></span><span><strong>Segnalazioni critiche</strong><small>Action Center</small></span><b data-dashboard-stat="critical_issue_count">{{ critical_issue_count }}</b></a>
         <a class="ui-health-row" href="/security/vulnerabilities?severity=severe"><span class="ui-health-dot {% if severe_cve_device_count %}danger{% else %}success{% endif %}"></span><span><strong>CVE gravi</strong><small>High / Critical</small></span><b data-dashboard-stat="severe_cve_device_count">{{ severe_cve_device_count }}</b></a>
         <a class="ui-health-row" href="/operations/backups"><span class="ui-health-dot {% if backup_failed_count %}warning{% else %}success{% endif %}"></span><span><strong>Backup falliti</strong><small>ultime 24 ore</small></span><b data-dashboard-stat="backup_failed_count">{{ backup_failed_count }}</b></a>
         <a class="ui-health-row" href="/operations/firmware?state=attention"><span class="ui-health-dot {% if firmware_attention_count %}warning{% else %}success{% endif %}"></span><span><strong>Firmware</strong><small>aggiornamento/verifica</small></span><b data-dashboard-stat="firmware_attention_count">{{ firmware_attention_count }}</b></a>
-        <a class="ui-health-row" href="/devices"><span class="ui-health-dot {% if pending_count %}warning{% else %}success{% endif %}"></span><span><strong>Onboarding pending</strong><small>apparati non completati</small></span><b data-dashboard-stat="pending_count">{{ pending_count }}</b></a>
+        <a class="ui-health-row" href="/devices"><span class="ui-health-dot {% if pending_count %}warning{% else %}success{% endif %}"></span><span><strong>Onboarding in sospeso</strong><small>apparati non completati</small></span><b data-dashboard-stat="pending_count">{{ pending_count }}</b></a>
       </div>
     </section>
   </div>
@@ -59,7 +59,7 @@
 
     <section class="ui-table-card">
       <div class="panel-header"><div><h2>Eventi recenti</h2><p>Ultime operazioni auditabili.</p></div><a class="text-link" href="/audit/events">Audit →</a></div>
-      {% if recent_events %}<div class="compact-list">{% for e in recent_events %}<div class="compact-row"><span><strong>{{ e.event_type }}</strong><small>{{ fmt_dt(e.timestamp) }} · {{ e.severity }}</small></span><span class="status-pill">{{ e.result }}</span></div>{% endfor %}</div>{% else %}<div class="empty-state">Nessun evento registrato.</div>{% endif %}
+      {% if recent_events %}<div class="compact-list">{% for e in recent_events %}<div class="compact-row"><span><strong title="{{ e.event_type }}">{{ event_label(e.event_type) }}</strong><small>{{ fmt_dt(e.timestamp) }} · {{ e.severity }}</small></span><span class="status-pill">{{ e.result }}</span></div>{% endfor %}</div>{% else %}<div class="empty-state">Nessun evento registrato.</div>{% endif %}
     </section>
   </div>
 </div>

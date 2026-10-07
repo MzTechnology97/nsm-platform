@@ -122,7 +122,7 @@ def main():
     assert "CI13 A EOS" in page.text
     assert "CI13 B EOL" in page.text
     assert "CI13 B Current" not in page.text
-    assert "Clienti" in page.text and "fuori lifecycle" in page.text
+    assert "clienti coinvolti" in page.text and "fuori dal lifecycle" in page.text
 
     customer_a = client.get(f"/security/lifecycle?customer={ids['a']}")
     assert customer_a.status_code == 200

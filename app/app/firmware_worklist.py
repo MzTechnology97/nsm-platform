@@ -164,6 +164,8 @@ def firmware_worklist(
             or 0
         )
 
+        scope_total = int(db.scalar(select(func.count(Device.id)).where(*scope_filters)) or 0)
+
         customers = list(db.scalars(select(Customer).order_by(Customer.name)))
         vendors = [
             item
@@ -192,6 +194,7 @@ def firmware_worklist(
             security_count=security_count,
             critical_count=critical_count,
             unknown_count=unknown_count,
+            scope_total=scope_total,
         )
 
 

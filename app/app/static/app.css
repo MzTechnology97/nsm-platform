@@ -4293,3 +4293,6 @@ html[data-theme="dark"] .notification-card.unread { background: color-mix(in srg
   .more-filters { width: 100%; }
   .more-filters-body { position: static; min-width: 0; margin-top: 8px; grid-template-columns: minmax(0, 1fr); box-shadow: none; }
 }
+
+/* Dashboard "Da attenzionare": label and hint on separate lines. */
+.ui-health-row strong, .ui-health-row small { display: block; }

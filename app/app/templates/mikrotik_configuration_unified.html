@@ -9,7 +9,6 @@
     </div>
 
     {% if not snapshot_supported %}<div class="alert info"><strong>Snapshot configurazione non disponibile.</strong> {{ legacy_capability_reason or 'Il transport agent corrente non supporta snapshot strutturati.' }}</div>{% endif %}
-    {% if request.query_params.get('queued') == 'all' %}<div class="alert success">Aggiornamento completo accodato. Le sezioni verranno acquisite come job separati al prossimo heartbeat.</div>{% elif request.query_params.get('queued') == 'already' %}<div class="alert info">Le sezioni risultano già in coda o consegnate all'agent.</div>{% elif request.query_params.get('queued') %}<div class="alert success">Richiesta accodata. L'agent la eseguirà al prossimo heartbeat.</div>{% endif %}
     {% if active_section in pending_sections %}<div class="alert info">Aggiornamento {{ snapshot_sections.get(active_section) }} in coda. Fino al completamento viene mostrato l'ultimo snapshot disponibile.</div>{% endif %}
 
     <section class="panel">

@@ -116,7 +116,7 @@ def main():
     assert "CI14 A Critical" in default.text
     assert "CI14 B Unknown" not in default.text
     assert "CI14 B Current" not in default.text
-    assert "Da aggiornare" in default.text and "Critical" in default.text
+    assert "Da aggiornare" in default.text and "Critici" in default.text
 
     customer_a = client.get(f"/operations/firmware?customer={ids['a']}&state=attention")
     assert customer_a.status_code == 200

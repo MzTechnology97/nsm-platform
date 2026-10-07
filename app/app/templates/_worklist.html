@@ -1,0 +1,23 @@
+{#
+  Shared building blocks for list/worklist pages.
+
+  chips(items): quick filters with counts. Each item is a dict with
+    label, count, href, active and optional tone ('danger'|'warning') and dot.
+  pager(total, page, pages, href): "N risultati · pagina X di Y" with
+    previous/next links; `href` is the current query string without page.
+  context_banner(customer, text): scope banner when a customer filter is set.
+#}
+{% macro chips(items, label='Filtri rapidi') %}
+<nav class="quick-chips" aria-label="{{ label }}">
+  {% for item in items %}<a href="{{ item.href }}" class="{{ 'active' if item.active }}{{ (' tone-' ~ item.tone) if item.tone and item.count }}"{% if item.active %} aria-current="true"{% endif %}>{% if item.dot %}<i class="dot {{ item.dot }}"></i>{% endif %}{{ item.label }} <b>{{ item.count }}</b></a>
+  {% endfor %}
+</nav>
+{% endmacro %}
+
+{% macro pager(total, page, pages, href) %}
+<div class="pagination-bar"><span>{{ total }} risultati · pagina {{ page }} di {{ pages }}</span><div class="page-actions">{% if page > 1 %}<a class="button ghost" href="{{ href }}&page={{ page - 1 }}">← Precedente</a>{% endif %}{% if page < pages %}<a class="button ghost" href="{{ href }}&page={{ page + 1 }}">Successiva →</a>{% endif %}</div></div>
+{% endmacro %}
+
+{% macro context_banner(customer, text) %}
+{% if customer %}<div class="context-banner"><strong>{{ customer.name }}</strong><span>{{ text }}</span><a href="/customers/{{ customer.id }}">Torna al cliente ›</a></div>{% endif %}
+{% endmacro %}

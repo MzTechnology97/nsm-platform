@@ -95,8 +95,7 @@ def main():
 
     global_backups = client.get("/operations/backups")
     assert global_backups.status_code == 200
-    assert "Gestione operativa" in global_backups.text
-    assert "Dettaglio per cliente" in global_backups.text
+    assert "Da verificare" in global_backups.text and "Senza policy" in global_backups.text
     assert "Stato backup per cliente" not in global_backups.text
     assert "Una riga per cliente" not in global_backups.text
 
