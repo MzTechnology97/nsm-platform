@@ -10,6 +10,7 @@ from app.api_operations import install_api_operations
 from app.backup_capability_guard import install_backup_capability_guard
 from app.backup_core import install_backup_core
 from app.backup_policy_bridge import install_backup_policy_bridge
+from app.backup_restore_tests import install_backup_restore_tests
 from app.backup_scheduler_capability_guard import install_backup_scheduler_capability_guard
 from app.backup_scope_guard import install_backup_scope_guard
 from app.backup_text_tools import install_backup_text_tools
@@ -96,6 +97,7 @@ install_device_csv_import(core.app)
 install_backup_core(core.app, core.templates)
 install_backup_text_tools(core.app)
 install_device_backup_explorer(core.app)
+install_backup_restore_tests(core.app)
 install_backup_scope_guard()
 install_backup_capability_guard()
 install_backup_policy_bridge()

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% set device_name = device.display_name or device.device_identity or device.name %}
+{% block title %}Restore test · {{ device_name }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/devices/{{ device.id }}">{{ device_name }}</a><span>›</span><a href="/devices/{{ device.id }}/backups">Archivio backup</a><span>›</span><span>Restore test</span></div>
+<div class="page-header compact-heading"><div><h1>Restore test · {{ device_name }}</h1><p>Evidenze di ripristino registrate dagli operatori. L'identità dell'artefatto (nome, SHA-256, dimensione) resta registrata anche dopo la retention del file.</p></div><div class="page-actions"><a class="button ghost" href="/devices/{{ device.id }}/backups">Archivio backup</a></div></div>
+<section class="panel">
+  {% if tests %}
+  <div class="table-wrap"><table class="data-table">
+    <thead><tr><th>Eseguito</th><th>Esito</th><th>Artefatto</th><th>Metodo / target</th><th>Integrità</th><th>Note</th></tr></thead>
+    <tbody>{% for test in tests %}
+      <tr>
+        <td>{{ fmt_dt(test.performed_at) }}</td>
+        <td><span class="status-pill">{{ results.get(test.result, test.result) }}</span></td>
+        <td>{% if test.artifact_id in live_artifacts %}<a href="/devices/{{ device.id }}/backups/artifacts/{{ test.artifact_id }}/restore-test">{{ test.artifact_filename }}</a>{% else %}{{ test.artifact_filename }} <small>(non più in archivio)</small>{% endif %}<br><small title="{{ test.artifact_sha256 or '' }}">SHA256 {{ (test.artifact_sha256 or '—')[:14] }}…</small></td>
+        <td>{{ methods.get(test.method, test.method) }}<br><small>{{ test.target_label }}{% if test.target_routeros_version %} · RouterOS {{ test.target_routeros_version }}{% endif %}</small></td>
+        <td>{{ 'Verificata' if (test.integrity or {}).get('ok') else 'Non verificata' }}</td>
+        <td>{{ test.notes or '—' }}</td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty-state">Nessun restore test registrato. Apri l'archivio backup e usa “Restore test” su un artefatto.</div>{% endif %}
+</section>
+{% endblock %}
