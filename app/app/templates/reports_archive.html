@@ -18,6 +18,36 @@
 {% endif %}
 
 <section class="panel">
+  <div class="panel-header"><div><h2>Pianificazioni</h2><p>Ogni pianificazione genera un report per l'ultimo periodo chiuso (mese, trimestre o anno solare) una sola volta; gli errori vengono ritentati con attesa crescente e segnalati in Action Center.</p></div></div>
+  {% if schedules %}
+  <div class="table-wrap"><table class="data-table">
+    <thead><tr><th>Nome</th><th>Ambito</th><th>Frequenza</th><th>Formato</th><th>Ultimo periodo</th><th>Esito</th><th></th></tr></thead>
+    <tbody>{% for schedule in schedules %}
+      <tr>
+        <td>{{ schedule.name }}{% if not schedule.is_enabled %} <span class="status-pill">sospesa</span>{% endif %}</td>
+        <td>{{ schedule_customers.get(schedule.customer_id, 'Tutti i clienti') if schedule.customer_id else 'Tutti i clienti' }}</td>
+        <td>{{ frequencies.get(schedule.frequency, schedule.frequency) }}</td>
+        <td>{{ schedule.output_format|upper }}</td>
+        <td>{{ schedule.last_period_end or '—' }}</td>
+        <td>{% if schedule.last_status == 'failed' %}<span class="status-pill" title="{{ schedule.last_error or '' }}">errore ({{ schedule.consecutive_failures }})</span>{% elif schedule.last_status %}{{ schedule.last_status }} · {{ fmt_dt(schedule.last_run_at) }}{% else %}in attesa{% endif %}</td>
+        <td>{% if can_generate %}<div class="page-actions"><form method="post" action="/audit/reports/schedules/{{ schedule.id }}/toggle"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button ghost" type="submit">{{ 'Sospendi' if schedule.is_enabled else 'Attiva' }}</button></form><form method="post" action="/audit/reports/schedules/{{ schedule.id }}/delete" onsubmit="return confirm('Eliminare la pianificazione? I report archiviati restano disponibili.');"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button danger" type="submit">Elimina</button></form></div>{% endif %}</td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty-state">Nessuna pianificazione configurata.</div>{% endif %}
+  {% if can_generate %}
+  <form method="post" action="/audit/reports/schedules" class="filter-bar">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Nome<input name="name" required maxlength="160" placeholder="es. Report mensile direzione"></label>
+    <label>Ambito<select name="customer_id"><option value="">Tutti i clienti</option>{% for customer in customers %}<option value="{{ customer.id }}">{{ customer.name }}</option>{% endfor %}</select></label>
+    <label>Frequenza<select name="frequency">{% for key, label in frequencies.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label>
+    <label>Formato<select name="output_format"><option value="pdf">PDF</option><option value="csv">CSV</option></select></label>
+    <button class="button" type="submit">Aggiungi pianificazione</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="panel">
   <div class="panel-header"><div><h2>Archivio</h2><p>Ogni download riverifica lo SHA-256 del contenuto archiviato.</p></div></div>
   {% if reports %}
   <div class="table-wrap"><table class="data-table">
@@ -25,7 +55,7 @@
     <tbody>{% for report in reports %}{% set s = report.summary or {} %}
       <tr>
         <td>{{ fmt_dt(report.generated_at) }}</td>
-        <td>{{ report.scope_label }}</td>
+        <td>{{ report.scope_label }}{% if report.schedule_id or (report.summary or {}).get('trigger') == 'schedule' %} <span class="status-pill">pianificato</span>{% endif %}</td>
         <td>{{ report.period_start }} – {{ report.period_end }}</td>
         <td>{{ report.output_format|upper }}</td>
         <td>{% if report.size_bytes >= 1048576 %}{{ '%.1f MB'|format(report.size_bytes/1048576) }}{% else %}{{ '%.1f KB'|format(report.size_bytes/1024) }}{% endif %}</td>
