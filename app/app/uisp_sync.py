@@ -90,7 +90,7 @@ def _is_due(connection: ConnectorIntegration, now: datetime) -> bool:
     return next_attempt is None or next_attempt <= now
 
 
-def _open_issue(db, title, category, severity, details, customer_id=None, device_id=None):
+def _open_issue(db, title, category, severity, details, customer_id=None, device_id=None, source_url=None):
     existing = db.scalar(
         select(ActionIssue).where(
             ActionIssue.title == title,
@@ -122,7 +122,7 @@ def _open_issue(db, title, category, severity, details, customer_id=None, device
             message=details.get("message"),
             customer_id=customer_id,
             device_id=device_id,
-            source_url=f"/devices/{device_id}/uisp" if device_id else "/admin/integrations/uisp",
+            source_url=source_url or (f"/devices/{device_id}/uisp" if device_id else "/admin/integrations/uisp"),
             is_active=True,
         )
     )

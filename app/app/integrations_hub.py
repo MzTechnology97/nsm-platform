@@ -17,7 +17,7 @@ from app.agent_models import DeviceAgentCredential
 from app.api_key_models import PlatformApiKey
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
-from app.models import Device, utcnow
+from app.models import Device, SecurityAdvisory, utcnow
 from app.uisp_connector import UISP_PROVIDER, _sync_view
 
 router = APIRouter()
@@ -47,11 +47,18 @@ def integrations_hub(request: Request):
         api_keys_active = db.scalar(
             select(func.count(PlatformApiKey.id)).where(PlatformApiKey.is_active.is_(True))
         ) or 0
+        nvd = db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == "nvd"))
+        nvd_advisories = db.scalar(
+            select(func.count(SecurityAdvisory.id)).where(SecurityAdvisory.source == "nvd")
+        ) or 0
         return core.render(
             request,
             db,
             user,
             "integrations_hub.html",
+            nvd=nvd,
+            nvd_sync=dict(((nvd.settings or {}).get("sync") or {}) if nvd else {}),
+            nvd_advisories=nvd_advisories,
             agents_total=len(agents),
             agents_stale=stale_agents,
             uisp=uisp,

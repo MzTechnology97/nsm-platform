@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Integrazioni · NVD · {{ ui_context(request).branding.portal_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Integrazioni · NVD</h1><p>Fonte advisory: CVE pubblicate dal National Vulnerability Database per i prodotti tracciati, confrontate con le versioni installate.</p></div><a class="button ghost" href="/security/vulnerabilities">Vulnerabilità</a></div>
+{% set admin_tab = "integrations" %}{% include "_admin_tabs.html" %}
+{% set integration_tab = "nvd" %}{% include "_integration_tabs.html" %}
+
+<div class="content-split">
+<section class="panel side-form">
+  <div class="panel-header"><div><h2>Configurazione</h2><p>Lettura pubblica e in sola lettura dell'API CVE 2.0. Nessun dato di NSM viene inviato a NVD.</p></div>{% if connection and connection.is_enabled %}<span class="device-status status-online">Abilitata</span>{% else %}<span class="device-status status-offline">Disabilitata</span>{% endif %}</div>
+  <form method="post" action="/admin/integrations/nvd" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label class="check-row"><input type="checkbox" name="is_enabled" {% if connection and connection.is_enabled %}checked{% endif %}><span>Abilita aggiornamento automatico</span></label>
+    <label>Intervallo aggiornamento (minuti)<input type="number" name="sync_interval_minutes" min="{{ interval_min }}" max="{{ interval_max }}" step="1" value="{{ interval }}"><small>Dopo il primo caricamento completo vengono lette solo le CVE modificate dall'ultimo aggiornamento. In caso di errore il tentativo successivo viene ritardato progressivamente (max 24 ore).</small></label>
+    <label>API key NVD (facoltativa)<input type="password" name="api_key" autocomplete="new-password" placeholder="{{ 'Lascia vuoto per mantenere la chiave salvata' if has_key else 'Senza chiave: limite di 5 richieste ogni 30 secondi' }}"><small>{% if has_key %}Chiave presente e cifrata, non recuperabile dalla GUI.{% else %}Consigliata solo con molte CVE da leggere; la chiave viene cifrata prima del salvataggio.{% endif %}</small></label>
+    {% if has_key %}<label class="check-row"><input type="checkbox" name="clear_api_key"><span>Rimuovi la chiave salvata</span></label>{% endif %}
+    <button class="button primary">Salva configurazione</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Stato fonte</h2><p>Prodotti tracciati: {% for cpe in tracked_cpes %}<code>{{ cpe }}</code>{% if not loop.last %}, {% endif %}{% endfor %}.</p></div>
+    {% if connection and connection.is_enabled %}<div class="row-actions">
+      <form method="post" action="/admin/integrations/nvd/sync"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Aggiorna ora</button></form>
+      <form method="post" action="/admin/integrations/nvd/full-sync"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button ghost" title="Rilegge tutte le CVE dei prodotti tracciati">Ricarica completa</button></form>
+    </div>{% endif %}
+  </div>
+  {% set stats = sync.get('last_stats') or {} %}
+  <div class="policy-summary six">
+    <div><span>Stato</span><strong>{% if not connection %}Non configurata{% elif not connection.is_enabled %}Disabilitata{% elif sync.get('last_status') == 'success' %}OK{% elif sync.get('last_status') == 'failed' %}Errore{% else %}Mai eseguita{% endif %}</strong></div>
+    <div><span>Ultimo successo</span><strong>{{ fmt_dt(sync.get('last_success_at')) if sync.get('last_success_at') else '—' }}</strong></div>
+    <div><span>Modalità</span><strong>{{ {'full': 'Completa', 'incremental': 'Incrementale'}.get(sync.get('last_mode'), '—') }}</strong></div>
+    <div><span>Prossimo tentativo</span><strong>{% if connection and connection.is_enabled %}{{ fmt_dt(sync.get('next_attempt_at')) if sync.get('next_attempt_at') else 'al prossimo ciclo' }}{% else %}—{% endif %}</strong></div>
+    <div><span>Advisory NVD</span><strong>{{ advisory_count }}</strong></div>
+    <div><span>Corrispondenze aperte</span><strong><a href="/security/vulnerabilities">{{ open_findings }}</a></strong></div>
+  </div>
+  {% if stats %}<p class="muted">Ultima lettura: {{ stats.get('fetched', 0) }} record · {{ stats.get('created', 0) }} nuovi · {{ stats.get('updated', 0) }} aggiornati · {{ stats.get('unchanged', 0) }} invariati · {{ stats.get('rejected', 0) }} respinti da NVD · {{ stats.get('parse_errors', 0) }} non interpretabili.</p>{% endif %}
+  {% if sync.get('last_status') == 'failed' and sync.get('last_error') %}<div class="alert warning">Ultimo errore ({{ sync.get('consecutive_failures') or 0 }} consecutivi): {{ sync.get('last_error') }}</div>{% endif %}
+  {% if sync.get('parse_errors') %}
+  <details class="more-filters" open><summary class="button ghost">Record non interpretabili ({{ sync.get('parse_errors')|length }})</summary>
+    <ul class="plain-list">{% for item in sync.get('parse_errors') %}<li><code>{{ item.cve }}</code> — {{ item.error }}</li>{% endfor %}</ul>
+  </details>
+  {% endif %}
+</section>
+</div>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Corrispondenze con l'inventario</h2><p>Ricalcolate dopo ogni aggiornamento e ogni 15 minuti, così un apparato aggiornato chiude da solo le sue segnalazioni.</p></div>{% if connection %}<form method="post" action="/admin/integrations/nvd/match"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button ghost">Ricalcola ora</button></form>{% endif %}</div>
+  {% set m = matching.get('last_stats') or {} %}
+  <div class="policy-summary six">
+    <div><span>Ultimo calcolo</span><strong>{{ fmt_dt(matching.get('last_run_at')) if matching.get('last_run_at') else '—' }}</strong></div>
+    <div><span>Advisory valutati</span><strong>{{ m.get('advisories', 0) }}</strong></div>
+    <div><span>Nuove</span><strong>{{ m.get('opened', 0) + m.get('reopened', 0) }}</strong></div>
+    <div><span>Risolte</span><strong>{{ m.get('resolved', 0) }}</strong></div>
+    <div><span>Aggiornate</span><strong>{{ m.get('updated', 0) }}</strong></div>
+    <div><span>Non valutabili</span><strong>{{ m.get('unknown_assessments', 0) }}</strong></div>
+  </div>
+  <div class="role-grid">
+    <div><strong>Solo con versione</strong><p>Un apparato è segnalato solo se la versione installata rientra negli intervalli della CVE: mai per marca o prodotto soltanto.</p></div>
+    <div><strong>Modelli specifici</strong><p>Se la CVE riguarda solo alcuni modelli hardware, il modello dell'apparato deve corrispondere.</p></div>
+    <div><strong>Non valutabili</strong><p>Versione o modello sconosciuti, o CVE senza versioni: elencati nel dettaglio CVE, non conteggiati come esposti.</p></div>
+    <div><strong>Chiusura automatica</strong><p>Quando la versione installata esce dall'intervallo la segnalazione viene risolta con l'evidenza della versione.</p></div>
+  </div>
+</section>
+{% endblock %}

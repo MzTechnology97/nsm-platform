@@ -311,6 +311,11 @@ class SecurityAdvisory(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )
+    # SEC-01: provenance of source-ingested advisories.
+    source_status: Mapped[str | None] = mapped_column(String(40))
+    fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # SEC-02: normalized applicability rules evaluated by advisory_matching.
+    match_rules: Mapped[list] = mapped_column(JSON, default=list)
 
 
 class DeviceVulnerability(Base):
@@ -338,6 +343,8 @@ class DeviceVulnerability(Base):
     installed_version: Mapped[str | None] = mapped_column(String(150))
     fixed_version: Mapped[str | None] = mapped_column(String(150))
     evidence: Mapped[dict] = mapped_column(JSON, default=dict)
+    confidence: Mapped[str | None] = mapped_column(String(20))
+    last_evaluated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class BackupPolicy(Base, TimestampMixin):
