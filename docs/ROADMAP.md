@@ -508,7 +508,7 @@ Focused future work:
 - credential rotation workflows — encryption master-key rotation **done** (`ENCRYPTION_PREVIOUS_KEYS`, `manage.sh rotate-secrets`, *Sistema* inventory); API keys rotate with a grace period; MikroTik agent tokens are rotated by reinstalling the agent;
 - session/security policy hardening — **done**: failed-login throttling per username+address and per address, failed-login audit, idle timeout, sessions invalidated on password change and on demand;
 - API-key lifecycle and audit review — **done**: rotation with grace period, usage evidence (count, last IP), review states (expired, expiring, unused, no expiry);
-- least-privilege deployment documentation.
+- least-privilege deployment documentation — **done** (`docs/OPERATIONS.md`).
 
 ## 13. Production readiness / DR
 
@@ -519,7 +519,7 @@ Focused future objectives:
 - periodic restore drill evidence — **done** (`manage.sh restore-drill`, *Amministrazione → Sistema*);
 - upgrade rollback/runbook refinement — first runbook in `docs/OPERATIONS.md`;
 - health/worker/connector observability — worker heartbeat, per-task outcome and isolation **done**; connector-specific dashboards open;
-- capacity limits and retention sizing;
+- capacity limits and retention sizing — **done**: *Sistema* shows largest tables, backup archive growth and days to full; retention documented in `docs/OPERATIONS.md`;
 - release/versioning discipline;
 - deployment hardening review.
 
