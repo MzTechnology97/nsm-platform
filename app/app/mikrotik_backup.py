@@ -62,6 +62,10 @@ def _require_backup_job(db, device: Device, job_id: uuid.UUID):
         raise HTTPException(404, "Backup job non trovato.")
     if job.status in {"success", "failed", "cancelled"}:
         raise HTTPException(409, "Backup job già concluso.")
+    if job.status == "pending":
+        # Re-queued for retry (or never delivered): only the Agent attempt that
+        # receives the job from the next heartbeat may use it.
+        raise HTTPException(409, "Backup job non consegnato all'agent.")
     return job
 
 

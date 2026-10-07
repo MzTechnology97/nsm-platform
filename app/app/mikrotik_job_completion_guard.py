@@ -14,6 +14,7 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
+from app import main as core
 from app import mikrotik_agent as agent_module
 from app import mikrotik_backup_agent as backup_agent_module
 from app import mikrotik_firmware_readiness as firmware_readiness_module
@@ -131,6 +132,25 @@ async def guarded_backup_job_complete(request: Request, job_id: uuid.UUID):
             response = _terminal_response(job)
             db.commit()
             return response
+        if job.status == "pending":
+            # Maintenance re-queued the job after a timeout. A report arriving
+            # now belongs to the abandoned attempt and must not decide the retry.
+            core.add_event(
+                db,
+                "BACKUP_STALE_ATTEMPT_REPORT_IGNORED",
+                customer_id=device.customer_id,
+                device_id=device.id,
+                details={
+                    "job_id": str(job.id),
+                    "reported_status": requested_status,
+                    "attempts": job.attempts,
+                },
+                severity="warning",
+                result="failed",
+                source="mikrotik_agent",
+            )
+            db.commit()
+            return {"status": "ok", "stale_attempt": True, "job_status": job.status}
 
     return await backup_agent_module.backup_aware_job_complete(request, job_id)
 
