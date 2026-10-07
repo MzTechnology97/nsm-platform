@@ -11,7 +11,7 @@
     <tbody>{% for a in alerts %}{% set d = alert_devices.get(a.device_id) %}<tr>
       <td>{{ fmt_dt(a.created_at) }}</td><td><span class="severity-badge severity-{{ 'critical' if a.severity == 'critical' else 'warning' }}">{{ a.severity }}</span></td>
       <td>{% if d %}<a class="strong-link" href="/devices/{{ d.id }}/logs#access">{{ d.display_name or d.device_identity or d.name }}</a>{% else %}—{% endif %}</td>
-      <td>{{ a.title }}{% if a.details.get('users') %}<small>utenti: {{ a.details.get('users')|join(', ') }}</small>{% endif %}</td><td>{{ a.status }}</td>
+      <td>{{ a.title }}{% if a.details.get('users') %}<small>utenti: {{ a.details.get('users')|join(', ') }}</small>{% endif %}</td><td>{{ a.status }}{% if d and has_permission(user, 'incidents.write') %} <a class="button tiny ghost" href="/incidents/new?{{ {'device': d.id, 'title': a.title, 'severity': 'critical' if a.severity == 'critical' else 'high', 'summary': 'Avviso accessi da syslog del ' ~ fmt_dt(a.created_at) ~ ': ' ~ a.title ~ '. Dettagli: ' ~ (a.details or {})|tojson}|urlencode }}">Apri incidente</a>{% endif %}</td>
     </tr>{% endfor %}</tbody></table></div>
   {% else %}<div class="empty-state">Nessun avviso di accesso.</div>{% endif %}
 </section>
