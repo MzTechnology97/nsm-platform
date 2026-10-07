@@ -285,10 +285,19 @@ RouterOS 7.12.x structured snapshot parity is not in `main` yet. The active impl
 
 Focused modern-Agent hardening for no-progress upload handling and cleanup of RouterOS temporary files after failed uploads is still under physical acceptance and therefore not described as merged capability.
 
+### Restore-test evidence (MTK-03)
+
+- operator-recorded restore tests per archived artifact (method: isolated lab, spare device, configuration review; target label/RouterOS version; result passed/partial/failed; notes; execution time);
+- NSM re-verifies file presence, size and SHA-256 at recording time; a test cannot be recorded as passed against a non-intact artifact;
+- artifact identity (filename, type, SHA-256, size, source RouterOS version from `.rsc` header) is copied onto the record, so evidence survives retention/deletion;
+- failed/partial tests open a device-scoped Action Center issue resolved by the next passed test; every record emits `BACKUP_RESTORE_TEST_RECORDED`;
+- Backup Explorer shows the latest restore result per artifact and per Device; device history page `/devices/{id}/backups/restore-tests`;
+- NSM never restores a production Device automatically.
+
 ### Not implemented
 
 - legacy RouterOS 7.12.x backup transport parity;
-- formal automated restore-test evidence workflow.
+- report integration of restore-test evidence.
 
 ## 12. MikroTik firmware and RouterBOOT
 

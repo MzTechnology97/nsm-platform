@@ -139,7 +139,9 @@ Do not present legacy backup as available before this is complete.
 
 Goal: prove that stored artifacts remain operationally useful without unsafe automatic production restore.
 
-Suggested scope:
+**Implemented in `main`** except report integration, which follows REP-01/REP-02.
+
+Original scope:
 
 - restore-test record/model;
 - operator workflow for controlled validation;
