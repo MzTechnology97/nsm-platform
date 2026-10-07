@@ -276,11 +276,12 @@ NSM monitoring is intentionally lightweight and does not attempt to replace a fu
 - DHCP/log diagnostic views/jobs where supported;
 - bounded structured job/result history;
 - support-snapshot foundation on supported modern Agents;
-- contextual GUI handling for human-triggered actions.
+- contextual GUI handling for human-triggered actions;
+- **structured results (MTK-05)** for modern (`result.data`) and legacy agents (the `:tostr` output is parsed back into rows): ping with sent/received, loss, min/avg/max RTT, jitter and per-packet table; traceroute hop table with reached/not-reached; neighbors and DHCP leases linked to NSM Devices by MAC; logs newest first with level badges; the raw output stays available;
+- **history**: every ping/traceroute result lists the previous 10 runs towards the same target on the same Device; the diagnostics page lists the last 25 diagnostics with a one-line outcome (loss and average RTT, hops, events).
 
 ### Still incomplete
 
-- richer result visualization for all diagnostic types;
 - broader bounded advanced diagnostics;
 - complete real-device validation matrix across supported RouterOS families.
 

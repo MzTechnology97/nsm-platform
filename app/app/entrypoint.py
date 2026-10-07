@@ -57,6 +57,7 @@ from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_fin
 from app.mikrotik_snapshot_agent import install_mikrotik_snapshot_agent
 from app.mikrotik_snapshot_batch import install_mikrotik_snapshot_batch
 from app.mikrotik_diagnostics_agent import install_mikrotik_diagnostics_agent
+from app.mikrotik_diagnostic_views import install_mikrotik_diagnostic_views
 from app.mikrotik_onboarding import install_mikrotik_onboarding
 from app.mikrotik_operational_tools import install_mikrotik_operational_tools
 from app.mikrotik_firmware_readiness import install_mikrotik_firmware_readiness
@@ -102,7 +103,7 @@ from app.routeros_catalog import install_routeros_catalog
 from app.firmware_suggestions import install_firmware_suggestions
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.24"
+APP_VERSION = "0.49.25"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -129,6 +130,7 @@ install_mikrotik_backup_agent(core.app)
 install_config_drift(core.app)
 install_mikrotik_snapshot_agent()
 install_mikrotik_diagnostics_agent()
+install_mikrotik_diagnostic_views()
 install_mikrotik_operational_tools()
 install_mikrotik_firmware_readiness(core.app)
 install_firmware_package_staging(core.app)

@@ -2,10 +2,65 @@
 {% set device_tab = 'diagnostics' %}
 {% set device_section = 'Risultato ' ~ job.job_type|replace('diagnostic_','')|replace('_',' ') %}
 {% set payload = job.payload or {} %}{% set result = job.result or {} %}{% set data = result.get('data') %}{% set output = result.get('output') %}
+{% set v = diagnostic_view(job) %}
 {% block device_actions %}<a class="button ghost" href="/devices/{{ device.id }}/diagnostics">← Diagnostica</a>{% endblock %}
 {% block device_content %}
-<div class="section-heading"><h2>{{ job.job_type|replace('diagnostic_','')|replace('_',' ')|title }}</h2><p>Singola esecuzione auditata · Job <code>{{ job.id }}</code></p></div>
-<section class="mt-kpi-grid"><article class="metric-card"><span>Stato</span><strong>{{ job.status|upper }}</strong><small>{{ job.last_error or 'nessun errore' }}</small></article><article class="metric-card"><span>Creato</span><strong>{{ fmt_dt(job.created_at) }}</strong><small>richiesta NSM</small></article><article class="metric-card"><span>Consegnato</span><strong>{{ fmt_dt(job.delivered_at) }}</strong><small>{{ job.attempts }} tentativi</small></article><article class="metric-card"><span>Completato</span><strong>{{ fmt_dt(job.completed_at) }}</strong><small>{{ payload.get('target') or payload.get('query') or 'senza target' }}</small></article></section>
+<div class="section-heading"><h2>{{ job.job_type|replace('diagnostic_','')|replace('_',' ')|title }}</h2><p>Singola esecuzione auditata · Job <code>{{ job.id }}</code>{% if result.get('legacy_transport') %} · agent legacy{% endif %}</p></div>
+<section class="mt-kpi-grid"><article class="metric-card"><span>Stato</span><strong>{{ job.status|upper }}</strong><small>{{ diagnostic_summary(job) }}</small></article><article class="metric-card"><span>Creato</span><strong>{{ fmt_dt(job.created_at) }}</strong><small>richiesta NSM</small></article><article class="metric-card"><span>Consegnato</span><strong>{{ fmt_dt(job.delivered_at) }}</strong><small>{{ job.attempts }} tentativi</small></article><article class="metric-card"><span>Completato</span><strong>{{ fmt_dt(job.completed_at) }}</strong><small>{{ payload.get('target') or payload.get('query') or 'senza target' }}</small></article></section>
 <section class="panel"><div class="panel-header"><div><h2>Parametri</h2><p>Parametri validati inviati all'operazione allow-list.</p></div></div><div class="policy-summary six">{% if payload %}{% for key, value in payload.items() %}<div><span>{{ key|replace('_',' ')|title }}</span><strong>{{ value or '—' }}</strong></div>{% endfor %}{% else %}<div><span>Parametri</span><strong>Nessuno</strong></div>{% endif %}</div></section>
-<section class="panel"><div class="panel-header"><div><h2>Output</h2><p>Risultato completo restituito dall'agent; non viene troncato in questa vista.</p></div><span class="status-pill">{{ job.status }}</span></div>{% if job.status in ['pending','delivered'] %}<div class="empty-state">Operazione ancora in esecuzione. Ricarica la pagina dopo il prossimo heartbeat.</div>{% elif job.last_error and not data and not output %}<div class="alert danger"><strong>Operazione fallita.</strong> {{ job.last_error }}</div>{% elif data is mapping %}<div class="mt-json-table">{% for key, value in data.items() %}<div class="mt-record"><div><span>{{ key }}</span><strong>{{ value }}</strong></div></div>{% endfor %}</div>{% elif data is iterable and data is not string %}<div class="mt-json-table">{% for row in data %}<div class="mt-record">{% if row is mapping %}{% for key, value in row.items() %}<div><span>{{ key }}</span><strong>{{ value }}</strong></div>{% endfor %}{% else %}<div><strong>{{ row }}</strong></div>{% endif %}</div>{% endfor %}</div>{% elif output %}<pre class="json-preview diagnostic-output">{{ output }}</pre>{% elif result %}<pre class="json-preview diagnostic-output">{{ result|tojson(indent=2) }}</pre>{% else %}<div class="empty-state">Nessun output restituito.</div>{% endif %}</section>
+
+{% if job.status in ['pending','delivered','running'] %}
+<section class="panel"><div class="empty-state">Operazione ancora in esecuzione. Ricarica la pagina dopo il prossimo heartbeat.</div></section>
+{% elif job.status != 'success' %}
+<section class="panel"><div class="alert danger"><strong>Operazione fallita.</strong> {{ job.last_error or "Nessun dettaglio restituito dall'agent." }}</div></section>
+{% elif v and v.kind == 'ping' %}
+<section class="panel" data-diagnostic-view="ping"><div class="panel-header"><div><h2>Ping verso {{ payload.get('target') }}</h2><p>{{ v.sent }} pacchetti inviati{% if payload.get('source') %} da {{ payload.get('source') }}{% endif %}.</p></div><span class="status-pill {{ 'run-success' if v.loss == 0 else ('run-failed' if v.loss == 100 else 'run-pending') }}">{{ ('%g'|format(v.loss) ~ '%') if v.loss is not none else '—' }} perdita</span></div>
+  <div class="policy-summary six"><div><span>Ricevuti</span><strong>{{ v.received }}/{{ v.sent }}</strong></div><div><span>Minimo</span><strong>{{ v.min ~ ' ms' if v.min is not none else '—' }}</strong></div><div><span>Medio</span><strong>{{ v.avg ~ ' ms' if v.avg is not none else '—' }}</strong></div><div><span>Massimo</span><strong>{{ v.max ~ ' ms' if v.max is not none else '—' }}</strong></div><div><span>Jitter</span><strong>{{ v.jitter ~ ' ms' if v.jitter is not none else '—' }}</strong></div></div>
+  {% if v.replies %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Seq</th><th>Host</th><th>Dimensione</th><th>TTL</th><th>Tempo</th><th>Esito</th></tr></thead><tbody>
+  {% for r in v.replies %}<tr><td>{{ r.seq }}</td><td>{{ r.host or '—' }}</td><td>{{ r.size or '—' }}</td><td>{{ r.ttl or '—' }}</td><td>{{ r.rtt ~ ' ms' if r.rtt is not none else '—' }}</td><td>{% if r.status == 'ok' %}risposta{% else %}<span class="warning-text">{{ r.status }}</span>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>{% endif %}
+</section>
+{% elif v and v.kind == 'traceroute' %}
+<section class="panel" data-diagnostic-view="traceroute"><div class="panel-header"><div><h2>Traceroute verso {{ payload.get('target') }}</h2><p>{{ v.count }} hop{% if payload.get('source') %} · sorgente {{ payload.get('source') }}{% endif %}. Gli hop senza risposta sono normali quando un router non risponde a ICMP.</p></div><span class="status-pill {{ 'run-success' if v.reached else 'run-failed' }}">{{ 'Destinazione raggiunta' if v.reached else 'Destinazione non raggiunta' }}</span></div>
+  <div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Hop</th><th>Indirizzo</th><th>Perdita</th><th>Ultimo</th><th>Medio</th><th>Migliore</th><th>Peggiore</th><th>Stato</th></tr></thead><tbody>
+  {% for h in v.hops %}<tr{% if h.silent %} class="muted"{% endif %}><td>{{ h.hop }}</td><td>{{ h.address }}</td><td>{{ ('%g'|format(h.loss) ~ '%') if h.loss is not none else '—' }}</td><td>{{ h.last ~ ' ms' if h.last is not none else '—' }}</td><td>{{ h.avg ~ ' ms' if h.avg is not none else '—' }}</td><td>{{ h.best ~ ' ms' if h.best is not none else '—' }}</td><td>{{ h.worst ~ ' ms' if h.worst is not none else '—' }}</td><td>{{ h.status or '—' }}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% elif v and v.kind == 'neighbors' %}
+<section class="panel" data-diagnostic-view="neighbors"><div class="panel-header"><div><h2>Neighbor rilevati</h2><p>{{ v.rows|length }} neighbor via MNDP/CDP/LLDP. Gli apparati già in inventario NSM sono collegati per MAC.</p></div></div>
+  {% if v.rows %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Interfaccia</th><th>Identity</th><th>Indirizzo</th><th>MAC</th><th>Piattaforma / modello</th><th>Versione</th><th>In NSM</th></tr></thead><tbody>
+  {% for n in v.rows %}<tr><td>{{ n.interface or '—' }}</td><td><strong>{{ n.identity or '—' }}</strong></td><td>{{ n.address or '—' }}</td><td><code>{{ n.mac or '—' }}</code></td><td>{{ n.platform or '—' }}<small>{{ n.board or '' }}</small></td><td>{{ n.version or '—' }}</td><td>{% if n.device %}<a href="/devices/{{ n.device.id }}">{{ n.device.display_name or n.device.name }}</a>{% else %}<span class="muted">non censito</span>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state">Nessun neighbor visibile.</div>{% endif %}
+</section>
+{% elif v and v.kind == 'dhcp' %}
+<section class="panel" data-diagnostic-view="dhcp"><div class="panel-header"><div><h2>Lease DHCP per {{ payload.get('query') }}</h2><p>Ricerca per {{ 'indirizzo IPv4' if payload.get('lookup_type') == 'ip' else 'MAC' }} nelle lease del server DHCP RouterOS.</p></div></div>
+  {% if v.rows %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Indirizzo</th><th>MAC</th><th>Host</th><th>Stato</th><th>Server</th><th>Scadenza</th><th>Ultimo contatto</th><th>In NSM</th></tr></thead><tbody>
+  {% for l in v.rows %}<tr><td><strong>{{ l.address or '—' }}</strong><small>{{ 'dinamica' if l.dynamic else 'statica' }}{% if l.comment %} · {{ l.comment }}{% endif %}</small></td><td><code>{{ l.mac or '—' }}</code></td><td>{{ l.host or '—' }}</td><td>{{ l.status or '—' }}</td><td>{{ l.server or '—' }}</td><td>{{ l.expires or '—' }}</td><td>{{ l.last_seen or '—' }}</td><td>{% if l.device %}<a href="/devices/{{ l.device.id }}">{{ l.device.display_name or l.device.name }}</a>{% else %}<span class="muted">—</span>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state">Nessuna lease trovata per {{ payload.get('query') }}.</div>{% endif %}
+</section>
+{% elif v and v.kind == 'logs' %}
+<section class="panel" data-diagnostic-view="logs"><div class="panel-header"><div><h2>Log warning, error e critical</h2><p>{{ v.entries|length }} eventi dal buffer RouterOS, dal più recente{% if result.get('truncated') %}; mostrati gli ultimi {{ result.get('limit') }} di {{ result.get('total') }}{% endif %}.</p></div>{% if v.counts.critical %}<span class="severity-badge severity-critical">{{ v.counts.critical }} critical</span>{% endif %}{% if v.counts.error %}<span class="severity-badge severity-high">{{ v.counts.error }} error</span>{% endif %}</div>
+  {% if v.entries %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Ora</th><th>Livello</th><th>Topic</th><th>Messaggio</th></tr></thead><tbody>
+  {% for e in v.entries %}<tr><td>{{ e.time or '—' }}</td><td><span class="severity-badge severity-{{ {'critical': 'critical', 'error': 'high', 'warning': 'medium'}.get(e.level, 'low') }}">{{ e.level }}</span></td><td>{{ e.topics }}</td><td>{{ e.message }}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state success-state">Nessun warning, error o critical nel buffer.</div>{% endif %}
+</section>
+{% endif %}
+
+{% if job.status == 'success' %}
+<section class="panel"><details{% if not v %} open{% endif %}><summary>Output completo restituito dall'agent</summary>
+{% if data is mapping %}<div class="mt-json-table">{% for key, value in data.items() %}<div class="mt-record"><div><span>{{ key }}</span><strong>{{ value }}</strong></div></div>{% endfor %}</div>{% elif data is iterable and data is not string %}<div class="mt-json-table">{% for row in data %}<div class="mt-record">{% if row is mapping %}{% for key, value in row.items() %}<div><span>{{ key }}</span><strong>{{ value }}</strong></div>{% endfor %}{% else %}<div><strong>{{ row }}</strong></div>{% endif %}</div>{% endfor %}</div>{% elif output %}<pre class="json-preview diagnostic-output">{{ output }}</pre>{% elif result %}<pre class="json-preview diagnostic-output">{{ result|tojson(indent=2) }}</pre>{% else %}<div class="empty-state">Nessun output restituito.</div>{% endif %}
+</details></section>
+{% endif %}
+
+{% set previous = diagnostic_history(job) %}
+{% if previous %}
+<section class="panel" data-diagnostic-history><div class="panel-header"><div><h2>Esecuzioni precedenti verso {{ payload.get('target') }}</h2><p>{{ previous|length }} {{ 'esecuzione precedente' if previous|length == 1 else 'esecuzioni precedenti' }} dello stesso test su questo apparato (massimo 10), per confrontare perdita e latenza nel tempo.</p></div></div>
+  <div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Quando</th><th>Esito</th>{% if job.job_type == 'diagnostic_ping' %}<th>Perdita</th><th>Medio</th><th>Massimo</th>{% else %}<th>Hop</th><th>Destinazione</th>{% endif %}<th></th></tr></thead><tbody>
+  {% for p in previous %}{% set pv = p.view %}<tr><td>{{ fmt_dt(p.job.created_at) }}</td><td>{{ p.summary }}</td>
+    {% if job.job_type == 'diagnostic_ping' %}<td>{{ ('%g'|format(pv.loss) ~ '%') if pv and pv.loss is not none else '—' }}</td><td>{{ (pv.avg ~ ' ms') if pv and pv.avg is not none else '—' }}</td><td>{{ (pv.max ~ ' ms') if pv and pv.max is not none else '—' }}</td>
+    {% else %}<td>{{ pv.count if pv else '—' }}</td><td>{{ ('sì' if pv.reached else 'no') if pv else '—' }}</td>{% endif %}
+    <td><a class="text-link" href="/devices/{{ device.id }}/diagnostics/jobs/{{ p.job.id }}">Apri</a></td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endif %}
 {% endblock %}
