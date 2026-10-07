@@ -345,12 +345,16 @@ External sources should be documented only after an adapter actually uses them.
 
 ### LIFE-01 — lifecycle source ingestion
 
+**Implemented in `main`** (`app/lifecycle_catalog.py`): per-model catalog with separate EOL/EOS dates, mandatory source and verification date, CSV import/export.
+
 - normalized vendor/model lifecycle record;
 - EOL and EOS/support date separation;
 - source/evidence timestamp;
 - explicit unknown state.
 
 ### LIFE-02 — Device correlation
+
+**Implemented in `main`**: exact model/alias correlation, ambiguous and unmatched states never applied, manual values preserved, *Senza dato lifecycle* and *In scadenza* worklists.
 
 - reliable model correlation;
 - unsupported/ambiguous state;

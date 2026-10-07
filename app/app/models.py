@@ -142,6 +142,11 @@ class Device(Base, TimestampMixin):
     lifecycle_verified_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True)
     )
+    # catalog / manual / ambiguous / no_record / no_model (LIFE-02); None = not correlated yet.
+    lifecycle_match: Mapped[str | None] = mapped_column(String(20))
+    lifecycle_record_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("lifecycle_records.id", ondelete="SET NULL")
+    )
 
     customer: Mapped["Customer"] = relationship(back_populates="devices")
     site: Mapped["Site | None"] = relationship(back_populates="devices")

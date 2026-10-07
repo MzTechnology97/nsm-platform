@@ -35,12 +35,14 @@
     </dl>
   </section>
   <section class="panel">
-    <div class="panel-header"><div><h2>Ciclo di vita</h2><p>Supporto del vendor e date EOL/EOS.</p></div></div>
+    <div class="panel-header"><div><h2>Ciclo di vita</h2><p>Supporto del vendor e date EOL/EOS.</p></div>{% if has_permission(user, 'lifecycle.manage') %}<a class="text-link" href="/devices/{{ device.id }}/lifecycle">Gestisci →</a>{% endif %}</div>
+    {% set lc_match = {'catalog': 'Da catalogo', 'manual': 'Impostato manualmente', 'ambiguous': 'Corrispondenza ambigua: da confermare nel catalogo', 'no_record': 'Modello non presente nel catalogo', 'no_model': 'Modello non rilevato'} %}
     <dl class="kv-list">
       <div><dt>Stato lifecycle</dt><dd><span class="lifecycle lifecycle-{{ device.lifecycle_status }}">{{ device.lifecycle_status|upper }}</span></dd></div>
+      <div><dt>Origine</dt><dd>{{ lc_match.get(device.lifecycle_match, 'Non ancora correlato') }}{% if device.lifecycle_match in ['no_record', 'ambiguous'] and device.model and has_permission(user, 'lifecycle.manage') %} · <a href="/security/lifecycle/catalog/new?vendor={{ device.vendor|urlencode }}&model={{ device.model|urlencode }}">Aggiungi al catalogo</a>{% endif %}</dd></div>
       <div><dt>EOL</dt><dd>{{ device.eol_date or '—' }}</dd></div>
       <div><dt>EOS</dt><dd>{{ device.eos_date or '—' }}</dd></div>
-      <div><dt>Fonte</dt><dd>{{ device.lifecycle_source or '—' }}</dd></div>
+      <div><dt>Fonte</dt><dd>{% if device.lifecycle_source and device.lifecycle_source.startswith('http') %}<a href="{{ device.lifecycle_source }}" target="_blank" rel="noopener">{{ device.lifecycle_source|truncate(48) }} ↗</a>{% else %}{{ device.lifecycle_source or '—' }}{% endif %}{% if device.lifecycle_verified_at %}<small>verificata il {{ device.lifecycle_verified_at.date() }}</small>{% endif %}</dd></div>
       <div><dt>Stato firmware</dt><dd>{{ device.firmware_status|upper }}</dd></div>
     </dl>
   </section>

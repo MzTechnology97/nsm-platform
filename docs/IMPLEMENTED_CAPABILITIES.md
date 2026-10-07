@@ -496,11 +496,23 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - customer/vendor/state/search drill-down UI;
 - lifecycle worklist foundations.
 
+### Lifecycle catalog (LIFE-01)
+
+- *EOL / EOS → Catalogo lifecycle*: one record per vendor model with EOL (end of sale/life) and EOS (end of support) kept separate, aliases, mandatory source (name and optional link) and the date the source was checked; a record without dates means *supported when the source was checked*;
+- entry form and CSV import/export (`vendor,model,aliases,eol_date,eos_date,source,source_url,evidence_date,notes`); an import is validated as a whole and writes nothing when any row is invalid; models and aliases must identify one record only;
+- no vendor publishes a machine-readable EOL feed for these product lines, so the catalog is maintained from vendor pages/bulletins and every value keeps its provenance; NSM never invents a date.
+
+### Device correlation (LIFE-02)
+
+- Devices are matched only on exact normalized model (whitespace/case; MikroTik `RouterBOARD xxx` = `RBxxx`) or a declared alias; a partial match is *ambigua* with the candidate models listed and is never applied;
+- origin shown on every Device: *Da catalogo*, *Impostato manualmente*, *Corrispondenza ambigua*, *Modello non in catalogo*, *Modello non rilevato*; without a match the state is explicitly *unknown*, never supported;
+- per-Device manual value with mandatory source and verification date (`lifecycle.manage`), never overwritten by the catalog until handed back to it; values present before the catalog are kept as manual;
+- the catalog is re-applied on every change and hourly by the worker, so supported models become EOL/EOS when their dates pass; every status change is audited (`LIFECYCLE_STATUS_CHANGED` with source and evidence date);
+- worklist chips *In scadenza 12 mesi* and *Senza dato lifecycle* (grouped by model, with *Aggiungi al catalogo*).
+
 ### Not implemented yet
 
-- automated authoritative EOL/EOS source ingestion;
-- complete model/version correlation;
-- mature remediation/replacement workflow and evidence automation.
+- remediation/replacement workflow and Action Center findings (LIFE-03).
 
 ## 17. Public read-only API
 

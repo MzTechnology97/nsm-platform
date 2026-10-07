@@ -26,7 +26,7 @@
       </section>
 
       <section class="panel"><div class="panel-header"><div><h2>Stato operativo</h2><p>Riepilogo osservato dal dispositivo e dal portale.</p></div><div class="page-actions"><a class="button ghost" href="/devices/{{ device.id }}/configuration">Apri configurazione →</a></div></div>
-        <div class="policy-summary six"><div><span>Architecture</span><strong>{{ device.architecture or '—' }}</strong></div><div><span>Software ID</span><strong>{{ device.software_id or '—' }}</strong></div><div><span>RouterBOOT</span><strong>{{ device.routerboot_version or '—' }}</strong></div><div><span>Firmware status</span><strong>{{ device.firmware_status|upper }}</strong></div><div><span>Lifecycle</span><strong>{{ device.lifecycle_status|upper }}</strong></div><div><span>Management</span><strong>{{ device.management_source }}</strong></div></div>
+        <div class="policy-summary six"><div><span>Architecture</span><strong>{{ device.architecture or '—' }}</strong></div><div><span>Software ID</span><strong>{{ device.software_id or '—' }}</strong></div><div><span>RouterBOOT</span><strong>{{ device.routerboot_version or '—' }}</strong></div><div><span>Firmware status</span><strong>{{ device.firmware_status|upper }}</strong></div><div><span>Lifecycle</span><strong><a href="/devices/{{ device.id }}/lifecycle">{{ device.lifecycle_status|upper }}</a></strong><small>{{ {'catalog': 'Da catalogo', 'manual': 'Manuale', 'ambiguous': 'Ambiguo', 'no_record': 'Non in catalogo', 'no_model': 'Modello non rilevato'}.get(device.lifecycle_match, 'Non correlato') }}</small></div><div><span>Management</span><strong>{{ device.management_source }}</strong></div></div>
       </section>
 
       <div class="detail-grid">

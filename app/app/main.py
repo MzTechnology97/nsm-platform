@@ -88,6 +88,7 @@ ROLE_PERMISSIONS = {
         "incidents.write",
         "compliance.read",
         "compliance.manage",
+        "lifecycle.manage",
         "issues.read",
         "issues.ack",
         "audit.read",
