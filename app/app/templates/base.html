@@ -1,6 +1,6 @@
 {% set ui = ui_context(request) %}
 <!doctype html>
-<html lang="it" data-theme="{{ ui.theme or 'light' }}" data-server-theme="{{ ui.theme or '' }}" style="--brand-primary: {{ ui.branding.primary_color }}; --brand-sidebar: {{ ui.branding.sidebar_color }}; --brand-highlight: {{ ui.branding.highlight_color }};">
+<html lang="it" data-theme="{{ ui.theme or 'light' }}" data-server-theme="{{ ui.theme or '' }}" data-css-vars="--brand-primary: {{ ui.branding.primary_color }}; --brand-sidebar: {{ ui.branding.sidebar_color }}; --brand-highlight: {{ ui.branding.highlight_color }};">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">

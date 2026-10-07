@@ -27,9 +27,10 @@ def main():
         text = path.read_text(encoding="utf-8")
         assert not re.search(r"<script(?![^>]*\bsrc=)[^>]*>", text), f"inline <script> in {path.name}"
         assert not re.search(r"\son[a-z]+=\"", text), f"inline event handler in {path.name}"
+        assert not re.search(r"\sstyle=\"", text), f"inline style attribute in {path.name} (use a class or data-css-vars)"
     static = Path(__file__).resolve().parents[1] / "app" / "static"
     forms = (static / "forms.js").read_text(encoding="utf-8")
-    for marker in ("data-confirm", "data-copy-target", "data-href", "vendor-select", "data-backup-v2-form", "data-device-bulk-form", "manage-customer"):
+    for marker in ("data-css-vars", "data-confirm", "data-copy-target", "data-href", "vendor-select", "data-backup-v2-form", "data-device-bulk-form", "manage-customer"):
         assert marker.replace("data-", "") in forms or marker in forms, marker
 
     suffix = uuid.uuid4().hex[:8]

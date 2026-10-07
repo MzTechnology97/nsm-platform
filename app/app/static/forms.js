@@ -7,6 +7,18 @@
 (function () {
   'use strict';
 
+  // CSS custom properties: <div data-css-vars="--name: value; --other: value">.
+  // Inline style attributes are blocked by the CSP; the CSSOM is not.
+  document.querySelectorAll('[data-css-vars]').forEach((element) => {
+    element.dataset.cssVars.split(';').forEach((declaration) => {
+      const index = declaration.indexOf(':');
+      if (index < 0) return;
+      const name = declaration.slice(0, index).trim();
+      const value = declaration.slice(index + 1).trim();
+      if (name.startsWith('--') && value) element.style.setProperty(name, value);
+    });
+  });
+
   // Confirmations: <form data-confirm="..."> and <button data-confirm="...">.
   document.addEventListener('submit', (event) => {
     const form = event.target;
