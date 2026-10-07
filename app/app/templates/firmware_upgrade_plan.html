@@ -20,6 +20,26 @@
   <div class="alert info"><strong>RouterBOOT separato.</strong> L'eventuale aggiornamento del bootloader non viene eseguito automaticamente insieme a RouterOS.</div>
 </section>
 
+{% set legacy_info = legacy_upgrade_info(device) %}
+{% if legacy_info is not none %}
+<section class="panel danger-zone">
+  <div class="panel-header"><div><h2>Aggiornamento RouterOS con agent legacy</h2><p>L'agent ricontrolla il canale, esegue <code>/system package update install</code> (download e riavvio) solo dopo la conferma di NSM, e NSM verifica la versione al ritorno online. Da RouterOS 7.12 a 7.13+ reinstalla poi l'agent per passare al moderno.</p></div></div>
+  {% set lstate = legacy_info.state %}
+  {% if lstate.status %}<div class="alert {{ 'success' if lstate.status == 'verified' else 'danger' if lstate.status == 'failed' else 'info' }}"><strong>{{ legacy_info.labels.get(lstate.status, lstate.status) }}</strong> · {{ lstate.from_version or '—' }} → {{ lstate.target_version or '—' }}{% if lstate.last_error %} · {{ lstate.last_error }}{% endif %}</div>{% endif %}
+  {% if legacy_info.blocker %}
+  <div class="empty-state">{{ legacy_info.blocker }}</div>
+  {% elif has_permission(user, 'firmware.execute') %}
+  <form method="post" action="/devices/{{ device.id }}/legacy-upgrade" class="stack-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <p>Target: <strong>RouterOS {{ legacy_info.target }}</strong> (canale {{ legacy_info.readiness.get('channel') or '—' }}, verifica {{ fmt_dt(legacy_info.readiness.get('checked_at')) }}).</p>
+    <label class="check-row"><input type="checkbox" name="backup_ack"><span>Ho un export/backup recente di questo router (gli agent legacy non eseguono backup NSM).</span></label>
+    <label>Conferma esatta<input name="confirmation" required autocomplete="off" placeholder="AGGIORNA {{ legacy_info.target }}"></label>
+    <button class="button danger" type="submit">Aggiorna e riavvia</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+
 {% if not plan %}
 <section class="panel"><div class="empty-state">Nessun piano firmware creato per questo apparato. Avvialo dalla worklist Firmware dopo una verifica aggiornata.</div></section>
 {% else %}

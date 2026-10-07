@@ -194,7 +194,7 @@ A fresh physical clean-enrollment and feature-by-feature revalidation is still r
 - RouterOS validates every command when a script is loaded, so v6 gets its own source: ping reports `sent=10;received=N` (v6 `/ping` has no `as-value`), snapshot sections iterate `print as-value` rows with the same bounded output, and NSM refuses to hand out a v6 source that still contains a v7-only construct (`:serialize`, `/file read`, `as-value` on ping/traceroute, `get` without property, v7 menu paths);
 - traceroute is refused server-side with an explicit message (not scriptable on v6);
 - releases older than 6.48 stay unvalidated (fail closed);
-- backup and firmware actions are not available on legacy families; physical acceptance on 6.49 is tracked in issue #128.
+- legacy agents 0.49.6+ (profile `legacy-ops-v1` = `ftp,reboot,read,write,test`) support the controlled reboot and the RouterOS upgrade below; backup is not available on legacy families; physical acceptance on 6.49 is tracked in issue #128.
 
 ### RouterOS 7.12.1 — legacy family
 
@@ -318,6 +318,13 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 - report integration of restore-test evidence.
 
 ## 12. MikroTik firmware and RouterBOOT
+
+### RouterOS upgrade with legacy agents (6.48/6.49, 7.12)
+
+- Firmware tab panel *Aggiornamento RouterOS con agent legacy*: target taken from a firmware readiness younger than 24 h, only newer versions of the same major (6 → 7 is not automated), typed `AGGIORNA <target>` confirmation and explicit acknowledgement that a recent export exists (legacy agents do not run NSM backups);
+- the agent re-checks the update channel and refuses if the latest version differs from the approved target, acknowledges the job to NSM and only then runs `/system package update install` (download + reboot); a success report from the script is not a verification;
+- NSM marks the upgrade verified when a heartbeat after the acknowledgement reports the target version, otherwise fails it after 30 minutes; a 7.12 router upgraded to 7.13+ is then flagged *migration required* (reinstall the modern agent);
+- audit `LEGACY_FIRMWARE_UPGRADE_QUEUED/ACCEPTED/VERIFIED/FAILED`; the controlled reboot is available to legacy agents through the same acknowledgement protocol.
 
 ### Implemented foundation
 

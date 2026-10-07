@@ -16,6 +16,7 @@ from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_fin
 from app.mikrotik_telemetry import telemetry_cleanup
 from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
 from app.mikrotik_device_reboot import verify_reboots
+from app.mikrotik_legacy_operations import verify_upgrades as verify_legacy_upgrades
 from app.report_schedules import run_report_schedules
 from app.uisp_sync import sync_uisp_devices
 from app.advisory_sources import sync_security_advisories
@@ -50,6 +51,7 @@ while True:
             firmware_plan_stats = reconcile_firmware_plan_jobs()
             routerboot_stats = routerboot_verification_tick()
             reboot_stats = verify_reboots()
+            reboot_stats.update({f"upgrade_{k}": v for k, v in verify_legacy_upgrades().items()})
             if any(reboot_stats.values()):
                 log.info("Device reboot verification: %s", reboot_stats)
             uisp_stats = sync_uisp_devices()
