@@ -51,9 +51,15 @@
     <div class="page-actions"><a class="button ghost" href="/security/vulnerabilities">Vulnerabilità</a>{% if can_admin %}<a class="button ghost" href="/admin/integrations/nvd">Configura</a>{% endif %}</div>
   </section>
 
-  <section class="panel integration-card">
-    <div class="panel-header"><div><h2>TR-069 / ACS</h2><p>CPE gestite tramite ACS (es. ONT, router residenziali).</p></div><span class="device-status status-unknown">Non disponibile</span></div>
-    <p class="muted-note">Connettore pianificato: finché non è implementato, le operazioni che lo richiedono sono mostrate come non eseguibili.</p>
+  {% set acs = genieacs_summary() %}
+  <section class="panel integration-card" data-integration="genieacs">
+    <div class="panel-header"><div><h2>TR-069 / ACS (GenieACS)</h2><p>CPE gestite tramite GenieACS (ONT, router residenziali), lette dalla NBI in sola lettura.</p></div>{% if not acs.connection %}<span class="device-status status-unknown">Non configurato</span>{% elif not acs.connection.is_enabled %}<span class="device-status status-offline">Disabilitato</span>{% elif acs.connection.last_test_status == 'failed' %}<span class="device-status status-offline">Errore</span>{% elif acs.connection.last_test_status == 'success' %}<span class="device-status status-online">Attivo</span>{% else %}<span class="device-status status-pending_link">Da verificare</span>{% endif %}</div>
+    <dl class="kv-list">
+      <div><dt>CPE associate</dt><dd>{{ acs.linked }}</dd></div>
+      <div><dt>CPE TR-069 da associare</dt><dd>{{ acs.pending }}</dd></div>
+    </dl>
+    <p class="muted-note">Diagnostica, backup e aggiornamenti tramite ACS non sono ancora disponibili e restano indicati come non eseguibili.</p>
+    {% if can_admin %}<div class="page-actions"><a class="button ghost" href="/admin/integrations/genieacs">{{ 'Gestisci' if acs.connection else 'Configura' }}</a></div>{% endif %}
   </section>
 </div>
 {% endblock %}

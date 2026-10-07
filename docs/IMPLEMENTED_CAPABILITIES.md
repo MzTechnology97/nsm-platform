@@ -443,11 +443,16 @@ These future features must only be exposed when the actual vendor API capability
 - management-source/capability model can represent TR-069/ACS dependency;
 - unsupported ACS-dependent actions can be shown as unavailable rather than falsely executable.
 
+### GenieACS connector (ACS-01..03, read-only)
+
+- *Amministrazione → Integrazioni → GenieACS / TR-069*: NBI URL (loopback, localhost, credentials in the URL refused), authentication none / HTTP Basic / Bearer for a reverse proxy (encrypted), configurable MAC parameter paths, online window, connectivity test that reads nothing;
+- *ACS* tab on TP-Link/TR-069 Devices: lookup by serial number (`_deviceId._SerialNumber`) then MAC, preview, explicit association that keeps the NSM Customer/Site, refresh by the stored GenieACS ID that refuses a changed serial; identity, model, firmware, hardware, IP, last Inform and online state are normalized from TR-098 and TR-181 paths; audit events `GENIEACS_*` without secrets;
+- the integrations hub shows the real connector state and how many TR-069 CPE are associated or still to associate.
+
 ### Not implemented
 
-- production ACS connector;
-- ACS Device discovery/association;
-- TR-098/TR-181 normalization profiles;
+- bulk ACS discovery/onboarding;
+- vendor-specific TR-098/TR-181 parameter profiles beyond identity and firmware;
 - vendor parameter profiles;
 - monitoring/history through ACS;
 - TR-069 diagnostics;

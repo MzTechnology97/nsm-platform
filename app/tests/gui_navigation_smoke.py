@@ -87,7 +87,7 @@ def main():
 
     # Integrations hub shows real connector state, never a fake "next module".
     hub = client.get("/integrations").text
-    assert "MikroTik Agent" in hub and "UISP Network" in hub and "Non configurato" in hub and "Non disponibile" in hub
+    assert "MikroTik Agent" in hub and "UISP Network" in hub and "Non configurato" in hub and 'data-integration="genieacs"' in hub
     assert re.search(r"\d+ di \d+ attivi", hub), "agent card reflects stale heartbeats"
 
     # Admin pages share one navigation without placeholder tabs.

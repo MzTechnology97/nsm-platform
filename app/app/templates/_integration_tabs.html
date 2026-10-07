@@ -1,2 +1,2 @@
 {# Sub-navigation between configurable integrations. Set `integration_tab`. #}
-<nav class="sub-tabs" aria-label="Integrazioni">{% for key, href, label in [('uisp', '/admin/integrations/uisp', 'UISP Network'), ('nvd', '/admin/integrations/nvd', 'Advisory NVD')] %}<a href="{{ href }}"{% if integration_tab == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+<nav class="sub-tabs" aria-label="Integrazioni">{% for key, href, label in [('uisp', '/admin/integrations/uisp', 'UISP Network'), ('nvd', '/admin/integrations/nvd', 'Advisory NVD'), ('genieacs', '/admin/integrations/genieacs', 'GenieACS / TR-069')] %}<a href="{{ href }}"{% if integration_tab == key %} class="active" aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>

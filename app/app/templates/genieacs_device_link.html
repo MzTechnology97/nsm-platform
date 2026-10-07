@@ -1,0 +1,41 @@
+{% extends "device_layout.html" %}
+{% set device_tab = 'acs' %}
+{% set title = device.display_name or device.device_identity or device.name %}
+{% set device_name = title %}
+{% set tr = (device.inventory_data or {}).get('tr069') or {} %}
+{% block device_content %}
+<div class="section-heading"><h2>Associazione GenieACS</h2><p>Ricerca per seriale o MAC nella NBI GenieACS, senza importare la struttura dell'ACS in NSM.</p></div>
+{% set status = request.query_params.get('status') %}
+{% if status == 'associated' %}<div class="alert success">CPE associata a GenieACS: identità e firmware aggiornati.</div>{% elif status == 'refreshed' %}<div class="alert success">Inventario aggiornato da GenieACS.</div>{% endif %}
+{% if message %}<div class="alert success">{{ message }}</div>{% endif %}
+{% if error %}<div class="alert warning">{{ error }}</div>{% endif %}
+
+<div class="detail-grid">
+<section class="panel"><div class="panel-header"><div><h2>Record NSM</h2><p>Identità organizzativa controllata dal portale.</p></div></div>
+  <dl class="kv-list"><div><dt>Cliente</dt><dd>{{ device.customer.name }}</dd></div><div><dt>Sede NSM</dt><dd>{{ device.site.name if device.site else '—' }}</dd></div><div><dt>Seriale</dt><dd><code>{{ device.serial_number or '—' }}</code></dd></div><div><dt>MAC</dt><dd><code>{{ device.primary_mac or '—' }}</code></dd></div><div><dt>ID GenieACS</dt><dd><code>{{ device.external_device_id or '—' }}</code></dd></div><div><dt>Stato</dt><dd>{{ status_label(device.status) }}</dd></div></dl>
+</section>
+<section class="panel"><div class="panel-header"><div><h2>Connettore</h2><p>GenieACS NBI in sola lettura.</p></div></div>
+  {% if connection %}<dl class="kv-list"><div><dt>Endpoint</dt><dd>{{ connection.base_url }}</dd></div><div><dt>Abilitato</dt><dd>{{ 'Sì' if connection.is_enabled else 'No' }}</dd></div><div><dt>Ultimo test</dt><dd>{{ fmt_dt(connection.last_tested_at) }} · {{ connection.last_test_status or 'mai eseguito' }}</dd></div></dl>{% else %}<div class="empty-state warning">GenieACS non configurato. {% if has_permission(user, 'users.manage') %}<a href="/admin/integrations/genieacs">Configura</a>.{% endif %}</div>{% endif %}
+</section>
+</div>
+
+{% if device.external_device_id and tr %}
+<section class="panel" id="acs-inventory"><div class="panel-header"><div><h2>Inventario da GenieACS</h2><p>Ultima lettura {{ fmt_dt(tr.get('last_sync_at')) if tr.get('last_sync_at') else '—' }} · associata per {{ {'serial': 'seriale', 'mac': 'MAC', 'external_id': 'ID ACS'}.get(tr.get('matched_by'), tr.get('matched_by') or '—') }}.</p></div>
+  {% if has_permission(user, 'devices.write') and connection and connection.is_enabled %}<form method="post" action="/devices/{{ device.id }}/genieacs/refresh"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Aggiorna da GenieACS</button></form>{% endif %}</div>
+  <div class="policy-summary six"><div><span>Produttore</span><strong>{{ tr.get('manufacturer') or '—' }}</strong></div><div><span>Product class</span><strong>{{ tr.get('product_class') or '—' }}</strong></div><div><span>Modello</span><strong>{{ device.model or '—' }}</strong></div><div><span>Firmware</span><strong>{{ device.firmware_version or '—' }}</strong></div><div><span>Hardware</span><strong>{{ tr.get('hardware_version') or '—' }}</strong></div><div><span>Ultimo Inform</span><strong>{{ fmt_dt(tr.get('last_inform')) if tr.get('last_inform') else '—' }}</strong></div></div>
+  <div class="alert info">Diagnostica, backup e aggiornamento firmware tramite ACS non sono ancora disponibili. Cliente e sede NSM non vengono mai modificati dai dati GenieACS.</div>
+</section>
+{% endif %}
+
+<section class="panel"><div class="panel-header"><div><h2>{{ 'Verifica corrispondenza' if device.external_device_id else '1 · Cerca corrispondenza' }}</h2><p>NSM cerca {% if device.serial_number %}il seriale <code>{{ device.serial_number }}</code>{% if device.primary_mac %} e, se non trovato, il MAC <code>{{ device.primary_mac }}</code>{% endif %}{% else %}il MAC <code>{{ device.primary_mac }}</code>{% endif %}.</p></div>{% if connection and connection.is_enabled %}<form method="post" action="/devices/{{ device.id }}/genieacs/preview"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Cerca in GenieACS</button></form>{% endif %}</div>
+  <div class="alert info">La ricerca non modifica né NSM né GenieACS. L'associazione richiede una conferma separata.</div>
+</section>
+
+{% if candidate %}
+<section class="panel" data-acs-preview><div class="panel-header"><div><h2>2 · Anteprima CPE GenieACS</h2><p>Corrispondenza univoca trovata per {{ 'seriale' if candidate.matched_by == 'serial' else 'MAC' }}. Verifica i dati prima di associare.</p></div><span class="device-status status-{{ candidate.status }}">{{ status_label(candidate.status) }}</span></div>
+  <div class="policy-summary six"><div><span>ID GenieACS</span><strong><code>{{ candidate.external_id }}</code></strong></div><div><span>Seriale</span><strong>{{ candidate.serial_number or '—' }}</strong></div><div><span>MAC</span><strong><code>{{ candidate.primary_mac or '—' }}</code></strong></div><div><span>Produttore / modello</span><strong>{{ candidate.manufacturer or '—' }} · {{ candidate.model or '—' }}</strong></div><div><span>Firmware</span><strong>{{ candidate.firmware_version or '—' }}</strong></div><div><span>Ultimo Inform</span><strong>{{ fmt_dt(candidate.last_seen) }}</strong></div></div>
+  <dl class="kv-list"><div><dt>IP</dt><dd>{{ candidate.management_ip or '—' }}</dd></div><div><dt>Hardware</dt><dd>{{ candidate.hardware_version or '—' }}</dd></div><div><dt>Product class</dt><dd>{{ candidate.product_class or '—' }}</dd></div></dl>
+  {% if has_permission(user, 'devices.write') %}<form method="post" action="/devices/{{ device.id }}/genieacs/associate" data-confirm="Associare definitivamente questo ID GenieACS al record NSM?"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">{{ 'Conferma e aggiorna' if device.external_device_id else 'Conferma associazione' }}</button></form>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

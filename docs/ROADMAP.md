@@ -262,9 +262,11 @@ Implement only diagnostics actually exposed and validated by the integration con
 
 ## 6. ACS / TR-069 CPE roadmap
 
-No production ACS connector is currently implemented. Keep this roadmap generic until an implementation technology is selected and code actually depends on it.
+The selected ACS is **GenieACS** (as preferred in `PRODUCT_REQUIREMENTS.md`); NSM reads its NBI and never implements an ACS itself. ACS-01..03 are implemented in `main` (`app/genieacs_connector.py`); validation against a real GenieACS instance is pending.
 
 ### ACS-01 — connector abstraction and first production connector
+
+**Implemented in `main`** (GenieACS NBI, read-only).
 
 - encrypted connector credentials;
 - connectivity test;
@@ -274,6 +276,8 @@ No production ACS connector is currently implemented. Keep this roadmap generic 
 
 ### ACS-02 — Device discovery and association
 
+**Implemented in `main`** for per-Device association (serial, then MAC); bulk onboarding remains open.
+
 - match candidates using reliable ACS identifiers;
 - preview before association;
 - retain external Device ID;
@@ -281,6 +285,8 @@ No production ACS connector is currently implemented. Keep this roadmap generic 
 - duplicate/conflict controls.
 
 ### ACS-03 — inventory normalization
+
+**Implemented in `main`** for identity, model, firmware, hardware, IP and last Inform (TR-098 and TR-181 paths).
 
 Normalize relevant Device identity and firmware fields from supported data models.
 
