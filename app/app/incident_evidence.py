@@ -159,6 +159,11 @@ def render_incident_pdf(db, incident: Incident, *, report_id: str, generated_at,
     if timeline.truncated_sources:
         doc.paragraph(f"Fonti con molti eventi, elenco limitato: {', '.join(timeline.truncated_sources)}.", size=8.5, gray=0.35)
 
+    from app import syslog_evidence
+
+    syslog_rows = syslog_evidence.incident_rows(db, [device.id for device in devices], timeline.window_start, timeline.window_end, _fmt)
+    syslog_evidence.render_incident_section(doc, syslog_rows, 4)
+
     content = doc.render(f"{platform_name} · {REPORT_TITLE} · {report_id}")
     summary = {
         "incident_id": str(incident.id),
@@ -167,6 +172,8 @@ def render_incident_pdf(db, incident: Incident, *, report_id: str, generated_at,
         "devices": len(devices),
         "root_cause_confirmed": root_cause is not None,
         "status": incident.status,
+        "syslog_lines": syslog_rows["logs_total"],
+        "access_events": len(syslog_rows["access"]),
     }
     return content, summary
 

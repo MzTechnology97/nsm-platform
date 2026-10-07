@@ -151,7 +151,7 @@ def incident_list(request: Request, status: str = "active", customer: str = "", 
 # ---------------------------------------------------------------- create --
 
 @router.get("/incidents/new", response_class=HTMLResponse, name="incident_new")
-def incident_new(request: Request, customer: str = "", device: str = ""):
+def incident_new(request: Request, customer: str = "", device: str = "", title: str = "", summary: str = "", severity: str = ""):
     with SessionLocal() as db:
         user = _require(request, db, "incidents.write")
         if not user:
@@ -178,6 +178,7 @@ def incident_new(request: Request, customer: str = "", device: str = ""):
             preselected_site=device_obj.site_id if device_obj else None,
             severities=INCIDENT_SEVERITIES,
             default_started=local_input(utcnow()),
+            prefill={"title": title[:200], "summary": summary[:4000], "severity": severity if severity in INCIDENT_SEVERITIES else "medium"},
         )
 
 

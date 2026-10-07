@@ -288,7 +288,7 @@ Next steps:
 Next steps:
 - remote syslog setup for other vendors through their APIs (UISP/airOS, cnMaestro);
 - legacy agent support;
-- incidents and reports built from the access events.
+- ~~incidents and reports built from the access events~~ — done in 0.49.50 (report section, incident evidence, incident from alert).
 
 
 **Receiver.** A syslog receiver integrated in the stack, as a Docker service (UDP/TCP 514, optionally TLS 6514).

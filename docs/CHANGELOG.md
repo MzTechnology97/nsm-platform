@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.50 — 2026-10-08
+
+Reports and incidents
+- **Syslog in the operational evidence report**: new section *8. Accessi e log di sicurezza*.
+  - Devices that send syslog; failed and successful logins.
+  - Access alerts by type; most targeted devices and source addresses (public or private).
+  - Devices with the most error and critical lines.
+  - When no syslog is received the section says it cannot be evaluated, instead of showing zeros.
+  - Compliance and the device list move to sections 9 and 10.
+- **Incident evidence**: the incident PDF adds *4. Log syslog degli apparati*, with the access events and the warning, error and critical lines of the incident devices inside the incident window.
+- **Incident from an access alert**: *Security → Accessi* has *Apri incidente*, which pre-fills device, title, severity and description from the alert. The incident form accepts these values as pre-fill.
+
 ## 0.49.49 — 2026-10-08
 
 UISP

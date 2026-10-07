@@ -60,7 +60,7 @@ def main():
         rows = {r["device"]: r for r in csv.DictReader(io.StringIO(render_csv(data).decode("utf-8")))}
         assert rows["TEST-CV-FAIL"]["compliance_failed_controls"] == "2" and rows["TEST-CV-EXC"]["compliance_exceptions"] == "1"
         pdf = render_pdf(data, report_id="TEST", generated_at=now, generated_by="ci", platform_name="NSM").decode("latin-1")
-        for marker in ("8. Compliance", "9. Apparati", "Eccezioni di compliance attive", "TEST sostituzione a budget Q4", "Apparato supportato dal vendor: 1"):
+        for marker in ("9. Compliance", "10. Apparati", "Eccezioni di compliance attive", "TEST sostituzione a budget Q4", "Apparato supportato dal vendor: 1"):
             assert marker in pdf, marker
         none = collect_report_data(db, customer=empty, period_start=(now - timedelta(days=7)).date(), period_end=now.date())
         assert none["compliance"]["evaluated_devices"] == 0

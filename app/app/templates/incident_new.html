@@ -21,11 +21,11 @@
     <div class="form-grid">
       <label>Cliente<input value="{{ selected_customer.name }}" readonly><small><a href="/incidents/new">Cambia cliente</a></small></label>
       <label>Sede<select name="site_id"><option value="">Nessuna sede specifica</option>{% for s in sites %}<option value="{{ s.id }}" {% if preselected_site == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select></label>
-      <label>Titolo<input name="title" required maxlength="200" placeholder="Es. Perdita di connettività sede principale"></label>
-      <label>Gravità<select name="severity">{% for key, label in severities.items() %}<option value="{{ key }}" {% if key == 'medium' %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Titolo<input name="title" required maxlength="200" value="{{ prefill.title }}" placeholder="Es. Perdita di connettività sede principale"></label>
+      <label>Gravità<select name="severity">{% for key, label in severities.items() %}<option value="{{ key }}" {% if key == prefill.severity %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
       <label>Inizio<input type="datetime-local" name="started_at" required value="{{ default_started }}"><small>Quando è iniziato il problema, anche se segnalato dopo.</small></label>
     </div>
-    <label>Descrizione<textarea name="summary" rows="3" maxlength="4000" placeholder="Sintomi osservati, segnalazione del cliente, impatto"></textarea></label>
+    <label>Descrizione<textarea name="summary" rows="3" maxlength="4000" placeholder="Sintomi osservati, segnalazione del cliente, impatto">{{ prefill.summary }}</textarea></label>
     <fieldset class="scope-options"><legend>Apparati coinvolti</legend>
       {% for d in devices %}<label><input type="checkbox" name="device_ids" value="{{ d.id }}" {% if d.id in preselected %}checked{% endif %}> <span>{{ d.display_name or d.device_identity or d.name }}<small>{{ d.vendor }}{% if d.model %} · {{ d.model }}{% endif %} · {{ status_label(d.status) }}</small></span></label>{% else %}<p class="muted">Il cliente non ha apparati registrati.</p>{% endfor %}
     </fieldset>

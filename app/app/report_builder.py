@@ -37,6 +37,7 @@ from app.compliance_summary import summarize as compliance_summary
 from app.integration_models import ConnectorIntegration
 from app.restore_test_models import BackupRestoreTest
 from app.routeros_version import parse_routeros_version
+from app import syslog_evidence
 
 REPORT_TYPE = "operational_evidence"
 REPORT_TITLE = "Report evidenze operative"
@@ -530,6 +531,7 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
         },
         "audit": {"events_in_period": db.scalar(audit_query) or 0},
         "incidents": _collect_incidents(db, customer, lower, upper),
+        "access": syslog_evidence.report_section(db, device_ids, lower, upper, _fmt),
         "compliance": {
             "evaluated_devices": compliance["evaluated_devices"],
             "failing_devices": compliance["failing_devices"],
@@ -784,8 +786,10 @@ def render_pdf(data: dict, *, report_id: str, generated_at: datetime, generated_
             gray=0.35,
         )
 
+    syslog_evidence.render_report_section(doc, data.get("access") or {}, 8)
+
     comp = data["compliance"]
-    doc.heading("8. Compliance", 2)
+    doc.heading("9. Compliance", 2)
     if not comp["evaluated_devices"]:
         doc.paragraph("Nessuna baseline di compliance applicata nell'ambito: la sezione non è valutabile.")
     else:
@@ -815,7 +819,7 @@ def render_pdf(data: dict, *, report_id: str, generated_at: datetime, generated_
             gray=0.35,
         )
 
-    doc.heading("9. Apparati", 2)
+    doc.heading("10. Apparati", 2)
     device_rows = [
         [row["customer"], row["device"], row["vendor"], row["firmware_installed"], row["backup_readiness"], row["last_successful_backup"]]
         for row in data["devices"]
