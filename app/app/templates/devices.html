@@ -49,7 +49,7 @@
   <div class="inventory-table-wrap"><table class="inventory-table">
     <thead><tr><th>Apparato</th><th>Cliente / sede</th><th>Hardware</th><th>Identificativi</th><th>Management</th><th>Firmware</th><th>Security</th><th>Stato</th><th></th></tr></thead>
     <tbody>{% for d in devices %}{% set severe = severe_cve_counts.get(d.id, 0) %}
-      <tr class="inventory-row" onclick="if(!event.target.closest('a,button')) location.href='/devices/{{ d.id }}'">
+      <tr class="inventory-row" data-href="/devices/{{ d.id }}">
         <td><div class="inventory-device"><span class="vendor-badge vendor-{{ d.vendor }}">{{ d.vendor[:2]|upper }}</span><div><a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a><small>{{ d.device_identity or 'Identity non rilevata' }}</small></div></div></td>
         <td><a href="/customers/{{ d.customer.id }}">{{ d.customer.name }}</a><small>{{ d.site.name if d.site else 'Nessuna sede' }}</small></td>
         <td><strong>{{ d.model or '—' }}</strong><small>{{ d.architecture or d.device_type or '—' }}</small></td>
