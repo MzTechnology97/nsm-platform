@@ -11,7 +11,7 @@ from app.models import Device
 def main():
     # Core releases bump the 0.49.x patch independently of the Agent version.
     assert re.fullmatch(r"0\.49\.\d+", app.version), app.version
-    assert TARGET_AGENT_VERSION == "0.49.9"
+    assert TARGET_AGENT_VERSION == "0.49.10"
     assert SELF_UPDATE_MIN_VERSION == "0.49.0"
 
     installed = Device(
@@ -28,7 +28,7 @@ def main():
     )
     status = agent_update_status(installed)
     assert status["current_version"] == "0.49.0"
-    assert status["target_version"] == "0.49.9"
+    assert status["target_version"] == "0.49.10"
     assert status["outdated"] is True
     assert status["source_drift"] is False
     assert status["self_update_capable"] is True
@@ -58,7 +58,7 @@ def main():
         "ci-agent-secret",
         False,
     )
-    assert '"agent_version"="0.49.9"' in source
+    assert '"agent_version"="0.49.10"' in source
     assert '"agent_version"="0.49.0"' not in source
     assert "agent_self_update" in source
     assert "transform=sha512 to=hex" in source
@@ -66,7 +66,7 @@ def main():
     assert "nsmTruncated" in source
     assert "[/interface sstp-client get $nsmId]" in source
 
-    print("MikroTik agent generation 0.49.9 in-place update policy smoke passed")
+    print("MikroTik agent generation 0.49.10 in-place update policy smoke passed")
 
 
 if __name__ == "__main__":

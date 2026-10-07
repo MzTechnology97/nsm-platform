@@ -54,7 +54,8 @@
         <td><a href="/customers/{{ d.customer.id }}">{{ d.customer.name }}</a><small>{{ d.site.name if d.site else 'Nessuna sede' }}</small></td>
         <td><strong>{{ d.model or '—' }}</strong><small>{{ d.architecture or d.device_type or '—' }}</small></td>
         <td><code>{{ d.serial_number or '—' }}</code><small><code>{{ d.primary_mac or '—' }}</code></small></td>
-        <td><code>{{ d.management_ip or '—' }}</code><small>{{ d.management_source|replace('_',' ')|title }}</small></td>
+        {% set d_inv = d.inventory_data or {} %}
+        <td><code>{{ d.management_ip or d_inv.get('last_source_ip') or '—' }}</code><small>{% if d.management_ip %}{{ ip_scope(d.management_ip) }}{% if d_inv.get('lan_ip') and d_inv.get('lan_ip') != d.management_ip %} · LAN {{ d_inv.get('lan_ip') }}{% endif %}{% else %}{{ d.management_source|replace('_',' ')|title }}{% endif %}</small></td>
         <td><strong>{{ d.firmware_version or '—' }}</strong>{% if d.recommended_firmware_version and d.recommended_firmware_version != d.firmware_version %}<small class="warning-text">→ {{ d.recommended_firmware_version }}</small>{% elif d.firmware_status not in ['unknown','current'] %}<small class="warning-text">{{ d.firmware_status|replace('_',' ') }}</small>{% else %}<small>{{ status_label(d.firmware_status) }}</small>{% endif %}</td>
         <td>{% if severe %}<a class="severity-badge severity-critical" href="/security/vulnerabilities?customer={{ d.customer_id }}">{{ severe }} CVE gravi</a>{% else %}<span class="inventory-ok">✓</span>{% endif %}</td>
         <td><span class="device-status status-{{ d.status }}">{{ status_label(d.status) }}</span><small>{{ d.lifecycle_status|upper }}</small></td>

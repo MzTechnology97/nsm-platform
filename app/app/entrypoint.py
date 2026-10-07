@@ -68,6 +68,7 @@ from app.mikrotik_workspace_ux import install_mikrotik_workspace_ux
 from app.mikrotik_workspace_ux_precedence import install_mikrotik_workspace_ux_precedence
 from app.mikrotik_telemetry import install_mikrotik_telemetry
 from app.interface_traffic import install_interface_traffic
+from app.agent_addresses import install_agent_addresses
 from app.route_precedence import promote_customer_workspace_routes
 from app.routerboot_lifecycle import install_routerboot_lifecycle
 from app.mikrotik_device_reboot import install_mikrotik_device_reboot
@@ -113,7 +114,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.43"
+APP_VERSION = "0.49.44"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -191,6 +192,7 @@ install_mikrotik_agent_status(core.app)
 install_mikrotik_onboarding(core)
 install_mikrotik_telemetry(core.app)
 install_interface_traffic(core.app)
+install_agent_addresses()
 install_dashboard_ui(core.app)
 install_inventory_ui(core.app)
 install_branding_runtime(core.app)

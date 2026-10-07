@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from fastapi import Request
 
-from app import interface_traffic
+from app import agent_addresses, interface_traffic
 from app import mikrotik_agent as agent
 from app import mikrotik_agent_status as agent_status
 from app import mikrotik_legacy as legacy
@@ -45,11 +45,12 @@ async def legacy_heartbeat_with_history(request: Request):
         if sample is not None:
             sample.source = "mikrotik_agent_legacy"
             db.add(sample)
+        data = dict(device.inventory_data or {})
         ifaces = request.headers.get("X-NSM-Ifaces")
         if ifaces:
-            data = dict(device.inventory_data or {})
             interface_traffic.record(db, device, data, ifaces)
-            device.inventory_data = data
+        agent_addresses.apply(device, data, request.headers.get("X-NSM-Addrs"), data.get("last_source_ip"))
+        device.inventory_data = data
         db.commit()
     if isinstance(response, dict):
         response = {**response, "telemetry_sampled": sample is not None}

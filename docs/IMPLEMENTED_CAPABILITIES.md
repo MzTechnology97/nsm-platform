@@ -288,6 +288,12 @@ Legacy RouterOS backup transport is **not implemented**.
   - ranges of 1h, 24h, 7d and 30d, averaged into at most 600 points;
   - current, average, maximum, 95th percentile and volume for each direction.
 
+Management IP of agent-managed MikroTik devices (Agent 0.49.10, `app/agent_addresses.py`):
+- the agent reports `address/prefix|interface;`;
+- the management IP is the public router address, else the heartbeat source address, else the first address;
+- the LAN IP is the first private address;
+- values typed by an operator are kept.
+
 Retention (90 days) never removes the newest sample of a device or interface (`telemetry_retention.expire_keep_latest`): an offline device keeps its last telemetry visible (MON-02).
 
 NSM monitoring is intentionally lightweight and does not attempt to replace a full NMS.
