@@ -25,6 +25,7 @@ from app.firmware_upgrade_models import FirmwareUpgradePlan
 from app.mikrotik_backup import _backup_formats
 from app.mikrotik_backup_models import MikrotikBackupJobSecret
 from app.models import BackupPolicy, BackupRun, Device, utcnow
+from app.routeros_version import is_newer_routeros_version
 from app.secret_vault import encrypt_text
 
 router = APIRouter()
@@ -198,6 +199,18 @@ def create_plan(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
         target = str(readiness.get("latest_version") or device.recommended_firmware_version or "").strip()
         if not target or target == str(device.firmware_version or "").strip():
             raise HTTPException(409, "Nessun aggiornamento RouterOS disponibile.")
+        newer = is_newer_routeros_version(target, device.firmware_version)
+        if newer is None:
+            raise HTTPException(
+                409,
+                f"Impossibile confrontare RouterOS {device.firmware_version or 'sconosciuto'} con {target}: piano non creato.",
+            )
+        if not newer:
+            raise HTTPException(
+                409,
+                f"RouterOS {target} non è più recente della versione installata {device.firmware_version}: "
+                "il workflow non esegue downgrade.",
+            )
         existing = db.scalar(
             select(FirmwareUpgradePlan.id).where(
                 FirmwareUpgradePlan.device_id == device.id,
