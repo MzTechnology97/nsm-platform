@@ -136,7 +136,13 @@ def reconcile(db, now=None, device_ids=None) -> dict:
                     "evidence_date": record.evidence_date.isoformat() if record else None,
                 },
             )
-    return {k: stats.get(k, 0) for k in ("catalog", "ambiguous", "no_record", "no_model", "updated", "status_changed")}
+    from app.lifecycle_remediation import housekeeping as remediation_housekeeping  # LIFE-03
+
+    db.flush()
+    remediation = remediation_housekeeping(db, now)
+    result = {k: stats.get(k, 0) for k in ("catalog", "ambiguous", "no_record", "no_model", "updated", "status_changed")}
+    result["remediation_issues_opened"] = remediation["issues_opened"]
+    return result
 
 
 def run_scheduled_reconcile(now=None) -> dict:
@@ -417,8 +423,10 @@ async def catalog_import(request: Request):
 
 @router.get("/devices/{device_id}/lifecycle", response_class=HTMLResponse, name="device_lifecycle_form")
 def device_lifecycle_form(request: Request, device_id: uuid.UUID):
+    from app.lifecycle_remediation import page_context
+
     with SessionLocal() as db:
-        user = core.require_permission(request, db, "lifecycle.manage")
+        user = core.require_permission(request, db, "security.read")
         device = db.get(Device, device_id)
         if not device:
             raise HTTPException(404)
@@ -426,7 +434,8 @@ def device_lifecycle_form(request: Request, device_id: uuid.UUID):
         return core.render(
             request, db, user, "device_lifecycle_form.html", title="Lifecycle apparato",
             device=device, correlation=candidates, match_labels=MATCH_LABELS, states=LIFECYCLE_STATES,
-            today=utcnow().date().isoformat(),
+            today=utcnow().date().isoformat(), can_manage=core.has_permission(user, "lifecycle.manage"),
+            **page_context(db, device),
         )
 
 
@@ -476,6 +485,10 @@ async def device_lifecycle_save(request: Request, device_id: uuid.UUID):
             db, "LIFECYCLE_MANUAL_SET", actor=user, customer_id=device.customer_id, device_id=device.id,
             details={"from": previous, "to": status, "eol": eol and eol.isoformat(), "eos": eos and eos.isoformat(), "source": source[:255], "evidence_date": evidence.isoformat()},
         )
+        from app.lifecycle_remediation import housekeeping as remediation_housekeeping
+
+        db.flush()
+        remediation_housekeeping(db, now)
         db.commit()
     return flash_redirect(request, f"/devices/{device_id}", "success", "Valore lifecycle manuale salvato con fonte e data di verifica.", title="Lifecycle aggiornato")
 

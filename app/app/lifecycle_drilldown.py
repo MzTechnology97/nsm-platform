@@ -141,6 +141,17 @@ def lifecycle(
                 )
             )
 
+        from app.models import LifecycleRemediation
+        from app.lifecycle_remediation import STATUS_LABELS as REMEDIATION_LABELS, attention_reason
+
+        remediations = {
+            r.device_id: r
+            for r in db.scalars(select(LifecycleRemediation).where(LifecycleRemediation.device_id.in_([d.id for d in rows] or [None])))
+        }
+        remediation_rows = {
+            d.id: (REMEDIATION_LABELS.get(remediations[d.id].status), bool(attention_reason(remediations[d.id], d, today)))
+            for d in rows if d.id in remediations
+        }
         customer_count = int(
             db.scalar(
                 select(func.count(func.distinct(Device.customer_id))).where(
@@ -159,6 +170,7 @@ def lifecycle(
             user,
             "lifecycle.html",
             devices=rows,
+            remediation_rows=remediation_rows,
             groups=groups,
             customers=customers,
             vendors=vendors,

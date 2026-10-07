@@ -73,6 +73,7 @@ CSV_COLUMNS = [
     "vulnerabilities_in_exception",
     "compliance_failed_controls",
     "compliance_exceptions",
+    "lifecycle_remediation",
 ]
 REMEDIATION_LABELS = {
     "open": "aperte",
@@ -343,6 +344,14 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
         open_vulns[device_id] = (count + 1, worst)
     security = _collect_security(db, scoped, devices, lower, upper)
     compliance = compliance_summary(db, upper, device_ids=device_ids)
+    from app.lifecycle_remediation import STATUS_LABELS as LIFECYCLE_REMEDIATION_LABELS, summary as lifecycle_remediation_summary
+    from app.models import LifecycleRemediation
+
+    lifecycle_remediation = lifecycle_remediation_summary(db, device_ids=device_ids, today=upper.date() if hasattr(upper, "date") else None)
+    remediation_status = {
+        rem.device_id: LIFECYCLE_REMEDIATION_LABELS.get(rem.status, rem.status)
+        for rem in db.scalars(select(LifecycleRemediation).where(LifecycleRemediation.device_id.in_(list(device_ids) or [None])))
+    }
     resolved_in_period = security["resolved_in_period"]
 
     # Backup ---------------------------------------------------------------
@@ -436,6 +445,7 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
                 "vulnerabilities_in_exception": security["exception_by_device"].get(device.id, 0),
                 "compliance_failed_controls": compliance["per_device"].get(device.id, {}).get("fail", 0),
                 "compliance_exceptions": compliance["per_device"].get(device.id, {}).get("exception", 0),
+                "lifecycle_remediation": remediation_status.get(device.id, ""),
             }
         )
 
@@ -493,6 +503,18 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
             "unknown": lifecycle_states.get("unknown", 0),
             "eol": lifecycle_states.get("eol", 0),
             "eos": lifecycle_states.get("eos", 0),
+            "remediation": {
+                "counts": {LIFECYCLE_REMEDIATION_LABELS[k]: v for k, v in lifecycle_remediation["counts"].items() if v},
+                "overdue": lifecycle_remediation["overdue"],
+                "to_handle": [
+                    {"device": _device_name(d), "status": d.lifecycle_status.upper(), "eos": _fmt(d.eos_date), "reason": reason}
+                    for d, rem, reason in lifecycle_remediation["to_handle"]
+                ],
+                "exceptions": [
+                    {"device": _device_name(d), "until": _fmt(rem.exception_until), "reason": rem.exception_reason or ""}
+                    for d, rem in lifecycle_remediation["exceptions"]
+                ],
+            },
         },
         "backup": {
             "by_readiness": {readiness_label(key): value for key, value in readiness_counts.most_common()},
@@ -537,6 +559,7 @@ def summary(data: dict) -> dict:
         "open_issues": data["issues"]["open"],
         "incidents": data["incidents"]["total"],
         "compliance_failing_devices": data["compliance"]["failing_devices"],
+        "lifecycle_to_handle": len(data["lifecycle"]["remediation"]["to_handle"]),
         "truncated": data["truncated"],
     }
 
@@ -678,8 +701,24 @@ def render_pdf(data: dict, *, report_id: str, generated_at: datetime, generated_
             ("Apparati EOL", lifecycle["eol"]),
             ("Apparati EOS", lifecycle["eos"]),
             ("Stato lifecycle non noto", lifecycle["unknown"]),
+            ("Gestione apparati fuori supporto", ", ".join(f"{k}: {v}" for k, v in lifecycle["remediation"]["counts"].items()) or "nessun apparato EOL/EOS"),
+            ("Sostituzioni pianificate scadute", lifecycle["remediation"]["overdue"]),
         ]
     )
+    if lifecycle["remediation"]["to_handle"]:
+        doc.paragraph("Apparati fuori supporto ancora da gestire:", bold=True)
+        doc.table(
+            ["Apparato", "Stato", "EOS", "Motivo"],
+            [[r["device"], r["status"], r["eos"], r["reason"]] for r in lifecycle["remediation"]["to_handle"][:30]],
+            [120, 45, 65, 281],
+        )
+    if lifecycle["remediation"]["exceptions"]:
+        doc.paragraph("Eccezioni lifecycle attive:", bold=True)
+        doc.table(
+            ["Apparato", "Valida fino al", "Motivazione"],
+            [[r["device"], r["until"], r["reason"]] for r in lifecycle["remediation"]["exceptions"][:30]],
+            [130, 75, 306],
+        )
 
     backup = data["backup"]
     doc.heading("5. Backup e restore", 2)

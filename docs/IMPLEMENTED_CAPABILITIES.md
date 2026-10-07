@@ -552,9 +552,12 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - the catalog is re-applied on every change and hourly by the worker, so supported models become EOL/EOS when their dates pass; every status change is audited (`LIFECYCLE_STATUS_CHANGED` with source and evidence date);
 - worklist chips *In scadenza 12 mesi* and *Senza dato lifecycle* (grouped by model, with *Aggiungi al catalogo*).
 
-### Not implemented yet
+### Remediation and replacement evidence (LIFE-03)
 
-- remediation/replacement workflow and Action Center findings (LIFE-03).
+- every EOL/EOS Device gets a remediation record: *Da gestire*, *Sostituzione pianificata* (target date and plan), *In eccezione* (justification, expiry within one year), *Sostituito* (replacement Device of the same customer) or *Dismesso* (note); decisions need `lifecycle.manage`, are kept in a history with author and note and audited (`LIFECYCLE_REPLACEMENT_PLANNED`, `LIFECYCLE_EXCEPTION_GRANTED`, `LIFECYCLE_DEVICE_REPLACED`, `LIFECYCLE_DEVICE_DECOMMISSIONED`, `LIFECYCLE_REMEDIATION_REOPENED`);
+- one Action Center issue per Device (`lifecycle`, critical for EOS) while it is still to handle, its planned replacement is overdue or its exception expired; resolved automatically otherwise; re-evaluated with the catalog and by the worker;
+- Device lifecycle page shows the decision panel (read-only without `lifecycle.manage`); the EOL/EOS worklist has a *Gestione* column;
+- evidence reports: counts by remediation state, overdue plans, Devices still to handle, active exceptions with reason and expiry; CSV column `lifecycle_remediation`.
 
 ## 17. Public read-only API
 

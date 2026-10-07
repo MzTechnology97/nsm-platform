@@ -452,3 +452,35 @@ class LifecycleRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+
+
+class LifecycleRemediation(Base):
+    """How an EOL/EOS Device is being handled (LIFE-03); one row per Device."""
+
+    __tablename__ = "lifecycle_remediations"
+    __table_args__ = (UniqueConstraint("device_id", name="uq_lifecycle_remediations_device"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    device_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("devices.id", ondelete="CASCADE"))
+    status: Mapped[str] = mapped_column(String(20), default="open")
+    plan_note: Mapped[str | None] = mapped_column(Text)
+    target_date: Mapped[date | None] = mapped_column(Date)
+    exception_until: Mapped[date | None] = mapped_column(Date)
+    exception_reason: Mapped[str | None] = mapped_column(Text)
+    replacement_device_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("devices.id", ondelete="SET NULL"))
+    decided_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class LifecycleRemediationHistory(Base):
+    __tablename__ = "lifecycle_remediation_history"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    remediation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("lifecycle_remediations.id", ondelete="CASCADE"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    actor_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    action: Mapped[str] = mapped_column(String(30))
+    from_status: Mapped[str | None] = mapped_column(String(20))
+    to_status: Mapped[str | None] = mapped_column(String(20))
+    note: Mapped[str | None] = mapped_column(Text)
