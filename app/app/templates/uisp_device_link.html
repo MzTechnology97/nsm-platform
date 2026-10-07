@@ -29,6 +29,16 @@
 {% endif %}
 
 {% if uisp_view %}
+<section class="panel telemetry-panel" id="uisp-graphs" data-series-root data-endpoint="/api/v1/devices/{{ device.id }}/uisp-metrics">
+  <div class="panel-header">
+    <div><h2>Grafici UISP</h2><p>Storico dei valori letti da UISP a ogni sincronizzazione: segnale, capacità del link, CPU/RAM e stazioni. Le interruzioni compaiono come buchi; l'ultimo dato resta sempre visibile.</p></div>
+    <div class="telemetry-ranges" role="group" aria-label="Intervallo"><button type="button" data-series-range="24h" class="active">24h</button><button type="button" data-series-range="7d">7g</button><button type="button" data-series-range="30d">30g</button><button type="button" data-series-range="90d">90g</button></div>
+  </div>
+  <div class="telemetry-grid" data-series-grid><div class="telemetry-empty">Caricamento…</div></div>
+  <div class="telemetry-footer"><span data-series-count>0 campioni</span></div>
+</section>
+<script defer src="{{ url_for('static', path='/series_chart.js') }}?v={{ asset_version }}"></script>
+
 <section class="panel" id="uisp-metrics">
   <div class="panel-header"><div><h2>Stato operativo da UISP</h2><p>Valori letti a ogni sincronizzazione{% if uisp_view.metrics_at %} · ultima {{ fmt_dt(uisp_view.metrics_at) }}{% endif %}. Statistiche sulle ultime {{ uisp_view.hours }} ore ({{ uisp_view.count }} campioni).</p></div></div>
   <div class="table-wrap"><table class="data-table compact-data-table">

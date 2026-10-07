@@ -552,6 +552,25 @@ def uisp_device_link(request: Request, device_id: uuid.UUID):
         return _device_render(request, db, user, device)
 
 
+@router.get("/api/v1/devices/{device_id}/uisp-metrics", name="uisp_device_metrics")
+def uisp_device_metrics(request: Request, device_id: uuid.UUID, range: str = "24h"):
+    from app import uisp_metrics
+
+    with SessionLocal() as db:
+        user = core.current_user(request, db)
+        if not user:
+            raise HTTPException(401)
+        if not core.has_permission(user, "monitoring.read"):
+            raise HTTPException(403)
+        device = db.get(Device, device_id)
+        if not device:
+            raise HTTPException(404)
+        try:
+            return uisp_metrics.series(db, device, range)
+        except ValueError:
+            raise HTTPException(400, "Intervallo non valido.") from None
+
+
 @router.post("/devices/{device_id}/uisp/preview", response_class=HTMLResponse, name="uisp_device_preview")
 def uisp_device_preview(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
     try:

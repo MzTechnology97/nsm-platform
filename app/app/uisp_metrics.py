@@ -89,6 +89,66 @@ def view(db, device, hours: int = 24) -> dict:
             "metrics_at": ((device.inventory_data or {}).get("uisp") or {}).get("metrics_at")}
 
 
+RANGES = {"24h": timedelta(hours=24), "7d": timedelta(days=7), "30d": timedelta(days=30), "90d": timedelta(days=90)}
+MAX_POINTS = 400
+# A sync gap longer than this breaks the line instead of drawing across an outage.
+GAP = timedelta(minutes=30)
+CHARTS = (
+    ("signal", "Segnale radio", "dBm", (("signal_dbm", "Segnale"),)),
+    ("capacity", "Capacità del link", "bps", (("downlink_capacity_bps", "Downlink"), ("uplink_capacity_bps", "Uplink"))),
+    ("resources", "CPU e RAM", "%", (("cpu_percent", "CPU"), ("ram_percent", "RAM"))),
+    ("stations", "Stazioni collegate", "", (("stations", "Stazioni"),)),
+)
+
+
+def _bucket(samples, fields, maximum=MAX_POINTS):
+    """Average consecutive samples into at most ``maximum`` points, with null points on gaps."""
+    points, run = [], []
+
+    def emit(chunk):
+        row = {"t": chunk[-1].observed_at.isoformat()}
+        for field in fields:
+            values = [getattr(s, field) for s in chunk if getattr(s, field) is not None]
+            row[field] = round(sum(values) / len(values), 2) if values else None
+        points.append(row)
+
+    size = max(1, -(-len(samples) // maximum))
+    previous = None
+    for sample in samples:
+        if previous is not None and sample.observed_at - previous > GAP:
+            if run:
+                emit(run)
+                run = []
+            points.append({"t": (previous + (sample.observed_at - previous) / 2).isoformat(), **{f: None for f in fields}})
+        run.append(sample)
+        if len(run) >= size:
+            emit(run)
+            run = []
+        previous = sample.observed_at
+    if run:
+        emit(run)
+    return points
+
+
+def series(db, device, range_key: str = "24h") -> dict:
+    """Chart-ready history (UBNT-08): signal, capacity, CPU/RAM and stations; charts without data are omitted."""
+    delta = RANGES.get(range_key)
+    if delta is None:
+        raise ValueError("range")
+    samples = list(db.scalars(select(UispMetricSample).where(UispMetricSample.device_id == device.id,
+                                                             UispMetricSample.observed_at >= utcnow() - delta)
+                              .order_by(UispMetricSample.observed_at)))
+    charts = []
+    for key, title, unit, fields in CHARTS:
+        names = [field for field, _label in fields]
+        if not any(getattr(s, f) is not None for s in samples for f in names):
+            continue
+        points = _bucket(samples, names)
+        charts.append({"id": key, "title": title, "unit": unit,
+                       "series": [{"field": field, "label": label, "points": [[p["t"], p[field]] for p in points]} for field, label in fields]})
+    return {"range": range_key, "sample_count": len(samples), "charts": charts}
+
+
 def format_value(field: str, value) -> str:
     if value is None:
         return "—"
