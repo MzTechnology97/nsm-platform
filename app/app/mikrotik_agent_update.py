@@ -200,7 +200,7 @@ def _wrap_inventory_updates(previous):
         drift = bool(expected_hash and observed_hash and expected_hash != observed_hash)
         data["agent_source_drift"] = drift
         if (
-            data.get("agent_update_state") in {"installing", "awaiting_heartbeat"}
+            data.get("agent_update_state") in {"installing", "awaiting_heartbeat", "expired"}
             and expected_version
             and reported_version == expected_version
             and not drift
@@ -375,6 +375,70 @@ def agent_update_complete(
         )
         db.commit()
     return {"status": "ok", "state": data["agent_update_state"]}
+
+
+RUNNING_EXPIRED_ERROR = "Self-update avviato ma senza esito entro la finestra prevista."
+
+
+def reconcile_agent_update_states(now=None) -> int:
+    """Own the timeout of running self-updates and close expired update states.
+
+    Generic job maintenance expires pending/delivered jobs but leaves *running*
+    jobs to their domain. A self-update becomes running once the router fetched
+    its source; if the router never reports back (reboot, lost link) the job
+    would stay running forever and block every later update. Expired jobs move
+    the Device state to "expired"; a later heartbeat that proves the target
+    version and source hash still moves it to "verified".
+    """
+    now = now or utcnow()
+    closed = 0
+    with SessionLocal() as db:
+        for job in db.scalars(
+            select(DeviceJob).where(
+                DeviceJob.job_type == UPDATE_JOB_TYPE,
+                DeviceJob.status == "running",
+                DeviceJob.expires_at.is_not(None),
+                DeviceJob.expires_at <= now,
+            )
+        ):
+            job.status = "failed"
+            job.last_error = RUNNING_EXPIRED_ERROR
+            job.completed_at = now
+        db.flush()
+        jobs = list(
+            db.scalars(
+                select(DeviceJob).where(
+                    DeviceJob.job_type == UPDATE_JOB_TYPE,
+                    DeviceJob.status == "failed",
+                    DeviceJob.completed_at.is_not(None),
+                    DeviceJob.completed_at >= now - timedelta(days=1),
+                )
+            )
+        )
+        for job in jobs:
+            device = db.get(Device, job.device_id)
+            if not device:
+                continue
+            data = dict(device.inventory_data or {})
+            if data.get("agent_update_job_id") != str(job.id):
+                continue
+            if data.get("agent_update_state") not in {"pending", "installing"}:
+                continue
+            data["agent_update_state"] = "expired"
+            device.inventory_data = data
+            core.add_event(
+                db,
+                "MIKROTIK_AGENT_UPDATE_EXPIRED",
+                customer_id=device.customer_id,
+                device_id=device.id,
+                severity="warning",
+                result="failed",
+                source="worker",
+                details={"job_id": str(job.id), "error": job.last_error},
+            )
+            closed += 1
+        db.commit()
+    return closed
 
 
 def install_mikrotik_agent_self_update(app):

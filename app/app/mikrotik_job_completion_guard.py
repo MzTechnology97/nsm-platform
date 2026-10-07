@@ -16,6 +16,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 
 from app import main as core
 from app import mikrotik_agent as agent_module
+from app import mikrotik_agent_update as agent_update_module
 from app import mikrotik_backup_agent as backup_agent_module
 from app import mikrotik_firmware_readiness as firmware_readiness_module
 from app import firmware_package_staging as firmware_staging_module
@@ -31,12 +32,14 @@ GUARD_ROUTE_NAMES = {
     "guarded_mikrotik_backup_job_complete",
     "guarded_mikrotik_firmware_readiness_complete",
     "guarded_mikrotik_firmware_stage_complete",
+    "guarded_mikrotik_agent_update_complete",
 }
 MODERN_COMPLETE_PATH = "/api/v1/agents/mikrotik/jobs/{job_id}/complete"
 LEGACY_COMPLETE_PATH = "/api/v1/agents/mikrotik/legacy/jobs/{job_id}/complete"
 BACKUP_COMPLETE_PATH = "/api/v1/agents/mikrotik/backup-jobs/{job_id}/complete"
 FIRMWARE_READINESS_COMPLETE_PATH = "/api/v1/agents/mikrotik/firmware-readiness/{job_id}/complete"
 FIRMWARE_STAGE_COMPLETE_PATH = "/api/v1/agents/mikrotik/firmware-stage/{job_id}/complete"
+AGENT_UPDATE_COMPLETE_PATH = "/api/v1/agents/mikrotik/self-update/{job_id}/complete"
 
 
 def _remove_existing_guard_routes(app) -> None:
@@ -209,6 +212,26 @@ async def guarded_firmware_stage_complete(request: Request, job_id: uuid.UUID):
     return await firmware_staging_module.stage_complete(request, job_id)
 
 
+def guarded_agent_update_complete(
+    request: Request,
+    job_id: uuid.UUID,
+    status: str = Query("failed"),
+    rolled_back: bool = Query(False),
+):
+    """A late self-update report must not rewrite an expired/finished update."""
+    with SessionLocal() as db:
+        device, _ = agent_module._authenticate_agent(db, request)
+        job = db.get(DeviceJob, job_id)
+        if not job or job.device_id != device.id or job.job_type != agent_update_module.UPDATE_JOB_TYPE:
+            raise HTTPException(404, "Job self-update non trovato.")
+        if job.status in TERMINAL_JOB_STATUSES:
+            response = _terminal_response(job)
+            db.commit()
+            return response
+
+    return agent_update_module.agent_update_complete(request, job_id, status, rolled_back)
+
+
 def install_mikrotik_job_completion_guard(app) -> None:
     """Register completion guards directly on the final application.
 
@@ -246,5 +269,11 @@ def install_mikrotik_job_completion_guard(app) -> None:
         guarded_firmware_stage_complete,
         methods=["POST"],
         name="guarded_mikrotik_firmware_stage_complete",
+    )
+    app.add_api_route(
+        AGENT_UPDATE_COMPLETE_PATH,
+        guarded_agent_update_complete,
+        methods=["POST"],
+        name="guarded_mikrotik_agent_update_complete",
     )
     _promote_guard_routes(app)

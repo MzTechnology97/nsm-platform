@@ -9,6 +9,7 @@ from app.backup_maintenance import maintenance_tick
 from app.backup_scheduler_capability_guard import install_backup_scheduler_capability_guard
 from app.config import settings
 from app.device_job_maintenance import expire_delivered_jobs, expire_pending_jobs
+from app.mikrotik_agent_update import reconcile_agent_update_states
 from app.firmware_activation import reconcile_firmware_activations
 from app.firmware_plan_recovery import reconcile_firmware_plan_jobs
 from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_finalization_cleanup
@@ -36,6 +37,7 @@ while True:
             stats = maintenance_tick()
             expired_pending_jobs = expire_pending_jobs()
             expired_delivered_jobs = expire_delivered_jobs()
+            expired_agent_updates = reconcile_agent_update_states()
             agent_stats = agent_health_tick()
             firmware_stats = reconcile_firmware_activations()
             firmware_plan_stats = reconcile_firmware_plan_jobs()
@@ -43,11 +45,12 @@ while True:
             uisp_stats = sync_uisp_devices()
             if any(stats.values()):
                 log.info("Backup maintenance: %s", stats)
-            if expired_pending_jobs or expired_delivered_jobs:
+            if expired_pending_jobs or expired_delivered_jobs or expired_agent_updates:
                 log.info(
-                    "Agent job maintenance: scaduti pending=%s delivered=%s",
+                    "Agent job maintenance: scaduti pending=%s delivered=%s self-update=%s",
                     expired_pending_jobs,
                     expired_delivered_jobs,
+                    expired_agent_updates,
                 )
             if any(agent_stats.values()):
                 log.info("Agent health automation: %s", agent_stats)
