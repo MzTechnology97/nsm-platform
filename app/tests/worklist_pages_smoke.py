@@ -84,6 +84,8 @@ def main():
     assert "Backup export viewed" in audit and "BACKUP_EXPORT_VIEWED" in audit
     dashboard = client.get("/").text
     assert "Segnalazioni critiche" in dashboard and "Issue critical" not in dashboard
+    # Static assets are versioned by content, not by release number.
+    assert re.search(r'/static/app\.css\?v=[0-9a-f]{12}"', dashboard), "app.css cache-busting token"
 
     # Every list page uses the shared pager wording when it has rows.
     for path in ("/operations/backups?view=all", "/operations/firmware?state=all", "/operations/agents?state=all", "/security/lifecycle", "/operations/monitoring?state=all", "/action-center"):

@@ -46,5 +46,5 @@
   {% elif not snapshot_supported %}<div class="empty-state">Lo snapshot strutturato dei log non è disponibile sul transport legacy. Usa “Diagnostica → Log dispositivo”, che resta supportato.</div>
   {% else %}<div class="empty-state">Nessuno snapshot log disponibile.</div>{% endif %}
 </section>
-{% if telemetry_history_supported %}<script defer src="{{ url_for('static', path='/telemetry_monitor.js') }}?v={{ app_version }}"></script>{% endif %}
+{% if telemetry_history_supported %}<script defer src="{{ url_for('static', path='/telemetry_monitor.js') }}?v={{ asset_version }}"></script>{% endif %}
 {% endblock %}

@@ -3,6 +3,43 @@
 {% block content %}
 <div class="page-header"><div><h1>Amministrazione</h1><p>Utenti, ruoli, integrazioni e accesso alla piattaforma.</p></div><a class="button" href="/profile">Il mio profilo</a></div>
 {% set admin_tab = "users" %}{% include "_admin_tabs.html" %}
-<div class="content-split"><section class="panel side-form"><div class="panel-header"><div><h2>Nuovo utente</h2><p>La password deve rispettare i requisiti minimi della piattaforma.</p></div></div><form method="post" action="/admin/users" class="form-stack"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><label>Username<input name="username" required></label><label>Nome visualizzato<input name="display_name"></label><label>Email<input type="email" name="email"></label><label>Ruolo<select name="role">{% for key,label in roles.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label><label>Password temporanea<input type="password" name="password" required minlength="12"></label><button class="button primary">Crea utente</button></form></section><section class="panel"><div class="panel-header"><div><h2>Utenti</h2><p>{{ users|length }} account</p></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Utente</th><th>Ruolo</th><th>Stato</th><th>Ultimo login</th><th>Azioni</th></tr></thead><tbody>{% for u in users %}<tr><td><strong>{{ u.display_name or u.username }}</strong><small>{{ u.username }}{% if u.email %} · {{ u.email }}{% endif %}</small></td><td><form class="inline-form compact-form" method="post" action="/admin/users/{{ u.id }}/role"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><select name="role">{% for key,label in roles.items() %}<option value="{{ key }}" {% if u.role == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="button tiny">Salva</button></form></td><td><span class="device-status {{ 'status-online' if u.is_active else 'status-offline' }}">{{ 'Attivo' if u.is_active else 'Disabilitato' }}</span></td><td>{{ fmt_dt(u.last_login_at) }}</td><td>{% if u.id == user.id %}<a class="button tiny" href="/profile">Password / tema</a>{% else %}<form method="post" action="/admin/users/{{ u.id }}/toggle"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny ghost">{{ 'Disabilita' if u.is_active else 'Riattiva' }}</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table></div></section></div>
-<section class="panel"><div class="panel-header"><div><h2>Ruoli predefiniti</h2><p>RBAC semplice, predisposto per permessi granulari futuri.</p></div></div><div class="role-grid"><div><strong>Administrator</strong><p>Accesso completo, utenti, policy, integrazioni e impostazioni.</p></div><div><strong>Technician</strong><p>Gestione apparati, backup, firmware, remediation e operazioni tecniche.</p></div><div><strong>Operator</strong><p>Consultazione, acknowledge e job operativi predefiniti.</p></div><div><strong>Auditor</strong><p>Sola lettura di inventario, storico, backup, CVE e report.</p></div></div></section>
+
+<details class="panel create-panel"{% if users|length < 2 %} open{% endif %}>
+  <summary><span class="button primary">+ Nuovo utente</span><small>La password temporanea deve rispettare i requisiti minimi della piattaforma.</small></summary>
+  <form method="post" action="/admin/users" class="form-grid">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Username<input name="username" required autocomplete="off"></label>
+    <label>Nome visualizzato<input name="display_name"></label>
+    <label>Email<input type="email" name="email"></label>
+    <label>Ruolo<select name="role">{% for key,label in roles.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label>
+    <label>Password temporanea<input type="password" name="password" required minlength="12" autocomplete="new-password"></label>
+    <div class="form-actions"><button class="button primary">Crea utente</button></div>
+  </form>
+</details>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Utenti</h2><p>{{ users|length }} account</p></div></div>
+  <div class="table-wrap"><table class="data-table">
+    <thead><tr><th>Utente</th><th>Ruolo</th><th>Stato</th><th>Ultimo login</th><th></th></tr></thead>
+    <tbody>{% for u in users %}
+      <tr>
+        <td><strong>{{ u.display_name or u.username }}</strong><small>{{ u.username }}{% if u.email %} · {{ u.email }}{% endif %}</small></td>
+        <td><form class="inline-form compact-form" method="post" action="/admin/users/{{ u.id }}/role"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><select name="role" aria-label="Ruolo di {{ u.username }}">{% for key,label in roles.items() %}<option value="{{ key }}" {% if u.role == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="button tiny">Salva</button></form></td>
+        <td><span class="device-status {{ 'status-online' if u.is_active else 'status-offline' }}">{{ 'Attivo' if u.is_active else 'Disabilitato' }}</span></td>
+        <td>{{ fmt_dt(u.last_login_at) }}</td>
+        <td><div class="row-actions">{% if u.id == user.id %}<a class="button tiny ghost" href="/profile">Password / tema</a>{% else %}<form method="post" action="/admin/users/{{ u.id }}/toggle"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny ghost">{{ 'Disabilita' if u.is_active else 'Riattiva' }}</button></form>{% endif %}</div></td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+</section>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Ruoli</h2><p>Permessi assegnati da ciascun ruolo.</p></div></div>
+  <div class="role-grid">
+    <div><strong>Administrator</strong><p>Accesso completo, utenti, policy, integrazioni e impostazioni.</p></div>
+    <div><strong>Technician</strong><p>Gestione apparati, backup, firmware, remediation e operazioni tecniche.</p></div>
+    <div><strong>Operator</strong><p>Consultazione, acknowledge e job operativi predefiniti.</p></div>
+    <div><strong>Auditor</strong><p>Sola lettura di inventario, storico, backup, CVE e report.</p></div>
+  </div>
+</section>
 {% endblock %}

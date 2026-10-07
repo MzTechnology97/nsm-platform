@@ -7,7 +7,7 @@
 
 <div class="integration-grid">
   <section class="panel integration-card">
-    <div class="panel-header"><div><h2>MikroTik Agent</h2><p>Agent outbound HTTPS installato sui router RouterOS.</p></div><span class="device-status status-online">Attivo</span></div>
+    <div class="panel-header"><div><h2>MikroTik Agent</h2><p>Agent outbound installato sui router RouterOS: è il router a contattare NSM.</p></div>{% if not agents_total %}<span class="device-status status-unknown">Nessun agent</span>{% elif agents_stale == agents_total %}<span class="device-status status-offline">Nessun heartbeat</span>{% elif agents_stale %}<span class="device-status status-pending_link">{{ agents_total - agents_stale }} di {{ agents_total }} attivi</span>{% else %}<span class="device-status status-online">Attivo</span>{% endif %}</div>
     <dl class="kv-list">
       <div><dt>Agent registrati</dt><dd>{{ agents_total }}</dd></div>
       <div><dt>Senza heartbeat da 15 min</dt><dd>{{ agents_stale }}</dd></div>

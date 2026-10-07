@@ -15,7 +15,7 @@
 {% endmacro %}
 
 {% macro pager(total, page, pages, href) %}
-<div class="pagination-bar"><span>{{ total }} risultati · pagina {{ page }} di {{ pages }}</span><div class="page-actions">{% if page > 1 %}<a class="button ghost" href="{{ href }}&page={{ page - 1 }}">← Precedente</a>{% endif %}{% if page < pages %}<a class="button ghost" href="{{ href }}&page={{ page + 1 }}">Successiva →</a>{% endif %}</div></div>
+<div class="pagination-bar"><span>{{ total }} {{ 'risultato' if total == 1 else 'risultati' }} · pagina {{ page }} di {{ pages }}</span><div class="page-actions">{% if page > 1 %}<a class="button ghost" href="{{ href }}&page={{ page - 1 }}">← Precedente</a>{% endif %}{% if page < pages %}<a class="button ghost" href="{{ href }}&page={{ page + 1 }}">Successiva →</a>{% endif %}</div></div>
 {% endmacro %}
 
 {% macro context_banner(customer, text) %}
