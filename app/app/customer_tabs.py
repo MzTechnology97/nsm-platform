@@ -184,6 +184,31 @@ def customer_overview(request: Request, customer_id: uuid.UUID):
         )
 
 
+_SEVERITY_RANK = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+
+
+def _open_cve_counts(db, device_ids) -> dict:
+    """device_id -> (open CVE count, highest severity, unhandled critical/high count)."""
+    from app.models import DeviceVulnerability, SecurityAdvisory
+
+    result: dict = {}
+    if not device_ids:
+        return result
+    rows = db.execute(
+        select(DeviceVulnerability.device_id, DeviceVulnerability.status, func.lower(SecurityAdvisory.severity))
+        .join(SecurityAdvisory, SecurityAdvisory.id == DeviceVulnerability.advisory_id)
+        .where(DeviceVulnerability.device_id.in_(device_ids), DeviceVulnerability.status != "resolved")
+    ).all()
+    for device_id, status, severity in rows:
+        count, worst, unhandled = result.get(device_id, (0, None, 0))
+        if worst is None or _SEVERITY_RANK.get(severity or "", 0) > _SEVERITY_RANK.get(worst, 0):
+            worst = severity
+        if status == "open" and severity in ("critical", "high"):
+            unhandled += 1
+        result[device_id] = (count + 1, worst, unhandled)
+    return result
+
+
 def customer_devices(
     request: Request,
     customer_id: uuid.UUID,
@@ -246,6 +271,10 @@ def customer_devices(
             )
         )
         vendors = sorted({device.vendor for device in customer.devices if device.vendor})
+        cve_counts = _open_cve_counts(db, [device.id for device in devices]) if core.has_permission(user, "security.read") else None
+        from app.models import SecurityAdvisory
+
+        cve_ready = db.scalar(select(SecurityAdvisory.id).limit(1)) is not None
         return core.render(
             request,
             db,
@@ -253,6 +282,8 @@ def customer_devices(
             "customer_devices.html",
             customer=customer,
             devices=devices,
+            cve_counts=cve_counts,
+            cve_ready=cve_ready,
             vendors=vendors,
             q=term,
             vendor_filter=vendor,
