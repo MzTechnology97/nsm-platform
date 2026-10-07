@@ -268,6 +268,9 @@ def incident_detail(request: Request, incident_id: uuid.UUID, view: str = "all")
         used = {item.get("key") for hypothesis, _, _ in hypotheses for item in (hypothesis.evidence or [])}
         candidates = suggest(incident, timeline, used)
         root_cause = next((h for h, _, _ in hypotheses if h.id == incident.root_cause_hypothesis_id), None)
+        from app.incident_evidence import archived_exports  # local: incident_evidence imports this module
+
+        exports = archived_exports(db, incident) if core.has_permission(user, "reports.read") else []
         return core.render(
             request,
             db,
@@ -297,6 +300,8 @@ def incident_detail(request: Request, incident_id: uuid.UUID, view: str = "all")
             root_cause=root_cause,
             root_cause_categories=ROOT_CAUSE_CATEGORIES,
             hypothesis_statuses=HYPOTHESIS_STATUSES,
+            exports=exports,
+            can_export=core.has_permission(user, "reports.generate"),
         )
 
 

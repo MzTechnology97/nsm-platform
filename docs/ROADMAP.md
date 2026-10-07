@@ -399,6 +399,8 @@ Split into focused PRs:
 
 ### INC-04 — export/report integration
 
+**Implemented in `main`**: periodic reports have an *Incidenti* section; a single incident can be exported as a hashed PDF evidence stored in the report archive.
+
 - incident evidence summary;
 - report archive linkage;
 - hash/audit evidence.
