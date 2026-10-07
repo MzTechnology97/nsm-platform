@@ -1,42 +1,7 @@
-{% extends "base.html" %}
+{% extends "device_layout.html" %}
+{% set device_tab = 'activity' %}
 {% set title = device.display_name or device.device_identity or device.name %}
-{% block title %}{{ title }} · Attività · {{ app_name }}{% endblock %}
-{% block content %}
-<div class="breadcrumbs"><a href="/customers/{{ device.customer.id }}">{{ device.customer.name }}</a><span>›</span><a href="/customers/{{ device.customer.id }}/devices">Apparati</a><span>›</span><a href="/devices/{{ device.id }}">{{ title }}</a><span>›</span><span>Job & attività</span></div>
-
-<div class="mt-device-shell">
-  <aside class="mt-device-summary panel">
-    <div class="mt-summary-title"><div><span class="eyebrow">MikroTik</span><h1>{{ title }}</h1></div><span class="device-status status-{{ device.status }}">{{ status_label(device.status) }}</span></div>
-    <dl class="mt-summary-list">
-      <div><dt>Identity</dt><dd>{{ device.device_identity or '—' }}</dd></div>
-      <div><dt>Modello</dt><dd>{{ device.model or '—' }}</dd></div>
-      <div><dt>RouterOS</dt><dd>{{ device.firmware_version or '—' }}</dd></div>
-      <div><dt>Seriale</dt><dd><code>{{ device.serial_number or '—' }}</code></dd></div>
-      <div><dt>MAC</dt><dd><code>{{ device.primary_mac or '—' }}</code></dd></div>
-      <div><dt>IP gestione</dt><dd><code>{{ device.management_ip or inventory.get('last_source_ip') or '—' }}</code></dd></div>
-      <div><dt>Sede</dt><dd>{{ device.site.name if device.site else '—' }}</dd></div>
-      <div><dt>Ultimo contatto</dt><dd>{{ fmt_dt(device.last_seen) }}</dd></div>
-    </dl>
-    <a class="mt-agent-state" href="/devices/{{ device.id }}/agent"><span class="mt-state-dot {% if device.status == 'online' %}online{% endif %}"></span><div><small>NSM Agent</small><strong>{{ inventory.get('agent_version') or 'Non rilevato' }}</strong></div></a>
-  </aside>
-
-  <main class="mt-device-main">
-    <nav class="mt-device-tabs">
-      <a href="/devices/{{ device.id }}">Panoramica</a>
-      <a href="/devices/{{ device.id }}/monitor">Monitor</a>
-      <a href="/devices/{{ device.id }}/configuration">Configurazione</a>
-      <a href="/devices/{{ device.id }}/diagnostics">Diagnostica</a>
-      <a href="/devices/{{ device.id }}/agent">Agent</a>
-      <a class="active" href="/devices/{{ device.id }}/jobs">Job & attività</a>
-    </nav>
-
-    <section class="mt-kpi-grid">
-      <article class="metric-card"><span>Job attivi</span><strong>{{ active_jobs|length }}</strong><small>pending / delivered / running</small></article>
-      <article class="metric-card"><span>Vista</span><strong>{{ 'JOB' if view == 'jobs' else 'AUDIT' }}</strong><small>{{ pager.total }} risultati filtrati</small></article>
-      <article class="metric-card"><span>Pagina</span><strong>{{ pager.page }}/{{ pager.pages }}</strong><small>{{ pager.per_page }} righe per pagina</small></article>
-      <article class="metric-card"><span>RouterOS</span><strong>{{ device.firmware_version or '—' }}</strong><small>{{ inventory.get('agent_transport') or 'transport non rilevato' }}</small></article>
-    </section>
-
+{% block device_content %}
     {% if active_jobs %}
     <section class="panel">
       <div class="panel-header"><div><h2>Coda attiva</h2><p>Operazioni non ancora concluse. Lo storico completo rimane separato.</p></div></div>
@@ -82,6 +47,5 @@
 
       <div class="pagination-bar"><span>{{ pager.total }} risultati · pagina {{ pager.page }} di {{ pager.pages }}</span><div class="page-actions">{% if pager.prev_url %}<a class="button ghost" href="{{ pager.prev_url }}">← Precedente</a>{% endif %}{% if pager.next_url %}<a class="button ghost" href="{{ pager.next_url }}">Successiva →</a>{% endif %}</div></div>
     </section>
-  </main>
-</div>
+  
 {% endblock %}

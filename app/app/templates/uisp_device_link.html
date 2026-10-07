@@ -1,9 +1,9 @@
-{% extends "base.html" %}
-{% block title %}UISP · {{ device.display_name or device.name }} · {{ app_name }}{% endblock %}
-{% block content %}
-<div class="breadcrumbs"><a href="/devices">Apparati</a><span>›</span><a href="/devices/{{ device.id }}">{{ device.display_name or device.device_identity or device.name }}</a><span>›</span><span>UISP</span></div>
-<div class="page-header"><div><h1>Associazione UISP</h1><p>Matching esatto tramite MAC senza importare Customer/Site dalla struttura UISP.</p></div><a class="button ghost" href="/devices/{{ device.id }}">Torna all'apparato</a></div>
-
+{% extends "device_layout.html" %}
+{% set device_tab = 'uisp' %}
+{% set title = device.display_name or device.device_identity or device.name %}
+{% set device_name = title %}
+{% block device_content %}
+<div class="section-heading"><h2>Associazione UISP</h2><p>Matching esatto tramite MAC senza importare Customer/Site dalla struttura UISP.</p></div>
 {% if message %}<div class="alert success">{{ message }}</div>{% endif %}
 {% if error %}<div class="alert warning">{{ error }}</div>{% endif %}
 

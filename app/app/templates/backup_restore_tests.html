@@ -1,9 +1,11 @@
-{% extends "base.html" %}
-{% set device_name = device.display_name or device.device_identity or device.name %}
-{% block title %}Restore test · {{ device_name }} · {{ app_name }}{% endblock %}
-{% block content %}
-<div class="breadcrumbs"><a href="/devices/{{ device.id }}">{{ device_name }}</a><span>›</span><a href="/devices/{{ device.id }}/backups">Archivio backup</a><span>›</span><span>Restore test</span></div>
-<div class="page-header compact-heading"><div><h1>Restore test · {{ device_name }}</h1><p>Evidenze di ripristino registrate dagli operatori. L'identità dell'artefatto (nome, SHA-256, dimensione) resta registrata anche dopo la retention del file.</p></div><div class="page-actions"><a class="button ghost" href="/devices/{{ device.id }}/backups">Archivio backup</a></div></div>
+{% extends "device_layout.html" %}
+{% set device_tab = 'backups' %}
+{% set title = device.display_name or device.device_identity or device.name %}
+{% set device_name = title %}
+{% set device_section = 'Storico restore test' %}
+{% block device_actions %}<a class="button ghost" href="/devices/{{ device.id }}/backups">Archivio backup</a>{% endblock %}
+{% block device_content %}
+<div class="section-heading"><h2>Restore test · {{ device_name }}</h2><p>Evidenze di ripristino registrate dagli operatori. L'identità dell'artefatto (nome, SHA-256, dimensione) resta registrata anche dopo la retention del file.</p></div>
 <section class="panel">
   {% if tests %}
   <div class="table-wrap"><table class="data-table">

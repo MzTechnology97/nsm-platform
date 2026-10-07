@@ -1,11 +1,12 @@
-{% extends "base.html" %}
+{% extends "device_layout.html" %}
+{% set device_tab = 'firmware' %}
 {% set title = device.display_name or device.device_identity or device.name %}
+{% set device_name = title %}
 {% set activation = (plan.precheck_data or {}).get('activation', {}) if plan else {} %}
-{% block title %}Piano firmware · {{ title }} · {{ app_name }}{% endblock %}
-{% block content %}
-<div class="breadcrumbs"><a href="/customers/{{ device.customer_id }}">{{ device.customer.name }}</a><span>›</span><a href="/devices/{{ device.id }}">{{ title }}</a><span>›</span><span>Piano firmware</span></div>
-<div class="page-header compact-heading"><div><h1>Piano aggiornamento RouterOS</h1><p>{{ title }} · backup pre-upgrade, approvazione, staging, attivazione e verifica post-reboot separati.</p></div><div class="page-actions"><a class="button ghost" href="/operations/firmware">Firmware</a><a class="button ghost" href="/devices/{{ device.id }}">Apparato</a></div></div>
-
+{% block device_actions %}<a class="button ghost" href="/operations/firmware">Worklist firmware</a>{% endblock %}
+{% block device_content %}
+<nav class="sub-tabs" aria-label="Firmware"><a href="/devices/{{ device.id }}/firmware-upgrade"{% if not device_section %} class="active"{% endif %}>RouterOS</a><a href="/devices/{{ device.id }}/routerboot"{% if device_section == 'RouterBOOT' %} class="active"{% endif %}>RouterBOOT</a></nav>
+<div class="section-heading"><h2>Piano aggiornamento RouterOS</h2><p>{{ title }} · backup pre-upgrade, approvazione, staging, attivazione e verifica post-reboot separati.</p></div>
 <section class="panel">
   <div class="panel-header"><div><h2>Prerequisiti osservati</h2><p>Core 0.37 attiva soltanto pacchetti già staged e considera riuscito l'upgrade solo dopo un heartbeat che riporta la versione target.</p></div><span class="severity-badge severity-warning">3 GATE + VERIFY</span></div>
   <div class="policy-summary six">

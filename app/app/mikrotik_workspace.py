@@ -93,68 +93,6 @@ def workspace_overview(request: Request, device_id: uuid.UUID):
         return core.render(request, db, user, "mikrotik_workspace.html", device=device, active_tab="overview", **ctx)
 
 
-@router.get("/devices/{device_id}/configuration", response_class=HTMLResponse, name="mikrotik_workspace_configuration")
-def workspace_configuration(request: Request, device_id: uuid.UUID, section: str = "resources"):
-    if section not in SNAPSHOT_SECTIONS:
-        section = "resources"
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "devices.read"):
-            raise HTTPException(403)
-        device = _load_device(db, device_id)
-        if device.vendor != "mikrotik":
-            raise HTTPException(404)
-        ctx = _workspace_context(db, device)
-        return core.render(request, db, user, "mikrotik_workspace.html", device=device, active_tab="configuration", active_section=section, snapshot_sections=SNAPSHOT_SECTIONS, **ctx)
-
-
-@router.get("/devices/{device_id}/monitor", response_class=HTMLResponse, name="mikrotik_workspace_monitor")
-def workspace_monitor(request: Request, device_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "monitoring.read"):
-            raise HTTPException(403)
-        device = _load_device(db, device_id)
-        if device.vendor != "mikrotik":
-            raise HTTPException(404)
-        ctx = _workspace_context(db, device)
-        return core.render(request, db, user, "mikrotik_workspace.html", device=device, active_tab="monitor", **ctx)
-
-
-@router.get("/devices/{device_id}/jobs", response_class=HTMLResponse, name="mikrotik_workspace_jobs")
-def workspace_jobs(request: Request, device_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "devices.read"):
-            raise HTTPException(403)
-        device = _load_device(db, device_id)
-        if device.vendor != "mikrotik":
-            raise HTTPException(404)
-        ctx = _workspace_context(db, device)
-        return core.render(request, db, user, "mikrotik_workspace.html", device=device, active_tab="jobs", **ctx)
-
-
-@router.get("/devices/{device_id}/diagnostics", response_class=HTMLResponse, name="mikrotik_workspace_diagnostics")
-def workspace_diagnostics(request: Request, device_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "monitoring.read"):
-            raise HTTPException(403)
-        device = _load_device(db, device_id)
-        if device.vendor != "mikrotik":
-            raise HTTPException(404)
-        ctx = _workspace_context(db, device)
-        return core.render(request, db, user, "mikrotik_workspace.html", device=device, active_tab="diagnostics", **ctx)
-
-
 @router.post("/devices/{device_id}/snapshot/{section}", name="queue_mikrotik_snapshot")
 def queue_snapshot(request: Request, device_id: uuid.UUID, section: str, csrf: str = Form(...)):
     core.validate_csrf(request, csrf)
@@ -265,7 +203,7 @@ def install_mikrotik_workspace(app):
     app.include_router(router)
     promoted = []
     rest = []
-    paths = {"/devices/{device_id}", "/devices/{device_id}/configuration", "/devices/{device_id}/monitor", "/devices/{device_id}/jobs", "/devices/{device_id}/diagnostics"}
+    paths = {"/devices/{device_id}"}
     for route in app.router.routes:
         if getattr(route, "path", None) in paths:
             promoted.append(route)

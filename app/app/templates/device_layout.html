@@ -1,0 +1,72 @@
+{#
+  Shared shell for every Device page.
+
+  Child templates set, before their blocks:
+    device_tab      key of the active tab (overview, monitor, configuration,
+                    diagnostics, backups, firmware, agent, uisp, activity)
+    device_section  optional label of a sub-page inside the tab
+  and fill `device_content` (plus optional `device_actions`).
+#}
+{% extends "base.html" %}
+{% set device_name = device.display_name or device.device_identity or device.name %}
+{% set device_inv = device.inventory_data or {} %}
+{% set is_mikrotik = device.vendor == 'mikrotik' %}
+{% set device_base = '/devices/' ~ device.id %}
+{% set device_tabs = [
+  ('overview', 'Panoramica', device_base, true),
+  ('monitor', 'Monitor', device_base ~ '/monitor', is_mikrotik),
+  ('configuration', 'Configurazione', device_base ~ '/configuration', is_mikrotik),
+  ('diagnostics', 'Diagnostica', device_base ~ '/diagnostics', is_mikrotik),
+  ('backups', 'Backup', device_base ~ '/backups', true),
+  ('firmware', 'Firmware', device_base ~ '/firmware-upgrade', is_mikrotik),
+  ('agent', 'Agent', device_base ~ '/agent', is_mikrotik),
+  ('uisp', 'UISP', device_base ~ '/uisp', device.vendor == 'ubiquiti'),
+  ('activity', 'Attività', device_base ~ '/jobs', true),
+] %}
+{% set active_label = (device_tabs | selectattr(0, 'equalto', device_tab) | map(attribute=1) | first) if device_tab else '' %}
+{% block title %}{% if device_section %}{{ device_section }} · {% elif active_label and device_tab != 'overview' %}{{ active_label }} · {% endif %}{{ device_name }} · {{ app_name }}{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="Percorso">
+  <a href="/customers">Clienti</a><span>›</span>
+  {% if device.customer %}<a href="/customers/{{ device.customer_id }}">{{ device.customer.name }}</a><span>›</span>
+  <a href="/customers/{{ device.customer_id }}/devices">Apparati</a><span>›</span>{% endif %}
+  {% if device_tab == 'overview' and not device_section %}<span>{{ device_name }}</span>
+  {% else %}<a href="{{ device_base }}">{{ device_name }}</a><span>›</span>
+    {% if device_section and device_tab != 'overview' %}<a href="{{ (device_tabs | selectattr(0, 'equalto', device_tab) | map(attribute=2) | first) }}">{{ active_label }}</a><span>›</span><span>{{ device_section }}</span>
+    {% else %}<span>{{ device_section or active_label }}</span>{% endif %}
+  {% endif %}
+</nav>
+
+<header class="device-header">
+  <div class="device-header-main">
+    <div class="device-header-title">
+      <span class="vendor-badge">{{ device.vendor }}</span>
+      <h1>{{ device_name }}</h1>
+      <span class="device-status status-{{ device.status }}">{{ status_label(device.status) }}</span>
+    </div>
+    <dl class="device-facts">
+      {% if device.device_identity and device.device_identity != device_name %}<div><dt>Identity</dt><dd>{{ device.device_identity }}</dd></div>{% endif %}
+      <div><dt>Modello</dt><dd>{{ device.model or '—' }}</dd></div>
+      <div><dt>{{ 'RouterOS' if is_mikrotik else 'Firmware' }}</dt><dd>{{ device.firmware_version or '—' }}</dd></div>
+      <div><dt>IP gestione</dt><dd><code>{{ device.management_ip or device_inv.get('last_source_ip') or '—' }}</code></dd></div>
+      <div><dt>MAC</dt><dd><code>{{ device.primary_mac or '—' }}</code></dd></div>
+      {% if device.serial_number %}<div><dt>Seriale</dt><dd><code>{{ device.serial_number }}</code></dd></div>{% endif %}
+      <div><dt>Sede</dt><dd>{{ device.site.name if device.site else '—' }}</dd></div>
+      <div><dt>Ultimo contatto</dt><dd>{{ fmt_dt(device.last_seen) if device.last_seen else 'mai' }}</dd></div>
+      {% if is_mikrotik %}<div><dt>Agent</dt><dd><a href="{{ device_base }}/agent">{{ device_inv.get('agent_version') or 'non installato' }}</a></dd></div>{% endif %}
+    </dl>
+  </div>
+  <div class="device-header-actions">
+    {% block device_actions %}{% endblock %}
+    {% if has_permission(user, 'devices.write') %}<a class="button ghost" href="{{ device_base }}/manage">Gestisci apparato</a>{% endif %}
+  </div>
+</header>
+
+<nav class="device-tabs" aria-label="Sezioni apparato">
+  {% for key, label, href, visible in device_tabs if visible %}<a href="{{ href }}"{% if key == device_tab %} class="active" aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+</nav>
+
+<div class="device-body">
+{% block device_content %}{% endblock %}
+</div>
+{% endblock %}

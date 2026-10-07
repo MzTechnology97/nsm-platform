@@ -58,6 +58,14 @@ def _artifact_for_device(
     return row[0], row[1]
 
 
+ARCHIVE_KINDS = {"all": "Tutti i file", "binary": "Backup binari (.backup)", "export": "Export testuali (.rsc)"}
+ARCHIVE_STATUSES = {"all": "Tutti gli esiti", "success": "Riusciti", "failed": "Falliti"}
+
+
+def _artifact_kind(artifact: BackupArtifact) -> str:
+    return "export" if _is_human_readable(artifact) else "binary"
+
+
 def _is_human_readable(artifact: BackupArtifact) -> bool:
     return artifact.artifact_type == "mikrotik_export" or artifact.filename.lower().endswith(".rsc")
 
@@ -144,7 +152,7 @@ def _artifact_browser_error(
     response_class=HTMLResponse,
     name="device_backup_explorer",
 )
-def device_backup_explorer(request: Request, device_id: uuid.UUID):
+def device_backup_explorer(request: Request, device_id: uuid.UUID, kind: str = "all", status: str = "all"):
     with SessionLocal() as db:
         user = core.current_user(request, db)
         if not user:
@@ -178,10 +186,22 @@ def device_backup_explorer(request: Request, device_id: uuid.UUID):
         artifacts_by_run: dict[uuid.UUID, list[BackupArtifact]] = {}
         for artifact in artifacts:
             artifacts_by_run.setdefault(artifact.run_id, []).append(artifact)
-        run_rows = [
-            {"run": run, "artifacts": artifacts_by_run.get(run.id, [])}
-            for run in runs
-        ]
+        kind = kind if kind in ARCHIVE_KINDS else "all"
+        status = status if status in ARCHIVE_STATUSES else "all"
+        run_rows = []
+        for run in runs:
+            if status == "success" and run.status != "success":
+                continue
+            if status == "failed" and run.status != "failed":
+                continue
+            run_artifacts = [
+                item
+                for item in artifacts_by_run.get(run.id, [])
+                if kind == "all" or _artifact_kind(item) == kind
+            ]
+            if kind != "all" and not run_artifacts:
+                continue
+            run_rows.append({"run": run, "artifacts": run_artifacts})
 
         policy, credential, pending = _manual_backup_context(db, device)
         run_block_reason = _manual_backup_block_reason(
@@ -222,6 +242,10 @@ def device_backup_explorer(request: Request, device_id: uuid.UUID):
             readable_count=sum(1 for item in artifacts if _is_human_readable(item)),
             storage_bytes=sum(int(item.size_bytes or 0) for item in artifacts),
             latest_success=latest_success,
+            archive_kind=kind,
+            archive_status=status,
+            archive_kinds=ARCHIVE_KINDS,
+            archive_statuses=ARCHIVE_STATUSES,
             restore_by_artifact=restore_by_artifact,
             latest_restore_test=latest_restore_test,
         )
