@@ -57,8 +57,8 @@ def seed():
 
         # Healthy fixtures track the current agent generation. Older generations
         # are intentionally promoted to Attention by the agent update policy.
-        modern = device("Healthy Modern", inventory={"agent_version": CURRENT_AGENT, "agent_transport": "modern", "last_source_ip": "198.51.100.35"})
-        legacy = device("Healthy Legacy", inventory={"agent_version": CURRENT_AGENT + "-legacy", "agent_transport": "legacy", "legacy_agent": True, "legacy_heartbeat_transport": "headers-v1"})
+        modern = device("Healthy Modern", inventory={"agent_version": CURRENT_AGENT, "agent_transport": "modern", "agent_privilege_profile": "ops-v2", "last_source_ip": "198.51.100.35"})
+        legacy = device("Healthy Legacy", inventory={"agent_version": CURRENT_AGENT + "-legacy", "agent_transport": "legacy", "agent_privilege_profile": "legacy-ops-v1", "legacy_agent": True, "legacy_heartbeat_transport": "headers-v1"})
         stale = device("Stale", last_seen=now - timedelta(minutes=31), inventory={"agent_version": "0.20.0", "agent_transport": "modern"})
         offline = device("Offline", status="offline", inventory={"agent_version": "0.20.0", "agent_transport": "modern"})
         no_credential = device("No Credential", inventory={"agent_version": "0.20.0", "agent_transport": "modern"})

@@ -23,6 +23,7 @@ def main():
             "agent_expected_version": "0.49.0",
             "agent_expected_source_sha512": "a" * 128,
             "agent_source_sha512": "a" * 128,
+            "agent_privilege_profile": "ops-v2",
         },
     )
     status = agent_update_status(installed)

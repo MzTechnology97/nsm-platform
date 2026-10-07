@@ -18,6 +18,26 @@ TARGET_AGENT_VERSION = "0.49.8"
 SELF_UPDATE_MIN_VERSION = "0.49.0"
 
 
+def profile_reinstall_reason(device) -> str | None:
+    """Why the installed RouterOS policies are insufficient, or None."""
+    from app.mikrotik_privilege_profile import BACKUP_PROFILES, LEGACY_PROFILE
+
+    data = dict(device.inventory_data or {})
+    transport = str(data.get("agent_transport") or "").strip().lower()
+    profile = str(data.get("agent_privilege_profile") or "").strip()
+    if transport == "modern" and profile not in BACKUP_PROFILES:
+        return (
+            f"Profilo privilegi {profile or 'non registrato'}: il backup binario richiede il profilo ops-v2 "
+            "(policy «policy» e «sensitive»). Usa «Rigenera / reinstalla agent»: il self-update non cambia i permessi."
+        )
+    if transport == "legacy" and profile != LEGACY_PROFILE:
+        return (
+            f"Agent legacy con profilo {profile or 'non registrato'} (sola lettura): per riavvio, aggiornamento RouterOS "
+            "e backup .rsc reinstalla l'agent (profilo legacy-ops-v1)."
+        )
+    return None
+
+
 def _install_status_policy() -> None:
     previous = updater.agent_update_status
     if getattr(previous, "_nsm_generation_policy", False):
@@ -37,6 +57,14 @@ def _install_status_policy() -> None:
         status["requires_reinstall"] = bool(status["outdated"] and not capable)
         status["protocol"] = updater.UPDATE_PROTOCOL if capable else "reinstall-only"
         status["self_update_min_version"] = SELF_UPDATE_MIN_VERSION
+        # A self-update replaces the source but keeps the script policies:
+        # agents installed with an older profile must be reinstalled.
+        reason = profile_reinstall_reason(device)
+        status["reinstall_reason"] = reason
+        if reason:
+            status["outdated"] = True
+            status["requires_reinstall"] = True
+            status["protocol"] = "reinstall-only"
         return status
 
     generation_status._nsm_generation_policy = True

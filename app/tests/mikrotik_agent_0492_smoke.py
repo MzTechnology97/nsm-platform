@@ -15,7 +15,7 @@ def main():
     modern = Device(
         vendor="mikrotik",
         display_name="Existing 0.49.0",
-        inventory_data={"agent_transport": "modern", "agent_version": "0.49.0"},
+        inventory_data={"agent_transport": "modern", "agent_version": "0.49.0", "agent_privilege_profile": "ops-v2"},
     )
     status = updater.agent_update_status(modern)
     assert status["target_version"] == "0.49.8"

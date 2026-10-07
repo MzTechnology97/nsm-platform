@@ -9,6 +9,8 @@
       <article class="metric-card"><span>Heartbeat</span><strong>{{ fmt_dt(device.last_seen) }}</strong><small>{% if agent_heartbeat.stale %}Stale / da verificare{% else %}Regolare{% endif %}</small></article>
     </section>
 
+    {% set profile_hint = mikrotik_agent_update_status(device).get('reinstall_reason') %}
+    {% if profile_hint %}<div class="alert warning"><strong>Reinstallazione consigliata.</strong> {{ profile_hint }}</div>{% endif %}
     {% if agent_installation.severity == 'critical' %}
       <div class="alert danger"><strong>{{ agent_installation.label }}.</strong> {{ agent_installation.detail }} Verifica il parser RouterOS, poi controlla <code>/log print where message~"NSM|Script Error"</code>, <code>/system script print detail</code> e <code>/system scheduler print detail</code> sul MikroTik prima di rigenerare il pairing.</div>
     {% elif agent_installation.severity == 'warning' %}
