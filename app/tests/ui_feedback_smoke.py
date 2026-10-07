@@ -93,7 +93,8 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    # Expected browser conflict: remain in the workspace and explain why.
+    # Legacy structured snapshots are supported through the allow-listed
+    # plain-text transport and use the same successful browser feedback.
     legacy_page = client.get(f"/devices/{legacy_id}/configuration")
     token = csrf(legacy_page.text)
     legacy_post = client.post(
@@ -105,14 +106,21 @@ def main():
     assert legacy_post.headers["location"].startswith(f"/devices/{legacy_id}/configuration")
     legacy_feedback = client.get(legacy_post.headers["location"])
     assert legacy_feedback.status_code == 200
-    assert "Operazione non disponibile" in legacy_feedback.text
-    assert "transport legacy" in legacy_feedback.text
-    assert "flash-warning" in legacy_feedback.text
-    # One-shot: refreshing the page must not repeat the stale warning.
+    assert "Snapshot accodato" in legacy_feedback.text
+    assert "flash-success" in legacy_feedback.text
+    # One-shot: refreshing the page must not repeat the stale success message.
     legacy_refresh = client.get(legacy_post.headers["location"])
-    assert "Operazione non disponibile" not in legacy_refresh.text
+    assert "Snapshot accodato" not in legacy_refresh.text
+    with SessionLocal() as db:
+        legacy_job = db.scalar(
+            select(DeviceJob).where(
+                DeviceJob.device_id == legacy_id,
+                DeviceJob.job_type == "snapshot_section",
+            )
+        )
+        assert legacy_job is not None and (legacy_job.payload or {}).get("section") == "resources"
 
-    # Successful browser action: PRG + success feedback + actual queued job.
+    # Successful modern browser action remains unchanged.
     modern_page = client.get(f"/devices/{modern_id}/configuration")
     token = csrf(modern_page.text)
     modern_post = client.post(

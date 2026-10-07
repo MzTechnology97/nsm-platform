@@ -3,6 +3,7 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+from app.mikrotik_agent_generation import TARGET_AGENT_VERSION as CURRENT_AGENT
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
 from app.entrypoint import app
@@ -25,8 +26,8 @@ def seed():
         user = User(username=f"policyhealth-{suffix}", password_hash=hash_password(TEST_PASSWORD), display_name="Policy Health", role="admin", is_active=True)
         customer = Customer(name=f"Policy Health {suffix}", code=f"P47{suffix[:5]}")
         db.add_all([user, customer]); db.flush()
-        modern = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Modern Router", display_name="Modern CCR", status="online", inventory_data={"agent_transport":"modern","agent_version":"0.49.2"})
-        legacy = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Legacy Router", display_name="Legacy wAP", status="online", inventory_data={"agent_transport":"legacy","agent_version":"0.49.2-legacy"})
+        modern = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Modern Router", display_name="Modern CCR", status="online", inventory_data={"agent_transport":"modern","agent_version":CURRENT_AGENT})
+        legacy = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Legacy Router", display_name="Legacy wAP", status="online", inventory_data={"agent_transport":"legacy","agent_version":CURRENT_AGENT + "-legacy"})
         db.add_all([modern, legacy]); db.flush()
         firewall = {
             "filter": [
@@ -94,7 +95,7 @@ def main():
     legacy_dhcp = client.get(f"/devices/{legacy_id}/configuration?section=dhcp_leases")
     for response in (legacy_fw, legacy_dhcp):
         assert response.status_code == 200
-        assert "Aggiorna sezione" not in response.text
+        assert "Aggiorna sezione" in response.text and "Aggiorna tutto" in response.text
     assert "Block telnet" in legacy_fw.text and "office-pc" in legacy_dhcp.text
 
     print("Core 0.47 MikroTik firewall and DHCP health smoke passed in unified workspace")

@@ -3,6 +3,7 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+from app.mikrotik_agent_generation import TARGET_AGENT_VERSION as CURRENT_AGENT
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
 from app.entrypoint import app
@@ -25,8 +26,8 @@ def seed():
         user = User(username=f"nethealth-{suffix}", password_hash=hash_password(TEST_PASSWORD), display_name="Network Health", role="admin", is_active=True)
         customer = Customer(name=f"Network Health {suffix}", code=f"N46{suffix[:5]}")
         db.add_all([user, customer]); db.flush()
-        modern = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Modern Router", display_name="Modern CCR", status="online", inventory_data={"agent_transport":"modern","agent_version":"0.49.2"})
-        legacy = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Legacy Router", display_name="Legacy wAP", status="online", inventory_data={"agent_transport":"legacy","agent_version":"0.49.2-legacy"})
+        modern = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Modern Router", display_name="Modern CCR", status="online", inventory_data={"agent_transport":"modern","agent_version":CURRENT_AGENT})
+        legacy = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Legacy Router", display_name="Legacy wAP", status="online", inventory_data={"agent_transport":"legacy","agent_version":CURRENT_AGENT + "-legacy"})
         db.add_all([modern, legacy]); db.flush()
         ip_rows = [
             {"address":"192.0.2.1/24","network":"192.0.2.0","interface":"ether1","actual-interface":"ether1","dynamic":False,"disabled":False,"invalid":False,"comment":"WAN static"},
@@ -87,7 +88,7 @@ def main():
     legacy_routes = client.get(f"/devices/{legacy_id}/configuration?section=routes")
     for response in (legacy_ips, legacy_routes):
         assert response.status_code == 200
-        assert "Aggiorna sezione" not in response.text
+        assert "Aggiorna sezione" in response.text and "Aggiorna tutto" in response.text
     assert "192.0.2.1/24" in legacy_ips.text and "0.0.0.0/0" in legacy_routes.text
 
     print("Core 0.46 MikroTik IP and route health smoke passed in unified workspace")

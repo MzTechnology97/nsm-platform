@@ -45,6 +45,7 @@ from app.mikrotik_compatibility import install_mikrotik_compatibility_resolver
 from app.mikrotik_job_completion_guard import install_mikrotik_job_completion_guard
 from app.mikrotik_legacy import router as mikrotik_legacy_router
 from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
+from app.mikrotik_legacy_snapshot_capability import install_mikrotik_legacy_snapshot_capability
 from app.mikrotik_legacy_telemetry import install_mikrotik_legacy_telemetry
 from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
@@ -92,7 +93,7 @@ from app.compliance_findings import install_compliance_findings
 from app.lifecycle_catalog import install_lifecycle_catalog
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.9"
+APP_VERSION = "0.49.10"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -167,6 +168,7 @@ mikrotik_agent_core._bootstrap_script = privileged_bootstrap
 install_mikrotik_legacy_telemetry()
 core.app.include_router(mikrotik_legacy_router)
 install_mikrotik_legacy_jobs(core.app)
+install_mikrotik_legacy_snapshot_capability()
 install_mikrotik_backup_finalization_cleanup()
 install_mikrotik_compatibility_resolver()
 # Core 0.49 keeps its product version while the independently versioned device

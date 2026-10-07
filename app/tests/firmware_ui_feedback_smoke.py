@@ -3,6 +3,7 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+from app.mikrotik_agent_generation import TARGET_AGENT_VERSION as CURRENT_AGENT
 from app.db import SessionLocal
 from app.entrypoint import app
 from app.models import Customer, Device, User
@@ -39,7 +40,7 @@ def seed():
             management_source="mikrotik_agent",
             status="offline",
             firmware_version="7.24.4 (stable)",
-            inventory_data={"agent_transport": "modern", "agent_version": "0.49.2"},
+            inventory_data={"agent_transport": "modern", "agent_version": CURRENT_AGENT},
         )
         db.add(device)
         db.commit()

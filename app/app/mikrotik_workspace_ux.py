@@ -90,12 +90,12 @@ def _enhanced_context(db, device):
         "inventory": inventory,
         "metrics": metrics,
         "agent_transport": transport,
-        "snapshot_supported": transport == "modern",
+        "snapshot_supported": transport in {"modern", "legacy"},
         "telemetry_history_supported": transport == "modern",
         "support_snapshot_supported": transport == "modern",
         "legacy_capability_reason": (
-            "Il transport legacy RouterOS 7.12.x non supporta questa acquisizione strutturata. "
-            "Heartbeat e diagnostica di base restano disponibili."
+            "Il transport legacy RouterOS 7.12.x usa snapshot configurazione plain-text allow-list. "
+            "Support snapshot e altre acquisizioni avanzate restano disponibili solo sul transport moderno."
             if transport == "legacy" else None
         ),
     })
@@ -184,8 +184,9 @@ def _guard_snapshot(request: Request, device_id: uuid.UUID, section: str, csrf: 
     core.validate_csrf(request, csrf)
     with SessionLocal() as db:
         device = workspace._load_device(db, device_id)
-        if agent_transport(device) != "modern":
-            raise HTTPException(409, "Snapshot configurazione non disponibile sul transport legacy. Usare un agent moderno compatibile prima di accodare l'operazione.")
+        transport = agent_transport(device)
+        if transport not in {"modern", "legacy"}:
+            raise HTTPException(409, "Snapshot configurazione non disponibile: transport agent non rilevato o non validato.")
     return workspace.queue_snapshot(request, device_id, section, csrf)
 
 
