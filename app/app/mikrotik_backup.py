@@ -260,7 +260,9 @@ async def mikrotik_artifact_start(request: Request, job_id: uuid.UUID):
         expected_size = int(payload.get("size_bytes"))
     except (TypeError, ValueError):
         raise HTTPException(400, "Dimensione file non valida.")
-    if expected_size < 0 or expected_size > MAX_BACKUP_BYTES:
+    if expected_size < 1:
+        raise HTTPException(400, "File backup vuoto: RouterOS non ha prodotto dati da archiviare.")
+    if expected_size > MAX_BACKUP_BYTES:
         raise HTTPException(413, "File backup oltre il limite configurato.")
 
     with SessionLocal() as db:

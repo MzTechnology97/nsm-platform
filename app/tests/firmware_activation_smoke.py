@@ -282,7 +282,7 @@ def main():
     # agent source includes the modern activation handler. Legacy remains read/test.
     bootstrap = legacy_module._legacy_bootstrap_script("https://nsm.example.net", "TESTTOKEN")
     assert ':local nsmAgentPolicy "read,test"' in bootstrap
-    assert 'ftp,reboot,read,write,test' in bootstrap
+    assert 'ftp,reboot,read,write,policy,test,sensitive' in bootstrap
     assert 'policy=$nsmAgentPolicy' in bootstrap
     assert 'policy,password,sensitive' not in bootstrap
 

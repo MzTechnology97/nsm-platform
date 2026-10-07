@@ -285,9 +285,15 @@ NSM monitoring is intentionally lightweight and does not attempt to replace a fu
 - terminal cleanup of incomplete upload state and per-job backup secret;
 - authenticated artifact access through NSM.
 
-### Validation pending
+### Uploader hardening (Agent 0.49.4)
 
-Focused modern-Agent hardening for no-progress upload handling and cleanup of RouterOS temporary files after failed uploads is still under physical acceptance and therefore not described as merged capability.
+- privilege profile **ops-v2** (`ftp,reboot,read,write,policy,test,sensitive`): RouterOS only runs `/system backup save` from a scheduled script with `policy` and `sensitive`; agents installed with ops-v1 must be reinstalled (a script cannot raise its own policies) and their failure is explained as such;
+- the uploader waits up to 30 s for the file to exist with a stable non-zero size, finds it also under `flash/`, refuses empty files (server-side too), and fails when a chunk read returns no data or the server offset does not advance;
+- every failure states the step reached (`backup-save`, `export`, `wait-file`, `file-empty`, `read …@offset/size`, `upload-chunk …`, `upload-finish …`); NSM adds an operator explanation and stores the step and uploaded bytes in the job result;
+- job-specific temporary `.backup`/`.rsc` files (also under `flash/`) are removed after success and after any failure;
+- self-update keeps the running script policies for the previous-known-good copy, so an ops-v1 agent can still self-update.
+
+Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 ### Restore-test evidence (MTK-03)
 

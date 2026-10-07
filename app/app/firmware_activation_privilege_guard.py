@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import HTTPException
 
 from app import firmware_activation as activation
-from app.mikrotik_privilege_profile import MODERN_PROFILE
+from app.mikrotik_privilege_profile import OPERATIONAL_PROFILES
 
 
 def install_firmware_activation_privilege_guard():
@@ -13,7 +13,7 @@ def install_firmware_activation_privilege_guard():
     def validate_with_privilege_profile(db, device, plan):
         result = previous(db, device, plan)
         profile = str((device.inventory_data or {}).get("agent_privilege_profile") or "").strip()
-        if profile != MODERN_PROFILE:
+        if profile not in OPERATIONAL_PROFILES:
             raise HTTPException(
                 409,
                 "Agent MikroTik moderno privo del profilo operativo Core 0.37. "

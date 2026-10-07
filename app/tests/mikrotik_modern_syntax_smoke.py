@@ -9,7 +9,7 @@ _EMPTY_LOCAL = re.compile(r"(?m)^\s*:local\s+[A-Za-z_][A-Za-z0-9_-]*\s+\{\}\s*$"
 _RAW_SHA512 = re.compile(r"transform=sha512(?=\])")
 _BARE_RETURN = re.compile(r"(?m):return(?=\s*(?:;|\}|$))")
 _BACKUP_FILE_READ_WITHOUT_VALUE = re.compile(
-    r"/file\s+read\s+file=\$nsmFileName\s+offset=\$nsmOffset\s+chunk-size=\$nsmChunkSize(?=\])"
+    r"/file\s+read\s+file=\$nsmFile(?:Name|Path)\s+offset=\$nsmOffset\s+chunk-size=\$nsmChunkSize(?=\])"
 )
 
 
@@ -53,7 +53,7 @@ def main():
     assert not _BACKUP_FILE_READ_WITHOUT_VALUE.search(source), "backup /file read without as-value survived final composition"
     assert 'transform=sha512 to=hex' in source
     assert 'agent_source_sha512' in source
-    assert '/file read file=$nsmFileName offset=$nsmOffset chunk-size=$nsmChunkSize as-value]' in source
+    assert '/file read file=$nsmFilePath offset=$nsmOffset chunk-size=$nsmChunkSize as-value]' in source
     for marker in (
         'snapshot_section',
         'diagnostic_ping',

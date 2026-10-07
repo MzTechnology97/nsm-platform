@@ -24,7 +24,7 @@ router = APIRouter()
 STAGE_JOB = "routerboot_stage"
 REBOOT_JOB = "routerboot_reboot"
 STATE_KEY = "routerboot_lifecycle"
-MODERN_PROFILE = "ops-v1"
+OPERATIONAL_PROFILES = frozenset({"ops-v1", "ops-v2"})
 MAX_RESULT_BODY = 64 * 1024
 VERIFY_TIMEOUT = timedelta(minutes=15)
 VERIFY_GRACE = timedelta(seconds=30)
@@ -167,7 +167,7 @@ def _validate_modern_executor(db, device: Device):
     data = device.inventory_data or {}
     if str(data.get("agent_transport") or "").strip() != "modern":
         raise HTTPException(409, "RouterBOOT remoto richiede agent moderno RouterOS 7.13+.")
-    if str(data.get("agent_privilege_profile") or "").strip() != MODERN_PROFILE:
+    if str(data.get("agent_privilege_profile") or "").strip() not in OPERATIONAL_PROFILES:
         raise HTTPException(409, "Profilo agent non idoneo. Rigenera / reinstalla agent prima di continuare.")
     if not _active_agent(db, device.id) or device.status != "online":
         raise HTTPException(409, "Il MikroTik deve essere online con credenziale agent attiva.")
