@@ -312,9 +312,15 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 - Backup Explorer shows the latest restore result per artifact and per Device; device history page `/devices/{id}/backups/restore-tests`;
 - NSM never restores a production Device automatically.
 
+### RouterOS 7.12 legacy `.rsc` export (Agent 0.49.7)
+
+- RouterOS 7.12 has no `/file read` chunking nor base64 conversion; the legacy agent exports the configuration, waits for a settled file, reads it with `/file get … contents` (RouterOS limit ~60 KB), removes it and posts the text to NSM, which checks the declared size and archives it with SHA-256 like any other artifact;
+- capability *Solo export .rsc*: policies are reduced to the `.rsc` format for these agents, binary backups are never requested; an export above 60 KB fails with the size and the remedy (RouterOS 7.13+);
+- older legacy agents and RouterOS 6 (script file reads limited to 4 KB) stay *not protected* and queued backups fail with the reason.
+
 ### Not implemented
 
-- legacy RouterOS 7.12.x backup transport parity;
+- binary `.backup` for legacy RouterOS (needs an SFTP/FTP receiver; RouterOS `fetch` uploads files only over (S)FTP);
 - report integration of restore-test evidence.
 
 ## 12. MikroTik firmware and RouterBOOT

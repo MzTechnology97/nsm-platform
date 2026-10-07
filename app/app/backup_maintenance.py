@@ -12,6 +12,7 @@ from app.backup_models import BackupArtifact, BackupPolicySettings
 from app.backup_storage import remove_artifact_file
 from app.config import settings
 from app.db import SessionLocal
+from app.backup_capabilities import backup_formats_for_device
 from app.mikrotik_backup import _backup_formats, _device_policy, finalize_backup_job
 from app.mikrotik_backup_models import BackupUploadSession, MikrotikBackupJobSecret
 from app.models import ActionIssue, BackupPolicy, BackupRun, Device, Notification, utcnow
@@ -120,7 +121,7 @@ def queue_scheduled_backup(db, device, policy, policy_settings, scheduled_for, n
     if existing_run:
         return None
 
-    formats = _backup_formats(policy_settings)
+    formats = backup_formats_for_device(device, _backup_formats(policy_settings))
     if not formats:
         return None
     run = BackupRun(

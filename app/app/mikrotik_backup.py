@@ -14,6 +14,7 @@ from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app.agent_models import DeviceAgentCredential, DeviceJob
+from app.backup_capabilities import backup_formats_for_device
 from app.backup_core import _effective_policy, _policy_settings
 from app.backup_models import BackupArtifact, BackupPolicySettings
 from app.backup_storage import remove_artifact_file, resolve_artifact_path, storage_root
@@ -178,9 +179,9 @@ async def queue_mikrotik_backup(request: Request, device_id: uuid.UUID):
         if not policy:
             raise HTTPException(409, "Nessuna backup policy effettiva per questo apparato.")
         policy_settings = settings_map.get(policy.id)
-        formats = _backup_formats(policy_settings)
+        formats = backup_formats_for_device(device, _backup_formats(policy_settings))
         if not formats:
-            raise HTTPException(409, "La policy non abilita alcun formato MikroTik.")
+            raise HTTPException(409, "La policy non abilita alcun formato eseguibile dall'agent di questo MikroTik.")
 
         run = BackupRun(
             device_id=device.id,

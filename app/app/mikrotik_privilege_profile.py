@@ -47,9 +47,9 @@ def install_mikrotik_privilege_profile():
 
         dynamic_policy = (
             ':local nsmAgentPolicy "read,test"\n'
-            ':if ([:find $nsmAgentSource "legacy_firmware_upgrade"] != nil) do={ '
+            ':if ([:typeof [:find $nsmAgentSource "legacy_firmware_upgrade"]] != "nil") do={ '
             ':set nsmAgentPolicy "' + LEGACY_POLICIES + '" }\n'
-            ':if ([:find $nsmAgentSource "firmware_activate"] != nil) do={ '
+            ':if ([:typeof [:find $nsmAgentSource "firmware_activate"]] != "nil") do={ '
             ':set nsmAgentPolicy "' + MODERN_POLICIES + '" }\n'
         )
         source = source.replace(
