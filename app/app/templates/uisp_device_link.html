@@ -48,6 +48,21 @@
 </section>
 {% endif %}
 
+{% set ufw = (device.inventory_data or {}).get('uisp_firmware') %}
+{% if device.external_device_id %}
+<section class="panel" id="uisp-firmware"><div class="panel-header"><div><h2>Firmware da UISP</h2><p>Versioni lette da UISP a ogni sincronizzazione{% if ufw %} · ultima {{ fmt_dt(ufw.observed_at) }}{% endif %}. L'aggiornamento si esegue dalla console UISP; NSM vede il risultato alla sincronizzazione successiva.</p></div>
+  {% if ufw and ufw.latest and device.recommended_firmware_version %}<span class="status-pill run-pending">Aggiornamento disponibile</span>{% elif ufw and ufw.latest and device.firmware_status == 'current' %}<span class="status-pill run-success">Aggiornato</span>{% endif %}</div>
+  {% if ufw %}<div class="policy-summary six">
+    <div><span>Installato</span><strong>{{ ufw.current or device.firmware_version or '—' }}</strong></div>
+    <div><span>Ultimo disponibile</span><strong>{{ ufw.latest or 'non esposto da UISP' }}</strong>{% if ufw.prerelease %}<small class="warning-text">pre-release</small>{% endif %}</div>
+    <div><span>Ultimo sulla stessa major</span><strong>{{ ufw.latest_same_major or '—' }}</strong></div>
+    <div><span>Compatibile con UISP</span><strong>{{ 'sì' if ufw.compatible else ('no' if ufw.compatible == false else '—') }}</strong></div>
+  </div>
+  {% if ufw.compatible == false %}<div class="alert warning">UISP segnala il firmware installato come non compatibile: alcune funzioni di gestione potrebbero non essere disponibili finché non viene aggiornato.</div>{% endif %}
+  {% else %}<div class="empty-state">UISP non ha ancora fornito informazioni firmware per questo apparato: esegui «Aggiorna da UISP» o attendi la sincronizzazione.</div>{% endif %}
+</section>
+{% endif %}
+
 {% if device.external_device_id %}
 <section class="panel"><div class="panel-header"><div><h2>Inventario collegato</h2><p>Il refresh verifica che lo stesso MAC continui a corrispondere allo stesso ID UISP.</p></div>{% if has_permission(user, 'devices.write') and connection and connection.is_enabled %}<form method="post" action="/devices/{{ device.id }}/uisp/refresh"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Aggiorna da UISP</button></form>{% endif %}</div>
   <div class="alert info">Customer e Site NSM non vengono mai sovrascritti dai metadata UISP.</div>

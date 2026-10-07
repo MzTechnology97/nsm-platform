@@ -16,6 +16,7 @@ from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
 from app.models import Device, utcnow
 from app import uisp_metrics
+from app import uisp_firmware
 from app.secret_vault import decrypt_text, encrypt_text
 from app.security import validate_csrf
 from app.ui_feedback import exception_message, flash_redirect
@@ -241,6 +242,7 @@ def candidate_from_uisp(row: dict) -> dict:
             "type": str(site.get("type"))[:80] if site.get("type") else None,
         },
         "metrics": uisp_metrics.extract(overview),
+        "firmware": uisp_firmware.extract(row),
         "role": str(identification.get("role") or row.get("role") or "")[:80] or None,
         "category": str(identification.get("category") or row.get("category") or "")[:80] or None,
     }
@@ -317,6 +319,7 @@ def apply_candidate(db, device: Device, candidate: dict, actor, event_type="UISP
     device.management_ip = candidate.get("management_ip") or device.management_ip
     device.status = candidate.get("status") or device.status
     device.last_seen = candidate.get("last_seen") or device.last_seen
+    uisp_firmware.apply(device, candidate.get("firmware"), utcnow())
     device.management_source = "uisp"
     device.inventory_source = "uisp"
     device.inventory_last_verified_at = utcnow()

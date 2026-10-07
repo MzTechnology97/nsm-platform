@@ -245,6 +245,8 @@ Implement only diagnostics actually exposed and validated by the integration con
 
 ### UBNT-06 — firmware workflow
 
+**Step 1 implemented in `main`** (`app/uisp_firmware.py`): installed/latest version and compatibility read from UISP at every sync, firmware state on the Device and in the firmware worklist. Field names to be confirmed on a real UISP instance (`/nms/api-docs/`). Planning and execution remain open: upgrades are run from UISP.
+
 - read current/available state where supported;
 - planning/approval model;
 - capability and model/version checks;
