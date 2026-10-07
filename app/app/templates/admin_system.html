@@ -31,6 +31,14 @@
   {% endif %}
 </section>
 
+<section class="panel" data-system="connectors"><div class="panel-header"><div><h2>Connettori e sorgenti dati</h2><p>Stato delle sorgenti da cui NSM osserva apparati e advisory.</p></div></div>
+  <div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Sorgente</th><th>Stato</th><th>Ultimo successo</th><th>Dettaglio</th></tr></thead><tbody>
+  {% for c in connectors %}<tr data-connector="{{ c.name }}" data-state="{{ c.state }}"><td>{% if has_permission(user, 'users.manage') %}<a class="strong-link" href="{{ c.href }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %}</td>
+    <td><span class="status-pill {{ {'ok': 'run-success', 'warning': 'run-pending', 'error': 'run-failed'}.get(c.state, '') }}">{{ {'ok': 'OK', 'warning': 'Attenzione', 'error': 'Errore', 'disabled': 'Disabilitato', 'unconfigured': 'Non configurato'}[c.state] }}</span></td>
+    <td>{{ fmt_dt(c.last_ok) if c.last_ok else '—' }}</td><td>{{ c.detail }}{% if c.error %}<small class="warning-text">{{ c.error }}</small>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+
 <section class="panel" data-system="capacity"><div class="panel-header"><div><h2>Capacità e retention</h2><p>Dimensione del database e dell'archivio dei backup, con la crescita degli ultimi 30 giorni.</p></div></div>
   <div class="policy-summary six">
     <div><span>Archivio backup</span><strong>{{ archive.bytes|filesizeformat(true) }}</strong><small>{{ archive.count }} file</small></div>

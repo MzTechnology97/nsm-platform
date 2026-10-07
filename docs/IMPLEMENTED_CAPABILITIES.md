@@ -644,6 +644,8 @@ Deployment/update behavior includes:
 
 Backup, restore and observability (runbook: [`OPERATIONS.md`](OPERATIONS.md)):
 
+- connector health on *Amministrazione → Sistema*: UISP and NVD sync (error after 3 consecutive failures, next attempt), GenieACS connection test, RouterOS catalog freshness (warning after 24 h), MikroTik agents with a heartbeat in the last 15 minutes;
+
 - capacity and retention on *Amministrazione → Sistema*: largest tables, backup archive size, 30-day growth and estimated days until the backup volume is full (warning under 90 days), retention per data set; least-privilege deployment guidance in `OPERATIONS.md`;
 
 - encryption master-key rotation: `ENCRYPTION_PREVIOUS_KEYS` keeps retired keys readable, `./manage.sh rotate-secrets` re-encrypts connector credentials and MikroTik backup passwords with the current key (`SECRETS_REENCRYPTED`), and *Amministrazione → Sistema* shows how many secrets use the current key, a previous key or none;

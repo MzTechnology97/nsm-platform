@@ -518,7 +518,7 @@ Focused future objectives:
 - backup-artifact storage recovery procedure — **done** (`docs/OPERATIONS.md`);
 - periodic restore drill evidence — **done** (`manage.sh restore-drill`, *Amministrazione → Sistema*);
 - upgrade rollback/runbook refinement — first runbook in `docs/OPERATIONS.md`;
-- health/worker/connector observability — worker heartbeat, per-task outcome and isolation **done**; connector-specific dashboards open;
+- health/worker/connector observability — **done**: worker heartbeat, per-task outcome and isolation; connector and data-source health (UISP, NVD, GenieACS, RouterOS catalog, MikroTik agents) on *Sistema*;
 - capacity limits and retention sizing — **done**: *Sistema* shows largest tables, backup archive growth and days to full; retention documented in `docs/OPERATIONS.md`;
 - release/versioning discipline;
 - deployment hardening review.

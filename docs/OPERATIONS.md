@@ -124,7 +124,8 @@ Dumps taken before the rotation still need the old key: store it with them. If t
   informational and does not change the status code. Point external
   monitoring at it and alert on `503`, `worker.alive == false` and non-empty
   `worker.failing_tasks`.
-- *Amministrazione → Sistema*: version, schema revision, database size, free
+- *Amministrazione → Sistema*: connector and data-source health (UISP, NVD,
+  GenieACS, RouterOS catalog, MikroTik agents), version, schema revision, database size, free
   space on the backup volume (warning under 10%), worker heartbeat and the last
   outcome of every periodic task, platform dumps and restore drills.
 - Each periodic worker task is isolated: an error is logged and recorded and the
