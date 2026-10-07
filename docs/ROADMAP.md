@@ -272,6 +272,17 @@ Next steps:
 
 ### LOG-01 — integrated syslog server and live device logs (requested 2026-10-07)
 
+**Step 1 done (Core 0.49.45).**
+- Docker service `syslog` receives on UDP/TCP 514 and matches messages to devices by sender IP; shared NAT addresses are resolved by hostname.
+- Unknown senders are listed for the admin.
+- Every device has a **Syslog** tab: live log, filters, CSV export, and the configuration for its own vendor inline.
+- The admin page *Amministrazione → Syslog* covers settings, receiver status and unknown senders.
+
+Next steps:
+- step 2, automatic configuration by the MikroTik agent;
+- step 3, authentication alerts, incidents and reports.
+
+
 **Receiver.** A syslog receiver integrated in the stack, as a Docker service (UDP/TCP 514, optionally TLS 6514).
 - Messages are matched to devices by source IP, with the device or WAN address as fallback.
 - Logs are stored with retention and indexing.

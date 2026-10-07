@@ -23,11 +23,13 @@ def main():
     compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     services = service_blocks(compose.split("\nservices:\n")[1].split("\nnetworks:\n")[0])
     anchor = compose.split("\nservices:\n")[0]
-    for name in ("migrate", "api", "worker"):
+    for name in ("migrate", "api", "worker", "syslog"):
         block = services[name]
         assert "no-new-privileges:true" in block and "cap_drop: [ALL]" in block, f"{name} must drop privileges"
     published = sorted(name for name, block in services.items() if re.search(r"^\s{4}ports:", block, re.M))
-    assert published == ["caddy", "genieacs-cwmp", "genieacs-fs", "genieacs-ui"], f"unexpected published ports: {published}"
+    assert published == ["caddy", "genieacs-cwmp", "genieacs-fs", "genieacs-ui", "syslog"], f"unexpected published ports: {published}"
+    # The syslog receiver binds an unprivileged port in the container; the host publishes 514.
+    assert ":5514/udp" in services["syslog"] and ":5514/tcp" in services["syslog"] and "app.syslog_receiver" in services["syslog"]
     assert '"127.0.0.1:3000:3000"' in services["genieacs-ui"], "the GenieACS UI is bound to the host loopback only"
     assert "ports:" not in services["genieacs-nbi"] and "ports:" not in services["genieacs-mongo"], "NBI and MongoDB stay internal"
     for name in ("genieacs-cwmp", "genieacs-nbi", "genieacs-fs", "genieacs-ui"):

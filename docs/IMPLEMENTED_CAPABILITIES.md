@@ -298,6 +298,18 @@ Retention (90 days) never removes the newest sample of a device or interface (`t
 
 NSM monitoring is intentionally lightweight and does not attempt to replace a full NMS.
 
+### Integrated syslog (LOG-01 step 1)
+
+- **Receiver.** `app/syslog_receiver.py` runs as Docker service `syslog` on UDP/TCP 514, with RFC 6587 framing on TCP. It parses RFC 3164, RFC 5424 and RouterOS topics.
+- **Device matching.**
+  - Strong addresses: management IP, heartbeat source and assigned sender IPs.
+  - Unique RouterOS/LAN addresses also match.
+  - When several devices share an address, the hostname decides.
+- **Storage.** Lines go to `device_log_entries`. Unknown senders go to `syslog_unknown_sources` and are not stored unless accepted.
+- **Retention.** Warning, error and critical lines live as long as the device; info, notice and debug lines are kept for at most 90 days.
+- **Limits.** Per-sender token bucket of 50 lines per second with bursts of 200; queue cap; batched inserts every second.
+- **Device Syslog tab (any vendor).** Live view, filters, CSV export and vendor-specific setup instructions. Admin settings are at `/admin/syslog`.
+
 ## 9. MikroTik configuration and configuration history
 
 ### Implemented for supported modern Agents

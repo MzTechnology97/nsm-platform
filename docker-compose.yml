@@ -118,6 +118,33 @@ services:
         condition: service_completed_successfully
     networks: [platform]
 
+  # Integrated syslog receiver (LOG-01): devices send warnings, errors and
+  # logins to UDP/TCP 514; the process listens on 5514 as a non-root user.
+  syslog:
+    build: { context: ./app }
+    container_name: nsp-syslog
+    restart: unless-stopped
+    env_file:
+      - ./.env
+      - ./secrets/bootstrap.env
+    environment:
+      SYSLOG_PORT: "5514"
+    command: ["python", "-m", "app.syslog_receiver"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    ports:
+      - "${SYSLOG_HOST_PORT:-514}:5514/udp"
+      - "${SYSLOG_HOST_PORT:-514}:5514/tcp"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks: [platform]
+
   caddy:
     image: caddy:2.11.4-alpine
     container_name: nsp-caddy

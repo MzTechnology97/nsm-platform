@@ -98,6 +98,15 @@ The Docker stack can run GenieACS next to NSM (optional compose profile `acs`), 
 4. Configure the CPE (TR-069 ACS URL `http://<server>:7547`); allow 7547 and 7567 only from the customer networks on the host firewall.
 5. Include `data/genieacs-mongo` in the off-host backups.
 
+## Integrated syslog server
+
+The `syslog` service receives device logs on **514 UDP/TCP**: the process listens on 5514 as a non-root user and the host publishes 514 (`SYSLOG_HOST_PORT`).
+- **Firewall.** Open 514 only toward the device networks or the public addresses of the customers' routers.
+- **Accepted senders.** Lines are stored only when the sender address matches a device: management IP, heartbeat source address, RouterOS addresses, or an address assigned in *Amministrazione → Syslog*. Other senders are counted, and their lines are not saved unless the admin enables it.
+- **Rate limit.** Each sender is limited to 50 lines per second, with bursts of 200.
+- **Retention.** Warning, error and critical lines of a device are kept for its whole life and removed only with the device. Info, notice and debug lines are kept for up to 90 days (configurable, never more). The worker deletes old lines in batches.
+- **Status.** The receiver publishes its status every 10 seconds; *Sistema → Connettori* shows it as "Server syslog".
+
 ## Capacity and retention
 
 *Amministrazione → Sistema → Capacità e retention* shows the largest tables, the size of the backup archive, its growth over the last 30 days and how long the backup volume lasts at that rate (warning under 90 days).
