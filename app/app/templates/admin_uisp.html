@@ -3,6 +3,7 @@
 {% block content %}
 <div class="page-header"><div><h1>Integrazioni · UISP</h1><p>Connettore read-only verso UISP Network per inventario e associazione apparati Ubiquiti.</p></div><a class="button ghost" href="/admin/users">Amministrazione</a></div>
 {% set admin_tab = "integrations" %}{% include "_admin_tabs.html" %}
+{% set integration_tab = "uisp" %}{% include "_integration_tabs.html" %}
 
 {% if message %}<div class="alert success">{{ message }}</div>{% endif %}
 {% if error %}<div class="alert warning">{{ error }}</div>{% endif %}

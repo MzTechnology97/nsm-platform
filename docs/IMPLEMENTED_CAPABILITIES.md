@@ -395,12 +395,30 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - Customer security drill-down foundations;
 - Action Center integration model for security findings.
 
+### Advisory ingestion (SEC-01)
+
+- source: **NVD CVE API 2.0**, read-only, for `cpe:2.3:o:mikrotik:routeros:*` (`virtualMatchString`); optional API key stored encrypted;
+- first run is a full load, later runs read only CVEs modified since the last success (`lastModStartDate`/`lastModEndDate`, 2 h overlap, ≤ 119 days, otherwise full load again);
+- pages of up to 2000 records with the documented pause between requests (6.5 s without key, 1 s with key);
+- idempotent upsert by CVE id; an unchanged record only refreshes `fetched_at`; provenance kept on the advisory (`source`, NVD `vulnStatus`, published/modified, fetched);
+- records that cannot be normalized are skipped and listed in the admin page (bounded list) instead of aborting the run;
+- transport/HTTP failures back off exponentially (max 24 h); after 3 consecutive failures one Action Center issue is opened and resolved by the next success; audit events for configuration, runs and failures;
+- worker cycle: ingestion when due (default every 6 h), matching every 15 min;
+- requires outbound HTTPS from the app and worker containers to `services.nvd.nist.gov` (manual *Aggiorna ora* runs in the app, scheduled runs in the worker).
+
+### Device ↔ advisory matching (SEC-02)
+
+- normalized rules from NVD configurations: exact version (with `rc`/`beta` update), start/end including/excluding bounds, AND configurations limited to hardware models;
+- only MikroTik Devices are evaluated (product RouterOS); never by brand or product alone;
+- version comparison with `routeros_version` (pre-releases before releases);
+- explicit states: affected → open finding with fixed version, matched range, confidence (`high`; `medium` when the source gives no upper bound) and evidence; not affected / not applicable → no finding; unknown (no or unparseable version, unknown model for a hardware-limited rule, CVE without versions) → listed as *Non valutabili* on the CVE page, never counted as exposed;
+- findings that stop matching (upgrade, CVE rejected by NVD) are resolved with the evidence of the version; a later match reopens them; manually entered advisories are never changed by the matcher.
+
 ### Not implemented yet
 
-- automated authoritative advisory ingestion pipeline;
-- reliable vendor/product/version matching at production maturity;
-- automated remediation lifecycle from source advisory to confirmed fixed state;
-- full evidence/report integration.
+- remediation lifecycle beyond open/resolved (SEC-03);
+- other advisory sources and non-MikroTik product mappings;
+- full evidence/report integration (SEC-04).
 
 ## 16. Lifecycle / EOL / EOS
 

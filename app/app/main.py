@@ -3,7 +3,7 @@ import logging
 import math
 import secrets
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, Form, HTTPException, Request
@@ -137,6 +137,12 @@ templates.env.globals["role_labels"] = ROLE_LABELS
 def fmt_dt(value):
     if not value:
         return "—"
+    if isinstance(value, str):
+        # Timestamps kept in JSON state (connector health) are ISO strings.
+        try:
+            value = datetime.fromisoformat(value)
+        except ValueError:
+            return value
     try:
         tz = ZoneInfo(settings.app_timezone)
         return value.astimezone(tz).strftime("%d/%m/%Y %H:%M")

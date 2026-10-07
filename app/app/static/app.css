@@ -4315,3 +4315,7 @@ input[type="checkbox"], input[type="radio"] { width: auto; min-height: 0; height
 .scope-options label { display: flex; flex-direction: row; align-items: flex-start; gap: 10px; font-weight: 400; }
 .scope-options input[type="checkbox"] { margin-top: 3px; }
 .scope-options small { display: block; color: var(--muted); }
+
+/* Simple bullet-less list for diagnostic details. */
+.plain-list { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.plain-list li { font-size: 13px; }

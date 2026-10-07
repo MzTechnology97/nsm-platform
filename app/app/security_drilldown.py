@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy import func, or_, select
 
 from app import main as core
+from app.advisory_matching import describe_rule, unknown_devices
 from app.db import SessionLocal
 from app.models import Customer, Device, DeviceVulnerability, SecurityAdvisory
 
@@ -136,16 +137,16 @@ def vulnerabilities(
         ).all()
 
         customers = list(db.scalars(select(Customer).order_by(Customer.name)))
-        vendors = [
-            item
-            for item in db.scalars(
-                select(SecurityAdvisory.vendor)
-                .where(SecurityAdvisory.vendor.is_not(None))
-                .distinct()
-                .order_by(SecurityAdvisory.vendor)
-            )
-            if item
-        ]
+        vendors = []
+        for item in db.scalars(
+            select(SecurityAdvisory.vendor)
+            .where(SecurityAdvisory.vendor.is_not(None))
+            .distinct()
+            .order_by(SecurityAdvisory.vendor)
+        ):
+            # The filter compares case-insensitively: list each vendor once.
+            if item and item.lower() not in {v.lower() for v in vendors}:
+                vendors.append(item)
         selected_customer = db.get(Customer, customer_id) if customer_id else None
 
         return core.render(
@@ -222,6 +223,7 @@ def vulnerability_detail(
             else []
         )
         selected_customer = db.get(Customer, customer_id) if customer_id else None
+        unassessed = unknown_devices(db, advisory, customer_id)
 
         return core.render(
             request,
@@ -230,6 +232,8 @@ def vulnerability_detail(
             "vulnerability_detail.html",
             advisory=advisory,
             impacted=impacted,
+            unassessed=unassessed,
+            rule_labels=[describe_rule(rule) for rule in advisory.match_rules or []],
             affected_customers=affected_customers,
             selected_customer=selected_customer,
             customer_filter=customer,

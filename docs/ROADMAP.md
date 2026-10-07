@@ -307,6 +307,8 @@ Only expose backup/restore where the real CPE data model and connector expose a 
 
 ### SEC-01 — source ingestion framework
 
+**Implemented in `main` — live NVD validation pending.** First adapter: NVD CVE API 2.0 for `cpe:2.3:o:mikrotik:routeros` (`app/advisory_sources.py`, admin page *Integrazioni → Advisory NVD*). Remaining step: one full load and one incremental cycle against the real API from the deployed instance.
+
 - normalized advisory model;
 - source identity/fetch timestamp/evidence;
 - idempotent refresh;
@@ -316,6 +318,8 @@ Only expose backup/restore where the real CPE data model and connector expose a 
 External sources should be documented only after an adapter actually uses them.
 
 ### SEC-02 — Device ↔ advisory matching
+
+**Implemented in `main` for MikroTik RouterOS** (`app/advisory_matching.py`). Other vendors are not evaluated until their product/version mapping exists.
 
 - vendor/product/model normalization;
 - version range evaluation;

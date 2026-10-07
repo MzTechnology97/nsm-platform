@@ -39,6 +39,15 @@
   </section>
 
   <section class="panel integration-card">
+    <div class="panel-header"><div><h2>Advisory NVD</h2><p>CVE del National Vulnerability Database per RouterOS, confrontate con le versioni installate.</p></div>{% if not nvd %}<span class="device-status status-unknown">Non configurato</span>{% elif not nvd.is_enabled %}<span class="device-status status-offline">Disabilitato</span>{% elif nvd_sync.get('last_status') == 'failed' %}<span class="device-status status-offline">Errore</span>{% elif nvd_sync.get('last_status') == 'success' %}<span class="device-status status-online">Attivo</span>{% else %}<span class="device-status status-pending_link">In attesa</span>{% endif %}</div>
+    <dl class="kv-list">
+      <div><dt>Advisory importati</dt><dd>{{ nvd_advisories }}</dd></div>
+      <div><dt>Ultimo aggiornamento</dt><dd>{{ fmt_dt(nvd_sync.get('last_success_at')) if nvd_sync.get('last_success_at') else '—' }}</dd></div>
+    </dl>
+    <div class="page-actions"><a class="button ghost" href="/security/vulnerabilities">Vulnerabilità</a>{% if can_admin %}<a class="button ghost" href="/admin/integrations/nvd">Configura</a>{% endif %}</div>
+  </section>
+
+  <section class="panel integration-card">
     <div class="panel-header"><div><h2>TR-069 / ACS</h2><p>CPE gestite tramite ACS (es. ONT, router residenziali).</p></div><span class="device-status status-unknown">Non disponibile</span></div>
     <p class="muted-note">Connettore pianificato: finché non è implementato, le operazioni che lo richiedono sono mostrate come non eseguibili.</p>
   </section>
