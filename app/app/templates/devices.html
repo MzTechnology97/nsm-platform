@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Apparati · {{ app_name }}{% endblock %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', path='/inventory_ui.css') }}?v={{ app_version }}">
 {% set scope = 'customer=' ~ customer_filter ~ '&vendor=' ~ vendor_filter ~ '&q=' ~ q|urlencode %}
 {% set qs = scope ~ '&status=' ~ status_filter ~ '&firmware=' ~ firmware_filter ~ '&security=' ~ security_filter ~ '&lifecycle=' ~ lifecycle_filter ~ '&per_page=' ~ per_page %}
 {% set no_quick = not status_filter and not firmware_filter and not security_filter and not lifecycle_filter %}
