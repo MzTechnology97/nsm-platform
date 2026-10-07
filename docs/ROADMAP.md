@@ -170,8 +170,8 @@ Improve existing bounded diagnostics rather than creating a generic remote shell
 
 Possible focused PRs:
 
-- richer ping/traceroute presentation and history;
-- structured neighbor/DHCP/log result presentation;
+- richer ping/traceroute presentation and history — **done** (`app/mikrotik_diagnostic_views.py`);
+- structured neighbor/DHCP/log result presentation — **done**, for modern and legacy agents;
 - bounded additional read-only diagnostics with explicit capability gates;
 - support-snapshot evidence/archive improvements.
 
