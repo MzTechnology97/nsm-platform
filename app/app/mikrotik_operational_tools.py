@@ -4,13 +4,16 @@ The cloud never supplies RouterOS source code. Each job type maps to a fixed,
 read-only RouterOS operation and only accepts tightly validated parameters.
 """
 
+import textwrap
+
 from app import mikrotik_agent as agent_module
+from app import mikrotik_bounded_rows as bounded
 from app import mikrotik_backup_agent as backup_agent_module
 
 AGENT_VERSION = "0.20.0"
 LOG_RESULT_LIMIT = 20
 
-_HANDLER = r'''
+_HANDLER_BASE = r'''
     :if ($nsmJobType = "diagnostic_neighbors") do={
       :local nsmData
       :local nsmOk true
@@ -62,13 +65,24 @@ _HANDLER = r'''
       :do { /tool fetch url=$nsmDoneUrl http-method=post http-header-field=$nsmHeaders http-data=$nsmBody output=user as-value } on-error={ :log warning "NSM log result upload failed" }
     }
 
-    :if ($nsmJobType = "support_snapshot") do={
+'''
+
+_SUPPORT_TEMPLATE = r'''    :if ($nsmJobType = "support_snapshot") do={
       :local nsmData
       :local nsmOk true
       :local nsmError ""
       :local nsmLogs
       :local nsmLogsTotal 0
       :local nsmLogsTruncated false
+      :local nsmTotal 0
+      :local nsmTruncated false
+      :local nsmA [:toarray ""]
+      :local nsmB [:toarray ""]
+      :local nsmC [:toarray ""]
+      :local nsmD [:toarray ""]
+      :local nsmE [:toarray ""]
+      :local nsmTake do={ :if ($2 >= [:len $1]) do={ :return $1 }; :return [:pick $1 0 $2] }
+      :local nsmRes
       :do {
         :set nsmLogs [/log print as-value where topics~"warning|error|critical"]
         :set nsmLogsTotal [:len $nsmLogs]
@@ -76,24 +90,33 @@ _HANDLER = r'''
           :set nsmLogs [:pick $nsmLogs ($nsmLogsTotal - 20) $nsmLogsTotal]
           :set nsmLogsTruncated true
         }
-        :set nsmData {
-          "resources"={"identity"=[/system identity get name];"model"=[/system resource get board-name];"routeros"=[/system resource get version];"architecture"=[/system resource get architecture-name];"cpu_load"=[/system resource get cpu-load];"total_memory"=[/system resource get total-memory];"free_memory"=[/system resource get free-memory];"uptime"=[/system resource get uptime]};
-          "ip_addresses"=[/ip address print as-value];
-          "routes"=[/ip route print as-value];
-          "interfaces"=[/interface print as-value];
-          "ppp_active"=[/ppp active print as-value];
-          "dhcp_leases"=[/ip dhcp-server lease print as-value];
-          "logs"=$nsmLogs;
-          "logs_meta"={"total"=$nsmLogsTotal;"limit"=20;"truncated"=$nsmLogsTruncated}
-        }
-      } on-error={ :set nsmOk false; :set nsmError "Unable to collect RouterOS support snapshot" }
+        :set nsmRes {"identity"=[/system identity get name];"model"=[/system resource get board-name];"routeros"=[/system resource get version];"architecture"=[/system resource get architecture-name];"cpu_load"=[/system resource get cpu-load];"total_memory"=[/system resource get total-memory];"free_memory"=[/system resource get free-memory];"uptime"=[/system resource get uptime]}
+__COLLECT__      } on-error={ :set nsmOk false; :set nsmError "Unable to collect RouterOS support snapshot" }
       :local nsmDoneUrl ($nsmBase . "/api/v1/agents/mikrotik/jobs/" . $nsmJobId . "/complete")
       :local nsmStatus "failed"
       :if ($nsmOk) do={ :set nsmStatus "success" }
-      :local nsmBody [:serialize value={"status"=$nsmStatus;"error"=$nsmError;"result"={"data"=$nsmData}} to=json options=json.no-string-conversion]
-      :do { /tool fetch url=$nsmDoneUrl http-method=post http-header-field=$nsmHeaders http-data=$nsmBody output=user as-value } on-error={ :log warning "NSM support snapshot upload failed" }
+__FIT__      :do { /tool fetch url=$nsmDoneUrl http-method=post http-header-field=$nsmHeaders http-data=$nsmBody output=user as-value } on-error={ :log warning "NSM support snapshot upload failed" }
     }
 '''
+
+
+def _support_handler() -> str:
+    """Support snapshot with bounded tables (50 rows each) fitted below 60 KB."""
+    collect = "".join(
+        bounded.collect(menu, var, limit=50)
+        for var, menu in (("nsmA", "/ip address"), ("nsmB", "/ip route"), ("nsmC", "/interface"), ("nsmD", "/ppp active"), ("nsmE", "/ip dhcp-server lease"))
+    )
+    shape = (
+        ':set nsmData {"resources"=$nsmRes;"ip_addresses"=[$nsmTake $nsmA $nsmCap];"routes"=[$nsmTake $nsmB $nsmCap];"interfaces"=[$nsmTake $nsmC $nsmCap];'
+        '"ppp_active"=[$nsmTake $nsmD $nsmCap];"dhcp_leases"=[$nsmTake $nsmE $nsmCap];"logs"=$nsmLogs;'
+        '"logs_meta"={"total"=$nsmLogsTotal;"limit"=20;"truncated"=$nsmLogsTruncated};"rows_meta"={"total"=$nsmTotal;"limit"=$nsmCap;"truncated"=$nsmTruncated}}\n'
+    )
+    serialize = '[:serialize value={"status"=$nsmStatus;"error"=$nsmError;"result"={"data"=$nsmData}} to=json options=json.no-string-conversion]'
+    fit = bounded.fit_loop(["nsmA", "nsmB", "nsmC", "nsmD", "nsmE"], shape, serialize, "nsmBody")
+    return _SUPPORT_TEMPLATE.replace("__COLLECT__", textwrap.indent(collect, "        ")).replace("__FIT__", textwrap.indent(fit, "      "))
+
+
+_HANDLER = _HANDLER_BASE + _support_handler()
 
 
 def install_mikrotik_operational_tools():

@@ -73,7 +73,7 @@ def main():
 
     assert ':local nsmAckResult {}' not in source
     assert ':local nsmAckResult' in source
-    assert ':set nsmData {"identity"=' in source
+    assert ':set nsmRes {"identity"=' in source
     assert ':serialize' in source and ':deserialize' in source
 
     print("Modern RouterOS agent syntax smoke passed")

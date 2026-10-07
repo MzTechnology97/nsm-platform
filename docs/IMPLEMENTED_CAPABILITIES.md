@@ -188,6 +188,12 @@ The generated-source compatibility blocker found during earlier testing has been
 
 A fresh physical clean-enrollment and feature-by-feature revalidation is still required before this point release is marked physically accepted.
 
+### Modern snapshot size bounds (Agent 0.49.8)
+
+- configuration sections read rows by id (`find` + `get`) up to a per-menu limit (routes, interfaces, firewall filter/NAT 300; addresses, leases, PPP 500; tunnel clients 100) and never materialize a whole table;
+- before uploading, the agent halves the rows sent per list until the JSON body is at most 60 000 bytes (RouterOS caps `http-data` at 64 KiB); results carry `total`, `limit` and `truncated`;
+- the support snapshot follows the same rule with 50 rows per table.
+
 ### RouterOS 7.13 – 7.16 — modern family, early variant
 
 - `json.no-string-conversion`, used by every modern JSON call, exists only from RouterOS 7.17 and RouterOS checks options when a script is loaded: 7.13 – 7.16 receive the modern source without it (numeric-looking strings may travel as JSON numbers; NSM stringifies agent values);
