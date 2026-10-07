@@ -23,7 +23,7 @@
 <div class="schedule-choice-grid">
 {% for value,title,desc in [('daily','Ogni giorno','Scelta standard per apparati di rete.'),('weekly','Ogni settimana','Per configurazioni poco variabili.'),('monthly','Ogni mese','Per apparati stabili o legacy.'),('six_hour','Ogni 6 ore','Per configurazioni ad alta criticità.')] %}<label class="schedule-card"><input type="radio" name="schedule_kind" value="{{ value }}" {% if state.schedule_kind==value %}checked{% endif %}><span><strong>{{ title }}</strong><small>{{ desc }}</small></span></label>{% endfor %}
 </div>
-<div class="form-grid compact-grid" style="margin-top:14px"><label data-time-field>Ora preferita<input type="time" name="backup_time" value="{{ state.schedule_time }}"></label><label data-schedule-extra="weekly">Giorno settimana<select name="weekday">{% for v,l in [(1,'Lunedì'),(2,'Martedì'),(3,'Mercoledì'),(4,'Giovedì'),(5,'Venerdì'),(6,'Sabato'),(0,'Domenica')] %}<option value="{{ v }}" {% if state.schedule_weekday==v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label><label data-schedule-extra="monthly">Giorno del mese<select name="monthday">{% for d in range(1,29) %}<option value="{{ d }}" {% if state.schedule_monthday==d %}selected{% endif %}>{{ d }}</option>{% endfor %}</select></label></div>
+<div class="mt-14 form-grid compact-grid"><label data-time-field>Ora preferita<input type="time" name="backup_time" value="{{ state.schedule_time }}"></label><label data-schedule-extra="weekly">Giorno settimana<select name="weekday">{% for v,l in [(1,'Lunedì'),(2,'Martedì'),(3,'Mercoledì'),(4,'Giovedì'),(5,'Venerdì'),(6,'Sabato'),(0,'Domenica')] %}<option value="{{ v }}" {% if state.schedule_weekday==v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label><label data-schedule-extra="monthly">Giorno del mese<select name="monthday">{% for d in range(1,29) %}<option value="{{ d }}" {% if state.schedule_monthday==d %}selected{% endif %}>{{ d }}</option>{% endfor %}</select></label></div>
 </div>
 
 <div class="form-section"><div class="form-section-title"><span>3</span><div><strong>Cosa salvare</strong><small>Le opzioni tecniche incompatibili non vengono proposte all'operatore.</small></div></div>
@@ -39,18 +39,4 @@
 
 <div class="form-actions split-actions"><a class="button ghost" href="{{ '/customers/' ~ customer_context.id ~ '/backups' if customer_context else '/operations/backups' }}">Annulla</a><button class="button primary">{{ 'Salva modifiche' if mode=='edit' else ('Crea copia' if mode=='clone' else 'Crea policy') }}</button></div>
 </form></section>
-<script>
-(()=>{
- const f=document.querySelector('[data-backup-v2-form]');if(!f)return;
- const scope=f.querySelector('[data-scope-select]'),vendor=f.querySelector('[data-vendor-select]'),customer=f.querySelector('[data-customer-select]'),site=f.querySelector('[data-site-select]'),device=f.querySelector('[data-device-select]'),auto=f.querySelector('[data-capability-auto]');
- function selectedCustomer(){return customer?.value||scope.dataset.customerContext||''}
- function filterOwned(select){if(!select)return;const cid=selectedCustomer();let selectedValid=false;[...select.options].forEach((o,i)=>{if(i===0)return;const visible=!cid||o.dataset.customer===cid;o.hidden=!visible;o.disabled=!visible;if(o.selected&&visible)selectedValid=true;});if(select.value&&!selectedValid)select.value='';}
- function inferCustomerFromSelected(){if(scope.value==='device'&&device?.value&&!customer?.value){const o=device.selectedOptions[0];if(o?.dataset.customer)customer.value=o.dataset.customer;}if(scope.value==='site'&&site?.value&&!customer?.value){const o=site.selectedOptions[0];if(o?.dataset.customer)customer.value=o.dataset.customer;}}
- function effectiveVendor(){if(scope.value==='vendor')return vendor?.value||'';if(scope.value==='device'){const o=device?.selectedOptions[0];return o?.dataset.vendor||'';}return ''}
- function refreshCaps(){const v=effectiveVendor();f.querySelectorAll('[data-capability]').forEach(e=>e.classList.toggle('hidden',!v||e.dataset.capability!==v));if(auto)auto.classList.toggle('hidden',!!v);}
- function refreshTargets(){const s=scope.value;f.querySelectorAll('[data-targets]').forEach(e=>{const targets=(e.dataset.targets||'').split(',');e.classList.toggle('hidden',!targets.includes(s));});inferCustomerFromSelected();filterOwned(site);filterOwned(device);refreshCaps();}
- function refreshSchedule(){const k=f.querySelector('[name=schedule_kind]:checked')?.value||'daily';f.querySelector('[data-time-field]').classList.toggle('hidden',k==='six_hour');f.querySelectorAll('[data-schedule-extra]').forEach(e=>e.classList.toggle('hidden',e.dataset.scheduleExtra!==k));}
- scope.addEventListener('change',refreshTargets);vendor?.addEventListener('change',refreshCaps);customer?.addEventListener('change',()=>{filterOwned(site);filterOwned(device);refreshCaps()});site?.addEventListener('change',()=>{inferCustomerFromSelected();refreshCaps()});device?.addEventListener('change',()=>{inferCustomerFromSelected();filterOwned(device);refreshCaps()});f.querySelectorAll('[name=schedule_kind]').forEach(e=>e.addEventListener('change',refreshSchedule));refreshTargets();refreshSchedule();
-})();
-</script>
 {% endblock %}

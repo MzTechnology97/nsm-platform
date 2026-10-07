@@ -18,6 +18,7 @@
     <label class="check-row"><input type="checkbox" name="is_enabled" {% if not connection or connection.is_enabled %}checked{% endif %}><span>Abilita connettore</span></label>
     <label>Intervallo sincronizzazione (minuti)<input type="number" name="sync_interval_minutes" min="5" max="1440" step="1" value="{{ sync_interval }}"><small>Il worker aggiorna periodicamente gli apparati già associati. In caso di errore il tentativo successivo viene ritardato progressivamente (max 6 ore).</small></label>
     <label class="check-row"><input type="checkbox" name="verify_tls" {% if not connection or connection.verify_tls %}checked{% endif %}><span>Verifica certificato TLS</span></label>
+    <small class="muted">Lasciala attiva quando UISP usa un certificato valido per il nome indicato. Disattivala solo per un UISP raggiungibile in rete locale (es. via IP) con certificato self-signed o emesso per il dominio pubblico: il traffico resta cifrato ma l'identità del server non viene verificata.</small>
     <div class="alert info">Con TLS verification disabilitata il token viaggia su un canale non autenticato. Usare questa opzione solo temporaneamente su reti di gestione controllate.</div>
     <button class="button primary">Salva configurazione</button>
   </form>
