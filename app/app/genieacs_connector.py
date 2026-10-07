@@ -9,6 +9,7 @@ identity and firmware observed by the ACS.
 
 import ipaddress
 import json
+import os
 import uuid
 from datetime import datetime, timezone
 from urllib.parse import urlsplit, urlunsplit
@@ -460,6 +461,7 @@ def _admin_render(request, db, user, *, message=None, error=None):
         auth_username=auth_username,
         auth_label=_auth_label(connection),
         mac_paths="\n".join(_mac_paths(connection)) if connection else "\n".join(DEFAULT_MAC_PARAMETER_PATHS),
+        internal_url=internal_nbi_url(),
         message=message,
         error=error,
     )
@@ -547,6 +549,42 @@ def admin_genieacs_save(
         )
         db.commit()
         return _admin_render(request, db, user, message="Configurazione GenieACS salvata. Le eventuali credenziali sono cifrate.")
+
+
+def internal_nbi_url() -> str | None:
+    """NBI URL of the GenieACS shipped in the NSM Docker stack (``./manage.sh acs-enable``)."""
+    value = os.getenv("GENIEACS_INTERNAL_NBI_URL", "").strip()
+    try:
+        return normalize_base_url(value) if value else None
+    except ValueError:
+        return None
+
+
+@router.post("/admin/integrations/genieacs/internal", response_class=HTMLResponse, name="admin_genieacs_internal")
+def admin_genieacs_internal(request: Request, csrf: str = Form(...)):
+    """Point the connector at the integrated GenieACS (internal Docker network, no authentication needed)."""
+    validate_csrf(request, csrf)
+    with SessionLocal() as db:
+        user = core.require_admin(request, db)
+        url = internal_nbi_url()
+        if not url:
+            return _admin_render(request, db, user, error="GenieACS integrato non attivo: esegui ./manage.sh acs-enable sul server.")
+        row = _connection(db)
+        settings = dict(row.settings or {}) if row else {}
+        settings.update({"mode": "read_only_nbi", "integrated": True})
+        settings.setdefault("mac_parameter_paths", list(DEFAULT_MAC_PARAMETER_PATHS))
+        settings.setdefault("online_window_minutes", GENIEACS_ONLINE_WINDOW_MINUTES)
+        encrypted = encrypt_text(json.dumps(_auth_payload("none"), separators=(",", ":")))
+        if row:
+            row.base_url, row.secret_encrypted, row.is_enabled, row.settings = url, encrypted, True, settings
+        else:
+            row = ConnectorIntegration(provider=GENIEACS_PROVIDER, name="GenieACS / TR-069 (integrato)", base_url=url,
+                                       secret_encrypted=encrypted, is_enabled=True, verify_tls=True, settings=settings)
+            db.add(row)
+        core.add_event(db, "GENIEACS_CONNECTOR_CONFIGURED", actor=user,
+                       details={"base_url": url, "enabled": True, "auth_mode": "none", "integrated": True, "mode": "read_only_nbi"}, source="portal")
+        db.commit()
+        return _admin_render(request, db, user, message="Connettore collegato al GenieACS integrato. Esegui «Test connessione» per verificarlo.")
 
 
 @router.post("/admin/integrations/genieacs/test", response_class=HTMLResponse, name="admin_genieacs_test")

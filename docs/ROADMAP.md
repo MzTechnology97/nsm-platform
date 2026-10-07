@@ -249,7 +249,7 @@ Implement only diagnostics actually exposed and validated by the integration con
 
 ## 6. ACS / TR-069 CPE roadmap
 
-The selected ACS is **GenieACS** (as preferred in `PRODUCT_REQUIREMENTS.md`); NSM reads its NBI and never implements an ACS itself. ACS-01..03 are implemented in `main` (`app/genieacs_connector.py`); validation against a real GenieACS instance is pending.
+The selected ACS is **GenieACS** (as preferred in `PRODUCT_REQUIREMENTS.md`); NSM reads its NBI and never implements an ACS itself. GenieACS ships as an optional service set of the NSM Docker stack (`./manage.sh acs-enable`). ACS-01..03 are implemented in `main` (`app/genieacs_connector.py`); validation against a real GenieACS instance is pending.
 
 ### ACS-01 — connector abstraction and first production connector
 

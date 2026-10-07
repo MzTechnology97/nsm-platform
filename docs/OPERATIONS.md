@@ -80,6 +80,24 @@ health check fails (`Backup DB disponibile per recovery: …`).
 3. If the failed release had already migrated the database, restore the
    pre-upgrade dump with `restore-db`.
 
+## Integrated GenieACS (TR-069)
+
+The Docker stack can run GenieACS next to NSM (optional compose profile `acs`), built from the official `genieacs` npm package and run as a non-root user:
+
+| Service | Port | Exposure |
+|---|---|---|
+| `genieacs-cwmp` | 7547 | published: ACS URL for the CPE, `http://<server>:7547` |
+| `genieacs-fs` | 7567 | published: firmware/config files downloaded by the CPE |
+| `genieacs-nbi` | 7557 | internal only, read by NSM at `http://genieacs-nbi:7557` |
+| `genieacs-ui` | 3000 | host loopback only (`ssh -L 3000:127.0.0.1:3000 <server>`) |
+| `genieacs-mongo` | — | internal; data in `data/genieacs-mongo` |
+
+1. `sudo ./manage.sh acs-enable`: generates `GENIEACS_UI_JWT_SECRET` in `secrets/bootstrap.env`, sets `COMPOSE_PROFILES=acs` and `GENIEACS_INTERNAL_NBI_URL` in `.env`, builds and starts the services. Later `update.sh` runs keep them running.
+2. *Amministrazione → Integrazioni → GenieACS / TR-069 → Usa GenieACS integrato*, then *Test connessione*.
+3. Open the GenieACS UI through the SSH tunnel and create its administrator **at the first access** (the first visitor sets it, which is why the UI is not published).
+4. Configure the CPE (TR-069 ACS URL `http://<server>:7547`); allow 7547 and 7567 only from the customer networks on the host firewall.
+5. Include `data/genieacs-mongo` in the off-host backups.
+
 ## Capacity and retention
 
 *Amministrazione → Sistema → Capacità e retention* shows the largest tables, the size of the backup archive, its growth over the last 30 days and how long the backup volume lasts at that rate (warning under 90 days).
