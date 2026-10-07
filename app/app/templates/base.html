@@ -1,25 +1,16 @@
 {% set ui = ui_context(request) %}
 <!doctype html>
-<html lang="it" data-theme="{{ ui.theme }}" style="--brand-primary: {{ ui.branding.primary_color }}; --brand-sidebar: {{ ui.branding.sidebar_color }}; --brand-highlight: {{ ui.branding.highlight_color }};">
+<html lang="it" data-theme="{{ ui.theme or 'light' }}" data-server-theme="{{ ui.theme or '' }}" style="--brand-primary: {{ ui.branding.primary_color }}; --brand-sidebar: {{ ui.branding.sidebar_color }}; --brand-highlight: {{ ui.branding.highlight_color }};">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="{{ ui.branding.sidebar_color }}">
   <title>{% block title %}{{ ui.branding.portal_name }}{% endblock %}</title>
-  <script>
-    (function(){
-      try {
-        var serverTheme = {{ ui.theme|tojson }};
-        var storedTheme = localStorage.getItem('nsm-theme');
-        var theme = serverTheme || storedTheme || 'light';
-        document.documentElement.dataset.theme = theme;
-        if (serverTheme) localStorage.setItem('nsm-theme', serverTheme);
-      } catch (e) {}
-    })();
-  </script>
+  <script src="{{ url_for('static', path='/theme-init.js') }}?v={{ asset_version }}"></script>
   <link rel="stylesheet" href="{{ url_for('static', path='/app.css') }}?v={{ asset_version }}">
   <link rel="stylesheet" href="/branding/theme.css?v={{ app_version }}" data-runtime-branding>
   <script defer src="{{ url_for('static', path='/ui.js') }}?v={{ asset_version }}"></script>
+  <script defer src="{{ url_for('static', path='/forms.js') }}?v={{ asset_version }}"></script>
 </head>
 <body>
 {% if user %}

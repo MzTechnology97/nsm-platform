@@ -20,12 +20,9 @@
 </div>
 <section class="panel danger-zone">
   <div class="panel-header"><div><h2>Rimuovi apparato</h2><p>Elimina l'apparato dalla piattaforma insieme a enrollment, vulnerabilità, backup run e policy specifiche. L'evento di eliminazione resta nell'audit.</p></div></div>
-  <form method="post" action="/devices/{{ device.id }}/delete" onsubmit="return confirm('Rimuovere definitivamente questo apparato dalla piattaforma?');">
+  <form method="post" action="/devices/{{ device.id }}/delete" data-confirm="Rimuovere definitivamente questo apparato dalla piattaforma?">
     <input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="confirm" value="DELETE">
     <button class="button danger">Rimuovi apparato</button>
   </form>
 </section>
-<script>
-(()=>{const customer=document.getElementById('manage-customer');const site=document.getElementById('manage-site');if(!customer||!site)return;const update=()=>{let selectedVisible=false;Array.from(site.options).forEach((o,i)=>{if(i===0){o.hidden=false;return;}const show=o.dataset.customer===customer.value;o.hidden=!show;if(show&&o.selected)selectedVisible=true;});if(!selectedVisible)site.value='';};customer.addEventListener('change',update);update();})();
-</script>
 {% endblock %}
