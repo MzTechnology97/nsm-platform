@@ -434,6 +434,8 @@ Unsupported vendor capability must not become a false failure.
 
 ### COMP-03 — findings and remediation lifecycle
 
+**Implemented in `main`** (`app/compliance_findings.py`): acknowledgement, exceptions with expiry, history, Action Center issue per Device.
+
 - finding generation;
 - assignment/acknowledgement;
 - remediation evidence;

@@ -472,9 +472,18 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - `/compliance` (device × control matrix, quick filters, customer/control filters, *Valuta ora*), `/compliance/baselines` (list, create, edit), one-click default global baseline; worker re-evaluates every 30 minutes; audit events for baseline changes and evaluations;
 - permissions: `compliance.read` (all roles), `compliance.manage` (Technician, Admin).
 
+### Findings lifecycle (COMP-03)
+
+- a non-compliance is a failing result; its evaluated status is never overwritten by hand;
+- `compliance.manage` users can take it in charge (note) or grant an exception with justification and expiry within one year; the failure is then shown *in eccezione* and no longer counted as to handle; exceptions can be revoked and expire by themselves;
+- when a later evaluation is no longer failing, acknowledgement and exception are cleared automatically;
+- every evaluation change and operator decision is kept in `compliance_result_history` (also after the result is compliant again) and audited;
+- one Action Center issue per Device with failing results not in exception, updated with the count and resolved automatically;
+- result page `/compliance/results/{id}` linked from every cell of the matrix; *In eccezione* quick filter.
+
 ### Not implemented yet
 
-- findings lifecycle and Action Center link (COMP-03); Device/Customer views and report integration (COMP-04).
+- Device/Customer views and report integration (COMP-04).
 
 ## 16. Lifecycle / EOL / EOS
 

@@ -67,3 +67,24 @@ class ComplianceResult(Base):
     baseline_version: Mapped[int | None] = mapped_column(Integer)
     evaluated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     status_changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # COMP-03: handling of a non-compliance (the evaluated status is never overwritten).
+    acknowledged_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    exception_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    exception_reason: Mapped[str | None] = mapped_column(Text)
+
+
+class ComplianceResultHistory(Base):
+    """Status changes and operator decisions on one result, kept after resolution."""
+
+    __tablename__ = "compliance_result_history"
+    __table_args__ = (Index("ix_compliance_result_history_result", "result_id", "created_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    result_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("compliance_results.id", ondelete="CASCADE"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    actor_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    action: Mapped[str] = mapped_column(String(30), nullable=False)
+    from_status: Mapped[str | None] = mapped_column(String(20))
+    to_status: Mapped[str | None] = mapped_column(String(20))
+    note: Mapped[str | None] = mapped_column(Text)
