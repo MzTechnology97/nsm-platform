@@ -21,6 +21,7 @@ from app import main as core
 from app import mikrotik_agent as agent_module
 from app.agent_models import DeviceAgentCredential, DeviceJob
 from app.db import SessionLocal
+from app.firmware_plan_recovery import ACTIVATION_JOB_TTL
 from app.firmware_upgrade_models import FirmwareUpgradePlan
 from app.firmware_upgrade_planner import _load_device, _modern_routeros
 from app.models import BackupRun, Device, utcnow
@@ -178,6 +179,7 @@ def activate_plan(
         job = DeviceJob(
             device_id=device.id,
             job_type=JOB_TYPE,
+            expires_at=utcnow() + ACTIVATION_JOB_TTL,
             payload={
                 "plan_id": str(plan.id),
                 "target_version": plan.target_version,

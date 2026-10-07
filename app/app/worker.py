@@ -10,6 +10,7 @@ from app.backup_scheduler_capability_guard import install_backup_scheduler_capab
 from app.config import settings
 from app.device_job_maintenance import expire_delivered_jobs, expire_pending_jobs
 from app.firmware_activation import reconcile_firmware_activations
+from app.firmware_plan_recovery import reconcile_firmware_plan_jobs
 from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_finalization_cleanup
 from app.mikrotik_telemetry import telemetry_cleanup
 from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
@@ -36,6 +37,7 @@ while True:
             expired_delivered_jobs = expire_delivered_jobs()
             agent_stats = agent_health_tick()
             firmware_stats = reconcile_firmware_activations()
+            firmware_plan_stats = reconcile_firmware_plan_jobs()
             routerboot_stats = routerboot_verification_tick()
             if any(stats.values()):
                 log.info("Backup maintenance: %s", stats)
@@ -49,6 +51,8 @@ while True:
                 log.info("Agent health automation: %s", agent_stats)
             if firmware_stats.get("success") or firmware_stats.get("failed"):
                 log.info("Firmware activation verification: %s", firmware_stats)
+            if firmware_plan_stats.get("jobs_expired") or firmware_plan_stats.get("plans_failed"):
+                log.info("Firmware plan recovery: %s", firmware_plan_stats)
             if any(routerboot_stats.values()):
                 log.info("RouterBOOT verification: %s", routerboot_stats)
             last_maintenance = now_mono

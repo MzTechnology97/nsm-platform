@@ -16,6 +16,7 @@ from app import main as core
 from app import mikrotik_agent as agent_module
 from app.agent_models import DeviceAgentCredential, DeviceJob
 from app.db import SessionLocal
+from app.firmware_plan_recovery import STAGING_JOB_TTL
 from app.firmware_upgrade_models import FirmwareUpgradePlan
 from app.firmware_upgrade_planner import _load_device, _modern_routeros
 from app.models import BackupRun, utcnow
@@ -124,6 +125,7 @@ def stage_plan(
         job = DeviceJob(
             device_id=device.id,
             job_type=JOB_TYPE,
+            expires_at=utcnow() + STAGING_JOB_TTL,
             payload={
                 "plan_id": str(plan.id),
                 "target_version": plan.target_version,
@@ -188,7 +190,10 @@ async def stage_complete(request: Request, job_id: uuid.UUID):
         job.result = result
         job.last_error = error
         job.completed_at = utcnow()
-        if status == "success":
+        # A cancelled/expired plan keeps its terminal state; the late report
+        # remains visible on the job and in the audit event only.
+        plan_updated = plan.status == "staging"
+        if plan_updated and status == "success":
             plan.status = "staged"
             plan.last_error = None
             data = dict(plan.precheck_data or {})
@@ -200,7 +205,7 @@ async def stage_complete(request: Request, job_id: uuid.UUID):
                 "result": result,
             }
             plan.precheck_data = data
-        else:
+        elif plan_updated:
             plan.status = "failed"
             plan.last_error = error or "Download pacchetti RouterOS non riuscito."
         core.add_event(
@@ -214,6 +219,8 @@ async def stage_complete(request: Request, job_id: uuid.UUID):
                 "status": status,
                 "target_version": plan.target_version,
                 "download_only": True,
+                "plan_updated": plan_updated,
+                "plan_status": plan.status,
             },
             severity="warning" if status == "failed" else "info",
             result=status,
