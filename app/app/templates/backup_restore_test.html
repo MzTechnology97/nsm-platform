@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% set device_name = device.display_name or device.device_identity or device.name %}
+{% block title %}Restore test · {{ device_name }} · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="breadcrumbs"><a href="/devices/{{ device.id }}">{{ device_name }}</a><span>›</span><a href="/devices/{{ device.id }}/backups">Archivio backup</a><span>›</span><span>Restore test</span></div>
+<div class="page-header compact-heading"><div><h1>Restore test · {{ artifact.filename }}</h1><p>Registra l'esito di un ripristino eseguito in un ambiente controllato. NSM non ripristina mai automaticamente un apparato in produzione.</p></div><div class="page-actions"><a class="button ghost" href="/devices/{{ device.id }}/backups/restore-tests">Storico restore test</a><a class="button ghost" href="/devices/{{ device.id }}/backups">Archivio backup</a></div></div>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Integrità artefatto</h2><p>Verifica eseguita ora sul file archiviato rispetto all'evidenza registrata al momento del backup.</p></div><span class="status-pill">{{ 'INTEGRO' if integrity.ok else 'NON VERIFICATO' }}</span></div>
+  <div class="policy-summary six">
+    <div><span>Backup run</span><strong>{{ fmt_dt(run.started_at) }} · {{ run.status }}</strong></div>
+    <div><span>Tipo</span><strong>{{ artifact.artifact_type }}</strong></div>
+    <div><span>File presente</span><strong>{{ 'Sì' if integrity.file_present else 'No' }}</strong></div>
+    <div><span>Dimensione</span><strong>{{ 'Coerente' if integrity.size_matches else 'Non coerente' }}</strong></div>
+    <div><span>SHA-256</span><strong title="{{ artifact.sha256 or '' }}">{{ 'Verificato' if integrity.sha256_matches else 'Non corrispondente' }}</strong></div>
+    <div><span>RouterOS sorgente</span><strong>{{ source_version or 'non dichiarato' }}</strong></div>
+  </div>
+  {% if not integrity.ok %}<div class="alert warning"><strong>Artefatto non integro.</strong> {{ integrity.error or '' }} È possibile registrare solo un esito non superato o parziale.</div>{% endif %}
+</section>
+
+{% if can_record %}
+<section class="panel">
+  <div class="panel-header"><div><h2>Registra esito</h2><p>Usa un target isolato: CHR di laboratorio, apparato di scorta o revisione dell'export importato.</p></div></div>
+  <form method="post" action="/devices/{{ device.id }}/backups/artifacts/{{ artifact.id }}/restore-test" class="stack-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Metodo<select name="method" required><option value="">Seleziona…</option>{% for key, label in methods.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label>
+    <label>Target del restore<input name="target_label" required maxlength="200" placeholder="es. CHR-LAB-01"></label>
+    <label>Versione RouterOS del target<input name="target_routeros_version" maxlength="80" placeholder="es. 7.20.7"></label>
+    <label>Esito<select name="result" required><option value="">Seleziona…</option>{% for key, label in results.items() %}<option value="{{ key }}" {% if key == 'passed' and not integrity.ok %}disabled{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label>Eseguito il<input type="datetime-local" name="performed_at"><small>Lascia vuoto per usare l'ora attuale.</small></label>
+    <label>Note ed evidenze<textarea name="notes" rows="5" maxlength="4000" placeholder="Cosa è stato verificato (interfacce, routing, firewall, servizi) e cosa non ha funzionato."></textarea></label>
+    <button class="button primary" type="submit">Registra restore test</button>
+  </form>
+</section>
+{% endif %}
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Storico per questo artefatto</h2></div></div>
+  {% if history %}
+  <div class="compact-list">{% for test in history %}
+    <div class="compact-row"><span><strong>{{ results.get(test.result, test.result) }} · {{ test.target_label }}</strong><small>{{ fmt_dt(test.performed_at) }} · {{ methods.get(test.method, test.method) }}{% if test.target_routeros_version %} · RouterOS {{ test.target_routeros_version }}{% endif %}</small>{% if test.notes %}<small>{{ test.notes }}</small>{% endif %}</span><span class="status-pill">{{ test.result }}</span></div>
+  {% endfor %}</div>
+  {% else %}<div class="empty-state">Nessun restore test registrato per questo artefatto.</div>{% endif %}
+</section>
+{% endblock %}
