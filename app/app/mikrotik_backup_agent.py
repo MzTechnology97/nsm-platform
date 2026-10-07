@@ -13,6 +13,11 @@ import app.mikrotik_agent as agent_module
 router = APIRouter()
 _ORIGINAL_BOOTSTRAP = agent_module._bootstrap_script
 AGENT_VERSION = "0.8.0"
+# RouterOS writes `/system backup save` and `/export file=` output
+# asynchronously.  The uploader polls every 500 ms (max 30 s) until the file
+# exists with a non-zero size that is unchanged between two polls, so an empty
+# or still-growing file is never archived as a successful backup.
+FILE_SETTLE_MAX_TICKS = 60
 
 
 def _cert_arg(enabled: bool):
@@ -86,10 +91,22 @@ def enhanced_agent_source(base_url: str, device_id: uuid.UUID, raw_secret: str, 
             :set nsmFileName ($nsmBaseName . ".rsc")
           }}
           :if ($nsmFileName != "") do={{
-            :delay 500ms
-            :local nsmFileId [/file find where name=$nsmFileName]
+            :local nsmFileId ""
+            :local nsmFileSize 0
+            :local nsmPrevSize 0
+            :local nsmWaitTicks 0
+            :while (($nsmWaitTicks < {FILE_SETTLE_MAX_TICKS}) && (($nsmFileSize = 0) || ($nsmFileSize != $nsmPrevSize))) do={{
+              :delay 500ms
+              :set nsmWaitTicks ($nsmWaitTicks + 1)
+              :set nsmFileId [/file find where name=$nsmFileName]
+              :if ([:len $nsmFileId] > 0) do={{
+                :set nsmPrevSize $nsmFileSize
+                :set nsmFileSize [:tonum [/file get $nsmFileId size]]
+              }}
+            }}
             :if ([:len $nsmFileId] = 0) do={{ :error "NSM backup file not created" }}
-            :local nsmFileSize [:tonum [/file get $nsmFileId size]]
+            :if ($nsmFileSize = 0) do={{ :error "NSM backup file is empty" }}
+            :if ($nsmFileSize != $nsmPrevSize) do={{ :error "NSM backup file size did not settle" }}
             :local nsmStartUrl ($nsmBase . "/api/v1/agents/mikrotik/jobs/" . $nsmJobId . "/artifacts/start")
             :local nsmStartBody [:serialize value={{"artifact_type"=$nsmFormat;"size_bytes"=[:tostr $nsmFileSize]}} to=json options=json.no-string-conversion]
             :local nsmStartResult [/tool fetch url=$nsmStartUrl http-method=post http-header-field=$nsmHeaders http-data=$nsmStartBody output=user as-value{cert}]

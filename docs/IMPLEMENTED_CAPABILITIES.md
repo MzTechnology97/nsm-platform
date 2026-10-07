@@ -275,6 +275,7 @@ RouterOS 7.12.x structured snapshot parity is not in `main` yet. The active impl
 - artifact size bounds;
 - RouterOS file-read normalization using `/file read ... as-value`;
 - rejection of zero-length upload chunks server-side;
+- rejection of empty (0-byte) artifacts at upload start, and Agent-side wait until the generated RouterOS file is non-empty with a settled size before upload (physical RouterOS acceptance pending);
 - server-side SHA-256 verification;
 - final archive move/storage;
 - terminal cleanup of incomplete upload state and per-job backup secret;
