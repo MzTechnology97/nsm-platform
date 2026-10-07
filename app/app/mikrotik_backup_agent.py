@@ -81,7 +81,9 @@ def enhanced_agent_source(base_url: str, device_id: uuid.UUID, raw_secret: str, 
 :local nsmIfaces ""
 :do {{ :foreach nsmIf in=[/interface find where running=yes && dynamic=no && type!="ether" && type!="vlan" && type!="bridge"] do={{ :if ([:len $nsmIfaces] < 6000) do={{ :set nsmIfaces ($nsmIfaces . [/interface get $nsmIf name] . "|" . [/interface get $nsmIf type] . "|" . [/interface get $nsmIf rx-byte] . "|" . [/interface get $nsmIf tx-byte] . ";") }} }} }} on-error={{}}
 :do {{ :foreach nsmIf in=[/interface find where running=yes && dynamic=no && (type="ether" || type="vlan" || type="bridge")] do={{ :if ([:len $nsmIfaces] < 6000) do={{ :set nsmIfaces ($nsmIfaces . [/interface get $nsmIf name] . "|" . [/interface get $nsmIf type] . "|" . [/interface get $nsmIf rx-byte] . "|" . [/interface get $nsmIf tx-byte] . ";") }} }} }} on-error={{}}
-:local nsmMetrics {{"cpu_load"=[:tostr $nsmCpuLoad];"free_memory"=[:tostr $nsmFreeMemory];"uptime"=[:tostr $nsmUptime];"ifaces"=$nsmIfaces}}
+:local nsmAddrs ""
+:do {{ :foreach nsmA in=[/ip address find where disabled=no] do={{ :if ([:len $nsmAddrs] < 2000) do={{ :set nsmAddrs ($nsmAddrs . [/ip address get $nsmA address] . "|" . [/ip address get $nsmA interface] . ";") }} }} }} on-error={{}}
+:local nsmMetrics {{"cpu_load"=[:tostr $nsmCpuLoad];"free_memory"=[:tostr $nsmFreeMemory];"uptime"=[:tostr $nsmUptime];"ifaces"=$nsmIfaces;"addresses"=$nsmAddrs}}
 :local nsmPayload {{"inventory"=$nsmInventory;"metrics"=$nsmMetrics;"agent_version"="{AGENT_VERSION}"}}
 :local nsmJson [:serialize value=$nsmPayload to=json options=json.no-string-conversion]
 :local nsmHeartbeatResult ""

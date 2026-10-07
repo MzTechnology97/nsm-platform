@@ -282,6 +282,8 @@ Next steps:
 
 **Live log page.** Each device gets a log section updated in real time, with filters by severity, topic and text.
 
+**Authentication alerts (requested 2026-10-07).** Where the log allows it, detect failed logins (wrong user or password), brute-force bursts and successful logins from unusual or public addresses, then raise alerts per device, user and source IP. Examples: RouterOS `login failure for user … from … via …`, SSH/Telnet/web failures on other vendors.
+
 **Security.** Logs are kept to track anomalous external access, such as failed or successful logins from public IPs and new admin sessions. They feed:
 - rules that raise incidents and evidence;
 - notifications;
@@ -293,19 +295,29 @@ Telemetry of a device that goes offline must never be deleted: the last received
 - **Done in 0.49.43** for MikroTik metrics, interface traffic and UISP metrics.
 - **Still to do:** other connectors when they get history.
 
-### INV-07 — MikroTik devices without IP in the device list (bug, reported 2026-10-07)
+### INV-07 — MikroTik devices without IP in the device list (bug)
 
-**Symptom.** In the device list, MikroTik devices show no IP. The device's internal address is only shown later as the management IP.
-
-**Fix.**
-- Fill the management IP from the agent: the heartbeat source address, plus the RouterOS addresses from the snapshot.
-- Show it in the list, separating the internal/LAN address from the public/management one.
+**Fixed in `main` (Core 0.49.44, Agent 0.49.10).**
+- The agent reports the RouterOS addresses.
+- The management IP is chosen in this order: the public router address, else the address NSM sees the heartbeat from, else the first address. A value typed by an operator is never overwritten.
+- Lists show the management IP with its scope and the LAN IP. The device page also shows the address NSM sees.
 
 ### GUI-02 — visual refresh: Material icons and ISP/WISP background (requested 2026-10-07)
 
 - Replace the sidebar menu icons and the top notification icon with a consistent Material Design (or similar) icon set, self-hosted and CSP-safe.
 - Make the GUI more attractive.
 - Optionally add a subtle background suited to the ISP/WISP domain (network, antennas, fibre motifs) that never hurts readability or contrast, in light and dark theme.
+
+### SCAN-01 — WAN exposure scanner for every vendor (requested 2026-10-07)
+
+A port/service scanner run from the NSM server against the WAN address of each managed device.
+- **Targets.** Any vendor, not only MikroTik. The target is the detected WAN/PPPoE address, and the operator can pick or override the correct WAN IP when it cannot be determined.
+- **Checks.** Critical services exposed on the WAN:
+  - Telnet 23, SSH 22, FTP 21, HTTP/HTTPS admin 80/443/8080/8443;
+  - DNS 53 (open resolver), SNMP 161/udp, TR-069 7547, UPnP 1900;
+  - vendor-specific ports chosen by vendor and OS: RouterOS Winbox 8291, API 8728, API-SSL 8729, bandwidth-test 2000; UniFi/UISP 8443/2055; Huawei/ZTE ONT web and telnet; and so on.
+- **Results.** Devices at risk are flagged like CVE exposure: per-device findings, a fleet "exposed services" view, severity, and inclusion in the vulnerability digest and reports.
+- **Safety.** Scheduled and on-demand scans, only toward addresses of managed devices, with rate limiting and an audit trail.
 
 ### ZBX-01 — Zabbix API integration (requested 2026-10-07)
 

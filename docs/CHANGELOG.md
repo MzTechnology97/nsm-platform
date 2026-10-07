@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.44 — 2026-10-07
+
+Inventory
+- **Fix: MikroTik devices without IP in the device list** (INV-07). Agent-managed devices now get a management IP:
+  - the public address configured on the router (PPPoE/WAN);
+  - otherwise the address NSM sees the heartbeat from, which also works with older agents;
+  - a value typed by an operator is never overwritten.
+- The device lists show the management IP with its scope (public, private, CGNAT) and the LAN IP. The device header adds *IP LAN* and *Visto da NSM*.
+- **MikroTik Agent 0.49.10** reports the RouterOS IP addresses with every heartbeat: as a metric on modern agents, as the `X-NSM-Addrs` header on legacy agents.
+
+Roadmap
+- GUI-02: Material icons for menu and notifications, more attractive GUI with an optional ISP/WISP background.
+
 ## 0.49.43 — 2026-10-07
 
 Monitoring
