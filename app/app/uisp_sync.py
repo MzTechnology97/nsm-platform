@@ -22,6 +22,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 
+from app import uisp_firmware
 from app import uisp_metrics
 from app import main as core
 from app.db import SessionLocal
@@ -186,6 +187,7 @@ def _apply_observed(device: Device, candidate: dict, now: datetime) -> dict:
     device.last_seen = candidate.get("last_seen") or device.last_seen
     device.inventory_source = "uisp"
     device.inventory_last_verified_at = now
+    uisp_firmware.apply(device, candidate.get("firmware"), now)
     inventory = dict(device.inventory_data or {})
     meta = dict(inventory.get("uisp") or {})
     meta.update(

@@ -384,6 +384,12 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 ## 13. Ubiquiti / UISP
 
+### Firmware state (UBNT-06, read-only)
+
+- every UISP sync and refresh stores the `firmware` object UISP exposes (installed, latest, latest on the same major, compatibility, pre-release) in `inventory_data.uisp_firmware`;
+- when both installed and latest are present and comparable, the Device gets the recommended version and `update_available` or `current`, so Ubiquiti devices appear in the firmware worklist; nothing is inferred when UISP does not expose a latest version;
+- the UISP tab shows a *Firmware da UISP* panel and warns when UISP reports the installed firmware as not compatible; upgrades are still executed from UISP and seen at the next sync.
+
 ### Monitoring (UBNT-02)
 
 - at every association, refresh and periodic sync NSM reads the UISP device overview: CPU, RAM, signal, downlink/uplink capacity, uptime, frequency, connected stations; implausible or missing values are dropped and shown as *non esposto da UISP*, never as zero;

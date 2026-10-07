@@ -106,7 +106,7 @@ from app.api_key_lifecycle import install_api_key_lifecycle
 from app.login_security import install_login_security
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.28"
+APP_VERSION = "0.49.29"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
