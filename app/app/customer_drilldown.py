@@ -215,8 +215,6 @@ def action_center(
         filters = []
         if severity:
             filters.append(ActionIssue.severity == severity)
-        if category:
-            filters.append(ActionIssue.category == category)
         if status:
             filters.append(ActionIssue.status == status)
         else:
@@ -225,6 +223,20 @@ def action_center(
         customer_id = _uuid_or_none(customer)
         if customer_id:
             filters.append(ActionIssue.customer_id == customer_id)
+
+        # Category quick filters count within the other active filters.
+        category_counts = [
+            (name or "system", int(count))
+            for name, count in db.execute(
+                select(ActionIssue.category, func.count(ActionIssue.id))
+                .where(*filters)
+                .group_by(ActionIssue.category)
+                .order_by(func.count(ActionIssue.id).desc(), ActionIssue.category)
+            ).all()
+        ]
+        scope_total = sum(count for _, count in category_counts)
+        if category:
+            filters.append(ActionIssue.category == category)
 
         count_stmt = select(func.count(ActionIssue.id)).where(*filters)
         total = db.scalar(count_stmt) or 0
@@ -291,6 +303,8 @@ def action_center(
             page=page,
             pages=pages,
             total=total,
+            category_counts=category_counts,
+            scope_total=scope_total,
         )
 
 

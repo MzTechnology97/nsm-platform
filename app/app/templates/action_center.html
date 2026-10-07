@@ -1,7 +1,44 @@
 {% extends "base.html" %}
+{% from "_worklist.html" import chips, pager, context_banner %}
 {% block title %}Action Center · {{ app_name }}{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1>Action Center{% if selected_customer %} · {{ selected_customer.name }}{% endif %}</h1><p>{% if selected_customer %}Problemi e attenzioni limitati al cliente selezionato.{% else %}Apparati e problemi che richiedono attenzione operativa.{% endif %}</p></div>{% if selected_customer %}<a class="button ghost" href="/customers/{{ selected_customer.id }}">← Profilo cliente</a>{% endif %}</div>
-<section class="panel"><form class="filter-bar" method="get"><label>Cliente<select name="customer"><option value="">Tutti</option>{% for c in customers %}<option value="{{ c.id }}" {% if customer_filter == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></label><label>Severità<select name="severity"><option value="">Tutte</option>{% for s in ['critical','high','warning','medium','low'] %}<option value="{{ s }}" {% if severity_filter == s %}selected{% endif %}>{{ s|upper }}</option>{% endfor %}</select></label><label>Categoria<select name="category"><option value="">Tutte</option>{% for c in ['cve','firmware','backup','lifecycle','monitoring','integration','system'] %}<option value="{{ c }}" {% if category_filter == c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></label><label>Stato<select name="status"><option value="">Aperti + presi in carico</option>{% for s in ['open','acknowledged','resolved'] %}<option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ status_label(s) }}</option>{% endfor %}</select></label><button class="button primary">Applica</button><a class="button ghost" href="/action-center{% if selected_customer %}?customer={{ selected_customer.id }}{% endif %}">Reset</a></form></section>
-<section class="panel"><div class="panel-header"><div><h2>Problemi</h2><p>{{ total }} elementi · pagina {{ page }} di {{ pages }}</p></div></div>{% if issues %}<div class="issue-list">{% for i in issues %}<div class="issue-row"><span class="severity-marker severity-bg-{{ i.severity }}"></span><div class="grow"><div class="issue-title"><strong>{{ i.title }}</strong><span class="severity-badge severity-{{ i.severity }}">{{ i.severity|upper }}</span></div><small>{{ i.category }}{% if i.device_id and device_map.get(i.device_id) %} · <a href="/devices/{{ i.device_id }}">{{ device_map[i.device_id].display_name or device_map[i.device_id].device_identity or device_map[i.device_id].name }}</a>{% endif %}{% if i.customer_id and customer_map.get(i.customer_id) %} · <a href="/customers/{{ i.customer_id }}">{{ customer_map[i.customer_id].name }}</a>{% endif %} · {{ fmt_dt(i.created_at) }}</small></div><span class="status-pill">{{ status_label(i.status) }}</span>{% if i.status == 'open' and has_permission(user, 'issues.ack') %}<form method="post" action="/action-center/{{ i.id }}/ack"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Prendi in carico</button></form>{% endif %}</div>{% endfor %}</div><div class="pagination">{% set qs='customer=' ~ customer_filter ~ '&severity=' ~ severity_filter ~ '&category=' ~ category_filter ~ '&status=' ~ status_filter %}{% if page > 1 %}<a class="button ghost" href="?{{ qs }}&page={{ page-1 }}">← Precedente</a>{% endif %}<span>Pagina {{ page }} / {{ pages }}</span>{% if page < pages %}<a class="button ghost" href="?{{ qs }}&page={{ page+1 }}">Successiva →</a>{% endif %}</div>{% else %}<div class="empty-state success">Nessun problema corrisponde ai filtri.</div>{% endif %}</section>
+{% set category_labels = {'backup': 'Backup', 'cve': 'CVE', 'security': 'Sicurezza', 'firmware': 'Firmware', 'lifecycle': 'Lifecycle', 'monitoring': 'Monitoring', 'integration': 'Integrazioni', 'configuration': 'Configurazione', 'agent': 'Agent', 'system': 'Sistema'} %}
+{% set scope = '?customer=' ~ customer_filter ~ '&severity=' ~ severity_filter ~ '&status=' ~ status_filter %}
+<div class="page-header compact-heading">
+  <div><h1>Action Center</h1><p>{% if selected_customer %}Problemi e attenzioni limitati a {{ selected_customer.name }}.{% else %}Apparati e problemi che richiedono attenzione operativa, dal più grave.{% endif %}</p></div>
+</div>
+
+{% set ns = namespace(items=[{'label': 'Tutte', 'count': scope_total, 'href': scope ~ '&category=', 'active': not category_filter}]) %}
+{% for name, count in category_counts %}{% set ns.items = ns.items + [{'label': category_labels.get(name, name|replace('_', ' ')|capitalize), 'count': count, 'href': scope ~ '&category=' ~ name, 'active': category_filter == name}] %}{% endfor %}
+{% if category_filter and category_filter not in category_counts|map(attribute=0)|list %}{% set ns.items = ns.items + [{'label': category_labels.get(category_filter, category_filter), 'count': 0, 'href': scope ~ '&category=' ~ category_filter, 'active': true}] %}{% endif %}
+{{ chips(ns.items, 'Categorie') }}
+{{ context_banner(selected_customer, 'Vista limitata al cliente selezionato.') }}
+
+<section class="panel">
+  <form class="filter-bar" method="get">
+    <input type="hidden" name="category" value="{{ category_filter }}">
+    <select name="customer" aria-label="Cliente"><option value="">Tutti i clienti</option>{% for c in customers %}<option value="{{ c.id }}" {% if customer_filter == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
+    <select name="severity" aria-label="Severità"><option value="">Tutte le severità</option>{% for s in ['critical','high','warning','medium','low'] %}<option value="{{ s }}" {% if severity_filter == s %}selected{% endif %}>{{ s|capitalize }}</option>{% endfor %}</select>
+    <select name="status" aria-label="Stato"><option value="">Aperti e presi in carico</option>{% for s in ['open','acknowledged','resolved'] %}<option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ status_label(s) }}</option>{% endfor %}</select>
+    <button class="button primary">Applica</button>
+    {% if customer_filter or severity_filter or status_filter or category_filter %}<a class="button ghost" href="/action-center">Reset</a>{% endif %}
+  </form>
+
+  {% if issues %}
+  <div class="issue-list">{% for i in issues %}
+    <div class="issue-row">
+      <span class="severity-marker severity-bg-{{ i.severity }}"></span>
+      <div class="grow">
+        <div class="issue-title"><strong>{{ i.title }}</strong><span class="severity-badge severity-{{ i.severity }}">{{ i.severity|upper }}</span></div>
+        <small>{{ category_labels.get(i.category, i.category) }}{% if i.device_id and device_map.get(i.device_id) %} · <a href="/devices/{{ i.device_id }}">{{ device_map[i.device_id].display_name or device_map[i.device_id].device_identity or device_map[i.device_id].name }}</a>{% endif %}{% if i.customer_id and customer_map.get(i.customer_id) %} · <a href="/customers/{{ i.customer_id }}">{{ customer_map[i.customer_id].name }}</a>{% endif %} · {{ fmt_dt(i.created_at) }}</small>
+      </div>
+      <span class="status-pill">{{ status_label(i.status) }}</span>
+      {% if i.status == 'open' and has_permission(user, 'issues.ack') %}<form method="post" action="/action-center/{{ i.id }}/ack"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Prendi in carico</button></form>{% endif %}
+    </div>
+  {% endfor %}</div>
+  {{ pager(total, page, pages, scope ~ '&category=' ~ category_filter) }}
+  {% else %}
+  <div class="empty-state success">Nessun problema corrisponde ai filtri.</div>
+  {% endif %}
+</section>
 {% endblock %}

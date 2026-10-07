@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_worklist.html" import chips, pager %}
 {% block title %}Monitoring · {{ app_name }}{% endblock %}
 {% block content %}
 {% set query_base = '&customer=' ~ customer_filter ~ '&vendor=' ~ vendor_filter %}
@@ -7,21 +8,23 @@
   <div class="page-actions"><a class="button ghost" href="/operations/agents">Agent Fleet</a></div>
 </div>
 
-<div class="metric-grid">
-  <a class="metric-card{% if state == 'attention' %} active{% endif %}" href="?state=attention{{ query_base }}"><span>Da verificare</span><strong>{{ counts.attention }}</strong><small>di {{ counts.total }} apparati</small></a>
-  <a class="metric-card{% if state == 'offline' %} active{% endif %}" href="?state=offline{{ query_base }}"><span>Offline</span><strong>{{ counts.offline }}</strong><small>{{ counts.online }} online</small></a>
-  <a class="metric-card{% if state == 'stale_agent' %} active{% endif %}" href="?state=stale_agent{{ query_base }}"><span>Agent fermi</span><strong>{{ counts.stale_agent }}</strong><small>nessun heartbeat da {{ thresholds.stale_minutes }} min</small></a>
-  <a class="metric-card{% if state == 'high_cpu' %} active{% endif %}" href="?state=high_cpu{{ query_base }}"><span>CPU alta</span><strong>{{ counts.high_cpu }}</strong><small>≥ {{ thresholds.cpu|int }}%</small></a>
-  <a class="metric-card{% if state == 'low_memory' %} active{% endif %}" href="?state=low_memory{{ query_base }}"><span>Memoria bassa</span><strong>{{ counts.low_memory }}</strong><small>&lt; {{ thresholds.memory|int }}% libera</small></a>
-</div>
+{{ chips([
+  {'label': 'Da verificare', 'count': counts.attention, 'href': '?state=attention' ~ query_base, 'active': state == 'attention', 'tone': 'warning'},
+  {'label': 'Offline', 'count': counts.offline, 'href': '?state=offline' ~ query_base, 'active': state == 'offline', 'tone': 'danger', 'dot': 'offline'},
+  {'label': 'Agent fermi', 'count': counts.stale_agent, 'href': '?state=stale_agent' ~ query_base, 'active': state == 'stale_agent', 'tone': 'warning'},
+  {'label': 'CPU ≥ ' ~ thresholds.cpu|int ~ '%', 'count': counts.high_cpu, 'href': '?state=high_cpu' ~ query_base, 'active': state == 'high_cpu', 'tone': 'warning'},
+  {'label': 'Memoria < ' ~ thresholds.memory|int ~ '%', 'count': counts.low_memory, 'href': '?state=low_memory' ~ query_base, 'active': state == 'low_memory', 'tone': 'warning'},
+  {'label': 'Tutti', 'count': counts.total, 'href': '?state=all' ~ query_base, 'active': state == 'all'},
+]) }}
 
 <section class="panel">
   <form class="filter-bar" method="get">
-    <select name="state" aria-label="Stato">{% for key, label in states.items() %}<option value="{{ key }}" {% if state == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <input type="hidden" name="state" value="{{ state }}">
     <select name="customer" aria-label="Cliente"><option value="">Tutti i clienti</option>{% for c in customers %}<option value="{{ c.id }}" {% if customer_filter == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
     <select name="vendor" aria-label="Vendor"><option value="">Tutti i vendor</option>{% for v in vendors %}<option value="{{ v }}" {% if vendor_filter == v %}selected{% endif %}>{{ v }}</option>{% endfor %}</select>
-    <button class="button">Filtra</button>
+    <button class="button primary">Applica</button>
     {% if customer_filter or vendor_filter or state != 'attention' %}<a class="button ghost" href="/operations/monitoring">Reset</a>{% endif %}
+    <span class="muted">Agent fermo: nessun heartbeat da {{ thresholds.stale_minutes }} min · telemetria ultime 2 ore</span>
   </form>
 
   {% if rows %}
@@ -31,7 +34,7 @@
       <tr>
         <td><a href="/devices/{{ d.id }}{% if row.sampled_at %}/monitor{% endif %}"><strong>{{ d.display_name or d.device_identity or d.name }}</strong></a><br><small>{{ d.vendor }}{% if d.model %} · {{ d.model }}{% endif %}</small></td>
         <td>{% if d.customer %}<a href="/customers/{{ d.customer_id }}">{{ d.customer.name }}</a>{% endif %}<br><small>{{ d.site.name if d.site else '—' }}</small></td>
-        <td><span class="device-status status-{{ d.status }}">{{ d.status }}</span><br><small>{{ fmt_dt(d.last_seen) if d.last_seen else 'mai visto' }}</small></td>
+        <td><span class="device-status status-{{ d.status }}">{{ status_label(d.status) }}</span><br><small>{{ fmt_dt(d.last_seen) if d.last_seen else 'mai visto' }}</small></td>
         <td>{% if row.agent %}{{ fmt_dt(row.heartbeat) if row.heartbeat else 'mai' }}{% else %}<small>nessun agent</small>{% endif %}</td>
         <td>{% if row.cpu is not none %}{{ row.cpu }}%{% else %}—{% endif %}</td>
         <td>{% if row.memory_free_percent is not none %}{{ row.memory_free_percent }}%{% else %}—{% endif %}</td>
@@ -40,7 +43,7 @@
       </tr>
     {% endfor %}</tbody>
   </table></div>
-  <div class="pagination-bar"><span>{{ total }} apparati · pagina {{ page }} di {{ pages }}</span><div class="page-actions">{% if page > 1 %}<a class="button ghost" href="?state={{ state }}{{ query_base }}&page={{ page - 1 }}">← Precedente</a>{% endif %}{% if page < pages %}<a class="button ghost" href="?state={{ state }}{{ query_base }}&page={{ page + 1 }}">Successiva →</a>{% endif %}</div></div>
+  {{ pager(total, page, pages, '?state=' ~ state ~ query_base) }}
   {% else %}
   <div class="empty-state">{% if state == 'attention' %}Nessun apparato richiede attenzione in questo momento.{% else %}Nessun apparato corrisponde ai filtri.{% endif %}</div>
   {% endif %}

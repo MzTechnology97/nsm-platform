@@ -1,3 +1,4 @@
+import math
 import uuid
 from collections import defaultdict
 
@@ -231,12 +232,35 @@ def customer_backups(
         )
 
 
+BACKUP_VIEWS = ("attention", "failed", "blocked", "never", "no_policy", "protected", "all")
+OVERVIEW_PER_PAGE = 50
+
+
+def _backup_view_keys(bucket: str, run_state: str) -> set[str]:
+    """Quick-filter buckets a device belongs to on the global backup worklist."""
+    keys = {"all", bucket}
+    if run_state == "failed":
+        keys.add("failed")
+    if bucket == "protected" and run_state == "never":
+        keys.add("never")
+    if keys & {"failed", "blocked", "never"}:
+        keys.add("attention")
+    return keys
+
+
 @router.get(
     "/operations/backups",
     response_class=HTMLResponse,
     name="backup_customer_overview",
 )
-def backup_customer_overview(request: Request):
+def backup_customer_overview(
+    request: Request,
+    view: str = "attention",
+    customer: str = "",
+    q: str = "",
+    page: int = 1,
+):
+    view = view if view in BACKUP_VIEWS else "attention"
     with SessionLocal() as db:
         user = core.current_user(request, db)
         if not user:
@@ -265,6 +289,7 @@ def backup_customer_overview(request: Request):
             [device.id for device in devices if device.vendor == "mikrotik"],
         )
 
+        latest_by_device = _latest_runs(db, [device.id for device in devices])
         coverage = defaultdict(
             lambda: {
                 "devices": 0,
@@ -273,6 +298,8 @@ def backup_customer_overview(request: Request):
                 "no_policy": 0,
             }
         )
+        device_rows = []
+        view_counts = defaultdict(int)
         for device in devices:
             item = coverage[device.customer_id]
             item["devices"] += 1
@@ -284,12 +311,69 @@ def backup_customer_overview(request: Request):
                 settings_map,
                 active_agent_ids,
             )
-            if readiness.executable:
-                item["protected"] += 1
-            elif readiness.policy_present:
-                item["blocked"] += 1
-            else:
-                item["no_policy"] += 1
+            bucket = _protection_bucket(readiness)
+            item[bucket] += 1
+            latest = latest_by_device.get(device.id)
+            run_state = latest.status if latest else "never"
+            keys = _backup_view_keys(bucket, run_state)
+            device_rows.append(
+                {
+                    "device": device,
+                    "policy": policy,
+                    "readiness": readiness,
+                    "readiness_label": readiness_label(readiness.status),
+                    "bucket": bucket,
+                    "latest": latest,
+                    "state": run_state,
+                    "keys": keys,
+                }
+            )
+
+        customer_id = None
+        if customer:
+            try:
+                customer_id = uuid.UUID(customer)
+            except ValueError:
+                raise HTTPException(400, "Cliente non valido.")
+        term = q.strip().lower()
+
+        def in_scope(row):
+            device = row["device"]
+            if customer_id and device.customer_id != customer_id:
+                return False
+            if term:
+                haystack = " ".join(
+                    str(value or "")
+                    for value in (
+                        device.display_name,
+                        device.device_identity,
+                        device.name,
+                        device.serial_number,
+                        device.management_ip,
+                        device.customer.name if device.customer else "",
+                    )
+                ).lower()
+                if term not in haystack:
+                    return False
+            return True
+
+        scoped = [row for row in device_rows if in_scope(row)]
+        for row in scoped:
+            for key in row["keys"]:
+                view_counts[key] += 1
+        selected = [row for row in scoped if view in row["keys"]]
+        state_order = {"failed": 0, "blocked": 1, "never": 2}
+        selected.sort(
+            key=lambda row: (
+                state_order.get(row["state"], state_order.get(row["bucket"], 3)),
+                (row["device"].customer.name if row["device"].customer else "").lower(),
+                (row["device"].display_name or row["device"].device_identity or row["device"].name or "").lower(),
+            )
+        )
+        total = len(selected)
+        pages = max(1, math.ceil(total / OVERVIEW_PER_PAGE))
+        page = min(max(1, page), pages)
+        selected = selected[(page - 1) * OVERVIEW_PER_PAGE : page * OVERVIEW_PER_PAGE]
 
         customer_rows = []
         for customer in customers:
@@ -341,6 +425,15 @@ def backup_customer_overview(request: Request):
             blocked_total=blocked_total,
             no_policy_total=no_policy_total,
             backup_alerts_total=backup_alerts_total,
+            rows=selected,
+            view=view,
+            view_counts=view_counts,
+            customers=customers,
+            customer_filter=customer,
+            q=q.strip(),
+            total=total,
+            page=page,
+            pages=pages,
         )
 
 

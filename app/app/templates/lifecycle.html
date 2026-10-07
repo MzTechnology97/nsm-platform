@@ -1,29 +1,29 @@
 {% extends "base.html" %}
+{% from "_worklist.html" import chips, pager, context_banner %}
 {% block title %}EOL / EOS · {{ app_name }}{% endblock %}
 {% block content %}
+{% set scope = '?q=' ~ q|urlencode ~ '&customer=' ~ customer_filter ~ '&vendor=' ~ vendor_filter|urlencode %}
 <div class="page-header compact-heading">
-  <div><h1>EOL / EOS</h1><p>Lifecycle vendor degli apparati{% if selected_customer %} del cliente {{ selected_customer.name }}{% endif %}. La vista mostra soltanto apparati EOL/EOS.</p></div>
+  <div><h1>EOL / EOS</h1><p>Apparati fuori dal lifecycle vendor{% if selected_customer %} del cliente {{ selected_customer.name }}{% endif %}: end of life ed end of support.</p></div>
 </div>
-<div class="backup-overview-grid lifecycle-overview-grid">
-  <div class="backup-status-card"><span class="metric-label">Apparati</span><strong>{{ eol_count + eos_count }}</strong><small>fuori lifecycle</small></div>
-  <div class="backup-status-card {% if eol_count %}metric-warning{% endif %}"><span class="metric-label">EOL</span><strong>{{ eol_count }}</strong><small>end of life</small></div>
-  <div class="backup-status-card {% if eos_count %}metric-critical{% endif %}"><span class="metric-label">EOS</span><strong>{{ eos_count }}</strong><small>end of support</small></div>
-  <div class="backup-status-card"><span class="metric-label">Clienti</span><strong>{{ customer_count }}</strong><small>coinvolti</small></div>
-</div>
-<section class="panel compact-panel">
-  <form class="filter-bar" method="get">
-    <label>Cerca<input type="search" name="q" value="{{ q }}" placeholder="Apparato, modello, seriale..."></label>
-    <label>Cliente<select name="customer"><option value="">Tutti i clienti</option>{% for customer in customers %}<option value="{{ customer.id }}" {% if customer_filter == customer.id|string %}selected{% endif %}>{{ customer.name }}</option>{% endfor %}</select></label>
-    <label>Vendor<select name="vendor"><option value="">Tutti</option>{% for item in vendors %}<option value="{{ item }}" {% if vendor_filter == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
-    <label>Stato<select name="state"><option value="">EOL + EOS</option><option value="eol" {% if state_filter == 'eol' %}selected{% endif %}>EOL</option><option value="eos" {% if state_filter == 'eos' %}selected{% endif %}>EOS</option></select></label>
-    <button class="button primary">Filtra</button>
-    {% if q or customer_filter or vendor_filter or state_filter %}<a class="button ghost" href="/security/lifecycle">Reset</a>{% endif %}
-  </form>
-</section>
-{% if selected_customer %}<div class="context-banner"><strong>{{ selected_customer.name }}</strong><span>Vista Lifecycle confinata agli apparati di questo cliente.</span><a href="/customers/{{ selected_customer.id }}">Torna al cliente ›</a></div>{% endif %}
+
+{{ chips([
+  {'label': 'EOL + EOS', 'count': eol_count + eos_count, 'href': scope ~ '&state=', 'active': not state_filter},
+  {'label': 'EOL', 'count': eol_count, 'href': scope ~ '&state=eol', 'active': state_filter == 'eol', 'tone': 'warning'},
+  {'label': 'EOS', 'count': eos_count, 'href': scope ~ '&state=eos', 'active': state_filter == 'eos', 'tone': 'danger'},
+]) }}
+{{ context_banner(selected_customer, 'Vista Lifecycle confinata agli apparati di questo cliente.') }}
+
 <section class="panel">
-  <div class="panel-header"><div><h2>Apparati EOL / EOS</h2><p>{{ total }} apparati corrispondenti ai filtri selezionati.</p></div></div>
-  {% if devices %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Apparato</th><th>Cliente</th><th>Sede</th><th>Vendor / modello</th><th>Stato</th><th>EOL</th><th>EOS</th><th>Verifica</th><th>Fonte</th></tr></thead><tbody>{% for d in devices %}<tr><td><a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a><small>{{ d.serial_number or d.device_identity or 'Identità non disponibile' }}</small></td><td><a href="/customers/{{ d.customer.id }}">{{ d.customer.name }}</a></td><td>{{ d.site.name if d.site else 'Nessuna sede' }}</td><td>{{ d.vendor }}<small>{{ d.model or '—' }}</small></td><td><span class="severity-badge {% if d.lifecycle_status == 'eos' %}severity-critical{% else %}severity-warning{% endif %}">{{ d.lifecycle_status|upper }}</span></td><td>{{ d.eol_date or '—' }}</td><td>{{ d.eos_date or '—' }}</td><td>{{ fmt_dt(d.lifecycle_verified_at) if d.lifecycle_verified_at else 'Non verificato' }}</td><td>{% if d.lifecycle_source %}<a href="{{ d.lifecycle_source }}" target="_blank" rel="noopener">Vendor ↗</a>{% else %}—{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state success-state">Nessun apparato EOL/EOS corrisponde ai filtri selezionati.</div>{% endif %}
-  {% if pages > 1 %}<div class="pagination"><span>Pagina {{ page }} di {{ pages }}</span>{% if page > 1 %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&state={{ state_filter }}&page={{ page-1 }}">‹ Precedente</a>{% endif %}{% if page < pages %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&state={{ state_filter }}&page={{ page+1 }}">Successiva ›</a>{% endif %}</div>{% endif %}
+  <form class="filter-bar" method="get">
+    <input type="hidden" name="state" value="{{ state_filter }}">
+    <input type="search" name="q" value="{{ q }}" placeholder="Apparato, modello, seriale..." aria-label="Cerca">
+    <select name="customer" aria-label="Cliente"><option value="">Tutti i clienti</option>{% for customer in customers %}<option value="{{ customer.id }}" {% if customer_filter == customer.id|string %}selected{% endif %}>{{ customer.name }}</option>{% endfor %}</select>
+    <select name="vendor" aria-label="Vendor"><option value="">Tutti i vendor</option>{% for item in vendors %}<option value="{{ item }}" {% if vendor_filter == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+    <button class="button primary">Applica</button>
+    {% if q or customer_filter or vendor_filter or state_filter %}<a class="button ghost" href="/security/lifecycle">Reset</a>{% endif %}
+    <span class="muted">{{ customer_count }} clienti coinvolti</span>
+  </form>
+  {% if devices %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Apparato</th><th>Cliente / sede</th><th>Vendor / modello</th><th>Stato</th><th>EOL</th><th>EOS</th><th>Verifica</th><th>Fonte</th></tr></thead><tbody>{% for d in devices %}<tr><td><a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a><small>{{ d.serial_number or d.device_identity or 'Identità non disponibile' }}</small></td><td><a href="/customers/{{ d.customer.id }}">{{ d.customer.name }}</a><small>{{ d.site.name if d.site else 'Nessuna sede' }}</small></td><td>{{ d.vendor }}<small>{{ d.model or '—' }}</small></td><td><span class="severity-badge {% if d.lifecycle_status == 'eos' %}severity-critical{% else %}severity-warning{% endif %}">{{ d.lifecycle_status|upper }}</span></td><td>{{ d.eol_date or '—' }}</td><td>{{ d.eos_date or '—' }}</td><td>{{ fmt_dt(d.lifecycle_verified_at) if d.lifecycle_verified_at else 'Non verificato' }}</td><td>{% if d.lifecycle_source %}<a href="{{ d.lifecycle_source }}" target="_blank" rel="noopener">Vendor ↗</a>{% else %}—{% endif %}</td></tr>{% endfor %}</tbody></table></div>{{ pager(total, page, pages, scope ~ '&state=' ~ state_filter) }}{% else %}<div class="empty-state success-state">Nessun apparato EOL/EOS corrisponde ai filtri selezionati.</div>{% endif %}
 </section>
 {% endblock %}

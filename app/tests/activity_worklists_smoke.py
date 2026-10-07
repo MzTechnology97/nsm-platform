@@ -95,7 +95,7 @@ def main():
     assert global_audit.status_code == 200
     assert "Registro eventi" in global_audit.text
     assert "CI39_LOG" in global_audit.text
-    assert "32 eventi con i filtri correnti" in global_audit.text
+    assert "32 risultati · pagina 1 di 2" in global_audit.text
     assert "Esporta CSV" in global_audit.text
 
     exported = client.get("/audit/events/export.csv", params={"customer": str(customer_id), "device": "CI39SERIAL", "event_type": "CI39_LOG"})

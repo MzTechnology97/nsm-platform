@@ -336,11 +336,34 @@ def status_label(value: str | None):
         "open": "Aperto",
         "acknowledged": "Preso in carico",
         "resolved": "Risolto",
+        "current": "Aggiornato",
+        "up_to_date": "Aggiornato",
+        "outdated": "Obsoleto",
+        "update_available": "Aggiornamento disponibile",
+        "security": "Update di sicurezza",
+        "security_update": "Update di sicurezza",
+        "critical": "Critico",
+        "critical_security_update": "Update critico",
     }
     return labels.get(value or "", (value or "—").replace("_", " ").title())
 
 
 templates.env.globals["status_label"] = status_label
+
+EVENT_ACRONYMS = {"API", "CSV", "CVE", "IP", "MAC", "PDF", "RSC", "UISP", "UI", "ACS", "NVD", "EOL", "EOS", "TLS", "VPN"}
+
+
+def event_label(value: str | None):
+    """Readable form of an audit event code: BACKUP_EXPORT_VIEWED -> Backup export viewed."""
+    words = [word for word in (value or "").split("_") if word]
+    if not words:
+        return "—"
+    out = [word if word in EVENT_ACRONYMS else word.lower() for word in words]
+    out[0] = out[0] if out[0] in EVENT_ACRONYMS else out[0].capitalize()
+    return " ".join(out)
+
+
+templates.env.globals["event_label"] = event_label
 
 
 @app.get("/health")

@@ -1,6 +1,7 @@
 """NSM Core 0.49 application entrypoint."""
 from app import main as core
 from app import mikrotik_agent as mikrotik_agent_core
+from app.static_assets import static_asset_version
 from app.activity_route_precedence import install_activity_route_precedence
 from app.activity_worklists import install_activity_worklists
 from app.agent_fleet import install_agent_fleet
@@ -88,6 +89,7 @@ APP_VERSION = "0.49.0"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
+core.templates.env.globals["asset_version"] = static_asset_version()
 install_ui(core.app, core.templates)
 install_ui_feedback(core.app, core.templates)
 install_workflow_ui(core.app, core.templates)

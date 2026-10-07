@@ -1,30 +1,54 @@
 {% extends "base.html" %}
+{% from "_worklist.html" import chips, pager, context_banner %}
 {% block title %}Firmware · {{ app_name }}{% endblock %}
 {% block content %}
+{% set scope = '?q=' ~ q|urlencode ~ '&customer=' ~ customer_filter ~ '&vendor=' ~ vendor_filter|urlencode %}
 <div class="page-header compact-heading">
-  <div><h1>Firmware</h1><p>Worklist degli apparati che richiedono verifica o aggiornamento{% if selected_customer %} per {{ selected_customer.name }}{% endif %}.</p></div>
+  <div><h1>Firmware</h1><p>Apparati che richiedono verifica o aggiornamento firmware{% if selected_customer %} per {{ selected_customer.name }}{% endif %}. Il controllo MikroTik è in sola lettura: non scarica pacchetti e non riavvia il router.</p></div>
 </div>
-{% if request.query_params.get('firmware_check') == 'queued' %}<div class="alert success">Verifica RouterOS accodata. L'agent la eseguirà al prossimo poll.</div>{% elif request.query_params.get('firmware_check') == 'already_queued' %}<div class="alert info">Una verifica firmware è già in coda per questo apparato.</div>{% elif request.query_params.get('firmware_check') == 'agent_required' %}<div class="alert warning">La verifica richiede un MikroTik online con agent NSM autenticato.</div>{% endif %}
-<div class="backup-overview-grid firmware-overview-grid">
-  <a class="backup-status-card {% if attention_count %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&state=attention"><span class="metric-label">Da aggiornare</span><strong>{{ attention_count }}</strong><small>attenzione firmware</small></a>
-  <a class="backup-status-card {% if security_count %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&state=security"><span class="metric-label">Security</span><strong>{{ security_count }}</strong><small>update di sicurezza</small></a>
-  <a class="backup-status-card {% if critical_count %}metric-critical{% endif %}" href="?customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&state=critical"><span class="metric-label">Critical</span><strong>{{ critical_count }}</strong><small>priorità massima</small></a>
-  <a class="backup-status-card {% if unknown_count %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&state=unknown"><span class="metric-label">Sconosciuto</span><strong>{{ unknown_count }}</strong><small>stato da verificare</small></a>
-</div>
-<section class="panel compact-panel">
+
+{{ chips([
+  {'label': 'Da aggiornare', 'count': attention_count, 'href': scope ~ '&state=attention', 'active': state_filter == 'attention', 'tone': 'warning'},
+  {'label': 'Update di sicurezza', 'count': security_count, 'href': scope ~ '&state=security', 'active': state_filter == 'security', 'tone': 'warning'},
+  {'label': 'Critici', 'count': critical_count, 'href': scope ~ '&state=critical', 'active': state_filter == 'critical', 'tone': 'danger'},
+  {'label': 'Stato sconosciuto', 'count': unknown_count, 'href': scope ~ '&state=unknown', 'active': state_filter == 'unknown'},
+  {'label': 'Tutti', 'count': scope_total, 'href': scope ~ '&state=all', 'active': state_filter not in ['attention', 'security', 'critical', 'unknown']},
+]) }}
+{{ context_banner(selected_customer, 'Vista Firmware confinata agli apparati di questo cliente.') }}
+
+<section class="panel">
   <form class="filter-bar" method="get">
-    <label>Cerca<input type="search" name="q" value="{{ q }}" placeholder="Apparato, modello, versione..."></label>
-    <label>Cliente<select name="customer"><option value="">Tutti i clienti</option>{% for customer in customers %}<option value="{{ customer.id }}" {% if customer_filter == customer.id|string %}selected{% endif %}>{{ customer.name }}</option>{% endfor %}</select></label>
-    <label>Vendor<select name="vendor"><option value="">Tutti</option>{% for item in vendors %}<option value="{{ item }}" {% if vendor_filter == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
-    <label>Stato<select name="state"><option value="attention" {% if state_filter == 'attention' %}selected{% endif %}>Da aggiornare</option><option value="security" {% if state_filter == 'security' %}selected{% endif %}>Security update</option><option value="critical" {% if state_filter == 'critical' %}selected{% endif %}>Critical security</option><option value="unknown" {% if state_filter == 'unknown' %}selected{% endif %}>Sconosciuto</option><option value="current" {% if state_filter == 'current' %}selected{% endif %}>Aggiornato</option><option value="all" {% if state_filter == 'all' %}selected{% endif %}>Tutti</option></select></label>
-    <button class="button primary">Filtra</button>
+    <input type="hidden" name="state" value="{{ state_filter }}">
+    <input type="search" name="q" value="{{ q }}" placeholder="Apparato, modello, versione..." aria-label="Cerca">
+    <select name="customer" aria-label="Cliente"><option value="">Tutti i clienti</option>{% for customer in customers %}<option value="{{ customer.id }}" {% if customer_filter == customer.id|string %}selected{% endif %}>{{ customer.name }}</option>{% endfor %}</select>
+    <select name="vendor" aria-label="Vendor"><option value="">Tutti i vendor</option>{% for item in vendors %}<option value="{{ item }}" {% if vendor_filter == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+    <button class="button primary">Applica</button>
     {% if q or customer_filter or vendor_filter or state_filter != 'attention' %}<a class="button ghost" href="/operations/firmware">Reset</a>{% endif %}
   </form>
-</section>
-{% if selected_customer %}<div class="context-banner"><strong>{{ selected_customer.name }}</strong><span>Vista Firmware confinata agli apparati di questo cliente.</span><a href="/customers/{{ selected_customer.id }}">Torna al cliente ›</a></div>{% endif %}
-<section class="panel">
-  <div class="panel-header"><div><h2>Apparati</h2><p>{{ total }} apparati corrispondenti ai filtri selezionati. Il controllo MikroTik è read-only: non scarica pacchetti e non riavvia il router.</p></div></div>
-  {% if devices %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Apparato</th><th>Cliente</th><th>Sede</th><th>Vendor / modello</th><th>Installato</th><th>Raccomandato</th><th>Stato</th><th>Ultima verifica</th><th>Azioni</th></tr></thead><tbody>{% for d in devices %}{% set fw = (d.inventory_data or {}).get('firmware_readiness', {}) %}{% set agent_transport = (d.inventory_data or {}).get('agent_transport', '') %}<tr><td><a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a><small>{{ d.device_identity or d.serial_number or d.primary_mac or 'Identità non disponibile' }}</small></td><td><a href="/customers/{{ d.customer.id }}">{{ d.customer.name }}</a></td><td>{{ d.site.name if d.site else 'Nessuna sede' }}</td><td>{{ d.vendor }}<small>{{ d.model or '—' }}{% if fw.get('channel') %} · {{ fw.get('channel') }}{% endif %}</small></td><td>{{ d.firmware_version or '—' }}</td><td>{% if d.recommended_firmware_version and d.recommended_firmware_version != d.firmware_version %}<strong class="warning-text">{{ d.recommended_firmware_version }}</strong>{% else %}{{ d.recommended_firmware_version or '—' }}{% endif %}{% if fw.get('status') %}<small>{{ fw.get('status') }}</small>{% endif %}</td><td><span class="status-pill">{{ status_label(d.firmware_status) }}</span></td><td>{{ fmt_dt(d.inventory_last_verified_at) if d.inventory_last_verified_at else 'Non verificato' }}</td><td><div class="page-actions compact-actions">{% if d.vendor|lower == 'mikrotik' and has_permission(user, 'firmware.read') %}{% if d.status == 'online' %}<form method="post" action="/devices/{{ d.id }}/firmware-readiness"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="return_to" value="firmware"><button class="button tiny ghost" type="submit">Verifica ora</button></form>{% else %}<span class="muted">Offline</span>{% endif %}{% endif %}{% if d.vendor|lower == 'mikrotik' and has_permission(user, 'firmware.execute') and d.status == 'online' and d.recommended_firmware_version and d.recommended_firmware_version != d.firmware_version and agent_transport != 'legacy' %}<form method="post" action="/devices/{{ d.id }}/firmware-upgrade/plan"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny primary" type="submit">Prepara upgrade</button></form>{% endif %}<a class="button tiny ghost" href="/devices/{{ d.id }}/firmware-upgrade">Piano</a>{% if d.vendor|lower == 'mikrotik' %}<a class="button tiny ghost" href="/devices/{{ d.id }}/routerboot">RouterBOOT</a>{% endif %}</div></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state success-state">Nessun apparato corrisponde ai filtri firmware selezionati.</div>{% endif %}
-  {% if pages > 1 %}<div class="pagination"><span>Pagina {{ page }} di {{ pages }}</span>{% if page > 1 %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&state={{ state_filter }}&page={{ page-1 }}">‹ Precedente</a>{% endif %}{% if page < pages %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&state={{ state_filter }}&page={{ page+1 }}">Successiva ›</a>{% endif %}</div>{% endif %}
+
+  {% if devices %}
+  <div class="table-wrap"><table class="data-table compact-data-table">
+    <thead><tr><th>Apparato</th><th>Cliente / sede</th><th>Vendor / modello</th><th>Installato</th><th>Raccomandato</th><th>Stato</th><th>Ultima verifica</th><th></th></tr></thead>
+    <tbody>{% for d in devices %}{% set fw = (d.inventory_data or {}).get('firmware_readiness', {}) %}{% set agent_transport = (d.inventory_data or {}).get('agent_transport', '') %}
+      <tr>
+        <td><a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a><small>{{ d.device_identity or d.serial_number or d.primary_mac or 'Identità non disponibile' }}</small></td>
+        <td><a href="/customers/{{ d.customer.id }}">{{ d.customer.name }}</a><small>{{ d.site.name if d.site else 'Nessuna sede' }}</small></td>
+        <td>{{ d.vendor }}<small>{{ d.model or '—' }}{% if fw.get('channel') %} · {{ fw.get('channel') }}{% endif %}</small></td>
+        <td>{{ d.firmware_version or '—' }}</td>
+        <td>{% if d.recommended_firmware_version and d.recommended_firmware_version != d.firmware_version %}<strong class="warning-text">{{ d.recommended_firmware_version }}</strong>{% else %}{{ d.recommended_firmware_version or '—' }}{% endif %}{% if fw.get('status') %}<small>{{ fw.get('status') }}</small>{% endif %}</td>
+        <td><span class="status-pill">{{ status_label(d.firmware_status) }}</span></td>
+        <td>{{ fmt_dt(d.inventory_last_verified_at) if d.inventory_last_verified_at else 'Non verificato' }}</td>
+        <td><div class="row-actions">
+          {% if d.vendor|lower == 'mikrotik' and has_permission(user, 'firmware.read') %}{% if d.status == 'online' %}<form method="post" action="/devices/{{ d.id }}/firmware-readiness"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="return_to" value="firmware"><button class="button tiny ghost" type="submit">Verifica ora</button></form>{% else %}<span class="muted">Offline</span>{% endif %}{% endif %}
+          {% if d.vendor|lower == 'mikrotik' and has_permission(user, 'firmware.execute') and d.status == 'online' and d.recommended_firmware_version and d.recommended_firmware_version != d.firmware_version and agent_transport != 'legacy' %}<form method="post" action="/devices/{{ d.id }}/firmware-upgrade/plan"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny primary" type="submit">Prepara upgrade</button></form>{% endif %}
+          <a class="button tiny ghost" href="/devices/{{ d.id }}/firmware-upgrade">Piano</a>
+        </div></td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {{ pager(total, page, pages, scope ~ '&state=' ~ state_filter) }}
+  {% else %}
+  <div class="empty-state success-state">Nessun apparato corrisponde ai filtri firmware selezionati.</div>
+  {% endif %}
 </section>
 {% endblock %}

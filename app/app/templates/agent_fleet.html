@@ -1,6 +1,9 @@
 {% extends "base.html" %}
+{% from "_worklist.html" import chips, pager, context_banner %}
 {% block title %}Agent Fleet · {{ app_name }}{% endblock %}
 {% block content %}
+{% set scope = '?q=' ~ q|urlencode ~ '&customer=' ~ customer_filter %}
+{% set plain = not transport_filter and not install_filter %}
 <div class="page-header compact-heading">
   <div>
     <h1>Agent Fleet</h1>
@@ -8,51 +11,38 @@
   </div>
 </div>
 
-<div class="backup-overview-grid firmware-overview-grid">
-  <a class="backup-status-card" href="?customer={{ customer_filter }}&state=all"><span class="metric-label">MikroTik</span><strong>{{ summary.total }}</strong><small>apparati nel perimetro</small></a>
-  <a class="backup-status-card {% if summary.verified %}metric-ok{% endif %}" href="?customer={{ customer_filter }}&state=all&install=verified"><span class="metric-label">Installati</span><strong>{{ summary.verified }}</strong><small>pairing + heartbeat verificati</small></a>
-  <a class="backup-status-card {% if summary.install_suspect %}metric-danger{% endif %}" href="?customer={{ customer_filter }}&state=all&install=suspect"><span class="metric-label">Installazione KO</span><strong>{{ summary.install_suspect }}</strong><small>pairing senza heartbeat</small></a>
-  <a class="backup-status-card {% if summary.pending %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&state=all&install=waiting"><span class="metric-label">In attesa</span><strong>{{ summary.pending }}</strong><small>pairing / primo heartbeat</small></a>
-  <a class="backup-status-card {% if summary.token_expired %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&state=all&install=expired"><span class="metric-label">Token scaduti</span><strong>{{ summary.token_expired }}</strong><small>onboarding da rigenerare</small></a>
-  <a class="backup-status-card {% if summary.attention %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&state=attention"><span class="metric-label">Attenzione</span><strong>{{ summary.attention }}</strong><small>richiedono verifica</small></a>
-  <a class="backup-status-card" href="?customer={{ customer_filter }}&state=all&transport=modern"><span class="metric-label">Modern</span><strong>{{ summary.modern }}</strong><small>transport completo</small></a>
-  <a class="backup-status-card {% if summary.legacy %}metric-warning{% endif %}" href="?customer={{ customer_filter }}&state=all&transport=legacy"><span class="metric-label">Legacy</span><strong>{{ summary.legacy }}</strong><small>RouterOS 7.12.x</small></a>
-</div>
-
-<section class="panel compact-panel">
-  <form class="filter-bar" method="get">
-    <label>Cerca<input type="search" name="q" value="{{ q }}" placeholder="Alias, identity, IP, MAC, seriale..."></label>
-    <label>Cliente<select name="customer"><option value="">Tutti i clienti</option>{% for customer in customers %}<option value="{{ customer.id }}" {% if customer_filter == customer.id|string %}selected{% endif %}>{{ customer.name }}</option>{% endfor %}</select></label>
-    <label>Salute<select name="state">
-      <option value="attention" {% if state_filter == 'attention' %}selected{% endif %}>Da verificare</option>
-      <option value="healthy" {% if state_filter == 'healthy' %}selected{% endif %}>Regolare</option>
-      <option value="offline" {% if state_filter == 'offline' %}selected{% endif %}>Offline</option>
-      <option value="stale" {% if state_filter == 'stale' %}selected{% endif %}>Heartbeat stale</option>
-      <option value="install_suspect" {% if state_filter == 'install_suspect' %}selected{% endif %}>Installazione sospetta</option>
-      <option value="token_expired" {% if state_filter == 'token_expired' %}selected{% endif %}>Token scaduto</option>
-      <option value="no_credential" {% if state_filter == 'no_credential' %}selected{% endif %}>Credenziale assente</option>
-      <option value="pending" {% if state_filter == 'pending' %}selected{% endif %}>Enrollment / heartbeat in attesa</option>
-      <option value="unknown_transport" {% if state_filter == 'unknown_transport' %}selected{% endif %}>Transport sconosciuto</option>
-      <option value="all" {% if state_filter == 'all' %}selected{% endif %}>Tutti</option>
-    </select></label>
-    <label>Installazione<select name="install">
-      <option value="" {% if not install_filter %}selected{% endif %}>Tutti gli stati</option>
-      <option value="verified" {% if install_filter == 'verified' %}selected{% endif %}>Verificata</option>
-      <option value="waiting" {% if install_filter == 'waiting' %}selected{% endif %}>In attesa</option>
-      <option value="suspect" {% if install_filter == 'suspect' %}selected{% endif %}>Pairing OK / agent non avviato</option>
-      <option value="expired" {% if install_filter == 'expired' %}selected{% endif %}>Token scaduto</option>
-      <option value="not_enrolled" {% if install_filter == 'not_enrolled' %}selected{% endif %}>Non associato</option>
-    </select></label>
-    <label>Transport<select name="transport"><option value="">Tutti</option><option value="modern" {% if transport_filter == 'modern' %}selected{% endif %}>Modern</option><option value="legacy" {% if transport_filter == 'legacy' %}selected{% endif %}>Legacy</option><option value="unknown" {% if transport_filter == 'unknown' %}selected{% endif %}>Sconosciuto</option></select></label>
-    <button class="button primary">Filtra</button>
-    {% if q or customer_filter or transport_filter or install_filter or state_filter != 'attention' %}<a class="button ghost" href="/operations/agents">Reset</a>{% endif %}
-  </form>
-</section>
-
-{% if selected_customer %}<div class="context-banner"><strong>{{ selected_customer.name }}</strong><span>Vista Agent Fleet confinata agli apparati MikroTik del cliente.</span><a href="/customers/{{ selected_customer.id }}">Torna al cliente ›</a></div>{% endif %}
+{{ chips([
+  {'label': 'Da verificare', 'count': summary.attention, 'href': scope ~ '&state=attention', 'active': state_filter == 'attention' and plain, 'tone': 'warning'},
+  {'label': 'Installazione KO', 'count': summary.install_suspect, 'href': scope ~ '&state=all&install=suspect', 'active': install_filter == 'suspect', 'tone': 'danger'},
+  {'label': 'In attesa', 'count': summary.pending, 'href': scope ~ '&state=all&install=waiting', 'active': install_filter == 'waiting'},
+  {'label': 'Token scaduti', 'count': summary.token_expired, 'href': scope ~ '&state=all&install=expired', 'active': install_filter == 'expired', 'tone': 'warning'},
+  {'label': 'Legacy 7.12', 'count': summary.legacy, 'href': scope ~ '&state=all&transport=legacy', 'active': transport_filter == 'legacy'},
+  {'label': 'Tutti', 'count': summary.total, 'href': scope ~ '&state=all', 'active': state_filter == 'all' and plain},
+]) }}
+{{ context_banner(selected_customer, 'Vista Agent Fleet confinata agli apparati MikroTik del cliente.') }}
 
 <section class="panel">
-  <div class="panel-header"><div><h2>Agenti MikroTik</h2><p>{{ total }} risultati. Pairing e avvio agent sono verificati separatamente: un token consumato non equivale a un heartbeat post-installazione.</p></div></div>
+  <form class="filter-bar" method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="Alias, identity, IP, MAC, seriale..." aria-label="Cerca">
+    <select name="customer" aria-label="Cliente"><option value="">Tutti i clienti</option>{% for customer in customers %}<option value="{{ customer.id }}" {% if customer_filter == customer.id|string %}selected{% endif %}>{{ customer.name }}</option>{% endfor %}</select>
+    <details class="more-filters"{% if not plain or state_filter not in ['attention', 'all'] %} open{% endif %}>
+      <summary class="button ghost">Altri filtri</summary>
+      <div class="more-filters-body">
+        <label>Salute<select name="state">
+          {% for value, label in [('attention', 'Da verificare'), ('healthy', 'Regolare'), ('offline', 'Offline'), ('stale', 'Heartbeat stale'), ('install_suspect', 'Installazione sospetta'), ('token_expired', 'Token scaduto'), ('no_credential', 'Credenziale assente'), ('pending', 'Enrollment / heartbeat in attesa'), ('unknown_transport', 'Transport sconosciuto'), ('all', 'Tutti')] %}<option value="{{ value }}" {% if state_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select></label>
+        <label>Installazione<select name="install">
+          {% for value, label in [('', 'Tutti gli stati'), ('verified', 'Verificata'), ('waiting', 'In attesa'), ('suspect', 'Pairing OK / agent non avviato'), ('expired', 'Token scaduto'), ('not_enrolled', 'Non associato')] %}<option value="{{ value }}" {% if install_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select></label>
+        <label>Transport<select name="transport">
+          {% for value, label in [('', 'Tutti'), ('modern', 'Modern 7.13+'), ('legacy', 'Legacy 7.12'), ('unknown', 'Sconosciuto')] %}<option value="{{ value }}" {% if transport_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select></label>
+      </div>
+    </details>
+    <button class="button primary">Applica</button>
+    {% if q or customer_filter or transport_filter or install_filter or state_filter != 'attention' %}<a class="button ghost" href="/operations/agents">Reset</a>{% endif %}
+  </form>
+  <p class="muted">Pairing e avvio agent sono verificati separatamente: un token consumato non equivale a un heartbeat post-installazione.</p>
   {% if rows %}
   <div class="table-wrap"><table class="data-table compact-data-table">
     <thead><tr><th>Apparato</th><th>Cliente / sede</th><th>Installazione</th><th>Transport</th><th>Salute</th><th>Heartbeat post-installazione</th><th>Credenziale</th><th>Origine</th><th>Azioni</th></tr></thead>
@@ -91,6 +81,6 @@
   </table></div>
   {% else %}<div class="empty-state success-state">Nessun agente corrisponde ai filtri selezionati.</div>{% endif %}
 
-  {% if pages > 1 %}<div class="pagination"><span>Pagina {{ page }} di {{ pages }}</span>{% if page > 1 %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&state={{ state_filter }}&transport={{ transport_filter }}&install={{ install_filter }}&page={{ page-1 }}">‹ Precedente</a>{% endif %}{% if page < pages %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&state={{ state_filter }}&transport={{ transport_filter }}&install={{ install_filter }}&page={{ page+1 }}">Successiva ›</a>{% endif %}</div>{% endif %}
+  {% if rows %}{{ pager(total, page, pages, scope ~ '&state=' ~ state_filter ~ '&transport=' ~ transport_filter ~ '&install=' ~ install_filter) }}{% endif %}
 </section>
 {% endblock %}

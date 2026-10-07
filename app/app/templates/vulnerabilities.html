@@ -1,24 +1,33 @@
 {% extends "base.html" %}
+{% from "_worklist.html" import chips, pager, context_banner %}
 {% block title %}Vulnerabilità · {{ app_name }}{% endblock %}
 {% block content %}
+{% set scope = '?q=' ~ q|urlencode ~ '&customer=' ~ customer_filter ~ '&vendor=' ~ vendor_filter|urlencode ~ '&status=' ~ status_filter %}
 <div class="page-header compact-heading">
   <div><h1>Vulnerabilità</h1><p>Security advisory e impatto reale sull'inventario gestito{% if selected_customer %} del cliente {{ selected_customer.name }}{% endif %}.</p></div>
 </div>
-<section class="panel compact-panel">
+{{ chips([
+  {'label': 'Critical / High', 'count': severity_counts.get('severe', 0), 'href': scope ~ '&severity=severe', 'active': severity_filter == 'severe', 'tone': 'danger'},
+  {'label': 'Critical', 'count': severity_counts.get('critical', 0), 'href': scope ~ '&severity=critical', 'active': severity_filter == 'critical', 'tone': 'danger'},
+  {'label': 'High', 'count': severity_counts.get('high', 0), 'href': scope ~ '&severity=high', 'active': severity_filter == 'high', 'tone': 'warning'},
+  {'label': 'Medium', 'count': severity_counts.get('medium', 0), 'href': scope ~ '&severity=medium', 'active': severity_filter == 'medium'},
+  {'label': 'Low', 'count': severity_counts.get('low', 0), 'href': scope ~ '&severity=low', 'active': severity_filter == 'low'},
+  {'label': 'Tutte', 'count': severity_counts.get('all', 0), 'href': scope ~ '&severity=', 'active': not severity_filter},
+], 'Severità') }}
+{{ context_banner(selected_customer, 'Vista Security confinata al cliente selezionato.') }}
+
+<section class="panel">
   <form class="filter-bar" method="get">
-    <label>Cerca<input type="search" name="q" value="{{ q }}" placeholder="CVE, vendor, prodotto..."></label>
-    <label>Cliente<select name="customer"><option value="">Tutti i clienti</option>{% for customer in customers %}<option value="{{ customer.id }}" {% if customer_filter == customer.id|string %}selected{% endif %}>{{ customer.name }}</option>{% endfor %}</select></label>
-    <label>Vendor<select name="vendor"><option value="">Tutti</option>{% for item in vendors %}<option value="{{ item }}" {% if vendor_filter == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
-    <label>Severità<select name="severity"><option value="">Tutte</option>{% for value,label in [('critical','Critical'),('high','High'),('medium','Medium'),('low','Low'),('unknown','Unknown')] %}<option value="{{ value }}" {% if severity_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-    <label>Impatto<select name="status"><option value="open" {% if status_filter == 'open' %}selected{% endif %}>Aperto</option><option value="resolved" {% if status_filter == 'resolved' %}selected{% endif %}>Risolto</option><option value="all" {% if status_filter == 'all' %}selected{% endif %}>Tutti</option></select></label>
-    <button class="button primary">Filtra</button>
+    <input type="hidden" name="severity" value="{{ severity_filter }}">
+    <input type="search" name="q" value="{{ q }}" placeholder="CVE, vendor, prodotto..." aria-label="Cerca">
+    <select name="customer" aria-label="Cliente"><option value="">Tutti i clienti</option>{% for customer in customers %}<option value="{{ customer.id }}" {% if customer_filter == customer.id|string %}selected{% endif %}>{{ customer.name }}</option>{% endfor %}</select>
+    <select name="vendor" aria-label="Vendor"><option value="">Tutti i vendor</option>{% for item in vendors %}<option value="{{ item }}" {% if vendor_filter == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+    <select name="status" aria-label="Impatto">{% for value, label in [('open', 'Impatto aperto'), ('resolved', 'Risolte'), ('all', 'Tutte')] %}<option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <button class="button primary">Applica</button>
     {% if q or customer_filter or vendor_filter or severity_filter or status_filter != 'open' %}<a class="button ghost" href="/security/vulnerabilities">Reset</a>{% endif %}
   </form>
-</section>
-{% if selected_customer %}<div class="context-banner"><strong>{{ selected_customer.name }}</strong><span>Vista Security confinata al cliente selezionato.</span><a href="/customers/{{ selected_customer.id }}">Torna al cliente ›</a></div>{% endif %}
-<section class="panel">
-  <div class="panel-header"><div><h2>Advisory</h2><p>{{ total }} advisory corrispondenti ai filtri. I conteggi sono distinti per apparato e cliente.</p></div></div>
+  <p class="muted">I conteggi sono distinti per apparato e cliente.</p>
   {% if advisories %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>CVE</th><th>Vendor / prodotto</th><th>Severità</th><th>CVSS</th><th>Pubblicata</th><th>Apparati</th><th>Clienti</th><th>Fonte</th></tr></thead><tbody>{% for advisory, affected_devices, affected_customers in advisories %}<tr><td><a class="strong-link" href="/security/vulnerabilities/{{ advisory.id }}?status={{ status_filter }}{% if customer_filter %}&customer={{ customer_filter }}{% endif %}">{{ advisory.cve_id }}</a></td><td>{{ advisory.vendor or '—' }}{% if advisory.product %}<small>{{ advisory.product }}</small>{% endif %}</td><td><span class="severity-badge severity-{{ advisory.severity }}">{{ advisory.severity|upper }}</span></td><td>{{ advisory.cvss if advisory.cvss is not none else '—' }}</td><td>{{ fmt_dt(advisory.published_at) }}</td><td>{% if affected_devices %}<a class="impact-count" href="/security/vulnerabilities/{{ advisory.id }}?status={{ status_filter }}{% if customer_filter %}&customer={{ customer_filter }}{% endif %}">{{ affected_devices }}</a>{% else %}<span class="muted">0</span>{% endif %}</td><td>{{ affected_customers }}</td><td>{% if advisory.vendor_advisory_url %}<a href="{{ advisory.vendor_advisory_url }}" target="_blank" rel="noopener">Vendor ↗</a>{% elif advisory.nvd_url %}<a href="{{ advisory.nvd_url }}" target="_blank" rel="noopener">NVD ↗</a>{% else %}—{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state success-state">Nessun advisory corrisponde ai filtri selezionati.</div>{% endif %}
-  {% if pages > 1 %}<div class="pagination"><span>Pagina {{ page }} di {{ pages }}</span>{% if page > 1 %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&severity={{ severity_filter }}&status={{ status_filter }}&page={{ page-1 }}">‹ Precedente</a>{% endif %}{% if page < pages %}<a class="button tiny ghost" href="?q={{ q|urlencode }}&customer={{ customer_filter }}&vendor={{ vendor_filter|urlencode }}&severity={{ severity_filter }}&status={{ status_filter }}&page={{ page+1 }}">Successiva ›</a>{% endif %}</div>{% endif %}
+  {% if advisories %}{{ pager(total, page, pages, scope ~ '&severity=' ~ severity_filter) }}{% endif %}
 </section>
 {% endblock %}

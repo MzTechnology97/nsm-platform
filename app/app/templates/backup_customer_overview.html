@@ -1,25 +1,52 @@
 {% extends "base.html" %}
+{% from "_worklist.html" import chips, pager %}
 {% block title %}Backup · {{ app_name }}{% endblock %}
 {% block content %}
+{% set scope = '?q=' ~ q|urlencode ~ '&customer=' ~ customer_filter %}
 <div class="page-header compact-heading">
-  <div><h1>Backup</h1><p>Controllo globale di copertura e policy. Il dettaglio operativo per apparato è disponibile nella scheda Backup di ogni cliente.</p></div>
-  {% if has_permission(user, 'backup.configure') %}<a class="button primary" href="/operations/backups/policies/new">+ Nuova policy globale</a>{% endif %}
+  <div><h1>Backup</h1><p>Copertura backup dell'inventario: {{ protected_total }} di {{ total_devices }} apparati hanno un backup realmente eseguibile.{% if backup_alerts_total %} <a class="text-link" href="/action-center?category=backup">{{ backup_alerts_total }} allarmi backup aperti →</a>{% endif %}</p></div>
+  {% if has_permission(user, 'backup.configure') %}<div class="page-actions"><a class="button primary" href="/operations/backups/policies/new">+ Nuova policy globale</a></div>{% endif %}
 </div>
-<div class="backup-overview-grid">
-  <div class="backup-status-card"><span class="metric-label">Apparati</span><strong>{{ total_devices }}</strong><small>totali</small></div>
-  <div class="backup-status-card"><span class="metric-label">Protetti</span><strong>{{ protected_total }}</strong><small>backup realmente eseguibile</small></div>
-  <div class="backup-status-card {% if blocked_total %}metric-warning{% endif %}"><span class="metric-label">Metodo non pronto</span><strong>{{ blocked_total }}</strong><small>policy presente, capability non disponibile</small></div>
-  <div class="backup-status-card {% if no_policy_total %}metric-warning{% endif %}"><span class="metric-label">Senza policy</span><strong>{{ no_policy_total }}</strong><small>da configurare</small></div>
-  <div class="backup-status-card {% if backup_alerts_total %}metric-critical{% endif %}"><span class="metric-label">Allarmi backup</span><strong>{{ backup_alerts_total }}</strong><small>aperti</small></div>
-</div>
-<section class="panel backup-global-navigation">
-  <div class="panel-header"><div><h2>Gestione operativa</h2><p>Questa pagina non replica più l'elenco di tutti i clienti: con inventari grandi diventerebbe poco leggibile. Usa la scheda cliente per il dettaglio di apparati, esecuzioni e policy effettive.</p></div></div>
-  <div class="backup-global-actions">
-    <a class="overview-summary-card" href="/customers"><span class="overview-summary-icon">◎</span><div><small>Dettaglio per cliente</small><strong>Clienti</strong><span>Apri un cliente e seleziona la scheda Backup</span></div></a>
-    <a class="overview-summary-card {% if backup_alerts_total %}summary-warning{% endif %}" href="/action-center?category=backup"><span class="overview-summary-icon">!</span><div><small>Problemi operativi</small><strong>{{ backup_alerts_total }}</strong><span>Apri gli allarmi Backup nell'Action Center</span></div></a>
-    {% if has_permission(user, 'backup.configure') %}<a class="overview-summary-card" href="/operations/backups/policies/new"><span class="overview-summary-icon">⚙</span><div><small>Configurazione</small><strong>Policy</strong><span>Crea una policy globale, vendor, cliente, sede o apparato</span></div></a>{% endif %}
-  </div>
+
+{{ chips([
+  {'label': 'Da verificare', 'count': view_counts.get('attention', 0), 'href': scope ~ '&view=attention', 'active': view == 'attention', 'tone': 'warning'},
+  {'label': 'Ultimo backup fallito', 'count': view_counts.get('failed', 0), 'href': scope ~ '&view=failed', 'active': view == 'failed', 'tone': 'danger'},
+  {'label': 'Metodo non pronto', 'count': view_counts.get('blocked', 0), 'href': scope ~ '&view=blocked', 'active': view == 'blocked', 'tone': 'warning'},
+  {'label': 'Mai eseguito', 'count': view_counts.get('never', 0), 'href': scope ~ '&view=never', 'active': view == 'never'},
+  {'label': 'Senza policy', 'count': view_counts.get('no_policy', 0), 'href': scope ~ '&view=no_policy', 'active': view == 'no_policy'},
+  {'label': 'Protetti', 'count': view_counts.get('protected', 0), 'href': scope ~ '&view=protected', 'active': view == 'protected'},
+  {'label': 'Tutti', 'count': view_counts.get('all', 0), 'href': scope ~ '&view=all', 'active': view == 'all'},
+]) }}
+
+<section class="panel">
+  <form class="filter-bar" method="get">
+    <input type="hidden" name="view" value="{{ view }}">
+    <input type="search" name="q" value="{{ q }}" placeholder="Apparato, seriale, IP o cliente" aria-label="Cerca">
+    <select name="customer" aria-label="Cliente"><option value="">Tutti i clienti</option>{% for c in customers %}<option value="{{ c.id }}" {% if customer_filter == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
+    <button class="button primary">Applica</button>
+    {% if q or customer_filter or view != 'attention' %}<a class="button ghost" href="/operations/backups">Reset</a>{% endif %}
+  </form>
+
+  {% if rows %}
+  <div class="table-wrap"><table class="data-table compact-data-table">
+    <thead><tr><th>Apparato</th><th>Cliente / sede</th><th>Policy</th><th>Metodo</th><th>Ultimo backup</th><th></th></tr></thead>
+    <tbody>{% for row in rows %}{% set d = row.device %}
+      <tr>
+        <td><a class="strong-link" href="/devices/{{ d.id }}/backups">{{ d.display_name or d.device_identity or d.name }}</a><small>{{ d.vendor }}{% if d.model %} · {{ d.model }}{% endif %}</small></td>
+        <td><a href="/customers/{{ d.customer_id }}/backups">{{ d.customer.name }}</a><small>{{ d.site.name if d.site else 'Nessuna sede' }}</small></td>
+        <td>{% if row.policy %}{{ row.policy.name }}{% else %}<span class="muted">Nessuna policy</span>{% endif %}</td>
+        <td><span class="status-pill{% if row.bucket == 'protected' %} run-success{% elif row.bucket == 'blocked' %} run-pending{% endif %}">{{ row.readiness_label }}</span></td>
+        <td>{% if row.latest %}<span class="status-pill run-{{ row.state }}">{{ {'success': 'Riuscito', 'failed': 'Fallito', 'running': 'In corso', 'pending': 'In coda', 'in_progress': 'In corso'}.get(row.state, row.state) }}</span><small>{{ fmt_dt(row.latest.completed_at or row.latest.started_at) }}{% if row.state == 'failed' and row.latest.error_message %} · {{ row.latest.error_message|truncate(80) }}{% endif %}</small>{% else %}<span class="muted">Mai eseguito</span>{% endif %}</td>
+        <td><div class="row-actions"><a class="button tiny ghost" href="/devices/{{ d.id }}/backups">Archivio</a>{% if not row.policy and has_permission(user, 'backup.configure') %}<a class="button tiny ghost" href="/customers/{{ d.customer_id }}/backups/policies/new?device_id={{ d.id }}">Crea policy</a>{% endif %}</div></td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {{ pager(total, page, pages, scope ~ '&view=' ~ view) }}
+  {% else %}
+  <div class="empty-state success-state">{% if view == 'attention' %}Nessun apparato con backup da verificare.{% else %}Nessun apparato corrisponde ai filtri.{% endif %}</div>
+  {% endif %}
 </section>
+
 <section class="panel">
   <div class="panel-header"><div><h2>Policy</h2><p>{{ active_policy_count }} policy attive. Le policy più specifiche prevalgono su quelle generali, ma la capability viene validata sul dispositivo.</p></div>{% if has_permission(user, 'backup.configure') %}<a class="button" href="/operations/backups/policies/new">Configura policy</a>{% endif %}</div>
   {% if policy_rows %}<div class="backup-policy-list compact-policy-list">{% for row in policy_rows %}<div class="backup-policy-card"><div class="grow"><strong>{{ row.policy.name }}</strong><small>{{ row.scope }}</small></div><div class="backup-policy-meta"><span class="metric-label">Pianificazione</span><strong>{{ row.schedule }}</strong></div><div class="backup-policy-meta"><span class="status-pill">{{ 'Attiva' if row.policy.is_enabled else 'Disattivata' }}</span></div>{% if has_permission(user, 'backup.configure') %}<a class="button tiny ghost" href="/operations/backups/policies/{{ row.policy.id }}/edit">Modifica</a>{% endif %}</div>{% endfor %}</div>{% else %}<div class="empty-state warning">Nessuna policy configurata.</div>{% endif %}

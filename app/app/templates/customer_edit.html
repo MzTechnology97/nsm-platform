@@ -2,7 +2,6 @@
 {% set customer_section = 'Gestisci cliente' %}
 {% block customer_content %}
 <div class="section-heading"><h2>Gestisci cliente</h2><p>Modifica l'anagrafica o elimina definitivamente il cliente e il relativo inventario.</p></div>
-{% if request.query_params.get('error') == 'confirm_name' %}<div class="alert error">Il nome di conferma non corrisponde. Il cliente non è stato eliminato.</div>{% endif %}
 <div class="form-page-grid">
   <section class="panel form-page-main">
     <div class="panel-header"><div><h2>Anagrafica</h2><p>Questi dati sono organizzativi e non modificano gli apparati.</p></div></div>
