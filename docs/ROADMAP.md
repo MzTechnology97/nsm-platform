@@ -280,8 +280,11 @@ Next steps:
 
 **Step 3 done (Core 0.49.46).** Access events are recognised in the syslog for each vendor and raise brute-force, success-after-failures and new-public-address alerts and notifications. Each device gets an access panel and the fleet gets the *Security → Accessi* page.
 
+**Step 2 done (Core 0.49.47, Agent 0.49.11).** The modern MikroTik agent configures remote syslog (action `nsm`: critical, error, warning, account), on demand, for all devices, or automatically.
+
 Next steps:
-- step 2, automatic configuration by the MikroTik agent;
+- remote syslog setup for other vendors through their APIs (UISP/airOS, cnMaestro);
+- legacy agent support;
 - incidents and reports built from the access events.
 
 

@@ -52,7 +52,7 @@ STATUS_KEY = "nsp:syslog:status"
 # notice and debug are history only, kept at most INFO_RETENTION_MAX days.
 KEEP_SEVERITY = 4
 INFO_RETENTION_MAX = 90
-DEFAULTS = {"accept_unknown": False, "info_retention_days": INFO_RETENTION_MAX, "public_host": ""}
+DEFAULTS = {"accept_unknown": False, "info_retention_days": INFO_RETENTION_MAX, "public_host": "", "auto_configure": True}
 SEVERITIES = ("emerg", "alert", "crit", "error", "warning", "notice", "info", "debug")
 
 _PRI = re.compile(r"^<(\d{1,3})>")

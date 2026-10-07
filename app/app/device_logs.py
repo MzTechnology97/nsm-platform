@@ -18,6 +18,7 @@ from sqlalchemy import delete, func, or_, select
 
 from app import main as core
 from app import syslog_receiver as receiver
+from app import mikrotik_syslog_config as syslog_config
 from app import syslog_security, vendor_cpe
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
@@ -92,7 +93,7 @@ def logs_page(request: Request, device_id: uuid.UUID):
         return core.render(request, db, user, "device_logs.html", device=device, today_counts=counts, last_log=last, device_section=None,
                            severity_filters=SEVERITY_FILTERS, syslog_host=public_host(db, request), syslog_status=receiver.receiver_status(),
                            device_brand_key=vendor_cpe.brand(device) or "generic", syslog_sources=device_sources(device),
-                           access=syslog_security.access_summary(db, device.id))
+                           access=syslog_security.access_summary(db, device.id), syslog_job=syslog_config.latest_job(db, device.id))
 
 
 @router.get("/devices/{device_id}/logs.csv", name="device_logs_csv")
@@ -157,7 +158,8 @@ async def save_settings(request: Request):
     with SessionLocal() as db:
         user = core.require_admin(request, db)
         retention = receiver.info_retention_days({"info_retention_days": form.get("info_retention_days")})
-        values = {"public_host": str(form.get("public_host") or "").strip()[:255], "accept_unknown": form.get("accept_unknown") == "1", "info_retention_days": retention}
+        values = {"public_host": str(form.get("public_host") or "").strip()[:255], "accept_unknown": form.get("accept_unknown") == "1", "info_retention_days": retention,
+                  "auto_configure": form.get("auto_configure") == "1"}
         row = _settings_row(db)
         if row is None:
             db.add(ConnectorIntegration(provider=receiver.PROVIDER, name="Syslog integrato", base_url=f"syslog://{values['public_host'] or 'nsm'}:514",

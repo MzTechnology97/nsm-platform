@@ -52,6 +52,15 @@
   <details{% if not last_log %} open{% endif %}>
     <summary class="panel-header syslog-setup-summary"><div><h2>Configurazione syslog dell'apparato</h2><p>Server remoto <code>{{ syslog_host or 'indirizzo di NSM' }}</code>, porta <code>514</code> UDP. NSM associa i log a questo apparato tramite l'indirizzo IP del mittente.</p></div>
       {% if syslog_status and syslog_status.alive %}<span class="device-status status-online">Ricevitore attivo</span>{% else %}<span class="device-status status-offline">Ricevitore non attivo</span>{% endif %}</summary>
+    {% if device.vendor == 'mikrotik' %}{% set agent_blocker = syslog_agent_eligibility(device) %}
+    <div class="syslog-agent">
+      <div><strong>Configurazione automatica dall'agent</strong>
+        {% if syslog_job %}<small>Ultima richiesta {{ fmt_dt(syslog_job.created_at) }} verso {{ (syslog_job.payload or {}).get('remote') }}: {% if syslog_job.status == 'success' %}<span class="severity-badge severity-info">configurato</span>{% elif syslog_job.status == 'failed' %}<span class="severity-badge severity-high">non riuscita</span> {{ syslog_job.last_error or ((syslog_job.result or {}).get('error')) or '' }}{% else %}<span class="severity-badge severity-warning">in corso</span>{% endif %}</small>
+        {% else %}<small>{{ agent_blocker or "L'agent crea l'azione «nsm» e le regole critical, error, warning e account (accessi)." }}</small>{% endif %}
+      </div>
+      {% if not agent_blocker and has_permission(user, 'devices.write') %}<form method="post" action="/devices/{{ device.id }}/syslog/configure"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">{% if syslog_job and syslog_job.status == 'success' %}Riconfigura{% else %}Configura syslog con l'agent{% endif %}</button></form>{% endif %}
+    </div>
+    {% endif %}
     {% set syslog_brand = device_brand_key %}{% set syslog_target = syslog_host %}{% include "_syslog_instructions.html" %}
     <p class="muted">Indirizzi da cui NSM accetta i log di questo apparato: {% for ip in syslog_sources %}<code>{{ ip }}</code>{% if not loop.last %}, {% endif %}{% else %}nessuno ancora noto (si aggiorna con l'heartbeat dell'agent o con l'IP di gestione){% endfor %}.</p>
   </details>
