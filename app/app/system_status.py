@@ -18,7 +18,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import text
 
 from app import main as core
-from app import worker_status
+from app import secret_rotation, worker_status
 from app.db import SessionLocal
 
 router = APIRouter()
@@ -102,7 +102,7 @@ def system_page(request: Request):
         core.require_admin(request, db)
         return core.render(request, db, user, "admin_system.html", title="Sistema", admin_tab="system",
                            version=core.APP_VERSION, database=database(db), worker=worker_status.status(),
-                           dumps=platform_dumps(), drills=restore_drills(), disk=storage(),
+                           dumps=platform_dumps(), drills=restore_drills(), disk=storage(), secrets=secret_rotation.inventory(db),
                            stale_seconds=worker_status.HEARTBEAT_STALE_SECONDS, dump_max_days=DUMP_MAX_AGE.days,
                            drill_max_days=DRILL_MAX_AGE.days)
 
