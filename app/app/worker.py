@@ -24,6 +24,7 @@ from app.uisp_sync import sync_uisp_devices
 from app.advisory_sources import sync_security_advisories
 from app.compliance import run_scheduled_evaluation as run_compliance_evaluation
 from app.lifecycle_catalog import run_scheduled_reconcile as run_lifecycle_reconcile
+from app.worker_status import beat, run_task, started
 
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
 log = logging.getLogger("worker")
@@ -40,25 +41,28 @@ install_mikrotik_backup_finalization_cleanup()
 install_backup_scheduler_capability_guard()
 
 log.info("Worker avviato")
+started()
 while True:
     try:
+        beat()
         now_mono = time.monotonic()
         if now_mono - last_maintenance >= MAINTENANCE_INTERVAL_SECONDS:
-            stats = maintenance_tick()
-            expired_pending_jobs = expire_pending_jobs()
-            expired_delivered_jobs = expire_delivered_jobs()
-            expired_agent_updates = reconcile_agent_update_states()
-            agent_stats = agent_health_tick()
-            firmware_stats = reconcile_firmware_activations()
-            firmware_plan_stats = reconcile_firmware_plan_jobs()
-            routerboot_stats = routerboot_verification_tick()
-            reboot_stats = verify_reboots()
-            reboot_stats.update({f"upgrade_{k}": v for k, v in verify_legacy_upgrades().items()})
+            # Each task runs in isolation: a failure is logged and recorded, the others still run.
+            stats = run_task("backup_maintenance", maintenance_tick)
+            expired_pending_jobs = run_task("jobs_expire_pending", expire_pending_jobs, default=0)
+            expired_delivered_jobs = run_task("jobs_expire_delivered", expire_delivered_jobs, default=0)
+            expired_agent_updates = run_task("agent_self_update", reconcile_agent_update_states, default=0)
+            agent_stats = run_task("agent_health", agent_health_tick)
+            firmware_stats = run_task("firmware_activation", reconcile_firmware_activations)
+            firmware_plan_stats = run_task("firmware_plans", reconcile_firmware_plan_jobs)
+            routerboot_stats = run_task("routerboot_verification", routerboot_verification_tick)
+            reboot_stats = dict(run_task("device_reboot_verification", verify_reboots))
+            reboot_stats.update({f"upgrade_{k}": v for k, v in run_task("legacy_upgrade_verification", verify_legacy_upgrades).items()})
             if any(reboot_stats.values()):
                 log.info("Device reboot verification: %s", reboot_stats)
-            uisp_stats = sync_uisp_devices()
-            report_stats = run_report_schedules()
-            advisory_stats = sync_security_advisories()
+            uisp_stats = run_task("uisp_sync", sync_uisp_devices)
+            report_stats = run_task("report_schedules", run_report_schedules)
+            advisory_stats = run_task("security_advisories", sync_security_advisories)
             if any(stats.values()):
                 log.info("Backup maintenance: %s", stats)
             if expired_pending_jobs or expired_delivered_jobs or expired_agent_updates:
@@ -85,22 +89,19 @@ while True:
             last_maintenance = now_mono
 
         if now_mono - last_compliance >= COMPLIANCE_INTERVAL_SECONDS:
-            lifecycle_stats = run_lifecycle_reconcile()
-            try:
-                catalog_stats = run_routeros_catalog()
-                if catalog_stats.get("refresh", {}).get("new_releases"):
-                    log.info("RouterOS catalog: %s", catalog_stats)
-            except Exception:  # an unreachable upgrade server must not stop the worker
-                log.exception("RouterOS catalog refresh failed")
+            lifecycle_stats = run_task("lifecycle_reconcile", run_lifecycle_reconcile)
+            catalog_stats = run_task("routeros_catalog", run_routeros_catalog)  # an unreachable upgrade server must not stop the worker
+            if catalog_stats.get("refresh", {}).get("new_releases"):
+                log.info("RouterOS catalog: %s", catalog_stats)
             if lifecycle_stats.get("status_changed"):
                 log.info("Lifecycle: %s", lifecycle_stats)
-            compliance_stats = run_compliance_evaluation()
+            compliance_stats = run_task("compliance_evaluation", run_compliance_evaluation)
             if compliance_stats.get("changed") or compliance_stats.get("removed"):
                 log.info("Compliance: %s", compliance_stats)
             last_compliance = now_mono
 
         if now_mono - last_telemetry_maintenance >= TELEMETRY_MAINTENANCE_INTERVAL_SECONDS:
-            deleted = telemetry_cleanup() + uisp_metrics_cleanup()
+            deleted = run_task("telemetry_retention", telemetry_cleanup, default=0) + run_task("uisp_metrics_retention", uisp_metrics_cleanup, default=0)
             if deleted:
                 log.info("Telemetry retention: rimossi %s campioni scaduti", deleted)
             last_telemetry_maintenance = now_mono

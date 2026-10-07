@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Sistema · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Amministrazione</h1><p>Stato della piattaforma: versione, worker, backup del database e prove di ripristino.</p></div></div>
+{% set admin_tab = "system" %}{% include "_admin_tabs.html" %}
+
+<section class="panel" data-system="version"><div class="panel-header"><div><h2>Versione e database</h2></div></div>
+  <div class="policy-summary six">
+    <div><span>Versione</span><strong>{{ version }}</strong></div>
+    <div><span>Revisione schema</span><strong>{{ database.revision or 'non leggibile' }}</strong></div>
+    <div><span>Dimensione database</span><strong>{{ database.size|filesizeformat(true) if database.size is not none else '—' }}</strong></div>
+    {% if disk %}<div><span>Spazio backup apparati</span><strong{% if disk.low %} class="warning-text"{% endif %}>{{ disk.free|filesizeformat(true) }} liberi</strong><small>su {{ disk.total|filesizeformat(true) }}</small></div>{% endif %}
+  </div>
+  {% if disk and disk.low %}<div class="alert warning">Meno del 10% di spazio libero sul volume dei backup ({{ disk.path }}): verifica la retention o amplia il disco.</div>{% endif %}
+</section>
+
+<section class="panel" data-system="worker"><div class="panel-header"><div><h2>Worker</h2><p>Il worker esegue manutenzione backup, verifiche firmware e riavvii, sincronizzazioni UISP e advisory, report pianificati e compliance. Ogni task è isolato: un errore non ferma gli altri.</p></div>
+  {% if not worker.available %}<span class="status-pill run-failed">Stato non leggibile</span>{% elif worker.alive %}<span class="status-pill run-success">Attivo</span>{% else %}<span class="status-pill run-failed">Fermo</span>{% endif %}</div>
+  {% if not worker.available %}<div class="alert warning">Redis non raggiungibile: impossibile leggere heartbeat e stato dei task.</div>
+  {% else %}
+  <div class="policy-summary six">
+    <div><span>Ultimo heartbeat</span><strong>{{ fmt_dt(worker.heartbeat) if worker.heartbeat else 'mai' }}</strong><small>{% if worker.age_seconds is not none %}{{ worker.age_seconds }} s fa{% endif %}</small></div>
+    <div><span>Avviato</span><strong>{{ fmt_dt(worker.started) if worker.started else '—' }}</strong></div>
+  </div>
+  {% if not worker.alive %}<div class="alert danger"><strong>Il worker non risponde da oltre {{ stale_seconds }} secondi.</strong> Backup pianificati, verifiche e sincronizzazioni sono fermi: controlla <code>./manage.sh logs worker</code>.</div>{% endif %}
+  {% if worker.tasks %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Task</th><th>Ultima esecuzione riuscita</th><th>Durata</th><th>Ultimo errore</th><th>Errori consecutivi</th></tr></thead><tbody>
+  {% for t in worker.tasks %}<tr data-task="{{ t.name }}"{% if t.failing %} data-failing{% endif %}><td><strong>{{ t.name }}</strong></td><td>{{ fmt_dt(t.last_ok) if t.last_ok else 'mai' }}</td><td>{{ (t.duration_ms ~ ' ms') if t.duration_ms is not none else '—' }}</td>
+    <td>{% if t.last_error %}<span class="{{ 'warning-text' if t.failing else 'muted' }}">{{ t.last_error }}</span><small>{{ fmt_dt(t.last_error_at) }}</small>{% else %}—{% endif %}</td>
+    <td>{% if t.failing %}<span class="severity-badge severity-high">{{ t.failures }}</span>{% else %}0{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state">Nessun task registrato: il worker non è ancora partito con questa versione.</div>{% endif %}
+  {% endif %}
+</section>
+
+<section class="panel" data-system="dumps"><div class="panel-header"><div><h2>Backup del database piattaforma</h2><p>Dump creati con <code>./manage.sh backup-db</code> in <code>{{ dumps.folder }}</code>. Pianificalo almeno ogni {{ dump_max_days }} giorni e copia i dump fuori dall'host.</p></div>
+  <span class="status-pill {{ 'run-failed' if dumps.stale else 'run-success' }}">{{ 'Da eseguire' if dumps.stale else 'Recente' }}</span></div>
+  {% if dumps.latest %}<div class="policy-summary six">
+    <div><span>Ultimo dump</span><strong>{{ fmt_dt(dumps.latest_at) }}</strong><small>{{ dumps.latest }}</small></div>
+    <div><span>Dimensione</span><strong>{{ dumps.latest_size|filesizeformat(true) }}</strong></div>
+    <div><span>Dump presenti</span><strong>{{ dumps.count }}</strong><small>{{ dumps.total_size|filesizeformat(true) }} in totale</small></div>
+  </div>{% else %}<div class="alert warning">Nessun dump del database trovato. Senza dump non è possibile ripristinare clienti, apparati, storico e configurazioni.</div>{% endif %}
+</section>
+
+<section class="panel" data-system="drills"><div class="panel-header"><div><h2>Prove di ripristino</h2><p><code>./manage.sh restore-drill</code> ripristina l'ultimo dump in un database temporaneo, ne verifica il contenuto e lo elimina: il database in uso non viene toccato. Esegui una prova almeno ogni {{ drill_max_days }} giorni.</p></div>
+  <span class="status-pill {{ 'run-failed' if drills.overdue else 'run-success' }}">{{ 'Prova scaduta' if drills.overdue else 'Prova recente' }}</span></div>
+  {% if drills.entries %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Quando</th><th>Esito</th><th>Dump</th><th>Durata</th><th>Tabelle</th><th>Revisione</th><th>Apparati</th></tr></thead><tbody>
+  {% for d in drills.entries %}<tr><td>{{ fmt_dt(d.at) }}</td><td><span class="status-pill {{ 'run-success' if d.result == 'success' else 'run-failed' }}">{{ 'riuscita' if d.result == 'success' else 'fallita' }}</span></td><td>{{ d.file }}</td><td>{{ d.seconds }} s</td><td>{{ d.tables or '—' }}</td><td>{{ d.revision or '—' }}</td><td>{{ d.devices or '—' }}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state">Nessuna prova di ripristino registrata.</div>{% endif %}
+  <p class="muted">Procedura completa di ripristino: <code>docs/OPERATIONS.md</code>.</p>
+</section>
+{% endblock %}

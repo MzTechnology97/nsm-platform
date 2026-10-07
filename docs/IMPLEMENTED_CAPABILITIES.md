@@ -623,6 +623,13 @@ Deployment/update behavior includes:
 - sanitized deployment failure report retained locally by default;
 - public-repository-safe default that does not publish runtime diagnostics remotely.
 
+Backup, restore and observability (runbook: [`OPERATIONS.md`](OPERATIONS.md)):
+
+- `./manage.sh backup-db`, non-destructive `./manage.sh restore-drill` (restores the latest dump into a temporary database, checks tables, schema revision and devices, drops it and appends the result to `restore-drills.jsonl`) and `./manage.sh restore-db <dump>` (typed confirmation, safety dump first, then restore and migrations);
+- every periodic worker task is isolated (`app/worker_status.py`): an exception is logged and recorded and the other tasks keep running; the worker writes a heartbeat and the last outcome of each task to Redis;
+- `/health` adds a `worker` field (alive, heartbeat age, failing tasks) without changing its status code;
+- *Amministrazione → Sistema* (admins): version, schema revision, database size, free space on the backup volume, worker heartbeat and task outcomes, platform dumps (stale after 7 days) and restore drills (overdue after 90 days).
+
 ## 19. Public repository safety
 
 ### Implemented

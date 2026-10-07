@@ -77,6 +77,10 @@ Use this to understand:
 - browser-vs-machine API behavior;
 - deployment/update flow.
 
+### `OPERATIONS.md`
+
+Operator runbook: what to back up, daily dumps, non-destructive restore drills, full restore, restore on a new host, failed-upgrade rollback, `/health` and the *Sistema* page.
+
 ### `DEVELOPMENT_WORKFLOW.md`
 
 Defines how humans and agents work in this repository:
