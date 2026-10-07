@@ -101,7 +101,7 @@ from app.uisp_onboarding import install_uisp_onboarding
 from app.routeros_catalog import install_routeros_catalog
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.22"
+APP_VERSION = "0.49.23"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
