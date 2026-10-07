@@ -520,7 +520,7 @@ Focused future objectives:
 - upgrade rollback/runbook refinement — first runbook in `docs/OPERATIONS.md`;
 - health/worker/connector observability — **done**: worker heartbeat, per-task outcome and isolation; connector and data-source health (UISP, NVD, GenieACS, RouterOS catalog, MikroTik agents) on *Sistema*;
 - capacity limits and retention sizing — **done**: *Sistema* shows largest tables, backup archive growth and days to full; retention documented in `docs/OPERATIONS.md`;
-- release/versioning discipline;
+- release/versioning discipline — **done**: rules in `DEVELOPMENT_WORKFLOW.md`, enforced by `release_discipline_smoke.py`;
 - deployment hardening review — **done**: findings and per-installation actions in `docs/OPERATIONS.md`, privileges dropped for app containers, extra Caddy headers, regression guard test.
 
 ## 14. Documentation and screenshot roadmap

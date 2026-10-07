@@ -329,6 +329,15 @@ Before merge:
 
 If CI is failing, inspect the exact job/log before changing code. Fix the first real failure, rerun, and avoid speculative broad changes.
 
+### Release and versioning
+
+Enforced by `app/tests/release_discipline_smoke.py`:
+
+- every merged PR is a release: it bumps the Core patch version (`APP_VERSION` in `app/app/entrypoint.py`, `0.49.N`) and adds a dated `## 0.49.N — YYYY-MM-DD` entry at the top of `docs/CHANGELOG.md`, grouped by area (MikroTik, Ubiquiti, Security, Operations, GUI…);
+- versions are unique and consecutive; stacked PRs are renumbered when their order changes;
+- the MikroTik agent version (`TARGET_AGENT_VERSION`) is independent from the Core version, changes only when the agent source changes, and is named in the CHANGELOG entry that introduces it;
+- Alembic migrations are numbered `0001…` without gaps, form a single chain with one head and always have a downgrade.
+
 ## 17. PR sizing examples
 
 ### Good Ubiquiti split
