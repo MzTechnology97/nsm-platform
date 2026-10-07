@@ -1,0 +1,38 @@
+{% extends "device_layout.html" %}
+{% set device_tab = 'firmware' %}
+{% set device_section = 'Riavvio' %}
+{% block device_content %}
+<section class="panel">
+  <div class="panel-header"><div><h2>Riavvio controllato</h2><p>L'agent conferma la richiesta a NSM e solo dopo esegue <code>/system reboot</code>. NSM considera il riavvio riuscito quando l'apparato torna online con l'uptime azzerato.</p></div></div>
+  {% if state.status %}
+  <dl class="kv-list">
+    <div><dt>Ultima richiesta</dt><dd>{{ status_labels.get(state.status, state.status) }}{% if state.last_error %}<small>{{ state.last_error }}</small>{% endif %}</dd></div>
+    <div><dt>Richiesto da</dt><dd>{{ state.requested_by or '—' }} · {{ fmt_dt(state.queued_at) }}</dd></div>
+    <div><dt>Motivo</dt><dd>{{ state.reason or '—' }}</dd></div>
+    {% if state.uptime_before %}<div><dt>Uptime prima / dopo</dt><dd>{{ state.uptime_before }} → {{ state.uptime_after or 'in attesa' }}</dd></div>{% endif %}
+  </dl>
+  {% endif %}
+  {% if blocker %}
+  <div class="empty-state">{{ blocker }}</div>
+  {% elif can_execute %}
+  <form method="post" action="/devices/{{ device.id }}/reboot" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <div class="form-grid">
+      <label>Motivo<input name="reason" required minlength="5" maxlength="500" placeholder="es. interfaccia bloccata, richiesta cliente"></label>
+      <label>Conferma<input name="confirmation" required autocomplete="off" placeholder="Scrivi {{ confirmation }}"><small>Il servizio del cliente si interrompe per la durata del riavvio.</small></label>
+    </div>
+    <div class="form-actions"><button class="button danger">Riavvia {{ device.display_name or device.device_identity or device.name }}</button></div>
+  </form>
+  {% else %}
+  <div class="empty-state">Serve il permesso di esecuzione firmware per riavviare l'apparato.</div>
+  {% endif %}
+</section>
+<section class="panel">
+  <div class="panel-header"><div><h2>Storico riavvii</h2></div></div>
+  {% if history %}
+  <div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Richiesto</th><th>Motivo</th><th>Esito</th><th>Errore</th></tr></thead><tbody>
+  {% for job in history %}<tr><td>{{ fmt_dt(job.created_at) }}</td><td>{{ (job.payload or {}).get('reason') or '—' }}</td><td>{{ status_label(job.status) }}</td><td>{{ job.last_error or '—' }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty-state">Nessun riavvio richiesto da NSM.</div>{% endif %}
+</section>
+{% endblock %}

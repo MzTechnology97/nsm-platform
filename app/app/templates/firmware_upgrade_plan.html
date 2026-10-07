@@ -3,7 +3,7 @@
 {% set title = device.display_name or device.device_identity or device.name %}
 {% set device_name = title %}
 {% set activation = (plan.precheck_data or {}).get('activation', {}) if plan else {} %}
-{% block device_actions %}<a class="button ghost" href="/operations/firmware">Worklist firmware</a>{% endblock %}
+{% block device_actions %}<a class="button ghost" href="/devices/{{ device.id }}/routerboot">RouterBOOT</a><a class="button ghost" href="/operations/firmware">Worklist firmware</a>{% endblock %}
 {% block device_content %}
 <nav class="sub-tabs" aria-label="Firmware"><a href="/devices/{{ device.id }}/firmware-upgrade"{% if not device_section %} class="active"{% endif %}>RouterOS</a><a href="/devices/{{ device.id }}/routerboot"{% if device_section == 'RouterBOOT' %} class="active"{% endif %}>RouterBOOT</a></nav>
 <div class="section-heading"><h2>Piano aggiornamento RouterOS</h2><p>{{ title }} · backup pre-upgrade, approvazione, staging, attivazione e verifica post-reboot separati.</p></div>

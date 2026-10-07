@@ -64,6 +64,7 @@ from app.mikrotik_workspace_ux_precedence import install_mikrotik_workspace_ux_p
 from app.mikrotik_telemetry import install_mikrotik_telemetry
 from app.route_precedence import promote_customer_workspace_routes
 from app.routerboot_lifecycle import install_routerboot_lifecycle
+from app.mikrotik_device_reboot import install_mikrotik_device_reboot
 from app.reports import install_reports
 from app.report_schedules import install_report_schedules
 from app.search_enhancement import install_search_enhancement
@@ -93,7 +94,7 @@ from app.compliance_findings import install_compliance_findings
 from app.lifecycle_catalog import install_lifecycle_catalog
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.11"
+APP_VERSION = "0.49.12"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -125,6 +126,7 @@ install_mikrotik_firmware_readiness(core.app)
 install_firmware_package_staging(core.app)
 install_firmware_activation(core.app)
 install_routerboot_lifecycle(core.app)
+install_mikrotik_device_reboot(core.app)
 install_firmware_activation_privilege_guard()
 install_firmware_upgrade_planner(core.app)
 install_agent_ui(core.app)
