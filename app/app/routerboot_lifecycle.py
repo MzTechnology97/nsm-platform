@@ -28,6 +28,9 @@ MODERN_PROFILE = "ops-v1"
 MAX_RESULT_BODY = 64 * 1024
 VERIFY_TIMEOUT = timedelta(minutes=15)
 VERIFY_GRACE = timedelta(seconds=30)
+STAGE_LOST_ERROR = "Flash RouterBOOT non eseguito dall'agent entro la finestra prevista: nessuna modifica confermata, ripetere lo staging."
+REBOOT_LOST_ERROR = "Reboot non eseguito dall'agent entro la finestra prevista: nessun riavvio effettuato, ripetere il reboot."
+VERIFY_NO_DATA_ERROR = "Nessuna lettura RouterBOOT ricevuta dopo il reboot entro il tempo di verifica."
 
 _STAGE_HANDLER = r'''
     :if ($nsmJobType = "routerboot_stage") do={
@@ -420,20 +423,76 @@ def reconcile_from_readiness(db, device: Device, readiness: dict):
     return None
 
 
+def _phase_job_lost(db, job_id) -> bool:
+    """True when the phase job is missing or ended without its own report.
+
+    Agent-reported failures already move the workflow state in the completion
+    handlers; a failed job still referenced by an active state was therefore
+    expired by job maintenance (never delivered or never answered).
+    """
+    try:
+        job = db.get(DeviceJob, uuid.UUID(str(job_id)))
+    except (TypeError, ValueError):
+        return True
+    return job is None or job.status == "failed"
+
+
+def _recover_lost_phase(db, device: Device, state: dict, now) -> str | None:
+    status = state.get("status")
+    if status == "staging" and _phase_job_lost(db, state.get("stage_job_id")):
+        _write_state(device, status="failed", failed_at=now.isoformat(), last_error=STAGE_LOST_ERROR)
+        event, result = "ROUTERBOOT_STAGE_EXPIRED", "failed"
+    elif status == "reboot_pending" and _phase_job_lost(db, state.get("reboot_job_id")):
+        # The bootloader is already flashed; only the reboot never ran.
+        _write_state(device, status="staged", reboot_job_id=None, last_error=REBOOT_LOST_ERROR)
+        event, result = "ROUTERBOOT_REBOOT_EXPIRED", "reverted"
+    else:
+        return None
+    core.add_event(
+        db,
+        event,
+        customer_id=device.customer_id,
+        device_id=device.id,
+        details={"target": state.get("target_version"), "previous_status": status},
+        severity="warning",
+        result="failed",
+        source="worker",
+    )
+    return result
+
+
 def verification_tick():
     """After reboot, queue a read-only readiness refresh and expire stale verifies."""
-    stats = {"queued": 0, "failed": 0}
+    stats = {"queued": 0, "failed": 0, "reverted": 0}
     now = utcnow()
     with SessionLocal() as db:
         devices = db.scalars(select(Device).where(Device.vendor == "mikrotik")).all()
         for device in devices:
             state = _state(device)
+            recovered = _recover_lost_phase(db, device, state, now)
+            if recovered:
+                stats[recovered] += 1
+                continue
             if state.get("status") not in {"rebooting", "reboot_pending"}:
                 continue
             accepted_at = _as_utc(state.get("accepted_at") or state.get("reboot_queued_at"))
             if accepted_at and now - accepted_at > VERIFY_TIMEOUT:
                 readiness = _readiness(device)
                 result = reconcile_from_readiness(db, device, readiness)
+                if result is None and state.get("status") == "rebooting":
+                    # No post-reboot RouterBOOT reading arrived at all.
+                    _write_state(device, status="failed", failed_at=now.isoformat(), last_error=VERIFY_NO_DATA_ERROR)
+                    core.add_event(
+                        db,
+                        "ROUTERBOOT_UPGRADE_VERIFY_FAILED",
+                        customer_id=device.customer_id,
+                        device_id=device.id,
+                        details={"target": state.get("target_version"), "observed": None},
+                        severity="warning",
+                        result="failed",
+                        source="worker",
+                    )
+                    result = "failed"
                 if result == "failed":
                     stats["failed"] += 1
                 continue

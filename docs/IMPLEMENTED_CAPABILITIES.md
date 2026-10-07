@@ -315,6 +315,7 @@ Focused modern-Agent hardening for no-progress upload handling and cleanup of Ro
 - explicit execution windows for Agent-owned staging (60 min) and activation (15 min) jobs; the worker closes a plan whose phase job expired or disappeared instead of leaving it active forever;
 - operator cancellation during staging/queued activation withdraws undelivered jobs, refuses cancellation once activation reached the Agent, and late Agent reports can no longer move a cancelled/expired plan;
 - RouterBOOT lifecycle/action foundations;
+- RouterBOOT recovery: a flash job the Agent never ran closes the workflow as failed (staging offered again), an undelivered reboot returns to `staged` (reboot offered again), and a reboot with no post-reboot reading fails after the verify timeout;
 - contextual GUI feedback around browser actions;
 - pre-upgrade backup gates/controls where applicable.
 
