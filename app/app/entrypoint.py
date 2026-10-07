@@ -98,9 +98,10 @@ from app.compliance_findings import install_compliance_findings
 from app.lifecycle_catalog import install_lifecycle_catalog
 from app.lifecycle_remediation import install_lifecycle_remediation
 from app.uisp_onboarding import install_uisp_onboarding
+from app.routeros_catalog import install_routeros_catalog
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.21"
+APP_VERSION = "0.49.22"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -147,6 +148,7 @@ install_compliance_findings(core.app)
 install_lifecycle_catalog(core.app)
 install_lifecycle_remediation(core.app)
 install_uisp_onboarding(core.app)
+install_routeros_catalog(core.app)
 install_customer_workspace(core.app)
 install_backup_workspace_capabilities(core.app)
 promote_customer_workspace_routes(core.app)

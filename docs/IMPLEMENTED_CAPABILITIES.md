@@ -363,9 +363,15 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 - pre-upgrade backup gates/controls where applicable;
 - **controlled reboot** (Agent 0.49.5, `firmware.execute`): *Riavvia* on every MikroTik header and `/devices/{id}/reboot` with mandatory reason and typed `RIAVVIA` confirmation; the Agent acknowledges the job to NSM before running `/system reboot` (no acknowledgement, no reboot); NSM marks it verified only when a later heartbeat reports an uptime shorter than the time since the acknowledgement, otherwise fails it after 15 minutes; refused while backup, firmware, RouterBOOT or self-update jobs are running; modern agents with an operational profile only (legacy agents are read-only); history and audit (`DEVICE_REBOOT_QUEUED/ACCEPTED/VERIFIED/FAILED`).
 
+### RouterOS release catalog (MTK-04)
+
+- every 6 hours the worker reads the head of each channel from `upgrade.mikrotik.com` (7 stable/long-term/testing/development, 6 stable/long-term) with its release notes; a release is flagged *security* when its notes mention security fixes, the matching lines are kept as evidence; unreadable channels are reported, not guessed;
+- every MikroTik Device is compared with the head of its channel (from the last readiness, default stable; RouterOS 6 → 6.x channels): the catalog sets the recommended version and firmware state when the device readiness is missing or older than 24 h, and escalates an available update to *security update* when the notes say so or an open CVE is fixed at or below the head;
+- *Integrazioni → Catalogo RouterOS* (manual refresh for admins) and a catalog line on the Device firmware tab.
+
 ### Still incomplete
 
-- authoritative automated vendor firmware catalog/intelligence;
+- automated upgrade-plan suggestions from the catalog;
 - complete security-advisory-to-target-version automation;
 - comprehensive physical validation across supported hardware/version families.
 
