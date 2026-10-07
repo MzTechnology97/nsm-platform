@@ -4349,3 +4349,6 @@ input[type="checkbox"], input[type="radio"] { width: auto; min-height: 0; height
 .root-cause-confirmed { padding: 12px 14px; margin-bottom: 12px; border-left: 4px solid var(--success); background: color-mix(in srgb, var(--success) 9%, var(--panel)); border-radius: 6px; }
 .root-cause-confirmed small { display: block; color: var(--muted); }
 .root-cause-confirmed p { margin: 6px 0 0; }
+
+/* Status pills in panel headers never wrap. */
+.panel-header .status-pill, .panel-header .severity-badge { white-space: nowrap; flex: none; }
