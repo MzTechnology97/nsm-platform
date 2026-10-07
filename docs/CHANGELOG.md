@@ -7,7 +7,7 @@ MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 ## 0.49.17 — 2026-10-07
 
 Fix
-- **Pages behind the production CSP**: Caddy sends `default-src 'self'`, which blocks inline scripts and `on*` handlers, so the new-device vendor fields (Ubiquiti MAC never visible), the backup-policy form, bulk actions, theme init, copy buttons, clickable rows and delete confirmations did not work in production. All behaviours moved to `static/forms.js` / `static/theme-init.js` driven by `data-*` attributes; a test forbids inline scripts and handlers.
+- **Pages behind the production CSP**: Caddy sends `default-src 'self'`, which blocks inline scripts and `on*` handlers, so the new-device vendor fields (Ubiquiti MAC never visible), the backup-policy form, bulk actions, theme init, copy buttons, clickable rows, delete confirmations and the dashboard donut/bar charts (inline style attributes) did not work in production. All behaviours moved to `static/forms.js` / `static/theme-init.js` driven by `data-*` attributes; a test forbids inline scripts and handlers.
 - **New device**: one MAC/serial field pair per vendor section (the three `primary_mac` inputs overrode each other), inactive sections disabled, Ubiquiti MAC required; validation errors return to the form with a message instead of a JSON page.
 - **UISP connection test**: the error names the cause (invalid/self-signed certificate with the *Verifica certificato TLS* hint, connection refused, DNS, timeout, HTTP/HTTPS mismatch); hint next to the TLS checkbox for local UISP consoles.
 
