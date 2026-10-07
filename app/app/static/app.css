@@ -883,6 +883,8 @@ label small {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 11px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .policy-summary span, .policy-summary strong {
   display: block;
@@ -2995,6 +2997,22 @@ html[data-theme="dark"] .success-state {
   border-color: color-mix(in srgb,var(--accent) 32%,var(--border));
   background: color-mix(in srgb,var(--accent) 8%,var(--panel));
   color: var(--text);
+}
+.alert.warning, .alert.danger {
+  padding: 10px 11px;
+  border: 1px solid;
+  border-radius: 7px;
+  margin-bottom: 14px;
+}
+.alert.warning {
+  border-color: color-mix(in srgb,var(--warning-text) 35%,var(--border));
+  background: color-mix(in srgb,var(--warning-text) 9%,var(--panel));
+  color: var(--warning-text);
+}
+.alert.danger {
+  border-color: color-mix(in srgb,var(--danger-text) 35%,var(--border));
+  background: color-mix(in srgb,var(--danger-text) 9%,var(--panel));
+  color: var(--danger-text);
 }
 @media(max-width:1100px) {
   .mt-kpi-grid {

@@ -519,11 +519,11 @@ Focused future work:
 
 Focused future objectives:
 
-- documented restore procedure for PostgreSQL logical backups;
-- backup-artifact storage recovery procedure;
-- periodic restore drill evidence;
-- upgrade rollback/runbook refinement;
-- health/worker/connector observability;
+- documented restore procedure for PostgreSQL logical backups — **done** (`docs/OPERATIONS.md`, `manage.sh restore-db`);
+- backup-artifact storage recovery procedure — **done** (`docs/OPERATIONS.md`);
+- periodic restore drill evidence — **done** (`manage.sh restore-drill`, *Amministrazione → Sistema*);
+- upgrade rollback/runbook refinement — first runbook in `docs/OPERATIONS.md`;
+- health/worker/connector observability — worker heartbeat, per-task outcome and isolation **done**; connector-specific dashboards open;
 - capacity limits and retention sizing;
 - release/versioning discipline;
 - deployment hardening review.
