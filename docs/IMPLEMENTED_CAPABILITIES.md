@@ -438,9 +438,16 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - deterministic ordering (time, source, record id); per-source cap with an explicit truncation notice;
 - entry points: sidebar *Incidenti*, *Apri incidente* on every Device header, *Incidenti* on the Customer header.
 
+### Root cause workflow (INC-03)
+
+- candidate correlations computed from the timeline only, always labelled *euristiche, da verificare*, with reason and confidence: change shortly before the start (configuration, firmware, RouterBOOT, agent update, restore: medium within 1 h, low within 6 h), Action Center issue opened within 15 min of the start (medium), failed backup/job within 30 min (low, probably a symptom), critical/high vulnerability opened before the start (low);
+- an operator records a candidate as a hypothesis (re-derived server side, with an evidence snapshot) or writes one, with a category (configuration, firmware, hardware, power, connectivity, upstream, security, manual intervention, other);
+- only an explicit confirmation with supporting evidence makes a hypothesis the root cause; confirming another replaces it, rejecting clears it; every decision keeps author, time and note and is audited;
+- incident list shows the confirmed root cause category or *da confermare*.
+
 ### Boundary
 
-- the timeline never infers causes: correlation and an operator-confirmed root cause are INC-03; report integration is INC-04.
+- heuristics never become facts or root causes by themselves; report integration is INC-04.
 
 ## 16. Lifecycle / EOL / EOS
 

@@ -1,0 +1,71 @@
+{# Root cause workflow (INC-03): heuristics are proposals; only an operator confirms. #}
+<section class="panel" id="root-cause">
+  <div class="panel-header"><div><h2>Causa radice</h2><p>Le correlazioni suggerite sono euristiche e restano ipotesi finché un operatore non ne conferma una indicando le evidenze.</p></div>
+    {% if root_cause %}<span class="status-pill run-success">Confermata</span>{% else %}<span class="status-pill">Da confermare</span>{% endif %}
+  </div>
+
+  {% if root_cause %}
+  <div class="root-cause-confirmed">
+    <strong>{{ root_cause.statement }}</strong>
+    <small>{{ root_cause_categories.get(root_cause.category, root_cause.category) }} · confermata il {{ fmt_dt(root_cause.decided_at) }}</small>
+    {% if root_cause.decision_note %}<p>{{ root_cause.decision_note }}</p>{% endif %}
+  </div>
+  {% endif %}
+
+  {% if hypotheses %}
+  <h3>Ipotesi</h3>
+  <ul class="hypothesis-list">
+    {% for hypothesis, author, decider in hypotheses %}
+    <li class="hypothesis hypothesis-{{ hypothesis.status }}">
+      <div class="hypothesis-head">
+        <strong>{{ hypothesis.statement }}</strong>
+        <span class="status-pill">{{ hypothesis_statuses.get(hypothesis.status, hypothesis.status) }}</span>
+      </div>
+      <small>{{ root_cause_categories.get(hypothesis.category, hypothesis.category) }} · {% if hypothesis.origin == 'suggested' %}correlazione suggerita (affidabilità {{ {'medium': 'media', 'low': 'bassa'}.get(hypothesis.confidence, hypothesis.confidence) }}){% else %}proposta da operatore{% endif %}{% if author %} · registrata da {{ author }}{% endif %}</small>
+      {% for item in hypothesis.evidence or [] %}<small>Evidenza: {{ fmt_dt(item.get('at')) }} · {{ item.get('title') }}{% if item.get('device') %} · {{ item.get('device') }}{% endif %}</small>{% endfor %}
+      {% if hypothesis.decision_note %}<p>{{ hypothesis.decision_note }}{% if decider %} <small>— {{ decider }}, {{ fmt_dt(hypothesis.decided_at) }}</small>{% endif %}</p>{% endif %}
+      {% if can_write %}
+      <details class="more-filters"><summary class="button tiny ghost">Decidi</summary>
+        <form method="post" action="/incidents/{{ incident.id }}/hypotheses/{{ hypothesis.id }}/decision" class="form-stack">
+          <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+          <label>Decisione<select name="decision">
+            {% if hypothesis.status != 'confirmed' %}<option value="confirm">Conferma come causa radice</option>{% endif %}
+            {% if hypothesis.status != 'rejected' %}<option value="reject">Scarta</option>{% endif %}
+            {% if hypothesis.status != 'proposed' %}<option value="reopen">Riporta da verificare</option>{% endif %}
+          </select></label>
+          <label>Evidenze a supporto<textarea name="note" rows="2" maxlength="2000" placeholder="Es. log del router mostra il reboot alle 14:05 dopo il cambio di configurazione"></textarea><small>Obbligatorie per confermare o scartare.</small></label>
+          <button class="button primary">Salva decisione</button>
+        </form>
+      </details>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if candidates %}
+  <h3>Correlazioni candidate <small class="muted">· euristiche, da verificare</small></h3>
+  <ul class="hypothesis-list">
+    {% for candidate in candidates[:8] %}
+    <li class="hypothesis hypothesis-candidate">
+      <div class="hypothesis-head"><strong>{{ candidate.statement }}</strong><span class="status-pill">affidabilità {{ {'medium': 'media', 'low': 'bassa'}.get(candidate.confidence, candidate.confidence) }}</span></div>
+      <small>{{ candidate.reason }} · {{ fmt_dt(candidate.entry.at) }}</small>
+      {% if can_write %}<form method="post" action="/incidents/{{ incident.id }}/hypotheses"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="candidate_key" value="{{ candidate.key }}"><button class="button tiny ghost">Registra come ipotesi</button></form>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% elif not hypotheses %}
+  <p class="muted">Nessuna correlazione suggerita nella finestra della timeline.</p>
+  {% endif %}
+
+  {% if can_write %}
+  <details class="more-filters"><summary class="button ghost">+ Nuova ipotesi</summary>
+    <form method="post" action="/incidents/{{ incident.id }}/hypotheses" class="form-stack">
+      <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+      <label>Ipotesi<textarea name="statement" rows="2" maxlength="2000" required placeholder="Es. alimentazione instabile nel rack della sede"></textarea></label>
+      <label>Categoria<select name="category">{% for key, label in root_cause_categories.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label>
+      <button class="button primary">Aggiungi ipotesi</button>
+    </form>
+  </details>
+  {% endif %}
+</section>

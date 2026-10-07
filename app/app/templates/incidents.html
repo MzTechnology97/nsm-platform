@@ -28,8 +28,8 @@
   </form>
   {% if rows %}
   <div class="table-wrap"><table class="data-table compact-data-table">
-    <thead><tr><th>Incidente</th><th>Cliente</th><th>Gravità</th><th>Stato</th><th>Inizio</th><th>Durata</th><th>Apparati</th></tr></thead>
-    <tbody>{% for incident, customer, device_count in rows %}
+    <thead><tr><th>Incidente</th><th>Cliente</th><th>Gravità</th><th>Stato</th><th>Inizio</th><th>Durata</th><th>Apparati</th><th>Causa radice</th></tr></thead>
+    <tbody>{% for incident, customer, device_count, root_cause in rows %}
       {% set end = incident.resolved_at or now %}{% set minutes = ((end - incident.started_at).total_seconds() // 60)|int %}
       <tr>
         <td><a class="strong-link" href="/incidents/{{ incident.id }}">{{ incident.title }}</a>{% if incident.summary %}<small>{{ incident.summary|truncate(90) }}</small>{% endif %}</td>
@@ -39,6 +39,7 @@
         <td>{{ fmt_dt(incident.started_at) }}</td>
         <td>{% if minutes >= 1440 %}{{ minutes // 1440 }} g {{ (minutes % 1440) // 60 }} h{% elif minutes >= 60 %}{{ minutes // 60 }} h {{ minutes % 60 }} min{% else %}{{ minutes }} min{% endif %}{% if not incident.resolved_at %}<small>in corso</small>{% endif %}</td>
         <td>{{ device_count }}</td>
+        <td>{% if root_cause %}{{ root_cause_categories.get(root_cause.category, root_cause.category) }}<small>{{ root_cause.statement|truncate(60) }}</small>{% else %}<span class="muted">da confermare</span>{% endif %}</td>
       </tr>
     {% endfor %}</tbody>
   </table></div>

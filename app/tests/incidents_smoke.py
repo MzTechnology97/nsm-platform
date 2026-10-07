@@ -103,7 +103,7 @@ def main():
     detail = tech_client.get(incident_url).text
     assert "TEST riavviato il CPE da remoto" in detail and "CI Tecnico Inc" in detail and "timeline-operator" in detail
     assert detail.index("Job diagnostic ping fallito") < detail.index("TEST riavviato il CPE da remoto") < detail.index("Segnalazione risolta: TEST router offline")
-    only_notes = tech_client.get(f"{incident_url}?view=notes").text
+    only_notes = tech_client.get(f"{incident_url}?view=notes").text.split('id="timeline"', 1)[1]
     assert "TEST riavviato il CPE da remoto" in only_notes and "Backup fallito" not in only_notes
     assert "Inizio incidente" in detail
 

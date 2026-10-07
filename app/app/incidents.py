@@ -13,12 +13,16 @@ from sqlalchemy import func, or_, select
 from app import main as core
 from app.config import settings
 from app.db import SessionLocal
+from app.incident_correlation import suggest
 from app.incident_models import (
+    HYPOTHESIS_STATUSES,
     INCIDENT_SEVERITIES,
     INCIDENT_STATUSES,
     NOTE_KINDS,
+    ROOT_CAUSE_CATEGORIES,
     Incident,
     IncidentDevice,
+    IncidentHypothesis,
     IncidentNote,
 )
 from app.incident_timeline import SOURCE_LABELS, build_timeline
@@ -112,11 +116,12 @@ def incident_list(request: Request, status: str = "active", customer: str = "", 
         pages = max(1, math.ceil(total / PER_PAGE))
         page = min(max(1, page), pages)
         rows = db.execute(
-            select(Incident, Customer, func.count(IncidentDevice.id))
+            select(Incident, Customer, func.count(IncidentDevice.id), IncidentHypothesis)
             .join(Customer, Customer.id == Incident.customer_id)
             .outerjoin(IncidentDevice, IncidentDevice.incident_id == Incident.id)
+            .outerjoin(IncidentHypothesis, IncidentHypothesis.id == Incident.root_cause_hypothesis_id)
             .where(*filters)
-            .group_by(Incident.id, Customer.id)
+            .group_by(Incident.id, Customer.id, IncidentHypothesis.id)
             .order_by(Incident.started_at.desc(), Incident.id)
             .offset((page - 1) * PER_PAGE)
             .limit(PER_PAGE)
@@ -138,6 +143,7 @@ def incident_list(request: Request, status: str = "active", customer: str = "", 
             pages=pages,
             statuses=INCIDENT_STATUSES,
             severities=INCIDENT_SEVERITIES,
+            root_cause_categories=ROOT_CAUSE_CATEGORIES,
             now=utcnow(),
         )
 
@@ -258,6 +264,10 @@ def incident_detail(request: Request, incident_id: uuid.UUID, view: str = "all")
             db.scalars(select(Device).where(Device.customer_id == incident.customer_id).order_by(Device.display_name.nullslast(), Device.name))
         )
         creator = db.get(User, incident.created_by_user_id) if incident.created_by_user_id else None
+        hypotheses = _hypotheses(db, incident.id)
+        used = {item.get("key") for hypothesis, _, _ in hypotheses for item in (hypothesis.evidence or [])}
+        candidates = suggest(incident, timeline, used)
+        root_cause = next((h for h, _, _ in hypotheses if h.id == incident.root_cause_hypothesis_id), None)
         return core.render(
             request,
             db,
@@ -282,6 +292,11 @@ def incident_detail(request: Request, incident_id: uuid.UUID, view: str = "all")
             can_write=core.has_permission(user, "incidents.write"),
             default_note_time=local_input(utcnow()),
             resolved_input=local_input(incident.resolved_at),
+            hypotheses=hypotheses,
+            candidates=candidates,
+            root_cause=root_cause,
+            root_cause_categories=ROOT_CAUSE_CATEGORIES,
+            hypothesis_statuses=HYPOTHESIS_STATUSES,
         )
 
 
@@ -395,6 +410,146 @@ async def incident_devices(request: Request, incident_id: uuid.UUID):
         )
         db.commit()
     return flash_redirect(request, page, "success", "Apparati coinvolti aggiornati.", title="Incidente aggiornato")
+
+
+# ------------------------------------------------------------ root cause --
+
+def _hypotheses(db, incident_id):
+    author = User.__table__.alias("author")
+    decider = User.__table__.alias("decider")
+    rows = db.execute(
+        select(IncidentHypothesis, author.c.username, decider.c.username)
+        .outerjoin(author, author.c.id == IncidentHypothesis.created_by_user_id)
+        .outerjoin(decider, decider.c.id == IncidentHypothesis.decided_by_user_id)
+        .where(IncidentHypothesis.incident_id == incident_id)
+        .order_by(IncidentHypothesis.created_at, IncidentHypothesis.id)
+    ).all()
+    return [(hypothesis, author_name or "", decider_name or "") for hypothesis, author_name, decider_name in rows]
+
+
+@router.post("/incidents/{incident_id}/hypotheses", name="incident_hypothesis_add")
+def incident_hypothesis_add(
+    request: Request,
+    incident_id: uuid.UUID,
+    csrf: str = Form(...),
+    statement: str = Form(""),
+    category: str = Form("other"),
+    candidate_key: str = Form(""),
+):
+    validate_csrf(request, csrf)
+    page = f"/incidents/{incident_id}#root-cause"
+    with SessionLocal() as db:
+        user = core.require_permission(request, db, "incidents.write")
+        incident = _load(db, incident_id)
+        now = utcnow()
+        if candidate_key:
+            # Re-derive the candidate server-side: the client only names it.
+            devices = _incident_devices(db, incident.id)
+            timeline = build_timeline(db, incident, [device.id for device in devices], now)
+            candidate = next((c for c in suggest(incident, timeline) if c.key == candidate_key), None)
+            if candidate is None:
+                return flash_redirect(request, page, "warning", "La correlazione suggerita non è più disponibile.", title="Ipotesi non registrata")
+            hypothesis = IncidentHypothesis(
+                incident_id=incident.id,
+                statement=candidate.statement,
+                category=candidate.category,
+                origin="suggested",
+                confidence=candidate.confidence,
+                evidence=candidate.evidence(),
+                created_by_user_id=user.id,
+                created_at=now,
+            )
+        else:
+            text = statement.strip()
+            if not text:
+                return flash_redirect(request, page, "warning", "Descrivi l'ipotesi.", title="Dati non validi")
+            hypothesis = IncidentHypothesis(
+                incident_id=incident.id,
+                statement=text[:2000],
+                category=category if category in ROOT_CAUSE_CATEGORIES else "other",
+                origin="operator",
+                evidence=[],
+                created_by_user_id=user.id,
+                created_at=now,
+            )
+        db.add(hypothesis)
+        incident.updated_at = now
+        core.add_event(
+            db,
+            "INCIDENT_HYPOTHESIS_ADDED",
+            actor=user,
+            customer_id=incident.customer_id,
+            details={"incident_id": str(incident.id), "origin": hypothesis.origin, "category": hypothesis.category},
+        )
+        db.commit()
+    return flash_redirect(request, page, "success", "Ipotesi registrata: resta da verificare finché non viene confermata.", title="Ipotesi aggiunta")
+
+
+@router.post("/incidents/{incident_id}/hypotheses/{hypothesis_id}/decision", name="incident_hypothesis_decision")
+def incident_hypothesis_decision(
+    request: Request,
+    incident_id: uuid.UUID,
+    hypothesis_id: uuid.UUID,
+    csrf: str = Form(...),
+    decision: str = Form(...),
+    note: str = Form(""),
+):
+    validate_csrf(request, csrf)
+    page = f"/incidents/{incident_id}#root-cause"
+    with SessionLocal() as db:
+        user = core.require_permission(request, db, "incidents.write")
+        incident = _load(db, incident_id)
+        hypothesis = db.get(IncidentHypothesis, hypothesis_id)
+        if not hypothesis or hypothesis.incident_id != incident.id:
+            raise HTTPException(404)
+        note = note.strip()
+        if decision in ("confirm", "reject") and not note:
+            return flash_redirect(request, page, "warning", "Indica su quali evidenze si basa la decisione.", title="Nota obbligatoria")
+        now = utcnow()
+        if decision == "confirm":
+            for other in db.scalars(
+                select(IncidentHypothesis).where(
+                    IncidentHypothesis.incident_id == incident.id,
+                    IncidentHypothesis.status == "confirmed",
+                    IncidentHypothesis.id != hypothesis.id,
+                )
+            ):
+                other.status = "proposed"
+                other.decision_note = f"Sostituita da un'altra causa confermata il {now.date().isoformat()}."
+            hypothesis.status = "confirmed"
+            incident.root_cause_hypothesis_id = hypothesis.id
+            event, message = "INCIDENT_ROOT_CAUSE_CONFIRMED", "Causa radice confermata."
+        elif decision == "reject":
+            hypothesis.status = "rejected"
+            if incident.root_cause_hypothesis_id == hypothesis.id:
+                incident.root_cause_hypothesis_id = None
+            event, message = "INCIDENT_HYPOTHESIS_REJECTED", "Ipotesi scartata."
+        elif decision == "reopen":
+            hypothesis.status = "proposed"
+            if incident.root_cause_hypothesis_id == hypothesis.id:
+                incident.root_cause_hypothesis_id = None
+            event, message = "INCIDENT_HYPOTHESIS_REOPENED", "Ipotesi di nuovo da verificare."
+        else:
+            return flash_redirect(request, page, "warning", "Decisione non valida.", title="Dati non validi")
+        hypothesis.decided_by_user_id = user.id
+        hypothesis.decided_at = now
+        if note:
+            hypothesis.decision_note = note[:2000]
+        incident.updated_at = now
+        core.add_event(
+            db,
+            event,
+            actor=user,
+            customer_id=incident.customer_id,
+            details={
+                "incident_id": str(incident.id),
+                "hypothesis_id": str(hypothesis.id),
+                "category": hypothesis.category,
+                "origin": hypothesis.origin,
+            },
+        )
+        db.commit()
+    return flash_redirect(request, page, "success", message, title="Causa radice")
 
 
 def install_incidents(app) -> None:

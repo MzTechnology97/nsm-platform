@@ -4335,3 +4335,17 @@ input[type="checkbox"], input[type="radio"] { width: auto; min-height: 0; height
 .timeline-severe::before { background: var(--danger); }
 .timeline-marker { margin-left: -18px; padding: 4px 10px; font-size: 12px; font-weight: 700; color: var(--warning-text); border-left: 3px solid var(--warning); background: color-mix(in srgb, var(--warning) 10%, var(--panel)); }
 @media (max-width: 820px) { .timeline-entry { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+
+/* Incident root cause (INC-03). */
+.hypothesis-list { list-style: none; margin: 8px 0 14px; padding: 0; display: grid; gap: 8px; }
+.hypothesis { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); }
+.hypothesis small { display: block; color: var(--muted); }
+.hypothesis p { margin: 6px 0 0; }
+.hypothesis-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.hypothesis-candidate { border-style: dashed; background: var(--surface-soft); }
+.hypothesis-confirmed { border-color: color-mix(in srgb, var(--success) 45%, var(--border)); }
+.hypothesis-rejected { opacity: .7; }
+.hypothesis form { margin-top: 6px; }
+.root-cause-confirmed { padding: 12px 14px; margin-bottom: 12px; border-left: 4px solid var(--success); background: color-mix(in srgb, var(--success) 9%, var(--panel)); border-radius: 6px; }
+.root-cause-confirmed small { display: block; color: var(--muted); }
+.root-cause-confirmed p { margin: 6px 0 0; }
