@@ -1,0 +1,27 @@
+# Changelog
+
+NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
+patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
+MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
+
+## 0.49.1 — 2026-10-07
+
+Security
+- **SEC-01** NVD CVE API 2.0 ingestion for RouterOS: full then incremental loads, backoff, Action Center issue on repeated failures, admin page *Integrazioni → Advisory NVD* (#134).
+- **SEC-02** Device ↔ advisory matching on the installed RouterOS version, explicit *non valutabili*, automatic resolve/reopen with evidence (#134).
+- **SEC-03** Remediation lifecycle (planned, in progress, exception with expiry), finding page with history and firmware plan link, Action Center issue per device with unhandled critical/high CVEs (#135).
+
+GUI
+- Device and Customer shells with tabs, backup archive redesign, devices list with quick filters (#129, #130, #131).
+- Single stylesheet, readable dark theme, mobile fixes (#132).
+- Operational lists share quick chips and pagination; backup overview as a per-device worklist; content-hashed static assets (#133).
+
+Operations and fixes
+- Firmware plans no longer stuck or resurrected; no downgrade plans (#117, #123).
+- Backup retry after a partial attempt and stale attempt reports (#119, #121).
+- UISP periodic sync (#120); restore-test evidence (#122); Agent self-update and RouterBOOT stuck-state recovery (#124, #125).
+- Evidence reports PDF/CSV with archive and schedules (#126, #127).
+
+## 0.49.0
+
+Baseline before the changes above.
