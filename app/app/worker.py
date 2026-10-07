@@ -26,6 +26,7 @@ from app.compliance import run_scheduled_evaluation as run_compliance_evaluation
 from app.lifecycle_catalog import run_scheduled_reconcile as run_lifecycle_reconcile
 from app.worker_status import beat, run_task, started
 from app.notification_delivery import deliver_pending as deliver_notifications
+from app.notification_chat import poll_telegram_updates, register_channels
 
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
 log = logging.getLogger("worker")
@@ -40,6 +41,7 @@ last_telemetry_maintenance = 0.0
 
 install_mikrotik_backup_finalization_cleanup()
 install_backup_scheduler_capability_guard()
+register_channels()
 
 log.info("Worker avviato")
 started()
@@ -64,6 +66,7 @@ while True:
             uisp_stats = run_task("uisp_sync", sync_uisp_devices)
             report_stats = run_task("report_schedules", run_report_schedules)
             advisory_stats = run_task("security_advisories", sync_security_advisories)
+            run_task("telegram_updates", poll_telegram_updates)
             notify_stats = run_task("notification_delivery", deliver_notifications)
             if notify_stats.get("failed"):
                 log.warning("Notifiche esterne non consegnate: %s", notify_stats)

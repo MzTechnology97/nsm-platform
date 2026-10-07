@@ -16,6 +16,8 @@
 {% if error == 'password_same' %}<div class="alert error">La nuova password deve essere diversa da quella attuale.</div>{% endif %}
 {% set nstatus = request.query_params.get('status') %}
 {% if nstatus == 'notifications_saved' %}<div class="alert success">Preferenze di notifica salvate.</div>{% elif nstatus == 'notifications_test_queued' %}<div class="alert success">Messaggio di prova inviato ai canali abilitati: controlla la ricezione (l'esito è nell'elenco qui sotto).</div>{% elif nstatus == 'notifications_test_none' %}<div class="alert warning">Nessun canale abilitato: attiva almeno un canale e salva.</div>{% endif %}
+{% if error == 'telegram_chat_id' %}<div class="alert error">Per Telegram indica il tuo chat ID numerico (scrivi /start al bot NSM per ottenerlo).</div>{% endif %}
+{% if error == 'slack_webhook' %}<div class="alert error">Per Slack indica un Incoming Webhook valido (https://hooks.slack.com/services/…).</div>{% endif %}
 {% if error == 'notification_email' %}<div class="alert error">Indica un indirizzo e-mail valido per ricevere le notifiche via e-mail.</div>{% endif %}
 {% if error == 'password_strength' %}<div class="alert error">La password deve avere almeno 12 caratteri, una maiuscola, una minuscola e un numero.</div>{% endif %}
 

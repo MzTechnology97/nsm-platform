@@ -35,6 +35,16 @@
 </section>
 </div>
 
+{% set chat = notification_chat_admin() %}
+<section class="panel" data-notifications="chat"><div class="panel-header"><div><h2>Telegram e Slack</h2><p>Telegram usa un bot unico creato con @BotFather; ogni utente inserisce nel profilo il proprio chat ID (il bot lo comunica rispondendo a /start). Slack non richiede configurazione: ogni utente indica nel profilo il webhook del proprio canale.</p></div>
+  {% if chat.telegram and chat.telegram.is_enabled and chat.telegram.last_test_status == 'success' %}<span class="device-status status-online">Bot @{{ chat.telegram_bot }}</span>{% elif chat.telegram %}<span class="device-status status-offline">Bot non attivo</span>{% endif %}</div>
+  <form method="post" action="/admin/notifications/telegram" class="filter-bar"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <input type="password" name="bot_token" autocomplete="off" placeholder="{{ 'Lascia vuoto per mantenere il token salvato' if chat.telegram else 'Token del bot (123456:ABC…)' }}" aria-label="Token del bot Telegram">
+    <label class="check-row"><input type="checkbox" name="is_enabled" {% if not chat.telegram or chat.telegram.is_enabled %}checked{% endif %}><span>Abilita</span></label>
+    <button class="button">Salva e verifica il bot</button></form>
+  {% if chat.telegram and chat.telegram.last_error %}<p class="warning-text">{{ chat.telegram.last_error }}</p>{% endif %}
+</section>
+
 <section class="panel" data-notifications="log">
   <div class="panel-header"><div><h2>Registro invii</h2><p>Ultimi 100 messaggi verso canali esterni.</p></div>
     {% if health.failed %}<form method="post" action="/admin/notifications/retry"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Rimetti in coda i falliti</button></form>{% endif %}</div>
