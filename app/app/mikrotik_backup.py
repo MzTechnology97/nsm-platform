@@ -16,7 +16,7 @@ from app import main as core
 from app.agent_models import DeviceAgentCredential, DeviceJob
 from app.backup_core import _effective_policy, _policy_settings
 from app.backup_models import BackupArtifact, BackupPolicySettings
-from app.backup_storage import resolve_artifact_path, storage_root
+from app.backup_storage import remove_artifact_file, resolve_artifact_path, storage_root
 from app.db import SessionLocal
 from app.mikrotik_agent import _authenticate_agent, _json_body
 from app.mikrotik_backup_models import BackupUploadSession, MikrotikBackupJobSecret
@@ -75,6 +75,43 @@ def _run_for_job(db, job: DeviceJob):
     if not run or run.device_id != job.device_id:
         raise HTTPException(500, "Backup run non valido.")
     return run
+
+
+def _is_new_attempt(job: DeviceJob, upload: BackupUploadSession) -> bool:
+    """True when the job was re-delivered after ``upload`` completed (retry)."""
+    return bool(
+        upload.completed_at
+        and job.delivered_at
+        and job.delivered_at > upload.completed_at
+    )
+
+
+def _supersede_previous_artifacts(
+    db, run: BackupRun, artifact_type: str, now, keep_path: Path
+) -> list[str]:
+    """Retire artifacts of ``artifact_type`` left in ``run`` by an earlier attempt.
+
+    ``keep_path`` is the file just archived; two attempts in the same second
+    share a filename, so the replacement must never be removed with them.
+    """
+    previous = list(
+        db.scalars(
+            select(BackupArtifact).where(
+                BackupArtifact.run_id == run.id,
+                BackupArtifact.artifact_type == artifact_type,
+                BackupArtifact.deleted_at.is_(None),
+            )
+        )
+    )
+    for artifact in previous:
+        try:
+            same_file = resolve_artifact_path(artifact.storage_path) == keep_path.resolve()
+        except ValueError:
+            same_file = False
+        if not same_file:
+            remove_artifact_file(artifact.storage_path)
+        artifact.deleted_at = now
+    return [str(artifact.id) for artifact in previous]
 
 
 def _safe_backup_filename(device: Device, job: DeviceJob, artifact_type: str):
@@ -238,10 +275,13 @@ async def mikrotik_artifact_start(request: Request, job_id: uuid.UUID):
         incoming = storage_root() / ".incoming" / str(job.id)
         incoming.mkdir(parents=True, exist_ok=True)
         temp_path = incoming / f"{artifact_type}.part"
-        if upload and upload.status == "complete":
+        if upload and upload.status == "complete" and not _is_new_attempt(job, upload):
             raise HTTPException(409, "Artefatto già completato.")
         temp_path.write_bytes(b"")
         if upload:
+            # A retried attempt regenerates every format. The artifact completed
+            # by the previous attempt stays archived until the new upload
+            # finishes, so a failing retry never destroys existing evidence.
             upload.expected_size = expected_size
             upload.received_size = 0
             upload.status = "receiving"
@@ -335,6 +375,7 @@ async def mikrotik_artifact_finish(request: Request, upload_id: uuid.UUID):
         final_dir.mkdir(parents=True, exist_ok=True)
         final_path = final_dir / upload.filename
         os.replace(temp_path, final_path)
+        superseded = _supersede_previous_artifacts(db, run, upload.artifact_type, now, final_path)
         artifact = BackupArtifact(
             run_id=run.id,
             artifact_type=upload.artifact_type,
@@ -348,8 +389,16 @@ async def mikrotik_artifact_finish(request: Request, upload_id: uuid.UUID):
         upload.received_size = actual_size
         upload.sha256 = sha256
         upload.completed_at = now
+        db.flush()
         run.status = "in_progress"
-        run.size_bytes = (run.size_bytes or 0) + actual_size
+        run.size_bytes = sum(
+            db.scalars(
+                select(BackupArtifact.size_bytes).where(
+                    BackupArtifact.run_id == run.id,
+                    BackupArtifact.deleted_at.is_(None),
+                )
+            )
+        )
         core.add_event(
             db,
             "BACKUP_ARTIFACT_RECEIVED",
@@ -362,6 +411,7 @@ async def mikrotik_artifact_finish(request: Request, upload_id: uuid.UUID):
                 "filename": upload.filename,
                 "size_bytes": actual_size,
                 "sha256": sha256,
+                "superseded_artifact_ids": superseded,
             },
             source="mikrotik_agent",
         )
