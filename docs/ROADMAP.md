@@ -521,7 +521,7 @@ Focused future objectives:
 - health/worker/connector observability — **done**: worker heartbeat, per-task outcome and isolation; connector and data-source health (UISP, NVD, GenieACS, RouterOS catalog, MikroTik agents) on *Sistema*;
 - capacity limits and retention sizing — **done**: *Sistema* shows largest tables, backup archive growth and days to full; retention documented in `docs/OPERATIONS.md`;
 - release/versioning discipline;
-- deployment hardening review.
+- deployment hardening review — **done**: findings and per-installation actions in `docs/OPERATIONS.md`, privileges dropped for app containers, extra Caddy headers, regression guard test.
 
 ## 14. Documentation and screenshot roadmap
 

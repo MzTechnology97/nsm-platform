@@ -42,6 +42,9 @@ services:
       - ./.env
       - ./secrets/bootstrap.env
     command: ["alembic", "upgrade", "head"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,6 +59,9 @@ services:
       - ./.env
       - ./secrets/bootstrap.env
     command: ["uvicorn", "app.entrypoint:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
     volumes:
       - ./data/backups:/data/backups
     depends_on:
@@ -81,6 +87,9 @@ services:
       - ./.env
       - ./secrets/bootstrap.env
     command: ["python", "-m", "app.worker"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
     volumes:
       - ./data/backups:/data/backups
     depends_on:

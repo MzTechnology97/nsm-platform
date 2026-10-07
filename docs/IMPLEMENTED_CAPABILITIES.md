@@ -640,7 +640,8 @@ Deployment/update behavior includes:
 - systemd-based auto-update tooling;
 - host-specific auto-update configuration outside Git;
 - sanitized deployment failure report retained locally by default;
-- public-repository-safe default that does not publish runtime diagnostics remotely.
+- public-repository-safe default that does not publish runtime diagnostics remotely;
+- container hardening: non-root application image, `no-new-privileges` and all capabilities dropped for migrate/api/worker, only Caddy publishes a port, security headers in Caddy; guarded by `deployment_hardening_smoke.py`.
 
 Backup, restore and observability (runbook: [`OPERATIONS.md`](OPERATIONS.md)):
 

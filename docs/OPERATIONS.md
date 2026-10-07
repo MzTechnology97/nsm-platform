@@ -103,6 +103,21 @@ Sizing rule of thumb: the backup volume dominates. Estimate *devices × average 
 - **MikroTik agent**: the agent user gets only the policies of its profile (`ops-v2`: `ftp,reboot,read,write,policy,test,sensitive`; legacy `legacy-ops-v1`: `ftp,reboot,read,write,test`), no `winbox`, `ssh`, `web` or `api`.
 - **UISP**: a read-only API token. **GenieACS**: the NBI only on the management network or behind a reverse proxy with authentication; NSM only reads it. **NVD**: an API key used only for reading.
 
+## Deployment hardening review
+
+In place (guarded by `app/tests/deployment_hardening_smoke.py`):
+
+- only Caddy publishes a host port; PostgreSQL (SCRAM authentication), Redis (password, no persistence) and the api/worker stay on the internal network;
+- the application image runs as the non-root user `app` (uid `10001`); `migrate`, `api` and `worker` also run with `no-new-privileges` and all Linux capabilities dropped;
+- Caddy removes the `Server` header, disables its admin API and sends `Content-Security-Policy` without `unsafe-inline`, `X-Frame-Options: DENY`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy` and `X-Permitted-Cross-Domain-Policies`;
+- login throttling, idle timeout and session invalidation in the portal (see `IMPLEMENTED_CAPABILITIES.md`).
+
+Still to do on each installation:
+
+- **HTTPS**: give the platform a DNS name and replace `:80` in `config/Caddyfile` with it (Caddy obtains the certificate automatically); then set `SESSION_COOKIE_SECURE=true`, add `Strict-Transport-Security "max-age=31536000"` to the Caddy headers and reinstall the MikroTik agents so they verify the certificate. Until then agent secrets and portal sessions travel in clear text.
+- **Docker network**: the api trusts `X-Forwarded-For` from any container on `network-platform-net` (Caddy overwrites the header for external clients). Do not attach other containers to that network.
+- **Host**: firewall allowing only 80/443 (and SSH from management addresses), automatic security updates, off-host copies of dumps and secrets.
+
 ## Rotating the encryption master key
 
 `ENCRYPTION_MASTER_KEY` (in `secrets/bootstrap.env`) encrypts connector credentials and the passwords of MikroTik binary backups. To rotate it, for example after a suspected leak:
