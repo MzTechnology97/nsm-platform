@@ -1,6 +1,7 @@
 """Least-privilege RouterOS execution profile for modern NSM agents.
 
-The legacy 7.12 transport remains read/test only.  Modern agents need the
+Legacy agents (RouterOS 6.48/6.49 and 7.12) get ftp/reboot/read/write/test from
+Agent 0.49.6 for the fixed reboot and package-installer handlers.  Modern agents need the
 additional ftp/write/reboot policies for the allow-listed package staging and
 staged-package activation handlers.
 
@@ -19,9 +20,11 @@ MODERN_PROFILE = "ops-v2"
 OPERATIONAL_PROFILES = frozenset({"ops-v1", "ops-v2"})
 # Profiles allowed to run /system backup save from the scheduler.
 BACKUP_PROFILES = frozenset({"ops-v2"})
-LEGACY_PROFILE = "legacy-read-v1"
+# Legacy agents 0.49.6+ can reboot and run the package update installer.
+LEGACY_PROFILE = "legacy-ops-v1"
+LEGACY_READ_ONLY_PROFILE = "legacy-read-v1"
 MODERN_POLICIES = "ftp,reboot,read,write,policy,test,sensitive"
-LEGACY_POLICIES = "read,test"
+LEGACY_POLICIES = "ftp,reboot,read,write,test"
 
 
 def install_mikrotik_privilege_profile():
@@ -44,6 +47,8 @@ def install_mikrotik_privilege_profile():
 
         dynamic_policy = (
             ':local nsmAgentPolicy "read,test"\n'
+            ':if ([:find $nsmAgentSource "legacy_firmware_upgrade"] != nil) do={ '
+            ':set nsmAgentPolicy "' + LEGACY_POLICIES + '" }\n'
             ':if ([:find $nsmAgentSource "firmware_activate"] != nil) do={ '
             ':set nsmAgentPolicy "' + MODERN_POLICIES + '" }\n'
         )

@@ -56,7 +56,7 @@ def main():
     page = client.get(f"/devices/{modern_id}/reboot")
     assert page.status_code == 200 and "Riavvio controllato" in page.text and f'href="/devices/{modern_id}/reboot">Riavvia<' in page.text
     token = csrf_from(page.text)
-    assert "agent legacy ha solo permessi di lettura" in client.get(f"/devices/{legacy_id}/reboot").text
+    assert "in sola lettura" in client.get(f"/devices/{legacy_id}/reboot").text
 
     response = client.post(f"/devices/{modern_id}/reboot", data={"csrf": token, "confirmation": "riavvia", "reason": "TEST porta bloccata"}, follow_redirects=True)
     assert "scrivi esattamente RIAVVIA" in response.text
