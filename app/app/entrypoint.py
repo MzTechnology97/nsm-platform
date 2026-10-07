@@ -104,11 +104,12 @@ from app.firmware_suggestions import install_firmware_suggestions
 from app.system_status import install_system_status
 from app.api_key_lifecycle import install_api_key_lifecycle
 from app.login_security import install_login_security
+from app.two_factor import install_two_factor
 from app.genieacs_connector import install_genieacs_connector
 from app.notification_delivery import install_notification_delivery
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.37"
+APP_VERSION = "0.49.38"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -161,6 +162,7 @@ install_firmware_suggestions(core.app)
 install_system_status(core.app)
 install_api_key_lifecycle(core.app)
 install_login_security(core.app)
+install_two_factor(core.app)
 install_genieacs_connector(core.app)
 install_notification_delivery(core.app)
 install_customer_workspace(core.app)

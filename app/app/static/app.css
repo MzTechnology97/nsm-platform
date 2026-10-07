@@ -4401,3 +4401,20 @@ a.compliance-mark { text-decoration: none; }
   gap: 2px 14px;
   margin: 6px 0;
 }
+.two-factor-setup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: flex-start;
+}
+.two-factor-qr {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px;
+}
+.recovery-codes {
+  columns: 2;
+  font-size: 1rem;
+  margin: 12px 0 0;
+}

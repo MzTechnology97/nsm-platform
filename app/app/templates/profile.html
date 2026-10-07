@@ -37,6 +37,27 @@
       <form method="post" action="/profile/sessions/revoke" data-confirm="Chiudere tutte le altre sessioni aperte con questo account?"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Esci dalle altre sessioni</button></form>
     </section>
 
+    {% set tf = two_factor_state(user) %}
+    <section class="panel" id="two-factor" data-profile="two-factor">
+      <div class="panel-header"><div><h2>Verifica in due passaggi</h2><p>Oltre alla password, all'accesso viene chiesto un codice dell'app di autenticazione (Google Authenticator, Microsoft Authenticator, Aegis, 1Password…).</p></div>{% if tf.enabled %}<span class="device-status status-online">Attiva</span>{% else %}<span class="device-status status-offline">Non attiva</span>{% endif %}</div>
+      {% set tstatus = request.query_params.get('status') %}{% set terror = request.query_params.get('error') %}
+      {% if tstatus == '2fa_disabled' %}<div class="alert warning">Verifica in due passaggi disattivata.</div>{% endif %}
+      {% if terror == '2fa_code' %}<div class="alert error">Codice non valido: controlla che l'orario del telefono sia corretto e riprova.</div>{% elif terror == '2fa_disable' %}<div class="alert error">Password o codice non validi: la verifica resta attiva.</div>{% elif terror == '2fa_password' %}<div class="alert error">Password non corretta.</div>{% endif %}
+      {% if tf.enabled %}
+        <p>Attiva dal {{ fmt_dt(tf.since) }} · codici di recupero rimasti: <strong>{{ tf.recovery_left }}</strong>{% if tf.recovery_left < 3 %} <span class="warning-text">— generane di nuovi</span>{% endif %}</p>
+        <form method="post" action="/profile/2fa/recovery" class="filter-bar"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="password" name="password" required autocomplete="current-password" placeholder="Password attuale" aria-label="Password attuale"><button class="button">Nuovi codici di recupero</button></form>
+        <form method="post" action="/profile/2fa/disable" class="filter-bar" data-confirm="Disattivare la verifica in due passaggi?"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="password" name="password" required autocomplete="current-password" placeholder="Password attuale" aria-label="Password attuale"><input name="code" required inputmode="numeric" autocomplete="one-time-code" placeholder="Codice app" aria-label="Codice dell'app"><button class="button danger ghost">Disattiva</button></form>
+      {% elif tf.pending %}
+        <div class="two-factor-setup">
+          <img class="two-factor-qr" src="{{ tf.pending.qr }}" alt="QR code per l'app di autenticazione" width="200" height="200">
+          <div><p>1. Inquadra il QR code con l'app, oppure inserisci a mano la chiave:</p><p><code>{{ tf.pending.secret }}</code></p><p>2. Inserisci il codice a 6 cifre mostrato dall'app per confermare.</p>
+            <form method="post" action="/profile/2fa/enable" class="filter-bar"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input name="code" required inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" aria-label="Codice dell'app"><button class="button primary">Attiva</button></form></div>
+        </div>
+      {% else %}
+        <form method="post" action="/profile/2fa/setup"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Configura la verifica in due passaggi</button></form>
+      {% endif %}
+    </section>
+
     {% set np = notification_preferences(user) %}
     <section class="panel" id="notifications" data-profile="notifications">
       <div class="panel-header"><div><h2>Notifiche</h2><p>Ricevi fuori dal portale le notifiche che contano: scegli per ogni canale il livello minimo e le categorie (nessuna categoria selezionata = tutte).</p></div></div>
