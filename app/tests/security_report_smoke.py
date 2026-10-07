@@ -77,7 +77,9 @@ def main():
 
     rows = {row["device"]: row for row in csv.DictReader(io.StringIO(render_csv(data).decode("utf-8")))}
     assert list(rows["TEST-SR-EXPOSED"].keys()) == CSV_COLUMNS
-    assert CSV_COLUMNS[-2:] == ["unhandled_severe_vulnerabilities", "vulnerabilities_in_exception"], "new columns are appended"
+    sec = CSV_COLUMNS.index("unhandled_severe_vulnerabilities")
+    assert CSV_COLUMNS[sec:sec + 2] == ["unhandled_severe_vulnerabilities", "vulnerabilities_in_exception"], "new columns are appended"
+    assert sec > CSV_COLUMNS.index("eos_date"), "existing columns keep their position"
     assert rows["TEST-SR-EXPOSED"]["unhandled_severe_vulnerabilities"] == "1"
     assert rows["TEST-SR-ACCEPTED"]["vulnerabilities_in_exception"] == "1"
 
