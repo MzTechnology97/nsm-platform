@@ -74,7 +74,7 @@ def main():
     detail = client.get(f"/customers/{customer_a}")
     assert detail.status_code == 200
     assert "Apparati con CVE gravi" in detail.text
-    assert "Errori / attenzioni" in detail.text
+    assert "segnalazioni aperte" in detail.text
     for suffix in ("devices", "sites", "backups", "security", "history"):
         assert f"/customers/{customer_a}/{suffix}" in detail.text
 

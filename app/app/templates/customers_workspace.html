@@ -5,15 +5,13 @@
   <div><h1>Clienti</h1><p>Vista sintetica dello stato operativo di ogni cliente.</p></div>
   {% if has_permission(user, 'customers.write') %}<a class="button primary" href="/customers/new/form">+ Aggiungi cliente</a>{% endif %}
 </div>
-<section class="panel compact-panel customer-filter-panel">
+<section class="panel customer-directory-panel">
+  <div class="panel-header"><div><h2>{{ total }} clienti</h2><p>I contatori aprono direttamente il dettaglio filtrato.</p></div></div>
   <form class="filter-bar" method="get">
-    <label class="grow">Cerca cliente<input name="q" value="{{ q }}" placeholder="Nome o codice interno"></label>
+    <input type="search" name="q" value="{{ q }}" placeholder="Cerca per nome o codice interno" aria-label="Cerca cliente">
     <button class="button primary">Cerca</button>
     {% if q %}<a class="button ghost" href="/customers">Reset</a>{% endif %}
   </form>
-</section>
-<section class="panel customer-directory-panel">
-  <div class="panel-header"><div><h2>Elenco clienti</h2><p>{{ total }} clienti · pagina {{ page }} di {{ pages }} · i contatori aprono direttamente il relativo dettaglio filtrato</p></div></div>
   {% if customer_rows %}
   <div class="customer-health-table">
     <div class="customer-health-head">

@@ -1,0 +1,59 @@
+{#
+  Shared shell for every Customer page.
+  Child templates set `customer_tab` (overview, devices, sites, backups,
+  security, history), optionally `customer_section`, and fill
+  `customer_content` (plus optional `customer_actions`).
+#}
+{% extends "base.html" %}
+{% set customer_base = '/customers/' ~ customer.id %}
+{% set customer_tabs = [
+  ('overview', 'Panoramica', customer_base),
+  ('devices', 'Apparati', customer_base ~ '/devices'),
+  ('sites', 'Sedi', customer_base ~ '/sites'),
+  ('backups', 'Backup', customer_base ~ '/backups'),
+  ('security', 'Sicurezza', customer_base ~ '/security'),
+  ('history', 'Attività', customer_base ~ '/history'),
+] %}
+{% set active_label = (customer_tabs | selectattr(0, 'equalto', customer_tab) | map(attribute=1) | first) if customer_tab else '' %}
+{% block title %}{% if customer_section %}{{ customer_section }} · {% elif customer_tab and customer_tab != 'overview' %}{{ active_label }} · {% endif %}{{ customer.name }} · {{ app_name }}{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="Percorso">
+  <a href="/customers">Clienti</a><span>›</span>
+  {% if customer_tab == 'overview' and not customer_section %}<span>{{ customer.name }}</span>
+  {% else %}<a href="{{ customer_base }}">{{ customer.name }}</a><span>›</span>
+    {% if customer_section and customer_tab and customer_tab != 'overview' %}<a href="{{ customer_tabs | selectattr(0, 'equalto', customer_tab) | map(attribute=2) | first }}">{{ active_label }}</a><span>›</span><span>{{ customer_section }}</span>
+    {% else %}<span>{{ customer_section or active_label }}</span>{% endif %}
+  {% endif %}
+</nav>
+
+<header class="device-header customer-header">
+  <div class="device-header-main">
+    <div class="device-header-title">
+      <span class="entity-badge">Cliente</span>
+      <h1>{{ customer.name }}</h1>
+      {% if not customer.is_active %}<span class="status-pill">disattivato</span>{% endif %}
+    </div>
+    <dl class="device-facts">
+      <div><dt>Codice</dt><dd>{{ customer.code or '—' }}</dd></div>
+      <div><dt>Apparati</dt><dd>{{ customer.devices|length }}</dd></div>
+      <div><dt>Sedi</dt><dd>{{ customer.sites|length }}</dd></div>
+      {% if customer.notes %}<div><dt>Note</dt><dd title="{{ customer.notes }}">{{ customer.notes }}</dd></div>{% endif %}
+    </dl>
+  </div>
+  <div class="device-header-actions">
+    {% block customer_actions %}{% endblock %}
+    {% if has_permission(user, 'customers.write') %}<a class="button ghost" href="{{ customer_base }}/edit">Gestisci cliente</a>{% endif %}
+    {% if has_permission(user, 'devices.write') %}<a class="button primary" href="{{ customer_base }}/devices/new">+ Apparato</a>{% endif %}
+  </div>
+</header>
+
+{% if customer_tab %}
+<nav class="device-tabs" aria-label="Sezioni cliente">
+  {% for key, label, href in customer_tabs %}<a href="{{ href }}"{% if key == customer_tab %} class="active" aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+</nav>
+{% endif %}
+
+<div class="device-body">
+{% block customer_content %}{% endblock %}
+</div>
+{% endblock %}

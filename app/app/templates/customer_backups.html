@@ -1,17 +1,12 @@
-{% extends "base.html" %}
-{% block title %}Backup · {{ customer.name }} · {{ app_name }}{% endblock %}
-{% block content %}
-<div class="breadcrumbs"><a href="/customers">Clienti</a><span>›</span><a href="/customers/{{ customer.id }}">{{ customer.name }}</a><span>›</span><span>Backup</span></div>
-<div class="page-header compact-heading">
-  <div><h1>Backup · {{ customer.name }}</h1><p>Protezione, compatibilità e storico limitati esclusivamente agli apparati di questo cliente.</p></div>
-  <div class="page-actions">{% if has_permission(user, 'backup.configure') %}<a class="button" href="/customers/{{ customer.id }}/backups/policies/new">+ Policy cliente</a>{% endif %}<a class="button ghost" href="/operations/backups">Overview globale</a></div>
-</div>
-{% set active_tab='backup' %}{% include "_customer_tabs.html" %}
-<div class="customer-kpi-grid backup-kpi-grid">
-  <div class="customer-kpi"><span class="kpi-symbol">✓</span><span><strong>{{ protected_count }}</strong><small>Backup eseguibile</small></span></div>
-  <div class="customer-kpi {% if blocked_count %}kpi-warning{% endif %}"><span class="kpi-symbol">!</span><span><strong>{{ blocked_count }}</strong><small>Policy ma metodo non pronto</small></span></div>
-  <div class="customer-kpi {% if no_policy_count %}kpi-warning{% endif %}"><span class="kpi-symbol">○</span><span><strong>{{ no_policy_count }}</strong><small>Senza policy</small></span></div>
-  <div class="customer-kpi {% if failed_count %}kpi-danger{% endif %}"><span class="kpi-symbol">×</span><span><strong>{{ failed_count }}</strong><small>Ultimo backup fallito</small></span></div>
+{% extends "customer_layout.html" %}
+{% set customer_tab = 'backups' %}
+{% block customer_actions %}{% if has_permission(user, 'backup.configure') %}<a class="button" href="/customers/{{ customer.id }}/backups/policies/new">+ Policy cliente</a>{% endif %}<a class="button ghost" href="/operations/backups">Overview globale</a>{% endblock %}
+{% block customer_content %}
+<div class="metric-grid">
+  <div class="metric-card"><span>Backup eseguibile</span><strong>{{ protected_count }}</strong></div>
+  <div class="metric-card{% if blocked_count %} metric-warning{% endif %}"><span>Policy ma metodo non pronto</span><strong>{{ blocked_count }}</strong></div>
+  <div class="metric-card{% if no_policy_count %} metric-warning{% endif %}"><span>Senza policy</span><strong>{{ no_policy_count }}</strong></div>
+  <div class="metric-card{% if failed_count %} metric-critical{% endif %}"><span>Ultimo backup fallito</span><strong>{{ failed_count }}</strong></div>
 </div>
 <section class="panel compact-panel">
   <form class="filter-bar" method="get">

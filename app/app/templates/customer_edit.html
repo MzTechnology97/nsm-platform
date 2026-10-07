@@ -1,8 +1,7 @@
-{% extends "base.html" %}
-{% block title %}Gestisci {{ customer.name }} · {{ app_name }}{% endblock %}
-{% block content %}
-<div class="breadcrumbs"><a href="/customers">Clienti</a><span>›</span><a href="/customers/{{ customer.id }}">{{ customer.name }}</a><span>›</span><span>Gestisci</span></div>
-<div class="page-header"><div><h1>Gestisci cliente</h1><p>Modifica l'anagrafica o elimina definitivamente il cliente e il relativo inventario.</p></div></div>
+{% extends "customer_layout.html" %}
+{% set customer_section = 'Gestisci cliente' %}
+{% block customer_content %}
+<div class="section-heading"><h2>Gestisci cliente</h2><p>Modifica l'anagrafica o elimina definitivamente il cliente e il relativo inventario.</p></div>
 {% if request.query_params.get('error') == 'confirm_name' %}<div class="alert error">Il nome di conferma non corrisponde. Il cliente non è stato eliminato.</div>{% endif %}
 <div class="form-page-grid">
   <section class="panel form-page-main">
