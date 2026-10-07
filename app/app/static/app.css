@@ -4664,3 +4664,6 @@ a.compliance-mark { text-decoration: none; }
 @media (max-width: 860px) { .access-grid { grid-template-columns: 1fr; } }
 .telemetry-ranges a { padding: 6px 9px; border-radius: 6px; font-size: 11px; font-weight: 700; color: var(--muted); text-decoration: none; }
 .telemetry-ranges a.active { background: var(--accent-soft); color: var(--accent-text); }
+.syslog-agent { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; margin: 8px 0 4px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-soft); }
+.syslog-agent > div { display: grid; gap: 3px; }
+.syslog-agent small { color: var(--muted); }

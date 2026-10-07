@@ -23,7 +23,13 @@
     <label>Indirizzo del server syslog<input name="public_host" value="{{ settings.public_host }}" placeholder="{{ syslog_host or '203.0.113.10' }}"><small>IP pubblico (o raggiungibile dagli apparati) di questo server. Vuoto: nome host del portale ({{ syslog_host or 'n.d.' }}). RouterOS accetta solo indirizzi IP.</small></label>
     <label>Conservazione info, notice e debug (giorni)<input name="info_retention_days" type="number" min="7" max="90" value="{{ settings.info_retention_days }}"><small>Massimo 90 giorni. Warning, error e critical restano per tutta la vita del dispositivo.</small></label>
     <label class="check-row"><input type="checkbox" name="accept_unknown" value="1"{% if settings.accept_unknown %} checked{% endif %}> Salva anche i log di mittenti non associati a un dispositivo</label>
+    <label class="check-row"><input type="checkbox" name="auto_configure" value="1"{% if settings.auto_configure %} checked{% endif %}> Configura automaticamente il syslog sui MikroTik con agent 0.49.11 o successivo (serve l'indirizzo IPv4 qui sopra)</label>
     <button class="button primary">Salva impostazioni</button>
+  </form>
+  <form method="post" action="/admin/syslog/configure-all" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <button class="button">Configura ora su tutti i MikroTik</button>
+    <small class="muted">L'agent crea l'azione «nsm» e le regole critical, error, warning e account (accessi); le altre regole di logging non vengono toccate.</small>
   </form>
 </section>
 

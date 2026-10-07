@@ -298,6 +298,13 @@ Retention (90 days) never removes the newest sample of a device or interface (`t
 
 NSM monitoring is intentionally lightweight and does not attempt to replace a full NMS.
 
+### Syslog configured by the Agent (LOG-01 step 2)
+
+- **Job.** `syslog_configure` (`app/mikrotik_syslog_config.py`) is compiled into the modern Agent 0.49.11 and its 7.13–7.16 variant.
+  - The payload carries only the NSM IPv4 address and port.
+  - The Agent replaces the action `nsm` and the rules that use it, then reports through the generic job completion.
+- **Ways to queue it.** From the device tab, for all devices from the admin page, or automatically by the worker when *auto_configure* is on and an IPv4 address is configured.
+
 ### Access alerts from syslog (LOG-01 step 3)
 
 - **Recognition.** `app/syslog_security.py` recognises login failures and successes from:

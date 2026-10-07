@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.47 — 2026-10-08
+
+Logs
+- **Syslog configured by the MikroTik Agent** (LOG-01 step 2). **Agent 0.49.11** can configure remote syslog toward NSM:
+  - it creates or updates its own logging action `nsm` and the rules *critical*, *error*, *warning* and *account* (logins, which feed the access alerts);
+  - re-running is idempotent and the operator's other logging rules are untouched.
+- **Ways to start it:**
+  - from the device Syslog tab, with *Configura syslog con l'agent* and the status of the last request;
+  - for every MikroTik from *Amministrazione → Syslog*;
+  - automatically by the worker (default on) once the NSM IPv4 address is set. Agents updated later get configured too, and a new address re-configures everyone.
+- **Not covered:** legacy agents (RouterOS 7.12 and 6.x) keep the manual commands shown in the tab.
+
 ## 0.49.46 — 2026-10-08
 
 Security

@@ -10,13 +10,14 @@ Agent 0.49.4 rewrites the modern backup uploader (step-level errors, settled
 file, flash/ path, progress guard, cleanup) and installs the ops-v2 profile.
 Agent 0.49.9 adds the interface byte counters to every heartbeat (traffic graphs).
 Agent 0.49.10 adds the RouterOS IP addresses (management/LAN IP in the device list).
+Agent 0.49.11 can configure remote syslog toward NSM (job syslog_configure).
 """
 from __future__ import annotations
 
 from app import mikrotik_agent_update as updater
 from app import mikrotik_agent_update_ui as update_ui
 
-TARGET_AGENT_VERSION = "0.49.10"
+TARGET_AGENT_VERSION = "0.49.11"
 SELF_UPDATE_MIN_VERSION = "0.49.0"
 
 
