@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Integrazioni · GenieACS · {{ ui_context(request).branding.portal_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Integrazioni · GenieACS / TR-069</h1><p>Connettore read-only verso la NBI di GenieACS per l'inventario e l'associazione delle CPE TR-069.</p></div><a class="button ghost" href="/integrations">Tutte le integrazioni</a></div>
+{% set admin_tab = "integrations" %}{% include "_admin_tabs.html" %}
+{% set integration_tab = "genieacs" %}{% include "_integration_tabs.html" %}
+
+{% if message %}<div class="alert success">{{ message }}</div>{% endif %}
+{% if error %}<div class="alert warning">{{ error }}</div>{% endif %}
+
+<div class="content-split">
+<section class="panel side-form">
+  <div class="panel-header"><div><h2>GenieACS NBI</h2><p>La NBI (porta 7557 di default) non ha autenticazione propria: esponila solo su rete di gestione o dietro un reverse proxy con HTTP Basic o Bearer. Le credenziali vengono cifrate.</p></div>{% if connection and connection.is_enabled %}<span class="device-status status-online">Abilitato</span>{% else %}<span class="device-status status-offline">Disabilitato</span>{% endif %}</div>
+  <form method="post" action="/admin/integrations/genieacs" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>URL NBI<input type="url" name="base_url" required value="{{ connection.base_url if connection else '' }}" placeholder="http://genieacs.example.net:7557"><small>NSM aggiunge <code>/devices</code>. localhost e indirizzi loopback non sono ammessi.</small></label>
+    <label>Autenticazione<select name="auth_mode">{% for key, label in [('none', 'Nessuna (rete di gestione)'), ('basic', 'HTTP Basic (reverse proxy)'), ('bearer', 'Bearer token (reverse proxy)')] %}<option value="{{ key }}" {% if auth_mode == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label>Username (solo HTTP Basic)<input name="auth_username" value="{{ auth_username }}" autocomplete="off"></label>
+    <label>Password o token<input type="password" name="auth_secret" autocomplete="new-password" placeholder="{{ 'Lascia vuoto per mantenere il valore salvato' if connection else '' }}"></label>
+    <label>Percorsi parametro MAC (uno per riga)<textarea name="mac_parameter_paths" rows="5">{{ mac_paths }}</textarea><small>Usati per la ricerca per MAC quando il seriale non è disponibile. TR-098 (<code>InternetGatewayDevice.…</code>) e TR-181 (<code>Device.…</code>).</small></label>
+    <label>Finestra online (minuti)<input type="number" name="online_window_minutes" min="5" max="10080" value="{{ connection.settings.get('online_window_minutes', 1440) if connection else 1440 }}"><small>Una CPE è considerata online se l'ultimo Inform è più recente di questa finestra.</small></label>
+    <label class="check-row"><input type="checkbox" name="is_enabled" {% if not connection or connection.is_enabled %}checked{% endif %}><span>Abilita connettore</span></label>
+    <label class="check-row"><input type="checkbox" name="verify_tls" {% if not connection or connection.verify_tls %}checked{% endif %}><span>Verifica certificato TLS (per URL https)</span></label>
+    <button class="button primary">Salva configurazione</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Stato connettore</h2><p>Il test esegue una sola lettura di <code>/devices</code> con un filtro che non restituisce CPE.</p></div>{% if connection %}<form method="post" action="/admin/integrations/genieacs/test"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Test connessione</button></form>{% endif %}</div>
+  {% if connection %}
+  <div class="policy-summary">
+    <div><span>Endpoint</span><strong>{{ connection.base_url }}</strong></div>
+    <div><span>Modalità</span><strong>READ-ONLY</strong></div>
+    <div><span>Autenticazione</span><strong>{{ auth_label }}</strong></div>
+    <div><span>Ultimo test</span><strong>{{ fmt_dt(connection.last_tested_at) }}</strong></div>
+  </div>
+  <dl class="kv-list"><div><dt>Esito test</dt><dd>{{ connection.last_test_status or 'Mai eseguito' }}</dd></div><div><dt>Ultima lettura CPE</dt><dd>{{ fmt_dt(connection.last_sync_at) }}</dd></div><div><dt>Ultimo errore</dt><dd>{{ connection.last_error or '—' }}</dd></div></dl>
+  {% else %}<div class="empty-state">Nessuna istanza GenieACS configurata.</div>{% endif %}
+</section>
+</div>
+
+<section class="panel"><div class="panel-header"><div><h2>Flusso di associazione</h2><p>La gerarchia cliente/sede resta quella di NSM; GenieACS non viene mai modificato.</p></div></div>
+  <div class="role-grid"><div><strong>1 · CPE in NSM</strong><p>L'operatore crea la CPE TP-Link/TR-069 con seriale o MAC.</p></div><div><strong>2 · Ricerca</strong><p>NSM cerca in GenieACS per seriale (<code>_deviceId._SerialNumber</code>) e, in alternativa, per MAC.</p></div><div><strong>3 · Anteprima</strong><p>ID ACS, produttore, modello, firmware, hardware, IP e ultimo Inform.</p></div><div><strong>4 · Associazione</strong><p>Salva l'ID GenieACS stabile; il refresh successivo verifica che il seriale non sia cambiato.</p></div></div>
+</section>
+{% endblock %}
