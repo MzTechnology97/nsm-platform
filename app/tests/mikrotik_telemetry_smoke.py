@@ -121,7 +121,7 @@ def run_metrics_stage(device_id, client):
 def run_monitor_stage(device_id, client):
     monitor=client.get(f"/devices/{device_id}/monitor")
     assert monitor.status_code == 200, monitor.text
-    for marker in ("Telemetria risorse","Retention 90 giorni","1h","24h","7g","30g","telemetry_monitor.js","telemetry_monitor.css"):
+    for marker in ("Telemetria risorse","Retention 90 giorni","1h","24h","7g","30g","telemetry_monitor.js","telemetry-panel"):
         assert marker in monitor.text, marker
     assert f"/api/v1/devices/{device_id}/metrics" in monitor.text
 

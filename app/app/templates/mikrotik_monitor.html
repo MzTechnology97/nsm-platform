@@ -1,7 +1,6 @@
 {% extends "device_layout.html" %}
 {% set device_tab = 'monitor' %}
 {% block device_content %}
-<link rel="stylesheet" href="{{ url_for('static', path='/telemetry_monitor.css') }}?v={{ app_version }}">
 {% set cpu_value = latest_metric.cpu_load if latest_metric and latest_metric.cpu_load is not none else metrics.get('cpu_load') %}
 <section class="mt-kpi-grid">
   <article class="metric-card"><span>CPU load</span><strong data-live-cpu>{{ cpu_value|round(1) if cpu_value is number else (cpu_value or '—') }}{% if cpu_value is not none %}%{% endif %}</strong><small>ultimo campione</small></article>

@@ -56,7 +56,7 @@ def main():
 
     page = client.get(f"/devices?customer={customer_id}&per_page=25")
     assert page.status_code == 200, page.text
-    for marker in ("Inventario confinato al cliente selezionato", "Per pagina", "CI18 Router", "CI18 CPE", "CI18SERIAL01", "02:18:00:00:00:01", "192.0.2.18", "inventory_ui.css"):
+    for marker in ("Inventario confinato al cliente selezionato", "Per pagina", "CI18 Router", "CI18 CPE", "CI18SERIAL01", "02:18:00:00:00:01", "192.0.2.18", "inventory-table"):
         assert marker in page.text, marker
 
     offline = client.get(f"/devices?customer={customer_id}&status=offline")

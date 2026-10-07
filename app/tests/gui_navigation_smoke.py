@@ -2,6 +2,7 @@
 import re
 import uuid
 from datetime import timedelta
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -62,6 +63,16 @@ def main():
         assert page.status_code == 200, (href, page.status_code)
         for marker in PLACEHOLDER_MARKERS:
             assert marker not in page.text, (href, marker)
+        # One design system: a single static stylesheet, no inline <style> blocks.
+        sheets = [s for s in re.findall(r'<link rel="stylesheet" href="([^"?]+)', page.text) if "/static/" in s]
+        assert len(sheets) == 1 and sheets[0].endswith("/static/app.css"), (href, sheets)
+        assert "<style" not in page.text, href
+
+    templates = Path(__file__).resolve().parents[1] / "app" / "templates"
+    for template in templates.glob("*.html"):
+        source = template.read_text(encoding="utf-8")
+        assert "<style" not in source, f"inline styles belong in static/app.css: {template.name}"
+        assert "stylesheet" not in source or template.name == "base.html", f"extra stylesheet link: {template.name}"
 
     # Monitoring surfaces the devices that need attention, with reasons.
     monitoring = client.get("/operations/monitoring").text

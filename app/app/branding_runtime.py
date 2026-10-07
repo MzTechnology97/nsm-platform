@@ -46,7 +46,7 @@ def branding_theme_css():
   --accent-soft: color-mix(in srgb, {primary} 12%, transparent) !important;
 }}
 .sidebar {{ background: {sidebar} !important; }}
-a, .text-link, .customer-item:hover .customer-main strong {{ color: {primary}; }}
+a, .text-link, .customer-item:hover .customer-main strong {{ color: var(--accent-text); }}
 .button.primary,
 .branding-preview-button {{
   background: {primary} !important;
@@ -61,7 +61,7 @@ a, .text-link, .customer-item:hover .customer-main strong {{ color: {primary}; }
   background: color-mix(in srgb, {primary} 30%, transparent) !important;
 }}
 .avatar {{
-  color: {primary} !important;
+  color: var(--accent-text) !important;
   background: color-mix(in srgb, {primary} 12%, var(--panel)) !important;
 }}
 input:focus, textarea:focus, select:focus {{
@@ -70,7 +70,7 @@ input:focus, textarea:focus, select:focus {{
 }}
 .preference-card.active,
 .admin-tabs a.active {{ border-color: {primary} !important; }}
-.admin-tabs a.active {{ color: {primary} !important; }}
+.admin-tabs a.active {{ color: var(--accent-text) !important; }}
 .attention-link .nav-icon {{ color: {highlight} !important; }}
 ::selection {{ background: color-mix(in srgb, {primary} 32%, transparent); }}
 """.strip()
