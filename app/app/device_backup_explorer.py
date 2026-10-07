@@ -22,6 +22,7 @@ from app.backup_text_tools import _comparison_candidates, _diff_rows, _read_expo
 from app.db import SessionLocal
 from app.mikrotik_backup import queue_mikrotik_backup
 from app.models import BackupPolicy, BackupRun, Device, utcnow
+from app.restore_test_models import BackupRestoreTest
 from app.security import validate_csrf
 from app.ui_feedback import exception_message, flash_redirect
 
@@ -189,6 +190,20 @@ def device_backup_explorer(request: Request, device_id: uuid.UUID):
         can_execute = core.has_permission(user, "backup.execute")
         can_configure = core.has_permission(user, "backup.configure")
         latest_success = next((run for run in runs if run.status == "success"), None)
+        restore_by_artifact: dict[uuid.UUID, BackupRestoreTest] = {}
+        if artifacts:
+            for test in db.scalars(
+                select(BackupRestoreTest)
+                .where(BackupRestoreTest.artifact_id.in_([item.id for item in artifacts]))
+                .order_by(BackupRestoreTest.performed_at.desc())
+            ):
+                restore_by_artifact.setdefault(test.artifact_id, test)
+        latest_restore_test = db.scalar(
+            select(BackupRestoreTest)
+            .where(BackupRestoreTest.device_id == device.id)
+            .order_by(BackupRestoreTest.performed_at.desc())
+            .limit(1)
+        )
 
         return core.render(
             request,
@@ -207,6 +222,8 @@ def device_backup_explorer(request: Request, device_id: uuid.UUID):
             readable_count=sum(1 for item in artifacts if _is_human_readable(item)),
             storage_bytes=sum(int(item.size_bytes or 0) for item in artifacts),
             latest_success=latest_success,
+            restore_by_artifact=restore_by_artifact,
+            latest_restore_test=latest_restore_test,
         )
 
 
