@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.41 — 2026-10-07
+
+Security
+- **Multi-vendor CVE correlation (SEC-05)**: about 30 common manufacturers available by default (Ubiquiti, TP-Link, Cambium, Mimosa, Tenda, Huawei, ZTE, Teltonika, Fortinet, Juniper, Cisco…); NVD queried only for the brands and models in the inventory, with the full history for newly added products; generic firmware version comparison; never exposure by brand alone. *Produttore* field for manually added devices, coverage per manufacturer on the NVD page, CVE counts for every evaluable brand.
+- Roadmap: added MON-01 (telemetry graphs, WAN/PPPoE traffic), ZBX-01 (Zabbix API) and GUI-SEARCH (global search bar).
+
 ## 0.49.40 — 2026-10-07
 
 Notifications

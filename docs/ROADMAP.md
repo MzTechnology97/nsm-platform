@@ -257,6 +257,18 @@ Bring Ubiquiti devices managed through the UISP API to the depth of the MikroTik
 - complete telemetry: signal/chain levels, noise, CCQ/airMAX quality, capacity, LAN/Ethernet interface state and speed, traffic, history;
 - device logs.
 
+### MON-01 — telemetry graphs and WAN/PPPoE traffic (requested 2026-10-07)
+
+Cacti/Zabbix-style time-series graphs for device telemetry (CPU, memory, signal, latency) and per-interface traffic, with WAN and PPPoE interfaces monitored explicitly (bps in/out, errors, history with zoomable ranges).
+
+### ZBX-01 — Zabbix API integration (requested 2026-10-07)
+
+Integration with the operator's Zabbix (currently 6.x; support both the 6.x API and 7.x, where authentication moved to an API token in the `Authorization` header). How it applies to devices (import hosts/items, link NSM devices to Zabbix hosts, show problems and graphs, or push NSM devices to Zabbix) is to be decided with the user before implementation.
+
+### GUI-SEARCH — global search bar (requested 2026-10-07)
+
+Improve the style of the global search bar and its suggestion list (grouping by type, icons, keyboard navigation, highlighted matches, recent searches).
+
 ## 6. ACS / TR-069 CPE roadmap
 
 The selected ACS is **GenieACS** (as preferred in `PRODUCT_REQUIREMENTS.md`); NSM reads its NBI and never implements an ACS itself. GenieACS ships as an optional service set of the NSM Docker stack (`./manage.sh acs-enable`). ACS-01..03 are implemented in `main` (`app/genieacs_connector.py`); validation against a real GenieACS instance is pending.
@@ -324,7 +336,9 @@ Read-only cnMaestro (cloud/on-premises) connector for Cambium radios: discovery 
 
 ## 7. Cross-vendor vulnerability management
 
-**Requested 2026-10-07 — SEC-05 multi-vendor CVE correlation**: extend advisory ingestion and matching beyond MikroTik to Ubiquiti, Cambium, TP-Link, Mimosa, Tenda, Huawei and other vendors present in the inventory, with vendor/product/version normalization per family and the same rule: never infer exposure from the brand alone.
+### SEC-05 — multi-vendor CVE correlation
+
+**Implemented in `main`** (`app/vendor_cpe.py`): about 30 common manufacturers (Ubiquiti, TP-Link, Cambium, Mimosa, Tenda, Huawei, ZTE, Teltonika, Ruckus, Fortinet, Juniper, Cisco…), NVD queries only for the brands and models in the inventory, generic firmware version comparison, coverage per manufacturer on the NVD page. Exposure is never inferred from the brand alone. Open: vendor-specific version schemes (e.g. Huawei VxRxxxCxx) and Cisco OS families.
 
 ### SEC-01 — source ingestion framework
 

@@ -39,7 +39,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import object_session, selectinload
 
 from app.models import Device, DeviceVulnerability, SecurityAdvisory
-from app.routeros_version import compare_routeros_versions, parse_routeros_version
+from app import vendor_cpe
 from app.vulnerability_remediation import record_history
 
 AFFECTED = "affected"
@@ -61,6 +61,15 @@ class DeviceProfile:
     product: str | None
     version: str | None
     model_key: str | None
+    cpe_vendors: tuple = ()
+    products: tuple = ()
+
+    def __post_init__(self):
+        # A profile built only with vendor/product (single-product brands) matches that pair.
+        if not self.cpe_vendors and self.vendor:
+            object.__setattr__(self, "cpe_vendors", (self.vendor,))
+        if not self.products and self.product:
+            object.__setattr__(self, "products", (self.product,))
 
 
 @dataclass
@@ -80,29 +89,30 @@ def model_key(value: str | None) -> str | None:
 
 
 def device_profile(device: Device) -> DeviceProfile:
-    vendor = (device.vendor or "").strip().lower()
-    product = "routeros" if vendor == "mikrotik" else None
+    brand = vendor_cpe.brand(device) or (device.vendor or "").strip().lower()
+    products = vendor_cpe.products(device)
     version = (device.firmware_version or "").strip() or None
-    return DeviceProfile(vendor=vendor, product=product, version=version, model_key=model_key(device.model))
+    return DeviceProfile(vendor=brand, product=products[0] if products else None, version=version, model_key=model_key(device.model),
+                         cpe_vendors=vendor_cpe.cpe_vendors(device), products=products)
 
 
-def _version_check(rule: dict, installed) -> tuple[str, str, str | None]:
+def _version_check(rule: dict, installed, brand: str = "mikrotik") -> tuple[str, str, str | None]:
     """Return (state, reason, fixed_version) for a rule whose product already matched."""
     exact = rule.get("version")
     bounds = {key: rule.get(key) for key in ("start_including", "start_excluding", "end_including", "end_excluding")}
     if exact:
-        result = compare_routeros_versions(installed, exact)
+        result = vendor_cpe.compare(brand, installed, exact)
         if result is None:
             return UNKNOWN, "versione della regola non interpretabile", None
         return (AFFECTED, f"versione {exact}", None) if result == 0 else (NOT_AFFECTED, f"solo versione {exact}", None)
     if not any(bounds.values()):
         return UNKNOWN, "la fonte non indica versioni affette", None
     for key, value in bounds.items():
-        if value and parse_routeros_version(value) is None:
+        if value and not vendor_cpe.parseable(brand, value):
             return UNKNOWN, f"limite {key} non interpretabile", None
 
     def cmp(bound):
-        return compare_routeros_versions(installed, bound)
+        return vendor_cpe.compare(brand, installed, bound)
 
     if bounds["start_including"] and cmp(bounds["start_including"]) < 0:
         return NOT_AFFECTED, f"precedente a {bounds['start_including']}", None
@@ -118,7 +128,7 @@ def _version_check(rule: dict, installed) -> tuple[str, str, str | None]:
 def evaluate_rule(rule: dict, profile: DeviceProfile) -> Assessment:
     if not profile.product:
         return Assessment(NOT_APPLICABLE, reason="prodotto dell'apparato non mappato")
-    if (rule.get("vendor") or "").lower() != profile.vendor or (rule.get("product") or "").lower() != profile.product:
+    if (rule.get("vendor") or "").lower() not in profile.cpe_vendors or (rule.get("product") or "").lower() not in profile.products:
         return Assessment(NOT_APPLICABLE, reason="prodotto diverso")
     for group in rule.get("requires") or []:
         keys = {model_key(item) for item in group if model_key(item)}
@@ -130,9 +140,9 @@ def evaluate_rule(rule: dict, profile: DeviceProfile) -> Assessment:
             return Assessment(NOT_APPLICABLE, reason="modello hardware non incluso", rule=rule)
     if not profile.version:
         return Assessment(UNKNOWN, reason="versione installata sconosciuta", rule=rule)
-    if parse_routeros_version(profile.version) is None:
+    if not vendor_cpe.parseable(profile.vendor, profile.version):
         return Assessment(UNKNOWN, reason=f"versione installata non interpretabile ({profile.version})", rule=rule)
-    state, reason, fixed = _version_check(rule, profile.version)
+    state, reason, fixed = _version_check(rule, profile.version, profile.vendor)
     if state == UNKNOWN:
         return Assessment(UNKNOWN, reason=reason, rule=rule)
     confidence = None
@@ -324,13 +334,14 @@ def unknown_devices(db, advisory: SecurityAdvisory, customer_id=None) -> list[tu
     """Devices of the advisory's product that cannot be assessed, with the reason."""
     if not advisory.match_rules:
         return []
-    query = select(Device).where(Device.vendor.ilike("mikrotik")).options(selectinload(Device.customer))
+    rule_vendors = {(rule.get("vendor") or "").lower() for rule in advisory.match_rules}
+    query = select(Device).options(selectinload(Device.customer))
     if customer_id:
         query = query.where(Device.customer_id == customer_id)
     out = []
     for device in db.scalars(query):
         profile = device_profile(device)
-        if not profile.product:
+        if not profile.product or not rule_vendors & set(profile.cpe_vendors):
             continue
         result = assess(advisory.match_rules, profile)
         if result.state == UNKNOWN:

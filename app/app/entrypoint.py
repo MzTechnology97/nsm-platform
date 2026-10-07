@@ -100,6 +100,7 @@ from app.lifecycle_catalog import install_lifecycle_catalog
 from app.lifecycle_remediation import install_lifecycle_remediation
 from app.uisp_onboarding import install_uisp_onboarding
 from app.routeros_catalog import install_routeros_catalog
+from app.vendor_cpe import install_vendor_cpe
 from app.firmware_suggestions import install_firmware_suggestions
 from app.system_status import install_system_status
 from app.api_key_lifecycle import install_api_key_lifecycle
@@ -111,7 +112,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.40"
+APP_VERSION = "0.49.41"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -160,6 +161,7 @@ install_lifecycle_catalog(core.app)
 install_lifecycle_remediation(core.app)
 install_uisp_onboarding(core.app)
 install_routeros_catalog(core.app)
+install_vendor_cpe()
 install_firmware_suggestions(core.app)
 install_system_status(core.app)
 install_api_key_lifecycle(core.app)

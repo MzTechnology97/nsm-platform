@@ -43,7 +43,7 @@ def _render(request, db, user):
         has_key=bool(connection and connection.secret_encrypted),
         advisory_count=advisory_count,
         open_findings=open_findings,
-        tracked_cpes=sources.TRACKED_CPES,
+        tracked_cpes=sources.sync_state(connection).get("tracked_cpes") or list(sources.TRACKED_CPES),
         default_url=sources.NVD_DEFAULT_URL,
         interval_min=sources.INTERVAL_MIN_MINUTES,
         interval_max=sources.INTERVAL_MAX_MINUTES,
