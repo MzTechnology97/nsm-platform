@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from sqlalchemy import select
@@ -63,6 +64,26 @@ def _active_mikrotik_agent(db, device_id) -> bool:
     return device_id in active_mikrotik_agent_device_ids(db, [device_id])
 
 
+# RouterOS returns `/file get ... contents` only for files up to ~60 KB.
+LEGACY_EXPORT_MAX_BYTES = 60000
+LEGACY_EXPORT_MIN_AGENT = (0, 49, 7)
+
+
+def legacy_export_supported(device) -> bool:
+    """Legacy agent 0.49.7+ on RouterOS 7.x can archive the `.rsc` export."""
+    data = dict(getattr(device, "inventory_data", None) or {})
+    match = re.match(r"(\d+)\.(\d+)\.(\d+)", str(data.get("agent_version") or ""))
+    agent_ok = bool(match) and tuple(int(part) for part in match.groups()) >= LEGACY_EXPORT_MIN_AGENT
+    return agent_ok and str(getattr(device, "firmware_version", "") or "").startswith("7.")
+
+
+def backup_formats_for_device(device, formats):
+    """Restrict policy formats to what the installed MikroTik agent can produce."""
+    if not _legacy_mikrotik_agent(device):
+        return list(formats)
+    return [item for item in formats if item == "mikrotik_export"] if legacy_export_supported(device) else []
+
+
 def _legacy_mikrotik_agent(device) -> bool:
     data = dict(getattr(device, "inventory_data", None) or {})
     version = str(data.get("agent_version") or "").strip().lower()
@@ -75,6 +96,17 @@ def capability_for_device(db, device, *, active_agent: bool | None = None) -> Ba
     if vendor == "mikrotik":
         if active_agent is None:
             active_agent = _active_mikrotik_agent(db, device.id)
+        if active_agent and _legacy_mikrotik_agent(device) and legacy_export_supported(device):
+            return BackupCapability(
+                vendor=vendor,
+                method_key="mikrotik_agent_legacy",
+                label="Agent MikroTik legacy (solo export)",
+                status="available_export_only",
+                executable=True,
+                reason="RouterOS 7.12 legacy: viene archiviato solo l'export .rsc fino a 60 KB; il backup binario richiede RouterOS 7.13+ con agent moderno.",
+                policy_option_keys=("mikrotik_export",),
+                artifact_types=("mikrotik_export",),
+            )
         if active_agent and _legacy_mikrotik_agent(device):
             return BackupCapability(
                 vendor=vendor,
@@ -82,7 +114,7 @@ def capability_for_device(db, device, *, active_agent: bool | None = None) -> Ba
                 label="Agent MikroTik legacy",
                 status="legacy_backup_pending",
                 executable=False,
-                reason="Il trasporto RouterOS legacy supporta heartbeat, snapshot e diagnostica; il backup binario/export legacy non è ancora eseguibile e non viene dichiarato protetto.",
+                reason="Backup non eseguibile: su RouterOS 7.x serve l'agent legacy 0.49.7+ (solo export .rsc); RouterOS 6 non consente di leggere file oltre 4 KB da script. Il dispositivo non viene dichiarato protetto.",
                 policy_option_keys=("mikrotik_binary", "mikrotik_export"),
                 artifact_types=("mikrotik_binary", "mikrotik_export"),
             )
@@ -215,6 +247,7 @@ def readiness_label(status: str) -> str:
         "method_disabled": "Metodo non abilitato",
         "agent_required": "Agent richiesto",
         "legacy_backup_pending": "Backup legacy non pronto",
+        "available_export_only": "Solo export .rsc",
         "connector_required": "Connector richiesto",
         "acs_required": "ACS richiesto",
         "unsupported": "Non supportato",

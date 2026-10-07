@@ -14,7 +14,7 @@ from __future__ import annotations
 from app import mikrotik_agent_update as updater
 from app import mikrotik_agent_update_ui as update_ui
 
-TARGET_AGENT_VERSION = "0.49.6"
+TARGET_AGENT_VERSION = "0.49.7"
 SELF_UPDATE_MIN_VERSION = "0.49.0"
 
 
