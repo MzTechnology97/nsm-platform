@@ -26,7 +26,7 @@
     <select name="vendor" aria-label="Vendor"><option value="">Tutti i vendor</option>{% for item in vendors %}<option value="{{ item }}" {% if vendor_filter == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
     <button class="button primary">Applica</button>
     {% if q or customer_filter or vendor_filter or state_filter %}<a class="button ghost" href="/security/lifecycle">Reset</a>{% endif %}
-    <span class="muted">{{ customer_count }} clienti con apparati EOL/EOS</span>
+    <span class="muted">{{ customer_count }} clienti coinvolti</span>
   </form>
   {% if state_filter == 'unmatched' %}
     {% if groups %}
