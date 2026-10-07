@@ -89,9 +89,10 @@ from app.incidents import install_incidents
 from app.incident_evidence import install_incident_evidence
 from app.compliance import install_compliance
 from app.compliance_findings import install_compliance_findings
+from app.lifecycle_catalog import install_lifecycle_catalog
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.8"
+APP_VERSION = "0.49.9"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -134,6 +135,7 @@ install_incidents(core.app)
 install_incident_evidence(core.app)
 install_compliance(core.app)
 install_compliance_findings(core.app)
+install_lifecycle_catalog(core.app)
 install_customer_workspace(core.app)
 install_backup_workspace_capabilities(core.app)
 promote_customer_workspace_routes(core.app)

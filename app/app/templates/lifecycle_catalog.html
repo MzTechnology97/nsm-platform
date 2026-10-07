@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Catalogo lifecycle · {{ app_name }}{% endblock %}
+{% block content %}
+{% set can_manage = has_permission(user, 'lifecycle.manage') %}
+{% set state_labels = {'supported': 'Supportato', 'eol': 'EOL', 'eos': 'EOS'} %}
+<nav class="breadcrumbs" aria-label="Percorso"><a href="/security/lifecycle">EOL / EOS</a><span>›</span><span>Catalogo</span></nav>
+<div class="page-header compact-heading">
+  <div><h1>Catalogo lifecycle</h1><p>Date EOL (fine vendita) ed EOS (fine supporto) per modello, ognuna con la fonte e la data in cui è stata verificata. Gli apparati sono correlati solo per modello esatto o alias dichiarato.</p></div>
+  <div class="page-actions"><a class="button ghost" href="/security/lifecycle/catalog.csv">Esporta CSV</a>{% if can_manage %}<a class="button primary" href="/security/lifecycle/catalog/new">+ Nuovo modello</a>{% endif %}</div>
+</div>
+<section class="panel">
+  <form class="filter-bar" method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="Modello o nota..." aria-label="Cerca">
+    <select name="vendor" aria-label="Vendor"><option value="">Tutti i vendor</option>{% for v in vendors %}<option value="{{ v }}" {% if vendor_filter == v %}selected{% endif %}>{{ v }}</option>{% endfor %}</select>
+    <button class="button primary">Applica</button>
+    {% if q or vendor_filter %}<a class="button ghost" href="/security/lifecycle/catalog">Reset</a>{% endif %}
+    <span class="muted">{{ total }} modelli in catalogo</span>
+  </form>
+  {% if rows %}
+  <div class="table-wrap"><table class="data-table compact-data-table">
+    <thead><tr><th>Modello</th><th>Stato oggi</th><th>EOL</th><th>EOS</th><th>Fonte</th><th>Apparati</th><th></th></tr></thead>
+    <tbody>{% for r, state, used in rows %}
+      <tr>
+        <td><strong>{{ r.model }}</strong><small>{{ r.vendor }}{% if r.aliases %} · alias: {{ r.aliases|join(', ') }}{% endif %}</small></td>
+        <td><span class="lifecycle lifecycle-{{ state }}">{{ state_labels[state] }}</span></td>
+        <td>{{ r.eol_date or '—' }}</td>
+        <td>{{ r.eos_date or '—' }}</td>
+        <td>{% if r.source_url %}<a href="{{ r.source_url }}" target="_blank" rel="noopener">{{ r.source }} ↗</a>{% else %}{{ r.source }}{% endif %}<small>verificata il {{ r.evidence_date }}</small></td>
+        <td>{% if used %}<a href="/devices?q={{ r.model|urlencode }}">{{ used }}</a>{% else %}0{% endif %}</td>
+        <td>{% if can_manage %}<a class="button tiny ghost" href="/security/lifecycle/catalog/{{ r.id }}/edit">Modifica</a>{% endif %}</td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}
+  <div class="empty-state">Nessun modello in catalogo{% if q or vendor_filter %} per i filtri selezionati{% endif %}. Senza catalogo lo stato lifecycle degli apparati resta <strong>sconosciuto</strong>, mai «supportato».</div>
+  {% endif %}
+</section>
+{% if can_manage %}
+<section class="panel">
+  <div class="panel-header"><div><h2>Importa CSV</h2><p>Colonne: <code>{{ csv_fields|join(',') }}</code>. Alias separati da <code>|</code>, date AAAA-MM-GG. I modelli già presenti vengono aggiornati; se una riga non è valida non viene importato nulla.</p></div></div>
+  <form method="post" action="/security/lifecycle/catalog/import" enctype="multipart/form-data" class="filter-bar">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <input type="file" name="file" accept=".csv,text/csv" required aria-label="File CSV">
+    <button class="button primary">Importa</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

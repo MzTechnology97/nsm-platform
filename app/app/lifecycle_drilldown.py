@@ -1,16 +1,19 @@
 import math
 import uuid
+from datetime import timedelta
 
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app.db import SessionLocal
-from app.models import Customer, Device
+from app.models import Customer, Device, utcnow
 
 LIFECYCLE_ATTENTION_STATES = ("eol", "eos")
+UNMATCHED_STATES = ("ambiguous", "no_record", "no_model")
+UPCOMING_DAYS = 365
 
 
 def _remove_exact_route(app, path: str, method: str):
@@ -34,6 +37,24 @@ def _uuid_or_none(value: str):
         return None
 
 
+def _state_filter(state: str, today):
+    status = func.lower(Device.lifecycle_status)
+    if state in LIFECYCLE_ATTENTION_STATES:
+        return status == state
+    if state == "upcoming":
+        horizon = today + timedelta(days=UPCOMING_DAYS)
+        return and_(
+            status == "supported",
+            or_(Device.eos_date.between(today, horizon), Device.eol_date.between(today, horizon)),
+        )
+    if state == "unmatched":
+        return and_(
+            or_(Device.lifecycle_match.is_(None), Device.lifecycle_match.in_(UNMATCHED_STATES)),
+            status == "unknown",
+        )
+    return status.in_(LIFECYCLE_ATTENTION_STATES)
+
+
 def lifecycle(
     request: Request,
     q: str = "",
@@ -53,11 +74,14 @@ def lifecycle(
         per_page = 50
         customer_id = _uuid_or_none(customer)
         term = q.strip()
+        today = utcnow().date()
+        if state not in (*LIFECYCLE_ATTENTION_STATES, "upcoming", "unmatched"):
+            state = ""
 
-        filters = [func.lower(Device.lifecycle_status).in_(LIFECYCLE_ATTENTION_STATES)]
+        scope = []
         if term:
             like = f"%{term}%"
-            filters.append(
+            scope.append(
                 or_(
                     Device.display_name.ilike(like),
                     Device.device_identity.ilike(like),
@@ -68,86 +92,65 @@ def lifecycle(
                 )
             )
         if customer_id:
-            filters.append(Device.customer_id == customer_id)
+            scope.append(Device.customer_id == customer_id)
         if vendor:
-            filters.append(func.lower(Device.vendor) == vendor.lower())
-        if state in LIFECYCLE_ATTENTION_STATES:
-            filters.append(func.lower(Device.lifecycle_status) == state)
+            scope.append(func.lower(Device.vendor) == vendor.lower())
 
-        total = int(db.scalar(select(func.count(Device.id)).where(*filters)) or 0)
-        pages = max(1, math.ceil(total / per_page))
-        page = min(page, pages)
+        def count(*extra):
+            return int(db.scalar(select(func.count(Device.id)).where(*scope, *extra)) or 0)
 
-        rows = list(
-            db.scalars(
-                select(Device)
-                .where(*filters)
-                .options(selectinload(Device.customer), selectinload(Device.site))
-                .order_by(
-                    Device.lifecycle_status,
+        filters = [*scope, _state_filter(state, today)]
+        groups = []
+        rows = []
+        if state == "unmatched":
+            # One line per vendor/model: the catalog is maintained per model.
+            grouped = db.execute(
+                select(
                     Device.vendor,
-                    Device.display_name.nullslast(),
-                    Device.name,
+                    Device.model,
+                    Device.lifecycle_match,
+                    func.count(Device.id),
+                    func.count(func.distinct(Device.customer_id)),
                 )
-                .offset((page - 1) * per_page)
-                .limit(per_page)
+                .where(*filters)
+                .group_by(Device.vendor, Device.model, Device.lifecycle_match)
+                .order_by(func.count(Device.id).desc(), Device.vendor, Device.model)
+            ).all()
+            total = len(grouped)
+            pages = max(1, math.ceil(total / per_page))
+            page = min(page, pages)
+            groups = grouped[(page - 1) * per_page : page * per_page]
+        else:
+            total = count(_state_filter(state, today))
+            pages = max(1, math.ceil(total / per_page))
+            page = min(page, pages)
+            rows = list(
+                db.scalars(
+                    select(Device)
+                    .where(*filters)
+                    .options(selectinload(Device.customer), selectinload(Device.site))
+                    .order_by(
+                        Device.lifecycle_status,
+                        Device.eos_date.nullslast(),
+                        Device.vendor,
+                        Device.display_name.nullslast(),
+                        Device.name,
+                    )
+                    .offset((page - 1) * per_page)
+                    .limit(per_page)
+                )
             )
-        )
 
-        summary_filters = [func.lower(Device.lifecycle_status).in_(LIFECYCLE_ATTENTION_STATES)]
-        if customer_id:
-            summary_filters.append(Device.customer_id == customer_id)
-        if vendor:
-            summary_filters.append(func.lower(Device.vendor) == vendor.lower())
-        if term:
-            like = f"%{term}%"
-            summary_filters.append(
-                or_(
-                    Device.display_name.ilike(like),
-                    Device.device_identity.ilike(like),
-                    Device.name.ilike(like),
-                    Device.vendor.ilike(like),
-                    Device.model.ilike(like),
-                    Device.serial_number.ilike(like),
-                )
-            )
-
-        eol_count = int(
-            db.scalar(
-                select(func.count(Device.id)).where(
-                    *summary_filters,
-                    func.lower(Device.lifecycle_status) == "eol",
-                )
-            )
-            or 0
-        )
-        eos_count = int(
-            db.scalar(
-                select(func.count(Device.id)).where(
-                    *summary_filters,
-                    func.lower(Device.lifecycle_status) == "eos",
-                )
-            )
-            or 0
-        )
         customer_count = int(
             db.scalar(
-                select(func.count(func.distinct(Device.customer_id))).where(*summary_filters)
+                select(func.count(func.distinct(Device.customer_id))).where(
+                    *scope, _state_filter("", today)
+                )
             )
             or 0
         )
-
         customers = list(db.scalars(select(Customer).order_by(Customer.name)))
-        vendors = [
-            item
-            for item in db.scalars(
-                select(Device.vendor)
-                .where(func.lower(Device.lifecycle_status).in_(LIFECYCLE_ATTENTION_STATES))
-                .distinct()
-                .order_by(Device.vendor)
-            )
-            if item
-        ]
+        vendors = [item for item in db.scalars(select(Device.vendor).distinct().order_by(Device.vendor)) if item]
         selected_customer = db.get(Customer, customer_id) if customer_id else None
 
         return core.render(
@@ -156,6 +159,7 @@ def lifecycle(
             user,
             "lifecycle.html",
             devices=rows,
+            groups=groups,
             customers=customers,
             vendors=vendors,
             selected_customer=selected_customer,
@@ -166,8 +170,11 @@ def lifecycle(
             total=total,
             page=page,
             pages=pages,
-            eol_count=eol_count,
-            eos_count=eos_count,
+            eol_count=count(_state_filter("eol", today)),
+            eos_count=count(_state_filter("eos", today)),
+            upcoming_count=count(_state_filter("upcoming", today)),
+            unmatched_count=count(_state_filter("unmatched", today)),
+            upcoming_days=UPCOMING_DAYS,
             customer_count=customer_count,
         )
 

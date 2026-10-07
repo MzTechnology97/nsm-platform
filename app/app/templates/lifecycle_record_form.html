@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ record.model if record else 'Nuovo modello' }} · {{ app_name }}{% endblock %}
+{% block content %}
+{% set v = record or prefill %}
+<nav class="breadcrumbs" aria-label="Percorso"><a href="/security/lifecycle">EOL / EOS</a><span>›</span><a href="/security/lifecycle/catalog">Catalogo</a><span>›</span><span>{{ record.model if record else 'Nuovo modello' }}</span></nav>
+<div class="page-header compact-heading">
+  <div><h1>{{ record.model if record else 'Nuovo modello' }}</h1><p>Usa il nome modello esatto riportato dagli apparati; aggiungi come alias le altre diciture dello stesso modello. Senza date il modello risulta supportato alla data di verifica.</p></div>
+</div>
+<form method="post" action="/security/lifecycle/catalog" class="form-stack">
+  <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+  {% if record %}<input type="hidden" name="record_id" value="{{ record.id }}">{% endif %}
+  <section class="panel">
+    <div class="form-grid">
+      <label>Vendor<input name="vendor" required maxlength="60" list="lifecycle-vendors" value="{{ v.vendor or '' }}"><datalist id="lifecycle-vendors">{% for item in vendors %}<option value="{{ item }}">{% endfor %}</datalist></label>
+      <label>Modello<input name="model" required maxlength="150" value="{{ v.model or '' }}"></label>
+      <label>Alias<input name="aliases" maxlength="500" value="{{ (record.aliases|join(', ')) if record and record.aliases else '' }}"><small>Separati da virgola.</small></label>
+      <label>EOL (fine vendita)<input type="date" name="eol_date" value="{{ record.eol_date if record and record.eol_date else '' }}"></label>
+      <label>EOS (fine supporto)<input type="date" name="eos_date" value="{{ record.eos_date if record and record.eos_date else '' }}"></label>
+      <label>Fonte<input name="source" required maxlength="160" placeholder="es. pagina prodotto vendor, bollettino" value="{{ record.source if record else '' }}"></label>
+      <label>Link fonte<input type="url" name="source_url" maxlength="500" placeholder="https://" value="{{ record.source_url if record and record.source_url else '' }}"></label>
+      <label>Fonte verificata il<input type="date" name="evidence_date" required max="{{ today }}" value="{{ record.evidence_date if record else today }}"></label>
+    </div>
+    <label>Note<textarea name="notes" rows="2" maxlength="2000">{{ record.notes if record and record.notes else '' }}</textarea></label>
+  </section>
+  <div class="form-actions"><button class="button primary">Salva e ricorrela</button><a class="button ghost" href="/security/lifecycle/catalog">Annulla</a></div>
+</form>
+{% if record %}
+<form method="post" action="/security/lifecycle/catalog/{{ record.id }}/delete" class="form-actions" onsubmit="return confirm('Eliminare il modello dal catalogo? Gli apparati correlati torneranno senza dato lifecycle.')">
+  <input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button danger ghost">Elimina dal catalogo</button>
+</form>
+{% endif %}
+{% endblock %}

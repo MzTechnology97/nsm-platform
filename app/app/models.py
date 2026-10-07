@@ -142,6 +142,11 @@ class Device(Base, TimestampMixin):
     lifecycle_verified_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True)
     )
+    # catalog / manual / ambiguous / no_record / no_model (LIFE-02); None = not correlated yet.
+    lifecycle_match: Mapped[str | None] = mapped_column(String(20))
+    lifecycle_record_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("lifecycle_records.id", ondelete="SET NULL")
+    )
 
     customer: Mapped["Customer"] = relationship(back_populates="devices")
     site: Mapped["Site | None"] = relationship(back_populates="devices")
@@ -421,3 +426,29 @@ class BackupRun(Base):
     sha256: Mapped[str | None] = mapped_column(String(64))
     size_bytes: Mapped[int | None] = mapped_column(BigInteger)
     error_message: Mapped[str | None] = mapped_column(Text)
+
+
+class LifecycleRecord(Base):
+    """EOL (end of sale/life) and EOS (end of support) dates of one vendor model.
+
+    A record without dates states that the vendor still supported the model
+    when the source was checked (`evidence_date`).
+    """
+
+    __tablename__ = "lifecycle_records"
+    __table_args__ = (UniqueConstraint("vendor", "model_key", name="uq_lifecycle_records_vendor_model"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    vendor: Mapped[str] = mapped_column(String(60), nullable=False)
+    model: Mapped[str] = mapped_column(String(150), nullable=False)
+    model_key: Mapped[str] = mapped_column(String(150), nullable=False)
+    aliases: Mapped[list] = mapped_column(JSON, default=list)
+    eol_date: Mapped[date | None] = mapped_column(Date)
+    eos_date: Mapped[date | None] = mapped_column(Date)
+    source: Mapped[str] = mapped_column(String(160), nullable=False)
+    source_url: Mapped[str | None] = mapped_column(String(500))
+    evidence_date: Mapped[date] = mapped_column(Date, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))

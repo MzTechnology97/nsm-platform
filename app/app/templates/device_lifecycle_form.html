@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Lifecycle · {{ device.display_name or device.name }} · {{ app_name }}{% endblock %}
+{% block content %}
+{% set manual = device.lifecycle_match == 'manual' %}
+<nav class="breadcrumbs" aria-label="Percorso"><a href="/devices">Apparati</a><span>›</span><a href="/devices/{{ device.id }}">{{ device.display_name or device.device_identity or device.name }}</a><span>›</span><span>Lifecycle</span></nav>
+<div class="page-header compact-heading">
+  <div><h1>Lifecycle</h1><p>{{ device.vendor }} · {{ device.model or 'modello non rilevato' }} · origine attuale: {{ match_labels.get(device.lifecycle_match, 'non ancora correlato') }}.</p></div>
+</div>
+<section class="panel">
+  <div class="panel-header"><div><h2>Catalogo</h2><p>Esito della correlazione con il catalogo lifecycle per questo modello.</p></div></div>
+  {% if correlation.match == 'catalog' %}
+  <p>Il modello corrisponde a <strong>{{ correlation.record.model }}</strong> ({{ correlation.record.source }}, verificata il {{ correlation.record.evidence_date }}).</p>
+  {% elif correlation.match == 'ambiguous' %}
+  <p>Corrispondenza ambigua: modelli simili in catalogo {% for name in correlation.candidates %}<span class="status-pill">{{ name }}</span> {% endfor %}. NSM non li applica da solo: se è lo stesso modello aggiungi «{{ device.model }}» come alias del record corretto.</p>
+  {% elif correlation.match == 'no_record' %}
+  <p>Il modello «{{ device.model }}» non è nel catalogo. <a href="/security/lifecycle/catalog/new?vendor={{ device.vendor|urlencode }}&model={{ device.model|urlencode }}">Aggiungilo</a>.</p>
+  {% else %}
+  <p>Il modello dell'apparato non è stato rilevato: la correlazione non è possibile, lo stato resta sconosciuto salvo valore manuale.</p>
+  {% endif %}
+  {% if manual %}
+  <form method="post" action="/devices/{{ device.id }}/lifecycle"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="action" value="catalog"><button class="button ghost">Usa il catalogo al posto del valore manuale</button></form>
+  {% endif %}
+</section>
+<form method="post" action="/devices/{{ device.id }}/lifecycle" class="form-stack">
+  <input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="action" value="manual">
+  <section class="panel">
+    <div class="panel-header"><div><h2>Valore manuale</h2><p>Per apparati senza modello in catalogo o con un'evidenza specifica (es. comunicazione del vendor). Il valore manuale non viene sovrascritto dal catalogo.</p></div></div>
+    <div class="form-grid">
+      <label>Stato<select name="lifecycle_status">{% for s in states %}<option value="{{ s }}" {% if device.lifecycle_status == s %}selected{% endif %}>{{ s|upper }}</option>{% endfor %}</select></label>
+      <label>EOL<input type="date" name="eol_date" value="{{ device.eol_date or '' }}"></label>
+      <label>EOS<input type="date" name="eos_date" value="{{ device.eos_date or '' }}"></label>
+      <label>Fonte<input name="source" required maxlength="255" value="{{ device.lifecycle_source if manual and device.lifecycle_source else '' }}"></label>
+      <label>Verificata il<input type="date" name="evidence_date" required max="{{ today }}" value="{{ device.lifecycle_verified_at.date() if manual and device.lifecycle_verified_at else today }}"></label>
+    </div>
+  </section>
+  <div class="form-actions"><button class="button primary">Salva valore manuale</button><a class="button ghost" href="/devices/{{ device.id }}">Annulla</a></div>
+</form>
+{% endblock %}
