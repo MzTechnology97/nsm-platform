@@ -4395,3 +4395,9 @@ a.compliance-mark { text-decoration: none; }
 .mt-10 { margin-top: 10px; }
 .mt-14 { margin-top: 14px; }
 .muted-block { display: block; opacity: .72; margin-top: 3px; }
+.check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(210px,1fr));
+  gap: 2px 14px;
+  margin: 6px 0;
+}

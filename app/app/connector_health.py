@@ -70,4 +70,13 @@ def connectors(db, now=None) -> list[dict]:
         agent_row = {"state": "ok" if not stale else ("error" if stale == len(agents) else "warning"),
                      "detail": f"{len(agents) - stale} di {len(agents)} con heartbeat negli ultimi 15 minuti"}
     out.append({"name": "Agent MikroTik", "href": "/operations/agents", "last_ok": max((s for s in agents if s), default=None), "error": None, **agent_row})
+    from app.notification_delivery import delivery_health
+
+    health = delivery_health(db, now)
+    if not health["configured"]:
+        out.append({"name": "Notifiche e-mail", "state": "unconfigured", "href": "/admin/notifications", "last_ok": None, "detail": "server SMTP non configurato", "error": None})
+    else:
+        state = "error" if health["failed"] else ("warning" if health["stuck"] else "ok")
+        out.append({"name": "Notifiche e-mail", "state": state, "href": "/admin/notifications", "last_ok": None,
+                    "detail": f"24 ore: {health['sent']} inviate, {health['pending']} in coda, {health['failed']} fallite", "error": None})
     return out

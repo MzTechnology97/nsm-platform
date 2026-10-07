@@ -25,6 +25,7 @@ from app.advisory_sources import sync_security_advisories
 from app.compliance import run_scheduled_evaluation as run_compliance_evaluation
 from app.lifecycle_catalog import run_scheduled_reconcile as run_lifecycle_reconcile
 from app.worker_status import beat, run_task, started
+from app.notification_delivery import deliver_pending as deliver_notifications
 
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
 log = logging.getLogger("worker")
@@ -63,6 +64,9 @@ while True:
             uisp_stats = run_task("uisp_sync", sync_uisp_devices)
             report_stats = run_task("report_schedules", run_report_schedules)
             advisory_stats = run_task("security_advisories", sync_security_advisories)
+            notify_stats = run_task("notification_delivery", deliver_notifications)
+            if notify_stats.get("failed"):
+                log.warning("Notifiche esterne non consegnate: %s", notify_stats)
             if any(stats.values()):
                 log.info("Backup maintenance: %s", stats)
             if expired_pending_jobs or expired_delivered_jobs or expired_agent_updates:

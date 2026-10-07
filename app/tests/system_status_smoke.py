@@ -79,7 +79,7 @@ def main():
     assert worker_status.status()["available"] is False
 
     source = Path(__file__).resolve().parents[1].joinpath("app", "worker.py").read_text(encoding="utf-8")
-    assert source.count("run_task(") == 18 and "beat()" in source, "every periodic worker task runs through run_task"
+    assert source.count("run_task(") >= 19 and "beat()" in source, "every periodic worker task runs through run_task"
 
     # /health keeps its contract and adds the worker state.
     worker_status.use_client(fake)

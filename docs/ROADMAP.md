@@ -497,6 +497,8 @@ Approved future reporting feature.
 
 ### REP-04 — delivery and delivery evidence
 
+**In progress**: the e-mail channel with per-user preferences, outbox and retries is in `main` (`app/notification_delivery.py`); Telegram, Slack, the vulnerability newsletter and scheduled report delivery follow as separate PRs.
+
 Add delivery channels only when an actual supported implementation is selected. Record delivery attempt/result independently from report generation success.
 
 ## 12. RBAC and administration hardening

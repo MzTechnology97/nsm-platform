@@ -54,6 +54,13 @@ A Site is customer-local. UISP or another connector may retain external organiza
 
 ## 3. Audit, Action Center and notifications
 
+### External notification delivery (e-mail)
+
+- *Amministrazione → Notifiche*: SMTP server (STARTTLS, SSL/TLS or plain on an internal network), encrypted password, sender, portal URL used in links, test message, delivery log with filters and re-queue of failed messages;
+- every in-app notification is fanned out in the same transaction to the users whose profile preferences match: per channel a minimum level (informativo, attenzione, alto, critico) and the categories (security, backup, firmware, devices/agents, integrations, reports, system errors; none selected = all); the e-mail address is set in the profile;
+- persistent outbox (`notification_deliveries`, migration 0026): the worker sends pending messages and retries failures after 1, 5, 15, 60 and 240 minutes; after 6 attempts a message is *failed* and stays visible until re-queued, so important notifications are not lost; sent messages are kept 180 days;
+- delivery state on *Sistema* (connector health) and a test message from the profile.
+
 ### Implemented
 
 - append-oriented audit event foundation;

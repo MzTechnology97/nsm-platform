@@ -45,6 +45,7 @@ def retention() -> list[dict]:
     return [
         {"data": "Telemetria MikroTik (CPU, RAM, traffico)", "rule": f"{mikrotik_telemetry.RETENTION_DAYS} giorni, pulizia oraria"},
         {"data": "Metriche UISP", "rule": f"{uisp_metrics.RETENTION_DAYS} giorni, pulizia oraria"},
+        {"data": "Notifiche esterne inviate", "rule": "180 giorni (quelle fallite restano finché non vengono rimesse in coda)"},
         {"data": "Tentativi di accesso falliti", "rule": f"{int(login_security.RETENTION.total_seconds() // 86400)} giorno (gli eventi di audit restano)"},
         {"data": "File di backup degli apparati", "rule": "secondo la backup policy (giornalieri, settimanali, mensili)"},
         {"data": "Audit, job, snapshot, incidenti, report generati", "rule": "conservati senza scadenza (evidenza)"},
