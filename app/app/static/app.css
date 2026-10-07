@@ -4366,3 +4366,5 @@ input[type="checkbox"], input[type="radio"] { width: auto; min-height: 0; height
 .control-row small { display: block; color: var(--muted); }
 .control-row .status-pill { margin-left: 6px; }
 @media (max-width: 820px) { .control-row { grid-template-columns: minmax(0, 1fr); } }
+.compliance-exception { background: color-mix(in srgb, var(--accent) 14%, var(--panel)); color: var(--accent-text); }
+a.compliance-mark { text-decoration: none; }

@@ -15,6 +15,7 @@ Every control returns one of:
 from __future__ import annotations
 
 import re
+import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -32,7 +33,7 @@ from app.backup_capabilities import (
 from app.backup_core import _effective_policy, _policy_settings
 from app.backup_models import BackupArtifact
 from app.backup_text_tools import _read_export
-from app.compliance_models import SCOPE_PRIORITY, ComplianceBaseline, ComplianceResult
+from app.compliance_models import SCOPE_PRIORITY, ComplianceBaseline, ComplianceResult, ComplianceResultHistory
 from app.config_drift import BASELINE_KEY, DRIFT_TITLE
 from app.models import (
     ActionIssue,
@@ -404,14 +405,23 @@ def evaluate_all(db, now: datetime, device_ids=None) -> dict:
             baseline = setting["baseline"]
             row = existing.get(key)
             if row is None:
-                db.add(ComplianceResult(
-                    device_id=device.id, control_id=control_id, status=status, evidence=evidence,
+                row = ComplianceResult(
+                    id=uuid.uuid4(), device_id=device.id, control_id=control_id, status=status, evidence=evidence,
                     details={"params": setting["params"]}, baseline_id=baseline.id, baseline_version=baseline.version,
                     evaluated_at=now, status_changed_at=now,
-                ))
+                )
+                db.add(row)
+                db.add(ComplianceResultHistory(result_id=row.id, created_at=now, action="evaluated", to_status=status, note=evidence))
                 stats["changed"] += 1
                 continue
             if row.status != status:
+                db.add(ComplianceResultHistory(result_id=row.id, created_at=now, action="evaluated", from_status=row.status, to_status=status, note=evidence))
+                if row.status == "fail":
+                    # Back to compliant (or no longer decidable): operator handling no longer applies.
+                    row.acknowledged_by_user_id = None
+                    row.acknowledged_at = None
+                    row.exception_until = None
+                    row.exception_reason = None
                 row.status_changed_at = now
                 stats["changed"] += 1
             row.status = status

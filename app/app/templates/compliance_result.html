@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{{ control.title if control else result.control_id }} · {{ device.display_name or device.name }} · {{ app_name }}{% endblock %}
+{% block content %}
+{% set device_label = device.display_name or device.device_identity or device.name %}
+<nav class="breadcrumbs" aria-label="Percorso"><a href="/compliance">Compliance</a><span>›</span><span>{{ device_label }}</span><span>›</span><span>{{ control.title if control else result.control_id }}</span></nav>
+<div class="page-header compact-heading">
+  <div><h1>{{ control.title if control else result.control_id }}</h1><p><a href="/devices/{{ device.id }}">{{ device_label }}</a>{% if customer %} · <a href="/customers/{{ customer.id }}">{{ customer.name }}</a>{% endif %}{% if control %} · {{ control.category }}{% endif %}</p></div>
+  <div class="row-actions"><span class="compliance-mark compliance-{{ result.status }}">{{ {'pass': '✓', 'fail': '✗', 'unknown': '?', 'not_applicable': '–'}[result.status] }}</span><span class="status-pill">{{ 'In eccezione' if in_exception else result_labels[result.status] }}</span></div>
+</div>
+
+<div class="detail-grid">
+<section class="panel">
+  <div class="panel-header"><div><h2>Esito</h2><p>{{ control.description if control else '' }}</p></div></div>
+  <dl class="kv-list">
+    <div><dt>Evidenza</dt><dd>{{ result.evidence }}</dd></div>
+    <div><dt>Valutato</dt><dd>{{ fmt_dt(result.evaluated_at) }}</dd></div>
+    <div><dt>Esito invariato dal</dt><dd>{{ fmt_dt(result.status_changed_at) }}</dd></div>
+    <div><dt>Baseline</dt><dd>{% if result.baseline_id %}<a href="/compliance/baselines/{{ result.baseline_id }}/edit">v{{ result.baseline_version }}</a>{% else %}—{% endif %}</dd></div>
+    {% if result.acknowledged_at %}<div><dt>Presa in carico</dt><dd>{{ acknowledger.display_name or acknowledger.username if acknowledger else '—' }} · {{ fmt_dt(result.acknowledged_at) }}</dd></div>{% endif %}
+    {% if in_exception %}<div><dt>Eccezione fino al</dt><dd>{{ fmt_dt(result.exception_until) }}</dd></div><div><dt>Motivazione</dt><dd>{{ result.exception_reason }}</dd></div>{% endif %}
+  </dl>
+  <div class="page-actions"><a class="button ghost" href="/devices/{{ device.id }}">Apparato</a></div>
+</section>
+
+{% if can_manage and result.status == 'fail' %}
+<section class="panel">
+  <div class="panel-header"><div><h2>Gestione</h2><p>L'esito valutato non viene mai modificato a mano: si chiude quando una nuova valutazione risulta conforme.</p></div></div>
+  {% if not result.acknowledged_at %}
+  <form method="post" action="/compliance/results/{{ result.id }}/acknowledge" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Nota di presa in carico<textarea name="note" rows="2" maxlength="2000" placeholder="Es. intervento pianificato con il cliente"></textarea></label>
+    <button class="button">Prendi in carico</button>
+  </form>
+  {% endif %}
+  {% if in_exception %}
+  <form method="post" action="/compliance/results/{{ result.id }}/exception/revoke" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Nota<textarea name="note" rows="2" maxlength="2000"></textarea></label>
+    <button class="button ghost">Revoca eccezione</button>
+  </form>
+  {% else %}
+  <h3>Registra eccezione</h3>
+  <form method="post" action="/compliance/results/{{ result.id }}/exception" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Motivazione e mitigazioni<textarea name="reason" rows="3" maxlength="2000" required placeholder="Perché il rischio è accettato e con quali compensazioni"></textarea></label>
+    <label>Valida fino al<input type="date" name="until" value="{{ default_exception_until }}"><small>Massimo un anno; alla scadenza la non conformità torna da gestire.</small></label>
+    <button class="button primary">Registra eccezione</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+</div>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Storico</h2><p>Cambi di esito e decisioni degli operatori, conservati anche dopo il rientro.</p></div></div>
+  {% if history %}
+  <div class="table-wrap"><table class="data-table compact-data-table">
+    <thead><tr><th>Quando</th><th>Azione</th><th>Esito</th><th>Chi</th><th>Nota</th></tr></thead>
+    <tbody>{% for entry, actor in history %}
+      <tr>
+        <td>{{ fmt_dt(entry.created_at) }}</td>
+        <td>{{ action_labels.get(entry.action, entry.action) }}</td>
+        <td>{% if entry.from_status and entry.from_status != entry.to_status %}{{ result_labels.get(entry.from_status, entry.from_status) }} → {% endif %}{{ result_labels.get(entry.to_status, entry.to_status) if entry.to_status else '—' }}</td>
+        <td>{% if actor %}{{ actor.display_name or actor.username }}{% else %}<span class="muted">Automatico</span>{% endif %}</td>
+        <td>{{ entry.note or '—' }}</td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty-state">Nessuna voce.</div>{% endif %}
+</section>
+{% endblock %}

@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app.compliance_engine import CONTROLS, DEFAULT_CONTROLS, evaluate_all
+from app.compliance_findings import housekeeping, in_exception
 from app.compliance_models import RESULT_LABELS, SCOPE_LABELS, SCOPE_PRIORITY, ComplianceBaseline, ComplianceResult
 from app.db import SessionLocal
 from app.models import Customer, Device, Site, utcnow
@@ -72,16 +73,21 @@ def compliance_overview(request: Request, status: str = "fail", customer: str = 
         totals: Counter = Counter()
         device_status: dict = {}
         last_eval = None
+        now = utcnow()
         for result, device in db.execute(query):
             by_device[device.id][result.control_id] = result
             devices[device.id] = device
-            totals[result.status] += 1
+            totals["exception" if in_exception(result, now) else result.status] += 1
             last_eval = max(last_eval, result.evaluated_at) if last_eval else result.evaluated_at
         for device_id, results in by_device.items():
             statuses = {r.status for r in results.values()}
             device_status[device_id] = next((s for s in STATUS_ORDER if s in statuses), "not_applicable")
         device_counts = Counter(device_status.values())
-        if status in RESULT_LABELS:
+        if status == "exception":
+            selected = [d for d in devices if any(in_exception(r, now) for r in by_device[d].values())]
+        elif status == "fail":
+            selected = [d for d in devices if any(r.status == "fail" and not in_exception(r, now) for r in by_device[d].values())]
+        elif status in RESULT_LABELS:
             selected = [d for d in devices if any(r.status == status for r in by_device[d].values())]
         else:
             selected = list(devices)
@@ -99,7 +105,7 @@ def compliance_overview(request: Request, status: str = "fail", customer: str = 
             customers=list(db.scalars(select(Customer).order_by(Customer.name))),
             selected_customer=db.get(Customer, customer_id) if customer_id else None,
             controls=CONTROLS, used_controls=used_controls, result_labels=RESULT_LABELS,
-            total=total, page=page, pages=pages, last_eval=last_eval, has_baselines=bool(baselines),
+            total=total, page=page, pages=pages, last_eval=last_eval, has_baselines=bool(baselines), now=now,
             can_manage=core.has_permission(user, "compliance.manage"),
         )
 
@@ -110,7 +116,10 @@ async def compliance_evaluate(request: Request):
     validate_csrf(request, str(form.get("csrf") or ""))
     with SessionLocal() as db:
         user = core.require_permission(request, db, "compliance.manage")
-        stats = evaluate_all(db, utcnow())
+        now = utcnow()
+        stats = evaluate_all(db, now)
+        db.flush()
+        stats.update(housekeeping(db, now))
         core.add_event(db, "COMPLIANCE_EVALUATED", actor=user, details={"trigger": "manual", **stats})
         db.commit()
     return flash_redirect(
@@ -243,6 +252,8 @@ async def compliance_baseline_save(request: Request):
             details={"baseline_id": str(baseline.id), "version": baseline.version, "scope": scope, "controls": len(controls), "created": created},
         )
         evaluate_all(db, now)
+        db.flush()
+        housekeeping(db, now)
         db.commit()
         version = baseline.version
     return flash_redirect(request, "/compliance/baselines", "success", f"Baseline salvata (versione {version}); risultati ricalcolati.", title="Baseline salvata")
@@ -267,6 +278,8 @@ async def compliance_baseline_default(request: Request):
         db.flush()
         core.add_event(db, "COMPLIANCE_BASELINE_SAVED", actor=user, details={"baseline_id": str(baseline.id), "version": 1, "scope": "global", "default": True})
         stats = evaluate_all(db, now)
+        db.flush()
+        housekeeping(db, now)
         db.commit()
     return flash_redirect(request, "/compliance", "success", f"Baseline globale creata; valutati {stats['devices']} apparati.", title="Compliance attivata")
 
@@ -278,6 +291,8 @@ def run_scheduled_evaluation(now=None) -> dict:
         if db.scalar(select(ComplianceBaseline.id).where(ComplianceBaseline.is_enabled.is_(True)).limit(1)) is None:
             return {"status": "no_baseline"}
         stats = evaluate_all(db, now)
+        db.flush()
+        stats.update(housekeeping(db, now))
         if stats["changed"] or stats["removed"]:
             core.add_event(db, "COMPLIANCE_EVALUATED", details={"trigger": "schedule", **stats})
         db.commit()

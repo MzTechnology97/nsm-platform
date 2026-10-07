@@ -22,10 +22,11 @@
 {% else %}
 {{ chips([
   {'label': 'Non conformi', 'count': totals.get('fail', 0), 'href': scope ~ '&status=fail', 'active': status_filter == 'fail', 'tone': 'danger'},
+  {'label': 'In eccezione', 'count': totals.get('exception', 0), 'href': scope ~ '&status=exception', 'active': status_filter == 'exception'},
   {'label': 'Nessuna evidenza', 'count': totals.get('unknown', 0), 'href': scope ~ '&status=unknown', 'active': status_filter == 'unknown', 'tone': 'warning'},
   {'label': 'Conformi', 'count': totals.get('pass', 0), 'href': scope ~ '&status=pass', 'active': status_filter == 'pass'},
   {'label': 'Non applicabili', 'count': totals.get('not_applicable', 0), 'href': scope ~ '&status=not_applicable', 'active': status_filter == 'not_applicable'},
-  {'label': 'Tutti gli apparati', 'count': devices_total, 'href': scope ~ '&status=all', 'active': status_filter not in ['fail', 'unknown', 'pass', 'not_applicable']},
+  {'label': 'Tutti gli apparati', 'count': devices_total, 'href': scope ~ '&status=all', 'active': status_filter not in ['fail', 'exception', 'unknown', 'pass', 'not_applicable']},
 ], 'Esito') }}
 {{ context_banner(selected_customer, 'Compliance degli apparati di questo cliente.') }}
 
@@ -37,7 +38,7 @@
     <button class="button primary">Applica</button>
     {% if customer_filter or control_filter or status_filter != 'fail' %}<a class="button ghost" href="/compliance">Reset</a>{% endif %}
   </form>
-  <p class="muted">Legenda: ✓ conforme · ✗ non conforme · ? nessuna evidenza · – non applicabile al vendor/metodo (mai contato come non conformità).</p>
+  <p class="muted">Legenda: ✓ conforme · ✗ non conforme · ! in eccezione · ? nessuna evidenza · – non applicabile al vendor/metodo (mai contato come non conformità).</p>
   {% if rows %}
   <div class="table-wrap"><table class="data-table compact-data-table compliance-matrix">
     <thead><tr><th>Apparato</th>{% for cid in used_controls %}<th title="{{ controls[cid].description }}">{{ controls[cid].title }}</th>{% endfor %}</tr></thead>
@@ -45,7 +46,7 @@
       <tr>
         <td><a class="strong-link" href="/devices/{{ device.id }}">{{ device.display_name or device.device_identity or device.name }}</a><small>{{ device.customer.name if device.customer else '' }} · {{ device.vendor }}</small></td>
         {% for cid in used_controls %}{% set r = results.get(cid) %}
-          <td>{% if r %}<span class="compliance-mark compliance-{{ r.status }}" title="{{ result_labels[r.status] }}: {{ r.evidence }}">{{ marks[r.status] }}</span><small>{{ r.evidence|truncate(60) }}</small>{% else %}<span class="muted">·</span>{% endif %}</td>
+          <td>{% if r %}{% set excepted = r.status == 'fail' and r.exception_until and r.exception_until > now %}<a href="/compliance/results/{{ r.id }}" class="compliance-mark compliance-{{ 'exception' if excepted else r.status }}" title="{{ 'In eccezione' if excepted else result_labels[r.status] }}: {{ r.evidence }}">{{ '!' if excepted else marks[r.status] }}</a><small>{{ r.evidence|truncate(60) }}{% if excepted %} · in eccezione{% elif r.status == 'fail' and r.acknowledged_at %} · presa in carico{% endif %}</small>{% else %}<span class="muted">·</span>{% endif %}</td>
         {% endfor %}
       </tr>
     {% endfor %}</tbody>
