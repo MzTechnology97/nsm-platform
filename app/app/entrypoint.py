@@ -100,7 +100,7 @@ from app.lifecycle_remediation import install_lifecycle_remediation
 from app.uisp_onboarding import install_uisp_onboarding
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.20"
+APP_VERSION = "0.49.21"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION

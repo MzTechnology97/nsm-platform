@@ -213,6 +213,8 @@ Original scope:
 
 ### UBNT-02 — monitoring/history normalization
 
+**Implemented in `main`** (`app/uisp_metrics.py`): overview metrics normalized, sampled at sync, shown on the UISP tab and in the customer device list.
+
 - map supported UISP operational metrics into normalized NSM state;
 - persist history only for meaningful supported fields;
 - explicit unavailable/unsupported states;

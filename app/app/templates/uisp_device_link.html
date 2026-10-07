@@ -28,6 +28,26 @@
 </section>
 {% endif %}
 
+{% if uisp_view %}
+<section class="panel" id="uisp-metrics">
+  <div class="panel-header"><div><h2>Stato operativo da UISP</h2><p>Valori letti a ogni sincronizzazione{% if uisp_view.metrics_at %} · ultima {{ fmt_dt(uisp_view.metrics_at) }}{% endif %}. Statistiche sulle ultime {{ uisp_view.hours }} ore ({{ uisp_view.count }} campioni).</p></div></div>
+  <div class="table-wrap"><table class="data-table compact-data-table">
+    <thead><tr><th>Metrica</th><th>Attuale</th><th>Min</th><th>Media</th><th>Max</th></tr></thead>
+    <tbody>{% for r in uisp_view.rows %}
+      <tr><td>{{ r.label }}</td>
+        {% if r.current is none and r.avg is none %}<td colspan="4" class="muted">non esposto da UISP per questo apparato</td>
+        {% else %}<td><strong>{{ format_metric(r.field, r.current) }}</strong></td><td>{{ format_metric(r.field, r.min) }}</td><td>{{ format_metric(r.field, r.avg) }}</td><td>{{ format_metric(r.field, r.max) }}</td>{% endif %}
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% if uisp_view.samples %}
+  <details><summary>Ultimi campioni</summary><div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Quando</th><th>Segnale</th><th>CPU</th><th>RAM</th><th>Downlink</th><th>Uplink</th></tr></thead><tbody>
+  {% for s in uisp_view.samples %}<tr><td>{{ fmt_dt(s.observed_at) }}</td><td>{{ format_metric('signal_dbm', s.signal_dbm) }}</td><td>{{ format_metric('cpu_percent', s.cpu_percent) }}</td><td>{{ format_metric('ram_percent', s.ram_percent) }}</td><td>{{ format_metric('downlink_capacity_bps', s.downlink_capacity_bps) }}</td><td>{{ format_metric('uplink_capacity_bps', s.uplink_capacity_bps) }}</td></tr>{% endfor %}
+  </tbody></table></div></details>
+  {% endif %}
+</section>
+{% endif %}
+
 {% if device.external_device_id %}
 <section class="panel"><div class="panel-header"><div><h2>Inventario collegato</h2><p>Il refresh verifica che lo stesso MAC continui a corrispondere allo stesso ID UISP.</p></div>{% if has_permission(user, 'devices.write') and connection and connection.is_enabled %}<form method="post" action="/devices/{{ device.id }}/uisp/refresh"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Aggiorna da UISP</button></form>{% endif %}</div>
   <div class="alert info">Customer e Site NSM non vengono mai sovrascritti dai metadata UISP.</div>

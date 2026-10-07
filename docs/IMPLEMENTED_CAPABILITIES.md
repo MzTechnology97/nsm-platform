@@ -371,6 +371,12 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 ## 13. Ubiquiti / UISP
 
+### Monitoring (UBNT-02)
+
+- at every association, refresh and periodic sync NSM reads the UISP device overview: CPU, RAM, signal, downlink/uplink capacity, uptime, frequency, connected stations; implausible or missing values are dropped and shown as *non esposto da UISP*, never as zero;
+- current values on the Device; history in `uisp_metric_samples` (at most one sample every 4 minutes, 90 days retention, cleaned by the worker);
+- UISP tab: current, min/average/max over 24 h and recent samples; customer device list shows the signal under the status.
+
 ### Bulk onboarding (UBNT-03)
 
 - *Integrazioni → UISP → Onboarding dispositivi* (and *Importa da UISP* on a customer's device list): every UISP device with its NSM state — *Nuovo*, *Da associare* (an unlinked Ubiquiti record with the same MAC), *Già in NSM* (same UISP id), *Non importabile* (no stable id, no MAC, MAC repeated in UISP or used by another NSM Device);

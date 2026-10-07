@@ -484,3 +484,22 @@ class LifecycleRemediationHistory(Base):
     from_status: Mapped[str | None] = mapped_column(String(20))
     to_status: Mapped[str | None] = mapped_column(String(20))
     note: Mapped[str | None] = mapped_column(Text)
+
+
+class UispMetricSample(Base):
+    """UISP operational metrics history (UBNT-02)."""
+
+    __tablename__ = "uisp_metric_samples"
+    __table_args__ = (Index("ix_uisp_metric_samples_device_observed", "device_id", "observed_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    device_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("devices.id", ondelete="CASCADE"))
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    cpu_percent: Mapped[float | None] = mapped_column(Float)
+    ram_percent: Mapped[float | None] = mapped_column(Float)
+    signal_dbm: Mapped[float | None] = mapped_column(Float)
+    downlink_capacity_bps: Mapped[int | None] = mapped_column(BigInteger)
+    uplink_capacity_bps: Mapped[int | None] = mapped_column(BigInteger)
+    uptime_seconds: Mapped[int | None] = mapped_column(BigInteger)
+    frequency_mhz: Mapped[float | None] = mapped_column(Float)
+    stations: Mapped[int | None] = mapped_column(Integer)
