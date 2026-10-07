@@ -32,7 +32,8 @@ from app.advisory_matching import reconcile_advisory_matches
 from app.vulnerability_remediation import housekeeping
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
-from app.models import SecurityAdvisory, utcnow
+from app import vendor_cpe
+from app.models import Device, SecurityAdvisory, utcnow
 from app.secret_vault import decrypt_text
 from app.uisp_sync import _open_issue, _resolve_issue
 
@@ -175,6 +176,18 @@ def _timestamp(value) -> datetime | None:
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
+def _vendor_label(cpe_vendor: str) -> str:
+    for data in vendor_cpe.BRANDS.values():
+        if cpe_vendor in data["cpe_vendors"]:
+            return data["label"]
+    return cpe_vendor
+
+
+def _product_label(product: str) -> str:
+    text = product[:-9] if product.endswith("_firmware") else product
+    return text.replace("_", " ").upper() if len(text) <= 12 else text.replace("_", " ").title()
+
+
 def parse_nvd_item(item: dict) -> dict:
     cve = (item or {}).get("cve") or {}
     cve_id = str(cve.get("id") or "").strip()
@@ -197,7 +210,7 @@ def parse_nvd_item(item: dict) -> dict:
     )
     vendor, product = (None, None)
     if tracked:
-        vendor, product = PRODUCT_LABELS.get((tracked["vendor"], tracked["product"]), (tracked["vendor"], tracked["product"]))
+        vendor, product = PRODUCT_LABELS.get((tracked["vendor"], tracked["product"]), (_vendor_label(tracked["vendor"]), _product_label(tracked["product"])))
     return {
         "cve_id": cve_id,
         "source_status": (cve.get("vulnStatus") or "").strip() or None,
@@ -241,6 +254,7 @@ def fetch_nvd(
     end: datetime | None = None,
     transport: httpx.BaseTransport | None = None,
     sleep=time.sleep,
+    cpes=None,
 ):
     """Yield parsed NVD pages for every tracked CPE."""
     headers = {"Accept": "application/json", "User-Agent": "nsm-platform advisory-sync"}
@@ -249,7 +263,7 @@ def fetch_nvd(
     pause = PAGE_PAUSE_SECONDS[bool(api_key)]
     first_request = True
     with httpx.Client(timeout=HTTP_TIMEOUT_SECONDS, headers=headers, transport=transport) as client:
-        for cpe in TRACKED_CPES:
+        for cpe in cpes or TRACKED_CPES:
             start_index = 0
             for _page in range(MAX_PAGES):
                 params = {"virtualMatchString": cpe, "resultsPerPage": RESULTS_PER_PAGE, "startIndex": start_index}
@@ -388,21 +402,31 @@ def run_advisory_sync(
     parse_errors: list[dict] = []
     try:
         key = api_key(connection)
-        for payload in fetch_nvd(
-            connection.base_url or NVD_DEFAULT_URL,
-            key,
-            start=start,
-            end=None if full else now,
-            transport=transport,
-            sleep=sleep,
-        ):
-            records, errors = parse_nvd_page(payload)
-            totals["fetched"] += len(records) + len(errors)
-            totals["parse_errors"] += len(errors)
-            parse_errors.extend(errors)
-            for name, value in ingest_advisories(db, records, now).items():
-                totals[name] += value
-            db.flush()
+        cpes = vendor_cpe.tracked_cpes(db.scalars(select(Device)))
+        known = set(state.get("tracked_cpes") or ([] if full else list(TRACKED_CPES)))
+        added = [cpe for cpe in cpes if cpe not in known]
+        # Products that just entered the inventory get their whole history once; the others stay incremental.
+        passes = [(cpes, start, None if full else now)]
+        if added and not full:
+            passes.insert(0, (added, None, None))
+        for pass_cpes, pass_start, pass_end in passes:
+            for payload in fetch_nvd(
+                connection.base_url or NVD_DEFAULT_URL,
+                key,
+                start=pass_start,
+                end=pass_end,
+                transport=transport,
+                sleep=sleep,
+                cpes=pass_cpes,
+            ):
+                records, errors = parse_nvd_page(payload)
+                totals["fetched"] += len(records) + len(errors)
+                totals["parse_errors"] += len(errors)
+                parse_errors.extend(errors)
+                for name, value in ingest_advisories(db, records, now).items():
+                    totals[name] += value
+                db.flush()
+        state["tracked_cpes"] = cpes
     except (AdvisorySourceError, ValueError) as exc:
         db.rollback()
         failures = int(state.get("consecutive_failures") or 0) + 1

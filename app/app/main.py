@@ -684,6 +684,14 @@ def add_site(
     return RedirectResponse(f"/customers/{customer_id}", status_code=303)
 
 
+def _manufacturer_data(vendor_key: str, manufacturer: str) -> dict:
+    """Brand of a manually added device, used by CVE correlation (``vendor_cpe.MANUAL_BRANDS``)."""
+    from app.vendor_cpe import MANUAL_BRANDS
+
+    value = (manufacturer or "").strip().lower()
+    return {"manufacturer": value} if vendor_key == "generic" and value in MANUAL_BRANDS else {}
+
+
 def _add_device_impl(
     request: Request,
     customer_id: uuid.UUID,
@@ -703,6 +711,7 @@ def _add_device_impl(
     generic_mac: str = Form(""),
     generic_serial: str = Form(""),
     csrf: str = Form(...),
+    manufacturer: str = Form(""),
 ):
     validate_csrf(request, csrf)
     # The form has one MAC/serial pair per vendor section; the generic
@@ -784,6 +793,7 @@ def _add_device_impl(
             management_source=source_map[vendor_key],
             inventory_source="manual" if vendor_key == "generic" else None,
             status=status_map[vendor_key],
+            inventory_data=_manufacturer_data(vendor_key, manufacturer),
         )
         db.add(device)
         try:
@@ -837,9 +847,10 @@ def add_device(
     generic_mac: str = Form(""),
     generic_serial: str = Form(""),
     csrf: str = Form(...),
+    manufacturer: str = Form(""),
 ):
     try:
-        return _add_device_impl(request=request, customer_id=customer_id, vendor=vendor, device_type=device_type, display_name=display_name, site_id=site_id, primary_mac=primary_mac, serial_number=serial_number, model=model, management_ip=management_ip, firmware_version=firmware_version, ubnt_mac=ubnt_mac, ubnt_serial=ubnt_serial, tr069_mac=tr069_mac, tr069_serial=tr069_serial, generic_mac=generic_mac, generic_serial=generic_serial, csrf=csrf)
+        return _add_device_impl(request=request, customer_id=customer_id, vendor=vendor, device_type=device_type, display_name=display_name, site_id=site_id, primary_mac=primary_mac, serial_number=serial_number, model=model, management_ip=management_ip, firmware_version=firmware_version, ubnt_mac=ubnt_mac, ubnt_serial=ubnt_serial, tr069_mac=tr069_mac, tr069_serial=tr069_serial, generic_mac=generic_mac, generic_serial=generic_serial, csrf=csrf, manufacturer=manufacturer)
     except HTTPException as exc:
         if exc.status_code not in {400, 409}:
             raise

@@ -1,5 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Integrazioni · NVD · {{ ui_context(request).branding.portal_name }}{% endblock %}
+{% block title %}Integrazioni · NVD · {{ ui_context(request).branding.portal_name }}{% set cov = cve_coverage() %}
+<section class="panel" data-nvd="coverage"><div class="panel-header"><div><h2>Copertura per produttore</h2><p>NSM interroga NVD solo per i produttori e i modelli presenti in inventario. Un apparato è valutabile quando sono noti modello e versione firmware; gli altri non vengono mai considerati esposti per il solo marchio.</p></div></div>
+  {% if cov %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Produttore</th><th>Apparati</th><th>Valutabili</th><th>Senza modello</th><th>Senza versione leggibile</th><th>Prodotti NVD</th></tr></thead><tbody>
+  {% for r in cov %}<tr data-brand="{{ r.brand }}"><td><strong>{{ r.label }}</strong></td><td>{{ r.devices }}</td><td>{{ r.evaluable }}</td><td>{% if r.no_model %}<span class="warning-text">{{ r.no_model }}</span>{% else %}0{% endif %}</td><td>{% if r.no_version %}<span class="warning-text">{{ r.no_version }}</span>{% else %}0{% endif %}</td><td>{% for p in r.products %}<code>{{ p }}</code>{% if not loop.last %} {% endif %}{% endfor %}</td></tr>{% endfor %}
+  </tbody></table></div>
+  <details><summary>Prodotti interrogati su NVD ({{ tracked_cpes|length }})</summary><p>{% for cpe in tracked_cpes %}<code>{{ cpe }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</p></details>
+  {% else %}<div class="empty-state">Nessun apparato con produttore riconosciuto.</div>{% endif %}
+</section>
+{% endblock %}
 {% block content %}
 <div class="page-header"><div><h1>Integrazioni · NVD</h1><p>Fonte advisory: CVE pubblicate dal National Vulnerability Database per i prodotti tracciati, confrontate con le versioni installate.</p></div><a class="button ghost" href="/security/vulnerabilities">Vulnerabilità</a></div>
 {% set admin_tab = "integrations" %}{% include "_admin_tabs.html" %}
@@ -19,7 +27,7 @@
 </section>
 
 <section class="panel">
-  <div class="panel-header"><div><h2>Stato fonte</h2><p>Prodotti tracciati: {% for cpe in tracked_cpes %}<code>{{ cpe }}</code>{% if not loop.last %}, {% endif %}{% endfor %}.</p></div>
+  <div class="panel-header"><div><h2>Stato fonte</h2><p>{{ tracked_cpes|length }} prodotti tracciati, ricavati dagli apparati in inventario (vedi «Copertura per produttore»).</p></div>
     {% if connection and connection.is_enabled %}<div class="row-actions">
       <form method="post" action="/admin/integrations/nvd/sync"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Aggiorna ora</button></form>
       <form method="post" action="/admin/integrations/nvd/full-sync"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button ghost" title="Rilegge tutte le CVE dei prodotti tracciati">Ricarica completa</button></form>

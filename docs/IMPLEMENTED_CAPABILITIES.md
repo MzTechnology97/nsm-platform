@@ -594,6 +594,12 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - periodic evidence report section *8. Compliance*: evaluated Devices, results by state, failures by control, active exceptions with reason and expiry; scopes without a baseline are stated as not evaluable; *no evidence* and *not applicable* are explicitly not compliance;
 - CSV appends `compliance_failed_controls` and `compliance_exceptions` per Device; archive summary stores the number of Devices with unhandled non-compliance.
 
+### Multi-vendor CVE correlation (SEC-05)
+
+- manufacturers known to NSM: MikroTik, Ubiquiti and TP-Link by vendor, plus ~30 common brands (Cambium, Mimosa, Tenda, Huawei, ZTE, FiberHome, Teltonika, Ruckus, Siklu, Ceragon, Peplink, Ruijie, AVM, DrayTek, ASUS, Linksys, TOTOLINK, Cudy, Grandstream, Zyxel, D-Link, Netgear, Cisco, Juniper, Fortinet, Palo Alto, SonicWall, Aruba, Sophos) selectable as *Produttore* for manually added devices;
+- NVD is queried only for the brands and models present in the inventory (`<model>_firmware` CPE products plus OS families such as airOS, FortiOS, Junos, PAN-OS); a product that appears in the inventory gets its whole CVE history once, then the sync stays incremental;
+- a device is evaluated only with brand, model (or a single-OS family) and a readable firmware version; otherwise it is *unknown*, never exposed; *Integrazioni → NVD* shows the coverage per manufacturer and why devices cannot be evaluated; the customer device list shows CVE counts for every evaluable brand.
+
 ## 16. Lifecycle / EOL / EOS
 
 ### Implemented foundation
