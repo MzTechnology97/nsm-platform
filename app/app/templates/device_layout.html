@@ -58,6 +58,7 @@
   </div>
   <div class="device-header-actions">
     {% block device_actions %}{% endblock %}
+    {% if has_permission(user, 'incidents.write') %}<a class="button ghost" href="/incidents/new?device={{ device.id }}">Apri incidente</a>{% endif %}
     {% if has_permission(user, 'devices.write') %}<a class="button ghost" href="{{ device_base }}/manage">Gestisci apparato</a>{% endif %}
   </div>
 </header>

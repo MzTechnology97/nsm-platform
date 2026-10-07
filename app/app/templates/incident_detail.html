@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}{{ incident.title }} · Incidenti · {{ app_name }}{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="Percorso"><a href="/incidents">Incidenti</a><span>›</span><span>{{ incident.title }}</span></nav>
+<div class="page-header compact-heading">
+  <div>
+    <h1>{{ incident.title }}</h1>
+    <p><a href="/customers/{{ customer.id }}">{{ customer.name }}</a>{% if site %} · {{ site.name }}{% endif %} · inizio {{ fmt_dt(incident.started_at) }}{% if incident.resolved_at %} · risolto {{ fmt_dt(incident.resolved_at) }}{% endif %}</p>
+  </div>
+  <div class="row-actions"><span class="severity-badge severity-{{ incident.severity }}">{{ severities.get(incident.severity, incident.severity) }}</span><span class="status-pill">{{ statuses.get(incident.status, incident.status) }}</span></div>
+</div>
+
+<div class="detail-grid">
+<section class="panel">
+  <div class="panel-header"><div><h2>Riepilogo</h2><p>Aperto {% if creator %}da {{ creator.display_name or creator.username }} {% endif %}il {{ fmt_dt(incident.created_at) }}.</p></div></div>
+  <p>{{ incident.summary or 'Nessuna descrizione.' }}</p>
+  <h3>Apparati coinvolti</h3>
+  {% if devices %}<ul class="plain-list">{% for d in devices %}<li><a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a> · {{ status_label(d.status) }}{% if d.model %} · {{ d.model }}{% endif %}</li>{% endfor %}</ul>
+  {% else %}<p class="muted">Nessun apparato associato: la timeline mostra solo gli eventi a livello cliente.</p>{% endif %}
+  {% if can_write and customer_devices %}
+  <details class="more-filters"><summary class="button ghost">Modifica apparati</summary>
+    <form method="post" action="/incidents/{{ incident.id }}/devices" class="form-stack">
+      <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+      <fieldset class="scope-options"><legend>Apparati del cliente</legend>
+        {% for d in customer_devices %}<label><input type="checkbox" name="device_ids" value="{{ d.id }}" {% if d.id in device_ids %}checked{% endif %}> <span>{{ d.display_name or d.device_identity or d.name }}<small>{{ d.vendor }}{% if d.model %} · {{ d.model }}{% endif %}</small></span></label>{% endfor %}
+      </fieldset>
+      <button class="button primary">Salva apparati</button>
+    </form>
+  </details>
+  {% endif %}
+</section>
+
+{% if can_write %}
+<section class="panel">
+  <div class="panel-header"><div><h2>Stato</h2><p>Ogni cambio di stato viene registrato in audit.</p></div></div>
+  <form method="post" action="/incidents/{{ incident.id }}/status" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Stato<select name="status">{% for key, label in statuses.items() %}<option value="{{ key }}" {% if key == incident.status %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label>Risolto il<input type="datetime-local" name="resolved_at" value="{{ resolved_input }}"><small>Solo per lo stato «Risolto»; vuoto = adesso.</small></label>
+    <button class="button primary">Aggiorna stato</button>
+  </form>
+  <h3>Aggiungi alla timeline</h3>
+  <form method="post" action="/incidents/{{ incident.id }}/notes" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <div class="form-grid">
+      <label>Tipo<select name="kind">{% for key, label in note_kinds.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label>
+      <label>Quando<input type="datetime-local" name="occurred_at" value="{{ default_note_time }}"></label>
+    </div>
+    <label>Testo<textarea name="body" rows="3" maxlength="4000" required placeholder="Cosa è stato osservato o fatto. Le ipotesi vanno indicate come tali."></textarea></label>
+    <button class="button">Aggiungi nota</button>
+  </form>
+</section>
+{% endif %}
+</div>
+
+<section class="panel" id="timeline">
+  <div class="panel-header"><div><h2>Timeline</h2><p>Eventi registrati da NSM dal {{ fmt_dt(timeline.window_start) }} al {{ fmt_dt(timeline.window_end) }} per gli apparati coinvolti e il cliente. I fatti osservati e le note degli operatori sono distinti; nessuna causa viene dedotta automaticamente.</p></div></div>
+  <nav class="quick-chips" aria-label="Filtro timeline">
+    <a href="?view=all#timeline" class="{{ 'active' if view == 'all' }}">Tutto <b>{{ fact_count + note_count }}</b></a>
+    <a href="?view=facts#timeline" class="{{ 'active' if view == 'facts' }}">Fatti osservati <b>{{ fact_count }}</b></a>
+    <a href="?view=notes#timeline" class="{{ 'active' if view == 'notes' }}">Note operatore <b>{{ note_count }}</b></a>
+  </nav>
+  {% if timeline.truncated_sources %}<div class="alert info">Molti eventi nella finestra: mostrati i primi per {{ timeline.truncated_sources|join(', ') }}.</div>{% endif %}
+  {% if entries %}
+  <ol class="timeline">
+    {% for entry in entries %}{% set marks_start = loop.previtem is defined and loop.previtem.at < incident.started_at <= entry.at %}
+      {% if (loop.first and entry.at >= incident.started_at) or marks_start %}<li class="timeline-marker">Inizio incidente · {{ fmt_dt(incident.started_at) }}</li>{% endif %}
+      <li class="timeline-entry timeline-{{ entry.kind }}{% if entry.severity in ['critical', 'high'] %} timeline-severe{% endif %}">
+        <time>{{ fmt_dt(entry.at) }}</time>
+        <div>
+          <span class="timeline-source">{{ 'Nota operatore' if entry.kind == 'operator' else source_labels.get(entry.source, entry.source) }}</span>
+          <strong>{% if entry.url %}<a href="{{ entry.url }}">{{ entry.title }}</a>{% else %}{{ entry.title }}{% endif %}</strong>
+          {% if entry.device_name %}<small>{{ entry.device_name }}</small>{% endif %}
+          {% if entry.detail %}<p>{{ entry.detail }}</p>{% endif %}
+          {% if entry.actor %}<small>{{ entry.actor }}</small>{% endif %}
+        </div>
+      </li>
+    {% endfor %}
+    {% if entries and entries[-1].at < incident.started_at %}<li class="timeline-marker">Inizio incidente · {{ fmt_dt(incident.started_at) }}</li>{% endif %}
+  </ol>
+  {% else %}
+  <div class="empty-state">Nessun evento registrato nella finestra.</div>
+  {% endif %}
+</section>
+{% endblock %}

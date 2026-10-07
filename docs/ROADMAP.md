@@ -372,12 +372,16 @@ Split into focused PRs:
 
 ### INC-01 — incident model and timeline aggregation
 
+**Implemented in `main`** (`app/incident_models.py`, `app/incident_timeline.py`).
+
 - Incident entity/lifecycle;
 - links to Customer/Device/Site;
 - normalized timeline event references;
 - deterministic chronology.
 
 ### INC-02 — incident UI and evidence
+
+**Implemented in `main`** (`/incidents`): list with quick filters, creation from a Device or Customer, detail with timeline, operator notes and actions, status lifecycle, involved Devices. Notification association is not included.
 
 - list/detail workflow;
 - evidence links;

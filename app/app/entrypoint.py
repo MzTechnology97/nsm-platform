@@ -85,9 +85,10 @@ from app.uisp_connector import install_uisp_connector
 from app.uisp_sync import install_uisp_sync
 from app.advisory_admin import install_advisory_admin
 from app.vulnerability_remediation import install_vulnerability_remediation
+from app.incidents import install_incidents
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.2"
+APP_VERSION = "0.49.3"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -126,6 +127,7 @@ install_uisp_connector(core.app)
 install_uisp_sync(core.app)
 install_advisory_admin(core.app)
 install_vulnerability_remediation(core.app)
+install_incidents(core.app)
 install_customer_workspace(core.app)
 install_backup_workspace_capabilities(core.app)
 promote_customer_workspace_routes(core.app)
