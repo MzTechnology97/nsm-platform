@@ -277,6 +277,7 @@ RouterOS 7.12.x structured snapshot parity is not in `main` yet. The active impl
 - rejection of zero-length upload chunks server-side;
 - server-side SHA-256 verification;
 - final archive move/storage;
+- automatic retry after an Agent/upload timeout regenerates every format: an artifact completed by the previous attempt stays archived until the retry's replacement upload finishes, then is superseded (soft-deleted with audit reference);
 - terminal cleanup of incomplete upload state and per-job backup secret;
 - authenticated artifact access through NSM.
 
