@@ -151,6 +151,14 @@ def compose(db, title: str, message: str | None, level: str, category: str, sour
     return subject, body.strip() + "\n"
 
 
+def _destination(pref: UserNotificationPreference, user: User) -> str | None:
+    if pref.channel == "email":
+        return user.email
+    if pref.channel == "slack":
+        return "Slack webhook" if pref.secret_encrypted else None
+    return pref.destination
+
+
 def wants(pref: UserNotificationPreference, level: str, category: str) -> bool:
     if not pref.enabled:
         return False
@@ -171,8 +179,8 @@ def fan_out(db, notification: Notification) -> int:
     for pref, user in rows:
         if pref.channel not in CHANNELS or not wants(pref, level, category):
             continue
-        destination = user.email if pref.channel == "email" else pref.destination
-        if pref.channel == "email" and not destination:
+        destination = _destination(pref, user)
+        if not destination:
             continue
         db.add(NotificationDelivery(notification_id=notification.id, user_id=user.id, channel=pref.channel, destination=destination,
                                     category=category, severity=level, subject=subject, body=body, status="pending",
@@ -204,8 +212,8 @@ def queue_direct(db, user: User, title: str, message: str, level: str = "info", 
                                                                     UserNotificationPreference.enabled.is_(True))):
         if pref.channel not in CHANNELS or (channels and pref.channel not in channels):
             continue
-        destination = user.email if pref.channel == "email" else pref.destination
-        if not destination and pref.channel == "email":
+        destination = _destination(pref, user)
+        if not destination:
             continue
         db.add(NotificationDelivery(user_id=user.id, channel=pref.channel, destination=destination, category=category, severity=level,
                                     subject=subject, body=body, status="pending", next_attempt_at=utcnow()))
@@ -370,13 +378,13 @@ def user_preferences(user) -> dict:
     """Template helper: the user's preference per channel (defaults when missing)."""
     with SessionLocal() as db:
         rows = {p.channel: p for p in db.scalars(select(UserNotificationPreference).where(UserNotificationPreference.user_id == user.id))}
-        configured = {"email": bool(smtp_row(db) and smtp_row(db).is_enabled)}
         out = {}
         for channel, meta in CHANNELS.items():
             pref = rows.get(channel)
+            configured = bool(smtp_row(db) and smtp_row(db).is_enabled) if channel == "email" else meta.get("configured", lambda _db: True)(db)
             out[channel] = {"label": meta["label"], "enabled": bool(pref and pref.enabled), "min_severity": normalize_level(pref.min_severity) if pref else "high",
                             "categories": list(pref.categories or []) if pref else [], "destination": pref.destination if pref else None,
-                            "configured": configured.get(channel, True), "has_secret": bool(pref and pref.secret_encrypted)}
+                            "configured": configured, "has_secret": bool(pref and pref.secret_encrypted)}
         recent = list(db.scalars(select(NotificationDelivery).where(NotificationDelivery.user_id == user.id)
                                  .order_by(NotificationDelivery.created_at.desc()).limit(10)))
         return {"channels": out, "levels": LEVELS, "categories": CATEGORIES, "recent": recent}

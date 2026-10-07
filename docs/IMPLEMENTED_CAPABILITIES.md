@@ -68,6 +68,12 @@ A Site is customer-local. UISP or another connector may retain external organiza
 - persistent outbox (`notification_deliveries`, migration 0026): the worker sends pending messages and retries failures after 1, 5, 15, 60 and 240 minutes; after 6 attempts a message is *failed* and stays visible until re-queued, so important notifications are not lost; sent messages are kept 180 days;
 - delivery state on *Sistema* (connector health) and a test message from the profile.
 
+### Telegram and Slack channels
+
+- Telegram: one bot (token from @BotFather, encrypted, verified with `getMe`) configured in *Amministrazione → Notifiche*; each user enters their numeric chat ID in the profile; the worker answers `/start` sent to the bot with the sender's chat ID;
+- Slack: each user stores an Incoming Webhook (`https://hooks.slack.com/services/…`, encrypted); messages are sent as text with the subject in bold;
+- both channels use the same per-user level and category filters, outbox and retries as e-mail; webhooks and the bot token are covered by the master-key rotation inventory.
+
 ### Implemented
 
 - append-oriented audit event foundation;

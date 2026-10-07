@@ -11,6 +11,7 @@ from sqlalchemy import select
 
 from app.integration_models import ConnectorIntegration
 from app.models import User
+from app.notification_models import UserNotificationPreference
 from app.mikrotik_backup_models import MikrotikBackupJobSecret
 from app.secret_vault import key_state, previous_keys, reencrypt
 
@@ -19,6 +20,7 @@ SECRET_COLUMNS = (
     ("Credenziali connettori (UISP, NVD, GenieACS)", ConnectorIntegration, "secret_encrypted"),
     ("Password dei backup binari MikroTik", MikrotikBackupJobSecret, "encrypted_backup_password"),
     ("Chiavi della verifica in due passaggi", User, "totp_secret_encrypted"),
+    ("Webhook Slack degli utenti", UserNotificationPreference, "secret_encrypted"),
 )
 
 

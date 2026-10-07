@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.39 — 2026-10-07
+
+Notifications
+- **Telegram and Slack channels**: Telegram bot configured by the administrator (encrypted token, verified on save) with per-user chat ID, and the bot answers `/start` with the chat ID; per-user Slack Incoming Webhook (encrypted, only `hooks.slack.com`). Same level/category filters, outbox and retries as e-mail.
+
 ## 0.49.38 — 2026-10-07
 
 Security
