@@ -39,7 +39,7 @@ Before implementing anything, also inspect **current `main` and all open PRs**. 
 | Backup framework | **Implemented** | Capability-aware policy hierarchy, scheduler/retry/retention, artifacts and device-scoped explorer. |
 | MikroTik modern Agent | **Implemented + validation pending** | Enrollment, heartbeat, jobs, telemetry, configuration, diagnostics, backup and firmware workflow are present; some backup hardening still requires physical acceptance. |
 | MikroTik legacy Agent | **Implemented + validation pending** | RouterOS 7.12.x enrollment/heartbeat/basic state and historical telemetry exist; structured configuration parity is under physical acceptance; backup parity is not implemented. |
-| Ubiquiti / UISP | **Implemented foundation** | Read-only connector, encrypted credential storage, MAC association, manual refresh and normalized inventory. Periodic sync and richer operations are planned. |
+| Ubiquiti / UISP | **Implemented foundation** | Read-only connector, encrypted credential storage, MAC association, manual and periodic refresh with backoff/connector health, normalized inventory. Richer operations are planned. |
 | TR-069 / ACS CPE | **Planned foundation** | Capability/model placeholders exist; no production ACS connector is currently implemented. |
 | Firmware operations | **Implemented foundation** | Customer-aware worklist plus MikroTik readiness, approval, download-only staging, activation and RouterBOOT lifecycle. Vendor intelligence remains incomplete. |
 | Vulnerability / lifecycle | **Implemented foundation** | Data models and operator worklists exist. Automated source ingestion and reliable version matching remain planned. |

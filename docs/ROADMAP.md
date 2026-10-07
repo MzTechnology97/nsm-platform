@@ -197,7 +197,9 @@ Current runtime integration is read-only and uses UISP Network Device data for a
 
 ### UBNT-01 — periodic UISP synchronization
 
-One focused PR:
+**Implemented in `main` — real UISP instance validation pending.** Remaining step: confirm a scheduled cycle against a production-like UISP console.
+
+Original scope:
 
 - scheduled refresh of associated Devices;
 - retry/backoff;
