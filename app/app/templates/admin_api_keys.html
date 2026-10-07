@@ -6,7 +6,7 @@
 
 {% if new_key %}
 <section class="panel"><div class="panel-header"><div><h2>Chiave creata</h2><p>Questo valore completo viene mostrato una sola volta. Copialo ora e conservalo in un secret manager.</p></div><span class="severity-badge severity-warning">MOSTRATA UNA VOLTA</span></div>
-  <div class="command-box"><code id="new-api-key">{{ new_key }}</code><button class="button" type="button" onclick="navigator.clipboard.writeText(document.getElementById('new-api-key').innerText)">Copia</button></div>
+  <div class="command-box"><code id="new-api-key">{{ new_key }}</code><button class="button" type="button" data-copy-target="new-api-key">Copia</button></div>
   <div class="alert warning">NSM conserva soltanto l'hash SHA-256 della chiave. Se il valore viene perso, la chiave deve essere revocata e ricreata.</div>
 </section>
 {% endif %}
@@ -36,7 +36,7 @@
     <td>{{ fmt_dt(key.expires_at) if key.expires_at else 'Nessuna' }}</td>
     <td>{{ fmt_dt(key.last_used_at) }}</td>
     <td>{% if key.is_active %}<span class="device-status status-online">Attiva</span>{% else %}<span class="device-status status-offline">Revocata</span>{% endif %}</td>
-    <td><div class="row-actions">{% if key.is_active %}<form method="post" action="/admin/api-keys/{{ key.id }}/revoke" onsubmit="return confirm('Revocare immediatamente questa API key?')"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny ghost">Revoca</button></form>{% else %}<form method="post" action="/admin/api-keys/{{ key.id }}/delete" onsubmit="return confirm('Eliminare il record della API key revocata?')"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny danger ghost">Elimina</button></form>{% endif %}</div></td>
+    <td><div class="row-actions">{% if key.is_active %}<form method="post" action="/admin/api-keys/{{ key.id }}/revoke" data-confirm="Revocare immediatamente questa API key?"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny ghost">Revoca</button></form>{% else %}<form method="post" action="/admin/api-keys/{{ key.id }}/delete" data-confirm="Eliminare il record della API key revocata?"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny danger ghost">Elimina</button></form>{% endif %}</div></td>
   </tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">Nessuna API key configurata.</div>{% endif %}
 </section>
 </div>

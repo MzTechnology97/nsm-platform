@@ -13,11 +13,11 @@
       <div class="form-actions split-actions"><a class="button ghost" href="/customers/{{ customer.id }}">Annulla</a><button class="button primary">Salva modifiche</button></div>
     </form>
   </section>
-  <aside class="panel form-page-help"><h2>Inventario collegato</h2><div class="backup-overview-grid" style="grid-template-columns:1fr 1fr"><div class="backup-status-card"><span class="metric-label">Apparati</span><strong>{{ customer.devices|length }}</strong></div><div class="backup-status-card"><span class="metric-label">Sedi</span><strong>{{ customer.sites|length }}</strong></div></div><p class="muted">Lo spostamento di singoli apparati verso altri clienti si esegue dalla scheda dell'apparato.</p></aside>
+  <aside class="panel form-page-help"><h2>Inventario collegato</h2><div class="two-columns backup-overview-grid"><div class="backup-status-card"><span class="metric-label">Apparati</span><strong>{{ customer.devices|length }}</strong></div><div class="backup-status-card"><span class="metric-label">Sedi</span><strong>{{ customer.sites|length }}</strong></div></div><p class="muted">Lo spostamento di singoli apparati verso altri clienti si esegue dalla scheda dell'apparato.</p></aside>
 </div>
 <section class="panel danger-zone">
   <div class="panel-header"><div><h2>Zona pericolosa</h2><p>Questa operazione elimina il cliente, le sedi, gli apparati e i record operativi collegati agli apparati. L'audit dell'eliminazione viene conservato.</p></div></div>
-  <form method="post" action="/customers/{{ customer.id }}/delete" class="form-stack" onsubmit="return confirm('Eliminare definitivamente questo cliente e tutti gli apparati associati?');">
+  <form method="post" action="/customers/{{ customer.id }}/delete" class="form-stack" data-confirm="Eliminare definitivamente questo cliente e tutti gli apparati associati?">
     <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
     <label>Per confermare digita esattamente <strong>{{ customer.name }}</strong><input name="confirm_name" required autocomplete="off"></label>
     <div class="form-actions"><button class="button danger">Elimina cliente e inventario</button></div>

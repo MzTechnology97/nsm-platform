@@ -15,7 +15,7 @@
 </section>
 <section class="panel danger-zone form-page-single">
   <div class="panel-header"><div><h2>Rimuovi sede</h2><p>{{ site.devices|length }} apparati sono attualmente associati. La sede verrà eliminata ma gli apparati resteranno nel cliente e passeranno a “Nessuna sede”.</p></div></div>
-  <form method="post" action="/customers/{{ site.customer_id }}/sites/{{ site.id }}/delete" onsubmit="return confirm('Rimuovere la sede? Gli apparati resteranno associati al cliente senza sede.');">
+  <form method="post" action="/customers/{{ site.customer_id }}/sites/{{ site.id }}/delete" data-confirm="Rimuovere la sede? Gli apparati resteranno associati al cliente senza sede.">
     <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
     <button class="button danger">Rimuovi sede</button>
   </form>

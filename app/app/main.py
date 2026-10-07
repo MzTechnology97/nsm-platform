@@ -684,8 +684,7 @@ def add_site(
     return RedirectResponse(f"/customers/{customer_id}", status_code=303)
 
 
-@app.post("/customers/{customer_id}/devices")
-def add_device(
+def _add_device_impl(
     request: Request,
     customer_id: uuid.UUID,
     vendor: str = Form(...),
@@ -697,9 +696,24 @@ def add_device(
     model: str = Form(""),
     management_ip: str = Form(""),
     firmware_version: str = Form(""),
+    ubnt_mac: str = Form(""),
+    ubnt_serial: str = Form(""),
+    tr069_mac: str = Form(""),
+    tr069_serial: str = Form(""),
+    generic_mac: str = Form(""),
+    generic_serial: str = Form(""),
     csrf: str = Form(...),
 ):
     validate_csrf(request, csrf)
+    # The form has one MAC/serial pair per vendor section; the generic
+    # primary_mac/serial_number names remain accepted for API clients.
+    vendor_fields = {
+        "ubiquiti": (ubnt_mac, ubnt_serial),
+        "tp-link": (tr069_mac, tr069_serial),
+        "generic": (generic_mac, generic_serial),
+    }.get(vendor.strip().lower(), ("", ""))
+    primary_mac = vendor_fields[0].strip() or primary_mac
+    serial_number = vendor_fields[1].strip() or serial_number
     with SessionLocal() as db:
         user = require_permission(request, db, "devices.write")
         customer = db.get(Customer, customer_id)
@@ -800,6 +814,40 @@ def add_device(
         if raw_token:
             request.session[f"enrollment_token:{device.id}"] = raw_token
         return RedirectResponse(f"/devices/{device.id}", status_code=303)
+
+
+
+@app.post("/customers/{customer_id}/devices")
+def add_device(
+    request: Request,
+    customer_id: uuid.UUID,
+    vendor: str = Form(...),
+    device_type: str = Form("other"),
+    display_name: str = Form(""),
+    site_id: str = Form(""),
+    primary_mac: str = Form(""),
+    serial_number: str = Form(""),
+    model: str = Form(""),
+    management_ip: str = Form(""),
+    firmware_version: str = Form(""),
+    ubnt_mac: str = Form(""),
+    ubnt_serial: str = Form(""),
+    tr069_mac: str = Form(""),
+    tr069_serial: str = Form(""),
+    generic_mac: str = Form(""),
+    generic_serial: str = Form(""),
+    csrf: str = Form(...),
+):
+    try:
+        return _add_device_impl(request=request, customer_id=customer_id, vendor=vendor, device_type=device_type, display_name=display_name, site_id=site_id, primary_mac=primary_mac, serial_number=serial_number, model=model, management_ip=management_ip, firmware_version=firmware_version, ubnt_mac=ubnt_mac, ubnt_serial=ubnt_serial, tr069_mac=tr069_mac, tr069_serial=tr069_serial, generic_mac=generic_mac, generic_serial=generic_serial, csrf=csrf)
+    except HTTPException as exc:
+        if exc.status_code not in {400, 409}:
+            raise
+        from app.ui_feedback import flash_redirect
+
+        return flash_redirect(
+            request, f"/customers/{customer_id}/devices/new", "warning", str(exc.detail), title="Apparato non creato"
+        )
 
 
 @app.get("/devices", response_class=HTMLResponse)

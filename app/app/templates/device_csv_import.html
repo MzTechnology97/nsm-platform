@@ -13,7 +13,7 @@
   <form method="post" action="/devices/import" enctype="multipart/form-data" class="stacked-form">
     <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
     <label>File CSV<input type="file" name="csv_file" accept=".csv,text/csv" required></label>
-    <div class="page-actions"><button class="button ghost" type="submit" name="mode" value="validate">Valida / dry-run</button><button class="button primary" type="submit" name="mode" value="import" onclick="return confirm('Importare le righe valide del CSV? Le righe con errori o duplicate verranno saltate.')">Importa righe valide</button></div>
+    <div class="page-actions"><button class="button ghost" type="submit" name="mode" value="validate">Valida / dry-run</button><button class="button primary" type="submit" name="mode" value="import" data-confirm="Importare le righe valide del CSV? Le righe con errori o duplicate verranno saltate.">Importa righe valide</button></div>
   </form>
   <details class="mt-import-help"><summary>Formato colonne supportato</summary><div class="table-wrap"><table class="data-table dense"><thead><tr>{% for column in csv_columns %}<th>{{ column }}</th>{% endfor %}</tr></thead><tbody><tr><td>CLIENTE01</td><td>POP Centro</td><td>mikrotik</td><td>router</td><td>CCR Centro</td><td>Core Centro</td><td></td><td>192.0.2.10</td><td>02:00:00:00:00:10</td><td></td><td>CCR2004</td><td>7.20.2</td></tr></tbody></table></div><p class="muted">Obbligatorie: <code>customer_code</code>, <code>vendor</code>, <code>device_type</code>, <code>name</code>. Alias vendor riconosciuti: RouterOS→mikrotik, UBNT/UI→ubiquiti, tplink→tp-link.</p></details>
 </section>
