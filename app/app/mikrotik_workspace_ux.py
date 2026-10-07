@@ -144,25 +144,6 @@ def _require_device(request: Request, device_id: uuid.UUID, permission: str):
         raise
 
 
-@router.get("/devices/{device_id}/configuration", response_class=HTMLResponse, name="mikrotik_configuration_v2")
-def configuration_v2(request: Request, device_id: uuid.UUID, section: str = "resources"):
-    if section not in workspace.SNAPSHOT_SECTIONS:
-        section = "resources"
-    db, user, device = _require_device(request, device_id, "devices.read")
-    if not user:
-        db.close()
-        return core.login_redirect()
-    try:
-        ctx = _enhanced_context(db, device)
-        return core.render(
-            request, db, user, "mikrotik_configuration_v2.html",
-            device=device, active_section=section,
-            snapshot_sections=workspace.SNAPSHOT_SECTIONS, **ctx,
-        )
-    finally:
-        db.close()
-
-
 @router.get("/devices/{device_id}/diagnostics", response_class=HTMLResponse, name="mikrotik_diagnostics_v2")
 def diagnostics_v2(request: Request, device_id: uuid.UUID):
     db, user, device = _require_device(request, device_id, "monitoring.read")

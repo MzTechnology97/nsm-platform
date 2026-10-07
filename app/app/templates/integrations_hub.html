@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Integrazioni · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header compact-heading">
+  <div><h1>Integrazioni</h1><p>Sorgenti dati da cui NSM osserva gli apparati. Lo stato riportato è quello reale del connettore.</p></div>
+</div>
+
+<div class="integration-grid">
+  <section class="panel integration-card">
+    <div class="panel-header"><div><h2>MikroTik Agent</h2><p>Agent outbound HTTPS installato sui router RouterOS.</p></div><span class="device-status status-online">Attivo</span></div>
+    <dl class="kv-list">
+      <div><dt>Agent registrati</dt><dd>{{ agents_total }}</dd></div>
+      <div><dt>Senza heartbeat da 15 min</dt><dd>{{ agents_stale }}</dd></div>
+    </dl>
+    <div class="page-actions"><a class="button ghost" href="/operations/agents">Apri Agent Fleet</a></div>
+  </section>
+
+  <section class="panel integration-card">
+    <div class="panel-header"><div><h2>UISP Network</h2><p>Connettore read-only per apparati Ubiquiti.</p></div>
+      {% if not uisp %}<span class="device-status status-unknown">Non configurato</span>
+      {% elif not uisp.is_enabled %}<span class="device-status status-offline">Disabilitato</span>
+      {% elif uisp_sync.get('last_status') == 'failed' %}<span class="device-status status-offline">Errore</span>
+      {% else %}<span class="device-status status-online">Attivo</span>{% endif %}
+    </div>
+    {% if uisp %}
+    <dl class="kv-list">
+      <div><dt>Apparati associati</dt><dd>{{ uisp_devices }}</dd></div>
+      <div><dt>Ultima sincronizzazione</dt><dd>{{ fmt_dt(uisp_sync.get('last_success_at')) if uisp_sync.get('last_success_at') else 'mai' }}</dd></div>
+      {% if uisp_sync.get('consecutive_failures') %}<div><dt>Errori consecutivi</dt><dd>{{ uisp_sync.get('consecutive_failures') }}</dd></div>{% endif %}
+    </dl>
+    {% else %}<p class="muted-note">Configura URL e token read-only per associare gli apparati Ubiquiti tramite MAC.</p>{% endif %}
+    {% if can_admin %}<div class="page-actions"><a class="button ghost" href="/admin/integrations/uisp">{{ 'Gestisci' if uisp else 'Configura' }}</a></div>{% endif %}
+  </section>
+
+  <section class="panel integration-card">
+    <div class="panel-header"><div><h2>API pubblica</h2><p>Accesso read-only per sistemi esterni con API key e ambiti.</p></div><span class="device-status {{ 'status-online' if api_keys_active else 'status-unknown' }}">{{ api_keys_active }} chiavi attive</span></div>
+    <p class="muted-note">Inventario, backup, vulnerabilità e firmware in sola lettura, con confinamento per cliente.</p>
+    {% if can_admin %}<div class="page-actions"><a class="button ghost" href="/admin/api-keys">Gestisci API key</a></div>{% endif %}
+  </section>
+
+  <section class="panel integration-card">
+    <div class="panel-header"><div><h2>TR-069 / ACS</h2><p>CPE gestite tramite ACS (es. ONT, router residenziali).</p></div><span class="device-status status-unknown">Non disponibile</span></div>
+    <p class="muted-note">Connettore pianificato: finché non è implementato, le operazioni che lo richiedono sono mostrate come non eseguibili.</p>
+  </section>
+</div>
+{% endblock %}

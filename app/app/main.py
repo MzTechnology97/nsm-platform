@@ -580,27 +580,6 @@ def global_search(request: Request, q: str = ""):
         )
 
 
-@app.get("/customers", response_class=HTMLResponse)
-def customers(request: Request, q: str = ""):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        if not has_permission(user, "customers.read"):
-            raise HTTPException(403)
-        stmt = select(Customer).options(
-            selectinload(Customer.devices), selectinload(Customer.sites)
-        )
-        term = q.strip()
-        if term:
-            like = f"%{term}%"
-            stmt = stmt.where(
-                or_(Customer.name.ilike(like), Customer.code.ilike(like))
-            )
-        rows = list(db.scalars(stmt.order_by(Customer.name)))
-        return render(request, db, user, "customers.html", customers=rows, q=term)
-
-
 @app.post("/customers")
 def add_customer(
     request: Request,
@@ -628,62 +607,6 @@ def add_customer(
             db.rollback()
             raise HTTPException(409, "Codice cliente già utilizzato.")
     return RedirectResponse("/customers", status_code=303)
-
-
-@app.get("/customers/{customer_id}", response_class=HTMLResponse)
-def customer_detail(request: Request, customer_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        customer = db.scalar(
-            select(Customer)
-            .where(Customer.id == customer_id)
-            .options(
-                selectinload(Customer.sites),
-                selectinload(Customer.devices).selectinload(Device.site),
-            )
-        )
-        if not customer:
-            raise HTTPException(404)
-        events = list(
-            db.scalars(
-                select(AuditEvent)
-                .where(AuditEvent.customer_id == customer_id)
-                .order_by(AuditEvent.timestamp.desc())
-                .limit(40)
-            )
-        )
-        open_issues = (
-            db.scalar(
-                select(func.count(ActionIssue.id)).where(
-                    ActionIssue.customer_id == customer_id,
-                    ActionIssue.status.in_(["open", "acknowledged"]),
-                )
-            )
-            or 0
-        )
-        vulnerabilities = (
-            db.scalar(
-                select(func.count(DeviceVulnerability.id))
-                .join(Device, Device.id == DeviceVulnerability.device_id)
-                .where(
-                    Device.customer_id == customer_id,
-                    DeviceVulnerability.status != "resolved",
-                )
-            )
-            or 0
-        )
-        return render(
-            request,
-            db,
-            user,
-            "customer_detail.html",
-            customer=customer,
-            events=events,
-            open_issues=open_issues,
-            vulnerability_count=vulnerabilities,
-        )
 
 
 @app.post("/customers/{customer_id}/sites")
@@ -1173,40 +1096,6 @@ async def mikrotik_enrollment_complete(request: Request):
         }
 
 
-@app.get("/operations/monitoring", response_class=HTMLResponse)
-def monitoring(request: Request):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        online = (
-            db.scalar(select(func.count(Device.id)).where(Device.status == "online"))
-            or 0
-        )
-        offline = (
-            db.scalar(select(func.count(Device.id)).where(Device.status == "offline"))
-            or 0
-        )
-        pending = (
-            db.scalar(
-                select(func.count(Device.id)).where(
-                    Device.status.in_(["pending_enrollment", "pending_link"])
-                )
-            )
-            or 0
-        )
-        return render(
-            request,
-            db,
-            user,
-            "section.html",
-            title="Monitoring",
-            subtitle="Stato operativo sintetico degli apparati gestiti.",
-            cards=[("Online", online), ("Offline", offline), ("Pending", pending)],
-            message="Metriche CPU, memoria, temperatura, wireless e interfacce verranno alimentate dai rispettivi connector/agent.",
-        )
-
-
 @app.get("/operations/firmware", response_class=HTMLResponse)
 def firmware(request: Request):
     with SessionLocal() as db:
@@ -1240,36 +1129,6 @@ def firmware(request: Request):
             subtitle="Stato firmware e aggiornamenti richiesti.",
             cards=[("Da aggiornare", outdated), ("Stato sconosciuto", unknown)],
             message="Il catalogo vendor e le regole di aggiornamento verranno collegati all'inventario osservato.",
-        )
-
-
-@app.get("/operations/backups", response_class=HTMLResponse)
-def backups(request: Request):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        policies = list(db.scalars(select(BackupPolicy).order_by(BackupPolicy.name)))
-        runs = list(
-            db.scalars(
-                select(BackupRun).order_by(BackupRun.started_at.desc()).limit(100)
-            )
-        )
-        customers_list = list(db.scalars(select(Customer).order_by(Customer.name)))
-        devices_list = list(
-            db.scalars(
-                select(Device).order_by(Device.display_name.nullslast(), Device.name)
-            )
-        )
-        return render(
-            request,
-            db,
-            user,
-            "backups.html",
-            policies=policies,
-            runs=runs,
-            customers=customers_list,
-            devices=devices_list,
         )
 
 
@@ -1587,60 +1446,6 @@ def mark_all_notifications_read(request: Request, csrf: str = Form(...)):
             )
         db.commit()
     return RedirectResponse("/notifications", status_code=303)
-
-
-@app.get("/audit/events", response_class=HTMLResponse)
-def audit_events(request: Request):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        events = list(
-            db.scalars(
-                select(AuditEvent).order_by(AuditEvent.timestamp.desc()).limit(500)
-            )
-        )
-        return render(request, db, user, "events.html", events=events)
-
-
-@app.get("/audit/reports", response_class=HTMLResponse)
-def reports(request: Request):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        return render(
-            request,
-            db,
-            user,
-            "section.html",
-            title="Reports",
-            subtitle="Report operativi, inventario, sicurezza e compliance.",
-            cards=[],
-            message="La struttura è pronta per report PDF/CSV con archivio e hash; il generatore verrà collegato nei prossimi moduli.",
-        )
-
-
-@app.get("/integrations", response_class=HTMLResponse)
-def integrations(request: Request):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        return render(
-            request,
-            db,
-            user,
-            "section.html",
-            title="Integrations",
-            subtitle="Sorgenti autorevoli e canali outbound.",
-            cards=[
-                ("MikroTik Agent", "Enrollment pronto"),
-                ("UISP", "Prossimo modulo"),
-                ("TR-069 / ACS", "Prossimo modulo"),
-            ],
-            message="I connector popoleranno automaticamente identità, modello, seriale, firmware, stato e capability.",
-        )
 
 
 @app.get("/admin/users", response_class=HTMLResponse)

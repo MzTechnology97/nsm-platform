@@ -2,7 +2,7 @@
 {% block title %}API Keys · {{ ui_context(request).branding.portal_name }}{% endblock %}
 {% block content %}
 <div class="page-header"><div><h1>API Keys</h1><p>Accesso programmatico alla piattaforma con chiavi revocabili e scope espliciti.</p></div><a class="button ghost" href="/admin/users">Amministrazione</a></div>
-<div class="admin-tabs"><a href="/admin/users">Utenti</a><span>Ruoli & permessi</span><a class="active" href="/admin/api-keys">API Keys</a><span>Notification rules</span><a href="/admin/branding">Branding</a><a href="/admin/demo">Demo Lab</a><span>Retention</span><span>System settings</span></div>
+{% set admin_tab = "api_keys" %}{% include "_admin_tabs.html" %}
 
 {% if new_key %}
 <section class="panel"><div class="panel-header"><div><h2>Chiave creata</h2><p>Questo valore completo viene mostrato una sola volta. Copialo ora e conservalo in un secret manager.</p></div><span class="severity-badge severity-warning">MOSTRATA UNA VOLTA</span></div>
