@@ -470,6 +470,13 @@ def legacy_job_next(request: Request):
             )
         )
         for job in jobs:
+            if job.job_type == "diagnostic_traceroute" and str(device.firmware_version or "").startswith("6."):
+                from app.mikrotik_routeros6 import TRACEROUTE_UNSUPPORTED
+
+                job.status = "failed"
+                job.last_error = TRACEROUTE_UNSUPPORTED
+                job.completed_at = now
+                continue
             if job.job_type == "snapshot_section" and not legacy_agent_supports_snapshots(device):
                 job.status = "failed"
                 job.last_error = "L'agent legacy installato non supporta gli snapshot strutturati: reinstallalo (agent 0.49.3 o successivo)."
