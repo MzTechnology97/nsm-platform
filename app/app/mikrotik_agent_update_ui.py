@@ -36,6 +36,11 @@ def install_mikrotik_agent_update_ui(templates):
             row["attention"] = True
             if row["health"] == "healthy":
                 row["health"] = "agent_outdated"
+        if update["state"] == "expired":
+            reason = "Ultimo self-update scaduto senza esito: verificare l'agent sul MikroTik"
+            if reason not in row["reasons"]:
+                row["reasons"].append(reason)
+            row["attention"] = True
         return row
 
     fleet_row_with_update._nsm_agent_update_wrapped = True

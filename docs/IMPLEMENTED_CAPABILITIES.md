@@ -150,7 +150,8 @@ Implemented capabilities:
 - Agent reinstall flow without deleting the Device;
 - in-place Agent update/self-update foundation with rollback behavior covered by smoke tests;
 - stale pending job expiry;
-- stale delivered non-backup job expiry;
+- stale delivered non-backup job expiry; running jobs keep domain-owned timeouts (backup maintenance, self-update reconciliation);
+- expired self-update jobs move the Device update state to `expired` (audited, visible in Agent Fleet) and no longer block a new update; late self-update reports for a terminal job are acknowledged without changes;
 - backup jobs excluded from generic job expiry where the backup lifecycle owns timeout/retry behavior.
 
 ### Security boundary
