@@ -69,7 +69,7 @@
   </form>
 </section>
 {% elif plan.status == 'staging' %}
-<div class="alert info">Download pacchetti in corso. L'agent aggiornerà il piano quando RouterOS restituisce l'esito.</div>
+<div class="alert info">Download pacchetti in corso. L'agent aggiornerà il piano quando RouterOS restituisce l'esito; senza esito entro 60 minuti il piano viene chiuso come non riuscito.</div>
 {% endif %}
 
 {% if plan.status == 'staged' and has_permission(user, 'firmware.execute') %}
@@ -82,14 +82,14 @@
   </form>
 </section>
 {% elif plan.status == 'activation_pending' %}
-<div class="alert info"><strong>Attivazione accodata.</strong> L'agent deve ancora eseguire il preflight e confermare al server il reboot.</div>
+<div class="alert info"><strong>Attivazione accodata.</strong> L'agent deve ancora eseguire il preflight e confermare al server il reboot. Finché il job non è stato consegnato al MikroTik il piano può essere annullato; se l'agent non lo esegue entro 15 minuti il piano viene chiuso senza reboot.</div>
 {% elif plan.status == 'reboot_pending' %}
 <div class="alert info"><strong>Reboot atteso.</strong> L'agent ha confermato il preflight. Il piano resterà aperto finché un heartbeat post-reboot non riporterà RouterOS {{ plan.target_version }}.</div>
 {% elif plan.status == 'success' %}
 <div class="alert success"><strong>Upgrade verificato.</strong> Il MikroTik è tornato online e l'inventario riporta RouterOS {{ plan.target_version }}.</div>
 {% endif %}
 
-{% if plan.status not in ['staging','activation_pending','reboot_pending','success','cancelled'] and has_permission(user, 'firmware.execute') %}
+{% if plan.status not in ['reboot_pending','success','cancelled','failed'] and has_permission(user, 'firmware.execute') %}
 <section class="panel"><form method="post" action="/devices/{{ device.id }}/firmware-upgrade/{{ plan.id }}/cancel"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button danger" type="submit">Annulla piano</button></form></section>
 {% endif %}
 {% endif %}
