@@ -19,6 +19,13 @@
     });
   });
 
+  // Select-all checkboxes: <input type="checkbox" data-check-all=".row-check">.
+  document.querySelectorAll('[data-check-all]').forEach((box) => {
+    box.addEventListener('change', () => {
+      document.querySelectorAll(box.dataset.checkAll).forEach((item) => { if (!item.disabled) item.checked = box.checked; });
+    });
+  });
+
   // Confirmations: <form data-confirm="..."> and <button data-confirm="...">.
   document.addEventListener('submit', (event) => {
     const form = event.target;

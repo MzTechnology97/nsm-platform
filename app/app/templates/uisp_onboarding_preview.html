@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Anteprima onboarding UISP · {{ app_name }}{% endblock %}
+{% block content %}
+{% set labels = {'create': 'Verrà creato', 'link': 'Verrà associato al record esistente', 'skip': 'Saltato', 'missing': 'Non più in UISP'} %}
+<nav class="breadcrumbs" aria-label="Percorso"><a href="/admin/integrations/uisp">UISP</a><span>›</span><a href="/integrations/uisp/onboarding">Onboarding</a><span>›</span><span>Anteprima</span></nav>
+<div class="page-header compact-heading">
+  <div><h1>Anteprima onboarding</h1><p>Nuovi apparati nel cliente <strong>{{ customer.name }}</strong>{% if site %}, sede <strong>{{ site.name }}</strong>{% endif %}. Alla conferma l'elenco UISP viene riletto: i dispositivi cambiati nel frattempo vengono saltati.</p></div>
+</div>
+<section class="panel">
+  <form method="post" action="/integrations/uisp/onboarding/commit" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <input type="hidden" name="customer_id" value="{{ customer.id }}">
+    {% if site %}<input type="hidden" name="site_id" value="{{ site.id }}">{% endif %}
+    <div class="table-wrap"><table class="data-table compact-data-table">
+      <thead><tr><th>Dispositivo UISP</th><th>Modello</th><th>MAC</th><th>Tipo NSM</th><th>Azione</th></tr></thead>
+      <tbody>{% for p in plan %}
+        <tr>
+          <td>{% if p.action in ['create', 'link'] %}<input type="hidden" name="external_id" value="{{ p.external_id }}">{% endif %}<strong>{{ p.device_identity or p.external_id }}</strong></td>
+          <td>{{ p.model or '—' }}</td>
+          <td><code>{{ p.primary_mac or '—' }}</code></td>
+          <td>{{ p.device_type or '—' }}</td>
+          <td><span class="status-pill">{{ labels[p.action] }}</span>{% if p.action == 'link' and p.device %}<small>{{ p.device.display_name or p.device.name }} (resta nel suo cliente)</small>{% endif %}{% if p.reason %}<small class="warning-text">{{ p.reason }}</small>{% endif %}</td>
+        </tr>
+      {% endfor %}</tbody>
+    </table></div>
+    {% set actionable = plan|selectattr('action', 'in', ['create', 'link'])|list %}
+    <div class="form-actions"><a class="button ghost" href="/integrations/uisp/onboarding">Annulla</a>{% if actionable %}<button class="button primary">Conferma onboarding di {{ actionable|length }} dispositivi</button>{% endif %}</div>
+  </form>
+</section>
+{% endblock %}

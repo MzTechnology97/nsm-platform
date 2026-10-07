@@ -371,6 +371,12 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 ## 13. Ubiquiti / UISP
 
+### Bulk onboarding (UBNT-03)
+
+- *Integrazioni → UISP → Onboarding dispositivi* (and *Importa da UISP* on a customer's device list): every UISP device with its NSM state — *Nuovo*, *Da associare* (an unlinked Ubiquiti record with the same MAC), *Già in NSM* (same UISP id), *Non importabile* (no stable id, no MAC, MAC repeated in UISP or used by another NSM Device);
+- the operator selects up to 200 devices and chooses the NSM Customer and optional Site explicitly (UISP sites are shown, never imported); preview before confirmation;
+- at confirmation the UISP list is read again: changed or vanished devices are skipped and reported; new Devices are created with type from the UISP role, existing records are associated and keep their Customer; `devices.write` required; `DEVICE_ADDED`, `UISP_DEVICE_ASSOCIATED` and `UISP_BULK_ONBOARDING` audit events.
+
 ### Implemented
 
 - administrator-configurable read-only UISP connector;

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% from "_worklist.html" import chips, pager %}
+{% block title %}Onboarding UISP · {{ app_name }}{% endblock %}
+{% block content %}
+{% set scope = '?q=' ~ q|urlencode ~ '&uisp_site=' ~ uisp_site|urlencode ~ '&customer=' ~ (selected_customer.id if selected_customer else '') %}
+{% set state_labels = {'new': 'Nuovo', 'linkable': 'Da associare', 'linked': 'Già in NSM', 'blocked': 'Non importabile'} %}
+<nav class="breadcrumbs" aria-label="Percorso"><a href="/admin/integrations">Integrazioni</a><span>›</span><a href="/admin/integrations/uisp">UISP</a><span>›</span><span>Onboarding</span></nav>
+<div class="page-header compact-heading">
+  <div><h1>Onboarding da UISP</h1><p>Seleziona i dispositivi UISP da portare in NSM e scegli tu cliente e sede: NSM non li deduce dai siti UISP. Prima della conferma vedi un'anteprima; alla conferma l'elenco UISP viene riletto.</p></div>
+</div>
+{% if error %}<div class="alert danger">{{ error }}</div>{% endif %}
+{{ chips([
+  {'label': 'Nuovi', 'count': counts.new, 'href': scope ~ '&state=new', 'active': state == 'new'},
+  {'label': 'Da associare a record esistente', 'count': counts.linkable, 'href': scope ~ '&state=linkable', 'active': state == 'linkable', 'tone': 'warning'},
+  {'label': 'Già in NSM', 'count': counts.linked, 'href': scope ~ '&state=linked', 'active': state == 'linked'},
+  {'label': 'Non importabili', 'count': counts.blocked, 'href': scope ~ '&state=blocked', 'active': state == 'blocked', 'tone': 'danger'},
+]) }}
+<section class="panel">
+  <form class="filter-bar" method="get">
+    <input type="hidden" name="state" value="{{ state }}">
+    {% if selected_customer %}<input type="hidden" name="customer" value="{{ selected_customer.id }}">{% endif %}
+    <input type="search" name="q" value="{{ q }}" placeholder="Nome, modello, MAC, IP, sito UISP..." aria-label="Cerca">
+    <select name="uisp_site" aria-label="Sito UISP"><option value="">Tutti i siti UISP</option>{% for name in uisp_sites %}<option value="{{ name }}" {% if uisp_site == name %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
+    <button class="button primary">Filtra</button>
+  </form>
+  <form method="post" action="/integrations/uisp/onboarding/preview" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    {% if state in ['new', 'linkable'] %}
+    <div class="form-grid">
+      <label>Cliente NSM<select name="customer_id" id="manage-customer" required><option value="">— scegli —</option>{% for c in customers %}<option value="{{ c.id }}" {% if selected_customer and selected_customer.id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select><small>Usato per i nuovi apparati; quelli da associare restano nel loro cliente.</small></label>
+      <label>Sede<select name="site_id" id="manage-site"><option value="">Nessuna sede</option>{% for s in all_sites %}<option value="{{ s.id }}" data-customer="{{ s.customer_id }}">{{ s.name }}</option>{% endfor %}</select></label>
+    </div>
+    {% endif %}
+    {% if rows %}
+    <div class="table-wrap"><table class="data-table compact-data-table">
+      <thead><tr><th>{% if state in ['new', 'linkable'] %}<input type="checkbox" data-check-all=".uisp-pick" aria-label="Seleziona tutti">{% endif %}</th><th>Dispositivo UISP</th><th>Modello</th><th>MAC / IP</th><th>Sito UISP</th><th>Tipo NSM</th><th>Stato UISP</th><th>NSM</th></tr></thead>
+      <tbody>{% for r in rows %}
+        <tr>
+          <td>{% if r.state in ['new', 'linkable'] %}<input type="checkbox" class="uisp-pick" name="external_id" value="{{ r.external_id }}" aria-label="Seleziona {{ r.device_identity }}">{% endif %}</td>
+          <td><strong>{{ r.device_identity or '—' }}</strong><small>{{ r.firmware_version or '' }}</small></td>
+          <td>{{ r.model or '—' }}</td>
+          <td><code>{{ r.primary_mac or '—' }}</code><small>{{ r.management_ip or '' }}</small></td>
+          <td>{{ (r.site or {}).get('name') or '—' }}</td>
+          <td>{{ r.device_type }}</td>
+          <td>{{ status_label(r.status) }}</td>
+          <td><span class="status-pill">{{ state_labels[r.state] }}</span>{% if r.device %}<small><a href="/devices/{{ r.device.id }}">{{ r.device.display_name or r.device.device_identity or r.device.name }}</a></small>{% endif %}{% if r.reason %}<small class="warning-text">{{ r.reason }}</small>{% endif %}</td>
+        </tr>
+      {% endfor %}</tbody>
+    </table></div>
+    {{ pager(total, page, pages, scope ~ '&state=' ~ state) }}
+    {% if state in ['new', 'linkable'] %}<div class="form-actions"><button class="button primary">Anteprima (max {{ max_batch }})</button></div>{% endif %}
+    {% else %}
+    <div class="empty-state">Nessun dispositivo UISP in questo stato{% if q or uisp_site %} con i filtri scelti{% endif %}.</div>
+    {% endif %}
+  </form>
+</section>
+{% endblock %}
