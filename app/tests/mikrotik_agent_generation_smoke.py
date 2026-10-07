@@ -1,3 +1,4 @@
+import re
 import uuid
 
 from app import mikrotik_agent as agent
@@ -8,7 +9,8 @@ from app.models import Device
 
 
 def main():
-    assert app.version == "0.49.0"
+    # Core releases bump the 0.49.x patch independently of the Agent version.
+    assert re.fullmatch(r"0\.49\.\d+", app.version), app.version
     assert TARGET_AGENT_VERSION == "0.49.2"
     assert SELF_UPDATE_MIN_VERSION == "0.49.0"
 
