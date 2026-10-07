@@ -369,9 +369,13 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 - every MikroTik Device is compared with the head of its channel (from the last readiness, default stable; RouterOS 6 → 6.x channels): the catalog sets the recommended version and firmware state when the device readiness is missing or older than 24 h, and escalates an available update to *security update* when the notes say so or an open CVE is fixed at or below the head;
 - *Integrazioni → Catalogo RouterOS* (manual refresh for admins) and a catalog line on the Device firmware tab.
 
+### RouterOS upgrade suggestions (MTK-04 step 5)
+
+- *Firmware → Suggerimenti RouterOS* lists every MikroTik behind its channel head with the next safe step: *ready for a plan* (modern agent, online, readiness younger than 6 h that sees the newer version, no active plan), *legacy upgrade ready*, *readiness check needed*, *plan already open*, *in soak* (non-security releases are proposed after 7 days on the channel, security releases at once) or *blocked* with the reason;
+- security suggestions come first; bulk actions queue read-only readiness checks or create plans for up to 25 selected Devices, re-checking every gate; a refused plan (no backup policy, backup already running) leaves no draft behind; plans still queue the pre-upgrade backup and wait for approval: nothing is upgraded from this page.
+
 ### Still incomplete
 
-- automated upgrade-plan suggestions from the catalog;
 - complete security-advisory-to-target-version automation;
 - comprehensive physical validation across supported hardware/version families.
 

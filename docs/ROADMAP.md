@@ -152,7 +152,7 @@ Original scope:
 
 ### MTK-04 — firmware intelligence
 
-**Steps 1–4 implemented in `main`** (`app/routeros_catalog.py`): channel catalog from upgrade.mikrotik.com, security classification from release notes and open CVEs, device evaluation. Automated plan suggestions remain open.
+**Implemented in `main`**: steps 1–4 (`app/routeros_catalog.py`: channel catalog from upgrade.mikrotik.com, security classification from release notes and open CVEs, device evaluation) and step 5 (`app/firmware_suggestions.py`: safe plan suggestions with the next step per Device, bulk readiness checks and plan creation that still require the pre-upgrade backup and approval).
 
 Build the missing intelligence layer around the already implemented execution workflow.
 

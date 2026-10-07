@@ -150,6 +150,49 @@ def _queue_redirect(device_id, return_to: str, state: str):
     return RedirectResponse(f"/devices/{device_id}?firmware_check={state}", status_code=303)
 
 
+def queue_readiness_job(db, device, user) -> str:
+    """Queue a read-only readiness check: "queued", "already_queued" or "agent_required".
+
+    The caller commits.
+    """
+    credential = db.scalar(
+        select(DeviceAgentCredential).where(
+            DeviceAgentCredential.device_id == device.id,
+            DeviceAgentCredential.agent_type == "mikrotik_agent",
+            DeviceAgentCredential.is_active.is_(True),
+        )
+    )
+    if not credential or device.status != "online":
+        return "agent_required"
+    pending = db.scalar(
+        select(DeviceJob.id).where(
+            DeviceJob.device_id == device.id,
+            DeviceJob.job_type == JOB_TYPE,
+            DeviceJob.status.in_(["pending", "delivered"]),
+        )
+    )
+    if pending:
+        return "already_queued"
+    job = DeviceJob(
+        device_id=device.id,
+        job_type=JOB_TYPE,
+        payload={"read_only": True},
+        expires_at=utcnow() + timedelta(minutes=10),
+    )
+    db.add(job)
+    db.flush()
+    core.add_event(
+        db,
+        "FIRMWARE_READINESS_QUEUED",
+        actor=user,
+        customer_id=device.customer_id,
+        device_id=device.id,
+        details={"job_id": str(job.id), "read_only": True},
+        source="portal",
+    )
+    return "queued"
+
+
 @router.post("/devices/{device_id}/firmware-readiness", name="queue_mikrotik_firmware_readiness")
 def queue_firmware_readiness(
     request: Request,
@@ -165,43 +208,9 @@ def queue_firmware_readiness(
             raise HTTPException(404)
         if device.vendor != "mikrotik":
             raise HTTPException(400, "Verifica RouterOS disponibile solo per MikroTik.")
-        credential = db.scalar(
-            select(DeviceAgentCredential).where(
-                DeviceAgentCredential.device_id == device.id,
-                DeviceAgentCredential.agent_type == "mikrotik_agent",
-                DeviceAgentCredential.is_active.is_(True),
-            )
-        )
-        if not credential or device.status != "online":
-            return _queue_redirect(device_id, return_to, "agent_required")
-        pending = db.scalar(
-            select(DeviceJob.id).where(
-                DeviceJob.device_id == device.id,
-                DeviceJob.job_type == JOB_TYPE,
-                DeviceJob.status.in_(["pending", "delivered"]),
-            )
-        )
-        if pending:
-            return _queue_redirect(device_id, return_to, "already_queued")
-        job = DeviceJob(
-            device_id=device.id,
-            job_type=JOB_TYPE,
-            payload={"read_only": True},
-            expires_at=utcnow() + timedelta(minutes=10),
-        )
-        db.add(job)
-        db.flush()
-        core.add_event(
-            db,
-            "FIRMWARE_READINESS_QUEUED",
-            actor=user,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            details={"job_id": str(job.id), "read_only": True},
-            source="portal",
-        )
+        state = queue_readiness_job(db, device, user)
         db.commit()
-    return _queue_redirect(device_id, return_to, "queued")
+    return _queue_redirect(device_id, return_to, state)
 
 
 @router.post(

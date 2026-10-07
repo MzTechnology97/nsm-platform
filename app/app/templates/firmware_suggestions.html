@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "_worklist.html" import chips %}
+{% block title %}Suggerimenti firmware · {{ app_name }}{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="Percorso"><a href="/operations/firmware">Firmware</a><span>›</span><span>Suggerimenti</span></nav>
+<div class="page-header compact-heading">
+  <div><h1>Suggerimenti di aggiornamento RouterOS</h1><p>MikroTik più indietro della versione di riferimento del proprio canale secondo il <a href="/admin/integrations/routeros">catalogo RouterOS</a>, con il prossimo passo sicuro. Nessun aggiornamento parte da qui: i piani accodano il backup pre-upgrade e attendono l'approvazione. Le release non di sicurezza sono proposte dopo {{ soak_days }} giorni sul canale.</p></div>
+</div>
+
+{% set scope = '?customer=' ~ customer_filter %}
+{% set ns = namespace(chips=[{'label': 'Tutti', 'count': total, 'href': scope, 'active': not kind_filter}]) %}
+{% for key, meta in kinds.items() %}{% set ns.chips = ns.chips + [{'label': meta[0], 'count': counts[key], 'href': scope ~ '&kind=' ~ key, 'active': kind_filter == key, 'tone': meta[1] if meta[1] in ['warning', 'danger'] else ''}] %}{% endfor %}
+{{ chips(ns.chips) }}
+{% if security_count %}<p><span class="severity-badge severity-high">Sicurezza</span> {{ security_count }} {{ "apparato" if security_count == 1 else "apparati" }} con aggiornamento di sicurezza.</p>{% endif %}
+
+<section class="panel">
+  <form class="filter-bar" method="get">
+    <input type="hidden" name="kind" value="{{ kind_filter }}">
+    <select name="customer" aria-label="Cliente"><option value="">Tutti i clienti</option>{% for c in customers %}<option value="{{ c.id }}" {% if customer_filter == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
+    <button class="button primary">Applica</button>
+    {% if customer_filter or kind_filter %}<a class="button ghost" href="/operations/firmware/suggestions">Reset</a>{% endif %}
+  </form>
+  {% if items %}
+  <form method="post" action="/operations/firmware/suggestions/apply">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <input type="hidden" name="customer" value="{{ customer_filter }}">
+    <div class="table-wrap"><table class="data-table compact-data-table">
+      <thead><tr><th><input type="checkbox" data-check-all=".suggestion-check" aria-label="Seleziona tutti"></th><th>Apparato</th><th>Cliente</th><th>Installato</th><th>Proposto</th><th>Motivo</th><th>Prossimo passo</th><th></th></tr></thead>
+      <tbody>{% for s in items %}{% set d = s.device %}
+        <tr data-suggestion="{{ s.kind }}">
+          <td>{% if s.kind in ['plan', 'check'] %}<input class="suggestion-check" type="checkbox" name="device" value="{{ d.id }}" aria-label="Seleziona {{ d.name }}">{% endif %}</td>
+          <td><a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a><small>{{ d.model or '—' }}{% if s.out_of_support %} · <span class="warning-text">fuori supporto</span>{% endif %}</small></td>
+          <td>{% if d.customer %}<a href="/customers/{{ d.customer.id }}">{{ d.customer.name }}</a>{% endif %}<small>{{ d.site.name if d.site else 'Nessuna sede' }}</small></td>
+          <td>{{ d.firmware_version }}</td>
+          <td><strong>{{ s.target }}</strong><small>{{ s.channel or '—' }}{% if s.age_days is not none %} · da {{ s.age_days }} g{% endif %}</small></td>
+          <td>{% if s.security %}<span class="severity-badge severity-high">Sicurezza</span>{% for r in s.reasons %}<small>{{ r }}</small>{% endfor %}{% else %}Manutenzione{% endif %}</td>
+          <td><span class="status-pill {{ pill_class[s.tone] }}">{{ s.label }}</span>{% if s.note %}<small>{{ s.note }}</small>{% endif %}</td>
+          <td><div class="row-actions">
+            {% if s.kind == 'plan_open' %}<a class="button tiny ghost" href="/devices/{{ d.id }}/firmware-upgrade?plan={{ s.plan_id }}">Apri piano</a>
+            {% else %}<a class="button tiny ghost" href="/devices/{{ d.id }}/firmware-upgrade">{% if s.kind == 'legacy' %}Aggiorna (legacy){% else %}Firmware{% endif %}</a>{% endif %}
+          </div></td>
+        </tr>
+      {% endfor %}</tbody>
+    </table></div>
+    <div class="form-actions">
+      <button class="button ghost" type="submit" name="action" value="check">Verifica firmware selezionati</button>
+      {% if can_execute %}<button class="button primary" type="submit" name="action" value="plan" data-confirm="Creare i piani di aggiornamento per gli apparati selezionati? Ogni piano accoda un backup pre-upgrade e resta in attesa di approvazione.">Crea piani per i selezionati</button>{% endif %}
+      <small class="muted">Al massimo {{ max_batch }} apparati per volta; gli apparati non idonei sono saltati con il motivo.</small>
+    </div>
+  </form>
+  {% else %}
+  <div class="empty-state success-state">Nessun MikroTik indietro rispetto al catalogo RouterOS{% if customer_filter %} per questo cliente{% endif %}.</div>
+  {% endif %}
+</section>
+{% endblock %}
