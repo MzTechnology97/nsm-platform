@@ -511,7 +511,7 @@ Focused future work:
 - role/permission matrix review across all current routes — **done**: `rbac_routes_smoke.py` walks every registered route (anonymous access refused everywhere, read-only auditor writes refused except an explained allow-list);
 - scoped/delegated administration where required;
 - credential rotation workflows;
-- session/security policy hardening;
+- session/security policy hardening — **done**: failed-login throttling per username+address and per address, failed-login audit, idle timeout, sessions invalidated on password change and on demand;
 - API-key lifecycle and audit review — **done**: rotation with grace period, usage evidence (count, last IP), review states (expired, expiring, unused, no expiry);
 - least-privilege deployment documentation.
 

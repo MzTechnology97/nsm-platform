@@ -9,7 +9,8 @@
   </div>
 </div>
 
-{% if status == 'password_changed' %}<div class="alert success">Password aggiornata correttamente.</div>{% endif %}
+{% if status == 'password_changed' %}<div class="alert success">Password aggiornata correttamente. Le altre sessioni aperte con questo account sono state chiuse.</div>{% endif %}
+{% if request.query_params.get('status') == 'sessions_revoked' %}<div class="alert success">Le altre sessioni sono state chiuse; questa resta attiva.</div>{% endif %}
 {% if error == 'current_password' %}<div class="alert error">La password attuale non è corretta.</div>{% endif %}
 {% if error == 'password_mismatch' %}<div class="alert error">Le due nuove password non coincidono.</div>{% endif %}
 {% if error == 'password_same' %}<div class="alert error">La nuova password deve essere diversa da quella attuale.</div>{% endif %}
@@ -26,6 +27,11 @@
         <div><dt>Ruolo</dt><dd>{{ role_labels.get(user.role, user.role) }}</dd></div>
         <div><dt>Ultimo login</dt><dd>{{ fmt_dt(user.last_login_at) }}</dd></div>
       </dl>
+    </section>
+
+    <section class="panel" data-profile="sessions">
+      <div class="panel-header"><div><h2>Sessioni</h2><p>Una sessione si chiude dopo {{ session_idle_minutes() }} minuti di inattività. Il cambio password chiude tutte le altre sessioni.</p></div></div>
+      <form method="post" action="/profile/sessions/revoke" data-confirm="Chiudere tutte le altre sessioni aperte con questo account?"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Esci dalle altre sessioni</button></form>
     </section>
 
     <section class="panel">

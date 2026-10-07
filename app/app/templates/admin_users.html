@@ -3,6 +3,7 @@
 {% block content %}
 <div class="page-header"><div><h1>Amministrazione</h1><p>Utenti, ruoli, integrazioni e accesso alla piattaforma.</p></div><a class="button" href="/profile">Il mio profilo</a></div>
 {% set admin_tab = "users" %}{% include "_admin_tabs.html" %}
+{% if request.query_params.get('status') == 'sessions_revoked' %}<div class="alert success">Sessioni dell'utente chiuse: dovrà accedere di nuovo.</div>{% endif %}
 
 <details class="panel create-panel"{% if users|length < 2 %} open{% endif %}>
   <summary><span class="button primary">+ Nuovo utente</span><small>La password temporanea deve rispettare i requisiti minimi della piattaforma.</small></summary>
@@ -27,10 +28,18 @@
         <td><form class="inline-form compact-form" method="post" action="/admin/users/{{ u.id }}/role"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><select name="role" aria-label="Ruolo di {{ u.username }}">{% for key,label in roles.items() %}<option value="{{ key }}" {% if u.role == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="button tiny">Salva</button></form></td>
         <td><span class="device-status {{ 'status-online' if u.is_active else 'status-offline' }}">{{ 'Attivo' if u.is_active else 'Disabilitato' }}</span></td>
         <td>{{ fmt_dt(u.last_login_at) }}</td>
-        <td><div class="row-actions">{% if u.id == user.id %}<a class="button tiny ghost" href="/profile">Password / tema</a>{% else %}<form method="post" action="/admin/users/{{ u.id }}/toggle"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny ghost">{{ 'Disabilita' if u.is_active else 'Riattiva' }}</button></form>{% endif %}</div></td>
+        <td><div class="row-actions">{% if u.id == user.id %}<a class="button tiny ghost" href="/profile">Password / tema</a>{% else %}<form method="post" action="/admin/users/{{ u.id }}/toggle"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny ghost">{{ 'Disabilita' if u.is_active else 'Riattiva' }}</button></form>{% if u.is_active %}<form method="post" action="/admin/users/{{ u.id }}/sessions/revoke" data-confirm="Chiudere tutte le sessioni di {{ u.username }}?"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny ghost">Disconnetti</button></form>{% endif %}{% endif %}</div></td>
       </tr>
     {% endfor %}</tbody>
   </table></div>
+</section>
+
+{% set failures = login_failures_recent() %}
+<section class="panel" data-admin="login-failures">
+  <div class="panel-header"><div><h2>Accessi non riusciti (ultime 24 ore)</h2><p>Dopo {{ login_pair_limit }} tentativi falliti per lo stesso utente dallo stesso indirizzo, o {{ login_ip_limit }} dallo stesso indirizzo, in 15 minuti, i nuovi tentativi vengono rifiutati fino alla fine della finestra. L'account non viene bloccato.</p></div></div>
+  {% if failures %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Username tentato</th><th>Indirizzo</th><th>Tentativi (24 h)</th><th>Ultimo</th><th>Stato</th></tr></thead><tbody>
+  {% for f in failures %}<tr><td><strong>{{ f.username }}</strong></td><td><code>{{ f.ip }}</code></td><td>{{ f.count }}</td><td>{{ fmt_dt(f.last) }}</td><td>{% if f.blocked_minutes %}<span class="severity-badge severity-high">bloccato ancora {{ f.blocked_minutes }} min</span>{% else %}<span class="muted">—</span>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state success-state">Nessun accesso non riuscito nelle ultime 24 ore.</div>{% endif %}
 </section>
 
 <section class="panel">
