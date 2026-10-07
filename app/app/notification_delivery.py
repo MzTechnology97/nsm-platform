@@ -93,13 +93,17 @@ def smtp_settings(db) -> dict | None:
     return settings
 
 
-def _send_email(settings: dict, to_address: str, subject: str, body: str) -> None:
+def _send_email(settings: dict, to_address: str, subject: str, body: str, attachment=None) -> None:
     message = EmailMessage()
     message["Subject"] = subject
     message["From"] = formataddr((settings.get("from_name") or "NSM", settings["from_address"]))
     message["To"] = to_address
     message["Message-ID"] = make_msgid(domain=settings["from_address"].split("@")[-1])
     message.set_content(body)
+    if attachment:
+        filename, media_type, content = attachment
+        maintype, _, subtype = (media_type or "application/octet-stream").partition("/")
+        message.add_attachment(content, maintype=maintype, subtype=subtype or "octet-stream", filename=filename)
     host, port, mode = settings["host"], int(settings.get("port") or 587), settings.get("security") or "starttls"
     try:
         if mode == "ssl":
@@ -122,7 +126,12 @@ def send_email(db, delivery: NotificationDelivery) -> None:
         raise DeliveryError("Server SMTP non configurato o disabilitato.")
     if not delivery.destination:
         raise DeliveryError("Indirizzo e-mail del destinatario mancante.")
-    _send_email(settings, delivery.destination, delivery.subject, delivery.body)
+    attachment = None
+    if delivery.attachment_ref:
+        from app.notification_digest import report_attachment
+
+        attachment = report_attachment(db, delivery)
+    _send_email(settings, delivery.destination, delivery.subject, delivery.body, attachment)
 
 
 # Channel registry: other modules add telegram/slack with the same contract.
@@ -203,10 +212,10 @@ def _fan_out_new_notifications(session, flush_context, instances):
             fan_out(session, notification)
 
 
-def queue_direct(db, user: User, title: str, message: str, level: str = "info", category: str = "system", channels=None) -> int:
+def queue_direct(db, user: User, title: str, message: str, level: str = "info", category: str = "system", channels=None, source_url=None) -> int:
     """Queue a message for one user on their enabled channels, bypassing level/category filters (tests, digests)."""
     level, category = normalize_level(level), normalize_category(category) if category not in CATEGORIES else category
-    subject, body = compose(db, title, message, level, category)
+    subject, body = compose(db, title, message, level, category, source_url)
     queued = 0
     for pref in db.scalars(select(UserNotificationPreference).where(UserNotificationPreference.user_id == user.id,
                                                                     UserNotificationPreference.enabled.is_(True))):

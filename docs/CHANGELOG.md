@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.40 — 2026-10-07
+
+Notifications
+- **Vulnerability newsletter** (daily or weekly, chosen in the profile): new CVEs on the inventory with severity, CVSS and number of exposed devices, plus open totals; skipped when there is nothing new.
+- **Scheduled report delivery (REP-04)**: generated reports reach the users subscribed to *Report*, as e-mail attachment or link on Telegram/Slack.
+- **Worker error alerts**: three consecutive failures of a periodic task raise a high-level notification, and its recovery an informative one.
+- Migration 0028.
+
 ## 0.49.39 — 2026-10-07
 
 Notifications

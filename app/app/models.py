@@ -52,6 +52,9 @@ class User(Base, TimestampMixin):
     totp_pending_encrypted: Mapped[str | None] = mapped_column(Text)
     totp_enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     totp_last_step: Mapped[int | None] = mapped_column(BigInteger)
+    # Vulnerability newsletter: off / daily / weekly.
+    notify_digest: Mapped[str] = mapped_column(String(10), default="off", server_default="off")
+    notify_digest_last_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Customer(Base, TimestampMixin):
