@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none" stroke="#7f8ea3" stroke-linecap="round" stroke-linejoin="round" stroke-opacity=".13">
+  <!-- NSM background (GUI-02): WISP tower, radio links and fibre network, very low contrast. -->
+  <g stroke-width="2">
+    <!-- lattice tower -->
+    <path d="M560 560 600 250 640 560"/>
+    <path d="M572 470h56M580 400h40M588 330h24"/>
+    <path d="M572 470 620 400M628 470 580 400M580 400 612 330M620 400 588 330M565 540 628 470M635 540 572 470"/>
+    <path d="M600 250v-40"/>
+    <rect x="586" y="262" width="10" height="26" rx="2"/>
+    <rect x="604" y="262" width="10" height="26" rx="2"/>
+    <circle cx="600" cy="206" r="5"/>
+  </g>
+  <g stroke-width="1.6">
+    <!-- radio waves -->
+    <path d="M560 180a56 56 0 0 1 80 0M540 160a84 84 0 0 1 120 0M520 140a112 112 0 0 1 160 0"/>
+    <!-- point-to-point links toward client sites -->
+    <path d="M600 230 260 330" stroke-dasharray="2 9"/>
+    <path d="M600 230 380 470" stroke-dasharray="2 9"/>
+    <path d="M600 230 760 380" stroke-dasharray="2 9"/>
+    <!-- client CPEs / houses -->
+    <path d="M236 352v-24l24-18 24 18v24z"/><path d="M252 352v-12h16v12"/>
+    <path d="M356 492v-24l24-18 24 18v24z"/><path d="M372 492v-12h16v12"/>
+    <path d="M740 402v-24l20-15 20 15v24z"/>
+    <circle cx="260" cy="304" r="4"/><circle cx="380" cy="444" r="4"/><circle cx="760" cy="358" r="4"/>
+  </g>
+  <g stroke-width="1.4">
+    <!-- fibre backbone: nodes and links -->
+    <path d="M40 560C140 520 180 470 260 470S420 540 520 560"/>
+    <path d="M40 520C120 500 150 430 210 420"/>
+    <path d="M90 470 150 400 230 410 300 380"/>
+    <circle cx="150" cy="400" r="6"/><circle cx="230" cy="410" r="6"/><circle cx="300" cy="380" r="6"/><circle cx="90" cy="470" r="6"/><circle cx="210" cy="420" r="4"/>
+    <path d="M150 400 120 340M230 410 250 360M300 380 340 340"/>
+    <circle cx="120" cy="334" r="4"/><circle cx="252" cy="354" r="4"/><circle cx="344" cy="336" r="4"/>
+  </g>
+</svg>

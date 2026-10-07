@@ -4667,3 +4667,29 @@ a.compliance-mark { text-decoration: none; }
 .syslog-agent { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; margin: 8px 0 4px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-soft); }
 .syslog-agent > div { display: grid; gap: 3px; }
 .syslog-agent small { color: var(--muted); }
+
+/* ==== GUI-02: icons, sidebar polish, ISP/WISP background ================== */
+.ui-icon { display: block; flex: none; }
+.nav-icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; font-size: 0; }
+.nav-icon .ui-icon { width: 20px; height: 20px; }
+.nav-item { position: relative; transition: background-color .15s ease, color .15s ease; }
+.nav-item:hover .nav-icon { color: #e2e8f0; }
+.nav-item.active::before { content: ""; position: absolute; left: -6px; top: 8px; bottom: 8px; width: 3px; border-radius: 3px; background: var(--brand-highlight, #38bdf8); }
+.nav-item.active .nav-icon { color: #fff; }
+.sidebar-collapse, .sidebar-mobile-close, .mobile-menu-button { display: inline-flex; align-items: center; justify-content: center; }
+.search-icon { display: inline-flex; align-items: center; color: var(--muted); }
+.search-submit { display: inline-flex; align-items: center; justify-content: center; }
+.icon-button { display: inline-flex; align-items: center; justify-content: center; position: relative; }
+.icon-button.bell .ui-icon { transform-origin: 50% 15%; }
+.icon-button.bell:hover .ui-icon { animation: bell-nudge .6s ease; }
+@keyframes bell-nudge { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(12deg); } 50% { transform: rotate(-10deg); } 75% { transform: rotate(5deg); } }
+.notification-count { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10.5px; font-weight: 800; line-height: 1; color: #fff; background: var(--danger, #c53030); box-shadow: 0 0 0 2px var(--panel); }
+.sidebar { background-image: linear-gradient(180deg, rgba(56, 189, 248, .07), transparent 38%), radial-gradient(120% 60% at 0% 100%, rgba(56, 189, 248, .08), transparent 60%); }
+.brand-mark { background: linear-gradient(135deg, var(--brand-primary, #1f5f8b), #0ea5e9); color: #fff; }
+.workspace { background: url("/static/bg-network.svg") no-repeat right -60px bottom -40px / min(62vw, 860px) auto fixed; }
+.panel, .metric-card { transition: box-shadow .2s ease, border-color .2s ease; }
+.metric-card:hover { box-shadow: 0 2px 4px rgba(16, 24, 40, .06), 0 10px 24px rgba(16, 24, 40, .06); }
+@media (prefers-reduced-motion: reduce) { .icon-button.bell:hover .ui-icon { animation: none; } .nav-item, .panel, .metric-card { transition: none; } }
+@media (prefers-contrast: more), print { .workspace { background: none; } }
+@media (max-width: 720px) { .workspace { background-size: 110vw auto; background-position: right -30vw bottom -10px; } }

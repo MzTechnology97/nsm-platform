@@ -116,11 +116,14 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.47"
+APP_VERSION = "0.49.48"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
 core.templates.env.globals["asset_version"] = static_asset_version()
+from app.ui_icons import install_ui_icons  # noqa: E402
+
+install_ui_icons()
 install_ui(core.app, core.templates)
 install_ui_feedback(core.app, core.templates)
 install_workflow_ui(core.app, core.templates)

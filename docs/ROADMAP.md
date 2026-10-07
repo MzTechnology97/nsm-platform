@@ -320,6 +320,8 @@ Telemetry of a device that goes offline must never be deleted: the last received
 
 ### GUI-02 — visual refresh: Material icons and ISP/WISP background (requested 2026-10-07)
 
+**Implemented in `main` (Core 0.49.48)**: outlined Material-style icon set drawn for NSM (sprite `static/ui-icons.svg`), sidebar and topbar refresh, ISP/WISP line-art background (`static/bg-network.svg`). Next: icons in page headers and empty states.
+
 - Replace the sidebar menu icons and the top notification icon with a consistent Material Design (or similar) icon set, self-hosted and CSP-safe.
 - Make the GUI more attractive.
 - Optionally add a subtle background suited to the ISP/WISP domain (network, antennas, fibre motifs) that never hurts readability or contrast, in light and dark theme.
