@@ -644,6 +644,8 @@ Deployment/update behavior includes:
 
 Backup, restore and observability (runbook: [`OPERATIONS.md`](OPERATIONS.md)):
 
+- encryption master-key rotation: `ENCRYPTION_PREVIOUS_KEYS` keeps retired keys readable, `./manage.sh rotate-secrets` re-encrypts connector credentials and MikroTik backup passwords with the current key (`SECRETS_REENCRYPTED`), and *Amministrazione → Sistema* shows how many secrets use the current key, a previous key or none;
+
 - `./manage.sh backup-db`, non-destructive `./manage.sh restore-drill` (restores the latest dump into a temporary database, checks tables, schema revision and devices, drops it and appends the result to `restore-drills.jsonl`) and `./manage.sh restore-db <dump>` (typed confirmation, safety dump first, then restore and migrations);
 - every periodic worker task is isolated (`app/worker_status.py`): an exception is logged and recorded and the other tasks keep running; the worker writes a heartbeat and the last outcome of each task to Redis;
 - `/health` adds a `worker` field (alive, heartbeat age, failing tasks) without changing its status code;

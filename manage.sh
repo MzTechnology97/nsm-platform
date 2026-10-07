@@ -25,6 +25,10 @@ case "$cmd" in
     chmod 640 "$out"
     echo "$out"
     ;;
+  rotate-secrets)
+    # Re-encrypt stored secrets with ENCRYPTION_MASTER_KEY (old key in ENCRYPTION_PREVIOUS_KEYS, see docs/OPERATIONS.md).
+    docker compose run --rm api python -m app.cli rotate-secrets
+    ;;
   restore-drill)
     # Restore a dump into a temporary database, check it, drop it; the live database is not touched.
     dir=data/backups/platform-db
@@ -82,6 +86,7 @@ Uso: ./manage.sh <comando>
   health         Health check via Caddy
   backup-db      Crea pg_dump compresso
   restore-drill [dump]  Prova di ripristino su database temporaneo (default: ultimo dump)
+  rotate-secrets        Ricifra i segreti con la nuova ENCRYPTION_MASTER_KEY
   restore-db <dump>     Sostituisce il database con un dump (chiede conferma)
   seed-demo      Crea dataset demo reversibile con backup fittizi
   clear-demo     Rimuove esclusivamente il dataset demo

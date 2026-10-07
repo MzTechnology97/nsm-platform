@@ -12,7 +12,7 @@ with `sudo` (the backup folders are owned by `root`).
 |---|---|---|
 | PostgreSQL (customers, devices, history, settings, encrypted secrets) | `data/postgres/` | `./manage.sh backup-db`, plus an automatic dump before every `update.sh` |
 | Device backup files | `data/backups/device-files/` | copy off-host (rsync/restic/snapshot of the volume) |
-| Secrets (`secrets/bootstrap.env`, `.env`) | runtime directory | copy off-host **once**, separately from the dumps: without `ENCRYPTION_MASTER_KEY` the encrypted fields in a dump (agent secrets, backup passwords, connector tokens) cannot be decrypted |
+| Secrets (`secrets/bootstrap.env`, `.env`) | runtime directory | copy off-host **once**, separately from the dumps: without `ENCRYPTION_MASTER_KEY` the encrypted fields in a dump (MikroTik binary backup passwords, connector credentials) cannot be decrypted, so `.backup` files cannot be opened |
 
 Dumps are plain `pg_dump` SQL, gzip-compressed, in `data/backups/platform-db/`.
 Copy them off the host: a dump on the same disk does not survive a disk loss.
@@ -79,6 +79,19 @@ health check fails (`Backup DB disponibile per recovery: …`).
    or commit>`, then `./update.sh`).
 3. If the failed release had already migrated the database, restore the
    pre-upgrade dump with `restore-db`.
+
+## Rotating the encryption master key
+
+`ENCRYPTION_MASTER_KEY` (in `secrets/bootstrap.env`) encrypts connector credentials and the passwords of MikroTik binary backups. To rotate it, for example after a suspected leak:
+
+1. `sudo ./manage.sh backup-db` and keep the dump together with the **current** key.
+2. Generate a new key (for example `openssl rand -base64 48`).
+3. In `secrets/bootstrap.env` set `ENCRYPTION_MASTER_KEY=<new key>` and `ENCRYPTION_PREVIOUS_KEYS=<old key>` (comma separated if more than one).
+4. `sudo ./manage.sh restart`: everything keeps working, new secrets use the new key.
+5. `sudo ./manage.sh rotate-secrets`: re-encrypts every stored secret with the new key (audit event `SECRETS_REENCRYPTED`).
+6. *Amministrazione → Sistema → Cifratura dei segreti* must show no secret on a previous key and none unreadable; then remove `ENCRYPTION_PREVIOUS_KEYS` and restart.
+
+Dumps taken before the rotation still need the old key: store it with them. If the page reports **unreadable** secrets, the key was changed without declaring the previous one in `ENCRYPTION_PREVIOUS_KEYS`: put it back before doing anything else.
 
 ## Health and monitoring
 

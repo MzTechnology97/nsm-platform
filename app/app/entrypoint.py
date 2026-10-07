@@ -107,7 +107,7 @@ from app.login_security import install_login_security
 from app.genieacs_connector import install_genieacs_connector
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.30"
+APP_VERSION = "0.49.31"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION

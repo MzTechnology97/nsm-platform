@@ -31,6 +31,15 @@
   {% endif %}
 </section>
 
+<section class="panel" data-system="secrets"><div class="panel-header"><div><h2>Cifratura dei segreti</h2><p>Credenziali dei connettori e password dei backup binari MikroTik sono cifrate con <code>ENCRYPTION_MASTER_KEY</code>. Senza quella chiave i backup <code>.backup</code> non possono essere aperti: conservane una copia fuori dall'host.</p></div>
+  {% if secrets.totals.unreadable %}<span class="status-pill run-failed">Segreti illeggibili</span>{% elif secrets.totals.previous %}<span class="status-pill run-pending">Rotazione da completare</span>{% else %}<span class="status-pill run-success">Chiave attuale</span>{% endif %}</div>
+  <div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Segreti</th><th>Chiave attuale</th><th>Chiave precedente</th><th>Illeggibili</th></tr></thead><tbody>
+  {% for r in secrets.rows %}<tr><td>{{ r.label }}</td><td>{{ r.current }}</td><td>{% if r.previous %}<strong class="warning-text">{{ r.previous }}</strong>{% else %}0{% endif %}</td><td>{% if r.unreadable %}<span class="severity-badge severity-high">{{ r.unreadable }}</span>{% else %}0{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% if secrets.totals.previous %}<div class="alert warning">{{ secrets.totals.previous }} segreti usano ancora una chiave precedente: esegui <code>./manage.sh rotate-secrets</code>, poi rimuovi <code>ENCRYPTION_PREVIOUS_KEYS</code>.</div>{% elif secrets.previous_keys %}<div class="alert info">Tutti i segreti usano la chiave attuale: <code>ENCRYPTION_PREVIOUS_KEYS</code> ({{ secrets.previous_keys }} {{ 'chiave' if secrets.previous_keys == 1 else 'chiavi' }}) può essere rimossa. Conserva le chiavi precedenti insieme ai dump creati prima della rotazione.</div>{% endif %}
+  {% if secrets.totals.unreadable %}<div class="alert danger">{{ secrets.totals.unreadable }} segreti non sono leggibili con nessuna chiave configurata: probabilmente <code>ENCRYPTION_MASTER_KEY</code> è stata cambiata senza indicare la precedente in <code>ENCRYPTION_PREVIOUS_KEYS</code>.</div>{% endif %}
+</section>
+
 <section class="panel" data-system="dumps"><div class="panel-header"><div><h2>Backup del database piattaforma</h2><p>Dump creati con <code>./manage.sh backup-db</code> in <code>{{ dumps.folder }}</code>. Pianificalo almeno ogni {{ dump_max_days }} giorni e copia i dump fuori dall'host.</p></div>
   <span class="status-pill {{ 'run-failed' if dumps.stale else 'run-success' }}">{{ 'Da eseguire' if dumps.stale else 'Recente' }}</span></div>
   {% if dumps.latest %}<div class="policy-summary six">

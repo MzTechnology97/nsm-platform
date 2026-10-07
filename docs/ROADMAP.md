@@ -22,20 +22,7 @@ These are the immediate development/acceptance items at this snapshot.
 
 ### P0 — Agent terminal completion idempotency
 
-Active focused PR: **#112**.
-
-Goal:
-
-- a late/duplicate completion report must not mutate a Device job that is already terminal;
-- a maintenance-failed job must not be resurrected by a delayed success;
-- duplicate completion should be acknowledged idempotently without emitting duplicate completion evidence;
-- modern and legacy generic completion paths must preserve authentication.
-
-Current state at this snapshot:
-
-- static checks pass;
-- integration CI is failing in the new idempotency smoke test because the expected duplicate-response payload does not match the actual response;
-- resolve the response/test contract, rerun full CI, then merge only when green.
+**Merged in `main`** (#112–#116, 2026-10-01): late or duplicate completion reports no longer mutate terminal jobs, maintenance-failed jobs are not resurrected, duplicates are acknowledged without duplicate evidence, and both modern and legacy completion paths keep authentication.
 
 ### P0 — modern MikroTik backup no-progress guard
 
@@ -518,7 +505,7 @@ Focused future work:
 
 - role/permission matrix review across all current routes — **done**: `rbac_routes_smoke.py` walks every registered route (anonymous access refused everywhere, read-only auditor writes refused except an explained allow-list);
 - scoped/delegated administration where required;
-- credential rotation workflows;
+- credential rotation workflows — encryption master-key rotation **done** (`ENCRYPTION_PREVIOUS_KEYS`, `manage.sh rotate-secrets`, *Sistema* inventory); API keys rotate with a grace period; MikroTik agent tokens are rotated by reinstalling the agent;
 - session/security policy hardening — **done**: failed-login throttling per username+address and per address, failed-login audit, idle timeout, sessions invalidated on password change and on demand;
 - API-key lifecycle and audit review — **done**: rotation with grace period, usage evidence (count, last IP), review states (expired, expiring, unused, no expiry);
 - least-privilege deployment documentation.
