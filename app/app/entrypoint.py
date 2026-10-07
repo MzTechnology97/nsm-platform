@@ -93,7 +93,7 @@ from app.compliance_findings import install_compliance_findings
 from app.lifecycle_catalog import install_lifecycle_catalog
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.9"
+APP_VERSION = "0.49.10"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION

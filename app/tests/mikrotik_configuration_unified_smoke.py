@@ -2,6 +2,7 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+from app.mikrotik_agent_generation import TARGET_AGENT_VERSION as CURRENT_AGENT
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
 from app.entrypoint import app
@@ -46,7 +47,7 @@ def seed():
             status="online",
             last_seen=now,
             inventory_data={
-                "agent_version": "0.49.2",
+                "agent_version": CURRENT_AGENT,
                 "agent_transport": "modern",
                 "last_source_ip": "198.51.100.49",
             },

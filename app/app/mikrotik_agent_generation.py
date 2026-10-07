@@ -4,14 +4,15 @@ Core and device-agent versions intentionally evolve independently. Core 0.49
 introduced the authenticated source-v1 self-update protocol. Agent 0.49.2 is a
 maintenance generation that adds the unified configuration/PPP-tunnel snapshot
 improvements while remaining self-updatable from an installed modern 0.49.0+
-agent.
+agent. Agent 0.49.3 adds bounded structured snapshots to the RouterOS 7.12
+legacy agent (legacy agents are reinstalled, modern agents self-update).
 """
 from __future__ import annotations
 
 from app import mikrotik_agent_update as updater
 from app import mikrotik_agent_update_ui as update_ui
 
-TARGET_AGENT_VERSION = "0.49.2"
+TARGET_AGENT_VERSION = "0.49.3"
 SELF_UPDATE_MIN_VERSION = "0.49.0"
 
 

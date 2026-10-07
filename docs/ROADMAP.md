@@ -62,7 +62,7 @@ Acceptance on RouterOS 7.24.4:
 
 ### P0 — RouterOS 7.12.x structured configuration parity
 
-Active focused PR: **#104** — CI green, physical validation required; do not merge before acceptance.
+**Merged in `main` (Core 0.49.10, Agent 0.49.3)** with bounded collection; physical validation on 7.12.1 is tracked in issue #128.
 
 Validate on physical RouterOS 7.12.1:
 

@@ -3,6 +3,7 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+from app.mikrotik_agent_generation import TARGET_AGENT_VERSION as CURRENT_AGENT
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
 from app.entrypoint import app
@@ -25,8 +26,8 @@ def seed():
         user = User(username=f"ifhealth-{suffix}", password_hash=hash_password(TEST_PASSWORD), display_name="Interface Health", role="admin", is_active=True)
         customer = Customer(name=f"Interface Health {suffix}", code=f"I45{suffix[:5]}")
         db.add_all([user, customer]); db.flush()
-        modern = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Modern Router", display_name="Modern CCR", status="online", inventory_data={"agent_transport":"modern","agent_version":"0.49.2"})
-        legacy = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Legacy Router", display_name="Legacy wAP", status="online", inventory_data={"agent_transport":"legacy","agent_version":"0.49.2-legacy"})
+        modern = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Modern Router", display_name="Modern CCR", status="online", inventory_data={"agent_transport":"modern","agent_version":CURRENT_AGENT})
+        legacy = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name="Legacy Router", display_name="Legacy wAP", status="online", inventory_data={"agent_transport":"legacy","agent_version":CURRENT_AGENT + "-legacy"})
         db.add_all([modern, legacy]); db.flush()
         rows = [
             {"name":"ether1","type":"ether","running":True,"disabled":False,"mac-address":"AA:BB:CC:45:00:01","actual-mtu":"1500","l2mtu":"1592","rx-byte":"1048576","tx-byte":"2097152","comment":"WAN"},

@@ -203,7 +203,7 @@ Implemented in `main`:
 
 Physical history validation is still pending.
 
-Structured configuration snapshot parity is **not yet in `main`**; it is under physical acceptance in the active focused implementation PR described in `ROADMAP.md`.
+Structured configuration snapshots are in `main` from Agent 0.49.3 (legacy agents must be reinstalled); physical acceptance on 7.12.1 is tracked in issue #128.
 
 Legacy RouterOS backup transport is **not implemented**.
 
@@ -240,9 +240,11 @@ NSM monitoring is intentionally lightweight and does not attempt to replace a fu
 - contextual stale-baseline handling;
 - `.rsc` preview and diff through backup/export tooling.
 
-### Legacy gap
+### RouterOS 7.12.x legacy snapshots
 
-RouterOS 7.12.x structured snapshot parity is not in `main` yet. The active implementation uses a fixed allow-listed plain-text transport and requires physical acceptance before merge.
+- same sections as the modern Agent (resources, interfaces, IP addresses, routes, firewall filter/NAT, DHCP leases, PPP/tunnel clients, warning/error logs) over the fixed allow-listed `rows-v1` plain-text transport; the server only selects a section, never sends commands;
+- bounded collection: rows are read by id up to a per-menu limit (routes/firewall/interfaces 300, addresses/leases/PPP 500, tunnel clients 100) and the wire output stays below the 64 KiB RouterOS `http-data` limit; larger tables are counted and flagged as truncated instead of loading the router;
+- available only with legacy Agent 0.49.3+: an older legacy Agent gets a *reinstall* hint and its snapshot jobs fail explicitly instead of being reported as empty successes.
 
 ## 10. MikroTik diagnostics
 

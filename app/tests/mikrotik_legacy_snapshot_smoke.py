@@ -108,16 +108,21 @@ def main():
     source = enroll.text
     assert '($nsmJobType = "snapshot_section")' in source
     for marker in (
-        "/ip address print as-value",
-        "/ip route print as-value",
-        "/interface print as-value",
-        "/ip firewall filter print as-value",
-        "/ip firewall nat print as-value",
-        "/ip dhcp-server lease print as-value",
-        "/ppp active print as-value",
+        "/ip address find",
+        "/ip route find",
+        "/interface find",
+        "/ip firewall filter find",
+        "/ip firewall nat find",
+        "/ip dhcp-server lease find",
+        "/ppp active find",
+        "[/ip route get $nsmId]",
+        ":set nsmIds [:pick $nsmIds 0 300]",
+        "< 56000)",
         'META|',
     ):
         assert marker in source, marker
+    # Bounded collection: no section materializes a whole RouterOS table.
+    assert "/ip route print as-value" not in source and "/ip dhcp-server lease print as-value]" not in source.split("diagnostic_dhcp_lookup")[-1]
     assert ":serialize" not in source and ":deserialize" not in source
     assert ":execute script=" not in source
 
@@ -136,7 +141,7 @@ def main():
         "X-NSM-Legacy-Transport": "headers-v1",
         "X-NSM-Device-ID": str(device_id),
         "X-NSM-Device-Secret": secret_match.group(1),
-        "X-NSM-Agent-Version": "0.49.0-legacy",
+        "X-NSM-Agent-Version": re.search(r'X-NSM-Agent-Version:([^"]+)"', source).group(1),
         "X-NSM-Identity": "EDGE-712",
         "X-NSM-Model": "wAP R",
         "X-NSM-RouterOS": "7.12.1",
@@ -228,6 +233,16 @@ def main():
         )
         sections = {(row.payload or {}).get("section") for row in pending}
         assert {"resources", "ip_addresses", "routes", "firewall", "ppp_active", "dhcp_leases", "logs"}.issubset(sections)
+
+    # A legacy agent installed before 0.49.3 has no snapshot handler: the job
+    # fails with a reinstall hint instead of being reported as an empty success.
+    old_headers = {**agent_headers, "X-NSM-Agent-Version": "0.49.2-legacy"}
+    assert client.post("/api/v1/agents/mikrotik/heartbeat-legacy", headers=old_headers, content=b"").status_code == 200
+    assert client.get("/api/v1/agents/mikrotik/legacy/jobs/next", headers=old_headers).text == ""
+    with SessionLocal() as db:
+        failed = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "snapshot_section", DeviceJob.status == "failed")))
+        assert failed and all("reinstallalo" in (row.last_error or "") for row in failed)
+    assert "Reinstalla l'agent legacy (0.49.3+)" in client.get(f"/devices/{device_id}/agent").text.replace("&#39;", "'")
 
     print("RouterOS 7.12 legacy structured snapshot smoke passed")
 

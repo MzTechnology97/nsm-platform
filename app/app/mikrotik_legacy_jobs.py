@@ -11,6 +11,7 @@ the same result shape consumed by the modern configuration workspace.
 """
 from __future__ import annotations
 
+import re
 import textwrap
 import uuid
 
@@ -106,6 +107,15 @@ _PPP_GROUPS = {
     "PP": "pptp_clients",
     "PO": "ovpn_clients",
 }
+
+
+LEGACY_SNAPSHOT_MIN_AGENT = (0, 49, 3)
+
+
+def legacy_agent_supports_snapshots(device) -> bool:
+    """Older legacy agents ignore unknown job types and would report empty data."""
+    match = re.match(r"(\d+)\.(\d+)\.(\d+)", str((device.inventory_data or {}).get("agent_version") or ""))
+    return bool(match) and tuple(int(part) for part in match.groups()) >= LEGACY_SNAPSHOT_MIN_AGENT
 
 
 def _field(value, limit: int = 512) -> str:
@@ -221,21 +231,32 @@ def parse_legacy_snapshot(section: str, output: str) -> dict:
     }
 
 
+# Rows collected per menu and total wire size.  RouterOS limits http-data to
+# 64 KiB, and walking a full BGP table or thousands of leases would load the
+# router: rows are read by id up to the limit and the rest is only counted.
+ROW_LIMITS = {"IP": 500, "RT": 300, "IF": 300, "FF": 300, "FN": 300, "DH": 500, "PA": 500, "PC": 100}
+MAX_LEGACY_OUTPUT = 56000
+
+
 def _ros_row(tag: str, menu: str, fields: tuple[str, ...], *, tolerate_missing_menu: bool = False) -> str:
     expression = f'"{tag}|"'
     for field in fields:
         expression += f' . [$nsmLegacyFieldSafe ($nsmRow->"{field}")]'
         if field != fields[-1]:
             expression += ' . "|"'
+    limit = ROW_LIMITS["PC" if tag in _PPP_GROUPS else tag]
     body = (
-        f':foreach nsmRow in=[{menu} print as-value] do={{\n'
+        f':local nsmIds [{menu} find]\n'
+        ':set nsmTotal ($nsmTotal + [:len $nsmIds])\n'
+        f':if ([:len $nsmIds] > {limit}) do={{ :set nsmIds [:pick $nsmIds 0 {limit}]; :set nsmTruncated true }}\n'
+        ':foreach nsmId in=$nsmIds do={\n'
+        f'  :local nsmRow [{menu} get $nsmId]\n'
         f'  :local nsmLine ({expression})\n'
-        '  :set nsmJobOutput [$nsmLegacyAppend $nsmJobOutput $nsmLine]\n'
+        f'  :if (([:len $nsmJobOutput] + [:len $nsmLine]) < {MAX_LEGACY_OUTPUT}) do={{ :set nsmJobOutput [$nsmLegacyAppend $nsmJobOutput $nsmLine] }} else={{ :set nsmTruncated true }}\n'
         '}\n'
     )
-    if tolerate_missing_menu:
-        return ':do {\n' + textwrap.indent(body, '  ') + '} on-error={}\n'
-    return body
+    # Each menu gets its own scope; optional menus (tunnel clients) may not exist.
+    return ':do {\n' + textwrap.indent(body, '  ') + ('} on-error={}\n' if tolerate_missing_menu else '}\n')
 
 
 def _ros_section(name: str, body: str) -> str:
@@ -285,7 +306,16 @@ def _snapshot_handler_source() -> str:
         _ros_section("dhcp_leases", dhcp),
         _ros_section("logs", logs),
     ))
-    return ':if ($nsmJobType = "snapshot_section") do={\n  :local nsmSection $nsmArg1\n' + textwrap.indent(body, '  ') + '}\n'
+    meta = (
+        ':if (($nsmSection != "resources") && ($nsmSection != "logs")) do={\n'
+        '  :set nsmJobOutput [$nsmLegacyAppend $nsmJobOutput ("META|" . $nsmTotal . "|" . $nsmTotal . "|" . $nsmTruncated)]\n'
+        '}\n'
+    )
+    return (
+        ':if ($nsmJobType = "snapshot_section") do={\n  :local nsmSection $nsmArg1\n  :local nsmTotal 0\n  :local nsmTruncated false\n'
+        + textwrap.indent(body + meta, '  ')
+        + '}\n'
+    )
 
 
 def _legacy_agent_extension(base_url: str, check_certificate: bool) -> str:
@@ -440,6 +470,11 @@ def legacy_job_next(request: Request):
             )
         )
         for job in jobs:
+            if job.job_type == "snapshot_section" and not legacy_agent_supports_snapshots(device):
+                job.status = "failed"
+                job.last_error = "L'agent legacy installato non supporta gli snapshot strutturati: reinstallalo (agent 0.49.3 o successivo)."
+                job.completed_at = now
+                continue
             try:
                 line = _job_line(job)
             except HTTPException:
