@@ -330,12 +330,17 @@ Focused modern-Agent hardening for no-progress upload handling and cleanup of Ro
 - manual Device refresh;
 - normalized identity/model/serial/MAC/IP/firmware/status/last-seen fields;
 - audit/contextual GUI behavior around association/refresh;
-- NSM Customer/Site ownership preserved as authoritative.
+- NSM Customer/Site ownership preserved as authoritative;
+- periodic worker synchronization of associated Devices (configurable 5–1440 min, default 15) from one bounded UISP device-list read, plus admin **Sincronizza ora**;
+- matching only by stored UISP Device ID: no automatic association by MAC, MAC mismatch blocks the update and raises a conflict Action Center issue;
+- Devices missing from UISP are flagged (`sync_state=missing`, Action Center) without changing their NSM state;
+- exponential backoff on connector failures (max 6 h) and a connector Action Center issue after 3 consecutive failures, resolved on the next success;
+- audit only for material observed changes (identity/model/serial/MAC/IP/firmware), not for routine status churn.
+
+Validation pending: periodic sync against a real UISP instance (the consumed endpoint is the same one used by manual refresh).
 
 ### Not implemented yet
 
-- automatic periodic UISP synchronization;
-- retry/backoff and mature connector-health automation;
 - historical monitoring normalization;
 - bulk onboarding/association;
 - backup/snapshot workflow through UISP capabilities;

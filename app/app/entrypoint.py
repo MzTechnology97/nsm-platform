@@ -79,6 +79,7 @@ from app.ui_firmware_feedback import install_ui_firmware_feedback
 from app.ui_firmware_upgrade_feedback import install_ui_firmware_upgrade_feedback
 from app.ui_notification_feedback import install_ui_notification_feedback
 from app.uisp_connector import install_uisp_connector
+from app.uisp_sync import install_uisp_sync
 from app.workflow_ui import install_workflow_ui
 
 APP_VERSION = "0.49.0"
@@ -115,6 +116,7 @@ install_firmware_activation_privilege_guard()
 install_firmware_upgrade_planner(core.app)
 install_agent_ui(core.app)
 install_uisp_connector(core.app)
+install_uisp_sync(core.app)
 install_customer_workspace(core.app)
 install_backup_workspace_capabilities(core.app)
 promote_customer_workspace_routes(core.app)
