@@ -55,6 +55,27 @@
 
 {% include "_incident_root_cause.html" %}
 
+<section class="panel" id="evidence">
+  <div class="panel-header"><div><h2>Evidenza archiviata</h2><p>PDF con riepilogo, apparati, causa radice, ipotesi e timeline, archiviato con SHA-256 come i report di evidenza.</p></div>
+    {% if can_export %}<form method="post" action="/incidents/{{ incident.id }}/export"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Esporta evidenza PDF</button></form>{% endif %}
+  </div>
+  {% if exports %}
+  <div class="table-wrap"><table class="data-table compact-data-table">
+    <thead><tr><th>Generata</th><th>Stato incidente</th><th>Eventi</th><th>Causa radice</th><th>SHA-256</th><th></th></tr></thead>
+    <tbody>{% for report in exports %}{% set s = report.summary or {} %}
+      <tr>
+        <td>{{ fmt_dt(report.generated_at) }}</td>
+        <td>{{ statuses.get(s.get('status'), s.get('status') or '—') }}</td>
+        <td>{{ s.get('timeline_entries', 0) }}</td>
+        <td>{{ 'confermata' if s.get('root_cause_confirmed') else 'da confermare' }}</td>
+        <td><code title="{{ report.sha256 }}">{{ report.sha256[:16] }}…</code></td>
+        <td><a class="button tiny ghost" href="/audit/reports/{{ report.id }}/download">Scarica</a></td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="muted">Nessuna evidenza esportata.</p>{% endif %}
+</section>
+
 <section class="panel" id="timeline">
   <div class="panel-header"><div><h2>Timeline</h2><p>Eventi registrati da NSM dal {{ fmt_dt(timeline.window_start) }} al {{ fmt_dt(timeline.window_end) }} per gli apparati coinvolti e il cliente. I fatti osservati e le note degli operatori sono distinti; nessuna causa viene dedotta automaticamente.</p></div></div>
   <nav class="quick-chips" aria-label="Filtro timeline">

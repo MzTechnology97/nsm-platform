@@ -12,7 +12,7 @@ from collections import Counter
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import false, func, select
+from sqlalchemy import false, func, or_, select
 from sqlalchemy.orm import selectinload
 
 from app.backup_capabilities import active_mikrotik_agent_device_ids, backup_readiness, readiness_label
@@ -31,6 +31,7 @@ from app.models import (
     VulnerabilityHistory,
 )
 from app.pdf_writer import PdfDocument
+from app.incident_models import INCIDENT_SEVERITIES, INCIDENT_STATUSES, ROOT_CAUSE_CATEGORIES, Incident, IncidentHypothesis
 from app.integration_models import ConnectorIntegration
 from app.restore_test_models import BackupRestoreTest
 from app.routeros_version import parse_routeros_version
@@ -251,6 +252,55 @@ def _collect_security(db, scoped, devices, lower: datetime, upper: datetime) -> 
     }
 
 
+def _collect_incidents(db, customer, lower: datetime, upper: datetime) -> dict:
+    """Incidents overlapping the period (INC-04)."""
+    query = (
+        select(Incident, Customer, IncidentHypothesis)
+        .join(Customer, Customer.id == Incident.customer_id)
+        .outerjoin(IncidentHypothesis, IncidentHypothesis.id == Incident.root_cause_hypothesis_id)
+        .where(Incident.started_at < upper, or_(Incident.resolved_at.is_(None), Incident.resolved_at >= lower))
+        .order_by(Incident.started_at, Incident.id)
+    )
+    if customer is not None:
+        query = query.where(Incident.customer_id == customer.id)
+    by_severity: Counter = Counter()
+    by_status: Counter = Counter()
+    by_cause: Counter = Counter()
+    durations = []
+    rows = []
+    for incident, owner, cause in db.execute(query):
+        by_severity[incident.severity] += 1
+        by_status[incident.status] += 1
+        resolved_here = incident.resolved_at is not None and lower <= incident.resolved_at < upper
+        if resolved_here:
+            durations.append((incident.resolved_at - incident.started_at).total_seconds() / 3600)
+        if cause is not None:
+            by_cause[cause.category] += 1
+        rows.append(
+            {
+                "title": incident.title,
+                "customer": owner.name,
+                "severity": INCIDENT_SEVERITIES.get(incident.severity, incident.severity),
+                "status": INCIDENT_STATUSES.get(incident.status, incident.status),
+                "started_at": _fmt(incident.started_at),
+                "resolved_at": _fmt(incident.resolved_at) if incident.resolved_at else "",
+                "root_cause": ROOT_CAUSE_CATEGORIES.get(cause.category, cause.category) if cause is not None else "",
+            }
+        )
+    resolved = sum(1 for _ in durations)
+    return {
+        "total": len(rows),
+        "by_severity": {INCIDENT_SEVERITIES.get(k, k): v for k, v in by_severity.most_common()},
+        "by_status": {INCIDENT_STATUSES.get(k, k): v for k, v in by_status.most_common()},
+        "resolved_in_period": resolved,
+        "mean_hours_to_resolve": round(sum(durations) / resolved, 1) if resolved else None,
+        "root_cause_confirmed": sum(by_cause.values()),
+        "root_cause_pending": len(rows) - sum(by_cause.values()),
+        "by_root_cause": {ROOT_CAUSE_CATEGORIES.get(k, k): v for k, v in by_cause.most_common()},
+        "rows": rows,
+    }
+
+
 def collect_report_data(db, *, customer: Customer | None, period_start: date, period_end: date) -> dict:
     lower, upper = period_bounds(period_start, period_end)
     stmt = (
@@ -450,6 +500,7 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
             "by_category": dict(Counter(issue.category for issue in issues).most_common()),
         },
         "audit": {"events_in_period": db.scalar(audit_query) or 0},
+        "incidents": _collect_incidents(db, customer, lower, upper),
     }
 
 
@@ -462,6 +513,7 @@ def summary(data: dict) -> dict:
         "unhandled_severe_vulnerabilities": data["vulnerabilities"]["unhandled_severe"] if data["vulnerabilities"]["available"] else None,
         "backup_protected": data["backup"]["protected"],
         "open_issues": data["issues"]["open"],
+        "incidents": data["incidents"]["total"],
         "truncated": data["truncated"],
     }
 
@@ -638,7 +690,39 @@ def render_pdf(data: dict, *, report_id: str, generated_at: datetime, generated_
         ]
     )
 
-    doc.heading("7. Apparati", 2)
+    incidents = data["incidents"]
+    doc.heading("7. Incidenti", 2)
+    if not incidents["total"]:
+        doc.paragraph("Nessun incidente registrato in NSM nel periodo.")
+    else:
+        mean_hours = incidents["mean_hours_to_resolve"]
+        doc.key_values(
+            [
+                ("Incidenti nel periodo", incidents["total"]),
+                ("Per gravità", _counter_text(incidents["by_severity"])),
+                ("Per stato", _counter_text(incidents["by_status"])),
+                ("Risolti nel periodo", incidents["resolved_in_period"]),
+                ("Durata media fino alla risoluzione", f"{mean_hours} ore" if mean_hours is not None else "n/d"),
+                ("Causa radice confermata", incidents["root_cause_confirmed"]),
+                ("Causa radice da confermare", incidents["root_cause_pending"]),
+                ("Cause confermate per categoria", _counter_text(incidents["by_root_cause"])),
+            ]
+        )
+        doc.table(
+            ["Incidente", "Cliente", "Gravità", "Stato", "Inizio", "Risolto", "Causa radice"],
+            [
+                [r["title"], r["customer"], r["severity"], r["status"], r["started_at"], r["resolved_at"], r["root_cause"] or "da confermare"]
+                for r in incidents["rows"][:200]
+            ],
+            [120, 85, 45, 60, 70, 70, 61],
+        )
+        doc.paragraph(
+            "Le cause radice riportate sono solo quelle confermate da un operatore; le correlazioni automatiche non sono incluse.",
+            size=8.5,
+            gray=0.35,
+        )
+
+    doc.heading("8. Apparati", 2)
     device_rows = [
         [row["customer"], row["device"], row["vendor"], row["firmware_installed"], row["backup_readiness"], row["last_successful_backup"]]
         for row in data["devices"]

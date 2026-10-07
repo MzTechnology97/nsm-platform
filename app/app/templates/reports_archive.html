@@ -55,12 +55,12 @@
     <tbody>{% for report in reports %}{% set s = report.summary or {} %}
       <tr>
         <td>{{ fmt_dt(report.generated_at) }}</td>
-        <td>{{ report.scope_label }}{% if report.schedule_id or (report.summary or {}).get('trigger') == 'schedule' %} <span class="status-pill">pianificato</span>{% endif %}</td>
+        <td>{% if report.report_type == 'incident_evidence' %}<a href="/incidents/{{ s.get('incident_id') }}">{{ report.title }}</a><small>{{ report.scope_label }}</small>{% else %}{{ report.scope_label }}{% endif %}{% if report.schedule_id or (report.summary or {}).get('trigger') == 'schedule' %} <span class="status-pill">pianificato</span>{% endif %}</td>
         <td>{{ report.period_start }} – {{ report.period_end }}</td>
         <td>{{ report.output_format|upper }}</td>
         <td>{% if report.size_bytes >= 1048576 %}{{ '%.1f MB'|format(report.size_bytes/1048576) }}{% else %}{{ '%.1f KB'|format(report.size_bytes/1024) }}{% endif %}</td>
         <td title="{{ report.sha256 }}"><code>{{ report.sha256[:16] }}…</code></td>
-        <td><small>{{ s.get('devices', 0) }} apparati · {{ s.get('firmware_attention', 0) }} firmware · {{ s.get('open_issues', 0) }} segnalazioni{% if s.get('truncated') %} · troncato{% endif %}</small></td>
+        <td><small>{% if report.report_type == 'incident_evidence' %}{{ s.get('timeline_entries', 0) }} eventi · {{ s.get('devices', 0) }} apparati · causa radice {{ 'confermata' if s.get('root_cause_confirmed') else 'da confermare' }}{% else %}{{ s.get('devices', 0) }} apparati · {{ s.get('firmware_attention', 0) }} firmware · {{ s.get('open_issues', 0) }} segnalazioni{% if s.get('incidents') %} · {{ s.get('incidents') }} incidenti{% endif %}{% if s.get('truncated') %} · troncato{% endif %}{% endif %}</small></td>
         <td><a class="button ghost" href="/audit/reports/{{ report.id }}/download">Scarica</a></td>
       </tr>
     {% endfor %}</tbody>

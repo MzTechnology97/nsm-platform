@@ -445,9 +445,15 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - only an explicit confirmation with supporting evidence makes a hypothesis the root cause; confirming another replaces it, rejecting clears it; every decision keeps author, time and note and is audited;
 - incident list shows the confirmed root cause category or *da confermare*.
 
+### Reporting (INC-04)
+
+- periodic evidence reports (PDF section *7. Incidenti*): incidents overlapping the period, by severity and status, resolved in the period with mean hours to resolve, confirmed vs pending root causes and confirmed causes by category, table of incidents; only operator-confirmed root causes are reported;
+- *Esporta evidenza PDF* on the incident page (`reports.generate`): summary, involved Devices, confirmed root cause with the stated evidence, all hypotheses with origin and decision, full timeline marked *Fatto* / *Nota*; stored in the report archive with SHA-256, downloads re-verify integrity, `INCIDENT_EVIDENCE_EXPORTED` and `REPORT_GENERATED`-equivalent audit;
+- exports listed on the incident page and in *Audit → Report* with a link back to the incident.
+
 ### Boundary
 
-- heuristics never become facts or root causes by themselves; report integration is INC-04.
+- heuristics never become facts or root causes by themselves.
 
 ## 16. Lifecycle / EOL / EOS
 
