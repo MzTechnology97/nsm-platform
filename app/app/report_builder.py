@@ -28,9 +28,12 @@ from app.models import (
     DeviceVulnerability,
     SecurityAdvisory,
     Site,
+    VulnerabilityHistory,
 )
 from app.pdf_writer import PdfDocument
+from app.integration_models import ConnectorIntegration
 from app.restore_test_models import BackupRestoreTest
+from app.routeros_version import parse_routeros_version
 
 REPORT_TYPE = "operational_evidence"
 REPORT_TITLE = "Report evidenze operative"
@@ -63,7 +66,29 @@ CSV_COLUMNS = [
     "last_successful_backup",
     "last_restore_test",
     "last_restore_test_at",
+    "unhandled_severe_vulnerabilities",
+    "vulnerabilities_in_exception",
 ]
+REMEDIATION_LABELS = {
+    "open": "aperte",
+    "planned": "pianificate",
+    "in_progress": "in lavorazione",
+    "exception": "in eccezione",
+}
+RESOLUTION_LABELS = {
+    "no_longer_matches": "versione aggiornata",
+    "manual": "chiusura manuale",
+    "advisory_rejected": "CVE respinta dalla fonte",
+    "device_not_evaluable": "apparato non più valutabile",
+}
+FINDING_STATE_LABELS = {
+    "open": "Aperta",
+    "planned": "Pianificata",
+    "in_progress": "In lavorazione",
+    "exception": "Eccezione",
+}
+SOURCE_STALE_AFTER = timedelta(days=7)
+MAX_SECURITY_ROWS = 300
 
 
 def _tz():
@@ -92,6 +117,138 @@ def _fmt(value) -> str:
 
 def _device_name(device: Device) -> str:
     return device.display_name or device.device_identity or device.name
+
+
+def _source_state(db, now: datetime) -> dict:
+    """Provenance of automatically ingested advisories (SEC-04)."""
+    connection = db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == "nvd"))
+    sync = dict(((connection.settings or {}).get("sync") or {}) if connection else {})
+    last_success = None
+    if sync.get("last_success_at"):
+        try:
+            last_success = datetime.fromisoformat(sync["last_success_at"])
+        except ValueError:
+            last_success = None
+    advisories = db.scalar(select(func.count(SecurityAdvisory.id)).where(SecurityAdvisory.source == "nvd")) or 0
+    manual = db.scalar(select(func.count(SecurityAdvisory.id)).where(SecurityAdvisory.source != "nvd")) or 0
+    return {
+        "name": "NVD",
+        "configured": connection is not None,
+        "enabled": bool(connection and connection.is_enabled),
+        "last_success_at": _fmt(last_success) if last_success else "",
+        "stale": bool(
+            connection
+            and connection.is_enabled
+            and (last_success is None or now - last_success > SOURCE_STALE_AFTER)
+        ),
+        "advisories": advisories,
+        "manual_advisories": manual,
+    }
+
+
+def _collect_security(db, scoped, devices, lower: datetime, upper: datetime) -> dict:
+    """Remediation evidence for the reported scope (SEC-04)."""
+    by_device = {device.id: device for device in devices}
+    by_remediation: Counter = Counter()
+    unhandled_by_device: Counter = Counter()
+    exception_by_device: Counter = Counter()
+    severe_findings = []
+    exception_rows = []
+    for finding, advisory in db.execute(
+        scoped(
+            select(DeviceVulnerability, SecurityAdvisory)
+            .join(SecurityAdvisory, SecurityAdvisory.id == DeviceVulnerability.advisory_id)
+            .where(DeviceVulnerability.status != "resolved"),
+            DeviceVulnerability.device_id,
+        )
+    ):
+        status = finding.status or "open"
+        by_remediation[status] += 1
+        severity = str(advisory.severity or "unknown").lower()
+        device = by_device.get(finding.device_id)
+        if status == "exception":
+            exception_by_device[finding.device_id] += 1
+            exception_rows.append((finding, advisory, device))
+        if severity in {"critical", "high"}:
+            if status == "open":
+                unhandled_by_device[finding.device_id] += 1
+            severe_findings.append(
+                {
+                    "cve": advisory.cve_id,
+                    "severity": severity,
+                    "cvss": advisory.cvss,
+                    "customer": device.customer.name if device and device.customer else "",
+                    "device": _device_name(device) if device else "",
+                    "installed": finding.installed_version or (device.firmware_version if device else "") or "",
+                    "fixed": finding.fixed_version or "",
+                    "status": status,
+                }
+            )
+    severe_findings.sort(
+        key=lambda row: (-SEVERITY_RANK.get(row["severity"], 0), -(row["cvss"] or 0), row["cve"], row["device"])
+    )
+
+    # Justification = the note recorded when the exception was granted.
+    notes = {}
+    if exception_rows:
+        for entry in db.scalars(
+            select(VulnerabilityHistory)
+            .where(
+                VulnerabilityHistory.vulnerability_id.in_([finding.id for finding, _, _ in exception_rows]),
+                VulnerabilityHistory.to_status == "exception",
+            )
+            .order_by(VulnerabilityHistory.created_at)
+        ):
+            notes[entry.vulnerability_id] = entry.note or ""
+    exceptions = [
+        {
+            "cve": advisory.cve_id,
+            "customer": device.customer.name if device and device.customer else "",
+            "device": _device_name(device) if device else "",
+            "until": _fmt(finding.exception_until),
+            "justification": notes.get(finding.id, ""),
+        }
+        for finding, advisory, device in sorted(
+            exception_rows, key=lambda item: (item[0].exception_until or upper, item[1].cve_id)
+        )
+    ]
+
+    resolved_by_reason: Counter = Counter()
+    durations = []
+    for finding in db.scalars(
+        scoped(
+            select(DeviceVulnerability).where(
+                DeviceVulnerability.status == "resolved",
+                DeviceVulnerability.resolved_at >= lower,
+                DeviceVulnerability.resolved_at < upper,
+            ),
+            DeviceVulnerability.device_id,
+        )
+    ):
+        reason = (finding.evidence or {}).get("resolution") or "manual"
+        resolved_by_reason[reason] += 1
+        if finding.detected_at and finding.resolved_at and finding.resolved_at >= finding.detected_at:
+            durations.append((finding.resolved_at - finding.detected_at).total_seconds() / 86400)
+
+    source = _source_state(db, upper)
+    not_evaluable = sum(
+        1
+        for device in devices
+        if (device.vendor or "").lower() == "mikrotik" and parse_routeros_version(device.firmware_version) is None
+    )
+    return {
+        "by_remediation": {key: by_remediation[key] for key in REMEDIATION_LABELS if by_remediation.get(key)},
+        "unhandled_severe": sum(unhandled_by_device.values()),
+        "unhandled_by_device": unhandled_by_device,
+        "exception_by_device": exception_by_device,
+        "severe_findings": severe_findings,
+        "exceptions": exceptions,
+        "resolved_in_period": sum(resolved_by_reason.values()),
+        "resolved_by_reason": dict(resolved_by_reason.most_common()),
+        "mean_days_to_resolve": round(sum(durations) / len(durations), 1) if durations else None,
+        "not_evaluable_devices": not_evaluable if source["advisories"] else 0,
+        "source": source,
+    }
 
 
 def collect_report_data(db, *, customer: Customer | None, period_start: date, period_end: date) -> dict:
@@ -130,16 +287,8 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
         if worst is None or SEVERITY_RANK.get(level, 0) > SEVERITY_RANK.get(worst, 0):
             worst = level
         open_vulns[device_id] = (count + 1, worst)
-    resolved_in_period = db.scalar(
-        scoped(
-            select(func.count(DeviceVulnerability.id)).where(
-                DeviceVulnerability.status == "resolved",
-                DeviceVulnerability.resolved_at >= lower,
-                DeviceVulnerability.resolved_at < upper,
-            ),
-            DeviceVulnerability.device_id,
-        )
-    ) or 0
+    security = _collect_security(db, scoped, devices, lower, upper)
+    resolved_in_period = security["resolved_in_period"]
 
     # Backup ---------------------------------------------------------------
     policies = list(db.scalars(select(BackupPolicy).where(BackupPolicy.is_enabled.is_(True))))
@@ -228,6 +377,8 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
                 "last_successful_backup": _fmt(last_success.get(device.id)),
                 "last_restore_test": restore.result if restore else "",
                 "last_restore_test_at": _fmt(restore.performed_at) if restore else "",
+                "unhandled_severe_vulnerabilities": security["unhandled_by_device"].get(device.id, 0),
+                "vulnerabilities_in_exception": security["exception_by_device"].get(device.id, 0),
             }
         )
 
@@ -271,6 +422,14 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
             "devices_affected": len(open_vulns),
             "severe_devices": sum(1 for _, worst in open_vulns.values() if worst in {"high", "critical"}),
             "resolved_in_period": resolved_in_period,
+            "by_remediation": security["by_remediation"],
+            "unhandled_severe": security["unhandled_severe"],
+            "resolved_by_reason": security["resolved_by_reason"],
+            "mean_days_to_resolve": security["mean_days_to_resolve"],
+            "severe_findings": security["severe_findings"],
+            "exceptions": security["exceptions"],
+            "not_evaluable_devices": security["not_evaluable_devices"],
+            "source": security["source"],
         },
         "lifecycle": {
             "known": len(devices) - lifecycle_states.get("unknown", 0),
@@ -300,6 +459,7 @@ def summary(data: dict) -> dict:
         "devices": data["inventory"]["total"],
         "firmware_attention": data["firmware"]["attention"],
         "vulnerable_devices": data["vulnerabilities"]["devices_affected"] if data["vulnerabilities"]["available"] else None,
+        "unhandled_severe_vulnerabilities": data["vulnerabilities"]["unhandled_severe"] if data["vulnerabilities"]["available"] else None,
         "backup_protected": data["backup"]["protected"],
         "open_issues": data["issues"]["open"],
         "truncated": data["truncated"],
@@ -384,14 +544,55 @@ def render_pdf(data: dict, *, report_id: str, generated_at: datetime, generated_
             "La sezione non può essere valutata e non indica assenza di vulnerabilità."
         )
     else:
+        source = vulns["source"]
+        if source["configured"]:
+            provenance = f"Fonte advisory automatica: {source['name']}, {source['advisories']} advisory"
+            provenance += f", ultimo aggiornamento {source['last_success_at']}." if source["last_success_at"] else ", mai aggiornata."
+            if source["manual_advisories"]:
+                provenance += f" Advisory inserite manualmente: {source['manual_advisories']}."
+            doc.paragraph(provenance, size=8.5, gray=0.35)
+            if source["stale"]:
+                doc.paragraph(
+                    "Attenzione: la fonte advisory non è aggiornata da oltre 7 giorni; "
+                    "vulnerabilità pubblicate di recente potrebbero non essere rappresentate.",
+                    bold=True,
+                )
+        else:
+            doc.paragraph("Advisory inserite manualmente: nessuna fonte automatica configurata.", size=8.5, gray=0.35)
+        mean_days = vulns["mean_days_to_resolve"]
         doc.key_values(
             [
                 ("Apparati con vulnerabilità aperte", vulns["devices_affected"]),
                 ("di cui High/Critical", vulns["severe_devices"]),
                 ("Impatti aperti per severità", _counter_text(vulns["open_by_severity"])),
+                ("Impatti aperti per stato", _counter_text(vulns["by_remediation"], labels=REMEDIATION_LABELS)),
+                ("High/Critical non ancora gestite", vulns["unhandled_severe"]),
                 ("Impatti risolti nel periodo", vulns["resolved_in_period"]),
+                ("Motivo della risoluzione", _counter_text(vulns["resolved_by_reason"], labels=RESOLUTION_LABELS)),
+                ("Tempo medio di risoluzione", f"{mean_days} giorni" if mean_days is not None else "n/d"),
+                ("Apparati non valutabili", f"{vulns['not_evaluable_devices']} (versione non nota)"),
             ]
         )
+        if vulns["exceptions"]:
+            doc.paragraph("Eccezioni attive (rischio accettato):", bold=True)
+            doc.table(
+                ["CVE", "Cliente", "Apparato", "Valida fino al", "Motivazione"],
+                [[e["cve"], e["customer"], e["device"], e["until"], e["justification"]] for e in vulns["exceptions"][:MAX_SECURITY_ROWS]],
+                [80, 90, 90, 70, 181],
+            )
+        severe = vulns["severe_findings"]
+        if severe:
+            doc.paragraph("Vulnerabilità High/Critical aperte:", bold=True)
+            doc.table(
+                ["CVE", "Sev.", "Cliente", "Apparato", "Installata", "Corretta in", "Stato"],
+                [
+                    [f["cve"], f["severity"].upper(), f["customer"], f["device"], f["installed"], f["fixed"], FINDING_STATE_LABELS.get(f["status"], f["status"])]
+                    for f in severe[:MAX_SECURITY_ROWS]
+                ],
+                [78, 42, 80, 95, 58, 58, 100],
+            )
+            if len(severe) > MAX_SECURITY_ROWS:
+                doc.paragraph(f"… altre {len(severe) - MAX_SECURITY_ROWS} righe non mostrate.", size=8.5, gray=0.35)
 
     lifecycle = data["lifecycle"]
     doc.heading("4. Ciclo di vita (EOL/EOS)", 2)

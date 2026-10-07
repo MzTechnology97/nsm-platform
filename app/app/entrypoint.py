@@ -87,7 +87,7 @@ from app.advisory_admin import install_advisory_admin
 from app.vulnerability_remediation import install_vulnerability_remediation
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.1"
+APP_VERSION = "0.49.2"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION

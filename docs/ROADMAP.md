@@ -339,7 +339,7 @@ External sources should be documented only after an adapter actually uses them.
 
 ### SEC-04 — security reporting integration
 
-Feed verified findings/remediation evidence into the future report archive.
+**Implemented in `main`.** Evidence reports include advisory source provenance (stale warning), findings by remediation state, unhandled critical/high, resolutions in the period with reason and mean time to resolve, active exceptions with justification, open critical/high table and not-evaluable devices; CSV adds per-device unhandled and excepted counts.
 
 ## 8. Lifecycle / EOL / EOS roadmap
 
