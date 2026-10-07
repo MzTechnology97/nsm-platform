@@ -363,6 +363,8 @@ External sources should be documented only after an adapter actually uses them.
 
 ### LIFE-03 — remediation/replacement evidence
 
+**Implemented in `main`** (`app/lifecycle_remediation.py`): remediation record per EOL/EOS Device, Action Center issue, history and report integration.
+
 - Action Center finding;
 - acknowledgement/remediation plan;
 - replacement/exception evidence;

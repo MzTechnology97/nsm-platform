@@ -6,6 +6,47 @@
 <div class="page-header compact-heading">
   <div><h1>Lifecycle</h1><p>{{ device.vendor }} · {{ device.model or 'modello non rilevato' }} · origine attuale: {{ match_labels.get(device.lifecycle_match, 'non ancora correlato') }}.</p></div>
 </div>
+{% if remediation %}
+<section class="panel{% if remediation_reason %} danger-zone{% endif %}" id="remediation">
+  <div class="panel-header"><div><h2>Gestione fuori supporto</h2><p>Decisione registrata per questo apparato {{ device.lifecycle_status|upper }}.</p></div><span class="status-pill">{{ remediation_labels[remediation.status] }}</span></div>
+  {% if remediation_reason %}<div class="alert warning">{{ remediation_reason }}</div>{% endif %}
+  <dl class="kv-list">
+    {% if remediation.status == 'planned' %}<div><dt>Sostituzione entro</dt><dd>{{ remediation.target_date }}</dd></div><div><dt>Piano</dt><dd>{{ remediation.plan_note }}</dd></div>{% endif %}
+    {% if remediation.status == 'exception' %}<div><dt>Eccezione fino al</dt><dd>{{ remediation.exception_until }}</dd></div><div><dt>Motivazione</dt><dd>{{ remediation.exception_reason }}</dd></div>{% endif %}
+    {% if remediation.status == 'replaced' %}<div><dt>Sostituito da</dt><dd>{% if replacement %}<a href="/devices/{{ replacement.id }}">{{ replacement.display_name or replacement.device_identity or replacement.name }}</a>{% else %}apparato rimosso{% endif %}</dd></div>{% endif %}
+    {% if remediation.status == 'decommissioned' %}<div><dt>Dismissione</dt><dd>{{ remediation.plan_note }}</dd></div>{% endif %}
+  </dl>
+  {% if can_manage %}
+  <div class="form-grid">
+    <form method="post" action="/devices/{{ device.id }}/lifecycle/remediation" class="form-stack"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="action" value="plan">
+      <strong>Pianifica sostituzione</strong>
+      <label>Entro il<input type="date" name="target_date" min="{{ today }}" required></label>
+      <label>Piano<input name="note" required minlength="5" maxlength="2000" placeholder="es. sostituzione con hAP ax3 in ordine"></label>
+      <button class="button primary">Salva piano</button></form>
+    <form method="post" action="/devices/{{ device.id }}/lifecycle/remediation" class="form-stack"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="action" value="exception">
+      <strong>Eccezione motivata</strong>
+      <label>Valida fino al<input type="date" name="exception_until" min="{{ today }}" max="{{ max_exception }}" required></label>
+      <label>Motivazione<input name="note" required minlength="10" maxlength="2000" placeholder="es. apparato isolato, budget Q1"></label>
+      <button class="button ghost">Registra eccezione</button></form>
+    <form method="post" action="/devices/{{ device.id }}/lifecycle/remediation" class="form-stack"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="action" value="replaced">
+      <strong>Sostituzione eseguita</strong>
+      <label>Nuovo apparato<select name="replacement_device_id" required><option value="">—</option>{% for d in replacement_candidates %}<option value="{{ d.id }}">{{ d.display_name or d.device_identity or d.name }} · {{ d.model or d.vendor }}</option>{% endfor %}</select></label>
+      <label>Nota<input name="note" maxlength="2000"></label>
+      <button class="button ghost">Registra sostituzione</button></form>
+    <form method="post" action="/devices/{{ device.id }}/lifecycle/remediation" class="form-stack"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="action" value="decommissioned">
+      <strong>Dismesso</strong>
+      <label>Nota<input name="note" required minlength="5" maxlength="2000" placeholder="es. rimosso dal sito il …"></label>
+      <button class="button ghost">Registra dismissione</button></form>
+  </div>
+  {% if remediation.status != 'open' %}<form method="post" action="/devices/{{ device.id }}/lifecycle/remediation"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="action" value="reopen"><button class="button ghost">Riapri la gestione</button></form>{% endif %}
+  {% endif %}
+  {% if remediation_history %}
+  <div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Quando</th><th>Azione</th><th>Stato</th><th>Nota</th></tr></thead><tbody>
+  {% for h in remediation_history %}<tr><td>{{ fmt_dt(h.created_at) }}</td><td>{{ h.action }}</td><td>{{ remediation_labels.get(h.from_status, '—') if h.from_status else '—' }} → {{ remediation_labels.get(h.to_status, h.to_status) }}</td><td>{{ h.note or '—' }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% endif %}
+</section>
+{% endif %}
 <section class="panel">
   <div class="panel-header"><div><h2>Catalogo</h2><p>Esito della correlazione con il catalogo lifecycle per questo modello.</p></div></div>
   {% if correlation.match == 'catalog' %}
@@ -17,10 +58,11 @@
   {% else %}
   <p>Il modello dell'apparato non è stato rilevato: la correlazione non è possibile, lo stato resta sconosciuto salvo valore manuale.</p>
   {% endif %}
-  {% if manual %}
+  {% if manual and can_manage %}
   <form method="post" action="/devices/{{ device.id }}/lifecycle"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="action" value="catalog"><button class="button ghost">Usa il catalogo al posto del valore manuale</button></form>
   {% endif %}
 </section>
+{% if can_manage %}
 <form method="post" action="/devices/{{ device.id }}/lifecycle" class="form-stack">
   <input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="action" value="manual">
   <section class="panel">
@@ -35,4 +77,5 @@
   </section>
   <div class="form-actions"><button class="button primary">Salva valore manuale</button><a class="button ghost" href="/devices/{{ device.id }}">Annulla</a></div>
 </form>
+{% endif %}
 {% endblock %}
