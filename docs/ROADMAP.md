@@ -247,6 +247,16 @@ Implement only diagnostics actually exposed and validated by the integration con
 - correlate with the future advisory/lifecycle ingestion framework;
 - never infer vulnerability from brand alone.
 
+### UBNT-08 — full UISP device management (requested 2026-10-07)
+
+Bring Ubiquiti devices managed through the UISP API to the depth of the MikroTik agent, for every operation the UISP API actually exposes and that can be verified on a real instance:
+
+- configuration backup (download and archive in NSM, with evidence);
+- reboot with confirmation, acknowledgement and post-reboot verification;
+- firmware upgrade (planning, approval, execution through UISP, verification) on top of the UBNT-06 state;
+- complete telemetry: signal/chain levels, noise, CCQ/airMAX quality, capacity, LAN/Ethernet interface state and speed, traffic, history;
+- device logs.
+
 ## 6. ACS / TR-069 CPE roadmap
 
 The selected ACS is **GenieACS** (as preferred in `PRODUCT_REQUIREMENTS.md`); NSM reads its NBI and never implements an ACS itself. GenieACS ships as an optional service set of the NSM Docker stack (`./manage.sh acs-enable`). ACS-01..03 are implemented in `main` (`app/genieacs_connector.py`); validation against a real GenieACS instance is pending.
@@ -304,7 +314,17 @@ Only expose backup/restore where the real CPE data model and connector expose a 
 - post-upgrade verification;
 - audit/evidence.
 
+### VEND-01 — firmware catalogs for other vendors (requested 2026-10-07)
+
+Release catalogs like the RouterOS one (versions per channel/model, release notes, security classification) for Ubiquiti, TP-Link, Tenda, Cambium and similar vendors. Each catalog is enabled only when the inventory contains devices of that brand, reads only official vendor sources and never guesses versions it cannot verify.
+
+### VEND-02 — cnMaestro integration for Cambium (requested 2026-10-07)
+
+Read-only cnMaestro (cloud/on-premises) connector for Cambium radios: discovery and association like UISP, periodic sync, full monitoring and statistics (signal, link quality, capacity, interfaces, uptime, history) in the style of the MikroTik and UISP views; later operations only where the cnMaestro API supports them.
+
 ## 7. Cross-vendor vulnerability management
+
+**Requested 2026-10-07 — SEC-05 multi-vendor CVE correlation**: extend advisory ingestion and matching beyond MikroTik to Ubiquiti, Cambium, TP-Link, Mimosa, Tenda, Huawei and other vendors present in the inventory, with vendor/product/version normalization per family and the same rule: never infer exposure from the brand alone.
 
 ### SEC-01 — source ingestion framework
 

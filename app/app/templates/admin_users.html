@@ -3,6 +3,7 @@
 {% block content %}
 <div class="page-header"><div><h1>Amministrazione</h1><p>Utenti, ruoli, integrazioni e accesso alla piattaforma.</p></div><a class="button" href="/profile">Il mio profilo</a></div>
 {% set admin_tab = "users" %}{% include "_admin_tabs.html" %}
+{% if request.query_params.get('status') == '2fa_reset' %}<div class="alert success">Verifica in due passaggi reimpostata: l'utente potrà configurarla di nuovo dal profilo.</div>{% endif %}
 {% if request.query_params.get('status') == 'sessions_revoked' %}<div class="alert success">Sessioni dell'utente chiuse: dovrà accedere di nuovo.</div>{% endif %}
 
 <details class="panel create-panel"{% if users|length < 2 %} open{% endif %}>
@@ -21,12 +22,13 @@
 <section class="panel">
   <div class="panel-header"><div><h2>Utenti</h2><p>{{ users|length }} account</p></div></div>
   <div class="table-wrap"><table class="data-table">
-    <thead><tr><th>Utente</th><th>Ruolo</th><th>Stato</th><th>Ultimo login</th><th></th></tr></thead>
+    <thead><tr><th>Utente</th><th>Ruolo</th><th>Stato</th><th>2FA</th><th>Ultimo login</th><th></th></tr></thead>
     <tbody>{% for u in users %}
       <tr>
         <td><strong>{{ u.display_name or u.username }}</strong><small>{{ u.username }}{% if u.email %} · {{ u.email }}{% endif %}</small></td>
         <td><form class="inline-form compact-form" method="post" action="/admin/users/{{ u.id }}/role"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><select name="role" aria-label="Ruolo di {{ u.username }}">{% for key,label in roles.items() %}<option value="{{ key }}" {% if u.role == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="button tiny">Salva</button></form></td>
         <td><span class="device-status {{ 'status-online' if u.is_active else 'status-offline' }}">{{ 'Attivo' if u.is_active else 'Disabilitato' }}</span></td>
+        <td data-2fa="{{ 'on' if u.totp_enabled_at else 'off' }}">{% if u.totp_enabled_at %}<span class="device-status status-online">Attiva</span>{% if u.id != user.id %}<form method="post" action="/admin/users/{{ u.id }}/2fa/reset" data-confirm="Reimpostare la verifica in due passaggi di {{ u.username }}? Usalo solo se ha perso il dispositivo."><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny ghost">Reimposta</button></form>{% endif %}{% else %}<span class="muted">non attiva</span>{% endif %}</td>
         <td>{{ fmt_dt(u.last_login_at) }}</td>
         <td><div class="row-actions">{% if u.id == user.id %}<a class="button tiny ghost" href="/profile">Password / tema</a>{% else %}<form method="post" action="/admin/users/{{ u.id }}/toggle"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny ghost">{{ 'Disabilita' if u.is_active else 'Riattiva' }}</button></form>{% if u.is_active %}<form method="post" action="/admin/users/{{ u.id }}/sessions/revoke" data-confirm="Chiudere tutte le sessioni di {{ u.username }}?"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny ghost">Disconnetti</button></form>{% endif %}{% endif %}</div></td>
       </tr>

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Verifica in due passaggi · {{ ui_context(request).branding.portal_name }}{% endblock %}
+{% block login_content %}
+{% set ui = ui_context(request) %}
+<div class="login-wrap"><div class="login-card" data-login="2fa"><div class="login-brand">{% if ui.branding.has_logo %}<span class="brand-logo-wrap brand-mark large"><img class="brand-logo" src="/branding/logo?v={{ ui.branding.logo_version }}" alt="Logo"></span>{% else %}<span class="brand-mark large">NSM</span>{% endif %}<div><h1>Verifica in due passaggi</h1><p>Inserisci il codice a 6 cifre dell'app di autenticazione.</p></div></div>
+{% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+<form method="post" action="/login/2fa" class="form-stack"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+<label>Codice<input name="code" inputmode="numeric" autocomplete="one-time-code" required autofocus maxlength="11" placeholder="123456"></label>
+<button class="button primary large-button">Verifica</button></form>
+<small class="login-version">Hai perso il telefono? Usa uno dei codici di recupero (formato abcde-12345) oppure chiedi a un amministratore di reimpostare la verifica. <a href="/login">Torna all'accesso</a></small>
+</div></div>
+{% endblock %}

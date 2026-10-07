@@ -47,6 +47,11 @@ class User(Base, TimestampMixin):
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Sessions opened before this moment are refused (password change, "log out everywhere").
     sessions_valid_after: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Two-factor authentication (TOTP); secrets encrypted with ENCRYPTION_MASTER_KEY.
+    totp_secret_encrypted: Mapped[str | None] = mapped_column(Text)
+    totp_pending_encrypted: Mapped[str | None] = mapped_column(Text)
+    totp_enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    totp_last_step: Mapped[int | None] = mapped_column(BigInteger)
 
 
 class Customer(Base, TimestampMixin):

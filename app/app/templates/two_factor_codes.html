@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Codici di recupero · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Codici di recupero</h1><p>La verifica in due passaggi è attiva. Conserva questi codici in un luogo sicuro: ognuno sostituisce una volta il codice dell'app se perdi il telefono.</p></div><a class="button" href="/profile#two-factor">Torna al profilo</a></div>
+<section class="panel" data-two-factor="codes">
+  <div class="alert warning">I codici vengono mostrati <strong>una sola volta</strong>. NSM conserva solo la loro impronta.</div>
+  <div class="command-box"><code id="recovery-codes">{% for c in codes %}{{ c }}{% if not loop.last %}  {% endif %}{% endfor %}</code><button class="button" type="button" data-copy-target="recovery-codes">Copia</button></div>
+  <ol class="recovery-codes">{% for c in codes %}<li><code>{{ c }}</code></li>{% endfor %}</ol>
+</section>
+{% endblock %}

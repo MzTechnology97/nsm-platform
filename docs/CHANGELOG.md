@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.38 — 2026-10-07
+
+Security
+- **Two-factor authentication (TOTP)**:
+  - setup from the profile with a QR code (Google Authenticator, Microsoft Authenticator, Aegis and similar);
+  - ten one-time recovery codes;
+  - a second login step with replay protection and throttling;
+  - disable with password and code, and administrator reset;
+  - 2FA status column on the users page.
+  - Migration 0027; new dependency `segno` (pure-Python QR code).
+- Roadmap: added UBNT-08 (full UISP management), VEND-01 (firmware catalogs for other vendors), VEND-02 (cnMaestro) and SEC-05 (multi-vendor CVE correlation).
+
 ## 0.49.37 — 2026-10-07
 
 Notifications

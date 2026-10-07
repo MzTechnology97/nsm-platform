@@ -33,6 +33,13 @@ A Site is customer-local. UISP or another connector may retain external organiza
 
 ### Implemented
 
+- **Two-factor authentication (TOTP)**, `app/two_factor.py`, migration 0027:
+  - setup from the profile with QR code or manual key for Google Authenticator and similar apps, confirmed by a valid code;
+  - ten one-time recovery codes, shown once and stored as hashes;
+  - login second step within 5 minutes; each time step is accepted once (replay protection) and wrong codes count towards login throttling;
+  - disable with password and code; administrator reset for a lost device; every change is audited and ends the other sessions;
+  - 2FA keys are encrypted and covered by the master-key rotation inventory.
+
 - Session-based web authentication.
 - User administration foundation.
 - Baseline role/permission framework.
