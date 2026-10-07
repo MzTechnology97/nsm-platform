@@ -470,14 +470,31 @@ Deployment/update behavior includes:
 
 A production identifier must never be copied into a test merely because it reproduces a bug. Reproduce the behavior with synthetic data and retain sensitive evidence outside the public repository.
 
-## 20. Approved but not yet implemented product areas
+## 20. Reports
+
+### Implemented (REP-01 / REP-02)
+
+- manual operational evidence report at `/audit/reports` for all Customers or one Customer and a date range (max 366 days, not in the future);
+- PDF (dependency-free writer, A4, deterministic output) with sections: inventory, firmware, vulnerabilities, lifecycle EOL/EOS, backup coverage/runs/restore tests, Action Center, device list;
+- CSV with one evidence row per Device (identity, firmware, lifecycle, open vulnerabilities, backup readiness, last successful backup, last restore test);
+- sections without data are stated as **not evaluable** (e.g. no advisory data is never reported as zero vulnerabilities); "protected" requires an executable backup method, not just a policy;
+- immutable archive in PostgreSQL (included in `pg_dump`) with SHA-256, size, scope, period and summary; `REPORT_GENERATED` / `REPORT_DOWNLOADED` audit events;
+- downloads re-verify SHA-256 and block tampered content (`REPORT_INTEGRITY_FAILED`);
+- permissions: `reports.read` to browse/download, `reports.generate` to create;
+- explicit disclaimer: evidence supports NIS2-oriented programs, it does not attest compliance.
+
+### Not implemented yet
+
+- scheduled generation (REP-03) and delivery channels (REP-04);
+- incident/compliance sections (depend on INC/COMP features).
+
+## 21. Approved but not yet implemented product areas
 
 The following are approved roadmap areas, not current runtime capabilities:
 
 - Incident Timeline / Root Cause workflow;
 - Compliance Baseline/evaluation/remediation workflow;
-- Scheduled Executive / NIS2-oriented report generation and delivery;
-- complete report/evidence archive;
+- Scheduled Executive / NIS2-oriented report generation and delivery (manual generation and archive are implemented);
 - mature delegated RBAC;
 - production DR/restore validation program;
 - additional vendor/connector capabilities beyond those explicitly described above.

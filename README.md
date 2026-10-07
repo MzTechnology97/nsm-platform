@@ -46,7 +46,7 @@ Before implementing anything, also inspect **current `main` and all open PRs**. 
 | Public read-only API | **Implemented** | API-key protected inventory, backup, vulnerability and firmware endpoints with scoping. |
 | Incident Timeline / Root Cause | **Planned** | Approved roadmap feature, not yet a runtime capability. |
 | Compliance Baseline | **Planned** | Approved roadmap feature, not yet a runtime capability. |
-| Scheduled Executive / NIS2 reports | **Planned** | Approved roadmap feature, not yet a runtime capability. |
+| Executive / NIS2 reports | **Implemented foundation** | Manual PDF/CSV evidence reports with SHA-256 archive and audit. Scheduling and delivery are planned. |
 
 See [`docs/IMPLEMENTED_CAPABILITIES.md`](docs/IMPLEMENTED_CAPABILITIES.md) for the detailed capability-by-capability truth table.
 

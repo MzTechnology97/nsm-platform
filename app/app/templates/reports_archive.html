@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Report · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header compact-heading"><div><h1>Report</h1><p>Report di evidenza operativa (inventario, firmware, vulnerabilità, lifecycle, backup e restore, Action Center) archiviati con hash SHA-256.</p></div></div>
+
+{% if can_generate %}
+<section class="panel">
+  <div class="panel-header"><div><h2>Genera report</h2><p>Le sezioni senza dati disponibili vengono indicate esplicitamente come non valutabili. Il report supporta programmi orientati a NIS2 ma non attesta da solo la conformità.</p></div></div>
+  <form method="post" action="/audit/reports/generate" class="filter-bar">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>Ambito<select name="customer_id"><option value="">Tutti i clienti</option>{% for customer in customers %}<option value="{{ customer.id }}">{{ customer.name }}</option>{% endfor %}</select></label>
+    <label>Dal<input type="date" name="period_start" required value="{{ default_start }}"></label>
+    <label>Al<input type="date" name="period_end" required value="{{ default_end }}"></label>
+    <label>Formato<select name="output_format"><option value="pdf">PDF</option><option value="csv">CSV (dettaglio apparati)</option></select></label>
+    <button class="button primary" type="submit">Genera e archivia</button>
+  </form>
+</section>
+{% endif %}
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Archivio</h2><p>Ogni download riverifica lo SHA-256 del contenuto archiviato.</p></div></div>
+  {% if reports %}
+  <div class="table-wrap"><table class="data-table">
+    <thead><tr><th>Generato</th><th>Ambito</th><th>Periodo</th><th>Formato</th><th>Dimensione</th><th>SHA-256</th><th>Sintesi</th><th></th></tr></thead>
+    <tbody>{% for report in reports %}{% set s = report.summary or {} %}
+      <tr>
+        <td>{{ fmt_dt(report.generated_at) }}</td>
+        <td>{{ report.scope_label }}</td>
+        <td>{{ report.period_start }} – {{ report.period_end }}</td>
+        <td>{{ report.output_format|upper }}</td>
+        <td>{% if report.size_bytes >= 1048576 %}{{ '%.1f MB'|format(report.size_bytes/1048576) }}{% else %}{{ '%.1f KB'|format(report.size_bytes/1024) }}{% endif %}</td>
+        <td title="{{ report.sha256 }}"><code>{{ report.sha256[:16] }}…</code></td>
+        <td><small>{{ s.get('devices', 0) }} apparati · {{ s.get('firmware_attention', 0) }} firmware · {{ s.get('open_issues', 0) }} segnalazioni{% if s.get('truncated') %} · troncato{% endif %}</small></td>
+        <td><a class="button ghost" href="/audit/reports/{{ report.id }}/download">Scarica</a></td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  <div class="pagination-bar"><span>{{ total }} report · pagina {{ page }} di {{ pages }}</span><div class="page-actions">{% if page > 1 %}<a class="button ghost" href="/audit/reports?page={{ page - 1 }}">← Precedente</a>{% endif %}{% if page < pages %}<a class="button ghost" href="/audit/reports?page={{ page + 1 }}">Successiva →</a>{% endif %}</div></div>
+  {% else %}<div class="empty-state">Nessun report archiviato.{% if can_generate %} Usa il modulo sopra per generare il primo report.{% endif %}</div>{% endif %}
+</section>
+{% endblock %}

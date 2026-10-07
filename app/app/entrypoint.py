@@ -63,6 +63,7 @@ from app.mikrotik_workspace_ux_precedence import install_mikrotik_workspace_ux_p
 from app.mikrotik_telemetry import install_mikrotik_telemetry
 from app.route_precedence import promote_customer_workspace_routes
 from app.routerboot_lifecycle import install_routerboot_lifecycle
+from app.reports import install_reports
 from app.search_enhancement import install_search_enhancement
 from app.security_drilldown import install_security_drilldown
 from app.ui_action_center_feedback import install_ui_action_center_feedback
@@ -143,6 +144,7 @@ install_inventory_ui(core.app)
 install_branding_runtime(core.app)
 promote_device_csv_import_routes(core.app)
 install_activity_worklists(core.app)
+install_reports(core.app)
 privileged_bootstrap = install_mikrotik_privilege_profile()
 mikrotik_agent_core._bootstrap_script = privileged_bootstrap
 # Legacy telemetry patches the APIRouter before FastAPI copies its routes.

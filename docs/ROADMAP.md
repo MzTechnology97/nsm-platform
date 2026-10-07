@@ -436,6 +436,8 @@ Approved future reporting feature.
 
 ### REP-01 — report model, archive and hash evidence
 
+**Implemented in `main`.**
+
 - report metadata;
 - scope/date range;
 - immutable archived output reference;
@@ -443,6 +445,8 @@ Approved future reporting feature.
 - generation audit event.
 
 ### REP-02 — manual PDF/CSV report generation
+
+**Implemented in `main`** (incident/compliance sections will be added when those features exist).
 
 - Customer/all/selected scope;
 - inventory;
