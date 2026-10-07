@@ -21,7 +21,7 @@
 .device-header-title h1 { font-size: 1.45rem; margin: 0; letter-spacing: -.02em; }
 .device-header-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .device-header-actions form { margin: 0; }
-.vendor-badge {
+.entity-badge {
   text-transform: uppercase;
   letter-spacing: .06em;
   font-size: .66rem;
@@ -107,3 +107,32 @@
 .status-pill.restore-partial, .status-pill.run-in_progress, .status-pill.run-pending { background: #fff7df; color: #875b10; }
 .button.tiny.danger { background: transparent; color: var(--danger); border-color: rgba(197, 48, 48, .35); }
 .button.tiny.danger:hover { background: var(--danger); color: #fff; }
+
+/* ---- Lists: quick chips and secondary filters ----------------------------- */
+.quick-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.quick-chips a {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 12px; border-radius: 999px;
+  background: var(--panel); border: 1px solid var(--border);
+  color: var(--text); font-size: .8rem; font-weight: 600;
+}
+.quick-chips a b { font-weight: 800; }
+.quick-chips a:hover { border-color: var(--border-strong); }
+.quick-chips a.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.quick-chips a.tone-danger:not(.active) b { color: var(--danger); }
+.quick-chips a.tone-warning:not(.active) b { color: var(--warning); }
+.quick-chips .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.quick-chips .dot.online { background: #299447; }
+.quick-chips .dot.offline { background: #c43c35; }
+.more-filters { position: relative; }
+.more-filters > summary { list-style: none; cursor: pointer; }
+.more-filters > summary::-webkit-details-marker { display: none; }
+.more-filters[open] > summary { background: var(--accent-soft); }
+.more-filters-body {
+  position: absolute; z-index: 30; top: calc(100% + 6px); left: 0;
+  display: grid; grid-template-columns: repeat(2, minmax(160px, 1fr)); gap: 10px;
+  padding: 14px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 15px 40px rgba(15, 23, 42, .15); min-width: 380px;
+}
+.more-filters-body select { width: 100%; }
+.filter-bar { flex-wrap: wrap; align-items: center; }

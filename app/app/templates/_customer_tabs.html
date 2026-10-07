@@ -1,8 +1,0 @@
-<div class="tabbar customer-tabs customer-tabs-sticky" role="navigation" aria-label="Sezioni cliente">
-  <a class="{% if active_tab == 'overview' %}active{% endif %}" href="/customers/{{ customer.id }}">Overview</a>
-  <a class="{% if active_tab == 'devices' %}active{% endif %}" href="/customers/{{ customer.id }}/devices">Apparati</a>
-  <a class="{% if active_tab == 'sites' %}active{% endif %}" href="/customers/{{ customer.id }}/sites">Sedi</a>
-  <a class="{% if active_tab == 'backup' %}active{% endif %}" href="/customers/{{ customer.id }}/backups">Backup</a>
-  <a class="{% if active_tab == 'security' %}active{% endif %}" href="/customers/{{ customer.id }}/security">Security</a>
-  <a class="{% if active_tab == 'history' %}active{% endif %}" href="/customers/{{ customer.id }}/history">History</a>
-</div>
