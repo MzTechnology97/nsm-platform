@@ -8,7 +8,9 @@ from app.agent_health_automation import agent_health_tick
 from app.backup_maintenance import maintenance_tick
 from app.backup_scheduler_capability_guard import install_backup_scheduler_capability_guard
 from app.config import settings
+from app.device_job_maintenance import expire_delivered_jobs, expire_pending_jobs
 from app.firmware_activation import reconcile_firmware_activations
+from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_finalization_cleanup
 from app.mikrotik_telemetry import telemetry_cleanup
 from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
 
@@ -21,6 +23,7 @@ TELEMETRY_MAINTENANCE_INTERVAL_SECONDS = 3600
 last_maintenance = 0.0
 last_telemetry_maintenance = 0.0
 
+install_mikrotik_backup_finalization_cleanup()
 install_backup_scheduler_capability_guard()
 
 log.info("Worker avviato")
@@ -29,11 +32,19 @@ while True:
         now_mono = time.monotonic()
         if now_mono - last_maintenance >= MAINTENANCE_INTERVAL_SECONDS:
             stats = maintenance_tick()
+            expired_pending_jobs = expire_pending_jobs()
+            expired_delivered_jobs = expire_delivered_jobs()
             agent_stats = agent_health_tick()
             firmware_stats = reconcile_firmware_activations()
             routerboot_stats = routerboot_verification_tick()
             if any(stats.values()):
                 log.info("Backup maintenance: %s", stats)
+            if expired_pending_jobs or expired_delivered_jobs:
+                log.info(
+                    "Agent job maintenance: scaduti pending=%s delivered=%s",
+                    expired_pending_jobs,
+                    expired_delivered_jobs,
+                )
             if any(agent_stats.values()):
                 log.info("Agent health automation: %s", agent_stats)
             if firmware_stats.get("success") or firmware_stats.get("failed"):

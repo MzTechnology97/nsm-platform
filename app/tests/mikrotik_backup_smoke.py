@@ -205,6 +205,27 @@ def main():
         assert decrypt_text(stored_secret.encrypted_backup_password) == config_json["backup_password"]
         assert stored_secret.encrypted_backup_password != config_json["backup_password"]
 
+    # A zero-length chunk can never advance an active upload. Reject it rather
+    # than returning the same next_offset and allowing an Agent retry loop to spin.
+    empty_start = client.post(
+        f"/api/v1/agents/mikrotik/jobs/{job_id}/artifacts/start",
+        headers=headers,
+        json={"artifact_type": "mikrotik_binary", "size_bytes": 1},
+    )
+    assert empty_start.status_code == 200, empty_start.text
+    empty_upload_id = empty_start.json()["upload_id"]
+    empty_chunk = client.post(
+        f"/api/v1/agents/mikrotik/uploads/{empty_upload_id}/chunk",
+        headers=headers,
+        json={"offset": 0, "data": ""},
+    )
+    assert empty_chunk.status_code == 400, empty_chunk.text
+    assert empty_chunk.json()["detail"] == "Chunk vuoto."
+    with SessionLocal() as db:
+        empty_upload = db.get(BackupUploadSession, uuid.UUID(empty_upload_id))
+        assert empty_upload and empty_upload.received_size == 0
+        assert empty_upload.status == "receiving"
+
     binary_payload = bytes((i % 251 for i in range(90000)))
     export_payload = ("# CI08 RouterOS export\n/interface bridge print\n" * 1800).encode()
     binary_artifact_id = upload(client, headers, job_id, "mikrotik_binary", binary_payload)

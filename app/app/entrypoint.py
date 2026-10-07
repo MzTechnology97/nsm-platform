@@ -38,12 +38,14 @@ from app.mikrotik_agent_status import install_mikrotik_agent_status
 from app.mikrotik_agent_update import install_mikrotik_agent_self_update
 from app.mikrotik_agent_update_ui import install_mikrotik_agent_update_ui
 from app.mikrotik_compatibility import install_mikrotik_compatibility_resolver
+from app.mikrotik_job_completion_guard import install_mikrotik_job_completion_guard
 from app.mikrotik_legacy import router as mikrotik_legacy_router
 from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
 from app.mikrotik_legacy_snapshot_capability import install_mikrotik_legacy_snapshot_capability
 from app.mikrotik_legacy_telemetry import install_mikrotik_legacy_telemetry
 from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
+from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_finalization_cleanup
 from app.mikrotik_snapshot_agent import install_mikrotik_snapshot_agent
 from app.mikrotik_snapshot_batch import install_mikrotik_snapshot_batch
 from app.mikrotik_diagnostics_agent import install_mikrotik_diagnostics_agent
@@ -145,6 +147,7 @@ install_mikrotik_legacy_telemetry()
 core.app.include_router(mikrotik_legacy_router)
 install_mikrotik_legacy_jobs(core.app)
 install_mikrotik_legacy_snapshot_capability()
+install_mikrotik_backup_finalization_cleanup()
 install_mikrotik_compatibility_resolver()
 # Core 0.49 keeps its product version while the independently versioned device
 # agent advances to the maintenance generation selected by this policy.
@@ -171,4 +174,7 @@ install_ui_customer_device_bulk_feedback(core.app)
 install_ui_api_key_feedback(core.app)
 install_ui_action_center_feedback(core.app)
 install_ui_notification_feedback(core.app)
+# Machine-facing completion idempotency must be installed after every route
+# composer/promoter so no later compatibility or UI layer can shadow it.
+install_mikrotik_job_completion_guard(core.app)
 app = core.app
