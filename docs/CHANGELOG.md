@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.49 — 2026-10-08
+
+UISP
+- **UISP graphs** (UBNT-08 step 1): the device UISP tab shows the history read from UISP as charts.
+  - Charts: radio signal (dBm), link capacity downlink/uplink, CPU and RAM, connected stations.
+  - Ranges of 24h, 7 days, 30 days and 90 days, averaged into at most 400 points.
+  - Sync interruptions show as holes; charts without data are not shown.
+- New API `/api/v1/devices/{id}/uisp-metrics` and a reusable time-series chart component (`static/series_chart.js`).
+
 ## 0.49.48 — 2026-10-08
 
 GUI

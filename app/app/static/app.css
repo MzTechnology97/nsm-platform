@@ -4693,3 +4693,16 @@ a.compliance-mark { text-decoration: none; }
 @media (prefers-reduced-motion: reduce) { .icon-button.bell:hover .ui-icon { animation: none; } .nav-item, .panel, .metric-card { transition: none; } }
 @media (prefers-contrast: more), print { .workspace { background: none; } }
 @media (max-width: 720px) { .workspace { background-size: 110vw auto; background-position: right -30vw bottom -10px; } }
+
+/* ==== generic series charts (UBNT-08) ==================================== */
+.series-line { fill: none; stroke-width: 1.8; vector-effect: non-scaling-stroke; }
+.series-line.series-a { stroke: #2f6fd6; }
+.series-line.series-b { stroke: #2fa36b; }
+.series-line.series-c { stroke: #d97706; }
+.series-legend { display: flex; gap: 10px; flex-wrap: wrap; }
+.series-key { display: inline-flex; align-items: center; gap: 5px; }
+.series-key::before { content: ""; width: 10px; height: 3px; border-radius: 2px; }
+.series-key.series-a::before { background: #2f6fd6; }
+.series-key.series-b::before { background: #2fa36b; }
+.series-key.series-c::before { background: #d97706; }
+.series-svg-wrap { height: 230px; }
