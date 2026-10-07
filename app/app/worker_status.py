@@ -57,6 +57,19 @@ def _load(name: str) -> dict:
         return {}
 
 
+ALERT_AFTER_FAILURES = 3
+
+
+def _alert(name, failures, error, recovered=False):
+    """Notify the third consecutive failure of a task (and its recovery); never breaks the worker."""
+    try:
+        from app.notification_digest import worker_task_alert
+
+        worker_task_alert(name, failures, error, recovered)
+    except Exception:  # noqa: BLE001
+        log.exception("Notifica errore worker non registrata")
+
+
 def run_task(name: str, fn, *args, default=None):
     """Run one worker task in isolation and record its outcome."""
     started = time.monotonic()
@@ -68,7 +81,11 @@ def run_task(name: str, fn, *args, default=None):
         state.update({"last_error": f"{type(exc).__name__}: {exc}"[:500], "last_error_at": _now().isoformat(),
                       "failures": int(state.get("failures") or 0) + 1})
         _safe(lambda: _redis().hset(TASKS_KEY, name, json.dumps(state)))
+        if state["failures"] == ALERT_AFTER_FAILURES:
+            _alert(name, state["failures"], state["last_error"])
         return {} if default is None else default
+    if int(state.get("failures") or 0) >= ALERT_AFTER_FAILURES:
+        _alert(name, 0, None, recovered=True)
     state.update({"last_ok": _now().isoformat(), "duration_ms": round((time.monotonic() - started) * 1000), "failures": 0})
     _safe(lambda: _redis().hset(TASKS_KEY, name, json.dumps(state)))
     return result

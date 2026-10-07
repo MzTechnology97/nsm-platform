@@ -49,3 +49,4 @@ class NotificationDelivery(Base):
     last_error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    attachment_ref: Mapped[str | None] = mapped_column(String(80))

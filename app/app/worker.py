@@ -27,6 +27,7 @@ from app.lifecycle_catalog import run_scheduled_reconcile as run_lifecycle_recon
 from app.worker_status import beat, run_task, started
 from app.notification_delivery import deliver_pending as deliver_notifications
 from app.notification_chat import poll_telegram_updates, register_channels
+from app.notification_digest import run_vulnerability_digest
 
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
 log = logging.getLogger("worker")
@@ -67,6 +68,7 @@ while True:
             report_stats = run_task("report_schedules", run_report_schedules)
             advisory_stats = run_task("security_advisories", sync_security_advisories)
             run_task("telegram_updates", poll_telegram_updates)
+            run_task("vulnerability_digest", run_vulnerability_digest)
             notify_stats = run_task("notification_delivery", deliver_notifications)
             if notify_stats.get("failed"):
                 log.warning("Notifiche esterne non consegnate: %s", notify_stats)

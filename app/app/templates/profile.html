@@ -15,6 +15,7 @@
 {% if error == 'password_mismatch' %}<div class="alert error">Le due nuove password non coincidono.</div>{% endif %}
 {% if error == 'password_same' %}<div class="alert error">La nuova password deve essere diversa da quella attuale.</div>{% endif %}
 {% set nstatus = request.query_params.get('status') %}
+{% if nstatus == 'digest_saved' %}<div class="alert success">Preferenza newsletter salvata.</div>{% endif %}
 {% if nstatus == 'notifications_saved' %}<div class="alert success">Preferenze di notifica salvate.</div>{% elif nstatus == 'notifications_test_queued' %}<div class="alert success">Messaggio di prova inviato ai canali abilitati: controlla la ricezione (l'esito è nell'elenco qui sotto).</div>{% elif nstatus == 'notifications_test_none' %}<div class="alert warning">Nessun canale abilitato: attiva almeno un canale e salva.</div>{% endif %}
 {% if error == 'telegram_chat_id' %}<div class="alert error">Per Telegram indica il tuo chat ID numerico (scrivi /start al bot NSM per ottenerlo).</div>{% endif %}
 {% if error == 'slack_webhook' %}<div class="alert error">Per Slack indica un Incoming Webhook valido (https://hooks.slack.com/services/…).</div>{% endif %}
@@ -78,6 +79,9 @@
         {% endfor %}
         <div class="form-actions"><button class="button primary">Salva preferenze</button></div>
       </form>
+      <form method="post" action="/profile/notifications/digest" class="filter-bar" data-profile="digest"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+        <label>Newsletter vulnerabilità<select name="digest">{% for key, label in digest_labels.items() %}<option value="{{ key }}" {% if user.notify_digest == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+        <button class="button">Salva newsletter</button><small class="muted">Riepilogo delle nuove CVE rilevate sui tuoi apparati, con il numero di apparati esposti, sui canali abilitati qui sopra. Non viene inviata se non ci sono novità.</small></form>
       <form method="post" action="/profile/notifications/test"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Invia messaggio di prova</button></form>
       {% if np.recent %}<details><summary>Ultimi messaggi inviati a te</summary><div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Quando</th><th>Canale</th><th>Messaggio</th><th>Stato</th></tr></thead><tbody>
       {% for d in np.recent %}<tr><td>{{ fmt_dt(d.created_at) }}</td><td>{{ d.channel }}</td><td>{{ d.subject }}</td><td>{{ {'sent': 'inviato', 'failed': 'fallito', 'pending': 'in coda'}.get(d.status, d.status) }}{% if d.last_error %}<small class="warning-text">{{ d.last_error }}</small>{% endif %}</td></tr>{% endfor %}
