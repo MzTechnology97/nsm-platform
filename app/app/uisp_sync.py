@@ -22,6 +22,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 
+from app import uisp_metrics
 from app import main as core
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
@@ -293,6 +294,7 @@ def _sync_devices(db, candidates: list[dict], now: datetime) -> dict[str, int]:
             continue
 
         changes = _apply_observed(device, candidate, now)
+        uisp_metrics.record(db, device, candidate, now)
         _set_device_sync(device, now, "ok")
         _resolve_issue(db, MISSING_ISSUE_TITLE, "integration", now, device_id=device.id)
         _resolve_issue(db, CONFLICT_ISSUE_TITLE, "integration", now, device_id=device.id)

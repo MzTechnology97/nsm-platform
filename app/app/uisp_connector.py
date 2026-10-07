@@ -15,6 +15,7 @@ from app import main as core
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
 from app.models import Device, utcnow
+from app import uisp_metrics
 from app.secret_vault import decrypt_text, encrypt_text
 from app.security import validate_csrf
 from app.ui_feedback import exception_message, flash_redirect
@@ -239,6 +240,7 @@ def candidate_from_uisp(row: dict) -> dict:
             "name": str(site.get("name"))[:200] if site.get("name") else None,
             "type": str(site.get("type"))[:80] if site.get("type") else None,
         },
+        "metrics": uisp_metrics.extract(overview),
         "role": str(identification.get("role") or row.get("role") or "")[:80] or None,
         "category": str(identification.get("category") or row.get("category") or "")[:80] or None,
     }
@@ -328,6 +330,7 @@ def apply_candidate(db, device: Device, candidate: dict, actor, event_type="UISP
         "last_sync_at": utcnow().isoformat(),
     }
     device.inventory_data = inventory
+    uisp_metrics.record(db, device, candidate, utcnow())
     after = _snapshot(device)
     changes = {key: {"before": before.get(key), "after": after.get(key)} for key in after if before.get(key) != after.get(key)}
     core.add_event(
@@ -490,6 +493,8 @@ def _device_render(request, db, user, device, *, candidate=None, message=None, e
         candidate=candidate,
         message=message,
         error=error,
+        uisp_view=uisp_metrics.view(db, device) if device.external_device_id else None,
+        format_metric=uisp_metrics.format_value,
     )
 
 

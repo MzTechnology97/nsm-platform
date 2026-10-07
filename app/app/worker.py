@@ -14,6 +14,7 @@ from app.firmware_activation import reconcile_firmware_activations
 from app.firmware_plan_recovery import reconcile_firmware_plan_jobs
 from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_finalization_cleanup
 from app.mikrotik_telemetry import telemetry_cleanup
+from app.uisp_metrics import cleanup as uisp_metrics_cleanup
 from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
 from app.mikrotik_device_reboot import verify_reboots
 from app.mikrotik_legacy_operations import verify_upgrades as verify_legacy_upgrades
@@ -92,7 +93,7 @@ while True:
             last_compliance = now_mono
 
         if now_mono - last_telemetry_maintenance >= TELEMETRY_MAINTENANCE_INTERVAL_SECONDS:
-            deleted = telemetry_cleanup()
+            deleted = telemetry_cleanup() + uisp_metrics_cleanup()
             if deleted:
                 log.info("Telemetry retention: rimossi %s campioni scaduti", deleted)
             last_telemetry_maintenance = now_mono

@@ -26,7 +26,7 @@
         <td><code>{{ d.management_ip or '—' }}</code></td>
         <td>{{ d.firmware_version or '—' }}{% if d.recommended_firmware_version and d.recommended_firmware_version != d.firmware_version %}<small class="warning-text">→ {{ d.recommended_firmware_version }}</small>{% endif %}</td>
         {% if cve_counts is not none %}<td>{% set cve = cve_counts.get(d.id) %}{% if cve %}<a class="severity-badge severity-{{ cve[1] or 'info' }}" href="/security/vulnerabilities?customer={{ customer.id }}&device={{ d.id }}&status=open" title="CVE aperte; {{ cve[2] }} critical/high non gestite">{{ cve[0] }} · {{ (cve[1] or '—')|upper }}</a>{% if cve[2] %}<small class="warning-text">{{ cve[2] }} da gestire</small>{% endif %}{% elif cve_ready and d.vendor == 'mikrotik' and d.firmware_version %}<span class="muted">0</span>{% else %}<span class="muted" title="Nessun dato CVE per questo vendor o versione">—</span>{% endif %}</td>{% endif %}
-        <td><span class="device-status status-{{ d.status }}">{{ status_label(d.status) }}</span></td>
+        <td><span class="device-status status-{{ d.status }}">{{ status_label(d.status) }}</span>{% set um = ((d.inventory_data or {}).get('uisp') or {}).get('metrics') or {} %}{% if um.get('signal_dbm') is not none %}<small>segnale {{ um.signal_dbm }} dBm</small>{% endif %}</td>
       </tr>
     {% endfor %}</tbody>
   </table></div>
