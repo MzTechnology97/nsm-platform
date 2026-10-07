@@ -102,9 +102,10 @@ from app.uisp_onboarding import install_uisp_onboarding
 from app.routeros_catalog import install_routeros_catalog
 from app.firmware_suggestions import install_firmware_suggestions
 from app.system_status import install_system_status
+from app.api_key_lifecycle import install_api_key_lifecycle
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.26"
+APP_VERSION = "0.49.27"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -155,6 +156,7 @@ install_uisp_onboarding(core.app)
 install_routeros_catalog(core.app)
 install_firmware_suggestions(core.app)
 install_system_status(core.app)
+install_api_key_lifecycle(core.app)
 install_customer_workspace(core.app)
 install_backup_workspace_capabilities(core.app)
 promote_customer_workspace_routes(core.app)

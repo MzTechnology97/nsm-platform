@@ -83,6 +83,8 @@ def authenticate_api_key(db, request: Request, required_scope: str):
     if required_scope not in scopes:
         raise HTTPException(403, "Scope API insufficiente.")
     key.last_used_at = now
+    key.last_used_ip = (request.client.host if request.client else None) or None
+    key.use_count = int(key.use_count or 0) + 1
     db.commit()
     return key
 

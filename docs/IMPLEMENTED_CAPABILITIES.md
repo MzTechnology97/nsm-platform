@@ -597,6 +597,12 @@ API-key protected read-only routes include:
 
 The API supports scoped permissions and Customer isolation. Browser API-key management and machine-facing API error contracts are intentionally separate.
 
+API-key lifecycle (`app/api_key_lifecycle.py`, migration 0024):
+
+- every authenticated request records time, client IP and a request counter on the key;
+- *Ruota* issues a new key with the same name, scopes, Customer and validity length (shown once); the old key stays valid for 24 h or 7 days, or is revoked at once, and points to its replacement (`API_KEY_ROTATED` audit event, without secrets);
+- review states on *Amministrazione → API Keys*: expired but still active, expiring within 14 days, in replacement, never used after 30 days, unused for 90 days, no expiry; a summary lists what needs action.
+
 ## 18. Deployment and operations
 
 ### Implemented
