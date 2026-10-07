@@ -188,6 +188,14 @@ The generated-source compatibility blocker found during earlier testing has been
 
 A fresh physical clean-enrollment and feature-by-feature revalidation is still required before this point release is marked physically accepted.
 
+### RouterOS 6.48 / 6.49 — legacy family, v6 source
+
+- compatibility family `routeros-6-legacy`: same bodyless enrollment, header heartbeat and rows-v1 jobs as 7.12;
+- RouterOS validates every command when a script is loaded, so v6 gets its own source: ping reports `sent=10;received=N` (v6 `/ping` has no `as-value`), snapshot sections iterate `print as-value` rows with the same bounded output, and NSM refuses to hand out a v6 source that still contains a v7-only construct (`:serialize`, `/file read`, `as-value` on ping/traceroute, `get` without property, v7 menu paths);
+- traceroute is refused server-side with an explicit message (not scriptable on v6);
+- releases older than 6.48 stay unvalidated (fail closed);
+- backup and firmware actions are not available on legacy families; physical acceptance on 6.49 is tracked in issue #128.
+
 ### RouterOS 7.12.1 — legacy family
 
 Physically validated:

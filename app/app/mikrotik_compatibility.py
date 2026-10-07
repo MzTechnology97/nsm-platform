@@ -61,9 +61,15 @@ def resolve_routeros_compatibility(
     parsed = parse_routeros_version(version)
     normalized = ".".join(str(part) for part in parsed) if parsed else None
 
-    # Only RouterOS 7.x is currently validated by the real-device matrix.
-    # Unknown/future major releases deliberately fail closed until validated.
-    if not parsed or parsed[0] != 7:
+    # RouterOS 6.48/6.49 runs the legacy transport through a v6-specific
+    # source (no v7-only syntax).  Older and unknown/future majors fail closed.
+    if parsed and parsed[0] == 6 and parsed[1] >= 48:
+        recommended = "legacy"
+        family = "routeros-6-legacy"
+        validated = True
+        reason = "RouterOS 6.48/6.49 uses the header/plain-text legacy transport with the v6 source variant"
+        capabilities = deepcopy(LEGACY_CAPABILITIES)
+    elif not parsed or parsed[0] != 7:
         recommended = "unknown"
         family = "unvalidated"
         validated = False
