@@ -29,6 +29,18 @@ case "$cmd" in
     # Re-encrypt stored secrets with ENCRYPTION_MASTER_KEY (old key in ENCRYPTION_PREVIOUS_KEYS, see docs/OPERATIONS.md).
     docker compose run --rm api python -m app.cli rotate-secrets
     ;;
+  acs-enable)
+    # Enable the integrated GenieACS stack: UI secret, compose profile, NBI URL for NSM.
+    secrets=secrets/bootstrap.env
+    grep -q '^GENIEACS_UI_JWT_SECRET=' "$secrets" || echo "GENIEACS_UI_JWT_SECRET=$(openssl rand -hex 32)" >> "$secrets"
+    grep -q '^COMPOSE_PROFILES=' .env || echo "COMPOSE_PROFILES=acs" >> .env
+    grep -q '^GENIEACS_INTERNAL_NBI_URL=' .env || echo "GENIEACS_INTERNAL_NBI_URL=http://genieacs-nbi:7557" >> .env
+    mkdir -p data/genieacs-mongo
+    docker compose up -d --build
+    echo "GenieACS attivo: ACS URL per le CPE http://<indirizzo-server>:7547"
+    echo "Collega NSM da Amministrazione > Integrazioni > GenieACS / TR-069 (pulsante «Usa GenieACS integrato»)."
+    echo "Interfaccia GenieACS solo locale: ssh -L 3000:127.0.0.1:3000 <server>, poi http://127.0.0.1:3000"
+    ;;
   restore-drill)
     # Restore a dump into a temporary database, check it, drop it; the live database is not touched.
     dir=data/backups/platform-db
@@ -87,6 +99,7 @@ Uso: ./manage.sh <comando>
   backup-db      Crea pg_dump compresso
   restore-drill [dump]  Prova di ripristino su database temporaneo (default: ultimo dump)
   rotate-secrets        Ricifra i segreti con la nuova ENCRYPTION_MASTER_KEY
+  acs-enable            Attiva GenieACS integrato (TR-069) nello stack Docker
   restore-db <dump>     Sostituisce il database con un dump (chiede conferma)
   seed-demo      Crea dataset demo reversibile con backup fittizi
   clear-demo     Rimuove esclusivamente il dataset demo

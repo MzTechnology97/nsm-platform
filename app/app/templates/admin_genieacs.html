@@ -6,6 +6,8 @@
 {% set integration_tab = "genieacs" %}{% include "_integration_tabs.html" %}
 
 {% if message %}<div class="alert success">{{ message }}</div>{% endif %}
+{% if internal_url %}<section class="panel" data-genieacs="integrated"><div class="panel-header"><div><h2>GenieACS integrato</h2><p>Lo stack Docker di NSM include GenieACS (<code>{{ internal_url }}</code>, rete interna). Le CPE vanno configurate con ACS URL <code>http://&lt;indirizzo-server&gt;:7547</code>.</p></div>
+  {% if not connection or connection.base_url != internal_url %}<form method="post" action="/admin/integrations/genieacs/internal"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Usa GenieACS integrato</button></form>{% else %}<span class="device-status status-online">In uso</span>{% endif %}</div></section>{% endif %}
 {% if error %}<div class="alert warning">{{ error }}</div>{% endif %}
 
 <div class="content-split">

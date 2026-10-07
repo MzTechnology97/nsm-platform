@@ -37,8 +37,8 @@ sudo chmod 0700 "$PLATFORM_DIR/data/postgres"
 prepare_backup_storage
 
 info "Installo il core preservando data/, secrets/ e configurazione runtime..."
-sudo rm -rf "$PLATFORM_DIR/app" "$PLATFORM_DIR/config"
-sudo cp -a app config "$PLATFORM_DIR/"
+sudo rm -rf "$PLATFORM_DIR/app" "$PLATFORM_DIR/config" "$PLATFORM_DIR/genieacs"
+sudo cp -a app config genieacs "$PLATFORM_DIR/"
 sudo install -m 0755 manage.sh "$PLATFORM_DIR/manage.sh"
 sudo install -m 0755 update.sh "$PLATFORM_DIR/update.sh"
 sudo install -m 0640 docker-compose.yml "$PLATFORM_DIR/docker-compose.yml"
@@ -50,8 +50,8 @@ else
   info "Preservo .env runtime esistente."
 fi
 
-sudo chown -R root:docker "$PLATFORM_DIR/app" "$PLATFORM_DIR/config" "$PLATFORM_DIR/docker-compose.yml" "$PLATFORM_DIR/.env" "$PLATFORM_DIR/manage.sh" "$PLATFORM_DIR/update.sh"
-sudo chmod -R g+rX "$PLATFORM_DIR/app" "$PLATFORM_DIR/config"
+sudo chown -R root:docker "$PLATFORM_DIR/app" "$PLATFORM_DIR/config" "$PLATFORM_DIR/genieacs" "$PLATFORM_DIR/docker-compose.yml" "$PLATFORM_DIR/.env" "$PLATFORM_DIR/manage.sh" "$PLATFORM_DIR/update.sh"
+sudo chmod -R g+rX "$PLATFORM_DIR/app" "$PLATFORM_DIR/config" "$PLATFORM_DIR/genieacs"
 
 cd "$PLATFORM_DIR"
 info "Build, migrazioni e avvio stack..."

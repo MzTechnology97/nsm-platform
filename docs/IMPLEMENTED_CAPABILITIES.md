@@ -445,6 +445,8 @@ These future features must only be exposed when the actual vendor API capability
 
 ### GenieACS connector (ACS-01..03, read-only)
 
+- integrated GenieACS in the Docker stack (compose profile `acs`, `./manage.sh acs-enable`): cwmp (7547) and fs (7567) published, NBI internal, UI on the host loopback only, MongoDB internal; image built from the official npm package, non-root, privileges dropped; *Usa GenieACS integrato* configures the connector in one click;
+
 - *Amministrazione → Integrazioni → GenieACS / TR-069*: NBI URL (loopback, localhost, credentials in the URL refused), authentication none / HTTP Basic / Bearer for a reverse proxy (encrypted), configurable MAC parameter paths, online window, connectivity test that reads nothing;
 - *ACS* tab on TP-Link/TR-069 Devices: lookup by serial number (`_deviceId._SerialNumber`) then MAC, preview, explicit association that keeps the NSM Customer/Site, refresh by the stored GenieACS ID that refuses a changed serial; identity, model, firmware, hardware, IP, last Inform and online state are normalized from TR-098 and TR-181 paths; audit events `GENIEACS_*` without secrets;
 - the integrations hub shows the real connector state and how many TR-069 CPE are associated or still to associate.
