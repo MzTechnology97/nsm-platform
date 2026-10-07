@@ -76,3 +76,22 @@ class DeviceMetricSample(Base):
     total_memory_bytes: Mapped[int | None] = mapped_column(BigInteger)
     uptime_text: Mapped[str | None] = mapped_column(String(100))
     source: Mapped[str] = mapped_column(String(40), default="mikrotik_agent", nullable=False)
+
+
+class DeviceInterfaceSample(Base):
+    """Interface traffic history (MON-01): bit/s computed from the agent byte counters."""
+    __tablename__ = "device_interface_samples"
+    __table_args__ = (
+        Index("ix_device_interface_samples_device_iface_observed", "device_id", "interface", "observed_at"),
+        Index("ix_device_interface_samples_observed_at", "observed_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    device_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("devices.id", ondelete="CASCADE"), nullable=False)
+    interface: Mapped[str] = mapped_column(String(100), nullable=False)
+    if_type: Mapped[str | None] = mapped_column(String(40))
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    rx_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    tx_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    rx_bps: Mapped[float | None] = mapped_column(Float)
+    tx_bps: Mapped[float | None] = mapped_column(Float)

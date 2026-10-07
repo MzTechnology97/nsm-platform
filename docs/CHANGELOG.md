@@ -4,6 +4,21 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.43 — 2026-10-07
+
+Monitoring
+- **Interface traffic graphs** (MON-01) on the MikroTik Monitor page, in Cacti/Zabbix style: in/out bit/s, 1h/24h/7d/30d ranges, current/average/maximum/95th percentile/volume.
+  - Counter resets and missing heartbeats show as gaps.
+  - WAN interfaces (PPPoE client, LTE, tunnel clients, else ether1) are monitored by default, and the list can be changed per device.
+  - Retention is 90 days (migration 0029).
+- **MikroTik Agent 0.49.9** sends the interface byte counters with every heartbeat: as a metric on modern agents, as the `X-NSM-Ifaces` header on 7.12 and RouterOS 6 legacy agents. Modern agents self-update; legacy agents need a reinstall to start sending counters.
+
+- **Last telemetry is never lost** (MON-02): retention keeps the newest sample of every device and interface (MikroTik metrics, interface traffic, UISP metrics), so an offline or unreachable device still shows the last data received; the Monitor page shows its date.
+
+Roadmap
+- LOG-01: integrated syslog server with live per-device logs, configured by the agent.
+- DUDE-01: integration with MikroTik The Dude through the RouterOS API (features to be evaluated).
+
 ## 0.49.42 — 2026-10-07
 
 GUI

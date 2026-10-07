@@ -78,7 +78,10 @@ def enhanced_agent_source(base_url: str, device_id: uuid.UUID, raw_secret: str, 
 :do {{ :set nsmRouterboot [/system routerboard get current-firmware] }} on-error={{}}
 :do {{ :local nsmEth [/interface ethernet find]; :if ([:len $nsmEth] > 0) do={{ :set nsmMac [/interface ethernet get ($nsmEth->0) mac-address] }} }} on-error={{}}
 :local nsmInventory {{"identity"=$nsmIdentity;"model"=$nsmModel;"routeros_version"=$nsmVersion;"architecture"=$nsmArch;"serial_number"=$nsmSerial;"software_id"=$nsmSoftwareId;"routerboot_version"=$nsmRouterboot;"primary_mac"=$nsmMac;"uptime"=$nsmUptime;"cpu"=$nsmCpu;"cpu_count"=$nsmCpuCount;"total_memory"=$nsmTotalMemory;"free_memory"=$nsmFreeMemory;"agent_version"="{AGENT_VERSION}"}}
-:local nsmMetrics {{"cpu_load"=[:tostr $nsmCpuLoad];"free_memory"=[:tostr $nsmFreeMemory];"uptime"=[:tostr $nsmUptime]}}
+:local nsmIfaces ""
+:do {{ :foreach nsmIf in=[/interface find where running=yes && dynamic=no && type!="ether" && type!="vlan" && type!="bridge"] do={{ :if ([:len $nsmIfaces] < 6000) do={{ :set nsmIfaces ($nsmIfaces . [/interface get $nsmIf name] . "|" . [/interface get $nsmIf type] . "|" . [/interface get $nsmIf rx-byte] . "|" . [/interface get $nsmIf tx-byte] . ";") }} }} }} on-error={{}}
+:do {{ :foreach nsmIf in=[/interface find where running=yes && dynamic=no && (type="ether" || type="vlan" || type="bridge")] do={{ :if ([:len $nsmIfaces] < 6000) do={{ :set nsmIfaces ($nsmIfaces . [/interface get $nsmIf name] . "|" . [/interface get $nsmIf type] . "|" . [/interface get $nsmIf rx-byte] . "|" . [/interface get $nsmIf tx-byte] . ";") }} }} }} on-error={{}}
+:local nsmMetrics {{"cpu_load"=[:tostr $nsmCpuLoad];"free_memory"=[:tostr $nsmFreeMemory];"uptime"=[:tostr $nsmUptime];"ifaces"=$nsmIfaces}}
 :local nsmPayload {{"inventory"=$nsmInventory;"metrics"=$nsmMetrics;"agent_version"="{AGENT_VERSION}"}}
 :local nsmJson [:serialize value=$nsmPayload to=json options=json.no-string-conversion]
 :local nsmHeartbeatResult ""
