@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_worklist.html" import chips, pager, context_banner %}
+{% block title %}Incidenti · {{ app_name }}{% endblock %}
+{% block content %}
+{% set scope = '?q=' ~ q|urlencode ~ '&customer=' ~ customer_filter %}
+<div class="page-header compact-heading">
+  <div><h1>Incidenti</h1><p>Disservizi e anomalie sotto analisi, con la timeline degli eventi registrati da NSM e le note degli operatori.</p></div>
+  {% if has_permission(user, 'incidents.write') %}<div class="page-actions"><a class="button primary" href="/incidents/new{% if customer_filter %}?customer={{ customer_filter }}{% endif %}">+ Nuovo incidente</a></div>{% endif %}
+</div>
+
+{{ chips([
+  {'label': 'Attivi', 'count': counts.get('active', 0), 'href': scope ~ '&status=active', 'active': status_filter == 'active', 'tone': 'warning'},
+  {'label': 'Aperti', 'count': counts.get('open', 0), 'href': scope ~ '&status=open', 'active': status_filter == 'open'},
+  {'label': 'In analisi', 'count': counts.get('investigating', 0), 'href': scope ~ '&status=investigating', 'active': status_filter == 'investigating'},
+  {'label': 'In monitoraggio', 'count': counts.get('monitoring', 0), 'href': scope ~ '&status=monitoring', 'active': status_filter == 'monitoring'},
+  {'label': 'Risolti', 'count': counts.get('resolved', 0), 'href': scope ~ '&status=resolved', 'active': status_filter == 'resolved'},
+  {'label': 'Tutti', 'count': counts.get('all', 0), 'href': scope ~ '&status=all', 'active': status_filter == 'all'},
+]) }}
+{{ context_banner(selected_customer, 'Incidenti di questo cliente.') }}
+
+<section class="panel">
+  <form class="filter-bar" method="get">
+    <input type="hidden" name="status" value="{{ status_filter }}">
+    <input type="search" name="q" value="{{ q }}" placeholder="Titolo o descrizione" aria-label="Cerca">
+    <select name="customer" aria-label="Cliente"><option value="">Tutti i clienti</option>{% for c in customers %}<option value="{{ c.id }}" {% if customer_filter == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
+    <button class="button primary">Applica</button>
+    {% if q or customer_filter or status_filter != 'active' %}<a class="button ghost" href="/incidents">Reset</a>{% endif %}
+  </form>
+  {% if rows %}
+  <div class="table-wrap"><table class="data-table compact-data-table">
+    <thead><tr><th>Incidente</th><th>Cliente</th><th>Gravità</th><th>Stato</th><th>Inizio</th><th>Durata</th><th>Apparati</th></tr></thead>
+    <tbody>{% for incident, customer, device_count in rows %}
+      {% set end = incident.resolved_at or now %}{% set minutes = ((end - incident.started_at).total_seconds() // 60)|int %}
+      <tr>
+        <td><a class="strong-link" href="/incidents/{{ incident.id }}">{{ incident.title }}</a>{% if incident.summary %}<small>{{ incident.summary|truncate(90) }}</small>{% endif %}</td>
+        <td><a href="/customers/{{ customer.id }}">{{ customer.name }}</a></td>
+        <td><span class="severity-badge severity-{{ incident.severity }}">{{ severities.get(incident.severity, incident.severity) }}</span></td>
+        <td><span class="status-pill">{{ statuses.get(incident.status, incident.status) }}</span></td>
+        <td>{{ fmt_dt(incident.started_at) }}</td>
+        <td>{% if minutes >= 1440 %}{{ minutes // 1440 }} g {{ (minutes % 1440) // 60 }} h{% elif minutes >= 60 %}{{ minutes // 60 }} h {{ minutes % 60 }} min{% else %}{{ minutes }} min{% endif %}{% if not incident.resolved_at %}<small>in corso</small>{% endif %}</td>
+        <td>{{ device_count }}</td>
+      </tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {{ pager(total, page, pages, scope ~ '&status=' ~ status_filter) }}
+  {% else %}
+  <div class="empty-state{% if status_filter == 'active' %} success-state{% endif %}">{% if status_filter == 'active' %}Nessun incidente attivo.{% else %}Nessun incidente corrisponde ai filtri.{% endif %}</div>
+  {% endif %}
+</section>
+{% endblock %}

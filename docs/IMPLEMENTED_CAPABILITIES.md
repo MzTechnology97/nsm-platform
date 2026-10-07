@@ -427,6 +427,21 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 
 - other advisory sources and non-MikroTik product mappings;
 
+## 15b. Incidents and timeline (INC-01 / INC-02)
+
+### Implemented
+
+- Incident per Customer with optional Site, involved Devices, severity, start and resolution time, status open → investigating → monitoring → resolved (reopen allowed); audit events for creation, status, notes and device changes;
+- permissions: `incidents.read` (all roles), `incidents.write` (Technician, Operator, Admin);
+- timeline rebuilt on demand from recorded evidence in the window *start − 6 h … (resolution or now) + 1 h*: audit events of the involved Devices and Customer-level events, Action Center issues opened/resolved, backup runs, agent jobs completed/failed/expired, vulnerability state changes;
+- operator notes (*Nota* / *Azione eseguita*) with their own timestamp, shown with a distinct style and label; filters *Tutto / Fatti osservati / Note operatore*;
+- deterministic ordering (time, source, record id); per-source cap with an explicit truncation notice;
+- entry points: sidebar *Incidenti*, *Apri incidente* on every Device header, *Incidenti* on the Customer header.
+
+### Boundary
+
+- the timeline never infers causes: correlation and an operator-confirmed root cause are INC-03; report integration is INC-04.
+
 ## 16. Lifecycle / EOL / EOS
 
 ### Implemented foundation

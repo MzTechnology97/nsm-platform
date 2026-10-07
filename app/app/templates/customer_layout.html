@@ -42,6 +42,7 @@
   </div>
   <div class="device-header-actions">
     {% block customer_actions %}{% endblock %}
+    {% if has_permission(user, 'incidents.read') %}<a class="button ghost" href="/incidents?customer={{ customer.id }}&status=all">Incidenti</a>{% endif %}
     {% if has_permission(user, 'customers.write') %}<a class="button ghost" href="{{ customer_base }}/edit">Gestisci cliente</a>{% endif %}
     {% if has_permission(user, 'devices.write') %}<a class="button primary" href="{{ customer_base }}/devices/new">+ Apparato</a>{% endif %}
   </div>

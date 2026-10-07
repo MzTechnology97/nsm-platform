@@ -4319,3 +4319,19 @@ input[type="checkbox"], input[type="radio"] { width: auto; min-height: 0; height
 /* Simple bullet-less list for diagnostic details. */
 .plain-list { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
 .plain-list li { font-size: 13px; }
+
+/* Incident timeline: observed facts vs operator notes are visually distinct. */
+.timeline { list-style: none; margin: 14px 0 0; padding: 0 0 0 18px; border-left: 2px solid var(--border); display: grid; gap: 10px; }
+.timeline-entry { position: relative; display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 12px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); }
+.timeline-entry::before { content: ""; position: absolute; left: -25px; top: 14px; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); border: 2px solid var(--panel); }
+.timeline-entry time { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.timeline-entry strong { display: block; }
+.timeline-entry small { display: block; color: var(--muted); }
+.timeline-entry p { margin: 4px 0 0; white-space: pre-wrap; }
+.timeline-source { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+.timeline-operator { border-style: dashed; background: color-mix(in srgb, var(--accent) 6%, var(--panel)); }
+.timeline-operator::before { background: var(--accent); }
+.timeline-operator .timeline-source { color: var(--accent-text); }
+.timeline-severe::before { background: var(--danger); }
+.timeline-marker { margin-left: -18px; padding: 4px 10px; font-size: 12px; font-weight: 700; color: var(--warning-text); border-left: 3px solid var(--warning); background: color-mix(in srgb, var(--warning) 10%, var(--panel)); }
+@media (max-width: 820px) { .timeline-entry { grid-template-columns: minmax(0, 1fr); gap: 4px; } }

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Nuovo incidente · {{ app_name }}{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="Percorso"><a href="/incidents">Incidenti</a><span>›</span><span>Nuovo</span></nav>
+<div class="page-header compact-heading">
+  <div><h1>Nuovo incidente</h1><p>Registra cosa sta succedendo e quali apparati sono coinvolti: la timeline mostrerà gli eventi NSM attorno all'inizio indicato.</p></div>
+</div>
+
+{% if not selected_customer %}
+<section class="panel">
+  <form method="get" action="/incidents/new" class="filter-bar">
+    <select name="customer" aria-label="Cliente" required><option value="">Seleziona il cliente…</option>{% for c in customers %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select>
+    <button class="button primary">Continua</button>
+  </form>
+</section>
+{% else %}
+<section class="panel">
+  <form method="post" action="/incidents" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <input type="hidden" name="customer_id" value="{{ selected_customer.id }}">
+    <div class="form-grid">
+      <label>Cliente<input value="{{ selected_customer.name }}" readonly><small><a href="/incidents/new">Cambia cliente</a></small></label>
+      <label>Sede<select name="site_id"><option value="">Nessuna sede specifica</option>{% for s in sites %}<option value="{{ s.id }}" {% if preselected_site == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select></label>
+      <label>Titolo<input name="title" required maxlength="200" placeholder="Es. Perdita di connettività sede principale"></label>
+      <label>Gravità<select name="severity">{% for key, label in severities.items() %}<option value="{{ key }}" {% if key == 'medium' %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Inizio<input type="datetime-local" name="started_at" required value="{{ default_started }}"><small>Quando è iniziato il problema, anche se segnalato dopo.</small></label>
+    </div>
+    <label>Descrizione<textarea name="summary" rows="3" maxlength="4000" placeholder="Sintomi osservati, segnalazione del cliente, impatto"></textarea></label>
+    <fieldset class="scope-options"><legend>Apparati coinvolti</legend>
+      {% for d in devices %}<label><input type="checkbox" name="device_ids" value="{{ d.id }}" {% if d.id in preselected %}checked{% endif %}> <span>{{ d.display_name or d.device_identity or d.name }}<small>{{ d.vendor }}{% if d.model %} · {{ d.model }}{% endif %} · {{ status_label(d.status) }}</small></span></label>{% else %}<p class="muted">Il cliente non ha apparati registrati.</p>{% endfor %}
+    </fieldset>
+    <div class="form-actions"><a class="button ghost" href="/incidents">Annulla</a><button class="button primary">Apri incidente</button></div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}
