@@ -19,6 +19,7 @@ from app import mikrotik_agent as agent_module
 from app.agent_models import DeviceAgentCredential, DeviceJob
 from app.db import SessionLocal
 from app.models import Device, utcnow
+from app.routeros_version import compare_routeros_versions, is_newer_routeros_version
 
 router = APIRouter()
 JOB_TYPE = "firmware_readiness"
@@ -46,16 +47,29 @@ def apply_firmware_readiness(db, device: Device, result: dict, *, source: str):
 
     if installed:
         device.firmware_version = installed
-    if latest:
-        device.recommended_firmware_version = latest
     lowered = status.lower()
-    if installed and latest:
-        if installed == latest or "already up to date" in lowered:
-            device.firmware_status = "current"
-        else:
-            device.firmware_status = "update_available"
-    elif "new version" in lowered:
+    relation = "unknown"
+    newer = is_newer_routeros_version(latest, installed) if installed and latest else None
+    if newer is True:
+        relation = "newer"
+        device.recommended_firmware_version = latest
         device.firmware_status = "update_available"
+    elif newer is False:
+        # The channel may publish an older build than the installed one (e.g.
+        # long-term channel on a stable install). That is never an update.
+        relation = "same" if compare_routeros_versions(latest, installed) == 0 else "older"
+        device.recommended_firmware_version = None
+        device.firmware_status = "current"
+    else:
+        if latest:
+            device.recommended_firmware_version = latest
+        if installed and latest:
+            if installed == latest or "already up to date" in lowered:
+                device.firmware_status = "current"
+            else:
+                device.firmware_status = "update_available"
+        elif "new version" in lowered:
+            device.firmware_status = "update_available"
 
     data = dict(device.inventory_data or {})
     data["firmware_readiness"] = {
@@ -66,6 +80,7 @@ def apply_firmware_readiness(db, device: Device, result: dict, *, source: str):
         "free_hdd_space": free_hdd or None,
         "routerboard_current": rb_current or None,
         "routerboard_upgrade": rb_upgrade or None,
+        "latest_relation": relation,
         "checked_at": utcnow().isoformat(),
         "source": source,
     }

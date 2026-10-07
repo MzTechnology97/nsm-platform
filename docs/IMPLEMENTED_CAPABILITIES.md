@@ -306,6 +306,7 @@ Focused modern-Agent hardening for no-progress upload handling and cleanup of Ro
 
 - customer-aware firmware worklist;
 - firmware readiness Agent operation;
+- RouterOS version ordering (`7.21beta3 < 7.21rc1 < 7.21 < 7.21.1`): an update is reported/recommended only when the channel build is newer than the installed one, and the upgrade planner refuses downgrades or unparseable versions;
 - safe upgrade-plan model/workflow;
 - explicit approval step;
 - download-only package staging flow;
