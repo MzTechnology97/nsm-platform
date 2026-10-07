@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.42 — 2026-10-07
+
+GUI
+- **Global search**: compact suggestions grouped by pages, CVEs, devices, customers and sites, with counts and *vedi tutti*; device status dot, manufacturer and matched field; pages filtered by permission; CVE results with severity and exposed devices; recent searches; `/` and Ctrl+K shortcuts; highlight no longer splits values.
+- **Manufacturer icons** instead of the two-letter vendor badges (Simple Icons, CC0, self-hosted sprite; generic device icon for brands without a published icon).
+
 ## 0.49.41 — 2026-10-07
 
 Security

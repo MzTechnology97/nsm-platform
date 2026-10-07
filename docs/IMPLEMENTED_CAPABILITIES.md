@@ -128,6 +128,11 @@ Expected browser failures remain in the application using one-shot success/info/
 
 Agent endpoints, connector contracts, upload endpoints and the public API retain structured HTTP/JSON behavior. The browser UX layer must not globally rewrite machine errors into HTML.
 
+### Global search and manufacturer icons
+
+- global search suggestions: «search the whole portal» first, then pages (only those the user can open), CVEs with severity and exposed devices, devices with manufacturer icon, online/offline dot and the matched field (serial, MAC, IP…), customers and sites; group counts with *vedi tutti*; recent searches on focus (stored in the browser); keyboard navigation, Tab completion, `/` or Ctrl+K to focus;
+- manufacturer icons (`static/brand-icons.svg`, from Simple Icons, CC0) for MikroTik, Ubiquiti, TP-Link, Huawei, Fortinet, Juniper, Cisco, Palo Alto, SonicWall, Netgear, ASUS, Linksys and AVM, and a generic device icon with the manufacturer name for the others; used in the device lists, the device header and the search.
+
 ## 5. Backup framework
 
 ### Implemented

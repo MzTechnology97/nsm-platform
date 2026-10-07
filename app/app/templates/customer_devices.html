@@ -18,7 +18,7 @@
     <thead><tr><th>Apparato</th><th>Sede</th><th>Vendor / modello</th><th>Seriale</th><th>MAC</th><th>IP</th><th>Firmware</th>{% if cve_counts is not none %}<th>CVE</th>{% endif %}<th>Stato</th></tr></thead>
     <tbody>{% for d in devices %}
       <tr>
-        <td><a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a><small>{{ d.device_identity or 'Identity non rilevata' }}</small></td>
+        <td><div class="inventory-device">{{ brand_icon(d, 22) }}<div><a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a><small>{{ d.device_identity or 'Identity non rilevata' }}</small></div></div></td>
         <td>{{ d.site.name if d.site else 'Nessuna sede' }}</td>
         <td>{{ d.vendor }}<small>{{ d.model or '—' }}</small></td>
         <td><code>{{ d.serial_number or '—' }}</code></td>

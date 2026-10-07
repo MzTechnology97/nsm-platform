@@ -46,6 +46,8 @@
   const searchWrap = document.querySelector('[data-global-search-wrap]');
   const searchInput = document.querySelector('[data-global-search-input]');
   const suggestions = document.querySelector('[data-search-suggestions]');
+  const searchForm = searchWrap ? searchWrap.querySelector('form') : null;
+  const RECENT_KEY = 'nsm.search.recent';
   let searchTimer = null, searchAbort = null, activeIndex = -1;
 
   function escapeHtml(value) { return String(value ?? '').replace(/[&<>'\"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[char])); }
@@ -57,76 +59,112 @@
     if (index < 0) return escapeHtml(text);
     return escapeHtml(text.slice(0, index)) + '<mark>' + escapeHtml(text.slice(index, index + needle.length)) + '</mark>' + escapeHtml(text.slice(index + needle.length));
   }
-  function resultIcon(type) { if (type === 'Cliente') return '◎'; if (type === 'Sede') return '⌖'; return '▣'; }
-  function closeSuggestions() { if (!suggestions) return; suggestions.classList.remove('open'); suggestions.innerHTML = ''; activeIndex = -1; }
+  function readRecent() { try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]').filter((v) => typeof v === 'string').slice(0, 6); } catch (e) { return []; } }
+  function saveRecent(value) {
+    const term = String(value || '').trim();
+    if (term.length < 2) return;
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify([term, ...readRecent().filter((v) => v.toLowerCase() !== term.toLowerCase())].slice(0, 6))); } catch (e) {}
+  }
+  function clearRecent() { try { localStorage.removeItem(RECENT_KEY); } catch (e) {} }
+  const TYPE_META = {
+    'Pagina': {label: 'Pagine', icon: '↗', cls: 'page'},
+    'Vulnerabilità': {label: 'Vulnerabilità', icon: '!', cls: 'cve'},
+    'Apparato': {label: 'Apparati', icon: '▣', cls: 'device'},
+    'Cliente': {label: 'Clienti', icon: '◎', cls: 'customer'},
+    'Sede': {label: 'Sedi', icon: '⌖', cls: 'site'},
+  };
+  function iconFor(item) {
+    if (item.type === 'Apparato' && item.icon) {
+      const fill = item.icon.color ? ` fill="${escapeHtml(item.icon.color)}"` : '';
+      const kind = item.icon.brand ? 'brand' : 'generic';
+      return `<span class="sg-icon sg-device brand-icon brand-icon-${kind}" title="${escapeHtml(item.icon.label)}"><svg width="18" height="18" viewBox="0 0 24 24"${fill} aria-hidden="true"><use href="/static/brand-icons.svg#${escapeHtml(item.icon.symbol)}"></use></svg></span>`;
+    }
+    const meta = TYPE_META[item.type] || TYPE_META['Apparato'];
+    return `<span class="sg-icon sg-${meta.cls}" aria-hidden="true">${meta.icon}</span>`;
+  }
+  function closeSuggestions() { if (!suggestions) return; suggestions.classList.remove('open'); suggestions.innerHTML = ''; activeIndex = -1; if (searchInput) searchInput.setAttribute('aria-expanded', 'false'); }
+  function openSuggestions(html) { suggestions.innerHTML = html; suggestions.classList.add('open'); activeIndex = -1; if (searchInput) searchInput.setAttribute('aria-expanded', 'true'); }
   function suggestionItems() { return suggestions ? Array.from(suggestions.querySelectorAll('.search-suggestion')) : []; }
   function setActive(index) {
     const items = suggestionItems();
     if (!items.length) { activeIndex = -1; return; }
     activeIndex = Math.max(0, Math.min(index, items.length - 1));
-    items.forEach((item, i) => item.classList.toggle('active', i === activeIndex));
+    items.forEach((item, i) => { item.classList.toggle('active', i === activeIndex); item.setAttribute('aria-selected', i === activeIndex ? 'true' : 'false'); });
     items[activeIndex].scrollIntoView({block: 'nearest'});
   }
-  function deviceMeta(item, query) {
-    const values = [['Seriale', item.serial], ['MAC', item.mac], ['IP', item.ip]].filter((entry) => entry[1]);
-    if (!values.length) return '';
-    return '<span class="search-suggestion-meta">' + values.map(([label, value]) => `<span class="search-meta-chip"><b>${label}</b> ${highlightText(value, query)}</span>`).join('') + '</span>';
+  function row(item, query) {
+    const status = item.type === 'Apparato' ? `<i class="sg-dot status-${escapeHtml(item.status || 'unknown')}" title="${escapeHtml(item.status || '')}"></i>` : '';
+    const severity = item.type === 'Vulnerabilità' ? `<span class="severity-badge severity-${escapeHtml(item.severity || 'unknown')}">${escapeHtml(item.severity || 'n.d.')}</span>` : '';
+    const showMatch = item.match_field && item.match_value && !['Alias', 'Identity', 'Apparato', 'Cliente', 'Sede'].includes(item.match_field);
+    const side = showMatch ? `<span class="sg-match"><b>${escapeHtml(item.match_field)}</b>${highlightText(item.match_value, query)}</span>` : severity;
+    return `<a class="search-suggestion sg-row" href="${escapeHtml(item.url)}" data-completion="${escapeHtml(item.completion || item.title)}" data-title="${escapeHtml(item.title)}" role="option" aria-selected="false">${iconFor(item)}<span class="sg-main"><span class="sg-title"><span class="sg-text">${highlightText(item.title, query)}</span>${status}</span><span class="sg-sub">${escapeHtml(item.subtitle || '')}</span></span>${side}</a>`;
   }
-  function renderGroup(type, rows, query) {
+  function renderGroup(type, rows, query, total) {
     if (!rows.length) return '';
-    return `<div class="search-suggestions-header">${escapeHtml(type)}</div>` + rows.map((item) => {
-      const match = item.match_field && item.match_value ? `<span class="search-match"><b>${escapeHtml(item.match_field)}</b> ${highlightText(item.match_value, query)}</span>` : '';
-      const meta = item.type === 'Apparato' ? deviceMeta(item, query) : '';
-      return `<a class="search-suggestion" href="${escapeHtml(item.url)}" data-completion="${escapeHtml(item.completion || item.title)}" role="option"><span class="result-icon">${resultIcon(item.type)}</span><span class="search-suggestion-copy"><strong>${highlightText(item.title, query)}</strong><small>${escapeHtml(item.subtitle)}</small>${match}${meta}</span><span class="chevron">›</span></a>`;
-    }).join('');
+    const meta = TYPE_META[type] || {label: type};
+    const more = total && total > rows.length ? `<a class="sg-more" href="/search?q=${encodeURIComponent(query)}">vedi tutti (${total})</a>` : `<span class="sg-count">${rows.length}</span>`;
+    return `<div class="sg-group"><div class="search-suggestions-header sg-header"><span>${escapeHtml(meta.label)}</span>${more}</div>${rows.map((item) => row(item, query)).join('')}</div>`;
   }
+  const FOOTER = '<div class="search-suggestions-footer sg-footer"><span><kbd>↑</kbd><kbd>↓</kbd> naviga</span><span><kbd>Invio</kbd> apri</span><span><kbd>Tab</kbd> completa</span><span><kbd>Esc</kbd> chiudi</span></div>';
   function renderSuggestions(payload, query) {
     if (!suggestions) return;
     const rows = payload.results || [];
+    const counts = payload.counts || {};
+    const all = `<a class="search-suggestion sg-row sg-all" href="/search?q=${encodeURIComponent(query)}" data-completion="${escapeHtml(query)}" role="option" aria-selected="false"><span class="sg-icon sg-page" aria-hidden="true">⌕</span><span class="sg-main"><span class="sg-title">Cerca «${escapeHtml(query)}» in tutto il portale</span></span></a>`;
     if (!rows.length) {
-      suggestions.innerHTML = `<div class="search-suggestions-empty">Nessun risultato per <strong>${escapeHtml(query)}</strong></div><div class="search-suggestions-footer">Invio per la ricerca completa</div>`;
-      suggestions.classList.add('open');
+      openSuggestions(`${all}<div class="search-suggestions-empty">Nessun suggerimento per <strong>${escapeHtml(query)}</strong>: prova con MAC, IP, seriale, nome cliente o sede.</div>${FOOTER}`);
       return;
     }
-    const order = ['Apparato', 'Cliente', 'Sede'];
-    suggestions.innerHTML = order.map((type) => renderGroup(type, rows.filter((item) => item.type === type), query)).join('') + `<div class="search-suggestions-footer"><strong>Tab</strong> completa · ↑ ↓ naviga · Invio apre · Esc chiude</div>`;
-    suggestions.classList.add('open');
-    activeIndex = -1;
+    const order = ['Pagina', 'Vulnerabilità', 'Apparato', 'Cliente', 'Sede'];
+    openSuggestions(all + order.map((type) => renderGroup(type, rows.filter((item) => item.type === type), query, counts[type])).join('') + FOOTER);
+  }
+  function renderRecent() {
+    const recent = readRecent();
+    if (!recent.length) { closeSuggestions(); return; }
+    openSuggestions(`<div class="sg-group"><div class="search-suggestions-header sg-header"><span>Ricerche recenti</span><button type="button" class="sg-clear" data-search-clear-recent>cancella</button></div>${recent.map((term) => `<a class="search-suggestion sg-row" href="/search?q=${encodeURIComponent(term)}" data-completion="${escapeHtml(term)}" role="option" aria-selected="false"><span class="sg-icon sg-recent" aria-hidden="true">↺</span><span class="sg-main"><span class="sg-title">${escapeHtml(term)}</span></span></a>`).join('')}</div>${FOOTER}`);
   }
   async function fetchSuggestions() {
     if (!searchInput || !suggestions) return;
     const query = searchInput.value.trim();
-    if (query.length < 2) { closeSuggestions(); return; }
+    if (query.length < 2) { if (!query) renderRecent(); else closeSuggestions(); return; }
     if (searchAbort) searchAbort.abort();
     searchAbort = new AbortController();
-    suggestions.innerHTML = '<div class="search-suggestions-empty">Ricerca in corso…</div>';
-    suggestions.classList.add('open');
+    if (!suggestions.classList.contains('open')) openSuggestions('<div class="search-suggestions-empty">Ricerca in corso…</div>');
+    suggestions.classList.add('loading');
     try {
       const response = await fetch('/api/v1/search/suggest?q=' + encodeURIComponent(query), {signal: searchAbort.signal, headers: {'Accept': 'application/json'}});
       if (!response.ok) throw new Error('search failed');
       renderSuggestions(await response.json(), query);
     } catch (error) {
       if (error.name === 'AbortError') return;
-      suggestions.innerHTML = '<div class="search-suggestions-empty">Ricerca temporaneamente non disponibile.</div>';
-      suggestions.classList.add('open');
+      openSuggestions('<div class="search-suggestions-empty">Ricerca temporaneamente non disponibile.</div>');
+    } finally {
+      suggestions.classList.remove('loading');
     }
   }
   if (searchInput && suggestions) {
     searchInput.setAttribute('autocomplete', 'off');
+    searchInput.setAttribute('role', 'combobox');
+    searchInput.setAttribute('aria-expanded', 'false');
     searchInput.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(fetchSuggestions, 140); });
-    searchInput.addEventListener('focus', () => { if (searchInput.value.trim().length >= 2) fetchSuggestions(); });
+    searchInput.addEventListener('focus', () => { if (searchInput.value.trim().length >= 2) fetchSuggestions(); else if (!searchInput.value.trim()) renderRecent(); });
     searchInput.addEventListener('keydown', (event) => {
       const items = suggestionItems();
       if (event.key === 'ArrowDown' && items.length) { event.preventDefault(); setActive(activeIndex + 1); }
       else if (event.key === 'ArrowUp' && items.length) { event.preventDefault(); setActive(activeIndex <= 0 ? items.length - 1 : activeIndex - 1); }
-      else if (event.key === 'Enter' && activeIndex >= 0 && items[activeIndex]) { event.preventDefault(); window.location.href = items[activeIndex].href; }
+      else if (event.key === 'Enter' && activeIndex >= 0 && items[activeIndex]) { event.preventDefault(); saveRecent(searchInput.value); window.location.href = items[activeIndex].href; }
       else if (event.key === 'Tab' && items.length && suggestions.classList.contains('open')) {
         const target = items[activeIndex >= 0 ? activeIndex : 0];
         const completion = target ? target.dataset.completion : '';
         if (completion && completion.toLowerCase() !== searchInput.value.trim().toLowerCase()) {
           event.preventDefault(); searchInput.value = completion; searchInput.setSelectionRange(completion.length, completion.length); clearTimeout(searchTimer); searchTimer = setTimeout(fetchSuggestions, 40);
         }
-      } else if (event.key === 'Escape') closeSuggestions();
+      } else if (event.key === 'Escape') { closeSuggestions(); searchInput.blur(); }
+    });
+    if (searchForm) searchForm.addEventListener('submit', () => saveRecent(searchInput.value));
+    suggestions.addEventListener('click', (event) => {
+      if (event.target.closest('[data-search-clear-recent]')) { event.preventDefault(); clearRecent(); closeSuggestions(); searchInput.focus(); return; }
+      if (event.target.closest('.search-suggestion')) saveRecent(searchInput.value);
     });
     suggestions.addEventListener('mousemove', (event) => {
       const item = event.target.closest('.search-suggestion');
@@ -136,6 +174,11 @@
       if (index >= 0 && index !== activeIndex) setActive(index);
     });
     document.addEventListener('click', (event) => { if (searchWrap && !searchWrap.contains(event.target)) closeSuggestions(); });
+    document.addEventListener('keydown', (event) => {
+      // "/" or Ctrl+K focuses the global search from anywhere (not while typing in a field).
+      const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement && document.activeElement.tagName);
+      if ((event.key === '/' && !typing) || (event.key.toLowerCase() === 'k' && (event.ctrlKey || event.metaKey))) { event.preventDefault(); searchInput.focus(); searchInput.select(); }
+    });
   }
 
   const enrollmentCommand = document.getElementById('enrollment-command');
