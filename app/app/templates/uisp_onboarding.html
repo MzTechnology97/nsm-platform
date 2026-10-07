@@ -4,7 +4,7 @@
 {% block content %}
 {% set scope = '?q=' ~ q|urlencode ~ '&uisp_site=' ~ uisp_site|urlencode ~ '&customer=' ~ (selected_customer.id if selected_customer else '') %}
 {% set state_labels = {'new': 'Nuovo', 'linkable': 'Da associare', 'linked': 'Già in NSM', 'blocked': 'Non importabile'} %}
-<nav class="breadcrumbs" aria-label="Percorso"><a href="/admin/integrations">Integrazioni</a><span>›</span><a href="/admin/integrations/uisp">UISP</a><span>›</span><span>Onboarding</span></nav>
+<nav class="breadcrumbs" aria-label="Percorso"><a href="/integrations">Integrazioni</a><span>›</span><a href="/admin/integrations/uisp">UISP</a><span>›</span><span>Onboarding</span></nav>
 <div class="page-header compact-heading">
   <div><h1>Onboarding da UISP</h1><p>Seleziona i dispositivi UISP da portare in NSM e scegli tu cliente e sede: NSM non li deduce dai siti UISP. Prima della conferma vedi un'anteprima; alla conferma l'elenco UISP viene riletto.</p></div>
 </div>
