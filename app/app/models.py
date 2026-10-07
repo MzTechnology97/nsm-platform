@@ -345,6 +345,29 @@ class DeviceVulnerability(Base):
     evidence: Mapped[dict] = mapped_column(JSON, default=dict)
     confidence: Mapped[str | None] = mapped_column(String(20))
     last_evaluated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # SEC-03 remediation lifecycle.
+    status_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    exception_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class VulnerabilityHistory(Base):
+    """Every status change of a finding, by an operator or by the matcher."""
+
+    __tablename__ = "vulnerability_history"
+    __table_args__ = (Index("ix_vulnerability_history_finding", "vulnerability_id", "created_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    vulnerability_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("device_vulnerabilities.id", ondelete="CASCADE")
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    actor_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    from_status: Mapped[str | None] = mapped_column(String(30))
+    to_status: Mapped[str] = mapped_column(String(30))
+    note: Mapped[str | None] = mapped_column(Text)
+    details: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
 class BackupPolicy(Base, TimestampMixin):

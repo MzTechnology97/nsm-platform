@@ -414,9 +414,17 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - explicit states: affected → open finding with fixed version, matched range, confidence (`high`; `medium` when the source gives no upper bound) and evidence; not affected / not applicable → no finding; unknown (no or unparseable version, unknown model for a hardware-limited rule, CVE without versions) → listed as *Non valutabili* on the CVE page, never counted as exposed;
 - findings that stop matching (upgrade, CVE rejected by NVD) are resolved with the evidence of the version; a later match reopens them; manually entered advisories are never changed by the matcher.
 
+### Remediation lifecycle (SEC-03)
+
+- states: open → planned → in_progress, exception (justification + expiry ≤ 1 year, returns to open when it expires), resolved;
+- operators with `security.remediate` (Technician, Admin) change status with a note on the finding page (`/security/findings/{id}`); read-only roles see status and history only;
+- source-managed findings (NVD) are resolved only by evidence (installed version out of range, CVE rejected); findings of manual advisories can be closed by the operator with a mandatory note;
+- every change — operator or automatic (detected, reopened, resolved, exception expired) — is kept in `vulnerability_history` with actor, note and details, also after resolution;
+- link to the Device firmware plan, pre-labelled with the fixed version when known;
+- one Action Center issue per Device while it has critical/high findings still *open* (not planned, in progress or excepted); updated with the count and resolved automatically.
+
 ### Not implemented yet
 
-- remediation lifecycle beyond open/resolved (SEC-03);
 - other advisory sources and non-MikroTik product mappings;
 - full evidence/report integration (SEC-04).
 
