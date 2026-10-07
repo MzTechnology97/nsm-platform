@@ -31,7 +31,8 @@ from sqlalchemy import insert, select
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
 from app.models import Device, utcnow
-from app.syslog_models import DeviceLogEntry, SyslogUnknownSource
+from app.syslog_models import DeviceAuthEvent, DeviceLogEntry, SyslogUnknownSource
+from app.syslog_security import annotate
 
 log = logging.getLogger("nsm.syslog")
 
@@ -157,6 +158,7 @@ class Receiver:
         self.session_factory = session_factory
         self.clock = clock
         self.queue: deque = deque()
+        self.auth_queue: list = []
         self.ip_map: dict = {}
         self.settings = dict(DEFAULTS)
         self.buckets: dict = {}
@@ -199,7 +201,10 @@ class Receiver:
             count, _sample = self.unknown.get(source_ip, (0, None))
             self.unknown[source_ip] = (count + 1, entry["message"][:300])
             return
-        entry.update(device_id=device_id, source_ip=source_ip, received_at=utcnow())
+        entry.update(device_id=device_id, source_ip=source_ip, received_at=utcnow(), category=None)
+        access = annotate(entry)
+        if access and device_id is not None:
+            self.auth_queue.append({**access, "device_id": device_id, "occurred_at": entry["received_at"], "message": entry["message"][:500]})
         self.queue.append(entry)
 
     def flush(self) -> int:
@@ -207,11 +212,14 @@ class Receiver:
         while self.queue and len(rows) < FLUSH_BATCH * 4:
             rows.append(self.queue.popleft())
         unknown, self.unknown = self.unknown, {}
-        if not rows and not unknown:
+        auth, self.auth_queue = self.auth_queue, []
+        if not rows and not unknown and not auth:
             return 0
         with self.session_factory() as db:
             if rows:
                 db.execute(insert(DeviceLogEntry), rows)
+            if auth:
+                db.execute(insert(DeviceAuthEvent), auth)
             now = utcnow()
             for ip, (count, sample) in unknown.items():
                 source = db.get(SyslogUnknownSource, ip)

@@ -2,7 +2,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, SmallInteger, String, Text, Uuid
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, SmallInteger, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -41,3 +41,24 @@ class SyslogUnknownSource(Base):
     last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     messages: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
     sample: Mapped[str | None] = mapped_column(String(300))
+
+
+class DeviceAuthEvent(Base):
+    """Login failure/success recognised in a syslog line (LOG-01 step 3)."""
+
+    __tablename__ = "device_auth_events"
+    __table_args__ = (
+        Index("ix_device_auth_events_device_occurred", "device_id", "occurred_at"),
+        Index("ix_device_auth_events_remote_occurred", "remote_ip", "occurred_at"),
+        Index("ix_device_auth_events_evaluated", "evaluated"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    device_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("devices.id", ondelete="CASCADE"), nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    outcome: Mapped[str] = mapped_column(String(10), nullable=False)
+    username: Mapped[str | None] = mapped_column(String(100))
+    remote_ip: Mapped[str | None] = mapped_column(String(64))
+    service: Mapped[str | None] = mapped_column(String(40))
+    message: Mapped[str | None] = mapped_column(String(500))
+    evaluated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

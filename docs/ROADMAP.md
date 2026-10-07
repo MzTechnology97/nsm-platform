@@ -278,9 +278,11 @@ Next steps:
 - Every device has a **Syslog** tab: live log, filters, CSV export, and the configuration for its own vendor inline.
 - The admin page *Amministrazione → Syslog* covers settings, receiver status and unknown senders.
 
+**Step 3 done (Core 0.49.46).** Access events are recognised in the syslog for each vendor and raise brute-force, success-after-failures and new-public-address alerts and notifications. Each device gets an access panel and the fleet gets the *Security → Accessi* page.
+
 Next steps:
 - step 2, automatic configuration by the MikroTik agent;
-- step 3, authentication alerts, incidents and reports.
+- incidents and reports built from the access events.
 
 
 **Receiver.** A syslog receiver integrated in the stack, as a Docker service (UDP/TCP 514, optionally TLS 6514).

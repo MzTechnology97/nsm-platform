@@ -298,6 +298,19 @@ Retention (90 days) never removes the newest sample of a device or interface (`t
 
 NSM monitoring is intentionally lightweight and does not attempt to replace a full NMS.
 
+### Access alerts from syslog (LOG-01 step 3)
+
+- **Recognition.** `app/syslog_security.py` recognises login failures and successes from:
+  - RouterOS, OpenSSH/Dropbear, Cisco IOS, Junos, FortiGate, Huawei VRP;
+  - generic web and PAM logins.
+- **Storage.** Recognised lines are tagged (`device_log_entries.category`) and stored as `device_auth_events`.
+- **Rules** (evaluated by the worker every cycle):
+  - brute force: 5 failures in 10 minutes from one address;
+  - success after 3 failures within one hour;
+  - success from a public address not seen in 90 days.
+- **Output.** Rules raise Action Center issues (`security_access`) and *security* notifications; alerts are grouped for 6 hours.
+- **Pages.** Each device's Syslog tab has an access panel; `/security/access` shows the fleet view.
+
 ### Integrated syslog (LOG-01 step 1)
 
 - **Receiver.** `app/syslog_receiver.py` runs as Docker service `syslog` on UDP/TCP 514, with RFC 6587 framing on TCP. It parses RFC 3164, RFC 5424 and RouterOS topics.

@@ -17,6 +17,7 @@ from app.mikrotik_telemetry import telemetry_cleanup
 from app.uisp_metrics import cleanup as uisp_metrics_cleanup
 from app.interface_traffic import cleanup as interface_traffic_cleanup
 from app.syslog_receiver import cleanup as syslog_cleanup
+from app.syslog_security import evaluate as evaluate_access_alerts
 from app.routeros_catalog import run_scheduled as run_routeros_catalog
 from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
 from app.mikrotik_device_reboot import verify_reboots
@@ -71,6 +72,7 @@ while True:
             advisory_stats = run_task("security_advisories", sync_security_advisories)
             run_task("telegram_updates", poll_telegram_updates)
             run_task("vulnerability_digest", run_vulnerability_digest)
+            run_task("syslog_access_alerts", evaluate_access_alerts)
             notify_stats = run_task("notification_delivery", deliver_notifications)
             if notify_stats.get("failed"):
                 log.warning("Notifiche esterne non consegnate: %s", notify_stats)
