@@ -38,6 +38,10 @@
     {% if can_admin %}<div class="page-actions"><a class="button ghost" href="/admin/api-keys">Gestisci API key</a></div>{% endif %}
   </section>
 
+  <section class="panel">
+    <div class="panel-header"><div><h2>Catalogo RouterOS</h2><p>Ultime versioni per canale e note di rilascio da upgrade.mikrotik.com; segnala gli aggiornamenti di sicurezza anche senza verifica dal router.</p></div></div>
+    <div class="page-actions"><a class="button ghost" href="/admin/integrations/routeros">Apri catalogo</a><a class="button ghost" href="/operations/firmware">Worklist firmware</a></div>
+  </section>
   <section class="panel integration-card">
     <div class="panel-header"><div><h2>Advisory NVD</h2><p>CVE del National Vulnerability Database per RouterOS, confrontate con le versioni installate.</p></div>{% if not nvd %}<span class="device-status status-unknown">Non configurato</span>{% elif not nvd.is_enabled %}<span class="device-status status-offline">Disabilitato</span>{% elif nvd_sync.get('last_status') == 'failed' %}<span class="device-status status-offline">Errore</span>{% elif nvd_sync.get('last_status') == 'success' %}<span class="device-status status-online">Attivo</span>{% else %}<span class="device-status status-pending_link">In attesa</span>{% endif %}</div>
     <dl class="kv-list">

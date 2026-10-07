@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Catalogo RouterOS · {{ app_name }}{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="Percorso"><a href="/integrations">Integrazioni</a><span>›</span><span>Catalogo RouterOS</span></nav>
+<div class="page-header compact-heading">
+  <div><h1>Catalogo RouterOS</h1><p>Ultime versioni per canale lette da <code>upgrade.mikrotik.com</code> ogni 6 ore{% if last_refresh %} · ultima lettura {{ fmt_dt(last_refresh) }}{% endif %}. Una release è marcata «sicurezza» quando le note di rilascio citano correzioni di sicurezza; le righe sono riportate come evidenza.</p></div>
+  {% if can_admin %}<form method="post" action="/admin/integrations/routeros/refresh"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Aggiorna ora</button></form>{% endif %}
+</div>
+<section class="panel">
+  {% if heads %}
+  <div class="table-wrap"><table class="data-table compact-data-table">
+    <thead><tr><th>Canale</th><th>Versione</th><th>Rilasciata</th><th>Sicurezza</th></tr></thead>
+    <tbody>{% for key, label in labels.items() %}{% set h = heads.get(key) %}
+      <tr><td>{{ label }}</td><td><strong>{{ h.version if h else '—' }}</strong></td><td>{{ fmt_dt(h.released_at) if h else '—' }}</td>
+      <td>{% if h and h.security %}<span class="severity-badge severity-high">Sicurezza</span>{% for line in h.security_lines %}<small>{{ line }}</small>{% endfor %}{% elif h %}—{% else %}non ancora letto{% endif %}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}
+  <div class="empty-state">Catalogo non ancora letto. {% if can_admin %}Usa «Aggiorna ora» o attendi il worker.{% endif %}</div>
+  {% endif %}
+</section>
+{% if history %}
+<section class="panel"><div class="panel-header"><div><h2>Release osservate</h2></div></div>
+  <div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Canale</th><th>Versione</th><th>Rilasciata</th><th>Note</th></tr></thead><tbody>
+  {% for r in history %}<tr><td>{{ labels.get(r.channel, r.channel) }}</td><td>{{ r.version }}{% if r.security %} <span class="severity-badge severity-high">Sicurezza</span>{% endif %}</td><td>{{ fmt_dt(r.released_at) }}</td><td>{% if r.changelog %}<details><summary>Changelog</summary><pre class="changelog">{{ r.changelog }}</pre></details>{% else %}—{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endif %}
+{% endblock %}

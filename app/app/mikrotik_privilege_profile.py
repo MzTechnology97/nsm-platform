@@ -61,7 +61,7 @@ def install_mikrotik_privilege_profile():
         )
         source = source.replace(
             scheduler_line,
-            '/system scheduler add name="nsm-agent-heartbeat" interval=5m '
+            '/system scheduler add name="nsm-agent-heartbeat" start-time=startup interval=5m '
             'on-event="/system script run nsm-agent-heartbeat" policy=$nsmAgentPolicy '
             'comment="NSM managed agent"',
             1,

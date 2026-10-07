@@ -503,3 +503,19 @@ class UispMetricSample(Base):
     uptime_seconds: Mapped[int | None] = mapped_column(BigInteger)
     frequency_mhz: Mapped[float | None] = mapped_column(Float)
     stations: Mapped[int | None] = mapped_column(Integer)
+
+
+class RouterosRelease(Base):
+    """A RouterOS channel head observed on MikroTik's upgrade server (MTK-04)."""
+
+    __tablename__ = "routeros_releases"
+    __table_args__ = (UniqueConstraint("channel", "version", name="uq_routeros_releases_channel_version"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    channel: Mapped[str] = mapped_column(String(30))
+    version: Mapped[str] = mapped_column(String(40))
+    released_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    changelog: Mapped[str | None] = mapped_column(Text)
+    security: Mapped[bool] = mapped_column(Boolean, default=False)
+    security_lines: Mapped[list] = mapped_column(JSON, default=list)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

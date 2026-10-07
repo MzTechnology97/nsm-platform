@@ -15,6 +15,7 @@ from app.firmware_plan_recovery import reconcile_firmware_plan_jobs
 from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_finalization_cleanup
 from app.mikrotik_telemetry import telemetry_cleanup
 from app.uisp_metrics import cleanup as uisp_metrics_cleanup
+from app.routeros_catalog import run_scheduled as run_routeros_catalog
 from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
 from app.mikrotik_device_reboot import verify_reboots
 from app.mikrotik_legacy_operations import verify_upgrades as verify_legacy_upgrades
@@ -85,6 +86,12 @@ while True:
 
         if now_mono - last_compliance >= COMPLIANCE_INTERVAL_SECONDS:
             lifecycle_stats = run_lifecycle_reconcile()
+            try:
+                catalog_stats = run_routeros_catalog()
+                if catalog_stats.get("refresh", {}).get("new_releases"):
+                    log.info("RouterOS catalog: %s", catalog_stats)
+            except Exception:  # an unreachable upgrade server must not stop the worker
+                log.exception("RouterOS catalog refresh failed")
             if lifecycle_stats.get("status_changed"):
                 log.info("Lifecycle: %s", lifecycle_stats)
             compliance_stats = run_compliance_evaluation()

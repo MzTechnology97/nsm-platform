@@ -17,6 +17,8 @@
     <div><span>RouterBOOT</span><strong>{{ readiness.get('routerboard_current') or device.routerboot_version or '—' }}</strong></div>
     <div><span>Agent transport</span><strong>{{ (device.inventory_data or {}).get('agent_transport') or 'non dichiarato' }}</strong></div>
   </div>
+  {% set fc = (device.inventory_data or {}).get('firmware_catalog') %}
+  {% if fc %}<div class="alert {{ 'danger' if fc.security else ('warning' if fc.newer else 'success') }}"><strong>Catalogo MikroTik ({{ fc.channel }}):</strong> ultima versione {{ fc.latest_version }} del {{ fmt_dt(fc.released_at) }}{% if fc.newer %} — aggiornamento disponibile{% if fc.security %} <strong>di sicurezza</strong> ({{ fc.security_reasons|join(', ') }}){% endif %}{% elif fc.newer is sameas false %} — RouterOS aggiornato sul canale{% endif %}. <a href="/admin/integrations/routeros">Catalogo</a></div>{% endif %}
   <div class="alert info"><strong>RouterBOOT separato.</strong> L'eventuale aggiornamento del bootloader non viene eseguito automaticamente insieme a RouterOS.</div>
 </section>
 
