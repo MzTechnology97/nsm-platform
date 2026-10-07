@@ -53,6 +53,7 @@
       <div class="nav-section">Security</div>
       <a class="nav-item {% if request.url.path.startswith('/security/vulnerabilities') %}active{% endif %}" href="/security/vulnerabilities"><span class="nav-icon">◈</span><span class="nav-label">Vulnerabilità</span></a>
       <a class="nav-item {% if request.url.path.startswith('/security/lifecycle') %}active{% endif %}" href="/security/lifecycle"><span class="nav-icon">⌛</span><span class="nav-label">EOL / EOS</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/compliance') %}active{% endif %}" href="/compliance"><span class="nav-icon">☑</span><span class="nav-label">Compliance</span></a>
       <a class="nav-item attention-link {% if request.url.path.startswith('/action-center') %}active{% endif %}" href="/action-center"><span class="nav-icon">!</span><span class="nav-label">Action Center</span></a>
       <div class="nav-section">Audit</div>
       <a class="nav-item {% if request.url.path.startswith('/audit/events') %}active{% endif %}" href="/audit/events"><span class="nav-icon">≡</span><span class="nav-label">Eventi</span></a>

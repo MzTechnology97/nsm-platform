@@ -4352,3 +4352,17 @@ input[type="checkbox"], input[type="radio"] { width: auto; min-height: 0; height
 
 /* Status pills in panel headers never wrap. */
 .panel-header .status-pill, .panel-header .severity-badge { white-space: nowrap; flex: none; }
+
+/* Compliance matrix and baseline editor (COMP). */
+.compliance-matrix td { vertical-align: top; min-width: 120px; }
+.compliance-matrix td:first-child { min-width: 180px; }
+.compliance-mark { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; font-weight: 800; font-size: 13px; }
+.compliance-pass { background: color-mix(in srgb, var(--success) 14%, var(--panel)); color: var(--success-text); }
+.compliance-fail { background: color-mix(in srgb, var(--danger) 14%, var(--panel)); color: var(--danger-text); }
+.compliance-unknown { background: color-mix(in srgb, var(--warning) 16%, var(--panel)); color: var(--warning-text); }
+.compliance-not_applicable { background: var(--surface-soft); color: var(--muted); }
+.control-list { display: grid; gap: 10px; }
+.control-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(140px, 1fr) minmax(160px, 1fr); gap: 12px; align-items: start; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; }
+.control-row small { display: block; color: var(--muted); }
+.control-row .status-pill { margin-left: 6px; }
+@media (max-width: 820px) { .control-row { grid-template-columns: minmax(0, 1fr); } }

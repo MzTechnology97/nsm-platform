@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifica' if baseline else 'Nuova' }} baseline · {{ app_name }}{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="Percorso"><a href="/compliance">Compliance</a><span>›</span><a href="/compliance/baselines">Baseline</a><span>›</span><span>{{ baseline.name if baseline else 'Nuova' }}</span></nav>
+<div class="page-header compact-heading">
+  <div><h1>{{ baseline.name if baseline else 'Nuova baseline' }}</h1><p>{% if baseline %}Versione attuale v{{ baseline.version }}: salvando si crea la v{{ baseline.version + 1 }}.{% else %}Scegli l'ambito e i controlli da attivare, disattivare o lasciare ereditati.{% endif %}</p></div>
+</div>
+<form method="post" action="/compliance/baselines" class="form-stack">
+  <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+  {% if baseline %}<input type="hidden" name="baseline_id" value="{{ baseline.id }}">{% endif %}
+  <section class="panel">
+    <div class="form-grid">
+      <label>Nome<input name="name" required maxlength="160" value="{{ baseline.name if baseline else '' }}"></label>
+      <label>Ambito<select name="scope_type">{% for key, label in scope_labels.items() %}<option value="{{ key }}" {% if (baseline.scope_type if baseline else 'global') == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><small>Compila solo il campo dell'ambito scelto.</small></label>
+      <label>Vendor<select name="vendor"><option value="">—</option>{% for v in vendors %}<option value="{{ v }}" {% if baseline and baseline.vendor == v %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>
+      <label>Cliente<select name="customer_id"><option value="">—</option>{% for c in customers %}<option value="{{ c.id }}" {% if baseline and baseline.customer_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></label>
+      <label>Sede<select name="site_id"><option value="">—</option>{% for s in sites %}<option value="{{ s.id }}" {% if baseline and baseline.site_id == s.id %}selected{% endif %}>{{ s.customer.name if s.customer else '' }} · {{ s.name }}</option>{% endfor %}</select></label>
+      <label>Apparato<select name="device_id"><option value="">—</option>{% for d in devices %}<option value="{{ d.id }}" {% if baseline and baseline.device_id == d.id %}selected{% endif %}>{{ d.customer.name if d.customer else '' }} · {{ d.display_name or d.name }}</option>{% endfor %}</select></label>
+    </div>
+    <label>Descrizione<textarea name="description" rows="2" maxlength="2000">{{ baseline.description if baseline and baseline.description else '' }}</textarea></label>
+    <label class="check-row"><input type="checkbox" name="is_enabled" {% if not baseline or baseline.is_enabled %}checked{% endif %}><span>Baseline attiva</span></label>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><div><h2>Controlli</h2><p>«Eredita» lascia decidere alle baseline più generali; «Attivo» e «Disattivato» le sovrascrivono per questo ambito.</p></div></div>
+    <div class="control-list">
+    {% for cid, control in controls.items() %}{% set setting = settings.get(cid) %}{% set mode = 'inherit' if not setting else ('enabled' if setting.get('enabled', True) else 'disabled') %}
+      <div class="control-row">
+        <div><strong>{{ control.title }}</strong><span class="status-pill">{{ control.category }}</span><small>{{ control.description }}</small></div>
+        <label>Modalità<select name="mode_{{ cid }}">{% for value, label in [('inherit', 'Eredita'), ('enabled', 'Attivo'), ('disabled', 'Disattivato')] %}<option value="{{ value }}" {% if mode == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+        {% for key, default in control.defaults.items() %}{% set current = ((setting or {}).get('params') or {}).get(key, default) %}
+          {% if default is sameas true or default is sameas false %}
+          <label class="check-row"><input type="checkbox" name="param_{{ cid }}_{{ key }}" {% if current %}checked{% endif %}><span>{{ control.params_help.get(key, key) }}</span></label>
+          {% else %}
+          <label>{{ control.params_help.get(key, key) }}<input type="number" min="1" max="3650" name="param_{{ cid }}_{{ key }}" value="{{ current }}"></label>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endfor %}
+    </div>
+  </section>
+  <div class="form-actions"><a class="button ghost" href="/compliance/baselines">Annulla</a><button class="button primary">Salva baseline</button></div>
+</form>
+{% endblock %}
