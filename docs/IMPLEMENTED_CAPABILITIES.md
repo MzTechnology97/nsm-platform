@@ -273,6 +273,23 @@ Legacy RouterOS backup transport is **not implemented**.
 - interface-health worklist derived from configuration snapshots;
 - network-health and policy-health foundations/workspaces.
 
+### Interface traffic graphs (Agent 0.49.9)
+
+- **Collection.** Every heartbeat carries the byte counters of the running, non-dynamic interfaces as `name|type|rx-byte|tx-byte;`:
+  - WAN-like interfaces are collected first, so they survive the length cap;
+  - modern agents send it as `metrics.ifaces`, capped at 6000 characters;
+  - 7.12 and RouterOS 6 legacy agents send the `X-NSM-Ifaces` header, capped at 1200 characters.
+- **Rates.** The Core keeps the last counters on the device and computes bit/s from the delta:
+  - a counter reset (reboot, PPPoE reconnect) or a gap longer than one hour leaves a hole instead of a fake value.
+- **Stored history.** Only monitored interfaces are stored (`device_interface_samples`, 90-day retention):
+  - by default pppoe-out, LTE and the l2tp/sstp/ovpn/pptp clients, or ether1 when none of these exist;
+  - otherwise the interfaces chosen on the Monitor page, up to 8.
+- **Monitor page.** Cacti-style graph with inbound as a filled area, outbound as a line and the 95th percentile dashed:
+  - ranges of 1h, 24h, 7d and 30d, averaged into at most 600 points;
+  - current, average, maximum, 95th percentile and volume for each direction.
+
+Retention (90 days) never removes the newest sample of a device or interface (`telemetry_retention.expire_keep_latest`): an offline device keeps its last telemetry visible (MON-02).
+
 NSM monitoring is intentionally lightweight and does not attempt to replace a full NMS.
 
 ## 9. MikroTik configuration and configuration history

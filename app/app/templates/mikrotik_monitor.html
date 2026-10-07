@@ -3,7 +3,7 @@
 {% block device_content %}
 {% set cpu_value = latest_metric.cpu_load if latest_metric and latest_metric.cpu_load is not none else metrics.get('cpu_load') %}
 <section class="mt-kpi-grid">
-  <article class="metric-card"><span>CPU load</span><strong data-live-cpu>{{ cpu_value|round(1) if cpu_value is number else (cpu_value or '—') }}{% if cpu_value is not none %}%{% endif %}</strong><small>ultimo campione</small></article>
+  <article class="metric-card"><span>CPU load</span><strong data-live-cpu>{{ cpu_value|round(1) if cpu_value is number else (cpu_value or '—') }}{% if cpu_value is not none %}%{% endif %}</strong><small>{% if latest_metric %}ultimo dato {{ fmt_dt(latest_metric.observed_at) }}{% else %}ultimo campione{% endif %}</small></article>
   <article class="metric-card"><span>Memoria utilizzata</span>
     <strong data-live-memory>{% if latest_metric and latest_metric.free_memory_bytes is not none and latest_metric.total_memory_bytes %}{{ ((1 - latest_metric.free_memory_bytes / latest_metric.total_memory_bytes) * 100)|round(1) }}%{% elif metrics.get('memory_used_percent') is not none %}{{ metrics.get('memory_used_percent') }}%{% else %}—{% endif %}</strong>
     <small>{% if metrics.get('free_memory') %}libera {{ metrics.get('free_memory') }}{% else %}calcolata da memoria libera/totale{% endif %}</small></article>
@@ -32,6 +32,49 @@
 </section>
 {% endif %}
 
+{% set traffic_rows = traffic_interfaces(device) %}
+<section class="panel traffic-panel" id="traffic" data-traffic-root data-endpoint="/api/v1/devices/{{ device.id }}/traffic">
+  <div class="panel-header">
+    <div><h2>Traffico interfacce</h2><p>Bit/s in ingresso e in uscita calcolati dai contatori dell'agent a ogni heartbeat (5 minuti), come in Cacti/Zabbix. Retention 90 giorni.</p></div>
+    {% if traffic_rows %}<div class="traffic-controls">
+      <label class="traffic-select"><span>Interfaccia</span><select data-traffic-interface aria-label="Interfaccia">{% for row in traffic_rows if row.monitored %}<option value="{{ row.name }}">{{ row.name }}{% if row.type %} · {{ row.type }}{% endif %}</option>{% endfor %}</select></label>
+      <div class="telemetry-ranges" role="group" aria-label="Intervallo traffico"><button type="button" data-traffic-range="1h">1h</button><button type="button" data-traffic-range="24h" class="active">24h</button><button type="button" data-traffic-range="7d">7g</button><button type="button" data-traffic-range="30d">30g</button></div>
+    </div>{% endif %}
+  </div>
+  {% if request.query_params.get('status') == 'traffic_saved' %}<div class="alert success">Interfacce monitorate aggiornate: lo storico parte dal prossimo heartbeat.</div>{% endif %}
+  {% if traffic_rows %}
+  <div class="traffic-chart">
+    <div class="traffic-legend-top"><span class="traffic-key traffic-key-in">In (rx)</span><span class="traffic-key traffic-key-out">Out (tx)</span><small data-traffic-title>—</small></div>
+    <div class="telemetry-svg-wrap traffic-svg-wrap" data-traffic-chart><div class="telemetry-empty">Caricamento…</div></div>
+  </div>
+  <div class="table-wrap"><table class="traffic-stats">
+    <thead><tr><th>Direzione</th><th>Attuale</th><th>Media</th><th>Massimo</th><th>95° percentile</th><th>Volume</th></tr></thead>
+    <tbody>
+      <tr><td><span class="traffic-key traffic-key-in">In</span></td><td data-traffic-stat="rx.current">—</td><td data-traffic-stat="rx.avg">—</td><td data-traffic-stat="rx.max">—</td><td data-traffic-stat="rx.p95">—</td><td data-traffic-stat="rx.bytes">—</td></tr>
+      <tr><td><span class="traffic-key traffic-key-out">Out</span></td><td data-traffic-stat="tx.current">—</td><td data-traffic-stat="tx.avg">—</td><td data-traffic-stat="tx.max">—</td><td data-traffic-stat="tx.p95">—</td><td data-traffic-stat="tx.bytes">—</td></tr>
+    </tbody>
+  </table></div>
+  <div class="telemetry-footer"><span data-traffic-samples>0 campioni</span><button type="button" class="button ghost" data-traffic-refresh>↻ Aggiorna</button></div>
+  <details class="traffic-pick">
+    <summary>Interfacce monitorate ({{ traffic_rows|selectattr('monitored')|list|length }} di {{ traffic_rows|length }} rilevate)</summary>
+    <p class="muted">Per impostazione predefinita sono monitorate le interfacce WAN (pppoe-out, LTE, tunnel client) o, se assenti, ether1. Massimo {{ traffic_max_monitored }} interfacce per apparato.</p>
+    {% if has_permission(user, 'devices.write') %}
+    <form method="post" action="/devices/{{ device.id }}/traffic/interfaces" class="traffic-pick-form">
+      <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+      <div class="traffic-pick-grid">{% for row in traffic_rows %}
+        <label class="traffic-pick-row"><input type="checkbox" name="interface" value="{{ row.name }}"{% if row.monitored %} checked{% endif %}><span><strong>{{ row.name }}</strong><small>{{ row.type or 'tipo n.d.' }}{% if row.wan %} · WAN{% endif %}</small></span><span class="traffic-now">↓ {{ format_bps(row.rx_bps) }}<br>↑ {{ format_bps(row.tx_bps) }}</span></label>
+      {% endfor %}</div>
+      <div class="form-actions"><button class="button primary">Salva interfacce</button><button class="button ghost" name="reset" value="1">Ripristina automatico</button></div>
+    </form>
+    {% else %}
+    <ul class="traffic-pick-list">{% for row in traffic_rows %}<li>{{ row.name }} <small>{{ row.type }}</small>{% if row.monitored %} — monitorata{% endif %}</li>{% endfor %}</ul>
+    {% endif %}
+  </details>
+  {% else %}
+  <div class="empty-state">Nessun contatore interfacce ricevuto. I contatori arrivano dall'agent 0.49.9 o successivo: aggiorna l'agent (self-update o reinstallazione) e attendi due heartbeat.</div>
+  {% endif %}
+</section>
+
 <section class="panel">
   <div class="panel-header">
     <div><h2>Warning ed errori dispositivo</h2><p>Snapshot read-only del buffer RouterOS acquisito dall'agent.</p></div>
@@ -47,4 +90,5 @@
   {% else %}<div class="empty-state">Nessuno snapshot log disponibile.</div>{% endif %}
 </section>
 {% if telemetry_history_supported %}<script defer src="{{ url_for('static', path='/telemetry_monitor.js') }}?v={{ asset_version }}"></script>{% endif %}
+{% if traffic_rows %}<script defer src="{{ url_for('static', path='/traffic_monitor.js') }}?v={{ asset_version }}"></script>{% endif %}
 {% endblock %}

@@ -9,10 +9,11 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select
 
 from app.db import SessionLocal
 from app.models import UispMetricSample, utcnow
+from app.telemetry_retention import expire_keep_latest
 
 RETENTION_DAYS = 90
 MIN_SAMPLE_INTERVAL = timedelta(minutes=4)
@@ -107,6 +108,6 @@ def format_value(field: str, value) -> str:
 def cleanup(now=None) -> int:
     now = now or utcnow()
     with SessionLocal() as db:
-        result = db.execute(delete(UispMetricSample).where(UispMetricSample.observed_at < now - timedelta(days=RETENTION_DAYS)))
+        deleted = expire_keep_latest(db, UispMetricSample, now - timedelta(days=RETENTION_DAYS), "device_id")
         db.commit()
-        return result.rowcount or 0
+        return deleted

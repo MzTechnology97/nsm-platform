@@ -257,13 +257,67 @@ Bring Ubiquiti devices managed through the UISP API to the depth of the MikroTik
 - complete telemetry: signal/chain levels, noise, CCQ/airMAX quality, capacity, LAN/Ethernet interface state and speed, traffic, history;
 - device logs.
 
-### MON-01 — telemetry graphs and WAN/PPPoE traffic (requested 2026-10-07)
+### MON-01 — telemetry graphs and WAN/PPPoE traffic
 
-Cacti/Zabbix-style time-series graphs for device telemetry (CPU, memory, signal, latency) and per-interface traffic, with WAN and PPPoE interfaces monitored explicitly (bps in/out, errors, history with zoomable ranges).
+**Step 1 implemented in `main` (Core 0.49.43, Agent 0.49.9)**: MikroTik interface traffic graphs on the Monitor page.
+- Bit/s in and out from the agent byte counters, sampled every 5 minutes, kept 90 days.
+- WAN interfaces (pppoe-out, LTE, tunnel clients, else ether1) are monitored by default; operators can choose up to 8 per device.
+- Statistics per range: current, average, maximum, 95th percentile and volume.
+
+Next steps:
+- interface errors and drops;
+- signal and latency series;
+- the same graphs for UISP devices (from `uisp_metric_samples`) and, later, cnMaestro;
+- graphs aggregated per customer and per site.
+
+### LOG-01 — integrated syslog server and live device logs (requested 2026-10-07)
+
+**Receiver.** A syslog receiver integrated in the stack, as a Docker service (UDP/TCP 514, optionally TLS 6514).
+- Messages are matched to devices by source IP, with the device or WAN address as fallback.
+- Logs are stored with retention and indexing.
+
+**Device configuration.** Configured automatically:
+- by the MikroTik agent, through a remote `/system logging action` plus rules for `error`, `warning`, `critical` and `account`;
+- on other vendors that support a remote syslog server: UISP/airOS, Cambium, TP-Link Omada, Huawei, Fortinet and others, through their API or with guided instructions.
+
+**Live log page.** Each device gets a log section updated in real time, with filters by severity, topic and text.
+
+**Security.** Logs are kept to track anomalous external access, such as failed or successful logins from public IPs and new admin sessions. They feed:
+- rules that raise incidents and evidence;
+- notifications;
+- reports.
+
+### MON-02 — keep the last telemetry of offline devices (requested 2026-10-07)
+
+Telemetry of a device that goes offline must never be deleted: the last received values stay visible, with their timestamp. Retention cleanup always keeps the newest sample of each device and interface.
+- **Done in 0.49.43** for MikroTik metrics, interface traffic and UISP metrics.
+- **Still to do:** other connectors when they get history.
+
+### INV-07 — MikroTik devices without IP in the device list (bug, reported 2026-10-07)
+
+**Symptom.** In the device list, MikroTik devices show no IP. The device's internal address is only shown later as the management IP.
+
+**Fix.**
+- Fill the management IP from the agent: the heartbeat source address, plus the RouterOS addresses from the snapshot.
+- Show it in the list, separating the internal/LAN address from the public/management one.
+
+### GUI-02 — visual refresh: Material icons and ISP/WISP background (requested 2026-10-07)
+
+- Replace the sidebar menu icons and the top notification icon with a consistent Material Design (or similar) icon set, self-hosted and CSP-safe.
+- Make the GUI more attractive.
+- Optionally add a subtle background suited to the ISP/WISP domain (network, antennas, fibre motifs) that never hurts readability or contrast, in light and dark theme.
 
 ### ZBX-01 — Zabbix API integration (requested 2026-10-07)
 
 Integration with the operator's Zabbix (currently 6.x; support both the 6.x API and 7.x, where authentication moved to an API token in the `Authorization` header). How it applies to devices (import hosts/items, link NSM devices to Zabbix hosts, show problems and graphs, or push NSM devices to Zabbix) is to be decided with the user before implementation.
+
+### DUDE-01 — MikroTik The Dude integration (requested 2026-10-07)
+
+Integration with MikroTik The Dude through the RouterOS API of the Dude server (`/dude` menu: devices, probes, services, notifications, maps). Which features are worth it is to be evaluated with the user. Candidates:
+- import or reconcile the Dude device list (name, address, type) with the NSM inventory;
+- use Dude up/down and service state as an extra monitoring source on the device page and in alerts, without duplicating polling;
+- correlate Dude outages with NSM events (agent heartbeat, firmware jobs, backups);
+- link from the NSM device to the Dude map element.
 
 ### GUI-SEARCH — global search bar
 

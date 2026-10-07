@@ -4,14 +4,16 @@ from datetime import timedelta
 
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
-from sqlalchemy import delete, or_, select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
 from app import main as core
+from app import interface_traffic
 from app import mikrotik_agent as agent
 from app.agent_models import DeviceJob, DeviceMetricSample
 from app.db import SessionLocal
 from app.models import Device, utcnow
+from app.telemetry_retention import expire_keep_latest
 
 RANGES = {
     "1h": timedelta(hours=1),
@@ -110,8 +112,9 @@ async def mikrotik_heartbeat(request: Request):
         device, _credential = agent._authenticate_agent(db, request)
         agent._apply_inventory(db, device, inventory, request, "mikrotik_agent")
         data = dict(device.inventory_data or {})
-        data["metrics"] = {k: agent._string(v, 200) for k, v in metrics.items()}
+        data["metrics"] = {k: agent._string(v, 200) for k, v in metrics.items() if k != "ifaces"}
         data["last_heartbeat_at"] = utcnow().isoformat()
+        interface_traffic.record(db, device, data, metrics.get("ifaces"))
         device.inventory_data = data
 
         sample = _metric_sample(device, inventory, metrics)
@@ -188,9 +191,10 @@ def telemetry_monitor(request: Request, device_id: uuid.UUID):
 def telemetry_cleanup():
     cutoff = utcnow() - timedelta(days=RETENTION_DAYS)
     with SessionLocal() as db:
-        result = db.execute(delete(DeviceMetricSample).where(DeviceMetricSample.observed_at < cutoff))
+        # MON-02: the newest sample of each device survives, so offline devices keep their last telemetry.
+        deleted = expire_keep_latest(db, DeviceMetricSample, cutoff, "device_id")
         db.commit()
-        return int(result.rowcount or 0)
+        return deleted
 
 
 def _assert_unique_route(app, path: str, method: str, endpoint):

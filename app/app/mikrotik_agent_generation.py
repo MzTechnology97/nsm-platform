@@ -8,13 +8,14 @@ agent. Agent 0.49.3 adds bounded structured snapshots to the RouterOS 7.12
 legacy agent (legacy agents are reinstalled, modern agents self-update).
 Agent 0.49.4 rewrites the modern backup uploader (step-level errors, settled
 file, flash/ path, progress guard, cleanup) and installs the ops-v2 profile.
+Agent 0.49.9 adds the interface byte counters to every heartbeat (traffic graphs).
 """
 from __future__ import annotations
 
 from app import mikrotik_agent_update as updater
 from app import mikrotik_agent_update_ui as update_ui
 
-TARGET_AGENT_VERSION = "0.49.8"
+TARGET_AGENT_VERSION = "0.49.9"
 SELF_UPDATE_MIN_VERSION = "0.49.0"
 
 
