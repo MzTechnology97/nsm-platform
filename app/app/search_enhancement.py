@@ -87,15 +87,71 @@ def _device_match(device, query: str):
     return min(candidates, key=lambda item: item[0])
 
 
+# Portal pages reachable from the search box: (label, url, keywords, permission or None).
+PAGES = (
+    ("Dashboard", "/", "home panoramica", None),
+    ("Apparati", "/devices", "inventario dispositivi device", "devices.read"),
+    ("Clienti", "/customers", "customer anagrafica", None),
+    ("Backup", "/operations/backups", "configurazioni archivio", None),
+    ("Firmware", "/operations/firmware", "aggiornamenti routeros update", "firmware.read"),
+    ("Suggerimenti RouterOS", "/operations/firmware/suggestions", "aggiornamento piano firmware", "firmware.read"),
+    ("Monitoraggio", "/operations/monitoring", "cpu memoria telemetria", None),
+    ("Agent MikroTik", "/operations/agents", "fleet heartbeat", None),
+    ("Vulnerabilità", "/security/vulnerabilities", "cve sicurezza advisory nvd", None),
+    ("Ciclo di vita EOL/EOS", "/security/lifecycle", "eol eos fine supporto", None),
+    ("Action Center", "/action-center", "problemi issue azioni", None),
+    ("Report", "/audit/reports", "nis2 pdf csv", None),
+    ("Eventi di audit", "/audit/events", "log storico", None),
+    ("Integrazioni", "/integrations", "uisp genieacs nvd connettori", None),
+    ("Profilo", "/profile", "password notifiche 2fa verifica due passaggi", None),
+    ("Notifiche", "/admin/notifications", "smtp email telegram slack", "users.manage"),
+    ("Utenti", "/admin/users", "account ruoli", "users.manage"),
+    ("Sistema", "/admin/system", "worker backup database ripristino", "users.manage"),
+)
+_CVE_RE = re.compile(r"^cve-\d{4}-\d{2,}", re.I)
+
+
+def _page_results(user, term: str) -> list[dict]:
+    needle = term.lower()
+    out = []
+    for label, url, keywords, permission in PAGES:
+        if permission and not core.has_permission(user, permission):
+            continue
+        if needle in label.lower() or any(word.startswith(needle) for word in keywords.split()):
+            out.append({"type": "Pagina", "title": label, "subtitle": url, "url": url, "completion": label})
+    return out[:4]
+
+
+def _advisory_results(db, term: str) -> list[dict]:
+    if not _CVE_RE.match(term) and "cve" not in term.lower():
+        return []
+    from app.models import DeviceVulnerability, SecurityAdvisory
+
+    rows = db.execute(select(SecurityAdvisory, func.count(DeviceVulnerability.id))
+                      .outerjoin(DeviceVulnerability, (DeviceVulnerability.advisory_id == SecurityAdvisory.id) & (DeviceVulnerability.status != "resolved"))
+                      .where(SecurityAdvisory.cve_id.ilike(f"%{term}%")).group_by(SecurityAdvisory.id)
+                      .order_by(SecurityAdvisory.cve_id.desc()).limit(5)).all()
+    return [{"type": "Vulnerabilità", "title": advisory.cve_id, "subtitle": f"{advisory.vendor or ''} {advisory.product or ''} · {exposed} apparati esposti".strip(),
+             "url": f"/security/vulnerabilities/{advisory.id}", "severity": (advisory.severity or "unknown").lower(), "completion": advisory.cve_id}
+            for advisory, exposed in rows]
+
+
 def _device_result(device, query: str):
+    from app import vendor_cpe
+
     rank, match_field, match_value = _device_match(device, query)
     title = device.display_name or device.device_identity or device.name
     location = device.site.name if device.site else "senza sede"
     completion = match_value or title
+    brand_key = vendor_cpe.brand(device)
+    brand_label = vendor_cpe.label(brand_key) if brand_key else ("Altro produttore" if device.vendor == "generic" else (device.vendor or ""))
     return rank, {
         "type": "Apparato",
         "title": title,
-        "subtitle": f"{device.customer.name} · {location} · {device.vendor} · {device.model or 'modello non rilevato'}",
+        "subtitle": f"{device.customer.name} · {location} · {brand_label} · {device.model or 'modello non rilevato'}",
+        "status": device.status or "unknown",
+        "brand": brand_label,
+        "icon": vendor_cpe.icon(device),
         "url": f"/devices/{device.id}",
         "match_field": match_field,
         "match_value": match_value,
@@ -169,7 +225,8 @@ def search_suggest_enhanced(request: Request, q: str = ""):
             )
         )
 
-        results = [item for _, item in ranked_devices]
+        total_devices = len(device_candidates)
+        results = _page_results(user, term) + _advisory_results(db, term) + [item for _, item in ranked_devices]
         for item in customers:
             matched_code = bool(item.code and term.lower() in item.code.lower())
             results.append(
@@ -196,7 +253,7 @@ def search_suggest_enhanced(request: Request, q: str = ""):
                     "completion": item.address if matched_address else item.name,
                 }
             )
-        return {"results": results[:20], "query": term}
+        return {"results": results[:24], "query": term, "counts": {"Apparato": total_devices, "Cliente": len(customers), "Sede": len(sites)}}
 
 
 def install_search_enhancement(app):

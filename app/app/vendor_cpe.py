@@ -51,6 +51,12 @@ BRANDS = {
     "aruba": {"label": "Aruba (HPE)", "cpe_vendors": ("arubanetworks",), "families": ("arubaos",)},
     "sophos": {"label": "Sophos", "cpe_vendors": ("sophos",)},
 }
+# Brand icons in static/brand-icons.svg (Simple Icons, CC0); other brands use the generic device icon.
+ICONS = {
+    "mikrotik": "#293239", "ubiquiti": "#0559C9", "tp-link": "#4ACBD6", "huawei": "#FF0000", "fortinet": "#EE3124",
+    "juniper": "#84B135", "cisco": "#1BA0D7", "paloalto": "#F04E23", "sonicwall": "#FF791A", "netgear": "#2C262D",
+    "asus": "#000000", "linksys": "#000000", "avm": "#E2001A",
+}
 # Manufacturers selectable for manually added ("generic") devices.
 MANUAL_BRANDS = tuple(key for key in BRANDS if key not in ("mikrotik", "ubiquiti"))
 _DOTTED = re.compile(r"(\d+(?:\.\d+)+)")
@@ -155,6 +161,25 @@ def tracked_cpes(devices, limit: int = 60) -> list[str]:
     return list(dict.fromkeys(cpes))[:limit]
 
 
+def icon(device) -> dict:
+    """Symbol, colour and label of the manufacturer icon for one Device."""
+    key = brand(device)
+    if key in ICONS:
+        return {"symbol": f"brand-{key}", "color": ICONS[key], "label": label(key), "brand": True}
+    return {"symbol": "brand-generic", "color": None, "label": label(key) if key else "Produttore non indicato", "brand": False}
+
+
+def icon_svg(device, size: int = 20):
+    """Inline SVG referencing the icon sprite (CSP-safe: no style attribute)."""
+    from markupsafe import Markup, escape
+
+    data = icon(device)
+    fill = f' fill="{data["color"]}"' if data["color"] else ""
+    kind = "brand" if data["brand"] else "generic"
+    return Markup(f'<span class="brand-icon brand-icon-{kind}" title="{escape(data["label"])}"><svg width="{size}" height="{size}" viewBox="0 0 24 24"{fill} aria-hidden="true">'
+                  f'<use href="/static/brand-icons.svg#{data["symbol"]}"></use></svg></span>')
+
+
 def label(device_brand: str | None) -> str:
     return BRANDS.get(device_brand or "", {}).get("label", device_brand or "—")
 
@@ -201,5 +226,5 @@ def install_vendor_cpe() -> None:
         with SessionLocal() as db:
             return coverage(db.scalars(select(Device)))
 
-    core.templates.env.globals.update(manual_brands=MANUAL_BRANDS, brand_label=label, cve_coverage=_coverage, cve_evaluable=evaluable,
+    core.templates.env.globals.update(manual_brands=MANUAL_BRANDS, brand_label=label, cve_coverage=_coverage, cve_evaluable=evaluable, brand_icon=icon_svg,
                                       device_brand_label=lambda device: label(brand(device)) if brand(device) else None)

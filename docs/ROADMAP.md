@@ -265,9 +265,9 @@ Cacti/Zabbix-style time-series graphs for device telemetry (CPU, memory, signal,
 
 Integration with the operator's Zabbix (currently 6.x; support both the 6.x API and 7.x, where authentication moved to an API token in the `Authorization` header). How it applies to devices (import hosts/items, link NSM devices to Zabbix hosts, show problems and graphs, or push NSM devices to Zabbix) is to be decided with the user before implementation.
 
-### GUI-SEARCH — global search bar (requested 2026-10-07)
+### GUI-SEARCH — global search bar
 
-Improve the style of the global search bar and its suggestion list (grouping by type, icons, keyboard navigation, highlighted matches, recent searches).
+**Implemented in `main`**: compact grouped suggestions with manufacturer icons, device status, matched field, CVE and page shortcuts, counts with *vedi tutti*, recent searches, `/` and Ctrl+K shortcuts; manufacturer icons replace the two-letter vendor badges.
 
 ## 6. ACS / TR-069 CPE roadmap
 
