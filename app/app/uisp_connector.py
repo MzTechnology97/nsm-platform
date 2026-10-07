@@ -24,6 +24,9 @@ UISP_PROVIDER = "uisp"
 UISP_API_PATH = "/nms/api/v2.1/devices"
 UISP_TIMEOUT_SECONDS = 12.0
 UISP_MAX_RESPONSE_BYTES = 20 * 1024 * 1024
+SYNC_INTERVAL_DEFAULT = 15
+SYNC_INTERVAL_MIN = 5
+SYNC_INTERVAL_MAX = 1440
 
 
 class UispConnectorError(RuntimeError):
@@ -52,6 +55,21 @@ def normalize_base_url(value: str) -> str:
         if path.endswith(suffix):
             path = path[: -len(suffix)]
     return urlunsplit((parsed.scheme, parsed.netloc, path, "", "")).rstrip("/")
+
+
+def _parse_sync_interval(value) -> int | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        minutes = int(text)
+    except ValueError:
+        raise ValueError("Intervallo di sincronizzazione non valido.")
+    if not SYNC_INTERVAL_MIN <= minutes <= SYNC_INTERVAL_MAX:
+        raise ValueError(
+            f"L'intervallo di sincronizzazione deve essere tra {SYNC_INTERVAL_MIN} e {SYNC_INTERVAL_MAX} minuti."
+        )
+    return minutes
 
 
 def _http_get(url: str, token: str, verify_tls: bool):
@@ -296,6 +314,14 @@ def apply_candidate(db, device: Device, candidate: dict, actor, event_type="UISP
     return changes
 
 
+def _sync_view(connection: ConnectorIntegration | None) -> dict:
+    """Sync health for the admin page, with stored ISO timestamps parsed."""
+    state = dict((connection.settings or {}).get("sync") or {}) if connection else {}
+    for key in ("last_attempt_at", "last_success_at", "next_attempt_at"):
+        state[key] = _parse_seen(state.get(key))
+    return state
+
+
 def _admin_render(request, db, user, *, message=None, error=None):
     connection = _connection(db)
     return core.render(
@@ -305,6 +331,10 @@ def _admin_render(request, db, user, *, message=None, error=None):
         "admin_uisp.html",
         connection=connection,
         has_secret=bool(connection and connection.secret_encrypted),
+        sync=_sync_view(connection),
+        sync_interval=int((connection.settings or {}).get("sync_interval_minutes") or SYNC_INTERVAL_DEFAULT)
+        if connection
+        else SYNC_INTERVAL_DEFAULT,
         message=message,
         error=error,
     )
@@ -324,11 +354,13 @@ def admin_uisp_save(
     api_token: str = Form(""),
     is_enabled: str | None = Form(None),
     verify_tls: str | None = Form(None),
+    sync_interval_minutes: str = Form(""),
     csrf: str = Form(...),
 ):
     validate_csrf(request, csrf)
     try:
         normalized_url = normalize_base_url(base_url)
+        interval = _parse_sync_interval(sync_interval_minutes)
     except ValueError as exc:
         with SessionLocal() as db:
             user = core.require_admin(request, db)
@@ -345,6 +377,8 @@ def admin_uisp_save(
             row.verify_tls = verify_tls is not None
             if token:
                 row.secret_encrypted = encrypt_text(token)
+            if interval is not None:
+                row.settings = {**(row.settings or {}), "sync_interval_minutes": interval}
         else:
             row = ConnectorIntegration(
                 provider=UISP_PROVIDER,
@@ -353,7 +387,11 @@ def admin_uisp_save(
                 secret_encrypted=encrypt_text(token),
                 is_enabled=is_enabled is not None,
                 verify_tls=verify_tls is not None,
-                settings={"api_version": "v2.1", "mode": "read_only"},
+                settings={
+                    "api_version": "v2.1",
+                    "mode": "read_only",
+                    "sync_interval_minutes": interval or SYNC_INTERVAL_DEFAULT,
+                },
             )
             db.add(row)
         core.add_event(
@@ -366,6 +404,7 @@ def admin_uisp_save(
                 "verify_tls": row.verify_tls,
                 "token_updated": bool(token),
                 "mode": "read_only",
+                "sync_interval_minutes": (row.settings or {}).get("sync_interval_minutes"),
             },
             source="portal",
         )

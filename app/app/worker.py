@@ -14,6 +14,7 @@ from app.firmware_plan_recovery import reconcile_firmware_plan_jobs
 from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_finalization_cleanup
 from app.mikrotik_telemetry import telemetry_cleanup
 from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
+from app.uisp_sync import sync_uisp_devices
 
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
 log = logging.getLogger("worker")
@@ -39,6 +40,7 @@ while True:
             firmware_stats = reconcile_firmware_activations()
             firmware_plan_stats = reconcile_firmware_plan_jobs()
             routerboot_stats = routerboot_verification_tick()
+            uisp_stats = sync_uisp_devices()
             if any(stats.values()):
                 log.info("Backup maintenance: %s", stats)
             if expired_pending_jobs or expired_delivered_jobs:
@@ -55,6 +57,8 @@ while True:
                 log.info("Firmware plan recovery: %s", firmware_plan_stats)
             if any(routerboot_stats.values()):
                 log.info("RouterBOOT verification: %s", routerboot_stats)
+            if uisp_stats.get("status") in {"success", "failed"}:
+                log.info("UISP sync: %s", uisp_stats)
             last_maintenance = now_mono
 
         if now_mono - last_telemetry_maintenance >= TELEMETRY_MAINTENANCE_INTERVAL_SECONDS:
