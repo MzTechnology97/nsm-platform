@@ -2,7 +2,7 @@
 {% from "_worklist.html" import chips, pager, context_banner %}
 {% block title %}Vulnerabilità · {{ app_name }}{% endblock %}
 {% block content %}
-{% set scope = '?q=' ~ q|urlencode ~ '&customer=' ~ customer_filter ~ '&vendor=' ~ vendor_filter|urlencode ~ '&status=' ~ status_filter %}
+{% set scope = '?q=' ~ q|urlencode ~ '&customer=' ~ customer_filter ~ '&vendor=' ~ vendor_filter|urlencode ~ '&status=' ~ status_filter ~ ('&device=' ~ device_filter if device_filter else '') %}
 <div class="page-header compact-heading">
   <div><h1>Vulnerabilità</h1><p>Security advisory e impatto reale sull'inventario gestito{% if selected_customer %} del cliente {{ selected_customer.name }}{% endif %}.</p></div>
 </div>
@@ -15,10 +15,12 @@
   {'label': 'Tutte', 'count': severity_counts.get('all', 0), 'href': scope ~ '&severity=', 'active': not severity_filter},
 ], 'Severità') }}
 {{ context_banner(selected_customer, 'Vista Security confinata al cliente selezionato.') }}
+{% if selected_device %}<div class="context-banner"><strong>{{ selected_device.display_name or selected_device.device_identity or selected_device.name }}</strong><span>CVE che interessano solo questo apparato.</span><a href="/security/vulnerabilities?customer={{ customer_filter }}&status={{ status_filter }}">Rimuovi filtro apparato ›</a></div>{% endif %}
 
 <section class="panel">
   <form class="filter-bar" method="get">
     <input type="hidden" name="severity" value="{{ severity_filter }}">
+    {% if device_filter %}<input type="hidden" name="device" value="{{ device_filter }}">{% endif %}
     <input type="search" name="q" value="{{ q }}" placeholder="CVE, vendor, prodotto..." aria-label="Cerca">
     <select name="customer" aria-label="Cliente"><option value="">Tutti i clienti</option>{% for customer in customers %}<option value="{{ customer.id }}" {% if customer_filter == customer.id|string %}selected{% endif %}>{{ customer.name }}</option>{% endfor %}</select>
     <select name="vendor" aria-label="Vendor"><option value="">Tutti i vendor</option>{% for item in vendors %}<option value="{{ item }}" {% if vendor_filter == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>

@@ -50,6 +50,7 @@ def vulnerabilities(
     severity: str = "",
     status: str = "open",
     page: int = 1,
+    device: str = "",
 ):
     with SessionLocal() as db:
         user = core.current_user(request, db)
@@ -81,6 +82,10 @@ def vulnerabilities(
             filters.append(impact_filter)
         if customer_id:
             filters.append(Device.customer_id == customer_id)
+        device_id = _uuid_or_none(device)
+        selected_device = db.get(Device, device_id) if device_id else None
+        if selected_device:
+            filters.append(Device.id == selected_device.id)
 
         # Per-severity counts within the current scope drive the quick filters.
         severity_counts = {
@@ -158,6 +163,8 @@ def vulnerabilities(
             customers=customers,
             vendors=vendors,
             selected_customer=selected_customer,
+            selected_device=selected_device,
+            device_filter=str(selected_device.id) if selected_device else "",
             q=term,
             customer_filter=customer,
             vendor_filter=vendor,
