@@ -58,7 +58,7 @@ def main():
     for suffix in mt_pages:
         page = client.get(f"/devices/{mt_id}{suffix}")
         assert page.status_code == 200, (suffix, page.status_code)
-        assert tabs(page.text) == ["Panoramica", "Monitor", "Configurazione", "Diagnostica", "Backup", "Firmware", "Agent", "Attività"], suffix
+        assert tabs(page.text) == ["Panoramica", "Monitor", "Configurazione", "Diagnostica", "Backup", "Firmware", "Agent", "Compliance", "Attività"], suffix
         assert "TEST-LAYOUT-MT" in page.text and "TEST-SER-1" in page.text, suffix
         assert 'class="breadcrumbs"' in page.text and page.text.count('class="breadcrumbs"') == 1, suffix
         assert "mt-device-shell" not in page.text, "legacy duplicated shell must be gone"
@@ -66,7 +66,7 @@ def main():
     for suffix in ("", "/backups", "/uisp", "/jobs", "/manage"):
         page = client.get(f"/devices/{ub_id}{suffix}")
         assert page.status_code == 200, (suffix, page.status_code)
-        assert tabs(page.text) == ["Panoramica", "Backup", "UISP", "Attività"], suffix
+        assert tabs(page.text) == ["Panoramica", "Backup", "UISP", "Compliance", "Attività"], suffix
 
     # Active tab is marked once and matches the section.
     firmware = client.get(f"/devices/{mt_id}/routerboot").text

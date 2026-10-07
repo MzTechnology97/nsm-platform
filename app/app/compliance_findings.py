@@ -218,5 +218,30 @@ def compliance_result_exception_revoke(request: Request, result_id: uuid.UUID, c
     return _act(request, result_id, csrf, handler)
 
 
+@router.get("/devices/{device_id}/compliance", response_class=HTMLResponse, name="device_compliance")
+def device_compliance(request: Request, device_id: uuid.UUID):
+    with SessionLocal() as db:
+        user = core.current_user(request, db)
+        if not user:
+            return core.login_redirect()
+        if not core.has_permission(user, "compliance.read"):
+            raise HTTPException(403)
+        device = db.get(Device, device_id)
+        if not device:
+            raise HTTPException(404)
+        now = utcnow()
+        order = {"fail": 0, "unknown": 1, "pass": 2, "not_applicable": 3}
+        results = sorted(
+            db.scalars(select(ComplianceResult).where(ComplianceResult.device_id == device.id)),
+            key=lambda r: (order.get(r.status, 9), r.control_id),
+        )
+        return core.render(
+            request, db, user, "device_compliance.html",
+            device=device, title=device.display_name or device.device_identity or device.name,
+            rows=[(r, CONTROLS.get(r.control_id), in_exception(r, now)) for r in results],
+            result_labels=RESULT_LABELS, last_eval=max((r.evaluated_at for r in results), default=None),
+        )
+
+
 def install_compliance_findings(app) -> None:
     app.include_router(router)
