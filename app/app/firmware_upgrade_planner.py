@@ -20,6 +20,7 @@ from app import main as core
 from app.agent_models import DeviceAgentCredential, DeviceJob
 from app.backup_core import _effective_policy, _policy_settings
 from app.db import SessionLocal
+from app.firmware_plan_recovery import withdraw_jobs_for_cancel
 from app.firmware_upgrade_models import FirmwareUpgradePlan
 from app.mikrotik_backup import _backup_formats
 from app.mikrotik_backup_models import MikrotikBackupJobSecret
@@ -326,17 +327,27 @@ def cancel_plan(request: Request, device_id: uuid.UUID, plan_id: uuid.UUID, csrf
         plan = db.get(FirmwareUpgradePlan, plan_id)
         if not plan or plan.device_id != device.id:
             raise HTTPException(404)
-        if plan.status in {"activation_pending", "reboot_pending", "success"}:
+        if plan.status in {"reboot_pending", "success"}:
             raise HTTPException(409, "Il piano non può più essere annullato: attivazione già avviata o completata.")
+        if plan.status == "cancelled":
+            raise HTTPException(409, "Il piano è già annullato.")
+        now = utcnow()
+        previous_status = plan.status
+        withdrawn_jobs = withdraw_jobs_for_cancel(db, plan, now)
         plan.status = "cancelled"
-        plan.completed_at = utcnow()
+        plan.completed_at = now
         core.add_event(
             db,
             "FIRMWARE_UPGRADE_PLAN_CANCELLED",
             actor=user,
             customer_id=device.customer_id,
             device_id=device.id,
-            details={"plan_id": str(plan.id), "target_version": plan.target_version},
+            details={
+                "plan_id": str(plan.id),
+                "target_version": plan.target_version,
+                "previous_status": previous_status,
+                "withdrawn_job_ids": withdrawn_jobs,
+            },
             source="portal",
         )
         db.commit()
