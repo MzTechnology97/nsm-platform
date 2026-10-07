@@ -30,15 +30,17 @@ that stop matching (e.g. after an upgrade) are resolved with evidence, and
 from __future__ import annotations
 
 import re
+import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import object_session, selectinload
 
 from app.models import Device, DeviceVulnerability, SecurityAdvisory
 from app.routeros_version import compare_routeros_versions, parse_routeros_version
+from app.vulnerability_remediation import record_history
 
 AFFECTED = "affected"
 NOT_AFFECTED = "not_affected"
@@ -229,25 +231,39 @@ def reconcile_advisory_matches(db, now: datetime, advisory_ids=None) -> dict:
                 if result.state == AFFECTED:
                     evidence = {**result.evidence, "source": advisory.source, "evaluated_at": now.isoformat()}
                     if row is None:
-                        db.add(
-                            DeviceVulnerability(
-                                advisory_id=advisory.id,
-                                device_id=device.id,
-                                status="open",
-                                detected_at=now,
-                                installed_version=profile.version,
-                                fixed_version=result.fixed_version,
-                                evidence=evidence,
-                                confidence=result.confidence,
-                                last_evaluated_at=now,
-                            )
+                        row = DeviceVulnerability(
+                            id=uuid.uuid4(),
+                            advisory_id=advisory.id,
+                            device_id=device.id,
+                            status="open",
+                            detected_at=now,
+                            status_changed_at=now,
+                            installed_version=profile.version,
+                            fixed_version=result.fixed_version,
+                            evidence=evidence,
+                            confidence=result.confidence,
+                            last_evaluated_at=now,
+                        )
+                        db.add(row)
+                        record_history(
+                            db, row, None, "open",
+                            note=f"Rilevata: versione {profile.version} nell'intervallo {result.evidence.get('rule')}.",
+                            details={"automatic": "detected", "installed_version": profile.version},
+                            now=now,
                         )
                         stats["opened"] += 1
                         continue
                     if row.status == "resolved":
                         row.status = "open"
                         row.resolved_at = None
+                        row.status_changed_at = now
                         evidence["reopened_at"] = now.isoformat()
+                        record_history(
+                            db, row, "resolved", "open",
+                            note=f"Riaperta: versione {profile.version} di nuovo nell'intervallo {result.evidence.get('rule')}.",
+                            details={"automatic": "reopened", "installed_version": profile.version},
+                            now=now,
+                        )
                         stats["reopened"] += 1
                     elif (
                         row.installed_version != profile.version
@@ -274,10 +290,27 @@ def reconcile_advisory_matches(db, now: datetime, advisory_ids=None) -> dict:
     return stats
 
 
+_RESOLUTION_NOTES = {
+    "no_longer_matches": "Risolta automaticamente: la versione installata non è più affetta",
+    "advisory_rejected": "Risolta automaticamente: la CVE è stata respinta dalla fonte",
+    "device_not_evaluable": "Risolta automaticamente: l'apparato non è più valutabile per questa fonte",
+}
+
+
 def _resolve(row: DeviceVulnerability, now: datetime, reason: str, version, detail: str | None = None) -> None:
+    previous = row.status
     row.status = "resolved"
     row.resolved_at = now
+    row.status_changed_at = now
+    row.exception_until = None
     row.last_evaluated_at = now
+    note = _RESOLUTION_NOTES.get(reason, "Risolta automaticamente")
+    if version:
+        note += f" (versione {version})"
+    record_history(
+        object_session(row), row, previous, "resolved", note=note + ".",
+        details={"automatic": reason, "resolved_version": version}, now=now,
+    )
     row.evidence = {
         **(row.evidence or {}),
         "resolution": reason,

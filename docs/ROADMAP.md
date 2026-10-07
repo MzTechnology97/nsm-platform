@@ -329,6 +329,8 @@ External sources should be documented only after an adapter actually uses them.
 
 ### SEC-03 — remediation lifecycle
 
+**Implemented in `main`** (`app/vulnerability_remediation.py`): open / planned / in_progress / exception (with expiry) / resolved, history of every change, firmware plan link, one Action Center issue per Device with unhandled critical/high findings.
+
 - OPEN / PLANNED / IN_PROGRESS / RESOLVED / EXCEPTION-style lifecycle;
 - operator notes/evidence;
 - firmware/remediation link;

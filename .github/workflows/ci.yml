@@ -54,7 +54,9 @@ jobs:
           python - <<'PY'
           from app.entrypoint import app
           zero = '00000000-0000-0000-0000-000000000001'
-          assert app.version == '0.49.0'
+          import re
+          # Core 0.49 series: the patch number increases with every release (docs/CHANGELOG.md).
+          assert re.fullmatch(r'0\.49\.\d+', app.version), app.version
           expected = {
               'dashboard': '/', 'devices': '/devices', 'admin_api_keys': '/admin/api-keys',
               'admin_uisp': '/admin/integrations/uisp', 'mikrotik_bootstrap': '/api/v1/enrollment/mikrotik/bootstrap',

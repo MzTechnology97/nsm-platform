@@ -29,6 +29,7 @@ from sqlalchemy import select
 
 from app import main as core
 from app.advisory_matching import reconcile_advisory_matches
+from app.vulnerability_remediation import housekeeping
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
 from app.models import SecurityAdvisory, utcnow
@@ -436,6 +437,8 @@ def run_advisory_sync(
         return {"status": "failed", "error": str(exc), "consecutive_failures": failures}
 
     match_stats = reconcile_advisory_matches(db, now)
+    db.flush()
+    match_stats.update(housekeeping(db, now))
     state.update(
         {
             "last_status": "success",
@@ -468,6 +471,8 @@ def run_advisory_sync(
 
 def run_matching(db, connection: ConnectorIntegration, now: datetime, *, trigger: str) -> dict:
     stats = reconcile_advisory_matches(db, now)
+    db.flush()
+    stats.update(housekeeping(db, now))
     _store(connection, "matching", {"last_run_at": now.isoformat(), "last_stats": stats, "trigger": trigger})
     if stats["opened"] or stats["reopened"] or stats["resolved"] or trigger == "manual":
         core.add_event(db, "SECURITY_MATCHING_COMPLETED", details={"trigger": trigger, **stats}, source=PROVIDER)

@@ -46,11 +46,11 @@
   </section>
 </div>
 
-<section class="panel">
+<section class="panel" id="vulnerabilities">
   <div class="panel-header"><div><h2>Vulnerabilità</h2><p>CVE che impattano questo specifico apparato.</p></div></div>
   {% if vulnerabilities %}
-  <div class="table-wrap"><table class="data-table"><thead><tr><th>CVE</th><th>Severità</th><th>Installato</th><th>Fixed</th><th>Stato</th></tr></thead><tbody>
-  {% for impact, advisory in vulnerabilities %}<tr><td><a class="strong-link" href="/security/vulnerabilities/{{ advisory.id }}">{{ advisory.cve_id }}</a></td><td><span class="severity-badge severity-{{ advisory.severity }}">{{ advisory.severity|upper }}</span></td><td>{{ impact.installed_version or device.firmware_version or '—' }}</td><td>{{ impact.fixed_version or '—' }}</td><td>{{ impact.status }}</td></tr>{% endfor %}
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>CVE</th><th>Severità</th><th>Installato</th><th>Corretta in</th><th>Stato</th></tr></thead><tbody>
+  {% for impact, advisory in vulnerabilities %}<tr><td><a class="strong-link" href="/security/vulnerabilities/{{ advisory.id }}">{{ advisory.cve_id }}</a></td><td><span class="severity-badge severity-{{ advisory.severity }}">{{ advisory.severity|upper }}</span></td><td>{{ impact.installed_version or device.firmware_version or '—' }}</td><td>{{ impact.fixed_version or '—' }}</td><td><a class="status-pill" href="/security/findings/{{ impact.id }}">{{ status_label(impact.status) }}</a></td></tr>{% endfor %}
   </tbody></table></div>
   {% else %}<div class="empty-state">Nessuna CVE associata all'apparato.</div>{% endif %}
 </section>
