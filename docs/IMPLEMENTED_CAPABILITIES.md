@@ -43,6 +43,8 @@ A Site is customer-local. UISP or another connector may retain external organiza
 - Audit events for material user/admin changes where implemented.
 - API-key administration with revoke/delete lifecycle.
 - API-key scopes and Customer scoping for the public read-only API.
+- Login protection (`app/login_security.py`, migration 0025): after 5 failed logins for the same username from the same address, or 30 from one address, in 15 minutes, further attempts get `429` until the window passes; the account itself is never locked, so it cannot be locked out from elsewhere. Every failure is audited (`USER_LOGIN_FAILED`, `USER_LOGIN_THROTTLED`), and *Amministrazione → Utenti* lists the last 24 hours of failures. The client address comes from Caddy through `--proxy-headers`.
+- Session lifetime: a session ends after `SESSION_IDLE_MINUTES` of inactivity (default 120) on top of `SESSION_MAX_AGE_SECONDS`; changing the password closes every other session of the account; *Esci dalle altre sessioni* on the profile and *Disconnetti* on the admin users page close sessions on demand (`USER_SESSIONS_REVOKED`). The login page says why a session ended.
 
 ### Still incomplete
 

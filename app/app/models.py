@@ -45,6 +45,8 @@ class User(Base, TimestampMixin):
     role: Mapped[str] = mapped_column(String(30), default="admin")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Sessions opened before this moment are refused (password change, "log out everywhere").
+    sessions_valid_after: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Customer(Base, TimestampMixin):

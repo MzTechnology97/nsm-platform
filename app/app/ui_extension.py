@@ -1,5 +1,6 @@
 import re
 import uuid
+from datetime import timezone
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -211,6 +212,9 @@ def change_own_password(
             return RedirectResponse("/profile?error=password_strength", status_code=303)
 
         user.password_hash = hash_password(new_password)
+        # Every other session of this user ends; this one is re-issued below.
+        changed_at = utcnow()
+        user.sessions_valid_after = changed_at
         _add_event(
             db,
             "USER_PASSWORD_CHANGED",
@@ -223,6 +227,7 @@ def change_own_password(
         request.session.clear()
         request.session["user_id"] = str(user.id)
         request.session["csrf_token"] = csrf_token(request)
+        request.session["auth_at"] = request.session["seen_at"] = changed_at.astimezone(timezone.utc).isoformat()
     return RedirectResponse("/profile?status=password_changed", status_code=303)
 
 
