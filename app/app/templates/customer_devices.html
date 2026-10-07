@@ -1,6 +1,6 @@
 {% extends "customer_layout.html" %}
 {% set customer_tab = 'devices' %}
-{% block customer_actions %}{% if has_permission(user, 'devices.write') %}<a class="button ghost" href="/customers/{{ customer.id }}/devices/manage">Sposta / rimuovi</a>{% endif %}{% if has_permission(user, 'users.manage') %}<a class="button ghost" href="/devices/import">Importa CSV</a>{% endif %}{% endblock %}
+{% block customer_actions %}{% if has_permission(user, 'devices.write') %}<a class="button ghost" href="/customers/{{ customer.id }}/devices/manage">Sposta / rimuovi</a><a class="button ghost" href="/integrations/uisp/onboarding?customer={{ customer.id }}">Importa da UISP</a>{% endif %}{% if has_permission(user, 'users.manage') %}<a class="button ghost" href="/devices/import">Importa CSV</a>{% endif %}{% endblock %}
 {% block customer_content %}
 {% set qs = 'q=' ~ q|urlencode ~ '&site=' ~ site_filter ~ '&vendor=' ~ vendor_filter ~ '&status=' ~ status_filter %}
 <section class="panel">

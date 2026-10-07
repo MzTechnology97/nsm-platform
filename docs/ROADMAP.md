@@ -220,6 +220,8 @@ Original scope:
 
 ### UBNT-03 — bulk onboarding/association
 
+**Implemented in `main`** (`app/uisp_onboarding.py`): UISP list with NSM state, explicit Customer/Site, preview, re-read at confirmation.
+
 - bounded discovery list;
 - duplicate/conflict handling;
 - explicit NSM Customer/Site selection;
