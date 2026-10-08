@@ -9,7 +9,7 @@ from sqlalchemy import select
 from app import syslog_receiver as rx
 from app.db import SessionLocal
 from app.entrypoint import app
-from app.models import AuditEvent, Customer, Device, User
+from app.models import Customer, Device, User
 from app.security import hash_password
 from app.syslog_models import DeviceLogEntry
 from tests.syslog_identity_smoke import set_settings
@@ -54,7 +54,7 @@ def main():
     with SessionLocal() as db:
         cpe_key = db.get(Device, ids["cpe"]).inventory_data["syslog_key"]
     assert f"CPE-Rossi-NSM-{cpe_key}" in re.sub(r"<[^>]+>", "", cpe_page), "non-MikroTik: key in the device name"
-    assert "Accetta solo log con la chiave" in cpe_page
+    assert "Solo righe con la chiave" in cpe_page and "Accetta anche log senza chiave" not in cpe_page
     again = unescape(client.get(f"/devices/{ids['cpe']}/logs").text)
     assert f"NSM-{cpe_key}" in again, "the key is stable"
     admin = unescape(client.get("/admin/syslog").text)
@@ -69,24 +69,10 @@ def main():
     receiver.flush()
     with SessionLocal() as db:
         messages = [r.message for r in db.scalars(select(DeviceLogEntry).where(DeviceLogEntry.device_id == ids["cpe"]).order_by(DeviceLogEntry.id))]
-    assert any("Bad password attempt" in m for m in messages) and any("keyless line" in m for m in messages)
-
-    # Manual strict mode: keyless lines from the CPE address are now discarded.
-    client.post(f"/devices/{ids['cpe']}/syslog/strict", data={"csrf": csrf_from(cpe_page), "enabled": "1"})
-    receiver.refresh()
-    assert ids["cpe"] in receiver.index.strict
-    receiver.handle(b"<28>Oct  8 10:00:02 cpe kernel: keyless after strict", CPE_IP)
-    receiver.handle(f"<28>Oct  8 10:00:03 CPE-Rossi-NSM-{cpe_key} kernel: keyed after strict".encode(), CPE_IP)
-    receiver.flush()
-    with SessionLocal() as db:
-        messages = [r.message for r in db.scalars(select(DeviceLogEntry).where(DeviceLogEntry.device_id == ids["cpe"]))]
-        assert not any("keyless after strict" in m for m in messages) and any("keyed after strict" in m for m in messages)
-        assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "SYSLOG_STRICT_CHANGED", AuditEvent.device_id == ids["cpe"])) is not None
-    page = client.get(f"/devices/{ids['cpe']}/logs").text
-    assert "Modalità rigorosa (manuale)" in page and "Accetta anche log senza chiave" in page
-    client.post(f"/devices/{ids['cpe']}/syslog/strict", data={"csrf": csrf_from(page), "enabled": "0"})
-    receiver.refresh()
-    assert ids["cpe"] not in receiver.index.strict
+    assert any("Bad password attempt" in m for m in messages), "keyed line accepted from any allowed address"
+    assert not any("keyless line" in m for m in messages), "key-only: a line without the key is discarded even from the device address"
+    assert receiver.stats["rejected"]["missing_key"] == 1
+    assert client.post(f"/devices/{ids['cpe']}/syslog/strict", data={"csrf": csrf_from(cpe_page), "enabled": "0"}).status_code in (404, 405), "no way to accept keyless lines"
     print("Syslog manual key smoke passed")
 
 

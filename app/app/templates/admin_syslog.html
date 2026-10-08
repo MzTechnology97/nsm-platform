@@ -4,7 +4,6 @@
 <div class="page-header"><div><h1>Amministrazione</h1><p>Server syslog integrato: gli apparati inviano warning, errori e accessi; ogni dispositivo li mostra nella propria scheda Syslog.</p></div></div>
 {% set admin_tab = "syslog" %}{% include "_admin_tabs.html" %}
 {% if status == 'saved' %}<div class="alert success">Impostazioni syslog salvate: il ricevitore le applica entro un minuto.</div>
-{% elif status == 'assigned' %}<div class="alert success">Mittente associato al dispositivo: i prossimi log verranno salvati.</div>
 {% elif status == 'ignored' %}<div class="alert info">Mittente rimosso dall'elenco.</div>
 {% elif status == 'invalid' %}<div class="alert error">Richiesta non valida.</div>
 {% elif status == 'bad_networks' %}<div class="alert error">Reti non valide: {{ detail }}. Usa il formato CIDR, ad esempio 203.0.113.0/24.</div>{% endif %}
@@ -31,7 +30,7 @@
     <label>Indirizzo del server syslog<input name="public_host" value="{{ settings.public_host }}" placeholder="{{ syslog_host or '203.0.113.10' }}"><small>IP pubblico (o raggiungibile dagli apparati) di questo server. Vuoto: nome host del portale ({{ syslog_host or 'n.d.' }}). RouterOS accetta solo indirizzi IP.</small></label>
     <label>Conservazione info, notice e debug (giorni)<input name="info_retention_days" type="number" min="7" max="90" value="{{ settings.info_retention_days }}"><small>Massimo 90 giorni. Warning, error e critical restano per tutta la vita del dispositivo.</small></label>
     <label>Reti consentite<textarea name="allowed_networks" rows="4" placeholder="203.0.113.0/24&#10;198.51.100.0/22">{{ settings.allowed_networks|join('\n') }}</textarea><small>Una rete CIDR per riga. I pacchetti da altre reti vengono scartati prima di essere letti. Vuoto: solo gli indirizzi associati ai dispositivi.</small></label>
-    <label class="check-row"><input type="checkbox" name="strict_mode" value="1"{% if settings.strict_mode %} checked{% endif %}> Modalità rigorosa: i MikroTik che usano la chiave syslog accettano solo righe con la loro chiave (protezione dallo spoofing)</label>
+    <input type="hidden" name="strict_mode" value="1"><p class="muted"><strong>Solo righe con chiave:</strong> ogni riga deve contenere la chiave <code>NSM-…</code> dell'apparato (prefisso MikroTik, origin-id Cisco o nome del dispositivo); le righe senza chiave vengono sempre scartate.</p>
     <label class="check-row"><input type="checkbox" name="auto_configure" value="1"{% if settings.auto_configure %} checked{% endif %}> Configura automaticamente il syslog sui MikroTik con agent 0.49.11 o successivo; dalla 0.49.13 l'agent imposta anche la chiave syslog del dispositivo (serve l'indirizzo IPv4 qui sopra)</label>
     <button class="button primary">Salva impostazioni</button>
   </form>
@@ -43,16 +42,15 @@
 </section>
 
 <section class="panel">
-  <div class="panel-header"><div><h2>Mittenti scartati</h2><p>Indirizzi da cui sono arrivate righe non attribuibili con certezza: il contenuto non viene salvato, solo il conteggio e il motivo. Se un indirizzo appartiene a un apparato, associalo.</p></div></div>
+  <div class="panel-header"><div><h2>Mittenti scartati</h2><p>Indirizzi da cui sono arrivate righe scartate (senza chiave, chiave sconosciuta, rete non consentita): il contenuto non viene salvato, solo il conteggio e il motivo. Per far accettare i log configura la chiave sull'apparato (scheda Syslog).</p></div></div>
   {% if unknown_sources %}
   <div class="table-wrap"><table>
-    <thead><tr><th>Mittente</th><th>Righe scartate</th><th>Ultima</th><th>Motivo</th><th>Associa</th></tr></thead>
+    <thead><tr><th>Mittente</th><th>Righe scartate</th><th>Ultima</th><th>Motivo</th><th></th></tr></thead>
     <tbody>{% for source in unknown_sources %}<tr>
       <td><code>{{ source.source_ip }}</code></td><td>{{ source.messages }}</td><td>{{ fmt_dt(source.last_seen) }}</td><td class="log-message">{{ source.sample or '' }}</td>
       <td><form method="post" action="/admin/syslog/unknown/assign" class="inline-form">
         <input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="source_ip" value="{{ source.source_ip }}">
-        <select name="device_id" aria-label="Dispositivo">{% for d in devices %}<option value="{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</option>{% endfor %}</select>
-        <button class="button tiny">Associa</button><button class="button tiny ghost" name="ignore" value="1">Ignora</button>
+        <button class="button tiny ghost" name="ignore" value="1">Rimuovi dall'elenco</button>
       </form></td>
     </tr>{% endfor %}</tbody>
   </table></div>

@@ -58,7 +58,7 @@
 
 <section class="panel" id="syslog-setup">
   <details{% if not last_log %} open{% endif %}>
-    <summary class="panel-header syslog-setup-summary"><div><h2>Configurazione syslog dell'apparato</h2><p>Server remoto <code>{{ syslog_host or 'indirizzo di NSM' }}</code>, porta <code>514</code> UDP. Chiave dell'apparato <code>{{ syslog_prefix }}</code>: NSM riconosce i log dalla chiave e, in mancanza, dall'IP del mittente e dall'hostname solo quando sono certi; gli altri vengono scartati.</p></div>
+    <summary class="panel-header syslog-setup-summary"><div><h2>Configurazione syslog dell'apparato</h2><p>Server remoto <code>{{ syslog_host or 'indirizzo di NSM' }}</code>, porta <code>514</code> UDP. Chiave dell'apparato <code>{{ syslog_prefix }}</code>: NSM accetta solo righe con questa chiave; tutte le altre vengono scartate.</p></div>
       {% if syslog_status and syslog_status.alive %}<span class="device-status status-online">Ricevitore attivo</span>{% else %}<span class="device-status status-offline">Ricevitore non attivo</span>{% endif %}</summary>
     {% if device.vendor == 'mikrotik' %}{% set agent_blocker = syslog_agent_eligibility(device) %}
     <div class="syslog-agent">
@@ -71,23 +71,9 @@
     {% endif %}
     {% set syslog_brand = device_brand_key %}{% set syslog_target = syslog_host %}{% include "_syslog_instructions.html" %}
     <div class="syslog-ident">
-      {% if syslog_ident.key_active and syslog_ident.agent %}<p><span class="device-status status-online">Modalità rigorosa</span> Il router invia la propria chiave syslog: i log vengono riconosciuti anche se cambia IP o condivide il NAT con altri apparati; righe senza chiave dal suo indirizzo vengono scartate.</p>
-      {% elif device.vendor == 'mikrotik' and (device.inventory_data or {}).get('agent_version') %}<p class="muted">Chiave syslog non ancora confermata dal router: con l'agent 0.49.13 o successivo la configurazione automatica imposta il prefisso <code>{{ syslog_prefix }}</code> e attiva la modalità rigorosa. Se configuri il router a mano usa i comandi qui sopra (già con il prefisso). Fino ad allora il riconoscimento avviene per indirizzo IP, solo quando è certo.</p>
-      {% endif %}
-      {% if syslog_ident.key_active and syslog_ident.manual and not syslog_ident.agent %}<p><span class="device-status status-online">Modalità rigorosa (manuale)</span> Accettate solo le righe con la chiave <code>{{ syslog_prefix }}</code>.</p>{% endif %}
-      {% if not syslog_ident.agent and has_permission(user, 'devices.write') %}<form method="post" action="/devices/{{ device.id }}/syslog/strict" class="inline-form syslog-strict-form">
-        <input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="enabled" value="{{ '0' if syslog_ident.manual else '1' }}">
-        <button class="button tiny{% if not syslog_ident.manual %} ghost{% endif %}">{{ 'Accetta anche log senza chiave' if syslog_ident.manual else 'Accetta solo log con la chiave' }}</button>
-        <small class="muted">{% if syslog_ident.manual %}Le righe senza chiave da questo apparato vengono scartate.{% else %}Attivalo dopo aver applicato la chiave sull'apparato: le righe senza chiave verranno scartate.{% endif %}</small>
-      </form>{% endif %}
-      {% if not syslog_ident.agent %}<form method="post" action="/devices/{{ device.id }}/syslog/hostname" class="inline-form">
-        <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
-        <label>Hostname atteso <input name="syslog_hostname" value="{{ syslog_ident.custom_hostname }}" placeholder="{{ syslog_ident.expected_hostname }}"></label>
-        {% if has_permission(user, 'devices.write') %}<button class="button tiny">Salva</button>{% endif %}
-      </form>
-      <p class="muted">Imposta sull'apparato questo hostname: se più apparati condividono lo stesso IP pubblico, NSM li distingue dall'hostname; se non è possibile determinarlo, la riga viene scartata.</p>{% endif %}
+      <p><span class="device-status status-online">Solo righe con la chiave</span> NSM accetta esclusivamente le righe che contengono <code>{{ syslog_prefix }}</code>: i log vengono riconosciuti anche se l'apparato cambia IP o condivide il NAT con altri, e qualsiasi riga senza chiave viene scartata.</p>
+      {% if device.vendor == 'mikrotik' and (device.inventory_data or {}).get('agent_version') and not syslog_ident.agent %}<p class="muted">La chiave non è ancora confermata dal router: «Configura syslog con l'agent» la imposta come prefisso (agent 0.49.13+, legacy 0.49.15+), oppure applica a mano i comandi qui sopra. Fino ad allora i log di questo router vengono scartati.</p>{% endif %}
     </div>
-    <p class="muted">Indirizzi da cui NSM accetta i log di questo apparato: {% for ip in syslog_sources %}<code>{{ ip }}</code>{% if not loop.last %}, {% endif %}{% else %}{% if syslog_ident.key_active %}qualsiasi, purché con la chiave{% else %}nessuno associato con certezza (si aggiorna con l'heartbeat dell'agent o con l'IP di gestione){% endif %}{% endfor %}.</p>
   </details>
 </section>
 <script defer src="{{ url_for('static', path='/device_logs.js') }}?v={{ asset_version }}"></script>

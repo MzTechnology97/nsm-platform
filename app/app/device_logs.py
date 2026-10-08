@@ -98,7 +98,7 @@ def logs_page(request: Request, device_id: uuid.UUID, verify: int = 0):
             db.commit()
         return core.render(request, db, user, "device_logs.html", syslog_prefix=prefix, device=device, today_counts=counts, last_log=last, device_section=None,
                            severity_filters=SEVERITY_FILTERS, syslog_host=public_host(db, request), syslog_status=receiver.receiver_status(),
-                           device_brand_key=vendor_cpe.brand(device) or "generic", syslog_sources=device_sources(device),
+                           device_brand_key=vendor_cpe.brand(device) or "generic",
                            access=syslog_security.access_summary(db, device.id), syslog_job=syslog_config.latest_job(db, device.id),
                            syslog_ident=device_identification(device, receiver.load_settings(db)),
                            integrity=syslog_integrity.verify(db, device.id) if verify else None)
@@ -119,17 +119,6 @@ def logs_csv(request: Request, device_id: uuid.UUID, severity: str = "", q: str 
                              entry.hostname or "", entry.source_ip, entry.message])
         name = (device.device_identity or device.name or "device").replace('"', "")[:60]
         return Response(out.getvalue(), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": f'attachment; filename="nsm-log-{name}.csv"'})
-
-
-def device_sources(device) -> list[str]:
-    """Addresses the receiver currently ties to this device (same rules as syslog_identity.build_index)."""
-    from app.db import SessionLocal as _Session
-
-    with _Session() as db:
-        index = identity.build_index(db, receiver.load_settings(db))
-    if device.id in index.strict:
-        return []
-    return sorted(ip for ip, entries in index.candidates.items() if any(e[0] == device.id for e in entries))
 
 
 def device_identification(device, settings) -> dict:
@@ -198,77 +187,18 @@ async def save_settings(request: Request):
     return RedirectResponse("/admin/syslog?status=saved", status_code=303)
 
 
-@router.post("/devices/{device_id}/syslog/hostname", name="device_syslog_hostname")
-async def save_hostname(request: Request, device_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        value = str(form.get("syslog_hostname") or "").strip()[:255]
-        data = dict(device.inventory_data or {})
-        if value:
-            data["syslog_hostname"] = value
-        else:
-            data.pop("syslog_hostname", None)
-        device.inventory_data = data
-        core.add_event(db, "SYSLOG_HOSTNAME_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"hostname": value}, source="portal")
-        db.commit()
-    return RedirectResponse(f"/devices/{device_id}/logs#syslog-setup", status_code=303)
-
-
-@router.post("/devices/{device_id}/syslog/strict", name="device_syslog_strict")
-async def save_strict(request: Request, device_id: uuid.UUID):
-    """Accept only lines carrying the device key (for devices configured by hand with the key)."""
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        enabled = str(form.get("enabled") or "") == "1"
-        identity.prefix_for(device)
-        data = dict(device.inventory_data or {})
-        if enabled:
-            data["syslog_strict_manual"] = True
-        else:
-            data.pop("syslog_strict_manual", None)
-        device.inventory_data = data
-        core.add_event(db, "SYSLOG_STRICT_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id,
-                       details={"manual_strict": enabled}, source="portal")
-        db.commit()
-    return RedirectResponse(f"/devices/{device_id}/logs#syslog-setup", status_code=303)
-
-
 @router.post("/admin/syslog/unknown/assign", name="admin_syslog_assign")
 async def assign_unknown(request: Request):
+    """Key-only mode: discarded senders can only be cleared (an address no longer identifies a device)."""
     form = await request.form()
     validate_csrf(request, str(form.get("csrf") or ""))
     source_ip = receiver._norm(form.get("source_ip"))
     with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        if not source_ip:
-            return RedirectResponse("/admin/syslog?status=invalid", status_code=303)
-        if form.get("ignore"):
+        core.require_admin(request, db)
+        if source_ip:
             db.execute(delete(SyslogUnknownSource).where(SyslogUnknownSource.source_ip == source_ip))
             db.commit()
-            return RedirectResponse("/admin/syslog?status=ignored", status_code=303)
-        try:
-            device = db.get(Device, uuid.UUID(str(form.get("device_id") or "")))
-        except ValueError:
-            device = None
-        if device is None:
-            return RedirectResponse("/admin/syslog?status=invalid", status_code=303)
-        data = dict(device.inventory_data or {})
-        data["syslog_ips"] = sorted(set(data.get("syslog_ips") or []) | {source_ip})[:16]
-        device.inventory_data = data
-        db.execute(delete(SyslogUnknownSource).where(SyslogUnknownSource.source_ip == source_ip))
-        core.add_event(db, "SYSLOG_SOURCE_ASSIGNED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"source_ip": source_ip}, source="portal")
-        db.commit()
-    return RedirectResponse("/admin/syslog?status=assigned", status_code=303)
+    return RedirectResponse("/admin/syslog?status=ignored", status_code=303)
 
 
 @router.get("/security/access", response_class=HTMLResponse, name="security_access")

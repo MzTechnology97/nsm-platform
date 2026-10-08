@@ -5,7 +5,11 @@ Rules, in order:
 1. **Allowed networks.** A packet whose source is outside the networks the
    admin allowed is rejected before parsing.  With no network configured, only
    addresses currently associated with a device are allowed.
-2. **Syslog key.** MikroTik agents (0.49.13+) set ``NSM-<16 hex>`` as logging
+2. **Syslog key — mandatory (operator decision 2026-10-09).** Every line must
+   carry the device key ``NSM-<16 hex>`` (MikroTik logging prefix, Cisco
+   origin-id, device name for other vendors); lines without a key are always
+   discarded.  Rules 3–4 below describe the former address attribution, kept
+   only for diagnostics.  MikroTik agents (0.49.13+) set the key as logging
    prefix.  A line carrying a known key belongs to that device whatever its
    source address (WAN change, shared NAT, several routers at one customer).
    An unknown key is rejected.
@@ -42,6 +46,7 @@ REJECT_REASONS = {
     "network": "rete non consentita",
     "rate": "limite di frequenza",
     "unknown_key": "chiave syslog sconosciuta",
+    "missing_key": "riga senza chiave NSM",
     "strict": "senza chiave da un router in modalità rigorosa",
     "ambiguous": "IP condiviso da più apparati, hostname non risolutivo",
     "unknown": "mittente non associato a un apparato",
@@ -177,10 +182,19 @@ def allowed(index: Index, source_ip: str) -> bool:
 
 
 def resolve(index: Index, source_ip: str, key: str | None, hostname: str | None):
-    """(device_id, None) when certain, else (None, reject reason)."""
+    """(device_id, None) when certain, else (None, reject reason).
+
+    Key only (operator decision 2026-10-09): a line is accepted only when it carries
+    the key of a known device; lines without a key are always discarded.
+    """
     if key:
         device_id = index.keys.get(key)
         return (device_id, None) if device_id else (None, "unknown_key")
+    return None, "missing_key"
+
+
+def resolve_by_address(index: Index, source_ip: str, hostname: str | None):
+    """Address/hostname attribution used before key-only mode; kept for the device page diagnostics."""
     entries = index.candidates.get(source_ip) or []
     if not entries:
         return None, "strict" if source_ip in index.strict_ips else "unknown"

@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.74 — 2026-10-09
+
+Syslog — only lines carrying the device key (operator decision)
+- **Key mandatory, by default and with no exceptions.** The receiver stores a line only when it carries the `NSM-<key>` of a known device: MikroTik logging prefix, Cisco origin-id, or device name for other vendors.
+  - Every line without a key is discarded (reason *riga senza chiave NSM*). This also applies to lines from the device's own address or from a single, unambiguous address.
+  - An unknown key is discarded as before.
+- **Removed.** Attribution by source address and hostname, the per-device *Accetta solo/anche log senza chiave* switch, the *Hostname atteso* field, and the association of discarded senders to a device. In *Mittenti scartati* an address can only be removed from the list.
+- **Allowed networks stay** as a first filter before the key is read.
+- **The Syslog tab and the admin page** say that only lines with the key are accepted. They also say what to do when a MikroTik has not confirmed the key yet: configure syslog with the agent, or apply the manual commands.
+
 ## 0.49.73 — 2026-10-09
 
 Security — exposure check also on private and CGNAT addresses (requested by the operator)

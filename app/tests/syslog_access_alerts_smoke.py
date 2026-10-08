@@ -33,6 +33,7 @@ SAMPLES = [
     ("Failed to login through SSH. (UserName=huawei, IPAddress=203.0.113.17, VpnName=)", "failure", "huawei", "203.0.113.17", None),
     ("web login failed for user=admin from 203.0.113.18", "failure", None, "203.0.113.18", "web"),
 ]
+KEY = "5eed5eed5eed5eed"
 
 
 def csrf_from(html):
@@ -60,7 +61,7 @@ def main():
         customer = Customer(name=f"CI Access {suffix}", code=f"AC{suffix}")
         db.add(customer)
         db.flush()
-        gw = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-AC-{suffix}", management_ip="198.51.100.30", status="online")
+        gw = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-AC-{suffix}", management_ip="198.51.100.30", status="online", inventory_data={"syslog_key": KEY})
         db.add(gw)
         admin = User(username=f"ci-ac-{suffix}", password_hash=hash_password(PASSWORD), role="admin", is_active=True, email=f"ci-ac-{suffix}@example.test")
         db.add(admin)
@@ -73,9 +74,9 @@ def main():
     receiver = rx.Receiver()
     receiver.refresh()
     for _ in range(6):
-        receiver.handle(b"<28>system,error,critical login failure for user admin from 8.8.4.4 via winbox", "198.51.100.30")
-    receiver.handle(b"<30>system,info,account user admin logged in from 8.8.4.4 via winbox", "198.51.100.30")
-    receiver.handle(b"<30>interface,info ether2 link up", "198.51.100.30")
+        receiver.handle(f"<28>NSM-{KEY} system,error,critical login failure for user admin from 8.8.4.4 via winbox".encode(), "198.51.100.30")
+    receiver.handle(f"<30>NSM-{KEY} system,info,account user admin logged in from 8.8.4.4 via winbox".encode(), "198.51.100.30")
+    receiver.handle(f"<30>NSM-{KEY} interface,info ether2 link up".encode(), "198.51.100.30")
     receiver.flush()
     with SessionLocal() as db:
         cats = [c for c in db.scalars(select(DeviceLogEntry.category).where(DeviceLogEntry.device_id == gw_id))]
@@ -100,22 +101,22 @@ def main():
 
     # More failures from the same address do not spam a second alert (re-alert after 6 hours).
     for _ in range(5):
-        receiver.handle(b"<28>system,error,critical login failure for user root from 8.8.4.4 via ssh", "198.51.100.30")
+        receiver.handle(f"<28>NSM-{KEY} system,error,critical login failure for user root from 8.8.4.4 via ssh".encode(), "198.51.100.30")
     receiver.flush()
     assert sec.evaluate()["brute_force"] == 0
     with SessionLocal() as db:
         assert len(db.scalars(select(ActionIssue).where(ActionIssue.device_id == gw_id, ActionIssue.title == "Tentativi di accesso falliti da 8.8.4.4")).all()) == 1
 
     # A successful login from a public address never seen before: warning; the second time it is known.
-    receiver.handle(b"<30>system,info,account user noc logged in from 1.1.1.1 via ssh", "198.51.100.30")
+    receiver.handle(f"<30>NSM-{KEY} system,info,account user noc logged in from 1.1.1.1 via ssh".encode(), "198.51.100.30")
     receiver.flush()
     assert sec.evaluate()["new_public_source"] == 1
     with SessionLocal() as db:
         event = db.scalar(select(DeviceAuthEvent).where(DeviceAuthEvent.remote_ip == "1.1.1.1"))
         event.occurred_at = utcnow() - timedelta(days=1)
         db.commit()
-    receiver.handle(b"<30>system,info,account user noc logged in from 1.1.1.1 via ssh", "198.51.100.30")
-    receiver.handle(b"<30>system,info,account user noc logged in from 198.51.100.40 via winbox", "198.51.100.30")
+    receiver.handle(f"<30>NSM-{KEY} system,info,account user noc logged in from 1.1.1.1 via ssh".encode(), "198.51.100.30")
+    receiver.handle(f"<30>NSM-{KEY} system,info,account user noc logged in from 198.51.100.40 via winbox".encode(), "198.51.100.30")
     receiver.flush()
     assert sec.evaluate()["new_public_source"] == 0, "known address and private LAN address do not alert"
 
