@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.55 — 2026-10-08
+
+Shared addresses (customer NAT) across services
+- **Device header.** A device whose management IP is shared with other devices shows the badge *condiviso (N)*, listing the other devices.
+- **Port forwards (Esposizione).**
+  - From the MikroTik NAT rules already in the firewall snapshot, NSM finds the `dst-nat` rules that publish internal addresses on the WAN.
+  - On the router: rule number, public port, destination and sensitive services (HTTP, SSH, Telnet, RDP, Winbox, SNMP…). Forwards of management services or of all ports raise the *Servizi critici esposti* alert.
+  - On the device behind the NAT: *Raggiungibile da Internet tramite port forward*, which is the only way it is actually exposed.
+- **Zabbix.**
+  - Hosts sharing one address get the tag `nsm_shared_ip` and are listed in the sync result, since Zabbix on that address reaches only the edge router.
+  - *Integrations → Zabbix* lists them with an *IP per Zabbix* per device (for example the LAN IP via VPN or Zabbix proxy), which is used instead of the management IP.
+
 ## 0.49.54 — 2026-10-08
 
 Syslog — server hardening
