@@ -244,11 +244,24 @@ def deliver_one(db, delivery: NotificationDelivery, now=None) -> bool:
         delivery.last_error = str(exc)[:2000]
         if delivery.attempts >= MAX_ATTEMPTS:
             delivery.status, delivery.next_attempt_at = "failed", None
+            _report_evidence(db, delivery, "REPORT_DELIVERY_FAILED")
         else:
             delivery.next_attempt_at = now + timedelta(minutes=BACKOFF_MINUTES[min(delivery.attempts, len(BACKOFF_MINUTES)) - 1])
         return False
     delivery.status, delivery.sent_at, delivery.last_error, delivery.next_attempt_at = "sent", now, None, None
+    _report_evidence(db, delivery, "REPORT_DELIVERED")
     return True
+
+
+def _report_evidence(db, delivery: NotificationDelivery, event_type: str) -> None:
+    """Report deliveries leave an audit event (kept with the audit log, not with the outbox retention)."""
+    ref = delivery.attachment_ref or ""
+    if not ref.startswith("report:"):
+        return
+    core.add_event(db, event_type, severity="info" if event_type == "REPORT_DELIVERED" else "warning",
+                   result="success" if event_type == "REPORT_DELIVERED" else "failure", source="worker",
+                   details={"report_id": ref.split(":", 1)[1], "channel": delivery.channel, "destination": delivery.destination,
+                            "external": delivery.user_id is None, "attempts": delivery.attempts, "error": delivery.last_error})
 
 
 def deliver_pending(now=None) -> dict:

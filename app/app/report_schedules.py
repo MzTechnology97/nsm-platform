@@ -8,6 +8,7 @@ are audited, and raise one Action Center issue after repeated failures.
 from __future__ import annotations
 
 import logging
+import re
 import uuid
 from datetime import date, timedelta
 from zoneinfo import ZoneInfo
@@ -26,6 +27,26 @@ from app.ui_feedback import exception_message, flash_redirect
 
 log = logging.getLogger("worker")
 router = APIRouter()
+MAX_RECIPIENTS = 20
+EMAIL_RE = re.compile(r"^[^@\s<>,;\"']{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63}$")
+
+
+def parse_recipients(value: str) -> list[str]:
+    """Comma/space/newline separated e-mail addresses -> unique normalized list (400 on invalid)."""
+    found: list[str] = []
+    for item in re.split(r"[\s,;]+", str(value or "")):
+        item = item.strip()
+        if not item:
+            continue
+        if len(item) > 320 or not EMAIL_RE.match(item):
+            raise HTTPException(400, f"Indirizzo e-mail non valido: {item[:80]}")
+        local, _, domain = item.rpartition("@")
+        address = f"{local}@{domain.lower()}"
+        if address not in found:
+            found.append(address)
+    if len(found) > MAX_RECIPIENTS:
+        raise HTTPException(400, f"Al massimo {MAX_RECIPIENTS} destinatari esterni per pianificazione.")
+    return found
 MAX_BACKOFF = timedelta(hours=6)
 BASE_BACKOFF = timedelta(minutes=15)
 ISSUE_AFTER_FAILURES = 3
@@ -200,6 +221,7 @@ def schedule_create(
     customer_id: str = Form(""),
     output_format: str = Form("pdf"),
     frequency: str = Form("monthly"),
+    recipients: str = Form(""),
 ):
     try:
         validate_csrf(request, csrf)
@@ -220,7 +242,9 @@ def schedule_create(
                     customer = None
                 if not customer:
                     raise HTTPException(400, "Cliente non valido.")
+            addresses = parse_recipients(recipients)
             schedule = ReportSchedule(
+                recipients=addresses or None,
                 name=label[:160],
                 customer_id=customer.id if customer else None,
                 output_format=output_format,
@@ -240,6 +264,7 @@ def schedule_create(
                     "frequency": frequency,
                     "format": output_format,
                     "scope": customer.name if customer else "Tutti i clienti",
+                    "recipients": addresses,
                 },
                 source="portal",
             )
@@ -288,6 +313,27 @@ def schedule_toggle(request: Request, schedule_id: uuid.UUID, csrf: str = Form(.
         "Pianificazione attivata." if enabled else "Pianificazione sospesa.",
         title="Pianificazione report",
     )
+
+
+@router.post(f"{REPORTS_PATH}/schedules/{{schedule_id}}/recipients", name="report_schedule_recipients")
+def schedule_recipients(request: Request, schedule_id: uuid.UUID, csrf: str = Form(...), recipients: str = Form("")):
+    try:
+        validate_csrf(request, csrf)
+        with SessionLocal() as db:
+            user = core.require_permission(request, db, "reports.generate")
+            schedule = _schedule(db, schedule_id)
+            addresses = parse_recipients(recipients)
+            before = list(schedule.recipients or [])
+            schedule.recipients = addresses or None
+            core.add_event(db, "REPORT_SCHEDULE_RECIPIENTS_CHANGED", actor=user, customer_id=schedule.customer_id,
+                           details={"schedule_id": str(schedule.id), "name": schedule.name, "before": before, "after": addresses}, source="portal")
+            db.commit()
+    except HTTPException as exc:
+        if exc.status_code in {400, 403}:
+            return _feedback(request, exc)
+        raise
+    return flash_redirect(request, REPORTS_PATH, "success",
+                          f"Destinatari esterni aggiornati: {len(addresses)}." if addresses else "Destinatari esterni rimossi.", title="Pianificazione report")
 
 
 @router.post(f"{REPORTS_PATH}/schedules/{{schedule_id}}/delete", name="report_schedule_delete")
