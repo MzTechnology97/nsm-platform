@@ -51,7 +51,19 @@ def main():
     url = f"/customers/{customer_id}/devices"
 
     missing = client.post(url, data={"csrf": token, "vendor": "ubiquiti", "device_type": "wireless_cpe", "ubnt_mac": "", "generic_mac": ""}, follow_redirects=True)
-    assert "Apparato non creato" in missing.text and "necessario il MAC" in missing.text
+    assert "Apparato non creato" in missing.text and "MAC o seriale" in missing.text
+    # Ubiquiti onboarding goes through UISP: the device must already be there.
+    from app import uisp_connector as uisp
+    from app.integration_models import ConnectorIntegration
+    from app.secret_vault import encrypt_text
+
+    with SessionLocal() as db:
+        if uisp._connection(db) is None:
+            db.add(ConnectorIntegration(provider="uisp", name="UISP", base_url="https://uisp.example.test", verify_tls=True, is_enabled=True,
+                                        secret_encrypted=encrypt_text("ci-token"), settings={}))
+            db.commit()
+    uisp._fetch_candidates = lambda connection: [{"external_id": "uisp-csp-1", "primary_mac": "02:00:5E:10:20:30", "device_identity": "cpe-csp",
+                                                  "model": "LiteBeam", "status": "online", "metrics": {}, "firmware": None, "site": {}}]
     created = client.post(url, data={"csrf": token, "vendor": "ubiquiti", "device_type": "wireless_cpe", "display_name": "TEST CPE", "ubnt_mac": "02-00-5E-10-20-30", "generic_mac": ""}, follow_redirects=False)
     assert created.status_code == 303 and created.headers["location"].startswith("/devices/")
     duplicate = client.post(url, data={"csrf": token, "vendor": "ubiquiti", "device_type": "wireless_cpe", "ubnt_mac": "02:00:5e:10:20:30"}, follow_redirects=True)
