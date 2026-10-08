@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.82 — 2026-10-09
+
+MikroTik Agent — legacy agents run several jobs per heartbeat; support snapshot on legacy (audit of half-done work)
+- **Several jobs per heartbeat.** **Legacy Agent 0.49.19** polls again after each completed job, up to 8 jobs per heartbeat. Queued operations (snapshots, diagnostics, syslog, backup) no longer wait one heartbeat each. It reaches paired routers through the automatic update.
+- **Support snapshot on RouterOS 6.48/6.49 and 7.12.** Before, the request failed on legacy agents ("non ancora disponibile"). For agents with structured snapshots (0.49.3+), NSM now splits it into the read-only sections the agent already runs: resources, addresses, routes, interfaces, PPP, DHCP, logs.
+  - It assembles them in the modern support snapshot shape (50 rows per table, like the modern agent).
+  - A section that never arrives is listed as missing when the snapshot expires; the snapshot still closes with what it has.
+- The *Support snapshot* card in Diagnostics is shown for those legacy agents too.
+
 ## 0.49.81 — 2026-10-09
 
 MikroTik Agent — capabilities and texts that match what legacy agents do (audit of half-done work)

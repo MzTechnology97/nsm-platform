@@ -92,13 +92,19 @@ def _enhanced_context(db, device):
         "agent_transport": transport,
         "snapshot_supported": transport in {"modern", "legacy"},
         "telemetry_history_supported": transport == "modern",
-        "support_snapshot_supported": transport == "modern",
+        "support_snapshot_supported": transport == "modern" or (transport == "legacy" and _legacy_snapshots(device)),
         "legacy_capability_reason": (
             "Il transport legacy (RouterOS 6.48/6.49 e 7.12.x) usa snapshot configurazione plain-text allow-list."
             if transport == "legacy" else None
         ),
     })
     return ctx
+
+
+def _legacy_snapshots(device) -> bool:
+    from app.mikrotik_legacy_jobs import legacy_agent_supports_snapshots
+
+    return legacy_agent_supports_snapshots(device)
 
 
 def _remove_exact_route(app, path: str, method: str = "GET"):
@@ -194,8 +200,9 @@ def _guard_diagnostic(request: Request, device_id: uuid.UUID, diagnostic: str, t
     if diagnostic == "support_snapshot":
         with SessionLocal() as db:
             device = workspace._load_device(db, device_id)
-            if agent_transport(device) != "modern":
-                raise HTTPException(409, "Support snapshot non disponibile sul transport legacy. Ping, traceroute, neighbor, DHCP lookup e log restano disponibili.")
+            transport = agent_transport(device)
+            if transport != "modern" and not (transport == "legacy" and _legacy_snapshots(device)):
+                raise HTTPException(409, "Support snapshot non disponibile con questo agent legacy: reinstallalo (0.49.3+). Ping, traceroute, neighbor, DHCP lookup e log restano disponibili.")
     return workspace.queue_diagnostic(request, device_id, diagnostic, target, source, query, csrf)
 
 
