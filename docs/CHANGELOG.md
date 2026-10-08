@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.64 — 2026-10-08
+
+Syslog — fix: device key in the manual configuration (reported by the operator)
+- **The commands in the *Syslog* tab now carry the device key.** Before, they had no identifier, so a device configured by hand was recognised only by IP.
+  - **MikroTik**: every `/system logging add` line has `prefix=NSM-<key>`. The same key is set by the agent's automatic configuration.
+  - **Cisco IOS**: `logging origin-id string NSM-<key>`.
+  - **Other vendors**: put `NSM-<key>` in the device name (hostname / device name, e.g. `CPE-Rossi-NSM-<key>`). The receiver finds the key anywhere in the line, hostname included.
+- **Key created when the tab is opened**, stable afterwards. It is shown in the tab header.
+- **Manual strict mode.** For devices configured by hand, *Accetta solo log con la chiave* discards the lines without the key from that device. It is audited (`SYSLOG_STRICT_CHANGED`). MikroTik devices with the agent keep the automatic strict mode.
+- The admin page shows the commands with the placeholder `NSM-<chiave del dispositivo>`.
+
 ## 0.49.63 — 2026-10-08
 
 Reports — delivery (REP-04)

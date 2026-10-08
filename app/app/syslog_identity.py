@@ -129,7 +129,7 @@ def build_index(db, settings: dict, now=None) -> Index:
         key = data.get("syslog_key")
         if isinstance(key, str) and len(key) == 16:
             index.keys[key] = device.id
-        if strict_mode and data.get("syslog_strict"):
+        if strict_mode and (data.get("syslog_strict") or (data.get("syslog_strict_manual") and isinstance(key, str) and len(key) == 16)):
             index.strict.add(device.id)
         heartbeat = _parse_time(data.get("last_heartbeat_at"))
         fresh = heartbeat is not None and now - heartbeat <= HEARTBEAT_FRESH

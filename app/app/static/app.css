@@ -4732,3 +4732,5 @@ a.compliance-mark { text-decoration: none; }
 .schedule-recipients { margin-top: 4px; font-size: 12px; }
 .schedule-recipients summary { cursor: pointer; color: var(--muted); }
 .schedule-recipients .inline-form input { min-width: 260px; }
+.syslog-key-hint { margin-top: 6px; font-size: 12.5px; }
+.syslog-strict-form { margin: 8px 0; flex-wrap: wrap; }
