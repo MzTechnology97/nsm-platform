@@ -28,6 +28,8 @@ from app.security import validate_csrf
 
 router = APIRouter()
 GENIEACS_PROVIDER = "genieacs"
+# Generic devices that commonly speak TR-069 (switches, APs and OLTs do not get the ACS tab).
+TR069_DEVICE_TYPES = {"router", "ont", "wireless_cpe", "other"}
 GENIEACS_TIMEOUT_SECONDS = 12.0
 GENIEACS_MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 GENIEACS_ONLINE_WINDOW_MINUTES = 1440
@@ -393,9 +395,16 @@ def _snapshot(device: Device):
     }
 
 
+def tr069_capable(device) -> bool:
+    """Devices that can be managed through the ACS: TR-069 CPEs of any brand (TP-Link, Huawei, ZTE, …)."""
+    if device.vendor == "tp-link" or device.management_source in ("tr069", "acs") or device.inventory_source == GENIEACS_PROVIDER:
+        return True
+    return device.vendor == "generic" and str(device.device_type or "") in TR069_DEVICE_TYPES
+
+
 def apply_candidate(db, device: Device, candidate: dict, actor, event_type="GENIEACS_DEVICE_ASSOCIATED"):
-    if device.vendor != "tp-link":
-        raise HTTPException(400, "Il connector GenieACS è disponibile per i CPE TP-Link/TR-069.")
+    if not tr069_capable(device):
+        raise HTTPException(400, "Il connector GenieACS è disponibile per i CPE TR-069 (TP-Link o altri produttori).")
     duplicate = db.scalar(
         select(Device.id).where(
             Device.external_device_id == candidate["external_id"],
@@ -655,8 +664,8 @@ def _device(db, device_id):
     device = db.get(Device, device_id)
     if not device:
         raise HTTPException(404, "Apparato non trovato.")
-    if device.vendor != "tp-link":
-        raise HTTPException(400, "Questa operazione è disponibile per CPE TP-Link/TR-069.")
+    if not tr069_capable(device):
+        raise HTTPException(400, "Questa operazione è disponibile per i CPE TR-069.")
     if not (device.serial_number or device.primary_mac):
         raise HTTPException(409, "Il CPE non ha seriale né MAC per il matching GenieACS.")
     return device
@@ -750,3 +759,4 @@ def summary() -> dict:
 def install_genieacs_connector(app):
     app.include_router(router)
     core.templates.env.globals["genieacs_summary"] = summary
+    core.templates.env.globals["tr069_capable"] = tr069_capable

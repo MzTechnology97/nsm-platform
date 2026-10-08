@@ -18,7 +18,12 @@
   {% else %}<div class="empty-state warning">Associazione UISP ancora da completare. Il MAC NSM resta la chiave di matching e Cliente/Sede non vengono importati da UISP.</div>{% endif %}
 </section>
 {% elif device.management_source in ['tr069', 'acs'] %}
-<div class="alert info"><strong>Gestione tramite ACS non ancora disponibile.</strong> Inventario, backup e firmware per questo apparato restano manuali finché il connettore TR-069 non è implementato.</div>
+<section class="panel">
+  <div class="panel-header"><div><h2>ACS / TR-069</h2><p>Inventario osservato tramite GenieACS (sola lettura): identità, firmware, IP WAN e ultimo Inform.</p></div><a class="button {% if not device.external_device_id %}primary{% else %}ghost{% endif %}" href="/devices/{{ device.id }}/genieacs">{{ 'Associa a GenieACS' if not device.external_device_id else 'Apri scheda ACS' }}</a></div>
+  {% if device.external_device_id %}{% set tr = (device.inventory_data or {}).get('tr069') or {} %}
+  <div class="policy-summary"><div><span>ID GenieACS</span><strong><code>{{ device.external_device_id }}</code></strong></div><div><span>Ultimo Inform</span><strong>{{ fmt_dt(tr.get('last_inform')) if tr.get('last_inform') else '—' }}</strong></div><div><span>Ultima verifica</span><strong>{{ fmt_dt(device.inventory_last_verified_at) if device.inventory_last_verified_at else '—' }}</strong></div></div>
+  {% else %}<div class="empty-state warning">Associazione GenieACS da completare: il CPE deve aver contattato l'ACS (URL <code>http://&lt;server NSM&gt;:7547/</code>), poi associalo per seriale o MAC dalla scheda ACS.</div>{% endif %}
+</section>
 {% endif %}
 
 <div class="detail-grid">
