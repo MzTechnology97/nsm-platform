@@ -197,7 +197,7 @@ async def queue_reboot(request: Request, device_id: uuid.UUID):
             details={"job_id": str(job.id), "reason": reason[:500]}, severity="warning", source="portal",
         )
         db.commit()
-    return flash_redirect(request, back, "success", "Riavvio in coda: l'agent lo eseguirà al prossimo heartbeat (entro 5 minuti).", title="Riavvio richiesto")
+    return flash_redirect(request, back, "success", "Riavvio in coda: l'agent lo eseguirà al prossimo heartbeat (entro 2 minuti).", title="Riavvio richiesto")
 
 
 @router.post("/api/v1/agents/mikrotik/device-reboot/{job_id}/ack", name="mikrotik_device_reboot_ack")

@@ -178,7 +178,7 @@ async def configure_device(request: Request, device_id: uuid.UUID):
         db.commit()
     if job is None:
         return flash_redirect(request, back, "info", "Una configurazione è già in corso: l'agent la riceverà al prossimo heartbeat.", title="Già in coda")
-    return flash_redirect(request, back, "success", f"L'agent configurerà il syslog verso {remote}:514 al prossimo heartbeat (entro 5 minuti).", title="Configurazione in coda")
+    return flash_redirect(request, back, "success", f"L'agent configurerà il syslog verso {remote}:514 al prossimo heartbeat (entro 2 minuti).", title="Configurazione in coda")
 
 
 @router.post("/admin/syslog/configure-all", name="admin_syslog_configure_all")

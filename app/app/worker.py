@@ -18,6 +18,7 @@ from app.mikrotik_telemetry import telemetry_cleanup
 from app.uisp_metrics import cleanup as uisp_metrics_cleanup
 from app.cnmaestro_connector import cleanup as cnmaestro_cleanup, scheduled_sync as cnmaestro_sync
 from app.interface_traffic import cleanup as interface_traffic_cleanup
+from app.telemetry_rollup import consolidate as consolidate_telemetry
 from app.syslog_receiver import cleanup as syslog_cleanup
 from app.syslog_security import evaluate as evaluate_access_alerts
 from app.mikrotik_syslog_config import auto_configure as auto_configure_syslog
@@ -135,6 +136,7 @@ while True:
             last_compliance = now_mono
 
         if now_mono - last_telemetry_maintenance >= TELEMETRY_MAINTENANCE_INTERVAL_SECONDS:
+            run_task("telemetry_consolidation", consolidate_telemetry, default=0)
             deleted = run_task("telemetry_retention", telemetry_cleanup, default=0) + run_task("uisp_metrics_retention", uisp_metrics_cleanup, default=0) + run_task("cnmaestro_metrics_retention", cnmaestro_cleanup, default=0) + run_task("interface_traffic_retention", interface_traffic_cleanup, default=0) + run_task("syslog_retention", syslog_cleanup, default=0)
             if deleted:
                 log.info("Telemetry retention: rimossi %s campioni scaduti", deleted)

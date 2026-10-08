@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.78 — 2026-10-09
+
+MikroTik Agent — heartbeat every 2 minutes (requested by the operator)
+- **New installations** schedule the agent every **2 minutes** instead of 5. Jobs (reboot, syslog, diagnostics, updates) start within 2 minutes; graphs and offline detection are finer.
+- **Installed agents.** **Agent 0.49.18** aligns its own scheduler to 2 minutes at every run, and reaches paired routers through the automatic update. Read-only agents cannot change the scheduler and keep 5 minutes.
+- **Server load.** A heartbeat is one small POST; legacy agents add one job poll. 300 routers make about 2.5 requests per second.
+- **Storage.** Telemetry is consolidated like an RRD archive (`telemetry_rollup.py`, hourly). Full 2-minute resolution is kept for 7 days. Older CPU/memory and traffic samples become one 10-minute point (average of CPU and bit/s, newest counters and memory).
+  - Over the 90-day retention a series stores about 17,000 points instead of the 25,900 of the 5-minute heartbeat.
+
 ## 0.49.77 — 2026-10-09
 
 MikroTik Agent — legacy agents update themselves (requested by the operator)
