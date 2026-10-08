@@ -40,6 +40,12 @@ def main():
     assert set(by_target) == {"192.0.2.20", "192.0.2.30", "192.0.2.60"}, "LAN-only, disabled and srcnat rules ignored"
     assert by_target["192.0.2.20"]["sensitive"] == ["HTTP"] and by_target["192.0.2.20"]["severity"] == "high" and by_target["192.0.2.20"]["rule"] == 0
     assert by_target["192.0.2.30"]["severity"] == "low" and by_target["192.0.2.60"]["all_ports"] and by_target["192.0.2.60"]["severity"] == "high"
+    # A forwarded public port dropped in raw (before dst-nat) is not reachable.
+    raw = [{"chain": "prerouting", "action": "drop", "protocol": "tcp", "dst-port": "8080", "in-interface": "pppoe-out1"}]
+    guarded = shared_ips.port_forwards(NAT, lambda rule: expo._interface_applies(rule, wan),
+                                       raw_blocks=lambda port, proto: expo.raw_verdict(raw, port, proto, wan)[0] == "protected")
+    webcam = next(f for f in guarded if f["to_address"] == "192.0.2.20")
+    assert webcam["blocked_by_raw"] and webcam["severity"] == "info" and not webcam["certain"]
 
     suffix = uuid.uuid4().hex[:6]
     shared = "198.51.100.150"

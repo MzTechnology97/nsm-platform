@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.59 — 2026-10-08
+
+Security — exposure check
+- **RouterOS raw firewall analysed** (requested by the operator).
+  - **MikroTik Agent 0.49.14** adds `/ip firewall raw` to the firewall snapshot.
+  - **Order.** The `raw/prerouting` table runs before connection tracking and the filter, so NSM evaluates it first:
+    - a raw `drop` for traffic from the WAN (also on the service port) makes the service *protetto*, even when the filter would accept it;
+    - raw `accept`/`notrack` only end the raw table, so the filter decides;
+    - drops limited to source lists (blacklists) do not protect;
+    - jumps or unknown interface lists make the verdict *da verificare*.
+  - **Port forwards.** A forward whose public port is dropped in raw (before `dst-nat`) is shown as *protetto (raw)* and does not raise the alert.
+  - **Page.** The Esposizione tab shows how many filter and raw rules were read. The "no drop" warning also considers raw/prerouting.
+
 ## 0.49.58 — 2026-10-08
 
 ACS / TR-069

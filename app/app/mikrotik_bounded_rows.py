@@ -19,6 +19,7 @@ ROW_LIMITS = {
     "/interface": 300,
     "/ip firewall filter": 300,
     "/ip firewall nat": 300,
+    "/ip firewall raw": 300,
     "/ip dhcp-server lease": 500,
     "/ppp active": 500,
 }
