@@ -30,6 +30,8 @@ from app.models import utcnow
 
 router = APIRouter()
 MAX_LEGACY_RESULT = 512 * 1024
+# Jobs a legacy Agent runs in one heartbeat (it polls again after each completed job).
+MAX_JOBS_PER_RUN = 8
 LEGACY_SNAPSHOT_SECTIONS = {
     "resources",
     "ip_addresses",
@@ -344,6 +346,10 @@ def _legacy_agent_extension(base_url: str, check_certificate: bool) -> str:
   :if ([:len $nsmCurrent] = 0) do={{ :return $nsmLine }}
   :return ($nsmCurrent . "\\n" . $nsmLine)
 }}
+:local nsmLegacyMore true
+:for nsmLegacyRound from=1 to={MAX_JOBS_PER_RUN} do={{
+:if ($nsmLegacyMore) do={{
+:set nsmLegacyMore false
 :local nsmLegacyJobResult ""
 :do {{ :set nsmLegacyJobResult [/tool fetch url="{next_url}" http-header-field=$nsmLegacyHeaders output=user as-value{cert}] }} on-error={{ :log warning "NSM legacy job poll failed" }}
 :if ([:typeof $nsmLegacyJobResult] != "str") do={{
@@ -399,10 +405,13 @@ def _legacy_agent_extension(base_url: str, check_certificate: bool) -> str:
           :local nsmDoneUrl ("{done_base}" . $nsmJobId . "/complete?status=" . $nsmJobStatus)
           :local nsmDoneHeaders ("Content-Type:text/plain," . $nsmLegacyHeaders)
           :do {{ /tool fetch url=$nsmDoneUrl http-method=post http-header-field=$nsmDoneHeaders http-data=$nsmJobOutput output=user as-value{cert} }} on-error={{ :log warning "NSM legacy job completion failed" }}
+          :set nsmLegacyMore true
         }}
       }}
     }}
   }}
+}}
+}}
 }}
 '''
 
