@@ -76,6 +76,7 @@ from app.mikrotik_device_reboot import install_mikrotik_device_reboot
 from app.mikrotik_syslog_config import install_mikrotik_syslog_config
 from app.zabbix_connector import install_zabbix_connector
 from app.device_exposure import install_device_exposure
+from app import shared_ips as _shared_ips
 from app.reports import install_reports
 from app.report_schedules import install_report_schedules
 from app.search_enhancement import install_search_enhancement
@@ -118,7 +119,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.54"
+APP_VERSION = "0.49.55"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -158,6 +159,16 @@ install_mikrotik_device_reboot(core.app)
 install_mikrotik_syslog_config(core.app)
 install_zabbix_connector(core.app)
 install_device_exposure(core.app)
+
+
+def _shared_ip_peers(device):
+    from app.db import SessionLocal as _Session
+
+    with _Session() as db:
+        return [d.display_name or d.device_identity or d.name for d in _shared_ips.peers(db, device)]
+
+
+core.templates.env.globals["shared_ip_peers"] = _shared_ip_peers
 install_firmware_activation_privilege_guard()
 install_firmware_upgrade_planner(core.app)
 install_agent_ui(core.app)

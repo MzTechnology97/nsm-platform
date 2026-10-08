@@ -193,7 +193,7 @@ def _valid_ip(value) -> str | None:
 
 def eligible(device, settings: dict) -> bool:
     data = device.inventory_data or {}
-    if data.get("zabbix_exclude") or not _valid_ip(device.management_ip):
+    if data.get("zabbix_exclude") or not (_valid_ip(data.get("zabbix_ip")) or _valid_ip(device.management_ip)):
         return False
     if settings.get("scope") == "customers":
         return str(device.customer_id) in set(settings.get("customer_ids") or [])
@@ -208,7 +208,7 @@ def host_payload(device, customer, site, settings: dict) -> dict:
     brand_key = vendor_cpe.brand(device) or device.vendor or ""
     name = device.display_name or device.device_identity or device.name
     customer_name = customer.name if customer else "Senza cliente"
-    ip = _valid_ip(device.management_ip)
+    ip = _valid_ip((device.inventory_data or {}).get("zabbix_ip")) or _valid_ip(device.management_ip)
     if settings.get("interface") == "snmp":
         interface = {"type": 2, "main": 1, "useip": 1, "ip": ip, "dns": "", "port": "161",
                      "details": {"version": 2, "bulk": 1, "community": settings.get("snmp_community") or "{$SNMP_COMMUNITY}"}}
@@ -264,7 +264,7 @@ def sync(db, row=None, now=None) -> dict:
     if row is None or not row.is_enabled:
         return {"status": "disabled"}
     settings = settings_of(row)
-    stats = {"created": 0, "updated": 0, "disabled": 0, "skipped": 0, "errors": [], "missing_templates": []}
+    stats = {"created": 0, "updated": 0, "disabled": 0, "skipped": 0, "errors": [], "missing_templates": [], "shared_ip": []}
     client = client_for(row)
     try:
         version = client.connect()
@@ -272,13 +272,23 @@ def sync(db, row=None, now=None) -> dict:
         customers = {c.id: c for c in db.scalars(select(Customer))}
         sites = {s.id: s for s in db.scalars(select(Site))}
         wanted = {}
+        addresses: dict = {}
         for device in devices:
             if eligible(device, settings):
-                wanted[host_name(device)] = (device, host_payload(device, customers.get(device.customer_id), sites.get(device.site_id), settings))
+                payload = host_payload(device, customers.get(device.customer_id), sites.get(device.site_id), settings)
+                wanted[host_name(device)] = (device, payload)
+                addresses.setdefault(payload["interface"]["ip"], []).append(payload)
             else:
                 stats["skipped"] += 1
         existing = {h["host"]: h for h in client.call("host.get", {"output": ["hostid", "host", "name", "status"], "tags": [{"tag": "source", "value": "nsm", "operator": 1}],
                                                                     "selectInterfaces": ["interfaceid", "ip", "type", "main"]})}
+        for same in addresses.values():
+            if len(same) > 1:
+                # Several hosts on one address (customer NAT): Zabbix reaches only the edge router.
+                for payload in same:
+                    payload["tags"].append({"tag": "nsm_shared_ip", "value": "true"})
+                    stats["shared_ip"].append(payload["name"])
+        stats["shared_ip"] = sorted(stats["shared_ip"])[:200]
         groups = _group_ids(client, {p["group"] for _d, p in wanted.values()}) if wanted else {}
         templates = _template_ids(client, {p["template"] for _d, p in wanted.values()})
         stats["missing_templates"] = sorted({p["template"] for _d, p in wanted.values() if p["template"] and p["template"] not in templates})
@@ -366,7 +376,10 @@ def _render(request, db, user, message=None, error=None):
             username = secret.get("username", "")
         except ValueError:
             pass
-    return core.render(request, db, user, "admin_zabbix.html", title="Zabbix", connection=row, settings=settings_of(row),
+    from app import shared_ips
+
+    shared = [(ip, devices) for ip, devices in sorted(shared_ips.shared_map(db).items())]
+    return core.render(request, db, user, "admin_zabbix.html", title="Zabbix", connection=row, settings=settings_of(row), shared=shared,
                        secret_mode=secret_mode, zabbix_username=username, message=message, error=error,
                        customers=list(db.scalars(select(Customer).order_by(Customer.name))),
                        frontend=frontend_url(row.base_url) if row else None)
@@ -465,6 +478,30 @@ def admin_zabbix_sync(request: Request, csrf: str = Form(...)):
         if result["status"] == "failed":
             return _render(request, db, user, error=f"Sincronizzazione non riuscita: {result['errors'][0] if result['errors'] else 'errore'}")
         return _render(request, db, user, message=f"Sincronizzazione completata: {result['created']} host creati, {result['updated']} aggiornati, {result['disabled']} disabilitati, {result['skipped']} apparati senza IP o esclusi.")
+
+
+@router.post("/devices/{device_id}/zabbix/ip", name="device_zabbix_ip")
+async def device_zabbix_ip(request: Request, device_id: uuid.UUID):
+    form = await request.form()
+    validate_csrf(request, str(form.get("csrf") or ""))
+    with SessionLocal() as db:
+        user = core.require_permission(request, db, "devices.write")
+        device = db.get(Device, device_id)
+        if device is None:
+            return RedirectResponse("/devices", status_code=303)
+        value = _valid_ip(form.get("zabbix_ip"))
+        data = dict(device.inventory_data or {})
+        if value:
+            data["zabbix_ip"] = value
+        else:
+            data.pop("zabbix_ip", None)
+        device.inventory_data = data
+        core.add_event(db, "ZABBIX_DEVICE_IP_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"zabbix_ip": value}, source="portal")
+        db.commit()
+    target = str(form.get("next") or "")
+    if not target.startswith("/") or target.startswith("//") or "\\" in target:
+        target = "/admin/integrations/zabbix#shared"  # internal paths only (no open redirect)
+    return RedirectResponse(target, status_code=303)
 
 
 @router.post("/devices/{device_id}/zabbix/exclude", name="device_zabbix_exclude")

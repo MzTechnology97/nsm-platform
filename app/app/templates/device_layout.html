@@ -52,7 +52,7 @@
       {% if device.device_identity and device.device_identity != device_name %}<div><dt>Identity</dt><dd>{{ device.device_identity }}</dd></div>{% endif %}
       <div><dt>Modello</dt><dd>{{ device.model or '—' }}</dd></div>
       <div><dt>{{ 'RouterOS' if is_mikrotik else 'Firmware' }}</dt><dd>{{ device.firmware_version or '—' }}</dd></div>
-      <div><dt>IP gestione</dt><dd><code>{{ device.management_ip or device_inv.get('last_source_ip') or '—' }}</code>{% if device.management_ip %} <small>{{ ip_scope(device.management_ip) }}</small>{% endif %}</dd></div>
+      <div><dt>IP gestione</dt><dd><code>{{ device.management_ip or device_inv.get('last_source_ip') or '—' }}</code>{% if device.management_ip %} <small>{{ ip_scope(device.management_ip) }}</small>{% set ip_peers = shared_ip_peers(device) %}{% if ip_peers %} <span class="shared-ip-badge" title="Stesso IP di: {{ ip_peers|join(', ') }}">condiviso ({{ ip_peers|length }})</span>{% endif %}{% endif %}</dd></div>
       {% if device_inv.get('lan_ip') and device_inv.get('lan_ip') != device.management_ip %}<div><dt>IP LAN</dt><dd><code>{{ device_inv.get('lan_ip') }}</code></dd></div>{% endif %}
       {% if device_inv.get('last_source_ip') and device_inv.get('last_source_ip') != device.management_ip %}<div><dt>Visto da NSM</dt><dd><code>{{ device_inv.get('last_source_ip') }}</code></dd></div>{% endif %}
       <div><dt>MAC</dt><dd><code>{{ device.primary_mac or '—' }}</code></dd></div>

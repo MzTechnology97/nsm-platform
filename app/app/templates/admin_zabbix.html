@@ -17,6 +17,17 @@
 {% if last.get('missing_templates') %}<div class="alert warning">Template non trovati in Zabbix: {{ last.get('missing_templates')|join(', ') }}. Gli host sono stati creati senza quel template.</div>{% endif %}
 {% if last.get('errors') %}<div class="alert warning"><strong>Errori dell'ultima sincronizzazione</strong><ul>{% for e in last.get('errors')[:10] %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
 
+{% if shared %}
+<section class="panel" id="shared">
+  <div class="panel-header"><div><h2>Apparati con IP condiviso</h2><p>Più apparati hanno lo stesso IP di gestione (NAT del cliente): Zabbix su quell'indirizzo raggiunge solo il router di bordo. Per monitorare gli apparati dietro il NAT indica un indirizzo raggiungibile da Zabbix (IP LAN tramite VPN o proxy Zabbix). Gli host hanno il tag <code>nsm_shared_ip</code>.</p></div></div>
+  <div class="table-wrap"><table><thead><tr><th>IP condiviso</th><th>Apparato</th><th>IP per Zabbix</th></tr></thead><tbody>
+  {% for ip, devices in shared %}{% for d in devices %}<tr><td><code>{{ ip }}</code></td><td><a class="strong-link" href="/devices/{{ d.id }}">{{ d.display_name or d.device_identity or d.name }}</a>{% if (d.inventory_data or {}).get('lan_ip') %}<small>LAN {{ d.inventory_data.get('lan_ip') }}</small>{% endif %}</td>
+    <td><form method="post" action="/devices/{{ d.id }}/zabbix/ip" class="inline-form"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="next" value="/admin/integrations/zabbix#shared">
+      <input name="zabbix_ip" value="{{ (d.inventory_data or {}).get('zabbix_ip', '') }}" placeholder="{{ (d.inventory_data or {}).get('lan_ip') or ip }}" aria-label="IP per Zabbix"><button class="button tiny">Salva</button></form></td></tr>{% endfor %}{% endfor %}
+  </tbody></table></div>
+</section>
+{% endif %}
+
 <div class="content-split">
 <section class="panel side-form">
   <div class="panel-header"><div><h2>Connessione</h2><p>Zabbix 6.x e 7.x. Le credenziali vengono cifrate. Usa un utente API con permessi di scrittura sui gruppi host creati da NSM.</p></div>{% if connection and connection.is_enabled %}<span class="device-status status-online">Abilitato</span>{% else %}<span class="device-status status-offline">Disabilitato</span>{% endif %}</div>

@@ -6,6 +6,9 @@
     <div><h2>Servizi esposti sulla WAN</h2><p>{% if device.vendor == 'mikrotik' %}L'agent legge dalla configurazione del router i servizi attivi e le regole firewall in input; NSM valuta quali sono raggiungibili da Internet. Nessun pacchetto viene inviato all'apparato.{% else %}Verifica dei servizi raggiungibili sull'IP pubblico dell'apparato.{% endif %}</p></div>
     {% if not blocker and has_permission(user, 'security.remediate') %}<form method="post" action="/devices/{{ device.id }}/exposure/check"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary"{% if pending %} disabled{% endif %}>{{ 'Verifica in corso…' if pending else 'Verifica ora' }}</button></form>{% endif %}
   </div>
+  {% if shared_peers %}<div class="alert info"><strong>IP condiviso</strong> con {{ shared_peers|map(attribute='name')|join(', ') }}: dall'esterno su questo indirizzo si raggiunge il router di bordo; gli apparati dietro il NAT sono esposti solo tramite port forward (elencati qui sotto quando il router è un MikroTik con agent).</div>{% endif %}
+  {% if forwards_in %}<div class="alert warning"><strong>Raggiungibile da Internet tramite port forward</strong>
+    <ul>{% for f in forwards_in %}<li><a href="/devices/{{ f.router_id }}/exposure">{{ f.router }}</a>: {{ f.protocol }} porta pubblica {{ f.public_ports }} → {{ f.to_address }}:{{ f.to_ports }}{% if f.sensitive %} ({{ f.sensitive|join(', ') }}){% endif %}{% if not f.certain %} — da verificare{% endif %}</li>{% endfor %}</ul></div>{% endif %}
   {% if blocker %}<div class="alert info">{{ blocker }}</div>{% endif %}
   {% if exposure %}
   <section class="mt-kpi-grid">
@@ -25,6 +28,17 @@
       <td>{{ f.reason }}</td>
     </tr>{% else %}<tr><td colspan="5" class="muted">Nessun servizio rilevato.</td></tr>{% endfor %}</tbody>
   </table></div>
+  {% if exposure.port_forwards %}
+  <h3>Port forward verso la rete interna</h3>
+  <div class="table-wrap"><table class="exposure-table">
+    <thead><tr><th>Regola NAT</th><th>Porta pubblica</th><th>Destinazione</th><th>Servizi sensibili</th><th>Stato</th></tr></thead>
+    <tbody>{% for f in exposure.port_forwards %}<tr>
+      <td>n. {{ f.rule }}{% if f.comment %}<small>{{ f.comment }}</small>{% endif %}</td>
+      <td><code>{{ f.protocol }}/{{ f.public_ports }}</code></td><td><code>{{ f.to_address }}:{{ f.to_ports }}</code></td>
+      <td>{{ f.sensitive|join(', ') or ('tutte le porte' if f.all_ports else '—') }}</td>
+      <td><span class="exposure-state exposure-state-{{ 'exposed' if f.certain else 'uncertain' }}">{{ 'esposto' if f.certain else 'da verificare' }}</span>{% if f.severity == 'high' %} <span class="severity-badge severity-high">high</span>{% endif %}</td>
+    </tr>{% endfor %}</tbody></table></div>
+  {% endif %}
   {% elif not blocker %}<div class="empty-state">{% if pending %}Verifica in corso: l'agent invierà servizi e firewall al prossimo heartbeat.{% else %}Nessuna verifica ancora eseguita: parte automaticamente quando l'apparato è collegato, oppure con «Verifica ora».{% endif %}</div>{% endif %}
 </section>
 {% endblock %}

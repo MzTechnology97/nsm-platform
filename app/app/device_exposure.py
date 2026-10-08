@@ -29,6 +29,7 @@ from sqlalchemy import select
 
 from app import main as core
 from app import mikrotik_agent_update as updater
+from app import shared_ips
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
 from app.models import ActionIssue, Device, Notification, utcnow
@@ -214,6 +215,7 @@ def evaluate(device, services_data: dict, firewall_data: dict) -> dict:
     worst = max((SEVERITY_RANK[f["severity"]] for f in exposed), default=0)
     return {
         "checked_at": utcnow().isoformat(), "source": "mikrotik_agent", "wan_interfaces": wan, "findings": findings,
+        "port_forwards": shared_ips.port_forwards((firewall_data or {}).get("nat") or [], lambda rule: _interface_applies(rule, wan)),
         "exposed": len(exposed), "uncertain": sum(1 for f in findings if f["state"] == "uncertain"),
         "worst": next((k for k, v in SEVERITY_RANK.items() if v == worst), "info") if exposed else None,
         "input_drop": input_drop, "firewall_rules": len(rules),
@@ -261,6 +263,9 @@ def queue_check(db, device) -> int:
 
 def _sync_issue(db, device, result: dict) -> bool:
     severe = [f for f in result["findings"] if f["state"] == "exposed" and SEVERITY_RANK[f["severity"]] >= 3]
+    severe += [{"label": f"port forward {', '.join(p['sensitive']) or 'tutte le porte'} verso {p['to_address']}", "proto": p["protocol"],
+                "port": p["public_ports"], "severity": "high"}
+               for p in result.get("port_forwards") or [] if p["severity"] == "high" and p["certain"]]
     issue = db.scalar(select(ActionIssue).where(ActionIssue.device_id == device.id, ActionIssue.category == ISSUE_CATEGORY,
                                                 ActionIssue.status.in_(["open", "acknowledged"])))
     details = {"services": [f"{f['label']} {f['proto']}/{f['port']}" for f in severe], "checked_at": result["checked_at"]}
@@ -344,7 +349,8 @@ def exposure_page(request: Request, device_id: uuid.UUID):
         data = device.inventory_data or {}
         pending = bool(data.get("exposure_requested_at")) and (data.get("exposure") or {}).get("checked_at", "") < data.get("exposure_requested_at", "")
         return core.render(request, db, user, "device_exposure.html", device=device, exposure=data.get("exposure"), blocker=eligibility(device),
-                           pending=pending, state_labels=STATE_LABELS)
+                           pending=pending, state_labels=STATE_LABELS, shared_peers=shared_ips.peers(db, device),
+                           forwards_in=shared_ips.forwards_to(db, device))
 
 
 @router.post("/devices/{device_id}/exposure/check", name="device_exposure_check")
