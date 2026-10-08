@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.71 — 2026-10-08
+
+Administration — users limited to some customers (delegated administration)
+- **What it is.** In *Amministrazione → Utenti*, each non-admin user has **Clienti visibili**. With no selection the user sees all customers, as before. With a selection the user sees only those customers.
+- **Central enforcement.** While a limited user is served, every ORM query of the request is filtered (SQLAlchemy `do_orm_execute` + `with_loader_criteria`). It applies to:
+  - the assigned customers;
+  - every row with a `customer_id` of those customers (devices, sites, incidents, issues, notifications, audit, reports…);
+  - every row of their devices (backups, jobs, telemetry, logs…).
+- **What changes for the user.** Lists, counters, dashboard, search, Security and Monitoring pages, reports and APIs change accordingly. URLs of other customers' objects answer 404 (pages and actions).
+- **Who is not filtered.** Administrators are never limited. Worker and agent endpoints are never filtered, because the filter is bound to the user's request.
+- **New customers.** A customer created by a limited user is added to that user's scope.
+- **Audit.** Changes are audited (`USER_CUSTOMER_SCOPE_CHANGED`). Migration `0037`.
+
 ## 0.49.70 — 2026-10-08
 
 Integrations — cnMaestro for Cambium radios (VEND-02, step 1)

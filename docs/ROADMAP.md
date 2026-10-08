@@ -647,7 +647,7 @@ Add delivery channels only when an actual supported implementation is selected. 
 Focused future work:
 
 - role/permission matrix review across all current routes — **done**: `rbac_routes_smoke.py` walks every registered route (anonymous access refused everywhere, read-only auditor writes refused except an explained allow-list);
-- scoped/delegated administration where required;
+- scoped/delegated administration — **done (Core 0.49.71)**: non-admin users limited to selected customers, enforced centrally on every ORM query of the request (customers, rows with `customer_id`, rows of their devices); API keys were already customer-scoped;
 - credential rotation workflows — encryption master-key rotation **done** (`ENCRYPTION_PREVIOUS_KEYS`, `manage.sh rotate-secrets`, *Sistema* inventory); API keys rotate with a grace period; MikroTik agent tokens are rotated by reinstalling the agent;
 - session/security policy hardening — **done**: failed-login throttling per username+address and per address, failed-login audit, idle timeout, sessions invalidated on password change and on demand;
 - API-key lifecycle and audit review — **done**: rotation with grace period, usage evidence (count, last IP), review states (expired, expiring, unused, no expiry);

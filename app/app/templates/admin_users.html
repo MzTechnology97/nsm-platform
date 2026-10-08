@@ -22,11 +22,17 @@
 <section class="panel">
   <div class="panel-header"><div><h2>Utenti</h2><p>{{ users|length }} account</p></div></div>
   <div class="table-wrap"><table class="data-table">
-    <thead><tr><th>Utente</th><th>Ruolo</th><th>Stato</th><th>2FA</th><th>Ultimo login</th><th></th></tr></thead>
+    <thead><tr><th>Utente</th><th>Ruolo</th><th>Clienti visibili</th><th>Stato</th><th>2FA</th><th>Ultimo login</th><th></th></tr></thead>
     <tbody>{% for u in users %}
       <tr>
         <td><strong>{{ u.display_name or u.username }}</strong><small>{{ u.username }}{% if u.email %} · {{ u.email }}{% endif %}</small></td>
         <td><form class="inline-form compact-form" method="post" action="/admin/users/{{ u.id }}/role"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><select name="role" aria-label="Ruolo di {{ u.username }}">{% for key,label in roles.items() %}<option value="{{ key }}" {% if u.role == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="button tiny">Salva</button></form></td>
+        <td class="user-scope-cell">{% if u.role == 'admin' %}<span class="muted">tutti (amministratore)</span>{% else %}{% set sc = u.customer_scope or [] %}
+          <details class="user-scope"><summary>{{ 'tutti' if not sc else (sc|length ~ ' clienti') }}</summary>
+            <form method="post" action="/admin/users/{{ u.id }}/scope"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+              <div class="user-scope-list">{% for cid, cname in scope_customer_choices() %}<label class="check-row"><input type="checkbox" name="customer_ids" value="{{ cid }}"{% if cid in sc %} checked{% endif %}> {{ cname }}</label>{% endfor %}</div>
+              <small class="muted">Nessuna selezione = tutti i clienti. L'utente vede solo apparati, sedi, incidenti, report e log dei clienti selezionati.</small>
+              <button class="button tiny">Salva</button></form></details>{% endif %}</td>
         <td><span class="device-status {{ 'status-online' if u.is_active else 'status-offline' }}">{{ 'Attivo' if u.is_active else 'Disabilitato' }}</span></td>
         <td data-2fa="{{ 'on' if u.totp_enabled_at else 'off' }}">{% if u.totp_enabled_at %}<span class="device-status status-online">Attiva</span>{% if u.id != user.id %}<form method="post" action="/admin/users/{{ u.id }}/2fa/reset" data-confirm="Reimpostare la verifica in due passaggi di {{ u.username }}? Usalo solo se ha perso il dispositivo."><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny ghost">Reimposta</button></form>{% endif %}{% else %}<span class="muted">non attiva</span>{% endif %}</td>
         <td>{{ fmt_dt(u.last_login_at) }}</td>
