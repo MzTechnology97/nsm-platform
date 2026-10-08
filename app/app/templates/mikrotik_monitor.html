@@ -62,12 +62,12 @@
   <div class="telemetry-footer"><span data-traffic-samples>0 campioni</span><button type="button" class="button ghost" data-traffic-refresh>↻ Aggiorna</button></div>
   <details class="traffic-pick">
     <summary>Interfacce monitorate ({{ traffic_rows|selectattr('monitored')|list|length }} di {{ traffic_rows|length }} rilevate)</summary>
-    <p class="muted">Per impostazione predefinita sono monitorate le interfacce WAN (pppoe-out, LTE, tunnel client) o, se assenti, ether1. Massimo {{ traffic_max_monitored }} interfacce per apparato.</p>
+    <p class="muted">Per impostazione predefinita sono monitorate le interfacce WAN (pppoe-out, LTE, tunnel client) o, se assenti, ether1. Puoi scegliere qualsiasi interfaccia rilevata dall'agent: porte Ethernet (anche senza link), VLAN, bridge, wireless, tunnel e sessioni PPP attive. Massimo {{ traffic_max_monitored }} interfacce per apparato. L'elenco completo arriva con l'agent 0.49.22 (aggiornamento automatico).</p>
     {% if has_permission(user, 'devices.write') %}
     <form method="post" action="/devices/{{ device.id }}/traffic/interfaces" class="traffic-pick-form">
       <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
       <div class="traffic-pick-grid">{% for row in traffic_rows %}
-        <label class="traffic-pick-row"><input type="checkbox" name="interface" value="{{ row.name }}"{% if row.monitored %} checked{% endif %}><span><strong>{{ row.name }}</strong><small>{{ row.type or 'tipo n.d.' }}{% if row.wan %} · WAN{% endif %}</small></span><span class="traffic-now">↓ {{ format_bps(row.rx_bps) }}<br>↑ {{ format_bps(row.tx_bps) }}</span></label>
+        <label class="traffic-pick-row"><input type="checkbox" name="interface" value="{{ row.name }}"{% if row.monitored %} checked{% endif %}><span><strong>{{ row.name }}</strong><small>{{ row.group }} · {{ row.type or 'tipo n.d.' }}</small></span><span class="traffic-now">↓ {{ format_bps(row.rx_bps) }}<br>↑ {{ format_bps(row.tx_bps) }}</span></label>
       {% endfor %}</div>
       <div class="form-actions"><button class="button primary">Salva interfacce</button><button class="button ghost" name="reset" value="1">Ripristina automatico</button></div>
     </form>

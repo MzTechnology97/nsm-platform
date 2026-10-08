@@ -47,6 +47,7 @@ from app.icmp_monitor import install_icmp_monitor
 from app.diagnostic_export import install_diagnostic_export
 from app.mikrotik_heartbeat_interval import install_mikrotik_heartbeat_interval
 from app.mikrotik_interface_errors import install_mikrotik_interface_errors
+from app.mikrotik_interface_collector import install_mikrotik_interface_collector
 from app.mikrotik_wireless import install_mikrotik_wireless
 from app.mikrotik_agent_update_ui import install_mikrotik_agent_update_ui
 from app.mikrotik_compatibility import install_mikrotik_compatibility_resolver
@@ -136,7 +137,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.88"
+APP_VERSION = "0.49.89"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -268,6 +269,7 @@ install_mikrotik_agent_self_update(core.app)
 install_mikrotik_agent_autoupdate(core.app)
 install_mikrotik_heartbeat_interval()
 install_mikrotik_interface_errors()
+install_mikrotik_interface_collector()
 install_mikrotik_wireless(core.app)
 install_syslog_on_enrollment()
 install_mikrotik_agent_capabilities()

@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.89 — 2026-10-09
+
+Monitoring — every MikroTik interface can be monitored (fix requested by the operator)
+- **Bug.** On some routers only the bridges could be picked as monitored interfaces; no Ethernet LAN ports, no PPP, nothing else. The agent collector read the interfaces in two groups, each inside a single `:do on-error`. One interface whose counters could not be read stopped its whole group. It also skipped ports without link and all dynamic interfaces (PPP server sessions), and its size cap was small.
+- **Agent 0.49.22** reads each interface in its own `:do on-error`, in this order:
+  1. WAN clients;
+  2. Ethernet ports, also without link;
+  3. every other static interface (VLAN, bridge, wireless, tunnels, bonding);
+  4. active dynamic interfaces (`<pppoe-user>` sessions).
+  
+  Caps rise to 2400 characters (legacy header) and 12000 (modern). NSM keeps up to 128 interfaces. The agent reaches routers through the automatic update.
+- **Picker.** The *Interfacce monitorate* list groups each interface (WAN, Ethernet, VLAN, Bridge, Wireless, Tunnel, Sessione PPP, Altro) and orders them that way.
+
 ## 0.49.88 — 2026-10-09
 
 Diagnostics — download as JSON evidence (MTK-05)

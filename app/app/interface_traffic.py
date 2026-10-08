@@ -27,7 +27,7 @@ from app.telemetry_retention import expire_keep_latest
 RANGES = {"1h": timedelta(hours=1), "24h": timedelta(hours=24), "7d": timedelta(days=7), "30d": timedelta(days=30)}
 RETENTION_DAYS = 90
 MAX_POINTS = 600
-MAX_COUNTERS = 64
+MAX_COUNTERS = 128
 MAX_MONITORED = 8
 # A rate across a longer gap would flatten an outage into a fake average.
 MAX_GAP_SECONDS = 3600
@@ -164,12 +164,35 @@ def interface_rows(device) -> list[dict]:
     counters = data.get("interface_counters") if isinstance(data.get("interface_counters"), dict) else {}
     monitored = monitored_interfaces(data, counters)
     rows = [{"name": name, "type": value.get("type") or "", "rx_bps": value.get("rx_bps"), "tx_bps": value.get("tx_bps"),
-             "monitored": name in monitored, "wan": value.get("type") in WAN_TYPES}
+             "monitored": name in monitored, "wan": value.get("type") in WAN_TYPES, "group": _group(value.get("type") or "")}
             for name, value in counters.items() if isinstance(value, dict)]
-    # Main WAN first (PPPoE before LTE backup), so the graph opens on the most relevant link.
+    # Main WAN first (PPPoE before LTE backup), so the graph opens on the most relevant link;
+    # then Ethernet ports, VLANs, bridges, other interfaces and PPP sessions.
     rank = {kind: index for index, kind in enumerate(WAN_TYPES)}
-    rows.sort(key=lambda row: (not row["monitored"], rank.get(row["type"], len(WAN_TYPES)), row["name"]))
+    order = {group: index for index, group in enumerate(GROUPS)}
+    rows.sort(key=lambda row: (not row["monitored"], rank.get(row["type"], len(WAN_TYPES)), order[row["group"]], row["name"]))
     return rows
+
+
+GROUPS = ("WAN", "Ethernet", "VLAN", "Bridge", "Wireless", "Tunnel", "Sessione PPP", "Altro")
+
+
+def _group(kind: str) -> str:
+    if kind in WAN_TYPES:
+        return "WAN"
+    if kind == "ether":
+        return "Ethernet"
+    if kind == "vlan":
+        return "VLAN"
+    if kind == "bridge":
+        return "Bridge"
+    if kind in ("wlan", "wifi", "wifiwave2", "cap"):
+        return "Wireless"
+    if kind.endswith("-in") or kind in ("ppp", "pppoe-in", "ovpn-in"):
+        return "Sessione PPP"
+    if kind in ("eoip", "eoipv6", "gre", "gre6", "ipip", "ipipv6", "wg", "vxlan", "6to4", "vpls"):
+        return "Tunnel"
+    return "Altro"
 
 
 def format_bps(value) -> str:
