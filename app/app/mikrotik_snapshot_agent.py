@@ -39,6 +39,24 @@ def _handler() -> str:
         ":set nsmTotal [:len $nsmA]\n"
         f":if ($nsmTotal > {LOG_SNAPSHOT_LIMIT}) do={{ :set nsmA [:pick $nsmA ($nsmTotal - {LOG_SNAPSHOT_LIMIT}) $nsmTotal]; :set nsmTruncated true }}\n"
     )
+    # SCAN-01: services that may be reachable from the WAN. Read-only; SNMP community
+    # names are never collected, only whether the default "public" one is enabled.
+    services = bounded.collect("/ip service", "nsmA") + "".join(
+        f':local {var} ""\n:do {{ :set {var} [:tostr {expr}] }} on-error={{}}\n'
+        for var, expr in (
+            ("nsmDnsRemote", "[/ip dns get allow-remote-requests]"),
+            ("nsmSnmp", "[/snmp get enabled]"),
+            ("nsmSnmpPublic", '[:len [/snmp community find where name="public" && disabled=no]]'),
+            ("nsmSocks", "[/ip socks get enabled]"),
+            ("nsmProxy", "[/ip proxy get enabled]"),
+            ("nsmUpnp", "[/ip upnp get enabled]"),
+            ("nsmBtest", "[/tool bandwidth-server get enabled]"),
+            ("nsmMacWinbox", "[/tool mac-server mac-winbox get allowed-interface-list]"),
+        )
+    ) + (
+        ':set nsmRes {"dns_remote"=$nsmDnsRemote;"snmp"=$nsmSnmp;"snmp_public"=$nsmSnmpPublic;"socks"=$nsmSocks;'
+        '"proxy"=$nsmProxy;"upnp"=$nsmUpnp;"btest"=$nsmBtest;"mac_winbox"=$nsmMacWinbox}\n'
+    )
     collect = "".join((
         _section("resources", resources),
         _section("ip_addresses", bounded.collect("/ip address", "nsmA")),
@@ -48,11 +66,13 @@ def _handler() -> str:
         _section("ppp_active", ppp),
         _section("dhcp_leases", bounded.collect("/ip dhcp-server lease", "nsmA")),
         _section("logs", logs),
+        _section("services", services),
     ))
     shape = (
         ':if ($nsmSection = "resources") do={ :set nsmData $nsmRes }\n'
         ':if (($nsmSection = "ip_addresses") || ($nsmSection = "routes") || ($nsmSection = "interfaces") || ($nsmSection = "dhcp_leases") || ($nsmSection = "logs")) do={ :set nsmData [$nsmTake $nsmA $nsmCap] }\n'
         ':if ($nsmSection = "firewall") do={ :set nsmData {"filter"=[$nsmTake $nsmA $nsmCap];"nat"=[$nsmTake $nsmB $nsmCap]} }\n'
+        ':if ($nsmSection = "services") do={ :set nsmData {"services"=[$nsmTake $nsmA $nsmCap];"settings"=$nsmRes} }\n'
         ':if ($nsmSection = "ppp_active") do={ :set nsmData {"active"=[$nsmTake $nsmA $nsmCap];"sstp_clients"=[$nsmTake $nsmS $nsmCap];"l2tp_clients"=[$nsmTake $nsmL $nsmCap];'
         '"pppoe_clients"=[$nsmTake $nsmE $nsmCap];"pptp_clients"=[$nsmTake $nsmP $nsmCap];"ovpn_clients"=[$nsmTake $nsmO $nsmCap]} }\n'
     )

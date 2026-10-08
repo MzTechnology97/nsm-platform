@@ -331,6 +331,14 @@ Telemetry of a device that goes offline must never be deleted: the last received
 
 ### SCAN-01 — WAN exposure scanner for every vendor (requested 2026-10-07)
 
+**Decided with the user (2026-10-08).**
+- Run when a device is added, with a manual button in the device section.
+- Only devices with a public or NATted IP; the operator gives the IP when the WAN/PPPoE address cannot be determined.
+- On MikroTik the agent checks the router's own configuration.
+
+**Step 1 done (Core 0.49.52, Agent 0.49.12)**: the MikroTik configuration-based check, with an *Esposizione* tab on every device and alerts.
+**Next step**: the check for the other manufacturers on their public or NATted IP.
+
 A port/service scanner run from the NSM server against the WAN address of each managed device.
 - **Targets.** Any vendor, not only MikroTik. The target is the detected WAN/PPPoE address, and the operator can pick or override the correct WAN IP when it cannot be determined.
 - **Checks.** Critical services exposed on the WAN:

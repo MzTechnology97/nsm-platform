@@ -22,6 +22,7 @@ SNAPSHOT_SECTIONS = {
     "ppp_active": "Sessioni PPP",
     "dhcp_leases": "DHCP leases",
     "logs": "Warning / error log",
+    "services": "Servizi esposti",
 }
 DIAGNOSTIC_TYPES = {
     "ping": "diagnostic_ping",

@@ -1,0 +1,30 @@
+{% extends "device_layout.html" %}
+{% set device_tab = 'exposure' %}
+{% block device_content %}
+<section class="panel">
+  <div class="panel-header">
+    <div><h2>Servizi esposti sulla WAN</h2><p>{% if device.vendor == 'mikrotik' %}L'agent legge dalla configurazione del router i servizi attivi e le regole firewall in input; NSM valuta quali sono raggiungibili da Internet. Nessun pacchetto viene inviato all'apparato.{% else %}Verifica dei servizi raggiungibili sull'IP pubblico dell'apparato.{% endif %}</p></div>
+    {% if not blocker and has_permission(user, 'security.remediate') %}<form method="post" action="/devices/{{ device.id }}/exposure/check"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary"{% if pending %} disabled{% endif %}>{{ 'Verifica in corso…' if pending else 'Verifica ora' }}</button></form>{% endif %}
+  </div>
+  {% if blocker %}<div class="alert info">{{ blocker }}</div>{% endif %}
+  {% if exposure %}
+  <section class="mt-kpi-grid">
+    <article class="metric-card"><span>Esposti</span><strong>{{ exposure.exposed }}</strong><small>{% if exposure.worst %}gravità massima {{ exposure.worst }}{% else %}nessun servizio raggiungibile{% endif %}</small></article>
+    <article class="metric-card"><span>Da verificare</span><strong>{{ exposure.uncertain }}</strong><small>regole non valutabili automaticamente</small></article>
+    <article class="metric-card"><span>Interfacce WAN</span><strong>{{ exposure.wan_interfaces|join(', ') }}</strong><small>{{ exposure.firewall_rules }} regole firewall lette</small></article>
+    <article class="metric-card"><span>Ultima verifica</span><strong>{{ fmt_dt(exposure.checked_at) }}</strong><small>ripetuta ogni 24 ore</small></article>
+  </section>
+  {% if not exposure.input_drop %}<div class="alert warning"><strong>Nessuna regola di drop nella catena input.</strong> Il router accetta tutto ciò che non è esplicitamente bloccato: aggiungi in fondo alla catena input una regola che scarta il traffico dalla WAN.</div>{% endif %}
+  <div class="table-wrap"><table class="exposure-table">
+    <thead><tr><th>Servizio</th><th>Porta</th><th>Stato</th><th>Gravità</th><th>Motivo</th></tr></thead>
+    <tbody>{% for f in exposure.findings %}<tr class="exposure-{{ f.state }}">
+      <td><strong>{{ f.label }}</strong><small>{{ f.why }}</small></td>
+      <td><code>{% if f.port %}{{ f.proto }}/{{ f.port }}{% else %}—{% endif %}</code></td>
+      <td><span class="exposure-state exposure-state-{{ f.state }}">{{ state_labels.get(f.state, f.state) }}</span></td>
+      <td>{% if f.state in ('exposed', 'uncertain') %}<span class="severity-badge severity-{{ f.severity }}">{{ f.severity }}</span>{% else %}—{% endif %}</td>
+      <td>{{ f.reason }}</td>
+    </tr>{% else %}<tr><td colspan="5" class="muted">Nessun servizio rilevato.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% elif not blocker %}<div class="empty-state">{% if pending %}Verifica in corso: l'agent invierà servizi e firewall al prossimo heartbeat.{% else %}Nessuna verifica ancora eseguita: parte automaticamente quando l'apparato è collegato, oppure con «Verifica ora».{% endif %}</div>{% endif %}
+</section>
+{% endblock %}
