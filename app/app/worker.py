@@ -21,6 +21,7 @@ from app.syslog_security import evaluate as evaluate_access_alerts
 from app.mikrotik_syslog_config import auto_configure as auto_configure_syslog
 from app.zabbix_connector import scheduled_sync as zabbix_sync
 from app.device_exposure import tick as exposure_tick
+from app.external_exposure import tick as external_exposure_tick
 from app.syslog_integrity import anchor_heads as syslog_anchor
 from app.routeros_catalog import run_scheduled as run_routeros_catalog
 from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
@@ -80,6 +81,7 @@ while True:
             run_task("syslog_agent_config", auto_configure_syslog)
             run_task("zabbix_sync", zabbix_sync)
             run_task("exposure_check", exposure_tick)
+            run_task("exposure_external_check", external_exposure_tick)
             run_task("syslog_chain_anchor", syslog_anchor)
             notify_stats = run_task("notification_delivery", deliver_notifications)
             if notify_stats.get("failed"):

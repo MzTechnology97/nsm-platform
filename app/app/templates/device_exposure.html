@@ -3,14 +3,42 @@
 {% block device_content %}
 <section class="panel">
   <div class="panel-header">
-    <div><h2>Servizi esposti sulla WAN</h2><p>{% if device.vendor == 'mikrotik' %}L'agent legge dalla configurazione del router i servizi attivi e le regole firewall in input; NSM valuta quali sono raggiungibili da Internet. Nessun pacchetto viene inviato all'apparato.{% else %}Verifica dei servizi raggiungibili sull'IP pubblico dell'apparato.{% endif %}</p></div>
+    <div><h2>Servizi esposti sulla WAN</h2><p>{% if check_mode == 'agent' %}L'agent legge dalla configurazione del router i servizi attivi e le regole firewall (input e raw); NSM valuta quali sono raggiungibili da Internet. Nessun pacchetto viene inviato all'apparato.{% else %}Il server NSM verifica quali servizi di gestione rispondono sull'IP pubblico dell'apparato: una connessione per porta, solo porte note per questo produttore, nessuna scansione completa.{% endif %}</p></div>
     {% if not blocker and has_permission(user, 'security.remediate') %}<form method="post" action="/devices/{{ device.id }}/exposure/check"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary"{% if pending %} disabled{% endif %}>{{ 'Verifica in corso…' if pending else 'Verifica ora' }}</button></form>{% endif %}
   </div>
   {% if shared_peers %}<div class="alert info"><strong>IP condiviso</strong> con {{ shared_peers|map(attribute='name')|join(', ') }}: dall'esterno su questo indirizzo si raggiunge il router di bordo; gli apparati dietro il NAT sono esposti solo tramite port forward (elencati qui sotto quando il router è un MikroTik con agent).</div>{% endif %}
   {% if forwards_in %}<div class="alert warning"><strong>Raggiungibile da Internet tramite port forward</strong>
     <ul>{% for f in forwards_in %}<li><a href="/devices/{{ f.router_id }}/exposure">{{ f.router }}</a>: {{ f.protocol }} porta pubblica {{ f.public_ports }} → {{ f.to_address }}:{{ f.to_ports }}{% if f.sensitive %} ({{ f.sensitive|join(', ') }}){% endif %}{% if not f.certain %} — da verificare{% endif %}</li>{% endfor %}</ul></div>{% endif %}
   {% if blocker %}<div class="alert info">{{ blocker }}</div>{% endif %}
-  {% if exposure %}
+  {% if check_mode == 'external' %}
+  <div class="exposure-target">
+    <div><span class="muted">IP verificato</span> <strong>{% if target[0] %}<code>{{ target[0] }}</code> <small>{{ "indicato dall'operatore" if target[1] == 'operator' else 'IP di gestione' }}</small>{% else %}—{% endif %}</strong></div>
+    {% if has_permission(user, 'security.remediate') %}<form method="post" action="/devices/{{ device.id }}/exposure/target" class="inline-form">
+      <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+      <input name="target_ip" value="{{ target_override }}" placeholder="IP WAN/PPPoE o IP pubblico del NAT" aria-label="IP pubblico da verificare">
+      <button class="button">Salva IP</button>
+    </form>{% endif %}
+    <small class="muted">Porte verificate: {% for p in planned %}{{ p[1] }}/{{ p[0] }}{% if not loop.last %}, {% endif %}{% endfor %}. La verifica parte dal server NSM: se il server è nella stessa rete dell'apparato il risultato può differire da quello visto da Internet.</small>
+  </div>
+  {% endif %}
+  {% if exposure and exposure.source == 'external' %}
+  <section class="mt-kpi-grid">
+    <article class="metric-card"><span>Esposti</span><strong>{{ exposure.exposed }}</strong><small>{% if exposure.worst %}gravità massima {{ exposure.worst }}{% else %}nessun servizio risponde{% endif %}</small></article>
+    <article class="metric-card"><span>IP verificato</span><strong>{{ exposure.target_ip }}</strong><small>{{ exposure.ports_checked }} porte controllate</small></article>
+    <article class="metric-card"><span>Ultima verifica</span><strong>{{ fmt_dt(exposure.checked_at) }}</strong><small>ripetuta ogni 24 ore</small></article>
+  </section>
+  {% if exposure.shared_with %}<div class="alert info"><strong>IP condiviso</strong> con {{ exposure.shared_with|join(', ') }}: le risposte arrivano dal router di bordo o da un suo port forward{% if exposure.issue_skipped %}, quindi per questo apparato non viene aperta una segnalazione{% endif %}.</div>{% endif %}
+  <div class="table-wrap"><table class="exposure-table">
+    <thead><tr><th>Servizio</th><th>Porta</th><th>Stato</th><th>Gravità</th><th>Risposta</th></tr></thead>
+    <tbody>{% for f in exposure.findings %}<tr class="exposure-{{ f.state }}">
+      <td><strong>{{ f.label }}</strong><small>{{ f.why }}</small></td>
+      <td><code>{{ f.proto }}/{{ f.port }}</code></td>
+      <td><span class="exposure-state exposure-state-{{ f.state }}">{{ state_labels.get(f.state, f.state) }}</span></td>
+      <td>{% if f.state == 'exposed' %}<span class="severity-badge severity-{{ f.severity }}">{{ f.severity }}</span>{% else %}—{% endif %}</td>
+      <td>{{ f.reason }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% elif exposure %}
   <section class="mt-kpi-grid">
     <article class="metric-card"><span>Esposti</span><strong>{{ exposure.exposed }}</strong><small>{% if exposure.worst %}gravità massima {{ exposure.worst }}{% else %}nessun servizio raggiungibile{% endif %}</small></article>
     <article class="metric-card"><span>Da verificare</span><strong>{{ exposure.uncertain }}</strong><small>regole non valutabili automaticamente</small></article>
@@ -39,6 +67,6 @@
       <td>{% if f.blocked_by_raw %}<span class="exposure-state exposure-state-protected">protetto (raw)</span>{% else %}<span class="exposure-state exposure-state-{{ 'exposed' if f.certain else 'uncertain' }}">{{ 'esposto' if f.certain else 'da verificare' }}</span>{% endif %}{% if f.severity == 'high' %} <span class="severity-badge severity-high">high</span>{% endif %}</td>
     </tr>{% endfor %}</tbody></table></div>
   {% endif %}
-  {% elif not blocker %}<div class="empty-state">{% if pending %}Verifica in corso: l'agent invierà servizi e firewall al prossimo heartbeat.{% else %}Nessuna verifica ancora eseguita: parte automaticamente quando l'apparato è collegato, oppure con «Verifica ora».{% endif %}</div>{% endif %}
+  {% elif not blocker %}<div class="empty-state">{% if pending %}{{ 'Verifica in corso: il server NSM controlla le porte entro un minuto.' if check_mode == 'external' else "Verifica in corso: l'agent invierà servizi e firewall al prossimo heartbeat." }}{% else %}Nessuna verifica ancora eseguita: parte automaticamente quando l'apparato è collegato, oppure con «Verifica ora».{% endif %}</div>{% endif %}
 </section>
 {% endblock %}

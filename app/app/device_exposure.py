@@ -14,6 +14,8 @@ interface holding a public address, interface lists such as ``WAN`` or
 - **da verificare**: a rule NSM cannot evaluate (custom interface list, jump).
 
 No packet is sent to the device: the verdict comes from its configuration.
+Other vendors (and MikroTik without the modern Agent) are checked from the NSM
+server on their public IP: see ``app/external_exposure.py``.
 Results live on the device (``inventory_data["exposure"]``); critical/high
 exposures open an Action Center issue and a *security* notification.
 """
@@ -63,7 +65,8 @@ EXTRAS = {
     "proxy": ("Web proxy", 8080, "tcp", "critical", "Web proxy aperto: il router può essere usato come relay."),
     "btest": ("Bandwidth test", 2000, "tcp", "medium", "Server bandwidth-test raggiungibile: consuma banda e CPU."),
 }
-STATE_LABELS = {"exposed": "esposto", "restricted": "limitato", "protected": "protetto", "uncertain": "da verificare", "disabled": "disattivato"}
+STATE_LABELS = {"exposed": "esposto", "restricted": "limitato", "protected": "protetto", "uncertain": "da verificare", "disabled": "disattivato",
+               "closed": "chiuso", "filtered": "filtrato"}
 
 
 def _truthy(value) -> bool:
@@ -274,12 +277,19 @@ def evaluate(device, services_data: dict, firewall_data: dict) -> dict:
 
 # --- Jobs and scheduling -----------------------------------------------------------------------
 
+def mode(device) -> str:
+    """"agent": MikroTik with the modern Agent reads its own configuration; "external": probe the public IP."""
+    if device.vendor == "mikrotik" and str((device.inventory_data or {}).get("agent_transport") or "").lower() == "modern":
+        return "agent"
+    return "external"
+
+
 def eligibility(device) -> str | None:
-    if device.vendor != "mikrotik":
-        return "Per questo produttore la verifica dall'esterno sull'IP pubblico è in arrivo (SCAN-01, parte 2)."
+    if mode(device) == "external":
+        from app import external_exposure
+
+        return external_exposure.blocker(device)
     data = device.inventory_data or {}
-    if str(data.get("agent_transport") or "").lower() != "modern":
-        return "Serve l'agent moderno (RouterOS 7.13+): l'agent legacy non legge ancora i servizi."
     version = updater._base_version(data.get("agent_version"))
     if not version or updater._version_tuple(version) < updater._version_tuple(MIN_AGENT_VERSION):
         return f"Serve l'agent {MIN_AGENT_VERSION} o successivo: aggiorna l'agent dalla scheda Agent."
@@ -330,10 +340,12 @@ def _sync_issue(db, device, result: dict) -> bool:
         return False
     severity = "critical" if any(f["severity"] == "critical" for f in severe) else "high"
     name = device.display_name or device.device_identity or device.name
+    how = (f"rispondono da Internet sull'IP {result.get('target_ip')} (verifica dal server NSM)" if result.get("source") == "external"
+           else "raggiungibili dalla WAN secondo la configurazione del router")
     db.add(ActionIssue(category=ISSUE_CATEGORY, severity="critical" if severity == "critical" else "warning", status="open", title=ISSUE_TITLE,
                        details=details, customer_id=device.customer_id, device_id=device.id))
     db.add(Notification(severity=severity, category="security", title=f"{ISSUE_TITLE}: {name}",
-                        message=f"{name}: {', '.join(details['services'])} raggiungibili dalla WAN secondo la configurazione del router.",
+                        message=f"{name}: {', '.join(details['services'])} {how}.",
                         customer_id=device.customer_id, device_id=device.id, source_url=f"/devices/{device.id}/exposure", is_active=True))
     core.add_event(db, "EXPOSURE_ISSUE_OPENED", customer_id=device.customer_id, device_id=device.id, details=details, severity="warning", source="worker")
     return True
@@ -367,7 +379,7 @@ def tick(now=None) -> dict:
     stats = {"evaluated": 0, "queued": 0}
     with SessionLocal() as db:
         for device in db.scalars(select(Device).where(Device.vendor == "mikrotik")):
-            if eligibility(device):
+            if mode(device) != "agent" or eligibility(device):
                 continue
             if evaluate_device(db, device, now):
                 stats["evaluated"] += 1
@@ -397,10 +409,16 @@ def exposure_page(request: Request, device_id: uuid.UUID):
         if not device:
             raise HTTPException(404)
         data = device.inventory_data or {}
+        from app import external_exposure
+
         pending = bool(data.get("exposure_requested_at")) and (data.get("exposure") or {}).get("checked_at", "") < data.get("exposure_requested_at", "")
+        check_mode = mode(device)
         return core.render(request, db, user, "device_exposure.html", device=device, exposure=data.get("exposure"), blocker=eligibility(device),
                            pending=pending, state_labels=STATE_LABELS, shared_peers=shared_ips.peers(db, device),
-                           forwards_in=shared_ips.forwards_to(db, device))
+                           forwards_in=shared_ips.forwards_to(db, device), check_mode=check_mode,
+                           target=external_exposure.target(device) if check_mode == "external" else (None, ""),
+                           target_override=data.get("exposure_target_ip") or "",
+                           planned=[external_exposure.CHECKS[k] for k in external_exposure.plan(device)] if check_mode == "external" else [])
 
 
 @router.post("/devices/{device_id}/exposure/check", name="device_exposure_check")
@@ -416,11 +434,53 @@ async def exposure_check(request: Request, device_id: uuid.UUID):
         blocker = eligibility(device)
         if blocker:
             return flash_redirect(request, back, "warning", blocker, title="Verifica non disponibile")
+        if mode(device) == "external":
+            from app import external_exposure
+
+            ok, message = external_exposure.request_check(db, device)
+            if ok:
+                core.add_event(db, "EXPOSURE_CHECK_REQUESTED", actor=user, customer_id=device.customer_id, device_id=device.id,
+                               details={"target_ip": external_exposure.target(device)[0]}, source="portal")
+            db.commit()
+            return flash_redirect(request, back, "success" if ok else "warning", message, title="Verifica avviata" if ok else "Verifica non avviata")
         queued = queue_check(db, device)
         core.add_event(db, "EXPOSURE_CHECK_REQUESTED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal")
         db.commit()
     return flash_redirect(request, back, "success", "L'agent leggerà servizi e firewall al prossimo heartbeat; il risultato compare qui entro pochi minuti."
                           if queued else "Una verifica è già in corso.", title="Verifica avviata")
+
+
+@router.post("/devices/{device_id}/exposure/target", name="device_exposure_target")
+async def exposure_target(request: Request, device_id: uuid.UUID):
+    """Public IP to probe (WAN/PPPoE address or public IP of the customer NAT); empty = use the management IP."""
+    from app import external_exposure
+
+    form = await request.form()
+    validate_csrf(request, str(form.get("csrf") or ""))
+    back = f"/devices/{device_id}/exposure"
+    value = str(form.get("target_ip") or "").strip()
+    with SessionLocal() as db:
+        user = core.require_permission(request, db, "security.remediate")
+        device = db.get(Device, device_id)
+        if not device:
+            raise HTTPException(404)
+        if value and not external_exposure._public(value):
+            return flash_redirect(request, back, "danger", "Indica un indirizzo IP pubblico: gli indirizzi privati, CGNAT o riservati non sono verificabili da Internet.",
+                                  title="IP non valido")
+        data = dict(device.inventory_data or {})
+        if value:
+            data["exposure_target_ip"] = str(ipaddress.ip_address(value))
+        else:
+            data.pop("exposure_target_ip", None)
+        device.inventory_data = data
+        core.add_event(db, "EXPOSURE_TARGET_IP_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id,
+                       details={"target_ip": data.get("exposure_target_ip")}, source="portal")
+        queued = False
+        if not eligibility(device):
+            queued, _message = external_exposure.request_check(db, device)
+        db.commit()
+    text = "IP per la verifica salvato." + (" La verifica parte entro un minuto." if queued else "")
+    return flash_redirect(request, back, "success", text, title="Esposizione")
 
 
 def install_device_exposure(app) -> None:
