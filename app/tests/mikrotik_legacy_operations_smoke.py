@@ -36,7 +36,7 @@ def main():
         if version.startswith("6."):
             validate_routeros6(source)
     bootstrap = mikrotik_legacy._legacy_bootstrap_script("http://nsm.example.test", "TESTTOKEN")
-    assert '"legacy_firmware_upgrade"]] != "nil") do={ :set nsmAgentPolicy "ftp,reboot,read,write,test" }' in bootstrap
+    assert '"legacy_firmware_upgrade"]] != "nil") do={ :set nsmAgentPolicy "ftp,reboot,read,write,policy,test,sensitive" }' in bootstrap
     assert "!= nil)" not in bootstrap, "RouterOS 6 has no nil literal"
 
     suffix = uuid.uuid4().hex[:8]

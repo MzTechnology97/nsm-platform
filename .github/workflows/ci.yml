@@ -120,7 +120,7 @@ jobs:
           assert 'firmware_activate' in activation and '/system reboot' in activation and activation.index('/firmware-activate/') < activation.index('/system reboot')
           assert '/system routerboard upgrade' not in activation and '/system routerboard upgrade' in routerboot and '/system reboot' in routerboot and 'auto-upgrade=yes' not in routerboot
           assert 'MODERN_PROFILE = "ops-v2"' in privilege and 'BACKUP_PROFILES = frozenset({"ops-v2"})' in privilege and 'LEGACY_PROFILE = "legacy-ops-v1"' in privilege
-          assert 'MODERN_POLICIES = "ftp,reboot,read,write,policy,test,sensitive"' in privilege and 'LEGACY_POLICIES = "ftp,reboot,read,write,test"' in privilege
+          assert 'MODERN_POLICIES = "ftp,reboot,read,write,policy,test,sensitive"' in privilege and 'LEGACY_POLICIES = "ftp,reboot,read,write,policy,test,sensitive"' in privilege
           bootstrap = legacy.split('def _legacy_bootstrap_script', 1)[1].split('def _select_agent_source', 1)[0]
           assert 'http-data=""' in bootstrap and 'nsmJson' not in bootstrap and ':serialize' not in bootstrap and ':deserialize' not in bootstrap
           for marker in ('resolve_routeros_compatibility', 'compatibility_profile', 'migration_required', 'routeros-7.12-legacy', 'routeros-7.13-plus', 'unvalidated'):

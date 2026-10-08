@@ -12,6 +12,15 @@ fi
 cmd="${1:-help}"
 shift || true
 
+# Add a Docker Compose profile to COMPOSE_PROFILES in .env, keeping the others.
+add_compose_profile() {
+  current=$(sed -n 's/^COMPOSE_PROFILES=//p' .env 2>/dev/null | tail -n 1)
+  case ",$current," in
+    *",$1,"*) ;;
+    *) sed -i '/^COMPOSE_PROFILES=/d' .env; echo "COMPOSE_PROFILES=${current:+$current,}$1" >> .env ;;
+  esac
+}
+
 case "$cmd" in
   up) docker compose up -d --build ;;
   down) docker compose down ;;
@@ -48,11 +57,22 @@ case "$cmd" in
     fi
     rm -f "$script"
     ;;
+  legacy-backup-enable)
+    # Upload-only FTP receiver for RouterOS 6 / 7.12 backups (legacy Agent 0.49.16+).
+    host="${1:-}"
+    case "$host" in *.*.*.*) ;; *) echo "Uso: ./manage.sh legacy-backup-enable <IPv4 di NSM raggiungibile dai router>" >&2; exit 1 ;; esac
+    grep -q '^LEGACY_FTP_ENABLED=' .env || echo "LEGACY_FTP_ENABLED=1" >> .env
+    sed -i "/^LEGACY_FTP_PUBLIC_HOST=/d" .env && echo "LEGACY_FTP_PUBLIC_HOST=$host" >> .env
+    add_compose_profile legacyftp
+    docker compose up -d --build
+    echo "Ricevitore FTP dei backup legacy attivo su $host:${LEGACY_FTP_PORT:-2121} (passive 30100-30109)."
+    echo "Apri queste porte solo dalle reti dei router; poi reinstalla l'agent legacy (0.49.16+, profilo legacy-ops-v1)."
+    ;;
   acs-enable)
     # Enable the integrated GenieACS stack: UI secret, compose profile, NBI URL for NSM.
     secrets=secrets/bootstrap.env
     grep -q '^GENIEACS_UI_JWT_SECRET=' "$secrets" || echo "GENIEACS_UI_JWT_SECRET=$(openssl rand -hex 32)" >> "$secrets"
-    grep -q '^COMPOSE_PROFILES=' .env || echo "COMPOSE_PROFILES=acs" >> .env
+    add_compose_profile acs
     grep -q '^GENIEACS_INTERNAL_NBI_URL=' .env || echo "GENIEACS_INTERNAL_NBI_URL=http://genieacs-nbi:7557" >> .env
     mkdir -p data/genieacs-mongo
     docker compose up -d --build
@@ -121,6 +141,7 @@ Uso: ./manage.sh <comando>
   rotate-secrets        Ricifra i segreti con la nuova ENCRYPTION_MASTER_KEY
   syslog-firewall       Regole firewall host per le porte syslog dalle reti consentite (--apply per applicarle)
   acs-enable            Attiva GenieACS integrato (TR-069) nello stack Docker
+  legacy-backup-enable  Attiva il ricevitore FTP per i backup dei RouterOS 6 / 7.12 (argomento: IPv4 di NSM)
   restore-db <dump>     Sostituisce il database con un dump (chiede conferma)
   seed-demo      Crea dataset demo reversibile con backup fittizi
   clear-demo     Rimuove esclusivamente il dataset demo

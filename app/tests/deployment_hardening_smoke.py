@@ -27,7 +27,9 @@ def main():
         block = services[name]
         assert "no-new-privileges:true" in block and "cap_drop: [ALL]" in block, f"{name} must drop privileges"
     published = sorted(name for name, block in services.items() if re.search(r"^\s{4}ports:", block, re.M))
-    assert published == ["caddy", "genieacs-cwmp", "genieacs-fs", "genieacs-ui", "syslog"], f"unexpected published ports: {published}"
+    assert published == ["caddy", "genieacs-cwmp", "genieacs-fs", "genieacs-ui", "legacy-ftp", "syslog"], f"unexpected published ports: {published}"
+    ftp = services["legacy-ftp"]
+    assert "profiles: [\"legacyftp\"]" in ftp and "cap_drop: [ALL]" in ftp and "no-new-privileges:true" in ftp, "the FTP receiver is opt-in and hardened"
     # The syslog receiver binds an unprivileged port in the container; the host publishes 514.
     assert ":5514/udp" in services["syslog"] and ":5514/tcp" in services["syslog"] and "app.syslog_main" in services["syslog"]
     for setting in ("read_only: true", "mem_limit:", "pids_limit:", "tmpfs:"):

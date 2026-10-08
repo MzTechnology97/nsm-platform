@@ -49,6 +49,7 @@ from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
 from app.mikrotik_routeros6 import install_mikrotik_routeros6
 from app.mikrotik_legacy_operations import install_mikrotik_legacy_operations, legacy_upgrade_info
 from app.mikrotik_legacy_syslog import install_mikrotik_legacy_syslog
+from app.legacy_ftp_backup import install_legacy_ftp_backup
 from app.mikrotik_legacy_backup import install_mikrotik_legacy_backup
 from app.mikrotik_legacy_snapshot_capability import install_mikrotik_legacy_snapshot_capability
 from app.mikrotik_legacy_telemetry import install_mikrotik_legacy_telemetry
@@ -127,7 +128,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.74"
+APP_VERSION = "0.49.75"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -250,6 +251,7 @@ install_mikrotik_routeros6()
 install_mikrotik_legacy_operations(core.app)
 install_mikrotik_legacy_syslog()
 install_mikrotik_legacy_backup(core.app)
+install_legacy_ftp_backup()
 core.templates.env.globals["legacy_upgrade_info"] = legacy_upgrade_info
 # Core 0.49 keeps its product version while the independently versioned device
 # agent advances to the maintenance generation selected by this policy.

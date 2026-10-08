@@ -24,7 +24,7 @@ BACKUP_PROFILES = frozenset({"ops-v2"})
 LEGACY_PROFILE = "legacy-ops-v1"
 LEGACY_READ_ONLY_PROFILE = "legacy-read-v1"
 MODERN_POLICIES = "ftp,reboot,read,write,policy,test,sensitive"
-LEGACY_POLICIES = "ftp,reboot,read,write,test"
+LEGACY_POLICIES = "ftp,reboot,read,write,policy,test,sensitive"
 
 
 def install_mikrotik_privilege_profile():
