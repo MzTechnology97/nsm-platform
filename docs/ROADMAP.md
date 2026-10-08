@@ -270,7 +270,8 @@ Bring Ubiquiti devices managed through the UISP API to the depth of the MikroTik
 
 Next steps:
 - ~~interface errors and drops~~ — done in Core 0.49.83 (Agent 0.49.20, *Errori e drop* chart);
-- signal and latency series;
+- ~~latency series~~ — done in Core 0.49.85 (ICMP latency and loss from NSM for any vendor, unreachable alert);
+- signal series (MikroTik wireless);
 - the same graphs for UISP devices (from `uisp_metric_samples`) and, later, cnMaestro;
 - ~~graphs aggregated per customer and per site~~ — done in Core 0.49.72 (customer *Grafici* tab with site filter).
 

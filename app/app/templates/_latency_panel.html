@@ -1,0 +1,29 @@
+{% set lp = icmp_panel(device) %}
+<section class="panel latency-panel" id="latency"{% if lp.enabled %} data-latency-root data-endpoint="/api/v1/devices/{{ device.id }}/latency"{% endif %}>
+  <div class="panel-header"><div><h2>Latenza e perdita (ICMP da NSM)</h2><p>Come il ping di Zabbix/Cacti: 3 echo ogni 2 minuti dal server NSM verso l'apparato, per qualsiasi vendor. Serve che NSM raggiunga l'indirizzo (IP pubblico, VPN o rete di gestione). Dopo 3 controlli senza risposta si apre una segnalazione nell'Action Center.</p></div>
+    {% if lp.enabled %}<div class="telemetry-ranges" role="group" aria-label="Intervallo latenza"><button type="button" data-latency-range="1h">1h</button><button type="button" data-latency-range="24h" class="active">24h</button><button type="button" data-latency-range="7d">7g</button><button type="button" data-latency-range="30d">30g</button></div>{% endif %}
+  </div>
+  {% if not lp.globally_enabled %}<div class="alert info">Il monitoraggio ICMP è disattivato sul server (<code>ICMP_MONITOR=0</code>).</div>{% endif %}
+  {% if lp.enabled and lp.error %}<div class="alert warning"><strong>Ping non eseguibile dal server.</strong> {{ lp.error }} Il container worker deve consentire i ping socket non privilegiati (<code>net.ipv4.ping_group_range</code>, attivo di default in Docker).</div>{% endif %}
+  {% if lp.enabled and lp.down %}<div class="alert danger"><strong>Nessuna risposta.</strong> {{ lp.effective_target }} non risponde al ping da almeno 3 controlli consecutivi.</div>{% endif %}
+  {% if lp.enabled %}
+  <div class="traffic-chart">
+    <div class="traffic-legend-top"><strong>Round-trip time</strong><small data-latency-title>{{ lp.effective_target }}</small></div>
+    <div class="telemetry-svg-wrap traffic-svg-wrap" data-latency-chart><div class="telemetry-empty">Caricamento…</div></div>
+    <div class="rrd-legend" data-latency-legend></div>
+  </div>
+  <div class="traffic-chart">
+    <div class="traffic-legend-top"><strong>Perdita pacchetti</strong><small data-latency-summary>—</small></div>
+    <div class="telemetry-svg-wrap traffic-svg-wrap" data-latency-loss><div class="telemetry-empty">Caricamento…</div></div>
+  </div>
+  {% endif %}
+  {% if has_permission(user, 'devices.write') %}
+  <form method="post" action="/devices/{{ device.id }}/latency/settings" class="latency-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="back" value="{{ request.url.path }}">
+    <label class="check-row"><input type="checkbox" name="enabled" value="1"{% if lp.enabled %} checked{% endif %}> Monitora latenza e perdita</label>
+    <label>Indirizzo da monitorare<input name="target" value="{{ lp.target }}" placeholder="{{ lp.management_ip or 'IPv4 o IPv6' }}" autocomplete="off"><small>Vuoto = IP di gestione{% if lp.management_ip %} ({{ lp.management_ip }}){% endif %}.</small></label>
+    <button class="button" type="submit">Salva</button>
+  </form>
+  {% endif %}
+</section>
+{% if lp.enabled %}<script defer src="{{ url_for('static', path='/rrd_chart.js') }}?v={{ asset_version }}"></script><script defer src="{{ url_for('static', path='/latency_monitor.js') }}?v={{ asset_version }}"></script>{% endif %}

@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.85 — 2026-10-09
+
+Monitoring — latency and packet loss measured from NSM (MON-01, any vendor)
+- **ICMP from the NSM server**, like the Zabbix/Cacti ping item. Enabled per device, it sends 3 echo requests every 2 minutes to the management IP, or to an address you choose (IPv4/IPv6; loopback, link-local and multicast refused).
+  - It works for every manufacturer, with or without agent, when NSM reaches the address (public IP, VPN or management network).
+  - It uses Linux unprivileged ping sockets, which Docker enables by default, so the worker keeps `cap_drop: [ALL]`.
+- **Charts.** New *Latenza e perdita* panel on the MikroTik Monitor page and on the overview of other devices:
+  - round-trip time (average area, min/max lines, legend table) and packet loss %;
+  - ranges 1h/24h/7d/30d.
+- **Alerts.** Three consecutive rounds without reply open *Apparato non raggiungibile da NSM (ICMP)* in the Action Center, with a notification. The next reply closes it, and so does disabling the monitor.
+- **Storage.** `device_ping_samples` (migration 0039), 90-day retention; the consolidation after 7 days averages RTT and sums packets.
+- If the host does not allow ping sockets, the panel says so and nothing is stored. `ICMP_MONITOR=0` turns the feature off.
+
 ## 0.49.84 — 2026-10-09
 
 Documentation — capabilities and roadmap brought in line with the code (audit of half-done work)

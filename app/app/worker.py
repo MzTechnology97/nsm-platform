@@ -19,6 +19,7 @@ from app.uisp_metrics import cleanup as uisp_metrics_cleanup
 from app.cnmaestro_connector import cleanup as cnmaestro_cleanup, scheduled_sync as cnmaestro_sync
 from app.interface_traffic import cleanup as interface_traffic_cleanup
 from app.telemetry_rollup import consolidate as consolidate_telemetry
+from app.icmp_monitor import cleanup as icmp_cleanup, tick as icmp_tick
 from app.syslog_receiver import cleanup as syslog_cleanup
 from app.syslog_security import evaluate as evaluate_access_alerts
 from app.mikrotik_syslog_config import auto_configure as auto_configure_syslog
@@ -88,6 +89,7 @@ while True:
             run_task("vulnerability_digest", run_vulnerability_digest)
             run_task("syslog_access_alerts", evaluate_access_alerts)
             run_task("syslog_agent_config", auto_configure_syslog)
+            run_task("icmp_monitor", icmp_tick)
             run_task("zabbix_sync", zabbix_sync)
             run_task("cnmaestro_sync", cnmaestro_sync)
             run_task("zabbix_problems", zabbix_problems_refresh)
@@ -137,7 +139,7 @@ while True:
 
         if now_mono - last_telemetry_maintenance >= TELEMETRY_MAINTENANCE_INTERVAL_SECONDS:
             run_task("telemetry_consolidation", consolidate_telemetry, default=0)
-            deleted = run_task("telemetry_retention", telemetry_cleanup, default=0) + run_task("uisp_metrics_retention", uisp_metrics_cleanup, default=0) + run_task("cnmaestro_metrics_retention", cnmaestro_cleanup, default=0) + run_task("interface_traffic_retention", interface_traffic_cleanup, default=0) + run_task("syslog_retention", syslog_cleanup, default=0)
+            deleted = run_task("telemetry_retention", telemetry_cleanup, default=0) + run_task("uisp_metrics_retention", uisp_metrics_cleanup, default=0) + run_task("cnmaestro_metrics_retention", cnmaestro_cleanup, default=0) + run_task("interface_traffic_retention", interface_traffic_cleanup, default=0) + run_task("icmp_retention", icmp_cleanup, default=0) + run_task("syslog_retention", syslog_cleanup, default=0)
             if deleted:
                 log.info("Telemetry retention: rimossi %s campioni scaduti", deleted)
             last_telemetry_maintenance = now_mono
