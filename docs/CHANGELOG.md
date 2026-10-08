@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.73 — 2026-10-09
+
+Security — exposure check also on private and CGNAT addresses (requested by the operator)
+- **Private or CGNAT address as target.** In the *Esposizione* tab the operator can now give a private (RFC 1918) or CGNAT (100.64.0.0/10) address for devices behind the customer's NAT or reached through a VPN or management network. Before, only public IPs were accepted.
+- **Warning on the page.** When the address is not public, a visible warning explains when the result is valid. The device must have direct access to the WAN, not sit behind another router or NAT, and the NSM server must reach it on that address. Otherwise the check is distorted: the upstream router answers, or nothing does.
+- **Warning on the results.** Results obtained on a non-public IP carry a note on the device page and in *Security → Esposizione*.
+- **Still refused.** Loopback, link-local, multicast and reserved addresses. The management IP is used automatically only when it is public; a private one must be confirmed by the operator.
+
 ## 0.49.72 — 2026-10-09
 
 Monitoring — graphs per customer and per site (MON-01)
