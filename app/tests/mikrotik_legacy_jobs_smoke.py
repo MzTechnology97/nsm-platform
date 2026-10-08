@@ -137,7 +137,7 @@ def main():
         backup = db.get(DeviceJob, backup_id)
         assert ping.status == "delivered" and ping.attempts == 1
         assert backup.status == "failed"
-        assert "non ancora disponibile" in (backup.last_error or "")
+        assert "Backup non eseguibile con questo agent legacy" in (backup.last_error or "")
 
     output = "sent=10 received=10 packet-loss=0% avg-rtt=4ms"
     complete = client.post(
