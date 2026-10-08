@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.92 — 2026-10-09
+
+Incidents — ping evidence from NSM
+- **Timeline.** A new *Misura (ping da NSM)* source lists, for each involved device with the ICMP monitor, every period without replies: start, approximate duration, target, failed rounds, and when it answered again. These entries are observed facts.
+- **Correlation candidates.** A ping outage between one hour before and 15 minutes after the start is a *connectivity* candidate with medium confidence. As always, it becomes a root cause only after the operator confirms it.
+- Issues of the categories *Raggiungibilità* and *Errori interfacce* are connectivity candidates; *Esposizione* issues are security candidates.
+
 ## 0.49.91 — 2026-10-09
 
 Monitoring — alert on interface errors (MON-01)

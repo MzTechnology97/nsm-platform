@@ -5,7 +5,8 @@ window around the incident: ``started_at - LEAD`` to ``(resolved_at or now) +
 TRAIL``. Every entry is labelled either:
 
 * ``fact``: something NSM observed or recorded (audit events, Action Center
-  issues, backup runs, agent jobs, vulnerability state changes);
+  issues, backup runs, agent jobs, vulnerability state changes, and the
+  periods in which an involved device did not answer the ping from NSM);
 * ``operator``: a note written by an operator on the incident.
 
 Nothing here infers causes: correlation/root cause is a separate, explicitly
@@ -19,7 +20,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import and_, or_, select
 
-from app.agent_models import DeviceJob
+from app.agent_models import DeviceJob, DevicePingSample
 from app.incident_models import NOTE_KINDS, Incident, IncidentNote
 from app.models import (
     ActionIssue,
@@ -35,7 +36,7 @@ from app.models import (
 LEAD = timedelta(hours=6)
 TRAIL = timedelta(hours=1)
 MAX_PER_SOURCE = 400
-SOURCE_ORDER = {"issue": 0, "audit": 1, "backup": 2, "job": 3, "vulnerability": 4, "operator": 5}
+SOURCE_ORDER = {"issue": 0, "measure": 1, "audit": 2, "backup": 3, "job": 4, "vulnerability": 5, "operator": 6}
 SOURCE_LABELS = {
     "issue": "Action Center",
     "audit": "Audit",
@@ -43,6 +44,7 @@ SOURCE_LABELS = {
     "job": "Job agent",
     "vulnerability": "Vulnerabilità",
     "operator": "Operatore",
+    "measure": "Misura (ping da NSM)",
 }
 FINDING_STATES = {
     "open": "Aperta",
@@ -84,6 +86,42 @@ class Timeline:
 def _label(event_type: str) -> str:
     words = [word for word in (event_type or "").split("_") if word]
     return " ".join(words).capitalize() if words else "Evento"
+
+
+def ping_outages(db, device_ids, names, start, end) -> list[TimelineEntry]:
+    """Consecutive ICMP rounds without any reply (ICMP monitor), one entry per period."""
+    if not device_ids:
+        return []
+    samples = db.scalars(select(DevicePingSample).where(DevicePingSample.device_id.in_(device_ids), DevicePingSample.observed_at >= start,
+                                                        DevicePingSample.observed_at <= end)
+                         .order_by(DevicePingSample.device_id, DevicePingSample.observed_at).limit(MAX_PER_SOURCE * 20))
+    periods: list[list] = []
+    current = None
+    for sample in samples:
+        lost = sample.received == 0 and sample.sent > 0
+        if lost and current and current[0] == sample.device_id:
+            current[2] = sample.observed_at
+            current[3] += 1
+        elif lost:
+            current = [sample.device_id, sample.observed_at, sample.observed_at, 1, sample.target]
+            periods.append(current)
+        else:
+            if current and current[0] == sample.device_id:
+                current.append(sample.observed_at)  # first reply after the outage
+            current = None
+    entries = []
+    for period in periods[:MAX_PER_SOURCE]:
+        device_id, first, last, rounds, target = period[:5]
+        back = period[5] if len(period) > 5 else None
+        minutes = max(2, int(((back or last) - first).total_seconds() // 60))
+        state = f"di nuovo raggiungibile alle {back.strftime('%H:%M')} UTC" if back else "nessuna risposta fino alla fine della finestra"
+        entries.append(TimelineEntry(
+            at=first, kind="fact", source="measure", title=f"Nessuna risposta al ping per circa {minutes} min",
+            key=f"ping:{device_id}:{first.isoformat()}", detail=f"{target} · {rounds} controlli consecutivi senza risposta · {state}",
+            severity="high", device_id=device_id, device_name=names.get(device_id, ""), url=f"/devices/{device_id}#latency",
+            extra={"rounds": rounds, "target": target},
+        ))
+    return entries
 
 
 def timeline_window(incident: Incident, now: datetime) -> tuple[datetime, datetime]:
@@ -278,5 +316,6 @@ def build_timeline(db, incident: Incident, device_ids: list, now: datetime) -> T
             )
         )
 
+    entries += ping_outages(db, device_ids, names, start, end)
     entries.sort(key=lambda item: (item.at, SOURCE_ORDER.get(item.source, 9), item.key))
     return Timeline(window_start=start, window_end=end, entries=entries, truncated_sources=truncated)
