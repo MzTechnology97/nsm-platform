@@ -107,7 +107,11 @@ def incident_rows(db, device_ids, start, end, fmt) -> dict:
     logs = list(db.scalars(select(DeviceLogEntry).where(*window).order_by(DeviceLogEntry.received_at, DeviceLogEntry.id).limit(MAX_ROWS)))
     access = list(db.scalars(select(DeviceAuthEvent).where(DeviceAuthEvent.device_id.in_(device_ids), DeviceAuthEvent.occurred_at >= start,
                                                            DeviceAuthEvent.occurred_at <= end).order_by(DeviceAuthEvent.occurred_at).limit(MAX_ROWS)))
+    from app import syslog_integrity
+
+    integrity = {names.get(device_id, "—"): syslog_integrity.verify(db, device_id) for device_id in device_ids}
     return {
+        "integrity": integrity,
         "logs_total": total,
         "logs": [[fmt(e.received_at), names.get(e.device_id, "—"), SEVERITY_LABELS.get(e.severity, str(e.severity)), e.topics or e.program or "", e.message[:300]] for e in logs],
         "access": [[fmt(a.occurred_at), names.get(a.device_id, "—"), "fallito" if a.outcome == "failure" else "riuscito", a.username or "—", a.remote_ip or "—", a.service or "—"] for a in access],
@@ -122,6 +126,10 @@ def render_incident_section(doc, rows: dict, number: int) -> None:
     if rows["access"]:
         doc.paragraph("Accessi registrati:", bold=True)
         doc.table(["Quando", "Apparato", "Esito", "Utente", "Da", "Via"], rows["access"], [75, 110, 55, 80, 120, 71])
+    integrity = rows.get("integrity") or {}
+    if integrity:
+        doc.paragraph("Integrità dei log (catena di hash): " + "; ".join(
+            f"{name}: {'integra, ' + str(r['checked']) + ' righe verificate' if r['ok'] else 'INTERROTTA'}" for name, r in integrity.items()), size=8.5, gray=0.35)
     if rows["logs"]:
         doc.paragraph("Righe warning, error e critical:", bold=True)
         doc.table(["Quando", "Apparato", "Gravità", "Topic", "Messaggio"], rows["logs"], [75, 90, 50, 80, 216])

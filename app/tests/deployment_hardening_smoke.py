@@ -29,7 +29,10 @@ def main():
     published = sorted(name for name, block in services.items() if re.search(r"^\s{4}ports:", block, re.M))
     assert published == ["caddy", "genieacs-cwmp", "genieacs-fs", "genieacs-ui", "syslog"], f"unexpected published ports: {published}"
     # The syslog receiver binds an unprivileged port in the container; the host publishes 514.
-    assert ":5514/udp" in services["syslog"] and ":5514/tcp" in services["syslog"] and "app.syslog_receiver" in services["syslog"]
+    assert ":5514/udp" in services["syslog"] and ":5514/tcp" in services["syslog"] and "app.syslog_main" in services["syslog"]
+    for setting in ("read_only: true", "mem_limit:", "pids_limit:", "tmpfs:"):
+        assert setting in services["syslog"], f"syslog container hardening: {setting}"
+    assert "app.db_roles" in services["migrate"], "least-privilege roles refreshed on every deploy"
     assert '"127.0.0.1:3000:3000"' in services["genieacs-ui"], "the GenieACS UI is bound to the host loopback only"
     assert "ports:" not in services["genieacs-nbi"] and "ports:" not in services["genieacs-mongo"], "NBI and MongoDB stay internal"
     for name in ("genieacs-cwmp", "genieacs-nbi", "genieacs-fs", "genieacs-ui"):

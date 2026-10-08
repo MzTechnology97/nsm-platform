@@ -29,6 +29,8 @@ class DeviceLogEntry(Base):
     message: Mapped[str] = mapped_column(Text, nullable=False)
     # Set by the security rules (LOG-01 step 3): login_failure, login_success, ...
     category: Mapped[str | None] = mapped_column(String(40))
+    # Warning-or-worse lines: sha256 linking this line to the previous one of the device (syslog_integrity).
+    chain_hash: Mapped[str | None] = mapped_column(String(64))
 
 
 class SyslogUnknownSource(Base):

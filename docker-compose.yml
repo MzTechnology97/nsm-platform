@@ -58,7 +58,7 @@ services:
     env_file:
       - ./.env
       - ./secrets/bootstrap.env
-    command: ["alembic", "upgrade", "head"]
+    command: ["sh", "-c", "alembic upgrade head && python -m app.db_roles"]
     security_opt:
       - no-new-privileges:true
     cap_drop: [ALL]
@@ -129,7 +129,14 @@ services:
       - ./secrets/bootstrap.env
     environment:
       SYSLOG_PORT: "5514"
-    command: ["python", "-m", "app.syslog_receiver"]
+    # Hardened launcher: dedicated DB role, secrets it does not need removed.
+    command: ["python", "-m", "app.syslog_main"]
+    read_only: true
+    tmpfs:
+      - /tmp
+    mem_limit: 512m
+    cpus: "1.0"
+    pids_limit: 128
     security_opt:
       - no-new-privileges:true
     cap_drop: [ALL]

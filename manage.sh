@@ -29,6 +29,18 @@ case "$cmd" in
     # Re-encrypt stored secrets with ENCRYPTION_MASTER_KEY (old key in ENCRYPTION_PREVIOUS_KEYS, see docs/OPERATIONS.md).
     docker compose run --rm api python -m app.cli rotate-secrets
     ;;
+  syslog-firewall)
+    # Allow the syslog ports only from the networks configured in NSM (DOCKER-USER chain). --apply runs the rules.
+    script=$(mktemp)
+    docker compose exec -T api python -m app.syslog_firewall > "$script"
+    cat "$script"
+    if [ "${1:-}" = "--apply" ]; then
+      sh "$script" && echo "Regole firewall syslog applicate."
+    else
+      echo "# Rivedi le regole e applicale con: ./manage.sh syslog-firewall --apply"
+    fi
+    rm -f "$script"
+    ;;
   acs-enable)
     # Enable the integrated GenieACS stack: UI secret, compose profile, NBI URL for NSM.
     secrets=secrets/bootstrap.env
@@ -99,6 +111,7 @@ Uso: ./manage.sh <comando>
   backup-db      Crea pg_dump compresso
   restore-drill [dump]  Prova di ripristino su database temporaneo (default: ultimo dump)
   rotate-secrets        Ricifra i segreti con la nuova ENCRYPTION_MASTER_KEY
+  syslog-firewall       Regole firewall host per le porte syslog dalle reti consentite (--apply per applicarle)
   acs-enable            Attiva GenieACS integrato (TR-069) nello stack Docker
   restore-db <dump>     Sostituisce il database con un dump (chiede conferma)
   seed-demo      Crea dataset demo reversibile con backup fittizi

@@ -60,6 +60,19 @@
 </section>
 </div>
 
+<section class="panel" id="hardening">
+  <div class="panel-header"><div><h2>Protezione del server syslog</h2><p>Accorgimenti attivi sul ricevitore, che è esposto a Internet.</p></div></div>
+  <dl class="kv-list">
+    <div><dt>Account database</dt><dd>{% if syslog_status and syslog_status.dedicated_db %}<span class="device-status status-online">dedicato</span> utente <code>nsm_syslog</code>: solo scrittura dei log e lettura dei dispositivi{% else %}<span class="device-status status-offline">principale</span> esegui <code>update.sh</code> per creare l'utente dedicato{% endif %}</dd></div>
+    <div><dt>Container</dt><dd>filesystem in sola lettura, utente non root, nessuna capability, limiti CPU/RAM/processi, segreti non necessari rimossi</dd></div>
+    <div><dt>TLS (RFC 5425)</dt><dd>{% if syslog_status and syslog_status.tls %}<span class="device-status status-online">attivo</span> porta 6514{% else %}non attivo: monta certificato e chiave e imposta <code>SYSLOG_TLS_CERT</code> / <code>SYSLOG_TLS_KEY</code> (vedi OPERATIONS){% endif %}</dd></div>
+    <div><dt>Integrità</dt><dd>catena di hash sulle righe warning/error, ancorata ogni giorno nel log di audit</dd></div>
+  </dl>
+  <h3>Firewall dell'host</h3>
+  <p class="muted">Docker pubblica la porta 514 scavalcando ufw: queste regole (catena <code>DOCKER-USER</code>) lasciano passare solo le reti consentite. Applicale sul server con <code>./manage.sh syslog-firewall --apply</code> e ripeti dopo ogni modifica delle reti.</p>
+  <pre class="json-preview syslog-code">{{ firewall_script }}</pre>
+</section>
+
 <section class="panel" id="vendors">
   <div class="panel-header"><div><h2>Configurazione per produttore</h2><p>Le stesse istruzioni compaiono nella scheda Syslog di ogni dispositivo, già filtrate per il suo produttore.</p></div></div>
   {% set syslog_brand = 'all' %}{% set syslog_target = settings.public_host or syslog_host %}{% include "_syslog_instructions.html" %}

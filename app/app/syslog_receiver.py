@@ -25,6 +25,7 @@ import json
 import logging
 import os
 import re
+import ssl
 import time
 from collections import deque
 from datetime import datetime, timedelta, timezone
@@ -36,6 +37,7 @@ from app.integration_models import ConnectorIntegration
 from app.models import Device, utcnow
 from app.syslog_models import DeviceAuthEvent, DeviceLogEntry, SyslogUnknownSource
 from app import syslog_identity as identity
+from app import syslog_integrity as integrity
 from app.syslog_security import annotate
 
 log = logging.getLogger("nsm.syslog")
@@ -43,6 +45,8 @@ log = logging.getLogger("nsm.syslog")
 PROVIDER = "syslog"
 PORT = int(os.getenv("SYSLOG_PORT", "5514"))
 BIND = os.getenv("SYSLOG_BIND", "0.0.0.0")
+# Optional RFC 5425 TLS listener: enabled when SYSLOG_TLS_CERT and SYSLOG_TLS_KEY point to mounted files.
+TLS_PORT = int(os.getenv("SYSLOG_TLS_PORT", "6514"))
 MAX_MESSAGE = 2000
 MAX_TCP_LINE = 16384
 RATE_PER_SECOND = 50.0
@@ -154,6 +158,7 @@ class Receiver:
         self.unknown: dict = {}
         self.quota: dict = {}
         self.quota_day = None
+        self.heads: dict = {}
         self.stats = {"received": 0, "stored": 0, "dropped": 0, "unknown": 0, "rejected": {k: 0 for k in identity.REJECT_REASONS}}
 
     def refresh(self) -> None:
@@ -237,24 +242,42 @@ class Receiver:
         if not rows and not unknown and not auth:
             return 0
         with self.session_factory() as db:
-            if rows:
-                db.execute(insert(DeviceLogEntry), rows)
-            if auth:
-                db.execute(insert(DeviceAuthEvent), auth)
-            now = utcnow()
-            for ip, (count, reasons) in unknown.items():
-                label = ", ".join(sorted(identity.REJECT_REASONS.get(r, r) for r in reasons))[:300]
-                source = db.get(SyslogUnknownSource, ip)
-                if source is None:
-                    db.add(SyslogUnknownSource(source_ip=ip, first_seen=now, last_seen=now, messages=count, sample=label))
-                else:
-                    source.last_seen, source.messages, source.sample = now, source.messages + count, label
-            db.commit()
+            try:
+                self._chain(db, rows)
+                if rows:
+                    db.execute(insert(DeviceLogEntry), rows)
+                if auth:
+                    db.execute(insert(DeviceAuthEvent), auth)
+                now = utcnow()
+                for ip, (count, reasons) in unknown.items():
+                    label = ", ".join(sorted(identity.REJECT_REASONS.get(r, r) for r in reasons))[:300]
+                    source = db.get(SyslogUnknownSource, ip)
+                    if source is None:
+                        db.add(SyslogUnknownSource(source_ip=ip, first_seen=now, last_seen=now, messages=count, sample=label))
+                    else:
+                        source.last_seen, source.messages, source.sample = now, source.messages + count, label
+                db.commit()
+            except Exception:
+                self.heads.clear()  # the in-memory chain heads may be ahead of the database: reload them
+                raise
         self.stats["stored"] += len(rows)
         return len(rows)
 
+    def _chain(self, db, rows) -> None:
+        """Link warning-or-worse lines to the previous one of the same device (syslog_integrity)."""
+        for row in rows:
+            if not integrity.chained(row):
+                row["chain_hash"] = None
+                continue
+            device_id = row["device_id"]
+            if device_id not in self.heads:
+                self.heads[device_id] = integrity.head(db, device_id)
+            row["chain_hash"] = integrity.link(self.heads[device_id], device_id, row)
+            self.heads[device_id] = row["chain_hash"]
+
     def status(self) -> dict:
         return {**self.stats, "at": datetime.now(timezone.utc).isoformat(), "port": PORT, "sources": len(self.index.candidates),
+                "dedicated_db": os.getenv("SYSLOG_DEDICATED_DB") == "1", "tls": bool(tls_context()),
                 "keys": len(self.index.keys), "networks": [str(n) for n in self.index.networks]}
 
 
@@ -314,6 +337,16 @@ def _publish_status(receiver: Receiver) -> None:
     worker_status._safe(lambda: worker_status._redis().set(STATUS_KEY, payload, ex=300))
 
 
+def tls_context():
+    cert, key = os.getenv("SYSLOG_TLS_CERT"), os.getenv("SYSLOG_TLS_KEY")
+    if not cert or not key or not (os.path.isfile(cert) and os.path.isfile(key)):
+        return None
+    context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    context.load_cert_chain(cert, key)
+    return context
+
+
 def receiver_status() -> dict | None:
     """Last status published by the receiver process, or None when it is not running."""
     from app import worker_status
@@ -336,7 +369,9 @@ async def serve(receiver: Receiver | None = None, port: int = PORT, bind: str = 
     await loop.run_in_executor(None, receiver.refresh)
     transport, _ = await loop.create_datagram_endpoint(lambda: _Udp(receiver), local_addr=(bind, port))
     server = await asyncio.start_server(lambda r, w: _tcp_client(receiver, r, w), bind, port)
-    log.info("Syslog receiver listening on %s:%s (udp+tcp)", bind, port)
+    context = tls_context()
+    tls_server = await asyncio.start_server(lambda r, w: _tcp_client(receiver, r, w), bind, TLS_PORT, ssl=context) if context else None
+    log.info("Syslog receiver listening on %s:%s (udp+tcp)%s", bind, port, f" and {TLS_PORT} (tls)" if tls_server else "")
     stop = stop or asyncio.Event()
     last_refresh = last_status = time.monotonic()
     try:
@@ -360,6 +395,8 @@ async def serve(receiver: Receiver | None = None, port: int = PORT, bind: str = 
     finally:
         transport.close()
         server.close()
+        if tls_server is not None:
+            tls_server.close()
     return receiver
 
 
