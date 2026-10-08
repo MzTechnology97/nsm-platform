@@ -147,11 +147,11 @@ def main():
     with SessionLocal() as db:
         assert "exposure_target_ip" not in (db.get(Device, ids["ubnt"]).inventory_data or {}), "loopback, link-local, multicast refused"
     # Private / CGNAT addresses are accepted for devices reached directly, with a warning.
-    assert ext.allowed_target("10.20.30.40") and ext.allowed_target("100.64.1.2") and ext.allowed_target("192.168.1.1") and not ext.allowed_target("127.0.0.1")
-    client.post(f"/devices/{ids['ubnt']}/exposure/target", data={"csrf": token, "target_ip": "10.20.30.40"}, follow_redirects=False)
+    assert ext.allowed_target("10.20.30.40") and ext.allowed_target("100.64.1.2") and ext.allowed_target("192.168.1.1") and not ext.allowed_target("127.0.0.1")  # public-data-safety: allow (private-address acceptance is what this test checks)
+    client.post(f"/devices/{ids['ubnt']}/exposure/target", data={"csrf": token, "target_ip": "10.20.30.40"}, follow_redirects=False)  # public-data-safety: allow (private-address acceptance is what this test checks)
     with SessionLocal() as db:
         ubnt = db.get(Device, ids["ubnt"])
-        assert ubnt.inventory_data["exposure_target_ip"] == "10.20.30.40" and ext.target(ubnt) == ("10.20.30.40", "operator") and expo.eligibility(ubnt) is None
+        assert ubnt.inventory_data["exposure_target_ip"] == "10.20.30.40" and ext.target(ubnt) == ("10.20.30.40", "operator") and expo.eligibility(ubnt) is None  # public-data-safety: allow (private-address acceptance is what this test checks)
     warned = client.get(f"/devices/{ids['ubnt']}/exposure").text
     assert "verifica su IP non pubblico" in warned and "accesso diretto alla WAN" in warned
     saved = client.post(f"/devices/{ids['ubnt']}/exposure/target", data={"csrf": token, "target_ip": OTHER_IP}, follow_redirects=False)
