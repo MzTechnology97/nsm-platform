@@ -9,7 +9,7 @@ from markupsafe import Markup, escape
 
 ICONS = {
     "dashboard", "customers", "devices", "monitoring", "agents", "backup", "firmware", "incidents", "vulnerabilities",
-    "access", "lifecycle", "compliance", "action", "events", "reports", "integrations", "admin", "bell", "sun", "moon",
+    "access", "exposure", "lifecycle", "compliance", "action", "events", "reports", "integrations", "admin", "bell", "sun", "moon",
     "menu", "search", "enter", "chevron-left", "close",
 }
 

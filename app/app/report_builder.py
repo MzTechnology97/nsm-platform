@@ -37,7 +37,7 @@ from app.compliance_summary import summarize as compliance_summary
 from app.integration_models import ConnectorIntegration
 from app.restore_test_models import BackupRestoreTest
 from app.routeros_version import parse_routeros_version
-from app import syslog_evidence
+from app import device_exposure, syslog_evidence
 
 REPORT_TYPE = "operational_evidence"
 REPORT_TITLE = "Report evidenze operative"
@@ -532,6 +532,7 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
         "audit": {"events_in_period": db.scalar(audit_query) or 0},
         "incidents": _collect_incidents(db, customer, lower, upper),
         "access": syslog_evidence.report_section(db, device_ids, lower, upper, _fmt),
+        "exposure": device_exposure.report_section(db, device_ids),
         "compliance": {
             "evaluated_devices": compliance["evaluated_devices"],
             "failing_devices": compliance["failing_devices"],
@@ -693,6 +694,27 @@ def render_pdf(data: dict, *, report_id: str, generated_at: datetime, generated_
             )
             if len(severe) > MAX_SECURITY_ROWS:
                 doc.paragraph(f"… altre {len(severe) - MAX_SECURITY_ROWS} righe non mostrate.", size=8.5, gray=0.35)
+
+    exposure = data.get("exposure") or {}
+    counts = exposure.get("counts") or {}
+    if counts.get("total"):
+        doc.paragraph("Servizi di gestione esposti su Internet (stato alla generazione del report):", bold=True)
+        doc.key_values(
+            [
+                ("Apparati con servizi esposti", counts.get("exposed", 0)),
+                ("di cui con gravità critical", counts.get("critical", 0)),
+                ("Apparati verificati senza esposizioni", counts.get("clean", 0)),
+                ("Apparati non verificabili (manca l'IP pubblico o l'agent aggiornato)", counts.get("setup", 0)),
+            ]
+        )
+        if exposure.get("rows"):
+            doc.table(
+                ["Apparato", "Cliente", "Verifica", "Servizi esposti", "Gravità"],
+                [[r["device"], r["customer"], r["method"], r["services"], r["severity"]] for r in exposure["rows"][:MAX_SECURITY_ROWS]],
+                [95, 85, 50, 221, 60],
+            )
+        doc.paragraph("MikroTik con agent: valutazione della configurazione (servizi, firewall input e raw, port forward). Altri produttori: "
+                      "verifica dal server NSM sull'IP pubblico.", size=8.5, gray=0.35)
 
     lifecycle = data["lifecycle"]
     doc.heading("4. Ciclo di vita (EOL/EOS)", 2)

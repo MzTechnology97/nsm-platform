@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from app import main as core
 from app import notification_delivery as nd
 from app.db import SessionLocal
-from app.models import Device, DeviceVulnerability, Notification, SecurityAdvisory, User, utcnow
+from app.models import ActionIssue, Device, DeviceVulnerability, Notification, SecurityAdvisory, User, utcnow
 from app.notification_models import NotificationDelivery, UserNotificationPreference
 from app.report_models import GeneratedReport
 from app.security import validate_csrf
@@ -37,7 +37,27 @@ SEVERITY_ORDER = {"critical": 3, "high": 2, "medium": 1, "low": 0}
 
 # --- Vulnerability newsletter --------------------------------------------------------------------
 
+def exposure_lines(db, since, now) -> tuple[list[str], int, bool]:
+    """Devices whose 'Servizi critici esposti sulla WAN' issue opened in the period, still open."""
+    issues = db.scalars(select(ActionIssue).where(ActionIssue.category == "exposure", ActionIssue.status.in_(["open", "acknowledged"]),
+                                                  ActionIssue.created_at > since, ActionIssue.created_at <= now).order_by(ActionIssue.created_at)).all()
+    if not issues:
+        return [], 0, False
+    devices = {d.id: d for d in db.scalars(select(Device).where(Device.id.in_([i.device_id for i in issues if i.device_id])))}
+    lines = ["", f"Servizi critici esposti su Internet ({len(issues)} {'apparato' if len(issues) == 1 else 'apparati'}):"]
+    for issue in issues[:TOP_CVES]:
+        device = devices.get(issue.device_id)
+        name = (device.display_name or device.device_identity or device.name) if device else "apparato"
+        lines.append(f"• {name}: {', '.join((issue.details or {}).get('services') or [])[:200]}")
+    if len(issues) > TOP_CVES:
+        lines.append(f"… e altri {len(issues) - TOP_CVES} apparati.")
+    total = db.scalar(select(func.count(ActionIssue.id)).where(ActionIssue.category == "exposure", ActionIssue.status.in_(["open", "acknowledged"]))) or 0
+    lines.append(f"Totale apparati con servizi esposti: {total}. Dettagli in Security → Esposizione.")
+    return lines, len(issues), any(i.severity == "critical" for i in issues)
+
+
 def digest_content(db, since, now) -> dict | None:
+    exposure, exposed_devices, exposure_critical = exposure_lines(db, since, now)
     rows = db.execute(
         select(SecurityAdvisory.cve_id, SecurityAdvisory.severity, SecurityAdvisory.cvss, SecurityAdvisory.summary,
                func.count(func.distinct(DeviceVulnerability.device_id)))
@@ -45,7 +65,10 @@ def digest_content(db, since, now) -> dict | None:
         .where(DeviceVulnerability.status != "resolved", DeviceVulnerability.detected_at > since, DeviceVulnerability.detected_at <= now)
         .group_by(SecurityAdvisory.cve_id, SecurityAdvisory.severity, SecurityAdvisory.cvss, SecurityAdvisory.summary)).all()
     if not rows:
-        return None
+        if not exposure:
+            return None
+        return {"title": f"Newsletter sicurezza: {exposed_devices} {'apparato' if exposed_devices == 1 else 'apparati'} con servizi esposti",
+                "body": "\n".join(exposure[1:]), "level": "critical" if exposure_critical else "high"}
     rows = sorted(rows, key=lambda r: (-SEVERITY_ORDER.get(str(r[1]).lower(), -1), -(r[2] or 0), -r[4]))
     open_findings = db.scalar(select(func.count(DeviceVulnerability.id)).where(DeviceVulnerability.status != "resolved")) or 0
     open_devices = db.scalar(select(func.count(func.distinct(DeviceVulnerability.device_id))).where(DeviceVulnerability.status != "resolved")) or 0
@@ -62,8 +85,12 @@ def digest_content(db, since, now) -> dict | None:
     if len(rows) > TOP_CVES:
         lines.append(f"… e altre {len(rows) - TOP_CVES} CVE.")
     lines += ["", f"Totale aperto: {open_findings} esposizioni su {open_devices} di {total_devices} apparati."]
-    return {"title": f"Newsletter vulnerabilità: {len(rows)} nuove CVE, {new_devices} {'apparato coinvolto' if new_devices == 1 else 'apparati coinvolti'}",
-            "body": "\n".join(lines), "level": {3: "critical", 2: "high", 1: "warning"}.get(worst, "info")}
+    lines += exposure
+    title = f"Newsletter vulnerabilità: {len(rows)} nuove CVE, {new_devices} {'apparato coinvolto' if new_devices == 1 else 'apparati coinvolti'}"
+    if exposed_devices:
+        title += f", {exposed_devices} con servizi esposti"
+        worst = max(worst, 3 if exposure_critical else 2)
+    return {"title": title, "body": "\n".join(lines), "level": {3: "critical", 2: "high", 1: "warning"}.get(worst, "info")}
 
 
 def run_vulnerability_digest(now=None) -> dict:

@@ -483,6 +483,82 @@ async def exposure_target(request: Request, device_id: uuid.UUID):
     return flash_redirect(request, back, "success", text, title="Esposizione")
 
 
+# --- Fleet view ---------------------------------------------------------------------------------
+
+FLEET_VIEWS = {"exposed": "Con servizi esposti", "setup": "Da configurare", "clean": "Senza esposizioni", "all": "Tutti"}
+
+
+def fleet(db, customer_id=None, device_ids=None) -> dict:
+    """Every device with its exposure state: exposed, clean, to be set up (blocker), never checked."""
+    from app.models import Customer
+
+    query = select(Device)
+    if customer_id:
+        query = query.where(Device.customer_id == customer_id)
+    if device_ids is not None:
+        query = query.where(Device.id.in_(list(device_ids)))
+    customers = {c.id: c for c in db.scalars(select(Customer))}
+    rows = []
+    for device in db.scalars(query):
+        exposure = (device.inventory_data or {}).get("exposure") or {}
+        blocker = eligibility(device)
+        exposed = [f for f in exposure.get("findings") or [] if f.get("state") == "exposed"]
+        exposed += [{"label": f"port forward {', '.join(p['sensitive']) or 'tutte le porte'} → {p['to_address']}", "proto": p.get("protocol"),
+                     "port": p.get("public_ports"), "severity": p.get("severity")}
+                    for p in exposure.get("port_forwards") or [] if p.get("certain") and p.get("severity") == "high"]
+        exposed.sort(key=lambda f: -SEVERITY_RANK.get(f.get("severity") or "info", 0))
+        if exposed:
+            state = "exposed"
+        elif exposure.get("checked_at"):
+            state = "clean"
+        elif blocker:
+            state = "setup"
+        else:
+            state = "pending"
+        rows.append({"device": device, "customer": customers.get(device.customer_id), "mode": mode(device), "state": state, "blocker": blocker,
+                     "exposed": exposed, "worst": exposed[0].get("severity") if exposed else None, "checked_at": exposure.get("checked_at"),
+                     "target_ip": exposure.get("target_ip"), "shared": bool(exposure.get("issue_skipped"))})
+    rows.sort(key=lambda r: (r["state"] != "exposed", -SEVERITY_RANK.get(r["worst"] or "info", 0), -len(r["exposed"]),
+                             (r["device"].display_name or r["device"].name or "").lower()))
+    counts = {key: sum(1 for r in rows if r["state"] == key) for key in ("exposed", "clean", "setup", "pending")}
+    counts["critical"] = sum(1 for r in rows if r["worst"] == "critical")
+    counts["total"] = len(rows)
+    return {"rows": rows, "counts": counts}
+
+
+def report_section(db, device_ids) -> dict:
+    """Current exposure state for the operational evidence report (section Vulnerabilità)."""
+    data = fleet(db, device_ids=device_ids or [])
+    rows = [r for r in data["rows"] if r["state"] == "exposed"]
+    return {"counts": data["counts"], "rows": [
+        {"device": r["device"].display_name or r["device"].device_identity or r["device"].name, "customer": r["customer"].name if r["customer"] else "—",
+         "method": "agent" if r["mode"] == "agent" else "esterna", "services": ", ".join(f"{f['label']} {f.get('proto') or ''}/{f.get('port')}" for f in r["exposed"][:8]),
+         "severity": r["worst"] or "—", "checked_at": r["checked_at"]} for r in rows]}
+
+
+@router.get("/security/exposure", response_class=HTMLResponse, name="security_exposure")
+def security_exposure(request: Request, view: str = "exposed", customer: str = ""):
+    with SessionLocal() as db:
+        user = core.current_user(request, db)
+        if not user:
+            return core.login_redirect()
+        if not core.has_permission(user, "security.read"):
+            raise HTTPException(403)
+        from app.models import Customer
+
+        try:
+            customer_id = uuid.UUID(customer) if customer else None
+        except ValueError:
+            customer_id = None
+        view = view if view in FLEET_VIEWS else "exposed"
+        data = fleet(db, customer_id)
+        wanted = {"exposed": ("exposed",), "setup": ("setup",), "clean": ("clean",), "all": ("exposed", "clean", "setup", "pending")}[view]
+        rows = [r for r in data["rows"] if r["state"] in wanted]
+        return core.render(request, db, user, "security_exposure.html", title="Servizi esposti", rows=rows[:500], truncated=len(rows) > 500,
+                           counts=data["counts"], view=view, views=FLEET_VIEWS, customer_id=customer_id,
+                           customers=db.scalars(select(Customer).order_by(Customer.name)).all())
+
+
 def install_device_exposure(app) -> None:
     app.include_router(router)
     core.templates.env.globals["exposure_state_labels"] = STATE_LABELS

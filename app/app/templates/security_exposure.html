@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "_worklist.html" import chips %}
+{% block title %}Esposizione · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Servizi esposti su Internet</h1><p>Per ogni apparato: servizi di gestione raggiungibili dalla WAN. I MikroTik con agent vengono valutati dalla loro configurazione (servizi, firewall input e raw, port forward); gli altri produttori con una verifica dal server NSM sul loro IP pubblico. Ripetuta ogni 24 ore.</p></div></div>
+
+<section class="mt-kpi-grid">
+  <article class="metric-card"><span>Con servizi esposti</span><strong>{{ counts.exposed }}</strong><small>{{ counts.critical }} con gravità critical</small></article>
+  <article class="metric-card"><span>Senza esposizioni</span><strong>{{ counts.clean }}</strong><small>all'ultima verifica</small></article>
+  <article class="metric-card"><span>Da configurare</span><strong>{{ counts.setup }}</strong><small>manca l'IP pubblico o l'agent va aggiornato</small></article>
+  <article class="metric-card"><span>In attesa</span><strong>{{ counts.pending }}</strong><small>prima verifica in corso</small></article>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    {% set scope = ('&customer=' ~ customer_id) if customer_id else '' %}
+    {{ chips([
+      {'label': views.exposed, 'count': counts.exposed, 'href': '/security/exposure?view=exposed' ~ scope, 'active': view == 'exposed', 'tone': 'danger'},
+      {'label': views.setup, 'count': counts.setup, 'href': '/security/exposure?view=setup' ~ scope, 'active': view == 'setup', 'tone': 'warning'},
+      {'label': views.clean, 'count': counts.clean, 'href': '/security/exposure?view=clean' ~ scope, 'active': view == 'clean'},
+      {'label': views.all, 'count': counts.total, 'href': '/security/exposure?view=all' ~ scope, 'active': view == 'all'},
+    ], 'Vista') }}
+    <form method="get" action="/security/exposure" class="inline-form"><input type="hidden" name="view" value="{{ view }}">
+      <select name="customer" aria-label="Cliente"><option value="">Tutti i clienti</option>{% for c in customers %}<option value="{{ c.id }}"{% if c.id == customer_id %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
+      <button class="button">Filtra</button></form>
+  </div>
+  {% if rows %}<div class="table-wrap"><table class="exposure-table">
+    <thead><tr><th>Apparato</th><th>Cliente</th><th>Verifica</th><th>{{ 'Cosa manca' if view == 'setup' else 'Servizi esposti' }}</th><th>Gravità</th><th>Ultima verifica</th></tr></thead>
+    <tbody>{% for r in rows %}{% set d = r.device %}<tr>
+      <td><div class="inventory-device">{{ brand_icon(d, 22) }}<a class="strong-link" href="/devices/{{ d.id }}/exposure">{{ d.display_name or d.device_identity or d.name }}</a></div>{% if r.target_ip %}<small>{{ r.target_ip }}</small>{% endif %}</td>
+      <td>{% if r.customer %}<a href="/customers/{{ r.customer.id }}">{{ r.customer.name }}</a>{% else %}—{% endif %}</td>
+      <td>{{ 'Agent (configurazione)' if r.mode == 'agent' else "Dall'esterno" }}</td>
+      <td>{% if r.state == 'exposed' %}{% for f in r.exposed[:6] %}<span class="exposure-chip severity-{{ f.severity }}">{{ f.label }}{% if f.port %} {{ f.proto }}/{{ f.port }}{% endif %}</span>{% endfor %}{% if r.exposed|length > 6 %}<small>… e altri {{ r.exposed|length - 6 }}</small>{% endif %}{% if r.shared %}<small>IP condiviso: risponde il router di bordo</small>{% endif %}
+        {% elif r.state == 'setup' %}<small>{{ r.blocker }}</small>
+        {% elif r.state == 'pending' %}<span class="muted">verifica in corso</span>
+        {% else %}<span class="exposure-state exposure-state-protected">nessuno</span>{% endif %}</td>
+      <td>{% if r.worst %}<span class="severity-badge severity-{{ r.worst }}">{{ r.worst }}</span>{% else %}—{% endif %}</td>
+      <td>{{ fmt_dt(r.checked_at) if r.checked_at else '—' }}</td>
+    </tr>{% endfor %}</tbody></table></div>
+    {% if truncated %}<p class="muted">Mostrati i primi 500 apparati: filtra per cliente per vedere gli altri.</p>{% endif %}
+  {% else %}<div class="empty-state">{{ {'exposed': 'Nessun apparato con servizi esposti.', 'setup': 'Tutti gli apparati sono verificabili.', 'clean': 'Nessun apparato verificato senza esposizioni.'}.get(view, 'Nessun apparato.') }}</div>{% endif %}
+</section>
+{% endblock %}

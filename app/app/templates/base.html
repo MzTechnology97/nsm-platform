@@ -43,6 +43,7 @@
       <a class="nav-item {% if request.url.path.startswith('/incidents') %}active{% endif %}" href="/incidents"><span class="nav-icon">{{ ui_icon('incidents') }}</span><span class="nav-label">Incidenti</span></a>
       <div class="nav-section">Security</div>
       <a class="nav-item {% if request.url.path.startswith('/security/vulnerabilities') %}active{% endif %}" href="/security/vulnerabilities"><span class="nav-icon">{{ ui_icon('vulnerabilities') }}</span><span class="nav-label">Vulnerabilità</span></a>
+      <a class="nav-item {% if request.url.path.startswith('/security/exposure') %}active{% endif %}" href="/security/exposure"><span class="nav-icon">{{ ui_icon('exposure') }}</span><span class="nav-label">Esposizione</span></a>
       <a class="nav-item {% if request.url.path.startswith('/security/access') %}active{% endif %}" href="/security/access"><span class="nav-icon">{{ ui_icon('access') }}</span><span class="nav-label">Accessi</span></a>
       <a class="nav-item {% if request.url.path.startswith('/security/lifecycle') %}active{% endif %}" href="/security/lifecycle"><span class="nav-icon">{{ ui_icon('lifecycle') }}</span><span class="nav-label">EOL / EOS</span></a>
       <a class="nav-item {% if request.url.path.startswith('/compliance') %}active{% endif %}" href="/compliance"><span class="nav-icon">{{ ui_icon('compliance') }}</span><span class="nav-label">Compliance</span></a>
