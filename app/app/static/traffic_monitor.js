@@ -6,6 +6,8 @@
   const endpoint = root.dataset.endpoint;
   const select = root.querySelector('[data-traffic-interface]');
   const wrap = root.querySelector('[data-traffic-chart]');
+  const errorsWrap = root.querySelector('[data-traffic-errors-chart]');
+  const errorsTotal = root.querySelector('[data-traffic-errors-total]');
   let activeRange = '24h';
   let loading = false;
 
@@ -31,6 +33,31 @@
       thresholds: p95 > 0 ? [{value: p95, label: `95° ${fmtBps(p95)}`}] : [],
       emptyText: "Nessun campione per questo intervallo: il primo valore arriva al secondo heartbeat dopo l'attivazione.",
     });
+    renderErrors(data);
+  }
+
+  // Errors and drops per interval (Agent 0.49.20+), counts summed per point.
+  function renderErrors(data) {
+    if (!errorsWrap) return;
+    const stats = data.stats?.errors || {};
+    if (!stats.supported) {
+      errorsWrap.innerHTML = "<div class=\"telemetry-empty\">Errori e drop disponibili dall'agent 0.49.20: arriva con l'aggiornamento automatico.</div>";
+      if (errorsTotal) errorsTotal.textContent = '—';
+      return;
+    }
+    const points = data.points || [];
+    const field = (name) => points.map((p) => [p.timestamp, Number.isFinite(p[name]) ? p[name] : null]);
+    window.NSMChart.render(errorsWrap, {
+      title: 'Errori e drop', unit: 'count',
+      series: [
+        {label: 'Errori rx', color: 'a', kind: 'line', points: field('rx_errors')},
+        {label: 'Errori tx', color: 'b', kind: 'line', points: field('tx_errors')},
+        {label: 'Drop rx', color: 'c', kind: 'line', points: field('rx_drops')},
+        {label: 'Drop tx', color: 'd', kind: 'line', points: field('tx_drops')},
+      ],
+      emptyText: 'Nessun campione per questo intervallo.',
+    });
+    if (errorsTotal) errorsTotal.textContent = `Nel periodo: errori rx ${stats.rx_errors} · tx ${stats.tx_errors} · drop rx ${stats.rx_drops} · tx ${stats.tx_drops}`;
   }
 
   let lastData = null, resizeTimer = null;

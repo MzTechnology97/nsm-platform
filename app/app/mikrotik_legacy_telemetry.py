@@ -48,7 +48,7 @@ async def legacy_heartbeat_with_history(request: Request):
         data = dict(device.inventory_data or {})
         ifaces = request.headers.get("X-NSM-Ifaces")
         if ifaces:
-            interface_traffic.record(db, device, data, ifaces)
+            interface_traffic.record(db, device, data, ifaces, errors=request.headers.get("X-NSM-Iferr"))
         agent_addresses.apply(device, data, request.headers.get("X-NSM-Addrs"), data.get("last_source_ip"))
         device.inventory_data = data
         db.commit()

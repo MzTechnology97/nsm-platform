@@ -23,18 +23,19 @@ FULL_RESOLUTION = timedelta(days=7)
 BAND = timedelta(days=3)
 SLOT_SECONDS = 600
 
-# (table, series columns, averaged columns): the newest row of each slot is kept
-# (latest counters, memory and uptime) and receives the averages of the slot.
+# (table, series columns, averaged columns, summed columns): the newest row of each
+# slot is kept (latest counters, memory and uptime) and receives the averages of
+# the slot; per-interval counts (errors, drops) are summed.
 TABLES = (
-    ("device_metric_samples", ("device_id",), ("cpu_load",)),
-    ("device_interface_samples", ("device_id", "interface"), ("rx_bps", "tx_bps")),
+    ("device_metric_samples", ("device_id",), ("cpu_load",), ()),
+    ("device_interface_samples", ("device_id", "interface"), ("rx_bps", "tx_bps"), ("rx_errors", "tx_errors", "rx_drops", "tx_drops")),
 )
 
 
-def _statement(table: str, series: tuple, averaged: tuple):
+def _statement(table: str, series: tuple, averaged: tuple, summed: tuple = ()):
     group = ", ".join(series)
-    averages = ", ".join(f"avg({column}) AS {column}" for column in averaged)
-    assignments = ", ".join(f"{column} = g.{column}" for column in averaged)
+    averages = ", ".join([f"avg({column}) AS {column}" for column in averaged] + [f"sum({column}) AS {column}" for column in summed])
+    assignments = ", ".join(f"{column} = g.{column}" for column in (*averaged, *summed))
     return text(f"""
         WITH g AS (
             SELECT (array_agg(id ORDER BY observed_at DESC, id DESC))[1] AS keep, array_agg(id) AS ids, {averages}
@@ -55,7 +56,7 @@ def consolidate(now=None) -> int:
     start = end - BAND
     removed = 0
     with SessionLocal() as db:
-        for table, series, averaged in TABLES:
-            removed += int(db.execute(_statement(table, series, averaged), {"start": start, "end": end}).rowcount or 0)
+        for table, series, averaged, summed in TABLES:
+            removed += int(db.execute(_statement(table, series, averaged, summed), {"start": start, "end": end}).rowcount or 0)
         db.commit()
     return removed

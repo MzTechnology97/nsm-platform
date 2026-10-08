@@ -95,3 +95,8 @@ class DeviceInterfaceSample(Base):
     tx_bytes: Mapped[int | None] = mapped_column(BigInteger)
     rx_bps: Mapped[float | None] = mapped_column(Float)
     tx_bps: Mapped[float | None] = mapped_column(Float)
+    # Errors and drops in the interval since the previous sample (Agent 0.49.20+; None before).
+    rx_errors: Mapped[int | None] = mapped_column(BigInteger)
+    tx_errors: Mapped[int | None] = mapped_column(BigInteger)
+    rx_drops: Mapped[int | None] = mapped_column(BigInteger)
+    tx_drops: Mapped[int | None] = mapped_column(BigInteger)

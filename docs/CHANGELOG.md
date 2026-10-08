@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.83 — 2026-10-09
+
+Monitoring — interface errors and drops (MON-01)
+- **Agent 0.49.20** (modern, legacy 7.12 and RouterOS 6) adds the RouterOS `rx-error`, `tx-error`, `rx-drop` and `tx-drop` counters to every heartbeat. It sends only interfaces with a non-zero counter, so the payload stays small (`metrics.iferrs` / `X-NSM-Iferr`). It reaches paired routers through the automatic update.
+- **Stored per sample.** NSM stores the errors and drops of each monitored interface in the interval since the previous sample (migration 0038). Counter resets are ignored.
+  - Consolidation after 7 days sums them per 10-minute slot.
+- **Monitor page.** New *Errori e drop* chart under the traffic graph (Cacti/Zabbix style), with the totals for the selected range. Devices with an older agent show when the data will arrive.
+- The traffic API returns `rx_errors`, `tx_errors`, `rx_drops`, `tx_drops` per point and `stats.errors`.
+
 ## 0.49.82 — 2026-10-09
 
 MikroTik Agent — legacy agents run several jobs per heartbeat; support snapshot on legacy (audit of half-done work)

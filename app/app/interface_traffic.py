@@ -56,6 +56,39 @@ def parse_ifaces(raw) -> dict:
     return result
 
 
+ERROR_FIELDS = ("rx_errors", "tx_errors", "rx_drops", "tx_drops")
+ERRORS_VERSION = "v1;"
+
+
+def parse_iferrs(raw) -> dict | None:
+    """{name: (rx_error, tx_error, rx_drop, tx_drop)} from Agent 0.49.20+; None when the Agent does not send them.
+
+    The Agent sends ``v1;`` followed by ``name|rx-error|tx-error|rx-drop|tx-drop;``
+    only for interfaces with a non-zero counter: a missing interface has none.
+    """
+    text = str(raw or "")
+    if not text.startswith(ERRORS_VERSION):
+        return None
+    result = {}
+    for entry in text[len(ERRORS_VERSION):].split(";"):
+        parts = entry.rsplit("|", 4)
+        if len(parts) != 5 or not all(p.strip().isdigit() for p in parts[1:]):
+            continue
+        values = tuple(int(p) for p in parts[1:])
+        if any(v >= COUNTER_MAX for v in values):
+            continue
+        result.setdefault(parts[0].strip()[:100], values)
+        if len(result) >= MAX_COUNTERS:
+            break
+    return result
+
+
+def _deltas(previous, current):
+    if not isinstance(previous, (list, tuple)) or len(previous) != 4:
+        return (None,) * 4
+    return tuple(new - old if isinstance(old, int) and new >= old else None for old, new in zip(previous, current))
+
+
 def monitored_interfaces(data: dict, available) -> list[str]:
     """Interfaces with a stored history: the user's choice, else WAN-like ones, else ether1."""
     chosen = data.get("traffic_interfaces")
@@ -91,9 +124,10 @@ def _parse_time(value):
         return None
 
 
-def record(db, device: Device, data: dict, raw, now=None) -> int:
+def record(db, device: Device, data: dict, raw, now=None, errors=None) -> int:
     """Update the counters in ``data`` (the Device inventory being saved) and add samples."""
     parsed = parse_ifaces(raw)
+    error_counters = parse_iferrs(errors)
     if not parsed:
         return 0
     now = now or utcnow()
@@ -109,9 +143,16 @@ def record(db, device: Device, data: dict, raw, now=None) -> int:
             if 0 < seconds <= MAX_GAP_SECONDS:
                 rx_bps, tx_bps = _rate(prev.get("rx"), rx, seconds), _rate(prev.get("tx"), tx, seconds)
         counters[name] = {"type": kind, "rx": rx, "tx": tx, "at": now.isoformat(), "rx_bps": rx_bps, "tx_bps": tx_bps}
+        deltas = (None,) * 4
+        if error_counters is not None:
+            current = error_counters.get(name, (0, 0, 0, 0))
+            counters[name]["err"] = list(current)
+            if prev_at is not None and 0 < (now - prev_at).total_seconds() <= MAX_GAP_SECONDS:
+                deltas = _deltas(prev.get("err"), current)
         if name in monitored and (rx_bps is not None or tx_bps is not None):
             db.add(DeviceInterfaceSample(device_id=device.id, interface=name, if_type=kind, observed_at=now,
-                                         rx_bytes=rx, tx_bytes=tx, rx_bps=rx_bps, tx_bps=tx_bps))
+                                         rx_bytes=rx, tx_bytes=tx, rx_bps=rx_bps, tx_bps=tx_bps,
+                                         **dict(zip(ERROR_FIELDS, deltas))))
             stored += 1
     data["interface_counters"] = counters
     return stored
@@ -163,6 +204,14 @@ def _stats(samples, attr):
     return {"current": values[-1], "avg": round(sum(values) / len(values), 1), "max": max(values), "p95": percentile(values), "bytes": int(total)}
 
 
+def _error_stats(samples) -> dict:
+    """Errors and drops in the range; ``supported`` is False when no sample carries them (older Agents)."""
+    stats = {"supported": any(getattr(s, "rx_errors") is not None for s in samples)}
+    for attr in ERROR_FIELDS:
+        stats[attr] = sum(getattr(s, attr) or 0 for s in samples)
+    return stats
+
+
 def _buckets(samples, maximum=MAX_POINTS):
     """Graph points: runs of consecutive samples averaged into at most ``maximum`` points.
 
@@ -181,7 +230,7 @@ def _buckets(samples, maximum=MAX_POINTS):
     for run in runs:
         if points:
             gap_at = run[0].observed_at - (run[0].observed_at - previous_end) / 2
-            points.append({"timestamp": gap_at.isoformat(), "rx_bps": None, "tx_bps": None, "rx_max": None, "tx_max": None})
+            points.append({"timestamp": gap_at.isoformat(), "rx_bps": None, "tx_bps": None, "rx_max": None, "tx_max": None, **{f: None for f in ERROR_FIELDS}})
         points += _bucket_run(run, max(1, budget * len(run) // len(samples)))
         previous_end = run[-1].observed_at
     return points
@@ -189,7 +238,8 @@ def _buckets(samples, maximum=MAX_POINTS):
 
 def _bucket_run(samples, maximum):
     if len(samples) <= maximum:
-        return [{"timestamp": s.observed_at.isoformat(), "rx_bps": s.rx_bps, "tx_bps": s.tx_bps, "rx_max": s.rx_bps, "tx_max": s.tx_bps} for s in samples]
+        return [{"timestamp": s.observed_at.isoformat(), "rx_bps": s.rx_bps, "tx_bps": s.tx_bps, "rx_max": s.rx_bps, "tx_max": s.tx_bps,
+                 **{f: getattr(s, f) for f in ERROR_FIELDS}} for s in samples]
     size = len(samples) / maximum
     points = []
     for index in range(maximum):
@@ -199,6 +249,9 @@ def _bucket_run(samples, maximum):
             values = [getattr(s, attr) for s in chunk if getattr(s, attr) is not None]
             row[attr] = round(sum(values) / len(values), 1) if values else None
             row[attr.replace("_bps", "_max")] = max(values) if values else None
+        for attr in ERROR_FIELDS:  # counts: summed over the bucket
+            values = [getattr(s, attr) for s in chunk if getattr(s, attr) is not None]
+            row[attr] = sum(values) if values else None
         points.append(row)
     return points
 
@@ -234,7 +287,7 @@ def device_traffic(request: Request, device_id: uuid.UUID, range: str = "24h", i
         return {
             "device_id": str(device.id), "range": range, "interface": selected, "interfaces": names,
             "sample_count": len(samples), "points": _buckets(samples),
-            "stats": {"rx": _stats(samples, "rx_bps"), "tx": _stats(samples, "tx_bps")},
+            "stats": {"rx": _stats(samples, "rx_bps"), "tx": _stats(samples, "tx_bps"), "errors": _error_stats(samples)},
         }
 
 
