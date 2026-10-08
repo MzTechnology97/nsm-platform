@@ -20,6 +20,7 @@ from app.cnmaestro_connector import cleanup as cnmaestro_cleanup, scheduled_sync
 from app.interface_traffic import cleanup as interface_traffic_cleanup
 from app.telemetry_rollup import consolidate as consolidate_telemetry
 from app.icmp_monitor import cleanup as icmp_cleanup, tick as icmp_tick
+from app.interface_error_alerts import evaluate as interface_error_alerts
 from app.mikrotik_wireless import cleanup as wireless_cleanup
 from app.syslog_receiver import cleanup as syslog_cleanup
 from app.syslog_security import evaluate as evaluate_access_alerts
@@ -91,6 +92,7 @@ while True:
             run_task("syslog_access_alerts", evaluate_access_alerts)
             run_task("syslog_agent_config", auto_configure_syslog)
             run_task("icmp_monitor", icmp_tick)
+            run_task("interface_error_alerts", interface_error_alerts)
             run_task("zabbix_sync", zabbix_sync)
             run_task("cnmaestro_sync", cnmaestro_sync)
             run_task("zabbix_problems", zabbix_problems_refresh)
