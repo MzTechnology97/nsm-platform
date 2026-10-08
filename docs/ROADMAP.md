@@ -110,7 +110,7 @@ Scope:
 
 ### MTK-02 — legacy backup transport design and implementation
 
-Legacy RouterOS 7.12.x backup is currently unavailable.
+**Done**: `.rsc` export up to 60 KB on 7.12 (Agent 0.49.7) and full `.backup` + `.rsc` over the FTP receiver on RouterOS 6.48/6.49 and 7.12 (Core 0.49.75, Agent 0.49.16). Physical acceptance tracked in issue #128.
 
 Suggested vertical split:
 
@@ -126,7 +126,7 @@ Do not present legacy backup as available before this is complete.
 
 Goal: prove that stored artifacts remain operationally useful without unsafe automatic production restore.
 
-**Implemented in `main`** except report integration, which follows REP-01/REP-02.
+**Implemented in `main`**, including report integration (last restore test per device in the backup report).
 
 Original scope:
 
@@ -160,6 +160,7 @@ Possible focused PRs:
 - richer ping/traceroute presentation and history — **done** (`app/mikrotik_diagnostic_views.py`);
 - structured neighbor/DHCP/log result presentation — **done**, for modern and legacy agents;
 - bounded additional read-only diagnostics with explicit capability gates;
+- support snapshot on legacy agents — **done** in Core 0.49.82 (assembled from the read-only section jobs);
 - support-snapshot evidence/archive improvements.
 
 ## 4. GUI quality and regression queue

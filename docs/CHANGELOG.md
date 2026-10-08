@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.84 — 2026-10-09
+
+Documentation — capabilities and roadmap brought in line with the code (audit of half-done work)
+- `IMPLEMENTED_CAPABILITIES.md` still said legacy backup was not implemented and did not mention the newer agent features. It now covers:
+  - automatic and legacy self-update, observed policies, 2-minute heartbeat, several jobs per heartbeat, the Agent tab capabilities and the RouterOS 6 onboarding command;
+  - the FTP backup, the legacy support snapshot, interface errors and drops, and the consolidation.
+- `ROADMAP.md`: MTK-02 (legacy backup) marked done; MTK-03 report integration done; MTK-05 legacy support snapshot done.
+
 ## 0.49.83 — 2026-10-09
 
 Monitoring — interface errors and drops (MON-01)

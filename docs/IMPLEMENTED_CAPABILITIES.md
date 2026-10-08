@@ -182,6 +182,13 @@ Implemented capabilities:
 - installation verification/recovery states;
 - Agent reinstall flow without deleting the Device;
 - in-place Agent update/self-update foundation with rollback behavior covered by smoke tests;
+- **automatic Agent updates** (Core 0.49.77): the worker queues `agent_self_update` for online agents that can apply it (modern 0.49.0+, legacy 0.49.17+ with the `write` policy), one at a time, one retry a day after a failure; `AGENT_AUTO_UPDATE=0` disables it;
+- **legacy self-update** (Agent 0.49.17, RouterOS 6.48/6.49 and 7.12): the router downloads its own NSM-generated source, checks the end marker and `:parse`, keeps `nsm-agent-heartbeat-prev`, then replaces its script; verification from the reported version; on RouterOS 7.13+ the same job installs the modern agent and the first modern heartbeat switches the transport;
+- **observed RouterOS policies**: the legacy agent reports the policies of its script (`X-NSM-Agent-Policy`); NSM derives `legacy-ops-v1` / `legacy-read-v1` and the FTP backup eligibility from them; a script cannot raise its own policies, so read-only agents need one reinstall;
+- **2-minute heartbeat** (Agent 0.49.18): new installations schedule `interval=2m`; installed agents align their own scheduler (needs `write`);
+- legacy agents run up to 8 jobs per heartbeat (Agent 0.49.19);
+- the Agent tab shows the administrative capabilities really available (reboot, RouterOS upgrade, syslog, automatic update, backup method) and an *Aggiornamento agent* panel;
+- guided onboarding command for RouterOS 7 and a separate command for RouterOS 6.48/6.49 (same one-shot token);
 - stale pending job expiry;
 - stale delivered non-backup job expiry; running jobs keep domain-owned timeouts (backup maintenance, self-update reconciliation);
 - expired self-update jobs move the Device update state to `expired` (audited, visible in Agent Fleet) and no longer block a new update; late self-update reports for a terminal job are acknowledged without changes;
@@ -239,7 +246,7 @@ A fresh physical clean-enrollment and feature-by-feature revalidation is still r
 - RouterOS validates every command when a script is loaded, so v6 gets its own source: ping reports `sent=10;received=N` (v6 `/ping` has no `as-value`), snapshot sections iterate `print as-value` rows with the same bounded output, and NSM refuses to hand out a v6 source that still contains a v7-only construct (`:serialize`, `/file read`, `as-value` on ping/traceroute, `get` without property, v7 menu paths);
 - traceroute is refused server-side with an explicit message (not scriptable on v6);
 - releases older than 6.48 stay unvalidated (fail closed);
-- legacy agents 0.49.6+ (profile `legacy-ops-v1` = `ftp,reboot,read,write,test`) support the controlled reboot and the RouterOS upgrade below; backup is not available on legacy families; physical acceptance on 6.49 is tracked in issue #128.
+- legacy agents 0.49.6+ (profile `legacy-ops-v1`, since Agent 0.49.16 `ftp,reboot,read,write,policy,test,sensitive`) support the controlled reboot, the RouterOS upgrade, remote syslog (0.49.15), the FTP backup (0.49.16), self-update (0.49.17) and the support snapshot built from sections (0.49.19); physical acceptance on 6.49 is tracked in issue #128.
 
 ### RouterOS 7.12.1 — legacy family
 
@@ -258,7 +265,7 @@ Physical history validation is still pending.
 
 Structured configuration snapshots are in `main` from Agent 0.49.3 (legacy agents must be reinstalled); physical acceptance on 7.12.1 is tracked in issue #128.
 
-Legacy RouterOS backup transport is **not implemented**.
+Legacy backup: `.rsc` export up to 60 KB over HTTP (Agent 0.49.7) or, with the FTP receiver, binary backup + export without size limit (Agent 0.49.16, section 11).
 
 ## 8. MikroTik telemetry and monitoring
 
@@ -293,6 +300,10 @@ Management IP of agent-managed MikroTik devices (Agent 0.49.10, `app/agent_addre
 - the management IP is the public router address, else the heartbeat source address, else the first address;
 - the LAN IP is the first private address;
 - values typed by an operator are kept.
+
+Interface errors and drops (Agent 0.49.20, MON-01): `rx-error`, `tx-error`, `rx-drop`, `tx-drop` of interfaces with a non-zero counter (`metrics.iferrs` / `X-NSM-Iferr`, prefixed `v1;`); per-interval deltas stored for monitored interfaces (migration 0038) and shown in the *Errori e drop* chart with range totals.
+
+Sampling and consolidation: 2-minute heartbeat (Agent 0.49.18); `telemetry_rollup.py` keeps full resolution for 7 days, then one 10-minute point (rates averaged, error/drop counts summed, newest counters kept).
 
 Retention (90 days) never removes the newest sample of a device or interface (`telemetry_retention.expire_keep_latest`): an offline device keeps its last telemetry visible (MON-02).
 
@@ -363,7 +374,7 @@ NSM monitoring is intentionally lightweight and does not attempt to replace a fu
 - neighbor-related diagnostic collection;
 - DHCP/log diagnostic views/jobs where supported;
 - bounded structured job/result history;
-- support-snapshot foundation on supported modern Agents;
+- support snapshot on modern agents (one JSON job) and, from Core 0.49.82, on legacy agents with structured snapshots (assembled by NSM from the read-only section jobs; missing sections listed at expiry);
 - contextual GUI handling for human-triggered actions;
 - **structured results (MTK-05)** for modern (`result.data`) and legacy agents (the `:tostr` output is parsed back into rows): ping with sent/received, loss, min/avg/max RTT, jitter and per-packet table; traceroute hop table with reached/not-reached; neighbors and DHCP leases linked to NSM Devices by MAC; logs newest first with level badges; the raw output stays available;
 - **history**: every ping/traceroute result lists the previous 10 runs towards the same target on the same Device; the diagnostics page lists the last 25 diagnostics with a one-line outcome (loss and average RTT, hops, events).
@@ -417,7 +428,14 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 - RouterOS 7.12 has no `/file read` chunking nor base64 conversion; the legacy agent exports the configuration, waits for a settled file, reads it with `/file get … contents` (RouterOS limit ~60 KB), removes it and posts the text to NSM, which checks the declared size and archives it with SHA-256 like any other artifact;
 - capability *Solo export .rsc*: policies are reduced to the `.rsc` format for these agents, binary backups are never requested; an export above 60 KB fails with the size and the remedy (RouterOS 7.13+);
-- older legacy agents and RouterOS 6 (script file reads limited to 4 KB) stay *not protected* and queued backups fail with the reason.
+- older legacy agents and RouterOS 6 (script file reads limited to 4 KB) stay *not protected* without the FTP receiver, and queued backups fail with the reason.
+
+### Legacy full backup over FTP (Agent 0.49.16)
+
+- the legacy agent (RouterOS 6.48/6.49 and 7.12) runs `/system backup save` with the job password and `/export` (`hide-sensitive` on v6), then uploads both with `/tool fetch upload=yes mode=ftp` to the upload-only FTP receiver of NSM (`app/legacy_ftp_server.py`, compose profile `legacyftp`, `./manage.sh legacy-backup-enable <IPv4>`, ports 2121 and 30100–30109);
+- one-time account per job (only the password SHA-256 stored), only the two expected file names, once each, up to 64 MB, passive mode with the data peer bound to the control peer;
+- files are archived like any other artifact (SHA-256, audit, retention) and the device counts as protected;
+- requires the policies `ftp`, `policy` and `sensitive` (observed from Agent 0.49.17).
 
 ### Not implemented
 
