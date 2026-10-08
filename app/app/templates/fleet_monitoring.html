@@ -4,7 +4,7 @@
 {% block content %}
 {% set query_base = '&customer=' ~ customer_filter ~ '&vendor=' ~ vendor_filter %}
 <div class="page-header compact-heading">
-  <div><h1>Monitoring</h1><p>Apparati da verificare ora: raggiungibilità, heartbeat agent e ultima telemetria (ultime 2 ore).</p></div>
+  <div><h1>Monitoring</h1><p>Apparati da verificare ora: raggiungibilità, heartbeat agent, ultima telemetria (ultime 2 ore) e ping da NSM.</p></div>
   <div class="page-actions"><a class="button ghost" href="/operations/agents">Agent Fleet</a></div>
 </div>
 
@@ -14,6 +14,8 @@
   {'label': 'Agent fermi', 'count': counts.stale_agent, 'href': '?state=stale_agent' ~ query_base, 'active': state == 'stale_agent', 'tone': 'warning'},
   {'label': 'CPU ≥ ' ~ thresholds.cpu|int ~ '%', 'count': counts.high_cpu, 'href': '?state=high_cpu' ~ query_base, 'active': state == 'high_cpu', 'tone': 'warning'},
   {'label': 'Memoria < ' ~ thresholds.memory|int ~ '%', 'count': counts.low_memory, 'href': '?state=low_memory' ~ query_base, 'active': state == 'low_memory', 'tone': 'warning'},
+  {'label': 'Non rispondono al ping', 'count': counts.icmp_down, 'href': '?state=icmp_down' ~ query_base, 'active': state == 'icmp_down', 'tone': 'danger'},
+  {'label': 'Perdita pacchetti', 'count': counts.packet_loss, 'href': '?state=packet_loss' ~ query_base, 'active': state == 'packet_loss', 'tone': 'warning'},
   {'label': 'Tutti', 'count': counts.total, 'href': '?state=all' ~ query_base, 'active': state == 'all'},
 ]) }}
 
@@ -29,7 +31,7 @@
 
   {% if rows %}
   <div class="table-wrap"><table class="data-table">
-    <thead><tr><th>Apparato</th><th>Cliente / sede</th><th>Stato</th><th>Heartbeat agent</th><th>CPU</th><th>Memoria libera</th><th>Uptime</th><th>Segnalazioni</th></tr></thead>
+    <thead><tr><th>Apparato</th><th>Cliente / sede</th><th>Stato</th><th>Heartbeat agent</th><th>CPU</th><th>Memoria libera</th><th>Uptime</th><th>Ping da NSM</th><th>Segnalazioni</th></tr></thead>
     <tbody>{% for row in rows %}{% set d = row.device %}
       <tr>
         <td><a href="/devices/{{ d.id }}{% if row.sampled_at %}/monitor{% endif %}"><strong>{{ d.display_name or d.device_identity or d.name }}</strong></a><br><small>{{ d.vendor }}{% if d.model %} · {{ d.model }}{% endif %}</small></td>
@@ -39,6 +41,7 @@
         <td>{% if row.cpu is not none %}{{ row.cpu }}%{% else %}—{% endif %}</td>
         <td>{% if row.memory_free_percent is not none %}{{ row.memory_free_percent }}%{% else %}—{% endif %}</td>
         <td>{{ row.uptime or '—' }}</td>
+        <td>{% set ic = row.icmp %}{% if not ic.enabled %}<small class="muted">non attivo</small>{% elif ic.down %}<span class="status-pill">non risponde</span>{% elif ic.last_rtt is not none %}{{ ic.last_rtt }} ms<br><small>perdita {{ ic.last_loss }}%</small>{% elif ic.last_loss == 100 %}<small>nessuna risposta</small>{% else %}<small>in attesa</small>{% endif %}</td>
         <td>{% for flag in row.flags %}<span class="status-pill">{{ states.get(flag, flag) }}</span> {% else %}<small>OK</small>{% endfor %}</td>
       </tr>
     {% endfor %}</tbody>
@@ -48,6 +51,16 @@
   <div class="empty-state">{% if state == 'attention' %}Nessun apparato richiede attenzione in questo momento.{% else %}Nessun apparato corrisponde ai filtri.{% endif %}</div>
   {% endif %}
   {% if counts.sampled == 0 %}<p class="muted-note">Nessuna telemetria recente disponibile: CPU e memoria arrivano dagli heartbeat degli agent MikroTik.</p>{% endif %}
+</section>
+<section class="panel" id="icmp-bulk">
+  <div class="panel-header"><div><h2>Ping da NSM</h2><p>Latenza e perdita misurate dal server NSM ogni 2 minuti, per qualsiasi vendor: attivo su {{ counts.icmp_enabled }} apparati{% if counts.icmp_ready %}, attivabile su altri {{ counts.icmp_ready }} con IP di gestione{% endif %}{% if customer_filter %} del cliente selezionato{% endif %}. Serve che NSM raggiunga gli indirizzi (IP pubblici, VPN o rete di gestione); dopo 3 controlli senza risposta si apre una segnalazione.</p></div></div>
+  {% if has_permission(user, 'devices.write') %}
+  <form method="post" action="/operations/monitoring/icmp" class="inline-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="customer" value="{{ customer_filter }}">
+    <button class="button" name="action" value="enable">Attiva su tutti{% if customer_filter %} gli apparati del cliente{% endif %}</button>
+    <button class="button ghost" name="action" value="disable">Disattiva su tutti{% if customer_filter %} gli apparati del cliente{% endif %}</button>
+  </form>
+  {% endif %}
 </section>
 {% set zbx = zabbix_fleet_problems() %}
 {% if zbx %}

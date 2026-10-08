@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.90 — 2026-10-09
+
+Monitoring — ping from NSM on the fleet page and for a whole customer
+- **Operazioni → Monitoring** shows the ICMP state of every device in a *Ping da NSM* column (last RTT and loss, *non risponde*, *non attivo*).
+  - Two new views: *Non rispondono al ping* (three silent rounds) and *Perdita pacchetti* (last round with at least 20% loss). They also count in *Da verificare*.
+- **Bulk switch.** *Attiva su tutti* / *Disattiva su tutti* turns the ICMP monitor on or off for every device of the selected customer, or of all customers.
+  - Devices without a management IP are skipped and counted, with a hint to set the address on the device page.
+  - Audited as `ICMP_MONITOR_BULK`.
+
 ## 0.49.89 — 2026-10-09
 
 Monitoring — every MikroTik interface can be monitored (fix requested by the operator)
