@@ -57,8 +57,9 @@ case "$cmd" in
     mkdir -p data/genieacs-mongo
     docker compose up -d --build
     echo "GenieACS attivo: ACS URL per le CPE http://<indirizzo-server>:7547"
-    echo "Collega NSM da Amministrazione > Integrazioni > GenieACS / TR-069 (pulsante «Usa GenieACS integrato»)."
-    echo "Interfaccia GenieACS solo locale: ssh -L 3000:127.0.0.1:3000 <server>, poi http://127.0.0.1:3000"
+    echo "NSM si collega da solo al GenieACS integrato (Amministrazione > Integrazioni > GenieACS)."
+    echo "Pannello GenieACS: NSM > Amministrazione > ACS > «Apri pannello ACS» (porta 7080, solo amministratori NSM)."
+    echo "In alternativa, tunnel SSH: ssh -L 3000:127.0.0.1:3000 <server>, poi http://127.0.0.1:3000"
     ;;
   restore-drill)
     # Restore a dump into a temporary database, check it, drop it; the live database is not touched.
