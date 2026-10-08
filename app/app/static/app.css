@@ -4778,3 +4778,5 @@ a.compliance-mark { text-decoration: none; }
 .vendor-catalog-add { margin-top: 10px; }
 .vendor-catalog-add summary { cursor: pointer; font-weight: 650; }
 .vendor-catalog-add form { margin-top: 10px; }
+.user-scope summary { cursor: pointer; color: var(--accent-text, var(--accent)); }
+.user-scope-list { display: grid; gap: 2px; max-height: 220px; overflow-y: auto; margin: 6px 0; min-width: 220px; }

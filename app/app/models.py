@@ -55,6 +55,8 @@ class User(Base, TimestampMixin):
     # Vulnerability newsletter: off / daily / weekly.
     notify_digest: Mapped[str] = mapped_column(String(10), default="off", server_default="off")
     notify_digest_last_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Delegated administration: customer ids this (non-admin) user may see; empty = all customers.
+    customer_scope: Mapped[list | None] = mapped_column(JSON)
 
 
 class Customer(Base, TimestampMixin):
