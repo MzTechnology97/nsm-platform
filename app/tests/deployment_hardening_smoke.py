@@ -50,6 +50,8 @@ def main():
     csp = re.search(r'Content-Security-Policy "([^"]+)"', caddy).group(1)
     assert "'unsafe-inline'" not in csp and "frame-ancestors 'none'" in csp and "default-src 'self'" in csp
     assert "admin off" in caddy
+    acs_site = caddy.split(":7080 {", 1)[1]
+    assert "forward_auth api:8000" in acs_site and "uri /internal/acs-ui/auth" in acs_site and "reverse_proxy genieacs-ui:3000" in acs_site, "ACS panel only behind the NSM admin check"
     print("Deployment hardening smoke passed")
 
 

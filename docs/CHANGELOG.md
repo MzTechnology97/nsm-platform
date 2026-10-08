@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.56 — 2026-10-08
+
+ACS / TR-069
+- **New *ACS* tab in Amministrazione.**
+  - **Apri pannello ACS** opens GenieACS through Caddy on port 7080 (`ACS_UI_PORT`).
+  - Caddy lets through only NSM administrators with a valid session (`forward_auth` to `/internal/acs-ui/auth`); others are sent to the NSM login or refused. GenieACS keeps its own login.
+- **CPE setup guide**: TP-Link CWMP settings (ACS URL, periodic inform, connection request), network notes, verification in the panel, association in NSM, and authentication with `cwmp.auth`.
+- **Base provisioning templates**: one button creates or updates in GenieACS, through the NBI:
+  - the provision `nsm-base` (5-minute periodic inform; refresh of device info and WAN/PPPoE address; TR-098 and TR-181);
+  - the presets `nsm-tplink` and `nsm-all-cpe`.
+
 ## 0.49.55 — 2026-10-08
 
 Shared addresses (customer NAT) across services

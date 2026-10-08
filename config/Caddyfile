@@ -20,3 +20,19 @@
 		health_timeout 3s
 	}
 }
+
+# GenieACS panel (TR-069 ACS), opened from NSM > Amministrazione > ACS.
+# Only NSM administrators get through (forward_auth); GenieACS keeps its own login.
+# With HTTPS replace ":7080" with "<nome-dns>:7080" so Caddy serves it with the same certificate.
+:7080 {
+	header {
+		-Server
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+	}
+	forward_auth api:8000 {
+		uri /internal/acs-ui/auth
+	}
+	reverse_proxy genieacs-ui:3000
+}

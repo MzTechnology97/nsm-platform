@@ -158,6 +158,8 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      # GenieACS panel behind NSM admin check (Amministrazione > ACS).
+      - "${ACS_UI_PORT:-7080}:7080"
     volumes:
       - ./config/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
