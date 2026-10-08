@@ -79,7 +79,7 @@ def main():
     assert f"TEST-FL-UBNT-{suffix}" not in page, "default view lists only exposed devices"
     assert 'href="/security/exposure"' in page, "sidebar entry"
     setup_page = client.get(f"/security/exposure?view=setup&customer={ids['customer']}").text
-    assert f"TEST-FL-TPL-{suffix}" in setup_page and "serve l&#39;IP pubblico" in setup_page
+    assert f"TEST-FL-TPL-{suffix}" in setup_page and "Manca l&#39;IP pubblico (gestione: 192.0.2.30)" in setup_page
     everything = client.get(f"/security/exposure?view=all&customer={ids['customer']}").text
     assert all(f"TEST-FL-{k}-{suffix}" in everything for k in ("RTR", "UBNT", "TPL")) and f"TEST-FL-GEN-{suffix}" not in everything
     assert "verifica in corso" in client.get("/security/exposure?view=all").text

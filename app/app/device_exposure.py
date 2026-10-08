@@ -515,7 +515,12 @@ def fleet(db, customer_id=None, device_ids=None) -> dict:
             state = "setup"
         else:
             state = "pending"
-        rows.append({"device": device, "customer": customers.get(device.customer_id), "mode": mode(device), "state": state, "blocker": blocker,
+        short = blocker
+        if blocker and mode(device) == "external" and "IP pubblico" in blocker:
+            short = f"Manca l'IP pubblico (gestione: {device.management_ip})" if device.management_ip else "Manca l'IP pubblico"
+        elif blocker and "agent" in blocker.lower():
+            short = f"Agent da aggiornare (serve {MIN_AGENT_VERSION}+)"
+        rows.append({"device": device, "customer": customers.get(device.customer_id), "mode": mode(device), "state": state, "blocker": short,
                      "exposed": exposed, "worst": exposed[0].get("severity") if exposed else None, "checked_at": exposure.get("checked_at"),
                      "target_ip": exposure.get("target_ip"), "shared": bool(exposure.get("issue_skipped"))})
     rows.sort(key=lambda r: (r["state"] != "exposed", -SEVERITY_RANK.get(r["worst"] or "info", 0), -len(r["exposed"]),
