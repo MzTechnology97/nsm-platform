@@ -92,7 +92,11 @@ def logs_page(request: Request, device_id: uuid.UUID, verify: int = 0):
         since = utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         counts = dict(db.execute(select(DeviceLogEntry.severity, func.count()).where(DeviceLogEntry.device_id == device.id, DeviceLogEntry.received_at >= since).group_by(DeviceLogEntry.severity)).all())
         last = db.scalar(select(DeviceLogEntry).where(DeviceLogEntry.device_id == device.id).order_by(DeviceLogEntry.id.desc()).limit(1))
-        return core.render(request, db, user, "device_logs.html", device=device, today_counts=counts, last_log=last, device_section=None,
+        had_key = bool((device.inventory_data or {}).get("syslog_key"))
+        prefix = identity.prefix_for(device)  # the key goes into the manual configuration below
+        if not had_key:
+            db.commit()
+        return core.render(request, db, user, "device_logs.html", syslog_prefix=prefix, device=device, today_counts=counts, last_log=last, device_section=None,
                            severity_filters=SEVERITY_FILTERS, syslog_host=public_host(db, request), syslog_status=receiver.receiver_status(),
                            device_brand_key=vendor_cpe.brand(device) or "generic", syslog_sources=device_sources(device),
                            access=syslog_security.access_summary(db, device.id), syslog_job=syslog_config.latest_job(db, device.id),
@@ -131,7 +135,9 @@ def device_sources(device) -> list[str]:
 def device_identification(device, settings) -> dict:
     """What the Syslog tab says about how this device is recognised."""
     data = device.inventory_data or {}
-    return {"key_active": bool(data.get("syslog_strict")) and settings.get("strict_mode", True), "has_key": bool(data.get("syslog_key")),
+    manual = bool(data.get("syslog_strict_manual"))
+    return {"key_active": bool(data.get("syslog_strict") or (manual and data.get("syslog_key"))) and settings.get("strict_mode", True),
+            "manual": manual, "agent": bool(data.get("syslog_strict")), "strict_mode": settings.get("strict_mode", True), "has_key": bool(data.get("syslog_key")),
             "expected_hostname": data.get("syslog_hostname") or device.device_identity or device.name, "custom_hostname": data.get("syslog_hostname") or "",
             }
 
@@ -209,6 +215,30 @@ async def save_hostname(request: Request, device_id: uuid.UUID):
             data.pop("syslog_hostname", None)
         device.inventory_data = data
         core.add_event(db, "SYSLOG_HOSTNAME_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"hostname": value}, source="portal")
+        db.commit()
+    return RedirectResponse(f"/devices/{device_id}/logs#syslog-setup", status_code=303)
+
+
+@router.post("/devices/{device_id}/syslog/strict", name="device_syslog_strict")
+async def save_strict(request: Request, device_id: uuid.UUID):
+    """Accept only lines carrying the device key (for devices configured by hand with the key)."""
+    form = await request.form()
+    validate_csrf(request, str(form.get("csrf") or ""))
+    with SessionLocal() as db:
+        user = core.require_permission(request, db, "devices.write")
+        device = db.get(Device, device_id)
+        if not device:
+            raise HTTPException(404)
+        enabled = str(form.get("enabled") or "") == "1"
+        identity.prefix_for(device)
+        data = dict(device.inventory_data or {})
+        if enabled:
+            data["syslog_strict_manual"] = True
+        else:
+            data.pop("syslog_strict_manual", None)
+        device.inventory_data = data
+        core.add_event(db, "SYSLOG_STRICT_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id,
+                       details={"manual_strict": enabled}, source="portal")
         db.commit()
     return RedirectResponse(f"/devices/{device_id}/logs#syslog-setup", status_code=303)
 
