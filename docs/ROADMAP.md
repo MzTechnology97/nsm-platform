@@ -295,7 +295,7 @@ Next steps:
 
 
 **Receiver.** A syslog receiver integrated in the stack, as a Docker service (UDP/TCP 514, optionally TLS 6514).
-- Messages are matched to devices by source IP, with the device or WAN address as fallback.
+- Messages are matched to devices by the per-device key `NSM-<16 hex>` (logging prefix on MikroTik, origin-id on Cisco, device name elsewhere); without a key only by source IP and hostname when certain, otherwise discarded (Core 0.49.53–0.49.64).
 - Logs are stored with retention and indexing.
 
 **Device configuration.** Configured automatically:
@@ -388,7 +388,7 @@ The selected ACS is **GenieACS** (as preferred in `PRODUCT_REQUIREMENTS.md`); NS
 
 ### ACS-02 — Device discovery and association
 
-**Implemented in `main`** for per-Device association (serial, then MAC); bulk onboarding remains open.
+**Implemented in `main`** for per-Device association (serial, then MAC) of TR-069 CPEs of any brand (TP-Link, or Huawei/ZTE/others entered as *Altro produttore* with type router, ONT, wireless CPE or other — Core 0.49.66); bulk onboarding remains open.
 
 - match candidates using reliable ACS identifiers;
 - preview before association;

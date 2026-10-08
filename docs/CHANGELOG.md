@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.66 — 2026-10-08
+
+ACS / TR-069 — fixes found in the review of unfinished work
+- **The device overview no longer says "Gestione tramite ACS non ancora disponibile".** GenieACS is integrated. TR-069 devices show an *ACS / TR-069* panel: GenieACS ID, last Inform and last check, or what to do to complete the association.
+- **TR-069 for every brand.** The *ACS* tab and the GenieACS association were limited to the vendor *TP-Link / TR-069*. They are now also available for Huawei, ZTE and other CPEs entered as *Altro produttore* (types router, ONT, wireless CPE, other) and for any device already managed through TR-069. Switches, APs and OLTs do not get the tab.
+
 ## 0.49.65 — 2026-10-08
 
 Monitoring — Cacti/Zabbix-style graphs everywhere (reported by the operator)
