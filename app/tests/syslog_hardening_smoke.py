@@ -30,6 +30,7 @@ from app.syslog_models import DeviceLogEntry
 
 PASSWORD = "CI-Syslog-Hardening-2026"
 ROLE_PASSWORD = "ci-syslog-role-password"
+KEY = "5eed5eed5eed5eed"
 
 
 def csrf_from(html):
@@ -98,7 +99,7 @@ def main():
         customer = Customer(name=f"CI Syslog Hard {suffix}", code=f"SH{suffix}")
         db.add(customer)
         db.flush()
-        gw = Device(customer_id=customer.id, vendor="generic", device_type="router", name=f"TEST-SH-{suffix}", management_ip="198.51.100.88", status="online")
+        gw = Device(customer_id=customer.id, vendor="generic", device_type="router", name=f"TEST-SH-{suffix}", management_ip="198.51.100.88", status="online", inventory_data={"syslog_key": KEY})
         db.add(gw)
         db.add(User(username=f"ci-sh-{suffix}", password_hash=hash_password(PASSWORD), role="admin", is_active=True))
         row = db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == rx.PROVIDER))
@@ -111,9 +112,9 @@ def main():
     receiver = rx.Receiver()
     receiver.refresh()
     for i, severity in enumerate((3, 6, 4, 2, 6)):
-        receiver.handle(f"<{8 + severity}>Oct  8 10:00:0{i} gw kernel: line {i}".encode(), "198.51.100.88")
+        receiver.handle(f"<{8 + severity}>NSM-{KEY} Oct  8 10:00:0{i} gw kernel: line {i}".encode(), "198.51.100.88")
     receiver.flush()
-    receiver.handle(b"<12>Oct  8 10:01:00 gw kernel: line 5", "198.51.100.88")
+    receiver.handle(f"<12>NSM-{KEY} Oct  8 10:01:00 gw kernel: line 5".encode(), "198.51.100.88")
     receiver.flush()
     with SessionLocal() as db:
         rows = list(db.scalars(select(DeviceLogEntry).where(DeviceLogEntry.device_id == gw_id).order_by(DeviceLogEntry.id)))
@@ -163,7 +164,7 @@ def main():
         tls_receiver.index.candidates["127.0.0.1"] = [(gw_id, {"gw"})]
         original_refresh = tls_receiver.refresh
         tls_receiver.refresh = lambda: None  # keep the loopback mapping for the test
-        asyncio.run(tls_round_trip(tls_receiver, free_port(), rx.TLS_PORT, b"<11>Oct  8 10:02:00 gw kernel: over tls"))
+        asyncio.run(tls_round_trip(tls_receiver, free_port(), rx.TLS_PORT, f"<11>NSM-{KEY} Oct  8 10:02:00 gw kernel: over tls".encode()))
         tls_receiver.refresh = original_refresh
         del os.environ["SYSLOG_TLS_CERT"], os.environ["SYSLOG_TLS_KEY"]
     with SessionLocal() as db:

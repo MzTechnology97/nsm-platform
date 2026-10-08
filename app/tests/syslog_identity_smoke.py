@@ -65,7 +65,7 @@ def main():
                     inventory_data={"agent_transport": "modern", "agent_version": "0.49.13", "management_ip_origin": "agent", "last_source_ip": NAT_IP, "last_heartbeat_at": fresh})
         # A CPE without agent behind the same NAT, recognisable only by its hostname.
         cpe = Device(customer_id=customer.id, vendor="ubiquiti", device_type="wireless_cpe", name=f"TEST-SI-CPE-{suffix}", management_ip=NAT_IP, status="online",
-                     inventory_data={"syslog_hostname": f"cpe-roof-{suffix}"})
+                     inventory_data={"syslog_key": "c0ffee0123456789"})
         # A router whose agent is silent: its old address may now belong to someone else.
         gone = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-SI-GONE-{suffix}", management_ip="203.0.113.99", status="offline",
                       inventory_data={"agent_transport": "modern", "agent_version": "0.49.13", "management_ip_origin": "agent", "last_source_ip": "203.0.113.99", "last_heartbeat_at": stale})
@@ -92,7 +92,7 @@ def main():
     # Shared NAT: each router recognised by its key; the CPE by its hostname; anything else discarded.
     receiver.handle(f"<28>Oct  8 09:00:00 r1 system,error,critical {keys['r1']} login failure for user admin from 203.0.113.9 via ssh".encode(), NAT_IP)
     receiver.handle(f"<30>Oct  8 09:00:01 r2 {keys['r2']} interface,info ether2 link down".encode(), NAT_IP)
-    receiver.handle(f"<30>Oct  8 09:00:02 cpe-roof-{suffix} kernel: wlan0 reconnect".encode(), NAT_IP)
+    receiver.handle(f"<30>Oct  8 09:00:02 cpe-roof-{suffix}-NSM-c0ffee0123456789 kernel: wlan0 reconnect".encode(), NAT_IP)
     receiver.handle(b"<30>Oct  8 09:00:03 unknown-host kernel: who am i", NAT_IP)
     receiver.handle(b"<28>Oct  8 09:00:04 r1 system,error,critical login failure for user root from 203.0.113.9 via winbox", NAT_IP)
     receiver.handle(b"<30>Oct  8 09:00:05 x NSM-ffffffffffffffff forged with an invented key", NAT_IP)
@@ -100,7 +100,7 @@ def main():
     assert stored(ids["r1"]) == ["login failure for user admin from 203.0.113.9 via ssh"], "the key is stripped from the stored line"
     assert stored(ids["r2"]) == ["ether2 link down"] and stored(ids["cpe"]) == ["wlan0 reconnect"], (stored(ids["r2"]), stored(ids["cpe"]), receiver.stats)
     rejected = receiver.stats["rejected"]
-    assert rejected["ambiguous"] == 2 and rejected["unknown_key"] == 1, rejected  # unknown host + keyless line from the strict router
+    assert rejected["missing_key"] == 2 and rejected["unknown_key"] == 1 and rejected["ambiguous"] == 0, rejected  # keyless lines are never attributed
 
     # WAN address change: the key follows the router, no heartbeat needed.
     receiver.handle(f"<30>Oct  8 09:01:00 r1 {keys['r1']} system,info pppoe-out1 connected".encode(), "198.51.100.200")
@@ -114,7 +114,7 @@ def main():
     receiver.refresh()
     receiver.handle(b"<28>Oct  8 09:02:00 r1 system,error,critical login failure for user admin from 203.0.113.66 via winbox", NAT_IP)
     receiver.flush()
-    assert receiver.stats["rejected"]["strict"] == 1 and len(stored(ids["r1"])) == 2
+    assert receiver.stats["rejected"]["missing_key"] == 3 and len(stored(ids["r1"])) == 2
 
     # Outside the allowed networks: discarded before parsing, even with a valid key.
     receiver.handle(f"<30>Oct  8 09:03:00 r1 {keys['r1']} system,info hello".encode(), "203.0.113.50")
@@ -123,7 +123,7 @@ def main():
     receiver.refresh()
     receiver.handle(b"<30>Oct  8 09:03:01 someone-else kernel: not our router", "203.0.113.99")
     receiver.flush()
-    assert receiver.stats["rejected"]["network"] == 1 and receiver.stats["rejected"]["unknown"] >= 1
+    assert receiver.stats["rejected"]["network"] == 1 and receiver.stats["rejected"]["missing_key"] >= 4
     assert stored(ids["gone"]) == [], "stale heartbeat address: discarded, not attributed"
 
     # Without allowed networks, only addresses currently tied to a device are accepted.
@@ -162,14 +162,11 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-si-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    assert "Modalità rigorosa" in client.get(f"/devices/{ids['r1']}/logs").text
+    assert "Solo righe con la chiave" in client.get(f"/devices/{ids['r1']}/logs").text
     page = client.get(f"/devices/{ids['cpe']}/logs").text
-    assert "Hostname atteso" in page and f"cpe-roof-{suffix}" in page
-    assert client.post(f"/devices/{ids['cpe']}/syslog/hostname", data={"csrf": csrf_from(page), "syslog_hostname": "roof-ap"}, follow_redirects=False).status_code == 303
-    with SessionLocal() as db:
-        assert db.get(Device, ids["cpe"]).inventory_data["syslog_hostname"] == "roof-ap"
+    assert "Hostname atteso" not in page and "NSM-c0ffee0123456789" in page, "key-only: no hostname attribution"
     admin_page = client.get("/admin/syslog").text
-    assert "Reti consentite" in admin_page and "Nessuna rete consentita configurata" in admin_page and "Modalità rigorosa" in admin_page
+    assert "Reti consentite" in admin_page and "Nessuna rete consentita configurata" in admin_page and "Solo righe con chiave" in admin_page
     bad = client.post("/admin/syslog/settings", data={"csrf": csrf_from(admin_page), "allowed_networks": "198.51.100.0/24\nnot-a-network", "strict_mode": "1"}, follow_redirects=False)
     assert "bad_networks" in bad.headers["location"]
     good = client.post("/admin/syslog/settings", data={"csrf": csrf_from(admin_page), "allowed_networks": "198.51.100.0/24, 192.0.2.0/24", "strict_mode": "1"}, follow_redirects=False)

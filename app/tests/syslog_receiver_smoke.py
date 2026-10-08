@@ -51,14 +51,18 @@ async def round_trip(receiver, port):
     task = asyncio.create_task(rx.serve(receiver, port=port, bind="127.0.0.1", stop=stop))
     await asyncio.sleep(0.5)
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp:
-        udp.sendto(b"<28>Oct  7 21:14:03 TEST-LOOP system,warning udp line", ("127.0.0.1", port))
+        udp.sendto(f"<28>Oct  7 21:14:03 TEST-LOOP system,warning NSM-{GW_KEY} udp line".encode(), ("127.0.0.1", port))
     reader, writer = await asyncio.open_connection("127.0.0.1", port)
-    writer.write(b"<27>Oct  7 21:14:04 TEST-LOOP system,error tcp line one\n18 <27>tcp line two!!")
+    framed = f"<27>NSM-{GW_KEY} tcp line two!!".encode()
+    writer.write(f"<27>Oct  7 21:14:04 TEST-LOOP system,error NSM-{GW_KEY} tcp line one\n".encode() + str(len(framed)).encode() + b" " + framed)
     await writer.drain()
     writer.close()
     await asyncio.sleep(1.5)
     stop.set()
     await task
+
+
+GW_KEY, A_KEY, B_KEY, LAN_KEY = "0a1b2c3d4e5f6a7b", "1a1b2c3d4e5f6a7b", "2a1b2c3d4e5f6a7b", "3a1b2c3d4e5f6a7b"
 
 
 def main():
@@ -69,13 +73,13 @@ def main():
         db.add(customer)
         db.flush()
         gw = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-SY-GW-{suffix}", device_identity=f"TEST-GW-{suffix}",
-                    management_ip="203.0.113.21", status="online", inventory_data={"last_source_ip": "127.0.0.1", "last_heartbeat_at": utcnow().isoformat()})
+                    management_ip="203.0.113.21", status="online", inventory_data={"last_source_ip": "127.0.0.1", "last_heartbeat_at": utcnow().isoformat(), "syslog_key": GW_KEY})
         nat_a = Device(customer_id=customer.id, vendor="ubiquiti", device_type="wireless_cpe", name=f"TEST-SY-A-{suffix}", device_identity=f"cpe-a-{suffix}",
-                       management_ip="198.51.100.50", status="online")
+                       management_ip="198.51.100.50", status="online", inventory_data={"syslog_key": A_KEY})
         nat_b = Device(customer_id=customer.id, vendor="ubiquiti", device_type="wireless_cpe", name=f"TEST-SY-B-{suffix}", device_identity=f"cpe-b-{suffix}",
-                       management_ip="198.51.100.50", status="offline")
+                       management_ip="198.51.100.50", status="offline", inventory_data={"syslog_key": B_KEY})
         lan = Device(customer_id=customer.id, vendor="generic", device_type="switch", name=f"TEST-SY-SW-{suffix}", status="online",
-                     inventory_data={"manufacturer": "cambium", "last_heartbeat_at": utcnow().isoformat(),
+                     inventory_data={"manufacturer": "cambium", "last_heartbeat_at": utcnow().isoformat(), "syslog_key": LAN_KEY,
                                      "ip_addresses": [{"address": "192.0.2.201", "prefix": 24, "interface": "vlan1"}]})
         db.add_all([gw, nat_a, nat_b, lan])
         db.add_all([User(username=f"ci-sy-{suffix}", password_hash=hash_password(PASSWORD), role="admin", is_active=True),
@@ -86,18 +90,19 @@ def main():
     clock = [0.0]
     receiver = rx.Receiver(clock=lambda: clock[0])
     receiver.refresh()
-    receiver.handle(b"<28>Oct  7 21:14:03 x system,error,critical login failure for user admin from 203.0.113.9 via winbox", "203.0.113.21")
-    receiver.handle(f"<30>Oct  7 21:14:03 cpe-b-{suffix} kernel: link down".encode(), "198.51.100.50")
-    receiver.handle(b"<30>Oct  7 21:14:03 something-else kernel: shared NAT, first device", "198.51.100.50")
-    receiver.handle(b"<30>switch port 3 down", "192.0.2.201")
-    receiver.handle(b"<30>who am i", "192.0.2.250")
+    receiver.handle(f"<28>Oct  7 21:14:03 x system,error,critical NSM-{GW_KEY} login failure for user admin from 203.0.113.9 via winbox".encode(), "203.0.113.21")
+    receiver.handle(f"<30>Oct  7 21:14:03 cpe-b-{suffix}-NSM-{B_KEY} kernel: link down".encode(), "198.51.100.50")
+    receiver.handle(f"<30>Oct  7 21:14:03 cpe-b-{suffix} kernel: shared NAT, no key".encode(), "198.51.100.50")
+    receiver.handle(f"<30>NSM-{LAN_KEY} switch port 3 down".encode(), "192.0.2.201")
+    receiver.handle(b"<28>Oct  7 21:14:03 x system,error,critical keyless from the router itself", "203.0.113.21")
+    receiver.handle(f"<30>NSM-{LAN_KEY} who am i".encode(), "192.0.2.250")
     assert receiver.flush() == 3
     with SessionLocal() as db:
         rows = {r.message: r for r in db.scalars(select(DeviceLogEntry).where(DeviceLogEntry.device_id.in_(ids.values())))}
         assert rows["login failure for user admin from 203.0.113.9 via winbox"].device_id == ids["gw"]
-        assert rows["link down"].device_id == ids["b"], "shared address: the hostname picks the device"
-        assert "shared NAT, first device" not in rows, "shared address without a matching hostname: discarded, never guessed"
-        assert receiver.stats["rejected"]["ambiguous"] == 1
+        assert rows["link down"].device_id == ids["b"], "shared address: the key in the device name picks the device"
+        assert "shared NAT, no key" not in rows and "keyless from the router itself" not in rows, "lines without a key are always discarded"
+        assert receiver.stats["rejected"]["missing_key"] == 2
         assert rows["switch port 3 down"].device_id == ids["lan"], "a unique RouterOS/LAN address also matches"
         unknown = db.get(SyslogUnknownSource, "192.0.2.250")
         assert unknown is not None and unknown.messages == 1 and unknown.sample == "rete non consentita", "only counters and reason, never the content"
@@ -107,10 +112,10 @@ def main():
     flood = rx.Receiver(clock=lambda: clock[0])
     flood.index = receiver.index
     for _ in range(int(rx.RATE_BURST) + 50):
-        flood.handle(b"<30>flood", "203.0.113.21")
+        flood.handle(f"<30>NSM-{GW_KEY} flood".encode(), "203.0.113.21")
     assert flood.stats["dropped"] == 50 and len(flood.queue) == int(rx.RATE_BURST)
     clock[0] += 1.0
-    flood.handle(b"<30>after refill", "203.0.113.21")
+    flood.handle(f"<30>NSM-{GW_KEY} after refill".encode(), "203.0.113.21")
     assert flood.stats["dropped"] == 50
     flood.queue.clear()
 
@@ -145,13 +150,16 @@ def main():
     settings_page = admin.get("/admin/syslog")
     assert settings_page.status_code == 200 and "192.0.2.250" in settings_page.text and "Fortinet FortiGate" in settings_page.text
     csrf = csrf_from(settings_page.text)
-    assert admin.post("/admin/syslog/settings", data={"csrf": csrf, "public_host": "203.0.113.5", "info_retention_days": "365", "strict_mode": "1"}, follow_redirects=False).status_code == 303
+    assert "Solo righe con chiave" in settings_page.text and "Associa" not in settings_page.text
+    assert admin.post("/admin/syslog/settings", data={"csrf": csrf, "public_host": "203.0.113.5", "info_retention_days": "365", "strict_mode": "1",
+                                                      "allowed_networks": "192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 127.0.0.0/8"},
+                      follow_redirects=False).status_code == 303
     assert "remote=203.0.113.5" in admin.get(f"/devices/{ids['gw']}/logs").text
-    assigned = admin.post("/admin/syslog/unknown/assign", data={"csrf": csrf, "source_ip": "192.0.2.250", "device_id": str(ids["lan"])}, follow_redirects=False)
-    assert assigned.status_code == 303 and "assigned" in assigned.headers["location"]
+    cleared = admin.post("/admin/syslog/unknown/assign", data={"csrf": csrf, "source_ip": "192.0.2.250", "ignore": "1"}, follow_redirects=False)
+    assert cleared.status_code == 303 and "ignored" in cleared.headers["location"]
     receiver.refresh()
     assert receiver.settings["info_retention_days"] == 90, "info history is capped at 3 months"
-    receiver.handle(b"<30>now i am known", "192.0.2.250")
+    receiver.handle(f"<30>NSM-{LAN_KEY} now i am known".encode(), "192.0.2.250")
     receiver.flush()
     with SessionLocal() as db:
         assert db.scalar(select(DeviceLogEntry.device_id).where(DeviceLogEntry.message == "now i am known")) == ids["lan"]

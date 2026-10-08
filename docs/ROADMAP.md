@@ -295,7 +295,7 @@ Next steps:
 
 
 **Receiver.** A syslog receiver integrated in the stack, as a Docker service (UDP/TCP 514, optionally TLS 6514).
-- Messages are matched to devices by the per-device key `NSM-<16 hex>` (logging prefix on MikroTik, origin-id on Cisco, device name elsewhere); without a key only by source IP and hostname when certain, otherwise discarded (Core 0.49.53–0.49.64).
+- Messages are matched to devices only by the per-device key `NSM-<16 hex>` (logging prefix on MikroTik, origin-id on Cisco, device name elsewhere); lines without a key are always discarded (Core 0.49.74, operator decision).
 - Logs are stored with retention and indexing.
 
 **Device configuration.** Configured automatically:
