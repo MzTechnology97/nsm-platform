@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app import mikrotik_agent as agent
+from app import mikrotik_agent_generation as generation
 from app import mikrotik_legacy
 from app import mikrotik_syslog_config as cfg
 from app.agent_models import DeviceAgentCredential, DeviceJob
@@ -27,7 +28,7 @@ def csrf_from(html):
 def sources():
     device_id = uuid.UUID(int=93)
     modern, transport, version = mikrotik_legacy._select_agent_source("https://nsm.example.test", device_id, "CI93-secret", "7.24.4")
-    assert transport == "modern" and version == "0.49.11"
+    assert transport == "modern" and version == generation.TARGET_AGENT_VERSION
     assert ':if ($nsmJobType = "syslog_configure") do={' in modern
     assert '/system logging remove [find where action="nsm"]' in modern and "/system logging add topics=account action=\"nsm\"" in modern
     assert 'output=user as-value check-certificate=yes } on-error={ :log warning "NSM syslog job completion failed" }' in modern

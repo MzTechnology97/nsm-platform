@@ -4707,3 +4707,12 @@ a.compliance-mark { text-decoration: none; }
 .series-key.series-c::before { background: #d97706; }
 .series-svg-wrap { height: 230px; }
 .zabbix-customers { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px 12px; max-height: 220px; overflow-y: auto; padding: 6px 2px; }
+
+/* ==== exposed services (SCAN-01) ========================================= */
+.exposure-table td small { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+.exposure-state { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; }
+.exposure-state-exposed { background: color-mix(in srgb, var(--danger, #c53030) 18%, transparent); color: var(--danger, #c53030); }
+.exposure-state-uncertain { background: color-mix(in srgb, var(--warning, #b7791f) 20%, transparent); color: var(--warning, #b7791f); }
+.exposure-state-restricted { background: color-mix(in srgb, #2f6fd6 16%, transparent); color: #2f6fd6; }
+.exposure-state-protected { background: color-mix(in srgb, var(--success, #238636) 16%, transparent); color: var(--success, #238636); }
+.exposure-state-disabled { background: color-mix(in srgb, var(--muted) 14%, transparent); color: var(--muted); }

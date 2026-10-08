@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.52 — 2026-10-08
+
+Security
+- **Exposed services on the WAN, MikroTik** (SCAN-01 step 1, as decided: the Agent checks the router itself).
+  - **Collection (Agent 0.49.12).** New read-only snapshot section `services`: `/ip service` (with custom ports and allowed addresses), remote DNS, SNMP (only whether the default `public` community is enabled, never the community names), SOCKS, web proxy, bandwidth-test, UPnP and MAC-Winbox.
+  - **Evaluation.** NSM evaluates each active service against the firewall `input` rules in order, for traffic arriving on the WAN (PPPoE/LTE/tunnel clients, the interface with a public IP, interface lists such as `WAN` or `!LAN`). The verdict is *esposto*, *limitato* (allowed source addresses or lists), *protetto* or *da verificare* (custom lists, jump), with severity: Telnet, FTP, SOCKS and proxy are critical; Winbox, plain API, HTTP, open DNS resolver and SNMP with `public` are high. NSM warns when the input chain has no drop rule.
+  - **When it runs.** As soon as the device is connected (agent 0.49.12+), then every 24 hours, and on demand from the new **Esposizione** tab of every device. No packet is sent to the device.
+  - **Alerts.** Critical or high services exposed open an Action Center issue (*Servizi critici esposti sulla WAN*) and a *Sicurezza* notification; the issue closes itself when a later check is clean.
+- Devices from other manufacturers show the Esposizione tab with the external check announced (SCAN-01 step 2).
+
 ## 0.49.51 — 2026-10-08
 
 Integrations
