@@ -61,5 +61,15 @@
     <p class="muted-note">Diagnostica, backup e aggiornamenti tramite ACS non sono ancora disponibili e restano indicati come non eseguibili.</p>
     {% if can_admin %}<div class="page-actions"><a class="button ghost" href="/admin/integrations/genieacs">{{ 'Gestisci' if acs.connection else 'Configura' }}</a></div>{% endif %}
   </section>
+
+  {% set zbx = zabbix_summary() %}
+  <section class="panel integration-card" data-integration="zabbix">
+    <div class="panel-header"><div><h2>Zabbix</h2><p>NSM invia i propri apparati a Zabbix (6.x e 7.x): host, gruppi per cliente, template per produttore, tag e inventario.</p></div>{% if not zbx.connection %}<span class="device-status status-unknown">Non configurato</span>{% elif not zbx.connection.is_enabled %}<span class="device-status status-offline">Disabilitato</span>{% elif zbx.connection.last_test_status == 'failed' %}<span class="device-status status-offline">Errore</span>{% elif zbx.connection.last_test_status == 'success' %}<span class="device-status status-online">Attivo</span>{% else %}<span class="device-status status-pending_link">Da verificare</span>{% endif %}</div>
+    <dl class="kv-list">
+      <div><dt>Versione</dt><dd>{{ zbx.settings.get('version') or '—' }}</dd></div>
+      <div><dt>Apparati inviati</dt><dd>{{ zbx.linked }}</dd></div>
+    </dl>
+    <div class="page-actions">{% if zbx.frontend %}<a class="button ghost" href="{{ zbx.frontend }}" target="_blank" rel="noopener">Apri Zabbix</a>{% endif %}{% if can_admin %}<a class="button ghost" href="/admin/integrations/zabbix">{{ 'Gestisci' if zbx.connection else 'Configura' }}</a>{% endif %}</div>
+  </section>
 </div>
 {% endblock %}

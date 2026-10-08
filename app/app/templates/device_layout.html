@@ -58,6 +58,7 @@
       {% if device.serial_number %}<div><dt>Seriale</dt><dd><code>{{ device.serial_number }}</code></dd></div>{% endif %}
       <div><dt>Sede</dt><dd>{{ device.site.name if device.site else '—' }}</dd></div>
       <div><dt>Ultimo contatto</dt><dd>{{ fmt_dt(device.last_seen) if device.last_seen else 'mai' }}</dd></div>
+      {% set zbx_link = zabbix_device_link(device) %}{% if zbx_link %}<div><dt>Zabbix</dt><dd><a href="{{ zbx_link }}" target="_blank" rel="noopener">Dati in Zabbix ↗</a></dd></div>{% elif device_inv.get('zabbix_exclude') %}<div><dt>Zabbix</dt><dd>escluso</dd></div>{% endif %}
       {% if is_mikrotik %}<div><dt>Agent</dt><dd><a href="{{ device_base }}/agent">{{ device_inv.get('agent_version') or 'non installato' }}</a></dd></div>{% endif %}
     </dl>
   </div>

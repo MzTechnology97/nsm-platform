@@ -74,6 +74,7 @@ from app.route_precedence import promote_customer_workspace_routes
 from app.routerboot_lifecycle import install_routerboot_lifecycle
 from app.mikrotik_device_reboot import install_mikrotik_device_reboot
 from app.mikrotik_syslog_config import install_mikrotik_syslog_config
+from app.zabbix_connector import install_zabbix_connector
 from app.reports import install_reports
 from app.report_schedules import install_report_schedules
 from app.search_enhancement import install_search_enhancement
@@ -116,7 +117,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.50"
+APP_VERSION = "0.49.51"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -154,6 +155,7 @@ install_firmware_activation(core.app)
 install_routerboot_lifecycle(core.app)
 install_mikrotik_device_reboot(core.app)
 install_mikrotik_syslog_config(core.app)
+install_zabbix_connector(core.app)
 install_firmware_activation_privilege_guard()
 install_firmware_upgrade_planner(core.app)
 install_agent_ui(core.app)

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Integrazioni · Zabbix · {{ ui_context(request).branding.portal_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Integrazioni · Zabbix</h1><p>NSM invia i propri apparati a Zabbix: host, gruppi per cliente, template per produttore, tag e inventario. Zabbix continua a fare polling e allarmi.</p></div><a class="button ghost" href="/integrations">Tutte le integrazioni</a></div>
+{% set admin_tab = "integrations" %}{% include "_admin_tabs.html" %}
+{% set integration_tab = "zabbix" %}{% include "_integration_tabs.html" %}
+{% if message %}<div class="alert success">{{ message }}</div>{% endif %}
+{% if error %}<div class="alert warning">{{ error }}</div>{% endif %}
+
+{% set last = settings.get('last_sync') or {} %}
+<section class="mt-kpi-grid">
+  <article class="metric-card"><span>Versione Zabbix</span><strong>{{ settings.get('version') or '—' }}</strong><small>{% if connection and connection.last_test_status == 'success' %}connessione verificata{% elif connection and connection.last_test_status == 'failed' %}ultimo test non riuscito{% else %}da verificare{% endif %}</small></article>
+  <article class="metric-card"><span>Ultima sincronizzazione</span><strong>{{ fmt_dt(connection.last_sync_at) if connection and connection.last_sync_at else '—' }}</strong><small>{{ {'success': 'completata', 'partial': 'con errori', 'failed': 'non riuscita'}.get(last.get('status'), 'automatica ogni 15 minuti') }}</small></article>
+  <article class="metric-card"><span>Host gestiti da NSM</span><strong>{{ (last.get('created', 0) or 0) + (last.get('updated', 0) or 0) }}</strong><small>{{ last.get('created', 0) }} creati, {{ last.get('updated', 0) }} aggiornati, {{ last.get('disabled', 0) }} disabilitati</small></article>
+  <article class="metric-card"><span>Esclusi</span><strong>{{ last.get('skipped', 0) }}</strong><small>apparati senza IP di gestione o esclusi</small></article>
+</section>
+{% if last.get('missing_templates') %}<div class="alert warning">Template non trovati in Zabbix: {{ last.get('missing_templates')|join(', ') }}. Gli host sono stati creati senza quel template.</div>{% endif %}
+{% if last.get('errors') %}<div class="alert warning"><strong>Errori dell'ultima sincronizzazione</strong><ul>{% for e in last.get('errors')[:10] %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+
+<div class="content-split">
+<section class="panel side-form">
+  <div class="panel-header"><div><h2>Connessione</h2><p>Zabbix 6.x e 7.x. Le credenziali vengono cifrate. Usa un utente API con permessi di scrittura sui gruppi host creati da NSM.</p></div>{% if connection and connection.is_enabled %}<span class="device-status status-online">Abilitato</span>{% else %}<span class="device-status status-offline">Disabilitato</span>{% endif %}</div>
+  <form method="post" action="/admin/integrations/zabbix" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>URL di Zabbix<input type="url" name="api_url" required value="{{ connection.base_url if connection else '' }}" placeholder="https://zabbix.example.net/zabbix"><small>Indirizzo del frontend: NSM aggiunge <code>api_jsonrpc.php</code>.</small></label>
+    <label>Autenticazione<select name="auth_mode"><option value="token"{% if secret_mode == 'token' %} selected{% endif %}>API token (consigliato, Zabbix 5.4+)</option><option value="password"{% if secret_mode == 'password' %} selected{% endif %}>Username e password</option></select></label>
+    <label>API token<input name="token" type="password" autocomplete="off" placeholder="{{ 'lascia vuoto per mantenere quello salvato' if connection else '' }}"></label>
+    <label>Username<input name="username" value="{{ zabbix_username }}" autocomplete="off"></label>
+    <label>Password<input name="password" type="password" autocomplete="off" placeholder="{{ 'lascia vuoto per mantenere quella salvata' if connection else '' }}"></label>
+    <label class="check-row"><input type="checkbox" name="verify_tls" value="1"{% if not connection or connection.verify_tls %} checked{% endif %}> Verifica certificato TLS</label>
+    <h3>Host creati</h3>
+    <label>Prefisso gruppi<input name="group_prefix" value="{{ settings.group_prefix }}"><small>Gruppo per cliente: <code>{{ settings.group_prefix }}/Nome cliente</code>.</small></label>
+    <label>Interfaccia<select name="interface"><option value="agent"{% if settings.interface == 'agent' %} selected{% endif %}>Zabbix agent (10050), adatta anche al ping ICMP</option><option value="snmp"{% if settings.interface == 'snmp' %} selected{% endif %}>SNMPv2 (161)</option></select></label>
+    <label>Community SNMP<input name="snmp_community" value="{{ settings.snmp_community }}"><small>Meglio una macro, ad esempio <code>{$SNMP_COMMUNITY}</code>, valorizzata in Zabbix.</small></label>
+    <label>Template MikroTik<input name="template_mikrotik" value="{{ settings.templates.mikrotik }}" placeholder="MikroTik by SNMP"></label>
+    <label>Template Ubiquiti<input name="template_ubiquiti" value="{{ settings.templates.ubiquiti }}" placeholder="ICMP Ping"></label>
+    <label>Template per gli altri apparati<input name="template_default" value="{{ settings.templates.default }}" placeholder="ICMP Ping"><small>Nome del template come appare in Zabbix. I template collegati a mano in Zabbix non vengono rimossi.</small></label>
+    <h3>Apparati da inviare</h3>
+    <label><select name="scope"><option value="all"{% if settings.scope == 'all' %} selected{% endif %}>Tutti gli apparati con IP di gestione</option><option value="customers"{% if settings.scope == 'customers' %} selected{% endif %}>Solo i clienti selezionati</option></select></label>
+    <div class="zabbix-customers">{% for c in customers %}<label class="check-row"><input type="checkbox" name="customer_ids" value="{{ c.id }}"{% if c.id|string in settings.customer_ids %} checked{% endif %}> {{ c.name }}</label>{% endfor %}</div>
+    <label class="check-row"><input type="checkbox" name="is_enabled" value="1"{% if not connection or connection.is_enabled %} checked{% endif %}> Sincronizzazione attiva (ogni 15 minuti)</label>
+    <button class="button primary">Salva</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Azioni</h2><p>Gli host di NSM hanno il tag <code>source=nsm</code> e il nome tecnico <code>nsm-…</code>. Se un apparato viene eliminato o escluso, il suo host viene <strong>disabilitato</strong>, non cancellato.</p></div></div>
+  <div class="page-actions">
+    <form method="post" action="/admin/integrations/zabbix/test"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Test connessione</button></form>
+    <form method="post" action="/admin/integrations/zabbix/sync"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Sincronizza ora</button></form>
+    {% if frontend %}<a class="button ghost" href="{{ frontend }}" target="_blank" rel="noopener">Apri Zabbix</a>{% endif %}
+  </div>
+  <dl class="kv-list">
+    <div><dt>Zabbix 7.2 e successivi</dt><dd>Token nell'header <code>Authorization: Bearer</code></dd></div>
+    <div><dt>Zabbix 5.4 – 7.1</dt><dd>Token nel campo <code>auth</code> della richiesta</dd></div>
+    <div><dt>Login con password</dt><dd><code>username</code> (5.4+) o <code>user</code> (versioni precedenti)</dd></div>
+  </dl>
+</section>
+</div>
+{% endblock %}

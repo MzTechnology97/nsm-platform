@@ -79,6 +79,15 @@ def connectors(db, now=None) -> list[dict]:
         state = "error" if health["failed"] else ("warning" if health["stuck"] else "ok")
         out.append({"name": "Notifiche e-mail", "state": state, "href": "/admin/notifications", "last_ok": None,
                     "detail": f"24 ore: {health['sent']} inviate, {health['pending']} in coda, {health['failed']} fallite", "error": None})
+    from app.zabbix_connector import connection_row as zabbix_row, settings_of as zabbix_settings
+
+    zbx = zabbix_row(db)
+    if zbx is not None:
+        last = zabbix_settings(zbx).get("last_sync") or {}
+        state = "disabled" if not zbx.is_enabled else {"success": "ok", "partial": "warning", "failed": "error"}.get(last.get("status"), "warning")
+        out.append({"name": "Zabbix", "state": state, "href": "/admin/integrations/zabbix", "last_ok": zbx.last_sync_at if last.get("status") == "success" else None,
+                    "detail": "disabilitato" if not zbx.is_enabled else (f"{last.get('created', 0)} creati, {last.get('updated', 0)} aggiornati" if last else "mai sincronizzato"),
+                    "error": zbx.last_error if state == "error" else None})
     from app.syslog_receiver import receiver_status
 
     syslog = receiver_status()
