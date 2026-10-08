@@ -4792,3 +4792,12 @@ a.compliance-mark { text-decoration: none; }
 .vendor-catalog-add form { margin-top: 10px; }
 .user-scope summary { cursor: pointer; color: var(--accent-text, var(--accent)); }
 .user-scope-list { display: grid; gap: 2px; max-height: 220px; overflow-y: auto; margin: 6px 0; min-width: 220px; }
+.latency-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  max-width: 460px;
+}
+.latency-panel .traffic-chart + .traffic-chart {
+  margin-top: 12px;
+}

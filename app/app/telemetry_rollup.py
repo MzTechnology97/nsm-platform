@@ -29,6 +29,7 @@ SLOT_SECONDS = 600
 TABLES = (
     ("device_metric_samples", ("device_id",), ("cpu_load",), ()),
     ("device_interface_samples", ("device_id", "interface"), ("rx_bps", "tx_bps"), ("rx_errors", "tx_errors", "rx_drops", "tx_drops")),
+    ("device_ping_samples", ("device_id",), ("rtt_min", "rtt_avg", "rtt_max"), ("sent", "received")),
 )
 
 

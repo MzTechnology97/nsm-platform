@@ -100,3 +100,22 @@ class DeviceInterfaceSample(Base):
     tx_errors: Mapped[int | None] = mapped_column(BigInteger)
     rx_drops: Mapped[int | None] = mapped_column(BigInteger)
     tx_drops: Mapped[int | None] = mapped_column(BigInteger)
+
+
+class DevicePingSample(Base):
+    """ICMP latency and loss measured from the NSM server (MON-01); milliseconds."""
+    __tablename__ = "device_ping_samples"
+    __table_args__ = (
+        Index("ix_device_ping_samples_device_observed", "device_id", "observed_at"),
+        Index("ix_device_ping_samples_observed_at", "observed_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    device_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("devices.id", ondelete="CASCADE"), nullable=False)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    target: Mapped[str] = mapped_column(String(64), nullable=False)
+    sent: Mapped[int] = mapped_column(Integer, nullable=False)
+    received: Mapped[int] = mapped_column(Integer, nullable=False)
+    rtt_min: Mapped[float | None] = mapped_column(Float)
+    rtt_avg: Mapped[float | None] = mapped_column(Float)
+    rtt_max: Mapped[float | None] = mapped_column(Float)
