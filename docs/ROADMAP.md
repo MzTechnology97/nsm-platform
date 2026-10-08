@@ -271,7 +271,7 @@ Next steps:
 - interface errors and drops;
 - signal and latency series;
 - the same graphs for UISP devices (from `uisp_metric_samples`) and, later, cnMaestro;
-- graphs aggregated per customer and per site.
+- ~~graphs aggregated per customer and per site~~ — done in Core 0.49.72 (customer *Grafici* tab with site filter).
 
 ### LOG-01 — integrated syslog server and live device logs (requested 2026-10-07)
 

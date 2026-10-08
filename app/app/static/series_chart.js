@@ -13,6 +13,7 @@
       for (const [u, size] of [['Gbps', 1e9], ['Mbps', 1e6], ['kbps', 1e3]]) if (Math.abs(value) >= size) return `${(value / size).toFixed(1)} ${u}`;
       return `${Math.round(value)} bps`;
     }
+    if (unit === 'count') return `${Math.round(value)}`;
     const digits = Math.abs(value) >= 100 ? 0 : 1;
     return `${value.toFixed(digits)}${unit ? ` ${unit}` : ''}`;
   };
@@ -54,7 +55,7 @@
   async function load() {
     root.classList.add('telemetry-loading');
     try {
-      const response = await fetch(`${endpoint}?range=${encodeURIComponent(range)}`, {headers: {Accept: 'application/json'}, credentials: 'same-origin'});
+      const response = await fetch(`${endpoint}${endpoint.includes('?') ? '&' : '?'}range=${encodeURIComponent(range)}`, {headers: {Accept: 'application/json'}, credentials: 'same-origin'});
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       lastData = await response.json();
       render(lastData);

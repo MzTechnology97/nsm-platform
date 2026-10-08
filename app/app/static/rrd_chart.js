@@ -33,6 +33,7 @@
       return `${Math.round(value)} B`;
     }
     if (unit === '%') return `${value.toFixed(1)}%`;
+    if (unit === 'count') return `${Math.round(value)}`;
     const digits = Math.abs(value) >= 100 ? 0 : 1;
     return `${value.toFixed(digits)}${unit ? ` ${unit}` : ''}`;
   }
@@ -129,8 +130,9 @@
     let lo = Number.isFinite(opts.min) ? opts.min : Math.min(...values);
     let hi = Number.isFinite(opts.max) ? Math.max(opts.max, Math.max(...values)) : Math.max(...values);
     for (const t of opts.thresholds || []) if (Number.isFinite(t.value)) hi = Math.max(hi, t.value);
-    if (!Number.isFinite(opts.min) && (unit === 'bps' || unit === 'bytes' || unit === '%' || unit === 'ms' || lo >= 0)) lo = 0;
+    if (!Number.isFinite(opts.min) && (unit === 'bps' || unit === 'bytes' || unit === '%' || unit === 'ms' || unit === 'count' || lo >= 0)) lo = 0;
     const scale = niceScale(lo, hi === lo ? lo + 1 : hi, 4);
+    if (unit === 'count' && scale.step < 1) { scale.step = 1; scale.hi = Math.max(scale.hi, Math.ceil(hi)); }
     if (Number.isFinite(opts.max) && unit === '%') scale.hi = Math.max(100, scale.hi);
     lo = scale.lo; hi = scale.hi;
 

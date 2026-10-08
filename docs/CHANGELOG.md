@@ -4,6 +4,21 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.72 — 2026-10-09
+
+Monitoring — graphs per customer and per site (MON-01)
+- **New *Grafici* tab on every customer**, for the whole customer or a single site (chips, and a *Grafici* button on each site row).
+- **Charts** (Cacti/Zabbix style, 24h / 7d / 30d / 90d):
+  - **Traffico WAN aggregato**: the sum of in/out bit/s of the monitored interfaces of the devices in scope. These are the WAN/PPPoE interfaces chosen on each device's Monitor page, so LAN traffic is not counted twice.
+  - **Apparati con telemetria**: how many devices sent data in each time slot; a drop is an outage.
+  - **CPU apparati**: average and maximum.
+  - **Segnale radio**: average and worst, from UISP and cnMaestro.
+- **How it is computed.** Slots are computed in SQL. A slot without data is a gap, never a zero.
+- **Tables.**
+  - *Apparati con più traffico* (last 24 hours), with a link to the device traffic graph.
+  - For the whole customer, *Confronto sedi*: devices, online, average in/out and peak per site.
+- The renderer gains an integer *count* unit for device counts.
+
 ## 0.49.71 — 2026-10-08
 
 Administration — users limited to some customers (delegated administration)
