@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.61 — 2026-10-08
+
+Security — exposed services across the fleet (SCAN-01, step 3)
+- **New page *Security → Esposizione*.** Every device with its exposure state:
+  - **Con servizi esposti** (default view): sorted by severity, with the exposed services and port forwards;
+  - **Da configurare**: no public IP to check, or the agent needs an update. The table says what is missing;
+  - **Senza esposizioni**, and **Tutti**.
+  - KPIs (exposed, critical, clean, to configure, pending), a customer filter, and a link to each device's *Esposizione* tab. The page is also in the global search.
+- **Security newsletter.** Devices whose *Servizi critici esposti sulla WAN* issue opened in the period are listed with their services and the open total.
+  - When there are no new CVEs, the newsletter is still sent for the new exposures.
+- **Evidence report.** Section 3 *Vulnerabilità* adds the current exposure state of the devices in scope: counts and a table of the exposed devices with their services, severity and verification method. Section numbers do not change.
+
 ## 0.49.60 — 2026-10-08
 
 Security — exposure check (SCAN-01, step 2)

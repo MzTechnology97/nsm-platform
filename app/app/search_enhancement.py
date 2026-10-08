@@ -99,6 +99,7 @@ PAGES = (
     ("Agent MikroTik", "/operations/agents", "fleet heartbeat", None),
     ("Vulnerabilità", "/security/vulnerabilities", "cve sicurezza advisory nvd", None),
     ("Ciclo di vita EOL/EOS", "/security/lifecycle", "eol eos fine supporto", None),
+    ("Servizi esposti su Internet", "/security/exposure", "esposizione porte wan telnet ssh winbox scansione", "security.read"),
     ("Accessi ai dispositivi", "/security/access", "accessi login password brute force syslog tentativi", "security.read"),
     ("Syslog", "/admin/syslog", "syslog log server remoto", "users.manage"),
     ("Zabbix", "/admin/integrations/zabbix", "zabbix monitoraggio host", "users.manage"),
