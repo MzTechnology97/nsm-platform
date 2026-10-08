@@ -49,4 +49,15 @@
   {% endif %}
   {% if counts.sampled == 0 %}<p class="muted-note">Nessuna telemetria recente disponibile: CPU e memoria arrivano dagli heartbeat degli agent MikroTik.</p>{% endif %}
 </section>
+{% set zbx = zabbix_fleet_problems() %}
+{% if zbx %}
+<section class="panel" id="zabbix">
+  <div class="panel-header"><div><h2>Problemi Zabbix</h2><p>Apparati NSM con trigger in stato PROBLEM in Zabbix{% if zbx.checked_at %} · aggiornati {{ fmt_dt(zbx.checked_at) }}{% endif %}.{% if zbx.stale %} <strong>Zabbix non risponde: elenco non aggiornato.</strong>{% endif %}</p></div></div>
+  {% if zbx.rows %}<div class="table-wrap"><table class="data-table"><thead><tr><th>Apparato</th><th>Gravità</th><th>Problema principale</th><th>Problemi</th><th>Da prendere in carico</th></tr></thead><tbody>
+  {% for r in zbx.rows %}<tr><td><a class="strong-link" href="/devices/{{ r.device.id }}#zabbix-problems">{{ r.device.display_name or r.device.device_identity or r.device.name }}</a></td>
+    <td><span class="severity-badge severity-{{ r.badge }}">{{ r.label }}</span></td><td>{{ r.first }}</td><td>{{ r.count }}</td><td>{{ r.unacknowledged }}</td></tr>{% endfor %}
+  </tbody></table></div>{% if zbx.total > zbx.rows|length %}<p class="muted-note">Mostrati {{ zbx.rows|length }} di {{ zbx.total }} apparati.</p>{% endif %}
+  {% else %}<div class="empty-state">Nessun problema aperto in Zabbix sugli apparati di NSM.</div>{% endif %}
+</section>
+{% endif %}
 {% endblock %}
