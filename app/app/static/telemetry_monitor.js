@@ -12,67 +12,22 @@
     return Number.isNaN(d.getTime()) ? iso : d.toLocaleString([], {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
   };
 
-  const metricValues = (points, type) => points.map((p) => type === 'cpu' ? p.cpu_load : p.memory_used_percent);
+  const fields = {cpu: ['cpu_load', 'CPU', 'a'], memory: ['memory_used_percent', 'Memoria', 'b']};
 
   function renderChart(container, points, type) {
-    container.innerHTML = '';
-    const values = metricValues(points, type);
-    const usable = points.map((point, i) => ({point, value: values[i]})).filter((x) => Number.isFinite(x.value));
-    if (!usable.length) {
-      container.innerHTML = '<div class="telemetry-empty">Nessun campione disponibile per questo intervallo.</div>';
-      return;
-    }
-
-    const width = 1000, height = 260, left = 36, right = 10, top = 12, bottom = 26;
-    const plotW = width - left - right, plotH = height - top - bottom;
-    const min = 0, max = 100;
-    const svg = document.createElementNS(ns, 'svg');
-    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-    svg.classList.add('telemetry-svg');
-
-    for (const yValue of [0,25,50,75,100]) {
-      const y = top + plotH - (yValue-min)/(max-min)*plotH;
-      const line = document.createElementNS(ns, 'line');
-      line.setAttribute('x1', left); line.setAttribute('x2', width-right); line.setAttribute('y1', y); line.setAttribute('y2', y); line.classList.add('telemetry-gridline'); svg.appendChild(line);
-      const text = document.createElementNS(ns, 'text'); text.setAttribute('x', 2); text.setAttribute('y', y+3); text.classList.add('telemetry-axis-label'); text.textContent = `${yValue}%`; svg.appendChild(text);
-    }
-
-    const coords = usable.map((item, index) => {
-      const x = left + (usable.length === 1 ? plotW/2 : index/(usable.length-1)*plotW);
-      const y = top + plotH - (item.value-min)/(max-min)*plotH;
-      return {x,y,item};
-    });
-    const linePoints = coords.map((c) => `${c.x},${c.y}`).join(' ');
-    const area = document.createElementNS(ns, 'polygon');
-    area.setAttribute('points', `${left},${top+plotH} ${linePoints} ${width-right},${top+plotH}`);
-    area.classList.add('telemetry-area'); if (type === 'memory') area.classList.add('memory'); svg.appendChild(area);
-    const poly = document.createElementNS(ns, 'polyline'); poly.setAttribute('points', linePoints); poly.classList.add('telemetry-line'); if (type === 'memory') poly.classList.add('memory'); svg.appendChild(poly);
-
-    const first = usable[0].point.timestamp, last = usable[usable.length-1].point.timestamp;
-    for (const [x, label, anchor] of [[left,fmtTime(first),'start'],[width-right,fmtTime(last),'end']]) {
-      const text = document.createElementNS(ns,'text'); text.setAttribute('x',x); text.setAttribute('y',height-4); text.setAttribute('text-anchor',anchor); text.classList.add('telemetry-axis-label'); text.textContent=label; svg.appendChild(text);
-    }
-
-    container.appendChild(svg);
-    const latest = usable[usable.length-1].value;
-    const valuesOnly = usable.map((u) => u.value);
+    const [field, label, color] = fields[type];
+    const series = [{label, color, kind: 'area', points: points.map((p) => [p.timestamp, Number.isFinite(p[field]) ? p[field] : null])}];
+    window.NSMChart.render(container, {series, unit: '%', min: 0, max: 100, title: label, legend: root.querySelector(`[data-chart-legend="${type}"]`),
+                                       emptyText: 'Nessun campione disponibile per questo intervallo.'});
+    const st = window.NSMChart.stats(series[0].points.map((p) => [0, p[1]]));
     const current = root.querySelector(`[data-chart-current="${type}"]`);
     const range = root.querySelector(`[data-chart-range="${type}"]`);
-    if (current) current.textContent = `${latest.toFixed(1)}%`;
-    if (range) range.textContent = `min ${Math.min(...valuesOnly).toFixed(1)}% · max ${Math.max(...valuesOnly).toFixed(1)}%`;
-
-    svg.addEventListener('mousemove', (event) => {
-      const rect = svg.getBoundingClientRect();
-      const pos = (event.clientX-rect.left)/rect.width;
-      const idx = Math.max(0,Math.min(usable.length-1,Math.round(pos*(usable.length-1))));
-      const item = usable[idx];
-      let tip = container.querySelector('.telemetry-tooltip');
-      if (!tip) { tip = document.createElement('div'); tip.className='telemetry-tooltip'; container.appendChild(tip); }
-      tip.textContent = `${fmtTime(item.point.timestamp)} · ${item.value.toFixed(1)}%`;
-      tip.style.left = `${Math.max(8,Math.min(92,pos*100))}%`; tip.style.top='52%';
-    });
-    svg.addEventListener('mouseleave', () => container.querySelector('.telemetry-tooltip')?.remove());
+    if (current) current.textContent = Number.isFinite(st.current) ? `${st.current.toFixed(1)}%` : '—';
+    if (range) range.textContent = Number.isFinite(st.max) ? `media ${st.avg.toFixed(1)}% · max ${st.max.toFixed(1)}%` : '—';
   }
+
+  let lastPoints = null, resizeTimer = null;
+  window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (lastPoints) { renderChart(root.querySelector('[data-chart="cpu"]'), lastPoints, 'cpu'); renderChart(root.querySelector('[data-chart="memory"]'), lastPoints, 'memory'); } }, 150); });
 
   async function load(range = activeRange) {
     if (loading) return;
@@ -82,6 +37,7 @@
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       const points = data.points || [];
+      lastPoints = points;
       renderChart(root.querySelector('[data-chart="cpu"]'), points, 'cpu');
       renderChart(root.querySelector('[data-chart="memory"]'), points, 'memory');
       const samples = root.querySelector('[data-telemetry-samples]'); if (samples) samples.textContent = `${data.sample_count || 0} campioni`;

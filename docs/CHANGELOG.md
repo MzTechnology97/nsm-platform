@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.65 — 2026-10-08
+
+Monitoring — Cacti/Zabbix-style graphs everywhere (reported by the operator)
+- **One renderer for every time-series graph** (`static/rrd_chart.js`). Before, only interface traffic looked like Cacti/Zabbix; the CPU and memory graphs of the Monitor page and the UISP graphs still used the old drawing (tiny labels, points spread by index instead of time, no statistics).
+  - **Time axis.** A real time axis with ticks on round times (minutes, hours, days, depending on the range and the width).
+  - **Gaps.** Missing samples show as gaps instead of interpolated lines.
+  - **Readability.** Labels sized to the screen, and a dashed grid.
+  - **Hover.** A crosshair with a tooltip showing every series.
+  - **Legend.** A Cacti-style table under each graph: *Attuale / Min / Media / Max*.
+- **CPU and memory**: filled areas on a fixed 0–100% scale.
+- **Traffic**: inbound as an area, outbound as a line, and the 95th percentile as a dashed line.
+- **UISP**: signal in dBm drawn as a line with its own scale; capacity and resources with the legend.
+
 ## 0.49.64 — 2026-10-08
 
 Syslog — fix: device key in the manual configuration (reported by the operator)

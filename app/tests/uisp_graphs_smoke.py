@@ -64,6 +64,7 @@ def main():
     page = response.text
     assert response.status_code == 200, (response.status_code, page[:300])
     assert "data-series-root" in page and "series_chart.js" in page and "Grafici UISP" in page
+    assert page.index("rrd_chart.js") < page.index("series_chart.js"), "shared Cacti-style renderer loads first"
     assert TestClient(app).get(f"/api/v1/devices/{device_id}/uisp-metrics").status_code == 401
     print("UISP graphs smoke passed")
 
