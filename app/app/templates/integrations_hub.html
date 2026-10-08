@@ -62,6 +62,16 @@
     {% if can_admin %}<div class="page-actions"><a class="button ghost" href="/admin/integrations/genieacs">{{ 'Gestisci' if acs.connection else 'Configura' }}</a></div>{% endif %}
   </section>
 
+  {% set cnm = cnmaestro_summary() %}
+  <section class="panel integration-card" data-integration="cnmaestro">
+    <div class="panel-header"><div><h2>cnMaestro (Cambium)</h2><p>Radio Cambium (ePMP, PMP 450, cnPilot) lette da cnMaestro in sola lettura: stato, firmware, segnale, SNR, throughput e storico.</p></div>{% if not cnm.connection %}<span class="device-status status-unknown">Non configurato</span>{% elif not cnm.connection.is_enabled %}<span class="device-status status-offline">Disabilitato</span>{% elif cnm.connection.last_test_status == 'failed' %}<span class="device-status status-offline">Errore</span>{% elif cnm.connection.last_test_status == 'success' %}<span class="device-status status-online">Attivo</span>{% else %}<span class="device-status status-pending_link">Da verificare</span>{% endif %}</div>
+    <dl class="kv-list">
+      <div><dt>Apparati Cambium</dt><dd>{{ cnm.cambium }}</dd></div>
+      <div><dt>Collegati a cnMaestro</dt><dd>{{ cnm.linked }}</dd></div>
+    </dl>
+    {% if can_admin %}<div class="page-actions"><a class="button ghost" href="/admin/integrations/cnmaestro">{{ 'Gestisci' if cnm.connection else 'Configura' }}</a></div>{% endif %}
+  </section>
+
   {% set zbx = zabbix_summary() %}
   <section class="panel integration-card" data-integration="zabbix">
     <div class="panel-header"><div><h2>Zabbix</h2><p>NSM invia i propri apparati a Zabbix (6.x e 7.x): host, gruppi per cliente, template per produttore, tag e inventario.</p></div>{% if not zbx.connection %}<span class="device-status status-unknown">Non configurato</span>{% elif not zbx.connection.is_enabled %}<span class="device-status status-offline">Disabilitato</span>{% elif zbx.connection.last_test_status == 'failed' %}<span class="device-status status-offline">Errore</span>{% elif zbx.connection.last_test_status == 'success' %}<span class="device-status status-online">Attivo</span>{% else %}<span class="device-status status-pending_link">Da verificare</span>{% endif %}</div>

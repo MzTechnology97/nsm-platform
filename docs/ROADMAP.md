@@ -437,6 +437,8 @@ Release catalogs like the RouterOS one (versions per channel/model, release note
 
 ### VEND-02 — cnMaestro integration for Cambium (requested 2026-10-07)
 
+**Step 1 implemented in `main` (Core 0.49.70)**: OAuth2 client credentials, paged inventory and statistics, linking by MAC/serial, identity/firmware/IP/status sync every 15 minutes, metrics history (signal, SNR, throughput, CPU/memory, stations) with Cacti-style graphs on the device *cnMaestro* tab. Field names to be confirmed on a real cnMaestro. Next: operations where the cnMaestro API supports them.
+
 Read-only cnMaestro (cloud/on-premises) connector for Cambium radios: discovery and association like UISP, periodic sync, full monitoring and statistics (signal, link quality, capacity, interfaces, uptime, history) in the style of the MikroTik and UISP views; later operations only where the cnMaestro API supports them.
 
 ## 7. Cross-vendor vulnerability management

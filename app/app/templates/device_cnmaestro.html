@@ -1,0 +1,25 @@
+{% extends "device_layout.html" %}
+{% set device_tab = 'cnmaestro' %}
+{% block device_content %}
+<section class="panel">
+  <div class="panel-header"><div><h2>cnMaestro</h2><p>{% if meta.get('mac') %}Collegato a cnMaestro dal {{ fmt_dt(meta.get('linked_at')) }} (MAC <code>{{ meta.get('mac') }}</code>){% if meta.get('last_sync_at') %} · ultima sincronizzazione {{ fmt_dt(meta.get('last_sync_at')) }}{% endif %}.{% else %}Non ancora collegato: la sincronizzazione lo collega per MAC (<code>{{ device.primary_mac or 'mancante' }}</code>) o seriale (<code>{{ device.serial_number or 'mancante' }}</code>).{% endif %}</p></div>
+    {% if not connection %}<a class="button ghost" href="/admin/integrations/cnmaestro">Configura cnMaestro</a>{% endif %}</div>
+  {% if meta.get('mac') %}<dl class="kv-list">
+    <div><dt>Nome in cnMaestro</dt><dd>{{ meta.get('name') or '—' }}</dd></div><div><dt>Tipo</dt><dd>{{ meta.get('type') or '—' }}</dd></div>
+    <div><dt>Rete / torre</dt><dd>{{ meta.get('network') or '—' }}{% if meta.get('tower') %} / {{ meta.get('tower') }}{% endif %}</dd></div><div><dt>Stato</dt><dd>{{ meta.get('status') or '—' }}</dd></div>
+  </dl>
+  <div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Metrica</th><th>Ultimo valore</th></tr></thead><tbody>
+  {% for field, label, value in metric_rows %}<tr><td>{{ label }}</td><td>{% if value == '—' %}<span class="muted">non esposto da cnMaestro per questo apparato</span>{% else %}<strong>{{ value }}</strong>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>{% endif %}
+</section>
+{% if meta.get('mac') %}
+<section class="panel telemetry-panel" id="cnmaestro-graphs" data-series-root data-endpoint="/api/v1/devices/{{ device.id }}/cnmaestro-metrics">
+  <div class="panel-header"><div><h2>Grafici cnMaestro</h2><p>Storico dei valori letti a ogni sincronizzazione. Le interruzioni compaiono come buchi; l'ultimo dato resta sempre visibile.</p></div>
+    <div class="telemetry-ranges" role="group" aria-label="Intervallo"><button type="button" data-series-range="24h" class="active">24h</button><button type="button" data-series-range="7d">7g</button><button type="button" data-series-range="30d">30g</button><button type="button" data-series-range="90d">90g</button></div></div>
+  <div class="telemetry-grid" data-series-grid><div class="telemetry-empty">Caricamento…</div></div>
+  <div class="telemetry-footer"><span data-series-count>0 campioni</span></div>
+</section>
+<script defer src="{{ url_for('static', path='/rrd_chart.js') }}?v={{ asset_version }}"></script>
+<script defer src="{{ url_for('static', path='/series_chart.js') }}?v={{ asset_version }}"></script>
+{% endif %}
+{% endblock %}

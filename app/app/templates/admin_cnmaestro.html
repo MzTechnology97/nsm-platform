@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Integrazioni · cnMaestro · {{ ui_context(request).branding.portal_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Integrazioni · cnMaestro</h1><p>Connettore in sola lettura per le radio Cambium (ePMP, PMP 450, cnPilot): collegamento per MAC o seriale, stato, firmware, IP e statistiche (segnale, SNR, throughput, CPU/memoria, stazioni) ogni 15 minuti.</p></div><a class="button ghost" href="/integrations">Tutte le integrazioni</a></div>
+{% set admin_tab = "integrations" %}{% include "_admin_tabs.html" %}
+{% set integration_tab = "cnmaestro" %}{% include "_integration_tabs.html" %}
+{% if message %}<div class="alert success">{{ message }}</div>{% endif %}
+{% if error %}<div class="alert warning">{{ error }}</div>{% endif %}
+
+<section class="mt-kpi-grid">
+  <article class="metric-card"><span>Ultima sincronizzazione</span><strong>{{ fmt_dt(connection.last_sync_at) if connection and connection.last_sync_at else '—' }}</strong><small>{{ {'success': 'completata', 'failed': 'non riuscita'}.get(last.get('status'), 'automatica ogni 15 minuti') }}</small></article>
+  <article class="metric-card"><span>Apparati in cnMaestro</span><strong>{{ last.get('cnmaestro_devices', '—') }}</strong><small>letti dall'API</small></article>
+  <article class="metric-card"><span>Cambium collegati</span><strong>{{ last.get('linked', 0) }}</strong><small>{{ last.get('unmatched', 0) }} apparati Cambium NSM senza corrispondenza</small></article>
+</section>
+{% if last.get('statistics_error') %}<div class="alert warning">Statistiche non lette: {{ last.get('statistics_error') }}</div>{% endif %}
+
+<div class="content-split">
+<section class="panel side-form">
+  <div class="panel-header"><div><h2>Connessione</h2><p>In cnMaestro: <em>Services → API Client → Add</em>, con permessi di lettura. cnMaestro On-Premises o Cloud.</p></div></div>
+  <form method="post" action="/admin/integrations/cnmaestro" class="form-stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+    <label>URL di cnMaestro<input type="url" name="base_url" required value="{{ connection.base_url if connection else '' }}" placeholder="https://cnmaestro.example.net"></label>
+    <label>Client ID<input name="client_id" value="{{ client_id }}" autocomplete="off" required></label>
+    <label>Client secret<input name="client_secret" type="password" autocomplete="off" placeholder="{{ 'lascia vuoto per mantenere quello salvato' if connection else '' }}"></label>
+    <label class="check-row"><input type="checkbox" name="verify_tls" value="1"{% if not connection or connection.verify_tls %} checked{% endif %}> Verifica certificato TLS</label>
+    <label class="check-row"><input type="checkbox" name="is_enabled" value="1"{% if not connection or connection.is_enabled %} checked{% endif %}> Sincronizzazione attiva (ogni 15 minuti)</label>
+    <button class="button primary">Salva</button>
+  </form>
+</section>
+<section class="panel">
+  <div class="panel-header"><div><h2>Azioni</h2><p>Gli apparati Cambium di NSM (produttore «Cambium Networks») vengono collegati per MAC e, in mancanza, per seriale. Cliente e sede restano quelli di NSM.</p></div></div>
+  <div class="page-actions">
+    <form method="post" action="/admin/integrations/cnmaestro/test"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Test connessione</button></form>
+    <form method="post" action="/admin/integrations/cnmaestro/sync"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Sincronizza ora</button></form>
+  </div>
+</section>
+</div>
+{% endblock %}
