@@ -275,6 +275,9 @@ Next steps:
 
 ### LOG-01 — integrated syslog server and live device logs (requested 2026-10-07)
 
+**Identification hardening done (Core 0.49.53, Agent 0.49.13)**, decided with the user on 2026-10-08: per-device key with strict mode, allowed networks, certain-or-discard attribution, fresh heartbeat addresses, capped memory and quotas.
+**Next**: read-only container with a dedicated DB role, host firewall rules, TCP/TLS where devices support it, tamper-evident hash chain for warning/error lines.
+
 **Step 1 done (Core 0.49.45).**
 - Docker service `syslog` receives on UDP/TCP 514 and matches messages to devices by sender IP; shared NAT addresses are resolved by hostname.
 - Unknown senders are listed for the admin.

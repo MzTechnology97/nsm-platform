@@ -62,7 +62,17 @@
     </div>
     {% endif %}
     {% set syslog_brand = device_brand_key %}{% set syslog_target = syslog_host %}{% include "_syslog_instructions.html" %}
-    <p class="muted">Indirizzi da cui NSM accetta i log di questo apparato: {% for ip in syslog_sources %}<code>{{ ip }}</code>{% if not loop.last %}, {% endif %}{% else %}nessuno ancora noto (si aggiorna con l'heartbeat dell'agent o con l'IP di gestione){% endfor %}.</p>
+    <div class="syslog-ident">
+      {% if syslog_ident.key_active %}<p><span class="device-status status-online">Modalità rigorosa</span> Il router invia la propria chiave syslog: i log vengono riconosciuti anche se cambia IP o condivide il NAT con altri apparati; righe senza chiave dal suo indirizzo vengono scartate.</p>
+      {% elif device.vendor == 'mikrotik' %}<p class="muted">Chiave syslog non ancora attiva: con l'agent 0.49.13 la configurazione automatica la imposta e attiva la modalità rigorosa. Fino ad allora il riconoscimento avviene per indirizzo IP, solo quando è certo.</p>
+      {% else %}<form method="post" action="/devices/{{ device.id }}/syslog/hostname" class="inline-form">
+        <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+        <label>Hostname atteso <input name="syslog_hostname" value="{{ syslog_ident.custom_hostname }}" placeholder="{{ syslog_ident.expected_hostname }}"></label>
+        {% if has_permission(user, 'devices.write') %}<button class="button tiny">Salva</button>{% endif %}
+      </form>
+      <p class="muted">Imposta sull'apparato questo hostname: se più apparati condividono lo stesso IP pubblico, NSM li distingue dall'hostname; se non è possibile determinarlo, la riga viene scartata.</p>{% endif %}
+    </div>
+    <p class="muted">Indirizzi da cui NSM accetta i log di questo apparato: {% for ip in syslog_sources %}<code>{{ ip }}</code>{% if not loop.last %}, {% endif %}{% else %}{% if syslog_ident.key_active %}qualsiasi, purché con la chiave{% else %}nessuno associato con certezza (si aggiorna con l'heartbeat dell'agent o con l'IP di gestione){% endif %}{% endfor %}.</p>
   </details>
 </section>
 <script defer src="{{ url_for('static', path='/device_logs.js') }}?v={{ asset_version }}"></script>

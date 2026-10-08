@@ -102,7 +102,9 @@ The Docker stack can run GenieACS next to NSM (optional compose profile `acs`), 
 
 The `syslog` service receives device logs on **514 UDP/TCP**: the process listens on 5514 as a non-root user and the host publishes 514 (`SYSLOG_HOST_PORT`).
 - **Firewall.** Open 514 only toward the device networks or the public addresses of the customers' routers.
-- **Accepted senders.** Lines are stored only when the sender address matches a device: management IP, heartbeat source address, RouterOS addresses, or an address assigned in *Amministrazione → Syslog*. Other senders are counted, and their lines are not saved unless the admin enables it.
+- **Identification (2026-10-08).** MikroTik routers with Agent 0.49.13+ log with a per-device key (prefix `NSM-…`). With strict mode, keyless lines from their address are discarded. Other devices are recognised by address only when certain, using the hostname on shared addresses; anything else is discarded and only counted.
+- **Allowed networks.** Configure the customers' and devices' networks (PPPoE pools, management networks) in *Amministrazione → Syslog*; the receiver discards everything else before parsing.
+- **Accepted senders.** Lines are stored only when the sender address matches a device: management IP, heartbeat source address, RouterOS addresses, or an address assigned in *Amministrazione → Syslog*. Lines that cannot be attributed with certainty are discarded; only counters and the reason are kept.
 - **Rate limit.** Each sender is limited to 50 lines per second, with bursts of 200.
 - **Retention.** Warning, error and critical lines of a device are kept for its whole life and removed only with the device. Info, notice and debug lines are kept for up to 90 days (configurable, never more). The worker deletes old lines in batches.
 - **Status.** The receiver publishes its status every 10 seconds; *Sistema → Connettori* shows it as "Server syslog".

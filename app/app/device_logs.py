@@ -19,6 +19,7 @@ from sqlalchemy import delete, func, or_, select
 from app import main as core
 from app import syslog_receiver as receiver
 from app import mikrotik_syslog_config as syslog_config
+from app import syslog_identity as identity
 from app import syslog_security, vendor_cpe
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
@@ -93,7 +94,8 @@ def logs_page(request: Request, device_id: uuid.UUID):
         return core.render(request, db, user, "device_logs.html", device=device, today_counts=counts, last_log=last, device_section=None,
                            severity_filters=SEVERITY_FILTERS, syslog_host=public_host(db, request), syslog_status=receiver.receiver_status(),
                            device_brand_key=vendor_cpe.brand(device) or "generic", syslog_sources=device_sources(device),
-                           access=syslog_security.access_summary(db, device.id), syslog_job=syslog_config.latest_job(db, device.id))
+                           access=syslog_security.access_summary(db, device.id), syslog_job=syslog_config.latest_job(db, device.id),
+                           syslog_ident=device_identification(device, receiver.load_settings(db)))
 
 
 @router.get("/devices/{device_id}/logs.csv", name="device_logs_csv")
@@ -114,15 +116,22 @@ def logs_csv(request: Request, device_id: uuid.UUID, severity: str = "", q: str 
 
 
 def device_sources(device) -> list[str]:
-    """Sender addresses the receiver maps to this device (see syslog_receiver.build_ip_map)."""
+    """Addresses the receiver currently ties to this device (same rules as syslog_identity.build_index)."""
+    from app.db import SessionLocal as _Session
+
+    with _Session() as db:
+        index = identity.build_index(db, receiver.load_settings(db))
+    if device.id in index.strict:
+        return []
+    return sorted(ip for ip, entries in index.candidates.items() if any(e[0] == device.id for e in entries))
+
+
+def device_identification(device, settings) -> dict:
+    """What the Syslog tab says about how this device is recognised."""
     data = device.inventory_data or {}
-    found = []
-    for ip in [device.management_ip, data.get("last_source_ip"), *(data.get("syslog_ips") or []),
-               *[(row or {}).get("address") for row in (data.get("ip_addresses") or []) if isinstance(row, dict)]]:
-        norm = receiver._norm(ip)
-        if norm and norm not in found:
-            found.append(norm)
-    return found
+    return {"key_active": bool(data.get("syslog_strict")) and settings.get("strict_mode", True), "has_key": bool(data.get("syslog_key")),
+            "expected_hostname": data.get("syslog_hostname") or device.device_identity or device.name, "custom_hostname": data.get("syslog_hostname") or "",
+            }
 
 
 def _settings_row(db):
@@ -147,6 +156,7 @@ def admin_syslog(request: Request, status: str = ""):
         stored = db.scalar(select(func.count()).select_from(DeviceLogEntry).where(DeviceLogEntry.received_at >= last_day.replace(hour=0, minute=0, second=0))) or 0
         senders = db.scalar(select(func.count(func.distinct(DeviceLogEntry.device_id))).where(DeviceLogEntry.received_at >= last_day.replace(hour=0, minute=0, second=0))) or 0
         return core.render(request, db, user, "admin_syslog.html", title="Syslog", status=status, settings=receiver.load_settings(db),
+                           reject_labels=identity.REJECT_REASONS, detail=request.query_params.get("detail", ""),
                            syslog_host=public_host(db, request), syslog_status=receiver.receiver_status(), unknown_sources=unknown,
                            devices=devices, stored_today=stored, senders_today=senders)
 
@@ -158,8 +168,16 @@ async def save_settings(request: Request):
     with SessionLocal() as db:
         user = core.require_admin(request, db)
         retention = receiver.info_retention_days({"info_retention_days": form.get("info_retention_days")})
-        values = {"public_host": str(form.get("public_host") or "").strip()[:255], "accept_unknown": form.get("accept_unknown") == "1", "info_retention_days": retention,
-                  "auto_configure": form.get("auto_configure") == "1"}
+        raw_networks = [part.strip() for part in str(form.get("allowed_networks") or "").replace(",", "\n").splitlines() if part.strip()]
+        networks, invalid = [], []
+        for value in raw_networks[:500]:
+            parsed = identity.parse_networks([value])
+            (networks if parsed else invalid).append(str(parsed[0]) if parsed else value)
+        if invalid:
+            return RedirectResponse("/admin/syslog?status=bad_networks&detail=" + ",".join(invalid[:5])[:200], status_code=303)
+        values = {"public_host": str(form.get("public_host") or "").strip()[:255], "info_retention_days": retention,
+                  "auto_configure": form.get("auto_configure") == "1", "strict_mode": form.get("strict_mode") == "1",
+                  "allowed_networks": networks}
         row = _settings_row(db)
         if row is None:
             db.add(ConnectorIntegration(provider=receiver.PROVIDER, name="Syslog integrato", base_url=f"syslog://{values['public_host'] or 'nsm'}:514",
@@ -169,6 +187,27 @@ async def save_settings(request: Request):
         core.add_event(db, "SYSLOG_SETTINGS_CHANGED", actor=user, details=values, source="portal")
         db.commit()
     return RedirectResponse("/admin/syslog?status=saved", status_code=303)
+
+
+@router.post("/devices/{device_id}/syslog/hostname", name="device_syslog_hostname")
+async def save_hostname(request: Request, device_id: uuid.UUID):
+    form = await request.form()
+    validate_csrf(request, str(form.get("csrf") or ""))
+    with SessionLocal() as db:
+        user = core.require_permission(request, db, "devices.write")
+        device = db.get(Device, device_id)
+        if not device:
+            raise HTTPException(404)
+        value = str(form.get("syslog_hostname") or "").strip()[:255]
+        data = dict(device.inventory_data or {})
+        if value:
+            data["syslog_hostname"] = value
+        else:
+            data.pop("syslog_hostname", None)
+        device.inventory_data = data
+        core.add_event(db, "SYSLOG_HOSTNAME_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"hostname": value}, source="portal")
+        db.commit()
+    return RedirectResponse(f"/devices/{device_id}/logs#syslog-setup", status_code=303)
 
 
 @router.post("/admin/syslog/unknown/assign", name="admin_syslog_assign")

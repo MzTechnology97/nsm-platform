@@ -69,13 +69,14 @@ def main():
         db.add(customer)
         db.flush()
         gw = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-SY-GW-{suffix}", device_identity=f"TEST-GW-{suffix}",
-                    management_ip="203.0.113.21", status="online", inventory_data={"last_source_ip": "127.0.0.1"})
+                    management_ip="203.0.113.21", status="online", inventory_data={"last_source_ip": "127.0.0.1", "last_heartbeat_at": utcnow().isoformat()})
         nat_a = Device(customer_id=customer.id, vendor="ubiquiti", device_type="wireless_cpe", name=f"TEST-SY-A-{suffix}", device_identity=f"cpe-a-{suffix}",
                        management_ip="198.51.100.50", status="online")
         nat_b = Device(customer_id=customer.id, vendor="ubiquiti", device_type="wireless_cpe", name=f"TEST-SY-B-{suffix}", device_identity=f"cpe-b-{suffix}",
                        management_ip="198.51.100.50", status="offline")
         lan = Device(customer_id=customer.id, vendor="generic", device_type="switch", name=f"TEST-SY-SW-{suffix}", status="online",
-                     inventory_data={"manufacturer": "cambium", "ip_addresses": [{"address": "192.0.2.201", "prefix": 24, "interface": "vlan1"}]})
+                     inventory_data={"manufacturer": "cambium", "last_heartbeat_at": utcnow().isoformat(),
+                                     "ip_addresses": [{"address": "192.0.2.201", "prefix": 24, "interface": "vlan1"}]})
         db.add_all([gw, nat_a, nat_b, lan])
         db.add_all([User(username=f"ci-sy-{suffix}", password_hash=hash_password(PASSWORD), role="admin", is_active=True),
                     User(username=f"ci-sy-o-{suffix}", password_hash=hash_password(PASSWORD), role="auditor", is_active=True)])
@@ -90,20 +91,21 @@ def main():
     receiver.handle(b"<30>Oct  7 21:14:03 something-else kernel: shared NAT, first device", "198.51.100.50")
     receiver.handle(b"<30>switch port 3 down", "192.0.2.201")
     receiver.handle(b"<30>who am i", "192.0.2.250")
-    assert receiver.flush() == 4
+    assert receiver.flush() == 3
     with SessionLocal() as db:
         rows = {r.message: r for r in db.scalars(select(DeviceLogEntry).where(DeviceLogEntry.device_id.in_(ids.values())))}
         assert rows["login failure for user admin from 203.0.113.9 via winbox"].device_id == ids["gw"]
         assert rows["link down"].device_id == ids["b"], "shared address: the hostname picks the device"
-        assert rows["shared NAT, first device"].device_id in (ids["a"], ids["b"])
+        assert "shared NAT, first device" not in rows, "shared address without a matching hostname: discarded, never guessed"
+        assert receiver.stats["rejected"]["ambiguous"] == 1
         assert rows["switch port 3 down"].device_id == ids["lan"], "a unique RouterOS/LAN address also matches"
         unknown = db.get(SyslogUnknownSource, "192.0.2.250")
-        assert unknown is not None and unknown.messages == 1 and unknown.sample == "who am i"
+        assert unknown is not None and unknown.messages == 1 and unknown.sample == "rete non consentita", "only counters and reason, never the content"
         assert not db.scalars(select(DeviceLogEntry).where(DeviceLogEntry.source_ip == "192.0.2.250")).all(), "unknown senders are not stored"
 
     # Rate limit: a burst above the bucket is dropped, it refills over time.
     flood = rx.Receiver(clock=lambda: clock[0])
-    flood.ip_map = receiver.ip_map
+    flood.index = receiver.index
     for _ in range(int(rx.RATE_BURST) + 50):
         flood.handle(b"<30>flood", "203.0.113.21")
     assert flood.stats["dropped"] == 50 and len(flood.queue) == int(rx.RATE_BURST)
@@ -143,7 +145,7 @@ def main():
     settings_page = admin.get("/admin/syslog")
     assert settings_page.status_code == 200 and "192.0.2.250" in settings_page.text and "Fortinet FortiGate" in settings_page.text
     csrf = csrf_from(settings_page.text)
-    assert admin.post("/admin/syslog/settings", data={"csrf": csrf, "public_host": "203.0.113.5", "info_retention_days": "365"}, follow_redirects=False).status_code == 303
+    assert admin.post("/admin/syslog/settings", data={"csrf": csrf, "public_host": "203.0.113.5", "info_retention_days": "365", "strict_mode": "1"}, follow_redirects=False).status_code == 303
     assert "remote=203.0.113.5" in admin.get(f"/devices/{ids['gw']}/logs").text
     assigned = admin.post("/admin/syslog/unknown/assign", data={"csrf": csrf, "source_ip": "192.0.2.250", "device_id": str(ids["lan"])}, follow_redirects=False)
     assert assigned.status_code == 303 and "assigned" in assigned.headers["location"]

@@ -4,6 +4,27 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.53 — 2026-10-08
+
+Syslog — certain identification (decided with the operator)
+- **Per-device syslog key.** With **MikroTik Agent 0.49.13** the router logs with the prefix `NSM-<key>` (a per-device key, stripped before storing).
+  - Lines are recognised with certainty even when the WAN address changes, when several routers share the customer's NAT, or when routers sit in the same network.
+  - Agents configured before the update are reconfigured once automatically.
+- **Strict mode** (default on). Once the router has confirmed its key, keyless lines from its address are discarded, which blocks spoofing. On an address shared with a strict router, a keyless line is accepted only when its hostname matches exactly one other device.
+- **Allowed networks.** The admin lists CIDR networks and packets from elsewhere are discarded before being read. While the list is empty, only addresses currently tied to a device are accepted, and a warning asks to configure it.
+- **Certain or discarded.** Without a key the address must lead to exactly one device:
+  - addresses learned from the agent count only while it sends heartbeats (30 minutes), so an address returned to the ISP pool no longer points at our router;
+  - on shared addresses the hostname must match exactly one device; other vendors have an *expected hostname* in the Syslog tab;
+  - lines that cannot be attributed are **discarded and not stored**, and the old "accept unknown senders" option is gone;
+  - only counters and the reason remain (network, key, strict, ambiguous, unknown, rate, quota), never the content;
+  - migration 0032 deletes lines stored without a device and the content samples of unknown senders.
+- **Limits.**
+  - Global rate limit of 2,000 lines per second and a daily quota of 200,000 lines per device.
+  - Rate tables capped (most recently used kept) and the unknown-sender table capped, so spoofed traffic cannot exhaust memory nor lock out real devices.
+- **Pages.**
+  - The admin page shows lines discarded by reason, the allowed networks and strict mode.
+  - The device Syslog tab shows strict mode, the expected hostname and the addresses tied with certainty.
+
 ## 0.49.52 — 2026-10-08
 
 Security
