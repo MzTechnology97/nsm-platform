@@ -1,0 +1,22 @@
+{% set wifi_ifaces = wireless_interfaces(device) %}
+{% if wifi_ifaces %}
+<section class="panel latency-panel" id="wireless" data-wireless-root data-endpoint="/api/v1/devices/{{ device.id }}/wireless">
+  <div class="panel-header"><div><h2>Segnale wireless</h2><p>Dalla registration table del router a ogni heartbeat: su una CPE il segnale verso l'AP, su un access point minimo, media e massimo dei client collegati, con il numero di client e il CCQ (dove RouterOS lo fornisce).</p></div>
+    <div class="traffic-controls">
+      <label class="traffic-select"><span>Interfaccia</span><select data-wireless-interface aria-label="Interfaccia wireless">{% for name in wifi_ifaces %}<option value="{{ name }}">{{ name }}</option>{% endfor %}</select></label>
+      <div class="telemetry-ranges" role="group" aria-label="Intervallo segnale"><button type="button" data-wireless-range="1h">1h</button><button type="button" data-wireless-range="24h" class="active">24h</button><button type="button" data-wireless-range="7d">7g</button><button type="button" data-wireless-range="30d">30g</button></div>
+    </div>
+  </div>
+  <div class="traffic-chart">
+    <div class="traffic-legend-top"><strong>Segnale</strong><small data-wireless-summary>—</small></div>
+    <div class="telemetry-svg-wrap traffic-svg-wrap" data-wireless-signal><div class="telemetry-empty">Caricamento…</div></div>
+    <div class="rrd-legend" data-wireless-legend></div>
+  </div>
+  <div class="traffic-chart">
+    <div class="traffic-legend-top"><strong>Client e CCQ</strong></div>
+    <div class="telemetry-svg-wrap traffic-svg-wrap" data-wireless-clients><div class="telemetry-empty">Caricamento…</div></div>
+    <div class="rrd-legend" data-wireless-clients-legend></div>
+  </div>
+</section>
+<script defer src="{{ url_for('static', path='/rrd_chart.js') }}?v={{ asset_version }}"></script><script defer src="{{ url_for('static', path='/wireless_monitor.js') }}?v={{ asset_version }}"></script>
+{% endif %}

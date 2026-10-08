@@ -23,7 +23,7 @@ def main():
         source, transport, _ = mikrotik_legacy._select_agent_source("http://nsm.example.test", uuid.UUID(int=20), "CI20-secret", version)
         assert ':local nsmIferrs "v1;"' in source and "[/interface get $nsmIf rx-drop]" in source
         if transport == "modern":
-            assert '"ifaces"=$nsmIfaces;"iferrs"=$nsmIferrs;' in source
+            assert '"iferrs"=$nsmIferrs;' in source and '"ifaces"=$nsmIfaces;' in source
         else:
             assert '",X-NSM-Iferr:" . [$nsmHeaderSafe $nsmIferrs]' in source
         if version.startswith("6."):

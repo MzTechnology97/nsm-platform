@@ -20,13 +20,14 @@ Agent 0.49.17: the legacy Agent updates itself (agent_self_update) and reports i
 Agent 0.49.18: 2-minute heartbeat; the Agent aligns its own scheduler (write policy).
 Agent 0.49.19: the legacy Agent runs up to 8 jobs per heartbeat (legacy support snapshot).
 Agent 0.49.20: interface errors and drops in every heartbeat (MON-01).
+Agent 0.49.21: wireless registration table (signal, CCQ, peers) in every heartbeat (MON-01).
 """
 from __future__ import annotations
 
 from app import mikrotik_agent_update as updater
 from app import mikrotik_agent_update_ui as update_ui
 
-TARGET_AGENT_VERSION = "0.49.20"
+TARGET_AGENT_VERSION = "0.49.21"
 SELF_UPDATE_MIN_VERSION = "0.49.0"
 
 

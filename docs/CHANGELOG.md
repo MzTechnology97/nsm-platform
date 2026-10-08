@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.86 — 2026-10-09
+
+Monitoring — wireless signal of MikroTik radios (MON-01)
+- **Agent 0.49.21** (modern, legacy 7.12 and RouterOS 6) reads the wireless registration table at every heartbeat:
+  - `/interface wireless` (RouterOS 6 and the v7 *wireless* package): signal and CCQ;
+  - `/interface wifi` (RouterOS 7.13+ *wifi* package): signal.
+- **Routers without a radio are safe.** RouterOS refuses to load a script that names a menu of a missing package. Both readers are therefore compiled at run time with `:parse` inside `:do on-error`, and RouterOS 6 gets only the *wireless* reader.
+  - A router without radios sends `v1;`, and nothing is stored.
+- **Per interface.** NSM aggregates per heartbeat: registered peers (one on a CPE), min/avg/max signal and average CCQ (`device_wireless_samples`, migration 0040; 90-day retention; 10-minute consolidation after 7 days).
+- **Monitor page.** New *Segnale wireless* panel with an interface selector:
+  - signal chart (dBm): a single line on a CPE; average with best and worst client on an AP;
+  - connected clients and CCQ chart;
+  - current value in the header.
+
 ## 0.49.85 — 2026-10-09
 
 Monitoring — latency and packet loss measured from NSM (MON-01, any vendor)

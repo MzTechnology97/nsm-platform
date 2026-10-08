@@ -8,7 +8,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
 from app import main as core
-from app import agent_addresses, interface_traffic
+from app import agent_addresses, interface_traffic, mikrotik_wireless
 from app import mikrotik_agent as agent
 from app.agent_models import DeviceJob, DeviceMetricSample
 from app.db import SessionLocal
@@ -112,9 +112,10 @@ async def mikrotik_heartbeat(request: Request):
         device, _credential = agent._authenticate_agent(db, request)
         agent._apply_inventory(db, device, inventory, request, "mikrotik_agent")
         data = dict(device.inventory_data or {})
-        data["metrics"] = {k: agent._string(v, 200) for k, v in metrics.items() if k not in ("ifaces", "iferrs", "addresses")}
+        data["metrics"] = {k: agent._string(v, 200) for k, v in metrics.items() if k not in ("ifaces", "iferrs", "wifi", "addresses")}
         data["last_heartbeat_at"] = utcnow().isoformat()
         interface_traffic.record(db, device, data, metrics.get("ifaces"), errors=metrics.get("iferrs"))
+        mikrotik_wireless.record(db, device, data, metrics.get("wifi"))
         agent_addresses.apply(device, data, metrics.get("addresses"), data.get("last_source_ip"))
         device.inventory_data = data
 
