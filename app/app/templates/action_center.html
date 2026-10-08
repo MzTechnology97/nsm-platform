@@ -2,7 +2,7 @@
 {% from "_worklist.html" import chips, pager, context_banner %}
 {% block title %}Action Center · {{ app_name }}{% endblock %}
 {% block content %}
-{% set category_labels = {'backup': 'Backup', 'cve': 'CVE', 'security': 'Sicurezza', 'firmware': 'Firmware', 'lifecycle': 'Lifecycle', 'monitoring': 'Monitoring', 'integration': 'Integrazioni', 'configuration': 'Configurazione', 'agent': 'Agent', 'system': 'Sistema'} %}
+{% set category_labels = {'backup': 'Backup', 'cve': 'CVE', 'security': 'Sicurezza', 'firmware': 'Firmware', 'lifecycle': 'Lifecycle', 'monitoring': 'Monitoring', 'integration': 'Integrazioni', 'configuration': 'Configurazione', 'agent': 'Agent', 'system': 'Sistema', 'exposure': 'Esposizione', 'reachability': 'Raggiungibilità', 'interface_errors': 'Errori interfacce'} %}
 {% set scope = '?customer=' ~ customer_filter ~ '&severity=' ~ severity_filter ~ '&status=' ~ status_filter %}
 <div class="page-header compact-heading">
   <div><h1>Action Center</h1><p>{% if selected_customer %}Problemi e attenzioni limitati a {{ selected_customer.name }}.{% else %}Apparati e problemi che richiedono attenzione operativa, dal più grave.{% endif %}</p></div>

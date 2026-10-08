@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.91 — 2026-10-09
+
+Monitoring — alert on interface errors (MON-01)
+- **What it checks.** Every 10 minutes the worker sums the receive and transmit errors of each monitored interface over the last hour (Agent 0.49.20+).
+- **Opening.** At 50 errors or more (`INTERFACE_ERROR_ALERT_PER_HOUR`, `0` disables) the device gets *Errori sull'interfaccia* in the Action Center, with a notification. It lists the interfaces and points to the Monitor page: check cable, port, duplex or radio signal.
+- **Closing.** One issue per device; it closes by itself when every interface is below the threshold.
+- **Drops never alert.** Queues and shaping drop packets on healthy links; drops stay on the graph.
+- The Action Center shows Italian labels for the *Esposizione*, *Raggiungibilità* and *Errori interfacce* categories.
+
 ## 0.49.90 — 2026-10-09
 
 Monitoring — ping from NSM on the fleet page and for a whole customer
