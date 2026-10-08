@@ -59,7 +59,7 @@
       {% if device.serial_number %}<div><dt>Seriale</dt><dd><code>{{ device.serial_number }}</code></dd></div>{% endif %}
       <div><dt>Sede</dt><dd>{{ device.site.name if device.site else '—' }}</dd></div>
       <div><dt>Ultimo contatto</dt><dd>{{ fmt_dt(device.last_seen) if device.last_seen else 'mai' }}</dd></div>
-      {% set zbx_link = zabbix_device_link(device) %}{% if zbx_link %}<div><dt>Zabbix</dt><dd><a href="{{ zbx_link }}" target="_blank" rel="noopener">Dati in Zabbix ↗</a></dd></div>{% elif device_inv.get('zabbix_exclude') %}<div><dt>Zabbix</dt><dd>escluso</dd></div>{% endif %}
+      {% set zbx_link = zabbix_device_link(device) %}{% set zbx_problems = zabbix_device_problems(device) if zbx_link else none %}{% if zbx_link %}<div><dt>Zabbix</dt><dd><a href="{{ zbx_link }}" target="_blank" rel="noopener">Dati in Zabbix ↗</a>{% if zbx_problems and zbx_problems['items'] %} <a class="severity-badge severity-{{ zbx_problems.worst }}" href="{{ device_base }}#zabbix-problems">{{ zbx_problems['items']|length }} {{ 'problema' if zbx_problems['items']|length == 1 else 'problemi' }}</a>{% endif %}</dd></div>{% elif device_inv.get('zabbix_exclude') %}<div><dt>Zabbix</dt><dd>escluso</dd></div>{% endif %}
       {% if is_mikrotik %}<div><dt>Agent</dt><dd><a href="{{ device_base }}/agent">{{ device_inv.get('agent_version') or 'non installato' }}</a></dd></div>{% endif %}
     </dl>
   </div>
@@ -76,6 +76,15 @@
 </nav>
 
 <div class="device-body">
+{% if device_tab == 'overview' and zbx_problems and zbx_problems['items'] %}
+<section class="panel" id="zabbix-problems">
+  <div class="panel-header"><div><h2>Problemi aperti in Zabbix</h2><p>Trigger in stato PROBLEM sull'host di questo apparato{% if zbx_problems.checked_at %}, aggiornati {{ fmt_dt(zbx_problems.checked_at) }}{% endif %}.{% if zbx_problems.stale %} <strong>Zabbix non risponde: elenco non aggiornato.</strong>{% endif %}</p></div>
+    <a class="button ghost" href="{{ zbx_link }}" target="_blank" rel="noopener">Apri in Zabbix ↗</a></div>
+  <div class="table-wrap"><table><thead><tr><th>Gravità</th><th>Problema</th><th>Da</th><th>Preso in carico</th></tr></thead><tbody>
+  {% for p in zbx_problems['items'] %}<tr><td><span class="severity-badge severity-{{ p.badge }}">{{ p.label }}</span></td><td>{{ p.name }}</td><td>{{ fmt_dt(p.since) if p.since else '—' }}</td><td>{{ 'sì' if p.acknowledged else 'no' }}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endif %}
 {% block device_content %}{% endblock %}
 </div>
 {% endblock %}

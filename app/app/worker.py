@@ -20,6 +20,7 @@ from app.syslog_receiver import cleanup as syslog_cleanup
 from app.syslog_security import evaluate as evaluate_access_alerts
 from app.mikrotik_syslog_config import auto_configure as auto_configure_syslog
 from app.zabbix_connector import scheduled_sync as zabbix_sync
+from app.zabbix_problems import scheduled_refresh as zabbix_problems_refresh
 from app.device_exposure import tick as exposure_tick
 from app.external_exposure import tick as external_exposure_tick
 from app.syslog_integrity import anchor_heads as syslog_anchor
@@ -80,6 +81,7 @@ while True:
             run_task("syslog_access_alerts", evaluate_access_alerts)
             run_task("syslog_agent_config", auto_configure_syslog)
             run_task("zabbix_sync", zabbix_sync)
+            run_task("zabbix_problems", zabbix_problems_refresh)
             run_task("exposure_check", exposure_tick)
             run_task("exposure_external_check", external_exposure_tick)
             run_task("syslog_chain_anchor", syslog_anchor)

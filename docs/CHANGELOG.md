@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.62 — 2026-10-08
+
+Integrations — Zabbix (ZBX-01, step 2)
+- **Zabbix problems shown in NSM.** Every 5 minutes the worker reads, with one `trigger.get` call, the triggers in PROBLEM state on the hosts NSM pushed (monitored, not dependent, Zabbix 5.0 – 7.x).
+  - **Device.** The header shows a badge *N problemi* with the worst severity, on every tab. The overview lists the problems: severity, name, since when, acknowledged or not.
+  - **Monitoring.** A *Problemi Zabbix* panel lists the devices with open problems, worst first, with the count still to acknowledge.
+  - **Integrazioni → Zabbix.** Shows the open problems and when they were last read.
+  - **When Zabbix cannot be reached**, the last list is kept and marked as not updated. Devices are rewritten only when their problems change.
+
 ## 0.49.61 — 2026-10-08
 
 Security — exposed services across the fleet (SCAN-01, step 3)
