@@ -15,7 +15,9 @@ Customer-level events):
 * failed backup/agent job within 30 minutes of the start: low (often a
   symptom rather than a cause);
 * critical/high vulnerability newly open on an involved Device before the
-  start: low.
+  start: low;
+* involved Device not answering the ping from NSM around the start: medium
+  (a link or power loss of that Device, or the path to it).
 """
 from __future__ import annotations
 
@@ -34,6 +36,9 @@ ISSUE_CATEGORY_TO_CAUSE = {
     "security": "security",
     "backup": "other",
     "firmware": "firmware",
+    "reachability": "connectivity",
+    "interface_errors": "connectivity",
+    "exposure": "security",
 }
 
 
@@ -112,6 +117,17 @@ def suggest(incident, timeline: Timeline, known_keys: set[str] | None = None) ->
                     category=category,
                     confidence="medium",
                     reason=f"Segnalazione aperta {_when(delta)}: può essere la causa o il primo sintomo.",
+                    entry=entry,
+                )
+            )
+        elif entry.source == "measure" and timedelta(hours=-1) <= delta <= timedelta(minutes=15):
+            out.append(
+                Candidate(
+                    key=entry.key,
+                    statement=f"Apparato non raggiungibile dal ping di NSM{where}",
+                    category="connectivity",
+                    confidence="medium",
+                    reason=f"{entry.title} {_when(delta)} ({entry.detail}).",
                     entry=entry,
                 )
             )
