@@ -136,6 +136,7 @@ def main():
 
     monitor = admin.get(f"/devices/{modern_id}/monitor")
     assert monitor.status_code == 200 and "data-traffic-root" in monitor.text and "traffic_monitor.js" in monitor.text
+    assert monitor.text.index("rrd_chart.js") < monitor.text.index("traffic_monitor.js")
     assert 'value="pppoe-out1" checked' in monitor.text and 'value="ether1">' in monitor.text
 
     page = admin.get(f"/devices/{modern_id}/monitor").text

@@ -262,7 +262,7 @@ Bring Ubiquiti devices managed through the UISP API to the depth of the MikroTik
 
 ### MON-01 — telemetry graphs and WAN/PPPoE traffic
 
-**Step 1 implemented in `main` (Core 0.49.43, Agent 0.49.9)**: MikroTik interface traffic graphs on the Monitor page.
+**Step 1 implemented in `main` (Core 0.49.43, Agent 0.49.9)**: MikroTik interface traffic graphs on the Monitor page. Since Core 0.49.65 every graph (CPU, memory, traffic, UISP) uses the same Cacti/Zabbix-style renderer.
 - Bit/s in and out from the agent byte counters, sampled every 5 minutes, kept 90 days.
 - WAN interfaces (pppoe-out, LTE, tunnel clients, else ether1) are monitored by default; operators can choose up to 8 per device.
 - Statistics per range: current, average, maximum, 95th percentile and volume.

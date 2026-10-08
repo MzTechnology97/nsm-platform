@@ -37,6 +37,7 @@
   <div class="telemetry-grid" data-series-grid><div class="telemetry-empty">Caricamento…</div></div>
   <div class="telemetry-footer"><span data-series-count>0 campioni</span></div>
 </section>
+<script defer src="{{ url_for('static', path='/rrd_chart.js') }}?v={{ asset_version }}"></script>
 <script defer src="{{ url_for('static', path='/series_chart.js') }}?v={{ asset_version }}"></script>
 
 <section class="panel" id="uisp-metrics">
