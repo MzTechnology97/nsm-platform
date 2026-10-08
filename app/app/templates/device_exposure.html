@@ -3,7 +3,7 @@
 {% block device_content %}
 <section class="panel">
   <div class="panel-header">
-    <div><h2>Servizi esposti sulla WAN</h2><p>{% if check_mode == 'agent' %}L'agent legge dalla configurazione del router i servizi attivi e le regole firewall (input e raw); NSM valuta quali sono raggiungibili da Internet. Nessun pacchetto viene inviato all'apparato.{% else %}Il server NSM verifica quali servizi di gestione rispondono sull'IP pubblico dell'apparato: una connessione per porta, solo porte note per questo produttore, nessuna scansione completa.{% endif %}</p></div>
+    <div><h2>Servizi esposti sulla WAN</h2><p>{% if check_mode == 'agent' %}L'agent legge dalla configurazione del router i servizi attivi e le regole firewall (input e raw); NSM valuta quali sono raggiungibili da Internet. Nessun pacchetto viene inviato all'apparato.{% else %}Il server NSM verifica quali servizi di gestione rispondono sull'IP dell'apparato (pubblico, oppure privato/CGNAT se raggiunto direttamente): una connessione per porta, solo porte note per questo produttore, nessuna scansione completa.{% endif %}</p></div>
     {% if not blocker and has_permission(user, 'security.remediate') %}<form method="post" action="/devices/{{ device.id }}/exposure/check"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary"{% if pending %} disabled{% endif %}>{{ 'Verifica in corso…' if pending else 'Verifica ora' }}</button></form>{% endif %}
   </div>
   {% if shared_peers %}<div class="alert info"><strong>IP condiviso</strong> con {{ shared_peers|map(attribute='name')|join(', ') }}: dall'esterno su questo indirizzo si raggiunge il router di bordo; gli apparati dietro il NAT sono esposti solo tramite port forward (elencati qui sotto quando il router è un MikroTik con agent).</div>{% endif %}
@@ -15,9 +15,10 @@
     <div><span class="muted">IP verificato</span> <strong>{% if target[0] %}<code>{{ target[0] }}</code> <small>{{ "indicato dall'operatore" if target[1] == 'operator' else 'IP di gestione' }}</small>{% else %}—{% endif %}</strong></div>
     {% if has_permission(user, 'security.remediate') %}<form method="post" action="/devices/{{ device.id }}/exposure/target" class="inline-form">
       <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
-      <input name="target_ip" value="{{ target_override }}" placeholder="IP WAN/PPPoE o IP pubblico del NAT" aria-label="IP pubblico da verificare">
+      <input name="target_ip" value="{{ target_override }}" placeholder="{{ device.management_ip or 'IP WAN/PPPoE, IP del NAT o IP privato/CGNAT' }}" aria-label="IP da verificare">
       <button class="button">Salva IP</button>
     </form>{% endif %}
+    {% if target[0] and not target_public %}<div class="alert warning exposure-private-warning"><strong>Attenzione — verifica su IP non pubblico.</strong> {{ private_warning }}</div>{% endif %}
     <small class="muted">Porte verificate: {% for p in planned %}{{ p[1] }}/{{ p[0] }}{% if not loop.last %}, {% endif %}{% endfor %}. La verifica parte dal server NSM: se il server è nella stessa rete dell'apparato il risultato può differire da quello visto da Internet.</small>
   </div>
   {% endif %}
@@ -27,6 +28,7 @@
     <article class="metric-card"><span>IP verificato</span><strong>{{ exposure.target_ip }}</strong><small>{{ exposure.ports_checked }} porte controllate</small></article>
     <article class="metric-card"><span>Ultima verifica</span><strong>{{ fmt_dt(exposure.checked_at) }}</strong><small>ripetuta ogni 24 ore</small></article>
   </section>
+  {% if exposure.private_target %}<div class="alert warning">Risultato ottenuto su un IP privato o CGNAT ({{ exposure.target_ip }}): vale solo se l'apparato ha accesso diretto alla WAN e non è dietro un altro router o NAT.</div>{% endif %}
   {% if exposure.shared_with %}<div class="alert info"><strong>IP condiviso</strong> con {{ exposure.shared_with|join(', ') }}: le risposte arrivano dal router di bordo o da un suo port forward{% if exposure.issue_skipped %}, quindi per questo apparato non viene aperta una segnalazione{% endif %}.</div>{% endif %}
   <div class="table-wrap"><table class="exposure-table">
     <thead><tr><th>Servizio</th><th>Porta</th><th>Stato</th><th>Gravità</th><th>Risposta</th></tr></thead>

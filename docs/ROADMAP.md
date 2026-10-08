@@ -341,6 +341,7 @@ Telemetry of a device that goes offline must never be deleted: the last received
 
 **Step 1 done (Core 0.49.52, Agent 0.49.12)**: the MikroTik configuration-based check, with an *Esposizione* tab on every device and alerts.
 **Step 2 done (Core 0.49.60)**: the check from the NSM server on the public IP for the other manufacturers (and MikroTik without the modern agent), with the IP given by the operator when it cannot be determined.
+**Since Core 0.49.73** the operator can also target a private/CGNAT address (device reached directly, e.g. via VPN), with an explicit warning that the result is distorted when the device sits behind another router or NAT.
 **Step 3 done (Core 0.49.61)**: the fleet view *Security → Esposizione*, exposed services in the security newsletter and in the evidence report (section 3).
 
 A port/service scanner run from the NSM server against the WAN address of each managed device.

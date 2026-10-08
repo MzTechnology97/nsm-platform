@@ -418,6 +418,8 @@ def exposure_page(request: Request, device_id: uuid.UUID):
                            forwards_in=shared_ips.forwards_to(db, device), check_mode=check_mode,
                            target=external_exposure.target(device) if check_mode == "external" else (None, ""),
                            target_override=data.get("exposure_target_ip") or "",
+                           target_public=external_exposure._public((external_exposure.target(device) if check_mode == "external" else (None, ""))[0]),
+                           private_warning=external_exposure.PRIVATE_WARNING,
                            planned=[external_exposure.CHECKS[k] for k in external_exposure.plan(device)] if check_mode == "external" else [])
 
 
@@ -464,8 +466,8 @@ async def exposure_target(request: Request, device_id: uuid.UUID):
         device = db.get(Device, device_id)
         if not device:
             raise HTTPException(404)
-        if value and not external_exposure._public(value):
-            return flash_redirect(request, back, "danger", "Indica un indirizzo IP pubblico: gli indirizzi privati, CGNAT o riservati non sono verificabili da Internet.",
+        if value and not external_exposure.allowed_target(value):
+            return flash_redirect(request, back, "danger", "Indirizzo non utilizzabile: indica un IP pubblico, privato o CGNAT valido (non loopback, link-local, multicast o riservato).",
                                   title="IP non valido")
         data = dict(device.inventory_data or {})
         if value:
@@ -516,13 +518,14 @@ def fleet(db, customer_id=None, device_ids=None) -> dict:
         else:
             state = "pending"
         short = blocker
-        if blocker and mode(device) == "external" and "IP pubblico" in blocker:
-            short = f"Manca l'IP pubblico (gestione: {device.management_ip})" if device.management_ip else "Manca l'IP pubblico"
+        if blocker and mode(device) == "external" and "Manca l'IP" in blocker:
+            short = f"Manca l'IP da verificare (gestione: {device.management_ip})" if device.management_ip else "Manca l'IP da verificare"
         elif blocker and "agent" in blocker.lower():
             short = f"Agent da aggiornare (serve {MIN_AGENT_VERSION}+)"
         rows.append({"device": device, "customer": customers.get(device.customer_id), "mode": mode(device), "state": state, "blocker": short,
                      "exposed": exposed, "worst": exposed[0].get("severity") if exposed else None, "checked_at": exposure.get("checked_at"),
-                     "target_ip": exposure.get("target_ip"), "shared": bool(exposure.get("issue_skipped"))})
+                     "target_ip": exposure.get("target_ip"), "shared": bool(exposure.get("issue_skipped")),
+                     "private": bool(exposure.get("private_target"))})
     rows.sort(key=lambda r: (r["state"] != "exposed", -SEVERITY_RANK.get(r["worst"] or "info", 0), -len(r["exposed"]),
                              (r["device"].display_name or r["device"].name or "").lower()))
     counts = {key: sum(1 for r in rows if r["state"] == key) for key in ("exposed", "clean", "setup", "pending")}

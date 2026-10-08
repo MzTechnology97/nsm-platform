@@ -93,6 +93,24 @@ def _public(value) -> bool:
     return ip.is_global and ip not in ipaddress.ip_network("100.64.0.0/10") and not ip.is_multicast
 
 
+def allowed_target(value) -> bool:
+    """Public IPs, or private/CGNAT ones given explicitly by the operator (devices reached directly, e.g. via VPN)."""
+    if _public(value):
+        return True
+    try:
+        ip = ipaddress.ip_address(str(value or "").strip())
+    except ValueError:
+        return False
+    if ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_unspecified or ip.is_reserved:
+        return False
+    return ip.is_private or ip in ipaddress.ip_network("100.64.0.0/10")
+
+
+PRIVATE_WARNING = ("IP privato o CGNAT: il risultato è attendibile solo se l'apparato ha accesso diretto alla WAN (non è dietro un altro router "
+                   "o NAT) e il server NSM lo raggiunge su questo indirizzo (stessa rete o VPN). Altrimenti la verifica è falsata: "
+                   "risponde il router a monte, oppure nessuno.")
+
+
 def vendor_key(device) -> str:
     vendor = str(device.vendor or "").lower()
     if vendor and vendor != "generic":
@@ -110,10 +128,10 @@ def plan(device) -> list[str]:
 
 
 def target(device) -> tuple[str | None, str]:
-    """(public IP to probe, origin): operator override first, then a public management IP."""
+    """(IP to probe, origin): operator override (public, private or CGNAT) first, then a public management IP."""
     data = device.inventory_data or {}
     override = str(data.get("exposure_target_ip") or "").strip()
-    if override and _public(override):
+    if override and allowed_target(override):
         return override, "operator"
     if _public(device.management_ip):
         return str(device.management_ip).strip(), "management"
@@ -126,8 +144,8 @@ def blocker(device) -> str | None:
     ip, _origin = target(device)
     if ip is None:
         current = f"l'IP di gestione {device.management_ip} non è pubblico" if device.management_ip else "l'apparato non ha un IP di gestione"
-        return (f"Per la verifica dall'esterno serve l'IP pubblico dell'apparato: {current}. "
-                "Indica qui sotto l'indirizzo WAN/PPPoE oppure l'IP pubblico del NAT del cliente.")
+        return (f"Manca l'IP da verificare dall'esterno: {current}. Indica qui sotto l'indirizzo WAN/PPPoE, l'IP pubblico del NAT del cliente "
+                "oppure, per un apparato raggiunto direttamente (VPN o rete di gestione), il suo IP privato o CGNAT.")
     return None
 
 
@@ -234,7 +252,7 @@ def run_check(db, device, actor=None) -> dict:
         "checked_at": utcnow().isoformat(), "source": "external", "target_ip": ip, "target_origin": origin, "vendor_key": vendor_key(device),
         "findings": findings, "ports_checked": len(keys), "exposed": len(exposed), "uncertain": 0,
         "worst": next((k for k, v in SEVERITY_RANK.items() if v == worst), "info") if exposed else None,
-        "shared_with": sorted(shared)[:20], "port_forwards": [],
+        "shared_with": sorted(shared)[:20], "port_forwards": [], "private_target": not _public(ip),
     }
     data = dict(device.inventory_data or {})
     data["exposure"] = result
@@ -264,7 +282,7 @@ def request_check(db, device, now=None) -> tuple[bool, str]:
         return False, "Una verifica è già in coda."
     data["exposure_requested_at"] = now.isoformat()
     device.inventory_data = data
-    return True, "Il server NSM verificherà le porte sull'IP pubblico entro un minuto; il risultato compare qui."
+    return True, "Il server NSM verificherà le porte sull'IP indicato entro un minuto; il risultato compare qui."
 
 
 def _due(device, now) -> int | None:

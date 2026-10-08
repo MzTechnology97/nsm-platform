@@ -108,7 +108,7 @@ def main():
         assert {"winbox", "api", "api-ssl", "btest"} <= set(ext.plan(edge)) and "winbox" not in ext.plan(cpe)
         # Target: private or missing management IP -> the operator must give the public IP.
         assert expo.eligibility(cpe) is None and ext.target(cpe) == (CPE_IP, "management")
-        assert "IP pubblico" in expo.eligibility(ubnt) and "192.0.2.10" in expo.eligibility(ubnt) and "esterno" in expo.eligibility(huawei)
+        assert "Manca l'IP da verificare" in expo.eligibility(ubnt) and "192.0.2.10" in expo.eligibility(ubnt) and "esterno" in expo.eligibility(huawei)
 
     # Worker: new devices with a public IP are checked; the Agent MikroTik is not probed.
     stats = ext.tick(limit=50)
@@ -142,9 +142,18 @@ def main():
     ubnt_page = client.get(f"/devices/{ids['ubnt']}/exposure").text
     assert "IP pubblico del NAT" in ubnt_page and "udp/10001" in ubnt_page
     token = csrf_from(ubnt_page)
-    client.post(f"/devices/{ids['ubnt']}/exposure/target", data={"csrf": token, "target_ip": "192.0.2.10"}, follow_redirects=False)
+    for bad in ("127.0.0.1", "169.254.10.1", "224.0.0.5", "not-an-ip"):
+        client.post(f"/devices/{ids['ubnt']}/exposure/target", data={"csrf": token, "target_ip": bad}, follow_redirects=False)
     with SessionLocal() as db:
-        assert "exposure_target_ip" not in (db.get(Device, ids["ubnt"]).inventory_data or {}), "private address refused"
+        assert "exposure_target_ip" not in (db.get(Device, ids["ubnt"]).inventory_data or {}), "loopback, link-local, multicast refused"
+    # Private / CGNAT addresses are accepted for devices reached directly, with a warning.
+    assert ext.allowed_target("10.20.30.40") and ext.allowed_target("100.64.1.2") and ext.allowed_target("192.168.1.1") and not ext.allowed_target("127.0.0.1")  # public-data-safety: allow (private-address acceptance is what this test checks)
+    client.post(f"/devices/{ids['ubnt']}/exposure/target", data={"csrf": token, "target_ip": "10.20.30.40"}, follow_redirects=False)  # public-data-safety: allow (private-address acceptance is what this test checks)
+    with SessionLocal() as db:
+        ubnt = db.get(Device, ids["ubnt"])
+        assert ubnt.inventory_data["exposure_target_ip"] == "10.20.30.40" and ext.target(ubnt) == ("10.20.30.40", "operator") and expo.eligibility(ubnt) is None  # public-data-safety: allow (private-address acceptance is what this test checks)
+    warned = client.get(f"/devices/{ids['ubnt']}/exposure").text
+    assert "verifica su IP non pubblico" in warned and "accesso diretto alla WAN" in warned
     saved = client.post(f"/devices/{ids['ubnt']}/exposure/target", data={"csrf": token, "target_ip": OTHER_IP}, follow_redirects=False)
     assert saved.status_code == 303
     with SessionLocal() as db:

@@ -163,7 +163,7 @@ def main():
         assert sorted(j.payload["section"] for j in pending) == ["firewall", "services"]
     assert "Verifica in corso" in client.get(f"/devices/{ids['gw']}/exposure").text
     other = client.get(f"/devices/{ids['ubnt']}/exposure").text
-    assert "serve l&#39;IP pubblico" in other and "Verifica ora" not in other, "no public IP: the operator must give one"
+    assert "Manca l&#39;IP da verificare" in other and "Verifica ora" not in other, "no public IP: the operator must give one"
     assert "Serve l&#39;agent 0.49.12" in client.get(f"/devices/{ids['old']}/exposure").text or "Serve l'agent 0.49.12" in client.get(f"/devices/{ids['old']}/exposure").text
     print("Device exposure smoke passed")
 
