@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 cd "$(dirname "$0")"
+# Commands act on the installation (secrets/, .env, data/), not on the Git clone:
+# when launched from the clone, move to the installation directory.
+PLATFORM_DIR="${PLATFORM_DIR:-/srv/network-platform}"
+if [[ ! -f secrets/bootstrap.env && -d "$PLATFORM_DIR/secrets" ]]; then
+  echo "manage.sh: uso l'installazione in $PLATFORM_DIR (non il repository $(pwd))." >&2
+  cd "$PLATFORM_DIR"
+fi
 
 cmd="${1:-help}"
 shift || true

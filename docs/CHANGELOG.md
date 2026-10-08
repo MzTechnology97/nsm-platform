@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.57 — 2026-10-08
+
+Operations
+- `manage.sh` run from the Git clone (e.g. `~/nsm-platform`) now switches to the installation directory (`PLATFORM_DIR`, default `/srv/network-platform`). Before, commands such as `acs-enable` failed with `secrets/bootstrap.env: file not found`.
+
 ## 0.49.56 — 2026-10-08
 
 ACS / TR-069
