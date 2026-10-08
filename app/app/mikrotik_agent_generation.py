@@ -14,13 +14,14 @@ Agent 0.49.11 can configure remote syslog toward NSM (job syslog_configure).
 Agent 0.49.12 adds the read-only snapshot section 'services' (exposed services, SCAN-01).
 Agent 0.49.13 sets the per-device syslog key as logging prefix (syslog strict mode).
 Agent 0.49.14 adds /ip firewall raw to the firewall snapshot (exposure check).
+Agent 0.49.15: the legacy Agent (ops profile) configures remote syslog with the device key.
 """
 from __future__ import annotations
 
 from app import mikrotik_agent_update as updater
 from app import mikrotik_agent_update_ui as update_ui
 
-TARGET_AGENT_VERSION = "0.49.14"
+TARGET_AGENT_VERSION = "0.49.15"
 SELF_UPDATE_MIN_VERSION = "0.49.0"
 
 
