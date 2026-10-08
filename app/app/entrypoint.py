@@ -100,6 +100,7 @@ from app.ui_firmware_upgrade_feedback import install_ui_firmware_upgrade_feedbac
 from app.ui_notification_feedback import install_ui_notification_feedback
 from app.uisp_connector import install_uisp_connector
 from app.uisp_sync import install_uisp_sync
+from app.uisp_operations import install_uisp_operations
 from app.advisory_admin import install_advisory_admin
 from app.vulnerability_remediation import install_vulnerability_remediation
 from app.incidents import install_incidents
@@ -122,7 +123,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.67"
+APP_VERSION = "0.49.68"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -179,6 +180,7 @@ install_firmware_upgrade_planner(core.app)
 install_agent_ui(core.app)
 install_uisp_connector(core.app)
 install_uisp_sync(core.app)
+install_uisp_operations(core.app)
 install_advisory_admin(core.app)
 install_vulnerability_remediation(core.app)
 install_incidents(core.app)

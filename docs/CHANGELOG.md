@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.68 — 2026-10-08
+
+Ubiquiti — operations through UISP (UBNT-08, step 2)
+- **Riavvio.** Sent to UISP after typing `RIAVVIA` (permission *firmware.execute*). NSM records the uptime before the request and verifies the reboot on the device uptime: *verificato* when it restarts, *non verificato* after 20 minutes. Audited.
+- **Backup della configurazione.**
+  - **How it works.** UISP creates the backup; NSM downloads the new file and archives it like the MikroTik exports (BackupRun + artifact, SHA-256, audit), in the device backup archive.
+  - **When.** On demand (*Esegui backup ora*), or by policy when the policy enables *Configurazione dal connector*.
+  - **Protection.** Ubiquiti devices linked to UISP with that option now count as **protetti** in backup coverage.
+- **Interfacce.** Name, type, state (disabled or unplugged), speed, MTU, rx/tx and errors, read on demand.
+- **Eventi UISP.** The last 50 device events.
+- **Errors.** Reboot and backup need a UISP token with write permission. 401/403 and 404 answers are explained, and a failed backup is recorded with its reason.
+- Endpoints follow the UISP API v2.1 documentation; field names must be confirmed on a real console.
+
 ## 0.49.67 — 2026-10-08
 
 Syslog — automatic configuration also with the legacy agent (RouterOS 7.12 and 6.x)

@@ -250,7 +250,7 @@ Implement only diagnostics actually exposed and validated by the integration con
 ### UBNT-08 — full UISP device management (requested 2026-10-07)
 
 **Step 1 done (Core 0.49.49)**: UISP history charts (signal, capacity, CPU/RAM, stations) on the device UISP tab.
-Next steps need an API check on a real UISP instance: backup, reboot, firmware, LAN interfaces and logs.
+**Step 2 done (Core 0.49.68)**: reboot with uptime verification, configuration backup archived in NSM (manual and by policy), interfaces and UISP events on the device UISP tab. Endpoint field names to be confirmed on a real console. Remaining: firmware upgrade execution through UISP.
 
 Bring Ubiquiti devices managed through the UISP API to the depth of the MikroTik agent, for every operation the UISP API actually exposes and that can be verified on a real instance:
 
