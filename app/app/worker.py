@@ -25,6 +25,7 @@ from app.device_exposure import tick as exposure_tick
 from app.external_exposure import tick as external_exposure_tick
 from app.syslog_integrity import anchor_heads as syslog_anchor
 from app.routeros_catalog import run_scheduled as run_routeros_catalog
+from app.vendor_firmware import run_scheduled as run_vendor_firmware
 from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
 from app.mikrotik_device_reboot import verify_reboots
 from app.uisp_operations import scheduled_backups as uisp_scheduled_backups, verify_reboots as uisp_verify_reboots
@@ -119,6 +120,7 @@ while True:
         if now_mono - last_compliance >= COMPLIANCE_INTERVAL_SECONDS:
             lifecycle_stats = run_task("lifecycle_reconcile", run_lifecycle_reconcile)
             catalog_stats = run_task("routeros_catalog", run_routeros_catalog)  # an unreachable upgrade server must not stop the worker
+            run_task("vendor_firmware_catalogs", run_vendor_firmware)
             if catalog_stats.get("refresh", {}).get("new_releases"):
                 log.info("RouterOS catalog: %s", catalog_stats)
             if lifecycle_stats.get("status_changed"):

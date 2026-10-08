@@ -4775,3 +4775,6 @@ a.compliance-mark { text-decoration: none; }
 .uisp-ops article { display: grid; gap: 8px; align-content: start; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-soft); }
 .uisp-ops h3 { margin: 0; font-size: 14px; }
 .uisp-ops p { margin: 0; }
+.vendor-catalog-add { margin-top: 10px; }
+.vendor-catalog-add summary { cursor: pointer; font-weight: 650; }
+.vendor-catalog-add form { margin-top: 10px; }

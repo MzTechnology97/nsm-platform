@@ -94,6 +94,7 @@ PAGES = (
     ("Clienti", "/customers", "customer anagrafica", None),
     ("Backup", "/operations/backups", "configurazioni archivio", None),
     ("Firmware", "/operations/firmware", "aggiornamenti routeros update", "firmware.read"),
+    ("Cataloghi firmware", "/operations/firmware/catalogs", "firmware ubiquiti tp-link tenda cambium huawei release versioni", "firmware.read"),
     ("Suggerimenti RouterOS", "/operations/firmware/suggestions", "aggiornamento piano firmware", "firmware.read"),
     ("Monitoraggio", "/operations/monitoring", "cpu memoria telemetria", None),
     ("Agent MikroTik", "/operations/agents", "fleet heartbeat", None),
