@@ -61,6 +61,24 @@ ICONS = {
 # Cambium has its own vendor with cnMaestro onboarding.
 MANUAL_BRANDS = tuple(key for key in BRANDS if key not in ("mikrotik", "ubiquiti", "cambium"))
 _DOTTED = re.compile(r"(\d+(?:\.\d+)+)")
+# Huawei VRP: V200R019C10SPC800 (version, release, customization, service pack, hot patch).
+_HUAWEI = re.compile(r"V(\d{3})R(\d{3})C(\d{2})(?:SPC(\d{3}))?(?:SPH(\d{3}))?", re.I)
+# Cisco: IOS 15.2(4)M3 / 12.2(55)SE12, ASA 9.12(4)18, NX-OS 9.3(8), IOS-XE 17.3.4a.
+_CISCO_PAREN = re.compile(r"(\d+)\.(\d+)\((\d+)([a-z]?)\)([A-Z]*)(\d*)([a-z]?)")
+_CISCO_DOTTED = re.compile(r"(\d+)\.(\d+)(?:\.(\d+))?([a-z]?)(?![\w.])")
+CISCO_FAMILIES = (
+    (re.compile(r"ios[ -_]?xe", re.I), "ios_xe"),
+    (re.compile(r"ios[ -_]?xr", re.I), "ios_xr"),
+    (re.compile(r"nx[ -_]?os", re.I), "nx-os"),
+    (re.compile(r"\basa\b|adaptive security", re.I), "adaptive_security_appliance_software"),
+)
+CISCO_MODEL_FAMILIES = (
+    (re.compile(r"^(isr4|isr1|asr1|c8[0-9]{3}|cat9|c9[0-9]{3}|csr1000)"), "ios_xe"),
+    (re.compile(r"^(asr9|ncs)"), "ios_xr"),
+    (re.compile(r"^(n[0-9]k|nexus)"), "nx-os"),
+    (re.compile(r"^(asa|firepower)"), "adaptive_security_appliance_software"),
+    (re.compile(r"^(c[0-9]{4}|ws-c|isr|c8[0-9]{2}|c1[0-9]{3}|c2[0-9]{3}|c3[0-9]{3})"), "ios"),
+)
 
 
 def brand(device) -> str | None:
@@ -109,6 +127,8 @@ def products(device) -> tuple[str, ...]:
     candidates = [f"{model_slug}_firmware"] if model_slug else []
     if key == "ubiquiti" and model_slug:
         candidates += _ubiquiti_families(model_slug)
+    if key == "cisco":
+        candidates += cisco_families(model_slug, device.firmware_version)
     candidates += list(BRANDS[key].get("families", ()))
     return tuple(dict.fromkeys(candidates))
 
@@ -116,6 +136,37 @@ def products(device) -> tuple[str, ...]:
 def cpe_vendors(device) -> tuple[str, ...]:
     key = brand(device)
     return BRANDS[key]["cpe_vendors"] if key else ()
+
+
+def cisco_families(model_slug: str | None, firmware) -> list[str]:
+    """Cisco OS family from the firmware text, else from the model (never from the brand alone)."""
+    text = str(firmware or "")
+    for pattern, family in CISCO_FAMILIES:
+        if pattern.search(text):
+            return [family]
+    for pattern, family in CISCO_MODEL_FAMILIES:
+        if model_slug and pattern.search(model_slug):
+            return [family]
+    return ["ios"] if _CISCO_PAREN.search(text) else []
+
+
+def huawei_tuple(value) -> tuple[int, ...] | None:
+    match = _HUAWEI.search(str(value or ""))
+    return tuple(int(part or 0) for part in match.groups()) if match else None
+
+
+def cisco_key(value) -> tuple | None:
+    """(numbers, train, letter): versions of different trains (e.g. 15.2(4)M vs 15.2(4)E) are not comparable."""
+    text = str(value or "")
+    match = _CISCO_PAREN.search(text)
+    if match:
+        major, minor, maint, paren_letter, train, rebuild, letter = match.groups()
+        return (int(major), int(minor), int(maint), paren_letter, int(rebuild or 0)), train.upper(), letter
+    match = _CISCO_DOTTED.search(text)
+    if match:
+        major, minor, maint, letter = match.groups()
+        return (int(major), int(minor), int(maint or 0), "", 0), "", letter
+    return None
 
 
 def version_tuple(value) -> tuple[int, ...] | None:
@@ -126,6 +177,11 @@ def version_tuple(value) -> tuple[int, ...] | None:
 def normalize_version(device_brand: str | None, value) -> str | None:
     if device_brand == "mikrotik":
         return str(value).split(" ")[0].strip() if value else None
+    if device_brand == "huawei" and huawei_tuple(value):
+        return _HUAWEI.search(str(value)).group(0).upper()
+    if device_brand == "cisco" and cisco_key(value):
+        match = _CISCO_PAREN.search(str(value)) or _CISCO_DOTTED.search(str(value))
+        return match.group(0)
     parsed = version_tuple(value)
     return ".".join(str(p) for p in parsed) if parsed else None
 
@@ -134,6 +190,15 @@ def compare(device_brand: str | None, left, right) -> int | None:
     """-1 / 0 / 1, or None when one side cannot be interpreted."""
     if device_brand == "mikrotik":
         return compare_routeros_versions(left, right)
+    if device_brand == "huawei" and (huawei_tuple(left) or huawei_tuple(right)):
+        a, b = huawei_tuple(left), huawei_tuple(right)
+        return None if a is None or b is None else (a > b) - (a < b)
+    if device_brand == "cisco":
+        a, b = cisco_key(left), cisco_key(right)
+        if a is None or b is None or a[1] != b[1]:
+            return None  # different release trains are not ordered
+        left_key, right_key = (a[0], a[2]), (b[0], b[2])
+        return (left_key > right_key) - (left_key < right_key)
     a, b = version_tuple(left), version_tuple(right)
     if a is None or b is None:
         return None
@@ -147,6 +212,10 @@ def parseable(device_brand: str | None, value) -> bool:
         from app.routeros_version import parse_routeros_version
 
         return parse_routeros_version(value) is not None
+    if device_brand == "huawei" and huawei_tuple(value):
+        return True
+    if device_brand == "cisco":
+        return cisco_key(value) is not None
     return version_tuple(value) is not None
 
 
