@@ -119,3 +119,22 @@ class DevicePingSample(Base):
     rtt_min: Mapped[float | None] = mapped_column(Float)
     rtt_avg: Mapped[float | None] = mapped_column(Float)
     rtt_max: Mapped[float | None] = mapped_column(Float)
+
+
+class DeviceWirelessSample(Base):
+    """MikroTik radio interface per heartbeat (MON-01): registered peers, signal (dBm) and CCQ."""
+    __tablename__ = "device_wireless_samples"
+    __table_args__ = (
+        Index("ix_device_wireless_samples_device_iface_observed", "device_id", "interface", "observed_at"),
+        Index("ix_device_wireless_samples_observed_at", "observed_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    device_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("devices.id", ondelete="CASCADE"), nullable=False)
+    interface: Mapped[str] = mapped_column(String(100), nullable=False)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    clients: Mapped[int] = mapped_column(Integer, nullable=False)
+    signal_min: Mapped[float | None] = mapped_column(Float)
+    signal_avg: Mapped[float | None] = mapped_column(Float)
+    signal_max: Mapped[float | None] = mapped_column(Float)
+    ccq_avg: Mapped[float | None] = mapped_column(Float)

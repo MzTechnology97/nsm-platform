@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from fastapi import Request
 
-from app import agent_addresses, interface_traffic
+from app import agent_addresses, interface_traffic, mikrotik_wireless
 from app import mikrotik_agent as agent
 from app import mikrotik_agent_status as agent_status
 from app import mikrotik_legacy as legacy
@@ -49,6 +49,7 @@ async def legacy_heartbeat_with_history(request: Request):
         ifaces = request.headers.get("X-NSM-Ifaces")
         if ifaces:
             interface_traffic.record(db, device, data, ifaces, errors=request.headers.get("X-NSM-Iferr"))
+        mikrotik_wireless.record(db, device, data, request.headers.get("X-NSM-Wifi"))
         agent_addresses.apply(device, data, request.headers.get("X-NSM-Addrs"), data.get("last_source_ip"))
         device.inventory_data = data
         db.commit()

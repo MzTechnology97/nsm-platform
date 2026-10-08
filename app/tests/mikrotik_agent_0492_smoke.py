@@ -8,9 +8,9 @@ from app.models import Device
 
 
 def main():
-    assert generation.TARGET_AGENT_VERSION == "0.49.20"
+    assert generation.TARGET_AGENT_VERSION == "0.49.21"
     assert generation.SELF_UPDATE_MIN_VERSION == "0.49.0"
-    assert updater.TARGET_AGENT_VERSION == "0.49.20"
+    assert updater.TARGET_AGENT_VERSION == "0.49.21"
 
     modern = Device(
         vendor="mikrotik",
@@ -18,7 +18,7 @@ def main():
         inventory_data={"agent_transport": "modern", "agent_version": "0.49.0", "agent_privilege_profile": "ops-v2"},
     )
     status = updater.agent_update_status(modern)
-    assert status["target_version"] == "0.49.20"
+    assert status["target_version"] == "0.49.21"
     assert status["outdated"] is True
     assert status["self_update_capable"] is True
     assert status["requires_reinstall"] is False
@@ -41,7 +41,7 @@ def main():
         True,
     )
     for marker in (
-        '"agent_version"="0.49.20"',
+        '"agent_version"="0.49.21"',
         '/ppp active find',
         '/interface sstp-client find',
         '/interface l2tp-client find',
