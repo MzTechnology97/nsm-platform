@@ -82,6 +82,13 @@ health check fails (`Backup DB disponibile per recovery: …`).
 
 ## Integrated GenieACS (TR-069)
 
+**Panel access.**
+- *Amministrazione → ACS → Apri pannello ACS* opens the GenieACS UI on port 7080, published by Caddy only for NSM administrators.
+- On first access GenieACS asks to create its own admin user (procedure «init»).
+- With HTTPS, write `<nome-dns>:7080` instead of `:7080` in `config/Caddyfile`.
+- Open 7080 only toward the management addresses.
+
+
 The Docker stack can run GenieACS next to NSM (optional compose profile `acs`), built from the official `genieacs` npm package and run as a non-root user:
 
 | Service | Port | Exposure |

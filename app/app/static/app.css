@@ -4721,3 +4721,5 @@ a.compliance-mark { text-decoration: none; }
 .reject-grid span { font-size: 11.5px; color: var(--muted); }
 .syslog-ident { margin: 8px 0; }
 .shared-ip-badge { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; background: color-mix(in srgb, var(--warning, #b7791f) 18%, transparent); color: var(--warning, #b7791f); cursor: help; }
+.acs-steps { display: grid; gap: 10px; padding-left: 20px; }
+.acs-steps ul { margin: 6px 0 0; }

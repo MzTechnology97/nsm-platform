@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}ACS · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Amministrazione</h1><p>Server TR-069 (GenieACS) integrato: accesso al pannello, configurazione delle CPE e template di provisioning.</p></div></div>
+{% set admin_tab = "acs" %}{% include "_admin_tabs.html" %}
+{% if message %}<div class="alert success">{{ message }}</div>{% endif %}
+{% if error %}<div class="alert warning">{{ error }}</div>{% endif %}
+
+<section class="mt-kpi-grid">
+  <article class="metric-card"><span>Collegamento NSM</span><strong>{% if connection and connection.is_enabled %}Attivo{% elif connection %}Disabilitato{% else %}Non configurato{% endif %}</strong><small>{% if connection %}{{ connection.base_url }}{% elif internal_url %}GenieACS integrato disponibile{% else %}esegui ./manage.sh acs-enable{% endif %}</small></article>
+  <article class="metric-card"><span>ACS URL per le CPE</span><strong><code>{{ acs_url }}</code></strong><small>porta 7547 (CWMP)</small></article>
+  <article class="metric-card"><span>Pannello GenieACS</span><strong>porta {{ panel.rsplit(':', 1)[-1].strip('/') if ':' in panel else '7080' }}</strong><small>solo amministratori NSM, poi login GenieACS</small></article>
+</section>
+
+<section class="panel">
+  <div class="panel-header"><div><h2>Pannello ACS</h2><p>Si apre in una nuova scheda. NSM verifica che tu sia amministratore; al primo accesso GenieACS chiede di creare il proprio utente amministratore e la configurazione iniziale (procedura «init»).</p></div>
+    <a class="button primary" href="{{ panel }}" target="_blank" rel="noopener">Apri pannello ACS</a></div>
+  {% if not connection %}<p class="muted">Collega NSM a GenieACS in <a href="/admin/integrations/genieacs">Integrazioni → GenieACS</a> con «Usa GenieACS integrato» per vedere le CPE in NSM.</p>{% endif %}
+</section>
+
+<section class="panel" id="guide">
+  <div class="panel-header"><div><h2>Configurare una CPE TP-Link</h2><p>I menu possono cambiare tra modelli e firmware; il TR-069 è presente soprattutto sui modelli per operatori (ONT XZ/XC, Archer VR/VX, alcuni Archer C con firmware ISP).</p></div></div>
+  <ol class="acs-steps">
+    <li><strong>Sulla CPE</strong>: <em>Advanced → System Tools → CWMP Settings</em> (oppure <em>TR-069</em>):
+      <ul>
+        <li>CWMP: <strong>abilitato</strong>;</li>
+        <li>ACS URL: <code>{{ acs_url }}</code>;</li>
+        <li>ACS Username / Password: lasciali vuoti per la prima prova, poi impostali (vedi «Sicurezza» qui sotto);</li>
+        <li>Periodic Inform: <strong>abilitato</strong>, intervallo <strong>300</strong> secondi;</li>
+        <li>Connection Request Username / Password: imposta credenziali tue, servono a GenieACS per contattare la CPE.</li>
+      </ul></li>
+    <li><strong>Rete</strong>: la CPE deve raggiungere questo server sulla porta <strong>7547/TCP</strong>. Le «connection request» (azioni immediate dall'ACS verso la CPE) funzionano solo se la CPE è raggiungibile; dietro NAT le modifiche vengono applicate al successivo inform periodico.</li>
+    <li><strong>Template</strong>: installa qui sotto il provisioning base NSM. Al primo contatto (BOOTSTRAP) e a ogni inform la CPE imposta l'inform ogni 5 minuti e invia firmware, identità e IP WAN/PPPoE.</li>
+    <li><strong>Verifica nel pannello ACS</strong>: in <em>Devices</em> compare la CPE con produttore, modello e seriale; in <em>Faults</em> eventuali errori.</li>
+    <li><strong>In NSM</strong>: crea l'apparato TP-Link con MAC o seriale, apri la scheda <strong>ACS</strong> del dispositivo e associalo alla CPE trovata in GenieACS.</li>
+  </ol>
+  <h3>Sicurezza</h3>
+  <ul>
+    <li>Dopo la prima prova imposta l'autenticazione delle CPE in GenieACS: <em>Admin → Config</em>, chiave <code>cwmp.auth</code> (per esempio <code>AUTH("utente-acs", "password-lunga")</code>) e le stesse credenziali su ogni CPE.</li>
+    <li>Apri la porta 7547 solo verso le reti dei clienti e, se la CPE lo supporta, usa HTTPS sull'ACS.</li>
+  </ul>
+</section>
+
+<section class="panel" id="templates">
+  <div class="panel-header"><div><h2>Template di provisioning</h2><p>In GenieACS un template è una <strong>provision</strong> (script che legge e imposta i parametri) applicata da un <strong>preset</strong> (quando: eventi e condizione sul dispositivo). Il pulsante crea o aggiorna quelli di NSM; puoi modificarli o aggiungerne altri dal pannello ACS.</p></div>
+    <form method="post" action="/admin/acs/templates"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Installa template base</button></form></div>
+  <dl class="kv-list">
+    {% for name, preset in presets.items() %}<div><dt>Preset <code>{{ name }}</code></dt><dd>condizione <code>{{ preset.precondition }}</code>, eventi bootstrap, boot e periodic → provision <code>{{ base_provision }}</code></dd></div>{% endfor %}
+  </dl>
+  <details><summary>Script della provision <code>{{ base_provision }}</code></summary><pre class="json-preview syslog-code">{{ provision_script }}</pre></details>
+</section>
+{% endblock %}
