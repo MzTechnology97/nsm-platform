@@ -112,9 +112,9 @@ async def mikrotik_heartbeat(request: Request):
         device, _credential = agent._authenticate_agent(db, request)
         agent._apply_inventory(db, device, inventory, request, "mikrotik_agent")
         data = dict(device.inventory_data or {})
-        data["metrics"] = {k: agent._string(v, 200) for k, v in metrics.items() if k not in ("ifaces", "addresses")}
+        data["metrics"] = {k: agent._string(v, 200) for k, v in metrics.items() if k not in ("ifaces", "iferrs", "addresses")}
         data["last_heartbeat_at"] = utcnow().isoformat()
-        interface_traffic.record(db, device, data, metrics.get("ifaces"))
+        interface_traffic.record(db, device, data, metrics.get("ifaces"), errors=metrics.get("iferrs"))
         agent_addresses.apply(device, data, metrics.get("addresses"), data.get("last_source_ip"))
         device.inventory_data = data
 

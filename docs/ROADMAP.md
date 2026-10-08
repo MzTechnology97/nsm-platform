@@ -268,7 +268,7 @@ Bring Ubiquiti devices managed through the UISP API to the depth of the MikroTik
 - Statistics per range: current, average, maximum, 95th percentile and volume.
 
 Next steps:
-- interface errors and drops;
+- ~~interface errors and drops~~ — done in Core 0.49.83 (Agent 0.49.20, *Errori e drop* chart);
 - signal and latency series;
 - the same graphs for UISP devices (from `uisp_metric_samples`) and, later, cnMaestro;
 - ~~graphs aggregated per customer and per site~~ — done in Core 0.49.72 (customer *Grafici* tab with site filter).
