@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.76 — 2026-10-09
+
+Inventory — onboarding through UISP and cnMaestro (requested by the operator)
+- **Cambium is its own vendor** in *Nuovo apparato*: *Cambium (cnMaestro)*. Before, it was one of the generic manufacturers; it is removed from the manual list.
+- **Ubiquiti (UISP) and Cambium (cnMaestro)**: the device must **already exist in the console**. NSM looks it up by **MAC or serial** when the device is created.
+  - **Found once**: the device is created already linked. Name, model, serial, firmware, IP and status come from the console; for Cambium also network and tower, with statistics from the cnMaestro sync. Audited (`UISP_DEVICE_ONBOARDED`, `CNMAESTRO_DEVICE_LINKED`).
+  - **Not found, ambiguous, connector missing or unreachable**: the device is **not created**, and the message says to add it to the console first.
+- Ubiquiti accepts the serial as an alternative to the MAC. Customer and Site stay those chosen in NSM.
+
 ## 0.49.75 — 2026-10-09
 
 Backup — full backups for legacy RouterOS (6.48/6.49 and 7.12) through an FTP receiver (requested by the operator)

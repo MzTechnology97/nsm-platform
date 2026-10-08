@@ -712,6 +712,8 @@ def _add_device_impl(
     generic_serial: str = Form(""),
     csrf: str = Form(...),
     manufacturer: str = Form(""),
+    cambium_mac: str = Form(""),
+    cambium_serial: str = Form(""),
 ):
     validate_csrf(request, csrf)
     # The form has one MAC/serial pair per vendor section; the generic
@@ -720,6 +722,7 @@ def _add_device_impl(
         "ubiquiti": (ubnt_mac, ubnt_serial),
         "tp-link": (tr069_mac, tr069_serial),
         "generic": (generic_mac, generic_serial),
+        "cambium": (cambium_mac, cambium_serial),
     }.get(vendor.strip().lower(), ("", ""))
     primary_mac = vendor_fields[0].strip() or primary_mac
     serial_number = vendor_fields[1].strip() or serial_number
@@ -730,7 +733,7 @@ def _add_device_impl(
             raise HTTPException(404)
 
         vendor_key = vendor.strip().lower()
-        if vendor_key not in {"mikrotik", "ubiquiti", "tp-link", "generic"}:
+        if vendor_key not in {"mikrotik", "ubiquiti", "tp-link", "generic", "cambium"}:
             raise HTTPException(400, "Vendor non valido.")
 
         sid = None
@@ -749,10 +752,9 @@ def _add_device_impl(
             raise HTTPException(400, str(exc))
 
         serial = opt(serial_number)
-        if vendor_key == "ubiquiti" and not mac:
-            raise HTTPException(
-                400, "Per associare un dispositivo Ubiquiti è necessario il MAC."
-            )
+        from app import connector_onboarding
+
+        console_record = connector_onboarding.precheck(db, vendor_key, mac, serial)
         if vendor_key == "tp-link" and not (mac or serial):
             raise HTTPException(
                 400, "Per un CPE TR-069 inserisci almeno MAC oppure seriale."
@@ -763,12 +765,14 @@ def _add_device_impl(
             "ubiquiti": "uisp",
             "tp-link": "tr069",
             "generic": "manual",
+            "cambium": "cnmaestro",
         }
         status_map = {
             "mikrotik": "pending_enrollment",
             "ubiquiti": "pending_link",
             "tp-link": "pending_link",
             "generic": "unknown",
+            "cambium": "pending_link",
         }
         alias = opt(display_name)
         compatibility_name = alias or f"Nuovo dispositivo {vendor_key}"
@@ -783,10 +787,10 @@ def _add_device_impl(
             device_identity=None,
             model=opt(model) if vendor_key == "generic" else None,
             serial_number=serial
-            if vendor_key in {"ubiquiti", "tp-link", "generic"}
+            if vendor_key in {"ubiquiti", "tp-link", "generic", "cambium"}
             else None,
             primary_mac=mac
-            if vendor_key in {"ubiquiti", "tp-link", "generic"}
+            if vendor_key in {"ubiquiti", "tp-link", "generic", "cambium"}
             else None,
             management_ip=opt(management_ip) if vendor_key == "generic" else None,
             firmware_version=opt(firmware_version) if vendor_key == "generic" else None,
@@ -801,6 +805,8 @@ def _add_device_impl(
             raw_token = None
             if vendor_key == "mikrotik":
                 raw_token, _ = create_enrollment(db, device, user)
+            if console_record is not None:
+                connector_onboarding.link(db, device, vendor_key, console_record, user)
             add_event(
                 db,
                 "DEVICE_ADDED",
@@ -848,9 +854,11 @@ def add_device(
     generic_serial: str = Form(""),
     csrf: str = Form(...),
     manufacturer: str = Form(""),
+    cambium_mac: str = Form(""),
+    cambium_serial: str = Form(""),
 ):
     try:
-        return _add_device_impl(request=request, customer_id=customer_id, vendor=vendor, device_type=device_type, display_name=display_name, site_id=site_id, primary_mac=primary_mac, serial_number=serial_number, model=model, management_ip=management_ip, firmware_version=firmware_version, ubnt_mac=ubnt_mac, ubnt_serial=ubnt_serial, tr069_mac=tr069_mac, tr069_serial=tr069_serial, generic_mac=generic_mac, generic_serial=generic_serial, csrf=csrf, manufacturer=manufacturer)
+        return _add_device_impl(request=request, customer_id=customer_id, vendor=vendor, device_type=device_type, display_name=display_name, site_id=site_id, primary_mac=primary_mac, serial_number=serial_number, model=model, management_ip=management_ip, firmware_version=firmware_version, ubnt_mac=ubnt_mac, ubnt_serial=ubnt_serial, tr069_mac=tr069_mac, tr069_serial=tr069_serial, generic_mac=generic_mac, generic_serial=generic_serial, csrf=csrf, manufacturer=manufacturer, cambium_mac=cambium_mac, cambium_serial=cambium_serial)
     except HTTPException as exc:
         if exc.status_code not in {400, 409}:
             raise

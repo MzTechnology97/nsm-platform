@@ -58,7 +58,8 @@ ICONS = {
     "asus": "#000000", "linksys": "#000000", "avm": "#E2001A",
 }
 # Manufacturers selectable for manually added ("generic") devices.
-MANUAL_BRANDS = tuple(key for key in BRANDS if key not in ("mikrotik", "ubiquiti"))
+# Cambium has its own vendor with cnMaestro onboarding.
+MANUAL_BRANDS = tuple(key for key in BRANDS if key not in ("mikrotik", "ubiquiti", "cambium"))
 _DOTTED = re.compile(r"(\d+(?:\.\d+)+)")
 
 
