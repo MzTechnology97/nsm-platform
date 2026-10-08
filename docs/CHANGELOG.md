@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.79 — 2026-10-09
+
+Syslog — configured automatically when a MikroTik is added through the agent (requested by the operator)
+- **At enrollment.** When a MikroTik completes the agent pairing, NSM queues the syslog configuration right away. This covers modern agents, legacy 7.12 and RouterOS 6. The agent applies it at its first heartbeat, seconds after the bootstrap:
+  - logging action `nsm` toward NSM, with topics critical, error, warning and account;
+  - the device key as prefix, so its logs are accepted from the first line.
+- **Default on.** The *Configura automaticamente* setting (Amministrazione → Syslog) is already enabled by default and now also covers enrollment. Turning it off stops both.
+- **NSM address.** Without a configured IPv4 address, enrollment uses the address the router used to reach NSM. When neither is usable, the device records `SYSLOG_AGENT_CONFIG_SKIPPED` with the reason.
+  - Loopback, unspecified and link-local addresses are never sent to routers.
+- **Fix.** The worker's periodic auto-configuration skipped legacy agents, because the worker does not load the web wiring. It now applies the legacy eligibility too.
+- The onboarding panel and the Syslog settings say that syslog is configured right after pairing.
+
 ## 0.49.78 — 2026-10-09
 
 MikroTik Agent — heartbeat every 2 minutes (requested by the operator)

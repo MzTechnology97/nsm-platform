@@ -77,7 +77,7 @@ from app.device_logs import install_device_logs
 from app.route_precedence import promote_customer_workspace_routes
 from app.routerboot_lifecycle import install_routerboot_lifecycle
 from app.mikrotik_device_reboot import install_mikrotik_device_reboot
-from app.mikrotik_syslog_config import install_mikrotik_syslog_config
+from app.mikrotik_syslog_config import install_mikrotik_syslog_config, install_syslog_on_enrollment
 from app.zabbix_connector import install_zabbix_connector
 from app.zabbix_problems import install_zabbix_problems
 from app.device_exposure import install_device_exposure
@@ -130,7 +130,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.78"
+APP_VERSION = "0.49.79"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -261,6 +261,7 @@ install_mikrotik_agent_generation()
 install_mikrotik_agent_self_update(core.app)
 install_mikrotik_agent_autoupdate(core.app)
 install_mikrotik_heartbeat_interval()
+install_syslog_on_enrollment()
 # The syntax guard must wrap the final composed modern source, including the
 # Core 0.49 self-update/integrity extension. Installing it earlier would leave
 # later wrappers able to re-introduce unsafe RouterOS syntax.
