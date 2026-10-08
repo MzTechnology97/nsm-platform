@@ -143,8 +143,10 @@ def _install_completion():
     legacy_jobs.legacy_job_complete = complete
 
 
-def _install_eligibility():
+def install_eligibility():
     previous = syslog_config.eligibility
+    if getattr(previous, "_nsm_legacy", False):
+        return
 
     def eligibility(device):
         data = device.inventory_data or {}
@@ -152,8 +154,10 @@ def _install_eligibility():
             return blocker(device)
         return previous(device)
 
+    eligibility._nsm_legacy = True
     syslog_config.eligibility = eligibility
-    syslog_config.core.templates.env.globals["syslog_agent_eligibility"] = eligibility
+    if getattr(syslog_config.core, "templates", None) is not None:
+        syslog_config.core.templates.env.globals["syslog_agent_eligibility"] = eligibility
 
 
 def install_mikrotik_legacy_syslog() -> None:
@@ -161,4 +165,4 @@ def install_mikrotik_legacy_syslog() -> None:
     _install_source()
     _install_job_line()
     _install_completion()
-    _install_eligibility()
+    install_eligibility()

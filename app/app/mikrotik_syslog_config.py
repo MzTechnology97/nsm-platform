@@ -9,6 +9,11 @@ operator's other logging rules.
 Jobs are queued from the device Syslog tab, for all devices from the admin
 Syslog page, or automatically by the worker when *auto-configure* is enabled
 and a reachable IPv4 address of NSM is set.
+
+With *auto-configure* (the default) a MikroTik paired through the Agent gets
+the job at enrollment: the router receives it at its first heartbeat, a few
+seconds after the bootstrap.  Without a configured address the NSM address the
+router used for the enrollment is taken.
 """
 from __future__ import annotations
 
@@ -98,7 +103,9 @@ def target(db, request=None) -> str | None:
             address = ipaddress.ip_address(socket.gethostbyname(host))
         except (OSError, ValueError):
             return None
-    return str(address) if address.version == 4 else None
+    if address.version != 4 or address.is_loopback or address.is_unspecified or address.is_link_local or address.is_multicast:
+        return None
+    return str(address)
 
 
 def eligibility(device: Device) -> str | None:
@@ -200,8 +207,45 @@ async def configure_all(request: Request):
     return flash_redirect(request, "/admin/syslog", "success", f"Configurazione syslog in coda su {queued} MikroTik ({skipped} non idonei o già in corso).", title="Configurazione avviata")
 
 
+def configure_on_enrollment(device_id, request) -> DeviceJob | None:
+    """Queue the syslog configuration for a MikroTik that has just been paired."""
+    with SessionLocal() as db:
+        device = db.get(Device, device_id)
+        if device is None or device.vendor != "mikrotik" or not receiver.load_settings(db).get("auto_configure"):
+            return None
+        reason = eligibility(device)
+        remote = None if reason else target(db, request)
+        if reason or not remote:
+            core.add_event(db, "SYSLOG_AGENT_CONFIG_SKIPPED", customer_id=device.customer_id, device_id=device.id, source="mikrotik_enrollment",
+                           details={"reason": reason or "Indirizzo IPv4 di NSM non determinabile: impostalo in Amministrazione → Syslog."})
+            db.commit()
+            return None
+        job = queue(db, device, remote, source="mikrotik_enrollment")
+        db.commit()
+        return job
+
+
+def install_syslog_on_enrollment() -> None:
+    from app import mikrotik_legacy as legacy
+
+    previous = legacy._issue_bodyless_credential
+    if getattr(previous, "_nsm_syslog", False):
+        return
+
+    def issue(request, raw_token, observed_version):
+        device_id, source, transport = previous(request, raw_token, observed_version)
+        configure_on_enrollment(device_id, request)
+        return device_id, source, transport
+
+    issue._nsm_syslog = True
+    legacy._issue_bodyless_credential = issue
+
+
 def auto_configure(now=None) -> dict:
     """Worker tick: configure eligible agents that never got the current NSM target."""
+    from app.mikrotik_legacy_syslog import install_eligibility
+
+    install_eligibility()  # the worker does not import the web entrypoint
     stats = {"queued": 0, "strict_changed": 0}
     with SessionLocal() as db:
         for device in db.scalars(select(Device).where(Device.vendor == "mikrotik")):
