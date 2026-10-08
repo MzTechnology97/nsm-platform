@@ -120,6 +120,34 @@ services:
 
   # Integrated syslog receiver (LOG-01): devices send warnings, errors and
   # logins to UDP/TCP 514; the process listens on 5514 as a non-root user.
+  # Upload-only FTP receiver for legacy RouterOS backups (./manage.sh legacy-backup-enable <IP>).
+  legacy-ftp:
+    build: { context: ./app }
+    container_name: nsp-legacy-ftp
+    profiles: ["legacyftp"]
+    restart: unless-stopped
+    env_file:
+      - ./.env
+      - ./secrets/bootstrap.env
+    command: ["python", "-m", "app.legacy_ftp_server"]
+    volumes:
+      - ./data/backups:/data/backups
+    mem_limit: 256m
+    cpus: "0.5"
+    pids_limit: 64
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    ports:
+      - "${LEGACY_FTP_PORT:-2121}:2121/tcp"
+      - "30100-30109:30100-30109/tcp"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks: [platform]
+
   syslog:
     build: { context: ./app }
     container_name: nsp-syslog

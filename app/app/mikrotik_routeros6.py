@@ -48,6 +48,8 @@ def to_routeros6(source: str) -> str:
     source = _TRACEROUTE_RE.sub(':error "NSM traceroute unsupported on RouterOS 6"', source)
     source = _FIND_RE.sub(r":local nsmIds [\g<menu> print as-value]", source)
     source = _GET_ROW_RE.sub("", source)
+    # RouterOS 6 exports secrets unless asked not to (7.x hides them by default).
+    source = source.replace("/export file=$nsmBase\n", "/export hide-sensitive file=$nsmBase\n")
     return source.replace(":foreach nsmId in=$nsmIds do={", ":foreach nsmRow in=$nsmIds do={")
 
 

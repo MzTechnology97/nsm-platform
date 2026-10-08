@@ -4,6 +4,21 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.75 — 2026-10-09
+
+Backup — full backups for legacy RouterOS (6.48/6.49 and 7.12) through an FTP receiver (requested by the operator)
+- **What changes.** Old RouterOS cannot post a large file from a script (7.12 reads at most 60 KB, RouterOS 6 only 4 KB). The **legacy Agent 0.49.16** now uploads the **encrypted binary backup** and the **.rsc export** with `/tool fetch upload=yes mode=ftp` to an upload-only FTP receiver of NSM. Before, 7.12 had the export only up to 60 KB and RouterOS 6 had no backup.
+  - **Archive.** Files are archived like every other backup: run, artifacts, SHA-256, audit, retention. Legacy devices become **protetti** in backup coverage.
+  - **Encryption.** The binary backup is encrypted with the job's backup password, kept encrypted in NSM.
+  - **Secrets.** On RouterOS 6 the export uses `hide-sensitive`.
+- **Receiver** (`app/legacy_ftp_server.py`, Docker profile `legacyftp`, `./manage.sh legacy-backup-enable <IPv4 of NSM>`):
+  - one-time account per job; only the password's SHA-256 is stored; three wrong passwords close the connection;
+  - only the two expected files of the job can be stored, once each, up to 64 MB; no listing, download or other commands;
+  - passive mode only; the data connection must come from the router's address;
+  - port 2121 and passive 30100–30109. Open them only from the routers' networks.
+- **Agent permissions.** The `legacy-ops-v1` profile gains the `policy` and `sensitive` policies needed by `/system backup save`. Legacy agents must be reinstalled (0.49.16+) to use this.
+- `manage.sh` adds Compose profiles without overwriting the existing ones (`acs` and `legacyftp` together).
+
 ## 0.49.74 — 2026-10-09
 
 Syslog — only lines carrying the device key (operator decision)

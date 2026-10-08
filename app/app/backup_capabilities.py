@@ -77,9 +77,15 @@ def legacy_export_supported(device) -> bool:
     return agent_ok and str(getattr(device, "firmware_version", "") or "").startswith("7.")
 
 
+def _legacy_ftp(device) -> bool:
+    from app import legacy_ftp_backup
+
+    return legacy_ftp_backup.supported(device)
+
+
 def backup_formats_for_device(device, formats):
     """Restrict policy formats to what the installed MikroTik agent can produce."""
-    if not _legacy_mikrotik_agent(device):
+    if not _legacy_mikrotik_agent(device) or _legacy_ftp(device):
         return list(formats)
     return [item for item in formats if item == "mikrotik_export"] if legacy_export_supported(device) else []
 
@@ -103,6 +109,17 @@ def capability_for_device(db, device, *, active_agent: bool | None = None) -> Ba
     if vendor == "mikrotik":
         if active_agent is None:
             active_agent = _active_mikrotik_agent(db, device.id)
+        if active_agent and _legacy_mikrotik_agent(device) and _legacy_ftp(device):
+            return BackupCapability(
+                vendor=vendor,
+                method_key="mikrotik_agent_legacy_ftp",
+                label="Agent MikroTik legacy (FTP)",
+                status="available",
+                executable=True,
+                reason="RouterOS 6 / 7.12: backup binario cifrato ed export .rsc caricati dal router sul ricevitore FTP di NSM, senza limiti di dimensione.",
+                policy_option_keys=("mikrotik_binary", "mikrotik_export"),
+                artifact_types=("mikrotik_binary", "mikrotik_export"),
+            )
         if active_agent and _legacy_mikrotik_agent(device) and legacy_export_supported(device):
             return BackupCapability(
                 vendor=vendor,
