@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.70 — 2026-10-08
+
+Integrations — cnMaestro for Cambium radios (VEND-02, step 1)
+- **New connector *Integrazioni → cnMaestro*** (On-Premises or Cloud, read-only).
+  - **Connection.** URL, client id and client secret of the cnMaestro *API Client*, with OAuth2 client credentials. The secret is encrypted. Test, *Sincronizza ora*, and automatic sync every 15 minutes.
+  - **Linking.** NSM devices whose manufacturer is *Cambium Networks* are linked by MAC and, without a MAC, by serial. NSM then updates the model, firmware, management IP (only when missing), status and last seen. Customer and Site stay those of NSM. Linking is audited.
+  - **Statistics.** Signal, SNR, downlink/uplink throughput, CPU, memory, connected SMs/clients and uptime. They are read defensively, because the field names differ between ePMP, PMP 450 and cnPilot.
+  - **History.** Kept 90 days, with at most one sample every 4 minutes. The last sample of an offline device is kept.
+- **Device *cnMaestro* tab.** Link state, network/tower, current values and Cacti-style graphs (signal, SNR, throughput, CPU/memory, stations).
+- **Integrations hub.** A *cnMaestro (Cambium)* card. The connector is also in the global search.
+- Endpoints follow the cnMaestro API v1; field names must be confirmed on a real cnMaestro. Migration `0036`.
+
 ## 0.49.69 — 2026-10-08
 
 Firmware — catalogs for the other manufacturers (VEND-01)
