@@ -3,6 +3,7 @@
 from app.mikrotik_onboarding import (
     BOOTSTRAP_PATH,
     build_onboarding_command,
+    build_onboarding_command_v6,
     guided_command_from_legacy,
     onboarding_requirements,
 )
@@ -45,6 +46,12 @@ def main():
     assert ":resolve" not in ip_command
     assert "check-certificate=yes" not in ip_command
     assert "/system/device-mode/update" not in ip_command
+
+    # RouterOS 6.48/6.49: same bootstrap, no v7-only syntax anywhere in the line.
+    v6 = build_onboarding_command_v6(base, token)
+    assert "/system/" not in v6 and "device-mode" not in v6 and ":resolve \"nsm.example.net\"" in v6
+    assert "requires 6.48 or 6.49" in v6 and f"{BOOTSTRAP_PATH}?token={token}" in v6 and "check-certificate=yes" in v6
+    assert v6.endswith('/import file-name="nsm-bootstrap.rsc"')
 
     unchanged, no_requirements = guided_command_from_legacy("/system resource print")
     assert unchanged == "/system resource print"

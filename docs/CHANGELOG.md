@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.80 — 2026-10-09
+
+Onboarding — command for RouterOS 6.48/6.49
+- **Fix.** The guided pairing command refused anything but RouterOS 7 and contained v7-only syntax (`/system/device-mode/get`). RouterOS 6 rejects a whole command line that contains it. So routers with 6.48/6.49 could not be added from the panel, although NSM installs the RouterOS 6 legacy agent.
+- **Change.** The onboarding panel shows a second command, *Router con RouterOS 6.48 / 6.49*, using the same one-shot token. It checks the version (and DNS when NSM uses a hostname), then fetches the same bootstrap.
+- The RouterOS 7 command, verified on real routers, is unchanged.
+
 ## 0.49.79 — 2026-10-09
 
 Syslog — configured automatically when a MikroTik is added through the agent (requested by the operator)

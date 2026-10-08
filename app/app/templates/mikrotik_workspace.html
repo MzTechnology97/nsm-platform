@@ -7,13 +7,17 @@
       <section class="panel mt-onboarding">
         <div class="panel-header"><div><h2>Completa onboarding MikroTik</h2><p>Un solo comando esegue il preflight, scarica il bootstrap NSM e installa l'agent. La credenziale permanente viene generata soltanto dopo il pairing.</p></div><span class="severity-badge severity-warning">TOKEN 30 MIN</span></div>
         <div class="mt-onboarding-steps">
-          <div class="mt-onboarding-step"><span>1</span><div><strong>Compatibilità RouterOS</strong><small>Richiesto RouterOS {{ req.get('min_routeros_major', 7) }}.x; versioni precedenti vengono fermate prima del pairing.</small></div></div>
+          <div class="mt-onboarding-step"><span>1</span><div><strong>Compatibilità RouterOS</strong><small>RouterOS {{ req.get('min_routeros_major', 7) }}.x con il primo comando; per RouterOS 6.48/6.49 usa il comando dedicato più sotto. Versioni precedenti vengono fermate prima del pairing.</small></div></div>
           <div class="mt-onboarding-step"><span>2</span><div><strong>Device-mode in sola lettura</strong><small>Verifica <code>fetch=yes</code>, <code>scheduler=yes</code> e <code>flagged=no</code>. NSM non modifica automaticamente device-mode.</small></div></div>
           <div class="mt-onboarding-step"><span>3</span><div><strong>Connettività verso NSM</strong><small>{% if req.get('uses_dns') %}Verifica DNS per <code>{{ req.get('host') }}</code>{% else %}Endpoint NSM su IP <code>{{ req.get('host') or 'locale' }}</code>: DNS non necessario{% endif %}. {% if req.get('tls') %}La fetch HTTPS valida il certificato del server.{% else %}Connessione HTTP: usare solo su rete di gestione affidabile.{% endif %}</small></div></div>
           <div class="mt-onboarding-step"><span>4</span><div><strong>Pairing one-shot</strong><small>Scarica <code>nsm-bootstrap.rsc</code>, lo importa e installa heartbeat/agent per-device. Al primo heartbeat l'agent configura anche il syslog verso NSM con la chiave del dispositivo.</small></div></div>
         </div>
         <div class="alert info"><strong>Se il preflight segnala fetch/scheduler disabilitati:</strong> verifica prima con <code>/system/device-mode/print</code>. L'eventuale modifica <code>/system/device-mode/update fetch=yes scheduler=yes</code> deve essere eseguita manualmente e, sulle versioni che lo richiedono, confermata fisicamente/power-cycle. Se compare <code>flagged=yes</code>, esegui prima un audit del router.</div>
         <div class="command-box"><code id="enrollment-command">{{ enrollment_command }}</code><button class="button primary" type="button" data-copy-target="enrollment-command">Copia comando</button></div>
+        {% if enrollment_command_v6 %}<details class="mt-onboarding-v6"><summary>Router con RouterOS 6.48 / 6.49</summary>
+          <p class="muted">RouterOS 6 non accetta la sintassi v7 del controllo device-mode: questo comando verifica solo versione e DNS, poi installa l'agent legacy per RouterOS 6 con lo stesso token monouso.</p>
+          <div class="command-box"><code id="enrollment-command-v6">{{ enrollment_command_v6 }}</code><button class="button" type="button" data-copy-target="enrollment-command-v6">Copia comando RouterOS 6</button></div>
+        </details>{% endif %}
         <p class="mt-onboarding-note">Il token è monouso e viene mostrato una sola volta. Il comando non abilita servizi, non modifica firewall e non esegue aggiornamenti RouterOS. Subito dopo il pairing l'agent aggiunge l'azione di logging <code>nsm</code> (critical, error, warning, account) verso NSM: si disattiva in Amministrazione → Syslog.</p>
       </section>
       {% endif %}
