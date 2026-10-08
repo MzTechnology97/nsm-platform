@@ -124,17 +124,17 @@ def main():
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-mv-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
     form = client.get(f"/customers/{customer_id}/devices/new").text
-    assert 'name="manufacturer"' in form and "Cambium Networks" in form
+    assert 'name="manufacturer"' in form and "Cambium (cnMaestro)" in form and "Mimosa" in form, "Cambium has its own vendor (cnMaestro onboarding)"
     created = client.post(f"/customers/{customer_id}/devices", data={"csrf": csrf_from(form), "vendor": "generic", "device_type": "wireless_cpe",
-                                                                    "display_name": f"TEST-MV-EPMP-{suffix}", "manufacturer": "cambium", "model": "ePMP 1000",
+                                                                    "display_name": f"TEST-MV-EPMP-{suffix}", "manufacturer": "mimosa", "model": "C5c",
                                                                     "firmware_version": "4.6.2", "generic_mac": "02:00:5e:10:20:30"}, follow_redirects=False)
     assert created.status_code in (302, 303), created.status_code
     with SessionLocal() as db:
         epmp_device = db.scalar(select(Device).where(Device.display_name == f"TEST-MV-EPMP-{suffix}"))
-        assert epmp_device.inventory_data.get("manufacturer") == "cambium" and vendor_cpe.products(epmp_device) == ("epmp_1000_firmware",)
+        assert epmp_device.inventory_data.get("manufacturer") == "mimosa" and vendor_cpe.brand(epmp_device) == "mimosa" and vendor_cpe.products(epmp_device)
     page = client.get("/admin/integrations/nvd").text
-    assert 'data-nvd="coverage"' in page and 'data-brand="cambium"' in page and 'data-brand="ubiquiti"' in page
-    assert "Cambium Networks" in client.get(f"/devices/{epmp_device.id}").text
+    assert 'data-nvd="coverage"' in page and 'data-brand="mimosa"' in page and 'data-brand="ubiquiti"' in page
+    assert "Mimosa" in client.get(f"/devices/{epmp_device.id}").text
     print("Multi-vendor CVE smoke passed")
 
 
