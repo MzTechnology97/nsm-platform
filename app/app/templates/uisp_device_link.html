@@ -11,7 +11,7 @@
 <section class="panel"><div class="panel-header"><div><h2>Record NSM</h2><p>Identità organizzativa controllata dal portale.</p></div></div>
   <dl class="kv-list"><div><dt>Cliente</dt><dd>{{ device.customer.name }}</dd></div><div><dt>Sede NSM</dt><dd>{{ device.site.name if device.site else '—' }}</dd></div><div><dt>Alias</dt><dd>{{ device.display_name or '—' }}</dd></div><div><dt>MAC</dt><dd><code>{{ device.primary_mac }}</code></dd></div><div><dt>ID UISP salvato</dt><dd><code>{{ device.external_device_id or '—' }}</code></dd></div><div><dt>Stato</dt><dd>{{ status_label(device.status) }}</dd></div></dl>
 </section>
-<section class="panel"><div class="panel-header"><div><h2>Connettore</h2><p>UISP Network API v2.1 in sola lettura.</p></div></div>
+<section class="panel"><div class="panel-header"><div><h2>Connettore</h2><p>UISP Network API v2.1: lettura; riavvio e backup richiedono un token con permessi di scrittura.</p></div></div>
   {% if connection %}<dl class="kv-list"><div><dt>Endpoint</dt><dd>{{ connection.base_url }}</dd></div><div><dt>Abilitato</dt><dd>{{ 'Sì' if connection.is_enabled else 'No' }}</dd></div><div><dt>TLS</dt><dd>{{ 'Verificato' if connection.verify_tls else 'Non verificato' }}</dd></div><div><dt>Ultimo test</dt><dd>{{ fmt_dt(connection.last_tested_at) }}</dd></div></dl>{% else %}<div class="empty-state warning">UISP non configurato. <a href="/admin/integrations/uisp">Apri Integrazioni</a>.</div>{% endif %}
 </section>
 </div>
@@ -71,6 +71,40 @@
   </div>
   {% if ufw.compatible == false %}<div class="alert warning">UISP segnala il firmware installato come non compatibile: alcune funzioni di gestione potrebbero non essere disponibili finché non viene aggiornato.</div>{% endif %}
   {% else %}<div class="empty-state">UISP non ha ancora fornito informazioni firmware per questo apparato: esegui «Aggiorna da UISP» o attendi la sincronizzazione.</div>{% endif %}
+</section>
+{% endif %}
+
+{% if device.external_device_id and connection and connection.is_enabled %}
+{% set inv = device.inventory_data or {} %}{% set rb = inv.get('uisp_reboot') or {} %}
+<section class="panel" id="uisp-operations"><div class="panel-header"><div><h2>Operazioni tramite UISP</h2><p>Comandi inviati alla console UISP e registrati nel log di audit.</p></div></div>
+  <div class="uisp-ops">
+    <article><h3>Backup configurazione</h3><p class="muted">UISP crea il backup, NSM lo scarica e lo archivia con hash SHA-256 nei backup dell'apparato. Per i backup pianificati abilita «Configurazione dal connector» nella policy.</p>
+      {% if uisp_last_backup %}<p>Ultimo: <strong>{{ fmt_dt(uisp_last_backup.started_at) }}</strong> · {{ {'success': 'riuscito', 'failed': 'non riuscito', 'in_progress': 'in corso'}.get(uisp_last_backup.status, uisp_last_backup.status) }}{% if uisp_last_backup.error_message %} <small class="error-text">{{ uisp_last_backup.error_message|truncate(140) }}</small>{% endif %}</p>{% endif %}
+      {% if has_permission(user, 'backup.execute') %}<form method="post" action="/devices/{{ device.id }}/uisp/backup"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Esegui backup ora</button></form>{% endif %}
+      <a class="button ghost" href="/devices/{{ device.id }}/backups">Archivio backup ›</a></article>
+    <article><h3>Riavvio</h3><p class="muted">Riavvio controllato: NSM verifica dal tempo di attività che l'apparato sia ripartito (entro 20 minuti).</p>
+      {% if rb %}<p>Ultima richiesta {{ fmt_dt(rb.requested_at) }}{% if rb.requested_by %} da {{ rb.requested_by }}{% endif %}: <strong>{{ {'requested': 'in verifica', 'verified': 'riavvio verificato', 'failed': 'riavvio non verificato'}.get(rb.status, rb.status) }}</strong>{% if rb.detail %} <small>{{ rb.detail }}</small>{% endif %}</p>{% endif %}
+      {% if has_permission(user, 'firmware.execute') %}<form method="post" action="/devices/{{ device.id }}/uisp/reboot" class="inline-form"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+        <input name="confirmation" placeholder="scrivi {{ uisp_reboot_confirm }}" aria-label="Conferma riavvio" autocomplete="off"><button class="button danger"{% if rb.status == 'requested' %} disabled{% endif %}>Riavvia</button></form>{% endif %}</article>
+  </div>
+</section>
+
+{% set ifs = inv.get('uisp_interfaces') or {} %}
+<section class="panel" id="uisp-interfaces"><div class="panel-header"><div><h2>Interfacce</h2><p>Stato LAN/Ethernet e wireless letto da UISP{% if ifs.fetched_at %} · {{ fmt_dt(ifs.fetched_at) }}{% endif %}.</p></div>
+  <form method="post" action="/devices/{{ device.id }}/uisp/interfaces"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Aggiorna interfacce</button></form></div>
+  {% if ifs.get('items') %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Interfaccia</th><th>Tipo</th><th>Stato</th><th>Velocità</th><th>MTU</th><th>Rx</th><th>Tx</th><th>Errori</th></tr></thead><tbody>
+  {% for i in ifs['items'] %}<tr><td><strong>{{ i.name }}</strong>{% if i.label %}<small>{{ i.label }}</small>{% endif %}</td><td>{{ i.type or '—' }}</td>
+    <td>{% if not i.enabled %}<span class="status-pill">disattivata</span>{% elif i.plugged == false %}<span class="status-pill">scollegata</span>{% else %}{{ i.status or 'attiva' }}{% endif %}</td>
+    <td>{{ i.speed or '—' }}</td><td>{{ i.mtu or '—' }}</td><td>{{ format_metric('downlink_capacity_bps', i.rx_bps) if i.rx_bps is not none else '—' }}</td><td>{{ format_metric('downlink_capacity_bps', i.tx_bps) if i.tx_bps is not none else '—' }}</td><td>{{ i.errors if i.errors is not none else '—' }}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state">Premi «Aggiorna interfacce» per leggerle da UISP.</div>{% endif %}
+</section>
+
+{% set evs = inv.get('uisp_events') or {} %}
+<section class="panel" id="uisp-events"><div class="panel-header"><div><h2>Eventi UISP</h2><p>Ultimi {{ 50 }} eventi registrati da UISP per questo apparato{% if evs.fetched_at %} · {{ fmt_dt(evs.fetched_at) }}{% endif %}. I log syslog dell'apparato sono nella scheda Syslog.</p></div>
+  <form method="post" action="/devices/{{ device.id }}/uisp/events"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Carica eventi</button></form></div>
+  {% if evs.get('items') %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Quando</th><th>Livello</th><th>Tipo</th><th>Messaggio</th></tr></thead><tbody>
+  {% for e in evs['items'] %}<tr><td>{{ fmt_dt(e.at) if e.at else '—' }}</td><td>{{ e.level or '—' }}</td><td>{{ e.type or '—' }}</td><td>{{ e.message }}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state">Premi «Carica eventi» per leggerli da UISP.</div>{% endif %}
 </section>
 {% endif %}
 

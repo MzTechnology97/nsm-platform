@@ -14,7 +14,7 @@ from sqlalchemy import select
 from app import main as core
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
-from app.models import Device, utcnow
+from app.models import BackupRun, Device, utcnow
 from app import uisp_metrics
 from app import uisp_firmware
 from app.secret_vault import decrypt_text, encrypt_text
@@ -498,6 +498,8 @@ def _device_render(request, db, user, device, *, candidate=None, message=None, e
         error=error,
         uisp_view=uisp_metrics.view(db, device) if device.external_device_id else None,
         format_metric=uisp_metrics.format_value,
+        uisp_last_backup=db.scalar(select(BackupRun).where(BackupRun.device_id == device.id, BackupRun.backup_type == "uisp_backup")
+                                   .order_by(BackupRun.started_at.desc()).limit(1)),
     )
 
 

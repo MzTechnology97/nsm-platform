@@ -90,6 +90,13 @@ def _legacy_mikrotik_agent(device) -> bool:
     return version.endswith("-legacy")
 
 
+def _uisp_enabled(db) -> bool:
+    from app.integration_models import ConnectorIntegration
+
+    row = db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == "uisp"))
+    return bool(row and row.is_enabled)
+
+
 def capability_for_device(db, device, *, active_agent: bool | None = None) -> BackupCapability:
     vendor = normalize_vendor(getattr(device, "vendor", None))
 
@@ -140,6 +147,18 @@ def capability_for_device(db, device, *, active_agent: bool | None = None) -> Ba
             artifact_types=("mikrotik_binary", "mikrotik_export"),
         )
 
+    if vendor == "ubiquiti" and getattr(device, "external_device_id", None) and _uisp_enabled(db):
+        return BackupCapability(
+            vendor=vendor,
+            method_key="ubiquiti_connector",
+            label="Connector UISP",
+            status="available",
+            executable=True,
+            reason="Backup creato da UISP e archiviato in NSM (il token UISP deve avere i permessi di scrittura).",
+            policy_option_keys=("ubiquiti_connector_config",),
+            artifact_types=("uisp_backup",),
+        )
+
     if vendor == "ubiquiti":
         return BackupCapability(
             vendor=vendor,
@@ -147,7 +166,7 @@ def capability_for_device(db, device, *, active_agent: bool | None = None) -> Ba
             label="Connector Ubiquiti",
             status="connector_required",
             executable=False,
-            reason="Il backup tramite connector Ubiquiti non è ancora implementato: la policy non equivale a protezione eseguibile.",
+            reason="Associa l'apparato a UISP (scheda UISP) con il connettore attivo per rendere il backup eseguibile.",
             policy_option_keys=("ubiquiti_connector_config",),
         )
 
