@@ -43,12 +43,14 @@
     if (!stats.supported) {
       errorsWrap.innerHTML = "<div class=\"telemetry-empty\">Errori e drop disponibili dall'agent 0.49.20: arriva con l'aggiornamento automatico.</div>";
       if (errorsTotal) errorsTotal.textContent = '—';
+      const legend = root.querySelector('[data-traffic-errors-legend]');
+      if (legend) legend.innerHTML = '';
       return;
     }
     const points = data.points || [];
     const field = (name) => points.map((p) => [p.timestamp, Number.isFinite(p[name]) ? p[name] : null]);
     window.NSMChart.render(errorsWrap, {
-      title: 'Errori e drop', unit: 'count',
+      title: 'Errori e drop', unit: 'count', legend: root.querySelector('[data-traffic-errors-legend]'),
       series: [
         {label: 'Errori rx', color: 'a', kind: 'line', points: field('rx_errors')},
         {label: 'Errori tx', color: 'b', kind: 'line', points: field('tx_errors')},
