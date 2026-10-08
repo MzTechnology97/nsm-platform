@@ -24,7 +24,12 @@
     <thead><tr><th>Nome</th><th>Ambito</th><th>Frequenza</th><th>Formato</th><th>Ultimo periodo</th><th>Esito</th><th></th></tr></thead>
     <tbody>{% for schedule in schedules %}
       <tr>
-        <td>{{ schedule.name }}{% if not schedule.is_enabled %} <span class="status-pill">sospesa</span>{% endif %}</td>
+        <td>{{ schedule.name }}{% if not schedule.is_enabled %} <span class="status-pill">sospesa</span>{% endif %}
+          <details class="schedule-recipients"><summary>{% if schedule.recipients %}{{ schedule.recipients|length }} destinatari esterni{% else %}nessun destinatario esterno{% endif %}</summary>
+            {% if schedule.recipients %}<small>{{ schedule.recipients|join(', ') }}</small>{% endif %}
+            {% if can_generate %}<form method="post" action="/audit/reports/schedules/{{ schedule.id }}/recipients" class="inline-form"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
+              <input name="recipients" value="{{ (schedule.recipients or [])|join(', ') }}" placeholder="nome@example.net, altro@example.net" aria-label="Destinatari esterni"><button class="button tiny" type="submit">Salva</button></form>{% endif %}
+          </details></td>
         <td>{{ schedule_customers.get(schedule.customer_id, 'Tutti i clienti') if schedule.customer_id else 'Tutti i clienti' }}</td>
         <td>{{ frequencies.get(schedule.frequency, schedule.frequency) }}</td>
         <td>{{ schedule.output_format|upper }}</td>
@@ -42,6 +47,7 @@
     <label>Ambito<select name="customer_id"><option value="">Tutti i clienti</option>{% for customer in customers %}<option value="{{ customer.id }}">{{ customer.name }}</option>{% endfor %}</select></label>
     <label>Frequenza<select name="frequency">{% for key, label in frequencies.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label>
     <label>Formato<select name="output_format"><option value="pdf">PDF</option><option value="csv">CSV</option></select></label>
+    <label>Destinatari esterni<input name="recipients" maxlength="2000" placeholder="e-mail separate da virgola (opzionale)"></label>
     <button class="button" type="submit">Aggiungi pianificazione</button>
   </form>
   {% endif %}

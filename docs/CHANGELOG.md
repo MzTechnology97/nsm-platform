@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.63 — 2026-10-08
+
+Reports — delivery (REP-04)
+- **External recipients for scheduled reports.** A schedule can have up to 20 external e-mail addresses (management, auditors, the customer), set when it is created or changed later in *Report*. Each generated report is sent to them as an attachment through the same outbox, with the same retries.
+- **Delivery evidence.** Every report delivery leaves an audit event, `REPORT_DELIVERED` or, after the last attempt, `REPORT_DELIVERY_FAILED`, with the report, recipient, channel and error. The evidence stays with the audit log, not with the outbox retention.
+- Invalid addresses are refused, and changes to the recipients are audited (`REPORT_SCHEDULE_RECIPIENTS_CHANGED`). Migration `0034`.
+
 ## 0.49.62 — 2026-10-08
 
 Integrations — Zabbix (ZBX-01, step 2)

@@ -4729,3 +4729,6 @@ a.compliance-mark { text-decoration: none; }
 .exposure-chip { display: inline-block; margin: 0 4px 4px 0; padding: 1px 7px; border-radius: 999px; font-size: 11.5px; font-weight: 600; border: 1px solid var(--border); background: var(--panel-soft); }
 .exposure-chip.severity-critical, .exposure-chip.severity-high { border-color: color-mix(in srgb, var(--danger, #c53030) 45%, transparent); color: var(--danger, #c53030); }
 .exposure-chip.severity-medium { border-color: color-mix(in srgb, var(--warning, #b7791f) 45%, transparent); color: var(--warning, #b7791f); }
+.schedule-recipients { margin-top: 4px; font-size: 12px; }
+.schedule-recipients summary { cursor: pointer; color: var(--muted); }
+.schedule-recipients .inline-form input { min-width: 260px; }

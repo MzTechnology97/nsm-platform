@@ -73,6 +73,8 @@ class ReportSchedule(Base):
     last_error: Mapped[str | None] = mapped_column(Text)
     last_report_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     consecutive_failures: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # External e-mail recipients (not NSM users) who receive every generated report as attachment.
+    recipients: Mapped[list | None] = mapped_column(JSON)
     next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="SET NULL")

@@ -157,7 +157,24 @@ def queue_report(db, report: GeneratedReport) -> int:
                                     subject=subject, body=body, status="pending", next_attempt_at=utcnow(),
                                     attachment_ref=f"report:{report.id}" if pref.channel == "email" else None))
         queued += 1
+    queued += queue_external(db, report, title, message)
     return queued
+
+
+def queue_external(db, report: GeneratedReport, title: str, message: str) -> int:
+    """E-mail with attachment to the schedule's external recipients (REP-04), through the same outbox and retries."""
+    from app.report_models import ReportSchedule
+
+    schedule = db.get(ReportSchedule, report.schedule_id) if getattr(report, "schedule_id", None) else None
+    addresses = list((schedule.recipients if schedule else None) or [])
+    if not addresses:
+        return 0
+    subject, body = nd.compose(db, title, message, "info", "reports", None)
+    body += "\n\nRicevi questo report perché il tuo indirizzo è tra i destinatari della pianificazione «" + schedule.name + "»."
+    for address in addresses:
+        db.add(NotificationDelivery(user_id=None, channel="email", destination=address, category="reports", severity="info",
+                                    subject=subject, body=body, status="pending", next_attempt_at=utcnow(), attachment_ref=f"report:{report.id}"))
+    return len(addresses)
 
 
 @event.listens_for(Session, "before_flush")

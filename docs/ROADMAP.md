@@ -634,7 +634,7 @@ Approved future reporting feature.
 
 ### REP-04 — delivery and delivery evidence
 
-**Implemented in `main`**: e-mail, Telegram and Slack channels with per-user level/category preferences, outbox with retries and delivery log; scheduled reports delivered with attachment; vulnerability newsletter; worker error alerts (`app/notification_delivery.py`, `app/notification_chat.py`, `app/notification_digest.py`). Remaining: per-schedule recipient lists for external (non-user) addresses, if needed.
+**Implemented in `main`**: e-mail, Telegram and Slack channels with per-user level/category preferences, outbox with retries and delivery log; scheduled reports delivered with attachment; vulnerability newsletter; worker error alerts (`app/notification_delivery.py`, `app/notification_chat.py`, `app/notification_digest.py`). External (non-user) e-mail recipients per schedule and delivery evidence in the audit log since Core 0.49.63.
 
 Add delivery channels only when an actual supported implementation is selected. Record delivery attempt/result independently from report generation success.
 
