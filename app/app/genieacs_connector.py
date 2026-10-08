@@ -282,8 +282,35 @@ def candidate_from_genieacs(row: dict, connection: ConnectorIntegration, matched
     }
 
 
+def auto_link() -> bool:
+    """Link NSM to the integrated GenieACS when it is enabled and nothing is configured yet.
+
+    An external GenieACS configured by the operator is never replaced.  Runs in
+    its own session so callers' transactions are not committed by accident.
+    """
+    url = internal_nbi_url()
+    if not url:
+        return False
+    with SessionLocal() as db:
+        if db.scalar(select(ConnectorIntegration.id).where(ConnectorIntegration.provider == GENIEACS_PROVIDER)):
+            return False
+        settings = {"mode": "read_only_nbi", "integrated": True, "auto": True,
+                    "mac_parameter_paths": list(DEFAULT_MAC_PARAMETER_PATHS), "online_window_minutes": GENIEACS_ONLINE_WINDOW_MINUTES}
+        db.add(ConnectorIntegration(provider=GENIEACS_PROVIDER, name="GenieACS / TR-069 (integrato)", base_url=url, is_enabled=True, verify_tls=True,
+                                    secret_encrypted=encrypt_text(json.dumps(_auth_payload("none"), separators=(",", ":"))), settings=settings))
+        core.add_event(db, "GENIEACS_CONNECTOR_CONFIGURED", details={"base_url": url, "integrated": True, "auto": True}, source="system")
+        try:
+            db.commit()
+        except Exception:  # noqa: BLE001 - concurrent first request created it
+            db.rollback()
+            return False
+    return True
+
+
 def _connection(db, enabled_only=False):
     row = db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == GENIEACS_PROVIDER))
+    if row is None and auto_link():
+        row = db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == GENIEACS_PROVIDER))
     if enabled_only and (not row or not row.is_enabled):
         raise GenieAcsConnectorError("Il connettore GenieACS non è configurato o è disabilitato.")
     return row

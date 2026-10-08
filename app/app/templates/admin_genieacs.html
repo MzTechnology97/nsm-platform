@@ -6,13 +6,14 @@
 {% set integration_tab = "genieacs" %}{% include "_integration_tabs.html" %}
 
 {% if message %}<div class="alert success">{{ message }}</div>{% endif %}
-{% if internal_url %}<section class="panel" data-genieacs="integrated"><div class="panel-header"><div><h2>GenieACS integrato</h2><p>Lo stack Docker di NSM include GenieACS (<code>{{ internal_url }}</code>, rete interna). Le CPE vanno configurate con ACS URL <code>http://&lt;indirizzo-server&gt;:7547</code>.</p></div>
-  {% if not connection or connection.base_url != internal_url %}<form method="post" action="/admin/integrations/genieacs/internal"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Usa GenieACS integrato</button></form>{% else %}<span class="device-status status-online">In uso</span>{% endif %}</div></section>{% endif %}
+{% if internal_url %}<section class="panel" data-genieacs="integrated"><div class="panel-header"><div><h2>GenieACS integrato</h2><p>Lo stack Docker di NSM include GenieACS (<code>{{ internal_url }}</code>, rete interna): NSM si collega <strong>in automatico</strong>, non serve inserire l'URL. Le CPE vanno configurate con ACS URL <code>http://&lt;indirizzo-server&gt;:7547</code>. Usa il modulo qui sotto solo per un GenieACS esterno.</p></div>
+  {% if not connection or connection.base_url != internal_url %}<form method="post" action="/admin/integrations/genieacs/internal"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button primary">Usa GenieACS integrato</button></form>{% else %}<span class="device-status status-online">In uso{% if (connection.settings or {}).get('auto') %} · collegato automaticamente{% endif %}</span>{% endif %}</div></section>
+{% elif not connection %}<div class="alert info">GenieACS integrato non attivo: sul server esegui <code>cd /srv/network-platform &amp;&amp; sudo ./manage.sh acs-enable</code> e NSM si collegherà da solo. Per un GenieACS esterno compila il modulo qui sotto.</div>{% endif %}
 {% if error %}<div class="alert warning">{{ error }}</div>{% endif %}
 
 <div class="content-split">
 <section class="panel side-form">
-  <div class="panel-header"><div><h2>GenieACS NBI</h2><p>La NBI (porta 7557 di default) non ha autenticazione propria: esponila solo su rete di gestione o dietro un reverse proxy con HTTP Basic o Bearer. Le credenziali vengono cifrate.</p></div>{% if connection and connection.is_enabled %}<span class="device-status status-online">Abilitato</span>{% else %}<span class="device-status status-offline">Disabilitato</span>{% endif %}</div>
+  <div class="panel-header"><div><h2>GenieACS esterno (NBI)</h2><p>La NBI (porta 7557 di default) non ha autenticazione propria: esponila solo su rete di gestione o dietro un reverse proxy con HTTP Basic o Bearer. Le credenziali vengono cifrate.</p></div>{% if connection and connection.is_enabled %}<span class="device-status status-online">Abilitato</span>{% else %}<span class="device-status status-offline">Disabilitato</span>{% endif %}</div>
   <form method="post" action="/admin/integrations/genieacs" class="form-stack">
     <input type="hidden" name="csrf" value="{{ csrf_token(request) }}">
     <label>URL NBI<input type="url" name="base_url" required value="{{ connection.base_url if connection else '' }}" placeholder="http://genieacs.example.net:7557"><small>NSM aggiunge <code>/devices</code>. localhost e indirizzi loopback non sono ammessi.</small></label>

@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.58 — 2026-10-08
+
+ACS / TR-069
+- **Integrated GenieACS linked automatically.**
+  - When the integrated stack is enabled (`acs-enable`, `GENIEACS_INTERNAL_NBI_URL`) and no GenieACS is configured, NSM connects by itself to `http://genieacs-nbi:7557` on the internal Docker network. No URL needs to be typed.
+  - An external GenieACS configured by the operator is never replaced; the form on the page is now *GenieACS esterno (NBI)*.
+  - When the integrated stack is not active, the page says how to enable it.
+
 ## 0.49.57 — 2026-10-08
 
 Operations
