@@ -161,7 +161,7 @@ Possible focused PRs:
 - structured neighbor/DHCP/log result presentation — **done**, for modern and legacy agents;
 - bounded additional read-only diagnostics with explicit capability gates;
 - support snapshot on legacy agents — **done** in Core 0.49.82 (assembled from the read-only section jobs);
-- support-snapshot evidence/archive improvements.
+- support-snapshot evidence: JSON download with audited SHA-256 — **done** in Core 0.49.88.
 
 ## 4. GUI quality and regression queue
 

@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.88 — 2026-10-09
+
+Diagnostics — download as JSON evidence (MTK-05)
+- Every completed diagnostic (support snapshot, ping, traceroute, neighbors, DHCP, logs) has a **Scarica JSON** button on its result page. Use it to attach the snapshot to a ticket.
+- The file contains the device identity (name, identity, model, serial, RouterOS, management IP), the job (type, parameters, status, times, error) and the stored result.
+- The file's SHA-256 is returned in `X-Content-SHA256` and recorded in the audit event `DIAGNOSTIC_EXPORTED`. Read permission is enough, within the user's customer scope.
+
 ## 0.49.87 — 2026-10-09
 
 Customer and site graphs — latency, loss and MikroTik radios

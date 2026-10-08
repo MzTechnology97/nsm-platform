@@ -3,7 +3,7 @@
 {% set device_section = 'Risultato ' ~ job.job_type|replace('diagnostic_','')|replace('_',' ') %}
 {% set payload = job.payload or {} %}{% set result = job.result or {} %}{% set data = result.get('data') %}{% set output = result.get('output') %}
 {% set v = diagnostic_view(job) %}
-{% block device_actions %}<a class="button ghost" href="/devices/{{ device.id }}/diagnostics">← Diagnostica</a>{% endblock %}
+{% block device_actions %}{% if job.status in ['success','failed','expired','cancelled'] %}<a class="button ghost" href="/devices/{{ device.id }}/diagnostics/jobs/{{ job.id }}/export.json" download>Scarica JSON</a>{% endif %}<a class="button ghost" href="/devices/{{ device.id }}/diagnostics">← Diagnostica</a>{% endblock %}
 {% block device_content %}
 <div class="section-heading"><h2>{{ job.job_type|replace('diagnostic_','')|replace('_',' ')|title }}</h2><p>Singola esecuzione auditata · Job <code>{{ job.id }}</code>{% if result.get('legacy_transport') %} · agent legacy{% endif %}</p></div>
 <section class="mt-kpi-grid"><article class="metric-card"><span>Stato</span><strong>{{ job.status|upper }}</strong><small>{{ diagnostic_summary(job) }}</small></article><article class="metric-card"><span>Creato</span><strong>{{ fmt_dt(job.created_at) }}</strong><small>richiesta NSM</small></article><article class="metric-card"><span>Consegnato</span><strong>{{ fmt_dt(job.delivered_at) }}</strong><small>{{ job.attempts }} tentativi</small></article><article class="metric-card"><span>Completato</span><strong>{{ fmt_dt(job.completed_at) }}</strong><small>{{ payload.get('target') or payload.get('query') or 'senza target' }}</small></article></section>
