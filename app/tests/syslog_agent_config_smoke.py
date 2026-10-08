@@ -36,7 +36,7 @@ def sources():
     early, _, _ = mikrotik_legacy._select_agent_source("http://nsm.example.test", device_id, "CI93-secret", "7.14.3")
     assert "syslog_configure" in early and "json.no-string-conversion" not in early
     legacy, _, _ = mikrotik_legacy._select_agent_source("http://nsm.example.test", device_id, "CI93-secret", "7.12.1")
-    assert "syslog_configure" not in legacy, "legacy agents keep the manual instructions"
+    assert "syslog_configure" in legacy and "nsmSyslogPrefix" in legacy, "legacy agents (ops profile) configure syslog too (0.49.15)"
 
 
 def main():

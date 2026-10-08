@@ -290,7 +290,7 @@ Next steps:
 
 Next steps:
 - remote syslog setup for other vendors through their APIs (UISP/airOS, cnMaestro);
-- legacy agent support;
+- ~~legacy agent support~~ — done in 0.49.67 (Agent 0.49.15, legacy-ops-v1 profile);
 - ~~incidents and reports built from the access events~~ — done in 0.49.50 (report section, incident evidence, incident from alert).
 
 

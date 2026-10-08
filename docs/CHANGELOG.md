@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.67 — 2026-10-08
+
+Syslog — automatic configuration also with the legacy agent (RouterOS 7.12 and 6.x)
+- **MikroTik Agent 0.49.15.** The legacy agent installed with the `legacy-ops-v1` profile configures remote syslog like the modern one:
+  - action `nsm` toward the NSM receiver;
+  - topics critical, error, warning and account;
+  - the device key `NSM-<key>` as prefix.
+- **How to use it.** From the *Syslog* tab (*Configura syslog con l'agent*), for all devices from *Amministrazione → Syslog*, or automatically.
+- **Requirements.** `/system logging` needs the `write` policy, so read-only legacy agents (`legacy-read-v1`) and agents older than 0.49.15 must be reinstalled from the Agent tab. Until then the Syslog tab shows the manual commands, already with the key.
+- **Safety.**
+  - A legacy agent without the handler answers "success" with no output; that answer is recorded as a failure.
+  - Strict mode is enabled only after the router confirms the configured key.
+
 ## 0.49.66 — 2026-10-08
 
 ACS / TR-069 — fixes found in the review of unfinished work
