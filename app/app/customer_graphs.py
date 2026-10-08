@@ -8,8 +8,10 @@ Cacti/Zabbix-style charts for a whole customer, or one of its sites:
 - **Apparati con telemetria**: how many devices sent CPU/memory samples in each
   slot (a drop is an outage of the site);
 - **CPU apparati**: average and maximum CPU load;
-- **Segnale radio**: average and worst signal of the radios read from UISP and
-  cnMaestro.
+- **Segnale radio**: average and worst signal of the radios read from UISP,
+  cnMaestro and the MikroTik agent (wireless registration table);
+- **Latenza / Perdita pacchetti**: round-trip time (average and worst) and
+  loss of the devices with the ICMP monitor enabled (pings from NSM).
 
 Slots are computed in SQL (``floor(epoch / width)``) and summed in Python; a
 slot without data is a gap, never a zero.  Tables list the devices with the
@@ -26,7 +28,7 @@ from sqlalchemy import func, select
 
 from app import interface_traffic
 from app import main as core
-from app.agent_models import DeviceInterfaceSample, DeviceMetricSample
+from app.agent_models import DeviceInterfaceSample, DeviceMetricSample, DevicePingSample, DeviceWirelessSample
 from app.db import SessionLocal
 from app.models import Customer, Device, Site, UispMetricSample, utcnow
 
@@ -110,16 +112,34 @@ def signal(db, devices, since, width) -> dict:
         sources.append(CambiumMetricSample)
     except ImportError:  # pragma: no cover - connector not installed
         pass
+    queries = []
     for model in sources:
         slot = _slot_expr(model.observed_at, width).label("slot")
-        rows = db.execute(select(slot, func.sum(model.signal_dbm), func.count(model.signal_dbm), func.min(model.signal_dbm))
-                          .where(model.device_id.in_(ids), model.observed_at >= since, model.signal_dbm.is_not(None)).group_by(slot)).all()
+        queries.append(select(slot, func.sum(model.signal_dbm), func.count(model.signal_dbm), func.min(model.signal_dbm))
+                       .where(model.device_id.in_(ids), model.observed_at >= since, model.signal_dbm.is_not(None)).group_by(slot))
+    slot = _slot_expr(DeviceWirelessSample.observed_at, width).label("slot")
+    queries.append(select(slot, func.sum(DeviceWirelessSample.signal_avg), func.count(DeviceWirelessSample.signal_avg), func.min(DeviceWirelessSample.signal_min))
+                   .where(DeviceWirelessSample.device_id.in_(ids), DeviceWirelessSample.observed_at >= since, DeviceWirelessSample.signal_avg.is_not(None))
+                   .group_by(slot))
+    for query in queries:
+        rows = db.execute(query).all()
         for s, total, count, worst in rows:
             cell = out.setdefault(int(s), [0.0, 0, None])
             cell[0] += float(total or 0)
             cell[1] += int(count or 0)
             cell[2] = worst if cell[2] is None else min(cell[2], worst)
     return out
+
+
+def latency(db, devices, since, width) -> dict:
+    """{slot: (avg rtt, worst rtt, sent, received)} from the ICMP monitor samples."""
+    ids = [d.id for d in devices]
+    if not ids:
+        return {}
+    slot = _slot_expr(DevicePingSample.observed_at, width).label("slot")
+    rows = db.execute(select(slot, func.avg(DevicePingSample.rtt_avg), func.max(DevicePingSample.rtt_max), func.sum(DevicePingSample.sent), func.sum(DevicePingSample.received))
+                      .where(DevicePingSample.device_id.in_(ids), DevicePingSample.observed_at >= since).group_by(slot)).all()
+    return {int(s): (avg, worst, int(sent or 0), int(received or 0)) for s, avg, worst, sent, received in rows}
 
 
 def build(db, customer: Customer, site_id=None, range_key: str = "24h", now=None) -> dict:
@@ -145,9 +165,16 @@ def build(db, customer: Customer, site_id=None, range_key: str = "24h", now=None
             {"label": "Massimo", "points": [[_iso(s, width), round(float(r[s][1]), 1) if s in r and r[s][1] is not None else None] for s in slots]}]})
     g = signal(db, devices, since, width)
     if g:
-        charts.append({"id": "signal", "title": "Segnale radio (UISP / cnMaestro)", "unit": "dBm", "series": [
+        charts.append({"id": "signal", "title": "Segnale radio (UISP / cnMaestro / MikroTik)", "unit": "dBm", "series": [
             {"label": "Medio", "points": [[_iso(s, width), round(g[s][0] / g[s][1], 1) if s in g and g[s][1] else None] for s in slots]},
             {"label": "Peggiore", "points": [[_iso(s, width), round(float(g[s][2]), 1) if s in g and g[s][2] is not None else None] for s in slots]}]})
+    lat = latency(db, devices, since, width)
+    if lat:
+        charts.append({"id": "latency", "title": "Latenza (ICMP da NSM)", "unit": "ms", "series": [
+            {"label": "Media", "points": [[_iso(s, width), round(float(lat[s][0]), 1) if s in lat and lat[s][0] is not None else None] for s in slots]},
+            {"label": "Peggiore", "points": [[_iso(s, width), round(float(lat[s][1]), 1) if s in lat and lat[s][1] is not None else None] for s in slots]}]})
+        charts.append({"id": "loss", "title": "Perdita pacchetti (ICMP da NSM)", "unit": "%", "series": [
+            {"label": "Perdita", "points": [[_iso(s, width), round(100 * (1 - lat[s][3] / lat[s][2]), 1) if s in lat and lat[s][2] else None] for s in slots]}]})
     by_id = {d.id: d for d in devices}
     top = sorted(((by_id[i], v[0] / v[2], v[1] / v[2]) for i, v in t["per_device"].items() if v[2]), key=lambda row: -(row[1] + row[2]))[:TOP_DEVICES]
     return {"range": range_key, "sample_count": sum(1 for c in charts for s in c["series"] for p in s["points"] if p[1] is not None),

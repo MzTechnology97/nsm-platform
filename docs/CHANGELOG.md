@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.87 — 2026-10-09
+
+Customer and site graphs — latency, loss and MikroTik radios
+- The *Grafici* tab of a customer (or one site) adds:
+  - **Latenza (ICMP da NSM)**: average and worst round-trip time of the devices with the ICMP monitor;
+  - **Perdita pacchetti**: loss per slot over all their rounds.
+- **Segnale radio** now also includes the MikroTik radios read by the agent (worst client of each AP), next to UISP and cnMaestro.
+
 ## 0.49.86 — 2026-10-09
 
 Monitoring — wireless signal of MikroTik radios (MON-01)

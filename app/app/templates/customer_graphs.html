@@ -11,7 +11,7 @@
 
 <section class="panel telemetry-panel" id="customer-graphs" data-series-root data-endpoint="/api/v1/customers/{{ customer.id }}/graphs{% if selected_site %}?site={{ selected_site.id }}{% endif %}">
   <div class="panel-header">
-    <div><h2>Grafici {{ 'della sede ' ~ selected_site.name if selected_site else 'del cliente' }}</h2><p>Traffico WAN aggregato (somma delle interfacce monitorate degli apparati, scelte nella pagina Monitor di ciascuno), apparati che inviano telemetria, CPU e segnale radio (UISP / cnMaestro). Le interruzioni compaiono come buchi.</p></div>
+    <div><h2>Grafici {{ 'della sede ' ~ selected_site.name if selected_site else 'del cliente' }}</h2><p>Traffico WAN aggregato (somma delle interfacce monitorate degli apparati, scelte nella pagina Monitor di ciascuno), apparati che inviano telemetria, CPU, segnale radio (UISP, cnMaestro e radio MikroTik) e, per gli apparati con il monitoraggio ICMP, latenza e perdita pacchetti misurate da NSM. Le interruzioni compaiono come buchi.</p></div>
     <div class="telemetry-ranges" role="group" aria-label="Intervallo"><button type="button" data-series-range="24h" class="active">24h</button><button type="button" data-series-range="7d">7g</button><button type="button" data-series-range="30d">30g</button><button type="button" data-series-range="90d">90g</button></div>
   </div>
   <div class="telemetry-grid" data-series-grid><div class="telemetry-empty">Caricamento…</div></div>

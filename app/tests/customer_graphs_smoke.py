@@ -6,7 +6,7 @@ from datetime import timedelta
 from fastapi.testclient import TestClient
 
 from app import customer_graphs as cg
-from app.agent_models import DeviceInterfaceSample, DeviceMetricSample
+from app.agent_models import DeviceInterfaceSample, DeviceMetricSample, DevicePingSample, DeviceWirelessSample
 from app.db import SessionLocal
 from app.entrypoint import app
 from app.models import Customer, Device, Site, UispMetricSample, User, utcnow
@@ -48,13 +48,21 @@ def main():
                 db.add(DeviceMetricSample(device_id=r2.id, observed_at=at, cpu_load=80.0))
             db.add(DeviceMetricSample(device_id=r1.id, observed_at=at, cpu_load=20.0))
             db.add(UispMetricSample(device_id=cpe.id, observed_at=at, signal_dbm=-60.0 - (minutes % 10)))
+            # MikroTik radio (agent) and ICMP monitor from NSM.
+            db.add(DeviceWirelessSample(device_id=r1.id, interface="wlan1", observed_at=at, clients=3, signal_min=-78.0, signal_avg=-66.0, signal_max=-55.0))
+            db.add(DevicePingSample(device_id=r1.id, observed_at=at, target="198.51.100.9", sent=3, received=3 if minutes != 30 else 0,
+                                    rtt_min=8.0 if minutes != 30 else None, rtt_avg=10.0 if minutes != 30 else None, rtt_max=25.0 if minutes != 30 else None))
         db.add(User(username=f"ci-cg-{suffix}", password_hash=hash_password(PASSWORD), role="auditor", is_active=True))
         db.commit()
         ids = {"customer": customer.id, "north": north.id, "south": south.id, "foreign": foreign.id, "r1": r1.id}
 
         data = cg.build(db, customer, None, "24h", now)
         charts = {c["id"]: c for c in data["charts"]}
-        assert set(charts) == {"traffic", "reporting", "cpu", "signal"}, set(charts)
+        assert set(charts) == {"traffic", "reporting", "cpu", "signal", "latency", "loss"}, set(charts)
+        assert min(v for _t, v in charts["signal"]["series"][1]["points"] if v is not None) == -78.0, "MikroTik radios count too"
+        assert max(v for _t, v in charts["latency"]["series"][1]["points"] if v is not None) == 25.0
+        losses = [v for _t, v in charts["loss"]["series"][0]["points"] if v is not None]
+        assert max(losses) == 50.0 and min(losses) == 0.0, losses  # the 30-minute round lost in a 10-minute slot with 2 rounds
         traffic_in = [v for _t, v in charts["traffic"]["series"][0]["points"] if v is not None]
         assert max(traffic_in) == 50e6 and min(traffic_in) == 40e6, "sum of the WAN interfaces only, r2 missing after its outage"
         points = charts["traffic"]["series"][0]["points"]
