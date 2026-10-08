@@ -72,9 +72,9 @@ def agent_sources():
     assert ",X-NSM-Ifaces:\" . [$nsmHeaderSafe $nsmIfaces]" in legacy and ":serialize" not in legacy
     v6, _, _ = mikrotik_legacy._select_agent_source(base, device_id, "CI91-secret", "6.49.10")
     validate_routeros6(v6)
-    assert "X-NSM-Ifaces" in v6 and "running=yes && dynamic=no" in v6
+    assert "X-NSM-Ifaces" in v6 and "dynamic=yes && running=yes" in v6
     # WAN-like interfaces are collected first so they survive the length cap.
-    assert modern.index('type!="ether"') < modern.index('(type="ether"')
+    assert modern.index('type="pppoe-out"') < modern.index('dynamic=no && type="ether"]'), "WAN clients first, so they fit the size cap"
 
 
 def main():
