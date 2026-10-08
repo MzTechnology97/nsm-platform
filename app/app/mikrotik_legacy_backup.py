@@ -41,8 +41,8 @@ from app.models import utcnow
 
 router = APIRouter()
 UNSUPPORTED = (
-    "Backup non ancora disponibile per questo agent legacy: serve RouterOS 7.x con agent legacy 0.49.7+ "
-    "(solo export .rsc fino a 60 KB). Il backup binario richiede RouterOS 7.13+ con agent moderno."
+    "Backup non eseguibile con questo agent legacy. Per il backup completo (binario + export) via FTP: "
+    "./manage.sh legacy-backup-enable <IPv4 di NSM> e agent legacy 0.49.16+ con profilo completo."
 )
 
 

@@ -153,6 +153,12 @@ def main():
         assert marker in legacy.text, marker
     assert "secret_hash" not in legacy.text
     assert legacy_hash not in legacy.text
+    # Administrative capabilities from what the installed Agent can do (read-only legacy here).
+    for marker in ("Riavvio remoto", "Aggiornamento RouterOS", "Configurazione syslog", "Aggiornamento agent automatico",
+                   "Backup · Agent MikroTik legacy", "Ricevitore FTP dei backup legacy non attivo"):
+        assert marker in legacy.text, marker
+    assert "sola lettura: reinstallalo una volta" in legacy.text
+    assert "Backup HTTPS" not in legacy.text
 
     modern = client.get(f"/devices/{modern_id}/agent")
     assert modern.status_code == 200, modern.text
@@ -160,6 +166,7 @@ def main():
     assert "Modern CCR" in modern.text
     assert "Transport moderno attivo" in modern.text
     assert "Retention 90 giorni" in modern.text
+    assert "Riavvio remoto" in modern.text and "Profilo non operativo" in modern.text
     assert modern_hash not in modern.text
 
     # Reinstall creates a new one-shot enrollment but does not reveal or rotate

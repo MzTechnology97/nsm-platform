@@ -94,8 +94,7 @@ def _enhanced_context(db, device):
         "telemetry_history_supported": transport == "modern",
         "support_snapshot_supported": transport == "modern",
         "legacy_capability_reason": (
-            "Il transport legacy RouterOS 7.12.x usa snapshot configurazione plain-text allow-list. "
-            "Support snapshot e altre acquisizioni avanzate restano disponibili solo sul transport moderno."
+            "Il transport legacy (RouterOS 6.48/6.49 e 7.12.x) usa snapshot configurazione plain-text allow-list."
             if transport == "legacy" else None
         ),
     })

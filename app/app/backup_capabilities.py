@@ -90,6 +90,14 @@ def backup_formats_for_device(device, formats):
     return [item for item in formats if item == "mikrotik_export"] if legacy_export_supported(device) else []
 
 
+def _legacy_ftp_hint(device) -> str:
+    """What a legacy MikroTik needs for the full FTP backup (RouterOS 6 and 7.12)."""
+    from app import legacy_ftp_backup
+
+    reason = legacy_ftp_backup.blocker(device).rstrip(".")
+    return f"{reason}."
+
+
 def _legacy_mikrotik_agent(device) -> bool:
     data = dict(getattr(device, "inventory_data", None) or {})
     version = str(data.get("agent_version") or "").strip().lower()
@@ -127,7 +135,7 @@ def capability_for_device(db, device, *, active_agent: bool | None = None) -> Ba
                 label="Agent MikroTik legacy (solo export)",
                 status="available_export_only",
                 executable=True,
-                reason="RouterOS 7.12 legacy: viene archiviato solo l'export .rsc fino a 60 KB; il backup binario richiede RouterOS 7.13+ con agent moderno.",
+                reason="RouterOS 7.12 legacy: viene archiviato solo l'export .rsc fino a 60 KB. Backup completo (binario + export, senza limiti): " + _legacy_ftp_hint(device),
                 policy_option_keys=("mikrotik_export",),
                 artifact_types=("mikrotik_export",),
             )
@@ -138,7 +146,7 @@ def capability_for_device(db, device, *, active_agent: bool | None = None) -> Ba
                 label="Agent MikroTik legacy",
                 status="legacy_backup_pending",
                 executable=False,
-                reason="Backup non eseguibile: su RouterOS 7.x serve l'agent legacy 0.49.7+ (solo export .rsc); RouterOS 6 non consente di leggere file oltre 4 KB da script. Il dispositivo non viene dichiarato protetto.",
+                reason="Backup non eseguibile con questo agent legacy: " + _legacy_ftp_hint(device) + " Il dispositivo non viene dichiarato protetto.",
                 policy_option_keys=("mikrotik_binary", "mikrotik_export"),
                 artifact_types=("mikrotik_binary", "mikrotik_export"),
             )
