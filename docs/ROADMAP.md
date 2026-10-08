@@ -431,6 +431,8 @@ Only expose backup/restore where the real CPE data model and connector expose a 
 
 ### VEND-01 — firmware catalogs for other vendors (requested 2026-10-07)
 
+**Implemented in `main` (Core 0.49.69)**: *Firmware → Cataloghi altri produttori* — Ubiquiti from UISP and from the official update service (`fw-update.ubnt.com`, airOS platforms read from the installed firmware string; to be confirmed from the deployed instance), other brands from releases entered from the official download pages; device firmware state evaluated per model. Next: official machine-readable sources for other brands where they exist.
+
 Release catalogs like the RouterOS one (versions per channel/model, release notes, security classification) for Ubiquiti, TP-Link, Tenda, Cambium and similar vendors. Each catalog is enabled only when the inventory contains devices of that brand, reads only official vendor sources and never guesses versions it cannot verify.
 
 ### VEND-02 — cnMaestro integration for Cambium (requested 2026-10-07)

@@ -5,7 +5,7 @@
 {% set scope = '?q=' ~ q|urlencode ~ '&customer=' ~ customer_filter ~ '&vendor=' ~ vendor_filter|urlencode %}
 <div class="page-header compact-heading">
   <div><h1>Firmware</h1><p>Apparati che richiedono verifica o aggiornamento firmware{% if selected_customer %} per {{ selected_customer.name }}{% endif %}. Il controllo MikroTik è in sola lettura: non scarica pacchetti e non riavvia il router.</p></div>
-  {% set suggested = firmware_suggestion_count() %}<div class="page-actions"><a class="button {{ 'primary' if suggested.actionable else 'ghost' }}" href="/operations/firmware/suggestions{% if selected_customer %}?customer={{ selected_customer.id }}{% endif %}">Suggerimenti RouterOS{% if suggested.actionable %} ({{ suggested.actionable }}{% if suggested.security %}, {{ suggested.security }} sicurezza{% endif %}){% endif %}</a></div>
+  {% set suggested = firmware_suggestion_count() %}<div class="page-actions"><a class="button {{ 'primary' if suggested.actionable else 'ghost' }}" href="/operations/firmware/suggestions{% if selected_customer %}?customer={{ selected_customer.id }}{% endif %}">Suggerimenti RouterOS{% if suggested.actionable %} ({{ suggested.actionable }}{% if suggested.security %}, {{ suggested.security }} sicurezza{% endif %}){% endif %}</a><a class="button ghost" href="/operations/firmware/catalogs">Cataloghi altri produttori</a></div>
 </div>
 
 {{ chips([

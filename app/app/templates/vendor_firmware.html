@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Cataloghi firmware · {{ app_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Cataloghi firmware</h1><p>Un catalogo per ogni produttore presente nell'inventario. Ubiquiti: versioni da UISP e dal servizio di aggiornamento ufficiale; altri produttori: release inserite dagli operatori dalla pagina di download ufficiale. NSM non stima mai versioni. MikroTik ha il proprio <a href="/admin/integrations/routeros">catalogo RouterOS</a>.</p></div>
+  {% if has_permission(user, 'firmware.execute') %}<form method="post" action="/operations/firmware/catalogs/refresh"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button">Aggiorna fonti e ricalcola</button></form>{% endif %}</div>
+
+{% for c in catalogs %}
+<section class="panel vendor-catalog" id="catalog-{{ c.brand }}">
+  <div class="panel-header"><div><h2>{{ c.label }}</h2><p>{{ c.devices }} apparati · {{ c.outdated }} da aggiornare{% if c.security %} ({{ c.security }} con correzioni di sicurezza){% endif %}{% if c.unknown_version %} · {{ c.unknown_version }} senza versione firmware nota{% endif %}{% if c.page %} · <a href="{{ c.page }}" target="_blank" rel="noopener">pagina download ufficiale ↗</a>{% endif %}</p></div>
+    <a class="button ghost" href="/operations/firmware{% if c.brand in ['ubiquiti', 'tp-link'] %}?vendor={{ c.brand }}{% endif %}">Apparati ›</a></div>
+  {% if c.releases %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Versione</th><th>Modelli</th><th>Rilascio</th><th>Fonte</th><th>Sicurezza</th><th>Note</th><th></th></tr></thead><tbody>
+  {% for r in c.releases %}<tr><td><strong>{{ r.version }}</strong></td><td>{{ r.model_pattern or 'tutti' }}{% if r.platform %} <small>piattaforma {{ r.platform }}</small>{% endif %}</td>
+    <td>{{ r.released_at.strftime('%d/%m/%Y') if r.released_at else '—' }}</td><td><span class="status-pill">{{ source_labels.get(r.source, r.source) }}</span></td>
+    <td>{% if r.security %}<span class="severity-badge severity-high">sicurezza</span>{% else %}—{% endif %}</td>
+    <td>{% if r.notes_url %}<a href="{{ r.notes_url }}" target="_blank" rel="noopener">note ↗</a>{% endif %}{% if r.notes %}<small>{{ r.notes|truncate(120) }}</small>{% endif %}</td>
+    <td>{% if r.source == 'operator' and has_permission(user, 'firmware.execute') %}<form method="post" action="/operations/firmware/catalogs/releases/{{ r.id }}/delete" data-confirm="Eliminare la release {{ r.version }} dal catalogo?"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button tiny ghost">Elimina</button></form>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state">Nessuna release nel catalogo {{ c.label }}{% if c.brand == 'ubiquiti' %}: collega gli apparati a UISP o premi «Aggiorna fonti e ricalcola»{% else %}: aggiungi l'ultima release dalla pagina di download ufficiale{% endif %}.</div>{% endif %}
+  {% if has_permission(user, 'firmware.execute') %}
+  <details class="vendor-catalog-add"><summary>Aggiungi release {{ c.label }}</summary>
+    <form method="post" action="/operations/firmware/catalogs/releases" class="form-grid">
+      <input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="brand" value="{{ c.brand }}">
+      <label>Versione<input name="version" required maxlength="80" placeholder="es. 1.2.3"></label>
+      <label>Modelli<input name="model_pattern" maxlength="120" placeholder="vuoto = tutti; es. archer c6* o eap225"></label>
+      <label>Data di rilascio<input type="date" name="released_at"></label>
+      <label>Note di rilascio (link ufficiale)<input name="notes_url" maxlength="500" placeholder="https://…"></label>
+      <label class="check-row"><input type="checkbox" name="security" value="1"> Corregge vulnerabilità di sicurezza</label>
+      <label>Note<input name="notes" maxlength="2000"></label>
+      <button class="button primary">Aggiungi al catalogo</button>
+    </form>
+  </details>{% endif %}
+</section>
+{% else %}
+<section class="panel"><div class="empty-state">Nessun apparato di produttori diversi da MikroTik nell'inventario: i cataloghi compaiono quando aggiungi apparati di quel produttore.</div></section>
+{% endfor %}
+{% endblock %}

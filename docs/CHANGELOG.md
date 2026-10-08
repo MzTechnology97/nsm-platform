@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.69 — 2026-10-08
+
+Firmware — catalogs for the other manufacturers (VEND-01)
+- **New page *Firmware → Cataloghi altri produttori*.** There is one catalog per brand present in the inventory; a brand without devices has no catalog. MikroTik keeps the RouterOS catalog.
+- **Ubiquiti** is filled automatically from official sources:
+  - the latest version that UISP reports for each model;
+  - Ubiquiti's public update service (`fw-update.ubnt.com`) for the airOS platforms found in the inventory (`XC`, `WA`, `XW`…, read from the installed firmware string). It is refreshed daily and on demand; to be confirmed from the deployed instance.
+- **TP-Link, Tenda, Cambium, Huawei and the other brands.** Operators enter releases from the official download page, which is linked on the page: version, models (pattern such as `archer c6*`), date, link to the release notes, and whether the release fixes security issues. NSM never estimates versions.
+- **Evaluation.** Every device of the brand is compared with the newest release for its model or platform. The state appears in the firmware worklist: *update available*, *security update* or *current*. Devices managed by UISP keep the UISP view.
+- **Audit.** Adding and deleting releases is audited. Migration `0035`.
+
 ## 0.49.68 — 2026-10-08
 
 Ubiquiti — operations through UISP (UBNT-08, step 2)
