@@ -20,6 +20,7 @@ from app import main as core
 from app import syslog_receiver as receiver
 from app import mikrotik_syslog_config as syslog_config
 from app import syslog_identity as identity
+from app import syslog_firewall, syslog_integrity
 from app import syslog_security, vendor_cpe
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
@@ -78,7 +79,7 @@ def logs_api(request: Request, device_id: uuid.UUID, after_id: int = 0, before_i
 
 
 @router.get("/devices/{device_id}/logs", response_class=HTMLResponse, name="device_logs")
-def logs_page(request: Request, device_id: uuid.UUID):
+def logs_page(request: Request, device_id: uuid.UUID, verify: int = 0):
     with SessionLocal() as db:
         user = core.current_user(request, db)
         if not user:
@@ -95,7 +96,8 @@ def logs_page(request: Request, device_id: uuid.UUID):
                            severity_filters=SEVERITY_FILTERS, syslog_host=public_host(db, request), syslog_status=receiver.receiver_status(),
                            device_brand_key=vendor_cpe.brand(device) or "generic", syslog_sources=device_sources(device),
                            access=syslog_security.access_summary(db, device.id), syslog_job=syslog_config.latest_job(db, device.id),
-                           syslog_ident=device_identification(device, receiver.load_settings(db)))
+                           syslog_ident=device_identification(device, receiver.load_settings(db)),
+                           integrity=syslog_integrity.verify(db, device.id) if verify else None)
 
 
 @router.get("/devices/{device_id}/logs.csv", name="device_logs_csv")
@@ -157,6 +159,7 @@ def admin_syslog(request: Request, status: str = ""):
         senders = db.scalar(select(func.count(func.distinct(DeviceLogEntry.device_id))).where(DeviceLogEntry.received_at >= last_day.replace(hour=0, minute=0, second=0))) or 0
         return core.render(request, db, user, "admin_syslog.html", title="Syslog", status=status, settings=receiver.load_settings(db),
                            reject_labels=identity.REJECT_REASONS, detail=request.query_params.get("detail", ""),
+                           firewall_script=syslog_firewall.render(receiver.load_settings(db).get("allowed_networks")),
                            syslog_host=public_host(db, request), syslog_status=receiver.receiver_status(), unknown_sources=unknown,
                            devices=devices, stored_today=stored, senders_today=senders)
 

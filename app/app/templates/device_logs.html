@@ -48,6 +48,14 @@
   <div class="telemetry-footer"><span data-log-count>0 righe</span><button type="button" class="button ghost" data-log-more>Carica righe precedenti</button></div>
 </section>
 
+<section class="panel" id="integrity">
+  <div class="panel-header"><div><h2>Integrità dei log</h2><p>Le righe warning, error e critical sono concatenate con un hash: una riga modificata, inserita o cancellata rompe la catena. La testa della catena viene registrata ogni giorno nel log di audit.</p></div>
+    <a class="button ghost" href="/devices/{{ device.id }}/logs?verify=1#integrity">Verifica integrità</a></div>
+  {% if integrity %}{% if integrity.ok %}<div class="alert success"><strong>Catena integra.</strong> {{ integrity.checked }} righe verificate{% if integrity.anchored_at %}; ultimo ancoraggio nell'audit {{ fmt_dt(integrity.anchored_at) }}{% endif %}.</div>
+  {% elif integrity.broken_at %}<div class="alert error"><strong>Catena interrotta</strong> alla riga {{ integrity.broken_at }} ricevuta il {{ fmt_dt(integrity.received_at) }}: le righe da quel punto potrebbero essere state alterate. {{ integrity.checked }} righe precedenti verificate.</div>
+  {% else %}<div class="alert error"><strong>Ancoraggio non trovato.</strong> La testa della catena registrata nell'audit non è più presente: la catena potrebbe essere stata riscritta.</div>{% endif %}{% endif %}
+</section>
+
 <section class="panel" id="syslog-setup">
   <details{% if not last_log %} open{% endif %}>
     <summary class="panel-header syslog-setup-summary"><div><h2>Configurazione syslog dell'apparato</h2><p>Server remoto <code>{{ syslog_host or 'indirizzo di NSM' }}</code>, porta <code>514</code> UDP. NSM associa i log a questo apparato tramite l'indirizzo IP del mittente.</p></div>

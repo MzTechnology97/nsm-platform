@@ -4,6 +4,26 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.54 — 2026-10-08
+
+Syslog — server hardening
+- **Dedicated database account.**
+  - `update.sh` generates `SYSLOG_DB_PASSWORD`; the `migrate` service creates and refreshes the role `nsm_syslog` on every deploy (`app/db_roles.py`).
+  - The receiver can only insert and read log lines and access events, update the counters of discarded senders, and read devices and settings.
+  - Users, backups, credentials and the rest of the database are out of reach.
+- **Hardened container.**
+  - New launcher `app.syslog_main`; filesystem read-only (`/tmp` in memory); limits of 512 MB RAM, 1 CPU and 128 processes; non-root user without capabilities.
+  - Secrets the receiver never needs (`APP_SECRET_KEY`, `ENCRYPTION_MASTER_KEY`, …) are removed from its environment.
+- **Host firewall.**
+  - `./manage.sh syslog-firewall` generates the `DOCKER-USER` rules from the allowed networks: the published ports bypass ufw, so these rules are the only effective filter. `--apply` applies them.
+  - The script refuses to run while no network is configured.
+  - The admin page shows the generated rules.
+- **TLS (RFC 5425)**: optional listener on 6514 when a certificate and key are mounted (`SYSLOG_TLS_CERT`, `SYSLOG_TLS_KEY`), for devices that support it.
+- **Log integrity.**
+  - Warning, error and critical lines are chained with SHA-256 per device (migration 0033); the worker writes the chain head into the audit log every day.
+  - **Verifica integrità** in the device Syslog tab shows the first altered line, or a whole chain that no longer matches the audit anchor.
+  - The incident PDF reports the integrity of the logs it quotes.
+
 ## 0.49.53 — 2026-10-08
 
 Syslog — certain identification (decided with the operator)

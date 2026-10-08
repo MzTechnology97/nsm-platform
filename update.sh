@@ -39,6 +39,8 @@ fi
 [[ -f "$SOURCE_DIR/update.sh" ]] || die "Repository sorgente non valido: update.sh mancante."
 [[ -f "$PLATFORM_DIR/docker-compose.yml" ]] || die "Installazione attiva non trovata in $PLATFORM_DIR."
 [[ -f "$PLATFORM_DIR/secrets/bootstrap.env" ]] || die "Secret runtime non trovati."
+# Dedicated least-privilege database account for the internet-facing syslog receiver.
+grep -q '^SYSLOG_DB_PASSWORD=' "$PLATFORM_DIR/secrets/bootstrap.env" || echo "SYSLOG_DB_PASSWORD=$(openssl rand -hex 24)" | sudo tee -a "$PLATFORM_DIR/secrets/bootstrap.env" >/dev/null
 
 git_repo(){ git -c safe.directory="$SOURCE_DIR" -C "$SOURCE_DIR" "$@"; }
 
