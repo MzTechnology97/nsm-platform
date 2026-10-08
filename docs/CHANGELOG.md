@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.81 — 2026-10-09
+
+MikroTik Agent — capabilities and texts that match what legacy agents do (audit of half-done work)
+- **Agent tab, *Capability effettive*.** Four new rows, for modern and legacy agents:
+  - *Riavvio remoto* and *Aggiornamento RouterOS*: from the privilege profile; a read-only legacy agent is told to reinstall once;
+  - *Configurazione syslog*: from the agent eligibility;
+  - *Aggiornamento agent automatico*: from the update policy.
+  
+  The backup row names the real method (for example *Agent MikroTik legacy (FTP)*), no longer always "Backup HTTPS". On RouterOS 6 the diagnostics row says traceroute is not available.
+- **Legacy backup messages.** Export-only and not executable no longer say "the binary backup requires RouterOS 7.13+". They now say what the full FTP backup needs: the receiver (`./manage.sh legacy-backup-enable`), agent 0.49.16+ and the policies.
+- **Other texts.** The Agent fleet filter reads *Legacy 6.x / 7.12*. The workspace legacy note covers RouterOS 6.48/6.49. ROADMAP MON-01 now reflects the 2-minute sampling and the consolidation.
+
 ## 0.49.80 — 2026-10-09
 
 Onboarding — command for RouterOS 6.48/6.49

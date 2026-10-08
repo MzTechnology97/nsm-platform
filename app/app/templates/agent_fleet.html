@@ -35,7 +35,7 @@
           {% for value, label in [('', 'Tutti gli stati'), ('verified', 'Verificata'), ('waiting', 'In attesa'), ('suspect', 'Pairing OK / agent non avviato'), ('expired', 'Token scaduto'), ('not_enrolled', 'Non associato')] %}<option value="{{ value }}" {% if install_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
         </select></label>
         <label>Transport<select name="transport">
-          {% for value, label in [('', 'Tutti'), ('modern', 'Modern 7.13+'), ('legacy', 'Legacy 7.12'), ('unknown', 'Sconosciuto')] %}<option value="{{ value }}" {% if transport_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          {% for value, label in [('', 'Tutti'), ('modern', 'Modern 7.13+'), ('legacy', 'Legacy 6.x / 7.12'), ('unknown', 'Sconosciuto')] %}<option value="{{ value }}" {% if transport_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
         </select></label>
       </div>
     </details>
