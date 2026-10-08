@@ -226,64 +226,14 @@ def _wrap_inventory_updates(previous):
 @router.post("/devices/{device_id}/agent/update", name="queue_mikrotik_agent_update")
 def queue_agent_update(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
     validate_csrf(request, csrf)
+    from app.mikrotik_agent_autoupdate import queue_update
+
     with SessionLocal() as db:
         user = core.require_permission(request, db, "devices.enroll")
         device = db.get(Device, device_id)
         if not device or device.vendor != "mikrotik":
             raise HTTPException(404)
-        credential = db.scalar(
-            select(DeviceAgentCredential).where(
-                DeviceAgentCredential.device_id == device.id,
-                DeviceAgentCredential.agent_type == "mikrotik_agent",
-                DeviceAgentCredential.is_active.is_(True),
-            )
-        )
-        if not credential:
-            raise HTTPException(409, "Agent non associato.")
-        status = agent_update_status(device)
-        if str((device.inventory_data or {}).get("agent_transport") or "") != "modern":
-            raise HTTPException(409, "Il self-update richiede il transport moderno; usare la reinstallazione guidata.")
-        if not status["self_update_capable"]:
-            raise HTTPException(409, "Questo agent precede il protocollo self-update; eseguire una reinstallazione guidata una sola volta.")
-        if not status["outdated"]:
-            raise HTTPException(409, "Agent gia aggiornato e senza drift rilevato.")
-        active = db.scalar(
-            select(DeviceJob.id).where(
-                DeviceJob.device_id == device.id,
-                DeviceJob.job_type == UPDATE_JOB_TYPE,
-                DeviceJob.status.in_(["pending", "delivered", "running"]),
-            )
-        )
-        if active:
-            raise HTTPException(409, "Aggiornamento agent gia in corso.")
-        data = dict(device.inventory_data or {})
-        job = DeviceJob(
-            device_id=device.id,
-            job_type=UPDATE_JOB_TYPE,
-            status="pending",
-            payload={
-                "target_version": TARGET_AGENT_VERSION,
-                "previous_agent_version": data.get("agent_version"),
-                "previous_expected_version": data.get("agent_expected_version"),
-                "previous_expected_sha512": data.get("agent_expected_source_sha512"),
-            },
-            expires_at=utcnow() + UPDATE_JOB_TTL,
-        )
-        db.add(job)
-        db.flush()
-        data["agent_update_state"] = "pending"
-        data["agent_update_job_id"] = str(job.id)
-        data["agent_update_requested_at"] = utcnow().isoformat()
-        device.inventory_data = data
-        core.add_event(
-            db,
-            "MIKROTIK_AGENT_UPDATE_QUEUED",
-            actor=user,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            source="portal",
-            details={"job_id": str(job.id), "target_version": TARGET_AGENT_VERSION},
-        )
+        queue_update(db, device, actor=user)
         db.commit()
     return RedirectResponse(f"/devices/{device_id}/agent", status_code=303)
 

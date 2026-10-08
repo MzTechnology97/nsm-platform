@@ -10,6 +10,7 @@ from app.backup_scheduler_capability_guard import install_backup_scheduler_capab
 from app.config import settings
 from app.device_job_maintenance import expire_delivered_jobs, expire_pending_jobs
 from app.mikrotik_agent_update import reconcile_agent_update_states
+from app.mikrotik_agent_autoupdate import auto_update as auto_update_agents
 from app.firmware_activation import reconcile_firmware_activations
 from app.firmware_plan_recovery import reconcile_firmware_plan_jobs
 from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_finalization_cleanup
@@ -69,6 +70,7 @@ while True:
             expired_delivered_jobs = run_task("jobs_expire_delivered", expire_delivered_jobs, default=0)
             expired_agent_updates = run_task("agent_self_update", reconcile_agent_update_states, default=0)
             agent_stats = run_task("agent_health", agent_health_tick)
+            run_task("agent_auto_update", auto_update_agents)
             firmware_stats = run_task("firmware_activation", reconcile_firmware_activations)
             firmware_plan_stats = run_task("firmware_plans", reconcile_firmware_plan_jobs)
             routerboot_stats = run_task("routerboot_verification", routerboot_verification_tick)

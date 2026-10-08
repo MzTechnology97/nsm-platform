@@ -9,8 +9,21 @@
       <article class="metric-card"><span>Heartbeat</span><strong>{{ fmt_dt(device.last_seen) }}</strong><small>{% if agent_heartbeat.stale %}Stale / da verificare{% else %}Regolare{% endif %}</small></article>
     </section>
 
-    {% set profile_hint = mikrotik_agent_update_status(device).get('reinstall_reason') %}
-    {% if profile_hint %}<div class="alert warning"><strong>Reinstallazione consigliata.</strong> {{ profile_hint }}</div>{% endif %}
+
+    {% set upd = mikrotik_agent_update_status(device) %}
+    {% set upd_labels = {'idle': 'Nessun aggiornamento in corso', 'pending': "In coda: l'agent lo riceverà al prossimo heartbeat", 'installing': 'Script scaricato dal router: installazione in corso', 'awaiting_heartbeat': 'Installato: in attesa del primo heartbeat con la nuova versione', 'verified': 'Aggiornamento verificato', 'failed': 'Aggiornamento non riuscito', 'rolled_back': 'Annullato: ripristinato lo script precedente', 'expired': 'Nessun esito entro 30 minuti'} %}
+    <section class="panel" id="agent-update"><div class="panel-header"><div><h2>Aggiornamento agent</h2><p>Gli agent che possono aggiornarsi da soli ricevono la nuova versione automaticamente (controllo ogni minuto, un tentativo al giorno dopo un errore): il router scarica lo script, RouterOS ne verifica la sintassi e lo script precedente resta salvato come <code>nsm-agent-heartbeat-prev</code>.</p></div>{% if upd.outdated and upd.self_update_capable and has_permission(user, 'devices.enroll') %}<form method="post" action="/devices/{{ device.id }}/agent/update"><input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><button class="button" type="submit">Aggiorna ora</button></form>{% endif %}</div>
+      <div class="policy-summary six">
+        <div><span>Installato</span><strong>{{ upd.current_version or '—' }}</strong></div>
+        <div><span>Ultima versione</span><strong>{{ upd.target_version }}</strong></div>
+        <div><span>Stato</span><strong>{% if upd.outdated %}Da aggiornare{% else %}Aggiornato{% endif %}</strong></div>
+        <div><span>Modalità</span><strong>{% if upd.self_update_capable %}Automatica{% else %}Reinstallazione una tantum{% endif %}</strong></div>
+        <div><span>Ultimo aggiornamento</span><strong>{{ upd_labels.get(upd.state, upd.state) }}</strong></div>
+        <div><span>Permessi RouterOS</span><strong>{{ upd.policies|join(', ') if upd.policies else 'non rilevati' }}</strong></div>
+      </div>
+      {% if upd.transport_upgrade %}<p class="muted">Il router usa RouterOS {{ device.firmware_version }}: {% if upd.self_update_capable %}l'aggiornamento installa l'agent moderno (transport moderno) mantenendo i permessi.{% else %}reinstalla l'agent per passare al transport moderno.{% endif %}</p>{% endif %}
+      {% if upd.outdated and not upd.self_update_capable %}<div class="alert warning"><strong>Reinstallazione una tantum.</strong> {{ upd.reinstall_reason or "Questo agent è precedente all'aggiornamento automatico." }} Usa «Rigenera / reinstalla agent» qui sotto e incolla il comando sul router: dopo questa volta gli aggiornamenti saranno automatici.</div>{% endif %}
+    </section>
     {% if agent_installation.severity == 'critical' %}
       <div class="alert danger"><strong>{{ agent_installation.label }}.</strong> {{ agent_installation.detail }} Verifica il parser RouterOS, poi controlla <code>/log print where message~"NSM|Script Error"</code>, <code>/system script print detail</code> e <code>/system scheduler print detail</code> sul MikroTik prima di rigenerare il pairing.</div>
     {% elif agent_installation.severity == 'warning' %}
@@ -32,7 +45,7 @@
       {% if agent_installation.key == 'install_suspect' %}<p class="muted">Grace period heartbeat: {{ agent_installation.grace_minutes }} minuti dal pairing. Il token è stato consumato correttamente: la diagnosi va concentrata sull'import/script/scheduler RouterOS, non sull'autenticazione al portale.</p>{% endif %}
     </section>
 
-    {% if agent_heartbeat.transport == 'legacy' %}<div class="alert info"><strong>Transport legacy attivo.</strong> Previsto per RouterOS 7.12.x: heartbeat, diagnostica e firmware readiness sono disponibili; snapshot strutturati, telemetria storica completa e backup HTTPS richiedono il transport moderno RouterOS 7.13+.</div>{% elif agent_heartbeat.transport == 'modern' %}<div class="alert success"><strong>Transport moderno attivo.</strong> Il dispositivo usa il set completo delle funzioni agent abilitate dal portale.</div>{% endif %}
+    {% if agent_heartbeat.transport == 'legacy' %}<div class="alert info"><strong>Transport legacy attivo.</strong> Previsto per RouterOS 6.48/6.49 e 7.12.x: heartbeat, telemetria, snapshot, diagnostica, riavvio, aggiornamento RouterOS, syslog e backup via FTP. Quando il router passa a RouterOS 7.13+ l'aggiornamento automatico installa l'agent moderno.</div>{% elif agent_heartbeat.transport == 'modern' %}<div class="alert success"><strong>Transport moderno attivo.</strong> Il dispositivo usa il set completo delle funzioni agent abilitate dal portale.</div>{% endif %}
 
     <div class="detail-grid">
       <section class="panel"><div class="panel-header"><div><h2>Trasporto e Pairing one-shot</h2><p>Il token di onboarding viene consumato una sola volta; qui sono mostrati solo metadati osservati e nessun secret viene esposto.</p></div></div>
