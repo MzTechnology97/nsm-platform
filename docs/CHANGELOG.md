@@ -4,6 +4,22 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.60 — 2026-10-08
+
+Security — exposure check (SCAN-01, step 2)
+- **Check from outside for every manufacturer.** Devices without the MikroTik Agent check (Ubiquiti, TP-Link, Cambium, generic devices, and MikroTik without the modern agent) are checked from the NSM server on their public IP.
+  - **Target.** The IP given by the operator in the *Esposizione* tab (WAN/PPPoE address or public IP of the customer NAT) or, when it is public, the management IP. Private, CGNAT and reserved addresses are refused and never probed.
+  - **Ports.** A fixed list per manufacturer, no port sweep:
+    - common: FTP 21, SSH 22, Telnet 23, web 80/443/8080/8443, DNS 53 (open resolver), SNMP 161 (community `public`), SSDP 1900;
+    - TR-069 7547 on CPE brands (TP-Link, Huawei, ZTE, Tenda, …);
+    - Winbox 8291, API 8728/8729 and bandwidth-test 2000 on MikroTik;
+    - Ubiquiti discovery 10001/udp.
+  - **Probes.** One TCP connection per port. On UDP, one harmless request: a recursive DNS query, an SNMP read of `sysDescr.0`, an SSDP search, a UBNT discovery.
+  - **When.** When the device is added, then every 24 hours, and with *Verifica ora* (at most once every 10 minutes). At most 4 devices per worker cycle. Each check is written to the audit log.
+  - **Results.** They use the same tab, Action Center issue and *security* notification as the MikroTik check.
+  - **Shared IP.** When the IP is shared (customer NAT), the result is shown, but no issue is opened on the device behind the NAT, because the answer comes from the edge router.
+  - **Configuration.** `EXPOSURE_EXTERNAL_CHECK=0` disables the check. The check runs from the NSM server, so when the server is inside the same network, the result can differ from what the Internet sees.
+
 ## 0.49.59 — 2026-10-08
 
 Security — exposure check

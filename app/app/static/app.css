@@ -4723,3 +4723,6 @@ a.compliance-mark { text-decoration: none; }
 .shared-ip-badge { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; background: color-mix(in srgb, var(--warning, #b7791f) 18%, transparent); color: var(--warning, #b7791f); cursor: help; }
 .acs-steps { display: grid; gap: 10px; padding-left: 20px; }
 .acs-steps ul { margin: 6px 0 0; }
+.exposure-state-closed, .exposure-state-filtered { background: color-mix(in srgb, var(--success, #238636) 12%, transparent); color: var(--success, #238636); }
+.exposure-target { display: grid; gap: 6px; margin: 10px 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-soft); }
+.exposure-target .inline-form input { min-width: 240px; }
