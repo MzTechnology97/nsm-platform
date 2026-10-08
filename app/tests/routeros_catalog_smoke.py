@@ -52,7 +52,7 @@ def main():
     else:
         raise AssertionError("garbage heads are rejected")
     assert security_lines(NOTES["7.24.5"]) == ["*) ssh - fixed security issue with key exchange;"]
-    assert "start-time=startup interval=5m" in mikrotik_legacy._legacy_bootstrap_script("http://nsm.example.test", "T")
+    assert "start-time=startup interval=2m" in mikrotik_legacy._legacy_bootstrap_script("http://nsm.example.test", "T")
 
     suffix = uuid.uuid4().hex[:6]
     now = utcnow()

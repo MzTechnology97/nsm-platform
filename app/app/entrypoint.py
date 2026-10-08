@@ -41,6 +41,7 @@ from app.mikrotik_agent_generation import install_mikrotik_agent_generation
 from app.mikrotik_agent_status import install_mikrotik_agent_status
 from app.mikrotik_agent_update import install_mikrotik_agent_self_update
 from app.mikrotik_agent_autoupdate import install_mikrotik_agent_autoupdate
+from app.mikrotik_heartbeat_interval import install_mikrotik_heartbeat_interval
 from app.mikrotik_agent_update_ui import install_mikrotik_agent_update_ui
 from app.mikrotik_compatibility import install_mikrotik_compatibility_resolver
 from app.mikrotik_job_completion_guard import install_mikrotik_job_completion_guard
@@ -129,7 +130,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.77"
+APP_VERSION = "0.49.78"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -259,6 +260,7 @@ core.templates.env.globals["legacy_upgrade_info"] = legacy_upgrade_info
 install_mikrotik_agent_generation()
 install_mikrotik_agent_self_update(core.app)
 install_mikrotik_agent_autoupdate(core.app)
+install_mikrotik_heartbeat_interval()
 # The syntax guard must wrap the final composed modern source, including the
 # Core 0.49 self-update/integrity extension. Installing it earlier would leave
 # later wrappers able to re-introduce unsafe RouterOS syntax.

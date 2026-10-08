@@ -125,7 +125,7 @@ def _legacy_bootstrap_script(base_url: str, token: str):
 :do {{ /system scheduler remove [find name="nsm-agent-heartbeat"] }} on-error={{}}
 :do {{ /system script remove [find name="nsm-agent-heartbeat"] }} on-error={{}}
 /system script add name="nsm-agent-heartbeat" policy=read,test source=$nsmAgentSource comment="NSM managed agent {agent.AGENT_VERSION}"
-/system scheduler add name="nsm-agent-heartbeat" interval=5m on-event="/system script run nsm-agent-heartbeat" policy=read,test comment="NSM managed agent"
+/system scheduler add name="nsm-agent-heartbeat" interval=2m on-event="/system script run nsm-agent-heartbeat" policy=read,test comment="NSM managed agent"
 /system script run nsm-agent-heartbeat
 :log info "NSM enrollment completed and heartbeat agent installed"
 :do {{ /file remove [find name="nsm-bootstrap.rsc"] }} on-error={{}}

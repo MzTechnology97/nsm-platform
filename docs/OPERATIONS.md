@@ -144,6 +144,7 @@ Sizing rule of thumb: the backup volume dominates. Estimate *devices × average 
 - **API keys**: one key per consumer, scoped to the needed read scopes and, when possible, to one Customer; set an expiry and rotate.
 - **MikroTik agent**: the agent user gets only the policies of its profile (`ops-v2`: `ftp,reboot,read,write,policy,test,sensitive`; legacy `legacy-ops-v1`: the same set since Agent 0.49.16), no `winbox`, `ssh`, `web` or `api`. From Agent 0.49.17 the legacy agent reports the policies of its script, shown in the device *Agent* tab.
 - **Agent updates**: modern agents (0.49.0+) and legacy agents (0.49.17+) with the `write` policy update themselves: the worker queues the update for online devices, at most one attempt a day after a failure. Set `AGENT_AUTO_UPDATE=0` in `.env` to turn it off; *Aggiorna ora* in the *Agent* tab still works. RouterOS does not let a script raise its own policies, so read-only agents and legacy agents before 0.49.17 need one last reinstall.
+- **Heartbeat**: agents report every 2 minutes (Agent 0.49.18+; read-only agents keep 5 minutes). Telemetry keeps 2-minute points for 7 days, then 10-minute averages up to 90 days.
 - **UISP**: a read-only API token. **GenieACS**: the NBI only on the management network or behind a reverse proxy with authentication; NSM only reads it. **NVD**: an API key used only for reading.
 
 ## Deployment hardening review

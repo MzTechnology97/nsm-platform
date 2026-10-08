@@ -17,7 +17,7 @@ from app.models import Device, DeviceEnrollment, utcnow
 router = APIRouter()
 AGENT_VERSION = "0.7.0"
 MAX_AGENT_BODY = 64 * 1024
-HEARTBEAT_INTERVAL_SECONDS = 300
+HEARTBEAT_INTERVAL_SECONDS = 120
 
 
 def _remove_route(app, path: str, method: str):
@@ -246,7 +246,7 @@ def _bootstrap_script(base_url: str, token: str):
 :do {{ /system scheduler remove [find name="nsm-agent-heartbeat"] }} on-error={{}}
 :do {{ /system script remove [find name="nsm-agent-heartbeat"] }} on-error={{}}
 /system script add name="nsm-agent-heartbeat" policy=read,test source=$nsmAgentSource comment="NSM managed agent {AGENT_VERSION}"
-/system scheduler add name="nsm-agent-heartbeat" interval=5m on-event="/system script run nsm-agent-heartbeat" policy=read,test comment="NSM managed agent"
+/system scheduler add name="nsm-agent-heartbeat" interval=2m on-event="/system script run nsm-agent-heartbeat" policy=read,test comment="NSM managed agent"
 /system script run nsm-agent-heartbeat
 :log info "NSM enrollment completed and heartbeat agent installed"
 :do {{ /file remove "nsm-bootstrap.rsc" }} on-error={{}}

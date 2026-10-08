@@ -35,7 +35,7 @@
 {% set traffic_rows = traffic_interfaces(device) %}
 <section class="panel traffic-panel" id="traffic" data-traffic-root data-endpoint="/api/v1/devices/{{ device.id }}/traffic">
   <div class="panel-header">
-    <div><h2>Traffico interfacce</h2><p>Bit/s in ingresso e in uscita calcolati dai contatori dell'agent a ogni heartbeat (5 minuti), come in Cacti/Zabbix. Retention 90 giorni.</p></div>
+    <div><h2>Traffico interfacce</h2><p>Bit/s in ingresso e in uscita calcolati dai contatori dell'agent a ogni heartbeat (2 minuti), come in Cacti/Zabbix. Risoluzione piena per 7 giorni, poi medie a 10 minuti; retention 90 giorni.</p></div>
     {% if traffic_rows %}<div class="traffic-controls">
       <label class="traffic-select"><span>Interfaccia</span><select data-traffic-interface aria-label="Interfaccia">{% for row in traffic_rows if row.monitored %}<option value="{{ row.name }}">{{ row.name }}{% if row.type %} · {{ row.type }}{% endif %}</option>{% endfor %}</select></label>
       <div class="telemetry-ranges" role="group" aria-label="Intervallo traffico"><button type="button" data-traffic-range="1h">1h</button><button type="button" data-traffic-range="24h" class="active">24h</button><button type="button" data-traffic-range="7d">7g</button><button type="button" data-traffic-range="30d">30g</button></div>
