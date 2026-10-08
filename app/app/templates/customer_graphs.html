@@ -1,0 +1,40 @@
+{% extends "customer_layout.html" %}
+{% set customer_tab = 'graphs' %}
+{% set customer_section = selected_site.name if selected_site else None %}
+{% block customer_content %}
+{% if customer.sites %}
+<nav class="quick-chips" aria-label="Sede">
+  <a href="/customers/{{ customer.id }}/graphs" class="{{ 'active' if not selected_site }}">Tutto il cliente</a>
+  {% for s in customer.sites %}<a href="/customers/{{ customer.id }}/graphs?site={{ s.id }}" class="{{ 'active' if selected_site and selected_site.id == s.id }}">{{ s.name }}</a>{% endfor %}
+</nav>
+{% endif %}
+
+<section class="panel telemetry-panel" id="customer-graphs" data-series-root data-endpoint="/api/v1/customers/{{ customer.id }}/graphs{% if selected_site %}?site={{ selected_site.id }}{% endif %}">
+  <div class="panel-header">
+    <div><h2>Grafici {{ 'della sede ' ~ selected_site.name if selected_site else 'del cliente' }}</h2><p>Traffico WAN aggregato (somma delle interfacce monitorate degli apparati, scelte nella pagina Monitor di ciascuno), apparati che inviano telemetria, CPU e segnale radio (UISP / cnMaestro). Le interruzioni compaiono come buchi.</p></div>
+    <div class="telemetry-ranges" role="group" aria-label="Intervallo"><button type="button" data-series-range="24h" class="active">24h</button><button type="button" data-series-range="7d">7g</button><button type="button" data-series-range="30d">30g</button><button type="button" data-series-range="90d">90g</button></div>
+  </div>
+  <div class="telemetry-grid" data-series-grid><div class="telemetry-empty">Caricamento…</div></div>
+  <div class="telemetry-footer"><span data-series-count>0 campioni</span></div>
+</section>
+<script defer src="{{ url_for('static', path='/rrd_chart.js') }}?v={{ asset_version }}"></script>
+<script defer src="{{ url_for('static', path='/series_chart.js') }}?v={{ asset_version }}"></script>
+
+<div class="content-split">
+<section class="panel">
+  <div class="panel-header"><div><h2>Apparati con più traffico</h2><p>Media sulle ultime 24 ore delle interfacce monitorate.</p></div></div>
+  {% if top %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Apparato</th><th>In</th><th>Out</th></tr></thead><tbody>
+  {% for t in top %}<tr><td><a class="strong-link" href="/devices/{{ t.id }}/monitor#traffic">{{ t.name }}</a></td><td>{{ format_bps(t.rx_bps) }}</td><td>{{ format_bps(t.tx_bps) }}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state">Nessun traffico registrato nelle ultime 24 ore: serve l'agent MikroTik con il monitoraggio interfacce attivo.</div>{% endif %}
+</section>
+{% if sites_overview %}
+<section class="panel">
+  <div class="panel-header"><div><h2>Confronto sedi</h2><p>Ultime 24 ore: traffico WAN medio e picco (in + out).</p></div></div>
+  <div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Sede</th><th>Apparati</th><th>Online</th><th>In medio</th><th>Out medio</th><th>Picco</th></tr></thead><tbody>
+  {% for r in sites_overview %}<tr><td>{% if r.site %}<a class="strong-link" href="/customers/{{ customer.id }}/graphs?site={{ r.site.id }}">{{ r.site.name }}</a>{% else %}<span class="muted">Senza sede</span>{% endif %}</td>
+    <td>{{ r.devices }}</td><td>{{ r.online }}</td><td>{{ format_bps(r.rx_bps) if r.rx_bps is not none else '—' }}</td><td>{{ format_bps(r.tx_bps) if r.tx_bps is not none else '—' }}</td><td>{{ format_bps(r.peak_bps) if r.peak_bps is not none else '—' }}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endif %}
+</div>
+{% endblock %}

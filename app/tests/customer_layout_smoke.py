@@ -33,7 +33,7 @@ def main():
     token = re.search(r'name="csrf" value="([^"]+)"', client.get("/login").text).group(1)
     assert client.post("/login", data={"username": username, "password": PASSWORD, "csrf": token}, follow_redirects=False).status_code == 303
 
-    expected_tabs = ["Panoramica", "Apparati", "Sedi", "Backup", "Sicurezza", "Attività"]
+    expected_tabs = ["Panoramica", "Apparati", "Sedi", "Grafici", "Backup", "Sicurezza", "Attività"]
     for suffix, active in (("", "Panoramica"), ("/devices", "Apparati"), ("/sites", "Sedi"), ("/backups", "Backup"), ("/security", "Sicurezza"), ("/history", "Attività"), ("/devices/manage", "Apparati"), ("/devices/new", "Apparati"), ("/sites/new", "Sedi"), (f"/sites/{site_id}/edit", "Sedi")):
         page = client.get(f"/customers/{customer_id}{suffix}")
         assert page.status_code == 200, (suffix, page.status_code)

@@ -19,7 +19,7 @@
         <td><a href="/customers/{{ customer.id }}/devices?site={{ site.id }}">{{ site.devices|length }}</a></td>
         <td>{{ online }}</td>
         <td>{% if offline %}<span class="device-status status-offline">{{ offline }}</span>{% else %}0{% endif %}</td>
-        <td class="actions-col"><div class="row-actions"><a class="button tiny ghost" href="/customers/{{ customer.id }}/devices?site={{ site.id }}">Apri apparati</a>{% if has_permission(user, 'customers.write') %}<a class="button tiny ghost" href="/customers/{{ customer.id }}/sites/{{ site.id }}/edit">Gestisci</a>{% endif %}</div></td>
+        <td class="actions-col"><div class="row-actions"><a class="button tiny ghost" href="/customers/{{ customer.id }}/devices?site={{ site.id }}">Apri apparati</a><a class="button tiny ghost" href="/customers/{{ customer.id }}/graphs?site={{ site.id }}">Grafici</a>{% if has_permission(user, 'customers.write') %}<a class="button tiny ghost" href="/customers/{{ customer.id }}/sites/{{ site.id }}/edit">Gestisci</a>{% endif %}</div></td>
       </tr>
     {% endfor %}</tbody>
   </table></div>
