@@ -61,6 +61,22 @@ def unit_checks():
     ranged = [{".id": "*10", "chain": "input", "action": "drop", "protocol": "tcp", "dst-port": "1-1024", "in-interface-list": "WAN"}]
     assert expo.firewall_verdict(ranged, 23, "tcp", WAN)[0] == "protected" and expo.firewall_verdict(ranged, 8291, "tcp", WAN)[0] == "exposed"
     assert expo.firewall_verdict(DEFCONF, 53, "udp", WAN)[0] == "protected"
+    # Raw (prerouting) runs before the filter: a raw drop protects even when the filter accepts.
+    open_filter = [{".id": "*0", "chain": "input", "action": "accept", "protocol": "tcp", "dst-port": "8291"}]
+    raw_drop = [{".id": "*R1", "chain": "prerouting", "action": "drop", "protocol": "tcp", "dst-port": "8291,8728", "in-interface-list": "WAN"}]
+    state, reason = expo.verdict(raw_drop, open_filter, 8291, "tcp", WAN)
+    assert state == "protected" and "regola raw n. 0" in reason
+    assert expo.verdict(raw_drop, open_filter, 22, "tcp", WAN)[0] == "exposed", "raw drop on other ports does not protect SSH"
+    raw_accept = [{".id": "*R2", "chain": "prerouting", "action": "accept", "in-interface": "pppoe-out1"}] + raw_drop
+    assert expo.verdict(raw_accept, open_filter, 8291, "tcp", WAN)[0] == "exposed", "raw accept ends raw: the filter decides"
+    raw_list = [{".id": "*R3", "chain": "prerouting", "action": "drop", "src-address-list": "blacklist", "protocol": "tcp", "dst-port": "8291"}]
+    assert expo.verdict(raw_list, open_filter, 8291, "tcp", WAN)[0] == "exposed"
+    raw_jump = [{".id": "*R4", "chain": "prerouting", "action": "jump", "jump-target": "ddos"}]
+    assert expo.verdict(raw_jump, open_filter, 8291, "tcp", WAN)[0] == "uncertain"
+    raw_lan = [{".id": "*R5", "chain": "prerouting", "action": "drop", "in-interface": "bridge", "protocol": "tcp", "dst-port": "8291"}]
+    assert expo.verdict(raw_lan, open_filter, 8291, "tcp", WAN)[0] == "exposed"
+    output_chain = [{".id": "*R6", "chain": "output", "action": "drop", "protocol": "tcp", "dst-port": "8291"}]
+    assert expo.verdict(output_chain, open_filter, 8291, "tcp", WAN)[0] == "exposed", "only prerouting matters for incoming traffic"
 
 
 def main():
@@ -72,6 +88,7 @@ def main():
     validate_modern_agent_source(modern)
     early, _, _ = mikrotik_legacy._select_agent_source("http://nsm.example.test", device_id, "CI94-secret", "7.14.3")
     assert '"services"' in early
+    assert '/ip firewall raw find' in modern and '"raw"=[$nsmTake $nsmR $nsmCap]' in modern, "the firewall snapshot carries the raw table"
 
     suffix = uuid.uuid4().hex[:6]
     now = utcnow()

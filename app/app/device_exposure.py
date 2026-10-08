@@ -174,9 +174,56 @@ def firewall_verdict(rules: list, port: int, proto: str, wan: list[str]) -> tupl
     return "exposed", "nessuna regola input blocca il traffico dalla WAN (policy predefinita: accept)"
 
 
+def raw_verdict(raw_rules: list, port: int, proto: str, wan: list[str]) -> tuple[str | None, str]:
+    """RouterOS raw/prerouting runs before connection tracking and the filter.
+
+    Returns ("protected", reason) when a raw drop stops the traffic from the WAN,
+    (None, note) when raw lets it through to the filter (note explains doubts).
+    In raw, "accept" and "notrack" only end the raw table: the filter still decides.
+    """
+    note = ""
+    for number, rule in enumerate(raw_rules or []):
+        if str(rule.get("chain")) != "prerouting" or _truthy(rule.get("disabled")) or _truthy(rule.get("invalid")):
+            continue
+        protocol = str(rule.get("protocol") or "").strip()
+        if protocol and protocol != proto:
+            continue
+        if rule.get("dst-port") and port not in _ports(rule.get("dst-port")):
+            continue
+        applies = _interface_applies(rule, wan)
+        if applies == "no":
+            continue
+        where = f"regola raw n. {number}" + (f" «{rule.get('comment')}»" if rule.get("comment") else "")
+        if applies == "unknown":
+            note = note or f"{where}: lista interfacce «{rule.get('in-interface-list')}» non valutabile"
+            continue
+        action = str(rule.get("action") or "accept")
+        if action == "drop":
+            if _src_restricted(rule):
+                continue  # e.g. drop from a blacklist: others still pass
+            return "protected", f"bloccato da {where} (prima del filtro)"
+        if action in ("accept", "notrack"):
+            return None, note
+        if action == "jump":
+            note = note or f"{where} salta alla catena «{rule.get('jump-target')}»"
+    return None, note
+
+
+def verdict(raw_rules: list, filter_rules: list, port: int, proto: str, wan: list[str]) -> tuple[str, str]:
+    """Combined raw + filter decision for new connections from the WAN."""
+    state, note = raw_verdict(raw_rules, port, proto, wan)
+    if state == "protected":
+        return state, note
+    state, reason = firewall_verdict(filter_rules, port, proto, wan)
+    if note and state == "exposed":
+        return "uncertain", f"{reason}; {note}"
+    return state, reason
+
+
 def evaluate(device, services_data: dict, firewall_data: dict) -> dict:
     wan = wan_interfaces(device)
     rules = list((firewall_data or {}).get("filter") or [])
+    raw = list((firewall_data or {}).get("raw") or [])
     findings = []
     for row in (services_data or {}).get("services") or []:
         name = str(row.get("name") or "")
@@ -187,7 +234,7 @@ def evaluate(device, services_data: dict, firewall_data: dict) -> dict:
         if _truthy(row.get("disabled")):
             findings.append({"service": name, "label": name, "port": port, "proto": proto, "state": "disabled", "severity": "info", "reason": "servizio disattivato", "why": why})
             continue
-        state, reason = firewall_verdict(rules, port, proto, wan)
+        state, reason = verdict(raw, rules, port, proto, wan)
         allowed = str(row.get("address") or "").strip()
         if state == "exposed" and allowed and allowed not in ("0.0.0.0/0", "::/0"):
             state, reason = "restricted", f"il servizio accetta solo da {allowed}"
@@ -197,11 +244,11 @@ def evaluate(device, services_data: dict, firewall_data: dict) -> dict:
     for key, (label, port, proto, severity, why) in EXTRAS.items():
         if not _truthy(settings.get(key)):
             continue
-        state, reason = firewall_verdict(rules, port, proto, wan)
+        state, reason = verdict(raw, rules, port, proto, wan)
         findings.append({"service": key, "label": label, "port": port, "proto": proto, "state": state,
                          "severity": severity if state in ("exposed", "uncertain") else "info", "reason": reason, "why": why})
     if _truthy(settings.get("snmp")):
-        state, reason = firewall_verdict(rules, 161, "udp", wan)
+        state, reason = verdict(raw, rules, 161, "udp", wan)
         public = str(settings.get("snmp_public") or "0").isdigit() and int(settings.get("snmp_public") or 0) > 0
         findings.append({"service": "snmp", "label": "SNMP", "port": 161, "proto": "udp", "state": state,
                          "severity": ("high" if public else "medium") if state in ("exposed", "uncertain") else "info", "reason": reason,
@@ -215,10 +262,13 @@ def evaluate(device, services_data: dict, firewall_data: dict) -> dict:
     worst = max((SEVERITY_RANK[f["severity"]] for f in exposed), default=0)
     return {
         "checked_at": utcnow().isoformat(), "source": "mikrotik_agent", "wan_interfaces": wan, "findings": findings,
-        "port_forwards": shared_ips.port_forwards((firewall_data or {}).get("nat") or [], lambda rule: _interface_applies(rule, wan)),
+        "port_forwards": shared_ips.port_forwards((firewall_data or {}).get("nat") or [], lambda rule: _interface_applies(rule, wan),
+                                                  raw_blocks=lambda port, proto: raw_verdict(raw, port, proto, wan)[0] == "protected"),
+        "raw_rules": len(raw), "raw_collected": "raw" in (firewall_data or {}),
         "exposed": len(exposed), "uncertain": sum(1 for f in findings if f["state"] == "uncertain"),
         "worst": next((k for k, v in SEVERITY_RANK.items() if v == worst), "info") if exposed else None,
-        "input_drop": input_drop, "firewall_rules": len(rules),
+        "input_drop": input_drop or any(str(r.get("chain")) == "prerouting" and str(r.get("action")) == "drop" and not _truthy(r.get("disabled")) for r in raw),
+        "firewall_rules": len(rules),
     }
 
 

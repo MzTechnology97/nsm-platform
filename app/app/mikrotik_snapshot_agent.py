@@ -16,7 +16,7 @@ MAX_SNAPSHOT_BODY = 512 * 1024
 LOG_SNAPSHOT_LIMIT = 20
 
 _TAKE = ':local nsmTake do={ :if ($2 >= [:len $1]) do={ :return $1 }; :return [:pick $1 0 $2] }\n'
-_LISTS = ("nsmA", "nsmB", "nsmS", "nsmL", "nsmE", "nsmP", "nsmO")
+_LISTS = ("nsmA", "nsmB", "nsmS", "nsmL", "nsmE", "nsmP", "nsmO", "nsmR")
 
 
 def _section(name: str, body: str) -> str:
@@ -62,7 +62,8 @@ def _handler() -> str:
         _section("ip_addresses", bounded.collect("/ip address", "nsmA")),
         _section("routes", bounded.collect("/ip route", "nsmA")),
         _section("interfaces", bounded.collect("/interface", "nsmA")),
-        _section("firewall", bounded.collect("/ip firewall filter", "nsmA") + bounded.collect("/ip firewall nat", "nsmB")),
+        _section("firewall", bounded.collect("/ip firewall filter", "nsmA") + bounded.collect("/ip firewall nat", "nsmB")
+                 + bounded.collect("/ip firewall raw", "nsmR", optional=True)),
         _section("ppp_active", ppp),
         _section("dhcp_leases", bounded.collect("/ip dhcp-server lease", "nsmA")),
         _section("logs", logs),
@@ -71,7 +72,7 @@ def _handler() -> str:
     shape = (
         ':if ($nsmSection = "resources") do={ :set nsmData $nsmRes }\n'
         ':if (($nsmSection = "ip_addresses") || ($nsmSection = "routes") || ($nsmSection = "interfaces") || ($nsmSection = "dhcp_leases") || ($nsmSection = "logs")) do={ :set nsmData [$nsmTake $nsmA $nsmCap] }\n'
-        ':if ($nsmSection = "firewall") do={ :set nsmData {"filter"=[$nsmTake $nsmA $nsmCap];"nat"=[$nsmTake $nsmB $nsmCap]} }\n'
+        ':if ($nsmSection = "firewall") do={ :set nsmData {"filter"=[$nsmTake $nsmA $nsmCap];"nat"=[$nsmTake $nsmB $nsmCap];"raw"=[$nsmTake $nsmR $nsmCap]} }\n'
         ':if ($nsmSection = "services") do={ :set nsmData {"services"=[$nsmTake $nsmA $nsmCap];"settings"=$nsmRes} }\n'
         ':if ($nsmSection = "ppp_active") do={ :set nsmData {"active"=[$nsmTake $nsmA $nsmCap];"sstp_clients"=[$nsmTake $nsmS $nsmCap];"l2tp_clients"=[$nsmTake $nsmL $nsmCap];'
         '"pppoe_clients"=[$nsmTake $nsmE $nsmCap];"pptp_clients"=[$nsmTake $nsmP $nsmCap];"ovpn_clients"=[$nsmTake $nsmO $nsmCap]} }\n'

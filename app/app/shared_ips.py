@@ -65,7 +65,7 @@ def _ports(value) -> list[int]:
     return ports
 
 
-def port_forwards(nat_rules: list, wan_check) -> list[dict]:
+def port_forwards(nat_rules: list, wan_check, raw_blocks=None) -> list[dict]:
     """Destination NAT rules that publish internal addresses on the WAN.
 
     ``wan_check(rule)`` returns 'yes'/'no'/'unknown' for the in-interface
@@ -86,11 +86,13 @@ def port_forwards(nat_rules: list, wan_check) -> list[dict]:
         public_ports = _ports(rule.get("dst-port"))
         target_ports = _ports(rule.get("to-ports")) or public_ports
         sensitive = sorted({MANAGEMENT_PORTS[p] for p in (target_ports or []) if p in MANAGEMENT_PORTS})
+        protocols = [rule.get("protocol")] if rule.get("protocol") else ["tcp", "udp"]
+        blocked = bool(raw_blocks and public_ports and all(raw_blocks(p, proto) for p in public_ports for proto in protocols))
         forwards.append({
             "rule": number, "comment": rule.get("comment") or "", "protocol": rule.get("protocol") or "any",
             "public_ports": rule.get("dst-port") or "tutte", "to_address": target, "to_ports": rule.get("to-ports") or rule.get("dst-port") or "tutte",
-            "all_ports": not public_ports, "certain": applies == "yes", "sensitive": sensitive,
-            "severity": "high" if sensitive or not public_ports else "low",
+            "all_ports": not public_ports, "certain": applies == "yes" and not blocked, "sensitive": sensitive, "blocked_by_raw": blocked,
+            "severity": "info" if blocked else ("high" if sensitive or not public_ports else "low"),
         })
     return forwards
 
@@ -104,6 +106,6 @@ def forwards_to(db, device) -> list[dict]:
     for router in db.scalars(select(Device).where(Device.customer_id == device.customer_id, Device.id != device.id, Device.vendor == "mikrotik")):
         exposure = (router.inventory_data or {}).get("exposure") or {}
         for forward in exposure.get("port_forwards") or []:
-            if forward.get("to_address") in addresses:
+            if forward.get("to_address") in addresses and not forward.get("blocked_by_raw"):
                 found.append({**forward, "router_id": str(router.id), "router": router.display_name or router.device_identity or router.name})
     return found
