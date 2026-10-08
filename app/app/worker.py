@@ -19,6 +19,7 @@ from app.interface_traffic import cleanup as interface_traffic_cleanup
 from app.syslog_receiver import cleanup as syslog_cleanup
 from app.syslog_security import evaluate as evaluate_access_alerts
 from app.mikrotik_syslog_config import auto_configure as auto_configure_syslog
+from app.zabbix_connector import scheduled_sync as zabbix_sync
 from app.routeros_catalog import run_scheduled as run_routeros_catalog
 from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
 from app.mikrotik_device_reboot import verify_reboots
@@ -75,6 +76,7 @@ while True:
             run_task("vulnerability_digest", run_vulnerability_digest)
             run_task("syslog_access_alerts", evaluate_access_alerts)
             run_task("syslog_agent_config", auto_configure_syslog)
+            run_task("zabbix_sync", zabbix_sync)
             notify_stats = run_task("notification_delivery", deliver_notifications)
             if notify_stats.get("failed"):
                 log.warning("Notifiche esterne non consegnate: %s", notify_stats)

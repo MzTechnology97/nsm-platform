@@ -4706,3 +4706,4 @@ a.compliance-mark { text-decoration: none; }
 .series-key.series-b::before { background: #2fa36b; }
 .series-key.series-c::before { background: #d97706; }
 .series-svg-wrap { height: 230px; }
+.zabbix-customers { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px 12px; max-height: 220px; overflow-y: auto; padding: 6px 2px; }

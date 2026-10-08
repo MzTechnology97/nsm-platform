@@ -4,6 +4,22 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.51 — 2026-10-08
+
+Integrations
+- **Zabbix** (ZBX-01): NSM sends its devices to Zabbix 6.x and 7.x, as decided with the operator.
+  - **Hosts.** Each device with a management IP becomes a host with technical name `nsm-…` and visible name *device · customer*, in the group `<prefix>/<customer>` (created when missing).
+  - **Interface.** One interface, either Zabbix agent or SNMPv2 with a community macro.
+  - **Templates.** Chosen per manufacturer (MikroTik, Ubiquiti, others). They are added and never unlinked, so templates linked by hand in Zabbix are kept.
+  - **Tags and inventory.** Tags `source=nsm`, `nsm_device_id`, `nsm_customer` and `vendor`; inventory with vendor, model, serial, MAC, firmware and site.
+  - **Updates.** When the IP or name changes in NSM, the Zabbix host is updated. Hosts of deleted or excluded devices are disabled, never deleted.
+  - **API versions.** The version is detected with `apiinfo.version`:
+    - Zabbix 7.2+ receives the token in the `Authorization: Bearer` header;
+    - Zabbix 5.4–7.1 receives it in the `auth` field;
+    - password login uses `username` (5.4+) or `user` (older).
+  - **Settings.** *Integrations → Zabbix* sets URL, API token or username/password (encrypted), TLS check, group prefix, interface, templates per manufacturer and scope (all customers or selected ones). It offers *Test connessione*, *Sincronizza ora*, and an automatic sync every 15 minutes.
+  - **Visibility.** Integrations hub card, *Zabbix* row in the system health page, and a *Dati in Zabbix* link in the device header.
+
 ## 0.49.50 — 2026-10-08
 
 Reports and incidents
