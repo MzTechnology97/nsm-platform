@@ -2994,6 +2994,18 @@ html[data-theme="dark"] .success-state {
   color: var(--muted);
   font-size: 12px;
 }
+.mt-onboarding-v6 {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.mt-onboarding-v6 summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.mt-onboarding-v6 .muted {
+  font-size: 12px;
+}
 .alert.info {
   border-color: color-mix(in srgb,var(--accent) 32%,var(--border));
   background: color-mix(in srgb,var(--accent) 8%,var(--panel));
