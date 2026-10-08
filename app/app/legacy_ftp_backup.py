@@ -77,10 +77,19 @@ def _version_ok(device) -> bool:
     return bool(match) and tuple(int(p) for p in match.groups()) >= tuple(int(p) for p in MIN_AGENT_VERSION.split("."))
 
 
+# /system backup save from a script needs these RouterOS policies (agents installed before 0.49.16 lack the last two).
+BACKUP_POLICIES = frozenset({"ftp", "policy", "sensitive"})
+
+
+def _policies_ok(device) -> bool:
+    observed = (device.inventory_data or {}).get("agent_policies")
+    return not isinstance(observed, list) or BACKUP_POLICIES <= set(observed)
+
+
 def supported(device) -> bool:
     data = device.inventory_data or {}
     return (enabled() and str(data.get("agent_transport") or "") == "legacy"
-            and str(data.get("agent_privilege_profile") or "") == PROFILE and _version_ok(device))
+            and str(data.get("agent_privilege_profile") or "") == PROFILE and _version_ok(device) and _policies_ok(device))
 
 
 def blocker(device) -> str:
@@ -89,6 +98,9 @@ def blocker(device) -> str:
     data = device.inventory_data or {}
     if str(data.get("agent_privilege_profile") or "") != PROFILE:
         return "Agent legacy in sola lettura: reinstallalo con un nuovo token (profilo legacy-ops-v1)."
+    if not _policies_ok(device):
+        return ("Lo script agent sul router non ha i permessi RouterOS ftp, policy e sensitive richiesti da /system backup save: "
+                "reinstallalo una sola volta con un nuovo token (gli aggiornamenti successivi sono automatici).")
     return f"Serve l'agent legacy {MIN_AGENT_VERSION} o successivo: reinstallalo dalla scheda Agent."
 
 

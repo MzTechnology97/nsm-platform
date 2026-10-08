@@ -142,7 +142,8 @@ Sizing rule of thumb: the backup volume dominates. Estimate *devices × average 
 - **Network**: publish only Caddy (80/443); PostgreSQL, Redis, the api and the worker stay on the internal Docker network. Use HTTPS with a valid certificate before enrolling agents over the internet.
 - **Portal users**: give the *Auditor* role to whoever only needs to read; *Operator* for acknowledgements and predefined jobs; *Technician* for device operations; *Administrator* only for platform administration.
 - **API keys**: one key per consumer, scoped to the needed read scopes and, when possible, to one Customer; set an expiry and rotate.
-- **MikroTik agent**: the agent user gets only the policies of its profile (`ops-v2`: `ftp,reboot,read,write,policy,test,sensitive`; legacy `legacy-ops-v1`: `ftp,reboot,read,write,test`), no `winbox`, `ssh`, `web` or `api`.
+- **MikroTik agent**: the agent user gets only the policies of its profile (`ops-v2`: `ftp,reboot,read,write,policy,test,sensitive`; legacy `legacy-ops-v1`: the same set since Agent 0.49.16), no `winbox`, `ssh`, `web` or `api`. From Agent 0.49.17 the legacy agent reports the policies of its script, shown in the device *Agent* tab.
+- **Agent updates**: modern agents (0.49.0+) and legacy agents (0.49.17+) with the `write` policy update themselves: the worker queues the update for online devices, at most one attempt a day after a failure. Set `AGENT_AUTO_UPDATE=0` in `.env` to turn it off; *Aggiorna ora* in the *Agent* tab still works. RouterOS does not let a script raise its own policies, so read-only agents and legacy agents before 0.49.17 need one last reinstall.
 - **UISP**: a read-only API token. **GenieACS**: the NBI only on the management network or behind a reverse proxy with authentication; NSM only reads it. **NVD**: an API key used only for reading.
 
 ## Deployment hardening review

@@ -16,13 +16,14 @@ Agent 0.49.13 sets the per-device syslog key as logging prefix (syslog strict mo
 Agent 0.49.14 adds /ip firewall raw to the firewall snapshot (exposure check).
 Agent 0.49.15: the legacy Agent (ops profile) configures remote syslog with the device key.
 Agent 0.49.16: the legacy Agent uploads binary backup and export over FTP (RouterOS 6 / 7.12).
+Agent 0.49.17: the legacy Agent updates itself (agent_self_update) and reports its RouterOS policies.
 """
 from __future__ import annotations
 
 from app import mikrotik_agent_update as updater
 from app import mikrotik_agent_update_ui as update_ui
 
-TARGET_AGENT_VERSION = "0.49.16"
+TARGET_AGENT_VERSION = "0.49.17"
 SELF_UPDATE_MIN_VERSION = "0.49.0"
 
 

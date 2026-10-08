@@ -4,6 +4,23 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.77 — 2026-10-09
+
+MikroTik Agent — legacy agents update themselves (requested by the operator)
+- **Self-update on RouterOS 6.48/6.49 and 7.12.** Legacy **Agent 0.49.17** runs the `agent_self_update` job, like modern agents do. Paired routers get new versions without a new token.
+  - The router downloads the source NSM generates for that device.
+  - It checks that the download ends with the expected marker (no truncation) and that RouterOS parses it (`:parse`).
+  - It keeps the old script as `nsm-agent-heartbeat-prev`, then replaces its own script. The new version runs at the next heartbeat; NSM verifies it from the reported version.
+  - An agent that answers without running the handler counts as a failure, and nothing changes.
+- **Automatic updates.** The worker queues the update for online agents that can apply it: modern 0.49.0+, and legacy 0.49.17+ with the `write` policy.
+  - One update at a time. After a failure, at most one attempt a day.
+  - `AGENT_AUTO_UPDATE=0` turns it off.
+- **7.12 → 7.13+.** When a router with a legacy agent moves to RouterOS 7.13+, the update installs the **modern agent**. The first modern heartbeat switches the transport (`MIKROTIK_AGENT_TRANSPORT_SWITCHED`).
+- **Observed permissions.** The legacy agent reports the RouterOS policies of its script (`X-NSM-Agent-Policy`). NSM derives the profile from them (`legacy-ops-v1` or `legacy-read-v1`).
+  - FTP backups also require `ftp`, `policy` and `sensitive`. Agents installed before 0.49.16 lack the last two.
+  - RouterOS does not let a script raise its own policies. Read-only agents, and legacy agents before 0.49.17, need **one last reinstall**; after that, updates are automatic.
+- **Agent tab.** New *Aggiornamento agent* panel: installed and latest version, automatic or one-time reinstall, last update state, RouterOS permissions, and an *Aggiorna ora* button.
+
 ## 0.49.76 — 2026-10-09
 
 Inventory — onboarding through UISP and cnMaestro (requested by the operator)
