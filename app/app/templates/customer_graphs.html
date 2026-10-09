@@ -27,6 +27,13 @@
   {% for t in top %}<tr><td><a class="strong-link" href="/devices/{{ t.id }}/monitor#traffic">{{ t.name }}</a></td><td>{{ format_bps(t.rx_bps) }}</td><td>{{ format_bps(t.tx_bps) }}</td></tr>{% endfor %}
   </tbody></table></div>{% else %}<div class="empty-state">Nessun traffico registrato nelle ultime 24 ore: serve l'agent MikroTik con il monitoraggio interfacce attivo.</div>{% endif %}
 </section>
+<section class="panel" id="availability">
+  <div class="panel-header"><div><h2>Disponibilità (ultimi 30 giorni)</h2><p>Dal ping di NSM (3 echo ogni 2 minuti) sugli apparati con il monitoraggio ICMP{% if availability_30d.measured %}: media {{ '%.2f'|format(availability_30d.average) }}%, {{ availability_30d.below_target }} sotto il {{ '%g'|format(availability_30d.target) }}%{% endif %}.</p></div></div>
+  {% if availability_30d.measured %}<div class="table-wrap"><table class="data-table compact-data-table"><thead><tr><th>Apparato</th><th>Disponibilità</th><th>Fermo</th><th>Interruzioni</th><th>RTT medio</th></tr></thead><tbody>
+  {% for r in availability_30d.devices[:15] %}<tr><td><a class="strong-link" href="/devices/{{ r.device_id }}#latency">{{ r.device }}</a></td><td>{{ '%.2f'|format(r.availability) }}%</td><td>{{ r.downtime_minutes }} min</td><td>{{ r.outages }}</td><td>{{ (r.rtt_avg ~ ' ms') if r.rtt_avg is not none else '—' }}</td></tr>{% endfor %}
+  </tbody></table></div>{% if availability_30d.devices|length > 15 %}<p class="muted-note">Mostrati i 15 apparati meno disponibili di {{ availability_30d.devices|length }}; l'elenco completo è nel report.</p>{% endif %}
+  {% else %}<div class="empty-state">Nessun apparato con monitoraggio ICMP: attivalo da Operazioni → Monitoring per questo cliente.</div>{% endif %}
+</section>
 {% if sites_overview %}
 <section class="panel">
   <div class="panel-header"><div><h2>Confronto sedi</h2><p>Ultime 24 ore: traffico WAN medio e picco (in + out).</p></div></div>

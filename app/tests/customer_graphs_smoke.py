@@ -92,6 +92,9 @@ def main():
     assert f'/customers/{ids["customer"]}/graphs?site={ids["north"]}' in page and "rrd_chart.js" in page and "series_chart.js" in page
     site_page = client.get(f"/customers/{ids['customer']}/graphs?site={ids['south']}").text
     assert f"della sede Sud {suffix}" in site_page and "Confronto sedi" not in site_page
+    # Availability from the ICMP monitor: r1 lost one round out of 23.
+    assert "Disponibilità (ultimi 30 giorni)" in page and "95.65%" in page and "media 95.65%, 1 sotto il 99%" in page
+    assert "Nessun apparato con monitoraggio ICMP" in site_page, "the south site has no ICMP samples"
     assert "Grafici del cliente" in client.get(f"/customers/{ids['customer']}/graphs?site={ids['foreign']}").text, "a site of another customer is ignored"
     api = client.get(f"/api/v1/customers/{ids['customer']}/graphs?range=7d&site={ids['north']}")
     assert api.status_code == 200 and {c["id"] for c in api.json()["charts"]} >= {"traffic", "cpu"}
