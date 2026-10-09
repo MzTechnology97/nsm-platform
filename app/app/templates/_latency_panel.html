@@ -5,6 +5,7 @@
   </div>
   {% if not lp.globally_enabled %}<div class="alert info">Il monitoraggio ICMP è disattivato sul server (<code>ICMP_MONITOR=0</code>).</div>{% endif %}
   {% if lp.enabled and lp.error %}<div class="alert warning"><strong>Ping non eseguibile dal server.</strong> {{ lp.error }} Il container worker deve consentire i ping socket non privilegiati (<code>net.ipv4.ping_group_range</code>, attivo di default in Docker).</div>{% endif %}
+  {% if lp.enabled and (lp.rtt_ms or lp.loss_pct) %}<p class="muted">Soglie: {% if lp.rtt_ms %}RTT medio {{ '%g'|format(lp.rtt_ms) }} ms{% endif %}{% if lp.rtt_ms and lp.loss_pct %} · {% endif %}{% if lp.loss_pct %}perdita {{ '%g'|format(lp.loss_pct) }}%{% endif %} (ultimi 30 minuti).</p>{% endif %}
   {% if lp.enabled and lp.down %}<div class="alert danger"><strong>Nessuna risposta.</strong> {{ lp.effective_target }} non risponde al ping da almeno 3 controlli consecutivi.</div>{% endif %}
   {% if lp.enabled %}
   <div class="traffic-chart">
@@ -22,6 +23,11 @@
     <input type="hidden" name="csrf" value="{{ csrf_token(request) }}"><input type="hidden" name="back" value="{{ request.url.path }}">
     <label class="check-row"><input type="checkbox" name="enabled" value="1"{% if lp.enabled %} checked{% endif %}> Monitora latenza e perdita</label>
     <label>Indirizzo da monitorare<input name="target" value="{{ lp.target }}" placeholder="{{ lp.management_ip or 'IPv4 o IPv6' }}" autocomplete="off"><small>Vuoto = IP di gestione{% if lp.management_ip %} ({{ lp.management_ip }}){% endif %}.</small></label>
+    <div class="latency-thresholds">
+      <label>Soglia RTT medio (ms)<input name="rtt_ms" inputmode="decimal" value="{{ '%g'|format(lp.rtt_ms) if lp.rtt_ms }}" placeholder="es. 80" autocomplete="off"></label>
+      <label>Soglia perdita (%)<input name="loss_pct" inputmode="decimal" value="{{ '%g'|format(lp.loss_pct) if lp.loss_pct }}" placeholder="es. 5" autocomplete="off"></label>
+    </div>
+    <small class="muted">Facoltative: valutate sugli ultimi 30 minuti; se superate si apre «Latenza o perdita oltre soglia» nell'Action Center, che si chiude quando i valori rientrano.</small>
     <button class="button" type="submit">Salva</button>
   </form>
   {% endif %}

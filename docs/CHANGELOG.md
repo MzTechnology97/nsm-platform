@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.94 — 2026-10-09
+
+Monitoring — latency and loss thresholds per device
+- **Thresholds.** The *Latenza e perdita* panel accepts two optional thresholds: average RTT in ms and loss in %. They are evaluated over the last 30 minutes, with at least 5 rounds.
+- **Alert.** When exceeded, *Latenza o perdita oltre soglia* opens in the Action Center with a notification and the measured values. It is updated while the problem lasts, and closes when the last 30 minutes are back within the thresholds or the thresholds are removed.
+- The new *Latenza* category has its label in the Action Center and is a connectivity candidate for incidents.
+
 ## 0.49.93 — 2026-10-09
 
 Vulnerabilities — Huawei and Cisco version schemes (SEC-05)

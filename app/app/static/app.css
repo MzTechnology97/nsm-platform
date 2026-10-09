@@ -4801,3 +4801,8 @@ a.compliance-mark { text-decoration: none; }
 .latency-panel .traffic-chart + .traffic-chart {
   margin-top: 12px;
 }
+.latency-thresholds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
