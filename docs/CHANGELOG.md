@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.96 — 2026-10-09
+
+Customer graphs — availability over 30 days
+- The *Grafici* tab of a customer, or of one site, shows **Disponibilità (ultimi 30 giorni)** from the ping of NSM:
+  - weighted average and devices below 99%;
+  - the 15 least available devices, with availability, downtime, outages and average RTT.
+- Same calculation as the report section. Without the ICMP monitor the panel explains how to enable it.
+
 ## 0.49.95 — 2026-10-09
 
 Reports — availability measured by the ping from NSM
