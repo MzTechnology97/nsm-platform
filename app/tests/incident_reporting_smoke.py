@@ -69,7 +69,7 @@ def main():
         assert incidents["by_root_cause"] == {"Alimentazione": 1}
         assert all(row["title"] != "TEST foreign incident" for row in incidents["rows"])
         pdf = render_pdf(data, report_id="TEST", generated_at=now, generated_by="ci", platform_name="NSM").decode("latin-1")
-        for marker in ("7. Incidenti", "10. Apparati", "TEST blackout sede", "da confermare", "4.0 ore"):
+        for marker in ("7. Incidenti", "11. Apparati", "TEST blackout sede", "da confermare", "4.0 ore"):
             assert marker in pdf, marker
         # Incidents outside the period are not reported.
         old = collect_report_data(db, customer=customer, period_start=(now - timedelta(days=60)).date(), period_end=(now - timedelta(days=30)).date())

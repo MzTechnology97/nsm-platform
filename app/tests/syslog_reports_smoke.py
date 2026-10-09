@@ -64,7 +64,7 @@ def main():
         assert access["sources"][0] == {"ip": "8.8.4.4", "failures": 6, "devices": 1, "public": True}
         assert access["alerts_by_rule"] == {"forza bruta": 1} and access["errors"][0]["lines"] == 1
         pdf = render_pdf(data, report_id="TEST", generated_at=now, generated_by="ci", platform_name="NSM").decode("latin-1")
-        for marker in ("8. Accessi e log di sicurezza", "9. Compliance", "10. Apparati", "8.8.4.4", "forza bruta: 1"):
+        for marker in ("8. Accessi e log di sicurezza", "9. Compliance", "11. Apparati", "8.8.4.4", "forza bruta: 1"):
             assert marker in pdf, marker
         empty = collect_report_data(db, customer=quiet, period_start=(now - timedelta(days=1)).date(), period_end=now.date())
         assert empty["access"] == {"available": False}
