@@ -37,7 +37,7 @@ from app.compliance_summary import summarize as compliance_summary
 from app.integration_models import ConnectorIntegration
 from app.restore_test_models import BackupRestoreTest
 from app.routeros_version import parse_routeros_version
-from app import device_exposure, syslog_evidence
+from app import availability, device_exposure, syslog_evidence
 
 REPORT_TYPE = "operational_evidence"
 REPORT_TITLE = "Report evidenze operative"
@@ -75,6 +75,7 @@ CSV_COLUMNS = [
     "compliance_failed_controls",
     "compliance_exceptions",
     "lifecycle_remediation",
+    "availability_pct",
 ]
 REMEDIATION_LABELS = {
     "open": "aperte",
@@ -359,6 +360,8 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
     policies = list(db.scalars(select(BackupPolicy).where(BackupPolicy.is_enabled.is_(True))))
     settings_map = {policy.id: _policy_settings(db, policy, create=True) for policy in policies}
     active_agents = active_mikrotik_agent_device_ids(db, device_ids) if device_ids else set()
+    availability_section = availability.report_section(db, device_ids, lower, upper)
+    availability_by_device = {row["device_id"]: row["availability"] for row in availability_section["devices"]}
     last_success = dict(
         db.execute(
             scoped(
@@ -447,6 +450,7 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
                 "compliance_failed_controls": compliance["per_device"].get(device.id, {}).get("fail", 0),
                 "compliance_exceptions": compliance["per_device"].get(device.id, {}).get("exception", 0),
                 "lifecycle_remediation": remediation_status.get(device.id, ""),
+                "availability_pct": availability_by_device.get(str(device.id), ""),
             }
         )
 
@@ -533,6 +537,7 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
         "incidents": _collect_incidents(db, customer, lower, upper),
         "access": syslog_evidence.report_section(db, device_ids, lower, upper, _fmt),
         "exposure": device_exposure.report_section(db, device_ids),
+        "availability": availability_section,
         "compliance": {
             "evaluated_devices": compliance["evaluated_devices"],
             "failing_devices": compliance["failing_devices"],
@@ -841,7 +846,9 @@ def render_pdf(data: dict, *, report_id: str, generated_at: datetime, generated_
             gray=0.35,
         )
 
-    doc.heading("10. Apparati", 2)
+    availability.render_report_section(doc, data.get("availability") or {}, 10)
+
+    doc.heading("11. Apparati", 2)
     device_rows = [
         [row["customer"], row["device"], row["vendor"], row["firmware_installed"], row["backup_readiness"], row["last_successful_backup"]]
         for row in data["devices"]

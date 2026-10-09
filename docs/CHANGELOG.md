@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.95 — 2026-10-09
+
+Reports — availability measured by the ping from NSM
+- **New report section.** Periodic and on-demand reports have **10. Disponibilità (ping da NSM)** (*Apparati* becomes section 11). For each device with the ICMP monitor in the period:
+  - availability %, downtime, number of outages and the longest one;
+  - packet loss and average RTT;
+  - worst first, with the weighted average and the devices below 99%.
+- **How it is counted.** A round (3 echoes every 2 minutes) is up when at least one reply arrives. The 10-minute consolidated points count for the rounds they represent.
+  - Devices without the monitor are not listed: NSM never invents an availability figure.
+- **CSV.** The export has a new last column, `availability_pct`.
+
 ## 0.49.94 — 2026-10-09
 
 Monitoring — latency and loss thresholds per device
