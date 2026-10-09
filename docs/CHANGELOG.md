@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.93 — 2026-10-09
+
+Vulnerabilities — Huawei and Cisco version schemes (SEC-05)
+- **Huawei VRP** versions such as `V200R019C10SPC800` (with optional `SPH` hot patch) are read and compared by version, release, customization, service pack and patch. Before, they were not interpretable, so these devices could not be evaluated. Dotted versions of other Huawei products still work.
+- **Cisco versions.**
+  - IOS `15.2(4)M3` / `12.2(55)SE12`, ASA `9.12(4)18`, NX-OS `9.3(8)` and IOS-XE `17.3.4a` are parsed with their rebuild numbers and letters.
+  - Versions of different release trains (e.g. `M` and `E`) are never ordered against each other, so they never produce a false match.
+- **Cisco OS family** (`ios`, `ios_xe`, `ios_xr`, `nx-os`, ASA) comes from the firmware text, else from the model (ISR4/Cat9 → IOS-XE, Nexus → NX-OS, ASA/Firepower → ASA, Catalyst/ISR classic → IOS). Nothing is inferred from the brand alone.
+
 ## 0.49.92 — 2026-10-09
 
 Incidents — ping evidence from NSM

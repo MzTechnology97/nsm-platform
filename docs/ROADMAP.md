@@ -448,7 +448,7 @@ Read-only cnMaestro (cloud/on-premises) connector for Cambium radios: discovery 
 
 ### SEC-05 — multi-vendor CVE correlation
 
-**Implemented in `main`** (`app/vendor_cpe.py`): about 30 common manufacturers (Ubiquiti, TP-Link, Cambium, Mimosa, Tenda, Huawei, ZTE, Teltonika, Ruckus, Fortinet, Juniper, Cisco…), NVD queries only for the brands and models in the inventory, generic firmware version comparison, coverage per manufacturer on the NVD page. Exposure is never inferred from the brand alone. Open: vendor-specific version schemes (e.g. Huawei VxRxxxCxx) and Cisco OS families.
+**Implemented in `main`** (`app/vendor_cpe.py`): about 30 common manufacturers (Ubiquiti, TP-Link, Cambium, Mimosa, Tenda, Huawei, ZTE, Teltonika, Ruckus, Fortinet, Juniper, Cisco…), NVD queries only for the brands and models in the inventory, generic firmware version comparison, coverage per manufacturer on the NVD page. Exposure is never inferred from the brand alone. Huawei VRP version scheme and Cisco OS families/version trains done in Core 0.49.93.
 
 ### SEC-01 — source ingestion framework
 
