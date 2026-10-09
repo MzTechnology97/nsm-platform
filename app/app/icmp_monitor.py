@@ -7,7 +7,10 @@ agent, as long as the NSM server reaches the address (public IP, VPN or
 management network).
 
 Three consecutive samples with 100% loss open an Action Center issue
-(*Apparato non raggiungibile da NSM*), closed by the next reply.  Samples share
+(*Apparato non raggiungibile da NSM*), closed by the next reply.  Optional
+per-device thresholds (average RTT in ms, loss in %) are evaluated over the
+last 30 minutes and open *Latenza o perdita oltre soglia*, closed when the
+link is back under them.  Samples share
 the 90-day retention and the 10-minute consolidation after 7 days.
 """
 from __future__ import annotations
@@ -19,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
 from fastapi import HTTPException, Request
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app import icmp_probe
 from app import main as core
@@ -42,6 +45,10 @@ MAX_POINTS = 600
 GAP_SECONDS = 900
 ISSUE_CATEGORY = "reachability"
 ISSUE_TITLE = "Apparato non raggiungibile da NSM (ICMP)"
+QUALITY_CATEGORY = "latency"
+QUALITY_TITLE = "Latenza o perdita oltre soglia"
+QUALITY_WINDOW = timedelta(minutes=30)
+QUALITY_MIN_ROUNDS = 5
 STATUS = {"available": True, "error": None}
 
 
@@ -66,6 +73,62 @@ def valid_target(value) -> str | None:
 
 def target_for(device) -> str | None:
     return valid_target(settings(device).get("target") or device.management_ip)
+
+
+def thresholds(device) -> dict:
+    conf = settings(device)
+    out = {}
+    for key in ("rtt_ms", "loss_pct"):
+        try:
+            value = float(conf.get(key)) if conf.get(key) not in (None, "") else None
+        except (TypeError, ValueError):
+            value = None
+        out[key] = value if value is not None and value > 0 else None
+    return out
+
+
+def quality(db, device_id, now) -> dict | None:
+    """Average RTT and loss over the last 30 minutes, None with too few rounds."""
+    row = db.execute(select(func.count(DevicePingSample.id), func.sum(DevicePingSample.sent), func.sum(DevicePingSample.received),
+                            func.avg(DevicePingSample.rtt_avg))
+                     .where(DevicePingSample.device_id == device_id, DevicePingSample.observed_at > now - QUALITY_WINDOW,
+                            DevicePingSample.observed_at <= now)).one()
+    rounds, sent, received, rtt = row
+    if not rounds or rounds < QUALITY_MIN_ROUNDS or not sent:
+        return None
+    return {"rounds": int(rounds), "loss_pct": round(100 * (1 - int(received or 0) / int(sent)), 1), "rtt_ms": round(float(rtt), 1) if rtt is not None else None}
+
+
+def _quality_issue(db, device, now) -> bool:
+    """Open/update/close the threshold issue; True when an issue is opened."""
+    limits = thresholds(device)
+    issue = db.scalar(select(ActionIssue).where(ActionIssue.device_id == device.id, ActionIssue.category == QUALITY_CATEGORY,
+                                                ActionIssue.status.in_(["open", "acknowledged"])))
+    measured = quality(db, device.id, now) if any(limits.values()) else None
+    breaches = []
+    if measured:
+        if limits["rtt_ms"] and measured["rtt_ms"] is not None and measured["rtt_ms"] > limits["rtt_ms"]:
+            breaches.append(f"RTT medio {measured['rtt_ms']} ms > {limits['rtt_ms']:g} ms")
+        if limits["loss_pct"] and measured["loss_pct"] > limits["loss_pct"]:
+            breaches.append(f"perdita {measured['loss_pct']}% > {limits['loss_pct']:g}%")
+    if not breaches:
+        if issue and (measured or not any(limits.values())):
+            issue.status = "resolved"
+            issue.details = {**(issue.details or {}), "resolved_reason": "ultimi 30 minuti entro le soglie" if measured else "soglie rimosse"}
+        return False
+    details = {"breaches": breaches, "measured": measured, "thresholds": limits, "checked_at": now.isoformat()}
+    if issue:
+        issue.details = details
+        issue.updated_at = now
+        return False
+    name = device.display_name or device.device_identity or device.name
+    db.add(ActionIssue(category=QUALITY_CATEGORY, severity="warning", status="open", title=QUALITY_TITLE, details=details,
+                       customer_id=device.customer_id, device_id=device.id))
+    db.add(Notification(severity="medium", category="monitoring", title=f"{QUALITY_TITLE}: {name}",
+                        message=f"{name}, ultimi 30 minuti: {'; '.join(breaches)}.",
+                        customer_id=device.customer_id, device_id=device.id, source_url=f"/devices/{device.id}#latency", is_active=True))
+    core.add_event(db, "ICMP_THRESHOLD_EXCEEDED", customer_id=device.customer_id, device_id=device.id, details=details, severity="warning", source="worker")
+    return True
 
 
 def _stats(result: dict) -> dict:
@@ -163,6 +226,11 @@ def tick(now=None, prober=None) -> dict:
             elif not lost:
                 _issue(db, device, False, target)
             stats["probed"] += 1
+        db.flush()
+        for device_id, _target, _result, _error in results:
+            device = db.get(Device, device_id)
+            if device is not None and _quality_issue(db, device, now):
+                stats["threshold"] = stats.get("threshold", 0) + 1
         db.commit()
     return stats
 
@@ -224,6 +292,19 @@ async def save_settings(request: Request, device_id: uuid.UUID):
         if not device:
             raise HTTPException(404)
         enable = form.get("enabled") == "1"
+        limits = {}
+        for key, maximum in (("rtt_ms", 10000), ("loss_pct", 100)):
+            text = str(form.get(key) or "").strip().replace(",", ".")
+            if not text:
+                limits[key] = None
+                continue
+            try:
+                value = float(text)
+            except ValueError:
+                value = -1
+            if not 0 < value <= maximum:
+                return flash_redirect(request, back + "#latency", "warning", f"Soglia non valida: indica un numero tra 0 e {maximum}.", title="Monitoraggio ICMP")
+            limits[key] = value
         raw = str(form.get("target") or "").strip()
         target = valid_target(raw) if raw else None
         if raw and not target:
@@ -232,7 +313,7 @@ async def save_settings(request: Request, device_id: uuid.UUID):
             return flash_redirect(request, back + "#latency", "warning", "L'apparato non ha un IP di gestione: indica l'indirizzo da monitorare.", title="Monitoraggio ICMP")
         data = dict(device.inventory_data or {})
         conf = dict(data.get(SETTINGS_KEY) or {})
-        conf.update(enabled=enable, target=target)
+        conf.update(enabled=enable, target=target, **limits)
         if not enable:
             conf["consecutive_losses"] = 0
             issue = db.scalar(select(ActionIssue).where(ActionIssue.device_id == device.id, ActionIssue.category == ISSUE_CATEGORY,
@@ -258,7 +339,9 @@ def cleanup() -> int:
 
 def panel(device) -> dict:
     conf = settings(device)
+    limits = thresholds(device)
     return {"enabled": bool(conf.get("enabled")), "target": conf.get("target") or "", "effective_target": target_for(device),
+            "rtt_ms": limits["rtt_ms"], "loss_pct": limits["loss_pct"],
             "management_ip": device.management_ip, "last_loss": conf.get("last_loss"), "last_rtt": conf.get("last_rtt"),
             "last_at": conf.get("last_at"), "down": int(conf.get("consecutive_losses") or 0) >= DOWN_AFTER,
             "error": conf.get("error"), "globally_enabled": enabled_globally()}

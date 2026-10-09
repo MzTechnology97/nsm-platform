@@ -38,6 +38,7 @@ ISSUE_CATEGORY_TO_CAUSE = {
     "firmware": "firmware",
     "reachability": "connectivity",
     "interface_errors": "connectivity",
+    "latency": "connectivity",
     "exposure": "security",
 }
 
