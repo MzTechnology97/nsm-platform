@@ -4,6 +4,21 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.110 — 2026-10-14
+
+New interface (React) — backup overview, phase 3c
+- **Backup in `/app/backups`**, also reachable from the sidebar of the new interface. It holds the same worklist as the classic Backup page.
+- **Cards:** protected devices, devices blocked (policy present but method not executable), devices without a policy, open backup alerts, active policies.
+- **Views with counts:** needs attention (last run failed, blocked, never run), last failed, blocked, never run, without policy, protected, all. Search on device, serial, IP or customer and a customer filter; everything stays in the address.
+- **Per device:**
+  - protection state in the user's language with the backup method;
+  - effective policy;
+  - last backup with outcome, time and error.
+  - The name opens the device Backup tab.
+- **Coverage per customer** (protected, blocked, without policy, alerts) linked to the customer page, and the **policies** with their scope and schedule in words. Users allowed to configure backups can edit a policy or create one (*+ Policy*) on the classic forms.
+- The protection state of the fleet is now built by shared functions in `backup_workspace_capabilities`, used by both interfaces; the classic page behaves as before.
+- **API.** `GET /api/ui/v1/backups` (`backup.read`).
+
 ## 0.49.109 — 2026-10-14
 
 New interface (React) — MikroTik Agent fleet, phase 3b

@@ -987,5 +987,71 @@
     "updateTo": "→ {{version}} available",
     "allGood": "No agent needs attention.",
     "empty": "No agent in this state."
+  },
+  "backupOverview": {
+    "title": "Backup",
+    "subtitle": "Backup protection of every device: policy, executable method and outcome of the last run.",
+    "newPolicy": "+ Policy",
+    "metrics": {
+      "protected": "Protected",
+      "blocked": "Blocked",
+      "noPolicy": "Without policy",
+      "alerts": "Backup alerts",
+      "policies": "Active policies"
+    },
+    "hints": {
+      "protected": "devices with an executable backup",
+      "blocked": "policy present but method not executable",
+      "noPolicy": "no policy covers them",
+      "alerts": "open issues",
+      "policies_one": "{{count}} policy in total",
+      "policies_other": "{{count}} policies in total"
+    },
+    "views": {
+      "label": "Backup view",
+      "attention": "Needs attention",
+      "failed": "Last failed",
+      "blocked": "Blocked",
+      "never": "Never run",
+      "no_policy": "Without policy",
+      "protected": "Protected",
+      "all": "All"
+    },
+    "search": "Search device, serial, IP or customer",
+    "columns": {
+      "device": "Device",
+      "protection": "Protection",
+      "policy": "Policy",
+      "latest": "Last backup"
+    },
+    "readiness": {
+      "protected": "Protected",
+      "no_policy": "No policy",
+      "method_disabled": "Method not enabled",
+      "agent_required": "Agent required",
+      "legacy_backup_pending": "Legacy backup not ready",
+      "available_export_only": "Export .rsc only",
+      "connector_required": "Connector required",
+      "acs_required": "ACS required",
+      "unsupported": "Not supported"
+    },
+    "never": "never run",
+    "allGood": "No backup needs attention.",
+    "empty": "No device in this view.",
+    "coverage": {
+      "title": "Coverage per customer",
+      "customer": "Customer",
+      "protected": "Protected",
+      "blocked": "Blocked",
+      "noPolicy": "No policy",
+      "alerts": "Alerts"
+    },
+    "policies": {
+      "title": "Policies",
+      "hint": "More specific policies (device, site, customer, vendor) win over general ones.",
+      "on": "enabled",
+      "off": "disabled",
+      "none": "No policy configured."
+    }
   }
 }

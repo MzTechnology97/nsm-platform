@@ -6,7 +6,7 @@ import type { DeviceFilters } from "../api/devices";
 import { CustomerDetail, CustomerOverview, CustomerSites } from "../pages/CustomerDetail";
 import type { GraphsSearch } from "../pages/CustomerGraphs";
 import { Customers } from "../pages/Customers";
-import { AGENT_STATES, type AgentFilters, MONITORING_STATES, type MonitoringFilters } from "../api/operations";
+import { AGENT_STATES, type AgentFilters, BACKUP_VIEWS, type BackupOverviewFilters, MONITORING_STATES, type MonitoringFilters } from "../api/operations";
 import { DeviceDetail, DeviceOverview } from "../pages/DeviceDetail";
 import { Devices } from "../pages/Devices";
 import { Home } from "../pages/Home";
@@ -83,6 +83,21 @@ export function parseAgentSearch(search: Record<string, unknown>): AgentFilters 
   return out;
 }
 
+/** Backup overview search: known view, customer, text. */
+export function parseBackupOverviewSearch(search: Record<string, unknown>): BackupOverviewFilters {
+  const out: BackupOverviewFilters = {};
+  if (typeof search.view === "string" && (BACKUP_VIEWS as readonly string[]).includes(search.view)) out.view = search.view as BackupOverviewFilters["view"];
+  if (typeof search.customer === "string" && search.customer) out.customer = search.customer;
+  if (typeof search.q === "string" && search.q) out.q = search.q;
+  return out;
+}
+
+const backupsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/backups",
+  component: lazyRouteComponent(() => import("../pages/BackupsOverview"), "BackupsOverview"),
+  validateSearch: parseBackupOverviewSearch,
+});
 const agentsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/agents", component: lazyRouteComponent(() => import("../pages/Agents"), "Agents"), validateSearch: parseAgentSearch });
 const monitoringRoute = createRoute({ getParentRoute: () => rootRoute, path: "/monitoring", component: lazyRouteComponent(() => import("../pages/Monitoring"), "Monitoring"), validateSearch: parseMonitoringSearch });
 
@@ -107,6 +122,7 @@ export const routeTree = rootRoute.addChildren([
   customersRoute,
   monitoringRoute,
   agentsRoute,
+  backupsRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

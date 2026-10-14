@@ -987,5 +987,71 @@
     "updateTo": "→ {{version}} disponible",
     "allGood": "Aucun agent à vérifier.",
     "empty": "Aucun agent dans cet état."
+  },
+  "backupOverview": {
+    "title": "Sauvegardes",
+    "subtitle": "Protection de sauvegarde de tous les équipements : politique, méthode exécutable et résultat de la dernière exécution.",
+    "newPolicy": "+ Politique",
+    "metrics": {
+      "protected": "Protégés",
+      "blocked": "Bloqués",
+      "noPolicy": "Sans politique",
+      "alerts": "Alertes sauvegarde",
+      "policies": "Politiques actives"
+    },
+    "hints": {
+      "protected": "équipements avec sauvegarde exécutable",
+      "blocked": "politique présente mais méthode non exécutable",
+      "noPolicy": "aucune politique ne les couvre",
+      "alerts": "signalements ouverts",
+      "policies_one": "{{count}} politique au total",
+      "policies_other": "{{count}} politiques au total"
+    },
+    "views": {
+      "label": "Vue sauvegarde",
+      "attention": "À vérifier",
+      "failed": "Dernière échouée",
+      "blocked": "Bloqués",
+      "never": "Jamais exécutée",
+      "no_policy": "Sans politique",
+      "protected": "Protégés",
+      "all": "Tous"
+    },
+    "search": "Rechercher équipement, série, IP ou client",
+    "columns": {
+      "device": "Équipement",
+      "protection": "Protection",
+      "policy": "Politique",
+      "latest": "Dernière sauvegarde"
+    },
+    "readiness": {
+      "protected": "Protégé",
+      "no_policy": "Aucune politique",
+      "method_disabled": "Méthode non activée",
+      "agent_required": "Agent requis",
+      "legacy_backup_pending": "Sauvegarde legacy pas prête",
+      "available_export_only": "Export .rsc uniquement",
+      "connector_required": "Connecteur requis",
+      "acs_required": "ACS requis",
+      "unsupported": "Non pris en charge"
+    },
+    "never": "jamais exécutée",
+    "allGood": "Aucune sauvegarde à vérifier.",
+    "empty": "Aucun équipement dans cette vue.",
+    "coverage": {
+      "title": "Couverture par client",
+      "customer": "Client",
+      "protected": "Protégés",
+      "blocked": "Bloqués",
+      "noPolicy": "Sans politique",
+      "alerts": "Alertes"
+    },
+    "policies": {
+      "title": "Politiques",
+      "hint": "Les politiques plus spécifiques (équipement, site, client, vendor) l'emportent sur les générales.",
+      "on": "active",
+      "off": "désactivée",
+      "none": "Aucune politique configurée."
+    }
   }
 }

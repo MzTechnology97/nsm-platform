@@ -987,5 +987,71 @@
     "updateTo": "→ {{version}} disponible",
     "allGood": "Ningún agente por revisar.",
     "empty": "Ningún agente en este estado."
+  },
+  "backupOverview": {
+    "title": "Copias",
+    "subtitle": "Protección de copia de todos los equipos: política, método ejecutable y resultado de la última ejecución.",
+    "newPolicy": "+ Política",
+    "metrics": {
+      "protected": "Protegidos",
+      "blocked": "Bloqueados",
+      "noPolicy": "Sin política",
+      "alerts": "Alertas de copia",
+      "policies": "Políticas activas"
+    },
+    "hints": {
+      "protected": "equipos con copia ejecutable",
+      "blocked": "política presente pero método no ejecutable",
+      "noPolicy": "ninguna política los cubre",
+      "alerts": "avisos abiertos",
+      "policies_one": "{{count}} política en total",
+      "policies_other": "{{count}} políticas en total"
+    },
+    "views": {
+      "label": "Vista de copias",
+      "attention": "Por revisar",
+      "failed": "Última fallida",
+      "blocked": "Bloqueados",
+      "never": "Nunca ejecutada",
+      "no_policy": "Sin política",
+      "protected": "Protegidos",
+      "all": "Todos"
+    },
+    "search": "Buscar equipo, serie, IP o cliente",
+    "columns": {
+      "device": "Equipo",
+      "protection": "Protección",
+      "policy": "Política",
+      "latest": "Última copia"
+    },
+    "readiness": {
+      "protected": "Protegido",
+      "no_policy": "Sin política",
+      "method_disabled": "Método no habilitado",
+      "agent_required": "Agente requerido",
+      "legacy_backup_pending": "Copia legacy no lista",
+      "available_export_only": "Solo export .rsc",
+      "connector_required": "Conector requerido",
+      "acs_required": "ACS requerido",
+      "unsupported": "No soportado"
+    },
+    "never": "nunca ejecutada",
+    "allGood": "Ninguna copia por revisar.",
+    "empty": "Ningún equipo en esta vista.",
+    "coverage": {
+      "title": "Cobertura por cliente",
+      "customer": "Cliente",
+      "protected": "Protegidos",
+      "blocked": "Bloqueados",
+      "noPolicy": "Sin política",
+      "alerts": "Alertas"
+    },
+    "policies": {
+      "title": "Políticas",
+      "hint": "Las políticas más específicas (equipo, sede, cliente, vendor) prevalecen sobre las generales.",
+      "on": "activa",
+      "off": "desactivada",
+      "none": "Ninguna política configurada."
+    }
   }
 }

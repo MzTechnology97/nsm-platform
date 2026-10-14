@@ -19,7 +19,7 @@ export const SECTIONS: Section[] = [
   { key: "devices", icon: "devices", classic: "/devices", route: "/devices", permission: "devices.read", group: "operations" },
   { key: "monitoring", icon: "monitoring", classic: "/operations/monitoring", route: "/monitoring", permission: "monitoring.read", group: "operations" },
   { key: "agents", icon: "agents", classic: "/operations/agents", route: "/agents", permission: "devices.read", group: "operations" },
-  { key: "backups", icon: "backup", classic: "/operations/backups", permission: "backup.read", group: "operations" },
+  { key: "backups", icon: "backup", classic: "/operations/backups", route: "/backups", permission: "backup.read", group: "operations" },
   { key: "firmware", icon: "firmware", classic: "/operations/firmware", permission: "firmware.read", group: "operations" },
   { key: "incidents", icon: "incidents", classic: "/incidents", permission: "incidents.read", group: "operations" },
   { key: "vulnerabilities", icon: "vulnerabilities", classic: "/security/vulnerabilities", permission: "security.read", group: "security" },

@@ -119,3 +119,51 @@ export function agentsUrl(filters: AgentFilters): string {
 
 export const useAgentFleet = (filters: AgentFilters) =>
   useQuery({ queryKey: ["agents", filters], queryFn: () => api<AgentFleet>(agentsUrl(filters)), placeholderData: keepPreviousData, staleTime: 20_000, refetchInterval: 60_000 });
+
+export const BACKUP_VIEWS = ["attention", "failed", "blocked", "never", "no_policy", "protected", "all"] as const;
+export type BackupView = (typeof BACKUP_VIEWS)[number];
+
+export interface BackupOverviewFilters {
+  view?: BackupView;
+  customer?: string;
+  q?: string;
+}
+
+export interface BackupOverviewRow {
+  id: string;
+  name: string;
+  vendor: string | null;
+  status: string;
+  customer: { id: string; name: string } | null;
+  site: string | null;
+  policy: { id: string; name: string } | null;
+  readiness: { status: string; label: string; reason: string; method: string };
+  bucket: "protected" | "blocked" | "no_policy";
+  state: string;
+  latest: { status: string; started_at: string | null; completed_at: string | null; error: string | null; type: string | null } | null;
+}
+
+export interface BackupOverview {
+  view: BackupView;
+  total: number;
+  limit: number;
+  counts: Record<BackupView, number>;
+  totals: { devices: number; protected: number; blocked: number; no_policy: number; backup_alerts: number; active_policies: number };
+  items: BackupOverviewRow[];
+  customers: { id: string; name: string; devices: number; protected: number; blocked: number; no_policy: number; backup_alerts: number }[];
+  policies: { id: string; name: string; enabled: boolean; scope: string; scope_type: string; schedule: string }[];
+  can_configure: boolean;
+}
+
+export function backupOverviewUrl(filters: BackupOverviewFilters): string {
+  const search = new URLSearchParams();
+  for (const key of ["view", "customer", "q"] as const) {
+    const value = filters[key];
+    if (value) search.set(key, value);
+  }
+  const query = search.toString();
+  return `/api/ui/v1/backups${query ? `?${query}` : ""}`;
+}
+
+export const useBackupOverview = (filters: BackupOverviewFilters) =>
+  useQuery({ queryKey: ["backup-overview", filters], queryFn: () => api<BackupOverview>(backupOverviewUrl(filters)), placeholderData: keepPreviousData, staleTime: 30_000, refetchInterval: 120_000 });

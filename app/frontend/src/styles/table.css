@@ -340,3 +340,11 @@
   color: var(--warning);
   font-weight: 600;
 }
+
+.ui-section-gap {
+  margin-top: var(--space-4);
+}
+
+.ui-page > .ui-metrics {
+  margin-bottom: var(--space-4);
+}
