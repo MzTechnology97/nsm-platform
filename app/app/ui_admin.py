@@ -16,7 +16,12 @@
   ``api_key_lifecycle``. A new token is returned once, never stored in clear;
 - ``GET /api/ui/v1/admin/system``: read-only platform status (version, worker,
   connectors, capacity, secrets, database dumps, restore drills), the same
-  data as the classic *Sistema* page.
+  data as the classic *Sistema* page;
+- ``GET /api/ui/v1/admin/notifications``: SMTP server, Telegram bot,
+  delivery health and log; ``POST`` save SMTP, send a test e-mail, configure
+  the bot, requeue failed deliveries through ``notification_delivery`` /
+  ``notification_chat``. Stored secrets are never returned, only whether one
+  is set.
 """
 from __future__ import annotations
 
@@ -34,6 +39,8 @@ from app import (
     connector_health,
     customer_scope,
     login_security,
+    notification_chat,
+    notification_delivery,
     report_schedules,
     reports,
     secret_rotation,
@@ -47,6 +54,7 @@ from app.api_key_models import PlatformApiKey
 from app.api_key_scopes import API_SCOPE_INVENTORY_READ, OPTIONAL_READ_SCOPES
 from app.db import SessionLocal
 from app.models import AuditEvent, Customer, Device, User, utcnow
+from app.notification_models import NotificationDelivery, UserNotificationPreference
 from app.report_models import FREQUENCY_LABELS, GeneratedReport, ReportSchedule
 from app.ui_api import require_csrf, ui_user
 from app.ui_incidents import device_ref
@@ -379,6 +387,83 @@ def admin_system(request: Request):
             "dumps": system_status.platform_dumps(), "drills": system_status.restore_drills(),
             "dump_max_days": system_status.DUMP_MAX_AGE.days, "drill_max_days": system_status.DRILL_MAX_AGE.days,
         })
+
+
+@router.get("/admin/notifications")
+def admin_notifications(request: Request, status: str = ""):
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        smtp = notification_delivery.smtp_row(db)
+        bot = notification_chat.telegram_row(db)
+        query = select(NotificationDelivery).order_by(NotificationDelivery.created_at.desc()).limit(100)
+        if status in ("pending", "sent", "failed"):
+            query = query.where(NotificationDelivery.status == status)
+        deliveries = list(db.scalars(query))
+        users = {u.id: u.username for u in db.scalars(select(User).where(User.id.in_({d.user_id for d in deliveries if d.user_id})))}
+        settings = dict(smtp.settings or {}) if smtp else {}
+        return {
+            "security_modes": list(notification_delivery.SECURITY_MODES),
+            "smtp": {
+                "configured": smtp is not None, "enabled": bool(smtp and smtp.is_enabled),
+                "host": settings.get("host", ""), "port": settings.get("port", 587), "security": settings.get("security", "starttls"),
+                "username": settings.get("username", ""), "from_address": settings.get("from_address", ""),
+                "from_name": settings.get("from_name", "NSM"), "portal_url": settings.get("portal_url", ""),
+                "has_password": bool(smtp and smtp.secret_encrypted),
+                "last_tested_at": _iso(smtp.last_tested_at) if smtp else None, "last_test_status": smtp.last_test_status if smtp else None,
+                "last_error": smtp.last_error if smtp else None,
+            },
+            "telegram": {
+                "configured": bot is not None, "enabled": bool(bot and bot.is_enabled), "bot": (bot.settings or {}).get("bot_username") if bot else None,
+                "last_test_status": bot.last_test_status if bot else None, "last_error": bot.last_error if bot else None,
+            },
+            "health": notification_delivery.delivery_health(db),
+            "subscribers": int(db.scalar(select(func.count(UserNotificationPreference.id)).where(UserNotificationPreference.enabled.is_(True))) or 0),
+            "status": status if status in ("pending", "sent", "failed") else "",
+            "deliveries": [{
+                "id": str(d.id), "created_at": _iso(d.created_at), "user": users.get(d.user_id), "destination": d.destination, "channel": d.channel,
+                "subject": d.subject, "category": d.category, "severity": d.severity, "status": d.status, "attempts": d.attempts,
+                "sent_at": _iso(d.sent_at), "last_error": d.last_error,
+            } for d in deliveries],
+        }
+
+
+def _admin_write(request: Request, action):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "users.manage")
+        result = action(db, user)
+        db.commit()
+        return result
+
+
+@router.post("/admin/notifications/smtp", dependencies=[Depends(require_csrf)])
+def admin_notifications_smtp(request: Request, body: dict = Body(default={})):
+    return _admin_write(request, lambda db, user: notification_delivery.save_smtp_settings(
+        db, user, host=_text(body, "host"), port=body.get("port"), security=_text(body, "security") or "starttls",
+        username=_text(body, "username"), password=_text(body, "password"), from_address=_text(body, "from_address"),
+        from_name=_text(body, "from_name") or "NSM", portal_url=_text(body, "portal_url"), enabled=body.get("enabled") is True) or {"saved": True})
+
+
+@router.post("/admin/notifications/smtp/test", dependencies=[Depends(require_csrf)])
+def admin_notifications_smtp_test(request: Request, body: dict = Body(default={})):
+    def run(db, user):
+        result, message = notification_delivery.test_smtp_send(db, user, _text(body, "to"))
+        return {"result": result, "message": message}
+
+    return _admin_write(request, run)
+
+
+@router.post("/admin/notifications/telegram", dependencies=[Depends(require_csrf)])
+def admin_notifications_telegram(request: Request, body: dict = Body(default={})):
+    def run(db, user):
+        verified, message = notification_chat.configure_bot(db, user, _text(body, "token"), body.get("enabled") is True)
+        return {"verified": verified, "message": message}
+
+    return _admin_write(request, run)
+
+
+@router.post("/admin/notifications/retry", dependencies=[Depends(require_csrf)])
+def admin_notifications_retry(request: Request, body: dict = Body(default={})):
+    return _admin_write(request, lambda db, user: {"requeued": notification_delivery.requeue_failed(db, user, _text(body, "delivery"))})
 
 
 def install_ui_admin(app) -> None:

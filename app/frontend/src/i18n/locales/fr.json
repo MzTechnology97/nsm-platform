@@ -1952,5 +1952,108 @@
         "devices": "Équipements"
       }
     }
+  },
+  "notificationsAdmin": {
+    "subtitle": "Canaux par lesquels NSM envoie notifications et rapports : e-mail, Telegram et Slack.",
+    "enabled": "Activé",
+    "inactive": "Inactif",
+    "keepSecret": "Laisser vide pour conserver celui enregistré",
+    "smtp": {
+      "title": "Serveur e-mail (SMTP)",
+      "help": "Utilisé pour les notifications et rapports par e-mail. Le mot de passe est chiffré.",
+      "host": "Serveur",
+      "port": "Port",
+      "security": "Chiffrement",
+      "username": "Utilisateur",
+      "usernameHelp": "Vide si le serveur ne demande pas d'authentification.",
+      "password": "Mot de passe",
+      "from": "Expéditeur (e-mail)",
+      "fromName": "Nom de l'expéditeur",
+      "portal": "Adresse du portail",
+      "portalHelp": "Utilisée pour les liens dans les messages.",
+      "enable": "Activer l'envoi d'e-mails",
+      "save": "Enregistrer la configuration",
+      "saved": "Configuration SMTP enregistrée ; le mot de passe est chiffré.",
+      "modes": {
+        "starttls": "STARTTLS (port 587)",
+        "ssl": "SSL/TLS (port 465)",
+        "none": "Sans chiffrement (port 25, réseau interne uniquement)"
+      }
+    },
+    "health": {
+      "title": "État des envois (24 heures)",
+      "help": "Un envoi échoué est retenté jusqu'à 6 fois (après 1, 5, 15, 60 et 240 minutes) ; les échecs restent dans le journal et peuvent être remis en file.",
+      "sent": "Envoyés",
+      "pending": "En file",
+      "stuck_one": "{{count}} depuis plus d'une heure",
+      "stuck_other": "{{count}} depuis plus d'une heure",
+      "failed": "Échoués",
+      "subscribers": "Destinataires actifs",
+      "subscribersHelp": "canaux activés dans les profils",
+      "testTo": "Destinataire du test",
+      "testPlaceholder": "vide = votre e-mail du profil",
+      "test": "Envoyer un e-mail de test",
+      "lastOk": "Dernier test {{when}} : réussi",
+      "lastFailed": "Dernier test {{when}} : échoué"
+    },
+    "chat": {
+      "title": "Telegram et Slack",
+      "help": "Telegram utilise un seul bot créé avec @BotFather ; chaque utilisateur indique son chat ID dans son profil (le bot le donne en réponse à /start). Slack ne demande aucune configuration : chaque utilisateur indique le webhook de son canal dans son profil.",
+      "bot": "Bot @{{name}}",
+      "botInactive": "Bot inactif",
+      "token": "Jeton du bot Telegram",
+      "tokenPlaceholder": "Jeton du bot (123456:ABC…)",
+      "enable": "Activer",
+      "save": "Enregistrer et vérifier le bot"
+    },
+    "log": {
+      "title": "Journal des envois",
+      "help": "100 derniers messages vers des canaux externes.",
+      "retry": "Remettre en file les échecs",
+      "requeued_one": "{{count}} envoi remis en file.",
+      "requeued_other": "{{count}} envois remis en file.",
+      "filter": "Filtre d'état",
+      "filters": {
+        "all": "Tous",
+        "pending": "En file",
+        "sent": "Envoyés",
+        "failed": "Échoués"
+      },
+      "states": {
+        "sent": "envoyé",
+        "failed": "échoué",
+        "pending": "en file"
+      },
+      "attempts_one": "{{count}} tentative",
+      "attempts_other": "{{count}} tentatives",
+      "none": "Aucun envoi enregistré.",
+      "columns": {
+        "when": "Quand",
+        "recipient": "Destinataire",
+        "channel": "Canal",
+        "message": "Message",
+        "status": "État"
+      }
+    },
+    "channels": {
+      "email": "E-mail",
+      "telegram": "Telegram",
+      "slack": "Slack"
+    },
+    "levels": {
+      "info": "Information",
+      "warning": "Attention",
+      "high": "Élevé",
+      "critical": "Critique"
+    },
+    "categories": {
+      "security": "Sécurité et vulnérabilités",
+      "backup": "Sauvegarde",
+      "firmware": "Firmware",
+      "devices": "Équipements et agents",
+      "integration": "Intégrations",
+      "reports": "Rapports",
+      "system": "Erreurs système"
+    }
   }
 }

@@ -13,7 +13,7 @@ import re
 from urllib.parse import urlsplit
 
 import httpx
-from fastapi import Request
+from fastapi import HTTPException, Request
 from sqlalchemy import select
 
 from app import main as core
@@ -156,34 +156,47 @@ def save_slack(pref: UserNotificationPreference, form) -> str | None:
 
 # --- Admin ---------------------------------------------------------------------------------------
 
+def configure_bot(db, user, token: str, enabled: bool) -> tuple[bool, str]:
+    """Store the Telegram bot token (encrypted, kept when empty) and verify it with getMe; audited.
+
+    Returns (verified, message); HTTPException 400 for a malformed or missing token. Caller commits.
+    """
+    token = str(token or "").strip()
+    row = telegram_row(db)
+    if token and not _TOKEN_RE.match(token):
+        raise HTTPException(400, "Token del bot non valido (formato 123456:ABC…).")
+    if not row and not token:
+        raise HTTPException(400, "Indica il token del bot creato con @BotFather.")
+    if row:
+        row.is_enabled = enabled
+        if token:
+            row.secret_encrypted = encrypt_text(token)
+    else:
+        row = ConnectorIntegration(provider=TELEGRAM_PROVIDER, name="Bot Telegram", base_url=TELEGRAM_API, secret_encrypted=encrypt_text(token),
+                                   is_enabled=enabled, verify_tls=True, settings={})
+        db.add(row)
+    try:
+        info = _telegram_call(decrypt_text(row.secret_encrypted), "getMe", {})
+        username = (info.get("result") or {}).get("username")
+        row.settings = {**dict(row.settings or {}), "bot_username": username}
+        row.last_test_status, row.last_error, message = "success", None, f"Bot @{username} collegato."
+    except nd.DeliveryError as exc:
+        row.last_test_status, row.last_error, message = "failed", str(exc)[:500], str(exc)
+    row.last_tested_at = utcnow()
+    core.add_event(db, "NOTIFICATION_TELEGRAM_CONFIGURED", actor=user, details={"enabled": row.is_enabled, "result": row.last_test_status}, source="portal")
+    return row.last_test_status == "success", message
+
+
 async def save_telegram_bot(request: Request):
     form = await request.form()
     validate_csrf(request, str(form.get("csrf") or ""))
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        token = str(form.get("bot_token") or "").strip()
-        row = telegram_row(db)
-        if token and not _TOKEN_RE.match(token):
-            return flash_redirect(request, "/admin/notifications", "warning", "Token del bot non valido (formato 123456:ABC…).", title="Telegram")
-        if not row and not token:
-            return flash_redirect(request, "/admin/notifications", "warning", "Indica il token del bot creato con @BotFather.", title="Telegram")
-        if row:
-            row.is_enabled = form.get("is_enabled") is not None
-            if token:
-                row.secret_encrypted = encrypt_text(token)
-        else:
-            row = ConnectorIntegration(provider=TELEGRAM_PROVIDER, name="Bot Telegram", base_url=TELEGRAM_API, secret_encrypted=encrypt_text(token),
-                                       is_enabled=form.get("is_enabled") is not None, verify_tls=True, settings={})
-            db.add(row)
         try:
-            info = _telegram_call(decrypt_text(row.secret_encrypted), "getMe", {})
-            username = (info.get("result") or {}).get("username")
-            row.settings = {**dict(row.settings or {}), "bot_username": username}
-            row.last_test_status, row.last_error, message, level = "success", None, f"Bot @{username} collegato.", "success"
-        except nd.DeliveryError as exc:
-            row.last_test_status, row.last_error, message, level = "failed", str(exc)[:500], str(exc), "warning"
-        row.last_tested_at = utcnow()
-        core.add_event(db, "NOTIFICATION_TELEGRAM_CONFIGURED", actor=user, details={"enabled": row.is_enabled, "result": row.last_test_status}, source="portal")
+            verified, message = configure_bot(db, user, str(form.get("bot_token") or ""), form.get("is_enabled") is not None)
+        except HTTPException as exc:
+            return flash_redirect(request, "/admin/notifications", "warning", str(exc.detail), title="Telegram")
+        level = "success" if verified else "warning"
         db.commit()
     return flash_redirect(request, "/admin/notifications", level, message, title="Telegram")
 

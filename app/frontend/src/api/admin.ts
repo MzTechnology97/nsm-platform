@@ -226,3 +226,56 @@ export interface SystemStatus {
 
 export const useSystemStatus = () =>
   useQuery({ queryKey: ["admin-system"], queryFn: () => api<SystemStatus>("/api/ui/v1/admin/system"), staleTime: 15_000, refetchInterval: 60_000 });
+
+export interface NotificationAdmin {
+  security_modes: string[];
+  smtp: {
+    configured: boolean;
+    enabled: boolean;
+    host: string;
+    port: number;
+    security: string;
+    username: string;
+    from_address: string;
+    from_name: string;
+    portal_url: string;
+    has_password: boolean;
+    last_tested_at: string | null;
+    last_test_status: string | null;
+    last_error: string | null;
+  };
+  telegram: { configured: boolean; enabled: boolean; bot: string | null; last_test_status: string | null; last_error: string | null };
+  health: { sent: number; pending: number; failed: number; stuck: number; configured: boolean };
+  subscribers: number;
+  status: "" | "pending" | "sent" | "failed";
+  deliveries: {
+    id: string;
+    created_at: string | null;
+    user: string | null;
+    destination: string | null;
+    channel: string;
+    subject: string;
+    category: string;
+    severity: string;
+    status: string;
+    attempts: number;
+    sent_at: string | null;
+    last_error: string | null;
+  }[];
+}
+
+export const useNotificationAdmin = (status: string) =>
+  useQuery({
+    queryKey: ["admin-notifications", status],
+    queryFn: () => api<NotificationAdmin>(`/api/ui/v1/admin/notifications${queryString({ status })}`),
+    placeholderData: keepPreviousData,
+    staleTime: 10_000,
+  });
+
+export function useNotificationAction<B extends object, R = unknown>(path: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: B) => api<R>(`/api/ui/v1/admin/notifications${path}`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["admin-notifications"] }),
+  });
+}

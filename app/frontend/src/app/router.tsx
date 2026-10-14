@@ -230,6 +230,11 @@ const adminSystemRoute = createRoute({
   path: "/admin/system",
   component: lazyRouteComponent(() => import("../pages/AdminSystem"), "AdminSystem"),
 });
+const adminNotificationsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/notifications",
+  component: lazyRouteComponent(() => import("../pages/AdminNotifications"), "AdminNotifications"),
+});
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/access",
@@ -308,6 +313,7 @@ export const routeTree = rootRoute.addChildren([
   adminUsersRoute,
   adminApiKeysRoute,
   adminSystemRoute,
+  adminNotificationsRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);
