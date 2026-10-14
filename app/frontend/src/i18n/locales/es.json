@@ -1,0 +1,16 @@
+{
+  "app": { "name": "NSM", "preview": "Nueva interfaz (vista previa)", "classic": "Interfaz clásica", "loading": "Cargando…", "error": "No se pudieron cargar los datos.", "retry": "Reintentar", "version": "Versión {{version}}" },
+  "nav": {
+    "dashboard": "Panel", "customers": "Clientes", "devices": "Equipos", "monitoring": "Monitorización", "agents": "Agentes", "backups": "Copias de seguridad",
+    "firmware": "Firmware", "incidents": "Incidentes", "vulnerabilities": "Vulnerabilidades", "access": "Accesos", "exposure": "Exposición",
+    "lifecycle": "Ciclo de vida", "compliance": "Cumplimiento", "actionCenter": "Centro de acciones", "events": "Eventos", "reports": "Informes",
+    "integrations": "Integraciones", "admin": "Administración", "collapse": "Contraer menú", "open": "Abrir menú"
+  },
+  "user": { "language": "Idioma", "theme": "Tema", "light": "Claro", "dark": "Oscuro", "logout": "Cerrar sesión", "profile": "Perfil" },
+  "home": {
+    "title": "Bienvenido a la nueva interfaz",
+    "intro": "Las secciones llegan una a una. Las que aún no se han migrado se abren en la interfaz clásica, con la misma sesión.",
+    "migrated": "Nueva interfaz", "classic": "Interfaz clásica"
+  },
+  "errors": { "notFound": "Página no encontrada.", "forbidden": "No tienes permiso para esta sección.", "session": "Sesión caducada: vuelve a iniciar sesión." }
+}

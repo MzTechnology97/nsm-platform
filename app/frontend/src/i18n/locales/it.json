@@ -1,0 +1,16 @@
+{
+  "app": { "name": "NSM", "preview": "Nuova interfaccia (anteprima)", "classic": "Interfaccia classica", "loading": "Caricamento…", "error": "Impossibile caricare i dati.", "retry": "Riprova", "version": "Versione {{version}}" },
+  "nav": {
+    "dashboard": "Dashboard", "customers": "Clienti", "devices": "Apparati", "monitoring": "Monitoring", "agents": "Agent", "backups": "Backup",
+    "firmware": "Firmware", "incidents": "Incidenti", "vulnerabilities": "Vulnerabilità", "access": "Accessi", "exposure": "Esposizione",
+    "lifecycle": "Lifecycle", "compliance": "Compliance", "actionCenter": "Action Center", "events": "Eventi", "reports": "Report",
+    "integrations": "Integrazioni", "admin": "Amministrazione", "collapse": "Comprimi menu", "open": "Apri menu"
+  },
+  "user": { "language": "Lingua", "theme": "Tema", "light": "Chiaro", "dark": "Scuro", "logout": "Esci", "profile": "Profilo" },
+  "home": {
+    "title": "Benvenuto nella nuova interfaccia",
+    "intro": "Le sezioni arrivano una alla volta. Quelle non ancora migrate si aprono nell'interfaccia classica, con la stessa sessione.",
+    "migrated": "Nuova interfaccia", "classic": "Interfaccia classica"
+  },
+  "errors": { "notFound": "Pagina non trovata.", "forbidden": "Non hai i permessi per questa sezione.", "session": "Sessione scaduta: accedi di nuovo." }
+}

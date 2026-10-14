@@ -54,6 +54,7 @@
       <div class="nav-section">Platform</div>
       <a class="nav-item {% if request.url.path.startswith('/integrations') %}active{% endif %}" href="/integrations"><span class="nav-icon">{{ ui_icon('integrations') }}</span><span class="nav-label">Integrazioni</span></a>
       {% if has_permission(user, 'users.manage') %}<a class="nav-item {% if request.url.path.startswith('/admin') %}active{% endif %}" href="/admin/users"><span class="nav-icon">{{ ui_icon('admin') }}</span><span class="nav-label">Amministrazione</span></a>{% endif %}
+      <a class="nav-item nav-item-preview" href="/app"><span class="nav-icon">{{ ui_icon('dashboard') }}</span><span class="nav-label">Nuova interfaccia (anteprima)</span></a>
     </nav>
   </aside>
 

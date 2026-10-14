@@ -18,6 +18,8 @@ class UserPreference(Base):
         Uuid, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
     theme: Mapped[str] = mapped_column(String(20), default="light", nullable=False)
+    # Language of the new interface (it, en, fr, es); None = browser language.
+    language: Mapped[str | None] = mapped_column(String(5), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, nullable=False
     )

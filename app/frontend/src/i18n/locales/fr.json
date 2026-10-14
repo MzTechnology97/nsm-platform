@@ -1,0 +1,16 @@
+{
+  "app": { "name": "NSM", "preview": "Nouvelle interface (aperçu)", "classic": "Interface classique", "loading": "Chargement…", "error": "Impossible de charger les données.", "retry": "Réessayer", "version": "Version {{version}}" },
+  "nav": {
+    "dashboard": "Tableau de bord", "customers": "Clients", "devices": "Équipements", "monitoring": "Supervision", "agents": "Agents", "backups": "Sauvegardes",
+    "firmware": "Firmware", "incidents": "Incidents", "vulnerabilities": "Vulnérabilités", "access": "Accès", "exposure": "Exposition",
+    "lifecycle": "Cycle de vie", "compliance": "Conformité", "actionCenter": "Centre d'actions", "events": "Événements", "reports": "Rapports",
+    "integrations": "Intégrations", "admin": "Administration", "collapse": "Réduire le menu", "open": "Ouvrir le menu"
+  },
+  "user": { "language": "Langue", "theme": "Thème", "light": "Clair", "dark": "Sombre", "logout": "Se déconnecter", "profile": "Profil" },
+  "home": {
+    "title": "Bienvenue dans la nouvelle interface",
+    "intro": "Les sections arrivent une par une. Celles qui ne sont pas encore migrées s'ouvrent dans l'interface classique, avec la même session.",
+    "migrated": "Nouvelle interface", "classic": "Interface classique"
+  },
+  "errors": { "notFound": "Page introuvable.", "forbidden": "Vous n'avez pas l'autorisation pour cette section.", "session": "Session expirée : reconnectez-vous." }
+}
