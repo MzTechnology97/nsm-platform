@@ -801,5 +801,78 @@
       "unassigned_one": "{{count}} device is not assigned to a site.",
       "unassigned_other": "{{count}} devices are not assigned to a site."
     }
+  },
+  "customerGraphs": {
+    "ranges": {
+      "24h": "24 hours",
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days"
+    },
+    "site": "Site",
+    "allSites": "Whole customer",
+    "scopeCustomer_one": "Whole customer: {{count}} device.",
+    "scopeCustomer_other": "Whole customer: {{count}} devices.",
+    "scopeSite_one": "Site {{site}}: {{count}} device.",
+    "scopeSite_other": "Site {{site}}: {{count}} devices.",
+    "noData": "No telemetry in this range for these devices.",
+    "charts": {
+      "traffic": "Aggregated WAN traffic",
+      "reporting": "Devices reporting telemetry",
+      "cpu": "Device CPU",
+      "signal": "Radio signal (UISP / cnMaestro / MikroTik)",
+      "latency": "Latency (ping from NSM)",
+      "loss": "Packet loss (ping from NSM)"
+    },
+    "series": {
+      "traffic": {
+        "0": "In",
+        "1": "Out"
+      },
+      "reporting": {
+        "0": "Devices"
+      },
+      "cpu": {
+        "0": "Average",
+        "1": "Maximum"
+      },
+      "signal": {
+        "0": "Average",
+        "1": "Worst"
+      },
+      "latency": {
+        "0": "Average",
+        "1": "Worst"
+      },
+      "loss": {
+        "0": "Loss"
+      }
+    },
+    "sites": {
+      "title": "Sites compared (last 24 hours)",
+      "site": "Site",
+      "devices": "Devices",
+      "in": "Average in",
+      "out": "Average out",
+      "peak": "Peak",
+      "none": "No site"
+    },
+    "top": {
+      "title": "Devices with most traffic",
+      "hint": "Average of the monitored interfaces over the last 24 hours.",
+      "device": "Device",
+      "none": "No monitored interface with data."
+    },
+    "availability": {
+      "title": "Availability (last 30 days)",
+      "summary": "Average {{average}} over {{count}} devices pinged by NSM; {{below}} below {{target}}%.",
+      "value": "Availability",
+      "downtime": "Downtime",
+      "outages": "Outages",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min",
+      "more": "Showing the 15 least available of {{count}}; the full list is in the report.",
+      "none": "No device with the NSM ping enabled: turn it on from the device Monitor tab or from Monitoring."
+    }
   }
 }

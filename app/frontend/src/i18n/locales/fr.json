@@ -801,5 +801,78 @@
       "unassigned_one": "{{count}} équipement n'est assigné à aucun site.",
       "unassigned_other": "{{count}} équipements ne sont assignés à aucun site."
     }
+  },
+  "customerGraphs": {
+    "ranges": {
+      "24h": "24 heures",
+      "7d": "7 jours",
+      "30d": "30 jours",
+      "90d": "90 jours"
+    },
+    "site": "Site",
+    "allSites": "Tout le client",
+    "scopeCustomer_one": "Tout le client : {{count}} équipement.",
+    "scopeCustomer_other": "Tout le client : {{count}} équipements.",
+    "scopeSite_one": "Site {{site}} : {{count}} équipement.",
+    "scopeSite_other": "Site {{site}} : {{count}} équipements.",
+    "noData": "Aucune télémétrie sur la période pour ces équipements.",
+    "charts": {
+      "traffic": "Trafic WAN agrégé",
+      "reporting": "Équipements avec télémétrie",
+      "cpu": "CPU des équipements",
+      "signal": "Signal radio (UISP / cnMaestro / MikroTik)",
+      "latency": "Latence (ping depuis NSM)",
+      "loss": "Perte de paquets (ping depuis NSM)"
+    },
+    "series": {
+      "traffic": {
+        "0": "Entrant",
+        "1": "Sortant"
+      },
+      "reporting": {
+        "0": "Équipements"
+      },
+      "cpu": {
+        "0": "Moyenne",
+        "1": "Maximum"
+      },
+      "signal": {
+        "0": "Moyen",
+        "1": "Pire"
+      },
+      "latency": {
+        "0": "Moyenne",
+        "1": "Pire"
+      },
+      "loss": {
+        "0": "Perte"
+      }
+    },
+    "sites": {
+      "title": "Sites comparés (dernières 24 heures)",
+      "site": "Site",
+      "devices": "Équipements",
+      "in": "Entrant moyen",
+      "out": "Sortant moyen",
+      "peak": "Pic",
+      "none": "Sans site"
+    },
+    "top": {
+      "title": "Équipements avec le plus de trafic",
+      "hint": "Moyenne des interfaces surveillées sur les dernières 24 heures.",
+      "device": "Équipement",
+      "none": "Aucune interface surveillée avec des données."
+    },
+    "availability": {
+      "title": "Disponibilité (30 derniers jours)",
+      "summary": "Moyenne {{average}} sur {{count}} équipements pingés par NSM ; {{below}} sous {{target}} %.",
+      "value": "Disponibilité",
+      "downtime": "Arrêt",
+      "outages": "Interruptions",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min",
+      "more": "Les 15 moins disponibles sur {{count}} ; la liste complète est dans le rapport.",
+      "none": "Aucun équipement avec le ping NSM actif : activez-le depuis l'onglet Monitor de l'équipement ou depuis Monitoring."
+    }
   }
 }

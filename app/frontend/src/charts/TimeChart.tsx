@@ -91,7 +91,15 @@ export function TimeChart({ title, unit, timestamps, series, thresholds = NO_THR
           size: 44,
           values: (u, ticks) => ticks.map((tick) => formatTick(tick, (u.scales.x.max ?? 0) - (u.scales.x.min ?? 0), i18n.language)),
         },
-        { stroke: text, grid: { stroke: grid, width: 1 }, ticks: { stroke: grid }, size: 72, values: (_u, ticks) => ticks.map(fmt) },
+        {
+          stroke: text,
+          grid: { stroke: grid, width: 1 },
+          ticks: { stroke: grid },
+          size: 72,
+          values: (_u, ticks) => ticks.map(fmt),
+          // Counters (devices, errors) only make sense on whole numbers.
+          ...(unit === "count" ? { incrs: [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 100000] } : {}),
+        },
       ],
       series: [
         {},

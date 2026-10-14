@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { CustomerFilters } from "../api/customers";
 import type { DeviceFilters } from "../api/devices";
 import { CustomerDetail, CustomerOverview, CustomerSites } from "../pages/CustomerDetail";
+import type { GraphsSearch } from "../pages/CustomerGraphs";
 import { Customers } from "../pages/Customers";
 import { DeviceDetail, DeviceOverview } from "../pages/DeviceDetail";
 import { Devices } from "../pages/Devices";
@@ -50,6 +51,16 @@ const customersRoute = createRoute({ getParentRoute: () => rootRoute, path: "/cu
 const customerRoute = createRoute({ getParentRoute: () => rootRoute, path: "/customers/$customerId", component: CustomerDetail });
 const customerOverviewRoute = createRoute({ getParentRoute: () => customerRoute, path: "/", component: CustomerOverview });
 const customerSitesRoute = createRoute({ getParentRoute: () => customerRoute, path: "/sites", component: CustomerSites });
+const GRAPH_RANGES = new Set(["24h", "7d", "30d", "90d"]);
+const customerGraphsRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/graphs",
+  component: lazyRouteComponent(() => import("../pages/CustomerGraphs"), "CustomerGraphs"), // uPlot only loads with this tab
+  validateSearch: (search: Record<string, unknown>): GraphsSearch => ({
+    ...(typeof search.site === "string" && search.site ? { site: search.site } : {}),
+    ...(typeof search.range === "string" && GRAPH_RANGES.has(search.range) ? { range: search.range as GraphsSearch["range"] } : {}),
+  }),
+});
 
 const deviceRoute = createRoute({ getParentRoute: () => rootRoute, path: "/devices/$deviceId", component: DeviceDetail });
 const deviceOverviewRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/", component: DeviceOverview });
@@ -70,7 +81,7 @@ export const routeTree = rootRoute.addChildren([
   homeRoute,
   devicesRoute,
   customersRoute,
-  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute]),
+  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);
 
