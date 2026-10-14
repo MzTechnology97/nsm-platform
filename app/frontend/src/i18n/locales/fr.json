@@ -1099,5 +1099,91 @@
     "more": "Charger plus",
     "allGood": "Aucun firmware à mettre à jour.",
     "empty": "Aucun équipement dans cet état."
+  },
+  "vulns": {
+    "title": "Vulnérabilités",
+    "subtitle": "CVE correspondant aux équipements, de la plus grave.",
+    "forDevice": "CVE de l'équipement {{name}}.",
+    "severity": "Gravité",
+    "state": "État",
+    "search": "Rechercher CVE, vendor, produit ou description",
+    "allDevices": "Tous les équipements",
+    "severities": {
+      "all": "Toutes",
+      "severe": "Graves",
+      "critical": "Critiques",
+      "high": "Élevées",
+      "medium": "Moyennes",
+      "low": "Faibles",
+      "unknown": "Non classées"
+    },
+    "states": {
+      "open": "Ouvertes",
+      "resolved": "Résolues",
+      "all": "Toutes"
+    },
+    "columns": {
+      "cve": "CVE",
+      "severity": "Gravité",
+      "product": "Vendor / produit",
+      "affected": "Équipements",
+      "published": "Publiée",
+      "device": "Équipement",
+      "customer": "Client",
+      "version": "Installé",
+      "fixed": "Corrigée en",
+      "state": "État",
+      "detected": "Détectée",
+      "reason": "Raison"
+    },
+    "customersCount_one": "{{count}} client",
+    "customersCount_other": "{{count}} clients",
+    "empty": "Aucune vulnérabilité avec ces filtres.",
+    "notFound": "Vulnérabilité introuvable.",
+    "noVendor": "Vendor non précisé",
+    "vendorAdvisory": "Bulletin vendor",
+    "noSummary": "Aucun résumé disponible.",
+    "rejected": "NVD a rejeté cette CVE : ses correspondances ont été fermées automatiquement.",
+    "sources": {
+      "nvd": "NVD (importée automatiquement)",
+      "manual": "Saisie manuellement"
+    },
+    "detail": {
+      "source": "Source",
+      "published": "Publiée",
+      "modified": "Modifiée",
+      "rules": "Versions affectées"
+    },
+    "impacted": {
+      "title_one": "{{count}} équipement concerné",
+      "title_other": "{{count}} équipements concernés",
+      "hint": "Ouvrez l'état pour gérer la correction ou l'acceptation du risque.",
+      "none": "Aucun équipement concerné avec ces filtres."
+    },
+    "unassessed": {
+      "title_one": "{{count}} équipement non évaluable",
+      "title_other": "{{count}} équipements non évaluables",
+      "hint": "Équipements du produit dont l'exposition ne peut être établie : ils ne sont pas comptés comme concernés."
+    },
+    "findingStates": {
+      "open": "ouverte",
+      "acknowledged": "prise en charge",
+      "planned": "planifiée",
+      "in_progress": "en cours",
+      "accepted": "risque accepté",
+      "resolved": "résolue"
+    },
+    "resolutions": {
+      "no_longer_matches": "version plus affectée",
+      "advisory_rejected": "CVE rejetée par NVD",
+      "device_not_evaluable": "équipement plus évaluable"
+    },
+    "levels": {
+      "critical": "critique",
+      "high": "élevée",
+      "medium": "moyenne",
+      "low": "faible",
+      "unknown": "non classée"
+    }
   }
 }

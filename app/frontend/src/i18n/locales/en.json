@@ -1099,5 +1099,91 @@
     "more": "Load more",
     "allGood": "No firmware to update.",
     "empty": "No device in this state."
+  },
+  "vulns": {
+    "title": "Vulnerabilities",
+    "subtitle": "CVEs matching the devices, most severe first.",
+    "forDevice": "CVEs of device {{name}}.",
+    "severity": "Severity",
+    "state": "State",
+    "search": "Search CVE, vendor, product or description",
+    "allDevices": "All devices",
+    "severities": {
+      "all": "All",
+      "severe": "Severe",
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "unknown": "Unclassified"
+    },
+    "states": {
+      "open": "Open",
+      "resolved": "Resolved",
+      "all": "All"
+    },
+    "columns": {
+      "cve": "CVE",
+      "severity": "Severity",
+      "product": "Vendor / product",
+      "affected": "Devices",
+      "published": "Published",
+      "device": "Device",
+      "customer": "Customer",
+      "version": "Installed",
+      "fixed": "Fixed in",
+      "state": "State",
+      "detected": "Detected",
+      "reason": "Reason"
+    },
+    "customersCount_one": "{{count}} customer",
+    "customersCount_other": "{{count}} customers",
+    "empty": "No vulnerability with these filters.",
+    "notFound": "Vulnerability not found.",
+    "noVendor": "Vendor not specified",
+    "vendorAdvisory": "Vendor advisory",
+    "noSummary": "No summary available.",
+    "rejected": "NVD rejected this CVE: its matches were closed automatically.",
+    "sources": {
+      "nvd": "NVD (imported automatically)",
+      "manual": "Entered manually"
+    },
+    "detail": {
+      "source": "Source",
+      "published": "Published",
+      "modified": "Modified",
+      "rules": "Affected versions"
+    },
+    "impacted": {
+      "title_one": "{{count}} device affected",
+      "title_other": "{{count}} devices affected",
+      "hint": "Open the state to handle the fix or the risk acceptance.",
+      "none": "No affected device with these filters."
+    },
+    "unassessed": {
+      "title_one": "{{count}} device cannot be assessed",
+      "title_other": "{{count}} devices cannot be assessed",
+      "hint": "Devices of the product whose exposure cannot be established: they are not counted as affected."
+    },
+    "findingStates": {
+      "open": "open",
+      "acknowledged": "acknowledged",
+      "planned": "planned",
+      "in_progress": "in progress",
+      "accepted": "risk accepted",
+      "resolved": "resolved"
+    },
+    "resolutions": {
+      "no_longer_matches": "version no longer affected",
+      "advisory_rejected": "CVE rejected by NVD",
+      "device_not_evaluable": "device no longer assessable"
+    },
+    "levels": {
+      "critical": "critical",
+      "high": "high",
+      "medium": "medium",
+      "low": "low",
+      "unknown": "unclassified"
+    }
   }
 }

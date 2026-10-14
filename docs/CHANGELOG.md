@@ -4,6 +4,23 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.113 — 2026-10-14
+
+New interface (React) — vulnerabilities, phase 4a
+- **Vulnerabilities in `/app/vulnerabilities`**, also reachable from the sidebar of the new interface. It holds the same list as the classic page:
+  - CVEs matching the devices, highest CVSS first;
+  - severity chips with counts (severe, critical, high, medium, low, unclassified);
+  - open / resolved / all, search on CVE, vendor, product or description, customer and vendor filters, and a device filter (`?device=`);
+  - everything stays in the address, 100 CVEs at a time.
+- **CVE page in `/app/vulnerabilities/<id>`:**
+  - severity and CVSS, description, source, dates, affected versions, links to NVD, the vendor advisory and CISA;
+  - the devices involved with installed and fixed version, open or resolved (with why it was closed), filtered by customer;
+  - the devices of the product that cannot be assessed, with the reason.
+  - The state of each finding opens the classic page, where the fix or the risk acceptance is handled.
+- The list filters and severity counters are now shared functions in `security_drilldown`, used by both interfaces; the classic page behaves as before.
+- The new-interface tests accept a missing frontend build for the `/app` pages, as in the CI integration job.
+- **API.** `GET /api/ui/v1/vulnerabilities`, `GET /api/ui/v1/vulnerabilities/{advisory_id}` (`security.read`).
+
 ## 0.49.112 — 2026-10-14
 
 New interface (React) — translations loaded per language, phase 3e

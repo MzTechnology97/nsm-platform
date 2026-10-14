@@ -1099,5 +1099,91 @@
     "more": "Cargar más",
     "allGood": "Ningún firmware por actualizar.",
     "empty": "Ningún equipo en este estado."
+  },
+  "vulns": {
+    "title": "Vulnerabilidades",
+    "subtitle": "CVE que coinciden con los equipos, de la más grave.",
+    "forDevice": "CVE del equipo {{name}}.",
+    "severity": "Gravedad",
+    "state": "Estado",
+    "search": "Buscar CVE, vendor, producto o descripción",
+    "allDevices": "Todos los equipos",
+    "severities": {
+      "all": "Todas",
+      "severe": "Graves",
+      "critical": "Críticas",
+      "high": "Altas",
+      "medium": "Medias",
+      "low": "Bajas",
+      "unknown": "Sin clasificar"
+    },
+    "states": {
+      "open": "Abiertas",
+      "resolved": "Resueltas",
+      "all": "Todas"
+    },
+    "columns": {
+      "cve": "CVE",
+      "severity": "Gravedad",
+      "product": "Vendor / producto",
+      "affected": "Equipos",
+      "published": "Publicada",
+      "device": "Equipo",
+      "customer": "Cliente",
+      "version": "Instalado",
+      "fixed": "Corregida en",
+      "state": "Estado",
+      "detected": "Detectada",
+      "reason": "Motivo"
+    },
+    "customersCount_one": "{{count}} cliente",
+    "customersCount_other": "{{count}} clientes",
+    "empty": "Ninguna vulnerabilidad con estos filtros.",
+    "notFound": "Vulnerabilidad no encontrada.",
+    "noVendor": "Vendor no especificado",
+    "vendorAdvisory": "Boletín del vendor",
+    "noSummary": "Sin resumen disponible.",
+    "rejected": "NVD rechazó esta CVE: sus coincidencias se cerraron automáticamente.",
+    "sources": {
+      "nvd": "NVD (importada automáticamente)",
+      "manual": "Introducida manualmente"
+    },
+    "detail": {
+      "source": "Fuente",
+      "published": "Publicada",
+      "modified": "Modificada",
+      "rules": "Versiones afectadas"
+    },
+    "impacted": {
+      "title_one": "{{count}} equipo afectado",
+      "title_other": "{{count}} equipos afectados",
+      "hint": "Abre el estado para gestionar la corrección o la aceptación del riesgo.",
+      "none": "Ningún equipo afectado con estos filtros."
+    },
+    "unassessed": {
+      "title_one": "{{count}} equipo no evaluable",
+      "title_other": "{{count}} equipos no evaluables",
+      "hint": "Equipos del producto cuya exposición no se puede establecer: no se cuentan como afectados."
+    },
+    "findingStates": {
+      "open": "abierta",
+      "acknowledged": "asumida",
+      "planned": "planificada",
+      "in_progress": "en curso",
+      "accepted": "riesgo aceptado",
+      "resolved": "resuelta"
+    },
+    "resolutions": {
+      "no_longer_matches": "versión ya no afectada",
+      "advisory_rejected": "CVE rechazada por NVD",
+      "device_not_evaluable": "equipo ya no evaluable"
+    },
+    "levels": {
+      "critical": "crítica",
+      "high": "alta",
+      "medium": "media",
+      "low": "baja",
+      "unknown": "sin clasificar"
+    }
   }
 }
