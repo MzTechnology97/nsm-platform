@@ -4,6 +4,21 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.139 — 2026-10-14
+
+New interface (React) — global search and notifications, phase 7b
+- **Search box in the top bar** of the new interface. It opens `/app/search?q=…`, which finds devices, customers and sites by name, model, serial number, MAC (in any notation), IP, external ID or address:
+  - every device shows its vendor icon, customer, site, identifiers and state;
+  - customers and sites link to their pages;
+  - the results are the same as the classic global search, and the customer scope still applies.
+- **Notification bell** in the top bar, with the unread count refreshed every minute.
+- **`/app/notifications`** lists active notifications, newest first, and can show only unread ones. A notification can show its device (with vendor icon), open its advisory or its source, and be marked as read; all of them can be marked as read at once. The read state stays personal to each user. Only web links and in-app paths are offered as a source.
+- **Shared code.** The global search and the notification read logic are now shared functions (`main.search_records`, `notification_rows`, `mark_notification_read_record`, `mark_all_notifications_read_record`), used by both interfaces; the classic pages behave as before.
+- **API.** All routes are open to any signed-in user; the `POST` routes need the CSRF header:
+  - `GET /api/ui/v1/search`;
+  - `GET /api/ui/v1/notifications` and `/notifications/summary`;
+  - `POST /api/ui/v1/notifications/{id}/read` and `/notifications/read-all`.
+
 ## 0.49.138 — 2026-10-14
 
 New interface (React) — dashboard, phase 7a

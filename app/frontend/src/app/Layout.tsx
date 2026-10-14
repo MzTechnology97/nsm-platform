@@ -1,7 +1,8 @@
-import { Link, Outlet } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useUnreadNotifications } from "../api/personal";
 import { can, useSession, useUpdatePreferences } from "../api/session";
 import i18n, { LANGUAGE_NAMES, LANGUAGES, pickLanguage, type Language } from "../i18n";
 import { Icon } from "./Icon";
@@ -99,7 +100,9 @@ export function Layout() {
             <Icon name="menu" />
           </button>
           <span className="ui-preview-badge">{t("app.preview")}</span>
+          <TopSearch />
           <div className="ui-topbar-actions">
+            <NotificationBell />
             <label className="ui-select-label">
               <span className="ui-visually-hidden">{t("user.language")}</span>
               <select
@@ -140,5 +143,38 @@ export function Layout() {
       </div>
       {mobileOpen && <button type="button" className="ui-backdrop" aria-label={t("nav.collapse")} onClick={() => setMobileOpen(false)} />}
     </div>
+  );
+}
+
+/** Global search box of the top bar: opens the search page with the term in the address. */
+function TopSearch() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [term, setTerm] = useState("");
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const q = term.trim();
+    if (!q) return;
+    setTerm("");
+    void navigate({ to: "/search", search: { q } });
+  };
+  return (
+    <form className="ui-top-search" role="search" onSubmit={submit}>
+      <Icon name="search" size={16} />
+      <input type="search" value={term} onChange={(event) => setTerm(event.target.value)} placeholder={t("search.placeholder")}
+        aria-label={t("search.title")} autoComplete="off" />
+    </form>
+  );
+}
+
+/** Bell with the unread count of the signed-in user, refreshed every minute. */
+function NotificationBell() {
+  const { t } = useTranslation();
+  const unread = useUnreadNotifications().data?.unread ?? 0;
+  return (
+    <Link to="/notifications" className="ui-icon-button ui-bell" aria-label={t("notifications.bell", { count: unread })} title={t("notifications.bell", { count: unread })}>
+      <Icon name="bell" />
+      {unread > 0 && <span className="ui-bell-count">{unread > 99 ? "99+" : unread}</span>}
+    </Link>
   );
 }

@@ -330,3 +330,56 @@ select {
     padding: var(--space-3);
   }
 }
+
+/* Top bar: global search and notification bell. */
+.ui-top-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 1 320px;
+  min-width: 0;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--muted);
+}
+
+.ui-top-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+}
+
+.ui-top-search:focus-within {
+  border-color: var(--accent);
+}
+
+.ui-bell {
+  position: relative;
+}
+
+.ui-bell-count {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .ui-top-search {
+    display: none;
+  }
+}

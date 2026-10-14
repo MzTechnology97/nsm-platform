@@ -2791,5 +2791,56 @@
     "criticalNote": "{{count}} critical",
     "eol": "End of life",
     "eolNote": "EOL or EOS devices"
+  },
+  "search": {
+    "title": "Global search",
+    "subtitle": "Devices, customers and sites by name, MAC, serial, IP or address.",
+    "placeholder": "Search devices, customers, sites…",
+    "submit": "Search",
+    "empty": "Type a term to search the whole platform.",
+    "summary_one": "{{count}} result for “{{q}}”",
+    "summary_other": "{{count}} results for “{{q}}”",
+    "devices": "Devices",
+    "customers": "Customers",
+    "sites": "Sites",
+    "noDevices": "No devices found.",
+    "noCustomers": "No customers found.",
+    "noSites": "No sites found.",
+    "noSite": "no site",
+    "noCode": "No code",
+    "noAddress": "No address",
+    "ip": "IP",
+    "mac": "MAC",
+    "serial": "Serial",
+    "external": "External ID",
+    "limit": "Showing the first 50 devices: refine the search to see the others."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Important messages, operational errors and security advisories.",
+    "readAll": "Mark all as read",
+    "show": {
+      "all": "All",
+      "unread": "Unread"
+    },
+    "empty": "No notifications.",
+    "noUnread": "No unread notifications.",
+    "new": "New",
+    "advisory": "Open advisory",
+    "source": "Source",
+    "markRead": "Mark as read",
+    "bell_one": "Notifications: {{count}} unread",
+    "bell_other": "Notifications: {{count}} unread",
+    "categories": {
+      "system": "System",
+      "security": "Security",
+      "monitoring": "Monitoring",
+      "backup": "Backup",
+      "reports": "Reports",
+      "connectivity": "Connectivity",
+      "firmware": "Firmware",
+      "compliance": "Compliance",
+      "other": "Other"
+    }
   }
 }
