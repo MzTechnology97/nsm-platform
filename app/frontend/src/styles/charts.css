@@ -185,3 +185,22 @@
     grid-template-columns: 1fr;
   }
 }
+
+.ui-link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ui-link-button:hover {
+  text-decoration: underline;
+}
+
+.ui-text-danger {
+  color: var(--danger);
+  font-weight: 600;
+}

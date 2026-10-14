@@ -801,5 +801,78 @@
       "unassigned_one": "{{count}} equipo no está asignado a una sede.",
       "unassigned_other": "{{count}} equipos no están asignados a una sede."
     }
+  },
+  "customerGraphs": {
+    "ranges": {
+      "24h": "24 horas",
+      "7d": "7 días",
+      "30d": "30 días",
+      "90d": "90 días"
+    },
+    "site": "Sede",
+    "allSites": "Todo el cliente",
+    "scopeCustomer_one": "Todo el cliente: {{count}} equipo.",
+    "scopeCustomer_other": "Todo el cliente: {{count}} equipos.",
+    "scopeSite_one": "Sede {{site}}: {{count}} equipo.",
+    "scopeSite_other": "Sede {{site}}: {{count}} equipos.",
+    "noData": "No hay telemetría en el periodo para estos equipos.",
+    "charts": {
+      "traffic": "Tráfico WAN agregado",
+      "reporting": "Equipos con telemetría",
+      "cpu": "CPU de los equipos",
+      "signal": "Señal radio (UISP / cnMaestro / MikroTik)",
+      "latency": "Latencia (ping desde NSM)",
+      "loss": "Pérdida de paquetes (ping desde NSM)"
+    },
+    "series": {
+      "traffic": {
+        "0": "Entrada",
+        "1": "Salida"
+      },
+      "reporting": {
+        "0": "Equipos"
+      },
+      "cpu": {
+        "0": "Media",
+        "1": "Máximo"
+      },
+      "signal": {
+        "0": "Media",
+        "1": "Peor"
+      },
+      "latency": {
+        "0": "Media",
+        "1": "Peor"
+      },
+      "loss": {
+        "0": "Pérdida"
+      }
+    },
+    "sites": {
+      "title": "Sedes comparadas (últimas 24 horas)",
+      "site": "Sede",
+      "devices": "Equipos",
+      "in": "Entrada media",
+      "out": "Salida media",
+      "peak": "Pico",
+      "none": "Sin sede"
+    },
+    "top": {
+      "title": "Equipos con más tráfico",
+      "hint": "Media de las interfaces monitorizadas en las últimas 24 horas.",
+      "device": "Equipo",
+      "none": "Ninguna interfaz monitorizada con datos."
+    },
+    "availability": {
+      "title": "Disponibilidad (últimos 30 días)",
+      "summary": "Media {{average}} sobre {{count}} equipos con ping desde NSM; {{below}} por debajo del {{target}}%.",
+      "value": "Disponibilidad",
+      "downtime": "Parada",
+      "outages": "Interrupciones",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min",
+      "more": "Se muestran los 15 menos disponibles de {{count}}; la lista completa está en el informe.",
+      "none": "Ningún equipo con el ping de NSM activo: actívalo desde la pestaña Monitor del equipo o desde Monitoring."
+    }
   }
 }

@@ -8,7 +8,7 @@ import { formatDateTime, formatRelative } from "../lib/format";
 import { Metric } from "./DeviceDetail";
 
 /** Customer tabs already in the new interface; "devices" opens the device list filtered on the customer. */
-const MIGRATED_TABS = { overview: "/customers/$customerId", sites: "/customers/$customerId/sites" } as const;
+const MIGRATED_TABS = { overview: "/customers/$customerId", sites: "/customers/$customerId/sites", graphs: "/customers/$customerId/graphs" } as const;
 
 export function CustomerDetail() {
   const { t } = useTranslation();
@@ -56,7 +56,7 @@ function CustomerShell({ detail }: { detail: Detail }) {
               to={MIGRATED_TABS[tab.key as keyof typeof MIGRATED_TABS]}
               params={{ customerId: customer.id }}
               className="ui-tab"
-              activeOptions={{ exact: true }}
+              activeOptions={{ exact: true, includeSearch: false }}
               activeProps={{ className: "ui-tab is-active", "aria-current": "page" }}
             >
               {t(`customer.tabs.${tab.key}`)}
@@ -188,7 +188,6 @@ export function CustomerSites() {
   if (!data) return null;
   const term = text.trim().toLowerCase();
   const sites = term ? data.sites.filter((site) => site.name.toLowerCase().includes(term) || (site.address ?? "").toLowerCase().includes(term)) : data.sites;
-  const graphs = data.tabs.find((tab) => tab.key === "graphs")?.classic ?? "";
 
   return (
     <section className="ui-panel">
@@ -236,7 +235,9 @@ export function CustomerSites() {
                   </td>
                   <td>
                     <div className="ui-row-actions">
-                      <a className="ui-button ui-button-ghost ui-button-small" href={`${graphs}?site=${site.id}`}>{t("customer.sites.graphs")}</a>
+                      <Link className="ui-button ui-button-ghost ui-button-small" to="/customers/$customerId/graphs" params={{ customerId: data.customer.id }} search={{ site: site.id }}>
+                        {t("customer.sites.graphs")}
+                      </Link>
                       {data.actions.edit && (
                         <a className="ui-button ui-button-ghost ui-button-small" href={`/customers/${data.customer.id}/sites/${site.id}/edit`}>{t("customer.sites.edit")}</a>
                       )}

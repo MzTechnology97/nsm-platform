@@ -4,6 +4,22 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.107 — 2026-10-14
+
+New interface (React) — customer graphs and availability, phase 2c
+- **Graphs tab in `/app/customers/<id>/graphs`** for the whole customer or one site (selector, or *Graphs* from the Sites tab). Range 24 hours, 7 days, 30 days or 90 days; site and range stay in the address.
+- **Six uPlot charts**, each with gaps where data is missing, values under the cursor and a current/min/avg/max legend:
+  - aggregated WAN traffic of the monitored interfaces;
+  - devices sending telemetry (whole numbers on the axis);
+  - average and maximum CPU;
+  - radio signal (UISP, cnMaestro, MikroTik);
+  - latency and packet loss from the NSM ping.
+- **Sites compared** over the last 24 hours (devices online, average in/out, peak; devices without a site on their own row). Clicking a site narrows every chart to it.
+- **Devices with most traffic** (24 hours) linked to their Monitor tab, and **availability over 30 days**: average, devices below the target, the 15 least available with downtime, outages and RTT.
+- Counter charts (devices, errors) now use whole-number steps on the axis, in the device Monitor tab too.
+- **API.** `GET /api/ui/v1/customers/{id}/graphs/summary` (`monitoring.read`). The charts reuse `/api/v1/customers/{id}/graphs`.
+- **Phase 2 complete.** Customer list, customer page with overview, sites and graphs in the new interface; Backup, Security and Activity of the customer still use the classic pages.
+
 ## 0.49.106 — 2026-10-14
 
 New interface (React) — customer page, phase 2b

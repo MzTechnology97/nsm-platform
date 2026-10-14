@@ -7,6 +7,9 @@
 - ``GET /api/ui/v1/customers/{id}``: the customer page (header, overview cards
   with backup protection and lifecycle, open issues, recent events, sites with
   their device states), built with the classic overview helpers.
+- ``GET /api/ui/v1/customers/{id}/graphs/summary``: what surrounds the charts
+  of the Graphs tab (sites compared over 24 hours, devices with most traffic,
+  30-day availability); the charts come from ``/api/v1/customers/{id}/graphs``.
 
 Customer scope comes from the global ORM filter (another customer is a 404).
 """
@@ -17,11 +20,14 @@ import uuid
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import func, or_, select
 
+from datetime import timedelta
+
+from app import availability, customer_graphs
 from app import main as core
 from app.customer_tabs import _backup_summary, _load_customer
 from app.customer_workspace import OPEN_STATES, _customer_metric_maps, _customer_metrics
 from app.db import SessionLocal
-from app.models import ActionIssue, AuditEvent, Customer, Device
+from app.models import ActionIssue, AuditEvent, Customer, Device, utcnow
 from app.ui_api import ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
@@ -136,6 +142,46 @@ def customer_detail(request: Request, customer_id: uuid.UUID):
             "tabs": [{"key": key, "classic": f"{base}{suffix}"} for key, suffix in CUSTOMER_TABS],
             "links": {"edit": f"{base}/edit", "add_site": f"{base}/sites/new", "add_device": f"{base}/devices/new",
                       "incidents": f"/incidents?customer={customer.id}&status=all", "action_center": f"/action-center?customer={customer.id}"},
+        }
+
+
+def _top_traffic(db, devices, now) -> list[dict]:
+    """Devices with the most average WAN traffic over 24 hours (same figures as the classic Graphs page)."""
+    window, width = customer_graphs.RANGES["24h"]
+    per_device = customer_graphs.traffic(db, devices, now - window, width)["per_device"]
+    by_id = {d.id: d for d in devices}
+    rows = sorted(((by_id[i], v[0] / v[2], v[1] / v[2]) for i, v in per_device.items() if v[2]), key=lambda row: -(row[1] + row[2]))
+    return [{"id": str(d.id), "name": d.display_name or d.device_identity or d.name, "rx_bps": round(rx, 1), "tx_bps": round(tx, 1)}
+            for d, rx, tx in rows[:customer_graphs.TOP_DEVICES]]
+
+
+@router.get("/customers/{customer_id}/graphs/summary")
+def customer_graphs_summary(request: Request, customer_id: uuid.UUID, site: str = ""):
+    with SessionLocal() as db:
+        ui_user(request, db, "monitoring.read")
+        customer = db.get(Customer, customer_id)
+        if not customer:
+            raise HTTPException(404, "Cliente non trovato.")
+        site_id = customer_graphs._site_id(db, customer, site)
+        selected = next((s for s in customer.sites if s.id == site_id), None)
+        now = utcnow()
+        devices = customer_graphs.scope_devices(db, customer, site_id)
+        scope = [d.id for d in devices]
+        overview = customer_graphs.site_overview(db, customer, now) if not selected else []
+        section = availability.report_section(db, scope, now - timedelta(days=30), now)
+        return {
+            "site": {"id": str(selected.id), "name": selected.name} if selected else None,
+            "sites": [{"id": str(s.id), "name": s.name} for s in sorted(customer.sites, key=lambda s: s.name.lower())],
+            "devices": len(scope),
+            "overview": [{"site": {"id": str(row["site"].id), "name": row["site"].name} if row["site"] else None,
+                          "devices": row["devices"], "online": row["online"], "rx_bps": row["rx_bps"], "tx_bps": row["tx_bps"], "peak_bps": row["peak_bps"]}
+                         for row in overview],
+            "top": _top_traffic(db, devices, now),
+            "availability": {"measured": section["measured"], "average": section["average"], "below_target": section["below_target"],
+                             "target": section["target"],
+                             "devices": [{k: row.get(k) for k in ("device_id", "device", "availability", "downtime_minutes", "outages",
+                                                                  "longest_outage_minutes", "loss", "rtt_avg")} for row in section["devices"][:50]]},
+            "ranges": list(customer_graphs.RANGES),
         }
 
 
