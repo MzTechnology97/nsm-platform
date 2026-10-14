@@ -1580,5 +1580,65 @@
       "actor": "User and source",
       "details": "Details"
     }
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Operational reports in PDF or CSV, archived with their SHA-256 fingerprint.",
+    "generate": "Generate a report",
+    "generateHint": "All customers or one, for a period of up to {{days}} days that does not end in the future.",
+    "scope": "Scope",
+    "allCustomers": "All customers",
+    "format": "Format",
+    "generateAction": "Generate and archive",
+    "generating": "Generating…",
+    "generated": "Report archived (SHA-256 {{hash}}…).",
+    "download": "Download",
+    "schedules": "Schedules",
+    "schedulesHint": "Each schedule generates the report for the last closed period and sends it to the external recipients listed.",
+    "scheduleName": "Name",
+    "frequency": "Frequency",
+    "recipients": "External recipients",
+    "recipientsPlaceholder": "e-mail addresses separated by commas",
+    "addSchedule": "Create schedule",
+    "active": "Active",
+    "suspended": "Suspended",
+    "suspend": "Suspend",
+    "resume": "Resume",
+    "editRecipients": "Recipients",
+    "saveRecipients": "Save recipients",
+    "delete": "Delete",
+    "confirmDelete": "Delete the schedule “{{name}}”? Reports already archived remain available.",
+    "recipientCount_one": "{{count}} external recipient",
+    "recipientCount_other": "{{count}} external recipients",
+    "noRecipients": "no external recipients",
+    "lastRun": {
+      "never": "Not run yet.",
+      "success": "Last run succeeded on {{when}}.",
+      "failed": "Last run failed on {{when}}."
+    },
+    "frequencies": {
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "annual": "Yearly"
+    },
+    "archive": "Archive",
+    "archiveHint": "Every download re-verifies the SHA-256 of the archived content.",
+    "empty": "No archived reports.",
+    "emptyCanGenerate": "No archived reports: use the form above to generate the first one.",
+    "bySchedule": "NSM schedule",
+    "scheduled": "scheduled",
+    "summary": "{{devices}} devices · {{firmware}} firmware to handle · {{issues}} issues",
+    "incidentSummary": "{{entries}} events · {{devices}} devices",
+    "incidents_one": "{{count}} incident",
+    "incidents_other": "{{count}} incidents",
+    "truncated": "truncated",
+    "columns": {
+      "generated": "Generated",
+      "scope": "Scope",
+      "period": "Period",
+      "file": "File",
+      "summary": "Summary",
+      "actions": ""
+    }
   }
 }

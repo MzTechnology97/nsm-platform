@@ -1580,5 +1580,65 @@
       "actor": "Utente e fonte",
       "details": "Dettagli"
     }
+  },
+  "reports": {
+    "title": "Report",
+    "subtitle": "Report operativi in PDF o CSV, archiviati con la loro impronta SHA-256.",
+    "generate": "Genera un report",
+    "generateHint": "Tutti i clienti o uno solo, per un periodo fino a {{days}} giorni che non termina nel futuro.",
+    "scope": "Ambito",
+    "allCustomers": "Tutti i clienti",
+    "format": "Formato",
+    "generateAction": "Genera e archivia",
+    "generating": "Generazione in corso…",
+    "generated": "Report archiviato (SHA-256 {{hash}}…).",
+    "download": "Scarica",
+    "schedules": "Pianificazioni",
+    "schedulesHint": "Ogni pianificazione genera il report dell'ultimo periodo chiuso e lo invia ai destinatari esterni indicati.",
+    "scheduleName": "Nome",
+    "frequency": "Frequenza",
+    "recipients": "Destinatari esterni",
+    "recipientsPlaceholder": "indirizzi e-mail separati da virgola",
+    "addSchedule": "Crea pianificazione",
+    "active": "Attiva",
+    "suspended": "Sospesa",
+    "suspend": "Sospendi",
+    "resume": "Riattiva",
+    "editRecipients": "Destinatari",
+    "saveRecipients": "Salva destinatari",
+    "delete": "Elimina",
+    "confirmDelete": "Eliminare la pianificazione «{{name}}»? I report già archiviati restano disponibili.",
+    "recipientCount_one": "{{count}} destinatario esterno",
+    "recipientCount_other": "{{count}} destinatari esterni",
+    "noRecipients": "nessun destinatario esterno",
+    "lastRun": {
+      "never": "Non ancora eseguita.",
+      "success": "Ultima esecuzione riuscita il {{when}}.",
+      "failed": "Ultima esecuzione fallita il {{when}}."
+    },
+    "frequencies": {
+      "monthly": "Mensile",
+      "quarterly": "Trimestrale",
+      "annual": "Annuale"
+    },
+    "archive": "Archivio",
+    "archiveHint": "Ogni download riverifica lo SHA-256 del contenuto archiviato.",
+    "empty": "Nessun report archiviato.",
+    "emptyCanGenerate": "Nessun report archiviato: usa il modulo sopra per generare il primo.",
+    "bySchedule": "pianificazione NSM",
+    "scheduled": "pianificato",
+    "summary": "{{devices}} apparati · {{firmware}} firmware da gestire · {{issues}} segnalazioni",
+    "incidentSummary": "{{entries}} eventi · {{devices}} apparati",
+    "incidents_one": "{{count}} incidente",
+    "incidents_other": "{{count}} incidenti",
+    "truncated": "troncato",
+    "columns": {
+      "generated": "Generato",
+      "scope": "Ambito",
+      "period": "Periodo",
+      "file": "File",
+      "summary": "Sintesi",
+      "actions": ""
+    }
   }
 }

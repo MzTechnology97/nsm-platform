@@ -213,6 +213,92 @@ def _schedule(db, schedule_id: uuid.UUID) -> ReportSchedule:
     return schedule
 
 
+def create_schedule(db, user, name: str, customer_id: str, output_format: str, frequency: str, recipients: str) -> ReportSchedule:
+    """Validate like the classic form (HTTPException 400 with the reason), create and audit a schedule. Caller commits."""
+    label = name.strip()
+    if not label:
+        raise HTTPException(400, "Indica un nome per la pianificazione.")
+    if output_format not in FORMATS:
+        raise HTTPException(400, "Formato report non supportato.")
+    if frequency not in FREQUENCY_LABELS:
+        raise HTTPException(400, "Frequenza non supportata.")
+    customer = None
+    if customer_id.strip():
+        try:
+            customer = db.get(Customer, uuid.UUID(customer_id.strip()))
+        except ValueError:
+            customer = None
+        if not customer:
+            raise HTTPException(400, "Cliente non valido.")
+    addresses = parse_recipients(recipients)
+    schedule = ReportSchedule(
+        recipients=addresses or None,
+        name=label[:160],
+        customer_id=customer.id if customer else None,
+        output_format=output_format,
+        frequency=frequency,
+        created_by_user_id=user.id,
+    )
+    db.add(schedule)
+    db.flush()
+    core.add_event(
+        db,
+        "REPORT_SCHEDULE_CREATED",
+        actor=user,
+        customer_id=schedule.customer_id,
+        details={
+            "schedule_id": str(schedule.id),
+            "name": schedule.name,
+            "frequency": frequency,
+            "format": output_format,
+            "scope": customer.name if customer else "Tutti i clienti",
+            "recipients": addresses,
+        },
+        source="portal",
+    )
+    return schedule
+
+
+def toggle_schedule(db, user, schedule: ReportSchedule) -> bool:
+    """Suspend or resume a schedule (audited); returns the new state. Caller commits."""
+    schedule.is_enabled = not schedule.is_enabled
+    if schedule.is_enabled:
+        schedule.next_attempt_at = None
+    core.add_event(
+        db,
+        "REPORT_SCHEDULE_ENABLED" if schedule.is_enabled else "REPORT_SCHEDULE_DISABLED",
+        actor=user,
+        customer_id=schedule.customer_id,
+        details={"schedule_id": str(schedule.id), "name": schedule.name},
+        source="portal",
+    )
+    return schedule.is_enabled
+
+
+def set_recipients(db, user, schedule: ReportSchedule, recipients: str) -> list[str]:
+    """Replace the external recipients (validated, audited). Caller commits."""
+    addresses = parse_recipients(recipients)
+    before = list(schedule.recipients or [])
+    schedule.recipients = addresses or None
+    core.add_event(db, "REPORT_SCHEDULE_RECIPIENTS_CHANGED", actor=user, customer_id=schedule.customer_id,
+                   details={"schedule_id": str(schedule.id), "name": schedule.name, "before": before, "after": addresses}, source="portal")
+    return addresses
+
+
+def delete_schedule(db, user, schedule: ReportSchedule) -> None:
+    """Delete a schedule (audited); archived reports stay. Caller commits."""
+    core.add_event(
+        db,
+        "REPORT_SCHEDULE_DELETED",
+        actor=user,
+        customer_id=schedule.customer_id,
+        details={"schedule_id": str(schedule.id), "name": schedule.name},
+        source="portal",
+    )
+    _sync_issue(db, schedule, False)
+    db.delete(schedule)
+
+
 @router.post(f"{REPORTS_PATH}/schedules", name="report_schedule_create")
 def schedule_create(
     request: Request,
@@ -227,47 +313,7 @@ def schedule_create(
         validate_csrf(request, csrf)
         with SessionLocal() as db:
             user = core.require_permission(request, db, "reports.generate")
-            label = name.strip()
-            if not label:
-                raise HTTPException(400, "Indica un nome per la pianificazione.")
-            if output_format not in FORMATS:
-                raise HTTPException(400, "Formato report non supportato.")
-            if frequency not in FREQUENCY_LABELS:
-                raise HTTPException(400, "Frequenza non supportata.")
-            customer = None
-            if customer_id.strip():
-                try:
-                    customer = db.get(Customer, uuid.UUID(customer_id.strip()))
-                except ValueError:
-                    customer = None
-                if not customer:
-                    raise HTTPException(400, "Cliente non valido.")
-            addresses = parse_recipients(recipients)
-            schedule = ReportSchedule(
-                recipients=addresses or None,
-                name=label[:160],
-                customer_id=customer.id if customer else None,
-                output_format=output_format,
-                frequency=frequency,
-                created_by_user_id=user.id,
-            )
-            db.add(schedule)
-            db.flush()
-            core.add_event(
-                db,
-                "REPORT_SCHEDULE_CREATED",
-                actor=user,
-                customer_id=schedule.customer_id,
-                details={
-                    "schedule_id": str(schedule.id),
-                    "name": schedule.name,
-                    "frequency": frequency,
-                    "format": output_format,
-                    "scope": customer.name if customer else "Tutti i clienti",
-                    "recipients": addresses,
-                },
-                source="portal",
-            )
+            create_schedule(db, user, name, customer_id, output_format, frequency, recipients)
             db.commit()
     except HTTPException as exc:
         if exc.status_code in {400, 403}:
@@ -288,19 +334,7 @@ def schedule_toggle(request: Request, schedule_id: uuid.UUID, csrf: str = Form(.
         validate_csrf(request, csrf)
         with SessionLocal() as db:
             user = core.require_permission(request, db, "reports.generate")
-            schedule = _schedule(db, schedule_id)
-            schedule.is_enabled = not schedule.is_enabled
-            if schedule.is_enabled:
-                schedule.next_attempt_at = None
-            enabled = schedule.is_enabled
-            core.add_event(
-                db,
-                "REPORT_SCHEDULE_ENABLED" if enabled else "REPORT_SCHEDULE_DISABLED",
-                actor=user,
-                customer_id=schedule.customer_id,
-                details={"schedule_id": str(schedule.id), "name": schedule.name},
-                source="portal",
-            )
+            enabled = toggle_schedule(db, user, _schedule(db, schedule_id))
             db.commit()
     except HTTPException as exc:
         if exc.status_code in {400, 403}:
@@ -321,12 +355,7 @@ def schedule_recipients(request: Request, schedule_id: uuid.UUID, csrf: str = Fo
         validate_csrf(request, csrf)
         with SessionLocal() as db:
             user = core.require_permission(request, db, "reports.generate")
-            schedule = _schedule(db, schedule_id)
-            addresses = parse_recipients(recipients)
-            before = list(schedule.recipients or [])
-            schedule.recipients = addresses or None
-            core.add_event(db, "REPORT_SCHEDULE_RECIPIENTS_CHANGED", actor=user, customer_id=schedule.customer_id,
-                           details={"schedule_id": str(schedule.id), "name": schedule.name, "before": before, "after": addresses}, source="portal")
+            addresses = set_recipients(db, user, _schedule(db, schedule_id), recipients)
             db.commit()
     except HTTPException as exc:
         if exc.status_code in {400, 403}:
@@ -342,17 +371,7 @@ def schedule_delete(request: Request, schedule_id: uuid.UUID, csrf: str = Form(.
         validate_csrf(request, csrf)
         with SessionLocal() as db:
             user = core.require_permission(request, db, "reports.generate")
-            schedule = _schedule(db, schedule_id)
-            core.add_event(
-                db,
-                "REPORT_SCHEDULE_DELETED",
-                actor=user,
-                customer_id=schedule.customer_id,
-                details={"schedule_id": str(schedule.id), "name": schedule.name},
-                source="portal",
-            )
-            _sync_issue(db, schedule, False)
-            db.delete(schedule)
+            delete_schedule(db, user, _schedule(db, schedule_id))
             db.commit()
     except HTTPException as exc:
         if exc.status_code in {400, 403}:

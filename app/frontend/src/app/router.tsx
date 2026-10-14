@@ -210,6 +210,11 @@ const auditEventsRoute = createRoute({
     return out;
   },
 });
+const reportsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/reports",
+  component: lazyRouteComponent(() => import("../pages/Reports"), "Reports"),
+});
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/access",
@@ -284,6 +289,7 @@ export const routeTree = rootRoute.addChildren([
   incidentsRoute,
   incidentRoute,
   auditEventsRoute,
+  reportsRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

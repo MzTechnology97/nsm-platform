@@ -1580,5 +1580,65 @@
       "actor": "Usuario y origen",
       "details": "Detalles"
     }
+  },
+  "reports": {
+    "title": "Informes",
+    "subtitle": "Informes operativos en PDF o CSV, archivados con su huella SHA-256.",
+    "generate": "Generar un informe",
+    "generateHint": "Todos los clientes o uno solo, para un periodo de hasta {{days}} días que no termine en el futuro.",
+    "scope": "Ámbito",
+    "allCustomers": "Todos los clientes",
+    "format": "Formato",
+    "generateAction": "Generar y archivar",
+    "generating": "Generando…",
+    "generated": "Informe archivado (SHA-256 {{hash}}…).",
+    "download": "Descargar",
+    "schedules": "Programaciones",
+    "schedulesHint": "Cada programación genera el informe del último periodo cerrado y lo envía a los destinatarios externos indicados.",
+    "scheduleName": "Nombre",
+    "frequency": "Frecuencia",
+    "recipients": "Destinatarios externos",
+    "recipientsPlaceholder": "direcciones de correo separadas por comas",
+    "addSchedule": "Crear programación",
+    "active": "Activa",
+    "suspended": "Suspendida",
+    "suspend": "Suspender",
+    "resume": "Reactivar",
+    "editRecipients": "Destinatarios",
+    "saveRecipients": "Guardar destinatarios",
+    "delete": "Eliminar",
+    "confirmDelete": "¿Eliminar la programación «{{name}}»? Los informes ya archivados siguen disponibles.",
+    "recipientCount_one": "{{count}} destinatario externo",
+    "recipientCount_other": "{{count}} destinatarios externos",
+    "noRecipients": "ningún destinatario externo",
+    "lastRun": {
+      "never": "Aún no se ha ejecutado.",
+      "success": "Última ejecución correcta el {{when}}.",
+      "failed": "Última ejecución fallida el {{when}}."
+    },
+    "frequencies": {
+      "monthly": "Mensual",
+      "quarterly": "Trimestral",
+      "annual": "Anual"
+    },
+    "archive": "Archivo",
+    "archiveHint": "Cada descarga vuelve a verificar el SHA-256 del contenido archivado.",
+    "empty": "Ningún informe archivado.",
+    "emptyCanGenerate": "Ningún informe archivado: usa el formulario de arriba para generar el primero.",
+    "bySchedule": "programación de NSM",
+    "scheduled": "programado",
+    "summary": "{{devices}} equipos · {{firmware}} firmware por gestionar · {{issues}} avisos",
+    "incidentSummary": "{{entries}} eventos · {{devices}} equipos",
+    "incidents_one": "{{count}} incidente",
+    "incidents_other": "{{count}} incidentes",
+    "truncated": "truncado",
+    "columns": {
+      "generated": "Generado",
+      "scope": "Ámbito",
+      "period": "Periodo",
+      "file": "Archivo",
+      "summary": "Resumen",
+      "actions": ""
+    }
   }
 }

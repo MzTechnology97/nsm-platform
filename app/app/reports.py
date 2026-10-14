@@ -124,6 +124,29 @@ def create_report(
     return report
 
 
+def generate_checked(db, user, customer_id: str, period_start: str, period_end: str, output_format: str) -> GeneratedReport:
+    """Validate the request like the classic form (HTTPException 400 with the reason) and create the report. Caller commits."""
+    if output_format not in FORMATS:
+        raise HTTPException(400, "Formato report non supportato.")
+    start = _parse_date(period_start, "di inizio")
+    end = _parse_date(period_end, "di fine")
+    if end < start:
+        raise HTTPException(400, "La data di fine precede la data di inizio.")
+    if (end - start).days + 1 > MAX_PERIOD_DAYS:
+        raise HTTPException(400, f"Il periodo massimo è di {MAX_PERIOD_DAYS} giorni.")
+    if end > utcnow().date():
+        raise HTTPException(400, "Il periodo non può terminare nel futuro.")
+    customer = None
+    if customer_id.strip():
+        try:
+            customer = db.get(Customer, uuid.UUID(customer_id.strip()))
+        except ValueError:
+            customer = None
+        if not customer:
+            raise HTTPException(400, "Cliente non valido.")
+    return create_report(db, customer=customer, period_start=start, period_end=end, output_format=output_format, actor=user)
+
+
 @router.get(REPORTS_PATH, response_class=HTMLResponse, name="reports_archive")
 def reports_archive(request: Request, page: int = 1):
     with SessionLocal() as db:
@@ -176,33 +199,7 @@ def reports_generate(
         validate_csrf(request, csrf)
         with SessionLocal() as db:
             user = core.require_permission(request, db, "reports.generate")
-            if output_format not in FORMATS:
-                raise HTTPException(400, "Formato report non supportato.")
-            start = _parse_date(period_start, "di inizio")
-            end = _parse_date(period_end, "di fine")
-            if end < start:
-                raise HTTPException(400, "La data di fine precede la data di inizio.")
-            if (end - start).days + 1 > MAX_PERIOD_DAYS:
-                raise HTTPException(400, f"Il periodo massimo è di {MAX_PERIOD_DAYS} giorni.")
-            if end > utcnow().date():
-                raise HTTPException(400, "Il periodo non può terminare nel futuro.")
-            customer = None
-            if customer_id.strip():
-                try:
-                    customer = db.get(Customer, uuid.UUID(customer_id.strip()))
-                except ValueError:
-                    customer = None
-                if not customer:
-                    raise HTTPException(400, "Cliente non valido.")
-
-            report = create_report(
-                db,
-                customer=customer,
-                period_start=start,
-                period_end=end,
-                output_format=output_format,
-                actor=user,
-            )
+            report = generate_checked(db, user, customer_id, period_start, period_end, output_format)
             sha256 = report.sha256
             db.commit()
     except HTTPException as exc:
