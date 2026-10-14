@@ -331,3 +331,67 @@ export function useSyslogAction<B extends object, R = unknown>(path: string) {
     onSuccess: () => client.invalidateQueries({ queryKey: ["admin-syslog"] }),
   });
 }
+
+export interface NvdAdmin {
+  configured: boolean;
+  enabled: boolean;
+  has_key: boolean;
+  interval: number;
+  interval_min: number;
+  interval_max: number;
+  sync: {
+    last_status: string | null;
+    last_success_at: string | null;
+    last_mode: string | null;
+    next_attempt_at: string | null;
+    last_stats: Record<string, number> | null;
+    last_error: string | null;
+    consecutive_failures: number | null;
+    parse_errors: { cve: string; error: string }[] | null;
+  };
+  matching: { last_run_at?: string; last_stats?: Record<string, number> };
+  advisory_count: number;
+  open_findings: number;
+  tracked_cpes: string[];
+  coverage: { brand: string; label: string; devices: number; evaluable: number; no_model: number; no_version: number; products: string[] }[];
+}
+
+export const useNvdAdmin = () =>
+  useQuery({ queryKey: ["admin-nvd"], queryFn: () => api<NvdAdmin>("/api/ui/v1/admin/integrations/nvd"), staleTime: 10_000 });
+
+export function useNvdAction<B extends object, R = unknown>(path: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: B) => api<R>(`/api/ui/v1/admin/integrations/nvd${path}`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["admin-nvd"] }),
+  });
+}
+
+export interface RouterosRelease {
+  channel: string;
+  version: string;
+  released_at: string | null;
+  security: boolean;
+  security_lines: string[];
+  changelog: string | null;
+}
+
+export interface RouterosCatalog {
+  channels: string[];
+  heads: Record<string, RouterosRelease>;
+  history: RouterosRelease[];
+  last_refresh: string | null;
+  can_refresh: boolean;
+}
+
+export const useRouterosCatalog = () =>
+  useQuery({ queryKey: ["routeros-catalog"], queryFn: () => api<RouterosCatalog>("/api/ui/v1/integrations/routeros"), staleTime: 60_000 });
+
+export function useRouterosRefresh() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<{ stats: { channels: number; new_releases: number; errors: string[] }; evaluated: { updates: number; security: number } }>(
+      "/api/ui/v1/integrations/routeros/refresh", { method: "POST" }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["routeros-catalog"] }),
+  });
+}

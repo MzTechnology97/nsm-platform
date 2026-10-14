@@ -1,7 +1,7 @@
 """Administration of the NVD advisory source (SEC-01)."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import func, select
 
@@ -50,6 +50,66 @@ def _render(request, db, user):
     )
 
 
+def save_source(db, user, *, enabled: bool, api_key: str, clear_api_key: bool, interval_minutes) -> ConnectorIntegration:
+    """Store the NVD source (key encrypted, kept when empty), audited. HTTPException 400 for an interval out of range. Caller commits."""
+    try:
+        interval = int(interval_minutes or sources.INTERVAL_DEFAULT_MINUTES)
+    except (TypeError, ValueError):
+        interval = -1
+    if not sources.INTERVAL_MIN_MINUTES <= interval <= sources.INTERVAL_MAX_MINUTES:
+        raise HTTPException(400, f"L'intervallo deve essere tra {sources.INTERVAL_MIN_MINUTES} e {sources.INTERVAL_MAX_MINUTES} minuti.")
+    connection = sources.connection_for(db)
+    created = connection is None
+    if created:
+        connection = ConnectorIntegration(
+            provider=sources.PROVIDER,
+            name="NVD · National Vulnerability Database",
+            base_url=sources.NVD_DEFAULT_URL,
+            secret_encrypted="",
+            verify_tls=True,
+            settings={},
+        )
+        db.add(connection)
+    connection.is_enabled = enabled
+    key = (api_key or "").strip()
+    if key:
+        connection.secret_encrypted = encrypt_text(key)
+    elif clear_api_key:
+        connection.secret_encrypted = ""
+    settings = dict(connection.settings or {})
+    settings["sync_interval_minutes"] = interval
+    connection.settings = settings
+    core.add_event(
+        db,
+        "SECURITY_SOURCE_CONFIGURED",
+        actor=user,
+        details={
+            "source": sources.PROVIDER,
+            "enabled": connection.is_enabled,
+            "api_key": "set" if connection.secret_encrypted else "none",
+            "interval_minutes": interval,
+            "created": created,
+        },
+    )
+    return connection
+
+
+def sync_now(db, trigger: str) -> dict:
+    """Run an advisory sync (``manual`` or ``full``); HTTPException 400 when the source is not enabled. Caller commits."""
+    connection = sources.connection_for(db)
+    if not connection or not connection.is_enabled:
+        raise HTTPException(400, "Abilita e salva prima la fonte NVD.")
+    return sources.run_advisory_sync(db, connection, utcnow(), trigger=trigger)
+
+
+def match_now(db) -> dict:
+    """Recompute matches with the inventory; HTTPException 400 when the source is not configured. Caller commits."""
+    connection = sources.connection_for(db)
+    if not connection:
+        raise HTTPException(400, "Configura prima la fonte NVD.")
+    return sources.run_matching(db, connection, utcnow(), trigger="manual")
+
+
 @router.get(PAGE, response_class=HTMLResponse, name="admin_nvd")
 def admin_nvd(request: Request):
     with SessionLocal() as db:
@@ -70,50 +130,10 @@ def admin_nvd_save(
     with SessionLocal() as db:
         user = core.require_admin(request, db)
         try:
-            interval = int(sync_interval_minutes or sources.INTERVAL_DEFAULT_MINUTES)
-        except ValueError:
-            interval = -1
-        if not sources.INTERVAL_MIN_MINUTES <= interval <= sources.INTERVAL_MAX_MINUTES:
-            return flash_redirect(
-                request,
-                PAGE,
-                "warning",
-                f"L'intervallo deve essere tra {sources.INTERVAL_MIN_MINUTES} e {sources.INTERVAL_MAX_MINUTES} minuti.",
-                title="Dati non validi",
-            )
-        connection = sources.connection_for(db)
-        created = connection is None
-        if created:
-            connection = ConnectorIntegration(
-                provider=sources.PROVIDER,
-                name="NVD · National Vulnerability Database",
-                base_url=sources.NVD_DEFAULT_URL,
-                secret_encrypted="",
-                verify_tls=True,
-                settings={},
-            )
-            db.add(connection)
-        connection.is_enabled = is_enabled is not None
-        key = api_key.strip()
-        if key:
-            connection.secret_encrypted = encrypt_text(key)
-        elif clear_api_key is not None:
-            connection.secret_encrypted = ""
-        settings = dict(connection.settings or {})
-        settings["sync_interval_minutes"] = interval
-        connection.settings = settings
-        core.add_event(
-            db,
-            "SECURITY_SOURCE_CONFIGURED",
-            actor=user,
-            details={
-                "source": sources.PROVIDER,
-                "enabled": connection.is_enabled,
-                "api_key": "set" if connection.secret_encrypted else "none",
-                "interval_minutes": interval,
-                "created": created,
-            },
-        )
+            save_source(db, user, enabled=is_enabled is not None, api_key=api_key, clear_api_key=clear_api_key is not None,
+                        interval_minutes=sync_interval_minutes)
+        except HTTPException as exc:
+            return flash_redirect(request, PAGE, "warning", str(exc.detail), title="Dati non validi")
         db.commit()
     return flash_redirect(request, PAGE, "success", "Configurazione della fonte NVD salvata.", title="Fonte salvata")
 
@@ -121,11 +141,11 @@ def admin_nvd_save(
 def _sync(request: Request, csrf: str, trigger: str):
     validate_csrf(request, csrf)
     with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        connection = sources.connection_for(db)
-        if not connection or not connection.is_enabled:
-            return flash_redirect(request, PAGE, "warning", "Abilita e salva prima la fonte NVD.", title="Fonte non abilitata")
-        result = sources.run_advisory_sync(db, connection, utcnow(), trigger=trigger)
+        core.require_admin(request, db)
+        try:
+            result = sync_now(db, trigger)
+        except HTTPException as exc:
+            return flash_redirect(request, PAGE, "warning", str(exc.detail), title="Fonte non abilitata")
         db.commit()
     if result["status"] != "success":
         return flash_redirect(request, PAGE, "error", f"Aggiornamento NVD non riuscito: {result['error']}", title="Aggiornamento fallito")
@@ -160,10 +180,10 @@ def admin_nvd_match(request: Request, csrf: str = Form(...)):
     validate_csrf(request, csrf)
     with SessionLocal() as db:
         core.require_admin(request, db)
-        connection = sources.connection_for(db)
-        if not connection:
-            return flash_redirect(request, PAGE, "warning", "Configura prima la fonte NVD.", title="Fonte non configurata")
-        stats = sources.run_matching(db, connection, utcnow(), trigger="manual")
+        try:
+            stats = match_now(db)
+        except HTTPException as exc:
+            return flash_redirect(request, PAGE, "warning", str(exc.detail), title="Fonte non configurata")
         db.commit()
     return flash_redirect(
         request,

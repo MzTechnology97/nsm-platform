@@ -80,14 +80,14 @@ export function Integrations() {
 
           <Card name="routeros" title={t("integrations.routeros.title")} help={t("integrations.routeros.help")}
             actions={<>
-              <a className="ui-button ui-button-ghost ui-button-small" href="/admin/integrations/routeros">{t("integrations.routeros.open")}</a>
+              <Link className="ui-button ui-button-ghost ui-button-small" to="/integrations/routeros">{t("integrations.routeros.open")}</Link>
               <Link className="ui-button ui-button-ghost ui-button-small" to="/firmware">{t("integrations.routeros.firmware")}</Link>
             </>} />
 
           <Card name="nvd" title={t("integrations.nvd.title")} help={t("integrations.nvd.help")} state={data.nvd.state} label={state(data.nvd.state)}
             actions={<>
               <Link className="ui-button ui-button-ghost ui-button-small" to="/vulnerabilities">{t("integrations.nvd.vulnerabilities")}</Link>
-              {data.can_admin && <a className="ui-button ui-button-ghost ui-button-small" href="/admin/integrations/nvd">{t("integrations.configure")}</a>}
+              {data.can_admin && <Link className="ui-button ui-button-ghost ui-button-small" to="/admin/integrations/nvd">{t("integrations.configure")}</Link>}
             </>}>
             <Facts items={[[t("integrations.nvd.advisories"), data.nvd.advisories], [t("integrations.nvd.updated"), when(data.nvd.last_success_at)]]} />
           </Card>

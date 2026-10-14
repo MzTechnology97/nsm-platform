@@ -28,7 +28,12 @@
 - ``GET /api/ui/v1/admin/syslog``: receiver state, settings, discarded
   senders and the host firewall script; ``POST`` save settings, clear a
   sender, configure every MikroTik (``device_logs`` /
-  ``mikrotik_syslog_config``). Key-only mode stays mandatory.
+  ``mikrotik_syslog_config``). Key-only mode stays mandatory;
+- ``GET /api/ui/v1/admin/integrations/nvd``: NVD source state, matching and
+  per-vendor coverage; ``POST`` save, sync (incremental or full), recompute
+  matches (``advisory_admin``);
+- ``GET /api/ui/v1/integrations/routeros``: RouterOS catalogue per channel and
+  observed releases (``firmware.read``); ``POST`` refresh (``users.manage``).
 """
 from __future__ import annotations
 
@@ -40,6 +45,8 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
 
 from app import (
+    advisory_admin,
+    advisory_sources,
     api_key_lifecycle,
     api_keys,
     capacity,
@@ -55,12 +62,14 @@ from app import (
     notification_delivery,
     report_schedules,
     reports,
+    routeros_catalog,
     secret_rotation,
     syslog_firewall,
     syslog_identity,
     syslog_receiver,
     system_status,
     two_factor,
+    vendor_cpe,
     worker_status,
     zabbix_connector,
 )
@@ -69,7 +78,7 @@ from app.activity_worklists import _audit_query, _uuid
 from app.api_key_models import PlatformApiKey
 from app.api_key_scopes import API_SCOPE_INVENTORY_READ, OPTIONAL_READ_SCOPES
 from app.db import SessionLocal
-from app.models import AuditEvent, Customer, Device, User, utcnow
+from app.models import AuditEvent, Customer, Device, DeviceVulnerability, RouterosRelease, SecurityAdvisory, User, utcnow
 from app.notification_models import NotificationDelivery, UserNotificationPreference
 from app.syslog_models import DeviceLogEntry, SyslogUnknownSource
 from app.report_models import FREQUENCY_LABELS, GeneratedReport, ReportSchedule
@@ -566,6 +575,78 @@ def admin_syslog_configure_all(request: Request):
             raise HTTPException(422, {"code": "no_target", "message": "Imposta prima l'indirizzo IPv4 di NSM raggiungibile dagli apparati."})
         queued, skipped = mikrotik_syslog_config.configure_all_devices(db, user, remote)
         return {"queued": queued, "skipped": skipped, "target": remote}
+
+    return _admin_write(request, run)
+
+
+@router.get("/admin/integrations/nvd")
+def admin_nvd(request: Request):
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        connection = advisory_sources.connection_for(db)
+        sync = advisory_sources.sync_state(connection)
+        nvd = SecurityAdvisory.source == advisory_sources.PROVIDER
+        return jsonable_encoder({
+            "configured": connection is not None, "enabled": bool(connection and connection.is_enabled),
+            "has_key": bool(connection and connection.secret_encrypted),
+            "interval": advisory_sources.interval_minutes(connection) if connection else advisory_sources.INTERVAL_DEFAULT_MINUTES,
+            "interval_min": advisory_sources.INTERVAL_MIN_MINUTES, "interval_max": advisory_sources.INTERVAL_MAX_MINUTES,
+            "sync": {key: sync.get(key) for key in ("last_status", "last_success_at", "last_mode", "next_attempt_at", "last_stats", "last_error",
+                                                   "consecutive_failures", "parse_errors")},
+            "matching": ((connection.settings or {}).get("matching") or {}) if connection else {},
+            "advisory_count": int(db.scalar(select(func.count(SecurityAdvisory.id)).where(nvd)) or 0),
+            "open_findings": int(db.scalar(select(func.count(DeviceVulnerability.id)).join(SecurityAdvisory, SecurityAdvisory.id == DeviceVulnerability.advisory_id)
+                                           .where(nvd, DeviceVulnerability.status != "resolved")) or 0),
+            "tracked_cpes": sync.get("tracked_cpes") or list(advisory_sources.TRACKED_CPES),
+            "coverage": vendor_cpe.coverage(db.scalars(select(Device))),
+        })
+
+
+@router.post("/admin/integrations/nvd", dependencies=[Depends(require_csrf)])
+def admin_nvd_save(request: Request, body: dict = Body(default={})):
+    return _admin_write(request, lambda db, user: advisory_admin.save_source(
+        db, user, enabled=body.get("enabled") is True, api_key=_text(body, "api_key"), clear_api_key=body.get("clear_api_key") is True,
+        interval_minutes=body.get("interval_minutes")) and {"saved": True})
+
+
+@router.post("/admin/integrations/nvd/sync", dependencies=[Depends(require_csrf)])
+def admin_nvd_sync(request: Request, body: dict = Body(default={})):
+    def run(db, user):
+        result = advisory_admin.sync_now(db, "full" if body.get("full") is True else "manual")
+        return jsonable_encoder({key: result.get(key) for key in ("status", "error", "fetched", "created", "updated", "parse_errors", "matching")})
+
+    return _admin_write(request, run)
+
+
+@router.post("/admin/integrations/nvd/match", dependencies=[Depends(require_csrf)])
+def admin_nvd_match(request: Request):
+    return _admin_write(request, lambda db, user: jsonable_encoder(advisory_admin.match_now(db)))
+
+
+@router.get("/integrations/routeros")
+def routeros(request: Request):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.read")
+        heads = routeros_catalog.heads(db)
+
+        def release(r):
+            return {"channel": r.channel, "version": r.version, "released_at": _iso(r.released_at), "security": r.security,
+                    "security_lines": list(r.security_lines or []), "changelog": r.changelog}
+
+        return {
+            "channels": list(routeros_catalog.CHANNEL_LABELS),
+            "heads": {key: release(r) for key, r in heads.items()},
+            "history": [release(r) for r in db.scalars(select(RouterosRelease).order_by(RouterosRelease.released_at.desc()).limit(40))],
+            "last_refresh": _iso(db.scalar(select(func.max(RouterosRelease.fetched_at)))),
+            "can_refresh": core.has_permission(user, "users.manage"),
+        }
+
+
+@router.post("/integrations/routeros/refresh", dependencies=[Depends(require_csrf)])
+def routeros_refresh(request: Request):
+    def run(db, user):
+        stats, evaluated = routeros_catalog.refresh_now(db, user)
+        return jsonable_encoder({"stats": stats, "evaluated": evaluated})
 
     return _admin_write(request, run)
 

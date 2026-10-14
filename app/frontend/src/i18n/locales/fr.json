@@ -2126,6 +2126,13 @@
       "version": "Version",
       "linked": "Équipements envoyés",
       "open": "Ouvrir Zabbix"
+    },
+    "tabs": {
+      "uisp": "UISP Network",
+      "nvd": "Advisory NVD",
+      "genieacs": "GenieACS / TR-069",
+      "zabbix": "Zabbix",
+      "cnmaestro": "cnMaestro"
     }
   },
   "syslogAdmin": {
@@ -2202,6 +2209,113 @@
       "ambiguous": "IP partagée par plusieurs équipements, nom d'hôte non décisif",
       "unknown": "émetteur non associé à un équipement",
       "quota": "quota journalier de l'équipement dépassé"
+    }
+  },
+  "nvd": {
+    "title": "Intégrations · NVD",
+    "subtitle": "Source d'avis : CVE publiées par la National Vulnerability Database pour les produits suivis, comparées aux versions installées.",
+    "config": "Configuration",
+    "configHelp": "Lecture publique et en lecture seule de l'API CVE 2.0. Aucune donnée de NSM n'est envoyée à NVD.",
+    "enabled": "Activée",
+    "disabled": "Désactivée",
+    "enable": "Activer la mise à jour automatique",
+    "interval": "Intervalle de mise à jour (minutes)",
+    "intervalHelp": "Après le premier chargement complet, seules les CVE modifiées depuis la dernière mise à jour sont lues. En cas d'erreur, la tentative suivante est retardée progressivement (24 heures au plus).",
+    "apiKey": "Clé API NVD (facultative)",
+    "noKeyPlaceholder": "Sans clé : 5 requêtes toutes les 30 secondes",
+    "keyStored": "Clé présente et chiffrée, non récupérable depuis l'interface.",
+    "keyHelp": "Conseillée uniquement avec beaucoup de CVE à lire ; la clé est chiffrée avant l'enregistrement.",
+    "clearKey": "Supprimer la clé enregistrée",
+    "save": "Enregistrer la configuration",
+    "saved": "Configuration de la source NVD enregistrée.",
+    "state": "État de la source",
+    "tracked_one": "{{count}} produit suivi, déduit des équipements de l'inventaire.",
+    "tracked_other": "{{count}} produits suivis, déduits des équipements de l'inventaire.",
+    "syncNow": "Mettre à jour",
+    "fullSync": "Rechargement complet",
+    "status": "État",
+    "statuses": {
+      "notConfigured": "Non configurée",
+      "disabled": "Désactivée",
+      "ok": "OK",
+      "error": "Erreur",
+      "never": "Jamais exécutée"
+    },
+    "lastSuccess": "Dernier succès",
+    "mode": "Mode",
+    "modes": {
+      "full": "Complet",
+      "incremental": "Incrémental"
+    },
+    "next": "Prochaine tentative",
+    "nextCycle": "au prochain cycle",
+    "advisories": "Avis NVD",
+    "openFindings": "Correspondances ouvertes",
+    "lastRead": "Dernière lecture : {{fetched}} enregistrements · {{created}} nouveaux · {{updated}} mis à jour · {{unchanged}} inchangés · {{rejected}} rejetés par NVD · {{errors}} non interprétables.",
+    "lastError": "Dernière erreur ({{count}} consécutives) : {{error}}",
+    "synced": "{{fetched}} avis lus ({{created}} nouveaux, {{updated}} mis à jour).",
+    "syncFailed": "Échec de la mise à jour NVD : {{error}}",
+    "parseErrors": "Enregistrements non interprétables ({{count}})",
+    "matching": "Correspondances avec l'inventaire",
+    "matchingHelp": "Recalculées après chaque mise à jour et toutes les 15 minutes : un équipement mis à jour ferme lui-même ses signalements.",
+    "matchNow": "Recalculer",
+    "lastRun": "Dernier calcul",
+    "evaluated": "Avis évalués",
+    "new": "Nouvelles",
+    "resolved": "Résolues",
+    "updated": "Mises à jour",
+    "unknown": "Non évaluables",
+    "matched": "Correspondances recalculées : {{opened}} ouvertes, {{resolved}} résolues, {{unknown}} non évaluables.",
+    "rules": {
+      "versionOnly": {
+        "title": "Seulement avec la version",
+        "text": "Un équipement n'est signalé que si sa version installée tombe dans les plages de la CVE : jamais pour la seule marque ou le seul produit."
+      },
+      "models": {
+        "title": "Modèles spécifiques",
+        "text": "Si la CVE ne concerne que certains modèles matériels, le modèle de l'équipement doit correspondre."
+      },
+      "unknownRule": {
+        "title": "Non évaluables",
+        "text": "Version ou modèle inconnus, ou CVE sans versions : listés dans le détail de la CVE, non comptés comme exposés."
+      },
+      "autoClose": {
+        "title": "Fermeture automatique",
+        "text": "Quand la version installée sort de la plage, le signalement est résolu avec la version comme preuve."
+      }
+    },
+    "coverage": "Couverture par fabricant",
+    "coverageHelp": "NSM n'interroge NVD que pour les fabricants et modèles présents dans l'inventaire. Un équipement est évaluable quand le modèle et la version du firmware sont connus ; les autres ne sont jamais considérés exposés pour leur seule marque.",
+    "noCoverage": "Aucun équipement avec un fabricant reconnu.",
+    "trackedList": "Produits interrogés sur NVD ({{count}})",
+    "columns": {
+      "brand": "Fabricant",
+      "devices": "Équipements",
+      "evaluable": "Évaluables",
+      "noModel": "Sans modèle",
+      "noVersion": "Sans version lisible",
+      "products": "Produits NVD"
+    }
+  },
+  "routeros": {
+    "title": "Catalogue RouterOS",
+    "subtitle": "Dernières versions par canal lues sur upgrade.mikrotik.com toutes les 6 heures. Une version est marquée « sécurité » quand ses notes citent des correctifs de sécurité ; les lignes sont conservées comme preuve.",
+    "lastRead": "Dernière lecture {{when}}.",
+    "refresh": "Actualiser",
+    "refreshed": "{{channels}} canaux lus, {{releases}} nouvelles versions ; {{updates}} équipements avec mise à jour, {{security}} de sécurité.",
+    "errors": "Erreurs : {{errors}}",
+    "notRead": "pas encore lu",
+    "securityBadge": "Sécurité",
+    "empty": "Catalogue pas encore lu.",
+    "emptyAdmin": "Catalogue pas encore lu : utilisez « Actualiser » ou attendez le worker.",
+    "history": "Versions observées",
+    "changelog": "Notes de version",
+    "columns": {
+      "channel": "Canal",
+      "version": "Version",
+      "released": "Publiée",
+      "security": "Sécurité",
+      "notes": "Notes"
     }
   }
 }
