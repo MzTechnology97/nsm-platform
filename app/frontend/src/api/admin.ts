@@ -1,4 +1,4 @@
-import { keepPreviousData, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { BrandRef } from "../app/BrandIcon";
 import { api } from "./client";
@@ -117,5 +117,38 @@ export function useReportAction<B extends object, R = unknown>(path: string) {
   return useMutation({
     mutationFn: (body: B) => api<R>(`/api/ui/v1/reports/${path}`, { method: "POST", body: JSON.stringify(body) }),
     onSuccess: () => client.invalidateQueries({ queryKey: ["reports"] }),
+  });
+}
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  display_name: string | null;
+  email: string | null;
+  role: string;
+  active: boolean;
+  is_self: boolean;
+  two_factor: boolean;
+  last_login_at: string | null;
+  scope: { id: string; name: string }[];
+}
+
+export interface AdminUsers {
+  roles: string[];
+  customers: { id: string; name: string }[];
+  users: AdminUser[];
+  login_failures: { username: string; ip: string; count: number; last: string | null; blocked_minutes: number | null }[];
+  limits: { pair: number; ip: number };
+}
+
+export const useAdminUsers = () =>
+  useQuery({ queryKey: ["admin-users"], queryFn: () => api<AdminUsers>("/api/ui/v1/admin/users"), staleTime: 10_000 });
+
+/** POST to a user administration endpoint, then refresh the list. */
+export function useUserAction<B extends object, R = unknown>(path: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: B) => api<R>(`/api/ui/v1/admin/users${path}`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["admin-users"] }),
   });
 }

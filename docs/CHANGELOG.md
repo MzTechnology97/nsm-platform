@@ -4,6 +4,26 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.123 — 2026-10-14
+
+New interface (React) — users, phase 6c
+- **Administration in `/app/admin/users`**, also reachable from the sidebar of the new interface. The administration tabs are the same as on the classic page; the ones not yet migrated open the classic pages.
+- **Accounts:** each account shows its role, status, e-mail, last sign-in, two-step verification and visible customers.
+- **Actions** (same rules as the classic page):
+  - change role;
+  - choose visible customers (none = all);
+  - disable or re-enable;
+  - sign out every session;
+  - reset two-step verification;
+  - an administrator cannot demote, disable, sign out or reset themselves from here.
+- **Create a user** with a temporary password; it must meet the platform requirements, and a duplicate username is refused.
+- **Also on the page:** failed sign-ins in the last 24 hours, with the throttling limits and remaining block time, and the description of each role.
+- User creation, role and status changes, customer scope, session sign-out and second-factor reset are now shared functions (`main.create_user_record`/`toggle_user_record`/`change_user_role_record`, `customer_scope.set_user_scope`, `login_security.admin_revoke`, `two_factor.admin_reset_record`), used by both interfaces; the classic forms behave as before.
+- **API.** All routes need `users.manage`; the `POST` routes also need the CSRF header:
+  - `GET /api/ui/v1/admin/users`;
+  - `POST /api/ui/v1/admin/users`;
+  - `POST /api/ui/v1/admin/users/{id}/role`, `/toggle`, `/scope`, `/sessions/revoke`, `/2fa/reset`.
+
 ## 0.49.122 — 2026-10-14
 
 New interface (React) — reports, phase 6b

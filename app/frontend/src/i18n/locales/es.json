@@ -1640,5 +1640,80 @@
       "summary": "Resumen",
       "actions": ""
     }
+  },
+  "admin": {
+    "title": "Administración",
+    "subtitle": "Usuarios, roles, integraciones y acceso a la plataforma.",
+    "tabs": {
+      "users": "Usuarios",
+      "apiKeys": "Claves API",
+      "integrations": "Integraciones",
+      "branding": "Personalización",
+      "demo": "Demo Lab",
+      "notifications": "Notificaciones",
+      "syslog": "Syslog",
+      "acs": "ACS",
+      "system": "Sistema"
+    }
+  },
+  "adminUsers": {
+    "accounts_one": "{{count}} cuenta",
+    "accounts_other": "{{count}} cuentas",
+    "newUser": "Nuevo usuario",
+    "username": "Usuario",
+    "displayName": "Nombre visible",
+    "email": "Correo",
+    "role": "Rol",
+    "password": "Contraseña temporal",
+    "create": "Crear usuario",
+    "created": "Usuario creado.",
+    "passwordHint": "La contraseña temporal debe cumplir los requisitos de la plataforma (al menos 12 caracteres).",
+    "active": "Activo",
+    "disabled": "Deshabilitado",
+    "you": "tú",
+    "never": "nunca",
+    "lastLogin": "Último acceso: {{when}}",
+    "twoFactorOn": "verificación en dos pasos activa",
+    "twoFactorOff": "verificación en dos pasos inactiva",
+    "scopeAdmin": "Ve todos los clientes (administrador)",
+    "scopeAll": "Ve todos los clientes",
+    "scopeSome": "Solo ve: {{names}}",
+    "scopeHelp": "Sin selección = todos los clientes. El usuario solo ve equipos, sedes, incidentes, informes y registros de los clientes seleccionados.",
+    "editScope": "Clientes visibles",
+    "saveScope": "Guardar clientes",
+    "roleOf": "Rol de {{name}}",
+    "disable": "Deshabilitar",
+    "enable": "Reactivar",
+    "signOut": "Cerrar sesiones",
+    "confirmSessions": "¿Cerrar todas las sesiones de {{name}}?",
+    "signedOut": "Sesiones cerradas: tendrá que volver a acceder.",
+    "resetTwoFactor": "Restablecer 2FA",
+    "confirmReset": "¿Restablecer la verificación en dos pasos de {{name}}? Solo si perdió su dispositivo.",
+    "twoFactorReset": "Verificación en dos pasos restablecida.",
+    "profile": "Contraseña y tema",
+    "failures": "Accesos fallidos (últimas 24 horas)",
+    "failuresHelp": "Tras {{pair}} intentos fallidos del mismo usuario desde la misma dirección, o {{ip}} desde la misma dirección, en 15 minutos, los nuevos intentos se rechazan hasta que termine la ventana. La cuenta no se bloquea.",
+    "noFailures": "Ningún acceso fallido en las últimas 24 horas.",
+    "blocked": "bloqueado {{minutes}} min más",
+    "failureColumns": {
+      "username": "Usuario intentado",
+      "address": "Dirección",
+      "attempts": "Intentos",
+      "last": "Último",
+      "state": "Estado"
+    },
+    "rolesTitle": "Roles",
+    "roles": {
+      "admin": "Administrador",
+      "technician": "Técnico",
+      "operator": "Operador",
+      "auditor": "Auditor"
+    },
+    "roleHelp": {
+      "admin": "Acceso completo: usuarios, políticas, integraciones y ajustes.",
+      "technician": "Equipos, copias de seguridad, firmware, remediación y operaciones técnicas.",
+      "operator": "Consulta, hacerse cargo de avisos y tareas operativas predefinidas.",
+      "auditor": "Solo lectura de inventario, historial, copias, CVE e informes."
+    }
   }
 }

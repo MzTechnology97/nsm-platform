@@ -6,7 +6,11 @@
 - ``GET /api/ui/v1/reports``: report archive and schedules; ``POST`` generate
   and schedule actions through the functions shared with the classic forms
   (``reports.generate_checked``, ``report_schedules.create_schedule`` ...).
-  Downloads stay the classic route, which re-verifies the SHA-256.
+  Downloads stay the classic route, which re-verifies the SHA-256;
+- ``GET /api/ui/v1/admin/users``: accounts, roles, visible customers, second
+  factor, last login and recent failed logins; ``POST`` create, role, enable,
+  customer scope, close sessions and reset the second factor through the
+  functions shared with the classic forms (``users.manage``).
 """
 from __future__ import annotations
 
@@ -17,7 +21,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from sqlalchemy import func, select
 
 from app import main as core
-from app import report_schedules, reports
+from app import customer_scope, login_security, report_schedules, reports, two_factor
 from app.activity_worklists import _audit_query, _uuid
 from app.db import SessionLocal
 from app.models import AuditEvent, Customer, Device, User, utcnow
@@ -156,6 +160,91 @@ def report_schedule_recipients(request: Request, schedule_id: uuid.UUID, body: d
 @router.post("/reports/schedules/{schedule_id}/delete", dependencies=[Depends(require_csrf)])
 def report_schedule_delete(request: Request, schedule_id: uuid.UUID):
     return _schedule_action(request, schedule_id, lambda db, user, schedule: report_schedules.delete_schedule(db, user, schedule) or {"deleted": True})
+
+
+def _user_row(user, me, customers: dict) -> dict:
+    scope = [value for value in (user.customer_scope or []) if value in customers]
+    return {
+        "id": str(user.id), "username": user.username, "display_name": user.display_name, "email": user.email, "role": user.role,
+        "active": user.is_active, "is_self": user.id == me.id, "two_factor": two_factor.enabled(user),
+        "last_login_at": _iso(user.last_login_at), "scope": [{"id": value, "name": customers[value]} for value in scope],
+    }
+
+
+@router.get("/admin/users")
+def admin_users(request: Request):
+    with SessionLocal() as db:
+        me = ui_user(request, db, "users.manage")
+        customers = {str(c.id): c.name for c in db.scalars(select(Customer).order_by(Customer.name))}
+        return {
+            "roles": list(core.ROLE_LABELS),
+            "customers": [{"id": key, "name": name} for key, name in customers.items()],
+            "users": [_user_row(user, me, customers) for user in db.scalars(select(User).order_by(User.username))],
+            "login_failures": [{**row, "last": _iso(row["last"])} for row in login_security.recent_failures(db)],
+            "limits": {"pair": login_security.PAIR_LIMIT, "ip": login_security.IP_LIMIT},
+        }
+
+
+@router.post("/admin/users", dependencies=[Depends(require_csrf)])
+def admin_user_create(request: Request, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        actor = ui_user(request, db, "users.manage")
+        if not _text(body, "username").strip():
+            raise HTTPException(400, "Indica lo username.")
+        user = core.create_user_record(db, actor, _text(body, "username"), _text(body, "display_name"), _text(body, "email"),
+                                       _text(body, "role"), _text(body, "password"))
+        return {"id": str(user.id)}
+
+
+def _user_action(request: Request, user_id: uuid.UUID, action):
+    with SessionLocal() as db:
+        actor = ui_user(request, db, "users.manage")
+        target = db.get(User, user_id)
+        if not target:
+            raise HTTPException(404, {"code": "not_found", "message": "Utente non trovato."})
+        result = action(db, actor, target)
+        db.commit()
+        return result
+
+
+@router.post("/admin/users/{user_id}/role", dependencies=[Depends(require_csrf)])
+def admin_user_role(request: Request, user_id: uuid.UUID, body: dict = Body(default={})):
+    return _user_action(request, user_id, lambda db, actor, target: core.change_user_role_record(db, actor, target, _text(body, "role"))
+                        or {"role": target.role})
+
+
+@router.post("/admin/users/{user_id}/toggle", dependencies=[Depends(require_csrf)])
+def admin_user_toggle(request: Request, user_id: uuid.UUID):
+    return _user_action(request, user_id, lambda db, actor, target: {"active": core.toggle_user_record(db, actor, target)})
+
+
+@router.post("/admin/users/{user_id}/scope", dependencies=[Depends(require_csrf)])
+def admin_user_scope(request: Request, user_id: uuid.UUID, body: dict = Body(default={})):
+    raw = body.get("customer_ids")
+    ids = [value for value in raw if isinstance(value, str)] if isinstance(raw, list) else []
+    return _user_action(request, user_id, lambda db, actor, target: {"scope": customer_scope.set_user_scope(db, actor, target, ids)})
+
+
+@router.post("/admin/users/{user_id}/sessions/revoke", dependencies=[Depends(require_csrf)])
+def admin_user_sessions(request: Request, user_id: uuid.UUID):
+    def revoke(db, actor, target):
+        if target.id == actor.id:
+            raise HTTPException(400, "Per le tue sessioni usa il profilo.")
+        login_security.admin_revoke(db, actor, target, request)
+        return {"revoked": True}
+
+    return _user_action(request, user_id, revoke)
+
+
+@router.post("/admin/users/{user_id}/2fa/reset", dependencies=[Depends(require_csrf)])
+def admin_user_two_factor(request: Request, user_id: uuid.UUID):
+    def reset(db, actor, target):
+        if target.id == actor.id:
+            raise HTTPException(400, "Per la tua verifica in due passaggi usa il profilo.")
+        two_factor.admin_reset_record(db, actor, target, request)
+        return {"two_factor": False}
+
+    return _user_action(request, user_id, reset)
 
 
 def install_ui_admin(app) -> None:

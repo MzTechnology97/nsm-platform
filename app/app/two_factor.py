@@ -312,6 +312,13 @@ def disable(request: Request, password: str = Form(""), code: str = Form(""), cs
     return RedirectResponse("/profile?status=2fa_disabled#two-factor", status_code=303)
 
 
+def admin_reset_record(db, actor, target, request: Request | None = None) -> None:
+    """Remove another user's second factor and close their sessions (audited). Caller commits."""
+    _clear(db, target)
+    login_security.revoke_sessions(db, target, request)
+    core.add_event(db, "USER_2FA_RESET", actor=actor, details={"user_id": str(target.id), "username": target.username}, source="portal", severity="warning")
+
+
 @router.post("/admin/users/{user_id}/2fa/reset", name="admin_two_factor_reset")
 def admin_reset(request: Request, user_id: uuid.UUID, csrf: str = Form(...)):
     validate_csrf(request, csrf)
@@ -320,9 +327,7 @@ def admin_reset(request: Request, user_id: uuid.UUID, csrf: str = Form(...)):
         target = db.get(User, user_id)
         if not target:
             raise HTTPException(404)
-        _clear(db, target)
-        login_security.revoke_sessions(db, target, request)
-        core.add_event(db, "USER_2FA_RESET", actor=actor, details={"user_id": str(target.id), "username": target.username}, source="portal", severity="warning")
+        admin_reset_record(db, actor, target, request)
         db.commit()
     return RedirectResponse("/admin/users?status=2fa_reset", status_code=303)
 

@@ -1640,5 +1640,80 @@
       "summary": "Sintesi",
       "actions": ""
     }
+  },
+  "admin": {
+    "title": "Amministrazione",
+    "subtitle": "Utenti, ruoli, integrazioni e accesso alla piattaforma.",
+    "tabs": {
+      "users": "Utenti",
+      "apiKeys": "API Keys",
+      "integrations": "Integrazioni",
+      "branding": "Branding",
+      "demo": "Demo Lab",
+      "notifications": "Notifiche",
+      "syslog": "Syslog",
+      "acs": "ACS",
+      "system": "Sistema"
+    }
+  },
+  "adminUsers": {
+    "accounts_one": "{{count}} account",
+    "accounts_other": "{{count}} account",
+    "newUser": "Nuovo utente",
+    "username": "Username",
+    "displayName": "Nome visualizzato",
+    "email": "E-mail",
+    "role": "Ruolo",
+    "password": "Password temporanea",
+    "create": "Crea utente",
+    "created": "Utente creato.",
+    "passwordHint": "La password temporanea deve rispettare i requisiti minimi della piattaforma (almeno 12 caratteri).",
+    "active": "Attivo",
+    "disabled": "Disabilitato",
+    "you": "sei tu",
+    "never": "mai",
+    "lastLogin": "Ultimo accesso: {{when}}",
+    "twoFactorOn": "verifica in due passaggi attiva",
+    "twoFactorOff": "verifica in due passaggi non attiva",
+    "scopeAdmin": "Vede tutti i clienti (amministratore)",
+    "scopeAll": "Vede tutti i clienti",
+    "scopeSome": "Vede solo: {{names}}",
+    "scopeHelp": "Nessuna selezione = tutti i clienti. L'utente vede solo apparati, sedi, incidenti, report e log dei clienti selezionati.",
+    "editScope": "Clienti visibili",
+    "saveScope": "Salva clienti",
+    "roleOf": "Ruolo di {{name}}",
+    "disable": "Disabilita",
+    "enable": "Riattiva",
+    "signOut": "Disconnetti",
+    "confirmSessions": "Chiudere tutte le sessioni di {{name}}?",
+    "signedOut": "Sessioni chiuse: dovrà accedere di nuovo.",
+    "resetTwoFactor": "Reimposta 2FA",
+    "confirmReset": "Reimpostare la verifica in due passaggi di {{name}}? Usalo solo se ha perso il dispositivo.",
+    "twoFactorReset": "Verifica in due passaggi reimpostata.",
+    "profile": "Password e tema",
+    "failures": "Accessi non riusciti (ultime 24 ore)",
+    "failuresHelp": "Dopo {{pair}} tentativi falliti per lo stesso utente dallo stesso indirizzo, o {{ip}} dallo stesso indirizzo, in 15 minuti, i nuovi tentativi vengono rifiutati fino alla fine della finestra. L'account non viene bloccato.",
+    "noFailures": "Nessun accesso non riuscito nelle ultime 24 ore.",
+    "blocked": "bloccato ancora {{minutes}} min",
+    "failureColumns": {
+      "username": "Username tentato",
+      "address": "Indirizzo",
+      "attempts": "Tentativi",
+      "last": "Ultimo",
+      "state": "Stato"
+    },
+    "rolesTitle": "Ruoli",
+    "roles": {
+      "admin": "Amministratore",
+      "technician": "Tecnico",
+      "operator": "Operatore",
+      "auditor": "Auditor"
+    },
+    "roleHelp": {
+      "admin": "Accesso completo: utenti, policy, integrazioni e impostazioni.",
+      "technician": "Gestione apparati, backup, firmware, remediation e operazioni tecniche.",
+      "operator": "Consultazione, presa in carico e job operativi predefiniti.",
+      "auditor": "Sola lettura di inventario, storico, backup, CVE e report."
+    }
   }
 }

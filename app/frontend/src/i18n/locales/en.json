@@ -1640,5 +1640,80 @@
       "summary": "Summary",
       "actions": ""
     }
+  },
+  "admin": {
+    "title": "Administration",
+    "subtitle": "Users, roles, integrations and access to the platform.",
+    "tabs": {
+      "users": "Users",
+      "apiKeys": "API keys",
+      "integrations": "Integrations",
+      "branding": "Branding",
+      "demo": "Demo Lab",
+      "notifications": "Notifications",
+      "syslog": "Syslog",
+      "acs": "ACS",
+      "system": "System"
+    }
+  },
+  "adminUsers": {
+    "accounts_one": "{{count}} account",
+    "accounts_other": "{{count}} accounts",
+    "newUser": "New user",
+    "username": "Username",
+    "displayName": "Display name",
+    "email": "E-mail",
+    "role": "Role",
+    "password": "Temporary password",
+    "create": "Create user",
+    "created": "User created.",
+    "passwordHint": "The temporary password must meet the platform requirements (at least 12 characters).",
+    "active": "Active",
+    "disabled": "Disabled",
+    "you": "you",
+    "never": "never",
+    "lastLogin": "Last sign-in: {{when}}",
+    "twoFactorOn": "two-step verification on",
+    "twoFactorOff": "two-step verification off",
+    "scopeAdmin": "Sees every customer (administrator)",
+    "scopeAll": "Sees every customer",
+    "scopeSome": "Sees only: {{names}}",
+    "scopeHelp": "No selection = every customer. The user only sees devices, sites, incidents, reports and logs of the selected customers.",
+    "editScope": "Visible customers",
+    "saveScope": "Save customers",
+    "roleOf": "Role of {{name}}",
+    "disable": "Disable",
+    "enable": "Enable",
+    "signOut": "Sign out",
+    "confirmSessions": "Close every session of {{name}}?",
+    "signedOut": "Sessions closed: they will have to sign in again.",
+    "resetTwoFactor": "Reset 2FA",
+    "confirmReset": "Reset two-step verification for {{name}}? Only when they lost their device.",
+    "twoFactorReset": "Two-step verification reset.",
+    "profile": "Password and theme",
+    "failures": "Failed sign-ins (last 24 hours)",
+    "failuresHelp": "After {{pair}} failed attempts for the same user from the same address, or {{ip}} from the same address, within 15 minutes, new attempts are refused until the window ends. The account is not locked.",
+    "noFailures": "No failed sign-ins in the last 24 hours.",
+    "blocked": "blocked for {{minutes}} more min",
+    "failureColumns": {
+      "username": "Username tried",
+      "address": "Address",
+      "attempts": "Attempts",
+      "last": "Last",
+      "state": "State"
+    },
+    "rolesTitle": "Roles",
+    "roles": {
+      "admin": "Administrator",
+      "technician": "Technician",
+      "operator": "Operator",
+      "auditor": "Auditor"
+    },
+    "roleHelp": {
+      "admin": "Full access: users, policies, integrations and settings.",
+      "technician": "Devices, backups, firmware, remediation and technical operations.",
+      "operator": "Read access, taking issues in charge and predefined operational jobs.",
+      "auditor": "Read-only inventory, history, backups, CVEs and reports."
+    }
   }
 }
