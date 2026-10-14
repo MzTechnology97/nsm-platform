@@ -33,14 +33,17 @@
   per-vendor coverage; ``POST`` save, sync (incremental or full), recompute
   matches (``advisory_admin``);
 - ``GET /api/ui/v1/integrations/routeros``: RouterOS catalogue per channel and
-  observed releases (``firmware.read``); ``POST`` refresh (``users.manage``).
+  observed releases (``firmware.read``); ``POST`` refresh (``users.manage``);
+- ``GET /api/ui/v1/admin/branding``: name, tagline, colours and logo; ``POST``
+  save, upload or remove the logo, reset one colour (``ui_extension`` /
+  ``workflow_ui``).
 """
 from __future__ import annotations
 
 import uuid
 from datetime import timedelta
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, Response, UploadFile
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
 
@@ -69,8 +72,10 @@ from app import (
     syslog_receiver,
     system_status,
     two_factor,
+    ui_extension,
     vendor_cpe,
     worker_status,
+    workflow_ui,
     zabbix_connector,
 )
 from app import main as core
@@ -649,6 +654,60 @@ def routeros_refresh(request: Request):
         return jsonable_encoder({"stats": stats, "evaluated": evaluated})
 
     return _admin_write(request, run)
+
+
+def _branding_payload(db) -> dict:
+    branding = ui_extension._branding(db)
+    data = ui_extension._branding_dict(branding)
+    return {**data, "logo_url": f"/branding/logo?v={data['logo_version']}" if data["has_logo"] else None,
+            "logo_filename": branding.logo_filename,
+            "defaults": {key: value for key, (_attr, value) in workflow_ui.DEFAULT_COLORS.items()},
+            "max_logo_bytes": ui_extension.MAX_LOGO_BYTES}
+
+
+def _branding_write(request: Request, action):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "users.manage")
+        try:
+            action(db, user)
+        except ui_extension.BrandingError as error:
+            raise HTTPException(422, {"code": error.code, "message": error.code}) from None
+        db.commit()
+        return _branding_payload(db)
+
+
+@router.get("/admin/branding")
+def admin_branding(request: Request):
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        payload = _branding_payload(db)
+        db.commit()
+        return payload
+
+
+@router.post("/admin/branding", dependencies=[Depends(require_csrf)])
+def admin_branding_save(request: Request, body: dict = Body(default={})):
+    return _branding_write(request, lambda db, user: ui_extension.save_branding(
+        db, user, portal_name=_text(body, "portal_name"), tagline=_text(body, "tagline"), primary_color=_text(body, "primary_color"),
+        sidebar_color=_text(body, "sidebar_color"), highlight_color=_text(body, "highlight_color")))
+
+
+@router.post("/admin/branding/logo", dependencies=[Depends(require_csrf)])
+async def admin_branding_logo(request: Request, logo: UploadFile = File(...)):
+    data = await logo.read(ui_extension.MAX_LOGO_BYTES + 1)
+    return _branding_write(request, lambda db, user: ui_extension.store_logo(db, user, data, logo.filename))
+
+
+@router.post("/admin/branding/logo/remove", dependencies=[Depends(require_csrf)])
+def admin_branding_logo_remove(request: Request):
+    return _branding_write(request, ui_extension.clear_logo)
+
+
+@router.post("/admin/branding/colors/{color_key}/reset", dependencies=[Depends(require_csrf)])
+def admin_branding_color_reset(request: Request, color_key: str):
+    if color_key not in workflow_ui.DEFAULT_COLORS:
+        raise HTTPException(404, {"code": "not_found", "message": "Colore sconosciuto."})
+    return _branding_write(request, lambda db, user: workflow_ui.reset_color(db, user, color_key))
 
 
 def install_ui_admin(app) -> None:

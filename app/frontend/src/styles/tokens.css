@@ -2,7 +2,10 @@
 :root {
   --bg: #f4f6f8;
   --panel: #ffffff;
-  --sidebar: #111827;
+  --brand-primary: #1f5f8b;
+  --brand-sidebar: #111827;
+  --brand-highlight: #f59e0b;
+  --sidebar: var(--brand-sidebar);
   --sidebar-text: #d7dde5;
   --sidebar-muted: #8b98aa;
   --sidebar-active: rgba(255, 255, 255, 0.08);
@@ -10,9 +13,9 @@
   --muted: #687481;
   --border: #e2e7ec;
   --border-strong: #cfd7de;
-  --accent: #1f5f8b;
+  --accent: var(--brand-primary);
   --accent-soft: #eaf3f9;
-  --highlight: #f59e0b;
+  --highlight: var(--brand-highlight);
   --success: #238636;
   --warning: #b7791f;
   --danger: #c53030;
