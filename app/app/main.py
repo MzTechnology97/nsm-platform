@@ -559,6 +559,54 @@ def dashboard(request: Request):
         )
 
 
+def search_records(db, term: str) -> dict:
+    """Customers, devices and sites matching a free-text term; used by the global search of both interfaces."""
+    term = term.strip()
+    if not term:
+        return {"customers": [], "devices": [], "sites": []}
+    like = f"%{term}%"
+    normalized_mac = search_mac(term)
+    customers = list(
+        db.scalars(
+            select(Customer)
+            .where(or_(Customer.name.ilike(like), Customer.code.ilike(like)))
+            .order_by(Customer.name)
+            .limit(25)
+        )
+    )
+    devices = list(
+        db.scalars(
+            select(Device)
+            .options(selectinload(Device.customer), selectinload(Device.site))
+            .where(
+                or_(
+                    Device.display_name.ilike(like),
+                    Device.device_identity.ilike(like),
+                    Device.name.ilike(like),
+                    Device.model.ilike(like),
+                    Device.serial_number.ilike(like),
+                    Device.primary_mac.ilike(like),
+                    Device.primary_mac == normalized_mac if normalized_mac else False,
+                    Device.management_ip.ilike(like),
+                    Device.external_device_id.ilike(like),
+                )
+            )
+            .order_by(Device.display_name.nullslast(), Device.name)
+            .limit(50)
+        )
+    )
+    sites = list(
+        db.scalars(
+            select(Site)
+            .options(selectinload(Site.customer))
+            .where(or_(Site.name.ilike(like), Site.address.ilike(like)))
+            .order_by(Site.name)
+            .limit(25)
+        )
+    )
+    return {"customers": customers, "devices": devices, "sites": sites}
+
+
 @app.get("/search", response_class=HTMLResponse)
 def global_search(request: Request, q: str = ""):
     with SessionLocal() as db:
@@ -566,60 +614,7 @@ def global_search(request: Request, q: str = ""):
         if not user:
             return login_redirect()
         term = q.strip()
-        customers = []
-        devices = []
-        sites = []
-        if term:
-            like = f"%{term}%"
-            normalized_mac = search_mac(term)
-            customers = list(
-                db.scalars(
-                    select(Customer)
-                    .where(or_(Customer.name.ilike(like), Customer.code.ilike(like)))
-                    .order_by(Customer.name)
-                    .limit(25)
-                )
-            )
-            devices = list(
-                db.scalars(
-                    select(Device)
-                    .options(selectinload(Device.customer), selectinload(Device.site))
-                    .where(
-                        or_(
-                            Device.display_name.ilike(like),
-                            Device.device_identity.ilike(like),
-                            Device.name.ilike(like),
-                            Device.model.ilike(like),
-                            Device.serial_number.ilike(like),
-                            Device.primary_mac.ilike(like),
-                            Device.primary_mac == normalized_mac if normalized_mac else False,
-                            Device.management_ip.ilike(like),
-                            Device.external_device_id.ilike(like),
-                        )
-                    )
-                    .order_by(Device.display_name.nullslast(), Device.name)
-                    .limit(50)
-                )
-            )
-            sites = list(
-                db.scalars(
-                    select(Site)
-                    .options(selectinload(Site.customer))
-                    .where(or_(Site.name.ilike(like), Site.address.ilike(like)))
-                    .order_by(Site.name)
-                    .limit(25)
-                )
-            )
-        return render(
-            request,
-            db,
-            user,
-            "search.html",
-            q=term,
-            customers=customers,
-            devices=devices,
-            sites=sites,
-        )
+        return render(request, db, user, "search.html", q=term, **search_records(db, term))
 
 
 @app.post("/customers")
@@ -1489,27 +1484,68 @@ def acknowledge_issue_record(db, issue, user) -> bool:
     return True
 
 
+def notification_rows(db, user: User, limit: int = 250):
+    """Active notifications, newest first, each with whether this user has read it."""
+    read_exists = (
+        select(NotificationRead.id)
+        .where(
+            NotificationRead.notification_id == Notification.id,
+            NotificationRead.user_id == user.id,
+        )
+        .exists()
+    )
+    return db.execute(
+        select(Notification, read_exists.label("is_read"))
+        .where(Notification.is_active.is_(True))
+        .order_by(Notification.created_at.desc())
+        .limit(limit)
+    ).all()
+
+
+def mark_notification_read_record(db, user: User, notification_id: uuid.UUID) -> None:
+    """Mark one notification as read for this user (idempotent); 404 when it does not exist."""
+    if not db.get(Notification, notification_id):
+        raise HTTPException(404)
+    existing = db.scalar(
+        select(NotificationRead).where(
+            NotificationRead.notification_id == notification_id,
+            NotificationRead.user_id == user.id,
+        )
+    )
+    if not existing:
+        db.add(
+            NotificationRead(
+                notification_id=notification_id,
+                user_id=user.id,
+            )
+        )
+        db.commit()
+
+
+def mark_all_notifications_read_record(db, user: User) -> int:
+    """Mark every active unread notification as read for this user; returns how many."""
+    unread_conditions = unread_notification_conditions(user)
+    ids = list(
+        db.scalars(select(Notification.id).where(*unread_conditions).limit(1000))
+    )
+    for notification_id in ids:
+        db.add(
+            NotificationRead(
+                notification_id=notification_id,
+                user_id=user.id,
+            )
+        )
+    db.commit()
+    return len(ids)
+
+
 @app.get("/notifications", response_class=HTMLResponse)
 def notifications(request: Request):
     with SessionLocal() as db:
         user = current_user(request, db)
         if not user:
             return login_redirect()
-        read_exists = (
-            select(NotificationRead.id)
-            .where(
-                NotificationRead.notification_id == Notification.id,
-                NotificationRead.user_id == user.id,
-            )
-            .exists()
-        )
-        rows = db.execute(
-            select(Notification, read_exists.label("is_read"))
-            .where(Notification.is_active.is_(True))
-            .order_by(Notification.created_at.desc())
-            .limit(250)
-        ).all()
-        return render(request, db, user, "notifications.html", notifications=rows)
+        return render(request, db, user, "notifications.html", notifications=notification_rows(db, user))
 
 
 @app.post("/notifications/{notification_id}/read")
@@ -1521,22 +1557,7 @@ def mark_notification_read(
         user = current_user(request, db)
         if not user:
             return login_redirect()
-        if not db.get(Notification, notification_id):
-            raise HTTPException(404)
-        existing = db.scalar(
-            select(NotificationRead).where(
-                NotificationRead.notification_id == notification_id,
-                NotificationRead.user_id == user.id,
-            )
-        )
-        if not existing:
-            db.add(
-                NotificationRead(
-                    notification_id=notification_id,
-                    user_id=user.id,
-                )
-            )
-            db.commit()
+        mark_notification_read_record(db, user, notification_id)
     return RedirectResponse(
         request.headers.get("referer", "/notifications"), status_code=303
     )
@@ -1549,18 +1570,7 @@ def mark_all_notifications_read(request: Request, csrf: str = Form(...)):
         user = current_user(request, db)
         if not user:
             return login_redirect()
-        unread_conditions = unread_notification_conditions(user)
-        ids = list(
-            db.scalars(select(Notification.id).where(*unread_conditions).limit(1000))
-        )
-        for notification_id in ids:
-            db.add(
-                NotificationRead(
-                    notification_id=notification_id,
-                    user_id=user.id,
-                )
-            )
-        db.commit()
+        mark_all_notifications_read_record(db, user)
     return RedirectResponse("/notifications", status_code=303)
 
 

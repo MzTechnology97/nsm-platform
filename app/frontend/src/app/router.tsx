@@ -195,6 +195,18 @@ const incidentRoute = createRoute({
   path: "/incidents/$incidentId",
   component: lazyRouteComponent(() => import("../pages/IncidentDetail"), "IncidentDetail"),
 });
+const searchRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/search",
+  component: lazyRouteComponent(() => import("../pages/Search"), "Search"),
+  validateSearch: (search: Record<string, unknown>): { q?: string } =>
+    typeof search.q === "string" && search.q.trim() ? { q: search.q.trim().slice(0, 200) } : {},
+});
+const notificationsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/notifications",
+  component: lazyRouteComponent(() => import("../pages/Notifications"), "Notifications"),
+});
 const AUDIT_KEYS = ["event_type", "result", "severity", "customer", "device", "q", "from_date", "to_date"] as const;
 const auditEventsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -391,6 +403,8 @@ export const routeTree = rootRoute.addChildren([
   adminGenieacsRoute,
   adminUispRoute,
   uispOnboardingRoute,
+  searchRoute,
+  notificationsRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

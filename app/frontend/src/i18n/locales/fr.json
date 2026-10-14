@@ -2791,5 +2791,56 @@
     "criticalNote": "{{count}} critiques",
     "eol": "Fin de vie",
     "eolNote": "Équipements EOL ou EOS"
+  },
+  "search": {
+    "title": "Recherche globale",
+    "subtitle": "Équipements, clients et sites par nom, MAC, numéro de série, IP ou adresse.",
+    "placeholder": "Rechercher équipements, clients, sites…",
+    "submit": "Rechercher",
+    "empty": "Saisissez un terme pour chercher dans toute la plateforme.",
+    "summary_one": "{{count}} résultat pour « {{q}} »",
+    "summary_other": "{{count}} résultats pour « {{q}} »",
+    "devices": "Équipements",
+    "customers": "Clients",
+    "sites": "Sites",
+    "noDevices": "Aucun équipement trouvé.",
+    "noCustomers": "Aucun client trouvé.",
+    "noSites": "Aucun site trouvé.",
+    "noSite": "sans site",
+    "noCode": "Aucun code",
+    "noAddress": "Aucune adresse",
+    "ip": "IP",
+    "mac": "MAC",
+    "serial": "N° de série",
+    "external": "ID externe",
+    "limit": "Les 50 premiers équipements sont affichés : affinez la recherche pour voir les autres."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Messages importants, erreurs opérationnelles et avis de sécurité.",
+    "readAll": "Tout marquer comme lu",
+    "show": {
+      "all": "Toutes",
+      "unread": "Non lues"
+    },
+    "empty": "Aucune notification.",
+    "noUnread": "Aucune notification non lue.",
+    "new": "Nouvelle",
+    "advisory": "Ouvrir l'avis",
+    "source": "Source",
+    "markRead": "Marquer comme lue",
+    "bell_one": "Notifications : {{count}} non lue",
+    "bell_other": "Notifications : {{count}} non lues",
+    "categories": {
+      "system": "Système",
+      "security": "Sécurité",
+      "monitoring": "Supervision",
+      "backup": "Sauvegarde",
+      "reports": "Rapports",
+      "connectivity": "Connectivité",
+      "firmware": "Firmware",
+      "compliance": "Conformité",
+      "other": "Autre"
+    }
   }
 }
