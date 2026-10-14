@@ -7,7 +7,7 @@ const INTEGRATION_PAGES: { key: string; classic: string; route?: string }[] = [
   { key: "nvd", classic: "/admin/integrations/nvd", route: "/admin/integrations/nvd" },
   { key: "genieacs", classic: "/admin/integrations/genieacs" },
   { key: "zabbix", classic: "/admin/integrations/zabbix" },
-  { key: "cnmaestro", classic: "/admin/integrations/cnmaestro" },
+  { key: "cnmaestro", classic: "/admin/integrations/cnmaestro", route: "/admin/integrations/cnmaestro" },
 ];
 
 export function IntegrationTabs() {

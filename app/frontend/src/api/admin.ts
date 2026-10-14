@@ -457,3 +457,30 @@ export function useDemoAction<B extends object>(path: "/seed" | "/clear") {
     onSuccess: () => client.invalidateQueries(),
   });
 }
+
+export interface CnmaestroAdmin {
+  configured: boolean;
+  enabled: boolean;
+  base_url: string;
+  client_id: string;
+  verify_tls: boolean;
+  last_test_status: string | null;
+  last_error: string | null;
+  last_sync_at: string | null;
+  last_sync: { status: string | null; cnmaestro_devices: number | null; linked: number | null; new_links: number | null; unmatched: number | null; statistics_error: string | null; error: string | null };
+}
+
+export const useCnmaestroAdmin = () =>
+  useQuery({ queryKey: ["admin-cnmaestro"], queryFn: () => api<CnmaestroAdmin>("/api/ui/v1/admin/integrations/cnmaestro") });
+
+/** POST to a connector administration endpoint, then refresh its page and the integrations hub. */
+export function useConnectorAction<B extends object, R = unknown>(connector: string, path: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: B) => api<R>(`/api/ui/v1/admin/integrations/${connector}${path}`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: [`admin-${connector}`] });
+      void client.invalidateQueries({ queryKey: ["integrations"] });
+    },
+  });
+}
