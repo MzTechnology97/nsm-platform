@@ -240,6 +240,11 @@ const integrationsRoute = createRoute({
   path: "/integrations",
   component: lazyRouteComponent(() => import("../pages/Integrations"), "Integrations"),
 });
+const adminSyslogRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/syslog",
+  component: lazyRouteComponent(() => import("../pages/AdminSyslog"), "AdminSyslog"),
+});
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/access",
@@ -320,6 +325,7 @@ export const routeTree = rootRoute.addChildren([
   adminSystemRoute,
   adminNotificationsRoute,
   integrationsRoute,
+  adminSyslogRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

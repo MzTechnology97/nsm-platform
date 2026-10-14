@@ -159,30 +159,56 @@ def admin_syslog(request: Request, status: str = ""):
                            devices=devices, stored_today=stored, senders_today=senders)
 
 
+class InvalidNetworks(ValueError):
+    """Allowed networks that are not valid CIDR; ``values`` lists them."""
+
+    def __init__(self, values: list[str]):
+        super().__init__(", ".join(values))
+        self.values = values
+
+
+def save_syslog_settings(db, user, *, public_host: str, info_retention_days, allowed_networks: str, auto_configure: bool) -> dict:
+    """Store the receiver settings (key-only mode is always on), audited. Raises ``InvalidNetworks``. Caller commits."""
+    retention = receiver.info_retention_days({"info_retention_days": info_retention_days})
+    raw_networks = [part.strip() for part in str(allowed_networks or "").replace(",", "\n").splitlines() if part.strip()]
+    networks, invalid = [], []
+    for value in raw_networks[:500]:
+        parsed = identity.parse_networks([value])
+        (networks if parsed else invalid).append(str(parsed[0]) if parsed else value)
+    if invalid:
+        raise InvalidNetworks(invalid)
+    values = {"public_host": str(public_host or "").strip()[:255], "info_retention_days": retention,
+              "auto_configure": bool(auto_configure), "strict_mode": True, "allowed_networks": networks}
+    row = _settings_row(db)
+    if row is None:
+        db.add(ConnectorIntegration(provider=receiver.PROVIDER, name="Syslog integrato", base_url=f"syslog://{values['public_host'] or 'nsm'}:514",
+                                    secret_encrypted="", settings=values))
+    else:
+        row.settings = values
+    core.add_event(db, "SYSLOG_SETTINGS_CHANGED", actor=user, details=values, source="portal")
+    return values
+
+
+def clear_unknown_source(db, source_ip) -> bool:
+    """Remove a discarded sender from the list (key-only mode: an address no longer identifies a device). Caller commits."""
+    source_ip = receiver._norm(source_ip)
+    if not source_ip:
+        return False
+    db.execute(delete(SyslogUnknownSource).where(SyslogUnknownSource.source_ip == source_ip))
+    return True
+
+
 @router.post("/admin/syslog/settings", name="admin_syslog_settings")
 async def save_settings(request: Request):
     form = await request.form()
     validate_csrf(request, str(form.get("csrf") or ""))
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        retention = receiver.info_retention_days({"info_retention_days": form.get("info_retention_days")})
-        raw_networks = [part.strip() for part in str(form.get("allowed_networks") or "").replace(",", "\n").splitlines() if part.strip()]
-        networks, invalid = [], []
-        for value in raw_networks[:500]:
-            parsed = identity.parse_networks([value])
-            (networks if parsed else invalid).append(str(parsed[0]) if parsed else value)
-        if invalid:
-            return RedirectResponse("/admin/syslog?status=bad_networks&detail=" + ",".join(invalid[:5])[:200], status_code=303)
-        values = {"public_host": str(form.get("public_host") or "").strip()[:255], "info_retention_days": retention,
-                  "auto_configure": form.get("auto_configure") == "1", "strict_mode": form.get("strict_mode") == "1",
-                  "allowed_networks": networks}
-        row = _settings_row(db)
-        if row is None:
-            db.add(ConnectorIntegration(provider=receiver.PROVIDER, name="Syslog integrato", base_url=f"syslog://{values['public_host'] or 'nsm'}:514",
-                                        secret_encrypted="", settings=values))
-        else:
-            row.settings = values
-        core.add_event(db, "SYSLOG_SETTINGS_CHANGED", actor=user, details=values, source="portal")
+        try:
+            save_syslog_settings(db, user, public_host=str(form.get("public_host") or ""), info_retention_days=form.get("info_retention_days"),
+                                 allowed_networks=str(form.get("allowed_networks") or ""), auto_configure=form.get("auto_configure") == "1")
+        except InvalidNetworks as error:
+            return RedirectResponse("/admin/syslog?status=bad_networks&detail=" + ",".join(error.values[:5])[:200], status_code=303)
         db.commit()
     return RedirectResponse("/admin/syslog?status=saved", status_code=303)
 
@@ -192,11 +218,9 @@ async def assign_unknown(request: Request):
     """Key-only mode: discarded senders can only be cleared (an address no longer identifies a device)."""
     form = await request.form()
     validate_csrf(request, str(form.get("csrf") or ""))
-    source_ip = receiver._norm(form.get("source_ip"))
     with SessionLocal() as db:
         core.require_admin(request, db)
-        if source_ip:
-            db.execute(delete(SyslogUnknownSource).where(SyslogUnknownSource.source_ip == source_ip))
+        if clear_unknown_source(db, form.get("source_ip")):
             db.commit()
     return RedirectResponse("/admin/syslog?status=ignored", status_code=303)
 
