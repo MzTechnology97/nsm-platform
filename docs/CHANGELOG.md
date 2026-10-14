@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.131 — 2026-10-14
+
+New interface (React) — ACS (TR-069), phase 6k
+- **ACS administration in `/app/admin/acs`**, in the *ACS* tab of the new administration area:
+  - **Status:** link state with GenieACS, the ACS URL the CPEs must use (port 7547) and the GenieACS panel port;
+  - **ACS panel:** *Open ACS panel* opens it in a new tab, reserved to NSM administrators, then the GenieACS login;
+  - **TP-Link CPE setup guide** (CPE, network, templates, checks in the panel, link in NSM) and the security advice, in four languages;
+  - **Provisioning templates:** the presets with their condition, the NSM base provision script, and *Install base templates*. When GenieACS is not linked yet, the page says how to link it.
+- Installing the base templates is now a shared function (`acs_admin.install_base_templates`), used by both interfaces; the classic page behaves as before.
+- **API.** All routes need `users.manage`; the `POST` route also needs the CSRF header:
+  - `GET /api/ui/v1/admin/acs`;
+  - `POST /api/ui/v1/admin/acs/templates`.
+
 ## 0.49.130 — 2026-10-14
 
 New interface (React) — branding, phase 6j

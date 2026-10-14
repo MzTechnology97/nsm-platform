@@ -36,7 +36,9 @@
   observed releases (``firmware.read``); ``POST`` refresh (``users.manage``);
 - ``GET /api/ui/v1/admin/branding``: name, tagline, colours and logo; ``POST``
   save, upload or remove the logo, reset one colour (``ui_extension`` /
-  ``workflow_ui``).
+  ``workflow_ui``);
+- ``GET /api/ui/v1/admin/acs``: TR-069 server state, CPE and panel addresses,
+  base templates; ``POST`` install the templates (``acs_admin``).
 """
 from __future__ import annotations
 
@@ -48,6 +50,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
 
 from app import (
+    acs_admin,
     advisory_admin,
     advisory_sources,
     api_key_lifecycle,
@@ -708,6 +711,34 @@ def admin_branding_color_reset(request: Request, color_key: str):
     if color_key not in workflow_ui.DEFAULT_COLORS:
         raise HTTPException(404, {"code": "not_found", "message": "Colore sconosciuto."})
     return _branding_write(request, lambda db, user: workflow_ui.reset_color(db, user, color_key))
+
+
+@router.get("/admin/acs")
+def admin_acs(request: Request):
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        connection = genieacs_connector._connection(db)
+        _scheme, host = acs_admin._public_host(request)
+        return {
+            "state": "unconfigured" if connection is None else "active" if connection.is_enabled else "disabled",
+            "base_url": connection.base_url if connection else None,
+            "internal_available": bool(genieacs_connector.internal_nbi_url()),
+            "panel_url": acs_admin.panel_url(request), "acs_url": f"http://{host}:7547/",
+            "base_provision": acs_admin.BASE_PROVISION, "provision_script": acs_admin.BASE_PROVISION_SCRIPT,
+            "presets": [{"name": name, "precondition": preset["precondition"]} for name, preset in acs_admin.PRESETS.items()],
+        }
+
+
+@router.post("/admin/acs/templates", dependencies=[Depends(require_csrf)])
+def admin_acs_templates(request: Request):
+    def run(db, user):
+        try:
+            return {"installed": acs_admin.install_base_templates(db, user)}
+        except genieacs_connector.GenieAcsConnectorError as error:
+            code = "not_connected" if str(error) == acs_admin.NOT_CONNECTED else "genieacs_error"
+            raise HTTPException(422, {"code": code, "message": str(error)}) from None
+
+    return _admin_write(request, run)
 
 
 def install_ui_admin(app) -> None:

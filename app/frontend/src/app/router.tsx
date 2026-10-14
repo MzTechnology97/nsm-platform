@@ -260,6 +260,11 @@ const adminBrandingRoute = createRoute({
   path: "/admin/branding",
   component: lazyRouteComponent(() => import("../pages/AdminBranding"), "AdminBranding"),
 });
+const adminAcsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/acs",
+  component: lazyRouteComponent(() => import("../pages/AdminAcs"), "AdminAcs"),
+});
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/access",
@@ -344,6 +349,7 @@ export const routeTree = rootRoute.addChildren([
   adminNvdRoute,
   routerosRoute,
   adminBrandingRoute,
+  adminAcsRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

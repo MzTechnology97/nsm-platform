@@ -2353,5 +2353,63 @@
       "logo_size": "El logotipo debe ocupar menos de 2 MB.",
       "logo_type": "Formato de logotipo no admitido. Usa PNG, JPEG o WebP."
     }
+  },
+  "acs": {
+    "subtitle": "Servidor TR-069 integrado (GenieACS): acceso al panel, configuración de los CPE y plantillas de aprovisionamiento.",
+    "link": "Vínculo con NSM",
+    "states": {
+      "unconfigured": "Sin configurar",
+      "active": "Activo",
+      "disabled": "Deshabilitado"
+    },
+    "internalAvailable": "GenieACS integrado disponible",
+    "enableHint": "ejecuta ./manage.sh acs-enable",
+    "cpeUrl": "URL ACS para los CPE",
+    "cwmpPort": "puerto 7547 (CWMP)",
+    "panel": "Panel de GenieACS",
+    "port": "puerto {{port}}",
+    "panelAccess": "solo administradores de NSM, luego acceso a GenieACS",
+    "panelTitle": "Panel ACS",
+    "openPanel": "Abrir panel ACS",
+    "panelHelp": "Se abre en una pestaña nueva. NSM comprueba que eres administrador; en el primer acceso GenieACS pide crear su propio administrador y la configuración inicial (procedimiento «init»).",
+    "linkHint": "Vincula NSM con GenieACS con «Usar GenieACS integrado» para ver los CPE en NSM:",
+    "linkPage": "Integraciones → GenieACS",
+    "guideTitle": "Configurar un CPE TP-Link",
+    "guideHelp": "Los menús pueden cambiar entre modelos y firmware; el TR-069 está sobre todo en modelos para operadores (ONT XZ/XC, Archer VR/VX, algunos Archer C con firmware de ISP).",
+    "steps": {
+      "cpe": {
+        "title": "En el CPE:",
+        "text": "Advanced → System Tools → CWMP Settings (o TR-069): CWMP activado; ACS URL <code>{{url}}</code>; ACS Username y Password vacíos en la primera prueba, luego configúralos; Periodic Inform activado cada 300 segundos; Connection Request Username y Password con tus credenciales, los usa GenieACS para contactar con el CPE."
+      },
+      "network": {
+        "title": "Red:",
+        "text": "el CPE debe alcanzar este servidor en el puerto 7547/TCP. Las connection requests (acciones inmediatas del ACS hacia el CPE) solo funcionan si el CPE es accesible; detrás de NAT los cambios se aplican en el siguiente inform periódico."
+      },
+      "templates": {
+        "title": "Plantillas:",
+        "text": "instala abajo el aprovisionamiento base de NSM. En el primer contacto (BOOTSTRAP) y en cada inform el CPE fija el inform cada 5 minutos y envía firmware, identidad e IP WAN/PPPoE."
+      },
+      "verify": {
+        "title": "Comprueba en el panel ACS:",
+        "text": "el CPE aparece en Devices con fabricante, modelo y número de serie; los errores, en Faults."
+      },
+      "nsm": {
+        "title": "En NSM:",
+        "text": "crea el equipo TP-Link con su MAC o número de serie, abre la pestaña ACS del equipo y vincúlalo al CPE encontrado en GenieACS."
+      }
+    },
+    "securityTitle": "Seguridad",
+    "security": {
+      "auth": "Tras la primera prueba configura la autenticación de los CPE en GenieACS: Admin → Config, clave <code>cwmp.auth</code> (por ejemplo <code>AUTH(\"usuario-acs\", \"contraseña-larga\")</code>) y las mismas credenciales en cada CPE.",
+      "network": "Abre el puerto 7547 solo hacia las redes de los clientes y, si el CPE lo admite, usa HTTPS en el ACS."
+    },
+    "templatesTitle": "Plantillas de aprovisionamiento",
+    "install": "Instalar plantillas base",
+    "templatesHelp": "En GenieACS una plantilla es una provision (script que lee y fija parámetros) aplicada por un preset (cuándo: eventos y condición sobre el equipo). El botón crea o actualiza las de NSM; puedes modificarlas o añadir otras desde el panel ACS.",
+    "installed": "Plantillas instaladas en GenieACS: {{items}}. Las encontrarás en el panel ACS en Admin → Provisions y Presets.",
+    "notConnected": "Vincula primero GenieACS en Integraciones → GenieACS (botón «Usar GenieACS integrado»).",
+    "preset": "Preset",
+    "presetText": "condición <code>{{condition}}</code>, eventos bootstrap, boot y periodic → provision <code>{{provision}}</code>",
+    "script": "Script de la provision {{name}}"
   }
 }
