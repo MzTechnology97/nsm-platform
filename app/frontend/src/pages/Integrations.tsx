@@ -42,7 +42,7 @@ export function Integrations() {
   const manage = (href: string, configured: boolean) =>
     data?.can_admin ? <a className="ui-button ui-button-ghost ui-button-small" href={href}>{configured ? t("integrations.manage") : t("integrations.configure")}</a> : null;
 
-  const manageRoute = (to: "/admin/integrations/cnmaestro" | "/admin/integrations/zabbix", configured: boolean) =>
+  const manageRoute = (to: "/admin/integrations/cnmaestro" | "/admin/integrations/zabbix" | "/admin/integrations/genieacs", configured: boolean) =>
     data?.can_admin ? <Link className="ui-button ui-button-ghost ui-button-small" to={to}>{configured ? t("integrations.manage") : t("integrations.configure")}</Link> : null;
 
   return (
@@ -96,7 +96,7 @@ export function Integrations() {
           </Card>
 
           <Card name="genieacs" title={t("integrations.genieacs.title")} help={t("integrations.genieacs.help")} state={data.genieacs.state} label={state(data.genieacs.state)}
-            actions={manage("/admin/integrations/genieacs", data.genieacs.state !== "unconfigured")}>
+            actions={manageRoute("/admin/integrations/genieacs", data.genieacs.state !== "unconfigured")}>
             <Facts items={[[t("integrations.genieacs.linked"), data.genieacs.linked], [t("integrations.genieacs.pending"), data.genieacs.pending]]} />
             <p className="ui-muted">{t("integrations.genieacs.limits")}</p>
           </Card>

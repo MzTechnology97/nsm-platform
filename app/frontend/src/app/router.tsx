@@ -280,6 +280,11 @@ const adminZabbixRoute = createRoute({
   path: "/admin/integrations/zabbix",
   component: lazyRouteComponent(() => import("../pages/AdminZabbix"), "AdminZabbix"),
 });
+const adminGenieacsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/integrations/genieacs",
+  component: lazyRouteComponent(() => import("../pages/AdminGenieacs"), "AdminGenieacs"),
+});
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/access",
@@ -368,6 +373,7 @@ export const routeTree = rootRoute.addChildren([
   adminDemoRoute,
   adminCnmaestroRoute,
   adminZabbixRoute,
+  adminGenieacsRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

@@ -513,3 +513,24 @@ export interface ZabbixAdmin {
 
 export const useZabbixAdmin = () =>
   useQuery({ queryKey: ["admin-zabbix"], queryFn: () => api<ZabbixAdmin>("/api/ui/v1/admin/integrations/zabbix") });
+
+export interface GenieacsAdmin {
+  configured: boolean;
+  enabled: boolean;
+  base_url: string;
+  auth_mode: "none" | "basic" | "bearer";
+  auth_username: string;
+  verify_tls: boolean;
+  mac_parameter_paths: string[];
+  online_window_minutes: number;
+  internal_url: string | null;
+  uses_internal: boolean;
+  auto_linked: boolean;
+  last_tested_at: string | null;
+  last_test_status: string | null;
+  last_error: string | null;
+  last_sync_at: string | null;
+}
+
+export const useGenieacsAdmin = () =>
+  useQuery({ queryKey: ["admin-genieacs"], queryFn: () => api<GenieacsAdmin>("/api/ui/v1/admin/integrations/genieacs") });
