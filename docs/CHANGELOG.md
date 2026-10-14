@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.116 — 2026-10-14
+
+New interface (React) — compliance, phase 4d
+- **Compliance in `/app/compliance`**, also reachable from the sidebar of the new interface. It shows the result of each control (firmware without security updates, no unhandled severe CVE, recent backup, restore test, vendor support, NSM agent active, approved configuration, cleartext services disabled) per device, worst first.
+- **Matrix:**
+  - one cell per control: compliant, non-compliant, no evidence, exception, not applicable;
+  - the cell shows the evidence on hover and opens the classic result page, where exceptions are handled.
+- **Outcomes with counts:** non-compliant (the default, without exceptions), in exception, no evidence, compliant, all. Customer and control filters stay in the address.
+- *Evaluate now* (for users who manage compliance) recalculates every device with the same rules as the classic button and reports the outcome. Baselines are still managed on the classic page.
+- The compliance matrix and the evaluation are now shared functions in `compliance`, used by both interfaces; the classic page behaves as before.
+- **API.** `GET /api/ui/v1/compliance` (`compliance.read`), `POST /api/ui/v1/compliance/evaluate` (`compliance.manage`, CSRF header).
+- **Phase 4 complete.** Vulnerabilities, exposed services, access, lifecycle and compliance are now in the new interface.
+
 ## 0.49.115 — 2026-10-14
 
 New interface (React) — access and lifecycle, phase 4c

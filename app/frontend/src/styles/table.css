@@ -366,3 +366,45 @@
   margin-left: 0;
   max-width: 520px;
 }
+
+/* Compliance matrix: one compact cell per control. */
+.ui-matrix-head {
+  max-width: 90px;
+  white-space: normal;
+}
+
+.ui-matrix-cell {
+  width: 1%;
+  text-align: center;
+  font-weight: 700;
+}
+
+.ui-matrix-cell a {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ui-matrix-cell.is-pass a {
+  background: color-mix(in srgb, var(--success) 16%, var(--panel));
+  color: var(--success);
+}
+
+.ui-matrix-cell.is-fail a {
+  background: color-mix(in srgb, var(--danger) 16%, var(--panel));
+  color: var(--danger);
+}
+
+.ui-matrix-cell.is-unknown a,
+.ui-matrix-cell.is-exception a {
+  background: color-mix(in srgb, var(--warning) 16%, var(--panel));
+  color: var(--warning);
+}
+
+.ui-matrix-cell.is-na {
+  color: var(--muted);
+}

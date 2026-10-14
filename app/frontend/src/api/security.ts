@@ -1,4 +1,4 @@
-import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./client";
 
@@ -182,3 +182,50 @@ export const useLifecycle = (filters: LifecycleFilters) =>
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
+
+export const COMPLIANCE_STATUSES = ["fail", "exception", "unknown", "pass", "all"] as const;
+export type ComplianceStatus = (typeof COMPLIANCE_STATUSES)[number];
+
+export interface ComplianceFilters {
+  status?: ComplianceStatus;
+  customer?: string;
+  control?: string;
+}
+
+export interface CompliancePage {
+  status: ComplianceStatus;
+  control: string;
+  total: number;
+  offset: number;
+  limit: number;
+  totals: Record<string, number>;
+  device_counts: Record<string, number>;
+  devices_total: number;
+  last_eval: string | null;
+  controls: { id: string; title: string; category: string }[];
+  has_baselines: boolean;
+  can_manage: boolean;
+  items: {
+    device: DeviceRef;
+    status: string;
+    results: Record<string, { id: string; status: string; exception: boolean; evidence: string }>;
+  }[];
+}
+
+export const useCompliance = (filters: ComplianceFilters) =>
+  useInfiniteQuery({
+    queryKey: ["compliance", filters],
+    queryFn: ({ pageParam }) => api<CompliancePage>(`/api/ui/v1/compliance${query({ ...filters, offset: pageParam })}`),
+    initialPageParam: 0,
+    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  });
+
+export function useComplianceEvaluate() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<{ devices: number; fail: number; unknown: number; pass: number }>("/api/ui/v1/compliance/evaluate", { method: "POST" }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["compliance"] }),
+  });
+}

@@ -1294,5 +1294,57 @@
     "addRecord": "Add to catalog",
     "empty": "No device in this state.",
     "allGood": "No device out of support."
+  },
+  "compliance": {
+    "title": "Compliance",
+    "subtitle": "Compliance controls per device.",
+    "lastEval": "Last evaluation {{when}}.",
+    "evaluate": "Evaluate now",
+    "baselines": "Baselines",
+    "evaluated": "Evaluated {{devices}} devices: {{fail}} non-compliant, {{unknown}} without evidence, {{pass}} compliant.",
+    "noBaselines": "No baseline defined: the default controls apply. Baselines are managed on the classic page.",
+    "states": {
+      "label": "Outcome",
+      "fail": "Non-compliant",
+      "exception": "Exception",
+      "unknown": "No evidence",
+      "pass": "Compliant",
+      "all": "All"
+    },
+    "control": "Control",
+    "allControls": "All controls",
+    "columns": {
+      "device": "Device",
+      "state": "Outcome"
+    },
+    "result": {
+      "pass": "compliant",
+      "fail": "non-compliant",
+      "unknown": "no evidence",
+      "not_applicable": "not applicable"
+    },
+    "legend": "✓ compliant · ✗ non-compliant · ? no evidence · E exception · – not applicable",
+    "allGood": "No open non-compliance.",
+    "empty": "No device with this outcome.",
+    "controls": {
+      "firmware_current": "Firmware without security updates",
+      "no_unhandled_severe_vulnerabilities": "No unhandled severe CVE",
+      "backup_recent": "Recent successful backup",
+      "restore_tested": "Restore test passed",
+      "lifecycle_supported": "Device supported by the vendor",
+      "agent_heartbeat": "NSM agent active",
+      "config_baseline": "Approved configuration without drift",
+      "cleartext_services_disabled": "Cleartext services disabled"
+    },
+    "short": {
+      "firmware_current": "Firmware",
+      "no_unhandled_severe_vulnerabilities": "CVE",
+      "backup_recent": "Backup",
+      "restore_tested": "Restore",
+      "lifecycle_supported": "Lifecycle",
+      "agent_heartbeat": "Agent",
+      "config_baseline": "Config",
+      "cleartext_services_disabled": "Services"
+    }
   }
 }
