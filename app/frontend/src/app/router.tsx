@@ -29,7 +29,7 @@ import {
 } from "../api/operations";
 import { DeviceDetail, DeviceOverview } from "../pages/DeviceDetail";
 import { Devices } from "../pages/Devices";
-import { Home } from "../pages/Home";
+
 import { Layout } from "./Layout";
 
 function NotFound() {
@@ -64,7 +64,7 @@ export function parseCustomerSearch(search: Record<string, unknown>): CustomerFi
 }
 
 const rootRoute = createRootRoute({ component: Layout, notFoundComponent: NotFound });
-const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: Home });
+const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: lazyRouteComponent(() => import("../pages/Home"), "Home") });
 const devicesRoute = createRoute({ getParentRoute: () => rootRoute, path: "/devices", component: Devices, validateSearch: parseDeviceSearch });
 
 const customersRoute = createRoute({ getParentRoute: () => rootRoute, path: "/customers", component: Customers, validateSearch: parseCustomerSearch });

@@ -4,6 +4,21 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.138 — 2026-10-14
+
+New interface (React) — dashboard, phase 7a
+- **Dashboard in `/app/`.** The home of the new interface was a list of links; it is now the full dashboard:
+  - **KPIs:** devices, online, offline, protected backups, severe CVEs, firmware to update, Action Center issues and end-of-life devices. Each one opens the matching page;
+  - **Coverage:** availability and backup coverage rings, with percentages formatted for the chosen language;
+  - **Needs attention:** critical issues, severe CVEs, failed backups, firmware to update and pending devices;
+  - **Fleet distribution:** the most common vendors, firmware versions and models;
+  - **Latest advisories:** recent CVEs with severity and the number of affected devices, linked to the advisory page;
+  - **Recent activity:** the latest audit events, linked to the activity log.
+  The page refreshes every 30 seconds.
+- **Shared code.** The classic dashboard now reads its data from `dashboard_ui.dashboard_data`, which the API uses too; the classic page behaves as before.
+- **API.** `GET /api/ui/v1/dashboard` is open to any signed-in user.
+- **Phase 7 starts.** The remaining classic pages are migrated one at a time before the classic interface is retired.
+
 ## 0.49.137 — 2026-10-14
 
 New interface (React) — UISP onboarding, phase 6q

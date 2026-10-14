@@ -38,12 +38,6 @@
     "logout": "Sign out",
     "profile": "Profile"
   },
-  "home": {
-    "title": "Welcome to the new interface",
-    "intro": "Sections arrive one at a time. Those not migrated yet open in the classic interface, with the same session.",
-    "migrated": "New interface",
-    "classic": "Classic interface"
-  },
   "errors": {
     "notFound": "Page not found.",
     "forbidden": "You do not have permission for this section.",
@@ -2715,5 +2709,87 @@
     "skipped_other": "{{count}} skipped because changed in UISP or already present: {{names}}.",
     "openCustomer": "Open the customer",
     "again": "New onboarding"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "State of the managed network: availability, backups, security and lifecycle.",
+    "customers": "Customers",
+    "sites": "Sites",
+    "refresh": "Refresh",
+    "updated": "Updated {{when}}, refreshes every 30 seconds.",
+    "coverage": "Coverage",
+    "coverageHelp": "Share of devices that are reachable and protected by a recent backup.",
+    "availability": "Availability",
+    "online": "Online",
+    "offline": "Offline",
+    "backupCoverage": "Backup coverage",
+    "backupReady": "Protected",
+    "backupNotReady": "No valid backup or policy",
+    "attention": "Needs attention",
+    "open": "Open",
+    "attentionHelp": "What needs action now.",
+    "attentionItems": {
+      "critical": {
+        "title": "Critical issues",
+        "note": "Open items in the Action Center"
+      },
+      "cve": {
+        "title": "Severe CVEs",
+        "note": "Devices with critical or high vulnerabilities"
+      },
+      "backupFailed": {
+        "title": "Failed backups",
+        "note": "Last backup did not succeed"
+      },
+      "firmware": {
+        "title": "Firmware to update",
+        "note": "Outdated or unsupported versions"
+      },
+      "pending": {
+        "title": "Pending devices",
+        "note": "Not verified yet"
+      }
+    },
+    "distribution": "Fleet distribution",
+    "distributionHelp": "Most common vendors, firmware versions and models.",
+    "openInventory": "Open inventory",
+    "vendors": "Vendors",
+    "vendorsHelp": "Devices by vendor.",
+    "firmwareVersions": "Firmware versions",
+    "firmwareHelp": "Most installed versions.",
+    "models": "Models",
+    "modelsHelp": "Most common models.",
+    "unknown": "Unknown",
+    "noData": "No data.",
+    "advisories": "Latest security advisories",
+    "all": "All",
+    "advisoriesHelp": "Recently published CVEs and affected devices.",
+    "advisoryColumns": {
+      "cve": "CVE",
+      "vendor": "Vendor",
+      "severity": "Severity",
+      "published": "Published",
+      "impact": "Impact"
+    },
+    "affected_one": "{{count}} device",
+    "affected_other": "{{count}} devices",
+    "noAdvisories": "No advisories.",
+    "events": "Recent activity",
+    "audit": "Activity log",
+    "eventsHelp": "Latest recorded operations.",
+    "noEvents": "No activity.",
+    "devices": "Devices",
+    "onlineNote": "{{count}} online",
+    "reachable": "Reachable",
+    "toCheck": "To check",
+    "backupProtected": "Protected backups",
+    "coveragePercent": "Coverage {{percent}}%",
+    "severeCve": "Severe CVEs",
+    "devicesInvolved": "Affected devices",
+    "firmware": "Firmware",
+    "firmwareNote": "To update",
+    "criticalNote": "{{count}} critical",
+    "eol": "End of life",
+    "eolNote": "EOL or EOS devices"
   }
 }
