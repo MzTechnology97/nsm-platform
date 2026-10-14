@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.112 — 2026-10-14
+
+New interface (React) — translations loaded per language, phase 3e
+- **Faster first load.** The four translations no longer travel in the initial bundle. The interface downloads only the language in use (about 10 KB compressed) before showing the first page, and fetches another language only when the user switches to it. The initial JavaScript drops from about 153 KB to 122 KB compressed.
+- No untranslated keys appear while switching: the language changes only once its file has arrived. The tests still check that the four languages have exactly the same keys.
+- **Phase 3 complete.** Monitoring, MikroTik agents, backup overview and firmware are now in the new interface.
+
 ## 0.49.111 — 2026-10-14
 
 New interface (React) — firmware worklist, phase 3d

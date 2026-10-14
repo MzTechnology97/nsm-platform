@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api, ApiError, setCsrfToken, setNavigate } from "../api/client";
-import { pickLanguage, resources } from "../i18n";
+import { pickLanguage } from "../i18n";
+import { resources } from "../i18n/resources";
 
 function keys(value: unknown, prefix = ""): string[] {
   if (value && typeof value === "object") {

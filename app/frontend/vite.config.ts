@@ -12,5 +12,5 @@ export default defineConfig({
     // Development: run NSM on :8000 and `npm run dev`; API and pages are proxied.
     proxy: { "/api": "http://127.0.0.1:8000", "/login": "http://127.0.0.1:8000", "/logout": "http://127.0.0.1:8000", "/static/ui-icons.svg": "http://127.0.0.1:8000" },
   },
-  test: { environment: "jsdom", globals: false, setupFiles: [] },
+  test: { environment: "jsdom", globals: false, setupFiles: ["src/test/setup.ts"] },
 });
