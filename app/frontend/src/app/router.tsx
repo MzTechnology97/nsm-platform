@@ -2,7 +2,7 @@ import { createRootRoute, createRoute, createRouter, lazyRouteComponent } from "
 import { useTranslation } from "react-i18next";
 
 import type { CustomerFilters } from "../api/customers";
-import type { VulnFilters } from "../api/security";
+import { EXPOSURE_VIEWS, type ExposureFilters, type VulnFilters } from "../api/security";
 import type { DeviceFilters } from "../api/devices";
 import { CustomerDetail, CustomerOverview, CustomerSites } from "../pages/CustomerDetail";
 import type { GraphsSearch } from "../pages/CustomerGraphs";
@@ -149,6 +149,15 @@ const vulnerabilityRoute = createRoute({
     return { ...(out.customer ? { customer: out.customer } : {}), ...(out.status ? { status: out.status } : {}) };
   },
 });
+const exposureRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/exposure",
+  component: lazyRouteComponent(() => import("../pages/Exposure"), "Exposure"),
+  validateSearch: (search: Record<string, unknown>): ExposureFilters => ({
+    ...(typeof search.view === "string" && (EXPOSURE_VIEWS as readonly string[]).includes(search.view) ? { view: search.view as ExposureFilters["view"] } : {}),
+    ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
+  }),
+});
 const firmwareRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/firmware",
@@ -183,6 +192,7 @@ export const routeTree = rootRoute.addChildren([
   firmwareRoute,
   vulnerabilitiesRoute,
   vulnerabilityRoute,
+  exposureRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

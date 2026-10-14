@@ -4,7 +4,10 @@
   customers, severity counts and filters, from ``security_drilldown``;
 - ``GET /api/ui/v1/vulnerabilities/{advisory_id}``: one advisory with its
   matching rules, impacted devices (open or resolved, per customer) and the
-  devices of the product that cannot be assessed.
+  devices of the product that cannot be assessed;
+- ``GET /api/ui/v1/exposure``: services reachable from the Internet per device
+  (from the agent configuration or checked from outside), from
+  ``device_exposure.fleet``.
 
 Remediation (finding detail, risk acceptance) keeps its classic pages.
 """
@@ -15,6 +18,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import func, select
 
+from app import device_exposure
 from app import security_drilldown as security
 from app.advisory_matching import describe_rule, unknown_devices
 from app.db import SessionLocal
@@ -120,6 +124,31 @@ def vulnerability_detail(request: Request, advisory_id: uuid.UUID, customer: str
                             "customer": {"id": str(device.customer.id), "name": device.customer.name} if device.customer else None,
                             "version": device.firmware_version, "reason": reason}
                            for device, reason in unknown_devices(db, advisory, customer_id)],
+        }
+
+
+EXPOSURE_VIEWS = {"exposed": ("exposed",), "setup": ("setup",), "clean": ("clean",), "pending": ("pending",),
+                  "all": ("exposed", "clean", "setup", "pending")}
+EXPOSURE_LIMIT = 500
+
+
+@router.get("/exposure")
+def exposure(request: Request, view: str = "exposed", customer: str = ""):
+    with SessionLocal() as db:
+        ui_user(request, db, "security.read")
+        view = view if view in EXPOSURE_VIEWS else "exposed"
+        data = device_exposure.fleet(db, _uuid(customer))
+        rows = [r for r in data["rows"] if r["state"] in EXPOSURE_VIEWS[view]]
+        return {
+            "view": view, "total": len(rows), "limit": EXPOSURE_LIMIT, "counts": data["counts"],
+            "items": [{
+                "id": str(r["device"].id), "name": r["device"].display_name or r["device"].device_identity or r["device"].name,
+                "vendor": r["device"].vendor, "customer": {"id": str(r["customer"].id), "name": r["customer"].name} if r["customer"] else None,
+                "mode": r["mode"], "state": r["state"], "blocker": r["blocker"], "worst": r["worst"], "checked_at": r["checked_at"],
+                "target_ip": r["target_ip"], "shared": r["shared"], "private": r["private"],
+                "findings": [{"label": f.get("label"), "proto": f.get("proto"), "port": f.get("port"), "severity": f.get("severity") or "info"}
+                             for f in r["exposed"]],
+            } for r in rows[:EXPOSURE_LIMIT]],
         }
 
 

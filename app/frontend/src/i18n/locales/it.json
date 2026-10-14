@@ -1185,5 +1185,38 @@
       "low": "bassa",
       "unknown": "non classificata"
     }
+  },
+  "exposure": {
+    "title": "Servizi esposti",
+    "subtitle": "Servizi raggiungibili da Internet per ogni apparato: dalla configurazione letta dall'agent o verificati dall'esterno sull'IP pubblico.",
+    "critical_one": "{{count}} apparato espone un servizio critico (es. telnet, Winbox o API in chiaro).",
+    "critical_other": "{{count}} apparati espongono un servizio critico (es. telnet, Winbox o API in chiaro).",
+    "views": {
+      "label": "Esposizione",
+      "exposed": "Con servizi esposti",
+      "setup": "Da configurare",
+      "clean": "Senza esposizioni",
+      "pending": "Verifica in corso",
+      "all": "Tutti"
+    },
+    "columns": {
+      "device": "Apparato",
+      "customer": "Cliente",
+      "mode": "Verifica",
+      "services": "Servizi esposti",
+      "worst": "Più grave",
+      "checked": "Ultima verifica"
+    },
+    "modes": {
+      "agent": "Agent (configurazione)",
+      "external": "Dall'esterno"
+    },
+    "shared": "IP condiviso",
+    "private": "IP privato/CGNAT",
+    "more": "… e altri {{count}}",
+    "pending": "verifica in corso",
+    "none": "nessuna esposizione",
+    "allGood": "Nessun apparato espone servizi su Internet.",
+    "empty": "Nessun apparato in questa vista."
   }
 }

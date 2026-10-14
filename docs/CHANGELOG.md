@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.114 — 2026-10-14
+
+New interface (React) — exposed services, phase 4b
+- **Exposed services in `/app/exposure`**, also reachable from the sidebar of the new interface. It holds the same fleet view as the classic page:
+  - every device with what it exposes to the Internet, worst first;
+  - the check comes from the configuration read by the MikroTik agent (raw and filter rules, port forwards) or from outside on the public IP.
+- **Views with counts:** with exposed services (the default), to set up (with the reason: missing IP, agent to update…), no exposure, check in progress, all; customer filter. Views stay in the address.
+- **Per device:**
+  - exposed services with protocol/port and severity (sensitive port forwards included);
+  - worst severity, check mode, target IP, shared or private/CGNAT address, last check.
+  - The name opens the device Exposure tab.
+- A banner warns when devices expose critical services.
+- **API.** `GET /api/ui/v1/exposure` (`security.read`), built on `device_exposure.fleet`.
+
 ## 0.49.113 — 2026-10-14
 
 New interface (React) — vulnerabilities, phase 4a

@@ -361,3 +361,8 @@
   margin: 0 0 var(--space-3);
   line-height: 1.5;
 }
+
+.ui-flags-wrap {
+  margin-left: 0;
+  max-width: 520px;
+}
