@@ -40,7 +40,9 @@
 - ``GET /api/ui/v1/admin/acs``: TR-069 server state, CPE and panel addresses,
   base templates; ``POST`` install the templates (``acs_admin``);
 - ``GET /api/ui/v1/admin/demo``: demo customers; ``POST`` seed or clear the
-  demo dataset (clearing requires typing DEMO), through ``demo_ui``.
+  demo dataset (clearing requires typing DEMO), through ``demo_ui``;
+- ``GET /api/ui/v1/admin/integrations/cnmaestro``: connection (secret never
+  returned) and last sync; ``POST`` save, test, sync (``cnmaestro_connector``).
 """
 from __future__ import annotations
 
@@ -771,6 +773,61 @@ def admin_demo_clear(request: Request, body: dict = Body(default={})):
     demo_ui.run_clear(actor_id)
     with SessionLocal() as db:
         return {"demo_customers": demo_ui.demo_customers(db)}
+
+
+def _cnmaestro_payload(db) -> dict:
+    row = cnmaestro_connector.connection_row(db)
+    last = ((row.settings or {}).get("last_sync") or {}) if row else {}
+    return jsonable_encoder({
+        "configured": row is not None, "enabled": bool(row and row.is_enabled), "base_url": row.base_url if row else "",
+        "client_id": cnmaestro_connector.client_id_of(row), "verify_tls": bool(row.verify_tls) if row else True,
+        "last_test_status": row.last_test_status if row else None, "last_error": row.last_error if row else None,
+        "last_sync_at": row.last_sync_at if row else None,
+        "last_sync": {key: last.get(key) for key in ("status", "cnmaestro_devices", "linked", "new_links", "unmatched", "statistics_error", "error")},
+    })
+
+
+@router.get("/admin/integrations/cnmaestro")
+def admin_cnmaestro(request: Request):
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        return _cnmaestro_payload(db)
+
+
+@router.post("/admin/integrations/cnmaestro", dependencies=[Depends(require_csrf)])
+def admin_cnmaestro_save(request: Request, body: dict = Body(default={})):
+    def save(db, user):
+        try:
+            cnmaestro_connector.save_config(db, user, base_url=_text(body, "base_url"), client_id=_text(body, "client_id"),
+                                            client_secret=_text(body, "client_secret"), verify_tls=body.get("verify_tls") is not False,
+                                            enabled=body.get("enabled") is True)
+        except ValueError as error:
+            raise HTTPException(422, {"code": "invalid", "message": str(error)}) from None
+        db.flush()
+        return _cnmaestro_payload(db)
+
+    return _admin_write(request, save)
+
+
+@router.post("/admin/integrations/cnmaestro/test", dependencies=[Depends(require_csrf)])
+def admin_cnmaestro_test(request: Request):
+    def run(db, user):
+        row = cnmaestro_connector.connection_row(db)
+        if row is None:
+            raise HTTPException(422, {"code": "not_configured", "message": "Configura prima cnMaestro."})
+        ok, message = cnmaestro_connector.test_connection(row)
+        return {"ok": ok, "message": message}
+
+    return _admin_write(request, run)
+
+
+@router.post("/admin/integrations/cnmaestro/sync", dependencies=[Depends(require_csrf)])
+def admin_cnmaestro_sync(request: Request):
+    def run(db, user):
+        stats = cnmaestro_connector.sync(db)
+        return jsonable_encoder({key: stats.get(key) for key in ("status", "error", "cnmaestro_devices", "linked", "new_links", "unmatched", "samples")})
+
+    return _admin_write(request, run)
 
 
 def install_ui_admin(app) -> None:

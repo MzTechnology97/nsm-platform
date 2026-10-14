@@ -360,15 +360,59 @@ def summary() -> dict:
 
 # --- Pages ---------------------------------------------------------------------------------------
 
+def client_id_of(row) -> str:
+    """Client id of the stored API client (not secret, shown in the form); empty when unreadable."""
+    if row is None:
+        return ""
+    try:
+        return json.loads(decrypt_text(row.secret_encrypted)).get("client_id", "")
+    except (ValueError, TypeError):
+        return ""
+
+
+def save_config(db, user, *, base_url: str, client_id: str, client_secret: str, verify_tls: bool, enabled: bool):
+    """Store the connection (credentials encrypted, secret kept when empty), audited. ValueError with the reason. Caller commits."""
+    row = connection_row(db)
+    url = normalize_base_url(base_url)
+    secret = (client_secret or "").strip()
+    if not secret and row:
+        try:
+            secret = json.loads(decrypt_text(row.secret_encrypted)).get("client_secret", "")
+        except (ValueError, TypeError):
+            secret = ""
+    if not (client_id or "").strip() or not secret:
+        raise ValueError("Indica client id e client secret dell'API Client di cnMaestro.")
+    if row is None:
+        row = ConnectorIntegration(provider=PROVIDER, name="cnMaestro", base_url=url, secret_encrypted="", settings={})
+        db.add(row)
+    row.base_url, row.verify_tls, row.is_enabled = url, verify_tls, enabled
+    row.secret_encrypted = encrypt_text(json.dumps({"client_id": client_id.strip(), "client_secret": secret}))
+    core.add_event(db, "CNMAESTRO_CONFIGURED", actor=user, details={"base_url": url, "enabled": row.is_enabled}, source="portal")
+    return row
+
+
+def test_connection(row, transport=None) -> tuple[bool, str]:
+    """Log in and read one device; the outcome is stored on the row. Returns (ok, message). Caller commits."""
+    try:
+        client = client_for(row, transport)
+    except CnMaestroError as exc:
+        row.last_test_status, row.last_error = "failed", str(exc)
+        return False, str(exc)
+    try:
+        client.login()
+        count = len(client.get("/devices", {"limit": 1, "offset": 0}, "l'elenco apparati").get("data") or [])
+        row.last_test_status, row.last_error = "success", None
+        return True, f"Connessione riuscita: autenticazione OK, API apparati raggiungibile ({count} di prova)."
+    except CnMaestroError as exc:
+        row.last_test_status, row.last_error = "failed", str(exc)
+        return False, str(exc)
+    finally:
+        client.close()
+
+
 def _admin(request, db, user, message=None, error=None):
     row = connection_row(db)
-    client_id = ""
-    if row:
-        try:
-            client_id = json.loads(decrypt_text(row.secret_encrypted)).get("client_id", "")
-        except (ValueError, TypeError):
-            client_id = ""
-    return core.render(request, db, user, "admin_cnmaestro.html", title="cnMaestro", connection=row, client_id=client_id,
+    return core.render(request, db, user, "admin_cnmaestro.html", title="cnMaestro", connection=row, client_id=client_id_of(row),
                        last=((row.settings or {}).get("last_sync") or {}) if row else {}, message=message, error=error, admin_tab="integrations")
 
 
@@ -384,25 +428,11 @@ def admin_save(request: Request, csrf: str = Form(...), base_url: str = Form("")
     validate_csrf(request, csrf)
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        row = connection_row(db)
         try:
-            url = normalize_base_url(base_url)
+            save_config(db, user, base_url=base_url, client_id=client_id, client_secret=client_secret,
+                        verify_tls=verify_tls == "1", enabled=is_enabled == "1")
         except ValueError as exc:
             return _admin(request, db, user, error=str(exc))
-        secret = client_secret.strip()
-        if not secret and row:
-            try:
-                secret = json.loads(decrypt_text(row.secret_encrypted)).get("client_secret", "")
-            except (ValueError, TypeError):
-                secret = ""
-        if not client_id.strip() or not secret:
-            return _admin(request, db, user, error="Indica client id e client secret dell'API Client di cnMaestro.")
-        if row is None:
-            row = ConnectorIntegration(provider=PROVIDER, name="cnMaestro", base_url=url, secret_encrypted="", settings={})
-            db.add(row)
-        row.base_url, row.verify_tls, row.is_enabled = url, verify_tls == "1", is_enabled == "1"
-        row.secret_encrypted = encrypt_text(json.dumps({"client_id": client_id.strip(), "client_secret": secret}))
-        core.add_event(db, "CNMAESTRO_CONFIGURED", actor=user, details={"base_url": url, "enabled": row.is_enabled}, source="portal")
         db.commit()
         return _admin(request, db, user, message="Configurazione cnMaestro salvata.")
 
@@ -415,18 +445,9 @@ def admin_test(request: Request, csrf: str = Form(...)):
         row = connection_row(db)
         if row is None:
             return _admin(request, db, user, error="Configura prima cnMaestro.")
-        client = client_for(row)
-        try:
-            client.login()
-            count = len(client.get("/devices", {"limit": 1, "offset": 0}, "l'elenco apparati").get("data") or [])
-            row.last_test_status, row.last_error = "success", None
-            message = f"Connessione riuscita: autenticazione OK, API apparati raggiungibile ({count} di prova)."
-        except CnMaestroError as exc:
-            row.last_test_status, row.last_error = "failed", str(exc)
-            message = None
-        finally:
-            client.close()
+        _ok, message = test_connection(row)
         db.commit()
+        message = message if row.last_test_status == "success" else None
         return _admin(request, db, user, message=message, error=row.last_error)
 
 

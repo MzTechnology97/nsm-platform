@@ -42,6 +42,9 @@ export function Integrations() {
   const manage = (href: string, configured: boolean) =>
     data?.can_admin ? <a className="ui-button ui-button-ghost ui-button-small" href={href}>{configured ? t("integrations.manage") : t("integrations.configure")}</a> : null;
 
+  const manageRoute = (to: "/admin/integrations/cnmaestro", configured: boolean) =>
+    data?.can_admin ? <Link className="ui-button ui-button-ghost ui-button-small" to={to}>{configured ? t("integrations.manage") : t("integrations.configure")}</Link> : null;
+
   return (
     <section className="ui-page">
       <header className="ui-page-header ui-page-header-row">
@@ -99,7 +102,7 @@ export function Integrations() {
           </Card>
 
           <Card name="cnmaestro" title={t("integrations.cnmaestro.title")} help={t("integrations.cnmaestro.help")} state={data.cnmaestro.state} label={state(data.cnmaestro.state)}
-            actions={manage("/admin/integrations/cnmaestro", data.cnmaestro.state !== "unconfigured")}>
+            actions={manageRoute("/admin/integrations/cnmaestro", data.cnmaestro.state !== "unconfigured")}>
             <Facts items={[[t("integrations.cnmaestro.cambium"), data.cnmaestro.cambium], [t("integrations.cnmaestro.linked"), data.cnmaestro.linked]]} />
           </Card>
 

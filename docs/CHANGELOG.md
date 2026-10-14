@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.133 — 2026-10-14
+
+New interface (React) — cnMaestro connector, phase 6m
+- **cnMaestro in `/app/admin/integrations/cnmaestro`**, in the integration sub-tabs:
+  - **Status:** last sync with its outcome, devices read from cnMaestro, linked Cambium devices and those without a match, statistics errors, the last failed test;
+  - **Connection:** URL, client ID, client secret (encrypted, kept when empty, never sent back to the browser), TLS check, active sync;
+  - **Actions:** *Test connection* and *Synchronise now*, with the result shown on the page.
+- The integrations hub opens the new page from the cnMaestro card.
+- Saving the connection and the connection test are now shared functions (`cnmaestro_connector.save_config`/`test_connection`/`client_id_of`), used by both interfaces. Unreadable stored credentials now give a clear test error instead of a server error.
+- **API.** All routes need `users.manage`; the `POST` routes also need the CSRF header:
+  - `GET /api/ui/v1/admin/integrations/cnmaestro`;
+  - `POST /api/ui/v1/admin/integrations/cnmaestro`, `/test`, `/sync`.
+
 ## 0.49.132 — 2026-10-14
 
 New interface (React) — Demo Lab, phase 6l
