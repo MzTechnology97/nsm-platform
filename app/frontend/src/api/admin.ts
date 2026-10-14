@@ -534,3 +534,26 @@ export interface GenieacsAdmin {
 
 export const useGenieacsAdmin = () =>
   useQuery({ queryKey: ["admin-genieacs"], queryFn: () => api<GenieacsAdmin>("/api/ui/v1/admin/integrations/genieacs") });
+
+export interface UispAdmin {
+  configured: boolean;
+  enabled: boolean;
+  base_url: string;
+  has_token: boolean;
+  verify_tls: boolean;
+  sync_interval: number;
+  last_tested_at: string | null;
+  last_test_status: string | null;
+  last_error: string | null;
+  last_sync_at: string | null;
+  sync: {
+    last_status: string | null;
+    last_success_at: string | null;
+    next_attempt_at: string | null;
+    consecutive_failures: number | null;
+    last_error: string | null;
+    last_stats: { devices?: number; updated?: number; missing?: number; conflicts?: number } | null;
+  };
+}
+
+export const useUispAdmin = () => useQuery({ queryKey: ["admin-uisp"], queryFn: () => api<UispAdmin>("/api/ui/v1/admin/integrations/uisp") });

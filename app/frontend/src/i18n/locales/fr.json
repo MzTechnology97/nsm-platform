@@ -2604,5 +2604,63 @@
         "text": "Enregistre l'ID GenieACS stable ; l'actualisation suivante vérifie que le numéro de série n'a pas changé."
       }
     }
+  },
+  "uisp": {
+    "title": "Intégrations · UISP",
+    "subtitle": "Connecteur en lecture seule vers UISP Network pour l'inventaire et l'association des équipements Ubiquiti.",
+    "onboarding": "Intégration d'équipements",
+    "connectionHelp": "Utilisez un jeton API UISP dédié en lecture seule. Le jeton est chiffré avant l'enregistrement.",
+    "url": "URL de la console UISP",
+    "urlHelp": "Saisissez l'URL de la console ; NSM ajoute automatiquement /nms/api/v2.1/devices.",
+    "token": "Jeton API",
+    "tokenPlaceholder": "Jeton UISP en lecture seule",
+    "tokenStored": "Jeton présent et chiffré, non récupérable depuis l'interface.",
+    "tokenRequired": "Requis au premier enregistrement.",
+    "interval": "Intervalle de synchronisation (minutes)",
+    "intervalHelp": "Le worker actualise périodiquement les équipements déjà associés. En cas d'erreur, la tentative suivante est retardée progressivement (6 heures au plus).",
+    "tlsHelp": "Laissez-la active quand UISP utilise un certificat valide pour le nom indiqué. Désactivez-la seulement pour un UISP joint en réseau local avec un certificat auto-signé ou émis pour le domaine public : le trafic reste chiffré mais l'identité du serveur n'est pas vérifiée.",
+    "tlsWarning": "Sans vérification TLS, le jeton circule sur un canal non authentifié : à utiliser seulement temporairement sur des réseaux de gestion contrôlés.",
+    "saved": "Configuration UISP enregistrée. Le jeton est stocké chiffré.",
+    "stateHelp": "Le test se limite à lire la liste des équipements UISP.",
+    "tlsVerified": "vérifié",
+    "tlsNotVerified": "non vérifié",
+    "lastSync": "Dernière synchronisation",
+    "none": "Aucune instance UISP configurée.",
+    "periodic": "Synchronisation périodique",
+    "periodicHelp": "N'actualise que les données observées des équipements déjà associés par ID UISP. Le client et le site NSM ne sont jamais modifiés.",
+    "statuses": {
+      "disabled": "Désactivée",
+      "ok": "OK",
+      "error": "Erreur",
+      "never": "Jamais exécutée"
+    },
+    "intervalShort": "Intervalle",
+    "minutes_one": "{{count}} minute",
+    "minutes_other": "{{count}} minutes",
+    "failures": "Erreurs consécutives",
+    "lastOutcome": "Dernier résultat",
+    "outcome": "{{devices}} associés · {{updated}} mis à jour · {{missing}} absents · {{conflicts}} conflits",
+    "syncError": "Échec de la synchronisation UISP : {{error}}",
+    "missingNote": "Les équipements absents ou en conflit sont signalés dans l'Action Center et ne sont pas modifiés tant que la situation n'est pas vérifiée.",
+    "synced": "Synchronisation UISP terminée : {{devices}} équipements associés, {{updated}} mis à jour, {{missing}} introuvables, {{conflicts}} en conflit.",
+    "flowHelp": "La hiérarchie client/site reste celle de NSM.",
+    "flow": {
+      "mac": {
+        "title": "MAC dans NSM",
+        "text": "L'opérateur crée l'équipement Ubiquiti avec son MAC."
+      },
+      "lookup": {
+        "title": "Recherche UISP",
+        "text": "NSM normalise le MAC et cherche une correspondance exacte."
+      },
+      "preview": {
+        "title": "Aperçu",
+        "text": "Affiche l'ID UISP, l'identité, le modèle, le numéro de série, le firmware et l'état observés."
+      },
+      "link": {
+        "title": "Association",
+        "text": "Enregistre l'ID UISP stable et met à jour l'inventaire. Site et organisation UISP restent de simples métadonnées."
+      }
+    }
   }
 }

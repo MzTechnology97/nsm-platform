@@ -2604,5 +2604,63 @@
         "text": "Stores the stable GenieACS ID; the next refresh checks that the serial has not changed."
       }
     }
+  },
+  "uisp": {
+    "title": "Integrations · UISP",
+    "subtitle": "Read-only connector to UISP Network for the inventory and linking of Ubiquiti devices.",
+    "onboarding": "Device onboarding",
+    "connectionHelp": "Use a dedicated read-only UISP API token. The token is encrypted before it is stored.",
+    "url": "UISP console URL",
+    "urlHelp": "Enter the console URL; NSM adds /nms/api/v2.1/devices automatically.",
+    "token": "API token",
+    "tokenPlaceholder": "UISP read-only token",
+    "tokenStored": "Token stored and encrypted, it cannot be read back from the interface.",
+    "tokenRequired": "Required on the first save.",
+    "interval": "Sync interval (minutes)",
+    "intervalHelp": "The worker periodically refreshes devices already linked. On errors the next attempt is delayed progressively (up to 6 hours).",
+    "tlsHelp": "Keep it on when UISP uses a valid certificate for the given name. Turn it off only for a UISP reached on a local network with a self-signed certificate or one issued for the public domain: traffic stays encrypted but the server identity is not verified.",
+    "tlsWarning": "With TLS verification off the token travels over an unauthenticated channel: use it only temporarily on controlled management networks.",
+    "saved": "UISP configuration saved. The token is stored encrypted.",
+    "stateHelp": "The test only reads the UISP device list.",
+    "tlsVerified": "verified",
+    "tlsNotVerified": "not verified",
+    "lastSync": "Last sync",
+    "none": "No UISP instance configured.",
+    "periodic": "Periodic synchronisation",
+    "periodicHelp": "Refreshes only the observed data of devices already linked by UISP ID. NSM customer and site are never changed.",
+    "statuses": {
+      "disabled": "Disabled",
+      "ok": "OK",
+      "error": "Error",
+      "never": "Never run"
+    },
+    "intervalShort": "Interval",
+    "minutes_one": "{{count}} minute",
+    "minutes_other": "{{count}} minutes",
+    "failures": "Consecutive errors",
+    "lastOutcome": "Last outcome",
+    "outcome": "{{devices}} linked · {{updated}} updated · {{missing}} missing · {{conflicts}} conflicts",
+    "syncError": "UISP synchronisation failed: {{error}}",
+    "missingNote": "Missing or conflicting devices are reported in the Action Center and are not changed until the situation is checked.",
+    "synced": "UISP synchronisation completed: {{devices}} devices linked, {{updated}} updated, {{missing}} not found, {{conflicts}} in conflict.",
+    "flowHelp": "The customer/site hierarchy stays NSM's.",
+    "flow": {
+      "mac": {
+        "title": "MAC in NSM",
+        "text": "The operator creates the Ubiquiti device with its MAC."
+      },
+      "lookup": {
+        "title": "UISP lookup",
+        "text": "NSM normalises the MAC and looks for an exact match."
+      },
+      "preview": {
+        "title": "Preview",
+        "text": "Shows the observed UISP ID, identity, model, serial, firmware and state."
+      },
+      "link": {
+        "title": "Link",
+        "text": "Stores the stable UISP ID and updates the inventory. UISP site and organization stay metadata only."
+      }
+    }
   }
 }

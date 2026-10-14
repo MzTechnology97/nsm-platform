@@ -361,6 +361,80 @@ def _sync_view(connection: ConnectorIntegration | None) -> dict:
     return state
 
 
+def save_config(db, user, *, base_url: str, api_token: str, enabled: bool, verify_tls: bool, sync_interval_minutes) -> ConnectorIntegration:
+    """Store the UISP connection (token encrypted, kept when empty), audited. ValueError with the reason. Caller commits."""
+    normalized_url = normalize_base_url(base_url)
+    interval = _parse_sync_interval(sync_interval_minutes)
+    row = _connection(db)
+    token = str(api_token or "").strip()
+    if not row and not token:
+        raise ValueError("Inserisci un token API UISP read-only.")
+    if row:
+        row.base_url = normalized_url
+        row.is_enabled = enabled
+        row.verify_tls = verify_tls
+        if token:
+            row.secret_encrypted = encrypt_text(token)
+        if interval is not None:
+            row.settings = {**(row.settings or {}), "sync_interval_minutes": interval}
+    else:
+        row = ConnectorIntegration(
+            provider=UISP_PROVIDER,
+            name="UISP Network",
+            base_url=normalized_url,
+            secret_encrypted=encrypt_text(token),
+            is_enabled=enabled,
+            verify_tls=verify_tls,
+            settings={
+                "api_version": "v2.1",
+                "mode": "read_only",
+                "sync_interval_minutes": interval or SYNC_INTERVAL_DEFAULT,
+            },
+        )
+        db.add(row)
+    core.add_event(
+        db,
+        "UISP_CONNECTOR_CONFIGURED",
+        actor=user,
+        details={
+            "base_url": normalized_url,
+            "enabled": row.is_enabled,
+            "verify_tls": row.verify_tls,
+            "token_updated": bool(token),
+            "mode": "read_only",
+            "sync_interval_minutes": (row.settings or {}).get("sync_interval_minutes"),
+        },
+        source="portal",
+    )
+    return row
+
+
+def test_connection(db, user, row) -> tuple[bool, str]:
+    """Read the device list once; outcome stored and audited. Returns (ok, message). Caller commits."""
+    try:
+        candidates = _fetch_candidates(row)
+        row.last_test_status, row.last_error = "success", None
+        ok, message, result = True, f"Connessione UISP riuscita: {len(candidates)} dispositivi leggibili.", "success"
+    except UispConnectorError as exc:
+        row.last_test_status, row.last_error = "failed", str(exc)[:500]
+        ok, message, result = False, row.last_error, "failed"
+    row.last_tested_at = utcnow()
+    core.add_event(
+        db,
+        "UISP_CONNECTOR_TESTED",
+        actor=user,
+        details={"result": result, "base_url": row.base_url},
+        source="uisp",
+        result=result,
+        severity="warning" if result == "failed" else "info",
+    )
+    return ok, message
+
+
+def sync_interval(connection) -> int:
+    return int((connection.settings or {}).get("sync_interval_minutes") or SYNC_INTERVAL_DEFAULT) if connection else SYNC_INTERVAL_DEFAULT
+
+
 def _admin_render(request, db, user, *, message=None, error=None):
     connection = _connection(db)
     return core.render(
@@ -371,9 +445,7 @@ def _admin_render(request, db, user, *, message=None, error=None):
         connection=connection,
         has_secret=bool(connection and connection.secret_encrypted),
         sync=_sync_view(connection),
-        sync_interval=int((connection.settings or {}).get("sync_interval_minutes") or SYNC_INTERVAL_DEFAULT)
-        if connection
-        else SYNC_INTERVAL_DEFAULT,
+        sync_interval=sync_interval(connection),
         message=message,
         error=error,
     )
@@ -397,56 +469,13 @@ def admin_uisp_save(
     csrf: str = Form(...),
 ):
     validate_csrf(request, csrf)
-    try:
-        normalized_url = normalize_base_url(base_url)
-        interval = _parse_sync_interval(sync_interval_minutes)
-    except ValueError as exc:
-        with SessionLocal() as db:
-            user = core.require_admin(request, db)
-            return _admin_render(request, db, user, error=str(exc))
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        row = _connection(db)
-        token = str(api_token or "").strip()
-        if not row and not token:
-            return _admin_render(request, db, user, error="Inserisci un token API UISP read-only.")
-        if row:
-            row.base_url = normalized_url
-            row.is_enabled = is_enabled is not None
-            row.verify_tls = verify_tls is not None
-            if token:
-                row.secret_encrypted = encrypt_text(token)
-            if interval is not None:
-                row.settings = {**(row.settings or {}), "sync_interval_minutes": interval}
-        else:
-            row = ConnectorIntegration(
-                provider=UISP_PROVIDER,
-                name="UISP Network",
-                base_url=normalized_url,
-                secret_encrypted=encrypt_text(token),
-                is_enabled=is_enabled is not None,
-                verify_tls=verify_tls is not None,
-                settings={
-                    "api_version": "v2.1",
-                    "mode": "read_only",
-                    "sync_interval_minutes": interval or SYNC_INTERVAL_DEFAULT,
-                },
-            )
-            db.add(row)
-        core.add_event(
-            db,
-            "UISP_CONNECTOR_CONFIGURED",
-            actor=user,
-            details={
-                "base_url": normalized_url,
-                "enabled": row.is_enabled,
-                "verify_tls": row.verify_tls,
-                "token_updated": bool(token),
-                "mode": "read_only",
-                "sync_interval_minutes": (row.settings or {}).get("sync_interval_minutes"),
-            },
-            source="portal",
-        )
+        try:
+            save_config(db, user, base_url=base_url, api_token=api_token, enabled=is_enabled is not None,
+                        verify_tls=verify_tls is not None, sync_interval_minutes=sync_interval_minutes)
+        except ValueError as exc:
+            return _admin_render(request, db, user, error=str(exc))
         db.commit()
         return _admin_render(request, db, user, message="Configurazione UISP salvata. Il token è memorizzato cifrato.")
 
@@ -459,29 +488,9 @@ def admin_uisp_test(request: Request, csrf: str = Form(...)):
         row = _connection(db)
         if not row:
             return _admin_render(request, db, user, error="Configura prima il connettore UISP.")
-        try:
-            candidates = _fetch_candidates(row)
-            row.last_test_status = "success"
-            row.last_error = None
-            message = f"Connessione UISP riuscita: {len(candidates)} dispositivi leggibili."
-            result = "success"
-        except UispConnectorError as exc:
-            row.last_test_status = "failed"
-            row.last_error = str(exc)[:500]
-            message = None
-            result = "failed"
-        row.last_tested_at = utcnow()
-        core.add_event(
-            db,
-            "UISP_CONNECTOR_TESTED",
-            actor=user,
-            details={"result": result, "base_url": row.base_url},
-            source="uisp",
-            result=result,
-            severity="warning" if result == "failed" else "info",
-        )
+        ok, message = test_connection(db, user, row)
         db.commit()
-        return _admin_render(request, db, user, message=message, error=row.last_error if result == "failed" else None)
+        return _admin_render(request, db, user, message=message if ok else None, error=None if ok else message)
 
 
 def _device_render(request, db, user, device, *, candidate=None, message=None, error=None):

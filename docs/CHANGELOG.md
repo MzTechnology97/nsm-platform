@@ -4,6 +4,21 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.136 — 2026-10-14
+
+New interface (React) — UISP connector, phase 6p
+- **UISP in `/app/admin/integrations/uisp`**, in the integration sub-tabs; it is also where the *Integrations* tab of the administration area now opens:
+  - **Connection:** console URL, read-only API token (encrypted, kept when empty, never sent back to the browser), connector enabled, sync interval, TLS check with its warning;
+  - **Connector status:** endpoint, read-only mode, TLS, last test and outcome, last sync, last error, with *Test connection*;
+  - **Periodic sync:** state, interval, last success, next attempt, consecutive errors, last outcome (linked, updated, missing, conflicts), with *Synchronise now*;
+  - **Linking flow** of an Ubiquiti device.
+- *Device onboarding* still opens the classic page.
+- With this, the four connectors (UISP, GenieACS, Zabbix, cnMaestro), NVD and the RouterOS catalogue are configured in the new interface. The integrations hub opens all of them.
+- Saving the connector, the connection test and the manual sync are now shared functions (`uisp_connector.save_config`/`test_connection`/`sync_interval`, `uisp_sync.manual_sync`), used by both interfaces; the classic page behaves as before.
+- **API.** All routes need `users.manage`; the `POST` routes also need the CSRF header:
+  - `GET /api/ui/v1/admin/integrations/uisp`;
+  - `POST /api/ui/v1/admin/integrations/uisp`, `/test`, `/sync`.
+
 ## 0.49.135 — 2026-10-14
 
 New interface (React) — GenieACS connector, phase 6o

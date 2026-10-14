@@ -395,15 +395,22 @@ def sync_uisp_devices(now: datetime | None = None) -> dict:
         return result
 
 
+def manual_sync(db) -> dict:
+    """Run the periodic sync now; ``{"status": "disabled"}`` when the connector is missing or off. Caller commits."""
+    connection = uisp._connection(db)
+    if not connection or not connection.is_enabled:
+        return {"status": "disabled"}
+    return run_uisp_sync(db, connection, utcnow(), trigger="manual")
+
+
 @router.post("/admin/integrations/uisp/sync", response_class=HTMLResponse, name="admin_uisp_sync")
 def admin_uisp_sync(request: Request, csrf: str = Form(...)):
     validate_csrf(request, csrf)
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        connection = uisp._connection(db)
-        if not connection or not connection.is_enabled:
+        result = manual_sync(db)
+        if result["status"] == "disabled":
             return uisp._admin_render(request, db, user, error="Configura e abilita prima il connettore UISP.")
-        result = run_uisp_sync(db, connection, utcnow(), trigger="manual")
         db.commit()
         if result["status"] != "success":
             return uisp._admin_render(request, db, user, error=f"Sincronizzazione UISP non riuscita: {result['error']}")
