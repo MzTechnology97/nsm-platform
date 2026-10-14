@@ -2411,5 +2411,22 @@
     "preset": "Preset",
     "presetText": "condition <code>{{condition}}</code>, bootstrap, boot and periodic events → provision <code>{{provision}}</code>",
     "script": "Script of provision {{name}}"
+  },
+  "demo": {
+    "subtitle": "Isolated dataset to try the interface and workflows without using real customers.",
+    "dataset": "Demo dataset",
+    "datasetHelp": "Customers, sites, multi-vendor devices, policies, runs and downloadable fake backup files.",
+    "customers": "Demo customers",
+    "code": "code DEMO-*",
+    "inUse": "Use them for search, moves, deletions, policies and backup downloads.",
+    "seed": "Generate demo data",
+    "seeding": "Generating…",
+    "seeded": "Demo dataset created.",
+    "clearTitle": "Remove demo dataset",
+    "clearHelp": "Removes only objects identified as demo and the files in the demo backup folder.",
+    "typeDemo": "Type DEMO",
+    "clear": "Remove demo data",
+    "clearing": "Removing…",
+    "cleared": "Demo dataset removed."
   }
 }

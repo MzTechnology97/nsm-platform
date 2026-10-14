@@ -7,7 +7,7 @@ const ADMIN_PAGES: { key: string; classic: string; route?: string }[] = [
   { key: "apiKeys", classic: "/admin/api-keys", route: "/admin/api-keys" },
   { key: "integrations", classic: "/admin/integrations/uisp" },
   { key: "branding", classic: "/admin/branding", route: "/admin/branding" },
-  { key: "demo", classic: "/admin/demo" },
+  { key: "demo", classic: "/admin/demo", route: "/admin/demo" },
   { key: "notifications", classic: "/admin/notifications", route: "/admin/notifications" },
   { key: "syslog", classic: "/admin/syslog", route: "/admin/syslog" },
   { key: "acs", classic: "/admin/acs", route: "/admin/acs" },

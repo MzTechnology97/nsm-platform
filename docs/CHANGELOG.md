@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.132 — 2026-10-14
+
+New interface (React) — Demo Lab, phase 6l
+- **Demo Lab in `/app/admin/demo`**, in the *Demo Lab* tab of the new administration area:
+  - the number of demo customers (code `DEMO-*`);
+  - *Generate demo data* when there are none;
+  - *Remove demo data*, enabled only after typing DEMO; it removes only demo objects and demo backup files.
+- After seeding or clearing, every list of the new interface refreshes.
+- Seeding and clearing, each with its audit event, are now shared functions (`demo_ui.run_seed`/`run_clear`), used by both interfaces; the classic page behaves as before.
+- **With this, every tab of the administration area is in the new interface.** Only the configuration of the UISP, GenieACS, Zabbix and cnMaestro connectors still opens the classic pages.
+- **API.** All routes need `users.manage`; the `POST` routes also need the CSRF header:
+  - `GET /api/ui/v1/admin/demo`;
+  - `POST /api/ui/v1/admin/demo/seed`, `/clear` (body `{"confirm": "DEMO"}`).
+
 ## 0.49.131 — 2026-10-14
 
 New interface (React) — ACS (TR-069), phase 6k

@@ -11,6 +11,26 @@ from app.security import validate_csrf
 router = APIRouter()
 
 
+def demo_customers(db) -> int:
+    return int(db.scalar(select(func.count(Customer.id)).where(Customer.code.like("DEMO-%"))) or 0)
+
+
+def run_seed(actor_id) -> None:
+    """Create the demo dataset and audit it as the given administrator."""
+    seed_demo_data()
+    with SessionLocal() as db:
+        core.add_event(db, "DEMO_DATASET_SEEDED", actor=db.get(User, actor_id), details={"source": "admin_ui"})
+        db.commit()
+
+
+def run_clear(actor_id) -> None:
+    """Remove only demo objects and demo backup files, audited as the given administrator."""
+    clear_demo_data()
+    with SessionLocal() as db:
+        core.add_event(db, "DEMO_DATASET_CLEARED", actor=db.get(User, actor_id), details={"source": "admin_ui"})
+        db.commit()
+
+
 @router.get("/admin/demo", response_class=HTMLResponse, name="admin_demo")
 def admin_demo(request: Request):
     with SessionLocal() as db:
@@ -19,13 +39,12 @@ def admin_demo(request: Request):
             return core.login_redirect()
         if not core.has_permission(user, "users.manage"):
             raise HTTPException(403)
-        demo_customers = db.scalar(select(func.count(Customer.id)).where(Customer.code.like("DEMO-%"))) or 0
         return core.render(
             request,
             db,
             user,
             "admin_demo.html",
-            demo_customers=demo_customers,
+            demo_customers=demo_customers(db),
             status=request.query_params.get("status", ""),
         )
 
@@ -37,11 +56,7 @@ async def admin_demo_seed(request: Request):
     with SessionLocal() as db:
         actor = core.require_admin(request, db)
         actor_id = actor.id
-    seed_demo_data()
-    with SessionLocal() as db:
-        actor = db.get(User, actor_id)
-        core.add_event(db, "DEMO_DATASET_SEEDED", actor=actor, details={"source": "admin_ui"})
-        db.commit()
+    run_seed(actor_id)
     return RedirectResponse("/admin/demo?status=seeded", status_code=303)
 
 
@@ -54,11 +69,7 @@ async def admin_demo_clear(request: Request):
     with SessionLocal() as db:
         actor = core.require_admin(request, db)
         actor_id = actor.id
-    clear_demo_data()
-    with SessionLocal() as db:
-        actor = db.get(User, actor_id)
-        core.add_event(db, "DEMO_DATASET_CLEARED", actor=actor, details={"source": "admin_ui"})
-        db.commit()
+    run_clear(actor_id)
     return RedirectResponse("/admin/demo?status=cleared", status_code=303)
 
 

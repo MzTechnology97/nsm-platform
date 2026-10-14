@@ -2411,5 +2411,22 @@
     "preset": "Preset",
     "presetText": "condición <code>{{condition}}</code>, eventos bootstrap, boot y periodic → provision <code>{{provision}}</code>",
     "script": "Script de la provision {{name}}"
+  },
+  "demo": {
+    "subtitle": "Conjunto de datos aislado para probar la interfaz y los flujos sin usar clientes reales.",
+    "dataset": "Datos de demostración",
+    "datasetHelp": "Clientes, sedes, equipos multifabricante, políticas, ejecuciones y archivos de copia ficticios descargables.",
+    "customers": "Clientes de demostración",
+    "code": "código DEMO-*",
+    "inUse": "Úsalos para búsquedas, traslados, borrados, políticas y descargas de copias.",
+    "seed": "Generar datos de demostración",
+    "seeding": "Generando…",
+    "seeded": "Datos de demostración creados.",
+    "clearTitle": "Eliminar datos de demostración",
+    "clearHelp": "Elimina solo los objetos identificados como demostración y los archivos de la carpeta de copias de demostración.",
+    "typeDemo": "Escribe DEMO",
+    "clear": "Eliminar datos de demostración",
+    "clearing": "Eliminando…",
+    "cleared": "Datos de demostración eliminados."
   }
 }
