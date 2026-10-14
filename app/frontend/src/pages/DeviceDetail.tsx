@@ -1,4 +1,4 @@
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, Outlet, useParams } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -6,9 +6,10 @@ import { ApiError } from "../api/client";
 import { type DeviceDetail as Detail, useDevice } from "../api/device";
 import { formatRelative } from "../lib/format";
 
-/** Tabs already available in the new interface; the others open the classic page. */
-const MIGRATED_TABS: Record<string, string> = { overview: "" };
+/** Tabs already available in the new interface (route under /devices/$deviceId); the others open the classic page. */
+const MIGRATED_TABS = { overview: "/devices/$deviceId", monitor: "/devices/$deviceId/monitor" } as const;
 
+/** Device shell: breadcrumbs, title, actions and tabs; the active tab renders in the outlet. */
 export function DeviceDetail() {
   const { t } = useTranslation();
   const { deviceId } = useParams({ from: "/devices/$deviceId" });
@@ -19,15 +20,12 @@ export function DeviceDetail() {
     const status = query.error instanceof ApiError ? query.error.status : 0;
     return <div className="ui-empty">{status === 404 ? t("device.notFound") : t("app.error")}</div>;
   }
-  return <DeviceView detail={query.data} />;
+  return <DeviceShell detail={query.data} />;
 }
 
-function DeviceView({ detail }: { detail: Detail }) {
-  const { t, i18n } = useTranslation();
+function DeviceShell({ detail }: { detail: Detail }) {
+  const { t } = useTranslation();
   const { device } = detail;
-  const severe = (detail.vulnerabilities.critical ?? 0) + (detail.vulnerabilities.high ?? 0);
-  const openVulns = Object.values(detail.vulnerabilities).reduce((sum, value) => sum + value, 0);
-
   return (
     <section className="ui-page ui-device">
       <nav className="ui-breadcrumbs" aria-label={t("device.breadcrumbs")}>
@@ -75,7 +73,14 @@ function DeviceView({ detail }: { detail: Detail }) {
       <nav className="ui-tabs" aria-label={t("device.tabs.label")}>
         {detail.tabs.map((tab) =>
           tab.key in MIGRATED_TABS ? (
-            <Link key={tab.key} to="/devices/$deviceId" params={{ deviceId: device.id }} className="ui-tab is-active" aria-current="page">
+            <Link
+              key={tab.key}
+              to={MIGRATED_TABS[tab.key as keyof typeof MIGRATED_TABS]}
+              params={{ deviceId: device.id }}
+              className="ui-tab"
+              activeOptions={{ exact: true }}
+              activeProps={{ className: "ui-tab is-active", "aria-current": "page" }}
+            >
               {t(`device.tabs.${tab.key}`)}
             </Link>
           ) : (
@@ -85,7 +90,21 @@ function DeviceView({ detail }: { detail: Detail }) {
           ),
         )}
       </nav>
+      <Outlet />
+    </section>
+  );
+}
 
+export function DeviceOverview() {
+  const { deviceId } = useParams({ from: "/devices/$deviceId/" });
+  const { data: detail } = useDevice(deviceId);
+  const { t, i18n } = useTranslation();
+  if (!detail) return null;
+  const { device } = detail;
+  const severe = (detail.vulnerabilities.critical ?? 0) + (detail.vulnerabilities.high ?? 0);
+  const openVulns = Object.values(detail.vulnerabilities).reduce((sum, value) => sum + value, 0);
+  return (
+    <>
       <div className="ui-metrics">
         <Metric label={t("device.metrics.status")} value={t(`devices.statusLabel.${device.status}`, { defaultValue: device.status })}
           hint={device.last_seen ? t("device.seen", { when: formatRelative(device.last_seen, i18n.language) }) : t("device.neverSeen")} tone={device.status === "offline" ? "danger" : undefined} />
@@ -144,7 +163,7 @@ function DeviceView({ detail }: { detail: Detail }) {
           )}
         </section>
       </div>
-    </section>
+    </>
   );
 }
 

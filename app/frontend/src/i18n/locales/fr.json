@@ -160,5 +160,55 @@
       "security_update": "mise à jour de sécurité",
       "unknown": ""
     }
+  },
+  "monitor": {
+    "range": "Période",
+    "ranges": {
+      "1h": "1 heure",
+      "24h": "24 heures",
+      "7d": "7 jours",
+      "30d": "30 jours"
+    },
+    "settings": "Interfaces et réglages",
+    "noSamples": "Aucun échantillon sur cette période.",
+    "legend": {
+      "current": "Actuel",
+      "min": "Min",
+      "avg": "Moy.",
+      "max": "Max"
+    },
+    "resources": "Ressources",
+    "cpu": "CPU",
+    "memory": "Mémoire",
+    "memoryUsed": "Mémoire utilisée",
+    "traffic": "Trafic",
+    "trafficOf": "Trafic {{name}}",
+    "interface": "Interface",
+    "in": "Entrant (rx)",
+    "out": "Sortant (tx)",
+    "p95": "95e centile",
+    "volume": "Volume",
+    "noInterfaces": "Aucune interface surveillée : choisissez-les dans « Interfaces et réglages ».",
+    "errors": "Erreurs et pertes",
+    "rxErrors": "Erreurs rx",
+    "txErrors": "Erreurs tx",
+    "rxDrops": "Pertes rx",
+    "txDrops": "Pertes tx",
+    "errorsUnavailable": "Erreurs et pertes disponibles à partir de l'agent 0.49.20 (installé par la mise à jour automatique).",
+    "latency": "Latence et pertes (ping depuis NSM)",
+    "rtt": "Temps aller-retour",
+    "rttAvg": "RTT moyen",
+    "rttMax": "RTT maximal",
+    "rttMin": "RTT minimal",
+    "loss": "Perte de paquets",
+    "lossSummary": "perte {{value}}",
+    "rttSummary": "RTT moyen {{value}}",
+    "wireless": "Signal sans fil",
+    "signal": "Signal",
+    "signalAvg": "Signal moyen",
+    "signalBest": "Meilleur client",
+    "signalWorst": "Pire client",
+    "clients": "Clients connectés",
+    "ccq": "CCQ moyen"
   }
 }

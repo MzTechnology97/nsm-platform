@@ -160,5 +160,55 @@
       "security_update": "security update",
       "unknown": ""
     }
+  },
+  "monitor": {
+    "range": "Range",
+    "ranges": {
+      "1h": "1 hour",
+      "24h": "24 hours",
+      "7d": "7 days",
+      "30d": "30 days"
+    },
+    "settings": "Interfaces and settings",
+    "noSamples": "No samples in this range.",
+    "legend": {
+      "current": "Current",
+      "min": "Min",
+      "avg": "Avg",
+      "max": "Max"
+    },
+    "resources": "Resources",
+    "cpu": "CPU",
+    "memory": "Memory",
+    "memoryUsed": "Memory used",
+    "traffic": "Traffic",
+    "trafficOf": "Traffic {{name}}",
+    "interface": "Interface",
+    "in": "In (rx)",
+    "out": "Out (tx)",
+    "p95": "95th percentile",
+    "volume": "Volume",
+    "noInterfaces": "No monitored interface: choose them in “Interfaces and settings”.",
+    "errors": "Errors and drops",
+    "rxErrors": "Rx errors",
+    "txErrors": "Tx errors",
+    "rxDrops": "Rx drops",
+    "txDrops": "Tx drops",
+    "errorsUnavailable": "Errors and drops are available from agent 0.49.20 (delivered by the automatic update).",
+    "latency": "Latency and loss (ping from NSM)",
+    "rtt": "Round-trip time",
+    "rttAvg": "Average RTT",
+    "rttMax": "Maximum RTT",
+    "rttMin": "Minimum RTT",
+    "loss": "Packet loss",
+    "lossSummary": "loss {{value}}",
+    "rttSummary": "average RTT {{value}}",
+    "wireless": "Wireless signal",
+    "signal": "Signal",
+    "signalAvg": "Average signal",
+    "signalBest": "Best client",
+    "signalWorst": "Worst client",
+    "clients": "Connected clients",
+    "ccq": "Average CCQ"
   }
 }
