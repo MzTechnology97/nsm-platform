@@ -2,6 +2,7 @@ import { createRootRoute, createRoute, createRouter, lazyRouteComponent } from "
 import { useTranslation } from "react-i18next";
 
 import type { CustomerFilters } from "../api/customers";
+import type { AuditFilters } from "../api/admin";
 import { INCIDENT_STATUSES, type IncidentFilters, ISSUE_STATUSES, type IssueFilters } from "../api/incidents";
 import {
   COMPLIANCE_STATUSES,
@@ -194,6 +195,21 @@ const incidentRoute = createRoute({
   path: "/incidents/$incidentId",
   component: lazyRouteComponent(() => import("../pages/IncidentDetail"), "IncidentDetail"),
 });
+const AUDIT_KEYS = ["event_type", "result", "severity", "customer", "device", "q", "from_date", "to_date"] as const;
+const auditEventsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/events",
+  component: lazyRouteComponent(() => import("../pages/AuditEvents"), "AuditEvents"),
+  validateSearch: (search: Record<string, unknown>): AuditFilters => {
+    const out: AuditFilters = {};
+    for (const key of AUDIT_KEYS) {
+      const value = search[key];
+      if (typeof value === "string" && value) out[key] = value;
+    }
+    for (const key of ["from_date", "to_date"] as const) if (out[key] && !/^\d{4}-\d{2}-\d{2}$/.test(out[key] ?? "")) delete out[key];
+    return out;
+  },
+});
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/access",
@@ -267,6 +283,7 @@ export const routeTree = rootRoute.addChildren([
   actionCenterRoute,
   incidentsRoute,
   incidentRoute,
+  auditEventsRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

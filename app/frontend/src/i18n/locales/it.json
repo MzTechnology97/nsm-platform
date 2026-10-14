@@ -1542,5 +1542,43 @@
       "invalid_status": "Stato non valido.",
       "invalid_resolved_at": "La risoluzione deve essere successiva all'inizio e non nel futuro."
     }
+  },
+  "auditEvents": {
+    "title": "Registro attività",
+    "subtitle_one": "{{count}} evento registrato.",
+    "subtitle_other": "{{count}} eventi registrati.",
+    "export": "Esporta CSV",
+    "search": "Cerca negli eventi",
+    "searchPlaceholder": "Tipo, fonte, esito o dettagli",
+    "device": "Apparato",
+    "devicePlaceholder": "Apparato: nome, seriale, MAC o IP",
+    "type": "Tipo di evento",
+    "allTypes": "Tutti i tipi",
+    "severity": "Severità",
+    "allSeverities": "Tutte le severità",
+    "result": "Esito",
+    "allResults": "Tutti gli esiti",
+    "from": "Dal",
+    "to": "Al",
+    "empty": "Nessun evento corrisponde ai filtri.",
+    "none": "Nessun evento registrato.",
+    "system": "Sistema",
+    "results": {
+      "success": "Riuscito",
+      "failed": "Fallito",
+      "failure": "Fallito",
+      "denied": "Negato",
+      "error": "Errore",
+      "partial": "Parziale",
+      "skipped": "Saltato"
+    },
+    "columns": {
+      "when": "Quando",
+      "event": "Evento",
+      "outcome": "Severità ed esito",
+      "subject": "Apparato o cliente",
+      "actor": "Utente e fonte",
+      "details": "Dettagli"
+    }
   }
 }

@@ -1542,5 +1542,43 @@
       "invalid_status": "État non valide.",
       "invalid_resolved_at": "La résolution doit être postérieure au début et pas dans le futur."
     }
+  },
+  "auditEvents": {
+    "title": "Journal d'activité",
+    "subtitle_one": "{{count}} événement enregistré.",
+    "subtitle_other": "{{count}} événements enregistrés.",
+    "export": "Exporter en CSV",
+    "search": "Rechercher dans les événements",
+    "searchPlaceholder": "Type, source, résultat ou détails",
+    "device": "Équipement",
+    "devicePlaceholder": "Équipement : nom, numéro de série, MAC ou IP",
+    "type": "Type d'événement",
+    "allTypes": "Tous les types",
+    "severity": "Gravité",
+    "allSeverities": "Toutes les gravités",
+    "result": "Résultat",
+    "allResults": "Tous les résultats",
+    "from": "Du",
+    "to": "Au",
+    "empty": "Aucun événement ne correspond aux filtres.",
+    "none": "Aucun événement enregistré.",
+    "system": "Système",
+    "results": {
+      "success": "Réussi",
+      "failed": "Échoué",
+      "failure": "Échoué",
+      "denied": "Refusé",
+      "error": "Erreur",
+      "partial": "Partiel",
+      "skipped": "Ignoré"
+    },
+    "columns": {
+      "when": "Quand",
+      "event": "Événement",
+      "outcome": "Gravité et résultat",
+      "subject": "Équipement ou client",
+      "actor": "Utilisateur et source",
+      "details": "Détails"
+    }
   }
 }
