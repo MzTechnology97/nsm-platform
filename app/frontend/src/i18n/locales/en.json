@@ -2460,5 +2460,85 @@
     "syncNow": "Synchronise now",
     "disabledConnector": "The cnMaestro connector is disabled.",
     "synced": "Synchronisation completed: {{devices}} devices in cnMaestro, {{linked}} linked ({{created}} new), {{unmatched}} NSM Cambium devices without a match."
+  },
+  "zabbix": {
+    "title": "Integrations · Zabbix",
+    "subtitle": "NSM pushes its devices to Zabbix: hosts, groups per customer, templates per vendor, tags and inventory. Zabbix keeps polling and alerting.",
+    "version": "Zabbix version",
+    "verified": "connection verified",
+    "testFailed": "last test failed",
+    "toVerify": "to verify",
+    "syncStates": {
+      "success": "completed",
+      "partial": "with errors",
+      "failed": "failed",
+      "disabled": "disabled"
+    },
+    "hosts": "Hosts managed by NSM",
+    "hostsNote": "{{created}} created, {{updated}} updated, {{disabled}} disabled",
+    "problems": "Open problems",
+    "problemsFailed": "read failed: {{error}}",
+    "problemsNote_one": "on {{count}} device · read {{when}} (every 5 minutes)",
+    "problemsNote_other": "on {{count}} devices · read {{when}} (every 5 minutes)",
+    "problemsEvery": "read every 5 minutes",
+    "skipped": "Excluded",
+    "skippedNote": "devices without a management IP or excluded",
+    "missingTemplates": "Templates not found in Zabbix: {{names}}. Hosts were created without that template.",
+    "lastErrors": "Errors of the last synchronisation",
+    "sharedTitle": "Devices with a shared IP",
+    "sharedHelp": "Several devices share the same management IP (customer NAT): on that address Zabbix only reaches the edge router. To monitor devices behind the NAT, give an address Zabbix can reach (LAN IP over VPN or a Zabbix proxy). The hosts carry the nsm_shared_ip tag.",
+    "sharedColumns": {
+      "ip": "Shared IP",
+      "device": "Device",
+      "zabbixIp": "IP for Zabbix"
+    },
+    "saveIp": "Save",
+    "ipSaved": "Saved.",
+    "connectionHelp": "Zabbix 6.x and 7.x. Credentials are encrypted. Use an API user with write permission on the host groups created by NSM.",
+    "url": "Zabbix URL",
+    "urlHelp": "Frontend address: NSM adds api_jsonrpc.php.",
+    "auth": "Authentication",
+    "authToken": "API token (recommended, Zabbix 5.4+)",
+    "authPassword": "Username and password",
+    "token": "API token",
+    "username": "Username",
+    "password": "Password",
+    "hostsTitle": "Created hosts",
+    "groupPrefix": "Group prefix",
+    "groupHelp": "Group per customer: {{prefix}}/Customer name.",
+    "interface": "Interface",
+    "interfaceAgent": "Zabbix agent (10050), also fine for ICMP ping",
+    "interfaceSnmp": "SNMPv2 (161)",
+    "community": "SNMP community",
+    "communityHelp": "Better a macro, for example {$SNMP_COMMUNITY}, set in Zabbix.",
+    "templates": {
+      "mikrotik": "MikroTik template",
+      "ubiquiti": "Ubiquiti template",
+      "default": "Template for other devices"
+    },
+    "templatesHelp": "Template name as shown in Zabbix. Templates linked by hand in Zabbix are not removed.",
+    "scopeTitle": "Devices to push",
+    "scope": "Scope",
+    "scopeAll": "All devices with a management IP",
+    "scopeCustomers": "Only the selected customers",
+    "saved": "Zabbix configuration saved.",
+    "actionsHelp": "NSM hosts carry the source=nsm tag and the technical name nsm-…. When a device is deleted or excluded its host is disabled, not deleted.",
+    "disabledConnector": "Zabbix integration not configured or disabled.",
+    "syncFailedMessage": "Synchronisation failed: {{error}}",
+    "synced": "Synchronisation completed: {{created}} hosts created, {{updated}} updated, {{disabled}} disabled, {{skipped}} devices without IP or excluded.",
+    "auths": {
+      "v72": {
+        "title": "Zabbix 7.2 and later",
+        "text": "Token in the Authorization: Bearer header"
+      },
+      "v54": {
+        "title": "Zabbix 5.4 – 7.1",
+        "text": "Token in the request auth field"
+      },
+      "password": {
+        "title": "Password login",
+        "text": "username (5.4+) or user (earlier versions)"
+      }
+    }
   }
 }

@@ -4,6 +4,22 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.134 — 2026-10-14
+
+New interface (React) — Zabbix connector, phase 6n
+- **Zabbix in `/app/admin/integrations/zabbix`**, in the integration sub-tabs:
+  - **Status:** Zabbix version and test outcome, last sync, hosts managed by NSM (created, updated, disabled), open problems, excluded devices, missing templates and the errors of the last sync;
+  - **Devices with a shared IP:** each device with its manufacturer icon and the address Zabbix must use behind the customer's NAT, editable on the row;
+  - **Connection:** URL, API token or username and password (encrypted, kept when empty, never sent back to the browser), TLS check;
+  - **Hosts:** group prefix, agent or SNMP interface, SNMP community, templates per vendor;
+  - **Scope:** all devices or selected customers, active sync;
+  - **Actions:** *Test connection*, *Synchronise now* and *Open Zabbix*, with the authentication notes per Zabbix version.
+- The integrations hub opens the new page from the Zabbix card.
+- Saving the settings, the connection test, the manual sync and the per-device Zabbix address are now shared functions (`zabbix_connector.save_config`/`test_connection`/`sync_now`/`set_device_ip`/`credential_info`), used by both interfaces. Unreadable stored credentials now give a clear test error instead of a server error.
+- **API.** All routes need `users.manage`; the `POST` routes also need the CSRF header, and the device address also needs `devices.write`:
+  - `GET /api/ui/v1/admin/integrations/zabbix`;
+  - `POST /api/ui/v1/admin/integrations/zabbix`, `/test`, `/sync`, `/devices/{id}/ip`.
+
 ## 0.49.133 — 2026-10-14
 
 New interface (React) — cnMaestro connector, phase 6m
