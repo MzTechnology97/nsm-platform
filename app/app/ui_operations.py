@@ -5,6 +5,9 @@
   the same rows and thresholds as the classic page (``fleet_monitoring``);
 - ``POST /api/ui/v1/monitoring/icmp``: switches the NSM ping on or off for the
   whole fleet or one customer (``devices.write``), same rule as the classic form.
+- ``GET  /api/ui/v1/backups``: backup protection of the fleet (protected,
+  blocked, without policy, last run failed or never run) per device and per
+  customer, plus the policies, from ``backup_workspace_capabilities``;
 - ``GET  /api/ui/v1/agents``: the MikroTik Agent fleet (health, installation
   check, transport, version and pending update) from ``agent_fleet``, including
   the install-time extensions of its row builder.
@@ -16,6 +19,7 @@ import uuid
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 
 from app import agent_fleet
+from app import backup_workspace_capabilities as backup_overview
 from app import fleet_monitoring as fleet
 from app import main as core
 from app.db import SessionLocal
@@ -127,6 +131,49 @@ def agents(request: Request, q: str = "", customer: str = "", state: str = "atte
                         for key in ("offline", "stale", "no_credential", "unknown_transport")})
         return {"state": state, "total": len(rows), "limit": AGENT_LIMIT, "summary": summary,
                 "items": [agent_row(row) for row in rows[:AGENT_LIMIT]]}
+
+
+BACKUP_LIMIT = 500
+
+
+def backup_row(row: dict) -> dict:
+    device = row["device"]
+    latest = row["latest"]
+    readiness = row["readiness"]
+    return {
+        "id": str(device.id), "name": device.display_name or device.device_identity or device.name, "vendor": device.vendor, "status": device.status,
+        "customer": {"id": str(device.customer.id), "name": device.customer.name} if device.customer else None,
+        "site": device.site.name if device.site else None,
+        "policy": {"id": str(row["policy"].id), "name": row["policy"].name} if row["policy"] else None,
+        "readiness": {"status": readiness.status, "label": row["readiness_label"], "reason": readiness.reason, "method": readiness.capability.label},
+        "bucket": row["bucket"], "state": row["state"],
+        "latest": {"status": latest.status, "started_at": _iso(latest.started_at), "completed_at": _iso(latest.completed_at),
+                   "error": latest.error_message, "type": latest.backup_type} if latest else None,
+    }
+
+
+@router.get("/backups")
+def backups(request: Request, view: str = "attention", customer: str = "", q: str = ""):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "backup.read")
+        view = view if view in backup_overview.BACKUP_VIEWS else "attention"
+        state = backup_overview.backup_overview_state(db)
+        counts, rows = backup_overview.select_backup_rows(state["device_rows"], view, _uuid(customer), q[:100])
+        customers = state["customer_rows"]
+        return {
+            "view": view, "total": len(rows), "limit": BACKUP_LIMIT,
+            "counts": {key: counts.get(key, 0) for key in backup_overview.BACKUP_VIEWS},
+            "totals": {"devices": len(state["devices"]), "protected": sum(r["protected"] for r in customers), "blocked": sum(r["blocked"] for r in customers),
+                       "no_policy": sum(r["no_policy"] for r in customers), "backup_alerts": sum(r["backup_alerts"] for r in customers),
+                       "active_policies": sum(1 for p in state["policies"] if p.is_enabled)},
+            "items": [backup_row(row) for row in rows[:BACKUP_LIMIT]],
+            "customers": [{"id": str(r["customer"].id), "name": r["customer"].name, "devices": r["devices"], "protected": r["protected"],
+                           "blocked": r["blocked"], "no_policy": r["no_policy"], "backup_alerts": r["backup_alerts"]}
+                          for r in customers if r["devices"]],
+            "policies": [{"id": str(r["policy"].id), "name": r["policy"].name, "enabled": bool(r["policy"].is_enabled), "scope": r["scope"],
+                          "scope_type": r["policy"].scope_type, "schedule": r["policy"].schedule_cron} for r in state["policy_rows"]],
+            "can_configure": core.has_permission(user, "backup.configure"),
+        }
 
 
 def install_ui_operations(app) -> None:

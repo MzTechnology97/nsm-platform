@@ -987,5 +987,71 @@
     "updateTo": "→ {{version}} disponibile",
     "allGood": "Nessun agent da verificare.",
     "empty": "Nessun agent in questo stato."
+  },
+  "backupOverview": {
+    "title": "Backup",
+    "subtitle": "Protezione backup di tutti gli apparati: policy, metodo eseguibile ed esito dell'ultima esecuzione.",
+    "newPolicy": "+ Policy",
+    "metrics": {
+      "protected": "Protetti",
+      "blocked": "Bloccati",
+      "noPolicy": "Senza policy",
+      "alerts": "Allarmi backup",
+      "policies": "Policy attive"
+    },
+    "hints": {
+      "protected": "apparati con backup eseguibile",
+      "blocked": "policy presente ma metodo non eseguibile",
+      "noPolicy": "nessuna policy li copre",
+      "alerts": "segnalazioni aperte",
+      "policies_one": "{{count}} policy in totale",
+      "policies_other": "{{count}} policy in totale"
+    },
+    "views": {
+      "label": "Vista backup",
+      "attention": "Da verificare",
+      "failed": "Ultimo fallito",
+      "blocked": "Bloccati",
+      "never": "Mai eseguito",
+      "no_policy": "Senza policy",
+      "protected": "Protetti",
+      "all": "Tutti"
+    },
+    "search": "Cerca apparato, seriale, IP o cliente",
+    "columns": {
+      "device": "Apparato",
+      "protection": "Protezione",
+      "policy": "Policy",
+      "latest": "Ultimo backup"
+    },
+    "readiness": {
+      "protected": "Protetto",
+      "no_policy": "Nessuna policy",
+      "method_disabled": "Metodo non abilitato",
+      "agent_required": "Agent richiesto",
+      "legacy_backup_pending": "Backup legacy non pronto",
+      "available_export_only": "Solo export .rsc",
+      "connector_required": "Connector richiesto",
+      "acs_required": "ACS richiesto",
+      "unsupported": "Non supportato"
+    },
+    "never": "mai eseguito",
+    "allGood": "Nessun backup da verificare.",
+    "empty": "Nessun apparato in questa vista.",
+    "coverage": {
+      "title": "Copertura per cliente",
+      "customer": "Cliente",
+      "protected": "Protetti",
+      "blocked": "Bloccati",
+      "noPolicy": "Senza policy",
+      "alerts": "Allarmi"
+    },
+    "policies": {
+      "title": "Policy",
+      "hint": "Le policy più specifiche (apparato, sede, cliente, vendor) prevalgono su quelle generali.",
+      "on": "attiva",
+      "off": "disattivata",
+      "none": "Nessuna policy configurata."
+    }
   }
 }
