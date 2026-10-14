@@ -4,6 +4,23 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.129 — 2026-10-14
+
+New interface (React) — NVD source and RouterOS catalogue, phase 6i
+- **NVD advisories in `/app/admin/integrations/nvd`**, with sub-tabs between the configurable integrations (those not yet migrated open the classic pages):
+  - configuration: enable, update interval, API key (encrypted, kept when empty, removable, never sent back to the browser);
+  - source status: last outcome, last success, mode, next attempt, imported advisories, open matches, last read, unparseable records. *Update now* and *Full reload* are offered when the source is enabled;
+  - matches with the inventory, with *Recompute now* and the matching rules;
+  - **coverage per vendor**: devices, assessable, without model, without readable version, NVD products. On the classic page this table was placed inside the page title and did not render; here it is in its own section.
+- **RouterOS catalogue in `/app/integrations/routeros`** (`firmware.read`): latest version per channel with security fixes as evidence, observed releases with changelog. *Refresh now* is for administrators and reports channels read, new releases and devices with an update.
+- The integrations hub links to both pages in the new interface.
+- NVD settings, sync and matching and the catalogue refresh are now shared functions (`advisory_admin.save_source`/`sync_now`/`match_now`, `routeros_catalog.refresh_now`), used by both interfaces; the classic forms behave as before.
+- **API.**
+  - `GET /api/ui/v1/admin/integrations/nvd` (`users.manage`);
+  - `POST /api/ui/v1/admin/integrations/nvd`, `/sync`, `/match` (`users.manage` + CSRF header);
+  - `GET /api/ui/v1/integrations/routeros` (`firmware.read`);
+  - `POST /api/ui/v1/integrations/routeros/refresh` (`users.manage` + CSRF header).
+
 ## 0.49.128 — 2026-10-14
 
 New interface (React) — syslog server, phase 6h

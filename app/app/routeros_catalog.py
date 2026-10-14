@@ -195,15 +195,21 @@ def admin_page(request: Request):
                            last_refresh=db.scalar(select(func.max(RouterosRelease.fetched_at))), can_admin=user.role == "admin")
 
 
+def refresh_now(db, user) -> tuple[dict, dict]:
+    """Read the catalogue now and re-evaluate the devices (audited); returns (fetch stats, evaluation). Caller commits."""
+    stats = refresh(db)
+    evaluated = evaluate(db)
+    core.add_event(db, "ROUTEROS_CATALOG_REFRESHED", actor=user, details={**stats, **evaluated})
+    return stats, evaluated
+
+
 @router.post("/admin/integrations/routeros/refresh", name="routeros_catalog_refresh")
 async def admin_refresh(request: Request):
     form = await request.form()
     validate_csrf(request, str(form.get("csrf") or ""))
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        stats = refresh(db)
-        evaluated = evaluate(db)
-        core.add_event(db, "ROUTEROS_CATALOG_REFRESHED", actor=user, details={**stats, **evaluated})
+        stats, evaluated = refresh_now(db, user)
         db.commit()
     level = "warning" if stats["errors"] else "success"
     message = f"{stats['channels']} canali letti, {stats['new_releases']} nuove release; {evaluated['updates']} apparati con aggiornamento, {evaluated['security']} di sicurezza."

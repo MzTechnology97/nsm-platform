@@ -245,6 +245,16 @@ const adminSyslogRoute = createRoute({
   path: "/admin/syslog",
   component: lazyRouteComponent(() => import("../pages/AdminSyslog"), "AdminSyslog"),
 });
+const adminNvdRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/integrations/nvd",
+  component: lazyRouteComponent(() => import("../pages/AdminNvd"), "AdminNvd"),
+});
+const routerosRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/integrations/routeros",
+  component: lazyRouteComponent(() => import("../pages/RouterosCatalog"), "RouterosCatalog"),
+});
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/access",
@@ -326,6 +336,8 @@ export const routeTree = rootRoute.addChildren([
   adminNotificationsRoute,
   integrationsRoute,
   adminSyslogRoute,
+  adminNvdRoute,
+  routerosRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

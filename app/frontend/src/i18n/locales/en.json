@@ -2126,6 +2126,13 @@
       "version": "Version",
       "linked": "Devices pushed",
       "open": "Open Zabbix"
+    },
+    "tabs": {
+      "uisp": "UISP Network",
+      "nvd": "Advisory NVD",
+      "genieacs": "GenieACS / TR-069",
+      "zabbix": "Zabbix",
+      "cnmaestro": "cnMaestro"
     }
   },
   "syslogAdmin": {
@@ -2202,6 +2209,113 @@
       "ambiguous": "IP shared by several devices, hostname not decisive",
       "unknown": "sender not linked to a device",
       "quota": "device daily quota exceeded"
+    }
+  },
+  "nvd": {
+    "title": "Integrations · NVD",
+    "subtitle": "Advisory source: CVEs published by the National Vulnerability Database for the tracked products, matched with the installed versions.",
+    "config": "Configuration",
+    "configHelp": "Public, read-only use of the CVE 2.0 API. No NSM data is sent to NVD.",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "enable": "Enable automatic updates",
+    "interval": "Update interval (minutes)",
+    "intervalHelp": "After the first full load only the CVEs changed since the last update are read. On errors the next attempt is delayed progressively (up to 24 hours).",
+    "apiKey": "NVD API key (optional)",
+    "noKeyPlaceholder": "Without a key: 5 requests every 30 seconds",
+    "keyStored": "Key stored and encrypted, it cannot be read back from the interface.",
+    "keyHelp": "Recommended only with many CVEs to read; the key is encrypted before it is stored.",
+    "clearKey": "Remove the stored key",
+    "save": "Save configuration",
+    "saved": "NVD source configuration saved.",
+    "state": "Source status",
+    "tracked_one": "{{count}} product tracked, derived from the devices in the inventory.",
+    "tracked_other": "{{count}} products tracked, derived from the devices in the inventory.",
+    "syncNow": "Update now",
+    "fullSync": "Full reload",
+    "status": "Status",
+    "statuses": {
+      "notConfigured": "Not configured",
+      "disabled": "Disabled",
+      "ok": "OK",
+      "error": "Error",
+      "never": "Never run"
+    },
+    "lastSuccess": "Last success",
+    "mode": "Mode",
+    "modes": {
+      "full": "Full",
+      "incremental": "Incremental"
+    },
+    "next": "Next attempt",
+    "nextCycle": "next cycle",
+    "advisories": "NVD advisories",
+    "openFindings": "Open matches",
+    "lastRead": "Last read: {{fetched}} records · {{created}} new · {{updated}} updated · {{unchanged}} unchanged · {{rejected}} rejected by NVD · {{errors}} not parseable.",
+    "lastError": "Last error ({{count}} consecutive): {{error}}",
+    "synced": "{{fetched}} advisories read ({{created}} new, {{updated}} updated).",
+    "syncFailed": "NVD update failed: {{error}}",
+    "parseErrors": "Unparseable records ({{count}})",
+    "matching": "Matches with the inventory",
+    "matchingHelp": "Recomputed after every update and every 15 minutes, so an updated device closes its own findings.",
+    "matchNow": "Recompute now",
+    "lastRun": "Last run",
+    "evaluated": "Advisories evaluated",
+    "new": "New",
+    "resolved": "Resolved",
+    "updated": "Updated",
+    "unknown": "Not assessable",
+    "matched": "Matches recomputed: {{opened}} opened, {{resolved}} resolved, {{unknown}} not assessable.",
+    "rules": {
+      "versionOnly": {
+        "title": "Version only",
+        "text": "A device is flagged only when its installed version falls in the CVE ranges: never by vendor or product alone."
+      },
+      "models": {
+        "title": "Specific models",
+        "text": "When the CVE affects only some hardware models, the device model must match."
+      },
+      "unknownRule": {
+        "title": "Not assessable",
+        "text": "Unknown version or model, or CVEs without versions: listed in the CVE detail, not counted as exposed."
+      },
+      "autoClose": {
+        "title": "Automatic closing",
+        "text": "When the installed version leaves the range the finding is resolved with the version as evidence."
+      }
+    },
+    "coverage": "Coverage per vendor",
+    "coverageHelp": "NSM queries NVD only for the vendors and models in the inventory. A device can be assessed when model and firmware version are known; the others are never considered exposed for their brand alone.",
+    "noCoverage": "No device with a recognised vendor.",
+    "trackedList": "Products queried on NVD ({{count}})",
+    "columns": {
+      "brand": "Vendor",
+      "devices": "Devices",
+      "evaluable": "Assessable",
+      "noModel": "No model",
+      "noVersion": "No readable version",
+      "products": "NVD products"
+    }
+  },
+  "routeros": {
+    "title": "RouterOS catalogue",
+    "subtitle": "Latest versions per channel read from upgrade.mikrotik.com every 6 hours. A release is marked “security” when its release notes mention security fixes; the lines are kept as evidence.",
+    "lastRead": "Last read {{when}}.",
+    "refresh": "Refresh now",
+    "refreshed": "{{channels}} channels read, {{releases}} new releases; {{updates}} devices with an update, {{security}} security.",
+    "errors": "Errors: {{errors}}",
+    "notRead": "not read yet",
+    "securityBadge": "Security",
+    "empty": "Catalogue not read yet.",
+    "emptyAdmin": "Catalogue not read yet: use “Refresh now” or wait for the worker.",
+    "history": "Observed releases",
+    "changelog": "Changelog",
+    "columns": {
+      "channel": "Channel",
+      "version": "Version",
+      "released": "Released",
+      "security": "Security",
+      "notes": "Notes"
     }
   }
 }

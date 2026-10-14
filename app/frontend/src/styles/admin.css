@@ -177,3 +177,8 @@
   color: var(--text);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+
+.ui-subtabs {
+  margin-top: calc(-1 * var(--space-2));
+  font-size: 13px;
+}
