@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.109 — 2026-10-14
+
+New interface (React) — MikroTik Agent fleet, phase 3b
+- **Agents in `/app/agents`**, also reachable from the sidebar of the new interface. It is the same worklist as the classic Agent fleet:
+  - agents needing attention by default, with suspect installations first;
+  - chips with counts: healthy, offline, old heartbeat, no credential, pending, suspect installation, expired token, transport not detected, all;
+  - search (name, IP, MAC, serial, model), customer, transport and installation filters, all kept in the address.
+- **Per agent:** health with its first reason (the others in the tooltip), installation check, pending tokens, transport and version, next version available and the state of a running update, last heartbeat and source address. The name opens the device Agent tab.
+- **Summary:** total agents, healthy, modern and legacy, and how many installed agents can be updated (devices still waiting for their first pairing are not counted).
+- The fleet rows are now built by shared functions in `agent_fleet`, so the agent-update reasons added at start-up apply to both interfaces; the classic page behaves as before.
+- **API.** `GET /api/ui/v1/agents` (`devices.read`).
+
 ## 0.49.108 — 2026-10-14
 
 New interface (React) — fleet Monitoring, phase 3a

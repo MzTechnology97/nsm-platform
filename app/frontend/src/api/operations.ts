@@ -62,3 +62,60 @@ export function useIcmpBulk() {
     onSuccess: () => client.invalidateQueries({ queryKey: ["monitoring"] }),
   });
 }
+
+export const AGENT_STATES = ["attention", "healthy", "offline", "stale", "no_credential", "pending", "install_suspect", "token_expired", "unknown_transport", "all"] as const;
+export type AgentState = (typeof AGENT_STATES)[number];
+
+export interface AgentFilters {
+  q?: string;
+  customer?: string;
+  state?: AgentState;
+  transport?: "legacy" | "modern" | "unknown";
+  install?: "verified" | "waiting" | "suspect" | "expired" | "not_enrolled";
+}
+
+export interface AgentRow {
+  id: string;
+  name: string;
+  model: string | null;
+  firmware: string | null;
+  status: string;
+  management_ip: string | null;
+  customer: { id: string; name: string } | null;
+  site: string | null;
+  transport: string;
+  agent_version: string | null;
+  heartbeat_transport: string | null;
+  source_ip: string | null;
+  last_seen: string | null;
+  stale: boolean;
+  credential_active: boolean;
+  pending_enrollments: number;
+  health: string;
+  attention: boolean;
+  install: string;
+  installation: string;
+  reasons: string[];
+  update: { outdated: boolean; target_version: string | null; state: string; self_update_capable: boolean } | null;
+}
+
+export interface AgentFleet {
+  state: AgentState;
+  total: number;
+  limit: number;
+  summary: Record<string, number>;
+  items: AgentRow[];
+}
+
+export function agentsUrl(filters: AgentFilters): string {
+  const search = new URLSearchParams();
+  for (const key of ["q", "customer", "state", "transport", "install"] as const) {
+    const value = filters[key];
+    if (value) search.set(key, value);
+  }
+  const query = search.toString();
+  return `/api/ui/v1/agents${query ? `?${query}` : ""}`;
+}
+
+export const useAgentFleet = (filters: AgentFilters) =>
+  useQuery({ queryKey: ["agents", filters], queryFn: () => api<AgentFleet>(agentsUrl(filters)), placeholderData: keepPreviousData, staleTime: 20_000, refetchInterval: 60_000 });

@@ -929,5 +929,63 @@
       "skipped_one": "{{count}} sans IP de gestion : indiquez-la sur la page de l'équipement.",
       "skipped_other": "{{count}} sans IP de gestion : indiquez-la sur la page de l'équipement."
     }
+  },
+  "agents": {
+    "title": "Agents MikroTik",
+    "subtitle": "{{total}} agents · {{healthy}} en bonne santé · {{modern}} modernes, {{legacy}} legacy · {{outdated}} à mettre à jour",
+    "search": "Rechercher nom, IP, MAC, série, modèle",
+    "transport": "Transport",
+    "allTransports": "Tous les transports",
+    "installation": "Installation",
+    "allInstalls": "Toutes les installations",
+    "states": {
+      "label": "Santé des agents",
+      "attention": "À vérifier",
+      "healthy": "En bonne santé",
+      "offline": "Hors ligne",
+      "stale": "Heartbeat ancien",
+      "no_credential": "Sans identifiant",
+      "pending": "En attente",
+      "install_suspect": "Installation suspecte",
+      "token_expired": "Jeton expiré",
+      "unknown_transport": "Transport non détecté",
+      "all": "Tous"
+    },
+    "transports": {
+      "modern": "Moderne",
+      "legacy": "Legacy",
+      "unknown": "Non détecté"
+    },
+    "installs": {
+      "verified": "Vérifiée",
+      "waiting": "En attente",
+      "suspect": "Suspecte",
+      "expired": "Jeton expiré",
+      "not_enrolled": "Non associé"
+    },
+    "health": {
+      "healthy": "En bonne santé",
+      "pending": "Appairage à terminer",
+      "awaiting_heartbeat": "Attente du heartbeat",
+      "install_suspect": "Agent non démarré",
+      "token_expired": "Jeton expiré",
+      "no_credential": "Sans identifiant",
+      "offline": "Hors ligne",
+      "stale": "Heartbeat ancien",
+      "unknown_transport": "Transport non détecté",
+      "agent_outdated": "À mettre à jour"
+    },
+    "columns": {
+      "device": "Équipement",
+      "health": "Santé",
+      "install": "Installation",
+      "agent": "Agent",
+      "heartbeat": "Dernier heartbeat"
+    },
+    "pendingTokens_one": "{{count}} jeton en attente",
+    "pendingTokens_other": "{{count}} jetons en attente",
+    "updateTo": "→ {{version}} disponible",
+    "allGood": "Aucun agent à vérifier.",
+    "empty": "Aucun agent dans cet état."
   }
 }

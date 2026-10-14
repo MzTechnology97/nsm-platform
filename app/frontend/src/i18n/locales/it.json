@@ -929,5 +929,63 @@
       "skipped_one": "{{count}} senza IP di gestione: indicalo nella pagina dell'apparato.",
       "skipped_other": "{{count}} senza IP di gestione: indicalo nella pagina dell'apparato."
     }
+  },
+  "agents": {
+    "title": "Agent MikroTik",
+    "subtitle": "{{total}} agent · {{healthy}} in salute · {{modern}} moderni, {{legacy}} legacy · {{outdated}} da aggiornare",
+    "search": "Cerca nome, IP, MAC, seriale, modello",
+    "transport": "Transport",
+    "allTransports": "Tutti i transport",
+    "installation": "Installazione",
+    "allInstalls": "Tutte le installazioni",
+    "states": {
+      "label": "Salute agent",
+      "attention": "Da verificare",
+      "healthy": "In salute",
+      "offline": "Offline",
+      "stale": "Heartbeat vecchio",
+      "no_credential": "Senza credenziale",
+      "pending": "In attesa",
+      "install_suspect": "Installazione sospetta",
+      "token_expired": "Token scaduto",
+      "unknown_transport": "Transport non rilevato",
+      "all": "Tutti"
+    },
+    "transports": {
+      "modern": "Moderno",
+      "legacy": "Legacy",
+      "unknown": "Non rilevato"
+    },
+    "installs": {
+      "verified": "Verificata",
+      "waiting": "In attesa",
+      "suspect": "Sospetta",
+      "expired": "Token scaduto",
+      "not_enrolled": "Non associato"
+    },
+    "health": {
+      "healthy": "In salute",
+      "pending": "Pairing da completare",
+      "awaiting_heartbeat": "Attesa heartbeat",
+      "install_suspect": "Agent non avviato",
+      "token_expired": "Token scaduto",
+      "no_credential": "Senza credenziale",
+      "offline": "Offline",
+      "stale": "Heartbeat vecchio",
+      "unknown_transport": "Transport non rilevato",
+      "agent_outdated": "Da aggiornare"
+    },
+    "columns": {
+      "device": "Apparato",
+      "health": "Salute",
+      "install": "Installazione",
+      "agent": "Agent",
+      "heartbeat": "Ultimo heartbeat"
+    },
+    "pendingTokens_one": "{{count}} token in attesa",
+    "pendingTokens_other": "{{count}} token in attesa",
+    "updateTo": "→ {{version}} disponibile",
+    "allGood": "Nessun agent da verificare.",
+    "empty": "Nessun agent in questo stato."
   }
 }

@@ -6,7 +6,7 @@ import type { DeviceFilters } from "../api/devices";
 import { CustomerDetail, CustomerOverview, CustomerSites } from "../pages/CustomerDetail";
 import type { GraphsSearch } from "../pages/CustomerGraphs";
 import { Customers } from "../pages/Customers";
-import { MONITORING_STATES, type MonitoringFilters } from "../api/operations";
+import { AGENT_STATES, type AgentFilters, MONITORING_STATES, type MonitoringFilters } from "../api/operations";
 import { DeviceDetail, DeviceOverview } from "../pages/DeviceDetail";
 import { Devices } from "../pages/Devices";
 import { Home } from "../pages/Home";
@@ -72,6 +72,18 @@ export function parseMonitoringSearch(search: Record<string, unknown>): Monitori
   return out;
 }
 
+/** Agent fleet search: known values only. */
+export function parseAgentSearch(search: Record<string, unknown>): AgentFilters {
+  const out: AgentFilters = {};
+  if (typeof search.q === "string" && search.q) out.q = search.q;
+  if (typeof search.customer === "string" && search.customer) out.customer = search.customer;
+  if (typeof search.state === "string" && (AGENT_STATES as readonly string[]).includes(search.state)) out.state = search.state as AgentFilters["state"];
+  if (search.transport === "legacy" || search.transport === "modern" || search.transport === "unknown") out.transport = search.transport;
+  if (typeof search.install === "string" && ["verified", "waiting", "suspect", "expired", "not_enrolled"].includes(search.install)) out.install = search.install as AgentFilters["install"];
+  return out;
+}
+
+const agentsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/agents", component: lazyRouteComponent(() => import("../pages/Agents"), "Agents"), validateSearch: parseAgentSearch });
 const monitoringRoute = createRoute({ getParentRoute: () => rootRoute, path: "/monitoring", component: lazyRouteComponent(() => import("../pages/Monitoring"), "Monitoring"), validateSearch: parseMonitoringSearch });
 
 const deviceRoute = createRoute({ getParentRoute: () => rootRoute, path: "/devices/$deviceId", component: DeviceDetail });
@@ -94,6 +106,7 @@ export const routeTree = rootRoute.addChildren([
   devicesRoute,
   customersRoute,
   monitoringRoute,
+  agentsRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

@@ -335,3 +335,8 @@
   gap: 4px;
   margin-left: 6px;
 }
+
+.ui-text-warning {
+  color: var(--warning);
+  font-weight: 600;
+}
