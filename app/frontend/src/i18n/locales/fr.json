@@ -1715,5 +1715,81 @@
       "operator": "Consultation, prise en charge et tâches opérationnelles prédéfinies.",
       "auditor": "Lecture seule de l'inventaire, de l'historique, des sauvegardes, des CVE et des rapports."
     }
+  },
+  "apiKeys": {
+    "subtitle": "Clés de l'API publique en lecture seule : périmètre, expiration, rotation et révocation.",
+    "keys_one": "{{count}} clé API",
+    "keys_other": "{{count}} clés API",
+    "none": "Aucune clé API.",
+    "create": "Nouvelle clé API",
+    "createHelp": "Le jeton n'est affiché qu'une fois ; la plateforme n'en garde que l'empreinte.",
+    "name": "Nom",
+    "customer": "Client",
+    "expiry": "Expiration",
+    "scopes": "Autorisations",
+    "createAction": "Créer la clé API",
+    "days_one": "{{count}} jour",
+    "days_other": "{{count}} jours",
+    "noExpiry": "sans expiration",
+    "tokenTitle": "Jeton de « {{name}} »",
+    "tokenOnce": "Copiez-le maintenant et conservez-le en lieu sûr : il ne sera plus affiché.",
+    "token": "Jeton",
+    "copy": "Copier",
+    "copied": "Copié",
+    "stored": "Je l'ai enregistré",
+    "states": {
+      "active": "Active",
+      "grace": "En remplacement",
+      "expiring": "Expire bientôt",
+      "expired": "Expirée",
+      "replaced": "Remplacée",
+      "revoked": "Révoquée"
+    },
+    "created": "créée {{when}}",
+    "expires": "expire {{when}}",
+    "lastUsed": "dernière utilisation : {{when}}",
+    "uses_one": "{{count}} requête",
+    "uses_other": "{{count}} requêtes",
+    "hints": {
+      "grace": "Remplacée : acceptée jusqu'au {{when}}.",
+      "expiring_one": "Expire dans {{count}} jour : faites-la tourner.",
+      "expiring_other": "Expire dans {{count}} jours : faites-la tourner.",
+      "neverUsed": "Jamais utilisée en {{count}} jours : envisagez la révocation.",
+      "idle": "Inutilisée depuis {{count}} jours : envisagez la révocation.",
+      "noExpiry": "Sans expiration : préférez une rotation périodique."
+    },
+    "grace": "Chevauchement",
+    "graceOptions": {
+      "h0": "révoquer tout de suite",
+      "h24": "valide encore 24 h",
+      "h168": "valide encore 7 jours"
+    },
+    "rotate": "Rotation",
+    "revoke": "Révoquer",
+    "delete": "Supprimer",
+    "confirmRevoke": "Révoquer « {{name}} » ? Les requêtes qui l'utilisent ne seront plus autorisées.",
+    "confirmDelete": "Supprimer définitivement « {{name}} » de l'archive ?",
+    "review": {
+      "expired_one": "{{count}} clé expirée",
+      "expired_other": "{{count}} clés expirées",
+      "expiring_one": "{{count}} expire bientôt",
+      "expiring_other": "{{count}} expirent bientôt",
+      "unused_one": "{{count}} inutilisée",
+      "unused_other": "{{count}} inutilisées",
+      "no_expiry_one": "{{count}} sans expiration",
+      "no_expiry_other": "{{count}} sans expiration"
+    },
+    "scopeLabels": {
+      "inventory.read": "Inventaire",
+      "backup.read": "État des sauvegardes",
+      "security.read": "Sécurité / CVE",
+      "firmware.read": "Firmware"
+    },
+    "scopeHelp": {
+      "inventory.read": "Clients et inventaire des équipements en lecture seule (toujours inclus).",
+      "backup.read": "État et exécutions des sauvegardes ; ni téléchargement ni modification.",
+      "security.read": "Vulnérabilités/CVE des équipements en lecture seule.",
+      "firmware.read": "État du firmware et version recommandée en lecture seule."
+    }
   }
 }

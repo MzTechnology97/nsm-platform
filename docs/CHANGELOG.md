@@ -4,6 +4,24 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.124 — 2026-10-14
+
+New interface (React) — API keys, phase 6d
+- **API keys in `/app/admin/api-keys`**, in the *API Keys* tab of the new administration area.
+- **Create** a key for all customers or one, with an expiry of 30, 90 or 365 days or none, and the read permissions to grant (inventory is always included). The token is shown once, with a copy button; the platform keeps only its fingerprint, and the API answers with `Cache-Control: no-store`.
+- **Each key shows:**
+  - prefix, permissions, customer, creation, expiry, last use with address, number of requests;
+  - its state: active, being replaced, expiring, expired, replaced, revoked;
+  - the same review hints as the classic page (expiring, never used, unused for 90 days, no expiry);
+  - a summary of the keys that need attention appears above the list.
+- **Rotate** with an overlap period (revoke now, 24 hours, 7 days); the new token is shown once.
+- **Revoke and delete** with confirmation; a key must be revoked before it can be deleted.
+- Key creation, revocation, deletion and rotation are now shared functions (`api_keys.create_key`/`revoke_key`/`delete_key`, `api_key_lifecycle.rotate`), used by both interfaces; the classic forms behave as before. The duplicated creation code in `api_key_scope_extension` now uses the same function.
+- **API.** All routes need `users.manage`; the `POST` routes also need the CSRF header:
+  - `GET /api/ui/v1/admin/api-keys`;
+  - `POST /api/ui/v1/admin/api-keys`;
+  - `POST /api/ui/v1/admin/api-keys/{id}/rotate`, `/revoke`, `/delete`.
+
 ## 0.49.123 — 2026-10-14
 
 New interface (React) — users, phase 6c

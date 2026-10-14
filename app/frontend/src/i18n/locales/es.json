@@ -1715,5 +1715,81 @@
       "operator": "Consulta, hacerse cargo de avisos y tareas operativas predefinidas.",
       "auditor": "Solo lectura de inventario, historial, copias, CVE e informes."
     }
+  },
+  "apiKeys": {
+    "subtitle": "Claves de la API pública de solo lectura: ámbito, caducidad, rotación y revocación.",
+    "keys_one": "{{count}} clave API",
+    "keys_other": "{{count}} claves API",
+    "none": "Ninguna clave API.",
+    "create": "Nueva clave API",
+    "createHelp": "El token se muestra una sola vez; la plataforma solo guarda su huella.",
+    "name": "Nombre",
+    "customer": "Cliente",
+    "expiry": "Caducidad",
+    "scopes": "Permisos",
+    "createAction": "Crear clave API",
+    "days_one": "{{count}} día",
+    "days_other": "{{count}} días",
+    "noExpiry": "sin caducidad",
+    "tokenTitle": "Token de «{{name}}»",
+    "tokenOnce": "Cópialo ahora y guárdalo en un lugar seguro: no se volverá a mostrar.",
+    "token": "Token",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "stored": "Ya lo he guardado",
+    "states": {
+      "active": "Activa",
+      "grace": "En sustitución",
+      "expiring": "Caduca pronto",
+      "expired": "Caducada",
+      "replaced": "Sustituida",
+      "revoked": "Revocada"
+    },
+    "created": "creada {{when}}",
+    "expires": "caduca {{when}}",
+    "lastUsed": "último uso: {{when}}",
+    "uses_one": "{{count}} petición",
+    "uses_other": "{{count}} peticiones",
+    "hints": {
+      "grace": "Sustituida: aceptada hasta {{when}}.",
+      "expiring_one": "Caduca en {{count}} día: rótala.",
+      "expiring_other": "Caduca en {{count}} días: rótala.",
+      "neverUsed": "Sin usar en {{count}} días: valora revocarla.",
+      "idle": "Sin uso desde hace {{count}} días: valora revocarla.",
+      "noExpiry": "Sin caducidad: mejor una rotación periódica."
+    },
+    "grace": "Solapamiento",
+    "graceOptions": {
+      "h0": "revocar ya",
+      "h24": "válida 24 h más",
+      "h168": "válida 7 días más"
+    },
+    "rotate": "Rotar",
+    "revoke": "Revocar",
+    "delete": "Eliminar",
+    "confirmRevoke": "¿Revocar «{{name}}»? Las peticiones que la usen dejarán de estar autorizadas.",
+    "confirmDelete": "¿Eliminar definitivamente «{{name}}» del archivo?",
+    "review": {
+      "expired_one": "{{count}} clave caducada",
+      "expired_other": "{{count}} claves caducadas",
+      "expiring_one": "{{count}} caduca pronto",
+      "expiring_other": "{{count}} caducan pronto",
+      "unused_one": "{{count}} sin uso",
+      "unused_other": "{{count}} sin uso",
+      "no_expiry_one": "{{count}} sin caducidad",
+      "no_expiry_other": "{{count}} sin caducidad"
+    },
+    "scopeLabels": {
+      "inventory.read": "Inventario",
+      "backup.read": "Estado de copias",
+      "security.read": "Seguridad / CVE",
+      "firmware.read": "Firmware"
+    },
+    "scopeHelp": {
+      "inventory.read": "Clientes e inventario de equipos en solo lectura (siempre incluido).",
+      "backup.read": "Estado y ejecuciones de copias; sin descargas ni cambios.",
+      "security.read": "Vulnerabilidades/CVE de los equipos en solo lectura.",
+      "firmware.read": "Estado del firmware y versión recomendada en solo lectura."
+    }
   }
 }

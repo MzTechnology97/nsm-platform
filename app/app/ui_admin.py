@@ -10,19 +10,24 @@
 - ``GET /api/ui/v1/admin/users``: accounts, roles, visible customers, second
   factor, last login and recent failed logins; ``POST`` create, role, enable,
   customer scope, close sessions and reset the second factor through the
-  functions shared with the classic forms (``users.manage``).
+  functions shared with the classic forms (``users.manage``);
+- ``GET /api/ui/v1/admin/api-keys``: platform API keys with their review
+  state; ``POST`` create, rotate, revoke and delete through ``api_keys`` /
+  ``api_key_lifecycle``. A new token is returned once, never stored in clear.
 """
 from __future__ import annotations
 
 import uuid
 from datetime import timedelta
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response
 from sqlalchemy import func, select
 
+from app import api_key_lifecycle, api_keys, customer_scope, login_security, report_schedules, reports, two_factor
 from app import main as core
-from app import customer_scope, login_security, report_schedules, reports, two_factor
 from app.activity_worklists import _audit_query, _uuid
+from app.api_key_models import PlatformApiKey
+from app.api_key_scopes import API_SCOPE_INVENTORY_READ, OPTIONAL_READ_SCOPES
 from app.db import SessionLocal
 from app.models import AuditEvent, Customer, Device, User, utcnow
 from app.report_models import FREQUENCY_LABELS, GeneratedReport, ReportSchedule
@@ -245,6 +250,102 @@ def admin_user_two_factor(request: Request, user_id: uuid.UUID):
         return {"two_factor": False}
 
     return _user_action(request, user_id, reset)
+
+
+def _key_review(key: PlatformApiKey, now) -> dict:
+    """Review state as data (same rules as ``api_key_lifecycle.key_state``), so the interface can phrase it per language."""
+    state = api_key_lifecycle.key_state(key, now)
+    hints: dict = {}
+    if key.is_active and state["code"] in ("active", "grace", "expiring"):
+        if state["code"] == "grace":
+            hints["grace_until"] = _iso(key.expires_at)
+        elif state["code"] == "expiring":
+            hints["expires_in_days"] = max(0, (key.expires_at - now).days)
+        if not key.last_used_at:
+            if key.created_at and now - key.created_at > timedelta(days=api_key_lifecycle.NEVER_USED_DAYS):
+                hints["never_used_days"] = (now - key.created_at).days
+        elif now - key.last_used_at > timedelta(days=api_key_lifecycle.IDLE_DAYS):
+            hints["idle_days"] = (now - key.last_used_at).days
+        if not key.expires_at and not key.replaced_by_id:
+            hints["no_expiry"] = True
+    return {"state": state["code"], "tone": state["tone"], "hints": hints}
+
+
+@router.get("/admin/api-keys")
+def admin_api_keys(request: Request, response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        keys, customers, customer_map = api_keys._admin_context(db)
+        now = utcnow()
+        return {
+            "scopes": [API_SCOPE_INVENTORY_READ, *OPTIONAL_READ_SCOPES], "expiry_days": [30, 90, 365, 0],
+            "grace_hours": list(api_key_lifecycle.GRACE_HOURS),
+            "customers": [{"id": str(c.id), "name": c.name} for c in customers],
+            "review": api_key_lifecycle.review(keys, now),
+            "keys": [{
+                "id": str(k.id), "name": k.name, "prefix": k.key_prefix, "scopes": list(k.scopes or []), "active": k.is_active,
+                "customer": {"id": str(k.customer_id), "name": customer_map[k.customer_id].name} if k.customer_id in customer_map else None,
+                "created_at": _iso(k.created_at), "expires_at": _iso(k.expires_at), "revoked_at": _iso(k.revoked_at),
+                "last_used_at": _iso(k.last_used_at), "last_used_ip": k.last_used_ip, "use_count": k.use_count,
+                "replaced_by_id": str(k.replaced_by_id) if k.replaced_by_id else None, **_key_review(k, now),
+            } for k in keys],
+        }
+
+
+def _new_token(response: Response, row: PlatformApiKey, raw_key: str) -> dict:
+    response.headers["Cache-Control"] = "no-store"
+    return {"id": str(row.id), "name": row.name, "prefix": row.key_prefix, "token": raw_key}
+
+
+@router.post("/admin/api-keys", dependencies=[Depends(require_csrf)])
+def admin_api_key_create(request: Request, response: Response, body: dict = Body(default={})):
+    raw_scopes = body.get("scopes")
+    try:
+        expires_days = int(body.get("expires_days", 90))
+    except (TypeError, ValueError):
+        expires_days = -1
+    with SessionLocal() as db:
+        user = ui_user(request, db, "users.manage")
+        row, raw_key = api_keys.create_key(db, user, _text(body, "name"), _text(body, "customer_id"), expires_days,
+                                           [v for v in raw_scopes if isinstance(v, str)] if isinstance(raw_scopes, list) else [])
+        db.commit()
+        return _new_token(response, row, raw_key)
+
+
+def _key_action(request: Request, key_id: uuid.UUID, action):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "users.manage")
+        key = db.get(PlatformApiKey, key_id)
+        if not key:
+            raise HTTPException(404, {"code": "not_found", "message": "API key non trovata."})
+        result = action(db, user, key)
+        db.commit()
+        return result
+
+
+@router.post("/admin/api-keys/{key_id}/rotate", dependencies=[Depends(require_csrf)])
+def admin_api_key_rotate(request: Request, response: Response, key_id: uuid.UUID, body: dict = Body(default={})):
+    try:
+        grace = int(body.get("grace_hours", 24))
+    except (TypeError, ValueError):
+        grace = -1
+
+    def rotate(db, user, key):
+        new, raw_key = api_key_lifecycle.rotate(db, user, key, grace)
+        return _new_token(response, new, raw_key)
+
+    return _key_action(request, key_id, rotate)
+
+
+@router.post("/admin/api-keys/{key_id}/revoke", dependencies=[Depends(require_csrf)])
+def admin_api_key_revoke(request: Request, key_id: uuid.UUID):
+    return _key_action(request, key_id, lambda db, user, key: {"revoked": api_keys.revoke_key(db, user, key)})
+
+
+@router.post("/admin/api-keys/{key_id}/delete", dependencies=[Depends(require_csrf)])
+def admin_api_key_delete(request: Request, key_id: uuid.UUID):
+    return _key_action(request, key_id, lambda db, user, key: api_keys.delete_key(db, user, key) or {"deleted": True})
 
 
 def install_ui_admin(app) -> None:

@@ -1715,5 +1715,81 @@
       "operator": "Read access, taking issues in charge and predefined operational jobs.",
       "auditor": "Read-only inventory, history, backups, CVEs and reports."
     }
+  },
+  "apiKeys": {
+    "subtitle": "Keys for the read-only public API: scope, expiry, rotation and revocation.",
+    "keys_one": "{{count}} API key",
+    "keys_other": "{{count}} API keys",
+    "none": "No API keys.",
+    "create": "New API key",
+    "createHelp": "The token is shown only once; the platform keeps only its fingerprint.",
+    "name": "Name",
+    "customer": "Customer",
+    "expiry": "Expiry",
+    "scopes": "Permissions",
+    "createAction": "Create API key",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "noExpiry": "no expiry",
+    "tokenTitle": "Token for “{{name}}”",
+    "tokenOnce": "Copy it now and keep it somewhere safe: it will not be shown again.",
+    "token": "Token",
+    "copy": "Copy",
+    "copied": "Copied",
+    "stored": "I have stored it",
+    "states": {
+      "active": "Active",
+      "grace": "Being replaced",
+      "expiring": "Expiring",
+      "expired": "Expired",
+      "replaced": "Replaced",
+      "revoked": "Revoked"
+    },
+    "created": "created {{when}}",
+    "expires": "expires {{when}}",
+    "lastUsed": "last used: {{when}}",
+    "uses_one": "{{count}} request",
+    "uses_other": "{{count}} requests",
+    "hints": {
+      "grace": "Replaced: accepted until {{when}}.",
+      "expiring_one": "Expires in {{count}} day: rotate it.",
+      "expiring_other": "Expires in {{count}} days: rotate it.",
+      "neverUsed": "Never used in {{count}} days: consider revoking it.",
+      "idle": "Unused for {{count}} days: consider revoking it.",
+      "noExpiry": "No expiry: prefer periodic rotation."
+    },
+    "grace": "Overlap",
+    "graceOptions": {
+      "h0": "revoke now",
+      "h24": "valid 24 more hours",
+      "h168": "valid 7 more days"
+    },
+    "rotate": "Rotate",
+    "revoke": "Revoke",
+    "delete": "Delete",
+    "confirmRevoke": "Revoke “{{name}}”? Requests using it will no longer be authorized.",
+    "confirmDelete": "Permanently delete “{{name}}” from the archive?",
+    "review": {
+      "expired_one": "{{count}} expired key",
+      "expired_other": "{{count}} expired keys",
+      "expiring_one": "{{count}} expiring",
+      "expiring_other": "{{count}} expiring",
+      "unused_one": "{{count}} unused",
+      "unused_other": "{{count}} unused",
+      "no_expiry_one": "{{count}} without expiry",
+      "no_expiry_other": "{{count}} without expiry"
+    },
+    "scopeLabels": {
+      "inventory.read": "Inventory",
+      "backup.read": "Backup status",
+      "security.read": "Security / CVE",
+      "firmware.read": "Firmware"
+    },
+    "scopeHelp": {
+      "inventory.read": "Customers and device inventory, read-only (always included).",
+      "backup.read": "Backup status and runs; no downloads or changes.",
+      "security.read": "Vulnerabilities/CVEs of the devices, read-only.",
+      "firmware.read": "Firmware status and recommended version, read-only."
+    }
   }
 }
