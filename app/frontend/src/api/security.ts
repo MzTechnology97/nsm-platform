@@ -88,3 +88,43 @@ export const useAdvisory = (id: string, customer?: string, status?: VulnStatus) 
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
+
+export const EXPOSURE_VIEWS = ["exposed", "setup", "clean", "pending", "all"] as const;
+export type ExposureView = (typeof EXPOSURE_VIEWS)[number];
+
+export interface ExposureFilters {
+  view?: ExposureView;
+  customer?: string;
+}
+
+export interface ExposureRow {
+  id: string;
+  name: string;
+  vendor: string | null;
+  customer: { id: string; name: string } | null;
+  mode: "agent" | "external";
+  state: "exposed" | "clean" | "setup" | "pending";
+  blocker: string | null;
+  worst: string | null;
+  checked_at: string | null;
+  target_ip: string | null;
+  shared: boolean;
+  private: boolean;
+  findings: { label: string | null; proto: string | null; port: string | number | null; severity: string }[];
+}
+
+export interface ExposurePage {
+  view: ExposureView;
+  total: number;
+  limit: number;
+  counts: Record<"exposed" | "clean" | "setup" | "pending" | "critical" | "total", number>;
+  items: ExposureRow[];
+}
+
+export const useExposure = (filters: ExposureFilters) =>
+  useQuery({
+    queryKey: ["exposure", filters],
+    queryFn: () => api<ExposurePage>(`/api/ui/v1/exposure${query({ view: filters.view, customer: filters.customer })}`),
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  });

@@ -1185,5 +1185,38 @@
       "low": "faible",
       "unknown": "non classée"
     }
+  },
+  "exposure": {
+    "title": "Services exposés",
+    "subtitle": "Services joignables depuis Internet pour chaque équipement : d'après la configuration lue par l'agent ou vérifiés de l'extérieur sur l'IP publique.",
+    "critical_one": "{{count}} équipement expose un service critique (ex. telnet, Winbox ou API en clair).",
+    "critical_other": "{{count}} équipements exposent un service critique (ex. telnet, Winbox ou API en clair).",
+    "views": {
+      "label": "Exposition",
+      "exposed": "Avec services exposés",
+      "setup": "À configurer",
+      "clean": "Sans exposition",
+      "pending": "Vérification en cours",
+      "all": "Tous"
+    },
+    "columns": {
+      "device": "Équipement",
+      "customer": "Client",
+      "mode": "Vérification",
+      "services": "Services exposés",
+      "worst": "Plus grave",
+      "checked": "Dernière vérification"
+    },
+    "modes": {
+      "agent": "Agent (configuration)",
+      "external": "Depuis l'extérieur"
+    },
+    "shared": "IP partagée",
+    "private": "IP privée/CGNAT",
+    "more": "… et {{count}} autres",
+    "pending": "vérification en cours",
+    "none": "aucune exposition",
+    "allGood": "Aucun équipement n'expose de services sur Internet.",
+    "empty": "Aucun équipement dans cette vue."
   }
 }

@@ -1185,5 +1185,38 @@
       "low": "low",
       "unknown": "unclassified"
     }
+  },
+  "exposure": {
+    "title": "Exposed services",
+    "subtitle": "Services reachable from the Internet for each device: from the configuration read by the agent or checked from outside on the public IP.",
+    "critical_one": "{{count}} device exposes a critical service (e.g. telnet, Winbox or plain API).",
+    "critical_other": "{{count}} devices expose a critical service (e.g. telnet, Winbox or plain API).",
+    "views": {
+      "label": "Exposure",
+      "exposed": "With exposed services",
+      "setup": "To set up",
+      "clean": "No exposure",
+      "pending": "Check in progress",
+      "all": "All"
+    },
+    "columns": {
+      "device": "Device",
+      "customer": "Customer",
+      "mode": "Check",
+      "services": "Exposed services",
+      "worst": "Worst",
+      "checked": "Last check"
+    },
+    "modes": {
+      "agent": "Agent (configuration)",
+      "external": "From outside"
+    },
+    "shared": "shared IP",
+    "private": "private/CGNAT IP",
+    "more": "… and {{count}} more",
+    "pending": "check in progress",
+    "none": "no exposure",
+    "allGood": "No device exposes services to the Internet.",
+    "empty": "No device in this view."
   }
 }
