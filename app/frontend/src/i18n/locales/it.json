@@ -1715,5 +1715,81 @@
       "operator": "Consultazione, presa in carico e job operativi predefiniti.",
       "auditor": "Sola lettura di inventario, storico, backup, CVE e report."
     }
+  },
+  "apiKeys": {
+    "subtitle": "Chiavi per l'API pubblica in sola lettura: ambito, scadenza, rotazione e revoca.",
+    "keys_one": "{{count}} API key",
+    "keys_other": "{{count}} API key",
+    "none": "Nessuna API key.",
+    "create": "Nuova API key",
+    "createHelp": "Il token viene mostrato una sola volta; nella piattaforma resta solo la sua impronta.",
+    "name": "Nome",
+    "customer": "Cliente",
+    "expiry": "Scadenza",
+    "scopes": "Permessi",
+    "createAction": "Crea API key",
+    "days_one": "{{count}} giorno",
+    "days_other": "{{count}} giorni",
+    "noExpiry": "nessuna scadenza",
+    "tokenTitle": "Token di «{{name}}»",
+    "tokenOnce": "Copialo ora e conservalo in un posto sicuro: non verrà più mostrato.",
+    "token": "Token",
+    "copy": "Copia",
+    "copied": "Copiato",
+    "stored": "L'ho salvato",
+    "states": {
+      "active": "Attiva",
+      "grace": "In sostituzione",
+      "expiring": "In scadenza",
+      "expired": "Scaduta",
+      "replaced": "Sostituita",
+      "revoked": "Revocata"
+    },
+    "created": "creata {{when}}",
+    "expires": "scade {{when}}",
+    "lastUsed": "ultimo uso: {{when}}",
+    "uses_one": "{{count}} richiesta",
+    "uses_other": "{{count}} richieste",
+    "hints": {
+      "grace": "Sostituita: accettata fino a {{when}}.",
+      "expiring_one": "Scade tra {{count}} giorno: ruotala.",
+      "expiring_other": "Scade tra {{count}} giorni: ruotala.",
+      "neverUsed": "Mai usata in {{count}} giorni: valuta la revoca.",
+      "idle": "Inutilizzata da {{count}} giorni: valuta la revoca.",
+      "noExpiry": "Nessuna scadenza: preferisci una rotazione periodica."
+    },
+    "grace": "Sovrapposizione",
+    "graceOptions": {
+      "h0": "revoca subito",
+      "h24": "valida altre 24 h",
+      "h168": "valida altri 7 giorni"
+    },
+    "rotate": "Ruota",
+    "revoke": "Revoca",
+    "delete": "Elimina",
+    "confirmRevoke": "Revocare «{{name}}»? Le richieste che la usano non saranno più autorizzate.",
+    "confirmDelete": "Eliminare definitivamente «{{name}}» dall'archivio?",
+    "review": {
+      "expired_one": "{{count}} chiave scaduta",
+      "expired_other": "{{count}} chiavi scadute",
+      "expiring_one": "{{count}} in scadenza",
+      "expiring_other": "{{count}} in scadenza",
+      "unused_one": "{{count}} inutilizzata",
+      "unused_other": "{{count}} inutilizzate",
+      "no_expiry_one": "{{count}} senza scadenza",
+      "no_expiry_other": "{{count}} senza scadenza"
+    },
+    "scopeLabels": {
+      "inventory.read": "Inventario",
+      "backup.read": "Stato backup",
+      "security.read": "Security / CVE",
+      "firmware.read": "Firmware"
+    },
+    "scopeHelp": {
+      "inventory.read": "Clienti e inventario apparati in sola lettura (sempre incluso).",
+      "backup.read": "Stato ed esecuzioni backup; nessun download o modifica.",
+      "security.read": "Vulnerabilità/CVE associate agli apparati in sola lettura.",
+      "firmware.read": "Stato firmware e versione raccomandata in sola lettura."
+    }
   }
 }

@@ -66,6 +66,54 @@ def review(keys, now=None) -> dict:
     }
 
 
+def rotate(db, user, old: PlatformApiKey, grace_hours: int) -> tuple[PlatformApiKey, str]:
+    """Issue the replacement key; the old one stays valid for ``grace_hours`` (0 = revoked now). Audited; caller commits."""
+    if grace_hours not in GRACE_HOURS:
+        raise HTTPException(400, "Periodo di sovrapposizione non valido.")
+    now = utcnow()
+    if not old.is_active:
+        raise HTTPException(409, "Una API key revocata non può essere ruotata: creane una nuova.")
+    if old.replaced_by_id:
+        raise HTTPException(409, "API key già ruotata: usa la chiave che la sostituisce.")
+    validity = None
+    if old.expires_at and old.created_at:
+        # In UTC: datetimes sharing a ZoneInfo subtract as wall-clock time and lose an hour across DST.
+        seconds = (old.expires_at.astimezone(timezone.utc) - old.created_at.astimezone(timezone.utc)).total_seconds()
+        validity = timedelta(days=max(1, round(seconds / 86400)))
+    raw_key = api_keys._new_token()
+    new = PlatformApiKey(
+        name=old.name,
+        key_prefix=raw_key[:api_keys.API_KEY_PREFIX_LENGTH],
+        key_hash=api_keys._digest(raw_key),
+        scopes=list(old.scopes or []),
+        customer_id=old.customer_id,
+        created_by_user_id=user.id,
+        expires_at=now + validity if validity else None,
+        is_active=True,
+    )
+    db.add(new)
+    db.flush()
+    old.replaced_by_id = new.id
+    if grace_hours == 0:
+        old.is_active = False
+        old.revoked_at = now
+    else:
+        limit = now + timedelta(hours=grace_hours)
+        old.expires_at = min(old.expires_at, limit) if old.expires_at else limit
+    core.add_event(
+        db,
+        "API_KEY_ROTATED",
+        actor=user,
+        customer_id=old.customer_id,
+        details={"api_key_id": str(old.id), "new_api_key_id": str(new.id), "name": old.name, "old_prefix": old.key_prefix,
+                 "new_prefix": new.key_prefix, "grace_hours": grace_hours,
+                 "old_valid_until": None if grace_hours == 0 else old.expires_at.isoformat()},
+        source="portal",
+        severity="warning",
+    )
+    return new, raw_key
+
+
 @router.post("/admin/api-keys/{key_id}/rotate", response_class=HTMLResponse, name="admin_api_key_rotate")
 def rotate_key(request: Request, key_id: uuid.UUID, csrf: str = Form(...), grace_hours: int = Form(24)):
     validate_csrf(request, csrf)
@@ -76,47 +124,7 @@ def rotate_key(request: Request, key_id: uuid.UUID, csrf: str = Form(...), grace
         old = db.get(PlatformApiKey, key_id)
         if not old:
             raise HTTPException(404, "API key non trovata.")
-        now = utcnow()
-        if not old.is_active:
-            raise HTTPException(409, "Una API key revocata non può essere ruotata: creane una nuova.")
-        if old.replaced_by_id:
-            raise HTTPException(409, "API key già ruotata: usa la chiave che la sostituisce.")
-        validity = None
-        if old.expires_at and old.created_at:
-            # In UTC: datetimes sharing a ZoneInfo subtract as wall-clock time and lose an hour across DST.
-            seconds = (old.expires_at.astimezone(timezone.utc) - old.created_at.astimezone(timezone.utc)).total_seconds()
-            validity = timedelta(days=max(1, round(seconds / 86400)))
-        raw_key = api_keys._new_token()
-        new = PlatformApiKey(
-            name=old.name,
-            key_prefix=raw_key[:api_keys.API_KEY_PREFIX_LENGTH],
-            key_hash=api_keys._digest(raw_key),
-            scopes=list(old.scopes or []),
-            customer_id=old.customer_id,
-            created_by_user_id=user.id,
-            expires_at=now + validity if validity else None,
-            is_active=True,
-        )
-        db.add(new)
-        db.flush()
-        old.replaced_by_id = new.id
-        if grace_hours == 0:
-            old.is_active = False
-            old.revoked_at = now
-        else:
-            limit = now + timedelta(hours=grace_hours)
-            old.expires_at = min(old.expires_at, limit) if old.expires_at else limit
-        core.add_event(
-            db,
-            "API_KEY_ROTATED",
-            actor=user,
-            customer_id=old.customer_id,
-            details={"api_key_id": str(old.id), "new_api_key_id": str(new.id), "name": old.name, "old_prefix": old.key_prefix,
-                     "new_prefix": new.key_prefix, "grace_hours": grace_hours,
-                     "old_valid_until": None if grace_hours == 0 else old.expires_at.isoformat()},
-            source="portal",
-            severity="warning",
-        )
+        new, raw_key = rotate(db, user, old, grace_hours)
         db.commit()
         return api_keys._render_admin(request, db, user, new_key=raw_key, created_key=new)
 

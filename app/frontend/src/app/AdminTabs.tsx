@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 /** Administration pages: ``route`` once migrated to React, otherwise the classic page. */
 const ADMIN_PAGES: { key: string; classic: string; route?: string }[] = [
   { key: "users", classic: "/admin/users", route: "/admin/users" },
-  { key: "apiKeys", classic: "/admin/api-keys" },
+  { key: "apiKeys", classic: "/admin/api-keys", route: "/admin/api-keys" },
   { key: "integrations", classic: "/admin/integrations/uisp" },
   { key: "branding", classic: "/admin/branding" },
   { key: "demo", classic: "/admin/demo" },

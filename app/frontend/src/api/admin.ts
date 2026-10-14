@@ -152,3 +152,50 @@ export function useUserAction<B extends object, R = unknown>(path: string) {
     onSuccess: () => client.invalidateQueries({ queryKey: ["admin-users"] }),
   });
 }
+
+export interface ApiKeyRow {
+  id: string;
+  name: string;
+  prefix: string;
+  scopes: string[];
+  active: boolean;
+  customer: { id: string; name: string } | null;
+  created_at: string | null;
+  expires_at: string | null;
+  revoked_at: string | null;
+  last_used_at: string | null;
+  last_used_ip: string | null;
+  use_count: number;
+  replaced_by_id: string | null;
+  state: "active" | "grace" | "expiring" | "expired" | "replaced" | "revoked";
+  tone: string;
+  hints: { grace_until?: string; expires_in_days?: number; never_used_days?: number; idle_days?: number; no_expiry?: boolean };
+}
+
+export interface ApiKeys {
+  scopes: string[];
+  expiry_days: number[];
+  grace_hours: number[];
+  customers: { id: string; name: string }[];
+  review: { expired: number; expiring: number; unused: number; no_expiry: number };
+  keys: ApiKeyRow[];
+}
+
+/** A token is returned once by create and rotate; the page keeps it only in memory until dismissed. */
+export interface NewToken {
+  id: string;
+  name: string;
+  prefix: string;
+  token: string;
+}
+
+export const useApiKeys = () =>
+  useQuery({ queryKey: ["admin-api-keys"], queryFn: () => api<ApiKeys>("/api/ui/v1/admin/api-keys"), staleTime: 10_000 });
+
+export function useApiKeyAction<B extends object, R = unknown>(path: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: B) => api<R>(`/api/ui/v1/admin/api-keys${path}`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["admin-api-keys"] }),
+  });
+}

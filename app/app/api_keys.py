@@ -157,6 +157,95 @@ def _render_admin(request, db, user, new_key=None, created_key=None):
     return response
 
 
+def create_key(db, user, name: str, customer_id: str, expires_days: int, scopes) -> tuple[PlatformApiKey, str]:
+    """Validate (HTTPException 400 with the reason), create and audit a key; returns it with the raw token. Caller commits."""
+    name = str(name or "").strip()[:160]
+    if not name:
+        raise HTTPException(400, "Nome API key obbligatorio.")
+    if expires_days not in ALLOWED_EXPIRY_DAYS:
+        raise HTTPException(400, "Scadenza API key non valida.")
+    selected_scopes = normalize_scopes(scopes)
+    customer_uuid = None
+    if str(customer_id or "").strip():
+        try:
+            customer_uuid = uuid.UUID(str(customer_id).strip())
+        except ValueError as exc:
+            raise HTTPException(400, "Cliente non valido.") from exc
+        customer = db.get(Customer, customer_uuid)
+        if not customer or not customer.is_active:
+            raise HTTPException(400, "Cliente non valido o disattivato.")
+
+    raw_key = _new_token()
+    row = PlatformApiKey(
+        name=name,
+        key_prefix=raw_key[:API_KEY_PREFIX_LENGTH],
+        key_hash=_digest(raw_key),
+        scopes=selected_scopes,
+        customer_id=customer_uuid,
+        created_by_user_id=user.id,
+        expires_at=utcnow() + timedelta(days=expires_days) if expires_days else None,
+        is_active=True,
+    )
+    db.add(row)
+    db.flush()
+    core.add_event(
+        db,
+        "API_KEY_CREATED",
+        actor=user,
+        customer_id=customer_uuid,
+        details={
+            "api_key_id": str(row.id),
+            "name": row.name,
+            "prefix": row.key_prefix,
+            "scopes": row.scopes,
+            "expires_at": row.expires_at.isoformat() if row.expires_at else None,
+        },
+        source="portal",
+    )
+    return row, raw_key
+
+
+def revoke_key(db, user, key: PlatformApiKey) -> bool:
+    """Revoke an active key (audited); False when it already was revoked. Caller commits."""
+    if not key.is_active:
+        return False
+    key.is_active = False
+    key.revoked_at = utcnow()
+    core.add_event(
+        db,
+        "API_KEY_REVOKED",
+        actor=user,
+        customer_id=key.customer_id,
+        details={"api_key_id": str(key.id), "name": key.name, "prefix": key.key_prefix},
+        source="portal",
+        severity="warning",
+    )
+    return True
+
+
+def delete_key(db, user, key: PlatformApiKey) -> None:
+    """Delete a revoked key (409 while active), audited. Caller commits."""
+    if key.is_active:
+        raise HTTPException(409, "Revoca la API key prima di eliminarla.")
+    snapshot = {
+        "api_key_id": str(key.id),
+        "name": key.name,
+        "prefix": key.key_prefix,
+        "customer_id": str(key.customer_id) if key.customer_id else None,
+    }
+    customer_id = key.customer_id
+    db.delete(key)
+    core.add_event(
+        db,
+        "API_KEY_DELETED",
+        actor=user,
+        customer_id=customer_id,
+        details=snapshot,
+        source="portal",
+        severity="warning",
+    )
+
+
 @router.get("/admin/api-keys", response_class=HTMLResponse, name="admin_api_keys")
 def admin_api_keys(request: Request):
     with SessionLocal() as db:
@@ -174,54 +263,9 @@ def admin_api_key_create(
     scopes: list[str] = Form(default=[]),
 ):
     validate_csrf(request, csrf)
-    name = str(name or "").strip()[:160]
-    if not name:
-        raise HTTPException(400, "Nome API key obbligatorio.")
-    if expires_days not in ALLOWED_EXPIRY_DAYS:
-        raise HTTPException(400, "Scadenza API key non valida.")
-    selected_scopes = normalize_scopes(scopes)
-
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        customer_uuid = None
-        if customer_id.strip():
-            try:
-                customer_uuid = uuid.UUID(customer_id.strip())
-            except ValueError as exc:
-                raise HTTPException(400, "Cliente non valido.") from exc
-            customer = db.get(Customer, customer_uuid)
-            if not customer or not customer.is_active:
-                raise HTTPException(400, "Cliente non valido o disattivato.")
-
-        raw_key = _new_token()
-        prefix = raw_key[:API_KEY_PREFIX_LENGTH]
-        expires_at = utcnow() + timedelta(days=expires_days) if expires_days else None
-        row = PlatformApiKey(
-            name=name,
-            key_prefix=prefix,
-            key_hash=_digest(raw_key),
-            scopes=selected_scopes,
-            customer_id=customer_uuid,
-            created_by_user_id=user.id,
-            expires_at=expires_at,
-            is_active=True,
-        )
-        db.add(row)
-        db.flush()
-        core.add_event(
-            db,
-            "API_KEY_CREATED",
-            actor=user,
-            customer_id=customer_uuid,
-            details={
-                "api_key_id": str(row.id),
-                "name": row.name,
-                "prefix": row.key_prefix,
-                "scopes": row.scopes,
-                "expires_at": row.expires_at.isoformat() if row.expires_at else None,
-            },
-            source="portal",
-        )
+        row, raw_key = create_key(db, user, name, customer_id, expires_days, scopes)
         db.commit()
         return _render_admin(request, db, user, new_key=raw_key, created_key=row)
 
@@ -234,18 +278,7 @@ def admin_api_key_revoke(request: Request, key_id: uuid.UUID, csrf: str = Form(.
         key = db.get(PlatformApiKey, key_id)
         if not key:
             raise HTTPException(404, "API key non trovata.")
-        if key.is_active:
-            key.is_active = False
-            key.revoked_at = utcnow()
-            core.add_event(
-                db,
-                "API_KEY_REVOKED",
-                actor=user,
-                customer_id=key.customer_id,
-                details={"api_key_id": str(key.id), "name": key.name, "prefix": key.key_prefix},
-                source="portal",
-                severity="warning",
-            )
+        if revoke_key(db, user, key):
             db.commit()
     return RedirectResponse("/admin/api-keys", status_code=303)
 
@@ -258,25 +291,7 @@ def admin_api_key_delete(request: Request, key_id: uuid.UUID, csrf: str = Form(.
         key = db.get(PlatformApiKey, key_id)
         if not key:
             raise HTTPException(404, "API key non trovata.")
-        if key.is_active:
-            raise HTTPException(409, "Revoca la API key prima di eliminarla.")
-        snapshot = {
-            "api_key_id": str(key.id),
-            "name": key.name,
-            "prefix": key.key_prefix,
-            "customer_id": str(key.customer_id) if key.customer_id else None,
-        }
-        customer_id = key.customer_id
-        db.delete(key)
-        core.add_event(
-            db,
-            "API_KEY_DELETED",
-            actor=user,
-            customer_id=customer_id,
-            details=snapshot,
-            source="portal",
-            severity="warning",
-        )
+        delete_key(db, user, key)
         db.commit()
     return RedirectResponse("/admin/api-keys", status_code=303)
 
