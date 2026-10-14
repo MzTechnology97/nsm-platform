@@ -585,5 +585,111 @@
         "revoked": "revocada"
       }
     }
+  },
+  "diagnostics": {
+    "title": "Diagnóstico remoto",
+    "hint": "Operaciones predefinidas de solo lectura ejecutadas por el agente: ninguna shell ni comando RouterOS arbitrario llega desde la nube.",
+    "offline": "El equipo está fuera de línea: el diagnóstico arranca cuando el agente esté en línea.",
+    "noTraceroute": "Traceroute no disponible en RouterOS 6.",
+    "queued": "En cola: el resultado llega en el próximo heartbeat.",
+    "open": "Abrir",
+    "export": "Exportar JSON",
+    "fields": {
+      "target": "IP o nombre de host",
+      "source": "IP de origen (opcional)",
+      "query": "IPv4 o MAC (p. ej. 192.0.2.10)"
+    },
+    "kinds": {
+      "ping": {
+        "title": "Ping",
+        "hint": "Alcance y latencia vistos desde el MikroTik.",
+        "action": "Ejecutar ping"
+      },
+      "traceroute": {
+        "title": "Traceroute",
+        "hint": "Ruta hacia el destino vista desde el equipo.",
+        "action": "Ejecutar traceroute"
+      },
+      "neighbors": {
+        "title": "Vecinos",
+        "hint": "Equipos vecinos detectados (MNDP/CDP/LLDP).",
+        "action": "Detectar"
+      },
+      "dhcp_lookup": {
+        "title": "Búsqueda DHCP",
+        "hint": "Busca una concesión por IPv4 o MAC.",
+        "action": "Buscar"
+      },
+      "logs": {
+        "title": "Log del equipo",
+        "hint": "Warnings, errors y critical del búfer de RouterOS.",
+        "action": "Recoger"
+      },
+      "support_snapshot": {
+        "title": "Support snapshot",
+        "hint": "Recursos, IP, rutas, interfaces, PPP, DHCP y log en una sola recogida.",
+        "action": "Recoger"
+      }
+    },
+    "recent": {
+      "title": "Resultados recientes",
+      "hint": "Los últimos 25 diagnósticos: abre una fila para ver el detalle.",
+      "empty": "Ningún diagnóstico ejecutado."
+    },
+    "summary": {
+      "running": "en curso",
+      "failed": "fallido",
+      "done": "completado",
+      "noReplies": "ninguna respuesta registrada",
+      "ping": "{{loss}}% de pérdida",
+      "pingAvg": "{{loss}}% de pérdida · media {{avg}} ms",
+      "reached_one": "{{count}} salto · destino alcanzado",
+      "reached_other": "{{count}} saltos · destino alcanzado",
+      "notReached_one": "{{count}} salto · destino no alcanzado",
+      "notReached_other": "{{count}} saltos · destino no alcanzado",
+      "neighbors_one": "{{count}} vecino",
+      "neighbors_other": "{{count}} vecinos",
+      "leases_one": "{{count}} concesión",
+      "leases_other": "{{count}} concesiones",
+      "noLease": "ninguna concesión",
+      "logs_one": "{{count}} evento",
+      "logs_other": "{{count}} eventos",
+      "serious_one": "{{count}} grave",
+      "serious_other": "{{count}} graves"
+    },
+    "ping": {
+      "sent": "Enviados",
+      "received": "Recibidos",
+      "loss": "Pérdida",
+      "rtt": "RTT mín / medio / máx",
+      "jitter": "Jitter",
+      "host": "Host",
+      "size": "Tamaño",
+      "status": "Resultado"
+    },
+    "trace": {
+      "address": "Dirección",
+      "loss": "Pérdida",
+      "last": "Último",
+      "avg": "Medio",
+      "best": "Mejor",
+      "worst": "Peor"
+    },
+    "nb": {
+      "interface": "Interfaz",
+      "identity": "Identidad",
+      "address": "Dirección",
+      "platform": "Plataforma",
+      "none": "Ningún vecino detectado."
+    },
+    "dhcp": {
+      "address": "Dirección",
+      "host": "Host",
+      "status": "Estado",
+      "server": "Servidor",
+      "expires": "Caduca en",
+      "static": "estática",
+      "none": "Ninguna concesión encontrada."
+    }
   }
 }

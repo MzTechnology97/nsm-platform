@@ -4,6 +4,23 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.104 — 2026-10-14
+
+New interface (React) — Diagnostics tab, phase 1d
+- **Diagnostics tab in `/app/devices/<id>/diagnostics`** for MikroTik: ping, traceroute, neighbors, DHCP lookup, device log and support snapshot.
+- **Launching a diagnostic** uses the same checks as the classic page:
+  - allow-listed operations only; target, source and query are validated;
+  - the device must be online and the user needs permission to change devices;
+  - traceroute is hidden on RouterOS 6; the support snapshot needs a modern agent or legacy 0.49.3+.
+- **Recent results** (latest 25), refreshed every 3 seconds while something runs. Each has an outcome in the user's language (loss and average latency, hops reached, neighbors, leases, serious log lines) and expands to its details:
+  - ping replies with min/avg/max and jitter;
+  - traceroute hops with loss and times;
+  - neighbors and DHCP leases linked to the NSM device when the MAC is known;
+  - device log by severity.
+- JSON export for every completed diagnostic; the support snapshot opens its classic result page.
+- **API.** `GET /api/ui/v1/devices/{id}/diagnostics`, `POST …/diagnostics/{diagnostic}` (CSRF header, JSON body `target`/`source`/`query`).
+- **Phase 1 complete.** Overview, Monitor, Syslog, Backup, Agent and Diagnostics now open in the new interface. Exposure, Configuration, Firmware, Compliance and Activity still use the classic pages.
+
 ## 0.49.103 — 2026-10-14
 
 New interface (React) — Agent tab, phase 1d

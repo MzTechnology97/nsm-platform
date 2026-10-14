@@ -585,5 +585,111 @@
         "revoked": "revocato"
       }
     }
+  },
+  "diagnostics": {
+    "title": "Diagnostica remota",
+    "hint": "Operazioni predefinite e in sola lettura eseguite dall'agent: nessuna shell né comando RouterOS arbitrario arriva dal cloud.",
+    "offline": "L'apparato è offline: la diagnostica parte quando l'agent è online.",
+    "noTraceroute": "Traceroute non disponibile su RouterOS 6.",
+    "queued": "In coda: il risultato arriva al prossimo heartbeat.",
+    "open": "Apri",
+    "export": "Esporta JSON",
+    "fields": {
+      "target": "IP o hostname",
+      "source": "IP sorgente (facoltativo)",
+      "query": "IPv4 o MAC (es. 192.0.2.10)"
+    },
+    "kinds": {
+      "ping": {
+        "title": "Ping",
+        "hint": "Raggiungibilità e latenza viste dal MikroTik.",
+        "action": "Esegui ping"
+      },
+      "traceroute": {
+        "title": "Traceroute",
+        "hint": "Percorso verso la destinazione visto dall'apparato.",
+        "action": "Esegui traceroute"
+      },
+      "neighbors": {
+        "title": "Neighbor",
+        "hint": "Apparati vicini rilevati (MNDP/CDP/LLDP).",
+        "action": "Rileva"
+      },
+      "dhcp_lookup": {
+        "title": "Ricerca DHCP",
+        "hint": "Cerca una lease per IPv4 o MAC.",
+        "action": "Cerca"
+      },
+      "logs": {
+        "title": "Log dispositivo",
+        "hint": "Warning, error e critical dal buffer di RouterOS.",
+        "action": "Acquisisci"
+      },
+      "support_snapshot": {
+        "title": "Support snapshot",
+        "hint": "Risorse, IP, route, interfacce, PPP, DHCP e log in un'unica raccolta.",
+        "action": "Raccogli"
+      }
+    },
+    "recent": {
+      "title": "Risultati recenti",
+      "hint": "Le ultime 25 diagnostiche: apri una riga per il dettaglio.",
+      "empty": "Nessuna diagnostica eseguita."
+    },
+    "summary": {
+      "running": "in esecuzione",
+      "failed": "non riuscita",
+      "done": "completata",
+      "noReplies": "nessuna risposta registrata",
+      "ping": "{{loss}}% perdita",
+      "pingAvg": "{{loss}}% perdita · media {{avg}} ms",
+      "reached_one": "{{count}} hop · destinazione raggiunta",
+      "reached_other": "{{count}} hop · destinazione raggiunta",
+      "notReached_one": "{{count}} hop · destinazione non raggiunta",
+      "notReached_other": "{{count}} hop · destinazione non raggiunta",
+      "neighbors_one": "{{count}} neighbor",
+      "neighbors_other": "{{count}} neighbor",
+      "leases_one": "{{count}} lease",
+      "leases_other": "{{count}} lease",
+      "noLease": "nessuna lease",
+      "logs_one": "{{count}} evento",
+      "logs_other": "{{count}} eventi",
+      "serious_one": "{{count}} grave",
+      "serious_other": "{{count}} gravi"
+    },
+    "ping": {
+      "sent": "Inviati",
+      "received": "Ricevuti",
+      "loss": "Perdita",
+      "rtt": "RTT min / medio / max",
+      "jitter": "Jitter",
+      "host": "Host",
+      "size": "Dimensione",
+      "status": "Esito"
+    },
+    "trace": {
+      "address": "Indirizzo",
+      "loss": "Perdita",
+      "last": "Ultimo",
+      "avg": "Medio",
+      "best": "Migliore",
+      "worst": "Peggiore"
+    },
+    "nb": {
+      "interface": "Interfaccia",
+      "identity": "Identità",
+      "address": "Indirizzo",
+      "platform": "Piattaforma",
+      "none": "Nessun neighbor rilevato."
+    },
+    "dhcp": {
+      "address": "Indirizzo",
+      "host": "Host",
+      "status": "Stato",
+      "server": "Server",
+      "expires": "Scade tra",
+      "static": "statica",
+      "none": "Nessuna lease trovata."
+    }
   }
 }
