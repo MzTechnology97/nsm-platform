@@ -13,6 +13,7 @@ import "./styles/detail.css";
 import "./styles/charts.css";
 import "./styles/syslog.css";
 import "./styles/backups.css";
+import "./styles/incident.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -189,6 +189,11 @@ const incidentsRoute = createRoute({
     ...(typeof search.q === "string" && search.q ? { q: search.q } : {}),
   }),
 });
+const incidentRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/incidents/$incidentId",
+  component: lazyRouteComponent(() => import("../pages/IncidentDetail"), "IncidentDetail"),
+});
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/access",
@@ -261,6 +266,7 @@ export const routeTree = rootRoute.addChildren([
   complianceRoute,
   actionCenterRoute,
   incidentsRoute,
+  incidentRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

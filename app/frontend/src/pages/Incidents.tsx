@@ -105,7 +105,7 @@ function Row({ row }: { row: IncidentRow }) {
     <tr>
       <td>
         <span className={SEVERITY_TONE[row.severity] ?? "ui-severity"}>{t(`incidents.severities.${row.severity}`, { defaultValue: row.severity })}</span>{" "}
-        <a className="ui-cell-title" href={`/incidents/${row.id}`}>{row.title}</a>
+        <Link to="/incidents/$incidentId" params={{ incidentId: row.id }} className="ui-cell-title">{row.title}</Link>
         {row.root_cause && (
           <small className="ui-muted ui-block">
             {t("incidents.rootCause")}: {t(`incidents.causes.${row.root_cause.category}`, { defaultValue: row.root_cause.category })}

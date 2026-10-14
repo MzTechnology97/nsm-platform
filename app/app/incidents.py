@@ -319,6 +319,193 @@ def incident_detail(request: Request, incident_id: uuid.UUID, view: str = "all")
         )
 
 
+class IncidentInputError(ValueError):
+    """Rejected operator input. ``message`` is the text the classic page flashes; ``code`` is for the new interface."""
+
+    def __init__(self, code: str, message: str, title: str = "Dati non validi"):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.title = title
+
+
+def change_status(db, incident, user, status: str, resolved_at: datetime | None) -> bool:
+    """Move the incident to ``status`` (audited). False when it already was there. Caller commits."""
+    if status not in INCIDENT_STATUSES:
+        raise IncidentInputError("invalid_status", "Stato non valido.")
+    now = utcnow()
+    previous = incident.status
+    if status == "resolved":
+        when = resolved_at or now
+        if when < incident.started_at or when > now + FUTURE_TOLERANCE:
+            raise IncidentInputError("invalid_resolved_at", "La risoluzione deve essere successiva all'inizio e non nel futuro.")
+        incident.resolved_at = when
+    else:
+        incident.resolved_at = None
+    if status == previous and status != "resolved":
+        return False
+    incident.status = status
+    incident.updated_at = now
+    core.add_event(
+        db,
+        "INCIDENT_STATUS_CHANGED",
+        actor=user,
+        customer_id=incident.customer_id,
+        details={"incident_id": str(incident.id), "from": previous, "to": status},
+    )
+    return True
+
+
+def add_note(db, incident, user, body: str, kind: str, occurred_at: datetime | None) -> IncidentNote:
+    """Operator note on the timeline (audited). Caller commits."""
+    text = (body or "").strip()
+    if not text:
+        raise IncidentInputError("note_required", "Il testo della nota è obbligatorio.")
+    now = utcnow()
+    when = occurred_at or now
+    if when > now + FUTURE_TOLERANCE:
+        raise IncidentInputError("note_in_future", "La nota non può essere nel futuro.")
+    note = IncidentNote(
+        id=uuid.uuid4(),
+        incident_id=incident.id,
+        kind=kind if kind in NOTE_KINDS else "note",
+        body=text[:4000],
+        occurred_at=when,
+        author_user_id=user.id,
+        created_at=now,
+    )
+    db.add(note)
+    incident.updated_at = now
+    core.add_event(
+        db,
+        "INCIDENT_NOTE_ADDED",
+        actor=user,
+        customer_id=incident.customer_id,
+        details={"incident_id": str(incident.id), "kind": kind},
+    )
+    return note
+
+
+def set_devices(db, incident, user, wanted: set) -> None:
+    """Replace the involved devices (audited); they must belong to the incident's customer. Caller commits."""
+    wanted = set(wanted) - {None}
+    valid = set(db.scalars(select(Device.id).where(Device.id.in_(wanted), Device.customer_id == incident.customer_id))) if wanted else set()
+    if valid != wanted:
+        raise IncidentInputError("foreign_devices", "Gli apparati devono appartenere al cliente dell'incidente.")
+    current = {link.device_id: link for link in db.scalars(select(IncidentDevice).where(IncidentDevice.incident_id == incident.id))}
+    now = utcnow()
+    for device_id in wanted - set(current):
+        db.add(IncidentDevice(incident_id=incident.id, device_id=device_id, added_at=now))
+    for device_id in set(current) - wanted:
+        db.delete(current[device_id])
+    incident.updated_at = now
+    core.add_event(
+        db,
+        "INCIDENT_DEVICES_CHANGED",
+        actor=user,
+        customer_id=incident.customer_id,
+        details={"incident_id": str(incident.id), "devices": len(wanted)},
+    )
+
+
+def add_hypothesis(db, incident, user, statement: str, category: str, candidate_key: str) -> IncidentHypothesis:
+    """Record a possible cause, typed by the operator or taken from a suggestion (audited). Caller commits."""
+    now = utcnow()
+    if candidate_key:
+        # Re-derive the candidate server-side: the client only names it.
+        devices = _incident_devices(db, incident.id)
+        timeline = build_timeline(db, incident, [device.id for device in devices], now)
+        candidate = next((c for c in suggest(incident, timeline) if c.key == candidate_key), None)
+        if candidate is None:
+            raise IncidentInputError("candidate_gone", "La correlazione suggerita non è più disponibile.", title="Ipotesi non registrata")
+        hypothesis = IncidentHypothesis(
+            id=uuid.uuid4(),
+            incident_id=incident.id,
+            statement=candidate.statement,
+            category=candidate.category,
+            origin="suggested",
+            confidence=candidate.confidence,
+            evidence=candidate.evidence(),
+            created_by_user_id=user.id,
+            created_at=now,
+        )
+    else:
+        text = (statement or "").strip()
+        if not text:
+            raise IncidentInputError("statement_required", "Descrivi l'ipotesi.")
+        hypothesis = IncidentHypothesis(
+            id=uuid.uuid4(),
+            incident_id=incident.id,
+            statement=text[:2000],
+            category=category if category in ROOT_CAUSE_CATEGORIES else "other",
+            origin="operator",
+            evidence=[],
+            created_by_user_id=user.id,
+            created_at=now,
+        )
+    db.add(hypothesis)
+    incident.updated_at = now
+    core.add_event(
+        db,
+        "INCIDENT_HYPOTHESIS_ADDED",
+        actor=user,
+        customer_id=incident.customer_id,
+        details={"incident_id": str(incident.id), "origin": hypothesis.origin, "category": hypothesis.category},
+    )
+    return hypothesis
+
+
+def decide_hypothesis(db, incident, hypothesis, user, decision: str, note: str) -> str:
+    """Confirm, reject or reopen a hypothesis (audited); returns the classic confirmation message. Caller commits."""
+    note = (note or "").strip()
+    if decision in ("confirm", "reject") and not note:
+        raise IncidentInputError("decision_note_required", "Indica su quali evidenze si basa la decisione.", title="Nota obbligatoria")
+    now = utcnow()
+    if decision == "confirm":
+        for other in db.scalars(
+            select(IncidentHypothesis).where(
+                IncidentHypothesis.incident_id == incident.id,
+                IncidentHypothesis.status == "confirmed",
+                IncidentHypothesis.id != hypothesis.id,
+            )
+        ):
+            other.status = "proposed"
+            other.decision_note = f"Sostituita da un'altra causa confermata il {now.date().isoformat()}."
+        hypothesis.status = "confirmed"
+        incident.root_cause_hypothesis_id = hypothesis.id
+        event, message = "INCIDENT_ROOT_CAUSE_CONFIRMED", "Causa radice confermata."
+    elif decision == "reject":
+        hypothesis.status = "rejected"
+        if incident.root_cause_hypothesis_id == hypothesis.id:
+            incident.root_cause_hypothesis_id = None
+        event, message = "INCIDENT_HYPOTHESIS_REJECTED", "Ipotesi scartata."
+    elif decision == "reopen":
+        hypothesis.status = "proposed"
+        if incident.root_cause_hypothesis_id == hypothesis.id:
+            incident.root_cause_hypothesis_id = None
+        event, message = "INCIDENT_HYPOTHESIS_REOPENED", "Ipotesi di nuovo da verificare."
+    else:
+        raise IncidentInputError("invalid_decision", "Decisione non valida.")
+    hypothesis.decided_by_user_id = user.id
+    hypothesis.decided_at = now
+    if note:
+        hypothesis.decision_note = note[:2000]
+    incident.updated_at = now
+    core.add_event(
+        db,
+        event,
+        actor=user,
+        customer_id=incident.customer_id,
+        details={
+            "incident_id": str(incident.id),
+            "hypothesis_id": str(hypothesis.id),
+            "category": hypothesis.category,
+            "origin": hypothesis.origin,
+        },
+    )
+    return message
+
+
 @router.post("/incidents/{incident_id}/status", name="incident_status")
 def incident_status(
     request: Request,
@@ -332,28 +519,12 @@ def incident_status(
     with SessionLocal() as db:
         user = core.require_permission(request, db, "incidents.write")
         incident = _load(db, incident_id)
-        if status not in INCIDENT_STATUSES:
-            return flash_redirect(request, page, "warning", "Stato non valido.", title="Dati non validi")
-        now = utcnow()
-        previous = incident.status
-        if status == "resolved":
-            when = parse_local(resolved_at) or now
-            if when < incident.started_at or when > now + FUTURE_TOLERANCE:
-                return flash_redirect(request, page, "warning", "La risoluzione deve essere successiva all'inizio e non nel futuro.", title="Dati non validi")
-            incident.resolved_at = when
-        else:
-            incident.resolved_at = None
-        if status == previous and status != "resolved":
+        try:
+            changed = change_status(db, incident, user, status, parse_local(resolved_at))
+        except IncidentInputError as error:
+            return flash_redirect(request, page, "warning", error.message, title=error.title)
+        if not changed:
             return flash_redirect(request, page, "info", "L'incidente è già in questo stato.", title="Nessuna modifica")
-        incident.status = status
-        incident.updated_at = now
-        core.add_event(
-            db,
-            "INCIDENT_STATUS_CHANGED",
-            actor=user,
-            customer_id=incident.customer_id,
-            details={"incident_id": str(incident.id), "from": previous, "to": status},
-        )
         db.commit()
     return flash_redirect(request, page, "success", f"Stato aggiornato a «{INCIDENT_STATUSES[status]}».", title="Incidente aggiornato")
 
@@ -372,31 +543,10 @@ def incident_note(
     with SessionLocal() as db:
         user = core.require_permission(request, db, "incidents.write")
         incident = _load(db, incident_id)
-        text = body.strip()
-        if not text:
-            return flash_redirect(request, page, "warning", "Il testo della nota è obbligatorio.", title="Dati non validi")
-        now = utcnow()
-        when = parse_local(occurred_at) or now
-        if when > now + FUTURE_TOLERANCE:
-            return flash_redirect(request, page, "warning", "La nota non può essere nel futuro.", title="Dati non validi")
-        db.add(
-            IncidentNote(
-                incident_id=incident.id,
-                kind=kind if kind in NOTE_KINDS else "note",
-                body=text[:4000],
-                occurred_at=when,
-                author_user_id=user.id,
-                created_at=now,
-            )
-        )
-        incident.updated_at = now
-        core.add_event(
-            db,
-            "INCIDENT_NOTE_ADDED",
-            actor=user,
-            customer_id=incident.customer_id,
-            details={"incident_id": str(incident.id), "kind": kind},
-        )
+        try:
+            add_note(db, incident, user, body, kind, parse_local(occurred_at))
+        except IncidentInputError as error:
+            return flash_redirect(request, page, "warning", error.message, title=error.title)
         db.commit()
     return flash_redirect(request, page + "#timeline", "success", "Nota aggiunta alla timeline.", title="Nota salvata")
 
@@ -409,24 +559,10 @@ async def incident_devices(request: Request, incident_id: uuid.UUID):
     with SessionLocal() as db:
         user = core.require_permission(request, db, "incidents.write")
         incident = _load(db, incident_id)
-        wanted = {_uuid(value) for value in form.getlist("device_ids")} - {None}
-        valid = set(db.scalars(select(Device.id).where(Device.id.in_(wanted), Device.customer_id == incident.customer_id))) if wanted else set()
-        if valid != wanted:
-            return flash_redirect(request, page, "warning", "Gli apparati devono appartenere al cliente dell'incidente.", title="Dati non validi")
-        current = {link.device_id: link for link in db.scalars(select(IncidentDevice).where(IncidentDevice.incident_id == incident.id))}
-        now = utcnow()
-        for device_id in wanted - set(current):
-            db.add(IncidentDevice(incident_id=incident.id, device_id=device_id, added_at=now))
-        for device_id in set(current) - wanted:
-            db.delete(current[device_id])
-        incident.updated_at = now
-        core.add_event(
-            db,
-            "INCIDENT_DEVICES_CHANGED",
-            actor=user,
-            customer_id=incident.customer_id,
-            details={"incident_id": str(incident.id), "devices": len(wanted)},
-        )
+        try:
+            set_devices(db, incident, user, {_uuid(value) for value in form.getlist("device_ids")})
+        except IncidentInputError as error:
+            return flash_redirect(request, page, "warning", error.message, title=error.title)
         db.commit()
     return flash_redirect(request, page, "success", "Apparati coinvolti aggiornati.", title="Incidente aggiornato")
 
@@ -460,46 +596,10 @@ def incident_hypothesis_add(
     with SessionLocal() as db:
         user = core.require_permission(request, db, "incidents.write")
         incident = _load(db, incident_id)
-        now = utcnow()
-        if candidate_key:
-            # Re-derive the candidate server-side: the client only names it.
-            devices = _incident_devices(db, incident.id)
-            timeline = build_timeline(db, incident, [device.id for device in devices], now)
-            candidate = next((c for c in suggest(incident, timeline) if c.key == candidate_key), None)
-            if candidate is None:
-                return flash_redirect(request, page, "warning", "La correlazione suggerita non è più disponibile.", title="Ipotesi non registrata")
-            hypothesis = IncidentHypothesis(
-                incident_id=incident.id,
-                statement=candidate.statement,
-                category=candidate.category,
-                origin="suggested",
-                confidence=candidate.confidence,
-                evidence=candidate.evidence(),
-                created_by_user_id=user.id,
-                created_at=now,
-            )
-        else:
-            text = statement.strip()
-            if not text:
-                return flash_redirect(request, page, "warning", "Descrivi l'ipotesi.", title="Dati non validi")
-            hypothesis = IncidentHypothesis(
-                incident_id=incident.id,
-                statement=text[:2000],
-                category=category if category in ROOT_CAUSE_CATEGORIES else "other",
-                origin="operator",
-                evidence=[],
-                created_by_user_id=user.id,
-                created_at=now,
-            )
-        db.add(hypothesis)
-        incident.updated_at = now
-        core.add_event(
-            db,
-            "INCIDENT_HYPOTHESIS_ADDED",
-            actor=user,
-            customer_id=incident.customer_id,
-            details={"incident_id": str(incident.id), "origin": hypothesis.origin, "category": hypothesis.category},
-        )
+        try:
+            add_hypothesis(db, incident, user, statement, category, candidate_key)
+        except IncidentInputError as error:
+            return flash_redirect(request, page, "warning", error.message, title=error.title)
         db.commit()
     return flash_redirect(request, page, "success", "Ipotesi registrata: resta da verificare finché non viene confermata.", title="Ipotesi aggiunta")
 
@@ -521,52 +621,10 @@ def incident_hypothesis_decision(
         hypothesis = db.get(IncidentHypothesis, hypothesis_id)
         if not hypothesis or hypothesis.incident_id != incident.id:
             raise HTTPException(404)
-        note = note.strip()
-        if decision in ("confirm", "reject") and not note:
-            return flash_redirect(request, page, "warning", "Indica su quali evidenze si basa la decisione.", title="Nota obbligatoria")
-        now = utcnow()
-        if decision == "confirm":
-            for other in db.scalars(
-                select(IncidentHypothesis).where(
-                    IncidentHypothesis.incident_id == incident.id,
-                    IncidentHypothesis.status == "confirmed",
-                    IncidentHypothesis.id != hypothesis.id,
-                )
-            ):
-                other.status = "proposed"
-                other.decision_note = f"Sostituita da un'altra causa confermata il {now.date().isoformat()}."
-            hypothesis.status = "confirmed"
-            incident.root_cause_hypothesis_id = hypothesis.id
-            event, message = "INCIDENT_ROOT_CAUSE_CONFIRMED", "Causa radice confermata."
-        elif decision == "reject":
-            hypothesis.status = "rejected"
-            if incident.root_cause_hypothesis_id == hypothesis.id:
-                incident.root_cause_hypothesis_id = None
-            event, message = "INCIDENT_HYPOTHESIS_REJECTED", "Ipotesi scartata."
-        elif decision == "reopen":
-            hypothesis.status = "proposed"
-            if incident.root_cause_hypothesis_id == hypothesis.id:
-                incident.root_cause_hypothesis_id = None
-            event, message = "INCIDENT_HYPOTHESIS_REOPENED", "Ipotesi di nuovo da verificare."
-        else:
-            return flash_redirect(request, page, "warning", "Decisione non valida.", title="Dati non validi")
-        hypothesis.decided_by_user_id = user.id
-        hypothesis.decided_at = now
-        if note:
-            hypothesis.decision_note = note[:2000]
-        incident.updated_at = now
-        core.add_event(
-            db,
-            event,
-            actor=user,
-            customer_id=incident.customer_id,
-            details={
-                "incident_id": str(incident.id),
-                "hypothesis_id": str(hypothesis.id),
-                "category": hypothesis.category,
-                "origin": hypothesis.origin,
-            },
-        )
+        try:
+            message = decide_hypothesis(db, incident, hypothesis, user, decision, note)
+        except IncidentInputError as error:
+            return flash_redirect(request, page, "warning", error.message, title=error.title)
         db.commit()
     return flash_redirect(request, page, "success", message, title="Causa radice")
 

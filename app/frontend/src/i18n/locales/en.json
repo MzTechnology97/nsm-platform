@@ -1460,5 +1460,87 @@
       "human": "Manual intervention",
       "other": "Other"
     }
+  },
+  "incidentDetail": {
+    "notFound": "Incident not found or outside your scope.",
+    "lasted": "lasted {{span}}",
+    "export": "Export evidence",
+    "summary": "Summary",
+    "resolved": "Resolved at",
+    "openedBy": "Opened by",
+    "saveStatus": "Update status",
+    "saved": "Saved.",
+    "unchanged": "The incident already has this status.",
+    "devices_one": "{{count}} device involved",
+    "devices_other": "{{count}} devices involved",
+    "noDevices": "No devices linked.",
+    "editDevices": "Edit devices",
+    "saveDevices": "Save devices",
+    "cancel": "Cancel",
+    "rootCause": "Root cause",
+    "noRootCause": "No confirmed cause: hypotheses stay to be verified until an operator confirms one.",
+    "suggestions": "Suggested correlations",
+    "suggestionsHint": "Hints computed from the timeline, not established facts. Record them as hypotheses to assess them.",
+    "useSuggestion": "Record as hypothesis",
+    "newHypothesis": "New hypothesis",
+    "category": "Category",
+    "addHypothesis": "Add hypothesis",
+    "fromSuggestion": "from suggestion ({{confidence}} confidence)",
+    "byOperator": "by an operator",
+    "evidence": "Evidence",
+    "decisionNote": "Rationale",
+    "notePlaceholder": "Supporting evidence (required to confirm or reject)",
+    "confirm": "Confirm",
+    "reject": "Reject",
+    "reopen": "Reopen",
+    "hypothesisStatus": {
+      "proposed": "To verify",
+      "confirmed": "Confirmed",
+      "rejected": "Rejected"
+    },
+    "confidence": {
+      "medium": "medium",
+      "low": "low"
+    },
+    "timeline": "Timeline",
+    "window": "Events recorded from {{from}} to {{to}}.",
+    "truncated": "Partial timeline: too many events for {{sources}}.",
+    "views": {
+      "all": "Everything",
+      "facts": "Facts",
+      "notes": "Operator notes"
+    },
+    "noEntries": "No events in this view.",
+    "operator": "Operator note",
+    "newNote": "New note",
+    "noteKind": "Type",
+    "occurredAt": "When (empty = now)",
+    "addNote": "Add note",
+    "kinds": {
+      "note": "Note",
+      "action": "Action taken"
+    },
+    "sources": {
+      "issue": "Action Center",
+      "measure": "Measurement (ping from NSM)",
+      "audit": "Audit",
+      "backup": "Backup",
+      "job": "Agent job",
+      "vulnerability": "Vulnerability",
+      "operator": "Operator"
+    },
+    "errors": {
+      "generic": "The operation failed.",
+      "not_found": "Not found.",
+      "note_required": "Write the note text.",
+      "note_in_future": "The note cannot be in the future.",
+      "foreign_devices": "Devices must belong to the incident's customer.",
+      "statement_required": "Describe the hypothesis.",
+      "candidate_gone": "The suggested correlation is no longer available.",
+      "decision_note_required": "State the evidence the decision is based on.",
+      "invalid_decision": "Invalid decision.",
+      "invalid_status": "Invalid status.",
+      "invalid_resolved_at": "Resolution must be after the start and not in the future."
+    }
   }
 }

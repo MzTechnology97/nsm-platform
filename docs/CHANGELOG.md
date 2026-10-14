@@ -4,6 +4,30 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.120 — 2026-10-14
+
+New interface (React) — incident detail, phase 5c
+- **Incident detail in `/app/incidents/<id>`**, opened from the new incident list.
+- **Header and summary:** severity, status, duration, customer, site, start, resolution, author.
+- **Status:** writers can change it from the page; the resolution time is required to be after the start and not in the future, as on the classic page.
+- **Devices involved:** shown with their manufacturer icon; writers can choose them among the customer's devices.
+- **Root cause:**
+  - the confirmed cause is highlighted, and every hypothesis shows its status, origin, evidence and rationale;
+  - suggested correlations from the timeline can be recorded as hypotheses;
+  - confirm and reject require a rationale, as on the classic page; reopen is also available;
+  - confirming a new cause sends the previous one back to *to verify*.
+- **Timeline:**
+  - events recorded around the incident, filtered by everything, facts or operator notes;
+  - every device is shown with its manufacturer icon;
+  - the period before the start is marked;
+  - writers can add a note or an action taken, now or at a past time.
+- The evidence export stays on the classic page (*Export evidence* opens it).
+- Status, notes, devices, hypotheses and decisions are now shared functions in `incidents`, used by both interfaces; the classic forms behave as before. Rejected input carries a code, so the new interface shows the message in the user's language.
+- **API.** All actions need `incidents.write` and the CSRF header:
+  - `GET /api/ui/v1/incidents/{id}` (`incidents.read`);
+  - `POST /api/ui/v1/incidents/{id}/status`, `/notes`, `/devices`, `/hypotheses`, `/hypotheses/{hid}/decision`.
+- **Phase 5 complete.** Action Center and incidents are now in the new interface.
+
 ## 0.49.119 — 2026-10-14
 
 New interface (React) — incident list, phase 5b
