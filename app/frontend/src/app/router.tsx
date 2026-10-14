@@ -1,8 +1,8 @@
-import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
+import { createRootRoute, createRoute, createRouter, lazyRouteComponent } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import type { DeviceFilters } from "../api/devices";
-import { DeviceDetail } from "../pages/DeviceDetail";
+import { DeviceDetail, DeviceOverview } from "../pages/DeviceDetail";
 import { Devices } from "../pages/Devices";
 import { Home } from "../pages/Home";
 import { Layout } from "./Layout";
@@ -30,8 +30,10 @@ const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", comp
 const devicesRoute = createRoute({ getParentRoute: () => rootRoute, path: "/devices", component: Devices, validateSearch: parseDeviceSearch });
 
 const deviceRoute = createRoute({ getParentRoute: () => rootRoute, path: "/devices/$deviceId", component: DeviceDetail });
+const deviceOverviewRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/", component: DeviceOverview });
+const deviceMonitorRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/monitor", component: lazyRouteComponent(() => import("../pages/DeviceMonitor"), "DeviceMonitor") }); // uPlot only loads with this tab
 
-export const routeTree = rootRoute.addChildren([homeRoute, devicesRoute, deviceRoute]);
+export const routeTree = rootRoute.addChildren([homeRoute, devicesRoute, deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute])]);
 
 export const router = createRouter({ routeTree, basepath: "/app", defaultPreload: "intent" });
 

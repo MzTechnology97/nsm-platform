@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.100 — 2026-10-14
+
+New interface (React) — Monitor tab, phase 1c
+- **Monitor tab in `/app/devices/<id>/monitor`**, with charts drawn by uPlot (fast on 30 days of samples). A single range selector (1 hour, 24 hours, 7 days, 30 days) drives every chart; data refresh every minute.
+- **Resources.** CPU and memory used, 0–100%.
+- **Traffic.** In (area) and out (line) for the chosen monitored interface, with the 95th percentile as a dashed line and a table with current, average, maximum, 95th percentile and volume. Errors and drops have their own chart; with agents older than 0.49.20 a note explains why it is missing.
+- **Latency and loss** (ping from NSM), when ICMP monitoring is on: average/maximum/minimum RTT and packet loss, with target and range summary.
+- **Wireless signal**, when the device has wireless interfaces: signal (average, best and worst client), connected clients and CCQ.
+- **Charts.** Gaps where samples are missing (no invented lines), legend with current/min/avg/max, values under the mouse cursor, dates and numbers in the user's language, light and dark palettes.
+- **Settings stay classic for now:** the *Interfaces and settings* button opens the classic Monitor page (monitored interfaces, ICMP thresholds).
+- **Lighter first load.** The Monitor tab and uPlot download only when the tab is opened (about 25 KB compressed).
+- Texts in Italian, English, French and Spanish.
+
 ## 0.49.99 — 2026-10-14
 
 New interface (React) — device overview, phase 1b

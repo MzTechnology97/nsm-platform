@@ -1,0 +1,222 @@
+import { useParams } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import { useDevice } from "../api/device";
+import { columns, RANGES, type Range, useLatency, useMetrics, useTraffic, useWireless } from "../api/monitor";
+import { formatValue } from "../charts/format";
+import { TimeChart } from "../charts/TimeChart";
+
+export function DeviceMonitor() {
+  const { t } = useTranslation();
+  const { deviceId } = useParams({ from: "/devices/$deviceId/monitor" });
+  const { data: detail } = useDevice(deviceId);
+  const [range, setRange] = useState<Range>("24h");
+
+  return (
+    <div className="ui-monitor">
+      <div className="ui-monitor-toolbar">
+        <div className="ui-segmented" role="group" aria-label={t("monitor.range")}>
+          {RANGES.map((value) => (
+            <button key={value} type="button" className={value === range ? "is-active" : undefined} onClick={() => setRange(value)}>
+              {t(`monitor.ranges.${value}`)}
+            </button>
+          ))}
+        </div>
+        <a className="ui-button ui-button-ghost" href={`/devices/${deviceId}/monitor`}>
+          {t("monitor.settings")}
+        </a>
+      </div>
+      <ResourcesPanel id={deviceId} range={range} />
+      <TrafficPanel id={deviceId} range={range} />
+      {detail?.icmp.enabled && <LatencyPanel id={deviceId} range={range} />}
+      <WirelessPanel id={deviceId} range={range} />
+    </div>
+  );
+}
+
+function ResourcesPanel({ id, range }: { id: string; range: Range }) {
+  const { t } = useTranslation();
+  const query = useMetrics(id, range);
+  const data = useMemo(() => columns(query.data?.points ?? [], ["cpu_load", "memory_used_percent"]), [query.data]);
+  return (
+    <section className="ui-panel">
+      <h2>{t("monitor.resources")}</h2>
+      <div className="ui-chart-grid">
+        <TimeChart title={t("monitor.cpu")} unit="%" min={0} max={100} timestamps={data.timestamps} series={[{ label: t("monitor.cpu"), color: "a", kind: "area", values: data.values[0] }]} />
+        <TimeChart title={t("monitor.memory")} unit="%" min={0} max={100} timestamps={data.timestamps} series={[{ label: t("monitor.memoryUsed"), color: "d", kind: "area", values: data.values[1] }]} />
+      </div>
+    </section>
+  );
+}
+
+function TrafficPanel({ id, range }: { id: string; range: Range }) {
+  const { t, i18n } = useTranslation();
+  const [iface, setIface] = useState<string | undefined>(undefined);
+  const query = useTraffic(id, range, iface);
+  const traffic = query.data;
+  const bits = useMemo(() => columns(traffic?.points ?? [], ["rx_bps", "tx_bps"]), [traffic]);
+  const errors = useMemo(() => columns(traffic?.points ?? [], ["rx_errors", "tx_errors", "rx_drops", "tx_drops"]), [traffic]);
+  const p95 = Math.max(traffic?.stats.rx.p95 ?? 0, traffic?.stats.tx.p95 ?? 0);
+  const fmt = (v: number | null | undefined, unit: "bps" | "bytes") => formatValue(v ?? null, unit, i18n.language);
+
+  if (traffic && !traffic.interfaces.length) {
+    return (
+      <section className="ui-panel">
+        <h2>{t("monitor.traffic")}</h2>
+        <p className="ui-muted">{t("monitor.noInterfaces")}</p>
+      </section>
+    );
+  }
+  return (
+    <section className="ui-panel">
+      <div className="ui-panel-header">
+        <h2>{t("monitor.traffic")}</h2>
+        {traffic && traffic.interfaces.length > 1 && (
+          <select value={traffic.interface ?? ""} onChange={(event) => setIface(event.target.value)} aria-label={t("monitor.interface")}>
+            {traffic.interfaces.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+      <TimeChart
+        title={traffic?.interface ? t("monitor.trafficOf", { name: traffic.interface }) : t("monitor.traffic")}
+        unit="bps"
+        timestamps={bits.timestamps}
+        series={[
+          { label: t("monitor.in"), color: "b", kind: "area", values: bits.values[0] },
+          { label: t("monitor.out"), color: "a", kind: "line", values: bits.values[1] },
+        ]}
+        thresholds={p95 > 0 ? [{ label: t("monitor.p95"), value: p95 }] : []}
+        height={260}
+        legend={false}
+      />
+      {traffic && (
+        <table className="ui-stats-table">
+          <thead>
+            <tr>
+              <th />
+              <th>{t("monitor.legend.current")}</th>
+              <th>{t("monitor.legend.avg")}</th>
+              <th>{t("monitor.legend.max")}</th>
+              <th>{t("monitor.p95")}</th>
+              <th>{t("monitor.volume")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(["rx", "tx"] as const).map((dir) => (
+              <tr key={dir}>
+                <td><span className={`ui-key ui-key-${dir === "rx" ? "b" : "a"}`}>{dir === "rx" ? t("monitor.in") : t("monitor.out")}</span></td>
+                <td>{fmt(traffic.stats[dir].current, "bps")}</td>
+                <td>{fmt(traffic.stats[dir].avg, "bps")}</td>
+                <td>{fmt(traffic.stats[dir].max, "bps")}</td>
+                <td>{fmt(traffic.stats[dir].p95, "bps")}</td>
+                <td>{fmt(traffic.stats[dir].bytes, "bytes")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {traffic?.stats.errors?.supported ? (
+        <TimeChart
+          title={t("monitor.errors")}
+          unit="count"
+          timestamps={errors.timestamps}
+          series={[
+            { label: t("monitor.rxErrors"), color: "a", kind: "line", values: errors.values[0] },
+            { label: t("monitor.txErrors"), color: "b", kind: "line", values: errors.values[1] },
+            { label: t("monitor.rxDrops"), color: "c", kind: "line", values: errors.values[2] },
+            { label: t("monitor.txDrops"), color: "d", kind: "line", values: errors.values[3] },
+          ]}
+          height={180}
+        />
+      ) : traffic ? (
+        <p className="ui-muted">{t("monitor.errorsUnavailable")}</p>
+      ) : null}
+    </section>
+  );
+}
+
+function LatencyPanel({ id, range }: { id: string; range: Range }) {
+  const { t, i18n } = useTranslation();
+  const query = useLatency(id, range);
+  const data = useMemo(() => columns(query.data?.points ?? [], ["rtt_avg", "rtt_max", "rtt_min", "loss"]), [query.data]);
+  const stats = query.data?.stats;
+  return (
+    <section className="ui-panel">
+      <div className="ui-panel-header">
+        <h2>{t("monitor.latency")}</h2>
+        {stats && (
+          <small className="ui-muted">
+            {query.data?.target} · {t("monitor.lossSummary", { value: formatValue(stats.loss, "%", i18n.language) })} · {t("monitor.rttSummary", { value: formatValue(stats.rtt_avg, "ms", i18n.language) })}
+          </small>
+        )}
+      </div>
+      <div className="ui-chart-grid">
+        <TimeChart
+          title={t("monitor.rtt")}
+          unit="ms"
+          timestamps={data.timestamps}
+          series={[
+            { label: t("monitor.rttAvg"), color: "b", kind: "area", values: data.values[0] },
+            { label: t("monitor.rttMax"), color: "a", kind: "line", values: data.values[1] },
+            { label: t("monitor.rttMin"), color: "c", kind: "line", values: data.values[2] },
+          ]}
+        />
+        <TimeChart title={t("monitor.loss")} unit="%" min={0} max={100} timestamps={data.timestamps} series={[{ label: t("monitor.loss"), color: "d", kind: "area", values: data.values[3] }]} />
+      </div>
+    </section>
+  );
+}
+
+function WirelessPanel({ id, range }: { id: string; range: Range }) {
+  const { t } = useTranslation();
+  const [iface, setIface] = useState<string | undefined>(undefined);
+  const query = useWireless(id, range, iface);
+  const wireless = query.data;
+  const data = useMemo(() => columns(wireless?.points ?? [], ["signal_avg", "signal_max", "signal_min", "clients", "ccq_avg"]), [wireless]);
+  if (!wireless || !wireless.interfaces.length) return null;
+  const single = data.values[3].every((v) => v == null || v <= 1);
+  return (
+    <section className="ui-panel">
+      <div className="ui-panel-header">
+        <h2>{t("monitor.wireless")}</h2>
+        {wireless.interfaces.length > 1 && (
+          <select value={wireless.interface ?? ""} onChange={(event) => setIface(event.target.value)} aria-label={t("monitor.interface")}>
+            {wireless.interfaces.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+      <div className="ui-chart-grid">
+        <TimeChart
+          title={t("monitor.signal")}
+          unit="dBm"
+          timestamps={data.timestamps}
+          series={single
+            ? [{ label: t("monitor.signal"), color: "b", kind: "area", values: data.values[0] }]
+            : [
+                { label: t("monitor.signalAvg"), color: "b", kind: "area", values: data.values[0] },
+                { label: t("monitor.signalBest"), color: "a", kind: "line", values: data.values[1] },
+                { label: t("monitor.signalWorst"), color: "c", kind: "line", values: data.values[2] },
+              ]}
+        />
+        <TimeChart
+          title={t("monitor.clients")}
+          unit="count"
+          timestamps={data.timestamps}
+          series={[
+            { label: t("monitor.clients"), color: "a", kind: "line", values: data.values[3] },
+            ...(data.values[4].some((v) => v != null) ? [{ label: t("monitor.ccq"), color: "d" as const, kind: "line" as const, values: data.values[4] }] : []),
+          ]}
+        />
+      </div>
+    </section>
+  );
+}
