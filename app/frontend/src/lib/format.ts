@@ -47,3 +47,16 @@ export function fromLocalInput(value: string): string | undefined {
   const time = value ? new Date(value).getTime() : NaN;
   return Number.isNaN(time) ? undefined : new Date(time).toISOString();
 }
+
+/** Byte count with binary units (KB, MB, GB, TB), localised. */
+export function formatBytes(bytes: number | null | undefined, locale: string): string {
+  if (bytes === null || bytes === undefined) return "—";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: unit ? 1 : 0 }).format(value)} ${units[unit]}`;
+}

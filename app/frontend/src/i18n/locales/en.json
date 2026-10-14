@@ -1791,5 +1791,166 @@
       "security.read": "Vulnerabilities/CVEs of the devices, read-only.",
       "firmware.read": "Firmware status and recommended version, read-only."
     }
+  },
+  "system": {
+    "subtitle": "Platform status: version, worker, connectors, capacity, encryption, database backups and restore drills.",
+    "unreadable": "unreadable",
+    "version": {
+      "title": "Version and database",
+      "version": "Version",
+      "revision": "Schema revision",
+      "dbSize": "Database size",
+      "disk": "Device backup space",
+      "free": "{{size}} free",
+      "of": "of {{size}}",
+      "lowDisk": "Less than 10% free space on the backup volume ({{path}}): check retention or grow the disk."
+    },
+    "worker": {
+      "title": "Worker",
+      "help": "The worker runs backup maintenance, firmware checks and reboots, UISP and advisory syncs, scheduled reports and compliance. Each task is isolated: one failure does not stop the others.",
+      "unreadable": "State unreadable",
+      "alive": "Running",
+      "stopped": "Stopped",
+      "noRedis": "Redis unreachable: heartbeat and task state cannot be read.",
+      "heartbeat": "Last heartbeat",
+      "started": "Started",
+      "secondsAgo_one": "{{count}} second ago",
+      "secondsAgo_other": "{{count}} seconds ago",
+      "down": "The worker has not answered for more than {{seconds}} seconds: scheduled backups, checks and syncs are stopped. Check ./manage.sh logs worker.",
+      "noTasks": "No task recorded: the worker has not started with this version yet.",
+      "columns": {
+        "task": "Task",
+        "lastOk": "Last successful run",
+        "duration": "Duration",
+        "lastError": "Last error",
+        "failures": "Consecutive errors"
+      }
+    },
+    "connectors": {
+      "title": "Connectors and data sources",
+      "help": "State of the sources NSM uses to observe devices and advisories.",
+      "states": {
+        "ok": "OK",
+        "warning": "Warning",
+        "error": "Error",
+        "disabled": "Disabled",
+        "unconfigured": "Not configured"
+      },
+      "columns": {
+        "source": "Source",
+        "state": "State",
+        "lastOk": "Last success",
+        "detail": "Detail"
+      }
+    },
+    "capacity": {
+      "title": "Capacity and retention",
+      "help": "Size of the database and of the backup archive, with the growth over the last 30 days.",
+      "archive": "Backup archive",
+      "files_one": "{{count}} file",
+      "files_other": "{{count}} files",
+      "growth": "30-day growth",
+      "left": "Estimated space",
+      "atRate": "at the current rate",
+      "overTenYears": "more than 10 years",
+      "days_one": "about {{count}} day",
+      "days_other": "about {{count}} days",
+      "filling_one": "At the rate of the last 30 days the backup volume fills up in about {{count}} day: reduce policy retention or grow the disk.",
+      "filling_other": "At the rate of the last 30 days the backup volume fills up in about {{count}} days: reduce policy retention or grow the disk.",
+      "noTables": "Table sizes unavailable.",
+      "columns": {
+        "table": "Table",
+        "size": "Size",
+        "rows": "Rows (estimate)",
+        "data": "Data",
+        "rule": "Retention"
+      }
+    },
+    "retention": {
+      "mikrotik_telemetry": {
+        "data": "MikroTik telemetry (CPU, RAM, traffic)",
+        "rule_one": "{{count}} day, hourly cleanup",
+        "rule_other": "{{count}} days, hourly cleanup"
+      },
+      "uisp_metrics": {
+        "data": "UISP metrics",
+        "rule_one": "{{count}} day, hourly cleanup",
+        "rule_other": "{{count}} days, hourly cleanup"
+      },
+      "notifications": {
+        "data": "External notifications sent",
+        "rule_one": "{{count}} day (failed ones stay until queued again)",
+        "rule_other": "{{count}} days (failed ones stay until queued again)"
+      },
+      "login_failures": {
+        "data": "Failed sign-in attempts",
+        "rule_one": "{{count}} day (audit events stay)",
+        "rule_other": "{{count}} days (audit events stay)"
+      },
+      "backup_files": {
+        "data": "Device backup files",
+        "rule_one": "according to the backup policy (daily, weekly, monthly)",
+        "rule_other": "according to the backup policy (daily, weekly, monthly)"
+      },
+      "evidence": {
+        "data": "Audit, jobs, snapshots, incidents, generated reports",
+        "rule_one": "kept with no expiry (evidence)",
+        "rule_other": "kept with no expiry (evidence)"
+      }
+    },
+    "secrets": {
+      "title": "Secret encryption",
+      "help": "Connector credentials and MikroTik binary backup passwords are encrypted with ENCRYPTION_MASTER_KEY. Without that key .backup files cannot be opened: keep a copy off the host.",
+      "unreadableBadge": "Unreadable secrets",
+      "rotateBadge": "Rotation to complete",
+      "currentBadge": "Current key",
+      "columns": {
+        "secrets": "Secrets",
+        "current": "Current key",
+        "previous": "Previous key",
+        "unreadable": "Unreadable"
+      },
+      "labels": {
+        "connector_integrations_secret_encrypted": "Connector credentials (UISP, NVD, GenieACS)",
+        "mikrotik_backup_job_secrets_encrypted_backup_password": "MikroTik binary backup passwords",
+        "users_totp_secret_encrypted": "Two-step verification keys",
+        "user_notification_preferences_secret_encrypted": "Users' Slack webhooks"
+      },
+      "previous_one": "{{count}} secret still uses a previous key: run ./manage.sh rotate-secrets, then remove ENCRYPTION_PREVIOUS_KEYS.",
+      "previous_other": "{{count}} secrets still use a previous key: run ./manage.sh rotate-secrets, then remove ENCRYPTION_PREVIOUS_KEYS.",
+      "removePrevious_one": "Every secret uses the current key: ENCRYPTION_PREVIOUS_KEYS ({{count}} key) can be removed. Keep previous keys together with dumps made before the rotation.",
+      "removePrevious_other": "Every secret uses the current key: ENCRYPTION_PREVIOUS_KEYS ({{count}} keys) can be removed. Keep previous keys together with dumps made before the rotation.",
+      "unreadable_one": "{{count}} secret cannot be read with any configured key: ENCRYPTION_MASTER_KEY was probably changed without listing the previous one in ENCRYPTION_PREVIOUS_KEYS.",
+      "unreadable_other": "{{count}} secrets cannot be read with any configured key: ENCRYPTION_MASTER_KEY was probably changed without listing the previous one in ENCRYPTION_PREVIOUS_KEYS."
+    },
+    "dumps": {
+      "title": "Platform database backups",
+      "help": "Dumps created with ./manage.sh backup-db in {{folder}}. Schedule it at least every {{days}} days and copy the dumps off the host.",
+      "stale": "To run",
+      "recent": "Recent",
+      "latest": "Last dump",
+      "size": "Size",
+      "count": "Dumps present",
+      "total": "{{size}} in total",
+      "none": "No database dump found. Without dumps customers, devices, history and configurations cannot be restored."
+    },
+    "drills": {
+      "title": "Restore drills",
+      "help": "./manage.sh restore-drill restores the last dump into a temporary database, checks it and drops it: the live database is not touched. Run a drill at least every {{days}} days. Full procedure: docs/OPERATIONS.md.",
+      "overdue": "Drill overdue",
+      "recent": "Recent drill",
+      "success": "succeeded",
+      "failed": "failed",
+      "none": "No restore drill recorded.",
+      "columns": {
+        "when": "When",
+        "result": "Outcome",
+        "file": "Dump",
+        "duration": "Duration",
+        "tables": "Tables",
+        "revision": "Revision",
+        "devices": "Devices"
+      }
+    }
   }
 }

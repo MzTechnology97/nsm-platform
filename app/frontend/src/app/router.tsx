@@ -225,6 +225,11 @@ const adminApiKeysRoute = createRoute({
   path: "/admin/api-keys",
   component: lazyRouteComponent(() => import("../pages/AdminApiKeys"), "AdminApiKeys"),
 });
+const adminSystemRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/system",
+  component: lazyRouteComponent(() => import("../pages/AdminSystem"), "AdminSystem"),
+});
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/access",
@@ -302,6 +307,7 @@ export const routeTree = rootRoute.addChildren([
   reportsRoute,
   adminUsersRoute,
   adminApiKeysRoute,
+  adminSystemRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

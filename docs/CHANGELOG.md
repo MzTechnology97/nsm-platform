@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.125 — 2026-10-14
+
+New interface (React) — system status, phase 6e
+- **System status in `/app/admin/system`**, in the *System* tab of the new administration area. It is read-only and shows the same data as the classic page:
+  - version, schema revision, database size, free backup space;
+  - the worker with its heartbeat and each task's last success, duration, last error and consecutive failures;
+  - connectors and data sources;
+  - capacity: backup archive, 30-day growth, estimated days left, largest tables, retention per data set;
+  - encryption of secrets with the current and previous key;
+  - platform database dumps and restore drills.
+- The same warnings as the classic page appear when something needs action, for example little free space, a stopped worker, secrets to rotate or unreadable, an old dump or an overdue drill.
+- Retention entries and secret groups now carry a stable `key` (and the retention days), so the new interface can show them in every language; the classic page is unchanged.
+- **API.** `GET /api/ui/v1/admin/system` (`users.manage`).
+
 ## 0.49.124 — 2026-10-14
 
 New interface (React) — API keys, phase 6d

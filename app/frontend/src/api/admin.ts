@@ -199,3 +199,30 @@ export function useApiKeyAction<B extends object, R = unknown>(path: string) {
     onSuccess: () => client.invalidateQueries({ queryKey: ["admin-api-keys"] }),
   });
 }
+
+export interface SystemStatus {
+  version: string;
+  database: { revision: string | null; size: number | null };
+  disk: { path: string; total: number; used: number; free: number; low: boolean } | null;
+  worker: {
+    available: boolean;
+    alive: boolean;
+    heartbeat: string | null;
+    age_seconds: number | null;
+    started: string | null;
+    tasks: { name: string; last_ok: string | null; duration_ms: number | null; last_error: string | null; last_error_at: string | null; failures: number; failing: boolean }[];
+  };
+  stale_seconds: number;
+  connectors: { name: string; state: string; href: string; last_ok: string | null; detail: string; error: string | null }[];
+  tables: { name: string; bytes: number; rows: number }[];
+  archive: { bytes: number; count: number; growth_30d: number; days_left: number | null };
+  retention: { key: string; days: number | null; data: string; rule: string }[];
+  secrets: { rows: { key: string; label: string; current: number; previous: number; unreadable: number }[]; totals: { current: number; previous: number; unreadable: number }; previous_keys: number };
+  dumps: { folder: string; count: number; latest: string | null; latest_at: string | null; latest_size: number | null; total_size: number; stale: boolean };
+  drills: { entries: { at: string; result: string; file?: string; seconds?: number; tables?: number; revision?: string; devices?: number }[]; overdue: boolean };
+  dump_max_days: number;
+  drill_max_days: number;
+}
+
+export const useSystemStatus = () =>
+  useQuery({ queryKey: ["admin-system"], queryFn: () => api<SystemStatus>("/api/ui/v1/admin/system"), staleTime: 15_000, refetchInterval: 60_000 });

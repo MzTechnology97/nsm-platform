@@ -1791,5 +1791,166 @@
       "security.read": "Vulnerabilidades/CVE de los equipos en solo lectura.",
       "firmware.read": "Estado del firmware y versión recomendada en solo lectura."
     }
+  },
+  "system": {
+    "subtitle": "Estado de la plataforma: versión, worker, conectores, capacidad, cifrado, copias de la base de datos y pruebas de restauración.",
+    "unreadable": "ilegible",
+    "version": {
+      "title": "Versión y base de datos",
+      "version": "Versión",
+      "revision": "Revisión del esquema",
+      "dbSize": "Tamaño de la base de datos",
+      "disk": "Espacio de copias de equipos",
+      "free": "{{size}} libres",
+      "of": "de {{size}}",
+      "lowDisk": "Menos del 10 % de espacio libre en el volumen de copias ({{path}}): revisa la retención o amplía el disco."
+    },
+    "worker": {
+      "title": "Worker",
+      "help": "El worker ejecuta el mantenimiento de copias, las comprobaciones y reinicios de firmware, las sincronizaciones de UISP y avisos, los informes programados y el cumplimiento. Cada tarea está aislada: un error no detiene las demás.",
+      "unreadable": "Estado ilegible",
+      "alive": "Activo",
+      "stopped": "Detenido",
+      "noRedis": "Redis no accesible: no se pueden leer el heartbeat ni el estado de las tareas.",
+      "heartbeat": "Último heartbeat",
+      "started": "Iniciado",
+      "secondsAgo_one": "hace {{count}} segundo",
+      "secondsAgo_other": "hace {{count}} segundos",
+      "down": "El worker no responde desde hace más de {{seconds}} segundos: copias programadas, comprobaciones y sincronizaciones están detenidas. Revisa ./manage.sh logs worker.",
+      "noTasks": "Ninguna tarea registrada: el worker aún no se ha iniciado con esta versión.",
+      "columns": {
+        "task": "Tarea",
+        "lastOk": "Última ejecución correcta",
+        "duration": "Duración",
+        "lastError": "Último error",
+        "failures": "Errores consecutivos"
+      }
+    },
+    "connectors": {
+      "title": "Conectores y fuentes de datos",
+      "help": "Estado de las fuentes con las que NSM observa equipos y avisos.",
+      "states": {
+        "ok": "OK",
+        "warning": "Atención",
+        "error": "Error",
+        "disabled": "Deshabilitado",
+        "unconfigured": "Sin configurar"
+      },
+      "columns": {
+        "source": "Fuente",
+        "state": "Estado",
+        "lastOk": "Último éxito",
+        "detail": "Detalle"
+      }
+    },
+    "capacity": {
+      "title": "Capacidad y retención",
+      "help": "Tamaño de la base de datos y del archivo de copias, con el crecimiento de los últimos 30 días.",
+      "archive": "Archivo de copias",
+      "files_one": "{{count}} archivo",
+      "files_other": "{{count}} archivos",
+      "growth": "Crecimiento en 30 días",
+      "left": "Espacio estimado",
+      "atRate": "al ritmo actual",
+      "overTenYears": "más de 10 años",
+      "days_one": "unos {{count}} día",
+      "days_other": "unos {{count}} días",
+      "filling_one": "Al ritmo de los últimos 30 días el volumen de copias se llena en unos {{count}} día: reduce la retención o amplía el disco.",
+      "filling_other": "Al ritmo de los últimos 30 días el volumen de copias se llena en unos {{count}} días: reduce la retención o amplía el disco.",
+      "noTables": "Tamaños de las tablas no disponibles.",
+      "columns": {
+        "table": "Tabla",
+        "size": "Tamaño",
+        "rows": "Filas (estimación)",
+        "data": "Datos",
+        "rule": "Retención"
+      }
+    },
+    "retention": {
+      "mikrotik_telemetry": {
+        "data": "Telemetría MikroTik (CPU, RAM, tráfico)",
+        "rule_one": "{{count}} día, limpieza cada hora",
+        "rule_other": "{{count}} días, limpieza cada hora"
+      },
+      "uisp_metrics": {
+        "data": "Métricas UISP",
+        "rule_one": "{{count}} día, limpieza cada hora",
+        "rule_other": "{{count}} días, limpieza cada hora"
+      },
+      "notifications": {
+        "data": "Notificaciones externas enviadas",
+        "rule_one": "{{count}} día (las fallidas se conservan hasta volver a la cola)",
+        "rule_other": "{{count}} días (las fallidas se conservan hasta volver a la cola)"
+      },
+      "login_failures": {
+        "data": "Intentos de acceso fallidos",
+        "rule_one": "{{count}} día (los eventos de auditoría se conservan)",
+        "rule_other": "{{count}} días (los eventos de auditoría se conservan)"
+      },
+      "backup_files": {
+        "data": "Archivos de copia de los equipos",
+        "rule_one": "según la política de copias (diarias, semanales, mensuales)",
+        "rule_other": "según la política de copias (diarias, semanales, mensuales)"
+      },
+      "evidence": {
+        "data": "Auditoría, tareas, instantáneas, incidentes, informes generados",
+        "rule_one": "conservados sin caducidad (evidencia)",
+        "rule_other": "conservados sin caducidad (evidencia)"
+      }
+    },
+    "secrets": {
+      "title": "Cifrado de secretos",
+      "help": "Las credenciales de los conectores y las contraseñas de las copias binarias de MikroTik se cifran con ENCRYPTION_MASTER_KEY. Sin esa clave los archivos .backup no se pueden abrir: guarda una copia fuera del host.",
+      "unreadableBadge": "Secretos ilegibles",
+      "rotateBadge": "Rotación pendiente",
+      "currentBadge": "Clave actual",
+      "columns": {
+        "secrets": "Secretos",
+        "current": "Clave actual",
+        "previous": "Clave anterior",
+        "unreadable": "Ilegibles"
+      },
+      "labels": {
+        "connector_integrations_secret_encrypted": "Credenciales de conectores (UISP, NVD, GenieACS)",
+        "mikrotik_backup_job_secrets_encrypted_backup_password": "Contraseñas de copias binarias MikroTik",
+        "users_totp_secret_encrypted": "Claves de la verificación en dos pasos",
+        "user_notification_preferences_secret_encrypted": "Webhooks de Slack de los usuarios"
+      },
+      "previous_one": "{{count}} secreto aún usa una clave anterior: ejecuta ./manage.sh rotate-secrets y luego elimina ENCRYPTION_PREVIOUS_KEYS.",
+      "previous_other": "{{count}} secretos aún usan una clave anterior: ejecuta ./manage.sh rotate-secrets y luego elimina ENCRYPTION_PREVIOUS_KEYS.",
+      "removePrevious_one": "Todos los secretos usan la clave actual: ENCRYPTION_PREVIOUS_KEYS ({{count}} clave) se puede eliminar. Conserva las claves anteriores junto con los volcados creados antes de la rotación.",
+      "removePrevious_other": "Todos los secretos usan la clave actual: ENCRYPTION_PREVIOUS_KEYS ({{count}} claves) se puede eliminar. Conserva las claves anteriores junto con los volcados creados antes de la rotación.",
+      "unreadable_one": "{{count}} secreto no se puede leer con ninguna clave configurada: probablemente ENCRYPTION_MASTER_KEY se cambió sin indicar la anterior en ENCRYPTION_PREVIOUS_KEYS.",
+      "unreadable_other": "{{count}} secretos no se pueden leer con ninguna clave configurada: probablemente ENCRYPTION_MASTER_KEY se cambió sin indicar la anterior en ENCRYPTION_PREVIOUS_KEYS."
+    },
+    "dumps": {
+      "title": "Copias de la base de datos de la plataforma",
+      "help": "Volcados creados con ./manage.sh backup-db en {{folder}}. Prográmalo al menos cada {{days}} días y copia los volcados fuera del host.",
+      "stale": "Pendiente",
+      "recent": "Reciente",
+      "latest": "Último volcado",
+      "size": "Tamaño",
+      "count": "Volcados presentes",
+      "total": "{{size}} en total",
+      "none": "No se ha encontrado ningún volcado de la base de datos. Sin volcados no se pueden restaurar clientes, equipos, historial ni configuraciones."
+    },
+    "drills": {
+      "title": "Pruebas de restauración",
+      "help": "./manage.sh restore-drill restaura el último volcado en una base temporal, comprueba su contenido y la elimina: la base en uso no se toca. Haz una prueba al menos cada {{days}} días. Procedimiento completo: docs/OPERATIONS.md.",
+      "overdue": "Prueba vencida",
+      "recent": "Prueba reciente",
+      "success": "correcta",
+      "failed": "fallida",
+      "none": "Ninguna prueba de restauración registrada.",
+      "columns": {
+        "when": "Cuándo",
+        "result": "Resultado",
+        "file": "Volcado",
+        "duration": "Duración",
+        "tables": "Tablas",
+        "revision": "Revisión",
+        "devices": "Equipos"
+      }
+    }
   }
 }
