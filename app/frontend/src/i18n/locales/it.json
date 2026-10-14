@@ -1346,5 +1346,67 @@
       "config_baseline": "Config",
       "cleartext_services_disabled": "Servizi"
     }
+  },
+  "actionCenter": {
+    "title": "Action Center",
+    "subtitle_one": "{{count}} segnalazione attiva nel perimetro.",
+    "subtitle_other": "{{count}} segnalazioni attive nel perimetro.",
+    "severity": "Gravità",
+    "category": "Categoria",
+    "status": "Stato",
+    "all": "Tutte",
+    "allCategories": "Tutte le categorie",
+    "system": "Piattaforma",
+    "ack": "Prendi in carico",
+    "incident": "Apri incidente",
+    "empty": "Nessuna segnalazione con questi filtri.",
+    "allGood": "Nessuna segnalazione aperta: tutto in ordine.",
+    "severities": {
+      "critical": "Critica",
+      "high": "Alta",
+      "warning": "Attenzione",
+      "medium": "Media",
+      "low": "Bassa",
+      "info": "Informativa"
+    },
+    "statuses": {
+      "active": "Attive (aperte e in carico)",
+      "open": "Aperte",
+      "acknowledged": "In carico",
+      "resolved": "Risolte"
+    },
+    "columns": {
+      "issue": "Segnalazione",
+      "device": "Apparato",
+      "category": "Categoria",
+      "opened": "Aperta",
+      "status": "Stato",
+      "actions": "Azioni"
+    },
+    "categories": {
+      "backup": "Backup",
+      "compliance": "Compliance",
+      "connectivity": "Connettività",
+      "exposure": "Esposizione",
+      "latency": "Latenza",
+      "lifecycle": "Ciclo di vita",
+      "monitoring": "Monitoraggio",
+      "other": "Altro",
+      "reachability": "Raggiungibilità",
+      "reports": "Report",
+      "security": "Sicurezza",
+      "security_access": "Accessi",
+      "system": "Piattaforma",
+      "firmware": "Firmware",
+      "agent": "Agent",
+      "integration": "Integrazioni",
+      "interface_errors": "Errori interfaccia",
+      "configuration": "Configurazione"
+    },
+    "state": {
+      "open": "Aperta",
+      "acknowledged": "In carico",
+      "resolved": "Risolta"
+    }
   }
 }

@@ -1466,20 +1466,27 @@ def acknowledge_issue(
         issue = db.get(ActionIssue, issue_id)
         if not issue:
             raise HTTPException(404)
-        if issue.status == "open":
-            issue.status = "acknowledged"
-            issue.acknowledged_by_user_id = user.id
-            issue.acknowledged_at = utcnow()
-            add_event(
-                db,
-                "ISSUE_ACKNOWLEDGED",
-                actor=user,
-                customer_id=issue.customer_id,
-                device_id=issue.device_id,
-                details={"issue_id": str(issue.id), "category": issue.category},
-            )
+        if acknowledge_issue_record(db, issue, user):
             db.commit()
     return RedirectResponse("/action-center", status_code=303)
+
+
+def acknowledge_issue_record(db, issue, user) -> bool:
+    """Take an open issue in charge (audited); False when it was not open. Caller commits."""
+    if issue.status != "open":
+        return False
+    issue.status = "acknowledged"
+    issue.acknowledged_by_user_id = user.id
+    issue.acknowledged_at = utcnow()
+    add_event(
+        db,
+        "ISSUE_ACKNOWLEDGED",
+        actor=user,
+        customer_id=issue.customer_id,
+        device_id=issue.device_id,
+        details={"issue_id": str(issue.id), "category": issue.category},
+    )
+    return True
 
 
 @app.get("/notifications", response_class=HTMLResponse)

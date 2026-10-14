@@ -1346,5 +1346,67 @@
       "config_baseline": "Config",
       "cleartext_services_disabled": "Services"
     }
+  },
+  "actionCenter": {
+    "title": "Action Center",
+    "subtitle_one": "{{count}} signalement actif dans le périmètre.",
+    "subtitle_other": "{{count}} signalements actifs dans le périmètre.",
+    "severity": "Gravité",
+    "category": "Catégorie",
+    "status": "État",
+    "all": "Tous",
+    "allCategories": "Toutes les catégories",
+    "system": "Plateforme",
+    "ack": "Prendre en charge",
+    "incident": "Ouvrir un incident",
+    "empty": "Aucun signalement pour ces filtres.",
+    "allGood": "Aucun signalement ouvert : tout est en ordre.",
+    "severities": {
+      "critical": "Critique",
+      "high": "Élevée",
+      "warning": "Attention",
+      "medium": "Moyenne",
+      "low": "Faible",
+      "info": "Information"
+    },
+    "statuses": {
+      "active": "Actifs (ouverts et pris en charge)",
+      "open": "Ouverts",
+      "acknowledged": "Pris en charge",
+      "resolved": "Résolus"
+    },
+    "columns": {
+      "issue": "Signalement",
+      "device": "Équipement",
+      "category": "Catégorie",
+      "opened": "Ouvert",
+      "status": "État",
+      "actions": "Actions"
+    },
+    "categories": {
+      "backup": "Sauvegarde",
+      "compliance": "Conformité",
+      "connectivity": "Connectivité",
+      "exposure": "Exposition",
+      "latency": "Latence",
+      "lifecycle": "Cycle de vie",
+      "monitoring": "Supervision",
+      "other": "Autre",
+      "reachability": "Joignabilité",
+      "reports": "Rapports",
+      "security": "Sécurité",
+      "security_access": "Accès",
+      "system": "Plateforme",
+      "firmware": "Firmware",
+      "agent": "Agent",
+      "integration": "Intégrations",
+      "interface_errors": "Erreurs d'interface",
+      "configuration": "Configuration"
+    },
+    "state": {
+      "open": "Ouvert",
+      "acknowledged": "Pris en charge",
+      "resolved": "Résolu"
+    }
   }
 }
