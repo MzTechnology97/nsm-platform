@@ -2317,5 +2317,41 @@
       "security": "Security",
       "notes": "Notes"
     }
+  },
+  "branding": {
+    "subtitle": "Platform identity: name, colours and logo, applied to both interfaces.",
+    "identity": "Visual identity",
+    "identityHelp": "Each colour can be customised or reset on its own.",
+    "name": "Platform name",
+    "tagline": "Tagline",
+    "default": "Default",
+    "colors": {
+      "primary": "Primary colour",
+      "sidebar": "Sidebar colour",
+      "highlight": "Highlight colour"
+    },
+    "colorHelp": {
+      "primary": "Buttons, links and selections. Default {{value}}.",
+      "sidebar": "Side menu. Default {{value}}.",
+      "highlight": "Attention elements. Default {{value}}."
+    },
+    "save": "Save look",
+    "saved": "Branding updated.",
+    "logo": "Logo",
+    "logoHelp": "PNG, JPEG or WebP. At most 2 MB.",
+    "currentLogo": "Current logo",
+    "newLogo": "New logo",
+    "upload": "Upload logo",
+    "logoSaved": "Logo updated.",
+    "remove": "Remove logo",
+    "confirmRemove": "Remove the platform logo?",
+    "logoRemoved": "Logo removed.",
+    "appliesTo": "Name, logo and colours show at once in the side menu of both interfaces.",
+    "errors": {
+      "invalid_color": "One of the colours is not valid.",
+      "invalid_name": "Enter a valid platform name.",
+      "logo_size": "The logo must be smaller than 2 MB.",
+      "logo_type": "Unsupported logo format. Use PNG, JPEG or WebP."
+    }
   }
 }

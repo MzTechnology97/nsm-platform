@@ -33,7 +33,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const method = (init.method ?? "GET").toUpperCase();
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
-  if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   if (UNSAFE.has(method)) headers.set("X-CSRF-Token", csrfToken);
   const response = await fetch(path, { ...init, method, headers, credentials: "same-origin" });
   if (response.status === 401) {

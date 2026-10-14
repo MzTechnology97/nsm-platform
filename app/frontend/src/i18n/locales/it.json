@@ -2317,5 +2317,41 @@
       "security": "Sicurezza",
       "notes": "Note"
     }
+  },
+  "branding": {
+    "subtitle": "Identità grafica della piattaforma: nome, colori e logo, applicati a entrambe le interfacce.",
+    "identity": "Identità visiva",
+    "identityHelp": "Ogni colore può essere personalizzato o ripristinato singolarmente.",
+    "name": "Nome piattaforma",
+    "tagline": "Sottotitolo",
+    "default": "Predefinito",
+    "colors": {
+      "primary": "Colore principale",
+      "sidebar": "Colore sidebar",
+      "highlight": "Colore evidenza"
+    },
+    "colorHelp": {
+      "primary": "Pulsanti, link e selezioni. Predefinito {{value}}.",
+      "sidebar": "Menu laterale. Predefinito {{value}}.",
+      "highlight": "Elementi di attenzione. Predefinito {{value}}."
+    },
+    "save": "Salva grafica",
+    "saved": "Branding aggiornato.",
+    "logo": "Logo",
+    "logoHelp": "PNG, JPEG o WebP. Dimensione massima 2 MB.",
+    "currentLogo": "Logo attuale",
+    "newLogo": "Nuovo logo",
+    "upload": "Carica logo",
+    "logoSaved": "Logo aggiornato.",
+    "remove": "Rimuovi logo",
+    "confirmRemove": "Rimuovere il logo della piattaforma?",
+    "logoRemoved": "Logo rimosso.",
+    "appliesTo": "Nome, logo e colori compaiono subito nel menu laterale di entrambe le interfacce.",
+    "errors": {
+      "invalid_color": "Uno dei colori non è valido.",
+      "invalid_name": "Inserisci un nome piattaforma valido.",
+      "logo_size": "Il logo deve essere inferiore a 2 MB.",
+      "logo_type": "Formato logo non supportato. Usa PNG, JPEG o WebP."
+    }
   }
 }

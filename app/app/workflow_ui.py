@@ -184,6 +184,21 @@ def search_suggest(request: Request, q: str = ""):
         return {"results": results[:15], "query": term}
 
 
+def reset_color(db, user, color_key: str) -> str:
+    """Put one brand colour back to its default (audited); returns the default. Caller commits."""
+    branding = _branding(db)
+    attr, default = DEFAULT_COLORS[color_key]
+    old_value = getattr(branding, attr)
+    setattr(branding, attr, default)
+    core.add_event(
+        db,
+        "PLATFORM_BRANDING_COLOR_RESET",
+        actor=user,
+        details={"color": color_key, "old_value": old_value, "new_value": default},
+    )
+    return default
+
+
 @router.post("/admin/branding/colors/{color_key}/reset")
 async def reset_branding_color(request: Request, color_key: str):
     form = await request.form()
@@ -192,16 +207,7 @@ async def reset_branding_color(request: Request, color_key: str):
         raise HTTPException(404)
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        branding = _branding(db)
-        attr, default = DEFAULT_COLORS[color_key]
-        old_value = getattr(branding, attr)
-        setattr(branding, attr, default)
-        core.add_event(
-            db,
-            "PLATFORM_BRANDING_COLOR_RESET",
-            actor=user,
-            details={"color": color_key, "old_value": old_value, "new_value": default},
-        )
+        reset_color(db, user, color_key)
         db.commit()
     return RedirectResponse("/admin/branding?status=color_reset", status_code=303)
 

@@ -395,3 +395,32 @@ export function useRouterosRefresh() {
     onSuccess: () => client.invalidateQueries({ queryKey: ["routeros-catalog"] }),
   });
 }
+
+export interface BrandingAdmin {
+  portal_name: string;
+  tagline: string;
+  primary_color: string;
+  sidebar_color: string;
+  highlight_color: string;
+  has_logo: boolean;
+  logo_version: string;
+  logo_url: string | null;
+  logo_filename: string | null;
+  defaults: Record<"primary" | "sidebar" | "highlight", string>;
+  max_logo_bytes: number;
+}
+
+export const useBrandingAdmin = () =>
+  useQuery({ queryKey: ["admin-branding"], queryFn: () => api<BrandingAdmin>("/api/ui/v1/admin/branding") });
+
+/** Branding changes also refresh the session, so the shell picks up name, logo and colours at once. */
+export function useBrandingAction<B>(path: string, toBody: (value: B) => BodyInit | undefined) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (value: B) => api<BrandingAdmin>(`/api/ui/v1/admin/branding${path}`, { method: "POST", body: toBody(value) }),
+    onSuccess: (data) => {
+      client.setQueryData(["admin-branding"], data);
+      void client.invalidateQueries({ queryKey: ["session"] });
+    },
+  });
+}

@@ -262,6 +262,75 @@ def change_theme(
     return RedirectResponse(_safe_next(next_url), status_code=303)
 
 
+class BrandingError(ValueError):
+    """Rejected branding input; ``code`` is the classic page's ``error`` parameter."""
+
+    def __init__(self, code: str):
+        super().__init__(code)
+        self.code = code
+
+
+def save_branding(db, actor, *, portal_name: str, tagline: str, primary_color: str, sidebar_color: str, highlight_color: str):
+    """Store name, tagline and colours (audited). Raises ``BrandingError``. Caller commits."""
+    colors = (primary_color, sidebar_color, highlight_color)
+    if not all(HEX_COLOR.fullmatch(value or "") for value in colors):
+        raise BrandingError("invalid_color")
+    name = (portal_name or "").strip()
+    if not name or len(name) > 160:
+        raise BrandingError("invalid_name")
+    branding = _branding(db)
+    branding.portal_name = name
+    branding.tagline = ((tagline or "").strip()[:240] or None)
+    branding.primary_color = primary_color.lower()
+    branding.sidebar_color = sidebar_color.lower()
+    branding.highlight_color = highlight_color.lower()
+    _add_event(
+        db,
+        "PLATFORM_BRANDING_UPDATED",
+        actor,
+        {
+            "portal_name": branding.portal_name,
+            "primary_color": branding.primary_color,
+            "sidebar_color": branding.sidebar_color,
+            "highlight_color": branding.highlight_color,
+        },
+    )
+    return branding
+
+
+def store_logo(db, actor, data: bytes, filename: str | None):
+    """Store the logo after checking size and type (audited). Raises ``BrandingError``. Caller commits."""
+    if not data or len(data) > MAX_LOGO_BYTES:
+        raise BrandingError("logo_size")
+    content_type = _detect_logo_type(data)
+    if not content_type:
+        raise BrandingError("logo_type")
+    branding = _branding(db)
+    branding.logo_data = data
+    branding.logo_content_type = content_type
+    branding.logo_filename = (filename or "logo")[:255]
+    _add_event(
+        db,
+        "PLATFORM_LOGO_UPDATED",
+        actor,
+        {
+            "filename": branding.logo_filename,
+            "content_type": content_type,
+            "bytes": len(data),
+        },
+    )
+    return branding
+
+
+def clear_logo(db, actor) -> None:
+    """Remove the logo (audited). Caller commits."""
+    branding = _branding(db)
+    branding.logo_data = None
+    branding.logo_content_type = None
+    branding.logo_filename = None
+    _add_event(db, "PLATFORM_LOGO_REMOVED", actor)
+
+
 @router.get("/admin/branding", response_class=HTMLResponse)
 def admin_branding(request: Request):
     with SessionLocal() as db:
@@ -303,23 +372,8 @@ def update_branding(
 
     with SessionLocal() as db:
         actor = _require_admin(request, db)
-        branding = _branding(db)
-        branding.portal_name = name
-        branding.tagline = (tagline.strip()[:240] or None)
-        branding.primary_color = primary_color.lower()
-        branding.sidebar_color = sidebar_color.lower()
-        branding.highlight_color = highlight_color.lower()
-        _add_event(
-            db,
-            "PLATFORM_BRANDING_UPDATED",
-            actor,
-            {
-                "portal_name": branding.portal_name,
-                "primary_color": branding.primary_color,
-                "sidebar_color": branding.sidebar_color,
-                "highlight_color": branding.highlight_color,
-            },
-        )
+        save_branding(db, actor, portal_name=portal_name, tagline=tagline, primary_color=primary_color,
+                      sidebar_color=sidebar_color, highlight_color=highlight_color)
         db.commit()
     return RedirectResponse("/admin/branding?status=saved", status_code=303)
 
@@ -334,26 +388,12 @@ async def upload_branding_logo(
     data = await logo.read(MAX_LOGO_BYTES + 1)
     if not data or len(data) > MAX_LOGO_BYTES:
         return RedirectResponse("/admin/branding?error=logo_size", status_code=303)
-    content_type = _detect_logo_type(data)
-    if not content_type:
+    if not _detect_logo_type(data):
         return RedirectResponse("/admin/branding?error=logo_type", status_code=303)
 
     with SessionLocal() as db:
         actor = _require_admin(request, db)
-        branding = _branding(db)
-        branding.logo_data = data
-        branding.logo_content_type = content_type
-        branding.logo_filename = (logo.filename or "logo")[:255]
-        _add_event(
-            db,
-            "PLATFORM_LOGO_UPDATED",
-            actor,
-            {
-                "filename": branding.logo_filename,
-                "content_type": content_type,
-                "bytes": len(data),
-            },
-        )
+        store_logo(db, actor, data, logo.filename)
         db.commit()
     return RedirectResponse("/admin/branding?status=logo_saved", status_code=303)
 
@@ -363,11 +403,7 @@ def remove_branding_logo(request: Request, csrf: str = Form(...)):
     validate_csrf(request, csrf)
     with SessionLocal() as db:
         actor = _require_admin(request, db)
-        branding = _branding(db)
-        branding.logo_data = None
-        branding.logo_content_type = None
-        branding.logo_filename = None
-        _add_event(db, "PLATFORM_LOGO_REMOVED", actor)
+        clear_logo(db, actor)
         db.commit()
     return RedirectResponse("/admin/branding?status=logo_removed", status_code=303)
 

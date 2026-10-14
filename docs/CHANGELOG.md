@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.130 — 2026-10-14
+
+New interface (React) — branding, phase 6j
+- **Branding in `/app/admin/branding`**, in the *Branding* tab of the new administration area:
+  - **Visual identity:** platform name, tagline and the three colours (primary, sidebar, highlight), each with *Default* to restore it.
+  - **Logo:** PNG, JPEG or WebP up to 2 MB, with preview and *Remove logo* (with confirmation). Size and format are checked before upload and again on the server.
+- **The new interface now uses the branding.** The sidebar shows the logo next to the platform name, and the three brand colours apply to the new interface as on the classic pages, set as CSS custom properties (allowed by the content security policy). Changes show up at once, without reloading.
+- Saving the branding, the logo upload and removal and the colour reset are now shared functions (`ui_extension.save_branding`/`store_logo`/`clear_logo`, `workflow_ui.reset_color`), used by both interfaces; the classic forms behave as before.
+- **API.** All routes need `users.manage`; the `POST` routes also need the CSRF header:
+  - `GET /api/ui/v1/admin/branding`;
+  - `POST /api/ui/v1/admin/branding`, `/logo` (multipart), `/logo/remove`, `/colors/{primary|sidebar|highlight}/reset`.
+
 ## 0.49.129 — 2026-10-14
 
 New interface (React) — NVD source and RouterOS catalogue, phase 6i

@@ -255,6 +255,11 @@ const routerosRoute = createRoute({
   path: "/integrations/routeros",
   component: lazyRouteComponent(() => import("../pages/RouterosCatalog"), "RouterosCatalog"),
 });
+const adminBrandingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/branding",
+  component: lazyRouteComponent(() => import("../pages/AdminBranding"), "AdminBranding"),
+});
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/access",
@@ -338,6 +343,7 @@ export const routeTree = rootRoute.addChildren([
   adminSyslogRoute,
   adminNvdRoute,
   routerosRoute,
+  adminBrandingRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

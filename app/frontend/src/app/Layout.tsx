@@ -31,6 +31,16 @@ export function Layout() {
     document.documentElement.lang = i18n.language;
   }, [session.data]);
 
+  const branding = session.data?.branding;
+  useEffect(() => {
+    if (!branding) return;
+    // CSSOM custom properties (allowed by the CSP, unlike inline style attributes), as the classic pages do.
+    const root = document.documentElement.style;
+    root.setProperty("--brand-primary", branding.primary_color);
+    root.setProperty("--brand-sidebar", branding.sidebar_color);
+    root.setProperty("--brand-highlight", branding.highlight_color);
+  }, [branding]);
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     try {
@@ -58,7 +68,10 @@ export function Layout() {
     <div className={`ui-shell${collapsed ? " is-collapsed" : ""}${mobileOpen ? " is-mobile-open" : ""}`}>
       <aside className="ui-sidebar" aria-label="NSM">
         <div className="ui-brand">
-          <span className="ui-brand-name">{data.branding.portal_name}</span>
+          <span className="ui-brand-name">
+            {data.branding.has_logo && <img className="ui-brand-logo" src={`/branding/logo?v=${data.branding.logo_version}`} alt="" />}
+            {data.branding.portal_name}
+          </span>
           <button type="button" className="ui-icon-button ui-collapse" onClick={() => setCollapsed((value) => !value)} aria-label={t("nav.collapse")}>
             <Icon name="chevron-left" size={18} />
           </button>
