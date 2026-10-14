@@ -2353,5 +2353,63 @@
       "logo_size": "The logo must be smaller than 2 MB.",
       "logo_type": "Unsupported logo format. Use PNG, JPEG or WebP."
     }
+  },
+  "acs": {
+    "subtitle": "Built-in TR-069 server (GenieACS): panel access, CPE setup and provisioning templates.",
+    "link": "NSM link",
+    "states": {
+      "unconfigured": "Not configured",
+      "active": "Active",
+      "disabled": "Disabled"
+    },
+    "internalAvailable": "built-in GenieACS available",
+    "enableHint": "run ./manage.sh acs-enable",
+    "cpeUrl": "ACS URL for CPEs",
+    "cwmpPort": "port 7547 (CWMP)",
+    "panel": "GenieACS panel",
+    "port": "port {{port}}",
+    "panelAccess": "NSM administrators only, then GenieACS login",
+    "panelTitle": "ACS panel",
+    "openPanel": "Open ACS panel",
+    "panelHelp": "It opens in a new tab. NSM checks that you are an administrator; on first access GenieACS asks to create its own administrator and initial configuration (“init” procedure).",
+    "linkHint": "Link NSM to GenieACS with “Use built-in GenieACS” to see CPEs in NSM:",
+    "linkPage": "Integrations → GenieACS",
+    "guideTitle": "Setting up a TP-Link CPE",
+    "guideHelp": "Menus can change between models and firmware; TR-069 is mostly found on operator models (ONT XZ/XC, Archer VR/VX, some Archer C with ISP firmware).",
+    "steps": {
+      "cpe": {
+        "title": "On the CPE:",
+        "text": "Advanced → System Tools → CWMP Settings (or TR-069): CWMP enabled; ACS URL <code>{{url}}</code>; ACS Username and Password empty for the first test, then set them; Periodic Inform enabled every 300 seconds; Connection Request Username and Password with your own credentials, used by GenieACS to contact the CPE."
+      },
+      "network": {
+        "title": "Network:",
+        "text": "the CPE must reach this server on port 7547/TCP. Connection requests (immediate actions from the ACS to the CPE) only work when the CPE is reachable; behind NAT changes apply at the next periodic inform."
+      },
+      "templates": {
+        "title": "Templates:",
+        "text": "install the NSM base provisioning below. On first contact (BOOTSTRAP) and at every inform the CPE sets the inform to every 5 minutes and sends firmware, identity and WAN/PPPoE IP."
+      },
+      "verify": {
+        "title": "Check in the ACS panel:",
+        "text": "the CPE appears in Devices with vendor, model and serial; any errors appear in Faults."
+      },
+      "nsm": {
+        "title": "In NSM:",
+        "text": "create the TP-Link device with its MAC or serial, open the device's ACS tab and link it to the CPE found in GenieACS."
+      }
+    },
+    "securityTitle": "Security",
+    "security": {
+      "auth": "After the first test set CPE authentication in GenieACS: Admin → Config, key <code>cwmp.auth</code> (for example <code>AUTH(\"acs-user\", \"long-password\")</code>) and the same credentials on every CPE.",
+      "network": "Open port 7547 only towards customer networks and, if the CPE supports it, use HTTPS on the ACS."
+    },
+    "templatesTitle": "Provisioning templates",
+    "install": "Install base templates",
+    "templatesHelp": "In GenieACS a template is a provision (a script that reads and sets parameters) applied by a preset (when: events and a device condition). The button creates or updates NSM's; you can edit them or add others from the ACS panel.",
+    "installed": "Templates installed in GenieACS: {{items}}. Find them in the ACS panel under Admin → Provisions and Presets.",
+    "notConnected": "Link GenieACS first in Integrations → GenieACS (“Use built-in GenieACS” button).",
+    "preset": "Preset",
+    "presetText": "condition <code>{{condition}}</code>, bootstrap, boot and periodic events → provision <code>{{provision}}</code>",
+    "script": "Script of provision {{name}}"
   }
 }

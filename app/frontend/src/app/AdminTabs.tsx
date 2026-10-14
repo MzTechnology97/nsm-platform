@@ -10,7 +10,7 @@ const ADMIN_PAGES: { key: string; classic: string; route?: string }[] = [
   { key: "demo", classic: "/admin/demo" },
   { key: "notifications", classic: "/admin/notifications", route: "/admin/notifications" },
   { key: "syslog", classic: "/admin/syslog", route: "/admin/syslog" },
-  { key: "acs", classic: "/admin/acs" },
+  { key: "acs", classic: "/admin/acs", route: "/admin/acs" },
   { key: "system", classic: "/admin/system", route: "/admin/system" },
 ];
 

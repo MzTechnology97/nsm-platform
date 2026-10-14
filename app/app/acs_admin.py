@@ -124,19 +124,31 @@ def admin_acs(request: Request):
         return _render(request, db, core.require_admin(request, db))
 
 
+NOT_CONNECTED = "Collega prima GenieACS in Integrazioni → GenieACS (pulsante «Usa GenieACS integrato»)."
+
+
+def install_base_templates(db, user) -> list[str]:
+    """Install the NSM provision and presets in the linked GenieACS (audited).
+
+    Raises ``acs.GenieAcsConnectorError`` when GenieACS is not linked or refuses. Caller commits.
+    """
+    connection = acs._connection(db)
+    if connection is None or not connection.is_enabled:
+        raise acs.GenieAcsConnectorError(NOT_CONNECTED)
+    done = install_templates(connection)
+    core.add_event(db, "ACS_TEMPLATES_INSTALLED", actor=user, details={"items": done}, source="portal")
+    return done
+
+
 @router.post("/admin/acs/templates", response_class=HTMLResponse, name="admin_acs_templates")
 def admin_acs_templates(request: Request, csrf: str = Form(...)):
     validate_csrf(request, csrf)
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        connection = acs._connection(db)
-        if connection is None or not connection.is_enabled:
-            return _render(request, db, user, error="Collega prima GenieACS in Integrazioni → GenieACS (pulsante «Usa GenieACS integrato»).")
         try:
-            done = install_templates(connection)
+            done = install_base_templates(db, user)
         except acs.GenieAcsConnectorError as exc:
             return _render(request, db, user, error=str(exc))
-        core.add_event(db, "ACS_TEMPLATES_INSTALLED", actor=user, details={"items": done}, source="portal")
         db.commit()
         return _render(request, db, user, message="Template installati in GenieACS: " + ", ".join(done) + ". Li trovi nel pannello ACS in Admin → Provisions e Presets.")
 

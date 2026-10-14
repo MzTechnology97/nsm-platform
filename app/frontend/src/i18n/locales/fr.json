@@ -2353,5 +2353,63 @@
       "logo_size": "Le logo doit faire moins de 2 Mo.",
       "logo_type": "Format de logo non pris en charge. Utilisez PNG, JPEG ou WebP."
     }
+  },
+  "acs": {
+    "subtitle": "Serveur TR-069 intégré (GenieACS) : accès au panneau, configuration des CPE et modèles de provisionnement.",
+    "link": "Liaison NSM",
+    "states": {
+      "unconfigured": "Non configuré",
+      "active": "Actif",
+      "disabled": "Désactivé"
+    },
+    "internalAvailable": "GenieACS intégré disponible",
+    "enableHint": "exécutez ./manage.sh acs-enable",
+    "cpeUrl": "URL ACS pour les CPE",
+    "cwmpPort": "port 7547 (CWMP)",
+    "panel": "Panneau GenieACS",
+    "port": "port {{port}}",
+    "panelAccess": "administrateurs NSM uniquement, puis connexion GenieACS",
+    "panelTitle": "Panneau ACS",
+    "openPanel": "Ouvrir le panneau ACS",
+    "panelHelp": "Il s'ouvre dans un nouvel onglet. NSM vérifie que vous êtes administrateur ; au premier accès, GenieACS demande de créer son propre administrateur et la configuration initiale (procédure « init »).",
+    "linkHint": "Reliez NSM à GenieACS avec « Utiliser GenieACS intégré » pour voir les CPE dans NSM :",
+    "linkPage": "Intégrations → GenieACS",
+    "guideTitle": "Configurer une CPE TP-Link",
+    "guideHelp": "Les menus peuvent changer selon les modèles et les firmwares ; le TR-069 est surtout présent sur les modèles pour opérateurs (ONT XZ/XC, Archer VR/VX, certains Archer C avec firmware FAI).",
+    "steps": {
+      "cpe": {
+        "title": "Sur la CPE :",
+        "text": "Advanced → System Tools → CWMP Settings (ou TR-069) : CWMP activé ; ACS URL <code>{{url}}</code> ; ACS Username et Password vides pour le premier essai, puis définissez-les ; Periodic Inform activé toutes les 300 secondes ; Connection Request Username et Password avec vos identifiants, utilisés par GenieACS pour contacter la CPE."
+      },
+      "network": {
+        "title": "Réseau :",
+        "text": "la CPE doit joindre ce serveur sur le port 7547/TCP. Les connection requests (actions immédiates de l'ACS vers la CPE) ne fonctionnent que si la CPE est joignable ; derrière un NAT, les modifications s'appliquent au prochain inform périodique."
+      },
+      "templates": {
+        "title": "Modèles :",
+        "text": "installez ci-dessous le provisionnement de base NSM. Au premier contact (BOOTSTRAP) et à chaque inform, la CPE règle l'inform toutes les 5 minutes et envoie firmware, identité et IP WAN/PPPoE."
+      },
+      "verify": {
+        "title": "Vérifiez dans le panneau ACS :",
+        "text": "la CPE apparaît dans Devices avec fabricant, modèle et numéro de série ; les erreurs éventuelles dans Faults."
+      },
+      "nsm": {
+        "title": "Dans NSM :",
+        "text": "créez l'équipement TP-Link avec son MAC ou son numéro de série, ouvrez l'onglet ACS de l'équipement et associez-le à la CPE trouvée dans GenieACS."
+      }
+    },
+    "securityTitle": "Sécurité",
+    "security": {
+      "auth": "Après le premier essai, configurez l'authentification des CPE dans GenieACS : Admin → Config, clé <code>cwmp.auth</code> (par exemple <code>AUTH(\"utilisateur-acs\", \"mot-de-passe-long\")</code>) et les mêmes identifiants sur chaque CPE.",
+      "network": "N'ouvrez le port 7547 que vers les réseaux des clients et, si la CPE le permet, utilisez HTTPS sur l'ACS."
+    },
+    "templatesTitle": "Modèles de provisionnement",
+    "install": "Installer les modèles de base",
+    "templatesHelp": "Dans GenieACS, un modèle est une provision (script qui lit et règle les paramètres) appliquée par un preset (quand : événements et condition sur l'équipement). Le bouton crée ou met à jour ceux de NSM ; vous pouvez les modifier ou en ajouter depuis le panneau ACS.",
+    "installed": "Modèles installés dans GenieACS : {{items}}. Retrouvez-les dans le panneau ACS sous Admin → Provisions et Presets.",
+    "notConnected": "Reliez d'abord GenieACS dans Intégrations → GenieACS (bouton « Utiliser GenieACS intégré »).",
+    "preset": "Preset",
+    "presetText": "condition <code>{{condition}}</code>, événements bootstrap, boot et periodic → provision <code>{{provision}}</code>",
+    "script": "Script de la provision {{name}}"
   }
 }

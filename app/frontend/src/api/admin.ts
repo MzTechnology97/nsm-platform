@@ -424,3 +424,24 @@ export function useBrandingAction<B>(path: string, toBody: (value: B) => BodyIni
     },
   });
 }
+
+export interface AcsAdmin {
+  state: "unconfigured" | "active" | "disabled";
+  base_url: string | null;
+  internal_available: boolean;
+  panel_url: string;
+  acs_url: string;
+  base_provision: string;
+  provision_script: string;
+  presets: { name: string; precondition: string }[];
+}
+
+export const useAcsAdmin = () => useQuery({ queryKey: ["admin-acs"], queryFn: () => api<AcsAdmin>("/api/ui/v1/admin/acs") });
+
+export function useAcsTemplates() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<{ installed: string[] }>("/api/ui/v1/admin/acs/templates", { method: "POST" }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["admin-acs"] }),
+  });
+}
