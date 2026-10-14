@@ -154,77 +154,88 @@ async def queue_mikrotik_backup(request: Request, device_id: uuid.UUID):
         )
         if not device:
             raise HTTPException(404)
-        if device.vendor != "mikrotik":
-            raise HTTPException(400, "Backup agent disponibile solo per MikroTik in questa fase.")
-        credential = db.scalar(
-            select(DeviceAgentCredential).where(
-                DeviceAgentCredential.device_id == device.id,
-                DeviceAgentCredential.agent_type == "mikrotik_agent",
-                DeviceAgentCredential.is_active.is_(True),
-            )
-        )
-        if not credential:
-            raise HTTPException(409, "Il MikroTik deve completare l'enrollment agent prima del backup.")
-        existing = db.scalar(
-            select(DeviceJob.id).where(
-                DeviceJob.device_id == device.id,
-                DeviceJob.job_type == "backup_mikrotik",
-                DeviceJob.status.in_(["pending", "delivered", "running"]),
-            )
-        )
-        if existing:
+        run = enqueue_mikrotik_backup(db, device, user)
+        if run is None:
             return RedirectResponse(f"/devices/{device.id}?backup=already_pending#backups", status_code=303)
-
-        policy, settings_map = _device_policy(db, device)
-        if not policy:
-            raise HTTPException(409, "Nessuna backup policy effettiva per questo apparato.")
-        policy_settings = settings_map.get(policy.id)
-        formats = backup_formats_for_device(device, _backup_formats(policy_settings))
-        if not formats:
-            raise HTTPException(409, "La policy non abilita alcun formato eseguibile dall'agent di questo MikroTik.")
-
-        run = BackupRun(
-            device_id=device.id,
-            policy_id=policy.id,
-            status="pending",
-            backup_type="mikrotik_multi" if len(formats) > 1 else formats[0],
-        )
-        db.add(run)
-        db.flush()
-        job = DeviceJob(
-            device_id=device.id,
-            job_type="backup_mikrotik",
-            status="pending",
-            payload={
-                "run_id": str(run.id),
-                "formats": formats,
-                "cleanup_router_files": True,
-            },
-        )
-        db.add(job)
-        db.flush()
-        backup_password = secrets.token_urlsafe(24)
-        db.add(
-            MikrotikBackupJobSecret(
-                job_id=job.id,
-                encrypted_backup_password=encrypt_text(backup_password),
-            )
-        )
-        core.add_event(
-            db,
-            "BACKUP_JOB_QUEUED",
-            actor=user,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            details={
-                "job_id": str(job.id),
-                "run_id": str(run.id),
-                "policy_id": str(policy.id),
-                "formats": formats,
-            },
-        )
         db.commit()
     return RedirectResponse(f"/devices/{device_id}?backup=queued#backups", status_code=303)
+
+
+def enqueue_mikrotik_backup(db, device: Device, user) -> BackupRun | None:
+    """Queue an immediate agent backup (caller commits); None when one is already pending.
+
+    Raises HTTPException 400/409 when the device cannot be backed up now.
+    """
+    if device.vendor != "mikrotik":
+        raise HTTPException(400, "Backup agent disponibile solo per MikroTik in questa fase.")
+    credential = db.scalar(
+        select(DeviceAgentCredential).where(
+            DeviceAgentCredential.device_id == device.id,
+            DeviceAgentCredential.agent_type == "mikrotik_agent",
+            DeviceAgentCredential.is_active.is_(True),
+        )
+    )
+    if not credential:
+        raise HTTPException(409, "Il MikroTik deve completare l'enrollment agent prima del backup.")
+    existing = db.scalar(
+        select(DeviceJob.id).where(
+            DeviceJob.device_id == device.id,
+            DeviceJob.job_type == "backup_mikrotik",
+            DeviceJob.status.in_(["pending", "delivered", "running"]),
+        )
+    )
+    if existing:
+        return None
+
+    policy, settings_map = _device_policy(db, device)
+    if not policy:
+        raise HTTPException(409, "Nessuna backup policy effettiva per questo apparato.")
+    policy_settings = settings_map.get(policy.id)
+    formats = backup_formats_for_device(device, _backup_formats(policy_settings))
+    if not formats:
+        raise HTTPException(409, "La policy non abilita alcun formato eseguibile dall'agent di questo MikroTik.")
+
+    run = BackupRun(
+        device_id=device.id,
+        policy_id=policy.id,
+        status="pending",
+        backup_type="mikrotik_multi" if len(formats) > 1 else formats[0],
+    )
+    db.add(run)
+    db.flush()
+    job = DeviceJob(
+        device_id=device.id,
+        job_type="backup_mikrotik",
+        status="pending",
+        payload={
+            "run_id": str(run.id),
+            "formats": formats,
+            "cleanup_router_files": True,
+        },
+    )
+    db.add(job)
+    db.flush()
+    backup_password = secrets.token_urlsafe(24)
+    db.add(
+        MikrotikBackupJobSecret(
+            job_id=job.id,
+            encrypted_backup_password=encrypt_text(backup_password),
+        )
+    )
+    core.add_event(
+        db,
+        "BACKUP_JOB_QUEUED",
+        actor=user,
+        customer_id=device.customer_id,
+        device_id=device.id,
+        details={
+            "job_id": str(job.id),
+            "run_id": str(run.id),
+            "policy_id": str(policy.id),
+            "formats": formats,
+        },
+    )
+    return run
 
 
 @router.post("/api/v1/agents/mikrotik/jobs/{job_id}/backup-config")

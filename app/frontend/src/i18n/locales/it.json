@@ -326,5 +326,97 @@
       "agent_version": "Serve un agent più recente: aggiornalo dalla scheda Agent.",
       "no_target": "Imposta in Amministrazione → Syslog l'indirizzo IPv4 di NSM raggiungibile dagli apparati."
     }
+  },
+  "backups": {
+    "metrics": {
+      "latest": "Ultimo backup riuscito",
+      "policy": "Policy effettiva",
+      "archive": "Archivio",
+      "restore": "Ultimo restore test"
+    },
+    "never": "Mai",
+    "noSuccess": "nessuna esecuzione riuscita",
+    "noPolicy": "Nessuna",
+    "noPolicyHint": "configura una policy da Backup",
+    "files_one": "{{count}} file",
+    "files_other": "{{count}} file",
+    "archiveHint": "{{size}} · {{count}} export leggibili",
+    "restore": {
+      "passed": "Superato",
+      "partial": "Parziale",
+      "failed": "Non superato",
+      "none": "nessun test registrato"
+    },
+    "archive": {
+      "title": "Archivio",
+      "hint": "File di questo apparato raggruppati per esecuzione. Gli export .rsc si aprono e si confrontano; i backup binari si possono solo scaricare.",
+      "empty": "Nessun backup archiviato: usa «Backup adesso» o attendi la pianificazione della policy.",
+      "noMatch": "Nessuna esecuzione corrisponde ai filtri.",
+      "noFiles": "Nessun file archiviato per questa esecuzione."
+    },
+    "links": {
+      "restoreTests": "Restore test",
+      "policies": "Policy di backup"
+    },
+    "filters": {
+      "kind": "Tipo file",
+      "status": "Esito",
+      "reset": "Azzera filtri",
+      "kinds": {
+        "all": "Tutti i file",
+        "binary": "Backup binari (.backup)",
+        "export": "Export testuali (.rsc)"
+      },
+      "statuses": {
+        "all": "Tutti gli esiti",
+        "success": "Riusciti",
+        "failed": "Falliti"
+      }
+    },
+    "status": {
+      "pending": "in coda",
+      "running": "in corso",
+      "success": "riuscito",
+      "failed": "fallito",
+      "partial": "parziale",
+      "cancelled": "annullato",
+      "expired": "scaduto"
+    },
+    "columns": {
+      "file": "File",
+      "size": "Dimensione",
+      "sha": "SHA-256",
+      "restore": "Restore test",
+      "actions": "Azioni"
+    },
+    "actions": {
+      "view": "Apri / Diff",
+      "download": "Scarica",
+      "restore": "Restore test",
+      "delete": "Elimina"
+    },
+    "deleteConfirm": "Eliminare definitivamente {{name}} dall'archivio?",
+    "run": {
+      "now": "Backup adesso",
+      "ready": "Pronto per un backup immediato tramite agent.",
+      "pending": "Backup in coda o in esecuzione",
+      "queued": "Backup accodato: l'agent lo eseguirà al prossimo heartbeat.",
+      "already": "Un backup è già in coda o in esecuzione."
+    },
+    "blocker": {
+      "vendor": "Il backup immediato via agent è disponibile per MikroTik; gli altri apparati seguono la loro integrazione.",
+      "offline": "L'apparato deve essere online per un backup immediato.",
+      "no_agent": "Completa l'enrollment dell'agent prima del backup.",
+      "no_policy": "Nessuna policy di backup effettiva per questo apparato.",
+      "pending": "Un backup è già in coda o in esecuzione."
+    }
+  },
+  "cron": {
+    "undefined": "Non definita",
+    "everyHours_one": "Ogni ora",
+    "everyHours_other": "Ogni {{count}} ore",
+    "daily": "Ogni giorno alle {{time}}",
+    "weekly": "Ogni {{day}} alle {{time}}",
+    "monthly": "Ogni mese, giorno {{day}}, alle {{time}}"
   }
 }

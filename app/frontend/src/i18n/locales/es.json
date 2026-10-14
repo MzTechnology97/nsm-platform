@@ -326,5 +326,97 @@
       "agent_version": "Se necesita un agente más reciente: actualízalo desde la pestaña Agente.",
       "no_target": "Configura en Administración → Syslog la dirección IPv4 de NSM alcanzable por los equipos."
     }
+  },
+  "backups": {
+    "metrics": {
+      "latest": "Última copia correcta",
+      "policy": "Política efectiva",
+      "archive": "Archivo",
+      "restore": "Última prueba de restauración"
+    },
+    "never": "Nunca",
+    "noSuccess": "ninguna ejecución correcta",
+    "noPolicy": "Ninguna",
+    "noPolicyHint": "configura una política en Copias",
+    "files_one": "{{count}} archivo",
+    "files_other": "{{count}} archivos",
+    "archiveHint": "{{size}} · {{count}} exports legibles",
+    "restore": {
+      "passed": "Superada",
+      "partial": "Parcial",
+      "failed": "No superada",
+      "none": "ninguna prueba registrada"
+    },
+    "archive": {
+      "title": "Archivo",
+      "hint": "Archivos de este equipo agrupados por ejecución. Los exports .rsc se abren y comparan en el portal; las copias binarias solo se descargan.",
+      "empty": "Ninguna copia archivada: usa «Copia ahora» o espera la planificación de la política.",
+      "noMatch": "Ninguna ejecución coincide con los filtros.",
+      "noFiles": "Ningún archivo guardado para esta ejecución."
+    },
+    "links": {
+      "restoreTests": "Pruebas de restauración",
+      "policies": "Políticas de copia"
+    },
+    "filters": {
+      "kind": "Tipo de archivo",
+      "status": "Resultado",
+      "reset": "Borrar filtros",
+      "kinds": {
+        "all": "Todos los archivos",
+        "binary": "Copias binarias (.backup)",
+        "export": "Exports de texto (.rsc)"
+      },
+      "statuses": {
+        "all": "Todos los resultados",
+        "success": "Correctas",
+        "failed": "Fallidas"
+      }
+    },
+    "status": {
+      "pending": "en cola",
+      "running": "en curso",
+      "success": "correcta",
+      "failed": "fallida",
+      "partial": "parcial",
+      "cancelled": "cancelada",
+      "expired": "caducada"
+    },
+    "columns": {
+      "file": "Archivo",
+      "size": "Tamaño",
+      "sha": "SHA-256",
+      "restore": "Prueba de restauración",
+      "actions": "Acciones"
+    },
+    "actions": {
+      "view": "Abrir / Diff",
+      "download": "Descargar",
+      "restore": "Prueba de restauración",
+      "delete": "Eliminar"
+    },
+    "deleteConfirm": "¿Eliminar definitivamente {{name}} del archivo?",
+    "run": {
+      "now": "Copia ahora",
+      "ready": "Listo para una copia inmediata mediante el agente.",
+      "pending": "Copia en cola o en curso",
+      "queued": "Copia en cola: el agente la ejecutará en el próximo heartbeat.",
+      "already": "Ya hay una copia en cola o en curso."
+    },
+    "blocker": {
+      "vendor": "La copia inmediata por agente está disponible para MikroTik; los demás equipos siguen su integración.",
+      "offline": "El equipo debe estar en línea para una copia inmediata.",
+      "no_agent": "Completa el enrolamiento del agente antes de la copia.",
+      "no_policy": "Ninguna política de copia efectiva para este equipo.",
+      "pending": "Ya hay una copia en cola o en curso."
+    }
+  },
+  "cron": {
+    "undefined": "No definida",
+    "everyHours_one": "Cada hora",
+    "everyHours_other": "Cada {{count}} horas",
+    "daily": "Todos los días a las {{time}}",
+    "weekly": "Cada {{day}} a las {{time}}",
+    "monthly": "Cada mes, el día {{day}}, a las {{time}}"
   }
 }

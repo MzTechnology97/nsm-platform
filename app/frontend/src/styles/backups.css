@@ -1,0 +1,88 @@
+/* Backup tab: run bar, runs grouped with their files, compact row actions. */
+.ui-backup-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.ui-backup-bar > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ui-backup-bar .ui-alert {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.ui-backup-runs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ui-backup-run {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ui-backup-run > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px 12px;
+  background: var(--surface-soft);
+}
+
+.ui-backup-run > p {
+  margin: 0;
+  padding: 8px 12px;
+}
+
+.ui-backup-error {
+  color: var(--danger);
+}
+
+.ui-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.ui-button-small {
+  min-height: 26px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.ui-button-danger {
+  color: var(--danger);
+}
+
+.ui-align-end {
+  text-align: right !important;
+}
+
+.ui-break {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .ui-backup-run .ui-log-table th:nth-child(3),
+  .ui-backup-run .ui-log-table td:nth-child(3),
+  .ui-backup-run .ui-log-table th:nth-child(4),
+  .ui-backup-run .ui-log-table td:nth-child(4) {
+    display: none;
+  }
+}

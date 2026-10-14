@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.102 — 2026-10-14
+
+New interface (React) — Backup tab, phase 1d
+- **Backup tab in `/app/devices/<id>/backups`**, for every vendor.
+- **Run bar:** backup method of the device and *Back up now*, with the same rules as the classic page (MikroTik, online, agent enrolled, effective policy, nothing already queued). When the button is unavailable, the reason is shown in the user's language. While a backup is queued the page refreshes every 15 seconds.
+- **Summary:** last successful backup, effective policy with its schedule in words (e.g. "every Monday at 02:30"), archive size and readable exports, last restore test.
+- **Archive:** the last 100 runs with their files, filterable by file type and outcome. For each file:
+  - size, SHA-256, restore-test result;
+  - *Open / Diff* for `.rsc` exports, *Download*, *Restore test* (classic pages);
+  - *Delete* with confirmation, for users allowed to configure backups; audited like the classic page.
+- **API.** `GET /api/ui/v1/devices/{id}/backups`, `POST …/backups/run`, `DELETE …/backups/artifacts/{artifact_id}` (CSRF header).
+- The immediate MikroTik backup is now queued by one shared function used by both the classic form and the new interface; behaviour is unchanged.
+
 ## 0.49.101 — 2026-10-14
 
 New interface (React) — Syslog tab, phase 1d

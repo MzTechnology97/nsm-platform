@@ -326,5 +326,97 @@
       "agent_version": "Un agent plus récent est nécessaire : mettez-le à jour depuis l'onglet Agent.",
       "no_target": "Définissez dans Administration → Syslog l'adresse IPv4 de NSM joignable par les équipements."
     }
+  },
+  "backups": {
+    "metrics": {
+      "latest": "Dernière sauvegarde réussie",
+      "policy": "Politique effective",
+      "archive": "Archive",
+      "restore": "Dernier test de restauration"
+    },
+    "never": "Jamais",
+    "noSuccess": "aucune exécution réussie",
+    "noPolicy": "Aucune",
+    "noPolicyHint": "configurez une politique dans Sauvegardes",
+    "files_one": "{{count}} fichier",
+    "files_other": "{{count}} fichiers",
+    "archiveHint": "{{size}} · {{count}} exports lisibles",
+    "restore": {
+      "passed": "Réussi",
+      "partial": "Partiel",
+      "failed": "Échoué",
+      "none": "aucun test enregistré"
+    },
+    "archive": {
+      "title": "Archive",
+      "hint": "Fichiers de cet équipement regroupés par exécution. Les exports .rsc s'ouvrent et se comparent dans le portail ; les sauvegardes binaires se téléchargent uniquement.",
+      "empty": "Aucune sauvegarde archivée : utilisez « Sauvegarder maintenant » ou attendez la planification.",
+      "noMatch": "Aucune exécution ne correspond aux filtres.",
+      "noFiles": "Aucun fichier archivé pour cette exécution."
+    },
+    "links": {
+      "restoreTests": "Tests de restauration",
+      "policies": "Politiques de sauvegarde"
+    },
+    "filters": {
+      "kind": "Type de fichier",
+      "status": "Résultat",
+      "reset": "Effacer les filtres",
+      "kinds": {
+        "all": "Tous les fichiers",
+        "binary": "Sauvegardes binaires (.backup)",
+        "export": "Exports texte (.rsc)"
+      },
+      "statuses": {
+        "all": "Tous les résultats",
+        "success": "Réussies",
+        "failed": "Échouées"
+      }
+    },
+    "status": {
+      "pending": "en file",
+      "running": "en cours",
+      "success": "réussie",
+      "failed": "échouée",
+      "partial": "partielle",
+      "cancelled": "annulée",
+      "expired": "expirée"
+    },
+    "columns": {
+      "file": "Fichier",
+      "size": "Taille",
+      "sha": "SHA-256",
+      "restore": "Test de restauration",
+      "actions": "Actions"
+    },
+    "actions": {
+      "view": "Ouvrir / Diff",
+      "download": "Télécharger",
+      "restore": "Test de restauration",
+      "delete": "Supprimer"
+    },
+    "deleteConfirm": "Supprimer définitivement {{name}} de l'archive ?",
+    "run": {
+      "now": "Sauvegarder maintenant",
+      "ready": "Prêt pour une sauvegarde immédiate via l'agent.",
+      "pending": "Sauvegarde en file ou en cours",
+      "queued": "Sauvegarde en file : l'agent l'exécutera au prochain heartbeat.",
+      "already": "Une sauvegarde est déjà en file ou en cours."
+    },
+    "blocker": {
+      "vendor": "La sauvegarde immédiate par agent est disponible pour MikroTik ; les autres équipements suivent leur intégration.",
+      "offline": "L'équipement doit être en ligne pour une sauvegarde immédiate.",
+      "no_agent": "Terminez l'enrôlement de l'agent avant la sauvegarde.",
+      "no_policy": "Aucune politique de sauvegarde effective pour cet équipement.",
+      "pending": "Une sauvegarde est déjà en file ou en cours."
+    }
+  },
+  "cron": {
+    "undefined": "Non définie",
+    "everyHours_one": "Toutes les heures",
+    "everyHours_other": "Toutes les {{count}} heures",
+    "daily": "Tous les jours à {{time}}",
+    "weekly": "Chaque {{day}} à {{time}}",
+    "monthly": "Chaque mois, le {{day}}, à {{time}}"
   }
 }
