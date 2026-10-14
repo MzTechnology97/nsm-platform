@@ -1346,5 +1346,67 @@
       "config_baseline": "Config",
       "cleartext_services_disabled": "Services"
     }
+  },
+  "actionCenter": {
+    "title": "Action Center",
+    "subtitle_one": "{{count}} active issue in scope.",
+    "subtitle_other": "{{count}} active issues in scope.",
+    "severity": "Severity",
+    "category": "Category",
+    "status": "Status",
+    "all": "All",
+    "allCategories": "All categories",
+    "system": "Platform",
+    "ack": "Take in charge",
+    "incident": "Open incident",
+    "empty": "No issues match these filters.",
+    "allGood": "No open issues: all clear.",
+    "severities": {
+      "critical": "Critical",
+      "high": "High",
+      "warning": "Warning",
+      "medium": "Medium",
+      "low": "Low",
+      "info": "Info"
+    },
+    "statuses": {
+      "active": "Active (open and in charge)",
+      "open": "Open",
+      "acknowledged": "In charge",
+      "resolved": "Resolved"
+    },
+    "columns": {
+      "issue": "Issue",
+      "device": "Device",
+      "category": "Category",
+      "opened": "Opened",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "categories": {
+      "backup": "Backup",
+      "compliance": "Compliance",
+      "connectivity": "Connectivity",
+      "exposure": "Exposure",
+      "latency": "Latency",
+      "lifecycle": "Lifecycle",
+      "monitoring": "Monitoring",
+      "other": "Other",
+      "reachability": "Reachability",
+      "reports": "Reports",
+      "security": "Security",
+      "security_access": "Access",
+      "system": "Platform",
+      "firmware": "Firmware",
+      "agent": "Agent",
+      "integration": "Integrations",
+      "interface_errors": "Interface errors",
+      "configuration": "Configuration"
+    },
+    "state": {
+      "open": "Open",
+      "acknowledged": "In charge",
+      "resolved": "Resolved"
+    }
   }
 }

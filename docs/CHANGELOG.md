@@ -4,6 +4,22 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.118 — 2026-10-14
+
+New interface (React) — Action Center, phase 5a
+- **Action Center in `/app/action-center`**, also reachable from the sidebar of the new interface. Active issues (open and in charge) are listed most severe first, then newest.
+- **Filters:**
+  - severity chips with counts;
+  - category chips, counted within the chosen severity;
+  - status (active, open, in charge, resolved) and customer filters.
+  - Every filter stays in the address.
+- **Rows:** each row shows the device with its manufacturer icon, the customer, the category and when the issue was opened.
+- **Actions:**
+  - *Take in charge* (for users with `issues.ack`) works as the classic button and is audited the same way (`ISSUE_ACKNOWLEDGED`);
+  - *Open incident* leads to the classic incident form for that device.
+- Taking an issue in charge is now a shared function (`acknowledge_issue_record`), used by both interfaces; the classic page behaves as before.
+- **API.** `GET /api/ui/v1/action-center` (`issues.read`), `POST /api/ui/v1/action-center/{id}/ack` (`issues.ack`, CSRF header). Customer scope applies as on the classic page.
+
 ## 0.49.117 — 2026-10-14
 
 New interface (React) — vendor icon on every device
