@@ -24,7 +24,11 @@
   is set;
 - ``GET /api/ui/v1/integrations``: state of every data source, the same as the
   classic hub (``integrations_hub.hub_state`` and the connector summaries);
-  connector settings stay on the classic pages.
+  connector settings stay on the classic pages;
+- ``GET /api/ui/v1/admin/syslog``: receiver state, settings, discarded
+  senders and the host firewall script; ``POST`` save settings, clear a
+  sender, configure every MikroTik (``device_logs`` /
+  ``mikrotik_syslog_config``). Key-only mode stays mandatory.
 """
 from __future__ import annotations
 
@@ -42,14 +46,19 @@ from app import (
     cnmaestro_connector,
     connector_health,
     customer_scope,
+    device_logs,
     genieacs_connector,
     integrations_hub,
     login_security,
+    mikrotik_syslog_config,
     notification_chat,
     notification_delivery,
     report_schedules,
     reports,
     secret_rotation,
+    syslog_firewall,
+    syslog_identity,
+    syslog_receiver,
     system_status,
     two_factor,
     worker_status,
@@ -62,6 +71,7 @@ from app.api_key_scopes import API_SCOPE_INVENTORY_READ, OPTIONAL_READ_SCOPES
 from app.db import SessionLocal
 from app.models import AuditEvent, Customer, Device, User, utcnow
 from app.notification_models import NotificationDelivery, UserNotificationPreference
+from app.syslog_models import DeviceLogEntry, SyslogUnknownSource
 from app.report_models import FREQUENCY_LABELS, GeneratedReport, ReportSchedule
 from app.ui_api import require_csrf, ui_user
 from app.ui_incidents import device_ref
@@ -507,6 +517,57 @@ def integrations(request: Request):
             "zabbix": {"state": _connector_state(zbx["connection"], zbx["connection"].last_test_status if zbx["connection"] else None),
                        "version": zbx["settings"].get("version"), "linked": zbx["linked"], "frontend": zbx["frontend"]},
         }
+
+
+@router.get("/admin/syslog")
+def admin_syslog(request: Request):
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        settings = syslog_receiver.load_settings(db)
+        midnight = utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today = DeviceLogEntry.received_at >= midnight
+        status = syslog_receiver.receiver_status()
+        return jsonable_encoder({
+            "settings": {"public_host": settings.get("public_host") or "", "info_retention_days": settings.get("info_retention_days"),
+                         "allowed_networks": list(settings.get("allowed_networks") or []), "auto_configure": bool(settings.get("auto_configure"))},
+            "host": device_logs.public_host(db, request), "target": mikrotik_syslog_config.target(db, request),
+            "receiver": status, "reject_reasons": list(syslog_identity.REJECT_REASONS),
+            "stored_today": int(db.scalar(select(func.count()).select_from(DeviceLogEntry).where(today)) or 0),
+            "senders_today": int(db.scalar(select(func.count(func.distinct(DeviceLogEntry.device_id))).where(today)) or 0),
+            "unknown_sources": [{"source_ip": u.source_ip, "messages": u.messages, "last_seen": u.last_seen, "sample": u.sample}
+                                for u in db.scalars(select(SyslogUnknownSource).order_by(SyslogUnknownSource.last_seen.desc()).limit(50))],
+            "firewall_script": syslog_firewall.render(settings.get("allowed_networks")),
+        })
+
+
+@router.post("/admin/syslog/settings", dependencies=[Depends(require_csrf)])
+def admin_syslog_settings(request: Request, body: dict = Body(default={})):
+    def save(db, user):
+        try:
+            return {"settings": device_logs.save_syslog_settings(
+                db, user, public_host=_text(body, "public_host"), info_retention_days=body.get("info_retention_days"),
+                allowed_networks=_text(body, "allowed_networks"), auto_configure=body.get("auto_configure") is True)}
+        except device_logs.InvalidNetworks as error:
+            raise HTTPException(422, {"code": "invalid_networks", "message": ", ".join(error.values[:5])}) from None
+
+    return _admin_write(request, save)
+
+
+@router.post("/admin/syslog/unknown/clear", dependencies=[Depends(require_csrf)])
+def admin_syslog_clear(request: Request, body: dict = Body(default={})):
+    return _admin_write(request, lambda db, user: {"cleared": device_logs.clear_unknown_source(db, _text(body, "source_ip"))})
+
+
+@router.post("/admin/syslog/configure-all", dependencies=[Depends(require_csrf)])
+def admin_syslog_configure_all(request: Request):
+    def run(db, user):
+        remote = mikrotik_syslog_config.target(db, request)
+        if not remote:
+            raise HTTPException(422, {"code": "no_target", "message": "Imposta prima l'indirizzo IPv4 di NSM raggiungibile dagli apparati."})
+        queued, skipped = mikrotik_syslog_config.configure_all_devices(db, user, remote)
+        return {"queued": queued, "skipped": skipped, "target": remote}
+
+    return _admin_write(request, run)
 
 
 def install_ui_admin(app) -> None:

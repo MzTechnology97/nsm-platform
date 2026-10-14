@@ -155,3 +155,25 @@
 .ui-integration-card > .ui-row-actions {
   margin-top: auto;
 }
+
+.ui-code-block {
+  margin: var(--space-2) 0;
+  padding: var(--space-3);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ui-admin-stack textarea {
+  min-height: 90px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}

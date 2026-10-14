@@ -295,3 +295,39 @@ export interface IntegrationsHub {
 
 export const useIntegrations = () =>
   useQuery({ queryKey: ["integrations"], queryFn: () => api<IntegrationsHub>("/api/ui/v1/integrations"), staleTime: 30_000 });
+
+export interface SyslogAdmin {
+  settings: { public_host: string; info_retention_days: number; allowed_networks: string[]; auto_configure: boolean };
+  host: string;
+  target: string | null;
+  receiver: {
+    alive: boolean;
+    age_seconds: number;
+    port?: number;
+    received?: number;
+    stored?: number;
+    unknown?: number;
+    dropped?: number;
+    keys?: number;
+    sources?: number;
+    rejected?: Record<string, number>;
+    dedicated_db?: boolean;
+    tls?: boolean;
+  } | null;
+  reject_reasons: string[];
+  stored_today: number;
+  senders_today: number;
+  unknown_sources: { source_ip: string; messages: number; last_seen: string; sample: string | null }[];
+  firewall_script: string;
+}
+
+export const useSyslogAdmin = () =>
+  useQuery({ queryKey: ["admin-syslog"], queryFn: () => api<SyslogAdmin>("/api/ui/v1/admin/syslog"), staleTime: 10_000, refetchInterval: 60_000 });
+
+export function useSyslogAction<B extends object, R = unknown>(path: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: B) => api<R>(`/api/ui/v1/admin/syslog${path}`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["admin-syslog"] }),
+  });
+}

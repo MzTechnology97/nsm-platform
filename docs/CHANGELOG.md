@@ -4,6 +4,28 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.128 — 2026-10-14
+
+New interface (React) — syslog server, phase 6h
+- **Syslog server administration in `/app/admin/syslog`**, in the *Syslog* tab of the new administration area.
+- **Overview:**
+  - receiver state;
+  - lines stored today and from how many devices;
+  - lines received, stored and discarded since the last restart;
+  - recognition keys;
+  - discarded lines by reason;
+  - a warning when no allowed network is configured.
+- **Settings:**
+  - address for the devices, retention of info/notice/debug, allowed networks (one CIDR per line, invalid ones reported), automatic configuration on MikroTik devices with the agent;
+  - key-only mode stays mandatory;
+  - *Configure all MikroTik devices now* queues the configuration and reports how many devices were queued or skipped.
+- **Discarded senders:** count, last line and reason, with *Remove from the list*.
+- **Protection:** dedicated database account, container, TLS, integrity, and the host firewall script built from the allowed networks. The per-vendor instructions remain on the classic page and in each device's Syslog tab.
+- Saving the settings, clearing a sender and configuring every MikroTik are now shared functions (`device_logs.save_syslog_settings`/`clear_unknown_source`, `mikrotik_syslog_config.configure_all_devices`), used by both interfaces; the classic forms behave as before.
+- **API.** All routes need `users.manage`; the `POST` routes also need the CSRF header:
+  - `GET /api/ui/v1/admin/syslog`;
+  - `POST /api/ui/v1/admin/syslog/settings`, `/unknown/clear`, `/configure-all`.
+
 ## 0.49.127 — 2026-10-14
 
 New interface (React) — integrations hub, phase 6g
