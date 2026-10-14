@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.106 — 2026-10-14
+
+New interface (React) — customer page, phase 2b
+- **Customer page in `/app/customers/<id>`**, opened from the customer list and from the device breadcrumb. It has the header (code, sites, devices, notes), buttons shown only when allowed (Incidents, Manage customer, + Device) and the same tabs as the classic page.
+- **Overview:**
+  - six cards: devices online, devices with severe CVEs, firmware to update, open issues, devices protected by backup (with blocked and without-policy counts), devices out of support;
+  - quick links to the device list filtered on the customer (offline, severe CVEs, to update, EOL);
+  - the latest open issues (linked to their device) and recent activity.
+- **Sites:** each site with address and notes, devices with online count and offline devices (both open the filtered device list), and links to graphs and edit. A search box appears when there are more than five sites; devices without a site are counted.
+- The *Devices* tab opens the device list filtered on the customer. Graphs, Backup, Security and Activity still use the classic pages.
+- **API.** `GET /api/ui/v1/customers/{id}` (`customers.read`; customers outside the user's scope are not found).
+
 ## 0.49.105 — 2026-10-14
 
 New interface (React) — customer list, phase 2a

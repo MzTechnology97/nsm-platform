@@ -723,5 +723,83 @@
     "online_other": "{{count}} en línea",
     "backupAlerts_one": "({{count}} copia)",
     "backupAlerts_other": "({{count}} copias)"
+  },
+  "customer": {
+    "notFound": "Cliente no encontrado o no visible con tu perfil.",
+    "devices_one": "{{count}} equipo",
+    "devices_other": "{{count}} equipos",
+    "actions": {
+      "incidents": "Incidentes",
+      "edit": "Gestionar cliente",
+      "addDevice": "+ Equipo"
+    },
+    "tabs": {
+      "label": "Secciones del cliente",
+      "overview": "Resumen",
+      "devices": "Equipos",
+      "sites": "Sedes",
+      "graphs": "Gráficos",
+      "backups": "Copias",
+      "security": "Seguridad",
+      "history": "Actividad"
+    },
+    "metrics": {
+      "devices": "Equipos en línea",
+      "severe": "CVE graves",
+      "updates": "Firmware",
+      "alerts": "Atención",
+      "backup": "Copias protegidas",
+      "lifecycle": "EOL / EOS"
+    },
+    "offline_one": "{{count}} fuera de línea",
+    "offline_other": "{{count}} fuera de línea",
+    "allOnline": "todos en línea",
+    "hints": {
+      "severe": "equipos con CVE high/critical",
+      "updates": "equipos por actualizar",
+      "alerts": "avisos abiertos",
+      "backupGaps": "{{blocked}} bloqueados · {{missing}} sin política",
+      "backupOk": "todos protegidos",
+      "lifecycle": "equipos sin soporte"
+    },
+    "links": {
+      "offline": "Equipos fuera de línea →",
+      "severe": "Con CVE graves →",
+      "updates": "Por actualizar →",
+      "lifecycle": "Sin soporte →"
+    },
+    "issues": {
+      "title": "Requiere atención",
+      "hint": "Los avisos abiertos más recientes del cliente.",
+      "all": "Action Center",
+      "none": "Ningún aviso abierto para este cliente."
+    },
+    "events": {
+      "title": "Actividad reciente",
+      "hint": "Los últimos eventos; el historial completo está en la pestaña Actividad.",
+      "all": "Toda la actividad",
+      "when": "Fecha",
+      "event": "Evento",
+      "source": "Origen",
+      "result": "Resultado",
+      "none": "Ningún evento."
+    },
+    "sites": {
+      "title_one": "{{count}} sede",
+      "title_other": "{{count}} sedes",
+      "hint": "Las sedes pertenecen solo a este cliente.",
+      "add": "+ Sede",
+      "search": "Buscar nombre o dirección",
+      "name": "Sede",
+      "address": "Dirección",
+      "devices": "Equipos",
+      "offline": "Fuera de línea",
+      "graphs": "Gráficos",
+      "edit": "Editar",
+      "empty": "Ninguna sede: las sedes son opcionales, un equipo puede pertenecer directamente al cliente.",
+      "noMatch": "Ninguna sede coincide con la búsqueda.",
+      "unassigned_one": "{{count}} equipo no está asignado a una sede.",
+      "unassigned_other": "{{count}} equipos no están asignados a una sede."
+    }
   }
 }

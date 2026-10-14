@@ -40,7 +40,7 @@ function DeviceShell({ detail }: { detail: Detail }) {
         {device.customer && (
           <>
             <span aria-hidden="true">›</span>
-            <a href={`/customers/${device.customer.id}`}>{device.customer.name}</a>
+            <Link to="/customers/$customerId" params={{ customerId: device.customer.id }}>{device.customer.name}</Link>
           </>
         )}
         {device.site && (

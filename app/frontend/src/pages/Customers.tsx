@@ -105,7 +105,7 @@ function Row({ row }: { row: CustomerRow }) {
   return (
     <tr>
       <td>
-        <a className="ui-customer-name" href={`/customers/${row.id}`}>
+        <Link className="ui-customer-name" to="/customers/$customerId" params={{ customerId: row.id }}>
           <span className="ui-avatar" aria-hidden="true">{row.name.slice(0, 1).toUpperCase()}</span>
           <span>
             <strong>{row.name}</strong>
@@ -114,7 +114,7 @@ function Row({ row }: { row: CustomerRow }) {
               {!row.active && ` · ${t("customers.inactive")}`}
             </small>
           </span>
-        </a>
+        </Link>
       </td>
       <td>
         <Link to="/devices" search={{ customer: row.id }} className="ui-cell-link">

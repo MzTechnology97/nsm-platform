@@ -723,5 +723,83 @@
     "online_other": "{{count}} online",
     "backupAlerts_one": "({{count}} backup)",
     "backupAlerts_other": "({{count}} backup)"
+  },
+  "customer": {
+    "notFound": "Customer not found or not visible with your profile.",
+    "devices_one": "{{count}} device",
+    "devices_other": "{{count}} devices",
+    "actions": {
+      "incidents": "Incidents",
+      "edit": "Manage customer",
+      "addDevice": "+ Device"
+    },
+    "tabs": {
+      "label": "Customer sections",
+      "overview": "Overview",
+      "devices": "Devices",
+      "sites": "Sites",
+      "graphs": "Graphs",
+      "backups": "Backup",
+      "security": "Security",
+      "history": "Activity"
+    },
+    "metrics": {
+      "devices": "Devices online",
+      "severe": "Severe CVEs",
+      "updates": "Firmware",
+      "alerts": "Attention",
+      "backup": "Backups protected",
+      "lifecycle": "EOL / EOS"
+    },
+    "offline_one": "{{count}} offline",
+    "offline_other": "{{count}} offline",
+    "allOnline": "all online",
+    "hints": {
+      "severe": "devices with high/critical CVEs",
+      "updates": "devices to update",
+      "alerts": "open issues",
+      "backupGaps": "{{blocked}} blocked · {{missing}} without policy",
+      "backupOk": "all protected",
+      "lifecycle": "devices out of support"
+    },
+    "links": {
+      "offline": "Offline devices →",
+      "severe": "With severe CVEs →",
+      "updates": "To update →",
+      "lifecycle": "Out of support →"
+    },
+    "issues": {
+      "title": "Needs attention",
+      "hint": "The customer's most recent open issues.",
+      "all": "Action Center",
+      "none": "No open issue for this customer."
+    },
+    "events": {
+      "title": "Recent activity",
+      "hint": "The latest events; the full history is in the Activity tab.",
+      "all": "All activity",
+      "when": "Date",
+      "event": "Event",
+      "source": "Source",
+      "result": "Result",
+      "none": "No event."
+    },
+    "sites": {
+      "title_one": "{{count}} site",
+      "title_other": "{{count}} sites",
+      "hint": "Sites belong only to this customer.",
+      "add": "+ Site",
+      "search": "Search name or address",
+      "name": "Site",
+      "address": "Address",
+      "devices": "Devices",
+      "offline": "Offline",
+      "graphs": "Graphs",
+      "edit": "Edit",
+      "empty": "No site: sites are optional, a device can belong directly to the customer.",
+      "noMatch": "No site matches the search.",
+      "unassigned_one": "{{count}} device is not assigned to a site.",
+      "unassigned_other": "{{count}} devices are not assigned to a site."
+    }
   }
 }

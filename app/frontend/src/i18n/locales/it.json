@@ -723,5 +723,83 @@
     "online_other": "{{count}} online",
     "backupAlerts_one": "({{count}} backup)",
     "backupAlerts_other": "({{count}} backup)"
+  },
+  "customer": {
+    "notFound": "Cliente non trovato o non visibile con il tuo profilo.",
+    "devices_one": "{{count}} apparato",
+    "devices_other": "{{count}} apparati",
+    "actions": {
+      "incidents": "Incidenti",
+      "edit": "Gestisci cliente",
+      "addDevice": "+ Apparato"
+    },
+    "tabs": {
+      "label": "Sezioni cliente",
+      "overview": "Panoramica",
+      "devices": "Apparati",
+      "sites": "Sedi",
+      "graphs": "Grafici",
+      "backups": "Backup",
+      "security": "Sicurezza",
+      "history": "Attività"
+    },
+    "metrics": {
+      "devices": "Apparati online",
+      "severe": "CVE gravi",
+      "updates": "Firmware",
+      "alerts": "Attenzioni",
+      "backup": "Backup protetti",
+      "lifecycle": "EOL / EOS"
+    },
+    "offline_one": "{{count}} offline",
+    "offline_other": "{{count}} offline",
+    "allOnline": "tutti online",
+    "hints": {
+      "severe": "apparati con CVE high/critical",
+      "updates": "apparati da aggiornare",
+      "alerts": "segnalazioni aperte",
+      "backupGaps": "{{blocked}} bloccati · {{missing}} senza policy",
+      "backupOk": "tutti protetti",
+      "lifecycle": "apparati fuori supporto"
+    },
+    "links": {
+      "offline": "Apparati offline →",
+      "severe": "Con CVE gravi →",
+      "updates": "Da aggiornare →",
+      "lifecycle": "Fuori supporto →"
+    },
+    "issues": {
+      "title": "Da attenzionare",
+      "hint": "Le segnalazioni aperte più recenti del cliente.",
+      "all": "Action Center",
+      "none": "Nessuna segnalazione aperta per questo cliente."
+    },
+    "events": {
+      "title": "Ultime attività",
+      "hint": "Gli eventi più recenti; lo storico completo è nella scheda Attività.",
+      "all": "Tutte le attività",
+      "when": "Data",
+      "event": "Evento",
+      "source": "Fonte",
+      "result": "Esito",
+      "none": "Nessun evento."
+    },
+    "sites": {
+      "title_one": "{{count}} sede",
+      "title_other": "{{count}} sedi",
+      "hint": "Le sedi appartengono solo a questo cliente.",
+      "add": "+ Sede",
+      "search": "Cerca nome o indirizzo",
+      "name": "Sede",
+      "address": "Indirizzo",
+      "devices": "Apparati",
+      "offline": "Offline",
+      "graphs": "Grafici",
+      "edit": "Modifica",
+      "empty": "Nessuna sede: le sedi sono facoltative, un apparato può appartenere direttamente al cliente.",
+      "noMatch": "Nessuna sede corrisponde alla ricerca.",
+      "unassigned_one": "{{count}} apparato non è assegnato a una sede.",
+      "unassigned_other": "{{count}} apparati non sono assegnati a una sede."
+    }
   }
 }

@@ -307,3 +307,14 @@
 .ui-cell-link.is-warning strong {
   color: var(--warning);
 }
+
+.ui-quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  font-size: 14px;
+}
+
+.ui-block {
+  display: block;
+}
