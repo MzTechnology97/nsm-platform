@@ -91,5 +91,74 @@
       "unknown": "Inconnu",
       "degraded": "Dégradé"
     }
+  },
+  "device": {
+    "notFound": "Équipement introuvable ou non visible avec vos autorisations.",
+    "breadcrumbs": "Fil d'Ariane",
+    "actions": {
+      "reboot": "Redémarrer",
+      "incident": "Ouvrir un incident",
+      "manage": "Gérer l'équipement"
+    },
+    "metrics": {
+      "status": "État",
+      "firmware": "Firmware",
+      "vulnerabilities": "Vulnérabilités ouvertes",
+      "backup": "Sauvegarde",
+      "ping": "Ping depuis NSM"
+    },
+    "seen": "vu {{when}}",
+    "neverSeen": "jamais vu",
+    "recommended": "recommandé {{version}}",
+    "severe": "{{count}} critiques ou élevées",
+    "lastBackup": "dernière réussie {{when}}",
+    "noBackup": "aucune sauvegarde réussie",
+    "pingOff": "désactivé",
+    "pingDown": "ne répond pas",
+    "pingWaiting": "en attente",
+    "loss": "perte {{value}} %",
+    "agentMissing": "non installé",
+    "identity": {
+      "title": "Identité",
+      "identity": "Identité",
+      "managementIp": "IP de gestion",
+      "lanIp": "IP LAN",
+      "seenFrom": "Vu par NSM",
+      "mac": "MAC",
+      "serial": "Numéro de série",
+      "architecture": "Architecture",
+      "routerboot": "RouterBOOT",
+      "uptime": "Disponibilité",
+      "source": "Source des données",
+      "lifecycle": "Cycle de vie",
+      "agent": "Agent"
+    },
+    "issues": {
+      "title": "Signalements ouverts",
+      "none": "Aucun signalement ouvert pour cet équipement."
+    },
+    "tabs": {
+      "label": "Sections de l'équipement",
+      "overview": "Vue d'ensemble",
+      "monitor": "Supervision",
+      "logs": "Syslog",
+      "exposure": "Exposition",
+      "configuration": "Configuration",
+      "diagnostics": "Diagnostic",
+      "backups": "Sauvegardes",
+      "firmware": "Firmware",
+      "agent": "Agent",
+      "uisp": "UISP",
+      "cnmaestro": "cnMaestro",
+      "acs": "ACS",
+      "compliance": "Conformité",
+      "activity": "Activité"
+    },
+    "firmwareStatus": {
+      "current": "à jour",
+      "update_available": "mise à jour disponible",
+      "security_update": "mise à jour de sécurité",
+      "unknown": ""
+    }
   }
 }

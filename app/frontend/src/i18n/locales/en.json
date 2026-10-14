@@ -91,5 +91,74 @@
       "unknown": "Unknown",
       "degraded": "Degraded"
     }
+  },
+  "device": {
+    "notFound": "Device not found or not visible with your permissions.",
+    "breadcrumbs": "Breadcrumbs",
+    "actions": {
+      "reboot": "Reboot",
+      "incident": "Open incident",
+      "manage": "Manage device"
+    },
+    "metrics": {
+      "status": "Status",
+      "firmware": "Firmware",
+      "vulnerabilities": "Open vulnerabilities",
+      "backup": "Backup",
+      "ping": "Ping from NSM"
+    },
+    "seen": "seen {{when}}",
+    "neverSeen": "never seen",
+    "recommended": "recommended {{version}}",
+    "severe": "{{count}} critical or high",
+    "lastBackup": "last success {{when}}",
+    "noBackup": "no successful backup",
+    "pingOff": "off",
+    "pingDown": "not answering",
+    "pingWaiting": "waiting",
+    "loss": "loss {{value}}%",
+    "agentMissing": "not installed",
+    "identity": {
+      "title": "Identity",
+      "identity": "Identity",
+      "managementIp": "Management IP",
+      "lanIp": "LAN IP",
+      "seenFrom": "Seen by NSM",
+      "mac": "MAC",
+      "serial": "Serial",
+      "architecture": "Architecture",
+      "routerboot": "RouterBOOT",
+      "uptime": "Uptime",
+      "source": "Data source",
+      "lifecycle": "Lifecycle",
+      "agent": "Agent"
+    },
+    "issues": {
+      "title": "Open issues",
+      "none": "No open issue for this device."
+    },
+    "tabs": {
+      "label": "Device sections",
+      "overview": "Overview",
+      "monitor": "Monitor",
+      "logs": "Syslog",
+      "exposure": "Exposure",
+      "configuration": "Configuration",
+      "diagnostics": "Diagnostics",
+      "backups": "Backups",
+      "firmware": "Firmware",
+      "agent": "Agent",
+      "uisp": "UISP",
+      "cnmaestro": "cnMaestro",
+      "acs": "ACS",
+      "compliance": "Compliance",
+      "activity": "Activity"
+    },
+    "firmwareStatus": {
+      "current": "up to date",
+      "update_available": "update available",
+      "security_update": "security update",
+      "unknown": ""
+    }
   }
 }
