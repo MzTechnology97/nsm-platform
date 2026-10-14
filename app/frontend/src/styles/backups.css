@@ -139,3 +139,79 @@
   background: color-mix(in srgb, var(--success) 18%, var(--panel));
   color: var(--success);
 }
+
+/* Diagnostics tab: launch cards and expandable results. */
+.ui-diag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-3);
+}
+
+.ui-diag-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.ui-diag-card h3,
+.ui-diag-card p {
+  margin: 0;
+}
+
+.ui-diag-card input {
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.ui-diag-card .ui-button {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+.ui-diag-toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ui-diag-toggle:disabled {
+  cursor: default;
+}
+
+.ui-diag-toggle[aria-expanded="true"] strong::before {
+  content: "▾ ";
+}
+
+.ui-diag-toggle[aria-expanded="false"]:not(:disabled) strong::before {
+  content: "▸ ";
+}
+
+.ui-grow-end {
+  margin-left: auto;
+}
+
+.ui-diag-result {
+  padding: var(--space-3);
+  overflow-x: auto;
+}
+
+.ui-diag-result .ui-dl {
+  margin-bottom: var(--space-3);
+}

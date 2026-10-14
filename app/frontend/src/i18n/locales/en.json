@@ -585,5 +585,111 @@
         "revoked": "revoked"
       }
     }
+  },
+  "diagnostics": {
+    "title": "Remote diagnostics",
+    "hint": "Predefined read-only operations run by the agent: no shell or arbitrary RouterOS command comes from the cloud.",
+    "offline": "The device is offline: diagnostics start when the agent is online.",
+    "noTraceroute": "Traceroute is not available on RouterOS 6.",
+    "queued": "Queued: the result arrives at the next heartbeat.",
+    "open": "Open",
+    "export": "Export JSON",
+    "fields": {
+      "target": "IP or hostname",
+      "source": "Source IP (optional)",
+      "query": "IPv4 or MAC (e.g. 192.0.2.10)"
+    },
+    "kinds": {
+      "ping": {
+        "title": "Ping",
+        "hint": "Reachability and latency seen from the MikroTik.",
+        "action": "Run ping"
+      },
+      "traceroute": {
+        "title": "Traceroute",
+        "hint": "Path to the destination seen from the device.",
+        "action": "Run traceroute"
+      },
+      "neighbors": {
+        "title": "Neighbors",
+        "hint": "Nearby devices discovered (MNDP/CDP/LLDP).",
+        "action": "Discover"
+      },
+      "dhcp_lookup": {
+        "title": "DHCP lookup",
+        "hint": "Find a lease by IPv4 or MAC.",
+        "action": "Search"
+      },
+      "logs": {
+        "title": "Device log",
+        "hint": "Warnings, errors and critical lines from the RouterOS buffer.",
+        "action": "Collect"
+      },
+      "support_snapshot": {
+        "title": "Support snapshot",
+        "hint": "Resources, IPs, routes, interfaces, PPP, DHCP and log in one collection.",
+        "action": "Collect"
+      }
+    },
+    "recent": {
+      "title": "Recent results",
+      "hint": "The latest 25 diagnostics: open a row for its details.",
+      "empty": "No diagnostic run yet."
+    },
+    "summary": {
+      "running": "running",
+      "failed": "failed",
+      "done": "completed",
+      "noReplies": "no reply recorded",
+      "ping": "{{loss}}% loss",
+      "pingAvg": "{{loss}}% loss · avg {{avg}} ms",
+      "reached_one": "{{count}} hop · destination reached",
+      "reached_other": "{{count}} hops · destination reached",
+      "notReached_one": "{{count}} hop · destination not reached",
+      "notReached_other": "{{count}} hops · destination not reached",
+      "neighbors_one": "{{count}} neighbor",
+      "neighbors_other": "{{count}} neighbors",
+      "leases_one": "{{count}} lease",
+      "leases_other": "{{count}} leases",
+      "noLease": "no lease",
+      "logs_one": "{{count}} event",
+      "logs_other": "{{count}} events",
+      "serious_one": "{{count}} serious",
+      "serious_other": "{{count}} serious"
+    },
+    "ping": {
+      "sent": "Sent",
+      "received": "Received",
+      "loss": "Loss",
+      "rtt": "RTT min / avg / max",
+      "jitter": "Jitter",
+      "host": "Host",
+      "size": "Size",
+      "status": "Outcome"
+    },
+    "trace": {
+      "address": "Address",
+      "loss": "Loss",
+      "last": "Last",
+      "avg": "Average",
+      "best": "Best",
+      "worst": "Worst"
+    },
+    "nb": {
+      "interface": "Interface",
+      "identity": "Identity",
+      "address": "Address",
+      "platform": "Platform",
+      "none": "No neighbor discovered."
+    },
+    "dhcp": {
+      "address": "Address",
+      "host": "Host",
+      "status": "Status",
+      "server": "Server",
+      "expires": "Expires in",
+      "static": "static",
+      "none": "No lease found."
+    }
   }
 }
