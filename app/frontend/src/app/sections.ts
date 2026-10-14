@@ -30,6 +30,6 @@ export const SECTIONS: Section[] = [
   { key: "actionCenter", icon: "action", classic: "/action-center", route: "/action-center", permission: "issues.read", group: "governance" },
   { key: "events", icon: "events", classic: "/audit/events", route: "/events", permission: "audit.read", group: "governance" },
   { key: "reports", icon: "reports", classic: "/audit/reports", route: "/reports", permission: "reports.read", group: "governance" },
-  { key: "integrations", icon: "integrations", classic: "/integrations", group: "admin" },
+  { key: "integrations", icon: "integrations", classic: "/integrations", route: "/integrations", group: "admin" },
   { key: "admin", icon: "admin", classic: "/admin/users", route: "/admin/users", permission: "users.manage", group: "admin" },
 ];

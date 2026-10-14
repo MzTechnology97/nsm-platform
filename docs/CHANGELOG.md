@@ -4,6 +4,22 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.127 — 2026-10-14
+
+New interface (React) — integrations hub, phase 6g
+- **Integrations in `/app/integrations`**, also reachable from the sidebar of the new interface. One card per data source, with the connector's real state, as on the classic hub:
+  - MikroTik agent (registered, without heartbeat);
+  - UISP (linked devices, last sync, consecutive errors);
+  - public API (active keys);
+  - RouterOS catalogue;
+  - NVD advisories (imported, last update);
+  - GenieACS (linked and pending CPEs);
+  - cnMaestro (Cambium devices, linked);
+  - Zabbix (version, devices pushed, link to the Zabbix frontend).
+- **Links.** Administrators get *Configure* or *Manage* on each connector, which opens its configuration on the classic page. The agent fleet, firmware, vulnerability and API key links open the new interface.
+- The hub state is now a shared function (`integrations_hub.hub_state`), used by both interfaces; the classic page behaves as before.
+- **API.** `GET /api/ui/v1/integrations` (any signed-in user, as the classic hub); connector secrets are never returned.
+
 ## 0.49.126 — 2026-10-14
 
 New interface (React) — notifications, phase 6f

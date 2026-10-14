@@ -21,7 +21,10 @@
   delivery health and log; ``POST`` save SMTP, send a test e-mail, configure
   the bot, requeue failed deliveries through ``notification_delivery`` /
   ``notification_chat``. Stored secrets are never returned, only whether one
-  is set.
+  is set;
+- ``GET /api/ui/v1/integrations``: state of every data source, the same as the
+  classic hub (``integrations_hub.hub_state`` and the connector summaries);
+  connector settings stay on the classic pages.
 """
 from __future__ import annotations
 
@@ -36,8 +39,11 @@ from app import (
     api_key_lifecycle,
     api_keys,
     capacity,
+    cnmaestro_connector,
     connector_health,
     customer_scope,
+    genieacs_connector,
+    integrations_hub,
     login_security,
     notification_chat,
     notification_delivery,
@@ -47,6 +53,7 @@ from app import (
     system_status,
     two_factor,
     worker_status,
+    zabbix_connector,
 )
 from app import main as core
 from app.activity_worklists import _audit_query, _uuid
@@ -464,6 +471,42 @@ def admin_notifications_telegram(request: Request, body: dict = Body(default={})
 @router.post("/admin/notifications/retry", dependencies=[Depends(require_csrf)])
 def admin_notifications_retry(request: Request, body: dict = Body(default={})):
     return _admin_write(request, lambda db, user: {"requeued": notification_delivery.requeue_failed(db, user, _text(body, "delivery"))})
+
+
+def _connector_state(row, status: str | None) -> str:
+    """Card state as on the classic hub: unconfigured, disabled, error, active or pending (not verified yet)."""
+    if row is None:
+        return "unconfigured"
+    if not row.is_enabled:
+        return "disabled"
+    return {"failed": "error", "success": "active"}.get(status or "", "pending")
+
+
+@router.get("/integrations")
+def integrations(request: Request):
+    with SessionLocal() as db:
+        user = ui_user(request, db)
+        hub = integrations_hub.hub_state(db)
+        acs, cnm, zbx = genieacs_connector.summary(), cnmaestro_connector.summary(), zabbix_connector.summary()
+        uisp_sync, nvd_sync = hub["uisp_sync"], hub["nvd_sync"]
+        agents_total, agents_stale = hub["agents_total"], hub["agents_stale"]
+        return {
+            "can_admin": core.has_permission(user, "users.manage"),
+            "agent": {"state": "none" if not agents_total else "stale" if agents_stale == agents_total else "partial" if agents_stale else "active",
+                      "total": agents_total, "stale": agents_stale},
+            "uisp": {"state": _connector_state(hub["uisp"], "failed" if uisp_sync.get("last_status") == "failed" else "success"),
+                     "devices": int(hub["uisp_devices"]), "last_success_at": _iso(uisp_sync.get("last_success_at")),
+                     "failures": int(uisp_sync.get("consecutive_failures") or 0)},
+            "api": {"active_keys": int(hub["api_keys_active"])},
+            "nvd": {"state": _connector_state(hub["nvd"], nvd_sync.get("last_status")), "advisories": int(hub["nvd_advisories"]),
+                    "last_success_at": nvd_sync.get("last_success_at")},
+            "genieacs": {"state": _connector_state(acs["connection"], acs["connection"].last_test_status if acs["connection"] else None),
+                         "linked": acs["linked"], "pending": acs["pending"]},
+            "cnmaestro": {"state": _connector_state(cnm["connection"], cnm["connection"].last_test_status if cnm["connection"] else None),
+                          "cambium": cnm["cambium"], "linked": cnm["linked"]},
+            "zabbix": {"state": _connector_state(zbx["connection"], zbx["connection"].last_test_status if zbx["connection"] else None),
+                       "version": zbx["settings"].get("version"), "linked": zbx["linked"], "frontend": zbx["frontend"]},
+        }
 
 
 def install_ui_admin(app) -> None:

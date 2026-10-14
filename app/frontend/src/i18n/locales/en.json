@@ -2055,5 +2055,77 @@
       "reports": "Reports",
       "system": "System errors"
     }
+  },
+  "integrations": {
+    "title": "Integrations",
+    "subtitle": "Data sources NSM uses to observe devices. The state shown is the connector's real state.",
+    "manage": "Manage",
+    "configure": "Configure",
+    "lastSync": "Last synchronisation",
+    "failures": "Consecutive errors",
+    "states": {
+      "unconfigured": "Not configured",
+      "disabled": "Disabled",
+      "error": "Error",
+      "active": "Active",
+      "pending": "To verify"
+    },
+    "agent": {
+      "title": "MikroTik Agent",
+      "help": "Outbound agent installed on RouterOS routers: the router contacts NSM.",
+      "none": "No agents",
+      "stale": "No heartbeat",
+      "partial": "{{active}} of {{total}} active",
+      "active": "Active",
+      "total": "Registered agents",
+      "staleLabel": "No heartbeat for 15 min",
+      "open": "Open agent fleet"
+    },
+    "uisp": {
+      "title": "UISP Network",
+      "help": "Read-only connector for Ubiquiti devices.",
+      "devices": "Linked devices",
+      "setup": "Configure the URL and a read-only token to link Ubiquiti devices by MAC."
+    },
+    "api": {
+      "title": "Public API",
+      "help": "Read-only access for external systems with API keys and scopes: inventory, backups, vulnerabilities and firmware, confined per customer.",
+      "keys_one": "{{count}} active key",
+      "keys_other": "{{count}} active keys",
+      "manage": "Manage API keys"
+    },
+    "routeros": {
+      "title": "RouterOS catalogue",
+      "help": "Latest versions per channel and release notes from upgrade.mikrotik.com; flags security updates even without a check from the router.",
+      "open": "Open catalogue",
+      "firmware": "Firmware worklist"
+    },
+    "nvd": {
+      "title": "NVD advisories",
+      "help": "CVEs from the National Vulnerability Database for RouterOS, matched with the installed versions.",
+      "advisories": "Imported advisories",
+      "updated": "Last update",
+      "vulnerabilities": "Vulnerabilities"
+    },
+    "genieacs": {
+      "title": "TR-069 / ACS (GenieACS)",
+      "help": "CPEs managed through GenieACS (ONTs, home routers), read-only from the NBI.",
+      "linked": "Linked CPEs",
+      "pending": "TR-069 CPEs to link",
+      "limits": "Diagnostics, backups and updates through the ACS are not available yet and are shown as not executable."
+    },
+    "cnmaestro": {
+      "title": "cnMaestro (Cambium)",
+      "help": "Cambium radios (ePMP, PMP 450, cnPilot) read-only from cnMaestro: state, firmware, signal, SNR, throughput and history.",
+      "cambium": "Cambium devices",
+      "linked": "Linked to cnMaestro"
+    },
+    "zabbix": {
+      "title": "Zabbix",
+      "help": "NSM pushes its devices to Zabbix (6.x and 7.x): hosts, groups per customer, templates per vendor, tags and inventory.",
+      "version": "Version",
+      "linked": "Devices pushed",
+      "open": "Open Zabbix"
+    }
   }
 }

@@ -279,3 +279,19 @@ export function useNotificationAction<B extends object, R = unknown>(path: strin
     onSuccess: () => client.invalidateQueries({ queryKey: ["admin-notifications"] }),
   });
 }
+
+type ConnectorState = "unconfigured" | "disabled" | "error" | "active" | "pending";
+
+export interface IntegrationsHub {
+  can_admin: boolean;
+  agent: { state: "none" | "stale" | "partial" | "active"; total: number; stale: number };
+  uisp: { state: ConnectorState; devices: number; last_success_at: string | null; failures: number };
+  api: { active_keys: number };
+  nvd: { state: ConnectorState; advisories: number; last_success_at: string | null };
+  genieacs: { state: ConnectorState; linked: number; pending: number };
+  cnmaestro: { state: ConnectorState; cambium: number; linked: number };
+  zabbix: { state: ConnectorState; version: string | null; linked: number; frontend: string | null };
+}
+
+export const useIntegrations = () =>
+  useQuery({ queryKey: ["integrations"], queryFn: () => api<IntegrationsHub>("/api/ui/v1/integrations"), staleTime: 30_000 });
