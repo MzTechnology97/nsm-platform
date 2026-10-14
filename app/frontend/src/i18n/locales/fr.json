@@ -1580,5 +1580,65 @@
       "actor": "Utilisateur et source",
       "details": "Détails"
     }
+  },
+  "reports": {
+    "title": "Rapports",
+    "subtitle": "Rapports opérationnels en PDF ou CSV, archivés avec leur empreinte SHA-256.",
+    "generate": "Générer un rapport",
+    "generateHint": "Tous les clients ou un seul, sur une période de {{days}} jours au plus qui ne se termine pas dans le futur.",
+    "scope": "Périmètre",
+    "allCustomers": "Tous les clients",
+    "format": "Format",
+    "generateAction": "Générer et archiver",
+    "generating": "Génération en cours…",
+    "generated": "Rapport archivé (SHA-256 {{hash}}…).",
+    "download": "Télécharger",
+    "schedules": "Planifications",
+    "schedulesHint": "Chaque planification génère le rapport de la dernière période close et l'envoie aux destinataires externes indiqués.",
+    "scheduleName": "Nom",
+    "frequency": "Fréquence",
+    "recipients": "Destinataires externes",
+    "recipientsPlaceholder": "adresses e-mail séparées par des virgules",
+    "addSchedule": "Créer la planification",
+    "active": "Active",
+    "suspended": "Suspendue",
+    "suspend": "Suspendre",
+    "resume": "Réactiver",
+    "editRecipients": "Destinataires",
+    "saveRecipients": "Enregistrer les destinataires",
+    "delete": "Supprimer",
+    "confirmDelete": "Supprimer la planification « {{name}} » ? Les rapports déjà archivés restent disponibles.",
+    "recipientCount_one": "{{count}} destinataire externe",
+    "recipientCount_other": "{{count}} destinataires externes",
+    "noRecipients": "aucun destinataire externe",
+    "lastRun": {
+      "never": "Pas encore exécutée.",
+      "success": "Dernière exécution réussie le {{when}}.",
+      "failed": "Dernière exécution échouée le {{when}}."
+    },
+    "frequencies": {
+      "monthly": "Mensuelle",
+      "quarterly": "Trimestrielle",
+      "annual": "Annuelle"
+    },
+    "archive": "Archive",
+    "archiveHint": "Chaque téléchargement revérifie le SHA-256 du contenu archivé.",
+    "empty": "Aucun rapport archivé.",
+    "emptyCanGenerate": "Aucun rapport archivé : utilisez le formulaire ci-dessus pour générer le premier.",
+    "bySchedule": "planification NSM",
+    "scheduled": "planifié",
+    "summary": "{{devices}} équipements · {{firmware}} firmwares à traiter · {{issues}} signalements",
+    "incidentSummary": "{{entries}} événements · {{devices}} équipements",
+    "incidents_one": "{{count}} incident",
+    "incidents_other": "{{count}} incidents",
+    "truncated": "tronqué",
+    "columns": {
+      "generated": "Généré",
+      "scope": "Périmètre",
+      "period": "Période",
+      "file": "Fichier",
+      "summary": "Synthèse",
+      "actions": ""
+    }
   }
 }

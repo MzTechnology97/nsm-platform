@@ -4,6 +4,23 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.122 — 2026-10-14
+
+New interface (React) — reports, phase 6b
+- **Reports in `/app/reports`**, also reachable from the sidebar of the new interface.
+- **Generate:** a PDF or CSV report for all customers or one, over a period of up to 366 days. The checks are the same as on the classic page: the period cannot end in the future and the end cannot precede the start. After generation the page shows the SHA-256 and a download link.
+- **Schedules:**
+  - list with frequency, format, scope, external recipients and the outcome of the last run;
+  - create, suspend or resume, change recipients, delete (with confirmation);
+  - archived reports stay after a schedule is deleted.
+- **Archive:** newest first, with author (or *NSM schedule*), period, format, size, SHA-256 and summary. Downloads use the classic route, which re-verifies the SHA-256.
+- Report generation and schedule actions are now shared functions (`reports.generate_checked`, `report_schedules.create_schedule`/`toggle_schedule`/`set_recipients`/`delete_schedule`), used by both interfaces; the classic forms behave as before.
+- **API.** All `POST` routes need `reports.generate` and the CSRF header:
+  - `GET /api/ui/v1/reports` (`reports.read`);
+  - `POST /api/ui/v1/reports/generate`;
+  - `POST /api/ui/v1/reports/schedules`;
+  - `POST /api/ui/v1/reports/schedules/{id}/toggle`, `/recipients`, `/delete`.
+
 ## 0.49.121 — 2026-10-14
 
 New interface (React) — activity log, phase 6a

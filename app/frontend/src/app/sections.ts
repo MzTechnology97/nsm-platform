@@ -29,7 +29,7 @@ export const SECTIONS: Section[] = [
   { key: "compliance", icon: "compliance", classic: "/compliance", route: "/compliance", permission: "compliance.read", group: "governance" },
   { key: "actionCenter", icon: "action", classic: "/action-center", route: "/action-center", permission: "issues.read", group: "governance" },
   { key: "events", icon: "events", classic: "/audit/events", route: "/events", permission: "audit.read", group: "governance" },
-  { key: "reports", icon: "reports", classic: "/audit/reports", permission: "reports.read", group: "governance" },
+  { key: "reports", icon: "reports", classic: "/audit/reports", route: "/reports", permission: "reports.read", group: "governance" },
   { key: "integrations", icon: "integrations", classic: "/integrations", group: "admin" },
   { key: "admin", icon: "admin", classic: "/admin/users", permission: "users.manage", group: "admin" },
 ];

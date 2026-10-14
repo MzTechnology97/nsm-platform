@@ -1,4 +1,4 @@
-import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type { BrandRef } from "../app/BrandIcon";
 import { api } from "./client";
@@ -53,3 +53,69 @@ export const useAuditEvents = (filters: AuditFilters) =>
     placeholderData: keepPreviousData,
     staleTime: 15_000,
   });
+
+export interface ReportRow {
+  id: string;
+  type: string;
+  title: string;
+  scope_label: string;
+  customer: { id: string; name: string } | null;
+  period_start: string;
+  period_end: string;
+  format: string;
+  size_bytes: number;
+  sha256: string;
+  generated_at: string | null;
+  generated_by: string | null;
+  scheduled: boolean;
+  summary: Record<string, number | boolean | string | null>;
+  download_url: string;
+}
+
+export interface ReportSchedule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  customer: { id: string; name: string } | null;
+  format: string;
+  frequency: string;
+  recipients: string[];
+  last_run_at: string | null;
+  last_status: string | null;
+  last_error: string | null;
+  last_period_end: string | null;
+  last_report_id: string | null;
+  consecutive_failures: number;
+}
+
+export interface ReportPage {
+  total: number;
+  offset: number;
+  limit: number;
+  can_generate: boolean;
+  default_start: string;
+  default_end: string;
+  max_days: number;
+  formats: string[];
+  frequencies: string[];
+  items: ReportRow[];
+  schedules: ReportSchedule[];
+}
+
+export const useReports = () =>
+  useInfiniteQuery({
+    queryKey: ["reports"],
+    queryFn: ({ pageParam }) => api<ReportPage>(`/api/ui/v1/reports${queryString({ offset: pageParam })}`),
+    initialPageParam: 0,
+    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+    staleTime: 15_000,
+  });
+
+/** POST to a reports endpoint, then refresh the archive and schedules. */
+export function useReportAction<B extends object, R = unknown>(path: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: B) => api<R>(`/api/ui/v1/reports/${path}`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["reports"] }),
+  });
+}
