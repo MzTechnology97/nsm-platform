@@ -1542,5 +1542,43 @@
       "invalid_status": "Invalid status.",
       "invalid_resolved_at": "Resolution must be after the start and not in the future."
     }
+  },
+  "auditEvents": {
+    "title": "Activity log",
+    "subtitle_one": "{{count}} recorded event.",
+    "subtitle_other": "{{count}} recorded events.",
+    "export": "Export CSV",
+    "search": "Search events",
+    "searchPlaceholder": "Type, source, outcome or details",
+    "device": "Device",
+    "devicePlaceholder": "Device: name, serial, MAC or IP",
+    "type": "Event type",
+    "allTypes": "All types",
+    "severity": "Severity",
+    "allSeverities": "All severities",
+    "result": "Outcome",
+    "allResults": "All outcomes",
+    "from": "From",
+    "to": "To",
+    "empty": "No events match the filters.",
+    "none": "No events recorded.",
+    "system": "System",
+    "results": {
+      "success": "Succeeded",
+      "failed": "Failed",
+      "failure": "Failed",
+      "denied": "Denied",
+      "error": "Error",
+      "partial": "Partial",
+      "skipped": "Skipped"
+    },
+    "columns": {
+      "when": "When",
+      "event": "Event",
+      "outcome": "Severity and outcome",
+      "subject": "Device or customer",
+      "actor": "User and source",
+      "details": "Details"
+    }
   }
 }

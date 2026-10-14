@@ -466,3 +466,33 @@
   display: grid;
   gap: 4px;
 }
+
+.ui-date-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ui-date-filter input {
+  min-height: 34px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
+.ui-audit-details {
+  max-width: 360px;
+}
+
+.ui-audit-details code {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}

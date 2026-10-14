@@ -1542,5 +1542,43 @@
       "invalid_status": "Estado no válido.",
       "invalid_resolved_at": "La resolución debe ser posterior al inicio y no estar en el futuro."
     }
+  },
+  "auditEvents": {
+    "title": "Registro de actividad",
+    "subtitle_one": "{{count}} evento registrado.",
+    "subtitle_other": "{{count}} eventos registrados.",
+    "export": "Exportar CSV",
+    "search": "Buscar en los eventos",
+    "searchPlaceholder": "Tipo, origen, resultado o detalles",
+    "device": "Equipo",
+    "devicePlaceholder": "Equipo: nombre, número de serie, MAC o IP",
+    "type": "Tipo de evento",
+    "allTypes": "Todos los tipos",
+    "severity": "Gravedad",
+    "allSeverities": "Todas las gravedades",
+    "result": "Resultado",
+    "allResults": "Todos los resultados",
+    "from": "Desde",
+    "to": "Hasta",
+    "empty": "Ningún evento coincide con los filtros.",
+    "none": "Ningún evento registrado.",
+    "system": "Sistema",
+    "results": {
+      "success": "Correcto",
+      "failed": "Fallido",
+      "failure": "Fallido",
+      "denied": "Denegado",
+      "error": "Error",
+      "partial": "Parcial",
+      "skipped": "Omitido"
+    },
+    "columns": {
+      "when": "Cuándo",
+      "event": "Evento",
+      "outcome": "Gravedad y resultado",
+      "subject": "Equipo o cliente",
+      "actor": "Usuario y origen",
+      "details": "Detalles"
+    }
   }
 }

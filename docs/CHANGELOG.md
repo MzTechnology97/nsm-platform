@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.121 — 2026-10-14
+
+New interface (React) — activity log, phase 6a
+- **Activity log in `/app/events`**, also reachable from the sidebar of the new interface. Audit events are listed newest first.
+- **Filters**, the same as the classic page, all kept in the address:
+  - text search, which also looks inside the details;
+  - device: name, serial, MAC or IP;
+  - event type, severity, outcome, customer, from/to date.
+- **Rows:** each row shows the readable event name and its code, severity and outcome, the device with its manufacturer icon (or the customer), the user who acted, the source and the details.
+- *Export CSV* downloads the classic export with the same filters.
+- **API.** `GET /api/ui/v1/audit/events` (`audit.read`), built on the classic query (`activity_worklists._audit_query`). Customer scope applies as on the classic page.
+
 ## 0.49.120 — 2026-10-14
 
 New interface (React) — incident detail, phase 5c
