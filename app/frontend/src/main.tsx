@@ -5,7 +5,7 @@ import { createRoot } from "react-dom/client";
 
 import { ApiError } from "./api/client";
 import { router } from "./app/router";
-import "./i18n";
+import { i18nReady } from "./i18n";
 import "./styles/tokens.css";
 import "./styles/layout.css";
 import "./styles/table.css";
@@ -32,10 +32,13 @@ const theme = (() => {
 })();
 document.documentElement.dataset.theme = theme;
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
-  </StrictMode>,
-);
+// Render once the user's language is loaded (one small chunk), so no untranslated text flashes.
+void i18nReady.finally(() => {
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </StrictMode>,
+  );
+});
