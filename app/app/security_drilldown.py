@@ -42,6 +42,73 @@ def _impact_state_filter(status: str):
     return None
 
 
+def advisory_filters(term: str = "", vendor: str = "", status: str = "open", customer_id=None, device_id=None) -> list:
+    """Search, vendor, impact state, customer and device filters of the advisory list."""
+    filters = []
+    if term:
+        like = f"%{term}%"
+        filters.append(
+            or_(
+                SecurityAdvisory.cve_id.ilike(like),
+                SecurityAdvisory.vendor.ilike(like),
+                SecurityAdvisory.product.ilike(like),
+                SecurityAdvisory.summary.ilike(like),
+            )
+        )
+    if vendor:
+        filters.append(func.lower(SecurityAdvisory.vendor) == vendor.lower())
+    impact_filter = _impact_state_filter(status)
+    if impact_filter is not None:
+        filters.append(impact_filter)
+    if customer_id:
+        filters.append(Device.customer_id == customer_id)
+    if device_id:
+        filters.append(Device.id == device_id)
+    return filters
+
+
+def advisory_severity_counts(db, filters) -> dict:
+    """Advisories per severity within the scope (quick filters), plus "severe" and "all"."""
+    counts = {
+        (level or "unknown").lower(): int(count)
+        for level, count in db.execute(
+            select(func.lower(SecurityAdvisory.severity), func.count(func.distinct(SecurityAdvisory.id)))
+            .outerjoin(DeviceVulnerability, DeviceVulnerability.advisory_id == SecurityAdvisory.id)
+            .outerjoin(Device, Device.id == DeviceVulnerability.device_id)
+            .where(*filters)
+            .group_by(func.lower(SecurityAdvisory.severity))
+        ).all()
+    }
+    counts["severe"] = sum(counts.get(level, 0) for level in SEVERE_LEVELS)
+    counts["all"] = sum(v for k, v in counts.items() if k != "severe")
+    return counts
+
+
+def advisory_rows_query(filters, severity: str = ""):
+    """Advisories with affected devices and customers, grouped per advisory (order applied by the caller)."""
+    filters = list(filters)
+    if severity:
+        if severity.lower() == "severe":
+            filters.append(func.lower(SecurityAdvisory.severity).in_(SEVERE_LEVELS))
+        else:
+            filters.append(func.lower(SecurityAdvisory.severity) == severity.lower())
+    base = (
+        select(
+            SecurityAdvisory,
+            func.count(func.distinct(DeviceVulnerability.device_id)).label("affected_devices"),
+            func.count(func.distinct(Device.customer_id)).label("affected_customers"),
+        )
+        .outerjoin(DeviceVulnerability, DeviceVulnerability.advisory_id == SecurityAdvisory.id)
+        .outerjoin(Device, Device.id == DeviceVulnerability.device_id)
+    )
+    if filters:
+        base = base.where(*filters)
+    return base.group_by(SecurityAdvisory.id)
+
+
+ADVISORY_ORDER = (SecurityAdvisory.cvss.desc().nullslast(), SecurityAdvisory.published_at.desc().nullslast(), SecurityAdvisory.cve_id)
+
+
 def vulnerabilities(
     request: Request,
     q: str = "",
@@ -64,79 +131,19 @@ def vulnerabilities(
         customer_id = _uuid_or_none(customer)
         term = q.strip()
 
-        filters = []
-        if term:
-            like = f"%{term}%"
-            filters.append(
-                or_(
-                    SecurityAdvisory.cve_id.ilike(like),
-                    SecurityAdvisory.vendor.ilike(like),
-                    SecurityAdvisory.product.ilike(like),
-                    SecurityAdvisory.summary.ilike(like),
-                )
-            )
-        if vendor:
-            filters.append(func.lower(SecurityAdvisory.vendor) == vendor.lower())
-        impact_filter = _impact_state_filter(status)
-        if impact_filter is not None:
-            filters.append(impact_filter)
-        if customer_id:
-            filters.append(Device.customer_id == customer_id)
         device_id = _uuid_or_none(device)
         selected_device = db.get(Device, device_id) if device_id else None
-        if selected_device:
-            filters.append(Device.id == selected_device.id)
+        filters = advisory_filters(term, vendor, status, customer_id, selected_device.id if selected_device else None)
+        severity_counts = advisory_severity_counts(db, filters)
 
-        # Per-severity counts within the current scope drive the quick filters.
-        severity_counts = {
-            (level or "unknown").lower(): int(count)
-            for level, count in db.execute(
-                select(
-                    func.lower(SecurityAdvisory.severity),
-                    func.count(func.distinct(SecurityAdvisory.id)),
-                )
-                .outerjoin(DeviceVulnerability, DeviceVulnerability.advisory_id == SecurityAdvisory.id)
-                .outerjoin(Device, Device.id == DeviceVulnerability.device_id)
-                .where(*filters)
-                .group_by(func.lower(SecurityAdvisory.severity))
-            ).all()
-        }
-        severity_counts["severe"] = sum(severity_counts.get(level, 0) for level in SEVERE_LEVELS)
-        severity_counts["all"] = sum(v for k, v in severity_counts.items() if k != "severe")
-
-        if severity:
-            if severity.lower() == "severe":
-                filters.append(func.lower(SecurityAdvisory.severity).in_(SEVERE_LEVELS))
-            else:
-                filters.append(func.lower(SecurityAdvisory.severity) == severity.lower())
-
-        base = (
-            select(
-                SecurityAdvisory,
-                func.count(func.distinct(DeviceVulnerability.device_id)).label("affected_devices"),
-                func.count(func.distinct(Device.customer_id)).label("affected_customers"),
-            )
-            .outerjoin(
-                DeviceVulnerability,
-                DeviceVulnerability.advisory_id == SecurityAdvisory.id,
-            )
-            .outerjoin(Device, Device.id == DeviceVulnerability.device_id)
-        )
-        if filters:
-            base = base.where(*filters)
-        base = base.group_by(SecurityAdvisory.id)
-
+        base = advisory_rows_query(filters, severity)
         count_query = select(func.count()).select_from(base.subquery())
         total = int(db.scalar(count_query) or 0)
         pages = max(1, math.ceil(total / per_page))
         page = min(page, pages)
 
         rows = db.execute(
-            base.order_by(
-                SecurityAdvisory.cvss.desc().nullslast(),
-                SecurityAdvisory.published_at.desc().nullslast(),
-                SecurityAdvisory.cve_id,
-            )
+            base.order_by(*ADVISORY_ORDER)
             .offset((page - 1) * per_page)
             .limit(per_page)
         ).all()

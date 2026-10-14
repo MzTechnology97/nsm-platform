@@ -2,6 +2,7 @@ import { createRootRoute, createRoute, createRouter, lazyRouteComponent } from "
 import { useTranslation } from "react-i18next";
 
 import type { CustomerFilters } from "../api/customers";
+import type { VulnFilters } from "../api/security";
 import type { DeviceFilters } from "../api/devices";
 import { CustomerDetail, CustomerOverview, CustomerSites } from "../pages/CustomerDetail";
 import type { GraphsSearch } from "../pages/CustomerGraphs";
@@ -118,6 +119,36 @@ export function parseFirmwareSearch(search: Record<string, unknown>): FirmwareFi
   return out;
 }
 
+const SEVERITY_VALUES = new Set(["severe", "critical", "high", "medium", "low", "unknown"]);
+const VULN_STATUSES = new Set(["open", "resolved", "all"]);
+
+/** Vulnerability list search: known severity and state, text, customer, vendor, device. */
+export function parseVulnSearch(search: Record<string, unknown>): VulnFilters {
+  const out: VulnFilters = {};
+  if (typeof search.severity === "string" && SEVERITY_VALUES.has(search.severity)) out.severity = search.severity as VulnFilters["severity"];
+  if (typeof search.status === "string" && VULN_STATUSES.has(search.status)) out.status = search.status as VulnFilters["status"];
+  for (const key of ["q", "customer", "vendor", "device"] as const) {
+    const value = search[key];
+    if (typeof value === "string" && value) out[key] = value;
+  }
+  return out;
+}
+
+const vulnerabilitiesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/vulnerabilities",
+  component: lazyRouteComponent(() => import("../pages/Vulnerabilities"), "Vulnerabilities"),
+  validateSearch: parseVulnSearch,
+});
+const vulnerabilityRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/vulnerabilities/$advisoryId",
+  component: lazyRouteComponent(() => import("../pages/Vulnerabilities"), "VulnerabilityDetail"),
+  validateSearch: (search: Record<string, unknown>): Pick<VulnFilters, "customer" | "status"> => {
+    const out = parseVulnSearch(search);
+    return { ...(out.customer ? { customer: out.customer } : {}), ...(out.status ? { status: out.status } : {}) };
+  },
+});
 const firmwareRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/firmware",
@@ -150,6 +181,8 @@ export const routeTree = rootRoute.addChildren([
   agentsRoute,
   backupsRoute,
   firmwareRoute,
+  vulnerabilitiesRoute,
+  vulnerabilityRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

@@ -22,7 +22,7 @@ export const SECTIONS: Section[] = [
   { key: "backups", icon: "backup", classic: "/operations/backups", route: "/backups", permission: "backup.read", group: "operations" },
   { key: "firmware", icon: "firmware", classic: "/operations/firmware", route: "/firmware", permission: "firmware.read", group: "operations" },
   { key: "incidents", icon: "incidents", classic: "/incidents", permission: "incidents.read", group: "operations" },
-  { key: "vulnerabilities", icon: "vulnerabilities", classic: "/security/vulnerabilities", permission: "security.read", group: "security" },
+  { key: "vulnerabilities", icon: "vulnerabilities", classic: "/security/vulnerabilities", route: "/vulnerabilities", permission: "security.read", group: "security" },
   { key: "access", icon: "access", classic: "/security/access", permission: "security.read", group: "security" },
   { key: "exposure", icon: "exposure", classic: "/security/exposure", permission: "security.read", group: "security" },
   { key: "lifecycle", icon: "lifecycle", classic: "/security/lifecycle", permission: "security.read", group: "security" },

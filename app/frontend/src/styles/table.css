@@ -348,3 +348,16 @@
 .ui-page > .ui-metrics {
   margin-bottom: var(--space-4);
 }
+
+.ui-clamp {
+  display: -webkit-box;
+  max-width: 560px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ui-advisory-summary {
+  margin: 0 0 var(--space-3);
+  line-height: 1.5;
+}
