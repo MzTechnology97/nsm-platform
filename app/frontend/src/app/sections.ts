@@ -21,7 +21,7 @@ export const SECTIONS: Section[] = [
   { key: "agents", icon: "agents", classic: "/operations/agents", route: "/agents", permission: "devices.read", group: "operations" },
   { key: "backups", icon: "backup", classic: "/operations/backups", route: "/backups", permission: "backup.read", group: "operations" },
   { key: "firmware", icon: "firmware", classic: "/operations/firmware", route: "/firmware", permission: "firmware.read", group: "operations" },
-  { key: "incidents", icon: "incidents", classic: "/incidents", permission: "incidents.read", group: "operations" },
+  { key: "incidents", icon: "incidents", classic: "/incidents", route: "/incidents", permission: "incidents.read", group: "operations" },
   { key: "vulnerabilities", icon: "vulnerabilities", classic: "/security/vulnerabilities", route: "/vulnerabilities", permission: "security.read", group: "security" },
   { key: "access", icon: "access", classic: "/security/access", route: "/access", permission: "security.read", group: "security" },
   { key: "exposure", icon: "exposure", classic: "/security/exposure", route: "/exposure", permission: "security.read", group: "security" },

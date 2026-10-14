@@ -1408,5 +1408,57 @@
       "acknowledged": "In carico",
       "resolved": "Risolta"
     }
+  },
+  "incidents": {
+    "title": "Incidenti",
+    "subtitle": "Indagini aperte dagli operatori, con la timeline degli eventi registrati da NSM.",
+    "new": "Nuovo incidente",
+    "status": "Stato",
+    "search": "Cerca negli incidenti",
+    "searchPlaceholder": "Titolo o descrizione",
+    "empty": "Nessun incidente con questi filtri.",
+    "noneActive": "Nessun incidente attivo.",
+    "rootCause": "Causa radice",
+    "moreDevices_one": "+{{count}} altro apparato",
+    "moreDevices_other": "+{{count}} altri apparati",
+    "filters": {
+      "active": "Attivi",
+      "open": "Aperti",
+      "investigating": "In analisi",
+      "monitoring": "In monitoraggio",
+      "resolved": "Risolti",
+      "all": "Tutti"
+    },
+    "state": {
+      "open": "Aperto",
+      "investigating": "In analisi",
+      "monitoring": "In monitoraggio",
+      "resolved": "Risolto"
+    },
+    "severities": {
+      "critical": "Critico",
+      "high": "Alto",
+      "medium": "Medio",
+      "low": "Basso"
+    },
+    "columns": {
+      "incident": "Incidente",
+      "customer": "Cliente",
+      "devices": "Apparati",
+      "started": "Inizio",
+      "duration": "Durata",
+      "status": "Stato"
+    },
+    "causes": {
+      "configuration": "Configurazione",
+      "firmware": "Firmware / aggiornamento",
+      "hardware": "Guasto hardware",
+      "power": "Alimentazione",
+      "connectivity": "Connettività / link",
+      "upstream": "Rete a monte / provider",
+      "security": "Sicurezza",
+      "human": "Intervento manuale",
+      "other": "Altro"
+    }
   }
 }

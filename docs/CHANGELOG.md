@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.119 — 2026-10-14
+
+New interface (React) — incident list, phase 5b
+- **Incidents in `/app/incidents`**, also reachable from the sidebar of the new interface. Incidents are listed newest first.
+- **Filters:**
+  - status chips with counts: active (the default), open, investigating, monitoring, resolved, all;
+  - text search on title and description;
+  - customer filter.
+  - Every filter stays in the address.
+- **Rows:** each row shows the severity, the customer, how long the incident lasted (or has lasted so far) and the confirmed root cause. The devices involved appear with their manufacturer icon; the first three are listed and the rest are counted.
+- The incident detail and the *New incident* form still open on the classic pages.
+- The list filters and counts are now shared functions in `incidents` (`list_scope`, `status_counts`, `status_filter`), used by both interfaces; the classic page behaves as before.
+- **API.** `GET /api/ui/v1/incidents` (`incidents.read`). Customer scope applies as on the classic page.
+
 ## 0.49.118 — 2026-10-14
 
 New interface (React) — Action Center, phase 5a

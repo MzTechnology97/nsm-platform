@@ -87,6 +87,31 @@ def _incident_devices(db, incident_id) -> list[Device]:
     )
 
 
+def list_scope(customer_id, term: str) -> list:
+    """Customer and text filters shared by the classic list and the new interface."""
+    scope = []
+    if customer_id:
+        scope.append(Incident.customer_id == customer_id)
+    if term:
+        scope.append(or_(Incident.title.ilike(f"%{term}%"), Incident.summary.ilike(f"%{term}%")))
+    return scope
+
+
+def status_counts(db, scope: list) -> dict:
+    counts = dict(db.execute(select(Incident.status, func.count(Incident.id)).where(*scope).group_by(Incident.status)).all())
+    counts["active"] = sum(counts.get(key, 0) for key in ACTIVE_STATUSES)
+    counts["all"] = sum(value for key, value in counts.items() if key in INCIDENT_STATUSES)
+    return counts
+
+
+def status_filter(status: str) -> list:
+    if status == "active":
+        return [Incident.status.in_(ACTIVE_STATUSES)]
+    if status in INCIDENT_STATUSES:
+        return [Incident.status == status]
+    return []
+
+
 # ------------------------------------------------------------------ list --
 
 @router.get("/incidents", response_class=HTMLResponse, name="incidents")
@@ -96,22 +121,10 @@ def incident_list(request: Request, status: str = "active", customer: str = "", 
         if not user:
             return core.login_redirect()
         customer_id = _uuid(customer)
-        scope = []
-        if customer_id:
-            scope.append(Incident.customer_id == customer_id)
         term = q.strip()
-        if term:
-            scope.append(or_(Incident.title.ilike(f"%{term}%"), Incident.summary.ilike(f"%{term}%")))
-        counts = dict(
-            db.execute(select(Incident.status, func.count(Incident.id)).where(*scope).group_by(Incident.status)).all()
-        )
-        counts["active"] = sum(counts.get(key, 0) for key in ACTIVE_STATUSES)
-        counts["all"] = sum(value for key, value in counts.items() if key in INCIDENT_STATUSES)
-        filters = list(scope)
-        if status == "active":
-            filters.append(Incident.status.in_(ACTIVE_STATUSES))
-        elif status in INCIDENT_STATUSES:
-            filters.append(Incident.status == status)
+        scope = list_scope(customer_id, term)
+        counts = status_counts(db, scope)
+        filters = [*scope, *status_filter(status)]
         total = int(db.scalar(select(func.count(Incident.id)).where(*filters)) or 0)
         pages = max(1, math.ceil(total / PER_PAGE))
         page = min(max(1, page), pages)

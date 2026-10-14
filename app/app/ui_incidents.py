@@ -4,7 +4,9 @@
   first, with category and severity counts, the same filters as the classic
   page (``customer_drilldown.action_center``);
 - ``POST /api/ui/v1/action-center/{issue_id}/ack``: take an issue in charge
-  (``issues.ack``), audited like the classic button.
+  (``issues.ack``), audited like the classic button;
+- ``GET  /api/ui/v1/incidents``: incidents newest first with status counts and
+  the classic filters (``incidents.list_scope``/``status_counts``/``status_filter``).
 """
 from __future__ import annotations
 
@@ -13,13 +15,17 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import case, func, select
 
+from app import incidents as incident_flow
 from app import main as core
 from app.db import SessionLocal
+from app.incident_models import Incident, IncidentDevice, IncidentHypothesis
 from app.models import ActionIssue, Customer, Device
 from app.ui_api import brand_icon, require_csrf, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 ISSUE_PAGE = 100
+INCIDENT_PAGE = 50
+INCIDENT_DEVICES_SHOWN = 3
 OPEN_STATES = ("open", "acknowledged")
 SEVERITY_ORDER = case(
     (ActionIssue.severity == "critical", 1),
@@ -95,6 +101,44 @@ def action_center_ack(request: Request, issue_id: uuid.UUID):
         changed = core.acknowledge_issue_record(db, issue, user)
         db.commit()
         return {"acknowledged": changed, "status": issue.status}
+
+
+@router.get("/incidents")
+def incidents(request: Request, status: str = "active", customer: str = "", q: str = "", offset: int = 0):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "incidents.read")
+        scope = incident_flow.list_scope(_uuid(customer), q.strip()[:200])
+        counts = incident_flow.status_counts(db, scope)
+        filters = [*scope, *incident_flow.status_filter(status)]
+        total = int(db.scalar(select(func.count(Incident.id)).where(*filters)) or 0)
+        offset = max(0, int(offset or 0))
+        rows = db.execute(
+            select(Incident, Customer, IncidentHypothesis)
+            .join(Customer, Customer.id == Incident.customer_id)
+            .outerjoin(IncidentHypothesis, IncidentHypothesis.id == Incident.root_cause_hypothesis_id)
+            .where(*filters).order_by(Incident.started_at.desc(), Incident.id).offset(offset).limit(INCIDENT_PAGE)
+        ).all()
+        linked: dict = {}
+        if rows:
+            for incident_id, device in db.execute(
+                select(IncidentDevice.incident_id, Device).join(Device, Device.id == IncidentDevice.device_id)
+                .where(IncidentDevice.incident_id.in_([incident.id for incident, _, _ in rows]))
+                .order_by(Device.display_name.nullslast(), Device.name)
+            ).all():
+                linked.setdefault(incident_id, []).append(device)
+        return {
+            "total": total, "offset": offset, "limit": INCIDENT_PAGE,
+            "counts": {key: int(counts.get(key, 0)) for key in ("active", *incident_flow.INCIDENT_STATUSES, "all")},
+            "can_write": core.has_permission(user, "incidents.write"),
+            "items": [{
+                "id": str(incident.id), "title": incident.title, "severity": incident.severity, "status": incident.status,
+                "started_at": _iso(incident.started_at), "resolved_at": _iso(incident.resolved_at), "updated_at": _iso(incident.updated_at),
+                "customer": {"id": str(customer_row.id), "name": customer_row.name},
+                "device_count": len(linked.get(incident.id, [])),
+                "devices": [device_ref(device) for device in linked.get(incident.id, [])[:INCIDENT_DEVICES_SHOWN]],
+                "root_cause": {"statement": hypothesis.statement, "category": hypothesis.category} if hypothesis else None,
+            } for incident, customer_row, hypothesis in rows],
+        }
 
 
 def install_ui_incidents(app) -> None:

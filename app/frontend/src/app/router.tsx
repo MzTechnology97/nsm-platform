@@ -2,7 +2,7 @@ import { createRootRoute, createRoute, createRouter, lazyRouteComponent } from "
 import { useTranslation } from "react-i18next";
 
 import type { CustomerFilters } from "../api/customers";
-import { ISSUE_STATUSES, type IssueFilters } from "../api/incidents";
+import { INCIDENT_STATUSES, type IncidentFilters, ISSUE_STATUSES, type IssueFilters } from "../api/incidents";
 import {
   COMPLIANCE_STATUSES,
   type ComplianceFilters,
@@ -179,6 +179,16 @@ const actionCenterRoute = createRoute({
     ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
   }),
 });
+const incidentsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/incidents",
+  component: lazyRouteComponent(() => import("../pages/Incidents"), "Incidents"),
+  validateSearch: (search: Record<string, unknown>): IncidentFilters => ({
+    ...(typeof search.status === "string" && ([...INCIDENT_STATUSES, "all"] as string[]).includes(search.status) ? { status: search.status as IncidentFilters["status"] } : {}),
+    ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
+    ...(typeof search.q === "string" && search.q ? { q: search.q } : {}),
+  }),
+});
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/access",
@@ -250,6 +260,7 @@ export const routeTree = rootRoute.addChildren([
   lifecycleRoute,
   complianceRoute,
   actionCenterRoute,
+  incidentsRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);
