@@ -1791,5 +1791,166 @@
       "security.read": "Vulnérabilités/CVE des équipements en lecture seule.",
       "firmware.read": "État du firmware et version recommandée en lecture seule."
     }
+  },
+  "system": {
+    "subtitle": "État de la plateforme : version, worker, connecteurs, capacité, chiffrement, sauvegardes de la base et tests de restauration.",
+    "unreadable": "illisible",
+    "version": {
+      "title": "Version et base de données",
+      "version": "Version",
+      "revision": "Révision du schéma",
+      "dbSize": "Taille de la base",
+      "disk": "Espace des sauvegardes",
+      "free": "{{size}} libres",
+      "of": "sur {{size}}",
+      "lowDisk": "Moins de 10 % d'espace libre sur le volume des sauvegardes ({{path}}) : vérifiez la rétention ou agrandissez le disque."
+    },
+    "worker": {
+      "title": "Worker",
+      "help": "Le worker exécute la maintenance des sauvegardes, les vérifications et redémarrages firmware, les synchronisations UISP et des avis, les rapports planifiés et la conformité. Chaque tâche est isolée : une erreur n'arrête pas les autres.",
+      "unreadable": "État illisible",
+      "alive": "Actif",
+      "stopped": "Arrêté",
+      "noRedis": "Redis injoignable : impossible de lire le heartbeat et l'état des tâches.",
+      "heartbeat": "Dernier heartbeat",
+      "started": "Démarré",
+      "secondsAgo_one": "il y a {{count}} seconde",
+      "secondsAgo_other": "il y a {{count}} secondes",
+      "down": "Le worker ne répond plus depuis plus de {{seconds}} secondes : sauvegardes planifiées, vérifications et synchronisations sont arrêtées. Vérifiez ./manage.sh logs worker.",
+      "noTasks": "Aucune tâche enregistrée : le worker n'a pas encore démarré avec cette version.",
+      "columns": {
+        "task": "Tâche",
+        "lastOk": "Dernière exécution réussie",
+        "duration": "Durée",
+        "lastError": "Dernière erreur",
+        "failures": "Erreurs consécutives"
+      }
+    },
+    "connectors": {
+      "title": "Connecteurs et sources de données",
+      "help": "État des sources à partir desquelles NSM observe équipements et avis.",
+      "states": {
+        "ok": "OK",
+        "warning": "Attention",
+        "error": "Erreur",
+        "disabled": "Désactivé",
+        "unconfigured": "Non configuré"
+      },
+      "columns": {
+        "source": "Source",
+        "state": "État",
+        "lastOk": "Dernier succès",
+        "detail": "Détail"
+      }
+    },
+    "capacity": {
+      "title": "Capacité et rétention",
+      "help": "Taille de la base et de l'archive des sauvegardes, avec la croissance des 30 derniers jours.",
+      "archive": "Archive des sauvegardes",
+      "files_one": "{{count}} fichier",
+      "files_other": "{{count}} fichiers",
+      "growth": "Croissance sur 30 jours",
+      "left": "Espace estimé",
+      "atRate": "au rythme actuel",
+      "overTenYears": "plus de 10 ans",
+      "days_one": "environ {{count}} jour",
+      "days_other": "environ {{count}} jours",
+      "filling_one": "Au rythme des 30 derniers jours, le volume des sauvegardes sera plein dans environ {{count}} jour : réduisez la rétention ou agrandissez le disque.",
+      "filling_other": "Au rythme des 30 derniers jours, le volume des sauvegardes sera plein dans environ {{count}} jours : réduisez la rétention ou agrandissez le disque.",
+      "noTables": "Tailles des tables indisponibles.",
+      "columns": {
+        "table": "Table",
+        "size": "Taille",
+        "rows": "Lignes (estimation)",
+        "data": "Données",
+        "rule": "Rétention"
+      }
+    },
+    "retention": {
+      "mikrotik_telemetry": {
+        "data": "Télémétrie MikroTik (CPU, RAM, trafic)",
+        "rule_one": "{{count}} jour, nettoyage horaire",
+        "rule_other": "{{count}} jours, nettoyage horaire"
+      },
+      "uisp_metrics": {
+        "data": "Métriques UISP",
+        "rule_one": "{{count}} jour, nettoyage horaire",
+        "rule_other": "{{count}} jours, nettoyage horaire"
+      },
+      "notifications": {
+        "data": "Notifications externes envoyées",
+        "rule_one": "{{count}} jour (les échecs restent jusqu'à leur remise en file)",
+        "rule_other": "{{count}} jours (les échecs restent jusqu'à leur remise en file)"
+      },
+      "login_failures": {
+        "data": "Tentatives de connexion échouées",
+        "rule_one": "{{count}} jour (les événements d'audit restent)",
+        "rule_other": "{{count}} jours (les événements d'audit restent)"
+      },
+      "backup_files": {
+        "data": "Fichiers de sauvegarde des équipements",
+        "rule_one": "selon la politique de sauvegarde (quotidiennes, hebdomadaires, mensuelles)",
+        "rule_other": "selon la politique de sauvegarde (quotidiennes, hebdomadaires, mensuelles)"
+      },
+      "evidence": {
+        "data": "Audit, tâches, instantanés, incidents, rapports générés",
+        "rule_one": "conservés sans expiration (preuves)",
+        "rule_other": "conservés sans expiration (preuves)"
+      }
+    },
+    "secrets": {
+      "title": "Chiffrement des secrets",
+      "help": "Les identifiants des connecteurs et les mots de passe des sauvegardes binaires MikroTik sont chiffrés avec ENCRYPTION_MASTER_KEY. Sans cette clé, les fichiers .backup ne peuvent pas être ouverts : gardez-en une copie hors de l'hôte.",
+      "unreadableBadge": "Secrets illisibles",
+      "rotateBadge": "Rotation à terminer",
+      "currentBadge": "Clé actuelle",
+      "columns": {
+        "secrets": "Secrets",
+        "current": "Clé actuelle",
+        "previous": "Clé précédente",
+        "unreadable": "Illisibles"
+      },
+      "labels": {
+        "connector_integrations_secret_encrypted": "Identifiants des connecteurs (UISP, NVD, GenieACS)",
+        "mikrotik_backup_job_secrets_encrypted_backup_password": "Mots de passe des sauvegardes binaires MikroTik",
+        "users_totp_secret_encrypted": "Clés de vérification en deux étapes",
+        "user_notification_preferences_secret_encrypted": "Webhooks Slack des utilisateurs"
+      },
+      "previous_one": "{{count}} secret utilise encore une clé précédente : exécutez ./manage.sh rotate-secrets, puis supprimez ENCRYPTION_PREVIOUS_KEYS.",
+      "previous_other": "{{count}} secrets utilisent encore une clé précédente : exécutez ./manage.sh rotate-secrets, puis supprimez ENCRYPTION_PREVIOUS_KEYS.",
+      "removePrevious_one": "Tous les secrets utilisent la clé actuelle : ENCRYPTION_PREVIOUS_KEYS ({{count}} clé) peut être supprimée. Conservez les clés précédentes avec les dumps créés avant la rotation.",
+      "removePrevious_other": "Tous les secrets utilisent la clé actuelle : ENCRYPTION_PREVIOUS_KEYS ({{count}} clés) peut être supprimée. Conservez les clés précédentes avec les dumps créés avant la rotation.",
+      "unreadable_one": "{{count}} secret n'est lisible avec aucune clé configurée : ENCRYPTION_MASTER_KEY a probablement été changée sans indiquer la précédente dans ENCRYPTION_PREVIOUS_KEYS.",
+      "unreadable_other": "{{count}} secrets ne sont lisibles avec aucune clé configurée : ENCRYPTION_MASTER_KEY a probablement été changée sans indiquer la précédente dans ENCRYPTION_PREVIOUS_KEYS."
+    },
+    "dumps": {
+      "title": "Sauvegardes de la base de la plateforme",
+      "help": "Dumps créés avec ./manage.sh backup-db dans {{folder}}. Planifiez-le au moins tous les {{days}} jours et copiez les dumps hors de l'hôte.",
+      "stale": "À exécuter",
+      "recent": "Récent",
+      "latest": "Dernier dump",
+      "size": "Taille",
+      "count": "Dumps présents",
+      "total": "{{size}} au total",
+      "none": "Aucun dump de la base trouvé. Sans dump, impossible de restaurer clients, équipements, historique et configurations."
+    },
+    "drills": {
+      "title": "Tests de restauration",
+      "help": "./manage.sh restore-drill restaure le dernier dump dans une base temporaire, en vérifie le contenu puis la supprime : la base en service n'est pas touchée. Faites un test au moins tous les {{days}} jours. Procédure complète : docs/OPERATIONS.md.",
+      "overdue": "Test en retard",
+      "recent": "Test récent",
+      "success": "réussi",
+      "failed": "échoué",
+      "none": "Aucun test de restauration enregistré.",
+      "columns": {
+        "when": "Quand",
+        "result": "Résultat",
+        "file": "Dump",
+        "duration": "Durée",
+        "tables": "Tables",
+        "revision": "Révision",
+        "devices": "Équipements"
+      }
+    }
   }
 }

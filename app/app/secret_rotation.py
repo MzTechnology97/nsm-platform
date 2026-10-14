@@ -33,7 +33,7 @@ def inventory(db) -> dict:
             counts[key_state(value)] += 1
         for state, number in counts.items():
             totals[state] += number
-        rows.append({"label": label, **counts})
+        rows.append({"key": f"{model.__tablename__}.{column}", "label": label, **counts})
     return {"rows": rows, "totals": totals, "previous_keys": len(previous_keys())}
 
 

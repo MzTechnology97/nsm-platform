@@ -43,10 +43,10 @@ def backup_archive(db, free_bytes: int | None, now=None) -> dict:
 def retention() -> list[dict]:
     """Retention actually applied by the code, per data set."""
     return [
-        {"data": "Telemetria MikroTik (CPU, RAM, traffico)", "rule": f"{mikrotik_telemetry.RETENTION_DAYS} giorni, pulizia oraria"},
-        {"data": "Metriche UISP", "rule": f"{uisp_metrics.RETENTION_DAYS} giorni, pulizia oraria"},
-        {"data": "Notifiche esterne inviate", "rule": "180 giorni (quelle fallite restano finché non vengono rimesse in coda)"},
-        {"data": "Tentativi di accesso falliti", "rule": f"{int(login_security.RETENTION.total_seconds() // 86400)} giorno (gli eventi di audit restano)"},
-        {"data": "File di backup degli apparati", "rule": "secondo la backup policy (giornalieri, settimanali, mensili)"},
-        {"data": "Audit, job, snapshot, incidenti, report generati", "rule": "conservati senza scadenza (evidenza)"},
+        {"key": "mikrotik_telemetry", "days": mikrotik_telemetry.RETENTION_DAYS, "data": "Telemetria MikroTik (CPU, RAM, traffico)", "rule": f"{mikrotik_telemetry.RETENTION_DAYS} giorni, pulizia oraria"},
+        {"key": "uisp_metrics", "days": uisp_metrics.RETENTION_DAYS, "data": "Metriche UISP", "rule": f"{uisp_metrics.RETENTION_DAYS} giorni, pulizia oraria"},
+        {"key": "notifications", "days": 180, "data": "Notifiche esterne inviate", "rule": "180 giorni (quelle fallite restano finché non vengono rimesse in coda)"},
+        {"key": "login_failures", "days": int(login_security.RETENTION.total_seconds() // 86400), "data": "Tentativi di accesso falliti", "rule": f"{int(login_security.RETENTION.total_seconds() // 86400)} giorno (gli eventi di audit restano)"},
+        {"key": "backup_files", "days": None, "data": "File di backup degli apparati", "rule": "secondo la backup policy (giornalieri, settimanali, mensili)"},
+        {"key": "evidence", "days": None, "data": "Audit, job, snapshot, incidenti, report generati", "rule": "conservati senza scadenza (evidenza)"},
     ]

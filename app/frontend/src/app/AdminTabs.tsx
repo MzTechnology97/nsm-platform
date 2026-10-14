@@ -11,7 +11,7 @@ const ADMIN_PAGES: { key: string; classic: string; route?: string }[] = [
   { key: "notifications", classic: "/admin/notifications" },
   { key: "syslog", classic: "/admin/syslog" },
   { key: "acs", classic: "/admin/acs" },
-  { key: "system", classic: "/admin/system" },
+  { key: "system", classic: "/admin/system", route: "/admin/system" },
 ];
 
 export function AdminTabs() {

@@ -13,7 +13,10 @@
   functions shared with the classic forms (``users.manage``);
 - ``GET /api/ui/v1/admin/api-keys``: platform API keys with their review
   state; ``POST`` create, rotate, revoke and delete through ``api_keys`` /
-  ``api_key_lifecycle``. A new token is returned once, never stored in clear.
+  ``api_key_lifecycle``. A new token is returned once, never stored in clear;
+- ``GET /api/ui/v1/admin/system``: read-only platform status (version, worker,
+  connectors, capacity, secrets, database dumps, restore drills), the same
+  data as the classic *Sistema* page.
 """
 from __future__ import annotations
 
@@ -21,9 +24,23 @@ import uuid
 from datetime import timedelta
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
 
-from app import api_key_lifecycle, api_keys, customer_scope, login_security, report_schedules, reports, two_factor
+from app import (
+    api_key_lifecycle,
+    api_keys,
+    capacity,
+    connector_health,
+    customer_scope,
+    login_security,
+    report_schedules,
+    reports,
+    secret_rotation,
+    system_status,
+    two_factor,
+    worker_status,
+)
 from app import main as core
 from app.activity_worklists import _audit_query, _uuid
 from app.api_key_models import PlatformApiKey
@@ -346,6 +363,22 @@ def admin_api_key_revoke(request: Request, key_id: uuid.UUID):
 @router.post("/admin/api-keys/{key_id}/delete", dependencies=[Depends(require_csrf)])
 def admin_api_key_delete(request: Request, key_id: uuid.UUID):
     return _key_action(request, key_id, lambda db, user, key: api_keys.delete_key(db, user, key) or {"deleted": True})
+
+
+@router.get("/admin/system")
+def admin_system(request: Request):
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        disk = system_status.storage()
+        return jsonable_encoder({
+            "version": core.APP_VERSION, "database": system_status.database(db), "disk": disk,
+            "worker": worker_status.status(), "stale_seconds": worker_status.HEARTBEAT_STALE_SECONDS,
+            "connectors": connector_health.connectors(db),
+            "tables": capacity.table_sizes(db), "archive": capacity.backup_archive(db, disk["free"] if disk else None),
+            "retention": capacity.retention(), "secrets": secret_rotation.inventory(db),
+            "dumps": system_status.platform_dumps(), "drills": system_status.restore_drills(),
+            "dump_max_days": system_status.DUMP_MAX_AGE.days, "drill_max_days": system_status.DRILL_MAX_AGE.days,
+        })
 
 
 def install_ui_admin(app) -> None:
