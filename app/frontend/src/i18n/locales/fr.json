@@ -691,5 +691,37 @@
       "static": "statique",
       "none": "Aucun bail trouvé."
     }
+  },
+  "customers": {
+    "title": "Clients",
+    "subtitle_one": "{{count}} client",
+    "subtitle_other": "{{count}} clients",
+    "add": "+ Ajouter un client",
+    "filters": "Filtres clients",
+    "search": "Rechercher par nom ou code",
+    "empty": "Aucun client.",
+    "noMatch": "Aucun client ne correspond aux filtres.",
+    "chips": {
+      "all": "Tous",
+      "alerts": "Avec alertes",
+      "offline": "Avec équipements hors ligne",
+      "severe": "Avec CVE graves",
+      "updates": "Firmware à mettre à jour"
+    },
+    "columns": {
+      "name": "Client",
+      "devices": "Équipements",
+      "offline": "Hors ligne",
+      "updates": "À mettre à jour",
+      "severe": "CVE graves",
+      "alerts": "Alertes ouvertes"
+    },
+    "sites_one": "{{count}} site",
+    "sites_other": "{{count}} sites",
+    "inactive": "désactivé",
+    "online_one": "{{count}} en ligne",
+    "online_other": "{{count}} en ligne",
+    "backupAlerts_one": "({{count}} sauvegarde)",
+    "backupAlerts_other": "({{count}} sauvegardes)"
   }
 }

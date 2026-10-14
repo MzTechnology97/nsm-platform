@@ -691,5 +691,37 @@
       "static": "estática",
       "none": "Ninguna concesión encontrada."
     }
+  },
+  "customers": {
+    "title": "Clientes",
+    "subtitle_one": "{{count}} cliente",
+    "subtitle_other": "{{count}} clientes",
+    "add": "+ Añadir cliente",
+    "filters": "Filtros de clientes",
+    "search": "Buscar por nombre o código",
+    "empty": "Ningún cliente.",
+    "noMatch": "Ningún cliente coincide con los filtros.",
+    "chips": {
+      "all": "Todos",
+      "alerts": "Con alertas",
+      "offline": "Con equipos fuera de línea",
+      "severe": "Con CVE graves",
+      "updates": "Firmware por actualizar"
+    },
+    "columns": {
+      "name": "Cliente",
+      "devices": "Equipos",
+      "offline": "Fuera de línea",
+      "updates": "Por actualizar",
+      "severe": "CVE graves",
+      "alerts": "Alertas abiertas"
+    },
+    "sites_one": "{{count}} sede",
+    "sites_other": "{{count}} sedes",
+    "inactive": "desactivado",
+    "online_one": "{{count}} en línea",
+    "online_other": "{{count}} en línea",
+    "backupAlerts_one": "({{count}} copia)",
+    "backupAlerts_other": "({{count}} copias)"
   }
 }
