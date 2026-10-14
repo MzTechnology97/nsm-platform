@@ -215,3 +215,7 @@
 .ui-diag-result .ui-dl {
   margin-bottom: var(--space-3);
 }
+
+.ui-page > .ui-backup-bar {
+  margin-bottom: var(--space-3);
+}

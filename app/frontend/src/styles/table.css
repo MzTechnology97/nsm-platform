@@ -318,3 +318,20 @@
 .ui-block {
   display: block;
 }
+
+.ui-cell-title {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ui-cell-title:hover {
+  text-decoration: underline;
+}
+
+.ui-flags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: 6px;
+}

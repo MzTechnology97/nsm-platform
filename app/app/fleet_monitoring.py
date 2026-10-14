@@ -94,6 +94,64 @@ def _row(device, credential, sample, now):
     }
 
 
+def fleet_rows(db, customer_id=None, vendor: str = "", now=None):
+    """Monitoring rows (device, agent heartbeat, latest telemetry, ICMP, flags) and the state counters."""
+    now = now or utcnow()
+    stmt = select(Device).options(selectinload(Device.customer), selectinload(Device.site))
+    if customer_id:
+        stmt = stmt.where(Device.customer_id == customer_id)
+    if vendor:
+        stmt = stmt.where(Device.vendor == vendor)
+    devices = list(db.scalars(stmt.order_by(Device.name)))
+    device_ids = [device.id for device in devices]
+    credentials = {
+        credential.device_id: credential
+        for credential in db.scalars(
+            select(DeviceAgentCredential).where(
+                DeviceAgentCredential.device_id.in_(device_ids) if device_ids else DeviceAgentCredential.id.is_(None),
+                DeviceAgentCredential.agent_type == "mikrotik_agent",
+                DeviceAgentCredential.is_active.is_(True),
+            )
+        )
+    }
+    samples = _latest_samples(db, device_ids, now - SAMPLE_MAX_AGE)
+    rows = [_row(device, credentials.get(device.id), samples.get(device.id), now) for device in devices]
+
+    counts = {key: sum(1 for row in rows if key in row["flags"]) for key in ("offline", "stale_agent", "high_cpu", "low_memory", "icmp_down", "packet_loss")}
+    counts["icmp_enabled"] = sum(1 for row in rows if row["icmp"]["enabled"])
+    counts["icmp_ready"] = sum(1 for row in rows if not row["icmp"]["enabled"] and row["icmp"]["effective_target"])
+    counts["attention"] = sum(1 for row in rows if row["flags"])
+    counts["online"] = sum(1 for row in rows if row["device"].status == "online")
+    counts["total"] = len(rows)
+    counts["sampled"] = sum(1 for row in rows if row["sampled_at"])
+    return rows, counts
+
+
+def set_icmp_bulk(db, user, customer_id, enable: bool) -> tuple[int, int]:
+    """Switch the ICMP monitor on/off for every device (of one customer); devices without an address are skipped when enabling."""
+    stmt = select(Device)
+    if customer_id:
+        stmt = stmt.where(Device.customer_id == customer_id)
+    changed = skipped = 0
+    for device in db.scalars(stmt):
+        conf = icmp_monitor.settings(device)
+        if enable and not icmp_monitor.target_for(device):
+            skipped += 1
+            continue
+        if bool(conf.get("enabled")) == enable:
+            continue
+        data = dict(device.inventory_data or {})
+        conf["enabled"] = enable
+        if not enable:
+            conf["consecutive_losses"] = 0
+        data[icmp_monitor.SETTINGS_KEY] = conf
+        device.inventory_data = data
+        changed += 1
+    core.add_event(db, "ICMP_MONITOR_BULK", actor=user, source="portal", customer_id=customer_id,
+                   details={"enabled": enable, "changed": changed, "skipped": skipped})
+    return changed, skipped
+
+
 @router.get("/operations/monitoring", response_class=HTMLResponse, name="fleet_monitoring")
 def fleet_monitoring(request: Request, state: str = "attention", customer: str = "", vendor: str = "", page: int = 1):
     with SessionLocal() as db:
@@ -104,38 +162,13 @@ def fleet_monitoring(request: Request, state: str = "attention", customer: str =
             raise HTTPException(403)
         state = state if state in STATES else "attention"
         now = utcnow()
-        stmt = select(Device).options(selectinload(Device.customer), selectinload(Device.site))
         customer_id = None
         if customer:
             try:
                 customer_id = uuid.UUID(customer)
-                stmt = stmt.where(Device.customer_id == customer_id)
             except ValueError:
                 customer_id = None
-        if vendor:
-            stmt = stmt.where(Device.vendor == vendor)
-        devices = list(db.scalars(stmt.order_by(Device.name)))
-        device_ids = [device.id for device in devices]
-        credentials = {
-            credential.device_id: credential
-            for credential in db.scalars(
-                select(DeviceAgentCredential).where(
-                    DeviceAgentCredential.device_id.in_(device_ids) if device_ids else DeviceAgentCredential.id.is_(None),
-                    DeviceAgentCredential.agent_type == "mikrotik_agent",
-                    DeviceAgentCredential.is_active.is_(True),
-                )
-            )
-        }
-        samples = _latest_samples(db, device_ids, now - SAMPLE_MAX_AGE)
-        rows = [_row(device, credentials.get(device.id), samples.get(device.id), now) for device in devices]
-
-        counts = {key: sum(1 for row in rows if key in row["flags"]) for key in ("offline", "stale_agent", "high_cpu", "low_memory", "icmp_down", "packet_loss")}
-        counts["icmp_enabled"] = sum(1 for row in rows if row["icmp"]["enabled"])
-        counts["icmp_ready"] = sum(1 for row in rows if not row["icmp"]["enabled"] and row["icmp"]["effective_target"])
-        counts["attention"] = sum(1 for row in rows if row["flags"])
-        counts["online"] = sum(1 for row in rows if row["device"].status == "online")
-        counts["total"] = len(rows)
-        counts["sampled"] = sum(1 for row in rows if row["sampled_at"])
+        rows, counts = fleet_rows(db, customer_id, vendor, now)
 
         if state == "attention":
             rows = [row for row in rows if row["flags"]]
@@ -177,31 +210,13 @@ async def icmp_bulk(request: Request):
     back = "/operations/monitoring?state=all" + (f"&customer={customer}" if customer else "")
     with SessionLocal() as db:
         user = core.require_permission(request, db, "devices.write")
-        stmt = select(Device)
         customer_id = None
         if customer:
             try:
                 customer_id = uuid.UUID(customer)
             except ValueError:
                 return flash_redirect(request, "/operations/monitoring", "warning", "Cliente non valido.", title="Monitoraggio ICMP")
-            stmt = stmt.where(Device.customer_id == customer_id)
-        changed = skipped = 0
-        for device in db.scalars(stmt):
-            conf = icmp_monitor.settings(device)
-            if enable and not icmp_monitor.target_for(device):
-                skipped += 1
-                continue
-            if bool(conf.get("enabled")) == enable:
-                continue
-            data = dict(device.inventory_data or {})
-            conf["enabled"] = enable
-            if not enable:
-                conf["consecutive_losses"] = 0
-            data[icmp_monitor.SETTINGS_KEY] = conf
-            device.inventory_data = data
-            changed += 1
-        core.add_event(db, "ICMP_MONITOR_BULK", actor=user, source="portal", customer_id=customer_id,
-                       details={"enabled": enable, "changed": changed, "skipped": skipped})
+        changed, skipped = set_icmp_bulk(db, user, customer_id, enable)
         db.commit()
     if enable:
         message = f"Monitoraggio ICMP attivato su {changed} apparati."

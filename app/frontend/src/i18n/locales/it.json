@@ -874,5 +874,60 @@
       "more": "Mostrati i 15 meno disponibili su {{count}}; l'elenco completo è nel report.",
       "none": "Nessun apparato con il ping da NSM attivo: si attiva dalla scheda Monitor dell'apparato o da Monitoring."
     }
+  },
+  "monitoring": {
+    "title": "Monitoring",
+    "subtitle": "{{online}} online su {{total}} apparati · {{sampled}} con telemetria nelle ultime 2 ore",
+    "states": {
+      "label": "Stato",
+      "attention": "Da verificare",
+      "offline": "Offline",
+      "stale_agent": "Agent senza heartbeat",
+      "high_cpu": "CPU ≥ {{value}}%",
+      "low_memory": "Memoria libera < {{value}}%",
+      "icmp_down": "Non risponde al ping",
+      "packet_loss": "Perdita ≥ {{value}}%",
+      "all": "Tutti"
+    },
+    "columns": {
+      "device": "Apparato",
+      "state": "Stato",
+      "agent": "Heartbeat agent",
+      "cpu": "CPU",
+      "memory": "Memoria libera",
+      "uptime": "Uptime",
+      "ping": "Ping da NSM"
+    },
+    "flags": {
+      "stale_agent": "agent fermo",
+      "high_cpu": "CPU alta",
+      "low_memory": "poca memoria",
+      "icmp_down": "non risponde",
+      "packet_loss": "perdita"
+    },
+    "noAgent": "senza agent",
+    "ping": {
+      "down": "non risponde",
+      "off": "non attivo",
+      "noTarget": "senza IP"
+    },
+    "allGood": "Nessun apparato da verificare: tutto in ordine.",
+    "empty": "Nessun apparato in questo stato.",
+    "limited": "Mostrati i primi {{shown}} di {{total}}: restringi con cliente o vendor.",
+    "icmp": {
+      "title": "Ping da NSM",
+      "status": "{{enabled}} apparati monitorati · {{ready}} pronti da attivare",
+      "allFleet": "tutta la flotta",
+      "enable": "Attiva per {{scope}}",
+      "disable": "Disattiva",
+      "confirmOn": "Attivare il ping da NSM per {{scope}}?",
+      "confirmOff": "Disattivare il ping da NSM per {{scope}}?",
+      "enabled_one": "Ping attivato su {{count}} apparato.",
+      "enabled_other": "Ping attivato su {{count}} apparati.",
+      "disabled_one": "Ping disattivato su {{count}} apparato.",
+      "disabled_other": "Ping disattivato su {{count}} apparati.",
+      "skipped_one": "{{count}} senza IP di gestione: indicalo nella pagina dell'apparato.",
+      "skipped_other": "{{count}} senza IP di gestione: indicalo nella pagina dell'apparato."
+    }
   }
 }
