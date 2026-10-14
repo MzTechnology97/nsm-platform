@@ -1,16 +1,95 @@
 {
-  "app": { "name": "NSM", "preview": "Nueva interfaz (vista previa)", "classic": "Interfaz clásica", "loading": "Cargando…", "error": "No se pudieron cargar los datos.", "retry": "Reintentar", "version": "Versión {{version}}" },
-  "nav": {
-    "dashboard": "Panel", "customers": "Clientes", "devices": "Equipos", "monitoring": "Monitorización", "agents": "Agentes", "backups": "Copias de seguridad",
-    "firmware": "Firmware", "incidents": "Incidentes", "vulnerabilities": "Vulnerabilidades", "access": "Accesos", "exposure": "Exposición",
-    "lifecycle": "Ciclo de vida", "compliance": "Cumplimiento", "actionCenter": "Centro de acciones", "events": "Eventos", "reports": "Informes",
-    "integrations": "Integraciones", "admin": "Administración", "collapse": "Contraer menú", "open": "Abrir menú"
+  "app": {
+    "name": "NSM",
+    "preview": "Nueva interfaz (vista previa)",
+    "classic": "Interfaz clásica",
+    "loading": "Cargando…",
+    "error": "No se pudieron cargar los datos.",
+    "retry": "Reintentar",
+    "version": "Versión {{version}}"
   },
-  "user": { "language": "Idioma", "theme": "Tema", "light": "Claro", "dark": "Oscuro", "logout": "Cerrar sesión", "profile": "Perfil" },
+  "nav": {
+    "dashboard": "Panel",
+    "customers": "Clientes",
+    "devices": "Equipos",
+    "monitoring": "Monitorización",
+    "agents": "Agentes",
+    "backups": "Copias de seguridad",
+    "firmware": "Firmware",
+    "incidents": "Incidentes",
+    "vulnerabilities": "Vulnerabilidades",
+    "access": "Accesos",
+    "exposure": "Exposición",
+    "lifecycle": "Ciclo de vida",
+    "compliance": "Cumplimiento",
+    "actionCenter": "Centro de acciones",
+    "events": "Eventos",
+    "reports": "Informes",
+    "integrations": "Integraciones",
+    "admin": "Administración",
+    "collapse": "Contraer menú",
+    "open": "Abrir menú"
+  },
+  "user": {
+    "language": "Idioma",
+    "theme": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "logout": "Cerrar sesión",
+    "profile": "Perfil"
+  },
   "home": {
     "title": "Bienvenido a la nueva interfaz",
     "intro": "Las secciones llegan una a una. Las que aún no se han migrado se abren en la interfaz clásica, con la misma sesión.",
-    "migrated": "Nueva interfaz", "classic": "Interfaz clásica"
+    "migrated": "Nueva interfaz",
+    "classic": "Interfaz clásica"
   },
-  "errors": { "notFound": "Página no encontrada.", "forbidden": "No tienes permiso para esta sección.", "session": "Sesión caducada: vuelve a iniciar sesión." }
+  "errors": {
+    "notFound": "Página no encontrada.",
+    "forbidden": "No tienes permiso para esta sección.",
+    "session": "Sesión caducada: vuelve a iniciar sesión."
+  },
+  "devices": {
+    "title": "Equipos",
+    "subtitle": "{{count}} equipos coinciden con los filtros",
+    "status": "Estado",
+    "search": "Buscar equipos",
+    "searchPlaceholder": "Nombre, identidad, IP, MAC, número de serie, modelo…",
+    "customer": "Cliente",
+    "site": "Sede",
+    "vendor": "Fabricante",
+    "allCustomers": "Todos los clientes",
+    "allSites": "Todas las sedes",
+    "allVendors": "Todos los fabricantes",
+    "reset": "Borrar filtros",
+    "empty": "Ningún equipo coincide con los filtros.",
+    "shown": "{{shown}} de {{total}} equipos",
+    "severeCves": "Vulnerabilidades críticas o altas abiertas",
+    "chips": {
+      "all": "Todos",
+      "online": "En línea",
+      "offline": "Desconectados",
+      "pending": "Por registrar",
+      "firmware_attention": "Firmware por revisar",
+      "severe": "CVE graves",
+      "eol": "Sin soporte"
+    },
+    "columns": {
+      "name": "Equipo",
+      "status": "Estado",
+      "vendor": "Fabricante",
+      "customer": "Cliente / sede",
+      "ip": "IP de gestión",
+      "firmware": "Firmware",
+      "last_seen": "Último contacto"
+    },
+    "statusLabel": {
+      "online": "En línea",
+      "offline": "Desconectado",
+      "pending_enrollment": "Pendiente de registro",
+      "pending_link": "Pendiente de vinculación",
+      "unknown": "Desconocido",
+      "degraded": "Degradado"
+    }
+  }
 }

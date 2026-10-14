@@ -16,7 +16,7 @@ export interface Section {
 export const SECTIONS: Section[] = [
   { key: "dashboard", icon: "dashboard", classic: "/", group: "operations" },
   { key: "customers", icon: "customers", classic: "/customers", permission: "customers.read", group: "operations" },
-  { key: "devices", icon: "devices", classic: "/devices", permission: "devices.read", group: "operations" },
+  { key: "devices", icon: "devices", classic: "/devices", route: "/devices", permission: "devices.read", group: "operations" },
   { key: "monitoring", icon: "monitoring", classic: "/operations/monitoring", permission: "monitoring.read", group: "operations" },
   { key: "agents", icon: "agents", classic: "/operations/agents", permission: "devices.read", group: "operations" },
   { key: "backups", icon: "backup", classic: "/operations/backups", permission: "backup.read", group: "operations" },

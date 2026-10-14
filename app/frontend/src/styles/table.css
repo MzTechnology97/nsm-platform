@@ -1,0 +1,231 @@
+/* Lists: chips, filter bar and virtualized tables. */
+.ui-page-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.ui-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.ui-chip:hover {
+  border-color: var(--border-strong);
+}
+
+.ui-chip.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.ui-chip-warning.is-active {
+  border-color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 12%, var(--panel));
+  color: var(--text);
+}
+
+.ui-chip-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.ui-chip-separator {
+  width: 1px;
+  height: 22px;
+  margin: 0 var(--space-1);
+  background: var(--border);
+}
+
+.ui-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.ui-filter-bar input[type="search"] {
+  flex: 1 1 280px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
+.ui-filter-bar select {
+  flex: 0 1 200px;
+}
+
+.ui-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.ui-device-grid {
+  display: grid;
+  grid-template-columns: minmax(200px, 2.2fr) 120px 110px minmax(160px, 1.6fr) 140px minmax(130px, 1fr) 130px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+}
+
+.ui-table-head {
+  min-height: 40px;
+  background: var(--table-head);
+  border-bottom: 1px solid var(--border);
+}
+
+.ui-th {
+  padding: 10px 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+
+.ui-table-body {
+  height: min(70vh, 900px);
+  min-height: 360px;
+  overflow-y: auto;
+  contain: strict;
+}
+
+.ui-tr {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.ui-tr:hover {
+  background: var(--surface-hover);
+}
+
+.ui-tr > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-td-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ui-td-main small {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+}
+
+.ui-mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.ui-table-foot {
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ui-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.ui-status::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  content: "";
+}
+
+.ui-status-online::before {
+  background: var(--success);
+}
+
+.ui-status-offline::before {
+  background: var(--danger);
+}
+
+.ui-status-pending_enrollment::before,
+.ui-status-pending_link::before {
+  background: var(--warning);
+}
+
+.ui-badge {
+  margin-left: var(--space-2);
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ui-badge-danger {
+  background: color-mix(in srgb, var(--danger) 14%, var(--panel));
+  color: var(--danger);
+}
+
+@media (max-width: 1100px) {
+  .ui-device-grid {
+    grid-template-columns: minmax(180px, 2fr) 110px minmax(150px, 1.5fr) 130px;
+  }
+
+  .ui-device-grid > :nth-child(3),
+  .ui-device-grid > :nth-child(6),
+  .ui-device-grid > :nth-child(7) {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .ui-device-grid {
+    grid-template-columns: 1fr 96px;
+  }
+
+  .ui-device-grid > :nth-child(4),
+  .ui-device-grid > :nth-child(5) {
+    display: none;
+  }
+}
