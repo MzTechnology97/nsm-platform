@@ -874,5 +874,60 @@
       "more": "Se muestran los 15 menos disponibles de {{count}}; la lista completa está en el informe.",
       "none": "Ningún equipo con el ping de NSM activo: actívalo desde la pestaña Monitor del equipo o desde Monitoring."
     }
+  },
+  "monitoring": {
+    "title": "Monitoring",
+    "subtitle": "{{online}} en línea de {{total}} equipos · {{sampled}} con telemetría en las últimas 2 horas",
+    "states": {
+      "label": "Estado",
+      "attention": "Por revisar",
+      "offline": "Fuera de línea",
+      "stale_agent": "Agente sin heartbeat",
+      "high_cpu": "CPU ≥ {{value}}%",
+      "low_memory": "Memoria libre < {{value}}%",
+      "icmp_down": "No responde al ping",
+      "packet_loss": "Pérdida ≥ {{value}}%",
+      "all": "Todos"
+    },
+    "columns": {
+      "device": "Equipo",
+      "state": "Estado",
+      "agent": "Heartbeat del agente",
+      "cpu": "CPU",
+      "memory": "Memoria libre",
+      "uptime": "Uptime",
+      "ping": "Ping desde NSM"
+    },
+    "flags": {
+      "stale_agent": "agente parado",
+      "high_cpu": "CPU alta",
+      "low_memory": "poca memoria",
+      "icmp_down": "no responde",
+      "packet_loss": "pérdida"
+    },
+    "noAgent": "sin agente",
+    "ping": {
+      "down": "no responde",
+      "off": "no activo",
+      "noTarget": "sin IP"
+    },
+    "allGood": "Ningún equipo por revisar: todo en orden.",
+    "empty": "Ningún equipo en este estado.",
+    "limited": "Se muestran los primeros {{shown}} de {{total}}: filtra por cliente o vendor.",
+    "icmp": {
+      "title": "Ping desde NSM",
+      "status": "{{enabled}} equipos monitorizados · {{ready}} listos para activar",
+      "allFleet": "toda la flota",
+      "enable": "Activar para {{scope}}",
+      "disable": "Desactivar",
+      "confirmOn": "¿Activar el ping de NSM para {{scope}}?",
+      "confirmOff": "¿Desactivar el ping de NSM para {{scope}}?",
+      "enabled_one": "Ping activado en {{count}} equipo.",
+      "enabled_other": "Ping activado en {{count}} equipos.",
+      "disabled_one": "Ping desactivado en {{count}} equipo.",
+      "disabled_other": "Ping desactivado en {{count}} equipos.",
+      "skipped_one": "{{count}} sin IP de gestión: indícala en la página del equipo.",
+      "skipped_other": "{{count}} sin IP de gestión: indícala en la página del equipo."
+    }
   }
 }

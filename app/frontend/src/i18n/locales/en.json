@@ -874,5 +874,60 @@
       "more": "Showing the 15 least available of {{count}}; the full list is in the report.",
       "none": "No device with the NSM ping enabled: turn it on from the device Monitor tab or from Monitoring."
     }
+  },
+  "monitoring": {
+    "title": "Monitoring",
+    "subtitle": "{{online}} online of {{total}} devices · {{sampled}} with telemetry in the last 2 hours",
+    "states": {
+      "label": "State",
+      "attention": "Needs attention",
+      "offline": "Offline",
+      "stale_agent": "Agent without heartbeat",
+      "high_cpu": "CPU ≥ {{value}}%",
+      "low_memory": "Free memory < {{value}}%",
+      "icmp_down": "No ping reply",
+      "packet_loss": "Loss ≥ {{value}}%",
+      "all": "All"
+    },
+    "columns": {
+      "device": "Device",
+      "state": "State",
+      "agent": "Agent heartbeat",
+      "cpu": "CPU",
+      "memory": "Free memory",
+      "uptime": "Uptime",
+      "ping": "Ping from NSM"
+    },
+    "flags": {
+      "stale_agent": "agent stalled",
+      "high_cpu": "high CPU",
+      "low_memory": "low memory",
+      "icmp_down": "no reply",
+      "packet_loss": "loss"
+    },
+    "noAgent": "no agent",
+    "ping": {
+      "down": "no reply",
+      "off": "not enabled",
+      "noTarget": "no IP"
+    },
+    "allGood": "No device needs attention: all good.",
+    "empty": "No device in this state.",
+    "limited": "Showing the first {{shown}} of {{total}}: narrow down by customer or vendor.",
+    "icmp": {
+      "title": "Ping from NSM",
+      "status": "{{enabled}} devices monitored · {{ready}} ready to enable",
+      "allFleet": "the whole fleet",
+      "enable": "Enable for {{scope}}",
+      "disable": "Disable",
+      "confirmOn": "Enable the NSM ping for {{scope}}?",
+      "confirmOff": "Disable the NSM ping for {{scope}}?",
+      "enabled_one": "Ping enabled on {{count}} device.",
+      "enabled_other": "Ping enabled on {{count}} devices.",
+      "disabled_one": "Ping disabled on {{count}} device.",
+      "disabled_other": "Ping disabled on {{count}} devices.",
+      "skipped_one": "{{count}} without a management IP: set it on the device page.",
+      "skipped_other": "{{count}} without a management IP: set it on the device page."
+    }
   }
 }

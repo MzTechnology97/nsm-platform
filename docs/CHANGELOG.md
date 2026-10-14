@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.108 — 2026-10-14
+
+New interface (React) — fleet Monitoring, phase 3a
+- **Monitoring in `/app/monitoring`**, also reachable from the sidebar of the new interface. It is the same worklist as the classic page:
+  - devices needing attention by default, the worst first;
+  - chips with counts: offline, agent without heartbeat, CPU ≥ 80%, free memory < 10%, no reply to the NSM ping, packet loss ≥ 20%, all;
+  - filters by customer and vendor, all kept in the address.
+- **Per device:** state and attention badges, agent heartbeat age, CPU and free memory (in red beyond the thresholds), uptime, last NSM ping (RTT and loss, or why it is off). The name opens the device Monitor tab.
+- **NSM ping for the fleet or one customer:** how many devices are monitored and how many could be. Users who may change devices can enable or disable it after a confirmation; devices without a management IP are counted and skipped. The change is audited like the classic button.
+- The worklist rows and the bulk switch are now shared functions in `fleet_monitoring`, used by both interfaces; the classic page behaves as before.
+- **Lighter first load.** The new sections (Monitoring from now on) load only when opened; the initial bundle is about 149 KB compressed.
+- **API.** `GET /api/ui/v1/monitoring`, `POST /api/ui/v1/monitoring/icmp` (CSRF header).
+
 ## 0.49.107 — 2026-10-14
 
 New interface (React) — customer graphs and availability, phase 2c

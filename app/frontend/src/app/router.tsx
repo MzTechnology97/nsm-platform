@@ -6,6 +6,7 @@ import type { DeviceFilters } from "../api/devices";
 import { CustomerDetail, CustomerOverview, CustomerSites } from "../pages/CustomerDetail";
 import type { GraphsSearch } from "../pages/CustomerGraphs";
 import { Customers } from "../pages/Customers";
+import { MONITORING_STATES, type MonitoringFilters } from "../api/operations";
 import { DeviceDetail, DeviceOverview } from "../pages/DeviceDetail";
 import { Devices } from "../pages/Devices";
 import { Home } from "../pages/Home";
@@ -62,6 +63,17 @@ const customerGraphsRoute = createRoute({
   }),
 });
 
+/** Monitoring search: known state, customer and vendor only. */
+export function parseMonitoringSearch(search: Record<string, unknown>): MonitoringFilters {
+  const out: MonitoringFilters = {};
+  if (typeof search.state === "string" && (MONITORING_STATES as readonly string[]).includes(search.state)) out.state = search.state as MonitoringFilters["state"];
+  if (typeof search.customer === "string" && search.customer) out.customer = search.customer;
+  if (typeof search.vendor === "string" && search.vendor) out.vendor = search.vendor;
+  return out;
+}
+
+const monitoringRoute = createRoute({ getParentRoute: () => rootRoute, path: "/monitoring", component: lazyRouteComponent(() => import("../pages/Monitoring"), "Monitoring"), validateSearch: parseMonitoringSearch });
+
 const deviceRoute = createRoute({ getParentRoute: () => rootRoute, path: "/devices/$deviceId", component: DeviceDetail });
 const deviceOverviewRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/", component: DeviceOverview });
 const deviceMonitorRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/monitor", component: lazyRouteComponent(() => import("../pages/DeviceMonitor"), "DeviceMonitor") }); // uPlot only loads with this tab
@@ -81,6 +93,7 @@ export const routeTree = rootRoute.addChildren([
   homeRoute,
   devicesRoute,
   customersRoute,
+  monitoringRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);
