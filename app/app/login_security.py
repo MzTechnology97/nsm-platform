@@ -170,6 +170,13 @@ def revoke_own_sessions(request: Request, csrf: str = Form(...)):
     return RedirectResponse("/profile?status=sessions_revoked", status_code=303)
 
 
+def admin_revoke(db, actor, target, request: Request | None = None) -> None:
+    """Close every session of another user (audited). Caller commits."""
+    revoke_sessions(db, target, request)
+    core.add_event(db, "USER_SESSIONS_REVOKED", actor=actor, details={"user_id": str(target.id), "username": target.username, "scope": "all_sessions"},
+                   source="portal", severity="warning")
+
+
 @router.post("/admin/users/{user_id}/sessions/revoke", name="admin_revoke_user_sessions")
 def admin_revoke_sessions(request: Request, user_id: uuid.UUID, csrf: str = Form(...)):
     validate_csrf(request, csrf)
@@ -178,9 +185,7 @@ def admin_revoke_sessions(request: Request, user_id: uuid.UUID, csrf: str = Form
         target = db.get(User, user_id)
         if not target:
             raise HTTPException(404)
-        revoke_sessions(db, target, request)
-        core.add_event(db, "USER_SESSIONS_REVOKED", actor=actor, details={"user_id": str(target.id), "username": target.username, "scope": "all_sessions"},
-                       source="portal", severity="warning")
+        admin_revoke(db, actor, target, request)
         db.commit()
     return RedirectResponse("/admin/users?status=sessions_revoked", status_code=303)
 

@@ -64,3 +64,25 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.ui-admin-actions {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: end;
+}
+
+.ui-admin-actions select {
+  min-height: 30px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
+@media (max-width: 720px) {
+  .ui-admin-actions {
+    justify-items: start;
+  }
+}

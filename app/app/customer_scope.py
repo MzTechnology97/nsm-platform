@@ -126,6 +126,18 @@ def _wrap(resolver):
     return resolve
 
 
+def set_user_scope(db, actor, target, customer_ids) -> list[str]:
+    """Customers the user may see (unknown ids ignored; none = all), audited. Caller commits."""
+    valid = {str(c.id) for c in db.scalars(select(Customer))}
+    chosen = sorted({str(v) for v in customer_ids if str(v) in valid})
+    before = list(target.customer_scope or [])
+    target.customer_scope = chosen or None
+    core.add_event(db, "USER_CUSTOMER_SCOPE_CHANGED", actor=actor,
+                   details={"target_user_id": str(target.id), "username": target.username, "before": before, "after": chosen,
+                            "effective": target.role != "admin"}, source="portal")
+    return chosen
+
+
 @router.post("/admin/users/{user_id}/scope", name="admin_user_scope")
 async def save_scope(request: Request, user_id: uuid.UUID):
     form = await request.form()
@@ -135,13 +147,7 @@ async def save_scope(request: Request, user_id: uuid.UUID):
         target = db.get(User, user_id)
         if target is None:
             raise HTTPException(404)
-        valid = {str(c.id) for c in db.scalars(select(Customer))}
-        chosen = sorted({str(v) for v in form.getlist("customer_ids") if str(v) in valid})
-        before = list(target.customer_scope or [])
-        target.customer_scope = chosen or None
-        core.add_event(db, "USER_CUSTOMER_SCOPE_CHANGED", actor=actor,
-                       details={"target_user_id": str(target.id), "username": target.username, "before": before, "after": chosen,
-                                "effective": target.role != "admin"}, source="portal")
+        set_user_scope(db, actor, target, form.getlist("customer_ids"))
         db.commit()
     return RedirectResponse("/admin/users?status=scope_saved#users", status_code=303)
 

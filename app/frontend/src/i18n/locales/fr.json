@@ -1640,5 +1640,80 @@
       "summary": "Synthèse",
       "actions": ""
     }
+  },
+  "admin": {
+    "title": "Administration",
+    "subtitle": "Utilisateurs, rôles, intégrations et accès à la plateforme.",
+    "tabs": {
+      "users": "Utilisateurs",
+      "apiKeys": "Clés API",
+      "integrations": "Intégrations",
+      "branding": "Personnalisation",
+      "demo": "Demo Lab",
+      "notifications": "Notifications",
+      "syslog": "Syslog",
+      "acs": "ACS",
+      "system": "Système"
+    }
+  },
+  "adminUsers": {
+    "accounts_one": "{{count}} compte",
+    "accounts_other": "{{count}} comptes",
+    "newUser": "Nouvel utilisateur",
+    "username": "Identifiant",
+    "displayName": "Nom affiché",
+    "email": "E-mail",
+    "role": "Rôle",
+    "password": "Mot de passe temporaire",
+    "create": "Créer l'utilisateur",
+    "created": "Utilisateur créé.",
+    "passwordHint": "Le mot de passe temporaire doit respecter les exigences de la plateforme (au moins 12 caractères).",
+    "active": "Actif",
+    "disabled": "Désactivé",
+    "you": "vous",
+    "never": "jamais",
+    "lastLogin": "Dernière connexion : {{when}}",
+    "twoFactorOn": "vérification en deux étapes active",
+    "twoFactorOff": "vérification en deux étapes inactive",
+    "scopeAdmin": "Voit tous les clients (administrateur)",
+    "scopeAll": "Voit tous les clients",
+    "scopeSome": "Voit seulement : {{names}}",
+    "scopeHelp": "Aucune sélection = tous les clients. L'utilisateur ne voit que les équipements, sites, incidents, rapports et journaux des clients sélectionnés.",
+    "editScope": "Clients visibles",
+    "saveScope": "Enregistrer les clients",
+    "roleOf": "Rôle de {{name}}",
+    "disable": "Désactiver",
+    "enable": "Réactiver",
+    "signOut": "Déconnecter",
+    "confirmSessions": "Fermer toutes les sessions de {{name}} ?",
+    "signedOut": "Sessions fermées : il devra se reconnecter.",
+    "resetTwoFactor": "Réinitialiser la 2FA",
+    "confirmReset": "Réinitialiser la vérification en deux étapes de {{name}} ? Seulement s'il a perdu son appareil.",
+    "twoFactorReset": "Vérification en deux étapes réinitialisée.",
+    "profile": "Mot de passe et thème",
+    "failures": "Connexions échouées (dernières 24 heures)",
+    "failuresHelp": "Après {{pair}} tentatives échouées pour le même utilisateur depuis la même adresse, ou {{ip}} depuis la même adresse, en 15 minutes, les nouvelles tentatives sont refusées jusqu'à la fin de la fenêtre. Le compte n'est pas bloqué.",
+    "noFailures": "Aucune connexion échouée ces dernières 24 heures.",
+    "blocked": "bloqué encore {{minutes}} min",
+    "failureColumns": {
+      "username": "Identifiant essayé",
+      "address": "Adresse",
+      "attempts": "Tentatives",
+      "last": "Dernière",
+      "state": "État"
+    },
+    "rolesTitle": "Rôles",
+    "roles": {
+      "admin": "Administrateur",
+      "technician": "Technicien",
+      "operator": "Opérateur",
+      "auditor": "Auditeur"
+    },
+    "roleHelp": {
+      "admin": "Accès complet : utilisateurs, politiques, intégrations et paramètres.",
+      "technician": "Équipements, sauvegardes, firmware, remédiation et opérations techniques.",
+      "operator": "Consultation, prise en charge et tâches opérationnelles prédéfinies.",
+      "auditor": "Lecture seule de l'inventaire, de l'historique, des sauvegardes, des CVE et des rapports."
+    }
   }
 }

@@ -1583,6 +1583,81 @@ def admin_users(request: Request):
         )
 
 
+def create_user_record(db, actor, username: str, display_name: str, email: str, role: str, password: str) -> User:
+    """Create an account with a temporary password (audited). HTTPException 400/409 with the reason. Commits."""
+    if role not in ROLE_LABELS:
+        raise HTTPException(400, "Ruolo non valido.")
+    try:
+        validate_password_strength(password)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    user = User(
+        username=username.strip(),
+        display_name=opt(display_name),
+        email=opt(email),
+        role=role,
+        password_hash=hash_password(password),
+        is_active=True,
+    )
+    db.add(user)
+    try:
+        db.flush()
+        add_event(
+            db,
+            "USER_CREATED",
+            actor=actor,
+            details={
+                "created_user_id": str(user.id),
+                "username": user.username,
+                "role": user.role,
+            },
+        )
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "Username già esistente.")
+    return user
+
+
+def toggle_user_record(db, actor, target) -> bool:
+    """Disable or re-enable an account (audited); never the caller's own active account. Caller commits."""
+    if target.id == actor.id and target.is_active:
+        raise HTTPException(400, "Non puoi disabilitare il tuo stesso account.")
+    target.is_active = not target.is_active
+    add_event(
+        db,
+        "USER_STATUS_CHANGED",
+        actor=actor,
+        details={
+            "target_user_id": str(target.id),
+            "username": target.username,
+            "is_active": target.is_active,
+        },
+    )
+    return target.is_active
+
+
+def change_user_role_record(db, actor, target, role: str) -> None:
+    """Change the role (audited); an administrator cannot demote themselves. Caller commits."""
+    if role not in ROLE_LABELS:
+        raise HTTPException(400, "Ruolo non valido.")
+    if target.id == actor.id and role != "admin":
+        raise HTTPException(400, "Non puoi rimuovere il tuo ruolo amministratore.")
+    old_role = target.role
+    target.role = role
+    add_event(
+        db,
+        "USER_ROLE_CHANGED",
+        actor=actor,
+        details={
+            "target_user_id": str(target.id),
+            "username": target.username,
+            "old_role": old_role,
+            "new_role": role,
+        },
+    )
+
+
 @app.post("/admin/users")
 def create_user(
     request: Request,
@@ -1596,37 +1671,7 @@ def create_user(
     validate_csrf(request, csrf)
     with SessionLocal() as db:
         actor = require_admin(request, db)
-        if role not in ROLE_LABELS:
-            raise HTTPException(400, "Ruolo non valido.")
-        try:
-            validate_password_strength(password)
-        except ValueError as exc:
-            raise HTTPException(400, str(exc))
-        user = User(
-            username=username.strip(),
-            display_name=opt(display_name),
-            email=opt(email),
-            role=role,
-            password_hash=hash_password(password),
-            is_active=True,
-        )
-        db.add(user)
-        try:
-            db.flush()
-            add_event(
-                db,
-                "USER_CREATED",
-                actor=actor,
-                details={
-                    "created_user_id": str(user.id),
-                    "username": user.username,
-                    "role": user.role,
-                },
-            )
-            db.commit()
-        except IntegrityError:
-            db.rollback()
-            raise HTTPException(409, "Username già esistente.")
+        create_user_record(db, actor, username, display_name, email, role, password)
     return RedirectResponse("/admin/users", status_code=303)
 
 
@@ -1638,19 +1683,7 @@ def toggle_user(request: Request, user_id: uuid.UUID, csrf: str = Form(...)):
         target = db.get(User, user_id)
         if not target:
             raise HTTPException(404)
-        if target.id == actor.id and target.is_active:
-            raise HTTPException(400, "Non puoi disabilitare il tuo stesso account.")
-        target.is_active = not target.is_active
-        add_event(
-            db,
-            "USER_STATUS_CHANGED",
-            actor=actor,
-            details={
-                "target_user_id": str(target.id),
-                "username": target.username,
-                "is_active": target.is_active,
-            },
-        )
+        toggle_user_record(db, actor, target)
         db.commit()
     return RedirectResponse("/admin/users", status_code=303)
 
@@ -1668,23 +1701,7 @@ def change_user_role(
         target = db.get(User, user_id)
         if not target:
             raise HTTPException(404)
-        if role not in ROLE_LABELS:
-            raise HTTPException(400, "Ruolo non valido.")
-        if target.id == actor.id and role != "admin":
-            raise HTTPException(400, "Non puoi rimuovere il tuo ruolo amministratore.")
-        old_role = target.role
-        target.role = role
-        add_event(
-            db,
-            "USER_ROLE_CHANGED",
-            actor=actor,
-            details={
-                "target_user_id": str(target.id),
-                "username": target.username,
-                "old_role": old_role,
-                "new_role": role,
-            },
-        )
+        change_user_role_record(db, actor, target, role)
         db.commit()
     return RedirectResponse("/admin/users", status_code=303)
 
