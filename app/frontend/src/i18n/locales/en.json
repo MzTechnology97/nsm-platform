@@ -1,0 +1,16 @@
+{
+  "app": { "name": "NSM", "preview": "New interface (preview)", "classic": "Classic interface", "loading": "Loading…", "error": "Unable to load data.", "retry": "Retry", "version": "Version {{version}}" },
+  "nav": {
+    "dashboard": "Dashboard", "customers": "Customers", "devices": "Devices", "monitoring": "Monitoring", "agents": "Agents", "backups": "Backups",
+    "firmware": "Firmware", "incidents": "Incidents", "vulnerabilities": "Vulnerabilities", "access": "Access", "exposure": "Exposure",
+    "lifecycle": "Lifecycle", "compliance": "Compliance", "actionCenter": "Action Center", "events": "Events", "reports": "Reports",
+    "integrations": "Integrations", "admin": "Administration", "collapse": "Collapse menu", "open": "Open menu"
+  },
+  "user": { "language": "Language", "theme": "Theme", "light": "Light", "dark": "Dark", "logout": "Sign out", "profile": "Profile" },
+  "home": {
+    "title": "Welcome to the new interface",
+    "intro": "Sections arrive one at a time. Those not migrated yet open in the classic interface, with the same session.",
+    "migrated": "New interface", "classic": "Classic interface"
+  },
+  "errors": { "notFound": "Page not found.", "forbidden": "You do not have permission for this section.", "session": "Session expired: sign in again." }
+}

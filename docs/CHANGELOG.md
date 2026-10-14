@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.97 — 2026-10-14
+
+New interface (React) — foundation, phase 0 of the gradual migration (decided with the operator)
+- **What it is.** A new React interface served under **`/app`** from the same origin as NSM. It reuses the same session, login, two-factor authentication, idle timeout, permissions and customer scope. Sections arrive one at a time; those not migrated yet open the classic page, and the classic sidebar links to the preview (*Nuova interfaccia (anteprima)*).
+- **Languages.** Italian, English, French and Spanish (i18next). The choice is saved per user (migration 0041, `user_preferences.language`); without a choice the browser language is used. Light and dark theme are shared with the classic interface.
+- **Stack.** React 19, TypeScript, Vite, TanStack Router and TanStack Query.
+  - Plain CSS with the same design tokens as `app.css`; no inline scripts or styles, so the production CSP stays unchanged.
+  - Dependencies are pinned with a lockfile. The initial bundle is about 124 KB gzip.
+- **UI API `/api/ui/v1`.** `GET /session` returns user, permissions, preferences, branding and CSRF token; `PATCH /session/preferences` saves language and theme.
+  - Every change requires the session CSRF token in `X-CSRF-Token`.
+  - Permission checks stay on the server.
+- **Build and CI.** The Docker image builds the interface in a Node stage and copies it to `app/static/ui`. `/app/*` returns the shell (`no-cache`), and hashed assets are served from `/static/ui`. A new CI job `frontend` runs typecheck, unit tests, production build and an inline-script/style check.
+
 ## 0.49.96 — 2026-10-09
 
 Customer graphs — availability over 30 days
