@@ -142,6 +142,103 @@ def _matches_health(row, state: str) -> bool:
     return row["attention"]
 
 
+STATES = {"attention", "healthy", "offline", "stale", "no_credential", "pending", "unknown_transport", "install_suspect", "token_expired", "all"}
+
+
+def fleet_scope(db, term: str = "", customer_id=None, now=None):
+    """Every MikroTik agent row in scope (search, customer) and the fleet summary."""
+    now = now or utcnow()
+    filters = [Device.vendor.ilike("mikrotik")]
+    if customer_id:
+        filters.append(Device.customer_id == customer_id)
+    if term:
+        like = f"%{term}%"
+        filters.append(
+            or_(
+                Device.display_name.ilike(like),
+                Device.device_identity.ilike(like),
+                Device.name.ilike(like),
+                Device.model.ilike(like),
+                Device.serial_number.ilike(like),
+                Device.primary_mac.ilike(like),
+                Device.management_ip.ilike(like),
+                Device.firmware_version.ilike(like),
+            )
+        )
+    devices = list(
+        db.scalars(
+            select(Device)
+            .where(*filters)
+            .options(selectinload(Device.customer), selectinload(Device.site))
+            .order_by(Device.customer_id, Device.display_name.nullslast(), Device.device_identity.nullslast(), Device.name)
+        )
+    )
+    device_ids = [device.id for device in devices]
+    credentials = {}
+    enrollment_history = {}
+    pending_counts = {}
+    if device_ids:
+        credentials = {
+            item.device_id: item
+            for item in db.scalars(
+                select(DeviceAgentCredential).where(
+                    DeviceAgentCredential.device_id.in_(device_ids),
+                    DeviceAgentCredential.agent_type == "mikrotik_agent",
+                )
+            )
+        }
+        recent_enrollments = list(
+            db.scalars(
+                select(DeviceEnrollment)
+                .where(
+                    DeviceEnrollment.device_id.in_(device_ids),
+                    DeviceEnrollment.created_at >= now - ENROLLMENT_HISTORY_WINDOW,
+                )
+                .order_by(DeviceEnrollment.device_id, DeviceEnrollment.created_at.desc())
+            )
+        )
+        for enrollment in recent_enrollments:
+            history = enrollment_history.setdefault(enrollment.device_id, [])
+            if len(history) < 10:
+                history.append(enrollment)
+            if enrollment.status == "pending" and _aware(enrollment.expires_at) and _aware(enrollment.expires_at) > now:
+                pending_counts[enrollment.device_id] = pending_counts.get(enrollment.device_id, 0) + 1
+    # _fleet_row is looked up at call time: install-time extensions (agent update) apply here too.
+    scope_rows = [
+        _fleet_row(device, credentials.get(device.id), enrollment_history.get(device.id, []), pending_counts.get(device.id, 0), now)
+        for device in devices
+    ]
+    summary = {
+        "total": len(scope_rows),
+        "healthy": sum(row["health"] == "healthy" for row in scope_rows),
+        "attention": sum(row["attention"] for row in scope_rows),
+        "legacy": sum(row["transport"] == "legacy" for row in scope_rows),
+        "modern": sum(row["transport"] == "modern" for row in scope_rows),
+        "pending": sum(row["install_bucket"] == "waiting" for row in scope_rows),
+        "verified": sum(row["install_bucket"] == "verified" for row in scope_rows),
+        "install_suspect": sum(row["install_bucket"] == "suspect" for row in scope_rows),
+        "token_expired": sum(row["install_bucket"] == "expired" for row in scope_rows),
+    }
+    return scope_rows, summary
+
+
+def filter_rows(scope_rows, state: str = "attention", transport: str = "", install: str = ""):
+    """Rows for one health state, transport and installation bucket, suspect installs first."""
+    rows = [row for row in scope_rows if _matches_health(row, state)]
+    if transport:
+        rows = [row for row in rows if row["transport"] == transport]
+    if install:
+        rows = [row for row in rows if row["install_bucket"] == install]
+    rows.sort(
+        key=lambda row: (
+            0 if row["install_bucket"] == "suspect" else 1 if row["attention"] else 2,
+            row["device"].customer.name.lower(),
+            (row["device"].display_name or row["device"].device_identity or row["device"].name).lower(),
+        )
+    )
+    return rows
+
+
 def agent_fleet(
     request: Request,
     q: str = "",
@@ -161,104 +258,12 @@ def agent_fleet(
         page = max(1, int(page or 1))
         customer_id = _uuid_or_none(customer)
         term = q.strip()
-        state = state if state in {"attention", "healthy", "offline", "stale", "no_credential", "pending", "unknown_transport", "install_suspect", "token_expired", "all"} else "attention"
+        state = state if state in STATES else "attention"
         transport = transport if transport in {"legacy", "modern", "unknown"} else ""
         install = install if install in INSTALL_FILTERS else ""
 
-        filters = [Device.vendor.ilike("mikrotik")]
-        if customer_id:
-            filters.append(Device.customer_id == customer_id)
-        if term:
-            like = f"%{term}%"
-            filters.append(
-                or_(
-                    Device.display_name.ilike(like),
-                    Device.device_identity.ilike(like),
-                    Device.name.ilike(like),
-                    Device.model.ilike(like),
-                    Device.serial_number.ilike(like),
-                    Device.primary_mac.ilike(like),
-                    Device.management_ip.ilike(like),
-                    Device.firmware_version.ilike(like),
-                )
-            )
-
-        devices = list(
-            db.scalars(
-                select(Device)
-                .where(*filters)
-                .options(selectinload(Device.customer), selectinload(Device.site))
-                .order_by(Device.customer_id, Device.display_name.nullslast(), Device.device_identity.nullslast(), Device.name)
-            )
-        )
-        device_ids = [device.id for device in devices]
-
-        credentials = {}
-        enrollment_history = {}
-        pending_counts = {}
-        now = utcnow()
-        if device_ids:
-            credentials = {
-                item.device_id: item
-                for item in db.scalars(
-                    select(DeviceAgentCredential).where(
-                        DeviceAgentCredential.device_id.in_(device_ids),
-                        DeviceAgentCredential.agent_type == "mikrotik_agent",
-                    )
-                )
-            }
-            recent_enrollments = list(
-                db.scalars(
-                    select(DeviceEnrollment)
-                    .where(
-                        DeviceEnrollment.device_id.in_(device_ids),
-                        DeviceEnrollment.created_at >= now - ENROLLMENT_HISTORY_WINDOW,
-                    )
-                    .order_by(DeviceEnrollment.device_id, DeviceEnrollment.created_at.desc())
-                )
-            )
-            for enrollment in recent_enrollments:
-                history = enrollment_history.setdefault(enrollment.device_id, [])
-                if len(history) < 10:
-                    history.append(enrollment)
-                if enrollment.status == "pending" and _aware(enrollment.expires_at) and _aware(enrollment.expires_at) > now:
-                    pending_counts[enrollment.device_id] = pending_counts.get(enrollment.device_id, 0) + 1
-
-        scope_rows = [
-            _fleet_row(
-                device,
-                credentials.get(device.id),
-                enrollment_history.get(device.id, []),
-                pending_counts.get(device.id, 0),
-                now,
-            )
-            for device in devices
-        ]
-
-        summary = {
-            "total": len(scope_rows),
-            "healthy": sum(row["health"] == "healthy" for row in scope_rows),
-            "attention": sum(row["attention"] for row in scope_rows),
-            "legacy": sum(row["transport"] == "legacy" for row in scope_rows),
-            "modern": sum(row["transport"] == "modern" for row in scope_rows),
-            "pending": sum(row["install_bucket"] == "waiting" for row in scope_rows),
-            "verified": sum(row["install_bucket"] == "verified" for row in scope_rows),
-            "install_suspect": sum(row["install_bucket"] == "suspect" for row in scope_rows),
-            "token_expired": sum(row["install_bucket"] == "expired" for row in scope_rows),
-        }
-
-        rows = [row for row in scope_rows if _matches_health(row, state)]
-        if transport:
-            rows = [row for row in rows if row["transport"] == transport]
-        if install:
-            rows = [row for row in rows if row["install_bucket"] == install]
-        rows.sort(
-            key=lambda row: (
-                0 if row["install_bucket"] == "suspect" else 1 if row["attention"] else 2,
-                row["device"].customer.name.lower(),
-                (row["device"].display_name or row["device"].device_identity or row["device"].name).lower(),
-            )
-        )
+        scope_rows, summary = fleet_scope(db, term, customer_id)
+        rows = filter_rows(scope_rows, state, transport, install)
 
         total = len(rows)
         pages = max(1, math.ceil(total / PER_PAGE))

@@ -929,5 +929,63 @@
       "skipped_one": "{{count}} sin IP de gestión: indícala en la página del equipo.",
       "skipped_other": "{{count}} sin IP de gestión: indícala en la página del equipo."
     }
+  },
+  "agents": {
+    "title": "Agentes MikroTik",
+    "subtitle": "{{total}} agentes · {{healthy}} sanos · {{modern}} modernos, {{legacy}} legacy · {{outdated}} por actualizar",
+    "search": "Buscar nombre, IP, MAC, serie, modelo",
+    "transport": "Transporte",
+    "allTransports": "Todos los transportes",
+    "installation": "Instalación",
+    "allInstalls": "Todas las instalaciones",
+    "states": {
+      "label": "Salud de los agentes",
+      "attention": "Por revisar",
+      "healthy": "Sanos",
+      "offline": "Fuera de línea",
+      "stale": "Heartbeat antiguo",
+      "no_credential": "Sin credencial",
+      "pending": "Pendientes",
+      "install_suspect": "Instalación sospechosa",
+      "token_expired": "Token caducado",
+      "unknown_transport": "Transporte no detectado",
+      "all": "Todos"
+    },
+    "transports": {
+      "modern": "Moderno",
+      "legacy": "Legacy",
+      "unknown": "No detectado"
+    },
+    "installs": {
+      "verified": "Verificada",
+      "waiting": "En espera",
+      "suspect": "Sospechosa",
+      "expired": "Token caducado",
+      "not_enrolled": "No asociado"
+    },
+    "health": {
+      "healthy": "Sano",
+      "pending": "Emparejamiento por completar",
+      "awaiting_heartbeat": "Esperando heartbeat",
+      "install_suspect": "Agente no iniciado",
+      "token_expired": "Token caducado",
+      "no_credential": "Sin credencial",
+      "offline": "Fuera de línea",
+      "stale": "Heartbeat antiguo",
+      "unknown_transport": "Transporte no detectado",
+      "agent_outdated": "Por actualizar"
+    },
+    "columns": {
+      "device": "Equipo",
+      "health": "Salud",
+      "install": "Instalación",
+      "agent": "Agente",
+      "heartbeat": "Último heartbeat"
+    },
+    "pendingTokens_one": "{{count}} token pendiente",
+    "pendingTokens_other": "{{count}} tokens pendientes",
+    "updateTo": "→ {{version}} disponible",
+    "allGood": "Ningún agente por revisar.",
+    "empty": "Ningún agente en este estado."
   }
 }

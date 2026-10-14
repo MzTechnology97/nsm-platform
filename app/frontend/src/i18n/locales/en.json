@@ -929,5 +929,63 @@
       "skipped_one": "{{count}} without a management IP: set it on the device page.",
       "skipped_other": "{{count}} without a management IP: set it on the device page."
     }
+  },
+  "agents": {
+    "title": "MikroTik agents",
+    "subtitle": "{{total}} agents · {{healthy}} healthy · {{modern}} modern, {{legacy}} legacy · {{outdated}} to update",
+    "search": "Search name, IP, MAC, serial, model",
+    "transport": "Transport",
+    "allTransports": "All transports",
+    "installation": "Installation",
+    "allInstalls": "All installations",
+    "states": {
+      "label": "Agent health",
+      "attention": "Needs attention",
+      "healthy": "Healthy",
+      "offline": "Offline",
+      "stale": "Old heartbeat",
+      "no_credential": "No credential",
+      "pending": "Pending",
+      "install_suspect": "Suspect installation",
+      "token_expired": "Token expired",
+      "unknown_transport": "Transport not detected",
+      "all": "All"
+    },
+    "transports": {
+      "modern": "Modern",
+      "legacy": "Legacy",
+      "unknown": "Not detected"
+    },
+    "installs": {
+      "verified": "Verified",
+      "waiting": "Waiting",
+      "suspect": "Suspect",
+      "expired": "Token expired",
+      "not_enrolled": "Not paired"
+    },
+    "health": {
+      "healthy": "Healthy",
+      "pending": "Pairing to complete",
+      "awaiting_heartbeat": "Waiting for heartbeat",
+      "install_suspect": "Agent not started",
+      "token_expired": "Token expired",
+      "no_credential": "No credential",
+      "offline": "Offline",
+      "stale": "Old heartbeat",
+      "unknown_transport": "Transport not detected",
+      "agent_outdated": "Outdated"
+    },
+    "columns": {
+      "device": "Device",
+      "health": "Health",
+      "install": "Installation",
+      "agent": "Agent",
+      "heartbeat": "Last heartbeat"
+    },
+    "pendingTokens_one": "{{count}} token pending",
+    "pendingTokens_other": "{{count}} tokens pending",
+    "updateTo": "→ {{version}} available",
+    "allGood": "No agent needs attention.",
+    "empty": "No agent in this state."
   }
 }

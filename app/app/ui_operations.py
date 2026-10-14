@@ -5,6 +5,9 @@
   the same rows and thresholds as the classic page (``fleet_monitoring``);
 - ``POST /api/ui/v1/monitoring/icmp``: switches the NSM ping on or off for the
   whole fleet or one customer (``devices.write``), same rule as the classic form.
+- ``GET  /api/ui/v1/agents``: the MikroTik Agent fleet (health, installation
+  check, transport, version and pending update) from ``agent_fleet``, including
+  the install-time extensions of its row builder.
 """
 from __future__ import annotations
 
@@ -12,6 +15,7 @@ import uuid
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 
+from app import agent_fleet
 from app import fleet_monitoring as fleet
 from app import main as core
 from app.db import SessionLocal
@@ -85,6 +89,44 @@ def monitoring_icmp(request: Request, body: dict = Body(default={})):
         changed, skipped = fleet.set_icmp_bulk(db, user, customer_id, enable)
         db.commit()
         return {"enabled": enable, "changed": changed, "skipped": skipped}
+
+
+AGENT_LIMIT = 500
+
+
+def agent_row(row: dict) -> dict:
+    device = row["device"]
+    update = row.get("agent_update") or {}
+    return {
+        "id": str(device.id), "name": device.display_name or device.device_identity or device.name, "model": device.model,
+        "firmware": device.firmware_version, "status": device.status, "management_ip": device.management_ip,
+        "customer": {"id": str(device.customer.id), "name": device.customer.name} if device.customer else None,
+        "site": device.site.name if device.site else None,
+        "transport": row["transport"], "agent_version": row["agent_version"], "heartbeat_transport": row["heartbeat_transport"],
+        "source_ip": row["source_ip"], "last_seen": _iso(row["last_seen"]), "stale": bool(row["stale"]),
+        "credential_active": bool(row["credential_active"]), "pending_enrollments": row["pending_enrollments"],
+        "health": row["health"], "attention": bool(row["attention"]), "install": row["install_bucket"],
+        "installation": row["installation"]["key"], "reasons": list(row["reasons"]),
+        "update": {"outdated": bool(update.get("outdated")), "target_version": update.get("target_version"),
+                   "state": update.get("state") or "idle", "self_update_capable": bool(update.get("self_update_capable"))} if update else None,
+    }
+
+
+@router.get("/agents")
+def agents(request: Request, q: str = "", customer: str = "", state: str = "attention", transport: str = "", install: str = ""):
+    with SessionLocal() as db:
+        ui_user(request, db, "devices.read")
+        state = state if state in agent_fleet.STATES else "attention"
+        transport = transport if transport in ("legacy", "modern", "unknown") else ""
+        install = install if install in agent_fleet.INSTALL_FILTERS else ""
+        scope_rows, summary = agent_fleet.fleet_scope(db, q.strip()[:100], _uuid(customer))
+        rows = agent_fleet.filter_rows(scope_rows, state, transport, install)
+        # Only installed agents can be updated: a device still waiting for its first pairing is not "outdated".
+        summary["outdated"] = sum(1 for row in scope_rows if row["credential_active"] and (row.get("agent_update") or {}).get("outdated"))
+        summary.update({key: sum(1 for row in scope_rows if agent_fleet._matches_health(row, key))
+                        for key in ("offline", "stale", "no_credential", "unknown_transport")})
+        return {"state": state, "total": len(rows), "limit": AGENT_LIMIT, "summary": summary,
+                "items": [agent_row(row) for row in rows[:AGENT_LIMIT]]}
 
 
 def install_ui_operations(app) -> None:
