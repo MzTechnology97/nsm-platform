@@ -54,7 +54,9 @@
   (``uisp_connector`` / ``uisp_sync``);
 - ``GET /api/ui/v1/integrations/uisp/onboarding``: UISP devices with their NSM
   state; ``POST`` preview and commit the bulk onboarding (``devices.write``),
-  through ``uisp_onboarding``, always from fresh UISP data.
+  through ``uisp_onboarding``, always from fresh UISP data;
+- ``GET /api/ui/v1/dashboard``: the dashboard of the platform, the same data as
+  the classic one (``dashboard_ui.dashboard_data``).
 """
 from __future__ import annotations
 
@@ -76,6 +78,7 @@ from app import (
     cnmaestro_connector,
     connector_health,
     customer_scope,
+    dashboard_ui,
     demo_ui,
     device_logs,
     genieacs_connector,
@@ -1123,6 +1126,21 @@ def uisp_onboarding_commit(request: Request, body: dict = Body(default={})):
             raise HTTPException(422, {"code": "invalid", "message": str(error)}) from None
         db.commit()
         return {"customer_id": str(result["customer_id"]), "created": result["created"], "linked": result["linked"], "skipped": result["skipped"]}
+
+
+@router.get("/dashboard")
+def dashboard(request: Request):
+    with SessionLocal() as db:
+        ui_user(request, db)
+        data = dashboard_ui.dashboard_data(db)
+        return jsonable_encoder({
+            **{key: value for key, value in data.items() if key not in ("recent_events", "latest_advisories")},
+            "recent_events": [{"id": str(e.id), "event_type": e.event_type, "label": core.event_label(e.event_type), "timestamp": e.timestamp,
+                               "severity": e.severity, "result": e.result} for e in data["recent_events"]],
+            "latest_advisories": [{"id": str(a.id), "cve_id": a.cve_id, "vendor": a.vendor, "product": a.product, "severity": a.severity,
+                                   "published_at": a.published_at, "affected": int(count or 0)} for a, count in data["latest_advisories"]],
+            "updated_at": utcnow(),
+        })
 
 
 def install_ui_admin(app) -> None:

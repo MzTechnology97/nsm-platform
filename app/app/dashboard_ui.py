@@ -162,45 +162,41 @@ def _dashboard_summary(db):
     }
 
 
+def dashboard_data(db) -> dict:
+    """Everything the dashboard shows: summary, recent events and advisories, inventory distributions."""
+    summary = _dashboard_summary(db)
+    recent_events = list(db.scalars(select(AuditEvent).order_by(AuditEvent.timestamp.desc()).limit(10)))
+    latest_advisories = db.execute(
+        select(
+            SecurityAdvisory,
+            func.count(DeviceVulnerability.id).label("affected_count"),
+        )
+        .outerjoin(
+            DeviceVulnerability,
+            (DeviceVulnerability.advisory_id == SecurityAdvisory.id)
+            & (DeviceVulnerability.status != "resolved"),
+        )
+        .group_by(SecurityAdvisory.id)
+        .order_by(SecurityAdvisory.published_at.desc().nullslast())
+        .limit(6)
+    ).all()
+    return {
+        **summary,
+        "recent_events": recent_events,
+        "latest_advisories": latest_advisories,
+        "vendor_distribution": _distribution(db, Device.vendor, summary["device_count"]),
+        "firmware_distribution": _distribution(db, Device.firmware_version, summary["device_count"]),
+        "model_distribution": _distribution(db, Device.model, summary["device_count"]),
+    }
+
+
 @router.get("/", response_class=HTMLResponse, name="dashboard")
 def dashboard(request: Request):
     with SessionLocal() as db:
         user = core.current_user(request, db)
         if not user:
             return core.login_redirect()
-        summary = _dashboard_summary(db)
-        recent_events = list(
-            db.scalars(select(AuditEvent).order_by(AuditEvent.timestamp.desc()).limit(10))
-        )
-        latest_advisories = db.execute(
-            select(
-                SecurityAdvisory,
-                func.count(DeviceVulnerability.id).label("affected_count"),
-            )
-            .outerjoin(
-                DeviceVulnerability,
-                (DeviceVulnerability.advisory_id == SecurityAdvisory.id)
-                & (DeviceVulnerability.status != "resolved"),
-            )
-            .group_by(SecurityAdvisory.id)
-            .order_by(SecurityAdvisory.published_at.desc().nullslast())
-            .limit(6)
-        ).all()
-        return core.render(
-            request,
-            db,
-            user,
-            "dashboard.html",
-            **summary,
-            recent_events=recent_events,
-            latest_advisories=latest_advisories,
-            vendor_distribution=_distribution(db, Device.vendor, summary["device_count"]),
-            firmware_distribution=_distribution(
-                db, Device.firmware_version, summary["device_count"]
-            ),
-            model_distribution=_distribution(db, Device.model, summary["device_count"]),
-            dashboard_updated_at=utcnow(),
-        )
+        return core.render(request, db, user, "dashboard.html", **dashboard_data(db), dashboard_updated_at=utcnow())
 
 
 @router.get("/api/v1/dashboard/summary", name="dashboard_summary")

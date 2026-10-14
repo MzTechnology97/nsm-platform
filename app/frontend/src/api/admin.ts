@@ -625,3 +625,38 @@ export function useOnboardingCommit() {
     onSuccess: () => client.invalidateQueries(),
   });
 }
+
+export interface Distribution {
+  label: string;
+  count: number;
+  percent: number;
+}
+
+export interface Dashboard {
+  customer_count: number;
+  site_count: number;
+  device_count: number;
+  online_count: number;
+  offline_count: number;
+  pending_count: number;
+  other_device_count: number;
+  eol_count: number;
+  firmware_attention_count: number;
+  open_issue_count: number;
+  critical_issue_count: number;
+  severe_cve_device_count: number;
+  backup_failed_count: number;
+  backup_protected_count: number;
+  backup_blocked_count: number;
+  backup_no_policy_count: number;
+  backup_coverage_percent: number;
+  vendor_distribution: Distribution[];
+  firmware_distribution: Distribution[];
+  model_distribution: Distribution[];
+  recent_events: { id: string; event_type: string; label: string; timestamp: string; severity: string; result: string }[];
+  latest_advisories: { id: string; cve_id: string; vendor: string | null; product: string | null; severity: string; published_at: string | null; affected: number }[];
+  updated_at: string;
+}
+
+export const useDashboard = () =>
+  useQuery({ queryKey: ["dashboard"], queryFn: () => api<Dashboard>("/api/ui/v1/dashboard"), refetchInterval: 30_000, staleTime: 10_000 });

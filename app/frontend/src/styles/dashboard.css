@@ -1,0 +1,136 @@
+/* Dashboard: KPI links, coverage rings, attention list and distribution bars. */
+.ui-kpis {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  margin-bottom: var(--space-4);
+}
+
+.ui-metric-link {
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+
+.ui-metric-link:hover,
+.ui-metric-link:focus-visible {
+  border-color: var(--accent);
+}
+
+.ui-ring-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.ui-ring {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.ui-ring-track {
+  stroke: var(--surface-soft);
+}
+
+.ui-ring-value.is-success {
+  stroke: var(--success);
+}
+
+.ui-ring-value.is-accent {
+  stroke: var(--accent);
+}
+
+.ui-ring-text {
+  fill: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ui-attention-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ui-attention-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+}
+
+.ui-attention-row:hover {
+  background: var(--surface-hover);
+}
+
+.ui-attention-row b {
+  font-size: 18px;
+}
+
+.ui-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.ui-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ui-bars li {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ui-bars-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-bars-value {
+  min-width: 2ch;
+  color: var(--muted);
+  text-align: right;
+}
+
+.ui-bars progress {
+  width: 100%;
+  height: 8px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--surface-soft);
+  accent-color: var(--accent);
+  appearance: none;
+}
+
+.ui-bars progress::-webkit-progress-bar {
+  border-radius: 4px;
+  background: var(--surface-soft);
+}
+
+.ui-bars progress::-webkit-progress-value {
+  border-radius: 4px;
+  background: var(--accent);
+}
+
+.ui-bars progress::-moz-progress-bar {
+  border-radius: 4px;
+  background: var(--accent);
+}

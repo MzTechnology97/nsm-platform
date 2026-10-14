@@ -38,12 +38,6 @@
     "logout": "Se déconnecter",
     "profile": "Profil"
   },
-  "home": {
-    "title": "Bienvenue dans la nouvelle interface",
-    "intro": "Les sections arrivent une par une. Celles qui ne sont pas encore migrées s'ouvrent dans l'interface classique, avec la même session.",
-    "migrated": "Nouvelle interface",
-    "classic": "Interface classique"
-  },
   "errors": {
     "notFound": "Page introuvable.",
     "forbidden": "Vous n'avez pas l'autorisation pour cette section.",
@@ -2715,5 +2709,87 @@
     "skipped_other": "{{count}} ignorés car modifiés dans UISP ou déjà présents : {{names}}.",
     "openCustomer": "Ouvrir le client",
     "again": "Nouvelle intégration"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "subtitle": "État du réseau géré : disponibilité, sauvegardes, sécurité et cycle de vie.",
+    "customers": "Clients",
+    "sites": "Sites",
+    "refresh": "Actualiser",
+    "updated": "Mis à jour le {{when}}, actualisé toutes les 30 secondes.",
+    "coverage": "Couverture",
+    "coverageHelp": "Part des équipements joignables et protégés par une sauvegarde récente.",
+    "availability": "Disponibilité",
+    "online": "En ligne",
+    "offline": "Hors ligne",
+    "backupCoverage": "Couverture des sauvegardes",
+    "backupReady": "Protégés",
+    "backupNotReady": "Sans sauvegarde valide ni politique",
+    "attention": "À surveiller",
+    "open": "Ouvrir",
+    "attentionHelp": "Ce qui demande une intervention maintenant.",
+    "attentionItems": {
+      "critical": {
+        "title": "Problèmes critiques",
+        "note": "Éléments ouverts dans l'Action Center"
+      },
+      "cve": {
+        "title": "CVE graves",
+        "note": "Équipements avec vulnérabilités critiques ou élevées"
+      },
+      "backupFailed": {
+        "title": "Sauvegardes échouées",
+        "note": "La dernière sauvegarde a échoué"
+      },
+      "firmware": {
+        "title": "Firmware à mettre à jour",
+        "note": "Versions obsolètes ou non prises en charge"
+      },
+      "pending": {
+        "title": "Équipements en attente",
+        "note": "Pas encore vérifiés"
+      }
+    },
+    "distribution": "Répartition du parc",
+    "distributionHelp": "Fabricants, versions firmware et modèles les plus répandus.",
+    "openInventory": "Ouvrir l'inventaire",
+    "vendors": "Fabricants",
+    "vendorsHelp": "Équipements par fabricant.",
+    "firmwareVersions": "Versions firmware",
+    "firmwareHelp": "Versions les plus installées.",
+    "models": "Modèles",
+    "modelsHelp": "Modèles les plus répandus.",
+    "unknown": "Inconnu",
+    "noData": "Aucune donnée.",
+    "advisories": "Derniers avis de sécurité",
+    "all": "Tous",
+    "advisoriesHelp": "CVE publiées récemment et équipements concernés.",
+    "advisoryColumns": {
+      "cve": "CVE",
+      "vendor": "Fabricant",
+      "severity": "Gravité",
+      "published": "Publiée",
+      "impact": "Impact"
+    },
+    "affected_one": "{{count}} équipement",
+    "affected_other": "{{count}} équipements",
+    "noAdvisories": "Aucun avis.",
+    "events": "Activité récente",
+    "audit": "Journal d'activité",
+    "eventsHelp": "Dernières opérations enregistrées.",
+    "noEvents": "Aucune activité.",
+    "devices": "Équipements",
+    "onlineNote": "{{count}} en ligne",
+    "reachable": "Joignables",
+    "toCheck": "À vérifier",
+    "backupProtected": "Sauvegardes protégées",
+    "coveragePercent": "Couverture {{percent}} %",
+    "severeCve": "CVE graves",
+    "devicesInvolved": "Équipements concernés",
+    "firmware": "Firmware",
+    "firmwareNote": "À mettre à jour",
+    "criticalNote": "{{count}} critiques",
+    "eol": "Fin de vie",
+    "eolNote": "Équipements EOL ou EOS"
   }
 }

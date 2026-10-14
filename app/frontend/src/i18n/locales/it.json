@@ -38,12 +38,6 @@
     "logout": "Esci",
     "profile": "Profilo"
   },
-  "home": {
-    "title": "Benvenuto nella nuova interfaccia",
-    "intro": "Le sezioni arrivano una alla volta. Quelle non ancora migrate si aprono nell'interfaccia classica, con la stessa sessione.",
-    "migrated": "Nuova interfaccia",
-    "classic": "Interfaccia classica"
-  },
   "errors": {
     "notFound": "Pagina non trovata.",
     "forbidden": "Non hai i permessi per questa sezione.",
@@ -2715,5 +2709,87 @@
     "skipped_other": "{{count}} saltati perché cambiati in UISP o già presenti: {{names}}.",
     "openCustomer": "Apri il cliente",
     "again": "Nuovo onboarding"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Stato della rete gestita: disponibilità, backup, sicurezza e ciclo di vita.",
+    "customers": "Clienti",
+    "sites": "Sedi",
+    "refresh": "Aggiorna",
+    "updated": "Aggiornata il {{when}}, si aggiorna ogni 30 secondi.",
+    "coverage": "Copertura",
+    "coverageHelp": "Quota di apparati raggiungibili e protetti da un backup recente.",
+    "availability": "Disponibilità",
+    "online": "Online",
+    "offline": "Offline",
+    "backupCoverage": "Copertura backup",
+    "backupReady": "Protetti",
+    "backupNotReady": "Senza backup valido o policy",
+    "attention": "Da guardare",
+    "open": "Apri",
+    "attentionHelp": "Cosa richiede un intervento adesso.",
+    "attentionItems": {
+      "critical": {
+        "title": "Problemi critici",
+        "note": "Segnalazioni aperte nell'Action Center"
+      },
+      "cve": {
+        "title": "CVE gravi",
+        "note": "Apparati con vulnerabilità critiche o alte"
+      },
+      "backupFailed": {
+        "title": "Backup falliti",
+        "note": "Ultimo backup non riuscito"
+      },
+      "firmware": {
+        "title": "Firmware da aggiornare",
+        "note": "Versioni obsolete o non supportate"
+      },
+      "pending": {
+        "title": "Apparati in attesa",
+        "note": "Non ancora verificati"
+      }
+    },
+    "distribution": "Distribuzione del parco",
+    "distributionHelp": "Produttori, versioni firmware e modelli più diffusi.",
+    "openInventory": "Apri inventario",
+    "vendors": "Produttori",
+    "vendorsHelp": "Apparati per produttore.",
+    "firmwareVersions": "Versioni firmware",
+    "firmwareHelp": "Versioni più installate.",
+    "models": "Modelli",
+    "modelsHelp": "Modelli più diffusi.",
+    "unknown": "Sconosciuto",
+    "noData": "Nessun dato.",
+    "advisories": "Ultimi avvisi di sicurezza",
+    "all": "Tutti",
+    "advisoriesHelp": "CVE pubblicate di recente e apparati coinvolti.",
+    "advisoryColumns": {
+      "cve": "CVE",
+      "vendor": "Produttore",
+      "severity": "Gravità",
+      "published": "Pubblicata",
+      "impact": "Impatto"
+    },
+    "affected_one": "{{count}} apparato",
+    "affected_other": "{{count}} apparati",
+    "noAdvisories": "Nessun avviso.",
+    "events": "Attività recente",
+    "audit": "Registro attività",
+    "eventsHelp": "Ultime operazioni registrate.",
+    "noEvents": "Nessuna attività.",
+    "devices": "Apparati",
+    "onlineNote": "{{count}} online",
+    "reachable": "Raggiungibili",
+    "toCheck": "Da verificare",
+    "backupProtected": "Backup protetti",
+    "coveragePercent": "Copertura {{percent}}%",
+    "severeCve": "CVE gravi",
+    "devicesInvolved": "Apparati coinvolti",
+    "firmware": "Firmware",
+    "firmwareNote": "Da aggiornare",
+    "criticalNote": "{{count}} critici",
+    "eol": "Fine vita",
+    "eolNote": "Apparati EOL o EOS"
   }
 }
