@@ -139,3 +139,19 @@
 .ui-admin-stack > button {
   align-self: flex-start;
 }
+
+.ui-integration-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+
+.ui-integration-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ui-integration-card > .ui-row-actions {
+  margin-top: auto;
+}
