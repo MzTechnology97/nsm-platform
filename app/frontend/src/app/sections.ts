@@ -26,7 +26,7 @@ export const SECTIONS: Section[] = [
   { key: "access", icon: "access", classic: "/security/access", route: "/access", permission: "security.read", group: "security" },
   { key: "exposure", icon: "exposure", classic: "/security/exposure", route: "/exposure", permission: "security.read", group: "security" },
   { key: "lifecycle", icon: "lifecycle", classic: "/security/lifecycle", route: "/lifecycle", permission: "security.read", group: "security" },
-  { key: "compliance", icon: "compliance", classic: "/compliance", permission: "compliance.read", group: "governance" },
+  { key: "compliance", icon: "compliance", classic: "/compliance", route: "/compliance", permission: "compliance.read", group: "governance" },
   { key: "actionCenter", icon: "action", classic: "/action-center", permission: "issues.read", group: "governance" },
   { key: "events", icon: "events", classic: "/audit/events", permission: "audit.read", group: "governance" },
   { key: "reports", icon: "reports", classic: "/audit/reports", permission: "reports.read", group: "governance" },

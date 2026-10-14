@@ -1294,5 +1294,57 @@
     "addRecord": "Añadir al catálogo",
     "empty": "Ningún equipo en este estado.",
     "allGood": "Ningún equipo sin soporte."
+  },
+  "compliance": {
+    "title": "Cumplimiento",
+    "subtitle": "Controles de cumplimiento por equipo.",
+    "lastEval": "Última evaluación {{when}}.",
+    "evaluate": "Evaluar ahora",
+    "baselines": "Líneas base",
+    "evaluated": "Evaluados {{devices}} equipos: {{fail}} no conformes, {{unknown}} sin evidencia, {{pass}} conformes.",
+    "noBaselines": "Ninguna línea base definida: se aplican los controles predeterminados. Las líneas base se gestionan en la página clásica.",
+    "states": {
+      "label": "Resultado",
+      "fail": "No conformes",
+      "exception": "En excepción",
+      "unknown": "Sin evidencia",
+      "pass": "Conformes",
+      "all": "Todos"
+    },
+    "control": "Control",
+    "allControls": "Todos los controles",
+    "columns": {
+      "device": "Equipo",
+      "state": "Resultado"
+    },
+    "result": {
+      "pass": "conforme",
+      "fail": "no conforme",
+      "unknown": "sin evidencia",
+      "not_applicable": "no aplicable"
+    },
+    "legend": "✓ conforme · ✗ no conforme · ? sin evidencia · E excepción · – no aplicable",
+    "allGood": "Ninguna no conformidad abierta.",
+    "empty": "Ningún equipo con este resultado.",
+    "controls": {
+      "firmware_current": "Firmware sin actualizaciones de seguridad",
+      "no_unhandled_severe_vulnerabilities": "Ninguna CVE grave sin gestionar",
+      "backup_recent": "Copia reciente correcta",
+      "restore_tested": "Prueba de restauración superada",
+      "lifecycle_supported": "Equipo con soporte del vendor",
+      "agent_heartbeat": "Agente NSM activo",
+      "config_baseline": "Configuración aprobada sin desviaciones",
+      "cleartext_services_disabled": "Servicios sin cifrar desactivados"
+    },
+    "short": {
+      "firmware_current": "Firmware",
+      "no_unhandled_severe_vulnerabilities": "CVE",
+      "backup_recent": "Copia",
+      "restore_tested": "Restaur.",
+      "lifecycle_supported": "Ciclo",
+      "agent_heartbeat": "Agente",
+      "config_baseline": "Config",
+      "cleartext_services_disabled": "Servicios"
+    }
   }
 }

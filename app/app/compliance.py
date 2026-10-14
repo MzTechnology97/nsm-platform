@@ -54,6 +54,49 @@ def _scope_label(db, baseline: ComplianceBaseline) -> str:
     return "Globale"
 
 
+def compliance_matrix(db, customer_id=None, control: str = "", now=None) -> dict:
+    """Latest result of each control per device, totals per result, worst status per device."""
+    now = now or utcnow()
+    query = select(ComplianceResult, Device).join(Device, Device.id == ComplianceResult.device_id).options(selectinload(Device.customer))
+    if customer_id:
+        query = query.where(Device.customer_id == customer_id)
+    if control in CONTROLS:
+        query = query.where(ComplianceResult.control_id == control)
+    by_device: dict = defaultdict(dict)
+    devices = {}
+    totals: Counter = Counter()
+    device_status: dict = {}
+    last_eval = None
+    for result, device in db.execute(query):
+        by_device[device.id][result.control_id] = result
+        devices[device.id] = device
+        totals["exception" if in_exception(result, now) else result.status] += 1
+        last_eval = max(last_eval, result.evaluated_at) if last_eval else result.evaluated_at
+    for device_id, results in by_device.items():
+        statuses = {r.status for r in results.values()}
+        device_status[device_id] = next((s for s in STATUS_ORDER if s in statuses), "not_applicable")
+    return {"by_device": by_device, "devices": devices, "totals": totals, "device_status": device_status,
+            "device_counts": Counter(device_status.values()), "last_eval": last_eval,
+            "used_controls": [cid for cid in CONTROLS if any(cid in by_device[d] for d in by_device)]}
+
+
+def select_devices(matrix: dict, status: str = "fail", now=None) -> list:
+    """Device ids for one status filter (fail excludes exceptions), worst first, then customer and name."""
+    now = now or utcnow()
+    by_device, devices, device_status = matrix["by_device"], matrix["devices"], matrix["device_status"]
+    if status == "exception":
+        selected = [d for d in devices if any(in_exception(r, now) for r in by_device[d].values())]
+    elif status == "fail":
+        selected = [d for d in devices if any(r.status == "fail" and not in_exception(r, now) for r in by_device[d].values())]
+    elif status in RESULT_LABELS:
+        selected = [d for d in devices if any(r.status == status for r in by_device[d].values())]
+    else:
+        selected = list(devices)
+    selected.sort(key=lambda d: (STATUS_ORDER.index(device_status[d]), (devices[d].customer.name if devices[d].customer else "").lower(),
+                                 (devices[d].display_name or devices[d].name or "").lower()))
+    return selected
+
+
 # -------------------------------------------------------------- overview --
 
 @router.get("/compliance", response_class=HTMLResponse, name="compliance")
@@ -63,40 +106,16 @@ def compliance_overview(request: Request, status: str = "fail", customer: str = 
         if not user:
             return core.login_redirect()
         customer_id = _uuid(customer)
-        query = select(ComplianceResult, Device).join(Device, Device.id == ComplianceResult.device_id).options(selectinload(Device.customer))
-        if customer_id:
-            query = query.where(Device.customer_id == customer_id)
-        if control in CONTROLS:
-            query = query.where(ComplianceResult.control_id == control)
-        by_device: dict = defaultdict(dict)
-        devices = {}
-        totals: Counter = Counter()
-        device_status: dict = {}
-        last_eval = None
         now = utcnow()
-        for result, device in db.execute(query):
-            by_device[device.id][result.control_id] = result
-            devices[device.id] = device
-            totals["exception" if in_exception(result, now) else result.status] += 1
-            last_eval = max(last_eval, result.evaluated_at) if last_eval else result.evaluated_at
-        for device_id, results in by_device.items():
-            statuses = {r.status for r in results.values()}
-            device_status[device_id] = next((s for s in STATUS_ORDER if s in statuses), "not_applicable")
-        device_counts = Counter(device_status.values())
-        if status == "exception":
-            selected = [d for d in devices if any(in_exception(r, now) for r in by_device[d].values())]
-        elif status == "fail":
-            selected = [d for d in devices if any(r.status == "fail" and not in_exception(r, now) for r in by_device[d].values())]
-        elif status in RESULT_LABELS:
-            selected = [d for d in devices if any(r.status == status for r in by_device[d].values())]
-        else:
-            selected = list(devices)
-        selected.sort(key=lambda d: (STATUS_ORDER.index(device_status[d]), (devices[d].customer.name if devices[d].customer else "").lower(), (devices[d].display_name or devices[d].name or "").lower()))
+        matrix = compliance_matrix(db, customer_id, control, now)
+        by_device, devices, device_status = matrix["by_device"], matrix["devices"], matrix["device_status"]
+        totals, device_counts, last_eval = matrix["totals"], matrix["device_counts"], matrix["last_eval"]
+        selected = select_devices(matrix, status, now)
         total = len(selected)
         pages = max(1, math.ceil(total / PER_PAGE))
         page = min(max(1, page), pages)
         rows = [(devices[d], by_device[d], device_status[d]) for d in selected[(page - 1) * PER_PAGE : page * PER_PAGE]]
-        used_controls = [cid for cid in CONTROLS if any(cid in by_device[d] for d in by_device)]
+        used_controls = matrix["used_controls"]
         baselines = int(db.scalar(select(ComplianceBaseline.id).limit(1)) is not None)
         return core.render(
             request, db, user, "compliance.html",
@@ -110,17 +129,23 @@ def compliance_overview(request: Request, status: str = "fail", customer: str = 
         )
 
 
+def run_evaluation(db, user, trigger: str = "manual") -> dict:
+    """Evaluate every device now, close stale exceptions and record the audit event (caller commits)."""
+    now = utcnow()
+    stats = evaluate_all(db, now)
+    db.flush()
+    stats.update(housekeeping(db, now))
+    core.add_event(db, "COMPLIANCE_EVALUATED", actor=user, details={"trigger": trigger, **stats})
+    return stats
+
+
 @router.post("/compliance/evaluate", name="compliance_evaluate")
 async def compliance_evaluate(request: Request):
     form = await request.form()
     validate_csrf(request, str(form.get("csrf") or ""))
     with SessionLocal() as db:
         user = core.require_permission(request, db, "compliance.manage")
-        now = utcnow()
-        stats = evaluate_all(db, now)
-        db.flush()
-        stats.update(housekeeping(db, now))
-        core.add_event(db, "COMPLIANCE_EVALUATED", actor=user, details={"trigger": "manual", **stats})
+        stats = run_evaluation(db, user)
         db.commit()
     return flash_redirect(
         request, "/compliance", "success",

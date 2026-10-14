@@ -2,7 +2,15 @@ import { createRootRoute, createRoute, createRouter, lazyRouteComponent } from "
 import { useTranslation } from "react-i18next";
 
 import type { CustomerFilters } from "../api/customers";
-import { EXPOSURE_VIEWS, type ExposureFilters, LIFECYCLE_STATES, type LifecycleFilters, type VulnFilters } from "../api/security";
+import {
+  COMPLIANCE_STATUSES,
+  type ComplianceFilters,
+  EXPOSURE_VIEWS,
+  type ExposureFilters,
+  LIFECYCLE_STATES,
+  type LifecycleFilters,
+  type VulnFilters,
+} from "../api/security";
 import type { DeviceFilters } from "../api/devices";
 import { CustomerDetail, CustomerOverview, CustomerSites } from "../pages/CustomerDetail";
 import type { GraphsSearch } from "../pages/CustomerGraphs";
@@ -149,6 +157,16 @@ const vulnerabilityRoute = createRoute({
     return { ...(out.customer ? { customer: out.customer } : {}), ...(out.status ? { status: out.status } : {}) };
   },
 });
+const complianceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/compliance",
+  component: lazyRouteComponent(() => import("../pages/Compliance"), "Compliance"),
+  validateSearch: (search: Record<string, unknown>): ComplianceFilters => ({
+    ...(typeof search.status === "string" && (COMPLIANCE_STATUSES as readonly string[]).includes(search.status) ? { status: search.status as ComplianceFilters["status"] } : {}),
+    ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
+    ...(typeof search.control === "string" && search.control ? { control: search.control } : {}),
+  }),
+});
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/access",
@@ -218,6 +236,7 @@ export const routeTree = rootRoute.addChildren([
   exposureRoute,
   accessRoute,
   lifecycleRoute,
+  complianceRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

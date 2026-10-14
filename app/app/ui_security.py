@@ -9,6 +9,9 @@
   and source addresses with most failures, recent alerts), from ``syslog_security``;
 - ``GET /api/ui/v1/lifecycle``: devices out of vendor support (EOL, EOS, ending
   within a year, without catalog match) with their remediation state;
+- ``GET /api/ui/v1/compliance``: compliance matrix (control results per
+  device, worst first) and ``POST /api/ui/v1/compliance/evaluate``, from
+  ``compliance``;
 - ``GET /api/ui/v1/exposure``: services reachable from the Internet per device
   (from the agent configuration or checked from outside), from
   ``device_exposure.fleet``.
@@ -19,10 +22,12 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func, select
 
+from app import compliance as compliance_view
 from app import device_exposure
+from app import main as core
 from app import lifecycle_drilldown as lifecycle_view
 from app import syslog_security
 from app import security_drilldown as security
@@ -32,7 +37,9 @@ from sqlalchemy.orm import selectinload
 
 from app.lifecycle_remediation import attention_reason
 from app.models import ActionIssue, Customer, Device, DeviceVulnerability, LifecycleRemediation, SecurityAdvisory, utcnow
-from app.ui_api import ui_user
+from app.compliance_findings import in_exception
+from app.compliance_models import ComplianceBaseline
+from app.ui_api import require_csrf, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 ADVISORY_PAGE = 100
@@ -219,6 +226,46 @@ def lifecycle(request: Request, q: str = "", customer: str = "", vendor: str = "
             "lifecycle": (d.lifecycle_status or "unknown").lower(), "eol_date": _iso(d.eol_date), "eos_date": _iso(d.eos_date),
             "remediation": {"status": remediations[d.id].status, "attention": bool(attention_reason(remediations[d.id], d, today))} if d.id in remediations else None,
         } for d in devices]}
+
+
+COMPLIANCE_PAGE = 100
+COMPLIANCE_STATUSES = ("fail", "exception", "unknown", "pass", "not_applicable", "all")
+
+
+@router.get("/compliance")
+def compliance(request: Request, status: str = "fail", customer: str = "", control: str = "", offset: int = 0):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "compliance.read")
+        status = status if status in COMPLIANCE_STATUSES else "fail"
+        control = control if control in compliance_view.CONTROLS else ""
+        now = utcnow()
+        matrix = compliance_view.compliance_matrix(db, _uuid(customer), control, now)
+        selected = compliance_view.select_devices(matrix, status, now)
+        offset = max(0, int(offset or 0))
+        devices, by_device, device_status = matrix["devices"], matrix["by_device"], matrix["device_status"]
+        return {
+            "status": status, "control": control, "total": len(selected), "offset": offset, "limit": COMPLIANCE_PAGE,
+            "totals": dict(matrix["totals"]), "device_counts": dict(matrix["device_counts"]), "devices_total": len(devices),
+            "last_eval": _iso(matrix["last_eval"]),
+            "controls": [{"id": cid, "title": compliance_view.CONTROLS[cid].title, "category": compliance_view.CONTROLS[cid].category}
+                         for cid in (matrix["used_controls"] or list(compliance_view.CONTROLS))],
+            "has_baselines": db.scalar(select(ComplianceBaseline.id).limit(1)) is not None,
+            "can_manage": core.has_permission(user, "compliance.manage"),
+            "items": [{
+                "device": _device_ref(devices[d]), "status": device_status[d],
+                "results": {cid: {"id": str(r.id), "status": r.status, "exception": bool(in_exception(r, now)), "evidence": r.evidence}
+                            for cid, r in by_device[d].items()},
+            } for d in selected[offset:offset + COMPLIANCE_PAGE]],
+        }
+
+
+@router.post("/compliance/evaluate", dependencies=[Depends(require_csrf)])
+def compliance_evaluate(request: Request):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "compliance.manage")
+        stats = compliance_view.run_evaluation(db, user, trigger="manual")
+        db.commit()
+        return {key: stats.get(key, 0) for key in ("devices", "fail", "unknown", "pass")}
 
 
 def install_ui_security(app) -> None:
