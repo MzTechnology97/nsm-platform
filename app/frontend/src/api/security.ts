@@ -128,3 +128,57 @@ export const useExposure = (filters: ExposureFilters) =>
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
+
+type DeviceRef = { id: string; name: string; customer: { id: string; name: string } | null } | null;
+
+export interface AccessSummary {
+  hours: number;
+  devices: { device: DeviceRef; failures: number }[];
+  sources: { ip: string | null; failures: number; devices: number; public: boolean }[];
+  alerts: { id: string; title: string; severity: string; status: string; created_at: string | null; device: DeviceRef }[];
+}
+
+export const useAccess = (hours: number) =>
+  useQuery({ queryKey: ["access", hours], queryFn: () => api<AccessSummary>(`/api/ui/v1/access?hours=${hours}`), placeholderData: keepPreviousData, staleTime: 30_000, refetchInterval: 60_000 });
+
+export const LIFECYCLE_STATES = ["", "eol", "eos", "upcoming", "unmatched"] as const;
+export type LifecycleState = (typeof LIFECYCLE_STATES)[number];
+
+export interface LifecycleFilters {
+  q?: string;
+  customer?: string;
+  vendor?: string;
+  state?: Exclude<LifecycleState, "">;
+}
+
+export interface LifecyclePage {
+  state: LifecycleState;
+  total: number;
+  offset: number;
+  limit: number;
+  upcoming_days: number;
+  counts: Record<"eol" | "eos" | "upcoming" | "unmatched" | "attention" | "customers", number>;
+  items: {
+    id: string;
+    name: string;
+    vendor: string | null;
+    model: string | null;
+    customer: { id: string; name: string } | null;
+    site: string | null;
+    lifecycle: string;
+    eol_date: string | null;
+    eos_date: string | null;
+    remediation: { status: string; attention: boolean } | null;
+  }[];
+  groups: { vendor: string | null; model: string | null; match: string | null; devices: number; customers: number }[];
+}
+
+export const useLifecycle = (filters: LifecycleFilters) =>
+  useInfiniteQuery({
+    queryKey: ["lifecycle", filters],
+    queryFn: ({ pageParam }) => api<LifecyclePage>(`/api/ui/v1/lifecycle${query({ ...filters, offset: pageParam })}`),
+    initialPageParam: 0,
+    getNextPageParam: (last) => (last.offset + Math.max(last.items.length, last.groups.length) < last.total ? last.offset + last.limit : undefined),
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  });

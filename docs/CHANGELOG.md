@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.115 — 2026-10-14
+
+New interface (React) — access and lifecycle, phase 4c
+- **Access in `/app/access`**, also reachable from the sidebar of the new interface. It shows failed logins found in the device syslog over 1 hour, 24 hours, 7 or 30 days:
+  - the devices with most failures (opening their Syslog tab);
+  - the source addresses, marking public ones and those that tried several devices;
+  - the latest brute-force alerts.
+- **Lifecycle in `/app/lifecycle`**, also in the sidebar:
+  - devices out of vendor support (end of life, end of support), those ending within a year, and those without catalog data;
+  - the last group is shown per vendor/model with *Add to catalog*;
+  - search, customer and vendor filters in the address, EOL/EOS dates, replacement state (to handle, planned, exception…), linked to the device remediation and to the EOL/EOS catalog.
+- The lifecycle filters and counters are now shared functions in `lifecycle_drilldown`, used by both interfaces; the classic page behaves as before.
+- **API.** `GET /api/ui/v1/access`, `GET /api/ui/v1/lifecycle` (`security.read`).
+
 ## 0.49.114 — 2026-10-14
 
 New interface (React) — exposed services, phase 4b
