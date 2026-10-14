@@ -446,31 +446,48 @@ async def save_preferences(request: Request):
         user = core.current_user(request, db)
         if not user:
             return core.login_redirect()
-        email = str(form.get("email") or "").strip()
-        if email and ("@" not in email or len(email) > 255 or " " in email):
-            return RedirectResponse("/profile?error=notification_email#notifications", status_code=303)
-        user.email = email or None
-        for channel in CHANNELS:
-            pref = db.scalar(select(UserNotificationPreference).where(UserNotificationPreference.user_id == user.id, UserNotificationPreference.channel == channel))
-            if not pref:
-                pref = UserNotificationPreference(user_id=user.id, channel=channel, categories=[])
-                db.add(pref)
-            pref.enabled = form.get(f"{channel}_enabled") is not None
-            level = str(form.get(f"{channel}_level") or "high")
-            pref.min_severity = level if level in LEVELS else "high"
-            pref.categories = [c for c in form.getlist(f"{channel}_categories") if c in CATEGORIES]
-            extra = CHANNELS[channel].get("save")
-            if extra:
-                error = extra(pref, form)
-                if error:
-                    db.rollback()
-                    return RedirectResponse(f"/profile?error={error}#notifications", status_code=303)
-            if channel == "email" and pref.enabled and not user.email:
-                db.rollback()
-                return RedirectResponse("/profile?error=notification_email#notifications", status_code=303)
-        core.add_event(db, "USER_NOTIFICATION_PREFERENCES_CHANGED", actor=user, details={"user_id": str(user.id)}, source="portal")
+        try:
+            save_preferences_record(db, user, form)
+        except ValueError as exc:
+            return RedirectResponse(f"/profile?error={exc}#notifications", status_code=303)
         db.commit()
     return RedirectResponse("/profile?status=notifications_saved#notifications", status_code=303)
+
+
+def save_preferences_record(db, user, form) -> None:
+    """Save e-mail and per-channel preferences from a form-like object (``get``/``getlist``), as the profile form sends them.
+
+    Raises ValueError with the error code (``notification_email``, ``telegram_chat_id``, ``slack_webhook``) after a
+    rollback; used by both interfaces. Caller commits.
+    """
+    email = str(form.get("email") or "").strip()
+    if email and ("@" not in email or len(email) > 255 or " " in email):
+        raise ValueError("notification_email")
+    user.email = email or None
+    for channel in CHANNELS:
+        pref = db.scalar(select(UserNotificationPreference).where(UserNotificationPreference.user_id == user.id, UserNotificationPreference.channel == channel))
+        if not pref:
+            pref = UserNotificationPreference(user_id=user.id, channel=channel, categories=[])
+            db.add(pref)
+        pref.enabled = form.get(f"{channel}_enabled") is not None
+        level = str(form.get(f"{channel}_level") or "high")
+        pref.min_severity = level if level in LEVELS else "high"
+        pref.categories = [c for c in form.getlist(f"{channel}_categories") if c in CATEGORIES]
+        extra = CHANNELS[channel].get("save")
+        if extra:
+            error = extra(pref, form)
+            if error:
+                db.rollback()
+                raise ValueError(error)
+        if channel == "email" and pref.enabled and not user.email:
+            db.rollback()
+            raise ValueError("notification_email")
+    core.add_event(db, "USER_NOTIFICATION_PREFERENCES_CHANGED", actor=user, details={"user_id": str(user.id)}, source="portal")
+
+
+def send_test_record(db, user) -> bool:
+    """Queue a test message on the user's enabled channels; False when none is enabled. Caller commits, then delivers."""
+    return bool(queue_direct(db, user, "Messaggio di prova", "Le tue preferenze di notifica NSM funzionano.", level="info", category="system"))
 
 
 @router.post("/profile/notifications/test", name="profile_notifications_test")
@@ -481,7 +498,7 @@ async def test_preferences(request: Request):
         user = core.current_user(request, db)
         if not user:
             return core.login_redirect()
-        queued = queue_direct(db, user, "Messaggio di prova", "Le tue preferenze di notifica NSM funzionano.", level="info", category="system")
+        queued = send_test_record(db, user)
         db.commit()
     deliver_pending()
     return RedirectResponse(f"/profile?status=notifications_test_{'queued' if queued else 'none'}#notifications", status_code=303)

@@ -207,6 +207,11 @@ const notificationsRoute = createRoute({
   path: "/notifications",
   component: lazyRouteComponent(() => import("../pages/Notifications"), "Notifications"),
 });
+const profileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/profile",
+  component: lazyRouteComponent(() => import("../pages/Profile"), "Profile"),
+});
 const AUDIT_KEYS = ["event_type", "result", "severity", "customer", "device", "q", "from_date", "to_date"] as const;
 const auditEventsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -405,6 +410,7 @@ export const routeTree = rootRoute.addChildren([
   uispOnboardingRoute,
   searchRoute,
   notificationsRoute,
+  profileRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

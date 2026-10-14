@@ -164,10 +164,15 @@ def revoke_own_sessions(request: Request, csrf: str = Form(...)):
         user = core.current_user(request, db)
         if not user:
             return core.login_redirect()
-        revoke_sessions(db, user, request)
-        core.add_event(db, "USER_SESSIONS_REVOKED", actor=user, details={"user_id": str(user.id), "scope": "other_sessions"}, source="portal")
+        revoke_own_record(db, user, request)
         db.commit()
     return RedirectResponse("/profile?status=sessions_revoked", status_code=303)
+
+
+def revoke_own_record(db, user: User, request: Request) -> None:
+    """Close every other session of the signed-in user (audited). Caller commits."""
+    revoke_sessions(db, user, request)
+    core.add_event(db, "USER_SESSIONS_REVOKED", actor=user, details={"user_id": str(user.id), "scope": "other_sessions"}, source="portal")
 
 
 def admin_revoke(db, actor, target, request: Request | None = None) -> None:
