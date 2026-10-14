@@ -2540,5 +2540,69 @@
         "text": "username (5.4+) o user (versioni precedenti)"
       }
     }
+  },
+  "genieacs": {
+    "title": "Integrazioni · GenieACS / TR-069",
+    "subtitle": "Connettore in sola lettura verso la NBI di GenieACS per l'inventario e l'associazione delle CPE TR-069.",
+    "notIntegrated": "GenieACS integrato non attivo: sul server esegui cd /srv/network-platform && sudo ./manage.sh acs-enable e NSM si collegherà da solo. Per un GenieACS esterno compila il modulo qui sotto.",
+    "integrated": "GenieACS integrato",
+    "inUse": "In uso",
+    "inUseAuto": "In uso · collegato automaticamente",
+    "useIntegrated": "Usa GenieACS integrato",
+    "integratedHelp": "Lo stack Docker di NSM include GenieACS ({{url}}, rete interna): NSM si collega in automatico, non serve inserire l'URL. Le CPE vanno configurate con ACS URL http://<indirizzo-server>:7547. Usa il modulo qui sotto solo per un GenieACS esterno.",
+    "linked": "Connettore collegato al GenieACS integrato. Esegui «Test connessione» per verificarlo.",
+    "external": "GenieACS esterno (NBI)",
+    "externalHelp": "La NBI (porta 7557 di default) non ha autenticazione propria: esponila solo su rete di gestione o dietro un reverse proxy con HTTP Basic o Bearer. Le credenziali vengono cifrate.",
+    "url": "URL NBI",
+    "urlHelp": "NSM aggiunge /devices. localhost e indirizzi loopback non sono ammessi.",
+    "authModes": {
+      "none": "Nessuna (rete di gestione)",
+      "basic": "HTTP Basic (reverse proxy)",
+      "bearer": "Bearer token (reverse proxy)"
+    },
+    "username": "Username (solo HTTP Basic)",
+    "secret": "Password o token",
+    "macPaths": "Percorsi parametro MAC (uno per riga)",
+    "macPathsHelp": "Usati per la ricerca per MAC quando il seriale non è disponibile. TR-098 (InternetGatewayDevice.…) e TR-181 (Device.…).",
+    "onlineWindow": "Finestra online (minuti)",
+    "onlineWindowHelp": "Una CPE è considerata online se l'ultimo Inform è più recente di questa finestra.",
+    "enable": "Abilita connettore",
+    "verifyTls": "Verifica certificato TLS (per URL https)",
+    "saved": "Configurazione GenieACS salvata. Le eventuali credenziali sono cifrate.",
+    "state": "Stato connettore",
+    "stateHelp": "Il test esegue una sola lettura di /devices con un filtro che non restituisce CPE.",
+    "endpoint": "Endpoint",
+    "mode": "Modalità",
+    "readOnly": "sola lettura",
+    "lastTest": "Ultimo test",
+    "testOutcome": "Esito test",
+    "outcomes": {
+      "success": "riuscito",
+      "failed": "non riuscito"
+    },
+    "never": "mai eseguito",
+    "lastRead": "Ultima lettura CPE",
+    "lastError": "Ultimo errore",
+    "none": "Nessuna istanza GenieACS configurata.",
+    "flowTitle": "Flusso di associazione",
+    "flowHelp": "La gerarchia cliente/sede resta quella di NSM; GenieACS non viene mai modificato.",
+    "flow": {
+      "create": {
+        "title": "CPE in NSM",
+        "text": "L'operatore crea la CPE TP-Link/TR-069 con seriale o MAC."
+      },
+      "search": {
+        "title": "Ricerca",
+        "text": "NSM cerca in GenieACS per seriale (_deviceId._SerialNumber) e, in alternativa, per MAC."
+      },
+      "preview": {
+        "title": "Anteprima",
+        "text": "ID ACS, produttore, modello, firmware, hardware, IP e ultimo Inform."
+      },
+      "link": {
+        "title": "Associazione",
+        "text": "Salva l'ID GenieACS stabile; il refresh successivo verifica che il seriale non sia cambiato."
+      }
+    }
   }
 }

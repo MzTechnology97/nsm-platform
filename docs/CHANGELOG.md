@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.135 — 2026-10-14
+
+New interface (React) — GenieACS connector, phase 6o
+- **GenieACS / TR-069 in `/app/admin/integrations/genieacs`**, in the integration sub-tabs:
+  - **Built-in GenieACS:** when the Docker stack runs it, *Use built-in GenieACS* links NSM to it; otherwise the page shows how to enable it;
+  - **External GenieACS:** NBI URL (localhost and loopback refused), authentication (none, HTTP Basic, Bearer), password or token (encrypted, kept when empty, never sent back to the browser), MAC parameter paths, online window, connector enabled, TLS check;
+  - **Connector status:** endpoint, read-only mode, authentication, last test, outcome, last CPE read and last error, with *Test connection*;
+  - **Linking flow** of a CPE between NSM and GenieACS.
+- The integrations hub opens the new page from the GenieACS card.
+- Saving the connector, linking the built-in GenieACS and the connection test are now shared functions (`genieacs_connector.save_config`/`use_internal`/`test_connection`/`auth_info`), used by both interfaces; the classic page behaves as before.
+- **API.** All routes need `users.manage`; the `POST` routes also need the CSRF header:
+  - `GET /api/ui/v1/admin/integrations/genieacs`;
+  - `POST /api/ui/v1/admin/integrations/genieacs`, `/internal`, `/test`.
+
 ## 0.49.134 — 2026-10-14
 
 New interface (React) — Zabbix connector, phase 6n

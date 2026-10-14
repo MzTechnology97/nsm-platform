@@ -476,17 +476,128 @@ def _auth_label(connection):
     return {"none": "Nessuna / rete privata", "basic": "HTTP Basic", "bearer": "Bearer token"}.get(mode, mode)
 
 
-def _admin_render(request, db, user, *, message=None, error=None):
-    connection = _connection(db)
-    auth_mode = "none"
-    auth_username = ""
+def auth_info(connection) -> tuple[str, str]:
+    """(auth mode, username) of the stored NBI credentials, without the secret."""
     if connection:
         try:
-            auth_data = _load_auth(connection)
-            auth_mode = auth_data.get("mode", "none")
-            auth_username = auth_data.get("username", "")
+            data = _load_auth(connection)
+            return data.get("mode", "none"), data.get("username", "")
         except GenieAcsConnectorError:
             pass
+    return "none", ""
+
+
+def save_config(db, user, *, base_url: str, auth_mode: str, auth_username: str, auth_secret: str, mac_parameter_paths: str,
+                online_window_minutes, enabled: bool, verify_tls: bool) -> ConnectorIntegration:
+    """Store an external NBI (credentials encrypted, kept when empty), audited.
+
+    Raises ``ValueError`` or ``GenieAcsConnectorError`` with the reason. Caller commits.
+    """
+    normalized_url = normalize_base_url(base_url)
+    row = _connection(db)
+    auth_data = _updated_auth(row, auth_mode, auth_username, auth_secret)
+    paths = []
+    for line in str(mac_parameter_paths or "").splitlines():
+        path = line.strip()
+        if path and path not in paths:
+            paths.append(path[:500])
+    if not paths:
+        paths = list(DEFAULT_MAC_PARAMETER_PATHS)
+    try:
+        window = max(5, min(int(online_window_minutes), 10080))
+    except (TypeError, ValueError):
+        window = GENIEACS_ONLINE_WINDOW_MINUTES
+    settings = {
+        "mode": "read_only_nbi",
+        "mac_parameter_paths": paths[:20],
+        "online_window_minutes": window,
+    }
+    encrypted = encrypt_text(json.dumps(auth_data, separators=(",", ":")))
+    if row:
+        row.base_url = normalized_url
+        row.secret_encrypted = encrypted
+        row.is_enabled = enabled
+        row.verify_tls = verify_tls
+        row.settings = settings
+    else:
+        row = ConnectorIntegration(
+            provider=GENIEACS_PROVIDER,
+            name="GenieACS / TR-069",
+            base_url=normalized_url,
+            secret_encrypted=encrypted,
+            is_enabled=enabled,
+            verify_tls=verify_tls,
+            settings=settings,
+        )
+        db.add(row)
+    core.add_event(
+        db,
+        "GENIEACS_CONNECTOR_CONFIGURED",
+        actor=user,
+        details={
+            "base_url": normalized_url,
+            "enabled": row.is_enabled,
+            "verify_tls": row.verify_tls,
+            "auth_mode": auth_data["mode"],
+            "mac_path_count": len(paths[:20]),
+            "online_window_minutes": window,
+            "mode": "read_only_nbi",
+        },
+        source="portal",
+    )
+    return row
+
+
+def use_internal(db, user) -> ConnectorIntegration:
+    """Point the connector at the integrated GenieACS (internal network, no authentication), audited.
+
+    ValueError when the integrated GenieACS is not running. Caller commits.
+    """
+    url = internal_nbi_url()
+    if not url:
+        raise ValueError("GenieACS integrato non attivo: esegui ./manage.sh acs-enable sul server.")
+    row = _connection(db)
+    settings = dict(row.settings or {}) if row else {}
+    settings.update({"mode": "read_only_nbi", "integrated": True})
+    settings.setdefault("mac_parameter_paths", list(DEFAULT_MAC_PARAMETER_PATHS))
+    settings.setdefault("online_window_minutes", GENIEACS_ONLINE_WINDOW_MINUTES)
+    encrypted = encrypt_text(json.dumps(_auth_payload("none"), separators=(",", ":")))
+    if row:
+        row.base_url, row.secret_encrypted, row.is_enabled, row.settings = url, encrypted, True, settings
+    else:
+        row = ConnectorIntegration(provider=GENIEACS_PROVIDER, name="GenieACS / TR-069 (integrato)", base_url=url,
+                                   secret_encrypted=encrypted, is_enabled=True, verify_tls=True, settings=settings)
+        db.add(row)
+    core.add_event(db, "GENIEACS_CONNECTOR_CONFIGURED", actor=user,
+                   details={"base_url": url, "enabled": True, "auth_mode": "none", "integrated": True, "mode": "read_only_nbi"}, source="portal")
+    return row
+
+
+def test_connection(db, user, row) -> tuple[bool, str]:
+    """Read /devices once with a filter matching nothing; outcome stored and audited. Returns (ok, message). Caller commits."""
+    try:
+        _http_get(row, query={"_id": "__nsm_connector_test_nonexistent__"}, projection=("_id",))
+        row.last_test_status, row.last_error = "success", None
+        ok, message, result = True, "Connessione GenieACS NBI riuscita in modalità read-only.", "success"
+    except GenieAcsConnectorError as exc:
+        row.last_test_status, row.last_error = "failed", str(exc)[:500]
+        ok, message, result = False, row.last_error, "failed"
+    row.last_tested_at = utcnow()
+    core.add_event(
+        db,
+        "GENIEACS_CONNECTOR_TESTED",
+        actor=user,
+        details={"result": result, "base_url": row.base_url},
+        source="genieacs",
+        result=result,
+        severity="warning" if result == "failed" else "info",
+    )
+    return ok, message
+
+
+def _admin_render(request, db, user, *, message=None, error=None):
+    connection = _connection(db)
+    auth_mode, auth_username = auth_info(connection)
     return core.render(
         request,
         db,
@@ -524,65 +635,14 @@ def admin_genieacs_save(
     csrf: str = Form(...),
 ):
     validate_csrf(request, csrf)
-    try:
-        normalized_url = normalize_base_url(base_url)
-    except ValueError as exc:
-        with SessionLocal() as db:
-            user = core.require_admin(request, db)
-            return _admin_render(request, db, user, error=str(exc))
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        row = _connection(db)
         try:
-            auth_data = _updated_auth(row, auth_mode, auth_username, auth_secret)
+            save_config(db, user, base_url=base_url, auth_mode=auth_mode, auth_username=auth_username, auth_secret=auth_secret,
+                        mac_parameter_paths=mac_parameter_paths, online_window_minutes=online_window_minutes,
+                        enabled=is_enabled is not None, verify_tls=verify_tls is not None)
         except (ValueError, GenieAcsConnectorError) as exc:
             return _admin_render(request, db, user, error=str(exc))
-        paths = []
-        for line in str(mac_parameter_paths or "").splitlines():
-            path = line.strip()
-            if path and path not in paths:
-                paths.append(path[:500])
-        if not paths:
-            paths = list(DEFAULT_MAC_PARAMETER_PATHS)
-        window = max(5, min(int(online_window_minutes), 10080))
-        settings = {
-            "mode": "read_only_nbi",
-            "mac_parameter_paths": paths[:20],
-            "online_window_minutes": window,
-        }
-        encrypted = encrypt_text(json.dumps(auth_data, separators=(",", ":")))
-        if row:
-            row.base_url = normalized_url
-            row.secret_encrypted = encrypted
-            row.is_enabled = is_enabled is not None
-            row.verify_tls = verify_tls is not None
-            row.settings = settings
-        else:
-            row = ConnectorIntegration(
-                provider=GENIEACS_PROVIDER,
-                name="GenieACS / TR-069",
-                base_url=normalized_url,
-                secret_encrypted=encrypted,
-                is_enabled=is_enabled is not None,
-                verify_tls=verify_tls is not None,
-                settings=settings,
-            )
-            db.add(row)
-        core.add_event(
-            db,
-            "GENIEACS_CONNECTOR_CONFIGURED",
-            actor=user,
-            details={
-                "base_url": normalized_url,
-                "enabled": row.is_enabled,
-                "verify_tls": row.verify_tls,
-                "auth_mode": auth_data["mode"],
-                "mac_path_count": len(paths[:20]),
-                "online_window_minutes": window,
-                "mode": "read_only_nbi",
-            },
-            source="portal",
-        )
         db.commit()
         return _admin_render(request, db, user, message="Configurazione GenieACS salvata. Le eventuali credenziali sono cifrate.")
 
@@ -602,23 +662,10 @@ def admin_genieacs_internal(request: Request, csrf: str = Form(...)):
     validate_csrf(request, csrf)
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        url = internal_nbi_url()
-        if not url:
-            return _admin_render(request, db, user, error="GenieACS integrato non attivo: esegui ./manage.sh acs-enable sul server.")
-        row = _connection(db)
-        settings = dict(row.settings or {}) if row else {}
-        settings.update({"mode": "read_only_nbi", "integrated": True})
-        settings.setdefault("mac_parameter_paths", list(DEFAULT_MAC_PARAMETER_PATHS))
-        settings.setdefault("online_window_minutes", GENIEACS_ONLINE_WINDOW_MINUTES)
-        encrypted = encrypt_text(json.dumps(_auth_payload("none"), separators=(",", ":")))
-        if row:
-            row.base_url, row.secret_encrypted, row.is_enabled, row.settings = url, encrypted, True, settings
-        else:
-            row = ConnectorIntegration(provider=GENIEACS_PROVIDER, name="GenieACS / TR-069 (integrato)", base_url=url,
-                                       secret_encrypted=encrypted, is_enabled=True, verify_tls=True, settings=settings)
-            db.add(row)
-        core.add_event(db, "GENIEACS_CONNECTOR_CONFIGURED", actor=user,
-                       details={"base_url": url, "enabled": True, "auth_mode": "none", "integrated": True, "mode": "read_only_nbi"}, source="portal")
+        try:
+            use_internal(db, user)
+        except ValueError as exc:
+            return _admin_render(request, db, user, error=str(exc))
         db.commit()
         return _admin_render(request, db, user, message="Connettore collegato al GenieACS integrato. Esegui «Test connessione» per verificarlo.")
 
@@ -631,33 +678,9 @@ def admin_genieacs_test(request: Request, csrf: str = Form(...)):
         row = _connection(db)
         if not row:
             return _admin_render(request, db, user, error="Configura prima il connettore GenieACS.")
-        try:
-            _http_get(
-                row,
-                query={"_id": "__nsm_connector_test_nonexistent__"},
-                projection=("_id",),
-            )
-            row.last_test_status = "success"
-            row.last_error = None
-            message = "Connessione GenieACS NBI riuscita in modalità read-only."
-            result = "success"
-        except GenieAcsConnectorError as exc:
-            row.last_test_status = "failed"
-            row.last_error = str(exc)[:500]
-            message = None
-            result = "failed"
-        row.last_tested_at = utcnow()
-        core.add_event(
-            db,
-            "GENIEACS_CONNECTOR_TESTED",
-            actor=user,
-            details={"result": result, "base_url": row.base_url},
-            source="genieacs",
-            result=result,
-            severity="warning" if result == "failed" else "info",
-        )
+        ok, message = test_connection(db, user, row)
         db.commit()
-        return _admin_render(request, db, user, message=message, error=row.last_error if result == "failed" else None)
+        return _admin_render(request, db, user, message=message if ok else None, error=None if ok else message)
 
 
 def _device(db, device_id):

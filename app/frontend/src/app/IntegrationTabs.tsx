@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 const INTEGRATION_PAGES: { key: string; classic: string; route?: string }[] = [
   { key: "uisp", classic: "/admin/integrations/uisp" },
   { key: "nvd", classic: "/admin/integrations/nvd", route: "/admin/integrations/nvd" },
-  { key: "genieacs", classic: "/admin/integrations/genieacs" },
+  { key: "genieacs", classic: "/admin/integrations/genieacs", route: "/admin/integrations/genieacs" },
   { key: "zabbix", classic: "/admin/integrations/zabbix", route: "/admin/integrations/zabbix" },
   { key: "cnmaestro", classic: "/admin/integrations/cnmaestro", route: "/admin/integrations/cnmaestro" },
 ];

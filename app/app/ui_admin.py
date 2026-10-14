@@ -45,7 +45,10 @@
   returned) and last sync; ``POST`` save, test, sync (``cnmaestro_connector``);
 - ``GET /api/ui/v1/admin/integrations/zabbix``: connection, host settings, last
   sync and problems, devices behind a shared IP; ``POST`` save, test, sync and
-  the address Zabbix must use for a device (``zabbix_connector``).
+  the address Zabbix must use for a device (``zabbix_connector``);
+- ``GET /api/ui/v1/admin/integrations/genieacs``: NBI connection (secret never
+  returned), built-in GenieACS, last test; ``POST`` save, use the built-in
+  one, test (``genieacs_connector``).
 """
 from __future__ import annotations
 
@@ -913,6 +916,70 @@ def admin_zabbix_device_ip(request: Request, device_id: uuid.UUID, body: dict = 
         if device is None:
             raise HTTPException(404, {"code": "not_found", "message": "Apparato non trovato."})
         return {"zabbix_ip": zabbix_connector.set_device_ip(db, user, device, _text(body, "zabbix_ip"))}
+
+    return _admin_write(request, run)
+
+
+def _genieacs_payload(db) -> dict:
+    row = genieacs_connector._connection(db)
+    mode, username = genieacs_connector.auth_info(row)
+    settings = dict(row.settings or {}) if row else {}
+    internal = genieacs_connector.internal_nbi_url()
+    return jsonable_encoder({
+        "configured": row is not None, "enabled": bool(row and row.is_enabled), "base_url": row.base_url if row else "",
+        "auth_mode": mode, "auth_username": username, "verify_tls": bool(row.verify_tls) if row else True,
+        "mac_parameter_paths": list(genieacs_connector._mac_paths(row)) if row else list(genieacs_connector.DEFAULT_MAC_PARAMETER_PATHS),
+        "online_window_minutes": settings.get("online_window_minutes", genieacs_connector.GENIEACS_ONLINE_WINDOW_MINUTES),
+        "internal_url": internal, "uses_internal": bool(row and internal and row.base_url == internal), "auto_linked": bool(settings.get("auto")),
+        "last_tested_at": row.last_tested_at if row else None, "last_test_status": row.last_test_status if row else None,
+        "last_error": row.last_error if row else None, "last_sync_at": row.last_sync_at if row else None,
+    })
+
+
+@router.get("/admin/integrations/genieacs")
+def admin_genieacs(request: Request):
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        return _genieacs_payload(db)
+
+
+@router.post("/admin/integrations/genieacs", dependencies=[Depends(require_csrf)])
+def admin_genieacs_save(request: Request, body: dict = Body(default={})):
+    def save(db, user):
+        try:
+            genieacs_connector.save_config(
+                db, user, base_url=_text(body, "base_url"), auth_mode=_text(body, "auth_mode") or "none", auth_username=_text(body, "auth_username"),
+                auth_secret=_text(body, "auth_secret"), mac_parameter_paths=_text(body, "mac_parameter_paths"),
+                online_window_minutes=body.get("online_window_minutes"), enabled=body.get("enabled") is True, verify_tls=body.get("verify_tls") is not False)
+        except (ValueError, genieacs_connector.GenieAcsConnectorError) as error:
+            raise HTTPException(422, {"code": "invalid", "message": str(error)}) from None
+        db.flush()
+        return _genieacs_payload(db)
+
+    return _admin_write(request, save)
+
+
+@router.post("/admin/integrations/genieacs/internal", dependencies=[Depends(require_csrf)])
+def admin_genieacs_internal(request: Request):
+    def run(db, user):
+        try:
+            genieacs_connector.use_internal(db, user)
+        except ValueError as error:
+            raise HTTPException(422, {"code": "no_internal", "message": str(error)}) from None
+        db.flush()
+        return _genieacs_payload(db)
+
+    return _admin_write(request, run)
+
+
+@router.post("/admin/integrations/genieacs/test", dependencies=[Depends(require_csrf)])
+def admin_genieacs_test(request: Request):
+    def run(db, user):
+        row = genieacs_connector._connection(db)
+        if row is None:
+            raise HTTPException(422, {"code": "not_configured", "message": "Configura prima il connettore GenieACS."})
+        ok, message = genieacs_connector.test_connection(db, user, row)
+        return {"ok": ok, "message": message}
 
     return _admin_write(request, run)
 
