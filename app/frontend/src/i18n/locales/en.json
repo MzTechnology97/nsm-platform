@@ -326,5 +326,97 @@
       "agent_version": "A newer agent is needed: update it from the Agent tab.",
       "no_target": "Set the NSM IPv4 address reachable by the devices in Administration → Syslog."
     }
+  },
+  "backups": {
+    "metrics": {
+      "latest": "Last successful backup",
+      "policy": "Effective policy",
+      "archive": "Archive",
+      "restore": "Last restore test"
+    },
+    "never": "Never",
+    "noSuccess": "no successful run",
+    "noPolicy": "None",
+    "noPolicyHint": "set up a policy in Backup",
+    "files_one": "{{count}} file",
+    "files_other": "{{count}} files",
+    "archiveHint": "{{size}} · {{count}} readable exports",
+    "restore": {
+      "passed": "Passed",
+      "partial": "Partial",
+      "failed": "Failed",
+      "none": "no test recorded"
+    },
+    "archive": {
+      "title": "Archive",
+      "hint": "Files of this device grouped by run. .rsc exports open and compare in the portal; binary backups can only be downloaded.",
+      "empty": "No backup archived: use “Back up now” or wait for the policy schedule.",
+      "noMatch": "No run matches the filters.",
+      "noFiles": "No file archived for this run."
+    },
+    "links": {
+      "restoreTests": "Restore tests",
+      "policies": "Backup policies"
+    },
+    "filters": {
+      "kind": "File type",
+      "status": "Outcome",
+      "reset": "Clear filters",
+      "kinds": {
+        "all": "All files",
+        "binary": "Binary backups (.backup)",
+        "export": "Text exports (.rsc)"
+      },
+      "statuses": {
+        "all": "All outcomes",
+        "success": "Successful",
+        "failed": "Failed"
+      }
+    },
+    "status": {
+      "pending": "queued",
+      "running": "running",
+      "success": "succeeded",
+      "failed": "failed",
+      "partial": "partial",
+      "cancelled": "cancelled",
+      "expired": "expired"
+    },
+    "columns": {
+      "file": "File",
+      "size": "Size",
+      "sha": "SHA-256",
+      "restore": "Restore test",
+      "actions": "Actions"
+    },
+    "actions": {
+      "view": "Open / Diff",
+      "download": "Download",
+      "restore": "Restore test",
+      "delete": "Delete"
+    },
+    "deleteConfirm": "Permanently delete {{name}} from the archive?",
+    "run": {
+      "now": "Back up now",
+      "ready": "Ready for an immediate backup through the agent.",
+      "pending": "Backup queued or running",
+      "queued": "Backup queued: the agent runs it at the next heartbeat.",
+      "already": "A backup is already queued or running."
+    },
+    "blocker": {
+      "vendor": "Immediate agent backup is available for MikroTik; other devices follow their integration.",
+      "offline": "The device must be online for an immediate backup.",
+      "no_agent": "Complete the agent enrollment before backing up.",
+      "no_policy": "No effective backup policy for this device.",
+      "pending": "A backup is already queued or running."
+    }
+  },
+  "cron": {
+    "undefined": "Not set",
+    "everyHours_one": "Every hour",
+    "everyHours_other": "Every {{count}} hours",
+    "daily": "Every day at {{time}}",
+    "weekly": "Every {{day}} at {{time}}",
+    "monthly": "Every month on day {{day}} at {{time}}"
   }
 }
