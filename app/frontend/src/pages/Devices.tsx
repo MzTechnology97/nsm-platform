@@ -1,4 +1,4 @@
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -191,7 +191,7 @@ export function Devices() {
 function DeviceLine({ device, top, height, locale }: { device: DeviceRow; top: number; height: number; locale: string }) {
   const { t } = useTranslation();
   return (
-    <a className="ui-tr ui-device-grid" role="row" href={`/devices/${device.id}`} style={{ transform: `translateY(${top}px)`, height }}>
+    <Link className="ui-tr ui-device-grid" role="row" to="/devices/$deviceId" params={{ deviceId: device.id }} style={{ transform: `translateY(${top}px)`, height }}>
       <span role="cell" className="ui-td-main">
         <strong>{device.name}</strong>
         <small>{device.model ?? device.device_type ?? ""}</small>
@@ -210,6 +210,6 @@ function DeviceLine({ device, top, height, locale }: { device: DeviceRow; top: n
         {device.severe_cves > 0 && <span className="ui-badge ui-badge-danger" title={t("devices.severeCves")}>{device.severe_cves} CVE</span>}
       </span>
       <span role="cell" title={device.last_seen ?? ""}>{formatRelative(device.last_seen, locale)}</span>
-    </a>
+    </Link>
   );
 }

@@ -2,6 +2,7 @@ import { createRootRoute, createRoute, createRouter } from "@tanstack/react-rout
 import { useTranslation } from "react-i18next";
 
 import type { DeviceFilters } from "../api/devices";
+import { DeviceDetail } from "../pages/DeviceDetail";
 import { Devices } from "../pages/Devices";
 import { Home } from "../pages/Home";
 import { Layout } from "./Layout";
@@ -28,7 +29,9 @@ const rootRoute = createRootRoute({ component: Layout, notFoundComponent: NotFou
 const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: Home });
 const devicesRoute = createRoute({ getParentRoute: () => rootRoute, path: "/devices", component: Devices, validateSearch: parseDeviceSearch });
 
-export const routeTree = rootRoute.addChildren([homeRoute, devicesRoute]);
+const deviceRoute = createRoute({ getParentRoute: () => rootRoute, path: "/devices/$deviceId", component: DeviceDetail });
+
+export const routeTree = rootRoute.addChildren([homeRoute, devicesRoute, deviceRoute]);
 
 export const router = createRouter({ routeTree, basepath: "/app", defaultPreload: "intent" });
 

@@ -1,0 +1,169 @@
+import { Link, useParams } from "@tanstack/react-router";
+import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+
+import { ApiError } from "../api/client";
+import { type DeviceDetail as Detail, useDevice } from "../api/device";
+import { formatRelative } from "../lib/format";
+
+/** Tabs already available in the new interface; the others open the classic page. */
+const MIGRATED_TABS: Record<string, string> = { overview: "" };
+
+export function DeviceDetail() {
+  const { t } = useTranslation();
+  const { deviceId } = useParams({ from: "/devices/$deviceId" });
+  const query = useDevice(deviceId);
+
+  if (query.isPending) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (query.isError) {
+    const status = query.error instanceof ApiError ? query.error.status : 0;
+    return <div className="ui-empty">{status === 404 ? t("device.notFound") : t("app.error")}</div>;
+  }
+  return <DeviceView detail={query.data} />;
+}
+
+function DeviceView({ detail }: { detail: Detail }) {
+  const { t, i18n } = useTranslation();
+  const { device } = detail;
+  const severe = (detail.vulnerabilities.critical ?? 0) + (detail.vulnerabilities.high ?? 0);
+  const openVulns = Object.values(detail.vulnerabilities).reduce((sum, value) => sum + value, 0);
+
+  return (
+    <section className="ui-page ui-device">
+      <nav className="ui-breadcrumbs" aria-label={t("device.breadcrumbs")}>
+        <Link to="/devices">{t("nav.devices")}</Link>
+        {device.customer && (
+          <>
+            <span aria-hidden="true">›</span>
+            <a href={`/customers/${device.customer.id}`}>{device.customer.name}</a>
+          </>
+        )}
+        {device.site && (
+          <>
+            <span aria-hidden="true">›</span>
+            <span>{device.site.name}</span>
+          </>
+        )}
+      </nav>
+
+      <header className="ui-page-header ui-page-header-row">
+        <div>
+          <h1>
+            {device.name} <span className={`ui-status ui-status-${device.status}`}>{t(`devices.statusLabel.${device.status}`, { defaultValue: device.status })}</span>
+          </h1>
+          <p>{[device.vendor, device.model, device.device_type].filter(Boolean).join(" · ")}</p>
+        </div>
+        <div className="ui-actions">
+          {detail.actions.reboot && (
+            <a className="ui-button ui-button-ghost" href={`/devices/${device.id}/reboot`}>
+              {t("device.actions.reboot")}
+            </a>
+          )}
+          {detail.actions.incident && (
+            <a className="ui-button ui-button-ghost" href={`/incidents/new?device=${device.id}`}>
+              {t("device.actions.incident")}
+            </a>
+          )}
+          {detail.actions.manage && (
+            <a className="ui-button ui-button-ghost" href={`/devices/${device.id}/manage`}>
+              {t("device.actions.manage")}
+            </a>
+          )}
+        </div>
+      </header>
+
+      <nav className="ui-tabs" aria-label={t("device.tabs.label")}>
+        {detail.tabs.map((tab) =>
+          tab.key in MIGRATED_TABS ? (
+            <Link key={tab.key} to="/devices/$deviceId" params={{ deviceId: device.id }} className="ui-tab is-active" aria-current="page">
+              {t(`device.tabs.${tab.key}`)}
+            </Link>
+          ) : (
+            <a key={tab.key} href={tab.classic} className="ui-tab is-classic">
+              {t(`device.tabs.${tab.key}`)}
+            </a>
+          ),
+        )}
+      </nav>
+
+      <div className="ui-metrics">
+        <Metric label={t("device.metrics.status")} value={t(`devices.statusLabel.${device.status}`, { defaultValue: device.status })}
+          hint={device.last_seen ? t("device.seen", { when: formatRelative(device.last_seen, i18n.language) }) : t("device.neverSeen")} tone={device.status === "offline" ? "danger" : undefined} />
+        <Metric label={t("device.metrics.firmware")} value={device.firmware ?? "—"}
+          hint={device.recommended_firmware && device.recommended_firmware !== device.firmware
+            ? t("device.recommended", { version: device.recommended_firmware })
+            : t(`device.firmwareStatus.${device.firmware_status ?? "unknown"}`, { defaultValue: "" })}
+          tone={device.firmware_status === "security_update" ? "danger" : device.firmware_status === "update_available" ? "warning" : undefined} />
+        <Metric label={t("device.metrics.vulnerabilities")} value={String(openVulns)} hint={t("device.severe", { count: severe })} tone={severe ? "danger" : undefined} />
+        <Metric label={t("device.metrics.backup")} value={detail.backup.method}
+          hint={detail.backup.last_success ? t("device.lastBackup", { when: formatRelative(detail.backup.last_success, i18n.language) }) : t("device.noBackup")}
+          tone={detail.backup.executable ? undefined : "warning"} />
+        <Metric label={t("device.metrics.ping")}
+          value={!detail.icmp.enabled ? t("device.pingOff") : detail.icmp.down ? t("device.pingDown") : detail.icmp.last_rtt != null ? `${detail.icmp.last_rtt} ms` : t("device.pingWaiting")}
+          hint={detail.icmp.enabled && detail.icmp.last_loss != null ? t("device.loss", { value: detail.icmp.last_loss }) : (detail.icmp.target ?? "")}
+          tone={detail.icmp.down ? "danger" : undefined} />
+      </div>
+
+      <div className="ui-two-columns">
+        <section className="ui-panel">
+          <h2>{t("device.identity.title")}</h2>
+          <dl className="ui-dl">
+            <Field label={t("device.identity.identity")} value={device.identity} />
+            <Field label={t("device.identity.managementIp")} value={device.management_ip} mono />
+            <Field label={t("device.identity.lanIp")} value={device.lan_ip} mono />
+            <Field label={t("device.identity.seenFrom")} value={device.seen_from !== device.management_ip ? device.seen_from : null} mono />
+            <Field label={t("device.identity.mac")} value={device.primary_mac} mono />
+            <Field label={t("device.identity.serial")} value={device.serial_number} mono />
+            <Field label={t("device.identity.architecture")} value={device.architecture} />
+            <Field label={t("device.identity.routerboot")} value={device.routerboot} />
+            <Field label={t("device.identity.uptime")} value={device.uptime} />
+            <Field label={t("device.identity.source")} value={device.management_source} />
+            <Field label={t("device.identity.lifecycle")} value={device.lifecycle_status && device.lifecycle_status !== "unknown" ? [device.lifecycle_status.toUpperCase(), device.eos_date].filter(Boolean).join(" · ") : null} />
+            {detail.agent && (
+              <Field label={t("device.identity.agent")} value={[detail.agent.version, detail.agent.transport].filter(Boolean).join(" · ") || t("device.agentMissing")}>
+                <a href={`/devices/${device.id}/agent`}>{[detail.agent.version, detail.agent.transport].filter(Boolean).join(" · ") || t("device.agentMissing")}</a>
+              </Field>
+            )}
+          </dl>
+        </section>
+
+        <section className="ui-panel">
+          <h2>{t("device.issues.title")}</h2>
+          {detail.issues.length === 0 ? (
+            <p className="ui-muted">{t("device.issues.none")}</p>
+          ) : (
+            <ul className="ui-list">
+              {detail.issues.map((issue) => (
+                <li key={issue.id}>
+                  <span className={`ui-severity ui-severity-${issue.severity}`}>{issue.severity}</span>
+                  <a href={`/action-center?device=${device.id}`}>{issue.title}</a>
+                  <small>{formatRelative(issue.created_at, i18n.language)}</small>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    </section>
+  );
+}
+
+function Metric({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "danger" | "warning" }) {
+  return (
+    <article className={`ui-metric${tone ? ` ui-metric-${tone}` : ""}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {hint && <small>{hint}</small>}
+    </article>
+  );
+}
+
+function Field({ label, value, mono, children }: { label: string; value: string | null | undefined; mono?: boolean; children?: ReactNode }) {
+  if (!value) return null;
+  return (
+    <div>
+      <dt>{label}</dt>
+      <dd className={mono ? "ui-mono" : undefined}>{children ?? value}</dd>
+    </div>
+  );
+}

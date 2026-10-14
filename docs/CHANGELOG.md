@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.99 — 2026-10-14
+
+New interface (React) — device overview, phase 1b
+- **Device page in `/app/devices/<id>`**, opened from the new device list. It has breadcrumbs (devices › customer › site) and the same action buttons as the classic page (reboot, open incident, manage), shown only when the user is allowed.
+- **Tabs.** The same tabs as the classic page, according to the vendor (Monitor, Agent, Diagnostics… for MikroTik; UISP for Ubiquiti; cnMaestro; ACS). *Panoramica* is in the new interface; the others still open the classic page.
+- **Overview.**
+  - Five cards: status and last contact, firmware with the recommended version, open vulnerabilities (critical/high), backup method and last success, ping from NSM.
+  - Identity: identity, management/LAN IP, address seen by NSM, MAC, serial, architecture, RouterBOOT, uptime, data source, lifecycle, agent.
+  - Open Action Center issues.
+  - Refreshed every minute.
+- **UI API.** `GET /api/ui/v1/devices/{id}` returns all of the above in one call, with the tabs available for the device and the actions allowed for the user. A device of another customer answers 404 to a scoped user.
+- Texts in Italian, English, French and Spanish.
+
 ## 0.49.98 — 2026-10-14
 
 New interface (React) — device list, phase 1a

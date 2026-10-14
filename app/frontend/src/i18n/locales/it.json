@@ -91,5 +91,74 @@
       "unknown": "Sconosciuto",
       "degraded": "Degradato"
     }
+  },
+  "device": {
+    "notFound": "Apparato non trovato o non visibile con i tuoi permessi.",
+    "breadcrumbs": "Percorso",
+    "actions": {
+      "reboot": "Riavvia",
+      "incident": "Apri incidente",
+      "manage": "Gestisci apparato"
+    },
+    "metrics": {
+      "status": "Stato",
+      "firmware": "Firmware",
+      "vulnerabilities": "Vulnerabilità aperte",
+      "backup": "Backup",
+      "ping": "Ping da NSM"
+    },
+    "seen": "visto {{when}}",
+    "neverSeen": "mai visto",
+    "recommended": "consigliato {{version}}",
+    "severe": "{{count}} critiche o alte",
+    "lastBackup": "ultimo riuscito {{when}}",
+    "noBackup": "nessun backup riuscito",
+    "pingOff": "non attivo",
+    "pingDown": "non risponde",
+    "pingWaiting": "in attesa",
+    "loss": "perdita {{value}}%",
+    "agentMissing": "non installato",
+    "identity": {
+      "title": "Identità",
+      "identity": "Identity",
+      "managementIp": "IP di gestione",
+      "lanIp": "IP LAN",
+      "seenFrom": "Visto da NSM",
+      "mac": "MAC",
+      "serial": "Seriale",
+      "architecture": "Architettura",
+      "routerboot": "RouterBOOT",
+      "uptime": "Uptime",
+      "source": "Origine dati",
+      "lifecycle": "Ciclo di vita",
+      "agent": "Agent"
+    },
+    "issues": {
+      "title": "Segnalazioni aperte",
+      "none": "Nessuna segnalazione aperta per questo apparato."
+    },
+    "tabs": {
+      "label": "Sezioni dell'apparato",
+      "overview": "Panoramica",
+      "monitor": "Monitor",
+      "logs": "Syslog",
+      "exposure": "Esposizione",
+      "configuration": "Configurazione",
+      "diagnostics": "Diagnostica",
+      "backups": "Backup",
+      "firmware": "Firmware",
+      "agent": "Agent",
+      "uisp": "UISP",
+      "cnmaestro": "cnMaestro",
+      "acs": "ACS",
+      "compliance": "Compliance",
+      "activity": "Attività"
+    },
+    "firmwareStatus": {
+      "current": "aggiornato",
+      "update_available": "aggiornamento disponibile",
+      "security_update": "aggiornamento di sicurezza",
+      "unknown": ""
+    }
   }
 }

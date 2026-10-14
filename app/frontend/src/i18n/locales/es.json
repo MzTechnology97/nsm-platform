@@ -91,5 +91,74 @@
       "unknown": "Desconocido",
       "degraded": "Degradado"
     }
+  },
+  "device": {
+    "notFound": "Equipo no encontrado o no visible con tus permisos.",
+    "breadcrumbs": "Ruta",
+    "actions": {
+      "reboot": "Reiniciar",
+      "incident": "Abrir incidente",
+      "manage": "Gestionar equipo"
+    },
+    "metrics": {
+      "status": "Estado",
+      "firmware": "Firmware",
+      "vulnerabilities": "Vulnerabilidades abiertas",
+      "backup": "Copia",
+      "ping": "Ping desde NSM"
+    },
+    "seen": "visto {{when}}",
+    "neverSeen": "nunca visto",
+    "recommended": "recomendado {{version}}",
+    "severe": "{{count}} críticas o altas",
+    "lastBackup": "última correcta {{when}}",
+    "noBackup": "ninguna copia correcta",
+    "pingOff": "desactivado",
+    "pingDown": "no responde",
+    "pingWaiting": "en espera",
+    "loss": "pérdida {{value}} %",
+    "agentMissing": "no instalado",
+    "identity": {
+      "title": "Identidad",
+      "identity": "Identidad",
+      "managementIp": "IP de gestión",
+      "lanIp": "IP LAN",
+      "seenFrom": "Visto por NSM",
+      "mac": "MAC",
+      "serial": "Número de serie",
+      "architecture": "Arquitectura",
+      "routerboot": "RouterBOOT",
+      "uptime": "Tiempo activo",
+      "source": "Origen de datos",
+      "lifecycle": "Ciclo de vida",
+      "agent": "Agente"
+    },
+    "issues": {
+      "title": "Avisos abiertos",
+      "none": "No hay avisos abiertos para este equipo."
+    },
+    "tabs": {
+      "label": "Secciones del equipo",
+      "overview": "Resumen",
+      "monitor": "Monitor",
+      "logs": "Syslog",
+      "exposure": "Exposición",
+      "configuration": "Configuración",
+      "diagnostics": "Diagnóstico",
+      "backups": "Copias",
+      "firmware": "Firmware",
+      "agent": "Agente",
+      "uisp": "UISP",
+      "cnmaestro": "cnMaestro",
+      "acs": "ACS",
+      "compliance": "Cumplimiento",
+      "activity": "Actividad"
+    },
+    "firmwareStatus": {
+      "current": "actualizado",
+      "update_available": "actualización disponible",
+      "security_update": "actualización de seguridad",
+      "unknown": ""
+    }
   }
 }

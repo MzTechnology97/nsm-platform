@@ -172,5 +172,106 @@ def device_facets(request: Request):
         return {"customers": customers, "sites": sites, "vendors": vendors}
 
 
+# Tabs of the classic device page: (key, classic path suffix, condition).
+TABS = (
+    ("overview", "", lambda d: True),
+    ("monitor", "/monitor", lambda d: d.vendor == "mikrotik"),
+    ("logs", "/logs", lambda d: True),
+    ("exposure", "/exposure", lambda d: True),
+    ("configuration", "/configuration", lambda d: d.vendor == "mikrotik"),
+    ("diagnostics", "/diagnostics", lambda d: d.vendor == "mikrotik"),
+    ("backups", "/backups", lambda d: True),
+    ("firmware", "/firmware-upgrade", lambda d: d.vendor == "mikrotik"),
+    ("agent", "/agent", lambda d: d.vendor == "mikrotik"),
+    ("uisp", "/uisp", lambda d: d.vendor == "ubiquiti"),
+    ("cnmaestro", "/cnmaestro", lambda d: _cambium(d)),
+    ("acs", "/genieacs", lambda d: _tr069(d)),
+    ("compliance", "/compliance", lambda d: True),
+    ("activity", "/jobs", lambda d: True),
+)
+
+
+def _cambium(device) -> bool:
+    try:
+        from app.cnmaestro_connector import is_cambium
+
+        return bool(is_cambium(device))
+    except Exception:
+        return False
+
+
+def _tr069(device) -> bool:
+    try:
+        from app.genieacs_connector import tr069_capable
+
+        return bool(tr069_capable(device))
+    except Exception:
+        return False
+
+
+def _date(value):
+    return value.isoformat() if value else None
+
+
+@router.get("/devices/{device_id}")
+def device_detail(request: Request, device_id: uuid.UUID):
+    """Everything the device overview shows, in one call."""
+    from app import icmp_monitor
+    from app.backup_capabilities import capability_for_device
+    from app.models import ActionIssue, BackupRun
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.read")
+        device = db.scalar(select(Device).where(Device.id == device_id).options(selectinload(Device.customer), selectinload(Device.site)))
+        if device is None:
+            raise HTTPException(404, "Apparato non trovato.")
+        data = device.inventory_data or {}
+        vulns = dict(db.execute(
+            select(func.lower(SecurityAdvisory.severity), func.count(DeviceVulnerability.id))
+            .join(SecurityAdvisory, SecurityAdvisory.id == DeviceVulnerability.advisory_id)
+            .where(DeviceVulnerability.device_id == device.id, DeviceVulnerability.status != "resolved")
+            .group_by(func.lower(SecurityAdvisory.severity))).all())
+        issues = list(db.scalars(select(ActionIssue).where(ActionIssue.device_id == device.id, ActionIssue.status.in_(["open", "acknowledged"]))
+                                 .order_by(ActionIssue.created_at.desc()).limit(10)))
+        last_backup = db.scalar(select(BackupRun).where(BackupRun.device_id == device.id, BackupRun.status == "success")
+                                .order_by(BackupRun.completed_at.desc().nullslast()).limit(1))
+        capability = capability_for_device(db, device)
+        icmp = icmp_monitor.panel(device)
+        row = device_row(device, int(vulns.get("critical", 0)) + int(vulns.get("high", 0)))
+        row.update({
+            "display_name": device.display_name,
+            "lan_ip": data.get("lan_ip"),
+            "seen_from": data.get("last_source_ip"),
+            "recommended_firmware": device.recommended_firmware_version,
+            "routerboot": device.routerboot_version,
+            "architecture": device.architecture,
+            "software_id": device.software_id,
+            "eol_date": _date(device.eol_date),
+            "eos_date": _date(device.eos_date),
+            "management_source": device.management_source,
+            "uptime": (data.get("metrics") or {}).get("uptime") or data.get("uptime"),
+            "created_at": _iso(device.created_at),
+        })
+        mikrotik = device.vendor == "mikrotik"
+        return {
+            "device": row,
+            "agent": {"transport": data.get("agent_transport"), "version": data.get("agent_version"),
+                      "last_heartbeat": data.get("last_heartbeat_at"), "update_state": data.get("agent_update_state")} if mikrotik else None,
+            "vulnerabilities": {key: int(value) for key, value in vulns.items()},
+            "issues": [{"id": str(i.id), "title": i.title, "severity": i.severity, "category": i.category, "status": i.status,
+                        "created_at": _iso(i.created_at)} for i in issues],
+            "backup": {"method": capability.label, "status": capability.status, "executable": capability.executable,
+                       "last_success": _iso(last_backup.completed_at or last_backup.started_at) if last_backup else None},
+            "icmp": {"enabled": icmp["enabled"], "target": icmp["effective_target"], "last_rtt": icmp["last_rtt"],
+                     "last_loss": icmp["last_loss"], "down": icmp["down"], "last_at": icmp["last_at"]},
+            "tabs": [{"key": key, "classic": f"/devices/{device.id}{suffix}"} for key, suffix, visible in TABS if visible(device)],
+            "actions": {
+                "reboot": mikrotik and core.has_permission(user, "firmware.execute"),
+                "incident": core.has_permission(user, "incidents.write"),
+                "manage": core.has_permission(user, "devices.write"),
+            },
+        }
+
+
 def install_ui_devices(app) -> None:
     app.include_router(router)
