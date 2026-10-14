@@ -6,7 +6,16 @@ import type { DeviceFilters } from "../api/devices";
 import { CustomerDetail, CustomerOverview, CustomerSites } from "../pages/CustomerDetail";
 import type { GraphsSearch } from "../pages/CustomerGraphs";
 import { Customers } from "../pages/Customers";
-import { AGENT_STATES, type AgentFilters, BACKUP_VIEWS, type BackupOverviewFilters, MONITORING_STATES, type MonitoringFilters } from "../api/operations";
+import {
+  AGENT_STATES,
+  type AgentFilters,
+  BACKUP_VIEWS,
+  type BackupOverviewFilters,
+  FIRMWARE_STATES,
+  type FirmwareFilters,
+  MONITORING_STATES,
+  type MonitoringFilters,
+} from "../api/operations";
 import { DeviceDetail, DeviceOverview } from "../pages/DeviceDetail";
 import { Devices } from "../pages/Devices";
 import { Home } from "../pages/Home";
@@ -98,6 +107,23 @@ const backupsRoute = createRoute({
   component: lazyRouteComponent(() => import("../pages/BackupsOverview"), "BackupsOverview"),
   validateSearch: parseBackupOverviewSearch,
 });
+/** Firmware search: known state, customer, vendor, text. */
+export function parseFirmwareSearch(search: Record<string, unknown>): FirmwareFilters {
+  const out: FirmwareFilters = {};
+  if (typeof search.state === "string" && (FIRMWARE_STATES as readonly string[]).includes(search.state)) out.state = search.state as FirmwareFilters["state"];
+  for (const key of ["q", "customer", "vendor"] as const) {
+    const value = search[key];
+    if (typeof value === "string" && value) out[key] = value;
+  }
+  return out;
+}
+
+const firmwareRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/firmware",
+  component: lazyRouteComponent(() => import("../pages/Firmware"), "Firmware"),
+  validateSearch: parseFirmwareSearch,
+});
 const agentsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/agents", component: lazyRouteComponent(() => import("../pages/Agents"), "Agents"), validateSearch: parseAgentSearch });
 const monitoringRoute = createRoute({ getParentRoute: () => rootRoute, path: "/monitoring", component: lazyRouteComponent(() => import("../pages/Monitoring"), "Monitoring"), validateSearch: parseMonitoringSearch });
 
@@ -123,6 +149,7 @@ export const routeTree = rootRoute.addChildren([
   monitoringRoute,
   agentsRoute,
   backupsRoute,
+  firmwareRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

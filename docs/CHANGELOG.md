@@ -4,6 +4,22 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.111 — 2026-10-14
+
+New interface (React) — firmware worklist, phase 3d
+- **Firmware in `/app/firmware`**, also reachable from the sidebar of the new interface. It holds the same worklist as the classic Firmware page.
+- **States with counts:** to update (the default), security update, critical, unknown state, up to date, all. Search on device, vendor, model, serial or version, plus customer and vendor filters; everything stays in the address. Devices load 100 at a time (*Load more*).
+- **Per device:**
+  - customer and site, vendor, model and channel;
+  - installed and recommended version (highlighted when newer), with the readiness note;
+  - firmware state in the user's language, last check.
+- **Actions, with the same rules as the classic page:**
+  - *Check now* queues the read-only RouterOS check (MikroTik online). The button reports whether the check was queued, was already queued or needs the agent.
+  - *Prepare upgrade* (MikroTik online with the modern agent, a newer recommended version and permission to execute firmware) and *Plan* open the classic upgrade plan.
+  - Links to *Suggestions* and *Vendor catalogs*.
+- The list filters and state counters are now shared functions in `firmware_worklist`, used by both interfaces; the classic page behaves as before.
+- **API.** `GET /api/ui/v1/firmware` (`firmware.read`; `q`, `customer`, `vendor`, `state`, `offset`), `POST /api/ui/v1/firmware/{device_id}/check` (CSRF header).
+
 ## 0.49.110 — 2026-10-14
 
 New interface (React) — backup overview, phase 3c

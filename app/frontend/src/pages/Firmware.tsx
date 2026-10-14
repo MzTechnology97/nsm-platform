@@ -1,0 +1,150 @@
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import { useDeviceFacets } from "../api/devices";
+import { FIRMWARE_STATES, type FirmwareFilters, type FirmwareRow, useFirmware, useFirmwareCheck } from "../api/operations";
+import { ClassicForm } from "../app/ClassicForm";
+import { formatRelative } from "../lib/format";
+import { useDebounced } from "../lib/hooks";
+
+const STATUS_TONE: Record<string, string> = {
+  critical_security_update: "ui-severity ui-severity-critical",
+  security_update: "ui-severity ui-severity-high",
+  outdated: "ui-severity ui-severity-warning",
+  update_available: "ui-severity ui-severity-warning",
+};
+
+export function Firmware() {
+  const { t } = useTranslation();
+  const search = useSearch({ from: "/firmware" });
+  const navigate = useNavigate({ from: "/firmware" });
+  const facets = useDeviceFacets();
+  const [text, setText] = useState(search.q ?? "");
+  const q = useDebounced(text.trim());
+  const update = (patch: Partial<FirmwareFilters>) => void navigate({ search: (previous: FirmwareFilters) => ({ ...previous, ...patch }), replace: true });
+  useEffect(() => {
+    if ((search.q ?? "") !== q) update({ q: q || undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+  const query = useFirmware(search);
+  const rows = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
+  const first = query.data?.pages[0];
+  const state = search.state ?? "attention";
+
+  return (
+    <section className="ui-page">
+      <header className="ui-page-header ui-page-header-row">
+        <div>
+          <h1>{t("firmware.title")}</h1>
+          <p>{t("firmware.subtitle")}</p>
+        </div>
+        <div className="ui-actions">
+          <a className="ui-button ui-button-ghost" href={`/operations/firmware/suggestions${search.customer ? `?customer=${search.customer}` : ""}`}>{t("firmware.suggestions")}</a>
+          <a className="ui-button ui-button-ghost" href="/operations/firmware/catalogs">{t("firmware.catalogs")}</a>
+          <a className="ui-button ui-button-ghost" href="/operations/firmware">{t("app.classic")}</a>
+        </div>
+      </header>
+
+      <div className="ui-chips" role="group" aria-label={t("firmware.states.label")}>
+        {FIRMWARE_STATES.map((key) => (
+          <button
+            key={key}
+            type="button"
+            className={`ui-chip${["security", "critical", "unknown"].includes(key) ? " ui-chip-warning" : ""}${state === key ? " is-active" : ""}`}
+            onClick={() => update({ state: key === "attention" ? undefined : key })}
+          >
+            {t(`firmware.states.${key}`)} <span className="ui-chip-count">{first ? first.counts[key] : "—"}</span>
+          </button>
+        ))}
+      </div>
+      <div className="ui-filter-bar">
+        <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("firmware.search")} aria-label={t("firmware.search")} autoComplete="off" />
+        <select value={search.customer ?? ""} onChange={(event) => update({ customer: event.target.value || undefined })} aria-label={t("devices.customer")}>
+          <option value="">{t("devices.allCustomers")}</option>
+          {facets.data?.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
+        </select>
+        <select value={search.vendor ?? ""} onChange={(event) => update({ vendor: event.target.value || undefined })} aria-label={t("devices.vendor")}>
+          <option value="">{t("devices.allVendors")}</option>
+          {facets.data?.vendors.map((vendor) => <option key={vendor} value={vendor}>{vendor}</option>)}
+        </select>
+      </div>
+
+      {query.error ? (
+        <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
+      ) : !first ? (
+        <div className="ui-empty">{t("app.loading")}</div>
+      ) : rows.length ? (
+        <>
+          <div className="ui-data-wrap" aria-busy={query.isFetching}>
+            <table className="ui-data-table">
+              <thead>
+                <tr>
+                  {["device", "vendor", "installed", "recommended", "status", "verified", "actions"].map((column) => (
+                    <th key={column}><span className="ui-th">{t(`firmware.columns.${column}`)}</span></th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => <Row key={row.id} row={row} />)}
+              </tbody>
+            </table>
+          </div>
+          <div className="ui-table-foot">
+            <span>{t("firmware.shown", { shown: rows.length, total: first.total })}</span>
+            {query.hasNextPage && (
+              <button type="button" className="ui-button ui-button-ghost" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
+                {query.isFetchingNextPage ? t("app.loading") : t("firmware.more")}
+              </button>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="ui-empty">{state === "attention" ? t("firmware.allGood") : t("firmware.empty")}</div>
+      )}
+    </section>
+  );
+}
+
+function Row({ row }: { row: FirmwareRow }) {
+  const { t, i18n } = useTranslation();
+  const check = useFirmwareCheck();
+  const checked = check.isSuccess && check.variables === row.id;
+  return (
+    <tr>
+      <td>
+        <Link to="/devices/$deviceId" params={{ deviceId: row.id }} className="ui-cell-title">{row.name}</Link>
+        <small className="ui-muted ui-block">{[row.customer?.name, row.site].filter(Boolean).join(" · ") || "—"}</small>
+      </td>
+      <td>
+        {row.vendor ?? "—"}
+        <small className="ui-muted ui-block">{[row.model, row.channel].filter(Boolean).join(" · ") || "—"}</small>
+      </td>
+      <td className="ui-mono">{row.firmware ?? "—"}</td>
+      <td>
+        {row.newer ? <strong className="ui-text-warning ui-mono">{row.recommended}</strong> : <span className="ui-mono">{row.recommended ?? "—"}</span>}
+        {row.readiness && <small className="ui-muted ui-block">{row.readiness}</small>}
+      </td>
+      <td>
+        <span className={STATUS_TONE[row.firmware_status] ?? "ui-severity"}>{t(`firmware.status.${row.firmware_status}`, { defaultValue: row.firmware_status })}</span>
+      </td>
+      <td className="ui-nowrap">{row.verified_at ? formatRelative(row.verified_at, i18n.language) : <span className="ui-muted">{t("firmware.notVerified")}</span>}</td>
+      <td>
+        <div className="ui-row-actions">
+          {row.can_check && (
+            <button type="button" className="ui-button ui-button-ghost ui-button-small" disabled={check.isPending} onClick={() => check.mutate(row.id)}>
+              {checked ? t(`firmware.check.${check.data?.state}`, { defaultValue: t("firmware.check.queued") }) : t("firmware.check.now")}
+            </button>
+          )}
+          {row.can_plan && (
+            <ClassicForm action={`/devices/${row.id}/firmware-upgrade/plan`}>
+              <button type="submit" className="ui-button ui-button-primary ui-button-small">{t("firmware.prepare")}</button>
+            </ClassicForm>
+          )}
+          <a className="ui-button ui-button-ghost ui-button-small" href={`/devices/${row.id}/firmware-upgrade`}>{t("firmware.plan")}</a>
+        </div>
+        {check.error && check.variables === row.id && <small className="ui-backup-error">{(check.error as Error).message}</small>}
+      </td>
+    </tr>
+  );
+}

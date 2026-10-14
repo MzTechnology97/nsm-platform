@@ -1053,5 +1053,51 @@
       "off": "disattivata",
       "none": "Nessuna policy configurata."
     }
+  },
+  "firmware": {
+    "title": "Firmware",
+    "subtitle": "Firmware installato, versione raccomandata dal catalogo e stato di ogni apparato.",
+    "suggestions": "Suggerimenti",
+    "catalogs": "Cataloghi vendor",
+    "search": "Cerca apparato, vendor, modello, seriale o versione",
+    "states": {
+      "label": "Stato firmware",
+      "attention": "Da aggiornare",
+      "security": "Aggiornamento di sicurezza",
+      "critical": "Critici",
+      "unknown": "Stato sconosciuto",
+      "current": "Aggiornati",
+      "all": "Tutti"
+    },
+    "columns": {
+      "device": "Apparato",
+      "vendor": "Vendor / modello",
+      "installed": "Installato",
+      "recommended": "Raccomandato",
+      "status": "Stato",
+      "verified": "Ultima verifica",
+      "actions": "Azioni"
+    },
+    "status": {
+      "current": "aggiornato",
+      "update_available": "aggiornamento disponibile",
+      "outdated": "da aggiornare",
+      "security_update": "aggiornamento di sicurezza",
+      "critical_security_update": "sicurezza critica",
+      "unknown": "sconosciuto"
+    },
+    "notVerified": "non verificato",
+    "prepare": "Prepara upgrade",
+    "plan": "Piano",
+    "check": {
+      "now": "Verifica ora",
+      "queued": "Verifica in coda",
+      "already_queued": "Già in coda",
+      "agent_required": "Serve l'agent"
+    },
+    "shown": "{{shown}} di {{total}}",
+    "more": "Carica altri",
+    "allGood": "Nessun firmware da aggiornare.",
+    "empty": "Nessun apparato in questo stato."
   }
 }

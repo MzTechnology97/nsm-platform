@@ -50,6 +50,45 @@ def _state_filter(state: str):
     return None
 
 
+def scope_filters(term: str = "", customer_id=None, vendor: str = "") -> list:
+    """Search, customer and vendor filters shared by the list and its counters."""
+    filters = []
+    if term:
+        like = f"%{term}%"
+        filters.append(
+            or_(
+                Device.display_name.ilike(like),
+                Device.device_identity.ilike(like),
+                Device.name.ilike(like),
+                Device.vendor.ilike(like),
+                Device.model.ilike(like),
+                Device.serial_number.ilike(like),
+                Device.firmware_version.ilike(like),
+                Device.recommended_firmware_version.ilike(like),
+            )
+        )
+    if customer_id:
+        filters.append(Device.customer_id == customer_id)
+    if vendor:
+        filters.append(func.lower(Device.vendor) == vendor.lower())
+    return filters
+
+
+def state_counts(db, filters) -> dict:
+    """Devices per firmware state within the scope filters."""
+    def count(*extra):
+        return int(db.scalar(select(func.count(Device.id)).where(*filters, *extra)) or 0)
+
+    return {
+        "attention": count(_firmware_attention_condition()),
+        "security": count(func.lower(Device.firmware_status).in_(SECURITY_STATES)),
+        "critical": count(func.lower(Device.firmware_status).in_(CRITICAL_STATES)),
+        "unknown": count(func.lower(Device.firmware_status) == "unknown"),
+        "current": count(func.lower(Device.firmware_status).in_(("current", "ok", "up_to_date"))),
+        "all": count(),
+    }
+
+
 def firmware_worklist(
     request: Request,
     q: str = "",
@@ -70,25 +109,7 @@ def firmware_worklist(
         customer_id = _uuid_or_none(customer)
         term = q.strip()
 
-        filters = []
-        if term:
-            like = f"%{term}%"
-            filters.append(
-                or_(
-                    Device.display_name.ilike(like),
-                    Device.device_identity.ilike(like),
-                    Device.name.ilike(like),
-                    Device.vendor.ilike(like),
-                    Device.model.ilike(like),
-                    Device.serial_number.ilike(like),
-                    Device.firmware_version.ilike(like),
-                    Device.recommended_firmware_version.ilike(like),
-                )
-            )
-        if customer_id:
-            filters.append(Device.customer_id == customer_id)
-        if vendor:
-            filters.append(func.lower(Device.vendor) == vendor.lower())
+        filters = scope_filters(term, customer_id, vendor)
         state_expr = _state_filter(state)
         if state_expr is not None:
             filters.append(state_expr)
@@ -113,58 +134,12 @@ def firmware_worklist(
             )
         )
 
-        scope_filters = []
-        if customer_id:
-            scope_filters.append(Device.customer_id == customer_id)
-        if vendor:
-            scope_filters.append(func.lower(Device.vendor) == vendor.lower())
-        if term:
-            like = f"%{term}%"
-            scope_filters.append(
-                or_(
-                    Device.display_name.ilike(like),
-                    Device.device_identity.ilike(like),
-                    Device.name.ilike(like),
-                    Device.vendor.ilike(like),
-                    Device.model.ilike(like),
-                    Device.serial_number.ilike(like),
-                    Device.firmware_version.ilike(like),
-                    Device.recommended_firmware_version.ilike(like),
-                )
-            )
-
-        attention_count = int(
-            db.scalar(select(func.count(Device.id)).where(*scope_filters, _firmware_attention_condition())) or 0
-        )
-        security_count = int(
-            db.scalar(
-                select(func.count(Device.id)).where(
-                    *scope_filters,
-                    func.lower(Device.firmware_status).in_(SECURITY_STATES),
-                )
-            )
-            or 0
-        )
-        critical_count = int(
-            db.scalar(
-                select(func.count(Device.id)).where(
-                    *scope_filters,
-                    func.lower(Device.firmware_status).in_(CRITICAL_STATES),
-                )
-            )
-            or 0
-        )
-        unknown_count = int(
-            db.scalar(
-                select(func.count(Device.id)).where(
-                    *scope_filters,
-                    func.lower(Device.firmware_status) == "unknown",
-                )
-            )
-            or 0
-        )
-
-        scope_total = int(db.scalar(select(func.count(Device.id)).where(*scope_filters)) or 0)
+        counts = state_counts(db, scope_filters(term, customer_id, vendor))
+        attention_count = counts["attention"]
+        security_count = counts["security"]
+        critical_count = counts["critical"]
+        unknown_count = counts["unknown"]
+        scope_total = counts["all"]
 
         customers = list(db.scalars(select(Customer).order_by(Customer.name)))
         vendors = [

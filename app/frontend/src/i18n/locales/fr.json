@@ -1053,5 +1053,51 @@
       "off": "désactivée",
       "none": "Aucune politique configurée."
     }
+  },
+  "firmware": {
+    "title": "Firmware",
+    "subtitle": "Firmware installé, version recommandée par le catalogue et état de chaque équipement.",
+    "suggestions": "Suggestions",
+    "catalogs": "Catalogues vendor",
+    "search": "Rechercher équipement, vendor, modèle, série ou version",
+    "states": {
+      "label": "État du firmware",
+      "attention": "À mettre à jour",
+      "security": "Mise à jour de sécurité",
+      "critical": "Critiques",
+      "unknown": "État inconnu",
+      "current": "À jour",
+      "all": "Tous"
+    },
+    "columns": {
+      "device": "Équipement",
+      "vendor": "Vendor / modèle",
+      "installed": "Installé",
+      "recommended": "Recommandé",
+      "status": "État",
+      "verified": "Dernière vérification",
+      "actions": "Actions"
+    },
+    "status": {
+      "current": "à jour",
+      "update_available": "mise à jour disponible",
+      "outdated": "à mettre à jour",
+      "security_update": "mise à jour de sécurité",
+      "critical_security_update": "sécurité critique",
+      "unknown": "inconnu"
+    },
+    "notVerified": "non vérifié",
+    "prepare": "Préparer la mise à jour",
+    "plan": "Plan",
+    "check": {
+      "now": "Vérifier maintenant",
+      "queued": "Vérification en file",
+      "already_queued": "Déjà en file",
+      "agent_required": "Agent requis"
+    },
+    "shown": "{{shown}} sur {{total}}",
+    "more": "Charger plus",
+    "allGood": "Aucun firmware à mettre à jour.",
+    "empty": "Aucun équipement dans cet état."
   }
 }

@@ -8,6 +8,9 @@
 - ``GET  /api/ui/v1/backups``: backup protection of the fleet (protected,
   blocked, without policy, last run failed or never run) per device and per
   customer, plus the policies, from ``backup_workspace_capabilities``;
+- ``GET  /api/ui/v1/firmware``: firmware worklist (to update, security,
+  critical, unknown, current) from ``firmware_worklist``, and
+  ``POST /api/ui/v1/firmware/{device_id}/check``: read-only RouterOS check;
 - ``GET  /api/ui/v1/agents``: the MikroTik Agent fleet (health, installation
   check, transport, version and pending update) from ``agent_fleet``, including
   the install-time extensions of its row builder.
@@ -17,13 +20,17 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
 
 from app import agent_fleet
 from app import backup_workspace_capabilities as backup_overview
+from app import firmware_worklist
 from app import fleet_monitoring as fleet
+from app import mikrotik_firmware_readiness as firmware_readiness
 from app import main as core
 from app.db import SessionLocal
-from app.models import Customer, utcnow
+from app.models import Customer, Device, utcnow
 from app.ui_api import require_csrf, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
@@ -174,6 +181,66 @@ def backups(request: Request, view: str = "attention", customer: str = "", q: st
                           "scope_type": r["policy"].scope_type, "schedule": r["policy"].schedule_cron} for r in state["policy_rows"]],
             "can_configure": core.has_permission(user, "backup.configure"),
         }
+
+
+FIRMWARE_PAGE = 100
+FIRMWARE_STATES = ("attention", "security", "critical", "unknown", "current", "all")
+
+
+def firmware_row(device, can_execute: bool) -> dict:
+    data = device.inventory_data or {}
+    readiness = data.get("firmware_readiness") if isinstance(data.get("firmware_readiness"), dict) else {}
+    transport = str(data.get("agent_transport") or "")
+    mikrotik = (device.vendor or "").lower() == "mikrotik"
+    online = device.status == "online"
+    newer = bool(device.recommended_firmware_version and device.recommended_firmware_version != device.firmware_version)
+    return {
+        "id": str(device.id), "name": device.display_name or device.device_identity or device.name,
+        "identity": device.device_identity or device.serial_number or device.primary_mac,
+        "customer": {"id": str(device.customer.id), "name": device.customer.name} if device.customer else None,
+        "site": device.site.name if device.site else None, "vendor": device.vendor, "model": device.model, "status": device.status,
+        "channel": readiness.get("channel"), "readiness": readiness.get("status"),
+        "firmware": device.firmware_version, "recommended": device.recommended_firmware_version, "newer": newer,
+        "firmware_status": (device.firmware_status or "unknown").lower(), "verified_at": _iso(device.inventory_last_verified_at),
+        "can_check": mikrotik and online,
+        "can_plan": mikrotik and online and newer and transport != "legacy" and can_execute,
+    }
+
+
+@router.get("/firmware")
+def firmware(request: Request, q: str = "", customer: str = "", vendor: str = "", state: str = "attention", offset: int = 0):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.read")
+        state = state if state in FIRMWARE_STATES else "attention"
+        scope = firmware_worklist.scope_filters(q.strip()[:100], _uuid(customer), vendor.strip())
+        filters = list(scope)
+        state_expr = firmware_worklist._state_filter(state)
+        if state_expr is not None:
+            filters.append(state_expr)
+        total = int(db.scalar(select(func.count(Device.id)).where(*filters)) or 0)
+        offset = max(0, int(offset or 0))
+        devices = list(db.scalars(select(Device).where(*filters).options(selectinload(Device.customer), selectinload(Device.site))
+                                  .order_by(Device.customer_id, Device.vendor, Device.display_name.nullslast(), Device.name)
+                                  .offset(offset).limit(FIRMWARE_PAGE)))
+        can_execute = core.has_permission(user, "firmware.execute")
+        return {"state": state, "total": total, "offset": offset, "limit": FIRMWARE_PAGE,
+                "counts": firmware_worklist.state_counts(db, scope),
+                "items": [firmware_row(device, can_execute) for device in devices],
+                "links": {"catalogs": "/operations/firmware/catalogs", "suggestions": "/operations/firmware/suggestions"}}
+
+
+@router.post("/firmware/{device_id}/check", dependencies=[Depends(require_csrf)])
+def firmware_check(request: Request, device_id: uuid.UUID):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.read")
+        device = db.get(Device, device_id)
+        if not device:
+            raise HTTPException(404, "Apparato non trovato.")
+        if (device.vendor or "").lower() != "mikrotik":
+            raise HTTPException(409, {"code": "vendor", "message": "Verifica RouterOS disponibile solo per MikroTik."})
+        state = firmware_readiness.queue_readiness_job(db, device, user)
+        db.commit()
+        return {"state": state}
 
 
 def install_ui_operations(app) -> None:
