@@ -1218,5 +1218,81 @@
     "none": "sin exposición",
     "allGood": "Ningún equipo expone servicios a Internet.",
     "empty": "Ningún equipo en esta vista."
+  },
+  "access": {
+    "title": "Accesos",
+    "subtitle": "Inicios de sesión fallidos reconocidos en el syslog de los equipos: equipos más atacados, direcciones de origen y alertas.",
+    "period": "Periodo",
+    "hours": {
+      "1": "1 hora",
+      "24": "24 horas",
+      "168": "7 días",
+      "720": "30 días"
+    },
+    "none": "Ningún acceso fallido en el periodo.",
+    "devices": {
+      "title": "Equipos con más accesos fallidos",
+      "device": "Equipo",
+      "customer": "Cliente",
+      "failures": "Fallidos"
+    },
+    "sources": {
+      "title": "Direcciones de origen",
+      "ip": "Dirección",
+      "failures": "Intentos",
+      "devices": "Equipos atacados"
+    },
+    "alerts": {
+      "title": "Alertas de acceso",
+      "hint": "Avisos abiertos por intentos repetidos (fuerza bruta) en los equipos.",
+      "none": "Ninguna alerta de acceso."
+    }
+  },
+  "lifecycle": {
+    "title": "Ciclo de vida",
+    "subtitle": "{{count}} equipos sin soporte del vendor en {{customers}} clientes.",
+    "catalog": "Catálogo EOL/EOS",
+    "search": "Buscar equipo, vendor, modelo o serie",
+    "states": {
+      "label": "Ciclo de vida",
+      "attention": "Sin soporte",
+      "eol": "Fin de vida",
+      "eos": "Fin de soporte",
+      "upcoming": "Vence en {{days}} días",
+      "unmatched": "Sin datos de catálogo"
+    },
+    "columns": {
+      "device": "Equipo",
+      "model": "Vendor / modelo",
+      "state": "Estado",
+      "eol": "EOL",
+      "eos": "EOS",
+      "remediation": "Gestión",
+      "match": "Coincidencia",
+      "devices": "Equipos"
+    },
+    "status": {
+      "eol": "fin de vida",
+      "eos": "fin de soporte",
+      "supported": "con soporte",
+      "unknown": "desconocido"
+    },
+    "matches": {
+      "ambiguous": "varias entradas posibles",
+      "no_record": "modelo no en catálogo",
+      "no_model": "modelo no detectado"
+    },
+    "remediation": {
+      "none": "por gestionar",
+      "open": "por gestionar",
+      "planned": "sustitución planificada",
+      "exception": "en excepción",
+      "replaced": "sustituido",
+      "decommissioned": "retirado"
+    },
+    "noModel": "modelo no detectado",
+    "addRecord": "Añadir al catálogo",
+    "empty": "Ningún equipo en este estado.",
+    "allGood": "Ningún equipo sin soporte."
   }
 }

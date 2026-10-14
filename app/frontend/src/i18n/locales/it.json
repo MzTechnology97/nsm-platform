@@ -1218,5 +1218,81 @@
     "none": "nessuna esposizione",
     "allGood": "Nessun apparato espone servizi su Internet.",
     "empty": "Nessun apparato in questa vista."
+  },
+  "access": {
+    "title": "Accessi",
+    "subtitle": "Login falliti riconosciuti nei syslog degli apparati: apparati più colpiti, indirizzi di origine e allarmi.",
+    "period": "Periodo",
+    "hours": {
+      "1": "1 ora",
+      "24": "24 ore",
+      "168": "7 giorni",
+      "720": "30 giorni"
+    },
+    "none": "Nessun accesso fallito nel periodo.",
+    "devices": {
+      "title": "Apparati con più accessi falliti",
+      "device": "Apparato",
+      "customer": "Cliente",
+      "failures": "Falliti"
+    },
+    "sources": {
+      "title": "Indirizzi di origine",
+      "ip": "Indirizzo",
+      "failures": "Tentativi",
+      "devices": "Apparati colpiti"
+    },
+    "alerts": {
+      "title": "Allarmi accessi",
+      "hint": "Segnalazioni aperte da tentativi ripetuti (forza bruta) sugli apparati.",
+      "none": "Nessun allarme sugli accessi."
+    }
+  },
+  "lifecycle": {
+    "title": "Ciclo di vita",
+    "subtitle": "{{count}} apparati fuori supporto vendor presso {{customers}} clienti.",
+    "catalog": "Catalogo EOL/EOS",
+    "search": "Cerca apparato, vendor, modello o seriale",
+    "states": {
+      "label": "Ciclo di vita",
+      "attention": "Fuori supporto",
+      "eol": "End of life",
+      "eos": "End of support",
+      "upcoming": "In scadenza entro {{days}} giorni",
+      "unmatched": "Senza dati catalogo"
+    },
+    "columns": {
+      "device": "Apparato",
+      "model": "Vendor / modello",
+      "state": "Stato",
+      "eol": "EOL",
+      "eos": "EOS",
+      "remediation": "Gestione",
+      "match": "Corrispondenza",
+      "devices": "Apparati"
+    },
+    "status": {
+      "eol": "fine vita",
+      "eos": "fine supporto",
+      "supported": "supportato",
+      "unknown": "sconosciuto"
+    },
+    "matches": {
+      "ambiguous": "più voci possibili",
+      "no_record": "modello non in catalogo",
+      "no_model": "modello non rilevato"
+    },
+    "remediation": {
+      "none": "da gestire",
+      "open": "da gestire",
+      "planned": "sostituzione pianificata",
+      "exception": "in eccezione",
+      "replaced": "sostituito",
+      "decommissioned": "dismesso"
+    },
+    "noModel": "modello non rilevato",
+    "addRecord": "Aggiungi al catalogo",
+    "empty": "Nessun apparato in questo stato.",
+    "allGood": "Nessun apparato fuori supporto."
   }
 }

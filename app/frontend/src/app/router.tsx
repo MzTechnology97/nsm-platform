@@ -2,7 +2,7 @@ import { createRootRoute, createRoute, createRouter, lazyRouteComponent } from "
 import { useTranslation } from "react-i18next";
 
 import type { CustomerFilters } from "../api/customers";
-import { EXPOSURE_VIEWS, type ExposureFilters, type VulnFilters } from "../api/security";
+import { EXPOSURE_VIEWS, type ExposureFilters, LIFECYCLE_STATES, type LifecycleFilters, type VulnFilters } from "../api/security";
 import type { DeviceFilters } from "../api/devices";
 import { CustomerDetail, CustomerOverview, CustomerSites } from "../pages/CustomerDetail";
 import type { GraphsSearch } from "../pages/CustomerGraphs";
@@ -149,6 +149,29 @@ const vulnerabilityRoute = createRoute({
     return { ...(out.customer ? { customer: out.customer } : {}), ...(out.status ? { status: out.status } : {}) };
   },
 });
+const accessRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/access",
+  component: lazyRouteComponent(() => import("../pages/Access"), "Access"),
+  validateSearch: (search: Record<string, unknown>): { hours?: 1 | 24 | 168 | 720 } => {
+    const hours = Number(search.hours);
+    return hours === 1 || hours === 168 || hours === 720 ? { hours } : {};
+  },
+});
+const lifecycleRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/lifecycle",
+  component: lazyRouteComponent(() => import("../pages/Access"), "Lifecycle"),
+  validateSearch: (search: Record<string, unknown>): LifecycleFilters => {
+    const out: LifecycleFilters = {};
+    if (typeof search.state === "string" && search.state && (LIFECYCLE_STATES as readonly string[]).includes(search.state)) out.state = search.state as LifecycleFilters["state"];
+    for (const key of ["q", "customer", "vendor"] as const) {
+      const value = search[key];
+      if (typeof value === "string" && value) out[key] = value;
+    }
+    return out;
+  },
+});
 const exposureRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/exposure",
@@ -193,6 +216,8 @@ export const routeTree = rootRoute.addChildren([
   vulnerabilitiesRoute,
   vulnerabilityRoute,
   exposureRoute,
+  accessRoute,
+  lifecycleRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

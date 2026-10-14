@@ -1218,5 +1218,81 @@
     "none": "no exposure",
     "allGood": "No device exposes services to the Internet.",
     "empty": "No device in this view."
+  },
+  "access": {
+    "title": "Access",
+    "subtitle": "Failed logins found in the device syslog: most targeted devices, source addresses and alerts.",
+    "period": "Period",
+    "hours": {
+      "1": "1 hour",
+      "24": "24 hours",
+      "168": "7 days",
+      "720": "30 days"
+    },
+    "none": "No failed login in this period.",
+    "devices": {
+      "title": "Devices with most failed logins",
+      "device": "Device",
+      "customer": "Customer",
+      "failures": "Failed"
+    },
+    "sources": {
+      "title": "Source addresses",
+      "ip": "Address",
+      "failures": "Attempts",
+      "devices": "Devices targeted"
+    },
+    "alerts": {
+      "title": "Access alerts",
+      "hint": "Issues opened by repeated attempts (brute force) on the devices.",
+      "none": "No access alert."
+    }
+  },
+  "lifecycle": {
+    "title": "Lifecycle",
+    "subtitle": "{{count}} devices out of vendor support at {{customers}} customers.",
+    "catalog": "EOL/EOS catalog",
+    "search": "Search device, vendor, model or serial",
+    "states": {
+      "label": "Lifecycle",
+      "attention": "Out of support",
+      "eol": "End of life",
+      "eos": "End of support",
+      "upcoming": "Ending within {{days}} days",
+      "unmatched": "No catalog data"
+    },
+    "columns": {
+      "device": "Device",
+      "model": "Vendor / model",
+      "state": "State",
+      "eol": "EOL",
+      "eos": "EOS",
+      "remediation": "Handling",
+      "match": "Match",
+      "devices": "Devices"
+    },
+    "status": {
+      "eol": "end of life",
+      "eos": "end of support",
+      "supported": "supported",
+      "unknown": "unknown"
+    },
+    "matches": {
+      "ambiguous": "several possible records",
+      "no_record": "model not in catalog",
+      "no_model": "model not detected"
+    },
+    "remediation": {
+      "none": "to handle",
+      "open": "to handle",
+      "planned": "replacement planned",
+      "exception": "exception",
+      "replaced": "replaced",
+      "decommissioned": "decommissioned"
+    },
+    "noModel": "model not detected",
+    "addRecord": "Add to catalog",
+    "empty": "No device in this state.",
+    "allGood": "No device out of support."
   }
 }

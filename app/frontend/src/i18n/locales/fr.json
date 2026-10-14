@@ -1218,5 +1218,81 @@
     "none": "aucune exposition",
     "allGood": "Aucun équipement n'expose de services sur Internet.",
     "empty": "Aucun équipement dans cette vue."
+  },
+  "access": {
+    "title": "Accès",
+    "subtitle": "Connexions échouées reconnues dans le syslog des équipements : équipements les plus visés, adresses d'origine et alertes.",
+    "period": "Période",
+    "hours": {
+      "1": "1 heure",
+      "24": "24 heures",
+      "168": "7 jours",
+      "720": "30 jours"
+    },
+    "none": "Aucune connexion échouée sur la période.",
+    "devices": {
+      "title": "Équipements avec le plus d'échecs",
+      "device": "Équipement",
+      "customer": "Client",
+      "failures": "Échecs"
+    },
+    "sources": {
+      "title": "Adresses d'origine",
+      "ip": "Adresse",
+      "failures": "Tentatives",
+      "devices": "Équipements visés"
+    },
+    "alerts": {
+      "title": "Alertes d'accès",
+      "hint": "Signalements ouverts par des tentatives répétées (force brute) sur les équipements.",
+      "none": "Aucune alerte d'accès."
+    }
+  },
+  "lifecycle": {
+    "title": "Cycle de vie",
+    "subtitle": "{{count}} équipements hors support vendor chez {{customers}} clients.",
+    "catalog": "Catalogue EOL/EOS",
+    "search": "Rechercher équipement, vendor, modèle ou série",
+    "states": {
+      "label": "Cycle de vie",
+      "attention": "Hors support",
+      "eol": "Fin de vie",
+      "eos": "Fin de support",
+      "upcoming": "Échéance sous {{days}} jours",
+      "unmatched": "Sans données catalogue"
+    },
+    "columns": {
+      "device": "Équipement",
+      "model": "Vendor / modèle",
+      "state": "État",
+      "eol": "EOL",
+      "eos": "EOS",
+      "remediation": "Traitement",
+      "match": "Correspondance",
+      "devices": "Équipements"
+    },
+    "status": {
+      "eol": "fin de vie",
+      "eos": "fin de support",
+      "supported": "supporté",
+      "unknown": "inconnu"
+    },
+    "matches": {
+      "ambiguous": "plusieurs entrées possibles",
+      "no_record": "modèle absent du catalogue",
+      "no_model": "modèle non détecté"
+    },
+    "remediation": {
+      "none": "à traiter",
+      "open": "à traiter",
+      "planned": "remplacement planifié",
+      "exception": "en exception",
+      "replaced": "remplacé",
+      "decommissioned": "retiré"
+    },
+    "noModel": "modèle non détecté",
+    "addRecord": "Ajouter au catalogue",
+    "empty": "Aucun équipement dans cet état.",
+    "allGood": "Aucun équipement hors support."
   }
 }

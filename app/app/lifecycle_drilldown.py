@@ -55,6 +55,39 @@ def _state_filter(state: str, today):
     return status.in_(LIFECYCLE_ATTENTION_STATES)
 
 
+def scope_filters(term: str = "", customer_id=None, vendor: str = "") -> list:
+    """Search, customer and vendor filters shared by the list and its counters."""
+    scope = []
+    if term:
+        like = f"%{term}%"
+        scope.append(
+            or_(
+                Device.display_name.ilike(like),
+                Device.device_identity.ilike(like),
+                Device.name.ilike(like),
+                Device.vendor.ilike(like),
+                Device.model.ilike(like),
+                Device.serial_number.ilike(like),
+            )
+        )
+    if customer_id:
+        scope.append(Device.customer_id == customer_id)
+    if vendor:
+        scope.append(func.lower(Device.vendor) == vendor.lower())
+    return scope
+
+
+def state_counts(db, scope, today) -> dict:
+    """Devices per lifecycle state (EOL, EOS, ending within a year, without catalog match) and customers affected."""
+    def count(*extra):
+        return int(db.scalar(select(func.count(Device.id)).where(*scope, *extra)) or 0)
+
+    counts = {key: count(_state_filter(key, today)) for key in ("eol", "eos", "upcoming", "unmatched")}
+    counts["attention"] = count(_state_filter("", today))
+    counts["customers"] = int(db.scalar(select(func.count(func.distinct(Device.customer_id))).where(*scope, _state_filter("", today))) or 0)
+    return counts
+
+
 def lifecycle(
     request: Request,
     q: str = "",
@@ -78,23 +111,7 @@ def lifecycle(
         if state not in (*LIFECYCLE_ATTENTION_STATES, "upcoming", "unmatched"):
             state = ""
 
-        scope = []
-        if term:
-            like = f"%{term}%"
-            scope.append(
-                or_(
-                    Device.display_name.ilike(like),
-                    Device.device_identity.ilike(like),
-                    Device.name.ilike(like),
-                    Device.vendor.ilike(like),
-                    Device.model.ilike(like),
-                    Device.serial_number.ilike(like),
-                )
-            )
-        if customer_id:
-            scope.append(Device.customer_id == customer_id)
-        if vendor:
-            scope.append(func.lower(Device.vendor) == vendor.lower())
+        scope = scope_filters(term, customer_id, vendor)
 
         def count(*extra):
             return int(db.scalar(select(func.count(Device.id)).where(*scope, *extra)) or 0)
@@ -160,6 +177,7 @@ def lifecycle(
             )
             or 0
         )
+        counts = state_counts(db, scope, today)
         customers = list(db.scalars(select(Customer).order_by(Customer.name)))
         vendors = [item for item in db.scalars(select(Device.vendor).distinct().order_by(Device.vendor)) if item]
         selected_customer = db.get(Customer, customer_id) if customer_id else None
@@ -182,10 +200,10 @@ def lifecycle(
             total=total,
             page=page,
             pages=pages,
-            eol_count=count(_state_filter("eol", today)),
-            eos_count=count(_state_filter("eos", today)),
-            upcoming_count=count(_state_filter("upcoming", today)),
-            unmatched_count=count(_state_filter("unmatched", today)),
+            eol_count=counts["eol"],
+            eos_count=counts["eos"],
+            upcoming_count=counts["upcoming"],
+            unmatched_count=counts["unmatched"],
             upcoming_days=UPCOMING_DAYS,
             customer_count=customer_count,
         )

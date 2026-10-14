@@ -5,6 +5,10 @@
 - ``GET /api/ui/v1/vulnerabilities/{advisory_id}``: one advisory with its
   matching rules, impacted devices (open or resolved, per customer) and the
   devices of the product that cannot be assessed;
+- ``GET /api/ui/v1/access``: failed logins found in the device syslog (devices
+  and source addresses with most failures, recent alerts), from ``syslog_security``;
+- ``GET /api/ui/v1/lifecycle``: devices out of vendor support (EOL, EOS, ending
+  within a year, without catalog match) with their remediation state;
 - ``GET /api/ui/v1/exposure``: services reachable from the Internet per device
   (from the agent configuration or checked from outside), from
   ``device_exposure.fleet``.
@@ -19,10 +23,15 @@ from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import func, select
 
 from app import device_exposure
+from app import lifecycle_drilldown as lifecycle_view
+from app import syslog_security
 from app import security_drilldown as security
 from app.advisory_matching import describe_rule, unknown_devices
 from app.db import SessionLocal
-from app.models import Customer, Device, DeviceVulnerability, SecurityAdvisory
+from sqlalchemy.orm import selectinload
+
+from app.lifecycle_remediation import attention_reason
+from app.models import ActionIssue, Customer, Device, DeviceVulnerability, LifecycleRemediation, SecurityAdvisory, utcnow
 from app.ui_api import ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
@@ -150,6 +159,66 @@ def exposure(request: Request, view: str = "exposed", customer: str = ""):
                              for f in r["exposed"]],
             } for r in rows[:EXPOSURE_LIMIT]],
         }
+
+
+def _device_ref(device) -> dict | None:
+    if device is None:
+        return None
+    return {"id": str(device.id), "name": device.display_name or device.device_identity or device.name,
+            "customer": {"id": str(device.customer.id), "name": device.customer.name} if device.customer else None}
+
+
+@router.get("/access")
+def access(request: Request, hours: int = 24):
+    with SessionLocal() as db:
+        ui_user(request, db, "security.read")
+        hours = hours if hours in (1, 24, 168, 720) else 24
+        summary = syslog_security.fleet_summary(db, hours=hours)
+        alerts = list(db.scalars(select(ActionIssue).where(ActionIssue.category == syslog_security.ISSUE_CATEGORY)
+                                 .order_by(ActionIssue.created_at.desc()).limit(30)))
+        devices = {d.id: d for d in db.scalars(select(Device).options(selectinload(Device.customer))
+                                              .where(Device.id.in_([a.device_id for a in alerts if a.device_id])))} if alerts else {}
+        return {
+            "hours": hours,
+            "devices": [{"device": _device_ref(row["device"]), "failures": row["failures"]} for row in summary["devices"]],
+            "sources": [{"ip": row["ip"], "failures": row["failures"], "devices": row["devices"], "public": bool(row["public"])} for row in summary["sources"]],
+            "alerts": [{"id": str(a.id), "title": a.title, "severity": a.severity, "status": a.status, "created_at": _iso(a.created_at),
+                        "device": _device_ref(devices.get(a.device_id))} for a in alerts],
+        }
+
+
+LIFECYCLE_STATES = ("", "eol", "eos", "upcoming", "unmatched")
+LIFECYCLE_PAGE = 100
+
+
+@router.get("/lifecycle")
+def lifecycle(request: Request, q: str = "", customer: str = "", vendor: str = "", state: str = "", offset: int = 0):
+    with SessionLocal() as db:
+        ui_user(request, db, "security.read")
+        state = state if state in LIFECYCLE_STATES else ""
+        today = utcnow().date()
+        scope = lifecycle_view.scope_filters(q.strip()[:100], _uuid(customer), vendor.strip())
+        filters = [*scope, lifecycle_view._state_filter(state, today)]
+        offset = max(0, int(offset or 0))
+        counts = lifecycle_view.state_counts(db, scope, today)
+        base = {"state": state, "offset": offset, "limit": LIFECYCLE_PAGE, "counts": counts, "upcoming_days": lifecycle_view.UPCOMING_DAYS}
+        if state == "unmatched":
+            grouped = db.execute(select(Device.vendor, Device.model, Device.lifecycle_match, func.count(Device.id), func.count(func.distinct(Device.customer_id)))
+                                 .where(*filters).group_by(Device.vendor, Device.model, Device.lifecycle_match)
+                                 .order_by(func.count(Device.id).desc(), Device.vendor, Device.model)).all()
+            return {**base, "total": len(grouped), "items": [], "groups": [
+                {"vendor": v, "model": m, "match": match, "devices": int(n), "customers": int(c)} for v, m, match, n, c in grouped[offset:offset + LIFECYCLE_PAGE]]}
+        total = int(db.scalar(select(func.count(Device.id)).where(*filters)) or 0)
+        devices = list(db.scalars(select(Device).where(*filters).options(selectinload(Device.customer), selectinload(Device.site))
+                                  .order_by(Device.lifecycle_status, Device.eos_date.nullslast(), Device.vendor, Device.display_name.nullslast(), Device.name)
+                                  .offset(offset).limit(LIFECYCLE_PAGE)))
+        remediations = {r.device_id: r for r in db.scalars(select(LifecycleRemediation).where(LifecycleRemediation.device_id.in_([d.id for d in devices] or [None])))}
+        return {**base, "total": total, "groups": [], "items": [{
+            "id": str(d.id), "name": d.display_name or d.device_identity or d.name, "vendor": d.vendor, "model": d.model,
+            "customer": {"id": str(d.customer.id), "name": d.customer.name} if d.customer else None, "site": d.site.name if d.site else None,
+            "lifecycle": (d.lifecycle_status or "unknown").lower(), "eol_date": _iso(d.eol_date), "eos_date": _iso(d.eos_date),
+            "remediation": {"status": remediations[d.id].status, "attention": bool(attention_reason(remediations[d.id], d, today))} if d.id in remediations else None,
+        } for d in devices]}
 
 
 def install_ui_security(app) -> None:
