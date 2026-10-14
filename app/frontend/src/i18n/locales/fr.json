@@ -210,5 +210,121 @@
     "signalWorst": "Pire client",
     "clients": "Clients connectés",
     "ccq": "CCQ moyen"
+  },
+  "syslog": {
+    "today": {
+      "errors": "Critical / error aujourd'hui",
+      "warnings": "Warnings aujourd'hui",
+      "other": "Autres lignes aujourd'hui",
+      "since": "depuis minuit (UTC)",
+      "otherHint": "notice, info, debug"
+    },
+    "last": "Dernier log",
+    "lastFrom": "depuis {{ip}}",
+    "never": "aucun log reçu",
+    "live": {
+      "title": "Syslog en temps réel",
+      "hint": "Lignes envoyées par l'équipement au serveur syslog de NSM, actualisées toutes les 5 secondes. Warnings et errors sont conservés toute la vie de l'équipement ; info jusqu'à 3 mois.",
+      "on": "● direct",
+      "paused": "En pause",
+      "pause": "Pause",
+      "resume": "Reprendre",
+      "csv": "Exporter CSV",
+      "empty": "Aucun log reçu de cet équipement.",
+      "noMatch": "Aucune ligne ne correspond aux filtres.",
+      "count_one": "{{count}} ligne",
+      "count_other": "{{count}} lignes",
+      "older": "Charger les lignes précédentes"
+    },
+    "filters": {
+      "severity": "Gravité",
+      "search": "Rechercher dans les logs",
+      "placeholder": "login, interface, pppoe…",
+      "levels": {
+        "all": "Toutes les gravités",
+        "4": "Warning et plus grave",
+        "3": "Error et plus grave",
+        "2": "Critical uniquement"
+      }
+    },
+    "columns": {
+      "received": "Reçu",
+      "severity": "Gravité",
+      "topics": "Topics",
+      "message": "Message"
+    },
+    "access": {
+      "title": "Connexions à l'équipement",
+      "hint": "Connexions réussies et échouées reconnues dans le syslog, dernières 24 heures.",
+      "failed_one": "{{count}} échec",
+      "failed_other": "{{count}} échecs",
+      "noFailures": "Aucune connexion échouée",
+      "topSources": "Adresses avec le plus d'échecs",
+      "unknown": "inconnue",
+      "public": "publique",
+      "attempts_one": "{{count}} tentative · dernière {{when}}",
+      "attempts_other": "{{count}} tentatives · dernière {{when}}",
+      "none": "Aucune tentative échouée ces dernières 24 heures.",
+      "successes": "Connexions réussies ces dernières 24 heures : {{count}}.",
+      "when": "Quand",
+      "outcome": "Résultat",
+      "user": "Utilisateur",
+      "from": "Depuis",
+      "via": "Via",
+      "failure": "échec",
+      "success": "réussie",
+      "empty": "Aucune connexion enregistrée : le syslog de l'équipement doit inclure les connexions (sur RouterOS le topic « account »)."
+    },
+    "integrity": {
+      "title": "Intégrité des logs",
+      "hint": "Warnings, errors et critical sont chaînés par un hash : une ligne modifiée, insérée ou supprimée rompt la chaîne.",
+      "verify": "Vérifier l'intégrité",
+      "checking": "Vérification…",
+      "ok": "Chaîne intacte.",
+      "checked_one": "{{count}} ligne vérifiée.",
+      "checked_other": "{{count}} lignes vérifiées.",
+      "anchored": "Dernier ancrage dans l'audit {{when}}.",
+      "broken": "Chaîne rompue",
+      "brokenAt": "à la ligne {{line}} reçue le {{when}} : les lignes suivantes ont pu être altérées ({{count}} lignes précédentes vérifiées).",
+      "noAnchor": "Ancrage introuvable.",
+      "noAnchorHint": "La tête de chaîne enregistrée dans l'audit a disparu : la chaîne a pu être réécrite."
+    },
+    "setup": {
+      "title": "Configuration syslog",
+      "hint": "NSM n'accepte que les lignes contenant la clé de l'équipement ; toutes les autres sont rejetées.",
+      "receiverOn": "Récepteur actif",
+      "receiverOff": "Récepteur inactif",
+      "key": "Clé de l'équipement",
+      "noKey": "pas encore générée (ouvrez la configuration manuelle)",
+      "recognition": "Reconnaissance",
+      "byAgent": "clé définie par l'agent",
+      "byManual": "clé définie manuellement",
+      "notConfirmed": "clé pas encore confirmée : les logs sont rejetés",
+      "agentJob": "Configuration par l'agent",
+      "noJob": "jamais demandée",
+      "jobStatus": {
+        "pending": "en file",
+        "delivered": "envoyée",
+        "running": "en cours",
+        "success": "configuré",
+        "failed": "échec",
+        "expired": "expirée",
+        "cancelled": "annulée"
+      },
+      "jobInfo": "{{when}} vers {{remote}}",
+      "configure": "Configurer le syslog avec l'agent",
+      "reconfigure": "Reconfigurer",
+      "manual": "Configuration manuelle",
+      "queued": "L'agent configurera le syslog vers {{remote}}:514 au prochain heartbeat (sous 2 minutes).",
+      "already": "Une configuration est déjà en file : l'agent la recevra au prochain heartbeat."
+    },
+    "blocker": {
+      "vendor": "La configuration automatique n'est disponible qu'avec l'agent MikroTik.",
+      "legacy": "Agent legacy (RouterOS 7.12 ou 6.x) : utilisez la configuration manuelle.",
+      "legacy_readonly": "Agent legacy en lecture seule : réinstallez-le avec un nouveau jeton (profil legacy-ops-v1) ou utilisez la configuration manuelle.",
+      "legacy_version": "Un agent legacy plus récent est nécessaire : réinstallez-le depuis l'onglet Agent ou utilisez la configuration manuelle.",
+      "agent_version": "Un agent plus récent est nécessaire : mettez-le à jour depuis l'onglet Agent.",
+      "no_target": "Définissez dans Administration → Syslog l'adresse IPv4 de NSM joignable par les équipements."
+    }
   }
 }

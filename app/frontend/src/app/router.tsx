@@ -33,7 +33,9 @@ const deviceRoute = createRoute({ getParentRoute: () => rootRoute, path: "/devic
 const deviceOverviewRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/", component: DeviceOverview });
 const deviceMonitorRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/monitor", component: lazyRouteComponent(() => import("../pages/DeviceMonitor"), "DeviceMonitor") }); // uPlot only loads with this tab
 
-export const routeTree = rootRoute.addChildren([homeRoute, devicesRoute, deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute])]);
+const deviceSyslogRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/syslog", component: lazyRouteComponent(() => import("../pages/DeviceSyslog"), "DeviceSyslog") });
+
+export const routeTree = rootRoute.addChildren([homeRoute, devicesRoute, deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute])]);
 
 export const router = createRouter({ routeTree, basepath: "/app", defaultPreload: "intent" });
 

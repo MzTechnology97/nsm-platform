@@ -7,7 +7,7 @@ import { type DeviceDetail as Detail, useDevice } from "../api/device";
 import { formatRelative } from "../lib/format";
 
 /** Tabs already available in the new interface (route under /devices/$deviceId); the others open the classic page. */
-const MIGRATED_TABS = { overview: "/devices/$deviceId", monitor: "/devices/$deviceId/monitor" } as const;
+const MIGRATED_TABS = { overview: "/devices/$deviceId", monitor: "/devices/$deviceId/monitor", logs: "/devices/$deviceId/syslog" } as const;
 
 /** Device shell: breadcrumbs, title, actions and tabs; the active tab renders in the outlet. */
 export function DeviceDetail() {
@@ -167,7 +167,7 @@ export function DeviceOverview() {
   );
 }
 
-function Metric({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "danger" | "warning" }) {
+export function Metric({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "danger" | "warning" }) {
   return (
     <article className={`ui-metric${tone ? ` ui-metric-${tone}` : ""}`}>
       <span>{label}</span>

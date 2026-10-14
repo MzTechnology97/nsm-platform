@@ -210,5 +210,121 @@
     "signalWorst": "Worst client",
     "clients": "Connected clients",
     "ccq": "Average CCQ"
+  },
+  "syslog": {
+    "today": {
+      "errors": "Critical / error today",
+      "warnings": "Warnings today",
+      "other": "Other lines today",
+      "since": "since midnight (UTC)",
+      "otherHint": "notice, info, debug"
+    },
+    "last": "Last log",
+    "lastFrom": "from {{ip}}",
+    "never": "no log received",
+    "live": {
+      "title": "Live syslog",
+      "hint": "Lines sent by the device to the NSM syslog server, refreshed every 5 seconds. Warnings and errors are kept for the device's whole life; info up to 3 months.",
+      "on": "● live",
+      "paused": "Paused",
+      "pause": "Pause",
+      "resume": "Resume",
+      "csv": "Export CSV",
+      "empty": "No log received from this device.",
+      "noMatch": "No line matches the filters.",
+      "count_one": "{{count}} line",
+      "count_other": "{{count}} lines",
+      "older": "Load older lines"
+    },
+    "filters": {
+      "severity": "Severity",
+      "search": "Search logs",
+      "placeholder": "login, interface, pppoe…",
+      "levels": {
+        "all": "All severities",
+        "4": "Warning and worse",
+        "3": "Error and worse",
+        "2": "Critical only"
+      }
+    },
+    "columns": {
+      "received": "Received",
+      "severity": "Severity",
+      "topics": "Topics",
+      "message": "Message"
+    },
+    "access": {
+      "title": "Device logins",
+      "hint": "Successful and failed logins found in the syslog, last 24 hours.",
+      "failed_one": "{{count}} failed",
+      "failed_other": "{{count}} failed",
+      "noFailures": "No failed login",
+      "topSources": "Addresses with most failed logins",
+      "unknown": "unknown",
+      "public": "public",
+      "attempts_one": "{{count}} attempt · last {{when}}",
+      "attempts_other": "{{count}} attempts · last {{when}}",
+      "none": "No failed attempt in the last 24 hours.",
+      "successes": "Successful logins in the last 24 hours: {{count}}.",
+      "when": "When",
+      "outcome": "Outcome",
+      "user": "User",
+      "from": "From",
+      "via": "Via",
+      "failure": "failed",
+      "success": "succeeded",
+      "empty": "No login recorded: the device syslog must include login messages (on RouterOS the “account” topic)."
+    },
+    "integrity": {
+      "title": "Log integrity",
+      "hint": "Warnings, errors and critical lines are chained with a hash: a changed, inserted or deleted line breaks the chain.",
+      "verify": "Verify integrity",
+      "checking": "Checking…",
+      "ok": "Chain intact.",
+      "checked_one": "{{count}} line checked.",
+      "checked_other": "{{count}} lines checked.",
+      "anchored": "Last anchor in the audit log {{when}}.",
+      "broken": "Chain broken",
+      "brokenAt": "at line {{line}} received on {{when}}: the following lines may have been altered ({{count}} earlier lines checked).",
+      "noAnchor": "Anchor not found.",
+      "noAnchorHint": "The chain head recorded in the audit log is gone: the chain may have been rewritten."
+    },
+    "setup": {
+      "title": "Syslog setup",
+      "hint": "NSM accepts only lines carrying the device key; every other line is discarded.",
+      "receiverOn": "Receiver running",
+      "receiverOff": "Receiver not running",
+      "key": "Device key",
+      "noKey": "not generated yet (open the manual setup)",
+      "recognition": "Recognition",
+      "byAgent": "key set by the agent",
+      "byManual": "key set manually",
+      "notConfirmed": "key not confirmed yet: logs are discarded",
+      "agentJob": "Agent configuration",
+      "noJob": "never requested",
+      "jobStatus": {
+        "pending": "queued",
+        "delivered": "sent",
+        "running": "running",
+        "success": "configured",
+        "failed": "failed",
+        "expired": "expired",
+        "cancelled": "cancelled"
+      },
+      "jobInfo": "{{when}} to {{remote}}",
+      "configure": "Configure syslog with the agent",
+      "reconfigure": "Reconfigure",
+      "manual": "Manual setup",
+      "queued": "The agent will configure syslog to {{remote}}:514 at the next heartbeat (within 2 minutes).",
+      "already": "A configuration is already queued: the agent receives it at the next heartbeat."
+    },
+    "blocker": {
+      "vendor": "Automatic setup is available only with the MikroTik agent.",
+      "legacy": "Legacy agent (RouterOS 7.12 or 6.x): use the manual setup.",
+      "legacy_readonly": "Read-only legacy agent: reinstall it with a new token (legacy-ops-v1 profile) or use the manual setup.",
+      "legacy_version": "A newer legacy agent is needed: reinstall it from the Agent tab or use the manual setup.",
+      "agent_version": "A newer agent is needed: update it from the Agent tab.",
+      "no_target": "Set the NSM IPv4 address reachable by the devices in Administration → Syslog."
+    }
   }
 }
