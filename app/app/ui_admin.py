@@ -48,7 +48,10 @@
   the address Zabbix must use for a device (``zabbix_connector``);
 - ``GET /api/ui/v1/admin/integrations/genieacs``: NBI connection (secret never
   returned), built-in GenieACS, last test; ``POST`` save, use the built-in
-  one, test (``genieacs_connector``).
+  one, test (``genieacs_connector``);
+- ``GET /api/ui/v1/admin/integrations/uisp``: connection (token never
+  returned), last test and periodic sync; ``POST`` save, test, sync now
+  (``uisp_connector`` / ``uisp_sync``).
 """
 from __future__ import annotations
 
@@ -88,6 +91,8 @@ from app import (
     system_status,
     two_factor,
     ui_extension,
+    uisp_connector,
+    uisp_sync,
     vendor_cpe,
     worker_status,
     workflow_ui,
@@ -980,6 +985,63 @@ def admin_genieacs_test(request: Request):
             raise HTTPException(422, {"code": "not_configured", "message": "Configura prima il connettore GenieACS."})
         ok, message = genieacs_connector.test_connection(db, user, row)
         return {"ok": ok, "message": message}
+
+    return _admin_write(request, run)
+
+
+def _uisp_payload(db) -> dict:
+    row = uisp_connector._connection(db)
+    sync = uisp_connector._sync_view(row)
+    return jsonable_encoder({
+        "configured": row is not None, "enabled": bool(row and row.is_enabled), "base_url": row.base_url if row else "",
+        "has_token": bool(row and row.secret_encrypted), "verify_tls": bool(row.verify_tls) if row else True,
+        "sync_interval": uisp_connector.sync_interval(row),
+        "last_tested_at": row.last_tested_at if row else None, "last_test_status": row.last_test_status if row else None,
+        "last_error": row.last_error if row else None, "last_sync_at": row.last_sync_at if row else None,
+        "sync": {key: sync.get(key) for key in ("last_status", "last_success_at", "next_attempt_at", "consecutive_failures", "last_error", "last_stats")},
+    })
+
+
+@router.get("/admin/integrations/uisp")
+def admin_uisp(request: Request):
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        return _uisp_payload(db)
+
+
+@router.post("/admin/integrations/uisp", dependencies=[Depends(require_csrf)])
+def admin_uisp_save(request: Request, body: dict = Body(default={})):
+    def save(db, user):
+        try:
+            uisp_connector.save_config(db, user, base_url=_text(body, "base_url"), api_token=_text(body, "api_token"), enabled=body.get("enabled") is True,
+                                       verify_tls=body.get("verify_tls") is not False, sync_interval_minutes=str(body.get("sync_interval_minutes") or ""))
+        except ValueError as error:
+            raise HTTPException(422, {"code": "invalid", "message": str(error)}) from None
+        db.flush()
+        return _uisp_payload(db)
+
+    return _admin_write(request, save)
+
+
+@router.post("/admin/integrations/uisp/test", dependencies=[Depends(require_csrf)])
+def admin_uisp_test(request: Request):
+    def run(db, user):
+        row = uisp_connector._connection(db)
+        if row is None:
+            raise HTTPException(422, {"code": "not_configured", "message": "Configura prima il connettore UISP."})
+        ok, message = uisp_connector.test_connection(db, user, row)
+        return {"ok": ok, "message": message}
+
+    return _admin_write(request, run)
+
+
+@router.post("/admin/integrations/uisp/sync", dependencies=[Depends(require_csrf)])
+def admin_uisp_sync(request: Request):
+    def run(db, user):
+        result = uisp_sync.manual_sync(db)
+        if result["status"] == "disabled":
+            raise HTTPException(422, {"code": "disabled", "message": "Configura e abilita prima il connettore UISP."})
+        return jsonable_encoder({key: result.get(key) for key in ("status", "error", "devices", "updated", "missing", "conflicts")})
 
     return _admin_write(request, run)
 

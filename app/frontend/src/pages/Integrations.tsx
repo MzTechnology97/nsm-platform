@@ -39,10 +39,8 @@ export function Integrations() {
   const data = query.data;
   const when = (value: string | null) => (value ? formatDateTime(value, i18n.language) : t("adminUsers.never"));
   const state = (key: string) => t(`integrations.states.${key}`);
-  const manage = (href: string, configured: boolean) =>
-    data?.can_admin ? <a className="ui-button ui-button-ghost ui-button-small" href={href}>{configured ? t("integrations.manage") : t("integrations.configure")}</a> : null;
 
-  const manageRoute = (to: "/admin/integrations/cnmaestro" | "/admin/integrations/zabbix" | "/admin/integrations/genieacs", configured: boolean) =>
+  const manageRoute = (to: "/admin/integrations/cnmaestro" | "/admin/integrations/zabbix" | "/admin/integrations/genieacs" | "/admin/integrations/uisp", configured: boolean) =>
     data?.can_admin ? <Link className="ui-button ui-button-ghost ui-button-small" to={to}>{configured ? t("integrations.manage") : t("integrations.configure")}</Link> : null;
 
   return (
@@ -67,7 +65,7 @@ export function Integrations() {
           </Card>
 
           <Card name="uisp" title={t("integrations.uisp.title")} help={t("integrations.uisp.help")} state={data.uisp.state} label={state(data.uisp.state)}
-            actions={manage("/admin/integrations/uisp", data.uisp.state !== "unconfigured")}>
+            actions={manageRoute("/admin/integrations/uisp", data.uisp.state !== "unconfigured")}>
             {data.uisp.state === "unconfigured" ? <p className="ui-muted">{t("integrations.uisp.setup")}</p> : (
               <Facts items={[
                 [t("integrations.uisp.devices"), data.uisp.devices],

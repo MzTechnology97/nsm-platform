@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 /** Configurable integrations: ``route`` once migrated to React, otherwise the classic page. */
 const INTEGRATION_PAGES: { key: string; classic: string; route?: string }[] = [
-  { key: "uisp", classic: "/admin/integrations/uisp" },
+  { key: "uisp", classic: "/admin/integrations/uisp", route: "/admin/integrations/uisp" },
   { key: "nvd", classic: "/admin/integrations/nvd", route: "/admin/integrations/nvd" },
   { key: "genieacs", classic: "/admin/integrations/genieacs", route: "/admin/integrations/genieacs" },
   { key: "zabbix", classic: "/admin/integrations/zabbix", route: "/admin/integrations/zabbix" },
