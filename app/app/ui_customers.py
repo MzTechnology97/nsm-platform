@@ -1,20 +1,27 @@
-"""Customer list for the new interface (phase 2): ``GET /api/ui/v1/customers``.
+"""Customers for the new interface (phase 2).
 
-Same health counters as the classic list (devices, sites, firmware to update,
-devices with severe CVEs, open Action Center issues) plus online/offline
-devices.  The list is small (one row per customer), so filters on the
-counters and sorting happen after counting; customer scope comes from the
-global ORM filter.
+- ``GET /api/ui/v1/customers``: same health counters as the classic list
+  (devices, sites, firmware to update, devices with severe CVEs, open Action
+  Center issues) plus online/offline devices.  The list is small (one row per
+  customer), so filters on the counters and sorting happen after counting.
+- ``GET /api/ui/v1/customers/{id}``: the customer page (header, overview cards
+  with backup protection and lifecycle, open issues, recent events, sites with
+  their device states), built with the classic overview helpers.
+
+Customer scope comes from the global ORM filter (another customer is a 404).
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+import uuid
+
+from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import func, or_, select
 
 from app import main as core
-from app.customer_workspace import _customer_metric_maps, _customer_metrics
+from app.customer_tabs import _backup_summary, _load_customer
+from app.customer_workspace import OPEN_STATES, _customer_metric_maps, _customer_metrics
 from app.db import SessionLocal
-from app.models import Customer, Device
+from app.models import ActionIssue, AuditEvent, Customer, Device
 from app.ui_api import ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
@@ -80,6 +87,55 @@ def customers(request: Request, q: str = "", filter: str = "", sort: str = "name
         return {
             "total": len(rows), "items": rows, "counts": counts,
             "can_create": core.has_permission(user, "customers.write"),
+        }
+
+
+CUSTOMER_TABS = (("overview", ""), ("devices", "/devices"), ("sites", "/sites"), ("graphs", "/graphs"),
+                 ("backups", "/backups"), ("security", "/security"), ("history", "/history"))
+
+
+def _iso(value):
+    return value.isoformat() if value else None
+
+
+@router.get("/customers/{customer_id}")
+def customer_detail(request: Request, customer_id: uuid.UUID):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "customers.read")
+        try:
+            customer = _load_customer(db, customer_id)
+        except HTTPException as exc:
+            raise HTTPException(404, "Cliente non trovato.") from exc
+        metrics = _customer_metrics(_customer_metric_maps(db, [customer.id]), customer.id)
+        devices = list(customer.devices)
+        by_status = {}
+        for device in devices:
+            by_status[device.status or ""] = by_status.get(device.status or "", 0) + 1
+        issues = list(db.scalars(select(ActionIssue).where(ActionIssue.customer_id == customer.id, ActionIssue.status.in_(OPEN_STATES))
+                                 .order_by(ActionIssue.updated_at.desc()).limit(6)))
+        events = list(db.scalars(select(AuditEvent).where(AuditEvent.customer_id == customer.id).order_by(AuditEvent.timestamp.desc()).limit(8)))
+        lifecycle = sum(1 for d in devices if str(d.lifecycle_status or "").lower() in ("eol", "eos"))
+        unassigned = [d for d in devices if d.site_id is None]
+        base = f"/customers/{customer.id}"
+        return {
+            "customer": {"id": str(customer.id), "name": customer.name, "code": customer.code, "active": bool(customer.is_active), "notes": customer.notes},
+            "counts": {"devices": len(devices), "sites": len(customer.sites), "online": by_status.get("online", 0), "offline": by_status.get("offline", 0),
+                       "pending": sum(n for status, n in by_status.items() if status.startswith("pending")), "unassigned": len(unassigned)},
+            "metrics": {"severe": metrics["severe_cve_devices"], "updates": metrics["updates"], "alerts": metrics["alerts"],
+                        "backup_alerts": metrics["backup_alerts"], "lifecycle": lifecycle, "backup": _backup_summary(db, customer)},
+            "issues": [{"id": str(i.id), "title": i.title, "severity": i.severity, "category": i.category, "updated_at": _iso(i.updated_at),
+                        "device_id": str(i.device_id) if i.device_id else None} for i in issues],
+            "events": [{"timestamp": _iso(e.timestamp), "type": e.event_type, "label": core.event_label(e.event_type), "source": e.source,
+                        "result": e.result, "severity": e.severity} for e in events],
+            "sites": sorted(({"id": str(site.id), "name": site.name, "address": site.address, "notes": site.notes,
+                              "devices": len(site.devices), "online": sum(1 for d in site.devices if d.status == "online"),
+                              "offline": sum(1 for d in site.devices if d.status == "offline")} for site in customer.sites),
+                            key=lambda row: row["name"].lower()),
+            "actions": {"edit": core.has_permission(user, "customers.write"), "add_site": core.has_permission(user, "customers.write"),
+                        "add_device": core.has_permission(user, "devices.write"), "incidents": core.has_permission(user, "incidents.read")},
+            "tabs": [{"key": key, "classic": f"{base}{suffix}"} for key, suffix in CUSTOMER_TABS],
+            "links": {"edit": f"{base}/edit", "add_site": f"{base}/sites/new", "add_device": f"{base}/devices/new",
+                      "incidents": f"/incidents?customer={customer.id}&status=all", "action_center": f"/action-center?customer={customer.id}"},
         }
 
 

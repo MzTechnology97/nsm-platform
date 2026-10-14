@@ -723,5 +723,83 @@
     "online_other": "{{count}} en ligne",
     "backupAlerts_one": "({{count}} sauvegarde)",
     "backupAlerts_other": "({{count}} sauvegardes)"
+  },
+  "customer": {
+    "notFound": "Client introuvable ou non visible avec votre profil.",
+    "devices_one": "{{count}} équipement",
+    "devices_other": "{{count}} équipements",
+    "actions": {
+      "incidents": "Incidents",
+      "edit": "Gérer le client",
+      "addDevice": "+ Équipement"
+    },
+    "tabs": {
+      "label": "Sections client",
+      "overview": "Vue d'ensemble",
+      "devices": "Équipements",
+      "sites": "Sites",
+      "graphs": "Graphiques",
+      "backups": "Sauvegardes",
+      "security": "Sécurité",
+      "history": "Activité"
+    },
+    "metrics": {
+      "devices": "Équipements en ligne",
+      "severe": "CVE graves",
+      "updates": "Firmware",
+      "alerts": "Points d'attention",
+      "backup": "Sauvegardes protégées",
+      "lifecycle": "EOL / EOS"
+    },
+    "offline_one": "{{count}} hors ligne",
+    "offline_other": "{{count}} hors ligne",
+    "allOnline": "tous en ligne",
+    "hints": {
+      "severe": "équipements avec CVE high/critical",
+      "updates": "équipements à mettre à jour",
+      "alerts": "signalements ouverts",
+      "backupGaps": "{{blocked}} bloqués · {{missing}} sans politique",
+      "backupOk": "tous protégés",
+      "lifecycle": "équipements hors support"
+    },
+    "links": {
+      "offline": "Équipements hors ligne →",
+      "severe": "Avec CVE graves →",
+      "updates": "À mettre à jour →",
+      "lifecycle": "Hors support →"
+    },
+    "issues": {
+      "title": "À surveiller",
+      "hint": "Les signalements ouverts les plus récents du client.",
+      "all": "Action Center",
+      "none": "Aucun signalement ouvert pour ce client."
+    },
+    "events": {
+      "title": "Activité récente",
+      "hint": "Les derniers événements ; l'historique complet est dans l'onglet Activité.",
+      "all": "Toute l'activité",
+      "when": "Date",
+      "event": "Événement",
+      "source": "Source",
+      "result": "Résultat",
+      "none": "Aucun événement."
+    },
+    "sites": {
+      "title_one": "{{count}} site",
+      "title_other": "{{count}} sites",
+      "hint": "Les sites appartiennent uniquement à ce client.",
+      "add": "+ Site",
+      "search": "Rechercher nom ou adresse",
+      "name": "Site",
+      "address": "Adresse",
+      "devices": "Équipements",
+      "offline": "Hors ligne",
+      "graphs": "Graphiques",
+      "edit": "Modifier",
+      "empty": "Aucun site : les sites sont facultatifs, un équipement peut appartenir directement au client.",
+      "noMatch": "Aucun site ne correspond à la recherche.",
+      "unassigned_one": "{{count}} équipement n'est assigné à aucun site.",
+      "unassigned_other": "{{count}} équipements ne sont assignés à aucun site."
+    }
   }
 }
