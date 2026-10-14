@@ -691,5 +691,37 @@
       "static": "statica",
       "none": "Nessuna lease trovata."
     }
+  },
+  "customers": {
+    "title": "Clienti",
+    "subtitle_one": "{{count}} cliente",
+    "subtitle_other": "{{count}} clienti",
+    "add": "+ Aggiungi cliente",
+    "filters": "Filtri clienti",
+    "search": "Cerca per nome o codice",
+    "empty": "Nessun cliente.",
+    "noMatch": "Nessun cliente corrisponde ai filtri.",
+    "chips": {
+      "all": "Tutti",
+      "alerts": "Con allarmi",
+      "offline": "Con apparati offline",
+      "severe": "Con CVE gravi",
+      "updates": "Firmware da aggiornare"
+    },
+    "columns": {
+      "name": "Cliente",
+      "devices": "Apparati",
+      "offline": "Offline",
+      "updates": "Da aggiornare",
+      "severe": "CVE gravi",
+      "alerts": "Allarmi aperti"
+    },
+    "sites_one": "{{count}} sede",
+    "sites_other": "{{count}} sedi",
+    "inactive": "disattivato",
+    "online_one": "{{count}} online",
+    "online_other": "{{count}} online",
+    "backupAlerts_one": "({{count}} backup)",
+    "backupAlerts_other": "({{count}} backup)"
   }
 }

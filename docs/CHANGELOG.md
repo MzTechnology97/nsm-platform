@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.105 — 2026-10-14
+
+New interface (React) — customer list, phase 2a
+- **Customers in `/app/customers`**, also reachable from the sidebar of the new interface.
+- **Per-customer health on one row:**
+  - devices with the online count, offline devices, firmware to update, devices with severe CVEs;
+  - open Action Center alerts, with backup alerts noted apart.
+  - Each number opens the device list already filtered (customer + status, firmware or severe CVEs); alerts open the Action Center of the customer.
+- **Chips** for all, with alerts, with offline devices, with severe CVEs, with firmware to update, each with its count. Text search on name and code.
+- **Sorting** on every column: counters start from the largest. Filters and sorting stay in the address, so links and the back button restore the same view.
+- Users limited to some customers see only theirs; *+ Add customer* appears only with permission.
+- **API.** `GET /api/ui/v1/customers` (`customers.read`; `q`, `filter`, `sort`, `dir`).
+
 ## 0.49.104 — 2026-10-14
 
 New interface (React) — Diagnostics tab, phase 1d
