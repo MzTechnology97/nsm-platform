@@ -445,3 +445,15 @@ export function useAcsTemplates() {
     onSuccess: () => client.invalidateQueries({ queryKey: ["admin-acs"] }),
   });
 }
+
+export const useDemoAdmin = () =>
+  useQuery({ queryKey: ["admin-demo"], queryFn: () => api<{ demo_customers: number }>("/api/ui/v1/admin/demo") });
+
+/** Seeding or clearing the demo dataset changes most lists: refresh everything. */
+export function useDemoAction<B extends object>(path: "/seed" | "/clear") {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: B) => api<{ demo_customers: number }>(`/api/ui/v1/admin/demo${path}`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => client.invalidateQueries(),
+  });
+}

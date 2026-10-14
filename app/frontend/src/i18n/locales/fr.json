@@ -2411,5 +2411,22 @@
     "preset": "Preset",
     "presetText": "condition <code>{{condition}}</code>, événements bootstrap, boot et periodic → provision <code>{{provision}}</code>",
     "script": "Script de la provision {{name}}"
+  },
+  "demo": {
+    "subtitle": "Jeu de données isolé pour essayer l'interface et les flux sans utiliser de vrais clients.",
+    "dataset": "Jeu de démonstration",
+    "datasetHelp": "Clients, sites, équipements multi-fabricants, politiques, exécutions et faux fichiers de sauvegarde téléchargeables.",
+    "customers": "Clients de démonstration",
+    "code": "code DEMO-*",
+    "inUse": "Utilisez-les pour la recherche, les déplacements, les suppressions, les politiques et les téléchargements de sauvegardes.",
+    "seed": "Générer les données de démonstration",
+    "seeding": "Génération en cours…",
+    "seeded": "Jeu de démonstration créé.",
+    "clearTitle": "Supprimer le jeu de démonstration",
+    "clearHelp": "Supprime uniquement les objets identifiés comme démonstration et les fichiers du dossier de sauvegardes de démonstration.",
+    "typeDemo": "Tapez DEMO",
+    "clear": "Supprimer les données de démonstration",
+    "clearing": "Suppression en cours…",
+    "cleared": "Jeu de démonstration supprimé."
   }
 }

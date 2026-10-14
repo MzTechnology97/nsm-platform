@@ -217,3 +217,7 @@
   margin: var(--space-2) 0;
   padding-left: var(--space-5);
 }
+
+.ui-danger-zone {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+}

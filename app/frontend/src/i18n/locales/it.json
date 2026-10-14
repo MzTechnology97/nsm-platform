@@ -2411,5 +2411,22 @@
     "preset": "Preset",
     "presetText": "condizione <code>{{condition}}</code>, eventi bootstrap, boot e periodic → provision <code>{{provision}}</code>",
     "script": "Script della provision {{name}}"
+  },
+  "demo": {
+    "subtitle": "Dataset isolato per provare interfaccia e flussi di lavoro senza usare clienti reali.",
+    "dataset": "Dataset demo",
+    "datasetHelp": "Clienti, sedi, apparati multi-vendor, policy, esecuzioni e file di backup fittizi scaricabili.",
+    "customers": "Clienti demo",
+    "code": "codice DEMO-*",
+    "inUse": "Usali per ricerca, spostamenti, cancellazioni, policy e download dei backup.",
+    "seed": "Genera dati demo",
+    "seeding": "Generazione in corso…",
+    "seeded": "Dataset demo creato.",
+    "clearTitle": "Rimuovi dataset demo",
+    "clearHelp": "Rimuove esclusivamente gli oggetti identificati come demo e i file nella cartella dei backup demo.",
+    "typeDemo": "Digita DEMO",
+    "clear": "Rimuovi dati demo",
+    "clearing": "Rimozione in corso…",
+    "cleared": "Dataset demo rimosso."
   }
 }
