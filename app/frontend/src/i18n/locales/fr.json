@@ -418,5 +418,172 @@
     "daily": "Tous les jours à {{time}}",
     "weekly": "Chaque {{day}} à {{time}}",
     "monthly": "Chaque mois, le {{day}}, à {{time}}"
+  },
+  "agent": {
+    "metrics": {
+      "installation": "Installation",
+      "transport": "Transport",
+      "version": "Agent",
+      "heartbeat": "Heartbeat"
+    },
+    "heartbeat": {
+      "stale": "Ancien / à vérifier",
+      "regular": "Régulier"
+    },
+    "ok": "OK",
+    "waiting": "En attente",
+    "unavailable": "Indisp.",
+    "install": {
+      "verified": {
+        "label": "Agent vérifié",
+        "short": "appairage et heartbeat vérifiés",
+        "detail": "Appairage, identifiant et heartbeat après installation sont vérifiés."
+      },
+      "stale": {
+        "label": "Heartbeat ancien",
+        "short": "agent installé, heartbeat ancien",
+        "detail": "L'appairage est vérifié, mais l'équipement n'envoie pas de heartbeat récent."
+      },
+      "awaiting_heartbeat": {
+        "label": "Attente du heartbeat",
+        "short": "appairage terminé",
+        "detail": "L'identifiant a été émis : en attente du premier heartbeat de l'agent installé."
+      },
+      "install_suspect": {
+        "label": "Agent non démarré",
+        "short": "appairage OK, aucun heartbeat",
+        "detail": "Le jeton a été utilisé et l'identifiant existe, mais aucun heartbeat n'est arrivé après l'appairage : vérifiez le parseur RouterOS, le planificateur et le journal de l'équipement."
+      },
+      "awaiting_pairing": {
+        "label": "En attente d'appairage",
+        "short": "jeton valide",
+        "detail": "Jeton à usage unique valide : le routeur ne l'a pas encore utilisé."
+      },
+      "token_expired": {
+        "label": "Jeton expiré",
+        "short": "régénérez la commande",
+        "detail": "Générez une nouvelle commande d'enrôlement et répétez l'installation sur le MikroTik."
+      },
+      "verified_legacy_record": {
+        "label": "Agent opérationnel",
+        "short": "heartbeat et identifiant valides",
+        "detail": "Heartbeat et identifiant valides ; l'historique d'appairage d'origine n'est pas disponible."
+      },
+      "credential_no_heartbeat": {
+        "label": "Aucun heartbeat",
+        "short": "identifiant actif",
+        "detail": "L'identifiant existe mais aucun heartbeat de l'agent n'est jamais arrivé."
+      },
+      "not_enrolled": {
+        "label": "Agent non associé",
+        "short": "aucun identifiant",
+        "detail": "Aucun identifiant d'agent actif : lancez ou régénérez l'enrôlement."
+      },
+      "checkRouter": "Sur le MikroTik, vérifiez"
+    },
+    "pipeline": {
+      "title": "Vérification de l'installation",
+      "hint": "Jeton créé → appairage unique → identifiant par équipement → heartbeat après installation. L'appairage seul ne prouve pas que le script a démarré.",
+      "steps": {
+        "token": "Jeton créé",
+        "pairing": "Appairage unique",
+        "credential": "Identifiant par équipement",
+        "heartbeat": "Heartbeat après installation"
+      },
+      "notes": {
+        "storico non disponibile": "historique non disponible",
+        "nessun enrollment": "aucun enrôlement",
+        "used": "utilisé",
+        "pending": "en attente",
+        "expired": "expiré",
+        "revoked": "révoqué"
+      },
+      "suspect": "Le jeton a été utilisé correctement ({{minutes}} minutes de tolérance) : la cause est dans l'import du script ou le planificateur RouterOS, pas dans l'authentification."
+    },
+    "transport": {
+      "title": "Transport et appairage",
+      "agent": "Transport de l'agent",
+      "enrollment": "Enrôlement",
+      "heartbeat": "Heartbeat",
+      "sourceIp": "IP source",
+      "routeros": "RouterOS",
+      "legacyNote": "Transport legacy (RouterOS 6.48/6.49 et 7.12) : heartbeat, télémétrie, snapshots, diagnostic, redémarrage, mise à jour RouterOS, syslog et sauvegarde FTP. Avec RouterOS 7.13+ la mise à jour automatique installe l'agent moderne.",
+      "modernNote": "Transport moderne : toutes les fonctions agent activées par le portail."
+    },
+    "capabilities": {
+      "title": "Fonctions disponibles",
+      "keys": {
+        "heartbeat": "Heartbeat / inventaire",
+        "diagnostics": "Diagnostic en lecture seule",
+        "firmware": "Vérification firmware",
+        "snapshots": "Snapshots de configuration",
+        "telemetry": "Télémétrie historique",
+        "online": "Fonctionnement de l'agent",
+        "reboot": "Redémarrage",
+        "routeros_upgrade": "Mise à jour RouterOS",
+        "self_update": "Mise à jour automatique de l'agent",
+        "syslog": "Configuration syslog"
+      }
+    },
+    "update": {
+      "title": "Mise à jour de l'agent",
+      "hint": "Les agents qui se mettent à jour seuls reçoivent les nouvelles versions automatiquement : le routeur télécharge le script, RouterOS vérifie sa syntaxe et le script précédent est conservé.",
+      "now": "Mettre à jour vers {{version}}",
+      "installed": "Installé",
+      "latest": "Dernière version",
+      "status": "État",
+      "outdated": "À mettre à jour",
+      "current": "À jour",
+      "mode": "Mode",
+      "automatic": "Automatique",
+      "reinstallOnce": "Réinstallation unique",
+      "last": "Dernière mise à jour",
+      "policies": "Permissions RouterOS",
+      "noPolicies": "non détectées",
+      "states": {
+        "idle": "Aucune mise à jour en cours",
+        "pending": "En file : arrive au prochain heartbeat",
+        "installing": "Installation en cours",
+        "awaiting_heartbeat": "Installée : attente d'un heartbeat avec la nouvelle version",
+        "verified": "Vérifiée",
+        "failed": "Échouée",
+        "rolled_back": "Annulée : script précédent restauré",
+        "expired": "Aucun résultat sous 30 minutes"
+      },
+      "drift": "Le script sur le routeur diffère de celui attendu : la mise à jour le réaligne.",
+      "toModern": "Avec RouterOS 7.13+ la mise à jour installe l'agent moderne en gardant ses permissions.",
+      "toModernReinstall": "Avec RouterOS 7.13+ réinstallez l'agent pour passer au transport moderne.",
+      "reinstallTitle": "Réinstallation unique.",
+      "reinstallDefault": "Cet agent est antérieur à la mise à jour automatique.",
+      "reinstallHow": "Utilisez « Régénérer / réinstaller l'agent » et collez la commande sur le routeur : ensuite les mises à jour seront automatiques.",
+      "queued": "Mise à jour en file : le routeur l'applique au prochain heartbeat, avec retour arrière automatique en cas d'erreur."
+    },
+    "credential": {
+      "title": "Identifiant de l'agent",
+      "hint": "La clé permanente n'est stockée que sous forme de hash et n'est jamais affichée.",
+      "reinstall": "Régénérer / réinstaller l'agent",
+      "state": "État",
+      "active": "Identifiant actif",
+      "inactive": "Identifiant inactif",
+      "none": "Aucun identifiant",
+      "created": "Créé",
+      "lastUsed": "Dernière utilisation",
+      "rotated": "Dernière rotation"
+    },
+    "enrollments": {
+      "title": "Enrôlements récents",
+      "created": "Créé",
+      "source": "Origine",
+      "status": "État",
+      "expires": "Expiration",
+      "used": "Utilisé",
+      "empty": "Aucun enrôlement enregistré.",
+      "statuses": {
+        "pending": "en attente",
+        "used": "utilisé",
+        "expired": "expiré",
+        "revoked": "révoqué"
+      }
+    }
   }
 }

@@ -86,3 +86,56 @@
     display: none;
   }
 }
+
+/* Agent tab: installation steps and capability list. */
+.ui-alert-warning {
+  border-left-color: var(--warning);
+}
+
+.ui-steps,
+.ui-cap-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ui-steps li,
+.ui-cap-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.ui-steps li:first-child,
+.ui-cap-list li:first-child {
+  border-top: 0;
+}
+
+.ui-steps li > div,
+.ui-cap-list li > div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ui-step-mark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ui-steps li.is-done .ui-step-mark {
+  background: color-mix(in srgb, var(--success) 18%, var(--panel));
+  color: var(--success);
+}

@@ -418,5 +418,172 @@
     "daily": "Every day at {{time}}",
     "weekly": "Every {{day}} at {{time}}",
     "monthly": "Every month on day {{day}} at {{time}}"
+  },
+  "agent": {
+    "metrics": {
+      "installation": "Installation",
+      "transport": "Transport",
+      "version": "Agent",
+      "heartbeat": "Heartbeat"
+    },
+    "heartbeat": {
+      "stale": "Stale / to check",
+      "regular": "Regular"
+    },
+    "ok": "OK",
+    "waiting": "Waiting",
+    "unavailable": "N/A",
+    "install": {
+      "verified": {
+        "label": "Agent verified",
+        "short": "pairing and heartbeat verified",
+        "detail": "Pairing, credential and post-install heartbeat are verified."
+      },
+      "stale": {
+        "label": "Heartbeat stale",
+        "short": "agent installed, old heartbeat",
+        "detail": "Pairing is verified, but the device sends no recent heartbeat."
+      },
+      "awaiting_heartbeat": {
+        "label": "Waiting for heartbeat",
+        "short": "pairing completed",
+        "detail": "The credential was issued: waiting for the first heartbeat of the installed agent."
+      },
+      "install_suspect": {
+        "label": "Agent not started",
+        "short": "pairing OK, no heartbeat",
+        "detail": "The token was used and the credential exists, but no heartbeat arrived after pairing: check the RouterOS parser, scheduler and device log."
+      },
+      "awaiting_pairing": {
+        "label": "Waiting for pairing",
+        "short": "valid token",
+        "detail": "Valid one-shot token: the router has not used it yet."
+      },
+      "token_expired": {
+        "label": "Token expired",
+        "short": "generate the command again",
+        "detail": "Generate a new onboarding command and repeat the installation on the MikroTik."
+      },
+      "verified_legacy_record": {
+        "label": "Agent working",
+        "short": "valid heartbeat and credential",
+        "detail": "Heartbeat and credential are valid; the original pairing history is not available."
+      },
+      "credential_no_heartbeat": {
+        "label": "No heartbeat",
+        "short": "credential active",
+        "detail": "The credential exists but no agent heartbeat has ever arrived."
+      },
+      "not_enrolled": {
+        "label": "Agent not paired",
+        "short": "no credential",
+        "detail": "No active agent credential: start or regenerate the onboarding."
+      },
+      "checkRouter": "On the MikroTik check"
+    },
+    "pipeline": {
+      "title": "Installation check",
+      "hint": "Token created → one-shot pairing → per-device credential → heartbeat after installation. Pairing alone does not prove the script started.",
+      "steps": {
+        "token": "Token created",
+        "pairing": "One-shot pairing",
+        "credential": "Per-device credential",
+        "heartbeat": "Heartbeat after installation"
+      },
+      "notes": {
+        "storico non disponibile": "history not available",
+        "nessun enrollment": "no enrollment",
+        "used": "used",
+        "pending": "pending",
+        "expired": "expired",
+        "revoked": "revoked"
+      },
+      "suspect": "The token was used correctly ({{minutes}} minutes grace): the cause is in the script import or the RouterOS scheduler, not in authentication."
+    },
+    "transport": {
+      "title": "Transport and pairing",
+      "agent": "Agent transport",
+      "enrollment": "Enrollment",
+      "heartbeat": "Heartbeat",
+      "sourceIp": "Source IP",
+      "routeros": "RouterOS",
+      "legacyNote": "Legacy transport (RouterOS 6.48/6.49 and 7.12): heartbeat, telemetry, snapshots, diagnostics, reboot, RouterOS upgrade, syslog and FTP backup. On RouterOS 7.13+ the automatic update installs the modern agent.",
+      "modernNote": "Modern transport: every agent function enabled by the portal."
+    },
+    "capabilities": {
+      "title": "Available functions",
+      "keys": {
+        "heartbeat": "Heartbeat / inventory",
+        "diagnostics": "Read-only diagnostics",
+        "firmware": "Firmware readiness",
+        "snapshots": "Configuration snapshots",
+        "telemetry": "Historical telemetry",
+        "online": "Agent operation",
+        "reboot": "Reboot",
+        "routeros_upgrade": "RouterOS upgrade",
+        "self_update": "Automatic agent update",
+        "syslog": "Syslog setup"
+      }
+    },
+    "update": {
+      "title": "Agent update",
+      "hint": "Agents that update themselves receive new versions automatically: the router downloads the script, RouterOS checks its syntax and the previous script is kept.",
+      "now": "Update to {{version}}",
+      "installed": "Installed",
+      "latest": "Latest version",
+      "status": "Status",
+      "outdated": "Outdated",
+      "current": "Up to date",
+      "mode": "Mode",
+      "automatic": "Automatic",
+      "reinstallOnce": "One-time reinstall",
+      "last": "Last update",
+      "policies": "RouterOS permissions",
+      "noPolicies": "not detected",
+      "states": {
+        "idle": "No update in progress",
+        "pending": "Queued: arrives at the next heartbeat",
+        "installing": "Installing",
+        "awaiting_heartbeat": "Installed: waiting for a heartbeat with the new version",
+        "verified": "Verified",
+        "failed": "Failed",
+        "rolled_back": "Cancelled: previous script restored",
+        "expired": "No result within 30 minutes"
+      },
+      "drift": "The script on the router differs from the expected one: the update realigns it.",
+      "toModern": "On RouterOS 7.13+ the update installs the modern agent keeping its permissions.",
+      "toModernReinstall": "On RouterOS 7.13+ reinstall the agent to switch to the modern transport.",
+      "reinstallTitle": "One-time reinstall.",
+      "reinstallDefault": "This agent predates the automatic update.",
+      "reinstallHow": "Use “Regenerate / reinstall agent” and paste the command on the router: after this, updates are automatic.",
+      "queued": "Update queued: the router applies it at the next heartbeat, with automatic rollback on error."
+    },
+    "credential": {
+      "title": "Agent credential",
+      "hint": "The permanent key is stored only as a hash and is never shown.",
+      "reinstall": "Regenerate / reinstall agent",
+      "state": "State",
+      "active": "Credential active",
+      "inactive": "Credential inactive",
+      "none": "No credential",
+      "created": "Created",
+      "lastUsed": "Last used",
+      "rotated": "Last rotation"
+    },
+    "enrollments": {
+      "title": "Recent enrollments",
+      "created": "Created",
+      "source": "Source",
+      "status": "Status",
+      "expires": "Expires",
+      "used": "Used",
+      "empty": "No enrollment recorded.",
+      "statuses": {
+        "pending": "pending",
+        "used": "used",
+        "expired": "expired",
+        "revoked": "revoked"
+      }
+    }
   }
 }

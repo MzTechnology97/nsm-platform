@@ -37,7 +37,13 @@ const deviceSyslogRoute = createRoute({ getParentRoute: () => deviceRoute, path:
 
 const deviceBackupsRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/backups", component: lazyRouteComponent(() => import("../pages/DeviceBackups"), "DeviceBackups") });
 
-export const routeTree = rootRoute.addChildren([homeRoute, devicesRoute, deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute])]);
+const deviceAgentRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/agent", component: lazyRouteComponent(() => import("../pages/DeviceAgent"), "DeviceAgent") });
+
+export const routeTree = rootRoute.addChildren([
+  homeRoute,
+  devicesRoute,
+  deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute]),
+]);
 
 export const router = createRouter({ routeTree, basepath: "/app", defaultPreload: "intent" });
 

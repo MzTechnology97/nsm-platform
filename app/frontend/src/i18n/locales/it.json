@@ -418,5 +418,172 @@
     "daily": "Ogni giorno alle {{time}}",
     "weekly": "Ogni {{day}} alle {{time}}",
     "monthly": "Ogni mese, giorno {{day}}, alle {{time}}"
+  },
+  "agent": {
+    "metrics": {
+      "installation": "Installazione",
+      "transport": "Transport",
+      "version": "Agent",
+      "heartbeat": "Heartbeat"
+    },
+    "heartbeat": {
+      "stale": "Stale / da verificare",
+      "regular": "Regolare"
+    },
+    "ok": "OK",
+    "waiting": "In attesa",
+    "unavailable": "Non disp.",
+    "install": {
+      "verified": {
+        "label": "Agent verificato",
+        "short": "pairing e heartbeat verificati",
+        "detail": "Pairing, credenziale e heartbeat post-installazione sono stati verificati."
+      },
+      "stale": {
+        "label": "Heartbeat stale",
+        "short": "agent installato, heartbeat vecchio",
+        "detail": "Il pairing è verificato, ma il dispositivo non invia heartbeat recenti."
+      },
+      "awaiting_heartbeat": {
+        "label": "Attesa heartbeat",
+        "short": "pairing completato",
+        "detail": "La credenziale è stata emessa: attendo il primo heartbeat dell'agent installato."
+      },
+      "install_suspect": {
+        "label": "Agent non avviato",
+        "short": "pairing OK, nessun heartbeat",
+        "detail": "Il token è stato consumato e la credenziale esiste, ma non è arrivato un heartbeat dopo il pairing: verifica parser RouterOS, scheduler e log del dispositivo."
+      },
+      "awaiting_pairing": {
+        "label": "In attesa di pairing",
+        "short": "token valido",
+        "detail": "Token one-shot valido: il router non lo ha ancora usato."
+      },
+      "token_expired": {
+        "label": "Token scaduto",
+        "short": "rigenera il comando",
+        "detail": "Genera un nuovo comando di onboarding e ripeti l'installazione sul MikroTik."
+      },
+      "verified_legacy_record": {
+        "label": "Agent operativo",
+        "short": "heartbeat e credenziale validi",
+        "detail": "Heartbeat e credenziale sono validi; lo storico del pairing originario non è disponibile."
+      },
+      "credential_no_heartbeat": {
+        "label": "Nessun heartbeat",
+        "short": "credenziale attiva",
+        "detail": "La credenziale esiste ma non è mai arrivato un heartbeat dell'agent."
+      },
+      "not_enrolled": {
+        "label": "Agent non associato",
+        "short": "nessuna credenziale",
+        "detail": "Nessuna credenziale agent attiva: avvia o rigenera l'onboarding."
+      },
+      "checkRouter": "Sul MikroTik controlla"
+    },
+    "pipeline": {
+      "title": "Verifica installazione",
+      "hint": "Token creato → pairing one-shot → credenziale per-device → heartbeat dopo l'installazione. Il pairing da solo non dimostra che lo script sia partito.",
+      "steps": {
+        "token": "Token creato",
+        "pairing": "Pairing one-shot",
+        "credential": "Credenziale per-device",
+        "heartbeat": "Heartbeat dopo l'installazione"
+      },
+      "notes": {
+        "storico non disponibile": "storico non disponibile",
+        "nessun enrollment": "nessun enrollment",
+        "used": "usato",
+        "pending": "in attesa",
+        "expired": "scaduto",
+        "revoked": "revocato"
+      },
+      "suspect": "Il token è stato usato correttamente ({{minutes}} minuti di tolleranza): la causa è nell'import dello script o nello scheduler RouterOS, non nell'autenticazione."
+    },
+    "transport": {
+      "title": "Transport e pairing",
+      "agent": "Transport agent",
+      "enrollment": "Enrollment",
+      "heartbeat": "Heartbeat",
+      "sourceIp": "IP di origine",
+      "routeros": "RouterOS",
+      "legacyNote": "Transport legacy (RouterOS 6.48/6.49 e 7.12): heartbeat, telemetria, snapshot, diagnostica, riavvio, aggiornamento RouterOS, syslog e backup via FTP. Con RouterOS 7.13+ l'aggiornamento automatico installa l'agent moderno.",
+      "modernNote": "Transport moderno: tutte le funzioni agent abilitate dal portale."
+    },
+    "capabilities": {
+      "title": "Funzioni disponibili",
+      "keys": {
+        "heartbeat": "Heartbeat / inventario",
+        "diagnostics": "Diagnostica in sola lettura",
+        "firmware": "Verifica firmware",
+        "snapshots": "Snapshot configurazione",
+        "telemetry": "Telemetria storica",
+        "online": "Operatività agent",
+        "reboot": "Riavvio",
+        "routeros_upgrade": "Aggiornamento RouterOS",
+        "self_update": "Aggiornamento agent automatico",
+        "syslog": "Configurazione syslog"
+      }
+    },
+    "update": {
+      "title": "Aggiornamento agent",
+      "hint": "Gli agent che si aggiornano da soli ricevono la nuova versione automaticamente: il router scarica lo script, RouterOS ne verifica la sintassi e lo script precedente resta salvato.",
+      "now": "Aggiorna a {{version}}",
+      "installed": "Installato",
+      "latest": "Ultima versione",
+      "status": "Stato",
+      "outdated": "Da aggiornare",
+      "current": "Aggiornato",
+      "mode": "Modalità",
+      "automatic": "Automatica",
+      "reinstallOnce": "Reinstallazione una tantum",
+      "last": "Ultimo aggiornamento",
+      "policies": "Permessi RouterOS",
+      "noPolicies": "non rilevati",
+      "states": {
+        "idle": "Nessun aggiornamento in corso",
+        "pending": "In coda: arriva al prossimo heartbeat",
+        "installing": "Installazione in corso",
+        "awaiting_heartbeat": "Installato: attesa heartbeat con la nuova versione",
+        "verified": "Verificato",
+        "failed": "Non riuscito",
+        "rolled_back": "Annullato: ripristinato lo script precedente",
+        "expired": "Nessun esito entro 30 minuti"
+      },
+      "drift": "Lo script sul router è diverso da quello atteso: l'aggiornamento lo riallinea.",
+      "toModern": "Con RouterOS 7.13+ l'aggiornamento installa l'agent moderno mantenendo i permessi.",
+      "toModernReinstall": "Con RouterOS 7.13+ reinstalla l'agent per passare al transport moderno.",
+      "reinstallTitle": "Reinstallazione una tantum.",
+      "reinstallDefault": "Questo agent è precedente all'aggiornamento automatico.",
+      "reinstallHow": "Usa «Rigenera / reinstalla agent» e incolla il comando sul router: dopo questa volta gli aggiornamenti saranno automatici.",
+      "queued": "Aggiornamento accodato: il router lo applica al prossimo heartbeat, con ripristino automatico in caso di errore."
+    },
+    "credential": {
+      "title": "Credenziale agent",
+      "hint": "La chiave permanente è salvata solo come hash e non viene mai mostrata.",
+      "reinstall": "Rigenera / reinstalla agent",
+      "state": "Stato",
+      "active": "Credenziale attiva",
+      "inactive": "Credenziale non attiva",
+      "none": "Nessuna credenziale",
+      "created": "Creata",
+      "lastUsed": "Ultimo uso",
+      "rotated": "Ultima rotazione"
+    },
+    "enrollments": {
+      "title": "Enrollment recenti",
+      "created": "Creato",
+      "source": "Origine",
+      "status": "Stato",
+      "expires": "Scadenza",
+      "used": "Usato",
+      "empty": "Nessun enrollment registrato.",
+      "statuses": {
+        "pending": "in attesa",
+        "used": "usato",
+        "expired": "scaduto",
+        "revoked": "revocato"
+      }
+    }
   }
 }

@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.103 — 2026-10-14
+
+New interface (React) — Agent tab, phase 1d
+- **Agent tab in `/app/devices/<id>/agent`** for MikroTik.
+- **Cards:** installation state, transport, agent version with credential state, last heartbeat (marked when stale). Installation problems are shown with their explanation; a critical state also names the RouterOS log command to check.
+- **Agent update:** installed and latest version, outdated or current, automatic or one-time reinstall, last update state, RouterOS permissions, script drift. *Update to x.y.z* queues the self-update (`devices.enroll`); while an update is running the page refreshes every 15 seconds.
+- **Installation check:** token → one-shot pairing → per-device credential → heartbeat after installation, each with its time.
+- **Transport and pairing details, effective functions** (heartbeat, diagnostics, snapshots, backup, telemetry, reboot, RouterOS upgrade, syslog, automatic update), credential metadata and recent enrollments.
+- *Regenerate / reinstall agent* posts the classic form. The one-shot install command is still shown only on the classic page and never goes through the new API.
+- **API.** `GET /api/ui/v1/devices/{id}/agent`, `POST …/agent/update` (CSRF header). The credential exposes only its dates and state, never the key or its hash.
+
 ## 0.49.102 — 2026-10-14
 
 New interface (React) — Backup tab, phase 1d

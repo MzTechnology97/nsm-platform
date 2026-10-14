@@ -7,7 +7,7 @@ import { type DeviceDetail as Detail, useDevice } from "../api/device";
 import { formatRelative } from "../lib/format";
 
 /** Tabs already available in the new interface (route under /devices/$deviceId); the others open the classic page. */
-const MIGRATED_TABS = { overview: "/devices/$deviceId", monitor: "/devices/$deviceId/monitor", logs: "/devices/$deviceId/syslog", backups: "/devices/$deviceId/backups" } as const;
+const MIGRATED_TABS = { overview: "/devices/$deviceId", monitor: "/devices/$deviceId/monitor", logs: "/devices/$deviceId/syslog", backups: "/devices/$deviceId/backups", agent: "/devices/$deviceId/agent" } as const;
 
 /** Device shell: breadcrumbs, title, actions and tabs; the active tab renders in the outlet. */
 export function DeviceDetail() {
