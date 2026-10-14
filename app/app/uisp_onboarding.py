@@ -136,22 +136,88 @@ def _selection(form) -> list[str]:
     return [str(v) for v in form.getlist("external_id") if str(v).strip()]
 
 
-def _target(db, form):
+def target(db, customer_id, site_id):
+    """Customer (required) and optional site of that customer chosen by the operator. ValueError with the reason."""
     try:
-        customer = db.get(Customer, uuid.UUID(str(form.get("customer_id") or "")))
+        customer = db.get(Customer, uuid.UUID(str(customer_id or "")))
     except ValueError:
         customer = None
     if not customer:
         raise ValueError("Seleziona il cliente NSM a cui assegnare i nuovi apparati.")
     site = None
-    if form.get("site_id"):
+    if site_id:
         try:
-            site = db.get(Site, uuid.UUID(str(form.get("site_id"))))
+            site = db.get(Site, uuid.UUID(str(site_id)))
         except ValueError:
             site = None
         if not site or site.customer_id != customer.id:
             raise ValueError("La sede scelta non appartiene al cliente.")
     return customer, site
+
+
+def _target(db, form):
+    return target(db, form.get("customer_id"), form.get("site_id"))
+
+
+def preview_plan(db, user, selected: list[str], customer_id, site_id):
+    """What would happen to each selected UISP device, from fresh UISP data.
+
+    Returns (customer, site, plan). Raises ValueError or ``UispConnectorError``.
+    """
+    if not selected:
+        raise ValueError("Seleziona almeno un dispositivo UISP.")
+    if len(selected) > MAX_BATCH:
+        raise ValueError(f"Massimo {MAX_BATCH} dispositivi per operazione.")
+    customer, site = target(db, customer_id, site_id)
+    _, rows = _load(db, user)
+    by_id = {r["external_id"]: r for r in rows if r.get("external_id")}
+    plan = []
+    for external_id in selected:
+        row = by_id.get(external_id)
+        if not row:
+            plan.append({"external_id": external_id, "action": "missing", "reason": "Non più presente in UISP."})
+        elif row["state"] in ("new", "linkable"):
+            plan.append({**row, "action": "create" if row["state"] == "new" else "link"})
+        else:
+            plan.append({**row, "action": "skip", "reason": row.get("reason") or "Già associato in NSM."})
+    return customer, site, plan
+
+
+def commit_selection(db, user, selected: list[str], customer_id, site_id) -> dict:
+    """Create or link the selected devices from fresh UISP data, audited.
+
+    Returns {customer_id, created, linked, skipped}. Raises ValueError or ``UispConnectorError``. Caller commits.
+    """
+    if not selected or len(selected) > MAX_BATCH:
+        raise ValueError(f"Selezione vuota o oltre {MAX_BATCH} dispositivi.")
+    customer, site = target(db, customer_id, site_id)
+    _, rows = _load(db, user)  # fresh UISP data, never the preview page
+    by_id = {r["external_id"]: r for r in rows if r.get("external_id")}
+    created = linked = 0
+    skipped = []
+    for external_id in selected:
+        row = by_id.get(external_id)
+        if not row or row["state"] not in ("new", "linkable"):
+            skipped.append((row or {}).get("device_identity") or external_id)
+            continue
+        if row["state"] == "new":
+            device = Device(
+                customer_id=customer.id, site_id=site.id if site else None, vendor="ubiquiti",
+                device_type=row["device_type"], name=row.get("device_identity") or f"UISP {row['primary_mac']}",
+                primary_mac=row["primary_mac"], management_source="uisp", status="pending_link",
+            )
+            db.add(device)
+            db.flush()
+            core.add_event(db, "DEVICE_ADDED", actor=user, customer_id=customer.id, device_id=device.id,
+                           details={"vendor": "ubiquiti", "management_source": "uisp", "source": "uisp_bulk_onboarding"})
+            created += 1
+        else:
+            device = row["device"]
+            linked += 1
+        uisp.apply_candidate(db, device, row, user, event_type="UISP_DEVICE_ASSOCIATED")
+    core.add_event(db, "UISP_BULK_ONBOARDING", actor=user, customer_id=customer.id,
+                   details={"created": created, "linked": linked, "skipped": len(skipped), "site_id": str(site.id) if site else None})
+    return {"customer_id": customer.id, "created": created, "linked": linked, "skipped": skipped}
 
 
 @router.post("/integrations/uisp/onboarding/preview", response_class=HTMLResponse, name="uisp_onboarding_preview")
@@ -161,26 +227,10 @@ async def onboarding_preview(request: Request):
     back = "/integrations/uisp/onboarding"
     with SessionLocal() as db:
         user = core.require_permission(request, db, "devices.write")
-        selected = _selection(form)
         try:
-            if not selected:
-                raise ValueError("Seleziona almeno un dispositivo UISP.")
-            if len(selected) > MAX_BATCH:
-                raise ValueError(f"Massimo {MAX_BATCH} dispositivi per operazione.")
-            customer, site = _target(db, form)
-            _, rows = _load(db, user)
+            customer, site, plan = preview_plan(db, user, _selection(form), form.get("customer_id"), form.get("site_id"))
         except (ValueError, uisp.UispConnectorError) as exc:
             return flash_redirect(request, back, "warning", str(exc), title="Anteprima non disponibile")
-        by_id = {r["external_id"]: r for r in rows if r.get("external_id")}
-        plan = []
-        for external_id in selected:
-            row = by_id.get(external_id)
-            if not row:
-                plan.append({"external_id": external_id, "action": "missing", "reason": "Non più presente in UISP."})
-            elif row["state"] in ("new", "linkable"):
-                plan.append({**row, "action": "create" if row["state"] == "new" else "link"})
-            else:
-                plan.append({**row, "action": "skip", "reason": row.get("reason") or "Già associato in NSM."})
         return core.render(request, db, user, "uisp_onboarding_preview.html", title="Anteprima onboarding UISP",
                            plan=plan, customer=customer, site=site)
 
@@ -192,41 +242,12 @@ async def onboarding_commit(request: Request):
     back = "/integrations/uisp/onboarding"
     with SessionLocal() as db:
         user = core.require_permission(request, db, "devices.write")
-        selected = _selection(form)
         try:
-            if not selected or len(selected) > MAX_BATCH:
-                raise ValueError(f"Selezione vuota o oltre {MAX_BATCH} dispositivi.")
-            customer, site = _target(db, form)
-            _, rows = _load(db, user)  # fresh UISP data, never the preview page
+            result = commit_selection(db, user, _selection(form), form.get("customer_id"), form.get("site_id"))
         except (ValueError, uisp.UispConnectorError) as exc:
             return flash_redirect(request, back, "warning", str(exc), title="Onboarding non eseguito")
-        by_id = {r["external_id"]: r for r in rows if r.get("external_id")}
-        created = linked = 0
-        skipped = []
-        for external_id in selected:
-            row = by_id.get(external_id)
-            if not row or row["state"] not in ("new", "linkable"):
-                skipped.append((row or {}).get("device_identity") or external_id)
-                continue
-            if row["state"] == "new":
-                device = Device(
-                    customer_id=customer.id, site_id=site.id if site else None, vendor="ubiquiti",
-                    device_type=row["device_type"], name=row.get("device_identity") or f"UISP {row['primary_mac']}",
-                    primary_mac=row["primary_mac"], management_source="uisp", status="pending_link",
-                )
-                db.add(device)
-                db.flush()
-                core.add_event(db, "DEVICE_ADDED", actor=user, customer_id=customer.id, device_id=device.id,
-                               details={"vendor": "ubiquiti", "management_source": "uisp", "source": "uisp_bulk_onboarding"})
-                created += 1
-            else:
-                device = row["device"]
-                linked += 1
-            uisp.apply_candidate(db, device, row, user, event_type="UISP_DEVICE_ASSOCIATED")
-        customer_id = customer.id
-        core.add_event(db, "UISP_BULK_ONBOARDING", actor=user, customer_id=customer.id,
-                       details={"created": created, "linked": linked, "skipped": len(skipped), "site_id": str(site.id) if site else None})
         db.commit()
+    customer_id, created, linked, skipped = result["customer_id"], result["created"], result["linked"], result["skipped"]
     message = f"{created} apparati creati e {linked} associati da UISP."
     if skipped:
         message += f" {len(skipped)} saltati perché cambiati in UISP o già presenti: {', '.join(map(str, skipped[:5]))}."

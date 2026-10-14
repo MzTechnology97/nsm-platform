@@ -2662,5 +2662,58 @@
         "text": "Enregistre l'ID UISP stable et met à jour l'inventaire. Site et organisation UISP restent de simples métadonnées."
       }
     }
+  },
+  "onboarding": {
+    "title": "Intégration depuis UISP",
+    "subtitle": "Sélectionnez les équipements UISP à amener dans NSM et choisissez vous-même client et site : NSM ne les déduit jamais des sites UISP. Un aperçu précède la confirmation ; à la confirmation la liste UISP est relue.",
+    "stateFilter": "État",
+    "states": {
+      "new": "Nouveaux",
+      "linkable": "À associer à un enregistrement existant",
+      "linked": "Déjà dans NSM",
+      "blocked": "Non importables"
+    },
+    "search": "Rechercher",
+    "searchPlaceholder": "Nom, modèle, MAC, IP, site UISP…",
+    "uispSite": "Site UISP",
+    "allSites": "Tous les sites UISP",
+    "customer": "Client NSM",
+    "choose": "— choisir —",
+    "site": "Site",
+    "noSite": "Aucun site",
+    "customerHelp": "Utilisé pour les nouveaux équipements ; ceux à associer restent dans leur client.",
+    "selectAll": "Tout sélectionner",
+    "select": "Sélectionner {{name}}",
+    "columns": {
+      "device": "Équipement UISP",
+      "model": "Modèle",
+      "address": "MAC / IP",
+      "uispSite": "Site UISP",
+      "type": "Type NSM",
+      "nsm": "NSM",
+      "action": "Action"
+    },
+    "preview_one": "Aperçu de {{count}} équipement (max {{max}})",
+    "preview_other": "Aperçu de {{count}} équipements (max {{max}})",
+    "empty": "Aucun équipement UISP dans cet état.",
+    "emptyFiltered": "Aucun équipement UISP dans cet état avec les filtres choisis.",
+    "previewTitle": "Aperçu",
+    "previewHelp": "Nouveaux équipements dans le client {{customer}}. À la confirmation, la liste UISP est relue : les équipements modifiés entre-temps sont ignorés.",
+    "previewHelpSite": "Nouveaux équipements dans le client {{customer}}, site {{site}}. À la confirmation, la liste UISP est relue : les équipements modifiés entre-temps sont ignorés.",
+    "actions": {
+      "create": "Sera créé",
+      "link": "Sera associé à l'enregistrement existant",
+      "skip": "Ignoré",
+      "missing": "Plus dans UISP"
+    },
+    "staysInCustomer": "{{name}} (reste dans son client)",
+    "confirm_one": "Confirmer l'intégration de {{count}} équipement",
+    "confirm_other": "Confirmer l'intégration de {{count}} équipements",
+    "doneTitle": "Intégration UISP terminée",
+    "done": "{{created}} équipements créés et {{linked}} associés depuis UISP.",
+    "skipped_one": "{{count}} ignoré car modifié dans UISP ou déjà présent : {{names}}.",
+    "skipped_other": "{{count}} ignorés car modifiés dans UISP ou déjà présents : {{names}}.",
+    "openCustomer": "Ouvrir le client",
+    "again": "Nouvelle intégration"
   }
 }

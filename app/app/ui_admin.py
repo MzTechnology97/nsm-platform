@@ -51,12 +51,16 @@
   one, test (``genieacs_connector``);
 - ``GET /api/ui/v1/admin/integrations/uisp``: connection (token never
   returned), last test and periodic sync; ``POST`` save, test, sync now
-  (``uisp_connector`` / ``uisp_sync``).
+  (``uisp_connector`` / ``uisp_sync``);
+- ``GET /api/ui/v1/integrations/uisp/onboarding``: UISP devices with their NSM
+  state; ``POST`` preview and commit the bulk onboarding (``devices.write``),
+  through ``uisp_onboarding``, always from fresh UISP data.
 """
 from __future__ import annotations
 
 import uuid
 from datetime import timedelta
+from functools import lru_cache
 
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, Response, UploadFile
 from fastapi.encoders import jsonable_encoder
@@ -92,6 +96,7 @@ from app import (
     two_factor,
     ui_extension,
     uisp_connector,
+    uisp_onboarding,
     uisp_sync,
     vendor_cpe,
     worker_status,
@@ -103,11 +108,11 @@ from app.activity_worklists import _audit_query, _uuid
 from app.api_key_models import PlatformApiKey
 from app.api_key_scopes import API_SCOPE_INVENTORY_READ, OPTIONAL_READ_SCOPES
 from app.db import SessionLocal
-from app.models import AuditEvent, Customer, Device, DeviceVulnerability, RouterosRelease, SecurityAdvisory, User, utcnow
+from app.models import AuditEvent, Customer, Device, DeviceVulnerability, RouterosRelease, SecurityAdvisory, Site, User, utcnow
 from app.notification_models import NotificationDelivery, UserNotificationPreference
 from app.syslog_models import DeviceLogEntry, SyslogUnknownSource
 from app.report_models import FREQUENCY_LABELS, GeneratedReport, ReportSchedule
-from app.ui_api import require_csrf, ui_user
+from app.ui_api import brand_icon, require_csrf, ui_user
 from app.ui_incidents import device_ref
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
@@ -1044,6 +1049,80 @@ def admin_uisp_sync(request: Request):
         return jsonable_encoder({key: result.get(key) for key in ("status", "error", "devices", "updated", "missing", "conflicts")})
 
     return _admin_write(request, run)
+
+
+ONBOARDING_PAGE = 100
+
+
+@lru_cache(maxsize=1)
+def _ubiquiti_brand() -> dict:
+    """Icon of the UISP devices not in NSM yet (always Ubiquiti), computed once at first use."""
+    return brand_icon(Device(vendor="ubiquiti", inventory_data={}))
+
+
+def _onboarding_row(row: dict) -> dict:
+    """A UISP device for the interface: its observed data, NSM state and the linked NSM device if any."""
+    return {
+        "external_id": row.get("external_id"), "device_identity": row.get("device_identity"), "model": row.get("model"),
+        "primary_mac": row.get("primary_mac"), "management_ip": row.get("management_ip"), "firmware_version": row.get("firmware_version"),
+        "site": (row.get("site") or {}).get("name"), "status": row.get("status"), "device_type": row.get("device_type"),
+        "state": row.get("state"), "action": row.get("action"), "reason": row.get("reason"), "brand": _ubiquiti_brand(),
+        "device": device_ref(row.get("device")),
+    }
+
+
+def _onboarding_user(request: Request, db):
+    return ui_user(request, db, "devices.write")
+
+
+@router.get("/integrations/uisp/onboarding")
+def uisp_onboarding_list(request: Request, q: str = "", uisp_site: str = "", state: str = "new", offset: int = 0):
+    with SessionLocal() as db:
+        user = _onboarding_user(request, db)
+        error, rows = None, []
+        try:
+            _, rows = uisp_onboarding._load(db, user)
+        except uisp_connector.UispConnectorError as exc:
+            error = str(exc)
+        filtered = uisp_onboarding._filter(rows, q, uisp_site, state if state in ("new", "linkable", "linked", "blocked") else "new")
+        offset = max(0, int(offset or 0))
+        return {
+            "error": error, "total": len(filtered), "offset": offset, "limit": ONBOARDING_PAGE, "max_batch": uisp_onboarding.MAX_BATCH,
+            "counts": {key: sum(1 for r in rows if r["state"] == key) for key in ("new", "linkable", "linked", "blocked")},
+            "uisp_sites": sorted({(r.get("site") or {}).get("name") for r in rows if (r.get("site") or {}).get("name")}),
+            "customers": [{"id": str(c.id), "name": c.name} for c in db.scalars(select(Customer).order_by(Customer.name))],
+            "sites": [{"id": str(site.id), "name": site.name, "customer_id": str(site.customer_id)} for site in db.scalars(select(Site).order_by(Site.name))],
+            "items": [_onboarding_row(row) for row in filtered[offset:offset + ONBOARDING_PAGE]],
+        }
+
+
+def _selection(body: dict) -> list[str]:
+    raw = body.get("external_ids")
+    return [value for value in raw if isinstance(value, str) and value.strip()] if isinstance(raw, list) else []
+
+
+@router.post("/integrations/uisp/onboarding/preview", dependencies=[Depends(require_csrf)])
+def uisp_onboarding_preview(request: Request, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = _onboarding_user(request, db)
+        try:
+            customer, site, plan = uisp_onboarding.preview_plan(db, user, _selection(body), _text(body, "customer_id"), _text(body, "site_id"))
+        except (ValueError, uisp_connector.UispConnectorError) as error:
+            raise HTTPException(422, {"code": "invalid", "message": str(error)}) from None
+        return {"customer": {"id": str(customer.id), "name": customer.name}, "site": {"id": str(site.id), "name": site.name} if site else None,
+                "plan": [_onboarding_row(row) for row in plan]}
+
+
+@router.post("/integrations/uisp/onboarding/commit", dependencies=[Depends(require_csrf)])
+def uisp_onboarding_commit(request: Request, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = _onboarding_user(request, db)
+        try:
+            result = uisp_onboarding.commit_selection(db, user, _selection(body), _text(body, "customer_id"), _text(body, "site_id"))
+        except (ValueError, uisp_connector.UispConnectorError) as error:
+            raise HTTPException(422, {"code": "invalid", "message": str(error)}) from None
+        db.commit()
+        return {"customer_id": str(result["customer_id"]), "created": result["created"], "linked": result["linked"], "skipped": result["skipped"]}
 
 
 def install_ui_admin(app) -> None:

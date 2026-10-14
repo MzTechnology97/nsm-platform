@@ -557,3 +557,71 @@ export interface UispAdmin {
 }
 
 export const useUispAdmin = () => useQuery({ queryKey: ["admin-uisp"], queryFn: () => api<UispAdmin>("/api/ui/v1/admin/integrations/uisp") });
+
+export interface OnboardingRow {
+  external_id: string | null;
+  device_identity: string | null;
+  model: string | null;
+  primary_mac: string | null;
+  management_ip: string | null;
+  firmware_version: string | null;
+  site: string | null;
+  status: string | null;
+  device_type: string | null;
+  state: "new" | "linkable" | "linked" | "blocked";
+  action?: "create" | "link" | "skip" | "missing";
+  reason: string | null;
+  brand: BrandRef;
+  device: { id: string; name: string; brand?: BrandRef } | null;
+}
+
+export interface OnboardingFilters {
+  q?: string;
+  uisp_site?: string;
+  state?: "new" | "linkable" | "linked" | "blocked";
+}
+
+export interface OnboardingPage {
+  error: string | null;
+  total: number;
+  offset: number;
+  limit: number;
+  max_batch: number;
+  counts: Record<"new" | "linkable" | "linked" | "blocked", number>;
+  uisp_sites: string[];
+  customers: { id: string; name: string }[];
+  sites: { id: string; name: string; customer_id: string }[];
+  items: OnboardingRow[];
+}
+
+export const useOnboarding = (filters: OnboardingFilters) =>
+  useInfiniteQuery({
+    queryKey: ["uisp-onboarding", filters],
+    queryFn: ({ pageParam }) => api<OnboardingPage>(`/api/ui/v1/integrations/uisp/onboarding${queryString({ ...filters, offset: pageParam })}`),
+    initialPageParam: 0,
+    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+  });
+
+export interface OnboardingSelection {
+  external_ids: string[];
+  customer_id: string;
+  site_id: string;
+}
+
+export function useOnboardingPreview() {
+  return useMutation({
+    mutationFn: (body: OnboardingSelection) => api<{ customer: { id: string; name: string }; site: { id: string; name: string } | null; plan: OnboardingRow[] }>(
+      "/api/ui/v1/integrations/uisp/onboarding/preview", { method: "POST", body: JSON.stringify(body) }),
+  });
+}
+
+export function useOnboardingCommit() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: OnboardingSelection) => api<{ customer_id: string; created: number; linked: number; skipped: string[] }>(
+      "/api/ui/v1/integrations/uisp/onboarding/commit", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => client.invalidateQueries(),
+  });
+}

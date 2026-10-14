@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.137 — 2026-10-14
+
+New interface (React) — UISP onboarding, phase 6q
+- **UISP onboarding in `/app/integrations/uisp/onboarding`**, opened from the UISP connector page:
+  - **States:** UISP devices by NSM state (new, to link to an existing record, already in NSM, not importable), with counts, search and UISP site filter; each device shows the Ubiquiti icon and, when it is already in NSM, the linked device;
+  - **Selection:** devices are selected on the page, then the operator picks the NSM customer and optional site (only that customer's sites are offered);
+  - **Preview and confirmation:** the preview shows what will be created, linked or skipped. On confirmation the UISP list is read again, so devices changed in the meantime are skipped and reported; linked devices stay in their customer. Afterwards the page links to the customer.
+- The onboarding preview and commit are now shared functions (`uisp_onboarding.target`/`preview_plan`/`commit_selection`), used by both interfaces; the classic page behaves as before.
+- **Phase 6 complete.** Every administration page, integration and connector is now in the new interface.
+- **API.** All routes need `devices.write`; the `POST` routes also need the CSRF header:
+  - `GET /api/ui/v1/integrations/uisp/onboarding`;
+  - `POST /api/ui/v1/integrations/uisp/onboarding/preview`, `/commit`.
+
 ## 0.49.136 — 2026-10-14
 
 New interface (React) — UISP connector, phase 6p
