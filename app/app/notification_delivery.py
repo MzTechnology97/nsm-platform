@@ -314,34 +314,82 @@ def admin_notifications(request: Request, status: str = ""):
         return core.render(request, db, user, "admin_notifications.html", title="Notifiche", **_admin_context(db, status))
 
 
+def save_smtp_settings(db, user, *, host: str, port, security: str, username: str, password: str, from_address: str, from_name: str,
+                       portal_url: str, enabled: bool) -> None:
+    """Store the SMTP server (password encrypted, kept when empty), audited. HTTPException 400 with the reason. Caller commits."""
+    host = str(host or "").strip()
+    from_address = str(from_address or "").strip()
+    try:
+        port = int(str(port or "587"))
+    except ValueError:
+        port = 0
+    if not host or "@" not in from_address or security not in SECURITY_MODES or not 0 < port < 65536:
+        raise HTTPException(400, "Indica server, porta valida, cifratura e mittente (indirizzo e-mail).")
+    row = smtp_row(db)
+    password = str(password or "")
+    settings = {"host": host[:255], "port": port, "security": security, "username": str(username or "").strip()[:255],
+                "from_address": from_address[:255], "from_name": str(from_name or "NSM").strip()[:120],
+                "portal_url": str(portal_url or "").strip().rstrip("/")[:255]}
+    if row:
+        row.base_url, row.settings, row.is_enabled = f"smtp://{host}:{port}", settings, enabled
+        if password:
+            row.secret_encrypted = encrypt_text(password)
+    else:
+        db.add(ConnectorIntegration(provider=SMTP_PROVIDER, name="Server SMTP", base_url=f"smtp://{host}:{port}", settings=settings,
+                                    secret_encrypted=encrypt_text(password or "-"), is_enabled=enabled, verify_tls=True))
+    core.add_event(db, "NOTIFICATION_SMTP_CONFIGURED", actor=user, details={k: v for k, v in settings.items()}, source="portal")
+
+
+def test_smtp_send(db, user, to: str) -> tuple[str, str]:
+    """Send a test e-mail (audited, outcome stored on the server row); returns (result, message). Caller commits."""
+    to_address = str(to or user.email or "").strip()
+    if "@" not in to_address:
+        raise HTTPException(400, "Indica un destinatario o imposta la tua e-mail nel profilo.")
+    row = smtp_row(db)
+    try:
+        settings = smtp_settings(db)
+        if not settings:
+            raise DeliveryError("Server SMTP non configurato o disabilitato.")
+        _send_email(settings, to_address, "[NSM] E-mail di prova", "Messaggio di prova inviato da NSM: la configurazione SMTP funziona.\n")
+        result, text = "success", f"E-mail di prova inviata a {to_address}."
+    except DeliveryError as exc:
+        result, text = "failed", str(exc)
+    if row:
+        row.last_tested_at, row.last_test_status, row.last_error = utcnow(), result, None if result == "success" else text[:500]
+    core.add_event(db, "NOTIFICATION_SMTP_TESTED", actor=user, details={"to": to_address, "result": result}, result=result, source="portal",
+                   severity="info" if result == "success" else "warning")
+    return result, text
+
+
+def requeue_failed(db, user, delivery_id: str = "") -> int:
+    """Put failed deliveries (or one of them) back in the queue, audited. Caller commits."""
+    query = select(NotificationDelivery).where(NotificationDelivery.status == "failed")
+    if delivery_id:
+        try:
+            query = query.where(NotificationDelivery.id == uuid.UUID(delivery_id))
+        except ValueError as exc:
+            raise HTTPException(400) from exc
+    count = 0
+    for delivery in db.scalars(query.limit(500)):
+        delivery.status, delivery.attempts, delivery.next_attempt_at = "pending", 0, utcnow()
+        count += 1
+    core.add_event(db, "NOTIFICATION_DELIVERIES_REQUEUED", actor=user, details={"count": count}, source="portal")
+    return count
+
+
 @router.post("/admin/notifications/smtp", name="admin_notifications_smtp")
 async def save_smtp(request: Request):
     form = await request.form()
     validate_csrf(request, str(form.get("csrf") or ""))
-    host = str(form.get("host") or "").strip()
-    from_address = str(form.get("from_address") or "").strip()
-    security = str(form.get("security") or "starttls")
-    try:
-        port = int(str(form.get("port") or "587"))
-    except ValueError:
-        port = 0
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        if not host or "@" not in from_address or security not in SECURITY_MODES or not 0 < port < 65536:
-            return flash_redirect(request, "/admin/notifications", "warning", "Indica server, porta valida, cifratura e mittente (indirizzo e-mail).", title="Configurazione SMTP non salvata")
-        row = smtp_row(db)
-        password = str(form.get("password") or "")
-        settings = {"host": host[:255], "port": port, "security": security, "username": str(form.get("username") or "").strip()[:255],
-                    "from_address": from_address[:255], "from_name": str(form.get("from_name") or "NSM").strip()[:120],
-                    "portal_url": str(form.get("portal_url") or "").strip().rstrip("/")[:255]}
-        if row:
-            row.base_url, row.settings, row.is_enabled = f"smtp://{host}:{port}", settings, form.get("is_enabled") is not None
-            if password:
-                row.secret_encrypted = encrypt_text(password)
-        else:
-            db.add(ConnectorIntegration(provider=SMTP_PROVIDER, name="Server SMTP", base_url=f"smtp://{host}:{port}", settings=settings,
-                                        secret_encrypted=encrypt_text(password or "-"), is_enabled=form.get("is_enabled") is not None, verify_tls=True))
-        core.add_event(db, "NOTIFICATION_SMTP_CONFIGURED", actor=user, details={k: v for k, v in settings.items()}, source="portal")
+        try:
+            save_smtp_settings(db, user, host=str(form.get("host") or ""), port=form.get("port"), security=str(form.get("security") or "starttls"),
+                               username=str(form.get("username") or ""), password=str(form.get("password") or ""),
+                               from_address=str(form.get("from_address") or ""), from_name=str(form.get("from_name") or "NSM"),
+                               portal_url=str(form.get("portal_url") or ""), enabled=form.get("is_enabled") is not None)
+        except HTTPException as exc:
+            return flash_redirect(request, "/admin/notifications", "warning", str(exc.detail), title="Configurazione SMTP non salvata")
         db.commit()
     return flash_redirect(request, "/admin/notifications", "success", "Configurazione SMTP salvata; la password è cifrata.", title="Notifiche")
 
@@ -352,22 +400,11 @@ async def test_smtp(request: Request):
     validate_csrf(request, str(form.get("csrf") or ""))
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        to_address = str(form.get("to") or user.email or "").strip()
-        if "@" not in to_address:
-            return flash_redirect(request, "/admin/notifications", "warning", "Indica un destinatario o imposta la tua e-mail nel profilo.", title="Test non eseguito")
-        row = smtp_row(db)
         try:
-            settings = smtp_settings(db)
-            if not settings:
-                raise DeliveryError("Server SMTP non configurato o disabilitato.")
-            _send_email(settings, to_address, "[NSM] E-mail di prova", "Messaggio di prova inviato da NSM: la configurazione SMTP funziona.\n")
-            result, level, text = "success", "success", f"E-mail di prova inviata a {to_address}."
-        except DeliveryError as exc:
-            result, level, text = "failed", "warning", str(exc)
-        if row:
-            row.last_tested_at, row.last_test_status, row.last_error = utcnow(), result, None if result == "success" else text[:500]
-        core.add_event(db, "NOTIFICATION_SMTP_TESTED", actor=user, details={"to": to_address, "result": result}, result=result, source="portal",
-                       severity="info" if result == "success" else "warning")
+            result, text = test_smtp_send(db, user, str(form.get("to") or ""))
+        except HTTPException as exc:
+            return flash_redirect(request, "/admin/notifications", "warning", str(exc.detail), title="Test non eseguito")
+        level = "success" if result == "success" else "warning"
         db.commit()
     return flash_redirect(request, "/admin/notifications", level, text, title="Test SMTP")
 
@@ -378,18 +415,7 @@ async def retry_failed(request: Request):
     validate_csrf(request, str(form.get("csrf") or ""))
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        query = select(NotificationDelivery).where(NotificationDelivery.status == "failed")
-        delivery_id = str(form.get("delivery") or "")
-        if delivery_id:
-            try:
-                query = query.where(NotificationDelivery.id == uuid.UUID(delivery_id))
-            except ValueError as exc:
-                raise HTTPException(400) from exc
-        count = 0
-        for delivery in db.scalars(query.limit(500)):
-            delivery.status, delivery.attempts, delivery.next_attempt_at = "pending", 0, utcnow()
-            count += 1
-        core.add_event(db, "NOTIFICATION_DELIVERIES_REQUEUED", actor=user, details={"count": count}, source="portal")
+        count = requeue_failed(db, user, str(form.get("delivery") or ""))
         db.commit()
     return flash_redirect(request, "/admin/notifications", "success", f"{count} invii rimessi in coda.", title="Notifiche")
 

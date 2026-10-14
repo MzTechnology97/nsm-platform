@@ -4,6 +4,24 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.126 — 2026-10-14
+
+New interface (React) — notifications, phase 6f
+- **Notifications in `/app/admin/notifications`**, in the *Notifications* tab of the new administration area.
+- **E-mail server (SMTP):**
+  - server, port, encryption, user, password, sender, sender name and portal address;
+  - the password is encrypted and is kept when the field is left empty; the stored value is never sent back to the browser.
+- **Delivery status (24 hours):** sent, queued (with those stuck for over an hour), failed, and active recipients. *Send test e-mail* goes to the given address or to the administrator's e-mail and shows the outcome; the last test is also shown.
+- **Telegram and Slack:**
+  - the Telegram bot token is encrypted and kept when the field is left empty;
+  - saving verifies the bot and shows its name or the error;
+  - Slack needs no setup.
+- **Delivery log:** the last 100 messages, filtered by all, queued, sent or failed, with recipient, channel, category, severity, attempts and error. *Queue failed deliveries again* puts them back in the queue.
+- SMTP settings, the test e-mail, requeueing and the Telegram bot are now shared functions (`notification_delivery.save_smtp_settings`/`test_smtp_send`/`requeue_failed`, `notification_chat.configure_bot`), used by both interfaces; the classic forms behave as before.
+- **API.** All routes need `users.manage`; the `POST` routes also need the CSRF header:
+  - `GET /api/ui/v1/admin/notifications`;
+  - `POST /api/ui/v1/admin/notifications/smtp`, `/smtp/test`, `/telegram`, `/retry`.
+
 ## 0.49.125 — 2026-10-14
 
 New interface (React) — system status, phase 6e

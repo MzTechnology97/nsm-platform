@@ -1952,5 +1952,108 @@
         "devices": "Apparati"
       }
     }
+  },
+  "notificationsAdmin": {
+    "subtitle": "Canali con cui NSM invia notifiche e report: e-mail, Telegram e Slack.",
+    "enabled": "Abilitato",
+    "inactive": "Non attivo",
+    "keepSecret": "Lascia vuoto per mantenere quello salvato",
+    "smtp": {
+      "title": "Server e-mail (SMTP)",
+      "help": "Usato per notifiche e report via e-mail. La password viene cifrata.",
+      "host": "Server",
+      "port": "Porta",
+      "security": "Cifratura",
+      "username": "Utente",
+      "usernameHelp": "Vuoto se il server non richiede autenticazione.",
+      "password": "Password",
+      "from": "Mittente (e-mail)",
+      "fromName": "Nome mittente",
+      "portal": "Indirizzo del portale",
+      "portalHelp": "Usato per i link nei messaggi.",
+      "enable": "Abilita invio e-mail",
+      "save": "Salva configurazione",
+      "saved": "Configurazione SMTP salvata; la password è cifrata.",
+      "modes": {
+        "starttls": "STARTTLS (porta 587)",
+        "ssl": "SSL/TLS (porta 465)",
+        "none": "Nessuna cifratura (porta 25, solo rete interna)"
+      }
+    },
+    "health": {
+      "title": "Stato invii (24 ore)",
+      "help": "Un invio non riuscito viene ritentato fino a 6 volte (dopo 1, 5, 15, 60 e 240 minuti); quelli falliti restano nel registro e possono essere rimessi in coda.",
+      "sent": "Inviati",
+      "pending": "In coda",
+      "stuck_one": "{{count}} da oltre un'ora",
+      "stuck_other": "{{count}} da oltre un'ora",
+      "failed": "Falliti",
+      "subscribers": "Destinatari attivi",
+      "subscribersHelp": "canali abilitati nei profili",
+      "testTo": "Destinatario della prova",
+      "testPlaceholder": "vuoto = la tua e-mail del profilo",
+      "test": "Invia e-mail di prova",
+      "lastOk": "Ultimo test {{when}}: riuscito",
+      "lastFailed": "Ultimo test {{when}}: fallito"
+    },
+    "chat": {
+      "title": "Telegram e Slack",
+      "help": "Telegram usa un bot unico creato con @BotFather; ogni utente inserisce nel profilo il proprio chat ID (il bot lo comunica rispondendo a /start). Slack non richiede configurazione: ogni utente indica nel profilo il webhook del proprio canale.",
+      "bot": "Bot @{{name}}",
+      "botInactive": "Bot non attivo",
+      "token": "Token del bot Telegram",
+      "tokenPlaceholder": "Token del bot (123456:ABC…)",
+      "enable": "Abilita",
+      "save": "Salva e verifica il bot"
+    },
+    "log": {
+      "title": "Registro invii",
+      "help": "Ultimi 100 messaggi verso canali esterni.",
+      "retry": "Rimetti in coda i falliti",
+      "requeued_one": "{{count}} invio rimesso in coda.",
+      "requeued_other": "{{count}} invii rimessi in coda.",
+      "filter": "Filtro stato",
+      "filters": {
+        "all": "Tutti",
+        "pending": "In coda",
+        "sent": "Inviati",
+        "failed": "Falliti"
+      },
+      "states": {
+        "sent": "inviato",
+        "failed": "fallito",
+        "pending": "in coda"
+      },
+      "attempts_one": "{{count}} tentativo",
+      "attempts_other": "{{count}} tentativi",
+      "none": "Nessun invio registrato.",
+      "columns": {
+        "when": "Quando",
+        "recipient": "Destinatario",
+        "channel": "Canale",
+        "message": "Messaggio",
+        "status": "Stato"
+      }
+    },
+    "channels": {
+      "email": "E-mail",
+      "telegram": "Telegram",
+      "slack": "Slack"
+    },
+    "levels": {
+      "info": "Informativo",
+      "warning": "Attenzione",
+      "high": "Alto",
+      "critical": "Critico"
+    },
+    "categories": {
+      "security": "Sicurezza e vulnerabilità",
+      "backup": "Backup",
+      "firmware": "Firmware",
+      "devices": "Apparati e agent",
+      "integration": "Integrazioni",
+      "reports": "Report",
+      "system": "Errori di sistema"
+    }
   }
 }

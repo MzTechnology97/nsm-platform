@@ -1952,5 +1952,108 @@
         "devices": "Devices"
       }
     }
+  },
+  "notificationsAdmin": {
+    "subtitle": "Channels NSM uses to send notifications and reports: e-mail, Telegram and Slack.",
+    "enabled": "Enabled",
+    "inactive": "Inactive",
+    "keepSecret": "Leave empty to keep the stored one",
+    "smtp": {
+      "title": "E-mail server (SMTP)",
+      "help": "Used for e-mail notifications and reports. The password is encrypted.",
+      "host": "Server",
+      "port": "Port",
+      "security": "Encryption",
+      "username": "User",
+      "usernameHelp": "Empty when the server needs no authentication.",
+      "password": "Password",
+      "from": "Sender (e-mail)",
+      "fromName": "Sender name",
+      "portal": "Portal address",
+      "portalHelp": "Used for links in messages.",
+      "enable": "Enable e-mail delivery",
+      "save": "Save configuration",
+      "saved": "SMTP configuration saved; the password is encrypted.",
+      "modes": {
+        "starttls": "STARTTLS (port 587)",
+        "ssl": "SSL/TLS (port 465)",
+        "none": "No encryption (port 25, internal network only)"
+      }
+    },
+    "health": {
+      "title": "Delivery status (24 hours)",
+      "help": "A failed delivery is retried up to 6 times (after 1, 5, 15, 60 and 240 minutes); failed ones stay in the log and can be queued again.",
+      "sent": "Sent",
+      "pending": "Queued",
+      "stuck_one": "{{count}} for over an hour",
+      "stuck_other": "{{count}} for over an hour",
+      "failed": "Failed",
+      "subscribers": "Active recipients",
+      "subscribersHelp": "channels enabled in profiles",
+      "testTo": "Test recipient",
+      "testPlaceholder": "empty = your profile e-mail",
+      "test": "Send test e-mail",
+      "lastOk": "Last test {{when}}: succeeded",
+      "lastFailed": "Last test {{when}}: failed"
+    },
+    "chat": {
+      "title": "Telegram and Slack",
+      "help": "Telegram uses a single bot created with @BotFather; each user enters their chat ID in the profile (the bot replies with it to /start). Slack needs no setup: each user enters their channel webhook in the profile.",
+      "bot": "Bot @{{name}}",
+      "botInactive": "Bot inactive",
+      "token": "Telegram bot token",
+      "tokenPlaceholder": "Bot token (123456:ABC…)",
+      "enable": "Enable",
+      "save": "Save and verify the bot"
+    },
+    "log": {
+      "title": "Delivery log",
+      "help": "Last 100 messages to external channels.",
+      "retry": "Queue failed deliveries again",
+      "requeued_one": "{{count}} delivery queued again.",
+      "requeued_other": "{{count}} deliveries queued again.",
+      "filter": "Status filter",
+      "filters": {
+        "all": "All",
+        "pending": "Queued",
+        "sent": "Sent",
+        "failed": "Failed"
+      },
+      "states": {
+        "sent": "sent",
+        "failed": "failed",
+        "pending": "queued"
+      },
+      "attempts_one": "{{count}} attempt",
+      "attempts_other": "{{count}} attempts",
+      "none": "No deliveries recorded.",
+      "columns": {
+        "when": "When",
+        "recipient": "Recipient",
+        "channel": "Channel",
+        "message": "Message",
+        "status": "Status"
+      }
+    },
+    "channels": {
+      "email": "E-mail",
+      "telegram": "Telegram",
+      "slack": "Slack"
+    },
+    "levels": {
+      "info": "Info",
+      "warning": "Warning",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "categories": {
+      "security": "Security and vulnerabilities",
+      "backup": "Backup",
+      "firmware": "Firmware",
+      "devices": "Devices and agents",
+      "integration": "Integrations",
+      "reports": "Reports",
+      "system": "System errors"
+    }
   }
 }
