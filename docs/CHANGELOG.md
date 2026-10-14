@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.101 — 2026-10-14
+
+New interface (React) — Syslog tab, phase 1d
+- **Syslog tab in `/app/devices/<id>/syslog`**, for every vendor.
+- **Today's counters:** critical/error, warning, other lines since midnight (UTC), and the last line received with its source address.
+- **Live log.** The newest lines arrive every 5 seconds. The tail pauses while the browser tab is hidden or when the user presses *Pause*. Filters by severity and text; older lines load in blocks of 200. *Export CSV* keeps the active filters.
+- **Device logins** (last 24 hours): failed and successful logins, the addresses with most failures, the latest 15 events.
+- **Integrity check** of the warning/error hash chain on demand, showing where the chain breaks.
+- **Syslog setup:** receiver state, device key and how the device is recognised, last agent configuration job. *Configure syslog with the agent* queues the job with the same rules as the classic page (`devices.write`, agent version/profile, NSM address). Each refusal reason has its own translated message. Manual setup stays on the classic page.
+- **API.** `GET /api/ui/v1/devices/{id}/syslog`, `GET …/syslog/integrity`, `POST …/syslog/configure` (CSRF header). Reading never creates the device syslog key.
+- UI errors from the API can now carry a code (`detail: {code, message}`) so messages are translated.
+
 ## 0.49.100 — 2026-10-14
 
 New interface (React) — Monitor tab, phase 1c

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { type DeviceFilters, type DeviceRow, useDeviceFacets, useDevices } from "../api/devices";
 import { formatRelative } from "../lib/format";
+import { useDebounced } from "../lib/hooks";
 
 const STATUS_CHIPS = [
   { key: "", count: "all" },
@@ -19,15 +20,6 @@ const ATTENTION_CHIPS = [
 ] as const;
 const SORTABLE = ["name", "status", "vendor", "customer", "ip", "firmware", "last_seen"] as const;
 const ROW_HEIGHT = 56;
-
-function useDebounced<T>(value: T, delay = 300): T {
-  const [current, setCurrent] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setCurrent(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return current;
-}
 
 export function Devices() {
   const { t, i18n } = useTranslation();

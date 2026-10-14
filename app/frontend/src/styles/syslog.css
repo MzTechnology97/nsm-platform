@@ -1,0 +1,109 @@
+/* Syslog tab: live log table, live indicator, alerts. */
+.ui-syslog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ui-live {
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ui-live.is-paused {
+  color: var(--muted);
+}
+
+.ui-log-wrap {
+  max-height: min(60vh, 640px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.ui-log-wrap-short {
+  max-height: 360px;
+}
+
+.ui-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ui-log-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 6px 10px;
+  background: var(--table-head);
+  color: var(--muted);
+  font-weight: 600;
+  text-align: left;
+}
+
+.ui-log-table td {
+  padding: 5px 10px;
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.ui-log-message {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.ui-nowrap {
+  white-space: nowrap;
+}
+
+.ui-alert {
+  margin: var(--space-3) 0;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.ui-alert-success {
+  border-left-color: var(--success);
+}
+
+.ui-alert-danger {
+  border-left-color: var(--danger);
+}
+
+.ui-button-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.ui-button-primary:hover {
+  background: color-mix(in srgb, var(--accent) 85%, #000);
+}
+
+.ui-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.ui-panel h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .ui-log-table th:nth-child(3),
+  .ui-log-table td:nth-child(3) {
+    display: none;
+  }
+}
+
+.ui-panel > .ui-actions {
+  margin-top: var(--space-3);
+}

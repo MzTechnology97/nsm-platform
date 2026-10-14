@@ -13,7 +13,8 @@ export function setCsrfToken(token: string): void {
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  /** Machine-readable reason when the server sends ``detail: {code, message}``. */
+  constructor(public status: number, message: string, public code?: string) {
     super(message);
   }
 }
@@ -41,13 +42,18 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   if (!response.ok) {
     let message = response.statusText;
+    let code: string | undefined;
     try {
       const body = await response.json();
       if (typeof body?.detail === "string") message = body.detail;
+      else if (typeof body?.detail?.message === "string") {
+        message = body.detail.message;
+        code = typeof body.detail.code === "string" ? body.detail.code : undefined;
+      }
     } catch {
       /* not JSON */
     }
-    throw new ApiError(response.status, message);
+    throw new ApiError(response.status, message, code);
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;

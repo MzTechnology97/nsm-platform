@@ -12,3 +12,11 @@ export function formatRelative(value: string | null | undefined, locale: string,
   if (abs < 7 * 86400) return rtf.format(Math.round(seconds / 86400), "day");
   return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(at);
 }
+
+/** Date and time in the user's language, seconds included for log lines. */
+export function formatDateTime(value: string | null | undefined, locale: string, seconds = false): string {
+  if (!value) return "—";
+  const at = new Date(value);
+  if (Number.isNaN(at.getTime())) return "—";
+  return new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: seconds ? "medium" : "short" }).format(at);
+}
