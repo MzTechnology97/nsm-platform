@@ -2,6 +2,7 @@ import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { useDeviceFacets } from "../api/devices";
+import { BrandIcon } from "../app/BrandIcon";
 import { EXPOSURE_VIEWS, type ExposureFilters, type ExposureRow, useExposure } from "../api/security";
 import { formatRelative } from "../lib/format";
 import { SEVERITY_TONE } from "./Vulnerabilities";
@@ -82,10 +83,15 @@ function Row({ row }: { row: ExposureRow }) {
   return (
     <tr>
       <td>
-        <a href={`/devices/${row.id}/exposure`} className="ui-cell-title">{row.name}</a>
-        <small className="ui-muted ui-block">
-          {[row.target_ip, row.shared ? t("exposure.shared") : null, row.private ? t("exposure.private") : null].filter(Boolean).join(" · ") || row.vendor}
-        </small>
+        <div className="ui-with-brand">
+          <BrandIcon brand={row.brand} small />
+          <span>
+            <a href={`/devices/${row.id}/exposure`} className="ui-cell-title">{row.name}</a>
+            <small className="ui-muted ui-block">
+              {[row.target_ip, row.shared ? t("exposure.shared") : null, row.private ? t("exposure.private") : null].filter(Boolean).join(" · ") || row.vendor}
+            </small>
+          </span>
+        </div>
       </td>
       <td>{row.customer ? <Link to="/customers/$customerId" params={{ customerId: row.customer.id }}>{row.customer.name}</Link> : "—"}</td>
       <td>{t(`exposure.modes.${row.mode}`)}</td>

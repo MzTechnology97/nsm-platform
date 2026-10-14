@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { type DeviceFilters, type DeviceRow, useDeviceFacets, useDevices } from "../api/devices";
+import { BrandIcon } from "../app/BrandIcon";
 import { formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 
@@ -184,9 +185,12 @@ function DeviceLine({ device, top, height, locale }: { device: DeviceRow; top: n
   const { t } = useTranslation();
   return (
     <Link className="ui-tr ui-device-grid" role="row" to="/devices/$deviceId" params={{ deviceId: device.id }} style={{ transform: `translateY(${top}px)`, height }}>
-      <span role="cell" className="ui-td-main">
-        <strong>{device.name}</strong>
-        <small>{device.model ?? device.device_type ?? ""}</small>
+      <span role="cell" className="ui-with-brand">
+        <BrandIcon brand={device.brand} small />
+        <span className="ui-td-main">
+          <strong>{device.name}</strong>
+          <small>{device.model ?? device.device_type ?? ""}</small>
+        </span>
       </span>
       <span role="cell">
         <span className={`ui-status ui-status-${device.status}`}>{t(`devices.statusLabel.${device.status}`, { defaultValue: device.status })}</span>

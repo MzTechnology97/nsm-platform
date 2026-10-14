@@ -3,6 +3,7 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
+import { type BrandRef, BrandIcon } from "../app/BrandIcon";
 import { DIAGNOSTICS, type DiagnosticJob, type DiagnosticKind, type DiagnosticResult, type Diagnostics, RUNNING, useDiagnostics, useRunDiagnostic } from "../api/diagnostics";
 import { diagnosticSummary } from "../lib/diagnostics";
 import { formatDateTime } from "../lib/format";
@@ -225,7 +226,12 @@ function ResultView({ result }: { result: DiagnosticResult }) {
   }
 }
 
-function DeviceLink({ device }: { device: { id: string; name: string } | null }) {
+function DeviceLink({ device }: { device: { id: string; name: string; brand?: BrandRef } | null }) {
   if (!device) return <>—</>;
-  return <Link to="/devices/$deviceId" params={{ deviceId: device.id }}>{device.name}</Link>;
+  return (
+    <span className="ui-with-brand">
+      <BrandIcon brand={device.brand} small />
+      <Link to="/devices/$deviceId" params={{ deviceId: device.id }}>{device.name}</Link>
+    </span>
+  );
 }

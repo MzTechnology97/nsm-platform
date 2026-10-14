@@ -1,6 +1,7 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./client";
+import type { BrandRef } from "../app/BrandIcon";
 
 export const MONITORING_STATES = ["attention", "offline", "stale_agent", "high_cpu", "low_memory", "icmp_down", "packet_loss", "all"] as const;
 export type MonitoringState = (typeof MONITORING_STATES)[number];
@@ -14,6 +15,7 @@ export interface MonitoringFilters {
 export interface MonitoringRow {
   id: string;
   name: string;
+  brand?: BrandRef;
   vendor: string | null;
   model: string | null;
   status: string;
@@ -77,6 +79,7 @@ export interface AgentFilters {
 export interface AgentRow {
   id: string;
   name: string;
+  brand?: BrandRef;
   model: string | null;
   firmware: string | null;
   status: string;
@@ -132,6 +135,7 @@ export interface BackupOverviewFilters {
 export interface BackupOverviewRow {
   id: string;
   name: string;
+  brand?: BrandRef;
   vendor: string | null;
   status: string;
   customer: { id: string; name: string } | null;
@@ -181,6 +185,7 @@ export interface FirmwareFilters {
 export interface FirmwareRow {
   id: string;
   name: string;
+  brand?: BrandRef;
   identity: string | null;
   customer: { id: string; name: string } | null;
   site: string | null;

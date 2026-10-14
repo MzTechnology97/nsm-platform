@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./client";
+import type { BrandRef } from "../app/BrandIcon";
 
 export type DiagnosticKind = "ping" | "traceroute" | "neighbors" | "dhcp_lookup" | "logs" | "support_snapshot";
 export const DIAGNOSTICS: DiagnosticKind[] = ["ping", "traceroute", "neighbors", "dhcp_lookup", "logs", "support_snapshot"];
 
-type DeviceRef = { id: string; name: string } | null;
+type DeviceRef = { id: string; name: string; brand?: BrandRef } | null;
 
 export type DiagnosticResult =
   | {

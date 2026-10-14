@@ -83,7 +83,8 @@ def main():
     assert jobs[5]["export_url"].endswith("/export.json")
     assert jobs[4]["result"]["kind"] == "traceroute" and jobs[4]["result"]["reached"] and jobs[4]["result"]["count"] == 2
     neighbors = jobs[3]["result"]["rows"]
-    assert neighbors[0]["identity"] == "TEST-NB" and neighbors[0]["device"] == {"id": ids["neighbor"], "name": "Router vicino"}
+    assert neighbors[0]["identity"] == "TEST-NB" and {k: neighbors[0]["device"][k] for k in ("id", "name")} == {"id": ids["neighbor"], "name": "Router vicino"}
+    assert neighbors[0]["device"]["brand"]["symbol"] == "brand-mikrotik"
     dhcp = jobs[2]["result"]["rows"]
     assert dhcp[0]["address"] == "192.0.2.50" and dhcp[0]["host"] == "TEST-HOST" and dhcp[0]["dynamic"] and dhcp[0]["device"] is None
     logs = jobs[1]["result"]

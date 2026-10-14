@@ -28,7 +28,7 @@ from app.customer_tabs import _backup_summary, _load_customer
 from app.customer_workspace import OPEN_STATES, _customer_metric_maps, _customer_metrics
 from app.db import SessionLocal
 from app.models import ActionIssue, AuditEvent, Customer, Device, utcnow
-from app.ui_api import ui_user
+from app.ui_api import brand_icon, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 MAX_ROWS = 5000
@@ -151,7 +151,7 @@ def _top_traffic(db, devices, now) -> list[dict]:
     per_device = customer_graphs.traffic(db, devices, now - window, width)["per_device"]
     by_id = {d.id: d for d in devices}
     rows = sorted(((by_id[i], v[0] / v[2], v[1] / v[2]) for i, v in per_device.items() if v[2]), key=lambda row: -(row[1] + row[2]))
-    return [{"id": str(d.id), "name": d.display_name or d.device_identity or d.name, "rx_bps": round(rx, 1), "tx_bps": round(tx, 1)}
+    return [{"id": str(d.id), "name": d.display_name or d.device_identity or d.name, "brand": brand_icon(d), "rx_bps": round(rx, 1), "tx_bps": round(tx, 1)}
             for d, rx, tx in rows[:customer_graphs.TOP_DEVICES]]
 
 

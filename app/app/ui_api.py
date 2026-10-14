@@ -47,6 +47,14 @@ def ui_user(request: Request, db, permission: str | None = None):
     return user
 
 
+def brand_icon(device) -> dict:
+    """Manufacturer icon of a device, as in the classic pages: sprite symbol, brand colour, label."""
+    from app import vendor_cpe
+
+    data = vendor_cpe.icon(device)
+    return {"symbol": data["symbol"], "color": data["color"], "label": data["label"], "known": bool(data["brand"])}
+
+
 def permissions(user) -> list[str]:
     granted = core.ROLE_PERMISSIONS.get(user.role, set())
     if "*" in granted:

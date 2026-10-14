@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDeviceFacets } from "../api/devices";
+import { BrandIcon } from "../app/BrandIcon";
 import { AGENT_STATES, type AgentFilters, type AgentRow, useAgentFleet } from "../api/operations";
 import { formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
@@ -111,8 +112,13 @@ function Row({ row }: { row: AgentRow }) {
   return (
     <tr>
       <td>
-        <Link to="/devices/$deviceId/agent" params={{ deviceId: row.id }} className="ui-cell-title">{row.name}</Link>
-        <small className="ui-muted ui-block">{[row.customer?.name, row.site, row.management_ip].filter(Boolean).join(" · ")}</small>
+        <div className="ui-with-brand">
+          <BrandIcon brand={row.brand} small />
+          <span>
+            <Link to="/devices/$deviceId/agent" params={{ deviceId: row.id }} className="ui-cell-title">{row.name}</Link>
+            <small className="ui-muted ui-block">{[row.customer?.name, row.site, row.management_ip].filter(Boolean).join(" · ")}</small>
+          </span>
+        </div>
       </td>
       <td>
         <span className={HEALTH_TONE[row.health] ?? "ui-severity"}>{t(`agents.health.${row.health}`, { defaultValue: row.health })}</span>
