@@ -408,3 +408,53 @@
 .ui-matrix-cell.is-na {
   color: var(--muted);
 }
+
+/* Vendor icon (same sprite as the classic pages, /static/brand-icons.svg). */
+.ui-brand-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  vertical-align: middle;
+}
+
+.ui-brand-icon.is-small {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+
+.ui-brand-icon.is-generic {
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+  color: var(--accent);
+}
+
+.ui-brand-icon.is-generic svg {
+  fill: currentColor;
+}
+
+/* Name cell with the icon on the left. */
+.ui-with-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.ui-with-brand > span:last-child {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ui-with-brand-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}

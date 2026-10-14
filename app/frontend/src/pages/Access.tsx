@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDeviceFacets } from "../api/devices";
+import { BrandIcon } from "../app/BrandIcon";
 import { type LifecycleFilters, LIFECYCLE_STATES, useAccess, useLifecycle } from "../api/security";
 import { formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
@@ -51,7 +52,12 @@ export function Access() {
                   <tbody>
                     {data.devices.map((row) => row.device && (
                       <tr key={row.device.id}>
-                        <td><Link to="/devices/$deviceId/syslog" params={{ deviceId: row.device.id }}>{row.device.name}</Link></td>
+                        <td>
+                          <span className="ui-with-brand">
+                            <BrandIcon brand={row.device.brand} small />
+                            <Link to="/devices/$deviceId/syslog" params={{ deviceId: row.device.id }}>{row.device.name}</Link>
+                          </span>
+                        </td>
                         <td>{row.device.customer ? <Link to="/customers/$customerId" params={{ customerId: row.device.customer.id }}>{row.device.customer.name}</Link> : "—"}</td>
                         <td className={row.failures >= 5 ? "ui-text-danger" : undefined}>{row.failures}</td>
                       </tr>
@@ -209,8 +215,13 @@ export function Lifecycle() {
                 {items.map((row) => (
                   <tr key={row.id}>
                     <td>
-                      <Link to="/devices/$deviceId" params={{ deviceId: row.id }} className="ui-cell-title">{row.name}</Link>
-                      <small className="ui-muted ui-block">{[row.customer?.name, row.site].filter(Boolean).join(" · ") || "—"}</small>
+                      <div className="ui-with-brand">
+                        <BrandIcon brand={row.brand} small />
+                        <span>
+                          <Link to="/devices/$deviceId" params={{ deviceId: row.id }} className="ui-cell-title">{row.name}</Link>
+                          <small className="ui-muted ui-block">{[row.customer?.name, row.site].filter(Boolean).join(" · ") || "—"}</small>
+                        </span>
+                      </div>
                     </td>
                     <td>{[row.vendor, row.model].filter(Boolean).join(" · ") || "—"}</td>
                     <td>

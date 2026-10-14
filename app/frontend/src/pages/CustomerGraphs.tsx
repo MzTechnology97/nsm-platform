@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { type CustomerChart, chartColumns, GRAPH_RANGES, type GraphRange, useCustomerCharts, useGraphsSummary } from "../api/customerGraphs";
+import { BrandIcon } from "../app/BrandIcon";
 import { formatValue, type Unit } from "../charts/format";
 import { type ChartSeries, TimeChart } from "../charts/TimeChart";
 
@@ -119,7 +120,12 @@ export function CustomerGraphs() {
                 <tbody>
                   {data.top.map((row) => (
                     <tr key={row.id}>
-                      <td><Link to="/devices/$deviceId/monitor" params={{ deviceId: row.id }}>{row.name}</Link></td>
+                      <td>
+                        <span className="ui-with-brand">
+                          <BrandIcon brand={row.brand} small />
+                          <Link to="/devices/$deviceId/monitor" params={{ deviceId: row.id }}>{row.name}</Link>
+                        </span>
+                      </td>
                       <td>{bps(row.rx_bps)}</td>
                       <td>{bps(row.tx_bps)}</td>
                     </tr>

@@ -18,7 +18,7 @@ from app import main as core
 from app.customer_drilldown import SEVERE_CVE, _firmware_attention_condition, _severe_cve_exists
 from app.db import SessionLocal
 from app.models import Customer, Device, DeviceVulnerability, SecurityAdvisory, Site
-from app.ui_api import ui_user
+from app.ui_api import brand_icon, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 MAX_LIMIT = 200
@@ -64,7 +64,7 @@ def device_row(device: Device, severe: int = 0) -> dict:
     data = device.inventory_data or {}
     return {
         "id": str(device.id),
-        "name": device.display_name or device.device_identity or device.name,
+        "name": device.display_name or device.device_identity or device.name, "brand": brand_icon(device),
         "identity": device.device_identity,
         "vendor": device.vendor,
         "model": device.model,

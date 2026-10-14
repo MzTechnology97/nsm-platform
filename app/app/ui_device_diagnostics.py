@@ -23,7 +23,7 @@ from app import mikrotik_workspace as workspace
 from app import mikrotik_workspace_ux as workspace_ux
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
-from app.ui_api import require_csrf, ui_user
+from app.ui_api import brand_icon, require_csrf, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 KINDS = {job_type: key for key, job_type in workspace.DIAGNOSTIC_TYPES.items()}
@@ -34,7 +34,7 @@ def _iso(value):
 
 
 def _device_ref(device):
-    return {"id": str(device.id), "name": device.display_name or device.device_identity or device.name} if device is not None else None
+    return {"id": str(device.id), "name": device.display_name or device.device_identity or device.name, "brand": brand_icon(device)} if device is not None else None
 
 
 def _result(job, db) -> dict | None:

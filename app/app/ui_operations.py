@@ -31,7 +31,7 @@ from app import mikrotik_firmware_readiness as firmware_readiness
 from app import main as core
 from app.db import SessionLocal
 from app.models import Customer, Device, utcnow
-from app.ui_api import require_csrf, ui_user
+from app.ui_api import brand_icon, require_csrf, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 MONITORING_LIMIT = 500
@@ -53,7 +53,7 @@ def monitoring_row(row: dict) -> dict:
     device = row["device"]
     icmp = row["icmp"]
     return {
-        "id": str(device.id), "name": device.display_name or device.device_identity or device.name,
+        "id": str(device.id), "name": device.display_name or device.device_identity or device.name, "brand": brand_icon(device),
         "vendor": device.vendor, "model": device.model, "status": device.status, "management_ip": device.management_ip,
         "last_seen": _iso(device.last_seen),
         "customer": {"id": str(device.customer.id), "name": device.customer.name} if device.customer else None,
@@ -109,7 +109,7 @@ def agent_row(row: dict) -> dict:
     device = row["device"]
     update = row.get("agent_update") or {}
     return {
-        "id": str(device.id), "name": device.display_name or device.device_identity or device.name, "model": device.model,
+        "id": str(device.id), "name": device.display_name or device.device_identity or device.name, "brand": brand_icon(device), "model": device.model,
         "firmware": device.firmware_version, "status": device.status, "management_ip": device.management_ip,
         "customer": {"id": str(device.customer.id), "name": device.customer.name} if device.customer else None,
         "site": device.site.name if device.site else None,
@@ -148,7 +148,7 @@ def backup_row(row: dict) -> dict:
     latest = row["latest"]
     readiness = row["readiness"]
     return {
-        "id": str(device.id), "name": device.display_name or device.device_identity or device.name, "vendor": device.vendor, "status": device.status,
+        "id": str(device.id), "name": device.display_name or device.device_identity or device.name, "brand": brand_icon(device), "vendor": device.vendor, "status": device.status,
         "customer": {"id": str(device.customer.id), "name": device.customer.name} if device.customer else None,
         "site": device.site.name if device.site else None,
         "policy": {"id": str(row["policy"].id), "name": row["policy"].name} if row["policy"] else None,
@@ -195,7 +195,7 @@ def firmware_row(device, can_execute: bool) -> dict:
     online = device.status == "online"
     newer = bool(device.recommended_firmware_version and device.recommended_firmware_version != device.firmware_version)
     return {
-        "id": str(device.id), "name": device.display_name or device.device_identity or device.name,
+        "id": str(device.id), "name": device.display_name or device.device_identity or device.name, "brand": brand_icon(device),
         "identity": device.device_identity or device.serial_number or device.primary_mac,
         "customer": {"id": str(device.customer.id), "name": device.customer.name} if device.customer else None,
         "site": device.site.name if device.site else None, "vendor": device.vendor, "model": device.model, "status": device.status,

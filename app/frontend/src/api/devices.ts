@@ -1,10 +1,12 @@
 import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
 import { api } from "./client";
+import type { BrandRef } from "../app/BrandIcon";
 
 export interface DeviceRow {
   id: string;
   name: string;
+  brand?: BrandRef;
   identity: string | null;
   vendor: string;
   model: string | null;

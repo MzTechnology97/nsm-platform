@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDeviceFacets } from "../api/devices";
+import { BrandIcon } from "../app/BrandIcon";
 import { FIRMWARE_STATES, type FirmwareFilters, type FirmwareRow, useFirmware, useFirmwareCheck } from "../api/operations";
 import { ClassicForm } from "../app/ClassicForm";
 import { formatRelative } from "../lib/format";
@@ -113,8 +114,13 @@ function Row({ row }: { row: FirmwareRow }) {
   return (
     <tr>
       <td>
-        <Link to="/devices/$deviceId" params={{ deviceId: row.id }} className="ui-cell-title">{row.name}</Link>
-        <small className="ui-muted ui-block">{[row.customer?.name, row.site].filter(Boolean).join(" · ") || "—"}</small>
+        <div className="ui-with-brand">
+          <BrandIcon brand={row.brand} small />
+          <span>
+            <Link to="/devices/$deviceId" params={{ deviceId: row.id }} className="ui-cell-title">{row.name}</Link>
+            <small className="ui-muted ui-block">{[row.customer?.name, row.site].filter(Boolean).join(" · ") || "—"}</small>
+          </span>
+        </div>
       </td>
       <td>
         {row.vendor ?? "—"}

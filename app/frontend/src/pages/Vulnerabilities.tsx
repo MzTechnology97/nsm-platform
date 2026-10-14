@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
+import { BrandIcon } from "../app/BrandIcon";
 import { useDeviceFacets } from "../api/devices";
 import { type AdvisoryDetail, useAdvisory, useVulnerabilities, VULN_SEVERITIES, type VulnFilters, type VulnStatus } from "../api/security";
 import { formatDateTime } from "../lib/format";
@@ -190,7 +191,12 @@ export function VulnerabilityDetail() {
             <tbody>
               {data.unassessed.map((row) => (
                 <tr key={row.device.id}>
-                  <td><Link to="/devices/$deviceId" params={{ deviceId: row.device.id }}>{row.device.name}</Link></td>
+                  <td>
+                    <span className="ui-with-brand">
+                      <BrandIcon brand={row.device.brand} small />
+                      <Link to="/devices/$deviceId" params={{ deviceId: row.device.id }}>{row.device.name}</Link>
+                    </span>
+                  </td>
                   <td>{row.customer ? <Link to="/customers/$customerId" params={{ customerId: row.customer.id }}>{row.customer.name}</Link> : "—"}</td>
                   <td className="ui-mono">{row.version ?? "—"}</td>
                   <td>{row.reason}</td>
@@ -241,8 +247,13 @@ function Impacted({ data, onFilter, customer, status }: { data: AdvisoryDetail; 
               {data.impacted.map((row) => (
                 <tr key={row.finding_id}>
                   <td>
-                    <Link to="/devices/$deviceId" params={{ deviceId: row.device.id }} className="ui-cell-title">{row.device.name}</Link>
-                    <small className="ui-muted ui-block">{[row.device.vendor, row.device.model].filter(Boolean).join(" · ")}</small>
+                    <div className="ui-with-brand">
+                      <BrandIcon brand={row.device.brand} small />
+                      <span>
+                        <Link to="/devices/$deviceId" params={{ deviceId: row.device.id }} className="ui-cell-title">{row.device.name}</Link>
+                        <small className="ui-muted ui-block">{[row.device.vendor, row.device.model].filter(Boolean).join(" · ")}</small>
+                      </span>
+                    </div>
                   </td>
                   <td><Link to="/customers/$customerId" params={{ customerId: row.customer.id }}>{row.customer.name}</Link></td>
                   <td className="ui-mono">{row.installed_version ?? "—"}</td>

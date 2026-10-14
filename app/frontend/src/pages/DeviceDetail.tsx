@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
+import { BrandIcon } from "../app/BrandIcon";
 import { type DeviceDetail as Detail, useDevice } from "../api/device";
 import { formatRelative } from "../lib/format";
 
@@ -53,7 +54,8 @@ function DeviceShell({ detail }: { detail: Detail }) {
 
       <header className="ui-page-header ui-page-header-row">
         <div>
-          <h1>
+          <h1 className="ui-with-brand-title">
+            <BrandIcon brand={device.brand} />
             {device.name} <span className={`ui-status ui-status-${device.status}`}>{t(`devices.statusLabel.${device.status}`, { defaultValue: device.status })}</span>
           </h1>
           <p>{[device.vendor, device.model, device.device_type].filter(Boolean).join(" · ")}</p>

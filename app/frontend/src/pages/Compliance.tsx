@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDeviceFacets } from "../api/devices";
+import { BrandIcon } from "../app/BrandIcon";
 import { COMPLIANCE_STATUSES, type ComplianceFilters, useCompliance, useComplianceEvaluate } from "../api/security";
 import { formatDateTime } from "../lib/format";
 
@@ -98,8 +99,13 @@ export function Compliance() {
                 {items.map((row) => row.device && (
                   <tr key={row.device.id}>
                     <td>
-                      <Link to="/devices/$deviceId" params={{ deviceId: row.device.id }} className="ui-cell-title">{row.device.name}</Link>
-                      <small className="ui-muted ui-block">{row.device.customer?.name ?? "—"}</small>
+                      <div className="ui-with-brand">
+                        <BrandIcon brand={row.device.brand} small />
+                        <span>
+                          <Link to="/devices/$deviceId" params={{ deviceId: row.device.id }} className="ui-cell-title">{row.device.name}</Link>
+                          <small className="ui-muted ui-block">{row.device.customer?.name ?? "—"}</small>
+                        </span>
+                      </div>
                     </td>
                     <td><span className={DEVICE_TONE[row.status] ?? "ui-severity"}>{t(`compliance.result.${row.status}`, { defaultValue: row.status })}</span></td>
                     {first.controls.map((control) => {

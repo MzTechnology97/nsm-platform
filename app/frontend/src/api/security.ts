@@ -1,6 +1,7 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./client";
+import type { BrandRef } from "../app/BrandIcon";
 
 export const VULN_SEVERITIES = ["", "severe", "critical", "high", "medium", "low", "unknown"] as const;
 export type VulnSeverity = (typeof VULN_SEVERITIES)[number];
@@ -57,11 +58,11 @@ export interface AdvisoryDetail extends AdvisoryHead {
     installed_version: string | null;
     fixed_version: string | null;
     resolution: string | null;
-    device: { id: string; name: string; vendor: string | null; model: string | null };
+    device: { id: string; name: string; brand?: BrandRef; vendor: string | null; model: string | null };
     customer: { id: string; name: string };
     finding_url: string;
   }[];
-  unassessed: { device: { id: string; name: string; model: string | null }; customer: { id: string; name: string } | null; version: string | null; reason: string }[];
+  unassessed: { device: { id: string; name: string; brand?: BrandRef; model: string | null }; customer: { id: string; name: string } | null; version: string | null; reason: string }[];
 }
 
 function query(params: Record<string, string | number | undefined>): string {
@@ -100,6 +101,7 @@ export interface ExposureFilters {
 export interface ExposureRow {
   id: string;
   name: string;
+  brand?: BrandRef;
   vendor: string | null;
   customer: { id: string; name: string } | null;
   mode: "agent" | "external";
@@ -129,7 +131,7 @@ export const useExposure = (filters: ExposureFilters) =>
     staleTime: 60_000,
   });
 
-type DeviceRef = { id: string; name: string; customer: { id: string; name: string } | null } | null;
+type DeviceRef = { id: string; name: string; brand?: BrandRef; customer: { id: string; name: string } | null } | null;
 
 export interface AccessSummary {
   hours: number;
@@ -161,6 +163,7 @@ export interface LifecyclePage {
   items: {
     id: string;
     name: string;
+    brand?: BrandRef;
     vendor: string | null;
     model: string | null;
     customer: { id: string; name: string } | null;

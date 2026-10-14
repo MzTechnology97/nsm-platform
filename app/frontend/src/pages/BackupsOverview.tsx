@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDeviceFacets } from "../api/devices";
+import { BrandIcon } from "../app/BrandIcon";
 import { BACKUP_VIEWS, type BackupOverviewFilters, type BackupOverviewRow, useBackupOverview } from "../api/operations";
 import { describeCron } from "../lib/cron";
 import { formatDateTime, formatRelative } from "../lib/format";
@@ -154,8 +155,13 @@ function Row({ row }: { row: BackupOverviewRow }) {
   return (
     <tr>
       <td>
-        <Link to="/devices/$deviceId/backups" params={{ deviceId: row.id }} className="ui-cell-title">{row.name}</Link>
-        <small className="ui-muted ui-block">{[row.customer?.name, row.site, row.vendor].filter(Boolean).join(" · ")}</small>
+        <div className="ui-with-brand">
+          <BrandIcon brand={row.brand} small />
+          <span>
+            <Link to="/devices/$deviceId/backups" params={{ deviceId: row.id }} className="ui-cell-title">{row.name}</Link>
+            <small className="ui-muted ui-block">{[row.customer?.name, row.site, row.vendor].filter(Boolean).join(" · ")}</small>
+          </span>
+        </div>
       </td>
       <td>
         <span className={BUCKET_TONE[row.bucket]}>{t(`backupOverview.readiness.${row.readiness.status}`, { defaultValue: row.readiness.label })}</span>

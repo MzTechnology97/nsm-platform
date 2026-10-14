@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { api } from "./client";
+import type { BrandRef } from "../app/BrandIcon";
 
 export type GraphRange = "24h" | "7d" | "30d" | "90d";
 export const GRAPH_RANGES: GraphRange[] = ["24h", "7d", "30d", "90d"];
@@ -24,7 +25,7 @@ export interface GraphsSummary {
   sites: { id: string; name: string }[];
   devices: number;
   overview: { site: { id: string; name: string } | null; devices: number; online: number; rx_bps: number | null; tx_bps: number | null; peak_bps: number | null }[];
-  top: { id: string; name: string; rx_bps: number; tx_bps: number }[];
+  top: { id: string; name: string; brand?: BrandRef; rx_bps: number; tx_bps: number }[];
   availability: {
     measured: number;
     average: number | null;

@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.117 — 2026-10-14
+
+New interface (React) — vendor icon on every device
+- **Every device shows its manufacturer icon again**, as on the classic pages: same symbols from `/static/brand-icons.svg`, same brand colours, the generic icon when the manufacturer is not known. For manually added devices, the declared manufacturer is used.
+- **Where it appears:** device list and device header; Monitoring, MikroTik agents, backup overview, firmware, exposed services, vulnerabilities (affected and unassessed devices), access, lifecycle, compliance; customer graphs (devices with most traffic); diagnostics (neighbors and DHCP leases linked to NSM).
+- Every device returned by the new-interface API now carries `brand` (`symbol`, `color`, `label`, `known`), computed by `vendor_cpe.icon` like the classic pages.
+
 ## 0.49.116 — 2026-10-14
 
 New interface (React) — compliance, phase 4d

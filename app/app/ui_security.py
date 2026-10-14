@@ -39,7 +39,7 @@ from app.lifecycle_remediation import attention_reason
 from app.models import ActionIssue, Customer, Device, DeviceVulnerability, LifecycleRemediation, SecurityAdvisory, utcnow
 from app.compliance_findings import in_exception
 from app.compliance_models import ComplianceBaseline
-from app.ui_api import require_csrf, ui_user
+from app.ui_api import brand_icon, require_csrf, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 ADVISORY_PAGE = 100
@@ -88,7 +88,7 @@ def vulnerabilities(request: Request, q: str = "", customer: str = "", vendor: s
         return {
             "status": status, "severity": severity, "total": total, "offset": offset, "limit": ADVISORY_PAGE,
             "counts": {key: counts.get(key, 0) for key in ("all", "severe", "critical", "high", "medium", "low", "unknown")},
-            "device": {"id": str(selected.id), "name": selected.display_name or selected.device_identity or selected.name} if selected else None,
+            "device": {"id": str(selected.id), "name": selected.display_name or selected.device_identity or selected.name, "brand": brand_icon(selected)} if selected else None,
             "vendors": vendors,
             "items": [{**advisory_head(advisory), "affected_devices": int(devices or 0), "affected_customers": int(customers or 0)}
                       for advisory, devices, customers in rows],
@@ -132,11 +132,11 @@ def vulnerability_detail(request: Request, advisory_id: uuid.UUID, customer: str
                 "finding_id": str(impact.id), "status": impact.status, "detected_at": _iso(impact.detected_at), "resolved_at": _iso(impact.resolved_at),
                 "installed_version": impact.installed_version or device.firmware_version, "fixed_version": impact.fixed_version,
                 "resolution": (impact.evidence or {}).get("resolution") if impact.status == "resolved" else None,
-                "device": {"id": str(device.id), "name": device.display_name or device.device_identity or device.name, "vendor": device.vendor, "model": device.model},
+                "device": {"id": str(device.id), "name": device.display_name or device.device_identity or device.name, "brand": brand_icon(device), "vendor": device.vendor, "model": device.model},
                 "customer": {"id": str(owner.id), "name": owner.name},
                 "finding_url": f"/security/findings/{impact.id}",
             } for impact, device, owner in impacted],
-            "unassessed": [{"device": {"id": str(device.id), "name": device.display_name or device.device_identity or device.name, "model": device.model},
+            "unassessed": [{"device": {"id": str(device.id), "name": device.display_name or device.device_identity or device.name, "brand": brand_icon(device), "model": device.model},
                             "customer": {"id": str(device.customer.id), "name": device.customer.name} if device.customer else None,
                             "version": device.firmware_version, "reason": reason}
                            for device, reason in unknown_devices(db, advisory, customer_id)],
@@ -158,7 +158,7 @@ def exposure(request: Request, view: str = "exposed", customer: str = ""):
         return {
             "view": view, "total": len(rows), "limit": EXPOSURE_LIMIT, "counts": data["counts"],
             "items": [{
-                "id": str(r["device"].id), "name": r["device"].display_name or r["device"].device_identity or r["device"].name,
+                "id": str(r["device"].id), "name": r["device"].display_name or r["device"].device_identity or r["device"].name, "brand": brand_icon(r["device"]),
                 "vendor": r["device"].vendor, "customer": {"id": str(r["customer"].id), "name": r["customer"].name} if r["customer"] else None,
                 "mode": r["mode"], "state": r["state"], "blocker": r["blocker"], "worst": r["worst"], "checked_at": r["checked_at"],
                 "target_ip": r["target_ip"], "shared": r["shared"], "private": r["private"],
@@ -171,7 +171,7 @@ def exposure(request: Request, view: str = "exposed", customer: str = ""):
 def _device_ref(device) -> dict | None:
     if device is None:
         return None
-    return {"id": str(device.id), "name": device.display_name or device.device_identity or device.name,
+    return {"id": str(device.id), "name": device.display_name or device.device_identity or device.name, "brand": brand_icon(device),
             "customer": {"id": str(device.customer.id), "name": device.customer.name} if device.customer else None}
 
 
@@ -221,7 +221,7 @@ def lifecycle(request: Request, q: str = "", customer: str = "", vendor: str = "
                                   .offset(offset).limit(LIFECYCLE_PAGE)))
         remediations = {r.device_id: r for r in db.scalars(select(LifecycleRemediation).where(LifecycleRemediation.device_id.in_([d.id for d in devices] or [None])))}
         return {**base, "total": total, "groups": [], "items": [{
-            "id": str(d.id), "name": d.display_name or d.device_identity or d.name, "vendor": d.vendor, "model": d.model,
+            "id": str(d.id), "name": d.display_name or d.device_identity or d.name, "brand": brand_icon(d), "vendor": d.vendor, "model": d.model,
             "customer": {"id": str(d.customer.id), "name": d.customer.name} if d.customer else None, "site": d.site.name if d.site else None,
             "lifecycle": (d.lifecycle_status or "unknown").lower(), "eol_date": _iso(d.eol_date), "eos_date": _iso(d.eos_date),
             "remediation": {"status": remediations[d.id].status, "attention": bool(attention_reason(remediations[d.id], d, today))} if d.id in remediations else None,
