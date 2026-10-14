@@ -128,12 +128,10 @@ export function Layout() {
             <a className="ui-button ui-button-ghost ui-hide-mobile" href="/">
               {t("app.classic")}
             </a>
+            <Link to="/profile" className="ui-button ui-button-ghost ui-hide-mobile" title={t("profile.title")}>{data.user.display_name}</Link>
             <form method="post" action="/logout" className="ui-inline-form">
               <input type="hidden" name="csrf" value={data.csrf_token} />
-              <button type="submit" className="ui-button ui-button-ghost">
-                <span className="ui-hide-mobile">{data.user.display_name} · </span>
-                {t("user.logout")}
-              </button>
+              <button type="submit" className="ui-button ui-button-ghost">{t("user.logout")}</button>
             </form>
           </div>
         </header>

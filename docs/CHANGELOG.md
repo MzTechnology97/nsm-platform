@@ -4,6 +4,28 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.140 — 2026-10-14
+
+New interface (React) — profile, phase 7c
+- **Profile in `/app/profile`**, opened from your name in the top bar:
+  - **Account:** name, username, e-mail, role, last sign-in.
+  - **Password change:** the classic checks with translated messages. This session stays signed in (it is re-issued with a new CSRF token) and the other sessions end.
+  - **Sessions:** sign out of the other sessions, with a confirmation.
+  - **Appearance:** light or dark theme, saved on the account.
+  - **Two-step verification:** setup with QR code and manual key, then confirmation with the app code. Recovery codes are shown once, with a copy button. You can also generate new codes (password required) or turn the feature off (password + app code).
+  - **Notifications:** e-mail address; for e-mail, Telegram and Slack, the on/off switch, minimum level and categories. The Telegram chat ID is shown; the Slack webhook is never sent back to the browser, and an empty field keeps it. You can also send a test message, set the vulnerability newsletter and see the latest deliveries.
+- **Shared code.** The profile logic is now made of shared functions, used by both interfaces; the classic profile page behaves as before:
+  - `ui_extension.change_own_password_record`;
+  - `login_security.revoke_own_record`;
+  - `two_factor.setup_record`, `enable_record`, `regenerate_record` and `disable_record`;
+  - `notification_delivery.save_preferences_record` and `send_test_record`;
+  - `notification_digest.set_digest`.
+- **API.** All routes are open to any signed-in user; the `POST` routes need the CSRF header. Validation errors return 422 with the classic error codes.
+  - `GET /api/ui/v1/profile` (`no-store`);
+  - `POST /api/ui/v1/profile/password`, `/sessions/revoke`;
+  - `POST /api/ui/v1/profile/2fa/setup`, `/2fa/enable`, `/2fa/recovery`, `/2fa/disable` (recovery codes `no-store`);
+  - `POST /api/ui/v1/profile/notifications`, `/notifications/test`, `/notifications/digest`.
+
 ## 0.49.139 — 2026-10-14
 
 New interface (React) — global search and notifications, phase 7b

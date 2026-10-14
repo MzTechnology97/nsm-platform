@@ -70,3 +70,37 @@ export function useMarkNotificationRead() {
     onSuccess: () => client.invalidateQueries({ queryKey: ["notifications"] }),
   });
 }
+
+export interface ChannelPreference {
+  enabled: boolean;
+  min_severity: string;
+  categories: string[];
+  destination: string | null;
+  configured: boolean;
+  has_secret: boolean;
+}
+
+export interface Profile {
+  account: { username: string; display_name: string | null; email: string | null; role: string; role_label: string; last_login_at: string | null };
+  session_idle_minutes: number;
+  two_factor: { enabled: boolean; since: string | null; recovery_left: number; pending: { secret: string; qr: string } | null };
+  notifications: {
+    channels: Record<string, ChannelPreference>;
+    levels: string[];
+    categories: string[];
+    recent: { id: string; created_at: string; channel: string; subject: string; status: string; last_error: string | null }[];
+    digest: string;
+    digest_options: string[];
+  };
+}
+
+export const useProfile = () => useQuery({ queryKey: ["profile"], queryFn: () => api<Profile>("/api/ui/v1/profile") });
+
+/** A profile action; the profile (and, for the password, the session) is reloaded afterwards. */
+export function useProfileAction<TBody = object, TResult = { ok: boolean }>(path: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body?: TBody) => api<TResult>(`/api/ui/v1/profile${path}`, { method: "POST", body: JSON.stringify(body ?? {}) }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["profile"] }),
+  });
+}

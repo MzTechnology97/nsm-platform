@@ -240,14 +240,60 @@ def _profile_user(request: Request, db):
     return user
 
 
+def setup_record(db, user: User) -> bool:
+    """Start the setup with a new pending secret; False when the second factor is already active. Caller commits."""
+    if enabled(user):
+        return False
+    user.totp_pending_encrypted = encrypt_text(new_secret())
+    return True
+
+
+def enable_record(db, user: User, code: str, request: Request | None = None) -> list[str]:
+    """Confirm the pending secret with an app code and return the new recovery codes (shown once).
+
+    Raises ValueError ``2fa_not_pending`` or ``2fa_code``. Other sessions end. Caller commits.
+    """
+    if enabled(user) or not user.totp_pending_encrypted:
+        raise ValueError("2fa_not_pending")
+    secret = decrypt_text(user.totp_pending_encrypted)
+    step = verify_code(secret, code, None)
+    if step is None:
+        raise ValueError("2fa_code")
+    user.totp_secret_encrypted, user.totp_pending_encrypted = encrypt_text(secret), None
+    user.totp_enabled_at, user.totp_last_step = utcnow(), step
+    codes = issue_recovery_codes(db, user)
+    login_security.revoke_sessions(db, user, request)
+    core.add_event(db, "USER_2FA_ENABLED", actor=user, details={"user_id": str(user.id), "username": user.username}, source="portal")
+    return codes
+
+
+def regenerate_record(db, user: User, password: str) -> list[str]:
+    """New recovery codes after checking the password; raises ValueError ``2fa_password``. Caller commits."""
+    if not enabled(user) or not verify_password(password, user.password_hash):
+        raise ValueError("2fa_password")
+    codes = issue_recovery_codes(db, user)
+    core.add_event(db, "USER_2FA_RECOVERY_REGENERATED", actor=user, details={"user_id": str(user.id)}, source="portal")
+    return codes
+
+
+def disable_record(db, user: User, password: str, code: str, request: Request | None = None) -> None:
+    """Turn the second factor off with password and app code; raises ValueError ``2fa_disable``. Caller commits."""
+    if not enabled(user):
+        return
+    if not verify_password(password, user.password_hash) or verify_code(decrypt_text(user.totp_secret_encrypted), code, user.totp_last_step) is None:
+        raise ValueError("2fa_disable")
+    _clear(db, user)
+    login_security.revoke_sessions(db, user, request)
+    core.add_event(db, "USER_2FA_DISABLED", actor=user, details={"user_id": str(user.id), "username": user.username}, source="portal", severity="warning")
+
+
 @router.post("/profile/2fa/setup", name="two_factor_setup")
 def setup(request: Request, csrf: str = Form(...)):
     validate_csrf(request, csrf)
     with SessionLocal() as db:
         user = _profile_user(request, db)
-        if enabled(user):
+        if not setup_record(db, user):
             return RedirectResponse("/profile#two-factor", status_code=303)
-        user.totp_pending_encrypted = encrypt_text(new_secret())
         db.commit()
     return RedirectResponse("/profile?status=2fa_scan#two-factor", status_code=303)
 
@@ -257,17 +303,12 @@ def enable(request: Request, code: str = Form(""), csrf: str = Form(...)):
     validate_csrf(request, csrf)
     with SessionLocal() as db:
         user = _profile_user(request, db)
-        if enabled(user) or not user.totp_pending_encrypted:
+        try:
+            codes = enable_record(db, user, code, request)
+        except ValueError as exc:
+            if str(exc) == "2fa_code":
+                return RedirectResponse("/profile?error=2fa_code#two-factor", status_code=303)
             return RedirectResponse("/profile#two-factor", status_code=303)
-        secret = decrypt_text(user.totp_pending_encrypted)
-        step = verify_code(secret, code, None)
-        if step is None:
-            return RedirectResponse("/profile?error=2fa_code#two-factor", status_code=303)
-        user.totp_secret_encrypted, user.totp_pending_encrypted = encrypt_text(secret), None
-        user.totp_enabled_at, user.totp_last_step = utcnow(), step
-        codes = issue_recovery_codes(db, user)
-        login_security.revoke_sessions(db, user, request)
-        core.add_event(db, "USER_2FA_ENABLED", actor=user, details={"user_id": str(user.id), "username": user.username}, source="portal")
         db.commit()
         response = core.render(request, db, user, "two_factor_codes.html", title="Codici di recupero", codes=codes)
         response.headers["Cache-Control"] = "no-store"
@@ -279,10 +320,10 @@ def regenerate_codes(request: Request, password: str = Form(""), csrf: str = For
     validate_csrf(request, csrf)
     with SessionLocal() as db:
         user = _profile_user(request, db)
-        if not enabled(user) or not verify_password(password, user.password_hash):
+        try:
+            codes = regenerate_record(db, user, password)
+        except ValueError:
             return RedirectResponse("/profile?error=2fa_password#two-factor", status_code=303)
-        codes = issue_recovery_codes(db, user)
-        core.add_event(db, "USER_2FA_RECOVERY_REGENERATED", actor=user, details={"user_id": str(user.id)}, source="portal")
         db.commit()
         response = core.render(request, db, user, "two_factor_codes.html", title="Codici di recupero", codes=codes)
         response.headers["Cache-Control"] = "no-store"
@@ -303,11 +344,10 @@ def disable(request: Request, password: str = Form(""), code: str = Form(""), cs
         user = _profile_user(request, db)
         if not enabled(user):
             return RedirectResponse("/profile#two-factor", status_code=303)
-        if not verify_password(password, user.password_hash) or verify_code(decrypt_text(user.totp_secret_encrypted), code, user.totp_last_step) is None:
+        try:
+            disable_record(db, user, password, code, request)
+        except ValueError:
             return RedirectResponse("/profile?error=2fa_disable#two-factor", status_code=303)
-        _clear(db, user)
-        login_security.revoke_sessions(db, user, request)
-        core.add_event(db, "USER_2FA_DISABLED", actor=user, details={"user_id": str(user.id), "username": user.username}, source="portal", severity="warning")
         db.commit()
     return RedirectResponse("/profile?status=2fa_disabled#two-factor", status_code=303)
 

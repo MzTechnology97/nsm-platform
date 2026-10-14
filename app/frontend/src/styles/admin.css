@@ -320,3 +320,78 @@ a.ui-search-result:hover {
     flex-direction: column;
   }
 }
+
+/* Personal profile. */
+.ui-admin-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ui-admin-column > .ui-panel {
+  margin: 0;
+}
+
+.ui-warning-text {
+  color: var(--warning);
+}
+
+.ui-two-factor-setup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.ui-two-factor-qr {
+  border-radius: var(--radius);
+  background: #fff;
+  padding: var(--space-2);
+}
+
+.ui-recovery-codes {
+  columns: 2;
+  max-width: 320px;
+}
+
+.ui-channel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-3);
+}
+
+.ui-channel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.ui-channel legend {
+  padding: 0 var(--space-1);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ui-check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-1) var(--space-3);
+}
+
+.ui-admin-form .ui-check-grid label,
+.ui-admin-form label.ui-with-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.ui-admin-form .ui-check-grid input,
+.ui-admin-form label.ui-with-brand input {
+  min-height: auto;
+}

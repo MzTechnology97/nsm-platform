@@ -114,6 +114,15 @@ def run_vulnerability_digest(now=None) -> dict:
     return stats
 
 
+def set_digest(db, user, value: str) -> str:
+    """Store the vulnerability newsletter period of a user (unknown values switch it off), audited. Caller commits."""
+    user.notify_digest = value if value in DIGEST_LABELS else "off"
+    if user.notify_digest == "off":
+        user.notify_digest_last_at = None
+    core.add_event(db, "USER_DIGEST_CHANGED", actor=user, details={"digest": user.notify_digest}, source="portal")
+    return user.notify_digest
+
+
 async def save_digest(request: Request):
     form = await request.form()
     validate_csrf(request, str(form.get("csrf") or ""))
@@ -121,11 +130,7 @@ async def save_digest(request: Request):
         user = core.current_user(request, db)
         if not user:
             return core.login_redirect()
-        value = str(form.get("digest") or "off")
-        user.notify_digest = value if value in DIGEST_LABELS else "off"
-        if user.notify_digest == "off":
-            user.notify_digest_last_at = None
-        core.add_event(db, "USER_DIGEST_CHANGED", actor=user, details={"digest": user.notify_digest}, source="portal")
+        set_digest(db, user, str(form.get("digest") or "off"))
         db.commit()
     return RedirectResponse("/profile?status=digest_saved#notifications", status_code=303)
 

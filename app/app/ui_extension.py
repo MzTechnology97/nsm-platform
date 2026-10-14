@@ -187,6 +187,42 @@ def profile(request: Request):
         )
 
 
+def change_own_password_record(db, user, request: Request, current_password: str, new_password: str, confirm_password: str) -> None:
+    """Change the signed-in user's password, end their other sessions and re-issue this one (new CSRF token).
+
+    Raises ValueError with the error code (``current_password``, ``password_mismatch``, ``password_same``,
+    ``password_strength``); used by both interfaces.
+    """
+    if not verify_password(current_password, user.password_hash):
+        raise ValueError("current_password")
+    if new_password != confirm_password:
+        raise ValueError("password_mismatch")
+    if new_password == current_password:
+        raise ValueError("password_same")
+    try:
+        validate_password_strength(new_password)
+    except ValueError:
+        raise ValueError("password_strength") from None
+
+    user.password_hash = hash_password(new_password)
+    # Every other session of this user ends; this one is re-issued below.
+    changed_at = utcnow()
+    user.sessions_valid_after = changed_at
+    _add_event(
+        db,
+        "USER_PASSWORD_CHANGED",
+        user,
+        {"user_id": str(user.id), "username": user.username},
+    )
+    db.commit()
+
+    # Regenerate the signed session payload after a credential change.
+    request.session.clear()
+    request.session["user_id"] = str(user.id)
+    request.session["csrf_token"] = csrf_token(request)
+    request.session["auth_at"] = request.session["seen_at"] = changed_at.astimezone(timezone.utc).isoformat()
+
+
 @router.post("/profile/password")
 def change_own_password(
     request: Request,
@@ -200,34 +236,10 @@ def change_own_password(
         user = _current_user(request, db)
         if not user:
             return RedirectResponse("/login", status_code=303)
-        if not verify_password(current_password, user.password_hash):
-            return RedirectResponse("/profile?error=current_password", status_code=303)
-        if new_password != confirm_password:
-            return RedirectResponse("/profile?error=password_mismatch", status_code=303)
-        if new_password == current_password:
-            return RedirectResponse("/profile?error=password_same", status_code=303)
         try:
-            validate_password_strength(new_password)
-        except ValueError:
-            return RedirectResponse("/profile?error=password_strength", status_code=303)
-
-        user.password_hash = hash_password(new_password)
-        # Every other session of this user ends; this one is re-issued below.
-        changed_at = utcnow()
-        user.sessions_valid_after = changed_at
-        _add_event(
-            db,
-            "USER_PASSWORD_CHANGED",
-            user,
-            {"user_id": str(user.id), "username": user.username},
-        )
-        db.commit()
-
-        # Regenerate the signed session payload after a credential change.
-        request.session.clear()
-        request.session["user_id"] = str(user.id)
-        request.session["csrf_token"] = csrf_token(request)
-        request.session["auth_at"] = request.session["seen_at"] = changed_at.astimezone(timezone.utc).isoformat()
+            change_own_password_record(db, user, request, current_password, new_password, confirm_password)
+        except ValueError as exc:
+            return RedirectResponse(f"/profile?error={exc}", status_code=303)
     return RedirectResponse("/profile?status=password_changed", status_code=303)
 
 
