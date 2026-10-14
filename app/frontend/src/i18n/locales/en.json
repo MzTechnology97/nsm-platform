@@ -1408,5 +1408,57 @@
       "acknowledged": "In charge",
       "resolved": "Resolved"
     }
+  },
+  "incidents": {
+    "title": "Incidents",
+    "subtitle": "Investigations opened by operators, with the timeline of events recorded by NSM.",
+    "new": "New incident",
+    "status": "Status",
+    "search": "Search incidents",
+    "searchPlaceholder": "Title or description",
+    "empty": "No incidents match these filters.",
+    "noneActive": "No active incidents.",
+    "rootCause": "Root cause",
+    "moreDevices_one": "+{{count}} more device",
+    "moreDevices_other": "+{{count}} more devices",
+    "filters": {
+      "active": "Active",
+      "open": "Open",
+      "investigating": "Investigating",
+      "monitoring": "Monitoring",
+      "resolved": "Resolved",
+      "all": "All"
+    },
+    "state": {
+      "open": "Open",
+      "investigating": "Investigating",
+      "monitoring": "Monitoring",
+      "resolved": "Resolved"
+    },
+    "severities": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "columns": {
+      "incident": "Incident",
+      "customer": "Customer",
+      "devices": "Devices",
+      "started": "Started",
+      "duration": "Duration",
+      "status": "Status"
+    },
+    "causes": {
+      "configuration": "Configuration",
+      "firmware": "Firmware / update",
+      "hardware": "Hardware failure",
+      "power": "Power",
+      "connectivity": "Connectivity / link",
+      "upstream": "Upstream network / provider",
+      "security": "Security",
+      "human": "Manual intervention",
+      "other": "Other"
+    }
   }
 }

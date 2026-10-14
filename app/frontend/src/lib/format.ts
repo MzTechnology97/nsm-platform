@@ -20,3 +20,17 @@ export function formatDateTime(value: string | null | undefined, locale: string,
   if (Number.isNaN(at.getTime())) return "—";
   return new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: seconds ? "medium" : "short" }).format(at);
 }
+
+/** Length of a period in its two largest units (e.g. "2 h 15 min"), localised; "—" when the start is missing. */
+export function formatSpan(start: string | null | undefined, end: string | null | undefined, locale: string, now: number = Date.now()): string {
+  if (!start) return "—";
+  const minutes = Math.max(0, Math.round(((end ? Date.parse(end) : now) - Date.parse(start)) / 60_000));
+  const unit = (value: number, name: "day" | "hour" | "minute") =>
+    new Intl.NumberFormat(locale, { style: "unit", unit: name, unitDisplay: "narrow" }).format(value);
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  const rest = minutes % 60;
+  if (days) return hours ? `${unit(days, "day")} ${unit(hours, "hour")}` : unit(days, "day");
+  if (hours) return rest ? `${unit(hours, "hour")} ${unit(rest, "minute")}` : unit(hours, "hour");
+  return unit(rest, "minute");
+}

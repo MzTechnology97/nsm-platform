@@ -1408,5 +1408,57 @@
       "acknowledged": "Pris en charge",
       "resolved": "Résolu"
     }
+  },
+  "incidents": {
+    "title": "Incidents",
+    "subtitle": "Investigations ouvertes par les opérateurs, avec la chronologie des événements enregistrés par NSM.",
+    "new": "Nouvel incident",
+    "status": "État",
+    "search": "Rechercher dans les incidents",
+    "searchPlaceholder": "Titre ou description",
+    "empty": "Aucun incident pour ces filtres.",
+    "noneActive": "Aucun incident actif.",
+    "rootCause": "Cause racine",
+    "moreDevices_one": "+{{count}} autre équipement",
+    "moreDevices_other": "+{{count}} autres équipements",
+    "filters": {
+      "active": "Actifs",
+      "open": "Ouverts",
+      "investigating": "En analyse",
+      "monitoring": "En surveillance",
+      "resolved": "Résolus",
+      "all": "Tous"
+    },
+    "state": {
+      "open": "Ouvert",
+      "investigating": "En analyse",
+      "monitoring": "En surveillance",
+      "resolved": "Résolu"
+    },
+    "severities": {
+      "critical": "Critique",
+      "high": "Élevée",
+      "medium": "Moyenne",
+      "low": "Faible"
+    },
+    "columns": {
+      "incident": "Incident",
+      "customer": "Client",
+      "devices": "Équipements",
+      "started": "Début",
+      "duration": "Durée",
+      "status": "État"
+    },
+    "causes": {
+      "configuration": "Configuration",
+      "firmware": "Firmware / mise à jour",
+      "hardware": "Panne matérielle",
+      "power": "Alimentation",
+      "connectivity": "Connectivité / lien",
+      "upstream": "Réseau amont / opérateur",
+      "security": "Sécurité",
+      "human": "Intervention manuelle",
+      "other": "Autre"
+    }
   }
 }

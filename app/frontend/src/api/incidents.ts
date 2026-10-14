@@ -61,3 +61,45 @@ export function useAckIssue() {
     onSuccess: () => client.invalidateQueries({ queryKey: ["issues"] }),
   });
 }
+
+export const INCIDENT_STATUSES = ["open", "investigating", "monitoring", "resolved"] as const;
+export type IncidentStatusFilter = "active" | "all" | (typeof INCIDENT_STATUSES)[number];
+
+export interface IncidentFilters {
+  status?: Exclude<IncidentStatusFilter, "active">;
+  customer?: string;
+  q?: string;
+}
+
+export interface IncidentRow {
+  id: string;
+  title: string;
+  severity: string;
+  status: string;
+  started_at: string | null;
+  resolved_at: string | null;
+  updated_at: string | null;
+  customer: { id: string; name: string };
+  device_count: number;
+  devices: { id: string; name: string; brand?: BrandRef; vendor: string | null; status: string }[];
+  root_cause: { statement: string; category: string } | null;
+}
+
+export interface IncidentPage {
+  total: number;
+  offset: number;
+  limit: number;
+  counts: Record<IncidentStatusFilter, number>;
+  can_write: boolean;
+  items: IncidentRow[];
+}
+
+export const useIncidents = (filters: IncidentFilters) =>
+  useInfiniteQuery({
+    queryKey: ["incidents", filters],
+    queryFn: ({ pageParam }) => api<IncidentPage>(`/api/ui/v1/incidents${query({ ...filters, offset: pageParam })}`),
+    initialPageParam: 0,
+    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+    placeholderData: keepPreviousData,
+    staleTime: 20_000,
+  });
