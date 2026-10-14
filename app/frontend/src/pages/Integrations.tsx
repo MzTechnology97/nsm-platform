@@ -42,7 +42,7 @@ export function Integrations() {
   const manage = (href: string, configured: boolean) =>
     data?.can_admin ? <a className="ui-button ui-button-ghost ui-button-small" href={href}>{configured ? t("integrations.manage") : t("integrations.configure")}</a> : null;
 
-  const manageRoute = (to: "/admin/integrations/cnmaestro", configured: boolean) =>
+  const manageRoute = (to: "/admin/integrations/cnmaestro" | "/admin/integrations/zabbix", configured: boolean) =>
     data?.can_admin ? <Link className="ui-button ui-button-ghost ui-button-small" to={to}>{configured ? t("integrations.manage") : t("integrations.configure")}</Link> : null;
 
   return (
@@ -109,7 +109,7 @@ export function Integrations() {
           <Card name="zabbix" title={t("integrations.zabbix.title")} help={t("integrations.zabbix.help")} state={data.zabbix.state} label={state(data.zabbix.state)}
             actions={<>
               {data.zabbix.frontend && <a className="ui-button ui-button-ghost ui-button-small" href={data.zabbix.frontend} target="_blank" rel="noopener noreferrer">{t("integrations.zabbix.open")}</a>}
-              {manage("/admin/integrations/zabbix", data.zabbix.state !== "unconfigured")}
+              {manageRoute("/admin/integrations/zabbix", data.zabbix.state !== "unconfigured")}
             </>}>
             <Facts items={[[t("integrations.zabbix.version"), data.zabbix.version ?? "—"], [t("integrations.zabbix.linked"), data.zabbix.linked]]} />
           </Card>

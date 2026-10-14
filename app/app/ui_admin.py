@@ -42,7 +42,10 @@
 - ``GET /api/ui/v1/admin/demo``: demo customers; ``POST`` seed or clear the
   demo dataset (clearing requires typing DEMO), through ``demo_ui``;
 - ``GET /api/ui/v1/admin/integrations/cnmaestro``: connection (secret never
-  returned) and last sync; ``POST`` save, test, sync (``cnmaestro_connector``).
+  returned) and last sync; ``POST`` save, test, sync (``cnmaestro_connector``);
+- ``GET /api/ui/v1/admin/integrations/zabbix``: connection, host settings, last
+  sync and problems, devices behind a shared IP; ``POST`` save, test, sync and
+  the address Zabbix must use for a device (``zabbix_connector``).
 """
 from __future__ import annotations
 
@@ -75,6 +78,7 @@ from app import (
     reports,
     routeros_catalog,
     secret_rotation,
+    shared_ips,
     syslog_firewall,
     syslog_identity,
     syslog_receiver,
@@ -826,6 +830,89 @@ def admin_cnmaestro_sync(request: Request):
     def run(db, user):
         stats = cnmaestro_connector.sync(db)
         return jsonable_encoder({key: stats.get(key) for key in ("status", "error", "cnmaestro_devices", "linked", "new_links", "unmatched", "samples")})
+
+    return _admin_write(request, run)
+
+
+def _zabbix_payload(db) -> dict:
+    row = zabbix_connector.connection_row(db)
+    settings = zabbix_connector.settings_of(row)
+    mode, username = zabbix_connector.credential_info(row)
+    last = settings.get("last_sync") or {}
+    problems = (row.settings or {}).get("problems") or {} if row else {}
+    return jsonable_encoder({
+        "configured": row is not None, "enabled": bool(row and row.is_enabled), "api_url": row.base_url if row else "",
+        "auth_mode": mode, "username": username, "verify_tls": bool(row.verify_tls) if row else True,
+        "settings": {key: settings[key] for key in ("group_prefix", "interface", "snmp_community", "templates", "scope", "customer_ids")},
+        "version": settings.get("version"), "last_test_status": row.last_test_status if row else None, "last_error": row.last_error if row else None,
+        "last_sync_at": row.last_sync_at if row else None,
+        "last_sync": {"status": last.get("status"), "created": last.get("created", 0), "updated": last.get("updated", 0), "disabled": last.get("disabled", 0),
+                      "skipped": last.get("skipped", 0), "missing_templates": last.get("missing_templates") or [], "errors": (last.get("errors") or [])[:10]},
+        "problems": {key: problems.get(key) for key in ("problems", "with_problems", "at", "status", "error")},
+        "frontend": zabbix_connector.frontend_url(row.base_url) if row else None,
+        "customers": [{"id": str(c.id), "name": c.name} for c in db.scalars(select(Customer).order_by(Customer.name))],
+        "shared": [{"ip": ip, "devices": [{**device_ref(d), "lan_ip": (d.inventory_data or {}).get("lan_ip"), "zabbix_ip": (d.inventory_data or {}).get("zabbix_ip")}
+                                          for d in devices]} for ip, devices in sorted(shared_ips.shared_map(db).items())],
+    })
+
+
+@router.get("/admin/integrations/zabbix")
+def admin_zabbix(request: Request):
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        return _zabbix_payload(db)
+
+
+@router.post("/admin/integrations/zabbix", dependencies=[Depends(require_csrf)])
+def admin_zabbix_save(request: Request, body: dict = Body(default={})):
+    templates = body.get("templates") if isinstance(body.get("templates"), dict) else {}
+    customer_ids = [value for value in body.get("customer_ids") or [] if isinstance(value, str)] if isinstance(body.get("customer_ids"), list) else []
+
+    def save(db, user):
+        try:
+            zabbix_connector.save_config(
+                db, user, api_url=_text(body, "api_url"), auth_mode=_text(body, "auth_mode"), token=_text(body, "token"), username=_text(body, "username"),
+                password=_text(body, "password"), verify_tls=body.get("verify_tls") is not False, enabled=body.get("enabled") is True,
+                group_prefix=_text(body, "group_prefix") or "NSM", interface=_text(body, "interface"), snmp_community=_text(body, "snmp_community"),
+                templates=templates, scope=_text(body, "scope"), customer_ids=customer_ids)
+        except ValueError as error:
+            raise HTTPException(422, {"code": "invalid", "message": str(error)}) from None
+        db.flush()
+        return _zabbix_payload(db)
+
+    return _admin_write(request, save)
+
+
+@router.post("/admin/integrations/zabbix/test", dependencies=[Depends(require_csrf)])
+def admin_zabbix_test(request: Request):
+    def run(db, user):
+        row = zabbix_connector.connection_row(db)
+        if row is None:
+            raise HTTPException(422, {"code": "not_configured", "message": "Salva prima la configurazione."})
+        ok, message = zabbix_connector.test_connection(row)
+        return {"ok": ok, "message": message}
+
+    return _admin_write(request, run)
+
+
+@router.post("/admin/integrations/zabbix/sync", dependencies=[Depends(require_csrf)])
+def admin_zabbix_sync(request: Request):
+    def run(db, user):
+        result = zabbix_connector.sync_now(db, user)
+        return jsonable_encoder({key: result.get(key) for key in ("status", "created", "updated", "disabled", "skipped", "errors")})
+
+    return _admin_write(request, run)
+
+
+@router.post("/admin/integrations/zabbix/devices/{device_id}/ip", dependencies=[Depends(require_csrf)])
+def admin_zabbix_device_ip(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    def run(db, user):
+        if not core.has_permission(user, "devices.write"):
+            raise HTTPException(403, "Permesso negato.")
+        device = db.get(Device, device_id)
+        if device is None:
+            raise HTTPException(404, {"code": "not_found", "message": "Apparato non trovato."})
+        return {"zabbix_ip": zabbix_connector.set_device_ip(db, user, device, _text(body, "zabbix_ip"))}
 
     return _admin_write(request, run)
 

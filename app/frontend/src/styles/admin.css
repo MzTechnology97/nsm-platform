@@ -221,3 +221,12 @@
 .ui-danger-zone {
   border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
 }
+
+.ui-admin-form.ui-inline-ip {
+  margin-top: 0;
+  flex-wrap: nowrap;
+}
+
+.ui-inline-ip input {
+  width: 160px;
+}

@@ -2460,5 +2460,85 @@
     "syncNow": "Sincronizar ahora",
     "disabledConnector": "El conector cnMaestro está desactivado.",
     "synced": "Sincronización completada: {{devices}} equipos en cnMaestro, {{linked}} vinculados ({{created}} nuevos), {{unmatched}} Cambium de NSM sin coincidencia."
+  },
+  "zabbix": {
+    "title": "Integraciones · Zabbix",
+    "subtitle": "NSM envía sus equipos a Zabbix: hosts, grupos por cliente, plantillas por fabricante, etiquetas e inventario. Zabbix sigue haciendo el sondeo y las alarmas.",
+    "version": "Versión de Zabbix",
+    "verified": "conexión verificada",
+    "testFailed": "última prueba fallida",
+    "toVerify": "por verificar",
+    "syncStates": {
+      "success": "completada",
+      "partial": "con errores",
+      "failed": "fallida",
+      "disabled": "desactivada"
+    },
+    "hosts": "Hosts gestionados por NSM",
+    "hostsNote": "{{created}} creados, {{updated}} actualizados, {{disabled}} deshabilitados",
+    "problems": "Problemas abiertos",
+    "problemsFailed": "lectura fallida: {{error}}",
+    "problemsNote_one": "en {{count}} equipo · leídos {{when}} (cada 5 minutos)",
+    "problemsNote_other": "en {{count}} equipos · leídos {{when}} (cada 5 minutos)",
+    "problemsEvery": "leídos cada 5 minutos",
+    "skipped": "Excluidos",
+    "skippedNote": "equipos sin IP de gestión o excluidos",
+    "missingTemplates": "Plantillas no encontradas en Zabbix: {{names}}. Los hosts se crearon sin esa plantilla.",
+    "lastErrors": "Errores de la última sincronización",
+    "sharedTitle": "Equipos con IP compartida",
+    "sharedHelp": "Varios equipos comparten la misma IP de gestión (NAT del cliente): en esa dirección Zabbix solo alcanza el router de borde. Para monitorizar los equipos detrás del NAT indica una dirección accesible desde Zabbix (IP LAN mediante VPN o proxy de Zabbix). Los hosts llevan la etiqueta nsm_shared_ip.",
+    "sharedColumns": {
+      "ip": "IP compartida",
+      "device": "Equipo",
+      "zabbixIp": "IP para Zabbix"
+    },
+    "saveIp": "Guardar",
+    "ipSaved": "Guardado.",
+    "connectionHelp": "Zabbix 6.x y 7.x. Las credenciales se cifran. Usa un usuario de API con permiso de escritura en los grupos de hosts creados por NSM.",
+    "url": "URL de Zabbix",
+    "urlHelp": "Dirección del frontend: NSM añade api_jsonrpc.php.",
+    "auth": "Autenticación",
+    "authToken": "Token de API (recomendado, Zabbix 5.4+)",
+    "authPassword": "Usuario y contraseña",
+    "token": "Token de API",
+    "username": "Usuario",
+    "password": "Contraseña",
+    "hostsTitle": "Hosts creados",
+    "groupPrefix": "Prefijo de grupos",
+    "groupHelp": "Grupo por cliente: {{prefix}}/Nombre del cliente.",
+    "interface": "Interfaz",
+    "interfaceAgent": "Agente de Zabbix (10050), sirve también para ping ICMP",
+    "interfaceSnmp": "SNMPv2 (161)",
+    "community": "Comunidad SNMP",
+    "communityHelp": "Mejor una macro, por ejemplo {$SNMP_COMMUNITY}, definida en Zabbix.",
+    "templates": {
+      "mikrotik": "Plantilla MikroTik",
+      "ubiquiti": "Plantilla Ubiquiti",
+      "default": "Plantilla para los demás equipos"
+    },
+    "templatesHelp": "Nombre de la plantilla tal como aparece en Zabbix. Las plantillas vinculadas a mano en Zabbix no se quitan.",
+    "scopeTitle": "Equipos que enviar",
+    "scope": "Ámbito",
+    "scopeAll": "Todos los equipos con IP de gestión",
+    "scopeCustomers": "Solo los clientes seleccionados",
+    "saved": "Configuración de Zabbix guardada.",
+    "actionsHelp": "Los hosts de NSM llevan la etiqueta source=nsm y el nombre técnico nsm-…. Si un equipo se elimina o se excluye, su host se deshabilita, no se borra.",
+    "disabledConnector": "Integración con Zabbix sin configurar o deshabilitada.",
+    "syncFailedMessage": "Sincronización fallida: {{error}}",
+    "synced": "Sincronización completada: {{created}} hosts creados, {{updated}} actualizados, {{disabled}} deshabilitados, {{skipped}} equipos sin IP o excluidos.",
+    "auths": {
+      "v72": {
+        "title": "Zabbix 7.2 y posteriores",
+        "text": "Token en la cabecera Authorization: Bearer"
+      },
+      "v54": {
+        "title": "Zabbix 5.4 – 7.1",
+        "text": "Token en el campo auth de la petición"
+      },
+      "password": {
+        "title": "Acceso con contraseña",
+        "text": "username (5.4+) o user (versiones anteriores)"
+      }
+    }
   }
 }

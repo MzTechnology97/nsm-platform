@@ -484,3 +484,32 @@ export function useConnectorAction<B extends object, R = unknown>(connector: str
     },
   });
 }
+
+export interface ZabbixAdmin {
+  configured: boolean;
+  enabled: boolean;
+  api_url: string;
+  auth_mode: "token" | "password";
+  username: string;
+  verify_tls: boolean;
+  settings: {
+    group_prefix: string;
+    interface: "agent" | "snmp";
+    snmp_community: string;
+    templates: { mikrotik: string; ubiquiti: string; default: string };
+    scope: "all" | "customers";
+    customer_ids: string[];
+  };
+  version: string | null;
+  last_test_status: string | null;
+  last_error: string | null;
+  last_sync_at: string | null;
+  last_sync: { status: string | null; created: number; updated: number; disabled: number; skipped: number; missing_templates: string[]; errors: string[] };
+  problems: { problems: number | null; with_problems: number | null; at: string | null; status: string | null; error: string | null };
+  frontend: string | null;
+  customers: { id: string; name: string }[];
+  shared: { ip: string; devices: { id: string; name: string; brand?: BrandRef; lan_ip: string | null; zabbix_ip: string | null }[] }[];
+}
+
+export const useZabbixAdmin = () =>
+  useQuery({ queryKey: ["admin-zabbix"], queryFn: () => api<ZabbixAdmin>("/api/ui/v1/admin/integrations/zabbix") });

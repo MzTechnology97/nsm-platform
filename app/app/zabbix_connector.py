@@ -365,17 +365,101 @@ def scheduled_sync(now=None) -> dict:
 
 # --- Admin pages -------------------------------------------------------------------------------
 
-def _render(request, db, user, message=None, error=None):
-    row = connection_row(db)
-    secret_mode = "token"
-    username = ""
+def credential_info(row) -> tuple[str, str]:
+    """(auth mode, username) of the stored credentials, without the secrets."""
     if row and row.secret_encrypted:
         try:
             secret = json.loads(decrypt_text(row.secret_encrypted))
-            secret_mode = "token" if secret.get("token") else "password"
-            username = secret.get("username", "")
+            return ("token" if secret.get("token") else "password"), secret.get("username", "")
         except ValueError:
             pass
+    return "token", ""
+
+
+def save_config(db, user, *, api_url: str, auth_mode: str, token: str, username: str, password: str, verify_tls: bool, enabled: bool,
+                group_prefix: str, interface: str, snmp_community: str, templates: dict, scope: str, customer_ids) -> ConnectorIntegration:
+    """Store connection and host settings (credentials encrypted, kept when empty), audited. ValueError with the reason. Caller commits."""
+    row = connection_row(db)
+    url = normalize_api_url(api_url or "")
+    mode = "password" if auth_mode == "password" else "token"
+    token, username, password = (token or "").strip(), (username or "").strip(), password or ""
+    previous = {}
+    if row and row.secret_encrypted:
+        try:
+            previous = json.loads(decrypt_text(row.secret_encrypted))
+        except ValueError:
+            previous = {}
+    if mode == "token":
+        secret = {"token": token or previous.get("token", "")}
+        if not secret["token"]:
+            raise ValueError("Inserisci l'API token di Zabbix (Utenti → API tokens).")
+    else:
+        secret = {"username": username, "password": password or previous.get("password", "")}
+        if not secret["username"] or not secret["password"]:
+            raise ValueError("Inserisci username e password dell'utente API Zabbix.")
+    settings = {
+        "group_prefix": ((group_prefix or "NSM").strip() or "NSM")[:60],
+        "interface": "snmp" if interface == "snmp" else "agent",
+        "snmp_community": ((snmp_community or "{$SNMP_COMMUNITY}").strip())[:128],
+        "templates": {key: str((templates or {}).get(key) or "").strip()[:128] for key in ("mikrotik", "ubiquiti", "default")},
+        "scope": "customers" if scope == "customers" else "all",
+        "customer_ids": [str(v) for v in (customer_ids or [])][:500],
+    }
+    encrypted = encrypt_text(json.dumps(secret, separators=(",", ":")))
+    if row is None:
+        row = ConnectorIntegration(provider=PROVIDER, name="Zabbix", base_url=url, secret_encrypted=encrypted, verify_tls=verify_tls,
+                                   is_enabled=enabled, settings=settings)
+        db.add(row)
+    else:
+        keep = {k: v for k, v in (row.settings or {}).items() if k in ("version", "last_sync")}
+        row.base_url, row.secret_encrypted, row.verify_tls, row.is_enabled, row.settings = url, encrypted, verify_tls, enabled, {**keep, **settings}
+    core.add_event(db, "ZABBIX_SETTINGS_CHANGED", actor=user, details={"url": url, "auth": mode, **{k: v for k, v in settings.items() if k != "customer_ids"}}, source="portal")
+    return row
+
+
+def test_connection(row) -> tuple[bool, str]:
+    """Connect, read the version and one host group; the outcome is stored on the row. Returns (ok, message). Caller commits."""
+    try:
+        client = client_for(row)
+    except ZabbixError as exc:
+        row.last_tested_at, row.last_test_status, row.last_error = utcnow(), "failed", str(exc)[:500]
+        return False, str(exc)
+    try:
+        version = client.connect()
+        groups = client.call("hostgroup.get", {"output": ["groupid"], "limit": 1})
+        row.last_tested_at, row.last_test_status, row.last_error = utcnow(), "success", None
+        row.settings = {**(row.settings or {}), "version": version}
+        return True, f"Connessione riuscita: Zabbix {version}, permessi di lettura sui gruppi {'verificati' if groups is not None else 'n.d.'}."
+    except ZabbixError as exc:
+        row.last_tested_at, row.last_test_status, row.last_error = utcnow(), "failed", str(exc)[:500]
+        return False, str(exc)
+    finally:
+        client.close()
+
+
+def sync_now(db, user) -> dict:
+    """Push the devices now (audited). Caller commits."""
+    result = sync(db)
+    core.add_event(db, "ZABBIX_SYNC_REQUESTED", actor=user, details={k: v for k, v in result.items() if k != "errors"}, source="portal")
+    return result
+
+
+def set_device_ip(db, user, device, value) -> str | None:
+    """Address Zabbix must use for a device behind a shared IP (empty clears it), audited. Caller commits."""
+    value = _valid_ip(value)
+    data = dict(device.inventory_data or {})
+    if value:
+        data["zabbix_ip"] = value
+    else:
+        data.pop("zabbix_ip", None)
+    device.inventory_data = data
+    core.add_event(db, "ZABBIX_DEVICE_IP_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"zabbix_ip": value}, source="portal")
+    return value
+
+
+def _render(request, db, user, message=None, error=None):
+    row = connection_row(db)
+    secret_mode, username = credential_info(row)
     from app import shared_ips
 
     shared = [(ip, devices) for ip, devices in sorted(shared_ips.shared_map(db).items())]
@@ -397,46 +481,16 @@ async def admin_zabbix_save(request: Request):
     validate_csrf(request, str(form.get("csrf") or ""))
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        row = connection_row(db)
         try:
-            url = normalize_api_url(str(form.get("api_url") or ""))
+            save_config(db, user, api_url=str(form.get("api_url") or ""), auth_mode=str(form.get("auth_mode") or ""),
+                        token=str(form.get("token") or ""), username=str(form.get("username") or ""), password=str(form.get("password") or ""),
+                        verify_tls=form.get("verify_tls") == "1", enabled=form.get("is_enabled") == "1",
+                        group_prefix=str(form.get("group_prefix") or "NSM"), interface=str(form.get("interface") or ""),
+                        snmp_community=str(form.get("snmp_community") or "{$SNMP_COMMUNITY}"),
+                        templates={key: str(form.get(f"template_{key}") or "") for key in ("mikrotik", "ubiquiti", "default")},
+                        scope=str(form.get("scope") or ""), customer_ids=form.getlist("customer_ids"))
         except ValueError as exc:
             return _render(request, db, user, error=str(exc))
-        mode = "password" if form.get("auth_mode") == "password" else "token"
-        token, username, password = str(form.get("token") or "").strip(), str(form.get("username") or "").strip(), str(form.get("password") or "")
-        previous = {}
-        if row and row.secret_encrypted:
-            try:
-                previous = json.loads(decrypt_text(row.secret_encrypted))
-            except ValueError:
-                previous = {}
-        if mode == "token":
-            secret = {"token": token or previous.get("token", "")}
-            if not secret["token"]:
-                return _render(request, db, user, error="Inserisci l'API token di Zabbix (Utenti → API tokens).")
-        else:
-            secret = {"username": username, "password": password or previous.get("password", "")}
-            if not secret["username"] or not secret["password"]:
-                return _render(request, db, user, error="Inserisci username e password dell'utente API Zabbix.")
-        settings = {
-            "group_prefix": (str(form.get("group_prefix") or "NSM").strip() or "NSM")[:60],
-            "interface": "snmp" if form.get("interface") == "snmp" else "agent",
-            "snmp_community": (str(form.get("snmp_community") or "{$SNMP_COMMUNITY}").strip())[:128],
-            "templates": {key: str(form.get(f"template_{key}") or "").strip()[:128] for key in ("mikrotik", "ubiquiti", "default")},
-            "scope": "customers" if form.get("scope") == "customers" else "all",
-            "customer_ids": [str(v) for v in form.getlist("customer_ids")][:500],
-        }
-        encrypted = encrypt_text(json.dumps(secret, separators=(",", ":")))
-        verify = form.get("verify_tls") == "1"
-        enabled = form.get("is_enabled") == "1"
-        if row is None:
-            row = ConnectorIntegration(provider=PROVIDER, name="Zabbix", base_url=url, secret_encrypted=encrypted, verify_tls=verify,
-                                       is_enabled=enabled, settings=settings)
-            db.add(row)
-        else:
-            keep = {k: v for k, v in (row.settings or {}).items() if k in ("version", "last_sync")}
-            row.base_url, row.secret_encrypted, row.verify_tls, row.is_enabled, row.settings = url, encrypted, verify, enabled, {**keep, **settings}
-        core.add_event(db, "ZABBIX_SETTINGS_CHANGED", actor=user, details={"url": url, "auth": mode, **{k: v for k, v in settings.items() if k != "customer_ids"}}, source="portal")
         db.commit()
         return _render(request, db, user, message="Configurazione Zabbix salvata.")
 
@@ -449,20 +503,9 @@ def admin_zabbix_test(request: Request, csrf: str = Form(...)):
         row = connection_row(db)
         if row is None:
             return _render(request, db, user, error="Salva prima la configurazione.")
-        client = client_for(row)
-        try:
-            version = client.connect()
-            groups = client.call("hostgroup.get", {"output": ["groupid"], "limit": 1})
-            row.last_tested_at, row.last_test_status, row.last_error = utcnow(), "success", None
-            row.settings = {**(row.settings or {}), "version": version}
-            db.commit()
-            return _render(request, db, user, message=f"Connessione riuscita: Zabbix {version}, permessi di lettura sui gruppi {'verificati' if groups is not None else 'n.d.'}.")
-        except ZabbixError as exc:
-            row.last_tested_at, row.last_test_status, row.last_error = utcnow(), "failed", str(exc)[:500]
-            db.commit()
-            return _render(request, db, user, error=str(exc))
-        finally:
-            client.close()
+        ok, message = test_connection(row)
+        db.commit()
+        return _render(request, db, user, message=message) if ok else _render(request, db, user, error=message)
 
 
 @router.post("/admin/integrations/zabbix/sync", response_class=HTMLResponse, name="admin_zabbix_sync")
@@ -470,8 +513,7 @@ def admin_zabbix_sync(request: Request, csrf: str = Form(...)):
     validate_csrf(request, csrf)
     with SessionLocal() as db:
         user = core.require_admin(request, db)
-        result = sync(db)
-        core.add_event(db, "ZABBIX_SYNC_REQUESTED", actor=user, details={k: v for k, v in result.items() if k != "errors"}, source="portal")
+        result = sync_now(db, user)
         db.commit()
         if result.get("status") == "disabled":
             return _render(request, db, user, error="Integrazione Zabbix non configurata o disabilitata.")
@@ -489,14 +531,7 @@ async def device_zabbix_ip(request: Request, device_id: uuid.UUID):
         device = db.get(Device, device_id)
         if device is None:
             return RedirectResponse("/devices", status_code=303)
-        value = _valid_ip(form.get("zabbix_ip"))
-        data = dict(device.inventory_data or {})
-        if value:
-            data["zabbix_ip"] = value
-        else:
-            data.pop("zabbix_ip", None)
-        device.inventory_data = data
-        core.add_event(db, "ZABBIX_DEVICE_IP_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"zabbix_ip": value}, source="portal")
+        set_device_ip(db, user, device, form.get("zabbix_ip"))
         db.commit()
     target = str(form.get("next") or "")
     if not target.startswith("/") or target.startswith("//") or "\\" in target:

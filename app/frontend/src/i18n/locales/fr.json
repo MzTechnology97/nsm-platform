@@ -2460,5 +2460,85 @@
     "syncNow": "Synchroniser maintenant",
     "disabledConnector": "Le connecteur cnMaestro est désactivé.",
     "synced": "Synchronisation terminée : {{devices}} équipements dans cnMaestro, {{linked}} associés ({{created}} nouveaux), {{unmatched}} Cambium NSM sans correspondance."
+  },
+  "zabbix": {
+    "title": "Intégrations · Zabbix",
+    "subtitle": "NSM envoie ses équipements à Zabbix : hôtes, groupes par client, modèles par fabricant, tags et inventaire. Zabbix continue la collecte et les alertes.",
+    "version": "Version de Zabbix",
+    "verified": "connexion vérifiée",
+    "testFailed": "dernier test échoué",
+    "toVerify": "à vérifier",
+    "syncStates": {
+      "success": "terminée",
+      "partial": "avec erreurs",
+      "failed": "échouée",
+      "disabled": "désactivée"
+    },
+    "hosts": "Hôtes gérés par NSM",
+    "hostsNote": "{{created}} créés, {{updated}} mis à jour, {{disabled}} désactivés",
+    "problems": "Problèmes ouverts",
+    "problemsFailed": "lecture échouée : {{error}}",
+    "problemsNote_one": "sur {{count}} équipement · lus {{when}} (toutes les 5 minutes)",
+    "problemsNote_other": "sur {{count}} équipements · lus {{when}} (toutes les 5 minutes)",
+    "problemsEvery": "lus toutes les 5 minutes",
+    "skipped": "Exclus",
+    "skippedNote": "équipements sans IP de gestion ou exclus",
+    "missingTemplates": "Modèles introuvables dans Zabbix : {{names}}. Les hôtes ont été créés sans ce modèle.",
+    "lastErrors": "Erreurs de la dernière synchronisation",
+    "sharedTitle": "Équipements avec IP partagée",
+    "sharedHelp": "Plusieurs équipements partagent la même IP de gestion (NAT du client) : sur cette adresse Zabbix n'atteint que le routeur de bordure. Pour surveiller les équipements derrière le NAT, indiquez une adresse joignable par Zabbix (IP LAN via VPN ou proxy Zabbix). Les hôtes portent le tag nsm_shared_ip.",
+    "sharedColumns": {
+      "ip": "IP partagée",
+      "device": "Équipement",
+      "zabbixIp": "IP pour Zabbix"
+    },
+    "saveIp": "Enregistrer",
+    "ipSaved": "Enregistré.",
+    "connectionHelp": "Zabbix 6.x et 7.x. Les identifiants sont chiffrés. Utilisez un utilisateur API avec droits d'écriture sur les groupes d'hôtes créés par NSM.",
+    "url": "URL de Zabbix",
+    "urlHelp": "Adresse du frontend : NSM ajoute api_jsonrpc.php.",
+    "auth": "Authentification",
+    "authToken": "Jeton API (conseillé, Zabbix 5.4+)",
+    "authPassword": "Identifiant et mot de passe",
+    "token": "Jeton API",
+    "username": "Identifiant",
+    "password": "Mot de passe",
+    "hostsTitle": "Hôtes créés",
+    "groupPrefix": "Préfixe des groupes",
+    "groupHelp": "Groupe par client : {{prefix}}/Nom du client.",
+    "interface": "Interface",
+    "interfaceAgent": "Agent Zabbix (10050), convient aussi au ping ICMP",
+    "interfaceSnmp": "SNMPv2 (161)",
+    "community": "Communauté SNMP",
+    "communityHelp": "De préférence une macro, par exemple {$SNMP_COMMUNITY}, définie dans Zabbix.",
+    "templates": {
+      "mikrotik": "Modèle MikroTik",
+      "ubiquiti": "Modèle Ubiquiti",
+      "default": "Modèle pour les autres équipements"
+    },
+    "templatesHelp": "Nom du modèle tel qu'il apparaît dans Zabbix. Les modèles liés à la main dans Zabbix ne sont pas retirés.",
+    "scopeTitle": "Équipements à envoyer",
+    "scope": "Périmètre",
+    "scopeAll": "Tous les équipements avec IP de gestion",
+    "scopeCustomers": "Seulement les clients sélectionnés",
+    "saved": "Configuration Zabbix enregistrée.",
+    "actionsHelp": "Les hôtes de NSM portent le tag source=nsm et le nom technique nsm-…. Quand un équipement est supprimé ou exclu, son hôte est désactivé, pas supprimé.",
+    "disabledConnector": "Intégration Zabbix non configurée ou désactivée.",
+    "syncFailedMessage": "Synchronisation échouée : {{error}}",
+    "synced": "Synchronisation terminée : {{created}} hôtes créés, {{updated}} mis à jour, {{disabled}} désactivés, {{skipped}} équipements sans IP ou exclus.",
+    "auths": {
+      "v72": {
+        "title": "Zabbix 7.2 et ultérieur",
+        "text": "Jeton dans l'en-tête Authorization: Bearer"
+      },
+      "v54": {
+        "title": "Zabbix 5.4 – 7.1",
+        "text": "Jeton dans le champ auth de la requête"
+      },
+      "password": {
+        "title": "Connexion par mot de passe",
+        "text": "username (5.4+) ou user (versions antérieures)"
+      }
+    }
   }
 }
