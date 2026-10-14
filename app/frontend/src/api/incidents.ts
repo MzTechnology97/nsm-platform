@@ -1,4 +1,4 @@
-import { keepPreviousData, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { BrandRef } from "../app/BrandIcon";
 import { api } from "./client";
@@ -103,3 +103,88 @@ export const useIncidents = (filters: IncidentFilters) =>
     placeholderData: keepPreviousData,
     staleTime: 20_000,
   });
+
+type DeviceRef = { id: string | null; name: string; brand?: BrandRef | null; vendor: string | null; status: string | null };
+
+export interface TimelineEntry {
+  key: string;
+  at: string;
+  kind: "fact" | "operator";
+  source: string;
+  title: string;
+  detail: string | null;
+  severity: string | null;
+  device: DeviceRef | null;
+  url: string | null;
+  actor: string | null;
+}
+
+export interface Hypothesis {
+  id: string;
+  statement: string;
+  category: string;
+  origin: "operator" | "suggested";
+  confidence: string | null;
+  status: "proposed" | "confirmed" | "rejected";
+  evidence: { key: string; at: string; source: string; title: string; device: string }[];
+  created_at: string | null;
+  author: string | null;
+  decided_at: string | null;
+  decider: string | null;
+  decision_note: string | null;
+}
+
+export interface Candidate {
+  key: string;
+  statement: string;
+  category: string;
+  confidence: string;
+  reason: string;
+  at: string;
+  source: string;
+}
+
+export interface IncidentDetail {
+  incident: {
+    id: string;
+    title: string;
+    summary: string | null;
+    severity: string;
+    status: string;
+    started_at: string;
+    resolved_at: string | null;
+    created_at: string | null;
+    updated_at: string | null;
+    created_by: string | null;
+    root_cause_id: string | null;
+  };
+  customer: { id: string; name: string } | null;
+  site: { id: string; name: string } | null;
+  devices: DeviceRef[];
+  timeline: { window_start: string; window_end: string; truncated_sources: string[]; entries: TimelineEntry[] };
+  hypotheses: Hypothesis[];
+  candidates: Candidate[];
+  customer_devices: DeviceRef[];
+  can_write: boolean;
+  can_export: boolean;
+}
+
+export const useIncident = (id: string) =>
+  useQuery({
+    queryKey: ["incident", id],
+    queryFn: () => api<IncidentDetail>(`/api/ui/v1/incidents/${encodeURIComponent(id)}`),
+    staleTime: 15_000,
+  });
+
+/** One incident action (status, notes, devices, hypotheses, decisions); refreshes the detail and the list. */
+export function useIncidentAction<T extends object>(id: string, path: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: T) =>
+      api<{ status: string; changed?: boolean }>(`/api/ui/v1/incidents/${encodeURIComponent(id)}/${path}`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ["incident", id] });
+      void client.invalidateQueries({ queryKey: ["incidents"] });
+    },
+  });
+}

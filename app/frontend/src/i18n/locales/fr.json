@@ -1460,5 +1460,87 @@
       "human": "Intervention manuelle",
       "other": "Autre"
     }
+  },
+  "incidentDetail": {
+    "notFound": "Incident introuvable ou hors de votre périmètre.",
+    "lasted": "durée {{span}}",
+    "export": "Exporter les preuves",
+    "summary": "Résumé",
+    "resolved": "Résolu le",
+    "openedBy": "Ouvert par",
+    "saveStatus": "Mettre à jour l'état",
+    "saved": "Enregistré.",
+    "unchanged": "L'incident est déjà dans cet état.",
+    "devices_one": "{{count}} équipement concerné",
+    "devices_other": "{{count}} équipements concernés",
+    "noDevices": "Aucun équipement lié.",
+    "editDevices": "Modifier les équipements",
+    "saveDevices": "Enregistrer les équipements",
+    "cancel": "Annuler",
+    "rootCause": "Cause racine",
+    "noRootCause": "Aucune cause confirmée : les hypothèses restent à vérifier tant qu'un opérateur n'en confirme pas une.",
+    "suggestions": "Corrélations suggérées",
+    "suggestionsHint": "Indices calculés à partir de la chronologie, pas des faits établis. Enregistrez-les comme hypothèses pour les évaluer.",
+    "useSuggestion": "Enregistrer comme hypothèse",
+    "newHypothesis": "Nouvelle hypothèse",
+    "category": "Catégorie",
+    "addHypothesis": "Ajouter l'hypothèse",
+    "fromSuggestion": "issue d'une suggestion (fiabilité {{confidence}})",
+    "byOperator": "par un opérateur",
+    "evidence": "Preuve",
+    "decisionNote": "Justification",
+    "notePlaceholder": "Preuves à l'appui (obligatoires pour confirmer ou écarter)",
+    "confirm": "Confirmer",
+    "reject": "Écarter",
+    "reopen": "Rouvrir",
+    "hypothesisStatus": {
+      "proposed": "À vérifier",
+      "confirmed": "Confirmée",
+      "rejected": "Écartée"
+    },
+    "confidence": {
+      "medium": "moyenne",
+      "low": "faible"
+    },
+    "timeline": "Chronologie",
+    "window": "Événements enregistrés du {{from}} au {{to}}.",
+    "truncated": "Chronologie partielle : trop d'événements pour {{sources}}.",
+    "views": {
+      "all": "Tout",
+      "facts": "Faits",
+      "notes": "Notes opérateur"
+    },
+    "noEntries": "Aucun événement dans cette vue.",
+    "operator": "Note opérateur",
+    "newNote": "Nouvelle note",
+    "noteKind": "Type",
+    "occurredAt": "Quand (vide = maintenant)",
+    "addNote": "Ajouter la note",
+    "kinds": {
+      "note": "Note",
+      "action": "Action effectuée"
+    },
+    "sources": {
+      "issue": "Action Center",
+      "measure": "Mesure (ping depuis NSM)",
+      "audit": "Audit",
+      "backup": "Sauvegarde",
+      "job": "Tâche de l'agent",
+      "vulnerability": "Vulnérabilité",
+      "operator": "Opérateur"
+    },
+    "errors": {
+      "generic": "L'opération a échoué.",
+      "not_found": "Élément introuvable.",
+      "note_required": "Écrivez le texte de la note.",
+      "note_in_future": "La note ne peut pas être dans le futur.",
+      "foreign_devices": "Les équipements doivent appartenir au client de l'incident.",
+      "statement_required": "Décrivez l'hypothèse.",
+      "candidate_gone": "La corrélation suggérée n'est plus disponible.",
+      "decision_note_required": "Indiquez les preuves sur lesquelles repose la décision.",
+      "invalid_decision": "Décision non valide.",
+      "invalid_status": "État non valide.",
+      "invalid_resolved_at": "La résolution doit être postérieure au début et pas dans le futur."
+    }
   }
 }

@@ -34,3 +34,16 @@ export function formatSpan(start: string | null | undefined, end: string | null 
   if (hours) return rest ? `${unit(hours, "hour")} ${unit(rest, "minute")}` : unit(hours, "hour");
   return unit(rest, "minute");
 }
+
+/** ISO timestamp → value for an ``<input type="datetime-local">`` in the browser's timezone. */
+export function toLocalInput(value: string | null | undefined, now: number = Date.now()): string {
+  const date = new Date(value ? Date.parse(value) : now);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/** ``datetime-local`` value (browser timezone) → ISO timestamp with offset, or undefined when empty/invalid. */
+export function fromLocalInput(value: string): string | undefined {
+  const time = value ? new Date(value).getTime() : NaN;
+  return Number.isNaN(time) ? undefined : new Date(time).toISOString();
+}
