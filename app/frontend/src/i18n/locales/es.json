@@ -1053,5 +1053,51 @@
       "off": "desactivada",
       "none": "Ninguna política configurada."
     }
+  },
+  "firmware": {
+    "title": "Firmware",
+    "subtitle": "Firmware instalado, versión recomendada por el catálogo y estado de cada equipo.",
+    "suggestions": "Sugerencias",
+    "catalogs": "Catálogos de vendor",
+    "search": "Buscar equipo, vendor, modelo, serie o versión",
+    "states": {
+      "label": "Estado del firmware",
+      "attention": "Por actualizar",
+      "security": "Actualización de seguridad",
+      "critical": "Críticos",
+      "unknown": "Estado desconocido",
+      "current": "Actualizados",
+      "all": "Todos"
+    },
+    "columns": {
+      "device": "Equipo",
+      "vendor": "Vendor / modelo",
+      "installed": "Instalado",
+      "recommended": "Recomendado",
+      "status": "Estado",
+      "verified": "Última verificación",
+      "actions": "Acciones"
+    },
+    "status": {
+      "current": "actualizado",
+      "update_available": "actualización disponible",
+      "outdated": "por actualizar",
+      "security_update": "actualización de seguridad",
+      "critical_security_update": "seguridad crítica",
+      "unknown": "desconocido"
+    },
+    "notVerified": "no verificado",
+    "prepare": "Preparar actualización",
+    "plan": "Plan",
+    "check": {
+      "now": "Verificar ahora",
+      "queued": "Verificación en cola",
+      "already_queued": "Ya en cola",
+      "agent_required": "Se requiere el agente"
+    },
+    "shown": "{{shown}} de {{total}}",
+    "more": "Cargar más",
+    "allGood": "Ningún firmware por actualizar.",
+    "empty": "Ningún equipo en este estado."
   }
 }

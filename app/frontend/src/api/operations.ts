@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./client";
 
@@ -167,3 +167,72 @@ export function backupOverviewUrl(filters: BackupOverviewFilters): string {
 
 export const useBackupOverview = (filters: BackupOverviewFilters) =>
   useQuery({ queryKey: ["backup-overview", filters], queryFn: () => api<BackupOverview>(backupOverviewUrl(filters)), placeholderData: keepPreviousData, staleTime: 30_000, refetchInterval: 120_000 });
+
+export const FIRMWARE_STATES = ["attention", "security", "critical", "unknown", "current", "all"] as const;
+export type FirmwareState = (typeof FIRMWARE_STATES)[number];
+
+export interface FirmwareFilters {
+  q?: string;
+  customer?: string;
+  vendor?: string;
+  state?: FirmwareState;
+}
+
+export interface FirmwareRow {
+  id: string;
+  name: string;
+  identity: string | null;
+  customer: { id: string; name: string } | null;
+  site: string | null;
+  vendor: string | null;
+  model: string | null;
+  status: string;
+  channel: string | null;
+  readiness: string | null;
+  firmware: string | null;
+  recommended: string | null;
+  newer: boolean;
+  firmware_status: string;
+  verified_at: string | null;
+  can_check: boolean;
+  can_plan: boolean;
+}
+
+export interface FirmwarePage {
+  state: FirmwareState;
+  total: number;
+  offset: number;
+  limit: number;
+  counts: Record<FirmwareState, number>;
+  items: FirmwareRow[];
+  links: { catalogs: string; suggestions: string };
+}
+
+export function firmwareUrl(filters: FirmwareFilters, offset = 0): string {
+  const search = new URLSearchParams();
+  for (const key of ["q", "customer", "vendor", "state"] as const) {
+    const value = filters[key];
+    if (value) search.set(key, value);
+  }
+  if (offset) search.set("offset", String(offset));
+  const query = search.toString();
+  return `/api/ui/v1/firmware${query ? `?${query}` : ""}`;
+}
+
+export const useFirmware = (filters: FirmwareFilters) =>
+  useInfiniteQuery({
+    queryKey: ["firmware", filters],
+    queryFn: ({ pageParam }) => api<FirmwarePage>(firmwareUrl(filters, pageParam)),
+    initialPageParam: 0,
+    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+  });
+
+export function useFirmwareCheck() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (deviceId: string) => api<{ state: string }>(`/api/ui/v1/firmware/${encodeURIComponent(deviceId)}/check`, { method: "POST" }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["firmware"] }),
+  });
+}

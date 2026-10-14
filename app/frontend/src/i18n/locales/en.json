@@ -1053,5 +1053,51 @@
       "off": "disabled",
       "none": "No policy configured."
     }
+  },
+  "firmware": {
+    "title": "Firmware",
+    "subtitle": "Installed firmware, version recommended by the catalog and state of every device.",
+    "suggestions": "Suggestions",
+    "catalogs": "Vendor catalogs",
+    "search": "Search device, vendor, model, serial or version",
+    "states": {
+      "label": "Firmware state",
+      "attention": "To update",
+      "security": "Security update",
+      "critical": "Critical",
+      "unknown": "Unknown state",
+      "current": "Up to date",
+      "all": "All"
+    },
+    "columns": {
+      "device": "Device",
+      "vendor": "Vendor / model",
+      "installed": "Installed",
+      "recommended": "Recommended",
+      "status": "State",
+      "verified": "Last check",
+      "actions": "Actions"
+    },
+    "status": {
+      "current": "up to date",
+      "update_available": "update available",
+      "outdated": "outdated",
+      "security_update": "security update",
+      "critical_security_update": "critical security",
+      "unknown": "unknown"
+    },
+    "notVerified": "not checked",
+    "prepare": "Prepare upgrade",
+    "plan": "Plan",
+    "check": {
+      "now": "Check now",
+      "queued": "Check queued",
+      "already_queued": "Already queued",
+      "agent_required": "Agent required"
+    },
+    "shown": "{{shown}} of {{total}}",
+    "more": "Load more",
+    "allGood": "No firmware to update.",
+    "empty": "No device in this state."
   }
 }
