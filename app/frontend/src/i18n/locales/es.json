@@ -2662,5 +2662,58 @@
         "text": "Guarda el ID estable de UISP y actualiza el inventario. Site y Organization de UISP quedan solo como metadatos."
       }
     }
+  },
+  "onboarding": {
+    "title": "Alta desde UISP",
+    "subtitle": "Selecciona los dispositivos de UISP que quieres llevar a NSM y elige tú cliente y sede: NSM nunca los deduce de los sitios de UISP. Antes de confirmar ves una vista previa; al confirmar se vuelve a leer la lista de UISP.",
+    "stateFilter": "Estado",
+    "states": {
+      "new": "Nuevos",
+      "linkable": "Por vincular a un registro existente",
+      "linked": "Ya en NSM",
+      "blocked": "No importables"
+    },
+    "search": "Buscar",
+    "searchPlaceholder": "Nombre, modelo, MAC, IP, sitio UISP…",
+    "uispSite": "Sitio UISP",
+    "allSites": "Todos los sitios UISP",
+    "customer": "Cliente NSM",
+    "choose": "— elige —",
+    "site": "Sede",
+    "noSite": "Sin sede",
+    "customerHelp": "Se usa para los equipos nuevos; los que se vinculan siguen en su cliente.",
+    "selectAll": "Seleccionar todos",
+    "select": "Seleccionar {{name}}",
+    "columns": {
+      "device": "Dispositivo UISP",
+      "model": "Modelo",
+      "address": "MAC / IP",
+      "uispSite": "Sitio UISP",
+      "type": "Tipo NSM",
+      "nsm": "NSM",
+      "action": "Acción"
+    },
+    "preview_one": "Vista previa de {{count}} dispositivo (máx. {{max}})",
+    "preview_other": "Vista previa de {{count}} dispositivos (máx. {{max}})",
+    "empty": "Ningún dispositivo UISP en este estado.",
+    "emptyFiltered": "Ningún dispositivo UISP en este estado con los filtros elegidos.",
+    "previewTitle": "Vista previa",
+    "previewHelp": "Equipos nuevos en el cliente {{customer}}. Al confirmar se vuelve a leer la lista de UISP: los dispositivos cambiados entretanto se omiten.",
+    "previewHelpSite": "Equipos nuevos en el cliente {{customer}}, sede {{site}}. Al confirmar se vuelve a leer la lista de UISP: los dispositivos cambiados entretanto se omiten.",
+    "actions": {
+      "create": "Se creará",
+      "link": "Se vinculará al registro existente",
+      "skip": "Omitido",
+      "missing": "Ya no está en UISP"
+    },
+    "staysInCustomer": "{{name}} (sigue en su cliente)",
+    "confirm_one": "Confirmar el alta de {{count}} dispositivo",
+    "confirm_other": "Confirmar el alta de {{count}} dispositivos",
+    "doneTitle": "Alta desde UISP completada",
+    "done": "{{created}} equipos creados y {{linked}} vinculados desde UISP.",
+    "skipped_one": "{{count}} omitido por haber cambiado en UISP o estar ya presente: {{names}}.",
+    "skipped_other": "{{count}} omitidos por haber cambiado en UISP o estar ya presentes: {{names}}.",
+    "openCustomer": "Abrir el cliente",
+    "again": "Nueva alta"
   }
 }

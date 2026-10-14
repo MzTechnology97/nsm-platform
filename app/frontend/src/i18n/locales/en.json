@@ -2662,5 +2662,58 @@
         "text": "Stores the stable UISP ID and updates the inventory. UISP site and organization stay metadata only."
       }
     }
+  },
+  "onboarding": {
+    "title": "UISP onboarding",
+    "subtitle": "Pick the UISP devices to bring into NSM and choose customer and site yourself: NSM never derives them from UISP sites. A preview comes before confirming; on confirmation the UISP list is read again.",
+    "stateFilter": "State",
+    "states": {
+      "new": "New",
+      "linkable": "To link to an existing record",
+      "linked": "Already in NSM",
+      "blocked": "Not importable"
+    },
+    "search": "Search",
+    "searchPlaceholder": "Name, model, MAC, IP, UISP site…",
+    "uispSite": "UISP site",
+    "allSites": "All UISP sites",
+    "customer": "NSM customer",
+    "choose": "— choose —",
+    "site": "Site",
+    "noSite": "No site",
+    "customerHelp": "Used for new devices; those to link stay in their customer.",
+    "selectAll": "Select all",
+    "select": "Select {{name}}",
+    "columns": {
+      "device": "UISP device",
+      "model": "Model",
+      "address": "MAC / IP",
+      "uispSite": "UISP site",
+      "type": "NSM type",
+      "nsm": "NSM",
+      "action": "Action"
+    },
+    "preview_one": "Preview {{count}} device (max {{max}})",
+    "preview_other": "Preview {{count}} devices (max {{max}})",
+    "empty": "No UISP device in this state.",
+    "emptyFiltered": "No UISP device in this state with the chosen filters.",
+    "previewTitle": "Preview",
+    "previewHelp": "New devices in customer {{customer}}. On confirmation the UISP list is read again: devices changed in the meantime are skipped.",
+    "previewHelpSite": "New devices in customer {{customer}}, site {{site}}. On confirmation the UISP list is read again: devices changed in the meantime are skipped.",
+    "actions": {
+      "create": "Will be created",
+      "link": "Will be linked to the existing record",
+      "skip": "Skipped",
+      "missing": "No longer in UISP"
+    },
+    "staysInCustomer": "{{name}} (stays in its customer)",
+    "confirm_one": "Confirm onboarding of {{count}} device",
+    "confirm_other": "Confirm onboarding of {{count}} devices",
+    "doneTitle": "UISP onboarding completed",
+    "done": "{{created}} devices created and {{linked}} linked from UISP.",
+    "skipped_one": "{{count}} skipped because changed in UISP or already present: {{names}}.",
+    "skipped_other": "{{count}} skipped because changed in UISP or already present: {{names}}.",
+    "openCustomer": "Open the customer",
+    "again": "New onboarding"
   }
 }

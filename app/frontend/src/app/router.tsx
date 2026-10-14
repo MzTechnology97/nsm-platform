@@ -2,7 +2,7 @@ import { createRootRoute, createRoute, createRouter, lazyRouteComponent } from "
 import { useTranslation } from "react-i18next";
 
 import type { CustomerFilters } from "../api/customers";
-import type { AuditFilters } from "../api/admin";
+import type { AuditFilters, OnboardingFilters } from "../api/admin";
 import { INCIDENT_STATUSES, type IncidentFilters, ISSUE_STATUSES, type IssueFilters } from "../api/incidents";
 import {
   COMPLIANCE_STATUSES,
@@ -290,6 +290,16 @@ const adminUispRoute = createRoute({
   path: "/admin/integrations/uisp",
   component: lazyRouteComponent(() => import("../pages/AdminUisp"), "AdminUisp"),
 });
+const uispOnboardingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/integrations/uisp/onboarding",
+  component: lazyRouteComponent(() => import("../pages/UispOnboarding"), "UispOnboarding"),
+  validateSearch: (search: Record<string, unknown>): OnboardingFilters => ({
+    ...(typeof search.q === "string" && search.q ? { q: search.q } : {}),
+    ...(typeof search.uisp_site === "string" && search.uisp_site ? { uisp_site: search.uisp_site } : {}),
+    ...(typeof search.state === "string" && ["new", "linkable", "linked", "blocked"].includes(search.state) ? { state: search.state as OnboardingFilters["state"] } : {}),
+  }),
+});
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/access",
@@ -380,6 +390,7 @@ export const routeTree = rootRoute.addChildren([
   adminZabbixRoute,
   adminGenieacsRoute,
   adminUispRoute,
+  uispOnboardingRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

@@ -21,7 +21,7 @@ export function AdminUisp() {
           <p>{t("uisp.subtitle")}</p>
         </div>
         <div className="ui-row-actions">
-          <a className="ui-button" href="/integrations/uisp/onboarding">{t("uisp.onboarding")}</a>
+          <Link className="ui-button" to="/integrations/uisp/onboarding">{t("uisp.onboarding")}</Link>
           <Link className="ui-button ui-button-ghost" to="/integrations">{t("cnmaestro.allIntegrations")}</Link>
           <a className="ui-button ui-button-ghost" href="/admin/integrations/uisp">{t("app.classic")}</a>
         </div>
