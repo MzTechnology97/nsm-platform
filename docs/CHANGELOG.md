@@ -4,6 +4,21 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.98 — 2026-10-14
+
+New interface (React) — device list, phase 1a
+- **Apparati in `/app/devices`.** The first migrated section; the menu entry now opens it in the new interface.
+  - Chips with counts: all, online, offline, to be enrolled, firmware to check, severe CVEs, out of support.
+  - Text search (name, identity, IP, MAC, serial, model) and customer, site and vendor filters.
+  - Sortable columns.
+  - The filters live in the address, so a filtered list can be shared or bookmarked.
+- **Performance.** Rows are loaded in blocks of 100 while scrolling and only the visible ones are drawn (virtualized), so thousands of devices stay fluid. A device opens its classic page until the device detail is migrated.
+- **UI API.**
+  - `GET /api/ui/v1/devices`: same filters as the classic inventory, plus `sort`/`dir`, `offset`/`limit` (max 200), counts per status within the customer/site/vendor scope, and severe CVEs per device.
+  - `GET /api/ui/v1/devices/facets`: customers, sites and vendors for the filters.
+  - Both respect the user's customer scope.
+- Texts in Italian, English, French and Spanish; last contact shown as relative time in the user's language.
+
 ## 0.49.97 — 2026-10-14
 
 New interface (React) — foundation, phase 0 of the gradual migration (decided with the operator)

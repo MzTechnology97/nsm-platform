@@ -1,16 +1,95 @@
 {
-  "app": { "name": "NSM", "preview": "Nuova interfaccia (anteprima)", "classic": "Interfaccia classica", "loading": "Caricamento…", "error": "Impossibile caricare i dati.", "retry": "Riprova", "version": "Versione {{version}}" },
-  "nav": {
-    "dashboard": "Dashboard", "customers": "Clienti", "devices": "Apparati", "monitoring": "Monitoring", "agents": "Agent", "backups": "Backup",
-    "firmware": "Firmware", "incidents": "Incidenti", "vulnerabilities": "Vulnerabilità", "access": "Accessi", "exposure": "Esposizione",
-    "lifecycle": "Lifecycle", "compliance": "Compliance", "actionCenter": "Action Center", "events": "Eventi", "reports": "Report",
-    "integrations": "Integrazioni", "admin": "Amministrazione", "collapse": "Comprimi menu", "open": "Apri menu"
+  "app": {
+    "name": "NSM",
+    "preview": "Nuova interfaccia (anteprima)",
+    "classic": "Interfaccia classica",
+    "loading": "Caricamento…",
+    "error": "Impossibile caricare i dati.",
+    "retry": "Riprova",
+    "version": "Versione {{version}}"
   },
-  "user": { "language": "Lingua", "theme": "Tema", "light": "Chiaro", "dark": "Scuro", "logout": "Esci", "profile": "Profilo" },
+  "nav": {
+    "dashboard": "Dashboard",
+    "customers": "Clienti",
+    "devices": "Apparati",
+    "monitoring": "Monitoring",
+    "agents": "Agent",
+    "backups": "Backup",
+    "firmware": "Firmware",
+    "incidents": "Incidenti",
+    "vulnerabilities": "Vulnerabilità",
+    "access": "Accessi",
+    "exposure": "Esposizione",
+    "lifecycle": "Lifecycle",
+    "compliance": "Compliance",
+    "actionCenter": "Action Center",
+    "events": "Eventi",
+    "reports": "Report",
+    "integrations": "Integrazioni",
+    "admin": "Amministrazione",
+    "collapse": "Comprimi menu",
+    "open": "Apri menu"
+  },
+  "user": {
+    "language": "Lingua",
+    "theme": "Tema",
+    "light": "Chiaro",
+    "dark": "Scuro",
+    "logout": "Esci",
+    "profile": "Profilo"
+  },
   "home": {
     "title": "Benvenuto nella nuova interfaccia",
     "intro": "Le sezioni arrivano una alla volta. Quelle non ancora migrate si aprono nell'interfaccia classica, con la stessa sessione.",
-    "migrated": "Nuova interfaccia", "classic": "Interfaccia classica"
+    "migrated": "Nuova interfaccia",
+    "classic": "Interfaccia classica"
   },
-  "errors": { "notFound": "Pagina non trovata.", "forbidden": "Non hai i permessi per questa sezione.", "session": "Sessione scaduta: accedi di nuovo." }
+  "errors": {
+    "notFound": "Pagina non trovata.",
+    "forbidden": "Non hai i permessi per questa sezione.",
+    "session": "Sessione scaduta: accedi di nuovo."
+  },
+  "devices": {
+    "title": "Apparati",
+    "subtitle": "{{count}} apparati corrispondono ai filtri",
+    "status": "Stato",
+    "search": "Cerca apparati",
+    "searchPlaceholder": "Nome, identity, IP, MAC, seriale, modello…",
+    "customer": "Cliente",
+    "site": "Sede",
+    "vendor": "Vendor",
+    "allCustomers": "Tutti i clienti",
+    "allSites": "Tutte le sedi",
+    "allVendors": "Tutti i vendor",
+    "reset": "Azzera filtri",
+    "empty": "Nessun apparato corrisponde ai filtri.",
+    "shown": "{{shown}} di {{total}} apparati",
+    "severeCves": "Vulnerabilità critiche o alte aperte",
+    "chips": {
+      "all": "Tutti",
+      "online": "Online",
+      "offline": "Offline",
+      "pending": "Da associare",
+      "firmware_attention": "Firmware da verificare",
+      "severe": "CVE gravi",
+      "eol": "Fuori supporto"
+    },
+    "columns": {
+      "name": "Apparato",
+      "status": "Stato",
+      "vendor": "Vendor",
+      "customer": "Cliente / sede",
+      "ip": "IP di gestione",
+      "firmware": "Firmware",
+      "last_seen": "Ultimo contatto"
+    },
+    "statusLabel": {
+      "online": "Online",
+      "offline": "Offline",
+      "pending_enrollment": "In attesa di associazione",
+      "pending_link": "In attesa di collegamento",
+      "unknown": "Sconosciuto",
+      "degraded": "Degradato"
+    }
+  }
 }

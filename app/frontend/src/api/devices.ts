@@ -1,0 +1,87 @@
+import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
+
+import { api } from "./client";
+
+export interface DeviceRow {
+  id: string;
+  name: string;
+  identity: string | null;
+  vendor: string;
+  model: string | null;
+  device_type: string | null;
+  status: string;
+  last_seen: string | null;
+  management_ip: string | null;
+  serial_number: string | null;
+  primary_mac: string | null;
+  firmware: string | null;
+  firmware_status: string | null;
+  lifecycle_status: string | null;
+  customer: { id: string; name: string } | null;
+  site: { id: string; name: string } | null;
+  agent_transport: string | null;
+  severe_cves: number;
+}
+
+export interface DeviceCounts {
+  all: number;
+  online: number;
+  offline: number;
+  pending: number;
+  firmware_attention: number;
+  severe: number;
+  eol: number;
+}
+
+export interface DevicePage {
+  total: number;
+  offset: number;
+  items: DeviceRow[];
+  counts: DeviceCounts;
+}
+
+export interface DeviceFilters {
+  q?: string;
+  customer?: string;
+  site?: string;
+  vendor?: string;
+  status?: string;
+  lifecycle?: string;
+  firmware?: string;
+  security?: string;
+  sort?: string;
+  dir?: "asc" | "desc";
+}
+
+export const PAGE_SIZE = 100;
+
+export function devicesUrl(filters: DeviceFilters, offset: number, limit = PAGE_SIZE): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value) params.set(key, String(value));
+  }
+  params.set("offset", String(offset));
+  params.set("limit", String(limit));
+  return `/api/ui/v1/devices?${params.toString()}`;
+}
+
+export function useDevices(filters: DeviceFilters) {
+  return useInfiniteQuery({
+    queryKey: ["devices", filters],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) => api<DevicePage>(devicesUrl(filters, pageParam)),
+    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.items.length : undefined),
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+  });
+}
+
+export interface Facets {
+  customers: { id: string; name: string }[];
+  sites: { id: string; name: string; customer_id: string }[];
+  vendors: string[];
+}
+
+export function useDeviceFacets() {
+  return useQuery({ queryKey: ["devices", "facets"], queryFn: () => api<Facets>("/api/ui/v1/devices/facets"), staleTime: 5 * 60_000 });
+}

@@ -1,16 +1,95 @@
 {
-  "app": { "name": "NSM", "preview": "New interface (preview)", "classic": "Classic interface", "loading": "Loading…", "error": "Unable to load data.", "retry": "Retry", "version": "Version {{version}}" },
-  "nav": {
-    "dashboard": "Dashboard", "customers": "Customers", "devices": "Devices", "monitoring": "Monitoring", "agents": "Agents", "backups": "Backups",
-    "firmware": "Firmware", "incidents": "Incidents", "vulnerabilities": "Vulnerabilities", "access": "Access", "exposure": "Exposure",
-    "lifecycle": "Lifecycle", "compliance": "Compliance", "actionCenter": "Action Center", "events": "Events", "reports": "Reports",
-    "integrations": "Integrations", "admin": "Administration", "collapse": "Collapse menu", "open": "Open menu"
+  "app": {
+    "name": "NSM",
+    "preview": "New interface (preview)",
+    "classic": "Classic interface",
+    "loading": "Loading…",
+    "error": "Unable to load data.",
+    "retry": "Retry",
+    "version": "Version {{version}}"
   },
-  "user": { "language": "Language", "theme": "Theme", "light": "Light", "dark": "Dark", "logout": "Sign out", "profile": "Profile" },
+  "nav": {
+    "dashboard": "Dashboard",
+    "customers": "Customers",
+    "devices": "Devices",
+    "monitoring": "Monitoring",
+    "agents": "Agents",
+    "backups": "Backups",
+    "firmware": "Firmware",
+    "incidents": "Incidents",
+    "vulnerabilities": "Vulnerabilities",
+    "access": "Access",
+    "exposure": "Exposure",
+    "lifecycle": "Lifecycle",
+    "compliance": "Compliance",
+    "actionCenter": "Action Center",
+    "events": "Events",
+    "reports": "Reports",
+    "integrations": "Integrations",
+    "admin": "Administration",
+    "collapse": "Collapse menu",
+    "open": "Open menu"
+  },
+  "user": {
+    "language": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "logout": "Sign out",
+    "profile": "Profile"
+  },
   "home": {
     "title": "Welcome to the new interface",
     "intro": "Sections arrive one at a time. Those not migrated yet open in the classic interface, with the same session.",
-    "migrated": "New interface", "classic": "Classic interface"
+    "migrated": "New interface",
+    "classic": "Classic interface"
   },
-  "errors": { "notFound": "Page not found.", "forbidden": "You do not have permission for this section.", "session": "Session expired: sign in again." }
+  "errors": {
+    "notFound": "Page not found.",
+    "forbidden": "You do not have permission for this section.",
+    "session": "Session expired: sign in again."
+  },
+  "devices": {
+    "title": "Devices",
+    "subtitle": "{{count}} devices match the filters",
+    "status": "Status",
+    "search": "Search devices",
+    "searchPlaceholder": "Name, identity, IP, MAC, serial, model…",
+    "customer": "Customer",
+    "site": "Site",
+    "vendor": "Vendor",
+    "allCustomers": "All customers",
+    "allSites": "All sites",
+    "allVendors": "All vendors",
+    "reset": "Clear filters",
+    "empty": "No device matches the filters.",
+    "shown": "{{shown}} of {{total}} devices",
+    "severeCves": "Open critical or high vulnerabilities",
+    "chips": {
+      "all": "All",
+      "online": "Online",
+      "offline": "Offline",
+      "pending": "To be enrolled",
+      "firmware_attention": "Firmware to check",
+      "severe": "Severe CVEs",
+      "eol": "Out of support"
+    },
+    "columns": {
+      "name": "Device",
+      "status": "Status",
+      "vendor": "Vendor",
+      "customer": "Customer / site",
+      "ip": "Management IP",
+      "firmware": "Firmware",
+      "last_seen": "Last seen"
+    },
+    "statusLabel": {
+      "online": "Online",
+      "offline": "Offline",
+      "pending_enrollment": "Awaiting enrollment",
+      "pending_link": "Awaiting link",
+      "unknown": "Unknown",
+      "degraded": "Degraded"
+    }
+  }
 }
