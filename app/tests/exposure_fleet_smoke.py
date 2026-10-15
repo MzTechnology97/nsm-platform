@@ -74,16 +74,18 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-fl-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/security/exposure?customer={ids['customer']}").text
-    assert "Servizi esposti su Internet" in page and f"TEST-FL-RTR-{suffix}" in page and "winbox tcp/8291" in page and "port forward HTTP" in page
-    assert f"TEST-FL-UBNT-{suffix}" not in page, "default view lists only exposed devices"
-    assert 'href="/security/exposure"' in page, "sidebar entry"
-    setup_page = client.get(f"/security/exposure?view=setup&customer={ids['customer']}").text
-    assert f"TEST-FL-TPL-{suffix}" in setup_page and "Manca l&#39;IP da verificare (gestione: 192.0.2.30)" in setup_page
-    everything = client.get(f"/security/exposure?view=all&customer={ids['customer']}").text
+    api = "/api/ui/v1/exposure"
+    page = client.get(f"{api}?customer={ids['customer']}").json()
+    exposed = {item["name"]: item for item in page["items"]}
+    assert f"TEST-FL-RTR-{suffix}" in exposed and f"TEST-FL-UBNT-{suffix}" not in exposed, "default view lists only exposed devices"
+    labels = {(f["label"], f["proto"], str(f["port"])) for f in exposed[f"TEST-FL-RTR-{suffix}"]["findings"]}
+    assert any(label and "winbox" in label.lower() for label, _, _ in labels), labels
+    setup_page = client.get(f"{api}?view=setup&customer={ids['customer']}").json()
+    tpl = next(item for item in setup_page["items"] if item["name"] == f"TEST-FL-TPL-{suffix}")
+    assert tpl["blocker"]
+    everything = {item["name"] for item in client.get(f"{api}?view=all&customer={ids['customer']}").json()["items"]}
     assert all(f"TEST-FL-{k}-{suffix}" in everything for k in ("RTR", "UBNT", "TPL")) and f"TEST-FL-GEN-{suffix}" not in everything
-    assert "verifica in corso" in client.get("/security/exposure?view=all").text
-    assert client.get("/security/exposure?view=bogus&customer=not-a-uuid").status_code == 200
+    assert client.get(f"{api}?view=bogus&customer=not-a-uuid").status_code == 200
     print("Exposure fleet smoke passed")
 
 

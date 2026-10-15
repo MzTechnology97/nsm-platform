@@ -1,26 +1,21 @@
-"""Compliance baseline UI (COMP-01/02): overview, baselines, evaluation."""
+"""Compliance baselines (COMP-01/02): matrix, baseline records and evaluation, shared by the UI API and the worker."""
 from __future__ import annotations
 
-import math
 import uuid
 from collections import Counter, defaultdict
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app.compliance_engine import CONTROLS, DEFAULT_CONTROLS, evaluate_all
 from app.compliance_findings import housekeeping, in_exception
-from app.compliance_models import RESULT_LABELS, SCOPE_LABELS, SCOPE_PRIORITY, ComplianceBaseline, ComplianceResult
+from app.compliance_models import RESULT_LABELS, SCOPE_LABELS, ComplianceBaseline, ComplianceResult
 from app.db import SessionLocal
 from app.input_errors import InputError
 from app.models import Customer, Device, Site, utcnow
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 
-router = APIRouter()
 PER_PAGE = 50
 VENDORS = ("mikrotik", "ubiquiti", "tp-link", "generic")
 STATUS_ORDER = ("fail", "unknown", "pass", "not_applicable")
@@ -100,36 +95,6 @@ def select_devices(matrix: dict, status: str = "fail", now=None) -> list:
 
 # -------------------------------------------------------------- overview --
 
-@router.get("/compliance", response_class=HTMLResponse, name="compliance")
-def compliance_overview(request: Request, status: str = "fail", customer: str = "", control: str = "", page: int = 1):
-    with SessionLocal() as db:
-        user = _reader(request, db)
-        if not user:
-            return core.login_redirect()
-        customer_id = _uuid(customer)
-        now = utcnow()
-        matrix = compliance_matrix(db, customer_id, control, now)
-        by_device, devices, device_status = matrix["by_device"], matrix["devices"], matrix["device_status"]
-        totals, device_counts, last_eval = matrix["totals"], matrix["device_counts"], matrix["last_eval"]
-        selected = select_devices(matrix, status, now)
-        total = len(selected)
-        pages = max(1, math.ceil(total / PER_PAGE))
-        page = min(max(1, page), pages)
-        rows = [(devices[d], by_device[d], device_status[d]) for d in selected[(page - 1) * PER_PAGE : page * PER_PAGE]]
-        used_controls = matrix["used_controls"]
-        baselines = int(db.scalar(select(ComplianceBaseline.id).limit(1)) is not None)
-        return core.render(
-            request, db, user, "compliance.html",
-            rows=rows, totals=totals, device_counts=device_counts, devices_total=len(devices),
-            status_filter=status, customer_filter=customer, control_filter=control,
-            customers=list(db.scalars(select(Customer).order_by(Customer.name))),
-            selected_customer=db.get(Customer, customer_id) if customer_id else None,
-            controls=CONTROLS, used_controls=used_controls, result_labels=RESULT_LABELS,
-            total=total, page=page, pages=pages, last_eval=last_eval, has_baselines=bool(baselines), now=now,
-            can_manage=core.has_permission(user, "compliance.manage"),
-        )
-
-
 def run_evaluation(db, user, trigger: str = "manual") -> dict:
     """Evaluate every device now, close stale exceptions and record the audit event (caller commits)."""
     now = utcnow()
@@ -138,38 +103,6 @@ def run_evaluation(db, user, trigger: str = "manual") -> dict:
     stats.update(housekeeping(db, now))
     core.add_event(db, "COMPLIANCE_EVALUATED", actor=user, details={"trigger": trigger, **stats})
     return stats
-
-
-@router.post("/compliance/evaluate", name="compliance_evaluate")
-async def compliance_evaluate(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "compliance.manage")
-        stats = run_evaluation(db, user)
-        db.commit()
-    return flash_redirect(
-        request, "/compliance", "success",
-        f"Valutati {stats['devices']} apparati: {stats['fail']} non conformità, {stats['unknown']} senza evidenza, {stats['pass']} conformi.",
-        title="Compliance aggiornata",
-    )
-
-
-# ------------------------------------------------------------- baselines --
-
-@router.get("/compliance/baselines", response_class=HTMLResponse, name="compliance_baselines")
-def compliance_baselines(request: Request):
-    with SessionLocal() as db:
-        user = _reader(request, db)
-        if not user:
-            return core.login_redirect()
-        baselines = list(db.scalars(select(ComplianceBaseline)))
-        baselines.sort(key=lambda b: (SCOPE_PRIORITY.get(b.scope_type, 0), b.name.lower()))
-        return core.render(
-            request, db, user, "compliance_baselines.html",
-            rows=[(b, _scope_label(db, b)) for b in baselines], controls=CONTROLS,
-            can_manage=core.has_permission(user, "compliance.manage"),
-        )
 
 
 def _form_context(db, baseline=None):
@@ -183,23 +116,6 @@ def _form_context(db, baseline=None):
         "devices": list(db.scalars(select(Device).options(selectinload(Device.customer)).order_by(Device.name).limit(2000))),
         "settings": (baseline.controls if baseline else DEFAULT_CONTROLS),
     }
-
-
-@router.get("/compliance/baselines/new", response_class=HTMLResponse, name="compliance_baseline_new")
-def compliance_baseline_new(request: Request):
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "compliance.manage")
-        return core.render(request, db, user, "compliance_baseline_form.html", **_form_context(db))
-
-
-@router.get("/compliance/baselines/{baseline_id}/edit", response_class=HTMLResponse, name="compliance_baseline_edit")
-def compliance_baseline_edit(request: Request, baseline_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "compliance.manage")
-        baseline = db.get(ComplianceBaseline, baseline_id)
-        if not baseline:
-            raise HTTPException(404)
-        return core.render(request, db, user, "compliance_baseline_form.html", **_form_context(db, baseline))
 
 
 def _parse_controls(form) -> dict:
@@ -297,36 +213,6 @@ def create_default_baseline_record(db, user) -> dict:
     return {"id": str(baseline.id), **stats}
 
 
-@router.post("/compliance/baselines", name="compliance_baseline_save")
-async def compliance_baseline_save(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "compliance.manage")
-        baseline_id = _uuid(form.get("baseline_id"))
-        existing = db.get(ComplianceBaseline, baseline_id) if baseline_id else None
-        back = f"/compliance/baselines/{existing.id}/edit" if existing else "/compliance/baselines/new"
-        try:
-            baseline = save_baseline_record(db, user, form)
-        except InputError as exc:
-            return flash_redirect(request, back, "warning", str(exc.detail), title="Dati non validi")
-        version = baseline.version
-    return flash_redirect(request, "/compliance/baselines", "success", f"Baseline salvata (versione {version}); risultati ricalcolati.", title="Baseline salvata")
-
-
-@router.post("/compliance/baselines/default", name="compliance_baseline_default")
-async def compliance_baseline_default(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "compliance.manage")
-        try:
-            stats = create_default_baseline_record(db, user)
-        except InputError as exc:
-            return flash_redirect(request, "/compliance/baselines", "info", str(exc.detail), title="Nessuna modifica")
-    return flash_redirect(request, "/compliance", "success", f"Baseline globale creata; valutati {stats['devices']} apparati.", title="Compliance attivata")
-
-
 def run_scheduled_evaluation(now=None) -> dict:
     """Worker entry point."""
     now = now or utcnow()
@@ -342,5 +228,3 @@ def run_scheduled_evaluation(now=None) -> dict:
         return {"status": "evaluated", **stats}
 
 
-def install_compliance(app) -> None:
-    app.include_router(router)

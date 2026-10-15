@@ -76,11 +76,12 @@ def main():
         assert old["incidents"]["total"] == 0
 
     tech_client = login(f"ci-ir-{suffix}")
-    url = f"/incidents/{ids['resolved']}"
-    page = tech_client.get(url).text
-    assert "Esporta evidenza PDF" in page and "Nessuna evidenza esportata" in page
-    exported = tech_client.post(f"{url}/export", data={"csrf": csrf_from(page)})
-    assert "Evidenza esportata" in exported.text
+    url = f"/api/ui/v1/incidents/{ids['resolved']}"
+    headers = {"X-CSRF-Token": tech_client.get("/api/ui/v1/session").json()["csrf_token"]}
+    page = tech_client.get(url).json()
+    assert page["can_export"] and page["exports"] == []
+    exported = tech_client.post(f"{url}/export", headers=headers)
+    assert exported.status_code == 200 and len(exported.json()["sha256"]) == 64
 
     with SessionLocal() as db:
         report = db.query(GeneratedReport).filter_by(report_type="incident_evidence", customer_id=ids["customer"]).one()
@@ -95,15 +96,16 @@ def main():
     download = tech_client.get(f"/audit/reports/{report_id}/download")
     assert download.status_code == 200 and download.content.startswith(b"%PDF")
     assert hashlib.sha256(download.content).hexdigest() == download.headers["x-content-sha256"]
-    detail = tech_client.get(url).text
-    assert f"/audit/reports/{report_id}/download" in detail and "confermata" in detail
-    archive = tech_client.get("/audit/reports").text
-    assert "Evidenza incidente: TEST blackout sede" in archive and f"/incidents/{ids['resolved']}" in archive
+    detail = tech_client.get(url).json()
+    assert [e["download_url"] for e in detail["exports"]] == [f"/audit/reports/{report_id}/download"] and detail["exports"][0]["root_cause_confirmed"]
+    archive = tech_client.get("/api/ui/v1/reports").json()["items"]
+    assert any(item["title"] == "Evidenza incidente: TEST blackout sede" and item["summary"]["incident_id"] == str(ids["resolved"]) for item in archive)
 
     auditor_client = login(f"ci-ir-aud-{suffix}")
-    view = auditor_client.get(url).text
-    assert "Esporta evidenza PDF" not in view and f"/audit/reports/{report_id}/download" in view
-    assert auditor_client.post(f"{url}/export", data={"csrf": csrf_from(view)}).status_code == 403
+    view = auditor_client.get(url).json()
+    assert view["can_export"] is False and view["exports"][0]["id"] == str(report_id)
+    auditor_headers = {"X-CSRF-Token": auditor_client.get("/api/ui/v1/session").json()["csrf_token"]}
+    assert auditor_client.post(f"{url}/export", headers=auditor_headers).status_code == 403
     print("Incident reporting smoke passed")
 
 

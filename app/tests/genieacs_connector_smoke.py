@@ -246,7 +246,7 @@ def main():
         assert BEARER not in str(event.details)
 
     state["firmware"] = "1.0.1-ci27"
-    csrf = csrf_from(client.get(f"/devices/{serial_device_id}/genieacs").text)
+    csrf = client.get("/api/ui/v1/session").json()["csrf_token"]
     refreshed = client.post(
         f"/devices/{serial_device_id}/genieacs/refresh",
         data={"csrf": csrf},
@@ -283,7 +283,7 @@ def main():
         tech_name = tech.username
     tech_client = TestClient(app, base_url="https://nsm.example.test")
     login(tech_client, tech_name)
-    token = csrf_from(tech_client.get(f"/devices/{serial_device_id}/genieacs").text)
+    token = tech_client.get("/api/ui/v1/session").json()["csrf_token"]
     assert tech_client.post("/admin/integrations/genieacs", data={"csrf": token, "base_url": "https://evil.example.test", "auth_mode": "none"}).status_code in (401, 403)
     print("GenieACS read-only NBI connector smoke passed")
 

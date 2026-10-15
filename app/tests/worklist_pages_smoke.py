@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.db import SessionLocal
 from app.entrypoint import app
-from app.models import ActionIssue, AuditEvent, BackupRun, Customer, Device, User, utcnow
+from app.models import ActionIssue, AuditEvent, BackupRun, Customer, Device, User
 from app.security import hash_password
 
 PASSWORD = "CI-Worklist-Pages-2026"
@@ -69,25 +69,25 @@ def main():
     assert client.get("/operations/backups?customer=not-a-uuid").status_code == 400
 
     # Action Center: one chip per category present, with Italian labels.
-    issues = client.get(f"/action-center?{scope}").text
-    assert chip(issues, "Tutte") == 2 and chip(issues, "Backup") == 1 and chip(issues, "Configurazione") == 1
-    only_backup = client.get(f"/action-center?{scope}&category=backup").text
-    assert "TEST backup issue" in only_backup and "TEST drift issue" not in only_backup
-    assert chip(only_backup, "Configurazione") == 1, "category counts ignore the category filter"
+    issues = client.get(f"/api/ui/v1/action-center?{scope}").json()
+    assert issues["total"] == 2 and {c["key"]: c["count"] for c in issues["categories"]} == {"backup": 1, "configuration": 1}
+    only_backup = client.get(f"/api/ui/v1/action-center?{scope}&category=backup").json()
+    assert [i["title"].rsplit(" ", 1)[0] for i in only_backup["items"]] == ["TEST backup issue"]
+    assert {c["key"]: c["count"] for c in only_backup["categories"]}["configuration"] == 1, "category counts ignore the category filter"
 
     # Firmware worklist shows Italian status labels.
     firmware = client.get(f"/operations/firmware?{scope}").text
     assert failed_name in firmware and "Aggiornamento disponibile" in firmware and "Update Available" not in firmware
 
     # Audit and dashboard show readable event names, keeping the code available.
-    audit = client.get(f"/audit/events?customer={customer_id}").text
-    assert "Backup export viewed" in audit and "BACKUP_EXPORT_VIEWED" in audit
+    audit = client.get(f"/api/ui/v1/audit/events?customer={customer_id}").json()["items"]
+    assert any(e["event_type"] == "BACKUP_EXPORT_VIEWED" and e["label"] == "Backup export viewed" for e in audit)
     dashboard = client.get("/customers").text
     # Static assets are versioned by content, not by release number.
     assert re.search(r'/static/app\.css\?v=[0-9a-f]{12}"', dashboard), "app.css cache-busting token"
 
     # Every list page uses the shared pager wording when it has rows.
-    for path in ("/operations/backups?view=all", "/operations/firmware?state=all", "/operations/agents?state=all", "/security/lifecycle", "/operations/monitoring?state=all", "/action-center"):
+    for path in ("/operations/backups?view=all", "/operations/firmware?state=all", "/operations/agents?state=all", "/operations/monitoring?state=all"):
         page = client.get(path)
         assert page.status_code == 200, path
         assert 'class="quick-chips"' in page.text, path

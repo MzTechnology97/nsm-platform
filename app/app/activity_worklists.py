@@ -8,10 +8,9 @@ import uuid
 from datetime import date, datetime, time, timezone
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 from sqlalchemy import String, cast, func, or_, select
-from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app.agent_models import DeviceJob
@@ -283,66 +282,6 @@ def _audit_params(event_type, result, severity, customer, device, q, from_date, 
     }
 
 
-@router.get("/audit/events", response_class=HTMLResponse, name="audit_events_worklist")
-def audit_events(
-    request: Request,
-    event_type: str = "",
-    result: str = "",
-    severity: str = "",
-    customer: str = "",
-    device: str = "",
-    q: str = "",
-    from_date: str = "",
-    to_date: str = "",
-    page: int = 1,
-    per_page: int = 50,
-):
-    page = _safe_page(page)
-    per_page = _safe_per_page(per_page)
-    customer_id = _uuid(customer)
-    params = _audit_params(event_type, result, severity, customer, device, q, from_date, to_date)
-
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "audit.read"):
-            raise HTTPException(403)
-
-        stmt = _audit_query(event_type, result, severity, customer_id, device, q, from_date, to_date)
-        total = int(db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
-        pager = _pager("/audit/events", page, per_page, total, params)
-        events = list(
-            db.scalars(
-                stmt.order_by(AuditEvent.timestamp.desc())
-                .offset((pager["page"] - 1) * per_page)
-                .limit(per_page)
-            )
-        )
-        customer_ids = {e.customer_id for e in events if e.customer_id}
-        device_ids = {e.device_id for e in events if e.device_id}
-        customer_map = {c.id: c for c in db.scalars(select(Customer).where(Customer.id.in_(customer_ids)))} if customer_ids else {}
-        device_map = {d.id: d for d in db.scalars(select(Device).where(Device.id.in_(device_ids)))} if device_ids else {}
-        customers = list(db.scalars(select(Customer).order_by(Customer.name).limit(1000)))
-        event_types = list(db.scalars(select(AuditEvent.event_type).distinct().order_by(AuditEvent.event_type)))
-        export_params = {k: v for k, v in params.items() if v}
-        export_url = "/audit/events/export.csv" + ("?" + urlencode(export_params) if export_params else "")
-        return core.render(
-            request,
-            db,
-            user,
-            "audit_events_v2.html",
-            events=events,
-            customer_map=customer_map,
-            device_map=device_map,
-            customers=customers,
-            event_types=event_types,
-            pager=pager,
-            filters=params,
-            export_url=export_url,
-        )
-
-
 @router.get("/audit/events/export.csv", name="audit_events_export_csv")
 def audit_events_export_csv(
     request: Request,
@@ -396,11 +335,10 @@ def audit_events_export_csv(
 
 def install_activity_worklists(app):
     _remove_exact_route(app, "/devices/{device_id}/jobs", "GET")
-    _remove_exact_route(app, "/audit/events", "GET")
     app.include_router(router)
     promoted = []
     rest = []
-    paths = {"/devices/{device_id}/jobs", "/audit/events", "/audit/events/export.csv"}
+    paths = {"/devices/{device_id}/jobs", "/audit/events/export.csv"}
     for route in app.router.routes:
         if getattr(route, "path", None) in paths:
             promoted.append(route)

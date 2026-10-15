@@ -2,8 +2,6 @@
 import re
 import uuid
 from datetime import timedelta
-from urllib.parse import parse_qs, urlsplit
-from html import unescape
 
 from fastapi.testclient import TestClient
 
@@ -78,12 +76,12 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-sr-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get("/security/access").text
-    link = unescape(re.search(r'href="(/incidents/new\?[^"]+)">Apri incidente', page).group(1))
-    query = parse_qs(urlsplit(link).query)
-    assert query["device"] == [str(gw_id)] and query["severity"] == ["high"] and "8.8.4.4" in query["title"][0]
-    form = client.get(link).text
-    assert 'value="Tentativi di accesso falliti da 8.8.4.4"' in form and 'value="high" selected' in form and "Avviso accessi da syslog" in form
+    alert = next(a for a in client.get("/api/ui/v1/access").json()["alerts"] if a["device"] and a["device"]["id"] == str(gw_id))
+    prefill = alert["incident"]
+    assert prefill["severity"] == "high" and prefill["title"] == "Tentativi di accesso falliti da 8.8.4.4" and "Avviso accessi da syslog" in prefill["summary"]
+    form = client.get("/api/ui/v1/incident-form", params={"device": str(gw_id), **prefill}).json()
+    assert form["prefill"]["title"] == "Tentativi di accesso falliti da 8.8.4.4" and form["prefill"]["severity"] == "high"
+    assert form["preselected"] == [str(gw_id)]
     print("Syslog reports smoke passed")
 
 

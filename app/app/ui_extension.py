@@ -169,24 +169,6 @@ def _detect_logo_type(data: bytes):
     return None
 
 
-@router.get("/profile", response_class=HTMLResponse)
-def profile(request: Request):
-    with SessionLocal() as db:
-        user = _current_user(request, db)
-        if not user:
-            return RedirectResponse("/login", status_code=303)
-        pref = db.get(UserPreference, user.id)
-        return _render(
-            request,
-            db,
-            user,
-            "profile.html",
-            theme=(pref.theme if pref else "light"),
-            status=request.query_params.get("status", ""),
-            error=request.query_params.get("error", ""),
-        )
-
-
 def change_own_password_record(db, user, request: Request, current_password: str, new_password: str, confirm_password: str) -> None:
     """Change the signed-in user's password, end their other sessions and re-issue this one (new CSRF token).
 
@@ -221,26 +203,6 @@ def change_own_password_record(db, user, request: Request, current_password: str
     request.session["user_id"] = str(user.id)
     request.session["csrf_token"] = csrf_token(request)
     request.session["auth_at"] = request.session["seen_at"] = changed_at.astimezone(timezone.utc).isoformat()
-
-
-@router.post("/profile/password")
-def change_own_password(
-    request: Request,
-    current_password: str = Form(...),
-    new_password: str = Form(...),
-    confirm_password: str = Form(...),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = _current_user(request, db)
-        if not user:
-            return RedirectResponse("/login", status_code=303)
-        try:
-            change_own_password_record(db, user, request, current_password, new_password, confirm_password)
-        except ValueError as exc:
-            return RedirectResponse(f"/profile?error={exc}", status_code=303)
-    return RedirectResponse("/profile?status=password_changed", status_code=303)
 
 
 @router.post("/profile/theme")

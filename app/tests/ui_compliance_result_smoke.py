@@ -104,12 +104,6 @@ def main():
 
     assert code(tech.post(f"/api/ui/v1/compliance/results/{ids['pass']}/acknowledge", headers=csrf, json={})) == "not_fail"
 
-    # The classic page keeps its flash on a refused action.
-    page = tech.get(f"/compliance/results/{ids['fail']}")
-    token = re.search(r'name="csrf" value="([^"]+)"', page.text).group(1)
-    classic = tech.post(f"/compliance/results/{ids['fail']}/exception/revoke", data={"csrf": token, "note": ""}, follow_redirects=False)
-    assert classic.status_code == 303 and classic.headers["location"].endswith(f"/compliance/results/{ids['fail']}")
-
     assert tech.get(f"/app/compliance/results/{ids['fail']}").status_code in (200, 503)
     print("ui compliance result smoke ok")
 

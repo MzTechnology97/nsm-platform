@@ -217,9 +217,9 @@ def main():
     with SessionLocal() as db:
         hw = db.query(SecurityAdvisory).filter_by(cve_id=CVE_HW).one()
         hw_id = hw.id
-    detail = client.get(f"/security/vulnerabilities/{hw_id}").text
-    assert "NVD (importata automaticamente)" in detail and "&lt; 7.13 · solo rb750gr3" in detail
-    assert "TEST-NVD-EXPOSED" in detail and "affidabilità alta" in detail
+    detail = client.get(f"/api/ui/v1/vulnerabilities/{hw_id}?status=all").json()
+    assert detail["source"] == "nvd" and any("7.13" in rule and "rb750gr3" in rule for rule in detail["rules"]), detail["rules"]
+    assert any(row["device"]["name"] == "TEST-NVD-EXPOSED" for row in detail["impacted"])
     admin_page = client.get("/admin/integrations/nvd").text
     assert "Ultimo successo" in admin_page and "Abilitata" in admin_page
     hub = client.get("/integrations").text

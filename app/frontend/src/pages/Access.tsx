@@ -101,7 +101,13 @@ export function Access() {
                     {alert.device ? <Link to="/devices/$deviceId/syslog" params={{ deviceId: alert.device.id }}>{alert.title}</Link> : <span>{alert.title}</span>}
                     <small className="ui-muted">
                       {[alert.device?.name, alert.device?.customer?.name].filter(Boolean).join(" · ")} · {formatRelative(alert.created_at, i18n.language)} · {alert.status}
+                      {alert.users.length > 0 && <> · {t("access.alerts.users", { list: alert.users.join(", ") })}</>}
                     </small>
+                    {alert.incident && alert.device && (
+                      <Link to="/incidents/new" search={{ device: alert.device.id, ...alert.incident }} className="ui-button ui-button-ghost ui-button-small">
+                        {t("access.alerts.openIncident")}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

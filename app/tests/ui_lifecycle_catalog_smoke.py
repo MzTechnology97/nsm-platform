@@ -100,11 +100,9 @@ def main():
         assert db.get(LifecycleRecord, uuid.UUID(saved["id"])) is None and db.get(Device, ids["device"]).lifecycle_record_id is None
     assert admin.post(f"{base}/{saved['id']}/delete", headers=csrf).status_code == 404
 
-    # The classic form keeps a readable flash (no "400:" prefix).
-    page = admin.get("/security/lifecycle/catalog/new")
-    token = re.search(r'name="csrf" value="([^"]+)"', page.text).group(1)
-    classic = admin.post("/security/lifecycle/catalog", data={"csrf": token, "vendor": "mikrotik", "model": "x", "source": ""}, follow_redirects=True)
-    assert "La fonte è obbligatoria" in classic.text and "400:" not in classic.text
+    # The classic address opens the new page with its prefill.
+    moved = admin.get(f"/security/lifecycle/catalog/new?vendor=mikrotik&model={model}", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == f"/app/lifecycle/catalog/new?vendor=mikrotik&model={model}"
 
     for path in ("/app/lifecycle/catalog", f"/app/lifecycle/catalog/new?vendor=mikrotik&model={model}", f"/app/lifecycle/catalog/{uuid.uuid4()}/edit"):
         assert admin.get(path).status_code in (200, 503)

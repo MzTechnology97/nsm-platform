@@ -52,14 +52,16 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-lc-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get("/security/lifecycle/catalog").text
-    assert "Nessun modello in catalogo" in page
-    token = csrf_from(page)
+    api = "/api/ui/v1/lifecycle/catalog"
+    assert client.get(api).json()["total"] == 0
+    token = client.get("/api/ui/v1/session").json()["csrf_token"]
+    headers = {"X-CSRF-Token": token}
 
     header = "vendor,model,aliases,eol_date,eos_date,source,source_url,evidence_date,notes\n"
     bad = header + f"mikrotik,RB4011iGS+RM,,{past},{later},TEST fonte,,{today},\nmikrotik,RB9999,,{later},{past},TEST fonte,,{today},\n"
-    response = client.post("/security/lifecycle/catalog/import", data={"csrf": token}, files={"file": ("bad.csv", bad.encode(), "text/csv")}, follow_redirects=True)
-    assert "Nessun record importato" in response.text and "riga 3" in response.text and "EOS non può precedere" in response.text
+    response = client.post(f"{api}/import", headers=headers, files={"file": ("bad.csv", bad.encode(), "text/csv")})
+    message = response.json()["detail"]["message"]
+    assert response.status_code == 422 and "riga 3" in message and "EOS non può precedere" in message
     with SessionLocal() as db:
         assert db.scalar(select(LifecycleRecord.id).limit(1)) is None, "an invalid file must not import anything"
 
@@ -70,8 +72,8 @@ def main():
         f"mikrotik,CCR2004-16G-2S+,,,,TEST pagina prodotto,,{today},",
         f"mikrotik,hAP ax2,,,{soon},TEST annuncio,,{today},",
     ]) + "\n"
-    response = client.post("/security/lifecycle/catalog/import", data={"csrf": token}, files={"file": ("good.csv", good.encode(), "text/csv")}, follow_redirects=True)
-    assert "5 record creati, 0 aggiornati" in response.text, response.text[:400]
+    response = client.post(f"{api}/import", headers=headers, files={"file": ("good.csv", good.encode(), "text/csv")})
+    assert (response.json()["created"], response.json()["updated"]) == (5, 0), response.text[:400]
 
     with SessionLocal() as db:
         state = {k: db.get(Device, i) for k, i in ids.items()}
@@ -89,13 +91,12 @@ def main():
         assert stats["status_changed"] == 1 and db.get(Device, ids["upcoming"]).lifecycle_status == "eos"
         db.rollback()
 
-    worklist = client.get("/security/lifecycle").text
-    assert "TEST-LC-EOL" in worklist and "TEST-LC-ALIAS" in worklist and "TEST-LC-MANUAL" in worklist and "TEST-LC-AMB" not in worklist
-    assert "TEST-LC-SOON" in client.get("/security/lifecycle?state=upcoming").text
-    unmatched = client.get("/security/lifecycle?state=unmatched").text
-    for marker in ("Corrispondenza ambigua", "Non in catalogo", "Modello non rilevato", "Aggiungi al catalogo"):
-        assert marker in unmatched, marker
-    assert "TEST pagina prodotto" in client.get("/security/lifecycle/catalog").text
+    worklist = {item["name"] for item in client.get("/api/ui/v1/lifecycle").json()["items"]}
+    assert {"TEST-LC-EOL", "TEST-LC-ALIAS", "TEST-LC-MANUAL"} <= worklist and "TEST-LC-AMB" not in worklist
+    assert "TEST-LC-SOON" in {item["name"] for item in client.get("/api/ui/v1/lifecycle?state=upcoming").json()["items"]}
+    unmatched = {group["match"] for group in client.get("/api/ui/v1/lifecycle?state=unmatched").json()["groups"]}
+    assert {"ambiguous", "no_record", "no_model"} <= unmatched, unmatched
+    assert any(item["source"] == "TEST pagina prodotto" for item in client.get(api).json()["items"])
 
     form = client.get(f"/devices/{ids['ambiguous']}/lifecycle").text
     assert "CCR2004-16G-2S+" in form and "CCR2004-1G-12S+2XS" in form
@@ -108,11 +109,11 @@ def main():
         ccr = db.scalar(select(LifecycleRecord).where(LifecycleRecord.model == "CCR2004-16G-2S+"))
         rb4011 = db.scalar(select(LifecycleRecord).where(LifecycleRecord.model == "RB4011iGS+RM"))
         ccr_id = ccr.id
-    base = {"csrf": token, "vendor": "mikrotik", "model": "CCR2004-16G-2S+", "source": "TEST pagina prodotto", "evidence_date": today.isoformat(), "record_id": str(ccr_id)}
-    response = client.post("/security/lifecycle/catalog", data={**base, "aliases": "RB4011iGS+RM"}, follow_redirects=True)
-    assert "già presente nel record" in response.text
-    response = client.post("/security/lifecycle/catalog", data={**base, "aliases": "CCR2004", "eos_date": past.isoformat()}, follow_redirects=True)
-    assert "Record salvato" in response.text
+    base = {"vendor": "mikrotik", "model": "CCR2004-16G-2S+", "source": "TEST pagina prodotto", "evidence_date": today.isoformat(), "record_id": str(ccr_id)}
+    response = client.post(api, headers=headers, json={**base, "aliases": "RB4011iGS+RM"})
+    assert response.status_code == 422 and response.json()["detail"]["code"] == "duplicate"
+    response = client.post(api, headers=headers, json={**base, "aliases": "CCR2004", "eos_date": past.isoformat()})
+    assert response.status_code == 200, response.text
     with SessionLocal() as db:
         amb = db.get(Device, ids["ambiguous"])
         assert (amb.lifecycle_match, amb.lifecycle_status, amb.lifecycle_record_id) == ("catalog", "eos", ccr_id)
@@ -129,7 +130,7 @@ def main():
         assert (back.lifecycle_match, back.lifecycle_status, back.lifecycle_source) == ("no_record", "unknown", None)
 
     # Deleting a record leaves its Devices explicitly unknown.
-    client.post(f"/security/lifecycle/catalog/{rb4011.id}/delete", data={"csrf": token}, follow_redirects=True)
+    assert client.post(f"{api}/{rb4011.id}/delete", headers=headers).json()["deleted"] is True
     with SessionLocal() as db:
         gone = db.get(Device, ids["eol"])
         assert (gone.lifecycle_match, gone.lifecycle_status, gone.eol_date, gone.lifecycle_record_id) == ("no_record", "unknown", None, None)
@@ -137,9 +138,9 @@ def main():
     # Auditors read the catalog but cannot change it.
     reader = TestClient(app)
     assert reader.post("/login", data={"username": f"ci-lc-aud-{suffix}", "password": PASSWORD, "csrf": csrf_from(reader.get("/login").text)}, follow_redirects=False).status_code == 303
-    catalog = reader.get("/security/lifecycle/catalog")
-    assert catalog.status_code == 200 and "Importa CSV" not in catalog.text
-    assert reader.get("/security/lifecycle/catalog/new").status_code == 403
+    catalog = reader.get(api)
+    assert catalog.status_code == 200 and catalog.json()["can_manage"] is False
+    assert reader.get(f"{api}/form").status_code == 403
     assert "RB3011UiAS-RM" in reader.get("/security/lifecycle/catalog.csv").text
     print("Lifecycle catalog smoke passed")
 

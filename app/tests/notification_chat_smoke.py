@@ -78,17 +78,19 @@ def main():
 
     # Profile: Telegram and Slack destinations, validation.
     user = login(user_name)
-    profile = user.get("/profile").text
-    assert 'data-channel="telegram"' in profile and 'data-channel="slack"' in profile
-    bad = user.post("/profile/notifications", data={"csrf": csrf_from(profile), "telegram_enabled": "on", "telegram_chat_id": "abc"}, follow_redirects=False)
-    assert "error=telegram_chat_id" in bad.headers["location"]
-    bad = user.post("/profile/notifications", data={"csrf": csrf_from(profile), "slack_enabled": "on", "slack_webhook": "https://evil.example.test/hook"}, follow_redirects=False)
-    assert "error=slack_webhook" in bad.headers["location"]
-    saved = user.post("/profile/notifications", data={"csrf": csrf_from(profile), "telegram_enabled": "on", "telegram_chat_id": "987654321", "telegram_level": "critical",
-                                                      "slack_enabled": "on", "slack_webhook": WEBHOOK, "slack_level": "warning", "slack_categories": ["security"]}, follow_redirects=False)
-    assert "notifications_saved" in saved.headers["location"]
-    profile = user.get("/profile").text
-    assert WEBHOOK not in profile and "Lascia vuoto per mantenere quello salvato" in profile
+    api = "/api/ui/v1/profile"
+    headers = {"X-CSRF-Token": user.get("/api/ui/v1/session").json()["csrf_token"]}
+    assert {"telegram", "slack"} <= set(user.get(api).json()["notifications"]["channels"])
+    bad = user.post(f"{api}/notifications", headers=headers, json={"channels": {"telegram": {"enabled": True, "chat_id": "abc"}}})
+    assert bad.status_code == 422 and bad.json()["detail"]["code"] == "telegram_chat_id"
+    bad = user.post(f"{api}/notifications", headers=headers, json={"channels": {"slack": {"enabled": True, "webhook": "https://evil.example.test/hook"}}})
+    assert bad.status_code == 422 and bad.json()["detail"]["code"] == "slack_webhook"
+    saved = user.post(f"{api}/notifications", headers=headers, json={"channels": {
+        "telegram": {"enabled": True, "chat_id": "987654321", "level": "critical"},
+        "slack": {"enabled": True, "webhook": WEBHOOK, "level": "warning", "categories": ["security"]}}})
+    assert saved.json() == {"ok": True}
+    profile = user.get(api).text
+    assert WEBHOOK not in profile and user.get(api).json()["notifications"]["channels"]["slack"]["has_secret"] is True
     with SessionLocal() as db:
         slack = db.scalar(select(UserNotificationPreference).where(UserNotificationPreference.channel == "slack", UserNotificationPreference.enabled.is_(True)))
         assert decrypt_text(slack.secret_encrypted) == WEBHOOK

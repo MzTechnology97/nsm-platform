@@ -262,7 +262,7 @@ def main():
     detail = client.get(f"/devices/{device_id}")
     assert detail.status_code == 200
     assert "UISP Network" in detail.text and UISP_ID in detail.text
-    csrf = csrf_from(client.get(f"/devices/{device_id}/uisp").text)
+    csrf = client.get("/api/ui/v1/session").json()["csrf_token"]
     refreshed = client.post(
         f"/devices/{device_id}/uisp/refresh",
         data={"csrf": csrf},

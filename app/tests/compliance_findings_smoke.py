@@ -62,31 +62,35 @@ def main():
         assert db.query(ComplianceResultHistory).filter_by(result_id=ids["backup"]).count() == 1
 
     client = login(f"ci-cf-{suffix}")
-    page = client.get(f"/compliance/results/{ids['backup']}").text
-    assert "Backup non eseguibile" in page and "Prendi in carico" in page and "Registra eccezione" in page
-    token = csrf_from(page)
-    assert "presa in carico" in client.post(f"/compliance/results/{ids['backup']}/acknowledge", data={"csrf": token, "note": "Policy in arrivo"}).text
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    api = "/api/ui/v1/compliance/results"
+    detail = client.get(f"{api}/{ids['backup']}").json()
+    assert detail["status"] == "fail" and detail["can_manage"] and detail["acknowledged"] is None
+    assert client.post(f"{api}/{ids['backup']}/acknowledge", headers=headers, json={"note": "Policy in arrivo"}).status_code == 200
 
     # Exceptions: reason and expiry within a year are mandatory.
-    base = f"/compliance/results/{ids['agent']}/exception"
-    assert "motivazione" in client.post(base, data={"csrf": token, "reason": "", "until": (now + timedelta(days=30)).date().isoformat()}).text
-    assert "entro un anno" in client.post(base, data={"csrf": token, "reason": "x", "until": (now + timedelta(days=500)).date().isoformat()}).text
+    base = f"{api}/{ids['agent']}/exception"
+    refused = client.post(base, headers=headers, json={"reason": "", "until": (now + timedelta(days=30)).date().isoformat()})
+    assert refused.status_code == 422 and refused.json()["detail"]["code"] == "reason"
+    refused = client.post(base, headers=headers, json={"reason": "x", "until": (now + timedelta(days=500)).date().isoformat()})
+    assert refused.status_code == 422 and refused.json()["detail"]["code"] == "until_range"
     until = (now + timedelta(days=30)).date()
-    assert "Eccezione registrata" in client.post(base, data={"csrf": token, "reason": "TEST router in dismissione", "until": until.isoformat()}).text
+    assert "Eccezione registrata" in client.post(base, headers=headers, json={"reason": "TEST router in dismissione", "until": until.isoformat()}).json()["message"]
 
     with SessionLocal() as db:
         assert result(db, ids["device"], "agent_heartbeat").status == "fail", "the evaluated status is never overwritten"
         assert issue(db, ids["device"]).details["count"] == 1, "an excepted failure is not 'to handle'"
         assert result(db, ids["device"], "backup_recent").acknowledged_by_user_id is not None
-    overview = client.get(f"/compliance?status=exception").text
-    assert "TEST-CF-RTR" in overview and "In eccezione" in overview and "in eccezione" in overview
-    fails = client.get(f"/compliance?status=fail").text
-    assert "presa in carico" in fails
+    overview = client.get("/api/ui/v1/compliance?status=exception").json()
+    row = next(item for item in overview["items"] if item["device"]["name"] == "TEST-CF-RTR")
+    assert row["results"]["agent_heartbeat"]["exception"] is True
 
     auditor = login(f"ci-cf-aud-{suffix}")
-    view = auditor.get(f"/compliance/results/{ids['backup']}").text
-    assert "Registra eccezione" not in view and "Policy in arrivo" in view and "CI Compliance Tech" in view
-    assert auditor.post(f"/compliance/results/{ids['backup']}/acknowledge", data={"csrf": csrf_from(view)}).status_code == 403
+    view = auditor.get(f"{api}/{ids['backup']}").json()
+    assert view["can_manage"] is False and view["acknowledged"]["by"] == "CI Compliance Tech"
+    assert view["history"][0]["note"] == "Policy in arrivo"
+    auditor_headers = {"X-CSRF-Token": auditor.get("/api/ui/v1/session").json()["csrf_token"]}
+    assert auditor.post(f"{api}/{ids['backup']}/acknowledge", headers=auditor_headers, json={}).status_code == 403
 
     with SessionLocal() as db:
         # Expiry brings the failure back to 'to handle'.
@@ -108,8 +112,8 @@ def main():
         actions = [h.action for h in db.query(ComplianceResultHistory).filter_by(result_id=ids["backup"]).order_by(ComplianceResultHistory.created_at)]
         assert actions == ["evaluated", "acknowledged", "evaluated"], actions
         assert issue(db, ids["device"]).details["count"] == 1
-    final = client.get(f"/compliance/results/{ids['agent']}").text
-    assert "Eccezione scaduta" in final and "TEST router in dismissione" in final
+    final = client.get(f"{api}/{ids['agent']}").json()
+    assert final["history"][0]["action"] == "exception_expired" and any("TEST router in dismissione" in (h["note"] or "") for h in final["history"])
     print("Compliance findings smoke passed")
 
 

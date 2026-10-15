@@ -35,7 +35,6 @@ from app.firmware_worklist import install_firmware_worklist
 from app.fleet_monitoring import install_fleet_monitoring
 from app.integrations_hub import install_integrations_hub
 from app.inventory_ui import install_inventory_ui
-from app.lifecycle_drilldown import install_lifecycle_drilldown
 from app.mikrotik_agent import install_mikrotik_agent
 from app.mikrotik_agent_generation import install_mikrotik_agent_generation
 from app.mikrotik_agent_status import install_mikrotik_agent_status
@@ -60,6 +59,7 @@ from app.ui_personal import install_ui_personal
 from app.ui_device_tabs import install_ui_device_tabs
 from app.ui_device_connectors import install_ui_device_connectors
 from app.ui_backup_policies import install_ui_backup_policies
+from app.legacy_redirects import install_legacy_redirects
 from app.ui_spa import install_ui_spa
 from app.mikrotik_heartbeat_interval import install_mikrotik_heartbeat_interval
 from app.mikrotik_interface_errors import install_mikrotik_interface_errors
@@ -107,10 +107,7 @@ from app.device_exposure import install_device_exposure
 from app.acs_admin import install_acs_admin
 from app import shared_ips as _shared_ips
 from app.reports import install_reports
-from app.report_schedules import install_report_schedules
 from app.search_enhancement import install_search_enhancement
-from app.security_drilldown import install_security_drilldown
-from app.ui_action_center_feedback import install_ui_action_center_feedback
 from app.ui_action_feedback import install_ui_action_feedback
 from app.ui_api_key_feedback import install_ui_api_key_feedback
 from app.ui_backup_feedback import install_ui_backup_feedback
@@ -123,17 +120,12 @@ from app.ui_extension import install_ui
 from app.ui_feedback import install_ui_feedback
 from app.ui_firmware_feedback import install_ui_firmware_feedback
 from app.ui_firmware_upgrade_feedback import install_ui_firmware_upgrade_feedback
-from app.ui_notification_feedback import install_ui_notification_feedback
 from app.uisp_connector import install_uisp_connector
 from app.uisp_sync import install_uisp_sync
 from app.uisp_operations import install_uisp_operations
 from app.vendor_firmware import install_vendor_firmware
 from app.cnmaestro_connector import install_cnmaestro_connector
 from app.advisory_admin import install_advisory_admin
-from app.vulnerability_remediation import install_vulnerability_remediation
-from app.incidents import install_incidents
-from app.incident_evidence import install_incident_evidence
-from app.compliance import install_compliance
 from app.compliance_findings import install_compliance_findings
 from app.lifecycle_catalog import install_lifecycle_catalog
 from app.lifecycle_remediation import install_lifecycle_remediation
@@ -153,7 +145,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.167"
+APP_VERSION = "0.49.168"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -214,10 +206,6 @@ install_uisp_operations(core.app)
 install_vendor_firmware(core.app)
 install_cnmaestro_connector(core.app)
 install_advisory_admin(core.app)
-install_vulnerability_remediation(core.app)
-install_incidents(core.app)
-install_incident_evidence(core.app)
-install_compliance(core.app)
 install_compliance_findings(core.app)
 install_lifecycle_catalog(core.app)
 install_lifecycle_remediation(core.app)
@@ -239,8 +227,6 @@ install_customer_workspace(core.app)
 install_backup_workspace_capabilities(core.app)
 promote_customer_workspace_routes(core.app)
 install_customer_drilldown(core.app)
-install_security_drilldown(core.app)
-install_lifecycle_drilldown(core.app)
 install_firmware_worklist(core.app)
 install_fleet_monitoring(core.app)
 install_integrations_hub(core.app)
@@ -262,7 +248,6 @@ install_branding_runtime(core.app)
 promote_device_csv_import_routes(core.app)
 install_activity_worklists(core.app)
 install_reports(core.app)
-install_report_schedules(core.app)
 privileged_bootstrap = install_mikrotik_privilege_profile()
 mikrotik_agent_core._bootstrap_script = privileged_bootstrap
 # Legacy telemetry patches the APIRouter before FastAPI copies its routes.
@@ -328,9 +313,9 @@ install_ui_device_crud_feedback(core.app)
 install_ui_customer_site_crud_feedback(core.app)
 install_ui_customer_device_bulk_feedback(core.app)
 install_ui_api_key_feedback(core.app)
-install_ui_action_center_feedback(core.app)
-install_ui_notification_feedback(core.app)
 # Machine-facing completion idempotency must be installed after every route
 # composer/promoter so no later compatibility or UI layer can shadow it.
 install_mikrotik_job_completion_guard(core.app)
+# Classic page addresses → the new interface; last, so it wins over any classic handler.
+install_legacy_redirects(core.app)
 app = core.app

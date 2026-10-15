@@ -78,17 +78,19 @@ def main():
     assert "E-mail di prova inviata" in tested.text and SENT[-1]["to"] == f"admin-{suffix}@example.test" and SENT[-1]["login"] == ("nsm", "smtp-secret-ci")
 
     # Preferences from the profile page.
-    for key, data in (("backup", {"email_enabled": "on", "email_level": "high", "email_categories": ["backup"]}),
-                      ("all", {"email_enabled": "on", "email_level": "info"}),
-                      ("off", {"email_level": "info"})):
+    def save(client, body):
+        return client.post("/api/ui/v1/profile/notifications", headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}, json=body)
+
+    for key, channel in (("backup", {"enabled": True, "level": "high", "categories": ["backup"]}),
+                         ("all", {"enabled": True, "level": "info"}),
+                         ("off", {"level": "info"})):
         client = login(names[key])
-        profile = client.get("/profile").text
-        assert 'data-profile="notifications"' in profile
-        response = client.post("/profile/notifications", data={"csrf": csrf_from(profile), "email": f"{key}-{suffix}@example.test", **data}, follow_redirects=False)
-        assert "notifications_saved" in response.headers["location"], response.headers["location"]
+        assert "email" in client.get("/api/ui/v1/profile").json()["notifications"]["channels"]
+        response = save(client, {"email": f"{key}-{suffix}@example.test", "channels": {"email": channel}})
+        assert response.json() == {"ok": True}, response.text
     tech = login(names["tech"])
-    bad = tech.post("/profile/notifications", data={"csrf": csrf_from(tech.get("/profile").text), "email": "", "email_enabled": "on"}, follow_redirects=False)
-    assert "error=notification_email" in bad.headers["location"], "e-mail channel needs an address"
+    bad = save(tech, {"email": "", "channels": {"email": {"enabled": True}}})
+    assert bad.status_code == 422 and bad.json()["detail"]["code"] == "notification_email", "e-mail channel needs an address"
 
     SENT.clear()
     with SessionLocal() as db:
@@ -126,11 +128,12 @@ def main():
     # Test message from the profile.
     SENT.clear()
     client = login(names["off"])
-    response = client.post("/profile/notifications/test", data={"csrf": csrf_from(client.get("/profile").text)}, follow_redirects=False)
-    assert "notifications_test_none" in response.headers["location"], "disabled channels receive nothing"
+    test_url = "/api/ui/v1/profile/notifications/test"
+    response = client.post(test_url, headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]})
+    assert response.json()["queued"] is False, "disabled channels receive nothing"
     client = login(names["all"])
-    response = client.post("/profile/notifications/test", data={"csrf": csrf_from(client.get("/profile").text)}, follow_redirects=False)
-    assert "notifications_test_queued" in response.headers["location"] and SENT and SENT[-1]["to"] == f"all-{suffix}@example.test"
+    response = client.post(test_url, headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]})
+    assert response.json()["queued"] is True and SENT and SENT[-1]["to"] == f"all-{suffix}@example.test"
 
     assert tech.get("/admin/notifications", follow_redirects=False).status_code in (401, 403)
     with SessionLocal() as db:

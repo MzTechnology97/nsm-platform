@@ -66,7 +66,7 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-lb-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    token = csrf_from(client.get(f"/devices/{ids['ok']}").text)
+    token = client.get("/api/ui/v1/session").json()["csrf_token"]
     client.post(f"/devices/{ids['ok']}/backup-now", data={"csrf": token}, follow_redirects=True)
     with SessionLocal() as db:
         job = db.scalar(select(DeviceJob).where(DeviceJob.device_id == ids["ok"], DeviceJob.job_type == "backup_mikrotik"))

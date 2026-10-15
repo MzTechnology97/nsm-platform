@@ -1253,7 +1253,9 @@
     "alerts": {
       "title": "Access alerts",
       "hint": "Issues opened by repeated attempts (brute force) on the devices.",
-      "none": "No access alert."
+      "none": "No access alert.",
+      "users": "users: {{list}}",
+      "openIncident": "Open incident"
     }
   },
   "lifecycle": {
@@ -1664,6 +1666,10 @@
       "file": "File",
       "summary": "Summary",
       "actions": ""
+    },
+    "downloadErrors": {
+      "integrity": "The archived content does not match its recorded SHA-256: download blocked.",
+      "not_found": "Report not found."
     }
   },
   "admin": {

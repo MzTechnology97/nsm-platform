@@ -144,51 +144,31 @@ def main():
     )
     assert response.status_code == 303
 
-    page = client.get("/security/vulnerabilities")
-    assert page.status_code == 200
-    assert "CVE-2099-1201" in page.text
-    assert "CVE-2099-1202" not in page.text
-    assert "Tutti i clienti" in page.text
-    assert "Apparati" in page.text and "Clienti" in page.text
+    def cves(query=""):
+        response = client.get(f"/api/ui/v1/vulnerabilities{query}")
+        assert response.status_code == 200, response.text
+        return {item["cve_id"] for item in response.json()["items"]}
 
-    customer_a = client.get(
-        f"/security/vulnerabilities?customer={ids['customer_a']}&status=open"
-    )
-    assert customer_a.status_code == 200
-    assert "CI12 Cliente A" in customer_a.text
-    assert "Vista Security confinata al cliente selezionato" in customer_a.text
-    assert "CVE-2099-1201" in customer_a.text
-    assert "CVE-2099-1202" not in customer_a.text
+    def impacted(advisory, query):
+        response = client.get(f"/api/ui/v1/vulnerabilities/{advisory}{query}")
+        assert response.status_code == 200, response.text
+        return {row["device"]["name"] for row in response.json()["impacted"]}
 
-    customer_b_resolved = client.get(
-        f"/security/vulnerabilities?customer={ids['customer_b']}&status=resolved"
-    )
-    assert customer_b_resolved.status_code == 200
-    assert "CVE-2099-1201" in customer_b_resolved.text
-    assert "CVE-2099-1202" in customer_b_resolved.text
+    page = cves()
+    assert "CVE-2099-1201" in page and "CVE-2099-1202" not in page
+    customer_a = cves(f"?customer={ids['customer_a']}&status=open")
+    assert "CVE-2099-1201" in customer_a and "CVE-2099-1202" not in customer_a
+    customer_b_resolved = cves(f"?customer={ids['customer_b']}&status=resolved")
+    assert {"CVE-2099-1201", "CVE-2099-1202"} <= customer_b_resolved
+    vendor_filter = cves("?vendor=ubiquiti&status=resolved")
+    assert "CVE-2099-1202" in vendor_filter and "CVE-2099-1201" not in vendor_filter
+    detail_a = impacted(ids["mixed"], f"?customer={ids['customer_a']}&status=open")
+    assert "CI12 Router A" in detail_a and "CI12 Router B" not in detail_a
+    detail_b = impacted(ids["mixed"], f"?customer={ids['customer_b']}&status=resolved")
+    assert "CI12 Router B" in detail_b and "CI12 Router A" not in detail_b
 
-    vendor_filter = client.get("/security/vulnerabilities?vendor=ubiquiti&status=resolved")
-    assert vendor_filter.status_code == 200
-    assert "CVE-2099-1202" in vendor_filter.text
-    assert "CVE-2099-1201" not in vendor_filter.text
-
-    detail_a = client.get(
-        f"/security/vulnerabilities/{ids['mixed']}?customer={ids['customer_a']}&status=open"
-    )
-    assert detail_a.status_code == 200
-    assert "CI12 Router A" in detail_a.text
-    assert "CI12 Router B" not in detail_a.text
-    assert "Impatto CVE limitato agli apparati di questo cliente" in detail_a.text
-
-    detail_b = client.get(
-        f"/security/vulnerabilities/{ids['mixed']}?customer={ids['customer_b']}&status=resolved"
-    )
-    assert detail_b.status_code == 200
-    assert "CI12 Router B" in detail_b.text
-    assert "CI12 Router A" not in detail_b.text
-
-    assert str(app.url_path_for("vulnerabilities")) == "/security/vulnerabilities"
-    assert str(app.url_path_for("vulnerability_detail", advisory_id=ids["mixed"])) == f"/security/vulnerabilities/{ids['mixed']}"
+    moved = client.get(f"/security/vulnerabilities/{ids['mixed']}?customer={ids['customer_a']}&status=open", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == f"/app/vulnerabilities/{ids['mixed']}?customer={ids['customer_a']}&status=open"
 
     print("Core 0.12 customer-aware security drilldown smoke test passed")
 

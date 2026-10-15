@@ -54,21 +54,22 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-rr-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get("/audit/reports").text
-    assert 'name="recipients"' in page
-    token = csrf_from(page)
-    client.post("/audit/reports/schedules", data={"csrf": token, "name": f"Bad {suffix}", "frequency": "monthly", "output_format": "csv", "recipients": "nope"})
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    api = "/api/ui/v1/reports"
+    assert client.get(api).json()["can_generate"]
+    refused = client.post(f"{api}/schedules", headers=headers, json={"name": f"Bad {suffix}", "frequency": "monthly", "output_format": "csv", "recipients": "nope"})
+    assert refused.status_code >= 400
     with SessionLocal() as db:
         assert db.scalar(select(ReportSchedule).where(ReportSchedule.name == f"Bad {suffix}")) is None, "invalid recipients refuse the schedule"
-    client.post("/audit/reports/schedules", data={"csrf": token, "name": f"Direzione {suffix}", "frequency": "monthly", "output_format": "csv",
-                                                  "recipients": f"cda-{suffix}@example.test, audit-{suffix}@example.test"})
+    client.post(f"{api}/schedules", headers=headers, json={"name": f"Direzione {suffix}", "frequency": "monthly", "output_format": "csv",
+                                                           "recipients": f"cda-{suffix}@example.test, audit-{suffix}@example.test"}).raise_for_status()
     with SessionLocal() as db:
         schedule = db.scalar(select(ReportSchedule).where(ReportSchedule.name == f"Direzione {suffix}"))
         assert schedule.recipients == [f"cda-{suffix}@example.test", f"audit-{suffix}@example.test"]
         schedule_id = schedule.id
-    page = client.get("/audit/reports").text
-    assert "2 destinatari esterni" in page and f"cda-{suffix}@example.test" in page
-    client.post(f"/audit/reports/schedules/{schedule_id}/recipients", data={"csrf": csrf_from(page), "recipients": f"cda-{suffix}@example.test"})
+    listed = next(s for s in client.get(api).json()["schedules"] if s["id"] == str(schedule_id))
+    assert listed["recipients"] == [f"cda-{suffix}@example.test", f"audit-{suffix}@example.test"]
+    client.post(f"{api}/schedules/{schedule_id}/recipients", headers=headers, json={"recipients": f"cda-{suffix}@example.test"}).raise_for_status()
     with SessionLocal() as db:
         assert db.get(ReportSchedule, schedule_id).recipients == [f"cda-{suffix}@example.test"]
         assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "REPORT_SCHEDULE_RECIPIENTS_CHANGED")) is not None

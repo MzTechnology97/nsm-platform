@@ -116,39 +116,23 @@ def main():
     )
     assert response.status_code == 303
 
-    page = client.get("/security/lifecycle")
-    assert page.status_code == 200
-    assert "CI13 A EOL" in page.text
-    assert "CI13 A EOS" in page.text
-    assert "CI13 B EOL" in page.text
-    assert "CI13 B Current" not in page.text
-    assert "clienti coinvolti" in page.text and "fuori dal lifecycle" in page.text
+    def names(query=""):
+        response = client.get(f"/api/ui/v1/lifecycle{query}")
+        assert response.status_code == 200, response.text
+        return {item["name"] for item in response.json()["items"]}
 
-    customer_a = client.get(f"/security/lifecycle?customer={ids['a']}")
-    assert customer_a.status_code == 200
-    assert "CI13 Cliente A" in customer_a.text
-    assert "Vista Lifecycle confinata agli apparati di questo cliente" in customer_a.text
-    assert "CI13 A EOL" in customer_a.text and "CI13 A EOS" in customer_a.text
-    assert "CI13 B EOL" not in customer_a.text
-
-    eos = client.get(f"/security/lifecycle?customer={ids['a']}&state=eos")
-    assert eos.status_code == 200
-    assert "CI13 A EOS" in eos.text
-    assert "CI13 A EOL" not in eos.text
-    assert "CI13 B EOL" not in eos.text
-
-    vendor = client.get("/security/lifecycle?vendor=ubiquiti")
-    assert vendor.status_code == 200
-    assert "CI13 A EOS" in vendor.text
-    assert "CI13 A EOL" not in vendor.text
-    assert "CI13 B EOL" not in vendor.text
-
-    search = client.get("/security/lifecycle?q=CCR+Legacy")
-    assert search.status_code == 200
-    assert "CI13 A EOL" in search.text
-    assert "CI13 A EOS" not in search.text
-
-    assert str(app.url_path_for("lifecycle")) == "/security/lifecycle"
+    page = names()
+    assert {"CI13 A EOL", "CI13 A EOS", "CI13 B EOL"} <= page and "CI13 B Current" not in page
+    customer_a = names(f"?customer={ids['a']}")
+    assert {"CI13 A EOL", "CI13 A EOS"} <= customer_a and "CI13 B EOL" not in customer_a
+    eos = names(f"?customer={ids['a']}&state=eos")
+    assert "CI13 A EOS" in eos and "CI13 A EOL" not in eos and "CI13 B EOL" not in eos
+    vendor = names("?vendor=ubiquiti")
+    assert "CI13 A EOS" in vendor and "CI13 A EOL" not in vendor and "CI13 B EOL" not in vendor
+    search = names("?q=CCR+Legacy")
+    assert "CI13 A EOL" in search and "CI13 A EOS" not in search
+    moved = client.get(f"/security/lifecycle?customer={ids['a']}&state=eos", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == f"/app/lifecycle?customer={ids['a']}&state=eos"
 
     print("Core 0.13 customer-aware lifecycle drilldown smoke test passed")
 

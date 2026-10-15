@@ -307,6 +307,8 @@ const reportsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/reports",
   component: lazyRouteComponent(() => import("../pages/Reports"), "Reports"),
+  validateSearch: (search: Record<string, unknown>): { error?: "integrity" | "not_found" } =>
+    search.error === "integrity" || search.error === "not_found" ? { error: search.error } : {},
 });
 const adminUsersRoute = createRoute({
   getParentRoute: () => rootRoute,

@@ -63,11 +63,13 @@ def main():
         assert tech.get(path).status_code == 404, path
     customers = tech.get("/customers").text
     assert f"CI Scope Alpha {suffix}" in customers and f"CI Scope Beta {suffix}" not in customers
-    search = tech.get(f"/search?q=TEST-CS-").text
-    assert f"TEST-CS-ALPHA-{suffix}" in search and f"TEST-CS-BETA-{suffix}" not in search
-    action = tech.get("/action-center").text
-    assert f"Problema Alpha {suffix}" in action and f"Problema Beta {suffix}" not in action
-    for page in ("/", "/security/exposure?view=all", "/operations/monitoring?state=all", "/operations/firmware?state=all", "/operations/backups"):
+    found = {d["name"] for d in tech.get("/api/ui/v1/search?q=TEST-CS-").json()["devices"]}
+    assert f"TEST-CS-ALPHA-{suffix}" in found and f"TEST-CS-BETA-{suffix}" not in found
+    issues = {item["title"] for item in tech.get("/api/ui/v1/action-center").json()["items"]}
+    assert f"Problema Alpha {suffix}" in issues and f"Problema Beta {suffix}" not in issues
+    exposure = tech.get("/api/ui/v1/exposure?view=all").text
+    assert f"TEST-CS-BETA-{suffix}" not in exposure and f"CI Scope Beta {suffix}" not in exposure
+    for page in ("/operations/monitoring?state=all", "/operations/firmware?state=all", "/operations/backups"):
         response = tech.get(page)
         assert response.status_code == 200 and f"TEST-CS-BETA-{suffix}" not in response.text and f"CI Scope Beta {suffix}" not in response.text, page
     # Writes on another customer's objects fail like a missing object.
@@ -87,7 +89,7 @@ def main():
     with SessionLocal() as db:
         assert db.scalar(select(func.count(Device.id)).where(Device.id.in_([ids["dev_a"], ids["dev_b"]]))) == 2
     # Removing the scope restores full visibility.
-    admin.post(f"/admin/users/{tech_id}/scope", data={"csrf": csrf_from(admin.get('/admin/users').text)})
+    admin.post(f"/admin/users/{tech_id}/scope", data={"csrf": admin.get("/api/ui/v1/session").json()["csrf_token"]})
     assert f"TEST-CS-BETA-{suffix}" in tech.get("/devices").text
     print("Customer scope smoke passed")
 

@@ -1253,7 +1253,9 @@
     "alerts": {
       "title": "Alertas de acceso",
       "hint": "Avisos abiertos por intentos repetidos (fuerza bruta) en los equipos.",
-      "none": "Ninguna alerta de acceso."
+      "none": "Ninguna alerta de acceso.",
+      "users": "usuarios: {{list}}",
+      "openIncident": "Abrir incidente"
     }
   },
   "lifecycle": {
@@ -1664,6 +1666,10 @@
       "file": "Archivo",
       "summary": "Resumen",
       "actions": ""
+    },
+    "downloadErrors": {
+      "integrity": "El contenido archivado no coincide con el SHA-256 registrado: descarga bloqueada.",
+      "not_found": "Informe no encontrado."
     }
   },
   "admin": {

@@ -1,22 +1,17 @@
 """Incident workflow (INC-01/INC-02): list, create, timeline, notes, status."""
 from __future__ import annotations
 
-import math
 import uuid
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse
 from sqlalchemy import func, or_, select
 
 from app import main as core
 from app.config import settings
-from app.db import SessionLocal
 from app.input_errors import InputError
 from app.incident_correlation import suggest
 from app.incident_models import (
-    HYPOTHESIS_STATUSES,
     INCIDENT_SEVERITIES,
     INCIDENT_STATUSES,
     NOTE_KINDS,
@@ -26,12 +21,9 @@ from app.incident_models import (
     IncidentHypothesis,
     IncidentNote,
 )
-from app.incident_timeline import SOURCE_LABELS, build_timeline
+from app.incident_timeline import build_timeline
 from app.models import Customer, Device, Site, User, utcnow
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 
-router = APIRouter()
 
 ACTIVE_STATUSES = ("open", "investigating", "monitoring")
 PER_PAGE = 50
@@ -57,24 +49,11 @@ def parse_local(value: str) -> datetime | None:
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=_tz())
 
 
-def local_input(value: datetime | None) -> str:
-    return value.astimezone(_tz()).strftime("%Y-%m-%dT%H:%M") if value else ""
-
-
 def _uuid(value: str):
     try:
         return uuid.UUID(str(value))
     except (TypeError, ValueError):
         return None
-
-
-def _require(request, db, permission):
-    user = core.current_user(request, db)
-    if not user:
-        return None
-    if not core.has_permission(user, permission):
-        raise HTTPException(403)
-    return user
 
 
 def _incident_devices(db, incident_id) -> list[Device]:
@@ -114,87 +93,6 @@ def status_filter(status: str) -> list:
 
 
 # ------------------------------------------------------------------ list --
-
-@router.get("/incidents", response_class=HTMLResponse, name="incidents")
-def incident_list(request: Request, status: str = "active", customer: str = "", q: str = "", page: int = 1):
-    with SessionLocal() as db:
-        user = _require(request, db, "incidents.read")
-        if not user:
-            return core.login_redirect()
-        customer_id = _uuid(customer)
-        term = q.strip()
-        scope = list_scope(customer_id, term)
-        counts = status_counts(db, scope)
-        filters = [*scope, *status_filter(status)]
-        total = int(db.scalar(select(func.count(Incident.id)).where(*filters)) or 0)
-        pages = max(1, math.ceil(total / PER_PAGE))
-        page = min(max(1, page), pages)
-        rows = db.execute(
-            select(Incident, Customer, func.count(IncidentDevice.id), IncidentHypothesis)
-            .join(Customer, Customer.id == Incident.customer_id)
-            .outerjoin(IncidentDevice, IncidentDevice.incident_id == Incident.id)
-            .outerjoin(IncidentHypothesis, IncidentHypothesis.id == Incident.root_cause_hypothesis_id)
-            .where(*filters)
-            .group_by(Incident.id, Customer.id, IncidentHypothesis.id)
-            .order_by(Incident.started_at.desc(), Incident.id)
-            .offset((page - 1) * PER_PAGE)
-            .limit(PER_PAGE)
-        ).all()
-        return core.render(
-            request,
-            db,
-            user,
-            "incidents.html",
-            rows=rows,
-            counts=counts,
-            status_filter=status,
-            customer_filter=customer,
-            q=term,
-            customers=list(db.scalars(select(Customer).order_by(Customer.name))),
-            selected_customer=db.get(Customer, customer_id) if customer_id else None,
-            total=total,
-            page=page,
-            pages=pages,
-            statuses=INCIDENT_STATUSES,
-            severities=INCIDENT_SEVERITIES,
-            root_cause_categories=ROOT_CAUSE_CATEGORIES,
-            now=utcnow(),
-        )
-
-
-# ---------------------------------------------------------------- create --
-
-@router.get("/incidents/new", response_class=HTMLResponse, name="incident_new")
-def incident_new(request: Request, customer: str = "", device: str = "", title: str = "", summary: str = "", severity: str = ""):
-    with SessionLocal() as db:
-        user = _require(request, db, "incidents.write")
-        if not user:
-            return core.login_redirect()
-        device_obj = db.get(Device, _uuid(device)) if _uuid(device) else None
-        customer_id = device_obj.customer_id if device_obj else _uuid(customer)
-        selected_customer = db.get(Customer, customer_id) if customer_id else None
-        devices = (
-            list(db.scalars(select(Device).where(Device.customer_id == customer_id).order_by(Device.display_name.nullslast(), Device.name)))
-            if selected_customer
-            else []
-        )
-        sites = list(db.scalars(select(Site).where(Site.customer_id == customer_id).order_by(Site.name))) if selected_customer else []
-        return core.render(
-            request,
-            db,
-            user,
-            "incident_new.html",
-            customers=list(db.scalars(select(Customer).order_by(Customer.name))),
-            selected_customer=selected_customer,
-            devices=devices,
-            sites=sites,
-            preselected={device_obj.id} if device_obj else set(),
-            preselected_site=device_obj.site_id if device_obj else None,
-            severities=INCIDENT_SEVERITIES,
-            default_started=local_input(utcnow()),
-            prefill={"title": title[:200], "summary": summary[:4000], "severity": severity if severity in INCIDENT_SEVERITIES else "medium"},
-        )
-
 
 def create_incident_record(db, user, *, customer_id, title, summary, severity, started_at, site_id, device_ids) -> uuid.UUID:
     """Open an incident for one customer with its devices; audited, commits. Shared by both interfaces.
@@ -247,93 +145,6 @@ def create_incident_record(db, user, *, customer_id, title, summary, severity, s
     )
     db.commit()
     return incident.id
-
-
-@router.post("/incidents", name="incident_create")
-async def incident_create(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "incidents.write")
-        customer_id = _uuid(form.get("customer_id"))
-        back = f"/incidents/new?customer={customer_id}" if customer_id and db.get(Customer, customer_id) else "/incidents/new"
-        try:
-            incident_id = create_incident_record(
-                db, user, customer_id=form.get("customer_id"), title=form.get("title"), summary=form.get("summary"),
-                severity=form.get("severity"), started_at=form.get("started_at"), site_id=form.get("site_id"),
-                device_ids=form.getlist("device_ids"),
-            )
-        except InputError as exc:
-            return flash_redirect(request, "/incidents/new" if exc.code == "customer" else back, "warning", str(exc), title="Dati non validi")
-    return flash_redirect(request, f"/incidents/{incident_id}", "success", "Incidente aperto: la timeline raccoglie gli eventi registrati attorno all'inizio.", title="Incidente creato")
-
-
-# ---------------------------------------------------------------- detail --
-
-def _load(db, incident_id):
-    incident = db.get(Incident, incident_id)
-    if not incident:
-        raise HTTPException(404)
-    return incident
-
-
-@router.get("/incidents/{incident_id}", response_class=HTMLResponse, name="incident_detail")
-def incident_detail(request: Request, incident_id: uuid.UUID, view: str = "all"):
-    with SessionLocal() as db:
-        user = _require(request, db, "incidents.read")
-        if not user:
-            return core.login_redirect()
-        incident = _load(db, incident_id)
-        devices = _incident_devices(db, incident.id)
-        timeline = build_timeline(db, incident, [device.id for device in devices], utcnow())
-        entries = timeline.entries
-        if view == "facts":
-            entries = [entry for entry in entries if entry.kind == "fact"]
-        elif view == "notes":
-            entries = [entry for entry in entries if entry.kind == "operator"]
-        customer_devices = list(
-            db.scalars(select(Device).where(Device.customer_id == incident.customer_id).order_by(Device.display_name.nullslast(), Device.name))
-        )
-        creator = db.get(User, incident.created_by_user_id) if incident.created_by_user_id else None
-        hypotheses = _hypotheses(db, incident.id)
-        used = {item.get("key") for hypothesis, _, _ in hypotheses for item in (hypothesis.evidence or [])}
-        candidates = suggest(incident, timeline, used)
-        root_cause = next((h for h, _, _ in hypotheses if h.id == incident.root_cause_hypothesis_id), None)
-        from app.incident_evidence import archived_exports  # local: incident_evidence imports this module
-
-        exports = archived_exports(db, incident) if core.has_permission(user, "reports.read") else []
-        return core.render(
-            request,
-            db,
-            user,
-            "incident_detail.html",
-            incident=incident,
-            customer=db.get(Customer, incident.customer_id),
-            site=db.get(Site, incident.site_id) if incident.site_id else None,
-            devices=devices,
-            device_ids={device.id for device in devices},
-            customer_devices=customer_devices,
-            timeline=timeline,
-            entries=entries,
-            view=view,
-            fact_count=sum(1 for entry in timeline.entries if entry.kind == "fact"),
-            note_count=sum(1 for entry in timeline.entries if entry.kind == "operator"),
-            creator=creator,
-            statuses=INCIDENT_STATUSES,
-            severities=INCIDENT_SEVERITIES,
-            note_kinds=NOTE_KINDS,
-            source_labels=SOURCE_LABELS,
-            can_write=core.has_permission(user, "incidents.write"),
-            default_note_time=local_input(utcnow()),
-            resolved_input=local_input(incident.resolved_at),
-            hypotheses=hypotheses,
-            candidates=candidates,
-            root_cause=root_cause,
-            root_cause_categories=ROOT_CAUSE_CATEGORIES,
-            hypothesis_statuses=HYPOTHESIS_STATUSES,
-            exports=exports,
-            can_export=core.has_permission(user, "reports.generate"),
-        )
 
 
 class IncidentInputError(ValueError):
@@ -523,69 +334,6 @@ def decide_hypothesis(db, incident, hypothesis, user, decision: str, note: str) 
     return message
 
 
-@router.post("/incidents/{incident_id}/status", name="incident_status")
-def incident_status(
-    request: Request,
-    incident_id: uuid.UUID,
-    csrf: str = Form(...),
-    status: str = Form(...),
-    resolved_at: str = Form(""),
-):
-    validate_csrf(request, csrf)
-    page = f"/incidents/{incident_id}"
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "incidents.write")
-        incident = _load(db, incident_id)
-        try:
-            changed = change_status(db, incident, user, status, parse_local(resolved_at))
-        except IncidentInputError as error:
-            return flash_redirect(request, page, "warning", error.message, title=error.title)
-        if not changed:
-            return flash_redirect(request, page, "info", "L'incidente è già in questo stato.", title="Nessuna modifica")
-        db.commit()
-    return flash_redirect(request, page, "success", f"Stato aggiornato a «{INCIDENT_STATUSES[status]}».", title="Incidente aggiornato")
-
-
-@router.post("/incidents/{incident_id}/notes", name="incident_note")
-def incident_note(
-    request: Request,
-    incident_id: uuid.UUID,
-    csrf: str = Form(...),
-    body: str = Form(""),
-    kind: str = Form("note"),
-    occurred_at: str = Form(""),
-):
-    validate_csrf(request, csrf)
-    page = f"/incidents/{incident_id}"
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "incidents.write")
-        incident = _load(db, incident_id)
-        try:
-            add_note(db, incident, user, body, kind, parse_local(occurred_at))
-        except IncidentInputError as error:
-            return flash_redirect(request, page, "warning", error.message, title=error.title)
-        db.commit()
-    return flash_redirect(request, page + "#timeline", "success", "Nota aggiunta alla timeline.", title="Nota salvata")
-
-
-@router.post("/incidents/{incident_id}/devices", name="incident_devices")
-async def incident_devices(request: Request, incident_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    page = f"/incidents/{incident_id}"
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "incidents.write")
-        incident = _load(db, incident_id)
-        try:
-            set_devices(db, incident, user, {_uuid(value) for value in form.getlist("device_ids")})
-        except IncidentInputError as error:
-            return flash_redirect(request, page, "warning", error.message, title=error.title)
-        db.commit()
-    return flash_redirect(request, page, "success", "Apparati coinvolti aggiornati.", title="Incidente aggiornato")
-
-
-# ------------------------------------------------------------ root cause --
-
 def _hypotheses(db, incident_id):
     author = User.__table__.alias("author")
     decider = User.__table__.alias("decider")
@@ -599,52 +347,3 @@ def _hypotheses(db, incident_id):
     return [(hypothesis, author_name or "", decider_name or "") for hypothesis, author_name, decider_name in rows]
 
 
-@router.post("/incidents/{incident_id}/hypotheses", name="incident_hypothesis_add")
-def incident_hypothesis_add(
-    request: Request,
-    incident_id: uuid.UUID,
-    csrf: str = Form(...),
-    statement: str = Form(""),
-    category: str = Form("other"),
-    candidate_key: str = Form(""),
-):
-    validate_csrf(request, csrf)
-    page = f"/incidents/{incident_id}#root-cause"
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "incidents.write")
-        incident = _load(db, incident_id)
-        try:
-            add_hypothesis(db, incident, user, statement, category, candidate_key)
-        except IncidentInputError as error:
-            return flash_redirect(request, page, "warning", error.message, title=error.title)
-        db.commit()
-    return flash_redirect(request, page, "success", "Ipotesi registrata: resta da verificare finché non viene confermata.", title="Ipotesi aggiunta")
-
-
-@router.post("/incidents/{incident_id}/hypotheses/{hypothesis_id}/decision", name="incident_hypothesis_decision")
-def incident_hypothesis_decision(
-    request: Request,
-    incident_id: uuid.UUID,
-    hypothesis_id: uuid.UUID,
-    csrf: str = Form(...),
-    decision: str = Form(...),
-    note: str = Form(""),
-):
-    validate_csrf(request, csrf)
-    page = f"/incidents/{incident_id}#root-cause"
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "incidents.write")
-        incident = _load(db, incident_id)
-        hypothesis = db.get(IncidentHypothesis, hypothesis_id)
-        if not hypothesis or hypothesis.incident_id != incident.id:
-            raise HTTPException(404)
-        try:
-            message = decide_hypothesis(db, incident, hypothesis, user, decision, note)
-        except IncidentInputError as error:
-            return flash_redirect(request, page, "warning", error.message, title=error.title)
-        db.commit()
-    return flash_redirect(request, page, "success", message, title="Causa radice")
-
-
-def install_incidents(app) -> None:
-    app.include_router(router)

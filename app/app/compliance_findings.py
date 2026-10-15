@@ -18,7 +18,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, time, timedelta
 
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import func, or_, select
 
@@ -27,9 +27,7 @@ from app.compliance_engine import CONTROLS
 from app.compliance_models import RESULT_LABELS, ComplianceResult, ComplianceResultHistory
 from app.db import SessionLocal
 from app.input_errors import InputError
-from app.models import ActionIssue, Customer, Device, User, utcnow
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
+from app.models import ActionIssue, Device, utcnow
 
 router = APIRouter()
 ISSUE_TITLE = "Non conformità compliance da gestire"
@@ -128,33 +126,6 @@ def _load(db, result_id):
     return row
 
 
-@router.get("/compliance/results/{result_id}", response_class=HTMLResponse, name="compliance_result")
-def compliance_result(request: Request, result_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "compliance.read"):
-            raise HTTPException(403)
-        result, device = _load(db, result_id)
-        history = db.execute(
-            select(ComplianceResultHistory, User)
-            .outerjoin(User, User.id == ComplianceResultHistory.actor_user_id)
-            .where(ComplianceResultHistory.result_id == result.id)
-            .order_by(ComplianceResultHistory.created_at.desc(), ComplianceResultHistory.id)
-        ).all()
-        acknowledger = db.get(User, result.acknowledged_by_user_id) if result.acknowledged_by_user_id else None
-        now = utcnow()
-        return core.render(
-            request, db, user, "compliance_result.html",
-            result=result, device=device, customer=db.get(Customer, device.customer_id),
-            control=CONTROLS.get(result.control_id), history=history, acknowledger=acknowledger,
-            result_labels=RESULT_LABELS, action_labels=ACTION_LABELS, in_exception=in_exception(result, now),
-            can_manage=core.has_permission(user, "compliance.manage"),
-            default_exception_until=(now + timedelta(days=90)).date().isoformat(),
-        )
-
-
 def _acknowledge(db, result, user, now, note: str = "", **_):
     result.acknowledged_by_user_id = user.id
     result.acknowledged_at = now
@@ -209,35 +180,6 @@ def result_action_record(db, user, result_id, action: str, **fields) -> str:
     sync_issues(db, now)
     db.commit()
     return message
-
-
-def _act(request, result_id, csrf, action, **fields):
-    validate_csrf(request, csrf)
-    page = f"/compliance/results/{result_id}"
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "compliance.manage")
-        try:
-            message = result_action_record(db, user, result_id, action, **fields)
-        except InputError as exc:
-            if exc.code == "not_fail":
-                return flash_redirect(request, page, "info", str(exc.detail), title="Nessuna modifica")
-            return flash_redirect(request, page, "warning", str(exc.detail), title="Dati non validi")
-    return flash_redirect(request, page, "success", message, title="Compliance aggiornata")
-
-
-@router.post("/compliance/results/{result_id}/acknowledge", name="compliance_result_ack")
-def compliance_result_ack(request: Request, result_id: uuid.UUID, csrf: str = Form(...), note: str = Form("")):
-    return _act(request, result_id, csrf, "acknowledge", note=note)
-
-
-@router.post("/compliance/results/{result_id}/exception", name="compliance_result_exception")
-def compliance_result_exception(request: Request, result_id: uuid.UUID, csrf: str = Form(...), reason: str = Form(""), until: str = Form("")):
-    return _act(request, result_id, csrf, "exception", reason=reason, until=until)
-
-
-@router.post("/compliance/results/{result_id}/exception/revoke", name="compliance_result_exception_revoke")
-def compliance_result_exception_revoke(request: Request, result_id: uuid.UUID, csrf: str = Form(...), note: str = Form("")):
-    return _act(request, result_id, csrf, "revoke", note=note)
 
 
 @router.get("/devices/{device_id}/compliance", response_class=HTMLResponse, name="device_compliance")

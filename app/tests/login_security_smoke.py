@@ -85,17 +85,17 @@ def main():
     # Password change closes the other sessions, not the current one.
     first, other = client("198.51.100.13"), client("198.51.100.14")
     assert attempt(first, user_name, PASSWORD).status_code == 303 and attempt(other, user_name, PASSWORD).status_code == 303
-    changed = first.post("/profile/password", data={"csrf": csrf_from(first.get("/profile").text), "current_password": PASSWORD,
-                                                   "new_password": NEW_PASSWORD, "confirm_password": NEW_PASSWORD}, follow_redirects=False)
-    assert changed.status_code == 303 and "password_changed" in changed.headers["location"]
+    changed = first.post("/api/ui/v1/profile/password", headers={"X-CSRF-Token": first.get("/api/ui/v1/session").json()["csrf_token"]},
+                         json={"current_password": PASSWORD, "new_password": NEW_PASSWORD, "confirm_password": NEW_PASSWORD})
+    assert changed.status_code == 200 and changed.json()["csrf_token"]
     assert logged_in(first) and not logged_in(other), "password change ends the other sessions"
     assert 'data-logout-reason="revoked"' in other.get("/login").text
 
     # "Log out other sessions" from the profile.
     other = client("198.51.100.14")
     assert attempt(other, user_name, NEW_PASSWORD).status_code == 303
-    revoked = other.post("/profile/sessions/revoke", data={"csrf": csrf_from(other.get("/profile").text)}, follow_redirects=False)
-    assert revoked.status_code == 303 and logged_in(other) and not logged_in(first)
+    revoked = other.post("/api/ui/v1/profile/sessions/revoke", headers={"X-CSRF-Token": other.get("/api/ui/v1/session").json()["csrf_token"]})
+    assert revoked.json() == {"ok": True} and logged_in(other) and not logged_in(first)
 
     # Admin "Disconnetti" and the failed-login panel.
     admin = client("198.51.100.15")
@@ -112,8 +112,8 @@ def main():
 
     tech = client("198.51.100.16")
     assert attempt(tech, other_name, PASSWORD).status_code == 303
-    assert tech.post(f"/admin/users/{target_id}/sessions/revoke", data={"csrf": csrf_from(tech.get("/profile").text)}, follow_redirects=False).status_code in (401, 403)
-    assert "Esci dalle altre sessioni" in tech.get("/profile").text
+    assert tech.post(f"/admin/users/{target_id}/sessions/revoke", data={"csrf": tech.get("/api/ui/v1/session").json()["csrf_token"]}, follow_redirects=False).status_code in (401, 403)
+    assert tech.get("/api/ui/v1/profile").json()["account"]["username"] == other_name
     print("Login security smoke passed")
 
 

@@ -9,7 +9,6 @@ notification instead of losing it; rows that keep failing stay visible in
 """
 from __future__ import annotations
 
-import json
 import smtplib
 import ssl
 import uuid
@@ -17,8 +16,8 @@ from datetime import timedelta
 from email.message import EmailMessage
 from email.utils import formataddr, make_msgid
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from sqlalchemy import delete, event, func, select
 from sqlalchemy.orm import Session
 
@@ -438,22 +437,6 @@ def user_preferences(user) -> dict:
         return {"channels": out, "levels": LEVELS, "categories": CATEGORIES, "recent": recent}
 
 
-@router.post("/profile/notifications", name="profile_notifications")
-async def save_preferences(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        try:
-            save_preferences_record(db, user, form)
-        except ValueError as exc:
-            return RedirectResponse(f"/profile?error={exc}#notifications", status_code=303)
-        db.commit()
-    return RedirectResponse("/profile?status=notifications_saved#notifications", status_code=303)
-
-
 def save_preferences_record(db, user, form) -> None:
     """Save e-mail and per-channel preferences from a form-like object (``get``/``getlist``), as the profile form sends them.
 
@@ -488,20 +471,6 @@ def save_preferences_record(db, user, form) -> None:
 def send_test_record(db, user) -> bool:
     """Queue a test message on the user's enabled channels; False when none is enabled. Caller commits, then delivers."""
     return bool(queue_direct(db, user, "Messaggio di prova", "Le tue preferenze di notifica NSM funzionano.", level="info", category="system"))
-
-
-@router.post("/profile/notifications/test", name="profile_notifications_test")
-async def test_preferences(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        queued = send_test_record(db, user)
-        db.commit()
-    deliver_pending()
-    return RedirectResponse(f"/profile?status=notifications_test_{'queued' if queued else 'none'}#notifications", status_code=303)
 
 
 def install_notification_delivery(app) -> None:

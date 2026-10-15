@@ -64,20 +64,27 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-rc-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    url = f"/incidents/{incident_id}"
-    page = client.get(url).text
-    assert "Correlazioni candidate" in page and "euristiche, da verificare" in page and "Da confermare" in page
-    token = csrf_from(page)
+    url = f"/api/ui/v1/incidents/{incident_id}"
+    page = client.get(url).json()
+    assert len(page["candidates"]) >= 3 and page["hypotheses"] == []
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+
+    def post(path, **body):
+        return client.post(path, headers=headers, json=body)
+
+    def code(response):
+        assert response.status_code == 422, response.text
+        return response.json()["detail"]["code"]
 
     # Nothing becomes a root cause by itself.
     with SessionLocal() as db:
         assert db.get(Incident, incident_id).root_cause_hypothesis_id is None
 
     # Record two suggestions and one operator hypothesis.
-    assert "Ipotesi registrata" in client.post(f"{url}/hypotheses", data={"csrf": token, "candidate_key": config_key}).text
-    assert "Ipotesi registrata" in client.post(f"{url}/hypotheses", data={"csrf": token, "candidate_key": issue_key}).text
-    assert "non è più disponibile" in client.post(f"{url}/hypotheses", data={"csrf": token, "candidate_key": "forged-key"}).text
-    assert "Ipotesi registrata" in client.post(f"{url}/hypotheses", data={"csrf": token, "statement": "Alimentazione instabile nel rack", "category": "power"}).text
+    assert post(f"{url}/hypotheses", candidate_key=config_key).status_code == 200
+    assert post(f"{url}/hypotheses", candidate_key=issue_key).status_code == 200
+    assert code(post(f"{url}/hypotheses", candidate_key="forged-key")) == "candidate_gone"
+    assert post(f"{url}/hypotheses", statement="Alimentazione instabile nel rack", category="power").status_code == 200
     with SessionLocal() as db:
         rows = {h.statement: h for h in db.query(IncidentHypothesis).filter_by(incident_id=incident_id)}
         assert len(rows) == 3 and all(h.status == "proposed" for h in rows.values())
@@ -86,13 +93,13 @@ def main():
         config_h = next(h for h in suggested if h.category == "configuration")
         power_h = rows["Alimentazione instabile nel rack"]
         ids = {"config": config_h.id, "power": power_h.id}
-    page = client.get(url).text
-    assert page.count("Registra come ipotesi") == 2, "used candidates are not suggested again"
+    remaining = {c["key"] for c in client.get(url).json()["candidates"]}
+    assert config_key not in remaining and issue_key not in remaining, "used candidates are not suggested again"
 
     # Confirming requires evidence; then only the confirmed hypothesis is the root cause.
     decision = f"{url}/hypotheses/{ids['config']}/decision"
-    assert "Nota obbligatoria" in client.post(decision, data={"csrf": token, "decision": "confirm"}).text
-    assert "Causa radice confermata" in client.post(decision, data={"csrf": token, "decision": "confirm", "note": "Il cambio di baseline ha disattivato la route di default"}).text
+    assert code(post(decision, decision="confirm")) == "decision_note_required"
+    assert post(decision, decision="confirm", note="Il cambio di baseline ha disattivato la route di default").status_code == 200
     with SessionLocal() as db:
         incident = db.get(Incident, incident_id)
         assert incident.root_cause_hypothesis_id == ids["config"]
@@ -100,22 +107,23 @@ def main():
 
     # Confirming another one replaces it; the previous goes back to proposed.
     other = f"{url}/hypotheses/{ids['power']}/decision"
-    assert "Causa radice confermata" in client.post(other, data={"csrf": token, "decision": "confirm", "note": "Log UPS conferma il blackout"}).text
+    assert post(other, decision="confirm", note="Log UPS conferma il blackout").status_code == 200
     with SessionLocal() as db:
         assert db.get(Incident, incident_id).root_cause_hypothesis_id == ids["power"]
         assert db.get(IncidentHypothesis, ids["config"]).status == "proposed"
     # Rejecting the confirmed one clears the root cause.
-    assert "Ipotesi scartata" in client.post(other, data={"csrf": token, "decision": "reject", "note": "UPS in realtà non coinvolto"}).text
+    assert post(other, decision="reject", note="UPS in realtà non coinvolto").status_code == 200
     with SessionLocal() as db:
         assert db.get(Incident, incident_id).root_cause_hypothesis_id is None
         events = {e.event_type for e in db.query(AuditEvent).filter(AuditEvent.customer_id == db.get(Incident, incident_id).customer_id, AuditEvent.event_type.like("INCIDENT_%"))}
         assert {"INCIDENT_HYPOTHESIS_ADDED", "INCIDENT_ROOT_CAUSE_CONFIRMED", "INCIDENT_HYPOTHESIS_REJECTED"} <= events
 
-    assert "Causa radice confermata" in client.post(decision, data={"csrf": token, "decision": "confirm", "note": "Verificato sul router"}).text
-    listing = client.get(f"/incidents?status=all&q=TEST+router+down").text
-    assert "Configurazione" in listing and "Modifica precedente" in listing
-    detail = client.get(url).text
-    assert "root-cause-confirmed" in detail and "Verificato sul router" in detail
+    assert post(decision, decision="confirm", note="Verificato sul router").status_code == 200
+    listing = client.get("/api/ui/v1/incidents?status=all&q=TEST+router+down").json()["items"]
+    assert listing[0]["root_cause"]["category"] == "configuration"
+    detail = client.get(url).json()
+    confirmed = next(h for h in detail["hypotheses"] if h["status"] == "confirmed")
+    assert confirmed["decision_note"] == "Verificato sul router"
     print("Incident root cause smoke passed")
 
 

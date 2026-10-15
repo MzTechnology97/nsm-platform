@@ -93,7 +93,7 @@ def main():
         release_id = release.id
     worklist = client.get("/operations/firmware?state=all").text
     assert f"TEST-VF-TPL-{suffix}" in worklist and "Cataloghi altri produttori" in worklist
-    client.post(f"/operations/firmware/catalogs/releases/{release_id}/delete", data={"csrf": csrf_from(client.get('/operations/firmware/catalogs').text)})
+    client.post(f"/operations/firmware/catalogs/releases/{release_id}/delete", data={"csrf": client.get("/api/ui/v1/session").json()["csrf_token"]})
     with SessionLocal() as db:
         archer = db.get(Device, ids["archer"])
         assert archer.firmware_status == "unknown" and archer.recommended_firmware_version is None and "vendor_firmware" not in (archer.inventory_data or {})

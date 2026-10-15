@@ -131,11 +131,10 @@ def main():
     assert_device_match(client, "AA:BB:CC", "MAC")
     assert_device_match(client, "192.0.2.115", "IP")
 
-    full_search = client.get("/search", params={"q": "CI15SERIAL"})
+    full_search = client.get("/api/ui/v1/search", params={"q": "CI15SERIAL"})
     assert full_search.status_code == 200
-    assert "Seriale CI15SERIAL98765" in full_search.text
-    assert "MAC 02:15:AA:BB:CC:DD" in full_search.text
-    assert "IP 192.0.2.115" in full_search.text
+    device = full_search.json()["devices"][0]
+    assert device["serial_number"] == "CI15SERIAL98765" and device["primary_mac"] == "02:15:AA:BB:CC:DD" and device["management_ip"] == "192.0.2.115"
 
     assert str(app.url_path_for("customer_workspace_detail", customer_id=customer_id)) == f"/customers/{customer_id}"
     assert str(app.url_path_for("customer_devices", customer_id=customer_id)) == f"/customers/{customer_id}/devices"
