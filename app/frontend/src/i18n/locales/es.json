@@ -3740,5 +3740,80 @@
     },
     "disabled": "desactivada",
     "noRows": "Sin datos de UISP."
+  },
+  "deviceCnmaestro": {
+    "linked": "Vinculado a cnMaestro desde el {{when}} (MAC {{mac}}).",
+    "notLinked": "Aún no vinculado: la sincronización lo vincula por MAC ({{mac}}) o número de serie ({{serial}}).",
+    "missing": "falta",
+    "lastSync": "Última sincronización {{when}}.",
+    "notConfigured": "cnMaestro no está configurado.",
+    "fields": {
+      "name": "Nombre en cnMaestro",
+      "type": "Tipo",
+      "network": "Red",
+      "tower": "Torre",
+      "status": "Estado"
+    },
+    "lastValue": "Último valor",
+    "notExposed": "no expuesto por cnMaestro",
+    "chartsTitle": "Gráficos cnMaestro",
+    "series": {
+      "signal_dbm": "Señal",
+      "snr_db": "SNR",
+      "cpu_percent": "CPU",
+      "ram_percent": "Memoria",
+      "stations": "Estaciones conectadas",
+      "uptime_seconds": "Uptime",
+      "dl_throughput_bps": "Rendimiento de bajada",
+      "ul_throughput_bps": "Rendimiento de subida"
+    }
+  },
+  "deviceGenieacs": {
+    "recordHelp": "Cliente y sede siguen siendo los de NSM: GenieACS no los modifica.",
+    "fields": {
+      "customer": "Cliente",
+      "site": "Sede",
+      "serial": "N.º de serie",
+      "mac": "MAC",
+      "acsId": "ID GenieACS",
+      "manufacturer": "Fabricante",
+      "model": "Modelo",
+      "lastInform": "Último Inform"
+    },
+    "connectionTitle": "Conector GenieACS",
+    "notConfigured": "GenieACS no está configurado.",
+    "never": "nunca ejecutada",
+    "inventoryTitle": "Inventario desde GenieACS",
+    "inventoryHelp": "Última lectura {{when}} · vinculado por {{by}}.",
+    "matchedBy": {
+      "serial": "número de serie",
+      "mac": "MAC",
+      "external_id": "ID ACS",
+      "unknown": "—"
+    },
+    "refresh": "Actualizar desde GenieACS",
+    "refreshed": "Inventario actualizado desde GenieACS.",
+    "notYet": "El diagnóstico, la copia y la actualización de firmware a través del ACS aún no están disponibles.",
+    "verifyTitle": "Comprobar la coincidencia",
+    "searchTitle": "Buscar en GenieACS",
+    "searchSerialMac": "NSM busca el número de serie {{serial}} y, si no lo encuentra, el MAC {{mac}}; la búsqueda no modifica nada.",
+    "searchSerial": "NSM busca el número de serie {{serial}}; la búsqueda no modifica nada.",
+    "searchMac": "NSM busca el MAC {{mac}}; la búsqueda no modifica nada.",
+    "search": "Buscar en GenieACS",
+    "previewTitle": "Coincidencia única encontrada por {{by}}",
+    "candidate": {
+      "external_id": "ID GenieACS",
+      "serial_number": "N.º de serie",
+      "primary_mac": "MAC",
+      "manufacturer": "Fabricante",
+      "model": "Modelo",
+      "firmware_version": "Firmware",
+      "management_ip": "IP",
+      "hardware_version": "Hardware",
+      "product_class": "Product class"
+    },
+    "associate": "Confirmar asociación",
+    "confirmRefresh": "Confirmar y actualizar",
+    "associated": "CPE vinculada a GenieACS: identidad y firmware actualizados."
   }
 }

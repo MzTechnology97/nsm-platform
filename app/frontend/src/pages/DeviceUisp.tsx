@@ -8,7 +8,7 @@ import { formatValue, type Unit } from "../charts/format";
 import { type ChartSeries, TimeChart } from "../charts/TimeChart";
 import { formatDateTime } from "../lib/format";
 
-const RANGES = ["24h", "7d", "30d", "90d"] as const;
+export const RANGES = ["24h", "7d", "30d", "90d"] as const;
 const UNIT: Record<string, Unit | undefined> = { "%": "%", dBm: "dBm", bps: "bps", "": "count" };
 const COLORS: ChartSeries["color"][] = ["a", "b", "c", "d"];
 
@@ -16,7 +16,7 @@ function message(error: unknown) {
   return error instanceof ApiError ? error.message : (error as Error | null)?.message;
 }
 
-function metricValue(field: string, unit: string, value: number | null, locale: string): string {
+export function metricValue(field: string, unit: string, value: number | null, locale: string): string {
   if (value == null) return "—";
   if (field === "uptime_seconds") {
     const days = Math.floor(value / 86400);
@@ -118,25 +118,34 @@ function Charts({ deviceId }: { deviceId: string }) {
   const { t } = useTranslation();
   const [range, setRange] = useState<(typeof RANGES)[number]>("24h");
   const query = useUispMetrics(deviceId, range, true);
+  return <SeriesCharts title={t("deviceUisp.chartsTitle")} range={range} onRange={setRange} charts={query.data?.charts} count={query.data?.sample_count ?? 0}
+    pending={query.isPending} />;
+}
+
+/** Range chips and one chart per series group (UISP and cnMaestro history share the same format). */
+export function SeriesCharts({ title, range, onRange, charts, count, pending }: {
+  title: string; range: (typeof RANGES)[number]; onRange: (range: (typeof RANGES)[number]) => void; charts: Chart[] | undefined; count: number; pending: boolean;
+}) {
+  const { t } = useTranslation();
   return (
     <section className="ui-panel ui-admin-section">
       <div className="ui-page-header-row">
         <div>
-          <h2>{t("deviceUisp.chartsTitle")}</h2>
-          <p className="ui-muted">{t("deviceUisp.chartsHelp", { count: query.data?.sample_count ?? 0 })}</p>
+          <h2>{title}</h2>
+          <p className="ui-muted">{t("deviceUisp.chartsHelp", { count })}</p>
         </div>
-        <div className="ui-chips" role="group" aria-label={t("deviceUisp.chartsTitle")}>
+        <div className="ui-chips" role="group" aria-label={title}>
           {RANGES.map((key) => (
-            <button key={key} type="button" className={`ui-chip${range === key ? " is-active" : ""}`} aria-pressed={range === key} onClick={() => setRange(key)}>
+            <button key={key} type="button" className={`ui-chip${range === key ? " is-active" : ""}`} aria-pressed={range === key} onClick={() => onRange(key)}>
               {t(`deviceUisp.ranges.${key}`)}
             </button>
           ))}
         </div>
       </div>
-      {query.data?.charts.length ? (
-        <div className="ui-two-columns">{query.data.charts.map((chart) => <UispChart key={chart.id} chart={chart} />)}</div>
+      {charts?.length ? (
+        <div className="ui-two-columns">{charts.map((chart) => <UispChart key={chart.id} chart={chart} />)}</div>
       ) : (
-        <div className="ui-empty">{query.isPending ? t("app.loading") : t("deviceUisp.noSamples")}</div>
+        <div className="ui-empty">{pending ? t("app.loading") : t("deviceUisp.noSamples")}</div>
       )}
     </section>
   );

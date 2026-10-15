@@ -739,11 +739,7 @@ def genieacs_device_associate(request: Request, device_id: uuid.UUID, csrf: str 
         user = core.require_permission(request, db, "devices.write")
         device = _device(db, device_id)
         try:
-            connection = _connection(db, enabled_only=True)
-            candidate = lookup_device(connection, device)
-            apply_candidate(db, device, candidate, user, "GENIEACS_DEVICE_ASSOCIATED")
-            connection.last_sync_at = utcnow()
-            db.commit()
+            associate_record(db, user, device)
         except (GenieAcsConnectorError, ValueError) as exc:
             return _device_render(request, db, user, device, error=str(exc))
     return RedirectResponse(f"/devices/{device_id}/genieacs?status=associated", status_code=303)
@@ -756,18 +752,32 @@ def genieacs_device_refresh(request: Request, device_id: uuid.UUID, csrf: str = 
         user = core.require_permission(request, db, "devices.write")
         device = _device(db, device_id)
         try:
-            connection = _connection(db, enabled_only=True)
-            if not device.external_device_id:
-                raise GenieAcsConnectorError("Il CPE non è ancora associato a un ID GenieACS stabile.")
-            candidate = lookup_by_external_id(connection, device.external_device_id)
-            if device.serial_number and candidate.get("serial_number") and candidate["serial_number"] != device.serial_number:
-                raise GenieAcsConnectorError("Il seriale dell'ID GenieACS collegato è cambiato: refresh bloccato.")
-            apply_candidate(db, device, candidate, user, "GENIEACS_INVENTORY_REFRESHED")
-            connection.last_sync_at = utcnow()
-            db.commit()
+            refresh_record(db, user, device)
         except (GenieAcsConnectorError, ValueError) as exc:
             return _device_render(request, db, user, device, error=str(exc))
     return RedirectResponse(f"/devices/{device_id}/genieacs?status=refreshed", status_code=303)
+
+
+def associate_record(db, user, device: Device) -> None:
+    """Link a TR-069 CPE to its GenieACS record by serial (then MAC) and import identity and firmware (audited); commits."""
+    connection = _connection(db, enabled_only=True)
+    candidate = lookup_device(connection, device)
+    apply_candidate(db, device, candidate, user, "GENIEACS_DEVICE_ASSOCIATED")
+    connection.last_sync_at = utcnow()
+    db.commit()
+
+
+def refresh_record(db, user, device: Device) -> None:
+    """Re-read the linked GenieACS record by its id (blocked if the serial changed); commits."""
+    connection = _connection(db, enabled_only=True)
+    if not device.external_device_id:
+        raise GenieAcsConnectorError("Il CPE non è ancora associato a un ID GenieACS stabile.")
+    candidate = lookup_by_external_id(connection, device.external_device_id)
+    if device.serial_number and candidate.get("serial_number") and candidate["serial_number"] != device.serial_number:
+        raise GenieAcsConnectorError("Il seriale dell'ID GenieACS collegato è cambiato: refresh bloccato.")
+    apply_candidate(db, device, candidate, user, "GENIEACS_INVENTORY_REFRESHED")
+    connection.last_sync_at = utcnow()
+    db.commit()
 
 
 def summary() -> dict:
