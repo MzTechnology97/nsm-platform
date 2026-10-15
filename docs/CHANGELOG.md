@@ -4,6 +4,23 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.142 — 2026-10-15
+
+New interface (React) — customer Security, Backup and Activity tabs, phase 7e
+- **Security tab in `/app/customers/{id}/security`**, with the same data as the classic tab:
+  - **Summary:** counters for severe CVEs, firmware, end of life, issues and compliance.
+  - **Severe CVEs:** each open critical or high CVE with its device (vendor icon), CVSS score, installed and fixed version.
+  - **Firmware:** devices to update, with current and recommended version.
+  - **End of life:** EOL and EOS devices, with their date.
+  - **Issues:** open security, firmware and lifecycle issues.
+  - **Compliance:** compliance summary with the failing controls.
+
+  Each section links to the full page (vulnerabilities and firmware filtered on the customer).
+- **Backup and Activity tabs** now open the backup overview and the activity log of the new interface, filtered on the customer. Every customer tab is now in the new interface.
+- **Other links.** The «Incidents», «Action Center» and «All events» links of the customer page now stay in the new interface, filtered on the customer.
+- **Shared code.** The classic Security tab now reads its data from `customer_tabs.security_data`, which the API uses too; the classic page behaves as before.
+- **API.** `GET /api/ui/v1/customers/{id}/security` needs `security.read`; customer scope applies.
+
 ## 0.49.141 — 2026-10-15
 
 New interface (React) — customer and site forms, phase 7d

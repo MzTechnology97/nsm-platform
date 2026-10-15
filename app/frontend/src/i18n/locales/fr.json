@@ -2971,5 +2971,38 @@
       "confirm_name": "Le nom de confirmation ne correspond pas : rien n'a été supprimé."
     },
     "deleteSiteConfirm_zero": "Supprimer le site « {{name}} » ?"
+  },
+  "customerSecurity": {
+    "cves": "CVE graves ouvertes",
+    "firmware": "Firmware à mettre à jour",
+    "lifecycle": "Fin de vie",
+    "issues": "Alertes ouvertes",
+    "compliance": "Conformité",
+    "failingDevices": "équipements non conformes",
+    "cvesTitle": "Vulnérabilités graves",
+    "cvesHelp": "CVE critiques et élevées non résolues sur les équipements du client, les plus graves d'abord.",
+    "allVulns": "Toutes les vulnérabilités",
+    "noCves": "Aucune CVE grave ouverte.",
+    "columns": {
+      "cve": "CVE",
+      "device": "Équipement",
+      "severity": "Gravité",
+      "versions": "Version → correctif",
+      "detected": "Détectée"
+    },
+    "firmwareTitle": "Firmware à mettre à jour",
+    "allFirmware": "Page firmware",
+    "noFirmware": "Tous les équipements ont le firmware recommandé.",
+    "lifecycleTitle": "Équipements hors support",
+    "allLifecycle": "Page cycle de vie",
+    "noLifecycle": "Aucun équipement EOL ou EOS.",
+    "issuesTitle": "Alertes de sécurité",
+    "noIssues": "Aucune alerte ouverte sur la sécurité, le firmware ou le cycle de vie.",
+    "complianceTitle": "Conformité",
+    "allCompliance": "Page conformité",
+    "failingCount_one": "{{count}} équipement",
+    "failingCount_other": "{{count}} équipements",
+    "compliant": "Aucun contrôle en échec.",
+    "notEvaluated": "Aucun équipement évalué."
   }
 }

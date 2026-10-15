@@ -2971,5 +2971,38 @@
       "confirm_name": "Il nome di conferma non corrisponde: nessun dato è stato eliminato."
     },
     "deleteSiteConfirm_zero": "Eliminare la sede «{{name}}»?"
+  },
+  "customerSecurity": {
+    "cves": "CVE gravi aperte",
+    "firmware": "Firmware da aggiornare",
+    "lifecycle": "Fine vita",
+    "issues": "Segnalazioni aperte",
+    "compliance": "Compliance",
+    "failingDevices": "apparati non conformi",
+    "cvesTitle": "Vulnerabilità gravi",
+    "cvesHelp": "CVE critiche e alte non risolte sugli apparati del cliente, prima le più gravi.",
+    "allVulns": "Tutte le vulnerabilità",
+    "noCves": "Nessuna CVE grave aperta.",
+    "columns": {
+      "cve": "CVE",
+      "device": "Apparato",
+      "severity": "Gravità",
+      "versions": "Versione → correzione",
+      "detected": "Rilevata"
+    },
+    "firmwareTitle": "Firmware da aggiornare",
+    "allFirmware": "Pagina firmware",
+    "noFirmware": "Tutti gli apparati hanno il firmware consigliato.",
+    "lifecycleTitle": "Apparati fuori supporto",
+    "allLifecycle": "Pagina lifecycle",
+    "noLifecycle": "Nessun apparato EOL o EOS.",
+    "issuesTitle": "Segnalazioni di sicurezza",
+    "noIssues": "Nessuna segnalazione aperta su sicurezza, firmware o ciclo di vita.",
+    "complianceTitle": "Compliance",
+    "allCompliance": "Pagina compliance",
+    "failingCount_one": "{{count}} apparato",
+    "failingCount_other": "{{count}} apparati",
+    "compliant": "Nessun controllo fallito.",
+    "notEvaluated": "Nessun apparato valutato."
   }
 }

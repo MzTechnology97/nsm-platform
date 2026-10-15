@@ -2971,5 +2971,38 @@
       "confirm_name": "The confirmation name does not match: nothing was deleted."
     },
     "deleteSiteConfirm_zero": "Delete the site “{{name}}”?"
+  },
+  "customerSecurity": {
+    "cves": "Open severe CVEs",
+    "firmware": "Firmware to update",
+    "lifecycle": "End of life",
+    "issues": "Open issues",
+    "compliance": "Compliance",
+    "failingDevices": "non-compliant devices",
+    "cvesTitle": "Severe vulnerabilities",
+    "cvesHelp": "Unresolved critical and high CVEs on the customer's devices, most severe first.",
+    "allVulns": "All vulnerabilities",
+    "noCves": "No open severe CVE.",
+    "columns": {
+      "cve": "CVE",
+      "device": "Device",
+      "severity": "Severity",
+      "versions": "Version → fix",
+      "detected": "Detected"
+    },
+    "firmwareTitle": "Firmware to update",
+    "allFirmware": "Firmware page",
+    "noFirmware": "Every device runs the recommended firmware.",
+    "lifecycleTitle": "Unsupported devices",
+    "allLifecycle": "Lifecycle page",
+    "noLifecycle": "No EOL or EOS device.",
+    "issuesTitle": "Security issues",
+    "noIssues": "No open security, firmware or lifecycle issue.",
+    "complianceTitle": "Compliance",
+    "allCompliance": "Compliance page",
+    "failingCount_one": "{{count}} device",
+    "failingCount_other": "{{count}} devices",
+    "compliant": "No failing control.",
+    "notEvaluated": "No device evaluated."
   }
 }

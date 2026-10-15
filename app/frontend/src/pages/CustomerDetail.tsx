@@ -9,7 +9,12 @@ import { SiteForm } from "./CustomerForm";
 import { Metric } from "./DeviceDetail";
 
 /** Customer tabs already in the new interface; "devices" opens the device list filtered on the customer. */
-const MIGRATED_TABS = { overview: "/customers/$customerId", sites: "/customers/$customerId/sites", graphs: "/customers/$customerId/graphs" } as const;
+const MIGRATED_TABS = {
+  overview: "/customers/$customerId",
+  sites: "/customers/$customerId/sites",
+  graphs: "/customers/$customerId/graphs",
+  security: "/customers/$customerId/security",
+} as const;
 
 export function CustomerDetail() {
   const { t } = useTranslation();
@@ -44,7 +49,9 @@ function CustomerShell({ detail }: { detail: Detail }) {
           {customer.notes && <p className="ui-muted">{customer.notes}</p>}
         </div>
         <div className="ui-actions">
-          {detail.actions.incidents && <a className="ui-button ui-button-ghost" href={detail.links.incidents}>{t("customer.actions.incidents")}</a>}
+          {detail.actions.incidents && (
+            <Link className="ui-button ui-button-ghost" to="/incidents" search={{ customer: customer.id, status: "all" }}>{t("customer.actions.incidents")}</Link>
+          )}
           {detail.actions.edit && (
             <Link className="ui-button ui-button-ghost" to="/customers/$customerId/edit" params={{ customerId: customer.id }}>{t("customer.actions.edit")}</Link>
           )}
@@ -67,6 +74,14 @@ function CustomerShell({ detail }: { detail: Detail }) {
           ) : tab.key === "devices" ? (
             <Link key={tab.key} to="/devices" search={{ customer: customer.id }} className="ui-tab">
               {t("customer.tabs.devices")}
+            </Link>
+          ) : tab.key === "backups" ? (
+            <Link key={tab.key} to="/backups" search={{ customer: customer.id, view: "all" }} className="ui-tab">
+              {t("customer.tabs.backups")}
+            </Link>
+          ) : tab.key === "history" ? (
+            <Link key={tab.key} to="/events" search={{ customer: customer.id }} className="ui-tab">
+              {t("customer.tabs.history")}
             </Link>
           ) : (
             <a key={tab.key} href={tab.classic} className="ui-tab is-classic">
@@ -121,7 +136,7 @@ export function CustomerOverview() {
             <h2>{t("customer.issues.title")}</h2>
             <p className="ui-muted">{t("customer.issues.hint")}</p>
           </div>
-          <a className="ui-button ui-button-ghost" href={data.links.action_center}>{t("customer.issues.all")}</a>
+          <Link className="ui-button ui-button-ghost" to="/action-center" search={{ customer: data.customer.id }}>{t("customer.issues.all")}</Link>
         </div>
         {data.issues.length ? (
           <ul className="ui-list">
@@ -150,7 +165,7 @@ export function CustomerOverview() {
             <h2>{t("customer.events.title")}</h2>
             <p className="ui-muted">{t("customer.events.hint")}</p>
           </div>
-          <a className="ui-button ui-button-ghost" href={data.tabs.find((tab) => tab.key === "history")?.classic}>{t("customer.events.all")}</a>
+          <Link className="ui-button ui-button-ghost" to="/events" search={{ customer: data.customer.id }}>{t("customer.events.all")}</Link>
         </div>
         {data.events.length ? (
           <div className="ui-log-wrap ui-log-wrap-short">
