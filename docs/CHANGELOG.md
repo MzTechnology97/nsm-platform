@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.162 — 2026-10-15
+
+New interface (React) — new incident, phase 7z
+- **New incident** (`/app/incidents/new`), opened from the incidents list, the device header and the Action Center:
+  - choose the customer, or arrive from a device (customer, site and device preselected);
+  - site, title, severity, start (anything but the future) and description;
+  - involved devices as a checklist with their vendor icons;
+  - title, summary and severity can be prefilled from the address;
+  - once created, the incident page opens.
+- **Shared code.** `incidents.create_incident_record` validates, links the devices and audits `INCIDENT_CREATED`; the classic form uses it with the same messages. Errors carry codes (`customer`, `title`, `started`, `devices`).
+- **API.**
+  - `GET /api/ui/v1/incident-form` (`incidents.write`; not under `/incidents/` because of `/incidents/{id}`);
+  - `POST /api/ui/v1/incidents` (`incidents.write` + CSRF).
+
 ## 0.49.161 — 2026-10-15
 
 New interface (React) — vendor firmware catalogs, phase 7y

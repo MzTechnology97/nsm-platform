@@ -75,9 +75,9 @@ function DeviceShell({ detail }: { detail: Detail }) {
             </Link>
           )}
           {detail.actions.incident && (
-            <a className="ui-button ui-button-ghost" href={`/incidents/new?device=${device.id}`}>
+            <Link className="ui-button ui-button-ghost" to="/incidents/new" search={{ device: device.id }}>
               {t("device.actions.incident")}
-            </a>
+            </Link>
           )}
           {detail.actions.manage && (
             <Link className="ui-button ui-button-ghost" to="/devices/$deviceId/manage" params={{ deviceId: device.id }}>

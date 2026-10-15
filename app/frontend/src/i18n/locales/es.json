@@ -4501,5 +4501,33 @@
       "exists": "Esta versión ya está en el catálogo.",
       "not_operator": "Solo se pueden eliminar las versiones introducidas por operadores."
     }
+  },
+  "incidentNew": {
+    "title": "Nuevo incidente",
+    "subtitle": "Registra qué está pasando y qué equipos están implicados: la cronología mostrará los eventos de NSM en torno al inicio indicado.",
+    "customer": "Cliente",
+    "chooseCustomer": "Elige el cliente…",
+    "changeCustomer": "Cambiar cliente",
+    "site": "Sede",
+    "noSite": "Ninguna sede concreta",
+    "titleLabel": "Título",
+    "titlePlaceholder": "P. ej. Pérdida de conectividad de la sede principal",
+    "severity": "Gravedad",
+    "started": "Inicio",
+    "startedHelp": "Cuándo empezó el problema, aunque se avisara después.",
+    "summary": "Descripción",
+    "summaryPlaceholder": "Síntomas observados, aviso del cliente, impacto",
+    "devices": "Equipos implicados",
+    "devicesHelp_one": "{{count}} seleccionado.",
+    "devicesHelp_other": "{{count}} seleccionados.",
+    "noDevices": "El cliente no tiene equipos registrados.",
+    "cancel": "Cancelar",
+    "submit": "Abrir incidente",
+    "errors": {
+      "customer": "Elige el cliente.",
+      "title": "El título es obligatorio.",
+      "started": "Indica un inicio válido, no en el futuro.",
+      "devices": "Los equipos deben pertenecer al cliente elegido."
+    }
   }
 }

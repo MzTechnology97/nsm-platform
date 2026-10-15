@@ -23,7 +23,8 @@ from app import incidents as incident_flow
 from app import main as core
 from app.db import SessionLocal
 from app.incident_correlation import suggest
-from app.incident_models import Incident, IncidentDevice, IncidentHypothesis
+from app.incident_models import INCIDENT_SEVERITIES, Incident, IncidentDevice, IncidentHypothesis
+from app.input_errors import InputError
 from app.incident_timeline import build_timeline
 from app.models import ActionIssue, Customer, Device, Site, User, utcnow
 from app.ui_api import brand_icon, require_csrf, ui_user
@@ -162,6 +163,46 @@ def _hypothesis_row(hypothesis, author: str, decider: str) -> dict:
         "decided_at": _iso(hypothesis.decided_at), "decider": decider or None, "decision_note": hypothesis.decision_note,
     }
 
+
+
+@router.get("/incident-form")
+def incident_form(request: Request, customer: str = "", device: str = "", title: str = "", summary: str = "", severity: str = ""):
+    """New-incident form data (``/incidents/new`` would collide with ``/incidents/{id}``)."""
+    with SessionLocal() as db:
+        ui_user(request, db, "incidents.write")
+        device_obj = db.get(Device, _uuid(device)) if _uuid(device) else None
+        customer_id = device_obj.customer_id if device_obj else _uuid(customer)
+        selected = db.get(Customer, customer_id) if customer_id else None
+        devices = list(db.scalars(select(Device).where(Device.customer_id == selected.id)
+                                  .order_by(Device.display_name.nullslast(), Device.name))) if selected else []
+        sites = list(db.scalars(select(Site).where(Site.customer_id == selected.id).order_by(Site.name))) if selected else []
+        return {
+            "customers": [{"id": str(c.id), "name": c.name} for c in db.scalars(select(Customer).order_by(Customer.name))],
+            "customer": {"id": str(selected.id), "name": selected.name} if selected else None,
+            "sites": [{"id": str(site.id), "name": site.name} for site in sites],
+            "devices": [{**device_ref(d), "vendor": d.vendor, "model": d.model, "status": d.status, "site_id": str(d.site_id) if d.site_id else None} for d in devices],
+            "preselected": [str(device_obj.id)] if device_obj else [],
+            "site_id": str(device_obj.site_id) if device_obj and device_obj.site_id else None,
+            "severities": list(INCIDENT_SEVERITIES),
+            "now": _iso(utcnow()),
+            "prefill": {"title": title[:200], "summary": summary[:4000], "severity": severity if severity in INCIDENT_SEVERITIES else "medium"},
+        }
+
+
+@router.post("/incidents", dependencies=[Depends(require_csrf)])
+def incident_create(request: Request, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "incidents.write")
+        raw = body.get("device_ids")
+        try:
+            incident_id = incident_flow.create_incident_record(
+                db, user, customer_id=_text(body, "customer_id"), title=_text(body, "title"), summary=_text(body, "summary"),
+                severity=_text(body, "severity"), started_at=_text(body, "started_at"), site_id=_text(body, "site_id"),
+                device_ids=[str(v) for v in raw] if isinstance(raw, list) else [],
+            )
+        except InputError as exc:
+            raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
+        return {"id": str(incident_id)}
 
 @router.get("/incidents/{incident_id}")
 def incident_detail(request: Request, incident_id: uuid.UUID):

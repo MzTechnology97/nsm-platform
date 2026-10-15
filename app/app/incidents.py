@@ -13,6 +13,7 @@ from sqlalchemy import func, or_, select
 from app import main as core
 from app.config import settings
 from app.db import SessionLocal
+from app.input_errors import InputError
 from app.incident_correlation import suggest
 from app.incident_models import (
     HYPOTHESIS_STATUSES,
@@ -195,59 +196,75 @@ def incident_new(request: Request, customer: str = "", device: str = "", title: 
         )
 
 
+def create_incident_record(db, user, *, customer_id, title, summary, severity, started_at, site_id, device_ids) -> uuid.UUID:
+    """Open an incident for one customer with its devices; audited, commits. Shared by both interfaces.
+
+    Raises ``InputError`` with codes ``customer``, ``title``, ``started``, ``devices``.
+    """
+    customer = db.get(Customer, _uuid(customer_id)) if _uuid(customer_id) else None
+    if not customer:
+        raise InputError("customer", "Seleziona il cliente.")
+    title = str(title or "").strip()
+    if not title:
+        raise InputError("title", "Il titolo è obbligatorio.")
+    started = parse_local(str(started_at or ""))
+    now = utcnow()
+    if started is None or started > now + FUTURE_TOLERANCE:
+        raise InputError("started", "Indica un inizio valido, non nel futuro.")
+    severity = str(severity or "medium")
+    if severity not in INCIDENT_SEVERITIES:
+        severity = "medium"
+    wanted = {_uuid(value) for value in (device_ids or [])} - {None}
+    devices = list(db.scalars(select(Device).where(Device.id.in_(wanted), Device.customer_id == customer.id))) if wanted else []
+    if len(devices) != len(wanted):
+        raise InputError("devices", "Gli apparati devono appartenere al cliente selezionato.")
+    site = _uuid(site_id)
+    if site and not db.scalar(select(Site.id).where(Site.id == site, Site.customer_id == customer.id)):
+        site = None
+    incident = Incident(
+        id=uuid.uuid4(),
+        customer_id=customer.id,
+        site_id=site,
+        title=title[:200],
+        summary=str(summary or "").strip() or None,
+        severity=severity,
+        status="open",
+        started_at=started,
+        created_by_user_id=user.id,
+        created_at=now,
+        updated_at=now,
+    )
+    db.add(incident)
+    db.flush()
+    for device in devices:
+        db.add(IncidentDevice(incident_id=incident.id, device_id=device.id, added_at=now))
+    core.add_event(
+        db,
+        "INCIDENT_CREATED",
+        actor=user,
+        customer_id=customer.id,
+        details={"incident_id": str(incident.id), "title": incident.title, "severity": severity, "devices": len(devices)},
+    )
+    db.commit()
+    return incident.id
+
+
 @router.post("/incidents", name="incident_create")
 async def incident_create(request: Request):
     form = await request.form()
     validate_csrf(request, str(form.get("csrf") or ""))
     with SessionLocal() as db:
         user = core.require_permission(request, db, "incidents.write")
-        customer = db.get(Customer, _uuid(form.get("customer_id"))) if _uuid(form.get("customer_id")) else None
-        back = f"/incidents/new?customer={customer.id}" if customer else "/incidents/new"
-        if not customer:
-            return flash_redirect(request, "/incidents/new", "warning", "Seleziona il cliente.", title="Dati non validi")
-        title = str(form.get("title") or "").strip()
-        if not title:
-            return flash_redirect(request, back, "warning", "Il titolo è obbligatorio.", title="Dati non validi")
-        started = parse_local(str(form.get("started_at") or ""))
-        now = utcnow()
-        if started is None or started > now + FUTURE_TOLERANCE:
-            return flash_redirect(request, back, "warning", "Indica un inizio valido, non nel futuro.", title="Dati non validi")
-        severity = str(form.get("severity") or "medium")
-        if severity not in INCIDENT_SEVERITIES:
-            severity = "medium"
-        wanted = {_uuid(value) for value in form.getlist("device_ids")} - {None}
-        devices = list(db.scalars(select(Device).where(Device.id.in_(wanted), Device.customer_id == customer.id))) if wanted else []
-        if len(devices) != len(wanted):
-            return flash_redirect(request, back, "warning", "Gli apparati devono appartenere al cliente selezionato.", title="Dati non validi")
-        site_id = _uuid(form.get("site_id"))
-        if site_id and not db.scalar(select(Site.id).where(Site.id == site_id, Site.customer_id == customer.id)):
-            site_id = None
-        incident = Incident(
-            id=uuid.uuid4(),
-            customer_id=customer.id,
-            site_id=site_id,
-            title=title[:200],
-            summary=str(form.get("summary") or "").strip() or None,
-            severity=severity,
-            status="open",
-            started_at=started,
-            created_by_user_id=user.id,
-            created_at=now,
-            updated_at=now,
-        )
-        db.add(incident)
-        db.flush()
-        for device in devices:
-            db.add(IncidentDevice(incident_id=incident.id, device_id=device.id, added_at=now))
-        core.add_event(
-            db,
-            "INCIDENT_CREATED",
-            actor=user,
-            customer_id=customer.id,
-            details={"incident_id": str(incident.id), "title": incident.title, "severity": severity, "devices": len(devices)},
-        )
-        db.commit()
-        incident_id = incident.id
+        customer_id = _uuid(form.get("customer_id"))
+        back = f"/incidents/new?customer={customer_id}" if customer_id and db.get(Customer, customer_id) else "/incidents/new"
+        try:
+            incident_id = create_incident_record(
+                db, user, customer_id=form.get("customer_id"), title=form.get("title"), summary=form.get("summary"),
+                severity=form.get("severity"), started_at=form.get("started_at"), site_id=form.get("site_id"),
+                device_ids=form.getlist("device_ids"),
+            )
+        except InputError as exc:
+            return flash_redirect(request, "/incidents/new" if exc.code == "customer" else back, "warning", str(exc), title="Dati non validi")
     return flash_redirect(request, f"/incidents/{incident_id}", "success", "Incidente aperto: la timeline raccoglie gli eventi registrati attorno all'inizio.", title="Incidente creato")
 
 

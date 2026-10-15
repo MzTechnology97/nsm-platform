@@ -4501,5 +4501,33 @@
       "exists": "Questa release è già nel catalogo.",
       "not_operator": "Si possono eliminare solo le release inserite dagli operatori."
     }
+  },
+  "incidentNew": {
+    "title": "Nuovo incidente",
+    "subtitle": "Registra cosa sta succedendo e quali apparati sono coinvolti: la timeline mostrerà gli eventi NSM attorno all'inizio indicato.",
+    "customer": "Cliente",
+    "chooseCustomer": "Seleziona il cliente…",
+    "changeCustomer": "Cambia cliente",
+    "site": "Sede",
+    "noSite": "Nessuna sede specifica",
+    "titleLabel": "Titolo",
+    "titlePlaceholder": "Es. Perdita di connettività della sede principale",
+    "severity": "Gravità",
+    "started": "Inizio",
+    "startedHelp": "Quando è iniziato il problema, anche se segnalato dopo.",
+    "summary": "Descrizione",
+    "summaryPlaceholder": "Sintomi osservati, segnalazione del cliente, impatto",
+    "devices": "Apparati coinvolti",
+    "devicesHelp_one": "{{count}} selezionato.",
+    "devicesHelp_other": "{{count}} selezionati.",
+    "noDevices": "Il cliente non ha apparati registrati.",
+    "cancel": "Annulla",
+    "submit": "Apri incidente",
+    "errors": {
+      "customer": "Seleziona il cliente.",
+      "title": "Il titolo è obbligatorio.",
+      "started": "Indica un inizio valido, non nel futuro.",
+      "devices": "Gli apparati devono appartenere al cliente selezionato."
+    }
   }
 }

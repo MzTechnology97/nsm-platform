@@ -41,7 +41,7 @@ export function Incidents() {
           <p>{t("incidents.subtitle")}</p>
         </div>
         <div className="ui-row-actions">
-          {first?.can_write && <a className="ui-button" href="/incidents/new">{t("incidents.new")}</a>}
+          {first?.can_write && <Link to="/incidents/new" className="ui-button">{t("incidents.new")}</Link>}
           <a className="ui-button ui-button-ghost" href="/incidents">{t("app.classic")}</a>
         </div>
       </header>

@@ -4501,5 +4501,33 @@
       "exists": "Cette version est déjà dans le catalogue.",
       "not_operator": "Seules les versions saisies par les opérateurs peuvent être supprimées."
     }
+  },
+  "incidentNew": {
+    "title": "Nouvel incident",
+    "subtitle": "Indiquez ce qui se passe et quels équipements sont concernés : la chronologie montrera les événements NSM autour du début indiqué.",
+    "customer": "Client",
+    "chooseCustomer": "Choisissez le client…",
+    "changeCustomer": "Changer de client",
+    "site": "Site",
+    "noSite": "Aucun site précis",
+    "titleLabel": "Titre",
+    "titlePlaceholder": "Ex. Perte de connectivité du site principal",
+    "severity": "Gravité",
+    "started": "Début",
+    "startedHelp": "Quand le problème a commencé, même s'il a été signalé plus tard.",
+    "summary": "Description",
+    "summaryPlaceholder": "Symptômes observés, signalement du client, impact",
+    "devices": "Équipements concernés",
+    "devicesHelp_one": "{{count}} sélectionné.",
+    "devicesHelp_other": "{{count}} sélectionnés.",
+    "noDevices": "Le client n'a aucun équipement enregistré.",
+    "cancel": "Annuler",
+    "submit": "Ouvrir l'incident",
+    "errors": {
+      "customer": "Choisissez le client.",
+      "title": "Le titre est obligatoire.",
+      "started": "Indiquez un début valide, pas dans le futur.",
+      "devices": "Les équipements doivent appartenir au client choisi."
+    }
   }
 }
