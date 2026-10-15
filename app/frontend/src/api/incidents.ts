@@ -188,3 +188,56 @@ export function useIncidentAction<T extends object>(id: string, path: string) {
     },
   });
 }
+
+export interface IncidentNewSearch {
+  customer?: string;
+  device?: string;
+  title?: string;
+  summary?: string;
+  severity?: string;
+}
+
+export const parseIncidentNewSearch = (search: Record<string, unknown>): IncidentNewSearch => {
+  const out: IncidentNewSearch = {};
+  for (const key of ["customer", "device", "title", "summary", "severity"] as const) {
+    if (typeof search[key] === "string" && search[key]) out[key] = (search[key] as string).slice(0, key === "summary" ? 4000 : 200);
+  }
+  return out;
+};
+
+export interface IncidentForm {
+  customers: { id: string; name: string }[];
+  customer: { id: string; name: string } | null;
+  sites: { id: string; name: string }[];
+  devices: { id: string; name: string; brand?: BrandRef; vendor: string | null; model: string | null; status: string; site_id: string | null }[];
+  preselected: string[];
+  site_id: string | null;
+  severities: string[];
+  now: string;
+  prefill: { title: string; summary: string; severity: string };
+}
+
+export const useIncidentForm = (search: IncidentNewSearch) =>
+  useQuery({
+    queryKey: ["incident-form", search],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(search)) if (value) params.set(key, value);
+      const text = params.toString();
+      return api<IncidentForm>(`/api/ui/v1/incident-form${text ? `?${text}` : ""}`);
+    },
+    retry: false,
+    gcTime: 0,
+  });
+
+export function useCreateIncident() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { customer_id: string; title: string; summary: string; severity: string; started_at: string; site_id: string; device_ids: string[] }) =>
+      api<{ id: string }>("/api/ui/v1/incidents", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["incidents"] });
+      client.invalidateQueries({ queryKey: ["issues"] });
+    },
+  });
+}

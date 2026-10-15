@@ -4501,5 +4501,33 @@
       "exists": "This release is already in the catalog.",
       "not_operator": "Only releases entered by operators can be deleted."
     }
+  },
+  "incidentNew": {
+    "title": "New incident",
+    "subtitle": "Record what is happening and which devices are involved: the timeline will show the NSM events around the given start.",
+    "customer": "Customer",
+    "chooseCustomer": "Choose the customer…",
+    "changeCustomer": "Change customer",
+    "site": "Site",
+    "noSite": "No specific site",
+    "titleLabel": "Title",
+    "titlePlaceholder": "E.g. Main site lost connectivity",
+    "severity": "Severity",
+    "started": "Start",
+    "startedHelp": "When the problem started, even if it was reported later.",
+    "summary": "Description",
+    "summaryPlaceholder": "Observed symptoms, customer report, impact",
+    "devices": "Devices involved",
+    "devicesHelp_one": "{{count}} selected.",
+    "devicesHelp_other": "{{count}} selected.",
+    "noDevices": "The customer has no registered devices.",
+    "cancel": "Cancel",
+    "submit": "Open incident",
+    "errors": {
+      "customer": "Choose the customer.",
+      "title": "The title is required.",
+      "started": "Enter a valid start, not in the future.",
+      "devices": "The devices must belong to the chosen customer."
+    }
   }
 }

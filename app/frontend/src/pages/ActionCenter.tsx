@@ -139,7 +139,7 @@ function Row({ row, canAck, canIncident }: { row: IssueRow; canAck: boolean; can
             </button>
           )}
           {canIncident && row.device && (
-            <a className="ui-button ui-button-ghost ui-button-small" href={`/incidents/new?device=${row.device.id}`}>{t("actionCenter.incident")}</a>
+            <Link to="/incidents/new" search={{ device: row.device.id }} className="ui-button ui-button-ghost ui-button-small">{t("actionCenter.incident")}</Link>
           )}
         </div>
         {ack.error && <small className="ui-backup-error">{(ack.error as Error).message}</small>}

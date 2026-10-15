@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { parsePolicyFormSearch } from "../api/backupPolicies";
 import type { CustomerFilters } from "../api/customers";
 import type { AuditFilters, OnboardingFilters } from "../api/admin";
-import { INCIDENT_STATUSES, type IncidentFilters, ISSUE_STATUSES, type IssueFilters } from "../api/incidents";
+import { INCIDENT_STATUSES, type IncidentFilters, ISSUE_STATUSES, type IssueFilters, parseIncidentNewSearch } from "../api/incidents";
 import {
   COMPLIANCE_STATUSES,
   type ComplianceFilters,
@@ -258,6 +258,12 @@ const incidentsRoute = createRoute({
     ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
     ...(typeof search.q === "string" && search.q ? { q: search.q } : {}),
   }),
+});
+const incidentNewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/incidents/new",
+  component: lazyRouteComponent(() => import("../pages/IncidentNew"), "IncidentNew"),
+  validateSearch: parseIncidentNewSearch,
 });
 const incidentRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -556,6 +562,7 @@ export const routeTree = rootRoute.addChildren([
   actionCenterRoute,
   incidentsRoute,
   incidentRoute,
+  incidentNewRoute,
   auditEventsRoute,
   reportsRoute,
   adminUsersRoute,
