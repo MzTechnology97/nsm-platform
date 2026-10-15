@@ -201,6 +201,21 @@ const vulnerabilityRoute = createRoute({
     return { ...(out.customer ? { customer: out.customer } : {}), ...(out.status ? { status: out.status } : {}) };
   },
 });
+const complianceBaselinesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/compliance/baselines",
+  component: lazyRouteComponent(() => import("../pages/ComplianceBaselines"), "ComplianceBaselines"),
+});
+const complianceBaselineNewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/compliance/baselines/new",
+  component: lazyRouteComponent(() => import("../pages/ComplianceBaselines"), "ComplianceBaselineNew"),
+});
+const complianceBaselineEditRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/compliance/baselines/$baselineId/edit",
+  component: lazyRouteComponent(() => import("../pages/ComplianceBaselines"), "ComplianceBaselineEdit"),
+});
 const complianceResultRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/compliance/results/$resultId",
@@ -488,6 +503,9 @@ export const routeTree = rootRoute.addChildren([
   lifecycleRoute,
   complianceRoute,
   complianceResultRoute,
+  complianceBaselinesRoute,
+  complianceBaselineNewRoute,
+  complianceBaselineEditRoute,
   actionCenterRoute,
   incidentsRoute,
   incidentRoute,

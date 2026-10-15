@@ -41,7 +41,7 @@ export function Compliance() {
               {evaluate.isPending ? t("app.loading") : t("compliance.evaluate")}
             </button>
           )}
-          <a className="ui-button ui-button-ghost" href="/compliance/baselines">{t("compliance.baselines")}</a>
+          <Link to="/compliance/baselines" className="ui-button ui-button-ghost">{t("compliance.baselines")}</Link>
           <a className="ui-button ui-button-ghost" href="/compliance">{t("app.classic")}</a>
         </div>
       </header>
@@ -49,7 +49,7 @@ export function Compliance() {
         <div className="ui-alert ui-alert-success">{t("compliance.evaluated", { devices: evaluate.data.devices, fail: evaluate.data.fail, unknown: evaluate.data.unknown, pass: evaluate.data.pass })}</div>
       )}
       {evaluate.error && <div className="ui-alert ui-alert-danger">{(evaluate.error as Error).message}</div>}
-      {first && !first.has_baselines && <div className="ui-alert">{t("compliance.noBaselines")}</div>}
+      {first && !first.has_baselines && <div className="ui-alert">{t("compliance.noBaselines")} <Link to="/compliance/baselines">{t("compliance.baselines")}</Link></div>}
 
       <div className="ui-chips" role="group" aria-label={t("compliance.states.label")}>
         {COMPLIANCE_STATUSES.map((key) => (

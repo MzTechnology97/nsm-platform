@@ -63,7 +63,7 @@ export function ComplianceResult() {
             <div><dt>{t("complianceResult.evaluated")}</dt><dd>{formatDateTime(data.evaluated_at, i18n.language)}</dd></div>
             <div><dt>{t("complianceResult.since")}</dt><dd>{formatDateTime(data.status_changed_at, i18n.language)}</dd></div>
             <div><dt>{t("complianceResult.baseline")}</dt>
-              <dd>{data.baseline ? <a href={`/compliance/baselines/${data.baseline.id}/edit`}>v{data.baseline.version ?? "?"}</a> : "—"}</dd></div>
+              <dd>{data.baseline ? <Link to="/compliance/baselines/$baselineId/edit" params={{ baselineId: data.baseline.id }}>v{data.baseline.version ?? "?"}</Link> : "—"}</dd></div>
             {data.acknowledged && (
               <div><dt>{t("complianceResult.acknowledged")}</dt><dd>{data.acknowledged.by ?? "—"} · {formatDateTime(data.acknowledged.at, i18n.language)}</dd></div>
             )}

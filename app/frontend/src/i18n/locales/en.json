@@ -4190,5 +4190,93 @@
       "no_exception": "There is no active exception.",
       "action": "Invalid action."
     }
+  },
+  "complianceBaselines": {
+    "title": "Baselines",
+    "subtitle": "Baselines are inherited from the global level down to the device: a more specific baseline only overrides the controls it sets. Every change creates a new version.",
+    "new": "+ New baseline",
+    "newTitle": "New baseline",
+    "newHelp": "Choose the scope and the controls to enable, disable or leave inherited.",
+    "versionHelp": "Current version v{{current}}: saving creates v{{next}}.",
+    "columns": {
+      "baseline": "Baseline",
+      "scope": "Scope",
+      "controls": "Controls set",
+      "version": "Version",
+      "state": "State",
+      "updated": "Updated"
+    },
+    "scopes": {
+      "global": "Global",
+      "vendor": "Vendor",
+      "customer": "Customer",
+      "site": "Site",
+      "device": "Device"
+    },
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "empty": "No baseline: compliance does not evaluate any device yet.",
+    "createDefault": "Create the default global baseline",
+    "name": "Name",
+    "scope": "Scope",
+    "vendor": "Vendor",
+    "customer": "Customer",
+    "site": "Site",
+    "device": "Device",
+    "description": "Description",
+    "active": "Baseline enabled",
+    "controlsTitle": "Controls",
+    "controlsHelp": "\"Inherit\" lets broader baselines decide; \"Enabled\" and \"Disabled\" override them for this scope.",
+    "mode": "Mode",
+    "modes": {
+      "inherit": "Inherit",
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
+    "cancel": "Cancel",
+    "save": "Save baseline",
+    "descriptions": {
+      "firmware_current": "No pending security update; with \"strict\", no available update either.",
+      "no_unhandled_severe_vulnerabilities": "No critical/high vulnerability still \"Open\" (planned, in progress or in exception counts as handled).",
+      "backup_recent": "A successful backup exists within the given number of days.",
+      "restore_tested": "A passed restore test was recorded within the given number of days.",
+      "lifecycle_supported": "The device is not End of Support; with \"EOL fails\", not End of Life either.",
+      "agent_heartbeat": "MikroTik: the agent contacted NSM within the given minutes.",
+      "config_baseline": "MikroTik: an approved configuration baseline exists and there is no unverified change.",
+      "cleartext_services_disabled": "MikroTik: telnet and FTP (and optionally www) are disabled in the latest export. Compliant only with explicit evidence."
+    },
+    "params": {
+      "firmware_current": {
+        "strict": "Strict: any available update fails"
+      },
+      "no_unhandled_severe_vulnerabilities": {
+        "exceptions_fail": "Exceptions count as failing"
+      },
+      "backup_recent": {
+        "max_age_days": "Maximum backup age (days)"
+      },
+      "restore_tested": {
+        "max_age_days": "Maximum restore test age (days)"
+      },
+      "lifecycle_supported": {
+        "fail_on_eol": "EOL fails"
+      },
+      "agent_heartbeat": {
+        "max_minutes": "Maximum minutes since the last heartbeat"
+      },
+      "cleartext_services_disabled": {
+        "include_www": "Also check the www (HTTP) service"
+      }
+    },
+    "errors": {
+      "name_scope": "Name and scope are required.",
+      "vendor": "Choose the vendor.",
+      "customer": "Choose the customer.",
+      "site": "Choose the site.",
+      "device": "Choose the device.",
+      "param": "A parameter is invalid or out of range (1–3650).",
+      "no_controls": "Set at least one control (enabled or disabled).",
+      "exists": "A global baseline already exists."
+    }
   }
 }

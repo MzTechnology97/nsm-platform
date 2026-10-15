@@ -4190,5 +4190,93 @@
       "no_exception": "No hay ninguna excepción activa.",
       "action": "Acción no válida."
     }
+  },
+  "complianceBaselines": {
+    "title": "Líneas base",
+    "subtitle": "Las líneas base se heredan del nivel global hasta el equipo: una línea base más específica solo sustituye los controles que define. Cada cambio crea una nueva versión.",
+    "new": "+ Nueva línea base",
+    "newTitle": "Nueva línea base",
+    "newHelp": "Elige el alcance y los controles que activar, desactivar o dejar heredados.",
+    "versionHelp": "Versión actual v{{current}}: al guardar se crea la v{{next}}.",
+    "columns": {
+      "baseline": "Línea base",
+      "scope": "Alcance",
+      "controls": "Controles definidos",
+      "version": "Versión",
+      "state": "Estado",
+      "updated": "Actualizada"
+    },
+    "scopes": {
+      "global": "Global",
+      "vendor": "Fabricante",
+      "customer": "Cliente",
+      "site": "Sede",
+      "device": "Equipo"
+    },
+    "enabled": "Activa",
+    "disabled": "Desactivada",
+    "empty": "No hay líneas base: el cumplimiento aún no evalúa ningún equipo.",
+    "createDefault": "Crear la línea base global predeterminada",
+    "name": "Nombre",
+    "scope": "Alcance",
+    "vendor": "Fabricante",
+    "customer": "Cliente",
+    "site": "Sede",
+    "device": "Equipo",
+    "description": "Descripción",
+    "active": "Línea base activa",
+    "controlsTitle": "Controles",
+    "controlsHelp": "«Heredar» deja decidir a las líneas base más generales; «Activo» y «Desactivado» las sustituyen para este alcance.",
+    "mode": "Modo",
+    "modes": {
+      "inherit": "Heredar",
+      "enabled": "Activo",
+      "disabled": "Desactivado"
+    },
+    "cancel": "Cancelar",
+    "save": "Guardar línea base",
+    "descriptions": {
+      "firmware_current": "Ninguna actualización de seguridad pendiente; en modo «estricto», tampoco ninguna actualización disponible.",
+      "no_unhandled_severe_vulnerabilities": "Ninguna vulnerabilidad crítica/alta aún «Abierta» (planificada, en curso o en excepción cuenta como gestionada).",
+      "backup_recent": "Existe una copia correcta dentro del número de días indicado.",
+      "restore_tested": "Se registró una prueba de restauración superada dentro del número de días indicado.",
+      "lifecycle_supported": "El equipo no está fuera de soporte; con «EOL no conforme», tampoco al final de su vida útil.",
+      "agent_heartbeat": "MikroTik: el agente contactó con NSM dentro de los minutos indicados.",
+      "config_baseline": "MikroTik: existe una configuración de referencia aprobada y ningún cambio sin verificar.",
+      "cleartext_services_disabled": "MikroTik: telnet y FTP (y opcionalmente www) están desactivados en el último export. Cumple solo con evidencia explícita."
+    },
+    "params": {
+      "firmware_current": {
+        "strict": "Estricto: cualquier actualización disponible incumple"
+      },
+      "no_unhandled_severe_vulnerabilities": {
+        "exceptions_fail": "Las excepciones cuentan como incumplimiento"
+      },
+      "backup_recent": {
+        "max_age_days": "Antigüedad máxima de la copia (días)"
+      },
+      "restore_tested": {
+        "max_age_days": "Antigüedad máxima de la prueba de restauración (días)"
+      },
+      "lifecycle_supported": {
+        "fail_on_eol": "EOL no conforme"
+      },
+      "agent_heartbeat": {
+        "max_minutes": "Minutos máximos desde el último heartbeat"
+      },
+      "cleartext_services_disabled": {
+        "include_www": "Comprobar también el servicio www (HTTP)"
+      }
+    },
+    "errors": {
+      "name_scope": "El nombre y el alcance son obligatorios.",
+      "vendor": "Elige el fabricante.",
+      "customer": "Elige el cliente.",
+      "site": "Elige la sede.",
+      "device": "Elige el equipo.",
+      "param": "Un parámetro no es válido o está fuera de rango (1–3650).",
+      "no_controls": "Define al menos un control (activo o desactivado).",
+      "exists": "Ya existe una línea base global."
+    }
   }
 }

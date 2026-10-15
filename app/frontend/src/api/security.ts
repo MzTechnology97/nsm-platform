@@ -267,3 +267,52 @@ export function useComplianceResultAction(id: string, action: "acknowledge" | "e
     },
   });
 }
+
+type Ref = { id: string; name: string };
+
+export interface BaselineRow {
+  id: string;
+  name: string;
+  description: string | null;
+  enabled: boolean;
+  version: number;
+  updated_at: string | null;
+  target: { type: string; vendor: string | null; customer: Ref | null; site: (Ref & { customer: string | null }) | null; device: DeviceRef };
+  controls: { id: string; enabled: boolean }[];
+}
+
+export const useBaselines = () =>
+  useQuery({ queryKey: ["compliance-baselines"], queryFn: () => api<{ items: BaselineRow[]; has_global: boolean; can_manage: boolean }>("/api/ui/v1/compliance/baselines") });
+
+export type ControlMode = "inherit" | "enabled" | "disabled";
+export type ControlParams = Record<string, boolean | number>;
+
+export interface BaselineForm {
+  baseline: { id: string; name: string; description: string | null; scope_type: string; vendor: string | null; customer_id: string; site_id: string; device_id: string; enabled: boolean; version: number } | null;
+  settings: Record<string, { enabled?: boolean; params?: ControlParams }>;
+  controls: { id: string; title: string; category: string; description: string; defaults: ControlParams; params_help: Record<string, string> }[];
+  scopes: string[];
+  vendors: string[];
+  customers: Ref[];
+  sites: (Ref & { customer_id: string; customer: string | null })[];
+  devices: NonNullable<DeviceRef>[];
+}
+
+export const useBaselineForm = (id?: string) =>
+  useQuery({
+    queryKey: ["compliance-baseline-form", id ?? "new"],
+    queryFn: () => api<BaselineForm>(`/api/ui/v1/compliance/baselines/form${id ? `?baseline=${encodeURIComponent(id)}` : ""}`),
+    retry: false,
+    gcTime: 0,
+  });
+
+export function useBaselineWrite<B>(path: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: B) => api<{ id: string; version?: number; devices?: number }>(`/api/ui/v1/compliance/baselines${path}`, { method: "POST", body: JSON.stringify(body ?? {}) }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["compliance-baselines"] });
+      client.invalidateQueries({ queryKey: ["compliance"] });
+    },
+  });
+}

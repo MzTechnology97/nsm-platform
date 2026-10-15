@@ -15,6 +15,7 @@ from app.compliance_engine import CONTROLS, DEFAULT_CONTROLS, evaluate_all
 from app.compliance_findings import housekeeping, in_exception
 from app.compliance_models import RESULT_LABELS, SCOPE_LABELS, SCOPE_PRIORITY, ComplianceBaseline, ComplianceResult
 from app.db import SessionLocal
+from app.input_errors import InputError
 from app.models import Customer, Device, Site, utcnow
 from app.security import validate_csrf
 from app.ui_feedback import flash_redirect
@@ -216,12 +217,84 @@ def _parse_controls(form) -> dict:
                 try:
                     value = int(str(raw))
                 except (TypeError, ValueError):
-                    raise ValueError(f"Parametro non valido per «{control.title}».")
+                    raise InputError("param", f"Parametro non valido per «{control.title}».")
                 if value < 1 or value > 3650:
-                    raise ValueError(f"Parametro fuori intervallo per «{control.title}».")
+                    raise InputError("param", f"Parametro fuori intervallo per «{control.title}».")
                 params[key] = value
         controls[control_id] = {"enabled": mode == "enabled", "params": params}
     return controls
+
+
+def save_baseline_record(db, user, form) -> ComplianceBaseline:
+    """Create (no ``baseline_id``) or update a baseline from form values, then re-evaluate; shared by both interfaces."""
+    baseline_id = _uuid(form.get("baseline_id"))
+    baseline = db.get(ComplianceBaseline, baseline_id) if baseline_id else None
+    name = str(form.get("name") or "").strip()
+    scope = str(form.get("scope_type") or "global")
+    if not name or scope not in SCOPE_LABELS:
+        raise InputError("name_scope", "Nome e ambito sono obbligatori.")
+    target = {"vendor": None, "customer_id": None, "site_id": None, "device_id": None}
+    if scope == "vendor":
+        vendor = str(form.get("vendor") or "")
+        if vendor not in VENDORS:
+            raise InputError("vendor", "Seleziona il vendor.")
+        target["vendor"] = vendor
+    elif scope in ("customer", "site", "device"):
+        key = {"customer": "customer_id", "site": "site_id", "device": "device_id"}[scope]
+        model = {"customer": Customer, "site": Site, "device": Device}[scope]
+        ref = _uuid(form.get(key))
+        if not ref or not db.get(model, ref):
+            raise InputError(scope, f"Seleziona {SCOPE_LABELS[scope].lower()}.")
+        target[key] = ref
+    controls = _parse_controls(form)
+    if not controls:
+        raise InputError("no_controls", "Imposta almeno un controllo (attivo o disattivato).")
+    now = utcnow()
+    created = baseline is None
+    if created:
+        baseline = ComplianceBaseline(id=uuid.uuid4(), created_at=now, version=0)
+        db.add(baseline)
+    baseline.name = name[:160]
+    baseline.description = str(form.get("description") or "").strip() or None
+    baseline.scope_type = scope
+    for key, value in target.items():
+        setattr(baseline, key, value)
+    baseline.is_enabled = form.get("is_enabled") is not None
+    baseline.controls = controls
+    baseline.version = (baseline.version or 0) + 1
+    baseline.updated_at = now
+    baseline.updated_by_user_id = user.id
+    db.flush()
+    core.add_event(
+        db, "COMPLIANCE_BASELINE_SAVED", actor=user, customer_id=target["customer_id"],
+        details={"baseline_id": str(baseline.id), "version": baseline.version, "scope": scope, "controls": len(controls), "created": created},
+    )
+    evaluate_all(db, now)
+    db.flush()
+    housekeeping(db, now)
+    db.commit()
+    return baseline
+
+
+def create_default_baseline_record(db, user) -> dict:
+    """The NSM default global baseline, evaluated at once; refused when a global baseline exists."""
+    if db.scalar(select(ComplianceBaseline.id).where(ComplianceBaseline.scope_type == "global").limit(1)):
+        raise InputError("exists", "Esiste già una baseline globale.", 409)
+    now = utcnow()
+    baseline = ComplianceBaseline(
+        id=uuid.uuid4(), name="Baseline NSM predefinita", scope_type="global", is_enabled=True, version=1,
+        description="Controlli predefiniti di NSM; modificabile, ereditata da tutti gli apparati.",
+        controls={cid: dict(setting, params=dict(setting["params"])) for cid, setting in DEFAULT_CONTROLS.items()},
+        created_at=now, updated_at=now, updated_by_user_id=user.id,
+    )
+    db.add(baseline)
+    db.flush()
+    core.add_event(db, "COMPLIANCE_BASELINE_SAVED", actor=user, details={"baseline_id": str(baseline.id), "version": 1, "scope": "global", "default": True})
+    stats = evaluate_all(db, now)
+    db.flush()
+    housekeeping(db, now)
+    db.commit()
+    return {"id": str(baseline.id), **stats}
 
 
 @router.post("/compliance/baselines", name="compliance_baseline_save")
@@ -231,55 +304,12 @@ async def compliance_baseline_save(request: Request):
     with SessionLocal() as db:
         user = core.require_permission(request, db, "compliance.manage")
         baseline_id = _uuid(form.get("baseline_id"))
-        baseline = db.get(ComplianceBaseline, baseline_id) if baseline_id else None
-        back = f"/compliance/baselines/{baseline.id}/edit" if baseline else "/compliance/baselines/new"
-        name = str(form.get("name") or "").strip()
-        scope = str(form.get("scope_type") or "global")
-        if not name or scope not in SCOPE_LABELS:
-            return flash_redirect(request, back, "warning", "Nome e ambito sono obbligatori.", title="Dati non validi")
-        target = {"vendor": None, "customer_id": None, "site_id": None, "device_id": None}
-        if scope == "vendor":
-            vendor = str(form.get("vendor") or "")
-            if vendor not in VENDORS:
-                return flash_redirect(request, back, "warning", "Seleziona il vendor.", title="Dati non validi")
-            target["vendor"] = vendor
-        elif scope in ("customer", "site", "device"):
-            key = {"customer": "customer_id", "site": "site_id", "device": "device_id"}[scope]
-            model = {"customer": Customer, "site": Site, "device": Device}[scope]
-            ref = _uuid(form.get(key))
-            if not ref or not db.get(model, ref):
-                return flash_redirect(request, back, "warning", f"Seleziona {SCOPE_LABELS[scope].lower()}.", title="Dati non validi")
-            target[key] = ref
+        existing = db.get(ComplianceBaseline, baseline_id) if baseline_id else None
+        back = f"/compliance/baselines/{existing.id}/edit" if existing else "/compliance/baselines/new"
         try:
-            controls = _parse_controls(form)
-        except ValueError as exc:
-            return flash_redirect(request, back, "warning", str(exc), title="Dati non validi")
-        if not controls:
-            return flash_redirect(request, back, "warning", "Imposta almeno un controllo (attivo o disattivato).", title="Dati non validi")
-        now = utcnow()
-        created = baseline is None
-        if created:
-            baseline = ComplianceBaseline(id=uuid.uuid4(), created_at=now, version=0)
-            db.add(baseline)
-        baseline.name = name[:160]
-        baseline.description = str(form.get("description") or "").strip() or None
-        baseline.scope_type = scope
-        for key, value in target.items():
-            setattr(baseline, key, value)
-        baseline.is_enabled = form.get("is_enabled") is not None
-        baseline.controls = controls
-        baseline.version = (baseline.version or 0) + 1
-        baseline.updated_at = now
-        baseline.updated_by_user_id = user.id
-        db.flush()
-        core.add_event(
-            db, "COMPLIANCE_BASELINE_SAVED", actor=user, customer_id=target["customer_id"],
-            details={"baseline_id": str(baseline.id), "version": baseline.version, "scope": scope, "controls": len(controls), "created": created},
-        )
-        evaluate_all(db, now)
-        db.flush()
-        housekeeping(db, now)
-        db.commit()
+            baseline = save_baseline_record(db, user, form)
+        except InputError as exc:
+            return flash_redirect(request, back, "warning", str(exc.detail), title="Dati non validi")
         version = baseline.version
     return flash_redirect(request, "/compliance/baselines", "success", f"Baseline salvata (versione {version}); risultati ricalcolati.", title="Baseline salvata")
 
@@ -290,22 +320,10 @@ async def compliance_baseline_default(request: Request):
     validate_csrf(request, str(form.get("csrf") or ""))
     with SessionLocal() as db:
         user = core.require_permission(request, db, "compliance.manage")
-        if db.scalar(select(ComplianceBaseline.id).where(ComplianceBaseline.scope_type == "global").limit(1)):
-            return flash_redirect(request, "/compliance/baselines", "info", "Esiste già una baseline globale.", title="Nessuna modifica")
-        now = utcnow()
-        baseline = ComplianceBaseline(
-            id=uuid.uuid4(), name="Baseline NSM predefinita", scope_type="global", is_enabled=True, version=1,
-            description="Controlli predefiniti di NSM; modificabile, ereditata da tutti gli apparati.",
-            controls={cid: dict(setting, params=dict(setting["params"])) for cid, setting in DEFAULT_CONTROLS.items()},
-            created_at=now, updated_at=now, updated_by_user_id=user.id,
-        )
-        db.add(baseline)
-        db.flush()
-        core.add_event(db, "COMPLIANCE_BASELINE_SAVED", actor=user, details={"baseline_id": str(baseline.id), "version": 1, "scope": "global", "default": True})
-        stats = evaluate_all(db, now)
-        db.flush()
-        housekeeping(db, now)
-        db.commit()
+        try:
+            stats = create_default_baseline_record(db, user)
+        except InputError as exc:
+            return flash_redirect(request, "/compliance/baselines", "info", str(exc.detail), title="Nessuna modifica")
     return flash_redirect(request, "/compliance", "success", f"Baseline globale creata; valutati {stats['devices']} apparati.", title="Compliance attivata")
 
 

@@ -511,3 +511,49 @@ a.ui-search-result:hover {
 .ui-policy-manage {
   justify-content: flex-start;
 }
+
+/* Compliance baselines. */
+.ui-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ui-tag.ui-tag-muted {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.ui-baseline-controls {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.ui-baseline-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.ui-baseline-control.is-enabled {
+  border-color: var(--accent);
+}
+
+.ui-baseline-control.is-disabled {
+  background: var(--surface-soft);
+}
+
+.ui-baseline-control .ui-admin-form {
+  margin-top: 0;
+}
+
+@media (max-width: 720px) {
+  .ui-baseline-control {
+    grid-template-columns: 1fr;
+  }
+}
