@@ -20,7 +20,7 @@ from app import main as core
 from app import syslog_receiver as receiver
 from app import mikrotik_syslog_config as syslog_config
 from app import syslog_identity as identity
-from app import syslog_firewall, syslog_integrity
+from app import syslog_firewall, syslog_guides, syslog_integrity
 from app import syslog_security, vendor_cpe
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
@@ -242,5 +242,6 @@ def security_access(request: Request, hours: int = 24):
 
 
 def install_device_logs(app) -> None:
+    core.templates.env.globals["syslog_guides"] = syslog_guides.guides
     app.include_router(router)
     core.templates.env.globals.update(log_severity_labels=SEVERITY_LABELS)

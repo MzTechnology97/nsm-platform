@@ -34,6 +34,7 @@ def main():
 
     client, headers = login(f"ci-usl-{suffix}")
     data = client.get("/api/ui/v1/admin/syslog").json()
+    assert len(data["guides"]) == 18 and data["guides"][-1]["key"] == "generic" and data["guides"][0]["label"] == "MikroTik RouterOS"
     assert set(data) >= {"settings", "host", "target", "receiver", "reject_reasons", "stored_today", "senders_today", "unknown_sources", "firewall_script"}
     assert "missing_key" in data["reject_reasons"] and data["host"] == "testserver"
     assert any(row["source_ip"] == "192.0.2.77" and row["messages"] == 12 for row in data["unknown_sources"])

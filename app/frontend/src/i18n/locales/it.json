@@ -4554,5 +4554,27 @@
       "started": "Indica un inizio valido, non nel futuro.",
       "devices": "Gli apparati devono appartenere al cliente selezionato."
     }
+  },
+  "syslogGuides": {
+    "keyPlaceholder": "NSM-<chiave del dispositivo>",
+    "keyHint": "Identificazione: inserisci {{key}} nel nome del dispositivo (hostname / device name): compare in ogni riga di log e NSM riconosce l'apparato anche se cambia IP o condivide il NAT con altri.",
+    "mikrotik": "Terminale (RouterOS accetta solo un indirizzo IP):",
+    "ubiquiti": "airOS: Services → System Log → Remote Log: abilita, indirizzo {{target}}, porta 514. In UISP puoi applicarlo a più apparati dal profilo del sito.",
+    "cambium": "Configuration → System → Syslog: server {{target}}, porta 514, livello Warning o inferiore.",
+    "tp-link": "System Tools → System Log → Log Settings → Remote Log / Server: indirizzo {{target}}, porta 514. In Omada: Settings → Services → Remote Logging.",
+    "mimosa": "Preferences → Management → Syslog: server {{target}}, porta 514.",
+    "tenda": "System → System Log (o Advanced → Syslog): server remoto {{target}} dove il firmware lo prevede.",
+    "huawei": "VRP:",
+    "zte": "Administration → System Management → Log Management: Remote Log Server {{target}}, livello Warning.",
+    "fiberhome": "Management → Log → Syslog Server: {{target}}, porta 514.",
+    "teltonika": "System → Administration → Logging (Remote syslog): server {{target}}, porta 514, UDP.",
+    "fortinet": "CLI:",
+    "juniper": "CLI (configure):",
+    "cisco": "CLI (configure terminal):",
+    "paloalto": "Device → Server Profiles → Syslog: server {{target}}, UDP 514; poi associalo in Log Settings (System, Config).",
+    "sonicwall": "Log → Syslog → Syslog Servers: aggiungi {{target}}, porta 514.",
+    "draytek": "System Maintenance → SysLog / Mail Alert: Syslog Server {{target}}, porta 514.",
+    "avm": "FRITZ!OS non invia syslog a server esterni: usa gli eventi dell'interfaccia o un agent dedicato.",
+    "generic": "Cerca nelle impostazioni «Syslog», «Remote log» o «Log server»: indirizzo {{target}}, porta 514 UDP, livello Warning (o Error) e, se disponibile, i log di accesso e autenticazione."
   }
 }
