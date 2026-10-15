@@ -725,7 +725,8 @@
     "actions": {
       "incidents": "Incidentes",
       "edit": "Gestionar cliente",
-      "addDevice": "+ Equipo"
+      "addDevice": "+ Equipo",
+      "manageDevices": "Gestionar equipos"
     },
     "tabs": {
       "label": "Secciones del cliente",
@@ -3074,5 +3075,45 @@
     "copy": "Copiar comando",
     "copied": "Copiado",
     "once": "El comando no se volverá a mostrar: si lo pierdes, genera otro desde la pestaña Agente."
+  },
+  "deviceManage": {
+    "title": "Alias y asignación",
+    "help": "Cambia el nombre del equipo o muévelo a otro cliente o sede; el cambio queda registrado.",
+    "identity": "Identidad detectada: {{identity}}",
+    "customer": "Cliente",
+    "chooseCustomer": "Elige el cliente",
+    "site": "Sede",
+    "moveWarning": "El equipo pasa a otro cliente: sus avisos y notificaciones abiertos lo siguen.",
+    "deleteTitle": "Eliminar equipo",
+    "deleteHelp": "También se eliminan sus copias e historial; una instantánea queda en el registro de actividad.",
+    "bulkTitle": "Gestión de equipos",
+    "bulkHelp": "Selecciona varios equipos del cliente para moverlos o eliminarlos a la vez.",
+    "search": "Filtrar por nombre, modelo, IP, MAC o sede",
+    "selectAll": "Seleccionar todos los mostrados",
+    "empty": "Sin equipos.",
+    "columns": {
+      "device": "Equipo",
+      "site": "Sede",
+      "address": "IP / MAC",
+      "status": "Estado"
+    },
+    "selected_one": "{{count}} seleccionado",
+    "selected_other": "{{count}} seleccionados",
+    "action": "Acción",
+    "move": "Mover",
+    "delete": "Eliminar",
+    "confirmCount": "Para confirmar, escribe el número de equipos: {{count}}",
+    "apply": "Aplicar",
+    "done_one": "{{count}} equipo actualizado.",
+    "done_other": "{{count}} equipos actualizados.",
+    "errors": {
+      "customer_invalid": "Cliente de destino no válido.",
+      "site_invalid": "La sede elegida no pertenece al cliente de destino.",
+      "confirm_name": "El nombre de confirmación no coincide: el equipo no se ha eliminado.",
+      "none_selected": "Selecciona al menos un equipo.",
+      "not_owned": "Uno o más equipos ya no pertenecen al cliente: recarga la página.",
+      "confirm_count": "El número de confirmación no coincide.",
+      "action_invalid": "Acción no válida."
+    }
   }
 }

@@ -77,6 +77,11 @@ const customerDeviceNewRoute = createRoute({
   path: "/devices/new",
   component: lazyRouteComponent(() => import("../pages/DeviceNew"), "DeviceNew"),
 });
+const customerDevicesManageRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/devices/manage",
+  component: lazyRouteComponent(() => import("../pages/DeviceManage"), "CustomerDevicesManage"),
+});
 const customerSecurityRoute = createRoute({
   getParentRoute: () => customerRoute,
   path: "/security",
@@ -380,6 +385,11 @@ const monitoringRoute = createRoute({ getParentRoute: () => rootRoute, path: "/m
 
 const deviceRoute = createRoute({ getParentRoute: () => rootRoute, path: "/devices/$deviceId", component: DeviceDetail });
 const deviceOverviewRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/", component: DeviceOverview });
+const deviceManageRoute = createRoute({
+  getParentRoute: () => deviceRoute,
+  path: "/manage",
+  component: lazyRouteComponent(() => import("../pages/DeviceManage"), "DeviceManage"),
+});
 const deviceMonitorRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/monitor", component: lazyRouteComponent(() => import("../pages/DeviceMonitor"), "DeviceMonitor") }); // uPlot only loads with this tab
 
 const deviceSyslogRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/syslog", component: lazyRouteComponent(() => import("../pages/DeviceSyslog"), "DeviceSyslog") });
@@ -432,8 +442,8 @@ export const routeTree = rootRoute.addChildren([
   notificationsRoute,
   profileRoute,
   customerNewRoute,
-  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute]),
-  deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
+  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute, customerDevicesManageRoute]),
+  deviceRoute.addChildren([deviceOverviewRoute, deviceManageRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);
 
 export const router = createRouter({ routeTree, basepath: "/app", defaultPreload: "intent" });

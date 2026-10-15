@@ -725,7 +725,8 @@
     "actions": {
       "incidents": "Incidents",
       "edit": "Manage customer",
-      "addDevice": "+ Device"
+      "addDevice": "+ Device",
+      "manageDevices": "Manage devices"
     },
     "tabs": {
       "label": "Customer sections",
@@ -3074,5 +3075,45 @@
     "copy": "Copy command",
     "copied": "Copied",
     "once": "The command will not be shown again: if you lose it, generate a new one from the Agent tab."
+  },
+  "deviceManage": {
+    "title": "Alias and assignment",
+    "help": "Rename the device or move it to another customer or site; the change is recorded.",
+    "identity": "Detected identity: {{identity}}",
+    "customer": "Customer",
+    "chooseCustomer": "Choose the customer",
+    "site": "Site",
+    "moveWarning": "The device moves to another customer: its open issues and notifications follow it.",
+    "deleteTitle": "Delete device",
+    "deleteHelp": "Its backups and history are deleted too; a snapshot stays in the activity log.",
+    "bulkTitle": "Device management",
+    "bulkHelp": "Select several devices of the customer to move or delete them together.",
+    "search": "Filter by name, model, IP, MAC or site",
+    "selectAll": "Select all shown",
+    "empty": "No devices.",
+    "columns": {
+      "device": "Device",
+      "site": "Site",
+      "address": "IP / MAC",
+      "status": "Status"
+    },
+    "selected_one": "{{count}} selected",
+    "selected_other": "{{count}} selected",
+    "action": "Action",
+    "move": "Move",
+    "delete": "Delete",
+    "confirmCount": "To confirm, type the number of devices: {{count}}",
+    "apply": "Apply",
+    "done_one": "{{count}} device updated.",
+    "done_other": "{{count}} devices updated.",
+    "errors": {
+      "customer_invalid": "Invalid destination customer.",
+      "site_invalid": "The chosen site does not belong to the destination customer.",
+      "confirm_name": "The confirmation name does not match: the device was not deleted.",
+      "none_selected": "Select at least one device.",
+      "not_owned": "One or more devices no longer belong to the customer: reload the page.",
+      "confirm_count": "The confirmation number does not match.",
+      "action_invalid": "Invalid action."
+    }
   }
 }

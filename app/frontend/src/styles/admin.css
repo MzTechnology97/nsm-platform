@@ -425,3 +425,13 @@ a.ui-search-result:hover {
 .ui-enrollment {
   margin: var(--space-3) 0;
 }
+
+/* Device management. */
+.ui-bulk-bar {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.ui-data-table tr.is-selected td {
+  background: var(--accent-soft);
+}

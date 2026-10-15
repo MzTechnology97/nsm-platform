@@ -72,9 +72,9 @@ function DeviceShell({ detail }: { detail: Detail }) {
             </a>
           )}
           {detail.actions.manage && (
-            <a className="ui-button ui-button-ghost" href={`/devices/${device.id}/manage`}>
+            <Link className="ui-button ui-button-ghost" to="/devices/$deviceId/manage" params={{ deviceId: device.id }}>
               {t("device.actions.manage")}
-            </a>
+            </Link>
           )}
         </div>
       </header>

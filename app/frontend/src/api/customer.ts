@@ -104,3 +104,51 @@ export interface CreatedDevice {
   status: string;
   enrollment_command: string | null;
 }
+
+export interface MoveTarget {
+  id: string;
+  name: string;
+  sites: { id: string; name: string }[];
+}
+
+export interface ManagedDevice {
+  id: string;
+  name: string;
+  display_name: string | null;
+  identity: string | null;
+  brand: BrandRef;
+  vendor: string | null;
+  model: string | null;
+  status: string;
+  management_ip: string | null;
+  primary_mac: string | null;
+  customer_id: string;
+  site: { id: string; name: string } | null;
+}
+
+export const useDeviceManage = (id: string) =>
+  useQuery({
+    queryKey: ["device", id, "manage"],
+    queryFn: () => api<{ device: ManagedDevice; targets: MoveTarget[] }>(`/api/ui/v1/devices/${encodeURIComponent(id)}/manage`),
+  });
+
+export const useCustomerDevicesManage = (id: string) =>
+  useQuery({
+    queryKey: ["customer", id, "devices-manage"],
+    queryFn: () => api<{ customer: { id: string; name: string }; devices: ManagedDevice[]; targets: MoveTarget[] }>(
+      `/api/ui/v1/customers/${encodeURIComponent(id)}/devices/manage`,
+    ),
+  });
+
+/** Device changes (rename, move, delete, bulk); device, customer and list caches reload afterwards. */
+export function useDeviceWrite<TBody = object, TResult = object>(path: string, deletesDevice?: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body?: TBody) => api<TResult>(`/api/ui/v1${path}`, { method: "POST", body: JSON.stringify(body ?? {}) }),
+    onSuccess: () => {
+      if (deletesDevice) client.removeQueries({ queryKey: ["device", deletesDevice] });
+      else void client.invalidateQueries({ queryKey: ["device"] });
+      for (const key of ["devices", "customer", "customers"]) void client.invalidateQueries({ queryKey: [key] });
+    },
+  });
+}
