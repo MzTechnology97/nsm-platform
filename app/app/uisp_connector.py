@@ -608,11 +608,7 @@ def uisp_device_associate(request: Request, device_id: uuid.UUID, csrf: str = Fo
             user = core.require_permission(request, db, "devices.write")
             device = _uisp_device(db, device_id)
             try:
-                connection = _connection(db, enabled_only=True)
-                candidate = lookup_by_mac(connection, device.primary_mac)
-                apply_candidate(db, device, candidate, user, "UISP_DEVICE_ASSOCIATED")
-                connection.last_sync_at = utcnow()
-                db.commit()
+                associate_record(db, user, device)
             except (UispConnectorError, ValueError) as exc:
                 return flash_redirect(
                     request,
@@ -641,13 +637,7 @@ def uisp_device_refresh(request: Request, device_id: uuid.UUID, csrf: str = Form
             user = core.require_permission(request, db, "devices.write")
             device = _uisp_device(db, device_id)
             try:
-                connection = _connection(db, enabled_only=True)
-                candidate = lookup_by_mac(connection, device.primary_mac)
-                if device.external_device_id and candidate["external_id"] != device.external_device_id:
-                    raise UispConnectorError("Il MAC ora corrisponde a un ID UISP diverso: refresh bloccato per sicurezza.")
-                apply_candidate(db, device, candidate, user, "UISP_INVENTORY_REFRESHED")
-                connection.last_sync_at = utcnow()
-                db.commit()
+                refresh_record(db, user, device)
             except (UispConnectorError, ValueError) as exc:
                 return flash_redirect(
                     request,
@@ -665,6 +655,29 @@ def uisp_device_refresh(request: Request, device_id: uuid.UUID, csrf: str = Form
         "Inventario UISP aggiornato mantenendo invariati cliente e sito NSM.",
         title="Refresh UISP completato",
     )
+
+
+def associate_record(db, user, device: Device) -> None:
+    """Link a Ubiquiti device to its UISP record by exact MAC and import the inventory (audited); commits.
+
+    UispConnectorError / ValueError when UISP is not configured or the MAC does not match exactly once.
+    """
+    connection = _connection(db, enabled_only=True)
+    candidate = lookup_by_mac(connection, device.primary_mac)
+    apply_candidate(db, device, candidate, user, "UISP_DEVICE_ASSOCIATED")
+    connection.last_sync_at = utcnow()
+    db.commit()
+
+
+def refresh_record(db, user, device: Device) -> None:
+    """Re-read the linked UISP record (blocked if the MAC now points to another UISP id); commits."""
+    connection = _connection(db, enabled_only=True)
+    candidate = lookup_by_mac(connection, device.primary_mac)
+    if device.external_device_id and candidate["external_id"] != device.external_device_id:
+        raise UispConnectorError("Il MAC ora corrisponde a un ID UISP diverso: refresh bloccato per sicurezza.")
+    apply_candidate(db, device, candidate, user, "UISP_INVENTORY_REFRESHED")
+    connection.last_sync_at = utcnow()
+    db.commit()
 
 
 def install_uisp_connector(app):

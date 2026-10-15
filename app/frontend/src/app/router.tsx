@@ -410,6 +410,7 @@ const deviceFirmwareRoute = createRoute({
   path: "/firmware-upgrade",
   component: lazyRouteComponent(() => import("../pages/DeviceFirmwareUpgrade"), "DeviceFirmwareUpgrade"),
 });
+const deviceUispRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/uisp", component: lazyRouteComponent(() => import("../pages/DeviceUisp"), "DeviceUisp") });
 const deviceManageRoute = createRoute({
   getParentRoute: () => deviceRoute,
   path: "/manage",
@@ -469,7 +470,7 @@ export const routeTree = rootRoute.addChildren([
   customerNewRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute, customerDevicesManageRoute]),
   deviceImportRoute,
-  deviceRoute.addChildren([deviceOverviewRoute, deviceManageRoute, deviceExposureRoute, deviceComplianceRoute, deviceJobsRoute, deviceConfigurationRoute, deviceConfigurationHistoryRoute, deviceRebootRoute, deviceRouterbootRoute, deviceFirmwareRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
+  deviceRoute.addChildren([deviceOverviewRoute, deviceManageRoute, deviceExposureRoute, deviceComplianceRoute, deviceJobsRoute, deviceConfigurationRoute, deviceConfigurationHistoryRoute, deviceRebootRoute, deviceRouterbootRoute, deviceFirmwareRoute, deviceUispRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);
 
 export const router = createRouter({ routeTree, basepath: "/app", defaultPreload: "intent" });
