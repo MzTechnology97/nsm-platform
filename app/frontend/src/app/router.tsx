@@ -413,6 +413,7 @@ const deviceFirmwareRoute = createRoute({
 const deviceUispRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/uisp", component: lazyRouteComponent(() => import("../pages/DeviceUisp"), "DeviceUisp") });
 const deviceCnmaestroRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/cnmaestro", component: lazyRouteComponent(() => import("../pages/DeviceConnectorTabs"), "DeviceCnmaestro") });
 const deviceGenieacsRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/genieacs", component: lazyRouteComponent(() => import("../pages/DeviceConnectorTabs"), "DeviceGenieacs") });
+const deviceLifecycleRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/lifecycle", component: lazyRouteComponent(() => import("../pages/DeviceLifecycle"), "DeviceLifecycle") });
 const deviceManageRoute = createRoute({
   getParentRoute: () => deviceRoute,
   path: "/manage",
@@ -472,7 +473,7 @@ export const routeTree = rootRoute.addChildren([
   customerNewRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute, customerDevicesManageRoute]),
   deviceImportRoute,
-  deviceRoute.addChildren([deviceOverviewRoute, deviceManageRoute, deviceExposureRoute, deviceComplianceRoute, deviceJobsRoute, deviceConfigurationRoute, deviceConfigurationHistoryRoute, deviceRebootRoute, deviceRouterbootRoute, deviceFirmwareRoute, deviceUispRoute, deviceCnmaestroRoute, deviceGenieacsRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
+  deviceRoute.addChildren([deviceOverviewRoute, deviceManageRoute, deviceExposureRoute, deviceComplianceRoute, deviceJobsRoute, deviceConfigurationRoute, deviceConfigurationHistoryRoute, deviceRebootRoute, deviceRouterbootRoute, deviceFirmwareRoute, deviceUispRoute, deviceCnmaestroRoute, deviceGenieacsRoute, deviceLifecycleRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);
 
 export const router = createRouter({ routeTree, basepath: "/app", defaultPreload: "intent" });

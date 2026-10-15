@@ -153,7 +153,8 @@
       "update_available": "aggiornamento disponibile",
       "security_update": "aggiornamento di sicurezza",
       "unknown": ""
-    }
+    },
+    "lifecycleManage": "Gestisci lifecycle"
   },
   "monitor": {
     "range": "Intervallo",
@@ -3815,5 +3816,72 @@
     "associate": "Conferma associazione",
     "confirmRefresh": "Conferma e aggiorna",
     "associated": "CPE associata a GenieACS: identità e firmware aggiornati."
+  },
+  "deviceLifecycle": {
+    "title": "Lifecycle",
+    "help": "{{vendor}} · {{model}} · origine: {{origin}}.",
+    "noModel": "modello non rilevato",
+    "fleet": "Lifecycle di tutti gli apparati",
+    "matches": {
+      "catalog": "da catalogo",
+      "manual": "impostato manualmente",
+      "ambiguous": "corrispondenza ambigua",
+      "no_record": "modello non in catalogo",
+      "no_model": "modello non rilevato",
+      "none": "non ancora correlato"
+    },
+    "status": "Stato",
+    "source": "Fonte",
+    "verified": "verificata il {{when}}",
+    "catalogTitle": "Catalogo",
+    "catalogMatch": "Il modello corrisponde a {{model}} ({{source}}, verificato il {{when}}).",
+    "catalogAmbiguous": "Corrispondenza ambigua con {{candidates}}: se è lo stesso modello aggiungi «{{model}}» come alias del record corretto.",
+    "catalogMissing": "Il modello «{{model}}» non è nel catalogo.",
+    "catalogNoModel": "Il modello non è stato rilevato: senza valore manuale lo stato resta sconosciuto.",
+    "openCatalog": "Apri il catalogo",
+    "useCatalog": "Usa il catalogo al posto del valore manuale",
+    "manualTitle": "Valore manuale",
+    "manualHelp": "Per apparati senza modello in catalogo o con un'evidenza specifica; il catalogo non lo sovrascrive.",
+    "sourcePlaceholder": "Documento, link o comunicazione del vendor",
+    "evidence": "Verificato il",
+    "saveManual": "Salva valore manuale",
+    "saved": "Valore salvato.",
+    "remediationTitle": "Gestione fuori supporto",
+    "remediationHelp": "Decisione registrata per questo apparato {{status}}.",
+    "targetDate": "Sostituzione entro",
+    "plan": "Piano",
+    "exceptionUntil": "Eccezione fino al",
+    "reason": "Motivazione",
+    "replacedBy": "Sostituito da",
+    "removed": "apparato rimosso",
+    "decommission": "Dismissione",
+    "decision": "Decisione",
+    "replacement": "Nuovo apparato",
+    "actions": {
+      "plan": "Pianifica sostituzione",
+      "exception": "Eccezione motivata",
+      "replaced": "Sostituzione eseguita",
+      "decommissioned": "Dismesso",
+      "reopen": "Riapertura"
+    },
+    "notes": {
+      "plan": "Piano (almeno 5 caratteri)",
+      "exception": "Motivazione (almeno 10 caratteri)",
+      "replaced": "Nota",
+      "decommissioned": "Come è stato dismesso"
+    },
+    "submit": {
+      "plan": "Salva piano",
+      "exception": "Registra eccezione",
+      "replaced": "Registra sostituzione",
+      "decommissioned": "Registra dismissione"
+    },
+    "reopen": "Riapri la gestione",
+    "historyColumns": {
+      "when": "Quando",
+      "action": "Azione",
+      "status": "Stato",
+      "note": "Nota"
+    }
   }
 }

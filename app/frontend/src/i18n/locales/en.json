@@ -153,7 +153,8 @@
       "update_available": "update available",
       "security_update": "security update",
       "unknown": ""
-    }
+    },
+    "lifecycleManage": "Manage lifecycle"
   },
   "monitor": {
     "range": "Range",
@@ -3815,5 +3816,72 @@
     "associate": "Confirm association",
     "confirmRefresh": "Confirm and refresh",
     "associated": "CPE linked to GenieACS: identity and firmware updated."
+  },
+  "deviceLifecycle": {
+    "title": "Lifecycle",
+    "help": "{{vendor}} · {{model}} · origin: {{origin}}.",
+    "noModel": "model not detected",
+    "fleet": "Lifecycle of all devices",
+    "matches": {
+      "catalog": "from the catalog",
+      "manual": "set manually",
+      "ambiguous": "ambiguous match",
+      "no_record": "model not in the catalog",
+      "no_model": "model not detected",
+      "none": "not correlated yet"
+    },
+    "status": "State",
+    "source": "Source",
+    "verified": "verified on {{when}}",
+    "catalogTitle": "Catalog",
+    "catalogMatch": "The model matches {{model}} ({{source}}, verified on {{when}}).",
+    "catalogAmbiguous": "Ambiguous match with {{candidates}}: if it is the same model, add «{{model}}» as an alias of the right record.",
+    "catalogMissing": "The model «{{model}}» is not in the catalog.",
+    "catalogNoModel": "The model was not detected: without a manual value the state stays unknown.",
+    "openCatalog": "Open the catalog",
+    "useCatalog": "Use the catalog instead of the manual value",
+    "manualTitle": "Manual value",
+    "manualHelp": "For devices whose model is not in the catalog or with specific evidence; the catalog does not overwrite it.",
+    "sourcePlaceholder": "Document, link or vendor notice",
+    "evidence": "Verified on",
+    "saveManual": "Save manual value",
+    "saved": "Value saved.",
+    "remediationTitle": "End-of-life handling",
+    "remediationHelp": "Decision recorded for this {{status}} device.",
+    "targetDate": "Replace by",
+    "plan": "Plan",
+    "exceptionUntil": "Exception until",
+    "reason": "Reason",
+    "replacedBy": "Replaced by",
+    "removed": "device removed",
+    "decommission": "Decommissioning",
+    "decision": "Decision",
+    "replacement": "New device",
+    "actions": {
+      "plan": "Plan replacement",
+      "exception": "Justified exception",
+      "replaced": "Replacement done",
+      "decommissioned": "Decommissioned",
+      "reopen": "Reopened"
+    },
+    "notes": {
+      "plan": "Plan (at least 5 characters)",
+      "exception": "Reason (at least 10 characters)",
+      "replaced": "Note",
+      "decommissioned": "How it was decommissioned"
+    },
+    "submit": {
+      "plan": "Save plan",
+      "exception": "Record exception",
+      "replaced": "Record replacement",
+      "decommissioned": "Record decommissioning"
+    },
+    "reopen": "Reopen handling",
+    "historyColumns": {
+      "when": "When",
+      "action": "Action",
+      "status": "State",
+      "note": "Note"
+    }
   }
 }
