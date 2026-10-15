@@ -353,3 +353,61 @@ export function useFindingStatus(id: string) {
     },
   });
 }
+
+export interface CatalogRecord {
+  id: string;
+  vendor: string;
+  model: string;
+  aliases: string[];
+  eol_date: string | null;
+  eos_date: string | null;
+  status: "supported" | "eol" | "eos";
+  source: string;
+  source_url: string | null;
+  evidence_date: string | null;
+  notes: string | null;
+  updated_at: string | null;
+  devices?: number;
+}
+
+export interface CatalogFilters {
+  q?: string;
+  vendor?: string;
+}
+
+export const useLifecycleCatalog = (filters: CatalogFilters) =>
+  useQuery({
+    queryKey: ["lifecycle-catalog", filters],
+    queryFn: () => api<{ items: CatalogRecord[]; total: number; vendors: string[]; csv_url: string; csv_fields: string[]; can_manage: boolean }>(
+      `/api/ui/v1/lifecycle/catalog${query({ ...filters })}`),
+    placeholderData: keepPreviousData,
+  });
+
+export const useCatalogForm = (id?: string) =>
+  useQuery({
+    queryKey: ["lifecycle-catalog-form", id ?? "new"],
+    queryFn: () => api<{ record: CatalogRecord | null; vendors: string[]; today: string }>(`/api/ui/v1/lifecycle/catalog/form${id ? `?record=${encodeURIComponent(id)}` : ""}`),
+    retry: false,
+    gcTime: 0,
+  });
+
+/** Save, delete or import; the catalog, the lifecycle list and device lifecycle tabs are refreshed. */
+export function useCatalogWrite<B, R>(path: string, body: (input: B) => BodyInit) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: B) => api<R>(`/api/ui/v1/lifecycle/catalog${path}`, { method: "POST", body: body(input) }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["lifecycle-catalog"] });
+      client.invalidateQueries({ queryKey: ["lifecycle"] });
+      client.invalidateQueries({ queryKey: ["device"] });
+    },
+  });
+}
+
+/** Catalog list (q, vendor) and new-record prefill (vendor, model) search params. */
+export const parseCatalogSearch = (search: Record<string, unknown>): CatalogFilters & { model?: string } => {
+  const out: CatalogFilters & { model?: string } = {};
+  for (const key of ["q", "vendor", "model"] as const) if (typeof search[key] === "string" && search[key]) out[key] = (search[key] as string).slice(0, 150);
+  return out;
+};
+

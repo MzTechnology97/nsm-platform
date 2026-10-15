@@ -12,6 +12,7 @@ import {
   type ExposureFilters,
   LIFECYCLE_STATES,
   type LifecycleFilters,
+  parseCatalogSearch,
   type VulnFilters,
 } from "../api/security";
 import type { DeviceFilters } from "../api/devices";
@@ -393,6 +394,29 @@ const accessRoute = createRoute({
     return hours === 1 || hours === 168 || hours === 720 ? { hours } : {};
   },
 });
+const lifecycleCatalogRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/lifecycle/catalog",
+  component: lazyRouteComponent(() => import("../pages/LifecycleCatalog"), "LifecycleCatalog"),
+  validateSearch: (search: Record<string, unknown>) => {
+    const { q, vendor } = parseCatalogSearch(search);
+    return { ...(q ? { q } : {}), ...(vendor ? { vendor } : {}) };
+  },
+});
+const lifecycleRecordNewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/lifecycle/catalog/new",
+  component: lazyRouteComponent(() => import("../pages/LifecycleCatalog"), "LifecycleRecordNew"),
+  validateSearch: (search: Record<string, unknown>) => {
+    const { vendor, model } = parseCatalogSearch(search);
+    return { ...(vendor ? { vendor } : {}), ...(model ? { model } : {}) };
+  },
+});
+const lifecycleRecordEditRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/lifecycle/catalog/$recordId/edit",
+  component: lazyRouteComponent(() => import("../pages/LifecycleCatalog"), "LifecycleRecordEdit"),
+});
 const lifecycleRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/lifecycle",
@@ -507,6 +531,9 @@ export const routeTree = rootRoute.addChildren([
   exposureRoute,
   accessRoute,
   lifecycleRoute,
+  lifecycleCatalogRoute,
+  lifecycleRecordNewRoute,
+  lifecycleRecordEditRoute,
   complianceRoute,
   complianceResultRoute,
   complianceBaselinesRoute,

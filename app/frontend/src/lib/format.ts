@@ -60,3 +60,10 @@ export function formatBytes(bytes: number | null | undefined, locale: string): s
   }
   return `${new Intl.NumberFormat(locale, { maximumFractionDigits: unit ? 1 : 0 }).format(value)} ${units[unit]}`;
 }
+
+/** A calendar date ("2026-01-31" or a full timestamp), medium style; date-only values never shift with the timezone. */
+export function formatDate(value: string | null | undefined, locale: string): string {
+  if (!value) return "—";
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium", ...(dateOnly ? { timeZone: "UTC" } : {}) }).format(new Date(value));
+}

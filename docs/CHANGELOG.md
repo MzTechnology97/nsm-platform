@@ -4,6 +4,23 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.159 — 2026-10-15
+
+New interface (React) — lifecycle catalog, phase 7w
+- **EOL/EOS catalog** (`/app/lifecycle/catalog`), opened from the lifecycle page and from the device lifecycle tab:
+  - every model with its aliases, today's state, EOL/EOS dates, source (with link and verification date) and correlated devices;
+  - search by model or notes, and a vendor filter;
+  - CSV export, and a whole-file CSV import (nothing is written when a row is invalid).
+- **Model form** (`.../new`, `.../{id}/edit`): vendor, model, aliases, EOL, EOS, source, link, verification date, notes, with translated checks. Saving re-correlates devices. Records can be deleted.
+- **Prefill.** "Add to catalog" on the lifecycle page, and "Add this model to the catalog" on a device whose model is not in the catalog, open the form already filled with vendor and model. This fixes the broken catalog link on the device lifecycle tab.
+- **Dates.** Shared `formatDate`: date-only values never shift with the timezone.
+- **Shared code.**
+  - `lifecycle_catalog.save_record`, `delete_record`, `import_record`, used by the classic pages too;
+  - validation raises `LifecycleInputError` with codes (`required`, `source`, `evidence`, `evidence_future`, `date_invalid`, `eos_before_eol`, `url`, `duplicate`).
+- **API.**
+  - `GET /api/ui/v1/lifecycle/catalog` (`security.read`);
+  - `GET .../catalog/form`, `POST .../catalog`, `POST .../catalog/{id}/delete`, `POST .../catalog/import` (`lifecycle.manage`, CSRF for changes).
+
 ## 0.49.158 — 2026-10-15
 
 New interface (React) — vulnerability finding, phase 7v
