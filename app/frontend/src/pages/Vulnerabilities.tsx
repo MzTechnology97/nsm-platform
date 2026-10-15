@@ -259,9 +259,9 @@ function Impacted({ data, onFilter, customer, status }: { data: AdvisoryDetail; 
                   <td className="ui-mono">{row.installed_version ?? "—"}</td>
                   <td className="ui-mono">{row.fixed_version ?? "—"}</td>
                   <td>
-                    <a href={row.finding_url} className={row.status === "resolved" ? "ui-severity" : "ui-severity ui-severity-high"}>
+                    <Link to="/vulnerabilities/findings/$findingId" params={{ findingId: row.finding_id }} className={row.status === "resolved" ? "ui-severity" : "ui-severity ui-severity-high"}>
                       {t(`vulns.findingStates.${row.status}`, { defaultValue: row.status })}
-                    </a>
+                    </Link>
                     {row.resolution && <small className="ui-muted ui-block">{t(`vulns.resolutions.${row.resolution}`, { defaultValue: row.resolution })}</small>}
                   </td>
                   <td className="ui-nowrap">{formatDateTime(row.detected_at, i18n.language)}</td>

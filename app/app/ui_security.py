@@ -16,7 +16,7 @@
   (from the agent configuration or checked from outside), from
   ``device_exposure.fleet``.
 
-Remediation (finding detail, risk acceptance) keeps its classic pages.
+Finding detail and status changes: ``/vulnerabilities/findings/{id}`` (``security.remediate`` to change).
 """
 from __future__ import annotations
 
@@ -42,7 +42,8 @@ from app import compliance_findings
 from app.compliance_findings import in_exception
 from app.compliance_models import SCOPE_LABELS, SCOPE_PRIORITY, ComplianceResultHistory
 from app.input_errors import InputError
-from app.models import Site, User
+from app import vulnerability_remediation as remediation
+from app.models import Site, User, VulnerabilityHistory
 from app.compliance_models import ComplianceBaseline
 from app.ui_api import brand_icon, require_csrf, ui_user
 
@@ -139,7 +140,6 @@ def vulnerability_detail(request: Request, advisory_id: uuid.UUID, customer: str
                 "resolution": (impact.evidence or {}).get("resolution") if impact.status == "resolved" else None,
                 "device": {"id": str(device.id), "name": device.display_name or device.device_identity or device.name, "brand": brand_icon(device), "vendor": device.vendor, "model": device.model},
                 "customer": {"id": str(owner.id), "name": owner.name},
-                "finding_url": f"/security/findings/{impact.id}",
             } for impact, device, owner in impacted],
             "unassessed": [{"device": {"id": str(device.id), "name": device.display_name or device.device_identity or device.name, "brand": brand_icon(device), "model": device.model},
                             "customer": {"id": str(device.customer.id), "name": device.customer.name} if device.customer else None,
@@ -408,6 +408,48 @@ def compliance_baseline_default(request: Request):
         except InputError as exc:
             raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
         return {"id": stats["id"], "devices": stats.get("devices", 0)}
+
+
+@router.get("/vulnerabilities/findings/{finding_id}")
+def vulnerability_finding(request: Request, finding_id: uuid.UUID):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "security.read")
+        finding, advisory, device = remediation._load(db, finding_id)
+        history = db.execute(
+            select(VulnerabilityHistory, User).outerjoin(User, User.id == VulnerabilityHistory.actor_user_id)
+            .where(VulnerabilityHistory.vulnerability_id == finding.id).order_by(VulnerabilityHistory.created_at.desc())
+        ).all()
+        evidence = finding.evidence or {}
+        now = utcnow()
+        return {
+            "id": str(finding.id), "status": finding.status, "advisory": advisory_head(advisory),
+            "source_managed": advisory.source in remediation.SOURCE_MANAGED,
+            "device": {**_device_ref(device), "vendor": device.vendor, "model": device.model},
+            "installed_version": finding.installed_version or device.firmware_version, "fixed_version": finding.fixed_version,
+            "rule": evidence.get("rule"), "confidence": finding.confidence,
+            "resolution": evidence.get("resolution") if finding.status == "resolved" else None,
+            "detected_at": _iso(finding.detected_at), "exception_until": _iso(finding.exception_until) if finding.status == "exception" else None,
+            "resolved_at": _iso(finding.resolved_at),
+            "firmware_plan": (device.vendor or "").lower() == "mikrotik" and finding.status != "resolved",
+            "targets": list(remediation.allowed_targets(finding, advisory)),
+            "can_remediate": core.has_permission(user, "security.remediate"),
+            "today": now.date().isoformat(),
+            "max_exception": (now + remediation.MAX_EXCEPTION - timedelta(days=1)).date().isoformat(),
+            "history": [{"at": _iso(entry.created_at), "from": entry.from_status, "to": entry.to_status, "by": _user_name(actor), "note": entry.note,
+                         "until": (entry.details or {}).get("exception_until")} for entry, actor in history],
+        }
+
+
+@router.post("/vulnerabilities/findings/{finding_id}/status", dependencies=[Depends(require_csrf)])
+def vulnerability_finding_status(request: Request, finding_id: uuid.UUID, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "security.remediate")
+        status = str(body.get("status") or "")
+        try:
+            remediation.finding_status_record(db, user, finding_id, status, str(body.get("note") or ""), str(body.get("exception_until") or ""))
+        except InputError as exc:
+            raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
+        return {"status": status}
 
 def install_ui_security(app) -> None:
     app.include_router(router)
