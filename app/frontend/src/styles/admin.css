@@ -416,3 +416,12 @@ a.ui-search-result:hover {
 .ui-site-delete {
   flex-basis: 100%;
 }
+
+/* New device form and enrollment command. */
+.ui-device-new .ui-channel {
+  max-width: 640px;
+}
+
+.ui-enrollment {
+  margin: var(--space-3) 0;
+}

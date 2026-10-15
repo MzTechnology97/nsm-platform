@@ -4,6 +4,28 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.143 — 2026-10-15
+
+New interface (React) — new device, phase 7f
+- **New device in `/app/customers/{id}/devices/new`**, opened from «+ Device» on the customer page. It follows the classic form in three steps (type, organisation, association), and the help text changes with the vendor:
+  - **MikroTik:** the device is created waiting for enrollment. The page then shows the RouterOS command that installs the agent, with a copy button. The command is shown only once; its token is stored hashed.
+  - **Ubiquiti and Cambium:** NSM looks the device up in UISP or cnMaestro by MAC or serial. If the connector is not configured, the page says so before submitting and links to its settings.
+  - **TP-Link (TR-069):** MAC or serial is required.
+  - **Other vendor:** manufacturer (used for CVE matching), MAC, serial, model, management IP and firmware.
+
+  Errors are translated: invalid MAC, site of another customer, MAC already used, connector missing.
+- **Agent reinstall** from the device Agent tab now stays in the new interface: it creates a new one-shot enrollment and shows the command there.
+- **Shared code.** Device creation, the enrollment command and the agent reinstall are now shared functions, used by both interfaces; the classic pages behave as before.
+  - `main.create_device_record`, `main.enrollment_command`;
+  - `agent_ui.reinstall_record`.
+
+  Connector onboarding errors now carry a code (`input_errors.InputError`); the classic messages are unchanged.
+- **API.**
+  - `GET /api/ui/v1/customers/{id}/devices/new` and `POST /api/ui/v1/customers/{id}/devices` need `devices.write`;
+  - `POST /api/ui/v1/devices/{id}/agent/reinstall` needs `devices.enroll`.
+
+  The `POST` routes need the CSRF header; answers that contain an enrollment command are `no-store`.
+
 ## 0.49.142 — 2026-10-15
 
 New interface (React) — customer Security, Backup and Activity tabs, phase 7e

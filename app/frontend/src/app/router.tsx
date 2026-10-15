@@ -72,6 +72,11 @@ const customersRoute = createRoute({ getParentRoute: () => rootRoute, path: "/cu
 const customerRoute = createRoute({ getParentRoute: () => rootRoute, path: "/customers/$customerId", component: CustomerDetail });
 const customerOverviewRoute = createRoute({ getParentRoute: () => customerRoute, path: "/", component: CustomerOverview });
 const customerSitesRoute = createRoute({ getParentRoute: () => customerRoute, path: "/sites", component: CustomerSites });
+const customerDeviceNewRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/devices/new",
+  component: lazyRouteComponent(() => import("../pages/DeviceNew"), "DeviceNew"),
+});
 const customerSecurityRoute = createRoute({
   getParentRoute: () => customerRoute,
   path: "/security",
@@ -427,7 +432,7 @@ export const routeTree = rootRoute.addChildren([
   notificationsRoute,
   profileRoute,
   customerNewRoute,
-  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute]),
+  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);
 

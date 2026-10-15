@@ -1,8 +1,8 @@
 import { useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
-import { type AgentStatus, useAgent, useAgentUpdate } from "../api/agent";
-import { ClassicForm } from "../app/ClassicForm";
+import { type AgentStatus, useAgent, useAgentReinstall, useAgentUpdate } from "../api/agent";
+import { EnrollmentCommand } from "../app/EnrollmentCommand";
 import { formatDateTime, formatRelative } from "../lib/format";
 import { Metric } from "./DeviceDetail";
 
@@ -17,6 +17,7 @@ export function DeviceAgent() {
   const { t, i18n } = useTranslation();
   const { deviceId } = useParams({ from: "/devices/$deviceId/agent" });
   const query = useAgent(deviceId);
+  const reinstall = useAgentReinstall(deviceId);
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
   if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
@@ -109,12 +110,14 @@ export function DeviceAgent() {
             <h2>{t("agent.credential.title")}</h2>
             <p className="ui-muted">{t("agent.credential.hint")}</p>
           </div>
-          {data.actions.reinstall && (
-            <ClassicForm action={data.links.reinstall}>
-              <button type="submit" className="ui-button ui-button-ghost">{t("agent.credential.reinstall")}</button>
-            </ClassicForm>
+          {data.actions.reinstall && !reinstall.data && (
+            <button type="button" className="ui-button ui-button-ghost" disabled={reinstall.isPending} onClick={() => reinstall.mutate()}>
+              {t("agent.credential.reinstall")}
+            </button>
           )}
         </div>
+        {reinstall.data && <EnrollmentCommand command={reinstall.data.enrollment_command} />}
+        {reinstall.error && <div className="ui-alert ui-alert-danger">{(reinstall.error as Error).message}</div>}
         <dl className="ui-dl">
           <Field label={t("agent.credential.state")} value={credential ? (credential.active ? t("agent.credential.active") : t("agent.credential.inactive")) : t("agent.credential.none")} />
           <Field label={t("agent.credential.created")} value={formatDateTime(credential?.created_at, i18n.language)} />

@@ -14,6 +14,11 @@
   tab, the same data as the classic one (``customer_tabs.security_data``):
   open severe CVEs per device, firmware to update, EOL/EOS devices, open
   security issues and, with ``compliance.read``, the compliance summary;
+- ``GET /api/ui/v1/customers/{id}/devices/new``: what the new-device form needs
+  (sites, vendors, device types, manual brands, whether UISP / cnMaestro are
+  configured); ``POST .../devices`` creates the device through
+  ``main.create_device_record`` (``devices.write``). A MikroTik answer carries
+  the one-shot enrollment command (``no-store``), shown once;
 - ``POST /api/ui/v1/customers`` creates a customer; ``POST .../{id}`` updates
   it, ``POST .../{id}/delete`` deletes it with devices, sites and backup files
   (the typed name must match); ``POST .../{id}/sites`` creates a site,
@@ -30,7 +35,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, or_, select
 
@@ -338,3 +343,57 @@ def customer_security(request: Request, customer_id: uuid.UUID):
                 "counts": compliance["counts"], "failing_controls": [{"title": title, "count": count} for title, count in compliance["failing_controls"]],
             },
         })
+
+
+# --- New device ----------------------------------------------------------------------------------
+
+def _connector_ready(db) -> dict:
+    from app import cnmaestro_connector, uisp_connector
+
+    uisp = uisp_connector._connection(db)
+    cnm = cnmaestro_connector.connection_row(db)
+    return {"uisp": bool(uisp and uisp.is_enabled), "cnmaestro": bool(cnm and cnm.is_enabled)}
+
+
+@router.get("/customers/{customer_id}/devices/new")
+def new_device_form(request: Request, customer_id: uuid.UUID):
+    from app import vendor_cpe
+
+    with SessionLocal() as db:
+        ui_user(request, db, "devices.write")
+        customer = db.get(Customer, customer_id)
+        if not customer:
+            raise HTTPException(404)
+        sites = sorted(customer.sites, key=lambda site: site.name.lower())
+        return {
+            "customer": {"id": str(customer.id), "name": customer.name},
+            "sites": [{"id": str(site.id), "name": site.name} for site in sites],
+            "vendors": list(core.DEVICE_VENDORS),
+            "device_types": list(core.DEVICE_TYPES),
+            "manual_brands": [{"key": key, "label": vendor_cpe.label(key)} for key in vendor_cpe.MANUAL_BRANDS],
+            "connectors": _connector_ready(db),
+        }
+
+
+@router.post("/customers/{customer_id}/devices", dependencies=[Depends(require_csrf)])
+def create_device(request: Request, response: Response, customer_id: uuid.UUID, body: dict = Body(default={})):
+    from app.input_errors import InputError
+
+    response.headers["Cache-Control"] = "no-store"
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.write")
+        try:
+            device, raw_token = core.create_device_record(
+                db, user, customer_id, vendor=_text(body, "vendor"), device_type=_text(body, "device_type") or "other",
+                display_name=_text(body, "display_name"), site_id=_text(body, "site_id"), mac=_text(body, "mac"), serial=_text(body, "serial"),
+                model=_text(body, "model"), management_ip=_text(body, "management_ip"), firmware_version=_text(body, "firmware_version"),
+                manufacturer=_text(body, "manufacturer"),
+            )
+        except InputError as exc:
+            raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from None
+        return {
+            "id": str(device.id),
+            "vendor": device.vendor,
+            "status": device.status,
+            "enrollment_command": core.enrollment_command(str(request.base_url), raw_token) if raw_token else None,
+        }

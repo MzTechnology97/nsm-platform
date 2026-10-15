@@ -5,11 +5,11 @@ import { useTranslation } from "react-i18next";
 import { ApiError } from "../api/client";
 import { type CustomerDetail, useCustomer, useCustomerWrite } from "../api/customer";
 
-/** Server validation translated by its code (``customerForm.errors.<code>``). */
+/** Server validation translated by its code (``<prefix>.<code>``, customer forms by default). */
 export function useFormError() {
   const { t } = useTranslation();
-  return (error: unknown) =>
-    error instanceof ApiError ? t(`customerForm.errors.${error.code ?? "generic"}`, { defaultValue: error.message }) : error ? String(error) : null;
+  return (error: unknown, prefix = "customerForm.errors") =>
+    error instanceof ApiError ? t(`${prefix}.${error.code ?? "generic"}`, { defaultValue: error.message }) : error ? String(error) : null;
 }
 
 type Fields = { name: string; code: string; notes: string };

@@ -15,6 +15,7 @@ from __future__ import annotations
 from fastapi import HTTPException
 
 from app import main as core
+from app.input_errors import InputError
 from app.models import utcnow
 
 CONSOLE = {"ubiquiti": "UISP", "cambium": "cnMaestro"}
@@ -36,21 +37,21 @@ def precheck(db, vendor: str, mac: str | None, serial: str | None) -> dict | Non
         return None
     console = CONSOLE[vendor]
     if not (mac or serial):
-        raise HTTPException(400, f"Inserisci MAC o seriale: l'onboarding avviene tramite {console}.")
+        raise InputError("mac_or_serial", f"Inserisci MAC o seriale: l'onboarding avviene tramite {console}.")
     try:
         if vendor == "ubiquiti":
             from app import uisp_connector as uisp
 
             connection = uisp._connection(db)
             if connection is None or not connection.is_enabled:
-                raise HTTPException(400, "Connettore UISP non configurato: configuralo in Integrazioni → UISP prima di aggiungere apparati Ubiquiti.")
+                raise InputError("uisp_not_configured", "Connettore UISP non configurato: configuralo in Integrazioni → UISP prima di aggiungere apparati Ubiquiti.")
             found = _match(uisp._fetch_candidates(connection), mac, serial, "primary_mac", "serial_number")
         else:
             from app import cnmaestro_connector as cnm
 
             row = cnm.connection_row(db)
             if row is None or not row.is_enabled:
-                raise HTTPException(400, "Connettore cnMaestro non configurato: configuralo in Integrazioni → cnMaestro prima di aggiungere apparati Cambium.")
+                raise InputError("cnmaestro_not_configured", "Connettore cnMaestro non configurato: configuralo in Integrazioni → cnMaestro prima di aggiungere apparati Cambium.")
             client = cnm.client_for(row)
             try:
                 found = _match([cnm.candidate(r) for r in client.paged("/devices", "l'elenco apparati")], mac, serial, "mac", "serial")
@@ -59,12 +60,12 @@ def precheck(db, vendor: str, mac: str | None, serial: str | None) -> dict | Non
     except HTTPException:
         raise
     except Exception as exc:  # connector errors (unreachable, auth)
-        raise HTTPException(400, f"{console} non raggiungibile, apparato non creato: {exc}")
+        raise InputError("console_unreachable", f"{console} non raggiungibile, apparato non creato: {exc}")
     what = f"MAC {mac}" if mac else f"seriale {serial}"
     if not found:
-        raise HTTPException(400, f"L'apparato con {what} non risulta in {console}: aggiungilo prima alla console {console}, poi riprova.")
+        raise InputError("console_not_found", f"L'apparato con {what} non risulta in {console}: aggiungilo prima alla console {console}, poi riprova.")
     if len(found) > 1:
-        raise HTTPException(400, f"{console} restituisce più apparati con {what}: usa il MAC per un'associazione univoca.")
+        raise InputError("console_ambiguous", f"{console} restituisce più apparati con {what}: usa il MAC per un'associazione univoca.")
     return found[0]
 
 

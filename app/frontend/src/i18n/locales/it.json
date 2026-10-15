@@ -3004,5 +3004,75 @@
     "failingCount_other": "{{count}} apparati",
     "compliant": "Nessun controllo fallito.",
     "notEvaluated": "Nessun apparato valutato."
+  },
+  "deviceNew": {
+    "title": "Nuovo apparato",
+    "subtitle": "Scegli il produttore e inserisci solo i dati che la piattaforma non può scoprire da sola.",
+    "step1": "1 · Tipo di apparato",
+    "step2": "2 · Organizzazione",
+    "step3": "3 · Associazione",
+    "vendor": "Vendor",
+    "type": "Tipo apparato",
+    "vendors": {
+      "mikrotik": "MikroTik",
+      "ubiquiti": "Ubiquiti (UISP)",
+      "cambium": "Cambium (cnMaestro)",
+      "tp-link": "TP-Link / TR-069",
+      "generic": "Altro produttore / manuale"
+    },
+    "types": {
+      "router": "Router",
+      "switch": "Switch",
+      "wireless_cpe": "Wireless CPE",
+      "wireless_ap": "Wireless AP",
+      "olt": "OLT",
+      "ont": "ONT",
+      "other": "Altro"
+    },
+    "alias": "Alias personalizzato",
+    "aliasHelp": "Facoltativo: l'identità reale resta separata.",
+    "site": "Sede",
+    "noSite": "Nessuna sede",
+    "how": {
+      "mikrotik": "Dopo la creazione ricevi un comando da incollare nel Terminal RouterOS: identity, modello, seriale, RouterOS e RouterBOOT vengono rilevati in automatico.",
+      "ubiquiti": "L'apparato deve essere già in UISP: NSM lo cerca per MAC o seriale e lo collega subito, importando nome, modello, firmware e stato. Se non lo trova non viene creato.",
+      "cambium": "L'apparato deve essere già in cnMaestro: NSM lo cerca per MAC o seriale (MSN) e lo collega subito, importando nome, modello, firmware, IP, rete e torre. Se non lo trova non viene creato.",
+      "tp-link": "Associazione TR-069 / ACS: inserisci MAC o seriale; i dati osservati arrivano dall'ACS.",
+      "generic": "Inserimento manuale: usalo solo quando non esiste una sorgente autorevole. Con produttore, modello e firmware NSM correla le CVE pubblicate."
+    },
+    "connectorMissing": {
+      "uisp": "Il connettore UISP non è configurato.",
+      "cnmaestro": "Il connettore cnMaestro non è configurato."
+    },
+    "configure": "Configuralo",
+    "manufacturer": "Produttore",
+    "otherManufacturer": "Altro / non indicato",
+    "manufacturerHelp": "Serve per correlare le CVE.",
+    "mac": "MAC",
+    "serial": "Seriale",
+    "macOrSerial": "Serve almeno uno tra MAC e seriale.",
+    "model": "Modello",
+    "ip": "IP di gestione",
+    "firmware": "Firmware",
+    "create": "Crea apparato",
+    "createdTitle": "Apparato creato",
+    "createdMikrotik": "Incolla il comando nel Terminal del router: l'agent NSM si installa e l'apparato passa online al primo contatto.",
+    "openDevice": "Apri l'apparato",
+    "errors": {
+      "vendor_invalid": "Produttore non valido.",
+      "site_invalid": "La sede scelta non appartiene al cliente.",
+      "mac_invalid": "Il MAC deve contenere 12 cifre esadecimali.",
+      "mac_or_serial": "Inserisci almeno il MAC o il seriale.",
+      "uisp_not_configured": "Configura prima il connettore UISP.",
+      "cnmaestro_not_configured": "Configura prima il connettore cnMaestro.",
+      "duplicate": "Esiste già un apparato dello stesso produttore con questo MAC."
+    }
+  },
+  "enrollment": {
+    "title": "Comando di installazione dell'agent",
+    "help": "Incollalo nel Terminal RouterOS del router: scarica e avvia l'agent NSM con un token valido una sola volta.",
+    "copy": "Copia comando",
+    "copied": "Copiato",
+    "once": "Il comando non verrà mostrato di nuovo: se lo perdi, generane uno nuovo dalla scheda Agent."
   }
 }
