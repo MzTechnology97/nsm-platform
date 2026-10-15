@@ -4,6 +4,29 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.155 — 2026-10-15
+
+New interface (React) — backup policy forms, phase 7s
+- **Policy form** (`/app/backups/policies/new`, `.../{id}/edit`, `.../{id}/clone`):
+  - **Name and target:** all devices, a vendor, a customer, one of its sites or a single device. Sites and devices are filtered on the chosen customer, and the chosen device shows its vendor icon.
+  - **Schedule:** every 6 hours, daily, weekly or monthly, with the time, weekday or day of the month.
+  - **What to back up:** only the options of the target's vendor, or every vendor's options for mixed scopes.
+  - **Retention and retries.**
+  - Errors are translated.
+- **Customer context.** Opened with `?customer=` (and optionally `device=` / `site=`), the form only allows that customer, its sites and devices, as the classic customer form does.
+- **Edit page:**
+  - pause / resume;
+  - duplicate;
+  - delete, confirmed by typing the policy name.
+- **Links:**
+  - Backup overview: "+ Policy" and the policy names, plus "Create policy" on devices without a policy;
+  - device Backup tab: edit the device's policy, or create one for the device.
+- **Shared code.**
+  - `backup_core.create_policy_record`, `update_policy_record`, `toggle_policy_record`, `delete_policy_record`, `customer_policy_state`;
+  - the classic handlers (including the customer form) use them with the same messages;
+  - validation errors in `backup_core` and `backup_scope_guard` carry codes.
+- **API.** `/api/ui/v1/backup-policies` (`backup.configure` + CSRF): `GET /form`, `POST`, `PUT /{id}`, `POST /{id}/toggle`, `POST /{id}/delete`.
+
 ## 0.49.154 — 2026-10-15
 
 New interface (React) — backup restore tests, phase 7r

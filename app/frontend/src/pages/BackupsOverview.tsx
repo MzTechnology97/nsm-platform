@@ -36,7 +36,9 @@ export function BackupsOverview() {
           <p>{t("backupOverview.subtitle")}</p>
         </div>
         <div className="ui-actions">
-          {data?.can_configure && <a className="ui-button ui-button-primary" href="/operations/backups/policies/new">{t("backupOverview.newPolicy")}</a>}
+          {data?.can_configure && (
+            <Link to="/backups/policies/new" search={search.customer ? { customer: search.customer } : {}} className="ui-button ui-button-primary">{t("backupOverview.newPolicy")}</Link>
+          )}
           <a className="ui-button ui-button-ghost" href="/operations/backups">{t("app.classic")}</a>
         </div>
       </header>
@@ -87,7 +89,7 @@ export function BackupsOverview() {
                 </tr>
               </thead>
               <tbody>
-                {data.items.map((row) => <Row key={row.id} row={row} />)}
+                {data.items.map((row) => <Row key={row.id} row={row} canConfigure={data.can_configure} />)}
               </tbody>
             </table>
           </div>
@@ -132,7 +134,7 @@ export function BackupsOverview() {
                 {data.policies.map((policy) => (
                   <li key={policy.id}>
                     <div>
-                      {data.can_configure ? <a href={`/operations/backups/policies/${policy.id}/edit`}>{policy.name}</a> : <strong>{policy.name}</strong>}
+                      {data.can_configure ? <Link to="/backups/policies/$policyId/edit" params={{ policyId: policy.id }}>{policy.name}</Link> : <strong>{policy.name}</strong>}
                       <small className="ui-muted">{policy.scope} · {describeCron(policy.schedule, t, i18n.language)}</small>
                     </div>
                     <span className={policy.enabled ? "ui-severity" : "ui-severity ui-severity-warning"}>{policy.enabled ? t("backupOverview.policies.on") : t("backupOverview.policies.off")}</span>
@@ -149,7 +151,7 @@ export function BackupsOverview() {
   );
 }
 
-function Row({ row }: { row: BackupOverviewRow }) {
+function Row({ row, canConfigure }: { row: BackupOverviewRow; canConfigure: boolean }) {
   const { t, i18n } = useTranslation();
   const latest = row.latest;
   return (
@@ -167,7 +169,15 @@ function Row({ row }: { row: BackupOverviewRow }) {
         <span className={BUCKET_TONE[row.bucket]}>{t(`backupOverview.readiness.${row.readiness.status}`, { defaultValue: row.readiness.label })}</span>
         <small className="ui-muted ui-block" title={row.readiness.reason}>{row.readiness.method}</small>
       </td>
-      <td>{row.policy?.name ?? <span className="ui-muted">—</span>}</td>
+      <td>
+        {row.policy ? (
+          canConfigure ? <Link to="/backups/policies/$policyId/edit" params={{ policyId: row.policy.id }}>{row.policy.name}</Link> : row.policy.name
+        ) : canConfigure && row.customer ? (
+          <Link to="/backups/policies/new" search={{ customer: row.customer.id, device: row.id }} className="ui-button ui-button-ghost ui-button-small">{t("backupOverview.createPolicy")}</Link>
+        ) : (
+          <span className="ui-muted">—</span>
+        )}
+      </td>
       <td>
         {latest ? (
           <>

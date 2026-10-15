@@ -351,7 +351,8 @@
     },
     "links": {
       "restoreTests": "Restore test",
-      "policies": "Policy di backup"
+      "policies": "Policy di backup",
+      "editPolicy": "Modifica la policy"
     },
     "filters": {
       "kind": "Tipo file",
@@ -1048,7 +1049,8 @@
       "on": "attiva",
       "off": "disattivata",
       "none": "Nessuna policy configurata."
-    }
+    },
+    "createPolicy": "Crea policy"
   },
   "firmware": {
     "title": "Firmware",
@@ -3984,5 +3986,158 @@
       "performed_future": "La data del test non può essere nel futuro.",
       "integrity": "Integrità del file non verificata: non si può registrare un restore test superato."
     }
+  },
+  "backupPolicy": {
+    "titles": {
+      "create": "Nuova policy di backup",
+      "edit": "Modifica policy di backup",
+      "clone": "Duplica policy di backup"
+    },
+    "subtitle": "Mostriamo solo destinazioni e metodi compatibili con lo scope scelto.",
+    "cloneOf": "Copia di «{{name}}»: la nuova policy nasce attiva.",
+    "sections": {
+      "target": "Nome e destinazione",
+      "targetHelp": "Sedi e apparati sono sempre filtrati sul cliente scelto.",
+      "schedule": "Pianificazione",
+      "content": "Cosa salvare",
+      "contentHelp": "Sono proposte solo le opzioni supportate dal vendor della destinazione.",
+      "retention": "Conservazione e affidabilità",
+      "retentionHelp": "Quanti backup conservare e quanti tentativi fare in caso di errore."
+    },
+    "name": "Nome policy",
+    "namePlaceholder": "Es. MikroTik giornaliero",
+    "state": "Stato",
+    "enabled": "Attiva",
+    "paused": "In pausa",
+    "description": "Descrizione",
+    "descriptionPlaceholder": "Scopo della policy, note operative…",
+    "scope": "Applica a",
+    "scopes": {
+      "global": "Tutti gli apparati",
+      "vendor": "Tutti gli apparati di un vendor",
+      "customer": "Un cliente",
+      "site": "Una sede del cliente",
+      "device": "Un singolo apparato"
+    },
+    "vendor": "Vendor",
+    "customer": "Cliente",
+    "choose": "Seleziona…",
+    "site": "Sede",
+    "chooseSite": "Seleziona una sede del cliente…",
+    "chooseCustomerFirst": "Scegli prima il cliente",
+    "device": "Apparato",
+    "chooseDevice": "Seleziona un apparato del cliente…",
+    "schedules": {
+      "six_hour": "Ogni 6 ore",
+      "daily": "Ogni giorno",
+      "weekly": "Ogni settimana",
+      "monthly": "Ogni mese"
+    },
+    "scheduleHelp": {
+      "six_hour": "Per configurazioni ad alta criticità.",
+      "daily": "Scelta standard per apparati di rete.",
+      "weekly": "Per configurazioni poco variabili.",
+      "monthly": "Per apparati stabili o legacy."
+    },
+    "time": "Ora preferita",
+    "weekday": "Giorno della settimana",
+    "monthday": "Giorno del mese",
+    "weekdays": {
+      "0": "Domenica",
+      "1": "Lunedì",
+      "2": "Martedì",
+      "3": "Mercoledì",
+      "4": "Giovedì",
+      "5": "Venerdì",
+      "6": "Sabato"
+    },
+    "autoMethod": "La policy copre più tipi di apparato: per ciascuno NSM usa solo il metodo supportato dal suo vendor o connector.",
+    "capabilities": {
+      "mikrotik": {
+        "title": "MikroTik · Agent NSM",
+        "help": "Backup cifrato .backup ed export .rsc tramite l'agent in HTTPS uscente."
+      },
+      "ubiquiti": {
+        "title": "Ubiquiti · Connector",
+        "help": "Configurazione acquisita dal connector, quando prodotto e API lo consentono."
+      },
+      "tp-link": {
+        "title": "TP-Link / CPE · ACS",
+        "help": "Configurazione via ACS/TR-069, solo sui modelli che lo supportano."
+      },
+      "generic": {
+        "title": "Generic / Legacy",
+        "help": "Fallback non invasivo quando non esiste un metodo nativo."
+      },
+      "common": "Opzioni comuni"
+    },
+    "optionLabels": {
+      "mikrotik_binary": {
+        "title": "Backup binario .backup",
+        "help": "Backup RouterOS cifrato, per il ripristino su apparati compatibili."
+      },
+      "mikrotik_export": {
+        "title": "Export testuale .rsc",
+        "help": "Consultabile e confrontabile, utile per audit e diff."
+      },
+      "ubiquiti_connector_config": {
+        "title": "Configurazione dal connector",
+        "help": "Solo se il prodotto espone una funzione compatibile."
+      },
+      "tr069_config": {
+        "title": "Configurazione tramite ACS",
+        "help": "La capability è verificata per ogni dispositivo prima del job."
+      },
+      "generic_snapshot": {
+        "title": "Snapshot inventario",
+        "help": "Metadati e stato osservato; non simula un backup di configurazione."
+      },
+      "pre_firmware": {
+        "title": "Backup prima del firmware",
+        "help": "Solo se il vendor supporta un backup reale."
+      },
+      "verify_hash": {
+        "title": "SHA-256",
+        "help": "Registra l'integrità dei file prodotti."
+      }
+    },
+    "retention_daily": "Giornaliere",
+    "retention_weekly": "Settimanali",
+    "retention_monthly": "Mensili",
+    "retry_count": "Tentativi in caso di errore",
+    "cancel": "Annulla",
+    "submit": {
+      "create": "Crea policy",
+      "edit": "Salva modifiche",
+      "clone": "Crea copia"
+    },
+    "manageTitle": "Stato della policy",
+    "activeHelp": "La policy è attiva e partecipa alla scelta della policy effettiva.",
+    "pausedHelp": "La policy è in pausa: non viene applicata a nessun apparato.",
+    "pause": "Metti in pausa",
+    "resume": "Riattiva",
+    "clone": "Duplica",
+    "deleteTitle": "Elimina policy",
+    "deleteHelp": "Gli apparati coperti passano alla policy successiva per priorità, o restano senza policy.",
+    "errors": {
+      "name": "Il nome della policy è obbligatorio.",
+      "time": "Ora del backup non valida.",
+      "weekday": "Giorno della settimana non valido.",
+      "monthday": "Giorno del mese non valido.",
+      "frequency": "Frequenza non valida.",
+      "vendor": "Scegli il vendor.",
+      "customer": "Scegli un cliente valido.",
+      "site": "Scegli una sede valida.",
+      "device": "Scegli un apparato valido.",
+      "scope": "Destinazione non valida.",
+      "retention": "Valori di conservazione non validi.",
+      "duplicate": "Esiste già una policy con questo nome.",
+      "customer_scope": "La destinazione deve essere questo cliente, una sua sede o un suo apparato.",
+      "confirm": "Il nome di conferma non corrisponde alla policy.",
+      "invalid": "Valore non valido.",
+      "site_customer": "La sede non appartiene al cliente scelto.",
+      "device_customer": "L'apparato non appartiene al cliente scelto."
+    },
+    "confirmName": "Per confermare scrivi il nome della policy: {{name}}"
   }
 }

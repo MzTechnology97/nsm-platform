@@ -5,21 +5,20 @@ from collections import defaultdict
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import and_, func, or_, select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app.backup_core import (
     SCOPE_PRIORITY,
-    _apply_policy_form,
     _effective_policy,
-    _policy_form_state,
     _policy_settings,
     _schedule_label,
     _scope_label,
     _targets,
+    create_policy_record,
+    customer_policy_state,
 )
-from app.backup_models import BackupArtifact, BackupPolicySettings
+from app.backup_models import BackupArtifact
 from app.db import SessionLocal
 from app.models import (
     ActionIssue,
@@ -447,30 +446,7 @@ def customer_backup_policy_new(request: Request, customer_id: uuid.UUID, device_
         customers, sites, devices = _targets(db)
         sites = [site for site in sites if site.customer_id == customer.id]
         devices = [device for device in devices if device.customer_id == customer.id]
-        state = _policy_form_state()
-        state["scope_type"] = "customer"
-        state["customer_id"] = str(customer.id)
-        if site_id:
-            try:
-                sid = uuid.UUID(site_id)
-            except ValueError:
-                raise HTTPException(400, "Sede non valida.")
-            site = next((item for item in sites if item.id == sid), None)
-            if not site:
-                raise HTTPException(400, "La sede non appartiene a questo cliente.")
-            state["scope_type"] = "site"
-            state["site_id"] = str(site.id)
-        if device_id:
-            try:
-                did = uuid.UUID(device_id)
-            except ValueError:
-                raise HTTPException(400, "Apparato non valido.")
-            device = next((item for item in devices if item.id == did), None)
-            if not device:
-                raise HTTPException(400, "L'apparato non appartiene a questo cliente.")
-            state["scope_type"] = "device"
-            state["device_id"] = str(device.id)
-            state["vendor"] = device.vendor
+        state = customer_policy_state(customer, sites, devices, site_id, device_id)
         return core.render(
             request,
             db,
@@ -495,39 +471,7 @@ async def customer_backup_policy_create(request: Request, customer_id: uuid.UUID
         customer = db.get(Customer, customer_id)
         if not customer:
             raise HTTPException(404)
-        submitted_customer = str(form.get("customer_id", ""))
-        if submitted_customer and submitted_customer != str(customer.id):
-            raise HTTPException(400, "La destinazione non appartiene al cliente selezionato.")
-        policy = BackupPolicy(name="pending", scope_type="customer", customer_id=customer.id)
-        db.add(policy)
-        db.flush()
-        settings = BackupPolicySettings(policy_id=policy.id, options={})
-        db.add(settings)
-        _apply_policy_form(db, policy, settings, form)
-        if policy.scope_type == "customer" and policy.customer_id != customer.id:
-            raise HTTPException(400, "Policy cliente non valida.")
-        if policy.scope_type == "site":
-            site = db.get(Site, settings.scope_site_id) if settings.scope_site_id else None
-            if not site or site.customer_id != customer.id:
-                raise HTTPException(400, "La sede non appartiene al cliente selezionato.")
-        if policy.scope_type == "device":
-            device = db.get(Device, policy.device_id) if policy.device_id else None
-            if not device or device.customer_id != customer.id:
-                raise HTTPException(400, "L'apparato non appartiene al cliente selezionato.")
-        if policy.scope_type not in {"customer", "site", "device"}:
-            raise HTTPException(400, "Da questa pagina puoi creare policy solo per questo cliente, le sue sedi o i suoi apparati.")
-        try:
-            core.add_event(
-                db,
-                "BACKUP_POLICY_CREATED",
-                actor=user,
-                customer_id=customer.id,
-                details={"policy_id": str(policy.id), "name": policy.name, "scope_type": policy.scope_type},
-            )
-            db.commit()
-        except IntegrityError:
-            db.rollback()
-            raise HTTPException(409, "Esiste già una policy con questo nome.")
+        create_policy_record(db, user, form, customer=customer)
     return RedirectResponse(f"/customers/{customer_id}/backups", status_code=303)
 
 

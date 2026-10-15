@@ -351,7 +351,8 @@
     },
     "links": {
       "restoreTests": "Tests de restauration",
-      "policies": "Politiques de sauvegarde"
+      "policies": "Politiques de sauvegarde",
+      "editPolicy": "Modifier la politique"
     },
     "filters": {
       "kind": "Type de fichier",
@@ -1048,7 +1049,8 @@
       "on": "active",
       "off": "désactivée",
       "none": "Aucune politique configurée."
-    }
+    },
+    "createPolicy": "Créer une politique"
   },
   "firmware": {
     "title": "Firmware",
@@ -3984,5 +3986,158 @@
       "performed_future": "La date du test ne peut pas être dans le futur.",
       "integrity": "Intégrité du fichier non vérifiée : impossible d'enregistrer un test réussi."
     }
+  },
+  "backupPolicy": {
+    "titles": {
+      "create": "Nouvelle politique de sauvegarde",
+      "edit": "Modifier la politique de sauvegarde",
+      "clone": "Dupliquer la politique de sauvegarde"
+    },
+    "subtitle": "Seules les cibles et méthodes compatibles avec la portée choisie sont proposées.",
+    "cloneOf": "Copie de « {{name}} » : la nouvelle politique est active dès sa création.",
+    "sections": {
+      "target": "Nom et cible",
+      "targetHelp": "Les sites et équipements sont toujours filtrés sur le client choisi.",
+      "schedule": "Planification",
+      "content": "Que sauvegarder",
+      "contentHelp": "Seules les options prises en charge par le fabricant de la cible sont proposées.",
+      "retention": "Conservation et fiabilité",
+      "retentionHelp": "Combien de sauvegardes conserver et combien de tentatives après une erreur."
+    },
+    "name": "Nom de la politique",
+    "namePlaceholder": "Ex. MikroTik quotidien",
+    "state": "État",
+    "enabled": "Active",
+    "paused": "En pause",
+    "description": "Description",
+    "descriptionPlaceholder": "Objet de la politique, notes opérationnelles…",
+    "scope": "S'applique à",
+    "scopes": {
+      "global": "Tous les équipements",
+      "vendor": "Tous les équipements d'un fabricant",
+      "customer": "Un client",
+      "site": "Un site du client",
+      "device": "Un seul équipement"
+    },
+    "vendor": "Fabricant",
+    "customer": "Client",
+    "choose": "Choisir…",
+    "site": "Site",
+    "chooseSite": "Choisissez un site du client…",
+    "chooseCustomerFirst": "Choisissez d'abord le client",
+    "device": "Équipement",
+    "chooseDevice": "Choisissez un équipement du client…",
+    "schedules": {
+      "six_hour": "Toutes les 6 heures",
+      "daily": "Tous les jours",
+      "weekly": "Toutes les semaines",
+      "monthly": "Tous les mois"
+    },
+    "scheduleHelp": {
+      "six_hour": "Pour les configurations très critiques.",
+      "daily": "Le choix standard pour les équipements réseau.",
+      "weekly": "Pour les configurations qui changent peu.",
+      "monthly": "Pour les équipements stables ou anciens."
+    },
+    "time": "Heure préférée",
+    "weekday": "Jour de la semaine",
+    "monthday": "Jour du mois",
+    "weekdays": {
+      "0": "Dimanche",
+      "1": "Lundi",
+      "2": "Mardi",
+      "3": "Mercredi",
+      "4": "Jeudi",
+      "5": "Vendredi",
+      "6": "Samedi"
+    },
+    "autoMethod": "La politique couvre plusieurs types d'équipements : pour chacun, NSM n'utilise que la méthode prise en charge par son fabricant ou connecteur.",
+    "capabilities": {
+      "mikrotik": {
+        "title": "MikroTik · Agent NSM",
+        "help": "Sauvegarde chiffrée .backup et export .rsc via l'agent en HTTPS sortant."
+      },
+      "ubiquiti": {
+        "title": "Ubiquiti · Connecteur",
+        "help": "Configuration lue par le connecteur, si le produit et l'API le permettent."
+      },
+      "tp-link": {
+        "title": "TP-Link / CPE · ACS",
+        "help": "Configuration via ACS/TR-069, uniquement sur les modèles compatibles."
+      },
+      "generic": {
+        "title": "Générique / Ancien",
+        "help": "Solution de repli non intrusive sans méthode native."
+      },
+      "common": "Options communes"
+    },
+    "optionLabels": {
+      "mikrotik_binary": {
+        "title": "Sauvegarde binaire .backup",
+        "help": "Sauvegarde RouterOS chiffrée, à restaurer sur des équipements compatibles."
+      },
+      "mikrotik_export": {
+        "title": "Export texte .rsc",
+        "help": "Lisible et comparable, utile pour l'audit et les diffs."
+      },
+      "ubiquiti_connector_config": {
+        "title": "Configuration depuis le connecteur",
+        "help": "Seulement si le produit expose une fonction compatible."
+      },
+      "tr069_config": {
+        "title": "Configuration via ACS",
+        "help": "La capacité est vérifiée pour chaque équipement avant le job."
+      },
+      "generic_snapshot": {
+        "title": "Instantané d'inventaire",
+        "help": "Métadonnées et état observé ; ne simule pas une sauvegarde de configuration."
+      },
+      "pre_firmware": {
+        "title": "Sauvegarde avant firmware",
+        "help": "Seulement si le fabricant permet une vraie sauvegarde."
+      },
+      "verify_hash": {
+        "title": "SHA-256",
+        "help": "Enregistre l'intégrité des fichiers produits."
+      }
+    },
+    "retention_daily": "Quotidiennes",
+    "retention_weekly": "Hebdomadaires",
+    "retention_monthly": "Mensuelles",
+    "retry_count": "Tentatives après une erreur",
+    "cancel": "Annuler",
+    "submit": {
+      "create": "Créer la politique",
+      "edit": "Enregistrer",
+      "clone": "Créer la copie"
+    },
+    "manageTitle": "État de la politique",
+    "activeHelp": "La politique est active et participe au choix de la politique effective.",
+    "pausedHelp": "La politique est en pause : elle ne s'applique à aucun équipement.",
+    "pause": "Mettre en pause",
+    "resume": "Réactiver",
+    "clone": "Dupliquer",
+    "deleteTitle": "Supprimer la politique",
+    "deleteHelp": "Les équipements couverts passent à la politique suivante par priorité, ou restent sans politique.",
+    "errors": {
+      "name": "Le nom de la politique est obligatoire.",
+      "time": "L'heure de sauvegarde n'est pas valide.",
+      "weekday": "Le jour de la semaine n'est pas valide.",
+      "monthday": "Le jour du mois n'est pas valide.",
+      "frequency": "La fréquence n'est pas valide.",
+      "vendor": "Choisissez le fabricant.",
+      "customer": "Choisissez un client valide.",
+      "site": "Choisissez un site valide.",
+      "device": "Choisissez un équipement valide.",
+      "scope": "La cible n'est pas valide.",
+      "retention": "Les valeurs de conservation ne sont pas valides.",
+      "duplicate": "Une politique porte déjà ce nom.",
+      "customer_scope": "La cible doit être ce client, l'un de ses sites ou l'un de ses équipements.",
+      "confirm": "Le nom de confirmation ne correspond pas à la politique.",
+      "invalid": "Valeur non valide.",
+      "site_customer": "Le site n'appartient pas au client choisi.",
+      "device_customer": "L'équipement n'appartient pas au client choisi."
+    },
+    "confirmName": "Pour confirmer, saisissez le nom de la politique : {{name}}"
   }
 }

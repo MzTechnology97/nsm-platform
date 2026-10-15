@@ -1,6 +1,7 @@
 import { createRootRoute, createRoute, createRouter, lazyRouteComponent } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
+import { parsePolicyFormSearch } from "../api/backupPolicies";
 import type { CustomerFilters } from "../api/customers";
 import type { AuditFilters, OnboardingFilters } from "../api/admin";
 import { INCIDENT_STATUSES, type IncidentFilters, ISSUE_STATUSES, type IssueFilters } from "../api/incidents";
@@ -142,6 +143,22 @@ const backupsRoute = createRoute({
   path: "/backups",
   component: lazyRouteComponent(() => import("../pages/BackupsOverview"), "BackupsOverview"),
   validateSearch: parseBackupOverviewSearch,
+});
+const backupPolicyNewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/backups/policies/new",
+  component: lazyRouteComponent(() => import("../pages/BackupPolicyForm"), "BackupPolicyNew"),
+  validateSearch: parsePolicyFormSearch,
+});
+const backupPolicyEditRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/backups/policies/$policyId/edit",
+  component: lazyRouteComponent(() => import("../pages/BackupPolicyForm"), "BackupPolicyEdit"),
+});
+const backupPolicyCloneRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/backups/policies/$policyId/clone",
+  component: lazyRouteComponent(() => import("../pages/BackupPolicyForm"), "BackupPolicyClone"),
 });
 /** Firmware search: known state, customer, vendor, text. */
 export function parseFirmwareSearch(search: Record<string, unknown>): FirmwareFilters {
@@ -455,6 +472,9 @@ export const routeTree = rootRoute.addChildren([
   monitoringRoute,
   agentsRoute,
   backupsRoute,
+  backupPolicyNewRoute,
+  backupPolicyEditRoute,
+  backupPolicyCloneRoute,
   firmwareRoute,
   vulnerabilitiesRoute,
   vulnerabilityRoute,

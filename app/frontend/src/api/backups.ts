@@ -37,6 +37,7 @@ export interface DeviceBackups {
   run: { pending: boolean; blocker: string | null; can_execute: boolean; can_run: boolean };
   can_delete: boolean;
   runs: BackupRun[];
+  customer_id: string;
   links: { classic: string; policies: string };
 }
 

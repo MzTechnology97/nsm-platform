@@ -351,7 +351,8 @@
     },
     "links": {
       "restoreTests": "Pruebas de restauración",
-      "policies": "Políticas de copia"
+      "policies": "Políticas de copia",
+      "editPolicy": "Editar la política"
     },
     "filters": {
       "kind": "Tipo de archivo",
@@ -1048,7 +1049,8 @@
       "on": "activa",
       "off": "desactivada",
       "none": "Ninguna política configurada."
-    }
+    },
+    "createPolicy": "Crear política"
   },
   "firmware": {
     "title": "Firmware",
@@ -3984,5 +3986,158 @@
       "performed_future": "La fecha de la prueba no puede estar en el futuro.",
       "integrity": "Integridad del archivo no verificada: no se puede registrar una prueba superada."
     }
+  },
+  "backupPolicy": {
+    "titles": {
+      "create": "Nueva política de copia",
+      "edit": "Editar política de copia",
+      "clone": "Duplicar política de copia"
+    },
+    "subtitle": "Solo se muestran destinos y métodos compatibles con el alcance elegido.",
+    "cloneOf": "Copia de «{{name}}»: la nueva política nace activa.",
+    "sections": {
+      "target": "Nombre y destino",
+      "targetHelp": "Las sedes y los equipos siempre se filtran por el cliente elegido.",
+      "schedule": "Planificación",
+      "content": "Qué guardar",
+      "contentHelp": "Solo se proponen las opciones que admite el fabricante del destino.",
+      "retention": "Conservación y fiabilidad",
+      "retentionHelp": "Cuántas copias conservar y cuántos reintentos tras un error."
+    },
+    "name": "Nombre de la política",
+    "namePlaceholder": "P. ej. MikroTik diario",
+    "state": "Estado",
+    "enabled": "Activa",
+    "paused": "En pausa",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Objetivo de la política, notas operativas…",
+    "scope": "Se aplica a",
+    "scopes": {
+      "global": "Todos los equipos",
+      "vendor": "Todos los equipos de un fabricante",
+      "customer": "Un cliente",
+      "site": "Una sede del cliente",
+      "device": "Un solo equipo"
+    },
+    "vendor": "Fabricante",
+    "customer": "Cliente",
+    "choose": "Elegir…",
+    "site": "Sede",
+    "chooseSite": "Elige una sede del cliente…",
+    "chooseCustomerFirst": "Elige primero el cliente",
+    "device": "Equipo",
+    "chooseDevice": "Elige un equipo del cliente…",
+    "schedules": {
+      "six_hour": "Cada 6 horas",
+      "daily": "Cada día",
+      "weekly": "Cada semana",
+      "monthly": "Cada mes"
+    },
+    "scheduleHelp": {
+      "six_hour": "Para configuraciones muy críticas.",
+      "daily": "La opción estándar para equipos de red.",
+      "weekly": "Para configuraciones que cambian poco.",
+      "monthly": "Para equipos estables o antiguos."
+    },
+    "time": "Hora preferida",
+    "weekday": "Día de la semana",
+    "monthday": "Día del mes",
+    "weekdays": {
+      "0": "Domingo",
+      "1": "Lunes",
+      "2": "Martes",
+      "3": "Miércoles",
+      "4": "Jueves",
+      "5": "Viernes",
+      "6": "Sábado"
+    },
+    "autoMethod": "La política cubre varios tipos de equipo: para cada uno NSM usa solo el método que admite su fabricante o conector.",
+    "capabilities": {
+      "mikrotik": {
+        "title": "MikroTik · Agent NSM",
+        "help": "Copia cifrada .backup y export .rsc mediante el agente por HTTPS saliente."
+      },
+      "ubiquiti": {
+        "title": "Ubiquiti · Conector",
+        "help": "Configuración leída por el conector, si el producto y la API lo permiten."
+      },
+      "tp-link": {
+        "title": "TP-Link / CPE · ACS",
+        "help": "Configuración vía ACS/TR-069, solo en los modelos compatibles."
+      },
+      "generic": {
+        "title": "Genérico / Antiguo",
+        "help": "Alternativa no invasiva cuando no hay un método nativo."
+      },
+      "common": "Opciones comunes"
+    },
+    "optionLabels": {
+      "mikrotik_binary": {
+        "title": "Copia binaria .backup",
+        "help": "Copia RouterOS cifrada, para restaurar en equipos compatibles."
+      },
+      "mikrotik_export": {
+        "title": "Export de texto .rsc",
+        "help": "Legible y comparable, útil para auditorías y diffs."
+      },
+      "ubiquiti_connector_config": {
+        "title": "Configuración desde el conector",
+        "help": "Solo si el producto ofrece una función compatible."
+      },
+      "tr069_config": {
+        "title": "Configuración vía ACS",
+        "help": "La capacidad se verifica para cada equipo antes del job."
+      },
+      "generic_snapshot": {
+        "title": "Instantánea del inventario",
+        "help": "Metadatos y estado observado; no simula una copia de configuración."
+      },
+      "pre_firmware": {
+        "title": "Copia antes del firmware",
+        "help": "Solo si el fabricante admite una copia real."
+      },
+      "verify_hash": {
+        "title": "SHA-256",
+        "help": "Registra la integridad de los archivos generados."
+      }
+    },
+    "retention_daily": "Diarias",
+    "retention_weekly": "Semanales",
+    "retention_monthly": "Mensuales",
+    "retry_count": "Reintentos tras un error",
+    "cancel": "Cancelar",
+    "submit": {
+      "create": "Crear política",
+      "edit": "Guardar cambios",
+      "clone": "Crear copia"
+    },
+    "manageTitle": "Estado de la política",
+    "activeHelp": "La política está activa y participa en la elección de la política efectiva.",
+    "pausedHelp": "La política está en pausa: no se aplica a ningún equipo.",
+    "pause": "Pausar",
+    "resume": "Reactivar",
+    "clone": "Duplicar",
+    "deleteTitle": "Eliminar política",
+    "deleteHelp": "Los equipos cubiertos pasan a la siguiente política por prioridad, o quedan sin política.",
+    "errors": {
+      "name": "El nombre de la política es obligatorio.",
+      "time": "La hora de la copia no es válida.",
+      "weekday": "El día de la semana no es válido.",
+      "monthday": "El día del mes no es válido.",
+      "frequency": "La frecuencia no es válida.",
+      "vendor": "Elige el fabricante.",
+      "customer": "Elige un cliente válido.",
+      "site": "Elige una sede válida.",
+      "device": "Elige un equipo válido.",
+      "scope": "El destino no es válido.",
+      "retention": "Los valores de conservación no son válidos.",
+      "duplicate": "Ya existe una política con este nombre.",
+      "customer_scope": "El destino debe ser este cliente, una de sus sedes o uno de sus equipos.",
+      "confirm": "El nombre de confirmación no coincide con la política.",
+      "invalid": "Valor no válido.",
+      "site_customer": "La sede no pertenece al cliente elegido.",
+      "device_customer": "El equipo no pertenece al cliente elegido."
+    },
+    "confirmName": "Para confirmar, escribe el nombre de la política: {{name}}"
   }
 }
