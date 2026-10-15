@@ -28,7 +28,6 @@ export function AdminBranding() {
           <h1>{t("admin.title")}</h1>
           <p>{t("branding.subtitle")}</p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/admin/branding">{t("app.classic")}</a>
       </header>
       <AdminTabs />
       {query.error ? (

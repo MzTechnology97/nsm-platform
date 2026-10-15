@@ -25,7 +25,6 @@ export function Access() {
           <h1>{t("access.title")}</h1>
           <p>{t("access.subtitle")}</p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/security/access">{t("app.classic")}</a>
       </header>
       <div className="ui-monitor-toolbar">
         <div className="ui-segmented" role="group" aria-label={t("access.period")}>
@@ -144,7 +143,6 @@ export function Lifecycle() {
         </div>
         <div className="ui-actions">
           <Link to="/lifecycle/catalog" className="ui-button ui-button-ghost">{t("lifecycle.catalog")}</Link>
-          <a className="ui-button ui-button-ghost" href="/security/lifecycle">{t("app.classic")}</a>
         </div>
       </header>
       <div className="ui-chips" role="group" aria-label={t("lifecycle.states.label")}>

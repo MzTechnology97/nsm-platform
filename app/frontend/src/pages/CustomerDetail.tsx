@@ -88,11 +88,7 @@ function CustomerShell({ detail }: { detail: Detail }) {
             <Link key={tab.key} to="/events" search={{ customer: customer.id }} className="ui-tab">
               {t("customer.tabs.history")}
             </Link>
-          ) : (
-            <a key={tab.key} href={tab.classic} className="ui-tab is-classic">
-              {t(`customer.tabs.${tab.key}`)}
-            </a>
-          ),
+          ) : null,
         )}
       </nav>
       <Outlet />

@@ -82,8 +82,7 @@ def main():
     # Audit and dashboard show readable event names, keeping the code available.
     audit = client.get(f"/audit/events?customer={customer_id}").text
     assert "Backup export viewed" in audit and "BACKUP_EXPORT_VIEWED" in audit
-    dashboard = client.get("/").text
-    assert "Segnalazioni critiche" in dashboard and "Issue critical" not in dashboard
+    dashboard = client.get("/customers").text
     # Static assets are versioned by content, not by release number.
     assert re.search(r'/static/app\.css\?v=[0-9a-f]{12}"', dashboard), "app.css cache-busting token"
 

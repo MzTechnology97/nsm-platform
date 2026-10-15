@@ -50,7 +50,6 @@ export function Integrations() {
           <h1>{t("integrations.title")}</h1>
           <p>{t("integrations.subtitle")}</p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/integrations">{t("app.classic")}</a>
       </header>
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>

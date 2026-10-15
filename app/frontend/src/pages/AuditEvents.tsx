@@ -45,7 +45,6 @@ export function AuditEvents() {
         </div>
         <div className="ui-row-actions">
           <a className="ui-button ui-button-ghost" href={`/audit/events/export.csv${queryString({ ...search })}`}>{t("auditEvents.export")}</a>
-          <a className="ui-button ui-button-ghost" href="/audit/events">{t("app.classic")}</a>
         </div>
       </header>
 

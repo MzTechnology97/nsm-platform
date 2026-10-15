@@ -2,7 +2,6 @@
   "app": {
     "name": "NSM",
     "preview": "New interface (preview)",
-    "classic": "Classic interface",
     "loading": "Loading…",
     "error": "Unable to load data.",
     "retry": "Retry",

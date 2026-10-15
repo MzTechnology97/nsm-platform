@@ -22,7 +22,6 @@ export function AdminDemo() {
           <h1>{t("admin.title")}</h1>
           <p>{t("demo.subtitle")}</p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/admin/demo">{t("app.classic")}</a>
       </header>
       <AdminTabs />
       {query.error ? (

@@ -24,7 +24,6 @@ export function Reports() {
           <h1>{t("reports.title")}</h1>
           <p>{t("reports.subtitle")}</p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/audit/reports">{t("app.classic")}</a>
       </header>
 
       {query.error ? (

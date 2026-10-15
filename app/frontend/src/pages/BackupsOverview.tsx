@@ -39,7 +39,6 @@ export function BackupsOverview() {
           {data?.can_configure && (
             <Link to="/backups/policies/new" search={search.customer ? { customer: search.customer } : {}} className="ui-button ui-button-primary">{t("backupOverview.newPolicy")}</Link>
           )}
-          <a className="ui-button ui-button-ghost" href="/operations/backups">{t("app.classic")}</a>
         </div>
       </header>
 

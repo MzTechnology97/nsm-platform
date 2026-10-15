@@ -47,7 +47,6 @@ export function Agents() {
               : t("app.loading")}
           </p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/operations/agents">{t("app.classic")}</a>
       </header>
 
       <div className="ui-chips" role="group" aria-label={t("agents.states.label")}>

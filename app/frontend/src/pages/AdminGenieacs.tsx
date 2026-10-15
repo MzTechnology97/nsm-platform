@@ -23,7 +23,6 @@ export function AdminGenieacs() {
         </div>
         <div className="ui-row-actions">
           <Link className="ui-button ui-button-ghost" to="/integrations">{t("cnmaestro.allIntegrations")}</Link>
-          <a className="ui-button ui-button-ghost" href="/admin/integrations/genieacs">{t("app.classic")}</a>
         </div>
       </header>
       <AdminTabs />

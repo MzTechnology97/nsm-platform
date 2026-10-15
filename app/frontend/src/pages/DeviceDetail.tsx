@@ -7,7 +7,7 @@ import { BrandIcon } from "../app/BrandIcon";
 import { type DeviceDetail as Detail, useDevice } from "../api/device";
 import { formatRelative } from "../lib/format";
 
-/** Tabs already available in the new interface (route under /devices/$deviceId); the others open the classic page. */
+/** Device tabs and their routes under /devices/$deviceId. */
 const MIGRATED_TABS = {
   overview: "/devices/$deviceId",
   monitor: "/devices/$deviceId/monitor",
@@ -100,11 +100,7 @@ function DeviceShell({ detail }: { detail: Detail }) {
             >
               {t(`device.tabs.${tab.key}`)}
             </Link>
-          ) : (
-            <a key={tab.key} href={tab.classic} className="ui-tab is-classic">
-              {t(`device.tabs.${tab.key}`)}
-            </a>
-          ),
+          ) : null,
         )}
       </nav>
       <Outlet />

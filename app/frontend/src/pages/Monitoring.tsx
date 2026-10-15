@@ -24,7 +24,6 @@ export function Monitoring() {
           <h1>{t("monitoring.title")}</h1>
           <p>{data ? t("monitoring.subtitle", { online: data.counts.online, total: data.counts.total, sampled: data.counts.sampled }) : t("app.loading")}</p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/operations/monitoring">{t("app.classic")}</a>
       </header>
 
       <div className="ui-chips" role="group" aria-label={t("monitoring.states.label")}>

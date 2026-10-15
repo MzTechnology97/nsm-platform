@@ -65,9 +65,6 @@ export function IncidentDetail() {
             {t(`incidents.state.${incident.status}`, { defaultValue: incident.status })} · {t("incidentDetail.lasted", { span: formatSpan(incident.started_at, incident.resolved_at, i18n.language) })}
           </p>
         </div>
-        <div className="ui-row-actions">
-          <a className="ui-button ui-button-ghost" href={`/incidents/${incident.id}`}>{t("app.classic")}</a>
-        </div>
       </header>
 
       <div className="ui-two-columns">

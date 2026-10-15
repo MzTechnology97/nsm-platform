@@ -1,32 +1,28 @@
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
-/** Administration pages: ``route`` once migrated to React, otherwise the classic page. */
-const ADMIN_PAGES: { key: string; classic: string; route?: string }[] = [
-  { key: "users", classic: "/admin/users", route: "/admin/users" },
-  { key: "apiKeys", classic: "/admin/api-keys", route: "/admin/api-keys" },
-  { key: "integrations", classic: "/admin/integrations/uisp", route: "/admin/integrations/uisp" },
-  { key: "branding", classic: "/admin/branding", route: "/admin/branding" },
-  { key: "demo", classic: "/admin/demo", route: "/admin/demo" },
-  { key: "notifications", classic: "/admin/notifications", route: "/admin/notifications" },
-  { key: "syslog", classic: "/admin/syslog", route: "/admin/syslog" },
-  { key: "acs", classic: "/admin/acs", route: "/admin/acs" },
-  { key: "system", classic: "/admin/system", route: "/admin/system" },
+/** Administration pages. */
+const ADMIN_PAGES: { key: string; route: string }[] = [
+  { key: "users", route: "/admin/users" },
+  { key: "apiKeys", route: "/admin/api-keys" },
+  { key: "integrations", route: "/admin/integrations/uisp" },
+  { key: "branding", route: "/admin/branding" },
+  { key: "demo", route: "/admin/demo" },
+  { key: "notifications", route: "/admin/notifications" },
+  { key: "syslog", route: "/admin/syslog" },
+  { key: "acs", route: "/admin/acs" },
+  { key: "system", route: "/admin/system" },
 ];
 
 export function AdminTabs() {
   const { t } = useTranslation();
   return (
     <nav className="ui-tabs" aria-label={t("admin.title")}>
-      {ADMIN_PAGES.map((page) =>
-        page.route ? (
-          <Link key={page.key} to={page.route} className="ui-tab" activeProps={{ className: "ui-tab is-active", "aria-current": "page" }}>
-            {t(`admin.tabs.${page.key}`)}
-          </Link>
-        ) : (
-          <a key={page.key} href={page.classic} className="ui-tab">{t(`admin.tabs.${page.key}`)}</a>
-        ),
-      )}
+      {ADMIN_PAGES.map((page) => (
+        <Link key={page.key} to={page.route} className="ui-tab" activeProps={{ className: "ui-tab is-active", "aria-current": "page" }}>
+          {t(`admin.tabs.${page.key}`)}
+        </Link>
+      ))}
     </nav>
   );
 }

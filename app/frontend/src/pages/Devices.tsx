@@ -71,9 +71,6 @@ export function Devices() {
         </div>
         <div className="ui-actions">
           {canImport && <Link className="ui-button ui-button-ghost" to="/devices/import">{t("deviceImport.open")}</Link>}
-          <a className="ui-button ui-button-ghost" href="/devices">
-            {t("app.classic")}
-          </a>
         </div>
       </header>
 
