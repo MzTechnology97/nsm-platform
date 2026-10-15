@@ -413,45 +413,57 @@ async def device_csv_import_submit(
     with SessionLocal() as db:
         user = core.require_admin(request, db)
         raw = await csv_file.read(MAX_CSV_BYTES + 1)
-        parsed_rows = _parse_csv(raw)
         filename = _clean(csv_file.filename, 255) or "devices.csv"
-        rows = _validate_rows(db, parsed_rows)
-        if mode == "import":
-            rows = _import_ready_rows(db, user, rows)
-            summary = _summary(rows)
-            core.add_event(
-                db,
-                "DEVICE_CSV_IMPORT_COMPLETED",
-                actor=user,
-                details={
-                    "filename": filename,
-                    "total": summary["total"],
-                    "imported": summary.get("imported", 0),
-                    "already_exists": summary.get("already_exists", 0),
-                    "errors": summary.get("error", 0),
-                    "credentials_imported": False,
-                },
-                source="csv_import",
-            )
-            db.commit()
-            return _render(request, db, user, rows, summary, filename, dry_run=False)
+        rows, summary = process_upload(db, user, raw, filename, mode)
+        return _render(request, db, user, rows, summary, filename, dry_run=mode != "import")
 
+
+def process_upload(db, user, raw: bytes, filename: str, mode: str):
+    """Validate (``mode="validate"``, a dry run) or import a device CSV, audit the outcome and commit.
+
+    Returns ``(rows, summary)``; HTTPException 400/413 for an unreadable file or an invalid mode. Used by both
+    interfaces. Credentials are never accepted.
+    """
+    if mode not in {"validate", "import"}:
+        raise HTTPException(400, "Modalità import non valida.")
+    parsed_rows = _parse_csv(raw)
+    rows = _validate_rows(db, parsed_rows)
+    if mode == "import":
+        rows = _import_ready_rows(db, user, rows)
         summary = _summary(rows)
         core.add_event(
             db,
-            "DEVICE_CSV_IMPORT_VALIDATED",
+            "DEVICE_CSV_IMPORT_COMPLETED",
             actor=user,
             details={
                 "filename": filename,
                 "total": summary["total"],
-                "ready": summary.get("ready", 0),
+                "imported": summary.get("imported", 0),
                 "already_exists": summary.get("already_exists", 0),
                 "errors": summary.get("error", 0),
+                "credentials_imported": False,
             },
             source="csv_import",
         )
         db.commit()
-        return _render(request, db, user, rows, summary, filename, dry_run=True)
+        return rows, summary
+
+    summary = _summary(rows)
+    core.add_event(
+        db,
+        "DEVICE_CSV_IMPORT_VALIDATED",
+        actor=user,
+        details={
+            "filename": filename,
+            "total": summary["total"],
+            "ready": summary.get("ready", 0),
+            "already_exists": summary.get("already_exists", 0),
+            "errors": summary.get("error", 0),
+        },
+        source="csv_import",
+    )
+    db.commit()
+    return rows, summary
 
 
 def install_device_csv_import(app):

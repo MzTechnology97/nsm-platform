@@ -3115,5 +3115,35 @@
       "confirm_count": "Il numero di conferma non corrisponde.",
       "action_invalid": "Azione non valida."
     }
+  },
+  "deviceImport": {
+    "open": "Importa CSV",
+    "title": "Importa apparati da CSV",
+    "subtitle": "Prima una verifica senza salvare nulla, poi l'importazione delle sole righe pronte.",
+    "file": "File CSV (UTF-8)",
+    "validate": "Verifica",
+    "import_one": "Importa {{count}} apparato",
+    "import_other": "Importa {{count}} apparati",
+    "template": "Scarica il modello",
+    "rules": "Fino a {{rows}} apparati e {{size}} KiB. Colonne:",
+    "noCredentials": "Il file non può contenere credenziali: i MikroTik importati restano in attesa dell'enrollment dell'agent.",
+    "resultValidate": "Esito della verifica",
+    "resultImport": "Esito dell'importazione",
+    "status": {
+      "ready": "Pronto",
+      "imported": "Importato",
+      "already_exists": "Già presente",
+      "error": "Errore"
+    },
+    "columns": {
+      "row": "Riga",
+      "device": "Apparato",
+      "customer": "Cliente / sede",
+      "address": "IP / MAC / seriale",
+      "outcome": "Esito"
+    },
+    "errors": {
+      "file_invalid": "File CSV non valido."
+    }
   }
 }
