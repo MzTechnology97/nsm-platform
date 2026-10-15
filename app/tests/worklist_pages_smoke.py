@@ -70,7 +70,7 @@ def main():
     # Audit and dashboard show readable event names, keeping the code available.
     audit = client.get(f"/api/ui/v1/audit/events?customer={customer_id}").json()["items"]
     assert any(e["event_type"] == "BACKUP_EXPORT_VIEWED" and e["label"] == "Backup export viewed" for e in audit)
-    dashboard = client.get("/customers").text
+    dashboard = client.get("/devices").text
     # Static assets are versioned by content, not by release number.
     assert re.search(r'/static/app\.css\?v=[0-9a-f]{12}"', dashboard), "app.css cache-busting token"
 

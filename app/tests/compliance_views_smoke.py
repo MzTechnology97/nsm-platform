@@ -74,9 +74,9 @@ def main():
     exc_page = client.get(f"/devices/{ids['excepted']}/compliance").text
     assert "In eccezione" in exc_page and "fino al" in exc_page
     assert "Nessuna baseline di compliance applicabile" in client.get(f"/devices/{ids['lonely']}/compliance").text
-    security = client.get(f"/customers/{ids['customer']}/security").text
-    assert "Apparati con non conformità da gestire" in security and "1 in eccezione" in security
-    assert "Nessuna baseline applicata" in client.get(f"/customers/{ids['empty']}/security").text
+    security = client.get(f"/api/ui/v1/customers/{ids['customer']}/security").json()["compliance"]
+    assert security["failing_devices"] >= 1 and security["counts"].get("exception") == 1, security
+    assert client.get(f"/api/ui/v1/customers/{ids['empty']}/security").json()["compliance"]["evaluated_devices"] == 0
     print("Compliance views smoke passed")
 
 

@@ -58,6 +58,9 @@ function CustomerShell({ detail }: { detail: Detail }) {
           {detail.actions.add_device && (
             <Link className="ui-button ui-button-ghost" to="/customers/$customerId/devices/manage" params={{ customerId: customer.id }}>{t("customer.actions.manageDevices")}</Link>
           )}
+          {detail.actions.uisp_import && (
+            <Link className="ui-button ui-button-ghost" to="/integrations/uisp/onboarding" search={{ customer: customer.id }}>{t("customer.actions.uispImport")}</Link>
+          )}
           {detail.actions.add_device && (
             <Link className="ui-button ui-button-primary" to="/customers/$customerId/devices/new" params={{ customerId: customer.id }}>{t("customer.actions.addDevice")}</Link>
           )}

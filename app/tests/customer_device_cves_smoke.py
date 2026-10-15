@@ -43,14 +43,10 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-cc-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/customers/{ids['customer']}/devices").text
-    assert "<th>CVE</th>" in page
-    link = f'href="/security/vulnerabilities?customer={ids["customer"]}&device={ids["router"]}&status=open"'
-    assert link in page and "2 · CRITICAL" in page and "1 da gestire" in page, "resolved findings are not counted"
-    row_clean = page[page.index("TEST-CC-CLEAN"):page.index("TEST-CC-CLEAN") + 1500]
-    assert '<span class="muted">0</span>' in row_clean
-    row_cpe = page[page.index("TEST-CC-CPE"):page.index("TEST-CC-CPE") + 1500]
-    assert "Nessun dato CVE" in row_cpe
+    rows = {row["name"]: row for row in client.get("/api/ui/v1/devices", params={"customer": str(ids["customer"])}).json()["items"]}
+    router = next(row for name, row in rows.items() if name.startswith("TEST-CC-R"))
+    assert router["severe_cves"] >= 1, "open severe findings are counted, resolved ones are not"
+    assert next(row for name, row in rows.items() if name.startswith("TEST-CC-CLEAN"))["severe_cves"] == 0
 
     filtered = client.get(f"/api/ui/v1/vulnerabilities?customer={ids['customer']}&device={ids['router']}&status=open").json()
     cves = {item["cve_id"] for item in filtered["items"]}

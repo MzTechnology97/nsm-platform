@@ -57,9 +57,3 @@ def capability_aware_apply_policy_form(db, policy, settings, form):
 
 def install_backup_capability_guard():
     backup_core._apply_policy_form = capability_aware_apply_policy_form
-
-    # customer_workspace imports the function directly, so replace its local
-    # reference too. This keeps the same validation for customer-scoped forms.
-    from app import customer_workspace
-
-    customer_workspace._apply_policy_form = capability_aware_apply_policy_form

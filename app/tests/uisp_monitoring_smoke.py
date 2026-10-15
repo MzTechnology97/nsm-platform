@@ -76,7 +76,8 @@ def main():
     page = client.get(f"/devices/{ids['device']}/uisp").text
     for marker in ("Stato operativo da UISP", "-70 dBm", "-61 dBm", "150.0 Mbps", "3g 1h 0m", "non esposto da UISP"):
         assert marker in page, marker
-    assert "segnale -70.0 dBm" in client.get(f"/customers/{ids['customer']}/devices").text
+    device_rows = client.get("/api/ui/v1/devices", params={"customer": str(ids["customer"])}).json()["items"]
+    assert next(row for row in device_rows if row["id"] == str(ids["device"]))["signal_dbm"] == -70.0, "UISP signal in the device list"
 
     with SessionLocal() as db:
         db.add(UispMetricSample(device_id=ids["device"], observed_at=utcnow() - timedelta(days=120), signal_dbm=-80))

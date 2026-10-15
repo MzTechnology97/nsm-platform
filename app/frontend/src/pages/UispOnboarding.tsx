@@ -16,11 +16,11 @@ export function UispOnboarding() {
   const [text, setText] = useState(search.q ?? "");
   const q = useDebounced(text.trim());
   const state = search.state ?? "new";
-  const query = useOnboarding({ ...search, state });
+  const query = useOnboarding({ q: search.q, uisp_site: search.uisp_site, state });
   const first = query.data?.pages[0];
   const items = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [customer, setCustomer] = useState("");
+  const [customer, setCustomer] = useState(search.customer ?? "");
   const [site, setSite] = useState("");
   const preview = useOnboardingPreview();
   const commit = useOnboardingCommit();

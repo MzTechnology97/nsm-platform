@@ -393,6 +393,7 @@ const uispOnboardingRoute = createRoute({
     ...(typeof search.q === "string" && search.q ? { q: search.q } : {}),
     ...(typeof search.uisp_site === "string" && search.uisp_site ? { uisp_site: search.uisp_site } : {}),
     ...(typeof search.state === "string" && ["new", "linkable", "linked", "blocked"].includes(search.state) ? { state: search.state as OnboardingFilters["state"] } : {}),
+    ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
   }),
 });
 const accessRoute = createRoute({

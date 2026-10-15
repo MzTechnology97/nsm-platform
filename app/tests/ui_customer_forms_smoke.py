@@ -107,14 +107,9 @@ def main():
                      if (e.details or {}).get("customer_id") == customer_id]
         assert len(snapshots) == 1 and snapshots[0].details["device_count"] == 1
 
-    # The classic forms still work on the shared functions.
-    page = client.get("/customers/new/form")
-    token = re.search(r'name="csrf" value="([^"]+)"', page.text).group(1)
-    assert client.post("/customers", data={"name": f"CI classic {suffix}", "code": "", "notes": "", "csrf": token}, follow_redirects=False).status_code == 303
-    with SessionLocal() as db:
-        classic = db.scalar(select(Customer).where(Customer.name == f"CI classic {suffix}"))
-        assert classic is not None
-    assert client.post(f"/customers/{classic.id}/sites", data={"name": "classic site", "csrf": token}, follow_redirects=False).status_code == 303
+    # The classic form addresses open the new forms.
+    moved = client.get("/customers/new/form", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == "/app/customers/new"
 
     for path in ("/app/customers/new", f"/app/customers/{other_id}/edit"):
         assert client.get(path).status_code in (200, 503), path

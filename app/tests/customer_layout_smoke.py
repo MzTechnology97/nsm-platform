@@ -33,21 +33,21 @@ def main():
     token = re.search(r'name="csrf" value="([^"]+)"', client.get("/login").text).group(1)
     assert client.post("/login", data={"username": username, "password": PASSWORD, "csrf": token}, follow_redirects=False).status_code == 303
 
-    expected_tabs = ["Panoramica", "Apparati", "Sedi", "Grafici", "Backup", "Sicurezza", "Attività"]
-    for suffix, active in (("", "Panoramica"), ("/devices", "Apparati"), ("/sites", "Sedi"), ("/backups", "Backup"), ("/security", "Sicurezza"), ("/history", "Attività"), ("/devices/manage", "Apparati"), ("/devices/new", "Apparati"), ("/sites/new", "Sedi"), (f"/sites/{site_id}/edit", "Sedi")):
-        page = client.get(f"/customers/{customer_id}{suffix}")
-        assert page.status_code == 200, (suffix, page.status_code)
-        nav = re.search(r'<nav class="device-tabs".*?</nav>', page.text, re.S).group(0)
-        assert re.findall(r">([^<]+)</a>", nav) == expected_tabs, suffix
-        assert f'aria-current="page">{active}<' in nav, suffix
-        assert page.text.count('class="breadcrumbs"') == 1, suffix
-        for legacy in ("Overview<", ">Security<", ">History<"):
-            assert legacy not in nav, (suffix, legacy)
+    # Every classic customer tab opens the same view of the new interface.
+    base = f"/app/customers/{customer_id}"
+    for suffix, target in (("", base), ("/devices", f"/app/devices?customer={customer_id}"), ("/sites", f"{base}/sites"),
+                           ("/backups", f"/app/backups?customer={customer_id}&view=all"), ("/security", f"{base}/security"),
+                           ("/history", f"/app/events?customer={customer_id}"), ("/devices/manage", f"{base}/devices/manage"),
+                           ("/devices/new", f"{base}/devices/new"), ("/sites/new", f"{base}/sites"), (f"/sites/{site_id}/edit", f"{base}/sites"),
+                           ("/edit", f"{base}/edit"), ("/graphs?site=x", f"{base}/graphs?site=x"), ("/devices?status=offline&page=2", f"/app/devices?customer={customer_id}&status=offline")):
+        moved = client.get(f"/customers/{customer_id}{suffix}", follow_redirects=False)
+        assert moved.status_code == 302 and moved.headers["location"] == target, (suffix, moved.headers.get("location"))
+    for path, target in (("/customers?q=Nord&page=3", "/app/customers?q=Nord"), ("/customers/new/form", "/app/customers/new"), ("/sites", "/app/customers")):
+        moved = client.get(path, follow_redirects=False)
+        assert moved.status_code == 302 and moved.headers["location"] == target, path
 
-    sites = client.get(f"/customers/{customer_id}/sites").text
-    assert "TEST Sede Nord" in sites and "Via Test 1" in sites and "+ Sede" in sites
-    edit = client.get(f"/customers/{customer_id}/edit").text
-    assert "Gestisci cliente" in edit and 'class="device-tabs"' not in edit
+    sites = client.get(f"/api/ui/v1/customers/{customer_id}").text
+    assert "TEST Sede Nord" in sites
     print("Customer layout smoke passed")
 
 

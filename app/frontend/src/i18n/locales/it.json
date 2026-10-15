@@ -83,7 +83,9 @@
       "pending_link": "In attesa di collegamento",
       "unknown": "Sconosciuto",
       "degraded": "Degradato"
-    }
+    },
+    "signal": "segnale {{value}} dBm",
+    "lan": "LAN {{ip}}"
   },
   "device": {
     "notFound": "Apparato non trovato o non visibile con i tuoi permessi.",
@@ -736,7 +738,8 @@
       "incidents": "Incidenti",
       "edit": "Gestisci cliente",
       "addDevice": "+ Apparato",
-      "manageDevices": "Gestisci apparati"
+      "manageDevices": "Gestisci apparati",
+      "uispImport": "Importa da UISP"
     },
     "tabs": {
       "label": "Sezioni cliente",

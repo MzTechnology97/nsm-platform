@@ -23,10 +23,10 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
 
-from app import availability, interface_traffic
+from app import interface_traffic
 from app import main as core
 from app.agent_models import DeviceInterfaceSample, DeviceMetricSample, DevicePingSample, DeviceWirelessSample
 from app.db import SessionLocal
@@ -221,22 +221,6 @@ def _site_id(db, customer, value):
     except ValueError:
         return None
     return site.id if site and site.customer_id == customer.id else None
-
-
-@router.get("/customers/{customer_id}/graphs", response_class=HTMLResponse, name="customer_graphs")
-def graphs_page(request: Request, customer_id: uuid.UUID, site: str = ""):
-    with SessionLocal() as db:
-        user, customer = _customer(db, request, customer_id)
-        if user is None:
-            return core.login_redirect()
-        site_id = _site_id(db, customer, site)
-        selected = db.get(Site, site_id) if site_id else None
-        now = utcnow()
-        scope = [d.id for d in scope_devices(db, customer, site_id)]
-        return core.render(request, db, user, "customer_graphs.html", customer=customer, selected_site=selected,
-                           sites_overview=site_overview(db, customer) if not selected else [], format_bps=interface_traffic.format_bps,
-                           top=build(db, customer, site_id, "24h")["top"],
-                           availability_30d=availability.report_section(db, scope, now - timedelta(days=30), now))
 
 
 @router.get("/api/v1/customers/{customer_id}/graphs", name="customer_graphs_api")

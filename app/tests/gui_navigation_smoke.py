@@ -55,7 +55,7 @@ def login(username):
 def main():
     admin, auditor = seed()
     client = login(admin)
-    dashboard = client.get("/customers")
+    dashboard = client.get("/devices")
     links = sorted(set(re.findall(r'class="nav-item[^"]*" href="([^"]+)"', dashboard.text)))
     # The new React interface (/app) has its own shell and build: covered by ui_foundation_smoke.
     assert "/app" in links

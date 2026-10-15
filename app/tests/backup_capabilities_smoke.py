@@ -193,35 +193,27 @@ def main():
     customer_row = next(row for row in overview.json()["customers"] if row["name"] == "CI10 Capability Customer")
     assert customer_row["protected"] >= 1 and customer_row["blocked"] >= 3, customer_row
 
-    customer_page = client.get(f"/customers/{ids['customer']}/backups")
-    assert customer_page.status_code == 200
-    assert "CI10 MT Ready" in customer_page.text
-    assert "CI10 MT Missing Agent" in customer_page.text
-    assert "CI10 Ubiquiti" in customer_page.text
-    assert "CI10 TP-Link" in customer_page.text
-    assert "Protetto" in customer_page.text
-    assert "Agent richiesto" in customer_page.text
-    assert "Connector richiesto" in customer_page.text
-    assert "ACS richiesto" in customer_page.text
-    assert "policy effettiva + metodo di backup realmente eseguibile" in customer_page.text
+    def customer_rows(view):
+        response = client.get("/api/ui/v1/backups", params={"customer": str(ids["customer"]), "view": view})
+        assert response.status_code == 200, response.text
+        return {row["name"]: row for row in response.json()["items"]}
 
-    protected = client.get(
-        f"/customers/{ids['customer']}/backups?protection=protected"
-    )
-    assert protected.status_code == 200
-    assert "CI10 MT Ready" in protected.text
-    assert "CI10 MT Missing Agent" not in protected.text
-    assert "CI10 Ubiquiti" not in protected.text
-    assert "CI10 TP-Link" not in protected.text
+    customer_page = customer_rows("all")
+    assert {"CI10 MT Ready", "CI10 MT Missing Agent", "CI10 Ubiquiti", "CI10 TP-Link"} <= set(customer_page)
+    labels = " ".join(row["readiness"]["label"] for row in customer_page.values())
+    for label in ("Protetto", "Agent richiesto", "Connector richiesto", "ACS richiesto"):
+        assert label in labels, (label, labels)
 
-    blocked = client.get(f"/customers/{ids['customer']}/backups?protection=blocked")
-    assert blocked.status_code == 200
-    assert "CI10 MT Ready" not in blocked.text
-    assert "CI10 MT Missing Agent" in blocked.text
-    assert "CI10 Ubiquiti" in blocked.text
-    assert "CI10 TP-Link" in blocked.text
+    protected = customer_rows("protected")
+    assert "CI10 MT Ready" in protected
+    assert "CI10 MT Missing Agent" not in protected and "CI10 Ubiquiti" not in protected and "CI10 TP-Link" not in protected
 
-    assert str(app.url_path_for("customer_backups", customer_id=ids["customer"])) == f"/customers/{ids['customer']}/backups"
+    blocked = customer_rows("blocked")
+    assert "CI10 MT Ready" not in blocked
+    assert {"CI10 MT Missing Agent", "CI10 Ubiquiti", "CI10 TP-Link"} <= set(blocked)
+
+    moved = client.get(f"/customers/{ids['customer']}/backups", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == f"/app/backups?customer={ids['customer']}&view=all"
     moved = client.get("/operations/backups", follow_redirects=False)
     assert moved.status_code == 302 and moved.headers["location"] == "/app/backups"
 

@@ -42,16 +42,16 @@ def main():
         customer_id = customer.id
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-csp-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/customers/{customer_id}/devices/new").text
-    assert "/static/forms.js" in page and "/static/theme-init.js" in page and "<script>" not in page
-    for name in ("ubnt_mac", "tr069_mac", "tr069_serial", "generic_mac", "generic_serial"):
-        assert f'name="{name}"' in page, name
-    assert page.count('name="primary_mac"') == 0, "one MAC field per vendor section"
-    token = csrf_from(page)
-    url = f"/customers/{customer_id}/devices"
+    # New-device form of the new interface: the API answers with coded errors instead of a flash message.
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    url = f"/api/ui/v1/customers/{customer_id}/devices"
+    assert client.get(f"{url}/new").status_code == 200
 
-    missing = client.post(url, data={"csrf": token, "vendor": "ubiquiti", "device_type": "wireless_cpe", "ubnt_mac": "", "generic_mac": ""}, follow_redirects=True)
-    assert "Apparato non creato" in missing.text and "MAC o seriale" in missing.text
+    def create(**body):
+        return client.post(url, headers=headers, json=body)
+
+    missing = create(vendor="ubiquiti", device_type="wireless_cpe", mac="")
+    assert missing.status_code == 422 and "MAC o seriale" in missing.text, missing.text
     # Ubiquiti onboarding goes through UISP: the device must already be there.
     from app import uisp_connector as uisp
     from app.integration_models import ConnectorIntegration
@@ -64,14 +64,14 @@ def main():
             db.commit()
     uisp._fetch_candidates = lambda connection: [{"external_id": "uisp-csp-1", "primary_mac": "02:00:5E:10:20:30", "device_identity": "cpe-csp",
                                                   "model": "LiteBeam", "status": "online", "metrics": {}, "firmware": None, "site": {}}]
-    created = client.post(url, data={"csrf": token, "vendor": "ubiquiti", "device_type": "wireless_cpe", "display_name": "TEST CPE", "ubnt_mac": "02-00-5E-10-20-30", "generic_mac": ""}, follow_redirects=False)
-    assert created.status_code == 303 and created.headers["location"].startswith("/devices/")
-    duplicate = client.post(url, data={"csrf": token, "vendor": "ubiquiti", "device_type": "wireless_cpe", "ubnt_mac": "02:00:5e:10:20:30"}, follow_redirects=True)
-    assert "Apparato non creato" in duplicate.text
-    tr069 = client.post(url, data={"csrf": token, "vendor": "tp-link", "device_type": "wireless_cpe", "tr069_serial": "TEST-SN-1"}, follow_redirects=False)
-    assert tr069.status_code == 303
-    generic = client.post(url, data={"csrf": token, "vendor": "generic", "device_type": "switch", "generic_mac": "02:00:5e:10:20:31", "model": "TEST-SW"}, follow_redirects=False)
-    assert generic.status_code == 303
+    created = create(vendor="ubiquiti", device_type="wireless_cpe", display_name="TEST CPE", mac="02-00-5E-10-20-30")
+    assert created.status_code == 200 and created.json()["id"], created.text
+    duplicate = create(vendor="ubiquiti", device_type="wireless_cpe", mac="02:00:5e:10:20:30")
+    assert duplicate.status_code == 422, duplicate.text
+    tr069 = create(vendor="tp-link", device_type="wireless_cpe", serial="TEST-SN-1")
+    assert tr069.status_code == 200, tr069.text
+    generic = create(vendor="generic", device_type="switch", mac="02:00:5e:10:20:31", model="TEST-SW")
+    assert generic.status_code == 200, generic.text
     with SessionLocal() as db:
         rows = {d.vendor: d for d in db.scalars(select(Device).where(Device.customer_id == customer_id))}
         assert rows["ubiquiti"].primary_mac == "02:00:5E:10:20:30" or rows["ubiquiti"].primary_mac.lower() == "02:00:5e:10:20:30"

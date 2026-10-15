@@ -34,20 +34,17 @@ def main():
         customer_id = customer.id
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-on-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/customers/{customer_id}/devices/new").text
-    assert "Cambium (cnMaestro)" in page and "già presente in cnMaestro" in page and "già presente in UISP" in page
-    assert 'name="cambium_mac"' in page and 'name="cambium_serial"' in page
-    manual = page[page.index('name="manufacturer"'):page.index("</select>", page.index('name="manufacturer"'))]
-    assert 'value="cambium"' not in manual, "Cambium is no longer a generic manufacturer"
-    url = f"/customers/{customer_id}/devices"
-    token = csrf_from(page)
+    url = f"/api/ui/v1/customers/{customer_id}/devices"
+    form = client.get(f"{url}/new").json()
+    assert "cambium" in form["vendors"] and "cambium" not in {b["key"] for b in form["manual_brands"]}, "Cambium is no longer a generic manufacturer"
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
 
     def post(data):
-        return client.post(url, data={"csrf": token, "device_type": "wireless_cpe", **data}, follow_redirects=True)
+        return client.post(url, headers=headers, json={"device_type": "wireless_cpe", **data})
 
     # Connectors missing: nothing is created.
-    assert "Connettore UISP non configurato" in post({"vendor": "ubiquiti", "ubnt_mac": "02:6B:00:00:0C:01"}).text
-    assert "Connettore cnMaestro non configurato" in post({"vendor": "cambium", "cambium_mac": "02:CB:00:00:0C:01"}).text
+    assert "Connettore UISP non configurato" in post({"vendor": "ubiquiti", "mac": "02:6B:00:00:0C:01"}).text
+    assert "Connettore cnMaestro non configurato" in post({"vendor": "cambium", "mac": "02:CB:00:00:0C:01"}).text
 
     with SessionLocal() as db:
         db.add(ConnectorIntegration(provider="uisp", name="UISP", base_url="https://uisp.example.test", verify_tls=True, is_enabled=True,
@@ -64,16 +61,16 @@ def main():
     cnm.client_for = lambda row, transport_=None: original(row, httpx.MockTransport(fake))
 
     # Not in the console: refused with the reason.
-    absent = post({"vendor": "ubiquiti", "ubnt_mac": "02:6B:00:00:0C:99"}).text
-    assert "Apparato non creato" in absent and "non risulta in UISP" in absent and "aggiungilo prima" in absent
-    assert "non risulta in cnMaestro" in post({"vendor": "cambium", "cambium_serial": "NOPE"}).text
+    absent = post({"vendor": "ubiquiti", "mac": "02:6B:00:00:0C:99"})
+    assert absent.status_code == 422 and "non risulta in UISP" in absent.text and "aggiungilo prima" in absent.text
+    assert "non risulta in cnMaestro" in post({"vendor": "cambium", "serial": "NOPE"}).text
     assert "MAC o seriale" in post({"vendor": "cambium"}).text
 
     # Present: created already linked (Ubiquiti by serial, Cambium by MAC).
-    ubnt = client.post(url, data={"csrf": token, "device_type": "wireless_cpe", "vendor": "ubiquiti", "ubnt_serial": "UB-SN-1"}, follow_redirects=False)
-    assert ubnt.status_code == 303, ubnt.text
-    camb = client.post(url, data={"csrf": token, "device_type": "wireless_cpe", "vendor": "cambium", "cambium_mac": "02-cb-00-00-0c-01"}, follow_redirects=False)
-    assert camb.status_code == 303, camb.text
+    ubnt = post({"vendor": "ubiquiti", "serial": "UB-SN-1"})
+    assert ubnt.status_code == 200, ubnt.text
+    camb = post({"vendor": "cambium", "mac": "02-cb-00-00-0c-01"})
+    assert camb.status_code == 200, camb.text
     with SessionLocal() as db:
         rows = {d.vendor: d for d in db.scalars(select(Device).where(Device.customer_id == customer_id))}
         assert set(rows) == {"ubiquiti", "cambium"}, "refused devices were not created"

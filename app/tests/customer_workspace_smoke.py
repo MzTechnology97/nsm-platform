@@ -66,29 +66,24 @@ def main():
     response = client.post("/login", data={"username": "ci09admin", "password": PASSWORD, "csrf": csrf}, follow_redirects=False)
     assert response.status_code == 303
 
-    customers = client.get("/customers")
+    customers = client.get("/api/ui/v1/customers")
     assert customers.status_code == 200
     assert "CI09 Cliente A" in customers.text and "CI09 Cliente B" in customers.text
-    assert "Da aggiornare" in customers.text and "CVE gravi" in customers.text and "Allarmi" in customers.text
+    assert {"updates", "severe", "alerts"} <= set(next(iter(customers.json()["items"])))
 
-    detail = client.get(f"/customers/{customer_a}")
+    detail = client.get(f"/api/ui/v1/customers/{customer_a}")
     assert detail.status_code == 200
-    assert "Apparati con CVE gravi" in detail.text
-    assert "segnalazioni aperte" in detail.text
-    for suffix in ("devices", "sites", "backups", "security", "history"):
-        assert f"/customers/{customer_a}/{suffix}" in detail.text
+    assert {"severe", "alerts"} <= set(detail.json()["metrics"])
 
-    devices = client.get(f"/customers/{customer_a}/devices")
+    devices = client.get("/api/ui/v1/devices", params={"customer": str(customer_a)})
     assert devices.status_code == 200
     assert "Router A" in devices.text and "Radio B" not in devices.text
-    sites_page = client.get(f"/customers/{customer_a}/sites")
-    assert sites_page.status_code == 200
-    assert "Via A" in sites_page.text and "Via B" not in sites_page.text
+    assert "Via A" in detail.text and "Via B" not in detail.text
 
     sites = client.get("/sites", follow_redirects=False)
-    assert sites.status_code == 303 and sites.headers["location"] == "/customers"
+    assert sites.status_code == 302 and sites.headers["location"] == "/app/customers"
 
-    backups = client.get(f"/customers/{customer_a}/backups")
+    backups = client.get("/api/ui/v1/backups", params={"customer": str(customer_a), "view": "all"})
     assert backups.status_code == 200
     assert "Router A" in backups.text and "Radio B" not in backups.text
     assert "CI09 Cliente A policy" in backups.text

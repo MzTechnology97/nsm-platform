@@ -19,8 +19,6 @@ from app.branding_runtime import install_branding_runtime
 from app.config_drift import install_config_drift
 from app.crud_extension import install_crud
 from app.customer_drilldown import install_customer_drilldown
-from app.customer_tabs import install_customer_tabs
-from app.customer_workspace import install_customer_workspace
 from app.dashboard_ui import install_dashboard_ui
 from app.demo_ui import install_demo_ui
 from app.device_backup_explorer import install_device_backup_explorer
@@ -93,7 +91,6 @@ from app.mikrotik_telemetry import install_mikrotik_telemetry
 from app.interface_traffic import install_interface_traffic
 from app.agent_addresses import install_agent_addresses
 from app.device_logs import install_device_logs
-from app.route_precedence import promote_customer_workspace_routes
 from app.routerboot_lifecycle import install_routerboot_lifecycle
 from app.mikrotik_device_reboot import install_mikrotik_device_reboot
 from app.mikrotik_syslog_config import install_mikrotik_syslog_config, install_syslog_on_enrollment
@@ -106,8 +103,6 @@ from app.reports import install_reports
 from app.search_enhancement import install_search_enhancement
 from app.ui_action_feedback import install_ui_action_feedback
 from app.ui_backup_feedback import install_ui_backup_feedback
-from app.ui_customer_device_bulk_feedback import install_ui_customer_device_bulk_feedback
-from app.ui_customer_site_crud_feedback import install_ui_customer_site_crud_feedback
 from app.ui_device_crud_feedback import install_ui_device_crud_feedback
 from app.ui_extension import install_ui
 from app.ui_feedback import install_ui_feedback
@@ -135,7 +130,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.170"
+APP_VERSION = "0.49.171"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -210,11 +205,8 @@ install_genieacs_connector(core.app)
 install_notification_delivery(core.app)
 install_notification_chat(core.app)
 install_notification_digest(core.app)
-install_customer_workspace(core.app)
 install_backup_workspace_capabilities(core.app)
-promote_customer_workspace_routes(core.app)
 install_customer_drilldown(core.app)
-install_customer_tabs(core.app)
 install_search_enhancement(core.app)
 install_mikrotik_workspace(core.app)
 install_mikrotik_workspace_ux(core.app)
@@ -291,8 +283,6 @@ install_ui_firmware_feedback(core.app)
 install_ui_backup_feedback(core.app)
 install_ui_firmware_upgrade_feedback(core.app)
 install_ui_device_crud_feedback(core.app)
-install_ui_customer_site_crud_feedback(core.app)
-install_ui_customer_device_bulk_feedback(core.app)
 # Machine-facing completion idempotency must be installed after every route
 # composer/promoter so no later compatibility or UI layer can shadow it.
 install_mikrotik_job_completion_guard(core.app)

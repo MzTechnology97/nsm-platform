@@ -4,6 +4,26 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.171 — 2026-10-15
+
+Classic interface removal, customers (phase 8, R1)
+- **Classic pages removed.** The customer pages now exist only in the new interface:
+  - the customer list and the new-customer form;
+  - customer overview, sites (with new/edit), devices, graphs, backups, security and history;
+  - the customer edit page, new device and the bulk-manage page.
+- **Old addresses keep working.** Each classic address redirects (302) to its place in the new interface, keeping the filters it understands:
+  - customer devices → `/app/devices?customer=…`;
+  - customer history → `/app/events?customer=…`;
+  - customer backups → `/app/backups?customer=…`;
+  - site forms → the Sites tab.
+- **Removed with the pages.** Their form handlers:
+  - customer create, edit and delete;
+  - site create, edit and delete;
+  - device create, bulk move and bulk delete.
+
+  Also removed: two feedback wrappers, the route-precedence module that only promoted these pages, and 15 templates.
+- **Device list.** The UISP signal and the LAN IP (when different from the management IP) are shown, as on the classic customer device list.
+- **Customer page.** "Import from UISP" opens the UISP onboarding with the customer already selected.
 ## 0.49.170 — 2026-10-15
 
 Classic interface removal, administration (phase 8, R1)

@@ -91,32 +91,25 @@ def main():
     client = TestClient(app)
     login(client)
 
-    overview = client.get(f"/customers/{customer_id}")
-    assert overview.status_code == 200
-    for suffix in ("devices", "sites", "backups", "security", "history"):
-        assert f"/customers/{customer_id}/{suffix}" in overview.text
-    assert "Ultime attività" in overview.text
-    assert "CI15_TEST_EVENT" in overview.text
+    overview = client.get(f"/api/ui/v1/customers/{customer_id}")
+    assert overview.status_code == 200 and "CI15 POP Centro" in overview.text
 
-    devices = client.get(f"/customers/{customer_id}/devices")
+    devices = client.get("/api/ui/v1/devices", params={"customer": str(customer_id)})
     assert devices.status_code == 200
     assert "CI15SERIAL98765" in devices.text
     assert "02:15:AA:BB:CC:DD" in devices.text
     assert "192.0.2.115" in devices.text
     assert "CCR2004-1G-12S+2XS" in devices.text
 
-    site = client.get(f"/customers/{customer_id}/sites")
-    assert site.status_code == 200
-    assert "CI15 POP Centro" in site.text
-    assert f"/customers/{customer_id}/devices?site={site_id}" in site.text
+    site_devices = client.get("/api/ui/v1/devices", params={"customer": str(customer_id), "site": str(site_id)})
+    assert site_devices.status_code == 200 and "CI15SERIAL98765" in site_devices.text
 
-    security = client.get(f"/customers/{customer_id}/security")
+    security = client.get(f"/api/ui/v1/customers/{customer_id}/security")
     assert security.status_code == 200
     assert "CVE-2099-1515" in security.text
     assert "7.21.1" in security.text
-    assert f"/security/vulnerabilities?customer={customer_id}" in security.text
 
-    history = client.get(f"/customers/{customer_id}/history")
+    history = client.get("/api/ui/v1/audit/events", params={"customer": str(customer_id)})
     assert history.status_code == 200
     assert "CI15_TEST_EVENT" in history.text
     assert "ci15admin" in history.text
@@ -134,11 +127,6 @@ def main():
     device = full_search.json()["devices"][0]
     assert device["serial_number"] == "CI15SERIAL98765" and device["primary_mac"] == "02:15:AA:BB:CC:DD" and device["management_ip"] == "192.0.2.115"
 
-    assert str(app.url_path_for("customer_workspace_detail", customer_id=customer_id)) == f"/customers/{customer_id}"
-    assert str(app.url_path_for("customer_devices", customer_id=customer_id)) == f"/customers/{customer_id}/devices"
-    assert str(app.url_path_for("customer_sites", customer_id=customer_id)) == f"/customers/{customer_id}/sites"
-    assert str(app.url_path_for("customer_security", customer_id=customer_id)) == f"/customers/{customer_id}/security"
-    assert str(app.url_path_for("customer_history", customer_id=customer_id)) == f"/customers/{customer_id}/history"
     assert str(app.url_path_for("search_suggest")) == "/api/v1/search/suggest"
 
     print("Core 0.15 customer tabs and enhanced search smoke test passed")

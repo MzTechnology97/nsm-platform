@@ -74,39 +74,6 @@ def _parse_device_ids(values):
     return list(dict.fromkeys(parsed))
 
 
-@router.get("/customers/{customer_id}/edit", response_class=HTMLResponse)
-def customer_edit_page(request: Request, customer_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "customers.write"):
-            raise HTTPException(403)
-        customer = _customer_with_inventory(db, customer_id)
-        if not customer:
-            raise HTTPException(404)
-        return core.render(request, db, user, "customer_edit.html", customer=customer)
-
-
-@router.post("/customers/{customer_id}/edit")
-def customer_edit(
-    request: Request,
-    customer_id: uuid.UUID,
-    name: str = Form(...),
-    code: str = Form(""),
-    notes: str = Form(""),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "customers.write")
-        customer = db.get(Customer, customer_id)
-        if not customer:
-            raise HTTPException(404)
-        update_customer_record(db, user, customer, name, code, notes)
-    return RedirectResponse(f"/customers/{customer_id}", status_code=303)
-
-
 def update_customer_record(db, user, customer: Customer, name: str, code: str, notes: str) -> None:
     """Rename / recode a customer (audited, before and after) and commit; HTTPException 400 without a name, 409 when the code is taken."""
     new_name = (name or "").strip()
@@ -162,66 +129,6 @@ def delete_customer_record(db, user, customer: Customer, confirm_name: str) -> N
     db.commit()
 
 
-@router.post("/customers/{customer_id}/delete")
-def customer_delete(
-    request: Request,
-    customer_id: uuid.UUID,
-    confirm_name: str = Form(...),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "customers.write")
-        customer = _customer_with_inventory(db, customer_id)
-        if not customer:
-            raise HTTPException(404)
-        try:
-            delete_customer_record(db, user, customer, confirm_name)
-        except ValueError:
-            return RedirectResponse(
-                f"/customers/{customer_id}/edit?error=confirm_name", status_code=303
-            )
-    return RedirectResponse("/customers", status_code=303)
-
-
-@router.get("/customers/{customer_id}/sites/{site_id}/edit", response_class=HTMLResponse)
-def site_edit_page(request: Request, customer_id: uuid.UUID, site_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "customers.write"):
-            raise HTTPException(403)
-        site = db.scalar(
-            select(Site)
-            .where(Site.id == site_id, Site.customer_id == customer_id)
-            .options(selectinload(Site.customer), selectinload(Site.devices))
-        )
-        if not site:
-            raise HTTPException(404)
-        return core.render(request, db, user, "site_edit.html", site=site)
-
-
-@router.post("/customers/{customer_id}/sites/{site_id}/edit")
-def site_edit(
-    request: Request,
-    customer_id: uuid.UUID,
-    site_id: uuid.UUID,
-    name: str = Form(...),
-    address: str = Form(""),
-    notes: str = Form(""),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "customers.write")
-        site = db.scalar(select(Site).where(Site.id == site_id, Site.customer_id == customer_id))
-        if not site:
-            raise HTTPException(404)
-        update_site_record(db, user, site, name, address, notes)
-    return RedirectResponse(f"/customers/{customer_id}#sites", status_code=303)
-
-
 def update_site_record(db, user, site: Site, name: str, address: str, notes: str) -> None:
     """Rename a site / change its address and notes (audited) and commit; HTTPException 400 without a name."""
     new_name = (name or "").strip()
@@ -271,27 +178,6 @@ def delete_site_record(db, user, site: Site) -> int:
     db.delete(site)
     db.commit()
     return len(affected)
-
-
-@router.post("/customers/{customer_id}/sites/{site_id}/delete")
-def site_delete(
-    request: Request,
-    customer_id: uuid.UUID,
-    site_id: uuid.UUID,
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "customers.write")
-        site = db.scalar(
-            select(Site)
-            .where(Site.id == site_id, Site.customer_id == customer_id)
-            .options(selectinload(Site.devices))
-        )
-        if not site:
-            raise HTTPException(404)
-        delete_site_record(db, user, site)
-    return RedirectResponse(f"/customers/{customer_id}#sites", status_code=303)
 
 
 @router.get("/devices/{device_id}/manage", response_class=HTMLResponse)
@@ -461,78 +347,6 @@ def device_delete(
             raise HTTPException(404)
         customer_id = delete_device_record(db, user, device)
     return RedirectResponse(f"/customers/{customer_id}#devices", status_code=303)
-
-
-@router.post("/customers/{customer_id}/devices/bulk-delete")
-async def bulk_delete_devices(request: Request, customer_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf", "")))
-    if str(form.get("confirm", "")) != "DELETE":
-        raise HTTPException(400, "Conferma eliminazione non valida.")
-    parsed = _parse_device_ids(form.getlist("device_ids"))
-    if not parsed:
-        return RedirectResponse(f"/customers/{customer_id}#devices", status_code=303)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        devices = list(db.scalars(select(Device).where(Device.customer_id == customer_id, Device.id.in_(parsed))))
-        removed_files = cleanup_device_backup_files(db, [d.id for d in devices])
-        for device in devices:
-            core.add_event(
-                db,
-                "DEVICE_DELETED",
-                actor=user,
-                customer_id=customer_id,
-                device_id=device.id,
-                details={**_device_snapshot(device), "bulk_operation": True},
-                severity="warning",
-            )
-            db.delete(device)
-        if devices:
-            core.add_event(
-                db,
-                "CUSTOMER_DEVICES_BULK_DELETED",
-                actor=user,
-                customer_id=customer_id,
-                details={"count": len(devices), "device_ids": [str(d.id) for d in devices], "backup_files_removed": removed_files},
-                severity="warning",
-            )
-        db.commit()
-    return RedirectResponse(f"/customers/{customer_id}#devices", status_code=303)
-
-
-@router.get("/customers/{customer_id}/devices/manage", response_class=HTMLResponse)
-def customer_devices_manage(request: Request, customer_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "devices.write"):
-            raise HTTPException(403)
-        customer = _customer_with_inventory(db, customer_id)
-        if not customer:
-            raise HTTPException(404)
-        customers = list(db.scalars(select(Customer).order_by(Customer.name)))
-        sites = list(db.scalars(select(Site).order_by(Site.name)))
-        return core.render(
-            request,
-            db,
-            user,
-            "customer_devices_manage.html",
-            customer=customer,
-            customers=customers,
-            sites=sites,
-        )
-
-
-@router.post("/customers/{customer_id}/devices/bulk")
-async def customer_devices_bulk(request: Request, customer_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf", "")))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        bulk_devices_record(db, user, customer_id, form.getlist("device_ids"), str(form.get("action", "")).strip(),
-                            str(form.get("target_customer_id", "")), str(form.get("target_site_id", "")))
-    return RedirectResponse(f"/customers/{customer_id}/devices/manage", status_code=303)
 
 
 def install_crud(app):

@@ -148,10 +148,9 @@ def main():
     cross_device = client.get(api, params={"against": str(other_id)})
     assert cross_device.status_code == 404, "an export of another device is not found on this one"
 
-    customer_backups = client.get(f"/customers/{customer_id}/backups")
-    assert customer_backups.status_code == 200, customer_backups.text
-    assert f"/operations/backups/artifacts/{new_id}/view" in customer_backups.text
-    assert "ci21-new.rsc" in customer_backups.text
+    device_backups = client.get(f"/api/ui/v1/devices/{device_id}/backups")
+    assert device_backups.status_code == 200, device_backups.text
+    assert "ci21-new.rsc" in device_backups.text and str(new_id) in device_backups.text
 
     with SessionLocal() as db:
         events = list(
