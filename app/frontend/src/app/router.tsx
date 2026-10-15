@@ -447,6 +447,11 @@ const firmwareRoute = createRoute({
   component: lazyRouteComponent(() => import("../pages/Firmware"), "Firmware"),
   validateSearch: parseFirmwareSearch,
 });
+const firmwareCatalogsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/firmware/catalogs",
+  component: lazyRouteComponent(() => import("../pages/FirmwareCatalogs"), "FirmwareCatalogs"),
+});
 const firmwareSuggestionsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/firmware/suggestions",
@@ -533,6 +538,7 @@ export const routeTree = rootRoute.addChildren([
   backupPolicyCloneRoute,
   firmwareRoute,
   firmwareSuggestionsRoute,
+  firmwareCatalogsRoute,
   vulnerabilitiesRoute,
   vulnerabilityRoute,
   vulnerabilityFindingRoute,

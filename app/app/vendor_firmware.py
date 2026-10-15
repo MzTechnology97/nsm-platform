@@ -32,6 +32,7 @@ from sqlalchemy import select
 from app import main as core
 from app import vendor_cpe
 from app.db import SessionLocal
+from app.input_errors import InputError
 from app.models import Device, utcnow
 from app.security import validate_csrf
 from app.ui_feedback import flash_redirect
@@ -258,6 +259,48 @@ def _context(db):
     return {"catalogs": catalogs, "source_labels": SOURCE_LABELS}
 
 
+def add_release_record(db, user, form: dict):
+    """Add an operator release (official download page) and re-evaluate the brand; commits. Returns ``(brand, version, stats)``."""
+    brand = str(form.get("brand") or "").strip().lower()
+    version = str(form.get("version") or "").strip().lstrip("vV")[:80]
+    pattern = str(form.get("model_pattern") or "").strip().lower()[:120]
+    url = str(form.get("notes_url") or "").strip()[:500]
+    released = str(form.get("released_at") or "").strip()
+    security = str(form.get("security") or "") in ("1", "true", "True", "on")
+    if brand not in brands_in_inventory(db):
+        raise InputError("brand", "Il catalogo esiste solo per i produttori presenti nell'inventario.")
+    if not version_key(brand, version):
+        raise InputError("version", "Versione non riconosciuta: usa il formato del produttore (es. 1.2.3 o V1.0.0 Build 20240101).")
+    if url and not url.startswith(("https://", "http://")):
+        raise InputError("url", "Il link alle note deve essere un indirizzo http(s) della pagina ufficiale.")
+    try:
+        released_at = date.fromisoformat(released) if released else None
+    except ValueError:
+        raise InputError("date", "Data di rilascio non valida.") from None
+    if not _upsert(db, brand=brand, version=version, source="operator", model_pattern=pattern, released_at=released_at, notes_url=url or None,
+                   notes=str(form.get("notes") or "").strip()[:2000] or None, security=security):
+        raise InputError("exists", "Questa release è già nel catalogo.", 409)
+    db.flush()
+    db.scalar(select(VendorFirmwareRelease).where(VendorFirmwareRelease.brand == brand, VendorFirmwareRelease.version == version,
+                                                  VendorFirmwareRelease.model_pattern == pattern, VendorFirmwareRelease.source == "operator")).created_by_user_id = user.id
+    core.add_event(db, "VENDOR_FIRMWARE_RELEASE_ADDED", actor=user, details={"brand": brand, "version": version, "models": pattern or "tutti",
+                                                                           "security": security}, source="portal")
+    stats = evaluate(db)
+    db.commit()
+    return brand, version, stats
+
+
+def delete_release_record(db, user, release_id) -> None:
+    row = db.get(VendorFirmwareRelease, release_id)
+    if row is None or row.source != "operator":
+        raise InputError("not_operator", "Si possono eliminare solo le release inserite dagli operatori.")
+    core.add_event(db, "VENDOR_FIRMWARE_RELEASE_DELETED", actor=user, details={"brand": row.brand, "version": row.version}, source="portal")
+    db.delete(row)
+    db.flush()
+    evaluate(db)
+    db.commit()
+
+
 @router.get(PAGE, response_class=HTMLResponse, name="vendor_firmware_catalogs")
 def catalogs_page(request: Request):
     with SessionLocal() as db:
@@ -275,31 +318,10 @@ async def add_release(request: Request):
     validate_csrf(request, str(form.get("csrf") or ""))
     with SessionLocal() as db:
         user = core.require_permission(request, db, "firmware.execute")
-        brand = str(form.get("brand") or "").strip().lower()
-        version = str(form.get("version") or "").strip().lstrip("vV")[:80]
-        pattern = str(form.get("model_pattern") or "").strip().lower()[:120]
-        url = str(form.get("notes_url") or "").strip()[:500]
-        released = str(form.get("released_at") or "").strip()
-        if brand not in brands_in_inventory(db):
-            return flash_redirect(request, PAGE, "danger", "Il catalogo esiste solo per i produttori presenti nell'inventario.", title="Release non aggiunta")
-        if not version_key(brand, version):
-            return flash_redirect(request, PAGE, "danger", "Versione non riconosciuta: usa il formato del produttore (es. 1.2.3 o V1.0.0 Build 20240101).", title="Release non aggiunta")
-        if url and not url.startswith(("https://", "http://")):
-            return flash_redirect(request, PAGE, "danger", "Il link alle note deve essere un indirizzo http(s) della pagina ufficiale.", title="Release non aggiunta")
         try:
-            released_at = date.fromisoformat(released) if released else None
-        except ValueError:
-            return flash_redirect(request, PAGE, "danger", "Data di rilascio non valida.", title="Release non aggiunta")
-        if not _upsert(db, brand=brand, version=version, source="operator", model_pattern=pattern, released_at=released_at, notes_url=url or None,
-                       notes=str(form.get("notes") or "").strip()[:2000] or None, security=str(form.get("security") or "") == "1"):
-            return flash_redirect(request, PAGE, "warning", "Questa release è già nel catalogo.", title="Release non aggiunta")
-        db.flush()
-        db.scalar(select(VendorFirmwareRelease).where(VendorFirmwareRelease.brand == brand, VendorFirmwareRelease.version == version,
-                                                      VendorFirmwareRelease.model_pattern == pattern, VendorFirmwareRelease.source == "operator")).created_by_user_id = user.id
-        core.add_event(db, "VENDOR_FIRMWARE_RELEASE_ADDED", actor=user, details={"brand": brand, "version": version, "models": pattern or "tutti",
-                                                                               "security": str(form.get("security") or "") == "1"}, source="portal")
-        stats = evaluate(db)
-        db.commit()
+            brand, version, stats = add_release_record(db, user, dict(form))
+        except InputError as exc:
+            return flash_redirect(request, PAGE, "warning" if exc.code == "exists" else "danger", str(exc), title="Release non aggiunta")
     return flash_redirect(request, PAGE, "success", f"Release {version} aggiunta al catalogo {vendor_cpe.label(brand)}: {stats['outdated'] + stats['security']} apparati da aggiornare.",
                           title="Catalogo aggiornato")
 
@@ -310,14 +332,10 @@ async def delete_release(request: Request, release_id: uuid.UUID):
     validate_csrf(request, str(form.get("csrf") or ""))
     with SessionLocal() as db:
         user = core.require_permission(request, db, "firmware.execute")
-        row = db.get(VendorFirmwareRelease, release_id)
-        if row is None or row.source != "operator":
-            return flash_redirect(request, PAGE, "warning", "Si possono eliminare solo le release inserite dagli operatori.", title="Release non eliminata")
-        core.add_event(db, "VENDOR_FIRMWARE_RELEASE_DELETED", actor=user, details={"brand": row.brand, "version": row.version}, source="portal")
-        db.delete(row)
-        db.flush()
-        evaluate(db)
-        db.commit()
+        try:
+            delete_release_record(db, user, release_id)
+        except InputError as exc:
+            return flash_redirect(request, PAGE, "warning", str(exc), title="Release non eliminata")
     return flash_redirect(request, PAGE, "success", "Release eliminata dal catalogo.", title="Catalogo aggiornato")
 
 

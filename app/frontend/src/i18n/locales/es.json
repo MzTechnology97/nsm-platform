@@ -4446,5 +4446,60 @@
       "empty": "Selecciona al menos un equipo.",
       "too_many": "Demasiados equipos seleccionados."
     }
+  },
+  "firmwareCatalogs": {
+    "title": "Catálogos de firmware",
+    "subtitle": "Un catálogo por cada fabricante del inventario. Ubiquiti: versiones de UISP y del servicio de actualización oficial; otros fabricantes: versiones introducidas por los operadores desde la página de descarga oficial. NSM nunca estima versiones. MikroTik tiene su propio",
+    "routeros": "catálogo RouterOS",
+    "refresh": "Actualizar fuentes y recalcular",
+    "refreshed": "UISP: {{uisp}} versiones nuevas; API de Ubiquiti: {{vendor_api}} nuevas en {{platforms}} plataformas; {{evaluated}} equipos evaluados.",
+    "unreachable": "No disponible: {{list}}.",
+    "none": "No hay equipos de fabricantes distintos de MikroTik en el inventario: los catálogos aparecen al añadir equipos de ese fabricante.",
+    "summary": "{{devices}} equipos · {{outdated}} por actualizar",
+    "securitySummary": "({{count}} con correcciones de seguridad)",
+    "unknownVersion": "{{count}} sin versión de firmware conocida",
+    "officialPage": "página de descarga oficial ↗",
+    "devices": "Equipos ›",
+    "columns": {
+      "version": "Versión",
+      "models": "Modelos",
+      "released": "Publicación",
+      "source": "Fuente",
+      "security": "Seguridad",
+      "notes": "Notas",
+      "actions": ""
+    },
+    "allModels": "todos",
+    "platform": "plataforma {{platform}}",
+    "sources": {
+      "uisp": "UISP",
+      "vendor_api": "API oficial",
+      "operator": "operador"
+    },
+    "securityTag": "seguridad",
+    "releaseNotes": "notas ↗",
+    "delete": "Eliminar",
+    "deleteConfirm": "¿Eliminar la versión {{version}} del catálogo?",
+    "empty": "No hay versiones en el catálogo {{label}}: añade la última desde la página de descarga oficial.",
+    "emptyUbiquiti": "No hay versiones en el catálogo {{label}}: vincula los equipos a UISP o actualiza las fuentes.",
+    "add": "Añadir una versión de {{label}}",
+    "version": "Versión",
+    "models": "Modelos",
+    "modelsPlaceholder": "vacío = todos; p. ej. archer c6* o eap225",
+    "released": "Fecha de publicación",
+    "notesUrl": "Notas de la versión (enlace oficial)",
+    "notes": "Notas",
+    "fixesSecurity": "Corrige vulnerabilidades de seguridad",
+    "addSubmit": "Añadir al catálogo",
+    "added_one": "Versión {{version}} añadida: {{count}} equipo por actualizar.",
+    "added_other": "Versión {{version}} añadida: {{count}} equipos por actualizar.",
+    "errors": {
+      "brand": "Los catálogos solo existen para fabricantes del inventario.",
+      "version": "Versión no reconocida: usa el formato del fabricante (p. ej. 1.2.3).",
+      "url": "El enlace de las notas debe ser una dirección http(s).",
+      "date": "Fecha de publicación no válida.",
+      "exists": "Esta versión ya está en el catálogo.",
+      "not_operator": "Solo se pueden eliminar las versiones introducidas por operadores."
+    }
   }
 }
