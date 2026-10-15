@@ -85,11 +85,7 @@ def workspace_overview(request: Request, device_id: uuid.UUID):
             return core.device_detail(request, device_id)
         ctx = _workspace_context(db, device)
         raw_token = request.session.pop(f"enrollment_token:{device.id}", None)
-        enrollment_command = None
-        if raw_token:
-            base_url = str(request.base_url).rstrip("/")
-            enrollment_command = f'/tool fetch url="{base_url}/api/v1/enrollment/mikrotik/bootstrap?token={raw_token}" dst-path="nsm-bootstrap.rsc"; /import file-name="nsm-bootstrap.rsc"'
-        ctx["enrollment_command"] = enrollment_command
+        ctx["enrollment_command"] = core.enrollment_command(str(request.base_url), raw_token) if raw_token else None
         ctx["backup_policy"] = core.effective_backup_policy(db, device)
         return core.render(request, db, user, "mikrotik_workspace.html", device=device, active_tab="overview", **ctx)
 

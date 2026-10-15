@@ -85,3 +85,22 @@ export const useCustomerSecurity = (id: string) =>
     queryFn: () => api<CustomerSecurity>(`/api/ui/v1/customers/${encodeURIComponent(id)}/security`),
     staleTime: 30_000,
   });
+
+export interface NewDeviceForm {
+  customer: { id: string; name: string };
+  sites: { id: string; name: string }[];
+  vendors: string[];
+  device_types: string[];
+  manual_brands: { key: string; label: string }[];
+  connectors: { uisp: boolean; cnmaestro: boolean };
+}
+
+export const useNewDeviceForm = (id: string) =>
+  useQuery({ queryKey: ["customer", id, "new-device"], queryFn: () => api<NewDeviceForm>(`/api/ui/v1/customers/${encodeURIComponent(id)}/devices/new`) });
+
+export interface CreatedDevice {
+  id: string;
+  vendor: string;
+  status: string;
+  enrollment_command: string | null;
+}

@@ -739,108 +739,136 @@ def _add_device_impl(
     serial_number = vendor_fields[1].strip() or serial_number
     with SessionLocal() as db:
         user = require_permission(request, db, "devices.write")
-        customer = db.get(Customer, customer_id)
-        if not customer:
-            raise HTTPException(404)
-
-        vendor_key = vendor.strip().lower()
-        if vendor_key not in {"mikrotik", "ubiquiti", "tp-link", "generic", "cambium"}:
-            raise HTTPException(400, "Vendor non valido.")
-
-        sid = None
-        if site_id.strip():
-            try:
-                sid = uuid.UUID(site_id)
-            except ValueError:
-                raise HTTPException(400, "Sede non valida.")
-            site = db.get(Site, sid)
-            if not site or site.customer_id != customer_id:
-                raise HTTPException(400, "Sede non valida.")
-
-        try:
-            mac = norm_mac(primary_mac)
-        except ValueError as exc:
-            raise HTTPException(400, str(exc))
-
-        serial = opt(serial_number)
-        from app import connector_onboarding
-
-        console_record = connector_onboarding.precheck(db, vendor_key, mac, serial)
-        if vendor_key == "tp-link" and not (mac or serial):
-            raise HTTPException(
-                400, "Per un CPE TR-069 inserisci almeno MAC oppure seriale."
-            )
-
-        source_map = {
-            "mikrotik": "mikrotik_agent",
-            "ubiquiti": "uisp",
-            "tp-link": "tr069",
-            "generic": "manual",
-            "cambium": "cnmaestro",
-        }
-        status_map = {
-            "mikrotik": "pending_enrollment",
-            "ubiquiti": "pending_link",
-            "tp-link": "pending_link",
-            "generic": "unknown",
-            "cambium": "pending_link",
-        }
-        alias = opt(display_name)
-        compatibility_name = alias or f"Nuovo dispositivo {vendor_key}"
-
-        device = Device(
-            customer_id=customer_id,
-            site_id=sid,
-            vendor=vendor_key,
-            device_type=device_type.strip().lower(),
-            name=compatibility_name,
-            display_name=alias,
-            device_identity=None,
-            model=opt(model) if vendor_key == "generic" else None,
-            serial_number=serial
-            if vendor_key in {"ubiquiti", "tp-link", "generic", "cambium"}
-            else None,
-            primary_mac=mac
-            if vendor_key in {"ubiquiti", "tp-link", "generic", "cambium"}
-            else None,
-            management_ip=opt(management_ip) if vendor_key == "generic" else None,
-            firmware_version=opt(firmware_version) if vendor_key == "generic" else None,
-            management_source=source_map[vendor_key],
-            inventory_source="manual" if vendor_key == "generic" else None,
-            status=status_map[vendor_key],
-            inventory_data=_manufacturer_data(vendor_key, manufacturer),
+        device, raw_token = create_device_record(
+            db, user, customer_id, vendor=vendor, device_type=device_type, display_name=display_name, site_id=site_id,
+            mac=primary_mac, serial=serial_number, model=model, management_ip=management_ip, firmware_version=firmware_version,
+            manufacturer=manufacturer,
         )
-        db.add(device)
-        try:
-            db.flush()
-            raw_token = None
-            if vendor_key == "mikrotik":
-                raw_token, _ = create_enrollment(db, device, user)
-            if console_record is not None:
-                connector_onboarding.link(db, device, vendor_key, console_record, user)
-            add_event(
-                db,
-                "DEVICE_ADDED",
-                actor=user,
-                customer_id=customer_id,
-                device_id=device.id,
-                details={
-                    "display_name": alias,
-                    "vendor": vendor_key,
-                    "management_source": source_map[vendor_key],
-                    "status": status_map[vendor_key],
-                },
-            )
-            db.commit()
-        except IntegrityError:
-            db.rollback()
-            raise HTTPException(
-                409, "Esiste già un apparato dello stesso vendor con questo MAC."
-            )
-
         if raw_token:
             request.session[f"enrollment_token:{device.id}"] = raw_token
         return RedirectResponse(f"/devices/{device.id}", status_code=303)
+
+
+DEVICE_VENDORS = ("mikrotik", "ubiquiti", "cambium", "tp-link", "generic")
+DEVICE_TYPES = ("router", "switch", "wireless_cpe", "wireless_ap", "olt", "ont", "other")
+
+
+def create_device_record(db, user: User, customer_id: uuid.UUID, *, vendor: str, device_type: str = "other", display_name: str = "",
+                         site_id: str = "", mac: str = "", serial: str = "", model: str = "", management_ip: str = "",
+                         firmware_version: str = "", manufacturer: str = ""):
+    """Create a device of a customer as the classic form does and commit; returns ``(device, raw enrollment token or None)``.
+
+    MikroTik gets a one-shot enrollment token; Ubiquiti and Cambium must already be in UISP / cnMaestro and are linked
+    at once (``connector_onboarding``). Raises 404 for an unknown customer, ``InputError`` with a code otherwise
+    (``vendor_invalid``, ``site_invalid``, ``mac_invalid``, ``mac_or_serial``, connector codes, ``duplicate`` 409).
+    """
+    from app.input_errors import InputError
+
+    customer = db.get(Customer, customer_id)
+    if not customer:
+        raise HTTPException(404)
+
+    vendor_key = (vendor or "").strip().lower()
+    if vendor_key not in {"mikrotik", "ubiquiti", "tp-link", "generic", "cambium"}:
+        raise InputError("vendor_invalid", "Vendor non valido.")
+
+    sid = None
+    if (site_id or "").strip():
+        try:
+            sid = uuid.UUID(site_id)
+        except ValueError:
+            raise InputError("site_invalid", "Sede non valida.")
+        site = db.get(Site, sid)
+        if not site or site.customer_id != customer_id:
+            raise InputError("site_invalid", "Sede non valida.")
+
+    try:
+        mac = norm_mac(mac)
+    except ValueError as exc:
+        raise InputError("mac_invalid", str(exc))
+
+    serial = opt(serial)
+    from app import connector_onboarding
+
+    console_record = connector_onboarding.precheck(db, vendor_key, mac, serial)
+    if vendor_key == "tp-link" and not (mac or serial):
+        raise InputError("mac_or_serial", "Per un CPE TR-069 inserisci almeno MAC oppure seriale.")
+
+    source_map = {
+        "mikrotik": "mikrotik_agent",
+        "ubiquiti": "uisp",
+        "tp-link": "tr069",
+        "generic": "manual",
+        "cambium": "cnmaestro",
+    }
+    status_map = {
+        "mikrotik": "pending_enrollment",
+        "ubiquiti": "pending_link",
+        "tp-link": "pending_link",
+        "generic": "unknown",
+        "cambium": "pending_link",
+    }
+    alias = opt(display_name)
+    compatibility_name = alias or f"Nuovo dispositivo {vendor_key}"
+
+    device = Device(
+        customer_id=customer_id,
+        site_id=sid,
+        vendor=vendor_key,
+        device_type=(device_type or "other").strip().lower(),
+        name=compatibility_name,
+        display_name=alias,
+        device_identity=None,
+        model=opt(model) if vendor_key == "generic" else None,
+        serial_number=serial
+        if vendor_key in {"ubiquiti", "tp-link", "generic", "cambium"}
+        else None,
+        primary_mac=mac
+        if vendor_key in {"ubiquiti", "tp-link", "generic", "cambium"}
+        else None,
+        management_ip=opt(management_ip) if vendor_key == "generic" else None,
+        firmware_version=opt(firmware_version) if vendor_key == "generic" else None,
+        management_source=source_map[vendor_key],
+        inventory_source="manual" if vendor_key == "generic" else None,
+        status=status_map[vendor_key],
+        inventory_data=_manufacturer_data(vendor_key, manufacturer),
+    )
+    db.add(device)
+    try:
+        db.flush()
+        raw_token = None
+        if vendor_key == "mikrotik":
+            raw_token, _ = create_enrollment(db, device, user)
+        if console_record is not None:
+            connector_onboarding.link(db, device, vendor_key, console_record, user)
+        add_event(
+            db,
+            "DEVICE_ADDED",
+            actor=user,
+            customer_id=customer_id,
+            device_id=device.id,
+            details={
+                "display_name": alias,
+                "vendor": vendor_key,
+                "management_source": source_map[vendor_key],
+                "status": status_map[vendor_key],
+            },
+        )
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise InputError("duplicate", "Esiste già un apparato dello stesso vendor con questo MAC.", 409)
+    return device, raw_token
+
+
+def enrollment_command(base_url: str, raw_token: str) -> str:
+    """The one-shot RouterOS command that installs the NSM agent with an enrollment token."""
+    base = base_url.rstrip("/")
+    return (
+        f'/tool fetch url="{base}/api/v1/enrollment/mikrotik/bootstrap'
+        f'?token={raw_token}" dst-path="nsm-bootstrap.rsc"; '
+        f'/import file-name="nsm-bootstrap.rsc"'
+    )
 
 
 
@@ -1019,14 +1047,7 @@ def device_detail(request: Request, device_id: uuid.UUID):
             raise HTTPException(404)
 
         raw_token = request.session.pop(f"enrollment_token:{device.id}", None)
-        enrollment_command = None
-        if raw_token:
-            base_url = str(request.base_url).rstrip("/")
-            enrollment_command = (
-                f'/tool fetch url="{base_url}/api/v1/enrollment/mikrotik/bootstrap'
-                f'?token={raw_token}" dst-path="nsm-bootstrap.rsc"; '
-                f'/import file-name="nsm-bootstrap.rsc"'
-            )
+        command = enrollment_command(str(request.base_url), raw_token) if raw_token else None
 
         events = list(
             db.scalars(
@@ -1076,7 +1097,7 @@ def device_detail(request: Request, device_id: uuid.UUID):
             vulnerabilities=vulnerability_rows,
             backup_runs=backup_runs,
             backup_policy=policy,
-            enrollment_command=enrollment_command,
+            enrollment_command=command,
         )
 
 

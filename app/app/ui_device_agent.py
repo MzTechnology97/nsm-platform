@@ -7,17 +7,19 @@
 - ``POST /api/ui/v1/devices/{id}/agent/update``: queues the self-update job
   (``devices.enroll``), same rules as the classic button.
 
-Reinstalling issues a one-shot token shown only on the classic onboarding
-page: the interface posts the classic form for it.
+- ``POST /api/ui/v1/devices/{id}/agent/reinstall``: new one-shot enrollment
+  (``devices.enroll``, ``agent_ui.reinstall_record``); the answer carries the
+  RouterOS command, shown once (``no-store``).
 """
 from __future__ import annotations
 
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import select
 
+from app import agent_ui
 from app import main as core
 from app import mikrotik_agent_status as agent_status
 from app import mikrotik_agent_update as updater
@@ -111,3 +113,14 @@ def device_agent_update(request: Request, device_id: uuid.UUID):
 
 def install_ui_device_agent(app) -> None:
     app.include_router(router)
+
+
+@router.post("/devices/{device_id}/agent/reinstall", dependencies=[Depends(require_csrf)])
+def reinstall(request: Request, response: Response, device_id: uuid.UUID):
+    response.headers["Cache-Control"] = "no-store"
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.enroll")
+        device = _mikrotik(db, device_id)
+        raw_token = agent_ui.reinstall_record(db, user, device)
+        db.commit()
+        return {"enrollment_command": core.enrollment_command(str(request.base_url), raw_token)}

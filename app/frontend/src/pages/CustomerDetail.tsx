@@ -55,7 +55,9 @@ function CustomerShell({ detail }: { detail: Detail }) {
           {detail.actions.edit && (
             <Link className="ui-button ui-button-ghost" to="/customers/$customerId/edit" params={{ customerId: customer.id }}>{t("customer.actions.edit")}</Link>
           )}
-          {detail.actions.add_device && <a className="ui-button ui-button-primary" href={detail.links.add_device}>{t("customer.actions.addDevice")}</a>}
+          {detail.actions.add_device && (
+            <Link className="ui-button ui-button-primary" to="/customers/$customerId/devices/new" params={{ customerId: customer.id }}>{t("customer.actions.addDevice")}</Link>
+          )}
         </div>
       </header>
       <nav className="ui-tabs" aria-label={t("customer.tabs.label")}>

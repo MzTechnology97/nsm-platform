@@ -59,3 +59,12 @@ export function useAgentUpdate(id: string) {
     onSuccess: () => client.invalidateQueries({ queryKey: ["agent", id] }),
   });
 }
+
+/** New one-shot enrollment to reinstall the agent; the answer carries the RouterOS command, shown once. */
+export function useAgentReinstall(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<{ enrollment_command: string }>(`${base(id)}/reinstall`, { method: "POST" }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["agent", id] }),
+  });
+}
