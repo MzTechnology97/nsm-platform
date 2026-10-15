@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.154 — 2026-10-15
+
+New interface (React) — backup restore tests, phase 7r
+- **Restore test of a file** (`/app/devices/{id}/backups/artifacts/{artifact_id}/restore-test`), opened from "Restore test" in the Backup tab and in the export viewer:
+  - integrity re-checked now on the archived file (present, size, SHA-256) and the source RouterOS version;
+  - outcome form (`backup.execute`): method, target, target RouterOS version, result, date and notes, with the classic checks. "Passed" cannot be chosen for a file that is not intact;
+  - history of the file.
+- **Restore test history** (`/app/devices/{id}/backups/restore-tests`): every test of the device, with who performed it. The file identity is kept after retention removes the file.
+- **Shared code.** `backup_restore_tests.record_restore_test` validates, stores, syncs the Action Center issue and audits; the classic form uses it and keeps its messages. Validation errors now carry codes (`method`, `result`, `target`, `performed_at`, `performed_future`, `integrity`).
+- **API.**
+  - `GET /api/ui/v1/devices/{id}/backups/restore-tests` (`backup.read`);
+  - `GET/POST /api/ui/v1/devices/{id}/backups/artifacts/{artifact_id}/restore-test` (`backup.read` / `backup.execute` + CSRF);
+  - the device backup list no longer returns the classic `restore_url` / `restore_tests` links.
+
 ## 0.49.153 — 2026-10-15
 
 New interface (React) — backup text exports, phase 7q

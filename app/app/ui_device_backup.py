@@ -9,26 +9,33 @@
   one file from the archive (``backup.configure``), audited like the classic page;
 - ``GET    /api/ui/v1/devices/{id}/backups/artifacts/{artifact_id}``: a text export
   with its line count, optionally diffed with ``against`` (an older export of the
-  same device), audited like the classic viewer (``backup.read``).
+  same device), audited like the classic viewer (``backup.read``);
+- ``GET    /api/ui/v1/devices/{id}/backups/restore-tests``: restore-test evidence of
+  the device (``backup.read``);
+- ``GET/POST /api/ui/v1/devices/{id}/backups/artifacts/{artifact_id}/restore-test``:
+  integrity re-check and history of one file, and recording a new outcome
+  (``backup.execute``, same checks as the classic form).
 
-Downloads and restore tests keep their classic URLs.
+Downloads keep their classic URL.
 """
 from __future__ import annotations
 
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
 from sqlalchemy import select
 
 from app import main as core
 from app import mikrotik_backup
 from app.backup_capabilities import capability_for_device
+from app import backup_restore_tests as restore_tests
 from app.backup_models import BackupArtifact
 from app.backup_storage import remove_artifact_file
 from app.db import SessionLocal
 from app.device_backup_explorer import _artifact_for_device, _artifact_kind, _device, _manual_backup_context, artifact_text_record
 from app.input_errors import InputError
-from app.models import BackupRun, utcnow
+from app.models import BackupRun, User, utcnow
 from app.restore_test_models import BackupRestoreTest
 from app.ui_api import require_csrf, ui_user
 
@@ -95,7 +102,6 @@ def device_backups(request: Request, device_id: uuid.UUID, kind: str = "all", st
                     "restore": {"result": restores[a.id].result, "performed_at": _iso(restores[a.id].performed_at)} if a.id in restores else None,
                     "viewable": _artifact_kind(a) == "export",
                     "download_url": f"{base}/artifacts/{a.id}/download",
-                    "restore_url": f"{base}/artifacts/{a.id}/restore-test",
                 } for a in files],
             })
 
@@ -118,7 +124,7 @@ def device_backups(request: Request, device_id: uuid.UUID, kind: str = "all", st
             "run": {"pending": pending, "blocker": code, "can_execute": can_execute, "can_run": bool(can_execute and code is None)},
             "can_delete": core.has_permission(user, "backup.configure"),
             "runs": rows,
-            "links": {"classic": base, "restore_tests": f"{base}/restore-tests", "policies": "/backups"},
+            "links": {"classic": base, "policies": "/backups"},
         }
 
 
@@ -197,5 +203,80 @@ def device_backup_artifact(request: Request, device_id: uuid.UUID, artifact_id: 
             "candidates": [_file(a, r) for a, r in view["candidates"]],
             "against": _file(view["against_artifact"], view["against_run"]) if view["against_artifact"] is not None else None,
             "diff": diff,
-            "links": {"download": f"{base}/{artifact.id}/download", "restore": f"{base}/{artifact.id}/restore-test"},
+            "links": {"download": f"{base}/{artifact.id}/download"},
         }
+
+
+def _restore_test(test: BackupRestoreTest, users: dict, live: set) -> dict:
+    return {
+        "id": str(test.id), "result": test.result, "method": test.method, "target": test.target_label,
+        "target_version": test.target_routeros_version, "source_version": test.source_routeros_version, "notes": test.notes,
+        "performed_at": _iso(test.performed_at), "recorded_at": _iso(test.recorded_at),
+        "performed_by": users.get(test.performed_by_user_id),
+        "integrity_ok": bool((test.integrity or {}).get("ok")),
+        "artifact": {"id": str(test.artifact_id) if test.artifact_id else None, "filename": test.artifact_filename, "type": test.artifact_type,
+                     "sha256": test.artifact_sha256, "size": test.artifact_size_bytes, "live": test.artifact_id in live},
+    }
+
+
+def _restore_rows(db, tests: list[BackupRestoreTest], live: set) -> list[dict]:
+    user_ids = {t.performed_by_user_id for t in tests if t.performed_by_user_id}
+    users = {u.id: u.username for u in db.scalars(select(User).where(User.id.in_(user_ids)))} if user_ids else {}
+    return [_restore_test(t, users, live) for t in tests]
+
+
+def _live_artifacts(db, device_id) -> set:
+    return set(db.scalars(select(BackupArtifact.id).join(BackupRun, BackupRun.id == BackupArtifact.run_id)
+                          .where(BackupRun.device_id == device_id, BackupArtifact.deleted_at.is_(None))))
+
+
+@router.get("/devices/{device_id}/backups/restore-tests")
+def device_restore_tests(request: Request, device_id: uuid.UUID):
+    with SessionLocal() as db:
+        ui_user(request, db, "backup.read")
+        device = _device(db, device_id)
+        tests = list(db.scalars(select(BackupRestoreTest).where(BackupRestoreTest.device_id == device.id)
+                                .order_by(BackupRestoreTest.performed_at.desc()).limit(200)))
+        return {"tests": _restore_rows(db, tests, _live_artifacts(db, device.id))}
+
+
+@router.get("/devices/{device_id}/backups/artifacts/{artifact_id}/restore-test")
+def device_restore_test_form(request: Request, device_id: uuid.UUID, artifact_id: uuid.UUID):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "backup.read")
+        device = _device(db, device_id)
+        artifact, run = _artifact_for_device(db, device.id, artifact_id)
+        history = list(db.scalars(select(BackupRestoreTest).where(BackupRestoreTest.artifact_id == artifact.id)
+                                  .order_by(BackupRestoreTest.performed_at.desc())))
+        integrity = restore_tests.evaluate_artifact_integrity(artifact)
+        return {
+            "artifact": {**_file(artifact, run), "type": artifact.artifact_type, "kind": _artifact_kind(artifact), "run_status": run.status},
+            "integrity": {key: integrity.get(key) for key in ("ok", "file_present", "size_matches", "sha256_matches", "checked_at")},
+            "source_version": restore_tests.source_routeros_version(artifact),
+            "methods": list(restore_tests.METHODS),
+            "results": list(restore_tests.RESULTS),
+            "history": _restore_rows(db, history, {artifact.id}),
+            "can_record": core.has_permission(user, "backup.execute"),
+            "links": {"download": f"/devices/{device.id}/backups/artifacts/{artifact.id}/download"},
+        }
+
+
+class RestoreTestBody(BaseModel):
+    method: str = ""
+    target_label: str = ""
+    target_routeros_version: str = ""
+    result: str = ""
+    performed_at: str = ""
+    notes: str = ""
+
+
+@router.post("/devices/{device_id}/backups/artifacts/{artifact_id}/restore-test", dependencies=[Depends(require_csrf)])
+def device_restore_test_record(request: Request, device_id: uuid.UUID, artifact_id: uuid.UUID, body: RestoreTestBody):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "backup.execute")
+        device = _device(db, device_id)
+        try:
+            test = restore_tests.record_restore_test(db, user, device, artifact_id, **body.model_dump())
+        except InputError as exc:
+            raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
+        return {"id": str(test.id), "result": test.result}

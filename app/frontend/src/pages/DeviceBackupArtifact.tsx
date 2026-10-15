@@ -72,7 +72,9 @@ export function DeviceBackupArtifact() {
           <div className="ui-actions">
             {back}
             <a className="ui-button ui-button-ghost" href={data.links.download}>{t("backups.actions.download")}</a>
-            <a className="ui-button ui-button-ghost" href={data.links.restore}>{t("backups.actions.restore")}</a>
+            <Link to="/devices/$deviceId/backups/artifacts/$artifactId/restore-test" params={{ deviceId, artifactId }} className="ui-button ui-button-ghost">
+              {t("backups.actions.restore")}
+            </Link>
           </div>
         </div>
         <div className="ui-filter-bar">

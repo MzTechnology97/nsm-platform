@@ -3921,5 +3921,68 @@
       "compare_id": "La comparaison demandée n'est pas valide.",
       "compare_binary": "Une comparaison nécessite deux exports texte du même équipement."
     }
+  },
+  "restoreTests": {
+    "title": "Historique des tests de restauration",
+    "history": "Historique des tests de restauration",
+    "help": "Preuves de restauration enregistrées par les opérateurs. Le nom, le SHA-256 et la taille du fichier restent enregistrés après la rétention.",
+    "columns": {
+      "performed": "Effectué",
+      "result": "Résultat",
+      "artifact": "Fichier",
+      "target": "Méthode / cible",
+      "integrity": "Intégrité",
+      "notes": "Notes"
+    },
+    "gone": "(plus archivé)",
+    "integrityOk": "Vérifiée",
+    "integrityKo": "Non vérifiée",
+    "targetWithVersion": "{{target}} · RouterOS {{version}}",
+    "empty": "Aucun test de restauration enregistré. Ouvrez l'archive des sauvegardes et utilisez « Test de restauration » sur un fichier.",
+    "methods": {
+      "isolated_lab": "Laboratoire isolé (CHR / équipement de test)",
+      "spare_device": "Équipement de secours hors production",
+      "config_review": "Revue de la configuration importée"
+    },
+    "formTitle": "Test de restauration · {{name}}",
+    "formHelp": "Enregistrez le résultat d'une restauration effectuée dans un environnement contrôlé. NSM ne restaure jamais automatiquement un équipement en production.",
+    "integrity": "Intégrité",
+    "intact": "Intact",
+    "notVerified": "Non vérifié",
+    "checkedNow": "vérifiée maintenant sur le fichier archivé",
+    "run": "Exécution de sauvegarde",
+    "file": "Fichier",
+    "present": "Présent",
+    "missing": "Manquant",
+    "sizeOk": "taille cohérente",
+    "sizeKo": "taille incohérente",
+    "shaOk": "Vérifié",
+    "shaKo": "Ne correspond pas",
+    "sourceVersion": "RouterOS d'origine",
+    "notDeclared": "non déclaré",
+    "notIntact": "Le fichier n'est pas intact : seul un résultat partiel ou en échec peut être enregistré.",
+    "recordTitle": "Enregistrer le résultat",
+    "recordHelp": "Utilisez une cible isolée : CHR de laboratoire, équipement de secours ou revue de l'export importé.",
+    "method": "Méthode",
+    "result": "Résultat",
+    "choose": "Choisir…",
+    "target": "Cible de la restauration",
+    "targetVersion": "Version RouterOS de la cible",
+    "performedAt": "Effectué le",
+    "performedHelp": "Laissez vide pour utiliser l'heure actuelle.",
+    "notes": "Notes et preuves",
+    "notesPlaceholder": "Ce qui a été vérifié (interfaces, routage, pare-feu, services) et ce qui n'a pas fonctionné.",
+    "submit": "Enregistrer le test",
+    "recorded": "Test de restauration enregistré avec le résultat : {{result}}.",
+    "fileHistory": "Historique de ce fichier",
+    "noFileHistory": "Aucun test de restauration enregistré pour ce fichier.",
+    "errors": {
+      "method": "Choisissez la méthode utilisée pour le test de restauration.",
+      "result": "Choisissez le résultat du test de restauration.",
+      "target": "Indiquez la cible de la restauration (ex. CHR de laboratoire).",
+      "performed_at": "La date et l'heure du test ne sont pas valides.",
+      "performed_future": "La date du test ne peut pas être dans le futur.",
+      "integrity": "Intégrité du fichier non vérifiée : impossible d'enregistrer un test réussi."
+    }
   }
 }

@@ -58,7 +58,7 @@ export function DeviceBackups() {
             <p className="ui-muted">{t("backups.archive.hint")}</p>
           </div>
           <div className="ui-actions">
-            <a className="ui-button ui-button-ghost" href={data.links.restore_tests}>{t("backups.links.restoreTests")}</a>
+            <Link to="/devices/$deviceId/backups/restore-tests" params={{ deviceId }} className="ui-button ui-button-ghost">{t("backups.links.restoreTests")}</Link>
             <a className="ui-button ui-button-ghost" href={data.links.policies}>{t("backups.links.policies")}</a>
           </div>
         </div>
@@ -174,7 +174,9 @@ function FileRow({ id, file, canDelete }: { id: string; file: BackupFile; canDel
             </Link>
           )}
           <a className="ui-button ui-button-ghost ui-button-small" href={file.download_url}>{t("backups.actions.download")}</a>
-          <a className="ui-button ui-button-ghost ui-button-small" href={file.restore_url}>{t("backups.actions.restore")}</a>
+          <Link to="/devices/$deviceId/backups/artifacts/$artifactId/restore-test" params={{ deviceId: id, artifactId: file.id }} className="ui-button ui-button-ghost ui-button-small">
+            {t("backups.actions.restore")}
+          </Link>
           {canDelete && (
             <button type="button" className="ui-button ui-button-ghost ui-button-small ui-button-danger" disabled={remove.isPending} onClick={onDelete}>
               {t("backups.actions.delete")}

@@ -3921,5 +3921,68 @@
       "compare_id": "Il confronto richiesto non è valido.",
       "compare_binary": "Il confronto richiede due export testuali dello stesso apparato."
     }
+  },
+  "restoreTests": {
+    "title": "Storico restore test",
+    "history": "Storico restore test",
+    "help": "Evidenze di ripristino registrate dagli operatori. Nome, SHA-256 e dimensione del file restano registrati anche dopo la retention.",
+    "columns": {
+      "performed": "Eseguito",
+      "result": "Esito",
+      "artifact": "File",
+      "target": "Metodo / target",
+      "integrity": "Integrità",
+      "notes": "Note"
+    },
+    "gone": "(non più in archivio)",
+    "integrityOk": "Verificata",
+    "integrityKo": "Non verificata",
+    "targetWithVersion": "{{target}} · RouterOS {{version}}",
+    "empty": "Nessun restore test registrato. Apri l'archivio backup e usa «Restore test» su un file.",
+    "methods": {
+      "isolated_lab": "Laboratorio isolato (CHR / apparato di test)",
+      "spare_device": "Apparato di scorta fuori produzione",
+      "config_review": "Revisione della configurazione importata"
+    },
+    "formTitle": "Restore test · {{name}}",
+    "formHelp": "Registra l'esito di un ripristino eseguito in un ambiente controllato. NSM non ripristina mai automaticamente un apparato in produzione.",
+    "integrity": "Integrità",
+    "intact": "Integro",
+    "notVerified": "Non verificato",
+    "checkedNow": "verificata ora sul file archiviato",
+    "run": "Esecuzione backup",
+    "file": "File",
+    "present": "Presente",
+    "missing": "Mancante",
+    "sizeOk": "dimensione coerente",
+    "sizeKo": "dimensione non coerente",
+    "shaOk": "Verificato",
+    "shaKo": "Non corrispondente",
+    "sourceVersion": "RouterOS di origine",
+    "notDeclared": "non dichiarato",
+    "notIntact": "File non integro: si può registrare solo un esito parziale o non superato.",
+    "recordTitle": "Registra l'esito",
+    "recordHelp": "Usa un target isolato: CHR di laboratorio, apparato di scorta o revisione dell'export importato.",
+    "method": "Metodo",
+    "result": "Esito",
+    "choose": "Seleziona…",
+    "target": "Target del restore",
+    "targetVersion": "Versione RouterOS del target",
+    "performedAt": "Eseguito il",
+    "performedHelp": "Lascia vuoto per usare l'ora attuale.",
+    "notes": "Note ed evidenze",
+    "notesPlaceholder": "Cosa è stato verificato (interfacce, routing, firewall, servizi) e cosa non ha funzionato.",
+    "submit": "Registra restore test",
+    "recorded": "Restore test registrato con esito: {{result}}.",
+    "fileHistory": "Storico di questo file",
+    "noFileHistory": "Nessun restore test registrato per questo file.",
+    "errors": {
+      "method": "Seleziona il metodo con cui è stato eseguito il restore test.",
+      "result": "Seleziona l'esito del restore test.",
+      "target": "Indica il target del restore (es. CHR di laboratorio).",
+      "performed_at": "Data e ora del test non valide.",
+      "performed_future": "La data del test non può essere nel futuro.",
+      "integrity": "Integrità del file non verificata: non si può registrare un restore test superato."
+    }
   }
 }

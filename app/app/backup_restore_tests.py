@@ -26,6 +26,7 @@ from app.backup_storage import resolve_artifact_path
 from app.config import settings
 from app.db import SessionLocal
 from app.device_backup_explorer import _artifact_browser_error, _artifact_for_device, _device
+from app.input_errors import InputError
 from app.models import ActionIssue, BackupRun, Notification, utcnow
 from app.restore_test_models import BackupRestoreTest
 from app.security import validate_csrf
@@ -102,7 +103,7 @@ def _parse_performed_at(value: str) -> datetime:
     try:
         parsed = datetime.fromisoformat(text)
     except ValueError:
-        raise HTTPException(400, "Data/ora del test non valida.")
+        raise InputError("performed_at", "Data/ora del test non valida.")
     if parsed.tzinfo is None:
         # `datetime-local` inputs carry the operator's wall-clock time.
         try:
@@ -112,7 +113,7 @@ def _parse_performed_at(value: str) -> datetime:
         parsed = parsed.replace(tzinfo=local_tz)
     parsed = parsed.astimezone(timezone.utc)
     if parsed > utcnow():
-        raise HTTPException(400, "La data del test non può essere nel futuro.")
+        raise InputError("performed_future", "La data del test non può essere nel futuro.")
     return parsed
 
 
@@ -200,6 +201,74 @@ def latest_test_for_device(db, device_id) -> BackupRestoreTest | None:
     )
 
 
+def record_restore_test(
+    db, user, device, artifact_id: uuid.UUID, *, method: str, target_label: str,
+    target_routeros_version: str, result: str, performed_at: str, notes: str,
+) -> BackupRestoreTest:
+    """Validate and store one restore test, sync the Action Center issue and audit it; shared by both interfaces."""
+    artifact, run = _artifact_for_device(db, device.id, artifact_id)
+    if method not in METHODS:
+        raise InputError("method", "Seleziona il metodo con cui è stato eseguito il restore test.")
+    if result not in RESULTS:
+        raise InputError("result", "Seleziona l'esito del restore test.")
+    target = target_label.strip()
+    if not target:
+        raise InputError("target", "Indica il target del restore (es. CHR di laboratorio).")
+    when = _parse_performed_at(performed_at)
+    integrity = evaluate_artifact_integrity(artifact)
+    if result == "passed" and not integrity["ok"]:
+        raise InputError(
+            "integrity",
+            "Integrità dell'artefatto non verificata: non è possibile registrare un restore test superato.",
+            409,
+        )
+    now = utcnow()
+    test = BackupRestoreTest(
+        device_id=device.id,
+        artifact_id=artifact.id,
+        run_id=run.id,
+        artifact_filename=artifact.filename,
+        artifact_type=artifact.artifact_type,
+        artifact_sha256=artifact.sha256,
+        artifact_size_bytes=artifact.size_bytes,
+        source_routeros_version=source_routeros_version(artifact),
+        method=method,
+        target_label=target[:200],
+        target_routeros_version=target_routeros_version.strip()[:80] or None,
+        result=result,
+        integrity=integrity,
+        notes=notes.strip()[:MAX_NOTES] or None,
+        performed_at=when,
+        recorded_at=now,
+        performed_by_user_id=user.id,
+    )
+    db.add(test)
+    db.flush()
+    _sync_issue(db, device, test, now)
+    core.add_event(
+        db,
+        "BACKUP_RESTORE_TEST_RECORDED",
+        actor=user,
+        customer_id=device.customer_id,
+        device_id=device.id,
+        details={
+            "restore_test_id": str(test.id),
+            "artifact_id": str(artifact.id),
+            "run_id": str(run.id),
+            "artifact_sha256": artifact.sha256,
+            "method": method,
+            "target": test.target_label,
+            "result": result,
+            "integrity_ok": integrity["ok"],
+        },
+        severity="info" if result == "passed" else "warning",
+        result="success" if result == "passed" else "failed",
+        source="portal",
+    )
+    db.commit()
+    return test
+
+
 @router.get(
     "/devices/{device_id}/backups/artifacts/{artifact_id}/restore-test",
     response_class=HTMLResponse,
@@ -263,65 +332,11 @@ def restore_test_record(
         with SessionLocal() as db:
             user = core.require_permission(request, db, "backup.execute")
             device = _device(db, device_id)
-            artifact, run = _artifact_for_device(db, device.id, artifact_id)
-            if method not in METHODS:
-                raise HTTPException(400, "Seleziona il metodo con cui è stato eseguito il restore test.")
-            if result not in RESULTS:
-                raise HTTPException(400, "Seleziona l'esito del restore test.")
-            target = target_label.strip()
-            if not target:
-                raise HTTPException(400, "Indica il target del restore (es. CHR di laboratorio).")
-            when = _parse_performed_at(performed_at)
-            integrity = evaluate_artifact_integrity(artifact)
-            if result == "passed" and not integrity["ok"]:
-                raise HTTPException(
-                    409,
-                    "Integrità dell'artefatto non verificata: non è possibile registrare un restore test superato.",
-                )
-            now = utcnow()
-            test = BackupRestoreTest(
-                device_id=device.id,
-                artifact_id=artifact.id,
-                run_id=run.id,
-                artifact_filename=artifact.filename,
-                artifact_type=artifact.artifact_type,
-                artifact_sha256=artifact.sha256,
-                artifact_size_bytes=artifact.size_bytes,
-                source_routeros_version=source_routeros_version(artifact),
-                method=method,
-                target_label=target[:200],
-                target_routeros_version=target_routeros_version.strip()[:80] or None,
-                result=result,
-                integrity=integrity,
-                notes=notes.strip()[:MAX_NOTES] or None,
-                performed_at=when,
-                recorded_at=now,
-                performed_by_user_id=user.id,
+            record_restore_test(
+                db, user, device, artifact_id, method=method, target_label=target_label,
+                target_routeros_version=target_routeros_version, result=result,
+                performed_at=performed_at, notes=notes,
             )
-            db.add(test)
-            db.flush()
-            _sync_issue(db, device, test, now)
-            core.add_event(
-                db,
-                "BACKUP_RESTORE_TEST_RECORDED",
-                actor=user,
-                customer_id=device.customer_id,
-                device_id=device.id,
-                details={
-                    "restore_test_id": str(test.id),
-                    "artifact_id": str(artifact.id),
-                    "run_id": str(run.id),
-                    "artifact_sha256": artifact.sha256,
-                    "method": method,
-                    "target": test.target_label,
-                    "result": result,
-                    "integrity_ok": integrity["ok"],
-                },
-                severity="info" if result == "passed" else "warning",
-                result="success" if result == "passed" else "failed",
-                source="portal",
-            )
-            db.commit()
     except HTTPException as exc:
         if exc.status_code in {400, 409}:
             return flash_redirect(
