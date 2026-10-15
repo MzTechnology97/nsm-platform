@@ -39,23 +39,26 @@ def main():
     client = TestClient(app)
     page = client.get("/login").text
     client.post("/login", data={"username": f"ci-fi-{suffix}", "password": PASSWORD, "csrf": re.search(r'name="csrf" value="([^"]+)"', page).group(1)})
-    attention = client.get(f"/operations/monitoring?customer={customer_id}").text
-    assert "Non rispondono al ping" in attention and "Perdita pacchetti" in attention
-    assert f"TEST-FI-DOWN-{suffix}" in attention and "non risponde" in attention
-    assert f"TEST-FI-LOSS-{suffix}" in attention and "41.5 ms" in attention and "perdita 33%" in attention
-    assert f"TEST-FI-IDLE-{suffix}" not in attention, "a device without ICMP issues needs no attention"
-    only_down = client.get(f"/operations/monitoring?state=icmp_down&customer={customer_id}").text
-    assert f"TEST-FI-DOWN-{suffix}" in only_down and f"TEST-FI-LOSS-{suffix}" not in only_down
-    assert "attivo su 2 apparati, attivabile su altri 1 con IP di gestione" in attention
+    api = "/api/ui/v1/monitoring"
+    attention = client.get(api, params={"customer": str(customer_id)}).json()
+    rows = {row["name"]: row for row in attention["items"]}
+    assert attention["counts"]["icmp_down"] == 1 and attention["counts"]["packet_loss"] == 1
+    assert rows[f"TEST-FI-DOWN-{suffix}"]["icmp"]["down"] is True
+    lossy_row = rows[f"TEST-FI-LOSS-{suffix}"]["icmp"]
+    assert lossy_row["last_rtt"] == 41.5 and lossy_row["last_loss"] == 33, lossy_row
+    assert f"TEST-FI-IDLE-{suffix}" not in rows, "a device without ICMP issues needs no attention"
+    only_down = [row["name"] for row in client.get(api, params={"state": "icmp_down", "customer": str(customer_id)}).json()["items"]]
+    assert only_down == [f"TEST-FI-DOWN-{suffix}"]
+    assert attention["counts"]["icmp_enabled"] == 2 and attention["counts"]["icmp_ready"] == 1
 
-    token = re.search(r'name="csrf" value="([^"]+)"', attention).group(1)
-    done = client.post("/operations/monitoring/icmp", data={"csrf": token, "customer": str(customer_id), "action": "enable"})
-    assert "Monitoraggio ICMP attivato su 1 apparati." in done.text and "1 senza IP di gestione" in done.text
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    done = client.post(f"{api}/icmp", headers=headers, json={"customer": str(customer_id), "enable": True}).json()
+    assert done == {"enabled": True, "changed": 1, "skipped": 1}, done
     with SessionLocal() as db:
         state = {key: bool((db.get(Device, value).inventory_data or {}).get("icmp_monitor", {}).get("enabled")) for key, value in ids.items()}
         assert state == {"down": True, "lossy": True, "idle": True, "no_ip": False, "foreign": False}, state
         assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "ICMP_MONITOR_BULK", AuditEvent.customer_id == customer_id)) is not None
-    client.post("/operations/monitoring/icmp", data={"csrf": token, "customer": str(customer_id), "action": "disable"})
+    client.post(f"{api}/icmp", headers=headers, json={"customer": str(customer_id), "enable": False}).raise_for_status()
     with SessionLocal() as db:
         assert not any((db.get(Device, ids[k]).inventory_data or {}).get("icmp_monitor", {}).get("enabled") for k in ("down", "lossy", "idle"))
         assert db.get(Device, ids["down"]).inventory_data["icmp_monitor"]["consecutive_losses"] == 0

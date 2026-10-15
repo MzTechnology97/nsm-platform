@@ -140,7 +140,7 @@ def main():
 
     # Drift is visible in the existing fleet without adding another competing
     # fleet route.
-    fleet = client.get("/operations/agents?state=attention")
+    fleet = client.get("/api/ui/v1/agents?state=attention")
     assert fleet.status_code == 200
     assert "Agent source drift" in fleet.text
 

@@ -110,41 +110,42 @@ def main():
     )
     assert response.status_code == 303
 
-    default = client.get("/operations/firmware")
+    default = client.get("/api/ui/v1/firmware")
     assert default.status_code == 200
     assert "CI14 A Outdated" in default.text
     assert "CI14 A Critical" in default.text
     assert "CI14 B Unknown" not in default.text
     assert "CI14 B Current" not in default.text
-    assert "Da aggiornare" in default.text and "Critici" in default.text
+    counts = default.json()["counts"]
+    assert counts["attention"] >= 2 and counts["critical"] >= 1, counts
 
-    customer_a = client.get(f"/operations/firmware?customer={ids['a']}&state=attention")
+    customer_a = client.get(f"/api/ui/v1/firmware?customer={ids['a']}&state=attention")
     assert customer_a.status_code == 200
-    assert "Vista Firmware confinata agli apparati di questo cliente" in customer_a.text
     assert "CI14 A Outdated" in customer_a.text and "CI14 A Critical" in customer_a.text
     assert "CI14 B Unknown" not in customer_a.text
 
-    critical = client.get(f"/operations/firmware?customer={ids['a']}&state=critical")
+    critical = client.get(f"/api/ui/v1/firmware?customer={ids['a']}&state=critical")
     assert critical.status_code == 200
     assert "CI14 A Critical" in critical.text
     assert "CI14 A Outdated" not in critical.text
 
-    unknown = client.get("/operations/firmware?state=unknown")
+    unknown = client.get("/api/ui/v1/firmware?state=unknown")
     assert unknown.status_code == 200
     assert "CI14 B Unknown" in unknown.text
     assert "CI14 B Current" not in unknown.text
 
-    current = client.get("/operations/firmware?vendor=ubiquiti&state=current")
+    current = client.get("/api/ui/v1/firmware?vendor=ubiquiti&state=current")
     assert current.status_code == 200
     assert "CI14 B Current" in current.text
     assert "CI14 B Unknown" not in current.text
 
-    search = client.get("/operations/firmware?q=CCR2004&state=all")
+    search = client.get("/api/ui/v1/firmware?q=CCR2004&state=all")
     assert search.status_code == 200
     assert "CI14 A Outdated" in search.text
     assert "CI14 A Critical" not in search.text
 
-    assert str(app.url_path_for("firmware")) == "/operations/firmware"
+    moved = client.get("/operations/firmware?state=critical&customer=x", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == "/app/firmware?customer=x&state=critical"
 
     print("Core 0.14 customer-aware firmware worklist smoke test passed")
 

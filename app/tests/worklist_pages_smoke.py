@@ -16,15 +16,6 @@ def csrf_from(html: str) -> str:
     return re.search(r'name="csrf" value="([^"]+)"', html).group(1)
 
 
-def chip(html: str, label: str) -> int:
-    """Count shown on the quick-filter chip with the given label."""
-    nav = re.search(r'<nav class="quick-chips".*?</nav>', html, re.S)
-    assert nav, "quick chips missing"
-    match = re.search(r">(?:<i[^>]*></i>)?" + re.escape(label) + r" <b>(\d+)</b>", nav.group(0))
-    assert match, (label, nav.group(0))
-    return int(match.group(1))
-
-
 def seed():
     suffix = uuid.uuid4().hex[:8]
     with SessionLocal() as db:
@@ -54,19 +45,16 @@ def main():
     scope = f"customer={customer_id}"
 
     # Global backup worklist: per-device rows and quick filters scoped to the customer.
-    attention = client.get(f"/operations/backups?{scope}").text
-    assert failed_name in attention and never_name not in attention
-    assert "TEST worklist timeout" in attention
-    assert chip(attention, "Da verificare") == 1
-    assert chip(attention, "Ultimo backup fallito") == 1
-    assert chip(attention, "Senza policy") == 2
-    assert chip(attention, "Tutti") == 2
-    no_policy = client.get(f"/operations/backups?{scope}&view=no_policy").text
+    backups = f"/api/ui/v1/backups?{scope}"
+    attention = client.get(backups).json()
+    names = [row["name"] for row in attention["items"]]
+    assert failed_name in names and never_name not in names
+    assert "TEST worklist timeout" in repr(attention["items"])
+    assert {key: attention["counts"][key] for key in ("attention", "failed", "no_policy", "all")} == {"attention": 1, "failed": 1, "no_policy": 2, "all": 2}
+    no_policy = [row["name"] for row in client.get(f"{backups}&view=no_policy").json()["items"]]
     assert failed_name in no_policy and never_name in no_policy
-    assert "Crea policy" in no_policy
-    searched = client.get(f"/operations/backups?{scope}&view=all&q=NEVER").text
+    searched = [row["name"] for row in client.get(f"{backups}&view=all&q=NEVER").json()["items"]]
     assert never_name in searched and failed_name not in searched
-    assert client.get("/operations/backups?customer=not-a-uuid").status_code == 400
 
     # Action Center: one chip per category present, with Italian labels.
     issues = client.get(f"/api/ui/v1/action-center?{scope}").json()
@@ -75,9 +63,9 @@ def main():
     assert [i["title"].rsplit(" ", 1)[0] for i in only_backup["items"]] == ["TEST backup issue"]
     assert {c["key"]: c["count"] for c in only_backup["categories"]}["configuration"] == 1, "category counts ignore the category filter"
 
-    # Firmware worklist shows Italian status labels.
-    firmware = client.get(f"/operations/firmware?{scope}").text
-    assert failed_name in firmware and "Aggiornamento disponibile" in firmware and "Update Available" not in firmware
+    # Firmware worklist: status codes, translated by the new interface.
+    firmware = {row["name"]: row for row in client.get(f"/api/ui/v1/firmware?{scope}").json()["items"]}
+    assert firmware[failed_name]["firmware_status"] == "update_available"
 
     # Audit and dashboard show readable event names, keeping the code available.
     audit = client.get(f"/api/ui/v1/audit/events?customer={customer_id}").json()["items"]
@@ -86,12 +74,10 @@ def main():
     # Static assets are versioned by content, not by release number.
     assert re.search(r'/static/app\.css\?v=[0-9a-f]{12}"', dashboard), "app.css cache-busting token"
 
-    # Every list page uses the shared pager wording when it has rows.
+    # The classic worklists now open the new interface.
     for path in ("/operations/backups?view=all", "/operations/firmware?state=all", "/operations/agents?state=all", "/operations/monitoring?state=all"):
-        page = client.get(path)
-        assert page.status_code == 200, path
-        assert 'class="quick-chips"' in page.text, path
-        assert 'class="pagination"' not in page.text, path
+        page = client.get(path, follow_redirects=False)
+        assert page.status_code == 302 and page.headers["location"].startswith("/app/"), path
     print("Worklist pages smoke passed")
 
 

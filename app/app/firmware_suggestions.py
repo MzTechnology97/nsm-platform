@@ -17,24 +17,19 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app import mikrotik_legacy_operations as legacy_ops
 from app.agent_models import DeviceAgentCredential
-from app.db import SessionLocal
 from app.firmware_upgrade_models import FirmwareUpgradePlan
 from app.firmware_upgrade_planner import ACTIVE_STATES, _modern_routeros, _readiness, _readiness_fresh, open_plan
 from app.mikrotik_firmware_readiness import queue_readiness_job
-from app.models import Customer, Device, utcnow
+from app.models import Device, utcnow
 from app.routeros_version import is_newer_routeros_version
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 
-router = APIRouter()
 SOAK_DAYS = 7
 MAX_BATCH = 25
 KINDS = {
@@ -46,7 +41,6 @@ KINDS = {
     "blocked": ("Bloccato", "danger"),
 }
 KIND_ORDER = list(KINDS)
-PILL_CLASS = {"success": "run-success", "warning": "run-pending", "danger": "run-failed", "default": ""}
 
 
 def _when(raw):
@@ -140,29 +134,6 @@ def _uuid(value):
         return None
 
 
-@router.get("/operations/firmware/suggestions", response_class=HTMLResponse, name="firmware_suggestions")
-def suggestions_page(request: Request, customer: str = "", kind: str = ""):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "firmware.read"):
-            raise HTTPException(403)
-        customer_id = _uuid(customer)
-        items = suggestions(db, customer_id)
-        counts = {key: sum(1 for s in items if s["kind"] == key) for key in KINDS}
-        kind = kind if kind in KINDS else ""
-        security_count = sum(1 for s in items if s["security"])
-        total = len(items)
-        if kind:
-            items = [s for s in items if s["kind"] == kind]
-        return core.render(request, db, user, "firmware_suggestions.html", title="Suggerimenti firmware",
-                           items=items, counts=counts, kinds=KINDS, soak_days=SOAK_DAYS, max_batch=MAX_BATCH,
-                           customers=list(db.scalars(select(Customer).order_by(Customer.name))),
-                           customer_filter=customer, kind_filter=kind, total=total, security_count=security_count, pill_class=PILL_CLASS,
-                           can_execute=core.has_permission(user, "firmware.execute"))
-
-
 def apply_record(db, user, action: str, selected: list) -> tuple[int, list[str]]:
     """Queue readiness checks or open plans for the selected suggestions that are still of that kind; audited, commits.
 
@@ -201,37 +172,3 @@ def apply_record(db, user, action: str, selected: list) -> tuple[int, list[str]]
     return done, skipped
 
 
-@router.post("/operations/firmware/suggestions/apply", name="firmware_suggestions_apply")
-async def apply_suggestions(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    action = str(form.get("action") or "")
-    back = "/operations/firmware/suggestions" + (f"?customer={form.get('customer')}" if _uuid(form.get("customer")) else "")
-    if action not in ("check", "plan"):
-        raise HTTPException(400, "Azione non valida.")
-    selected = [d for d in (_uuid(v) for v in form.getlist("device")) if d]
-    if not selected:
-        return flash_redirect(request, back, "warning", "Seleziona almeno un apparato.", title="Nessun apparato selezionato")
-    if len(selected) > MAX_BATCH:
-        return flash_redirect(request, back, "warning", f"Al massimo {MAX_BATCH} apparati per volta.", title="Selezione troppo ampia")
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "firmware.execute" if action == "plan" else "firmware.read")
-        done, skipped = apply_record(db, user, action, selected)
-    verb = "verifiche firmware accodate" if action == "check" else "piani creati (backup pre-upgrade in coda, approvazione richiesta)"
-    message = f"{done} {verb}."
-    if skipped:
-        message += " Saltati: " + "; ".join(f"{s['name']}: {s['message']}" for s in skipped[:5]) + (f" e altri {len(skipped) - 5}." if len(skipped) > 5 else ".")
-    return flash_redirect(request, back, "warning" if skipped else "success", message, title="Suggerimenti firmware")
-
-
-def suggestion_count() -> dict:
-    """Template helper: suggestions that need an operator action."""
-    with SessionLocal() as db:
-        items = suggestions(db)
-    return {"actionable": sum(1 for s in items if s["kind"] in ("plan", "legacy", "check")),
-            "security": sum(1 for s in items if s["security"] and s["kind"] in ("plan", "legacy", "check"))}
-
-
-def install_firmware_suggestions(app) -> None:
-    app.include_router(router)
-    core.templates.env.globals["firmware_suggestion_count"] = suggestion_count

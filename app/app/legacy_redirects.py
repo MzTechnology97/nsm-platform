@@ -44,6 +44,19 @@ REDIRECTS: dict[str, Target] = {
     "/notifications": ("/app/notifications", None),
     "/search": ("/app/search", {"q": "q"}),
     "/profile": ("/app/profile", None),
+    # Operations and integrations.
+    "/operations/monitoring": ("/app/monitoring", {"state": "state", "customer": "customer", "vendor": "vendor"}),
+    "/operations/agents": ("/app/agents", {key: key for key in ("q", "customer", "state", "transport", "install")}),
+    "/operations/backups": ("/app/backups", {"view": "view", "customer": "customer", "q": "q"}),
+    "/operations/backups/policies/new": ("/app/backups/policies/new", {"customer": "customer", "device": "device", "site": "site"}),
+    "/operations/backups/policies/{policy_id}/edit": ("/app/backups/policies/{policy_id}/edit", None),
+    "/operations/backups/policies/{policy_id}/clone": ("/app/backups/policies/{policy_id}/clone", None),
+    "/customers/{customer_id}/backups/policies/new": ("/app/backups/policies/new?customer={customer_id}", {"device_id": "device", "site_id": "site"}),
+    "/operations/firmware": ("/app/firmware", {"q": "q", "customer": "customer", "vendor": "vendor", "state": "state"}),
+    "/operations/firmware/catalogs": ("/app/firmware/catalogs", None),
+    "/operations/firmware/suggestions": ("/app/firmware/suggestions", {"customer": "customer", "kind": "kind"}),
+    "/integrations": ("/app/integrations", None),
+    "/integrations/uisp/onboarding": ("/app/integrations/uisp/onboarding", {"q": "q", "uisp_site": "uisp_site", "state": "state"}),
 }
 
 
@@ -56,7 +69,7 @@ def _redirect(target: Target) -> Callable:
         if keep:
             query = {new: request.query_params[old] for old, new in keep.items() if request.query_params.get(old)}
             if query:
-                location += "?" + urlencode(query)
+                location += ("&" if "?" in location else "?") + urlencode(query)
         return RedirectResponse(location, status_code=302)
 
     return endpoint

@@ -6,6 +6,7 @@ import { BrandIcon } from "../app/BrandIcon";
 import { type Monitoring as Data, MONITORING_STATES, type MonitoringFilters, type MonitoringRow, useIcmpBulk, useMonitoring } from "../api/operations";
 import { formatValue } from "../charts/format";
 import { formatRelative } from "../lib/format";
+import { FleetZabbixPanel } from "../app/ZabbixProblems";
 
 export function Monitoring() {
   const { t } = useTranslation();
@@ -77,6 +78,7 @@ export function Monitoring() {
       ) : (
         <div className="ui-empty">{state === "attention" ? t("monitoring.allGood") : t("monitoring.empty")}</div>
       )}
+      {data?.zabbix && <FleetZabbixPanel zabbix={data.zabbix} />}
     </section>
   );
 }

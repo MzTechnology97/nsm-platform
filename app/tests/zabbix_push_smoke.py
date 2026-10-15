@@ -201,8 +201,8 @@ def main():
 
     detail = client.get(f"/devices/{ids['mt']}").text
     assert "zabbix.php?action=latest.view&amp;hostids%5B%5D=" in detail or "zabbix.php?action=latest.view&hostids%5B%5D=" in detail
-    hub = client.get("/integrations").text
-    assert 'data-integration="zabbix"' in hub and "6.0.30" in hub
+    hub = client.get("/api/ui/v1/integrations").json()["zabbix"]
+    assert hub["state"] == "active" and hub["version"] == "6.0.30", hub
 
     # Zabbix 7.2: Bearer header only (the fake rejects the auth field), visible-name clash disambiguated.
     fake7 = FakeZabbix("7.2.3")

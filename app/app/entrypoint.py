@@ -4,7 +4,6 @@ from app import mikrotik_agent as mikrotik_agent_core
 from app.static_assets import static_asset_version
 from app.activity_route_precedence import install_activity_route_precedence
 from app.activity_worklists import install_activity_worklists
-from app.agent_fleet import install_agent_fleet
 from app.agent_ui import install_agent_ui
 from app.api_keys import install_api_keys
 from app.api_operations import install_api_operations
@@ -31,9 +30,6 @@ from app.firmware_activation import install_firmware_activation
 from app.firmware_activation_privilege_guard import install_firmware_activation_privilege_guard
 from app.firmware_package_staging import install_firmware_package_staging
 from app.firmware_upgrade_planner import install_firmware_upgrade_planner
-from app.firmware_worklist import install_firmware_worklist
-from app.fleet_monitoring import install_fleet_monitoring
-from app.integrations_hub import install_integrations_hub
 from app.inventory_ui import install_inventory_ui
 from app.mikrotik_agent import install_mikrotik_agent
 from app.mikrotik_agent_generation import install_mikrotik_agent_generation
@@ -111,8 +107,6 @@ from app.search_enhancement import install_search_enhancement
 from app.ui_action_feedback import install_ui_action_feedback
 from app.ui_api_key_feedback import install_ui_api_key_feedback
 from app.ui_backup_feedback import install_ui_backup_feedback
-from app.ui_backup_policy_feedback import install_ui_backup_policy_feedback
-from app.ui_backup_policy_form_feedback import install_ui_backup_policy_form_feedback
 from app.ui_customer_device_bulk_feedback import install_ui_customer_device_bulk_feedback
 from app.ui_customer_site_crud_feedback import install_ui_customer_site_crud_feedback
 from app.ui_device_crud_feedback import install_ui_device_crud_feedback
@@ -123,16 +117,13 @@ from app.ui_firmware_upgrade_feedback import install_ui_firmware_upgrade_feedbac
 from app.uisp_connector import install_uisp_connector
 from app.uisp_sync import install_uisp_sync
 from app.uisp_operations import install_uisp_operations
-from app.vendor_firmware import install_vendor_firmware
 from app.cnmaestro_connector import install_cnmaestro_connector
 from app.advisory_admin import install_advisory_admin
 from app.compliance_findings import install_compliance_findings
 from app.lifecycle_catalog import install_lifecycle_catalog
 from app.lifecycle_remediation import install_lifecycle_remediation
-from app.uisp_onboarding import install_uisp_onboarding
 from app.routeros_catalog import install_routeros_catalog
 from app.vendor_cpe import install_vendor_cpe
-from app.firmware_suggestions import install_firmware_suggestions
 from app.system_status import install_system_status
 from app.api_key_lifecycle import install_api_key_lifecycle
 from app.login_security import install_login_security
@@ -145,7 +136,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.168"
+APP_VERSION = "0.49.169"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -203,16 +194,13 @@ install_agent_ui(core.app)
 install_uisp_connector(core.app)
 install_uisp_sync(core.app)
 install_uisp_operations(core.app)
-install_vendor_firmware(core.app)
 install_cnmaestro_connector(core.app)
 install_advisory_admin(core.app)
 install_compliance_findings(core.app)
 install_lifecycle_catalog(core.app)
 install_lifecycle_remediation(core.app)
-install_uisp_onboarding(core.app)
 install_routeros_catalog(core.app)
 install_vendor_cpe()
-install_firmware_suggestions(core.app)
 install_system_status(core.app)
 install_api_key_lifecycle(core.app)
 install_login_security(core.app)
@@ -227,10 +215,6 @@ install_customer_workspace(core.app)
 install_backup_workspace_capabilities(core.app)
 promote_customer_workspace_routes(core.app)
 install_customer_drilldown(core.app)
-install_firmware_worklist(core.app)
-install_fleet_monitoring(core.app)
-install_integrations_hub(core.app)
-install_agent_fleet(core.app)
 install_customer_tabs(core.app)
 install_search_enhancement(core.app)
 install_mikrotik_workspace(core.app)
@@ -306,8 +290,6 @@ install_mikrotik_workspace_ux_precedence(core.app)
 install_ui_action_feedback(core.app)
 install_ui_firmware_feedback(core.app)
 install_ui_backup_feedback(core.app)
-install_ui_backup_policy_feedback(core.app)
-install_ui_backup_policy_form_feedback(core.app)
 install_ui_firmware_upgrade_feedback(core.app)
 install_ui_device_crud_feedback(core.app)
 install_ui_customer_site_crud_feedback(core.app)

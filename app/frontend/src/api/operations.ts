@@ -1,3 +1,4 @@
+import type { FleetZabbix } from "../app/ZabbixProblems";
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./client";
@@ -41,6 +42,7 @@ export interface Monitoring {
   counts: Record<string, number>;
   thresholds: { cpu: number; memory: number; loss: number; stale_minutes: number };
   can_bulk: boolean;
+  zabbix: FleetZabbix | null;
 }
 
 export function monitoringUrl(filters: MonitoringFilters): string {

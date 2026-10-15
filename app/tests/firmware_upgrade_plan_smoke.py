@@ -154,11 +154,11 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    firmware_page = client.get("/operations/firmware?state=all")
+    firmware_page = client.get("/api/ui/v1/firmware?state=all")
     assert firmware_page.status_code == 200
-    assert "CI31 Modern MikroTik" in firmware_page.text
-    assert "Prepara upgrade" in firmware_page.text
-    csrf = csrf_from(firmware_page.text)
+    rows = {row["name"]: row for row in firmware_page.json()["items"]}
+    assert rows["CI31 Modern MikroTik"]["can_plan"] is True, "the worklist offers the upgrade plan"
+    csrf = client.get("/api/ui/v1/session").json()["csrf_token"]
 
     create = client.post(
         f"/devices/{modern_id}/firmware-upgrade/plan",
@@ -249,8 +249,7 @@ def main():
         )
         assert execution_jobs == [], "Planning/approval must not queue activation or reboot jobs"
 
-    legacy_page = client.get("/operations/firmware?state=all")
-    legacy_csrf = csrf_from(legacy_page.text)
+    legacy_csrf = client.get("/api/ui/v1/session").json()["csrf_token"]
     legacy_attempt = client.post(
         f"/devices/{legacy_id}/firmware-upgrade/plan",
         data={"csrf": legacy_csrf},

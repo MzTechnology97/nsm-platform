@@ -222,8 +222,8 @@ def main():
     assert any(row["device"]["name"] == "TEST-NVD-EXPOSED" for row in detail["impacted"])
     admin_page = client.get("/admin/integrations/nvd").text
     assert "Ultimo successo" in admin_page and "Abilitata" in admin_page
-    hub = client.get("/integrations").text
-    assert "Advisory NVD" in hub and "/admin/integrations/nvd" in hub
+    hub = client.get("/api/ui/v1/integrations").json()["nvd"]
+    assert hub["state"] == "active" and hub["advisories"] >= 1, hub
     print("NVD advisory sync smoke passed")
 
 

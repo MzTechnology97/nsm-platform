@@ -1,3 +1,4 @@
+import type { DeviceZabbix } from "../app/ZabbixProblems";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "./client";
@@ -23,6 +24,7 @@ export interface DeviceDetail {
   issues: { id: string; title: string; severity: string; category: string; status: string; created_at: string | null }[];
   backup: { method: string; status: string; executable: boolean; last_success: string | null };
   icmp: { enabled: boolean; target: string | null; last_rtt: number | null; last_loss: number | null; down: boolean; last_at: string | null };
+  zabbix: DeviceZabbix | null;
   tabs: { key: string; classic: string }[];
   actions: { reboot: boolean; incident: boolean; manage: boolean };
 }

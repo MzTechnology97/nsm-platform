@@ -1,18 +1,17 @@
 import uuid
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
-from sqlalchemy import func, select
+from fastapi.responses import FileResponse
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app.backup_models import BackupArtifact, BackupPolicySettings
-from app.backup_storage import remove_artifact_file, resolve_artifact_path
+from app.backup_storage import resolve_artifact_path
 from app.db import SessionLocal
 from app.input_errors import InputError
-from app.models import BackupPolicy, BackupRun, Customer, Device, Site, utcnow
-from app.security import validate_csrf
+from app.models import BackupPolicy, Customer, Device, Site
 
 router = APIRouter()
 
@@ -417,106 +416,6 @@ def customer_policy_state(customer, sites, devices, site_id: str = "", device_id
     return state
 
 
-@router.get("/operations/backups/policies/new", response_class=HTMLResponse, name="backup_policy_new_v2")
-def backup_policy_new(request: Request):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "backup.configure"):
-            raise HTTPException(403)
-        customers, sites, devices = _targets(db)
-        return core.render(
-            request, db, user, "backup_policy_form.html",
-            state=_policy_form_state(), customers=customers, sites=sites, devices=devices,
-            form_action="/operations/backups/policies/create", mode="create",
-        )
-
-
-@router.post("/operations/backups/policies/create")
-async def backup_policy_create(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf", "")))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "backup.configure")
-        create_policy_record(db, user, form)
-    return RedirectResponse("/operations/backups", status_code=303)
-
-
-@router.get("/operations/backups/policies/{policy_id}/edit", response_class=HTMLResponse)
-def backup_policy_edit(request: Request, policy_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "backup.configure"):
-            raise HTTPException(403)
-        policy = db.get(BackupPolicy, policy_id)
-        if not policy:
-            raise HTTPException(404)
-        settings = _policy_settings(db, policy, create=True)
-        if settings in db.new:
-            db.commit()
-        customers, sites, devices = _targets(db)
-        return core.render(
-            request, db, user, "backup_policy_form.html",
-            state=_policy_form_state(policy, settings), customers=customers, sites=sites, devices=devices,
-            form_action=f"/operations/backups/policies/{policy.id}/edit", mode="edit",
-        )
-
-
-@router.post("/operations/backups/policies/{policy_id}/edit")
-async def backup_policy_update(request: Request, policy_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf", "")))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "backup.configure")
-        update_policy_record(db, user, policy_id, form)
-    return RedirectResponse("/operations/backups", status_code=303)
-
-
-@router.get("/operations/backups/policies/{policy_id}/clone", response_class=HTMLResponse)
-def backup_policy_clone(request: Request, policy_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "backup.configure"):
-            raise HTTPException(403)
-        policy = db.get(BackupPolicy, policy_id)
-        if not policy:
-            raise HTTPException(404)
-        settings = _policy_settings(db, policy, create=True)
-        if settings in db.new:
-            db.commit()
-        customers, sites, devices = _targets(db)
-        return core.render(
-            request, db, user, "backup_policy_form.html",
-            state=_policy_form_state(policy, settings, clone=True), customers=customers, sites=sites, devices=devices,
-            form_action="/operations/backups/policies/create", mode="clone",
-        )
-
-
-@router.post("/operations/backups/policies/{policy_id}/toggle")
-async def backup_policy_toggle(request: Request, policy_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf", "")))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "backup.configure")
-        toggle_policy_record(db, user, policy_id)
-    return RedirectResponse("/operations/backups", status_code=303)
-
-
-@router.post("/operations/backups/policies/{policy_id}/delete")
-async def backup_policy_delete(request: Request, policy_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf", "")))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "backup.configure")
-        delete_policy_record(db, user, policy_id, str(form.get("confirm_name", "")))
-    return RedirectResponse("/operations/backups", status_code=303)
-
-
 @router.get("/operations/backups/artifacts/{artifact_id}/download")
 def backup_artifact_download(request: Request, artifact_id: uuid.UUID):
     with SessionLocal() as db:
@@ -535,23 +434,6 @@ def backup_artifact_download(request: Request, artifact_id: uuid.UUID):
         if not path.is_file():
             raise HTTPException(404, "File backup non disponibile sullo storage.")
         return FileResponse(path, filename=artifact.filename, media_type="application/octet-stream")
-
-
-@router.post("/operations/backups/artifacts/{artifact_id}/delete")
-async def backup_artifact_delete(request: Request, artifact_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf", "")))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "backup.configure")
-        artifact = db.get(BackupArtifact, artifact_id)
-        if not artifact or artifact.deleted_at:
-            raise HTTPException(404)
-        removed = remove_artifact_file(artifact.storage_path)
-        artifact.deleted_at = utcnow()
-        artifact.deleted_by_user_id = user.id
-        core.add_event(db, "BACKUP_ARTIFACT_DELETED", actor=user, details={"artifact_id": str(artifact.id), "filename": artifact.filename, "file_removed": removed}, severity="warning")
-        db.commit()
-    return RedirectResponse("/operations/backups", status_code=303)
 
 
 def install_backup_core(app, templates):

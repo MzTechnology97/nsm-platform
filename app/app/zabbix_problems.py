@@ -148,6 +148,37 @@ def fleet_problems(limit: int = 50) -> dict | None:
         return {"rows": rows[:limit], "total": len(rows), "checked_at": state["at"], "stale": state["stale"]}
 
 
+def api_device(device) -> dict | None:
+    """Zabbix block of the device detail API: link to the host's latest data, exclusion, open problems (labels translated client side)."""
+    from app import zabbix_connector
+
+    link = zabbix_connector.device_link(device)
+    if not link:
+        return {"link": None, "excluded": True, "problems": None} if (device.inventory_data or {}).get("zabbix_exclude") else None
+    problems = device_problems(device)
+    return {"link": link, "excluded": False, "problems": None if problems is None else {
+        "items": [{"name": p["name"], "severity": int(p["severity"]), "since": p.get("since"), "acknowledged": bool(p.get("acknowledged"))}
+                  for p in problems["items"]],
+        "checked_at": problems["checked_at"], "stale": bool(problems["stale"])}}
+
+
+def api_fleet(customer_id=None, vendor: str = "", limit: int = 50) -> dict | None:
+    """Devices with open Zabbix problems for the Monitoring page of the new interface, worst first, with its customer/vendor filters."""
+    from app.ui_api import brand_icon
+
+    state = fleet_problems(limit=100_000)
+    if state is None:
+        return None
+    rows = [r for r in state["rows"] if (customer_id is None or r["device"].customer_id == customer_id)
+            and (not vendor or (r["device"].vendor or "").lower() == vendor.lower())]
+    return {
+        "rows": [{"device": {"id": str(r["device"].id), "name": r["device"].display_name or r["device"].device_identity or r["device"].name,
+                             "brand": brand_icon(r["device"])},
+                  "worst": int(r["worst"]), "first": r["first"], "count": r["count"], "unacknowledged": r["unacknowledged"]} for r in rows[:limit]],
+        "total": len(rows), "checked_at": state["checked_at"], "stale": bool(state["stale"]),
+    }
+
+
 def install_zabbix_problems(app) -> None:
     from app import main as core
 

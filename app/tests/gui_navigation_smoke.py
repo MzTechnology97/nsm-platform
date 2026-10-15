@@ -81,20 +81,20 @@ def main():
         assert "stylesheet" not in source or template.name == "base.html", f"extra stylesheet link: {template.name}"
 
     # Monitoring surfaces the devices that need attention, with reasons.
-    monitoring = client.get("/operations/monitoring").text
+    monitoring = client.get("/api/ui/v1/monitoring").text
     for name in ("TEST-HOT-RTR", "TEST-DOWN-CPE", "TEST-STALE-RTR"):
         assert name in monitoring, name
     assert "TEST-CALM-RTR" not in monitoring, "healthy devices are not in the attention list"
-    assert "TEST-HOT-RTR" in client.get("/operations/monitoring?state=high_cpu").text
-    assert "TEST-HOT-RTR" in client.get("/operations/monitoring?state=low_memory").text
-    stale_only = client.get("/operations/monitoring?state=stale_agent").text
+    assert "TEST-HOT-RTR" in client.get("/api/ui/v1/monitoring?state=high_cpu").text
+    assert "TEST-HOT-RTR" in client.get("/api/ui/v1/monitoring?state=low_memory").text
+    stale_only = client.get("/api/ui/v1/monitoring?state=stale_agent").text
     assert "TEST-STALE-RTR" in stale_only and "TEST-DOWN-CPE" not in stale_only
-    assert "TEST-CALM-RTR" in client.get("/operations/monitoring?state=all").text
+    assert "TEST-CALM-RTR" in client.get("/api/ui/v1/monitoring?state=all").text
 
     # Integrations hub shows real connector state, never a fake "next module".
-    hub = client.get("/integrations").text
-    assert "MikroTik Agent" in hub and "UISP Network" in hub and "Non configurato" in hub and 'data-integration="genieacs"' in hub
-    assert re.search(r"\d+ di \d+ attivi", hub), "agent card reflects stale heartbeats"
+    hub = client.get("/api/ui/v1/integrations").json()
+    assert hub["genieacs"]["state"] == "unconfigured" and hub["can_admin"] is True
+    assert hub["agent"]["total"] >= 1 and hub["agent"]["state"] in ("partial", "stale"), "agent card reflects stale heartbeats"
 
     # Admin pages share one navigation without placeholder tabs.
     for href in ("/admin/users", "/admin/api-keys", "/admin/integrations/uisp", "/admin/branding", "/admin/demo"):
@@ -106,8 +106,7 @@ def main():
 
     # Read-only roles: no admin entry, hub without management links.
     viewer = login(auditor)
-    page = viewer.get("/integrations").text
-    assert "Gestisci API key" not in page and 'href="/admin/users"' not in page
+    assert viewer.get("/api/ui/v1/integrations").json()["can_admin"] is False
     print("GUI navigation smoke passed")
 
 

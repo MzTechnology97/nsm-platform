@@ -188,11 +188,10 @@ def main():
     )
     assert response.status_code == 303
 
-    global_page = client.get("/operations/backups")
-    assert global_page.status_code == 200
-    assert "CI10 Capability Customer" in global_page.text
-    assert "Metodo non pronto" in global_page.text
-    assert "backup realmente eseguibile" in global_page.text
+    overview = client.get("/api/ui/v1/backups", params={"view": "all"})
+    assert overview.status_code == 200, overview.text
+    customer_row = next(row for row in overview.json()["customers"] if row["name"] == "CI10 Capability Customer")
+    assert customer_row["protected"] >= 1 and customer_row["blocked"] >= 3, customer_row
 
     customer_page = client.get(f"/customers/{ids['customer']}/backups")
     assert customer_page.status_code == 200
@@ -223,7 +222,8 @@ def main():
     assert "CI10 TP-Link" in blocked.text
 
     assert str(app.url_path_for("customer_backups", customer_id=ids["customer"])) == f"/customers/{ids['customer']}/backups"
-    assert str(app.url_path_for("backup_customer_overview")) == "/operations/backups"
+    moved = client.get("/operations/backups", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == "/app/backups"
 
     print("Core 0.10 backup capability registry smoke test passed")
 

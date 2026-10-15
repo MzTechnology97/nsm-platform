@@ -153,32 +153,30 @@ def main():
     client = TestClient(app)
     login(client, ids["username"])
 
-    fleet = client.get("/operations/agents?state=all")
-    assert fleet.status_code == 200, fleet.text
-    for marker in (
-        "CI42 Verified",
-        "CI42 Waiting Pairing",
-        "CI42 Waiting Heartbeat",
-        "CI42 Install Suspect",
-        "CI42 Expired Token",
-        "Pairing OK · agent non avviato",
-        "Heartbeat post-installazione",
-        "Installazione KO",
-    ):
-        assert marker in fleet.text, marker
+    def rows(**params):
+        response = client.get("/api/ui/v1/agents", params=params)
+        assert response.status_code == 200, response.text
+        return {row["name"]: row for row in response.json()["items"]}
 
-    suspect = client.get("/operations/agents?state=all&install=suspect")
-    assert "CI42 Install Suspect" in suspect.text
-    assert "CI42 Verified" not in suspect.text
+    fleet = rows(state="all")
+    for marker in ("CI42 Verified", "CI42 Waiting Pairing", "CI42 Waiting Heartbeat", "CI42 Install Suspect", "CI42 Expired Token"):
+        assert marker in fleet, marker
+    assert fleet["CI42 Install Suspect"]["installation"] == "install_suspect" and fleet["CI42 Install Suspect"]["install"] == "suspect"
+    assert fleet["CI42 Waiting Pairing"]["install"] == "waiting" and fleet["CI42 Waiting Heartbeat"]["install"] == "waiting"
+    assert fleet["CI42 Expired Token"]["install"] == "expired"
 
-    waiting = client.get("/operations/agents?state=all&install=waiting")
-    assert "CI42 Waiting Pairing" in waiting.text
-    assert "CI42 Waiting Heartbeat" in waiting.text
-    assert "CI42 Verified" not in waiting.text
+    suspect = rows(state="all", install="suspect")
+    assert "CI42 Install Suspect" in suspect
+    assert "CI42 Verified" not in suspect
 
-    expired = client.get("/operations/agents?state=token_expired")
-    assert "CI42 Expired Token" in expired.text
-    assert "CI42 Install Suspect" not in expired.text
+    waiting = rows(state="all", install="waiting")
+    assert "CI42 Waiting Pairing" in waiting
+    assert "CI42 Waiting Heartbeat" in waiting
+    assert "CI42 Verified" not in waiting
+
+    expired = rows(state="token_expired")
+    assert "CI42 Expired Token" in expired
+    assert "CI42 Install Suspect" not in expired
 
     changed = agent_health_tick(now)
     assert changed["agent_attention_changes"] >= 2, changed

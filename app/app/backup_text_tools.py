@@ -9,7 +9,7 @@ import difflib
 import uuid
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 
 from app import main as core
@@ -109,78 +109,31 @@ def _diff_rows(before: str, after: str):
     }
 
 
-def _render_view(request, db, user, artifact, run, device, against_artifact=None, against_run=None):
-    text = _read_export(artifact)
-    candidates = _comparison_candidates(db, device.id, artifact.id)
-    diff_rows = []
-    diff_summary = None
-    if against_artifact:
-        before = _read_export(against_artifact)
-        diff_rows, diff_summary = _diff_rows(before, text)
-    return core.render(
-        request,
-        db,
-        user,
-        "backup_rsc_view.html",
-        artifact=artifact,
-        run=run,
-        device=device,
-        lines=text.splitlines(),
-        candidates=candidates,
-        against_artifact=against_artifact,
-        against_run=against_run,
-        diff_rows=diff_rows,
-        diff_summary=diff_summary,
-    )
-
-
-@router.get(
-    "/operations/backups/artifacts/{artifact_id}/view",
-    response_class=HTMLResponse,
-    name="backup_artifact_text_view",
-)
-def backup_artifact_text_view(request: Request, artifact_id: uuid.UUID, against: str = ""):
+def _artifact_redirect(request: Request, artifact_id: uuid.UUID, against: str = ""):
+    """The classic export viewer moved to the device backup tab of the new interface."""
     with SessionLocal() as db:
         user = core.current_user(request, db)
         if not user:
             return core.login_redirect()
         if not core.has_permission(user, "backup.read"):
             raise HTTPException(403)
-        artifact, run, device = _load_export(db, artifact_id)
-        against_artifact = against_run = None
-        if against:
-            try:
-                against_id = uuid.UUID(against)
-            except ValueError:
-                raise HTTPException(400, "Identificativo confronto non valido.")
-            against_artifact, against_run, against_device = _load_export(db, against_id)
-            if against_device.id != device.id:
-                raise HTTPException(400, "Il confronto è consentito solo tra backup dello stesso apparato.")
-
-        event_type = "BACKUP_EXPORT_DIFF_VIEWED" if against_artifact else "BACKUP_EXPORT_VIEWED"
-        details = {"artifact_id": str(artifact.id), "filename": artifact.filename}
-        if against_artifact:
-            details["compare_artifact_id"] = str(against_artifact.id)
-        core.add_event(
-            db,
-            event_type,
-            actor=user,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            details=details,
-            source="portal",
-        )
-        db.commit()
-        return _render_view(request, db, user, artifact, run, device, against_artifact, against_run)
+        _artifact, _run, device = _load_export(db, artifact_id)
+    location = f"/app/devices/{device.id}/backups/artifacts/{artifact_id}"
+    try:
+        location += f"?against={uuid.UUID(against)}" if against else ""
+    except ValueError:
+        pass
+    return RedirectResponse(location, status_code=302)
 
 
-@router.get(
-    "/operations/backups/artifacts/{artifact_id}/diff",
-    response_class=HTMLResponse,
-    name="backup_artifact_text_diff",
-)
+@router.get("/operations/backups/artifacts/{artifact_id}/view", include_in_schema=False)
+def backup_artifact_text_view(request: Request, artifact_id: uuid.UUID, against: str = ""):
+    return _artifact_redirect(request, artifact_id, against)
+
+
+@router.get("/operations/backups/artifacts/{artifact_id}/diff", include_in_schema=False)
 def backup_artifact_text_diff(request: Request, artifact_id: uuid.UUID, compare_id: uuid.UUID):
-    return backup_artifact_text_view(request, artifact_id, against=str(compare_id))
+    return _artifact_redirect(request, artifact_id, str(compare_id))
 
 
 def install_backup_text_tools(app):

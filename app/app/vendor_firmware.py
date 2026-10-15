@@ -21,12 +21,9 @@ from __future__ import annotations
 
 import fnmatch
 import re
-import uuid
 from datetime import date, datetime, timedelta
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 
 from app import main as core
@@ -34,12 +31,8 @@ from app import vendor_cpe
 from app.db import SessionLocal
 from app.input_errors import InputError
 from app.models import Device, utcnow
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 from app.vendor_firmware_models import VendorFirmwareRelease
 
-router = APIRouter()
-PAGE = "/operations/firmware/catalogs"
 UBNT_API = "https://fw-update.ubnt.com/api/firmware-latest"
 UBNT_REFRESH = timedelta(hours=24)
 SOURCE_LABELS = {"uisp": "UISP", "vendor_api": "API ufficiale", "operator": "operatore"}
@@ -301,60 +294,3 @@ def delete_release_record(db, user, release_id) -> None:
     db.commit()
 
 
-@router.get(PAGE, response_class=HTMLResponse, name="vendor_firmware_catalogs")
-def catalogs_page(request: Request):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "firmware.read"):
-            raise HTTPException(403)
-        return core.render(request, db, user, "vendor_firmware.html", title="Cataloghi firmware", **_context(db))
-
-
-@router.post(f"{PAGE}/releases", name="vendor_firmware_add")
-async def add_release(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "firmware.execute")
-        try:
-            brand, version, stats = add_release_record(db, user, dict(form))
-        except InputError as exc:
-            return flash_redirect(request, PAGE, "warning" if exc.code == "exists" else "danger", str(exc), title="Release non aggiunta")
-    return flash_redirect(request, PAGE, "success", f"Release {version} aggiunta al catalogo {vendor_cpe.label(brand)}: {stats['outdated'] + stats['security']} apparati da aggiornare.",
-                          title="Catalogo aggiornato")
-
-
-@router.post(f"{PAGE}/releases/{{release_id}}/delete", name="vendor_firmware_delete")
-async def delete_release(request: Request, release_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "firmware.execute")
-        try:
-            delete_release_record(db, user, release_id)
-        except InputError as exc:
-            return flash_redirect(request, PAGE, "warning", str(exc), title="Release non eliminata")
-    return flash_redirect(request, PAGE, "success", "Release eliminata dal catalogo.", title="Catalogo aggiornato")
-
-
-@router.post(f"{PAGE}/refresh", name="vendor_firmware_refresh")
-async def refresh(request: Request):
-    global _last_vendor_attempt
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        core.require_permission(request, db, "firmware.execute")
-    _last_vendor_attempt = None
-    stats = run_scheduled()
-    api = stats.get("vendor_api") or {}
-    text = f"UISP: {stats['uisp']} nuove versioni; API Ubiquiti: {api.get('created', 0)} nuove su {api.get('platforms', 0)} piattaforme"
-    if api.get("errors"):
-        text += f" (non raggiungibile: {', '.join(api['errors'][:3])})"
-    text += f"; {stats['evaluation']['evaluated']} apparati valutati."
-    return flash_redirect(request, PAGE, "warning" if api.get("errors") else "success", text, title="Cataloghi aggiornati")
-
-
-def install_vendor_firmware(app) -> None:
-    app.include_router(router)

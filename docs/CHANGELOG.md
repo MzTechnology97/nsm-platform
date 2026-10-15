@@ -4,6 +4,27 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.169 — 2026-10-15
+
+Classic interface removal, operations area (phase 8, R1)
+- **Classic pages removed.** These pages now exist only in the new interface:
+  - Monitoring and agents;
+  - global backups, backup policy forms (including the customer policy form) and the export viewer;
+  - firmware, firmware catalogs and suggestions;
+  - integrations hub and UISP onboarding.
+- **Old addresses keep working.** Each classic address redirects (302) to the same page under `/app` and keeps the filters the new page understands. The export viewer address opens the export in the device's backup tab.
+- **Removed with the pages.** Their form handlers:
+  - ICMP bulk;
+  - policy create, edit, toggle and delete;
+  - export delete;
+  - catalog releases and refresh;
+  - suggestions apply;
+  - onboarding preview and commit.
+
+  Also removed: the backup policy feedback wrappers, 11 templates and an unused export viewer module. File downloads stay where they were.
+- **Zabbix in the new interface.**
+  - Monitoring lists the devices with open Zabbix problems, worst first, and follows the customer and vendor filters.
+  - The device page links to the host's data in Zabbix. It shows a problem badge in the header and the open problems on the overview.
 ## 0.49.168 — 2026-10-15
 
 Classic interface removal, governance area (phase 8, R1)

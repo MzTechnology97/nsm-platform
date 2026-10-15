@@ -1,4 +1,3 @@
-import math
 import uuid
 from collections import defaultdict
 
@@ -22,7 +21,7 @@ from app.customer_workspace import (
     _relevant_customer_policies,
 )
 from app.db import SessionLocal
-from app.models import BackupPolicy, BackupRun, Customer, Device, Site
+from app.models import BackupRun, Customer, Device, Site
 
 router = APIRouter()
 
@@ -233,7 +232,6 @@ def customer_backups(
 
 
 BACKUP_VIEWS = ("attention", "failed", "blocked", "never", "no_policy", "protected", "all")
-OVERVIEW_PER_PAGE = 50
 
 
 def _backup_view_keys(bucket: str, run_state: str) -> set[str]:
@@ -331,73 +329,6 @@ def select_backup_rows(device_rows, view: str = "attention", customer_id=None, q
         )
     )
     return view_counts, selected
-
-
-@router.get(
-    "/operations/backups",
-    response_class=HTMLResponse,
-    name="backup_customer_overview",
-)
-def backup_customer_overview(
-    request: Request,
-    view: str = "attention",
-    customer: str = "",
-    q: str = "",
-    page: int = 1,
-):
-    view = view if view in BACKUP_VIEWS else "attention"
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "backup.read"):
-            raise HTTPException(403)
-
-        customer_id = None
-        if customer:
-            try:
-                customer_id = uuid.UUID(customer)
-            except ValueError:
-                raise HTTPException(400, "Cliente non valido.")
-        state = backup_overview_state(db)
-        view_counts, selected = select_backup_rows(state["device_rows"], view, customer_id, q)
-        total = len(selected)
-        pages = max(1, math.ceil(total / OVERVIEW_PER_PAGE))
-        page = min(max(1, page), pages)
-        selected = selected[(page - 1) * OVERVIEW_PER_PAGE : page * OVERVIEW_PER_PAGE]
-        customer_rows = state["customer_rows"]
-        policy_rows = state["policy_rows"]
-        policies = state["policies"]
-        devices = state["devices"]
-        customers = state["customers"]
-        protected_total = sum(row["protected"] for row in customer_rows)
-        blocked_total = sum(row["blocked"] for row in customer_rows)
-        no_policy_total = sum(row["no_policy"] for row in customer_rows)
-        backup_alerts_total = sum(row["backup_alerts"] for row in customer_rows)
-
-        return core.render(
-            request,
-            db,
-            user,
-            "backup_customer_overview.html",
-            customer_rows=customer_rows,
-            policy_rows=policy_rows,
-            active_policy_count=sum(1 for policy in policies if policy.is_enabled),
-            total_devices=len(devices),
-            protected_total=protected_total,
-            blocked_total=blocked_total,
-            no_policy_total=no_policy_total,
-            backup_alerts_total=backup_alerts_total,
-            rows=selected,
-            view=view,
-            view_counts=view_counts,
-            customers=customers,
-            customer_filter=customer,
-            q=q.strip(),
-            total=total,
-            page=page,
-            pages=pages,
-        )
 
 
 def install_backup_workspace_capabilities(app):

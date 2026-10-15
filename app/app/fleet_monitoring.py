@@ -8,24 +8,16 @@ switched on for a whole customer from this page.
 """
 from __future__ import annotations
 
-import math
-import uuid
 from datetime import timedelta
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from app import icmp_monitor
 from app import main as core
 from app.agent_models import DeviceAgentCredential, DeviceMetricSample
-from app.db import SessionLocal
-from app.models import Customer, Device, utcnow
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
+from app.models import Device, utcnow
 
-router = APIRouter()
 STALE_AGENT_AFTER = timedelta(minutes=15)
 SAMPLE_MAX_AGE = timedelta(hours=2)
 HIGH_CPU = 80.0
@@ -152,80 +144,3 @@ def set_icmp_bulk(db, user, customer_id, enable: bool) -> tuple[int, int]:
     return changed, skipped
 
 
-@router.get("/operations/monitoring", response_class=HTMLResponse, name="fleet_monitoring")
-def fleet_monitoring(request: Request, state: str = "attention", customer: str = "", vendor: str = "", page: int = 1):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "monitoring.read"):
-            raise HTTPException(403)
-        state = state if state in STATES else "attention"
-        now = utcnow()
-        customer_id = None
-        if customer:
-            try:
-                customer_id = uuid.UUID(customer)
-            except ValueError:
-                customer_id = None
-        rows, counts = fleet_rows(db, customer_id, vendor, now)
-
-        if state == "attention":
-            rows = [row for row in rows if row["flags"]]
-        elif state != "all":
-            rows = [row for row in rows if state in row["flags"]]
-        rows.sort(key=lambda row: (-len(row["flags"]), row["device"].status != "offline", -(row["cpu"] or 0)))
-
-        total = len(rows)
-        pages = max(1, math.ceil(total / PAGE_SIZE))
-        page = min(max(1, page), pages)
-        rows = rows[(page - 1) * PAGE_SIZE : page * PAGE_SIZE]
-        return core.render(
-            request,
-            db,
-            user,
-            "fleet_monitoring.html",
-            rows=rows,
-            counts=counts,
-            states=STATES,
-            state=state,
-            customer_filter=str(customer_id) if customer_id else "",
-            vendor_filter=vendor,
-            customers=list(db.scalars(select(Customer).where(Customer.is_active.is_(True)).order_by(Customer.name))),
-            vendors=sorted({v for v in db.scalars(select(Device.vendor).distinct()) if v}),
-            page=page,
-            pages=pages,
-            total=total,
-            thresholds={"cpu": HIGH_CPU, "memory": LOW_MEMORY_PERCENT, "stale_minutes": int(STALE_AGENT_AFTER.total_seconds() // 60)},
-        )
-
-
-@router.post("/operations/monitoring/icmp", name="fleet_monitoring_icmp")
-async def icmp_bulk(request: Request):
-    """Switch the ICMP monitor on (or off) for every device with an address, optionally of one customer."""
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    enable = form.get("action") != "disable"
-    customer = str(form.get("customer") or "")
-    back = "/operations/monitoring?state=all" + (f"&customer={customer}" if customer else "")
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        customer_id = None
-        if customer:
-            try:
-                customer_id = uuid.UUID(customer)
-            except ValueError:
-                return flash_redirect(request, "/operations/monitoring", "warning", "Cliente non valido.", title="Monitoraggio ICMP")
-        changed, skipped = set_icmp_bulk(db, user, customer_id, enable)
-        db.commit()
-    if enable:
-        message = f"Monitoraggio ICMP attivato su {changed} apparati."
-        if skipped:
-            message += f" {skipped} senza IP di gestione: indicalo nella pagina dell'apparato."
-    else:
-        message = f"Monitoraggio ICMP disattivato su {changed} apparati."
-    return flash_redirect(request, back, "success", message, title="Monitoraggio ICMP")
-
-
-def install_fleet_monitoring(app) -> None:
-    app.include_router(router)

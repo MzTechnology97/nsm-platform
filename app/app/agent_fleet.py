@@ -1,20 +1,15 @@
 """Global MikroTik agent fleet health and installation worklist."""
 from __future__ import annotations
 
-import math
 import uuid
 from datetime import timedelta, timezone
 
-from fastapi import HTTPException, Request
-from fastapi.responses import HTMLResponse
 from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
-from app import main as core
 from app.agent_models import DeviceAgentCredential
-from app.db import SessionLocal
 from app.mikrotik_agent_status import HEARTBEAT_STALE_AFTER, _installation_state, _transport
-from app.models import Customer, Device, DeviceEnrollment, utcnow
+from app.models import Device, DeviceEnrollment, utcnow
 
 PER_PAGE = 50
 ENROLLMENT_HISTORY_WINDOW = timedelta(days=30)
@@ -239,66 +234,3 @@ def filter_rows(scope_rows, state: str = "attention", transport: str = "", insta
     return rows
 
 
-def agent_fleet(
-    request: Request,
-    q: str = "",
-    customer: str = "",
-    state: str = "attention",
-    transport: str = "",
-    install: str = "",
-    page: int = 1,
-):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "devices.read"):
-            raise HTTPException(403)
-
-        page = max(1, int(page or 1))
-        customer_id = _uuid_or_none(customer)
-        term = q.strip()
-        state = state if state in STATES else "attention"
-        transport = transport if transport in {"legacy", "modern", "unknown"} else ""
-        install = install if install in INSTALL_FILTERS else ""
-
-        scope_rows, summary = fleet_scope(db, term, customer_id)
-        rows = filter_rows(scope_rows, state, transport, install)
-
-        total = len(rows)
-        pages = max(1, math.ceil(total / PER_PAGE))
-        page = min(page, pages)
-        rows = rows[(page - 1) * PER_PAGE : page * PER_PAGE]
-
-        customers = list(db.scalars(select(Customer).order_by(Customer.name)))
-        selected_customer = db.get(Customer, customer_id) if customer_id else None
-
-        return core.render(
-            request,
-            db,
-            user,
-            "agent_fleet.html",
-            rows=rows,
-            customers=customers,
-            selected_customer=selected_customer,
-            summary=summary,
-            q=term,
-            customer_filter=customer,
-            state_filter=state,
-            transport_filter=transport,
-            install_filter=install,
-            total=total,
-            page=page,
-            pages=pages,
-        )
-
-
-def install_agent_fleet(app):
-    app.add_api_route(
-        "/operations/agents",
-        agent_fleet,
-        methods=["GET"],
-        response_class=HTMLResponse,
-        name="agent_fleet",
-        include_in_schema=False,
-    )
