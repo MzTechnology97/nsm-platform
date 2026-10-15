@@ -693,7 +693,8 @@
       "expires": "Expire dans",
       "static": "statique",
       "none": "Aucun bail trouvé."
-    }
+    },
+    "noOutput": "L'agent n'a renvoyé aucune sortie."
   },
   "customers": {
     "title": "Clients",

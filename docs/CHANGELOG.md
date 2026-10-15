@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.166 — 2026-10-15
+
+New interface — support snapshot output, phase 8c
+- **Support snapshot.** "Open" in the device Diagnostics tab shows the collected sections (resources, IP, routes, interfaces, PPP, DHCP, log) inline, each one collapsible. It used to open the classic result page. The JSON export is unchanged.
+- **API.** `GET /api/ui/v1/devices/{id}/diagnostics/jobs/{job_id}/output` (`monitoring.read`); the diagnostics list no longer returns the classic `classic_url`.
+
 ## 0.49.165 — 2026-10-15
 
 New interface — monitored interfaces, phase 8b

@@ -54,6 +54,7 @@ def main():
             db.add(item)
             return item
 
+        job("support_snapshot", {}, {"data": {"resource": {"cpu-load": "3"}, "routes": [{"dst-address": "0.0.0.0/0", "gateway": "192.0.2.1"}]}}, 30)
         job("diagnostic_ping", {"target": "192.0.2.1"}, {"data": PING}, 6)
         job("diagnostic_traceroute", {"target": "192.0.2.1"}, {"data": TRACE}, 5)
         job("diagnostic_neighbors", {}, {"data": [{"interface": "ether1", "address": "192.0.2.2", "mac-address": mac.lower(), "identity": "TEST-NB"}]}, 4)
@@ -76,7 +77,7 @@ def main():
     body = client.get(base).json()
     assert body["transport"] == "modern" and body["online"] and body["support_snapshot"] and body["traceroute"] and body["can_run"]
     jobs = body["jobs"]
-    assert [j["diagnostic"] for j in jobs] == ["ping", "logs", "dhcp_lookup", "neighbors", "traceroute", "ping"]
+    assert [j["diagnostic"] for j in jobs] == ["ping", "logs", "dhcp_lookup", "neighbors", "traceroute", "ping", "support_snapshot"]
     assert jobs[0]["status"] == "failed" and jobs[0]["error"] == "RouterOS ping failed" and jobs[0]["result"] is None and jobs[0]["export_url"] is None
     ping = jobs[5]["result"]
     assert ping["kind"] == "ping" and (ping["sent"], ping["received"], ping["loss"]) == (2, 1, 50.0) and jobs[5]["target"] == "192.0.2.1"
@@ -112,6 +113,13 @@ def main():
     assert offline.status_code == 409, offline.text
     assert client.get(f"/api/ui/v1/devices/{ids['offline']}/diagnostics").json()["online"] is False
     assert client.get(f"/api/ui/v1/devices/{ids['cpe']}/diagnostics").status_code == 404
+
+    # Support snapshot: raw data in the new interface (no classic result page).
+    snap_id = next(j["id"] for j in client.get(base).json()["jobs"] if j["diagnostic"] == "support_snapshot")
+    raw = client.get(f"{base}/jobs/{snap_id}/output").json()
+    assert raw["diagnostic"] == "support_snapshot" and raw["data"]["resource"]["cpu-load"] == "3" and raw["data"]["routes"][0]["gateway"] == "192.0.2.1"
+    assert client.get(f"{base}/jobs/{uuid.uuid4()}/output").status_code == 404
+    assert "classic_url" not in client.get(base).json()["jobs"][0]
 
     operator, op_headers = login(f"ci-ud-op-{suffix}")
     assert operator.get(base).json()["can_run"] is False

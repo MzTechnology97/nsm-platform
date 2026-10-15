@@ -6,7 +6,7 @@ import { diagnosticSummary } from "../lib/diagnostics";
 
 const job = (over: Partial<DiagnosticJob>): DiagnosticJob => ({
   id: "j", diagnostic: "ping", status: "success", created_at: null, completed_at: null, target: "192.0.2.1", source: null, query: null,
-  error: null, result: null, classic_url: "", export_url: null, ...over,
+  error: null, result: null, export_url: null, ...over,
 });
 
 describe("diagnosticSummary", () => {
