@@ -219,3 +219,81 @@
 .ui-page > .ui-backup-bar {
   margin-bottom: var(--space-3);
 }
+
+/* Text export viewer and diff (read-only, monospace, line numbers). */
+.ui-rsc-compare {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ui-rsc-compare select {
+  max-width: 100%;
+}
+
+.ui-rsc-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-weight: 600;
+}
+
+.ui-rsc-added {
+  color: var(--success);
+}
+
+.ui-rsc-removed {
+  color: var(--danger);
+}
+
+.ui-rsc {
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.ui-rsc-line {
+  display: flex;
+  min-width: max-content;
+}
+
+.ui-rsc-no {
+  flex: 0 0 4.5em;
+  padding: 0 8px;
+  text-align: right;
+  color: var(--muted);
+  user-select: none;
+  border-right: 1px solid var(--border);
+}
+
+.ui-rsc-sign {
+  flex: 0 0 1.5em;
+  text-align: center;
+  user-select: none;
+}
+
+.ui-rsc-text {
+  padding: 0 10px;
+  white-space: pre;
+}
+
+.ui-rsc-line.is-added {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+}
+
+.ui-rsc-line.is-removed {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+}
+
+.ui-rsc-gap {
+  padding: 2px 12px;
+  color: var(--muted);
+  background: var(--panel);
+  border-block: 1px dashed var(--border);
+}

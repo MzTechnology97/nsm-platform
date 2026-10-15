@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.153 — 2026-10-15
+
+New interface (React) — backup text exports, phase 7q
+- **Export viewer** (`/app/devices/{id}/backups/artifacts/{artifact_id}`), opened from "Open / compare" in the device Backup tab and from "View" / "Diff" in the configuration history:
+  - read-only RouterOS export with line numbers, a search box that keeps the original line numbers, size and SHA-256, download and restore-test links;
+  - comparison with any older text export of the same device: added / removed / unchanged counts, changes only with 3 lines of context (or the whole file), a notice when the diff is truncated;
+  - binary, too large and invalid comparisons show a translated message.
+- The Backup tab stays highlighted on its sub-pages.
+- **Shared code.** `device_backup_explorer.artifact_text_record` reads, diffs and audits the export (`BACKUP_EXPORT_VIEWED` / `BACKUP_EXPORT_DIFF_VIEWED`); the classic viewer uses it and behaves as before.
+- **API.**
+  - `GET /api/ui/v1/devices/{id}/backups/artifacts/{artifact_id}?against=` (`backup.read`); errors are 422 `binary`, `too_large`, `compare_id`, `compare_binary`;
+  - the device backup list now returns `viewable` instead of the classic `view_url`.
+
 ## 0.49.152 — 2026-10-15
 
 New interface (React) — device lifecycle, phase 7p

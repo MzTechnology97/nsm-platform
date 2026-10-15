@@ -6,9 +6,12 @@
 - ``POST   /api/ui/v1/devices/{id}/backups/run``: immediate agent backup,
   same rules as the classic "Backup adesso" (``backup.execute``);
 - ``DELETE /api/ui/v1/devices/{id}/backups/artifacts/{artifact_id}``: removes
-  one file from the archive (``backup.configure``), audited like the classic page.
+  one file from the archive (``backup.configure``), audited like the classic page;
+- ``GET    /api/ui/v1/devices/{id}/backups/artifacts/{artifact_id}``: a text export
+  with its line count, optionally diffed with ``against`` (an older export of the
+  same device), audited like the classic viewer (``backup.read``).
 
-Viewing/diffing exports, downloads and restore tests keep their classic URLs.
+Downloads and restore tests keep their classic URLs.
 """
 from __future__ import annotations
 
@@ -23,7 +26,8 @@ from app.backup_capabilities import capability_for_device
 from app.backup_models import BackupArtifact
 from app.backup_storage import remove_artifact_file
 from app.db import SessionLocal
-from app.device_backup_explorer import _artifact_for_device, _artifact_kind, _device, _manual_backup_context
+from app.device_backup_explorer import _artifact_for_device, _artifact_kind, _device, _manual_backup_context, artifact_text_record
+from app.input_errors import InputError
 from app.models import BackupRun, utcnow
 from app.restore_test_models import BackupRestoreTest
 from app.ui_api import require_csrf, ui_user
@@ -89,7 +93,7 @@ def device_backups(request: Request, device_id: uuid.UUID, kind: str = "all", st
                 "files": [{
                     "id": str(a.id), "filename": a.filename, "size": a.size_bytes, "sha256": a.sha256, "kind": _artifact_kind(a),
                     "restore": {"result": restores[a.id].result, "performed_at": _iso(restores[a.id].performed_at)} if a.id in restores else None,
-                    "view_url": f"{base}/artifacts/{a.id}/view" if _artifact_kind(a) == "export" else None,
+                    "viewable": _artifact_kind(a) == "export",
                     "download_url": f"{base}/artifacts/{a.id}/download",
                     "restore_url": f"{base}/artifacts/{a.id}/restore-test",
                 } for a in files],
@@ -158,3 +162,40 @@ def device_backup_delete(request: Request, device_id: uuid.UUID, artifact_id: uu
 
 def install_ui_device_backup(app) -> None:
     app.include_router(router)
+
+
+READ_ERRORS = {413: "too_large", 415: "binary"}
+
+
+def _file(artifact, run) -> dict:
+    return {
+        "id": str(artifact.id), "filename": artifact.filename, "size": artifact.size_bytes, "sha256": artifact.sha256,
+        "created_at": _iso(artifact.created_at), "run_started_at": _iso(run.started_at), "backup_type": run.backup_type,
+    }
+
+
+@router.get("/devices/{device_id}/backups/artifacts/{artifact_id}")
+def device_backup_artifact(request: Request, device_id: uuid.UUID, artifact_id: uuid.UUID, against: str = ""):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "backup.read")
+        device = _device(db, device_id)
+        try:
+            view = artifact_text_record(db, user, device, artifact_id, against)
+        except InputError as exc:
+            raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
+        except HTTPException as exc:
+            if exc.status_code in READ_ERRORS:
+                raise HTTPException(422, {"code": READ_ERRORS[exc.status_code], "message": str(exc.detail)}) from exc
+            raise
+        artifact, base = view["artifact"], f"/devices/{device.id}/backups/artifacts"
+        diff = None
+        if view["against_artifact"] is not None:
+            diff = {"rows": view["diff_rows"], "summary": view["diff_summary"]}
+        return {
+            "artifact": _file(artifact, view["run"]),
+            "lines": view["text"].splitlines(),
+            "candidates": [_file(a, r) for a, r in view["candidates"]],
+            "against": _file(view["against_artifact"], view["against_run"]) if view["against_artifact"] is not None else None,
+            "diff": diff,
+            "links": {"download": f"{base}/{artifact.id}/download", "restore": f"{base}/{artifact.id}/restore-test"},
+        }

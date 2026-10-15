@@ -385,7 +385,7 @@
       "actions": "Actions"
     },
     "actions": {
-      "view": "Open / Diff",
+      "view": "Open / compare",
       "download": "Download",
       "restore": "Restore test",
       "delete": "Delete"
@@ -3882,6 +3882,44 @@
       "action": "Action",
       "status": "State",
       "note": "Note"
+    }
+  },
+  "backupArtifact": {
+    "back": "Back to the archive",
+    "meta_one": "{{when}} · {{size}} · {{count}} line",
+    "meta_other": "{{when}} · {{size}} · {{count}} lines",
+    "compareWith": "Compare with",
+    "noCompare": "No comparison · read only",
+    "noCandidates": "No other text export of this device to compare with.",
+    "diffTitle": "Configuration differences",
+    "diffHelp": "Before: {{before}} → after: {{after}}.",
+    "added_one": "+ {{count}} added",
+    "added_other": "+ {{count}} added",
+    "removed_one": "− {{count}} removed",
+    "removed_other": "− {{count}} removed",
+    "unchanged_one": "{{count}} unchanged",
+    "unchanged_other": "{{count}} unchanged",
+    "changesOnly": "Changes only (with 3 lines of context)",
+    "closeDiff": "Close the comparison",
+    "truncated": "The differences are too large: only the first 20,000 lines are shown.",
+    "identical": "The two configurations are identical.",
+    "kinds": {
+      "added": "added",
+      "removed": "removed",
+      "context": "unchanged"
+    },
+    "contentTitle": "Export content",
+    "contentHelp": "Read only. The NSM Agent export follows the standard RouterOS behaviour, without show-sensitive; binary backups are never shown in the browser.",
+    "filter": "Search the text",
+    "matches_one": "{{count}} matching line",
+    "matches_other": "{{count}} matching lines",
+    "noMatch": "No line contains the searched text.",
+    "empty": "The export is empty.",
+    "errors": {
+      "binary": "This backup is binary: it can only be downloaded.",
+      "too_large": "The export is too large to show in the browser: download it.",
+      "compare_id": "The requested comparison is not valid.",
+      "compare_binary": "A comparison needs two text exports of the same device."
     }
   }
 }

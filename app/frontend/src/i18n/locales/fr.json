@@ -385,7 +385,7 @@
       "actions": "Actions"
     },
     "actions": {
-      "view": "Ouvrir / Diff",
+      "view": "Ouvrir / comparer",
       "download": "Télécharger",
       "restore": "Test de restauration",
       "delete": "Supprimer"
@@ -3882,6 +3882,44 @@
       "action": "Action",
       "status": "État",
       "note": "Note"
+    }
+  },
+  "backupArtifact": {
+    "back": "Retour à l'archive",
+    "meta_one": "{{when}} · {{size}} · {{count}} ligne",
+    "meta_other": "{{when}} · {{size}} · {{count}} lignes",
+    "compareWith": "Comparer avec",
+    "noCompare": "Aucune comparaison · lecture seule",
+    "noCandidates": "Aucun autre export texte de cet équipement à comparer.",
+    "diffTitle": "Différences de configuration",
+    "diffHelp": "Avant : {{before}} → après : {{after}}.",
+    "added_one": "+ {{count}} ajoutée",
+    "added_other": "+ {{count}} ajoutées",
+    "removed_one": "− {{count}} supprimée",
+    "removed_other": "− {{count}} supprimées",
+    "unchanged_one": "{{count}} inchangée",
+    "unchanged_other": "{{count}} inchangées",
+    "changesOnly": "Modifications seulement (avec 3 lignes de contexte)",
+    "closeDiff": "Fermer la comparaison",
+    "truncated": "Différences trop étendues : seules les 20 000 premières lignes sont affichées.",
+    "identical": "Les deux configurations sont identiques.",
+    "kinds": {
+      "added": "ajoutée",
+      "removed": "supprimée",
+      "context": "inchangée"
+    },
+    "contentTitle": "Contenu de l'export",
+    "contentHelp": "Lecture seule. L'export de l'Agent NSM suit le comportement standard de RouterOS, sans show-sensitive ; les sauvegardes binaires ne sont jamais affichées dans le navigateur.",
+    "filter": "Rechercher dans le texte",
+    "matches_one": "{{count}} ligne trouvée",
+    "matches_other": "{{count}} lignes trouvées",
+    "noMatch": "Aucune ligne ne contient le texte recherché.",
+    "empty": "L'export est vide.",
+    "errors": {
+      "binary": "Cette sauvegarde est binaire : elle peut seulement être téléchargée.",
+      "too_large": "L'export est trop volumineux pour être affiché dans le navigateur : téléchargez-le.",
+      "compare_id": "La comparaison demandée n'est pas valide.",
+      "compare_binary": "Une comparaison nécessite deux exports texte du même équipement."
     }
   }
 }

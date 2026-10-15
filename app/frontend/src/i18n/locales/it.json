@@ -385,7 +385,7 @@
       "actions": "Azioni"
     },
     "actions": {
-      "view": "Apri / Diff",
+      "view": "Apri / confronta",
       "download": "Scarica",
       "restore": "Restore test",
       "delete": "Elimina"
@@ -3882,6 +3882,44 @@
       "action": "Azione",
       "status": "Stato",
       "note": "Nota"
+    }
+  },
+  "backupArtifact": {
+    "back": "Torna all'archivio",
+    "meta_one": "{{when}} · {{size}} · {{count}} riga",
+    "meta_other": "{{when}} · {{size}} · {{count}} righe",
+    "compareWith": "Confronta con",
+    "noCompare": "Nessun confronto · solo lettura",
+    "noCandidates": "Nessun altro export testuale di questo apparato da confrontare.",
+    "diffTitle": "Differenze di configurazione",
+    "diffHelp": "Prima: {{before}} → dopo: {{after}}.",
+    "added_one": "+ {{count}} aggiunta",
+    "added_other": "+ {{count}} aggiunte",
+    "removed_one": "− {{count}} rimossa",
+    "removed_other": "− {{count}} rimosse",
+    "unchanged_one": "{{count}} invariata",
+    "unchanged_other": "{{count}} invariate",
+    "changesOnly": "Solo le modifiche (con 3 righe di contesto)",
+    "closeDiff": "Chiudi il confronto",
+    "truncated": "Differenze troppo estese: sono mostrate solo le prime 20.000 righe.",
+    "identical": "Le due configurazioni sono identiche.",
+    "kinds": {
+      "added": "aggiunta",
+      "removed": "rimossa",
+      "context": "invariata"
+    },
+    "contentTitle": "Contenuto dell'export",
+    "contentHelp": "Sola lettura. L'export dell'Agent NSM segue il comportamento standard di RouterOS, senza show-sensitive; i backup binari non vengono mai mostrati nel browser.",
+    "filter": "Cerca nel testo",
+    "matches_one": "{{count}} riga trovata",
+    "matches_other": "{{count}} righe trovate",
+    "noMatch": "Nessuna riga contiene il testo cercato.",
+    "empty": "L'export è vuoto.",
+    "errors": {
+      "binary": "Questo backup è binario: si può solo scaricare.",
+      "too_large": "L'export è troppo grande per essere mostrato nel browser: scaricalo.",
+      "compare_id": "Il confronto richiesto non è valido.",
+      "compare_binary": "Il confronto richiede due export testuali dello stesso apparato."
     }
   }
 }

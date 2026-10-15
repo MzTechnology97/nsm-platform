@@ -9,7 +9,7 @@ export interface BackupFile {
   sha256: string | null;
   kind: "export" | "binary";
   restore: { result: string; performed_at: string | null } | null;
-  view_url: string | null;
+  viewable: boolean;
   download_url: string;
   restore_url: string;
 }
@@ -70,3 +70,37 @@ export function useDeleteBackupFile(id: string) {
     onSuccess: () => client.invalidateQueries({ queryKey: ["backups", id] }),
   });
 }
+
+export interface ArtifactFile {
+  id: string;
+  filename: string;
+  size: number | null;
+  sha256: string | null;
+  created_at: string | null;
+  run_started_at: string | null;
+  backup_type: string | null;
+}
+
+export interface DiffRow {
+  kind: "context" | "added" | "removed";
+  old: number | null;
+  new: number | null;
+  text: string;
+}
+
+export interface ArtifactText {
+  artifact: ArtifactFile;
+  lines: string[];
+  candidates: ArtifactFile[];
+  against: ArtifactFile | null;
+  diff: { rows: DiffRow[]; summary: { added: number; removed: number; unchanged: number; truncated: boolean } } | null;
+  links: { download: string; restore: string };
+}
+
+export const useBackupArtifact = (id: string, artifactId: string, against: string) =>
+  useQuery({
+    queryKey: ["backup-artifact", id, artifactId, against],
+    queryFn: () => api<ArtifactText>(`${base(id)}/artifacts/${encodeURIComponent(artifactId)}${against ? `?against=${encodeURIComponent(against)}` : ""}`),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
