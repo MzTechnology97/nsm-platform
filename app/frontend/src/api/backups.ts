@@ -11,7 +11,6 @@ export interface BackupFile {
   restore: { result: string; performed_at: string | null } | null;
   viewable: boolean;
   download_url: string;
-  restore_url: string;
 }
 
 export interface BackupRun {
@@ -38,7 +37,7 @@ export interface DeviceBackups {
   run: { pending: boolean; blocker: string | null; can_execute: boolean; can_run: boolean };
   can_delete: boolean;
   runs: BackupRun[];
-  links: { classic: string; restore_tests: string; policies: string };
+  links: { classic: string; policies: string };
 }
 
 export type BackupFilters = { kind: "all" | "binary" | "export"; status: "all" | "success" | "failed" };
@@ -94,7 +93,7 @@ export interface ArtifactText {
   candidates: ArtifactFile[];
   against: ArtifactFile | null;
   diff: { rows: DiffRow[]; summary: { added: number; removed: number; unchanged: number; truncated: boolean } } | null;
-  links: { download: string; restore: string };
+  links: { download: string };
 }
 
 export const useBackupArtifact = (id: string, artifactId: string, against: string) =>
@@ -104,3 +103,61 @@ export const useBackupArtifact = (id: string, artifactId: string, against: strin
     staleTime: 5 * 60_000,
     retry: false,
   });
+
+export interface RestoreTest {
+  id: string;
+  result: "passed" | "partial" | "failed" | string;
+  method: string;
+  target: string;
+  target_version: string | null;
+  source_version: string | null;
+  notes: string | null;
+  performed_at: string | null;
+  recorded_at: string | null;
+  performed_by: string | null;
+  integrity_ok: boolean;
+  artifact: { id: string | null; filename: string; type: string; sha256: string | null; size: number | null; live: boolean };
+}
+
+export interface RestoreTestForm {
+  artifact: ArtifactFile & { type: string; kind: "export" | "binary"; run_status: string };
+  integrity: { ok: boolean; file_present: boolean; size_matches: boolean; sha256_matches: boolean; checked_at: string };
+  source_version: string | null;
+  methods: string[];
+  results: string[];
+  history: RestoreTest[];
+  can_record: boolean;
+  links: { download: string };
+}
+
+export interface RestoreTestInput {
+  method: string;
+  target_label: string;
+  target_routeros_version: string;
+  result: string;
+  performed_at: string;
+  notes: string;
+}
+
+export const useRestoreTests = (id: string) =>
+  useQuery({ queryKey: ["restore-tests", id], queryFn: () => api<{ tests: RestoreTest[] }>(`${base(id)}/restore-tests`), staleTime: 15_000 });
+
+export const useRestoreTestForm = (id: string, artifactId: string) =>
+  useQuery({
+    queryKey: ["restore-test", id, artifactId],
+    queryFn: () => api<RestoreTestForm>(`${base(id)}/artifacts/${encodeURIComponent(artifactId)}/restore-test`),
+    retry: false,
+  });
+
+export function useRecordRestoreTest(id: string, artifactId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: RestoreTestInput) =>
+      api<{ id: string; result: string }>(`${base(id)}/artifacts/${encodeURIComponent(artifactId)}/restore-test`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["restore-test", id, artifactId] });
+      client.invalidateQueries({ queryKey: ["restore-tests", id] });
+      client.invalidateQueries({ queryKey: ["backups", id] });
+    },
+  });
+}

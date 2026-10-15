@@ -3921,5 +3921,68 @@
       "compare_id": "The requested comparison is not valid.",
       "compare_binary": "A comparison needs two text exports of the same device."
     }
+  },
+  "restoreTests": {
+    "title": "Restore test history",
+    "history": "Restore test history",
+    "help": "Restore evidence recorded by operators. The file name, SHA-256 and size stay on record after retention removes the file.",
+    "columns": {
+      "performed": "Performed",
+      "result": "Result",
+      "artifact": "File",
+      "target": "Method / target",
+      "integrity": "Integrity",
+      "notes": "Notes"
+    },
+    "gone": "(no longer archived)",
+    "integrityOk": "Verified",
+    "integrityKo": "Not verified",
+    "targetWithVersion": "{{target}} · RouterOS {{version}}",
+    "empty": "No restore test recorded yet. Open the backup archive and use \"Restore test\" on a file.",
+    "methods": {
+      "isolated_lab": "Isolated lab (CHR / test device)",
+      "spare_device": "Spare device out of production",
+      "config_review": "Review of the imported configuration"
+    },
+    "formTitle": "Restore test · {{name}}",
+    "formHelp": "Record the outcome of a restore performed in a controlled environment. NSM never restores a production device automatically.",
+    "integrity": "Integrity",
+    "intact": "Intact",
+    "notVerified": "Not verified",
+    "checkedNow": "checked now on the archived file",
+    "run": "Backup run",
+    "file": "File",
+    "present": "Present",
+    "missing": "Missing",
+    "sizeOk": "size matches",
+    "sizeKo": "size does not match",
+    "shaOk": "Verified",
+    "shaKo": "Does not match",
+    "sourceVersion": "Source RouterOS",
+    "notDeclared": "not declared",
+    "notIntact": "The file is not intact: only a partial or failed outcome can be recorded.",
+    "recordTitle": "Record the outcome",
+    "recordHelp": "Use an isolated target: a lab CHR, a spare device or a review of the imported export.",
+    "method": "Method",
+    "result": "Result",
+    "choose": "Choose…",
+    "target": "Restore target",
+    "targetVersion": "Target RouterOS version",
+    "performedAt": "Performed on",
+    "performedHelp": "Leave empty to use the current time.",
+    "notes": "Notes and evidence",
+    "notesPlaceholder": "What was checked (interfaces, routing, firewall, services) and what did not work.",
+    "submit": "Record restore test",
+    "recorded": "Restore test recorded with result: {{result}}.",
+    "fileHistory": "History of this file",
+    "noFileHistory": "No restore test recorded for this file.",
+    "errors": {
+      "method": "Choose the method used for the restore test.",
+      "result": "Choose the restore test result.",
+      "target": "Enter the restore target (e.g. a lab CHR).",
+      "performed_at": "The test date and time are not valid.",
+      "performed_future": "The test date cannot be in the future.",
+      "integrity": "File integrity not verified: a passed restore test cannot be recorded."
+    }
   }
 }
