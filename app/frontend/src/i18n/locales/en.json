@@ -3420,5 +3420,97 @@
     "diff": "Differences",
     "setBaseline": "Set as baseline",
     "noExports": "No configuration export: the history appears after the first MikroTik backup in .rsc format."
+  },
+  "deviceReboot": {
+    "title": "Controlled reboot",
+    "help": "The agent confirms the request to NSM and only then runs /system reboot; NSM considers the reboot successful when the device comes back online with its uptime reset.",
+    "states": {
+      "queued": "Queued: the agent gets it at the next heartbeat",
+      "rebooting": "Reboot confirmed by the agent, waiting for the device to come back",
+      "verified": "Reboot verified",
+      "failed": "Reboot failed"
+    },
+    "requested": "Requested by {{who}} on {{when}}",
+    "reason": "Reason",
+    "uptime": "Uptime before / after: {{before}} → {{after}}",
+    "waiting": "waiting",
+    "impact": "The customer's service stops while the device reboots.",
+    "submit": "Reboot the device",
+    "queued": "Reboot queued: the agent runs it at the next heartbeat (within 2 minutes).",
+    "noPermission": "The firmware execution permission is needed to reboot the device.",
+    "routerboot": "RouterBOOT",
+    "history": "Reboot history",
+    "noHistory": "No reboot requested by NSM.",
+    "errors": {
+      "confirm_name": "The confirmation name does not match: no reboot requested.",
+      "reason_short": "Give the reason for the reboot (at least 5 characters)."
+    }
+  },
+  "deviceRouterboot": {
+    "title": "RouterBOOT",
+    "help": "Bootloader separate from RouterOS: flash and reboot are two distinct, confirmed and verified steps.",
+    "rebootPage": "Controlled reboot",
+    "current": "Active RouterBOOT",
+    "available": "Available RouterBOOT",
+    "workflow": "State",
+    "checked": "Last check",
+    "states": {
+      "idle": "no operation",
+      "staging": "flashing",
+      "staged": "flashed",
+      "reboot_pending": "reboot queued",
+      "rebooting": "rebooting",
+      "success": "verified",
+      "failed": "failed"
+    },
+    "noAuto": "NSM does not enable RouterBOARD auto-upgrade: flash and reboot are separate, recorded actions.",
+    "verified": "RouterBOOT verified after the reboot: active version {{version}}.",
+    "steps": {
+      "readiness": {
+        "title": "Read",
+        "help": "Reads current-firmware and upgrade-firmware without changes."
+      },
+      "flash": {
+        "title": "Bootloader flash",
+        "help": "Runs only /system routerboard upgrade, with no reboot."
+      },
+      "reboot": {
+        "title": "Explicit reboot",
+        "help": "Second confirmation; the router acknowledges to NSM before rebooting."
+      },
+      "verify": {
+        "title": "Verification",
+        "help": "Closes the flow only if current-firmware matches the expected version."
+      }
+    },
+    "stepStates": {
+      "done": "done",
+      "running": "running",
+      "pending": "pending",
+      "failed": "failed"
+    },
+    "readFirst": "Run «Check now» from the Firmware page first to read current-firmware and upgrade-firmware.",
+    "aligned": "RouterBOOT already matches the available version: {{version}}.",
+    "confirm": "To confirm, type exactly: {{text}}",
+    "flashTitle": "Flash RouterBOOT {{version}}",
+    "flashHelp": "Updates the stored bootloader but does not reboot the router.",
+    "flash": "Flash",
+    "rebootTitle": "Reboot to apply RouterBOOT",
+    "rebootHelp": "The bootloader is ready: the reboot is separate and needs a second confirmation.",
+    "reboot": "Reboot and verify",
+    "staging": "Flash queued: waiting for the agent's result.",
+    "rebootPending": "Reboot queued: the agent has yet to confirm.",
+    "rebooting": "Reboot accepted: NSM waits for the device to come back and a new read.",
+    "errors": {
+      "not_modern": "The modern agent (RouterOS 7.13+) is required.",
+      "profile": "Agent profile not suitable: reinstall the agent.",
+      "offline": "The MikroTik must be online with an active agent credential.",
+      "not_read": "Run a firmware check first.",
+      "up_to_date": "RouterBOOT is already up to date.",
+      "confirmation": "Invalid confirmation.",
+      "busy": "A RouterBOOT operation is already running.",
+      "not_staged": "The bootloader must be flashed first.",
+      "no_target": "Target version missing."
+    }
   }
 }

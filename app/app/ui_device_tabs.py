@@ -17,7 +17,14 @@
 - ``GET /api/ui/v1/devices/{id}/configuration/history`` (``backup.read``):
   archived RouterOS exports with the change summary, baseline and open drift;
   ``POST .../history/{artifact_id}/baseline`` (``backup.configure``) approves
-  one (``config_drift.set_baseline_record``).
+  one (``config_drift.set_baseline_record``);
+- ``GET /api/ui/v1/devices/{id}/reboot`` (``firmware.read``): blocker, last
+  request and history; ``POST`` (``firmware.execute``) queues a controlled
+  reboot once the device name is typed (``queue_reboot_record``);
+- ``GET /api/ui/v1/devices/{id}/routerboot`` (``firmware.read``, MikroTik):
+  bootloader versions and workflow state; ``POST .../stage`` and
+  ``.../reboot`` (``firmware.execute``) with the classic literal confirmations
+  (``routerboot_lifecycle.stage_record`` / ``reboot_record``).
 
 Customer scope comes from the global ORM filter (another customer's device is a 404).
 """
@@ -233,3 +240,94 @@ def device_configuration_baseline(request: Request, device_id: uuid.UUID, artifa
         device = _mikrotik(db, device_id)
         config_drift.set_baseline_record(db, user, device, artifact_id)
         return {"baseline_id": str(artifact_id)}
+
+
+# --- Reboot and RouterBOOT -----------------------------------------------------------------------
+
+def _input_error(exc: InputError) -> HTTPException:
+    return HTTPException(422, {"code": exc.code, "message": str(exc.detail)})
+
+
+def _name(device) -> str:
+    return device.display_name or device.device_identity or device.name
+
+
+@router.get("/devices/{device_id}/reboot")
+def device_reboot(request: Request, device_id: uuid.UUID):
+    from app import mikrotik_device_reboot as reboot
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.read")
+        device = _device(db, device_id)
+        return jsonable_encoder({
+            "blocker": reboot.reboot_blocker(db, device),
+            "state": reboot._state(device),
+            "history": [{"id": str(j.id), "created_at": j.created_at, "reason": (j.payload or {}).get("reason"), "status": j.status,
+                         "last_error": j.last_error} for j in reboot.reboot_history(db, device)],
+            "can_execute": core.has_permission(user, "firmware.execute"),
+            "name": _name(device),
+        })
+
+
+@router.post("/devices/{device_id}/reboot", dependencies=[Depends(require_csrf)])
+def device_reboot_queue(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    from app import mikrotik_device_reboot as reboot
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.execute")
+        device = _device(db, device_id)
+        confirm = body.get("confirm_name")
+        if not isinstance(confirm, str) or confirm.strip() != _name(device):
+            raise HTTPException(422, {"code": "confirm_name", "message": "Il nome di conferma non corrisponde all'apparato."})
+        reason = body.get("reason")
+        try:
+            job = reboot.queue_reboot_record(db, user, device, reason if isinstance(reason, str) else "")
+        except InputError as exc:
+            raise _input_error(exc) from None
+        return {"job_id": str(job.id)}
+
+
+def _routerboot_device(db, device_id: uuid.UUID) -> Device:
+    device = _device(db, device_id)
+    if device.vendor != "mikrotik":
+        raise HTTPException(404, "RouterBOOT disponibile solo per MikroTik.")
+    return device
+
+
+@router.get("/devices/{device_id}/routerboot")
+def device_routerboot(request: Request, device_id: uuid.UUID):
+    from app import routerboot_lifecycle as rb
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.read")
+        device = _routerboot_device(db, device_id)
+        state = rb._state(device)
+        readiness = rb._readiness(device)
+        current = readiness.get("routerboard_current") or device.routerboot_version
+        target = readiness.get("routerboard_upgrade")
+        data = device.inventory_data or {}
+        return jsonable_encoder({
+            "current": current, "target": target, "state": state, "checked_at": readiness.get("checked_at"),
+            "agent_transport": data.get("agent_transport"), "privilege_profile": data.get("agent_privilege_profile"),
+            "can_execute": core.has_permission(user, "firmware.execute"),
+            "stage_confirmation": f"ROUTERBOOT {target}" if target else None,
+            "reboot_confirmation": f"REBOOT ROUTERBOOT {state.get('target_version')}" if state.get("target_version") else None,
+        })
+
+
+@router.post("/devices/{device_id}/routerboot/{action}", dependencies=[Depends(require_csrf)])
+def device_routerboot_action(request: Request, device_id: uuid.UUID, action: str, body: dict = Body(default={})):
+    from app import routerboot_lifecycle as rb
+
+    if action not in {"stage", "reboot"}:
+        raise HTTPException(404)
+    confirmation = body.get("confirmation")
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.execute")
+        device = _routerboot_device(db, device_id)
+        record = rb.stage_record if action == "stage" else rb.reboot_record
+        try:
+            job = record(db, user, device, confirmation if isinstance(confirmation, str) else "")
+        except InputError as exc:
+            raise _input_error(exc) from None
+        return {"job_id": str(job.id)}

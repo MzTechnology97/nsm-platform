@@ -403,6 +403,8 @@ const deviceConfigurationHistoryRoute = createRoute({
   path: "/configuration/history",
   component: lazyRouteComponent(() => import("../pages/DeviceConfiguration"), "DeviceConfigurationHistory"),
 });
+const deviceRebootRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/reboot", component: lazyRouteComponent(() => import("../pages/DeviceOperations"), "DeviceReboot") });
+const deviceRouterbootRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/routerboot", component: lazyRouteComponent(() => import("../pages/DeviceOperations"), "DeviceRouterboot") });
 const deviceManageRoute = createRoute({
   getParentRoute: () => deviceRoute,
   path: "/manage",
@@ -462,7 +464,7 @@ export const routeTree = rootRoute.addChildren([
   customerNewRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute, customerDevicesManageRoute]),
   deviceImportRoute,
-  deviceRoute.addChildren([deviceOverviewRoute, deviceManageRoute, deviceExposureRoute, deviceComplianceRoute, deviceJobsRoute, deviceConfigurationRoute, deviceConfigurationHistoryRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
+  deviceRoute.addChildren([deviceOverviewRoute, deviceManageRoute, deviceExposureRoute, deviceComplianceRoute, deviceJobsRoute, deviceConfigurationRoute, deviceConfigurationHistoryRoute, deviceRebootRoute, deviceRouterbootRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);
 
 export const router = createRouter({ routeTree, basepath: "/app", defaultPreload: "intent" });

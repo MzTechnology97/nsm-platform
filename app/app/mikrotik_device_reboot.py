@@ -107,6 +107,37 @@ def _write_state(device: Device, **changes) -> dict:
     return state
 
 
+def queue_reboot_record(db, user, device: Device, reason: str) -> DeviceJob:
+    """Queue a controlled reboot for the agent (audited) and commit.
+
+    ``InputError`` ``blocked`` (the blocker message) or ``reason_short``; the caller asks for the confirmation.
+    """
+    from app.input_errors import InputError
+
+    blocker = reboot_blocker(db, device)
+    if blocker:
+        raise InputError("blocked", blocker, 409)
+    reason = (reason or "").strip()
+    if len(reason) < 5:
+        raise InputError("reason_short", "Indica il motivo del riavvio (almeno 5 caratteri).")
+    now = utcnow()
+    job = DeviceJob(device_id=device.id, job_type=REBOOT_JOB, payload={"reason": reason[:500]}, expires_at=now + JOB_TTL)
+    db.add(job)
+    db.flush()
+    _write_state(device, status="queued", job_id=str(job.id), queued_at=now.isoformat(), reason=reason[:500], requested_by=user.username, accepted_at=None, verified_at=None, last_error=None)
+    core.add_event(
+        db, "DEVICE_REBOOT_QUEUED", actor=user, customer_id=device.customer_id, device_id=device.id,
+        details={"job_id": str(job.id), "reason": reason[:500]}, severity="warning", source="portal",
+    )
+    db.commit()
+    return job
+
+
+def reboot_history(db, device: Device, limit: int = 10) -> list[DeviceJob]:
+    return list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device.id, DeviceJob.job_type == REBOOT_JOB)
+                           .order_by(DeviceJob.created_at.desc()).limit(limit)))
+
+
 def reboot_blocker(db, device: Device) -> str | None:
     """Reason why NSM cannot ask this Device to reboot, or None."""
     data = device.inventory_data or {}
@@ -187,16 +218,7 @@ async def queue_reboot(request: Request, device_id: uuid.UUID):
         reason = str(form.get("reason") or "").strip()
         if len(reason) < 5:
             return flash_redirect(request, back, "warning", "Indica il motivo del riavvio (almeno 5 caratteri).", title="Motivo mancante")
-        now = utcnow()
-        job = DeviceJob(device_id=device.id, job_type=REBOOT_JOB, payload={"reason": reason[:500]}, expires_at=now + JOB_TTL)
-        db.add(job)
-        db.flush()
-        _write_state(device, status="queued", job_id=str(job.id), queued_at=now.isoformat(), reason=reason[:500], requested_by=user.username, accepted_at=None, verified_at=None, last_error=None)
-        core.add_event(
-            db, "DEVICE_REBOOT_QUEUED", actor=user, customer_id=device.customer_id, device_id=device.id,
-            details={"job_id": str(job.id), "reason": reason[:500]}, severity="warning", source="portal",
-        )
-        db.commit()
+        queue_reboot_record(db, user, device, reason)
     return flash_redirect(request, back, "success", "Riavvio in coda: l'agent lo eseguirà al prossimo heartbeat (entro 2 minuti).", title="Riavvio richiesto")
 
 

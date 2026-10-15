@@ -3420,5 +3420,97 @@
     "diff": "Diferencias",
     "setBaseline": "Fijar como baseline",
     "noExports": "Ninguna exportación de configuración: el historial aparece tras la primera copia MikroTik en formato .rsc."
+  },
+  "deviceReboot": {
+    "title": "Reinicio controlado",
+    "help": "El agente confirma la solicitud a NSM y solo después ejecuta /system reboot; NSM da el reinicio por correcto cuando el equipo vuelve en línea con el uptime a cero.",
+    "states": {
+      "queued": "En cola: el agente lo recibe en el próximo heartbeat",
+      "rebooting": "Reinicio confirmado por el agente, esperando que vuelva en línea",
+      "verified": "Reinicio verificado",
+      "failed": "Reinicio fallido"
+    },
+    "requested": "Solicitado por {{who}} el {{when}}",
+    "reason": "Motivo",
+    "uptime": "Uptime antes / después: {{before}} → {{after}}",
+    "waiting": "en espera",
+    "impact": "El servicio del cliente se interrumpe mientras dura el reinicio.",
+    "submit": "Reiniciar el equipo",
+    "queued": "Reinicio en cola: el agente lo ejecuta en el próximo heartbeat (en menos de 2 minutos).",
+    "noPermission": "Se necesita el permiso de ejecución de firmware para reiniciar el equipo.",
+    "routerboot": "RouterBOOT",
+    "history": "Historial de reinicios",
+    "noHistory": "Ningún reinicio solicitado por NSM.",
+    "errors": {
+      "confirm_name": "El nombre de confirmación no coincide: no se ha solicitado ningún reinicio.",
+      "reason_short": "Indica el motivo del reinicio (al menos 5 caracteres)."
+    }
+  },
+  "deviceRouterboot": {
+    "title": "RouterBOOT",
+    "help": "Bootloader separado de RouterOS: flash y reinicio son dos pasos distintos, confirmados y verificados.",
+    "rebootPage": "Reinicio controlado",
+    "current": "RouterBOOT activo",
+    "available": "RouterBOOT disponible",
+    "workflow": "Estado",
+    "checked": "Última comprobación",
+    "states": {
+      "idle": "ninguna operación",
+      "staging": "flash en curso",
+      "staged": "flash hecho",
+      "reboot_pending": "reinicio en cola",
+      "rebooting": "reiniciando",
+      "success": "verificado",
+      "failed": "fallido"
+    },
+    "noAuto": "NSM no activa el auto-upgrade del RouterBOARD: flash y reinicio son acciones distintas y registradas.",
+    "verified": "RouterBOOT verificado tras el reinicio: versión activa {{version}}.",
+    "steps": {
+      "readiness": {
+        "title": "Lectura",
+        "help": "Lee current-firmware y upgrade-firmware sin cambios."
+      },
+      "flash": {
+        "title": "Flash del bootloader",
+        "help": "Ejecuta solo /system routerboard upgrade, sin reinicio."
+      },
+      "reboot": {
+        "title": "Reinicio explícito",
+        "help": "Segunda confirmación; el router envía el ack a NSM antes de reiniciarse."
+      },
+      "verify": {
+        "title": "Verificación",
+        "help": "Cierra el flujo solo si current-firmware coincide con la versión esperada."
+      }
+    },
+    "stepStates": {
+      "done": "hecho",
+      "running": "en curso",
+      "pending": "pendiente",
+      "failed": "fallido"
+    },
+    "readFirst": "Ejecuta primero «Comprobar ahora» en la página Firmware para leer current-firmware y upgrade-firmware.",
+    "aligned": "RouterBOOT ya está alineado con la versión disponible: {{version}}.",
+    "confirm": "Para confirmar, escribe exactamente: {{text}}",
+    "flashTitle": "Flash RouterBOOT {{version}}",
+    "flashHelp": "Actualiza el bootloader almacenado pero no reinicia el router.",
+    "flash": "Hacer el flash",
+    "rebootTitle": "Reiniciar para aplicar RouterBOOT",
+    "rebootHelp": "El bootloader está listo: el reinicio es aparte y requiere una segunda confirmación.",
+    "reboot": "Reiniciar y verificar",
+    "staging": "Flash en cola: esperando el resultado del agente.",
+    "rebootPending": "Reinicio en cola: el agente aún debe confirmar.",
+    "rebooting": "Reinicio aceptado: NSM espera que vuelva en línea y una nueva lectura.",
+    "errors": {
+      "not_modern": "Se necesita el agente moderno (RouterOS 7.13+).",
+      "profile": "Perfil de agente no adecuado: reinstala el agente.",
+      "offline": "El MikroTik debe estar en línea con una credencial de agente activa.",
+      "not_read": "Ejecuta primero una comprobación de firmware.",
+      "up_to_date": "RouterBOOT ya está actualizado.",
+      "confirmation": "Confirmación no válida.",
+      "busy": "Ya hay una operación RouterBOOT en curso.",
+      "not_staged": "Primero hay que hacer el flash del bootloader.",
+      "no_target": "Falta la versión de destino."
+    }
   }
 }

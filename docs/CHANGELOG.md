@@ -4,6 +4,25 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.148 — 2026-10-15
+
+New interface (React) — controlled reboot and RouterBOOT, phase 7k
+- **Controlled reboot** (`/app/devices/{id}/reboot`, from «Reboot» on the device page):
+  - shows what blocks the reboot (legacy agent, profile, credential, offline device, operation in progress), the last request with uptime before and after, and the history;
+  - the reboot needs a reason and the device name typed as confirmation.
+- **RouterBOOT** (`/app/devices/{id}/routerboot`):
+  - active and available bootloader, workflow state and last check;
+  - the four steps (read, flash, reboot, verification) with their state;
+  - flash and reboot are separate actions, each confirmed with the same literal text as the classic page.
+- **Shared code.** Reboot and RouterBOOT actions are now shared functions, used by both interfaces; the classic pages behave as before, with the same messages and status codes.
+  - `mikrotik_device_reboot.queue_reboot_record`, `reboot_history`;
+  - `routerboot_lifecycle.stage_record`, `reboot_record`.
+
+  RouterBOOT errors now carry a code (`InputError`).
+- **API.**
+  - `GET /api/ui/v1/devices/{id}/reboot`, `/routerboot` (`firmware.read`);
+  - `POST /api/ui/v1/devices/{id}/reboot`, `/routerboot/stage`, `/routerboot/reboot` (`firmware.execute` + CSRF).
+
 ## 0.49.147 — 2026-10-15
 
 New interface (React) — MikroTik Configuration tab and export history, phase 7j

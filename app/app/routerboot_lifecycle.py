@@ -17,6 +17,7 @@ from sqlalchemy import select
 from app import main as core
 from app import mikrotik_agent as agent_module
 from app.agent_models import DeviceAgentCredential, DeviceJob
+from app.input_errors import InputError
 from app.db import SessionLocal
 from app.models import Device, utcnow
 
@@ -166,11 +167,11 @@ def _load_device(db, device_id):
 def _validate_modern_executor(db, device: Device):
     data = device.inventory_data or {}
     if str(data.get("agent_transport") or "").strip() != "modern":
-        raise HTTPException(409, "RouterBOOT remoto richiede agent moderno RouterOS 7.13+.")
+        raise InputError("not_modern", "RouterBOOT remoto richiede agent moderno RouterOS 7.13+.", 409)
     if str(data.get("agent_privilege_profile") or "").strip() not in OPERATIONAL_PROFILES:
-        raise HTTPException(409, "Profilo agent non idoneo. Rigenera / reinstalla agent prima di continuare.")
+        raise InputError("profile", "Profilo agent non idoneo. Rigenera / reinstalla agent prima di continuare.", 409)
     if not _active_agent(db, device.id) or device.status != "online":
-        raise HTTPException(409, "Il MikroTik deve essere online con credenziale agent attiva.")
+        raise InputError("offline", "Il MikroTik deve essere online con credenziale agent attiva.", 409)
 
 
 def _target_from_readiness(device: Device):
@@ -178,7 +179,7 @@ def _target_from_readiness(device: Device):
     current = str(readiness.get("routerboard_current") or device.routerboot_version or "").strip()
     target = str(readiness.get("routerboard_upgrade") or "").strip()
     if not current or not target:
-        raise HTTPException(409, "Esegui prima una verifica firmware per leggere RouterBOOT current/upgrade.")
+        raise InputError("not_read", "Esegui prima una verifica firmware per leggere RouterBOOT current/upgrade.", 409)
     return current, target
 
 
@@ -224,44 +225,53 @@ def stage_routerboot(request: Request, device_id: uuid.UUID, csrf: str = Form(..
     with SessionLocal() as db:
         user = core.require_permission(request, db, "firmware.execute")
         device = _load_device(db, device_id)
-        _validate_modern_executor(db, device)
-        current, target = _target_from_readiness(device)
-        if current == target:
-            raise HTTPException(409, "RouterBOOT risulta già aggiornato.")
-        expected = f"ROUTERBOOT {target}"
-        if confirmation.strip() != expected:
-            raise HTTPException(400, f"Conferma non valida. Inserisci esattamente: {expected}")
-        if _pending_job(db, device.id, {STAGE_JOB, REBOOT_JOB}):
-            raise HTTPException(409, "Operazione RouterBOOT già in corso.")
-        job = DeviceJob(
-            device_id=device.id,
-            job_type=STAGE_JOB,
-            payload={"target_version": target, "observed_current": current, "reboot": False},
-            expires_at=utcnow() + timedelta(minutes=10),
-        )
-        db.add(job)
-        db.flush()
-        _write_state(
-            device,
-            status="staging",
-            target_version=target,
-            current_before=current,
-            stage_job_id=str(job.id),
-            queued_at=utcnow().isoformat(),
-            last_error=None,
-        )
-        core.add_event(
-            db,
-            "ROUTERBOOT_STAGE_QUEUED",
-            actor=user,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            details={"job_id": str(job.id), "current": current, "target": target, "reboot": False},
-            severity="warning",
-            source="portal",
-        )
-        db.commit()
+        stage_record(db, user, device, confirmation)
     return RedirectResponse(f"/devices/{device_id}/routerboot?stage=queued", status_code=303)
+
+
+def stage_record(db, user, device: Device, confirmation: str) -> DeviceJob:
+    """Queue the bootloader flash (no reboot) after the literal confirmation ``ROUTERBOOT <target>``; audited, commits.
+
+    ``InputError`` codes: ``not_modern``, ``profile``, ``offline``, ``not_read``, ``up_to_date``, ``confirmation`` (400), ``busy``.
+    """
+    _validate_modern_executor(db, device)
+    current, target = _target_from_readiness(device)
+    if current == target:
+        raise InputError("up_to_date", "RouterBOOT risulta già aggiornato.", 409)
+    expected = f"ROUTERBOOT {target}"
+    if (confirmation or "").strip() != expected:
+        raise InputError("confirmation", f"Conferma non valida. Inserisci esattamente: {expected}")
+    if _pending_job(db, device.id, {STAGE_JOB, REBOOT_JOB}):
+        raise InputError("busy", "Operazione RouterBOOT già in corso.", 409)
+    job = DeviceJob(
+        device_id=device.id,
+        job_type=STAGE_JOB,
+        payload={"target_version": target, "observed_current": current, "reboot": False},
+        expires_at=utcnow() + timedelta(minutes=10),
+    )
+    db.add(job)
+    db.flush()
+    _write_state(
+        device,
+        status="staging",
+        target_version=target,
+        current_before=current,
+        stage_job_id=str(job.id),
+        queued_at=utcnow().isoformat(),
+        last_error=None,
+    )
+    core.add_event(
+        db,
+        "ROUTERBOOT_STAGE_QUEUED",
+        actor=user,
+        customer_id=device.customer_id,
+        device_id=device.id,
+        details={"job_id": str(job.id), "current": current, "target": target, "reboot": False},
+        severity="warning",
+        source="portal",
+    )
+    db.commit()
+    return job
 
 
 @router.post("/api/v1/agents/mikrotik/routerboot-stage/{job_id}/complete", name="mikrotik_routerboot_stage_complete")
@@ -309,39 +319,48 @@ def reboot_routerboot(request: Request, device_id: uuid.UUID, csrf: str = Form(.
     with SessionLocal() as db:
         user = core.require_permission(request, db, "firmware.execute")
         device = _load_device(db, device_id)
-        _validate_modern_executor(db, device)
-        state = _state(device)
-        if state.get("status") != "staged":
-            raise HTTPException(409, "RouterBOOT deve essere staged prima del reboot.")
-        target = str(state.get("target_version") or "").strip()
-        if not target:
-            raise HTTPException(409, "Target RouterBOOT mancante.")
-        expected = f"REBOOT ROUTERBOOT {target}"
-        if confirmation.strip() != expected:
-            raise HTTPException(400, f"Conferma non valida. Inserisci esattamente: {expected}")
-        if _pending_job(db, device.id, {STAGE_JOB, REBOOT_JOB}):
-            raise HTTPException(409, "Operazione RouterBOOT già in corso.")
-        job = DeviceJob(
-            device_id=device.id,
-            job_type=REBOOT_JOB,
-            payload={"target_version": target, "action": "reboot_to_activate_routerboot"},
-            expires_at=utcnow() + timedelta(minutes=10),
-        )
-        db.add(job)
-        db.flush()
-        _write_state(device, status="reboot_pending", reboot_job_id=str(job.id), reboot_queued_at=utcnow().isoformat(), last_error=None)
-        core.add_event(
-            db,
-            "ROUTERBOOT_REBOOT_QUEUED",
-            actor=user,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            details={"job_id": str(job.id), "target": target},
-            severity="warning",
-            source="portal",
-        )
-        db.commit()
+        reboot_record(db, user, device, confirmation)
     return RedirectResponse(f"/devices/{device_id}/routerboot?reboot=queued", status_code=303)
+
+
+def reboot_record(db, user, device: Device, confirmation: str) -> DeviceJob:
+    """Queue the reboot that activates a staged RouterBOOT after ``REBOOT ROUTERBOOT <target>``; audited, commits.
+
+    ``InputError`` codes: executor codes, ``not_staged``, ``no_target``, ``confirmation`` (400), ``busy``.
+    """
+    _validate_modern_executor(db, device)
+    state = _state(device)
+    if state.get("status") != "staged":
+        raise InputError("not_staged", "RouterBOOT deve essere staged prima del reboot.", 409)
+    target = str(state.get("target_version") or "").strip()
+    if not target:
+        raise InputError("no_target", "Target RouterBOOT mancante.", 409)
+    expected = f"REBOOT ROUTERBOOT {target}"
+    if (confirmation or "").strip() != expected:
+        raise InputError("confirmation", f"Conferma non valida. Inserisci esattamente: {expected}")
+    if _pending_job(db, device.id, {STAGE_JOB, REBOOT_JOB}):
+        raise InputError("busy", "Operazione RouterBOOT già in corso.", 409)
+    job = DeviceJob(
+        device_id=device.id,
+        job_type=REBOOT_JOB,
+        payload={"target_version": target, "action": "reboot_to_activate_routerboot"},
+        expires_at=utcnow() + timedelta(minutes=10),
+    )
+    db.add(job)
+    db.flush()
+    _write_state(device, status="reboot_pending", reboot_job_id=str(job.id), reboot_queued_at=utcnow().isoformat(), last_error=None)
+    core.add_event(
+        db,
+        "ROUTERBOOT_REBOOT_QUEUED",
+        actor=user,
+        customer_id=device.customer_id,
+        device_id=device.id,
+        details={"job_id": str(job.id), "target": target},
+        severity="warning",
+        source="portal",
+    )
+    db.commit()
+    return job
 
 
 @router.post("/api/v1/agents/mikrotik/routerboot-reboot/{job_id}/ack", name="mikrotik_routerboot_reboot_ack")

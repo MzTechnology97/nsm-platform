@@ -3420,5 +3420,97 @@
     "diff": "Differenze",
     "setBaseline": "Imposta come baseline",
     "noExports": "Nessun export di configurazione: la cronologia compare dopo il primo backup MikroTik in formato .rsc."
+  },
+  "deviceReboot": {
+    "title": "Riavvio controllato",
+    "help": "L'agent conferma la richiesta a NSM e solo dopo esegue /system reboot; NSM considera il riavvio riuscito quando l'apparato torna online con l'uptime azzerato.",
+    "states": {
+      "queued": "In coda: l'agent lo riceverà al prossimo heartbeat",
+      "rebooting": "Riavvio confermato dall'agent, in attesa del ritorno online",
+      "verified": "Riavvio verificato",
+      "failed": "Riavvio non riuscito"
+    },
+    "requested": "Richiesto da {{who}} il {{when}}",
+    "reason": "Motivo",
+    "uptime": "Uptime prima / dopo: {{before}} → {{after}}",
+    "waiting": "in attesa",
+    "impact": "Il servizio del cliente si interrompe per la durata del riavvio.",
+    "submit": "Riavvia l'apparato",
+    "queued": "Riavvio in coda: l'agent lo eseguirà al prossimo heartbeat (entro 2 minuti).",
+    "noPermission": "Serve il permesso di esecuzione firmware per riavviare l'apparato.",
+    "routerboot": "RouterBOOT",
+    "history": "Storico riavvii",
+    "noHistory": "Nessun riavvio richiesto da NSM.",
+    "errors": {
+      "confirm_name": "Il nome di conferma non corrisponde: nessun riavvio richiesto.",
+      "reason_short": "Indica il motivo del riavvio (almeno 5 caratteri)."
+    }
+  },
+  "deviceRouterboot": {
+    "title": "RouterBOOT",
+    "help": "Bootloader separato da RouterOS: flash e riavvio sono due passi distinti, confermati e verificati.",
+    "rebootPage": "Riavvio controllato",
+    "current": "RouterBOOT attivo",
+    "available": "RouterBOOT disponibile",
+    "workflow": "Stato",
+    "checked": "Ultima verifica",
+    "states": {
+      "idle": "nessuna operazione",
+      "staging": "flash in corso",
+      "staged": "flash eseguito",
+      "reboot_pending": "riavvio in coda",
+      "rebooting": "riavvio in corso",
+      "success": "verificato",
+      "failed": "non riuscito"
+    },
+    "noAuto": "NSM non abilita l'auto-upgrade del RouterBOARD: flash e riavvio sono azioni distinte e registrate.",
+    "verified": "RouterBOOT verificato dopo il riavvio: versione attiva {{version}}.",
+    "steps": {
+      "readiness": {
+        "title": "Lettura",
+        "help": "Legge current-firmware e upgrade-firmware senza modifiche."
+      },
+      "flash": {
+        "title": "Flash del bootloader",
+        "help": "Esegue solo /system routerboard upgrade, senza riavvio."
+      },
+      "reboot": {
+        "title": "Riavvio esplicito",
+        "help": "Seconda conferma; il router invia l'ack a NSM prima di riavviarsi."
+      },
+      "verify": {
+        "title": "Verifica",
+        "help": "Chiude il flusso solo se current-firmware coincide con la versione attesa."
+      }
+    },
+    "stepStates": {
+      "done": "fatto",
+      "running": "in corso",
+      "pending": "in attesa",
+      "failed": "fallito"
+    },
+    "readFirst": "Esegui prima «Verifica ora» dalla pagina Firmware per leggere current-firmware e upgrade-firmware.",
+    "aligned": "RouterBOOT è già allineato alla versione disponibile: {{version}}.",
+    "confirm": "Per confermare scrivi esattamente: {{text}}",
+    "flashTitle": "Flash RouterBOOT {{version}}",
+    "flashHelp": "Aggiorna il bootloader memorizzato ma non riavvia il router.",
+    "flash": "Esegui il flash",
+    "rebootTitle": "Riavvia per applicare RouterBOOT",
+    "rebootHelp": "Il bootloader è pronto: il riavvio è separato e richiede una seconda conferma.",
+    "reboot": "Riavvia e verifica",
+    "staging": "Flash accodato: in attesa dell'esito dell'agent.",
+    "rebootPending": "Riavvio accodato: l'agent deve ancora confermare.",
+    "rebooting": "Riavvio accettato: NSM attende il ritorno online e una nuova lettura.",
+    "errors": {
+      "not_modern": "Serve l'agent moderno (RouterOS 7.13+).",
+      "profile": "Profilo dell'agent non idoneo: reinstalla l'agent.",
+      "offline": "Il MikroTik deve essere online con credenziale agent attiva.",
+      "not_read": "Esegui prima una verifica firmware.",
+      "up_to_date": "RouterBOOT risulta già aggiornato.",
+      "confirmation": "Conferma non valida.",
+      "busy": "Operazione RouterBOOT già in corso.",
+      "not_staged": "Serve prima il flash del bootloader.",
+      "no_target": "Versione di destinazione mancante."
+    }
   }
 }
