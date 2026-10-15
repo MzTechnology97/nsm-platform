@@ -23,6 +23,7 @@ from app import incidents as incident_flow
 from app import main as core
 from app.db import SessionLocal
 from app.incident_correlation import suggest
+from app.incident_evidence import archived_exports, export_record
 from app.incident_models import INCIDENT_SEVERITIES, Incident, IncidentDevice, IncidentHypothesis
 from app.input_errors import InputError
 from app.incident_timeline import build_timeline
@@ -62,13 +63,16 @@ def device_ref(device) -> dict | None:
 
 
 @router.get("/action-center")
-def action_center(request: Request, severity: str = "", category: str = "", status: str = "", customer: str = "", offset: int = 0):
+def action_center(request: Request, severity: str = "", category: str = "", status: str = "", customer: str = "", device: str = "", offset: int = 0):
     with SessionLocal() as db:
         user = ui_user(request, db, "issues.read")
         customer_id = _uuid(customer)
         base = [ActionIssue.status == status if status else ActionIssue.status.in_(OPEN_STATES)]
         if customer_id:
             base.append(ActionIssue.customer_id == customer_id)
+        device_id = _uuid(device)
+        if device_id:
+            base.append(ActionIssue.device_id == device_id)
         # Severity chips count within state and customer; category chips also within the chosen severity.
         severities = {name or "info": int(count) for name, count in db.execute(
             select(ActionIssue.severity, func.count(ActionIssue.id)).where(*base).group_by(ActionIssue.severity)).all()}
@@ -258,7 +262,25 @@ def incident_detail(request: Request, incident_id: uuid.UUID):
             )] if can_write else [],
             "can_write": can_write,
             "can_export": core.has_permission(user, "reports.generate"),
+            "exports": [{
+                "id": str(report.id), "generated_at": _iso(report.generated_at), "sha256": report.sha256, "size": report.size_bytes,
+                "status": (report.summary or {}).get("status"), "events": (report.summary or {}).get("timeline_entries", 0),
+                "root_cause_confirmed": bool((report.summary or {}).get("root_cause_confirmed")),
+                "download_url": f"/audit/reports/{report.id}/download",
+            } for report in (archived_exports(db, incident) if core.has_permission(user, "reports.read") else [])],
         }
+
+
+@router.post("/incidents/{incident_id}/export", dependencies=[Depends(require_csrf)])
+def incident_export(request: Request, incident_id: uuid.UUID):
+    """Archive the incident evidence PDF (``incidents.read`` + ``reports.generate``)."""
+    with SessionLocal() as db:
+        user = ui_user(request, db, "incidents.read")
+        if not core.has_permission(user, "reports.generate"):
+            raise HTTPException(403, "Permesso negato.")
+        incident = _incident(db, incident_id)
+        report = export_record(db, user, incident)
+        return {"id": str(report.id), "sha256": report.sha256}
 
 
 def _apply(request: Request, incident_id: uuid.UUID, action):

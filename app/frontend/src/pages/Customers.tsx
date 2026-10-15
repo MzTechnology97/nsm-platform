@@ -125,10 +125,10 @@ function Row({ row }: { row: CustomerRow }) {
       <Counter value={row.updates} tone="warning" to={{ customer: row.id, firmware: "attention" }} />
       <Counter value={row.severe} tone="danger" to={{ customer: row.id, security: "severe" }} />
       <td>
-        <a className={`ui-cell-link${row.alerts ? " is-danger" : ""}`} href={`/action-center?customer=${row.id}`}>
+        <Link className={`ui-cell-link${row.alerts ? " is-danger" : ""}`} to="/action-center" search={{ customer: row.id }}>
           <strong>{row.alerts}</strong>
           {row.backup_alerts > 0 && <small className="ui-muted"> {t("customers.backupAlerts", { count: row.backup_alerts })}</small>}
-        </a>
+        </Link>
       </td>
     </tr>
   );

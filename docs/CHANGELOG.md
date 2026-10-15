@@ -4,6 +4,21 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.163 — 2026-10-15
+
+New interface (React) — last links to classic pages, phase 7aa
+- **Incident evidence.** The incident page has its own "Archived evidence" section: export the evidence PDF (`reports.generate`) and download earlier exports, with state, events, root cause and SHA-256. Before, the button opened the classic page.
+- **Action Center by device.** The issues listed on the device overview open the Action Center filtered on that device, with a notice and a "Show all" button. The customer list opens it filtered on the customer.
+- **Links that now stay in the new interface:**
+  - device names in the exposure list (exposure tab);
+  - "My profile" in user administration;
+  - the GenieACS link on the ACS page.
+- **Shared code.** `incident_evidence.export_record` (also used by the classic page).
+- **API.**
+  - `POST /api/ui/v1/incidents/{id}/export`;
+  - the incident detail API lists `exports`;
+  - `GET /api/ui/v1/action-center` accepts `device`.
+
 ## 0.49.162 — 2026-10-15
 
 New interface (React) — new incident, phase 7z

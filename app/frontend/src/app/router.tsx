@@ -247,6 +247,7 @@ const actionCenterRoute = createRoute({
     ...(typeof search.category === "string" && search.category ? { category: search.category } : {}),
     ...(typeof search.status === "string" && ISSUE_STATUSES.includes(search.status as never) ? { status: search.status as IssueFilters["status"] } : {}),
     ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
+    ...(typeof search.device === "string" && search.device ? { device: search.device } : {}),
   }),
 });
 const incidentsRoute = createRoute({

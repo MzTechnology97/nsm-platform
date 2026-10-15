@@ -1407,7 +1407,9 @@
       "open": "Abierto",
       "acknowledged": "En curso",
       "resolved": "Resuelto"
-    }
+    },
+    "deviceFilter": "Avisos de un solo equipo.",
+    "clearDevice": "Mostrar todos"
   },
   "incidents": {
     "title": "Incidentes",
@@ -1541,7 +1543,22 @@
       "invalid_decision": "Decisión no válida.",
       "invalid_status": "Estado no válido.",
       "invalid_resolved_at": "La resolución debe ser posterior al inicio y no estar en el futuro."
-    }
+    },
+    "evidenceTitle": "Evidencia archivada",
+    "evidenceHelp": "PDF con resumen, equipos, causa raíz, hipótesis y cronología, archivado con su SHA-256 como los informes de evidencia.",
+    "exported": "Evidencia archivada (SHA-256 {{sha}}…): descárgala aquí o desde el archivo de informes.",
+    "evidenceColumns": {
+      "generated": "Generada",
+      "status": "Estado del incidente",
+      "events": "Eventos",
+      "rootCause": "Causa raíz",
+      "sha": "SHA-256",
+      "download": ""
+    },
+    "rootConfirmed": "confirmada",
+    "rootPending": "por confirmar",
+    "download": "Descargar",
+    "noExports": "Aún no se ha exportado evidencia."
   },
   "auditEvents": {
     "title": "Registro de actividad",

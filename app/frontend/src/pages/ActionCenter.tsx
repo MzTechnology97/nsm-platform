@@ -36,6 +36,12 @@ export function ActionCenter() {
         <a className="ui-button ui-button-ghost" href="/action-center">{t("app.classic")}</a>
       </header>
 
+      {search.device && (
+        <div className="ui-alert">
+          {t("actionCenter.deviceFilter")}{" "}
+          <button type="button" className="ui-link-button" onClick={() => update({ device: undefined })}>{t("actionCenter.clearDevice")}</button>
+        </div>
+      )}
       <div className="ui-chips" role="group" aria-label={t("actionCenter.severity")}>
         <button type="button" className={`ui-chip${!search.severity ? " is-active" : ""}`} onClick={() => update({ severity: undefined })}>
           {t("actionCenter.all")} <span className="ui-chip-count">{first ? Object.values(first.severities).reduce((a, b) => a + b, 0) : "—"}</span>

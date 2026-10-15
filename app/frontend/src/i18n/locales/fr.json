@@ -1407,7 +1407,9 @@
       "open": "Ouvert",
       "acknowledged": "Pris en charge",
       "resolved": "Résolu"
-    }
+    },
+    "deviceFilter": "Signalements d'un seul équipement.",
+    "clearDevice": "Tout afficher"
   },
   "incidents": {
     "title": "Incidents",
@@ -1541,7 +1543,22 @@
       "invalid_decision": "Décision non valide.",
       "invalid_status": "État non valide.",
       "invalid_resolved_at": "La résolution doit être postérieure au début et pas dans le futur."
-    }
+    },
+    "evidenceTitle": "Preuves archivées",
+    "evidenceHelp": "PDF avec résumé, équipements, cause racine, hypothèses et chronologie, archivé avec son SHA-256 comme les rapports de preuve.",
+    "exported": "Preuve archivée (SHA-256 {{sha}}…) : téléchargeable ici ou depuis l'archive des rapports.",
+    "evidenceColumns": {
+      "generated": "Générée",
+      "status": "État de l'incident",
+      "events": "Événements",
+      "rootCause": "Cause racine",
+      "sha": "SHA-256",
+      "download": ""
+    },
+    "rootConfirmed": "confirmée",
+    "rootPending": "à confirmer",
+    "download": "Télécharger",
+    "noExports": "Aucune preuve exportée."
   },
   "auditEvents": {
     "title": "Journal d'activité",

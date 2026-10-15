@@ -187,6 +187,52 @@ def archived_exports(db, incident: Incident) -> list[GeneratedReport]:
     return [report for report in reports if (report.summary or {}).get("incident_id") == str(incident.id)]
 
 
+def export_record(db, user, incident: Incident) -> GeneratedReport:
+    """Render the incident PDF, archive it with its SHA-256 and audit it; commits. Shared by both interfaces."""
+    report_id = uuid.uuid4()
+    generated_at = utcnow()
+    content, summary = render_incident_pdf(
+        db,
+        incident,
+        report_id=str(report_id),
+        generated_at=generated_at,
+        generated_by=user.display_name or user.username,
+        platform_name=_platform_name(db),
+    )
+    customer = db.get(Customer, incident.customer_id)
+    sha256 = hashlib.sha256(content).hexdigest()
+    end = (incident.resolved_at or generated_at).date()
+    report = GeneratedReport(
+        id=report_id,
+        report_type=REPORT_TYPE,
+        title=f"{REPORT_TITLE}: {incident.title}"[:200],
+        scope_type="customer",
+        customer_id=incident.customer_id,
+        scope_label=(customer.name if customer else "—")[:200],
+        period_start=incident.started_at.date(),
+        period_end=max(end, incident.started_at.date()),
+        output_format="pdf",
+        filename=f"nsm-incidente_{_slug(incident.title)}_{str(report_id)[:8]}.pdf",
+        media_type="application/pdf",
+        content=content,
+        size_bytes=len(content),
+        sha256=sha256,
+        summary={**summary, "trigger": "manual"},
+        generated_at=generated_at,
+        generated_by_user_id=user.id,
+    )
+    db.add(report)
+    core.add_event(
+        db,
+        "INCIDENT_EVIDENCE_EXPORTED",
+        actor=user,
+        customer_id=incident.customer_id,
+        details={"incident_id": str(incident.id), "report_id": str(report_id), "sha256": sha256, "size_bytes": len(content)},
+    )
+    db.commit()
+    return report
+
+
 @router.post("/incidents/{incident_id}/export", name="incident_export")
 def incident_export(request: Request, incident_id: uuid.UUID, csrf: str = Form(...)):
     validate_csrf(request, csrf)
@@ -197,47 +243,8 @@ def incident_export(request: Request, incident_id: uuid.UUID, csrf: str = Form(.
         incident = db.get(Incident, incident_id)
         if not incident:
             raise HTTPException(404)
-        report_id = uuid.uuid4()
-        generated_at = utcnow()
-        content, summary = render_incident_pdf(
-            db,
-            incident,
-            report_id=str(report_id),
-            generated_at=generated_at,
-            generated_by=user.display_name or user.username,
-            platform_name=_platform_name(db),
-        )
-        customer = db.get(Customer, incident.customer_id)
-        sha256 = hashlib.sha256(content).hexdigest()
-        end = (incident.resolved_at or generated_at).date()
-        report = GeneratedReport(
-            id=report_id,
-            report_type=REPORT_TYPE,
-            title=f"{REPORT_TITLE}: {incident.title}"[:200],
-            scope_type="customer",
-            customer_id=incident.customer_id,
-            scope_label=(customer.name if customer else "—")[:200],
-            period_start=incident.started_at.date(),
-            period_end=max(end, incident.started_at.date()),
-            output_format="pdf",
-            filename=f"nsm-incidente_{_slug(incident.title)}_{str(report_id)[:8]}.pdf",
-            media_type="application/pdf",
-            content=content,
-            size_bytes=len(content),
-            sha256=sha256,
-            summary={**summary, "trigger": "manual"},
-            generated_at=generated_at,
-            generated_by_user_id=user.id,
-        )
-        db.add(report)
-        core.add_event(
-            db,
-            "INCIDENT_EVIDENCE_EXPORTED",
-            actor=user,
-            customer_id=incident.customer_id,
-            details={"incident_id": str(incident.id), "report_id": str(report_id), "sha256": sha256, "size_bytes": len(content)},
-        )
-        db.commit()
+        report = export_record(db, user, incident)
+        sha256 = report.sha256
     return flash_redirect(
         request,
         f"/incidents/{incident_id}#evidence",

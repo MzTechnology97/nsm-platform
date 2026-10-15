@@ -10,6 +10,7 @@ export interface IssueFilters {
   category?: string;
   status?: (typeof ISSUE_STATUSES)[number];
   customer?: string;
+  device?: string;
 }
 
 export interface IssueRow {
@@ -167,6 +168,15 @@ export interface IncidentDetail {
   customer_devices: DeviceRef[];
   can_write: boolean;
   can_export: boolean;
+  exports: { id: string; generated_at: string | null; sha256: string; size: number | null; status: string | null; events: number; root_cause_confirmed: boolean; download_url: string }[];
+}
+
+export function useExportIncident(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<{ id: string; sha256: string }>(`/api/ui/v1/incidents/${encodeURIComponent(id)}/export`, { method: "POST" }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: ["incident", id] }),
+  });
 }
 
 export const useIncident = (id: string) =>
