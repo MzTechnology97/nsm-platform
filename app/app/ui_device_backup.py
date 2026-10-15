@@ -124,6 +124,7 @@ def device_backups(request: Request, device_id: uuid.UUID, kind: str = "all", st
             "run": {"pending": pending, "blocker": code, "can_execute": can_execute, "can_run": bool(can_execute and code is None)},
             "can_delete": core.has_permission(user, "backup.configure"),
             "runs": rows,
+            "customer_id": str(device.customer_id),
             "links": {"classic": base, "policies": "/backups"},
         }
 

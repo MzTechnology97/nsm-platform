@@ -435,3 +435,79 @@ a.ui-search-result:hover {
 .ui-data-table tr.is-selected td {
   background: var(--accent-soft);
 }
+
+/* Backup policy form. */
+.ui-admin-form .ui-admin-full {
+  flex-basis: 100%;
+}
+
+.ui-policy-device {
+  align-self: center;
+  font-size: 13px;
+}
+
+.ui-policy-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.ui-policy-choice,
+.ui-policy-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ui-policy-choice.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ui-policy-choice span,
+.ui-policy-option span {
+  display: grid;
+  gap: 2px;
+}
+
+.ui-policy-choice small,
+.ui-policy-option small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ui-policy-vendors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.ui-policy-vendor {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.ui-policy-vendor legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+
+.ui-policy-actions {
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.ui-policy-manage {
+  justify-content: flex-start;
+}

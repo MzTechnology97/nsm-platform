@@ -10,6 +10,7 @@ from app import main as core
 from app.backup_models import BackupArtifact, BackupPolicySettings
 from app.backup_storage import remove_artifact_file, resolve_artifact_path
 from app.db import SessionLocal
+from app.input_errors import InputError
 from app.models import BackupPolicy, BackupRun, Customer, Device, Site, utcnow
 from app.security import validate_csrf
 
@@ -67,11 +68,11 @@ def _policy_settings(db, policy, create=False):
     return item
 
 
-def _parse_uuid(value, label):
+def _parse_uuid(value, label, code="invalid"):
     try:
         return uuid.UUID(str(value))
     except (ValueError, TypeError):
-        raise HTTPException(400, f"{label} non valido.")
+        raise InputError(code, f"{label} non valido.")
 
 
 def _build_schedule(kind, time_value, weekday=None, monthday=None):
@@ -82,22 +83,22 @@ def _build_schedule(kind, time_value, weekday=None, monthday=None):
         if not (0 <= hour <= 23 and 0 <= minute <= 59):
             raise ValueError
     except ValueError:
-        raise HTTPException(400, "Ora backup non valida.")
+        raise InputError("time", "Ora backup non valida.")
     normalized = f"{hour:02d}:{minute:02d}"
     if kind == "six_hour":
         return "0 */6 * * *", kind, normalized, None, None
     if kind == "weekly":
         day = int(weekday if weekday is not None else 1)
         if day not in range(0, 7):
-            raise HTTPException(400, "Giorno settimana non valido.")
+            raise InputError("weekday", "Giorno settimana non valido.")
         return f"{minute} {hour} * * {day}", kind, normalized, day, None
     if kind == "monthly":
         day = int(monthday if monthday is not None else 1)
         if day not in range(1, 29):
-            raise HTTPException(400, "Giorno del mese non valido.")
+            raise InputError("monthday", "Giorno del mese non valido.")
         return f"{minute} {hour} {day} * *", kind, normalized, None, day
     if kind != "daily":
-        raise HTTPException(400, "Frequenza backup non valida.")
+        raise InputError("frequency", "Frequenza backup non valida.")
     return f"{minute} {hour} * * *", "daily", normalized, None, None
 
 
@@ -107,26 +108,26 @@ def _scope_target(db, scope_type, vendor, customer_id, site_id, device_id):
     if scope_type == "vendor":
         vendor = (vendor or "").strip().lower()
         if vendor not in VENDOR_LABELS:
-            raise HTTPException(400, "Vendor richiesto.")
+            raise InputError("vendor", "Vendor richiesto.")
         return vendor, None, None, None
     if scope_type == "customer":
-        cid = _parse_uuid(customer_id, "Cliente")
+        cid = _parse_uuid(customer_id, "Cliente", "customer")
         if not db.get(Customer, cid):
-            raise HTTPException(400, "Cliente non valido.")
+            raise InputError("customer", "Cliente non valido.")
         return None, cid, None, None
     if scope_type == "site":
-        sid = _parse_uuid(site_id, "Sede")
+        sid = _parse_uuid(site_id, "Sede", "site")
         site = db.get(Site, sid)
         if not site:
-            raise HTTPException(400, "Sede non valida.")
+            raise InputError("site", "Sede non valida.")
         return None, site.customer_id, sid, None
     if scope_type == "device":
-        did = _parse_uuid(device_id, "Apparato")
+        did = _parse_uuid(device_id, "Apparato", "device")
         device = db.get(Device, did)
         if not device:
-            raise HTTPException(400, "Apparato non valido.")
+            raise InputError("device", "Apparato non valido.")
         return None, None, None, did
-    raise HTTPException(400, "Destinazione policy non valida.")
+    raise InputError("scope", "Destinazione policy non valida.")
 
 
 def _form_options(form):
@@ -257,7 +258,7 @@ def _targets(db):
 def _apply_policy_form(db, policy, settings, form):
     name = str(form.get("name", "")).strip()
     if not name:
-        raise HTTPException(400, "Nome policy richiesto.")
+        raise InputError("name", "Nome policy richiesto.")
     scope_type = str(form.get("scope_type", "global"))
     vendor, customer_id, site_id, device_id = _scope_target(
         db,
@@ -291,7 +292,7 @@ def _apply_policy_form(db, policy, settings, form):
         policy.retention_monthly = max(0, int(form.get("retention_monthly", 12)))
         policy.retry_count = max(0, min(10, int(form.get("retry_count", 3))))
     except (TypeError, ValueError):
-        raise HTTPException(400, "Valori di retention non validi.")
+        raise InputError("retention", "Valori di retention non validi.")
     settings.description = str(form.get("description", "")).strip() or None
     settings.scope_site_id = site_id
     settings.schedule_kind = kind
@@ -299,6 +300,121 @@ def _apply_policy_form(db, policy, settings, form):
     settings.schedule_weekday = weekday
     settings.schedule_monthday = monthday
     settings.options = options
+
+
+def _check_customer_target(db, policy, settings, customer) -> None:
+    if policy.scope_type == "customer" and policy.customer_id != customer.id:
+        raise InputError("customer_scope", "Policy cliente non valida.")
+    if policy.scope_type == "site":
+        site = db.get(Site, settings.scope_site_id) if settings.scope_site_id else None
+        if not site or site.customer_id != customer.id:
+            raise InputError("customer_scope", "La sede non appartiene al cliente selezionato.")
+    if policy.scope_type == "device":
+        device = db.get(Device, policy.device_id) if policy.device_id else None
+        if not device or device.customer_id != customer.id:
+            raise InputError("customer_scope", "L'apparato non appartiene al cliente selezionato.")
+    if policy.scope_type not in {"customer", "site", "device"}:
+        raise InputError("customer_scope", "Da questa pagina puoi creare policy solo per questo cliente, le sue sedi o i suoi apparati.")
+
+
+def create_policy_record(db, user, form, customer=None) -> BackupPolicy:
+    """Create a policy from form values (``customer`` limits targets to that customer); shared by both interfaces."""
+    if customer is not None:
+        submitted = str(form.get("customer_id", "") or "")
+        if submitted and submitted != str(customer.id):
+            raise InputError("customer_scope", "La destinazione non appartiene al cliente selezionato.")
+        policy = BackupPolicy(name="pending", scope_type="customer", customer_id=customer.id)
+    else:
+        policy = BackupPolicy(name="pending", scope_type="global")
+    db.add(policy)
+    db.flush()
+    settings = BackupPolicySettings(policy_id=policy.id, options={})
+    db.add(settings)
+    _apply_policy_form(db, policy, settings, form)
+    if customer is not None:
+        _check_customer_target(db, policy, settings, customer)
+    try:
+        core.add_event(
+            db,
+            "BACKUP_POLICY_CREATED",
+            actor=user,
+            customer_id=customer.id if customer is not None else None,
+            details={"policy_id": str(policy.id), "name": policy.name, "scope_type": policy.scope_type},
+        )
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise InputError("duplicate", "Esiste già una policy con questo nome.", 409)
+    return policy
+
+
+def _get_policy(db, policy_id) -> BackupPolicy:
+    policy = db.get(BackupPolicy, policy_id)
+    if not policy:
+        raise HTTPException(404)
+    return policy
+
+
+def update_policy_record(db, user, policy_id, form) -> BackupPolicy:
+    policy = _get_policy(db, policy_id)
+    settings = _policy_settings(db, policy, create=True)
+    before = {"name": policy.name, "scope_type": policy.scope_type, "schedule": policy.schedule_cron}
+    _apply_policy_form(db, policy, settings, form)
+    try:
+        core.add_event(db, "BACKUP_POLICY_UPDATED", actor=user, details={"policy_id": str(policy.id), "before": before, "after": {"name": policy.name, "scope_type": policy.scope_type, "schedule": policy.schedule_cron}})
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise InputError("duplicate", "Esiste già una policy con questo nome.", 409)
+    return policy
+
+
+def toggle_policy_record(db, user, policy_id) -> BackupPolicy:
+    policy = _get_policy(db, policy_id)
+    policy.is_enabled = not policy.is_enabled
+    core.add_event(db, "BACKUP_POLICY_TOGGLED", actor=user, details={"policy_id": str(policy.id), "is_enabled": policy.is_enabled})
+    db.commit()
+    return policy
+
+
+def delete_policy_record(db, user, policy_id, confirm_name: str) -> dict:
+    policy = _get_policy(db, policy_id)
+    if str(confirm_name or "").strip() != policy.name:
+        raise InputError("confirm", "Conferma nome policy non valida.")
+    snapshot = {"policy_id": str(policy.id), "name": policy.name, "scope_type": policy.scope_type}
+    db.delete(policy)
+    core.add_event(db, "BACKUP_POLICY_DELETED", actor=user, details=snapshot, severity="warning")
+    db.commit()
+    return snapshot
+
+
+def customer_policy_state(customer, sites, devices, site_id: str = "", device_id: str = "") -> dict:
+    """New-policy defaults inside a customer, optionally preset on one of its sites or devices."""
+    state = _policy_form_state()
+    state["scope_type"] = "customer"
+    state["customer_id"] = str(customer.id)
+    if site_id:
+        try:
+            sid = uuid.UUID(site_id)
+        except ValueError:
+            raise InputError("site", "Sede non valida.")
+        site = next((item for item in sites if item.id == sid), None)
+        if not site:
+            raise InputError("customer_scope", "La sede non appartiene a questo cliente.")
+        state["scope_type"] = "site"
+        state["site_id"] = str(site.id)
+    if device_id:
+        try:
+            did = uuid.UUID(device_id)
+        except ValueError:
+            raise InputError("device", "Apparato non valido.")
+        device = next((item for item in devices if item.id == did), None)
+        if not device:
+            raise InputError("customer_scope", "L'apparato non appartiene a questo cliente.")
+        state["scope_type"] = "device"
+        state["device_id"] = str(device.id)
+        state["vendor"] = device.vendor
+    return state
 
 
 @router.get("/operations/backups/policies/new", response_class=HTMLResponse, name="backup_policy_new_v2")
@@ -323,18 +439,7 @@ async def backup_policy_create(request: Request):
     validate_csrf(request, str(form.get("csrf", "")))
     with SessionLocal() as db:
         user = core.require_permission(request, db, "backup.configure")
-        policy = BackupPolicy(name="pending", scope_type="global")
-        db.add(policy)
-        db.flush()
-        settings = BackupPolicySettings(policy_id=policy.id, options={})
-        db.add(settings)
-        _apply_policy_form(db, policy, settings, form)
-        try:
-            core.add_event(db, "BACKUP_POLICY_CREATED", actor=user, details={"policy_id": str(policy.id), "name": policy.name, "scope_type": policy.scope_type})
-            db.commit()
-        except IntegrityError:
-            db.rollback()
-            raise HTTPException(409, "Esiste già una policy con questo nome.")
+        create_policy_record(db, user, form)
     return RedirectResponse("/operations/backups", status_code=303)
 
 
@@ -366,18 +471,7 @@ async def backup_policy_update(request: Request, policy_id: uuid.UUID):
     validate_csrf(request, str(form.get("csrf", "")))
     with SessionLocal() as db:
         user = core.require_permission(request, db, "backup.configure")
-        policy = db.get(BackupPolicy, policy_id)
-        if not policy:
-            raise HTTPException(404)
-        settings = _policy_settings(db, policy, create=True)
-        before = {"name": policy.name, "scope_type": policy.scope_type, "schedule": policy.schedule_cron}
-        _apply_policy_form(db, policy, settings, form)
-        try:
-            core.add_event(db, "BACKUP_POLICY_UPDATED", actor=user, details={"policy_id": str(policy.id), "before": before, "after": {"name": policy.name, "scope_type": policy.scope_type, "schedule": policy.schedule_cron}})
-            db.commit()
-        except IntegrityError:
-            db.rollback()
-            raise HTTPException(409, "Esiste già una policy con questo nome.")
+        update_policy_record(db, user, policy_id, form)
     return RedirectResponse("/operations/backups", status_code=303)
 
 
@@ -409,12 +503,7 @@ async def backup_policy_toggle(request: Request, policy_id: uuid.UUID):
     validate_csrf(request, str(form.get("csrf", "")))
     with SessionLocal() as db:
         user = core.require_permission(request, db, "backup.configure")
-        policy = db.get(BackupPolicy, policy_id)
-        if not policy:
-            raise HTTPException(404)
-        policy.is_enabled = not policy.is_enabled
-        core.add_event(db, "BACKUP_POLICY_TOGGLED", actor=user, details={"policy_id": str(policy.id), "is_enabled": policy.is_enabled})
-        db.commit()
+        toggle_policy_record(db, user, policy_id)
     return RedirectResponse("/operations/backups", status_code=303)
 
 
@@ -424,15 +513,7 @@ async def backup_policy_delete(request: Request, policy_id: uuid.UUID):
     validate_csrf(request, str(form.get("csrf", "")))
     with SessionLocal() as db:
         user = core.require_permission(request, db, "backup.configure")
-        policy = db.get(BackupPolicy, policy_id)
-        if not policy:
-            raise HTTPException(404)
-        if str(form.get("confirm_name", "")).strip() != policy.name:
-            raise HTTPException(400, "Conferma nome policy non valida.")
-        snapshot = {"policy_id": str(policy.id), "name": policy.name, "scope_type": policy.scope_type}
-        db.delete(policy)
-        core.add_event(db, "BACKUP_POLICY_DELETED", actor=user, details=snapshot, severity="warning")
-        db.commit()
+        delete_policy_record(db, user, policy_id, str(form.get("confirm_name", "")))
     return RedirectResponse("/operations/backups", status_code=303)
 
 

@@ -59,7 +59,13 @@ export function DeviceBackups() {
           </div>
           <div className="ui-actions">
             <Link to="/devices/$deviceId/backups/restore-tests" params={{ deviceId }} className="ui-button ui-button-ghost">{t("backups.links.restoreTests")}</Link>
-            <a className="ui-button ui-button-ghost" href={data.links.policies}>{t("backups.links.policies")}</a>
+            {data.can_delete && data.policy ? (
+              <Link to="/backups/policies/$policyId/edit" params={{ policyId: data.policy.id }} className="ui-button ui-button-ghost">{t("backups.links.editPolicy")}</Link>
+            ) : data.can_delete ? (
+              <Link to="/backups/policies/new" search={{ customer: data.customer_id, device: deviceId }} className="ui-button ui-button-ghost">{t("backupOverview.createPolicy")}</Link>
+            ) : (
+              <Link to="/backups" className="ui-button ui-button-ghost">{t("backups.links.policies")}</Link>
+            )}
           </div>
         </div>
         <div className="ui-filter-bar">

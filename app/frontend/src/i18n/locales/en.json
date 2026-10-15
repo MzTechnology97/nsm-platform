@@ -351,7 +351,8 @@
     },
     "links": {
       "restoreTests": "Restore tests",
-      "policies": "Backup policies"
+      "policies": "Backup policies",
+      "editPolicy": "Edit the policy"
     },
     "filters": {
       "kind": "File type",
@@ -1048,7 +1049,8 @@
       "on": "enabled",
       "off": "disabled",
       "none": "No policy configured."
-    }
+    },
+    "createPolicy": "Create policy"
   },
   "firmware": {
     "title": "Firmware",
@@ -3984,5 +3986,158 @@
       "performed_future": "The test date cannot be in the future.",
       "integrity": "File integrity not verified: a passed restore test cannot be recorded."
     }
+  },
+  "backupPolicy": {
+    "titles": {
+      "create": "New backup policy",
+      "edit": "Edit backup policy",
+      "clone": "Duplicate backup policy"
+    },
+    "subtitle": "Only targets and methods compatible with the chosen scope are shown.",
+    "cloneOf": "Copy of \"{{name}}\": the new policy starts enabled.",
+    "sections": {
+      "target": "Name and target",
+      "targetHelp": "Sites and devices are always filtered on the chosen customer.",
+      "schedule": "Schedule",
+      "content": "What to back up",
+      "contentHelp": "Only the options supported by the target's vendor are offered.",
+      "retention": "Retention and reliability",
+      "retentionHelp": "How many backups to keep and how many retries after an error."
+    },
+    "name": "Policy name",
+    "namePlaceholder": "E.g. MikroTik daily",
+    "state": "State",
+    "enabled": "Enabled",
+    "paused": "Paused",
+    "description": "Description",
+    "descriptionPlaceholder": "Purpose of the policy, operational notes…",
+    "scope": "Applies to",
+    "scopes": {
+      "global": "All devices",
+      "vendor": "All devices of a vendor",
+      "customer": "One customer",
+      "site": "One site of the customer",
+      "device": "A single device"
+    },
+    "vendor": "Vendor",
+    "customer": "Customer",
+    "choose": "Choose…",
+    "site": "Site",
+    "chooseSite": "Choose a site of the customer…",
+    "chooseCustomerFirst": "Choose the customer first",
+    "device": "Device",
+    "chooseDevice": "Choose a device of the customer…",
+    "schedules": {
+      "six_hour": "Every 6 hours",
+      "daily": "Every day",
+      "weekly": "Every week",
+      "monthly": "Every month"
+    },
+    "scheduleHelp": {
+      "six_hour": "For highly critical configurations.",
+      "daily": "The standard choice for network devices.",
+      "weekly": "For configurations that rarely change.",
+      "monthly": "For stable or legacy devices."
+    },
+    "time": "Preferred time",
+    "weekday": "Day of the week",
+    "monthday": "Day of the month",
+    "weekdays": {
+      "0": "Sunday",
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday"
+    },
+    "autoMethod": "The policy covers several device types: for each one NSM only uses the method its vendor or connector supports.",
+    "capabilities": {
+      "mikrotik": {
+        "title": "MikroTik · NSM Agent",
+        "help": "Encrypted .backup and .rsc export through the agent over outbound HTTPS."
+      },
+      "ubiquiti": {
+        "title": "Ubiquiti · Connector",
+        "help": "Configuration read by the connector, when the product and API allow it."
+      },
+      "tp-link": {
+        "title": "TP-Link / CPE · ACS",
+        "help": "Configuration through ACS/TR-069, only on models that support it."
+      },
+      "generic": {
+        "title": "Generic / Legacy",
+        "help": "Non-invasive fallback when there is no native method."
+      },
+      "common": "Common options"
+    },
+    "optionLabels": {
+      "mikrotik_binary": {
+        "title": "Binary .backup",
+        "help": "Encrypted RouterOS backup, to restore on compatible devices."
+      },
+      "mikrotik_export": {
+        "title": "Text .rsc export",
+        "help": "Readable and comparable, useful for audits and diffs."
+      },
+      "ubiquiti_connector_config": {
+        "title": "Configuration from the connector",
+        "help": "Only when the product exposes a compatible function."
+      },
+      "tr069_config": {
+        "title": "Configuration through ACS",
+        "help": "The capability is checked for each device before the job."
+      },
+      "generic_snapshot": {
+        "title": "Inventory snapshot",
+        "help": "Metadata and observed state; it does not fake a configuration backup."
+      },
+      "pre_firmware": {
+        "title": "Backup before firmware",
+        "help": "Only when the vendor supports a real backup."
+      },
+      "verify_hash": {
+        "title": "SHA-256",
+        "help": "Records the integrity of the produced files."
+      }
+    },
+    "retention_daily": "Daily",
+    "retention_weekly": "Weekly",
+    "retention_monthly": "Monthly",
+    "retry_count": "Retries after an error",
+    "cancel": "Cancel",
+    "submit": {
+      "create": "Create policy",
+      "edit": "Save changes",
+      "clone": "Create copy"
+    },
+    "manageTitle": "Policy state",
+    "activeHelp": "The policy is enabled and takes part in choosing the effective policy.",
+    "pausedHelp": "The policy is paused: it applies to no device.",
+    "pause": "Pause",
+    "resume": "Resume",
+    "clone": "Duplicate",
+    "deleteTitle": "Delete policy",
+    "deleteHelp": "Covered devices fall back to the next policy by priority, or are left without a policy.",
+    "errors": {
+      "name": "The policy name is required.",
+      "time": "The backup time is not valid.",
+      "weekday": "The day of the week is not valid.",
+      "monthday": "The day of the month is not valid.",
+      "frequency": "The frequency is not valid.",
+      "vendor": "Choose the vendor.",
+      "customer": "Choose a valid customer.",
+      "site": "Choose a valid site.",
+      "device": "Choose a valid device.",
+      "scope": "The target is not valid.",
+      "retention": "The retention values are not valid.",
+      "duplicate": "A policy with this name already exists.",
+      "customer_scope": "The target must be this customer, one of its sites or one of its devices.",
+      "confirm": "The confirmation name does not match the policy.",
+      "invalid": "Invalid value.",
+      "site_customer": "The site does not belong to the chosen customer.",
+      "device_customer": "The device does not belong to the chosen customer."
+    },
+    "confirmName": "To confirm, type the policy name: {{name}}"
   }
 }
