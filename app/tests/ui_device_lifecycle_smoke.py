@@ -86,6 +86,10 @@ def main():
     after = admin.get(base).json()["device"]
     assert after["match"] == "no_record" and after["status"] != "eol" and after["source"] is None
 
+    # Classic form: the flash shows the message alone, not "400: ...".
+    from app.lifecycle_catalog import LifecycleInputError
+    assert str(LifecycleInputError("status", "Seleziona lo stato lifecycle.")) == "Seleziona lo stato lifecycle."
+
     assert admin.get(f"/app/devices/{ids['old']}/lifecycle").status_code in (200, 503)
     print("ui device lifecycle smoke ok")
 
