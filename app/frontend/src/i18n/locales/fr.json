@@ -725,7 +725,8 @@
     "actions": {
       "incidents": "Incidents",
       "edit": "Gérer le client",
-      "addDevice": "+ Équipement"
+      "addDevice": "+ Équipement",
+      "manageDevices": "Gérer les équipements"
     },
     "tabs": {
       "label": "Sections client",
@@ -3074,5 +3075,45 @@
     "copy": "Copier la commande",
     "copied": "Copiée",
     "once": "La commande ne sera plus affichée : si vous la perdez, générez-en une nouvelle depuis l'onglet Agent."
+  },
+  "deviceManage": {
+    "title": "Alias et affectation",
+    "help": "Renommez l'équipement ou déplacez-le vers un autre client ou site ; la modification est enregistrée.",
+    "identity": "Identité détectée : {{identity}}",
+    "customer": "Client",
+    "chooseCustomer": "Choisissez le client",
+    "site": "Site",
+    "moveWarning": "L'équipement passe à un autre client : ses alertes et notifications ouvertes le suivent.",
+    "deleteTitle": "Supprimer l'équipement",
+    "deleteHelp": "Ses sauvegardes et son historique sont aussi supprimés ; une copie reste dans le journal d'activité.",
+    "bulkTitle": "Gestion des équipements",
+    "bulkHelp": "Sélectionnez plusieurs équipements du client pour les déplacer ou les supprimer ensemble.",
+    "search": "Filtrer par nom, modèle, IP, MAC ou site",
+    "selectAll": "Tout sélectionner",
+    "empty": "Aucun équipement.",
+    "columns": {
+      "device": "Équipement",
+      "site": "Site",
+      "address": "IP / MAC",
+      "status": "État"
+    },
+    "selected_one": "{{count}} sélectionné",
+    "selected_other": "{{count}} sélectionnés",
+    "action": "Action",
+    "move": "Déplacer",
+    "delete": "Supprimer",
+    "confirmCount": "Pour confirmer, saisissez le nombre d'équipements : {{count}}",
+    "apply": "Appliquer",
+    "done_one": "{{count}} équipement mis à jour.",
+    "done_other": "{{count}} équipements mis à jour.",
+    "errors": {
+      "customer_invalid": "Client de destination non valide.",
+      "site_invalid": "Le site choisi n'appartient pas au client de destination.",
+      "confirm_name": "Le nom de confirmation ne correspond pas : l'équipement n'a pas été supprimé.",
+      "none_selected": "Sélectionnez au moins un équipement.",
+      "not_owned": "Un ou plusieurs équipements n'appartiennent plus au client : rechargez la page.",
+      "confirm_count": "Le nombre de confirmation ne correspond pas.",
+      "action_invalid": "Action non valide."
+    }
   }
 }

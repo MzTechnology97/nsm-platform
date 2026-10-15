@@ -19,6 +19,14 @@
   configured); ``POST .../devices`` creates the device through
   ``main.create_device_record`` (``devices.write``). A MikroTik answer carries
   the one-shot enrollment command (``no-store``), shown once;
+- ``GET /api/ui/v1/devices/{id}/manage``: alias, customer and site of a device
+  with the possible destinations; ``POST /api/ui/v1/devices/{id}`` renames /
+  moves it, ``POST .../delete`` deletes it (the typed name must match);
+  ``GET / POST /api/ui/v1/customers/{id}/devices/manage|bulk`` move or delete
+  several devices of a customer (bulk delete confirmed with their number).
+  All need ``devices.write`` and go through ``crud_extension``
+  (``update_device_record``, ``delete_device_record``,
+  ``bulk_devices_record``);
 - ``POST /api/ui/v1/customers`` creates a customer; ``POST .../{id}`` updates
   it, ``POST .../{id}/delete`` deletes it with devices, sites and backup files
   (the typed name must match); ``POST .../{id}/sites`` creates a site,
@@ -397,3 +405,98 @@ def create_device(request: Request, response: Response, customer_id: uuid.UUID, 
             "status": device.status,
             "enrollment_command": core.enrollment_command(str(request.base_url), raw_token) if raw_token else None,
         }
+
+
+# --- Device management ---------------------------------------------------------------------------
+
+def _targets(db) -> list[dict]:
+    """Customers in scope with their sites: where a device can be moved."""
+    from sqlalchemy.orm import selectinload
+
+    customers = db.scalars(select(Customer).options(selectinload(Customer.sites)).order_by(Customer.name))
+    return [{"id": str(c.id), "name": c.name, "sites": [{"id": str(site.id), "name": site.name} for site in sorted(c.sites, key=lambda x: x.name.lower())]}
+            for c in customers]
+
+
+def _managed_device(device) -> dict:
+    return {"id": str(device.id), "name": device.display_name or device.device_identity or device.name, "display_name": device.display_name,
+            "identity": device.device_identity, "brand": brand_icon(device), "vendor": device.vendor, "model": device.model, "status": device.status,
+            "management_ip": device.management_ip, "primary_mac": device.primary_mac,
+            "customer_id": str(device.customer_id), "site": {"id": str(device.site.id), "name": device.site.name} if device.site else None}
+
+
+def _input_error(exc) -> HTTPException:
+    return HTTPException(422, {"code": exc.code, "message": str(exc.detail)})
+
+
+@router.get("/devices/{device_id}/manage")
+def device_manage_form(request: Request, device_id: uuid.UUID):
+    with SessionLocal() as db:
+        ui_user(request, db, "devices.write")
+        device = db.get(Device, device_id)
+        if not device:
+            raise HTTPException(404)
+        return {"device": _managed_device(device), "targets": _targets(db)}
+
+
+@router.post("/devices/{device_id}", dependencies=[Depends(require_csrf)])
+def device_update(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    from app.input_errors import InputError
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.write")
+        device = db.get(Device, device_id)
+        if not device:
+            raise HTTPException(404)
+        try:
+            crud_extension.update_device_record(db, user, device, _text(body, "display_name"), _text(body, "customer_id"), _text(body, "site_id"))
+        except InputError as exc:
+            raise _input_error(exc) from None
+        return {"id": str(device_id), "customer_id": str(device.customer_id)}
+
+
+@router.post("/devices/{device_id}/delete", dependencies=[Depends(require_csrf)])
+def device_delete(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.write")
+        device = db.get(Device, device_id)
+        if not device:
+            raise HTTPException(404)
+        name = device.display_name or device.device_identity or device.name
+        if _text(body, "confirm_name").strip() != name:
+            raise HTTPException(422, {"code": "confirm_name", "message": "Il nome di conferma non corrisponde all'apparato."})
+        customer_id = crud_extension.delete_device_record(db, user, device)
+        return {"deleted": True, "customer_id": str(customer_id)}
+
+
+@router.get("/customers/{customer_id}/devices/manage")
+def customer_devices_manage(request: Request, customer_id: uuid.UUID):
+    from sqlalchemy.orm import selectinload
+
+    with SessionLocal() as db:
+        ui_user(request, db, "devices.write")
+        customer = db.get(Customer, customer_id)
+        if not customer:
+            raise HTTPException(404)
+        devices = db.scalars(select(Device).where(Device.customer_id == customer.id).options(selectinload(Device.site))
+                             .order_by(Device.display_name.nullslast(), Device.name))
+        return {"customer": {"id": str(customer.id), "name": customer.name}, "devices": [_managed_device(d) for d in devices], "targets": _targets(db)}
+
+
+@router.post("/customers/{customer_id}/devices/bulk", dependencies=[Depends(require_csrf)])
+def customer_devices_bulk(request: Request, customer_id: uuid.UUID, body: dict = Body(default={})):
+    from app.input_errors import InputError
+
+    ids = [value for value in body.get("device_ids") or [] if isinstance(value, str)]
+    action = _text(body, "action")
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.write")
+        if not db.get(Customer, customer_id):
+            raise HTTPException(404)
+        if action == "delete" and _text(body, "confirm") != str(len(set(ids))):
+            raise HTTPException(422, {"code": "confirm_count", "message": "Conferma eliminazione non valida."})
+        try:
+            changed = crud_extension.bulk_devices_record(db, user, customer_id, ids, action, _text(body, "target_customer_id"), _text(body, "target_site_id"))
+        except InputError as exc:
+            raise _input_error(exc) from None
+        return {"changed": changed}

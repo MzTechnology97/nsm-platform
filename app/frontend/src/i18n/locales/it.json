@@ -725,7 +725,8 @@
     "actions": {
       "incidents": "Incidenti",
       "edit": "Gestisci cliente",
-      "addDevice": "+ Apparato"
+      "addDevice": "+ Apparato",
+      "manageDevices": "Gestisci apparati"
     },
     "tabs": {
       "label": "Sezioni cliente",
@@ -3074,5 +3075,45 @@
     "copy": "Copia comando",
     "copied": "Copiato",
     "once": "Il comando non verrà mostrato di nuovo: se lo perdi, generane uno nuovo dalla scheda Agent."
+  },
+  "deviceManage": {
+    "title": "Alias e assegnazione",
+    "help": "Rinomina l'apparato o spostalo in un altro cliente o sede; la modifica viene registrata.",
+    "identity": "Identità rilevata: {{identity}}",
+    "customer": "Cliente",
+    "chooseCustomer": "Scegli il cliente",
+    "site": "Sede",
+    "moveWarning": "L'apparato passa a un altro cliente: le segnalazioni e le notifiche aperte lo seguono.",
+    "deleteTitle": "Elimina apparato",
+    "deleteHelp": "Vengono eliminati anche backup e cronologia dell'apparato; una fotografia resta nel registro attività.",
+    "bulkTitle": "Gestione apparati",
+    "bulkHelp": "Seleziona più apparati del cliente per spostarli o eliminarli insieme.",
+    "search": "Filtra per nome, modello, IP, MAC o sede",
+    "selectAll": "Seleziona tutti quelli mostrati",
+    "empty": "Nessun apparato.",
+    "columns": {
+      "device": "Apparato",
+      "site": "Sede",
+      "address": "IP / MAC",
+      "status": "Stato"
+    },
+    "selected_one": "{{count}} selezionato",
+    "selected_other": "{{count}} selezionati",
+    "action": "Azione",
+    "move": "Sposta",
+    "delete": "Elimina",
+    "confirmCount": "Per confermare scrivi il numero di apparati: {{count}}",
+    "apply": "Applica",
+    "done_one": "{{count}} apparato aggiornato.",
+    "done_other": "{{count}} apparati aggiornati.",
+    "errors": {
+      "customer_invalid": "Cliente di destinazione non valido.",
+      "site_invalid": "La sede scelta non appartiene al cliente di destinazione.",
+      "confirm_name": "Il nome di conferma non corrisponde: l'apparato non è stato eliminato.",
+      "none_selected": "Seleziona almeno un apparato.",
+      "not_owned": "Uno o più apparati non appartengono più al cliente: ricarica la pagina.",
+      "confirm_count": "Il numero di conferma non corrisponde.",
+      "action_invalid": "Azione non valida."
+    }
   }
 }

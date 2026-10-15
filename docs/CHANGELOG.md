@@ -4,6 +4,24 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.144 — 2026-10-15
+
+New interface (React) — device management, phase 7g
+- **Manage device in `/app/devices/{id}/manage`**, from «Manage» on the device page:
+  - **Assignment:** change the alias, the customer and the site. Only the customers you can see are offered, and only the chosen customer's sites. When the device changes customer, a warning says that its open issues and notifications follow it.
+  - **Delete:** the button only becomes active once you type the device name; backup files are removed and a snapshot stays in the activity log.
+- **Manage devices of a customer in `/app/customers/{id}/devices/manage`**, from «Manage devices» on the customer page:
+  - the devices are listed with their vendor icon, site, IP/MAC and state, and can be filtered;
+  - you can select several devices, then move them to another customer and site, or delete them by typing how many they are.
+- **Messages.** Validation messages are translated.
+- **Shared code.** Device changes now go through shared functions, used by both interfaces; the classic pages behave as before, with the same messages.
+  - `crud_extension.update_device_record`, `delete_device_record`, `bulk_devices_record`.
+- **API.** All routes need `devices.write`; the `POST` routes need the CSRF header. Validation errors are 422 `{code, message}`.
+  - `GET /api/ui/v1/devices/{id}/manage`;
+  - `POST /api/ui/v1/devices/{id}`, `/devices/{id}/delete`;
+  - `GET /api/ui/v1/customers/{id}/devices/manage`;
+  - `POST /api/ui/v1/customers/{id}/devices/bulk`.
+
 ## 0.49.143 — 2026-10-15
 
 New interface (React) — new device, phase 7f
