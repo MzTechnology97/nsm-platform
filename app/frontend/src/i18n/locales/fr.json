@@ -4385,5 +4385,66 @@
       "url": "Le lien doit commencer par http:// ou https://.",
       "encoding": "Le fichier doit être un CSV en UTF-8."
     }
+  },
+  "firmwareSuggestions": {
+    "title": "Suggestions de mise à jour RouterOS",
+    "subtitle": "MikroTik en retard sur la version de référence de leur canal, avec la prochaine étape sûre. Rien ne se met à jour d'ici : les plans mettent en file la sauvegarde préalable et attendent l'approbation. Les versions hors sécurité sont proposées après {{days}} jours sur le canal.",
+    "catalog": "Catalogue RouterOS",
+    "kindsLabel": "Prochaine étape",
+    "all": "Tous",
+    "kinds": {
+      "plan": "Prêt pour un plan",
+      "legacy": "Mise à jour legacy prête",
+      "check": "Vérification firmware nécessaire",
+      "plan_open": "Plan déjà ouvert",
+      "soak": "En observation",
+      "blocked": "Bloqué"
+    },
+    "security": "Sécurité",
+    "securityCount_one": "{{count}} équipement avec une mise à jour de sécurité.",
+    "securityCount_other": "{{count}} équipements avec une mise à jour de sécurité.",
+    "selectAll": "Tout sélectionner",
+    "select": "Sélectionner {{name}}",
+    "columns": {
+      "device": "Équipement",
+      "installed": "Installé",
+      "target": "Proposé",
+      "reason": "Motif",
+      "next": "Prochaine étape",
+      "actions": ""
+    },
+    "age_one": "depuis {{count}} jour",
+    "age_other": "depuis {{count}} jours",
+    "maintenance": "Maintenance",
+    "outOfSupport": "hors support",
+    "openPlan": "Ouvrir le plan",
+    "legacy": "Mettre à jour (legacy)",
+    "firmware": "Firmware",
+    "batchHelp": "{{count}} sélectionnés, {{max}} au maximum à la fois ; les équipements non éligibles sont ignorés avec le motif.",
+    "check": "Vérifier le firmware des sélectionnés",
+    "plan": "Créer des plans pour les sélectionnés",
+    "planConfirm": "Créer des plans de mise à jour pour les équipements sélectionnés ? Chaque plan met en file une sauvegarde préalable et attend l'approbation.",
+    "empty": "Aucun MikroTik n'est en retard sur le catalogue RouterOS.",
+    "emptyCustomer": "Aucun MikroTik de ce client n'est en retard sur le catalogue RouterOS.",
+    "checked_one": "{{count}} vérification firmware mise en file.",
+    "checked_other": "{{count}} vérifications firmware mises en file.",
+    "planned_one": "{{count}} plan créé (sauvegarde préalable en file, approbation requise).",
+    "planned_other": "{{count}} plans créés (sauvegarde préalable en file, approbation requise).",
+    "skipped": {
+      "none": "aucune mise à jour",
+      "already_queued": "vérification déjà en file",
+      "no_agent": "agent indisponible",
+      "plan": "prêt pour un plan",
+      "legacy": "mise à jour legacy prête",
+      "check": "vérification firmware nécessaire",
+      "plan_open": "plan déjà ouvert",
+      "soak": "en observation",
+      "blocked": "bloqué"
+    },
+    "errors": {
+      "action": "Action non valide.",
+      "empty": "Sélectionnez au moins un équipement.",
+      "too_many": "Trop d'équipements sélectionnés."
+    }
   }
 }

@@ -4385,5 +4385,66 @@
       "url": "The link must start with http:// or https://.",
       "encoding": "The file must be a UTF-8 CSV."
     }
+  },
+  "firmwareSuggestions": {
+    "title": "RouterOS upgrade suggestions",
+    "subtitle": "MikroTik devices behind the reference version of their channel, with the next safe step. Nothing upgrades from here: plans queue the pre-upgrade backup and wait for approval. Non-security releases are suggested after {{days}} days on the channel.",
+    "catalog": "RouterOS catalog",
+    "kindsLabel": "Next step",
+    "all": "All",
+    "kinds": {
+      "plan": "Ready for a plan",
+      "legacy": "Legacy upgrade ready",
+      "check": "Firmware check needed",
+      "plan_open": "Plan already open",
+      "soak": "Soaking",
+      "blocked": "Blocked"
+    },
+    "security": "Security",
+    "securityCount_one": "{{count}} device with a security update.",
+    "securityCount_other": "{{count}} devices with a security update.",
+    "selectAll": "Select all",
+    "select": "Select {{name}}",
+    "columns": {
+      "device": "Device",
+      "installed": "Installed",
+      "target": "Suggested",
+      "reason": "Reason",
+      "next": "Next step",
+      "actions": ""
+    },
+    "age_one": "for {{count}} day",
+    "age_other": "for {{count}} days",
+    "maintenance": "Maintenance",
+    "outOfSupport": "out of support",
+    "openPlan": "Open plan",
+    "legacy": "Upgrade (legacy)",
+    "firmware": "Firmware",
+    "batchHelp": "{{count}} selected, at most {{max}} at a time; devices that do not qualify are skipped with the reason.",
+    "check": "Check firmware of the selected",
+    "plan": "Create plans for the selected",
+    "planConfirm": "Create upgrade plans for the selected devices? Each plan queues a pre-upgrade backup and waits for approval.",
+    "empty": "No MikroTik is behind the RouterOS catalog.",
+    "emptyCustomer": "No MikroTik of this customer is behind the RouterOS catalog.",
+    "checked_one": "{{count}} firmware check queued.",
+    "checked_other": "{{count}} firmware checks queued.",
+    "planned_one": "{{count}} plan created (pre-upgrade backup queued, approval required).",
+    "planned_other": "{{count}} plans created (pre-upgrade backup queued, approval required).",
+    "skipped": {
+      "none": "no update",
+      "already_queued": "check already queued",
+      "no_agent": "agent not available",
+      "plan": "ready for a plan",
+      "legacy": "legacy upgrade ready",
+      "check": "firmware check needed",
+      "plan_open": "plan already open",
+      "soak": "soaking",
+      "blocked": "blocked"
+    },
+    "errors": {
+      "action": "Invalid action.",
+      "empty": "Select at least one device.",
+      "too_many": "Too many devices selected."
+    }
   }
 }

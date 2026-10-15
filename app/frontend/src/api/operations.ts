@@ -241,3 +241,75 @@ export function useFirmwareCheck() {
     onSuccess: () => client.invalidateQueries({ queryKey: ["firmware"] }),
   });
 }
+
+export const SUGGESTION_KINDS = ["plan", "legacy", "check", "plan_open", "soak", "blocked"] as const;
+export type SuggestionKind = (typeof SUGGESTION_KINDS)[number];
+
+export interface SuggestionFilters {
+  customer?: string;
+  kind?: SuggestionKind;
+}
+
+export const parseSuggestionSearch = (search: Record<string, unknown>): SuggestionFilters => ({
+  ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
+  ...(typeof search.kind === "string" && (SUGGESTION_KINDS as readonly string[]).includes(search.kind) ? { kind: search.kind as SuggestionKind } : {}),
+});
+
+export interface Suggestion {
+  device: { id: string; name: string; brand?: BrandRef; model: string | null; customer: { id: string; name: string } | null; site: string | null };
+  installed: string | null;
+  target: string | null;
+  channel: string | null;
+  age_days: number | null;
+  released_at: string | null;
+  security: boolean;
+  reasons: string[];
+  kind: SuggestionKind;
+  note: string;
+  plan_id: string | null;
+  out_of_support: boolean;
+}
+
+export interface Suggestions {
+  kind: string;
+  total: number;
+  security: number;
+  counts: Record<SuggestionKind, number>;
+  soak_days: number;
+  max_batch: number;
+  can_execute: boolean;
+  items: Suggestion[];
+}
+
+export interface SkippedDevice {
+  id: string;
+  name: string;
+  code: string;
+  message: string;
+}
+
+export const useSuggestions = (filters: SuggestionFilters) =>
+  useQuery({
+    queryKey: ["firmware-suggestions", filters],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (filters.customer) params.set("customer", filters.customer);
+      if (filters.kind) params.set("kind", filters.kind);
+      const text = params.toString();
+      return api<Suggestions>(`/api/ui/v1/firmware/suggestions${text ? `?${text}` : ""}`);
+    },
+    placeholderData: keepPreviousData,
+    staleTime: 20_000,
+  });
+
+export function useApplySuggestions() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { action: "check" | "plan"; devices: string[] }) =>
+      api<{ action: string; done: number; skipped: SkippedDevice[] }>("/api/ui/v1/firmware/suggestions/apply", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["firmware-suggestions"] });
+      client.invalidateQueries({ queryKey: ["firmware"] });
+    },
+  });
+}
