@@ -76,7 +76,7 @@ def main():
     assert detail["cve_id"] == f"CVE-2099-{base_number}" and detail["severity"] == "critical" and detail["links"]["nvd"] == "https://nvd.example.test/cve"
     assert {i["device"]["id"] for i in detail["impacted"]} == {ids["router"], ids["foreign"]}, "open impacts by default"
     impact = next(i for i in detail["impacted"] if i["device"]["id"] == ids["router"])
-    assert impact["installed_version"] == "7.12.1" and impact["fixed_version"] == "7.14" and impact["finding_url"].startswith("/security/findings/")
+    assert impact["installed_version"] == "7.12.1" and impact["fixed_version"] == "7.14" and impact["finding_id"]
     assert {c["id"] for c in detail["customers"]} == {ids["mine"], ids["other"]}
     resolved = client.get(f"/api/ui/v1/vulnerabilities/{ids['critical']}?status=resolved").json()["impacted"]
     assert [i["device"]["id"] for i in resolved] == [ids["router2"]] and resolved[0]["resolution"] == "no_longer_matches"

@@ -1169,12 +1169,14 @@
       "planned": "planifiée",
       "in_progress": "en cours",
       "accepted": "risque accepté",
-      "resolved": "résolue"
+      "resolved": "résolue",
+      "exception": "exception"
     },
     "resolutions": {
       "no_longer_matches": "version plus affectée",
       "advisory_rejected": "CVE rejetée par NVD",
-      "device_not_evaluable": "équipement plus évaluable"
+      "device_not_evaluable": "équipement plus évaluable",
+      "manual": "clôturée par un opérateur"
     },
     "levels": {
       "critical": "critique",
@@ -4277,6 +4279,55 @@
       "param": "Un paramètre n'est pas valide ou hors limites (1–3650).",
       "no_controls": "Définissez au moins un contrôle (actif ou désactivé).",
       "exists": "Un référentiel global existe déjà."
+    }
+  },
+  "vulnFinding": {
+    "status": "État",
+    "managedHelp": "Elle se clôt d'elle-même quand la version installée n'est plus affectée.",
+    "manualHelp": "Avis saisi manuellement : la clôture est enregistrée par l'opérateur.",
+    "installed": "Version installée",
+    "fixed": "Corrigée en",
+    "noFix": "Non indiquée par la source",
+    "range": "Plage affectée",
+    "confidence": "fiabilité {{level}}",
+    "detected": "Détectée",
+    "exceptionUntil": "Exception valable jusqu'au",
+    "resolved": "Résolue",
+    "device": "Équipement",
+    "plan": "Plan firmware",
+    "planTo": "Plan firmware → {{version}}",
+    "history": "Historique",
+    "historyHelp": "Chaque changement d'état, manuel ou automatique, reste enregistré après la clôture.",
+    "columns": {
+      "when": "Quand",
+      "from": "De",
+      "to": "À",
+      "who": "Qui",
+      "note": "Note"
+    },
+    "automatic": "Automatique",
+    "until": "jusqu'au {{when}}",
+    "noHistory": "Aucune modification enregistrée.",
+    "update": "Mettre à jour l'état",
+    "updateHelp": "La modification est enregistrée dans l'historique avec votre utilisateur.",
+    "saved": "État mis à jour : {{status}}.",
+    "newStatus": "Nouvel état",
+    "note": "Note",
+    "notePlaceholder": "Ex. mise à jour planifiée samedi ; pour une exception : motif et mesures compensatoires",
+    "noteHelp": "Obligatoire pour les exceptions et les clôtures manuelles.",
+    "exceptionUntilLabel": "Expiration de l'exception",
+    "exceptionHelp": "Un an au maximum ; à l'expiration, la vulnérabilité redevient ouverte.",
+    "save": "Enregistrer l'état",
+    "errors": {
+      "status": "État non valide.",
+      "same": "Le signalement est déjà dans cet état.",
+      "managed": "Elle se clôt d'elle-même quand la version installée n'est plus affectée : mettez à jour le firmware ou enregistrez une exception.",
+      "not_allowed": "Ce changement d'état n'est pas autorisé.",
+      "reason": "Une exception nécessite un motif.",
+      "until": "Une exception nécessite une date d'expiration.",
+      "until_invalid": "Date d'expiration non valide.",
+      "until_range": "L'expiration doit être dans moins d'un an.",
+      "resolution": "Indiquez comment la vulnérabilité a été résolue."
     }
   }
 }

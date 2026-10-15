@@ -192,6 +192,11 @@ const vulnerabilitiesRoute = createRoute({
   component: lazyRouteComponent(() => import("../pages/Vulnerabilities"), "Vulnerabilities"),
   validateSearch: parseVulnSearch,
 });
+const vulnerabilityFindingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/vulnerabilities/findings/$findingId",
+  component: lazyRouteComponent(() => import("../pages/VulnerabilityFinding"), "VulnerabilityFinding"),
+});
 const vulnerabilityRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/vulnerabilities/$advisoryId",
@@ -498,6 +503,7 @@ export const routeTree = rootRoute.addChildren([
   firmwareRoute,
   vulnerabilitiesRoute,
   vulnerabilityRoute,
+  vulnerabilityFindingRoute,
   exposureRoute,
   accessRoute,
   lifecycleRoute,

@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.158 — 2026-10-15
+
+New interface (React) — vulnerability finding, phase 7v
+- **Vulnerability on a device** (`/app/vulnerabilities/findings/{id}`), opened from the state of each impacted device on the advisory page:
+  - **Status:** installed and fixed version, affected range with confidence, detection date, exception expiry, resolution. The device keeps its vendor icon, and MikroTik devices link to the firmware plan.
+  - **Status change** (`security.remediate`): only the transitions the server allows. An exception needs a reason and an expiry within one year. An NVD finding closes by itself, while a manual advisory can be resolved with a note.
+  - **History** of every change, manual or automatic.
+- **Shared code.** `vulnerability_remediation.finding_status_record`; the classic page uses it with the same messages. `TransitionError` is now an `InputError` with codes (`status`, `same`, `managed`, `not_allowed`, `reason`, `until`, `until_invalid`, `until_range`, `resolution`).
+- **API.**
+  - `GET /api/ui/v1/vulnerabilities/findings/{id}` (`security.read`);
+  - `POST .../findings/{id}/status` (`security.remediate` + CSRF);
+  - the advisory API no longer returns the classic `finding_url`.
+
 ## 0.49.157 — 2026-10-15
 
 New interface (React) — compliance baselines, phase 7u

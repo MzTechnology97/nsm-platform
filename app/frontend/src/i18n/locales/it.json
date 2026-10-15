@@ -1169,12 +1169,14 @@
       "planned": "pianificata",
       "in_progress": "in corso",
       "accepted": "rischio accettato",
-      "resolved": "risolta"
+      "resolved": "risolta",
+      "exception": "eccezione"
     },
     "resolutions": {
       "no_longer_matches": "versione non più affetta",
       "advisory_rejected": "CVE respinta da NVD",
-      "device_not_evaluable": "apparato non più valutabile"
+      "device_not_evaluable": "apparato non più valutabile",
+      "manual": "chiusa dall'operatore"
     },
     "levels": {
       "critical": "critica",
@@ -4277,6 +4279,55 @@
       "param": "Un parametro non è valido o è fuori intervallo (1–3650).",
       "no_controls": "Imposta almeno un controllo (attivo o disattivato).",
       "exists": "Esiste già una baseline globale."
+    }
+  },
+  "vulnFinding": {
+    "status": "Stato",
+    "managedHelp": "Si chiude da sola quando la versione installata non è più affetta.",
+    "manualHelp": "Advisory inserita a mano: la chiusura la registra l'operatore.",
+    "installed": "Versione installata",
+    "fixed": "Corretta in",
+    "noFix": "Non indicata dalla fonte",
+    "range": "Intervallo affetto",
+    "confidence": "affidabilità {{level}}",
+    "detected": "Rilevata",
+    "exceptionUntil": "Eccezione valida fino al",
+    "resolved": "Risolta",
+    "device": "Apparato",
+    "plan": "Piano firmware",
+    "planTo": "Piano firmware → {{version}}",
+    "history": "Storico",
+    "historyHelp": "Ogni cambio di stato, manuale o automatico, resta registrato anche dopo la chiusura.",
+    "columns": {
+      "when": "Quando",
+      "from": "Da",
+      "to": "A",
+      "who": "Chi",
+      "note": "Nota"
+    },
+    "automatic": "Automatico",
+    "until": "fino al {{when}}",
+    "noHistory": "Nessuna modifica registrata.",
+    "update": "Aggiorna lo stato",
+    "updateHelp": "La modifica viene registrata nello storico con il tuo utente.",
+    "saved": "Stato aggiornato: {{status}}.",
+    "newStatus": "Nuovo stato",
+    "note": "Nota",
+    "notePlaceholder": "Es. upgrade pianificato nella finestra di sabato; per un'eccezione: motivazione e mitigazioni",
+    "noteHelp": "Obbligatoria per eccezioni e chiusure manuali.",
+    "exceptionUntilLabel": "Scadenza eccezione",
+    "exceptionHelp": "Al massimo un anno; alla scadenza la vulnerabilità torna aperta.",
+    "save": "Salva stato",
+    "errors": {
+      "status": "Stato non valido.",
+      "same": "La segnalazione è già in questo stato.",
+      "managed": "Si chiude da sola quando la versione installata non è più affetta: aggiorna il firmware oppure registra un'eccezione.",
+      "not_allowed": "Passaggio di stato non consentito.",
+      "reason": "Un'eccezione richiede una motivazione.",
+      "until": "Un'eccezione richiede una data di scadenza.",
+      "until_invalid": "Data di scadenza non valida.",
+      "until_range": "La scadenza deve essere entro un anno da oggi.",
+      "resolution": "Indica come è stata risolta la vulnerabilità."
     }
   }
 }

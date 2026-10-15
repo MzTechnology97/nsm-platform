@@ -60,7 +60,6 @@ export interface AdvisoryDetail extends AdvisoryHead {
     resolution: string | null;
     device: { id: string; name: string; brand?: BrandRef; vendor: string | null; model: string | null };
     customer: { id: string; name: string };
-    finding_url: string;
   }[];
   unassessed: { device: { id: string; name: string; brand?: BrandRef; model: string | null }; customer: { id: string; name: string } | null; version: string | null; reason: string }[];
 }
@@ -313,6 +312,44 @@ export function useBaselineWrite<B>(path: string) {
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["compliance-baselines"] });
       client.invalidateQueries({ queryKey: ["compliance"] });
+    },
+  });
+}
+
+export interface FindingDetail {
+  id: string;
+  status: string;
+  advisory: AdvisoryHead;
+  source_managed: boolean;
+  device: NonNullable<DeviceRef> & { vendor: string | null; model: string | null };
+  installed_version: string | null;
+  fixed_version: string | null;
+  rule: string | null;
+  confidence: string | null;
+  resolution: string | null;
+  detected_at: string | null;
+  exception_until: string | null;
+  resolved_at: string | null;
+  firmware_plan: boolean;
+  targets: string[];
+  can_remediate: boolean;
+  today: string;
+  max_exception: string;
+  history: { at: string | null; from: string | null; to: string; by: string | null; note: string | null; until: string | null }[];
+}
+
+export const useFinding = (id: string) =>
+  useQuery({ queryKey: ["vuln-finding", id], queryFn: () => api<FindingDetail>(`/api/ui/v1/vulnerabilities/findings/${encodeURIComponent(id)}`), retry: false });
+
+export function useFindingStatus(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { status: string; note: string; exception_until: string }) =>
+      api<{ status: string }>(`/api/ui/v1/vulnerabilities/findings/${encodeURIComponent(id)}/status`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["vuln-finding", id] });
+      client.invalidateQueries({ queryKey: ["vulnerabilities"] });
+      client.invalidateQueries({ queryKey: ["advisory"] });
     },
   });
 }

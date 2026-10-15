@@ -1169,12 +1169,14 @@
       "planned": "planned",
       "in_progress": "in progress",
       "accepted": "risk accepted",
-      "resolved": "resolved"
+      "resolved": "resolved",
+      "exception": "exception"
     },
     "resolutions": {
       "no_longer_matches": "version no longer affected",
       "advisory_rejected": "CVE rejected by NVD",
-      "device_not_evaluable": "device no longer assessable"
+      "device_not_evaluable": "device no longer assessable",
+      "manual": "closed by an operator"
     },
     "levels": {
       "critical": "critical",
@@ -4277,6 +4279,55 @@
       "param": "A parameter is invalid or out of range (1–3650).",
       "no_controls": "Set at least one control (enabled or disabled).",
       "exists": "A global baseline already exists."
+    }
+  },
+  "vulnFinding": {
+    "status": "Status",
+    "managedHelp": "It closes by itself when the installed version is no longer affected.",
+    "manualHelp": "Manually entered advisory: an operator records the closure.",
+    "installed": "Installed version",
+    "fixed": "Fixed in",
+    "noFix": "Not given by the source",
+    "range": "Affected range",
+    "confidence": "{{level}} confidence",
+    "detected": "Detected",
+    "exceptionUntil": "Exception valid until",
+    "resolved": "Resolved",
+    "device": "Device",
+    "plan": "Firmware plan",
+    "planTo": "Firmware plan → {{version}}",
+    "history": "History",
+    "historyHelp": "Every status change, manual or automatic, stays recorded after closure.",
+    "columns": {
+      "when": "When",
+      "from": "From",
+      "to": "To",
+      "who": "Who",
+      "note": "Note"
+    },
+    "automatic": "Automatic",
+    "until": "until {{when}}",
+    "noHistory": "No change recorded.",
+    "update": "Update the status",
+    "updateHelp": "The change is recorded in the history with your user.",
+    "saved": "Status updated: {{status}}.",
+    "newStatus": "New status",
+    "note": "Note",
+    "notePlaceholder": "E.g. upgrade planned in Saturday's window; for an exception: reason and mitigations",
+    "noteHelp": "Required for exceptions and manual closures.",
+    "exceptionUntilLabel": "Exception expiry",
+    "exceptionHelp": "One year at most; when it expires the vulnerability is open again.",
+    "save": "Save status",
+    "errors": {
+      "status": "Invalid status.",
+      "same": "The finding is already in this status.",
+      "managed": "It closes by itself when the installed version is no longer affected: upgrade the firmware or record an exception.",
+      "not_allowed": "This status change is not allowed.",
+      "reason": "An exception needs a reason.",
+      "until": "An exception needs an expiry date.",
+      "until_invalid": "Invalid expiry date.",
+      "until_range": "The expiry must be within one year from today.",
+      "resolution": "Explain how the vulnerability was resolved."
     }
   }
 }
