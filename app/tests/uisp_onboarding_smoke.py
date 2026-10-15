@@ -60,26 +60,28 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-uo-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/integrations/uisp/onboarding?customer={ids['customer']}").text
-    for marker in ("TEST CPE Rossi", "TEST AP Torre", "Nuovi <b>2</b>", "Da associare a record esistente <b>1</b>", "Già in NSM <b>1</b>", "Non importabili <b>3</b>", 'data-check-all=".uisp-pick"'):
-        assert marker in page, marker
+    base = "/api/ui/v1/integrations/uisp/onboarding"
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    data = client.get(base).json()
+    assert data["counts"] == {"new": 2, "linkable": 1, "linked": 1, "blocked": 3}, data["counts"]
+    page = repr(data["items"])
+    assert "TEST CPE Rossi" in page and "TEST AP Torre" in page
     assert "TEST CPE associato" not in page and "TEST senza MAC" not in page
-    blocked = client.get("/integrations/uisp/onboarding?state=blocked").text
+    blocked = repr(client.get(base, params={"state": "blocked"}).json()["items"])
     assert "MAC assente in UISP" in blocked and "MAC presente su più dispositivi UISP" in blocked
     assert "Importa da UISP" in client.get(f"/customers/{ids['customer']}/devices").text
-    token = csrf_from(page)
 
     picks = [f"u-new-{suffix}", f"u-ap-{suffix}", f"u-link-{suffix}"]
-    wrong_site = client.post("/integrations/uisp/onboarding/preview", data={"csrf": token, "customer_id": str(ids["customer"]), "site_id": str(ids["foreign_site"]), "external_id": picks}, follow_redirects=True)
-    assert "non appartiene al cliente" in wrong_site.text
-    preview = client.post("/integrations/uisp/onboarding/preview", data={"csrf": token, "customer_id": str(ids["customer"]), "site_id": str(ids["site"]), "external_id": picks}).text
-    assert preview.count("Verrà creato") == 2 and "Verrà associato al record esistente" in preview and "resta nel suo cliente" in preview
-    assert "Conferma onboarding di 3 dispositivi" in preview
+    target = {"customer_id": str(ids["customer"]), "site_id": str(ids["site"]), "external_ids": picks}
+    wrong_site = client.post(f"{base}/preview", headers=headers, json={**target, "site_id": str(ids["foreign_site"])})
+    assert wrong_site.status_code == 422 and "non appartiene al cliente" in wrong_site.text
+    preview = client.post(f"{base}/preview", headers=headers, json=target).json()
+    assert sorted(row["action"] for row in preview["plan"]) == ["create", "create", "link"], preview["plan"]
 
     # The AP disappears from UISP before confirmation: it is skipped, not created from stale data.
     state["rows"] = [r for r in state["rows"] if r["identification"]["id"] != f"u-ap-{suffix}"]
-    done = client.post("/integrations/uisp/onboarding/commit", data={"csrf": csrf_from(preview), "customer_id": str(ids["customer"]), "site_id": str(ids["site"]), "external_id": picks}, follow_redirects=True)
-    assert "1 apparati creati e 1 associati" in done.text and "1 saltati" in done.text
+    done = client.post(f"{base}/commit", headers=headers, json=target).json()
+    assert done["created"] == 1 and done["linked"] == 1 and done["skipped"] == [f"u-ap-{suffix}"], done
     with SessionLocal() as db:
         created = db.scalar(select(Device).where(Device.external_device_id == f"u-new-{suffix}"))
         assert created.customer_id == ids["customer"] and created.site_id == ids["site"] and created.device_type == "wireless_cpe"
@@ -88,12 +90,11 @@ def main():
         assert linked.external_device_id == f"u-link-{suffix}" and linked.customer_id == ids["other"], "existing records keep their customer"
         assert db.scalar(select(Device.id).where(Device.external_device_id == f"u-ap-{suffix}")) is None
         assert db.scalar(select(AuditEvent.id).where(AuditEvent.event_type == "UISP_BULK_ONBOARDING", AuditEvent.customer_id == ids["customer"])) is not None
-    again = client.get("/integrations/uisp/onboarding?state=linked").text
-    assert "TEST CPE Rossi" in again
+    assert "TEST CPE Rossi" in repr(client.get(base, params={"state": "linked"}).json()["items"])
 
     reader = TestClient(app)
     assert reader.post("/login", data={"username": f"ci-uo-op-{suffix}", "password": PASSWORD, "csrf": csrf_from(reader.get("/login").text)}, follow_redirects=False).status_code == 303
-    assert reader.get("/integrations/uisp/onboarding").status_code == 403
+    assert reader.get(base).status_code == 403
     print("UISP bulk onboarding smoke passed")
 
 

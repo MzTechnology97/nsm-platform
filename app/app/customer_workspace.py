@@ -14,9 +14,6 @@ from app.backup_core import (
     _policy_settings,
     _schedule_label,
     _scope_label,
-    _targets,
-    create_policy_record,
-    customer_policy_state,
 )
 from app.backup_models import BackupArtifact
 from app.db import SessionLocal
@@ -31,7 +28,6 @@ from app.models import (
     SecurityAdvisory,
     Site,
 )
-from app.security import validate_csrf
 
 router = APIRouter()
 PAGE_SIZE = 50
@@ -429,119 +425,6 @@ def customer_backups(request: Request, customer_id: uuid.UUID, site_id: str = ""
             never_count=never_count,
             selected_site=selected_site,
             selected_status=status,
-        )
-
-
-@router.get("/customers/{customer_id}/backups/policies/new", response_class=HTMLResponse, name="customer_backup_policy_new")
-def customer_backup_policy_new(request: Request, customer_id: uuid.UUID, device_id: str = "", site_id: str = ""):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "backup.configure"):
-            raise HTTPException(403)
-        customer = db.get(Customer, customer_id)
-        if not customer:
-            raise HTTPException(404)
-        customers, sites, devices = _targets(db)
-        sites = [site for site in sites if site.customer_id == customer.id]
-        devices = [device for device in devices if device.customer_id == customer.id]
-        state = customer_policy_state(customer, sites, devices, site_id, device_id)
-        return core.render(
-            request,
-            db,
-            user,
-            "backup_policy_form.html",
-            state=state,
-            customers=[customer],
-            sites=sites,
-            devices=devices,
-            form_action=f"/customers/{customer.id}/backups/policies/create",
-            mode="create",
-            customer_context=customer,
-        )
-
-
-@router.post("/customers/{customer_id}/backups/policies/create")
-async def customer_backup_policy_create(request: Request, customer_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf", "")))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "backup.configure")
-        customer = db.get(Customer, customer_id)
-        if not customer:
-            raise HTTPException(404)
-        create_policy_record(db, user, form, customer=customer)
-    return RedirectResponse(f"/customers/{customer_id}/backups", status_code=303)
-
-
-@router.get("/operations/backups", response_class=HTMLResponse, name="backup_customer_overview")
-def backup_customer_overview(request: Request):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "backup.read"):
-            raise HTTPException(403)
-
-        customers = list(db.scalars(select(Customer).order_by(Customer.name)))
-        devices = list(
-            db.scalars(
-                select(Device)
-                .options(selectinload(Device.customer), selectinload(Device.site))
-                .order_by(Device.customer_id)
-            )
-        )
-        policies, settings_map = _load_policy_context(db)
-        customer_map = {customer.id: customer for customer in customers}
-        sites = {site.id: site for site in db.scalars(select(Site).options(selectinload(Site.customer)))}
-        device_map = {device.id: device for device in devices}
-        metrics = _customer_metric_maps(db, [customer.id for customer in customers])
-
-        coverage = defaultdict(lambda: {"protected": 0, "devices": 0})
-        for device in devices:
-            coverage[device.customer_id]["devices"] += 1
-            if _effective_policy(device, policies, settings_map):
-                coverage[device.customer_id]["protected"] += 1
-
-        customer_rows = []
-        for customer in customers:
-            customer_metrics = _customer_metrics(metrics, customer.id)
-            customer_rows.append(
-                {
-                    "customer": customer,
-                    "devices": coverage[customer.id]["devices"],
-                    "protected": coverage[customer.id]["protected"],
-                    "unprotected": coverage[customer.id]["devices"] - coverage[customer.id]["protected"],
-                    "backup_alerts": customer_metrics["backup_alerts"],
-                    "alerts": customer_metrics["alerts"],
-                }
-            )
-
-        policy_rows = [
-            {
-                "policy": policy,
-                "settings": settings_map.get(policy.id),
-                "scope": _scope_label(policy, settings_map.get(policy.id), customer_map, sites, device_map),
-                "schedule": _schedule_label(settings_map.get(policy.id), policy),
-            }
-            for policy in policies
-        ]
-        failed_runs = db.scalar(select(func.count(BackupRun.id)).where(BackupRun.status == "failed")) or 0
-        protected_total = sum(row["protected"] for row in customer_rows)
-        total_devices = len(devices)
-        return core.render(
-            request,
-            db,
-            user,
-            "backup_customer_overview.html",
-            customer_rows=customer_rows,
-            policy_rows=policy_rows,
-            active_policy_count=sum(1 for policy in policies if policy.is_enabled),
-            total_devices=total_devices,
-            protected_total=protected_total,
-            unprotected_total=total_devices - protected_total,
-            failed_runs=failed_runs,
         )
 
 

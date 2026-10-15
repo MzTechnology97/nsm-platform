@@ -61,8 +61,7 @@ jobs:
               'dashboard': '/', 'devices': '/devices', 'admin_api_keys': '/admin/api-keys',
               'admin_uisp': '/admin/integrations/uisp', 'mikrotik_bootstrap': '/api/v1/enrollment/mikrotik/bootstrap',
               'mikrotik_enroll': '/api/v1/agents/mikrotik/enroll', 'mikrotik_heartbeat': '/api/v1/agents/mikrotik/heartbeat',
-              'mikrotik_legacy_job_next': '/api/v1/agents/mikrotik/legacy/jobs/next', 'firmware': '/operations/firmware',
-              'agent_fleet': '/operations/agents', 'backup_customer_overview': '/operations/backups',
+              'mikrotik_legacy_job_next': '/api/v1/agents/mikrotik/legacy/jobs/next',
               'search_suggest': '/api/v1/search/suggest',
               'audit_events_export_csv': '/audit/events/export.csv',
           }
@@ -104,7 +103,6 @@ jobs:
           modern_syntax_test = Path('app/tests/mikrotik_modern_syntax_smoke.py').read_text()
           agent_install = Path('app/app/templates/mikrotik_agent_status.html').read_text()
           agent_fleet = Path('app/app/agent_fleet.py').read_text()
-          agent_fleet_page = Path('app/app/templates/agent_fleet.html').read_text()
           agent_health = Path('app/app/agent_health_automation.py').read_text()
           workspace_ux = Path('app/app/mikrotik_workspace_ux.py').read_text()
           monitor = Path('app/app/templates/mikrotik_monitor.html').read_text()
@@ -133,10 +131,8 @@ jobs:
           assert 'invalid RouterOS empty local initializer survived' in modern_syntax_test
           for marker in ('Verifica installazione', 'Pairing one-shot', 'Heartbeat post-installazione', 'parser RouterOS'):
               assert marker in agent_install, marker
-          for marker in ('_installation_state', 'install_suspect', 'token_expired', 'install_filter', 'ENROLLMENT_HISTORY_WINDOW'):
+          for marker in ('_installation_state', 'install_suspect', 'token_expired', 'INSTALL_FILTERS', 'ENROLLMENT_HISTORY_WINDOW'):
               assert marker in agent_fleet, marker
-          for marker in ('Installazione KO', 'Pairing OK / agent non avviato', 'install=suspect', 'Token scaduti'):
-              assert marker in agent_fleet_page, marker
           for marker in ('TITLE_INSTALL_SUSPECT', 'TITLE_TOKEN_EXPIRED', '_installation_state', 'AGENT_HEALTH_RECOVERED'):
               assert marker in agent_health, marker
           for marker in ('human_bytes', 'snapshot_supported', 'telemetry_history_supported', 'Support snapshot non disponibile', '409'):

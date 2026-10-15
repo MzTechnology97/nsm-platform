@@ -158,9 +158,8 @@ def main():
     client = TestClient(app, base_url="https://nsm.example.test")
     login(client, username)
 
-    hub = client.get("/integrations")
-    assert hub.status_code == 200
-    assert 'data-integration="genieacs"' in hub.text and "Non configurato" in hub.text
+    hub = client.get("/api/ui/v1/integrations")
+    assert hub.status_code == 200 and hub.json()["genieacs"]["state"] == "unconfigured", hub.text
 
     page = client.get("/admin/integrations/genieacs")
     for bad in ("http://localhost:7557", "http://127.0.0.1:7557", "ftp://genieacs.example.test", "https://user:pw@genieacs.example.test"):
@@ -270,8 +269,8 @@ def main():
     assert detail.status_code == 200
     assert 'id="acs-inventory"' in detail.text and ACS_ID in detail.text and "1.0.1-ci27" in detail.text
     assert f'href="/devices/{serial_device_id}/genieacs"' in client.get(f"/devices/{serial_device_id}").text, "ACS tab on TR-069 devices"
-    hub = client.get("/integrations").text
-    assert "Attivo" in hub
+    hub = client.get("/api/ui/v1/integrations").json()["genieacs"]
+    assert hub["state"] == "active" and hub["linked"] >= 1, hub
 
     assert any(call["query"].get("_deviceId._SerialNumber") == SERIAL for call in calls)
     assert any("$or" in call["query"] for call in calls)

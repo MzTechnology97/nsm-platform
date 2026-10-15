@@ -130,48 +130,49 @@ def main():
     client = TestClient(app)
     login(client, ids["username"])
 
-    all_rows = client.get("/operations/agents?state=all")
-    assert all_rows.status_code == 200, all_rows.text
-    for marker in ("Agent Fleet", "CI35 Healthy Modern", "CI35 Healthy Legacy", "CI35 Stale", "CI35 Offline", "CI35 No Credential", "CI35 Pending Enrollment", "CI35 Other Customer"):
-        assert marker in all_rows.text, marker
-    assert "/operations/agents" in all_rows.text
-    assert "secret_hash" not in all_rows.text
+    def rows(**params):
+        response = client.get("/api/ui/v1/agents", params=params)
+        assert response.status_code == 200, response.text
+        assert "secret_hash" not in response.text
+        return {row["name"]: row for row in response.json()["items"]}
 
-    attention = client.get("/operations/agents")
-    assert attention.status_code == 200
+    all_rows = rows(state="all")
+    for marker in ("CI35 Healthy Modern", "CI35 Healthy Legacy", "CI35 Stale", "CI35 Offline", "CI35 No Credential", "CI35 Pending Enrollment", "CI35 Other Customer"):
+        assert marker in all_rows, marker
+
+    attention = rows()
     for marker in ("CI35 Stale", "CI35 Offline", "CI35 No Credential", "CI35 Pending Enrollment"):
-        assert marker in attention.text, marker
-    assert "CI35 Healthy Modern" not in attention.text
-    assert "CI35 Healthy Legacy" not in attention.text
+        assert marker in attention, marker
+    assert "CI35 Healthy Modern" not in attention
+    assert "CI35 Healthy Legacy" not in attention
 
-    healthy = client.get("/operations/agents?state=healthy")
-    assert "CI35 Healthy Modern" in healthy.text
-    assert "CI35 Healthy Legacy" in healthy.text
-    assert "CI35 Stale" not in healthy.text
+    healthy = rows(state="healthy")
+    assert "CI35 Healthy Modern" in healthy
+    assert "CI35 Healthy Legacy" in healthy
+    assert "CI35 Stale" not in healthy
 
-    stale = client.get("/operations/agents?state=stale")
-    assert "CI35 Stale" in stale.text
-    assert "CI35 Offline" not in stale.text
+    stale = rows(state="stale")
+    assert "CI35 Stale" in stale
+    assert "CI35 Offline" not in stale
 
-    pending = client.get("/operations/agents?state=pending")
-    assert "CI35 Pending Enrollment" in pending.text
-    assert "CI35 Healthy Modern" in pending.text
-    assert "token one-shot" in pending.text
+    pending = rows(state="pending")
+    assert "CI35 Pending Enrollment" in pending
+    assert "CI35 Healthy Modern" in pending
+    assert pending["CI35 Healthy Modern"]["pending_enrollments"] >= 1, "one-shot enrollment token still pending"
 
-    legacy = client.get("/operations/agents?state=all&transport=legacy")
-    assert "CI35 Healthy Legacy" in legacy.text
-    assert "CI35 Healthy Modern" not in legacy.text
+    legacy = rows(state="all", transport="legacy")
+    assert "CI35 Healthy Legacy" in legacy
+    assert "CI35 Healthy Modern" not in legacy
 
-    scoped = client.get(f"/operations/agents?state=all&customer={ids['customer_id']}")
-    assert "CI35 Healthy Modern" in scoped.text
-    assert "CI35 Other Customer" not in scoped.text
+    scoped = rows(state="all", customer=str(ids["customer_id"]))
+    assert "CI35 Healthy Modern" in scoped
+    assert "CI35 Other Customer" not in scoped
 
-    searched = client.get("/operations/agents?state=all&q=No+Credential")
-    assert "CI35 No Credential" in searched.text
-    assert "CI35 Healthy Modern" not in searched.text
+    searched = rows(state="all", q="No Credential")
+    assert "CI35 No Credential" in searched
+    assert "CI35 Healthy Modern" not in searched
 
-    detail_link = f"/devices/{ids['modern_id']}/agent"
-    assert detail_link in all_rows.text
+    assert all_rows["CI35 Healthy Modern"]["id"] == str(ids["modern_id"]), "row links to the device agent tab"
 
     print("Core 0.35 agent fleet health smoke test passed")
 

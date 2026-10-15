@@ -126,30 +126,27 @@ def main():
     client = TestClient(app)
     login(client)
 
-    view = client.get(f"/operations/backups/artifacts/{new_id}/view")
-    assert view.status_code == 200, view.text
-    assert "RouterOS export" in view.text
-    assert "ci21-new.rsc" in view.text and "ci21-old.rsc" in view.text
-    assert "set ssh disabled=no" in view.text
-    assert "Confronta configurazione" in view.text
-
-    diff = client.get(f"/operations/backups/artifacts/{new_id}/view?against={old_id}")
-    assert diff.status_code == 200, diff.text
-    assert "Diff configurazione" in diff.text
-    assert "set ssh disabled=yes" in diff.text
-    assert "set ssh disabled=no" in diff.text
-    assert "aggiunte" in diff.text and "rimosse" in diff.text
-
-    alias = client.get(f"/operations/backups/artifacts/{new_id}/diff?compare_id={old_id}")
-    assert alias.status_code == 200
-    assert "Diff configurazione" in alias.text
-
-    cross_device = client.get(f"/operations/backups/artifacts/{new_id}/view?against={other_id}")
-    assert cross_device.status_code == 400
-    assert "stesso apparato" in cross_device.text
-
-    binary = client.get(f"/operations/backups/artifacts/{binary_id}/view")
+    # The classic viewer moved to the device backup tab of the new interface.
+    moved = client.get(f"/operations/backups/artifacts/{new_id}/view?against={old_id}", follow_redirects=False)
+    assert moved.status_code == 302, moved.text
+    assert moved.headers["location"] == f"/app/devices/{device_id}/backups/artifacts/{new_id}?against={old_id}"
+    alias = client.get(f"/operations/backups/artifacts/{new_id}/diff?compare_id={old_id}", follow_redirects=False)
+    assert alias.status_code == 302 and alias.headers["location"] == moved.headers["location"]
+    plain = client.get(f"/operations/backups/artifacts/{new_id}/view", follow_redirects=False)
+    assert plain.headers["location"] == f"/app/devices/{device_id}/backups/artifacts/{new_id}"
+    binary = client.get(f"/operations/backups/artifacts/{binary_id}/view", follow_redirects=False)
     assert binary.status_code == 404
+
+    api = f"/api/ui/v1/devices/{device_id}/backups/artifacts/{new_id}"
+    view = client.get(api).json()
+    assert view["artifact"]["filename"] == "ci21-new.rsc" and "ci21-old.rsc" in {c["filename"] for c in view["candidates"]}
+    assert "set ssh disabled=no" in view["lines"]
+    diff = client.get(api, params={"against": str(old_id)}).json()["diff"]
+    rows = repr(diff["rows"])
+    assert "set ssh disabled=yes" in rows and "set ssh disabled=no" in rows
+    assert diff["summary"]["added"] >= 1 and diff["summary"]["removed"] >= 1
+    cross_device = client.get(api, params={"against": str(other_id)})
+    assert cross_device.status_code == 404, "an export of another device is not found on this one"
 
     customer_backups = client.get(f"/customers/{customer_id}/backups")
     assert customer_backups.status_code == 200, customer_backups.text

@@ -31,6 +31,7 @@ from app import vendor_cpe
 from app import vendor_firmware
 from app.input_errors import InputError
 from app import fleet_monitoring as fleet
+from app import zabbix_problems
 from app import mikrotik_firmware_readiness as firmware_readiness
 from app import main as core
 from app.db import SessionLocal
@@ -89,6 +90,7 @@ def monitoring(request: Request, state: str = "attention", customer: str = "", v
             "thresholds": {"cpu": fleet.HIGH_CPU, "memory": fleet.LOW_MEMORY_PERCENT, "loss": fleet.HIGH_LOSS_PERCENT,
                            "stale_minutes": int(fleet.STALE_AGENT_AFTER.total_seconds() // 60)},
             "can_bulk": core.has_permission(user, "devices.write"),
+            "zabbix": zabbix_problems.api_fleet(customer_id, vendor.strip()),
         }
 
 

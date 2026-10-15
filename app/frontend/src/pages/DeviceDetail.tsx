@@ -6,6 +6,7 @@ import { ApiError } from "../api/client";
 import { BrandIcon } from "../app/BrandIcon";
 import { type DeviceDetail as Detail, useDevice } from "../api/device";
 import { formatRelative } from "../lib/format";
+import { DeviceZabbixPanel, ZabbixSeverity } from "../app/ZabbixProblems";
 
 /** Device tabs and their routes under /devices/$deviceId. */
 const MIGRATED_TABS = {
@@ -66,7 +67,17 @@ function DeviceShell({ detail }: { detail: Detail }) {
             <BrandIcon brand={device.brand} />
             {device.name} <span className={`ui-status ui-status-${device.status}`}>{t(`devices.statusLabel.${device.status}`, { defaultValue: device.status })}</span>
           </h1>
-          <p>{[device.vendor, device.model, device.device_type].filter(Boolean).join(" · ")}</p>
+          <p>
+            {[device.vendor, device.model, device.device_type].filter(Boolean).join(" · ")}
+            {detail.zabbix?.problems?.items.length ? (
+              <>
+                {" "}
+                <Link to="/devices/$deviceId" params={{ deviceId: device.id }} hash="zabbix-problems">
+                  <ZabbixSeverity severity={detail.zabbix.problems.items[0].severity} /> {t("zabbixProblems.count", { count: detail.zabbix.problems.items.length })}
+                </Link>
+              </>
+            ) : null}
+          </p>
         </div>
         <div className="ui-actions">
           {detail.actions.reboot && (
@@ -155,6 +166,11 @@ export function DeviceOverview() {
                 {device.lifecycle_status && device.lifecycle_status !== "unknown" ? [device.lifecycle_status.toUpperCase(), device.eos_date].filter(Boolean).join(" · ") : t("device.lifecycleManage")}
               </Link>
             </Field>
+            {detail.zabbix && (
+              <Field label="Zabbix" value={detail.zabbix.link ? t("zabbixProblems.open") : t("zabbixProblems.excluded")}>
+                {detail.zabbix.link ? <a href={detail.zabbix.link} target="_blank" rel="noopener noreferrer">{t("zabbixProblems.open")}</a> : t("zabbixProblems.excluded")}
+              </Field>
+            )}
             {detail.agent && (
               <Field label={t("device.identity.agent")} value={[detail.agent.version, detail.agent.transport].filter(Boolean).join(" · ") || t("device.agentMissing")}>
                 <Link to="/devices/$deviceId/agent" params={{ deviceId: device.id }}>{[detail.agent.version, detail.agent.transport].filter(Boolean).join(" · ") || t("device.agentMissing")}</Link>
@@ -180,6 +196,7 @@ export function DeviceOverview() {
           )}
         </section>
       </div>
+      {detail.zabbix && <DeviceZabbixPanel zabbix={detail.zabbix} />}
     </>
   );
 }

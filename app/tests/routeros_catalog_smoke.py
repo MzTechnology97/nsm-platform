@@ -103,7 +103,7 @@ def main():
     assert "7.24.5" in page and "fixed security issue" in page and "Aggiorna ora" in page
     firmware = client.get(f"/devices/{ids['old']}/firmware-upgrade").text
     assert "Catalogo MikroTik (stable)" in firmware and "di sicurezza" in firmware
-    assert "Catalogo RouterOS" in client.get("/integrations").text
+    assert client.get("/api/ui/v1/integrations/routeros").status_code == 200
 
     tech_client = TestClient(app)
     assert tech_client.post("/login", data={"username": f"ci-rc-t-{suffix}", "password": PASSWORD, "csrf": csrf_from(tech_client.get("/login").text)}, follow_redirects=False).status_code == 303

@@ -11,18 +11,13 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import HTTPException
 from sqlalchemy import select
 
 from app import main as core
 from app import uisp_connector as uisp
-from app.db import SessionLocal
-from app.models import Customer, Device, Site, utcnow
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
+from app.models import Customer, Device, Site
 
-router = APIRouter()
 PAGE_SIZE = 100
 MAX_BATCH = 200
 ROLE_TYPES = {
@@ -101,41 +96,6 @@ def _load(db, user):
     return connection, classify(db, uisp._fetch_candidates(connection))
 
 
-@router.get("/integrations/uisp/onboarding", response_class=HTMLResponse, name="uisp_onboarding")
-def onboarding(request: Request, q: str = "", uisp_site: str = "", state: str = "new", customer: str = "", page: int = 1):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        error, rows = None, []
-        try:
-            _, rows = _load(db, user)
-        except uisp.UispConnectorError as exc:
-            error = str(exc)
-        counts = {key: sum(1 for r in rows if r["state"] == key) for key in ("new", "linkable", "linked", "blocked")}
-        sites = sorted({(r.get("site") or {}).get("name") for r in rows if (r.get("site") or {}).get("name")})
-        filtered = _filter(rows, q, uisp_site, state)
-        pages = max(1, -(-len(filtered) // PAGE_SIZE))
-        page = min(max(1, page), pages)
-        customers = list(db.scalars(select(Customer).order_by(Customer.name)))
-        selected_customer = None
-        try:
-            selected_customer = db.get(Customer, uuid.UUID(customer)) if customer else None
-        except ValueError:
-            selected_customer = None
-        return core.render(
-            request, db, user, "uisp_onboarding.html", title="Onboarding UISP",
-            rows=filtered[(page - 1) * PAGE_SIZE: page * PAGE_SIZE], total=len(filtered), page=page, pages=pages,
-            counts=counts, uisp_sites=sites, q=q, uisp_site=uisp_site, state=state, error=error,
-            customers=customers, selected_customer=selected_customer,
-            all_sites=list(db.scalars(select(Site).order_by(Site.name))), max_batch=MAX_BATCH,
-        )
-
-
-def _selection(form) -> list[str]:
-    return [str(v) for v in form.getlist("external_id") if str(v).strip()]
-
-
 def target(db, customer_id, site_id):
     """Customer (required) and optional site of that customer chosen by the operator. ValueError with the reason."""
     try:
@@ -153,10 +113,6 @@ def target(db, customer_id, site_id):
         if not site or site.customer_id != customer.id:
             raise ValueError("La sede scelta non appartiene al cliente.")
     return customer, site
-
-
-def _target(db, form):
-    return target(db, form.get("customer_id"), form.get("site_id"))
 
 
 def preview_plan(db, user, selected: list[str], customer_id, site_id):
@@ -220,39 +176,3 @@ def commit_selection(db, user, selected: list[str], customer_id, site_id) -> dic
     return {"customer_id": customer.id, "created": created, "linked": linked, "skipped": skipped}
 
 
-@router.post("/integrations/uisp/onboarding/preview", response_class=HTMLResponse, name="uisp_onboarding_preview")
-async def onboarding_preview(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    back = "/integrations/uisp/onboarding"
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        try:
-            customer, site, plan = preview_plan(db, user, _selection(form), form.get("customer_id"), form.get("site_id"))
-        except (ValueError, uisp.UispConnectorError) as exc:
-            return flash_redirect(request, back, "warning", str(exc), title="Anteprima non disponibile")
-        return core.render(request, db, user, "uisp_onboarding_preview.html", title="Anteprima onboarding UISP",
-                           plan=plan, customer=customer, site=site)
-
-
-@router.post("/integrations/uisp/onboarding/commit", name="uisp_onboarding_commit")
-async def onboarding_commit(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    back = "/integrations/uisp/onboarding"
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        try:
-            result = commit_selection(db, user, _selection(form), form.get("customer_id"), form.get("site_id"))
-        except (ValueError, uisp.UispConnectorError) as exc:
-            return flash_redirect(request, back, "warning", str(exc), title="Onboarding non eseguito")
-        db.commit()
-    customer_id, created, linked, skipped = result["customer_id"], result["created"], result["linked"], result["skipped"]
-    message = f"{created} apparati creati e {linked} associati da UISP."
-    if skipped:
-        message += f" {len(skipped)} saltati perché cambiati in UISP o già presenti: {', '.join(map(str, skipped[:5]))}."
-    return flash_redirect(request, f"/customers/{customer_id}/devices", "success", message, title="Onboarding UISP completato")
-
-
-def install_uisp_onboarding(app) -> None:
-    app.include_router(router)

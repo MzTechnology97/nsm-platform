@@ -118,8 +118,8 @@ def main():
     api = client.get(f"/api/v1/devices/{ids['ap']}/cnmaestro-metrics?range=7d").json()
     assert {c["id"] for c in api["charts"]} == {"throughput", "resources", "stations"} and api["sample_count"] == 1
     assert client.get(f"/api/v1/devices/{ids['ap']}/cnmaestro-metrics?range=1y").status_code == 400
-    hub = client.get("/integrations").text
-    assert 'data-integration="cnmaestro"' in hub and "Collegati a cnMaestro" in hub
+    hub = client.get("/api/ui/v1/integrations").json()["cnmaestro"]
+    assert hub["state"] == "active" and hub["linked"] >= 1, hub
 
     # Wrong credentials: explained, the last data stays.
     cnm.client_for = lambda row, transport_=None: original(row, httpx.MockTransport(lambda request: httpx.Response(401, json={"error": "invalid_client"})))

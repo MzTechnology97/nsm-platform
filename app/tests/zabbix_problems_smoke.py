@@ -106,9 +106,17 @@ def main():
     assert "Problemi aperti in Zabbix" not in client.get(f"/devices/{ids['quiet']}").text
     other_tab = client.get(f"/devices/{ids['router']}/exposure").text
     assert "2 problemi" in other_tab and "Problemi aperti in Zabbix" not in other_tab, "badge on every tab, panel only on the overview"
-    monitoring = client.get("/operations/monitoring").text
-    assert "Problemi Zabbix" in monitoring and f"TEST-ZP-CPE-{suffix}" in monitoring and "Disastro" in monitoring
-    assert monitoring.index(f"TEST-ZP-CPE-{suffix}") < monitoring.index(f"TEST-ZP-RTR-{suffix}"), "worst severity first"
+    # New interface: device detail (link, open problems) and the Monitoring panel, worst severity first.
+    detail = client.get(f"/api/ui/v1/devices/{ids['router']}").json()["zabbix"]
+    assert "zabbix.php?action=latest.view" in detail["link"] and detail["excluded"] is False
+    assert len(detail["problems"]["items"]) == 2 and detail["problems"]["items"][0]["severity"] == 4 and detail["problems"]["items"][0]["name"] == "Interface ether1: link down"
+    assert client.get(f"/api/ui/v1/devices/{ids['quiet']}").json()["zabbix"]["problems"]["items"] == []
+    fleet = client.get("/api/ui/v1/monitoring").json()["zabbix"]
+    names = [row["device"]["name"] for row in fleet["rows"]]
+    assert f"TEST-ZP-CPE-{suffix}" in names and fleet["rows"][0]["worst"] == 5 and fleet["rows"][0]["device"]["brand"]
+    assert names.index(f"TEST-ZP-CPE-{suffix}") < names.index(f"TEST-ZP-RTR-{suffix}"), "worst severity first"
+    other_customer = client.get("/api/ui/v1/monitoring", params={"customer": "00000000-0000-0000-0000-000000000000"}).json()["zabbix"]
+    assert other_customer["rows"] == [] and other_customer["total"] == 0, "the panel follows the customer filter"
     assert "Problemi aperti" in client.get("/admin/integrations/zabbix").text
 
     # Zabbix down: the last list is kept and marked as not updated.

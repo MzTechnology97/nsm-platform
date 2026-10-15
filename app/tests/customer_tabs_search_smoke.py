@@ -121,11 +121,9 @@ def main():
     assert "CI15_TEST_EVENT" in history.text
     assert "ci15admin" in history.text
 
-    global_backup = client.get("/operations/backups")
-    assert global_backup.status_code == 200
-    assert "Da verificare" in global_backup.text and "Senza policy" in global_backup.text
-    assert "Stato backup per cliente" not in global_backup.text
-    assert "Una riga per cliente" not in global_backup.text
+    global_backup = client.get("/api/ui/v1/backups")
+    assert global_backup.status_code == 200, global_backup.text
+    assert {"attention", "no_policy", "all"} <= set(global_backup.json()["counts"]), "per-device worklist with quick filters"
 
     assert_device_match(client, "CI15SERIAL", "Seriale")
     assert_device_match(client, "AA:BB:CC", "MAC")

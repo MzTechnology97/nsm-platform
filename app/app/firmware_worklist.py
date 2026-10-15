@@ -1,39 +1,11 @@
-import math
-import uuid
 
-from fastapi import HTTPException, Request
-from fastapi.responses import HTMLResponse
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import selectinload
 
-from app import main as core
-from app.customer_drilldown import UPDATE_STATES, _firmware_attention_condition
-from app.db import SessionLocal
-from app.models import Customer, Device
+from app.customer_drilldown import _firmware_attention_condition
+from app.models import Device
 
 SECURITY_STATES = ("security_update", "critical_security_update", "security", "critical")
 CRITICAL_STATES = ("critical_security_update", "critical")
-
-
-def _remove_exact_route(app, path: str, method: str):
-    method = method.upper()
-    app.router.routes[:] = [
-        route
-        for route in app.router.routes
-        if not (
-            getattr(route, "path", None) == path
-            and method in (getattr(route, "methods", set()) or set())
-        )
-    ]
-
-
-def _uuid_or_none(value: str):
-    if not value:
-        return None
-    try:
-        return uuid.UUID(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def _state_filter(state: str):
@@ -89,97 +61,3 @@ def state_counts(db, filters) -> dict:
     }
 
 
-def firmware_worklist(
-    request: Request,
-    q: str = "",
-    customer: str = "",
-    vendor: str = "",
-    state: str = "attention",
-    page: int = 1,
-):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "firmware.read"):
-            raise HTTPException(403)
-
-        page = max(1, int(page or 1))
-        per_page = 50
-        customer_id = _uuid_or_none(customer)
-        term = q.strip()
-
-        filters = scope_filters(term, customer_id, vendor)
-        state_expr = _state_filter(state)
-        if state_expr is not None:
-            filters.append(state_expr)
-
-        total = int(db.scalar(select(func.count(Device.id)).where(*filters)) or 0)
-        pages = max(1, math.ceil(total / per_page))
-        page = min(page, pages)
-
-        rows = list(
-            db.scalars(
-                select(Device)
-                .where(*filters)
-                .options(selectinload(Device.customer), selectinload(Device.site))
-                .order_by(
-                    Device.customer_id,
-                    Device.vendor,
-                    Device.display_name.nullslast(),
-                    Device.name,
-                )
-                .offset((page - 1) * per_page)
-                .limit(per_page)
-            )
-        )
-
-        counts = state_counts(db, scope_filters(term, customer_id, vendor))
-        attention_count = counts["attention"]
-        security_count = counts["security"]
-        critical_count = counts["critical"]
-        unknown_count = counts["unknown"]
-        scope_total = counts["all"]
-
-        customers = list(db.scalars(select(Customer).order_by(Customer.name)))
-        vendors = [
-            item
-            for item in db.scalars(select(Device.vendor).distinct().order_by(Device.vendor))
-            if item
-        ]
-        selected_customer = db.get(Customer, customer_id) if customer_id else None
-
-        return core.render(
-            request,
-            db,
-            user,
-            "firmware_worklist.html",
-            devices=rows,
-            customers=customers,
-            vendors=vendors,
-            selected_customer=selected_customer,
-            q=term,
-            customer_filter=customer,
-            vendor_filter=vendor,
-            state_filter=state,
-            total=total,
-            page=page,
-            pages=pages,
-            attention_count=attention_count,
-            security_count=security_count,
-            critical_count=critical_count,
-            unknown_count=unknown_count,
-            scope_total=scope_total,
-        )
-
-
-def install_firmware_worklist(app):
-    _remove_exact_route(app, "/operations/firmware", "GET")
-    app.add_api_route(
-        "/operations/firmware",
-        firmware_worklist,
-        methods=["GET"],
-        response_class=HTMLResponse,
-        name="firmware",
-        include_in_schema=False,
-    )

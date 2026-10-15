@@ -69,7 +69,7 @@ def main():
     assert f"Problema Alpha {suffix}" in issues and f"Problema Beta {suffix}" not in issues
     exposure = tech.get("/api/ui/v1/exposure?view=all").text
     assert f"TEST-CS-BETA-{suffix}" not in exposure and f"CI Scope Beta {suffix}" not in exposure
-    for page in ("/operations/monitoring?state=all", "/operations/firmware?state=all", "/operations/backups"):
+    for page in ("/api/ui/v1/monitoring?state=all", "/api/ui/v1/firmware?state=all", "/api/ui/v1/backups?view=all", "/api/ui/v1/agents?state=all"):
         response = tech.get(page)
         assert response.status_code == 200 and f"TEST-CS-BETA-{suffix}" not in response.text and f"CI Scope Beta {suffix}" not in response.text, page
     # Writes on another customer's objects fail like a missing object.

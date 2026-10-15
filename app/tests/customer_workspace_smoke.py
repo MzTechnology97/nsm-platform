@@ -93,33 +93,30 @@ def main():
     assert "Router A" in backups.text and "Radio B" not in backups.text
     assert "CI09 Cliente A policy" in backups.text
 
-    global_backups = client.get("/operations/backups")
-    assert global_backups.status_code == 200
-    assert "Da verificare" in global_backups.text and "Senza policy" in global_backups.text
-    assert "Stato backup per cliente" not in global_backups.text
-    assert "Una riga per cliente" not in global_backups.text
+    global_backups = client.get("/api/ui/v1/backups")
+    assert global_backups.status_code == 200, global_backups.text
+    assert {"attention", "no_policy", "all"} <= set(global_backups.json()["counts"]), "per-device worklist with quick filters"
 
-    device_policy = client.get(f"/customers/{customer_a}/backups/policies/new?device_id={device_a}")
-    assert device_policy.status_code == 200
-    assert f'value="{device_a}"' in device_policy.text
-    assert f'data-customer="{customer_a}"' in device_policy.text
-    assert "MikroTik · Agent NSM" in device_policy.text
-    assert "Metodo automatico per apparato" in device_policy.text
+    moved = client.get(f"/customers/{customer_a}/backups/policies/new?device_id={device_a}", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == f"/app/backups/policies/new?customer={customer_a}&device={device_a}"
+    device_policy = client.get("/api/ui/v1/backup-policies/form", params={"customer": str(customer_a), "device": str(device_a)})
+    assert device_policy.status_code == 200, device_policy.text
+    form = device_policy.json()
+    assert form["context"]["id"] == str(customer_a) and form["state"]["device_id"] == str(device_a) and form["state"]["scope_type"] == "device"
+    assert {d["customer_id"] for d in form["devices"]} == {str(customer_a)}
 
-    csrf = csrf_from(device_policy.text)
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
     invalid = client.post(
-        f"/customers/{customer_a}/backups/policies/create",
-        data={"csrf": csrf, "name": "CI09 invalid cross customer", "is_enabled": "1", "scope_type": "site", "customer_id": str(customer_a), "site_id": str(site_b), "schedule_kind": "daily", "backup_time": "03:00", "retention_daily": "30", "retention_weekly": "12", "retention_monthly": "12", "retry_count": "3", "mikrotik_binary": "1", "verify_hash": "1"},
-        follow_redirects=False,
+        "/api/ui/v1/backup-policies", headers=headers,
+        json={"context_customer_id": str(customer_a), "name": "CI09 invalid cross customer", "is_enabled": "1", "scope_type": "site", "customer_id": str(customer_a), "site_id": str(site_b), "schedule_kind": "daily", "backup_time": "03:00", "retention_daily": "30", "retention_weekly": "12", "retention_monthly": "12", "retry_count": "3", "mikrotik_binary": "1", "verify_hash": "1"},
     )
-    assert invalid.status_code == 400, invalid.text
+    assert invalid.status_code == 422, invalid.text
 
     compatible = client.post(
-        f"/customers/{customer_a}/backups/policies/create",
-        data={"csrf": csrf, "name": "CI09 MikroTik capability guard", "is_enabled": "1", "scope_type": "device", "customer_id": str(customer_a), "device_id": str(device_a), "vendor": "ubiquiti", "schedule_kind": "daily", "backup_time": "03:00", "retention_daily": "30", "retention_weekly": "12", "retention_monthly": "12", "retry_count": "3", "mikrotik_binary": "1", "mikrotik_export": "1", "ubiquiti_connector_config": "1", "tr069_config": "1", "generic_snapshot": "1", "pre_firmware": "1", "verify_hash": "1"},
-        follow_redirects=False,
+        "/api/ui/v1/backup-policies", headers=headers,
+        json={"context_customer_id": str(customer_a), "name": "CI09 MikroTik capability guard", "is_enabled": "1", "scope_type": "device", "customer_id": str(customer_a), "device_id": str(device_a), "vendor": "ubiquiti", "schedule_kind": "daily", "backup_time": "03:00", "retention_daily": "30", "retention_weekly": "12", "retention_monthly": "12", "retry_count": "3", "mikrotik_binary": "1", "mikrotik_export": "1", "ubiquiti_connector_config": "1", "tr069_config": "1", "generic_snapshot": "1", "pre_firmware": "1", "verify_hash": "1"},
     )
-    assert compatible.status_code == 303, compatible.text
+    assert compatible.status_code == 200, compatible.text
     with SessionLocal() as db:
         policy = db.scalar(select(BackupPolicy).where(BackupPolicy.name == "CI09 MikroTik capability guard"))
         assert policy and policy.device_id == device_a and policy.customer_id == customer_a

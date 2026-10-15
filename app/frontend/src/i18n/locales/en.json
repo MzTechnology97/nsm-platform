@@ -4582,5 +4582,35 @@
     "draytek": "System Maintenance → SysLog / Mail Alert: Syslog Server {{target}}, port 514.",
     "avm": "FRITZ!OS does not send syslog to external servers: use the interface events or a dedicated agent.",
     "generic": "Look for \"Syslog\", \"Remote log\" or \"Log server\" in the settings: address {{target}}, UDP port 514, level Warning (or Error) and, if available, access and authentication logs."
+  },
+  "zabbixProblems": {
+    "deviceTitle": "Open problems in Zabbix",
+    "fleetTitle": "Zabbix problems",
+    "open": "Data in Zabbix ↗",
+    "excluded": "excluded",
+    "checked": "Updated {{when}}.",
+    "stale": "Zabbix is not answering: the list is not up to date.",
+    "none": "No device has open problems in Zabbix.",
+    "count_one": "{{count}} problem",
+    "count_other": "{{count}} problems",
+    "yes": "yes",
+    "no": "no",
+    "columns": {
+      "severity": "Severity",
+      "problem": "Problem",
+      "since": "Since",
+      "acknowledged": "Acknowledged",
+      "device": "Device",
+      "count": "Problems",
+      "unacknowledged": "Not acknowledged"
+    },
+    "severity": {
+      "0": "Not classified",
+      "1": "Information",
+      "2": "Warning",
+      "3": "Average",
+      "4": "High",
+      "5": "Disaster"
+    }
   }
 }

@@ -121,7 +121,7 @@ def main():
                 AuditEvent.device_id == device_id, AuditEvent.event_type == "MIKROTIK_AGENT_UPDATE_EXPIRED"
             )
         )
-    fleet = client.get("/operations/agents?state=attention")
+    fleet = client.get("/api/ui/v1/agents?state=attention")
     assert "self-update scaduto" in fleet.text
 
     # A late success report must not resurrect the expired job.

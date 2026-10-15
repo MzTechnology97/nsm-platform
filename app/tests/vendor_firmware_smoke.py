@@ -74,16 +74,19 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-vf-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get("/operations/firmware/catalogs").text
-    assert "Cataloghi firmware" in page and "TP-Link" in page and "Huawei" in page and "Cambium" not in page
-    assert "API ufficiale" in page and "https://www.tp-link.com/support/download/" in page
-    token = csrf_from(page)
-    client.post("/operations/firmware/catalogs/releases", data={"csrf": token, "brand": "cambium", "version": "4.7.1"})
-    client.post("/operations/firmware/catalogs/releases", data={"csrf": token, "brand": "tp-link", "version": "nuova"})
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    api = "/api/ui/v1/firmware/catalogs"
+    catalogs = {c["brand"]: c for c in client.get(api).json()["catalogs"]}
+    assert {"tp-link", "huawei"} <= set(catalogs) and "cambium" not in catalogs, set(catalogs)
+    assert any(r["source"] == "vendor_api" for c in catalogs.values() for r in c["releases"])
+    assert catalogs["tp-link"]["page"] == "https://www.tp-link.com/support/download/"
+    assert client.post(f"{api}/releases", headers=headers, json={"brand": "cambium", "version": "4.7.1"}).status_code == 422
+    assert client.post(f"{api}/releases", headers=headers, json={"brand": "tp-link", "version": "nuova"}).status_code == 422
     with SessionLocal() as db:
         assert db.scalar(select(VendorFirmwareRelease).where(VendorFirmwareRelease.source == "operator")) is None, "brand not in inventory / bad version refused"
-    client.post("/operations/firmware/catalogs/releases", data={"csrf": token, "brand": "tp-link", "version": "1.2.0 Build 20260901", "model_pattern": "archer c6*",
-                                                                "released_at": "2026-09-01", "notes_url": "https://www.tp-link.com/support/download/archer-c6/", "security": "1"})
+    client.post(f"{api}/releases", headers=headers, json={"brand": "tp-link", "version": "1.2.0 Build 20260901", "model_pattern": "archer c6*",
+                                                          "released_at": "2026-09-01", "notes_url": "https://www.tp-link.com/support/download/archer-c6/",
+                                                          "security": "1"}).raise_for_status()
     with SessionLocal() as db:
         archer = db.get(Device, ids["archer"])
         assert archer.firmware_status == "security_update" and archer.recommended_firmware_version == "1.2.0 Build 20260901"
@@ -91,9 +94,8 @@ def main():
         assert release.created_by_user_id is not None and release.security
         assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "VENDOR_FIRMWARE_RELEASE_ADDED")) is not None
         release_id = release.id
-    worklist = client.get("/operations/firmware?state=all").text
-    assert f"TEST-VF-TPL-{suffix}" in worklist and "Cataloghi altri produttori" in worklist
-    client.post(f"/operations/firmware/catalogs/releases/{release_id}/delete", data={"csrf": client.get("/api/ui/v1/session").json()["csrf_token"]})
+    assert f"TEST-VF-TPL-{suffix}" in client.get("/api/ui/v1/firmware?state=all").text
+    client.post(f"{api}/releases/{release_id}/delete", headers=headers).raise_for_status()
     with SessionLocal() as db:
         archer = db.get(Device, ids["archer"])
         assert archer.firmware_status == "unknown" and archer.recommended_firmware_version is None and "vendor_firmware" not in (archer.inventory_data or {})

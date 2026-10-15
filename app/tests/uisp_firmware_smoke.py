@@ -87,7 +87,7 @@ def main():
     for marker in ('id="uisp-firmware"', "Aggiornamento disponibile", "8.7.18", "non compatibile"):
         assert marker in page, marker
     assert "non esposto da UISP" in client.get(f"/devices/{ids['none']}/uisp").text
-    worklist = client.get(f"/operations/firmware?customer={customer_id}&state=attention").text
+    worklist = client.get(f"/api/ui/v1/firmware?customer={customer_id}&state=attention").text
     assert f"TEST u-fw-old-{suffix}" in worklist and f"TEST u-fw-cur-{suffix}" not in worklist
     print("UISP firmware smoke passed")
 

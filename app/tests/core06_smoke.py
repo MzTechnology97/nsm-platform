@@ -80,24 +80,23 @@ def main():
     )
     assert response.status_code == 303
 
-    page = client.get("/operations/backups")
-    assert page.status_code == 200
-    csrf = csrf_from(page.text)
+    assert client.get("/api/ui/v1/backups").status_code == 200
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    api = "/api/ui/v1/backup-policies"
 
     for query in ("192.0.2.60", "02:06", "CI06-CCR", "CI06 POP", "CI06 Customer"):
         response = client.get("/api/v1/search/suggest", params={"q": query})
         assert response.status_code == 200
         assert response.json()["results"], f"no live-search results for {query}"
 
-    new_policy = client.get("/operations/backups/policies/new")
-    assert new_policy.status_code == 200
-    assert 'name="schedule_cron"' not in new_policy.text
-    assert 'value="site"' in new_policy.text
+    new_policy = client.get(f"{api}/form").json()
+    assert new_policy["mode"] == "create" and "schedule_cron" not in new_policy["state"]
+    assert {"customer_id", "site_id", "device_id"} <= set(new_policy["state"])
 
     create = client.post(
-        "/operations/backups/policies/create",
-        data={
-            "csrf": csrf,
+        api,
+        headers=headers,
+        json={
             "name": "CI06 MikroTik Daily",
             "description": "Core 0.6 policy smoke",
             "is_enabled": "1",
@@ -117,9 +116,8 @@ def main():
             "retention_monthly": "12",
             "retry_count": "3",
         },
-        follow_redirects=False,
     )
-    assert create.status_code == 303
+    assert create.status_code == 200, create.text
 
     with SessionLocal() as db:
         policy = db.scalar(select(BackupPolicy).where(BackupPolicy.name == "CI06 MikroTik Daily"))
@@ -133,15 +131,14 @@ def main():
         assert settings.options.get("mikrotik_binary") is True
         policy_id = policy.id
 
-    assert client.get(f"/operations/backups/policies/{policy_id}/edit").status_code == 200
-    clone_page = client.get(f"/operations/backups/policies/{policy_id}/clone")
-    assert clone_page.status_code == 200
-    assert "Copia di CI06 MikroTik Daily" in clone_page.text
+    assert client.get(f"{api}/form", params={"policy": str(policy_id)}).json()["mode"] == "edit"
+    clone_page = client.get(f"{api}/form", params={"policy": str(policy_id), "clone": "true"}).json()
+    assert clone_page["mode"] == "clone" and clone_page["state"]["name"] == "Copia di CI06 MikroTik Daily"
 
-    site_update = client.post(
-        f"/operations/backups/policies/{policy_id}/edit",
-        data={
-            "csrf": csrf,
+    site_update = client.put(
+        f"{api}/{policy_id}",
+        headers=headers,
+        json={
             "name": "CI06 MikroTik Daily",
             "description": "Site scoped",
             "is_enabled": "1",
@@ -162,9 +159,8 @@ def main():
             "retention_monthly": "6",
             "retry_count": "2",
         },
-        follow_redirects=False,
     )
-    assert site_update.status_code == 303
+    assert site_update.status_code == 200, site_update.text
     with SessionLocal() as db:
         policy = db.get(BackupPolicy, policy_id)
         settings = db.get(BackupPolicySettings, policy_id)
@@ -175,12 +171,8 @@ def main():
         assert policy.schedule_cron == "15 1 * * 1"
         assert settings.scope_site_id == site_id
 
-    toggle = client.post(
-        f"/operations/backups/policies/{policy_id}/toggle",
-        data={"csrf": csrf},
-        follow_redirects=False,
-    )
-    assert toggle.status_code == 303
+    toggle = client.post(f"{api}/{policy_id}/toggle", headers=headers)
+    assert toggle.status_code == 200, toggle.text
     with SessionLocal() as db:
         assert db.get(BackupPolicy, policy_id).is_enabled is False
 
@@ -218,23 +210,15 @@ def main():
     assert download.status_code == 200
     assert download.content == b"# CI06 demo export\n"
 
-    delete_artifact = client.post(
-        f"/operations/backups/artifacts/{artifact_id}/delete",
-        data={"csrf": csrf},
-        follow_redirects=False,
-    )
-    assert delete_artifact.status_code == 303
+    delete_artifact = client.delete(f"/api/ui/v1/devices/{device_id}/backups/artifacts/{artifact_id}", headers=headers)
+    assert delete_artifact.status_code == 200, delete_artifact.text
     assert not artifact_path.exists()
     with SessionLocal() as db:
         artifact = db.get(BackupArtifact, artifact_id)
         assert artifact.deleted_at is not None
 
-    delete_policy = client.post(
-        f"/operations/backups/policies/{policy_id}/delete",
-        data={"csrf": csrf, "confirm_name": "CI06 MikroTik Daily"},
-        follow_redirects=False,
-    )
-    assert delete_policy.status_code == 303
+    delete_policy = client.post(f"{api}/{policy_id}/delete", headers=headers, json={"confirm_name": "CI06 MikroTik Daily"})
+    assert delete_policy.status_code == 200, delete_policy.text
     with SessionLocal() as db:
         assert db.get(BackupPolicy, policy_id) is None
 

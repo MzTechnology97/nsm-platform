@@ -8,19 +8,14 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
 from sqlalchemy import func, select
 
-from app import main as core
 from app.agent_models import DeviceAgentCredential
 from app.api_key_models import PlatformApiKey
-from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
 from app.models import Device, SecurityAdvisory, utcnow
 from app.uisp_connector import UISP_PROVIDER, _sync_view
 
-router = APIRouter()
 STALE_AGENT_AFTER = timedelta(minutes=15)
 
 
@@ -52,21 +47,3 @@ def hub_state(db) -> dict:
     }
 
 
-@router.get("/integrations", response_class=HTMLResponse, name="integrations_hub")
-def integrations_hub(request: Request):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        return core.render(
-            request,
-            db,
-            user,
-            "integrations_hub.html",
-            **hub_state(db),
-            can_admin=core.has_permission(user, "users.manage"),
-        )
-
-
-def install_integrations_hub(app) -> None:
-    app.include_router(router)

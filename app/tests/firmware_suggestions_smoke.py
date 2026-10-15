@@ -94,42 +94,40 @@ def main():
         assert "proposta dal" in soak_item["note"]
 
     client = login(f"ci-fs-{suffix}")
-    page = client.get(f"/operations/firmware/suggestions?customer={customer.id}").text
-    assert f"TEST-FS-READY-{suffix}" in page and "Pronto per il piano" in page and "In osservazione" in page
-    assert f"TEST-FS-CURRENT-{suffix}" not in page
-    assert page.count('class="suggestion-check"') == 3, "only plan/check rows are selectable"
-    filtered = client.get(f"/operations/firmware/suggestions?customer={customer.id}&kind=check").text
+    api = "/api/ui/v1/firmware/suggestions"
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    page = client.get(api, params={"customer": str(customer.id)}).json()
+    by_name = {item["device"]["name"]: item for item in page["items"]}
+    assert by_name[f"TEST-FS-READY-{suffix}"]["kind"] == "plan" and any(item["kind"] == "soak" for item in page["items"])
+    assert f"TEST-FS-CURRENT-{suffix}" not in by_name
+    assert sum(1 for item in page["items"] if item["kind"] in ("plan", "check")) == 3, "only plan/check rows are selectable"
+    filtered = {item["device"]["name"] for item in client.get(api, params={"customer": str(customer.id), "kind": "check"}).json()["items"]}
     assert f"TEST-FS-STALE-{suffix}" in filtered and f"TEST-FS-READY-{suffix}" not in filtered
-    worklist = client.get(f"/operations/firmware?customer={customer.id}").text
-    assert "Suggerimenti RouterOS (" in worklist
 
-    token = csrf_from(page)
-    response = client.post("/operations/firmware/suggestions/apply", data={"csrf": token, "action": "plan", "customer": str(customer.id),
-                           "device": [str(ids["ready"]), str(ids["nopolicy"]), str(ids["stale"])]}, follow_redirects=True)
-    assert response.status_code == 200
-    assert "1 piani creati" in response.text and "Nessuna backup policy" in response.text and "serve una verifica" in response.text.lower()
+    response = client.post(f"{api}/apply", headers=headers, json={"action": "plan", "devices": [str(ids["ready"]), str(ids["nopolicy"]), str(ids["stale"])]})
+    assert response.status_code == 200, response.text
+    result = response.json()
+    messages = " ".join(skip["message"] for skip in result["skipped"]).lower()
+    assert result["done"] == 1 and "nessuna backup policy" in messages and "serve una verifica" in messages, result
     with SessionLocal() as db:
         plan = db.scalar(select(FirmwareUpgradePlan).where(FirmwareUpgradePlan.device_id == ids["ready"]))
         assert plan and plan.status == "backup_pending" and plan.target_version == "7.24.5"
         assert db.scalar(select(func.count(FirmwareUpgradePlan.id)).where(FirmwareUpgradePlan.device_id == ids["nopolicy"])) == 0, \
             "a refused plan leaves no draft behind"
 
-    response = client.post("/operations/firmware/suggestions/apply", data={"csrf": token, "action": "check", "device": [str(ids["stale"]), str(ids["soak"])]},
-                           follow_redirects=True)
-    assert "1 verifiche firmware accodate" in response.text and "in osservazione" in response.text
+    result = client.post(f"{api}/apply", headers=headers, json={"action": "check", "devices": [str(ids["stale"]), str(ids["soak"])]}).json()
+    assert result["done"] == 1 and [skip["code"] for skip in result["skipped"]] == ["soak"], result
     with SessionLocal() as db:
         assert db.scalar(select(DeviceJob).where(DeviceJob.device_id == ids["stale"], DeviceJob.job_type == "firmware_readiness"))
         assert not db.scalar(select(DeviceJob).where(DeviceJob.device_id == ids["soak"], DeviceJob.job_type == "firmware_readiness"))
 
-    too_many = client.post("/operations/firmware/suggestions/apply", data={"csrf": token, "action": "check", "device": [str(uuid.uuid4()) for _ in range(26)]},
-                           follow_redirects=True)
-    assert "Al massimo 25" in too_many.text
+    too_many = client.post(f"{api}/apply", headers=headers, json={"action": "check", "devices": [str(uuid.uuid4()) for _ in range(26)]})
+    assert too_many.status_code == 422 and "Al massimo 25" in too_many.text
 
     reader = login(f"ci-fs-a-{suffix}")
-    view = reader.get(f"/operations/firmware/suggestions?customer={customer.id}").text
-    assert "Crea piani per i selezionati" not in view
-    refused = reader.post("/operations/firmware/suggestions/apply", data={"csrf": csrf_from(view), "action": "plan", "device": [str(ids["nopolicy"])]},
-                          follow_redirects=False)
+    assert reader.get(api, params={"customer": str(customer.id)}).json()["can_execute"] is False
+    refused = reader.post(f"{api}/apply", headers={"X-CSRF-Token": reader.get("/api/ui/v1/session").json()["csrf_token"]},
+                          json={"action": "plan", "devices": [str(ids["nopolicy"])]})
     assert refused.status_code in (401, 403), refused.status_code
     print("Firmware suggestions smoke passed")
 

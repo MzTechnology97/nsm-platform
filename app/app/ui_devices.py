@@ -216,7 +216,7 @@ def _date(value):
 @router.get("/devices/{device_id}")
 def device_detail(request: Request, device_id: uuid.UUID):
     """Everything the device overview shows, in one call."""
-    from app import icmp_monitor
+    from app import icmp_monitor, zabbix_problems
     from app.backup_capabilities import capability_for_device
     from app.models import ActionIssue, BackupRun
 
@@ -237,6 +237,7 @@ def device_detail(request: Request, device_id: uuid.UUID):
                                 .order_by(BackupRun.completed_at.desc().nullslast()).limit(1))
         capability = capability_for_device(db, device)
         icmp = icmp_monitor.panel(device)
+        zabbix = zabbix_problems.api_device(device)
         row = device_row(device, int(vulns.get("critical", 0)) + int(vulns.get("high", 0)))
         row.update({
             "display_name": device.display_name,
@@ -264,6 +265,7 @@ def device_detail(request: Request, device_id: uuid.UUID):
                        "last_success": _iso(last_backup.completed_at or last_backup.started_at) if last_backup else None},
             "icmp": {"enabled": icmp["enabled"], "target": icmp["effective_target"], "last_rtt": icmp["last_rtt"],
                      "last_loss": icmp["last_loss"], "down": icmp["down"], "last_at": icmp["last_at"]},
+            "zabbix": zabbix,
             "tabs": [{"key": key, "classic": f"/devices/{device.id}{suffix}"} for key, suffix, visible in TABS if visible(device)],
             "actions": {
                 "reboot": mikrotik and core.has_permission(user, "firmware.execute"),

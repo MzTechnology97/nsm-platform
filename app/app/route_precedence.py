@@ -25,21 +25,10 @@ def promote_customer_workspace_routes(app):
     after all incremental/legacy routers have been installed. This guarantees
     one effective handler for each path while preserving stable route names.
     """
-    from app.backup_workspace_capabilities import (
-        backup_customer_overview,
-        customer_backups,
-    )
+    from app.backup_workspace_capabilities import customer_backups
 
-    _remove_exact_route(app, "/operations/backups", "GET")
     _remove_exact_route(app, "/customers/{customer_id}/backups", "GET")
 
-    app.add_api_route(
-        "/operations/backups",
-        backup_customer_overview,
-        methods=["GET"],
-        name="backup_customer_overview",
-        include_in_schema=False,
-    )
     app.add_api_route(
         "/customers/{customer_id}/backups",
         customer_backups,
@@ -48,7 +37,7 @@ def promote_customer_workspace_routes(app):
         include_in_schema=False,
     )
 
-    promoted_names = CUSTOMER_WORKSPACE_ROUTE_NAMES | {"backup_customer_overview"}
+    promoted_names = CUSTOMER_WORKSPACE_ROUTE_NAMES
     promoted = [
         route
         for route in app.router.routes
