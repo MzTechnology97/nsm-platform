@@ -4,6 +4,25 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.141 — 2026-10-15
+
+New interface (React) — customer and site forms, phase 7d
+- **New customer** in `/app/customers/new`, opened from «New customer» in the customer list. It asks for a name, an optional unique code and notes, then opens the new customer.
+- **Manage customer** in `/app/customers/{id}/edit`:
+  - **Details:** edit name, code and notes.
+  - **Delete:** the page shows how many devices and sites will go. The button only becomes active once you type the exact customer name; the server checks the name again, and a snapshot stays in the activity log.
+- **Sites, in the customer's Sites tab, without leaving the page:**
+  - add a site;
+  - edit name, address and notes;
+  - delete it, after a confirmation that says how many devices stay in the customer without a site.
+- **Messages.** Validation messages are translated: name required, customer code already used, confirmation name does not match.
+- **Shared code.** Customer and site changes now go through shared functions, used by both interfaces; the classic forms behave as before, except that a blank customer or site name is now refused when created too.
+  - `main.create_customer_record`, `create_site_record`;
+  - `crud_extension.update_customer_record`, `delete_customer_record`, `update_site_record`, `delete_site_record`.
+- **API.** All routes need `customers.write` and the CSRF header. Validation errors are 422 `{code, message}`.
+  - `POST /api/ui/v1/customers`, `/customers/{id}`, `/customers/{id}/delete`;
+  - `POST /api/ui/v1/customers/{id}/sites`, `/sites/{site_id}`, `/sites/{site_id}/delete`.
+
 ## 0.49.140 — 2026-10-14
 
 New interface (React) — profile, phase 7c

@@ -628,22 +628,55 @@ def add_customer(
     validate_csrf(request, csrf)
     with SessionLocal() as db:
         user = require_permission(request, db, "customers.write")
-        customer = Customer(name=name.strip(), code=opt(code), notes=opt(notes))
-        db.add(customer)
-        try:
-            db.flush()
-            add_event(
-                db,
-                "CUSTOMER_ADDED",
-                actor=user,
-                customer_id=customer.id,
-                details={"name": customer.name, "code": customer.code},
-            )
-            db.commit()
-        except IntegrityError:
-            db.rollback()
-            raise HTTPException(409, "Codice cliente già utilizzato.")
+        create_customer_record(db, user, name, code, notes)
     return RedirectResponse("/customers", status_code=303)
+
+
+def create_customer_record(db, user: User, name: str, code: str = "", notes: str = "") -> Customer:
+    """Create a customer (audited) and commit; HTTPException 400 without a name, 409 when the code is taken."""
+    if not (name or "").strip():
+        raise HTTPException(400, "Nome cliente richiesto.")
+    customer = Customer(name=name.strip(), code=opt(code), notes=opt(notes))
+    db.add(customer)
+    try:
+        db.flush()
+        add_event(
+            db,
+            "CUSTOMER_ADDED",
+            actor=user,
+            customer_id=customer.id,
+            details={"name": customer.name, "code": customer.code},
+        )
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "Codice cliente già utilizzato.")
+    return customer
+
+
+def create_site_record(db, user: User, customer_id: uuid.UUID, name: str, address: str = "", notes: str = "") -> Site:
+    """Create a site of a customer (audited) and commit; HTTPException 404 for an unknown customer, 400 without a name."""
+    if not db.get(Customer, customer_id):
+        raise HTTPException(404)
+    if not (name or "").strip():
+        raise HTTPException(400, "Nome sede richiesto.")
+    site = Site(
+        customer_id=customer_id,
+        name=name.strip(),
+        address=opt(address),
+        notes=opt(notes),
+    )
+    db.add(site)
+    db.flush()
+    add_event(
+        db,
+        "SITE_ADDED",
+        actor=user,
+        customer_id=customer_id,
+        details={"site_id": str(site.id), "name": site.name},
+    )
+    db.commit()
+    return site
 
 
 @app.post("/customers/{customer_id}/sites")
@@ -658,24 +691,7 @@ def add_site(
     validate_csrf(request, csrf)
     with SessionLocal() as db:
         user = require_permission(request, db, "customers.write")
-        if not db.get(Customer, customer_id):
-            raise HTTPException(404)
-        site = Site(
-            customer_id=customer_id,
-            name=name.strip(),
-            address=opt(address),
-            notes=opt(notes),
-        )
-        db.add(site)
-        db.flush()
-        add_event(
-            db,
-            "SITE_ADDED",
-            actor=user,
-            customer_id=customer_id,
-            details={"site_id": str(site.id), "name": site.name},
-        )
-        db.commit()
+        create_site_record(db, user, customer_id, name, address, notes)
     return RedirectResponse(f"/customers/{customer_id}", status_code=303)
 
 

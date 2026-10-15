@@ -395,3 +395,24 @@ a.ui-search-result:hover {
 .ui-admin-form label.ui-with-brand input {
   min-height: auto;
 }
+
+/* Customer and site forms. */
+.ui-form-narrow {
+  max-width: 640px;
+}
+
+.ui-danger-zone h2 {
+  color: var(--danger);
+}
+
+.ui-site-form {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+
+.ui-site-delete {
+  flex-basis: 100%;
+}

@@ -2941,5 +2941,35 @@
       "telegram_chat_id": "Telegram chat ID missing or invalid.",
       "slack_webhook": "Slack webhook missing or invalid (https://hooks.slack.com/services/…)."
     }
+  },
+  "customerForm": {
+    "newTitle": "New customer",
+    "newSubtitle": "Customer details: sites and devices are added from the customer page.",
+    "editTitle": "Customer details",
+    "name": "Name",
+    "code": "Code",
+    "codeHelp": "Optional and unique (e.g. accounting code).",
+    "notes": "Notes",
+    "create": "Create customer",
+    "save": "Save",
+    "cancel": "Cancel",
+    "forbidden": "You are not allowed to change customers.",
+    "deleteTitle": "Delete customer",
+    "deleteImpact": "{{devices}} devices and {{sites}} sites will be deleted, with their backups and history.",
+    "deleteHelp": "This cannot be undone; a snapshot of the data stays in the activity log.",
+    "confirmName": "To confirm, type the customer name: {{name}}",
+    "delete": "Delete permanently",
+    "siteName": "Site name",
+    "siteAddress": "Address",
+    "addSite": "Add site",
+    "deleteSite": "Delete site",
+    "deleteSiteConfirm_one": "Delete the site “{{name}}”? Its device stays in the customer without a site.",
+    "deleteSiteConfirm_other": "Delete the site “{{name}}”? Its {{count}} devices stay in the customer without a site.",
+    "errors": {
+      "name_required": "The name is required.",
+      "code_taken": "This customer code is already used by another customer.",
+      "confirm_name": "The confirmation name does not match: nothing was deleted."
+    },
+    "deleteSiteConfirm_zero": "Delete the site “{{name}}”?"
   }
 }
