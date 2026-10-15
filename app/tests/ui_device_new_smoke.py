@@ -101,12 +101,9 @@ def main():
     assert "bootstrap?token=" in again.json()["enrollment_command"] and again.json()["enrollment_command"] != command
     assert client.post(f"/api/ui/v1/devices/{generic['id']}/agent/reinstall", headers=csrf).status_code == 404
 
-    # The classic form still creates devices through the shared function.
-    page = client.get(f"/customers/{ids['customer']}/devices/new")
-    form_token = re.search(r'name="csrf" value="([^"]+)"', page.text).group(1)
-    response = client.post(f"/customers/{ids['customer']}/devices", data={"vendor": "mikrotik", "device_type": "router", "csrf": form_token},
-                           follow_redirects=False)
-    assert response.status_code == 303 and response.headers["location"].startswith("/devices/")
+    # The classic form address opens the new one.
+    moved = client.get(f"/customers/{ids['customer']}/devices/new", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == f"/app/customers/{ids['customer']}/devices/new"
     assert client.get(f"/app/customers/{ids['customer']}/devices/new").status_code in (200, 503)
     print("ui device new smoke ok")
 

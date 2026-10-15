@@ -607,21 +607,6 @@ def search_records(db, term: str) -> dict:
     return {"customers": customers, "devices": devices, "sites": sites}
 
 
-@app.post("/customers")
-def add_customer(
-    request: Request,
-    name: str = Form(...),
-    code: str = Form(""),
-    notes: str = Form(""),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = require_permission(request, db, "customers.write")
-        create_customer_record(db, user, name, code, notes)
-    return RedirectResponse("/customers", status_code=303)
-
-
 def create_customer_record(db, user: User, name: str, code: str = "", notes: str = "") -> Customer:
     """Create a customer (audited) and commit; HTTPException 400 without a name, 409 when the code is taken."""
     if not (name or "").strip():
@@ -669,74 +654,12 @@ def create_site_record(db, user: User, customer_id: uuid.UUID, name: str, addres
     return site
 
 
-@app.post("/customers/{customer_id}/sites")
-def add_site(
-    request: Request,
-    customer_id: uuid.UUID,
-    name: str = Form(...),
-    address: str = Form(""),
-    notes: str = Form(""),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = require_permission(request, db, "customers.write")
-        create_site_record(db, user, customer_id, name, address, notes)
-    return RedirectResponse(f"/customers/{customer_id}", status_code=303)
-
-
 def _manufacturer_data(vendor_key: str, manufacturer: str) -> dict:
     """Brand of a manually added device, used by CVE correlation (``vendor_cpe.MANUAL_BRANDS``)."""
     from app.vendor_cpe import MANUAL_BRANDS
 
     value = (manufacturer or "").strip().lower()
     return {"manufacturer": value} if vendor_key == "generic" and value in MANUAL_BRANDS else {}
-
-
-def _add_device_impl(
-    request: Request,
-    customer_id: uuid.UUID,
-    vendor: str = Form(...),
-    device_type: str = Form("other"),
-    display_name: str = Form(""),
-    site_id: str = Form(""),
-    primary_mac: str = Form(""),
-    serial_number: str = Form(""),
-    model: str = Form(""),
-    management_ip: str = Form(""),
-    firmware_version: str = Form(""),
-    ubnt_mac: str = Form(""),
-    ubnt_serial: str = Form(""),
-    tr069_mac: str = Form(""),
-    tr069_serial: str = Form(""),
-    generic_mac: str = Form(""),
-    generic_serial: str = Form(""),
-    csrf: str = Form(...),
-    manufacturer: str = Form(""),
-    cambium_mac: str = Form(""),
-    cambium_serial: str = Form(""),
-):
-    validate_csrf(request, csrf)
-    # The form has one MAC/serial pair per vendor section; the generic
-    # primary_mac/serial_number names remain accepted for API clients.
-    vendor_fields = {
-        "ubiquiti": (ubnt_mac, ubnt_serial),
-        "tp-link": (tr069_mac, tr069_serial),
-        "generic": (generic_mac, generic_serial),
-        "cambium": (cambium_mac, cambium_serial),
-    }.get(vendor.strip().lower(), ("", ""))
-    primary_mac = vendor_fields[0].strip() or primary_mac
-    serial_number = vendor_fields[1].strip() or serial_number
-    with SessionLocal() as db:
-        user = require_permission(request, db, "devices.write")
-        device, raw_token = create_device_record(
-            db, user, customer_id, vendor=vendor, device_type=device_type, display_name=display_name, site_id=site_id,
-            mac=primary_mac, serial=serial_number, model=model, management_ip=management_ip, firmware_version=firmware_version,
-            manufacturer=manufacturer,
-        )
-        if raw_token:
-            request.session[f"enrollment_token:{device.id}"] = raw_token
-        return RedirectResponse(f"/devices/{device.id}", status_code=303)
 
 
 DEVICE_VENDORS = ("mikrotik", "ubiquiti", "cambium", "tp-link", "generic")
@@ -859,42 +782,6 @@ def enrollment_command(base_url: str, raw_token: str) -> str:
         f'?token={raw_token}" dst-path="nsm-bootstrap.rsc"; '
         f'/import file-name="nsm-bootstrap.rsc"'
     )
-
-
-@app.post("/customers/{customer_id}/devices")
-def add_device(
-    request: Request,
-    customer_id: uuid.UUID,
-    vendor: str = Form(...),
-    device_type: str = Form("other"),
-    display_name: str = Form(""),
-    site_id: str = Form(""),
-    primary_mac: str = Form(""),
-    serial_number: str = Form(""),
-    model: str = Form(""),
-    management_ip: str = Form(""),
-    firmware_version: str = Form(""),
-    ubnt_mac: str = Form(""),
-    ubnt_serial: str = Form(""),
-    tr069_mac: str = Form(""),
-    tr069_serial: str = Form(""),
-    generic_mac: str = Form(""),
-    generic_serial: str = Form(""),
-    csrf: str = Form(...),
-    manufacturer: str = Form(""),
-    cambium_mac: str = Form(""),
-    cambium_serial: str = Form(""),
-):
-    try:
-        return _add_device_impl(request=request, customer_id=customer_id, vendor=vendor, device_type=device_type, display_name=display_name, site_id=site_id, primary_mac=primary_mac, serial_number=serial_number, model=model, management_ip=management_ip, firmware_version=firmware_version, ubnt_mac=ubnt_mac, ubnt_serial=ubnt_serial, tr069_mac=tr069_mac, tr069_serial=tr069_serial, generic_mac=generic_mac, generic_serial=generic_serial, csrf=csrf, manufacturer=manufacturer, cambium_mac=cambium_mac, cambium_serial=cambium_serial)
-    except HTTPException as exc:
-        if exc.status_code not in {400, 409}:
-            raise
-        from app.ui_feedback import flash_redirect
-
-        return flash_redirect(
-            request, f"/customers/{customer_id}/devices/new", "warning", str(exc.detail), title="Apparato non creato"
-        )
 
 
 @app.get("/devices", response_class=HTMLResponse)

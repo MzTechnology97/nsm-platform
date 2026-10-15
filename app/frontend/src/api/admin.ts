@@ -581,6 +581,8 @@ export interface OnboardingFilters {
   q?: string;
   uisp_site?: string;
   state?: "new" | "linkable" | "linked" | "blocked";
+  /** Customer preselected as the import target (from the customer page); not sent to the list API. */
+  customer?: string;
 }
 
 export interface OnboardingPage {

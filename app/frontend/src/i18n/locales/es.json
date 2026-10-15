@@ -83,7 +83,9 @@
       "pending_link": "Pendiente de vinculación",
       "unknown": "Desconocido",
       "degraded": "Degradado"
-    }
+    },
+    "signal": "señal {{value}} dBm",
+    "lan": "LAN {{ip}}"
   },
   "device": {
     "notFound": "Equipo no encontrado o no visible con tus permisos.",
@@ -736,7 +738,8 @@
       "incidents": "Incidentes",
       "edit": "Gestionar cliente",
       "addDevice": "+ Equipo",
-      "manageDevices": "Gestionar equipos"
+      "manageDevices": "Gestionar equipos",
+      "uispImport": "Importar desde UISP"
     },
     "tabs": {
       "label": "Secciones del cliente",

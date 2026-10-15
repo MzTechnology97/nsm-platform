@@ -64,11 +64,11 @@ def main():
     north = next(s for s in body["sites"] if s["id"] == ids["north"])
     assert (north["devices"], north["online"], north["offline"], north["address"]) == (2, 1, 1, "Via di prova 1")
     assert [t["key"] for t in body["tabs"]] == ["overview", "devices", "sites", "graphs", "backups", "security", "history"]
-    assert body["actions"] == {"edit": True, "add_site": True, "add_device": True, "incidents": True}
+    assert body["actions"] == {"edit": True, "add_site": True, "add_device": True, "incidents": True, "uisp_import": True}
     assert client.get(f"/api/ui/v1/customers/{uuid.uuid4()}").status_code == 404
 
     auditor = login(f"ci-cd-au-{suffix}").get(base).json()
-    assert auditor["actions"] == {"edit": False, "add_site": False, "add_device": False, "incidents": True}
+    assert auditor["actions"] == {"edit": False, "add_site": False, "add_device": False, "incidents": True, "uisp_import": False}
 
     scoped = login(f"ci-cd-scoped-{suffix}")
     assert scoped.get(base).status_code == 404, "another customer's page is invisible"

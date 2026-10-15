@@ -1,8 +1,7 @@
 import re
-import uuid
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
@@ -56,49 +55,6 @@ def backup_schedule_label(value: str | None) -> str:
     if day != "*" and month == "*" and weekday == "*":
         return f"Ogni mese, giorno {day}, alle {hh}:{mm}"
     return cron
-
-
-@router.get("/customers/new/form", response_class=HTMLResponse)
-def customer_new(request: Request):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "customers.write"):
-            raise HTTPException(403)
-        return core.render(request, db, user, "customer_new.html")
-
-
-@router.get("/customers/{customer_id}/sites/new", response_class=HTMLResponse)
-def site_new(request: Request, customer_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "customers.write"):
-            raise HTTPException(403)
-        customer = db.get(Customer, customer_id)
-        if not customer:
-            raise HTTPException(404)
-        return core.render(request, db, user, "site_new.html", customer=customer)
-
-
-@router.get("/customers/{customer_id}/devices/new", response_class=HTMLResponse)
-def device_new(request: Request, customer_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "devices.write"):
-            raise HTTPException(403)
-        customer = db.scalar(
-            select(Customer)
-            .where(Customer.id == customer_id)
-            .options(selectinload(Customer.sites))
-        )
-        if not customer:
-            raise HTTPException(404)
-        return core.render(request, db, user, "device_new.html", customer=customer)
 
 
 @router.get("/api/v1/search/suggest")

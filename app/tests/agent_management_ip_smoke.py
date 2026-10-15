@@ -99,8 +99,8 @@ def main():
 
     admin = TestClient(app, base_url="http://192.0.2.50")
     assert admin.post("/login", data={"username": f"ci-mi-{suffix}", "password": PASSWORD, "csrf": csrf_from(admin.get("/login").text)}, follow_redirects=False).status_code == 303
-    listing = admin.get(f"/customers/{ids['customer']}/devices").text
-    assert "<code>8.8.4.4</code><small>LAN 198.51.100.1</small>" in listing, "device list shows management and LAN IP"
+    listing = admin.get("/api/ui/v1/devices", params={"customer": str(ids["customer"])}).text
+    assert "8.8.4.4" in listing and "198.51.100.1" in listing, "device list shows management and LAN IP"
     devices = admin.get(f"/devices?q=TEST-MI-{suffix}").text
     assert "8.8.4.4" in devices and "pubblico · LAN 198.51.100.1" in devices
     page = admin.get(f"/devices/{ids['modern']}").text

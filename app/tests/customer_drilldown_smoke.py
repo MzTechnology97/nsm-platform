@@ -72,21 +72,14 @@ def main():
     response = client.post("/login", data={"username": "ci11admin", "password": PASSWORD, "csrf": csrf}, follow_redirects=False)
     assert response.status_code == 303
 
-    customers = client.get("/customers")
+    customers = client.get("/api/ui/v1/customers")
     assert customers.status_code == 200
-    assert f"/devices?customer={ids['customer_a']}" in customers.text
-    assert f"customer={ids['customer_a']}&firmware=attention" in customers.text
-    assert f"customer={ids['customer_a']}&security=severe" in customers.text
-    assert f"/action-center?customer={ids['customer_a']}" in customers.text
+    row_a = next(item for item in customers.json()["items"] if item["id"] == str(ids["customer_a"]))
+    assert row_a["devices"] >= 2, row_a
 
-    profile = client.get(f"/customers/{ids['customer_a']}")
-    assert profile.status_code == 200
-    assert f"/customers/{ids['customer_a']}/devices" in profile.text
-    assert f"/customers/{ids['customer_a']}/security#firmware" in profile.text
-    assert f"/customers/{ids['customer_a']}/security#vulnerabilities" in profile.text
-    assert f"/action-center?customer={ids['customer_a']}" in profile.text
+    assert client.get(f"/api/ui/v1/customers/{ids['customer_a']}").status_code == 200
 
-    customer_devices = client.get(f"/customers/{ids['customer_a']}/devices")
+    customer_devices = client.get("/api/ui/v1/devices", params={"customer": str(ids["customer_a"])})
     assert customer_devices.status_code == 200
     assert "CI11 Update Router" in customer_devices.text
     assert "CI11 CVE Radio" in customer_devices.text
@@ -110,7 +103,7 @@ def main():
     assert "CI11 Update Router" not in cve.text
     assert "CI11 Other Customer Router" not in cve.text
 
-    security_tab = client.get(f"/customers/{ids['customer_a']}/security")
+    security_tab = client.get(f"/api/ui/v1/customers/{ids['customer_a']}/security")
     assert security_tab.status_code == 200
     assert "CI11 CVE Radio" in security_tab.text
     assert "CI11 Update Router" in security_tab.text
@@ -123,7 +116,8 @@ def main():
 
     assert str(app.url_path_for("devices")) == "/devices"
     assert client.get("/action-center", follow_redirects=False).headers["location"] == "/app/action-center"
-    assert str(app.url_path_for("customer_devices", customer_id=ids["customer_a"])) == f"/customers/{ids['customer_a']}/devices"
+    moved = client.get(f"/customers/{ids['customer_a']}/devices", follow_redirects=False)
+    assert moved.headers["location"] == f"/app/devices?customer={ids['customer_a']}"
 
     print("Core 0.11 customer drilldown smoke test passed")
 

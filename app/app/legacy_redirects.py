@@ -56,7 +56,7 @@ REDIRECTS: dict[str, Target] = {
     "/operations/firmware/catalogs": ("/app/firmware/catalogs", None),
     "/operations/firmware/suggestions": ("/app/firmware/suggestions", {"customer": "customer", "kind": "kind"}),
     "/integrations": ("/app/integrations", None),
-    "/integrations/uisp/onboarding": ("/app/integrations/uisp/onboarding", {"q": "q", "uisp_site": "uisp_site", "state": "state"}),
+    "/integrations/uisp/onboarding": ("/app/integrations/uisp/onboarding", {"q": "q", "uisp_site": "uisp_site", "state": "state", "customer": "customer"}),
     # Administration.
     "/admin/users": ("/app/admin/users", None),
     "/admin/api-keys": ("/app/admin/api-keys", None),
@@ -72,6 +72,22 @@ REDIRECTS: dict[str, Target] = {
     "/admin/integrations/cnmaestro": ("/app/admin/integrations/cnmaestro", None),
     "/admin/integrations/nvd": ("/app/admin/integrations/nvd", None),
     "/admin/integrations/routeros": ("/app/integrations/routeros", None),
+    # Customers and sites.
+    "/customers": ("/app/customers", {"q": "q"}),
+    "/customers/new/form": ("/app/customers/new", None),
+    "/sites": ("/app/customers", None),
+    "/customers/{customer_id}": ("/app/customers/{customer_id}", None),
+    "/customers/{customer_id}/edit": ("/app/customers/{customer_id}/edit", None),
+    "/customers/{customer_id}/sites": ("/app/customers/{customer_id}/sites", None),
+    "/customers/{customer_id}/sites/new": ("/app/customers/{customer_id}/sites", None),
+    "/customers/{customer_id}/sites/{site_id}/edit": ("/app/customers/{customer_id}/sites", None),
+    "/customers/{customer_id}/security": ("/app/customers/{customer_id}/security", None),
+    "/customers/{customer_id}/graphs": ("/app/customers/{customer_id}/graphs", {"site": "site"}),
+    "/customers/{customer_id}/devices": ("/app/devices?customer={customer_id}", {"q": "q", "vendor": "vendor", "status": "status", "site": "site"}),
+    "/customers/{customer_id}/devices/new": ("/app/customers/{customer_id}/devices/new", None),
+    "/customers/{customer_id}/devices/manage": ("/app/customers/{customer_id}/devices/manage", None),
+    "/customers/{customer_id}/history": ("/app/events?customer={customer_id}", {"q": "q", "severity": "severity", "result": "result"}),
+    "/customers/{customer_id}/backups": ("/app/backups?customer={customer_id}&view=all", None),
 }
 
 

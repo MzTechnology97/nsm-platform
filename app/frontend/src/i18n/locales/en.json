@@ -83,7 +83,9 @@
       "pending_link": "Awaiting link",
       "unknown": "Unknown",
       "degraded": "Degraded"
-    }
+    },
+    "signal": "signal {{value}} dBm",
+    "lan": "LAN {{ip}}"
   },
   "device": {
     "notFound": "Device not found or not visible with your permissions.",
@@ -736,7 +738,8 @@
       "incidents": "Incidents",
       "edit": "Manage customer",
       "addDevice": "+ Device",
-      "manageDevices": "Manage devices"
+      "manageDevices": "Manage devices",
+      "uispImport": "Import from UISP"
     },
     "tabs": {
       "label": "Customer sections",

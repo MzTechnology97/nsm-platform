@@ -54,17 +54,14 @@ def main():
     )
     assert response.status_code == 303
 
-    response = client.get("/customers")
-    assert response.status_code == 200
-    csrf = csrf_from(response.text)
+    assert client.get("/api/ui/v1/customers").status_code == 200
+    csrf = client.get("/api/ui/v1/session").json()["csrf_token"]
+    headers = {"X-CSRF-Token": csrf}
+    api = "/api/ui/v1/customers"
 
     for name, code in (("CI Customer A", "CIA"), ("CI Customer B", "CIB")):
-        response = client.post(
-            "/customers",
-            data={"name": name, "code": code, "notes": "CI", "csrf": csrf},
-            follow_redirects=False,
-        )
-        assert response.status_code == 303
+        response = client.post(api, headers=headers, json={"name": name, "code": code, "notes": "CI"})
+        assert response.status_code == 200, response.text
 
     a = get_customer("CI Customer A")
     b = get_customer("CI Customer B")
@@ -72,12 +69,8 @@ def main():
     a_id, b_id = a.id, b.id
 
     for customer_id, site_name in ((a_id, "Site A"), (b_id, "Site B")):
-        response = client.post(
-            f"/customers/{customer_id}/sites",
-            data={"name": site_name, "address": "CI address", "notes": "", "csrf": csrf},
-            follow_redirects=False,
-        )
-        assert response.status_code == 303
+        response = client.post(f"{api}/{customer_id}/sites", headers=headers, json={"name": site_name, "address": "CI address", "notes": ""})
+        assert response.status_code == 200, response.text
 
     with SessionLocal() as db:
         site_a = db.scalar(select(Site).where(Site.customer_id == a_id, Site.name == "Site A"))
@@ -85,23 +78,10 @@ def main():
         assert site_a and site_b
         site_a_id, site_b_id = site_a.id, site_b.id
 
-    response = client.post(
-        f"/customers/{a_id}/devices",
-        data={
-            "vendor": "generic",
-            "device_type": "router",
-            "display_name": "CI Router One",
-            "site_id": str(site_a_id),
-            "primary_mac": "02:00:00:00:00:01",
-            "serial_number": "CI-SERIAL-1",
-            "model": "CI Model",
-            "management_ip": "192.0.2.10",
-            "firmware_version": "1.0",
-            "csrf": csrf,
-        },
-        follow_redirects=False,
-    )
-    assert response.status_code == 303
+    response = client.post(f"{api}/{a_id}/devices", headers=headers, json={
+        "vendor": "generic", "device_type": "router", "display_name": "CI Router One", "site_id": str(site_a_id), "mac": "02:00:00:00:00:01",
+        "serial": "CI-SERIAL-1", "model": "CI Model", "management_ip": "192.0.2.10", "firmware_version": "1.0"})
+    assert response.status_code == 200, response.text
 
     with SessionLocal() as db:
         device = db.scalar(select(Device).where(Device.primary_mac == "02:00:00:00:00:01"))
@@ -133,79 +113,43 @@ def main():
         assert issue.customer_id == b_id
         assert notification.customer_id == b_id
 
-    response = client.post(
-        f"/customers/{b_id}/sites/{site_b_id}/edit",
-        data={"name": "Site B Updated", "address": "Updated", "notes": "CI", "csrf": csrf},
-        follow_redirects=False,
-    )
-    assert response.status_code == 303
+    response = client.post(f"{api}/{b_id}/sites/{site_b_id}", headers=headers, json={"name": "Site B Updated", "address": "Updated", "notes": "CI"})
+    assert response.status_code == 200, response.text
     with SessionLocal() as db:
         assert db.get(Site, site_b_id).name == "Site B Updated"
 
-    response = client.post(
-        f"/customers/{b_id}/sites/{site_b_id}/delete",
-        data={"csrf": csrf},
-        follow_redirects=False,
-    )
-    assert response.status_code == 303
+    response = client.post(f"{api}/{b_id}/sites/{site_b_id}/delete", headers=headers, json={})
+    assert response.status_code == 200, response.text
     with SessionLocal() as db:
         assert db.get(Site, site_b_id) is None
         assert db.get(Device, device_id).site_id is None
 
-    response = client.post(
-        f"/customers/{b_id}/devices",
-        data={
-            "vendor": "generic",
-            "device_type": "switch",
-            "display_name": "CI Router Two",
-            "site_id": "",
-            "primary_mac": "02:00:00:00:00:02",
-            "serial_number": "CI-SERIAL-2",
-            "model": "CI Model 2",
-            "management_ip": "192.0.2.11",
-            "firmware_version": "1.0",
-            "csrf": csrf,
-        },
-        follow_redirects=False,
-    )
-    assert response.status_code == 303
+    response = client.post(f"{api}/{b_id}/devices", headers=headers, json={
+        "vendor": "generic", "device_type": "switch", "display_name": "CI Router Two", "site_id": "", "mac": "02:00:00:00:00:02",
+        "serial": "CI-SERIAL-2", "model": "CI Model 2", "management_ip": "192.0.2.11", "firmware_version": "1.0"})
+    assert response.status_code == 200, response.text
     with SessionLocal() as db:
         device2 = db.scalar(select(Device).where(Device.primary_mac == "02:00:00:00:00:02"))
         assert device2
         device2_id = device2.id
 
-    response = client.post(
-        f"/customers/{b_id}/devices/bulk-delete",
-        data={
-            "csrf": csrf,
-            "confirm": "DELETE",
-            "device_ids": [str(device_id), str(device2_id)],
-        },
-        follow_redirects=False,
-    )
-    assert response.status_code == 303
+    response = client.post(f"{api}/{b_id}/devices/bulk", headers=headers,
+                           json={"action": "delete", "confirm": "2", "device_ids": [str(device_id), str(device2_id)]})
+    assert response.status_code == 200, response.text
     with SessionLocal() as db:
         assert db.get(Device, device_id) is None
         assert db.get(Device, device2_id) is None
         assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "CUSTOMER_DEVICES_BULK_DELETED"))
 
-    response = client.post(
-        f"/customers/{a_id}/edit",
-        data={"name": "CI Customer A Renamed", "code": "CIA2", "notes": "updated", "csrf": csrf},
-        follow_redirects=False,
-    )
-    assert response.status_code == 303
+    response = client.post(f"{api}/{a_id}", headers=headers, json={"name": "CI Customer A Renamed", "code": "CIA2", "notes": "updated"})
+    assert response.status_code == 200, response.text
     with SessionLocal() as db:
         customer_a = db.get(Customer, a_id)
         assert customer_a.name == "CI Customer A Renamed"
         assert customer_a.code == "CIA2"
 
-    response = client.post(
-        f"/customers/{a_id}/delete",
-        data={"confirm_name": "CI Customer A Renamed", "csrf": csrf},
-        follow_redirects=False,
-    )
-    assert response.status_code == 303
+    response = client.post(f"{api}/{a_id}/delete", headers=headers, json={"confirm_name": "CI Customer A Renamed"})
+    assert response.status_code == 200, response.text
     with SessionLocal() as db:
         assert db.get(Customer, a_id) is None
         deletion = db.scalar(select(AuditEvent).where(AuditEvent.event_type == "CUSTOMER_DELETED"))

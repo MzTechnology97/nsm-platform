@@ -14,6 +14,7 @@ export interface DeviceRow {
   status: string;
   last_seen: string | null;
   management_ip: string | null;
+  lan_ip?: string | null;
   serial_number: string | null;
   primary_mac: string | null;
   firmware: string | null;
@@ -23,6 +24,7 @@ export interface DeviceRow {
   site: { id: string; name: string } | null;
   agent_transport: string | null;
   severe_cves: number;
+  signal_dbm?: number | null;
 }
 
 export interface DeviceCounts {

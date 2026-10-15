@@ -72,6 +72,7 @@ def device_row(device: Device, severe: int = 0) -> dict:
         "status": device.status,
         "last_seen": _iso(device.last_seen),
         "management_ip": device.management_ip,
+        "lan_ip": data.get("lan_ip"),
         "serial_number": device.serial_number,
         "primary_mac": device.primary_mac,
         "firmware": device.firmware_version,
@@ -81,6 +82,7 @@ def device_row(device: Device, severe: int = 0) -> dict:
         "site": {"id": str(device.site_id), "name": device.site.name} if device.site else None,
         "agent_transport": data.get("agent_transport"),
         "severe_cves": severe,
+        "signal_dbm": ((data.get("uisp") or {}).get("metrics") or {}).get("signal_dbm"),
     }
 
 
@@ -241,7 +243,6 @@ def device_detail(request: Request, device_id: uuid.UUID):
         row = device_row(device, int(vulns.get("critical", 0)) + int(vulns.get("high", 0)))
         row.update({
             "display_name": device.display_name,
-            "lan_ip": data.get("lan_ip"),
             "seen_from": data.get("last_source_ip"),
             "recommended_firmware": device.recommended_firmware_version,
             "routerboot": device.routerboot_version,

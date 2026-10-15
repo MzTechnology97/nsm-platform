@@ -64,9 +64,9 @@ def main():
     devices = tech.get("/devices").text
     assert f"TEST-CS-ALPHA-{suffix}" in devices and f"TEST-CS-BETA-{suffix}" not in devices
     assert tech.get(f"/devices/{ids['dev_a']}").status_code == 200
-    for path in (f"/devices/{ids['dev_b']}", f"/devices/{ids['dev_b']}/logs", f"/devices/{ids['dev_b']}/exposure", f"/customers/{ids['beta']}"):
+    for path in (f"/devices/{ids['dev_b']}", f"/devices/{ids['dev_b']}/logs", f"/devices/{ids['dev_b']}/exposure", f"/api/ui/v1/customers/{ids['beta']}"):
         assert tech.get(path).status_code == 404, path
-    customers = tech.get("/customers").text
+    customers = tech.get("/api/ui/v1/customers").text
     assert f"CI Scope Alpha {suffix}" in customers and f"CI Scope Beta {suffix}" not in customers
     found = {d["name"] for d in tech.get("/api/ui/v1/search?q=TEST-CS-").json()["devices"]}
     assert f"TEST-CS-ALPHA-{suffix}" in found and f"TEST-CS-BETA-{suffix}" not in found
@@ -82,11 +82,13 @@ def main():
     assert tech.post(f"/devices/{ids['dev_b']}/exposure/check", data={"csrf": csrf_from(page)}).status_code == 404
 
     # A customer created by the limited user joins the scope.
-    tech.post("/customers", data={"csrf": csrf_from(customers), "name": f"CI Scope Gamma {suffix}", "code": f"SG{suffix}"})
+    created = tech.post("/api/ui/v1/customers", headers={"X-CSRF-Token": tech.get("/api/ui/v1/session").json()["csrf_token"]},
+                        json={"name": f"CI Scope Gamma {suffix}", "code": f"SG{suffix}"})
+    assert created.status_code == 200, created.text
     with SessionLocal() as db:
         gamma = db.scalar(select(Customer).where(Customer.name == f"CI Scope Gamma {suffix}"))
         assert gamma is not None and str(gamma.id) in db.get(User, tech_id).customer_scope
-    assert f"CI Scope Gamma {suffix}" in tech.get("/customers").text
+    assert f"CI Scope Gamma {suffix}" in tech.get("/api/ui/v1/customers").text
 
     # Administrators and the worker (no request) see everything.
     everything = admin.get("/devices").text

@@ -123,12 +123,13 @@ def main():
         customer_id = db.scalar(select(Customer.id).where(Customer.code == f"MV{suffix}"))
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-mv-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    form = client.get(f"/customers/{customer_id}/devices/new").text
-    assert 'name="manufacturer"' in form and "Cambium (cnMaestro)" in form and "Mimosa" in form, "Cambium has its own vendor (cnMaestro onboarding)"
-    created = client.post(f"/customers/{customer_id}/devices", data={"csrf": csrf_from(form), "vendor": "generic", "device_type": "wireless_cpe",
-                                                                    "display_name": f"TEST-MV-EPMP-{suffix}", "manufacturer": "mimosa", "model": "C5c",
-                                                                    "firmware_version": "4.6.2", "generic_mac": "02:00:5e:10:20:30"}, follow_redirects=False)
-    assert created.status_code in (302, 303), created.status_code
+    form = client.get(f"/api/ui/v1/customers/{customer_id}/devices/new").json()
+    manual = {brand["key"] for brand in form["manual_brands"]}
+    assert "mimosa" in manual and "cambium" not in manual and "cambium" in form["vendors"], "Cambium has its own vendor (cnMaestro onboarding)"
+    created = client.post(f"/api/ui/v1/customers/{customer_id}/devices", headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]},
+                          json={"vendor": "generic", "device_type": "wireless_cpe", "display_name": f"TEST-MV-EPMP-{suffix}", "manufacturer": "mimosa",
+                                "model": "C5c", "firmware_version": "4.6.2", "mac": "02:00:5e:10:20:30"})
+    assert created.status_code == 200, created.text
     with SessionLocal() as db:
         epmp_device = db.scalar(select(Device).where(Device.display_name == f"TEST-MV-EPMP-{suffix}"))
         assert epmp_device.inventory_data.get("manufacturer") == "mimosa" and vendor_cpe.brand(epmp_device) == "mimosa" and vendor_cpe.products(epmp_device)

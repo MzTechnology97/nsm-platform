@@ -74,8 +74,8 @@ def main():
     scoped = login(f"ci-us-scoped-{suffix}")
     assert scoped.get(f"/api/ui/v1/customers/{ids['customer']}/security").status_code == 404, "customer scope"
 
-    page = client.get(f"/customers/{ids['customer']}/security")
-    assert page.status_code == 200 and f"TEST-US-MT-{suffix}" in page.text, "classic tab still renders from the shared data"
+    moved = client.get(f"/customers/{ids['customer']}/security", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == f"/app/customers/{ids['customer']}/security"
     assert client.get(f"/app/customers/{ids['customer']}/security").status_code in (200, 503)
     print("ui customer security smoke ok")
 

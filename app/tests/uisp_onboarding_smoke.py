@@ -69,7 +69,7 @@ def main():
     assert "TEST CPE associato" not in page and "TEST senza MAC" not in page
     blocked = repr(client.get(base, params={"state": "blocked"}).json()["items"])
     assert "MAC assente in UISP" in blocked and "MAC presente su più dispositivi UISP" in blocked
-    assert "Importa da UISP" in client.get(f"/customers/{ids['customer']}/devices").text
+    assert client.get(f"/api/ui/v1/customers/{ids['customer']}").json()["actions"]["uisp_import"] is True, "Import from UISP on the customer page"
 
     picks = [f"u-new-{suffix}", f"u-ap-{suffix}", f"u-link-{suffix}"]
     target = {"customer_id": str(ids["customer"]), "site_id": str(ids["site"]), "external_ids": picks}

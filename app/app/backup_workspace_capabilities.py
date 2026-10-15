@@ -1,26 +1,20 @@
-import uuid
 from collections import defaultdict
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app import main as core
 from app.backup_capabilities import (
     active_mikrotik_agent_device_ids,
     backup_readiness,
     readiness_label,
 )
 from app.backup_core import _effective_policy, _schedule_label, _scope_label
-from app.backup_models import BackupArtifact
 from app.customer_workspace import (
     _customer_metric_maps,
     _customer_metrics,
     _load_policy_context,
-    _relevant_customer_policies,
 )
-from app.db import SessionLocal
 from app.models import BackupRun, Customer, Device, Site
 
 router = APIRouter()
@@ -68,167 +62,6 @@ def _readiness_for_device(db, device, policy, settings_map, active_agent_ids):
         settings_map.get(policy.id) if policy else None,
         active_agent=device.id in active_agent_ids if device.vendor == "mikrotik" else None,
     )
-
-
-@router.get(
-    "/customers/{customer_id}/backups",
-    response_class=HTMLResponse,
-    name="customer_backups",
-)
-def customer_backups(
-    request: Request,
-    customer_id: uuid.UUID,
-    site_id: str = "",
-    status: str = "",
-    protection: str = "",
-):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "backup.read"):
-            raise HTTPException(403)
-
-        customer = db.scalar(
-            select(Customer)
-            .where(Customer.id == customer_id)
-            .options(
-                selectinload(Customer.sites),
-                selectinload(Customer.devices).selectinload(Device.site),
-            )
-        )
-        if not customer:
-            raise HTTPException(404)
-
-        all_devices = list(customer.devices)
-        devices = list(all_devices)
-        selected_site = None
-        if site_id:
-            try:
-                selected_site_uuid = uuid.UUID(site_id)
-            except ValueError:
-                raise HTTPException(400, "Sede non valida.")
-            selected_site = next(
-                (site for site in customer.sites if site.id == selected_site_uuid),
-                None,
-            )
-            if not selected_site:
-                raise HTTPException(400, "La sede non appartiene a questo cliente.")
-            devices = [device for device in devices if device.site_id == selected_site.id]
-
-        policies, settings_map = _load_policy_context(db)
-        latest_by_device = _latest_runs(db, [device.id for device in all_devices])
-        active_agent_ids = active_mikrotik_agent_device_ids(
-            db,
-            [device.id for device in all_devices if device.vendor == "mikrotik"],
-        )
-
-        latest_run_ids = [run.id for run in latest_by_device.values()]
-        artifacts_by_run = defaultdict(list)
-        if latest_run_ids:
-            artifacts = list(
-                db.scalars(
-                    select(BackupArtifact)
-                    .where(
-                        BackupArtifact.run_id.in_(latest_run_ids),
-                        BackupArtifact.deleted_at.is_(None),
-                    )
-                    .order_by(BackupArtifact.created_at.desc())
-                )
-            )
-            for artifact in artifacts:
-                artifacts_by_run[artifact.run_id].append(artifact)
-
-        device_state = {}
-        for device in all_devices:
-            policy = _effective_policy(device, policies, settings_map)
-            policy_settings = settings_map.get(policy.id) if policy else None
-            readiness = _readiness_for_device(
-                db,
-                device,
-                policy,
-                settings_map,
-                active_agent_ids,
-            )
-            latest = latest_by_device.get(device.id)
-            device_state[device.id] = {
-                "policy": policy,
-                "settings": policy_settings,
-                "readiness": readiness,
-                "latest": latest,
-                "run_state": latest.status if latest else "never",
-                "protection_bucket": _protection_bucket(readiness),
-            }
-
-        rows = []
-        for device in sorted(
-            devices,
-            key=lambda item: (
-                item.site.name.lower() if item.site else "",
-                (item.display_name or item.device_identity or item.name or "").lower(),
-            ),
-        ):
-            item = device_state[device.id]
-            if status and status != item["run_state"]:
-                continue
-            if protection and protection != item["protection_bucket"]:
-                continue
-            latest = item["latest"]
-            policy = item["policy"]
-            readiness = item["readiness"]
-            rows.append(
-                {
-                    "device": device,
-                    "policy": policy,
-                    "schedule": _schedule_label(item["settings"], policy) if policy else None,
-                    "latest": latest,
-                    "artifacts": list(artifacts_by_run.get(latest.id, [])) if latest else [],
-                    "state": item["run_state"],
-                    "readiness": readiness,
-                    "readiness_label": readiness_label(readiness.status),
-                    "protection_bucket": item["protection_bucket"],
-                }
-            )
-
-        states = list(device_state.values())
-        protected_count = sum(1 for item in states if item["readiness"].executable)
-        blocked_count = sum(
-            1
-            for item in states
-            if item["readiness"].policy_present and not item["readiness"].executable
-        )
-        no_policy_count = sum(1 for item in states if not item["readiness"].policy_present)
-        success_count = sum(
-            1 for item in states if item["latest"] and item["latest"].status == "success"
-        )
-        failed_count = sum(
-            1 for item in states if item["latest"] and item["latest"].status == "failed"
-        )
-        never_count = sum(1 for item in states if item["latest"] is None)
-
-        return core.render(
-            request,
-            db,
-            user,
-            "customer_backups.html",
-            customer=customer,
-            rows=rows,
-            policy_rows=_relevant_customer_policies(
-                customer,
-                customer.devices,
-                policies,
-                settings_map,
-            ),
-            protected_count=protected_count,
-            blocked_count=blocked_count,
-            no_policy_count=no_policy_count,
-            success_count=success_count,
-            failed_count=failed_count,
-            never_count=never_count,
-            selected_site=selected_site,
-            selected_status=status,
-            selected_protection=protection,
-        )
 
 
 BACKUP_VIEWS = ("attention", "failed", "blocked", "never", "no_policy", "protected", "all")

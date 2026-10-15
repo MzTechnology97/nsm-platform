@@ -87,20 +87,21 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-cg-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/customers/{ids['customer']}/graphs").text
-    assert "Grafici del cliente" in page and "Confronto sedi" in page and f"TEST-CG-R1-{suffix}" in page and "40.00 Mbit/s" in page
-    assert f'/customers/{ids["customer"]}/graphs?site={ids["north"]}' in page and "rrd_chart.js" in page and "series_chart.js" in page
-    site_page = client.get(f"/customers/{ids['customer']}/graphs?site={ids['south']}").text
-    assert f"della sede Sud {suffix}" in site_page and "Confronto sedi" not in site_page
+    summary_api = f"/api/ui/v1/customers/{ids['customer']}/graphs/summary"
+    page = client.get(summary_api).json()
+    assert page["site"] is None and len(page["overview"]) >= 2, "site comparison for the whole customer"
+    assert f"TEST-CG-R1-{suffix}" in repr(page["top"]) and str(ids["north"]) in {s["id"] for s in page["sites"]}
+    site_page = client.get(summary_api, params={"site": str(ids["south"])}).json()
+    assert site_page["site"]["name"] == f"Sud {suffix}" and site_page["overview"] == []
     # Availability from the ICMP monitor: r1 lost one round out of 23.
-    assert "Disponibilità (ultimi 30 giorni)" in page and "95.65%" in page and "media 95.65%, 1 sotto il 99%" in page
-    assert "Nessun apparato con monitoraggio ICMP" in site_page, "the south site has no ICMP samples"
-    assert "Grafici del cliente" in client.get(f"/customers/{ids['customer']}/graphs?site={ids['foreign']}").text, "a site of another customer is ignored"
+    assert round(page["availability"]["average"], 2) == 95.65 and page["availability"]["below_target"] == 1, page["availability"]
+    assert site_page["availability"]["measured"] == 0, "the south site has no ICMP samples"
+    assert client.get(summary_api, params={"site": str(ids["foreign"])}).json()["site"] is None, "a site of another customer is ignored"
     api = client.get(f"/api/v1/customers/{ids['customer']}/graphs?range=7d&site={ids['north']}")
     assert api.status_code == 200 and {c["id"] for c in api.json()["charts"]} >= {"traffic", "cpu"}
     assert client.get(f"/api/v1/customers/{ids['customer']}/graphs?range=1y").status_code == 400
-    assert f'href="/customers/{ids["customer"]}/graphs"' in client.get(f"/customers/{ids['customer']}").text, "Grafici tab"
-    assert "Grafici</a>" in client.get(f"/customers/{ids['customer']}/sites").text
+    moved = client.get(f"/customers/{ids['customer']}/graphs?site={ids['north']}", follow_redirects=False)
+    assert moved.headers["location"] == f"/app/customers/{ids['customer']}/graphs?site={ids['north']}"
     print("Customer graphs smoke passed")
 
 

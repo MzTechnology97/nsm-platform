@@ -198,13 +198,17 @@ function DeviceLine({ device, top, height, locale }: { device: DeviceRow; top: n
       </span>
       <span role="cell">
         <span className={`ui-status ui-status-${device.status}`}>{t(`devices.statusLabel.${device.status}`, { defaultValue: device.status })}</span>
+        {device.signal_dbm != null && <small className="ui-muted ui-block">{t("devices.signal", { value: device.signal_dbm })}</small>}
       </span>
       <span role="cell">{device.vendor}</span>
       <span role="cell" className="ui-td-main">
         <span>{device.customer?.name ?? "—"}</span>
         <small>{device.site?.name ?? ""}</small>
       </span>
-      <span role="cell" className="ui-mono">{device.management_ip ?? "—"}</span>
+      <span role="cell" className="ui-mono">
+        {device.management_ip ?? "—"}
+        {device.lan_ip && device.lan_ip !== device.management_ip && <small className="ui-muted ui-block">{t("devices.lan", { ip: device.lan_ip })}</small>}
+      </span>
       <span role="cell">
         {device.firmware ?? "—"}
         {device.severe_cves > 0 && <span className="ui-badge ui-badge-danger" title={t("devices.severeCves")}>{device.severe_cves} CVE</span>}

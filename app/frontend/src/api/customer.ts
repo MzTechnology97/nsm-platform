@@ -27,7 +27,7 @@ export interface CustomerDetail {
   issues: { id: string; title: string; severity: string; category: string; updated_at: string | null; device_id: string | null }[];
   events: { timestamp: string | null; type: string; label: string; source: string | null; result: string | null; severity: string }[];
   sites: CustomerSite[];
-  actions: { edit: boolean; add_site: boolean; add_device: boolean; incidents: boolean };
+  actions: { edit: boolean; add_site: boolean; add_device: boolean; incidents: boolean; uisp_import?: boolean };
   tabs: { key: string; classic: string }[];
   links: { edit: string; add_site: string; add_device: string; incidents: string; action_center: string };
 }
