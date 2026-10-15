@@ -95,7 +95,7 @@ function DeviceShell({ detail }: { detail: Detail }) {
               to={MIGRATED_TABS[tab.key as keyof typeof MIGRATED_TABS]}
               params={{ deviceId: device.id }}
               className="ui-tab"
-              activeOptions={{ exact: true }}
+              activeOptions={{ exact: tab.key === "overview" }}
               activeProps={{ className: "ui-tab is-active", "aria-current": "page" }}
             >
               {t(`device.tabs.${tab.key}`)}

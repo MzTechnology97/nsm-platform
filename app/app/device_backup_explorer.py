@@ -23,6 +23,7 @@ from app.db import SessionLocal
 from app.mikrotik_backup import queue_mikrotik_backup
 from app.models import BackupPolicy, BackupRun, Device, utcnow
 from app.restore_test_models import BackupRestoreTest
+from app.input_errors import InputError
 from app.security import validate_csrf
 from app.ui_feedback import exception_message, flash_redirect
 
@@ -68,6 +69,53 @@ def _artifact_kind(artifact: BackupArtifact) -> str:
 
 def _is_human_readable(artifact: BackupArtifact) -> bool:
     return artifact.artifact_type == "mikrotik_export" or artifact.filename.lower().endswith(".rsc")
+
+
+def artifact_text_record(db, user, device: Device, artifact_id: uuid.UUID, against: str = "") -> dict:
+    """Read a text export of the device, optionally diffed against an older one; audited, shared by both interfaces."""
+    artifact, run = _artifact_for_device(db, device.id, artifact_id)
+    if not _is_human_readable(artifact):
+        raise InputError("binary", "Questo backup è binario e può essere solo scaricato.", 415)
+    text = _read_export(artifact)
+    candidates = _comparison_candidates(db, device.id, artifact.id)
+    against_artifact = against_run = None
+    diff_rows = []
+    diff_summary = None
+    if against:
+        try:
+            against_id = uuid.UUID(against)
+        except ValueError:
+            raise InputError("compare_id", "Identificativo confronto non valido.")
+        against_artifact, against_run = _artifact_for_device(db, device.id, against_id)
+        if not _is_human_readable(against_artifact):
+            raise InputError("compare_binary", "Il confronto richiede due backup testuali dello stesso apparato.")
+        before = _read_export(against_artifact)
+        diff_rows, diff_summary = _diff_rows(before, text)
+
+    event_type = "BACKUP_EXPORT_DIFF_VIEWED" if against_artifact else "BACKUP_EXPORT_VIEWED"
+    details = {"artifact_id": str(artifact.id), "filename": artifact.filename}
+    if against_artifact:
+        details["compare_artifact_id"] = str(against_artifact.id)
+    core.add_event(
+        db,
+        event_type,
+        actor=user,
+        customer_id=device.customer_id,
+        device_id=device.id,
+        details=details,
+        source="portal",
+    )
+    db.commit()
+    return {
+        "artifact": artifact,
+        "run": run,
+        "text": text,
+        "candidates": candidates,
+        "against_artifact": against_artifact,
+        "against_run": against_run,
+        "diff_rows": diff_rows,
+        "diff_summary": diff_summary,
+    }
 
 
 def _manual_backup_context(db, device: Device):
@@ -359,47 +407,11 @@ def device_backup_artifact_view(
             if not core.has_permission(user, "backup.read"):
                 raise HTTPException(403)
             device = _device(db, device_id)
-            artifact, run = _artifact_for_device(db, device.id, artifact_id)
-            if not _is_human_readable(artifact):
-                raise HTTPException(415, "Questo backup è binario e può essere solo scaricato.")
-
-            text = _read_export(artifact)
-            candidates = _comparison_candidates(db, device.id, artifact.id)
-            against_artifact = against_run = None
-            diff_rows = []
-            diff_summary = None
-            if against:
-                try:
-                    against_id = uuid.UUID(against)
-                except ValueError:
-                    raise HTTPException(400, "Identificativo confronto non valido.")
-                against_artifact, against_run = _artifact_for_device(
-                    db, device.id, against_id
-                )
-                if not _is_human_readable(against_artifact):
-                    raise HTTPException(
-                        400,
-                        "Il confronto richiede due backup testuali dello stesso apparato.",
-                    )
-                before = _read_export(against_artifact)
-                diff_rows, diff_summary = _diff_rows(before, text)
-
-            event_type = (
-                "BACKUP_EXPORT_DIFF_VIEWED" if against_artifact else "BACKUP_EXPORT_VIEWED"
-            )
-            details = {"artifact_id": str(artifact.id), "filename": artifact.filename}
-            if against_artifact:
-                details["compare_artifact_id"] = str(against_artifact.id)
-            core.add_event(
-                db,
-                event_type,
-                actor=user,
-                customer_id=device.customer_id,
-                device_id=device.id,
-                details=details,
-                source="portal",
-            )
-            db.commit()
+            view = artifact_text_record(db, user, device, artifact_id, against)
+            artifact, run = view["artifact"], view["run"]
+            text, candidates = view["text"], view["candidates"]
+            against_artifact, against_run = view["against_artifact"], view["against_run"]
+            diff_rows, diff_summary = view["diff_rows"], view["diff_summary"]
             return core.render(
                 request,
                 db,

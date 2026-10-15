@@ -1,4 +1,4 @@
-import { useParams } from "@tanstack/react-router";
+import { Link, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -168,7 +168,11 @@ function FileRow({ id, file, canDelete }: { id: string; file: BackupFile; canDel
       </td>
       <td>
         <div className="ui-row-actions">
-          {file.view_url && <a className="ui-button ui-button-ghost ui-button-small" href={file.view_url}>{t("backups.actions.view")}</a>}
+          {file.viewable && (
+            <Link to="/devices/$deviceId/backups/artifacts/$artifactId" params={{ deviceId: id, artifactId: file.id }} className="ui-button ui-button-ghost ui-button-small">
+              {t("backups.actions.view")}
+            </Link>
+          )}
           <a className="ui-button ui-button-ghost ui-button-small" href={file.download_url}>{t("backups.actions.download")}</a>
           <a className="ui-button ui-button-ghost ui-button-small" href={file.restore_url}>{t("backups.actions.restore")}</a>
           {canDelete && (

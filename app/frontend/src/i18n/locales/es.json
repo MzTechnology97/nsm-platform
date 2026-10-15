@@ -385,7 +385,7 @@
       "actions": "Acciones"
     },
     "actions": {
-      "view": "Abrir / Diff",
+      "view": "Abrir / comparar",
       "download": "Descargar",
       "restore": "Prueba de restauración",
       "delete": "Eliminar"
@@ -3882,6 +3882,44 @@
       "action": "Acción",
       "status": "Estado",
       "note": "Nota"
+    }
+  },
+  "backupArtifact": {
+    "back": "Volver al archivo",
+    "meta_one": "{{when}} · {{size}} · {{count}} línea",
+    "meta_other": "{{when}} · {{size}} · {{count}} líneas",
+    "compareWith": "Comparar con",
+    "noCompare": "Sin comparación · solo lectura",
+    "noCandidates": "No hay otro export de texto de este equipo para comparar.",
+    "diffTitle": "Diferencias de configuración",
+    "diffHelp": "Antes: {{before}} → después: {{after}}.",
+    "added_one": "+ {{count}} añadida",
+    "added_other": "+ {{count}} añadidas",
+    "removed_one": "− {{count}} eliminada",
+    "removed_other": "− {{count}} eliminadas",
+    "unchanged_one": "{{count}} sin cambios",
+    "unchanged_other": "{{count}} sin cambios",
+    "changesOnly": "Solo los cambios (con 3 líneas de contexto)",
+    "closeDiff": "Cerrar la comparación",
+    "truncated": "Diferencias demasiado extensas: solo se muestran las primeras 20.000 líneas.",
+    "identical": "Las dos configuraciones son idénticas.",
+    "kinds": {
+      "added": "añadida",
+      "removed": "eliminada",
+      "context": "sin cambios"
+    },
+    "contentTitle": "Contenido del export",
+    "contentHelp": "Solo lectura. El export del Agent NSM sigue el comportamiento estándar de RouterOS, sin show-sensitive; las copias binarias nunca se muestran en el navegador.",
+    "filter": "Buscar en el texto",
+    "matches_one": "{{count}} línea encontrada",
+    "matches_other": "{{count}} líneas encontradas",
+    "noMatch": "Ninguna línea contiene el texto buscado.",
+    "empty": "El export está vacío.",
+    "errors": {
+      "binary": "Esta copia es binaria: solo se puede descargar.",
+      "too_large": "El export es demasiado grande para mostrarlo en el navegador: descárgalo.",
+      "compare_id": "La comparación solicitada no es válida.",
+      "compare_binary": "La comparación requiere dos exports de texto del mismo equipo."
     }
   }
 }

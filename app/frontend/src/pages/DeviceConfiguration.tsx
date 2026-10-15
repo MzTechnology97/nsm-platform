@@ -203,8 +203,12 @@ export function DeviceConfigurationHistory() {
                   </td>
                   <td>
                     <div className="ui-row-actions">
-                      <a className="ui-button ui-button-ghost ui-button-small" href={`/operations/backups/artifacts/${row.id}/view`}>{t("deviceConfig.view")}</a>
-                      {row.previous_id && <a className="ui-button ui-button-ghost ui-button-small" href={`/operations/backups/artifacts/${row.id}/view?against=${row.previous_id}`}>{t("deviceConfig.diff")}</a>}
+                      <Link to="/devices/$deviceId/backups/artifacts/$artifactId" params={{ deviceId, artifactId: row.id }} className="ui-button ui-button-ghost ui-button-small">{t("deviceConfig.view")}</Link>
+                      {row.previous_id && (
+                        <Link to="/devices/$deviceId/backups/artifacts/$artifactId" params={{ deviceId, artifactId: row.id }} search={{ against: row.previous_id }} className="ui-button ui-button-ghost ui-button-small">
+                          {t("deviceConfig.diff")}
+                        </Link>
+                      )}
                       {data.can_baseline && !row.baseline && (
                         <button type="button" className="ui-button ui-button-ghost ui-button-small" disabled={setBaseline.isPending} onClick={() => setBaseline.mutate(row.id)}>
                           {t("deviceConfig.setBaseline")}

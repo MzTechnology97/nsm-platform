@@ -90,8 +90,8 @@ def main():
     assert body["runs"][0]["error"] == "TEST upload interrupted" and body["runs"][0]["files"] == []
     files = {f["filename"]: f for f in body["runs"][1]["files"]}
     assert set(files) == {"router-new.rsc", "router.backup"}
-    assert files["router-new.rsc"]["kind"] == "export" and files["router-new.rsc"]["view_url"].endswith(f"/artifacts/{ids['new']}/view")
-    assert files["router.backup"]["kind"] == "binary" and files["router.backup"]["view_url"] is None
+    assert files["router-new.rsc"]["kind"] == "export" and files["router-new.rsc"]["viewable"] is True
+    assert files["router.backup"]["kind"] == "binary" and files["router.backup"]["viewable"] is False
     assert files["router-new.rsc"]["restore"]["result"] == "passed" and files["router.backup"]["restore"] is None
     summary = body["summary"]
     assert summary["files"] == 3 and summary["readable"] == 2 and summary["latest_type"] == "mikrotik_multi" and summary["restore"]["result"] == "passed"
