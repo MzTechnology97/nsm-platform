@@ -3740,5 +3740,80 @@
     },
     "disabled": "disabled",
     "noRows": "No data from UISP."
+  },
+  "deviceCnmaestro": {
+    "linked": "Linked to cnMaestro since {{when}} (MAC {{mac}}).",
+    "notLinked": "Not linked yet: the sync links it by MAC ({{mac}}) or serial ({{serial}}).",
+    "missing": "missing",
+    "lastSync": "Last sync {{when}}.",
+    "notConfigured": "cnMaestro is not configured.",
+    "fields": {
+      "name": "Name in cnMaestro",
+      "type": "Type",
+      "network": "Network",
+      "tower": "Tower",
+      "status": "State"
+    },
+    "lastValue": "Last value",
+    "notExposed": "not exposed by cnMaestro",
+    "chartsTitle": "cnMaestro charts",
+    "series": {
+      "signal_dbm": "Signal",
+      "snr_db": "SNR",
+      "cpu_percent": "CPU",
+      "ram_percent": "Memory",
+      "stations": "Connected stations",
+      "uptime_seconds": "Uptime",
+      "dl_throughput_bps": "Downlink throughput",
+      "ul_throughput_bps": "Uplink throughput"
+    }
+  },
+  "deviceGenieacs": {
+    "recordHelp": "Customer and site stay those of NSM: GenieACS does not change them.",
+    "fields": {
+      "customer": "Customer",
+      "site": "Site",
+      "serial": "Serial",
+      "mac": "MAC",
+      "acsId": "GenieACS ID",
+      "manufacturer": "Manufacturer",
+      "model": "Model",
+      "lastInform": "Last Inform"
+    },
+    "connectionTitle": "GenieACS connector",
+    "notConfigured": "GenieACS is not configured.",
+    "never": "never run",
+    "inventoryTitle": "Inventory from GenieACS",
+    "inventoryHelp": "Last read {{when}} · linked by {{by}}.",
+    "matchedBy": {
+      "serial": "serial",
+      "mac": "MAC",
+      "external_id": "ACS ID",
+      "unknown": "—"
+    },
+    "refresh": "Refresh from GenieACS",
+    "refreshed": "Inventory refreshed from GenieACS.",
+    "notYet": "Diagnostics, backup and firmware upgrade through the ACS are not available yet.",
+    "verifyTitle": "Check the match",
+    "searchTitle": "Search GenieACS",
+    "searchSerialMac": "NSM looks up the serial {{serial}} and, if not found, the MAC {{mac}}; the lookup changes nothing.",
+    "searchSerial": "NSM looks up the serial {{serial}}; the lookup changes nothing.",
+    "searchMac": "NSM looks up the MAC {{mac}}; the lookup changes nothing.",
+    "search": "Search GenieACS",
+    "previewTitle": "Unique match found by {{by}}",
+    "candidate": {
+      "external_id": "GenieACS ID",
+      "serial_number": "Serial",
+      "primary_mac": "MAC",
+      "manufacturer": "Manufacturer",
+      "model": "Model",
+      "firmware_version": "Firmware",
+      "management_ip": "IP",
+      "hardware_version": "Hardware",
+      "product_class": "Product class"
+    },
+    "associate": "Confirm association",
+    "confirmRefresh": "Confirm and refresh",
+    "associated": "CPE linked to GenieACS: identity and firmware updated."
   }
 }

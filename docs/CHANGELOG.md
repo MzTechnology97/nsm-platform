@@ -4,6 +4,23 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.151 — 2026-10-15
+
+New interface (React) — cnMaestro and GenieACS pages of a device, phase 7o
+- **cnMaestro tab** (`/app/devices/{id}/cnmaestro`):
+  - link state, with the name, type, network, tower and state read from cnMaestro;
+  - the last values with their history charts, from 24 hours to 90 days.
+- **ACS tab** (`/app/devices/{id}/genieacs`, TR-069 CPEs):
+  - NSM record, connector state and the inventory read from GenieACS;
+  - «Search GenieACS» looks up the serial first, then the MAC, without changing anything; then come the association and «Refresh from GenieACS». The NSM customer and site never change.
+- **Charts.** The UISP and cnMaestro charts now share the same component.
+- **Shared code.** The GenieACS association and refresh are now shared functions, used by both interfaces; the classic page behaves as before.
+  - `genieacs_connector.associate_record`, `refresh_record`.
+- **API.**
+  - `GET /api/ui/v1/devices/{id}/cnmaestro` (`devices.read`), `.../cnmaestro/metrics` (`monitoring.read`);
+  - `GET /api/ui/v1/devices/{id}/genieacs` (`devices.read`);
+  - `POST .../genieacs/preview`, `/associate`, `/refresh` (`devices.read` / `devices.write` + CSRF).
+
 ## 0.49.150 — 2026-10-15
 
 New interface (React) — UISP page of a device, phase 7n

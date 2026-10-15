@@ -69,3 +69,57 @@ export function useUispAction<TResult = { ok: boolean }>(id: string, action: str
     },
   });
 }
+
+export interface CnmaestroTab {
+  linked: boolean;
+  meta: { mac?: string; linked_at?: string; last_sync_at?: string; name?: string; type?: string; network?: string; tower?: string; status?: string };
+  record: { mac: string | null; serial: string | null };
+  metrics: { field: string; unit: string; value: number | null }[];
+  configured: boolean;
+  can: { metrics: boolean; configure: boolean };
+}
+
+export const useDeviceCnmaestro = (id: string) => useQuery({ queryKey: ["device", id, "cnmaestro"], queryFn: () => api<CnmaestroTab>(`${base(id)}/cnmaestro`) });
+
+export const useCnmaestroMetrics = (id: string, range: string, enabled: boolean) =>
+  useQuery({
+    queryKey: ["device", id, "cnmaestro-metrics", range],
+    queryFn: () => api<{ range: string; sample_count: number; charts: UispChart[] }>(`${base(id)}/cnmaestro/metrics?range=${range}`),
+    placeholderData: keepPreviousData,
+    enabled,
+  });
+
+export interface GenieacsTab {
+  record: { name: string; customer: string | null; site: string | null; serial: string | null; mac: string | null; external_id: string | null; status: string;
+    model: string | null; firmware_version: string | null };
+  connection: { base_url: string; enabled: boolean; last_tested_at: string | null; last_test_status: string | null } | null;
+  inventory: { manufacturer?: string; product_class?: string; hardware_version?: string; last_inform?: string; last_sync_at?: string; matched_by?: string } | null;
+  can: { write: boolean; configure: boolean };
+}
+
+export const useDeviceGenieacs = (id: string) => useQuery({ queryKey: ["device", id, "genieacs"], queryFn: () => api<GenieacsTab>(`${base(id)}/genieacs`) });
+
+export interface GenieacsCandidate {
+  external_id: string;
+  serial_number: string | null;
+  primary_mac: string | null;
+  manufacturer: string | null;
+  model: string | null;
+  firmware_version: string | null;
+  last_seen: string | null;
+  management_ip: string | null;
+  hardware_version: string | null;
+  product_class: string | null;
+  matched_by: string | null;
+  status: string | null;
+}
+
+export function useGenieacsAction<TResult = { ok: boolean }>(id: string, action: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<TResult>(`${base(id)}/genieacs/${action}`, { method: "POST" }),
+    onSuccess: () => {
+      if (action !== "preview") void client.invalidateQueries({ queryKey: ["device", id] });
+    },
+  });
+}

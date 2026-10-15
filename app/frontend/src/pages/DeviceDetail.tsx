@@ -21,6 +21,8 @@ const MIGRATED_TABS = {
   configuration: "/devices/$deviceId/configuration",
   firmware: "/devices/$deviceId/firmware-upgrade",
   uisp: "/devices/$deviceId/uisp",
+  cnmaestro: "/devices/$deviceId/cnmaestro",
+  acs: "/devices/$deviceId/genieacs",
 } as const;
 
 /** Device shell: breadcrumbs, title, actions and tabs; the active tab renders in the outlet. */

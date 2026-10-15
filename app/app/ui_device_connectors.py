@@ -1,4 +1,4 @@
-"""Device pages of the connectors in the new interface (phase 7): UISP.
+"""Device pages of the connectors in the new interface (phase 7): UISP, cnMaestro, GenieACS.
 
 - ``GET /api/ui/v1/devices/{id}/uisp`` (``devices.read``, Ubiquiti): NSM record,
   connector, current UISP values with 24-hour statistics and recent samples,
@@ -12,7 +12,16 @@
   ``.../backup`` (``backup.execute``), ``.../interfaces`` and ``.../events``
   (``devices.read``) go through ``uisp_operations``.
 
-Connector errors are 422 ``{code: "uisp", message}`` with the UISP reason.
+- ``GET /api/ui/v1/devices/{id}/cnmaestro`` (``devices.read``): link state and the
+  last values read by the cnMaestro sync; ``GET .../cnmaestro/metrics``
+  (``monitoring.read``) the chart series;
+- ``GET /api/ui/v1/devices/{id}/genieacs`` (``devices.read``, TR-069 CPEs):
+  record, connector and inventory read from GenieACS; ``POST .../preview``
+  (lookup by serial then MAC, read-only), ``.../associate`` and ``.../refresh``
+  (``devices.write``, ``genieacs_connector.associate_record`` /
+  ``refresh_record``).
+
+Connector errors are 422 ``{code: "uisp"|"genieacs", message}`` with the reason.
 """
 from __future__ import annotations
 
@@ -155,3 +164,98 @@ def device_uisp_action(request: Request, device_id: uuid.UUID, action: str, body
 
 def install_ui_device_connectors(app) -> None:
     app.include_router(router)
+
+
+# --- cnMaestro -----------------------------------------------------------------------------------
+
+@router.get("/devices/{device_id}/cnmaestro")
+def device_cnmaestro(request: Request, device_id: uuid.UUID):
+    from app import cnmaestro_connector as cnm
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.read")
+        device = db.get(Device, device_id)
+        if not device:
+            raise HTTPException(404)
+        meta = (device.inventory_data or {}).get("cnmaestro") or {}
+        metrics = meta.get("metrics") or {}
+        connection = cnm.connection_row(db)
+        return jsonable_encoder({
+            "linked": bool(meta.get("mac")),
+            "meta": {key: meta.get(key) for key in ("mac", "linked_at", "last_sync_at", "name", "type", "network", "tower", "status")},
+            "record": {"mac": device.primary_mac, "serial": device.serial_number},
+            "metrics": [{"field": field, "unit": unit, "value": metrics.get(field)} for field, (_label, unit, _keys) in cnm.FIELDS.items()],
+            "configured": connection is not None,
+            "can": {"metrics": core.has_permission(user, "monitoring.read"), "configure": core.has_permission(user, "users.manage")},
+        })
+
+
+@router.get("/devices/{device_id}/cnmaestro/metrics")
+def device_cnmaestro_metrics(request: Request, device_id: uuid.UUID, range: str = "24h"):
+    from app import cnmaestro_connector as cnm
+
+    with SessionLocal() as db:
+        ui_user(request, db, "monitoring.read")
+        device = db.get(Device, device_id)
+        if not device:
+            raise HTTPException(404)
+        try:
+            return cnm.series(db, device, range)
+        except ValueError:
+            raise HTTPException(422, {"code": "range", "message": "Intervallo non valido."}) from None
+
+
+# --- GenieACS ------------------------------------------------------------------------------------
+
+def _tr069(db, device_id: uuid.UUID) -> Device:
+    from app import genieacs_connector as acs
+
+    device = db.get(Device, device_id)
+    if not device or not acs.tr069_capable(device):
+        raise HTTPException(404)
+    return device
+
+
+@router.get("/devices/{device_id}/genieacs")
+def device_genieacs(request: Request, device_id: uuid.UUID):
+    from app import genieacs_connector as acs
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.read")
+        device = _tr069(db, device_id)
+        connection = acs._connection(db)
+        tr = (device.inventory_data or {}).get("tr069") or {}
+        return jsonable_encoder({
+            "record": {"name": _name(device), "customer": device.customer.name if device.customer else None, "site": device.site.name if device.site else None,
+                       "serial": device.serial_number, "mac": device.primary_mac, "external_id": device.external_device_id, "status": device.status,
+                       "model": device.model, "firmware_version": device.firmware_version},
+            "connection": {"base_url": connection.base_url, "enabled": connection.is_enabled, "last_tested_at": connection.last_tested_at,
+                           "last_test_status": connection.last_test_status} if connection else None,
+            "inventory": {key: tr.get(key) for key in ("manufacturer", "product_class", "hardware_version", "last_inform", "last_sync_at", "matched_by")}
+            if device.external_device_id and tr else None,
+            "can": {"write": core.has_permission(user, "devices.write"), "configure": core.has_permission(user, "users.manage")},
+        })
+
+
+@router.post("/devices/{device_id}/genieacs/{action}", dependencies=[Depends(require_csrf)])
+def device_genieacs_action(request: Request, device_id: uuid.UUID, action: str):
+    from app import genieacs_connector as acs
+
+    permissions = {"preview": "devices.read", "associate": "devices.write", "refresh": "devices.write"}
+    if action not in permissions:
+        raise HTTPException(404)
+    with SessionLocal() as db:
+        user = ui_user(request, db, permissions[action])
+        device = _tr069(db, device_id)
+        if not (device.serial_number or device.primary_mac):
+            raise HTTPException(422, {"code": "no_identity", "message": "Il CPE non ha seriale né MAC per il matching GenieACS."})
+        try:
+            if action == "preview":
+                candidate = acs.lookup_device(acs._connection(db, enabled_only=True), device)
+                return jsonable_encoder({key: candidate.get(key) for key in ("external_id", "serial_number", "primary_mac", "manufacturer", "model", "firmware_version",
+                                                                             "last_seen", "management_ip", "hardware_version", "product_class", "matched_by", "status")})
+            (acs.associate_record if action == "associate" else acs.refresh_record)(db, user, device)
+            return {"ok": True}
+        except (acs.GenieAcsConnectorError, ValueError) as exc:
+            db.rollback()
+            raise HTTPException(422, {"code": "genieacs", "message": str(exc)}) from None
