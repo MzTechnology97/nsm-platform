@@ -163,6 +163,44 @@ def suggestions_page(request: Request, customer: str = "", kind: str = ""):
                            can_execute=core.has_permission(user, "firmware.execute"))
 
 
+def apply_record(db, user, action: str, selected: list) -> tuple[int, list[str]]:
+    """Queue readiness checks or open plans for the selected suggestions that are still of that kind; audited, commits.
+
+    Returns ``(done, skipped)``; each skipped device is ``{"id", "name", "code", "message"}`` (code: the suggestion kind,
+    ``none``, ``already_queued``, ``no_agent`` or ``refused``). Shared by both interfaces.
+    """
+    current = {s["device"].id: s for s in suggestions(db)}
+    done, skipped = 0, []
+    for device_id in selected:
+        item = current.get(device_id)
+        name = item["device"].name if item else str(device_id)[:8]
+        if not item or item["kind"] != action:
+            skipped.append({"id": str(device_id), "name": name, "code": item["kind"] if item else "none",
+                            "message": KINDS[item["kind"]][0].lower() if item else "nessun aggiornamento"})
+            continue
+        if action == "check":
+            state = queue_readiness_job(db, item["device"], user)
+            if state == "queued":
+                done += 1
+            else:
+                queued = state == "already_queued"
+                skipped.append({"id": str(device_id), "name": name, "code": "already_queued" if queued else "no_agent",
+                                "message": "verifica già in coda" if queued else "agent non disponibile"})
+            continue
+        try:
+            # A refused plan (no backup policy, backup already running...) must not leave a draft behind.
+            with db.begin_nested():
+                _, created = open_plan(db, item["device"], user)
+        except HTTPException as exc:
+            skipped.append({"id": str(device_id), "name": name, "code": "refused", "message": str(exc.detail)})
+            continue
+        done += 1 if created else 0
+    core.add_event(db, "FIRMWARE_SUGGESTIONS_APPLIED", actor=user,
+                   details={"action": action, "selected": len(selected), "done": done, "skipped": len(skipped)}, source="portal")
+    db.commit()
+    return done, skipped
+
+
 @router.post("/operations/firmware/suggestions/apply", name="firmware_suggestions_apply")
 async def apply_suggestions(request: Request):
     form = await request.form()
@@ -178,36 +216,11 @@ async def apply_suggestions(request: Request):
         return flash_redirect(request, back, "warning", f"Al massimo {MAX_BATCH} apparati per volta.", title="Selezione troppo ampia")
     with SessionLocal() as db:
         user = core.require_permission(request, db, "firmware.execute" if action == "plan" else "firmware.read")
-        current = {s["device"].id: s for s in suggestions(db)}
-        done, skipped = 0, []
-        for device_id in selected:
-            item = current.get(device_id)
-            name = item["device"].name if item else str(device_id)[:8]
-            if not item or item["kind"] != action:
-                skipped.append(f"{name}: {KINDS[item['kind']][0].lower() if item else 'nessun aggiornamento'}")
-                continue
-            if action == "check":
-                state = queue_readiness_job(db, item["device"], user)
-                if state == "queued":
-                    done += 1
-                else:
-                    skipped.append(f"{name}: {'verifica già in coda' if state == 'already_queued' else 'agent non disponibile'}")
-                continue
-            try:
-                # A refused plan (no backup policy, backup already running...) must not leave a draft behind.
-                with db.begin_nested():
-                    _, created = open_plan(db, item["device"], user)
-            except HTTPException as exc:
-                skipped.append(f"{name}: {exc.detail}")
-                continue
-            done += 1 if created else 0
-        core.add_event(db, "FIRMWARE_SUGGESTIONS_APPLIED", actor=user,
-                       details={"action": action, "selected": len(selected), "done": done, "skipped": len(skipped)}, source="portal")
-        db.commit()
+        done, skipped = apply_record(db, user, action, selected)
     verb = "verifiche firmware accodate" if action == "check" else "piani creati (backup pre-upgrade in coda, approvazione richiesta)"
     message = f"{done} {verb}."
     if skipped:
-        message += " Saltati: " + "; ".join(skipped[:5]) + (f" e altri {len(skipped) - 5}." if len(skipped) > 5 else ".")
+        message += " Saltati: " + "; ".join(f"{s['name']}: {s['message']}" for s in skipped[:5]) + (f" e altri {len(skipped) - 5}." if len(skipped) > 5 else ".")
     return flash_redirect(request, back, "warning" if skipped else "success", message, title="Suggerimenti firmware")
 
 

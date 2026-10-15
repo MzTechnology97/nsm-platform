@@ -28,6 +28,7 @@ import {
   type FirmwareFilters,
   MONITORING_STATES,
   type MonitoringFilters,
+  parseSuggestionSearch,
 } from "../api/operations";
 import { DeviceDetail, DeviceOverview } from "../pages/DeviceDetail";
 import { Devices } from "../pages/Devices";
@@ -446,6 +447,12 @@ const firmwareRoute = createRoute({
   component: lazyRouteComponent(() => import("../pages/Firmware"), "Firmware"),
   validateSearch: parseFirmwareSearch,
 });
+const firmwareSuggestionsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/firmware/suggestions",
+  component: lazyRouteComponent(() => import("../pages/FirmwareSuggestions"), "FirmwareSuggestions"),
+  validateSearch: parseSuggestionSearch,
+});
 const agentsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/agents", component: lazyRouteComponent(() => import("../pages/Agents"), "Agents"), validateSearch: parseAgentSearch });
 const monitoringRoute = createRoute({ getParentRoute: () => rootRoute, path: "/monitoring", component: lazyRouteComponent(() => import("../pages/Monitoring"), "Monitoring"), validateSearch: parseMonitoringSearch });
 
@@ -525,6 +532,7 @@ export const routeTree = rootRoute.addChildren([
   backupPolicyEditRoute,
   backupPolicyCloneRoute,
   firmwareRoute,
+  firmwareSuggestionsRoute,
   vulnerabilitiesRoute,
   vulnerabilityRoute,
   vulnerabilityFindingRoute,

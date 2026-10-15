@@ -25,6 +25,7 @@ from sqlalchemy.orm import selectinload
 
 from app import agent_fleet
 from app import backup_workspace_capabilities as backup_overview
+from app import firmware_suggestions as suggestions_view
 from app import firmware_worklist
 from app import fleet_monitoring as fleet
 from app import mikrotik_firmware_readiness as firmware_readiness
@@ -242,6 +243,47 @@ def firmware_check(request: Request, device_id: uuid.UUID):
         db.commit()
         return {"state": state}
 
+
+
+@router.get("/firmware/suggestions")
+def firmware_suggestions(request: Request, customer: str = "", kind: str = ""):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.read")
+        items = suggestions_view.suggestions(db, _uuid(customer))
+        counts = {key: sum(1 for item in items if item["kind"] == key) for key in suggestions_view.KINDS}
+        total, security = len(items), sum(1 for item in items if item["security"])
+        kind = kind if kind in suggestions_view.KINDS else ""
+        if kind:
+            items = [item for item in items if item["kind"] == kind]
+        return {
+            "kind": kind, "total": total, "security": security, "counts": counts, "kinds": list(suggestions_view.KINDS),
+            "soak_days": suggestions_view.SOAK_DAYS, "max_batch": suggestions_view.MAX_BATCH,
+            "can_execute": core.has_permission(user, "firmware.execute"),
+            "items": [{
+                "device": {"id": str(d.id), "name": d.display_name or d.device_identity or d.name, "brand": brand_icon(d), "model": d.model,
+                           "customer": {"id": str(d.customer.id), "name": d.customer.name} if d.customer else None, "site": d.site.name if d.site else None},
+                "installed": d.firmware_version, "target": item["target"], "channel": item["channel"], "age_days": item["age_days"],
+                "released_at": _iso(item["released_at"]), "security": item["security"], "reasons": item["reasons"],
+                "kind": item["kind"], "note": item["note"], "plan_id": str(item["plan_id"]) if item["plan_id"] else None,
+                "out_of_support": item["out_of_support"],
+            } for item in items for d in (item["device"],)],
+        }
+
+
+@router.post("/firmware/suggestions/apply", dependencies=[Depends(require_csrf)])
+def firmware_suggestions_apply(request: Request, body: dict = Body(default={})):
+    action = str(body.get("action") or "")
+    if action not in ("check", "plan"):
+        raise HTTPException(422, {"code": "action", "message": "Azione non valida."})
+    selected = [d for d in (_uuid(v) for v in (body.get("devices") or [])) if d]
+    if not selected:
+        raise HTTPException(422, {"code": "empty", "message": "Seleziona almeno un apparato."})
+    if len(selected) > suggestions_view.MAX_BATCH:
+        raise HTTPException(422, {"code": "too_many", "message": f"Al massimo {suggestions_view.MAX_BATCH} apparati per volta."})
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.execute" if action == "plan" else "firmware.read")
+        done, skipped = suggestions_view.apply_record(db, user, action, selected)
+        return {"action": action, "done": done, "skipped": skipped}
 
 def install_ui_operations(app) -> None:
     app.include_router(router)

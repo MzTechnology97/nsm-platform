@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.160 — 2026-10-15
+
+New interface (React) — firmware suggestions, phase 7x
+- **RouterOS upgrade suggestions** (`/app/firmware/suggestions`), opened from the firmware page (the customer filter is kept):
+  - MikroTik devices behind their channel, with the next safe step (ready for a plan, legacy upgrade, firmware check needed, plan open, soaking, blocked) and its reason;
+  - filters by step and customer;
+  - security releases are flagged with their reasons; devices keep their vendor icon;
+  - batch actions on up to 25 selected devices: queue firmware checks, or create plans (`firmware.execute`). Plans only queue the pre-upgrade backup and wait for approval. Skipped devices are listed with a translated reason.
+- **Shared code.** `firmware_suggestions.apply_record` (the classic page uses it with the same messages) returns skipped devices as `{id, name, code, message}`.
+- **API.**
+  - `GET /api/ui/v1/firmware/suggestions` (`firmware.read`);
+  - `POST /api/ui/v1/firmware/suggestions/apply` (CSRF; `firmware.execute` for plans; codes `action`, `empty`, `too_many`).
+
 ## 0.49.159 — 2026-10-15
 
 New interface (React) — lifecycle catalog, phase 7w

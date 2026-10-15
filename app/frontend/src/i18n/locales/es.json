@@ -4385,5 +4385,66 @@
       "url": "El enlace debe empezar por http:// o https://.",
       "encoding": "El archivo debe ser un CSV en UTF-8."
     }
+  },
+  "firmwareSuggestions": {
+    "title": "Sugerencias de actualización de RouterOS",
+    "subtitle": "MikroTik por detrás de la versión de referencia de su canal, con el siguiente paso seguro. Nada se actualiza desde aquí: los planes encolan la copia previa y esperan aprobación. Las versiones que no son de seguridad se proponen tras {{days}} días en el canal.",
+    "catalog": "Catálogo RouterOS",
+    "kindsLabel": "Siguiente paso",
+    "all": "Todos",
+    "kinds": {
+      "plan": "Listo para el plan",
+      "legacy": "Actualización legacy lista",
+      "check": "Hace falta una verificación de firmware",
+      "plan_open": "Plan ya abierto",
+      "soak": "En observación",
+      "blocked": "Bloqueado"
+    },
+    "security": "Seguridad",
+    "securityCount_one": "{{count}} equipo con actualización de seguridad.",
+    "securityCount_other": "{{count}} equipos con actualización de seguridad.",
+    "selectAll": "Seleccionar todos",
+    "select": "Seleccionar {{name}}",
+    "columns": {
+      "device": "Equipo",
+      "installed": "Instalado",
+      "target": "Propuesto",
+      "reason": "Motivo",
+      "next": "Siguiente paso",
+      "actions": ""
+    },
+    "age_one": "desde hace {{count}} día",
+    "age_other": "desde hace {{count}} días",
+    "maintenance": "Mantenimiento",
+    "outOfSupport": "fuera de soporte",
+    "openPlan": "Abrir plan",
+    "legacy": "Actualizar (legacy)",
+    "firmware": "Firmware",
+    "batchHelp": "{{count}} seleccionados, como máximo {{max}} a la vez; los equipos no aptos se omiten con el motivo.",
+    "check": "Verificar firmware de los seleccionados",
+    "plan": "Crear planes para los seleccionados",
+    "planConfirm": "¿Crear planes de actualización para los equipos seleccionados? Cada plan encola una copia previa y espera aprobación.",
+    "empty": "Ningún MikroTik está por detrás del catálogo RouterOS.",
+    "emptyCustomer": "Ningún MikroTik de este cliente está por detrás del catálogo RouterOS.",
+    "checked_one": "{{count}} verificación de firmware encolada.",
+    "checked_other": "{{count}} verificaciones de firmware encoladas.",
+    "planned_one": "{{count}} plan creado (copia previa encolada, se requiere aprobación).",
+    "planned_other": "{{count}} planes creados (copia previa encolada, se requiere aprobación).",
+    "skipped": {
+      "none": "sin actualización",
+      "already_queued": "verificación ya encolada",
+      "no_agent": "agente no disponible",
+      "plan": "listo para el plan",
+      "legacy": "actualización legacy lista",
+      "check": "hace falta una verificación",
+      "plan_open": "plan ya abierto",
+      "soak": "en observación",
+      "blocked": "bloqueado"
+    },
+    "errors": {
+      "action": "Acción no válida.",
+      "empty": "Selecciona al menos un equipo.",
+      "too_many": "Demasiados equipos seleccionados."
+    }
   }
 }
