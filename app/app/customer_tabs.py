@@ -333,63 +333,71 @@ def customer_security(request: Request, customer_id: uuid.UUID):
         if not core.has_permission(user, "security.read"):
             raise HTTPException(403)
         customer = _load_customer(db, customer_id)
-        vulnerabilities = db.execute(
-            select(DeviceVulnerability, SecurityAdvisory, Device)
-            .join(SecurityAdvisory, SecurityAdvisory.id == DeviceVulnerability.advisory_id)
-            .join(Device, Device.id == DeviceVulnerability.device_id)
-            .where(
-                Device.customer_id == customer.id,
-                DeviceVulnerability.status != "resolved",
-                func.lower(SecurityAdvisory.severity).in_(SEVERE_CVE),
-            )
-            .order_by(SecurityAdvisory.cvss.desc().nullslast(), DeviceVulnerability.detected_at.desc())
-            .limit(100)
-        ).all()
-        firmware_devices = list(
-            db.scalars(
-                select(Device)
-                .where(Device.customer_id == customer.id, _firmware_attention_condition())
-                .order_by(Device.display_name.nullslast(), Device.name)
-                .limit(100)
-            )
-        )
-        lifecycle_devices = list(
-            db.scalars(
-                select(Device)
-                .where(
-                    Device.customer_id == customer.id,
-                    func.lower(Device.lifecycle_status).in_(["eol", "eos"]),
-                )
-                .order_by(Device.lifecycle_status, Device.display_name.nullslast(), Device.name)
-                .limit(100)
-            )
-        )
-        issues = list(
-            db.scalars(
-                select(ActionIssue)
-                .where(
-                    ActionIssue.customer_id == customer.id,
-                    ActionIssue.status.in_(OPEN_STATES),
-                    ActionIssue.category.in_(["security", "firmware", "lifecycle"]),
-                )
-                .order_by(ActionIssue.updated_at.desc())
-                .limit(50)
-            )
-        )
-        compliance = summarize(db, utcnow(), customer_id=customer.id) if core.has_permission(user, "compliance.read") else None
         return core.render(
             request,
             db,
             user,
             "customer_security.html",
-            compliance=compliance,
             customer=customer,
-            vulnerabilities=vulnerabilities,
-            firmware_devices=firmware_devices,
-            lifecycle_devices=lifecycle_devices,
-            issues=issues,
             active_tab="security",
+            **security_data(db, customer, user),
         )
+
+
+def security_data(db, customer, user) -> dict:
+    """Security tab of a customer, for both interfaces: open severe CVEs, firmware to update, EOL/EOS devices,
+    open security / firmware / lifecycle issues and, with ``compliance.read``, the compliance summary."""
+    vulnerabilities = db.execute(
+        select(DeviceVulnerability, SecurityAdvisory, Device)
+        .join(SecurityAdvisory, SecurityAdvisory.id == DeviceVulnerability.advisory_id)
+        .join(Device, Device.id == DeviceVulnerability.device_id)
+        .where(
+            Device.customer_id == customer.id,
+            DeviceVulnerability.status != "resolved",
+            func.lower(SecurityAdvisory.severity).in_(SEVERE_CVE),
+        )
+        .order_by(SecurityAdvisory.cvss.desc().nullslast(), DeviceVulnerability.detected_at.desc())
+        .limit(100)
+    ).all()
+    firmware_devices = list(
+        db.scalars(
+            select(Device)
+            .where(Device.customer_id == customer.id, _firmware_attention_condition())
+            .order_by(Device.display_name.nullslast(), Device.name)
+            .limit(100)
+        )
+    )
+    lifecycle_devices = list(
+        db.scalars(
+            select(Device)
+            .where(
+                Device.customer_id == customer.id,
+                func.lower(Device.lifecycle_status).in_(["eol", "eos"]),
+            )
+            .order_by(Device.lifecycle_status, Device.display_name.nullslast(), Device.name)
+            .limit(100)
+        )
+    )
+    issues = list(
+        db.scalars(
+            select(ActionIssue)
+            .where(
+                ActionIssue.customer_id == customer.id,
+                ActionIssue.status.in_(OPEN_STATES),
+                ActionIssue.category.in_(["security", "firmware", "lifecycle"]),
+            )
+            .order_by(ActionIssue.updated_at.desc())
+            .limit(50)
+        )
+    )
+    compliance = summarize(db, utcnow(), customer_id=customer.id) if core.has_permission(user, "compliance.read") else None
+    return {
+        "compliance": compliance,
+        "vulnerabilities": vulnerabilities,
+        "firmware_devices": firmware_devices,
+        "lifecycle_devices": lifecycle_devices,
+        "issues": issues,
+    }
 
 
 def customer_history(

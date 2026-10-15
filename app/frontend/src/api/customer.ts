@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { BrandRef } from "../app/BrandIcon";
 import { api } from "./client";
 
 export interface CustomerSite {
@@ -52,3 +53,35 @@ export function useCustomerWrite<TBody = object, TResult = { id: string }>(path:
     },
   });
 }
+
+export interface SecurityDevice {
+  id: string;
+  name: string;
+  brand: BrandRef;
+  vendor: string | null;
+  model: string | null;
+  status: string;
+}
+
+export interface CustomerSecurity {
+  vulnerabilities: {
+    id: string;
+    status: string;
+    detected_at: string | null;
+    installed_version: string | null;
+    fixed_version: string | null;
+    advisory: { id: string; cve_id: string; severity: string; cvss: number | null };
+    device: SecurityDevice;
+  }[];
+  firmware: (SecurityDevice & { firmware_version: string | null; recommended_firmware_version: string | null; firmware_status: string })[];
+  lifecycle: (SecurityDevice & { lifecycle_status: string | null; eol_date: string | null; eos_date: string | null })[];
+  issues: { id: string; title: string; severity: string; category: string; status: string; updated_at: string | null; device_id: string | null }[];
+  compliance: { evaluated_devices: number; failing_devices: number; counts: Record<string, number>; failing_controls: { title: string; count: number }[] } | null;
+}
+
+export const useCustomerSecurity = (id: string) =>
+  useQuery({
+    queryKey: ["customer", id, "security"],
+    queryFn: () => api<CustomerSecurity>(`/api/ui/v1/customers/${encodeURIComponent(id)}/security`),
+    staleTime: 30_000,
+  });

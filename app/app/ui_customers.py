@@ -10,6 +10,10 @@
 - ``GET /api/ui/v1/customers/{id}/graphs/summary``: what surrounds the charts
   of the Graphs tab (sites compared over 24 hours, devices with most traffic,
   30-day availability); the charts come from ``/api/v1/customers/{id}/graphs``.
+- ``GET /api/ui/v1/customers/{id}/security`` (``security.read``): the Security
+  tab, the same data as the classic one (``customer_tabs.security_data``):
+  open severe CVEs per device, firmware to update, EOL/EOS devices, open
+  security issues and, with ``compliance.read``, the compliance summary;
 - ``POST /api/ui/v1/customers`` creates a customer; ``POST .../{id}`` updates
   it, ``POST .../{id}/delete`` deletes it with devices, sites and backup files
   (the typed name must match); ``POST .../{id}/sites`` creates a site,
@@ -27,13 +31,14 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, or_, select
 
 from datetime import timedelta
 
 from app import availability, crud_extension, customer_graphs
 from app import main as core
-from app.customer_tabs import _backup_summary, _load_customer
+from app.customer_tabs import _backup_summary, _load_customer, security_data
 from app.customer_workspace import OPEN_STATES, _customer_metric_maps, _customer_metrics
 from app.db import SessionLocal
 from app.models import ActionIssue, AuditEvent, Customer, Device, Site, utcnow
@@ -297,3 +302,39 @@ def delete_site(request: Request, customer_id: uuid.UUID, site_id: uuid.UUID):
         site = _site(db, customer_id, site_id, with_devices=True)
         moved = crud_extension.delete_site_record(db, user, site)
         return {"moved": moved}
+
+
+# --- Security tab --------------------------------------------------------------------------------
+
+def _device(device) -> dict:
+    return {"id": str(device.id), "name": device.display_name or device.device_identity or device.name, "brand": brand_icon(device),
+            "vendor": device.vendor, "model": device.model, "status": device.status}
+
+
+@router.get("/customers/{customer_id}/security")
+def customer_security(request: Request, customer_id: uuid.UUID):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "security.read")
+        customer = db.get(Customer, customer_id)
+        if not customer:
+            raise HTTPException(404)
+        data = security_data(db, customer, user)
+        compliance = data["compliance"]
+        return jsonable_encoder({
+            "vulnerabilities": [{
+                "id": str(finding.id), "status": finding.status, "detected_at": finding.detected_at,
+                "installed_version": finding.installed_version, "fixed_version": finding.fixed_version,
+                "advisory": {"id": str(advisory.id), "cve_id": advisory.cve_id, "severity": advisory.severity, "cvss": advisory.cvss},
+                "device": _device(device),
+            } for finding, advisory, device in data["vulnerabilities"]],
+            "firmware": [{**_device(d), "firmware_version": d.firmware_version, "recommended_firmware_version": d.recommended_firmware_version,
+                          "firmware_status": d.firmware_status} for d in data["firmware_devices"]],
+            "lifecycle": [{**_device(d), "lifecycle_status": d.lifecycle_status, "eol_date": d.eol_date, "eos_date": d.eos_date}
+                          for d in data["lifecycle_devices"]],
+            "issues": [{"id": str(i.id), "title": i.title, "severity": i.severity, "category": i.category, "status": i.status,
+                        "updated_at": i.updated_at, "device_id": str(i.device_id) if i.device_id else None} for i in data["issues"]],
+            "compliance": None if compliance is None else {
+                "evaluated_devices": compliance["evaluated_devices"], "failing_devices": compliance["failing_devices"],
+                "counts": compliance["counts"], "failing_controls": [{"title": title, "count": count} for title, count in compliance["failing_controls"]],
+            },
+        })
