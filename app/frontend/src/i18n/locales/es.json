@@ -153,7 +153,8 @@
       "update_available": "actualización disponible",
       "security_update": "actualización de seguridad",
       "unknown": ""
-    }
+    },
+    "lifecycleManage": "Gestionar ciclo de vida"
   },
   "monitor": {
     "range": "Intervalo",
@@ -3815,5 +3816,72 @@
     "associate": "Confirmar asociación",
     "confirmRefresh": "Confirmar y actualizar",
     "associated": "CPE vinculada a GenieACS: identidad y firmware actualizados."
+  },
+  "deviceLifecycle": {
+    "title": "Ciclo de vida",
+    "help": "{{vendor}} · {{model}} · origen: {{origin}}.",
+    "noModel": "modelo no detectado",
+    "fleet": "Ciclo de vida de todos los equipos",
+    "matches": {
+      "catalog": "del catálogo",
+      "manual": "fijado manualmente",
+      "ambiguous": "coincidencia ambigua",
+      "no_record": "modelo no catalogado",
+      "no_model": "modelo no detectado",
+      "none": "aún no correlacionado"
+    },
+    "status": "Estado",
+    "source": "Fuente",
+    "verified": "verificado el {{when}}",
+    "catalogTitle": "Catálogo",
+    "catalogMatch": "El modelo corresponde a {{model}} ({{source}}, verificado el {{when}}).",
+    "catalogAmbiguous": "Coincidencia ambigua con {{candidates}}: si es el mismo modelo, añade «{{model}}» como alias del registro correcto.",
+    "catalogMissing": "El modelo «{{model}}» no está en el catálogo.",
+    "catalogNoModel": "No se detectó el modelo: sin valor manual el estado sigue desconocido.",
+    "openCatalog": "Abrir el catálogo",
+    "useCatalog": "Usar el catálogo en lugar del valor manual",
+    "manualTitle": "Valor manual",
+    "manualHelp": "Para equipos cuyo modelo no está en el catálogo o con una evidencia concreta; el catálogo no lo sobrescribe.",
+    "sourcePlaceholder": "Documento, enlace o comunicado del fabricante",
+    "evidence": "Verificado el",
+    "saveManual": "Guardar valor manual",
+    "saved": "Valor guardado.",
+    "remediationTitle": "Gestión del fin de vida",
+    "remediationHelp": "Decisión registrada para este equipo {{status}}.",
+    "targetDate": "Sustituir antes del",
+    "plan": "Plan",
+    "exceptionUntil": "Excepción hasta el",
+    "reason": "Motivo",
+    "replacedBy": "Sustituido por",
+    "removed": "equipo eliminado",
+    "decommission": "Baja",
+    "decision": "Decisión",
+    "replacement": "Nuevo equipo",
+    "actions": {
+      "plan": "Planificar sustitución",
+      "exception": "Excepción motivada",
+      "replaced": "Sustitución hecha",
+      "decommissioned": "Dado de baja",
+      "reopen": "Reapertura"
+    },
+    "notes": {
+      "plan": "Plan (al menos 5 caracteres)",
+      "exception": "Motivo (al menos 10 caracteres)",
+      "replaced": "Nota",
+      "decommissioned": "Cómo se dio de baja"
+    },
+    "submit": {
+      "plan": "Guardar plan",
+      "exception": "Registrar excepción",
+      "replaced": "Registrar sustitución",
+      "decommissioned": "Registrar baja"
+    },
+    "reopen": "Reabrir la gestión",
+    "historyColumns": {
+      "when": "Cuándo",
+      "action": "Acción",
+      "status": "Estado",
+      "note": "Nota"
+    }
   }
 }

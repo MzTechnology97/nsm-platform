@@ -154,10 +154,14 @@ export function DeviceOverview() {
             <Field label={t("device.identity.routerboot")} value={device.routerboot} />
             <Field label={t("device.identity.uptime")} value={device.uptime} />
             <Field label={t("device.identity.source")} value={device.management_source} />
-            <Field label={t("device.identity.lifecycle")} value={device.lifecycle_status && device.lifecycle_status !== "unknown" ? [device.lifecycle_status.toUpperCase(), device.eos_date].filter(Boolean).join(" · ") : null} />
+            <Field label={t("device.identity.lifecycle")} value="—">
+              <Link to="/devices/$deviceId/lifecycle" params={{ deviceId: device.id }}>
+                {device.lifecycle_status && device.lifecycle_status !== "unknown" ? [device.lifecycle_status.toUpperCase(), device.eos_date].filter(Boolean).join(" · ") : t("device.lifecycleManage")}
+              </Link>
+            </Field>
             {detail.agent && (
               <Field label={t("device.identity.agent")} value={[detail.agent.version, detail.agent.transport].filter(Boolean).join(" · ") || t("device.agentMissing")}>
-                <a href={`/devices/${device.id}/agent`}>{[detail.agent.version, detail.agent.transport].filter(Boolean).join(" · ") || t("device.agentMissing")}</a>
+                <Link to="/devices/$deviceId/agent" params={{ deviceId: device.id }}>{[detail.agent.version, detail.agent.transport].filter(Boolean).join(" · ") || t("device.agentMissing")}</Link>
               </Field>
             )}
           </dl>

@@ -32,7 +32,13 @@
   ``.../legacy-upgrade`` (``firmware.execute``) run the classic steps with the
   same literal confirmations (``firmware_upgrade_planner``,
   ``firmware_package_staging``, ``firmware_activation``,
-  ``mikrotik_legacy_operations``).
+  ``mikrotik_legacy_operations``);
+- ``GET /api/ui/v1/devices/{id}/lifecycle`` (``security.read``): lifecycle value
+  and origin, catalog correlation, the decision on an EOL/EOS device with its
+  history; ``POST .../lifecycle`` (manual value), ``.../lifecycle/catalog``
+  and ``.../lifecycle/remediation`` (``lifecycle.manage``) go through
+  ``lifecycle_catalog.set_manual_record`` / ``use_catalog_record`` and
+  ``lifecycle_remediation.update_record``.
 
 Customer scope comes from the global ORM filter (another customer's device is a 404).
 """
@@ -461,3 +467,80 @@ def device_legacy_upgrade(request: Request, device_id: uuid.UUID, body: dict = B
         except InputError as exc:
             raise _input_error(exc) from None
         return {"target": target}
+
+
+# --- Lifecycle -----------------------------------------------------------------------------------
+
+@router.get("/devices/{device_id}/lifecycle")
+def device_lifecycle(request: Request, device_id: uuid.UUID):
+    from app import lifecycle_catalog as catalog
+    from app import lifecycle_remediation as remediation
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "security.read")
+        device = _device(db, device_id)
+        correlation = catalog.load_index(db).correlate(device.vendor, device.model)
+        record = correlation.record
+        context = remediation.page_context(db, device)
+        rem = context["remediation"]
+        replacement = context["replacement"]
+        return jsonable_encoder({
+            "device": {"vendor": device.vendor, "model": device.model, "status": device.lifecycle_status, "match": device.lifecycle_match,
+                       "eol_date": device.eol_date, "eos_date": device.eos_date, "source": device.lifecycle_source, "verified_at": device.lifecycle_verified_at},
+            "correlation": {"match": correlation.match, "candidates": list(correlation.candidates),
+                            "record": {"model": record.model, "source": record.source, "evidence_date": record.evidence_date} if record else None},
+            "states": list(catalog.LIFECYCLE_STATES),
+            "can_manage": core.has_permission(user, "lifecycle.manage"),
+            "today": utcnow().date(),
+            "max_exception": context["max_exception"],
+            "remediation": {"status": rem.status, "target_date": rem.target_date, "plan_note": rem.plan_note, "exception_until": rem.exception_until,
+                            "exception_reason": rem.exception_reason, "reason": context["remediation_reason"],
+                            "replacement": _peer(replacement) if replacement else None} if rem else None,
+            "history": [{"created_at": h.created_at, "action": h.action, "from_status": h.from_status, "to_status": h.to_status, "note": h.note}
+                        for h in context["remediation_history"]],
+            "replacement_candidates": [{**_peer(d), "model": d.model} for d in context["replacement_candidates"]],
+        })
+
+
+@router.post("/devices/{device_id}/lifecycle", dependencies=[Depends(require_csrf)])
+def device_lifecycle_save(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    from app import lifecycle_catalog as catalog
+
+    def text(key):
+        value = body.get(key)
+        return value if isinstance(value, str) else ""
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "lifecycle.manage")
+        device = _device(db, device_id)
+        try:
+            catalog.set_manual_record(db, user, device, text("lifecycle_status"), text("source"), text("evidence_date"), text("eol_date"), text("eos_date"))
+        except InputError as exc:
+            raise _input_error(exc) from None
+        return {"status": device.lifecycle_status}
+
+
+@router.post("/devices/{device_id}/lifecycle/catalog", dependencies=[Depends(require_csrf)])
+def device_lifecycle_catalog(request: Request, device_id: uuid.UUID):
+    from app import lifecycle_catalog as catalog
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "lifecycle.manage")
+        device = _device(db, device_id)
+        catalog.use_catalog_record(db, user, device)
+        return {"match": device.lifecycle_match, "status": device.lifecycle_status}
+
+
+@router.post("/devices/{device_id}/lifecycle/remediation", dependencies=[Depends(require_csrf)])
+def device_lifecycle_remediation(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    from app import lifecycle_remediation as remediation
+
+    form = {key: value for key, value in body.items() if isinstance(value, str)}
+    with SessionLocal() as db:
+        user = ui_user(request, db, "lifecycle.manage")
+        device = _device(db, device_id)
+        try:
+            status, message = remediation.update_record(db, user, device, form.get("action", ""), form)
+        except InputError as exc:
+            raise _input_error(exc) from None
+        return {"status": status, "message": message}

@@ -232,9 +232,9 @@ export function Lifecycle() {
                     <td className="ui-nowrap">{date(row.eol_date)}</td>
                     <td className="ui-nowrap">{date(row.eos_date)}</td>
                     <td>
-                      <a href={`/devices/${row.id}/lifecycle#remediation`} className={row.remediation?.attention || !row.remediation ? "ui-text-warning" : undefined}>
+                      <Link to="/devices/$deviceId/lifecycle" params={{ deviceId: row.id }} className={row.remediation?.attention || !row.remediation ? "ui-text-warning" : undefined}>
                         {row.remediation ? t(`lifecycle.remediation.${row.remediation.status}`, { defaultValue: row.remediation.status }) : t("lifecycle.remediation.none")}
-                      </a>
+                      </Link>
                     </td>
                   </tr>
                 ))}

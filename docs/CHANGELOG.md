@@ -4,6 +4,22 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.152 — 2026-10-15
+
+New interface (React) — device lifecycle, phase 7p
+- **Device lifecycle** (`/app/devices/{id}/lifecycle`), opened from the lifecycle field on the device overview and from the lifecycle list:
+  - **Value:** state, EOL and EOS dates, source and verification date, with their origin (catalog or manual).
+  - **Catalog:** the correlation result for the model (match, ambiguous, missing).
+  - **Manual value:** the classic checks with translated messages, plus a button to go back to the catalog.
+  - **End-of-life decisions:** for an EOL or EOS device, plan the replacement, record an exception, record the replacement (the new device shows its vendor icon) or the decommissioning, and reopen. Every decision keeps its history.
+- **Links.** The agent field on the device overview now opens the Agent tab of the new interface.
+- **Shared code.** The lifecycle changes are now shared functions, used by both interfaces; the classic page behaves as before, with the same messages.
+  - `lifecycle_catalog.set_manual_record`, `use_catalog_record`;
+  - `lifecycle_remediation.update_record`.
+- **API.**
+  - `GET /api/ui/v1/devices/{id}/lifecycle` (`security.read`);
+  - `POST .../lifecycle`, `.../lifecycle/catalog`, `.../lifecycle/remediation` (`lifecycle.manage` + CSRF).
+
 ## 0.49.151 — 2026-10-15
 
 New interface (React) — cnMaestro and GenieACS pages of a device, phase 7o

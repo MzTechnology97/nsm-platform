@@ -153,7 +153,8 @@
       "update_available": "mise à jour disponible",
       "security_update": "mise à jour de sécurité",
       "unknown": ""
-    }
+    },
+    "lifecycleManage": "Gérer le cycle de vie"
   },
   "monitor": {
     "range": "Période",
@@ -3815,5 +3816,72 @@
     "associate": "Confirmer l'association",
     "confirmRefresh": "Confirmer et actualiser",
     "associated": "CPE reliée à GenieACS : identité et firmware mis à jour."
+  },
+  "deviceLifecycle": {
+    "title": "Cycle de vie",
+    "help": "{{vendor}} · {{model}} · origine : {{origin}}.",
+    "noModel": "modèle non détecté",
+    "fleet": "Cycle de vie de tous les équipements",
+    "matches": {
+      "catalog": "depuis le catalogue",
+      "manual": "défini manuellement",
+      "ambiguous": "correspondance ambiguë",
+      "no_record": "modèle absent du catalogue",
+      "no_model": "modèle non détecté",
+      "none": "pas encore corrélé"
+    },
+    "status": "État",
+    "source": "Source",
+    "verified": "vérifié le {{when}}",
+    "catalogTitle": "Catalogue",
+    "catalogMatch": "Le modèle correspond à {{model}} ({{source}}, vérifié le {{when}}).",
+    "catalogAmbiguous": "Correspondance ambiguë avec {{candidates}} : s'il s'agit du même modèle, ajoutez « {{model}} » comme alias de la bonne fiche.",
+    "catalogMissing": "Le modèle « {{model}} » n'est pas dans le catalogue.",
+    "catalogNoModel": "Le modèle n'a pas été détecté : sans valeur manuelle l'état reste inconnu.",
+    "openCatalog": "Ouvrir le catalogue",
+    "useCatalog": "Utiliser le catalogue au lieu de la valeur manuelle",
+    "manualTitle": "Valeur manuelle",
+    "manualHelp": "Pour les équipements dont le modèle n'est pas au catalogue ou avec une preuve précise ; le catalogue ne l'écrase pas.",
+    "sourcePlaceholder": "Document, lien ou communication du fabricant",
+    "evidence": "Vérifié le",
+    "saveManual": "Enregistrer la valeur manuelle",
+    "saved": "Valeur enregistrée.",
+    "remediationTitle": "Gestion de la fin de vie",
+    "remediationHelp": "Décision enregistrée pour cet équipement {{status}}.",
+    "targetDate": "Remplacement avant le",
+    "plan": "Plan",
+    "exceptionUntil": "Exception jusqu'au",
+    "reason": "Motif",
+    "replacedBy": "Remplacé par",
+    "removed": "équipement supprimé",
+    "decommission": "Mise hors service",
+    "decision": "Décision",
+    "replacement": "Nouvel équipement",
+    "actions": {
+      "plan": "Planifier le remplacement",
+      "exception": "Exception motivée",
+      "replaced": "Remplacement effectué",
+      "decommissioned": "Mis hors service",
+      "reopen": "Réouverture"
+    },
+    "notes": {
+      "plan": "Plan (au moins 5 caractères)",
+      "exception": "Motif (au moins 10 caractères)",
+      "replaced": "Note",
+      "decommissioned": "Comment il a été mis hors service"
+    },
+    "submit": {
+      "plan": "Enregistrer le plan",
+      "exception": "Enregistrer l'exception",
+      "replaced": "Enregistrer le remplacement",
+      "decommissioned": "Enregistrer la mise hors service"
+    },
+    "reopen": "Rouvrir la gestion",
+    "historyColumns": {
+      "when": "Quand",
+      "action": "Action",
+      "status": "État",
+      "note": "Note"
+    }
   }
 }

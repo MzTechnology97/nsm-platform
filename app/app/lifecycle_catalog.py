@@ -23,6 +23,7 @@ from sqlalchemy import func, or_, select
 
 from app import main as core
 from app.db import SessionLocal
+from app.input_errors import InputError
 from app.lifecycle_models import MATCH_LABELS, LifecycleRecord
 from app.models import Device, utcnow
 from app.security import validate_csrf
@@ -449,48 +450,69 @@ async def device_lifecycle_save(request: Request, device_id: uuid.UUID):
         if not device:
             raise HTTPException(404)
         back = f"/devices/{device.id}/lifecycle"
-        now = utcnow()
         if form.get("action") == "catalog":
-            device.lifecycle_match = None
-            db.flush()
-            reconcile(db, now, [device.id])
-            core.add_event(db, "LIFECYCLE_MANUAL_CLEARED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"match": device.lifecycle_match})
-            db.commit()
-            label = MATCH_LABELS.get(device.lifecycle_match, device.lifecycle_match)
+            label = use_catalog_record(db, user, device)
             return flash_redirect(request, f"/devices/{device.id}", "success", f"Lifecycle dal catalogo: {label}.", title="Lifecycle aggiornato")
-        status = str(form.get("lifecycle_status") or "")
-        source = str(form.get("source") or "").strip()
         try:
-            if status not in LIFECYCLE_STATES:
-                raise ValueError("Seleziona lo stato lifecycle.")
-            if not source:
-                raise ValueError("Indica la fonte del dato (documento, link, comunicazione del vendor).")
-            evidence = _date(form.get("evidence_date"), "Data verifica")
-            if not evidence or evidence > now.date():
-                raise ValueError("Indica quando il dato è stato verificato (non nel futuro).")
-            eol = _date(form.get("eol_date"), "EOL")
-            eos = _date(form.get("eos_date"), "EOS")
-            if eol and eos and eos < eol:
-                raise ValueError("La data EOS non può precedere la data EOL.")
+            set_manual_record(db, user, device, str(form.get("lifecycle_status") or ""), str(form.get("source") or ""), form.get("evidence_date"),
+                              form.get("eol_date"), form.get("eos_date"))
         except ValueError as exc:
             return flash_redirect(request, back, "warning", str(exc), title="Dato non salvato")
-        previous = device.lifecycle_status
-        device.lifecycle_match = "manual"
-        device.lifecycle_record_id = None
-        device.lifecycle_status = status
-        device.eol_date, device.eos_date = eol, eos
-        device.lifecycle_source = source[:255]
-        device.lifecycle_verified_at = _evidence_dt(evidence)
-        core.add_event(
-            db, "LIFECYCLE_MANUAL_SET", actor=user, customer_id=device.customer_id, device_id=device.id,
-            details={"from": previous, "to": status, "eol": eol and eol.isoformat(), "eos": eos and eos.isoformat(), "source": source[:255], "evidence_date": evidence.isoformat()},
-        )
-        from app.lifecycle_remediation import housekeeping as remediation_housekeeping
-
-        db.flush()
-        remediation_housekeeping(db, now)
-        db.commit()
     return flash_redirect(request, f"/devices/{device_id}", "success", "Valore lifecycle manuale salvato con fonte e data di verifica.", title="Lifecycle aggiornato")
+
+
+class LifecycleInputError(InputError, ValueError):
+    """Invalid manual lifecycle value: a ValueError for the classic form, an InputError with a code for the API."""
+
+
+def use_catalog_record(db, user, device: Device) -> str:
+    """Drop the manual value and correlate the device with the catalog again (audited); commits. Returns the match label."""
+    now = utcnow()
+    device.lifecycle_match = None
+    db.flush()
+    reconcile(db, now, [device.id])
+    core.add_event(db, "LIFECYCLE_MANUAL_CLEARED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"match": device.lifecycle_match})
+    db.commit()
+    return MATCH_LABELS.get(device.lifecycle_match, device.lifecycle_match)
+
+
+def set_manual_record(db, user, device: Device, status: str, source: str, evidence_date, eol_date, eos_date) -> None:
+    """Store a manual lifecycle value with its source and verification date (audited, remediation refreshed); commits.
+
+    ``LifecycleInputError`` (an ``InputError`` and a ``ValueError``) codes: ``status``, ``source``, ``evidence``, ``date_invalid``, ``eos_before_eol``.
+    """
+    now = utcnow()
+    source = (source or "").strip()
+    if status not in LIFECYCLE_STATES:
+        raise LifecycleInputError("status", "Seleziona lo stato lifecycle.")
+    if not source:
+        raise LifecycleInputError("source", "Indica la fonte del dato (documento, link, comunicazione del vendor).")
+    try:
+        evidence = _date(evidence_date, "Data verifica")
+        eol = _date(eol_date, "EOL")
+        eos = _date(eos_date, "EOS")
+    except ValueError as exc:
+        raise LifecycleInputError("date_invalid", str(exc)) from None
+    if not evidence or evidence > now.date():
+        raise LifecycleInputError("evidence", "Indica quando il dato è stato verificato (non nel futuro).")
+    if eol and eos and eos < eol:
+        raise LifecycleInputError("eos_before_eol", "La data EOS non può precedere la data EOL.")
+    previous = device.lifecycle_status
+    device.lifecycle_match = "manual"
+    device.lifecycle_record_id = None
+    device.lifecycle_status = status
+    device.eol_date, device.eos_date = eol, eos
+    device.lifecycle_source = source[:255]
+    device.lifecycle_verified_at = _evidence_dt(evidence)
+    core.add_event(
+        db, "LIFECYCLE_MANUAL_SET", actor=user, customer_id=device.customer_id, device_id=device.id,
+        details={"from": previous, "to": status, "eol": eol and eol.isoformat(), "eos": eos and eos.isoformat(), "source": source[:255], "evidence_date": evidence.isoformat()},
+    )
+    from app.lifecycle_remediation import housekeeping as remediation_housekeeping
+
+    db.flush()
+    remediation_housekeeping(db, now)
+    db.commit()
 
 
 def install_lifecycle_catalog(app) -> None:

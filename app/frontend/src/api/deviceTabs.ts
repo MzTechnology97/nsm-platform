@@ -279,3 +279,27 @@ export function useFirmwareAction<TBody = object>(id: string, path: string) {
     },
   });
 }
+
+export interface LifecycleTab {
+  device: { vendor: string | null; model: string | null; status: string | null; match: string | null; eol_date: string | null; eos_date: string | null;
+    source: string | null; verified_at: string | null };
+  correlation: { match: string; candidates: string[]; record: { model: string; source: string | null; evidence_date: string | null } | null };
+  states: string[];
+  can_manage: boolean;
+  today: string;
+  max_exception: string;
+  remediation: { status: string; target_date: string | null; plan_note: string | null; exception_until: string | null; exception_reason: string | null;
+    reason: string | null; replacement: { id: string; name: string; brand: BrandRef } | null } | null;
+  history: { created_at: string; action: string; from_status: string | null; to_status: string; note: string | null }[];
+  replacement_candidates: { id: string; name: string; brand: BrandRef; model: string | null }[];
+}
+
+export const useDeviceLifecycle = (id: string) => useQuery({ queryKey: ["device", id, "lifecycle"], queryFn: () => api<LifecycleTab>(`${base(id)}/lifecycle`) });
+
+export function useLifecycleAction(id: string, path: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body?: Record<string, string>) => api<{ status?: string; message?: string }>(`${base(id)}/${path}`, { method: "POST", body: JSON.stringify(body ?? {}) }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["device", id] }),
+  });
+}

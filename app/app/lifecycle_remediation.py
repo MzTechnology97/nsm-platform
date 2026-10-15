@@ -147,70 +147,88 @@ async def remediation_update(request: Request, device_id: uuid.UUID):
         device = db.get(Device, device_id)
         if not device:
             raise HTTPException(404)
-        now = utcnow()
-        today = now.date()
-        housekeeping(db, now)
-        rem = db.scalar(select(LifecycleRemediation).where(LifecycleRemediation.device_id == device.id))
-        if rem is None:
-            return flash_redirect(request, back, "warning", "L'apparato non è EOL/EOS: non c'è nulla da gestire.", title="Nessuna azione")
-        action = str(form.get("action") or "")
-        note = str(form.get("note") or "").strip()
-        previous = rem.status
+        from app.input_errors import InputError
+
         try:
-            if action == "plan":
-                target = _parse_date(form.get("target_date"), "la data prevista di sostituzione")
-                if target < today:
-                    raise ValueError("La data prevista non può essere nel passato.")
-                if len(note) < 5:
-                    raise ValueError("Descrivi il piano di sostituzione (almeno 5 caratteri).")
-                rem.status, rem.target_date, rem.plan_note = "planned", target, note
-                rem.exception_until = rem.exception_reason = None
-                event, message = "LIFECYCLE_REPLACEMENT_PLANNED", f"Sostituzione pianificata entro il {target.isoformat()}."
-            elif action == "exception":
-                until = _parse_date(form.get("exception_until"), "la scadenza dell'eccezione")
-                if until <= today or until > today + timedelta(days=MAX_EXCEPTION_DAYS):
-                    raise ValueError("La scadenza dell'eccezione deve essere tra domani e un anno.")
-                if len(note) < 10:
-                    raise ValueError("Motiva l'eccezione (almeno 10 caratteri).")
-                rem.status, rem.exception_until, rem.exception_reason = "exception", until, note
-                event, message = "LIFECYCLE_EXCEPTION_GRANTED", f"Eccezione valida fino al {until.isoformat()}."
-            elif action == "replaced":
-                try:
-                    replacement = db.get(Device, uuid.UUID(str(form.get("replacement_device_id") or "")))
-                except ValueError:
-                    replacement = None
-                if not replacement or replacement.id == device.id or replacement.customer_id != device.customer_id:
-                    raise ValueError("Seleziona l'apparato che ha sostituito questo (stesso cliente).")
-                rem.status, rem.replacement_device_id, rem.plan_note = "replaced", replacement.id, note or rem.plan_note
-                event = "LIFECYCLE_DEVICE_REPLACED"
-                message = f"Sostituito da {replacement.display_name or replacement.device_identity or replacement.name}."
-            elif action == "decommissioned":
-                if len(note) < 5:
-                    raise ValueError("Indica come è stato dismesso l'apparato (almeno 5 caratteri).")
-                rem.status, rem.plan_note = "decommissioned", note
-                event, message = "LIFECYCLE_DEVICE_DECOMMISSIONED", "Apparato registrato come dismesso."
-            elif action == "reopen":
-                rem.status = "open"
-                rem.exception_until = rem.exception_reason = None
-                event, message = "LIFECYCLE_REMEDIATION_REOPENED", "Gestione riaperta."
-            else:
-                raise ValueError("Azione non valida.")
-        except ValueError as exc:
-            db.rollback()
-            return flash_redirect(request, back, "warning", str(exc), title="Gestione non salvata")
-        rem.decided_by_user_id = user.id
-        rem.updated_at = now
-        _history(db, rem, action, previous, rem.status, note or message, user)
-        core.add_event(db, event, actor=user, customer_id=device.customer_id, device_id=device.id,
-                       details={"from": previous, "to": rem.status, "note": note[:500] or None,
-                                "target_date": rem.target_date and rem.target_date.isoformat(),
-                                "exception_until": rem.exception_until and rem.exception_until.isoformat(),
-                                "replacement_device_id": str(rem.replacement_device_id) if rem.replacement_device_id else None})
-        db.flush()
-        housekeeping(db, now)
-        final_status = rem.status
-        db.commit()
+            final_status, message = update_record(db, user, device, str(form.get("action") or ""), form)
+        except InputError as exc:
+            if exc.code == "no_remediation":
+                return flash_redirect(request, back, "warning", str(exc.detail), title="Nessuna azione")
+            return flash_redirect(request, back, "warning", str(exc.detail), title="Gestione non salvata")
     return flash_redirect(request, back, "success", message, title=STATUS_LABELS[final_status])
+
+
+def update_record(db, user, device: Device, action: str, form) -> tuple[str, str]:
+    """Record a decision on an EOL/EOS device (plan, exception, replaced, decommissioned, reopen), audited; commits.
+
+    ``form`` is form-like (``get``). Returns ``(status, message)``; ``InputError`` ``no_remediation`` or ``invalid``
+    with the classic message.
+    """
+    from app.input_errors import InputError
+
+    now = utcnow()
+    today = now.date()
+    housekeeping(db, now)
+    rem = db.scalar(select(LifecycleRemediation).where(LifecycleRemediation.device_id == device.id))
+    if rem is None:
+        raise InputError("no_remediation", "L'apparato non è EOL/EOS: non c'è nulla da gestire.", 409)
+    note = str(form.get("note") or "").strip()
+    previous = rem.status
+    try:
+        if action == "plan":
+            target = _parse_date(form.get("target_date"), "la data prevista di sostituzione")
+            if target < today:
+                raise ValueError("La data prevista non può essere nel passato.")
+            if len(note) < 5:
+                raise ValueError("Descrivi il piano di sostituzione (almeno 5 caratteri).")
+            rem.status, rem.target_date, rem.plan_note = "planned", target, note
+            rem.exception_until = rem.exception_reason = None
+            event, message = "LIFECYCLE_REPLACEMENT_PLANNED", f"Sostituzione pianificata entro il {target.isoformat()}."
+        elif action == "exception":
+            until = _parse_date(form.get("exception_until"), "la scadenza dell'eccezione")
+            if until <= today or until > today + timedelta(days=MAX_EXCEPTION_DAYS):
+                raise ValueError("La scadenza dell'eccezione deve essere tra domani e un anno.")
+            if len(note) < 10:
+                raise ValueError("Motiva l'eccezione (almeno 10 caratteri).")
+            rem.status, rem.exception_until, rem.exception_reason = "exception", until, note
+            event, message = "LIFECYCLE_EXCEPTION_GRANTED", f"Eccezione valida fino al {until.isoformat()}."
+        elif action == "replaced":
+            try:
+                replacement = db.get(Device, uuid.UUID(str(form.get("replacement_device_id") or "")))
+            except ValueError:
+                replacement = None
+            if not replacement or replacement.id == device.id or replacement.customer_id != device.customer_id:
+                raise ValueError("Seleziona l'apparato che ha sostituito questo (stesso cliente).")
+            rem.status, rem.replacement_device_id, rem.plan_note = "replaced", replacement.id, note or rem.plan_note
+            event = "LIFECYCLE_DEVICE_REPLACED"
+            message = f"Sostituito da {replacement.display_name or replacement.device_identity or replacement.name}."
+        elif action == "decommissioned":
+            if len(note) < 5:
+                raise ValueError("Indica come è stato dismesso l'apparato (almeno 5 caratteri).")
+            rem.status, rem.plan_note = "decommissioned", note
+            event, message = "LIFECYCLE_DEVICE_DECOMMISSIONED", "Apparato registrato come dismesso."
+        elif action == "reopen":
+            rem.status = "open"
+            rem.exception_until = rem.exception_reason = None
+            event, message = "LIFECYCLE_REMEDIATION_REOPENED", "Gestione riaperta."
+        else:
+            raise ValueError("Azione non valida.")
+    except ValueError as exc:
+        db.rollback()
+        raise InputError("invalid", str(exc)) from None
+    rem.decided_by_user_id = user.id
+    rem.updated_at = now
+    _history(db, rem, action, previous, rem.status, note or message, user)
+    core.add_event(db, event, actor=user, customer_id=device.customer_id, device_id=device.id,
+                   details={"from": previous, "to": rem.status, "note": note[:500] or None,
+                            "target_date": rem.target_date and rem.target_date.isoformat(),
+                            "exception_until": rem.exception_until and rem.exception_until.isoformat(),
+                            "replacement_device_id": str(rem.replacement_device_id) if rem.replacement_device_id else None})
+    db.flush()
+    housekeeping(db, now)
+    final_status = rem.status
+    db.commit()
+    return final_status, message
 
 
 def page_context(db, device) -> dict:
