@@ -107,3 +107,21 @@
 .ui-panel > .ui-actions {
   margin-top: var(--space-3);
 }
+
+/* Manual syslog setup per manufacturer. */
+.ui-syslog-guides {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.ui-syslog-guide {
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.ui-syslog-guide h3 {
+  margin: 0 0 var(--space-2);
+}

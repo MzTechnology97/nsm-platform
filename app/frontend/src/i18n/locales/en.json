@@ -4554,5 +4554,27 @@
       "started": "Enter a valid start, not in the future.",
       "devices": "The devices must belong to the chosen customer."
     }
+  },
+  "syslogGuides": {
+    "keyPlaceholder": "NSM-<device key>",
+    "keyHint": "Identification: put {{key}} in the device name (hostname / device name): it appears on every log line, so NSM recognises the device even if its IP changes or it shares a NAT with others.",
+    "mikrotik": "Terminal (RouterOS only accepts an IP address):",
+    "ubiquiti": "airOS: Services → System Log → Remote Log: enable it, address {{target}}, port 514. In UISP you can apply it to many devices from the site profile.",
+    "cambium": "Configuration → System → Syslog: server {{target}}, port 514, level Warning or lower.",
+    "tp-link": "System Tools → System Log → Log Settings → Remote Log / Server: address {{target}}, port 514. In Omada: Settings → Services → Remote Logging.",
+    "mimosa": "Preferences → Management → Syslog: server {{target}}, port 514.",
+    "tenda": "System → System Log (or Advanced → Syslog): remote server {{target}} where the firmware allows it.",
+    "huawei": "VRP:",
+    "zte": "Administration → System Management → Log Management: Remote Log Server {{target}}, level Warning.",
+    "fiberhome": "Management → Log → Syslog Server: {{target}}, port 514.",
+    "teltonika": "System → Administration → Logging (Remote syslog): server {{target}}, port 514, UDP.",
+    "fortinet": "CLI:",
+    "juniper": "CLI (configure):",
+    "cisco": "CLI (configure terminal):",
+    "paloalto": "Device → Server Profiles → Syslog: server {{target}}, UDP 514; then bind it in Log Settings (System, Config).",
+    "sonicwall": "Log → Syslog → Syslog Servers: add {{target}}, port 514.",
+    "draytek": "System Maintenance → SysLog / Mail Alert: Syslog Server {{target}}, port 514.",
+    "avm": "FRITZ!OS does not send syslog to external servers: use the interface events or a dedicated agent.",
+    "generic": "Look for \"Syslog\", \"Remote log\" or \"Log server\" in the settings: address {{target}}, UDP port 514, level Warning (or Error) and, if available, access and authentication logs."
   }
 }

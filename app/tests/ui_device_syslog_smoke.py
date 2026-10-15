@@ -74,6 +74,9 @@ def main():
     assert top["ip"] == "203.0.113.9" and top["count"] == 2 and top["public"] is False, top  # documentation range, not global
     assert len(body["access"]["recent"]) == 3 and body["access"]["recent"][0]["service"] == "winbox"
     assert body["identification"]["key_active"] and body["identification"]["agent"] and body["identification"]["key"] == "NSM-0123456789abcdef"
+    # Manual setup: the MikroTik guide with this device's key in the commands (no classic page).
+    assert [g["key"] for g in body["guides"]] == ["mikrotik"] and body["guides"][0]["key_in_code"]
+    assert "prefix=NSM-0123456789abcdef" in body["guides"][0]["code"] and body["target"] and "classic_url" not in body
     assert body["agent"]["blocker"] is None and body["agent"]["can_configure"] and body["agent"]["job"] is None
     assert body["csv_url"] == f"/devices/{ids['router']}/logs.csv"
 
@@ -95,6 +98,7 @@ def main():
     # Reading never creates a key: the CPE has none and keeps none.
     cpe = admin.get(f"/api/ui/v1/devices/{ids['cpe']}/syslog").json()
     assert cpe["identification"]["key"] is None and cpe["agent"] is None and cpe["last"] is None
+    assert [g["key"] for g in cpe["guides"]] == ["ubiquiti"] and not cpe["guides"][0]["key_in_code"]
     with SessionLocal() as db:
         assert "syslog_key" not in (db.get(Device, uuid.UUID(ids["cpe"])).inventory_data or {})
 

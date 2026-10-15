@@ -7,6 +7,7 @@ import { type LogEntry, type SyslogSummary, useConfigureSyslog, useIntegrity, us
 import { formatDateTime, formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { Metric } from "./DeviceDetail";
+import { SyslogGuides } from "../app/SyslogGuides";
 
 const SEVERITY_FILTERS = ["", "4", "3", "2"] as const;
 
@@ -299,10 +300,11 @@ function SetupPanel({ id, summary }: { id: string; summary: SyslogSummary }) {
             {job?.status === "success" ? t("syslog.setup.reconfigure") : t("syslog.setup.configure")}
           </button>
         )}
-        <a className="ui-button ui-button-ghost" href={`${summary.classic_url}#syslog-setup`}>
-          {t("syslog.setup.manual")}
-        </a>
       </div>
+      <details className="ui-section-gap">
+        <summary>{t("syslog.setup.manual")}</summary>
+        <SyslogGuides guides={summary.guides} target={summary.target} deviceKey={summary.identification.key} />
+      </details>
     </section>
   );
 }

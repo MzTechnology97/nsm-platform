@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.167 — 2026-10-15
+
+New interface — manual syslog setup, phase 8d
+- **Device Syslog tab.** "Manual setup" opens the instructions for the device's manufacturer, with NSM's address and the device key already in the commands. It used to link to the classic Logs page.
+- **Syslog administration.** "Instructions per manufacturer" lists all 18 guides. It used to link to the classic page.
+- The guide texts are translated; the commands come from the server.
+- **Shared code.** The guides live in one module (`syslog_guides`), used by the classic templates too.
+- **API.**
+  - the device syslog API returns `guides` and `target` instead of `classic_url`;
+  - the syslog administration API returns `guides`.
+
 ## 0.49.166 — 2026-10-15
 
 New interface — support snapshot output, phase 8c

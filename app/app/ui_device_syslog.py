@@ -20,7 +20,7 @@ from sqlalchemy import func, select
 
 from app import main as core
 from app import mikrotik_syslog_config as syslog_config
-from app import syslog_integrity, syslog_receiver, syslog_security
+from app import device_logs, syslog_guides, syslog_integrity, syslog_receiver, syslog_security, vendor_cpe
 from app.db import SessionLocal
 from app.device_logs import device_identification
 from app.models import Device, utcnow
@@ -105,7 +105,9 @@ def device_syslog(request: Request, device_id: uuid.UUID):
                 "job": _job(syslog_config.latest_job(db, device.id)),
                 "can_configure": blocker is None and core.has_permission(user, "devices.write"),
             },
-            "classic_url": f"/devices/{device.id}/logs",
+            "target": device_logs.public_host(db, request),
+            "guides": syslog_guides.guides(vendor_cpe.brand(device) or "generic", device_logs.public_host(db, request),
+                                           f"{syslog_config.identity.KEY_PREFIX}{data['syslog_key']}" if data.get("syslog_key") else None),
             "csv_url": f"/devices/{device.id}/logs.csv",
         }
 

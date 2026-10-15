@@ -1,3 +1,4 @@
+import type { SyslogGuide } from "../app/SyslogGuides";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -20,7 +21,8 @@ export interface SyslogSummary {
     job: { status: string; created_at: string | null; remote: string | null; error: string | null } | null;
     can_configure: boolean;
   } | null;
-  classic_url: string;
+  guides: SyslogGuide[];
+  target: string;
   csv_url: string;
 }
 

@@ -1,3 +1,4 @@
+import type { SyslogGuide } from "../app/SyslogGuides";
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { BrandRef } from "../app/BrandIcon";
@@ -299,6 +300,7 @@ export const useIntegrations = () =>
 export interface SyslogAdmin {
   settings: { public_host: string; info_retention_days: number; allowed_networks: string[]; auto_configure: boolean };
   host: string;
+  guides: SyslogGuide[];
   target: string | null;
   receiver: {
     alive: boolean;

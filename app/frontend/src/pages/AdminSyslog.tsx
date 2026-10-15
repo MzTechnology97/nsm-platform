@@ -5,6 +5,7 @@ import { type SyslogAdmin as Data, useSyslogAction, useSyslogAdmin } from "../ap
 import { ApiError } from "../api/client";
 import { AdminTabs } from "../app/AdminTabs";
 import { formatDateTime } from "../lib/format";
+import { SyslogGuides } from "../app/SyslogGuides";
 
 export function AdminSyslog() {
   const { t } = useTranslation();
@@ -181,7 +182,11 @@ function Hardening({ data }: { data: Data }) {
       <h3>{t("syslogAdmin.firewall")}</h3>
       <p className="ui-muted">{t("syslogAdmin.firewallHelp")}</p>
       <pre className="ui-code-block">{data.firewall_script}</pre>
-      <p className="ui-muted">{t("syslogAdmin.vendors")} <a href="/admin/syslog#vendors">{t("syslogAdmin.vendorsLink")}</a></p>
+      <details className="ui-section-gap" id="vendors">
+        <summary>{t("syslogAdmin.vendorsLink")}</summary>
+        <p className="ui-muted">{t("syslogAdmin.vendors")}</p>
+        <SyslogGuides guides={data.guides} target={data.settings.public_host || data.host} deviceKey={null} />
+      </details>
     </section>
   );
 }
