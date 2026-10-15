@@ -4446,5 +4446,60 @@
       "empty": "Select at least one device.",
       "too_many": "Too many devices selected."
     }
+  },
+  "firmwareCatalogs": {
+    "title": "Firmware catalogs",
+    "subtitle": "One catalog per manufacturer in the inventory. Ubiquiti: versions from UISP and the official update service; other manufacturers: releases entered by operators from the official download page. NSM never guesses versions. MikroTik has its own",
+    "routeros": "RouterOS catalog",
+    "refresh": "Refresh sources and re-evaluate",
+    "refreshed": "UISP: {{uisp}} new versions; Ubiquiti API: {{vendor_api}} new across {{platforms}} platforms; {{evaluated}} devices evaluated.",
+    "unreachable": "Unreachable: {{list}}.",
+    "none": "No device from manufacturers other than MikroTik in the inventory: catalogs appear when you add devices of that manufacturer.",
+    "summary": "{{devices}} devices · {{outdated}} to update",
+    "securitySummary": "({{count}} with security fixes)",
+    "unknownVersion": "{{count}} without a known firmware version",
+    "officialPage": "official download page ↗",
+    "devices": "Devices ›",
+    "columns": {
+      "version": "Version",
+      "models": "Models",
+      "released": "Released",
+      "source": "Source",
+      "security": "Security",
+      "notes": "Notes",
+      "actions": ""
+    },
+    "allModels": "all",
+    "platform": "platform {{platform}}",
+    "sources": {
+      "uisp": "UISP",
+      "vendor_api": "official API",
+      "operator": "operator"
+    },
+    "securityTag": "security",
+    "releaseNotes": "notes ↗",
+    "delete": "Delete",
+    "deleteConfirm": "Delete release {{version}} from the catalog?",
+    "empty": "No release in the {{label}} catalog: add the latest release from the official download page.",
+    "emptyUbiquiti": "No release in the {{label}} catalog: link the devices to UISP or refresh the sources.",
+    "add": "Add a {{label}} release",
+    "version": "Version",
+    "models": "Models",
+    "modelsPlaceholder": "empty = all; e.g. archer c6* or eap225",
+    "released": "Release date",
+    "notesUrl": "Release notes (official link)",
+    "notes": "Notes",
+    "fixesSecurity": "Fixes security vulnerabilities",
+    "addSubmit": "Add to the catalog",
+    "added_one": "Release {{version}} added: {{count}} device to update.",
+    "added_other": "Release {{version}} added: {{count}} devices to update.",
+    "errors": {
+      "brand": "Catalogs exist only for manufacturers in the inventory.",
+      "version": "Unrecognised version: use the manufacturer's format (e.g. 1.2.3).",
+      "url": "The notes link must be an http(s) address.",
+      "date": "Invalid release date.",
+      "exists": "This release is already in the catalog.",
+      "not_operator": "Only releases entered by operators can be deleted."
+    }
   }
 }

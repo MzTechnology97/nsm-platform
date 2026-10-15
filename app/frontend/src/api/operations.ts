@@ -313,3 +313,42 @@ export function useApplySuggestions() {
     },
   });
 }
+
+export interface VendorRelease {
+  id: string;
+  version: string;
+  model_pattern: string | null;
+  platform: string | null;
+  released_at: string | null;
+  source: "uisp" | "vendor_api" | "operator" | string;
+  security: boolean;
+  notes_url: string | null;
+  notes: string | null;
+}
+
+export interface VendorCatalog {
+  brand: string;
+  label: string;
+  icon: BrandRef | null;
+  devices: number;
+  page: string | null;
+  outdated: number;
+  security: number;
+  unknown_version: number;
+  releases: VendorRelease[];
+}
+
+export const useVendorCatalogs = () =>
+  useQuery({ queryKey: ["firmware-catalogs"], queryFn: () => api<{ catalogs: VendorCatalog[]; can_execute: boolean }>("/api/ui/v1/firmware/catalogs") });
+
+/** Add, delete or refresh; catalogs and the firmware worklist are refreshed afterwards. */
+export function useCatalogAction<B, R>(path: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: B) => api<R>(`/api/ui/v1/firmware/catalogs${path}`, { method: "POST", body: JSON.stringify(body ?? {}) }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["firmware-catalogs"] });
+      client.invalidateQueries({ queryKey: ["firmware"] });
+    },
+  });
+}

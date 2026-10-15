@@ -27,6 +27,9 @@ from app import agent_fleet
 from app import backup_workspace_capabilities as backup_overview
 from app import firmware_suggestions as suggestions_view
 from app import firmware_worklist
+from app import vendor_cpe
+from app import vendor_firmware
+from app.input_errors import InputError
 from app import fleet_monitoring as fleet
 from app import mikrotik_firmware_readiness as firmware_readiness
 from app import main as core
@@ -284,6 +287,62 @@ def firmware_suggestions_apply(request: Request, body: dict = Body(default={})):
         user = ui_user(request, db, "firmware.execute" if action == "plan" else "firmware.read")
         done, skipped = suggestions_view.apply_record(db, user, action, selected)
         return {"action": action, "done": done, "skipped": skipped}
+
+
+def _release(row) -> dict:
+    return {"id": str(row.id), "version": row.version, "model_pattern": row.model_pattern or None, "platform": row.platform or None,
+            "released_at": _iso(row.released_at), "source": row.source, "security": bool(row.security), "notes_url": row.notes_url, "notes": row.notes}
+
+
+@router.get("/firmware/catalogs")
+def firmware_catalogs(request: Request):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.read")
+        context = vendor_firmware._context(db)
+        sample: dict = {}
+        for device in db.scalars(select(Device)):
+            sample.setdefault(vendor_cpe.brand(device), device)
+        return {
+            "can_execute": core.has_permission(user, "firmware.execute"),
+            "catalogs": [{
+                "brand": c["brand"], "label": c["label"], "icon": brand_icon(sample[c["brand"]]) if c["brand"] in sample else None,
+                "devices": c["devices"], "page": c["page"], "outdated": c["outdated"], "security": c["security"], "unknown_version": c["unknown_version"],
+                "releases": [_release(r) for r in c["releases"]],
+            } for c in context["catalogs"]],
+        }
+
+
+@router.post("/firmware/catalogs/releases", dependencies=[Depends(require_csrf)])
+def firmware_catalog_add(request: Request, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.execute")
+        try:
+            brand, version, stats = vendor_firmware.add_release_record(db, user, body)
+        except InputError as exc:
+            raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
+        return {"brand": brand, "version": version, "to_update": stats["outdated"] + stats["security"]}
+
+
+@router.post("/firmware/catalogs/releases/{release_id}/delete", dependencies=[Depends(require_csrf)])
+def firmware_catalog_delete(request: Request, release_id: uuid.UUID):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.execute")
+        try:
+            vendor_firmware.delete_release_record(db, user, release_id)
+        except InputError as exc:
+            raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
+        return {"deleted": True}
+
+
+@router.post("/firmware/catalogs/refresh", dependencies=[Depends(require_csrf)])
+def firmware_catalog_refresh(request: Request):
+    with SessionLocal() as db:
+        ui_user(request, db, "firmware.execute")
+    vendor_firmware._last_vendor_attempt = None
+    stats = vendor_firmware.run_scheduled()
+    api = stats.get("vendor_api") or {}
+    return {"uisp": stats.get("uisp", 0), "vendor_api": api.get("created", 0), "platforms": api.get("platforms", 0),
+            "errors": list(api.get("errors") or [])[:3], "evaluated": stats["evaluation"]["evaluated"]}
 
 def install_ui_operations(app) -> None:
     app.include_router(router)

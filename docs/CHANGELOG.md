@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.161 — 2026-10-15
+
+New interface (React) — vendor firmware catalogs, phase 7y
+- **Firmware catalogs** (`/app/firmware/catalogs`), opened from the firmware page. There is one catalog per manufacturer other than MikroTik, with:
+  - the brand icon;
+  - devices to update and devices with security fixes;
+  - the official download page and a link to the devices.
+  - Releases list version, models or platform, date, source (UISP, official API, operator), security flag and notes.
+- **Changes** (`firmware.execute`): add an operator release, delete operator releases, and refresh the sources (UISP and the official Ubiquiti update service).
+- **Shared code.** `vendor_firmware.add_release_record` and `delete_release_record`; the classic page uses them with the same messages. Errors carry codes (`brand`, `version`, `url`, `date`, `exists`, `not_operator`).
+- **API.**
+  - `GET /api/ui/v1/firmware/catalogs` (`firmware.read`);
+  - `POST .../catalogs/releases`, `.../releases/{id}/delete`, `.../catalogs/refresh` (`firmware.execute` + CSRF).
+
 ## 0.49.160 — 2026-10-15
 
 New interface (React) — firmware suggestions, phase 7x
