@@ -58,6 +58,7 @@ from app.ui_incidents import install_ui_incidents
 from app.ui_admin import install_ui_admin
 from app.ui_personal import install_ui_personal
 from app.ui_device_tabs import install_ui_device_tabs
+from app.ui_device_connectors import install_ui_device_connectors
 from app.ui_spa import install_ui_spa
 from app.mikrotik_heartbeat_interval import install_mikrotik_heartbeat_interval
 from app.mikrotik_interface_errors import install_mikrotik_interface_errors
@@ -151,7 +152,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.149"
+APP_VERSION = "0.49.150"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -303,6 +304,7 @@ install_ui_incidents(core.app)
 install_ui_admin(core.app)
 install_ui_personal(core.app)
 install_ui_device_tabs(core.app)
+install_ui_device_connectors(core.app)
 install_ui_spa(core.app)
 # The syntax guard must wrap the final composed modern source, including the
 # Core 0.49 self-update/integrity extension. Installing it earlier would leave

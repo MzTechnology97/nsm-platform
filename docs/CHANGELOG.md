@@ -4,6 +4,27 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.150 — 2026-10-15
+
+New interface (React) — UISP page of a device, phase 7n
+- **UISP tab** (`/app/devices/{id}/uisp`, Ubiquiti):
+  - **Record and connector:** the NSM record (customer, site, alias, MAC, UISP ID) and the connector state.
+  - **Association:** «Search UISP» finds the exact MAC without changing anything; then come the association and «Refresh from UISP», which keeps the NSM customer and site.
+  - **Charts:** signal, link capacity, CPU/RAM and stations over 24 hours to 90 days, plus current, minimum, average and maximum values.
+  - **Firmware:** the versions seen by UISP and the compatibility warning.
+  - **Operations through UISP:**
+    - configuration backup archived in NSM;
+    - reboot, confirmed with the device name and verified by NSM;
+    - interfaces and events read on request.
+- **Shared code.** The UISP association and refresh are now shared functions, used by both interfaces; the classic page behaves as before.
+  - `uisp_connector.associate_record`, `refresh_record`.
+
+  The UISP operations reuse `uisp_operations`.
+- **API.** A new module, `app/ui_device_connectors.py`:
+  - `GET /api/ui/v1/devices/{id}/uisp` (`devices.read`);
+  - `GET .../uisp/metrics` (`monitoring.read`);
+  - `POST .../uisp/preview`, `/associate`, `/refresh`, `/reboot`, `/backup`, `/interfaces`, `/events`, with the classic permissions and the CSRF header.
+
 ## 0.49.149 — 2026-10-15
 
 New interface (React) — RouterOS upgrade plan, phase 7l
