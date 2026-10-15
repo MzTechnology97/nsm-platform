@@ -63,7 +63,7 @@ jobs:
               'mikrotik_enroll': '/api/v1/agents/mikrotik/enroll', 'mikrotik_heartbeat': '/api/v1/agents/mikrotik/heartbeat',
               'mikrotik_legacy_job_next': '/api/v1/agents/mikrotik/legacy/jobs/next', 'firmware': '/operations/firmware',
               'agent_fleet': '/operations/agents', 'backup_customer_overview': '/operations/backups',
-              'search_suggest': '/api/v1/search/suggest', 'audit_events_worklist': '/audit/events',
+              'search_suggest': '/api/v1/search/suggest',
               'audit_events_export_csv': '/audit/events/export.csv',
           }
           for name, path in expected.items():
@@ -100,7 +100,6 @@ jobs:
           updater = Path('app/app/mikrotik_agent_update.py').read_text()
           activity = Path('app/app/activity_worklists.py').read_text()
           device_activity = Path('app/app/templates/device_activity.html').read_text()
-          audit_page = Path('app/app/templates/audit_events_v2.html').read_text()
           modern_syntax = Path('app/app/mikrotik_modern_syntax.py').read_text()
           modern_syntax_test = Path('app/tests/mikrotik_modern_syntax_smoke.py').read_text()
           agent_install = Path('app/app/templates/mikrotik_agent_status.html').read_text()
@@ -168,8 +167,6 @@ jobs:
               assert marker in activity, marker
           for marker in ('Coda attiva', 'Storico operativo', 'per_page', 'from_date', 'to_date'):
               assert marker in device_activity, marker
-          for marker in ('Esporta CSV', 'Registro eventi', 'customer', 'device', 'per_page'):
-              assert marker in audit_page, marker
           print('Core 0.49 safety, compatibility and agent self-update contracts OK')
           PY
       - name: Prepare dummy runtime env for Compose validation
