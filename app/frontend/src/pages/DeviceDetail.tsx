@@ -66,9 +66,9 @@ function DeviceShell({ detail }: { detail: Detail }) {
         </div>
         <div className="ui-actions">
           {detail.actions.reboot && (
-            <a className="ui-button ui-button-ghost" href={`/devices/${device.id}/reboot`}>
+            <Link className="ui-button ui-button-ghost" to="/devices/$deviceId/reboot" params={{ deviceId: device.id }}>
               {t("device.actions.reboot")}
-            </a>
+            </Link>
           )}
           {detail.actions.incident && (
             <a className="ui-button ui-button-ghost" href={`/incidents/new?device=${device.id}`}>

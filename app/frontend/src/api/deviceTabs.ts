@@ -196,3 +196,38 @@ export function useSetBaseline(id: string) {
     onSuccess: () => client.invalidateQueries({ queryKey: ["device", id, "configuration-history"] }),
   });
 }
+
+export interface RebootTab {
+  blocker: string | null;
+  state: { status?: string; queued_at?: string; reason?: string; requested_by?: string; uptime_before?: string; uptime_after?: string; last_error?: string | null };
+  history: { id: string; created_at: string; reason: string | null; status: string; last_error: string | null }[];
+  can_execute: boolean;
+  name: string;
+}
+
+export const useDeviceReboot = (id: string) =>
+  useQuery({ queryKey: ["device", id, "reboot"], queryFn: () => api<RebootTab>(`${base(id)}/reboot`), refetchInterval: 20_000 });
+
+export interface RouterbootTab {
+  current: string | null;
+  target: string | null;
+  state: { status?: string; target_version?: string; last_error?: string | null; observed_version?: string };
+  checked_at: string | null;
+  agent_transport: string | null;
+  privilege_profile: string | null;
+  can_execute: boolean;
+  stage_confirmation: string | null;
+  reboot_confirmation: string | null;
+}
+
+export const useDeviceRouterboot = (id: string) =>
+  useQuery({ queryKey: ["device", id, "routerboot"], queryFn: () => api<RouterbootTab>(`${base(id)}/routerboot`), refetchInterval: 20_000 });
+
+/** Reboot and RouterBOOT actions; the page reloads its state afterwards. */
+export function useOperation<TBody = object>(id: string, path: string, key: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: TBody) => api<{ job_id: string }>(`${base(id)}/${path}`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["device", id, key] }),
+  });
+}
