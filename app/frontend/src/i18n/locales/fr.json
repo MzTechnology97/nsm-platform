@@ -3512,5 +3512,107 @@
       "not_staged": "Le flash du bootloader doit être fait d'abord.",
       "no_target": "Version cible manquante."
     }
+  },
+  "firmwarePlan": {
+    "title": "Mise à jour RouterOS",
+    "help": "Sauvegarde préalable, approbation, téléchargement des paquets, activation et vérification après redémarrage en étapes séparées.",
+    "worklist": "Liste firmware",
+    "installed": "Installé",
+    "target": "Version disponible",
+    "channel": "canal {{channel}}",
+    "space": "Espace libre",
+    "checked": "Dernière vérification",
+    "noTransport": "agent non déclaré",
+    "catalog": "Catalogue MikroTik ({{channel}}) : dernière version {{version}} du {{when}}.",
+    "catalogNewer": "Mise à jour disponible.",
+    "catalogSecurity": "Mise à jour de sécurité ({{reasons}}).",
+    "catalogCurrent": "RouterOS à jour sur le canal.",
+    "routerbootSeparate": "Le RouterBOOT se met à jour séparément, jamais avec RouterOS.",
+    "legacyTitle": "Mise à jour avec l'agent legacy",
+    "legacyHelp": "L'agent revérifie le canal et exécute /system package update install (téléchargement et redémarrage) seulement après la confirmation de NSM ; NSM vérifie la version au retour en ligne.",
+    "legacyStates": {
+      "queued": "En file",
+      "upgrading": "Téléchargement et redémarrage en cours",
+      "verified": "Mise à jour vérifiée",
+      "failed": "Mise à jour échouée"
+    },
+    "legacyTarget": "Version cible : RouterOS {{version}}.",
+    "legacyAck": "J'ai un export ou une sauvegarde récente de ce routeur (les agents legacy ne font pas de sauvegarde NSM).",
+    "legacySubmit": "Mettre à jour et redémarrer",
+    "legacyQueued": "Mise à jour en file : l'agent l'exécute au prochain heartbeat ; le routeur va redémarrer.",
+    "noPlanTitle": "Aucun plan",
+    "noPlan": "Créez un plan après une vérification firmware récente : NSM lance aussitôt la sauvegarde préalable.",
+    "create": "Créer le plan de mise à jour",
+    "createNew": "Nouveau plan",
+    "planTitle": "Plan RouterOS {{version}}",
+    "states": {
+      "draft": "brouillon",
+      "backup_pending": "sauvegarde en cours",
+      "ready": "prêt",
+      "approved": "approuvé",
+      "staging": "téléchargement",
+      "staged": "paquets prêts",
+      "activation_pending": "activation en file",
+      "reboot_pending": "redémarrage",
+      "success": "terminé",
+      "failed": "échec",
+      "cancelled": "annulé"
+    },
+    "dates": {
+      "created_at": "Créé",
+      "ready_at": "Prêt",
+      "approved_at": "Approuvé",
+      "started_at": "Téléchargement lancé",
+      "completed_at": "Terminé"
+    },
+    "backup": "Sauvegarde préalable",
+    "backupStates": {
+      "success": "réussie",
+      "failed": "échouée",
+      "running": "en cours",
+      "pending": "en file"
+    },
+    "accepted": "Redémarrage accepté par l'agent : NSM attend un inventaire postérieur avant de clore le plan.",
+    "verified": "Version vérifiée après le redémarrage : {{version}}.",
+    "steps": {
+      "readiness": {
+        "title": "Vérification récente",
+        "help": "Version cible et prérequis lus avant la création du plan."
+      },
+      "backup": {
+        "title": "Sauvegarde externe",
+        "help": "Sauvegarde NSM liée au plan."
+      },
+      "approval": {
+        "title": "Approbation",
+        "help": "Permission d'exécution firmware et confirmation littérale de la version."
+      },
+      "download": {
+        "title": "Téléchargement des paquets",
+        "help": "La cible est revérifiée sur le MikroTik avant le téléchargement."
+      },
+      "activation": {
+        "title": "Activation et redémarrage",
+        "help": "Troisième confirmation ; l'agent envoie l'ack avant de redémarrer et NSM vérifie la version."
+      }
+    },
+    "approveTitle": "Approuver le plan",
+    "approveHelp": "La sauvegarde a réussi : approuvez la mise à jour.",
+    "approve": "Approuver",
+    "stageTitle": "Télécharger les paquets",
+    "stageHelp": "Télécharge RouterOS sur le routeur sans le redémarrer.",
+    "stage": "Télécharger",
+    "activateTitle": "Activer et redémarrer",
+    "activateHelp": "Le routeur redémarre avec les paquets téléchargés : le service s'interrompt.",
+    "activate": "Activer",
+    "cancel": "Annuler le plan",
+    "cancelConfirm": "Annuler le plan ? Les tâches en attente sont retirées.",
+    "errors": {
+      "invalid": "Demande non valide.",
+      "conflict": "Étape non disponible pour l'instant.",
+      "blocked": "Mise à jour non disponible.",
+      "confirmation": "Confirmation non valide.",
+      "backup_ack": "Confirmez avoir une sauvegarde récente."
+    }
   }
 }

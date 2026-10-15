@@ -231,3 +231,51 @@ export function useOperation<TBody = object>(id: string, path: string, key: stri
     onSuccess: () => client.invalidateQueries({ queryKey: ["device", id, key] }),
   });
 }
+
+export interface FirmwarePlanTab {
+  installed: string | null;
+  recommended: string | null;
+  routerboot: string | null;
+  readiness: { latest_version?: string | null; channel?: string | null; free_hdd_space?: string | null; routerboard_current?: string | null;
+    routerboard_upgrade?: string | null; checked_at?: string | null };
+  agent_transport: string | null;
+  catalog: { channel?: string; latest_version?: string; released_at?: string; newer?: boolean | null; security?: boolean; security_reasons?: string[] } | null;
+  can_execute: boolean;
+  plan: {
+    id: string;
+    target_version: string;
+    channel: string | null;
+    status: string;
+    created_at: string;
+    ready_at: string | null;
+    approved_at: string | null;
+    started_at: string | null;
+    completed_at: string | null;
+    last_error: string | null;
+    backup_run_id: string | null;
+    backup_status: string | null;
+    activation: { accepted_at?: string | null; verified_at?: string | null; observed_version?: string | null };
+    confirmations: { approve: string; stage: string; activate: string };
+  } | null;
+  legacy: { target: string | null; blocker: string | null; state: { status?: string; target_version?: string; from_version?: string; last_error?: string | null };
+    channel: string | null; checked_at: string | null; confirmation: string | null } | null;
+}
+
+export const useFirmwarePlan = (id: string) =>
+  useQuery({
+    queryKey: ["device", id, "firmware-plan"],
+    queryFn: () => api<FirmwarePlanTab>(`${base(id)}/firmware-upgrade`),
+    refetchInterval: (q) => (["draft", "backup_pending", "staging", "activation_pending", "reboot_pending"].includes(q.state.data?.plan?.status ?? "") ? 15_000 : 60_000),
+  });
+
+/** Plan steps (create, approve, stage, activate, cancel, legacy upgrade); the plan and the firmware worklist reload afterwards. */
+export function useFirmwareAction<TBody = object>(id: string, path: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body?: TBody) => api<{ plan_id?: string }>(`${base(id)}/${path}`, { method: "POST", body: JSON.stringify(body ?? {}) }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ["device", id, "firmware-plan"] });
+      void client.invalidateQueries({ queryKey: ["firmware"] });
+    },
+  });
+}

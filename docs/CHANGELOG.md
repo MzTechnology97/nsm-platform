@@ -4,6 +4,25 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.149 — 2026-10-15
+
+New interface (React) — RouterOS upgrade plan, phase 7l
+- **Firmware tab** (`/app/devices/{id}/firmware-upgrade`), opened from the device tabs and from the firmware worklist:
+  - **Prerequisites:** installed and available version, channel, free space, last check and the MikroTik catalogue with security reasons.
+  - **Plan steps:** plan creation with the pre-upgrade backup, approval, package download and activation, each a separate step with the same literal confirmation as the classic page (`UPGRADE`, `DOWNLOAD`, `ACTIVATE` + version).
+  - **Progress:** the five gates with their state, the plan dates and the post-reboot verification.
+  - **Cancel:** the plan can be cancelled with a confirmation; its pending jobs are withdrawn.
+  - **Legacy agents:** they get their own upgrade, with the backup acknowledgement and the `AGGIORNA <version>` confirmation.
+- **Worklist.** «Prepare upgrade» in the firmware worklist now creates the plan and opens it in the new interface. The new interface no longer sends any classic form.
+- **Shared code.** The plan steps are now shared functions, used by both interfaces; the classic pages behave as before, with the same messages and status codes.
+  - `firmware_upgrade_planner.latest_plan`, `approve_record`, `cancel_record`;
+  - `firmware_package_staging.stage_record`;
+  - `firmware_activation.activate_record`;
+  - `mikrotik_legacy_operations.queue_legacy_upgrade_record`.
+- **API.**
+  - `GET /api/ui/v1/devices/{id}/firmware-upgrade` (`firmware.read`);
+  - `POST .../firmware-upgrade/plan`, `.../firmware-upgrade/{plan_id}/approve|stage|activate|cancel` and `.../legacy-upgrade` (`firmware.execute` + CSRF).
+
 ## 0.49.148 — 2026-10-15
 
 New interface (React) — controlled reboot and RouterBOOT, phase 7k

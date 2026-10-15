@@ -169,6 +169,31 @@ def legacy_upgrade_info(device) -> dict | None:
         }
 
 
+def queue_legacy_upgrade_record(db, user, device, confirmation: str, backup_ack: bool) -> str:
+    """Queue the RouterOS upgrade of a legacy agent after ``AGGIORNA <target>`` and the backup acknowledgement; commits.
+
+    Returns the target; ``InputError`` ``blocked``, ``confirmation`` or ``backup_ack``.
+    """
+    from app.input_errors import InputError
+
+    now = utcnow()
+    blocker = _ops_ready(db, device)
+    target, target_blocker = upgrade_target(device, now)
+    if blocker or target_blocker:
+        raise InputError("blocked", blocker or target_blocker, 409)
+    if (confirmation or "").strip() != f"AGGIORNA {target}":
+        raise InputError("confirmation", f"Per confermare scrivi esattamente AGGIORNA {target}.")
+    if not backup_ack:
+        raise InputError("backup_ack", "Conferma di avere un export o backup recente: gli agent legacy non eseguono backup NSM.")
+    job = DeviceJob(device_id=device.id, job_type=UPGRADE_JOB, payload={"target_version": target}, expires_at=now + timedelta(minutes=15))
+    db.add(job)
+    db.flush()
+    _write_state(device, status="queued", job_id=str(job.id), target_version=target, from_version=_base(device.firmware_version), queued_at=now.isoformat(), requested_by=user.username, accepted_at=None, verified_at=None, last_error=None)
+    core.add_event(db, "LEGACY_FIRMWARE_UPGRADE_QUEUED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"job_id": str(job.id), "from": _base(device.firmware_version), "target": target}, severity="warning", source="portal")
+    db.commit()
+    return target
+
+
 def legacy_reboot_blocker(previous):
     def wrapped(db, device):
         if str((device.inventory_data or {}).get("agent_transport") or "") == "legacy":
@@ -188,21 +213,13 @@ async def queue_upgrade(request: Request, device_id: uuid.UUID):
         device = db.get(Device, device_id)
         if not device:
             raise HTTPException(404)
-        now = utcnow()
-        blocker = _ops_ready(db, device)
-        target, target_blocker = upgrade_target(device, now)
-        if blocker or target_blocker:
-            return flash_redirect(request, back, "warning", blocker or target_blocker, title="Aggiornamento non disponibile")
-        if str(form.get("confirmation") or "").strip() != f"AGGIORNA {target}":
-            return flash_redirect(request, back, "warning", f"Per confermare scrivi esattamente AGGIORNA {target}.", title="Conferma mancante")
-        if form.get("backup_ack") is None:
-            return flash_redirect(request, back, "warning", "Conferma di avere un export o backup recente: gli agent legacy non eseguono backup NSM.", title="Backup non confermato")
-        job = DeviceJob(device_id=device.id, job_type=UPGRADE_JOB, payload={"target_version": target}, expires_at=now + timedelta(minutes=15))
-        db.add(job)
-        db.flush()
-        _write_state(device, status="queued", job_id=str(job.id), target_version=target, from_version=_base(device.firmware_version), queued_at=now.isoformat(), requested_by=user.username, accepted_at=None, verified_at=None, last_error=None)
-        core.add_event(db, "LEGACY_FIRMWARE_UPGRADE_QUEUED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"job_id": str(job.id), "from": _base(device.firmware_version), "target": target}, severity="warning", source="portal")
-        db.commit()
+        from app.input_errors import InputError
+
+        titles = {"blocked": "Aggiornamento non disponibile", "confirmation": "Conferma mancante", "backup_ack": "Backup non confermato"}
+        try:
+            target = queue_legacy_upgrade_record(db, user, device, str(form.get("confirmation") or ""), form.get("backup_ack") is not None)
+        except InputError as exc:
+            return flash_redirect(request, back, "warning", str(exc.detail), title=titles.get(exc.code, "Aggiornamento non disponibile"))
     return flash_redirect(request, back, "success", f"Aggiornamento a RouterOS {target} in coda: l'agent lo eseguirà al prossimo heartbeat; il router si riavvierà.", title="Aggiornamento richiesto")
 
 

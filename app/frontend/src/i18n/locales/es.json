@@ -3512,5 +3512,107 @@
       "not_staged": "Primero hay que hacer el flash del bootloader.",
       "no_target": "Falta la versión de destino."
     }
+  },
+  "firmwarePlan": {
+    "title": "Actualización de RouterOS",
+    "help": "Copia previa, aprobación, descarga de paquetes, activación y verificación tras el reinicio como pasos separados.",
+    "worklist": "Lista de firmware",
+    "installed": "Instalada",
+    "target": "Versión disponible",
+    "channel": "canal {{channel}}",
+    "space": "Espacio libre",
+    "checked": "Última comprobación",
+    "noTransport": "agente no declarado",
+    "catalog": "Catálogo MikroTik ({{channel}}): última versión {{version}} del {{when}}.",
+    "catalogNewer": "Actualización disponible.",
+    "catalogSecurity": "Actualización de seguridad ({{reasons}}).",
+    "catalogCurrent": "RouterOS al día en el canal.",
+    "routerbootSeparate": "El RouterBOOT se actualiza aparte, nunca junto con RouterOS.",
+    "legacyTitle": "Actualización con agente legacy",
+    "legacyHelp": "El agente vuelve a comprobar el canal y ejecuta /system package update install (descarga y reinicio) solo tras la confirmación de NSM; NSM verifica la versión al volver en línea.",
+    "legacyStates": {
+      "queued": "En cola",
+      "upgrading": "Descargando y reiniciando",
+      "verified": "Actualización verificada",
+      "failed": "Actualización fallida"
+    },
+    "legacyTarget": "Versión de destino: RouterOS {{version}}.",
+    "legacyAck": "Tengo una exportación o copia reciente de este router (los agentes legacy no hacen copias NSM).",
+    "legacySubmit": "Actualizar y reiniciar",
+    "legacyQueued": "Actualización en cola: el agente la ejecuta en el próximo heartbeat; el router se reiniciará.",
+    "noPlanTitle": "Sin plan",
+    "noPlan": "Crea un plan tras una comprobación de firmware reciente: NSM lanza enseguida la copia previa.",
+    "create": "Crear plan de actualización",
+    "createNew": "Nuevo plan",
+    "planTitle": "Plan RouterOS {{version}}",
+    "states": {
+      "draft": "borrador",
+      "backup_pending": "copia en curso",
+      "ready": "listo",
+      "approved": "aprobado",
+      "staging": "descargando",
+      "staged": "paquetes listos",
+      "activation_pending": "activación en cola",
+      "reboot_pending": "reiniciando",
+      "success": "completado",
+      "failed": "fallido",
+      "cancelled": "cancelado"
+    },
+    "dates": {
+      "created_at": "Creado",
+      "ready_at": "Listo",
+      "approved_at": "Aprobado",
+      "started_at": "Descarga iniciada",
+      "completed_at": "Terminado"
+    },
+    "backup": "Copia previa",
+    "backupStates": {
+      "success": "correcta",
+      "failed": "fallida",
+      "running": "en curso",
+      "pending": "en cola"
+    },
+    "accepted": "Reinicio aceptado por el agente: NSM espera un inventario posterior antes de cerrar el plan.",
+    "verified": "Versión verificada tras el reinicio: {{version}}.",
+    "steps": {
+      "readiness": {
+        "title": "Comprobación reciente",
+        "help": "Versión de destino y requisitos leídos antes de crear el plan."
+      },
+      "backup": {
+        "title": "Copia fuera del equipo",
+        "help": "Copia NSM vinculada al plan."
+      },
+      "approval": {
+        "title": "Aprobación",
+        "help": "Permiso de ejecución de firmware y confirmación literal de la versión."
+      },
+      "download": {
+        "title": "Descarga de paquetes",
+        "help": "El destino se vuelve a comprobar en el MikroTik antes de la descarga."
+      },
+      "activation": {
+        "title": "Activación y reinicio",
+        "help": "Tercera confirmación; el agente envía el ack antes de reiniciar y NSM verifica la versión."
+      }
+    },
+    "approveTitle": "Aprobar el plan",
+    "approveHelp": "La copia fue correcta: aprueba la actualización.",
+    "approve": "Aprobar",
+    "stageTitle": "Descargar los paquetes",
+    "stageHelp": "Descarga RouterOS en el router sin reiniciarlo.",
+    "stage": "Descargar",
+    "activateTitle": "Activar y reiniciar",
+    "activateHelp": "El router se reinicia con los paquetes descargados: el servicio se interrumpe.",
+    "activate": "Activar",
+    "cancel": "Cancelar el plan",
+    "cancelConfirm": "¿Cancelar el plan? Las tareas pendientes se retiran.",
+    "errors": {
+      "invalid": "Solicitud no válida.",
+      "conflict": "Paso no disponible ahora.",
+      "blocked": "Actualización no disponible.",
+      "confirmation": "Confirmación no válida.",
+      "backup_ack": "Confirma que tienes una copia reciente."
+    }
   }
 }

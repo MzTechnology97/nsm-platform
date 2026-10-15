@@ -19,6 +19,7 @@ const MIGRATED_TABS = {
   compliance: "/devices/$deviceId/compliance",
   activity: "/devices/$deviceId/jobs",
   configuration: "/devices/$deviceId/configuration",
+  firmware: "/devices/$deviceId/firmware-upgrade",
 } as const;
 
 /** Device shell: breadcrumbs, title, actions and tabs; the active tab renders in the outlet. */

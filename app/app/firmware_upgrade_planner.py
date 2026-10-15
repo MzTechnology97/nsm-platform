@@ -308,36 +308,61 @@ def approve_plan(
     with SessionLocal() as db:
         user = core.require_permission(request, db, "firmware.execute")
         device = _load_device(db, device_id)
-        plan = db.get(FirmwareUpgradePlan, plan_id)
-        if not plan or plan.device_id != device.id:
-            raise HTTPException(404)
-        sync_plan_status(db, plan)
-        if plan.status != "ready":
-            db.commit()
-            raise HTTPException(409, "Il piano non è pronto: backup pre-upgrade non completato con successo.")
-        expected = f"UPGRADE {plan.target_version}"
-        if confirmation.strip() != expected:
-            raise HTTPException(400, f"Conferma non valida. Inserisci esattamente: {expected}")
-        plan.status = "approved"
-        plan.approved_by = user.id
-        plan.approved_at = utcnow()
-        core.add_event(
-            db,
-            "FIRMWARE_UPGRADE_PLAN_APPROVED",
-            actor=user,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            details={
-                "plan_id": str(plan.id),
-                "target_version": plan.target_version,
-                "backup_run_id": str(plan.backup_run_id),
-                "execution_queued": False,
-            },
-            severity="warning",
-            source="portal",
-        )
-        db.commit()
+        approve_record(db, user, device, plan_id, confirmation)
     return RedirectResponse(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}&approved=1", status_code=303)
+
+
+def device_plan(db, device: Device, plan_id: uuid.UUID) -> FirmwareUpgradePlan:
+    plan = db.get(FirmwareUpgradePlan, plan_id)
+    if not plan or plan.device_id != device.id:
+        raise HTTPException(404)
+    return plan
+
+
+def latest_plan(db, device: Device, plan_id: uuid.UUID | None = None):
+    """The requested (or latest) plan of a device with its pre-upgrade backup run, status refreshed; commits."""
+    stmt = select(FirmwareUpgradePlan).where(FirmwareUpgradePlan.device_id == device.id)
+    if plan_id:
+        stmt = stmt.where(FirmwareUpgradePlan.id == plan_id)
+    plan = db.scalar(stmt.order_by(FirmwareUpgradePlan.created_at.desc()).limit(1))
+    backup_run = None
+    if plan:
+        sync_plan_status(db, plan)
+        backup_run = db.get(BackupRun, plan.backup_run_id) if plan.backup_run_id else None
+        db.commit()
+    return plan, backup_run
+
+
+def approve_record(db, user, device: Device, plan_id: uuid.UUID, confirmation: str) -> FirmwareUpgradePlan:
+    """Approve a ready plan after ``UPGRADE <target>`` (audited) and commit; 404 / 409 / 400 as the classic form."""
+    plan = device_plan(db, device, plan_id)
+    sync_plan_status(db, plan)
+    if plan.status != "ready":
+        db.commit()
+        raise HTTPException(409, "Il piano non è pronto: backup pre-upgrade non completato con successo.")
+    expected = f"UPGRADE {plan.target_version}"
+    if (confirmation or "").strip() != expected:
+        raise HTTPException(400, f"Conferma non valida. Inserisci esattamente: {expected}")
+    plan.status = "approved"
+    plan.approved_by = user.id
+    plan.approved_at = utcnow()
+    core.add_event(
+        db,
+        "FIRMWARE_UPGRADE_PLAN_APPROVED",
+        actor=user,
+        customer_id=device.customer_id,
+        device_id=device.id,
+        details={
+            "plan_id": str(plan.id),
+            "target_version": plan.target_version,
+            "backup_run_id": str(plan.backup_run_id),
+            "execution_queued": False,
+        },
+        severity="warning",
+        source="portal",
+    )
+    db.commit()
+    return plan
 
 
 @router.post("/devices/{device_id}/firmware-upgrade/{plan_id}/cancel", name="cancel_firmware_upgrade_plan")
@@ -346,34 +371,38 @@ def cancel_plan(request: Request, device_id: uuid.UUID, plan_id: uuid.UUID, csrf
     with SessionLocal() as db:
         user = core.require_permission(request, db, "firmware.execute")
         device = _load_device(db, device_id)
-        plan = db.get(FirmwareUpgradePlan, plan_id)
-        if not plan or plan.device_id != device.id:
-            raise HTTPException(404)
-        if plan.status in {"reboot_pending", "success"}:
-            raise HTTPException(409, "Il piano non può più essere annullato: attivazione già avviata o completata.")
-        if plan.status == "cancelled":
-            raise HTTPException(409, "Il piano è già annullato.")
-        now = utcnow()
-        previous_status = plan.status
-        withdrawn_jobs = withdraw_jobs_for_cancel(db, plan, now)
-        plan.status = "cancelled"
-        plan.completed_at = now
-        core.add_event(
-            db,
-            "FIRMWARE_UPGRADE_PLAN_CANCELLED",
-            actor=user,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            details={
-                "plan_id": str(plan.id),
-                "target_version": plan.target_version,
-                "previous_status": previous_status,
-                "withdrawn_job_ids": withdrawn_jobs,
-            },
-            source="portal",
-        )
-        db.commit()
+        cancel_record(db, user, device, plan_id)
     return RedirectResponse(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}", status_code=303)
+
+
+def cancel_record(db, user, device: Device, plan_id: uuid.UUID) -> FirmwareUpgradePlan:
+    """Cancel a plan before activation, withdrawing its pending jobs (audited) and commit; 404 / 409 as the classic form."""
+    plan = device_plan(db, device, plan_id)
+    if plan.status in {"reboot_pending", "success"}:
+        raise HTTPException(409, "Il piano non può più essere annullato: attivazione già avviata o completata.")
+    if plan.status == "cancelled":
+        raise HTTPException(409, "Il piano è già annullato.")
+    now = utcnow()
+    previous_status = plan.status
+    withdrawn_jobs = withdraw_jobs_for_cancel(db, plan, now)
+    plan.status = "cancelled"
+    plan.completed_at = now
+    core.add_event(
+        db,
+        "FIRMWARE_UPGRADE_PLAN_CANCELLED",
+        actor=user,
+        customer_id=device.customer_id,
+        device_id=device.id,
+        details={
+            "plan_id": str(plan.id),
+            "target_version": plan.target_version,
+            "previous_status": previous_status,
+            "withdrawn_job_ids": withdrawn_jobs,
+        },
+        source="portal",
+    )
+    db.commit()
+    return plan
 
 
 def install_firmware_upgrade_planner(app):
