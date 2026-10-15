@@ -3886,7 +3886,8 @@
       "action": "Azione",
       "status": "Stato",
       "note": "Nota"
-    }
+    },
+    "addToCatalog": "Aggiungi questo modello al catalogo"
   },
   "backupArtifact": {
     "back": "Torna all'archivio",
@@ -4328,6 +4329,61 @@
       "until_invalid": "Data di scadenza non valida.",
       "until_range": "La scadenza deve essere entro un anno da oggi.",
       "resolution": "Indica come è stata risolta la vulnerabilità."
+    }
+  },
+  "lifecycleCatalog": {
+    "title": "Catalogo EOL/EOS",
+    "subtitle_one": "{{count}} modello: gli apparati si correlano per vendor e modello (o alias).",
+    "subtitle_other": "{{count}} modelli: gli apparati si correlano per vendor e modello (o alias).",
+    "export": "Esporta CSV",
+    "new": "+ Nuovo modello",
+    "search": "Cerca modello o note",
+    "vendor": "Vendor",
+    "allVendors": "Tutti i vendor",
+    "columns": {
+      "model": "Modello",
+      "state": "Stato oggi",
+      "eol": "EOL",
+      "eos": "EOS",
+      "source": "Fonte",
+      "devices": "Apparati"
+    },
+    "aliases": "Alias",
+    "verified": "verificata il {{when}}",
+    "noMatch": "Nessun modello corrisponde ai filtri.",
+    "empty": "Il catalogo è vuoto: aggiungi i modelli o importa un CSV.",
+    "importTitle": "Importa CSV",
+    "importHelp": "Il file viene validato per intero: se una riga non è valida non viene importato nulla. I modelli già presenti vengono aggiornati.",
+    "file": "File CSV (UTF-8)",
+    "import": "Importa",
+    "imported": "{{created}} record creati, {{updated}} aggiornati; {{correlated}} apparati correlati, {{status_changed}} cambi di stato.",
+    "newTitle": "Nuovo modello",
+    "formHelp": "Usa il nome modello esatto riportato dagli apparati e aggiungi come alias le altre diciture. Senza date il modello risulta supportato alla data di verifica.",
+    "model": "Modello",
+    "aliasesHelp": "Separati da virgola.",
+    "eol": "EOL (fine vendita)",
+    "eos": "EOS (fine supporto)",
+    "source": "Fonte",
+    "sourcePlaceholder": "Es. pagina prodotto del vendor, bollettino",
+    "sourceUrl": "Link della fonte",
+    "evidence": "Fonte verificata il",
+    "notes": "Note",
+    "save": "Salva e ricorrela",
+    "cancel": "Annulla",
+    "updated": "Ultima modifica: {{when}}.",
+    "deleteTitle": "Elimina dal catalogo",
+    "deleteHelp": "Gli apparati correlati torneranno senza dato lifecycle.",
+    "delete": "Elimina modello",
+    "deleteConfirm": "Eliminare «{{model}}» dal catalogo? Gli apparati correlati torneranno senza dato lifecycle.",
+    "errors": {
+      "required": "Vendor e modello sono obbligatori.",
+      "source": "La fonte è obbligatoria: indica da dove provengono le date.",
+      "evidence": "Indica quando la fonte è stata verificata.",
+      "evidence_future": "La data di verifica non può essere futura.",
+      "date_invalid": "Una data non è valida (formato AAAA-MM-GG).",
+      "eos_before_eol": "La data EOS non può precedere la data EOL.",
+      "url": "Il link deve iniziare con http:// o https://.",
+      "encoding": "Il file deve essere CSV in UTF-8."
     }
   }
 }

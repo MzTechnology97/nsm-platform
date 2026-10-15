@@ -23,7 +23,7 @@ from __future__ import annotations
 import uuid
 from datetime import timedelta
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy import func, select
 
 from app import compliance as compliance_view
@@ -42,7 +42,9 @@ from app import compliance_findings
 from app.compliance_findings import in_exception
 from app.compliance_models import SCOPE_LABELS, SCOPE_PRIORITY, ComplianceResultHistory
 from app.input_errors import InputError
+from app import lifecycle_catalog as catalog
 from app import vulnerability_remediation as remediation
+from app.models import LifecycleRecord
 from app.models import Site, User, VulnerabilityHistory
 from app.compliance_models import ComplianceBaseline
 from app.ui_api import brand_icon, require_csrf, ui_user
@@ -450,6 +452,96 @@ def vulnerability_finding_status(request: Request, finding_id: uuid.UUID, body: 
         except InputError as exc:
             raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
         return {"status": status}
+
+
+def _record(record, today, usage: int | None = None) -> dict:
+    return {
+        "id": str(record.id), "vendor": record.vendor, "model": record.model, "aliases": list(record.aliases or []),
+        "eol_date": _iso(record.eol_date), "eos_date": _iso(record.eos_date), "status": catalog.record_status(record, today),
+        "source": record.source, "source_url": record.source_url, "evidence_date": _iso(record.evidence_date), "notes": record.notes,
+        "updated_at": _iso(record.updated_at), **({"devices": usage} if usage is not None else {}),
+    }
+
+
+def _catalog_error(exc: ValueError) -> HTTPException:
+    return HTTPException(422, {"code": getattr(exc, "code", "import"), "message": str(exc)})
+
+
+@router.get("/lifecycle/catalog")
+def lifecycle_catalog(request: Request, q: str = "", vendor: str = ""):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "security.read")
+        query = select(LifecycleRecord).order_by(LifecycleRecord.vendor, LifecycleRecord.model)
+        if vendor:
+            query = query.where(LifecycleRecord.vendor == catalog.vendor_key(vendor))
+        text = q.strip()[:100]
+        if text:
+            query = query.where(LifecycleRecord.model.ilike(f"%{text}%") | LifecycleRecord.notes.ilike(f"%{text}%"))
+        usage = dict(db.execute(select(Device.lifecycle_record_id, func.count(Device.id)).where(Device.lifecycle_record_id.is_not(None))
+                                .group_by(Device.lifecycle_record_id)).all())
+        today = utcnow().date()
+        return {
+            "items": [_record(r, today, usage.get(r.id, 0)) for r in db.scalars(query)],
+            "total": db.scalar(select(func.count(LifecycleRecord.id))) or 0,
+            "vendors": sorted({v for v in db.scalars(select(LifecycleRecord.vendor).distinct()) if v}),
+            "csv_url": catalog.CATALOG_URL + ".csv", "csv_fields": catalog.CSV_FIELDS,
+            "can_manage": core.has_permission(user, "lifecycle.manage"),
+        }
+
+
+@router.get("/lifecycle/catalog/form")
+def lifecycle_catalog_form(request: Request, record: str = ""):
+    with SessionLocal() as db:
+        ui_user(request, db, "lifecycle.manage")
+        item = None
+        if record:
+            item = db.get(LifecycleRecord, _uuid(record)) if _uuid(record) else None
+            if item is None:
+                raise HTTPException(404)
+        today = utcnow().date()
+        return {
+            "record": _record(item, today) if item else None,
+            "vendors": sorted({v for v in db.scalars(select(Device.vendor).distinct()) if v} | {"mikrotik", "ubiquiti"}),
+            "today": today.isoformat(),
+        }
+
+
+@router.post("/lifecycle/catalog", dependencies=[Depends(require_csrf)])
+def lifecycle_catalog_save(request: Request, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "lifecycle.manage")
+        raw = {key: body.get(key) for key in catalog.CSV_FIELDS}
+        if isinstance(raw.get("aliases"), list):
+            raw["aliases"] = "|".join(str(a) for a in raw["aliases"])
+        try:
+            record, linked, stats = catalog.save_record(db, user, raw, _uuid(body.get("record_id")) if body.get("record_id") else None)
+        except InputError as exc:
+            raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
+        return {"id": str(record.id), "model": record.model, "linked": linked, "status_changed": stats.get("status_changed", 0)}
+
+
+@router.post("/lifecycle/catalog/{record_id}/delete", dependencies=[Depends(require_csrf)])
+def lifecycle_catalog_delete(request: Request, record_id: uuid.UUID):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "lifecycle.manage")
+        stats = catalog.delete_record(db, user, record_id)
+        return {"deleted": True, "status_changed": stats.get("status_changed", 0)}
+
+
+@router.post("/lifecycle/catalog/import", dependencies=[Depends(require_csrf)])
+async def lifecycle_catalog_import(request: Request, file: UploadFile = File(...)):
+    content = await file.read()
+    with SessionLocal() as db:
+        user = ui_user(request, db, "lifecycle.manage")
+        try:
+            text = content.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            raise HTTPException(422, {"code": "encoding", "message": "Il file deve essere CSV in UTF-8."}) from None
+        try:
+            created, updated, stats = catalog.import_record(db, user, text, file.filename)
+        except ValueError as exc:
+            raise _catalog_error(exc) from exc
+        return {"created": created, "updated": updated, "correlated": stats.get("catalog", 0), "status_changed": stats.get("status_changed", 0)}
 
 def install_ui_security(app) -> None:
     app.include_router(router)

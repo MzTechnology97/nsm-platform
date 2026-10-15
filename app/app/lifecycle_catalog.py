@@ -156,6 +156,11 @@ def run_scheduled_reconcile(now=None) -> dict:
 
 # ------------------------------------------------------------- validation --
 
+class LifecycleInputError(InputError, ValueError):
+    """Invalid lifecycle input: a ValueError for the classic forms and the CSV import, an InputError with a code for the API."""
+
+
+
 def _date(value, label):
     text = str(value or "").strip()
     if not text:
@@ -163,7 +168,7 @@ def _date(value, label):
     try:
         return date.fromisoformat(text)
     except ValueError:
-        raise ValueError(f"{label}: data non valida «{text}» (formato AAAA-MM-GG).") from None
+        raise LifecycleInputError("date_invalid", f"{label}: data non valida «{text}» (formato AAAA-MM-GG).") from None
 
 
 def parse_record(raw: dict, today: date) -> dict:
@@ -171,21 +176,21 @@ def parse_record(raw: dict, today: date) -> dict:
     model = re.sub(r"\s+", " ", str(raw.get("model") or "")).strip()
     source = str(raw.get("source") or "").strip()
     if not vendor or not model:
-        raise ValueError("Vendor e modello sono obbligatori.")
+        raise LifecycleInputError("required", "Vendor e modello sono obbligatori.")
     if not source:
-        raise ValueError("La fonte è obbligatoria: indica da dove provengono le date.")
+        raise LifecycleInputError("source", "La fonte è obbligatoria: indica da dove provengono le date.")
     evidence = _date(raw.get("evidence_date"), "Data verifica fonte")
     if not evidence:
-        raise ValueError("Indica quando la fonte è stata verificata.")
+        raise LifecycleInputError("evidence", "Indica quando la fonte è stata verificata.")
     if evidence > today:
-        raise ValueError("La data di verifica della fonte non può essere futura.")
+        raise LifecycleInputError("evidence_future", "La data di verifica della fonte non può essere futura.")
     eol = _date(raw.get("eol_date"), "EOL")
     eos = _date(raw.get("eos_date"), "EOS")
     if eol and eos and eos < eol:
-        raise ValueError("La data EOS non può precedere la data EOL.")
+        raise LifecycleInputError("eos_before_eol", "La data EOS non può precedere la data EOL.")
     url = str(raw.get("source_url") or "").strip() or None
     if url and not re.match(r"^https?://", url):
-        raise ValueError("Il link della fonte deve iniziare con http:// o https://.")
+        raise LifecycleInputError("url", "Il link della fonte deve iniziare con http:// o https://.")
     aliases = [a.strip() for a in re.split(r"[|\n,]", str(raw.get("aliases") or "")) if a.strip()]
     return {
         "vendor": vendor[:60], "model": model[:150], "model_key": model_key(vendor, model)[:150],
@@ -203,7 +208,7 @@ def _check_keys(db, data: dict, own_id=None) -> None:
             continue
         taken = {other.model_key, *(model_key(other.vendor, a) for a in other.aliases or [])}
         if wanted & taken:
-            raise ValueError(f"Modello o alias già presente nel record «{other.model}».")
+            raise LifecycleInputError("duplicate", f"Modello o alias già presente nel record «{other.model}».")
 
 
 def _apply(record: LifecycleRecord, data: dict, user, now) -> None:
@@ -280,27 +285,10 @@ async def record_save(request: Request):
         record_id = form.get("record_id")
         record = db.get(LifecycleRecord, uuid.UUID(str(record_id))) if record_id else None
         back = f"{CATALOG_URL}/{record.id}/edit" if record else f"{CATALOG_URL}/new"
-        now = utcnow()
         try:
-            data = parse_record(dict(form), now.date())
-            _check_keys(db, data, record.id if record else None)
+            record, linked, stats = save_record(db, user, dict(form), record.id if record else None)
         except ValueError as exc:
             return flash_redirect(request, back, "warning", str(exc), title="Record non salvato")
-        created = record is None
-        if created:
-            record = LifecycleRecord(id=uuid.uuid4(), created_at=now)
-            db.add(record)
-        _apply(record, data, user, now)
-        db.flush()
-        core.add_event(
-            db, "LIFECYCLE_RECORD_SAVED", actor=user,
-            details={"record_id": str(record.id), "vendor": record.vendor, "model": record.model, "created": created,
-                     "eol": data["eol_date"] and data["eol_date"].isoformat(), "eos": data["eos_date"] and data["eos_date"].isoformat(),
-                     "source": record.source, "evidence_date": record.evidence_date.isoformat()},
-        )
-        stats = reconcile(db, now)
-        db.commit()
-        linked = db.scalar(select(func.count(Device.id)).where(Device.lifecycle_record_id == record.id)) or 0
         model = record.model
     return flash_redirect(
         request, CATALOG_URL, "success",
@@ -314,15 +302,7 @@ async def record_delete(request: Request, record_id: uuid.UUID):
     validate_csrf(request, str(form.get("csrf") or ""))
     with SessionLocal() as db:
         user = core.require_permission(request, db, "lifecycle.manage")
-        record = db.get(LifecycleRecord, record_id)
-        if not record:
-            raise HTTPException(404)
-        core.add_event(db, "LIFECYCLE_RECORD_DELETED", actor=user, details={"vendor": record.vendor, "model": record.model, "source": record.source})
-        db.execute(Device.__table__.update().where(Device.lifecycle_record_id == record.id).values(lifecycle_record_id=None))
-        db.delete(record)
-        db.flush()
-        stats = reconcile(db)
-        db.commit()
+        stats = delete_record(db, user, record_id)
     return flash_redirect(request, CATALOG_URL, "success", f"Record eliminato; {stats['status_changed']} apparati tornati senza dato lifecycle.", title="Record eliminato")
 
 
@@ -390,6 +370,62 @@ def import_rows(db, text: str, user, now) -> tuple[int, int]:
     return created, updated
 
 
+def save_record(db, user, raw: dict, record_id=None):
+    """Create (``record_id`` None) or update a catalog record, audit it and re-correlate devices; commits.
+
+    Returns ``(record, linked_devices, reconcile_stats)``; raises ``LifecycleInputError``.
+    """
+    record = db.get(LifecycleRecord, record_id) if record_id else None
+    if record_id and record is None:
+        raise HTTPException(404)
+    now = utcnow()
+    data = parse_record(raw, now.date())
+    _check_keys(db, data, record.id if record else None)
+    created = record is None
+    if created:
+        record = LifecycleRecord(id=uuid.uuid4(), created_at=now)
+        db.add(record)
+    _apply(record, data, user, now)
+    db.flush()
+    core.add_event(
+        db, "LIFECYCLE_RECORD_SAVED", actor=user,
+        details={"record_id": str(record.id), "vendor": record.vendor, "model": record.model, "created": created,
+                 "eol": data["eol_date"] and data["eol_date"].isoformat(), "eos": data["eos_date"] and data["eos_date"].isoformat(),
+                 "source": record.source, "evidence_date": record.evidence_date.isoformat()},
+    )
+    stats = reconcile(db, now)
+    db.commit()
+    linked = db.scalar(select(func.count(Device.id)).where(Device.lifecycle_record_id == record.id)) or 0
+    return record, linked, stats
+
+
+def delete_record(db, user, record_id) -> dict:
+    record = db.get(LifecycleRecord, record_id)
+    if not record:
+        raise HTTPException(404)
+    core.add_event(db, "LIFECYCLE_RECORD_DELETED", actor=user, details={"vendor": record.vendor, "model": record.model, "source": record.source})
+    db.execute(Device.__table__.update().where(Device.lifecycle_record_id == record.id).values(lifecycle_record_id=None))
+    db.delete(record)
+    db.flush()
+    stats = reconcile(db)
+    db.commit()
+    return stats
+
+
+def import_record(db, user, text: str, filename: str | None):
+    """Whole-file CSV import (nothing written on any error), audited and re-correlated; commits. Raises ``ValueError``."""
+    now = utcnow()
+    try:
+        created, updated = import_rows(db, text, user, now)
+    except ValueError:
+        db.rollback()
+        raise
+    core.add_event(db, "LIFECYCLE_CATALOG_IMPORTED", actor=user, details={"created": created, "updated": updated, "filename": filename})
+    stats = reconcile(db, now)
+    db.commit()
+    return created, updated, stats
+
+
 @router.post(CATALOG_URL + "/import", name="lifecycle_catalog_import")
 async def catalog_import(request: Request):
     form = await request.form()
@@ -404,15 +440,10 @@ async def catalog_import(request: Request):
             text = content.decode("utf-8-sig")
         except UnicodeDecodeError:
             return flash_redirect(request, CATALOG_URL, "warning", "Il file deve essere CSV in UTF-8.", title="Import non eseguito")
-        now = utcnow()
         try:
-            created, updated = import_rows(db, text, user, now)
+            created, updated, stats = import_record(db, user, text, getattr(upload, "filename", None))
         except ValueError as exc:
-            db.rollback()
             return flash_redirect(request, CATALOG_URL, "warning", f"Nessun record importato. {exc}", title="Import non eseguito")
-        core.add_event(db, "LIFECYCLE_CATALOG_IMPORTED", actor=user, details={"created": created, "updated": updated, "filename": getattr(upload, "filename", None)})
-        stats = reconcile(db, now)
-        db.commit()
     return flash_redirect(
         request, CATALOG_URL, "success",
         f"{created} record creati, {updated} aggiornati; {stats['catalog']} apparati correlati, {stats['status_changed']} cambi di stato.",
@@ -459,10 +490,6 @@ async def device_lifecycle_save(request: Request, device_id: uuid.UUID):
         except ValueError as exc:
             return flash_redirect(request, back, "warning", str(exc), title="Dato non salvato")
     return flash_redirect(request, f"/devices/{device_id}", "success", "Valore lifecycle manuale salvato con fonte e data di verifica.", title="Lifecycle aggiornato")
-
-
-class LifecycleInputError(InputError, ValueError):
-    """Invalid manual lifecycle value: a ValueError for the classic form, an InputError with a code for the API."""
 
 
 def use_catalog_record(db, user, device: Device) -> str:

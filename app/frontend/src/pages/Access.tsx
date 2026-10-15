@@ -143,7 +143,7 @@ export function Lifecycle() {
           <p>{first ? t("lifecycle.subtitle", { count: first.counts.attention, customers: first.counts.customers }) : t("app.loading")}</p>
         </div>
         <div className="ui-actions">
-          <a className="ui-button ui-button-ghost" href="/security/lifecycle/catalog">{t("lifecycle.catalog")}</a>
+          <Link to="/lifecycle/catalog" className="ui-button ui-button-ghost">{t("lifecycle.catalog")}</Link>
           <a className="ui-button ui-button-ghost" href="/security/lifecycle">{t("app.classic")}</a>
         </div>
       </header>
@@ -188,9 +188,9 @@ export function Lifecycle() {
                     <td>{t(`lifecycle.matches.${group.match ?? "no_record"}`, { defaultValue: group.match ?? "" })}</td>
                     <td>{group.devices} <small className="ui-muted">{t("vulns.customersCount", { count: group.customers })}</small></td>
                     <td>
-                      <a className="ui-button ui-button-ghost ui-button-small" href={`/security/lifecycle/catalog/new?vendor=${encodeURIComponent(group.vendor ?? "")}&model=${encodeURIComponent(group.model ?? "")}`}>
+                      <Link to="/lifecycle/catalog/new" search={{ vendor: group.vendor ?? undefined, model: group.model ?? undefined }} className="ui-button ui-button-ghost ui-button-small">
                         {t("lifecycle.addRecord")}
-                      </a>
+                      </Link>
                     </td>
                   </tr>
                 ))}

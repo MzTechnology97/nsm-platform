@@ -5,10 +5,8 @@ import { useTranslation } from "react-i18next";
 import { ApiError } from "../api/client";
 import { type LifecycleTab, useDeviceLifecycle, useLifecycleAction } from "../api/deviceTabs";
 import { BrandIcon } from "../app/BrandIcon";
-import { formatDateTime } from "../lib/format";
+import { formatDate, formatDateTime } from "../lib/format";
 
-const formatDate = (value: string | null | undefined, locale: string) =>
-  value ? new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(value)) : "—";
 
 function message(error: unknown) {
   return error instanceof ApiError ? error.message : (error as Error | null)?.message;
@@ -66,7 +64,11 @@ function Catalog({ deviceId, data }: { deviceId: string; data: LifecycleTab }) {
             ? t("deviceLifecycle.catalogAmbiguous", { candidates: correlation.candidates.join(", "), model: data.device.model ?? "" })
             : correlation.match === "no_record" ? t("deviceLifecycle.catalogMissing", { model: data.device.model ?? "" }) : t("deviceLifecycle.catalogNoModel")}
       </p>
-      {correlation.match !== "catalog" && <a href="/lifecycle/catalog">{t("deviceLifecycle.openCatalog")}</a>}
+      {correlation.match !== "catalog" && (
+        correlation.match === "no_record" && data.device.model && data.can_manage
+          ? <Link to="/lifecycle/catalog/new" search={{ vendor: data.device.vendor ?? undefined, model: data.device.model }}>{t("deviceLifecycle.addToCatalog")}</Link>
+          : <Link to="/lifecycle/catalog">{t("deviceLifecycle.openCatalog")}</Link>
+      )}
       {data.device.match === "manual" && data.can_manage && (
         <div className="ui-row-actions">
           <button type="button" className="ui-button ui-button-ghost" disabled={useCatalog.isPending} onClick={() => useCatalog.mutate(undefined)}>{t("deviceLifecycle.useCatalog")}</button>

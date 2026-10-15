@@ -3886,7 +3886,8 @@
       "action": "Action",
       "status": "State",
       "note": "Note"
-    }
+    },
+    "addToCatalog": "Add this model to the catalog"
   },
   "backupArtifact": {
     "back": "Back to the archive",
@@ -4328,6 +4329,61 @@
       "until_invalid": "Invalid expiry date.",
       "until_range": "The expiry must be within one year from today.",
       "resolution": "Explain how the vulnerability was resolved."
+    }
+  },
+  "lifecycleCatalog": {
+    "title": "EOL/EOS catalog",
+    "subtitle_one": "{{count}} model: devices are correlated by vendor and model (or alias).",
+    "subtitle_other": "{{count}} models: devices are correlated by vendor and model (or alias).",
+    "export": "Export CSV",
+    "new": "+ New model",
+    "search": "Search model or notes",
+    "vendor": "Vendor",
+    "allVendors": "All vendors",
+    "columns": {
+      "model": "Model",
+      "state": "State today",
+      "eol": "EOL",
+      "eos": "EOS",
+      "source": "Source",
+      "devices": "Devices"
+    },
+    "aliases": "Aliases",
+    "verified": "verified on {{when}}",
+    "noMatch": "No model matches the filters.",
+    "empty": "The catalog is empty: add models or import a CSV.",
+    "importTitle": "Import CSV",
+    "importHelp": "The whole file is validated first: if any row is invalid nothing is imported. Existing models are updated.",
+    "file": "CSV file (UTF-8)",
+    "import": "Import",
+    "imported": "{{created}} records created, {{updated}} updated; {{correlated}} devices correlated, {{status_changed}} state changes.",
+    "newTitle": "New model",
+    "formHelp": "Use the exact model name reported by the devices and add the other spellings as aliases. Without dates the model is supported as of the verification date.",
+    "model": "Model",
+    "aliasesHelp": "Comma separated.",
+    "eol": "EOL (end of sale)",
+    "eos": "EOS (end of support)",
+    "source": "Source",
+    "sourcePlaceholder": "E.g. vendor product page, bulletin",
+    "sourceUrl": "Source link",
+    "evidence": "Source verified on",
+    "notes": "Notes",
+    "save": "Save and re-correlate",
+    "cancel": "Cancel",
+    "updated": "Last change: {{when}}.",
+    "deleteTitle": "Delete from the catalog",
+    "deleteHelp": "Correlated devices go back to having no lifecycle data.",
+    "delete": "Delete model",
+    "deleteConfirm": "Delete \"{{model}}\" from the catalog? Correlated devices go back to having no lifecycle data.",
+    "errors": {
+      "required": "Vendor and model are required.",
+      "source": "The source is required: say where the dates come from.",
+      "evidence": "Say when the source was verified.",
+      "evidence_future": "The verification date cannot be in the future.",
+      "date_invalid": "A date is not valid (YYYY-MM-DD).",
+      "eos_before_eol": "The EOS date cannot precede the EOL date.",
+      "url": "The link must start with http:// or https://.",
+      "encoding": "The file must be a UTF-8 CSV."
     }
   }
 }
