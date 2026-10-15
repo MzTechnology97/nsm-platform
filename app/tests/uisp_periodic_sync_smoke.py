@@ -238,38 +238,19 @@ def main():
         follow_redirects=False,
     )
     assert login.status_code == 303
-    page = client.get("/admin/integrations/uisp")
-    assert page.status_code == 200
-    assert "Sincronizzazione periodica" in page.text and "Sincronizza ora" in page.text
-    invalid = client.post(
-        "/admin/integrations/uisp",
-        data={
-            "csrf": csrf_from(page.text),
-            "base_url": "https://uisp.example.test",
-            "is_enabled": "on",
-            "verify_tls": "on",
-            "sync_interval_minutes": "2",
-        },
-    )
-    assert "tra 5 e 1440 minuti" in invalid.text
-    saved = client.post(
-        "/admin/integrations/uisp",
-        data={
-            "csrf": csrf_from(invalid.text),
-            "base_url": "https://uisp.example.test",
-            "is_enabled": "on",
-            "verify_tls": "on",
-            "sync_interval_minutes": "30",
-        },
-    )
-    assert saved.status_code == 200 and "30 min" in saved.text
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    assert client.get("/api/ui/v1/admin/integrations/uisp").status_code == 200
+    invalid = client.post("/api/ui/v1/admin/integrations/uisp", headers=headers, json={"base_url": "https://uisp.example.test", "enabled": True, "verify_tls": True, "sync_interval_minutes": 2})
+    assert invalid.status_code == 422 and "tra 5 e 1440 minuti" in invalid.text, invalid.text
+    saved = client.post("/api/ui/v1/admin/integrations/uisp", headers=headers, json={"base_url": "https://uisp.example.test", "enabled": True, "verify_tls": True, "sync_interval_minutes": 30})
+    assert saved.status_code == 200, saved.text
     with SessionLocal() as db:
         row = db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == "uisp"))
         assert row.settings["sync_interval_minutes"] == 30
         assert "sync" in row.settings, "saving the form keeps sync health"
-    manual = client.post("/admin/integrations/uisp/sync", data={"csrf": csrf_from(saved.text)})
-    assert manual.status_code == 200
-    assert "Sincronizzazione UISP completata: 3 apparati associati" in manual.text
+    manual = client.post("/api/ui/v1/admin/integrations/uisp/sync", headers=headers)
+    assert manual.status_code == 200, manual.text
+    assert manual.json()["status"] == "success" and 3 in (manual.json()["devices"], manual.json()["updated"]), manual.json()
     assert TOKEN not in manual.text
     assert events("UISP_SYNC_COMPLETED")
     print("UISP periodic sync smoke passed")

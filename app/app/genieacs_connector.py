@@ -466,16 +466,6 @@ def apply_candidate(db, device: Device, candidate: dict, actor, event_type="GENI
     return changes
 
 
-def _auth_label(connection):
-    if not connection:
-        return "—"
-    try:
-        mode = _load_auth(connection).get("mode", "none")
-    except GenieAcsConnectorError:
-        return "Configurazione non valida"
-    return {"none": "Nessuna / rete privata", "basic": "HTTP Basic", "bearer": "Bearer token"}.get(mode, mode)
-
-
 def auth_info(connection) -> tuple[str, str]:
     """(auth mode, username) of the stored NBI credentials, without the secret."""
     if connection:
@@ -595,58 +585,6 @@ def test_connection(db, user, row) -> tuple[bool, str]:
     return ok, message
 
 
-def _admin_render(request, db, user, *, message=None, error=None):
-    connection = _connection(db)
-    auth_mode, auth_username = auth_info(connection)
-    return core.render(
-        request,
-        db,
-        user,
-        "admin_genieacs.html",
-        connection=connection,
-        auth_mode=auth_mode,
-        auth_username=auth_username,
-        auth_label=_auth_label(connection),
-        mac_paths="\n".join(_mac_paths(connection)) if connection else "\n".join(DEFAULT_MAC_PARAMETER_PATHS),
-        internal_url=internal_nbi_url(),
-        message=message,
-        error=error,
-    )
-
-
-@router.get("/admin/integrations/genieacs", response_class=HTMLResponse, name="admin_genieacs")
-def admin_genieacs(request: Request):
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        return _admin_render(request, db, user)
-
-
-@router.post("/admin/integrations/genieacs", response_class=HTMLResponse, name="admin_genieacs_save")
-def admin_genieacs_save(
-    request: Request,
-    base_url: str = Form(...),
-    auth_mode: str = Form("none"),
-    auth_username: str = Form(""),
-    auth_secret: str = Form(""),
-    mac_parameter_paths: str = Form(""),
-    online_window_minutes: int = Form(GENIEACS_ONLINE_WINDOW_MINUTES),
-    is_enabled: str | None = Form(None),
-    verify_tls: str | None = Form(None),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        try:
-            save_config(db, user, base_url=base_url, auth_mode=auth_mode, auth_username=auth_username, auth_secret=auth_secret,
-                        mac_parameter_paths=mac_parameter_paths, online_window_minutes=online_window_minutes,
-                        enabled=is_enabled is not None, verify_tls=verify_tls is not None)
-        except (ValueError, GenieAcsConnectorError) as exc:
-            return _admin_render(request, db, user, error=str(exc))
-        db.commit()
-        return _admin_render(request, db, user, message="Configurazione GenieACS salvata. Le eventuali credenziali sono cifrate.")
-
-
 def internal_nbi_url() -> str | None:
     """NBI URL of the GenieACS shipped in the NSM Docker stack (``./manage.sh acs-enable``)."""
     value = os.getenv("GENIEACS_INTERNAL_NBI_URL", "").strip()
@@ -654,33 +592,6 @@ def internal_nbi_url() -> str | None:
         return normalize_base_url(value) if value else None
     except ValueError:
         return None
-
-
-@router.post("/admin/integrations/genieacs/internal", response_class=HTMLResponse, name="admin_genieacs_internal")
-def admin_genieacs_internal(request: Request, csrf: str = Form(...)):
-    """Point the connector at the integrated GenieACS (internal Docker network, no authentication needed)."""
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        try:
-            use_internal(db, user)
-        except ValueError as exc:
-            return _admin_render(request, db, user, error=str(exc))
-        db.commit()
-        return _admin_render(request, db, user, message="Connettore collegato al GenieACS integrato. Esegui «Test connessione» per verificarlo.")
-
-
-@router.post("/admin/integrations/genieacs/test", response_class=HTMLResponse, name="admin_genieacs_test")
-def admin_genieacs_test(request: Request, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        row = _connection(db)
-        if not row:
-            return _admin_render(request, db, user, error="Configura prima il connettore GenieACS.")
-        ok, message = test_connection(db, user, row)
-        db.commit()
-        return _admin_render(request, db, user, message=message if ok else None, error=None if ok else message)
 
 
 def _device(db, device_id):

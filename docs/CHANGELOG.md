@@ -4,6 +4,23 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.170 — 2026-10-15
+
+Classic interface removal, administration (phase 8, R1)
+- **Classic pages removed.** These administration pages now exist only in the new interface:
+  - users, API keys, notifications, syslog, system, branding, ACS, Demo Lab;
+  - the connector settings for UISP, Zabbix, GenieACS, cnMaestro and NVD;
+  - the RouterOS catalogue.
+- **Old addresses keep working.** Each classic address redirects (302) to the same page under `/app`.
+- **Removed with the pages:**
+  - their form handlers: users, roles, scopes, sessions and 2FA reset; API key create, revoke, delete and rotate; SMTP, Telegram and retry; syslog settings and configure-all; branding and logo; ACS templates; demo seed and clear; connector save, test and sync; NVD sync and match; RouterOS refresh;
+  - the API key feedback wrapper;
+  - an API key module that was never installed;
+  - 16 templates.
+
+  The new interface uses the `/api/ui/v1/admin` endpoints, which share the same functions.
+- **System page links.** The connector links point straight to the new interface.
+- **CI.** The canonical-route contract no longer lists the removed admin pages.
 ## 0.49.169 — 2026-10-15
 
 Classic interface removal, operations area (phase 8, R1)

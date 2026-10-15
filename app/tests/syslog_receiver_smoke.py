@@ -147,16 +147,17 @@ def main():
     exported = admin.get(f"/devices/{ids['gw']}/logs.csv?severity=3")
     assert exported.status_code == 200 and "login failure for user admin" in exported.text and "udp line" not in exported.text
 
-    settings_page = admin.get("/admin/syslog")
-    assert settings_page.status_code == 200 and "192.0.2.250" in settings_page.text and "Fortinet FortiGate" in settings_page.text
-    csrf = csrf_from(settings_page.text)
-    assert "Solo righe con chiave" in settings_page.text and "Associa" not in settings_page.text
-    assert admin.post("/admin/syslog/settings", data={"csrf": csrf, "public_host": "203.0.113.5", "info_retention_days": "365", "strict_mode": "1",
-                                                      "allowed_networks": "192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 127.0.0.0/8"},
-                      follow_redirects=False).status_code == 303
+    syslog_api = "/api/ui/v1/admin/syslog"
+    settings_page = admin.get(syslog_api)
+    assert settings_page.status_code == 200 and "Fortinet FortiGate" in repr(settings_page.json()["guides"])
+    assert "192.0.2.250" in {u["source_ip"] for u in settings_page.json()["unknown_sources"]}
+    headers = {"X-CSRF-Token": admin.get("/api/ui/v1/session").json()["csrf_token"]}
+    saved = admin.post(f"{syslog_api}/settings", headers=headers, json={"public_host": "203.0.113.5", "info_retention_days": 365,
+                                                                       "allowed_networks": "192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 127.0.0.0/8"})
+    assert saved.status_code == 200, saved.text
     assert "remote=203.0.113.5" in admin.get(f"/devices/{ids['gw']}/logs").text
-    cleared = admin.post("/admin/syslog/unknown/assign", data={"csrf": csrf, "source_ip": "192.0.2.250", "ignore": "1"}, follow_redirects=False)
-    assert cleared.status_code == 303 and "ignored" in cleared.headers["location"]
+    cleared = admin.post(f"{syslog_api}/unknown/clear", headers=headers, json={"source_ip": "192.0.2.250"})
+    assert cleared.status_code == 200 and cleared.json()["cleared"], cleared.text
     receiver.refresh()
     assert receiver.settings["info_retention_days"] == 90, "info history is capped at 3 months"
     receiver.handle(f"<30>NSM-{LAN_KEY} now i am known".encode(), "192.0.2.250")
@@ -179,7 +180,7 @@ def main():
     auditor = TestClient(app)
     assert auditor.post("/login", data={"username": f"ci-sy-o-{suffix}", "password": PASSWORD, "csrf": csrf_from(auditor.get("/login").text)}, follow_redirects=False).status_code == 303
     assert auditor.get(f"/devices/{ids['gw']}/logs").status_code == 200
-    assert auditor.get("/admin/syslog").status_code == 403
+    assert auditor.get("/api/ui/v1/admin/syslog").status_code == 403
     assert TestClient(app).get(f"/api/v1/devices/{ids['gw']}/logs").status_code == 401
     print("Syslog receiver smoke passed")
 

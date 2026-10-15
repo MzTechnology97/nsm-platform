@@ -5,8 +5,7 @@ import secrets
 import uuid
 from datetime import timedelta
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import func, or_, select
 
 from app import main as core
@@ -14,7 +13,6 @@ from app.api_key_models import PlatformApiKey
 from app.api_key_scopes import normalize_scopes
 from app.db import SessionLocal
 from app.models import Customer, Device, Site, utcnow
-from app.security import validate_csrf
 
 router = APIRouter()
 API_KEY_PREFIX = "nsm_live_"
@@ -138,25 +136,6 @@ def _admin_context(db):
     return keys, customers, customer_map
 
 
-def _render_admin(request, db, user, new_key=None, created_key=None):
-    keys, customers, customer_map = _admin_context(db)
-    response = core.render(
-        request,
-        db,
-        user,
-        "admin_api_keys.html",
-        api_keys=keys,
-        customers=customers,
-        customer_map=customer_map,
-        new_key=new_key,
-        created_key=created_key,
-        expiry_options=(30, 90, 365, 0),
-        inventory_scope=API_KEY_SCOPE_INVENTORY_READ,
-    )
-    response.headers["Cache-Control"] = "no-store"
-    return response
-
-
 def create_key(db, user, name: str, customer_id: str, expires_days: int, scopes) -> tuple[PlatformApiKey, str]:
     """Validate (HTTPException 400 with the reason), create and audit a key; returns it with the raw token. Caller commits."""
     name = str(name or "").strip()[:160]
@@ -244,56 +223,6 @@ def delete_key(db, user, key: PlatformApiKey) -> None:
         source="portal",
         severity="warning",
     )
-
-
-@router.get("/admin/api-keys", response_class=HTMLResponse, name="admin_api_keys")
-def admin_api_keys(request: Request):
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        return _render_admin(request, db, user)
-
-
-@router.post("/admin/api-keys", response_class=HTMLResponse, name="admin_api_key_create")
-def admin_api_key_create(
-    request: Request,
-    name: str = Form(...),
-    customer_id: str = Form(""),
-    expires_days: int = Form(90),
-    csrf: str = Form(...),
-    scopes: list[str] = Form(default=[]),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        row, raw_key = create_key(db, user, name, customer_id, expires_days, scopes)
-        db.commit()
-        return _render_admin(request, db, user, new_key=raw_key, created_key=row)
-
-
-@router.post("/admin/api-keys/{key_id}/revoke", name="admin_api_key_revoke")
-def admin_api_key_revoke(request: Request, key_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        key = db.get(PlatformApiKey, key_id)
-        if not key:
-            raise HTTPException(404, "API key non trovata.")
-        if revoke_key(db, user, key):
-            db.commit()
-    return RedirectResponse("/admin/api-keys", status_code=303)
-
-
-@router.post("/admin/api-keys/{key_id}/delete", name="admin_api_key_delete")
-def admin_api_key_delete(request: Request, key_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        key = db.get(PlatformApiKey, key_id)
-        if not key:
-            raise HTTPException(404, "API key non trovata.")
-        delete_key(db, user, key)
-        db.commit()
-    return RedirectResponse("/admin/api-keys", status_code=303)
 
 
 @router.get("/api/v1/public/customers", name="public_api_customers")

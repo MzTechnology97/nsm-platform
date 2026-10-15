@@ -8,12 +8,11 @@
 """
 from __future__ import annotations
 
-import json
 import re
 from urllib.parse import urlsplit
 
 import httpx
-from fastapi import HTTPException, Request
+from fastapi import HTTPException
 from sqlalchemy import select
 
 from app import main as core
@@ -23,8 +22,6 @@ from app.integration_models import ConnectorIntegration
 from app.models import utcnow
 from app.notification_models import NotificationDelivery, UserNotificationPreference
 from app.secret_vault import decrypt_text, encrypt_text
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 
 TELEGRAM_PROVIDER = "telegram"
 TELEGRAM_API = "https://api.telegram.org"
@@ -187,25 +184,6 @@ def configure_bot(db, user, token: str, enabled: bool) -> tuple[bool, str]:
     return row.last_test_status == "success", message
 
 
-async def save_telegram_bot(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        try:
-            verified, message = configure_bot(db, user, str(form.get("bot_token") or ""), form.get("is_enabled") is not None)
-        except HTTPException as exc:
-            return flash_redirect(request, "/admin/notifications", "warning", str(exc.detail), title="Telegram")
-        level = "success" if verified else "warning"
-        db.commit()
-    return flash_redirect(request, "/admin/notifications", level, message, title="Telegram")
-
-
-def admin_context(db) -> dict:
-    row = telegram_row(db)
-    return {"telegram": row, "telegram_bot": (row.settings or {}).get("bot_username") if row else None}
-
-
 def register_channels() -> None:
     """Add Telegram and Slack to the delivery channels (web app and worker)."""
     nd.CHANNELS["telegram"] = {"label": "Telegram", "send": send_telegram, "save": save_telegram,
@@ -215,10 +193,5 @@ def register_channels() -> None:
 
 def install_notification_chat(app) -> None:
     register_channels()
-    app.add_api_route("/admin/notifications/telegram", save_telegram_bot, methods=["POST"], name="admin_notifications_telegram", include_in_schema=False)
-    core.templates.env.globals["notification_chat_admin"] = lambda: _admin_context_global()
 
 
-def _admin_context_global() -> dict:
-    with SessionLocal() as db:
-        return admin_context(db)

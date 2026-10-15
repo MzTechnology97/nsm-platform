@@ -88,16 +88,17 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-cn-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get("/admin/integrations/cnmaestro").text
-    saved = client.post("/admin/integrations/cnmaestro", data={"csrf": csrf_from(page), "base_url": "https://cnmaestro.example.test", "client_id": "ci-client",
-                                                               "client_secret": "ci-secret-value", "verify_tls": "1", "is_enabled": "1"})
-    assert "Configurazione cnMaestro salvata" in saved.text and "ci-secret-value" not in saved.text
+    admin_api = "/api/ui/v1/admin/integrations/cnmaestro"
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    saved = client.post(admin_api, headers=headers, json={"base_url": "https://cnmaestro.example.test", "client_id": "ci-client",
+                                                          "client_secret": "ci-secret-value", "verify_tls": True, "enabled": True})
+    assert saved.status_code == 200 and "ci-secret-value" not in saved.text, saved.text
     with SessionLocal() as db:
         assert "ci-secret-value" not in cnm.connection_row(db).secret_encrypted
-    tested = client.post("/admin/integrations/cnmaestro/test", data={"csrf": csrf_from(saved.text)})
-    assert "Connessione riuscita" in tested.text
-    synced = client.post("/admin/integrations/cnmaestro/sync", data={"csrf": csrf_from(tested.text)})
-    assert "Sincronizzazione completata" in synced.text and "152 apparati in cnMaestro" in synced.text, synced.text[-2000:]
+    tested = client.post(f"{admin_api}/test", headers=headers).json()
+    assert tested["ok"] is True, tested
+    synced = client.post(f"{admin_api}/sync", headers=headers).json()
+    assert synced["status"] == "success" and synced["cnmaestro_devices"] == 152, synced
     assert fake.calls.count("/api/v1/devices") >= 3, "inventory read in pages (test call + two pages)"
 
     with SessionLocal() as db:
@@ -123,9 +124,8 @@ def main():
 
     # Wrong credentials: explained, the last data stays.
     cnm.client_for = lambda row, transport_=None: original(row, httpx.MockTransport(lambda request: httpx.Response(401, json={"error": "invalid_client"})))
-    page = client.get("/admin/integrations/cnmaestro").text
-    failed = client.post("/admin/integrations/cnmaestro/sync", data={"csrf": csrf_from(page)})
-    assert "client id/secret" in failed.text
+    failed = client.post(f"{admin_api}/sync", headers=headers).json()
+    assert failed["status"] == "failed" and "client id/secret" in (failed["error"] or ""), failed
     with SessionLocal() as db:
         assert db.get(Device, ids["ap"]).inventory_data["cnmaestro"]["mac"] == "02:CB:00:00:00:01"
     print("cnMaestro smoke passed")

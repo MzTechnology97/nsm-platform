@@ -19,11 +19,10 @@ from sqlalchemy.exc import ProgrammingError
 
 from app import db_roles, syslog_firewall, syslog_integrity
 from app import syslog_receiver as rx
-from app.config import settings
 from app.db import SessionLocal, engine
 from app.entrypoint import app
 from app.integration_models import ConnectorIntegration
-from app.models import AuditEvent, Customer, Device, User, utcnow
+from app.models import AuditEvent, Customer, Device, User
 from app.security import hash_password
 from app.syslog_main import prepare_environment
 from app.syslog_models import DeviceLogEntry
@@ -177,8 +176,8 @@ def main():
     assert client.post("/login", data={"username": f"ci-sh-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
     page = client.get(f"/devices/{gw_id}/logs?verify=1").text
     assert "Integrità dei log" in page and ("Catena integra" in page or "Ancoraggio non trovato" in page)
-    admin = client.get("/admin/syslog").text
-    assert "Protezione del server syslog" in admin and "DOCKER-USER" in admin and "exit 1" in admin
+    script = client.get("/api/ui/v1/admin/syslog").json()["firewall_script"]
+    assert "Nessuna rete consentita" in script and "exit 1" in script, "without allowed networks the firewall script refuses to run"
     print("Syslog hardening smoke passed")
 
 

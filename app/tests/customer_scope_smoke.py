@@ -47,13 +47,18 @@ def main():
 
     # The administrator limits the technician to Alpha.
     admin = login(f"ci-cs-admin-{suffix}")
-    users = admin.get("/admin/users").text
-    assert "Clienti visibili" in users and "tutti (amministratore)" in users
-    admin.post(f"/admin/users/{tech_id}/scope", data={"csrf": csrf_from(users), "customer_ids": [str(ids["alpha"]), "not-a-customer"]})
+    users_api = "/api/ui/v1/admin/users"
+    admin_headers = {"X-CSRF-Token": admin.get("/api/ui/v1/session").json()["csrf_token"]}
+
+    def tech_row():
+        return next(u for u in admin.get(users_api).json()["users"] if u["id"] == str(tech_id))
+
+    assert tech_row()["scope"] == []
+    admin.post(f"{users_api}/{tech_id}/scope", headers=admin_headers, json={"customer_ids": [str(ids["alpha"]), "not-a-customer"]}).raise_for_status()
     with SessionLocal() as db:
         assert db.get(User, tech_id).customer_scope == [str(ids["alpha"])]
         assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "USER_CUSTOMER_SCOPE_CHANGED")) is not None
-    assert "1 clienti" in admin.get("/admin/users").text
+    assert [c["id"] for c in tech_row()["scope"]] == [str(ids["alpha"])]
 
     tech = login(f"ci-cs-tech-{suffix}")
     devices = tech.get("/devices").text
@@ -89,7 +94,7 @@ def main():
     with SessionLocal() as db:
         assert db.scalar(select(func.count(Device.id)).where(Device.id.in_([ids["dev_a"], ids["dev_b"]]))) == 2
     # Removing the scope restores full visibility.
-    admin.post(f"/admin/users/{tech_id}/scope", data={"csrf": admin.get("/api/ui/v1/session").json()["csrf_token"]})
+    admin.post(f"{users_api}/{tech_id}/scope", headers=admin_headers, json={"customer_ids": []}).raise_for_status()
     assert f"TEST-CS-BETA-{suffix}" in tech.get("/devices").text
     print("Customer scope smoke passed")
 

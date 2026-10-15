@@ -23,15 +23,13 @@ from __future__ import annotations
 import uuid
 from contextvars import ContextVar
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter
 from sqlalchemy import event, select
 from sqlalchemy.orm import Session, with_loader_criteria
 
 from app import main as core
 from app.db import Base, SessionLocal
 from app.models import Customer, Device, User
-from app.security import validate_csrf
 
 router = APIRouter()
 
@@ -136,20 +134,6 @@ def set_user_scope(db, actor, target, customer_ids) -> list[str]:
                    details={"target_user_id": str(target.id), "username": target.username, "before": before, "after": chosen,
                             "effective": target.role != "admin"}, source="portal")
     return chosen
-
-
-@router.post("/admin/users/{user_id}/scope", name="admin_user_scope")
-async def save_scope(request: Request, user_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        actor = core.require_admin(request, db)
-        target = db.get(User, user_id)
-        if target is None:
-            raise HTTPException(404)
-        set_user_scope(db, actor, target, form.getlist("customer_ids"))
-        db.commit()
-    return RedirectResponse("/admin/users?status=scope_saved#users", status_code=303)
 
 
 def _all_customers():

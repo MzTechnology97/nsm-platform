@@ -13,13 +13,12 @@ import shutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app import main as core
-from app import capacity, connector_health, secret_rotation, worker_status
-from app.db import SessionLocal
+from app import worker_status
 
 router = APIRouter()
 DUMP_MAX_AGE = timedelta(days=7)
@@ -91,23 +90,6 @@ def database(db) -> dict:
     except Exception:  # noqa: BLE001 - shown as unavailable
         db.rollback()
     return out
-
-
-@router.get("/admin/system", response_class=HTMLResponse, name="admin_system")
-def system_page(request: Request):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        core.require_admin(request, db)
-        disk = storage()
-        return core.render(request, db, user, "admin_system.html", title="Sistema", admin_tab="system",
-                           tables=capacity.table_sizes(db), archive=capacity.backup_archive(db, disk["free"] if disk else None),
-                           retention=capacity.retention(), connectors=connector_health.connectors(db),
-                           version=core.APP_VERSION, database=database(db), worker=worker_status.status(),
-                           dumps=platform_dumps(), drills=restore_drills(), disk=disk, secrets=secret_rotation.inventory(db),
-                           stale_seconds=worker_status.HEARTBEAT_STALE_SECONDS, dump_max_days=DUMP_MAX_AGE.days,
-                           drill_max_days=DRILL_MAX_AGE.days)
 
 
 def worker_health() -> dict:

@@ -1,53 +1,15 @@
 """Administration of the NVD advisory source (SEC-01)."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse
-from sqlalchemy import func, select
+from fastapi import APIRouter, HTTPException
 
 from app import advisory_sources as sources
 from app import main as core
-from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
-from app.models import DeviceVulnerability, SecurityAdvisory, utcnow
+from app.models import utcnow
 from app.secret_vault import encrypt_text
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 
 router = APIRouter()
-PAGE = "/admin/integrations/nvd"
-
-
-def _render(request, db, user):
-    connection = sources.connection_for(db)
-    advisory_count = int(
-        db.scalar(select(func.count(SecurityAdvisory.id)).where(SecurityAdvisory.source == sources.PROVIDER)) or 0
-    )
-    open_findings = int(
-        db.scalar(
-            select(func.count(DeviceVulnerability.id))
-            .join(SecurityAdvisory, SecurityAdvisory.id == DeviceVulnerability.advisory_id)
-            .where(SecurityAdvisory.source == sources.PROVIDER, DeviceVulnerability.status != "resolved")
-        )
-        or 0
-    )
-    return core.render(
-        request,
-        db,
-        user,
-        "admin_nvd.html",
-        connection=connection,
-        sync=sources.sync_state(connection),
-        matching=((connection.settings or {}).get("matching") or {}) if connection else {},
-        interval=sources.interval_minutes(connection) if connection else sources.INTERVAL_DEFAULT_MINUTES,
-        has_key=bool(connection and connection.secret_encrypted),
-        advisory_count=advisory_count,
-        open_findings=open_findings,
-        tracked_cpes=sources.sync_state(connection).get("tracked_cpes") or list(sources.TRACKED_CPES),
-        default_url=sources.NVD_DEFAULT_URL,
-        interval_min=sources.INTERVAL_MIN_MINUTES,
-        interval_max=sources.INTERVAL_MAX_MINUTES,
-    )
 
 
 def save_source(db, user, *, enabled: bool, api_key: str, clear_api_key: bool, interval_minutes) -> ConnectorIntegration:
@@ -108,91 +70,6 @@ def match_now(db) -> dict:
     if not connection:
         raise HTTPException(400, "Configura prima la fonte NVD.")
     return sources.run_matching(db, connection, utcnow(), trigger="manual")
-
-
-@router.get(PAGE, response_class=HTMLResponse, name="admin_nvd")
-def admin_nvd(request: Request):
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        return _render(request, db, user)
-
-
-@router.post(PAGE, name="admin_nvd_save")
-def admin_nvd_save(
-    request: Request,
-    csrf: str = Form(...),
-    is_enabled: str | None = Form(None),
-    api_key: str = Form(""),
-    clear_api_key: str | None = Form(None),
-    sync_interval_minutes: str = Form(""),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        try:
-            save_source(db, user, enabled=is_enabled is not None, api_key=api_key, clear_api_key=clear_api_key is not None,
-                        interval_minutes=sync_interval_minutes)
-        except HTTPException as exc:
-            return flash_redirect(request, PAGE, "warning", str(exc.detail), title="Dati non validi")
-        db.commit()
-    return flash_redirect(request, PAGE, "success", "Configurazione della fonte NVD salvata.", title="Fonte salvata")
-
-
-def _sync(request: Request, csrf: str, trigger: str):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        core.require_admin(request, db)
-        try:
-            result = sync_now(db, trigger)
-        except HTTPException as exc:
-            return flash_redirect(request, PAGE, "warning", str(exc.detail), title="Fonte non abilitata")
-        db.commit()
-    if result["status"] != "success":
-        return flash_redirect(request, PAGE, "error", f"Aggiornamento NVD non riuscito: {result['error']}", title="Aggiornamento fallito")
-    matching = result["matching"]
-    message = (
-        f"{result['fetched']} advisory letti ({result['created']} nuovi, {result['updated']} aggiornati); "
-        f"corrispondenze: {matching['opened'] + matching['reopened']} aperte, {matching['resolved']} risolte."
-    )
-    if result["parse_errors"]:
-        message += f" {result['parse_errors']} record non interpretabili: vedi dettaglio sotto."
-    return flash_redirect(
-        request,
-        PAGE,
-        "warning" if result["parse_errors"] else "success",
-        message,
-        title="Advisory aggiornati",
-    )
-
-
-@router.post(PAGE + "/sync", name="admin_nvd_sync")
-def admin_nvd_sync(request: Request, csrf: str = Form(...)):
-    return _sync(request, csrf, "manual")
-
-
-@router.post(PAGE + "/full-sync", name="admin_nvd_full_sync")
-def admin_nvd_full_sync(request: Request, csrf: str = Form(...)):
-    return _sync(request, csrf, "full")
-
-
-@router.post(PAGE + "/match", name="admin_nvd_match")
-def admin_nvd_match(request: Request, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        core.require_admin(request, db)
-        try:
-            stats = match_now(db)
-        except HTTPException as exc:
-            return flash_redirect(request, PAGE, "warning", str(exc.detail), title="Fonte non configurata")
-        db.commit()
-    return flash_redirect(
-        request,
-        PAGE,
-        "success",
-        f"Corrispondenze ricalcolate: {stats['opened'] + stats['reopened']} aperte, {stats['resolved']} risolte, "
-        f"{stats['unknown_assessments']} valutazioni non possibili.",
-        title="Corrispondenze aggiornate",
-    )
 
 
 def install_advisory_admin(app) -> None:

@@ -96,13 +96,10 @@ def main():
     assert hub["genieacs"]["state"] == "unconfigured" and hub["can_admin"] is True
     assert hub["agent"]["total"] >= 1 and hub["agent"]["state"] in ("partial", "stale"), "agent card reflects stale heartbeats"
 
-    # Admin pages share one navigation without placeholder tabs.
+    # Administration lives in the new interface: the classic addresses redirect there.
     for href in ("/admin/users", "/admin/api-keys", "/admin/integrations/uisp", "/admin/branding", "/admin/demo"):
-        page = client.get(href).text
-        nav = re.search(r'<nav class="admin-tabs".*?</nav>', page, re.S)
-        assert nav, href
-        assert "<span" not in nav.group(0), "no non-clickable placeholder tabs"
-        assert f'href="{href}" class="active"' in nav.group(0), href
+        moved = client.get(href, follow_redirects=False)
+        assert moved.status_code == 302 and moved.headers["location"] == f"/app{href}", href
 
     # Read-only roles: no admin entry, hub without management links.
     viewer = login(auditor)

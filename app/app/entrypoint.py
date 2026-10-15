@@ -105,7 +105,6 @@ from app import shared_ips as _shared_ips
 from app.reports import install_reports
 from app.search_enhancement import install_search_enhancement
 from app.ui_action_feedback import install_ui_action_feedback
-from app.ui_api_key_feedback import install_ui_api_key_feedback
 from app.ui_backup_feedback import install_ui_backup_feedback
 from app.ui_customer_device_bulk_feedback import install_ui_customer_device_bulk_feedback
 from app.ui_customer_site_crud_feedback import install_ui_customer_site_crud_feedback
@@ -136,7 +135,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.169"
+APP_VERSION = "0.49.170"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -294,7 +293,6 @@ install_ui_firmware_upgrade_feedback(core.app)
 install_ui_device_crud_feedback(core.app)
 install_ui_customer_site_crud_feedback(core.app)
 install_ui_customer_device_bulk_feedback(core.app)
-install_ui_api_key_feedback(core.app)
 # Machine-facing completion idempotency must be installed after every route
 # composer/promoter so no later compatibility or UI layer can shadow it.
 install_mikrotik_job_completion_guard(core.app)

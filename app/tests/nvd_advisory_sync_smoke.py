@@ -10,7 +10,6 @@ from fastapi.testclient import TestClient
 from app import advisory_sources as sources
 from app.db import SessionLocal
 from app.entrypoint import app
-from app.integration_models import ConnectorIntegration
 from app.models import ActionIssue, Customer, Device, DeviceVulnerability, SecurityAdvisory, User, utcnow
 from app.security import hash_password
 
@@ -115,10 +114,11 @@ def main():
     # The admin page creates the source configuration (disabled until enabled).
     client = TestClient(app)
     assert client.post("/login", data={"username": username, "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page_html = client.get("/admin/integrations/nvd").text
-    assert "Advisory NVD" in page_html and "Non configurata" in page_html
-    saved = client.post("/admin/integrations/nvd", data={"csrf": csrf_from(page_html), "is_enabled": "on", "sync_interval_minutes": "360", "api_key": "TEST-NVD-KEY"}, follow_redirects=False)
-    assert saved.status_code == 303
+    nvd_api = "/api/ui/v1/admin/integrations/nvd"
+    assert client.get(nvd_api).json()["configured"] is False
+    saved = client.post(nvd_api, headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]},
+                        json={"enabled": True, "interval_minutes": 360, "api_key": "TEST-NVD-KEY"})
+    assert saved.status_code == 200, saved.text
     with SessionLocal() as db:
         connection = sources.connection_for(db)
         assert connection.is_enabled and connection.secret_encrypted and "TEST-NVD-KEY" not in connection.secret_encrypted
@@ -220,8 +220,8 @@ def main():
     detail = client.get(f"/api/ui/v1/vulnerabilities/{hw_id}?status=all").json()
     assert detail["source"] == "nvd" and any("7.13" in rule and "rb750gr3" in rule for rule in detail["rules"]), detail["rules"]
     assert any(row["device"]["name"] == "TEST-NVD-EXPOSED" for row in detail["impacted"])
-    admin_page = client.get("/admin/integrations/nvd").text
-    assert "Ultimo successo" in admin_page and "Abilitata" in admin_page
+    admin_page = client.get("/api/ui/v1/admin/integrations/nvd").json()
+    assert admin_page["enabled"] is True and admin_page["sync"]["last_success_at"], admin_page["sync"]
     hub = client.get("/api/ui/v1/integrations").json()["nvd"]
     assert hub["state"] == "active" and hub["advisories"] >= 1, hub
     print("NVD advisory sync smoke passed")

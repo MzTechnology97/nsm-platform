@@ -31,8 +31,8 @@ import urllib.request
 from datetime import timedelta
 from urllib.parse import urlsplit, urlunsplit
 
-from fastapi import APIRouter, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 
 from app import main as core
@@ -455,71 +455,6 @@ def set_device_ip(db, user, device, value) -> str | None:
     device.inventory_data = data
     core.add_event(db, "ZABBIX_DEVICE_IP_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"zabbix_ip": value}, source="portal")
     return value
-
-
-def _render(request, db, user, message=None, error=None):
-    row = connection_row(db)
-    secret_mode, username = credential_info(row)
-    from app import shared_ips
-
-    shared = [(ip, devices) for ip, devices in sorted(shared_ips.shared_map(db).items())]
-    return core.render(request, db, user, "admin_zabbix.html", title="Zabbix", connection=row, settings=settings_of(row), shared=shared,
-                       secret_mode=secret_mode, zabbix_username=username, message=message, error=error,
-                       customers=list(db.scalars(select(Customer).order_by(Customer.name))),
-                       frontend=frontend_url(row.base_url) if row else None)
-
-
-@router.get("/admin/integrations/zabbix", response_class=HTMLResponse, name="admin_zabbix")
-def admin_zabbix(request: Request):
-    with SessionLocal() as db:
-        return _render(request, db, core.require_admin(request, db))
-
-
-@router.post("/admin/integrations/zabbix", response_class=HTMLResponse, name="admin_zabbix_save")
-async def admin_zabbix_save(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        try:
-            save_config(db, user, api_url=str(form.get("api_url") or ""), auth_mode=str(form.get("auth_mode") or ""),
-                        token=str(form.get("token") or ""), username=str(form.get("username") or ""), password=str(form.get("password") or ""),
-                        verify_tls=form.get("verify_tls") == "1", enabled=form.get("is_enabled") == "1",
-                        group_prefix=str(form.get("group_prefix") or "NSM"), interface=str(form.get("interface") or ""),
-                        snmp_community=str(form.get("snmp_community") or "{$SNMP_COMMUNITY}"),
-                        templates={key: str(form.get(f"template_{key}") or "") for key in ("mikrotik", "ubiquiti", "default")},
-                        scope=str(form.get("scope") or ""), customer_ids=form.getlist("customer_ids"))
-        except ValueError as exc:
-            return _render(request, db, user, error=str(exc))
-        db.commit()
-        return _render(request, db, user, message="Configurazione Zabbix salvata.")
-
-
-@router.post("/admin/integrations/zabbix/test", response_class=HTMLResponse, name="admin_zabbix_test")
-def admin_zabbix_test(request: Request, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        row = connection_row(db)
-        if row is None:
-            return _render(request, db, user, error="Salva prima la configurazione.")
-        ok, message = test_connection(row)
-        db.commit()
-        return _render(request, db, user, message=message) if ok else _render(request, db, user, error=message)
-
-
-@router.post("/admin/integrations/zabbix/sync", response_class=HTMLResponse, name="admin_zabbix_sync")
-def admin_zabbix_sync(request: Request, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        result = sync_now(db, user)
-        db.commit()
-        if result.get("status") == "disabled":
-            return _render(request, db, user, error="Integrazione Zabbix non configurata o disabilitata.")
-        if result["status"] == "failed":
-            return _render(request, db, user, error=f"Sincronizzazione non riuscita: {result['errors'][0] if result['errors'] else 'errore'}")
-        return _render(request, db, user, message=f"Sincronizzazione completata: {result['created']} host creati, {result['updated']} aggiornati, {result['disabled']} disabilitati, {result['skipped']} apparati senza IP o esclusi.")
 
 
 @router.post("/devices/{device_id}/zabbix/ip", name="device_zabbix_ip")

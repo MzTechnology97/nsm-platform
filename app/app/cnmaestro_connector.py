@@ -23,7 +23,7 @@ from datetime import timedelta
 from urllib.parse import urlsplit
 
 import httpx
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import func, select
 
@@ -34,9 +34,7 @@ from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
 from app.models import Device, utcnow
 from app.secret_vault import decrypt_text, encrypt_text
-from app.security import validate_csrf
 from app.telemetry_retention import expire_keep_latest
-from app.ui_feedback import flash_redirect
 
 router = APIRouter()
 PROVIDER = "cnmaestro"
@@ -408,61 +406,6 @@ def test_connection(row, transport=None) -> tuple[bool, str]:
         return False, str(exc)
     finally:
         client.close()
-
-
-def _admin(request, db, user, message=None, error=None):
-    row = connection_row(db)
-    return core.render(request, db, user, "admin_cnmaestro.html", title="cnMaestro", connection=row, client_id=client_id_of(row),
-                       last=((row.settings or {}).get("last_sync") or {}) if row else {}, message=message, error=error, admin_tab="integrations")
-
-
-@router.get("/admin/integrations/cnmaestro", response_class=HTMLResponse, name="admin_cnmaestro")
-def admin_page(request: Request):
-    with SessionLocal() as db:
-        return _admin(request, db, core.require_admin(request, db))
-
-
-@router.post("/admin/integrations/cnmaestro", response_class=HTMLResponse, name="admin_cnmaestro_save")
-def admin_save(request: Request, csrf: str = Form(...), base_url: str = Form(""), client_id: str = Form(""), client_secret: str = Form(""),
-               verify_tls: str = Form(""), is_enabled: str = Form("")):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        try:
-            save_config(db, user, base_url=base_url, client_id=client_id, client_secret=client_secret,
-                        verify_tls=verify_tls == "1", enabled=is_enabled == "1")
-        except ValueError as exc:
-            return _admin(request, db, user, error=str(exc))
-        db.commit()
-        return _admin(request, db, user, message="Configurazione cnMaestro salvata.")
-
-
-@router.post("/admin/integrations/cnmaestro/test", response_class=HTMLResponse, name="admin_cnmaestro_test")
-def admin_test(request: Request, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        row = connection_row(db)
-        if row is None:
-            return _admin(request, db, user, error="Configura prima cnMaestro.")
-        _ok, message = test_connection(row)
-        db.commit()
-        message = message if row.last_test_status == "success" else None
-        return _admin(request, db, user, message=message, error=row.last_error)
-
-
-@router.post("/admin/integrations/cnmaestro/sync", response_class=HTMLResponse, name="admin_cnmaestro_sync")
-def admin_sync(request: Request, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        stats = sync(db)
-        if stats.get("status") == "failed":
-            return _admin(request, db, user, error=stats.get("error"))
-        if stats.get("status") == "disabled":
-            return _admin(request, db, user, error="Il connettore cnMaestro è disattivato.")
-        return _admin(request, db, user, message=f"Sincronizzazione completata: {stats['cnmaestro_devices']} apparati in cnMaestro, {stats['linked']} collegati "
-                                                   f"({stats['new_links']} nuovi), {stats['unmatched']} Cambium NSM senza corrispondenza.")
 
 
 @router.get("/devices/{device_id}/cnmaestro", response_class=HTMLResponse, name="device_cnmaestro")

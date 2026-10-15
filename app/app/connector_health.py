@@ -39,25 +39,25 @@ def connectors(db, now=None) -> list[dict]:
     now = now or utcnow()
     rows = {r.provider: r for r in db.scalars(select(ConnectorIntegration))}
     out = [
-        _synced(rows.get("uisp"), "UISP Network", "/admin/integrations/uisp"),
-        _synced(rows.get("nvd"), "Advisory NVD", "/admin/integrations/nvd"),
+        _synced(rows.get("uisp"), "UISP Network", "/app/admin/integrations/uisp"),
+        _synced(rows.get("nvd"), "Advisory NVD", "/app/admin/integrations/nvd"),
     ]
 
     acs = rows.get("genieacs")
     if not acs:
-        out.append({"name": "GenieACS / TR-069", "state": "unconfigured", "href": "/admin/integrations/genieacs", "last_ok": None, "detail": "non configurato", "error": None})
+        out.append({"name": "GenieACS / TR-069", "state": "unconfigured", "href": "/app/admin/integrations/genieacs", "last_ok": None, "detail": "non configurato", "error": None})
     elif not acs.is_enabled:
-        out.append({"name": "GenieACS / TR-069", "state": "disabled", "href": "/admin/integrations/genieacs", "last_ok": None, "detail": "disabilitato", "error": None})
+        out.append({"name": "GenieACS / TR-069", "state": "disabled", "href": "/app/admin/integrations/genieacs", "last_ok": None, "detail": "disabilitato", "error": None})
     else:
         state = {"success": "ok", "failed": "error"}.get(acs.last_test_status or "", "warning")
-        out.append({"name": "GenieACS / TR-069", "state": state, "href": "/admin/integrations/genieacs",
+        out.append({"name": "GenieACS / TR-069", "state": state, "href": "/app/admin/integrations/genieacs",
                     "last_ok": acs.last_sync_at or (acs.last_tested_at if acs.last_test_status == "success" else None),
                     "detail": "test di connessione riuscito" if state == "ok" else ("test fallito" if state == "error" else "mai testato"),
                     "error": acs.last_error if state == "error" else None})
 
     fetched = db.scalar(select(func.max(RouterosRelease.fetched_at)))
     catalog_state = "warning" if not fetched else ("warning" if now - fetched > CATALOG_STALE_AFTER else "ok")
-    out.append({"name": "Catalogo RouterOS", "state": catalog_state, "href": "/admin/integrations/routeros", "last_ok": fetched,
+    out.append({"name": "Catalogo RouterOS", "state": catalog_state, "href": "/app/integrations/routeros", "last_ok": fetched,
                 "detail": "mai letto" if not fetched else ("non aggiornato da oltre 24 ore" if catalog_state == "warning" else "aggiornato ogni 6 ore"),
                 "error": None})
 
@@ -69,15 +69,15 @@ def connectors(db, now=None) -> list[dict]:
     else:
         agent_row = {"state": "ok" if not stale else ("error" if stale == len(agents) else "warning"),
                      "detail": f"{len(agents) - stale} di {len(agents)} con heartbeat negli ultimi 15 minuti"}
-    out.append({"name": "Agent MikroTik", "href": "/operations/agents", "last_ok": max((s for s in agents if s), default=None), "error": None, **agent_row})
+    out.append({"name": "Agent MikroTik", "href": "/app/agents", "last_ok": max((s for s in agents if s), default=None), "error": None, **agent_row})
     from app.notification_delivery import delivery_health
 
     health = delivery_health(db, now)
     if not health["configured"]:
-        out.append({"name": "Notifiche e-mail", "state": "unconfigured", "href": "/admin/notifications", "last_ok": None, "detail": "server SMTP non configurato", "error": None})
+        out.append({"name": "Notifiche e-mail", "state": "unconfigured", "href": "/app/admin/notifications", "last_ok": None, "detail": "server SMTP non configurato", "error": None})
     else:
         state = "error" if health["failed"] else ("warning" if health["stuck"] else "ok")
-        out.append({"name": "Notifiche e-mail", "state": state, "href": "/admin/notifications", "last_ok": None,
+        out.append({"name": "Notifiche e-mail", "state": state, "href": "/app/admin/notifications", "last_ok": None,
                     "detail": f"24 ore: {health['sent']} inviate, {health['pending']} in coda, {health['failed']} fallite", "error": None})
     from app.zabbix_connector import connection_row as zabbix_row, settings_of as zabbix_settings
 
@@ -85,16 +85,16 @@ def connectors(db, now=None) -> list[dict]:
     if zbx is not None:
         last = zabbix_settings(zbx).get("last_sync") or {}
         state = "disabled" if not zbx.is_enabled else {"success": "ok", "partial": "warning", "failed": "error"}.get(last.get("status"), "warning")
-        out.append({"name": "Zabbix", "state": state, "href": "/admin/integrations/zabbix", "last_ok": zbx.last_sync_at if last.get("status") == "success" else None,
+        out.append({"name": "Zabbix", "state": state, "href": "/app/admin/integrations/zabbix", "last_ok": zbx.last_sync_at if last.get("status") == "success" else None,
                     "detail": "disabilitato" if not zbx.is_enabled else (f"{last.get('created', 0)} creati, {last.get('updated', 0)} aggiornati" if last else "mai sincronizzato"),
                     "error": zbx.last_error if state == "error" else None})
     from app.syslog_receiver import receiver_status
 
     syslog = receiver_status()
     if not syslog:
-        out.append({"name": "Server syslog", "state": "unconfigured", "href": "/admin/syslog", "last_ok": None, "detail": "ricevitore non in esecuzione", "error": None})
+        out.append({"name": "Server syslog", "state": "unconfigured", "href": "/app/admin/syslog", "last_ok": None, "detail": "ricevitore non in esecuzione", "error": None})
     else:
-        out.append({"name": "Server syslog", "state": "ok" if syslog["alive"] else "error", "href": "/admin/syslog", "last_ok": None,
+        out.append({"name": "Server syslog", "state": "ok" if syslog["alive"] else "error", "href": "/app/admin/syslog", "last_ok": None,
                     "detail": f"{syslog['stored']} righe salvate, {syslog['unknown']} da mittenti sconosciuti, {syslog['dropped']} scartate",
                     "error": None if syslog["alive"] else "nessuno stato dal ricevitore da oltre 90 secondi"})
     return out

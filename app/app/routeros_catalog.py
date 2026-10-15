@@ -17,16 +17,13 @@ import re
 from datetime import datetime, timedelta, timezone
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter
 from sqlalchemy import func, select
 
 from app import main as core
 from app.db import SessionLocal
 from app.models import Device, DeviceVulnerability, RouterosRelease, utcnow
 from app.routeros_version import compare_routeros_versions, is_newer_routeros_version, parse_routeros_version
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 
 router = APIRouter()
 BASE_URL = "https://upgrade.mikrotik.com/routeros"
@@ -181,41 +178,12 @@ def run_scheduled(now=None, transport=None) -> dict:
         return result
 
 
-@router.get("/admin/integrations/routeros", response_class=HTMLResponse, name="routeros_catalog_admin")
-def admin_page(request: Request):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "firmware.read"):
-            raise HTTPException(403)
-        history = list(db.scalars(select(RouterosRelease).order_by(RouterosRelease.released_at.desc()).limit(40)))
-        return core.render(request, db, user, "routeros_catalog.html", title="Catalogo RouterOS",
-                           heads=heads(db), labels=CHANNEL_LABELS, history=history,
-                           last_refresh=db.scalar(select(func.max(RouterosRelease.fetched_at))), can_admin=user.role == "admin")
-
-
 def refresh_now(db, user) -> tuple[dict, dict]:
     """Read the catalogue now and re-evaluate the devices (audited); returns (fetch stats, evaluation). Caller commits."""
     stats = refresh(db)
     evaluated = evaluate(db)
     core.add_event(db, "ROUTEROS_CATALOG_REFRESHED", actor=user, details={**stats, **evaluated})
     return stats, evaluated
-
-
-@router.post("/admin/integrations/routeros/refresh", name="routeros_catalog_refresh")
-async def admin_refresh(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        stats, evaluated = refresh_now(db, user)
-        db.commit()
-    level = "warning" if stats["errors"] else "success"
-    message = f"{stats['channels']} canali letti, {stats['new_releases']} nuove release; {evaluated['updates']} apparati con aggiornamento, {evaluated['security']} di sicurezza."
-    if stats["errors"]:
-        message += " Errori: " + "; ".join(stats["errors"][:3])
-    return flash_redirect(request, "/admin/integrations/routeros", level, message, title="Catalogo RouterOS aggiornato")
 
 
 def install_routeros_catalog(app) -> None:

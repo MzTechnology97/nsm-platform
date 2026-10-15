@@ -91,25 +91,20 @@ def seed():
         return customer_a.id, customer_b.id, device_a.id, device_b.id
 
 
+def headers_for(client):
+    return {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+
+
 def create_key(client, name, customer_id="", expires_days=90):
-    page = client.get("/admin/api-keys")
-    assert page.status_code == 200, page.text
-    csrf = csrf_from(page.text)
     response = client.post(
-        "/admin/api-keys",
-        data={
-            "csrf": csrf,
-            "name": name,
-            "customer_id": str(customer_id) if customer_id else "",
-            "expires_days": str(expires_days),
-        },
+        "/api/ui/v1/admin/api-keys",
+        headers=headers_for(client),
+        json={"name": name, "customer_id": str(customer_id) if customer_id else "", "expires_days": expires_days},
     )
     assert response.status_code == 200, response.text
     assert response.headers.get("cache-control") == "no-store"
-    match = re.search(r"(nsm_live_[A-Za-z0-9_-]+)", response.text)
-    assert match, response.text
-    token = match.group(1)
-    assert "MOSTRATA UNA VOLTA" in response.text
+    token = response.json()["token"]
+    assert re.fullmatch(r"nsm_live_[A-Za-z0-9_-]+", token), token
     return token
 
 
@@ -118,10 +113,9 @@ def main():
     client = TestClient(app)
     login(client)
 
-    page = client.get("/admin/api-keys")
-    assert page.status_code == 200
-    assert "X-API-KEY" in page.text and "Authorization: Bearer" in page.text
-    assert "inventory.read" in page.text
+    page = client.get("/api/ui/v1/admin/api-keys")
+    assert page.status_code == 200 and page.headers.get("cache-control") == "no-store"
+    assert "inventory.read" in page.json()["scopes"]
 
     global_token = create_key(client, "CI23 Global")
     with SessionLocal() as db:
@@ -217,44 +211,21 @@ def main():
         assert scoped_row and scoped_row.last_used_at is not None
         scoped_key_id = scoped_row.id
 
-    admin_page = client.get("/admin/api-keys")
-    csrf = csrf_from(admin_page.text)
-    revoke = client.post(
-        f"/admin/api-keys/{scoped_key_id}/revoke",
-        data={"csrf": csrf},
-        follow_redirects=False,
-    )
-    assert revoke.status_code == 303
+    revoke = client.post(f"/api/ui/v1/admin/api-keys/{scoped_key_id}/revoke", headers=headers_for(client))
+    assert revoke.status_code == 200, revoke.text
     revoked_call = client.get(
         "/api/v1/public/devices",
         headers={"X-API-KEY": scoped_token},
     )
     assert revoked_call.status_code == 401
 
-    admin_page = client.get("/admin/api-keys")
-    csrf = csrf_from(admin_page.text)
-    deleted = client.post(
-        f"/admin/api-keys/{scoped_key_id}/delete",
-        data={"csrf": csrf},
-        follow_redirects=False,
-    )
-    assert deleted.status_code == 303
+    deleted = client.post(f"/api/ui/v1/admin/api-keys/{scoped_key_id}/delete", headers=headers_for(client))
+    assert deleted.status_code == 200, deleted.text
     with SessionLocal() as db:
         assert db.get(PlatformApiKey, scoped_key_id) is None
 
-    admin_page = client.get("/admin/api-keys")
-    csrf = csrf_from(admin_page.text)
-    active_delete = client.post(
-        f"/admin/api-keys/{global_key_id}/delete",
-        data={"csrf": csrf},
-        follow_redirects=False,
-    )
-    assert active_delete.status_code == 303
-    assert active_delete.headers["location"] == "/admin/api-keys"
-    assert not active_delete.headers.get("content-type", "").startswith("application/json")
-    active_feedback = client.get(active_delete.headers["location"])
-    assert "Revoca la API key prima di eliminarla" in active_feedback.text
-    assert "flash-warning" in active_feedback.text
+    active_delete = client.post(f"/api/ui/v1/admin/api-keys/{global_key_id}/delete", headers=headers_for(client))
+    assert active_delete.status_code >= 400 and "Revoca la API key prima di eliminarla" in active_delete.text, active_delete.text
     with SessionLocal() as db:
         assert db.get(PlatformApiKey, global_key_id).is_active is True
 
@@ -270,7 +241,7 @@ def main():
 
     tech = TestClient(app)
     login(tech, "ci23tech", TECH_PASSWORD)
-    forbidden = tech.get("/admin/api-keys")
+    forbidden = tech.get("/api/ui/v1/admin/api-keys")
     assert forbidden.status_code == 403
     session_is_not_api_auth = tech.get("/api/v1/public/devices")
     assert session_is_not_api_auth.status_code == 401

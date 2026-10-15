@@ -146,21 +146,14 @@ def main():
     client = TestClient(app, base_url="https://nsm.example.test")
     login(client, username)
 
-    page = client.get("/admin/integrations/uisp")
-    assert page.status_code == 200
-    csrf = csrf_from(page.text)
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    assert client.get("/api/ui/v1/admin/integrations/uisp").status_code == 200
     saved = client.post(
-        "/admin/integrations/uisp",
-        data={
-            "csrf": csrf,
-            "base_url": "https://uisp.example.test/nms/api/v2.1/",
-            "api_token": TOKEN,
-            "is_enabled": "on",
-            "verify_tls": "on",
-        },
+        "/api/ui/v1/admin/integrations/uisp",
+        headers=headers,
+        json={"base_url": "https://uisp.example.test/nms/api/v2.1/", "api_token": TOKEN, "enabled": True, "verify_tls": True},
     )
     assert saved.status_code == 200, saved.text
-    assert "token è memorizzato cifrato" in saved.text
     assert TOKEN not in saved.text
 
     with SessionLocal() as db:
@@ -171,11 +164,11 @@ def main():
         assert decrypt_text(connection.secret_encrypted) == TOKEN
         assert connection.settings["mode"] == "read_only"
 
-    csrf = csrf_from(saved.text)
-    tested = client.post("/admin/integrations/uisp/test", data={"csrf": csrf})
+    tested = client.post("/api/ui/v1/admin/integrations/uisp/test", headers=headers)
     assert tested.status_code == 200, tested.text
-    assert "2 dispositivi leggibili" in tested.text
+    assert tested.json()["ok"] is True and "2 dispositivi leggibili" in tested.json()["message"]
     assert TOKEN not in tested.text
+    csrf = client.get("/api/ui/v1/session").json()["csrf_token"]
 
     link = client.get(f"/devices/{device_id}/uisp")
     assert link.status_code == 200, link.text

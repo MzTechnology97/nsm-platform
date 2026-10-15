@@ -16,8 +16,7 @@ from datetime import timedelta
 from email.message import EmailMessage
 from email.utils import formataddr, make_msgid
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, HTTPException
 from sqlalchemy import delete, event, func, select
 from sqlalchemy.orm import Session
 
@@ -27,8 +26,6 @@ from app.integration_models import ConnectorIntegration
 from app.models import Notification, User, utcnow
 from app.notification_models import NotificationDelivery, UserNotificationPreference
 from app.secret_vault import decrypt_text, encrypt_text
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 
 router = APIRouter()
 SMTP_PROVIDER = "smtp"
@@ -294,25 +291,6 @@ def delivery_health(db, now=None) -> dict:
 
 # --- Admin page ------------------------------------------------------------------------------------
 
-def _admin_context(db, status_filter: str = ""):
-    row = smtp_row(db)
-    query = select(NotificationDelivery).order_by(NotificationDelivery.created_at.desc()).limit(100)
-    if status_filter in ("pending", "sent", "failed"):
-        query = query.where(NotificationDelivery.status == status_filter)
-    users = {u.id: u for u in db.scalars(select(User))}
-    subscribers = db.scalar(select(func.count(UserNotificationPreference.id)).where(UserNotificationPreference.enabled.is_(True))) or 0
-    return {"smtp": row, "smtp_settings": dict(row.settings or {}) if row else {}, "has_password": bool(row and row.secret_encrypted and row.secret_encrypted != ""),
-            "deliveries": list(db.scalars(query)), "users": users, "health": delivery_health(db), "status_filter": status_filter,
-            "security_modes": SECURITY_MODES, "levels": LEVELS, "categories": CATEGORIES, "subscribers": subscribers, "admin_tab": "notifications"}
-
-
-@router.get("/admin/notifications", response_class=HTMLResponse, name="admin_notifications")
-def admin_notifications(request: Request, status: str = ""):
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        return core.render(request, db, user, "admin_notifications.html", title="Notifiche", **_admin_context(db, status))
-
-
 def save_smtp_settings(db, user, *, host: str, port, security: str, username: str, password: str, from_address: str, from_name: str,
                        portal_url: str, enabled: bool) -> None:
     """Store the SMTP server (password encrypted, kept when empty), audited. HTTPException 400 with the reason. Caller commits."""
@@ -375,51 +353,6 @@ def requeue_failed(db, user, delivery_id: str = "") -> int:
     core.add_event(db, "NOTIFICATION_DELIVERIES_REQUEUED", actor=user, details={"count": count}, source="portal")
     return count
 
-
-@router.post("/admin/notifications/smtp", name="admin_notifications_smtp")
-async def save_smtp(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        try:
-            save_smtp_settings(db, user, host=str(form.get("host") or ""), port=form.get("port"), security=str(form.get("security") or "starttls"),
-                               username=str(form.get("username") or ""), password=str(form.get("password") or ""),
-                               from_address=str(form.get("from_address") or ""), from_name=str(form.get("from_name") or "NSM"),
-                               portal_url=str(form.get("portal_url") or ""), enabled=form.get("is_enabled") is not None)
-        except HTTPException as exc:
-            return flash_redirect(request, "/admin/notifications", "warning", str(exc.detail), title="Configurazione SMTP non salvata")
-        db.commit()
-    return flash_redirect(request, "/admin/notifications", "success", "Configurazione SMTP salvata; la password è cifrata.", title="Notifiche")
-
-
-@router.post("/admin/notifications/smtp/test", name="admin_notifications_smtp_test")
-async def test_smtp(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        try:
-            result, text = test_smtp_send(db, user, str(form.get("to") or ""))
-        except HTTPException as exc:
-            return flash_redirect(request, "/admin/notifications", "warning", str(exc.detail), title="Test non eseguito")
-        level = "success" if result == "success" else "warning"
-        db.commit()
-    return flash_redirect(request, "/admin/notifications", level, text, title="Test SMTP")
-
-
-@router.post("/admin/notifications/retry", name="admin_notifications_retry")
-async def retry_failed(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        count = requeue_failed(db, user, str(form.get("delivery") or ""))
-        db.commit()
-    return flash_redirect(request, "/admin/notifications", "success", f"{count} invii rimessi in coda.", title="Notifiche")
-
-
-# --- Profile ---------------------------------------------------------------------------------------
 
 def user_preferences(user) -> dict:
     """Template helper: the user's preference per channel (defaults when missing)."""

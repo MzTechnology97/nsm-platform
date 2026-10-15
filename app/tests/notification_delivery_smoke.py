@@ -65,17 +65,19 @@ def main():
         db.commit()
 
     admin = login(names["admin"])
-    page = admin.get("/admin/notifications").text
-    assert 'data-notifications="smtp"' in page and 'href="/admin/notifications"' in page
-    saved = admin.post("/admin/notifications/smtp", data={"csrf": csrf_from(page), "host": "smtp.example.test", "port": "587", "security": "starttls",
+    admin_api = "/api/ui/v1/admin/notifications"
+    admin_headers = {"X-CSRF-Token": admin.get("/api/ui/v1/session").json()["csrf_token"]}
+    assert admin.get(admin_api).json()["smtp"]["configured"] is False
+    saved = admin.post(f"{admin_api}/smtp", headers=admin_headers, json={"host": "smtp.example.test", "port": 587, "security": "starttls",
                        "username": "nsm", "password": "smtp-secret-ci", "from_address": "nsm@example.test", "from_name": "NSM CI",
-                       "portal_url": "https://nsm.example.test", "is_enabled": "on"}, follow_redirects=True)
-    assert "Configurazione SMTP salvata" in saved.text and "smtp-secret-ci" not in saved.text
+                       "portal_url": "https://nsm.example.test", "enabled": True})
+    assert saved.status_code == 200 and "smtp-secret-ci" not in saved.text, saved.text
+    assert admin.get(admin_api).json()["smtp"]["has_password"] is True
     with SessionLocal() as db:
         row = db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == "smtp"))
         assert decrypt_text(row.secret_encrypted) == "smtp-secret-ci" and row.settings["host"] == "smtp.example.test"
-    tested = admin.post("/admin/notifications/smtp/test", data={"csrf": csrf_from(page)}, follow_redirects=True)
-    assert "E-mail di prova inviata" in tested.text and SENT[-1]["to"] == f"admin-{suffix}@example.test" and SENT[-1]["login"] == ("nsm", "smtp-secret-ci")
+    tested = admin.post(f"{admin_api}/smtp/test", headers=admin_headers, json={}).json()
+    assert "E-mail di prova inviata" in tested["message"] and SENT[-1]["to"] == f"admin-{suffix}@example.test" and SENT[-1]["login"] == ("nsm", "smtp-secret-ci")
 
     # Preferences from the profile page.
     def save(client, body):
@@ -116,11 +118,12 @@ def main():
     with SessionLocal() as db:
         failed = db.scalar(select(NotificationDelivery).where(NotificationDelivery.subject.like(f"%Worker fermo {suffix}%")))
         assert failed.status == "failed" and failed.attempts == nd.MAX_ATTEMPTS and "SMTPConnectError" in failed.last_error
-    log = admin.get("/admin/notifications?status=failed").text
-    assert f"Worker fermo {suffix}" in log and "Rimetti in coda i falliti" in log
-    assert 'data-connector="Notifiche e-mail" data-state="error"' in admin.get("/admin/system").text
+    log = admin.get(admin_api, params={"status": "failed"}).json()
+    assert any(f"Worker fermo {suffix}" in (d["subject"] or "") for d in log["deliveries"])
+    connectors = {row["name"]: row for row in admin.get("/api/ui/v1/admin/system").json()["connectors"]}
+    assert connectors["Notifiche e-mail"]["state"] == "error", connectors["Notifiche e-mail"]
     STATE["fail"] = False
-    admin.post("/admin/notifications/retry", data={"csrf": csrf_from(log)})
+    admin.post(f"{admin_api}/retry", headers=admin_headers, json={}).raise_for_status()
     nd.deliver_pending()
     with SessionLocal() as db:
         assert db.get(NotificationDelivery, failed.id).status == "sent", "a re-queued delivery is sent once the server is back"
@@ -135,7 +138,7 @@ def main():
     response = client.post(test_url, headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]})
     assert response.json()["queued"] is True and SENT and SENT[-1]["to"] == f"all-{suffix}@example.test"
 
-    assert tech.get("/admin/notifications", follow_redirects=False).status_code in (401, 403)
+    assert tech.get("/api/ui/v1/admin/notifications").status_code in (401, 403)
     with SessionLocal() as db:
         assert db.scalar(select(UserNotificationPreference).where(UserNotificationPreference.channel == "email", UserNotificationPreference.enabled.is_(True)))
     print("Notification delivery smoke passed")

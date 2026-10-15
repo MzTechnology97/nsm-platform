@@ -199,20 +199,6 @@ def configure_all_devices(db, user, remote: str) -> tuple[int, int]:
     return queued, skipped
 
 
-@router.post("/admin/syslog/configure-all", name="admin_syslog_configure_all")
-async def configure_all(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        remote = target(db, request)
-        if not remote:
-            return flash_redirect(request, "/admin/syslog", "warning", "Imposta prima l'indirizzo IPv4 di NSM raggiungibile dagli apparati.", title="Indirizzo NSM mancante")
-        queued, skipped = configure_all_devices(db, user, remote)
-        db.commit()
-    return flash_redirect(request, "/admin/syslog", "success", f"Configurazione syslog in coda su {queued} MikroTik ({skipped} non idonei o già in corso).", title="Configurazione avviata")
-
-
 def configure_on_enrollment(device_id, request) -> DeviceJob | None:
     """Queue the syslog configuration for a MikroTik that has just been paired."""
     with SessionLocal() as db:

@@ -2,7 +2,7 @@ import re
 import uuid
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
@@ -11,7 +11,6 @@ from app.config import settings
 from app.db import SessionLocal
 from app.models import Customer, Device, Site
 from app.preferences import PlatformBranding
-from app.security import validate_csrf
 
 router = APIRouter()
 
@@ -197,19 +196,6 @@ def reset_color(db, user, color_key: str) -> str:
         details={"color": color_key, "old_value": old_value, "new_value": default},
     )
     return default
-
-
-@router.post("/admin/branding/colors/{color_key}/reset")
-async def reset_branding_color(request: Request, color_key: str):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf", "")))
-    if color_key not in DEFAULT_COLORS:
-        raise HTTPException(404)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        reset_color(db, user, color_key)
-        db.commit()
-    return RedirectResponse("/admin/branding?status=color_reset", status_code=303)
 
 
 def install_workflow_ui(app, templates):

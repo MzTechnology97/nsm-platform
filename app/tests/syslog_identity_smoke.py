@@ -165,12 +165,13 @@ def main():
     assert "Solo righe con la chiave" in client.get(f"/devices/{ids['r1']}/logs").text
     page = client.get(f"/devices/{ids['cpe']}/logs").text
     assert "Hostname atteso" not in page and "NSM-c0ffee0123456789" in page, "key-only: no hostname attribution"
-    admin_page = client.get("/admin/syslog").text
-    assert "Reti consentite" in admin_page and "Nessuna rete consentita configurata" in admin_page and "Solo righe con chiave" in admin_page
-    bad = client.post("/admin/syslog/settings", data={"csrf": csrf_from(admin_page), "allowed_networks": "198.51.100.0/24\nnot-a-network", "strict_mode": "1"}, follow_redirects=False)
-    assert "bad_networks" in bad.headers["location"]
-    good = client.post("/admin/syslog/settings", data={"csrf": csrf_from(admin_page), "allowed_networks": "198.51.100.0/24, 192.0.2.0/24", "strict_mode": "1"}, follow_redirects=False)
-    assert "saved" in good.headers["location"]
+    syslog_api = "/api/ui/v1/admin/syslog"
+    assert client.get(syslog_api).json()["settings"]["allowed_networks"] == []
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    bad = client.post(f"{syslog_api}/settings", headers=headers, json={"allowed_networks": "198.51.100.0/24\nnot-a-network"})
+    assert bad.status_code == 422 and bad.json()["detail"]["code"] == "invalid_networks", bad.text
+    good = client.post(f"{syslog_api}/settings", headers=headers, json={"allowed_networks": "198.51.100.0/24, 192.0.2.0/24"})
+    assert good.status_code == 200, good.text
     with SessionLocal() as db:
         assert rx.load_settings(db)["allowed_networks"] == ["198.51.100.0/24", "192.0.2.0/24"]
     print("Syslog identity smoke passed")

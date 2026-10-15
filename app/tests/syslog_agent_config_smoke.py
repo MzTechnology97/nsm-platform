@@ -77,10 +77,15 @@ def main():
     with SessionLocal() as db:
         assert cfg.latest_job(db, ids["modern"]) is None
 
-    settings_page = admin.get("/admin/syslog").text
-    csrf = csrf_from(settings_page)
-    assert admin.post("/admin/syslog/settings", data={"csrf": csrf, "public_host": "203.0.113.5", "info_retention_days": "90", "auto_configure": "1"},
-                      follow_redirects=False).status_code == 303
+    csrf = admin.get("/api/ui/v1/session").json()["csrf_token"]
+    syslog_api = "/api/ui/v1/admin/syslog"
+    headers = {"X-CSRF-Token": csrf}
+
+    def save_settings(**body):
+        response = admin.post(f"{syslog_api}/settings", headers=headers, json={"info_retention_days": 90, **body})
+        assert response.status_code == 200, response.text
+
+    save_settings(public_host="203.0.113.5", auto_configure=True)
     with SessionLocal() as db:
         assert cfg.target(db) == "203.0.113.5"
     assert admin.post(f"/devices/{ids['modern']}/syslog/configure", data={"csrf": csrf}, follow_redirects=False).status_code == 303
@@ -108,22 +113,21 @@ def main():
         db.commit()
     assert cfg.auto_configure()["queued"] == 1, "a newly updated agent gets configured"
     # A new NSM address re-configures everyone.
-    assert admin.post("/admin/syslog/settings", data={"csrf": csrf, "public_host": "203.0.113.6", "info_retention_days": "90", "auto_configure": "1"},
-                      follow_redirects=False).status_code == 303
+    save_settings(public_host="203.0.113.6", auto_configure=True)
     with SessionLocal() as db:
         pending = db.scalar(select(DeviceJob).where(DeviceJob.device_id == ids["old"], DeviceJob.job_type == cfg.JOB_TYPE))
         pending.status = "success"
         db.commit()
     assert cfg.auto_configure()["queued"] == 2
     # Disabled auto-configure does nothing; "configure all" queues only eligible devices without an active job.
-    assert admin.post("/admin/syslog/settings", data={"csrf": csrf, "public_host": "203.0.113.6", "info_retention_days": "90"}, follow_redirects=False).status_code == 303
+    save_settings(public_host="203.0.113.6")
     assert cfg.auto_configure()["queued"] == 0
     with SessionLocal() as db:
         for job in db.scalars(select(DeviceJob).where(DeviceJob.job_type == cfg.JOB_TYPE, DeviceJob.status == "pending")):
             job.status = "success"
         db.commit()
-    bulk = admin.post("/admin/syslog/configure-all", data={"csrf": csrf}, follow_redirects=False)
-    assert bulk.status_code == 303
+    bulk = admin.post(f"{syslog_api}/configure-all", headers=headers)
+    assert bulk.status_code == 200 and bulk.json()["queued"] == 2, bulk.text
     with SessionLocal() as db:
         active = db.scalars(select(DeviceJob.device_id).where(DeviceJob.job_type == cfg.JOB_TYPE, DeviceJob.status == "pending")).all()
         assert ids["modern"] in active and ids["old"] in active and ids["legacy"] not in active and ids["ubnt"] not in active

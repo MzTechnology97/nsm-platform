@@ -8,18 +8,14 @@
 """
 from __future__ import annotations
 
-import uuid
 from datetime import timedelta, timezone
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, HTTPException
 
 from app import api_keys
 from app import main as core
 from app.api_key_models import PlatformApiKey
-from app.db import SessionLocal
 from app.models import utcnow
-from app.security import validate_csrf
 
 router = APIRouter()
 GRACE_HOURS = (0, 24, 168)
@@ -112,21 +108,6 @@ def rotate(db, user, old: PlatformApiKey, grace_hours: int) -> tuple[PlatformApi
         severity="warning",
     )
     return new, raw_key
-
-
-@router.post("/admin/api-keys/{key_id}/rotate", response_class=HTMLResponse, name="admin_api_key_rotate")
-def rotate_key(request: Request, key_id: uuid.UUID, csrf: str = Form(...), grace_hours: int = Form(24)):
-    validate_csrf(request, csrf)
-    if grace_hours not in GRACE_HOURS:
-        raise HTTPException(400, "Periodo di sovrapposizione non valido.")
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        old = db.get(PlatformApiKey, key_id)
-        if not old:
-            raise HTTPException(404, "API key non trovata.")
-        new, raw_key = rotate(db, user, old, grace_hours)
-        db.commit()
-        return api_keys._render_admin(request, db, user, new_key=raw_key, created_key=new)
 
 
 def install_api_key_lifecycle(app) -> None:

@@ -16,13 +16,12 @@ import os
 from urllib.parse import quote, urlsplit
 
 import httpx
-from fastapi import APIRouter, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi import APIRouter, Request
+from fastapi.responses import RedirectResponse, Response
 
 from app import genieacs_connector as acs
 from app import main as core
 from app.db import SessionLocal
-from app.security import validate_csrf
 
 router = APIRouter()
 ACS_UI_PORT = int(os.getenv("ACS_UI_PORT", "7080"))
@@ -110,20 +109,6 @@ def install_templates(connection) -> list[str]:
     return done
 
 
-def _render(request, db, user, message=None, error=None):
-    connection = acs._connection(db)
-    scheme, host = _public_host(request)
-    return core.render(request, db, user, "admin_acs.html", title="ACS", connection=connection, panel=panel_url(request),
-                       acs_url=f"http://{host}:7547/", internal_url=acs.internal_nbi_url(), message=message, error=error,
-                       provision_script=BASE_PROVISION_SCRIPT, presets=PRESETS, base_provision=BASE_PROVISION)
-
-
-@router.get("/admin/acs", response_class=HTMLResponse, name="admin_acs")
-def admin_acs(request: Request):
-    with SessionLocal() as db:
-        return _render(request, db, core.require_admin(request, db))
-
-
 NOT_CONNECTED = "Collega prima GenieACS in Integrazioni → GenieACS (pulsante «Usa GenieACS integrato»)."
 
 
@@ -138,19 +123,6 @@ def install_base_templates(db, user) -> list[str]:
     done = install_templates(connection)
     core.add_event(db, "ACS_TEMPLATES_INSTALLED", actor=user, details={"items": done}, source="portal")
     return done
-
-
-@router.post("/admin/acs/templates", response_class=HTMLResponse, name="admin_acs_templates")
-def admin_acs_templates(request: Request, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        try:
-            done = install_base_templates(db, user)
-        except acs.GenieAcsConnectorError as exc:
-            return _render(request, db, user, error=str(exc))
-        db.commit()
-        return _render(request, db, user, message="Template installati in GenieACS: " + ", ".join(done) + ". Li trovi nel pannello ACS in Admin → Provisions e Presets.")
 
 
 def install_acs_admin(app) -> None:
