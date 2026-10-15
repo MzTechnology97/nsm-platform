@@ -27,6 +27,9 @@
   All need ``devices.write`` and go through ``crud_extension``
   (``update_device_record``, ``delete_device_record``,
   ``bulk_devices_record``);
+- ``GET / POST /api/ui/v1/device-import`` (administrators): validates (dry run) or
+  imports a device CSV through ``device_csv_import.process_upload``; every row
+  comes back with its outcome. The template stays the classic download;
 - ``POST /api/ui/v1/customers`` creates a customer; ``POST .../{id}`` updates
   it, ``POST .../{id}/delete`` deletes it with devices, sites and backup files
   (the typed name must match); ``POST .../{id}/sites`` creates a site,
@@ -43,7 +46,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, or_, select
 
@@ -500,3 +503,44 @@ def customer_devices_bulk(request: Request, customer_id: uuid.UUID, body: dict =
         except InputError as exc:
             raise _input_error(exc) from None
         return {"changed": changed}
+
+
+# --- CSV import ----------------------------------------------------------------------------------
+
+@router.post("/device-import", dependencies=[Depends(require_csrf)])
+async def devices_import(request: Request, csv_file: UploadFile = File(...), mode: str = Form("validate")):
+    from app import device_csv_import as importer
+
+    raw = await csv_file.read(importer.MAX_CSV_BYTES + 1)
+    filename = importer._clean(csv_file.filename, 255) or "devices.csv"
+    with SessionLocal() as db:
+        user = ui_user(request, db, "users.manage")
+        try:
+            rows, summary = importer.process_upload(db, user, raw, filename, str(mode or "").strip().lower())
+        except HTTPException as exc:
+            if exc.status_code in (400, 413):
+                raise HTTPException(422, {"code": "file_invalid", "message": str(exc.detail)}) from None
+            raise
+        out = []
+        for row in rows:
+            data = row.data
+            vendor = str(data.get("vendor") or "")
+            preview = Device(vendor=vendor, model=data.get("model"), device_type=data.get("device_type"), inventory_data={})
+            out.append({
+                "row": row.row_number, "status": row.status, "message": row.message, "device_id": row.device_id,
+                "customer": data.get("customer_name") or data.get("customer_code") or "", "site": data.get("site_name") or "",
+                "vendor": vendor, "device_type": data.get("device_type") or "", "name": data.get("name") or "",
+                "management_ip": data.get("management_ip"), "primary_mac": data.get("primary_mac"), "serial_number": data.get("serial_number"),
+                "brand": brand_icon(preview),
+            })
+        return {"filename": filename, "mode": mode, "summary": summary, "rows": out, "max_rows": importer.MAX_CSV_ROWS, "columns": list(importer.CSV_COLUMNS)}
+
+
+@router.get("/device-import")
+def devices_import_info(request: Request):
+    from app import device_csv_import as importer
+
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        return {"max_rows": importer.MAX_CSV_ROWS, "max_bytes": importer.MAX_CSV_BYTES, "columns": list(importer.CSV_COLUMNS),
+                "required": sorted(importer.REQUIRED_COLUMNS), "template": "/devices/import/template.csv"}

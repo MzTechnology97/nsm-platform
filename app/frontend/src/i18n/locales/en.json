@@ -3115,5 +3115,35 @@
       "confirm_count": "The confirmation number does not match.",
       "action_invalid": "Invalid action."
     }
+  },
+  "deviceImport": {
+    "open": "Import CSV",
+    "title": "Import devices from CSV",
+    "subtitle": "First a check that saves nothing, then the import of the rows that are ready.",
+    "file": "CSV file (UTF-8)",
+    "validate": "Check",
+    "import_one": "Import {{count}} device",
+    "import_other": "Import {{count}} devices",
+    "template": "Download the template",
+    "rules": "Up to {{rows}} devices and {{size}} KiB. Columns:",
+    "noCredentials": "The file cannot contain credentials: imported MikroTik devices wait for the agent enrollment.",
+    "resultValidate": "Check result",
+    "resultImport": "Import result",
+    "status": {
+      "ready": "Ready",
+      "imported": "Imported",
+      "already_exists": "Already present",
+      "error": "Error"
+    },
+    "columns": {
+      "row": "Row",
+      "device": "Device",
+      "customer": "Customer / site",
+      "address": "IP / MAC / serial",
+      "outcome": "Outcome"
+    },
+    "errors": {
+      "file_invalid": "Invalid CSV file."
+    }
   }
 }

@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.145 — 2026-10-15
+
+New interface (React) — device CSV import, phase 7h
+- **CSV import in `/app/devices/import`**, from «Import CSV» in the device list (administrators):
+  - **Check first:** a check that saves nothing shows every row with its outcome (ready, already present, error with the reason), the vendor icon, customer, site and address.
+  - **Import:** the «Import N devices» button imports only the ready rows, and the imported devices link to their page.
+  - **Limits:** the template download, the limits and the columns are shown on the page, which also says that credentials are never accepted.
+- **Shared code.** The check and the import are now one shared function (`device_csv_import.process_upload`), used by both interfaces; the classic page behaves as before.
+- **API.** `GET` and `POST /api/ui/v1/device-import` (administrators):
+  - `POST` takes multipart `csv_file` + `mode` (`validate` or `import`) and needs the CSRF header;
+  - an unreadable file returns 422 `file_invalid` with the reason.
+
 ## 0.49.144 — 2026-10-15
 
 New interface (React) — device management, phase 7g

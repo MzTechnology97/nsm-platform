@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { type DeviceFilters, type DeviceRow, useDeviceFacets, useDevices } from "../api/devices";
+import { can, useSession } from "../api/session";
 import { BrandIcon } from "../app/BrandIcon";
 import { formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
@@ -26,6 +27,7 @@ export function Devices() {
   const { t, i18n } = useTranslation();
   const search = useSearch({ from: "/devices" }) as DeviceFilters;
   const navigate = useNavigate({ from: "/devices" });
+  const session = useSession();
   const [text, setText] = useState(search.q ?? "");
   const q = useDebounced(text);
   const facets = useDeviceFacets();
@@ -58,6 +60,8 @@ export function Devices() {
   const sortBy = (column: (typeof SORTABLE)[number]) =>
     update({ sort: column, dir: filters.sort === column && filters.dir === "asc" ? "desc" : "asc" });
 
+  const canImport = can(session.data, "users.manage");
+
   return (
     <section className="ui-page ui-devices">
       <header className="ui-page-header ui-page-header-row">
@@ -65,9 +69,12 @@ export function Devices() {
           <h1>{t("devices.title")}</h1>
           <p>{t("devices.subtitle", { count: total })}</p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/devices">
-          {t("app.classic")}
-        </a>
+        <div className="ui-actions">
+          {canImport && <Link className="ui-button ui-button-ghost" to="/devices/import">{t("deviceImport.open")}</Link>}
+          <a className="ui-button ui-button-ghost" href="/devices">
+            {t("app.classic")}
+          </a>
+        </div>
       </header>
 
       <div className="ui-chips" role="group" aria-label={t("devices.status")}>
