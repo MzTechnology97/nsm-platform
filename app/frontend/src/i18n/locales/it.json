@@ -2941,5 +2941,35 @@
       "telegram_chat_id": "Chat ID Telegram mancante o non valido.",
       "slack_webhook": "Webhook Slack mancante o non valido (https://hooks.slack.com/services/…)."
     }
+  },
+  "customerForm": {
+    "newTitle": "Nuovo cliente",
+    "newSubtitle": "Anagrafica del cliente: le sedi e gli apparati si aggiungono dalla sua scheda.",
+    "editTitle": "Dati del cliente",
+    "name": "Nome",
+    "code": "Codice",
+    "codeHelp": "Facoltativo e univoco (es. codice gestionale).",
+    "notes": "Note",
+    "create": "Crea cliente",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "forbidden": "Non hai i permessi per modificare i clienti.",
+    "deleteTitle": "Elimina cliente",
+    "deleteImpact": "Verranno eliminati {{devices}} apparati e {{sites}} sedi, con backup e cronologia collegati.",
+    "deleteHelp": "L'operazione non si può annullare; una fotografia dei dati resta nel registro attività.",
+    "confirmName": "Per confermare scrivi il nome del cliente: {{name}}",
+    "delete": "Elimina definitivamente",
+    "siteName": "Nome sede",
+    "siteAddress": "Indirizzo",
+    "addSite": "Aggiungi sede",
+    "deleteSite": "Elimina sede",
+    "deleteSiteConfirm_one": "Eliminare la sede «{{name}}»? Il suo apparato resta nel cliente senza sede.",
+    "deleteSiteConfirm_other": "Eliminare la sede «{{name}}»? I suoi {{count}} apparati restano nel cliente senza sede.",
+    "errors": {
+      "name_required": "Il nome è obbligatorio.",
+      "code_taken": "Questo codice cliente è già usato da un altro cliente.",
+      "confirm_name": "Il nome di conferma non corrisponde: nessun dato è stato eliminato."
+    },
+    "deleteSiteConfirm_zero": "Eliminare la sede «{{name}}»?"
   }
 }

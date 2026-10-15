@@ -46,7 +46,7 @@ export function Customers() {
           <p>{t("customers.subtitle", { count: data?.counts.all ?? 0 })}</p>
         </div>
         <div className="ui-actions">
-          {data?.can_create && <a className="ui-button ui-button-primary" href="/customers/new/form">{t("customers.add")}</a>}
+          {data?.can_create && <Link className="ui-button ui-button-primary" to="/customers/new">{t("customers.add")}</Link>}
           <a className="ui-button ui-button-ghost" href="/customers">{t("app.classic")}</a>
         </div>
       </header>

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ApiError } from "../api/client";
 import { type CustomerDetail as Detail, useCustomer } from "../api/customer";
 import { formatDateTime, formatRelative } from "../lib/format";
+import { SiteForm } from "./CustomerForm";
 import { Metric } from "./DeviceDetail";
 
 /** Customer tabs already in the new interface; "devices" opens the device list filtered on the customer. */
@@ -44,7 +45,9 @@ function CustomerShell({ detail }: { detail: Detail }) {
         </div>
         <div className="ui-actions">
           {detail.actions.incidents && <a className="ui-button ui-button-ghost" href={detail.links.incidents}>{t("customer.actions.incidents")}</a>}
-          {detail.actions.edit && <a className="ui-button ui-button-ghost" href={detail.links.edit}>{t("customer.actions.edit")}</a>}
+          {detail.actions.edit && (
+            <Link className="ui-button ui-button-ghost" to="/customers/$customerId/edit" params={{ customerId: customer.id }}>{t("customer.actions.edit")}</Link>
+          )}
           {detail.actions.add_device && <a className="ui-button ui-button-primary" href={detail.links.add_device}>{t("customer.actions.addDevice")}</a>}
         </div>
       </header>
@@ -185,6 +188,7 @@ export function CustomerSites() {
   const { customerId } = useParams({ from: "/customers/$customerId/sites" });
   const { data } = useCustomer(customerId);
   const [text, setText] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
   if (!data) return null;
   const term = text.trim().toLowerCase();
   const sites = term ? data.sites.filter((site) => site.name.toLowerCase().includes(term) || (site.address ?? "").toLowerCase().includes(term)) : data.sites;
@@ -196,8 +200,11 @@ export function CustomerSites() {
           <h2>{t("customer.sites.title", { count: data.sites.length })}</h2>
           <p className="ui-muted">{t("customer.sites.hint")}</p>
         </div>
-        {data.actions.add_site && <a className="ui-button ui-button-ghost" href={data.links.add_site}>{t("customer.sites.add")}</a>}
+        {data.actions.add_site && editing !== "new" && (
+          <button type="button" className="ui-button ui-button-ghost" onClick={() => setEditing("new")}>{t("customer.sites.add")}</button>
+        )}
       </div>
+      {editing === "new" && <SiteForm customerId={data.customer.id} onDone={() => setEditing(null)} />}
       {data.sites.length > 5 && (
         <div className="ui-filter-bar">
           <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("customer.sites.search")} aria-label={t("customer.sites.search")} />
@@ -216,7 +223,11 @@ export function CustomerSites() {
               </tr>
             </thead>
             <tbody>
-              {sites.map((site) => (
+              {sites.map((site) => editing === site.id ? (
+                <tr key={site.id}>
+                  <td colSpan={5}><SiteForm customerId={data.customer.id} site={site} onDone={() => setEditing(null)} /></td>
+                </tr>
+              ) : (
                 <tr key={site.id}>
                   <td>
                     <strong>{site.name}</strong>
@@ -239,7 +250,7 @@ export function CustomerSites() {
                         {t("customer.sites.graphs")}
                       </Link>
                       {data.actions.edit && (
-                        <a className="ui-button ui-button-ghost ui-button-small" href={`/customers/${data.customer.id}/sites/${site.id}/edit`}>{t("customer.sites.edit")}</a>
+                        <button type="button" className="ui-button ui-button-ghost ui-button-small" onClick={() => setEditing(site.id)}>{t("customer.sites.edit")}</button>
                       )}
                     </div>
                   </td>

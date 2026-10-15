@@ -102,27 +102,63 @@ def customer_edit(
         customer = db.get(Customer, customer_id)
         if not customer:
             raise HTTPException(404)
-        new_name = name.strip()
-        if not new_name:
-            raise HTTPException(400, "Nome cliente richiesto.")
-        before = {"name": customer.name, "code": customer.code, "notes": customer.notes}
-        customer.name = new_name
-        customer.code = core.opt(code)
-        customer.notes = core.opt(notes)
-        after = {"name": customer.name, "code": customer.code, "notes": customer.notes}
-        core.add_event(
-            db,
-            "CUSTOMER_UPDATED",
-            actor=user,
-            customer_id=customer.id,
-            details={"before": before, "after": after},
-        )
-        try:
-            db.commit()
-        except IntegrityError:
-            db.rollback()
-            raise HTTPException(409, "Codice cliente già utilizzato.")
+        update_customer_record(db, user, customer, name, code, notes)
     return RedirectResponse(f"/customers/{customer_id}", status_code=303)
+
+
+def update_customer_record(db, user, customer: Customer, name: str, code: str, notes: str) -> None:
+    """Rename / recode a customer (audited, before and after) and commit; HTTPException 400 without a name, 409 when the code is taken."""
+    new_name = (name or "").strip()
+    if not new_name:
+        raise HTTPException(400, "Nome cliente richiesto.")
+    before = {"name": customer.name, "code": customer.code, "notes": customer.notes}
+    customer.name = new_name
+    customer.code = core.opt(code)
+    customer.notes = core.opt(notes)
+    after = {"name": customer.name, "code": customer.code, "notes": customer.notes}
+    core.add_event(
+        db,
+        "CUSTOMER_UPDATED",
+        actor=user,
+        customer_id=customer.id,
+        details={"before": before, "after": after},
+    )
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "Codice cliente già utilizzato.")
+
+
+def delete_customer_record(db, user, customer: Customer, confirm_name: str) -> None:
+    """Delete a customer with devices, sites and backup files (snapshot audited) and commit.
+
+    ``customer`` must be loaded with ``_customer_with_inventory``; ValueError ``confirm_name`` when the typed name
+    does not match.
+    """
+    if (confirm_name or "").strip() != customer.name:
+        raise ValueError("confirm_name")
+    device_ids = [d.id for d in customer.devices]
+    removed_files = cleanup_device_backup_files(db, device_ids)
+    snapshot = {
+        "customer_id": str(customer.id),
+        "name": customer.name,
+        "code": customer.code,
+        "device_count": len(customer.devices),
+        "site_count": len(customer.sites),
+        "backup_files_removed": removed_files,
+        "devices": [_device_snapshot(d) for d in customer.devices],
+    }
+    core.add_event(
+        db,
+        "CUSTOMER_DELETED",
+        actor=user,
+        customer_id=customer.id,
+        details=snapshot,
+        severity="warning",
+    )
+    db.delete(customer)
+    db.commit()
 
 
 @router.post("/customers/{customer_id}/delete")
@@ -138,31 +174,12 @@ def customer_delete(
         customer = _customer_with_inventory(db, customer_id)
         if not customer:
             raise HTTPException(404)
-        if confirm_name.strip() != customer.name:
+        try:
+            delete_customer_record(db, user, customer, confirm_name)
+        except ValueError:
             return RedirectResponse(
                 f"/customers/{customer_id}/edit?error=confirm_name", status_code=303
             )
-        device_ids = [d.id for d in customer.devices]
-        removed_files = cleanup_device_backup_files(db, device_ids)
-        snapshot = {
-            "customer_id": str(customer.id),
-            "name": customer.name,
-            "code": customer.code,
-            "device_count": len(customer.devices),
-            "site_count": len(customer.sites),
-            "backup_files_removed": removed_files,
-            "devices": [_device_snapshot(d) for d in customer.devices],
-        }
-        core.add_event(
-            db,
-            "CUSTOMER_DELETED",
-            actor=user,
-            customer_id=customer.id,
-            details=snapshot,
-            severity="warning",
-        )
-        db.delete(customer)
-        db.commit()
     return RedirectResponse("/customers", status_code=303)
 
 
@@ -200,22 +217,59 @@ def site_edit(
         site = db.scalar(select(Site).where(Site.id == site_id, Site.customer_id == customer_id))
         if not site:
             raise HTTPException(404)
-        new_name = name.strip()
-        if not new_name:
-            raise HTTPException(400, "Nome sede richiesto.")
-        before = {"name": site.name, "address": site.address, "notes": site.notes}
-        site.name = new_name
-        site.address = core.opt(address)
-        site.notes = core.opt(notes)
+        update_site_record(db, user, site, name, address, notes)
+    return RedirectResponse(f"/customers/{customer_id}#sites", status_code=303)
+
+
+def update_site_record(db, user, site: Site, name: str, address: str, notes: str) -> None:
+    """Rename a site / change its address and notes (audited) and commit; HTTPException 400 without a name."""
+    new_name = (name or "").strip()
+    if not new_name:
+        raise HTTPException(400, "Nome sede richiesto.")
+    before = {"name": site.name, "address": site.address, "notes": site.notes}
+    site.name = new_name
+    site.address = core.opt(address)
+    site.notes = core.opt(notes)
+    core.add_event(
+        db,
+        "SITE_UPDATED",
+        actor=user,
+        customer_id=site.customer_id,
+        details={"site_id": str(site.id), "before": before, "after": {"name": site.name, "address": site.address, "notes": site.notes}},
+    )
+    db.commit()
+
+
+def delete_site_record(db, user, site: Site) -> int:
+    """Delete a site; its devices stay in the customer without a site (each move audited). Commits; returns how many moved.
+
+    ``site`` must be loaded with its devices.
+    """
+    customer_id = site.customer_id
+    site_name = site.name
+    affected = list(site.devices)
+    for device in affected:
+        old_site = device.site_id
+        device.site_id = None
         core.add_event(
             db,
-            "SITE_UPDATED",
+            "DEVICE_SITE_CHANGED",
             actor=user,
             customer_id=customer_id,
-            details={"site_id": str(site.id), "before": before, "after": {"name": site.name, "address": site.address, "notes": site.notes}},
+            device_id=device.id,
+            details={"old_site_id": str(old_site), "new_site_id": None, "reason": "site_deleted"},
         )
-        db.commit()
-    return RedirectResponse(f"/customers/{customer_id}#sites", status_code=303)
+    core.add_event(
+        db,
+        "SITE_DELETED",
+        actor=user,
+        customer_id=customer_id,
+        details={"site_id": str(site.id), "name": site_name, "devices_moved_to_no_site": len(affected)},
+        severity="warning",
+    )
+    db.delete(site)
+    db.commit()
+    return len(affected)
 
 
 @router.post("/customers/{customer_id}/sites/{site_id}/delete")
@@ -235,29 +289,7 @@ def site_delete(
         )
         if not site:
             raise HTTPException(404)
-        site_name = site.name
-        affected = list(site.devices)
-        for device in affected:
-            old_site = device.site_id
-            device.site_id = None
-            core.add_event(
-                db,
-                "DEVICE_SITE_CHANGED",
-                actor=user,
-                customer_id=customer_id,
-                device_id=device.id,
-                details={"old_site_id": str(old_site), "new_site_id": None, "reason": "site_deleted"},
-            )
-        core.add_event(
-            db,
-            "SITE_DELETED",
-            actor=user,
-            customer_id=customer_id,
-            details={"site_id": str(site.id), "name": site_name, "devices_moved_to_no_site": len(affected)},
-            severity="warning",
-        )
-        db.delete(site)
-        db.commit()
+        delete_site_record(db, user, site)
     return RedirectResponse(f"/customers/{customer_id}#sites", status_code=303)
 
 

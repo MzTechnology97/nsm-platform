@@ -10,6 +10,15 @@
 - ``GET /api/ui/v1/customers/{id}/graphs/summary``: what surrounds the charts
   of the Graphs tab (sites compared over 24 hours, devices with most traffic,
   30-day availability); the charts come from ``/api/v1/customers/{id}/graphs``.
+- ``POST /api/ui/v1/customers`` creates a customer; ``POST .../{id}`` updates
+  it, ``POST .../{id}/delete`` deletes it with devices, sites and backup files
+  (the typed name must match); ``POST .../{id}/sites`` creates a site,
+  ``POST .../sites/{site_id}`` updates it and ``.../delete`` removes it (its
+  devices stay in the customer without a site). All need ``customers.write``
+  and the CSRF header and go through the functions shared with the classic
+  forms (``main.create_customer_record`` / ``create_site_record``,
+  ``crud_extension.update_*`` / ``delete_*``). Validation errors are 422
+  ``{code, message}``: ``name_required``, ``code_taken``, ``confirm_name``.
 
 Customer scope comes from the global ORM filter (another customer is a 404).
 """
@@ -17,18 +26,18 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from sqlalchemy import func, or_, select
 
 from datetime import timedelta
 
-from app import availability, customer_graphs
+from app import availability, crud_extension, customer_graphs
 from app import main as core
 from app.customer_tabs import _backup_summary, _load_customer
 from app.customer_workspace import OPEN_STATES, _customer_metric_maps, _customer_metrics
 from app.db import SessionLocal
-from app.models import ActionIssue, AuditEvent, Customer, Device, utcnow
-from app.ui_api import brand_icon, ui_user
+from app.models import ActionIssue, AuditEvent, Customer, Device, Site, utcnow
+from app.ui_api import brand_icon, require_csrf, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 MAX_ROWS = 5000
@@ -187,3 +196,104 @@ def customer_graphs_summary(request: Request, customer_id: uuid.UUID, site: str 
 
 def install_ui_customers(app) -> None:
     app.include_router(router)
+
+
+# --- Customer and site forms -----------------------------------------------------------------------
+
+ERROR_CODES = {400: "name_required", 409: "code_taken"}
+
+
+def _text(body: dict, key: str) -> str:
+    value = body.get(key)
+    return value if isinstance(value, str) else ""
+
+
+def _form_error(exc: HTTPException) -> HTTPException:
+    """Shared-function validation (400 / 409) as 422 ``{code, message}``; other statuses pass through."""
+    code = ERROR_CODES.get(exc.status_code)
+    if not code:
+        return exc
+    return HTTPException(422, {"code": code, "message": str(exc.detail)})
+
+
+def _site(db, customer_id: uuid.UUID, site_id: uuid.UUID, with_devices: bool = False):
+    from sqlalchemy.orm import selectinload
+
+    stmt = select(Site).where(Site.id == site_id, Site.customer_id == customer_id)
+    if with_devices:
+        stmt = stmt.options(selectinload(Site.devices))
+    site = db.scalar(stmt)
+    if not site:
+        raise HTTPException(404)
+    return site
+
+
+@router.post("/customers", dependencies=[Depends(require_csrf)])
+def create_customer(request: Request, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "customers.write")
+        try:
+            customer = core.create_customer_record(db, user, _text(body, "name"), _text(body, "code"), _text(body, "notes"))
+        except HTTPException as exc:
+            raise _form_error(exc) from None
+        return {"id": str(customer.id)}
+
+
+@router.post("/customers/{customer_id}", dependencies=[Depends(require_csrf)])
+def update_customer(request: Request, customer_id: uuid.UUID, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "customers.write")
+        customer = db.get(Customer, customer_id)
+        if not customer:
+            raise HTTPException(404)
+        try:
+            crud_extension.update_customer_record(db, user, customer, _text(body, "name"), _text(body, "code"), _text(body, "notes"))
+        except HTTPException as exc:
+            raise _form_error(exc) from None
+        return {"id": str(customer_id)}
+
+
+@router.post("/customers/{customer_id}/delete", dependencies=[Depends(require_csrf)])
+def delete_customer(request: Request, customer_id: uuid.UUID, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "customers.write")
+        customer = crud_extension._customer_with_inventory(db, customer_id)
+        if not customer:
+            raise HTTPException(404)
+        try:
+            crud_extension.delete_customer_record(db, user, customer, _text(body, "confirm_name"))
+        except ValueError:
+            raise HTTPException(422, {"code": "confirm_name", "message": "Il nome di conferma non corrisponde al cliente."}) from None
+        return {"deleted": True}
+
+
+@router.post("/customers/{customer_id}/sites", dependencies=[Depends(require_csrf)])
+def create_site(request: Request, customer_id: uuid.UUID, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "customers.write")
+        try:
+            site = core.create_site_record(db, user, customer_id, _text(body, "name"), _text(body, "address"), _text(body, "notes"))
+        except HTTPException as exc:
+            raise _form_error(exc) from None
+        return {"id": str(site.id)}
+
+
+@router.post("/customers/{customer_id}/sites/{site_id}", dependencies=[Depends(require_csrf)])
+def update_site(request: Request, customer_id: uuid.UUID, site_id: uuid.UUID, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "customers.write")
+        site = _site(db, customer_id, site_id)
+        try:
+            crud_extension.update_site_record(db, user, site, _text(body, "name"), _text(body, "address"), _text(body, "notes"))
+        except HTTPException as exc:
+            raise _form_error(exc) from None
+        return {"id": str(site_id)}
+
+
+@router.post("/customers/{customer_id}/sites/{site_id}/delete", dependencies=[Depends(require_csrf)])
+def delete_site(request: Request, customer_id: uuid.UUID, site_id: uuid.UUID):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "customers.write")
+        site = _site(db, customer_id, site_id, with_devices=True)
+        moved = crud_extension.delete_site_record(db, user, site)
+        return {"moved": moved}

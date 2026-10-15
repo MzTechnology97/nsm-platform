@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./client";
 
@@ -38,3 +38,17 @@ export const useCustomer = (id: string) =>
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
+
+/** Customer and site forms (create, update, delete); customer lists and pages reload afterwards. */
+export function useCustomerWrite<TBody = object, TResult = { id: string }>(path: string, deletesCustomer?: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body?: TBody) => api<TResult>(`/api/ui/v1/customers${path}`, { method: "POST", body: JSON.stringify(body ?? {}) }),
+    onSuccess: () => {
+      // A deleted customer is dropped from the cache instead of being fetched again (it would be a 404).
+      if (deletesCustomer) client.removeQueries({ queryKey: ["customer", deletesCustomer] });
+      else void client.invalidateQueries({ queryKey: ["customer"] });
+      void client.invalidateQueries({ queryKey: ["customers"] });
+    },
+  });
+}

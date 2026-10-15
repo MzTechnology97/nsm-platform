@@ -2941,5 +2941,35 @@
       "telegram_chat_id": "Chat ID Telegram manquant ou non valide.",
       "slack_webhook": "Webhook Slack manquant ou non valide (https://hooks.slack.com/services/…)."
     }
+  },
+  "customerForm": {
+    "newTitle": "Nouveau client",
+    "newSubtitle": "Fiche du client : les sites et équipements s'ajoutent depuis sa page.",
+    "editTitle": "Données du client",
+    "name": "Nom",
+    "code": "Code",
+    "codeHelp": "Facultatif et unique (ex. code comptable).",
+    "notes": "Notes",
+    "create": "Créer le client",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "forbidden": "Vous n'êtes pas autorisé à modifier les clients.",
+    "deleteTitle": "Supprimer le client",
+    "deleteImpact": "{{devices}} équipements et {{sites}} sites seront supprimés, avec leurs sauvegardes et leur historique.",
+    "deleteHelp": "Cette opération est irréversible ; une copie des données reste dans le journal d'activité.",
+    "confirmName": "Pour confirmer, saisissez le nom du client : {{name}}",
+    "delete": "Supprimer définitivement",
+    "siteName": "Nom du site",
+    "siteAddress": "Adresse",
+    "addSite": "Ajouter un site",
+    "deleteSite": "Supprimer le site",
+    "deleteSiteConfirm_one": "Supprimer le site « {{name}} » ? Son équipement reste dans le client sans site.",
+    "deleteSiteConfirm_other": "Supprimer le site « {{name}} » ? Ses {{count}} équipements restent dans le client sans site.",
+    "errors": {
+      "name_required": "Le nom est obligatoire.",
+      "code_taken": "Ce code client est déjà utilisé par un autre client.",
+      "confirm_name": "Le nom de confirmation ne correspond pas : rien n'a été supprimé."
+    },
+    "deleteSiteConfirm_zero": "Supprimer le site « {{name}} » ?"
   }
 }

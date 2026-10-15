@@ -72,6 +72,16 @@ const customersRoute = createRoute({ getParentRoute: () => rootRoute, path: "/cu
 const customerRoute = createRoute({ getParentRoute: () => rootRoute, path: "/customers/$customerId", component: CustomerDetail });
 const customerOverviewRoute = createRoute({ getParentRoute: () => customerRoute, path: "/", component: CustomerOverview });
 const customerSitesRoute = createRoute({ getParentRoute: () => customerRoute, path: "/sites", component: CustomerSites });
+const customerEditRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/edit",
+  component: lazyRouteComponent(() => import("../pages/CustomerForm"), "CustomerEdit"),
+});
+const customerNewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/customers/new",
+  component: lazyRouteComponent(() => import("../pages/CustomerForm"), "CustomerNew"),
+});
 const GRAPH_RANGES = new Set(["24h", "7d", "30d", "90d"]);
 const customerGraphsRoute = createRoute({
   getParentRoute: () => customerRoute,
@@ -411,7 +421,8 @@ export const routeTree = rootRoute.addChildren([
   searchRoute,
   notificationsRoute,
   profileRoute,
-  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute]),
+  customerNewRoute,
+  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute]),
   deviceRoute.addChildren([deviceOverviewRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);
 
