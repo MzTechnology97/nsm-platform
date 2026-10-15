@@ -3145,5 +3145,125 @@
     "errors": {
       "file_invalid": "Fichier CSV non valide."
     }
+  },
+  "deviceActivity": {
+    "title": "Tâches de l'agent",
+    "help_one": "{{count}} tâche active.",
+    "help_other": "{{count}} tâches actives.",
+    "audit": "Journal d'activité de l'équipement",
+    "search": "Rechercher par type, état ou erreur",
+    "status": "État",
+    "type": "Type",
+    "allStatuses": "Tous les états",
+    "allTypes": "Tous les types",
+    "columns": {
+      "type": "Type",
+      "status": "État",
+      "created": "Créée",
+      "completed": "Terminée",
+      "attempts": "Tentatives"
+    },
+    "empty": "Aucune tâche.",
+    "newer": "Plus récentes",
+    "older": "Plus anciennes",
+    "range": "{{from}}–{{to}} sur {{total}}",
+    "statuses": {
+      "pending": "En file",
+      "delivered": "Livré",
+      "running": "En cours",
+      "completed": "Terminé",
+      "succeeded": "Réussi",
+      "success": "Réussi",
+      "failed": "Échec",
+      "error": "Erreur",
+      "expired": "Expiré",
+      "cancelled": "Annulé"
+    }
+  },
+  "deviceExposure": {
+    "title": "Services exposés sur le WAN",
+    "helpAgent": "L'agent lit dans la configuration du routeur les services actifs et les règles de pare-feu (input et raw) ; NSM évalue lesquels sont joignables depuis Internet. Aucun paquet n'est envoyé à l'équipement.",
+    "helpExternal": "Le serveur NSM vérifie quels services de gestion répondent sur l'IP de l'équipement : une connexion par port, seulement les ports connus pour ce fabricant, aucun scan complet.",
+    "check": "Vérifier maintenant",
+    "running": "Vérification en cours…",
+    "shared": "IP partagée avec :",
+    "forwardsIn": "Joignable depuis Internet via des redirections de port",
+    "forwardsOut": "Redirections de port vers le réseau interne",
+    "checkedIp": "IP vérifiée",
+    "byOperator": "indiquée par l'opérateur",
+    "managementIp": "IP de gestion",
+    "ports": "Ports vérifiés",
+    "targetIp": "IP publique à vérifier",
+    "targetPlaceholder": "Vide = IP de gestion",
+    "saveTarget": "Enregistrer l'IP",
+    "targetSaved": "IP enregistrée.",
+    "targetQueued": "IP enregistrée : la vérification démarre dans la minute.",
+    "ipInvalid": "Adresse inutilisable : il faut une IP publique, privée ou CGNAT valide.",
+    "fromServer": "La vérification part du serveur NSM : s'il est dans le même réseau que l'équipement, le résultat peut différer de ce que voit Internet.",
+    "exposed": "Exposés",
+    "worst": "gravité maximale {{severity}}",
+    "noneReachable": "aucun service joignable",
+    "portsChecked": "{{count}} ports vérifiés",
+    "uncertain": "À vérifier",
+    "wan": "Interfaces WAN",
+    "rules": "{{filter}} règles filter, {{raw}} raw",
+    "lastCheck": "Dernière vérification",
+    "daily": "répétée toutes les 24 heures",
+    "noDrop": "Aucune règle de drop dans la chaîne input ni en raw/prerouting : le routeur accepte tout ce qui n'est pas bloqué explicitement. Ajoutez en fin de chaîne input une règle qui rejette le trafic du WAN.",
+    "privateResult": "Résultat obtenu sur une IP privée ou CGNAT ({{ip}}) : il ne vaut que si l'équipement a un accès direct au WAN.",
+    "sharedResult": "IP partagée avec {{peers}} : les réponses viennent du routeur de bordure ou d'une de ses redirections.",
+    "columns": {
+      "service": "Service",
+      "port": "Port",
+      "state": "État",
+      "severity": "Gravité",
+      "reason": "Motif"
+    },
+    "states": {
+      "exposed": "exposé",
+      "restricted": "restreint",
+      "protected": "protégé",
+      "uncertain": "à vérifier",
+      "disabled": "désactivé",
+      "closed": "fermé",
+      "filtered": "filtré"
+    },
+    "forwards": {
+      "rule": "Règle / routeur",
+      "public": "Port public",
+      "target": "Destination",
+      "sensitive": "Services sensibles",
+      "state": "État",
+      "allPorts": "tous les ports",
+      "raw": "protégé (raw)"
+    },
+    "noServices": "Aucun service détecté.",
+    "pendingExternal": "Vérification en cours : le serveur NSM contrôle les ports dans la minute.",
+    "pendingAgent": "Vérification en cours : l'agent enverra services et pare-feu au prochain heartbeat.",
+    "never": "Aucune vérification pour l'instant : elle démarre automatiquement quand l'équipement est connecté, ou avec « Vérifier maintenant »."
+  },
+  "deviceCompliance": {
+    "title": "Conformité",
+    "help": "Contrôles de la baseline effective de cet équipement.",
+    "evaluated": "Contrôles de la baseline effective, évalués le {{when}}.",
+    "fleet": "Vue de tous les équipements",
+    "columns": {
+      "control": "Contrôle",
+      "result": "Résultat",
+      "evidence": "Preuve",
+      "handling": "Traitement"
+    },
+    "states": {
+      "pass": "Conforme",
+      "fail": "Non conforme",
+      "unknown": "Sans preuve",
+      "not_applicable": "Non applicable",
+      "exception": "En exception"
+    },
+    "until": "jusqu'au {{when}}",
+    "acknowledged": "pris en charge",
+    "manage": "Traiter",
+    "empty": "Aucune baseline de conformité ne s'applique à cet équipement.",
+    "configure": "Configurer les baselines"
   }
 }

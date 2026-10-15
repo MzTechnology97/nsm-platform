@@ -390,6 +390,9 @@ const deviceImportRoute = createRoute({
 });
 const deviceRoute = createRoute({ getParentRoute: () => rootRoute, path: "/devices/$deviceId", component: DeviceDetail });
 const deviceOverviewRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/", component: DeviceOverview });
+const deviceExposureRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/exposure", component: lazyRouteComponent(() => import("../pages/DeviceTabs"), "DeviceExposure") });
+const deviceComplianceRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/compliance", component: lazyRouteComponent(() => import("../pages/DeviceTabs"), "DeviceCompliance") });
+const deviceJobsRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/jobs", component: lazyRouteComponent(() => import("../pages/DeviceTabs"), "DeviceActivity") });
 const deviceManageRoute = createRoute({
   getParentRoute: () => deviceRoute,
   path: "/manage",
@@ -449,7 +452,7 @@ export const routeTree = rootRoute.addChildren([
   customerNewRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute, customerDevicesManageRoute]),
   deviceImportRoute,
-  deviceRoute.addChildren([deviceOverviewRoute, deviceManageRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
+  deviceRoute.addChildren([deviceOverviewRoute, deviceManageRoute, deviceExposureRoute, deviceComplianceRoute, deviceJobsRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);
 
 export const router = createRouter({ routeTree, basepath: "/app", defaultPreload: "intent" });

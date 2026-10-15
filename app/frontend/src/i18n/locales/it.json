@@ -3145,5 +3145,125 @@
     "errors": {
       "file_invalid": "File CSV non valido."
     }
+  },
+  "deviceActivity": {
+    "title": "Job dell'agent",
+    "help_one": "{{count}} job attivo.",
+    "help_other": "{{count}} job attivi.",
+    "audit": "Registro attività dell'apparato",
+    "search": "Cerca per tipo, stato o errore",
+    "status": "Stato",
+    "type": "Tipo",
+    "allStatuses": "Tutti gli stati",
+    "allTypes": "Tutti i tipi",
+    "columns": {
+      "type": "Tipo",
+      "status": "Stato",
+      "created": "Creato",
+      "completed": "Completato",
+      "attempts": "Tentativi"
+    },
+    "empty": "Nessun job.",
+    "newer": "Più recenti",
+    "older": "Meno recenti",
+    "range": "{{from}}–{{to}} di {{total}}",
+    "statuses": {
+      "pending": "In coda",
+      "delivered": "Consegnato",
+      "running": "In esecuzione",
+      "completed": "Completato",
+      "succeeded": "Riuscito",
+      "success": "Riuscito",
+      "failed": "Fallito",
+      "error": "Errore",
+      "expired": "Scaduto",
+      "cancelled": "Annullato"
+    }
+  },
+  "deviceExposure": {
+    "title": "Servizi esposti sulla WAN",
+    "helpAgent": "L'agent legge dalla configurazione del router i servizi attivi e le regole firewall (input e raw); NSM valuta quali sono raggiungibili da Internet. Nessun pacchetto viene inviato all'apparato.",
+    "helpExternal": "Il server NSM verifica quali servizi di gestione rispondono sull'IP dell'apparato: una connessione per porta, solo porte note per questo produttore, nessuna scansione completa.",
+    "check": "Verifica ora",
+    "running": "Verifica in corso…",
+    "shared": "IP condiviso con:",
+    "forwardsIn": "Raggiungibile da Internet tramite port forward",
+    "forwardsOut": "Port forward verso la rete interna",
+    "checkedIp": "IP verificato",
+    "byOperator": "indicato dall'operatore",
+    "managementIp": "IP di gestione",
+    "ports": "Porte verificate",
+    "targetIp": "IP pubblico da verificare",
+    "targetPlaceholder": "Vuoto = IP di gestione",
+    "saveTarget": "Salva IP",
+    "targetSaved": "IP salvato.",
+    "targetQueued": "IP salvato: la verifica parte entro un minuto.",
+    "ipInvalid": "Indirizzo non utilizzabile: serve un IP pubblico, privato o CGNAT valido.",
+    "fromServer": "La verifica parte dal server NSM: se il server è nella stessa rete dell'apparato il risultato può differire da quello visto da Internet.",
+    "exposed": "Esposti",
+    "worst": "gravità massima {{severity}}",
+    "noneReachable": "nessun servizio raggiungibile",
+    "portsChecked": "{{count}} porte controllate",
+    "uncertain": "Da verificare",
+    "wan": "Interfacce WAN",
+    "rules": "{{filter}} regole filter, {{raw}} raw",
+    "lastCheck": "Ultima verifica",
+    "daily": "ripetuta ogni 24 ore",
+    "noDrop": "Nessuna regola di drop nella catena input né in raw/prerouting: il router accetta tutto ciò che non è bloccato esplicitamente. Aggiungi in fondo alla catena input una regola che scarta il traffico dalla WAN.",
+    "privateResult": "Risultato ottenuto su un IP privato o CGNAT ({{ip}}): vale solo se l'apparato ha accesso diretto alla WAN.",
+    "sharedResult": "IP condiviso con {{peers}}: le risposte arrivano dal router di bordo o da un suo port forward.",
+    "columns": {
+      "service": "Servizio",
+      "port": "Porta",
+      "state": "Stato",
+      "severity": "Gravità",
+      "reason": "Motivo"
+    },
+    "states": {
+      "exposed": "esposto",
+      "restricted": "limitato",
+      "protected": "protetto",
+      "uncertain": "da verificare",
+      "disabled": "disattivato",
+      "closed": "chiuso",
+      "filtered": "filtrato"
+    },
+    "forwards": {
+      "rule": "Regola / router",
+      "public": "Porta pubblica",
+      "target": "Destinazione",
+      "sensitive": "Servizi sensibili",
+      "state": "Stato",
+      "allPorts": "tutte le porte",
+      "raw": "protetto (raw)"
+    },
+    "noServices": "Nessun servizio rilevato.",
+    "pendingExternal": "Verifica in corso: il server NSM controlla le porte entro un minuto.",
+    "pendingAgent": "Verifica in corso: l'agent invierà servizi e firewall al prossimo heartbeat.",
+    "never": "Nessuna verifica ancora eseguita: parte automaticamente quando l'apparato è collegato, oppure con «Verifica ora»."
+  },
+  "deviceCompliance": {
+    "title": "Compliance",
+    "help": "Controlli della baseline effettiva di questo apparato.",
+    "evaluated": "Controlli della baseline effettiva, valutati il {{when}}.",
+    "fleet": "Vista di tutti gli apparati",
+    "columns": {
+      "control": "Controllo",
+      "result": "Esito",
+      "evidence": "Evidenza",
+      "handling": "Gestione"
+    },
+    "states": {
+      "pass": "Conforme",
+      "fail": "Non conforme",
+      "unknown": "Senza evidenza",
+      "not_applicable": "Non applicabile",
+      "exception": "In eccezione"
+    },
+    "until": "fino al {{when}}",
+    "acknowledged": "presa in carico",
+    "manage": "Gestisci",
+    "empty": "Nessuna baseline di compliance applicabile a questo apparato.",
+    "configure": "Configura le baseline"
   }
 }
