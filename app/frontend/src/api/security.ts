@@ -232,3 +232,38 @@ export function useComplianceEvaluate() {
     onSuccess: () => client.invalidateQueries({ queryKey: ["compliance"] }),
   });
 }
+
+export interface ComplianceResultDetail {
+  id: string;
+  control_id: string;
+  status: "pass" | "fail" | "unknown" | "not_applicable";
+  evidence: string;
+  control: { title: string; category: string; description: string } | null;
+  device: DeviceRef;
+  customer: { id: string; name: string } | null;
+  evaluated_at: string | null;
+  status_changed_at: string | null;
+  baseline: { id: string; version: number | null } | null;
+  acknowledged: { by: string | null; at: string | null } | null;
+  exception: { until: string | null; reason: string | null } | null;
+  history: { at: string | null; action: string; from: string | null; to: string | null; by: string | null; note: string | null }[];
+  can_manage: boolean;
+  today: string;
+  max_exception: string;
+}
+
+export const useComplianceResult = (id: string) =>
+  useQuery({ queryKey: ["compliance-result", id], queryFn: () => api<ComplianceResultDetail>(`/api/ui/v1/compliance/results/${encodeURIComponent(id)}`), retry: false });
+
+export function useComplianceResultAction(id: string, action: "acknowledge" | "exception" | "revoke") {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { note?: string; reason?: string; until?: string }) =>
+      api<{ message: string }>(`/api/ui/v1/compliance/results/${encodeURIComponent(id)}/${action}`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["compliance-result", id] });
+      client.invalidateQueries({ queryKey: ["compliance"] });
+      client.invalidateQueries({ queryKey: ["device"] });
+    },
+  });
+}

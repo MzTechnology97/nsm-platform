@@ -4139,5 +4139,56 @@
       "device_customer": "L'équipement n'appartient pas au client choisi."
     },
     "confirmName": "Pour confirmer, saisissez le nom de la politique : {{name}}"
+  },
+  "complianceResult": {
+    "inException": "en exception",
+    "outcome": "Résultat",
+    "evidence": "Preuve",
+    "evaluated": "Évalué",
+    "since": "Inchangé depuis",
+    "baseline": "Référentiel",
+    "acknowledged": "Pris en charge",
+    "exceptionUntil": "Exception jusqu'au",
+    "reason": "Motif",
+    "history": "Historique",
+    "historyHelp": "Changements de résultat et décisions des opérateurs, conservés après le retour à la conformité.",
+    "columns": {
+      "when": "Quand",
+      "action": "Action",
+      "result": "Résultat",
+      "who": "Qui",
+      "note": "Note"
+    },
+    "actions": {
+      "evaluated": "Évaluation",
+      "acknowledged": "Prise en charge",
+      "exception": "Exception accordée",
+      "exception_revoked": "Exception révoquée",
+      "exception_expired": "Exception expirée"
+    },
+    "automatic": "Automatique",
+    "noHistory": "Aucune entrée.",
+    "handling": "Traitement",
+    "handlingHelp": "Le résultat évalué ne se modifie jamais à la main : il se clôt quand une nouvelle évaluation est conforme.",
+    "saved": "Traitement mis à jour.",
+    "ackNote": "Note de prise en charge",
+    "ackPlaceholder": "Ex. intervention planifiée avec le client",
+    "acknowledge": "Prendre en charge",
+    "note": "Note",
+    "revoke": "Révoquer l'exception",
+    "exceptionTitle": "Enregistrer une exception",
+    "reasonLabel": "Motif et mesures compensatoires",
+    "reasonPlaceholder": "Pourquoi le risque est accepté et avec quelles compensations",
+    "validUntil": "Valable jusqu'au",
+    "validUntilHelp": "Un an au maximum ; à l'expiration, la non-conformité doit être traitée à nouveau.",
+    "grant": "Enregistrer l'exception",
+    "errors": {
+      "not_fail": "Le contrôle n'est plus non conforme : rechargez la page.",
+      "reason": "Une exception nécessite un motif.",
+      "until": "Indiquez une date d'expiration valide.",
+      "until_range": "L'expiration doit être dans moins d'un an.",
+      "no_exception": "Aucune exception active.",
+      "action": "Action non valide."
+    }
   }
 }

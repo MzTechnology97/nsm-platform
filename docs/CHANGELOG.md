@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.156 — 2026-10-15
+
+New interface (React) — compliance result, phase 7t
+- **Compliance result** (`/app/compliance/results/{id}`), opened from the compliance matrix and from the device Compliance tab (the control name and "Manage"):
+  - **Outcome:** evidence, evaluation date, unchanged-since date, baseline version, who acknowledged it, and the active exception with its reason;
+  - **Handling** (`compliance.manage`, failing results only): acknowledge with a note, record an exception with reason and expiry (at most one year), revoke it;
+  - **History:** outcome changes and operator decisions.
+  - The device is shown with its vendor icon.
+- **Shared code.** `compliance_findings.result_action_record` validates, records the history, audits and syncs the Action Center issue; the classic page uses it and keeps its messages. Errors carry codes (`not_fail`, `reason`, `until`, `until_range`, `no_exception`, `action`).
+- **API.**
+  - `GET /api/ui/v1/compliance/results/{id}` (`compliance.read`);
+  - `POST /api/ui/v1/compliance/results/{id}/acknowledge|exception|revoke` (`compliance.manage` + CSRF).
+
 ## 0.49.155 — 2026-10-15
 
 New interface (React) — backup policy forms, phase 7s

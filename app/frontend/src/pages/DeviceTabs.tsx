@@ -274,13 +274,13 @@ export function DeviceCompliance() {
                 const tone = state === "pass" ? "online" : state === "fail" ? "offline" : "warning";
                 return (
                   <tr key={row.id}>
-                    <td><strong>{t(`compliance.controls.${row.control_id}`, { defaultValue: row.title })}</strong>{row.category && <small className="ui-muted ui-block">{row.category}</small>}</td>
+                    <td><Link to="/compliance/results/$resultId" params={{ resultId: row.id }} className="ui-cell-title">{t(`compliance.controls.${row.control_id}`, { defaultValue: row.title })}</Link>{row.category && <small className="ui-muted ui-block">{row.category}</small>}</td>
                     <td><span className={`ui-status ui-status-${tone}`}>{t(`deviceCompliance.states.${state}`, { defaultValue: row.status_label })}</span></td>
                     <td>{row.evidence || "—"}</td>
                     <td>
                       {row.excepted ? t("deviceCompliance.until", { when: formatDateTime(row.exception_until, i18n.language) })
                         : row.status === "fail" ? (row.acknowledged ? t("deviceCompliance.acknowledged")
-                          : <a className="ui-button ui-button-ghost ui-button-small" href={`/compliance/results/${row.id}`}>{t("deviceCompliance.manage")}</a>)
+                          : <Link to="/compliance/results/$resultId" params={{ resultId: row.id }} className="ui-button ui-button-ghost ui-button-small">{t("deviceCompliance.manage")}</Link>)
                           : "—"}
                     </td>
                   </tr>

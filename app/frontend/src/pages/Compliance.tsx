@@ -114,7 +114,7 @@ export function Compliance() {
                       const cell = result.exception ? { mark: "E", tone: "is-exception" } : CELL[result.status] ?? CELL.unknown;
                       return (
                         <td key={control.id} className={`ui-matrix-cell ${cell.tone}`}>
-                          <a href={`/compliance/results/${result.id}`} title={result.evidence || t(`compliance.result.${result.status}`)}>{cell.mark}</a>
+                          <Link to="/compliance/results/$resultId" params={{ resultId: result.id }} title={result.evidence || t(`compliance.result.${result.status}`)}>{cell.mark}</Link>
                         </td>
                       );
                     })}
