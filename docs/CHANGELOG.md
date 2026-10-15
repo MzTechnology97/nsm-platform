@@ -16,6 +16,7 @@ New interface (React) — device lifecycle, phase 7p
 - **Shared code.** The lifecycle changes are now shared functions, used by both interfaces; the classic page behaves as before, with the same messages.
   - `lifecycle_catalog.set_manual_record`, `use_catalog_record`;
   - `lifecycle_remediation.update_record`.
+- **Fix.** `InputError` prints its message alone, so classic pages that show `str(exc)` keep the plain text.
 - **API.**
   - `GET /api/ui/v1/devices/{id}/lifecycle` (`security.read`);
   - `POST .../lifecycle`, `.../lifecycle/catalog`, `.../lifecycle/remediation` (`lifecycle.manage` + CSRF).
