@@ -41,7 +41,6 @@ export interface DiagnosticJob {
   query: string | null;
   error: string | null;
   result: DiagnosticResult | null;
-  classic_url: string;
   export_url: string | null;
 }
 
@@ -74,3 +73,13 @@ export function useRunDiagnostic(id: string) {
     onSuccess: () => client.invalidateQueries({ queryKey: ["diagnostics", id] }),
   });
 }
+
+/** Raw data returned by the agent for one run (support snapshots have no structured view). */
+export const useDiagnosticOutput = (id: string, jobId: string, enabled: boolean) =>
+  useQuery({
+    queryKey: ["device", id, "diagnostics", jobId, "output"],
+    queryFn: () => api<{ id: string; diagnostic: string; status: string; data: unknown; output: string | null }>(
+      `/api/ui/v1/devices/${encodeURIComponent(id)}/diagnostics/jobs/${encodeURIComponent(jobId)}/output`),
+    enabled,
+    staleTime: 5 * 60_000,
+  });

@@ -693,7 +693,8 @@
       "expires": "Expires in",
       "static": "static",
       "none": "No lease found."
-    }
+    },
+    "noOutput": "The agent returned no output."
   },
   "customers": {
     "title": "Customers",

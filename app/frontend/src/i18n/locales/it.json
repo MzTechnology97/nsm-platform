@@ -693,7 +693,8 @@
       "expires": "Scade tra",
       "static": "statica",
       "none": "Nessuna lease trovata."
-    }
+    },
+    "noOutput": "Nessun output restituito dall'agent."
   },
   "customers": {
     "title": "Clienti",

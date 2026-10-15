@@ -693,7 +693,8 @@
       "expires": "Caduca en",
       "static": "estática",
       "none": "Ninguna concesión encontrada."
-    }
+    },
+    "noOutput": "El agente no devolvió ninguna salida."
   },
   "customers": {
     "title": "Clientes",

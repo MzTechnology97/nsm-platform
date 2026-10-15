@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
 import { type BrandRef, BrandIcon } from "../app/BrandIcon";
-import { DIAGNOSTICS, type DiagnosticJob, type DiagnosticKind, type DiagnosticResult, type Diagnostics, RUNNING, useDiagnostics, useRunDiagnostic } from "../api/diagnostics";
+import { DIAGNOSTICS, type DiagnosticJob, type DiagnosticKind, type DiagnosticResult, type Diagnostics, RUNNING, useDiagnosticOutput, useDiagnostics, useRunDiagnostic } from "../api/diagnostics";
 import { diagnosticSummary } from "../lib/diagnostics";
 import { formatDateTime } from "../lib/format";
 
@@ -51,7 +51,7 @@ export function DeviceDiagnostics() {
         {data.jobs.length ? (
           <div className="ui-backup-runs">
             {data.jobs.map((job) => (
-              <JobCard key={job.id} job={job} open={expanded === job.id} onToggle={() => setOpen(expanded === job.id ? "" : job.id)} />
+              <JobCard key={job.id} deviceId={deviceId} job={job} open={expanded === job.id} onToggle={() => setOpen(expanded === job.id ? "" : job.id)} />
             ))}
           </div>
         ) : (
@@ -99,8 +99,9 @@ function DiagnosticCard({ id, kind, data, onQueued }: { id: string; kind: Diagno
   );
 }
 
-function JobCard({ job, open, onToggle }: { job: DiagnosticJob; open: boolean; onToggle: () => void }) {
+function JobCard({ deviceId, job, open, onToggle }: { deviceId: string; job: DiagnosticJob; open: boolean; onToggle: () => void }) {
   const { t, i18n } = useTranslation();
+  const [raw, setRaw] = useState(false);
   const running = RUNNING.has(job.status);
   const subject = job.target ?? job.query;
   return (
@@ -116,12 +117,15 @@ function JobCard({ job, open, onToggle }: { job: DiagnosticJob; open: boolean; o
         <small className="ui-muted">{formatDateTime(job.created_at, i18n.language, true)}</small>
         <span className="ui-row-actions ui-grow-end">
           {job.diagnostic === "support_snapshot" && job.status === "success" && (
-            <a className="ui-button ui-button-ghost ui-button-small" href={job.classic_url}>{t("diagnostics.open")}</a>
+            <button type="button" className="ui-button ui-button-ghost ui-button-small" aria-expanded={raw} onClick={() => setRaw((value) => !value)}>
+              {t("diagnostics.open")}
+            </button>
           )}
           {job.export_url && <a className="ui-button ui-button-ghost ui-button-small" href={job.export_url}>{t("diagnostics.export")}</a>}
         </span>
       </header>
       {open && job.result && <ResultView result={job.result} />}
+      {raw && <SnapshotOutput deviceId={deviceId} jobId={job.id} />}
     </article>
   );
 }
@@ -234,4 +238,28 @@ function DeviceLink({ device }: { device: { id: string; name: string; brand?: Br
       <Link to="/devices/$deviceId" params={{ deviceId: device.id }}>{device.name}</Link>
     </span>
   );
+}
+
+/** Support snapshot: every section the agent collected, as returned (resources, IP, routes, interfaces, PPP, DHCP, log). */
+function SnapshotOutput({ deviceId, jobId }: { deviceId: string; jobId: string }) {
+  const { t } = useTranslation();
+  const query = useDiagnosticOutput(deviceId, jobId, true);
+  if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
+  if (!query.data) return <div className="ui-empty">{t("app.loading")}</div>;
+  const { data, output } = query.data;
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    return (
+      <div className="ui-snapshot">
+        {Object.entries(data as Record<string, unknown>).map(([key, value]) => (
+          <details key={key} open>
+            <summary><strong>{key}</strong></summary>
+            <pre className="ui-code-block">{typeof value === "string" ? value : JSON.stringify(value, null, 2)}</pre>
+          </details>
+        ))}
+      </div>
+    );
+  }
+  if (data != null) return <pre className="ui-code-block">{JSON.stringify(data, null, 2)}</pre>;
+  if (output) return <pre className="ui-code-block">{output}</pre>;
+  return <p className="ui-muted">{t("diagnostics.noOutput")}</p>;
 }

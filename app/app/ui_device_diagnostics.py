@@ -8,7 +8,8 @@
   allow-listed diagnostics through the same guarded function as the classic
   forms (target/source/query validation, legacy support-snapshot rule).
 
-Support snapshots keep their classic result page and JSON export.
+- ``GET  /api/ui/v1/devices/{id}/diagnostics/jobs/{job_id}/output``: the raw data returned
+  by the agent (support snapshots have no structured view); JSON export keeps its URL.
 """
 from __future__ import annotations
 
@@ -55,7 +56,7 @@ def job_row(job, db) -> dict:
         "target": payload.get("target"), "source": payload.get("source") or None, "query": payload.get("query"),
         "error": job.last_error if job.status not in ("pending", "delivered", "running", "success") else None,
         "result": _result(job, db),
-        "classic_url": base, "export_url": f"{base}/export.json" if job.status == "success" else None,
+        "export_url": f"{base}/export.json" if job.status == "success" else None,
     }
 
 
@@ -83,6 +84,20 @@ def device_diagnostics(request: Request, device_id: uuid.UUID):
             "jobs": [job_row(job, db) for job in jobs],
         }
 
+
+
+@router.get("/devices/{device_id}/diagnostics/jobs/{job_id}/output")
+def diagnostic_output(request: Request, device_id: uuid.UUID, job_id: uuid.UUID):
+    """Raw result of one diagnostic run (``data`` from the agent, or its text ``output``)."""
+    with SessionLocal() as db:
+        ui_user(request, db, "monitoring.read")
+        device = _mikrotik(db, device_id)
+        job = db.scalar(select(DeviceJob).where(DeviceJob.id == job_id, DeviceJob.device_id == device.id, DeviceJob.job_type.in_(views.DIAGNOSTIC_JOBS)))
+        if job is None:
+            raise HTTPException(404)
+        result = job.result or {}
+        return {"id": str(job.id), "diagnostic": KINDS.get(job.job_type, job.job_type), "status": job.status,
+                "data": result.get("data"), "output": result.get("output")}
 
 @router.post("/devices/{device_id}/diagnostics/{diagnostic}", dependencies=[Depends(require_csrf)])
 def device_diagnostic_run(request: Request, device_id: uuid.UUID, diagnostic: str, body: dict = Body(default={})):
