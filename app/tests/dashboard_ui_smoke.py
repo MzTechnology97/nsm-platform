@@ -90,14 +90,12 @@ def main():
     client = TestClient(app)
     login(client)
 
-    dashboard = client.get("/")
-    assert dashboard.status_code == 200, dashboard.text
-    assert "Copertura operativa" in dashboard.text
-    assert "Distribuzione inventario" in dashboard.text
-    assert "Auto-refresh" in dashboard.text
-    assert "dashboard_live.js" in dashboard.text
-    assert "Backup protetti" in dashboard.text
-    assert "CVE High / Critical" in dashboard.text
+    # The platform opens in the new interface; anonymous visitors go to the login page.
+    home = client.get("/", follow_redirects=False)
+    assert home.status_code == 303 and home.headers["location"] == "/app/", home.headers
+    assert anonymous.get("/", follow_redirects=False).headers["location"].startswith("/login")
+    ui = client.get("/api/ui/v1/dashboard")
+    assert ui.status_code == 200, ui.text
 
     summary = client.get("/api/v1/dashboard/summary")
     assert summary.status_code == 200, summary.text

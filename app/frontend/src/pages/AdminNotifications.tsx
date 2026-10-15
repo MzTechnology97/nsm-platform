@@ -20,7 +20,6 @@ export function AdminNotifications() {
           <h1>{t("admin.title")}</h1>
           <p>{t("notificationsAdmin.subtitle")}</p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/admin/notifications">{t("app.classic")}</a>
       </header>
       <AdminTabs />
       {query.error ? (

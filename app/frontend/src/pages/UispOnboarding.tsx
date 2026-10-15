@@ -73,7 +73,6 @@ export function UispOnboarding() {
           <h1>{t("onboarding.title")}</h1>
           <p>{t("onboarding.subtitle")}</p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/integrations/uisp/onboarding">{t("app.classic")}</a>
       </header>
       {first?.error && <div className="ui-alert ui-alert-danger">{first.error}</div>}
       <div className="ui-chips" role="group" aria-label={t("onboarding.stateFilter")}>

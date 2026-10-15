@@ -38,7 +38,7 @@ def main():
     login = client.get("/login").text
     csrf = re.search(r'name="csrf" value="([^"]+)"', login).group(1)
     assert client.post("/login", data={"username": f"ci-gi-{suffix}", "password": PASSWORD, "csrf": csrf}, follow_redirects=False).status_code == 303
-    page = client.get("/").text
+    page = client.get("/customers").text
     for name in ("dashboard", "customers", "devices", "vulnerabilities", "access", "admin", "bell", "menu", "search"):
         assert f"ui-icons.svg?v=" in page and f"#i-{name}\"" in page, name
     for glyph in ("♢", "☰", "⌕", "▦", "⚙</span>"):

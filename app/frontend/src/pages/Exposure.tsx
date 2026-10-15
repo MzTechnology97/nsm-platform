@@ -26,7 +26,6 @@ export function Exposure() {
           <h1>{t("exposure.title")}</h1>
           <p>{t("exposure.subtitle")}</p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/security/exposure">{t("app.classic")}</a>
       </header>
       {data && data.counts.critical > 0 && <div className="ui-alert ui-alert-danger">{t("exposure.critical", { count: data.counts.critical })}</div>}
 

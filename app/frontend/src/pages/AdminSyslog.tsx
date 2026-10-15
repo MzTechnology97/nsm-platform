@@ -17,7 +17,6 @@ export function AdminSyslog() {
           <h1>{t("admin.title")}</h1>
           <p>{t("syslogAdmin.subtitle")}</p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/admin/syslog">{t("app.classic")}</a>
       </header>
       <AdminTabs />
       {query.error ? (

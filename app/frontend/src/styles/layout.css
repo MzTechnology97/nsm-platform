@@ -119,12 +119,6 @@ a {
   box-shadow: inset 3px 0 0 var(--highlight);
 }
 
-.ui-nav-item.is-classic .ui-nav-label::after {
-  content: " ↗";
-  color: var(--sidebar-muted);
-  font-size: 11px;
-}
-
 .ui-sidebar-footer {
   margin-top: auto;
   padding: var(--space-4);

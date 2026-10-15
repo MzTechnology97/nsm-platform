@@ -31,7 +31,6 @@ export function RouterosCatalog() {
               {refresh.isPending ? t("app.loading") : t("routeros.refresh")}
             </button>
           )}
-          <a className="ui-button ui-button-ghost" href="/admin/integrations/routeros">{t("app.classic")}</a>
         </div>
       </header>
       {refresh.data && (

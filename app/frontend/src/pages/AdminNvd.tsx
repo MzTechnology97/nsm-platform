@@ -20,7 +20,6 @@ export function AdminNvd() {
         </div>
         <div className="ui-row-actions">
           <Link className="ui-button ui-button-ghost" to="/vulnerabilities">{t("integrations.nvd.vulnerabilities")}</Link>
-          <a className="ui-button ui-button-ghost" href="/admin/integrations/nvd">{t("app.classic")}</a>
         </div>
       </header>
       <AdminTabs />

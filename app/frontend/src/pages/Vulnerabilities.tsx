@@ -42,7 +42,6 @@ export function Vulnerabilities() {
           <h1>{t("vulns.title")}</h1>
           <p>{first?.device ? t("vulns.forDevice", { name: first.device.name }) : t("vulns.subtitle")}</p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/security/vulnerabilities">{t("app.classic")}</a>
       </header>
 
       <div className="ui-chips" role="group" aria-label={t("vulns.severity")}>

@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.164 — 2026-10-15
+
+The new interface is the default (phase 8a)
+- `/` opens the new interface (`/app/`); anonymous visitors still go to the login page, and a successful login lands there too.
+- The new interface no longer offers the way back:
+  - the "Classic interface" buttons are gone from every page and from the header;
+  - the dashboard has its own navigation entry;
+  - navigation, administration, integration, device and customer tabs only use React routes.
+- The classic pages still answer at their addresses while they are being removed area by area.
+
 ## 0.49.163 — 2026-10-15
 
 New interface (React) — last links to classic pages, phase 7aa

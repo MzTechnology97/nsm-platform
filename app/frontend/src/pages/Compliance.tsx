@@ -42,7 +42,6 @@ export function Compliance() {
             </button>
           )}
           <Link to="/compliance/baselines" className="ui-button ui-button-ghost">{t("compliance.baselines")}</Link>
-          <a className="ui-button ui-button-ghost" href="/compliance">{t("app.classic")}</a>
         </div>
       </header>
       {evaluate.isSuccess && (

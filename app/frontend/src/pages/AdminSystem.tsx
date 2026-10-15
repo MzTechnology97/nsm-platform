@@ -18,7 +18,6 @@ export function AdminSystem() {
           <h1>{t("admin.title")}</h1>
           <p>{t("system.subtitle")}</p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/admin/system">{t("app.classic")}</a>
       </header>
       <AdminTabs />
       {query.error ? (

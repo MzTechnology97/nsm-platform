@@ -47,7 +47,6 @@ export function Customers() {
         </div>
         <div className="ui-actions">
           {data?.can_create && <Link className="ui-button ui-button-primary" to="/customers/new">{t("customers.add")}</Link>}
-          <a className="ui-button ui-button-ghost" href="/customers">{t("app.classic")}</a>
         </div>
       </header>
 

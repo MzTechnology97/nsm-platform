@@ -33,7 +33,6 @@ export function ActionCenter() {
           <h1>{t("actionCenter.title")}</h1>
           <p>{first ? t("actionCenter.subtitle", { count: first.scope_total }) : t("app.loading")}</p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/action-center">{t("app.classic")}</a>
       </header>
 
       {search.device && (

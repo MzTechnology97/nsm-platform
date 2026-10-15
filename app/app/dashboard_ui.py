@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import func, select
 
 from app import main as core
@@ -190,13 +190,13 @@ def dashboard_data(db) -> dict:
     }
 
 
-@router.get("/", response_class=HTMLResponse, name="dashboard")
+@router.get("/", name="dashboard")
 def dashboard(request: Request):
+    """The platform opens in the new interface (its home is the dashboard)."""
     with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
+        if not core.current_user(request, db):
             return core.login_redirect()
-        return core.render(request, db, user, "dashboard.html", **dashboard_data(db), dashboard_updated_at=utcnow())
+    return RedirectResponse("/app/", status_code=303)
 
 
 @router.get("/api/v1/dashboard/summary", name="dashboard_summary")

@@ -78,19 +78,13 @@ export function Layout() {
           </button>
         </div>
         <nav className="ui-nav">
-          {visible.map((section) =>
-            section.route ? (
-              <Link key={section.key} to={section.route} className="ui-nav-item" activeProps={{ className: "ui-nav-item is-active" }} onClick={() => setMobileOpen(false)}>
-                <Icon name={section.icon} />
-                <span className="ui-nav-label">{t(`nav.${section.key}`)}</span>
-              </Link>
-            ) : (
-              <a key={section.key} href={section.classic} className="ui-nav-item is-classic" title={t("app.classic")}>
-                <Icon name={section.icon} />
-                <span className="ui-nav-label">{t(`nav.${section.key}`)}</span>
-              </a>
-            ),
-          )}
+          {visible.map((section) => (
+            <Link key={section.key} to={section.route} className="ui-nav-item" activeProps={{ className: "ui-nav-item is-active" }}
+              activeOptions={{ exact: section.route === "/" }} onClick={() => setMobileOpen(false)}>
+              <Icon name={section.icon} />
+              <span className="ui-nav-label">{t(`nav.${section.key}`)}</span>
+            </Link>
+          ))}
         </nav>
         <div className="ui-sidebar-footer">{t("app.version", { version: data.version })}</div>
       </aside>
@@ -125,9 +119,6 @@ export function Layout() {
             >
               <Icon name={theme === "dark" ? "sun" : "moon"} />
             </button>
-            <a className="ui-button ui-button-ghost ui-hide-mobile" href="/">
-              {t("app.classic")}
-            </a>
             <Link to="/profile" className="ui-button ui-button-ghost ui-hide-mobile" title={t("profile.title")}>{data.user.display_name}</Link>
             <form method="post" action="/logout" className="ui-inline-form">
               <input type="hidden" name="csrf" value={data.csrf_token} />

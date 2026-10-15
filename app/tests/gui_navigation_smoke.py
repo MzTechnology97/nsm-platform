@@ -55,11 +55,12 @@ def login(username):
 def main():
     admin, auditor = seed()
     client = login(admin)
-    dashboard = client.get("/")
+    dashboard = client.get("/customers")
     links = sorted(set(re.findall(r'class="nav-item[^"]*" href="([^"]+)"', dashboard.text)))
     # The new React interface (/app) has its own shell and build: covered by ui_foundation_smoke.
     assert "/app" in links
-    links = [href for href in links if href != "/app"]
+    # "/" opens the new interface too.
+    links = [href for href in links if href not in ("/app", "/")]
     assert "/operations/monitoring" in links and "/integrations" in links and "/admin/users" in links, links
     for href in links:
         page = client.get(href)

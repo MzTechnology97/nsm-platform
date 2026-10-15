@@ -42,7 +42,6 @@ export function Incidents() {
         </div>
         <div className="ui-row-actions">
           {first?.can_write && <Link to="/incidents/new" className="ui-button">{t("incidents.new")}</Link>}
-          <a className="ui-button ui-button-ghost" href="/incidents">{t("app.classic")}</a>
         </div>
       </header>
 

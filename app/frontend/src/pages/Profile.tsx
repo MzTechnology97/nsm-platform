@@ -28,7 +28,6 @@ export function Profile() {
           <h1>{t("profile.title")}</h1>
           <p>{t("profile.subtitle")}</p>
         </div>
-        <a className="ui-button ui-button-ghost" href="/profile">{t("app.classic")}</a>
       </header>
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
