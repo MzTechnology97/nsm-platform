@@ -8,7 +8,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 
 from app import main as core
@@ -433,64 +433,6 @@ def test_connection(db, user, row) -> tuple[bool, str]:
 
 def sync_interval(connection) -> int:
     return int((connection.settings or {}).get("sync_interval_minutes") or SYNC_INTERVAL_DEFAULT) if connection else SYNC_INTERVAL_DEFAULT
-
-
-def _admin_render(request, db, user, *, message=None, error=None):
-    connection = _connection(db)
-    return core.render(
-        request,
-        db,
-        user,
-        "admin_uisp.html",
-        connection=connection,
-        has_secret=bool(connection and connection.secret_encrypted),
-        sync=_sync_view(connection),
-        sync_interval=sync_interval(connection),
-        message=message,
-        error=error,
-    )
-
-
-@router.get("/admin/integrations/uisp", response_class=HTMLResponse, name="admin_uisp")
-def admin_uisp(request: Request):
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        return _admin_render(request, db, user)
-
-
-@router.post("/admin/integrations/uisp", response_class=HTMLResponse, name="admin_uisp_save")
-def admin_uisp_save(
-    request: Request,
-    base_url: str = Form(...),
-    api_token: str = Form(""),
-    is_enabled: str | None = Form(None),
-    verify_tls: str | None = Form(None),
-    sync_interval_minutes: str = Form(""),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        try:
-            save_config(db, user, base_url=base_url, api_token=api_token, enabled=is_enabled is not None,
-                        verify_tls=verify_tls is not None, sync_interval_minutes=sync_interval_minutes)
-        except ValueError as exc:
-            return _admin_render(request, db, user, error=str(exc))
-        db.commit()
-        return _admin_render(request, db, user, message="Configurazione UISP salvata. Il token è memorizzato cifrato.")
-
-
-@router.post("/admin/integrations/uisp/test", response_class=HTMLResponse, name="admin_uisp_test")
-def admin_uisp_test(request: Request, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        row = _connection(db)
-        if not row:
-            return _admin_render(request, db, user, error="Configura prima il connettore UISP.")
-        ok, message = test_connection(db, user, row)
-        db.commit()
-        return _admin_render(request, db, user, message=message if ok else None, error=None if ok else message)
 
 
 def _device_render(request, db, user, device, *, candidate=None, message=None, error=None):

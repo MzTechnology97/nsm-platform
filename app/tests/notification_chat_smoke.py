@@ -1,5 +1,4 @@
 """Telegram and Slack notification channels."""
-import json
 import re
 import uuid
 
@@ -61,12 +60,12 @@ def main():
         db.commit()
 
     admin = login(admin_name)
-    page = admin.get("/admin/notifications").text
-    assert 'data-notifications="chat"' in page
-    bad = admin.post("/admin/notifications/telegram", data={"csrf": csrf_from(page), "bot_token": "not-a-token", "is_enabled": "on"}, follow_redirects=True)
-    assert "Token del bot non valido" in bad.text
-    ok = admin.post("/admin/notifications/telegram", data={"csrf": csrf_from(page), "bot_token": TOKEN, "is_enabled": "on"}, follow_redirects=True)
-    assert "Bot @nsm_ci_bot collegato" in ok.text and TOKEN not in ok.text
+    telegram_api = "/api/ui/v1/admin/notifications/telegram"
+    assert admin.get("/api/ui/v1/admin/notifications").json()["telegram"]["configured"] is False
+    bad = admin.post(telegram_api, headers={"X-CSRF-Token": admin.get("/api/ui/v1/session").json()["csrf_token"]}, json={"token": "not-a-token", "enabled": True})
+    assert "Token del bot non valido" in bad.text, bad.text
+    ok = admin.post(telegram_api, headers={"X-CSRF-Token": admin.get("/api/ui/v1/session").json()["csrf_token"]}, json={"token": TOKEN, "enabled": True})
+    assert ok.json()["verified"] is True and "Bot @nsm_ci_bot collegato" in ok.json()["message"] and TOKEN not in ok.text, ok.text
     with SessionLocal() as db:
         assert decrypt_text(db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == "telegram")).secret_encrypted) == TOKEN
 

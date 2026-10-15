@@ -20,10 +20,6 @@ def csrf_from(html):
     return re.search(r'name="csrf" value="([^"]+)"', html).group(1)
 
 
-def new_key_from(html):
-    return re.search(r'id="new-api-key">([^<]+)<', html).group(1)
-
-
 def main():
     now = utcnow()
     states = {
@@ -48,10 +44,18 @@ def main():
         db.commit()
     admin = TestClient(app)
     assert admin.post("/login", data={"username": f"ci-akl-{suffix}", "password": PASSWORD, "csrf": csrf_from(admin.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = admin.get("/admin/api-keys").text
-    created = admin.post("/admin/api-keys", data={"csrf": csrf_from(page), "name": f"CI rotate {suffix}", "expires_days": "90", "scopes": ["backup.read"]})
-    assert created.status_code == 200
-    token = new_key_from(created.text)
+    keys_api = "/api/ui/v1/admin/api-keys"
+    headers = {"X-CSRF-Token": admin.get("/api/ui/v1/session").json()["csrf_token"]}
+
+    def key_row(key_id):
+        return next(k for k in admin.get(keys_api).json()["keys"] if k["id"] == str(key_id))
+
+    def rotate(client, key_id, grace, client_headers=None):
+        return client.post(f"{keys_api}/{key_id}/rotate", headers=client_headers or headers, json={"grace_hours": grace})
+
+    created = admin.post(keys_api, headers=headers, json={"name": f"CI rotate {suffix}", "expires_days": 90, "scopes": ["backup.read"]})
+    assert created.status_code == 200, created.text
+    token = created.json()["token"]
 
     api = TestClient(app)
     for _ in range(3):
@@ -61,12 +65,12 @@ def main():
         assert old.use_count == 3 and old.last_used_ip == "testclient", (old.use_count, old.last_used_ip)
         old_id = old.id
 
-    listing = admin.get("/admin/api-keys").text
-    assert "3 richieste · da testclient" in listing and f'action="/admin/api-keys/{old_id}/rotate"' in listing
+    row = key_row(old_id)
+    assert row["use_count"] == 3 and row["last_used_ip"] == "testclient" and row["replaced_by_id"] is None and row["active"]
 
-    rotated = admin.post(f"/admin/api-keys/{old_id}/rotate", data={"csrf": csrf_from(listing), "grace_hours": "24"})
+    rotated = rotate(admin, old_id, 24)
     assert rotated.status_code == 200 and rotated.headers.get("cache-control") == "no-store"
-    new_token = new_key_from(rotated.text)
+    new_token = rotated.json()["token"]
     assert new_token != token
     assert api.get("/api/v1/public/customers", headers={"X-API-KEY": token}).status_code == 200, "old key valid during the grace period"
     assert api.get("/api/v1/public/backups", headers={"X-API-KEY": new_token}).status_code == 200, "scopes are carried over"
@@ -84,21 +88,21 @@ def main():
         db.commit()
     assert api.get("/api/v1/public/customers", headers={"X-API-KEY": token}).status_code == 401, "old key refused after the grace period"
 
-    listing = admin.get("/admin/api-keys").text
-    assert f'action="/admin/api-keys/{old_id}/rotate"' not in listing, "a replaced key cannot be rotated again"
-    assert 'data-key-state="replaced"' in listing and "chiave scaduta ancora attiva" not in listing, "an expired replaced key is not reported as expired"
-    again = admin.post(f"/admin/api-keys/{old_id}/rotate", data={"csrf": csrf_from(listing), "grace_hours": "24"})
+    row = key_row(old_id)
+    assert row["replaced_by_id"] == str(new_id), "a replaced key cannot be rotated again"
+    assert row["state"] == "replaced", "an expired replaced key is not reported as expired"
+    again = rotate(admin, old_id, 24)
     assert again.status_code == 409
 
-    immediate = admin.post(f"/admin/api-keys/{new_id}/rotate", data={"csrf": csrf_from(listing), "grace_hours": "0"})
-    third_token = new_key_from(immediate.text)
+    immediate = rotate(admin, new_id, 0)
+    third_token = immediate.json()["token"]
     assert api.get("/api/v1/public/customers", headers={"X-API-KEY": new_token}).status_code == 401, "grace 0 revokes at once"
     assert api.get("/api/v1/public/customers", headers={"X-API-KEY": third_token}).status_code == 200
-    assert admin.post(f"/admin/api-keys/{new_id}/rotate", data={"csrf": csrf_from(listing), "grace_hours": "5"}).status_code in (400, 409)
+    assert rotate(admin, new_id, 5).status_code in (400, 409, 422)
 
     tech = TestClient(app)
     assert tech.post("/login", data={"username": f"ci-akl-t-{suffix}", "password": PASSWORD, "csrf": csrf_from(tech.get("/login").text)}, follow_redirects=False).status_code == 303
-    refused = tech.post(f"/admin/api-keys/{new_id}/rotate", data={"csrf": tech.get("/api/ui/v1/session").json()["csrf_token"], "grace_hours": "24"}, follow_redirects=False)
+    refused = rotate(tech, new_id, 24, {"X-CSRF-Token": tech.get("/api/ui/v1/session").json()["csrf_token"]})
     assert refused.status_code in (401, 403)
     print("API key lifecycle smoke passed")
 

@@ -158,13 +158,13 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-zb-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get("/admin/integrations/zabbix").text
-    csrf = csrf_from(page)
-    saved = client.post("/admin/integrations/zabbix", data={"csrf": csrf, "api_url": "https://zabbix.example.test/zabbix", "auth_mode": "token", "token": TOKEN,
-                                                             "verify_tls": "1", "group_prefix": "NSM", "interface": "agent", "template_mikrotik": "MikroTik by SNMP",
-                                                             "template_ubiquiti": "", "template_default": "ICMP Ping", "scope": "customers",
-                                                             "customer_ids": [str(ids["customer"])], "is_enabled": "1"})
-    assert "Configurazione Zabbix salvata" in saved.text
+    assert client.get("/api/ui/v1/admin/integrations/zabbix").json()["configured"] is False
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    saved = client.post("/api/ui/v1/admin/integrations/zabbix", headers=headers, json={"api_url": "https://zabbix.example.test/zabbix", "auth_mode": "token", "token": TOKEN,
+                                                        "verify_tls": True, "group_prefix": "NSM", "interface": "agent",
+                                                        "templates": {"mikrotik": "MikroTik by SNMP", "ubiquiti": "", "default": "ICMP Ping"},
+                                                        "scope": "customers", "customer_ids": [str(ids["customer"])], "enabled": True})
+    assert saved.status_code == 200 and TOKEN not in saved.text, saved.text
     with SessionLocal() as db:
         row = zbx.connection_row(db)
         assert TOKEN not in json.dumps(row.settings) and TOKEN not in row.secret_encrypted, "token stored encrypted only"
@@ -172,10 +172,10 @@ def main():
     # Zabbix 6.0: token in the auth field.
     fake6 = FakeZabbix("6.0.30")
     install(fake6)
-    tested = client.post("/admin/integrations/zabbix/test", data={"csrf": csrf})
-    assert "Connessione riuscita: Zabbix 6.0.30" in tested.text
-    result = client.post("/admin/integrations/zabbix/sync", data={"csrf": csrf})
-    assert "2 host creati" in result.text, result.text[-800:]
+    tested = client.post("/api/ui/v1/admin/integrations/zabbix/test", headers=headers).json()
+    assert tested["ok"] is True and "Connessione riuscita: Zabbix 6.0.30" in tested["message"], tested
+    result = client.post("/api/ui/v1/admin/integrations/zabbix/sync", headers=headers).json()
+    assert result["created"] == 2, result
     hosts = {h["host"]: h for h in fake6.hosts.values()}
     mt_host = hosts[f"nsm-{ids['mt'].hex[:16]}"]
     assert mt_host["interfaces"][0]["ip"] == "203.0.113.40" and mt_host["interfaces"][0]["type"] == 1

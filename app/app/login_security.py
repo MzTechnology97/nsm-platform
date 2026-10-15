@@ -16,8 +16,7 @@ import os
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Form, Request
 from sqlalchemy import DateTime, String, Uuid, delete, func, select
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -168,19 +167,6 @@ def admin_revoke(db, actor, target, request: Request | None = None) -> None:
     revoke_sessions(db, target, request)
     core.add_event(db, "USER_SESSIONS_REVOKED", actor=actor, details={"user_id": str(target.id), "username": target.username, "scope": "all_sessions"},
                    source="portal", severity="warning")
-
-
-@router.post("/admin/users/{user_id}/sessions/revoke", name="admin_revoke_user_sessions")
-def admin_revoke_sessions(request: Request, user_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        actor = core.require_admin(request, db)
-        target = db.get(User, user_id)
-        if not target:
-            raise HTTPException(404)
-        admin_revoke(db, actor, target, request)
-        db.commit()
-    return RedirectResponse("/admin/users?status=sessions_revoked", status_code=303)
 
 
 def recent_failures(db, limit: int = 20) -> list[dict]:

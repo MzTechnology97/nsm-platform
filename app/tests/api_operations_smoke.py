@@ -173,25 +173,17 @@ def seed():
 
 
 def create_global_operations_key(client):
-    page = client.get("/admin/api-keys")
+    page = client.get("/api/ui/v1/admin/api-keys")
     assert page.status_code == 200
-    for marker in ("backup.read", "security.read", "firmware.read"):
-        assert marker in page.text
-    csrf = csrf_from(page.text)
+    assert {"backup.read", "security.read", "firmware.read"} <= set(page.json()["scopes"])
     response = client.post(
-        "/admin/api-keys",
-        data={
-            "csrf": csrf,
-            "name": "CI24 Global Ops",
-            "customer_id": "",
-            "expires_days": "90",
-            "scopes": ["backup.read", "security.read", "firmware.read", "not.allowed"],
-        },
+        "/api/ui/v1/admin/api-keys",
+        headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]},
+        json={"name": "CI24 Global Ops", "customer_id": "", "expires_days": 90,
+              "scopes": ["backup.read", "security.read", "firmware.read", "not.allowed"]},
     )
     assert response.status_code == 200, response.text
-    match = re.search(r"(nsm_live_[A-Za-z0-9_-]+)", response.text)
-    assert match
-    token = match.group(1)
+    token = response.json()["token"]
     with SessionLocal() as db:
         row = db.scalar(select(PlatformApiKey).where(PlatformApiKey.name == "CI24 Global Ops"))
         assert row

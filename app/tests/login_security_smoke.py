@@ -10,7 +10,7 @@ from app import login_security
 from app.db import SessionLocal
 from app.entrypoint import app
 from app.login_security import IP_LIMIT, PAIR_LIMIT, LoginFailure
-from app.models import AuditEvent, User, utcnow
+from app.models import AuditEvent, User
 from app.security import hash_password
 
 PASSWORD = "CI-Login-Security-2026"
@@ -100,19 +100,20 @@ def main():
     # Admin "Disconnetti" and the failed-login panel.
     admin = client("198.51.100.15")
     assert attempt(admin, admin_name, PASSWORD).status_code == 303
-    users_page = admin.get("/admin/users").text
-    assert 'data-admin="login-failures"' in users_page and user_name in users_page and "203.0.113.50" in users_page
-    assert users_page.count("bloccato ancora") >= 2, "the throttled pair and the throttled address are both shown as blocked"
+    failures = admin.get("/api/ui/v1/admin/users").json()["login_failures"]
+    assert any(row["username"] == user_name for row in failures) and any(row["ip"] == "203.0.113.50" for row in failures), failures
+    assert sum(1 for row in failures if row["blocked_minutes"]) >= 2, "the throttled pair and the throttled address are both shown as blocked"
     with SessionLocal() as db:
         target_id = db.scalar(select(User.id).where(User.username == user_name))
-    out = admin.post(f"/admin/users/{target_id}/sessions/revoke", data={"csrf": csrf_from(users_page)}, follow_redirects=False)
-    assert out.status_code == 303 and not logged_in(other) and logged_in(admin)
+    out = admin.post(f"/api/ui/v1/admin/users/{target_id}/sessions/revoke", headers={"X-CSRF-Token": admin.get("/api/ui/v1/session").json()["csrf_token"]})
+    assert out.status_code == 200 and not logged_in(other) and logged_in(admin), out.text
     with SessionLocal() as db:
         assert db.scalar(select(func.count(AuditEvent.id)).where(AuditEvent.event_type == "USER_SESSIONS_REVOKED")) >= 2
 
     tech = client("198.51.100.16")
     assert attempt(tech, other_name, PASSWORD).status_code == 303
-    assert tech.post(f"/admin/users/{target_id}/sessions/revoke", data={"csrf": tech.get("/api/ui/v1/session").json()["csrf_token"]}, follow_redirects=False).status_code in (401, 403)
+    assert tech.post(f"/api/ui/v1/admin/users/{target_id}/sessions/revoke",
+                     headers={"X-CSRF-Token": tech.get("/api/ui/v1/session").json()["csrf_token"]}).status_code in (401, 403)
     assert tech.get("/api/ui/v1/profile").json()["account"]["username"] == other_name
     print("Login security smoke passed")
 

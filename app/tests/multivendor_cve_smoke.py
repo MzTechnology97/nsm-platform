@@ -132,8 +132,8 @@ def main():
     with SessionLocal() as db:
         epmp_device = db.scalar(select(Device).where(Device.display_name == f"TEST-MV-EPMP-{suffix}"))
         assert epmp_device.inventory_data.get("manufacturer") == "mimosa" and vendor_cpe.brand(epmp_device) == "mimosa" and vendor_cpe.products(epmp_device)
-    page = client.get("/admin/integrations/nvd").text
-    assert 'data-nvd="coverage"' in page and 'data-brand="mimosa"' in page and 'data-brand="ubiquiti"' in page
+    coverage = {row["brand"] for row in client.get("/api/ui/v1/admin/integrations/nvd").json()["coverage"]}
+    assert {"mimosa", "ubiquiti"} <= coverage, coverage
     assert "Mimosa" in client.get(f"/devices/{epmp_device.id}").text
     print("Multi-vendor CVE smoke passed")
 

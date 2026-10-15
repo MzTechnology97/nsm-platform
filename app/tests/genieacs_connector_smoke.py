@@ -161,30 +161,28 @@ def main():
     hub = client.get("/api/ui/v1/integrations")
     assert hub.status_code == 200 and hub.json()["genieacs"]["state"] == "unconfigured", hub.text
 
-    page = client.get("/admin/integrations/genieacs")
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    assert client.get("/api/ui/v1/admin/integrations/genieacs").json()["configured"] is False
     for bad in ("http://localhost:7557", "http://127.0.0.1:7557", "ftp://genieacs.example.test", "https://user:pw@genieacs.example.test"):
-        rejected = client.post("/admin/integrations/genieacs", data={"csrf": csrf_from(page.text), "base_url": bad, "auth_mode": "none"})
-        assert rejected.status_code == 200 and "Configurazione GenieACS salvata" not in rejected.text, bad
+        rejected = client.post("/api/ui/v1/admin/integrations/genieacs", headers=headers, json={"base_url": bad, "auth_mode": "none"})
+        assert rejected.status_code == 422, bad
 
-    page = client.get("/admin/integrations/genieacs")
-    assert page.status_code == 200
-    csrf = csrf_from(page.text)
     saved = client.post(
-        "/admin/integrations/genieacs",
-        data={
-            "csrf": csrf,
+        "/api/ui/v1/admin/integrations/genieacs",
+        headers=headers,
+        json={
             "base_url": "https://genieacs.example.test:7557/devices",
             "auth_mode": "bearer",
             "auth_username": "",
             "auth_secret": BEARER,
-            "online_window_minutes": "1440",
+            "online_window_minutes": 1440,
             "mac_parameter_paths": "\n".join(acs.DEFAULT_MAC_PARAMETER_PATHS),
-            "is_enabled": "on",
-            "verify_tls": "on",
+            "enabled": True,
+            "verify_tls": True,
         },
     )
     assert saved.status_code == 200, saved.text
-    assert "Configurazione GenieACS salvata" in saved.text
+    assert saved.json()["configured"] is True and saved.json()["auth_mode"] == "bearer"
     assert BEARER not in saved.text
 
     with SessionLocal() as db:
@@ -197,10 +195,9 @@ def main():
         assert connection.settings["mode"] == "read_only_nbi"
         assert len(connection.settings["mac_parameter_paths"]) >= 3
 
-    csrf = csrf_from(saved.text)
-    tested = client.post("/admin/integrations/genieacs/test", data={"csrf": csrf})
+    tested = client.post("/api/ui/v1/admin/integrations/genieacs/test", headers=headers)
     assert tested.status_code == 200, tested.text
-    assert "Connessione GenieACS NBI riuscita" in tested.text
+    assert tested.json()["ok"] is True and "Connessione GenieACS NBI riuscita" in tested.json()["message"]
     assert BEARER not in tested.text
 
     link = client.get(f"/devices/{serial_device_id}/genieacs")
@@ -283,7 +280,7 @@ def main():
     tech_client = TestClient(app, base_url="https://nsm.example.test")
     login(tech_client, tech_name)
     token = tech_client.get("/api/ui/v1/session").json()["csrf_token"]
-    assert tech_client.post("/admin/integrations/genieacs", data={"csrf": token, "base_url": "https://evil.example.test", "auth_mode": "none"}).status_code in (401, 403)
+    assert tech_client.post("/api/ui/v1/admin/integrations/genieacs", headers={"X-CSRF-Token": token}, json={"base_url": "https://evil.example.test", "auth_mode": "none"}).status_code in (401, 403)
     print("GenieACS read-only NBI connector smoke passed")
 
 

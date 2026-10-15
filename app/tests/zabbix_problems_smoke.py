@@ -117,7 +117,7 @@ def main():
     assert names.index(f"TEST-ZP-CPE-{suffix}") < names.index(f"TEST-ZP-RTR-{suffix}"), "worst severity first"
     other_customer = client.get("/api/ui/v1/monitoring", params={"customer": "00000000-0000-0000-0000-000000000000"}).json()["zabbix"]
     assert other_customer["rows"] == [] and other_customer["total"] == 0, "the panel follows the customer filter"
-    assert "Problemi aperti" in client.get("/admin/integrations/zabbix").text
+    assert client.get("/api/ui/v1/admin/integrations/zabbix").json()["problems"], "the admin page reports the last problems read"
 
     # Zabbix down: the last list is kept and marked as not updated.
     fake.fail = True

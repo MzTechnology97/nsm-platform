@@ -18,8 +18,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter
 from sqlalchemy import select
 
 from app import uisp_firmware
@@ -29,7 +28,6 @@ from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
 from app.models import ActionIssue, Device, Notification, utcnow
 from app import uisp_connector as uisp
-from app.security import validate_csrf
 
 router = APIRouter()
 
@@ -401,24 +399,6 @@ def manual_sync(db) -> dict:
     if not connection or not connection.is_enabled:
         return {"status": "disabled"}
     return run_uisp_sync(db, connection, utcnow(), trigger="manual")
-
-
-@router.post("/admin/integrations/uisp/sync", response_class=HTMLResponse, name="admin_uisp_sync")
-def admin_uisp_sync(request: Request, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        result = manual_sync(db)
-        if result["status"] == "disabled":
-            return uisp._admin_render(request, db, user, error="Configura e abilita prima il connettore UISP.")
-        db.commit()
-        if result["status"] != "success":
-            return uisp._admin_render(request, db, user, error=f"Sincronizzazione UISP non riuscita: {result['error']}")
-        message = (
-            f"Sincronizzazione UISP completata: {result['devices']} apparati associati, "
-            f"{result['updated']} aggiornati, {result['missing']} non trovati, {result['conflicts']} in conflitto."
-        )
-        return uisp._admin_render(request, db, user, message=message)
 
 
 def install_uisp_sync(app) -> None:

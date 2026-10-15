@@ -68,8 +68,11 @@ def main():
 
         client = TestClient(app)
         assert client.post("/login", data={"username": f"ci-kr-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-        page = client.get("/admin/system").text
-        assert 'data-system="secrets"' in page and "Rotazione da completare" in page and "rotate-secrets" in page
+        def secrets():
+            return client.get("/api/ui/v1/admin/system").json()["secrets"]
+
+        page = secrets()
+        assert page["totals"]["previous"] >= 3 and page["previous_keys"] == 1, "rotation to complete"
 
         # Re-encryption through the CLI command.
         assert cli.rotate_secrets() == 0
@@ -78,22 +81,23 @@ def main():
             assert after["totals"]["previous"] == 0 and after["totals"]["current"] >= 3
             assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "SECRETS_REENCRYPTED"))
             assert rotate(db)["rotated"] == 0, "a second run has nothing to do"
-        assert "ENCRYPTION_PREVIOUS_KEYS</code> (1 chiave) può essere rimossa" in client.get("/admin/system").text
+        page = secrets()
+        assert page["totals"]["previous"] == 0 and page["previous_keys"] == 1, "ENCRYPTION_PREVIOUS_KEYS can be removed"
 
         # Previous key removed: secrets are still readable with the new key alone.
         use_keys(NEW_KEY)
         with SessionLocal() as db:
             secret = db.scalar(select(MikrotikBackupJobSecret).where(MikrotikBackupJobSecret.job_id == job_id))
             assert decrypt_text(secret.encrypted_backup_password) == "backup-pass-ci"
-        assert "Chiave attuale" in client.get("/admin/system").text
+        page = secrets()
+        assert page["previous_keys"] == 0 and page["totals"]["unreadable"] == 0 and page["totals"]["current"] >= 3
 
         # A key changed without declaring the previous one makes secrets unreadable, and the page says so.
         use_keys("ci-wrong-master-key")
         with SessionLocal() as db:
             assert inventory(db)["totals"]["unreadable"] >= 3
         assert cli.rotate_secrets() == 1
-        page = client.get("/admin/system").text
-        assert "Segreti illeggibili" in page and "ENCRYPTION_PREVIOUS_KEYS" in page
+        assert secrets()["totals"]["unreadable"] >= 3, "unreadable secrets are reported"
     finally:
         use_keys(OLD_KEY)
     print("Secret rotation smoke passed")

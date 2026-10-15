@@ -13,19 +13,18 @@ import uuid
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, Response
 from sqlalchemy import delete, func, or_, select
 
 from app import main as core
 from app import syslog_receiver as receiver
 from app import mikrotik_syslog_config as syslog_config
 from app import syslog_identity as identity
-from app import syslog_firewall, syslog_guides, syslog_integrity
+from app import syslog_guides, syslog_integrity
 from app import syslog_security, vendor_cpe
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
 from app.models import Device, utcnow
-from app.security import validate_csrf
 from app.syslog_models import DeviceLogEntry, SyslogUnknownSource
 
 router = APIRouter()
@@ -143,22 +142,6 @@ def public_host(db, request=None) -> str:
     return (urlsplit(str(request.base_url)).hostname or "") if request is not None else ""
 
 
-@router.get("/admin/syslog", response_class=HTMLResponse, name="admin_syslog")
-def admin_syslog(request: Request, status: str = ""):
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        unknown = list(db.scalars(select(SyslogUnknownSource).order_by(SyslogUnknownSource.last_seen.desc()).limit(50)))
-        devices = list(db.scalars(select(Device).order_by(Device.name).limit(2000)))
-        last_day = utcnow().replace(microsecond=0)
-        stored = db.scalar(select(func.count()).select_from(DeviceLogEntry).where(DeviceLogEntry.received_at >= last_day.replace(hour=0, minute=0, second=0))) or 0
-        senders = db.scalar(select(func.count(func.distinct(DeviceLogEntry.device_id))).where(DeviceLogEntry.received_at >= last_day.replace(hour=0, minute=0, second=0))) or 0
-        return core.render(request, db, user, "admin_syslog.html", title="Syslog", status=status, settings=receiver.load_settings(db),
-                           reject_labels=identity.REJECT_REASONS, detail=request.query_params.get("detail", ""),
-                           firewall_script=syslog_firewall.render(receiver.load_settings(db).get("allowed_networks")),
-                           syslog_host=public_host(db, request), syslog_status=receiver.receiver_status(), unknown_sources=unknown,
-                           devices=devices, stored_today=stored, senders_today=senders)
-
-
 class InvalidNetworks(ValueError):
     """Allowed networks that are not valid CIDR; ``values`` lists them."""
 
@@ -196,33 +179,6 @@ def clear_unknown_source(db, source_ip) -> bool:
         return False
     db.execute(delete(SyslogUnknownSource).where(SyslogUnknownSource.source_ip == source_ip))
     return True
-
-
-@router.post("/admin/syslog/settings", name="admin_syslog_settings")
-async def save_settings(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        try:
-            save_syslog_settings(db, user, public_host=str(form.get("public_host") or ""), info_retention_days=form.get("info_retention_days"),
-                                 allowed_networks=str(form.get("allowed_networks") or ""), auto_configure=form.get("auto_configure") == "1")
-        except InvalidNetworks as error:
-            return RedirectResponse("/admin/syslog?status=bad_networks&detail=" + ",".join(error.values[:5])[:200], status_code=303)
-        db.commit()
-    return RedirectResponse("/admin/syslog?status=saved", status_code=303)
-
-
-@router.post("/admin/syslog/unknown/assign", name="admin_syslog_assign")
-async def assign_unknown(request: Request):
-    """Key-only mode: discarded senders can only be cleared (an address no longer identifies a device)."""
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        core.require_admin(request, db)
-        if clear_unknown_source(db, form.get("source_ip")):
-            db.commit()
-    return RedirectResponse("/admin/syslog?status=ignored", status_code=303)
 
 
 def install_device_logs(app) -> None:

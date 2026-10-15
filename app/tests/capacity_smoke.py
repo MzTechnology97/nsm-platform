@@ -51,9 +51,9 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-cap-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get("/admin/system").text
-    for marker in ('data-system="capacity"', "Archivio backup", "Crescita 30 giorni", "Telemetria MikroTik", "<code>audit_events</code>"):
-        assert marker in page, marker
+    page = client.get("/api/ui/v1/admin/system").json()
+    assert "audit_events" in {table["name"] for table in page["tables"]}
+    assert page["archive"] and page["retention"] and any("90 giorni" in r["rule"] for r in page["retention"]), page["retention"]
     print("Capacity smoke passed")
 
 

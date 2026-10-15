@@ -57,8 +57,8 @@ def main():
     assert "Solo righe con la chiave" in cpe_page and "Accetta anche log senza chiave" not in cpe_page
     again = unescape(client.get(f"/devices/{ids['cpe']}/logs").text)
     assert f"NSM-{cpe_key}" in again, "the key is stable"
-    admin = unescape(client.get("/admin/syslog").text)
-    assert "prefix=NSM-<chiave del dispositivo>" in admin
+    guides = repr(client.get("/api/ui/v1/admin/syslog").json()["guides"])
+    assert "prefix=NSM-" in guides, "the MikroTik guide puts the device key in the prefix"
 
     # The CPE uses the key in its hostname: recognised from any address of the allowed networks.
     set_settings(allowed_networks=["198.51.100.0/24"], strict_mode=True)

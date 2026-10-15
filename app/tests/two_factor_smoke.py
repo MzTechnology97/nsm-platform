@@ -129,17 +129,17 @@ def main():
     assert main_client.post(f"{api}/2fa/enable", headers=headers, json={"code": tf.code_at(secret, tick())}).status_code == 200
     admin = client("198.51.100.47")
     password_step(admin, admin_name)
-    users_page = admin.get("/admin/users").text
-    assert 'data-2fa="on"' in users_page
     with SessionLocal() as db:
         user_id = db.scalar(select(User.id).where(User.username == name))
-    reset = admin.post(f"/admin/users/{user_id}/2fa/reset", data={"csrf": csrf_from(users_page)}, follow_redirects=False)
-    assert "2fa_reset" in reset.headers["location"] and not logged_in(main_client), "reset ends the user's sessions"
+    users_api = "/api/ui/v1/admin/users"
+    assert next(u for u in admin.get(users_api).json()["users"] if u["id"] == str(user_id))["two_factor"] is True
+    reset = admin.post(f"{users_api}/{user_id}/2fa/reset", headers={"X-CSRF-Token": admin.get("/api/ui/v1/session").json()["csrf_token"]})
+    assert reset.status_code == 200 and not logged_in(main_client), "reset ends the user's sessions"
     c = client("198.51.100.48")
     assert password_step(c, name).headers["location"] == "/"
     tech = client("198.51.100.49")
     password_step(tech, name)
-    assert tech.post(f"/admin/users/{user_id}/2fa/reset", data={"csrf": tech.get("/api/ui/v1/session").json()["csrf_token"]}, follow_redirects=False).status_code in (401, 403)
+    assert tech.post(f"{users_api}/{user_id}/2fa/reset", headers={"X-CSRF-Token": tech.get("/api/ui/v1/session").json()["csrf_token"]}).status_code in (401, 403)
     print("Two-factor smoke passed")
 
 

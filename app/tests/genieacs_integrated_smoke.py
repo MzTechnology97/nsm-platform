@@ -31,28 +31,29 @@ def main():
     assert client.post("/login", data={"username": f"ci-gi-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
 
     os.environ.pop("GENIEACS_INTERNAL_NBI_URL", None)
-    page = client.get("/admin/integrations/genieacs").text
-    assert 'data-genieacs="integrated"' not in page, "no integrated panel when the stack does not ship GenieACS"
-    refused = client.post("/admin/integrations/genieacs/internal", data={"csrf": csrf_from(page)})
-    assert "acs-enable" in refused.text
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    page = client.get("/api/ui/v1/admin/integrations/genieacs").json()
+    assert page["internal_url"] is None, "no integrated panel when the stack does not ship GenieACS"
+    refused = client.post("/api/ui/v1/admin/integrations/genieacs/internal", headers=headers)
+    assert refused.status_code == 422 and "acs-enable" in refused.text
 
     os.environ["GENIEACS_INTERNAL_NBI_URL"] = "http://genieacs-nbi:7557"
     try:
         # Automatic link: nothing configured + integrated stack enabled -> connected without typing any URL.
-        page = client.get("/admin/integrations/genieacs").text
-        assert 'data-genieacs="integrated"' in page and "collegato automaticamente" in page and ":7547" in page
+        page = client.get("/api/ui/v1/admin/integrations/genieacs").json()
+        assert page["internal_url"] == "http://genieacs-nbi:7557" and page["auto_linked"] and page["uses_internal"]
         with SessionLocal() as db:
             auto = db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == "genieacs"))
             assert auto.base_url == "http://genieacs-nbi:7557" and auto.settings["auto"] is True and auto.is_enabled
             # An external GenieACS chosen by the operator is never replaced.
             auto.base_url = "https://acs.example.test:7557"
             db.commit()
-        page = client.get("/admin/integrations/genieacs").text
-        assert "Usa GenieACS integrato" in page
+        page = client.get("/api/ui/v1/admin/integrations/genieacs").json()
+        assert page["uses_internal"] is False and page["internal_url"], "the built-in GenieACS can be chosen again"
         with SessionLocal() as db:
             assert db.scalar(select(ConnectorIntegration.base_url).where(ConnectorIntegration.provider == "genieacs")) == "https://acs.example.test:7557"
-        done = client.post("/admin/integrations/genieacs/internal", data={"csrf": csrf_from(page)})
-        assert done.status_code == 200 and "Connettore collegato al GenieACS integrato" in done.text and "In uso" in done.text
+        done = client.post("/api/ui/v1/admin/integrations/genieacs/internal", headers=headers)
+        assert done.status_code == 200 and done.json()["uses_internal"] is True, done.text
         with SessionLocal() as db:
             row = db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == "genieacs"))
             assert row.base_url == "http://genieacs-nbi:7557" and row.is_enabled and row.settings["integrated"] is True

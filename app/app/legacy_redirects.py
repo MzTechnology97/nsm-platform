@@ -57,6 +57,21 @@ REDIRECTS: dict[str, Target] = {
     "/operations/firmware/suggestions": ("/app/firmware/suggestions", {"customer": "customer", "kind": "kind"}),
     "/integrations": ("/app/integrations", None),
     "/integrations/uisp/onboarding": ("/app/integrations/uisp/onboarding", {"q": "q", "uisp_site": "uisp_site", "state": "state"}),
+    # Administration.
+    "/admin/users": ("/app/admin/users", None),
+    "/admin/api-keys": ("/app/admin/api-keys", None),
+    "/admin/notifications": ("/app/admin/notifications", None),
+    "/admin/syslog": ("/app/admin/syslog", None),
+    "/admin/system": ("/app/admin/system", None),
+    "/admin/branding": ("/app/admin/branding", None),
+    "/admin/acs": ("/app/admin/acs", None),
+    "/admin/demo": ("/app/admin/demo", None),
+    "/admin/integrations/uisp": ("/app/admin/integrations/uisp", None),
+    "/admin/integrations/zabbix": ("/app/admin/integrations/zabbix", None),
+    "/admin/integrations/genieacs": ("/app/admin/integrations/genieacs", None),
+    "/admin/integrations/cnmaestro": ("/app/admin/integrations/cnmaestro", None),
+    "/admin/integrations/nvd": ("/app/admin/integrations/nvd", None),
+    "/admin/integrations/routeros": ("/app/integrations/routeros", None),
 }
 
 

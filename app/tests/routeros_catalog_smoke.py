@@ -99,17 +99,17 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-rc-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get("/admin/integrations/routeros").text
-    assert "7.24.5" in page and "fixed security issue" in page and "Aggiorna ora" in page
+    page = client.get("/api/ui/v1/integrations/routeros")
+    assert "7.24.5" in page.text and "fixed security issue" in page.text and page.json()["can_refresh"] is True
     firmware = client.get(f"/devices/{ids['old']}/firmware-upgrade").text
     assert "Catalogo MikroTik (stable)" in firmware and "di sicurezza" in firmware
     assert client.get("/api/ui/v1/integrations/routeros").status_code == 200
 
     tech_client = TestClient(app)
     assert tech_client.post("/login", data={"username": f"ci-rc-t-{suffix}", "password": PASSWORD, "csrf": csrf_from(tech_client.get("/login").text)}, follow_redirects=False).status_code == 303
-    view = tech_client.get("/admin/integrations/routeros").text
-    assert "Aggiorna ora" not in view
-    assert tech_client.post("/admin/integrations/routeros/refresh", data={"csrf": csrf_from(page)}).status_code in (401, 403)
+    assert tech_client.get("/api/ui/v1/integrations/routeros").json()["can_refresh"] is False
+    assert tech_client.post("/api/ui/v1/integrations/routeros/refresh",
+                            headers={"X-CSRF-Token": tech_client.get("/api/ui/v1/session").json()["csrf_token"]}).status_code in (401, 403)
     print("RouterOS catalog smoke passed")
 
 

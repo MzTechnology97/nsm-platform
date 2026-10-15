@@ -1,7 +1,6 @@
 """Shared addresses: header badge, port forwards toward devices behind NAT, Zabbix on shared IPs."""
 import re
 import uuid
-from datetime import timedelta
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -9,7 +8,6 @@ from sqlalchemy import select
 from app import device_exposure as expo
 from app import shared_ips
 from app import zabbix_connector as zbx
-from app.agent_models import DeviceJob
 from app.db import SessionLocal
 from app.entrypoint import app
 from app.integration_models import ConnectorIntegration
@@ -97,9 +95,9 @@ def main():
         stats = zbx.sync(db)
     assert stats["status"] == "success" and len(stats["shared_ip"]) == 2, stats
     assert all({"tag": "nsm_shared_ip", "value": "true"} in h["tags"] for h in fake.hosts.values())
-    admin = client.get("/admin/integrations/zabbix").text
-    assert "Apparati con IP condiviso" in admin and shared in admin
-    saved = client.post(f"/devices/{ids['cam']}/zabbix/ip", data={"csrf": csrf_from(admin), "zabbix_ip": "192.0.2.20", "next": "https://evil.example.test/"}, follow_redirects=False)
+    admin = client.get("/api/ui/v1/admin/integrations/zabbix").json()
+    assert shared in {group["ip"] for group in admin["shared"]}, admin["shared"]
+    saved = client.post(f"/devices/{ids['cam']}/zabbix/ip", data={"csrf": client.get("/api/ui/v1/session").json()["csrf_token"], "zabbix_ip": "192.0.2.20", "next": "https://evil.example.test/"}, follow_redirects=False)
     assert saved.status_code == 303 and saved.headers["location"] == "/admin/integrations/zabbix#shared", "no open redirect"
     with SessionLocal() as db:
         stats = zbx.sync(db)

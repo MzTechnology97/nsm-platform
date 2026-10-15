@@ -109,21 +109,25 @@ def main():
             db.commit()
         admin = TestClient(app)
         assert admin.post("/login", data={"username": f"ci-sys-{suffix}", "password": PASSWORD, "csrf": csrf_from(admin.get("/login").text)}, follow_redirects=False).status_code == 303
-        page = admin.get("/admin/system").text
-        assert 'data-system="worker"' in page and "Attivo" in page and 'data-task="bad_task" data-failing' in page and "upstream unreachable" in page
-        assert dump.name in page and "Recente" in page, "a fresh platform dump is reported"
-        assert "Prova scaduta" in page and "fallita" in page and "riuscita" in page, "the last successful drill is 200 days old"
-        assert 'href="/admin/system"' in admin.get("/admin/users").text
+        def system():
+            return admin.get("/api/ui/v1/admin/system").json()
+
+        page = system()
+        tasks = {task["name"]: task for task in page["worker"]["tasks"]}
+        assert page["worker"]["available"] and page["worker"]["alive"] and tasks["bad_task"]["failing"] and "upstream unreachable" in tasks["bad_task"]["last_error"]
+        assert page["dumps"]["latest"] == dump.name and page["dumps"]["stale"] is False, "a fresh platform dump is reported"
+        results = [entry.get("result") for entry in page["drills"]["entries"]]
+        assert page["drills"]["overdue"] is True and "failed" in results and "success" in results, "the last successful drill is 200 days old"
 
         os.utime(dump, (now.timestamp() - 10 * 86400, now.timestamp() - 10 * 86400))
-        assert "Da eseguire" in admin.get("/admin/system").text, "a dump older than 7 days is stale"
+        assert system()["dumps"]["stale"] is True, "a dump older than 7 days is stale"
 
         worker_status.use_client(DownRedis())
-        assert "Redis non raggiungibile" in admin.get("/admin/system").text
+        assert system()["worker"]["available"] is False, "Redis not reachable"
 
         tech = TestClient(app)
         assert tech.post("/login", data={"username": f"ci-sys-t-{suffix}", "password": PASSWORD, "csrf": csrf_from(tech.get("/login").text)}, follow_redirects=False).status_code == 303
-        assert tech.get("/admin/system", follow_redirects=False).status_code in (401, 403)
+        assert tech.get("/api/ui/v1/admin/system").status_code in (401, 403)
         del os.environ["PLATFORM_DB_BACKUP_DIR"]
     print("System status smoke passed")
 

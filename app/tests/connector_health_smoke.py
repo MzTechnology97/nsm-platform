@@ -5,7 +5,7 @@ import uuid
 from datetime import timedelta
 
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, select
+from sqlalchemy import delete
 
 from app.agent_models import DeviceAgentCredential
 from app.connector_health import connectors
@@ -63,8 +63,8 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-ch-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get("/admin/system").text
-    assert 'data-system="connectors"' in page and 'data-connector="UISP Network" data-state="error"' in page and "HTTP 502 da UISP" in page
+    system_rows = {row["name"]: row for row in client.get("/api/ui/v1/admin/system").json()["connectors"]}
+    assert system_rows["UISP Network"]["state"] == "error" and system_rows["UISP Network"]["error"] == "HTTP 502 da UISP", system_rows["UISP Network"]
     print("Connector health smoke passed")
 
 

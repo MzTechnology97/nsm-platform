@@ -43,15 +43,15 @@ def main():
     assert denied.status_code == 302 and denied.headers["location"] == "https://nsm.example.test/login?next=/admin/acs"
     tech = login(f"ci-acs-t-{suffix}")
     assert tech.get("/internal/acs-ui/auth", follow_redirects=False).status_code == 403
-    assert tech.get("/admin/acs").status_code == 403
+    assert tech.get("/api/ui/v1/admin/acs").status_code == 403
     admin = login(f"ci-acs-{suffix}")
     assert admin.get("/internal/acs-ui/auth", follow_redirects=False).status_code == 204
 
-    page = admin.get("/admin/acs").text
-    assert ">ACS</a>" in page and "Apri pannello ACS" in page and 'href="http://nsm.example.test:7080/"' in page
-    assert "http://nsm.example.test:7547/" in page and "CWMP Settings" in page and "cwmp.auth" in page
-    refused = admin.post("/admin/acs/templates", data={"csrf": csrf_from(page)}).text
-    assert "Collega prima GenieACS" in refused
+    page = admin.get("/api/ui/v1/admin/acs").json()
+    assert page["panel_url"] == "http://nsm.example.test:7080/" and page["acs_url"] == "http://nsm.example.test:7547/" and page["state"] == "unconfigured"
+    headers = {"X-CSRF-Token": admin.get("/api/ui/v1/session").json()["csrf_token"]}
+    refused = admin.post("/api/ui/v1/admin/acs/templates", headers=headers)
+    assert refused.status_code == 422 and refused.json()["detail"]["code"] == "not_connected" and "Collega prima GenieACS" in refused.text
 
     calls = []
 
@@ -78,8 +78,8 @@ def main():
         db.add(ConnectorIntegration(provider="genieacs", name="GenieACS", base_url="http://genieacs-nbi:7557", is_enabled=True, verify_tls=True,
                                     secret_encrypted=encrypt_text(json.dumps({"mode": "none"})), settings={}))
         db.commit()
-    done = admin.post("/admin/acs/templates", data={"csrf": csrf_from(page)}).text
-    assert "Template installati in GenieACS" in done
+    done = admin.post("/api/ui/v1/admin/acs/templates", headers=headers)
+    assert done.status_code == 200 and done.json()["installed"], done.text
     urls = [c[0] for c in calls]
     assert urls == ["http://genieacs-nbi:7557/provisions/nsm-base", "http://genieacs-nbi:7557/presets/nsm-tplink", "http://genieacs-nbi:7557/presets/nsm-all-cpe"]
     assert b"PeriodicInformInterval" in calls[0][2] and calls[0][1] == "application/javascript"

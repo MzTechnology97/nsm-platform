@@ -1417,25 +1417,6 @@ def mark_all_notifications_read_record(db, user: User) -> int:
     return len(ids)
 
 
-@app.get("/admin/users", response_class=HTMLResponse)
-def admin_users(request: Request):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        if not has_permission(user, "users.manage"):
-            raise HTTPException(403)
-        users = list(db.scalars(select(User).order_by(User.username)))
-        return render(
-            request,
-            db,
-            user,
-            "admin_users.html",
-            users=users,
-            roles=ROLE_LABELS,
-        )
-
-
 def create_user_record(db, actor, username: str, display_name: str, email: str, role: str, password: str) -> User:
     """Create an account with a temporary password (audited). HTTPException 400/409 with the reason. Commits."""
     if role not in ROLE_LABELS:
@@ -1509,54 +1490,6 @@ def change_user_role_record(db, actor, target, role: str) -> None:
             "new_role": role,
         },
     )
-
-
-@app.post("/admin/users")
-def create_user(
-    request: Request,
-    username: str = Form(...),
-    display_name: str = Form(""),
-    email: str = Form(""),
-    role: str = Form(...),
-    password: str = Form(...),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        actor = require_admin(request, db)
-        create_user_record(db, actor, username, display_name, email, role, password)
-    return RedirectResponse("/admin/users", status_code=303)
-
-
-@app.post("/admin/users/{user_id}/toggle")
-def toggle_user(request: Request, user_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        actor = require_admin(request, db)
-        target = db.get(User, user_id)
-        if not target:
-            raise HTTPException(404)
-        toggle_user_record(db, actor, target)
-        db.commit()
-    return RedirectResponse("/admin/users", status_code=303)
-
-
-@app.post("/admin/users/{user_id}/role")
-def change_user_role(
-    request: Request,
-    user_id: uuid.UUID,
-    role: str = Form(...),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        actor = require_admin(request, db)
-        target = db.get(User, user_id)
-        if not target:
-            raise HTTPException(404)
-        change_user_role_record(db, actor, target, role)
-        db.commit()
-    return RedirectResponse("/admin/users", status_code=303)
 
 
 @app.post("/devices/{device_id}/alias")
