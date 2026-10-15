@@ -21,8 +21,9 @@ Remediation (finding detail, risk acceptance) keeps its classic pages.
 from __future__ import annotations
 
 import uuid
+from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from sqlalchemy import func, select
 
 from app import compliance as compliance_view
@@ -37,7 +38,11 @@ from sqlalchemy.orm import selectinload
 
 from app.lifecycle_remediation import attention_reason
 from app.models import ActionIssue, Customer, Device, DeviceVulnerability, LifecycleRemediation, SecurityAdvisory, utcnow
+from app import compliance_findings
 from app.compliance_findings import in_exception
+from app.compliance_models import ComplianceResultHistory
+from app.input_errors import InputError
+from app.models import User
 from app.compliance_models import ComplianceBaseline
 from app.ui_api import brand_icon, require_csrf, ui_user
 
@@ -267,6 +272,51 @@ def compliance_evaluate(request: Request):
         db.commit()
         return {key: stats.get(key, 0) for key in ("devices", "fail", "unknown", "pass")}
 
+
+
+def _user_name(user) -> str | None:
+    return (user.display_name or user.username) if user else None
+
+
+@router.get("/compliance/results/{result_id}")
+def compliance_result(request: Request, result_id: uuid.UUID):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "compliance.read")
+        result, device = compliance_findings._load(db, result_id)
+        now = utcnow()
+        control = compliance_view.CONTROLS.get(result.control_id)
+        history = db.execute(
+            select(ComplianceResultHistory, User).outerjoin(User, User.id == ComplianceResultHistory.actor_user_id)
+            .where(ComplianceResultHistory.result_id == result.id)
+            .order_by(ComplianceResultHistory.created_at.desc(), ComplianceResultHistory.id)
+        ).all()
+        acknowledger = db.get(User, result.acknowledged_by_user_id) if result.acknowledged_by_user_id else None
+        return {
+            "id": str(result.id), "control_id": result.control_id, "status": result.status, "evidence": result.evidence,
+            "control": {"title": control.title, "category": control.category, "description": control.description} if control else None,
+            "device": _device_ref(device), "customer": {"id": str(device.customer.id), "name": device.customer.name} if device.customer else None,
+            "evaluated_at": _iso(result.evaluated_at), "status_changed_at": _iso(result.status_changed_at),
+            "baseline": {"id": str(result.baseline_id), "version": result.baseline_version} if result.baseline_id else None,
+            "acknowledged": {"by": _user_name(acknowledger), "at": _iso(result.acknowledged_at)} if result.acknowledged_at else None,
+            "exception": {"until": _iso(result.exception_until), "reason": result.exception_reason} if in_exception(result, now) else None,
+            "history": [{"at": _iso(entry.created_at), "action": entry.action, "from": entry.from_status, "to": entry.to_status,
+                         "by": _user_name(actor), "note": entry.note} for entry, actor in history],
+            "can_manage": core.has_permission(user, "compliance.manage"),
+            "today": now.date().isoformat(),
+            "max_exception": (now + compliance_findings.MAX_EXCEPTION - timedelta(days=1)).date().isoformat(),
+        }
+
+
+@router.post("/compliance/results/{result_id}/{action}", dependencies=[Depends(require_csrf)])
+def compliance_result_action(request: Request, result_id: uuid.UUID, action: str, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "compliance.manage")
+        fields = {key: str(body.get(key) or "") for key in ("note", "reason", "until")}
+        try:
+            message = compliance_findings.result_action_record(db, user, result_id, action, **fields)
+        except InputError as exc:
+            raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
+        return {"message": message}
 
 def install_ui_security(app) -> None:
     app.include_router(router)

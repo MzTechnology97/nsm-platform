@@ -4139,5 +4139,56 @@
       "device_customer": "El equipo no pertenece al cliente elegido."
     },
     "confirmName": "Para confirmar, escribe el nombre de la política: {{name}}"
+  },
+  "complianceResult": {
+    "inException": "en excepción",
+    "outcome": "Resultado",
+    "evidence": "Evidencia",
+    "evaluated": "Evaluado",
+    "since": "Sin cambios desde",
+    "baseline": "Línea base",
+    "acknowledged": "Asumido",
+    "exceptionUntil": "Excepción hasta el",
+    "reason": "Motivo",
+    "history": "Historial",
+    "historyHelp": "Cambios de resultado y decisiones de los operadores, conservados tras volver a cumplir.",
+    "columns": {
+      "when": "Cuándo",
+      "action": "Acción",
+      "result": "Resultado",
+      "who": "Quién",
+      "note": "Nota"
+    },
+    "actions": {
+      "evaluated": "Evaluación",
+      "acknowledged": "Asumido",
+      "exception": "Excepción concedida",
+      "exception_revoked": "Excepción revocada",
+      "exception_expired": "Excepción vencida"
+    },
+    "automatic": "Automático",
+    "noHistory": "Sin entradas.",
+    "handling": "Gestión",
+    "handlingHelp": "El resultado evaluado nunca se edita a mano: se cierra cuando una nueva evaluación cumple.",
+    "saved": "Gestión actualizada.",
+    "ackNote": "Nota de asunción",
+    "ackPlaceholder": "P. ej. intervención planificada con el cliente",
+    "acknowledge": "Asumir",
+    "note": "Nota",
+    "revoke": "Revocar excepción",
+    "exceptionTitle": "Registrar una excepción",
+    "reasonLabel": "Motivo y mitigaciones",
+    "reasonPlaceholder": "Por qué se acepta el riesgo y con qué compensaciones",
+    "validUntil": "Válida hasta el",
+    "validUntilHelp": "Como máximo un año; al vencer, el incumplimiento vuelve a gestionarse.",
+    "grant": "Registrar excepción",
+    "errors": {
+      "not_fail": "El control ya no incumple: recarga la página.",
+      "reason": "Una excepción requiere un motivo.",
+      "until": "Indica una fecha de vencimiento válida.",
+      "until_range": "El vencimiento debe ser dentro de un año.",
+      "no_exception": "No hay ninguna excepción activa.",
+      "action": "Acción no válida."
+    }
   }
 }

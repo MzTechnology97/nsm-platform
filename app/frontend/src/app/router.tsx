@@ -201,6 +201,11 @@ const vulnerabilityRoute = createRoute({
     return { ...(out.customer ? { customer: out.customer } : {}), ...(out.status ? { status: out.status } : {}) };
   },
 });
+const complianceResultRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/compliance/results/$resultId",
+  component: lazyRouteComponent(() => import("../pages/ComplianceResult"), "ComplianceResult"),
+});
 const complianceRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/compliance",
@@ -482,6 +487,7 @@ export const routeTree = rootRoute.addChildren([
   accessRoute,
   lifecycleRoute,
   complianceRoute,
+  complianceResultRoute,
   actionCenterRoute,
   incidentsRoute,
   incidentRoute,

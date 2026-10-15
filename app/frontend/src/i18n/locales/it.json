@@ -4139,5 +4139,56 @@
       "device_customer": "L'apparato non appartiene al cliente scelto."
     },
     "confirmName": "Per confermare scrivi il nome della policy: {{name}}"
+  },
+  "complianceResult": {
+    "inException": "in eccezione",
+    "outcome": "Esito",
+    "evidence": "Evidenza",
+    "evaluated": "Valutato",
+    "since": "Esito invariato dal",
+    "baseline": "Baseline",
+    "acknowledged": "Presa in carico",
+    "exceptionUntil": "Eccezione fino al",
+    "reason": "Motivazione",
+    "history": "Storico",
+    "historyHelp": "Cambi di esito e decisioni degli operatori, conservati anche dopo il rientro.",
+    "columns": {
+      "when": "Quando",
+      "action": "Azione",
+      "result": "Esito",
+      "who": "Chi",
+      "note": "Nota"
+    },
+    "actions": {
+      "evaluated": "Valutazione",
+      "acknowledged": "Presa in carico",
+      "exception": "Eccezione concessa",
+      "exception_revoked": "Eccezione revocata",
+      "exception_expired": "Eccezione scaduta"
+    },
+    "automatic": "Automatico",
+    "noHistory": "Nessuna voce.",
+    "handling": "Gestione",
+    "handlingHelp": "L'esito valutato non si modifica a mano: si chiude quando una nuova valutazione risulta conforme.",
+    "saved": "Gestione aggiornata.",
+    "ackNote": "Nota di presa in carico",
+    "ackPlaceholder": "Es. intervento pianificato con il cliente",
+    "acknowledge": "Prendi in carico",
+    "note": "Nota",
+    "revoke": "Revoca eccezione",
+    "exceptionTitle": "Registra un'eccezione",
+    "reasonLabel": "Motivazione e mitigazioni",
+    "reasonPlaceholder": "Perché il rischio è accettato e con quali compensazioni",
+    "validUntil": "Valida fino al",
+    "validUntilHelp": "Al massimo un anno; alla scadenza la non conformità torna da gestire.",
+    "grant": "Registra eccezione",
+    "errors": {
+      "not_fail": "Il controllo non è più non conforme: ricarica la pagina.",
+      "reason": "Un'eccezione richiede una motivazione.",
+      "until": "Indica una data di scadenza valida.",
+      "until_range": "La scadenza deve essere entro un anno da oggi.",
+      "no_exception": "Nessuna eccezione attiva.",
+      "action": "Azione non valida."
+    }
   }
 }

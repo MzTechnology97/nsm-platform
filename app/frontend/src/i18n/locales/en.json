@@ -4139,5 +4139,56 @@
       "device_customer": "The device does not belong to the chosen customer."
     },
     "confirmName": "To confirm, type the policy name: {{name}}"
+  },
+  "complianceResult": {
+    "inException": "in exception",
+    "outcome": "Outcome",
+    "evidence": "Evidence",
+    "evaluated": "Evaluated",
+    "since": "Unchanged since",
+    "baseline": "Baseline",
+    "acknowledged": "Acknowledged",
+    "exceptionUntil": "Exception until",
+    "reason": "Reason",
+    "history": "History",
+    "historyHelp": "Outcome changes and operator decisions, kept after the device is compliant again.",
+    "columns": {
+      "when": "When",
+      "action": "Action",
+      "result": "Outcome",
+      "who": "Who",
+      "note": "Note"
+    },
+    "actions": {
+      "evaluated": "Evaluation",
+      "acknowledged": "Acknowledged",
+      "exception": "Exception granted",
+      "exception_revoked": "Exception revoked",
+      "exception_expired": "Exception expired"
+    },
+    "automatic": "Automatic",
+    "noHistory": "No entries.",
+    "handling": "Handling",
+    "handlingHelp": "The evaluated outcome is never edited by hand: it closes when a new evaluation is compliant.",
+    "saved": "Handling updated.",
+    "ackNote": "Acknowledgement note",
+    "ackPlaceholder": "E.g. work planned with the customer",
+    "acknowledge": "Acknowledge",
+    "note": "Note",
+    "revoke": "Revoke exception",
+    "exceptionTitle": "Record an exception",
+    "reasonLabel": "Reason and mitigations",
+    "reasonPlaceholder": "Why the risk is accepted and with which compensating measures",
+    "validUntil": "Valid until",
+    "validUntilHelp": "One year at most; when it expires the non-compliance must be handled again.",
+    "grant": "Record exception",
+    "errors": {
+      "not_fail": "The control is no longer failing: reload the page.",
+      "reason": "An exception needs a reason.",
+      "until": "Enter a valid expiry date.",
+      "until_range": "The expiry must be within one year from today.",
+      "no_exception": "There is no active exception.",
+      "action": "Invalid action."
+    }
   }
 }
