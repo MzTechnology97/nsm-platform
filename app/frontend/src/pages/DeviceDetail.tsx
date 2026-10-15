@@ -176,7 +176,7 @@ export function DeviceOverview() {
               {detail.issues.map((issue) => (
                 <li key={issue.id}>
                   <span className={`ui-severity ui-severity-${issue.severity}`}>{issue.severity}</span>
-                  <a href={`/action-center?device=${device.id}`}>{issue.title}</a>
+                  <Link to="/action-center" search={{ device: device.id }}>{issue.title}</Link>
                   <small>{formatRelative(issue.created_at, i18n.language)}</small>
                 </li>
               ))}

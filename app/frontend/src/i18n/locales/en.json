@@ -1407,7 +1407,9 @@
       "open": "Open",
       "acknowledged": "In charge",
       "resolved": "Resolved"
-    }
+    },
+    "deviceFilter": "Issues of a single device.",
+    "clearDevice": "Show all"
   },
   "incidents": {
     "title": "Incidents",
@@ -1541,7 +1543,22 @@
       "invalid_decision": "Invalid decision.",
       "invalid_status": "Invalid status.",
       "invalid_resolved_at": "Resolution must be after the start and not in the future."
-    }
+    },
+    "evidenceTitle": "Archived evidence",
+    "evidenceHelp": "PDF with summary, devices, root cause, hypotheses and timeline, archived with its SHA-256 like the evidence reports.",
+    "exported": "Evidence archived (SHA-256 {{sha}}…): download it here or from the report archive.",
+    "evidenceColumns": {
+      "generated": "Generated",
+      "status": "Incident state",
+      "events": "Events",
+      "rootCause": "Root cause",
+      "sha": "SHA-256",
+      "download": ""
+    },
+    "rootConfirmed": "confirmed",
+    "rootPending": "not confirmed",
+    "download": "Download",
+    "noExports": "No evidence exported yet."
   },
   "auditEvents": {
     "title": "Activity log",

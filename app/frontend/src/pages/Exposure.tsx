@@ -86,7 +86,7 @@ function Row({ row }: { row: ExposureRow }) {
         <div className="ui-with-brand">
           <BrandIcon brand={row.brand} small />
           <span>
-            <a href={`/devices/${row.id}/exposure`} className="ui-cell-title">{row.name}</a>
+            <Link to="/devices/$deviceId/exposure" params={{ deviceId: row.id }} className="ui-cell-title">{row.name}</Link>
             <small className="ui-muted ui-block">
               {[row.target_ip, row.shared ? t("exposure.shared") : null, row.private ? t("exposure.private") : null].filter(Boolean).join(" · ") || row.vendor}
             </small>

@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -166,7 +167,7 @@ function UserItem({ user, data }: { user: AdminUser; data: Data }) {
               )}
             </>
           )}
-          {user.is_self && <a className="ui-button ui-button-ghost ui-button-small" href="/profile">{t("adminUsers.profile")}</a>}
+          {user.is_self && <Link to="/profile" className="ui-button ui-button-ghost ui-button-small">{t("adminUsers.profile")}</Link>}
         </div>
         {sessions.isSuccess && <small className="ui-live">{t("adminUsers.signedOut")}</small>}
         {reset.isSuccess && <small className="ui-live">{t("adminUsers.twoFactorReset")}</small>}

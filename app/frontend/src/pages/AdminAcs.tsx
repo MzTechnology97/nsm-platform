@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Trans, useTranslation } from "react-i18next";
 
 import { useAcsAdmin, useAcsTemplates } from "../api/admin";
@@ -45,7 +46,7 @@ export function AdminAcs() {
               <a className="ui-button" href={data.panel_url} target="_blank" rel="noopener noreferrer">{t("acs.openPanel")}</a>
             </div>
             <p className="ui-muted">{t("acs.panelHelp")}</p>
-            {data.state === "unconfigured" && <p className="ui-muted">{t("acs.linkHint")} <a href="/admin/integrations/genieacs">{t("acs.linkPage")}</a></p>}
+            {data.state === "unconfigured" && <p className="ui-muted">{t("acs.linkHint")} <Link to="/admin/integrations/genieacs">{t("acs.linkPage")}</Link></p>}
           </section>
 
           <section className="ui-panel ui-admin-section" id="guide">

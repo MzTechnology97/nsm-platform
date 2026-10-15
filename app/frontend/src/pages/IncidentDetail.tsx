@@ -9,6 +9,7 @@ import {
   type IncidentDetail as Detail,
   INCIDENT_STATUSES,
   type TimelineEntry,
+  useExportIncident,
   useIncident,
   useIncidentAction,
 } from "../api/incidents";
@@ -65,7 +66,6 @@ export function IncidentDetail() {
           </p>
         </div>
         <div className="ui-row-actions">
-          {data.can_export && <a className="ui-button ui-button-ghost" href={`/incidents/${incident.id}#evidence`}>{t("incidentDetail.export")}</a>}
           <a className="ui-button ui-button-ghost" href={`/incidents/${incident.id}`}>{t("app.classic")}</a>
         </div>
       </header>
@@ -86,6 +86,7 @@ export function IncidentDetail() {
       </div>
 
       <RootCause data={data} />
+      <Evidence data={data} />
       <Timeline data={data} />
     </section>
   );
@@ -299,6 +300,54 @@ function CandidateItem({ candidate, canWrite, onUse, busy }: { candidate: Candid
         </div>
       )}
     </li>
+  );
+}
+
+/** Archived evidence PDFs (with SHA-256) and, with reports.generate, a new export. */
+function Evidence({ data }: { data: Detail }) {
+  const { t, i18n } = useTranslation();
+  const errorText = useErrorText();
+  const exporter = useExportIncident(data.incident.id);
+  if (!data.can_export && !data.exports.length) return null;
+  return (
+    <section className="ui-panel ui-incident-section" id="evidence">
+      <div className="ui-panel-header">
+        <div>
+          <h2>{t("incidentDetail.evidenceTitle")}</h2>
+          <p className="ui-muted">{t("incidentDetail.evidenceHelp")}</p>
+        </div>
+        {data.can_export && (
+          <button type="button" className="ui-button ui-button-primary" disabled={exporter.isPending} onClick={() => exporter.mutate()}>
+            {exporter.isPending ? t("app.loading") : t("incidentDetail.export")}
+          </button>
+        )}
+      </div>
+      {exporter.isSuccess && <div className="ui-alert ui-alert-success">{t("incidentDetail.exported", { sha: exporter.data.sha256.slice(0, 12) })}</div>}
+      {exporter.error && <div className="ui-alert ui-alert-danger">{errorText(exporter.error)}</div>}
+      {data.exports.length ? (
+        <div className="ui-data-wrap">
+          <table className="ui-data-table">
+            <thead>
+              <tr>{["generated", "status", "events", "rootCause", "sha", "download"].map((key) => <th key={key}><span className="ui-th">{t(`incidentDetail.evidenceColumns.${key}`)}</span></th>)}</tr>
+            </thead>
+            <tbody>
+              {data.exports.map((report) => (
+                <tr key={report.id}>
+                  <td className="ui-nowrap">{formatDateTime(report.generated_at, i18n.language)}</td>
+                  <td>{report.status ? t(`incidents.state.${report.status}`, { defaultValue: report.status }) : "—"}</td>
+                  <td>{report.events}</td>
+                  <td>{report.root_cause_confirmed ? t("incidentDetail.rootConfirmed") : t("incidentDetail.rootPending")}</td>
+                  <td><code title={report.sha256}>{report.sha256.slice(0, 16)}…</code></td>
+                  <td><a className="ui-button ui-button-ghost ui-button-small" href={report.download_url}>{t("incidentDetail.download")}</a></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="ui-muted">{t("incidentDetail.noExports")}</p>
+      )}
+    </section>
   );
 }
 
