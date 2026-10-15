@@ -4190,5 +4190,93 @@
       "no_exception": "Aucune exception active.",
       "action": "Action non valide."
     }
+  },
+  "complianceBaselines": {
+    "title": "Référentiels",
+    "subtitle": "Les référentiels s'héritent du niveau global jusqu'à l'équipement : un référentiel plus précis ne remplace que les contrôles qu'il définit. Chaque modification crée une nouvelle version.",
+    "new": "+ Nouveau référentiel",
+    "newTitle": "Nouveau référentiel",
+    "newHelp": "Choisissez la portée et les contrôles à activer, désactiver ou laisser hérités.",
+    "versionHelp": "Version actuelle v{{current}} : l'enregistrement crée la v{{next}}.",
+    "columns": {
+      "baseline": "Référentiel",
+      "scope": "Portée",
+      "controls": "Contrôles définis",
+      "version": "Version",
+      "state": "État",
+      "updated": "Mis à jour"
+    },
+    "scopes": {
+      "global": "Global",
+      "vendor": "Fabricant",
+      "customer": "Client",
+      "site": "Site",
+      "device": "Équipement"
+    },
+    "enabled": "Actif",
+    "disabled": "Désactivé",
+    "empty": "Aucun référentiel : la conformité n'évalue encore aucun équipement.",
+    "createDefault": "Créer le référentiel global par défaut",
+    "name": "Nom",
+    "scope": "Portée",
+    "vendor": "Fabricant",
+    "customer": "Client",
+    "site": "Site",
+    "device": "Équipement",
+    "description": "Description",
+    "active": "Référentiel actif",
+    "controlsTitle": "Contrôles",
+    "controlsHelp": "« Hériter » laisse décider les référentiels plus généraux ; « Actif » et « Désactivé » les remplacent pour cette portée.",
+    "mode": "Mode",
+    "modes": {
+      "inherit": "Hériter",
+      "enabled": "Actif",
+      "disabled": "Désactivé"
+    },
+    "cancel": "Annuler",
+    "save": "Enregistrer le référentiel",
+    "descriptions": {
+      "firmware_current": "Aucune mise à jour de sécurité en attente ; en mode « strict », aucune mise à jour disponible non plus.",
+      "no_unhandled_severe_vulnerabilities": "Aucune vulnérabilité critique/élevée encore « Ouverte » (planifiée, en cours ou en exception compte comme traitée).",
+      "backup_recent": "Une sauvegarde réussie existe dans le nombre de jours indiqué.",
+      "restore_tested": "Un test de restauration réussi a été enregistré dans le nombre de jours indiqué.",
+      "lifecycle_supported": "L'équipement n'est pas en fin de support ; avec « EOL non conforme », pas en fin de vie non plus.",
+      "agent_heartbeat": "MikroTik : l'agent a contacté NSM dans les minutes indiquées.",
+      "config_baseline": "MikroTik : une configuration de référence approuvée existe et aucune modification non vérifiée.",
+      "cleartext_services_disabled": "MikroTik : telnet et FTP (et éventuellement www) sont désactivés dans le dernier export. Conforme seulement avec une preuve explicite."
+    },
+    "params": {
+      "firmware_current": {
+        "strict": "Strict : toute mise à jour disponible est non conforme"
+      },
+      "no_unhandled_severe_vulnerabilities": {
+        "exceptions_fail": "Les exceptions comptent comme non conformes"
+      },
+      "backup_recent": {
+        "max_age_days": "Âge maximal de la sauvegarde (jours)"
+      },
+      "restore_tested": {
+        "max_age_days": "Âge maximal du test de restauration (jours)"
+      },
+      "lifecycle_supported": {
+        "fail_on_eol": "EOL non conforme"
+      },
+      "agent_heartbeat": {
+        "max_minutes": "Minutes maximales depuis le dernier heartbeat"
+      },
+      "cleartext_services_disabled": {
+        "include_www": "Vérifier aussi le service www (HTTP)"
+      }
+    },
+    "errors": {
+      "name_scope": "Le nom et la portée sont obligatoires.",
+      "vendor": "Choisissez le fabricant.",
+      "customer": "Choisissez le client.",
+      "site": "Choisissez le site.",
+      "device": "Choisissez l'équipement.",
+      "param": "Un paramètre n'est pas valide ou hors limites (1–3650).",
+      "no_controls": "Définissez au moins un contrôle (actif ou désactivé).",
+      "exists": "Un référentiel global existe déjà."
+    }
   }
 }

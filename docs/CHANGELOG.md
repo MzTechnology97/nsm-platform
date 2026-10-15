@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.157 — 2026-10-15
+
+New interface (React) — compliance baselines, phase 7u
+- **Baselines** (`/app/compliance/baselines`), opened from the compliance page: every baseline from global to device, with its scope (the device keeps its vendor icon), the controls it sets, version, state and last update. With no baseline at all, `compliance.manage` users can create the NSM default global baseline.
+- **Baseline form** (`/app/compliance/baselines/new`, `.../{id}/edit`): name, scope (global, vendor, customer, site, device), description, enabled; each control set to inherit, enabled or disabled, with its parameters. Saving creates a new version and re-evaluates compliance.
+- The baseline version on the compliance result page now opens the React form.
+- **Shared code.** `compliance.save_baseline_record` and `create_default_baseline_record`; the classic pages use them with the same messages. Errors carry codes (`name_scope`, `vendor`, `customer`, `site`, `device`, `param`, `no_controls`, `exists`).
+- **API.**
+  - `GET /api/ui/v1/compliance/baselines` (`compliance.read`);
+  - `GET .../baselines/form`, `POST .../baselines`, `POST .../baselines/default` (`compliance.manage`, CSRF for changes).
+
 ## 0.49.156 — 2026-10-15
 
 New interface (React) — compliance result, phase 7t

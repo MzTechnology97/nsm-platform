@@ -4190,5 +4190,93 @@
       "no_exception": "Nessuna eccezione attiva.",
       "action": "Azione non valida."
     }
+  },
+  "complianceBaselines": {
+    "title": "Baseline",
+    "subtitle": "Le baseline si ereditano dal livello globale fino all'apparato: una baseline più specifica sovrascrive solo i controlli che imposta. Ogni modifica crea una nuova versione.",
+    "new": "+ Nuova baseline",
+    "newTitle": "Nuova baseline",
+    "newHelp": "Scegli l'ambito e i controlli da attivare, disattivare o lasciare ereditati.",
+    "versionHelp": "Versione attuale v{{current}}: salvando si crea la v{{next}}.",
+    "columns": {
+      "baseline": "Baseline",
+      "scope": "Ambito",
+      "controls": "Controlli impostati",
+      "version": "Versione",
+      "state": "Stato",
+      "updated": "Aggiornata"
+    },
+    "scopes": {
+      "global": "Globale",
+      "vendor": "Vendor",
+      "customer": "Cliente",
+      "site": "Sede",
+      "device": "Apparato"
+    },
+    "enabled": "Attiva",
+    "disabled": "Disattivata",
+    "empty": "Nessuna baseline: la compliance non valuta ancora nessun apparato.",
+    "createDefault": "Crea la baseline globale predefinita",
+    "name": "Nome",
+    "scope": "Ambito",
+    "vendor": "Vendor",
+    "customer": "Cliente",
+    "site": "Sede",
+    "device": "Apparato",
+    "description": "Descrizione",
+    "active": "Baseline attiva",
+    "controlsTitle": "Controlli",
+    "controlsHelp": "«Eredita» lascia decidere alle baseline più generali; «Attivo» e «Disattivato» le sovrascrivono per questo ambito.",
+    "mode": "Modalità",
+    "modes": {
+      "inherit": "Eredita",
+      "enabled": "Attivo",
+      "disabled": "Disattivato"
+    },
+    "cancel": "Annulla",
+    "save": "Salva baseline",
+    "descriptions": {
+      "firmware_current": "Nessun aggiornamento di sicurezza pendente; con «rigoroso» anche nessun aggiornamento disponibile.",
+      "no_unhandled_severe_vulnerabilities": "Nessuna vulnerabilità critical/high ancora «Aperta» (pianificata, in lavorazione o in eccezione è gestita).",
+      "backup_recent": "Esiste un backup riuscito entro il numero di giorni indicato.",
+      "restore_tested": "Un restore test superato registrato entro il numero di giorni indicato.",
+      "lifecycle_supported": "L'apparato non è End of Support; con «EOL non conforme» anche End of Life.",
+      "agent_heartbeat": "MikroTik: l'agent ha contattato NSM entro i minuti indicati.",
+      "config_baseline": "MikroTik: esiste una baseline di configurazione approvata e nessuna modifica non verificata.",
+      "cleartext_services_disabled": "MikroTik: telnet e FTP (e facoltativamente www) risultano disabilitati nell'ultimo export. Conforme solo con evidenza esplicita."
+    },
+    "params": {
+      "firmware_current": {
+        "strict": "Rigoroso: qualsiasi aggiornamento disponibile è non conforme"
+      },
+      "no_unhandled_severe_vulnerabilities": {
+        "exceptions_fail": "Le eccezioni contano come non conformi"
+      },
+      "backup_recent": {
+        "max_age_days": "Età massima del backup (giorni)"
+      },
+      "restore_tested": {
+        "max_age_days": "Età massima del restore test (giorni)"
+      },
+      "lifecycle_supported": {
+        "fail_on_eol": "EOL non conforme"
+      },
+      "agent_heartbeat": {
+        "max_minutes": "Minuti massimi dall'ultimo heartbeat"
+      },
+      "cleartext_services_disabled": {
+        "include_www": "Verifica anche il servizio www (HTTP)"
+      }
+    },
+    "errors": {
+      "name_scope": "Nome e ambito sono obbligatori.",
+      "vendor": "Seleziona il vendor.",
+      "customer": "Seleziona il cliente.",
+      "site": "Seleziona la sede.",
+      "device": "Seleziona l'apparato.",
+      "param": "Un parametro non è valido o è fuori intervallo (1–3650).",
+      "no_controls": "Imposta almeno un controllo (attivo o disattivato).",
+      "exists": "Esiste già una baseline globale."
+    }
   }
 }

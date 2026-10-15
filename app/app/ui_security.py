@@ -40,9 +40,9 @@ from app.lifecycle_remediation import attention_reason
 from app.models import ActionIssue, Customer, Device, DeviceVulnerability, LifecycleRemediation, SecurityAdvisory, utcnow
 from app import compliance_findings
 from app.compliance_findings import in_exception
-from app.compliance_models import ComplianceResultHistory
+from app.compliance_models import SCOPE_LABELS, SCOPE_PRIORITY, ComplianceResultHistory
 from app.input_errors import InputError
-from app.models import User
+from app.models import Site, User
 from app.compliance_models import ComplianceBaseline
 from app.ui_api import brand_icon, require_csrf, ui_user
 
@@ -317,6 +317,97 @@ def compliance_result_action(request: Request, result_id: uuid.UUID, action: str
         except InputError as exc:
             raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
         return {"message": message}
+
+
+def _baseline_target(db, baseline) -> dict:
+    target: dict = {"type": baseline.scope_type, "vendor": baseline.vendor, "customer": None, "site": None, "device": None}
+    if baseline.customer_id:
+        customer = db.get(Customer, baseline.customer_id)
+        target["customer"] = {"id": str(customer.id), "name": customer.name} if customer else None
+    if baseline.site_id:
+        site = db.get(Site, baseline.site_id)
+        target["site"] = {"id": str(site.id), "name": site.name, "customer": site.customer.name if site and site.customer else None} if site else None
+    if baseline.device_id:
+        target["device"] = _device_ref(db.get(Device, baseline.device_id))
+    return target
+
+
+@router.get("/compliance/baselines")
+def compliance_baselines(request: Request):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "compliance.read")
+        baselines = sorted(db.scalars(select(ComplianceBaseline)), key=lambda b: (SCOPE_PRIORITY.get(b.scope_type, 0), b.name.lower()))
+        return {
+            "items": [{
+                "id": str(b.id), "name": b.name, "description": b.description, "enabled": bool(b.is_enabled), "version": b.version,
+                "updated_at": _iso(b.updated_at), "target": _baseline_target(db, b),
+                "controls": [{"id": cid, "enabled": bool(setting.get("enabled", True))} for cid, setting in (b.controls or {}).items()
+                             if cid in compliance_view.CONTROLS],
+            } for b in baselines],
+            "has_global": any(b.scope_type == "global" for b in baselines),
+            "can_manage": core.has_permission(user, "compliance.manage"),
+        }
+
+
+@router.get("/compliance/baselines/form")
+def compliance_baseline_form(request: Request, baseline: str = ""):
+    with SessionLocal() as db:
+        ui_user(request, db, "compliance.manage")
+        item = None
+        if baseline:
+            item = db.get(ComplianceBaseline, _uuid(baseline)) if _uuid(baseline) else None
+            if item is None:
+                raise HTTPException(404)
+        context = compliance_view._form_context(db, item)
+        return {
+            "baseline": {"id": str(item.id), "name": item.name, "description": item.description, "scope_type": item.scope_type, "vendor": item.vendor,
+                         "customer_id": str(item.customer_id) if item.customer_id else "", "site_id": str(item.site_id) if item.site_id else "",
+                         "device_id": str(item.device_id) if item.device_id else "", "enabled": bool(item.is_enabled), "version": item.version} if item else None,
+            "settings": context["settings"],
+            "controls": [{"id": c.id, "title": c.title, "category": c.category, "description": c.description,
+                          "defaults": c.defaults, "params_help": c.params_help} for c in compliance_view.CONTROLS.values()],
+            "scopes": list(SCOPE_LABELS), "vendors": list(compliance_view.VENDORS),
+            "customers": [{"id": str(c.id), "name": c.name} for c in context["customers"]],
+            "sites": [{"id": str(site.id), "name": site.name, "customer_id": str(site.customer_id), "customer": site.customer.name if site.customer else None}
+                      for site in context["sites"]],
+            "devices": [_device_ref(device) for device in context["devices"]],
+        }
+
+
+@router.post("/compliance/baselines", dependencies=[Depends(require_csrf)])
+def compliance_baseline_save(request: Request, body: dict = Body(default={})):
+    """JSON body; ``controls`` is ``{control_id: {mode: inherit|enabled|disabled, params: {...}}}``."""
+    with SessionLocal() as db:
+        user = ui_user(request, db, "compliance.manage")
+        form = {key: str(body.get(key) or "") for key in ("baseline_id", "name", "description", "scope_type", "vendor", "customer_id", "site_id", "device_id")}
+        if body.get("enabled"):
+            form["is_enabled"] = "on"
+        for control_id, setting in (body.get("controls") or {}).items():
+            if control_id not in compliance_view.CONTROLS or not isinstance(setting, dict):
+                continue
+            form[f"mode_{control_id}"] = str(setting.get("mode") or "inherit")
+            for key, value in (setting.get("params") or {}).items():
+                if isinstance(value, bool):
+                    if value:
+                        form[f"param_{control_id}_{key}"] = "on"
+                elif value is not None:
+                    form[f"param_{control_id}_{key}"] = str(value)
+        try:
+            saved = compliance_view.save_baseline_record(db, user, form)
+        except InputError as exc:
+            raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
+        return {"id": str(saved.id), "version": saved.version}
+
+
+@router.post("/compliance/baselines/default", dependencies=[Depends(require_csrf)])
+def compliance_baseline_default(request: Request):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "compliance.manage")
+        try:
+            stats = compliance_view.create_default_baseline_record(db, user)
+        except InputError as exc:
+            raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
+        return {"id": stats["id"], "devices": stats.get("devices", 0)}
 
 def install_ui_security(app) -> None:
     app.include_router(router)
