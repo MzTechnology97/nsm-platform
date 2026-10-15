@@ -64,18 +64,18 @@ def _resource_view(snapshot):
     cpu_load = data.get("cpu_load")
     cpu_load = f"{cpu_load}%" if cpu_load not in (None, "") else "—"
     cards = [
-        {"label": "CPU load", "value": cpu_load, "hint": data.get("cpu") or "processore"},
-        {"label": "Memoria libera", "value": human_bytes(data.get("free_memory")), "hint": "RAM disponibile"},
-        {"label": "Memoria totale", "value": human_bytes(data.get("total_memory")), "hint": "RAM installata"},
-        {"label": "Uptime", "value": _duration(data.get("uptime")), "hint": "tempo operativo"},
+        {"key": "cpu_load", "label": "CPU load", "value": cpu_load, "hint": data.get("cpu") or "processore"},
+        {"key": "free_memory", "label": "Memoria libera", "value": human_bytes(data.get("free_memory")), "hint": "RAM disponibile"},
+        {"key": "total_memory", "label": "Memoria totale", "value": human_bytes(data.get("total_memory")), "hint": "RAM installata"},
+        {"key": "uptime", "label": "Uptime", "value": _duration(data.get("uptime")), "hint": "tempo operativo"},
     ]
     details = [
-        {"label": "Identity", "value": data.get("identity") or "—"},
-        {"label": "Modello", "value": data.get("model") or "—"},
-        {"label": "RouterOS", "value": data.get("routeros") or "—"},
-        {"label": "Architettura", "value": data.get("architecture") or "—"},
-        {"label": "CPU", "value": data.get("cpu") or "—"},
-        {"label": "CPU count", "value": data.get("cpu_count") or "—"},
+        {"key": "identity", "label": "Identity", "value": data.get("identity") or "—"},
+        {"key": "model", "label": "Modello", "value": data.get("model") or "—"},
+        {"key": "routeros", "label": "RouterOS", "value": data.get("routeros") or "—"},
+        {"key": "architecture", "label": "Architettura", "value": data.get("architecture") or "—"},
+        {"key": "cpu", "label": "CPU", "value": data.get("cpu") or "—"},
+        {"key": "cpu_count", "label": "CPU count", "value": data.get("cpu_count") or "—"},
     ]
     return {"cards": cards, "details": details, "rows": []}
 

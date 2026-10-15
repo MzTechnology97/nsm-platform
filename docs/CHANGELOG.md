@@ -4,6 +4,29 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.147 — 2026-10-15
+
+New interface (React) — MikroTik Configuration tab and export history, phase 7j
+- **Configuration tab** (`/app/devices/{id}/configuration`, MikroTik). It shows the latest agent read of each section, with the same filters as the classic page:
+  - **Sections:** resources, interfaces, IP addresses, routes, firewall, DHCP leases, PPP/VPN and warning/error log;
+  - **Each section:** counters, search, state/kind/action filters, and the time of the last read;
+  - **Refresh section:** asks the agent for a new read, only for an online device; a section already queued is reported.
+- **Configuration history** (`/app/devices/{id}/configuration/history`):
+  - archived RouterOS exports with the change from the previous one, the approved baseline and the open drift;
+  - «Set as baseline» resolves the open drift issue;
+  - view and differences open the export viewer.
+- **Fix.** The definition list of the Exposure tab now lays out its fields correctly.
+- **Shared code.** Configuration refresh and baseline approval are now shared functions, used by both interfaces; the classic pages behave as before.
+  - `mikrotik_workspace.queue_snapshot_record`;
+  - `config_drift.set_baseline_record`.
+
+  The Resources section now gives its fields a key as well as their label.
+- **API.**
+  - `GET /api/ui/v1/devices/{id}/configuration` (`devices.read`);
+  - `POST .../configuration/refresh` (`devices.write` + CSRF);
+  - `GET .../configuration/history` (`backup.read`);
+  - `POST .../configuration/history/{artifact_id}/baseline` (`backup.configure` + CSRF).
+
 ## 0.49.146 — 2026-10-15
 
 New interface (React) — device Activity, Exposure and Compliance tabs, phase 7i

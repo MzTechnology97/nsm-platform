@@ -98,17 +98,32 @@ def queue_snapshot(request: Request, device_id: uuid.UUID, section: str, csrf: s
     with SessionLocal() as db:
         user = core.require_permission(request, db, "devices.write")
         device = _load_device(db, device_id)
-        if device.vendor != "mikrotik" or device.status != "online":
-            raise HTTPException(409, "Lo snapshot richiede un MikroTik online con agent NSM.")
-        pending = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device.id, DeviceJob.job_type == "snapshot_section", DeviceJob.status.in_(["pending", "delivered"]))))
-        if any((job.payload or {}).get("section") == section for job in pending):
+        if not queue_snapshot_record(db, user, device, section):
             return RedirectResponse(f"/devices/{device.id}/configuration?section={section}&queued=already", status_code=303)
-        job = DeviceJob(device_id=device.id, job_type="snapshot_section", payload={"section": section}, expires_at=utcnow() + timedelta(minutes=10))
-        db.add(job)
-        db.flush()
-        core.add_event(db, "DEVICE_SNAPSHOT_QUEUED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"section": section, "job_id": str(job.id)}, source="portal")
-        db.commit()
     return RedirectResponse(f"/devices/{device_id}/configuration?section={section}&queued=1", status_code=303)
+
+
+def queue_snapshot_record(db, user, device, section: str) -> bool:
+    """Ask the agent for a fresh read of one configuration section (audited) and commit.
+
+    Returns False when the same section is already queued; ``InputError`` ``section_invalid`` (400) or
+    ``not_online`` (409, the device must be an online MikroTik).
+    """
+    from app.input_errors import InputError
+
+    if section not in SNAPSHOT_SECTIONS:
+        raise InputError("section_invalid", "Sezione snapshot non valida.")
+    if device.vendor != "mikrotik" or device.status != "online":
+        raise InputError("not_online", "Lo snapshot richiede un MikroTik online con agent NSM.", 409)
+    pending = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device.id, DeviceJob.job_type == "snapshot_section", DeviceJob.status.in_(["pending", "delivered"]))))
+    if any((job.payload or {}).get("section") == section for job in pending):
+        return False
+    job = DeviceJob(device_id=device.id, job_type="snapshot_section", payload={"section": section}, expires_at=utcnow() + timedelta(minutes=10))
+    db.add(job)
+    db.flush()
+    core.add_event(db, "DEVICE_SNAPSHOT_QUEUED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"section": section, "job_id": str(job.id)}, source="portal")
+    db.commit()
+    return True
 
 
 def _safe_target(value: str) -> str:

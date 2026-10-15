@@ -173,10 +173,14 @@ export function DeviceExposure() {
         {external && (
           <>
             <dl className="ui-dl">
-              <dt>{t("deviceExposure.checkedIp")}</dt>
-              <dd>{data.target.ip ? <>{data.target.ip} <small className="ui-muted">{data.target.source === "operator" ? t("deviceExposure.byOperator") : t("deviceExposure.managementIp")}</small></> : "—"}</dd>
-              <dt>{t("deviceExposure.ports")}</dt>
-              <dd className="ui-mono">{data.planned.map((p) => `${p.proto}/${p.port}`).join(", ") || "—"}</dd>
+              <div>
+                <dt>{t("deviceExposure.checkedIp")}</dt>
+                <dd>{data.target.ip ? <>{data.target.ip} <small className="ui-muted">{data.target.source === "operator" ? t("deviceExposure.byOperator") : t("deviceExposure.managementIp")}</small></> : "—"}</dd>
+              </div>
+              <div>
+                <dt>{t("deviceExposure.ports")}</dt>
+                <dd className="ui-mono">{data.planned.map((p) => `${p.proto}/${p.port}`).join(", ") || "—"}</dd>
+              </div>
             </dl>
             {data.target.ip && !data.target.public && <div className="ui-alert ui-alert-warning">{data.private_warning}</div>}
             {data.can_remediate && <TargetForm data={data} deviceId={deviceId} />}
