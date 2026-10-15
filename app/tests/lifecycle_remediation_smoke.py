@@ -100,7 +100,8 @@ def main():
         assert "Gestione apparati fuori supporto" in pdf
 
     assert "Riapri la gestione" in client.get(f"/devices/{ids['old']}/lifecycle").text
-    assert ">Sostituito<" in client.get(f"/security/lifecycle?customer={ids['customer']}&state=eos").text
+    rows = client.get(f"/api/ui/v1/lifecycle?customer={ids['customer']}&state=eos").json()["items"]
+    assert next(row for row in rows if row["id"] == str(ids["old"]))["remediation"]["status"] == "replaced"
 
     reader = TestClient(app)
     assert reader.post("/login", data={"username": f"ci-lr-aud-{suffix}", "password": PASSWORD, "csrf": csrf_from(reader.get("/login").text)}, follow_redirects=False).status_code == 303

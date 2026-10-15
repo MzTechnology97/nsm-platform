@@ -1,12 +1,12 @@
 """Action Center and incidents for the new interface (phase 5).
 
 - ``GET  /api/ui/v1/action-center``: open (or chosen) issues, most severe
-  first, with category and severity counts, the same filters as the classic
-  page (``customer_drilldown.action_center``);
+  first, with category and severity counts, filtered by state, customer,
+  device, severity and category;
 - ``POST /api/ui/v1/action-center/{issue_id}/ack``: take an issue in charge
   (``issues.ack``), audited like the classic button;
 - ``GET  /api/ui/v1/incidents``: incidents newest first with status counts and
-  the classic filters (``incidents.list_scope``/``status_counts``/``status_filter``);
+  the shared filters (``incidents.list_scope``/``status_counts``/``status_filter``);
 - ``GET  /api/ui/v1/incidents/{id}``: one incident with its devices, the
   rebuilt timeline, hypotheses and suggested correlations;
 - ``POST`` status, notes, devices, hypotheses and hypothesis decisions

@@ -65,21 +65,21 @@ def main():
     # Setup from the profile.
     main_client, other = client(), client("198.51.100.41")
     assert password_step(main_client, name).headers["location"] == "/" and password_step(other, name).status_code == 303
-    profile = main_client.get("/profile").text
-    assert 'data-profile="two-factor"' in profile and "Configura la verifica in due passaggi" in profile
-    main_client.post("/profile/2fa/setup", data={"csrf": csrf_from(profile)})
-    profile = main_client.get("/profile").text
-    assert 'src="data:image/svg+xml;base64,' in profile, "QR code shown"
+    headers = {"X-CSRF-Token": main_client.get("/api/ui/v1/session").json()["csrf_token"]}
+    api = "/api/ui/v1/profile"
+    assert main_client.get(api).json()["two_factor"] == {"enabled": False, "since": None, "recovery_left": 0, "pending": None}
+    pending = main_client.post(f"{api}/2fa/setup", headers=headers).json()["pending"]
+    assert pending["qr"].startswith("data:image/svg+xml;base64,"), "QR code shown"
     with SessionLocal() as db:
         user = db.scalar(select(User).where(User.username == name))
         secret = decrypt_text(user.totp_pending_encrypted)
         assert user.totp_secret_encrypted is None
-    wrong = main_client.post("/profile/2fa/enable", data={"code": "000000", "csrf": csrf_from(profile)}, follow_redirects=False)
-    assert "error=2fa_code" in wrong.headers["location"]
-    enabled = main_client.post("/profile/2fa/enable", data={"code": tf.code_at(secret, CLOCK[0]), "csrf": csrf_from(profile)})
-    assert enabled.status_code == 200 and 'data-two-factor="codes"' in enabled.text and enabled.headers["cache-control"] == "no-store"
-    codes = re.findall(r"<li><code>([0-9a-f]{5}-[0-9a-f]{5})</code></li>", enabled.text)
-    assert len(codes) == 10
+    wrong = main_client.post(f"{api}/2fa/enable", headers=headers, json={"code": "000000"})
+    assert wrong.status_code == 422 and wrong.json()["detail"]["code"] == "2fa_code"
+    enabled = main_client.post(f"{api}/2fa/enable", headers=headers, json={"code": tf.code_at(secret, CLOCK[0])})
+    assert enabled.status_code == 200 and enabled.headers["cache-control"] == "no-store"
+    codes = enabled.json()["codes"]
+    assert len(codes) == 10 and all(re.fullmatch(r"[0-9a-f]{5}-[0-9a-f]{5}", code) for code in codes)
     assert logged_in(main_client) and not logged_in(other), "enabling 2FA ends the other sessions"
 
     # Login: the password alone is not enough.
@@ -114,20 +114,19 @@ def main():
         assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "USER_LOGIN_2FA"))
 
     # Disable needs password + code.
-    profile = main_client.get("/profile").text
-    assert "codici di recupero rimasti: <strong>9</strong>" in profile
-    refused = main_client.post("/profile/2fa/disable", data={"password": PASSWORD, "code": "000000", "csrf": csrf_from(profile)}, follow_redirects=False)
-    assert "error=2fa_disable" in refused.headers["location"]
-    done = main_client.post("/profile/2fa/disable", data={"password": PASSWORD, "code": tf.code_at(secret, tick()), "csrf": csrf_from(profile)}, follow_redirects=False)
-    assert "2fa_disabled" in done.headers["location"]
+    assert main_client.get(api).json()["two_factor"]["recovery_left"] == 9
+    refused = main_client.post(f"{api}/2fa/disable", headers=headers, json={"password": PASSWORD, "code": "000000"})
+    assert refused.status_code == 422 and refused.json()["detail"]["code"] == "2fa_disable"
+    done = main_client.post(f"{api}/2fa/disable", headers=headers, json={"password": PASSWORD, "code": tf.code_at(secret, tick())})
+    assert done.json() == {"ok": True}
     c = client("198.51.100.46")
     assert password_step(c, name).headers["location"] == "/", "without 2FA the password is enough again"
 
     # Admin reset for a lost phone.
-    main_client.post("/profile/2fa/setup", data={"csrf": csrf_from(main_client.get("/profile").text)})
+    main_client.post(f"{api}/2fa/setup", headers=headers)
     with SessionLocal() as db:
         secret = decrypt_text(db.scalar(select(User).where(User.username == name)).totp_pending_encrypted)
-    main_client.post("/profile/2fa/enable", data={"code": tf.code_at(secret, tick()), "csrf": csrf_from(main_client.get("/profile").text)})
+    assert main_client.post(f"{api}/2fa/enable", headers=headers, json={"code": tf.code_at(secret, tick())}).status_code == 200
     admin = client("198.51.100.47")
     password_step(admin, admin_name)
     users_page = admin.get("/admin/users").text
@@ -140,7 +139,7 @@ def main():
     assert password_step(c, name).headers["location"] == "/"
     tech = client("198.51.100.49")
     password_step(tech, name)
-    assert tech.post(f"/admin/users/{user_id}/2fa/reset", data={"csrf": csrf_from(tech.get("/profile").text)}, follow_redirects=False).status_code in (401, 403)
+    assert tech.post(f"/admin/users/{user_id}/2fa/reset", data={"csrf": tech.get("/api/ui/v1/session").json()["csrf_token"]}, follow_redirects=False).status_code in (401, 403)
     print("Two-factor smoke passed")
 
 

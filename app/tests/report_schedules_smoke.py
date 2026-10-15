@@ -60,26 +60,14 @@ def main():
     token = csrf_from(client.get("/login").text)
     assert client.post("/login", data={"username": username, "password": PASSWORD, "csrf": token}, follow_redirects=False).status_code == 303
 
-    page = client.get("/audit/reports")
-    assert "Pianificazioni" in page.text and "Aggiungi pianificazione" in page.text
-    invalid = client.post(
-        "/audit/reports/schedules",
-        data={"csrf": csrf_from(page.text), "name": " ", "frequency": "monthly", "output_format": "pdf"},
-        follow_redirects=False,
-    )
-    assert "Indica un nome" in client.get(invalid.headers["location"]).text
-    created = client.post(
-        "/audit/reports/schedules",
-        data={
-            "csrf": csrf_from(page.text),
-            "name": "TEST mensile cliente",
-            "customer_id": str(customer_id),
-            "frequency": "monthly",
-            "output_format": "csv",
-        },
-        follow_redirects=False,
-    )
-    assert created.status_code == 303
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    api = "/api/ui/v1/reports"
+    assert client.get(api).json()["schedules"] is not None
+    invalid = client.post(f"{api}/schedules", headers=headers, json={"name": " ", "frequency": "monthly", "output_format": "pdf"})
+    assert invalid.status_code >= 400 and "Indica un nome" in invalid.text
+    created = client.post(f"{api}/schedules", headers=headers, json={
+        "name": "TEST mensile cliente", "customer_id": str(customer_id), "frequency": "monthly", "output_format": "csv"})
+    assert created.status_code == 200, created.text
     schedule = schedule_by_name("TEST mensile cliente")
     assert schedule and schedule.is_enabled and schedule.customer_id == customer_id
 
@@ -143,12 +131,12 @@ def main():
         assert {"REPORT_SCHEDULE_CREATED", "REPORT_SCHEDULE_FAILED"} <= events
 
     # Suspend, page shows the scheduled report, delete keeps archived reports.
-    page = client.get("/audit/reports")
-    assert "pianificato" in page.text and "TEST mensile cliente" in page.text
-    client.post(f"/audit/reports/schedules/{schedule.id}/toggle", data={"csrf": csrf_from(page.text)})
+    listing = client.get(api).json()
+    assert any(item["scheduled"] for item in listing["items"]) and any(s["name"] == "TEST mensile cliente" for s in listing["schedules"])
+    client.post(f"{api}/schedules/{schedule.id}/toggle", headers=headers).raise_for_status()
     assert schedule_by_name("TEST mensile cliente").is_enabled is False
     assert run_report_schedules(datetime(2027, 1, 5, 8, 0, tzinfo=timezone.utc))["generated"] == 0
-    client.post(f"/audit/reports/schedules/{schedule.id}/delete", data={"csrf": csrf_from(page.text)})
+    client.post(f"{api}/schedules/{schedule.id}/delete", headers=headers).raise_for_status()
     assert schedule_by_name("TEST mensile cliente") is None
     with SessionLocal() as db:
         kept = list(db.scalars(select(GeneratedReport).where(GeneratedReport.customer_id == customer_id)))

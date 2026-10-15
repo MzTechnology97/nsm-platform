@@ -135,13 +135,9 @@ def main():
     assert client.post("/api/ui/v1/profile/notifications/digest", headers=csrf, json={"digest": "weekly"}).json() == {"digest": "weekly"}
     assert client.post("/api/ui/v1/profile/notifications/digest", headers=csrf, json={"digest": "hourly"}).json() == {"digest": "off"}
 
-    # The classic page still works on the shared functions.
-    page = client.get("/profile")
-    assert page.status_code == 200 and name in page.text
-    token = re.search(r'name="csrf" value="([^"]+)"', page.text).group(1)
-    response = client.post("/profile/password", data={"current_password": "wrong", "new_password": "x", "confirm_password": "x", "csrf": token},
-                           follow_redirects=False)
-    assert response.status_code == 303 and response.headers["location"] == "/profile?error=current_password"
+    # The classic page now points to the new interface.
+    moved = client.get("/profile", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == "/app/profile"
     assert client.get("/app/profile").status_code in (200, 503)
     print("ui profile smoke ok")
 

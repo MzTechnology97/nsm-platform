@@ -4,6 +4,22 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.168 — 2026-10-15
+
+Classic interface removal, governance area (phase 8, R1)
+- **Classic pages removed.** These pages now exist only in the new interface:
+  - compliance (overview, baselines, results);
+  - vulnerabilities and findings;
+  - access and exposure;
+  - lifecycle and its catalog;
+  - incidents;
+  - Action Center;
+  - audit events and reports;
+  - notifications, search and profile.
+- **Old addresses keep working.** Each classic address answers with a redirect (302) to the same page under `/app`. The redirect keeps the filters the new page understands. This covers bookmarks, e-mail links, Action Center details and audit entries.
+- **Removed with the pages.** Their form handlers, feedback wrappers and templates. The new interface uses the `/api/ui/v1` endpoints, which share the same functions.
+- **Access alerts.** The access alerts API returns the involved users and an incident prefill. "Open incident" on an alert starts a new incident with title, severity and summary filled in.
+- **Report downloads.** A blocked download (integrity check failed, or report not found) returns to the new Reports page with an explanation.
 ## 0.49.167 — 2026-10-15
 
 New interface — manual syslog setup, phase 8d

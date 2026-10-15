@@ -1,3 +1,4 @@
+import { useSearch } from "@tanstack/react-router";
 import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -16,9 +17,11 @@ export function Reports() {
   const query = useReports();
   const first = query.data?.pages[0];
   const items = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
+  const { error: downloadError } = useSearch({ from: "/reports" });
 
   return (
     <section className="ui-page">
+      {downloadError && <div className="ui-alert ui-alert-danger">{t(`reports.downloadErrors.${downloadError}`)}</div>}
       <header className="ui-page-header ui-page-header-row">
         <div>
           <h1>{t("reports.title")}</h1>

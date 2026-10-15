@@ -126,10 +126,10 @@ def main():
     assert 'id="access"' in page and "Accessi al dispositivo" in page and "8.8.4.4" in page and "falliti</span>" in page
     data = client.get(f"/api/v1/devices/{gw_id}/logs?q=login failure").json()
     assert data["entries"] and all(e["category"] == "login_failure" for e in data["entries"])
-    fleet = client.get("/security/access")
-    assert fleet.status_code == 200 and "Tentativi di accesso falliti da 8.8.4.4" in fleet.text and f"TEST-AC-{suffix}" in fleet.text
-    assert client.get("/security/access?hours=720").status_code == 200
-    assert 'href="/security/access"' in fleet.text, "sidebar entry"
+    fleet = client.get("/api/ui/v1/access").json()
+    assert any(a["title"] == "Tentativi di accesso falliti da 8.8.4.4" for a in fleet["alerts"])
+    assert any(row["device"]["name"] == f"TEST-AC-{suffix}" for row in fleet["devices"])
+    assert client.get("/api/ui/v1/access?hours=720").json()["hours"] == 720
     suggest = client.get("/api/v1/search/suggest?q=brute").json()["results"]
     assert any(r["url"] == "/security/access" for r in suggest)
     print("Syslog access alerts smoke passed")

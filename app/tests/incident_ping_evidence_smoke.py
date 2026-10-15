@@ -56,8 +56,8 @@ def main():
     client = TestClient(app)
     page = client.get("/login").text
     client.post("/login", data={"username": f"ci-ip-{suffix}", "password": PASSWORD, "csrf": re.search(r'name="csrf" value="([^"]+)"', page).group(1)})
-    detail = client.get(f"/incidents/{incident_id}").text
-    assert "Nessuna risposta al ping per circa 10 min" in detail and "Misura (ping da NSM)" in detail
+    entries = client.get(f"/api/ui/v1/incidents/{incident_id}").json()["timeline"]["entries"]
+    assert any(e["title"] == "Nessuna risposta al ping per circa 10 min" and e["source"] == "measure" for e in entries)
     print("Incident ping evidence smoke passed")
 
 

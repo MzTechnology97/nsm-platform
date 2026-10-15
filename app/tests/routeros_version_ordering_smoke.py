@@ -118,7 +118,7 @@ def main():
         device = db.get(Device, device_id)
         device.recommended_firmware_version = "7.20.7"
         db.commit()
-    token = csrf_from(client.get(f"/devices/{device_id}").text)
+    token = client.get("/api/ui/v1/session").json()["csrf_token"]
     refused = client.post(f"/devices/{device_id}/firmware-upgrade/plan", data={"csrf": token}, follow_redirects=False)
     assert refused.status_code == 303
     feedback = client.get(refused.headers["location"])

@@ -52,9 +52,9 @@ def main():
     row_cpe = page[page.index("TEST-CC-CPE"):page.index("TEST-CC-CPE") + 1500]
     assert "Nessun dato CVE" in row_cpe
 
-    filtered = client.get(f"/security/vulnerabilities?customer={ids['customer']}&device={ids['router']}&status=open").text
-    assert "CVE che interessano solo questo apparato" in filtered
-    assert f"CVE-2099-{number}" in filtered and f"CVE-2098-{number}" in filtered and f"CVE-2097-{number}" not in filtered
+    filtered = client.get(f"/api/ui/v1/vulnerabilities?customer={ids['customer']}&device={ids['router']}&status=open").json()
+    cves = {item["cve_id"] for item in filtered["items"]}
+    assert f"CVE-2099-{number}" in cves and f"CVE-2098-{number}" in cves and f"CVE-2097-{number}" not in cves
     print("Customer device CVE column smoke passed")
 
 

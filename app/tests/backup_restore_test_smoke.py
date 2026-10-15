@@ -90,7 +90,7 @@ def login(username):
 
 def record(client, device_id, artifact_id, **fields):
     url = f"/devices/{device_id}/backups/artifacts/{artifact_id}/restore-test"
-    token = csrf_from(client.get(f"/devices/{device_id}/backups").text)
+    token = client.get("/api/ui/v1/session").json()["csrf_token"]
     data = {"csrf": token, "method": "isolated_lab", "target_label": "CHR-LAB-TEST", "result": "passed"}
     data.update(fields)
     return client.post(url, data=data, follow_redirects=False)
@@ -190,7 +190,7 @@ def main():
     assert "Registra restore test" not in page.text
     denied = viewer.post(
         f"/devices/{device_id}/backups/artifacts/{tampered_id}/restore-test",
-        data={"csrf": csrf_from(viewer.get("/profile").text), "method": "isolated_lab", "target_label": "X", "result": "failed"},
+        data={"csrf": viewer.get("/api/ui/v1/session").json()["csrf_token"], "method": "isolated_lab", "target_label": "X", "result": "failed"},
         follow_redirects=False,
     )
     assert denied.status_code == 303 and denied.headers["location"] == f"/devices/{device_id}"

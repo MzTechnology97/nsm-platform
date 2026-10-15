@@ -88,15 +88,15 @@ def main():
     assert "CI39_PING" in audit.text
     assert "22 risultati · pagina 1 di 1" in audit.text
 
-    # There are exactly 32 odd-indexed LOG events. Other event types may still
-    # appear in the filter select, so validate the filtered result count rather
-    # than searching the whole HTML for dropdown labels.
-    global_audit = client.get("/audit/events", params={"customer": str(customer_id), "device": "CI39SERIAL", "event_type": "CI39_LOG", "per_page": 25})
-    assert global_audit.status_code == 200
-    assert "Registro eventi" in global_audit.text
-    assert "CI39_LOG" in global_audit.text
-    assert "32 risultati · pagina 1 di 2" in global_audit.text
-    assert "Esporta CSV" in global_audit.text
+    # There are exactly 32 odd-indexed LOG events: the global audit log (new interface API) filters them.
+    filters = {"customer": str(customer_id), "device": "CI39SERIAL", "event_type": "CI39_LOG"}
+    global_audit = client.get("/api/ui/v1/audit/events", params=filters)
+    assert global_audit.status_code == 200, global_audit.text
+    page = global_audit.json()
+    assert page["total"] == 32 and all(item["event_type"] == "CI39_LOG" for item in page["items"]), page["total"]
+    # The classic address opens the same view in the new interface, filters included.
+    moved = client.get("/audit/events", params=filters, follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"].startswith("/app/events?") and "event_type=CI39_LOG" in moved.headers["location"]
 
     exported = client.get("/audit/events/export.csv", params={"customer": str(customer_id), "device": "CI39SERIAL", "event_type": "CI39_LOG"})
     assert exported.status_code == 200

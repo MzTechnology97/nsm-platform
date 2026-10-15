@@ -63,7 +63,9 @@ def main():
     links = [href for href in links if href not in ("/app", "/")]
     assert "/operations/monitoring" in links and "/integrations" in links and "/admin/users" in links, links
     for href in links:
-        page = client.get(href)
+        page = client.get(href, follow_redirects=False)
+        if page.status_code == 302 and page.headers["location"].startswith("/app/"):
+            continue  # removed classic page: the link lands on the new interface
         assert page.status_code == 200, (href, page.status_code)
         for marker in PLACEHOLDER_MARKERS:
             assert marker not in page.text, (href, marker)

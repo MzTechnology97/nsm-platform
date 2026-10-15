@@ -89,7 +89,7 @@ def main():
     with SessionLocal() as db:
         assert db.scalar(select(func.count(Device.id)).where(Device.id.in_([ids["dev_a"], ids["dev_b"]]))) == 2
     # Removing the scope restores full visibility.
-    admin.post(f"/admin/users/{tech_id}/scope", data={"csrf": csrf_from(admin.get('/admin/users').text)})
+    admin.post(f"/admin/users/{tech_id}/scope", data={"csrf": admin.get("/api/ui/v1/session").json()["csrf_token"]})
     assert f"TEST-CS-BETA-{suffix}" in tech.get("/devices").text
     print("Customer scope smoke passed")
 

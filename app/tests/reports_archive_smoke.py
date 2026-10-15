@@ -62,15 +62,14 @@ def login(username):
 
 
 def generate(client, **fields):
-    page = client.get("/audit/reports")
-    data = {"csrf": csrf_from(page.text), "customer_id": "", "output_format": "pdf"}
+    """Generate through the new interface API; returns the response text (JSON or the refusal message)."""
+    data = {"customer_id": "", "output_format": "pdf"}
     today = utcnow().date()
     data["period_start"] = (today - timedelta(days=29)).isoformat()
     data["period_end"] = today.isoformat()
     data.update(fields)
-    response = client.post("/audit/reports/generate", data=data, follow_redirects=False)
-    assert response.status_code == 303 and response.headers["location"] == "/audit/reports"
-    return client.get(response.headers["location"]).text
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    return client.post("/api/ui/v1/reports/generate", headers=headers, json=data).text
 
 
 def reports():
@@ -82,8 +81,8 @@ def main():
     admin, auditor, customer_id = seed()
     client = login(admin)
 
-    page = client.get("/audit/reports")
-    assert page.status_code == 200 and "Genera e archivia" in page.text and "Nessun report archiviato" in page.text
+    page = client.get("/api/ui/v1/reports").json()
+    assert page["can_generate"] and page["items"] == []
 
     # Validation keeps the operator on the page.
     future = (utcnow().date() + timedelta(days=3)).isoformat()
@@ -95,7 +94,7 @@ def main():
 
     # Customer-scoped PDF.
     feedback = generate(client, customer_id=str(customer_id), output_format="pdf")
-    assert "Report generato" in feedback
+    assert '"sha256"' in feedback, feedback
     pdf = reports()[-1]
     assert pdf.content.startswith(b"%PDF-1.4") and pdf.content.rstrip().endswith(b"%%EOF")
     assert pdf.sha256 == hashlib.sha256(pdf.content).hexdigest() and pdf.size_bytes == len(pdf.content)
@@ -130,19 +129,15 @@ def main():
         db.get(GeneratedReport, report.id).content = report.content + b"tampered"
         db.commit()
     blocked = client.get(f"/audit/reports/{report.id}/download", follow_redirects=False)
-    assert blocked.status_code == 303
-    assert "Integrità report non verificata" in client.get(blocked.headers["location"]).text
+    assert blocked.status_code == 303 and blocked.headers["location"] == "/app/reports?error=integrity"
 
     # Auditor can read the archive but not generate.
     viewer = login(auditor)
-    page = viewer.get("/audit/reports")
-    assert page.status_code == 200 and "Genera e archivia" not in page.text and "Scarica" in page.text
-    denied = viewer.post(
-        "/audit/reports/generate",
-        data={"csrf": csrf_from(page.text), "period_start": "2026-01-01", "period_end": "2026-01-31", "output_format": "csv"},
-        follow_redirects=False,
-    )
-    assert denied.status_code == 303
+    page = viewer.get("/api/ui/v1/reports").json()
+    assert page["can_generate"] is False and page["items"]
+    denied = viewer.post("/api/ui/v1/reports/generate", headers={"X-CSRF-Token": viewer.get("/api/ui/v1/session").json()["csrf_token"]},
+                         json={"period_start": "2026-01-01", "period_end": "2026-01-31", "output_format": "csv"})
+    assert denied.status_code == 403
     assert len(reports()) == 2
     print("Reports archive smoke passed")
 

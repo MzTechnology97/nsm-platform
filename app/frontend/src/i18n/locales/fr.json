@@ -1253,7 +1253,9 @@
     "alerts": {
       "title": "Alertes d'accès",
       "hint": "Signalements ouverts par des tentatives répétées (force brute) sur les équipements.",
-      "none": "Aucune alerte d'accès."
+      "none": "Aucune alerte d'accès.",
+      "users": "utilisateurs : {{list}}",
+      "openIncident": "Ouvrir un incident"
     }
   },
   "lifecycle": {
@@ -1664,6 +1666,10 @@
       "file": "Fichier",
       "summary": "Synthèse",
       "actions": ""
+    },
+    "downloadErrors": {
+      "integrity": "Le contenu archivé ne correspond pas au SHA-256 enregistré : téléchargement bloqué.",
+      "not_found": "Rapport introuvable."
     }
   },
   "admin": {

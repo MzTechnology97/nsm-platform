@@ -98,7 +98,7 @@ def main():
 
     tech = TestClient(app)
     assert tech.post("/login", data={"username": f"ci-akl-t-{suffix}", "password": PASSWORD, "csrf": csrf_from(tech.get("/login").text)}, follow_redirects=False).status_code == 303
-    refused = tech.post(f"/admin/api-keys/{new_id}/rotate", data={"csrf": csrf_from(tech.get("/devices").text), "grace_hours": "24"}, follow_redirects=False)
+    refused = tech.post(f"/admin/api-keys/{new_id}/rotate", data={"csrf": tech.get("/api/ui/v1/session").json()["csrf_token"], "grace_hours": "24"}, follow_redirects=False)
     assert refused.status_code in (401, 403)
     print("API key lifecycle smoke passed")
 

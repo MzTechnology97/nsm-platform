@@ -157,18 +157,6 @@ def revoke_sessions(db, user: User, request: Request | None = None) -> None:
         request.session["auth_at"] = _iso(now)
 
 
-@router.post("/profile/sessions/revoke", name="revoke_own_sessions")
-def revoke_own_sessions(request: Request, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        revoke_own_record(db, user, request)
-        db.commit()
-    return RedirectResponse("/profile?status=sessions_revoked", status_code=303)
-
-
 def revoke_own_record(db, user: User, request: Request) -> None:
     """Close every other session of the signed-in user (audited). Caller commits."""
     revoke_sessions(db, user, request)

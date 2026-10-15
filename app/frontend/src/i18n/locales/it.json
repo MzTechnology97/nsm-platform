@@ -1253,7 +1253,9 @@
     "alerts": {
       "title": "Allarmi accessi",
       "hint": "Segnalazioni aperte da tentativi ripetuti (forza bruta) sugli apparati.",
-      "none": "Nessun allarme sugli accessi."
+      "none": "Nessun allarme sugli accessi.",
+      "users": "utenti: {{list}}",
+      "openIncident": "Apri incidente"
     }
   },
   "lifecycle": {
@@ -1664,6 +1666,10 @@
       "file": "File",
       "summary": "Sintesi",
       "actions": ""
+    },
+    "downloadErrors": {
+      "integrity": "Il contenuto archiviato non corrisponde allo SHA-256 registrato: download bloccato.",
+      "not_found": "Report non trovato."
     }
   },
   "admin": {

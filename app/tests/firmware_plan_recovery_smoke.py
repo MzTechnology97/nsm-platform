@@ -106,7 +106,7 @@ def login(client, username):
 
 
 def post_form(client, device_id, plan_id, action, **data):
-    token = csrf_from(client.get(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}").text)
+    token = client.get("/api/ui/v1/session").json()["csrf_token"]
     return client.post(
         f"/devices/{device_id}/firmware-upgrade/{plan_id}/{action}",
         data={"csrf": token, **data},

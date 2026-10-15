@@ -136,7 +136,8 @@ export interface AccessSummary {
   hours: number;
   devices: { device: DeviceRef; failures: number }[];
   sources: { ip: string | null; failures: number; devices: number; public: boolean }[];
-  alerts: { id: string; title: string; severity: string; status: string; created_at: string | null; device: DeviceRef }[];
+  alerts: { id: string; title: string; severity: string; status: string; created_at: string | null; device: DeviceRef; users: string[];
+    incident: { title: string; severity: string; summary: string } | null }[];
 }
 
 export const useAccess = (hours: number) =>

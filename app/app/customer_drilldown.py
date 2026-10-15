@@ -3,13 +3,12 @@ import uuid
 
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
-from sqlalchemy import case, exists, func, or_, select
+from sqlalchemy import exists, func, or_, select
 from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app.db import SessionLocal
 from app.models import (
-    ActionIssue,
     Customer,
     Device,
     DeviceVulnerability,
@@ -197,133 +196,13 @@ def devices(
         )
 
 
-def action_center(
-    request: Request,
-    severity: str = "",
-    category: str = "",
-    status: str = "",
-    customer: str = "",
-    page: int = 1,
-):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-
-        page = max(1, page)
-        per_page = 100
-        filters = []
-        if severity:
-            filters.append(ActionIssue.severity == severity)
-        if status:
-            filters.append(ActionIssue.status == status)
-        else:
-            filters.append(ActionIssue.status.in_(["open", "acknowledged"]))
-
-        customer_id = _uuid_or_none(customer)
-        if customer_id:
-            filters.append(ActionIssue.customer_id == customer_id)
-
-        # Category quick filters count within the other active filters.
-        category_counts = [
-            (name or "system", int(count))
-            for name, count in db.execute(
-                select(ActionIssue.category, func.count(ActionIssue.id))
-                .where(*filters)
-                .group_by(ActionIssue.category)
-                .order_by(func.count(ActionIssue.id).desc(), ActionIssue.category)
-            ).all()
-        ]
-        scope_total = sum(count for _, count in category_counts)
-        if category:
-            filters.append(ActionIssue.category == category)
-
-        count_stmt = select(func.count(ActionIssue.id)).where(*filters)
-        total = db.scalar(count_stmt) or 0
-        pages = max(1, math.ceil(total / per_page))
-        page = min(page, pages)
-
-        stmt = select(ActionIssue).where(*filters)
-        issues = list(
-            db.scalars(
-                stmt.order_by(
-                    case(
-                        (ActionIssue.severity == "critical", 1),
-                        (ActionIssue.severity == "high", 2),
-                        (ActionIssue.severity.in_(["warning", "medium"]), 3),
-                        (ActionIssue.severity == "low", 4),
-                        else_=5,
-                    ),
-                    ActionIssue.created_at.desc(),
-                )
-                .offset((page - 1) * per_page)
-                .limit(per_page)
-            )
-        )
-
-        device_ids = {issue.device_id for issue in issues if issue.device_id}
-        customer_ids = {issue.customer_id for issue in issues if issue.customer_id}
-        device_map = (
-            {
-                device.id: device
-                for device in db.scalars(
-                    select(Device).where(Device.id.in_(device_ids))
-                )
-            }
-            if device_ids
-            else {}
-        )
-        customer_map = (
-            {
-                item.id: item
-                for item in db.scalars(
-                    select(Customer).where(Customer.id.in_(customer_ids))
-                )
-            }
-            if customer_ids
-            else {}
-        )
-        customers = list(db.scalars(select(Customer).order_by(Customer.name)))
-        selected_customer = db.get(Customer, customer_id) if customer_id else None
-
-        return core.render(
-            request,
-            db,
-            user,
-            "action_center.html",
-            issues=issues,
-            device_map=device_map,
-            customer_map=customer_map,
-            customers=customers,
-            selected_customer=selected_customer,
-            severity_filter=severity,
-            category_filter=category,
-            status_filter=status,
-            customer_filter=customer,
-            page=page,
-            pages=pages,
-            total=total,
-            category_counts=category_counts,
-            scope_total=scope_total,
-        )
-
-
 def install_customer_drilldown(app):
     _remove_exact_route(app, "/devices", "GET")
-    _remove_exact_route(app, "/action-center", "GET")
     app.add_api_route(
         "/devices",
         devices,
         methods=["GET"],
         response_class=HTMLResponse,
         name="devices",
-        include_in_schema=False,
-    )
-    app.add_api_route(
-        "/action-center",
-        action_center,
-        methods=["GET"],
-        response_class=HTMLResponse,
-        name="action_center",
         include_in_schema=False,
     )

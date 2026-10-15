@@ -58,7 +58,7 @@ def main():
     anonymous = TestClient(app)
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-rbac-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    token = csrf_from(client.get("/devices").text)
+    token = client.get("/api/ui/v1/session").json()["csrf_token"]
 
     open_routes, auditor_writes, checked = [], [], 0
     for route in app.router.routes:

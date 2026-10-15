@@ -103,10 +103,10 @@ def main():
 
     assert run_scheduled_evaluation()["status"] == "no_baseline"
     tech_client = login(f"ci-comp-{suffix}")
-    empty = tech_client.get("/compliance").text
-    assert "Crea la baseline globale predefinita" in empty
-    created = tech_client.post("/compliance/baselines/default", data={"csrf": csrf_from(empty)})
-    assert "Compliance attivata" in created.text
+    headers = {"X-CSRF-Token": tech_client.get("/api/ui/v1/session").json()["csrf_token"]}
+    assert tech_client.get("/api/ui/v1/compliance").json()["has_baselines"] is False
+    created = tech_client.post("/api/ui/v1/compliance/baselines/default", headers=headers)
+    assert created.status_code == 200 and created.json()["devices"] >= 3
 
     def results():
         with SessionLocal() as db:
@@ -135,33 +135,35 @@ def main():
     assert status("cpe", "firmware_current") == "unknown" and status("cpe", "lifecycle_supported") == "unknown"
 
     # Overview: fail chip first, device matrix, auditor read-only.
-    page = tech_client.get(f"/compliance?customer={ids['customer']}").text
-    assert "TEST-COMP-BAD" in page and "TEST-COMP-GOOD" in page and "TEST-COMP-CPE" not in page, "default view lists devices with failures"
-    assert "Non conformi" in page and "Valuta ora" in page
-    na = tech_client.get(f"/compliance?customer={ids['customer']}&status=not_applicable").text
-    assert "TEST-COMP-CPE" in na
+    page = tech_client.get(f"/api/ui/v1/compliance?customer={ids['customer']}").json()
+    names = {item["device"]["name"] for item in page["items"]}
+    assert {"TEST-COMP-BAD", "TEST-COMP-GOOD"} <= names and "TEST-COMP-CPE" not in names, "default view lists devices with failures"
+    assert page["status"] == "fail" and page["can_manage"]
+    na = tech_client.get(f"/api/ui/v1/compliance?customer={ids['customer']}&status=not_applicable").json()
+    assert "TEST-COMP-CPE" in {item["device"]["name"] for item in na["items"]}
 
     # A vendor baseline overrides the global one only for that vendor and bumps its version on edit.
-    form = tech_client.get("/compliance/baselines/new").text
-    token = csrf_from(form)
-    data = {"csrf": token, "name": "TEST Ubiquiti", "scope_type": "vendor", "vendor": "ubiquiti", "is_enabled": "on", "mode_lifecycle_supported": "disabled"}
-    assert "Baseline salvata" in tech_client.post("/compliance/baselines", data=data).text
+    save = "/api/ui/v1/compliance/baselines"
+    data = {"name": "TEST Ubiquiti", "scope_type": "vendor", "vendor": "ubiquiti", "enabled": True,
+            "controls": {"lifecycle_supported": {"mode": "disabled", "params": {}}}}
+    assert tech_client.post(save, headers=headers, json=data).json()["version"] == 1
     r = results()
     assert (ids["cpe"], "lifecycle_supported") not in r and (ids["good"], "lifecycle_supported") in r
     with SessionLocal() as db:
         vendor_baseline = db.query(ComplianceBaseline).filter_by(name="TEST Ubiquiti").one()
         assert vendor_baseline.version == 1
         baseline_id = vendor_baseline.id
-    data.update({"baseline_id": str(baseline_id), "mode_lifecycle_supported": "enabled", "param_lifecycle_supported_fail_on_eol": "on"})
-    assert "versione 2" in tech_client.post("/compliance/baselines", data=data).text
-    assert "Parametro" in tech_client.post("/compliance/baselines", data={**data, "mode_backup_recent": "enabled", "param_backup_recent_max_age_days": "0"}).text
-    assert "Seleziona il vendor" in tech_client.post("/compliance/baselines", data={**data, "vendor": ""}).text
+    data.update({"baseline_id": str(baseline_id), "controls": {"lifecycle_supported": {"mode": "enabled", "params": {"fail_on_eol": True}}}})
+    assert tech_client.post(save, headers=headers, json=data).json()["version"] == 2
+    bad_param = {**data, "controls": {**data["controls"], "backup_recent": {"mode": "enabled", "params": {"max_age_days": 0}}}}
+    assert tech_client.post(save, headers=headers, json=bad_param).json()["detail"]["code"] == "param"
+    assert tech_client.post(save, headers=headers, json={**data, "vendor": ""}).json()["detail"]["code"] == "vendor"
 
     auditor_client = login(f"ci-comp-aud-{suffix}")
-    view = auditor_client.get("/compliance").text
-    assert "Valuta ora" not in view and "Compliance" in view
-    assert auditor_client.post("/compliance/evaluate", data={"csrf": csrf_from(view)}).status_code == 403
-    assert auditor_client.get("/compliance/baselines/new").status_code == 403
+    assert auditor_client.get("/api/ui/v1/compliance").json()["can_manage"] is False
+    auditor_headers = {"X-CSRF-Token": auditor_client.get("/api/ui/v1/session").json()["csrf_token"]}
+    assert auditor_client.post("/api/ui/v1/compliance/evaluate", headers=auditor_headers).status_code == 403
+    assert auditor_client.get("/api/ui/v1/compliance/baselines/form").status_code == 403
     assert run_scheduled_evaluation()["status"] == "evaluated"
     print("Compliance smoke passed")
 

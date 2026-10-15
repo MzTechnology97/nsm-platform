@@ -7,14 +7,12 @@ generation audit event; downloads re-verify the hash before serving.
 from __future__ import annotations
 
 import hashlib
-import math
 import re
 import uuid
-from datetime import date, timedelta
+from datetime import date
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, Response
-from sqlalchemy import func, select
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import RedirectResponse, Response
 
 from app import main as core
 from app.config import settings
@@ -22,9 +20,7 @@ from app.db import SessionLocal
 from app.models import Customer, utcnow
 from app.preferences import PlatformBranding
 from app.report_builder import REPORT_TITLE, REPORT_TYPE, collect_report_data, render_csv, render_pdf, summary
-from app.report_models import FREQUENCY_LABELS, GeneratedReport, ReportSchedule
-from app.security import validate_csrf
-from app.ui_feedback import exception_message, flash_redirect
+from app.report_models import GeneratedReport
 
 router = APIRouter()
 FORMATS = {"pdf": "application/pdf", "csv": "text/csv; charset=utf-8"}
@@ -147,80 +143,6 @@ def generate_checked(db, user, customer_id: str, period_start: str, period_end: 
     return create_report(db, customer=customer, period_start=start, period_end=end, output_format=output_format, actor=user)
 
 
-@router.get(REPORTS_PATH, response_class=HTMLResponse, name="reports_archive")
-def reports_archive(request: Request, page: int = 1):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "reports.read"):
-            raise HTTPException(403)
-        total = db.scalar(select(func.count(GeneratedReport.id))) or 0
-        pages = max(1, math.ceil(total / PAGE_SIZE))
-        page = min(max(1, page), pages)
-        reports = list(
-            db.scalars(
-                select(GeneratedReport)
-                .order_by(GeneratedReport.generated_at.desc())
-                .offset((page - 1) * PAGE_SIZE)
-                .limit(PAGE_SIZE)
-            )
-        )
-        today = utcnow().date()
-        return core.render(
-            request,
-            db,
-            user,
-            "reports_archive.html",
-            reports=reports,
-            customers=list(db.scalars(select(Customer).where(Customer.is_active.is_(True)).order_by(Customer.name))),
-            default_start=(today - timedelta(days=DEFAULT_PERIOD_DAYS - 1)).isoformat(),
-            default_end=today.isoformat(),
-            can_generate=core.has_permission(user, "reports.generate"),
-            schedules=list(db.scalars(select(ReportSchedule).order_by(ReportSchedule.created_at))),
-            schedule_customers={customer.id: customer.name for customer in db.scalars(select(Customer))},
-            frequencies=FREQUENCY_LABELS,
-            page=page,
-            pages=pages,
-            total=total,
-        )
-
-
-@router.post(f"{REPORTS_PATH}/generate", name="reports_generate")
-def reports_generate(
-    request: Request,
-    csrf: str = Form(...),
-    customer_id: str = Form(""),
-    period_start: str = Form(""),
-    period_end: str = Form(""),
-    output_format: str = Form("pdf"),
-):
-    try:
-        validate_csrf(request, csrf)
-        with SessionLocal() as db:
-            user = core.require_permission(request, db, "reports.generate")
-            report = generate_checked(db, user, customer_id, period_start, period_end, output_format)
-            sha256 = report.sha256
-            db.commit()
-    except HTTPException as exc:
-        if exc.status_code in {400, 403}:
-            return flash_redirect(
-                request,
-                REPORTS_PATH,
-                "warning" if exc.status_code == 400 else "error",
-                exception_message(exc, "Report non generato."),
-                title="Report non generato",
-            )
-        raise
-    return flash_redirect(
-        request,
-        REPORTS_PATH,
-        "success",
-        f"Report {output_format.upper()} generato e archiviato (SHA-256 {sha256[:16]}…).",
-        title="Report generato",
-    )
-
-
 @router.get(f"{REPORTS_PATH}/{{report_id}}/download", name="reports_download")
 def reports_download(request: Request, report_id: uuid.UUID):
     with SessionLocal() as db:
@@ -231,7 +153,7 @@ def reports_download(request: Request, report_id: uuid.UUID):
             raise HTTPException(403)
         report = db.get(GeneratedReport, report_id)
         if not report:
-            return flash_redirect(request, REPORTS_PATH, "warning", "Report non trovato.", title="Report non disponibile")
+            return RedirectResponse("/app/reports?error=not_found", status_code=303)
         if hashlib.sha256(report.content).hexdigest() != report.sha256:
             core.add_event(
                 db,
@@ -244,13 +166,8 @@ def reports_download(request: Request, report_id: uuid.UUID):
                 source="portal",
             )
             db.commit()
-            return flash_redirect(
-                request,
-                REPORTS_PATH,
-                "error",
-                "Il contenuto archiviato non corrisponde allo SHA-256 registrato: download bloccato.",
-                title="Integrità report non verificata",
-            )
+            # The archived content no longer matches its SHA-256: the reports page explains the block.
+            return RedirectResponse("/app/reports?error=integrity", status_code=303)
         core.add_event(
             db,
             "REPORT_DOWNLOADED",

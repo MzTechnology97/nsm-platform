@@ -116,17 +116,13 @@ def main():
     assert "CI11 Update Router" in security_tab.text
     assert "CI11 Other Customer Router" not in security_tab.text
 
-    action_a = client.get(f"/action-center?customer={ids['customer_a']}")
-    assert action_a.status_code == 200
-    assert "CI11 Cliente A backup alert" in action_a.text
-    assert "CI11 Cliente B monitoring alert" not in action_a.text
-    action_b = client.get(f"/action-center?customer={ids['customer_b']}")
-    assert action_b.status_code == 200
-    assert "CI11 Cliente B monitoring alert" in action_b.text
-    assert "CI11 Cliente A backup alert" not in action_b.text
+    titles_a = {item["title"] for item in client.get(f"/api/ui/v1/action-center?customer={ids['customer_a']}").json()["items"]}
+    assert "CI11 Cliente A backup alert" in titles_a and "CI11 Cliente B monitoring alert" not in titles_a
+    titles_b = {item["title"] for item in client.get(f"/api/ui/v1/action-center?customer={ids['customer_b']}").json()["items"]}
+    assert "CI11 Cliente B monitoring alert" in titles_b and "CI11 Cliente A backup alert" not in titles_b
 
     assert str(app.url_path_for("devices")) == "/devices"
-    assert str(app.url_path_for("action_center")) == "/action-center"
+    assert client.get("/action-center", follow_redirects=False).headers["location"] == "/app/action-center"
     assert str(app.url_path_for("customer_devices", customer_id=ids["customer_a"])) == f"/customers/{ids['customer_a']}/devices"
 
     print("Core 0.11 customer drilldown smoke test passed")

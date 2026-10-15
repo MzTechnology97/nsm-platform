@@ -20,6 +20,7 @@ Finding detail and status changes: ``/vulnerabilities/findings/{id}`` (``securit
 """
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import timedelta
 
@@ -185,7 +186,8 @@ def _device_ref(device) -> dict | None:
 @router.get("/access")
 def access(request: Request, hours: int = 24):
     with SessionLocal() as db:
-        ui_user(request, db, "security.read")
+        user = ui_user(request, db, "security.read")
+        can_open = core.has_permission(user, "incidents.write")
         hours = hours if hours in (1, 24, 168, 720) else 24
         summary = syslog_security.fleet_summary(db, hours=hours)
         alerts = list(db.scalars(select(ActionIssue).where(ActionIssue.category == syslog_security.ISSUE_CATEGORY)
@@ -197,7 +199,11 @@ def access(request: Request, hours: int = 24):
             "devices": [{"device": _device_ref(row["device"]), "failures": row["failures"]} for row in summary["devices"]],
             "sources": [{"ip": row["ip"], "failures": row["failures"], "devices": row["devices"], "public": bool(row["public"])} for row in summary["sources"]],
             "alerts": [{"id": str(a.id), "title": a.title, "severity": a.severity, "status": a.status, "created_at": _iso(a.created_at),
-                        "device": _device_ref(devices.get(a.device_id))} for a in alerts],
+                        "device": _device_ref(devices.get(a.device_id)), "users": list((a.details or {}).get("users") or []),
+                        # Prefill of "Open incident" (device, title, severity, summary with the alert details).
+                        "incident": {"title": a.title, "severity": "critical" if a.severity == "critical" else "high",
+                                     "summary": f"Avviso accessi da syslog del {core.fmt_dt(a.created_at)}: {a.title}. Dettagli: {json.dumps(a.details or {}, ensure_ascii=False)}"}
+                        if can_open and a.device_id in devices else None} for a in alerts],
         }
 
 

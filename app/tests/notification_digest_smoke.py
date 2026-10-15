@@ -156,10 +156,10 @@ def main():
     # Profile newsletter setting.
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-dg-none-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    profile = client.get("/profile").text
-    assert 'data-profile="digest"' in profile
-    saved = client.post("/profile/notifications/digest", data={"csrf": csrf_from(profile), "digest": "weekly"}, follow_redirects=False)
-    assert "digest_saved" in saved.headers["location"]
+    assert client.get("/api/ui/v1/profile").json()["notifications"]["digest"] == "off"
+    saved = client.post("/api/ui/v1/profile/notifications/digest", headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]},
+                        json={"digest": "weekly"})
+    assert saved.json() == {"digest": "weekly"}
     with SessionLocal() as db:
         assert db.get(User, ids["none"]).notify_digest == "weekly"
     print("Notification digest smoke passed")

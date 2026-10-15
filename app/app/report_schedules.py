@@ -13,7 +13,7 @@ import uuid
 from datetime import date, timedelta
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import HTTPException, Request
 from sqlalchemy import select
 
 from app import main as core
@@ -22,11 +22,9 @@ from app.db import SessionLocal
 from app.models import ActionIssue, Customer, Notification, utcnow
 from app.report_models import FREQUENCY_LABELS, ReportSchedule
 from app.reports import FORMATS, REPORTS_PATH, create_report
-from app.security import validate_csrf
 from app.ui_feedback import exception_message, flash_redirect
 
 log = logging.getLogger("worker")
-router = APIRouter()
 MAX_RECIPIENTS = 20
 EMAIL_RE = re.compile(r"^[^@\s<>,;\"']{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63}$")
 
@@ -299,92 +297,3 @@ def delete_schedule(db, user, schedule: ReportSchedule) -> None:
     db.delete(schedule)
 
 
-@router.post(f"{REPORTS_PATH}/schedules", name="report_schedule_create")
-def schedule_create(
-    request: Request,
-    csrf: str = Form(...),
-    name: str = Form(""),
-    customer_id: str = Form(""),
-    output_format: str = Form("pdf"),
-    frequency: str = Form("monthly"),
-    recipients: str = Form(""),
-):
-    try:
-        validate_csrf(request, csrf)
-        with SessionLocal() as db:
-            user = core.require_permission(request, db, "reports.generate")
-            create_schedule(db, user, name, customer_id, output_format, frequency, recipients)
-            db.commit()
-    except HTTPException as exc:
-        if exc.status_code in {400, 403}:
-            return _feedback(request, exc)
-        raise
-    return flash_redirect(
-        request,
-        REPORTS_PATH,
-        "success",
-        "Pianificazione creata: il primo report copre l'ultimo periodo chiuso e viene generato entro pochi minuti.",
-        title="Pianificazione report",
-    )
-
-
-@router.post(f"{REPORTS_PATH}/schedules/{{schedule_id}}/toggle", name="report_schedule_toggle")
-def schedule_toggle(request: Request, schedule_id: uuid.UUID, csrf: str = Form(...)):
-    try:
-        validate_csrf(request, csrf)
-        with SessionLocal() as db:
-            user = core.require_permission(request, db, "reports.generate")
-            enabled = toggle_schedule(db, user, _schedule(db, schedule_id))
-            db.commit()
-    except HTTPException as exc:
-        if exc.status_code in {400, 403}:
-            return _feedback(request, exc)
-        raise
-    return flash_redirect(
-        request,
-        REPORTS_PATH,
-        "success",
-        "Pianificazione attivata." if enabled else "Pianificazione sospesa.",
-        title="Pianificazione report",
-    )
-
-
-@router.post(f"{REPORTS_PATH}/schedules/{{schedule_id}}/recipients", name="report_schedule_recipients")
-def schedule_recipients(request: Request, schedule_id: uuid.UUID, csrf: str = Form(...), recipients: str = Form("")):
-    try:
-        validate_csrf(request, csrf)
-        with SessionLocal() as db:
-            user = core.require_permission(request, db, "reports.generate")
-            addresses = set_recipients(db, user, _schedule(db, schedule_id), recipients)
-            db.commit()
-    except HTTPException as exc:
-        if exc.status_code in {400, 403}:
-            return _feedback(request, exc)
-        raise
-    return flash_redirect(request, REPORTS_PATH, "success",
-                          f"Destinatari esterni aggiornati: {len(addresses)}." if addresses else "Destinatari esterni rimossi.", title="Pianificazione report")
-
-
-@router.post(f"{REPORTS_PATH}/schedules/{{schedule_id}}/delete", name="report_schedule_delete")
-def schedule_delete(request: Request, schedule_id: uuid.UUID, csrf: str = Form(...)):
-    try:
-        validate_csrf(request, csrf)
-        with SessionLocal() as db:
-            user = core.require_permission(request, db, "reports.generate")
-            delete_schedule(db, user, _schedule(db, schedule_id))
-            db.commit()
-    except HTTPException as exc:
-        if exc.status_code in {400, 403}:
-            return _feedback(request, exc)
-        raise
-    return flash_redirect(
-        request,
-        REPORTS_PATH,
-        "success",
-        "Pianificazione eliminata. I report già archiviati restano disponibili.",
-        title="Pianificazione report",
-    )
-
-
-def install_report_schedules(app) -> None:
-    app.include_router(router)

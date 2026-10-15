@@ -579,29 +579,6 @@ def report_section(db, device_ids) -> dict:
          "severity": r["worst"] or "—", "checked_at": r["checked_at"]} for r in rows]}
 
 
-@router.get("/security/exposure", response_class=HTMLResponse, name="security_exposure")
-def security_exposure(request: Request, view: str = "exposed", customer: str = ""):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "security.read"):
-            raise HTTPException(403)
-        from app.models import Customer
-
-        try:
-            customer_id = uuid.UUID(customer) if customer else None
-        except ValueError:
-            customer_id = None
-        view = view if view in FLEET_VIEWS else "exposed"
-        data = fleet(db, customer_id)
-        wanted = {"exposed": ("exposed",), "setup": ("setup",), "clean": ("clean",), "all": ("exposed", "clean", "setup", "pending")}[view]
-        rows = [r for r in data["rows"] if r["state"] in wanted]
-        return core.render(request, db, user, "security_exposure.html", title="Servizi esposti", rows=rows[:500], truncated=len(rows) > 500,
-                           counts=data["counts"], view=view, views=FLEET_VIEWS, customer_id=customer_id,
-                           customers=db.scalars(select(Customer).order_by(Customer.name)).all())
-
-
 def install_device_exposure(app) -> None:
     app.include_router(router)
     core.templates.env.globals["exposure_state_labels"] = STATE_LABELS

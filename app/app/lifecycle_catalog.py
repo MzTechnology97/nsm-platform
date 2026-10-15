@@ -160,7 +160,6 @@ class LifecycleInputError(InputError, ValueError):
     """Invalid lifecycle input: a ValueError for the classic forms and the CSV import, an InputError with a code for the API."""
 
 
-
 def _date(value, label):
     text = str(value or "").strip()
     if not text:
@@ -225,85 +224,6 @@ def _reader(request, db):
     if user and not core.has_permission(user, "security.read"):
         raise HTTPException(403)
     return user
-
-
-@router.get(CATALOG_URL, response_class=HTMLResponse, name="lifecycle_catalog")
-def catalog(request: Request, q: str = "", vendor: str = ""):
-    with SessionLocal() as db:
-        user = _reader(request, db)
-        if not user:
-            return core.login_redirect()
-        query = select(LifecycleRecord).order_by(LifecycleRecord.vendor, LifecycleRecord.model)
-        if vendor:
-            query = query.where(LifecycleRecord.vendor == vendor_key(vendor))
-        if q.strip():
-            query = query.where(LifecycleRecord.model.ilike(f"%{q.strip()}%") | LifecycleRecord.notes.ilike(f"%{q.strip()}%"))
-        records = list(db.scalars(query))
-        usage = dict(db.execute(select(Device.lifecycle_record_id, func.count(Device.id)).where(Device.lifecycle_record_id.is_not(None)).group_by(Device.lifecycle_record_id)).all())
-        today = utcnow().date()
-        return core.render(
-            request, db, user, "lifecycle_catalog.html", title="Catalogo lifecycle",
-            rows=[(r, record_status(r, today), usage.get(r.id, 0)) for r in records],
-            vendors=sorted({v for v in db.scalars(select(LifecycleRecord.vendor).distinct()) if v}),
-            q=q.strip(), vendor_filter=vendor, total=db.scalar(select(func.count(LifecycleRecord.id))) or 0,
-            csv_fields=CSV_FIELDS,
-        )
-
-
-def _form(request, db, user, record=None, prefill=None):
-    return core.render(
-        request, db, user, "lifecycle_record_form.html", title="Record lifecycle",
-        record=record, prefill=prefill or {},
-        vendors=sorted({v for v in db.scalars(select(Device.vendor).distinct()) if v} | {"mikrotik", "ubiquiti"}),
-        today=utcnow().date().isoformat(),
-    )
-
-
-@router.get(CATALOG_URL + "/new", response_class=HTMLResponse, name="lifecycle_record_new")
-def record_new(request: Request, vendor: str = "", model: str = ""):
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "lifecycle.manage")
-        return _form(request, db, user, prefill={"vendor": vendor_key(vendor), "model": model.strip()})
-
-
-@router.get(CATALOG_URL + "/{record_id}/edit", response_class=HTMLResponse, name="lifecycle_record_edit")
-def record_edit(request: Request, record_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "lifecycle.manage")
-        record = db.get(LifecycleRecord, record_id)
-        if not record:
-            raise HTTPException(404)
-        return _form(request, db, user, record=record)
-
-
-@router.post(CATALOG_URL, name="lifecycle_record_save")
-async def record_save(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "lifecycle.manage")
-        record_id = form.get("record_id")
-        record = db.get(LifecycleRecord, uuid.UUID(str(record_id))) if record_id else None
-        back = f"{CATALOG_URL}/{record.id}/edit" if record else f"{CATALOG_URL}/new"
-        try:
-            record, linked, stats = save_record(db, user, dict(form), record.id if record else None)
-        except ValueError as exc:
-            return flash_redirect(request, back, "warning", str(exc), title="Record non salvato")
-        model = record.model
-    return flash_redirect(
-        request, CATALOG_URL, "success",
-        f"{model}: {linked} apparati correlati; {stats['status_changed']} cambi di stato lifecycle.", title="Record salvato",
-    )
-
-
-@router.post(CATALOG_URL + "/{record_id}/delete", name="lifecycle_record_delete")
-async def record_delete(request: Request, record_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "lifecycle.manage")
-        stats = delete_record(db, user, record_id)
-    return flash_redirect(request, CATALOG_URL, "success", f"Record eliminato; {stats['status_changed']} apparati tornati senza dato lifecycle.", title="Record eliminato")
 
 
 @router.get(CATALOG_URL + ".csv", name="lifecycle_catalog_csv")
@@ -425,33 +345,6 @@ def import_record(db, user, text: str, filename: str | None):
     db.commit()
     return created, updated, stats
 
-
-@router.post(CATALOG_URL + "/import", name="lifecycle_catalog_import")
-async def catalog_import(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    upload = form.get("file")
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "lifecycle.manage")
-        if upload is None or not hasattr(upload, "read"):
-            return flash_redirect(request, CATALOG_URL, "warning", "Seleziona un file CSV.", title="Import non eseguito")
-        content = await upload.read()
-        try:
-            text = content.decode("utf-8-sig")
-        except UnicodeDecodeError:
-            return flash_redirect(request, CATALOG_URL, "warning", "Il file deve essere CSV in UTF-8.", title="Import non eseguito")
-        try:
-            created, updated, stats = import_record(db, user, text, getattr(upload, "filename", None))
-        except ValueError as exc:
-            return flash_redirect(request, CATALOG_URL, "warning", f"Nessun record importato. {exc}", title="Import non eseguito")
-    return flash_redirect(
-        request, CATALOG_URL, "success",
-        f"{created} record creati, {updated} aggiornati; {stats['catalog']} apparati correlati, {stats['status_changed']} cambi di stato.",
-        title="Catalogo importato",
-    )
-
-
-# ------------------------------------------------------ per-device values --
 
 @router.get("/devices/{device_id}/lifecycle", response_class=HTMLResponse, name="device_lifecycle_form")
 def device_lifecycle_form(request: Request, device_id: uuid.UUID):

@@ -10,11 +10,9 @@ from __future__ import annotations
 import hashlib
 import uuid
 
-from fastapi import APIRouter, Form, HTTPException, Request
 from sqlalchemy import select
 
 from app import main as core
-from app.db import SessionLocal
 from app.incident_models import (
     HYPOTHESIS_STATUSES,
     INCIDENT_SEVERITIES,
@@ -30,10 +28,7 @@ from app.pdf_writer import PdfDocument
 from app.report_builder import DISCLAIMER, _fmt
 from app.report_models import GeneratedReport
 from app.reports import _platform_name, _slug
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 
-router = APIRouter()
 
 REPORT_TYPE = "incident_evidence"
 REPORT_TITLE = "Evidenza incidente"
@@ -233,26 +228,3 @@ def export_record(db, user, incident: Incident) -> GeneratedReport:
     return report
 
 
-@router.post("/incidents/{incident_id}/export", name="incident_export")
-def incident_export(request: Request, incident_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "incidents.read")
-        if not core.has_permission(user, "reports.generate"):
-            raise HTTPException(403, "Permesso insufficiente.")
-        incident = db.get(Incident, incident_id)
-        if not incident:
-            raise HTTPException(404)
-        report = export_record(db, user, incident)
-        sha256 = report.sha256
-    return flash_redirect(
-        request,
-        f"/incidents/{incident_id}#evidence",
-        "success",
-        f"Evidenza archiviata (SHA-256 {sha256[:12]}…): scaricabile da questa pagina o dall'archivio report.",
-        title="Evidenza esportata",
-    )
-
-
-def install_incident_evidence(app) -> None:
-    app.include_router(router)

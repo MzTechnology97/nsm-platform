@@ -63,21 +63,23 @@ def main():
         ids = {"router": router.id, "cpe": cpe.id, "customer": customer.id, "foreign": foreign.id}
 
     tech_client = login(f"ci-inc-tech-{suffix}")
-    device_page = tech_client.get(f"/devices/{ids['router']}").text
-    assert f"/incidents/new?device={ids['router']}" in device_page
-    form = tech_client.get(f"/incidents/new?device={ids['router']}").text
-    assert "TEST-INC-RTR" in form and "TEST-INC-FOREIGN" not in form and "checked" in form
-    token = csrf_from(form)
+    headers = {"X-CSRF-Token": tech_client.get("/api/ui/v1/session").json()["csrf_token"]}
+    assert tech_client.get(f"/api/ui/v1/devices/{ids['router']}").json()["actions"]["incident"]
+    form = tech_client.get(f"/api/ui/v1/incident-form?device={ids['router']}").json()
+    names = {device["name"] for device in form["devices"]}
+    assert "TEST-INC-RTR" in names and "TEST-INC-FOREIGN" not in names and form["preselected"] == [str(ids["router"])]
 
-    base = {"csrf": token, "customer_id": str(ids["customer"]), "title": "TEST perdita connettività", "severity": "high", "summary": "Il cliente segnala assenza di servizio"}
-    bad = tech_client.post("/incidents", data={**base, "started_at": local(started), "device_ids": [str(ids["router"]), str(ids["foreign"])]})
-    assert "devono appartenere al cliente" in bad.text
-    future = tech_client.post("/incidents", data={**base, "started_at": local(now + timedelta(hours=3)), "device_ids": [str(ids["router"])]})
-    assert "non nel futuro" in future.text
-    created = tech_client.post("/incidents", data={**base, "started_at": local(started), "device_ids": [str(ids["router"]), str(ids["cpe"])]}, follow_redirects=False)
-    assert created.status_code == 303, created.text
-    incident_url = created.headers["location"]
-    incident_id = uuid.UUID(incident_url.rsplit("/", 1)[-1])
+    def code(response):
+        assert response.status_code == 422, response.text
+        return response.json()["detail"]["code"]
+
+    base = {"customer_id": str(ids["customer"]), "title": "TEST perdita connettività", "severity": "high", "summary": "Il cliente segnala assenza di servizio"}
+    assert code(tech_client.post("/api/ui/v1/incidents", headers=headers, json={**base, "started_at": local(started), "device_ids": [str(ids["router"]), str(ids["foreign"])]})) == "devices"
+    assert code(tech_client.post("/api/ui/v1/incidents", headers=headers, json={**base, "started_at": local(now + timedelta(hours=3)), "device_ids": [str(ids["router"])]})) == "started"
+    created = tech_client.post("/api/ui/v1/incidents", headers=headers, json={**base, "started_at": local(started), "device_ids": [str(ids["router"]), str(ids["cpe"])]})
+    assert created.status_code == 200, created.text
+    incident_id = uuid.UUID(created.json()["id"])
+    incident_api = f"/api/ui/v1/incidents/{incident_id}"
 
     with SessionLocal() as db:
         incident = db.get(Incident, incident_id)
@@ -96,44 +98,43 @@ def main():
 
     # Operator notes are added to the timeline and labelled as such.
     note_time = started + timedelta(minutes=20)
-    page = tech_client.get(incident_url).text
-    assert "Fatti osservati" in page and "Note operatore" in page
-    noted = tech_client.post(f"{incident_url}/notes", data={"csrf": token, "kind": "action", "body": "TEST riavviato il CPE da remoto", "occurred_at": local(note_time)})
-    assert "Nota aggiunta" in noted.text
-    detail = tech_client.get(incident_url).text
-    assert "TEST riavviato il CPE da remoto" in detail and "CI Tecnico Inc" in detail and "timeline-operator" in detail
-    assert detail.index("Job diagnostic ping fallito") < detail.index("TEST riavviato il CPE da remoto") < detail.index("Segnalazione risolta: TEST router offline")
-    only_notes = tech_client.get(f"{incident_url}?view=notes").text.split('id="timeline"', 1)[1]
-    assert "TEST riavviato il CPE da remoto" in only_notes and "Backup fallito" not in only_notes
-    assert "Inizio incidente" in detail
+    noted = tech_client.post(f"{incident_api}/notes", headers=headers, json={"kind": "action", "body": "TEST riavviato il CPE da remoto", "occurred_at": local(note_time)})
+    assert noted.status_code == 200, noted.text
+    entries = tech_client.get(incident_api).json()["timeline"]["entries"]
+    titles = [entry["title"] for entry in entries]
+    note = next(entry for entry in entries if entry["kind"] == "operator")
+    assert note["title"] == "TEST riavviato il CPE da remoto" or "TEST riavviato il CPE da remoto" in (note["detail"] or note["title"])
+    assert note["actor"] == "CI Tecnico Inc"
+    position = entries.index(note)
+    assert titles.index("Job diagnostic ping fallito") < position < titles.index("Segnalazione risolta: TEST router offline")
 
     # Lifecycle: investigating → resolved, then list counts.
-    assert "Incidente aggiornato" in tech_client.post(f"{incident_url}/status", data={"csrf": token, "status": "investigating"}).text
-    assert "successiva all" in tech_client.post(f"{incident_url}/status", data={"csrf": token, "status": "resolved", "resolved_at": local(started - timedelta(hours=1))}).text
+    assert tech_client.post(f"{incident_api}/status", headers=headers, json={"status": "investigating"}).json()["status"] == "investigating"
+    assert code(tech_client.post(f"{incident_api}/status", headers=headers, json={"status": "resolved", "resolved_at": local(started - timedelta(hours=1))})) == "invalid_resolved_at"
     resolved_at = started + timedelta(minutes=50)
-    assert "Incidente aggiornato" in tech_client.post(f"{incident_url}/status", data={"csrf": token, "status": "resolved", "resolved_at": local(resolved_at)}).text
+    assert tech_client.post(f"{incident_api}/status", headers=headers, json={"status": "resolved", "resolved_at": local(resolved_at)}).json()["status"] == "resolved"
     with SessionLocal() as db:
         incident = db.get(Incident, incident_id)
         assert incident.status == "resolved" and incident.resolved_at == resolved_at
         events = {e.event_type for e in db.query(AuditEvent).filter(AuditEvent.customer_id == ids["customer"], AuditEvent.event_type.like("INCIDENT_%"))}
         assert {"INCIDENT_CREATED", "INCIDENT_NOTE_ADDED", "INCIDENT_STATUS_CHANGED"} <= events
-    listing = tech_client.get(f"/incidents?customer={ids['customer']}&status=resolved").text
-    assert "TEST perdita connettività" in listing and "50 min" in listing
-    assert "Nessun incidente attivo" in tech_client.get(f"/incidents?customer={ids['customer']}").text
+    listing = tech_client.get(f"/api/ui/v1/incidents?customer={ids['customer']}&status=resolved").json()
+    assert [item["title"] for item in listing["items"]] == ["TEST perdita connettività"] and listing["items"][0]["resolved_at"]
+    assert tech_client.get(f"/api/ui/v1/incidents?customer={ids['customer']}").json()["items"] == []
 
     # Devices can be changed only within the customer.
-    assert "devono appartenere" in tech_client.post(f"{incident_url}/devices", data={"csrf": token, "device_ids": [str(ids["foreign"])]}).text
-    assert "Apparati coinvolti aggiornati" in tech_client.post(f"{incident_url}/devices", data={"csrf": token, "device_ids": [str(ids["router"])]}).text
+    assert code(tech_client.post(f"{incident_api}/devices", headers=headers, json={"device_ids": [str(ids["foreign"])]})) == "foreign_devices"
+    assert tech_client.post(f"{incident_api}/devices", headers=headers, json={"device_ids": [str(ids["router"])]}).status_code == 200
     with SessionLocal() as db:
         assert [link.device_id for link in db.query(IncidentDevice).filter_by(incident_id=incident_id)] == [ids["router"]]
 
     # Read-only roles see the incident but cannot change it.
     auditor_client = login(f"ci-inc-aud-{suffix}")
-    view = auditor_client.get(incident_url)
-    assert view.status_code == 200 and "Aggiorna stato" not in view.text and "TEST riavviato il CPE" in view.text
-    denied = auditor_client.post(f"{incident_url}/notes", data={"csrf": csrf_from(view.text), "body": "x"})
-    assert denied.status_code == 403
-    assert auditor_client.get("/incidents/new").status_code == 403
+    view = auditor_client.get(incident_api).json()
+    assert view["can_write"] is False and any(entry["kind"] == "operator" for entry in view["timeline"]["entries"])
+    auditor_headers = {"X-CSRF-Token": auditor_client.get("/api/ui/v1/session").json()["csrf_token"]}
+    assert auditor_client.post(f"{incident_api}/notes", headers=auditor_headers, json={"body": "x"}).status_code == 403
+    assert auditor_client.get("/api/ui/v1/incident-form").status_code == 403
     print("Incidents smoke passed")
 
 

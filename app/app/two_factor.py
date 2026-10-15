@@ -233,13 +233,6 @@ def profile_state(user) -> dict:
                 "recovery_left": remaining_recovery_codes(db, fresh) if enabled(fresh) else 0}
 
 
-def _profile_user(request: Request, db):
-    user = core.current_user(request, db)
-    if not user:
-        raise HTTPException(401)
-    return user
-
-
 def setup_record(db, user: User) -> bool:
     """Start the setup with a new pending secret; False when the second factor is already active. Caller commits."""
     if enabled(user):
@@ -287,69 +280,11 @@ def disable_record(db, user: User, password: str, code: str, request: Request | 
     core.add_event(db, "USER_2FA_DISABLED", actor=user, details={"user_id": str(user.id), "username": user.username}, source="portal", severity="warning")
 
 
-@router.post("/profile/2fa/setup", name="two_factor_setup")
-def setup(request: Request, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = _profile_user(request, db)
-        if not setup_record(db, user):
-            return RedirectResponse("/profile#two-factor", status_code=303)
-        db.commit()
-    return RedirectResponse("/profile?status=2fa_scan#two-factor", status_code=303)
-
-
-@router.post("/profile/2fa/enable", response_class=HTMLResponse, name="two_factor_enable")
-def enable(request: Request, code: str = Form(""), csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = _profile_user(request, db)
-        try:
-            codes = enable_record(db, user, code, request)
-        except ValueError as exc:
-            if str(exc) == "2fa_code":
-                return RedirectResponse("/profile?error=2fa_code#two-factor", status_code=303)
-            return RedirectResponse("/profile#two-factor", status_code=303)
-        db.commit()
-        response = core.render(request, db, user, "two_factor_codes.html", title="Codici di recupero", codes=codes)
-        response.headers["Cache-Control"] = "no-store"
-        return response
-
-
-@router.post("/profile/2fa/recovery", response_class=HTMLResponse, name="two_factor_recovery")
-def regenerate_codes(request: Request, password: str = Form(""), csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = _profile_user(request, db)
-        try:
-            codes = regenerate_record(db, user, password)
-        except ValueError:
-            return RedirectResponse("/profile?error=2fa_password#two-factor", status_code=303)
-        db.commit()
-        response = core.render(request, db, user, "two_factor_codes.html", title="Codici di recupero", codes=codes)
-        response.headers["Cache-Control"] = "no-store"
-        return response
-
-
 def _clear(db, user: User) -> None:
     user.totp_secret_encrypted = user.totp_pending_encrypted = None
     user.totp_enabled_at = user.totp_last_step = None
     for row in db.scalars(select(UserRecoveryCode).where(UserRecoveryCode.user_id == user.id)):
         db.delete(row)
-
-
-@router.post("/profile/2fa/disable", name="two_factor_disable")
-def disable(request: Request, password: str = Form(""), code: str = Form(""), csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = _profile_user(request, db)
-        if not enabled(user):
-            return RedirectResponse("/profile#two-factor", status_code=303)
-        try:
-            disable_record(db, user, password, code, request)
-        except ValueError:
-            return RedirectResponse("/profile?error=2fa_disable#two-factor", status_code=303)
-        db.commit()
-    return RedirectResponse("/profile?status=2fa_disabled#two-factor", status_code=303)
 
 
 def admin_reset_record(db, actor, target, request: Request | None = None) -> None:

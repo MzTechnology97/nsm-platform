@@ -14,8 +14,6 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from fastapi import Request
-from fastapi.responses import RedirectResponse
 from sqlalchemy import event, func, select
 from sqlalchemy.orm import Session
 
@@ -25,7 +23,6 @@ from app.db import SessionLocal
 from app.models import ActionIssue, Device, DeviceVulnerability, Notification, SecurityAdvisory, User, utcnow
 from app.notification_models import NotificationDelivery, UserNotificationPreference
 from app.report_models import GeneratedReport
-from app.security import validate_csrf
 
 DIGEST_PERIODS = {"daily": timedelta(days=1), "weekly": timedelta(days=7)}
 DIGEST_LABELS = {"off": "Disattivata", "daily": "Giornaliera", "weekly": "Settimanale"}
@@ -123,20 +120,6 @@ def set_digest(db, user, value: str) -> str:
     return user.notify_digest
 
 
-async def save_digest(request: Request):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        set_digest(db, user, str(form.get("digest") or "off"))
-        db.commit()
-    return RedirectResponse("/profile?status=digest_saved#notifications", status_code=303)
-
-
-# --- Scheduled report delivery -------------------------------------------------------------------
-
 def _wants_report(pref: UserNotificationPreference) -> bool:
     if not pref.enabled:
         return False
@@ -227,5 +210,4 @@ def worker_task_alert(name: str, failures: int, error: str | None, recovered: bo
 
 
 def install_notification_digest(app) -> None:
-    app.add_api_route("/profile/notifications/digest", save_digest, methods=["POST"], name="profile_notifications_digest", include_in_schema=False)
     core.templates.env.globals["digest_labels"] = DIGEST_LABELS

@@ -1,14 +1,13 @@
-"""New interface, global search and notifications: matches with vendor icon, customer scope, read state per user, CSRF, classic forms."""
+"""New interface, global search and notifications: matches with vendor icon, customer scope, read state per user, CSRF, classic redirects."""
 import re
 import uuid
 
 from fastapi.testclient import TestClient
-from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.entrypoint import app
 from app.main import norm_mac
-from app.models import Customer, Device, Notification, NotificationRead, Site, User
+from app.models import Customer, Device, Notification, Site, User
 from app.security import hash_password
 
 PASSWORD = "CI-UI-Personal-2026"
@@ -105,16 +104,10 @@ def main():
     assert all(row["is_read"] for row in client.get("/api/ui/v1/notifications").json()["items"])
     assert other_client.get("/api/ui/v1/notifications/summary").json()["unread"] >= 2
 
-    # Classic form still marks a notification as read through the shared function.
-    page = other_client.get("/notifications")
-    assert page.status_code == 200 and f"CI notice A {suffix}" in page.text
-    token = re.search(r'name="csrf" value="([^"]+)"', page.text).group(1)
-    assert other_client.post(f"/notifications/{ids['second']}/read", data={"csrf": token}, follow_redirects=False).status_code == 303
-    with SessionLocal() as db:
-        reader = db.scalar(select(User.id).where(User.username == f"ci-up-b-{suffix}"))
-        assert db.scalar(select(NotificationRead).where(NotificationRead.notification_id == uuid.UUID(ids["second"]),
-                                                        NotificationRead.user_id == reader)) is not None
-    assert other_client.get("/search", params={"q": f"SN{suffix}"}).text.count(f"TEST-UP-MT-{suffix}") >= 1
+    # The classic pages now point to the new interface.
+    for old, new in (("/notifications", "/app/notifications"), (f"/search?q=SN{suffix}", f"/app/search?q=SN{suffix}")):
+        moved = other_client.get(old, follow_redirects=False)
+        assert moved.status_code == 302 and moved.headers["location"] == new, (old, moved.headers.get("location"))
 
     for path in ("/app/search?q=x", "/app/notifications"):
         assert client.get(path).status_code in (200, 503), path

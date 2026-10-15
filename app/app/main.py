@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Red
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from redis import Redis
-from sqlalchemy import case, func, or_, select, text
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from starlette.middleware.sessions import SessionMiddleware
@@ -607,16 +607,6 @@ def search_records(db, term: str) -> dict:
     return {"customers": customers, "devices": devices, "sites": sites}
 
 
-@app.get("/search", response_class=HTMLResponse)
-def global_search(request: Request, q: str = ""):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        term = q.strip()
-        return render(request, db, user, "search.html", q=term, **search_records(db, term))
-
-
 @app.post("/customers")
 def add_customer(
     request: Request,
@@ -869,7 +859,6 @@ def enrollment_command(base_url: str, raw_token: str) -> str:
         f'?token={raw_token}" dst-path="nsm-bootstrap.rsc"; '
         f'/import file-name="nsm-bootstrap.rsc"'
     )
-
 
 
 @app.post("/customers/{customer_id}/devices")
@@ -1355,154 +1344,6 @@ def create_backup_policy(
     return RedirectResponse("/operations/backups", status_code=303)
 
 
-@app.get("/security/vulnerabilities", response_class=HTMLResponse)
-def vulnerabilities(request: Request):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        rows = db.execute(
-            select(
-                SecurityAdvisory,
-                func.count(DeviceVulnerability.id).label("affected_count"),
-            )
-            .outerjoin(
-                DeviceVulnerability,
-                (DeviceVulnerability.advisory_id == SecurityAdvisory.id)
-                & (DeviceVulnerability.status != "resolved"),
-            )
-            .group_by(SecurityAdvisory.id)
-            .order_by(SecurityAdvisory.published_at.desc().nullslast())
-        ).all()
-        return render(request, db, user, "vulnerabilities.html", advisories=rows)
-
-
-@app.get("/security/vulnerabilities/{advisory_id}", response_class=HTMLResponse)
-def vulnerability_detail(request: Request, advisory_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        advisory = db.get(SecurityAdvisory, advisory_id)
-        if not advisory:
-            raise HTTPException(404)
-        impacted = db.execute(
-            select(DeviceVulnerability, Device, Customer)
-            .join(Device, Device.id == DeviceVulnerability.device_id)
-            .join(Customer, Customer.id == Device.customer_id)
-            .where(DeviceVulnerability.advisory_id == advisory_id)
-            .order_by(Customer.name, Device.display_name.nullslast(), Device.name)
-        ).all()
-        return render(
-            request,
-            db,
-            user,
-            "vulnerability_detail.html",
-            advisory=advisory,
-            impacted=impacted,
-        )
-
-
-@app.get("/security/lifecycle", response_class=HTMLResponse)
-def lifecycle(request: Request):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        rows = list(
-            db.scalars(
-                select(Device)
-                .options(selectinload(Device.customer))
-                .where(Device.lifecycle_status.in_(["eol", "eos"]))
-                .order_by(Device.lifecycle_status, Device.vendor)
-            )
-        )
-        return render(request, db, user, "lifecycle.html", devices=rows)
-
-
-@app.get("/action-center", response_class=HTMLResponse)
-def action_center(
-    request: Request, severity: str = "", category: str = "", status: str = ""
-):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        stmt = select(ActionIssue)
-        filters = []
-        if severity:
-            filters.append(ActionIssue.severity == severity)
-        if category:
-            filters.append(ActionIssue.category == category)
-        if status:
-            filters.append(ActionIssue.status == status)
-        else:
-            filters.append(ActionIssue.status.in_(["open", "acknowledged"]))
-        if filters:
-            stmt = stmt.where(*filters)
-        issues = list(
-            db.scalars(
-                stmt.order_by(
-                    case(
-                        (ActionIssue.severity == "critical", 1),
-                        (ActionIssue.severity == "high", 2),
-                        (ActionIssue.severity.in_(["warning", "medium"]), 3),
-                        (ActionIssue.severity == "low", 4),
-                        else_=5,
-                    ),
-                    ActionIssue.created_at.desc(),
-                )
-            )
-        )
-        device_ids = {i.device_id for i in issues if i.device_id}
-        customer_ids = {i.customer_id for i in issues if i.customer_id}
-        device_map = (
-            {
-                d.id: d
-                for d in db.scalars(select(Device).where(Device.id.in_(device_ids)))
-            }
-            if device_ids
-            else {}
-        )
-        customer_map = (
-            {
-                c.id: c
-                for c in db.scalars(
-                    select(Customer).where(Customer.id.in_(customer_ids))
-                )
-            }
-            if customer_ids
-            else {}
-        )
-        return render(
-            request,
-            db,
-            user,
-            "action_center.html",
-            issues=issues,
-            device_map=device_map,
-            customer_map=customer_map,
-            severity_filter=severity,
-            category_filter=category,
-            status_filter=status,
-        )
-
-
-@app.post("/action-center/{issue_id}/ack")
-def acknowledge_issue(
-    request: Request, issue_id: uuid.UUID, csrf: str = Form(...)
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = require_permission(request, db, "issues.ack")
-        issue = db.get(ActionIssue, issue_id)
-        if not issue:
-            raise HTTPException(404)
-        if acknowledge_issue_record(db, issue, user):
-            db.commit()
-    return RedirectResponse("/action-center", status_code=303)
-
-
 def acknowledge_issue_record(db, issue, user) -> bool:
     """Take an open issue in charge (audited); False when it was not open. Caller commits."""
     if issue.status != "open":
@@ -1574,41 +1415,6 @@ def mark_all_notifications_read_record(db, user: User) -> int:
         )
     db.commit()
     return len(ids)
-
-
-@app.get("/notifications", response_class=HTMLResponse)
-def notifications(request: Request):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        return render(request, db, user, "notifications.html", notifications=notification_rows(db, user))
-
-
-@app.post("/notifications/{notification_id}/read")
-def mark_notification_read(
-    request: Request, notification_id: uuid.UUID, csrf: str = Form(...)
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        mark_notification_read_record(db, user, notification_id)
-    return RedirectResponse(
-        request.headers.get("referer", "/notifications"), status_code=303
-    )
-
-
-@app.post("/notifications/read-all")
-def mark_all_notifications_read(request: Request, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        mark_all_notifications_read_record(db, user)
-    return RedirectResponse("/notifications", status_code=303)
 
 
 @app.get("/admin/users", response_class=HTMLResponse)
