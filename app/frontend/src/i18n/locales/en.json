@@ -3145,5 +3145,125 @@
     "errors": {
       "file_invalid": "Invalid CSV file."
     }
+  },
+  "deviceActivity": {
+    "title": "Agent jobs",
+    "help_one": "{{count}} active job.",
+    "help_other": "{{count}} active jobs.",
+    "audit": "Device activity log",
+    "search": "Search by type, state or error",
+    "status": "State",
+    "type": "Type",
+    "allStatuses": "All states",
+    "allTypes": "All types",
+    "columns": {
+      "type": "Type",
+      "status": "State",
+      "created": "Created",
+      "completed": "Completed",
+      "attempts": "Attempts"
+    },
+    "empty": "No jobs.",
+    "newer": "Newer",
+    "older": "Older",
+    "range": "{{from}}–{{to}} of {{total}}",
+    "statuses": {
+      "pending": "Queued",
+      "delivered": "Delivered",
+      "running": "Running",
+      "completed": "Completed",
+      "succeeded": "Succeeded",
+      "success": "Succeeded",
+      "failed": "Failed",
+      "error": "Error",
+      "expired": "Expired",
+      "cancelled": "Cancelled"
+    }
+  },
+  "deviceExposure": {
+    "title": "Services exposed on the WAN",
+    "helpAgent": "The agent reads the active services and the firewall rules (input and raw) from the router configuration; NSM works out which are reachable from the Internet. No packet is sent to the device.",
+    "helpExternal": "The NSM server checks which management services answer on the device IP: one connection per port, only ports known for this vendor, no full scan.",
+    "check": "Check now",
+    "running": "Check in progress…",
+    "shared": "IP shared with:",
+    "forwardsIn": "Reachable from the Internet through port forwards",
+    "forwardsOut": "Port forwards to the internal network",
+    "checkedIp": "Checked IP",
+    "byOperator": "set by the operator",
+    "managementIp": "management IP",
+    "ports": "Checked ports",
+    "targetIp": "Public IP to check",
+    "targetPlaceholder": "Empty = management IP",
+    "saveTarget": "Save IP",
+    "targetSaved": "IP saved.",
+    "targetQueued": "IP saved: the check starts within a minute.",
+    "ipInvalid": "Unusable address: a valid public, private or CGNAT IP is needed.",
+    "fromServer": "The check starts from the NSM server: if the server is in the same network as the device, the result may differ from what the Internet sees.",
+    "exposed": "Exposed",
+    "worst": "highest severity {{severity}}",
+    "noneReachable": "no reachable service",
+    "portsChecked": "{{count}} ports checked",
+    "uncertain": "To check",
+    "wan": "WAN interfaces",
+    "rules": "{{filter}} filter rules, {{raw}} raw",
+    "lastCheck": "Last check",
+    "daily": "repeated every 24 hours",
+    "noDrop": "No drop rule in the input chain or in raw/prerouting: the router accepts everything not explicitly blocked. Add at the end of the input chain a rule that drops traffic from the WAN.",
+    "privateResult": "Result obtained on a private or CGNAT IP ({{ip}}): it holds only if the device has direct WAN access.",
+    "sharedResult": "IP shared with {{peers}}: answers come from the edge router or one of its port forwards.",
+    "columns": {
+      "service": "Service",
+      "port": "Port",
+      "state": "State",
+      "severity": "Severity",
+      "reason": "Reason"
+    },
+    "states": {
+      "exposed": "exposed",
+      "restricted": "restricted",
+      "protected": "protected",
+      "uncertain": "to check",
+      "disabled": "disabled",
+      "closed": "closed",
+      "filtered": "filtered"
+    },
+    "forwards": {
+      "rule": "Rule / router",
+      "public": "Public port",
+      "target": "Destination",
+      "sensitive": "Sensitive services",
+      "state": "State",
+      "allPorts": "all ports",
+      "raw": "protected (raw)"
+    },
+    "noServices": "No service detected.",
+    "pendingExternal": "Check in progress: the NSM server checks the ports within a minute.",
+    "pendingAgent": "Check in progress: the agent sends services and firewall at the next heartbeat.",
+    "never": "No check yet: it starts automatically once the device is connected, or with «Check now»."
+  },
+  "deviceCompliance": {
+    "title": "Compliance",
+    "help": "Controls of the effective baseline of this device.",
+    "evaluated": "Controls of the effective baseline, evaluated on {{when}}.",
+    "fleet": "View of all devices",
+    "columns": {
+      "control": "Control",
+      "result": "Result",
+      "evidence": "Evidence",
+      "handling": "Handling"
+    },
+    "states": {
+      "pass": "Compliant",
+      "fail": "Non-compliant",
+      "unknown": "No evidence",
+      "not_applicable": "Not applicable",
+      "exception": "In exception"
+    },
+    "until": "until {{when}}",
+    "acknowledged": "acknowledged",
+    "manage": "Handle",
+    "empty": "No compliance baseline applies to this device.",
+    "configure": "Configure baselines"
   }
 }

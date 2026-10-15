@@ -408,19 +408,77 @@ def exposure_page(request: Request, device_id: uuid.UUID):
         device = db.get(Device, device_id)
         if not device:
             raise HTTPException(404)
-        data = device.inventory_data or {}
+        return core.render(request, db, user, "device_exposure.html", device=device, state_labels=STATE_LABELS, **page_state(db, device))
+
+
+def page_state(db, device) -> dict:
+    """What the device Exposure tab shows, for both interfaces: last result, check mode and target, blocker, NAT context."""
+    from app import external_exposure
+
+    data = device.inventory_data or {}
+    pending = bool(data.get("exposure_requested_at")) and (data.get("exposure") or {}).get("checked_at", "") < data.get("exposure_requested_at", "")
+    check_mode = mode(device)
+    target = external_exposure.target(device) if check_mode == "external" else (None, "")
+    return {
+        "exposure": data.get("exposure"),
+        "blocker": eligibility(device),
+        "pending": pending,
+        "shared_peers": shared_ips.peers(db, device),
+        "forwards_in": shared_ips.forwards_to(db, device),
+        "check_mode": check_mode,
+        "target": target,
+        "target_override": data.get("exposure_target_ip") or "",
+        "target_public": external_exposure._public(target[0]),
+        "private_warning": external_exposure.PRIVATE_WARNING,
+        "planned": [external_exposure.CHECKS[k] for k in external_exposure.plan(device)] if check_mode == "external" else [],
+    }
+
+
+def request_check_record(db, user, device) -> tuple[bool, str]:
+    """Start an exposure check (external probe or agent read) and commit; returns ``(started, message)``."""
+    blocker = eligibility(device)
+    if blocker:
+        return False, blocker
+    if mode(device) == "external":
         from app import external_exposure
 
-        pending = bool(data.get("exposure_requested_at")) and (data.get("exposure") or {}).get("checked_at", "") < data.get("exposure_requested_at", "")
-        check_mode = mode(device)
-        return core.render(request, db, user, "device_exposure.html", device=device, exposure=data.get("exposure"), blocker=eligibility(device),
-                           pending=pending, state_labels=STATE_LABELS, shared_peers=shared_ips.peers(db, device),
-                           forwards_in=shared_ips.forwards_to(db, device), check_mode=check_mode,
-                           target=external_exposure.target(device) if check_mode == "external" else (None, ""),
-                           target_override=data.get("exposure_target_ip") or "",
-                           target_public=external_exposure._public((external_exposure.target(device) if check_mode == "external" else (None, ""))[0]),
-                           private_warning=external_exposure.PRIVATE_WARNING,
-                           planned=[external_exposure.CHECKS[k] for k in external_exposure.plan(device)] if check_mode == "external" else [])
+        ok, message = external_exposure.request_check(db, device)
+        if ok:
+            core.add_event(db, "EXPOSURE_CHECK_REQUESTED", actor=user, customer_id=device.customer_id, device_id=device.id,
+                           details={"target_ip": external_exposure.target(device)[0]}, source="portal")
+        db.commit()
+        return ok, message
+    queued = queue_check(db, device)
+    core.add_event(db, "EXPOSURE_CHECK_REQUESTED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal")
+    db.commit()
+    return True, ("L'agent leggerà servizi e firewall al prossimo heartbeat; il risultato compare qui entro pochi minuti."
+                  if queued else "Una verifica è già in corso.")
+
+
+def set_target_record(db, user, device, value: str) -> bool:
+    """Public IP to probe (empty = management IP), audited, then a new check when possible; commits.
+
+    Returns whether a check was queued; ``InputError`` ``ip_invalid`` for an unusable address.
+    """
+    from app import external_exposure
+    from app.input_errors import InputError
+
+    value = (value or "").strip()
+    if value and not external_exposure.allowed_target(value):
+        raise InputError("ip_invalid", "Indirizzo non utilizzabile: indica un IP pubblico, privato o CGNAT valido (non loopback, link-local, multicast o riservato).")
+    data = dict(device.inventory_data or {})
+    if value:
+        data["exposure_target_ip"] = str(ipaddress.ip_address(value))
+    else:
+        data.pop("exposure_target_ip", None)
+    device.inventory_data = data
+    core.add_event(db, "EXPOSURE_TARGET_IP_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id,
+                   details={"target_ip": data.get("exposure_target_ip")}, source="portal")
+    queued = False
+    if not eligibility(device):
+        queued, _message = external_exposure.request_check(db, device)
+    db.commit()
+    return queued
 
 
 @router.post("/devices/{device_id}/exposure/check", name="device_exposure_check")
@@ -434,29 +492,15 @@ async def exposure_check(request: Request, device_id: uuid.UUID):
         if not device:
             raise HTTPException(404)
         blocker = eligibility(device)
-        if blocker:
-            return flash_redirect(request, back, "warning", blocker, title="Verifica non disponibile")
-        if mode(device) == "external":
-            from app import external_exposure
-
-            ok, message = external_exposure.request_check(db, device)
-            if ok:
-                core.add_event(db, "EXPOSURE_CHECK_REQUESTED", actor=user, customer_id=device.customer_id, device_id=device.id,
-                               details={"target_ip": external_exposure.target(device)[0]}, source="portal")
-            db.commit()
-            return flash_redirect(request, back, "success" if ok else "warning", message, title="Verifica avviata" if ok else "Verifica non avviata")
-        queued = queue_check(db, device)
-        core.add_event(db, "EXPOSURE_CHECK_REQUESTED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal")
-        db.commit()
-    return flash_redirect(request, back, "success", "L'agent leggerà servizi e firewall al prossimo heartbeat; il risultato compare qui entro pochi minuti."
-                          if queued else "Una verifica è già in corso.", title="Verifica avviata")
+        ok, message = request_check_record(db, user, device)
+    if blocker:
+        return flash_redirect(request, back, "warning", message, title="Verifica non disponibile")
+    return flash_redirect(request, back, "success" if ok else "warning", message, title="Verifica avviata" if ok else "Verifica non avviata")
 
 
 @router.post("/devices/{device_id}/exposure/target", name="device_exposure_target")
 async def exposure_target(request: Request, device_id: uuid.UUID):
     """Public IP to probe (WAN/PPPoE address or public IP of the customer NAT); empty = use the management IP."""
-    from app import external_exposure
-
     form = await request.form()
     validate_csrf(request, str(form.get("csrf") or ""))
     back = f"/devices/{device_id}/exposure"
@@ -466,21 +510,12 @@ async def exposure_target(request: Request, device_id: uuid.UUID):
         device = db.get(Device, device_id)
         if not device:
             raise HTTPException(404)
-        if value and not external_exposure.allowed_target(value):
-            return flash_redirect(request, back, "danger", "Indirizzo non utilizzabile: indica un IP pubblico, privato o CGNAT valido (non loopback, link-local, multicast o riservato).",
-                                  title="IP non valido")
-        data = dict(device.inventory_data or {})
-        if value:
-            data["exposure_target_ip"] = str(ipaddress.ip_address(value))
-        else:
-            data.pop("exposure_target_ip", None)
-        device.inventory_data = data
-        core.add_event(db, "EXPOSURE_TARGET_IP_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id,
-                       details={"target_ip": data.get("exposure_target_ip")}, source="portal")
-        queued = False
-        if not eligibility(device):
-            queued, _message = external_exposure.request_check(db, device)
-        db.commit()
+        from app.input_errors import InputError
+
+        try:
+            queued = set_target_record(db, user, device, value)
+        except InputError as exc:
+            return flash_redirect(request, back, "danger", str(exc.detail), title="IP non valido")
     text = "IP per la verifica salvato." + (" La verifica parte entro un minuto." if queued else "")
     return flash_redirect(request, back, "success", text, title="Esposizione")
 

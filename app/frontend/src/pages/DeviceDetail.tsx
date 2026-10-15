@@ -15,6 +15,9 @@ const MIGRATED_TABS = {
   backups: "/devices/$deviceId/backups",
   agent: "/devices/$deviceId/agent",
   diagnostics: "/devices/$deviceId/diagnostics",
+  exposure: "/devices/$deviceId/exposure",
+  compliance: "/devices/$deviceId/compliance",
+  activity: "/devices/$deviceId/jobs",
 } as const;
 
 /** Device shell: breadcrumbs, title, actions and tabs; the active tab renders in the outlet. */

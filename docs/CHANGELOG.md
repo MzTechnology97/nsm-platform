@@ -4,6 +4,27 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.146 — 2026-10-15
+
+New interface (React) — device Activity, Exposure and Compliance tabs, phase 7i
+- **Activity tab** (`/app/devices/{id}/jobs`):
+  - agent jobs, newest first, with type, state, creation and completion time, attempts and error, plus the number of active jobs;
+  - search, state and type filters, and pages of 50;
+  - payloads and results are never shown;
+  - a link opens the activity log filtered on the device.
+- **Exposure tab** (`/app/devices/{id}/exposure`), same content as the classic tab:
+  - services reachable from the WAN, as read by the agent or probed from outside, with state, severity and reason;
+  - port forwards, the devices that share the IP (with their vendor icons) and the last check;
+  - «Check now» and the public IP to probe, for whoever can remediate.
+- **Compliance tab** (`/app/devices/{id}/compliance`): results of the effective baseline, failures first, with exceptions and acknowledgements; failed controls link to their handling page.
+- **Shared code.** The Exposure tab data and actions are now shared functions, used by both interfaces; the classic page behaves as before.
+  - `device_exposure.page_state`, `request_check_record`, `set_target_record`.
+- **API.** A new module, `app/ui_device_tabs.py`:
+  - `GET /api/ui/v1/devices/{id}/jobs` (`devices.read`);
+  - `GET /api/ui/v1/devices/{id}/exposure` (`security.read`);
+  - `POST .../exposure/check`, `.../exposure/target` (`security.remediate` + CSRF);
+  - `GET /api/ui/v1/devices/{id}/compliance` (`compliance.read`).
+
 ## 0.49.145 — 2026-10-15
 
 New interface (React) — device CSV import, phase 7h
