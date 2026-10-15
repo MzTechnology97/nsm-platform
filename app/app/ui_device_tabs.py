@@ -51,6 +51,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
 
 from app import device_exposure
+from app import interface_traffic
 from app.activity_worklists import ACTIVE_JOB_STATES, _device_job_query
 from app.agent_models import DeviceJob
 from app.compliance_engine import CONTROLS
@@ -160,6 +161,31 @@ def device_compliance(request: Request, device_id: uuid.UUID):
             })
         return jsonable_encoder({"rows": rows, "last_eval": max((r.evaluated_at for r in results), default=None)})
 
+
+
+@router.get("/devices/{device_id}/traffic-interfaces")
+def traffic_interfaces(request: Request, device_id: uuid.UUID):
+    """Interfaces reported by the agent and which ones keep a traffic history (monitor tab settings)."""
+    with SessionLocal() as db:
+        user = ui_user(request, db, "monitoring.read")
+        device = _device(db, device_id)
+        return {
+            "rows": interface_traffic.interface_rows(device), "max": interface_traffic.MAX_MONITORED,
+            "custom": isinstance((device.inventory_data or {}).get("traffic_interfaces"), list),
+            "can_edit": core.has_permission(user, "devices.write"),
+        }
+
+
+@router.post("/devices/{device_id}/traffic-interfaces", dependencies=[Depends(require_csrf)])
+def traffic_interfaces_save(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.write")
+        device = _device(db, device_id)
+        raw = body.get("interfaces")
+        names = [str(n) for n in raw] if isinstance(raw, list) else []
+        if len(names) > interface_traffic.MAX_MONITORED:
+            raise HTTPException(422, {"code": "too_many", "message": f"Al massimo {interface_traffic.MAX_MONITORED} interfacce."})
+        return {"monitored": interface_traffic.set_monitored_record(db, user, device, names, bool(body.get("reset")))}
 
 def install_ui_device_tabs(app) -> None:
     app.include_router(router)

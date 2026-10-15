@@ -163,7 +163,7 @@
       "7d": "7 jours",
       "30d": "30 jours"
     },
-    "settings": "Interfaces et réglages",
+    "settings": "Interfaces surveillées",
     "noSamples": "Aucun échantillon sur cette période.",
     "legend": {
       "current": "Actuel",
@@ -203,7 +203,15 @@
     "signalBest": "Meilleur client",
     "signalWorst": "Pire client",
     "clients": "Clients connectés",
-    "ccq": "CCQ moyen"
+    "ccq": "CCQ moyen",
+    "pickTitle": "Interfaces surveillées",
+    "pickHelp": "NSM conserve l'historique du trafic d'au plus {{max}} interfaces.",
+    "pickCustom": "Choix manuel actif.",
+    "pickAuto": "Choix automatique : liens WAN, sinon ether1.",
+    "pickSave": "Enregistrer les interfaces",
+    "pickReset": "Revenir à l'automatique",
+    "pickCount": "{{count}} sur {{max}}",
+    "unknownType": "type inconnu"
   },
   "syslog": {
     "today": {

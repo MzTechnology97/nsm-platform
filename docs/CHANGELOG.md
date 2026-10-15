@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.165 — 2026-10-15
+
+New interface — monitored interfaces, phase 8b
+- **Monitored interfaces.** The device Monitor tab chooses which interfaces keep a traffic history (at most 8), with each interface's current rate and a "Back to automatic" option (WAN links, else ether1). It used to link to the classic monitor page.
+- **Shared code.** `interface_traffic.set_monitored_record`, used by the classic form too.
+- **API.** `GET/POST /api/ui/v1/devices/{id}/traffic-interfaces` (`monitoring.read` / `devices.write` + CSRF).
+
 ## 0.49.164 — 2026-10-15
 
 The new interface is the default (phase 8a)
