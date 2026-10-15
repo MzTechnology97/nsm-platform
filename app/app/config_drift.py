@@ -190,12 +190,7 @@ def set_config_baseline(request: Request, device_id: uuid.UUID, artifact_id: uui
             user = core.require_permission(request, db, "backup.configure")
             device = db.get(Device, device_id)
             if not device or device.vendor != "mikrotik": raise HTTPException(404, "Apparato MikroTik non trovato.")
-            if not _artifact_for_device(db, device.id, artifact_id): raise HTTPException(404, "Export non disponibile per questo apparato.")
-            inventory = dict(device.inventory_data or {}); inventory[BASELINE_KEY] = str(artifact_id); inventory[BASELINE_AT_KEY] = utcnow().isoformat(); device.inventory_data = inventory
-            issue = _open_drift_issue(db, device.id)
-            if issue: issue.status = "resolved"; issue.resolved_at = utcnow(); issue.updated_at = utcnow()
-            core.add_event(db, "CONFIG_BASELINE_APPROVED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"artifact_id": str(artifact_id)}, source="portal")
-            db.commit()
+            set_baseline_record(db, user, device, artifact_id)
     except HTTPException as exc:
         return _baseline_http_feedback(request, device_id, exc)
     return flash_redirect(
@@ -205,6 +200,26 @@ def set_config_baseline(request: Request, device_id: uuid.UUID, artifact_id: uui
         "L'export selezionato è ora la baseline di riferimento per il rilevamento delle variazioni di configurazione.",
         title="Baseline configurazione aggiornata",
     )
+
+
+def set_baseline_record(db, user, device: Device, artifact_id: uuid.UUID) -> None:
+    """Approve one export as the configuration baseline (the open drift issue is resolved), audited; commits.
+
+    HTTPException 404 when the export does not belong to the device.
+    """
+    if not _artifact_for_device(db, device.id, artifact_id):
+        raise HTTPException(404, "Export non disponibile per questo apparato.")
+    inventory = dict(device.inventory_data or {})
+    inventory[BASELINE_KEY] = str(artifact_id)
+    inventory[BASELINE_AT_KEY] = utcnow().isoformat()
+    device.inventory_data = inventory
+    issue = _open_drift_issue(db, device.id)
+    if issue:
+        issue.status = "resolved"
+        issue.resolved_at = utcnow()
+        issue.updated_at = utcnow()
+    core.add_event(db, "CONFIG_BASELINE_APPROVED", actor=user, customer_id=device.customer_id, device_id=device.id, details={"artifact_id": str(artifact_id)}, source="portal")
+    db.commit()
 
 
 def _install_backup_completion_hook():

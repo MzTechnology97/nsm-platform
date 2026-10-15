@@ -122,3 +122,77 @@ export interface ComplianceRow {
 
 export const useDeviceCompliance = (id: string) =>
   useQuery({ queryKey: ["device", id, "compliance"], queryFn: () => api<{ rows: ComplianceRow[]; last_eval: string | null }>(`${base(id)}/compliance`) });
+
+export interface ConfigFilters {
+  section: string;
+  q?: string;
+  state?: string;
+  kind?: string;
+  action?: string;
+}
+
+export interface ConfigView {
+  sections: { key: string; read_at: string | null }[];
+  section: string;
+  read_at: string | null;
+  pending: string[];
+  online: boolean;
+  can_refresh: boolean;
+  can_history: boolean;
+  view: {
+    rows: Record<string, string | number | boolean | null>[];
+    stats: Record<string, number>;
+    cards?: { key: string; label: string; value: string; hint: string }[];
+    details?: { key: string; label: string; value: string | number }[];
+    actions?: string[];
+    states?: string[];
+    kinds?: string[];
+  };
+}
+
+export const useDeviceConfiguration = (id: string, filters: ConfigFilters) =>
+  useQuery({
+    queryKey: ["device", id, "configuration", filters],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(filters)) if (value) params.set(key, value);
+      return api<ConfigView>(`${base(id)}/configuration?${params}`);
+    },
+    placeholderData: keepPreviousData,
+    refetchInterval: (q) => (q.state.data?.pending.length ? 10_000 : false),
+  });
+
+export function useConfigRefresh(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (section: string) => api<{ queued: boolean }>(`${base(id)}/configuration/refresh`, { method: "POST", body: JSON.stringify({ section }) }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["device", id, "configuration"] }),
+  });
+}
+
+export interface ConfigHistory {
+  rows: {
+    id: string;
+    filename: string;
+    size_bytes: number;
+    sha256: string | null;
+    completed_at: string;
+    previous_id: string | null;
+    summary: { added: number; removed: number; error?: boolean } | null;
+    baseline: boolean;
+  }[];
+  baseline_id: string | null;
+  drift: { added: number; removed: number; reference_kind: string | null; severity: string } | null;
+  can_baseline: boolean;
+}
+
+export const useConfigHistory = (id: string) =>
+  useQuery({ queryKey: ["device", id, "configuration-history"], queryFn: () => api<ConfigHistory>(`${base(id)}/configuration/history`) });
+
+export function useSetBaseline(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (artifactId: string) => api<{ baseline_id: string }>(`${base(id)}/configuration/history/${artifactId}/baseline`, { method: "POST" }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["device", id, "configuration-history"] }),
+  });
+}

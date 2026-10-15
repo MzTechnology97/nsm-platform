@@ -8,7 +8,16 @@
   ``.../exposure/target`` (``security.remediate``) start a check and set the
   public IP to probe through ``request_check_record`` / ``set_target_record``;
 - ``GET /api/ui/v1/devices/{id}/compliance`` (``compliance.read``): the
-  results of the effective baseline, failures first.
+  results of the effective baseline, failures first;
+- ``GET /api/ui/v1/devices/{id}/configuration`` (``devices.read``, MikroTik):
+  one configuration section from the latest agent read, filtered as on the
+  classic page (``mikrotik_configuration_unified.build_section_view``);
+  ``POST .../configuration/refresh`` (``devices.write``) asks for a new read
+  (``mikrotik_workspace.queue_snapshot_record``);
+- ``GET /api/ui/v1/devices/{id}/configuration/history`` (``backup.read``):
+  archived RouterOS exports with the change summary, baseline and open drift;
+  ``POST .../history/{artifact_id}/baseline`` (``backup.configure``) approves
+  one (``config_drift.set_baseline_record``).
 
 Customer scope comes from the global ORM filter (another customer's device is a 404).
 """
@@ -133,3 +142,94 @@ def device_compliance(request: Request, device_id: uuid.UUID):
 
 def install_ui_device_tabs(app) -> None:
     app.include_router(router)
+
+
+# --- Configuration -------------------------------------------------------------------------------
+
+CONFIG_SECTIONS = ("resources", "interfaces", "ip_addresses", "routes", "firewall", "dhcp_leases", "ppp_active", "logs")
+
+
+def _mikrotik(db, device_id: uuid.UUID) -> Device:
+    device = _device(db, device_id)
+    if device.vendor != "mikrotik":
+        raise HTTPException(404, "Configurazione disponibile solo per MikroTik.")
+    return device
+
+
+@router.get("/devices/{device_id}/configuration")
+def device_configuration(request: Request, device_id: uuid.UUID, section: str = "resources", q: str = "", state: str = "all", kind: str = "all",
+                         action: str = "all"):
+    from app import mikrotik_configuration_unified as unified
+    from app import mikrotik_workspace as workspace
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.read")
+        device = _mikrotik(db, device_id)
+        section = section if section in CONFIG_SECTIONS else "resources"
+        snapshots = workspace._latest_snapshots(db, device.id)
+        view = unified.build_section_view(section, snapshots, q=q[:100], state=state, kind=kind, action=action)
+        snapshot = view.pop("snapshot")
+        if "kinds" in view:
+            view["kinds"] = [key for key, _label in view["kinds"]]
+        return jsonable_encoder({
+            "sections": [{"key": key, "read_at": (snapshots[key].completed_at or snapshots[key].created_at) if key in snapshots else None} for key in CONFIG_SECTIONS],
+            "section": section,
+            "read_at": (snapshot.completed_at or snapshot.created_at) if snapshot else None,
+            "pending": sorted(workspace._pending_sections(db, device.id)),
+            "online": device.status == "online",
+            "can_refresh": core.has_permission(user, "devices.write"),
+            "can_history": core.has_permission(user, "backup.read"),
+            "view": view,
+        })
+
+
+@router.post("/devices/{device_id}/configuration/refresh", dependencies=[Depends(require_csrf)])
+def device_configuration_refresh(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    from app import mikrotik_workspace as workspace
+
+    section = body.get("section")
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.write")
+        device = _mikrotik(db, device_id)
+        try:
+            queued = workspace.queue_snapshot_record(db, user, device, section if isinstance(section, str) else "")
+        except InputError as exc:
+            raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from None
+        return {"queued": queued}
+
+
+@router.get("/devices/{device_id}/configuration/history")
+def device_configuration_history(request: Request, device_id: uuid.UUID):
+    from app import config_drift
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "backup.read")
+        device = _mikrotik(db, device_id)
+        baseline = config_drift._baseline_id(device)
+        issue = config_drift._open_drift_issue(db, device.id)
+        rows = []
+        for row in config_drift._history_rows(db, device):
+            artifact, run, previous, summary = row["artifact"], row["run"], row["previous"], row["summary"]
+            rows.append({
+                "id": str(artifact.id), "filename": artifact.filename, "size_bytes": artifact.size_bytes or 0, "sha256": (artifact.sha256 or "")[:12] or None,
+                "completed_at": (run.completed_at if run else None) or artifact.created_at, "previous_id": str(previous.id) if previous else None,
+                "summary": summary, "baseline": baseline is not None and str(baseline) == str(artifact.id),
+            })
+        details = (issue.details or {}) if issue else {}
+        return jsonable_encoder({
+            "rows": rows, "baseline_id": str(baseline) if baseline else None,
+            "drift": {"added": details.get("added", 0), "removed": details.get("removed", 0), "reference_kind": details.get("reference_kind"),
+                      "severity": issue.severity} if issue else None,
+            "can_baseline": core.has_permission(user, "backup.configure"),
+        })
+
+
+@router.post("/devices/{device_id}/configuration/history/{artifact_id}/baseline", dependencies=[Depends(require_csrf)])
+def device_configuration_baseline(request: Request, device_id: uuid.UUID, artifact_id: uuid.UUID):
+    from app import config_drift
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "backup.configure")
+        device = _mikrotik(db, device_id)
+        config_drift.set_baseline_record(db, user, device, artifact_id)
+        return {"baseline_id": str(artifact_id)}

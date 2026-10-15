@@ -393,6 +393,16 @@ const deviceOverviewRoute = createRoute({ getParentRoute: () => deviceRoute, pat
 const deviceExposureRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/exposure", component: lazyRouteComponent(() => import("../pages/DeviceTabs"), "DeviceExposure") });
 const deviceComplianceRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/compliance", component: lazyRouteComponent(() => import("../pages/DeviceTabs"), "DeviceCompliance") });
 const deviceJobsRoute = createRoute({ getParentRoute: () => deviceRoute, path: "/jobs", component: lazyRouteComponent(() => import("../pages/DeviceTabs"), "DeviceActivity") });
+const deviceConfigurationRoute = createRoute({
+  getParentRoute: () => deviceRoute,
+  path: "/configuration",
+  component: lazyRouteComponent(() => import("../pages/DeviceConfiguration"), "DeviceConfiguration"),
+});
+const deviceConfigurationHistoryRoute = createRoute({
+  getParentRoute: () => deviceRoute,
+  path: "/configuration/history",
+  component: lazyRouteComponent(() => import("../pages/DeviceConfiguration"), "DeviceConfigurationHistory"),
+});
 const deviceManageRoute = createRoute({
   getParentRoute: () => deviceRoute,
   path: "/manage",
@@ -452,7 +462,7 @@ export const routeTree = rootRoute.addChildren([
   customerNewRoute,
   customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute, customerDevicesManageRoute]),
   deviceImportRoute,
-  deviceRoute.addChildren([deviceOverviewRoute, deviceManageRoute, deviceExposureRoute, deviceComplianceRoute, deviceJobsRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
+  deviceRoute.addChildren([deviceOverviewRoute, deviceManageRoute, deviceExposureRoute, deviceComplianceRoute, deviceJobsRoute, deviceConfigurationRoute, deviceConfigurationHistoryRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);
 
 export const router = createRouter({ routeTree, basepath: "/app", defaultPreload: "intent" });

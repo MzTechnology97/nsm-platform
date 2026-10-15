@@ -18,6 +18,7 @@ const MIGRATED_TABS = {
   exposure: "/devices/$deviceId/exposure",
   compliance: "/devices/$deviceId/compliance",
   activity: "/devices/$deviceId/jobs",
+  configuration: "/devices/$deviceId/configuration",
 } as const;
 
 /** Device shell: breadcrumbs, title, actions and tabs; the active tab renders in the outlet. */
