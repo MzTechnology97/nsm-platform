@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
 import { FIRMWARE_STATES, type FirmwareFilters, type FirmwareRow, useFirmware, useFirmwareCheck } from "../api/operations";
-import { ClassicForm } from "../app/ClassicForm";
+import { useFirmwareAction } from "../api/deviceTabs";
 import { formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 
@@ -142,15 +142,27 @@ function Row({ row }: { row: FirmwareRow }) {
               {checked ? t(`firmware.check.${check.data?.state}`, { defaultValue: t("firmware.check.queued") }) : t("firmware.check.now")}
             </button>
           )}
-          {row.can_plan && (
-            <ClassicForm action={`/devices/${row.id}/firmware-upgrade/plan`}>
-              <button type="submit" className="ui-button ui-button-primary ui-button-small">{t("firmware.prepare")}</button>
-            </ClassicForm>
-          )}
-          <a className="ui-button ui-button-ghost ui-button-small" href={`/devices/${row.id}/firmware-upgrade`}>{t("firmware.plan")}</a>
+          {row.can_plan && <PreparePlan deviceId={row.id} />}
+          <Link className="ui-button ui-button-ghost ui-button-small" to="/devices/$deviceId/firmware-upgrade" params={{ deviceId: row.id }}>{t("firmware.plan")}</Link>
         </div>
         {check.error && check.variables === row.id && <small className="ui-backup-error">{(check.error as Error).message}</small>}
       </td>
     </tr>
+  );
+}
+
+/** Opens (or reuses) the upgrade plan of a device, then shows it. */
+function PreparePlan({ deviceId }: { deviceId: string }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const create = useFirmwareAction(deviceId, "firmware-upgrade/plan");
+  return (
+    <>
+      <button type="button" className="ui-button ui-button-primary ui-button-small" disabled={create.isPending}
+        onClick={() => create.mutate(undefined, { onSuccess: () => void navigate({ to: "/devices/$deviceId/firmware-upgrade", params: { deviceId } }) })}>
+        {t("firmware.prepare")}
+      </button>
+      {create.error && <small className="ui-backup-error ui-block">{(create.error as Error).message}</small>}
+    </>
   );
 }

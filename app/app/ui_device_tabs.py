@@ -24,7 +24,15 @@
 - ``GET /api/ui/v1/devices/{id}/routerboot`` (``firmware.read``, MikroTik):
   bootloader versions and workflow state; ``POST .../stage`` and
   ``.../reboot`` (``firmware.execute``) with the classic literal confirmations
-  (``routerboot_lifecycle.stage_record`` / ``reboot_record``).
+  (``routerboot_lifecycle.stage_record`` / ``reboot_record``);
+- ``GET /api/ui/v1/devices/{id}/firmware-upgrade`` (``firmware.read``,
+  MikroTik): observed prerequisites, catalogue, latest plan with its gates,
+  legacy-agent upgrade; ``POST .../firmware-upgrade/plan`` and
+  ``.../firmware-upgrade/{plan_id}/approve|stage|activate|cancel`` and
+  ``.../legacy-upgrade`` (``firmware.execute``) run the classic steps with the
+  same literal confirmations (``firmware_upgrade_planner``,
+  ``firmware_package_staging``, ``firmware_activation``,
+  ``mikrotik_legacy_operations``).
 
 Customer scope comes from the global ORM filter (another customer's device is a 404).
 """
@@ -331,3 +339,125 @@ def device_routerboot_action(request: Request, device_id: uuid.UUID, action: str
         except InputError as exc:
             raise _input_error(exc) from None
         return {"job_id": str(job.id)}
+
+
+# --- RouterOS upgrade plan -----------------------------------------------------------------------
+
+def _plan_error(exc: HTTPException) -> HTTPException:
+    """Classic plan errors (400 invalid confirmation, 409 gate not met) as 422 ``{code, message}``; 404 passes through."""
+    if isinstance(exc, InputError):
+        return _input_error(exc)
+    if exc.status_code in (400, 409):
+        return HTTPException(422, {"code": "invalid" if exc.status_code == 400 else "conflict", "message": str(exc.detail)})
+    return exc
+
+
+def _firmware_device(db, device_id: uuid.UUID) -> Device:
+    from app import firmware_upgrade_planner as planner
+
+    device = planner._load_device(db, device_id)
+    if device.vendor != "mikrotik":
+        raise HTTPException(404, "Piano firmware disponibile solo per MikroTik.")
+    return device
+
+
+@router.get("/devices/{device_id}/firmware-upgrade")
+def device_firmware_upgrade(request: Request, device_id: uuid.UUID, plan: str = ""):
+    from app import firmware_upgrade_planner as planner
+    from app import mikrotik_legacy_operations as legacy
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.read")
+        device = _firmware_device(db, device_id)
+        try:
+            plan_id = uuid.UUID(plan) if plan else None
+        except ValueError:
+            raise HTTPException(404) from None
+        upgrade_plan, backup_run = planner.latest_plan(db, device, plan_id)
+        readiness = planner._readiness(device)
+        data = device.inventory_data or {}
+        legacy_info = legacy.legacy_upgrade_info(device)
+        out = {
+            "installed": device.firmware_version, "recommended": device.recommended_firmware_version, "routerboot": device.routerboot_version,
+            "readiness": {key: readiness.get(key) for key in ("latest_version", "channel", "free_hdd_space", "routerboard_current", "routerboard_upgrade", "checked_at")},
+            "agent_transport": data.get("agent_transport"),
+            "catalog": data.get("firmware_catalog"),
+            "can_execute": core.has_permission(user, "firmware.execute"),
+            "plan": None,
+            "legacy": None,
+        }
+        if upgrade_plan:
+            activation = dict((upgrade_plan.precheck_data or {}).get("activation") or {})
+            target = upgrade_plan.target_version
+            out["plan"] = {
+                "id": str(upgrade_plan.id), "target_version": target, "channel": upgrade_plan.channel, "status": upgrade_plan.status,
+                "created_at": upgrade_plan.created_at, "ready_at": upgrade_plan.ready_at, "approved_at": upgrade_plan.approved_at,
+                "started_at": upgrade_plan.started_at, "completed_at": upgrade_plan.completed_at, "last_error": upgrade_plan.last_error,
+                "backup_run_id": str(upgrade_plan.backup_run_id) if upgrade_plan.backup_run_id else None,
+                "backup_status": backup_run.status if backup_run else None,
+                "activation": {key: activation.get(key) for key in ("accepted_at", "verified_at", "observed_version")},
+                "confirmations": {"approve": f"UPGRADE {target}", "stage": f"DOWNLOAD {target}", "activate": f"ACTIVATE {target}"},
+            }
+        if legacy_info is not None:
+            out["legacy"] = {
+                "target": legacy_info["target"], "blocker": legacy_info["blocker"], "state": legacy_info["state"],
+                "channel": legacy_info["readiness"].get("channel"), "checked_at": legacy_info["readiness"].get("checked_at"),
+                "confirmation": f"AGGIORNA {legacy_info['target']}" if legacy_info["target"] else None,
+            }
+        return jsonable_encoder(out)
+
+
+@router.post("/devices/{device_id}/firmware-upgrade/plan", dependencies=[Depends(require_csrf)])
+def device_firmware_plan(request: Request, device_id: uuid.UUID):
+    from app import firmware_upgrade_planner as planner
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.execute")
+        device = _firmware_device(db, device_id)
+        try:
+            plan_id, created = planner.open_plan(db, device, user)
+        except HTTPException as exc:
+            raise _plan_error(exc) from None
+        db.commit()
+        return {"plan_id": str(plan_id), "created": created}
+
+
+@router.post("/devices/{device_id}/firmware-upgrade/{plan_id}/{action}", dependencies=[Depends(require_csrf)])
+def device_firmware_plan_action(request: Request, device_id: uuid.UUID, plan_id: uuid.UUID, action: str, body: dict = Body(default={})):
+    from app import firmware_activation, firmware_package_staging
+    from app import firmware_upgrade_planner as planner
+
+    if action not in {"approve", "stage", "activate", "cancel"}:
+        raise HTTPException(404)
+    confirmation = body.get("confirmation")
+    confirmation = confirmation if isinstance(confirmation, str) else ""
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.execute")
+        device = _firmware_device(db, device_id)
+        try:
+            if action == "approve":
+                planner.approve_record(db, user, device, plan_id, confirmation)
+            elif action == "stage":
+                firmware_package_staging.stage_record(db, user, device, plan_id, confirmation)
+            elif action == "activate":
+                firmware_activation.activate_record(db, user, device, plan_id, confirmation)
+            else:
+                planner.cancel_record(db, user, device, plan_id)
+        except HTTPException as exc:
+            raise _plan_error(exc) from None
+        return {"plan_id": str(plan_id), "action": action}
+
+
+@router.post("/devices/{device_id}/legacy-upgrade", dependencies=[Depends(require_csrf)])
+def device_legacy_upgrade(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    from app import mikrotik_legacy_operations as legacy
+
+    confirmation = body.get("confirmation")
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.execute")
+        device = _firmware_device(db, device_id)
+        try:
+            target = legacy.queue_legacy_upgrade_record(db, user, device, confirmation if isinstance(confirmation, str) else "", body.get("backup_ack") is True)
+        except InputError as exc:
+            raise _input_error(exc) from None
+        return {"target": target}

@@ -3512,5 +3512,107 @@
       "not_staged": "The bootloader must be flashed first.",
       "no_target": "Target version missing."
     }
+  },
+  "firmwarePlan": {
+    "title": "RouterOS upgrade",
+    "help": "Pre-upgrade backup, approval, package download, activation and post-reboot verification as separate steps.",
+    "worklist": "Firmware worklist",
+    "installed": "Installed",
+    "target": "Available version",
+    "channel": "channel {{channel}}",
+    "space": "Free space",
+    "checked": "Last check",
+    "noTransport": "agent not declared",
+    "catalog": "MikroTik catalogue ({{channel}}): latest version {{version}} released {{when}}.",
+    "catalogNewer": "Update available.",
+    "catalogSecurity": "Security update ({{reasons}}).",
+    "catalogCurrent": "RouterOS up to date on the channel.",
+    "routerbootSeparate": "RouterBOOT is upgraded separately, never together with RouterOS.",
+    "legacyTitle": "Upgrade with the legacy agent",
+    "legacyHelp": "The agent checks the channel again and runs /system package update install (download and reboot) only after NSM confirms; NSM verifies the version when the router comes back.",
+    "legacyStates": {
+      "queued": "Queued",
+      "upgrading": "Downloading and rebooting",
+      "verified": "Upgrade verified",
+      "failed": "Upgrade failed"
+    },
+    "legacyTarget": "Target version: RouterOS {{version}}.",
+    "legacyAck": "I have a recent export or backup of this router (legacy agents do not run NSM backups).",
+    "legacySubmit": "Upgrade and reboot",
+    "legacyQueued": "Upgrade queued: the agent runs it at the next heartbeat; the router will reboot.",
+    "noPlanTitle": "No plan",
+    "noPlan": "Create a plan after a recent firmware check: NSM runs the pre-upgrade backup at once.",
+    "create": "Create upgrade plan",
+    "createNew": "New plan",
+    "planTitle": "RouterOS {{version}} plan",
+    "states": {
+      "draft": "draft",
+      "backup_pending": "backup running",
+      "ready": "ready",
+      "approved": "approved",
+      "staging": "downloading",
+      "staged": "packages ready",
+      "activation_pending": "activation queued",
+      "reboot_pending": "rebooting",
+      "success": "completed",
+      "failed": "failed",
+      "cancelled": "cancelled"
+    },
+    "dates": {
+      "created_at": "Created",
+      "ready_at": "Ready",
+      "approved_at": "Approved",
+      "started_at": "Download started",
+      "completed_at": "Finished"
+    },
+    "backup": "Pre-upgrade backup",
+    "backupStates": {
+      "success": "succeeded",
+      "failed": "failed",
+      "running": "running",
+      "pending": "queued"
+    },
+    "accepted": "Reboot accepted by the agent: NSM waits for an inventory after the reboot before closing the plan.",
+    "verified": "Version verified after the reboot: {{version}}.",
+    "steps": {
+      "readiness": {
+        "title": "Recent check",
+        "help": "Target version and prerequisites read before the plan was created."
+      },
+      "backup": {
+        "title": "Off-device backup",
+        "help": "NSM backup linked to the plan."
+      },
+      "approval": {
+        "title": "Approval",
+        "help": "Firmware execution permission and literal confirmation of the version."
+      },
+      "download": {
+        "title": "Package download",
+        "help": "The target is checked again on the MikroTik before the download."
+      },
+      "activation": {
+        "title": "Activation and reboot",
+        "help": "Third confirmation; the agent acknowledges before rebooting and NSM verifies the version."
+      }
+    },
+    "approveTitle": "Approve the plan",
+    "approveHelp": "The backup succeeded: approve the upgrade.",
+    "approve": "Approve",
+    "stageTitle": "Download the packages",
+    "stageHelp": "Downloads RouterOS to the router without rebooting it.",
+    "stage": "Download",
+    "activateTitle": "Activate and reboot",
+    "activateHelp": "The router reboots with the downloaded packages: the service stops meanwhile.",
+    "activate": "Activate",
+    "cancel": "Cancel the plan",
+    "cancelConfirm": "Cancel the plan? Pending jobs are withdrawn.",
+    "errors": {
+      "invalid": "Invalid request.",
+      "conflict": "Step not available now.",
+      "blocked": "Upgrade not available.",
+      "confirmation": "Invalid confirmation.",
+      "backup_ack": "Confirm that you have a recent backup."
+    }
   }
 }

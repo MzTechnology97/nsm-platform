@@ -3512,5 +3512,107 @@
       "not_staged": "Serve prima il flash del bootloader.",
       "no_target": "Versione di destinazione mancante."
     }
+  },
+  "firmwarePlan": {
+    "title": "Aggiornamento RouterOS",
+    "help": "Backup pre-aggiornamento, approvazione, download dei pacchetti, attivazione e verifica dopo il riavvio come passi separati.",
+    "worklist": "Worklist firmware",
+    "installed": "Installato",
+    "target": "Versione disponibile",
+    "channel": "canale {{channel}}",
+    "space": "Spazio libero",
+    "checked": "Ultima verifica",
+    "noTransport": "agent non dichiarato",
+    "catalog": "Catalogo MikroTik ({{channel}}): ultima versione {{version}} del {{when}}.",
+    "catalogNewer": "Aggiornamento disponibile.",
+    "catalogSecurity": "Aggiornamento di sicurezza ({{reasons}}).",
+    "catalogCurrent": "RouterOS aggiornato sul canale.",
+    "routerbootSeparate": "Il RouterBOOT si aggiorna a parte, mai insieme a RouterOS.",
+    "legacyTitle": "Aggiornamento con agent legacy",
+    "legacyHelp": "L'agent ricontrolla il canale ed esegue /system package update install (download e riavvio) solo dopo la conferma di NSM; NSM verifica la versione al ritorno online.",
+    "legacyStates": {
+      "queued": "In coda",
+      "upgrading": "Download e riavvio in corso",
+      "verified": "Aggiornamento verificato",
+      "failed": "Aggiornamento non riuscito"
+    },
+    "legacyTarget": "Versione di destinazione: RouterOS {{version}}.",
+    "legacyAck": "Ho un export o backup recente di questo router (gli agent legacy non eseguono backup NSM).",
+    "legacySubmit": "Aggiorna e riavvia",
+    "legacyQueued": "Aggiornamento in coda: l'agent lo eseguirà al prossimo heartbeat; il router si riavvierà.",
+    "noPlanTitle": "Nessun piano",
+    "noPlan": "Crea un piano dopo una verifica firmware recente: NSM esegue subito il backup pre-aggiornamento.",
+    "create": "Crea piano di aggiornamento",
+    "createNew": "Nuovo piano",
+    "planTitle": "Piano RouterOS {{version}}",
+    "states": {
+      "draft": "bozza",
+      "backup_pending": "backup in corso",
+      "ready": "pronto",
+      "approved": "approvato",
+      "staging": "download in corso",
+      "staged": "pacchetti pronti",
+      "activation_pending": "attivazione in coda",
+      "reboot_pending": "riavvio in corso",
+      "success": "completato",
+      "failed": "non riuscito",
+      "cancelled": "annullato"
+    },
+    "dates": {
+      "created_at": "Creato",
+      "ready_at": "Pronto",
+      "approved_at": "Approvato",
+      "started_at": "Download avviato",
+      "completed_at": "Concluso"
+    },
+    "backup": "Backup pre-aggiornamento",
+    "backupStates": {
+      "success": "riuscito",
+      "failed": "fallito",
+      "running": "in corso",
+      "pending": "in coda"
+    },
+    "accepted": "Riavvio accettato dall'agent: NSM attende un inventario successivo al riavvio prima di chiudere il piano.",
+    "verified": "Versione verificata dopo il riavvio: {{version}}.",
+    "steps": {
+      "readiness": {
+        "title": "Verifica recente",
+        "help": "Versione di destinazione e prerequisiti letti prima di creare il piano."
+      },
+      "backup": {
+        "title": "Backup fuori dall'apparato",
+        "help": "Backup NSM associato al piano."
+      },
+      "approval": {
+        "title": "Approvazione",
+        "help": "Permesso di esecuzione firmware e conferma letterale della versione."
+      },
+      "download": {
+        "title": "Download dei pacchetti",
+        "help": "La versione viene ricontrollata sul MikroTik prima del download."
+      },
+      "activation": {
+        "title": "Attivazione e riavvio",
+        "help": "Terza conferma; l'agent invia l'ack prima del riavvio e NSM verifica la versione."
+      }
+    },
+    "approveTitle": "Approva il piano",
+    "approveHelp": "Il backup è riuscito: approva l'aggiornamento.",
+    "approve": "Approva",
+    "stageTitle": "Scarica i pacchetti",
+    "stageHelp": "Scarica RouterOS sul router senza riavviarlo.",
+    "stage": "Scarica",
+    "activateTitle": "Attiva e riavvia",
+    "activateHelp": "Il router si riavvia con i pacchetti scaricati: il servizio si interrompe.",
+    "activate": "Attiva",
+    "cancel": "Annulla il piano",
+    "cancelConfirm": "Annullare il piano? I job in attesa vengono ritirati.",
+    "errors": {
+      "invalid": "Richiesta non valida.",
+      "conflict": "Passo non disponibile ora.",
+      "blocked": "Aggiornamento non disponibile.",
+      "confirmation": "Conferma non valida.",
+      "backup_ack": "Conferma di avere un backup recente."
+    }
   }
 }

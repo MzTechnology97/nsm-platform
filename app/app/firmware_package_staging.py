@@ -108,52 +108,7 @@ def stage_plan(
     with SessionLocal() as db:
         user = core.require_permission(request, db, "firmware.execute")
         device = _load_device(db, device_id)
-        plan = db.get(FirmwareUpgradePlan, plan_id)
-        _validate_plan_for_staging(db, device, plan)
-        expected = f"DOWNLOAD {plan.target_version}"
-        if confirmation.strip() != expected:
-            raise HTTPException(400, f"Conferma non valida. Inserisci esattamente: {expected}")
-        existing = db.scalar(
-            select(DeviceJob.id).where(
-                DeviceJob.device_id == device.id,
-                DeviceJob.job_type == JOB_TYPE,
-                DeviceJob.status.in_(["pending", "delivered", "running"]),
-            )
-        )
-        if existing:
-            raise HTTPException(409, "Staging firmware già in corso.")
-        job = DeviceJob(
-            device_id=device.id,
-            job_type=JOB_TYPE,
-            expires_at=utcnow() + STAGING_JOB_TTL,
-            payload={
-                "plan_id": str(plan.id),
-                "target_version": plan.target_version,
-                "channel": plan.channel,
-                "download_only": True,
-            },
-        )
-        db.add(job)
-        db.flush()
-        plan.status = "staging"
-        plan.started_at = utcnow()
-        plan.last_error = None
-        core.add_event(
-            db,
-            "FIRMWARE_PACKAGE_STAGING_QUEUED",
-            actor=user,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            details={
-                "plan_id": str(plan.id),
-                "job_id": str(job.id),
-                "target_version": plan.target_version,
-                "download_only": True,
-            },
-            severity="warning",
-            source="portal",
-        )
-        db.commit()
+        stage_record(db, user, device, plan_id, confirmation)
     return RedirectResponse(
         f"/devices/{device_id}/firmware-upgrade?plan={plan_id}&staging=queued",
         status_code=303,
@@ -233,3 +188,54 @@ async def stage_complete(request: Request, job_id: uuid.UUID):
 def install_firmware_package_staging(app):
     _install_agent_handler()
     app.include_router(router)
+
+
+def stage_record(db, user, device: Device, plan_id: uuid.UUID, confirmation: str) -> DeviceJob:
+    """Queue the RouterOS package download (no reboot) of an approved plan after ``DOWNLOAD <target>``; audited, commits."""
+    plan = db.get(FirmwareUpgradePlan, plan_id)
+    _validate_plan_for_staging(db, device, plan)
+    expected = f"DOWNLOAD {plan.target_version}"
+    if (confirmation or "").strip() != expected:
+        raise HTTPException(400, f"Conferma non valida. Inserisci esattamente: {expected}")
+    existing = db.scalar(
+        select(DeviceJob.id).where(
+            DeviceJob.device_id == device.id,
+            DeviceJob.job_type == JOB_TYPE,
+            DeviceJob.status.in_(["pending", "delivered", "running"]),
+        )
+    )
+    if existing:
+        raise HTTPException(409, "Staging firmware già in corso.")
+    job = DeviceJob(
+        device_id=device.id,
+        job_type=JOB_TYPE,
+        expires_at=utcnow() + STAGING_JOB_TTL,
+        payload={
+            "plan_id": str(plan.id),
+            "target_version": plan.target_version,
+            "channel": plan.channel,
+            "download_only": True,
+        },
+    )
+    db.add(job)
+    db.flush()
+    plan.status = "staging"
+    plan.started_at = utcnow()
+    plan.last_error = None
+    core.add_event(
+        db,
+        "FIRMWARE_PACKAGE_STAGING_QUEUED",
+        actor=user,
+        customer_id=device.customer_id,
+        device_id=device.id,
+        details={
+            "plan_id": str(plan.id),
+            "job_id": str(job.id),
+            "target_version": plan.target_version,
+            "download_only": True,
+        },
+        severity="warning",
+        source="portal",
+    )
+    db.commit()
+    return job

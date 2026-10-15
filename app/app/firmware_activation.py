@@ -159,63 +159,7 @@ def activate_plan(
     with SessionLocal() as db:
         user = core.require_permission(request, db, "firmware.execute")
         device = _load_device(db, device_id)
-        plan = db.get(FirmwareUpgradePlan, plan_id)
-        _validate_plan_for_activation(db, device, plan)
-
-        expected = f"ACTIVATE {plan.target_version}"
-        if confirmation.strip() != expected:
-            raise HTTPException(400, f"Conferma non valida. Inserisci esattamente: {expected}")
-
-        existing = db.scalar(
-            select(DeviceJob.id).where(
-                DeviceJob.device_id == device.id,
-                DeviceJob.job_type == JOB_TYPE,
-                DeviceJob.status.in_(["pending", "delivered", "running"]),
-            )
-        )
-        if existing:
-            raise HTTPException(409, "Attivazione firmware già in corso.")
-
-        job = DeviceJob(
-            device_id=device.id,
-            job_type=JOB_TYPE,
-            expires_at=utcnow() + ACTIVATION_JOB_TTL,
-            payload={
-                "plan_id": str(plan.id),
-                "target_version": plan.target_version,
-                "channel": plan.channel,
-                "staged": True,
-                "action": "reboot_to_activate_staged_packages",
-            },
-        )
-        db.add(job)
-        db.flush()
-        plan.status = "activation_pending"
-        plan.last_error = None
-        data = dict(plan.precheck_data or {})
-        data["activation"] = {
-            "queued_at": utcnow().isoformat(),
-            "job_id": str(job.id),
-            "target_version": plan.target_version,
-            "routerboot_upgrade": False,
-        }
-        plan.precheck_data = data
-        core.add_event(
-            db,
-            "FIRMWARE_ACTIVATION_QUEUED",
-            actor=user,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            details={
-                "plan_id": str(plan.id),
-                "job_id": str(job.id),
-                "target_version": plan.target_version,
-                "routerboot_upgrade": False,
-            },
-            severity="warning",
-            source="portal",
-        )
-        db.commit()
+        activate_record(db, user, device, plan_id, confirmation)
 
     return RedirectResponse(
         f"/devices/{device_id}/firmware-upgrade?plan={plan_id}&activation=queued",
@@ -439,3 +383,65 @@ def reconcile_firmware_activations(now: datetime | None = None) -> dict[str, int
 def install_firmware_activation(app):
     _install_agent_handler()
     app.include_router(router)
+
+
+def activate_record(db, user, device: Device, plan_id: uuid.UUID, confirmation: str) -> DeviceJob:
+    """Queue the reboot that activates the staged packages after ``ACTIVATE <target>``; audited, commits."""
+    plan = db.get(FirmwareUpgradePlan, plan_id)
+    _validate_plan_for_activation(db, device, plan)
+
+    expected = f"ACTIVATE {plan.target_version}"
+    if (confirmation or "").strip() != expected:
+        raise HTTPException(400, f"Conferma non valida. Inserisci esattamente: {expected}")
+
+    existing = db.scalar(
+        select(DeviceJob.id).where(
+            DeviceJob.device_id == device.id,
+            DeviceJob.job_type == JOB_TYPE,
+            DeviceJob.status.in_(["pending", "delivered", "running"]),
+        )
+    )
+    if existing:
+        raise HTTPException(409, "Attivazione firmware già in corso.")
+
+    job = DeviceJob(
+        device_id=device.id,
+        job_type=JOB_TYPE,
+        expires_at=utcnow() + ACTIVATION_JOB_TTL,
+        payload={
+            "plan_id": str(plan.id),
+            "target_version": plan.target_version,
+            "channel": plan.channel,
+            "staged": True,
+            "action": "reboot_to_activate_staged_packages",
+        },
+    )
+    db.add(job)
+    db.flush()
+    plan.status = "activation_pending"
+    plan.last_error = None
+    data = dict(plan.precheck_data or {})
+    data["activation"] = {
+        "queued_at": utcnow().isoformat(),
+        "job_id": str(job.id),
+        "target_version": plan.target_version,
+        "routerboot_upgrade": False,
+    }
+    plan.precheck_data = data
+    core.add_event(
+        db,
+        "FIRMWARE_ACTIVATION_QUEUED",
+        actor=user,
+        customer_id=device.customer_id,
+        device_id=device.id,
+        details={
+            "plan_id": str(plan.id),
+            "job_id": str(job.id),
+            "target_version": plan.target_version,
+            "routerboot_upgrade": False,
+        },
+        severity="warning",
+        source="portal",
+    )
+    db.commit()
+    return job
