@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./client";
 
@@ -72,4 +72,30 @@ export function columns<T extends { timestamp: string }>(points: T[], fields: (k
     return typeof v === "number" && Number.isFinite(v) ? v : null;
   }));
   return { timestamps, values };
+}
+
+export interface TrafficInterface {
+  name: string;
+  type: string;
+  rx_bps: number | null;
+  tx_bps: number | null;
+  monitored: boolean;
+  wan: boolean;
+  group: string;
+}
+
+export const useTrafficInterfaces = (id: string, enabled: boolean) =>
+  useQuery({
+    queryKey: ["monitor", id, "interfaces"],
+    queryFn: () => api<{ rows: TrafficInterface[]; max: number; custom: boolean; can_edit: boolean }>(`/api/ui/v1/devices/${encodeURIComponent(id)}/traffic-interfaces`),
+    enabled,
+  });
+
+export function useSaveTrafficInterfaces(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { interfaces: string[]; reset?: boolean }) =>
+      api<{ monitored: string[] }>(`/api/ui/v1/devices/${encodeURIComponent(id)}/traffic-interfaces`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: ["monitor", id] }),
+  });
 }

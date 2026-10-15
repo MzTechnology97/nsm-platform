@@ -163,7 +163,7 @@
       "7d": "7 days",
       "30d": "30 days"
     },
-    "settings": "Interfaces and settings",
+    "settings": "Monitored interfaces",
     "noSamples": "No samples in this range.",
     "legend": {
       "current": "Current",
@@ -203,7 +203,15 @@
     "signalBest": "Best client",
     "signalWorst": "Worst client",
     "clients": "Connected clients",
-    "ccq": "Average CCQ"
+    "ccq": "Average CCQ",
+    "pickTitle": "Monitored interfaces",
+    "pickHelp": "NSM keeps the traffic history of at most {{max}} interfaces.",
+    "pickCustom": "Manual choice active.",
+    "pickAuto": "Automatic choice: WAN links, else ether1.",
+    "pickSave": "Save interfaces",
+    "pickReset": "Back to automatic",
+    "pickCount": "{{count}} of {{max}}",
+    "unknownType": "type n/a"
   },
   "syslog": {
     "today": {

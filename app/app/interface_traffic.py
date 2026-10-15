@@ -314,22 +314,29 @@ def device_traffic(request: Request, device_id: uuid.UUID, range: str = "24h", i
         }
 
 
+def set_monitored_record(db, user, device, interfaces: list[str], reset: bool = False) -> list[str]:
+    """Interfaces whose traffic history is kept (at most ``MAX_MONITORED``; ``reset`` = automatic choice); audited, commits."""
+    data = dict(device.inventory_data or {})
+    counters = data.get("interface_counters") if isinstance(data.get("interface_counters"), dict) else {}
+    if reset:
+        data.pop("traffic_interfaces", None)
+    else:
+        chosen = [name for name in dict.fromkeys(str(n) for n in interfaces) if name in counters]
+        data["traffic_interfaces"] = chosen[:MAX_MONITORED]
+    device.inventory_data = data
+    monitored = monitored_interfaces(data, counters)
+    core.add_event(db, "DEVICE_TRAFFIC_INTERFACES_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id,
+                   details={"interfaces": monitored}, source="portal")
+    db.commit()
+    return monitored
+
+
 async def save_monitored(request: Request, device_id: uuid.UUID):
     form = await request.form()
     validate_csrf(request, str(form.get("csrf") or ""))
     with SessionLocal() as db:
         user, device = _device_for(db, request, device_id, "devices.write")
-        data = dict(device.inventory_data or {})
-        counters = data.get("interface_counters") if isinstance(data.get("interface_counters"), dict) else {}
-        if form.get("reset"):
-            data.pop("traffic_interfaces", None)
-        else:
-            chosen = [str(name) for name in form.getlist("interface") if str(name) in counters]
-            data["traffic_interfaces"] = chosen[:MAX_MONITORED]
-        device.inventory_data = data
-        core.add_event(db, "DEVICE_TRAFFIC_INTERFACES_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id,
-                       details={"interfaces": monitored_interfaces(data, counters)}, source="portal")
-        db.commit()
+        set_monitored_record(db, user, device, [str(name) for name in form.getlist("interface")], bool(form.get("reset")))
     return RedirectResponse(f"/devices/{device_id}/monitor?status=traffic_saved#traffic", status_code=303)
 
 

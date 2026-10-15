@@ -1,9 +1,9 @@
 import { useParams } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDevice } from "../api/device";
-import { columns, RANGES, type Range, useLatency, useMetrics, useTraffic, useWireless } from "../api/monitor";
+import { columns, RANGES, type Range, useLatency, useMetrics, useSaveTrafficInterfaces, useTraffic, useTrafficInterfaces, useWireless } from "../api/monitor";
 import { formatValue } from "../charts/format";
 import { TimeChart } from "../charts/TimeChart";
 
@@ -12,6 +12,7 @@ export function DeviceMonitor() {
   const { deviceId } = useParams({ from: "/devices/$deviceId/monitor" });
   const { data: detail } = useDevice(deviceId);
   const [range, setRange] = useState<Range>("24h");
+  const [picking, setPicking] = useState(false);
 
   return (
     <div className="ui-monitor">
@@ -23,10 +24,11 @@ export function DeviceMonitor() {
             </button>
           ))}
         </div>
-        <a className="ui-button ui-button-ghost" href={`/devices/${deviceId}/monitor`}>
+        <button type="button" className="ui-button ui-button-ghost" aria-expanded={picking} onClick={() => setPicking((value) => !value)}>
           {t("monitor.settings")}
-        </a>
+        </button>
       </div>
+      {picking && <InterfacePicker id={deviceId} onDone={() => setPicking(false)} />}
       <ResourcesPanel id={deviceId} range={range} />
       <TrafficPanel id={deviceId} range={range} />
       {detail?.icmp.enabled && <LatencyPanel id={deviceId} range={range} />}
@@ -217,6 +219,64 @@ function WirelessPanel({ id, range }: { id: string; range: Range }) {
           ]}
         />
       </div>
+    </section>
+  );
+}
+
+/** Interfaces whose traffic history is kept (agent counters every heartbeat); automatic = WAN links, else ether1. */
+function InterfacePicker({ id, onDone }: { id: string; onDone: () => void }) {
+  const { t, i18n } = useTranslation();
+  const query = useTrafficInterfaces(id, true);
+  const save = useSaveTrafficInterfaces(id);
+  const [chosen, setChosen] = useState<Set<string>>(new Set());
+  const data = query.data;
+  useEffect(() => {
+    if (data) setChosen(new Set(data.rows.filter((row) => row.monitored).map((row) => row.name)));
+  }, [data]);
+  if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
+  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  const toggle = (name: string) => {
+    const next = new Set(chosen);
+    if (next.has(name)) next.delete(name);
+    else if (next.size < data.max) next.add(name);
+    setChosen(next);
+  };
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    save.mutate({ interfaces: [...chosen] }, { onSuccess: onDone });
+  };
+  const fmt = (value: number | null) => formatValue(value ?? null, "bps", i18n.language);
+  return (
+    <section className="ui-panel ui-admin-section">
+      <h2>{t("monitor.pickTitle")}</h2>
+      <p className="ui-muted">{t("monitor.pickHelp", { max: data.max })} {data.custom ? t("monitor.pickCustom") : t("monitor.pickAuto")}</p>
+      {data.rows.length ? (
+        <form onSubmit={submit}>
+          <div className="ui-admin-form ui-incident-devices">
+            {data.rows.map((row) => (
+              <label key={row.name} className="ui-with-brand">
+                <input type="checkbox" checked={chosen.has(row.name)} disabled={!data.can_edit || (!chosen.has(row.name) && chosen.size >= data.max)} onChange={() => toggle(row.name)} />
+                <span>
+                  <strong>{row.name}</strong>{row.wan && <> <span className="ui-tag">WAN</span></>}
+                  <small className="ui-muted ui-block">{row.type || t("monitor.unknownType")} · ↓ {fmt(row.rx_bps)} · ↑ {fmt(row.tx_bps)}</small>
+                </span>
+              </label>
+            ))}
+          </div>
+          {data.can_edit && (
+            <div className="ui-row-actions ui-policy-manage">
+              <button type="submit" className="ui-button ui-button-primary" disabled={save.isPending}>{t("monitor.pickSave")}</button>
+              <button type="button" className="ui-button ui-button-ghost" disabled={save.isPending} onClick={() => save.mutate({ interfaces: [], reset: true }, { onSuccess: onDone })}>
+                {t("monitor.pickReset")}
+              </button>
+              <small className="ui-muted">{t("monitor.pickCount", { count: chosen.size, max: data.max })}</small>
+            </div>
+          )}
+          {save.error && <p className="ui-backup-error">{(save.error as Error).message}</p>}
+        </form>
+      ) : (
+        <p className="ui-muted">{t("monitor.noInterfaces")}</p>
+      )}
     </section>
   );
 }
