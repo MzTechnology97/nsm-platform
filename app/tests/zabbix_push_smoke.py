@@ -187,11 +187,10 @@ def main():
 
     # Second sync: updates, IP change follows, hand-linked templates are kept, excluded device gets disabled.
     mt_host["templates"].append({"templateid": "99999"})
+    excluded = client.post(f"/api/ui/v1/devices/{ids['cpe']}/zabbix/exclude", headers=headers, json={"exclude": True})
+    assert excluded.status_code == 200 and excluded.json() == {"excluded": True}, excluded.text
     with SessionLocal() as db:
         db.get(Device, ids["mt"]).management_ip = "203.0.113.44"
-        data = dict(db.get(Device, ids["cpe"]).inventory_data or {})
-        data["zabbix_exclude"] = True
-        db.get(Device, ids["cpe"]).inventory_data = data
         db.commit()
         stats = zbx.sync(db)
     assert stats["status"] == "success" and stats["updated"] == 1 and stats["disabled"] == 1, stats
@@ -199,8 +198,9 @@ def main():
     assert cpe_host["status"] == 1, "hosts of excluded devices are disabled, not deleted"
     assert "host.delete" not in fake6.calls
 
-    detail = client.get(f"/devices/{ids['mt']}").text
-    assert "zabbix.php?action=latest.view&amp;hostids%5B%5D=" in detail or "zabbix.php?action=latest.view&hostids%5B%5D=" in detail
+    detail = client.get(f"/api/ui/v1/devices/{ids['mt']}").json()["zabbix"]
+    assert "zabbix.php?action=latest.view&hostids%5B%5D=" in detail["link"], detail
+    assert client.get(f"/api/ui/v1/devices/{ids['cpe']}").json()["zabbix"] == {"link": None, "excluded": True, "problems": None}
     hub = client.get("/api/ui/v1/integrations").json()["zabbix"]
     assert hub["state"] == "active" and hub["version"] == "6.0.30", hub
 
@@ -228,6 +228,8 @@ def main():
         raise AssertionError("unauthorised call accepted")
     except zbx.ZabbixError as exc:
         assert "Not authorised" in str(exc)
+    included = client.post(f"/api/ui/v1/devices/{ids['cpe']}/zabbix/exclude", headers=headers, json={"exclude": False})
+    assert included.json() == {"excluded": False}, "the device can be brought back into Zabbix"
     print("Zabbix push smoke passed")
 
 

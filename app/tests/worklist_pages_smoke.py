@@ -3,6 +3,7 @@ import re
 import uuid
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.entrypoint import app
@@ -70,7 +71,9 @@ def main():
     # Audit and dashboard show readable event names, keeping the code available.
     audit = client.get(f"/api/ui/v1/audit/events?customer={customer_id}").json()["items"]
     assert any(e["event_type"] == "BACKUP_EXPORT_VIEWED" and e["label"] == "Backup export viewed" for e in audit)
-    dashboard = client.get("/devices").text
+    with SessionLocal() as db:
+        failed_id = db.scalar(select(Device.id).where(Device.name == failed_name))
+    dashboard = client.get(f"/devices/{failed_id}/backups").text
     # Static assets are versioned by content, not by release number.
     assert re.search(r'/static/app\.css\?v=[0-9a-f]{12}"', dashboard), "app.css cache-busting token"
 

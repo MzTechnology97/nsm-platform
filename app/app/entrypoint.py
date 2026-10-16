@@ -28,7 +28,6 @@ from app.firmware_activation import install_firmware_activation
 from app.firmware_activation_privilege_guard import install_firmware_activation_privilege_guard
 from app.firmware_package_staging import install_firmware_package_staging
 from app.firmware_upgrade_planner import install_firmware_upgrade_planner
-from app.inventory_ui import install_inventory_ui
 from app.mikrotik_agent import install_mikrotik_agent
 from app.mikrotik_agent_generation import install_mikrotik_agent_generation
 from app.mikrotik_agent_status import install_mikrotik_agent_status
@@ -102,8 +101,6 @@ from app import shared_ips as _shared_ips
 from app.reports import install_reports
 from app.search_enhancement import install_search_enhancement
 from app.ui_action_feedback import install_ui_action_feedback
-from app.ui_backup_feedback import install_ui_backup_feedback
-from app.ui_device_crud_feedback import install_ui_device_crud_feedback
 from app.ui_extension import install_ui
 from app.ui_feedback import install_ui_feedback
 from app.ui_firmware_feedback import install_ui_firmware_feedback
@@ -130,7 +127,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.171"
+APP_VERSION = "0.49.172"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -218,7 +215,6 @@ install_interface_traffic(core.app)
 install_agent_addresses()
 install_device_logs(core.app)
 install_dashboard_ui(core.app)
-install_inventory_ui(core.app)
 install_branding_runtime(core.app)
 promote_device_csv_import_routes(core.app)
 install_activity_worklists(core.app)
@@ -280,9 +276,7 @@ install_mikrotik_workspace_ux_precedence(core.app)
 # precedence without changing agent/API JSON contracts.
 install_ui_action_feedback(core.app)
 install_ui_firmware_feedback(core.app)
-install_ui_backup_feedback(core.app)
 install_ui_firmware_upgrade_feedback(core.app)
-install_ui_device_crud_feedback(core.app)
 # Machine-facing completion idempotency must be installed after every route
 # composer/promoter so no later compatibility or UI layer can shadow it.
 install_mikrotik_job_completion_guard(core.app)

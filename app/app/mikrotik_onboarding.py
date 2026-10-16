@@ -106,6 +106,12 @@ def build_onboarding_command_v6(base_url: str, token: str) -> str:
     return "; ".join(parts)
 
 
+def enrollment_commands(base_url: str, token: str) -> dict:
+    """The one-shot agent install commands of the new interface: RouterOS 7 (guided checks) and RouterOS 6.48/6.49 (legacy agent)."""
+    base = str(base_url or "").rstrip("/")
+    return {"enrollment_command": build_onboarding_command(base, token), "enrollment_command_v6": build_onboarding_command_v6(base, token)}
+
+
 def _legacy_command_details(command: str):
     """Extract base URL/token from the Core <=0.24 enrollment command."""
     match = _BOOTSTRAP_URL_RE.search(str(command or ""))

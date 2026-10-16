@@ -14,14 +14,12 @@ import uuid
 from datetime import datetime, timedelta
 
 from fastapi import HTTPException, Request
-from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 
 from app import main as core
 from app.agent_models import DeviceInterfaceSample
 from app.db import SessionLocal
 from app.models import Device, utcnow
-from app.security import validate_csrf
 from app.telemetry_retention import expire_keep_latest
 
 RANGES = {"1h": timedelta(hours=1), "24h": timedelta(hours=24), "7d": timedelta(days=7), "30d": timedelta(days=30)}
@@ -195,16 +193,6 @@ def _group(kind: str) -> str:
     return "Altro"
 
 
-def format_bps(value) -> str:
-    if value is None:
-        return "—"
-    value = float(value)
-    for unit, size in (("Gbit/s", 1e9), ("Mbit/s", 1e6), ("kbit/s", 1e3)):
-        if value >= size:
-            return f"{value / size:.2f} {unit}"
-    return f"{value:.0f} bit/s"
-
-
 def percentile(values, pct=95):
     """Nearest-rank percentile, as Cacti/MRTG bill the 95th."""
     ordered = sorted(v for v in values if v is not None)
@@ -331,15 +319,6 @@ def set_monitored_record(db, user, device, interfaces: list[str], reset: bool = 
     return monitored
 
 
-async def save_monitored(request: Request, device_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user, device = _device_for(db, request, device_id, "devices.write")
-        set_monitored_record(db, user, device, [str(name) for name in form.getlist("interface")], bool(form.get("reset")))
-    return RedirectResponse(f"/devices/{device_id}/monitor?status=traffic_saved#traffic", status_code=303)
-
-
 def cleanup() -> int:
     cutoff = utcnow() - timedelta(days=RETENTION_DAYS)
     with SessionLocal() as db:
@@ -350,5 +329,3 @@ def cleanup() -> int:
 
 def install_interface_traffic(app) -> None:
     app.add_api_route("/api/v1/devices/{device_id}/traffic", device_traffic, methods=["GET"], name="device_traffic")
-    app.add_api_route("/devices/{device_id}/traffic/interfaces", save_monitored, methods=["POST"], name="device_traffic_interfaces", include_in_schema=False)
-    core.templates.env.globals.update(traffic_interfaces=interface_rows, format_bps=format_bps, traffic_max_monitored=MAX_MONITORED)

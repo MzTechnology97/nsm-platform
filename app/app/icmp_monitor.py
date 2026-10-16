@@ -28,10 +28,9 @@ from app import icmp_probe
 from app import main as core
 from app.agent_models import DevicePingSample
 from app.db import SessionLocal
+from app.input_errors import InputError
 from app.models import ActionIssue, Device, Notification, utcnow
-from app.security import validate_csrf
 from app.telemetry_retention import expire_keep_latest
-from app.ui_feedback import flash_redirect
 
 SETTINGS_KEY = "icmp_monitor"
 INTERVAL = timedelta(seconds=110)  # one round every 2 minutes (worker tick: 1 minute)
@@ -280,54 +279,47 @@ def device_latency(request: Request, device_id: uuid.UUID, range: str = "24h"):
                           "rtt_max": max((s.rtt_max for s in samples if s.rtt_max is not None), default=None)}}
 
 
-async def save_settings(request: Request, device_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    back = str(form.get("back") or f"/devices/{device_id}")
-    if not back.startswith(f"/devices/{device_id}"):
-        back = f"/devices/{device_id}"
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        enable = form.get("enabled") == "1"
-        limits = {}
-        for key, maximum in (("rtt_ms", 10000), ("loss_pct", 100)):
-            text = str(form.get(key) or "").strip().replace(",", ".")
-            if not text:
-                limits[key] = None
-                continue
-            try:
-                value = float(text)
-            except ValueError:
-                value = -1
-            if not 0 < value <= maximum:
-                return flash_redirect(request, back + "#latency", "warning", f"Soglia non valida: indica un numero tra 0 e {maximum}.", title="Monitoraggio ICMP")
-            limits[key] = value
-        raw = str(form.get("target") or "").strip()
-        target = valid_target(raw) if raw else None
-        if raw and not target:
-            return flash_redirect(request, back + "#latency", "warning", "Indirizzo non valido: inserisci un IPv4/IPv6 (non loopback, link-local o multicast).", title="Monitoraggio ICMP")
-        if enable and not (target or valid_target(device.management_ip)):
-            return flash_redirect(request, back + "#latency", "warning", "L'apparato non ha un IP di gestione: indica l'indirizzo da monitorare.", title="Monitoraggio ICMP")
-        data = dict(device.inventory_data or {})
-        conf = dict(data.get(SETTINGS_KEY) or {})
-        conf.update(enabled=enable, target=target, **limits)
-        if not enable:
-            conf["consecutive_losses"] = 0
-            issue = db.scalar(select(ActionIssue).where(ActionIssue.device_id == device.id, ActionIssue.category == ISSUE_CATEGORY,
-                                                        ActionIssue.status.in_(["open", "acknowledged"])))
-            if issue:
-                issue.status = "resolved"
-                issue.details = {**(issue.details or {}), "resolved_reason": "monitoraggio ICMP disattivato"}
-        data[SETTINGS_KEY] = conf
-        device.inventory_data = data
-        core.add_event(db, "ICMP_MONITOR_UPDATED", actor=user, customer_id=device.customer_id, device_id=device.id,
-                       details={"enabled": enable, "target": target or device.management_ip}, source="portal")
-        db.commit()
-    message = "Monitoraggio attivo: il primo campione arriva entro 2 minuti." if enable else "Monitoraggio ICMP disattivato."
-    return flash_redirect(request, back + "#latency", "success", message, title="Monitoraggio ICMP")
+def _limit(value, maximum: int):
+    text = str(value if value is not None else "").strip().replace(",", ".")
+    if not text:
+        return None
+    try:
+        number = float(text)
+    except ValueError:
+        number = -1
+    if not 0 < number <= maximum:
+        raise InputError("threshold", f"Soglia non valida: indica un numero tra 0 e {maximum}.")
+    return number
+
+
+def save_settings_record(db, user, device, *, enabled: bool, target: str = "", rtt_ms=None, loss_pct=None) -> dict:
+    """Enable/disable ping monitoring of one device with its target and quality thresholds, audited; commits.
+
+    ``InputError`` ``threshold``, ``target`` (not a usable IP) or ``no_target`` (enabling without any address).
+    """
+    limits = {"rtt_ms": _limit(rtt_ms, 10000), "loss_pct": _limit(loss_pct, 100)}
+    raw = str(target or "").strip()
+    chosen = valid_target(raw) if raw else None
+    if raw and not chosen:
+        raise InputError("target", "Indirizzo non valido: inserisci un IPv4/IPv6 (non loopback, link-local o multicast).")
+    if enabled and not (chosen or valid_target(device.management_ip)):
+        raise InputError("no_target", "L'apparato non ha un IP di gestione: indica l'indirizzo da monitorare.")
+    data = dict(device.inventory_data or {})
+    conf = dict(data.get(SETTINGS_KEY) or {})
+    conf.update(enabled=enabled, target=chosen, **limits)
+    if not enabled:
+        conf["consecutive_losses"] = 0
+        issue = db.scalar(select(ActionIssue).where(ActionIssue.device_id == device.id, ActionIssue.category == ISSUE_CATEGORY,
+                                                    ActionIssue.status.in_(["open", "acknowledged"])))
+        if issue:
+            issue.status = "resolved"
+            issue.details = {**(issue.details or {}), "resolved_reason": "monitoraggio ICMP disattivato"}
+    data[SETTINGS_KEY] = conf
+    device.inventory_data = data
+    core.add_event(db, "ICMP_MONITOR_UPDATED", actor=user, customer_id=device.customer_id, device_id=device.id,
+                   details={"enabled": enabled, "target": chosen or device.management_ip}, source="portal")
+    db.commit()
+    return panel(device)
 
 
 def cleanup() -> int:
@@ -349,5 +341,4 @@ def panel(device) -> dict:
 
 def install_icmp_monitor(app) -> None:
     app.add_api_route("/api/v1/devices/{device_id}/latency", device_latency, methods=["GET"], name="device_latency")
-    app.add_api_route("/devices/{device_id}/latency/settings", save_settings, methods=["POST"], name="device_latency_settings", include_in_schema=False)
     core.templates.env.globals["icmp_panel"] = panel

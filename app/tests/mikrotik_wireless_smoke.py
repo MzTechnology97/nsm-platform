@@ -72,8 +72,7 @@ def main():
     data = client.get(f"/api/v1/devices/{device_id}/wireless?range=1h").json()
     assert data["interface"] == "wlan1" and data["sample_count"] == 2 and data["current"]["signal_avg"] == -63.0
     assert [p["signal_avg"] for p in data["points"]] == [-61.0, -63.0]
-    monitor = client.get(f"/devices/{device_id}/monitor").text
-    assert "Segnale wireless" in monitor and "wireless_monitor.js" in monitor and '<option value="wlan1">' in monitor
+    assert "wlan1" in data["interfaces"], "the monitor tab offers the wireless interface"
     print("MikroTik wireless smoke passed")
 
 

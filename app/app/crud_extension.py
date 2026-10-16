@@ -1,17 +1,14 @@
 import uuid
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app.backup_cleanup import cleanup_device_backup_files
-from app.db import SessionLocal
 from app.models import ActionIssue, Customer, Device, Notification, Site
 from app.input_errors import InputError
-from app.security import validate_csrf
 
 router = APIRouter()
 
@@ -180,53 +177,6 @@ def delete_site_record(db, user, site: Site) -> int:
     return len(affected)
 
 
-@router.get("/devices/{device_id}/manage", response_class=HTMLResponse)
-def device_manage_page(request: Request, device_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "devices.write"):
-            raise HTTPException(403)
-        device = db.scalar(
-            select(Device)
-            .where(Device.id == device_id)
-            .options(selectinload(Device.customer), selectinload(Device.site))
-        )
-        if not device:
-            raise HTTPException(404)
-        customers = list(db.scalars(select(Customer).order_by(Customer.name)))
-        sites = list(db.scalars(select(Site).order_by(Site.name)))
-        return core.render(
-            request,
-            db,
-            user,
-            "device_manage.html",
-            device=device,
-            customers=customers,
-            sites=sites,
-        )
-
-
-@router.post("/devices/{device_id}/manage")
-def device_manage(
-    request: Request,
-    device_id: uuid.UUID,
-    display_name: str = Form(""),
-    customer_id: str = Form(...),
-    site_id: str = Form(""),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        update_device_record(db, user, device, display_name, customer_id, site_id)
-    return RedirectResponse(f"/devices/{device_id}", status_code=303)
-
-
 def _target(db, customer_id: str, site_id: str, bulk: bool = False):
     """Destination customer and optional site of a move; ``InputError`` ``customer_invalid`` / ``site_invalid``
     (with the classic wording of the single and the bulk form)."""
@@ -328,25 +278,6 @@ def bulk_devices_record(db, user, customer_id: uuid.UUID, device_ids, action: st
         raise InputError("action_invalid", "Azione non valida.")
     db.commit()
     return len(devices)
-
-
-@router.post("/devices/{device_id}/delete")
-def device_delete(
-    request: Request,
-    device_id: uuid.UUID,
-    confirm: str = Form(...),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    if confirm != "DELETE":
-        raise HTTPException(400, "Conferma eliminazione non valida.")
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        customer_id = delete_device_record(db, user, device)
-    return RedirectResponse(f"/customers/{customer_id}#devices", status_code=303)
 
 
 def install_crud(app):

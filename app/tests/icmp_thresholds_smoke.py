@@ -30,15 +30,20 @@ def main():
     client = TestClient(app)
     page = client.get("/login").text
     client.post("/login", data={"username": f"ci-it-{suffix}", "password": PASSWORD, "csrf": re.search(r'name="csrf" value="([^"]+)"', page).group(1)})
-    token = re.search(r'name="csrf" value="([^"]+)"', client.get(f"/devices/{ids[0]}").text).group(1)
-    assert "Soglia non valida" in client.post(f"/devices/{ids[0]}/latency/settings", data={"csrf": token, "enabled": "1", "rtt_ms": "abc"}).text
-    assert "Soglia non valida" in client.post(f"/devices/{ids[0]}/latency/settings", data={"csrf": token, "enabled": "1", "loss_pct": "150"}).text
-    client.post(f"/devices/{ids[0]}/latency/settings", data={"csrf": token, "enabled": "1", "rtt_ms": "50", "loss_pct": "10,5"})
-    client.post(f"/devices/{ids[1]}/latency/settings", data={"csrf": token, "enabled": "1"})  # no thresholds: never a quality issue
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+
+    def icmp_settings(device_id, **body):
+        return client.post(f"/api/ui/v1/devices/{device_id}/icmp", headers=headers, json=body)
+
+    for bad in ({"rtt_ms": "abc"}, {"loss_pct": "150"}):
+        refused = icmp_settings(ids[0], enabled=True, **bad)
+        assert refused.status_code == 422 and refused.json()["detail"]["code"] == "threshold" and "Soglia non valida" in refused.text
+    icmp_settings(ids[0], enabled=True, rtt_ms="50", loss_pct="10,5").raise_for_status()
+    icmp_settings(ids[1], enabled=True).raise_for_status()  # no thresholds: never a quality issue
     with SessionLocal() as db:
         assert icmp.thresholds(db.get(Device, ids[0])) == {"rtt_ms": 50.0, "loss_pct": 10.5}
-    page = client.get(f"/devices/{ids[0]}").text
-    assert 'name="rtt_ms" inputmode="decimal" value="50"' in page and "RTT medio 50 ms · perdita 10.5%" in page
+    page = client.get(f"/api/ui/v1/devices/{ids[0]}/icmp").json()
+    assert page["rtt_ms"] == 50.0 and page["loss_pct"] == 10.5
 
     def issue(device_id):
         with SessionLocal() as db:
@@ -68,7 +73,7 @@ def main():
         latest = db.scalars(select(ActionIssue).where(ActionIssue.device_id == ids[0], ActionIssue.category == "latency", ActionIssue.status == "open")).one()
         assert latest.details["breaches"] == ["perdita 33.3% > 10.5%"], latest.details
     # Removing the thresholds closes it.
-    client.post(f"/devices/{ids[0]}/latency/settings", data={"csrf": token, "enabled": "1"})
+    icmp_settings(ids[0], enabled=True).raise_for_status()
     icmp.tick(now=t0 + timedelta(minutes=80), prober=lambda host: lossy)
     with SessionLocal() as db:
         assert not db.scalars(select(ActionIssue).where(ActionIssue.device_id == ids[0], ActionIssue.category == "latency", ActionIssue.status == "open")).all()

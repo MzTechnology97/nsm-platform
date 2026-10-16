@@ -174,8 +174,8 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-sh-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{gw_id}/logs?verify=1").text
-    assert "Integrità dei log" in page and ("Catena integra" in page or "Ancoraggio non trovato" in page)
+    integrity = client.get(f"/api/ui/v1/devices/{gw_id}/syslog/integrity").json()
+    assert integrity["checked"] >= 1 and (integrity["ok"] or integrity["anchor_found"] is False), integrity
     script = client.get("/api/ui/v1/admin/syslog").json()["firewall_script"]
     assert "Nessuna rete consentita" in script and "exit 1" in script, "without allowed networks the firewall script refuses to run"
     print("Syslog hardening smoke passed")

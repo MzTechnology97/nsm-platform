@@ -1,7 +1,6 @@
 """Syslog key in the manual configuration: MikroTik prefix, Cisco origin-id, key in the device name, manual strict mode."""
 import re
 import uuid
-from html import unescape
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -40,23 +39,25 @@ def main():
     assert client.post("/login", data={"username": f"ci-sk-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
 
     # Opening the Syslog tab creates the key and shows it in the commands to apply.
-    page = unescape(client.get(f"/devices/{ids['mtk']}/logs").text)
+    def syslog_tab(device_id):
+        return client.get(f"/api/ui/v1/devices/{device_id}/syslog").json()
+
+    tab = syslog_tab(ids["mtk"])
+    page = repr(tab["guides"])
     with SessionLocal() as db:
         keys = {"mtk": db.get(Device, ids["mtk"]).inventory_data["syslog_key"]}
     prefix = f"NSM-{keys['mtk']}"
     assert f"/system logging add topics=critical action=nsm prefix={prefix}" in page and f"topics=account action=nsm prefix={prefix}" in page
-    assert f"Chiave dell'apparato {prefix}" in re.sub(r"<[^>]+>", "", page)
-    cisco_page = unescape(client.get(f"/devices/{ids['cisco']}/logs").text)
+    assert tab["identification"]["key"] == prefix
+    cisco_page = repr(syslog_tab(ids["cisco"])["guides"])
     with SessionLocal() as db:
         keys["cisco"] = db.get(Device, ids["cisco"]).inventory_data["syslog_key"]
     assert f"logging origin-id string NSM-{keys['cisco']}" in cisco_page
-    cpe_page = unescape(client.get(f"/devices/{ids['cpe']}/logs").text)
+    cpe_tab = syslog_tab(ids["cpe"])
     with SessionLocal() as db:
         cpe_key = db.get(Device, ids["cpe"]).inventory_data["syslog_key"]
-    assert f"CPE-Rossi-NSM-{cpe_key}" in re.sub(r"<[^>]+>", "", cpe_page), "non-MikroTik: key in the device name"
-    assert "Solo righe con la chiave" in cpe_page and "Accetta anche log senza chiave" not in cpe_page
-    again = unescape(client.get(f"/devices/{ids['cpe']}/logs").text)
-    assert f"NSM-{cpe_key}" in again, "the key is stable"
+    assert cpe_tab["identification"]["key"] == f"NSM-{cpe_key}" and not any(g["key_in_code"] for g in cpe_tab["guides"]), "non-MikroTik: the key goes in the device name"
+    assert syslog_tab(ids["cpe"])["identification"]["key"] == f"NSM-{cpe_key}", "the key is stable"
     guides = repr(client.get("/api/ui/v1/admin/syslog").json()["guides"])
     assert "prefix=NSM-" in guides, "the MikroTik guide puts the device key in the prefix"
 
@@ -72,7 +73,7 @@ def main():
     assert any("Bad password attempt" in m for m in messages), "keyed line accepted from any allowed address"
     assert not any("keyless line" in m for m in messages), "key-only: a line without the key is discarded even from the device address"
     assert receiver.stats["rejected"]["missing_key"] == 1
-    assert client.post(f"/devices/{ids['cpe']}/syslog/strict", data={"csrf": csrf_from(cpe_page), "enabled": "0"}).status_code in (404, 405), "no way to accept keyless lines"
+    assert client.post(f"/devices/{ids['cpe']}/syslog/strict", data={"csrf": client.get("/api/ui/v1/session").json()["csrf_token"], "enabled": "0"}).status_code in (404, 405), "no way to accept keyless lines"
     print("Syslog manual key smoke passed")
 
 

@@ -68,12 +68,17 @@ def main():
 
     admin = TestClient(app, base_url="http://nsm.example.test")
     assert admin.post("/login", data={"username": f"ci-sa-{suffix}", "password": PASSWORD, "csrf": csrf_from(admin.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = admin.get(f"/devices/{ids['modern']}/logs").text
-    assert "Configura syslog con l&#39;agent" in page or "Configura syslog con l'agent" in page
-    assert "Serve l&#39;agent 0.49.11" in admin.get(f"/devices/{ids['old']}/logs").text or "Serve l'agent 0.49.11" in admin.get(f"/devices/{ids['old']}/logs").text
+    def syslog_tab(device_id):
+        return admin.get(f"/api/ui/v1/devices/{device_id}/syslog").json()["agent"]
+
+    def configure(device_id):
+        return admin.post(f"/api/ui/v1/devices/{device_id}/syslog/configure", headers={"X-CSRF-Token": admin.get("/api/ui/v1/session").json()["csrf_token"]})
+
+    assert syslog_tab(ids["modern"])["can_configure"] is True
+    assert "0.49.11" in (syslog_tab(ids["old"])["blocker_text"] or "")
     # No IPv4 for NSM yet: nsm.example.test does not resolve, so the request is refused with guidance.
-    refused = admin.post(f"/devices/{ids['modern']}/syslog/configure", data={"csrf": csrf_from(page)}, follow_redirects=False)
-    assert refused.status_code == 303
+    refused = configure(ids["modern"])
+    assert refused.status_code == 409 and refused.json()["detail"]["code"] == "no_target", refused.text
     with SessionLocal() as db:
         assert cfg.latest_job(db, ids["modern"]) is None
 
@@ -88,8 +93,8 @@ def main():
     save_settings(public_host="203.0.113.5", auto_configure=True)
     with SessionLocal() as db:
         assert cfg.target(db) == "203.0.113.5"
-    assert admin.post(f"/devices/{ids['modern']}/syslog/configure", data={"csrf": csrf}, follow_redirects=False).status_code == 303
-    assert admin.post(f"/devices/{ids['modern']}/syslog/configure", data={"csrf": csrf}, follow_redirects=False).status_code == 303
+    assert configure(ids["modern"]).json()["queued"] is True
+    assert configure(ids["modern"]).json()["already"] is True, "one active job at a time"
     with SessionLocal() as db:
         jobs = db.scalars(select(DeviceJob).where(DeviceJob.device_id == ids["modern"], DeviceJob.job_type == cfg.JOB_TYPE)).all()
         assert len(jobs) == 1 and jobs[0].payload == {"remote": "203.0.113.5", "port": 514, "topics": ["critical", "error", "warning", "account"]}
@@ -104,7 +109,7 @@ def main():
     done = agent_client.post(f"/api/v1/agents/mikrotik/jobs/{job_id}/complete", headers=auth,
                              json={"status": "success", "result": {"remote": "203.0.113.5", "port": "514", "error": ""}})
     assert done.status_code == 200, done.text
-    assert "configurato" in admin.get(f"/devices/{ids['modern']}/logs").text
+    assert syslog_tab(ids["modern"])["job"]["status"] == "success"
 
     # Auto-configure skips devices already configured for this target and ineligible ones.
     assert cfg.auto_configure()["queued"] == 0

@@ -75,28 +75,20 @@ CI22;;mikrotik;router;Bad IP;;;not-an-ip;02:22:00:00:00:04;CI22-BAD-02;;
 """
 
 
-def upload(client, mode, payload=None, follow_redirects=True):
-    page = client.get("/devices/import")
-    assert page.status_code == 200
-    csrf = csrf_from(page.text)
+API = "/api/ui/v1/device-import"
+
+
+def upload(client, mode, payload=None):
     return client.post(
-        "/devices/import",
-        data={"csrf": csrf, "mode": mode},
+        API,
+        headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]},
+        data={"mode": mode},
         files={"csv_file": ("devices.csv", payload or csv_payload(), "text/csv")},
-        follow_redirects=follow_redirects,
     )
 
 
-def assert_import_warning(client, response, expected_text):
-    assert response.status_code == 303, response.text
-    assert response.headers["location"] == "/devices/import"
-    page = client.get(response.headers["location"])
-    assert page.status_code == 200
-    assert "flash-warning" in page.text
-    assert expected_text in page.text
-    # Flash feedback is one-shot and must not survive another GET.
-    again = client.get("/devices/import")
-    assert expected_text not in again.text
+def assert_import_warning(response, expected_text):
+    assert response.status_code == 422 and expected_text in response.text, response.text
 
 
 def main():
@@ -104,20 +96,10 @@ def main():
     client = TestClient(app)
     login(client)
 
-    post_routes = [
-        route
-        for route in app.router.routes
-        if getattr(route, "path", None) == "/devices/import"
-        and "POST" in (getattr(route, "methods", set()) or set())
-    ]
-    assert post_routes
-    assert post_routes[0].name == "device_csv_import_submit_ui_feedback"
-
-    page = client.get("/devices/import")
-    assert page.status_code == 200
-    assert "Importazione massiva apparati" in page.text
-    assert "password SSH/API" in page.text
-    assert "pending_enrollment" not in page.text  # UI uses the Italian state wording.
+    moved = client.get("/devices/import", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == "/app/devices/import"
+    info = client.get(API)
+    assert info.status_code == 200 and "ssh_password" not in info.text
 
     template = client.get("/devices/import/template.csv")
     assert template.status_code == 200
@@ -126,10 +108,8 @@ def main():
 
     dry_run = upload(client, "validate")
     assert dry_run.status_code == 200, dry_run.text
-    assert "DRY RUN" in dry_run.text
-    assert ">2</strong><small>Pronte" in dry_run.text
-    assert ">1</strong><small>Già presenti" in dry_run.text
-    assert ">2</strong><small>Errori" in dry_run.text
+    summary = dry_run.json()["summary"]
+    assert (summary["ready"], summary["already_exists"], summary["error"]) == (2, 1, 2), summary
     assert "02:22:00:00:00:01" in dry_run.text
     assert "IP di management non valido" in dry_run.text
 
@@ -138,9 +118,8 @@ def main():
 
     imported = upload(client, "import")
     assert imported.status_code == 200, imported.text
-    assert "IMPORT COMPLETATO" in imported.text
-    assert ">2</strong><small>Importate" in imported.text
-    assert "Apri apparato" in imported.text
+    assert imported.json()["summary"]["imported"] == 2
+    assert sum(1 for row in imported.json()["rows"] if row["device_id"]) == 2, "imported rows link to the device"
 
     with SessionLocal() as db:
         devices = list(db.scalars(select(Device).where(Device.customer_id == customer_id).order_by(Device.name)))
@@ -163,34 +142,22 @@ def main():
 
     repeated = upload(client, "import")
     assert repeated.status_code == 200
-    assert ">0</strong><small>Importate" in repeated.text
-    assert ">3</strong><small>Già presenti" in repeated.text
+    assert repeated.json()["summary"]["imported"] == 0 and repeated.json()["summary"]["already_exists"] == 3
     with SessionLocal() as db:
         assert db.scalar(select(func.count(Device.id)).where(Device.customer_id == customer_id)) == 2
 
     credential_csv = "customer_code,vendor,device_type,name,ssh_password\nCI22,mikrotik,router,Unsafe,secret\n"
-    rejected = upload(client, "validate", credential_csv, follow_redirects=False)
-    assert_import_warning(client, rejected, "credenziali non consentite")
+    assert_import_warning(upload(client, "validate", credential_csv), "credenziali non consentite")
 
     unknown_csv = "customer_code,vendor,device_type,name,typo_field\nCI22,mikrotik,router,Typo,x\n"
-    rejected = upload(client, "validate", unknown_csv, follow_redirects=False)
-    assert_import_warning(client, rejected, "Colonne non supportate")
-
-    invalid_mode = upload(client, "execute-now", follow_redirects=False)
-    assert_import_warning(client, invalid_mode, "Modalità import non valida")
-
-    missing_page = client.get("/devices/import")
-    missing_csrf = csrf_from(missing_page.text)
-    missing_file = client.post(
-        "/devices/import",
-        data={"csrf": missing_csrf, "mode": "validate"},
-        follow_redirects=False,
-    )
-    assert_import_warning(client, missing_file, "Seleziona un file CSV")
+    assert_import_warning(upload(client, "validate", unknown_csv), "Colonne non supportate")
+    assert_import_warning(upload(client, "execute-now"), "Modalità import non valida")
+    missing_file = client.post(API, headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}, data={"mode": "validate"})
+    assert missing_file.status_code == 422, "a CSV file is required"
 
     tech = TestClient(app)
     login(tech, "ci22tech", TECH_PASSWORD)
-    forbidden = tech.get("/devices/import")
+    forbidden = tech.get(API)
     assert forbidden.status_code == 403
 
     print("Core 0.22 device CSV import smoke test passed")

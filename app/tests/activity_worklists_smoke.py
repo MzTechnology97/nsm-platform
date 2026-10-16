@@ -59,34 +59,28 @@ def main():
     client = TestClient(app)
     login(client)
 
-    jobs = client.get(f"/devices/{device_id}/jobs", params={"per_page": 25})
-    assert jobs.status_code == 200
-    assert "Coda attiva" in jobs.text
-    assert "65 risultati · pagina 1 di 3" in jobs.text
-    assert "diagnostic_ping" in jobs.text
-    assert "diagnostic_logs" in jobs.text
+    jobs_api = f"/api/ui/v1/devices/{device_id}/jobs"
+    jobs = client.get(jobs_api)
+    assert jobs.status_code == 200, jobs.text
+    first = jobs.json()
+    assert first["total"] == 65 and "active" in first
+    assert "diagnostic_ping" in jobs.text and "diagnostic_logs" in jobs.text
 
-    page3 = client.get(f"/devices/{device_id}/jobs", params={"per_page": 25, "page": 3})
-    assert page3.status_code == 200
-    assert "pagina 3 di 3" in page3.text
+    last = client.get(jobs_api, params={"offset": 60}).json()
+    assert last["offset"] == 60 and len(last["items"]) == 5
 
-    # Search also inspects structured job payload/result, without dumping that
-    # payload into the table itself.
-    payload_search = client.get(f"/devices/{device_id}/jobs", params={"q": "CI39-JOB-64"})
-    assert payload_search.status_code == 200
-    assert "1 risultati · pagina 1 di 1" in payload_search.text
+    # Search also inspects structured job payload/result.
+    payload_search = client.get(jobs_api, params={"q": "CI39-JOB-64"}).json()
+    assert payload_search["total"] == 1
 
-    failed = client.get(f"/devices/{device_id}/jobs", params={"status": "failed", "q": "CI39 simulated failure"})
+    failed = client.get(jobs_api, params={"status": "failed", "q": "CI39 simulated failure"})
     assert failed.status_code == 200
-    assert "failed" in failed.text
-    assert "CI39 simulated failure" in failed.text
+    assert failed.json()["total"] >= 1 and all(item["status"] == "failed" for item in failed.json()["items"])
 
     # 33 even-indexed PING events exist; 11 are multiples of 6 and failed,
     # therefore the event_type + success filter must return exactly 22 rows.
-    audit = client.get(f"/devices/{device_id}/jobs", params={"view": "audit", "event_type": "CI39_PING", "result": "success", "per_page": 25})
-    assert audit.status_code == 200
-    assert "CI39_PING" in audit.text
-    assert "22 risultati · pagina 1 di 1" in audit.text
+    audit = client.get("/api/ui/v1/audit/events", params={"customer": str(customer_id), "event_type": "CI39_PING", "result": "success"}).json()
+    assert audit["total"] == 22 and all(item["event_type"] == "CI39_PING" for item in audit["items"])
 
     # There are exactly 32 odd-indexed LOG events: the global audit log (new interface API) filters them.
     filters = {"customer": str(customer_id), "device": "CI39SERIAL", "event_type": "CI39_LOG"}

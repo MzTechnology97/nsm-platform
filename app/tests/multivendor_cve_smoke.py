@@ -135,7 +135,7 @@ def main():
         assert epmp_device.inventory_data.get("manufacturer") == "mimosa" and vendor_cpe.brand(epmp_device) == "mimosa" and vendor_cpe.products(epmp_device)
     coverage = {row["brand"] for row in client.get("/api/ui/v1/admin/integrations/nvd").json()["coverage"]}
     assert {"mimosa", "ubiquiti"} <= coverage, coverage
-    assert "Mimosa" in client.get(f"/devices/{epmp_device.id}").text
+    assert "Mimosa" in client.get(f"/api/ui/v1/devices/{epmp_device.id}").text
     print("Multi-vendor CVE smoke passed")
 
 

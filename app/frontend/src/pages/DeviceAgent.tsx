@@ -116,7 +116,7 @@ export function DeviceAgent() {
             </button>
           )}
         </div>
-        {reinstall.data && <EnrollmentCommand command={reinstall.data.enrollment_command} />}
+        {reinstall.data && <EnrollmentCommand command={reinstall.data.enrollment_command} commandV6={reinstall.data.enrollment_command_v6} />}
         {reinstall.error && <div className="ui-alert ui-alert-danger">{(reinstall.error as Error).message}</div>}
         <dl className="ui-dl">
           <Field label={t("agent.credential.state")} value={credential ? (credential.active ? t("agent.credential.active") : t("agent.credential.inactive")) : t("agent.credential.none")} />

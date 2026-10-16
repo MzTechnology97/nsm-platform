@@ -42,7 +42,7 @@ export function DeviceNew() {
       <section className="ui-panel ui-admin-section">
         <h2>{t("deviceNew.createdTitle")}</h2>
         <p>{t("deviceNew.createdMikrotik")}</p>
-        <EnrollmentCommand command={created.enrollment_command} />
+        <EnrollmentCommand command={created.enrollment_command} commandV6={created.enrollment_command_v6} />
         <Link to="/devices/$deviceId" params={{ deviceId: created.id }} className="ui-button">{t("deviceNew.openDevice")}</Link>
       </section>
     );

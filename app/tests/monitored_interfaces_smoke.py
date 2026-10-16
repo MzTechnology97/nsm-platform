@@ -60,12 +60,12 @@ def main():
 
     page = client.get("/login").text
     client.post("/login", data={"username": f"ci-mi-{suffix}", "password": PASSWORD, "csrf": re.search(r'name="csrf" value="([^"]+)"', page).group(1)})
-    monitor = client.get(f"/devices/{device_id}/monitor").text
-    for name in ("ether5", "vlan100", "bridge-lan", "eoip-sede", "&lt;pppoe-mario&gt;"):
-        assert f'value="{name}"' in monitor, name
-    assert "Sessione PPP · pppoe-in" in monitor and "8 rilevate" in monitor
-    token = re.search(r'name="csrf" value="([^"]+)"', monitor).group(1)
-    client.post(f"/devices/{device_id}/traffic/interfaces", data={"csrf": token, "interface": ["ether1", "<pppoe-mario>", "vlan100"]})
+    picker_api = f"/api/ui/v1/devices/{device_id}/traffic-interfaces"
+    names = [row["name"] for row in client.get(picker_api).json()["rows"]]
+    for name in ("ether5", "vlan100", "bridge-lan", "eoip-sede", "<pppoe-mario>"):
+        assert name in names, name
+    assert len(names) == 8
+    client.post(picker_api, headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}, json={"interfaces": ["ether1", "<pppoe-mario>", "vlan100"]}).raise_for_status()
     with SessionLocal() as db:
         assert db.get(Device, device_id).inventory_data["traffic_interfaces"] == ["ether1", "<pppoe-mario>", "vlan100"]
     print("Monitored interfaces smoke passed")

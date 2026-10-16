@@ -162,9 +162,9 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-si-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    assert "Solo righe con la chiave" in client.get(f"/devices/{ids['r1']}/logs").text
-    page = client.get(f"/devices/{ids['cpe']}/logs").text
-    assert "Hostname atteso" not in page and "NSM-c0ffee0123456789" in page, "key-only: no hostname attribution"
+    assert client.get(f"/api/ui/v1/devices/{ids['r1']}/syslog").json()["identification"]["key_active"] is True
+    page = client.get(f"/api/ui/v1/devices/{ids['cpe']}/syslog").json()
+    assert page["identification"]["key"] == "NSM-c0ffee0123456789", "key-only: the device is identified by its key"
     syslog_api = "/api/ui/v1/admin/syslog"
     assert client.get(syslog_api).json()["settings"]["allowed_networks"] == []
     headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}

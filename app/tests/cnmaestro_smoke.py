@@ -114,8 +114,11 @@ def main():
 
     device_page = client.get(f"/devices/{ids['sm']}/cnmaestro").text
     assert "Collegato a cnMaestro" in device_page and "-64 dBm" in device_page and "Grafici cnMaestro" in device_page and "rrd_chart.js" in device_page
-    assert f'/devices/{ids["ap"]}/cnmaestro' in client.get(f"/devices/{ids['ap']}").text, "cnMaestro tab on Cambium devices"
-    assert f'/devices/{ids["other"]}/cnmaestro' not in client.get(f"/devices/{ids['other']}").text
+    def tabs(device_id):
+        return {tab["key"] for tab in client.get(f"/api/ui/v1/devices/{device_id}").json()["tabs"]}
+
+    assert "cnmaestro" in tabs(ids["ap"]), "cnMaestro tab on Cambium devices"
+    assert "cnmaestro" not in tabs(ids["other"])
     api = client.get(f"/api/v1/devices/{ids['ap']}/cnmaestro-metrics?range=7d").json()
     assert {c["id"] for c in api["charts"]} == {"throughput", "resources", "stations"} and api["sample_count"] == 1
     assert client.get(f"/api/v1/devices/{ids['ap']}/cnmaestro-metrics?range=1y").status_code == 400

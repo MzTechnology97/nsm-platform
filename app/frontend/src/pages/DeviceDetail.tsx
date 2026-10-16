@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
 import { BrandIcon } from "../app/BrandIcon";
-import { type DeviceDetail as Detail, useDevice } from "../api/device";
+import { type DeviceDetail as Detail, useDevice, useZabbixExclude } from "../api/device";
 import { formatRelative } from "../lib/format";
 import { DeviceZabbixPanel, ZabbixSeverity } from "../app/ZabbixProblems";
 
@@ -166,11 +166,7 @@ export function DeviceOverview() {
                 {device.lifecycle_status && device.lifecycle_status !== "unknown" ? [device.lifecycle_status.toUpperCase(), device.eos_date].filter(Boolean).join(" · ") : t("device.lifecycleManage")}
               </Link>
             </Field>
-            {detail.zabbix && (
-              <Field label="Zabbix" value={detail.zabbix.link ? t("zabbixProblems.open") : t("zabbixProblems.excluded")}>
-                {detail.zabbix.link ? <a href={detail.zabbix.link} target="_blank" rel="noopener noreferrer">{t("zabbixProblems.open")}</a> : t("zabbixProblems.excluded")}
-              </Field>
-            )}
+            {detail.zabbix && <ZabbixField deviceId={device.id} zabbix={detail.zabbix} canEdit={detail.actions.manage} />}
             {detail.agent && (
               <Field label={t("device.identity.agent")} value={[detail.agent.version, detail.agent.transport].filter(Boolean).join(" · ") || t("device.agentMissing")}>
                 <Link to="/devices/$deviceId/agent" params={{ deviceId: device.id }}>{[detail.agent.version, detail.agent.transport].filter(Boolean).join(" · ") || t("device.agentMissing")}</Link>
@@ -198,6 +194,26 @@ export function DeviceOverview() {
       </div>
       {detail.zabbix && <DeviceZabbixPanel zabbix={detail.zabbix} />}
     </>
+  );
+}
+
+function ZabbixField({ deviceId, zabbix, canEdit }: { deviceId: string; zabbix: NonNullable<Detail["zabbix"]>; canEdit: boolean }) {
+  const { t } = useTranslation();
+  const toggle = useZabbixExclude(deviceId);
+  const state = zabbix.excluded ? t("zabbixProblems.excluded") : zabbix.link ? t("zabbixProblems.open") : t("zabbixProblems.pending");
+  return (
+    <Field label="Zabbix" value={state}>
+      {zabbix.link ? <a href={zabbix.link} target="_blank" rel="noopener noreferrer">{t("zabbixProblems.open")}</a> : state}
+      {canEdit && (
+        <>
+          {" · "}
+          <button type="button" className="ui-link-button" disabled={toggle.isPending} onClick={() => toggle.mutate(!zabbix.excluded)}>
+            {zabbix.excluded ? t("zabbixProblems.include") : t("zabbixProblems.exclude")}
+          </button>
+        </>
+      )}
+      {toggle.error && <small className="ui-text-danger ui-block">{(toggle.error as Error).message}</small>}
+    </Field>
   );
 }
 

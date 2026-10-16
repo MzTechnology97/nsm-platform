@@ -67,7 +67,7 @@ def main():
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-lb-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
     token = client.get("/api/ui/v1/session").json()["csrf_token"]
-    client.post(f"/devices/{ids['ok']}/backup-now", data={"csrf": token}, follow_redirects=True)
+    client.post(f"/api/ui/v1/devices/{ids['ok']}/backups/run", headers={"X-CSRF-Token": token}).raise_for_status()
     with SessionLocal() as db:
         job = db.scalar(select(DeviceJob).where(DeviceJob.device_id == ids["ok"], DeviceJob.job_type == "backup_mikrotik"))
         assert job is not None and job.payload["formats"] == ["mikrotik_export"], "binary is never requested from a legacy agent"
@@ -91,7 +91,7 @@ def main():
         assert artifact.sha256 == hashlib.sha256(body).hexdigest()
 
     # A failure reported by the agent keeps its reason and adds the remedy.
-    client.post(f"/devices/{ids['ok']}/backup-now", data={"csrf": token}, follow_redirects=True)
+    client.post(f"/api/ui/v1/devices/{ids['ok']}/backups/run", headers={"X-CSRF-Token": token}).raise_for_status()
     with SessionLocal() as db:
         job2 = db.scalar(select(DeviceJob).where(DeviceJob.device_id == ids["ok"], DeviceJob.job_type == "backup_mikrotik", DeviceJob.status == "pending"))
         job2_id = job2.id

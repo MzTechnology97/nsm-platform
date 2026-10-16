@@ -165,7 +165,7 @@
       "7d": "7 días",
       "30d": "30 días"
     },
-    "settings": "Interfaces monitorizadas",
+    "settings": "Ajustes de monitorización",
     "noSamples": "No hay muestras en este intervalo.",
     "legend": {
       "current": "Actual",
@@ -213,7 +213,24 @@
     "pickSave": "Guardar interfaces",
     "pickReset": "Volver a automático",
     "pickCount": "{{count}} de {{max}}",
-    "unknownType": "tipo n/d"
+    "unknownType": "tipo n/d",
+    "ping": {
+      "title": "Monitorización ping",
+      "enabled": "Monitorizar este equipo con ping",
+      "target": "Dirección a monitorizar",
+      "targetHelp": "Vacío: se usa la IP de gestión.",
+      "rtt": "Umbral de latencia (ms)",
+      "loss": "Umbral de pérdida (%)",
+      "thresholdHelp": "Umbrales vacíos: sin alertas de calidad, solo alcanzabilidad.",
+      "save": "Guardar",
+      "saved": "Monitorización activa: la primera muestra llega en 2 minutos.",
+      "disabled": "Monitorización ping desactivada.",
+      "off": "Monitorización ping desactivada.",
+      "down": "No responde al ping.",
+      "waiting": "Esperando la primera muestra.",
+      "last": "Último ping: {{rtt}}, pérdida {{loss}} %.",
+      "globallyOff": "La monitorización ping está desactivada para toda la plataforma (ICMP_MONITOR)."
+    }
   },
   "syslog": {
     "today": {
@@ -3113,7 +3130,9 @@
     "help": "Pégalo en el Terminal RouterOS del router: descarga e inicia el agente NSM con un token de un solo uso.",
     "copy": "Copiar comando",
     "copied": "Copiado",
-    "once": "El comando no se volverá a mostrar: si lo pierdes, genera otro desde la pestaña Agente."
+    "once": "El comando no se volverá a mostrar: si lo pierdes, genera otro desde la pestaña Agente.",
+    "v7": "RouterOS 7.x",
+    "v6": "RouterOS 6.48 / 6.49 (agente legacy)"
   },
   "deviceManage": {
     "title": "Alias y asignación",
@@ -4614,6 +4633,9 @@
       "3": "Media",
       "4": "Alta",
       "5": "Desastre"
-    }
+    },
+    "pending": "esperando la próxima sincronización",
+    "exclude": "Excluir de Zabbix",
+    "include": "Incluir en Zabbix"
   }
 }

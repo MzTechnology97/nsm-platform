@@ -99,3 +99,37 @@ export function useSaveTrafficInterfaces(id: string) {
     onSuccess: () => void client.invalidateQueries({ queryKey: ["monitor", id] }),
   });
 }
+
+export interface IcmpSettings {
+  enabled: boolean;
+  target: string;
+  effective_target: string | null;
+  rtt_ms: number | null;
+  loss_pct: number | null;
+  management_ip: string | null;
+  last_rtt: number | null;
+  last_loss: number | null;
+  last_at: string | null;
+  down: boolean;
+  error: string | null;
+  globally_enabled: boolean;
+  can_edit: boolean;
+}
+
+const icmpUrl = (id: string) => `/api/ui/v1/devices/${encodeURIComponent(id)}/icmp`;
+
+export const useIcmpSettings = (id: string) => useQuery({ queryKey: ["icmp", id], queryFn: () => api<IcmpSettings>(icmpUrl(id)) });
+
+/** Save ping monitoring of one device; the device header and the latency chart follow. */
+export function useSaveIcmp(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { enabled: boolean; target: string; rtt_ms: string; loss_pct: string }) =>
+      api<IcmpSettings>(icmpUrl(id), { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ["icmp", id] });
+      void client.invalidateQueries({ queryKey: ["device", id] });
+      void client.invalidateQueries({ queryKey: ["monitor", id] });
+    },
+  });
+}

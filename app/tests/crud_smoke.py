@@ -91,17 +91,9 @@ def main():
         db.add(Notification(category="test", severity="warning", title="CI notification", customer_id=a_id, device_id=device_id))
         db.commit()
 
-    response = client.post(
-        f"/devices/{device_id}/manage",
-        data={
-            "display_name": "CI Router Moved",
-            "customer_id": str(b_id),
-            "site_id": str(site_b_id),
-            "csrf": csrf,
-        },
-        follow_redirects=False,
-    )
-    assert response.status_code == 303
+    response = client.post(f"/api/ui/v1/devices/{device_id}", headers=headers,
+                           json={"display_name": "CI Router Moved", "customer_id": str(b_id), "site_id": str(site_b_id)})
+    assert response.status_code == 200, response.text
 
     with SessionLocal() as db:
         device = db.get(Device, device_id)

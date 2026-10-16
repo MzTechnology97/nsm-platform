@@ -25,14 +25,12 @@ import ipaddress
 import json
 import re
 import ssl
-import uuid
 import urllib.error
 import urllib.request
 from datetime import timedelta
 from urllib.parse import urlsplit, urlunsplit
 
-from fastapi import APIRouter, Request
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter
 from sqlalchemy import select
 
 from app import main as core
@@ -41,7 +39,6 @@ from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
 from app.models import Customer, Device, Site, utcnow
 from app.secret_vault import decrypt_text, encrypt_text
-from app.security import validate_csrf
 
 router = APIRouter()
 PROVIDER = "zabbix"
@@ -457,39 +454,14 @@ def set_device_ip(db, user, device, value) -> str | None:
     return value
 
 
-@router.post("/devices/{device_id}/zabbix/ip", name="device_zabbix_ip")
-async def device_zabbix_ip(request: Request, device_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        device = db.get(Device, device_id)
-        if device is None:
-            return RedirectResponse("/devices", status_code=303)
-        set_device_ip(db, user, device, form.get("zabbix_ip"))
-        db.commit()
-    target = str(form.get("next") or "")
-    if not target.startswith("/") or target.startswith("//") or "\\" in target:
-        target = "/admin/integrations/zabbix#shared"  # internal paths only (no open redirect)
-    return RedirectResponse(target, status_code=303)
-
-
-@router.post("/devices/{device_id}/zabbix/exclude", name="device_zabbix_exclude")
-async def device_zabbix_exclude(request: Request, device_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        device = db.get(Device, device_id)
-        if device is None:
-            return RedirectResponse("/devices", status_code=303)
-        data = dict(device.inventory_data or {})
-        data["zabbix_exclude"] = form.get("exclude") == "1"
-        device.inventory_data = data
-        core.add_event(db, "ZABBIX_DEVICE_SCOPE_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id,
-                       details={"exclude": data["zabbix_exclude"]}, source="portal")
-        db.commit()
-    return RedirectResponse(f"/devices/{device_id}", status_code=303)
+def set_exclude_record(db, user, device, exclude: bool) -> bool:
+    """Keep a device out of (or back into) the Zabbix push; the next sync disables or recreates its host. Audited; caller commits."""
+    data = dict(device.inventory_data or {})
+    data["zabbix_exclude"] = bool(exclude)
+    device.inventory_data = data
+    core.add_event(db, "ZABBIX_DEVICE_SCOPE_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id,
+                   details={"exclude": data["zabbix_exclude"]}, source="portal")
+    return data["zabbix_exclude"]
 
 
 def summary() -> dict:

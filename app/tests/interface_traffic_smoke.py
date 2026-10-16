@@ -47,7 +47,6 @@ def unit_checks():
     parsed = traffic.parse_ifaces("wan|x|ether|1|2;broken;bad|ether|x|1;big|ether|" + str(2**64) + "|1;ok|lte|3|4;")
     assert parsed == {"wan|x": ("ether", 1, 2), "ok": ("lte", 3, 4)}, parsed
     assert traffic.percentile(list(range(1, 101))) == 95
-    assert traffic.format_bps(12_500_000) == "12.50 Mbit/s" and traffic.format_bps(None) == "—"
     assert traffic._rate(1000, 500, 300) is None, "counter reset gives a gap, not a negative rate"
     assert traffic.monitored_interfaces({}, {"ether1": ("ether", 1, 1), "ether2": ("ether", 1, 1)}) == ["ether1"]
     assert traffic.monitored_interfaces({"traffic_interfaces": []}, {"lte1": ("lte", 1, 1)}) == []
@@ -134,14 +133,14 @@ def main():
     assert abs(data["stats"]["rx"]["p95"] - 1_000_000) < 20_000 and data["stats"]["tx"]["max"] < 110_000
     assert admin.get(f"/api/v1/devices/{modern_id}/traffic?range=2y").status_code == 400
 
-    monitor = admin.get(f"/devices/{modern_id}/monitor")
-    assert monitor.status_code == 200 and "data-traffic-root" in monitor.text and "traffic_monitor.js" in monitor.text
-    assert monitor.text.index("rrd_chart.js") < monitor.text.index("traffic_monitor.js")
-    assert 'value="pppoe-out1" checked' in monitor.text and 'value="ether1">' in monitor.text
+    picker_api = f"/api/ui/v1/devices/{modern_id}/traffic-interfaces"
+    picker = admin.get(picker_api).json()
+    rows = {row["name"]: row for row in picker["rows"]}
+    assert rows["pppoe-out1"]["monitored"] is True and rows["ether1"]["monitored"] is False and picker["can_edit"] is True
 
-    page = admin.get(f"/devices/{modern_id}/monitor").text
-    saved = admin.post(f"/devices/{modern_id}/traffic/interfaces", data={"csrf": csrf_from(page), "interface": ["ether1", "pppoe-out1", "not-there"]}, follow_redirects=False)
-    assert saved.status_code == 303 and "traffic_saved" in saved.headers["location"]
+    headers = {"X-CSRF-Token": admin.get("/api/ui/v1/session").json()["csrf_token"]}
+    saved = admin.post(picker_api, headers=headers, json={"interfaces": ["ether1", "pppoe-out1", "not-there"]})
+    assert saved.status_code == 200 and saved.json()["monitored"] == ["ether1", "pppoe-out1"], saved.text
     with SessionLocal() as db:
         assert db.get(Device, modern_id).inventory_data["traffic_interfaces"] == ["ether1", "pppoe-out1"]
     age_counters(modern_id, 300)
@@ -149,17 +148,17 @@ def main():
     with SessionLocal() as db:
         names = sorted(r.interface for r in db.scalars(select(DeviceInterfaceSample).where(DeviceInterfaceSample.device_id == modern_id)))
         assert names == ["ether1", "pppoe-out1", "pppoe-out1"], names
-    reset = admin.post(f"/devices/{modern_id}/traffic/interfaces", data={"csrf": csrf_from(page), "reset": "1"}, follow_redirects=False)
-    assert reset.status_code == 303
+    reset = admin.post(picker_api, headers=headers, json={"interfaces": [], "reset": True})
+    assert reset.status_code == 200
     with SessionLocal() as db:
         assert "traffic_interfaces" not in db.get(Device, modern_id).inventory_data
 
     auditor = TestClient(app, base_url="http://192.0.2.81")
     assert auditor.post("/login", data={"username": f"ci-tr-a-{suffix}", "password": PASSWORD, "csrf": csrf_from(auditor.get("/login").text)}, follow_redirects=False).status_code == 303
     assert auditor.get(f"/api/v1/devices/{modern_id}/traffic").status_code == 200
-    apage = auditor.get(f"/devices/{modern_id}/monitor").text
-    assert "Salva interfacce" not in apage
-    assert auditor.post(f"/devices/{modern_id}/traffic/interfaces", data={"csrf": csrf_from(apage), "interface": "ether1"}).status_code == 403
+    assert auditor.get(picker_api).json()["can_edit"] is False
+    assert auditor.post(picker_api, headers={"X-CSRF-Token": auditor.get("/api/ui/v1/session").json()["csrf_token"]},
+                        json={"interfaces": ["ether1"]}).status_code == 403
     assert TestClient(app).get(f"/api/v1/devices/{modern_id}/traffic").status_code == 401
 
     legacy_headers = {"X-NSM-Legacy-Transport": "headers-v1", "X-NSM-Device-ID": str(legacy_id), "X-NSM-Device-Secret": SECRET,

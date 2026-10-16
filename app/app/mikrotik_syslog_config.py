@@ -19,10 +19,9 @@ from __future__ import annotations
 
 import ipaddress
 import socket
-import uuid
 from datetime import timedelta
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter
 from sqlalchemy import select
 
 from app import main as core
@@ -33,8 +32,6 @@ from app import syslog_receiver as receiver
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
 from app.models import Device, utcnow
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 
 router = APIRouter()
 JOB_TYPE = "syslog_configure"
@@ -163,29 +160,6 @@ def queue(db, device: Device, remote: str, actor=None, source="portal") -> Devic
     core.add_event(db, "SYSLOG_AGENT_CONFIG_QUEUED", actor=actor, customer_id=device.customer_id, device_id=device.id,
                    details={"job_id": str(job.id), "remote": remote}, source=source)
     return job
-
-
-@router.post("/devices/{device_id}/syslog/configure", name="device_syslog_configure")
-async def configure_device(request: Request, device_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    back = f"/devices/{device_id}/logs#syslog-setup"
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        blocker = eligibility(device)
-        if blocker:
-            return flash_redirect(request, back, "warning", blocker, title="Configurazione automatica non disponibile")
-        remote = target(db, request)
-        if not remote:
-            return flash_redirect(request, back, "warning", "Imposta in Amministrazione → Syslog l'indirizzo IPv4 di NSM raggiungibile dagli apparati.", title="Indirizzo NSM mancante")
-        job = queue(db, device, remote, actor=user)
-        db.commit()
-    if job is None:
-        return flash_redirect(request, back, "info", "Una configurazione è già in corso: l'agent la riceverà al prossimo heartbeat.", title="Già in coda")
-    return flash_redirect(request, back, "success", f"L'agent configurerà il syslog verso {remote}:514 al prossimo heartbeat (entro 2 minuti).", title="Configurazione in coda")
 
 
 def configure_all_devices(db, user, remote: str) -> tuple[int, int]:

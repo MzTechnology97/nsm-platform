@@ -3,7 +3,7 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDevice } from "../api/device";
-import { columns, RANGES, type Range, useLatency, useMetrics, useSaveTrafficInterfaces, useTraffic, useTrafficInterfaces, useWireless } from "../api/monitor";
+import { columns, RANGES, type Range, useIcmpSettings, useLatency, useMetrics, useSaveIcmp, useSaveTrafficInterfaces, useTraffic, useTrafficInterfaces, useWireless } from "../api/monitor";
 import { formatValue } from "../charts/format";
 import { TimeChart } from "../charts/TimeChart";
 
@@ -29,6 +29,7 @@ export function DeviceMonitor() {
         </button>
       </div>
       {picking && <InterfacePicker id={deviceId} onDone={() => setPicking(false)} />}
+      {picking && <PingSettings id={deviceId} />}
       <ResourcesPanel id={deviceId} range={range} />
       <TrafficPanel id={deviceId} range={range} />
       {detail?.icmp.enabled && <LatencyPanel id={deviceId} range={range} />}
@@ -224,6 +225,69 @@ function WirelessPanel({ id, range }: { id: string; range: Range }) {
 }
 
 /** Interfaces whose traffic history is kept (agent counters every heartbeat); automatic = WAN links, else ether1. */
+/** Ping monitoring of this device: on/off, address to ping (default: management IP), latency and loss thresholds. */
+function PingSettings({ id }: { id: string }) {
+  const { t, i18n } = useTranslation();
+  const query = useIcmpSettings(id);
+  const save = useSaveIcmp(id);
+  const data = query.data;
+  const [form, setForm] = useState({ enabled: false, target: "", rtt_ms: "", loss_pct: "" });
+  useEffect(() => {
+    if (data) setForm({ enabled: data.enabled, target: data.target ?? "", rtt_ms: data.rtt_ms?.toString() ?? "", loss_pct: data.loss_pct?.toString() ?? "" });
+  }, [data]);
+  if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
+  if (!data) return null;
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    save.mutate(form);
+  };
+  return (
+    <section className="ui-panel ui-admin-section">
+      <h2>{t("monitor.ping.title")}</h2>
+      <p className="ui-muted">
+        {data.enabled
+          ? data.down
+            ? t("monitor.ping.down")
+            : data.last_rtt != null
+              ? t("monitor.ping.last", { rtt: formatValue(data.last_rtt, "ms", i18n.language), loss: data.last_loss ?? 0 })
+              : t("monitor.ping.waiting")
+          : t("monitor.ping.off")}
+        {data.error && <> · <span className="ui-text-danger">{data.error}</span></>}
+      </p>
+      {!data.globally_enabled && <div className="ui-alert ui-alert-warning">{t("monitor.ping.globallyOff")}</div>}
+      <form className="ui-admin-form" onSubmit={submit}>
+        <div className="ui-check-grid ui-admin-wide">
+          <label>
+            <input type="checkbox" checked={form.enabled} disabled={!data.can_edit} onChange={(event) => setForm({ ...form, enabled: event.target.checked })} />
+            <span>{t("monitor.ping.enabled")}</span>
+          </label>
+        </div>
+        <label>
+          <span>{t("monitor.ping.target")}</span>
+          <input value={form.target} disabled={!data.can_edit} placeholder={data.management_ip ?? ""} onChange={(event) => setForm({ ...form, target: event.target.value })} />
+          <small className="ui-muted">{t("monitor.ping.targetHelp")}</small>
+        </label>
+        <label>
+          <span>{t("monitor.ping.rtt")}</span>
+          <input inputMode="decimal" value={form.rtt_ms} disabled={!data.can_edit} onChange={(event) => setForm({ ...form, rtt_ms: event.target.value })} />
+        </label>
+        <label>
+          <span>{t("monitor.ping.loss")}</span>
+          <input inputMode="decimal" value={form.loss_pct} disabled={!data.can_edit} onChange={(event) => setForm({ ...form, loss_pct: event.target.value })} />
+        </label>
+        {data.can_edit && (
+          <div className="ui-admin-wide ui-row-actions">
+            <button type="submit" className="ui-button ui-button-primary" disabled={save.isPending}>{t("monitor.ping.save")}</button>
+            <small className="ui-muted">{t("monitor.ping.thresholdHelp")}</small>
+          </div>
+        )}
+        {save.isSuccess && <div className="ui-admin-wide ui-alert ui-alert-success">{save.data.enabled ? t("monitor.ping.saved") : t("monitor.ping.disabled")}</div>}
+        {save.error && <div className="ui-admin-wide ui-alert ui-alert-danger">{(save.error as Error).message}</div>}
+      </form>
+    </section>
+  );
+}
+
 function InterfacePicker({ id, onDone }: { id: string; onDone: () => void }) {
   const { t, i18n } = useTranslation();
   const query = useTrafficInterfaces(id, true);

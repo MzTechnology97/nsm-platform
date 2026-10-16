@@ -122,8 +122,8 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-ac-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{gw_id}/logs").text
-    assert 'id="access"' in page and "Accessi al dispositivo" in page and "8.8.4.4" in page and "falliti</span>" in page
+    access = client.get(f"/api/ui/v1/devices/{gw_id}/syslog").json()["access"]
+    assert "8.8.4.4" in {source["ip"] for source in access["top_sources"]} and any(e["outcome"] == "failure" for e in access["recent"]), access
     data = client.get(f"/api/v1/devices/{gw_id}/logs?q=login failure").json()
     assert data["entries"] and all(e["category"] == "login_failure" for e in data["entries"])
     fleet = client.get("/api/ui/v1/access").json()

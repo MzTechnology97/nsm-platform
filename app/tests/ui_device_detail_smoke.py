@@ -65,6 +65,7 @@ def main():
     tabs = [t["key"] for t in body["tabs"]]
     assert tabs[0] == "overview" and {"monitor", "agent", "diagnostics", "configuration"} <= set(tabs) and "uisp" not in tabs
     assert next(t for t in body["tabs"] if t["key"] == "monitor")["classic"] == f"/devices/{ids['router']}/monitor"
+    assert body["zabbix"] is None, "no Zabbix block when Zabbix is not configured"
     assert body["actions"] == {"reboot": True, "incident": True, "manage": True}
 
     cpe = admin.get(f"/api/ui/v1/devices/{ids['cpe']}").json()

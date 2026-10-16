@@ -5,6 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from app.agent_models import DeviceAgentCredential, DeviceMetricSample
 from app.db import SessionLocal
@@ -55,7 +56,9 @@ def login(username):
 def main():
     admin, auditor = seed()
     client = login(admin)
-    dashboard = client.get("/devices")
+    with SessionLocal() as db:
+        any_device = db.scalar(select(Device.id).where(Device.name == "TEST-HOT-RTR").limit(1))
+    dashboard = client.get(f"/devices/{any_device}/backups")
     links = sorted(set(re.findall(r'class="nav-item[^"]*" href="([^"]+)"', dashboard.text)))
     # The new React interface (/app) has its own shell and build: covered by ui_foundation_smoke.
     assert "/app" in links

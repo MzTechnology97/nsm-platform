@@ -101,11 +101,6 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-zp-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{ids['router']}").text
-    assert "Problemi aperti in Zabbix" in page and "Interface ether1: link down" in page and "2 problemi" in page and "severity-high" in page
-    assert "Problemi aperti in Zabbix" not in client.get(f"/devices/{ids['quiet']}").text
-    other_tab = client.get(f"/devices/{ids['router']}/exposure").text
-    assert "2 problemi" in other_tab and "Problemi aperti in Zabbix" not in other_tab, "badge on every tab, panel only on the overview"
     # New interface: device detail (link, open problems) and the Monitoring panel, worst severity first.
     detail = client.get(f"/api/ui/v1/devices/{ids['router']}").json()["zabbix"]
     assert "zabbix.php?action=latest.view" in detail["link"] and detail["excluded"] is False
@@ -122,15 +117,15 @@ def main():
     # Zabbix down: the last list is kept and marked as not updated.
     fake.fail = True
     assert refresh(now=utcnow() - timedelta(hours=1))["status"] == "failed"
-    page = client.get(f"/devices/{ids['router']}").text
-    assert "Interface ether1: link down" in page and "elenco non aggiornato" in page
+    stale = client.get(f"/api/ui/v1/devices/{ids['router']}").json()["zabbix"]["problems"]
+    assert stale["items"][0]["name"] == "Interface ether1: link down" and stale["stale"] is True, "the last list is kept, marked as not updated"
     # Problem solved in Zabbix: the list empties.
     fake.fail = False
     fake.triggers = [t for t in fake.triggers if t["triggerid"] != "9001" and t["triggerid"] != "9002"]
     assert refresh()["status"] == "success"
     with SessionLocal() as db:
         assert db.get(Device, ids["router"]).inventory_data["zabbix_problems"]["items"] == []
-    assert "Problemi aperti in Zabbix" not in client.get(f"/devices/{ids['router']}").text
+    assert client.get(f"/api/ui/v1/devices/{ids['router']}").json()["zabbix"]["problems"]["items"] == []
     print("Zabbix problems smoke passed")
 
 

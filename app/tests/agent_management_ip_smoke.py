@@ -101,10 +101,8 @@ def main():
     assert admin.post("/login", data={"username": f"ci-mi-{suffix}", "password": PASSWORD, "csrf": csrf_from(admin.get("/login").text)}, follow_redirects=False).status_code == 303
     listing = admin.get("/api/ui/v1/devices", params={"customer": str(ids["customer"])}).text
     assert "8.8.4.4" in listing and "198.51.100.1" in listing, "device list shows management and LAN IP"
-    devices = admin.get(f"/devices?q=TEST-MI-{suffix}").text
-    assert "8.8.4.4" in devices and "pubblico · LAN 198.51.100.1" in devices
-    page = admin.get(f"/devices/{ids['modern']}").text
-    assert "IP LAN" in page and "198.51.100.1" in page and "Visto da NSM" in page
+    page = admin.get(f"/api/ui/v1/devices/{ids['modern']}").json()["device"]
+    assert page["lan_ip"] == "198.51.100.1" and page["seen_from"], page
     print("Agent management IP smoke passed")
 
 

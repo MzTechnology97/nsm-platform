@@ -46,14 +46,19 @@ def main():
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-icmp-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)},
                        follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{cpe_id}").text
-    assert "Latenza e perdita (ICMP da NSM)" in page and 'placeholder="198.51.100.40"' in page
-    token = csrf_from(page)
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+
+    def icmp_settings(device_id, **body):
+        return client.post(f"/api/ui/v1/devices/{device_id}/icmp", headers=headers, json=body)
+    page = client.get(f"/api/ui/v1/devices/{cpe_id}/icmp").json()
+    assert page["enabled"] is False and page["management_ip"] == "198.51.100.40" and page["can_edit"] is True
     # A router without management IP needs an explicit address; bad addresses are refused.
-    assert "non ha un IP di gestione" in client.post(f"/devices/{router_id}/latency/settings", data={"csrf": token, "enabled": "1"}).text
-    assert "Indirizzo non valido" in client.post(f"/devices/{router_id}/latency/settings", data={"csrf": token, "enabled": "1", "target": "127.0.0.1"}).text
-    client.post(f"/devices/{router_id}/latency/settings", data={"csrf": token, "enabled": "1", "target": "203.0.113.7", "back": f"/devices/{router_id}/monitor"})
-    client.post(f"/devices/{cpe_id}/latency/settings", data={"csrf": token, "enabled": "1"})
+    refused = icmp_settings(router_id, enabled=True)
+    assert refused.status_code == 422 and refused.json()["detail"]["code"] == "no_target" and "non ha un IP di gestione" in refused.text
+    refused = icmp_settings(router_id, enabled=True, target="127.0.0.1")
+    assert refused.status_code == 422 and refused.json()["detail"]["code"] == "target" and "Indirizzo non valido" in refused.text
+    assert icmp_settings(router_id, enabled=True, target="203.0.113.7").json()["effective_target"] == "203.0.113.7"
+    assert icmp_settings(cpe_id, enabled=True).json()["enabled"] is True
 
     replies = {"198.51.100.40": {"sent": 3, "received": 3, "rtts": [10.0, 12.0, 14.0]}, "203.0.113.7": {"sent": 3, "received": 0, "rtts": []}}
     t0 = utcnow()
@@ -77,17 +82,16 @@ def main():
     assert data["target"] == "203.0.113.7" and data["sample_count"] == 4
     assert data["stats"]["loss"] == round(100 * (1 - 2 / 12), 2) and data["stats"]["rtt_avg"] == 40.0
     assert [p["loss"] for p in data["points"]] == [100.0, 100.0, 100.0, 33.3]
-    monitor = client.get(f"/devices/{router_id}/monitor").text
-    assert "data-latency-root" in monitor and "latency_monitor.js" in monitor
+    assert client.get(f"/api/ui/v1/devices/{router_id}").json()["icmp"]["enabled"] is True, "the monitor tab shows the latency chart"
 
     # Ping sockets not allowed: nothing stored, the reason is shown on the device.
     def denied(host):
         raise icmp_probe.IcmpUnavailable("ICMP non consentito dal sistema (test).")
     assert icmp.tick(now=t0 + timedelta(minutes=20), prober=denied)["unavailable"] is True
-    assert "Ping non eseguibile dal server" in client.get(f"/devices/{cpe_id}").text
+    assert "ICMP non consentito" in (client.get(f"/api/ui/v1/devices/{cpe_id}/icmp").json()["error"] or ""), "the reason is shown on the device"
 
     # Disabling stops the rounds.
-    client.post(f"/devices/{cpe_id}/latency/settings", data={"csrf": token})
+    icmp_settings(cpe_id, enabled=False).raise_for_status()
     assert icmp.tick(now=t0 + timedelta(minutes=40), prober=lambda host: replies[host])["probed"] == 1
 
     # Consolidation after 7 days: RTT averaged, packets summed.

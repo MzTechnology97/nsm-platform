@@ -137,13 +137,16 @@ def main():
     assert {e["severity_label"] for e in errors} <= {"critical", "error"} and any(e["severity_label"] == "critical" for e in errors)
     assert [e["message"] for e in admin.get(f"/api/v1/devices/{ids['gw']}/logs?q=winbox").json()["entries"]] == ["login failure for user admin from 203.0.113.9 via winbox"]
 
-    page = admin.get(f"/devices/{ids['gw']}/logs")
-    assert page.status_code == 200 and "data-log-root" in page.text and "device_logs.js" in page.text
-    assert ">Syslog</a>" in page.text, "every device has a Syslog tab in its own view"
-    assert "/system logging action add name=nsm target=remote" in page.text and "Fortinet" not in page.text, "only this vendor's instructions"
-    ubnt = admin.get(f"/devices/{ids['a']}/logs").text
-    assert "Ubiquiti airOS" in ubnt and "/admin/syslog" not in ubnt, "instructions are inline, no external link"
-    assert "Cambium" in admin.get(f"/devices/{ids['lan']}/logs").text
+    def guides(device_id):
+        response = admin.get(f"/api/ui/v1/devices/{device_id}/syslog")
+        assert response.status_code == 200, response.text
+        return repr(response.json()["guides"])
+
+    page = guides(ids["gw"])
+    assert "logs" in {tab["key"] for tab in admin.get(f"/api/ui/v1/devices/{ids['gw']}").json()["tabs"]}, "every device has a Syslog tab"
+    assert "/system logging action add name=nsm target=remote" in page and "Fortinet" not in page, "only this vendor's instructions"
+    assert "Ubiquiti airOS" in guides(ids["a"])
+    assert "Cambium" in guides(ids["lan"])
     exported = admin.get(f"/devices/{ids['gw']}/logs.csv?severity=3")
     assert exported.status_code == 200 and "login failure for user admin" in exported.text and "udp line" not in exported.text
 
@@ -155,7 +158,7 @@ def main():
     saved = admin.post(f"{syslog_api}/settings", headers=headers, json={"public_host": "203.0.113.5", "info_retention_days": 365,
                                                                        "allowed_networks": "192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 127.0.0.0/8"})
     assert saved.status_code == 200, saved.text
-    assert "remote=203.0.113.5" in admin.get(f"/devices/{ids['gw']}/logs").text
+    assert "remote=203.0.113.5" in guides(ids["gw"])
     cleared = admin.post(f"{syslog_api}/unknown/clear", headers=headers, json={"source_ip": "192.0.2.250"})
     assert cleared.status_code == 200 and cleared.json()["cleared"], cleared.text
     receiver.refresh()
@@ -179,7 +182,7 @@ def main():
 
     auditor = TestClient(app)
     assert auditor.post("/login", data={"username": f"ci-sy-o-{suffix}", "password": PASSWORD, "csrf": csrf_from(auditor.get("/login").text)}, follow_redirects=False).status_code == 303
-    assert auditor.get(f"/devices/{ids['gw']}/logs").status_code == 200
+    assert auditor.get(f"/api/ui/v1/devices/{ids['gw']}/syslog").status_code == 200
     assert auditor.get("/api/ui/v1/admin/syslog").status_code == 403
     assert TestClient(app).get(f"/api/v1/devices/{ids['gw']}/logs").status_code == 401
     print("Syslog receiver smoke passed")

@@ -62,10 +62,11 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-ls-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{ids['ops']}/logs").text
-    assert "Configura syslog con l&#39;agent" in page or "Configura syslog con l'agent" in page
-    assert "sola lettura" in client.get(f"/devices/{ids['readonly']}/logs").text
-    client.post(f"/devices/{ids['ops']}/syslog/configure", data={"csrf": csrf_from(page)})
+    assert client.get(f"/api/ui/v1/devices/{ids['ops']}/syslog").json()["agent"]["can_configure"] is True
+    readonly = client.get(f"/api/ui/v1/devices/{ids['readonly']}/syslog").json()["agent"]
+    assert readonly["can_configure"] is False and "sola lettura" in readonly["blocker_text"]
+    client.post(f"/api/ui/v1/devices/{ids['ops']}/syslog/configure",
+                headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}).raise_for_status()
     with SessionLocal() as db:
         job = db.scalar(select(DeviceJob).where(DeviceJob.device_id == ids["ops"], DeviceJob.job_type == "syslog_configure"))
         prefix = job.payload["prefix"]

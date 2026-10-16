@@ -165,7 +165,7 @@
       "7d": "7 jours",
       "30d": "30 jours"
     },
-    "settings": "Interfaces surveillées",
+    "settings": "Paramètres de surveillance",
     "noSamples": "Aucun échantillon sur cette période.",
     "legend": {
       "current": "Actuel",
@@ -213,7 +213,24 @@
     "pickSave": "Enregistrer les interfaces",
     "pickReset": "Revenir à l'automatique",
     "pickCount": "{{count}} sur {{max}}",
-    "unknownType": "type inconnu"
+    "unknownType": "type inconnu",
+    "ping": {
+      "title": "Surveillance ping",
+      "enabled": "Surveiller cet équipement par ping",
+      "target": "Adresse à surveiller",
+      "targetHelp": "Vide : l'IP de gestion est utilisée.",
+      "rtt": "Seuil de latence (ms)",
+      "loss": "Seuil de perte (%)",
+      "thresholdHelp": "Seuils vides : aucune alerte de qualité, seulement la joignabilité.",
+      "save": "Enregistrer",
+      "saved": "Surveillance active : le premier échantillon arrive dans 2 minutes.",
+      "disabled": "Surveillance ping désactivée.",
+      "off": "Surveillance ping désactivée.",
+      "down": "Ne répond pas au ping.",
+      "waiting": "En attente du premier échantillon.",
+      "last": "Dernier ping : {{rtt}}, perte {{loss}} %.",
+      "globallyOff": "La surveillance ping est désactivée pour toute la plateforme (ICMP_MONITOR)."
+    }
   },
   "syslog": {
     "today": {
@@ -3113,7 +3130,9 @@
     "help": "Collez-la dans le Terminal RouterOS du routeur : elle télécharge et lance l'agent NSM avec un jeton à usage unique.",
     "copy": "Copier la commande",
     "copied": "Copiée",
-    "once": "La commande ne sera plus affichée : si vous la perdez, générez-en une nouvelle depuis l'onglet Agent."
+    "once": "La commande ne sera plus affichée : si vous la perdez, générez-en une nouvelle depuis l'onglet Agent.",
+    "v7": "RouterOS 7.x",
+    "v6": "RouterOS 6.48 / 6.49 (agent legacy)"
   },
   "deviceManage": {
     "title": "Alias et affectation",
@@ -4614,6 +4633,9 @@
       "3": "Moyenne",
       "4": "Haute",
       "5": "Désastre"
-    }
+    },
+    "pending": "en attente de la prochaine synchronisation",
+    "exclude": "Exclure de Zabbix",
+    "include": "Inclure dans Zabbix"
   }
 }

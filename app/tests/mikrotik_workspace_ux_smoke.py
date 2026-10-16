@@ -47,11 +47,9 @@ def main():
     username, legacy_id, modern_id, diagnostic_id = seed()
     client = TestClient(app)
     login(client, username)
-    overview = client.get(f"/devices/{legacy_id}")
-    assert overview.status_code == 200 and "23.4 MiB" in overview.text and "64.0 MiB" in overview.text
-    monitor = client.get(f"/devices/{legacy_id}/monitor")
-    assert monitor.status_code == 200 and "AA:BB:CC:43:00:01" in monitor.text
-    assert "8%" in monitor.text and "Storico non supportato" not in monitor.text and "data-telemetry-root" in monitor.text
+    overview = client.get(f"/api/ui/v1/devices/{legacy_id}")
+    assert overview.status_code == 200 and "AA:BB:CC:43:00:01" in overview.text
+    assert "monitor" in {tab["key"] for tab in overview.json()["tabs"]}, "legacy agents keep the monitor tab"
     configuration = client.get(f"/devices/{legacy_id}/configuration")
     assert configuration.status_code == 200
     assert "Snapshot configurazione non disponibile" not in configuration.text
