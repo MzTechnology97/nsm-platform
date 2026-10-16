@@ -3,32 +3,20 @@ from __future__ import annotations
 
 import csv
 import io
-import math
 import uuid
 from datetime import date, datetime, time, timezone
-from urllib.parse import urlencode
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, Response
-from sqlalchemy import String, cast, func, or_, select
+from fastapi.responses import Response
+from sqlalchemy import String, cast, or_, select
 
 from app import main as core
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
 from app.models import AuditEvent, Customer, Device
-from app.mikrotik_workspace import _load_device
 
 router = APIRouter()
-PAGE_SIZES = {25, 50, 100}
 ACTIVE_JOB_STATES = ("pending", "delivered", "running")
-
-
-def _safe_page(value: int) -> int:
-    return max(1, int(value or 1))
-
-
-def _safe_per_page(value: int) -> int:
-    return value if value in PAGE_SIZES else 50
 
 
 def _parse_day(value: str, end: bool = False):
@@ -50,37 +38,6 @@ def _uuid(value: str):
         return uuid.UUID(value)
     except ValueError as exc:
         raise HTTPException(400, "Identificativo non valido.") from exc
-
-
-def _pager(path: str, page: int, per_page: int, total: int, params: dict):
-    pages = max(1, math.ceil(total / per_page))
-    page = min(page, pages)
-
-    def url(target):
-        payload = {k: v for k, v in params.items() if v not in (None, "")}
-        payload.update({"page": target, "per_page": per_page})
-        return f"{path}?{urlencode(payload)}"
-
-    return {
-        "page": page,
-        "pages": pages,
-        "per_page": per_page,
-        "total": total,
-        "prev_url": url(page - 1) if page > 1 else None,
-        "next_url": url(page + 1) if page < pages else None,
-    }
-
-
-def _remove_exact_route(app, path: str, method: str = "GET"):
-    method = method.upper()
-    app.router.routes[:] = [
-        route
-        for route in app.router.routes
-        if not (
-            getattr(route, "path", None) == path
-            and method in (getattr(route, "methods", set()) or set())
-        )
-    ]
 
 
 def _device_job_query(device_id, status: str, job_type: str, q: str, from_date: str, to_date: str):
@@ -107,125 +64,6 @@ def _device_job_query(device_id, status: str, job_type: str, q: str, from_date: 
     if end:
         stmt = stmt.where(DeviceJob.created_at <= end)
     return stmt
-
-
-def _device_event_query(device_id, event_type: str, result: str, q: str, from_date: str, to_date: str):
-    stmt = select(AuditEvent).where(AuditEvent.device_id == device_id)
-    if event_type:
-        stmt = stmt.where(AuditEvent.event_type == event_type)
-    if result:
-        stmt = stmt.where(AuditEvent.result == result)
-    if q:
-        pattern = f"%{q.strip()}%"
-        stmt = stmt.where(
-            or_(
-                AuditEvent.event_type.ilike(pattern),
-                AuditEvent.source.ilike(pattern),
-                AuditEvent.result.ilike(pattern),
-                cast(AuditEvent.details, String).ilike(pattern),
-            )
-        )
-    start = _parse_day(from_date)
-    end = _parse_day(to_date, end=True)
-    if start:
-        stmt = stmt.where(AuditEvent.timestamp >= start)
-    if end:
-        stmt = stmt.where(AuditEvent.timestamp <= end)
-    return stmt
-
-
-@router.get("/devices/{device_id}/jobs", response_class=HTMLResponse, name="device_activity_worklist")
-def device_activity(
-    request: Request,
-    device_id: uuid.UUID,
-    view: str = "jobs",
-    q: str = "",
-    status: str = "",
-    job_type: str = "",
-    event_type: str = "",
-    result: str = "",
-    from_date: str = "",
-    to_date: str = "",
-    page: int = 1,
-    per_page: int = 50,
-):
-    view = view if view in {"jobs", "audit"} else "jobs"
-    page = _safe_page(page)
-    per_page = _safe_per_page(per_page)
-
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "devices.read"):
-            raise HTTPException(403)
-        device = _load_device(db, device_id)
-
-        active_jobs = list(
-            db.scalars(
-                select(DeviceJob)
-                .where(DeviceJob.device_id == device.id, DeviceJob.status.in_(ACTIVE_JOB_STATES))
-                .order_by(DeviceJob.created_at.desc())
-                .limit(25)
-            )
-        )
-        job_types = list(db.scalars(select(DeviceJob.job_type).where(DeviceJob.device_id == device.id).distinct().order_by(DeviceJob.job_type)))
-        event_types = list(db.scalars(select(AuditEvent.event_type).where(AuditEvent.device_id == device.id).distinct().order_by(AuditEvent.event_type)))
-
-        params = {
-            "view": view,
-            "q": q,
-            "status": status,
-            "job_type": job_type,
-            "event_type": event_type,
-            "result": result,
-            "from_date": from_date,
-            "to_date": to_date,
-        }
-
-        rows = []
-        if view == "jobs":
-            stmt = _device_job_query(device.id, status, job_type, q, from_date, to_date)
-            count_stmt = select(func.count()).select_from(stmt.order_by(None).subquery())
-            total = int(db.scalar(count_stmt) or 0)
-            pager = _pager(f"/devices/{device.id}/jobs", page, per_page, total, params)
-            rows = list(
-                db.scalars(
-                    stmt.order_by(DeviceJob.created_at.desc())
-                    .offset((pager["page"] - 1) * per_page)
-                    .limit(per_page)
-                )
-            )
-        else:
-            stmt = _device_event_query(device.id, event_type, result, q, from_date, to_date)
-            count_stmt = select(func.count()).select_from(stmt.order_by(None).subquery())
-            total = int(db.scalar(count_stmt) or 0)
-            pager = _pager(f"/devices/{device.id}/jobs", page, per_page, total, params)
-            rows = list(
-                db.scalars(
-                    stmt.order_by(AuditEvent.timestamp.desc())
-                    .offset((pager["page"] - 1) * per_page)
-                    .limit(per_page)
-                )
-            )
-
-        inventory = dict(device.inventory_data or {})
-        return core.render(
-            request,
-            db,
-            user,
-            "device_activity.html",
-            device=device,
-            inventory=inventory,
-            active_tab="jobs",
-            view=view,
-            rows=rows,
-            active_jobs=active_jobs,
-            job_types=job_types,
-            event_types=event_types,
-            pager=pager,
-            filters=params,
-        )
 
 
 def _audit_query(event_type: str, result: str, severity: str, customer_id, device_q: str, q: str, from_date: str, to_date: str):
@@ -334,7 +172,6 @@ def audit_events_export_csv(
 
 
 def install_activity_worklists(app):
-    _remove_exact_route(app, "/devices/{device_id}/jobs", "GET")
     app.include_router(router)
     promoted = []
     rest = []

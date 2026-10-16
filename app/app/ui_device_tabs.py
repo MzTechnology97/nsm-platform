@@ -187,6 +187,43 @@ def traffic_interfaces_save(request: Request, device_id: uuid.UUID, body: dict =
             raise HTTPException(422, {"code": "too_many", "message": f"Al massimo {interface_traffic.MAX_MONITORED} interfacce."})
         return {"monitored": interface_traffic.set_monitored_record(db, user, device, names, bool(body.get("reset")))}
 
+@router.get("/devices/{device_id}/icmp")
+def icmp_settings(request: Request, device_id: uuid.UUID):
+    """Ping monitoring of one device: state, target, thresholds (monitor tab settings)."""
+    from app import icmp_monitor
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "monitoring.read")
+        device = _device(db, device_id)
+        return {**icmp_monitor.panel(device), "can_edit": core.has_permission(user, "devices.write")}
+
+
+@router.post("/devices/{device_id}/icmp", dependencies=[Depends(require_csrf)])
+def icmp_settings_save(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    from app import icmp_monitor
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.write")
+        device = _device(db, device_id)
+        try:
+            return icmp_monitor.save_settings_record(db, user, device, enabled=body.get("enabled") is True, target=str(body.get("target") or ""),
+                                                     rtt_ms=body.get("rtt_ms"), loss_pct=body.get("loss_pct"))
+        except InputError as exc:
+            raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
+
+
+@router.post("/devices/{device_id}/zabbix/exclude", dependencies=[Depends(require_csrf)])
+def zabbix_exclude(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    from app import zabbix_connector
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.write")
+        device = _device(db, device_id)
+        excluded = zabbix_connector.set_exclude_record(db, user, device, body.get("exclude") is True)
+        db.commit()
+        return {"excluded": excluded}
+
+
 def install_ui_device_tabs(app) -> None:
     app.include_router(router)
 

@@ -63,8 +63,6 @@ def main():
     assert data["stats"]["errors"] == {"supported": True, "rx_errors": 9, "tx_errors": 1, "rx_drops": 7, "tx_drops": 1}, data["stats"]
     assert [p["rx_errors"] for p in data["points"]] == [5, 4]
     assert client.get(f"/api/v1/devices/{ids[1]}/traffic?range=1h").json()["stats"]["errors"]["supported"] is False
-    monitor = client.get(f"/devices/{ids[0]}/monitor").text
-    assert "data-traffic-errors-chart" in monitor and "Errori e drop" in monitor
 
     # Consolidation sums the counts of a 10-minute slot.
     now = datetime(2026, 10, 9, 12, 0, tzinfo=timezone.utc)

@@ -3,7 +3,7 @@ import uuid
 from datetime import timedelta
 
 from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -32,11 +32,6 @@ DIAGNOSTIC_TYPES = {
     "logs": "diagnostic_logs",
     "support_snapshot": "support_snapshot",
 }
-
-
-def _remove_route(app, path: str, method: str = "GET"):
-    method = method.upper()
-    app.router.routes[:] = [route for route in app.router.routes if not (getattr(route, "path", None) == path and method in (getattr(route, "methods", set()) or set()))]
 
 
 def _load_device(db, device_id):
@@ -70,24 +65,6 @@ def _workspace_context(db, device):
     inventory = dict(device.inventory_data or {})
     metrics = dict(inventory.get("metrics") or {})
     return {"events": events, "issues": issues, "vulnerabilities": vulnerabilities, "backup_runs": backups, "jobs": jobs, "inventory": inventory, "metrics": metrics, "snapshots": _latest_snapshots(db, device.id), "pending_sections": _pending_sections(db, device.id)}
-
-
-@router.get("/devices/{device_id}", response_class=HTMLResponse, name="mikrotik_workspace_overview")
-def workspace_overview(request: Request, device_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "devices.read"):
-            raise HTTPException(403)
-        device = _load_device(db, device_id)
-        if device.vendor != "mikrotik":
-            return core.device_detail(request, device_id)
-        ctx = _workspace_context(db, device)
-        raw_token = request.session.pop(f"enrollment_token:{device.id}", None)
-        ctx["enrollment_command"] = core.enrollment_command(str(request.base_url), raw_token) if raw_token else None
-        ctx["backup_policy"] = core.effective_backup_policy(db, device)
-        return core.render(request, db, user, "mikrotik_workspace.html", device=device, active_tab="overview", **ctx)
 
 
 @router.post("/devices/{device_id}/snapshot/{section}", name="queue_mikrotik_snapshot")
@@ -211,14 +188,4 @@ def queue_diagnostic(
 
 
 def install_mikrotik_workspace(app):
-    _remove_route(app, "/devices/{device_id}", "GET")
     app.include_router(router)
-    promoted = []
-    rest = []
-    paths = {"/devices/{device_id}"}
-    for route in app.router.routes:
-        if getattr(route, "path", None) in paths:
-            promoted.append(route)
-        else:
-            rest.append(route)
-    app.router.routes[:] = promoted + rest

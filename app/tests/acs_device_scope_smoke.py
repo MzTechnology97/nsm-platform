@@ -58,11 +58,12 @@ def main():
     assert client.post("/login", data={"username": f"ci-as-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
 
     # Overview: no more "ACS non ancora disponibile"; the TR-069 panel points to the ACS tab.
-    page = client.get(f"/devices/{ids['tplink']}").text
-    assert "non ancora disponibile" not in page and "Associazione GenieACS da completare" in page and f'/devices/{ids["tplink"]}/genieacs' in page
-    ont_page = client.get(f"/devices/{ids['ont']}").text
-    assert f'href="/devices/{ids["ont"]}/genieacs"' in ont_page, "ACS tab for a Huawei ONT entered as generic"
-    assert f'href="/devices/{ids["switch"]}/genieacs"' not in client.get(f"/devices/{ids['switch']}").text
+    def tabs(device_id):
+        return {tab["key"] for tab in client.get(f"/api/ui/v1/devices/{device_id}").json()["tabs"]}
+
+    assert "acs" in tabs(ids["tplink"]), "ACS tab for TP-Link CPEs"
+    assert "acs" in tabs(ids["ont"]), "ACS tab for a Huawei ONT entered as generic"
+    assert "acs" not in tabs(ids["switch"])
     assert client.get(f"/devices/{ids['switch']}/genieacs").status_code == 400
 
     # Association of the Huawei ONT by serial.
@@ -75,8 +76,8 @@ def main():
         ont = db.get(Device, ids["ont"])
         assert ont.external_device_id == ACS_ID and ont.management_source == "tr069" and ont.vendor == "generic"
         assert ont.inventory_data["tr069"]["manufacturer"].startswith("Huawei")
-    linked = client.get(f"/devices/{ids['ont']}").text
-    assert "Apri scheda ACS" in linked and ACS_ID in linked
+    linked = client.get(f"/api/ui/v1/devices/{ids['ont']}/genieacs")
+    assert linked.status_code == 200 and ACS_ID in linked.text
     print("ACS device scope smoke passed")
 
 

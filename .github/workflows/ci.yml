@@ -58,7 +58,7 @@ jobs:
           # Core 0.49 series: the patch number increases with every release (docs/CHANGELOG.md).
           assert re.fullmatch(r'0\.49\.\d+', app.version), app.version
           expected = {
-              'dashboard': '/', 'devices': '/devices',
+              'dashboard': '/',
               'mikrotik_bootstrap': '/api/v1/enrollment/mikrotik/bootstrap',
               'mikrotik_enroll': '/api/v1/agents/mikrotik/enroll', 'mikrotik_heartbeat': '/api/v1/agents/mikrotik/heartbeat',
               'mikrotik_legacy_job_next': '/api/v1/agents/mikrotik/legacy/jobs/next',
@@ -67,8 +67,6 @@ jobs:
           }
           for name, path in expected.items():
               assert str(app.url_path_for(name)) == path, (name, app.url_path_for(name))
-          assert str(app.url_path_for('device_activity_worklist', device_id=zero)) == f'/devices/{zero}/jobs'
-          assert str(app.url_path_for('queue_mikrotik_firmware_readiness', device_id=zero)) == f'/devices/{zero}/firmware-readiness'
           assert str(app.url_path_for('create_firmware_upgrade_plan', device_id=zero)) == f'/devices/{zero}/firmware-upgrade/plan'
           assert str(app.url_path_for('activate_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/activate'
           assert str(app.url_path_for('routerboot_lifecycle_page', device_id=zero)) == f'/devices/{zero}/routerboot'
@@ -98,14 +96,12 @@ jobs:
           compatibility = Path('app/app/mikrotik_compatibility.py').read_text()
           updater = Path('app/app/mikrotik_agent_update.py').read_text()
           activity = Path('app/app/activity_worklists.py').read_text()
-          device_activity = Path('app/app/templates/device_activity.html').read_text()
           modern_syntax = Path('app/app/mikrotik_modern_syntax.py').read_text()
           modern_syntax_test = Path('app/tests/mikrotik_modern_syntax_smoke.py').read_text()
           agent_install = Path('app/app/templates/mikrotik_agent_status.html').read_text()
           agent_fleet = Path('app/app/agent_fleet.py').read_text()
           agent_health = Path('app/app/agent_health_automation.py').read_text()
           workspace_ux = Path('app/app/mikrotik_workspace_ux.py').read_text()
-          monitor = Path('app/app/templates/mikrotik_monitor.html').read_text()
           diagnostics = Path('app/app/templates/mikrotik_diagnostics_v2.html').read_text()
           ui_js = Path('app/app/static/ui.js').read_text()
           drift = Path('app/app/config_drift.py').read_text()
@@ -137,8 +133,6 @@ jobs:
               assert marker in agent_health, marker
           for marker in ('human_bytes', 'snapshot_supported', 'telemetry_history_supported', 'Support snapshot non disponibile', '409'):
               assert marker in workspace_ux, marker
-          for marker in ('Storico non supportato', 'memory_used_percent', 'device_layout.html'):
-              assert marker in monitor, marker
           device_layout = Path('app/app/templates/device_layout.html').read_text()
           for marker in ('MAC', 'IP gestione', 'device-tabs', "('backups', 'Backup'", "('firmware', 'Firmware'"):
               assert marker in device_layout, marker
@@ -159,10 +153,8 @@ jobs:
           for marker in ('section=interfaces', 'section=ip_addresses', 'section=routes', 'section=firewall', 'Filter + NAT',
                          'Default route', 'Check gateway', 'Disabled', 'Dinamici'):
               assert marker in configuration_page, marker
-          for marker in ('PAGE_SIZES', 'ACTIVE_JOB_STATES', 'audit_events_export_csv', 'AUDIT_EVENTS_EXPORTED', 'limit(50000)'):
+          for marker in ('ACTIVE_JOB_STATES', 'audit_events_export_csv', 'AUDIT_EVENTS_EXPORTED', 'limit(50000)'):
               assert marker in activity, marker
-          for marker in ('Coda attiva', 'Storico operativo', 'per_page', 'from_date', 'to_date'):
-              assert marker in device_activity, marker
           print('Core 0.49 safety, compatibility and agent self-update contracts OK')
           PY
       - name: Prepare dummy runtime env for Compose validation

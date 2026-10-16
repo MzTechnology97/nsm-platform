@@ -119,10 +119,8 @@ def main():
         device.recommended_firmware_version = "7.20.7"
         db.commit()
     token = client.get("/api/ui/v1/session").json()["csrf_token"]
-    refused = client.post(f"/devices/{device_id}/firmware-upgrade/plan", data={"csrf": token}, follow_redirects=False)
-    assert refused.status_code == 303
-    feedback = client.get(refused.headers["location"])
-    assert "non esegue downgrade" in feedback.text, feedback.text[:500]
+    refused = client.post(f"/api/ui/v1/devices/{device_id}/firmware-upgrade/plan", headers={"X-CSRF-Token": token})
+    assert refused.status_code >= 400 and "non esegue downgrade" in refused.text, refused.text[:500]
     with SessionLocal() as db:
         plans = list(db.scalars(select(FirmwareUpgradePlan).where(FirmwareUpgradePlan.device_id == device_id)))
         assert plans == []

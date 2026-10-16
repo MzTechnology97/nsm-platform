@@ -50,29 +50,27 @@ def main():
     client = TestClient(app)
     login(client)
 
-    global_page = client.get("/devices?per_page=25")
-    assert global_page.status_code == 200
-    assert "Inventario globale operativo" in global_page.text
+    api = "/api/ui/v1/devices"
+    assert client.get(api).status_code == 200
 
-    page = client.get(f"/devices?customer={customer_id}&per_page=25")
+    page = client.get(f"{api}?customer={customer_id}")
     assert page.status_code == 200, page.text
-    for marker in ("Inventario confinato al cliente selezionato", "Per pagina", "CI18 Router", "CI18 CPE", "CI18SERIAL01", "02:18:00:00:00:01", "192.0.2.18", "inventory-table"):
+    for marker in ("CI18 Router", "CI18 CPE", "CI18SERIAL01", "02:18:00:00:00:01", "192.0.2.18"):
         assert marker in page.text, marker
 
-    offline = client.get(f"/devices?customer={customer_id}&status=offline")
+    offline = client.get(f"{api}?customer={customer_id}&status=offline")
     assert offline.status_code == 200
     assert "CI18 CPE" in offline.text
     assert "CI18 Router" not in offline.text
 
-    by_serial = client.get(f"/devices?customer={customer_id}&q=CI18SERIAL01")
+    by_serial = client.get(f"{api}?customer={customer_id}&q=CI18SERIAL01")
     assert "CI18 Router" in by_serial.text and "CI18 CPE" not in by_serial.text
 
-    by_software = client.get(f"/devices?customer={customer_id}&q=CI18-SW")
+    by_software = client.get(f"{api}?customer={customer_id}&q=CI18-SW")
     assert "CI18 Router" in by_software.text
 
-    invalid_page_size = client.get(f"/devices?customer={customer_id}&per_page=999")
-    assert invalid_page_size.status_code == 200
-    assert '<option value="50" selected>' in invalid_page_size.text
+    moved = client.get(f"/devices?customer={customer_id}&status=offline&per_page=999", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == f"/app/devices?customer={customer_id}&status=offline"
 
     print("Core 0.18 scalable inventory smoke test passed")
 

@@ -41,7 +41,7 @@ def code_step(c, code):
 
 
 def logged_in(c):
-    return c.get("/devices", follow_redirects=False).status_code == 200
+    return c.get("/api/ui/v1/session").status_code == 200
 
 
 def main():

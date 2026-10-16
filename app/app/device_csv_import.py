@@ -12,15 +12,14 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import PlainTextResponse
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app import main as core
 from app.db import SessionLocal
 from app.models import Customer, Device, Site
-from app.security import validate_csrf
 
 router = APIRouter()
 MAX_CSV_BYTES = 1024 * 1024
@@ -338,29 +337,6 @@ def _summary(rows):
     return counts
 
 
-def _render(request, db, user, rows=None, summary=None, filename=None, dry_run=True):
-    return core.render(
-        request,
-        db,
-        user,
-        "device_csv_import.html",
-        rows=rows or [],
-        summary=summary,
-        filename=filename,
-        dry_run=dry_run,
-        max_rows=MAX_CSV_ROWS,
-        max_bytes=MAX_CSV_BYTES,
-        csv_columns=CSV_COLUMNS,
-    )
-
-
-@router.get("/devices/import", response_class=HTMLResponse, name="device_csv_import_page")
-def device_csv_import_page(request: Request):
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        return _render(request, db, user)
-
-
 @router.get(
     "/devices/import/template.csv",
     response_class=PlainTextResponse,
@@ -396,26 +372,6 @@ def device_csv_import_template(request: Request):
             "Cache-Control": "no-store",
         },
     )
-
-
-@router.post("/devices/import", response_class=HTMLResponse, name="device_csv_import_submit")
-async def device_csv_import_submit(
-    request: Request,
-    csv_file: UploadFile = File(...),
-    mode: str = Form("validate"),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    mode = str(mode or "validate").strip().lower()
-    if mode not in {"validate", "import"}:
-        raise HTTPException(400, "Modalità import non valida.")
-
-    with SessionLocal() as db:
-        user = core.require_admin(request, db)
-        raw = await csv_file.read(MAX_CSV_BYTES + 1)
-        filename = _clean(csv_file.filename, 255) or "devices.csv"
-        rows, summary = process_upload(db, user, raw, filename, mode)
-        return _render(request, db, user, rows, summary, filename, dry_run=mode != "import")
 
 
 def process_upload(db, user, raw: bytes, filename: str, mode: str):

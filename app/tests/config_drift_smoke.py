@@ -149,10 +149,6 @@ def main():
     assert missing.status_code == 303
     assert missing.headers["location"] == "/devices"
     assert not missing.headers.get("content-type", "").startswith("application/json")
-    missing_feedback = client.get("/devices")
-    assert missing_feedback.status_code == 200
-    assert "Apparato MikroTik non trovato" in missing_feedback.text
-    assert "flash-error" in missing_feedback.text
 
     print("Core 0.44 MikroTik configuration history, drift and contextual baseline feedback smoke passed")
 

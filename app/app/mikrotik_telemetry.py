@@ -3,9 +3,7 @@ import uuid
 from datetime import timedelta
 
 from fastapi import HTTPException, Request
-from fastapi.responses import HTMLResponse
 from sqlalchemy import or_, select
-from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app import agent_addresses, interface_traffic, mikrotik_wireless
@@ -174,22 +172,6 @@ def device_metrics(request: Request, device_id: uuid.UUID, range: str = "24h"):
         return {"device_id": str(device.id), "range": range, "sample_count": len(points), "points": points}
 
 
-def telemetry_monitor(request: Request, device_id: uuid.UUID):
-    from app.mikrotik_workspace import _workspace_context
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "monitoring.read"):
-            raise HTTPException(403)
-        device = db.scalar(select(Device).where(Device.id == device_id).options(selectinload(Device.customer), selectinload(Device.site)))
-        if not device or device.vendor != "mikrotik":
-            raise HTTPException(404)
-        ctx = _workspace_context(db, device)
-        latest = db.scalar(select(DeviceMetricSample).where(DeviceMetricSample.device_id == device.id).order_by(DeviceMetricSample.observed_at.desc(), DeviceMetricSample.id.desc()).limit(1))
-        return core.render(request, db, user, "mikrotik_monitor.html", device=device, latest_metric=latest, **ctx)
-
-
 def telemetry_cleanup():
     cutoff = utcnow() - timedelta(days=RETENTION_DAYS)
     with SessionLocal() as db:
@@ -208,17 +190,14 @@ def _assert_unique_route(app, path: str, method: str, endpoint):
 def install_mikrotik_telemetry(app):
     heartbeat_path = "/api/v1/agents/mikrotik/heartbeat"
     metrics_path = "/api/v1/devices/{device_id}/metrics"
-    monitor_path = "/devices/{device_id}/monitor"
 
     _remove_route(app, heartbeat_path, "POST")
     _remove_route(app, metrics_path, "GET")
-    _remove_route(app, monitor_path, "GET")
 
     app.add_api_route(heartbeat_path, mikrotik_heartbeat, methods=["POST"], name="mikrotik_heartbeat")
     app.add_api_route(metrics_path, device_metrics, methods=["GET"], name="device_metrics")
-    app.add_api_route(monitor_path, telemetry_monitor, methods=["GET"], response_class=HTMLResponse, name="mikrotik_workspace_monitor")
 
-    specs = [(heartbeat_path, "POST", mikrotik_heartbeat), (metrics_path, "GET", device_metrics), (monitor_path, "GET", telemetry_monitor)]
+    specs = [(heartbeat_path, "POST", mikrotik_heartbeat), (metrics_path, "GET", device_metrics)]
     _promote_routes(app, specs)
     for path, method, endpoint in specs:
         _assert_unique_route(app, path, method, endpoint)

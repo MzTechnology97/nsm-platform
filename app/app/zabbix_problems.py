@@ -153,8 +153,13 @@ def api_device(device) -> dict | None:
     from app import zabbix_connector
 
     link = zabbix_connector.device_link(device)
+    if (device.inventory_data or {}).get("zabbix_exclude"):
+        return {"link": None, "excluded": True, "problems": None}
     if not link:
-        return {"link": None, "excluded": True, "problems": None} if (device.inventory_data or {}).get("zabbix_exclude") else None
+        with SessionLocal() as db:
+            row = zbx.connection_row(db)
+            configured = bool(row and row.is_enabled)
+        return {"link": None, "excluded": False, "problems": None} if configured else None
     problems = device_problems(device)
     return {"link": link, "excluded": False, "problems": None if problems is None else {
         "items": [{"name": p["name"], "severity": int(p["severity"]), "since": p.get("since"), "acknowledged": bool(p.get("acknowledged"))}

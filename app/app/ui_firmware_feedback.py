@@ -11,7 +11,6 @@ from collections.abc import Iterable
 
 from fastapi import Form, HTTPException, Request
 
-from app import mikrotik_firmware_readiness as firmware_readiness
 from app import routerboot_lifecycle as routerboot
 from app.ui_feedback import add_flash, exception_message, flash_redirect
 
@@ -79,61 +78,14 @@ def _feedback_for_exception(request: Request, exc: HTTPException, return_to: str
 def install_ui_firmware_feedback(app) -> None:
     """Install deterministic UI wrappers after the domain routers."""
 
-    readiness_handler = firmware_readiness.queue_firmware_readiness
     stage_handler = routerboot.stage_routerboot
     reboot_handler = routerboot.reboot_routerboot
 
     for path in (
-        "/devices/{device_id}/firmware-readiness",
         "/devices/{device_id}/routerboot/stage",
         "/devices/{device_id}/routerboot/reboot",
     ):
         _remove_post(app, path)
-
-    @app.post(
-        "/devices/{device_id}/firmware-readiness",
-        name="queue_mikrotik_firmware_readiness",
-    )
-    def firmware_readiness_ui(
-        request: Request,
-        device_id: uuid.UUID,
-        csrf: str = Form(...),
-        return_to: str = Form("device"),
-    ):
-        destination = "/operations/firmware" if return_to == "firmware" else f"/devices/{device_id}"
-        try:
-            response = readiness_handler(
-                request=request,
-                device_id=device_id,
-                csrf=csrf,
-                return_to=return_to,
-            )
-        except HTTPException as exc:
-            return _feedback_for_exception(request, exc, destination)
-
-        location = str(response.headers.get("location") or "")
-        if "firmware_check=queued" in location:
-            add_flash(
-                request,
-                "success",
-                "Verifica firmware accodata. RouterOS verrà interrogato al prossimo heartbeat.",
-                title="Verifica firmware accodata",
-            )
-        elif "firmware_check=already_queued" in location:
-            add_flash(
-                request,
-                "info",
-                "Una verifica firmware è già in coda o in esecuzione.",
-                title="Verifica già richiesta",
-            )
-        elif "firmware_check=agent_required" in location:
-            add_flash(
-                request,
-                "warning",
-                "La verifica firmware richiede un MikroTik online con Agent autenticato.",
-                title="Agent richiesto",
-            )
-        return response
 
     @app.post(
         "/devices/{device_id}/routerboot/stage",

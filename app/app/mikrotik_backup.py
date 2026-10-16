@@ -9,7 +9,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app import main as core
@@ -141,7 +141,6 @@ def _hash_file(path: Path):
     return size, digest.hexdigest()
 
 
-@router.post("/devices/{device_id}/backup-now")
 async def queue_mikrotik_backup(request: Request, device_id: uuid.UUID):
     form = await request.form()
     validate_csrf(request, str(form.get("csrf", "")))

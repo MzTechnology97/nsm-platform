@@ -265,7 +265,7 @@ def main():
     detail = client.get(f"/devices/{serial_device_id}/genieacs")
     assert detail.status_code == 200
     assert 'id="acs-inventory"' in detail.text and ACS_ID in detail.text and "1.0.1-ci27" in detail.text
-    assert f'href="/devices/{serial_device_id}/genieacs"' in client.get(f"/devices/{serial_device_id}").text, "ACS tab on TR-069 devices"
+    assert "acs" in {tab["key"] for tab in client.get(f"/api/ui/v1/devices/{serial_device_id}").json()["tabs"]}, "ACS tab on TR-069 devices"
     hub = client.get("/api/ui/v1/integrations").json()["genieacs"]
     assert hub["state"] == "active" and hub["linked"] >= 1, hub
 

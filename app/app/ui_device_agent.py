@@ -19,7 +19,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import select
 
-from app import agent_ui
+from app import agent_ui, mikrotik_onboarding
 from app import main as core
 from app import mikrotik_agent_status as agent_status
 from app import mikrotik_agent_update as updater
@@ -123,4 +123,4 @@ def reinstall(request: Request, response: Response, device_id: uuid.UUID):
         device = _mikrotik(db, device_id)
         raw_token = agent_ui.reinstall_record(db, user, device)
         db.commit()
-        return {"enrollment_command": core.enrollment_command(str(request.base_url), raw_token)}
+        return mikrotik_onboarding.enrollment_commands(str(request.base_url), raw_token)

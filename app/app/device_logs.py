@@ -13,25 +13,21 @@ import uuid
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, Response
-from sqlalchemy import delete, func, or_, select
+from fastapi.responses import Response
+from sqlalchemy import delete, or_, select
 
 from app import main as core
 from app import syslog_receiver as receiver
-from app import mikrotik_syslog_config as syslog_config
 from app import syslog_identity as identity
-from app import syslog_guides, syslog_integrity
-from app import syslog_security, vendor_cpe
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
-from app.models import Device, utcnow
+from app.models import Device
 from app.syslog_models import DeviceLogEntry, SyslogUnknownSource
 
 router = APIRouter()
 PAGE_SIZE = 200
 CSV_LIMIT = 50000
 SEVERITY_LABELS = {0: "emergency", 1: "alert", 2: "critical", 3: "error", 4: "warning", 5: "notice", 6: "info", 7: "debug"}
-SEVERITY_FILTERS = (("", "Tutte"), ("4", "Warning e più gravi"), ("3", "Error e più gravi"), ("2", "Solo critical"))
 
 
 def _user(db, request, permission):
@@ -75,32 +71,6 @@ def logs_api(request: Request, device_id: uuid.UUID, after_id: int = 0, before_i
             stmt = stmt.where(DeviceLogEntry.id < before_id)
         rows = list(db.scalars(stmt.order_by(DeviceLogEntry.id.desc()).limit(max(1, min(limit, 1000)))))
         return {"entries": [_row(r) for r in rows], "latest_id": rows[0].id if rows else after_id}
-
-
-@router.get("/devices/{device_id}/logs", response_class=HTMLResponse, name="device_logs")
-def logs_page(request: Request, device_id: uuid.UUID, verify: int = 0):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "monitoring.read"):
-            raise HTTPException(403)
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        since = utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        counts = dict(db.execute(select(DeviceLogEntry.severity, func.count()).where(DeviceLogEntry.device_id == device.id, DeviceLogEntry.received_at >= since).group_by(DeviceLogEntry.severity)).all())
-        last = db.scalar(select(DeviceLogEntry).where(DeviceLogEntry.device_id == device.id).order_by(DeviceLogEntry.id.desc()).limit(1))
-        had_key = bool((device.inventory_data or {}).get("syslog_key"))
-        prefix = identity.prefix_for(device)  # the key goes into the manual configuration below
-        if not had_key:
-            db.commit()
-        return core.render(request, db, user, "device_logs.html", syslog_prefix=prefix, device=device, today_counts=counts, last_log=last, device_section=None,
-                           severity_filters=SEVERITY_FILTERS, syslog_host=public_host(db, request), syslog_status=receiver.receiver_status(),
-                           device_brand_key=vendor_cpe.brand(device) or "generic",
-                           access=syslog_security.access_summary(db, device.id), syslog_job=syslog_config.latest_job(db, device.id),
-                           syslog_ident=device_identification(device, receiver.load_settings(db)),
-                           integrity=syslog_integrity.verify(db, device.id) if verify else None)
 
 
 @router.get("/devices/{device_id}/logs.csv", name="device_logs_csv")
@@ -182,6 +152,4 @@ def clear_unknown_source(db, source_ip) -> bool:
 
 
 def install_device_logs(app) -> None:
-    core.templates.env.globals["syslog_guides"] = syslog_guides.guides
     app.include_router(router)
-    core.templates.env.globals.update(log_severity_labels=SEVERITY_LABELS)

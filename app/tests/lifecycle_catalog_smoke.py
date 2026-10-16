@@ -100,8 +100,8 @@ def main():
 
     form = client.get(f"/devices/{ids['ambiguous']}/lifecycle").text
     assert "CCR2004-16G-2S+" in form and "CCR2004-1G-12S+2XS" in form
-    overview = client.get(f"/devices/{ids['eol']}").text
-    assert "Da catalogo" in overview and f"/devices/{ids['eol']}/lifecycle" in overview
+    overview = client.get(f"/api/ui/v1/devices/{ids['eol']}/lifecycle").json()
+    assert overview["device"]["match"] == "catalog", overview["device"]
     assert "TEST pagina prodotto" in client.get(f"/devices/{ids['eol']}/lifecycle").text
 
     # Alias collisions are rejected; a valid alias resolves the ambiguity.
@@ -119,11 +119,12 @@ def main():
         assert (amb.lifecycle_match, amb.lifecycle_status, amb.lifecycle_record_id) == ("catalog", "eos", ccr_id)
 
     # Manual value on a Device without model, then the manual Device goes back to the catalog.
-    response = client.post(f"/devices/{ids['nomodel']}/lifecycle", data={"csrf": token, "action": "manual", "lifecycle_status": "eos", "source": "TEST lettera vendor", "evidence_date": today.isoformat()}, follow_redirects=True)
-    assert "Valore lifecycle manuale salvato" in response.text
-    response = client.post(f"/devices/{ids['nomodel']}/lifecycle", data={"csrf": token, "action": "manual", "lifecycle_status": "eos", "source": "", "evidence_date": today.isoformat()}, follow_redirects=True)
-    assert "Indica la fonte" in response.text
-    client.post(f"/devices/{ids['manual']}/lifecycle", data={"csrf": token, "action": "catalog"}, follow_redirects=True)
+    device_api = f"/api/ui/v1/devices/{ids['nomodel']}/lifecycle"
+    response = client.post(device_api, headers=headers, json={"lifecycle_status": "eos", "source": "TEST lettera vendor", "evidence_date": today.isoformat()})
+    assert response.status_code == 200 and response.json()["status"] == "eos", response.text
+    response = client.post(device_api, headers=headers, json={"lifecycle_status": "eos", "source": "", "evidence_date": today.isoformat()})
+    assert response.status_code == 422 and "Indica la fonte" in response.text
+    client.post(f"/api/ui/v1/devices/{ids['manual']}/lifecycle/catalog", headers=headers).raise_for_status()
     with SessionLocal() as db:
         assert (db.get(Device, ids["nomodel"]).lifecycle_match, db.get(Device, ids["nomodel"]).lifecycle_status) == ("manual", "eos")
         back = db.get(Device, ids["manual"])

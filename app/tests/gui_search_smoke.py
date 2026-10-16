@@ -69,9 +69,8 @@ def main():
 
     listing = client.get("/api/ui/v1/devices", params={"customer": str(ids["customer"])}).text
     assert "brand-mikrotik" in listing and "Cambium Networks" in listing, "every device row carries its vendor icon"
-    assert 'class="vendor-badge' not in client.get("/devices").text, "no more two-letter vendor badges"
-    header = client.get(f"/devices/{ids['mt']}").text
-    assert "entity-badge-brand" in header and "brand-mikrotik" in header
+    header = client.get(f"/api/ui/v1/devices/{ids['mt']}").json()["device"]
+    assert header["brand"]["symbol"] == "brand-mikrotik", "the device header carries its vendor icon"
     print("GUI search smoke passed")
 
 

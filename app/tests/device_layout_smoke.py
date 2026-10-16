@@ -54,7 +54,11 @@ def main():
     client = TestClient(app)
     assert client.post("/login", data={"username": username, "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
 
-    mt_pages = ["", "/monitor", "/configuration", "/configuration/history", "/diagnostics", "/backups", "/backups/restore-tests", "/firmware-upgrade", "/routerboot", "/agent", "/jobs", "/manage"]
+    # Overview, monitor, activity and manage live in the new interface; the other tabs are still classic.
+    for suffix, target in (("", ""), ("/monitor", "/monitor"), ("/jobs", "/jobs"), ("/manage", "/manage"), ("/logs", "/syslog")):
+        moved = client.get(f"/devices/{mt_id}{suffix}", follow_redirects=False)
+        assert moved.status_code == 302 and moved.headers["location"] == f"/app/devices/{mt_id}{target}", suffix
+    mt_pages = ["/configuration", "/configuration/history", "/diagnostics", "/backups", "/backups/restore-tests", "/firmware-upgrade", "/routerboot", "/agent"]
     for suffix in mt_pages:
         page = client.get(f"/devices/{mt_id}{suffix}")
         assert page.status_code == 200, (suffix, page.status_code)
@@ -63,7 +67,7 @@ def main():
         assert 'class="breadcrumbs"' in page.text and page.text.count('class="breadcrumbs"') == 1, suffix
         assert "mt-device-shell" not in page.text, "legacy duplicated shell must be gone"
 
-    for suffix in ("", "/backups", "/uisp", "/jobs", "/manage"):
+    for suffix in ("/backups", "/uisp"):
         page = client.get(f"/devices/{ub_id}{suffix}")
         assert page.status_code == 200, (suffix, page.status_code)
         assert tabs(page.text) == ["Panoramica", "Syslog", "Esposizione", "Backup", "UISP", "Compliance", "Attività"], suffix

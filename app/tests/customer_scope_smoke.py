@@ -61,10 +61,10 @@ def main():
     assert [c["id"] for c in tech_row()["scope"]] == [str(ids["alpha"])]
 
     tech = login(f"ci-cs-tech-{suffix}")
-    devices = tech.get("/devices").text
+    devices = tech.get("/api/ui/v1/devices").text
     assert f"TEST-CS-ALPHA-{suffix}" in devices and f"TEST-CS-BETA-{suffix}" not in devices
-    assert tech.get(f"/devices/{ids['dev_a']}").status_code == 200
-    for path in (f"/devices/{ids['dev_b']}", f"/devices/{ids['dev_b']}/logs", f"/devices/{ids['dev_b']}/exposure", f"/api/ui/v1/customers/{ids['beta']}"):
+    assert tech.get(f"/api/ui/v1/devices/{ids['dev_a']}").status_code == 200
+    for path in (f"/api/ui/v1/devices/{ids['dev_b']}", f"/api/ui/v1/devices/{ids['dev_b']}/syslog", f"/devices/{ids['dev_b']}/exposure", f"/api/ui/v1/customers/{ids['beta']}"):
         assert tech.get(path).status_code == 404, path
     customers = tech.get("/api/ui/v1/customers").text
     assert f"CI Scope Alpha {suffix}" in customers and f"CI Scope Beta {suffix}" not in customers
@@ -91,13 +91,13 @@ def main():
     assert f"CI Scope Gamma {suffix}" in tech.get("/api/ui/v1/customers").text
 
     # Administrators and the worker (no request) see everything.
-    everything = admin.get("/devices").text
+    everything = admin.get("/api/ui/v1/devices").text
     assert f"TEST-CS-ALPHA-{suffix}" in everything and f"TEST-CS-BETA-{suffix}" in everything
     with SessionLocal() as db:
         assert db.scalar(select(func.count(Device.id)).where(Device.id.in_([ids["dev_a"], ids["dev_b"]]))) == 2
     # Removing the scope restores full visibility.
     admin.post(f"{users_api}/{tech_id}/scope", headers=admin_headers, json={"customer_ids": []}).raise_for_status()
-    assert f"TEST-CS-BETA-{suffix}" in tech.get("/devices").text
+    assert f"TEST-CS-BETA-{suffix}" in tech.get("/api/ui/v1/devices").text
     print("Customer scope smoke passed")
 
 

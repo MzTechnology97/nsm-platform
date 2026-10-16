@@ -256,9 +256,8 @@ def main():
         follow_redirects=False,
     )
     assert legacy_attempt.status_code == 303
-    legacy_feedback = client.get(legacy_attempt.headers["location"])
-    assert "Operazione non disponibile" in legacy_feedback.text
-    assert "RouterOS 7.13+" in legacy_feedback.text
+    with SessionLocal() as db:
+        assert db.scalar(select(FirmwareUpgradePlan).where(FirmwareUpgradePlan.device_id == legacy_id)) is None, "no plan for RouterOS < 7.13"
 
     assert str(app.url_path_for("create_firmware_upgrade_plan", device_id=str(modern_id))) == f"/devices/{modern_id}/firmware-upgrade/plan"
     assert str(app.url_path_for("firmware_upgrade_plan_page", device_id=str(modern_id))) == f"/devices/{modern_id}/firmware-upgrade"

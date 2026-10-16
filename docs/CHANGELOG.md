@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.172 — 2026-10-16
+
+Classic interface removal, devices part 1 (phase 8, R1)
+- **Classic pages removed.** These device pages now exist only in the new interface:
+  - device list and CSV import;
+  - device overview and manage;
+  - Monitor, Syslog and Activity tabs.
+- **Old addresses keep working.** Each classic address redirects (302) to the same page under `/app`, and the device list keeps its filters. The CSV template and log CSV downloads stay where they were.
+- **Removed with the pages.** Their forms: alias, enrollment, manage, delete, traffic interfaces, ping settings, syslog configure. Two other buttons lived only on the overview and are removed as well: "Backup ora" and "Verifica firmware". Also removed: the device CRUD, CSV import and backup feedback wrappers, the inventory module and 11 templates.
+- **Ping monitoring per device.** The Monitor settings now turn ping on or off, set the address to ping and the latency and loss thresholds. Before, this was only on the classic overview.
+- **Zabbix per device.** The device page can now exclude a device from Zabbix and bring it back. It also shows when the host waits for the next sync.
+- **Syslog key.** Opening the Syslog tab creates the device key again, so the manual guide shows the real prefix.
+- **Agent install commands.** A new device and an agent reinstall show the guided RouterOS 7 command and the RouterOS 6.48/6.49 command, as the classic overview did.
 ## 0.49.171 — 2026-10-15
 
 Classic interface removal, customers (phase 8, R1)

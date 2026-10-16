@@ -113,10 +113,7 @@ def main():
     assert metrics.json()["sample_count"] >= 1
     assert metrics.json()["points"][-1]["cpu_load"] == 17
 
-    monitor = client.get(f"/devices/{device_id}/monitor")
-    assert monitor.status_code == 200, monitor.text
-    assert "Storico non supportato" not in monitor.text
-    assert "data-telemetry-root" in monitor.text
+    assert "monitor" in {tab["key"] for tab in client.get(f"/api/ui/v1/devices/{device_id}").json()["tabs"]}
 
     status = client.get(f"/devices/{device_id}/agent")
     assert status.status_code == 200, status.text

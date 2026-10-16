@@ -165,7 +165,7 @@
       "7d": "7 days",
       "30d": "30 days"
     },
-    "settings": "Monitored interfaces",
+    "settings": "Monitoring settings",
     "noSamples": "No samples in this range.",
     "legend": {
       "current": "Current",
@@ -213,7 +213,24 @@
     "pickSave": "Save interfaces",
     "pickReset": "Back to automatic",
     "pickCount": "{{count}} of {{max}}",
-    "unknownType": "type n/a"
+    "unknownType": "type n/a",
+    "ping": {
+      "title": "Ping monitoring",
+      "enabled": "Monitor this device with ping",
+      "target": "Address to monitor",
+      "targetHelp": "Empty: the management IP is used.",
+      "rtt": "Latency threshold (ms)",
+      "loss": "Loss threshold (%)",
+      "thresholdHelp": "Empty thresholds: no quality alerts, reachability only.",
+      "save": "Save",
+      "saved": "Monitoring active: the first sample arrives within 2 minutes.",
+      "disabled": "Ping monitoring disabled.",
+      "off": "Ping monitoring disabled.",
+      "down": "Not answering ping.",
+      "waiting": "Waiting for the first sample.",
+      "last": "Last ping: {{rtt}}, {{loss}}% loss.",
+      "globallyOff": "Ping monitoring is disabled for the whole platform (ICMP_MONITOR)."
+    }
   },
   "syslog": {
     "today": {
@@ -3113,7 +3130,9 @@
     "help": "Paste it in the router's RouterOS Terminal: it downloads and starts the NSM agent with a one-time token.",
     "copy": "Copy command",
     "copied": "Copied",
-    "once": "The command will not be shown again: if you lose it, generate a new one from the Agent tab."
+    "once": "The command will not be shown again: if you lose it, generate a new one from the Agent tab.",
+    "v7": "RouterOS 7.x",
+    "v6": "RouterOS 6.48 / 6.49 (legacy agent)"
   },
   "deviceManage": {
     "title": "Alias and assignment",
@@ -4614,6 +4633,9 @@
       "3": "Average",
       "4": "High",
       "5": "Disaster"
-    }
+    },
+    "pending": "waiting for the next sync",
+    "exclude": "Exclude from Zabbix",
+    "include": "Include in Zabbix"
   }
 }

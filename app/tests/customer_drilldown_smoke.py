@@ -85,21 +85,21 @@ def main():
     assert "CI11 CVE Radio" in customer_devices.text
     assert "CI11 Other Customer Router" not in customer_devices.text
 
-    all_a = client.get(f"/devices?customer={ids['customer_a']}")
+    all_a = client.get(f"/api/ui/v1/devices?customer={ids['customer_a']}")
     assert all_a.status_code == 200
     assert "CI11 Update Router" in all_a.text and "CI11 CVE Radio" in all_a.text
     assert "CI11 Other Customer Router" not in all_a.text
 
-    firmware = client.get(f"/devices?customer={ids['customer_a']}&firmware=attention")
+    firmware = client.get(f"/api/ui/v1/devices?customer={ids['customer_a']}&firmware=attention")
     assert firmware.status_code == 200
     assert "CI11 Update Router" in firmware.text
     assert "CI11 CVE Radio" not in firmware.text
     assert "CI11 Other Customer Router" not in firmware.text
 
-    cve = client.get(f"/devices?customer={ids['customer_a']}&security=severe")
+    cve = client.get(f"/api/ui/v1/devices?customer={ids['customer_a']}&security=severe")
     assert cve.status_code == 200
-    assert cve.text.count("CI11 CVE Radio") >= 1
-    assert "2 CVE gravi" in cve.text
+    radio = next(row for row in cve.json()["items"] if row["name"] == "CI11 CVE Radio")
+    assert radio["severe_cves"] == 2
     assert "CI11 Update Router" not in cve.text
     assert "CI11 Other Customer Router" not in cve.text
 
@@ -114,7 +114,7 @@ def main():
     titles_b = {item["title"] for item in client.get(f"/api/ui/v1/action-center?customer={ids['customer_b']}").json()["items"]}
     assert "CI11 Cliente B monitoring alert" in titles_b and "CI11 Cliente A backup alert" not in titles_b
 
-    assert str(app.url_path_for("devices")) == "/devices"
+    assert client.get("/devices", follow_redirects=False).headers["location"] == "/app/devices"
     assert client.get("/action-center", follow_redirects=False).headers["location"] == "/app/action-center"
     moved = client.get(f"/customers/{ids['customer_a']}/devices", follow_redirects=False)
     assert moved.headers["location"] == f"/app/devices?customer={ids['customer_a']}"

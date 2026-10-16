@@ -1,5 +1,4 @@
 """The onboarding panel offers a dedicated command for RouterOS 6.48/6.49 next to the RouterOS 7 one."""
-import html
 import re
 import uuid
 
@@ -31,17 +30,12 @@ def main():
     client = TestClient(app, base_url="http://192.0.2.30")
     assert client.post("/login", data={"username": f"ci-ob6-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)},
                        follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{device_id}/agent").text
-    client.post(f"/devices/{device_id}/agent/reinstall", data={"csrf": csrf_from(page)}, follow_redirects=False)
-    text = client.get(f"/devices/{device_id}").text
-    v7 = html.unescape(re.search(r'<code id="enrollment-command">(.*?)</code>', text, re.S).group(1))
-    v6 = html.unescape(re.search(r'<code id="enrollment-command-v6">(.*?)</code>', text, re.S).group(1))
+    reinstalled = client.post(f"/api/ui/v1/devices/{device_id}/agent/reinstall", headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]})
+    assert reinstalled.status_code == 200 and reinstalled.headers["cache-control"] == "no-store", reinstalled.text
+    v7, v6 = reinstalled.json()["enrollment_command"], reinstalled.json()["enrollment_command_v6"]
     token = re.search(r"token=([^\"&]+)", v7).group(1)
     assert "/system/device-mode/get fetch" in v7 and "RouterOS 7.x" in v7
     assert f"bootstrap?token={token}" in v6 and "device-mode" not in v6 and "/system/" not in v6, "same one-shot token, no v7 syntax"
-    assert "Router con RouterOS 6.48 / 6.49" in text and 'data-copy-target="enrollment-command-v6"' in text
-    # The token is consumed once: the page no longer shows it.
-    assert "enrollment-command-v6" not in client.get(f"/devices/{device_id}").text
     print("RouterOS 6 onboarding panel smoke passed")
 
 

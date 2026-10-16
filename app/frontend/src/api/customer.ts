@@ -103,6 +103,7 @@ export interface CreatedDevice {
   vendor: string;
   status: string;
   enrollment_command: string | null;
+  enrollment_command_v6: string | null;
 }
 
 export interface MoveTarget {

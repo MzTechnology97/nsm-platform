@@ -64,7 +64,7 @@ export function useAgentUpdate(id: string) {
 export function useAgentReinstall(id: string) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: () => api<{ enrollment_command: string }>(`${base(id)}/reinstall`, { method: "POST" }),
+    mutationFn: () => api<{ enrollment_command: string; enrollment_command_v6: string | null }>(`${base(id)}/reinstall`, { method: "POST" }),
     onSuccess: () => client.invalidateQueries({ queryKey: ["agent", id] }),
   });
 }

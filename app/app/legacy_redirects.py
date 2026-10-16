@@ -88,6 +88,14 @@ REDIRECTS: dict[str, Target] = {
     "/customers/{customer_id}/devices/manage": ("/app/customers/{customer_id}/devices/manage", None),
     "/customers/{customer_id}/history": ("/app/events?customer={customer_id}", {"q": "q", "severity": "severity", "result": "result"}),
     "/customers/{customer_id}/backups": ("/app/backups?customer={customer_id}&view=all", None),
+    # Devices: list, import, overview, manage, monitor, logs, activity.
+    "/devices": ("/app/devices", {key: key for key in ("q", "customer", "site", "vendor", "status", "lifecycle", "firmware", "security", "sort", "dir")}),
+    "/devices/import": ("/app/devices/import", None),
+    "/devices/{device_id}": ("/app/devices/{device_id}", None),
+    "/devices/{device_id}/manage": ("/app/devices/{device_id}/manage", None),
+    "/devices/{device_id}/monitor": ("/app/devices/{device_id}/monitor", None),
+    "/devices/{device_id}/logs": ("/app/devices/{device_id}/syslog", None),
+    "/devices/{device_id}/jobs": ("/app/devices/{device_id}/jobs", None),
 }
 
 

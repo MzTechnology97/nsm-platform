@@ -95,12 +95,12 @@ def main():
     broken = admin.get(f"{base}/integrity").json()
     assert not broken["ok"] and broken["broken_at"] == tampered_id and broken["received_at"], broken
 
-    # Reading never creates a key: the CPE has none and keeps none.
+    # Opening the tab creates the key once (the guide needs it); it stays the same afterwards.
     cpe = admin.get(f"/api/ui/v1/devices/{ids['cpe']}/syslog").json()
-    assert cpe["identification"]["key"] is None and cpe["agent"] is None and cpe["last"] is None
+    assert cpe["identification"]["key"].startswith("NSM-") and cpe["agent"] is None and cpe["last"] is None
     assert [g["key"] for g in cpe["guides"]] == ["ubiquiti"] and not cpe["guides"][0]["key_in_code"]
     with SessionLocal() as db:
-        assert "syslog_key" not in (db.get(Device, uuid.UUID(ids["cpe"])).inventory_data or {})
+        assert f"NSM-{db.get(Device, uuid.UUID(ids['cpe'])).inventory_data['syslog_key']}" == cpe["identification"]["key"]
 
     legacy = admin.get(f"/api/ui/v1/devices/{ids['legacy']}/syslog").json()
     assert legacy["agent"]["blocker"] == "legacy_readonly" and not legacy["agent"]["can_configure"], legacy["agent"]

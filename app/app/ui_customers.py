@@ -52,7 +52,7 @@ from sqlalchemy import func, or_, select
 
 from datetime import timedelta
 
-from app import availability, crud_extension, customer_graphs
+from app import availability, crud_extension, customer_graphs, mikrotik_onboarding
 from app import main as core
 from app.customer_tabs import _backup_summary, _load_customer, security_data
 from app.customer_workspace import OPEN_STATES, _customer_metric_maps, _customer_metrics
@@ -407,7 +407,8 @@ def create_device(request: Request, response: Response, customer_id: uuid.UUID, 
             "id": str(device.id),
             "vendor": device.vendor,
             "status": device.status,
-            "enrollment_command": core.enrollment_command(str(request.base_url), raw_token) if raw_token else None,
+            **(mikrotik_onboarding.enrollment_commands(str(request.base_url), raw_token) if raw_token
+               else {"enrollment_command": None, "enrollment_command_v6": None}),
         }
 
 

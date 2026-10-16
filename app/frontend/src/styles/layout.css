@@ -377,3 +377,19 @@ select {
     display: none;
   }
 }
+
+/* Inline action that reads as a link (e.g. "Exclude from Zabbix" next to a field value). */
+.ui-link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ui-link-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

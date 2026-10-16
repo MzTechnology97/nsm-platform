@@ -70,9 +70,9 @@ def main():
     headers = {"X-NSM-Device-ID": str(device_id), "X-NSM-Device-Secret": secret}
 
     login(client)
-    overview = client.get(f"/devices/{device_id}")
+    overview = client.get(f"/api/ui/v1/devices/{device_id}")
     assert overview.status_code == 200
-    assert "Panoramica" in overview.text and "Configurazione" in overview.text and "Diagnostica" in overview.text
+    assert {"overview", "configuration", "diagnostics"} <= {tab["key"] for tab in overview.json()["tabs"]}
     assert "CI16SERIAL" in overview.text
 
     config = client.get(f"/devices/{device_id}/configuration?section=interfaces")

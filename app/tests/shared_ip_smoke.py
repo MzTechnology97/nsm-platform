@@ -97,8 +97,8 @@ def main():
     assert all({"tag": "nsm_shared_ip", "value": "true"} in h["tags"] for h in fake.hosts.values())
     admin = client.get("/api/ui/v1/admin/integrations/zabbix").json()
     assert shared in {group["ip"] for group in admin["shared"]}, admin["shared"]
-    saved = client.post(f"/devices/{ids['cam']}/zabbix/ip", data={"csrf": client.get("/api/ui/v1/session").json()["csrf_token"], "zabbix_ip": "192.0.2.20", "next": "https://evil.example.test/"}, follow_redirects=False)
-    assert saved.status_code == 303 and saved.headers["location"] == "/admin/integrations/zabbix#shared", "no open redirect"
+    saved = client.post(f"/api/ui/v1/admin/integrations/zabbix/devices/{ids['cam']}/ip", headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}, json={"zabbix_ip": "192.0.2.20"})
+    assert saved.status_code == 200 and saved.json()["zabbix_ip"] == "192.0.2.20", saved.text
     with SessionLocal() as db:
         stats = zbx.sync(db)
     cam_host = next(h for h in fake.hosts.values() if h["host"] == f"nsm-{ids['cam'].hex[:16]}")

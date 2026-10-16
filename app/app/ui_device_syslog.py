@@ -71,6 +71,10 @@ def device_syslog(request: Request, device_id: uuid.UUID):
     with SessionLocal() as db:
         user = ui_user(request, db, "monitoring.read")
         device = _device(db, device_id)
+        # Opening the Syslog tab creates the device key, so the manual guide shows the real prefix (as the classic page did).
+        if not (device.inventory_data or {}).get("syslog_key"):
+            syslog_config.identity.device_key(device)
+            db.commit()
         since = utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         counts = dict(db.execute(select(DeviceLogEntry.severity, func.count())
                                  .where(DeviceLogEntry.device_id == device.id, DeviceLogEntry.received_at >= since)

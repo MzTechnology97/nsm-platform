@@ -157,14 +157,9 @@ def main():
         follow_redirects=False,
     )
     assert logged.status_code == 303
-    detail = client.get(f"/devices/{device_id}")
-    csrf = csrf_from(detail.text)
-    queued = client.post(
-        f"/devices/{device_id}/backup-now",
-        data={"csrf": csrf},
-        follow_redirects=False,
-    )
-    assert queued.status_code == 303, queued.text
+    queued = client.post(f"/api/ui/v1/devices/{device_id}/backups/run",
+                         headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]})
+    assert queued.status_code == 200, queued.text
 
     with SessionLocal() as db:
         job = db.scalar(

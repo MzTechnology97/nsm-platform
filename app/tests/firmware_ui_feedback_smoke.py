@@ -62,27 +62,11 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    page = client.get(f"/devices/{device_id}")
-    assert page.status_code == 200
-    csrf = csrf_from(page.text)
-
-    response = client.post(
-        f"/devices/{device_id}/firmware-readiness",
-        data={"csrf": csrf, "return_to": "device"},
-        follow_redirects=False,
-    )
-    assert response.status_code == 303, response.text
-    assert response.headers["location"] == f"/devices/{device_id}?firmware_check=agent_required"
-
-    feedback = client.get(response.headers["location"])
-    assert feedback.status_code == 200
-    assert "Agent richiesto" in feedback.text
-    assert "MikroTik online con Agent autenticato" in feedback.text
-    assert "flash-warning" in feedback.text
-
-    # Flash messages are one-shot.
-    consumed = client.get(f"/devices/{device_id}")
-    assert "MikroTik online con Agent autenticato" not in consumed.text
+    # The new interface queues the RouterOS check through its API and reports the agent requirement.
+    checked = client.post(f"/api/ui/v1/firmware/{device_id}/check", headers={"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]})
+    assert checked.status_code == 200 and checked.json()["state"] == "agent_required", checked.text
+    moved = client.post(f"/devices/{device_id}/firmware-readiness", data={"csrf": "x"}, follow_redirects=False)
+    assert moved.status_code in (404, 405), "the classic form post is gone"
 
     # Machine-facing completion stays structured JSON and is not intercepted by
     # the browser feedback layer.
@@ -93,7 +77,7 @@ def main():
     assert machine.status_code in {401, 403}, machine.text
     assert machine.headers.get("content-type", "").startswith("application/json")
 
-    print("Core 0.49 firmware browser feedback and machine JSON boundary smoke passed")
+    print("Core 0.49 firmware check and machine JSON boundary smoke passed")
 
 
 if __name__ == "__main__":

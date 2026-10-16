@@ -1,5 +1,5 @@
 import type { DeviceZabbix } from "../app/ZabbixProblems";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./client";
 import type { DeviceRow } from "./devices";
@@ -31,4 +31,14 @@ export interface DeviceDetail {
 
 export function useDevice(id: string) {
   return useQuery({ queryKey: ["device", id], queryFn: () => api<DeviceDetail>(`/api/ui/v1/devices/${encodeURIComponent(id)}`), staleTime: 30_000, refetchInterval: 60_000 });
+}
+
+/** Keep a device out of the Zabbix push (or bring it back); the next sync applies it. */
+export function useZabbixExclude(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (exclude: boolean) =>
+      api<{ excluded: boolean }>(`/api/ui/v1/devices/${encodeURIComponent(id)}/zabbix/exclude`, { method: "POST", body: JSON.stringify({ exclude }) }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: ["device", id] }),
+  });
 }

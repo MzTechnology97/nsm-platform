@@ -10,8 +10,7 @@ import re
 import uuid
 from datetime import timedelta
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
 
 from app import main as core
@@ -144,12 +143,6 @@ def _install_agent_handler():
     agent_module._agent_source = source_with_firmware_readiness
 
 
-def _queue_redirect(device_id, return_to: str, state: str):
-    if return_to == "firmware":
-        return RedirectResponse(f"/operations/firmware?firmware_check={state}", status_code=303)
-    return RedirectResponse(f"/devices/{device_id}?firmware_check={state}", status_code=303)
-
-
 def queue_readiness_job(db, device, user) -> str:
     """Queue a read-only readiness check: "queued", "already_queued" or "agent_required".
 
@@ -193,26 +186,6 @@ def queue_readiness_job(db, device, user) -> str:
     return "queued"
 
 
-@router.post("/devices/{device_id}/firmware-readiness", name="queue_mikrotik_firmware_readiness")
-def queue_firmware_readiness(
-    request: Request,
-    device_id: uuid.UUID,
-    csrf: str = Form(...),
-    return_to: str = Form("device"),
-):
-    core.validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "firmware.read")
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        if device.vendor != "mikrotik":
-            raise HTTPException(400, "Verifica RouterOS disponibile solo per MikroTik.")
-        state = queue_readiness_job(db, device, user)
-        db.commit()
-    return _queue_redirect(device_id, return_to, state)
-
-
 @router.post(
     "/api/v1/agents/mikrotik/firmware-readiness/{job_id}/complete",
     name="mikrotik_firmware_readiness_complete",
@@ -248,15 +221,6 @@ async def firmware_readiness_complete(request: Request, job_id: uuid.UUID):
         )
         db.commit()
     return {"status": "ok"}
-
-
-def latest_firmware_readiness(db, device_id):
-    return db.scalar(
-        select(DeviceJob)
-        .where(DeviceJob.device_id == device_id, DeviceJob.job_type == JOB_TYPE)
-        .order_by(DeviceJob.created_at.desc())
-        .limit(1)
-    )
 
 
 def install_mikrotik_firmware_readiness(app):

@@ -1,6 +1,5 @@
 import hashlib
 import logging
-import math
 import secrets
 import uuid
 from datetime import datetime, timedelta
@@ -784,94 +783,6 @@ def enrollment_command(base_url: str, raw_token: str) -> str:
     )
 
 
-@app.get("/devices", response_class=HTMLResponse)
-def devices(
-    request: Request,
-    q: str = "",
-    customer: str = "",
-    vendor: str = "",
-    status: str = "",
-    lifecycle: str = "",
-    page: int = 1,
-):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        if not has_permission(user, "devices.read"):
-            raise HTTPException(403)
-
-        page = max(1, page)
-        per_page = 50
-        stmt = select(Device)
-        count_stmt = select(func.count(Device.id))
-
-        filters = []
-        term = q.strip()
-        if term:
-            like = f"%{term}%"
-            normalized_mac = search_mac(term)
-            filters.append(
-                or_(
-                    Device.display_name.ilike(like),
-                    Device.device_identity.ilike(like),
-                    Device.name.ilike(like),
-                    Device.model.ilike(like),
-                    Device.serial_number.ilike(like),
-                    Device.primary_mac.ilike(like),
-                    Device.primary_mac == normalized_mac if normalized_mac else False,
-                    Device.management_ip.ilike(like),
-                )
-            )
-        if customer:
-            try:
-                filters.append(Device.customer_id == uuid.UUID(customer))
-            except ValueError:
-                pass
-        if vendor:
-            filters.append(Device.vendor == vendor)
-        if status:
-            filters.append(Device.status == status)
-        if lifecycle:
-            filters.append(Device.lifecycle_status == lifecycle)
-
-        if filters:
-            stmt = stmt.where(*filters)
-            count_stmt = count_stmt.where(*filters)
-
-        total = db.scalar(count_stmt) or 0
-        pages = max(1, math.ceil(total / per_page))
-        page = min(page, pages)
-
-        rows = list(
-            db.scalars(
-                stmt.options(
-                    selectinload(Device.customer), selectinload(Device.site)
-                )
-                .order_by(Device.display_name.nullslast(), Device.name)
-                .offset((page - 1) * per_page)
-                .limit(per_page)
-            )
-        )
-        customers_list = list(db.scalars(select(Customer).order_by(Customer.name)))
-        return render(
-            request,
-            db,
-            user,
-            "devices.html",
-            devices=rows,
-            customers=customers_list,
-            q=term,
-            customer_filter=customer,
-            vendor_filter=vendor,
-            status_filter=status,
-            lifecycle_filter=lifecycle,
-            page=page,
-            pages=pages,
-            total=total,
-        )
-
-
 def effective_backup_policy(db, device: Device):
     policy = db.scalar(
         select(BackupPolicy).where(
@@ -906,96 +817,6 @@ def effective_backup_policy(db, device: Device):
             BackupPolicy.scope_type == "global",
         )
     )
-
-
-@app.get("/devices/{device_id}", response_class=HTMLResponse)
-def device_detail(request: Request, device_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        device = db.scalar(
-            select(Device)
-            .where(Device.id == device_id)
-            .options(selectinload(Device.customer), selectinload(Device.site))
-        )
-        if not device:
-            raise HTTPException(404)
-
-        raw_token = request.session.pop(f"enrollment_token:{device.id}", None)
-        command = enrollment_command(str(request.base_url), raw_token) if raw_token else None
-
-        events = list(
-            db.scalars(
-                select(AuditEvent)
-                .where(AuditEvent.device_id == device.id)
-                .order_by(AuditEvent.timestamp.desc())
-                .limit(30)
-            )
-        )
-        issue_rows = list(
-            db.scalars(
-                select(ActionIssue)
-                .where(
-                    ActionIssue.device_id == device.id,
-                    ActionIssue.status.in_(["open", "acknowledged"]),
-                )
-                .order_by(ActionIssue.created_at.desc())
-            )
-        )
-        vulnerability_rows = db.execute(
-            select(DeviceVulnerability, SecurityAdvisory)
-            .join(
-                SecurityAdvisory,
-                SecurityAdvisory.id == DeviceVulnerability.advisory_id,
-            )
-            .where(DeviceVulnerability.device_id == device.id)
-            .order_by(DeviceVulnerability.detected_at.desc())
-        ).all()
-        backup_runs = list(
-            db.scalars(
-                select(BackupRun)
-                .where(BackupRun.device_id == device.id)
-                .order_by(BackupRun.started_at.desc())
-                .limit(20)
-            )
-        )
-        policy = effective_backup_policy(db, device)
-
-        return render(
-            request,
-            db,
-            user,
-            "device_detail.html",
-            device=device,
-            events=events,
-            issues=issue_rows,
-            vulnerabilities=vulnerability_rows,
-            backup_runs=backup_runs,
-            backup_policy=policy,
-            enrollment_command=command,
-        )
-
-
-@app.post("/devices/{device_id}/enrollment")
-def regenerate_enrollment(
-    request: Request, device_id: uuid.UUID, csrf: str = Form(...)
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = require_permission(request, db, "devices.enroll")
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        if device.vendor != "mikrotik":
-            raise HTTPException(
-                400, "Enrollment command disponibile solo per MikroTik."
-            )
-        raw_token, _ = create_enrollment(db, device, user)
-        device.status = "pending_enrollment"
-        db.commit()
-        request.session[f"enrollment_token:{device.id}"] = raw_token
-    return RedirectResponse(f"/devices/{device_id}", status_code=303)
 
 
 @app.get("/api/v1/enrollment/mikrotik/bootstrap", response_class=PlainTextResponse)
@@ -1379,32 +1200,3 @@ def change_user_role_record(db, actor, target, role: str) -> None:
     )
 
 
-@app.post("/devices/{device_id}/alias")
-def update_device_alias(
-    request: Request,
-    device_id: uuid.UUID,
-    display_name: str = Form(""),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        actor = require_permission(request, db, "devices.write")
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        old_alias = device.display_name
-        device.display_name = opt(display_name)
-        if device.display_name:
-            device.name = device.display_name
-        elif device.device_identity:
-            device.name = device.device_identity
-        add_event(
-            db,
-            "DEVICE_ALIAS_CHANGED",
-            actor=actor,
-            customer_id=device.customer_id,
-            device_id=device.id,
-            details={"old": old_alias, "new": device.display_name},
-        )
-        db.commit()
-    return RedirectResponse(f"/devices/{device_id}", status_code=303)
