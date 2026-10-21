@@ -3014,7 +3014,8 @@
     "readAll": "Mark all as read",
     "show": {
       "all": "All",
-      "unread": "Unread"
+      "unread": "Unread",
+      "archived": "Archived"
     },
     "empty": "No notifications.",
     "noUnread": "No unread notifications.",
@@ -3034,7 +3035,12 @@
       "firmware": "Firmware",
       "compliance": "Compliance",
       "other": "Other"
-    }
+    },
+    "archive": "Archive",
+    "restore": "Restore",
+    "archiveRead_one": "Archive the read one",
+    "archiveRead_other": "Archive the {{count}} read",
+    "noArchived": "No archived notifications."
   },
   "profile": {
     "title": "Profile",

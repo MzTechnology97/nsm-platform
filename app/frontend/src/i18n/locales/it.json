@@ -3014,7 +3014,8 @@
     "readAll": "Segna tutte come lette",
     "show": {
       "all": "Tutte",
-      "unread": "Da leggere"
+      "unread": "Da leggere",
+      "archived": "Archiviate"
     },
     "empty": "Nessuna notifica.",
     "noUnread": "Nessuna notifica da leggere.",
@@ -3034,7 +3035,12 @@
       "firmware": "Firmware",
       "compliance": "Compliance",
       "other": "Altro"
-    }
+    },
+    "archive": "Archivia",
+    "restore": "Ripristina",
+    "archiveRead_one": "Archivia la letta",
+    "archiveRead_other": "Archivia le {{count}} lette",
+    "noArchived": "Nessuna notifica archiviata."
   },
   "profile": {
     "title": "Profilo",

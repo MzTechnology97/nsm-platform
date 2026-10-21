@@ -310,6 +310,8 @@ class NotificationRead(Base):
     read_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )
+    # Archived by this user: out of their list and count, still visible to everyone else; reversible.
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class ActionIssue(Base):

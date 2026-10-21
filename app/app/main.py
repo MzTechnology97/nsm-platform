@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Red
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from redis import Redis
-from sqlalchemy import or_, select, text
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from starlette.middleware.sessions import SessionMiddleware
@@ -783,8 +783,8 @@ def acknowledge_issue_record(db, issue, user) -> bool:
     return True
 
 
-def notification_rows(db, user: User, limit: int = 250):
-    """Active notifications, newest first, each with whether this user has read it."""
+def notification_rows(db, user: User, limit: int = 250, archived: bool = False):
+    """Active notifications, newest first, each with whether this user has read it; ``archived`` lists only the ones this user archived."""
     read_exists = (
         select(NotificationRead.id)
         .where(
@@ -793,12 +793,70 @@ def notification_rows(db, user: User, limit: int = 250):
         )
         .exists()
     )
+    archived_exists = (
+        select(NotificationRead.id)
+        .where(
+            NotificationRead.notification_id == Notification.id,
+            NotificationRead.user_id == user.id,
+            NotificationRead.archived_at.is_not(None),
+        )
+        .exists()
+    )
     return db.execute(
         select(Notification, read_exists.label("is_read"))
-        .where(Notification.is_active.is_(True))
+        .where(Notification.is_active.is_(True), archived_exists if archived else ~archived_exists)
         .order_by(Notification.created_at.desc())
         .limit(limit)
     ).all()
+
+
+def archived_notification_count(db, user: User) -> int:
+    return int(db.scalar(
+        select(func.count(NotificationRead.id))
+        .join(Notification, Notification.id == NotificationRead.notification_id)
+        .where(NotificationRead.user_id == user.id, NotificationRead.archived_at.is_not(None), Notification.is_active.is_(True))
+    ) or 0)
+
+
+def archive_notifications_record(db, user: User, ids, archive: bool = True) -> int:
+    """Archive (or restore) these notifications for this user only; archiving also marks them read. Unknown ids are skipped. Commits."""
+    wanted = [value for value in ids if isinstance(value, uuid.UUID)][:500]
+    if not wanted:
+        return 0
+    existing = set(db.scalars(select(Notification.id).where(Notification.id.in_(wanted))))
+    reads = {r.notification_id: r for r in db.scalars(select(NotificationRead).where(NotificationRead.user_id == user.id,
+                                                                                    NotificationRead.notification_id.in_(existing)))}
+    now = utcnow()
+    changed = 0
+    for notification_id in existing:
+        row = reads.get(notification_id)
+        if archive:
+            if row is None:
+                db.add(NotificationRead(notification_id=notification_id, user_id=user.id, archived_at=now))
+                changed += 1
+            elif row.archived_at is None:
+                row.archived_at = now
+                changed += 1
+        elif row is not None and row.archived_at is not None:
+            row.archived_at = None
+            changed += 1
+    db.commit()
+    return changed
+
+
+def archive_read_notifications_record(db, user: User) -> int:
+    """Archive every active notification this user has already read. Commits."""
+    rows = list(db.scalars(
+        select(NotificationRead)
+        .join(Notification, Notification.id == NotificationRead.notification_id)
+        .where(NotificationRead.user_id == user.id, NotificationRead.archived_at.is_(None), Notification.is_active.is_(True))
+        .limit(1000)
+    ))
+    now = utcnow()
+    for row in rows:
+        row.archived_at = now
+    db.commit()
+    return len(rows)
 
 
 def mark_notification_read_record(db, user: User, notification_id: uuid.UUID) -> None:
