@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.193 — 2026-10-21
+
+Documentation
+- `IMPLEMENTED_CAPABILITIES.md` and `ROADMAP.md` now describe the features delivered from 0.49.176 to 0.49.192:
+  - the new interface and its "J" style, navigation counters, device list, dashboard and device page;
+  - the device logbook;
+  - customer SLA and planned maintenance windows;
+  - the UISP and cnMaestro compatibility check;
+  - the cnMaestro section (it was missing) with bulk onboarding;
+  - the personal notification archive.
+- Stale "not implemented" lists for UISP and for approved areas now reflect what is really still open.
 ## 0.49.192 — 2026-10-21
 
 Import Cambium devices from cnMaestro

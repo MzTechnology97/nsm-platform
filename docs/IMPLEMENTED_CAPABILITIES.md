@@ -90,6 +90,7 @@ A Site is customer-local. UISP or another connector may retain external organiza
 - in-app Notification Center;
 - per-user unread/read state;
 - single notification read and read-all actions;
+- personal notification archive (Core 0.49.191): archive one notification or every read one, *Archiviate* filter and restore; archiving hides a notification only for that user and marks it read (`notification_reads.archived_at`);
 - contextual browser feedback for normal success/stale/error cases.
 
 ### Design rule
@@ -127,6 +128,17 @@ Expected browser failures remain in the application using one-shot success/info/
 ### Machine API boundary
 
 Agent endpoints, connector contracts, upload endpoints and the public API retain structured HTTP/JSON behavior. The browser UX layer must not globally rewrite machine errors into HTML.
+
+### New interface (React, `/app`)
+
+The whole operator interface is the React application served under `/app` (classic Jinja pages removed in R1, Core 0.49.168–0.49.174). Main capabilities added since:
+
+- foundations (0.49.176): command palette (Ctrl/⌘K) over pages, devices, customers and sites with recent items; theme *system*/light/dark; sign-in page in it/en/fr/es (cookie `nsm-lang`, Accept-Language); loading skeletons and empty states; content centred up to 1920 px on wide screens;
+- visual style "J" (0.49.183–0.49.187): navy sidebar grouped by area with count badges from `GET /api/ui/v1/nav-counts` (devices, offline, severe CVEs, firmware, Action Center; each only with its permission, refreshed every minute), white top bar with breadcrumbs, tinted KPI tiles with rings, status pills, dense tables; factory branding colours on the new palette (migration 0046), customised colours still applied;
+- device list (0.49.177): CVE state per row (severe/open/clean/not assessable), CPU/RAM and uptime, readable vendor names, multi-select bar (CSV, backup now, firmware check, decommission/reactivate) and audited CSV export of the filtered list (`DEVICE_LIST_EXPORTED`);
+- dashboard (0.49.178, 0.49.186): offline devices by time down with the latest outages, five most loaded devices, CVE exposure of the inventory, refresh countdown, clickable vendor/model distributions, dark *Da guardare* column;
+- device page (0.49.179, 0.49.185, 0.49.188, 0.49.190): header card with status/CVE pills and actions (decommission included), ring tiles for CPU, memory, ping, 30-day availability (ping, maintenance excluded, against the customer SLA target), open CVEs, firmware and backup; CVE chips by severity; diagnostics with last run per card, ping RTT chart, traceroute hop latency bars and log level filters; RouterOS export viewer with syntax colours and a section index;
+- device logbook (0.49.180): operator entries per device (note, site visit, maintenance, replacement, customer contact; optional back-dating up to a year) in the *Attività* tab, merged on request with the device's recorded events; never edited, deleted only by the author or an administrator, audited (`DEVICE_LOG_ADDED` / `DEVICE_LOG_DELETED`); permission `logbook.write` (technician, operator); writable on decommissioned devices.
 
 ### Global search and manufacturer icons
 
@@ -528,16 +540,37 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 Validation pending: periodic sync against a real UISP instance (the consumed endpoint is the same one used by manual refresh).
 
+### Device operations (UBNT-08 step 2)
+
+Reboot with uptime verification, configuration backup archived in NSM (manual and by policy), interfaces and UISP events on the device UISP tab. Endpoint field names follow the UISP documentation and are still to be confirmed on a real console.
+
+### Compatibility check (Core 0.49.189)
+
+*Integrazioni → UISP → Diagnosi compatibilità* (administrators) reads a sample from the console with GET requests only (`/devices`, then one device, its interfaces, backups and logs) and reports, for every field NSM reads, whether it arrives, in how many rows and under which key, plus the HTTP outcome of every endpoint and the key names actually received. The report holds only key names, counts and HTTP codes (identifier-like keys masked); it is kept on the connector, copyable for support and audited (`CONNECTOR_DIAGNOSTICS_RUN`). It is the evidence used to correct field mappings on real consoles.
+
 ### Not implemented yet
 
-- historical monitoring normalization;
-- bulk onboarding/association;
-- backup/snapshot workflow through UISP capabilities;
-- UISP-backed diagnostics;
-- Ubiquiti firmware execution workflow;
-- automated Ubiquiti CVE/lifecycle correlation.
+- Ubiquiti firmware execution workflow (upgrades are run from UISP and observed at the next sync);
+- UISP-backed diagnostics (ping/traceroute through UISP);
+- remote syslog configuration through UISP.
 
 These future features must only be exposed when the actual vendor API capability exists and is verified.
+
+## 13b. Cambium / cnMaestro
+
+### Implemented (VEND-02)
+
+- read-only cnMaestro connector (cloud or on-premises): OAuth2 client credentials (encrypted), connection test, paged inventory and statistics;
+- linking by MAC (then serial) when a Cambium device is added in NSM: the device is created only if cnMaestro knows it exactly once;
+- sync every 15 minutes of identity, model, firmware, IP and status, metrics history (signal, SNR, throughput, CPU/memory, connected stations; 90 days) with graphs on the device *cnMaestro* tab;
+- bulk onboarding (Core 0.49.192): *Integrazioni → cnMaestro → Importa da cnMaestro*, the same flow as UISP — NSM state per device (new, to link, already in NSM, not importable with the reason), explicit Customer/Site, preview, commit from fresh cnMaestro data, existing Cambium records with the same MAC linked instead of duplicated; device type from product family and mode; `CNMAESTRO_BULK_ONBOARDING` audit;
+- compatibility check (Core 0.49.189), as for UISP, on `/devices` and `/devices/statistics`.
+
+Validation pending: field names against a real cnMaestro (use the compatibility check).
+
+### Not implemented yet
+
+- operations through cnMaestro (reboot, backup, firmware) — only where the cnMaestro API supports them and they can be verified.
 
 ## 14. TR-069 / ACS-managed CPE
 
@@ -816,15 +849,21 @@ A production identifier must never be copied into a test merely because it repro
 - delivery channels (REP-04);
 - incident/compliance sections (depend on INC/COMP features).
 
+## 20b. Customer SLA and planned maintenance
+
+- customer SLA (Core 0.49.181): monthly availability target per customer (50–100 %, `customers.sla_target_pct`, migration 0044); *Governance → SLA clienti* shows per month the availability (ping from NSM, rounds-weighted device average), the downtime budget used, devices below target and the verdict (met, missed, not measured, no target), with per-device outages, inline target editing (`customers.write`, audited) and audited CSV export; customer reports and customer graphs compare with the customer's target;
+- planned maintenance windows (Core 0.49.182, migration 0045): per customer or per device, at most 7 days, within a year; ping samples inside a window count neither as up nor as down in the SLA, the report availability section and the customer 30-day availability; customer-wide windows shorten the budget month; windows written after they started are flagged *retroattiva*; created and deleted from the SLA page, audited (`MAINTENANCE_WINDOW_CREATED` / `_DELETED`).
+
 ## 21. Approved but not yet implemented product areas
 
 The following are approved roadmap areas, not current runtime capabilities:
 
-- Incident Timeline / Root Cause workflow;
-- Compliance Baseline/evaluation/remediation workflow;
-- Scheduled Executive / NIS2-oriented report generation and delivery (manual generation and archive are implemented);
-- mature delegated RBAC;
+- Ubiquiti firmware execution through UISP and operations through cnMaestro (only where the vendor API supports them and they are verified on a real console);
+- remote syslog configuration through the UISP and cnMaestro APIs (LOG-01 next step);
+- ACS parameter profiles, monitoring, diagnostics, backup and firmware (ACS-04..08);
 - production DR/restore validation program;
 - additional vendor/connector capabilities beyond those explicitly described above.
+
+Incident Timeline, Compliance Baseline, scheduled reports with delivery and delegated (customer-scoped) administration are implemented and described in their sections. MikroTik The Dude integration (DUDE-01) is excluded by the operator.
 
 See [`ROADMAP.md`](ROADMAP.md) for order, PR sizing and acceptance gates.

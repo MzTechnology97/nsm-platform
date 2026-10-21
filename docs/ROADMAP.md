@@ -189,7 +189,7 @@ Current runtime integration is read-only and uses UISP Network Device data for a
 
 ### UBNT-01 — periodic UISP synchronization
 
-**Implemented in `main` — real UISP instance validation pending.** Remaining step: confirm a scheduled cycle against a production-like UISP console.
+**Implemented in `main` — real UISP instance validation pending.** Remaining step: confirm a scheduled cycle against a production-like UISP console. Since Core 0.49.189 the *Diagnosi compatibilità* panel collects that evidence (expected fields found or missing, endpoint outcomes) without exposing values.
 
 Original scope:
 
@@ -440,7 +440,8 @@ Release catalogs like the RouterOS one (versions per channel/model, release note
 
 ### VEND-02 — cnMaestro integration for Cambium (requested 2026-10-07)
 
-**Step 1 implemented in `main` (Core 0.49.70)**: OAuth2 client credentials, paged inventory and statistics, linking by MAC/serial, identity/firmware/IP/status sync every 15 minutes, metrics history (signal, SNR, throughput, CPU/memory, stations) with Cacti-style graphs on the device *cnMaestro* tab. Field names to be confirmed on a real cnMaestro. Next: operations where the cnMaestro API supports them.
+**Step 1 implemented in `main` (Core 0.49.70)**: OAuth2 client credentials, paged inventory and statistics, linking by MAC/serial, identity/firmware/IP/status sync every 15 minutes, metrics history (signal, SNR, throughput, CPU/memory, stations) with Cacti-style graphs on the device *cnMaestro* tab.
+**Step 2 implemented in `main`**: compatibility check on the real console (Core 0.49.189) and bulk onboarding like UISP (Core 0.49.192). Field names to be confirmed with the compatibility report from the operator's cnMaestro. Next: operations where the cnMaestro API supports them.
 
 Read-only cnMaestro (cloud/on-premises) connector for Cambium radios: discovery and association like UISP, periodic sync, full monitoring and statistics (signal, link quality, capacity, interfaces, uptime, history) in the style of the MikroTik and UISP views; later operations only where the cnMaestro API supports them.
 
@@ -644,6 +645,14 @@ Approved future reporting feature.
 **Implemented in `main`**: e-mail, Telegram and Slack channels with per-user level/category preferences, outbox with retries and delivery log; scheduled reports delivered with attachment; vulnerability newsletter; worker error alerts (`app/notification_delivery.py`, `app/notification_chat.py`, `app/notification_digest.py`). External (non-user) e-mail recipients per schedule and delivery evidence in the audit log since Core 0.49.63.
 
 Add delivery channels only when an actual supported implementation is selected. Record delivery attempt/result independently from report generation success.
+
+### SLA-01 — customer SLA and planned maintenance (requested 2026-10-21)
+
+**Implemented in `main`** (Core 0.49.181 and 0.49.182): monthly availability target per customer with downtime budget, verdicts, per-device outages, CSV export and the target used in customer reports; planned maintenance windows per customer or device excluded from availability, retroactive windows flagged. Map view: not wanted by the operator.
+
+### LOG-02 — device logbook (requested 2026-10-21)
+
+**Implemented in `main`** (Core 0.49.180): operator entries per device in the *Attività* tab, merged with recorded events, audited, never edited.
 
 ## 12. RBAC and administration hardening
 
