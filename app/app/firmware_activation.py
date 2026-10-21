@@ -13,8 +13,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
 
 from app import main as core
@@ -23,7 +22,7 @@ from app.agent_models import DeviceAgentCredential, DeviceJob
 from app.db import SessionLocal
 from app.firmware_plan_recovery import ACTIVATION_JOB_TTL
 from app.firmware_upgrade_models import FirmwareUpgradePlan
-from app.firmware_upgrade_planner import _load_device, _modern_routeros
+from app.firmware_upgrade_planner import _modern_routeros
 from app.models import BackupRun, Device, utcnow
 
 router = APIRouter()
@@ -142,29 +141,6 @@ def _validate_plan_for_activation(db, device: Device, plan: FirmwareUpgradePlan 
     if str(device.firmware_version or "").strip() == plan.target_version:
         raise HTTPException(409, "La versione target risulta già installata.")
     return run
-
-
-@router.post(
-    "/devices/{device_id}/firmware-upgrade/{plan_id}/activate",
-    name="activate_firmware_upgrade_plan",
-)
-def activate_plan(
-    request: Request,
-    device_id: uuid.UUID,
-    plan_id: uuid.UUID,
-    csrf: str = Form(...),
-    confirmation: str = Form(...),
-):
-    core.validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "firmware.execute")
-        device = _load_device(db, device_id)
-        activate_record(db, user, device, plan_id, confirmation)
-
-    return RedirectResponse(
-        f"/devices/{device_id}/firmware-upgrade?plan={plan_id}&activation=queued",
-        status_code=303,
-    )
 
 
 @router.post(

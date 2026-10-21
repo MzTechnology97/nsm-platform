@@ -33,13 +33,15 @@ export function DeviceConfiguration() {
   const q = useDebounced(text, 300);
   const query = useDeviceConfiguration(deviceId, { ...filters, q });
   const refresh = useConfigRefresh(deviceId);
+  const refreshAll = useConfigRefresh(deviceId);
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
   if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
   const spec = SPEC[data.section];
   const view = data.view;
   const pending = data.pending.includes(data.section);
-  const select = (section: string) => { setFilters({ section }); setText(""); refresh.reset(); };
+  const allPending = data.sections.every((section) => data.pending.includes(section.key));
+  const select = (section: string) => { setFilters({ section }); setText(""); refresh.reset(); refreshAll.reset(); };
   const states = spec?.states ?? view.states ?? [];
   const kinds = spec?.kinds ?? view.kinds ?? [];
 
@@ -58,10 +60,20 @@ export function DeviceConfiguration() {
               {pending ? t("deviceConfig.pending") : t("deviceConfig.refresh")}
             </button>
           )}
+          {data.can_refresh && (
+            <button type="button" className="ui-button ui-button-ghost" disabled={!data.online || allPending || refreshAll.isPending}
+              onClick={() => { refresh.reset(); refreshAll.mutate("all"); }} title={data.online ? undefined : t("deviceConfig.offline")}>
+              {t("deviceConfig.refreshAll")}
+            </button>
+          )}
         </div>
       </div>
       {refresh.data && <small className="ui-live">{refresh.data.queued ? t("deviceConfig.queued") : t("deviceConfig.already")}</small>}
       {refresh.error && <small className="ui-backup-error">{refresh.error instanceof ApiError && refresh.error.code === "not_online" ? t("deviceConfig.offline") : (refresh.error as Error).message}</small>}
+      {refreshAll.data && (
+        <small className="ui-live">{refreshAll.data.queued ? t("deviceConfig.queuedAll", { count: refreshAll.data.sections?.length ?? 0 }) : t("deviceConfig.alreadyAll")}</small>
+      )}
+      {refreshAll.error && <small className="ui-backup-error">{refreshAll.error instanceof ApiError && refreshAll.error.code === "not_online" ? t("deviceConfig.offline") : (refreshAll.error as Error).message}</small>}
       <div className="ui-chips" role="tablist" aria-label={t("deviceConfig.title")}>
         {data.sections.map((section) => (
           <button key={section.key} type="button" role="tab" aria-selected={section.key === data.section}

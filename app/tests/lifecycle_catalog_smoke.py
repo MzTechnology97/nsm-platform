@@ -98,11 +98,11 @@ def main():
     assert {"ambiguous", "no_record", "no_model"} <= unmatched, unmatched
     assert any(item["source"] == "TEST pagina prodotto" for item in client.get(api).json()["items"])
 
-    form = client.get(f"/devices/{ids['ambiguous']}/lifecycle").text
-    assert "CCR2004-16G-2S+" in form and "CCR2004-1G-12S+2XS" in form
+    form = client.get(f"/api/ui/v1/devices/{ids['ambiguous']}/lifecycle").json()
+    assert {"CCR2004-16G-2S+", "CCR2004-1G-12S+2XS"} <= set(form["correlation"]["candidates"]), form["correlation"]
     overview = client.get(f"/api/ui/v1/devices/{ids['eol']}/lifecycle").json()
     assert overview["device"]["match"] == "catalog", overview["device"]
-    assert "TEST pagina prodotto" in client.get(f"/devices/{ids['eol']}/lifecycle").text
+    assert overview["correlation"]["record"]["source"] == "TEST pagina prodotto"
 
     # Alias collisions are rejected; a valid alias resolves the ambiguity.
     with SessionLocal() as db:

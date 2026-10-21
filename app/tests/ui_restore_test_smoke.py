@@ -120,15 +120,12 @@ def main():
     scoped, _ = login(f"ci-rt-scoped-{suffix}")
     assert scoped.get(f"{base}/restore-tests").status_code == 404
 
-    # The classic form still records through the shared function and keeps its flash on errors.
-    page = admin.get(f"/devices/{ids['router']}/backups/artifacts/{ids['tampered']}/restore-test")
-    token = re.search(r'name="csrf" value="([^"]+)"', page.text).group(1)
-    classic = admin.post(f"/devices/{ids['router']}/backups/artifacts/{ids['tampered']}/restore-test",
-                         data={"csrf": token, "method": "config_review", "target_label": "review", "result": "passed"}, follow_redirects=False)
-    assert classic.status_code == 303 and classic.headers["location"].endswith("/restore-test")
-    classic = admin.post(f"/devices/{ids['router']}/backups/artifacts/{ids['tampered']}/restore-test",
-                         data={"csrf": token, "method": "config_review", "target_label": "review", "result": "partial"}, follow_redirects=False)
-    assert classic.status_code == 303 and classic.headers["location"].endswith("/restore-tests")
+    # The classic form addresses open the same pages of the new interface.
+    moved = admin.get(f"/devices/{ids['router']}/backups/artifacts/{ids['tampered']}/restore-test", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == f"/app/devices/{ids['router']}/backups/artifacts/{ids['tampered']}/restore-test"
+    moved = admin.get(f"/devices/{ids['router']}/backups/restore-tests", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == f"/app/devices/{ids['router']}/backups/restore-tests"
+    assert admin.post(f"/devices/{ids['router']}/backups/artifacts/{ids['tampered']}/restore-test", data={"result": "passed"}).status_code in (404, 405)
 
     assert admin.get(f"/app/devices/{ids['router']}/backups/restore-tests").status_code in (200, 503)
     print("ui restore test smoke ok")

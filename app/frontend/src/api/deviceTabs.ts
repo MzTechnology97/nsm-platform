@@ -165,7 +165,9 @@ export const useDeviceConfiguration = (id: string, filters: ConfigFilters) =>
 export function useConfigRefresh(id: string) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (section: string) => api<{ queued: boolean }>(`${base(id)}/configuration/refresh`, { method: "POST", body: JSON.stringify({ section }) }),
+    /** ``section: "all"`` queues every section not already pending and lists them in ``sections``. */
+    mutationFn: (section: string) =>
+      api<{ queued: boolean; sections?: string[] }>(`${base(id)}/configuration/refresh`, { method: "POST", body: JSON.stringify({ section }) }),
     onSuccess: () => client.invalidateQueries({ queryKey: ["device", id, "configuration"] }),
   });
 }

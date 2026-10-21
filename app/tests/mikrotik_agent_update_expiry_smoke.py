@@ -70,8 +70,8 @@ def seed():
 
 def queue(client, device_id):
     token = client.get("/api/ui/v1/session").json()["csrf_token"]
-    response = client.post(f"/devices/{device_id}/agent/update", data={"csrf": token}, follow_redirects=False)
-    assert response.status_code == 303
+    response = client.post(f"/api/ui/v1/devices/{device_id}/agent/update", headers={"X-CSRF-Token": token})
+    assert response.status_code == 200, response.text
     with SessionLocal() as db:
         return db.scalar(
             select(DeviceJob.id)

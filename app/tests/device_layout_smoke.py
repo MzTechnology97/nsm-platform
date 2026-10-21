@@ -1,4 +1,4 @@
-"""Every Device page uses the shared shell with vendor-aware tabs."""
+"""Classic device pages redirect to the new interface, which shows vendor-aware tabs and filters the backup archive."""
 import hashlib
 import re
 import uuid
@@ -17,12 +17,6 @@ PASSWORD = "CI-Device-Layout-2026"
 
 def csrf_from(html: str) -> str:
     return re.search(r'name="csrf" value="([^"]+)"', html).group(1)
-
-
-def tabs(html: str) -> list[str]:
-    nav = re.search(r'<nav class="device-tabs".*?</nav>', html, re.S)
-    assert nav, "device tabs missing"
-    return re.findall(r">([^<]+)</a>", nav.group(0))
 
 
 def seed():
@@ -54,36 +48,35 @@ def main():
     client = TestClient(app)
     assert client.post("/login", data={"username": username, "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
 
-    # Overview, monitor, activity and manage live in the new interface; the other tabs are still classic.
-    for suffix, target in (("", ""), ("/monitor", "/monitor"), ("/jobs", "/jobs"), ("/manage", "/manage"), ("/logs", "/syslog")):
-        moved = client.get(f"/devices/{mt_id}{suffix}", follow_redirects=False)
-        assert moved.status_code == 302 and moved.headers["location"] == f"/app/devices/{mt_id}{target}", suffix
-    mt_pages = ["/configuration", "/configuration/history", "/diagnostics", "/backups", "/backups/restore-tests", "/firmware-upgrade", "/routerboot", "/agent"]
-    for suffix in mt_pages:
-        page = client.get(f"/devices/{mt_id}{suffix}")
-        assert page.status_code == 200, (suffix, page.status_code)
-        assert tabs(page.text) == ["Panoramica", "Monitor", "Syslog", "Esposizione", "Configurazione", "Diagnostica", "Backup", "Firmware", "Agent", "Compliance", "Attività"], suffix
-        assert "TEST-LAYOUT-MT" in page.text and "TEST-SER-1" in page.text, suffix
-        assert 'class="breadcrumbs"' in page.text and page.text.count('class="breadcrumbs"') == 1, suffix
-        assert "mt-device-shell" not in page.text, "legacy duplicated shell must be gone"
+    # Every classic device page redirects to the same page of the new interface.
+    moved = {"": "", "/monitor": "/monitor", "/jobs": "/jobs", "/manage": "/manage", "/logs": "/syslog",
+             "/configuration": "/configuration", "/configuration/history": "/configuration/history", "/interfaces": "/configuration",
+             "/diagnostics": "/diagnostics", "/backups": "/backups", "/backups/restore-tests": "/backups/restore-tests",
+             "/firmware-upgrade": "/firmware-upgrade", "/routerboot": "/routerboot", "/reboot": "/reboot", "/agent": "/agent",
+             "/exposure": "/exposure", "/compliance": "/compliance", "/lifecycle": "/lifecycle"}
+    for suffix, target in moved.items():
+        page = client.get(f"/devices/{mt_id}{suffix}", follow_redirects=False)
+        assert page.status_code == 302 and page.headers["location"] == f"/app/devices/{mt_id}{target}", suffix
+    for suffix in ("/uisp", "/cnmaestro", "/genieacs"):
+        assert client.get(f"/devices/{ub_id}{suffix}", follow_redirects=False).headers["location"] == f"/app/devices/{ub_id}{suffix}"
 
-    for suffix in ("/backups", "/uisp"):
-        page = client.get(f"/devices/{ub_id}{suffix}")
-        assert page.status_code == 200, (suffix, page.status_code)
-        assert tabs(page.text) == ["Panoramica", "Syslog", "Esposizione", "Backup", "UISP", "Compliance", "Attività"], suffix
+    def tabs(device_id):
+        return [tab["key"] for tab in client.get(f"/api/ui/v1/devices/{device_id}").json()["tabs"]]
 
-    # Active tab is marked once and matches the section.
-    firmware = client.get(f"/devices/{mt_id}/routerboot").text
-    assert re.search(r'class="active" aria-current="page">Firmware<', firmware)
-    assert 'class="sub-tabs"' in firmware
+    assert tabs(mt_id) == ["overview", "monitor", "logs", "exposure", "configuration", "diagnostics", "backups", "firmware", "agent", "compliance", "activity"]
+    assert tabs(ub_id) == ["overview", "logs", "exposure", "backups", "uisp", "compliance", "activity"]
 
     # Backup archive filters.
-    archive = client.get(f"/devices/{mt_id}/backups").text
-    assert "TEST-layout.rsc" in archive and "TEST-layout.backup" in archive and "TEST timeout" in archive
-    exports = client.get(f"/devices/{mt_id}/backups?kind=export").text
-    assert "TEST-layout.rsc" in exports and "TEST-layout.backup" not in exports and "TEST timeout" not in exports
-    failed = client.get(f"/devices/{mt_id}/backups?status=failed").text
-    assert "TEST timeout" in failed and "TEST-layout.rsc" not in failed
+    def archive(query=""):
+        runs = client.get(f"/api/ui/v1/devices/{mt_id}/backups{query}").json()["runs"]
+        return {f["filename"] for run in runs for f in run["files"]}, {run["error"] for run in runs}
+
+    files, errors = archive()
+    assert {"TEST-layout.rsc", "TEST-layout.backup"} <= files and "TEST timeout" in errors
+    files, errors = archive("?kind=export")
+    assert "TEST-layout.rsc" in files and "TEST-layout.backup" not in files and "TEST timeout" not in errors
+    files, errors = archive("?status=failed")
+    assert "TEST timeout" in errors and "TEST-layout.rsc" not in files
     print("Device layout smoke passed")
 
 

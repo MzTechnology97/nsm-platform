@@ -7,15 +7,9 @@ precedence layer so operators have one consistent navigation model.
 from __future__ import annotations
 
 import re
-import uuid
-from urllib.parse import urlencode
 
-from fastapi import HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
 
-from app import main as core
 from app import mikrotik_workspace as workspace
-from app import mikrotik_workspace_ux as workspace_ux
 from app.mikrotik_workspace_ux import human_bytes
 
 SNAPSHOT_LABELS = dict(workspace.SNAPSHOT_SECTIONS)
@@ -426,64 +420,3 @@ def build_section_view(section: str, snapshots: dict, q: str = "", state: str = 
     return base
 
 
-def configuration_unified(
-    request: Request,
-    device_id: uuid.UUID,
-    section: str = "resources",
-    q: str = "",
-    state: str = "all",
-    kind: str = "all",
-    action: str = "all",
-):
-    if section not in workspace.SNAPSHOT_SECTIONS:
-        section = "resources"
-    db, user, device = workspace_ux._require_device(request, device_id, "devices.read")
-    if not user:
-        db.close()
-        return core.login_redirect()
-    try:
-        ctx = workspace_ux._enhanced_context(db, device)
-        view = build_section_view(section, ctx.get("snapshots", {}), q=q, state=state, kind=kind, action=action)
-        return core.render(
-            request,
-            db,
-            user,
-            "mikrotik_configuration_unified.html",
-            device=device,
-            active_section=section,
-            snapshot_sections=SNAPSHOT_LABELS,
-            view=view,
-            **ctx,
-        )
-    finally:
-        db.close()
-
-
-def _legacy_redirect(device_id: uuid.UUID, section: str, request: Request):
-    allowed = {"q", "state", "kind", "action"}
-    params = {"section": section}
-    for key in allowed:
-        value = request.query_params.get(key)
-        if value:
-            params[key] = value
-    return RedirectResponse(f"/devices/{device_id}/configuration?{urlencode(params)}", status_code=303)
-
-
-def redirect_interfaces(request: Request, device_id: uuid.UUID):
-    return _legacy_redirect(device_id, "interfaces", request)
-
-
-def redirect_ip_addresses(request: Request, device_id: uuid.UUID):
-    return _legacy_redirect(device_id, "ip_addresses", request)
-
-
-def redirect_routes(request: Request, device_id: uuid.UUID):
-    return _legacy_redirect(device_id, "routes", request)
-
-
-def redirect_firewall(request: Request, device_id: uuid.UUID):
-    return _legacy_redirect(device_id, "firewall", request)
-
-
-def redirect_dhcp_leases(request: Request, device_id: uuid.UUID):
-    return _legacy_redirect(device_id, "dhcp_leases", request)

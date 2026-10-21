@@ -147,10 +147,10 @@ def main():
     login = client.get("/login").text
     token = re.search(r'name="csrf" value="([^"]+)"', login).group(1)
     client.post("/login", data={"username": f"ci-su-{suffix}", "password": "CI-Self-Update-2026", "csrf": token})
-    page = client.get(f"/devices/{ids['ro']}/agent").text
-    assert "Aggiornamento agent" in page and "Reinstallazione una tantum" in page and "read, test" in page
-    page = client.get(f"/devices/{ids['v712']}/agent").text
-    assert "Automatica" in page and "policy, read, reboot" in page
+    update = client.get(f"/api/ui/v1/devices/{ids['ro']}/agent").json()["update"]
+    assert update["self_update_capable"] is False and update["policies"] == ["read", "test"], update
+    update = client.get(f"/api/ui/v1/devices/{ids['v712']}/agent").json()["update"]
+    assert update["self_update_capable"] is True and {"policy", "read", "reboot"} <= set(update["policies"]), update
     print("Legacy agent self-update smoke passed")
 
 

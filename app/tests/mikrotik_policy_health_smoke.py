@@ -64,41 +64,41 @@ def main():
 
     old_firewall = client.get(f"/devices/{modern_id}/firewall", follow_redirects=False)
     old_dhcp = client.get(f"/devices/{modern_id}/dhcp-leases", follow_redirects=False)
-    assert old_firewall.status_code == 303 and "section=firewall" in old_firewall.headers["location"]
-    assert old_dhcp.status_code == 303 and "section=dhcp_leases" in old_dhcp.headers["location"]
+    assert old_firewall.status_code == 302 and old_firewall.headers["location"] == f"/app/devices/{modern_id}/configuration"
+    assert old_dhcp.status_code == 302 and old_dhcp.headers["location"] == f"/app/devices/{modern_id}/configuration"
 
-    firewall = client.get(f"/devices/{modern_id}/configuration?section=firewall")
+    firewall = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=firewall")
     assert firewall.status_code == 200
-    for marker in ("Modern CCR", "Winbox management", "Block telnet", "Internet NAT", "8291", "Aggiorna sezione"):
+    for marker in ("Winbox management", "Block telnet", "Internet NAT", "8291"):
         assert marker in firewall.text, marker
-    nat = client.get(f"/devices/{modern_id}/configuration?section=firewall&kind=nat")
+    nat = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=firewall&kind=nat")
     assert nat.status_code == 200 and "Internet NAT" in nat.text and "Winbox management" not in nat.text
-    disabled = client.get(f"/devices/{modern_id}/configuration?section=firewall&state=disabled")
+    disabled = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=firewall&state=disabled")
     assert disabled.status_code == 200 and "Old disabled rule" in disabled.text and "Block telnet" not in disabled.text
-    drop = client.get(f"/devices/{modern_id}/configuration?section=firewall&action=drop")
+    drop = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=firewall&action=drop")
     assert drop.status_code == 200 and "Block telnet" in drop.text and "Internet NAT" not in drop.text
-    search = client.get(f"/devices/{modern_id}/configuration?section=firewall&q=8291")
+    search = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=firewall&q=8291")
     assert search.status_code == 200 and "Winbox management" in search.text and "Block telnet" not in search.text
 
-    dhcp = client.get(f"/devices/{modern_id}/configuration?section=dhcp_leases")
+    dhcp = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=dhcp_leases")
     assert dhcp.status_code == 200
     for marker in ("office-pc", "02:47:00:00:00:01", "dhcp-office", "Reception", "blocked-host"):
         assert marker in dhcp.text, marker
-    bound = client.get(f"/devices/{modern_id}/configuration?section=dhcp_leases&state=bound")
+    bound = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=dhcp_leases&state=bound")
     assert bound.status_code == 200 and "office-pc" in bound.text and "printer" not in bound.text and "blocked-host" not in bound.text
-    blocked = client.get(f"/devices/{modern_id}/configuration?section=dhcp_leases&state=blocked")
+    blocked = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=dhcp_leases&state=blocked")
     assert blocked.status_code == 200 and "blocked-host" in blocked.text and "office-pc" not in blocked.text
-    dhcp_search = client.get(f"/devices/{modern_id}/configuration?section=dhcp_leases&q=printer")
+    dhcp_search = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=dhcp_leases&q=printer")
     assert dhcp_search.status_code == 200 and "Static printer" in dhcp_search.text and "Reception" not in dhcp_search.text
 
-    legacy_fw = client.get(f"/devices/{legacy_id}/configuration?section=firewall")
-    legacy_dhcp = client.get(f"/devices/{legacy_id}/configuration?section=dhcp_leases")
+    legacy_fw = client.get(f"/api/ui/v1/devices/{legacy_id}/configuration?section=firewall")
+    legacy_dhcp = client.get(f"/api/ui/v1/devices/{legacy_id}/configuration?section=dhcp_leases")
     for response in (legacy_fw, legacy_dhcp):
         assert response.status_code == 200
-        assert "Aggiorna sezione" in response.text and "Aggiorna tutto" in response.text
+        assert response.json()["can_refresh"] is True and response.json()["online"] is True
     assert "Block telnet" in legacy_fw.text and "office-pc" in legacy_dhcp.text
 
-    print("Core 0.47 MikroTik firewall and DHCP health smoke passed in unified workspace")
+    print("Core 0.47 MikroTik firewall and DHCP health smoke passed")
 
 
 if __name__ == "__main__":

@@ -155,19 +155,14 @@ def main():
     assert heartbeat.status_code == 200, heartbeat.text
 
     login(client, username)
-    configuration = client.get(f"/devices/{device_id}/configuration?section=interfaces")
+    config_url = f"/api/ui/v1/devices/{device_id}/configuration"
+    configuration = client.get(f"{config_url}?section=interfaces")
     assert configuration.status_code == 200, configuration.text
-    assert "Snapshot configurazione non disponibile" not in configuration.text
-    assert f'action="/devices/{device_id}/snapshot/interfaces"' in configuration.text
-    assert f'action="/devices/{device_id}/snapshot-all"' in configuration.text
+    assert configuration.json()["can_refresh"] is True and configuration.json()["online"] is True
 
-    csrf = csrf_from(configuration.text)
-    queued = client.post(
-        f"/devices/{device_id}/snapshot/interfaces",
-        data={"csrf": csrf},
-        follow_redirects=False,
-    )
-    assert queued.status_code == 303
+    ui_headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    queued = client.post(f"{config_url}/refresh", headers=ui_headers, json={"section": "interfaces"})
+    assert queued.status_code == 200 and queued.json()["queued"] is True, queued.text
 
     with SessionLocal() as db:
         job = db.scalar(
@@ -205,22 +200,16 @@ def main():
         assert job.result["wire_format"] == "rows-v1"
         assert job.result["data"][0]["name"] == "ether1"
 
-    rendered = client.get(f"/devices/{device_id}/configuration?section=interfaces")
+    rendered = client.get(f"{config_url}?section=interfaces")
     assert rendered.status_code == 200, rendered.text
     assert "ether1" in rendered.text and "Uplink legacy" in rendered.text
     assert "wlan1" in rendered.text and "Radio disabled" in rendered.text
 
-    agent_page = client.get(f"/devices/{device_id}/agent")
-    assert agent_page.status_code == 200, agent_page.text
-    assert "Allow-list plain-text compatibile RouterOS 7.12.x" in agent_page.text
+    agent_page = client.get(f"/api/ui/v1/devices/{device_id}/agent").json()
+    assert agent_page["heartbeat"]["transport"] == "legacy"
 
-    csrf = csrf_from(rendered.text)
-    batch = client.post(
-        f"/devices/{device_id}/snapshot-all",
-        data={"csrf": csrf},
-        follow_redirects=False,
-    )
-    assert batch.status_code == 303
+    batch = client.post(f"{config_url}/refresh", headers=ui_headers, json={"section": "all"})
+    assert batch.status_code == 200 and batch.json()["queued"] is True and "interfaces" in batch.json()["sections"], batch.text
     with SessionLocal() as db:
         pending = list(
             db.scalars(
@@ -242,7 +231,9 @@ def main():
     with SessionLocal() as db:
         failed = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "snapshot_section", DeviceJob.status == "failed")))
         assert failed and all("reinstallalo" in (row.last_error or "") for row in failed)
-    assert "Reinstalla l'agent legacy (0.49.3+)" in client.get(f"/devices/{device_id}/agent").text.replace("&#39;", "'")
+    with SessionLocal() as db:
+        assert db.scalar(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "snapshot_section",
+                                                 DeviceJob.status.in_(["pending", "delivered"]))) is None, "no snapshot left waiting on an old agent"
 
     print("RouterOS 7.12 legacy structured snapshot smoke passed")
 

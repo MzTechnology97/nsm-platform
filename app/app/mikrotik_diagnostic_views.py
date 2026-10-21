@@ -1,4 +1,4 @@
-"""Structured presentation and history of MikroTik diagnostic results (MTK-05).
+"""Structured presentation of MikroTik diagnostic results (MTK-05).
 
 Diagnostics stay allow-listed and read-only; this module only reads the stored
 job results.  Modern agents return ``result.data`` (a list of RouterOS rows);
@@ -18,7 +18,6 @@ from app.models import Device
 
 DIAGNOSTIC_JOBS = ("diagnostic_ping", "diagnostic_traceroute", "diagnostic_neighbors", "diagnostic_dhcp_lookup",
                    "diagnostic_logs", "support_snapshot")
-HISTORY_LIMIT = 10
 RECENT_LIMIT = 25
 _UNIT_RE = re.compile(r"(\d+(?:\.\d+)?)(us|ms|s|m|h|d|w)")
 _UNIT_MS = {"us": 0.001, "ms": 1.0, "s": 1000.0, "m": 60000.0, "h": 3600000.0, "d": 86400000.0, "w": 604800000.0}
@@ -201,58 +200,3 @@ def view(job: DeviceJob, db=None) -> dict | None:
     return None
 
 
-def summary(job: DeviceJob) -> str:
-    """One-line outcome for lists and history."""
-    if job.status in ("pending", "delivered", "running"):
-        return "in esecuzione"
-    if job.status != "success":
-        return (job.last_error or "fallito")[:120]
-    rows = rows_of(job)
-    if job.job_type == "diagnostic_ping":
-        v = ping_view(rows)
-        if not v["sent"]:
-            return "nessuna risposta registrata"
-        return f"{v['loss']:g}% perdita" + (f" · media {v['avg']:g} ms" if v["avg"] is not None else "")
-    if job.job_type == "diagnostic_traceroute":
-        v = traceroute_view(rows)
-        return f"{v['count']} hop · " + ("destinazione raggiunta" if v["reached"] else "destinazione non raggiunta")
-    if job.job_type == "diagnostic_neighbors":
-        return f"{len(rows)} neighbor"
-    if job.job_type == "diagnostic_dhcp_lookup":
-        return f"{len(rows)} lease" if rows else "nessuna lease"
-    if job.job_type == "diagnostic_logs":
-        counts = log_view(rows)["counts"]
-        return f"{len(rows)} eventi" + "".join(f" · {n} {level}" for level, n in counts.items() if n and level != "warning")
-    return "completato"
-
-
-def history(job: DeviceJob) -> list[dict]:
-    """Earlier runs of the same diagnostic towards the same target (ping/traceroute) on the same Device."""
-    if job.job_type not in ("diagnostic_ping", "diagnostic_traceroute"):
-        return []
-    target = (job.payload or {}).get("target")
-    with SessionLocal() as db:
-        jobs = db.scalars(select(DeviceJob).where(DeviceJob.device_id == job.device_id, DeviceJob.job_type == job.job_type,
-                                                  DeviceJob.id != job.id, DeviceJob.created_at <= job.created_at)
-                          .order_by(DeviceJob.created_at.desc()).limit(200))
-        out = []
-        for other in jobs:
-            if (other.payload or {}).get("target") != target:
-                continue
-            out.append({"job": other, "summary": summary(other), "view": view(other, db) if other.status == "success" else None})
-            if len(out) >= HISTORY_LIMIT:
-                break
-        return out
-
-
-def recent(device_id) -> list[dict]:
-    """Latest diagnostics of a Device with their one-line outcome."""
-    with SessionLocal() as db:
-        jobs = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type.in_(DIAGNOSTIC_JOBS))
-                                .order_by(DeviceJob.created_at.desc()).limit(RECENT_LIMIT)))
-        return [{"job": job, "summary": summary(job)} for job in jobs]
-
-
-def install_mikrotik_diagnostic_views() -> None:
-    core.templates.env.globals.update(diagnostic_view=view, diagnostic_summary=summary, diagnostic_history=history,
-                                      recent_diagnostics=recent)

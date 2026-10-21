@@ -136,28 +136,23 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    pending = client.get(f"/devices/{pending_id}/agent")
-    assert pending.status_code == 200, pending.text
-    assert "In attesa di pairing" in pending.text
-    assert "Token one-shot valido" in pending.text
-    assert "CI41 Pending Pairing" in pending.text
+    def installation(device_id):
+        response = client.get(f"/api/ui/v1/devices/{device_id}/agent")
+        assert response.status_code == 200, response.text
+        assert "secret_hash" not in response.text and "a" * 64 not in response.text and "b" * 64 not in response.text
+        return response.json()
 
-    suspect = client.get(f"/devices/{suspect_id}/agent")
-    assert suspect.status_code == 200, suspect.text
-    assert "Pairing OK · agent non avviato" in suspect.text
-    assert "parser RouterOS" in suspect.text
-    assert "Grace period heartbeat: 5 minuti" in suspect.text
-    assert "Heartbeat post-installazione" in suspect.text
-    assert "IN ATTESA" in suspect.text
+    pending = installation(pending_id)
+    assert pending["installation"]["key"] == "awaiting_pairing"
+    assert any(e["status"] == "pending" for e in pending["enrollments"]), "one-shot token still valid"
 
-    verified = client.get(f"/devices/{verified_id}/agent")
-    assert verified.status_code == 200, verified.text
-    assert "Agent verificato" in verified.text
-    assert "Pairing, credenziale e heartbeat post-installazione" in verified.text
-    assert "198.51.100.41" in verified.text
-    assert "secret_hash" not in verified.text
-    assert "a" * 64 not in suspect.text
-    assert "b" * 64 not in verified.text
+    suspect = installation(suspect_id)["installation"]
+    assert suspect["key"] == "install_suspect" and suspect["severity"] == "critical" and suspect["grace_minutes"] == 5
+    assert {step["key"]: step["done"] for step in suspect["steps"]}["heartbeat"] is False, "post-install heartbeat still waiting"
+
+    verified = installation(verified_id)
+    assert verified["installation"]["key"] == "verified" and all(step["done"] for step in verified["installation"]["steps"])
+    assert verified["heartbeat"]["source_ip"] == "198.51.100.41"
 
     print("MikroTik install verification smoke passed")
 

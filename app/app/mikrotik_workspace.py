@@ -1,16 +1,13 @@
 import ipaddress
-import uuid
 from datetime import timedelta
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app.agent_models import DeviceJob
-from app.db import SessionLocal
-from app.models import ActionIssue, AuditEvent, BackupRun, Device, DeviceVulnerability, SecurityAdvisory, utcnow
+from app.models import Device, utcnow
 
 router = APIRouter()
 SNAPSHOT_SECTIONS = {
@@ -54,30 +51,6 @@ def _latest_snapshots(db, device_id):
 def _pending_sections(db, device_id):
     rows = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "snapshot_section", DeviceJob.status.in_(["pending", "delivered"]))))
     return {str((r.payload or {}).get("section") or "") for r in rows}
-
-
-def _workspace_context(db, device):
-    events = list(db.scalars(select(AuditEvent).where(AuditEvent.device_id == device.id).order_by(AuditEvent.timestamp.desc()).limit(30)))
-    issues = list(db.scalars(select(ActionIssue).where(ActionIssue.device_id == device.id, ActionIssue.status.in_(["open", "acknowledged"])).order_by(ActionIssue.created_at.desc()).limit(30)))
-    vulnerabilities = db.execute(select(DeviceVulnerability, SecurityAdvisory).join(SecurityAdvisory, SecurityAdvisory.id == DeviceVulnerability.advisory_id).where(DeviceVulnerability.device_id == device.id).order_by(SecurityAdvisory.cvss.desc().nullslast(), DeviceVulnerability.detected_at.desc())).all()
-    backups = list(db.scalars(select(BackupRun).where(BackupRun.device_id == device.id).order_by(BackupRun.started_at.desc()).limit(10)))
-    jobs = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device.id).order_by(DeviceJob.created_at.desc()).limit(30)))
-    inventory = dict(device.inventory_data or {})
-    metrics = dict(inventory.get("metrics") or {})
-    return {"events": events, "issues": issues, "vulnerabilities": vulnerabilities, "backup_runs": backups, "jobs": jobs, "inventory": inventory, "metrics": metrics, "snapshots": _latest_snapshots(db, device.id), "pending_sections": _pending_sections(db, device.id)}
-
-
-@router.post("/devices/{device_id}/snapshot/{section}", name="queue_mikrotik_snapshot")
-def queue_snapshot(request: Request, device_id: uuid.UUID, section: str, csrf: str = Form(...)):
-    core.validate_csrf(request, csrf)
-    if section not in SNAPSHOT_SECTIONS:
-        raise HTTPException(400, "Sezione snapshot non valida.")
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        device = _load_device(db, device_id)
-        if not queue_snapshot_record(db, user, device, section):
-            return RedirectResponse(f"/devices/{device.id}/configuration?section={section}&queued=already", status_code=303)
-    return RedirectResponse(f"/devices/{device_id}/configuration?section={section}&queued=1", status_code=303)
 
 
 def queue_snapshot_record(db, user, device, section: str) -> bool:
@@ -146,20 +119,14 @@ def _safe_dhcp_query(value: str):
             raise HTTPException(400, "La ricerca DHCP richiede un indirizzo IPv4 o MAC valido.")
 
 
-@router.post("/devices/{device_id}/diagnostics/{diagnostic}", name="queue_mikrotik_diagnostic")
-def queue_diagnostic(
-    request: Request,
-    device_id: uuid.UUID,
-    diagnostic: str,
-    target: str = Form(""),
-    source: str = Form(""),
-    query: str = Form(""),
-    csrf: str = Form(...),
-):
-    core.validate_csrf(request, csrf)
+def queue_diagnostic_record(db, user, device, diagnostic: str, target: str = "", source: str = "", query: str = "") -> DeviceJob:
+    """Queue one diagnostic (ping, traceroute, neighbors, DHCP lookup, logs, support snapshot) on an online MikroTik, audited; commits.
+
+    ``HTTPException`` 400 for an unsupported diagnostic or an invalid target, source or DHCP query; 409 when the device is
+    not an online MikroTik.
+    """
     if diagnostic not in DIAGNOSTIC_TYPES:
         raise HTTPException(400, "Diagnostica non supportata.")
-
     payload = {}
     details = {"diagnostic": diagnostic}
     if diagnostic in {"ping", "traceroute"}:
@@ -170,21 +137,17 @@ def queue_diagnostic(
         normalized, lookup_type = _safe_dhcp_query(query)
         payload.update({"query": normalized, "lookup_type": lookup_type})
         details.update({"query": normalized, "lookup_type": lookup_type})
-
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        device = _load_device(db, device_id)
-        if device.vendor != "mikrotik" or device.status != "online":
-            raise HTTPException(409, "La diagnostica richiede un MikroTik online con agent NSM.")
-        job_type = DIAGNOSTIC_TYPES[diagnostic]
-        expiry = timedelta(minutes=10 if diagnostic == "support_snapshot" else 5)
-        job = DeviceJob(device_id=device.id, job_type=job_type, payload=payload, expires_at=utcnow() + expiry)
-        db.add(job)
-        db.flush()
-        details["job_id"] = str(job.id)
-        core.add_event(db, "DEVICE_DIAGNOSTIC_QUEUED", actor=user, customer_id=device.customer_id, device_id=device.id, details=details, source="portal")
-        db.commit()
-    return RedirectResponse(f"/devices/{device_id}/diagnostics?queued={diagnostic}", status_code=303)
+    if device.vendor != "mikrotik" or device.status != "online":
+        raise HTTPException(409, "La diagnostica richiede un MikroTik online con agent NSM.")
+    job_type = DIAGNOSTIC_TYPES[diagnostic]
+    expiry = timedelta(minutes=10 if diagnostic == "support_snapshot" else 5)
+    job = DeviceJob(device_id=device.id, job_type=job_type, payload=payload, expires_at=utcnow() + expiry)
+    db.add(job)
+    db.flush()
+    details["job_id"] = str(job.id)
+    core.add_event(db, "DEVICE_DIAGNOSTIC_QUEUED", actor=user, customer_id=device.customer_id, device_id=device.id, details=details, source="portal")
+    db.commit()
+    return job
 
 
 def install_mikrotik_workspace(app):

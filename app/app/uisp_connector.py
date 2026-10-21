@@ -7,19 +7,16 @@ from datetime import datetime, timezone
 from urllib.parse import urlsplit, urlunsplit
 
 import httpx
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
 
 from app import main as core
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
-from app.models import BackupRun, Device, utcnow
+from app.models import Device, utcnow
 from app import uisp_metrics
 from app import uisp_firmware
 from app.secret_vault import decrypt_text, encrypt_text
-from app.security import validate_csrf
-from app.ui_feedback import exception_message, flash_redirect
 
 router = APIRouter()
 UISP_PROVIDER = "uisp"
@@ -435,76 +432,6 @@ def sync_interval(connection) -> int:
     return int((connection.settings or {}).get("sync_interval_minutes") or SYNC_INTERVAL_DEFAULT) if connection else SYNC_INTERVAL_DEFAULT
 
 
-def _device_render(request, db, user, device, *, candidate=None, message=None, error=None):
-    connection = _connection(db)
-    return core.render(
-        request,
-        db,
-        user,
-        "uisp_device_link.html",
-        device=device,
-        connection=connection,
-        candidate=candidate,
-        message=message,
-        error=error,
-        uisp_view=uisp_metrics.view(db, device) if device.external_device_id else None,
-        format_metric=uisp_metrics.format_value,
-        uisp_last_backup=db.scalar(select(BackupRun).where(BackupRun.device_id == device.id, BackupRun.backup_type == "uisp_backup")
-                                   .order_by(BackupRun.started_at.desc()).limit(1)),
-    )
-
-
-def _uisp_device(db, device_id):
-    device = db.get(Device, device_id)
-    if not device:
-        raise HTTPException(404, "Apparato non trovato.")
-    if device.vendor != "ubiquiti":
-        raise HTTPException(400, "Questa operazione è disponibile solo per dispositivi Ubiquiti.")
-    if not device.primary_mac:
-        raise HTTPException(409, "Il dispositivo Ubiquiti non ha un MAC associato.")
-    return device
-
-
-def _device_http_feedback(request: Request, device_id: uuid.UUID, exc: HTTPException):
-    if exc.status_code == 404:
-        return flash_redirect(
-            request,
-            "/devices",
-            "error",
-            exception_message(exc, "Apparato non trovato."),
-            title="Apparato non trovato",
-        )
-    if exc.status_code == 403:
-        return flash_redirect(
-            request,
-            f"/devices/{device_id}",
-            "error",
-            exception_message(exc, "Non hai i permessi necessari per questa operazione."),
-            title="Operazione non autorizzata",
-        )
-    if exc.status_code in {400, 409}:
-        return flash_redirect(
-            request,
-            f"/devices/{device_id}/uisp",
-            "warning",
-            exception_message(exc, "Operazione UISP non disponibile."),
-            title="Operazione UISP non disponibile",
-        )
-    raise exc
-
-
-@router.get("/devices/{device_id}/uisp", response_class=HTMLResponse, name="uisp_device_link")
-def uisp_device_link(request: Request, device_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "devices.read"):
-            raise HTTPException(403)
-        device = _uisp_device(db, device_id)
-        return _device_render(request, db, user, device)
-
-
 @router.get("/api/v1/devices/{device_id}/uisp-metrics", name="uisp_device_metrics")
 def uisp_device_metrics(request: Request, device_id: uuid.UUID, range: str = "24h"):
     from app import uisp_metrics
@@ -522,81 +449,6 @@ def uisp_device_metrics(request: Request, device_id: uuid.UUID, range: str = "24
             return uisp_metrics.series(db, device, range)
         except ValueError:
             raise HTTPException(400, "Intervallo non valido.") from None
-
-
-@router.post("/devices/{device_id}/uisp/preview", response_class=HTMLResponse, name="uisp_device_preview")
-def uisp_device_preview(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
-    try:
-        validate_csrf(request, csrf)
-        with SessionLocal() as db:
-            user = core.require_permission(request, db, "devices.read")
-            device = _uisp_device(db, device_id)
-            try:
-                connection = _connection(db, enabled_only=True)
-                candidate = lookup_by_mac(connection, device.primary_mac)
-                return _device_render(request, db, user, device, candidate=candidate)
-            except (UispConnectorError, ValueError) as exc:
-                return _device_render(request, db, user, device, error=str(exc))
-    except HTTPException as exc:
-        return _device_http_feedback(request, device_id, exc)
-
-
-@router.post("/devices/{device_id}/uisp/associate", response_class=HTMLResponse, name="uisp_device_associate")
-def uisp_device_associate(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
-    return_to = f"/devices/{device_id}/uisp"
-    try:
-        validate_csrf(request, csrf)
-        with SessionLocal() as db:
-            user = core.require_permission(request, db, "devices.write")
-            device = _uisp_device(db, device_id)
-            try:
-                associate_record(db, user, device)
-            except (UispConnectorError, ValueError) as exc:
-                return flash_redirect(
-                    request,
-                    return_to,
-                    "warning",
-                    str(exc),
-                    title="Associazione UISP non completata",
-                )
-    except HTTPException as exc:
-        return _device_http_feedback(request, device_id, exc)
-    return flash_redirect(
-        request,
-        return_to,
-        "success",
-        "Dispositivo associato a UISP e inventario aggiornato.",
-        title="Associazione UISP completata",
-    )
-
-
-@router.post("/devices/{device_id}/uisp/refresh", response_class=HTMLResponse, name="uisp_device_refresh")
-def uisp_device_refresh(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
-    return_to = f"/devices/{device_id}/uisp"
-    try:
-        validate_csrf(request, csrf)
-        with SessionLocal() as db:
-            user = core.require_permission(request, db, "devices.write")
-            device = _uisp_device(db, device_id)
-            try:
-                refresh_record(db, user, device)
-            except (UispConnectorError, ValueError) as exc:
-                return flash_redirect(
-                    request,
-                    return_to,
-                    "warning",
-                    str(exc),
-                    title="Refresh UISP non completato",
-                )
-    except HTTPException as exc:
-        return _device_http_feedback(request, device_id, exc)
-    return flash_redirect(
-        request,
-        return_to,
-        "success",
-        "Inventario UISP aggiornato mantenendo invariati cliente e sito NSM.",
-        title="Refresh UISP completato",
-    )
 
 
 def associate_record(db, user, device: Device) -> None:

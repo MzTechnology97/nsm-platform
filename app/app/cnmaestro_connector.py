@@ -24,7 +24,7 @@ from urllib.parse import urlsplit
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
 
 from app import main as core
@@ -334,20 +334,6 @@ def series(db, device, range_key="24h") -> dict:
     return {"range": range_key, "sample_count": len(samples), "charts": charts}
 
 
-def format_value(field, value) -> str:
-    if value is None:
-        return "—"
-    if field.endswith("_bps"):
-        for unit, size in (("Gbps", 10**9), ("Mbps", 10**6), ("kbps", 10**3)):
-            if value >= size:
-                return f"{value / size:.1f} {unit}"
-        return f"{value} bps"
-    if field == "uptime_seconds":
-        days, rest = divmod(int(value), 86400)
-        return f"{days}g {rest // 3600}h {(rest % 3600) // 60}m"
-    return f"{value:g} {FIELDS[field][1]}".strip()
-
-
 def summary() -> dict:
     with SessionLocal() as db:
         row = connection_row(db)
@@ -406,22 +392,6 @@ def test_connection(row, transport=None) -> tuple[bool, str]:
         return False, str(exc)
     finally:
         client.close()
-
-
-@router.get("/devices/{device_id}/cnmaestro", response_class=HTMLResponse, name="device_cnmaestro")
-def device_page(request: Request, device_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "devices.read"):
-            raise HTTPException(403)
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        meta = (device.inventory_data or {}).get("cnmaestro") or {}
-        rows = [(field, label, format_value(field, (meta.get("metrics") or {}).get(field))) for field, (label, _u, _k) in FIELDS.items()]
-        return core.render(request, db, user, "device_cnmaestro.html", device=device, meta=meta, metric_rows=rows, connection=connection_row(db))
 
 
 @router.get("/api/v1/devices/{device_id}/cnmaestro-metrics", name="device_cnmaestro_metrics")

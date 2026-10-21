@@ -65,43 +65,20 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    history_url = f"/devices/{device_id}/configuration/history"
-    page = client.get(history_url)
-    assert page.status_code == 200
-    assert "Cronologia configurazione" in page.text and "primo export" in page.text
+    history_url = f"/api/ui/v1/devices/{device_id}/configuration/history"
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    page = client.get(history_url).json()
+    assert [row["id"] for row in page["rows"]] == [str(first_id)] and page["rows"][0]["previous_id"] is None
+    assert page["baseline_id"] is None and page["can_baseline"] is True
 
-    response = client.post(
-        f"{history_url}/{first_id}/baseline",
-        data={"csrf": csrf(page.text)},
-        follow_redirects=False,
-    )
-    assert response.status_code == 303
-    assert response.headers["location"] == history_url
-    assert not response.headers.get("content-type", "").startswith("application/json")
+    response = client.post(f"{history_url}/{first_id}/baseline", headers=headers)
+    assert response.status_code == 200, response.text
+    assert client.get(history_url).json()["baseline_id"] == str(first_id)
 
-    baseline_feedback = client.get(history_url)
-    assert baseline_feedback.status_code == 200
-    assert "Baseline configurazione aggiornata" in baseline_feedback.text
-    assert "flash-success" in baseline_feedback.text
-    assert "Baseline configurazione aggiornata" not in client.get(history_url).text
-
-    # A stale/deleted export reference is an expected browser-domain failure:
-    # keep the operator in configuration history and show a one-shot warning.
-    stale_artifact_id = uuid.uuid4()
-    page = client.get(history_url)
-    stale = client.post(
-        f"{history_url}/{stale_artifact_id}/baseline",
-        data={"csrf": csrf(page.text)},
-        follow_redirects=False,
-    )
-    assert stale.status_code == 303
-    assert stale.headers["location"] == history_url
-    assert not stale.headers.get("content-type", "").startswith("application/json")
-    stale_feedback = client.get(history_url)
-    assert stale_feedback.status_code == 200
-    assert "Export non disponibile per questo apparato" in stale_feedback.text
-    assert "flash-warning" in stale_feedback.text
-    assert "Export non disponibile per questo apparato" not in client.get(history_url).text
+    # A stale/deleted export reference is refused and leaves the baseline unchanged.
+    stale = client.post(f"{history_url}/{uuid.uuid4()}/baseline", headers=headers)
+    assert stale.status_code == 404 and "Export non disponibile per questo apparato" in stale.text
+    assert client.get(history_url).json()["baseline_id"] == str(first_id)
 
     with SessionLocal() as db:
         device = db.get(Device, device_id)
@@ -116,19 +93,13 @@ def main():
         assert issue is not None
         assert issue.details["reference_kind"] == "baseline"
 
-    page = client.get(history_url)
-    assert page.status_code == 200
-    assert "Variazione configurazione da verificare" in page.text
-    assert "DA VERIFICARE" in page.text and "BASELINE" in page.text
-    assert f"against={first_id}" in page.text
+    page = client.get(history_url).json()
+    assert page["drift"]["reference_kind"] == "baseline" and page["drift"]["added"] > 0
+    rows = {row["id"]: row for row in page["rows"]}
+    assert rows[str(first_id)]["baseline"] is True and rows[str(second_id)]["previous_id"] == str(first_id)
 
-    response = client.post(
-        f"{history_url}/{second_id}/baseline",
-        data={"csrf": csrf(page.text)},
-        follow_redirects=False,
-    )
-    assert response.status_code == 303
-    assert response.headers["location"] == history_url
+    response = client.post(f"{history_url}/{second_id}/baseline", headers=headers)
+    assert response.status_code == 200
 
     with SessionLocal() as db:
         device = db.get(Device, device_id)
@@ -139,16 +110,8 @@ def main():
         issue = db.scalar(select(ActionIssue).where(ActionIssue.device_id == device_id, ActionIssue.title == DRIFT_TITLE, ActionIssue.status.in_(["open", "acknowledged"])))
         assert issue is None
 
-    missing_device_id = uuid.uuid4()
-    page = client.get(history_url)
-    missing = client.post(
-        f"/devices/{missing_device_id}/configuration/history/{first_id}/baseline",
-        data={"csrf": csrf(page.text)},
-        follow_redirects=False,
-    )
-    assert missing.status_code == 303
-    assert missing.headers["location"] == "/devices"
-    assert not missing.headers.get("content-type", "").startswith("application/json")
+    missing = client.post(f"/api/ui/v1/devices/{uuid.uuid4()}/configuration/history/{first_id}/baseline", headers=headers)
+    assert missing.status_code == 404
 
     print("Core 0.44 MikroTik configuration history, drift and contextual baseline feedback smoke passed")
 

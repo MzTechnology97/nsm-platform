@@ -10,8 +10,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
 
 from app import main as core
@@ -155,15 +154,6 @@ def _as_utc(value: str | datetime | None):
     return value.astimezone(timezone.utc)
 
 
-def _load_device(db, device_id):
-    device = db.get(Device, device_id)
-    if not device:
-        raise HTTPException(404, "Apparato non trovato.")
-    if device.vendor != "mikrotik":
-        raise HTTPException(400, "RouterBOOT disponibile solo per MikroTik.")
-    return device
-
-
 def _validate_modern_executor(db, device: Device):
     data = device.inventory_data or {}
     if str(data.get("agent_transport") or "").strip() != "modern":
@@ -191,42 +181,6 @@ def _pending_job(db, device_id, types):
             DeviceJob.status.in_(["pending", "delivered", "running"]),
         )
     )
-
-
-@router.get("/devices/{device_id}/routerboot", response_class=HTMLResponse, name="routerboot_lifecycle_page")
-def routerboot_page(request: Request, device_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "firmware.read")
-        device = _load_device(db, device_id)
-        state = _state(device)
-        readiness = _readiness(device)
-        current = readiness.get("routerboard_current") or device.routerboot_version
-        target = readiness.get("routerboard_upgrade")
-        can_execute = core.has_permission(user, "firmware.execute")
-        response = core.templates.TemplateResponse(
-            request=request,
-            name="routerboot_lifecycle.html",
-            context={
-                "user": user,
-                "device": device,
-                "state": state,
-                "readiness": readiness,
-                "current": current,
-                "target": target,
-                "can_execute": can_execute,
-            },
-        )
-        return response
-
-
-@router.post("/devices/{device_id}/routerboot/stage", name="stage_routerboot_upgrade")
-def stage_routerboot(request: Request, device_id: uuid.UUID, csrf: str = Form(...), confirmation: str = Form(...)):
-    core.validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "firmware.execute")
-        device = _load_device(db, device_id)
-        stage_record(db, user, device, confirmation)
-    return RedirectResponse(f"/devices/{device_id}/routerboot?stage=queued", status_code=303)
 
 
 def stage_record(db, user, device: Device, confirmation: str) -> DeviceJob:
@@ -311,16 +265,6 @@ async def stage_complete(request: Request, job_id: uuid.UUID):
         )
         db.commit()
     return {"status": "ok"}
-
-
-@router.post("/devices/{device_id}/routerboot/reboot", name="reboot_for_routerboot_upgrade")
-def reboot_routerboot(request: Request, device_id: uuid.UUID, csrf: str = Form(...), confirmation: str = Form(...)):
-    core.validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "firmware.execute")
-        device = _load_device(db, device_id)
-        reboot_record(db, user, device, confirmation)
-    return RedirectResponse(f"/devices/{device_id}/routerboot?reboot=queued", status_code=303)
 
 
 def reboot_record(db, user, device: Device, confirmation: str) -> DeviceJob:

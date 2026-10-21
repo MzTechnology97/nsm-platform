@@ -83,10 +83,10 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-ufw-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{ids['old']}/uisp").text
-    for marker in ('id="uisp-firmware"', "Aggiornamento disponibile", "8.7.18", "non compatibile"):
-        assert marker in page, marker
-    assert "non esposto da UISP" in client.get(f"/devices/{ids['none']}/uisp").text
+    page = client.get(f"/api/ui/v1/devices/{ids['old']}/uisp").json()
+    assert page["firmware"]["latest"] and page["firmware"]["compatible"] is False, page["firmware"]
+    assert page["record"]["firmware_status"] == "update_available" and page["record"]["recommended_firmware_version"] == "8.7.18", page["record"]
+    assert not (client.get(f"/api/ui/v1/devices/{ids['none']}/uisp").json()["firmware"] or {}).get("latest"), "latest firmware not exposed by UISP"
     worklist = client.get(f"/api/ui/v1/firmware?customer={customer_id}&state=attention").text
     assert f"TEST u-fw-old-{suffix}" in worklist and f"TEST u-fw-cur-{suffix}" not in worklist
     print("UISP firmware smoke passed")

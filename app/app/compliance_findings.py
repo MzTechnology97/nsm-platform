@@ -15,17 +15,13 @@ in exception has one Action Center issue, resolved automatically.
 """
 from __future__ import annotations
 
-import uuid
 from datetime import datetime, time, timedelta
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, or_, select
 
 from app import main as core
-from app.compliance_engine import CONTROLS
-from app.compliance_models import RESULT_LABELS, ComplianceResult, ComplianceResultHistory
-from app.db import SessionLocal
+from app.compliance_models import ComplianceResult, ComplianceResultHistory
 from app.input_errors import InputError
 from app.models import ActionIssue, Device, utcnow
 
@@ -33,15 +29,6 @@ router = APIRouter()
 ISSUE_TITLE = "Non conformità compliance da gestire"
 ISSUE_CATEGORY = "compliance"
 MAX_EXCEPTION = timedelta(days=366)
-ACTION_LABELS = {
-    "evaluated": "Valutazione",
-    "acknowledged": "Presa in carico",
-    "exception": "Eccezione concessa",
-    "exception_revoked": "Eccezione revocata",
-    "exception_expired": "Eccezione scaduta",
-}
-
-
 def in_exception(result: ComplianceResult, now: datetime) -> bool:
     return result.status == "fail" and result.exception_until is not None and result.exception_until > now
 
@@ -180,31 +167,6 @@ def result_action_record(db, user, result_id, action: str, **fields) -> str:
     sync_issues(db, now)
     db.commit()
     return message
-
-
-@router.get("/devices/{device_id}/compliance", response_class=HTMLResponse, name="device_compliance")
-def device_compliance(request: Request, device_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "compliance.read"):
-            raise HTTPException(403)
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        now = utcnow()
-        order = {"fail": 0, "unknown": 1, "pass": 2, "not_applicable": 3}
-        results = sorted(
-            db.scalars(select(ComplianceResult).where(ComplianceResult.device_id == device.id)),
-            key=lambda r: (order.get(r.status, 9), r.control_id),
-        )
-        return core.render(
-            request, db, user, "device_compliance.html",
-            device=device, title=device.display_name or device.device_identity or device.name,
-            rows=[(r, CONTROLS.get(r.control_id), in_exception(r, now)) for r in results],
-            result_labels=RESULT_LABELS, last_eval=max((r.evaluated_at for r in results), default=None),
-        )
 
 
 def install_compliance_findings(app) -> None:

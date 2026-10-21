@@ -67,21 +67,7 @@ jobs:
           }
           for name, path in expected.items():
               assert str(app.url_path_for(name)) == path, (name, app.url_path_for(name))
-          assert str(app.url_path_for('create_firmware_upgrade_plan', device_id=zero)) == f'/devices/{zero}/firmware-upgrade/plan'
-          assert str(app.url_path_for('activate_firmware_upgrade_plan', device_id=zero, plan_id=zero)) == f'/devices/{zero}/firmware-upgrade/{zero}/activate'
-          assert str(app.url_path_for('routerboot_lifecycle_page', device_id=zero)) == f'/devices/{zero}/routerboot'
-          assert str(app.url_path_for('mikrotik_agent_status', device_id=zero)) == f'/devices/{zero}/agent'
-          assert str(app.url_path_for('queue_mikrotik_agent_update', device_id=zero)) == f'/devices/{zero}/agent/update'
           assert str(app.url_path_for('mikrotik_agent_update_source', job_id=zero)) == f'/api/v1/agents/mikrotik/self-update/{zero}/source'
-          assert str(app.url_path_for('mikrotik_interfaces', device_id=zero)) == f'/devices/{zero}/interfaces'
-          assert str(app.url_path_for('mikrotik_ip_addresses', device_id=zero)) == f'/devices/{zero}/ip-addresses'
-          assert str(app.url_path_for('mikrotik_routes', device_id=zero)) == f'/devices/{zero}/routes'
-          assert str(app.url_path_for('mikrotik_firewall', device_id=zero)) == f'/devices/{zero}/firewall'
-          assert str(app.url_path_for('mikrotik_dhcp_leases', device_id=zero)) == f'/devices/{zero}/dhcp-leases'
-          assert str(app.url_path_for('mikrotik_configuration_v2', device_id=zero)) == f'/devices/{zero}/configuration'
-          assert str(app.url_path_for('mikrotik_config_history', device_id=zero)) == f'/devices/{zero}/configuration/history'
-          assert str(app.url_path_for('mikrotik_diagnostics_v2', device_id=zero)) == f'/devices/{zero}/diagnostics'
-          assert str(app.url_path_for('mikrotik_diagnostic_result', device_id=zero, job_id=zero)) == f'/devices/{zero}/diagnostics/jobs/{zero}'
           print(f'Core {app.version}: application and canonical routes OK')
           PY
       - name: Validate security and Core 0.49 contracts
@@ -98,16 +84,12 @@ jobs:
           activity = Path('app/app/activity_worklists.py').read_text()
           modern_syntax = Path('app/app/mikrotik_modern_syntax.py').read_text()
           modern_syntax_test = Path('app/tests/mikrotik_modern_syntax_smoke.py').read_text()
-          agent_install = Path('app/app/templates/mikrotik_agent_status.html').read_text()
           agent_fleet = Path('app/app/agent_fleet.py').read_text()
           agent_health = Path('app/app/agent_health_automation.py').read_text()
           workspace_ux = Path('app/app/mikrotik_workspace_ux.py').read_text()
-          diagnostics = Path('app/app/templates/mikrotik_diagnostics_v2.html').read_text()
           ui_js = Path('app/app/static/ui.js').read_text()
           drift = Path('app/app/config_drift.py').read_text()
-          drift_page = Path('app/app/templates/mikrotik_config_history.html').read_text()
           configuration = Path('app/app/mikrotik_configuration_unified.py').read_text()
-          configuration_page = Path('app/app/templates/mikrotik_configuration_unified.html').read_text()
 
           assert '/system package update download' in staging and '/system package update install' not in staging and '/system reboot' not in staging
           assert 'firmware_activate' in activation and '/system reboot' in activation and activation.index('/firmware-activate/') < activation.index('/system reboot')
@@ -125,34 +107,20 @@ jobs:
           for marker in ('normalize_modern_agent_source', 'validate_modern_agent_source', '_EMPTY_LOCAL_RE'):
               assert marker in modern_syntax, marker
           assert 'invalid RouterOS empty local initializer survived' in modern_syntax_test
-          for marker in ('Verifica installazione', 'Pairing one-shot', 'Heartbeat post-installazione', 'parser RouterOS'):
-              assert marker in agent_install, marker
           for marker in ('_installation_state', 'install_suspect', 'token_expired', 'INSTALL_FILTERS', 'ENROLLMENT_HISTORY_WINDOW'):
               assert marker in agent_fleet, marker
           for marker in ('TITLE_INSTALL_SUSPECT', 'TITLE_TOKEN_EXPIRED', '_installation_state', 'AGENT_HEALTH_RECOVERED'):
               assert marker in agent_health, marker
-          for marker in ('human_bytes', 'snapshot_supported', 'telemetry_history_supported', 'Support snapshot non disponibile', '409'):
+          for marker in ('human_bytes', 'agent_transport', 'snapshot_blocker', 'Support snapshot non disponibile'):
               assert marker in workspace_ux, marker
-          device_layout = Path('app/app/templates/device_layout.html').read_text()
-          for marker in ('MAC', 'IP gestione', 'device-tabs', "('backups', 'Backup'", "('firmware', 'Firmware'"):
-              assert marker in device_layout, marker
-          for marker in ('Risultati recenti', 'NON DISP.', '/diagnostics/jobs/'):
-              assert marker in diagnostics, marker
           for marker in ('copyEnrollmentCommand', 'textContent', 'Copiato', 'Copia non riuscita'):
               assert marker in ui_js, marker
           for marker in ('CONFIG_DRIFT_DETECTED', 'CONFIG_BASELINE_APPROVED', 'config_baseline_artifact_id', '_normalized_export', '_install_backup_completion_hook'):
               assert marker in drift, marker
-          for marker in ('Cronologia configurazione', 'Imposta baseline', 'DA VERIFICARE', 'BASELINE'):
-              assert marker in drift_page, marker
-          # Structured RouterOS sections are rendered only by the unified
-          # configuration workspace; legacy section URLs redirect to it.
+          # Structured RouterOS sections are normalized by the unified configuration module (the new interface reads them).
           for marker in ('_normalize_interface', '_normalize_ip', '_normalize_route', '_normalize_firewall', '_normalize_lease',
-                         'actual-mtu', 'rx-byte', 'routing-table', 'actual-interface', 'src-address-list', 'active-mac-address',
-                         'def redirect_interfaces', 'def redirect_dhcp_leases'):
+                         'actual-mtu', 'rx-byte', 'routing-table', 'actual-interface', 'src-address-list', 'active-mac-address'):
               assert marker in configuration, marker
-          for marker in ('section=interfaces', 'section=ip_addresses', 'section=routes', 'section=firewall', 'Filter + NAT',
-                         'Default route', 'Check gateway', 'Disabled', 'Dinamici'):
-              assert marker in configuration_page, marker
           for marker in ('ACTIVE_JOB_STATES', 'audit_events_export_csv', 'AUDIT_EVENTS_EXPORTED', 'limit(50000)'):
               assert marker in activity, marker
           print('Core 0.49 safety, compatibility and agent self-update contracts OK')

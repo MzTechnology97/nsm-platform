@@ -49,10 +49,13 @@ def main():
         customer = Customer(name=f"CI UI Device Config {suffix}", code=f"DC{suffix}")
         db.add(customer)
         db.flush()
-        router = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-DC-{suffix}", status="online")
-        offline = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-DC-OFF-{suffix}", status="offline")
+        router = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-DC-{suffix}", status="online",
+                        inventory_data={"agent_transport": "modern"})
+        offline = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-DC-OFF-{suffix}", status="offline",
+                         inventory_data={"agent_transport": "modern"})
         generic = Device(customer_id=customer.id, vendor="generic", device_type="switch", name=f"TEST-DC-GEN-{suffix}", status="online")
-        db.add_all([router, offline, generic])
+        no_agent = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-DC-NA-{suffix}", status="online")
+        db.add_all([router, offline, generic, no_agent])
         db.flush()
         interfaces = [{"name": "ether1", "type": "ether", "running": "true", "mac-address": "02:00:5E:00:53:01", "rx-byte": 2048},
                       {"name": "ether2", "type": "ether", "running": "false"},
@@ -72,7 +75,7 @@ def main():
             User(username=f"ci-dc-aud-{suffix}", password_hash=hash_password(PASSWORD), role="auditor", is_active=True),
         ])
         db.commit()
-        ids = {"router": str(router.id), "offline": str(offline.id), "generic": str(generic.id), "first": str(first.id), "second": str(second.id)}
+        ids = {"router": str(router.id), "offline": str(offline.id), "generic": str(generic.id), "no_agent": str(no_agent.id), "first": str(first.id), "second": str(second.id)}
 
     admin, admin_csrf = login(f"ci-dc-{suffix}")
     auditor, auditor_csrf = login(f"ci-dc-aud-{suffix}")
@@ -105,6 +108,10 @@ def main():
     assert bad.status_code == 422 and bad.json()["detail"]["code"] == "section_invalid"
     off = admin.post(f"/api/ui/v1/devices/{ids['offline']}/configuration/refresh", headers=admin_csrf, json={"section": "routes"})
     assert off.status_code == 422 and off.json()["detail"]["code"] == "not_online"
+    no_agent = admin.post(f"/api/ui/v1/devices/{ids['no_agent']}/configuration/refresh", headers=admin_csrf, json={"section": "routes"})
+    assert no_agent.status_code == 409 and no_agent.json()["detail"]["code"] == "no_transport"
+    every = admin.post(f"{base}/refresh", headers=admin_csrf, json={"section": "all"}).json()
+    assert every["queued"] is True and "routes" not in every["sections"] and "resources" in every["sections"], "pending sections are not queued twice"
 
     # History: newest first with the change from the previous export; baseline approval needs backup.configure.
     history = auditor.get(f"{base}/history").json()

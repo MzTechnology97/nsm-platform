@@ -1,4 +1,5 @@
 """SCAN-01 (MikroTik): exposed services evaluated from the router configuration read by the Agent."""
+import json
 import re
 import uuid
 from datetime import timedelta
@@ -155,16 +156,20 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-ex-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{ids['gw']}/exposure").text
-    assert ">Esposizione</a>" in page and "Servizi esposti sulla WAN" in page and "protetto" in page and "pppoe-out1" in page
-    assert client.post(f"/devices/{ids['gw']}/exposure/check", data={"csrf": csrf_from(page)}, follow_redirects=False).status_code == 303
+    tab = lambda key: client.get(f"/api/ui/v1/devices/{ids[key]}/exposure").json()  # noqa: E731
+    page = tab("gw")
+    assert page["check_mode"] == "agent" and page["blocker"] is None and page["pending"] is False
+    assert "pppoe-out1" in json.dumps(page["exposure"]) and page["can_remediate"] is True
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    check = client.post(f"/api/ui/v1/devices/{ids['gw']}/exposure/check", headers=headers)
+    assert check.status_code == 200 and check.json()["started"] is True
     with SessionLocal() as db:
         pending = db.scalars(select(DeviceJob).where(DeviceJob.device_id == ids["gw"], DeviceJob.status == "pending")).all()
         assert sorted(j.payload["section"] for j in pending) == ["firewall", "services"]
-    assert "Verifica in corso" in client.get(f"/devices/{ids['gw']}/exposure").text
-    other = client.get(f"/devices/{ids['ubnt']}/exposure").text
-    assert "Manca l&#39;IP da verificare" in other and "Verifica ora" not in other, "no public IP: the operator must give one"
-    assert "Serve l&#39;agent 0.49.12" in client.get(f"/devices/{ids['old']}/exposure").text or "Serve l'agent 0.49.12" in client.get(f"/devices/{ids['old']}/exposure").text
+    assert tab("gw")["pending"] is True
+    other = tab("ubnt")
+    assert "Manca l'IP da verificare" in other["blocker"], "no public IP: the operator must give one"
+    assert "0.49.12" in tab("old")["blocker"]
     print("Device exposure smoke passed")
 
 

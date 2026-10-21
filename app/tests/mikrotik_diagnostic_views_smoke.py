@@ -1,4 +1,4 @@
-"""MTK-05: structured diagnostic results (modern data and legacy :tostr output) and per-target history."""
+"""MTK-05: structured diagnostic results (modern data and legacy :tostr output) in the device Diagnostics tab."""
 import re
 import uuid
 from datetime import timedelta
@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
 from app.entrypoint import app
-from app.mikrotik_diagnostic_views import duration_ms, parse_tostr, ping_view, summary, traceroute_view
+from app.mikrotik_diagnostic_views import duration_ms, parse_tostr, ping_view, traceroute_view
 from app.models import Customer, Device, User, utcnow
 from app.security import hash_password
 
@@ -72,33 +72,33 @@ def main():
         db.commit()
         ids = {k: v.id for k, v in dict(device=device, neighbor=neighbor, old_ping=old_ping, other=other_target, new_ping=new_ping, trace=trace_job,
                                         neighbors=neighbors, dhcp=dhcp, logs=logs, failed=failed).items()}
-        assert summary(new_ping) == "25% perdita · media 12.17 ms" and summary(trace_job) == "3 hop · destinazione raggiunta"
-        assert summary(logs) == "2 eventi · 1 critical" and summary(failed) == "RouterOS ping failed"
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-dv-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    base = f"/devices/{ids['device']}/diagnostics"
-    page = client.get(base).text
-    assert "25% perdita · media 12.17 ms" in page and "3 hop · destinazione raggiunta" in page and "2 eventi · 1 critical" in page
+    listed = client.get(f"/api/ui/v1/devices/{ids['device']}/diagnostics").json()["jobs"]
+    jobs = {job["id"]: job for job in listed}
+    assert listed[0]["id"] == str(ids["failed"]), "newest run first"
 
-    ping_page = client.get(f"{base}/jobs/{ids['new_ping']}").text
-    assert 'data-diagnostic-view="ping"' in ping_page and "3/4" in ping_page and "12.17 ms" in ping_page and "timeout" in ping_page
-    assert "data-diagnostic-history" in ping_page and str(ids["old_ping"]) in ping_page and str(ids["other"]) not in ping_page, \
-        "history lists earlier runs towards the same target only"
-    old_page = client.get(f"{base}/jobs/{ids['old_ping']}").text
-    assert "data-diagnostic-history" not in old_page, "later runs are not history of an earlier one"
+    ping = jobs[str(ids["new_ping"])]
+    assert ping["target"] == "192.0.2.1" and ping["result"]["kind"] == "ping"
+    assert (ping["result"]["sent"], ping["result"]["received"], ping["result"]["loss"], ping["result"]["avg"]) == (4, 3, 25.0, 12.17)
+    # Earlier runs (same target or not) stay listed with their own result.
+    assert jobs[str(ids["old_ping"])]["result"]["sent"] == 2 and jobs[str(ids["other"])]["target"] == "198.51.100.7"
 
-    trace_page = client.get(f"{base}/jobs/{ids['trace']}").text
-    assert 'data-diagnostic-view="traceroute"' in trace_page and "Destinazione raggiunta" in trace_page and "198.51.100.1" in trace_page
-    nb_page = client.get(f"{base}/jobs/{ids['neighbors']}").text
-    assert f'href="/devices/{ids["neighbor"]}"' in nb_page and "non censito" in nb_page and "RB5009" in nb_page
-    dhcp_page = client.get(f"{base}/jobs/{ids['dhcp']}").text
-    assert 'data-diagnostic-view="dhcp"' in dhcp_page and "TEST-HOST" in dhcp_page and "dinamica" in dhcp_page and "agent legacy" in dhcp_page
-    log_page = client.get(f"{base}/jobs/{ids['logs']}").text
-    assert 'data-diagnostic-view="logs"' in log_page and "1 critical" in log_page and "login failure" in log_page
-    assert log_page.index("ether2 link down") < log_page.index("login failure"), "newest log entry first"
-    failed_page = client.get(f"{base}/jobs/{ids['failed']}").text
-    assert "Operazione fallita" in failed_page and "RouterOS ping failed" in failed_page
+    trace = jobs[str(ids["trace"])]["result"]
+    assert trace["kind"] == "traceroute" and trace["reached"] and trace["count"] == 3 and trace["hops"][0]["address"] == "198.51.100.1"
+    neighbors = jobs[str(ids["neighbors"])]["result"]["rows"]
+    known = next(row for row in neighbors if row.get("identity") == "TEST-NB")
+    assert known["device"]["id"] == str(ids["neighbor"]) and known["board"] == "RB5009"
+    assert next(row for row in neighbors if row.get("identity") == "TEST-UNKNOWN")["device"] is None, "neighbor not in the inventory"
+    dhcp = jobs[str(ids["dhcp"])]["result"]
+    assert dhcp["kind"] == "dhcp" and "TEST-HOST" in str(dhcp["rows"])
+    log = jobs[str(ids["logs"])]["result"]
+    assert log["kind"] == "logs" and log["counts"]["critical"] == 1
+    messages = [entry["message"] for entry in log["entries"]]
+    assert messages.index("ether2 link down") < messages.index("login failure for user admin from 203.0.113.9 via ssh"), "newest log entry first"
+    failed = jobs[str(ids["failed"])]
+    assert failed["status"] == "failed" and failed["error"] == "RouterOS ping failed" and failed["result"] is None
     print("MikroTik diagnostic views smoke passed")
 
 

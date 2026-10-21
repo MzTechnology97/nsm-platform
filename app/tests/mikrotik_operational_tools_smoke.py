@@ -66,37 +66,28 @@ def main():
     headers = {"X-NSM-Device-ID": str(device_id), "X-NSM-Device-Secret": match.group(1)}
 
     login(client)
-    page = client.get(f"/devices/{device_id}/diagnostics")
-    assert page.status_code == 200
-    for marker in ("Neighbor discovery", "DHCP lookup", "Log dispositivo", "Support snapshot", "IP sorgente opzionale"):
-        assert marker in page.text, marker
-    csrf = csrf_from(page.text)
+    api = f"/api/ui/v1/devices/{device_id}/diagnostics"
+    page = client.get(api).json()
+    assert page["online"] is True and page["can_run"] is True and page["support_snapshot"] is True and page["traceroute"] is True
+    ui_headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
 
     requests = [
-        ("ping", {"csrf": csrf, "target": "8.8.8.8", "source": "192.0.2.1"}),
-        ("traceroute", {"csrf": csrf, "target": "1.1.1.1", "source": "192.0.2.1"}),
-        ("neighbors", {"csrf": csrf}),
-        ("dhcp_lookup", {"csrf": csrf, "query": "AA:BB:CC:DD:EE:FF"}),
-        ("logs", {"csrf": csrf}),
-        ("support_snapshot", {"csrf": csrf}),
+        ("ping", {"target": "8.8.8.8", "source": "192.0.2.1"}),
+        ("traceroute", {"target": "1.1.1.1", "source": "192.0.2.1"}),
+        ("neighbors", {}),
+        ("dhcp_lookup", {"query": "AA:BB:CC:DD:EE:FF"}),
+        ("logs", {}),
+        ("support_snapshot", {}),
     ]
     for diagnostic, data in requests:
-        response = client.post(f"/devices/{device_id}/diagnostics/{diagnostic}", data=data, follow_redirects=False)
-        assert response.status_code == 303, (diagnostic, response.text)
+        response = client.post(f"{api}/{diagnostic}", headers=ui_headers, json=data)
+        assert response.status_code == 200 and response.json()["queued"] is True, (diagnostic, response.text)
 
-    # Human-facing validation errors remain in the workspace via PRG and a
-    # contextual warning instead of dumping a raw JSON HTTPException page.
-    bad_source = client.post(f"/devices/{device_id}/diagnostics/ping", data={"csrf": csrf, "target": "8.8.8.8", "source": "192.0.2.1; /system reboot"}, follow_redirects=False)
-    assert bad_source.status_code == 303
-    assert bad_source.headers["location"] == f"/devices/{device_id}/diagnostics"
-    bad_source_feedback = client.get(bad_source.headers["location"])
-    assert "Dati non validi" in bad_source_feedback.text and "flash-warning" in bad_source_feedback.text
-
-    bad_dhcp = client.post(f"/devices/{device_id}/diagnostics/dhcp_lookup", data={"csrf": csrf, "query": "AA:BB:CC:DD:EE:FF; /system reboot"}, follow_redirects=False)
-    assert bad_dhcp.status_code == 303
-    assert bad_dhcp.headers["location"] == f"/devices/{device_id}/diagnostics"
-    bad_dhcp_feedback = client.get(bad_dhcp.headers["location"])
-    assert "Dati non validi" in bad_dhcp_feedback.text and "flash-warning" in bad_dhcp_feedback.text
+    # Injection attempts in source or DHCP query are refused with a coded error.
+    bad_source = client.post(f"{api}/ping", headers=ui_headers, json={"target": "8.8.8.8", "source": "192.0.2.1; /system reboot"})
+    assert bad_source.status_code == 400 and bad_source.json()["detail"]["code"] == "refused"
+    bad_dhcp = client.post(f"{api}/dhcp_lookup", headers=ui_headers, json={"query": "AA:BB:CC:DD:EE:FF; /system reboot"})
+    assert bad_dhcp.status_code == 400 and bad_dhcp.json()["detail"]["code"] == "refused"
 
     heartbeat = client.post("/api/v1/agents/mikrotik/heartbeat", headers=headers, json={"agent_version": agent_version, "inventory": {"identity": "CI20-CCR"}, "metrics": {"cpu_load": "9", "free_memory": "900MiB", "uptime": "3d00:00:00"}})
     assert heartbeat.status_code == 200, heartbeat.text
@@ -123,14 +114,11 @@ def main():
     complete = client.post(f"/api/v1/agents/mikrotik/jobs/{support['id']}/complete", headers=headers, json={"status": "success", "result": {"data": {"resources": {"identity": "CI20-CCR"}, "interfaces": [{"name": "ether1"}], "logs": []}}})
     assert complete.status_code == 200
 
-    # Core 0.43 keeps the diagnostics overview compact: completed runs are listed
-    # there, while full payload/output lives on the single-job detail page.
-    page = client.get(f"/devices/{device_id}/diagnostics")
-    assert page.status_code == 200
-    for job_type, label in (("diagnostic_neighbors", "NEIGHBORS"), ("diagnostic_dhcp_lookup", "DHCP LOOKUP"), ("diagnostic_logs", "LOGS")):
-        job_id = by_type[job_type]["id"]
-        assert f"/devices/{device_id}/diagnostics/jobs/{job_id}" in page.text
-        assert label in page.text
+    # The Diagnostics tab lists every run; the raw result of each one is readable on its own.
+    listed = {job["id"]: job for job in client.get(api).json()["jobs"]}
+    for job_type, kind in (("diagnostic_neighbors", "neighbors"), ("diagnostic_dhcp_lookup", "dhcp_lookup"), ("diagnostic_logs", "logs")):
+        job = listed[by_type[job_type]["id"]]
+        assert job["status"] == "success" and job["diagnostic"] == kind, job
 
     detail_expectations = {
         "diagnostic_neighbors": "POP-SW",
@@ -139,12 +127,12 @@ def main():
     }
     for job_type, marker in detail_expectations.items():
         job_id = by_type[job_type]["id"]
-        detail = client.get(f"/devices/{device_id}/diagnostics/jobs/{job_id}")
+        detail = client.get(f"{api}/jobs/{job_id}/output")
         assert detail.status_code == 200
         assert marker in detail.text, (job_type, marker)
 
-    assert f"/devices/{device_id}/diagnostics/jobs/{support['id']}" in page.text
-    support_detail = client.get(f"/devices/{device_id}/diagnostics/jobs/{support['id']}")
+    assert support["id"] in listed
+    support_detail = client.get(f"{api}/jobs/{support['id']}/output")
     assert support_detail.status_code == 200
     assert "CI20-CCR" in support_detail.text
 

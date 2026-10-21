@@ -3330,10 +3330,13 @@
     "neverRead": "Sezione non ancora letta dall'agent.",
     "history": "Cronologia export",
     "refresh": "Aggiorna sezione",
+    "refreshAll": "Aggiorna tutto",
     "pending": "Lettura in corso…",
     "offline": "Serve un MikroTik online con agent NSM.",
     "queued": "Richiesta inviata: l'agent la legge al prossimo heartbeat.",
     "already": "La lettura di questa sezione è già in coda.",
+    "queuedAll": "Richiesta inviata per {{count}} sezioni: l'agent le legge al prossimo heartbeat.",
+    "alreadyAll": "Tutte le sezioni sono già in coda.",
     "sections": {
       "resources": "Risorse",
       "interfaces": "Interfacce",

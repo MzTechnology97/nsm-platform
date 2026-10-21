@@ -14,9 +14,9 @@ import re
 import uuid
 from datetime import timedelta
 
-from fastapi import APIRouter, Form, HTTPException, Query, Request
-from fastapi.responses import PlainTextResponse, RedirectResponse
-from sqlalchemy import or_, select
+from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import PlainTextResponse
+from sqlalchemy import select
 
 from app import main as core
 from app import mikrotik_agent as agent
@@ -24,10 +24,9 @@ from app import mikrotik_backup_agent as backup_agent
 from app import mikrotik_legacy as legacy
 from app import mikrotik_operational_tools as operational_tools
 from app import mikrotik_snapshot_agent as snapshot_agent
-from app.agent_models import DeviceAgentCredential, DeviceJob
+from app.agent_models import DeviceJob
 from app.db import SessionLocal
 from app.models import Device, utcnow
-from app.security import validate_csrf
 
 router = APIRouter()
 TARGET_AGENT_VERSION = "0.49.0"
@@ -221,21 +220,6 @@ def _wrap_inventory_updates(previous):
         return result
 
     return wrapped
-
-
-@router.post("/devices/{device_id}/agent/update", name="queue_mikrotik_agent_update")
-def queue_agent_update(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    from app.mikrotik_agent_autoupdate import queue_update
-
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.enroll")
-        device = db.get(Device, device_id)
-        if not device or device.vendor != "mikrotik":
-            raise HTTPException(404)
-        queue_update(db, device, actor=user)
-        db.commit()
-    return RedirectResponse(f"/devices/{device_id}/agent", status_code=303)
 
 
 @router.get(

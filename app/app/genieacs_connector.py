@@ -10,13 +10,11 @@ identity and firmware observed by the ACS.
 import ipaddress
 import json
 import os
-import uuid
 from datetime import datetime, timezone
 from urllib.parse import urlsplit, urlunsplit
 
 import httpx
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select
 
 from app import main as core
@@ -24,7 +22,6 @@ from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
 from app.models import Device, utcnow
 from app.secret_vault import decrypt_text, encrypt_text
-from app.security import validate_csrf
 
 router = APIRouter()
 GENIEACS_PROVIDER = "genieacs"
@@ -592,81 +589,6 @@ def internal_nbi_url() -> str | None:
         return normalize_base_url(value) if value else None
     except ValueError:
         return None
-
-
-def _device(db, device_id):
-    device = db.get(Device, device_id)
-    if not device:
-        raise HTTPException(404, "Apparato non trovato.")
-    if not tr069_capable(device):
-        raise HTTPException(400, "Questa operazione è disponibile per i CPE TR-069.")
-    if not (device.serial_number or device.primary_mac):
-        raise HTTPException(409, "Il CPE non ha seriale né MAC per il matching GenieACS.")
-    return device
-
-
-def _device_render(request, db, user, device, *, candidate=None, message=None, error=None):
-    return core.render(
-        request,
-        db,
-        user,
-        "genieacs_device_link.html",
-        device=device,
-        connection=_connection(db),
-        candidate=candidate,
-        message=message,
-        error=error,
-    )
-
-
-@router.get("/devices/{device_id}/genieacs", response_class=HTMLResponse, name="genieacs_device_link")
-def genieacs_device_link(request: Request, device_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "devices.read"):
-            raise HTTPException(403)
-        return _device_render(request, db, user, _device(db, device_id))
-
-
-@router.post("/devices/{device_id}/genieacs/preview", response_class=HTMLResponse, name="genieacs_device_preview")
-def genieacs_device_preview(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.read")
-        device = _device(db, device_id)
-        try:
-            candidate = lookup_device(_connection(db, enabled_only=True), device)
-            return _device_render(request, db, user, device, candidate=candidate)
-        except (GenieAcsConnectorError, ValueError) as exc:
-            return _device_render(request, db, user, device, error=str(exc))
-
-
-@router.post("/devices/{device_id}/genieacs/associate", response_class=HTMLResponse, name="genieacs_device_associate")
-def genieacs_device_associate(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        device = _device(db, device_id)
-        try:
-            associate_record(db, user, device)
-        except (GenieAcsConnectorError, ValueError) as exc:
-            return _device_render(request, db, user, device, error=str(exc))
-    return RedirectResponse(f"/devices/{device_id}/genieacs?status=associated", status_code=303)
-
-
-@router.post("/devices/{device_id}/genieacs/refresh", response_class=HTMLResponse, name="genieacs_device_refresh")
-def genieacs_device_refresh(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "devices.write")
-        device = _device(db, device_id)
-        try:
-            refresh_record(db, user, device)
-        except (GenieAcsConnectorError, ValueError) as exc:
-            return _device_render(request, db, user, device, error=str(exc))
-    return RedirectResponse(f"/devices/{device_id}/genieacs?status=refreshed", status_code=303)
 
 
 def associate_record(db, user, device: Device) -> None:

@@ -106,10 +106,10 @@ def main():
     scoped = login(f"ci-bv-scoped-{suffix}")
     assert scoped.get(f"{base}/{ids['new']}").status_code == 404
 
-    # The classic viewer still works through the shared function.
-    classic = auditor.get(f"/devices/{ids['router']}/backups/artifacts/{ids['new']}/view?against={ids['old']}")
-    assert classic.status_code == 200 and "set name=NEW" in classic.text
-    assert auditor.get(f"/devices/{ids['router']}/backups/artifacts/{ids['binary']}/view", follow_redirects=False).status_code in (302, 303)
+    # The classic viewer address opens the same view in the new interface, keeping the comparison.
+    classic = auditor.get(f"/devices/{ids['router']}/backups/artifacts/{ids['new']}/view?against={ids['old']}", follow_redirects=False)
+    assert classic.status_code == 302
+    assert classic.headers["location"] == f"/app/devices/{ids['router']}/backups/artifacts/{ids['new']}?against={ids['old']}"
 
     assert auditor.get(f"/app/devices/{ids['router']}/backups/artifacts/{ids['new']}?against={ids['old']}").status_code in (200, 503)
     print("ui backup artifact smoke ok")

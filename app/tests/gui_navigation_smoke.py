@@ -1,11 +1,10 @@
-"""Every sidebar/admin entry renders a real page: no placeholders, no dead tabs."""
+"""Every former sidebar/admin entry opens the new interface; monitoring and integrations show real state."""
 import re
 import uuid
 from datetime import timedelta
 from pathlib import Path
 
 from fastapi.testclient import TestClient
-from sqlalchemy import select
 
 from app.agent_models import DeviceAgentCredential, DeviceMetricSample
 from app.db import SessionLocal
@@ -14,7 +13,6 @@ from app.models import Customer, Device, User, utcnow
 from app.security import hash_password
 
 PASSWORD = "CI-GUI-Navigation-2026"
-PLACEHOLDER_MARKERS = ("Prossimo modulo", "verranno alimentate", "La struttura è pronta", "generatore verrà collegato")
 
 
 def csrf_from(html: str) -> str:
@@ -56,26 +54,15 @@ def login(username):
 def main():
     admin, auditor = seed()
     client = login(admin)
-    with SessionLocal() as db:
-        any_device = db.scalar(select(Device.id).where(Device.name == "TEST-HOT-RTR").limit(1))
-    dashboard = client.get(f"/devices/{any_device}/backups")
-    links = sorted(set(re.findall(r'class="nav-item[^"]*" href="([^"]+)"', dashboard.text)))
-    # The new React interface (/app) has its own shell and build: covered by ui_foundation_smoke.
-    assert "/app" in links
-    # "/" opens the new interface too.
-    links = [href for href in links if href not in ("/app", "/")]
-    assert "/operations/monitoring" in links and "/integrations" in links and "/admin/users" in links, links
-    for href in links:
+    # Every entry of the former classic sidebar opens the new interface (its own shell: ui_foundation_smoke).
+    classic_nav = ("/customers", "/devices", "/operations/monitoring", "/operations/agents", "/operations/backups", "/operations/firmware",
+                   "/incidents", "/security/vulnerabilities", "/security/exposure", "/security/access", "/security/lifecycle", "/compliance",
+                   "/action-center", "/audit/events", "/audit/reports", "/integrations", "/admin/users")
+    for href in classic_nav:
         page = client.get(href, follow_redirects=False)
-        if page.status_code == 302 and page.headers["location"].startswith("/app/"):
-            continue  # removed classic page: the link lands on the new interface
-        assert page.status_code == 200, (href, page.status_code)
-        for marker in PLACEHOLDER_MARKERS:
-            assert marker not in page.text, (href, marker)
-        # One design system: a single static stylesheet, no inline <style> blocks.
-        sheets = [s for s in re.findall(r'<link rel="stylesheet" href="([^"?]+)', page.text) if "/static/" in s]
-        assert len(sheets) == 1 and sheets[0].endswith("/static/app.css"), (href, sheets)
-        assert "<style" not in page.text, href
+        assert page.status_code == 302 and page.headers["location"].startswith("/app/"), (href, page.status_code)
+    home = client.get("/", follow_redirects=False)
+    assert home.status_code == 303 and home.headers["location"] == "/app/"
 
     templates = Path(__file__).resolve().parents[1] / "app" / "templates"
     for template in templates.glob("*.html"):

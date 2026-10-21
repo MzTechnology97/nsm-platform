@@ -75,17 +75,13 @@ from app.mikrotik_backup import install_mikrotik_backup
 from app.mikrotik_backup_agent import install_mikrotik_backup_agent
 from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_finalization_cleanup
 from app.mikrotik_snapshot_agent import install_mikrotik_snapshot_agent
-from app.mikrotik_snapshot_batch import install_mikrotik_snapshot_batch
 from app.mikrotik_diagnostics_agent import install_mikrotik_diagnostics_agent
-from app.mikrotik_diagnostic_views import install_mikrotik_diagnostic_views
 from app.mikrotik_onboarding import install_mikrotik_onboarding
 from app.mikrotik_operational_tools import install_mikrotik_operational_tools
 from app.mikrotik_firmware_readiness import install_mikrotik_firmware_readiness
 from app.mikrotik_modern_syntax import install_mikrotik_modern_syntax_guard
 from app.mikrotik_privilege_profile import install_mikrotik_privilege_profile
 from app.mikrotik_workspace import install_mikrotik_workspace
-from app.mikrotik_workspace_ux import install_mikrotik_workspace_ux
-from app.mikrotik_workspace_ux_precedence import install_mikrotik_workspace_ux_precedence
 from app.mikrotik_telemetry import install_mikrotik_telemetry
 from app.interface_traffic import install_interface_traffic
 from app.agent_addresses import install_agent_addresses
@@ -100,11 +96,8 @@ from app.acs_admin import install_acs_admin
 from app import shared_ips as _shared_ips
 from app.reports import install_reports
 from app.search_enhancement import install_search_enhancement
-from app.ui_action_feedback import install_ui_action_feedback
 from app.ui_extension import install_ui
 from app.ui_feedback import install_ui_feedback
-from app.ui_firmware_feedback import install_ui_firmware_feedback
-from app.ui_firmware_upgrade_feedback import install_ui_firmware_upgrade_feedback
 from app.uisp_connector import install_uisp_connector
 from app.uisp_sync import install_uisp_sync
 from app.uisp_operations import install_uisp_operations
@@ -127,7 +120,7 @@ from app.notification_chat import install_notification_chat
 from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.172"
+APP_VERSION = "0.49.173"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -157,7 +150,6 @@ install_mikrotik_backup_agent(core.app)
 install_config_drift(core.app)
 install_mikrotik_snapshot_agent()
 install_mikrotik_diagnostics_agent()
-install_mikrotik_diagnostic_views()
 install_mikrotik_operational_tools()
 install_mikrotik_firmware_readiness(core.app)
 install_firmware_package_staging(core.app)
@@ -206,8 +198,6 @@ install_backup_workspace_capabilities(core.app)
 install_customer_drilldown(core.app)
 install_search_enhancement(core.app)
 install_mikrotik_workspace(core.app)
-install_mikrotik_workspace_ux(core.app)
-install_mikrotik_snapshot_batch(core.app)
 install_mikrotik_agent_status(core.app)
 install_mikrotik_onboarding(core)
 install_mikrotik_telemetry(core.app)
@@ -271,12 +261,8 @@ install_mikrotik_modern_syntax_guard()
 install_mikrotik_modern_early()
 install_mikrotik_agent_update_ui(core.templates)
 install_activity_route_precedence(core.app)
-install_mikrotik_workspace_ux_precedence(core.app)
 # Browser-only action wrappers are installed last so they win FastAPI route
 # precedence without changing agent/API JSON contracts.
-install_ui_action_feedback(core.app)
-install_ui_firmware_feedback(core.app)
-install_ui_firmware_upgrade_feedback(core.app)
 # Machine-facing completion idempotency must be installed after every route
 # composer/promoter so no later compatibility or UI layer can shadow it.
 install_mikrotik_job_completion_guard(core.app)

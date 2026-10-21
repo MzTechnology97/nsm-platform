@@ -101,8 +101,8 @@ def main():
     assert client.post("/login", data={"username": f"ci-rc-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
     page = client.get("/api/ui/v1/integrations/routeros")
     assert "7.24.5" in page.text and "fixed security issue" in page.text and page.json()["can_refresh"] is True
-    firmware = client.get(f"/devices/{ids['old']}/firmware-upgrade").text
-    assert "Catalogo MikroTik (stable)" in firmware and "di sicurezza" in firmware
+    catalog = client.get(f"/api/ui/v1/devices/{ids['old']}/firmware-upgrade").json()["catalog"]
+    assert catalog["channel"] == "stable" and catalog["newer"] is True and catalog["security"] is True, catalog
     assert client.get("/api/ui/v1/integrations/routeros").status_code == 200
 
     tech_client = TestClient(app)

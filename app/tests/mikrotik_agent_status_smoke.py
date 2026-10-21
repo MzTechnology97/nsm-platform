@@ -136,52 +136,33 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    legacy = client.get(f"/devices/{legacy_id}/agent")
-    assert legacy.status_code == 200, legacy.text
-    for marker in (
-        "Agent",
-        "LEGACY",
-        "bodyless-v1",
-        "headers-v1",
-        "Legacy wAP R",
-        "Transport legacy attivo",
-        "Rigenera / reinstalla agent",
-        "Snapshot configurazione",
-        "NON DISP.",
-        "Verifica installazione",
-    ):
-        assert marker in legacy.text, marker
-    assert "secret_hash" not in legacy.text
-    assert legacy_hash not in legacy.text
+    legacy_response = client.get(f"/api/ui/v1/devices/{legacy_id}/agent")
+    assert legacy_response.status_code == 200, legacy_response.text
+    assert "secret_hash" not in legacy_response.text and legacy_hash not in legacy_response.text
+    legacy = legacy_response.json()
+    assert legacy["heartbeat"]["transport"] == "legacy" and legacy["actions"]["reinstall"] is True
+    capabilities = {c["key"]: c for c in legacy["capabilities"]}
+    assert capabilities["snapshots"]["available"] is False and capabilities["diagnostics"]["available"] is True
     # Administrative capabilities from what the installed Agent can do (read-only legacy here).
-    for marker in ("Riavvio remoto", "Aggiornamento RouterOS", "Configurazione syslog", "Aggiornamento agent automatico",
-                   "Backup · Agent MikroTik legacy", "Ricevitore FTP dei backup legacy non attivo"):
-        assert marker in legacy.text, marker
-    assert "sola lettura: reinstallalo una volta" in legacy.text
-    assert "Backup HTTPS" not in legacy.text
+    for key in ("reboot", "routeros_upgrade", "syslog", "self_update"):
+        assert capabilities[key]["available"] is False, key
+    assert "sola lettura: reinstallalo una volta" in str(capabilities["reboot"]["detail"])
+    assert "Ricevitore FTP dei backup legacy non attivo" in str(capabilities["backup"]["detail"])
 
-    modern = client.get(f"/devices/{modern_id}/agent")
-    assert modern.status_code == 200, modern.text
-    assert "MODERN" in modern.text
-    assert "Modern CCR" in modern.text
-    assert "Transport moderno attivo" in modern.text
-    assert "Retention 90 giorni" in modern.text
-    assert "Riavvio remoto" in modern.text and "Profilo non operativo" in modern.text
-    assert modern_hash not in modern.text
+    modern_response = client.get(f"/api/ui/v1/devices/{modern_id}/agent")
+    assert modern_response.status_code == 200 and modern_hash not in modern_response.text
+    modern = modern_response.json()
+    capabilities = {c["key"]: c for c in modern["capabilities"]}
+    assert modern["heartbeat"]["transport"] == "modern"
+    assert "Retention 90 giorni" in str(capabilities["telemetry"]["detail"])
+    assert capabilities["reboot"]["available"] is False and "Profilo non operativo" in str(capabilities["reboot"]["detail"])
 
     # Reinstall creates a new one-shot enrollment but does not reveal or rotate
-    # the active credential until the router actually pairs again. Browser
-    # feedback remains contextual instead of returning a raw JSON page.
-    token = _csrf(legacy.text)
-    reinstall = client.post(
-        f"/devices/{legacy_id}/agent/reinstall",
-        data={"csrf": token},
-        follow_redirects=False,
-    )
-    assert reinstall.status_code == 303
-    assert reinstall.headers["location"] == f"/devices/{legacy_id}?agent=reinstall"
-    assert not reinstall.headers.get("content-type", "").startswith("application/json")
-
+    # the active credential until the router actually pairs again.
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    reinstall = client.post(f"/api/ui/v1/devices/{legacy_id}/agent/reinstall", headers=headers)
+    assert reinstall.status_code == 200 and reinstall.json()["enrollment_command_v6"], reinstall.text
+    assert legacy_hash not in reinstall.text
 
     with SessionLocal() as db:
         enrollments = list(
@@ -198,26 +179,10 @@ def main():
         assert credential.secret_hash == legacy_hash
         assert credential.is_active is True
 
-    unsupported = client.post(
-        f"/devices/{foreign_id}/agent/reinstall",
-        data={"csrf": token},
-        follow_redirects=False,
-    )
-    assert unsupported.status_code == 303
-    assert unsupported.headers["location"] == f"/devices/{foreign_id}"
-    assert not unsupported.headers.get("content-type", "").startswith("application/json")
+    assert client.post(f"/api/ui/v1/devices/{foreign_id}/agent/reinstall", headers=headers).status_code == 404
+    assert client.post(f"/api/ui/v1/devices/{uuid.uuid4()}/agent/reinstall", headers=headers).status_code == 404
 
-    missing_id = uuid.uuid4()
-    missing = client.post(
-        f"/devices/{missing_id}/agent/reinstall",
-        data={"csrf": token},
-        follow_redirects=False,
-    )
-    assert missing.status_code == 303
-    assert missing.headers["location"] == "/devices"
-    assert not missing.headers.get("content-type", "").startswith("application/json")
-
-    print("MikroTik agent diagnostics and reinstall feedback smoke passed")
+    print("MikroTik agent diagnostics and reinstall smoke passed")
 
 
 if __name__ == "__main__":

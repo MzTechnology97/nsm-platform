@@ -55,7 +55,8 @@ from app import interface_traffic
 from app.activity_worklists import ACTIVE_JOB_STATES, _device_job_query
 from app.agent_models import DeviceJob
 from app.compliance_engine import CONTROLS
-from app.compliance_findings import RESULT_LABELS, in_exception
+from app.compliance_findings import in_exception
+from app.compliance_models import RESULT_LABELS
 from app.compliance_models import ComplianceResult
 from app.db import SessionLocal
 from app.input_errors import InputError
@@ -160,7 +161,6 @@ def device_compliance(request: Request, device_id: uuid.UUID):
                 "acknowledged": result.acknowledged_at is not None, "evaluated_at": result.evaluated_at,
             })
         return jsonable_encoder({"rows": rows, "last_eval": max((r.evaluated_at for r in results), default=None)})
-
 
 
 @router.get("/devices/{device_id}/traffic-interfaces")
@@ -269,13 +269,22 @@ def device_configuration(request: Request, device_id: uuid.UUID, section: str = 
 
 @router.post("/devices/{device_id}/configuration/refresh", dependencies=[Depends(require_csrf)])
 def device_configuration_refresh(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    """Ask the agent to read one section again, or every section with ``section: "all"``."""
+    from app import mikrotik_snapshot_batch as batch
     from app import mikrotik_workspace as workspace
+    from app import mikrotik_workspace_ux as workspace_ux
 
     section = body.get("section")
     with SessionLocal() as db:
         user = ui_user(request, db, "devices.write")
         device = _mikrotik(db, device_id)
+        blocker = workspace_ux.snapshot_blocker(device)
+        if blocker:
+            raise HTTPException(409, {"code": "no_transport", "message": blocker})
         try:
+            if section == "all":
+                sections = batch.queue_all_record(db, user, device)
+                return {"queued": bool(sections), "sections": sections}
             queued = workspace.queue_snapshot_record(db, user, device, section if isinstance(section, str) else "")
         except InputError as exc:
             raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from None
