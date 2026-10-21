@@ -34,7 +34,19 @@
       "admin": "Piattaforma"
     },
     "sla": "SLA clienti",
-    "breadcrumb": "Percorso"
+    "breadcrumb": "Percorso",
+    "badges": {
+      "devices_one": "{{count}} apparato",
+      "devices_other": "{{count}} apparati",
+      "offline_one": "{{count}} offline",
+      "offline_other": "{{count}} offline",
+      "severe_one": "{{count}} apparato con CVE gravi",
+      "severe_other": "{{count}} apparati con CVE gravi",
+      "firmware_one": "{{count}} firmware da aggiornare",
+      "firmware_other": "{{count}} firmware da aggiornare",
+      "issues_one": "{{count}} segnalazione aperta",
+      "issues_other": "{{count}} segnalazioni aperte"
+    }
   },
   "user": {
     "language": "Lingua",

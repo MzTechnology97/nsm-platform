@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.184 — 2026-10-21
+
+New look, step 2: branding defaults and sidebar counters
+- **Branding defaults on the new palette.** The factory colours are now blue #1769d6 (primary), navy #10192b (sidebar) and amber #f79009 (highlight). Administration › Branding shows them as "Predefinito", and "Predefinito" resets to them.
+  - Installations still on the previous factory colours (#1f5f8b, #111827, #f59e0b) move to the new ones automatically (database migration `0046_branding_palette`; the old values are also read as the new ones).
+  - A colour chosen by an administrator is kept.
+  - Factory colours follow the light and dark themes; a custom colour applies as chosen.
+- **Counters in the sidebar.** Next to Apparati (total), Monitoring (offline, red), Vulnerabilità (devices with severe CVEs, red), Firmware (to update, amber) and Action Center (open issues, red when one is critical, amber otherwise).
+  - They refresh every minute and are hidden when zero.
+  - Each counter only appears with the permission for its page, and only counts the customers the user can see.
+  - Screen readers hear them as text, e.g. "9 offline".
+- New endpoint `GET /api/ui/v1/nav-counts`: one COUNT query per figure. Decommissioned devices are left out.
+- The customer SLA is not counted in the menu: its monthly verdicts add up every ping of the month, too heavy for a request repeated every minute.
 ## 0.49.183 — 2026-10-21
 
 New look, step 1: colours, shell and base components

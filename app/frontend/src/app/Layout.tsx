@@ -2,6 +2,7 @@ import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useNavCounts, type NavCounts } from "../api/navCounts";
 import { useUnreadNotifications } from "../api/personal";
 import { can, useSession, useUpdatePreferences } from "../api/session";
 import i18n, { LANGUAGE_NAMES, LANGUAGES, pickLanguage, type Language } from "../i18n";
@@ -11,8 +12,12 @@ import { SECTIONS, type Section } from "./sections";
 
 const LANGUAGE_COOKIE = "nsm-lang";
 
-/** Branding colours of a fresh installation (app/app/workflow_ui.py DEFAULT_COLORS). */
-const FACTORY_COLORS = { primary: "#1f5f8b", sidebar: "#111827", highlight: "#f59e0b" };
+/** Factory branding colours, current and previous (app/app/branding_palette.py): they mean "not customised". */
+const FACTORY_COLORS: Record<"primary" | "sidebar" | "highlight", string[]> = {
+  primary: ["#1769d6", "#1f5f8b"],
+  sidebar: ["#10192b", "#111827"],
+  highlight: ["#f79009", "#f59e0b"],
+};
 
 /** Light or dark for the page, from the preference (``system`` follows the operating system). */
 function useEffectiveTheme(preference: string): "light" | "dark" {
@@ -52,6 +57,7 @@ export function Layout() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const preference = session.data?.preferences.theme ?? "light";
   const theme = useEffectiveTheme(preference);
+  const navCounts = useNavCounts(Boolean(session.data)).data;
 
   useEffect(() => {
     if (!session.data) return;
@@ -79,8 +85,8 @@ export function Layout() {
     // CSSOM custom properties (allowed by the CSP, unlike inline style attributes).
     // The factory colours mean "not customised": the theme palette (light and dark) applies instead.
     const root = document.documentElement.style;
-    const apply = (name: string, value: string, factory: string) => {
-      if (value && value.toLowerCase() !== factory) root.setProperty(name, value);
+    const apply = (name: string, value: string, factory: string[]) => {
+      if (value && !factory.includes(value.toLowerCase())) root.setProperty(name, value);
       else root.removeProperty(name);
     };
     apply("--brand-primary", branding.primary_color, FACTORY_COLORS.primary);
@@ -140,6 +146,7 @@ export function Layout() {
                   activeOptions={{ exact: section.route === "/" }} onClick={() => setMobileOpen(false)} title={t(`nav.${section.key}`)}>
                   <Icon name={section.icon} />
                   <span className="ui-nav-label">{t(`nav.${section.key}`)}</span>
+                  <NavBadge badge={navBadge(section.key, navCounts)} />
                 </Link>
               ))}
             </Fragment>
@@ -200,6 +207,46 @@ export function Layout() {
       {mobileOpen && <button type="button" className="ui-backdrop" aria-label={t("nav.collapse")} onClick={() => setMobileOpen(false)} />}
       <CommandPalette session={data} open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
+  );
+}
+
+interface Badge {
+  count: number;
+  tone: "danger" | "warning" | "neutral";
+  label: string;
+}
+
+/** Counter shown next to a sidebar item (none when the figure is missing or zero). */
+function navBadge(key: string, counts: NavCounts | undefined): Badge | null {
+  if (!counts) return null;
+  const pick = (count: number | undefined, tone: Badge["tone"], label: string): Badge | null =>
+    count ? { count, tone, label } : null;
+  switch (key) {
+    case "devices":
+      return pick(counts.devices, "neutral", "devices");
+    case "monitoring":
+      return pick(counts.offline, "danger", "offline");
+    case "vulnerabilities":
+      return pick(counts.severe_cve_devices, "danger", "severe");
+    case "firmware":
+      return pick(counts.firmware_attention, "warning", "firmware");
+    case "actionCenter":
+      return pick(counts.open_issues, counts.critical_issues ? "danger" : "warning", "issues");
+    default:
+      return null;
+  }
+}
+
+function NavBadge({ badge }: { badge: Badge | null }) {
+  const { t } = useTranslation();
+  if (!badge) return null;
+  return (
+    <>
+      <span className={`ui-nav-badge${badge.tone === "neutral" ? "" : ` is-${badge.tone}`}`} aria-hidden="true">
+        {badge.count > 999 ? "999+" : badge.count}
+      </span>
+      <span className="ui-visually-hidden">{`, ${t(`nav.badges.${badge.label}`, { count: badge.count })}`}</span>
+    </>
   );
 }
 

@@ -5,6 +5,7 @@ from datetime import timezone
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 
+from app import branding_palette
 from app.config import settings
 from app.db import SessionLocal
 from app.models import AuditEvent, User, utcnow
@@ -54,9 +55,9 @@ def _branding(db):
         id=1,
         portal_name=settings.app_name,
         tagline="Network operations & security management",
-        primary_color="#1f5f8b",
-        sidebar_color="#111827",
-        highlight_color="#f59e0b",
+        primary_color=branding_palette.DEFAULT_PRIMARY,
+        sidebar_color=branding_palette.DEFAULT_SIDEBAR,
+        highlight_color=branding_palette.DEFAULT_HIGHLIGHT,
     )
     db.add(item)
     db.flush()
@@ -68,18 +69,19 @@ def _branding_dict(item: PlatformBranding | None):
         return {
             "portal_name": settings.app_name,
             "tagline": "Network operations & security management",
-            "primary_color": "#1f5f8b",
-            "sidebar_color": "#111827",
-            "highlight_color": "#f59e0b",
+            "primary_color": branding_palette.DEFAULT_PRIMARY,
+            "sidebar_color": branding_palette.DEFAULT_SIDEBAR,
+            "highlight_color": branding_palette.DEFAULT_HIGHLIGHT,
             "has_logo": False,
             "logo_version": "0",
         }
     return {
         "portal_name": item.portal_name or settings.app_name,
         "tagline": item.tagline or "Network operations & security management",
-        "primary_color": item.primary_color or "#1f5f8b",
-        "sidebar_color": item.sidebar_color or "#111827",
-        "highlight_color": item.highlight_color or "#f59e0b",
+        # A colour still at the previous factory value reads as the current factory colour.
+        "primary_color": branding_palette.effective("primary", item.primary_color),
+        "sidebar_color": branding_palette.effective("sidebar", item.sidebar_color),
+        "highlight_color": branding_palette.effective("highlight", item.highlight_color),
         "has_logo": bool(item.logo_data),
         "logo_version": str(int(item.updated_at.timestamp())) if item.updated_at else "0",
     }

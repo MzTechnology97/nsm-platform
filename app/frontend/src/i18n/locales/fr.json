@@ -34,7 +34,19 @@
       "admin": "Plateforme"
     },
     "sla": "SLA clients",
-    "breadcrumb": "Fil d'Ariane"
+    "breadcrumb": "Fil d'Ariane",
+    "badges": {
+      "devices_one": "{{count}} équipement",
+      "devices_other": "{{count}} équipements",
+      "offline_one": "{{count}} hors ligne",
+      "offline_other": "{{count}} hors ligne",
+      "severe_one": "{{count}} équipement avec CVE graves",
+      "severe_other": "{{count}} équipements avec CVE graves",
+      "firmware_one": "{{count}} firmware à mettre à jour",
+      "firmware_other": "{{count}} firmwares à mettre à jour",
+      "issues_one": "{{count}} signalement ouvert",
+      "issues_other": "{{count}} signalements ouverts"
+    }
   },
   "user": {
     "language": "Langue",

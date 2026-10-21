@@ -1,6 +1,7 @@
 
 from fastapi import APIRouter
 
+from app import branding_palette
 from app import main as core
 from app.config import settings
 from app.preferences import PlatformBranding
@@ -8,9 +9,9 @@ from app.preferences import PlatformBranding
 router = APIRouter()
 
 DEFAULT_COLORS = {
-    "primary": ("primary_color", "#1f5f8b"),
-    "sidebar": ("sidebar_color", "#111827"),
-    "highlight": ("highlight_color", "#f59e0b"),
+    "primary": ("primary_color", branding_palette.DEFAULT_PRIMARY),
+    "sidebar": ("sidebar_color", branding_palette.DEFAULT_SIDEBAR),
+    "highlight": ("highlight_color", branding_palette.DEFAULT_HIGHLIGHT),
 }
 
 

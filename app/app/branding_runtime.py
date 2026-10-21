@@ -1,11 +1,12 @@
 from fastapi.responses import Response
 
+from app import branding_palette
 from app.db import SessionLocal
 from app.preferences import PlatformBranding
 
-_DEFAULT_PRIMARY = "#1f5f8b"
-_DEFAULT_SIDEBAR = "#111827"
-_DEFAULT_HIGHLIGHT = "#f59e0b"
+_DEFAULT_PRIMARY = branding_palette.DEFAULT_PRIMARY
+_DEFAULT_SIDEBAR = branding_palette.DEFAULT_SIDEBAR
+_DEFAULT_HIGHLIGHT = branding_palette.DEFAULT_HIGHLIGHT
 
 
 def _safe_color(value: str | None, fallback: str) -> str:
@@ -37,15 +38,15 @@ def branding_theme_css():
         )
 
     # The sign-in pages (static/app.css) derive every shade from the --brand-* variables. A colour still at its
-    # factory value is left out, so the built-in light/dark palette applies (as in the interface, Layout.tsx).
+    # factory value (current or previous) is left out, so the built-in light/dark palette applies (as in Layout.tsx).
     custom = [
         (name, value)
-        for name, value, factory in (
-            ("--brand-primary", primary, _DEFAULT_PRIMARY),
-            ("--brand-sidebar", sidebar, _DEFAULT_SIDEBAR),
-            ("--brand-highlight", highlight, _DEFAULT_HIGHLIGHT),
+        for name, key, value in (
+            ("--brand-primary", "primary", primary),
+            ("--brand-sidebar", "sidebar", sidebar),
+            ("--brand-highlight", "highlight", highlight),
         )
-        if value != factory
+        if not branding_palette.is_factory(key, value)
     ]
     if custom:
         lines = "\n".join(f"  {name}: {value};" for name, value in custom)

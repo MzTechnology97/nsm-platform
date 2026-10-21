@@ -34,7 +34,19 @@
       "admin": "Plataforma"
     },
     "sla": "SLA clientes",
-    "breadcrumb": "Ruta de navegación"
+    "breadcrumb": "Ruta de navegación",
+    "badges": {
+      "devices_one": "{{count}} equipo",
+      "devices_other": "{{count}} equipos",
+      "offline_one": "{{count}} sin conexión",
+      "offline_other": "{{count}} sin conexión",
+      "severe_one": "{{count}} equipo con CVE graves",
+      "severe_other": "{{count}} equipos con CVE graves",
+      "firmware_one": "{{count}} firmware por actualizar",
+      "firmware_other": "{{count}} firmwares por actualizar",
+      "issues_one": "{{count}} incidencia abierta",
+      "issues_other": "{{count}} incidencias abiertas"
+    }
   },
   "user": {
     "language": "Idioma",
