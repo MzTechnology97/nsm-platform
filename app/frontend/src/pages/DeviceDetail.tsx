@@ -225,6 +225,7 @@ export function DeviceOverview() {
           note={loss != null ? t("device.loss", { value: loss }) : (detail.icmp.target ?? undefined)}
           percent={!detail.icmp.enabled ? null : detail.icmp.down ? 0 : loss != null ? 100 - loss : null}
           tone={detail.icmp.down ? "danger" : detail.icmp.enabled && detail.icmp.last_rtt != null ? "success" : undefined} />
+        <AvailabilityTile detail={detail} />
         <RingTile label={t("device.metrics.vulnerabilities")} value={String(openVulns)} note={t("device.severe", { count: severe })}
           percent={openVulns ? Math.max(8, (100 * severe) / openVulns) : 0} tone={severe ? "danger" : openVulns ? "warning" : "success"} />
         <RingTile label={t("device.metrics.firmware")} value={device.firmware ?? "—"}
@@ -232,8 +233,9 @@ export function DeviceOverview() {
             ? t("device.recommended", { version: device.recommended_firmware })
             : t(`device.firmwareStatus.${device.firmware_status ?? "unknown"}`, { defaultValue: "" })}
           percent={firmwareTone === "success" ? 100 : firmwareTone ? 50 : null} tone={firmwareTone} />
-        <RingTile label={t("device.metrics.backup")} value={detail.backup.method}
-          note={detail.backup.last_success ? t("device.lastBackup", { when: formatRelative(detail.backup.last_success, i18n.language) }) : t("device.noBackup")}
+        <RingTile label={t("device.metrics.backup")}
+          value={detail.backup.last_success ? formatRelative(detail.backup.last_success, i18n.language) : t("device.backupNever")}
+          note={detail.backup.method}
           percent={detail.backup.last_success ? 100 : 0} tone={!detail.backup.executable ? "warning" : detail.backup.last_success ? "success" : undefined} />
       </div>
 
@@ -333,6 +335,33 @@ function DeviceHealth({ detail, showResources }: { detail: Detail; showResources
       </div>
     </section>
   );
+}
+
+/** Ping availability of the last 30 days (maintenance excluded), green from the customer's SLA target (or 99%), amber within one point below. */
+function AvailabilityTile({ detail }: { detail: Detail }) {
+  const { t, i18n } = useTranslation();
+  const data = detail.availability_30d;
+  if (!data) return null;
+  const label = <>{t("device.availability.label")} <InfoTip text={t("device.availability.tip", { target: format(data.target, i18n.language) })} /></>;
+  if (!data.measured || data.availability == null) {
+    return <RingTile label={label} value={t("device.availability.notMeasured")} note={t("device.availability.notMeasuredNote")} percent={null} />;
+  }
+  const tone: TileTone = data.availability >= data.target ? "success" : data.availability >= data.target - 1 ? "warning" : "danger";
+  const downtime = data.downtime_minutes ?? 0;
+  const note = downtime > 0
+    ? t("device.availability.downtime", { value: minutesLabel(downtime, i18n.language), count: data.outages ?? 0 })
+    : t("device.availability.none");
+  return <RingTile label={label} value={`${format(data.availability, i18n.language)}%`} note={note} percent={data.availability} tone={tone} />;
+}
+
+const format = (value: number, locale: string) => new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value);
+
+function minutesLabel(value: number, locale: string): string {
+  const unit = (amount: number, name: "minute" | "hour" | "day") =>
+    new Intl.NumberFormat(locale, { style: "unit", unit: name, unitDisplay: "narrow", maximumFractionDigits: amount < 10 ? 1 : 0 }).format(amount);
+  if (value < 120) return unit(value, "minute");
+  if (value < 48 * 60) return unit(value / 60, "hour");
+  return unit(value / 1440, "day");
 }
 
 function ZabbixField({ deviceId, zabbix, canEdit }: { deviceId: string; zabbix: NonNullable<Detail["zabbix"]>; canEdit: boolean }) {

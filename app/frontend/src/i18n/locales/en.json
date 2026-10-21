@@ -225,7 +225,17 @@
     "head": {
       "cves_one": "{{count}} CVE",
       "cves_other": "{{count}} CVEs"
-    }
+    },
+    "availability": {
+      "label": "Availability 30 d",
+      "tip": "Share of successful ping checks in the last 30 days, maintenance windows excluded. Green from {{target}}% (the customer's SLA target, or 99% when none is agreed).",
+      "none": "no outages",
+      "downtime_one": "down {{value}} · {{count}} outage",
+      "downtime_other": "down {{value}} · {{count}} outages",
+      "notMeasured": "not measured",
+      "notMeasuredNote": "enable NSM ping in Monitor"
+    },
+    "backupNever": "never"
   },
   "monitor": {
     "range": "Range",

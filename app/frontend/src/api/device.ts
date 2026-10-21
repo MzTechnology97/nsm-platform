@@ -24,6 +24,9 @@ export interface DeviceDetail {
   issues: { id: string; title: string; severity: string; category: string; status: string; created_at: string | null }[];
   backup: { method: string; status: string; executable: boolean; last_success: string | null };
   icmp: { enabled: boolean; target: string | null; last_rtt: number | null; last_loss: number | null; down: boolean; last_at: string | null };
+  /** Ping availability of the last 30 days (maintenance excluded), compared with the customer's SLA target or 99%. */
+  availability_30d?: { measured: boolean; availability: number | null; downtime_minutes: number | null; outages: number | null; target: number;
+    customer_target: boolean };
   zabbix: DeviceZabbix | null;
   tabs: { key: string }[];
   /** Out of service: when, why and by whom; null for a device in service. */
