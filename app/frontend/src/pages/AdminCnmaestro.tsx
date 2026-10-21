@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { type CnmaestroAdmin, useCnmaestroAdmin, useConnectorAction } from "../api/admin";
 import { AdminTabs } from "../app/AdminTabs";
+import { ConnectorDiagnostics } from "../app/ConnectorDiagnostics";
 import { IntegrationTabs } from "../app/IntegrationTabs";
 import { formatDateTime } from "../lib/format";
 import { Loading } from "../app/States";
@@ -36,6 +37,7 @@ export function AdminCnmaestro() {
             <Connection data={data} />
             <Actions data={data} />
           </div>
+          {data.configured && <ConnectorDiagnostics provider="cnmaestro" />}
         </>
       )}
     </section>

@@ -4951,5 +4951,33 @@
       "when": "The window must be within a year from today.",
       "reason": "Give the reason (3–500 characters)."
     }
+  },
+  "connectorDiagnostics": {
+    "title": "Compatibility check",
+    "help": "Reads a sample from your console with read-only requests and checks which fields NSM expects actually arrive. The report contains only field names, counts and HTTP codes: no names, IPs, MACs or passwords, so it can be copied and sent to support.",
+    "run": "Run check",
+    "running": "Checking…",
+    "copy": "Copy report",
+    "copied": "Copied",
+    "none": "No check run yet.",
+    "at": "Run on {{when}} · NSM {{version}}",
+    "missing_one": "{{count}} expected field does not arrive: {{fields}}",
+    "missing_other": "{{count}} expected fields do not arrive: {{fields}}",
+    "allFound": "Every expected field arrives from the console.",
+    "rows_one": "{{count}} row",
+    "rows_other": "{{count}} rows",
+    "keys_one": "{{count}} key received",
+    "keys_other": "{{count}} keys received",
+    "columns": {
+      "field": "NSM field",
+      "state": "Result",
+      "found": "Found",
+      "key": "Key used / searched"
+    },
+    "states": {
+      "ok": "present",
+      "partial": "partial",
+      "missing": "missing"
+    }
   }
 }
