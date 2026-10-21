@@ -67,6 +67,8 @@ class Customer(Base, TimestampMixin):
     code: Mapped[str | None] = mapped_column(String(80), unique=True)
     notes: Mapped[str | None] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Monthly availability target in percent (see app/sla.py); None = no SLA agreed.
+    sla_target_pct: Mapped[float | None] = mapped_column(Float)
 
     sites: Mapped[list["Site"]] = relationship(
         back_populates="customer", cascade="all, delete-orphan"

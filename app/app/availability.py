@@ -65,10 +65,11 @@ def device_availability(samples: list) -> dict | None:
     }
 
 
-def report_section(db, device_ids, lower: datetime, upper: datetime) -> dict:
-    """Per-device availability in the period, worst first, and fleet figures."""
+def report_section(db, device_ids, lower: datetime, upper: datetime, target: float | None = None) -> dict:
+    """Per-device availability in the period, worst first, and fleet figures; ``target`` defaults to 99% (a customer's SLA target otherwise)."""
+    target = TARGET_PERCENT if target is None else target
     if not device_ids:
-        return {"devices": [], "measured": 0, "below_target": 0, "average": None, "target": TARGET_PERCENT}
+        return {"devices": [], "measured": 0, "below_target": 0, "average": None, "target": target}
     samples: dict = {}
     for sample in db.scalars(select(DevicePingSample).where(DevicePingSample.device_id.in_(list(device_ids)), DevicePingSample.observed_at >= lower,
                                                            DevicePingSample.observed_at < upper)
@@ -85,8 +86,8 @@ def report_section(db, device_ids, lower: datetime, upper: datetime) -> dict:
     rows.sort(key=lambda r: (r["availability"], -r["downtime_minutes"], r["device"]))
     total_rounds = sum(r["rounds"] for r in rows)
     average = round(sum(r["availability"] * r["rounds"] for r in rows) / total_rounds, 3) if total_rounds else None
-    return {"devices": rows, "measured": len(rows), "below_target": sum(1 for r in rows if r["availability"] < TARGET_PERCENT),
-            "average": average, "target": TARGET_PERCENT}
+    return {"devices": rows, "measured": len(rows), "below_target": sum(1 for r in rows if r["availability"] < target),
+            "average": average, "target": target}
 
 
 def render_report_section(doc, section: dict, number: int) -> None:

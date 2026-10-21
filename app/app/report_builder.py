@@ -360,7 +360,8 @@ def collect_report_data(db, *, customer: Customer | None, period_start: date, pe
     policies = list(db.scalars(select(BackupPolicy).where(BackupPolicy.is_enabled.is_(True))))
     settings_map = {policy.id: _policy_settings(db, policy, create=True) for policy in policies}
     active_agents = active_mikrotik_agent_device_ids(db, device_ids) if device_ids else set()
-    availability_section = availability.report_section(db, device_ids, lower, upper)
+    # A customer report measures against the customer's SLA target when one is agreed.
+    availability_section = availability.report_section(db, device_ids, lower, upper, customer.sla_target_pct if customer else None)
     availability_by_device = {row["device_id"]: row["availability"] for row in availability_section["devices"]}
     last_success = dict(
         db.execute(
