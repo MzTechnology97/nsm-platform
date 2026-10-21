@@ -41,6 +41,7 @@ from app.report_schedules import run_report_schedules
 from app.uisp_sync import sync_uisp_devices
 from app.advisory_sources import sync_security_advisories
 from app.compliance import run_scheduled_evaluation as run_compliance_evaluation
+from app.sla import budget_alerts as sla_budget_alerts
 from app.lifecycle_catalog import run_scheduled_reconcile as run_lifecycle_reconcile
 from app.worker_status import beat, run_task, started
 from app.notification_delivery import deliver_pending as deliver_notifications
@@ -137,6 +138,7 @@ while True:
                 log.info("RouterOS catalog: %s", catalog_stats)
             if lifecycle_stats.get("status_changed"):
                 log.info("Lifecycle: %s", lifecycle_stats)
+            run_task("sla_budget_alerts", sla_budget_alerts)
             compliance_stats = run_task("compliance_evaluation", run_compliance_evaluation)
             if compliance_stats.get("changed") or compliance_stats.get("removed"):
                 log.info("Compliance: %s", compliance_stats)

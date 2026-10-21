@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.194 — 2026-10-21
+
+SLA budget alerts
+- **NSM warns before a customer SLA is missed.** For every customer with an SLA target, NSM sends a notification:
+  - when the downtime of the month has used **75%** of what the target allows ("SLA a rischio");
+  - when it has used **all of it** ("SLA non più rispettabile"), because the month's target can no longer be met.
+- **Compared with the whole month's allowance,** so a short outage on the first day is not reported as a missed SLA. Planned maintenance on the whole customer is left out, as in the SLA page.
+- **Each alert is sent once per customer and month.** It reaches the bell and the e-mail/Telegram/Slack channels of the users who receive monitoring notifications, and links to the customer's SLA page. Every alert is recorded in the activity log.
 ## 0.49.193 — 2026-10-21
 
 Documentation
