@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.185 — 2026-10-21
+
+New look, step 3: device page
+- **Header card.** On one white card:
+  - the device's vendor icon on a tinted tile;
+  - the name with its status pill and, when CVEs are open, a CVE pill (red with critical/high ones, amber otherwise) that opens the device's vulnerability list;
+  - one line of facts: vendor · model · type, firmware, management IP, and how long the device has been up (or when it was last seen);
+  - the actions on the right, "Gestisci apparato" as the main button.
+- **Overview tiles with rings.** CPU and memory (amber from 75%, red from 90%; shown when the device reports them), ping from NSM (the ring shows the replies), open vulnerabilities (the ring shows the critical and high share), firmware (recommended version when different) and backup (last successful one). Each tile is tinted by its state.
+- The separate "Risorse adesso" bars are shown only when the tiles cannot show CPU and memory. The CVE chips by severity stay below the tiles.
+- Tabs keep the blue underline of the new look.
 ## 0.49.184 — 2026-10-21
 
 New look, step 2: branding defaults and sidebar counters

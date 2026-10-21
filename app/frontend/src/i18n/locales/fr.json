@@ -220,6 +220,10 @@
       "allCves": "Toutes les CVE",
       "noCves": "Aucune CVE connue",
       "notEvaluable": "Non évaluable : modèle ou firmware manquant"
+    },
+    "head": {
+      "cves_one": "{{count}} CVE",
+      "cves_other": "{{count}} CVE"
     }
   },
   "monitor": {

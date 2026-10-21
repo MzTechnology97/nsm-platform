@@ -10,6 +10,7 @@ import { InfoTip } from "../app/InfoTip";
 import { Resources } from "../app/Resources";
 import { DeviceZabbixPanel, ZabbixSeverity } from "../app/ZabbixProblems";
 import { Loading } from "../app/States";
+import { RingTile, type TileTone } from "../app/RingTile";
 
 /** Device tabs and their routes under /devices/$deviceId. */
 const MIGRATED_TABS = {
@@ -44,8 +45,11 @@ export function DeviceDetail() {
 }
 
 function DeviceShell({ detail }: { detail: Detail }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { device } = detail;
+  const severe = (detail.vulnerabilities.critical ?? 0) + (detail.vulnerabilities.high ?? 0);
+  const openVulns = Object.values(detail.vulnerabilities).reduce((sum, value) => sum + value, 0);
+  const uptime = device.telemetry?.uptime_seconds;
   return (
     <section className="ui-page ui-device">
       <nav className="ui-breadcrumbs" aria-label={t("device.breadcrumbs")}>
@@ -64,30 +68,39 @@ function DeviceShell({ detail }: { detail: Detail }) {
         )}
       </nav>
 
-      <header className="ui-page-header ui-page-header-row">
-        <div>
-          <h1 className="ui-with-brand-title">
-            <BrandIcon brand={device.brand} />
-            {device.name}{" "}
+      <header className="ui-device-head">
+        <span className="ui-device-head-icon"><BrandIcon brand={device.brand} size={30} /></span>
+        <div className="ui-device-head-main">
+          <div className="ui-device-head-title">
+            <h1>{device.name}</h1>
             {detail.decommissioned ? (
               <span className="ui-status ui-status-decommissioned">{t("decommission.badge")}</span>
             ) : (
               <span className={`ui-status ui-status-${device.status}`}>{t(`devices.statusLabel.${device.status}`, { defaultValue: device.status })}</span>
             )}
-          </h1>
-          <p>
-            {[device.vendor === "generic" ? t("devices.genericVendor") : device.brand?.known ? device.brand.label : device.vendor, device.model, device.device_type].filter(Boolean).join(" · ")}
+            {openVulns > 0 && (
+              <Link to="/vulnerabilities" search={{ device: device.id } as never} className={`ui-status ui-status-${severe ? "offline" : "warning"} ui-device-head-cves`}>
+                {t("device.head.cves", { count: openVulns })}
+              </Link>
+            )}
+          </div>
+          <p className="ui-device-head-facts">
+            <span>{[device.vendor === "generic" ? t("devices.genericVendor") : device.brand?.known ? device.brand.label : device.vendor, device.model, device.device_type].filter(Boolean).join(" · ")}</span>
+            {device.firmware && <span>{device.firmware}</span>}
+            {device.management_ip && <span className="ui-mono">{device.management_ip}</span>}
+            {device.status === "online" && uptime != null ? (
+              <span>{t("devices.uptimeShort", { value: formatDuration(uptime, i18n.language) })}</span>
+            ) : (
+              <span>{device.last_seen ? t("device.seen", { when: formatRelative(device.last_seen, i18n.language) }) : t("device.neverSeen")}</span>
+            )}
             {detail.zabbix?.problems?.items.length ? (
-              <>
-                {" "}
-                <Link to="/devices/$deviceId" params={{ deviceId: device.id }} hash="zabbix-problems">
-                  <ZabbixSeverity severity={detail.zabbix.problems.items[0].severity} /> {t("zabbixProblems.count", { count: detail.zabbix.problems.items.length })}
-                </Link>
-              </>
+              <Link to="/devices/$deviceId" params={{ deviceId: device.id }} hash="zabbix-problems">
+                <ZabbixSeverity severity={detail.zabbix.problems.items[0].severity} /> {t("zabbixProblems.count", { count: detail.zabbix.problems.items.length })}
+              </Link>
             ) : null}
           </p>
         </div>
-        <div className="ui-actions">
+        <div className="ui-actions ui-device-head-actions">
           {!detail.decommissioned && detail.actions.reboot && (
             <Link className="ui-button ui-button-ghost" to="/devices/$deviceId/reboot" params={{ deviceId: device.id }}>
               {t("device.actions.reboot")}
@@ -99,7 +112,7 @@ function DeviceShell({ detail }: { detail: Detail }) {
             </Link>
           )}
           {!detail.decommissioned && detail.actions.manage && (
-            <Link className="ui-button ui-button-ghost" to="/devices/$deviceId/manage" params={{ deviceId: device.id }}>
+            <Link className="ui-button ui-button-primary" to="/devices/$deviceId/manage" params={{ deviceId: device.id }}>
               {t("device.actions.manage")}
             </Link>
           )}
@@ -190,27 +203,41 @@ export function DeviceOverview() {
   const { device } = detail;
   const severe = (detail.vulnerabilities.critical ?? 0) + (detail.vulnerabilities.high ?? 0);
   const openVulns = Object.values(detail.vulnerabilities).reduce((sum, value) => sum + value, 0);
+  const online = device.status === "online";
+  const cpu = device.telemetry?.cpu ?? null;
+  const ram = device.telemetry?.ram ?? null;
+  const load = (value: number): TileTone => (value >= 90 ? "danger" : value >= 75 ? "warning" : "info");
+  const loadNote = online ? t("device.health.resources") : t("device.health.lastValues");
+  const firmwareTone: TileTone | undefined = device.firmware_status === "security_update" ? "danger"
+    : device.firmware_status === "update_available" || (device.recommended_firmware && device.recommended_firmware !== device.firmware) ? "warning"
+      : device.firmware_status === "current" ? "success" : undefined;
+  const loss = detail.icmp.enabled ? detail.icmp.last_loss : null;
   return (
     <>
-      <div className="ui-metrics">
-        <Metric label={t("device.metrics.status")} value={t(`devices.statusLabel.${device.status}`, { defaultValue: device.status })}
-          hint={device.last_seen ? t("device.seen", { when: formatRelative(device.last_seen, i18n.language) }) : t("device.neverSeen")} tone={device.status === "offline" ? "danger" : undefined} />
-        <Metric label={t("device.metrics.firmware")} value={device.firmware ?? "—"}
-          hint={device.recommended_firmware && device.recommended_firmware !== device.firmware
+      <div className="ui-metrics ui-ring-tiles">
+        {cpu != null && (
+          <RingTile label={<>{t("devices.cpu")} <InfoTip text={t("device.health.resourcesTip")} /></>} value={`${Math.round(cpu)}%`} percent={cpu}
+            tone={load(cpu)} note={loadNote} />
+        )}
+        {ram != null && <RingTile label={t("devices.ram")} value={`${Math.round(ram)}%`} percent={ram} tone={load(ram)} note={loadNote} />}
+        <RingTile label={t("device.metrics.ping")}
+          value={!detail.icmp.enabled ? t("device.pingOff") : detail.icmp.down ? t("device.pingDown") : detail.icmp.last_rtt != null ? `${detail.icmp.last_rtt} ms` : t("device.pingWaiting")}
+          note={loss != null ? t("device.loss", { value: loss }) : (detail.icmp.target ?? undefined)}
+          percent={!detail.icmp.enabled ? null : detail.icmp.down ? 0 : loss != null ? 100 - loss : null}
+          tone={detail.icmp.down ? "danger" : detail.icmp.enabled && detail.icmp.last_rtt != null ? "success" : undefined} />
+        <RingTile label={t("device.metrics.vulnerabilities")} value={String(openVulns)} note={t("device.severe", { count: severe })}
+          percent={openVulns ? Math.max(8, (100 * severe) / openVulns) : 0} tone={severe ? "danger" : openVulns ? "warning" : "success"} />
+        <RingTile label={t("device.metrics.firmware")} value={device.firmware ?? "—"}
+          note={device.recommended_firmware && device.recommended_firmware !== device.firmware
             ? t("device.recommended", { version: device.recommended_firmware })
             : t(`device.firmwareStatus.${device.firmware_status ?? "unknown"}`, { defaultValue: "" })}
-          tone={device.firmware_status === "security_update" ? "danger" : device.firmware_status === "update_available" ? "warning" : undefined} />
-        <Metric label={t("device.metrics.vulnerabilities")} value={String(openVulns)} hint={t("device.severe", { count: severe })} tone={severe ? "danger" : undefined} />
-        <Metric label={t("device.metrics.backup")} value={detail.backup.method}
-          hint={detail.backup.last_success ? t("device.lastBackup", { when: formatRelative(detail.backup.last_success, i18n.language) }) : t("device.noBackup")}
-          tone={detail.backup.executable ? undefined : "warning"} />
-        <Metric label={t("device.metrics.ping")}
-          value={!detail.icmp.enabled ? t("device.pingOff") : detail.icmp.down ? t("device.pingDown") : detail.icmp.last_rtt != null ? `${detail.icmp.last_rtt} ms` : t("device.pingWaiting")}
-          hint={detail.icmp.enabled && detail.icmp.last_loss != null ? t("device.loss", { value: detail.icmp.last_loss }) : (detail.icmp.target ?? "")}
-          tone={detail.icmp.down ? "danger" : undefined} />
+          percent={firmwareTone === "success" ? 100 : firmwareTone ? 50 : null} tone={firmwareTone} />
+        <RingTile label={t("device.metrics.backup")} value={detail.backup.method}
+          note={detail.backup.last_success ? t("device.lastBackup", { when: formatRelative(detail.backup.last_success, i18n.language) }) : t("device.noBackup")}
+          percent={detail.backup.last_success ? 100 : 0} tone={!detail.backup.executable ? "warning" : detail.backup.last_success ? "success" : undefined} />
       </div>
 
-      <DeviceHealth detail={detail} />
+      <DeviceHealth detail={detail} showResources={cpu == null && ram == null} />
 
       <div className="ui-two-columns">
         <section className="ui-panel">
@@ -265,7 +292,7 @@ export function DeviceOverview() {
 const SEVERITIES = ["critical", "high", "medium", "low", "unknown"] as const;
 
 /** Current load (CPU, memory, uptime) and the open CVEs by severity, each opening the filtered vulnerability list. */
-function DeviceHealth({ detail }: { detail: Detail }) {
+function DeviceHealth({ detail, showResources }: { detail: Detail; showResources: boolean }) {
   const { t, i18n } = useTranslation();
   const { device } = detail;
   const online = device.status === "online";
@@ -280,13 +307,13 @@ function DeviceHealth({ detail }: { detail: Detail }) {
   const evaluated = device.cves?.evaluated ?? true;
   return (
     <section className="ui-panel ui-device-health">
-      <div className="ui-device-health-part">
+      {showResources && <div className="ui-device-health-part">
         <h3>{t("device.health.resources")} <InfoTip text={t("device.health.resourcesTip")} /></h3>
         <Resources telemetry={device.telemetry} online={online} />
         {uptime != null && (
           <small className="ui-muted">{online ? t("device.health.uptime", { value: formatDuration(uptime, i18n.language) }) : t("device.health.lastValues")}</small>
         )}
-      </div>
+      </div>}
       <div className="ui-device-health-part">
         <h3>{t("device.health.cves")} <InfoTip text={t("device.health.cvesTip")} /></h3>
         {open.length ? (
