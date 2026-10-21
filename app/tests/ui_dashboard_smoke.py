@@ -1,4 +1,5 @@
-"""New interface, dashboard API: summary counts, distributions, latest advisories with affected devices, recent events, sign-in required."""
+"""New interface, dashboard API: summary counts, distributions (readable vendors), outages by age, resource pressure, CVE posture,
+latest advisories with affected devices, recent events, sign-in required."""
 import re
 import uuid
 from datetime import timedelta
@@ -36,7 +37,13 @@ def main():
                    status=status, model=f"CI-MODEL-{suffix}", firmware_version=f"9.{index}.{suffix}")
             for index, status in enumerate(("online", "online", "offline"))
         ]
-        db.add_all(devices)
+        # Two more: one under heavy load (UISP metrics), one down for two days; the third above went down just now.
+        devices[2].last_seen = now + timedelta(days=3650)
+        loaded = Device(customer_id=customer.id, vendor="ubiquiti", device_type="wireless_cpe", name=f"TEST-UD-{suffix}-hot", status="online",
+                        inventory_data={"uisp": {"metrics": {"cpu_percent": 100, "ram_percent": 40}}})
+        stale = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-UD-{suffix}-stale", status="offline",
+                       last_seen=now - timedelta(days=2))
+        db.add_all([*devices, loaded, stale])
         db.flush()
         advisory = SecurityAdvisory(cve_id=f"CVE-2099-{int(suffix, 16) % 100000:05d}", vendor=vendor, product="CI product", severity="critical",
                                     published_at=now + timedelta(days=3650))
@@ -64,7 +71,20 @@ def main():
 
     for distribution in ("vendor_distribution", "firmware_distribution", "model_distribution"):
         rows = data[distribution]
-        assert len(rows) <= 6 and all({"label", "count", "percent"} <= set(row) for row in rows), distribution
+        assert len(rows) <= 6 and all({"key", "label", "count", "percent"} <= set(row) for row in rows), distribution
+    assert all(row["label"] == "MikroTik" for row in data["vendor_distribution"] if row["key"] == "mikrotik"), "readable vendor names"
+    assert any(row["key"] == vendor and row["label"] == vendor for row in data["vendor_distribution"]) or len(data["vendor_distribution"]) == 6
+
+    aging = data["offline_aging"]
+    assert set(aging) == {"hour", "day", "week", "older", "never"} and aging["hour"] >= 1 and aging["week"] >= 1
+    assert sum(aging.values()) == data["offline_count"]
+    outage = data["recent_outages"][0]
+    assert outage["name"] == f"TEST-UD-{suffix}-2" and outage["customer"]["name"] == f"CI UI Dashboard {suffix}" and outage["brand"], outage
+    pressure = data["resource_pressure"]
+    assert pressure["hot"] >= 1 and pressure["reporting"] >= 1
+    assert any(row["name"] == f"TEST-UD-{suffix}-hot" and row["telemetry"]["cpu"] == 100 for row in pressure["top"]), pressure["top"]
+    posture = data["cve_posture"]
+    assert posture["severe"] >= 1 and sum(posture.values()) == data["device_count"]
 
     advisory = data["latest_advisories"][0]
     assert advisory["id"] == advisory_id and advisory["severity"] == "critical" and advisory["vendor"] == vendor

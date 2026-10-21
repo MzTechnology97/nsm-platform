@@ -8,6 +8,7 @@ import { api } from "../api/client";
 import { type DeviceFilters, type DeviceRow, devicesExportUrl, useDeviceFacets, useDevices } from "../api/devices";
 import { can, useSession } from "../api/session";
 import { BrandIcon } from "../app/BrandIcon";
+import { Resources } from "../app/Resources";
 import { EmptyState, Loading } from "../app/States";
 import { formatDuration, formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
@@ -260,28 +261,6 @@ function CveBadge({ cves }: { cves: DeviceRow["cves"] }) {
 }
 
 /** CPU and memory use as two thin bars with their value. */
-function Resources({ telemetry, online }: { telemetry: DeviceRow["telemetry"]; online: boolean }) {
-  const { t } = useTranslation();
-  if (!telemetry || (telemetry.cpu == null && telemetry.ram == null)) return <span className="ui-muted">—</span>;
-  const bar = (label: string, value: number | null) =>
-    value == null ? null : (
-      <span className="ui-meter" title={`${label} ${Math.round(value)}%`}>
-        <span className="ui-meter-label">{label}</span>
-        <svg className="ui-meter-track" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true">
-          <rect width="100" height="6" rx="3" className="ui-meter-bg" />
-          <rect width={Math.max(2, Math.min(100, value))} height="6" rx="3" className={`ui-meter-fill${value >= 90 ? " is-danger" : value >= 75 ? " is-warning" : ""}`} />
-        </svg>
-        <span className="ui-meter-value">{Math.round(value)}%</span>
-      </span>
-    );
-  return (
-    <span className={`ui-resources${online ? "" : " is-stale"}`}>
-      {bar(t("devices.cpu"), telemetry.cpu)}
-      {bar(t("devices.ram"), telemetry.ram)}
-    </span>
-  );
-}
-
 function DeviceLine({ device, top, height, locale, selected, onToggle, vendorName }: {
   device: DeviceRow; top: number; height: number; locale: string; selected: boolean; onToggle: (id: string) => void; vendorName: (vendor: string) => string;
 }) {

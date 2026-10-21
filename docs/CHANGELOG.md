@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.178 — 2026-10-21
+
+Dashboard (UX-3): operations at a glance
+- **New "Operations" row.**
+  - **Offline devices:** the offline devices counted by how long they have been down (under 1 hour, 1 day, 7 days, older, never seen), and the six most recent outages with vendor icon, customer and "down for 2h 15m".
+  - **Resource load:** how many online devices are above 90% or between 75% and 90% CPU or memory, and the five most loaded, with the same bars as the device list.
+  - **CVE exposure:** the whole inventory as one bar: severe CVEs, other open CVEs, no known CVE, not assessable. The first two open the filtered device list.
+- **Refresh countdown.** "Next refresh in 23 s" next to the update time, with a small ring.
+- **Explanations on hover.** An "i" next to the coverage and operations titles explains what is counted and the thresholds. It also opens with the keyboard.
+- **Clickable distributions.**
+  - Vendors show their readable names (MikroTik, Ubiquiti, TP-Link, Generic) and open the device list filtered by vendor.
+  - Models open a device search.
+- **Phones.** Fixed the dashboard being wider than the screen on phones, caused by the advisories table.
 ## 0.49.177 — 2026-10-21
 
 Device list (UX-2): more at a glance, actions on many devices

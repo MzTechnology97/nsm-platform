@@ -1,11 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { type Dashboard, type Distribution, useDashboard } from "../api/admin";
-import { formatDateTime } from "../lib/format";
+import { type Dashboard, type DeviceBrief, type Distribution, useDashboard } from "../api/admin";
+import { formatDateTime, formatSpan } from "../lib/format";
+import { BrandIcon } from "../app/BrandIcon";
 import { Icon } from "../app/Icon";
+import { InfoTip } from "../app/InfoTip";
+import { Resources } from "../app/Resources";
 import { Loading } from "../app/States";
+
+const REFRESH_SECONDS = 30;
 
 const SEVERITY_TONE: Record<string, string> = {
   critical: "ui-severity ui-severity-critical",
@@ -43,11 +48,14 @@ export function Home() {
         <Loading />
       ) : (
         <>
-          <p className="ui-muted">{t("dashboard.updated", { when: formatDateTime(data.updated_at, i18n.language, true) })}</p>
+          <p className="ui-muted ui-refresh-line">
+            {t("dashboard.updated", { when: formatDateTime(data.updated_at, i18n.language, true) })}{" "}
+            <Countdown updatedAt={query.dataUpdatedAt} fetching={query.isFetching} />
+          </p>
           <Kpis data={data} />
           <div className="ui-two-columns">
             <section className="ui-panel ui-admin-section">
-              <h2>{t("dashboard.coverage")}</h2>
+              <h2>{t("dashboard.coverage")} <InfoTip text={t("dashboard.coverageTip")} /></h2>
               <p className="ui-muted">{t("dashboard.coverageHelp")}</p>
               <div className="ui-ring-row">
                 <Ring label={t("dashboard.availability")} value={data.online_count} total={data.device_count} good={t("dashboard.online")} bad={t("dashboard.offline")}
@@ -60,15 +68,27 @@ export function Home() {
           </div>
           <div className="ui-page-header-row">
             <div>
+              <h2>{t("dashboard.operations")}</h2>
+              <p className="ui-muted">{t("dashboard.operationsHelp")}</p>
+            </div>
+          </div>
+          <div className="ui-dashboard-grid ui-operations-grid">
+            <Outages data={data} />
+            <Pressure data={data} />
+            <Posture data={data} />
+          </div>
+          <div className="ui-page-header-row">
+            <div>
               <h2>{t("dashboard.distribution")}</h2>
               <p className="ui-muted">{t("dashboard.distributionHelp")}</p>
             </div>
             <Link to="/devices">{t("dashboard.openInventory")}</Link>
           </div>
           <div className="ui-dashboard-grid">
-            <Bars title={t("dashboard.vendors")} help={t("dashboard.vendorsHelp")} rows={data.vendor_distribution} />
+            <Bars title={t("dashboard.vendors")} help={t("dashboard.vendorsHelp")} rows={data.vendor_distribution} search={(key) => ({ vendor: key })}
+              display={(row) => (row.key === "generic" ? t("devices.genericVendor") : row.label)} />
             <Bars title={t("dashboard.firmwareVersions")} help={t("dashboard.firmwareHelp")} rows={data.firmware_distribution} />
-            <Bars title={t("dashboard.models")} help={t("dashboard.modelsHelp")} rows={data.model_distribution} />
+            <Bars title={t("dashboard.models")} help={t("dashboard.modelsHelp")} rows={data.model_distribution} search={(key) => ({ q: key })} />
           </div>
           <div className="ui-two-columns">
             <Advisories data={data} />
@@ -172,7 +192,162 @@ function Attention({ data }: { data: Dashboard }) {
   );
 }
 
-function Bars({ title, help, rows }: { title: string; help: string; rows: Distribution[] }) {
+/** "Next refresh in 23 s", counting down from the last answer of the 30-second poll. */
+function Countdown({ updatedAt, fetching }: { updatedAt: number; fetching: boolean }) {
+  const { t } = useTranslation();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  if (fetching) return <span className="ui-countdown">{t("dashboard.refreshing")}</span>;
+  const seconds = Math.max(0, REFRESH_SECONDS - Math.floor((now - updatedAt) / 1000));
+  return (
+    <span className="ui-countdown" aria-live="off">
+      <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+        <circle cx="10" cy="10" r="8" className="ui-countdown-track" fill="none" strokeWidth="3" />
+        <circle cx="10" cy="10" r="8" className="ui-countdown-value" fill="none" strokeWidth="3" transform="rotate(-90 10 10)"
+          strokeDasharray={`${(seconds / REFRESH_SECONDS) * 50.27} 50.27`} />
+      </svg>
+      {t("dashboard.nextRefresh", { seconds })}
+    </span>
+  );
+}
+
+function DeviceName({ device }: { device: DeviceBrief }) {
+  return (
+    <Link to="/devices/$deviceId" params={{ deviceId: device.id }} className="ui-with-brand ui-ops-device">
+      <BrandIcon brand={device.brand} small />
+      <span className="ui-td-main">
+        <strong>{device.name}</strong>
+        <small>{[device.customer?.name, device.model].filter(Boolean).join(" · ") || "—"}</small>
+      </span>
+    </Link>
+  );
+}
+
+const AGING = ["hour", "day", "week", "older", "never"] as const;
+
+function Outages({ data }: { data: Dashboard }) {
+  const { t, i18n } = useTranslation();
+  const aging = data.offline_aging;
+  return (
+    <section className="ui-panel ui-admin-section">
+      <div className="ui-page-header-row">
+        <h3>{t("dashboard.outages.title")} <InfoTip text={t("dashboard.outages.tip")} /></h3>
+        <Link to="/devices" search={{ status: "offline" } as never}>{t("dashboard.all")}</Link>
+      </div>
+      <div className="ui-aging">
+        {AGING.map((key) => (
+          <span key={key} className={`ui-aging-cell is-${key}${aging[key] ? "" : " is-zero"}`}>
+            <b>{aging[key]}</b>
+            <small>{t(`dashboard.outages.buckets.${key}`)}</small>
+          </span>
+        ))}
+      </div>
+      {data.recent_outages.length ? (
+        <ul className="ui-ops-list">
+          {data.recent_outages.map((device) => (
+            <li key={device.id}>
+              <DeviceName device={device} />
+              <span className="ui-status ui-status-offline">
+                {device.last_seen ? t("dashboard.outages.since", { span: formatSpan(device.last_seen, null, i18n.language) }) : t("dashboard.outages.buckets.never")}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="ui-empty">{t("dashboard.outages.empty")}</div>
+      )}
+    </section>
+  );
+}
+
+function Pressure({ data }: { data: Dashboard }) {
+  const { t } = useTranslation();
+  const pressure = data.resource_pressure;
+  return (
+    <section className="ui-panel ui-admin-section">
+      <h3>{t("dashboard.pressure.title")} <InfoTip text={t("dashboard.pressure.tip")} /></h3>
+      <div className="ui-ops-counters">
+        <span className={`ui-pill${pressure.hot ? " is-danger" : ""}`}>{t("dashboard.pressure.hot")} <span className="ui-chip-count">{pressure.hot}</span></span>
+        <span className={`ui-pill${pressure.warn ? " is-warning" : ""}`}>{t("dashboard.pressure.warn")} <span className="ui-chip-count">{pressure.warn}</span></span>
+        <small className="ui-muted">{t("dashboard.pressure.reporting", { count: pressure.reporting })}</small>
+      </div>
+      {pressure.top.length > 0 && <small className="ui-muted ui-ops-caption">{t("dashboard.pressure.top")}</small>}
+      {pressure.top.length ? (
+        <ul className="ui-ops-list" aria-label={t("dashboard.pressure.top")}>
+          {pressure.top.map((device) => (
+            <li key={device.id}>
+              <DeviceName device={device} />
+              <Resources telemetry={device.telemetry} online />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="ui-empty">{t("dashboard.pressure.noMetrics")}</div>
+      )}
+    </section>
+  );
+}
+
+const POSTURE = [
+  { key: "severe", search: { security: "severe" } },
+  { key: "exposed", search: { security: "exposed" } },
+  { key: "clean", search: null },
+  { key: "unknown", search: null },
+] as const;
+
+/** The whole inventory split by CVE state, as one stacked bar (SVG attributes only: the CSP forbids inline styles). */
+function Posture({ data }: { data: Dashboard }) {
+  const { t } = useTranslation();
+  const posture = data.cve_posture;
+  const total = POSTURE.reduce((sum, row) => sum + posture[row.key], 0);
+  let offset = 0;
+  return (
+    <section className="ui-panel ui-admin-section">
+      <div className="ui-page-header-row">
+        <h3>{t("dashboard.posture.title")} <InfoTip text={t("dashboard.posture.tip")} /></h3>
+        <Link to="/vulnerabilities">{t("dashboard.open")}</Link>
+      </div>
+      {total ? (
+        <>
+          <svg className="ui-stack" viewBox="0 0 100 10" preserveAspectRatio="none" role="img"
+            aria-label={POSTURE.map((row) => `${t(`dashboard.posture.${row.key}`)}: ${posture[row.key]}`).join(", ")}>
+            {POSTURE.map((row) => {
+              const width = (posture[row.key] / total) * 100;
+              const x = offset;
+              offset += width;
+              return width ? <rect key={row.key} x={x} width={width} height="10" className={`ui-stack-${row.key}`} /> : null;
+            })}
+          </svg>
+          <ul className="ui-legend">
+            {POSTURE.map((row) => {
+              const label = (
+                <>
+                  <i className={`ui-legend-dot ui-stack-${row.key}`} aria-hidden="true" />
+                  <span>{t(`dashboard.posture.${row.key}`)}</span>
+                  <b>{posture[row.key]}</b>
+                </>
+              );
+              return (
+                <li key={row.key}>
+                  {row.search && posture[row.key] ? <Link to="/devices" search={row.search as never}>{label}</Link> : <span>{label}</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      ) : (
+        <div className="ui-empty">{t("dashboard.noData")}</div>
+      )}
+    </section>
+  );
+}
+
+function Bars({ title, help, rows, search, display }: {
+  title: string; help: string; rows: Distribution[]; search?: (key: string) => Record<string, string>; display?: (row: Distribution) => string;
+}) {
   const { t } = useTranslation();
   return (
     <section className="ui-panel">
@@ -180,13 +355,20 @@ function Bars({ title, help, rows }: { title: string; help: string; rows: Distri
       <p className="ui-muted">{help}</p>
       {rows.length ? (
         <ul className="ui-bars">
-          {rows.map((row) => (
-            <li key={row.label}>
-              <span className="ui-bars-label" title={row.label}>{row.label === "Sconosciuto" ? t("dashboard.unknown") : row.label}</span>
-              <progress max={100} value={row.percent} aria-label={`${row.label}: ${row.percent}%`} />
-              <span className="ui-bars-value">{row.count}</span>
-            </li>
-          ))}
+          {rows.map((row) => {
+            const label = row.key == null ? t("dashboard.unknown") : display ? display(row) : row.label;
+            return (
+              <li key={row.key ?? ""}>
+                {search && row.key != null ? (
+                  <Link to="/devices" search={search(row.key) as never} className="ui-bars-label" title={label}>{label}</Link>
+                ) : (
+                  <span className="ui-bars-label" title={label}>{label}</span>
+                )}
+                <progress max={100} value={row.percent} aria-label={`${label}: ${row.percent}%`} />
+                <span className="ui-bars-value">{row.count}</span>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <div className="ui-empty">{t("dashboard.noData")}</div>

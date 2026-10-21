@@ -2814,7 +2814,7 @@
     "customers": "Clienti",
     "sites": "Sedi",
     "refresh": "Aggiorna",
-    "updated": "Aggiornata il {{when}}, si aggiorna ogni 30 secondi.",
+    "updated": "Aggiornata il {{when}}.",
     "coverage": "Copertura",
     "coverageHelp": "Quota di apparati raggiungibili e protetti da un backup recente.",
     "availability": "Disponibilità",
@@ -2888,7 +2888,43 @@
     "firmwareNote": "Da aggiornare",
     "criticalNote": "{{count}} critici",
     "eol": "Fine vita",
-    "eolNote": "Apparati EOL o EOS"
+    "eolNote": "Apparati EOL o EOS",
+    "nextRefresh": "prossimo aggiornamento tra {{seconds}} s",
+    "refreshing": "aggiornamento in corso…",
+    "coverageTip": "Disponibilità: apparati online sul totale. Copertura backup: apparati con una policy di backup attiva che NSM può eseguire (agente o credenziali pronti).",
+    "operations": "Stato operativo",
+    "operationsHelp": "Cosa è giù e da quanto, chi è sotto carico, quanto è esposto il parco.",
+    "outages": {
+      "title": "Apparati offline",
+      "tip": "Apparati offline raggruppati per tempo dall'ultimo contatto. In elenco i guasti più recenti per primi: sono quelli da guardare subito.",
+      "buckets": {
+        "hour": "< 1 ora",
+        "day": "< 1 giorno",
+        "week": "< 7 giorni",
+        "older": "> 7 giorni",
+        "never": "mai visti"
+      },
+      "since": "giù da {{span}}",
+      "empty": "Nessun apparato offline."
+    },
+    "pressure": {
+      "title": "Carico risorse",
+      "tip": "CPU o memoria degli apparati online, dall'agente MikroTik o dai connettori UISP e cnMaestro. Attenzione dal 75%, critico dal 90%.",
+      "hot": "≥ 90%",
+      "warn": "75–90%",
+      "reporting_one": "{{count}} apparato riporta CPU e memoria",
+      "reporting_other": "{{count}} apparati riportano CPU e memoria",
+      "noMetrics": "Nessun apparato online riporta ancora CPU e memoria.",
+      "top": "Più carichi"
+    },
+    "posture": {
+      "title": "Esposizione CVE",
+      "tip": "Ogni apparato in un solo gruppo: CVE gravi (critiche o alte), altre CVE aperte, nessuna CVE nota (marca, modello e firmware noti) o non valutabile (manca il modello o il firmware).",
+      "severe": "CVE gravi",
+      "exposed": "Altre CVE aperte",
+      "clean": "Nessuna CVE nota",
+      "unknown": "Non valutabili"
+    }
   },
   "search": {
     "title": "Ricerca globale",
