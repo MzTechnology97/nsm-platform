@@ -4,6 +4,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { useAcsAdmin, useAcsTemplates } from "../api/admin";
 import { ApiError } from "../api/client";
 import { AdminTabs } from "../app/AdminTabs";
+import { Loading } from "../app/States";
 
 const STEPS = ["cpe", "network", "templates", "verify", "nsm"] as const;
 
@@ -27,7 +28,7 @@ export function AdminAcs() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <>
           <div className="ui-metrics">

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { type NotificationItem, useMarkNotificationRead, useNotifications } from "../api/personal";
 import { BrandIcon } from "../app/BrandIcon";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 type Show = "all" | "unread";
 
@@ -43,7 +44,7 @@ export function Notifications() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : items.length ? (
         <ul className="ui-notification-list">
           {items.map((item) => (

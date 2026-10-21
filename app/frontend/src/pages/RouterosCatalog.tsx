@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { useRouterosCatalog, useRouterosRefresh } from "../api/admin";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 const CHANNEL_LABELS: Record<string, string> = {
   stable: "7 · stable", "long-term": "7 · long-term", testing: "7 · testing", development: "7 · development",
@@ -43,7 +44,7 @@ export function RouterosCatalog() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <>
           <section className="ui-panel ui-admin-section">

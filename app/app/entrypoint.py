@@ -92,6 +92,7 @@ from app.acs_admin import install_acs_admin
 from app import shared_ips as _shared_ips
 from app.reports import install_reports
 from app.search_enhancement import install_search_enhancement
+from app.auth_i18n import install_auth_i18n
 from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.uisp_sync import install_uisp_sync
@@ -114,13 +115,14 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.175"
+APP_VERSION = "0.49.176"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
 core.templates.env.globals["asset_version"] = static_asset_version()
 
 install_ui(core.app, core.templates)
+install_auth_i18n(core.app, core.templates)
 install_workflow_ui(core.app, core.templates)
 install_crud(core.app)
 install_api_keys(core.app)

@@ -7,6 +7,7 @@ import { type UispCandidate, type UispChart as Chart, type UispTab, useDeviceUis
 import { formatValue, type Unit } from "../charts/format";
 import { type ChartSeries, TimeChart } from "../charts/TimeChart";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 export const RANGES = ["24h", "7d", "30d", "90d"] as const;
 const UNIT: Record<string, Unit | undefined> = { "%": "%", dBm: "dBm", bps: "bps", "": "count" };
@@ -35,7 +36,7 @@ export function DeviceUisp() {
   const query = useDeviceUisp(deviceId);
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const linked = Boolean(data.record.external_id);
   return (
     <>

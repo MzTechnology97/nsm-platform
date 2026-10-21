@@ -7,6 +7,7 @@ import { BrandIcon } from "../app/BrandIcon";
 import { type DeviceDetail as Detail, useDecommission, useDevice, useZabbixExclude } from "../api/device";
 import { formatDateTime, formatRelative } from "../lib/format";
 import { DeviceZabbixPanel, ZabbixSeverity } from "../app/ZabbixProblems";
+import { Loading } from "../app/States";
 
 /** Device tabs and their routes under /devices/$deviceId. */
 const MIGRATED_TABS = {
@@ -32,7 +33,7 @@ export function DeviceDetail() {
   const { deviceId } = useParams({ from: "/devices/$deviceId" });
   const query = useDevice(deviceId);
 
-  if (query.isPending) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (query.isPending) return <Loading />;
   if (query.isError) {
     const status = query.error instanceof ApiError ? query.error.status : 0;
     return <div className="ui-empty">{status === 404 ? t("device.notFound") : t("app.error")}</div>;

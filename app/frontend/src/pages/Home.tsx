@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 
 import { type Dashboard, type Distribution, useDashboard } from "../api/admin";
 import { formatDateTime } from "../lib/format";
+import { Icon } from "../app/Icon";
+import { Loading } from "../app/States";
 
 const SEVERITY_TONE: Record<string, string> = {
   critical: "ui-severity ui-severity-critical",
@@ -38,7 +40,7 @@ export function Home() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <>
           <p className="ui-muted">{t("dashboard.updated", { when: formatDateTime(data.updated_at, i18n.language, true) })}</p>
@@ -80,12 +82,16 @@ export function Home() {
 
 type KpiTarget = "/devices" | "/backups" | "/vulnerabilities" | "/firmware" | "/action-center" | "/lifecycle";
 
-function Kpi({ to, search, label, value, note, tone }: { to: KpiTarget; search?: Record<string, string>; label: string; value: number; note: ReactNode; tone?: "danger" | "warning" }) {
+function Kpi({ to, search, label, value, note, tone, icon }: { to: KpiTarget; search?: Record<string, string>; label: string; value: number; note: ReactNode;
+  tone?: "danger" | "warning"; icon: string }) {
   return (
-    <Link to={to} search={search as never} className={`ui-metric ui-metric-link${tone ? ` ui-metric-${tone}` : ""}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{note}</small>
+    <Link to={to} search={search as never} className={`ui-metric ui-metric-link ui-kpi${tone ? ` ui-metric-${tone}` : ""}`}>
+      <span className="ui-kpi-icon" aria-hidden="true"><Icon name={icon} size={18} /></span>
+      <span className="ui-kpi-body">
+        <span>{label}</span>
+        <strong>{value}</strong>
+        <small>{note}</small>
+      </span>
     </Link>
   );
 }
@@ -94,15 +100,15 @@ function Kpis({ data }: { data: Dashboard }) {
   const { t, i18n } = useTranslation();
   return (
     <div className="ui-metrics ui-kpis">
-      <Kpi to="/devices" label={t("dashboard.devices")} value={data.device_count} note={t("dashboard.onlineNote", { count: data.online_count })} />
-      <Kpi to="/devices" search={{ status: "online" }} label={t("dashboard.online")} value={data.online_count} note={t("dashboard.reachable")} />
-      <Kpi to="/devices" search={{ status: "offline" }} label={t("dashboard.offline")} value={data.offline_count} note={t("dashboard.toCheck")} tone={data.offline_count ? "danger" : undefined} />
-      <Kpi to="/backups" label={t("dashboard.backupProtected")} value={data.backup_protected_count} note={t("dashboard.coveragePercent", { percent: formatPercent(data.backup_coverage_percent, i18n.language) })} />
-      <Kpi to="/vulnerabilities" label={t("dashboard.severeCve")} value={data.severe_cve_device_count} note={t("dashboard.devicesInvolved")} tone={data.severe_cve_device_count ? "danger" : undefined} />
-      <Kpi to="/firmware" label={t("dashboard.firmware")} value={data.firmware_attention_count} note={t("dashboard.firmwareNote")} tone={data.firmware_attention_count ? "warning" : undefined} />
-      <Kpi to="/action-center" label={t("nav.actionCenter")} value={data.open_issue_count} note={t("dashboard.criticalNote", { count: data.critical_issue_count })}
+      <Kpi icon="devices" to="/devices" label={t("dashboard.devices")} value={data.device_count} note={t("dashboard.onlineNote", { count: data.online_count })} />
+      <Kpi icon="monitoring" to="/devices" search={{ status: "online" }} label={t("dashboard.online")} value={data.online_count} note={t("dashboard.reachable")} />
+      <Kpi icon="incidents" to="/devices" search={{ status: "offline" }} label={t("dashboard.offline")} value={data.offline_count} note={t("dashboard.toCheck")} tone={data.offline_count ? "danger" : undefined} />
+      <Kpi icon="backup" to="/backups" label={t("dashboard.backupProtected")} value={data.backup_protected_count} note={t("dashboard.coveragePercent", { percent: formatPercent(data.backup_coverage_percent, i18n.language) })} />
+      <Kpi icon="vulnerabilities" to="/vulnerabilities" label={t("dashboard.severeCve")} value={data.severe_cve_device_count} note={t("dashboard.devicesInvolved")} tone={data.severe_cve_device_count ? "danger" : undefined} />
+      <Kpi icon="firmware" to="/firmware" label={t("dashboard.firmware")} value={data.firmware_attention_count} note={t("dashboard.firmwareNote")} tone={data.firmware_attention_count ? "warning" : undefined} />
+      <Kpi icon="action" to="/action-center" label={t("nav.actionCenter")} value={data.open_issue_count} note={t("dashboard.criticalNote", { count: data.critical_issue_count })}
         tone={data.critical_issue_count ? "danger" : data.open_issue_count ? "warning" : undefined} />
-      <Kpi to="/lifecycle" label={t("dashboard.eol")} value={data.eol_count} note={t("dashboard.eolNote")} tone={data.eol_count ? "warning" : undefined} />
+      <Kpi icon="lifecycle" to="/lifecycle" label={t("dashboard.eol")} value={data.eol_count} note={t("dashboard.eolNote")} tone={data.eol_count ? "warning" : undefined} />
     </div>
   );
 }

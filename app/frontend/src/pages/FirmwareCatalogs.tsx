@@ -6,6 +6,7 @@ import { useCatalogAction, useVendorCatalogs, type VendorCatalog, type VendorRel
 import { BrandIcon } from "../app/BrandIcon";
 import { formatDate } from "../lib/format";
 import { useFormError } from "./CustomerForm";
+import { Loading } from "../app/States";
 
 /** One firmware catalog per non-MikroTik brand in the inventory: UISP, the official update service, or operator releases. */
 export function FirmwareCatalogs() {
@@ -46,7 +47,7 @@ export function FirmwareCatalogs() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : data.catalogs.length ? (
         data.catalogs.map((catalog) => <Catalog key={catalog.brand} catalog={catalog} canExecute={data.can_execute} />)
       ) : (

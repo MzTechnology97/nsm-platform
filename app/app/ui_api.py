@@ -23,7 +23,7 @@ from app.security import csrf_token
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 LANGUAGES = ("it", "en", "fr", "es")
-THEMES = ("light", "dark")
+THEMES = ("light", "dark", "system")  # system: follows the operating system
 UNSAFE = {"POST", "PUT", "PATCH", "DELETE"}
 
 

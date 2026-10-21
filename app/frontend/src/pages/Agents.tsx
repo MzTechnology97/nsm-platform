@@ -7,6 +7,7 @@ import { BrandIcon } from "../app/BrandIcon";
 import { AGENT_STATES, type AgentFilters, type AgentRow, useAgentFleet } from "../api/operations";
 import { formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
+import { Loading } from "../app/States";
 
 /** Summary counter shown on each state chip. */
 const CHIP_COUNT: Record<(typeof AGENT_STATES)[number], string> = {
@@ -80,7 +81,7 @@ export function Agents() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : data.items.length ? (
         <>
           <div className="ui-data-wrap" aria-busy={query.isFetching}>

@@ -6,6 +6,7 @@ import { ApiError } from "../api/client";
 import { AdminTabs } from "../app/AdminTabs";
 import { formatDateTime } from "../lib/format";
 import { SyslogGuides } from "../app/SyslogGuides";
+import { Loading } from "../app/States";
 
 export function AdminSyslog() {
   const { t } = useTranslation();
@@ -23,7 +24,7 @@ export function AdminSyslog() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <>
           {!data.settings.allowed_networks.length && <div className="ui-alert ui-alert-warning">{t("syslogAdmin.noNetworks")}</div>}

@@ -6,6 +6,7 @@ import { type ComplianceResultDetail, useComplianceResult, useComplianceResultAc
 import { BrandIcon } from "../app/BrandIcon";
 import { formatDateTime } from "../lib/format";
 import { useFormError } from "./CustomerForm";
+import { Loading } from "../app/States";
 
 const MARK = { pass: "✓", fail: "✗", unknown: "?", not_applicable: "–" } as const;
 
@@ -23,7 +24,7 @@ export function ComplianceResult() {
   const data = query.data;
 
   if (query.error) return <section className="ui-page"><div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div></section>;
-  if (!data) return <section className="ui-page"><div className="ui-empty">{t("app.loading")}</div></section>;
+  if (!data) return <section className="ui-page"><Loading /></section>;
   const title = t(`compliance.controls.${data.control_id}`, { defaultValue: data.control?.title ?? data.control_id });
   const state = data.exception ? t("complianceResult.inException") : t(`compliance.result.${data.status}`);
 

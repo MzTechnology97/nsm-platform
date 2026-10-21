@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { type CreatedDevice, useCustomerWrite, useNewDeviceForm } from "../api/customer";
 import { EnrollmentCommand } from "../app/EnrollmentCommand";
 import { useFormError } from "./CustomerForm";
+import { Loading } from "../app/States";
 
 type Fields = {
   vendor: string;
@@ -34,7 +35,7 @@ export function DeviceNew() {
   const data = query.data;
 
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
 
   const created = create.data;
   if (created?.enrollment_command) {

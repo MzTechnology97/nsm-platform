@@ -7,6 +7,7 @@ import { INCIDENT_STATUSES, type IncidentFilters, type IncidentRow, type Inciden
 import { BrandIcon } from "../app/BrandIcon";
 import { formatDateTime, formatRelative, formatSpan } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
+import { Loading } from "../app/States";
 
 const FILTERS: IncidentStatusFilter[] = ["active", ...INCIDENT_STATUSES, "all"];
 const SEVERITY_TONE: Record<string, string> = {
@@ -64,7 +65,7 @@ export function Incidents() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !first ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : items.length ? (
         <>
           <div className="ui-data-wrap" aria-busy={query.isFetching}>

@@ -7,6 +7,7 @@ import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
 import { formatDateTime } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
+import { Loading } from "../app/States";
 
 const SEVERITIES = ["critical", "high", "warning", "medium", "low", "info"] as const;
 const SEVERITY_TONE: Record<string, string> = {
@@ -82,7 +83,7 @@ export function AuditEvents() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !first ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : items.length ? (
         <>
           <div className="ui-data-wrap" aria-busy={query.isFetching}>

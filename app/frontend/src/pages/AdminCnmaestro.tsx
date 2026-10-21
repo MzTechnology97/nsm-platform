@@ -6,6 +6,7 @@ import { type CnmaestroAdmin, useCnmaestroAdmin, useConnectorAction } from "../a
 import { AdminTabs } from "../app/AdminTabs";
 import { IntegrationTabs } from "../app/IntegrationTabs";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 export function AdminCnmaestro() {
   const { t } = useTranslation();
@@ -27,7 +28,7 @@ export function AdminCnmaestro() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <>
           <Status data={data} />

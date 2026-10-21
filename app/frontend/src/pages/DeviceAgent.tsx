@@ -5,6 +5,7 @@ import { type AgentStatus, useAgent, useAgentReinstall, useAgentUpdate } from ".
 import { EnrollmentCommand } from "../app/EnrollmentCommand";
 import { formatDateTime, formatRelative } from "../lib/format";
 import { Metric } from "./DeviceDetail";
+import { Loading } from "../app/States";
 
 const TONE: Record<AgentStatus["installation"]["severity"], string> = {
   success: "ui-alert ui-alert-success",
@@ -20,7 +21,7 @@ export function DeviceAgent() {
   const reinstall = useAgentReinstall(deviceId);
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const { installation, heartbeat, update, credential } = data;
   const installTone = installation.severity === "critical" ? "danger" : installation.severity === "warning" ? "warning" : undefined;
 

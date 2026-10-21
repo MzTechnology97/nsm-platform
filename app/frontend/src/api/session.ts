@@ -4,7 +4,7 @@ import { api, setCsrfToken } from "./client";
 
 export interface Session {
   user: { id: string; username: string; display_name: string; role: string; role_label: string; permissions: string[] };
-  preferences: { language: string | null; theme: "light" | "dark" };
+  preferences: { language: string | null; theme: "light" | "dark" | "system" };
   branding: { portal_name: string; tagline: string; primary_color: string; sidebar_color: string; highlight_color: string; has_logo: boolean; logo_version: string };
   csrf_token: string;
   version: string;

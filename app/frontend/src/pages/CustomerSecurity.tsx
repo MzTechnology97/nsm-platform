@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { type CustomerSecurity as Data, type SecurityDevice, useCustomerSecurity } from "../api/customer";
 import { BrandIcon } from "../app/BrandIcon";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 const formatDate = (value: string, locale: string) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(value));
 
@@ -25,7 +26,7 @@ export function CustomerSecurity() {
   const query = useCustomerSecurity(customerId);
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   return (
     <>
       <div className="ui-metrics">

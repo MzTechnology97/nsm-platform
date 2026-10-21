@@ -6,6 +6,7 @@ import { BrandIcon } from "../app/BrandIcon";
 import { EXPOSURE_VIEWS, type ExposureFilters, type ExposureRow, useExposure } from "../api/security";
 import { formatRelative } from "../lib/format";
 import { SEVERITY_TONE } from "./Vulnerabilities";
+import { Loading } from "../app/States";
 
 const VIEW_COUNT = { exposed: "exposed", setup: "setup", clean: "clean", pending: "pending", all: "total" } as const;
 
@@ -51,7 +52,7 @@ export function Exposure() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : data.items.length ? (
         <>
           <div className="ui-data-wrap" aria-busy={query.isFetching}>

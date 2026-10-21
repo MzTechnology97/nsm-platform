@@ -8,6 +8,7 @@ import { useDeviceFacets } from "../api/devices";
 import { type AdvisoryDetail, useAdvisory, useVulnerabilities, VULN_SEVERITIES, type VulnFilters, type VulnStatus } from "../api/security";
 import { formatDateTime } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
+import { Loading } from "../app/States";
 
 export const SEVERITY_TONE: Record<string, string> = {
   critical: "ui-severity ui-severity-critical",
@@ -80,7 +81,7 @@ export function Vulnerabilities() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !first ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : rows.length ? (
         <>
           <div className="ui-data-wrap" aria-busy={query.isFetching}>
@@ -143,7 +144,7 @@ export function VulnerabilityDetail() {
     const status = query.error instanceof ApiError ? query.error.status : 0;
     return <div className="ui-empty">{status === 404 ? t("vulns.notFound") : t("app.error")}</div>;
   }
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const set = (patch: { customer?: string; status?: VulnStatus }) => void navigate({ search: (previous: typeof search) => ({ ...previous, ...patch }), replace: true });
 
   return (

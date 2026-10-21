@@ -6,6 +6,7 @@ import { useDevice } from "../api/device";
 import { columns, RANGES, type Range, useIcmpSettings, useLatency, useMetrics, useSaveIcmp, useSaveTrafficInterfaces, useTraffic, useTrafficInterfaces, useWireless } from "../api/monitor";
 import { formatValue } from "../charts/format";
 import { TimeChart } from "../charts/TimeChart";
+import { Loading } from "../app/States";
 
 export function DeviceMonitor() {
   const { t } = useTranslation();
@@ -298,7 +299,7 @@ function InterfacePicker({ id, onDone }: { id: string; onDone: () => void }) {
     if (data) setChosen(new Set(data.rows.filter((row) => row.monitored).map((row) => row.name)));
   }, [data]);
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const toggle = (name: string) => {
     const next = new Set(chosen);
     if (next.has(name)) next.delete(name);

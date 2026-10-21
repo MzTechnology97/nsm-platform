@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { type DeviceFilters, type DeviceRow, useDeviceFacets, useDevices } from "../api/devices";
 import { can, useSession } from "../api/session";
 import { BrandIcon } from "../app/BrandIcon";
+import { EmptyState, Loading } from "../app/States";
 import { formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 
@@ -42,6 +43,7 @@ export function Devices() {
   }, [q]);
 
   const filters = useMemo<DeviceFilters>(() => ({ ...search, sort: search.sort ?? "name", dir: search.dir ?? "asc" }), [search]);
+  const activeFilters = Object.entries(search).filter(([key, value]) => value && key !== "sort" && key !== "dir").length;
   const query = useDevices(filters);
   const rows = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
   const first = query.data?.pages[0];
@@ -62,13 +64,18 @@ export function Devices() {
     update({ sort: column, dir: filters.sort === column && filters.dir === "asc" ? "desc" : "asc" });
 
   const canImport = can(session.data, "users.manage");
+  const filtered = Object.keys(search).length > 0 || Boolean(text);
+  const resetFilters = () => {
+    setText("");
+    void navigate({ search: {}, replace: true });
+  };
 
   return (
     <section className="ui-page ui-devices">
       <header className="ui-page-header ui-page-header-row">
         <div>
           <h1>{t("devices.title")}</h1>
-          <p>{t("devices.subtitle", { count: total })}</p>
+          <p>{query.isPending ? t("app.loading") : t("devices.subtitle", { count: total })}</p>
         </div>
         <div className="ui-actions">
           {canImport && <Link className="ui-button ui-button-ghost" to="/devices/import">{t("deviceImport.open")}</Link>}
@@ -134,16 +141,9 @@ export function Devices() {
             </option>
           ))}
         </select>
-        {(Object.keys(search).length > 0 || text) && (
-          <button
-            type="button"
-            className="ui-button ui-button-ghost"
-            onClick={() => {
-              setText("");
-              void navigate({ search: {}, replace: true });
-            }}
-          >
-            {t("devices.reset")}
+        {filtered && (
+          <button type="button" className="ui-button ui-button-ghost" onClick={resetFilters}>
+            {t("devices.reset")}{activeFilters > 0 && <span className="ui-chip-count">{activeFilters}</span>}
           </button>
         )}
       </div>
@@ -164,8 +164,15 @@ export function Devices() {
               {t("app.retry")}
             </button>
           </div>
-        ) : !query.isPending && rows.length === 0 ? (
-          <div className="ui-empty">{t("devices.empty")}</div>
+        ) : query.isPending ? (
+          <Loading variant="table" rows={8} />
+        ) : rows.length === 0 ? (
+          filtered ? (
+            <EmptyState title={t("devices.empty")} hint={t("devices.emptyHint")}
+              action={<button type="button" className="ui-button" onClick={resetFilters}>{t("devices.reset")}</button>} />
+          ) : (
+            <EmptyState icon="devices" title={t("devices.none")} hint={t("devices.noneHint")} />
+          )
         ) : (
           <div ref={parent} className="ui-table-body">
             <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>

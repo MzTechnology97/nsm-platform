@@ -8,6 +8,7 @@ import { formatValue } from "../charts/format";
 import { describeCron } from "../lib/cron";
 import { formatDateTime, formatRelative } from "../lib/format";
 import { Metric } from "./DeviceDetail";
+import { Loading } from "../app/States";
 
 const KINDS: BackupFilters["kind"][] = ["all", "binary", "export"];
 const STATUSES: BackupFilters["status"][] = ["all", "success", "failed"];
@@ -20,7 +21,7 @@ export function DeviceBackups() {
   const data = query.data;
 
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const filtered = filters.kind !== "all" || filters.status !== "all";
 
   return (

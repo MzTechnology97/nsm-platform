@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useGlobalSearch } from "../api/personal";
 import { BrandIcon } from "../app/BrandIcon";
 import { Icon } from "../app/Icon";
+import { Loading } from "../app/States";
 
 /** Global search: devices (with vendor icon), customers and sites, by name, MAC, serial, IP or address. */
 export function Search() {
@@ -37,7 +38,7 @@ export function Search() {
       ) : query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <>
           <p className="ui-muted">{t("search.summary", { q: data.q, count: data.devices.length + data.customers.length + data.sites.length })}</p>
