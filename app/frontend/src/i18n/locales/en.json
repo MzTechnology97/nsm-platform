@@ -32,7 +32,8 @@
       "security": "Security",
       "governance": "Governance",
       "admin": "Platform"
-    }
+    },
+    "sla": "Customer SLA"
   },
   "user": {
     "language": "Language",
@@ -4827,6 +4828,64 @@
       "body": "Write the entry (at most 4000 characters).",
       "occurred_at": "The date must be within the last year and not in the future.",
       "forbidden": "Only its author or an administrator can delete it."
+    }
+  },
+  "sla": {
+    "title": "Customer SLA",
+    "subtitle": "Monthly availability of each customer against the agreed target, measured by ping from NSM.",
+    "month": "Month",
+    "export": "Export CSV",
+    "running": "Current month: measured up to {{when}}.",
+    "verdicts": {
+      "met": "Met",
+      "missed": "Missed",
+      "not_measured": "Not measured",
+      "no_target": "No target"
+    },
+    "verdictHelp": {
+      "met": "availability ≥ target",
+      "missed": "availability below target",
+      "not_measured": "target without ping monitoring",
+      "no_target": "no SLA agreed"
+    },
+    "columns": {
+      "customer": "Customer",
+      "target": "Target",
+      "availability": "Availability",
+      "budget": "Downtime budget",
+      "devices": "Devices",
+      "verdict": "Result"
+    },
+    "budgetTip": "The downtime the target allows in the month (for example 99.9% over 30 days = 43 minutes) and how much of it the measured availability has used. Over 100% the target is missed.",
+    "budgetValue": "{{used}} of {{budget}} ({{percent}}%)",
+    "budgetTitle": "{{used}} used of the {{budget}} allowed",
+    "downtime": "measured downtime {{value}}",
+    "measured_one": "{{count}} measured",
+    "measured_other": "{{count}} measured",
+    "below_one": "{{count}} below target",
+    "below_other": "{{count}} below target",
+    "noMeasure": "none with ping",
+    "noTarget": "none",
+    "edit": "Edit",
+    "save": "Save",
+    "clear": "Remove",
+    "openCustomer": "open customer",
+    "empty": "No customers.",
+    "unmeasured_one": "{{count}} device of this customer has no ping monitoring: it is not counted.",
+    "unmeasured_other": "{{count}} devices of this customer have no ping monitoring: they are not counted.",
+    "method": "Availability: share of successful ping checks (3 echoes every 2 minutes from the NSM server, one reply is enough), average of the customer's devices weighted by checks. Devices below target are compared with the customer's target, or with {{target}}% when none is agreed. Ping monitoring is enabled per device from Monitor.",
+    "customerTarget": "SLA target {{value}}% · see trend",
+    "device": {
+      "name": "Device",
+      "downtime": "Downtime",
+      "outages": "Outages",
+      "longest": "Longest",
+      "loss": "Loss",
+      "rtt": "Avg RTT"
+    },
+    "errors": {
+      "target": "The target must be a number between 50 and 100.",
+      "month": "Invalid month."
     }
   }
 }

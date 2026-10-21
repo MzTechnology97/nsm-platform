@@ -30,7 +30,7 @@ export function CustomerDetail() {
 }
 
 function CustomerShell({ detail }: { detail: Detail }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { customer, counts } = detail;
   return (
     <section className="ui-page ui-device">
@@ -48,6 +48,13 @@ function CustomerShell({ detail }: { detail: Detail }) {
             {[customer.code, t("customers.sites", { count: counts.sites }), t("customer.devices", { count: counts.devices })].filter(Boolean).join(" · ")}
           </p>
           {customer.notes && <p className="ui-muted">{customer.notes}</p>}
+          {customer.sla_target != null && (
+            <p className="ui-muted">
+              <Link to="/sla" search={{ customer: customer.id }}>
+                {t("sla.customerTarget", { value: new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 2 }).format(customer.sla_target) })}
+              </Link>
+            </p>
+          )}
         </div>
         <div className="ui-actions">
           {detail.actions.incidents && (

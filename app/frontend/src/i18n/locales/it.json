@@ -32,7 +32,8 @@
       "security": "Sicurezza",
       "governance": "Governance",
       "admin": "Piattaforma"
-    }
+    },
+    "sla": "SLA clienti"
   },
   "user": {
     "language": "Lingua",
@@ -4827,6 +4828,64 @@
       "body": "Scrivi la nota (al massimo 4000 caratteri).",
       "occurred_at": "La data deve essere nell'ultimo anno e non nel futuro.",
       "forbidden": "Solo chi l'ha scritta o un amministratore può eliminarla."
+    }
+  },
+  "sla": {
+    "title": "SLA clienti",
+    "subtitle": "Disponibilità mensile di ogni cliente rispetto all'obiettivo concordato, misurata con il ping da NSM.",
+    "month": "Mese",
+    "export": "Esporta CSV",
+    "running": "Mese in corso: misurato fino al {{when}}.",
+    "verdicts": {
+      "met": "Rispettato",
+      "missed": "Non rispettato",
+      "not_measured": "Senza misura",
+      "no_target": "Senza obiettivo"
+    },
+    "verdictHelp": {
+      "met": "disponibilità ≥ obiettivo",
+      "missed": "disponibilità sotto l'obiettivo",
+      "not_measured": "obiettivo senza monitoraggio ping",
+      "no_target": "nessun SLA concordato"
+    },
+    "columns": {
+      "customer": "Cliente",
+      "target": "Obiettivo",
+      "availability": "Disponibilità",
+      "budget": "Budget di fermo",
+      "devices": "Apparati",
+      "verdict": "Esito"
+    },
+    "budgetTip": "Il tempo di fermo che l'obiettivo consente nel mese (per esempio 99,9% su 30 giorni = 43 minuti) e quanto ne è già stato usato dalla disponibilità misurata. Oltre il 100% l'obiettivo non è rispettato.",
+    "budgetValue": "{{used}} su {{budget}} ({{percent}}%)",
+    "budgetTitle": "Usati {{used}} dei {{budget}} consentiti",
+    "downtime": "fermo misurato {{value}}",
+    "measured_one": "{{count}} misurato",
+    "measured_other": "{{count}} misurati",
+    "below_one": "{{count}} sotto obiettivo",
+    "below_other": "{{count}} sotto obiettivo",
+    "noMeasure": "nessuno con ping",
+    "noTarget": "nessuno",
+    "edit": "Modifica",
+    "save": "Salva",
+    "clear": "Rimuovi",
+    "openCustomer": "apri cliente",
+    "empty": "Nessun cliente.",
+    "unmeasured_one": "{{count}} apparato del cliente non ha il monitoraggio ping: non entra nel calcolo.",
+    "unmeasured_other": "{{count}} apparati del cliente non hanno il monitoraggio ping: non entrano nel calcolo.",
+    "method": "Disponibilità: quota di controlli ping riusciti (3 echo ogni 2 minuti dal server NSM, basta una risposta), media degli apparati del cliente pesata sui controlli. Gli apparati sotto obiettivo sono confrontati con l'obiettivo del cliente, o con il {{target}}% se non è concordato. Il monitoraggio ping si attiva per apparato da Monitor.",
+    "customerTarget": "Obiettivo SLA {{value}}% · vedi andamento",
+    "device": {
+      "name": "Apparato",
+      "downtime": "Fermo",
+      "outages": "Interruzioni",
+      "longest": "Più lunga",
+      "loss": "Perdita",
+      "rtt": "RTT medio"
+    },
+    "errors": {
+      "target": "L'obiettivo deve essere un numero tra 50 e 100.",
+      "month": "Mese non valido."
     }
   }
 }

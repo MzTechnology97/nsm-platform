@@ -152,7 +152,8 @@ def customer_detail(request: Request, customer_id: uuid.UUID):
         lifecycle = sum(1 for d in devices if str(d.lifecycle_status or "").lower() in ("eol", "eos"))
         unassigned = [d for d in devices if d.site_id is None]
         return {
-            "customer": {"id": str(customer.id), "name": customer.name, "code": customer.code, "active": bool(customer.is_active), "notes": customer.notes},
+            "customer": {"id": str(customer.id), "name": customer.name, "code": customer.code, "active": bool(customer.is_active), "notes": customer.notes,
+                         "sla_target": customer.sla_target_pct},
             "counts": {"devices": len(devices), "sites": len(customer.sites), "online": by_status.get("online", 0), "offline": by_status.get("offline", 0),
                        "pending": sum(n for status, n in by_status.items() if status.startswith("pending")), "unassigned": len(unassigned)},
             "metrics": {"severe": metrics["severe_cve_devices"], "updates": metrics["updates"], "alerts": metrics["alerts"],
@@ -195,7 +196,7 @@ def customer_graphs_summary(request: Request, customer_id: uuid.UUID, site: str 
         devices = customer_graphs.scope_devices(db, customer, site_id)
         scope = [d.id for d in devices]
         overview = customer_graphs.site_overview(db, customer, now) if not selected else []
-        section = availability.report_section(db, scope, now - timedelta(days=30), now)
+        section = availability.report_section(db, scope, now - timedelta(days=30), now, customer.sla_target_pct)
         return {
             "site": {"id": str(selected.id), "name": selected.name} if selected else None,
             "sites": [{"id": str(s.id), "name": s.name} for s in sorted(customer.sites, key=lambda s: s.name.lower())],

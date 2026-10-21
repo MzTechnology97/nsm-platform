@@ -14,7 +14,7 @@ export interface CustomerSite {
 }
 
 export interface CustomerDetail {
-  customer: { id: string; name: string; code: string | null; active: boolean; notes: string | null };
+  customer: { id: string; name: string; code: string | null; active: boolean; notes: string | null; sla_target?: number | null };
   counts: { devices: number; sites: number; online: number; offline: number; pending: number; unassigned: number };
   metrics: {
     severe: number;

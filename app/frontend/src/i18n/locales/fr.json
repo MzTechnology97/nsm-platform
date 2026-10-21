@@ -32,7 +32,8 @@
       "security": "Sécurité",
       "governance": "Gouvernance",
       "admin": "Plateforme"
-    }
+    },
+    "sla": "SLA clients"
   },
   "user": {
     "language": "Langue",
@@ -4827,6 +4828,64 @@
       "body": "Écrivez l'entrée (4000 caractères au maximum).",
       "occurred_at": "La date doit être dans la dernière année et pas dans le futur.",
       "forbidden": "Seul son auteur ou un administrateur peut la supprimer."
+    }
+  },
+  "sla": {
+    "title": "SLA clients",
+    "subtitle": "Disponibilité mensuelle de chaque client par rapport à l'objectif convenu, mesurée par ping depuis NSM.",
+    "month": "Mois",
+    "export": "Exporter CSV",
+    "running": "Mois en cours : mesuré jusqu'au {{when}}.",
+    "verdicts": {
+      "met": "Respecté",
+      "missed": "Non respecté",
+      "not_measured": "Sans mesure",
+      "no_target": "Sans objectif"
+    },
+    "verdictHelp": {
+      "met": "disponibilité ≥ objectif",
+      "missed": "disponibilité sous l'objectif",
+      "not_measured": "objectif sans surveillance ping",
+      "no_target": "aucun SLA convenu"
+    },
+    "columns": {
+      "customer": "Client",
+      "target": "Objectif",
+      "availability": "Disponibilité",
+      "budget": "Budget d'indisponibilité",
+      "devices": "Équipements",
+      "verdict": "Résultat"
+    },
+    "budgetTip": "Le temps d'arrêt que l'objectif autorise dans le mois (par exemple 99,9 % sur 30 jours = 43 minutes) et la part déjà consommée par la disponibilité mesurée. Au-delà de 100 % l'objectif n'est pas respecté.",
+    "budgetValue": "{{used}} sur {{budget}} ({{percent}} %)",
+    "budgetTitle": "{{used}} utilisés sur les {{budget}} autorisés",
+    "downtime": "arrêt mesuré {{value}}",
+    "measured_one": "{{count}} mesuré",
+    "measured_other": "{{count}} mesurés",
+    "below_one": "{{count}} sous l'objectif",
+    "below_other": "{{count}} sous l'objectif",
+    "noMeasure": "aucun avec ping",
+    "noTarget": "aucun",
+    "edit": "Modifier",
+    "save": "Enregistrer",
+    "clear": "Retirer",
+    "openCustomer": "ouvrir le client",
+    "empty": "Aucun client.",
+    "unmeasured_one": "{{count}} équipement de ce client n'a pas de surveillance ping : il n'est pas compté.",
+    "unmeasured_other": "{{count}} équipements de ce client n'ont pas de surveillance ping : ils ne sont pas comptés.",
+    "method": "Disponibilité : part des contrôles ping réussis (3 echo toutes les 2 minutes depuis le serveur NSM, une réponse suffit), moyenne des équipements du client pondérée par les contrôles. Les équipements sous l'objectif sont comparés à l'objectif du client, ou à {{target}} % s'il n'est pas convenu. La surveillance ping s'active par équipement depuis Monitor.",
+    "customerTarget": "Objectif SLA {{value}} % · voir l'évolution",
+    "device": {
+      "name": "Équipement",
+      "downtime": "Arrêt",
+      "outages": "Coupures",
+      "longest": "La plus longue",
+      "loss": "Perte",
+      "rtt": "RTT moyen"
+    },
+    "errors": {
+      "target": "L'objectif doit être un nombre entre 50 et 100.",
+      "month": "Mois non valide."
     }
   }
 }

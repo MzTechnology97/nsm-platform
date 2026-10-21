@@ -4,6 +4,22 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.181 — 2026-10-21
+
+Customer SLA
+- **New "Customer SLA" page** under Governance. For each customer and calendar month, it shows:
+  - the agreed availability target and the measured availability;
+  - the downtime budget: how much of the downtime the target allows is already used (99.9% over 30 days allows 43 minutes);
+  - the measured devices, and those below target;
+  - the verdict: met, missed, not measured, or no target.
+- **Month view.** Customers that missed come first. The current month is measured up to now and labelled as running. The last 12 months can be chosen.
+- **Per-device detail.** Open a customer to see each device's availability, downtime, outages, longest outage, loss and latency, and how many of its devices have no ping monitoring.
+- **Targets.** Set or remove a customer's target from the page (50–100%, two decimals; needs `customers.write`). Every change is recorded in the activity log.
+- **CSV export** of the month, recorded in the activity log.
+- **Same measure as the report.** Availability is the ICMP measure already used in the report (one ping round every 2 minutes, a reply = up).
+  - A customer report and the customer's 30-day availability now compare against the customer's own target instead of the fixed 99%.
+  - The customer page shows the target, with a link to the SLA page.
+- Migration 0044 (`customers.sla_target_pct`).
 ## 0.49.180 — 2026-10-21
 
 Device logbook

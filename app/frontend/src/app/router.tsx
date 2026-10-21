@@ -303,6 +303,16 @@ const auditEventsRoute = createRoute({
     return out;
   },
 });
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const slaRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/sla",
+  component: lazyRouteComponent(() => import("../pages/Sla"), "Sla"),
+  validateSearch: (search: Record<string, unknown>): { month?: string; customer?: string } => ({
+    ...(typeof search.month === "string" && /^\d{4}-\d{2}$/.test(search.month) ? { month: search.month } : {}),
+    ...(typeof search.customer === "string" && UUID_RE.test(search.customer) ? { customer: search.customer } : {}),
+  }),
+});
 const reportsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/reports",
@@ -569,6 +579,7 @@ export const routeTree = rootRoute.addChildren([
   incidentNewRoute,
   auditEventsRoute,
   reportsRoute,
+  slaRoute,
   adminUsersRoute,
   adminApiKeysRoute,
   adminSystemRoute,

@@ -677,3 +677,84 @@
   padding-left: var(--space-4);
 }
 
+
+/* Customer SLA page: verdict counters, budget meter, inline target editing, per-device detail. */
+.ui-sla-metrics {
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  margin-bottom: var(--space-4);
+}
+
+.ui-sla-table td {
+  vertical-align: top;
+}
+
+.ui-sla-table tr.is-open td {
+  background: var(--surface-soft);
+}
+
+.ui-sla-toggle {
+  display: inline-flex;
+  gap: 6px;
+  color: inherit;
+  text-align: left;
+}
+
+.ui-sla-customer-link {
+  margin-left: 18px;
+  font-size: 12px;
+}
+
+.ui-sla-target {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.ui-sla-target-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ui-sla-target-form input {
+  width: 88px;
+  padding: 4px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
+.ui-sla-budget {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 150px;
+}
+
+.ui-sla-budget svg {
+  width: 100%;
+  height: 6px;
+}
+
+.ui-sla-budget small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ui-sla-detail-row > td {
+  padding: 0 var(--space-3) var(--space-3);
+  background: var(--surface-soft);
+}
+
+.ui-sla-detail {
+  overflow-x: auto;
+}
+
+.ui-sla-method {
+  margin-top: var(--space-3);
+  font-size: 12px;
+}
