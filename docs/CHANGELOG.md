@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.186 — 2026-10-21
+
+New look, step 4: dashboard
+- **Live pill in the top bar.** Next to the breadcrumbs, a green pill reads "aggiornata 16:56 · prossimo tra 23 s" and counts down to the next 30-second refresh. On narrower screens the same line stays in the page.
+- **KPI tiles with rings.** The eight figures (devices, online, offline, protected backups, severe CVEs, firmware, Action Center, end of life) are tinted tiles with a small ring showing their share of the inventory (for Action Center: the share of critical issues). They still open the same filtered lists.
+- **Side column.** "Da guardare" is a dark card: one row per thing to look at, the count first in red, amber or green. "Attività recente" sits below it as a feed with a dot coloured by severity; the result is now in the line under each event.
+- **Main column.** "Stato operativo" (offline devices by age, CVE exposure, devices under load) comes right after the tiles, then the coverage rings. Distribution and the latest advisories follow below.
+- Devices in the dashboard lists keep their vendor icon.
+- On the top bar, the user's name next to the avatar is shown on screens 1600px and wider.
 ## 0.49.185 — 2026-10-21
 
 New look, step 3: device page

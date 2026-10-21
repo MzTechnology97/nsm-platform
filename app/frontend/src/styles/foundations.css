@@ -352,44 +352,9 @@ button.ui-top-search:focus-visible {
   margin-top: var(--space-2);
 }
 
-/* --- Dashboard KPI cards: icon + figure, a regular grid ------------------------------------------- */
+/* --- Dashboard KPI tiles: ring + figure, a regular grid ------------------------------------------- */
 .ui-kpis {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.ui-kpi {
-  flex-direction: row;
-  align-items: flex-start;
-  gap: var(--space-3);
-}
-
-.ui-kpi-icon {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  width: 36px;
-  height: 36px;
-  flex: none;
-  border-radius: 10px;
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.ui-metric-danger .ui-kpi-icon {
-  background: color-mix(in srgb, var(--danger) 12%, transparent);
-  color: var(--danger);
-}
-
-.ui-metric-warning .ui-kpi-icon {
-  background: color-mix(in srgb, var(--warning) 14%, transparent);
-  color: var(--warning);
-}
-
-.ui-kpi-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
 }
 
 @media (max-width: 1100px) {

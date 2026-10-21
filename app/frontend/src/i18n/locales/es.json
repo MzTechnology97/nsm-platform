@@ -2971,7 +2971,8 @@
       "exposed": "Otras CVE abiertas",
       "clean": "Ninguna CVE conocida",
       "unknown": "No evaluables"
-    }
+    },
+    "live": "actualizado {{time}} · próximo en {{seconds}} s"
   },
   "search": {
     "title": "Búsqueda global",

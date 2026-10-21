@@ -275,15 +275,26 @@ samp {
 
 .ui-topbar-actions {
   display: flex;
+  flex: none;
   align-items: center;
   gap: var(--space-2);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 /* Where the page sits: "Operazioni › Apparati". */
 .ui-top-crumbs {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: 40%;
+}
+
+/* Page-specific item of the top bar (e.g. the live refresh pill of the dashboard); the free space follows it. */
+.ui-topbar-slot {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  min-width: 0;
+  margin-right: auto;
 }
 
 .ui-top-crumbs ol {
@@ -366,6 +377,17 @@ samp {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The avatar is enough on most screens; the name joins it on very wide ones. */
+@media (max-width: 1599px) {
+  .ui-user-name {
+    display: none;
+  }
+
+  .ui-user-link {
+    padding: 2px;
+  }
 }
 
 /* Wide and ultrawide screens: the content grows up to 1920px and stays centred instead of hugging the sidebar. */
@@ -617,7 +639,6 @@ select:hover {
   gap: var(--space-2);
   flex: 0 1 340px;
   min-width: 0;
-  margin-left: auto;
   padding: 0 var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
