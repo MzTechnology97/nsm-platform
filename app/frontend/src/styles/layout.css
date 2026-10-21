@@ -69,6 +69,11 @@ samp {
   color: var(--muted);
 }
 
+/* Inside a panel an empty list needs only a short band, not half the screen. */
+.ui-panel .ui-empty {
+  min-height: 120px;
+}
+
 .ui-icon {
   flex: none;
   fill: none;
@@ -622,6 +627,7 @@ select:hover {
   .ui-page-header-row {
     flex-direction: column;
     gap: var(--space-2);
+    margin-bottom: var(--space-3);
   }
 }
 

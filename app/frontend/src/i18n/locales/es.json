@@ -139,7 +139,8 @@
       "progress": "En curso: {{done}} de {{total}}…",
       "finished": "Completado: {{ok}} de {{total}} correctos.",
       "moreFailures": "y {{count}} más"
-    }
+    },
+    "share": "{{percent}} % de los equipos"
   },
   "device": {
     "notFound": "Equipo no encontrado o no visible con tus permisos.",

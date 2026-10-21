@@ -133,8 +133,8 @@
 .ui-chart-legend td,
 .ui-stats-table th,
 .ui-stats-table td {
-  padding: 3px 6px;
-  border-bottom: 1px solid var(--border);
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--divider);
   text-align: right;
 }
 
@@ -148,7 +148,15 @@
 .ui-chart-legend th,
 .ui-stats-table th {
   color: var(--muted);
-  font-weight: 600;
+  font-weight: 800;
+}
+
+/* Small summary tables share the list look: 11px uppercase grey headers. */
+.ui-stats-table th {
+  border-bottom-color: var(--border);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .ui-key {
