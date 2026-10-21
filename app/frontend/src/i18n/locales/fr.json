@@ -4873,7 +4873,7 @@
     "empty": "Aucun client.",
     "unmeasured_one": "{{count}} équipement de ce client n'a pas de surveillance ping : il n'est pas compté.",
     "unmeasured_other": "{{count}} équipements de ce client n'ont pas de surveillance ping : ils ne sont pas comptés.",
-    "method": "Disponibilité : part des contrôles ping réussis (3 echo toutes les 2 minutes depuis le serveur NSM, une réponse suffit), moyenne des équipements du client pondérée par les contrôles. Les équipements sous l'objectif sont comparés à l'objectif du client, ou à {{target}} % s'il n'est pas convenu. La surveillance ping s'active par équipement depuis Monitor.",
+    "method": "Disponibilité : part des contrôles ping réussis (3 echo toutes les 2 minutes depuis le serveur NSM, une réponse suffit), moyenne des équipements du client pondérée par les contrôles. Les équipements sous l'objectif sont comparés à l'objectif du client, ou à {{target}} % s'il n'est pas convenu. La surveillance ping s'active par équipement depuis Monitor. Les périodes de maintenance planifiée sont exclues.",
     "customerTarget": "Objectif SLA {{value}} % · voir l'évolution",
     "device": {
       "name": "Équipement",
@@ -4886,6 +4886,41 @@
     "errors": {
       "target": "L'objectif doit être un nombre entre 50 et 100.",
       "month": "Mois non valide."
+    },
+    "maintenanceExcluded": "maintenance exclue {{value}}"
+  },
+  "maintenance": {
+    "title": "Maintenances planifiées",
+    "help": "Périodes pendant lesquelles les équipements d'un client (tous, ou un seul) peuvent être arrêtés sans peser sur la disponibilité et le SLA.",
+    "tip": "Pendant une fenêtre, les contrôles ping ne comptent ni comme actifs ni comme arrêtés. Une fenêtre sur tout le client réduit aussi le mois sur lequel le budget est calculé. Une fenêtre écrite après son début est marquée rétroactive : elle modifie une mesure déjà prise.",
+    "add": "Planifier une maintenance",
+    "states": {
+      "planned": "Planifiée",
+      "active": "En cours",
+      "done": "Terminée"
+    },
+    "allDevices": "tous les équipements",
+    "retroactive": "Rétroactive : écrite après son début, elle a modifié une disponibilité déjà mesurée.",
+    "delete": "Supprimer",
+    "confirmDelete": "Confirmer la suppression",
+    "empty": "Aucune maintenance dans le mois.",
+    "customer": "Client",
+    "chooseCustomer": "Choisir le client…",
+    "device": "Équipement",
+    "starts": "Début",
+    "ends": "Fin",
+    "reason": "Motif",
+    "reasonPlaceholder": "Ex. remplacement d'alimentation, migration de dorsale…",
+    "save": "Enregistrer la fenêtre",
+    "errors": {
+      "customer": "Choisissez le client.",
+      "device": "L'équipement n'appartient pas au client.",
+      "starts_at": "Début non valide.",
+      "ends_at": "Fin non valide.",
+      "range": "La fin doit être après le début.",
+      "length": "Une fenêtre dure au maximum 7 jours.",
+      "when": "La fenêtre doit être à moins d'un an d'aujourd'hui.",
+      "reason": "Indiquez le motif (3 à 500 caractères)."
     }
   }
 }

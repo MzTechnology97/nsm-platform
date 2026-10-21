@@ -4873,7 +4873,7 @@
     "empty": "No customers.",
     "unmeasured_one": "{{count}} device of this customer has no ping monitoring: it is not counted.",
     "unmeasured_other": "{{count}} devices of this customer have no ping monitoring: they are not counted.",
-    "method": "Availability: share of successful ping checks (3 echoes every 2 minutes from the NSM server, one reply is enough), average of the customer's devices weighted by checks. Devices below target are compared with the customer's target, or with {{target}}% when none is agreed. Ping monitoring is enabled per device from Monitor.",
+    "method": "Availability: share of successful ping checks (3 echoes every 2 minutes from the NSM server, one reply is enough), average of the customer's devices weighted by checks. Devices below target are compared with the customer's target, or with {{target}}% when none is agreed. Ping monitoring is enabled per device from Monitor. Planned maintenance periods are left out.",
     "customerTarget": "SLA target {{value}}% · see trend",
     "device": {
       "name": "Device",
@@ -4886,6 +4886,41 @@
     "errors": {
       "target": "The target must be a number between 50 and 100.",
       "month": "Invalid month."
+    },
+    "maintenanceExcluded": "maintenance excluded {{value}}"
+  },
+  "maintenance": {
+    "title": "Planned maintenance",
+    "help": "Periods when a customer's devices (all, or one) may be down without counting against availability and the SLA.",
+    "tip": "During a window the ping checks count neither as up nor as down. A window on the whole customer also shortens the month the budget is computed on. A window written after it started is marked retroactive: it changes a measure already taken.",
+    "add": "Plan maintenance",
+    "states": {
+      "planned": "Planned",
+      "active": "In progress",
+      "done": "Completed"
+    },
+    "allDevices": "all devices",
+    "retroactive": "Retroactive: written after it started, it changed an availability already measured.",
+    "delete": "Delete",
+    "confirmDelete": "Confirm delete",
+    "empty": "No maintenance in the month.",
+    "customer": "Customer",
+    "chooseCustomer": "Choose the customer…",
+    "device": "Device",
+    "starts": "Start",
+    "ends": "End",
+    "reason": "Reason",
+    "reasonPlaceholder": "E.g. power supply replacement, backbone migration…",
+    "save": "Save window",
+    "errors": {
+      "customer": "Choose the customer.",
+      "device": "The device does not belong to the customer.",
+      "starts_at": "Invalid start.",
+      "ends_at": "Invalid end.",
+      "range": "The end must be after the start.",
+      "length": "A window lasts at most 7 days.",
+      "when": "The window must be within a year from today.",
+      "reason": "Give the reason (3–500 characters)."
     }
   }
 }

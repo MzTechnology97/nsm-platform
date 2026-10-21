@@ -4,8 +4,10 @@ Availability is the one of ``availability`` (ping rounds from NSM, at least one
 reply = up). A customer's availability is the average of its measured devices
 weighted by their rounds, as in the report. The downtime budget of a month is
 the time the target allows to be down: ``(1 - target) x minutes in the month``
-(only the elapsed part for the current month); it is consumed by the
-customer's unavailable time, ``(1 - availability) x measured minutes``.
+(only the elapsed part for the current month, less the maintenance windows on
+all the customer's devices); it is consumed by the customer's unavailable
+time, ``(1 - availability) x the same minutes``. Ping samples inside a
+maintenance window (``maintenance_windows``) count neither as up nor as down.
 
 - ``GET /api/ui/v1/sla?month=YYYY-MM`` (``reports.read``): every customer in
   scope with target, availability, budget and verdict (``met``, ``missed``,
@@ -39,6 +41,7 @@ from app.agent_models import DevicePingSample
 from app.db import SessionLocal
 from app.icmp_monitor import COUNT
 from app.input_errors import InputError
+from app.maintenance_windows import customer_paused_minutes, outside_maintenance
 from app.models import Customer, Device, utcnow
 from app.report_builder import _tz, period_bounds
 from app.ui_api import require_csrf, ui_user
@@ -81,34 +84,45 @@ def recent_months(now: datetime | None = None) -> list[str]:
 
 
 def _rounds_by_device(db, lower: datetime, upper: datetime) -> dict:
-    """Per device: (rounds, rounds up) in the period, weighted as ``availability.device_availability`` does."""
+    """Per device: (customer, rounds, rounds up, rounds in maintenance) in the period, weighted as ``availability.device_availability`` does.
+
+    Rounds inside a maintenance window are counted apart and left out of the first two.
+    """
     weight = func.greatest(1.0, DevicePingSample.sent / float(COUNT))
     replied = case((DevicePingSample.received > 0, func.least(weight, func.ceil(DevicePingSample.received / float(COUNT)))), else_=0.0)
+    outside = outside_maintenance(db, lower, upper)
     rows = db.execute(
-        select(Device.id, Device.customer_id, func.sum(weight), func.sum(replied))
+        select(Device.id, Device.customer_id, func.sum(case((outside, weight), else_=0.0)), func.sum(case((outside, replied), else_=0.0)),
+               func.sum(case((outside, 0.0), else_=weight)))
         .join(DevicePingSample, DevicePingSample.device_id == Device.id)
         .where(DevicePingSample.observed_at >= lower, DevicePingSample.observed_at < upper)
         .group_by(Device.id, Device.customer_id)).all()
-    return {device_id: (customer_id, float(rounds or 0), float(up or 0)) for device_id, customer_id, rounds, up in rows}
+    return {device_id: (customer_id, float(rounds or 0), float(up or 0), float(paused or 0)) for device_id, customer_id, rounds, up, paused in rows}
 
 
 def overview(db, month: str | None = None, now: datetime | None = None) -> dict:
     label, lower, upper, measured_until, running = month_bounds(month, now)
     period_minutes = max(0.0, (measured_until - lower).total_seconds() / 60)
     per_customer: dict = {}
-    for device_id, (customer_id, rounds, up) in _rounds_by_device(db, lower, measured_until).items():
+    maintenance: dict = {}
+    for device_id, (customer_id, rounds, up, paused) in _rounds_by_device(db, lower, measured_until).items():
+        if paused:
+            maintenance[customer_id] = maintenance.get(customer_id, 0.0) + paused
         if rounds:
             per_customer.setdefault(customer_id, []).append((device_id, rounds, up))
+    paused = customer_paused_minutes(db, lower, measured_until)
     rows = []
     for customer in db.scalars(select(Customer).order_by(func.lower(Customer.name))):
+        # A window on all the customer's devices shortens the month the target applies to.
+        minutes = max(0.0, period_minutes - paused.get(customer.id, 0.0))
         devices = per_customer.get(customer.id, [])
         rounds = sum(r for _, r, _ in devices)
         up = sum(u for _, _, u in devices)
         value = round(100.0 * up / rounds, 3) if rounds else None
         below = sum(1 for _, r, u in devices if r and 100.0 * u / r < (customer.sla_target_pct or availability.TARGET_PERCENT))
         target = customer.sla_target_pct
-        budget = round((1 - target / 100.0) * period_minutes, 1) if target is not None else None
-        used = round((1 - value / 100.0) * period_minutes, 1) if value is not None else None
+        budget = round((1 - target / 100.0) * minutes, 1) if target is not None else None
+        used = round((1 - value / 100.0) * minutes, 1) if value is not None else None
         if target is None:
             verdict = "no_target"
         elif value is None:
@@ -117,7 +131,8 @@ def overview(db, month: str | None = None, now: datetime | None = None) -> dict:
             verdict = "met" if value >= target else "missed"
         rows.append({"customer": {"id": str(customer.id), "name": customer.name}, "target": target, "availability": value,
                      "devices": len(devices), "below_target": below, "downtime_minutes": int(round((rounds - up) * availability.ROUND_MINUTES)),
-                     "budget_minutes": budget, "used_minutes": used, "verdict": verdict})
+                     "budget_minutes": budget, "used_minutes": used, "verdict": verdict,
+                     "maintenance_minutes": int(round(maintenance.get(customer.id, 0.0) * availability.ROUND_MINUTES))})
     order = {"missed": 0, "met": 1, "not_measured": 2, "no_target": 3}
     rows.sort(key=lambda row: (order[row["verdict"]], row["availability"] if row["availability"] is not None else 101, row["customer"]["name"].lower()))
     counts = {key: sum(1 for row in rows if row["verdict"] == key) for key in order}

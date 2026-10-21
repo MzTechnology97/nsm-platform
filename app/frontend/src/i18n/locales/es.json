@@ -4873,7 +4873,7 @@
     "empty": "Ningún cliente.",
     "unmeasured_one": "{{count}} equipo de este cliente no tiene monitorización ping: no se cuenta.",
     "unmeasured_other": "{{count}} equipos de este cliente no tienen monitorización ping: no se cuentan.",
-    "method": "Disponibilidad: proporción de controles ping correctos (3 echo cada 2 minutos desde el servidor NSM, basta una respuesta), media de los equipos del cliente ponderada por controles. Los equipos bajo objetivo se comparan con el objetivo del cliente, o con el {{target}} % si no se ha acordado. La monitorización ping se activa por equipo desde Monitor.",
+    "method": "Disponibilidad: proporción de controles ping correctos (3 echo cada 2 minutos desde el servidor NSM, basta una respuesta), media de los equipos del cliente ponderada por controles. Los equipos bajo objetivo se comparan con el objetivo del cliente, o con el {{target}} % si no se ha acordado. La monitorización ping se activa por equipo desde Monitor. Los periodos de mantenimiento programado se excluyen.",
     "customerTarget": "Objetivo SLA {{value}} % · ver evolución",
     "device": {
       "name": "Equipo",
@@ -4886,6 +4886,41 @@
     "errors": {
       "target": "El objetivo debe ser un número entre 50 y 100.",
       "month": "Mes no válido."
+    },
+    "maintenanceExcluded": "mantenimiento excluido {{value}}"
+  },
+  "maintenance": {
+    "title": "Mantenimientos programados",
+    "help": "Periodos en los que los equipos de un cliente (todos o uno) pueden estar caídos sin afectar a la disponibilidad ni al SLA.",
+    "tip": "Durante una ventana los controles ping no cuentan ni como activos ni como caídos. Una ventana sobre todo el cliente también acorta el mes sobre el que se calcula el presupuesto. Una ventana escrita después de su inicio se marca como retroactiva: cambia una medida ya tomada.",
+    "add": "Programar mantenimiento",
+    "states": {
+      "planned": "Programado",
+      "active": "En curso",
+      "done": "Finalizado"
+    },
+    "allDevices": "todos los equipos",
+    "retroactive": "Retroactiva: escrita después del inicio, cambió una disponibilidad ya medida.",
+    "delete": "Eliminar",
+    "confirmDelete": "Confirmar eliminación",
+    "empty": "Ningún mantenimiento en el mes.",
+    "customer": "Cliente",
+    "chooseCustomer": "Elija el cliente…",
+    "device": "Equipo",
+    "starts": "Inicio",
+    "ends": "Fin",
+    "reason": "Motivo",
+    "reasonPlaceholder": "Ej. sustitución de fuente, migración de troncal…",
+    "save": "Guardar ventana",
+    "errors": {
+      "customer": "Elija el cliente.",
+      "device": "El equipo no pertenece al cliente.",
+      "starts_at": "Inicio no válido.",
+      "ends_at": "Fin no válido.",
+      "range": "El fin debe ser posterior al inicio.",
+      "length": "Una ventana dura como máximo 7 días.",
+      "when": "La ventana debe estar a menos de un año de hoy.",
+      "reason": "Indique el motivo (3–500 caracteres)."
     }
   }
 }
