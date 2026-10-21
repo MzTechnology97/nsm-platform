@@ -199,6 +199,26 @@ class AuditEvent(Base):
     details: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
+class DeviceJournalEntry(Base):
+    """Device logbook: what an operator did or saw on a device (site visit, replacement, customer call...).
+
+    Written by people, never by NSM; kept with the device and deleted only with it. Entries are not edited:
+    a wrong entry is deleted (audited) and written again.
+    """
+
+    __tablename__ = "device_journal_entries"
+    __table_args__ = (Index("ix_device_journal_entries_device", "device_id", "occurred_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    device_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("devices.id", ondelete="CASCADE"), nullable=False)
+    kind: Mapped[str] = mapped_column(String(30), default="note", nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    author_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    author_name: Mapped[str | None] = mapped_column(String(150))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
 class DeviceEnrollment(Base):
     __tablename__ = "device_enrollments"
     __table_args__ = (

@@ -53,6 +53,8 @@ _READ_PATHS = re.compile(rf"^/((api/ui/v1/devices|api/v1/devices|devices|api/ui/
 _WRITE_PATHS = re.compile(rf"^/api/ui/v1/devices/({_UUID})(/.*)?$")
 # Changes still allowed on a decommissioned device.
 _ALLOWED_WRITES = {"/reactivate", "/delete"}
+# The logbook stays writable: what happened to a retired device (returned, scrapped) belongs in it.
+_ALLOWED_PREFIXES = ("/logbook",)
 
 
 @contextmanager
@@ -94,7 +96,8 @@ class DecommissionGuard:
         else:
             match = _WRITE_PATHS.match(path)
             if match:
-                if (match.group(2) or "") in _ALLOWED_WRITES:
+                suffix = match.group(2) or ""
+                if suffix in _ALLOWED_WRITES or suffix.startswith(_ALLOWED_PREFIXES):
                     include = True
                 elif await run_in_threadpool(is_decommissioned, match.group(1)):
                     response = JSONResponse({"detail": {"code": "decommissioned", "message": "Il dispositivo è disattivato: riattivalo per operare."}},

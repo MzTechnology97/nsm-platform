@@ -70,6 +70,7 @@ ROLE_PERMISSIONS = {
         "devices.read",
         "devices.write",
         "devices.enroll",
+        "logbook.write",
         "monitoring.read",
         "backup.read",
         "backup.execute",
@@ -92,6 +93,7 @@ ROLE_PERMISSIONS = {
     "operator": {
         "customers.read",
         "devices.read",
+        "logbook.write",
         "monitoring.read",
         "backup.read",
         "backup.execute",

@@ -4785,5 +4785,48 @@
       "customer": "Cliente",
       "site": "Sede"
     }
+  },
+  "logbook": {
+    "title": "Diario apparato",
+    "help": "Cosa è stato fatto su questo apparato: interventi, sostituzioni, contatti con il cliente, note. Le voci non si modificano: una voce sbagliata si elimina (resta nel registro attività) e si riscrive.",
+    "showEvents": "Mostra anche gli eventi registrati",
+    "kind": "Tipo di voce",
+    "kinds": {
+      "note": "Nota",
+      "onsite": "Intervento sul posto",
+      "maintenance": "Manutenzione",
+      "replacement": "Sostituzione",
+      "customer_contact": "Contatto cliente"
+    },
+    "placeholders": {
+      "note": "Annotazione utile a chi lavorerà su questo apparato…",
+      "onsite": "Cosa è stato fatto sul posto, da chi, con quale esito…",
+      "maintenance": "Manutenzione eseguita o programmata…",
+      "replacement": "Cosa è stato sostituito (alimentatore, SFP, apparato) e perché…",
+      "customer_contact": "Chi è stato sentito, cosa è stato concordato…"
+    },
+    "body": "Testo della voce",
+    "when": "Quando",
+    "now": "adesso",
+    "add": "Aggiungi al diario",
+    "written": "scritta {{when}}",
+    "delete": "Elimina",
+    "confirmDelete": "Conferma eliminazione",
+    "empty": "Nessuna voce nel diario.",
+    "emptyAll": "Nessuna voce e nessun evento registrato.",
+    "limit": "Sono mostrate le {{count}} voci più recenti.",
+    "sources": {
+      "portal": "interfaccia",
+      "agent": "agente",
+      "worker": "automatico",
+      "system": "sistema",
+      "api": "API"
+    },
+    "errors": {
+      "kind": "Tipo di voce non valido.",
+      "body": "Scrivi la nota (al massimo 4000 caratteri).",
+      "occurred_at": "La data deve essere nell'ultimo anno e non nel futuro.",
+      "forbidden": "Solo chi l'ha scritta o un amministratore può eliminarla."
+    }
   }
 }

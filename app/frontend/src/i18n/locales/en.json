@@ -4785,5 +4785,48 @@
       "customer": "Customer",
       "site": "Site"
     }
+  },
+  "logbook": {
+    "title": "Device logbook",
+    "help": "What was done on this device: site visits, replacements, customer contacts, notes. Entries are not edited: delete a wrong one (it stays in the activity log) and write it again.",
+    "showEvents": "Also show recorded events",
+    "kind": "Entry type",
+    "kinds": {
+      "note": "Note",
+      "onsite": "Site visit",
+      "maintenance": "Maintenance",
+      "replacement": "Replacement",
+      "customer_contact": "Customer contact"
+    },
+    "placeholders": {
+      "note": "Something useful for whoever works on this device next…",
+      "onsite": "What was done on site, by whom, with what result…",
+      "maintenance": "Maintenance done or planned…",
+      "replacement": "What was replaced (power supply, SFP, device) and why…",
+      "customer_contact": "Who was contacted, what was agreed…"
+    },
+    "body": "Entry text",
+    "when": "When",
+    "now": "now",
+    "add": "Add to logbook",
+    "written": "written {{when}}",
+    "delete": "Delete",
+    "confirmDelete": "Confirm delete",
+    "empty": "No logbook entries.",
+    "emptyAll": "No entries and no recorded events.",
+    "limit": "Showing the {{count}} most recent entries.",
+    "sources": {
+      "portal": "interface",
+      "agent": "agent",
+      "worker": "automatic",
+      "system": "system",
+      "api": "API"
+    },
+    "errors": {
+      "kind": "Invalid entry type.",
+      "body": "Write the entry (at most 4000 characters).",
+      "occurred_at": "The date must be within the last year and not in the future.",
+      "forbidden": "Only its author or an administrator can delete it."
+    }
   }
 }

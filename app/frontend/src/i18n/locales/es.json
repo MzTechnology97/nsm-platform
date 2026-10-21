@@ -4785,5 +4785,48 @@
       "customer": "Cliente",
       "site": "Sede"
     }
+  },
+  "logbook": {
+    "title": "Diario del equipo",
+    "help": "Lo que se hizo en este equipo: intervenciones, sustituciones, contactos con el cliente, notas. Las entradas no se modifican: elimine una entrada errónea (queda en el registro de actividad) y vuelva a escribirla.",
+    "showEvents": "Mostrar también los eventos registrados",
+    "kind": "Tipo de entrada",
+    "kinds": {
+      "note": "Nota",
+      "onsite": "Intervención in situ",
+      "maintenance": "Mantenimiento",
+      "replacement": "Sustitución",
+      "customer_contact": "Contacto con el cliente"
+    },
+    "placeholders": {
+      "note": "Algo útil para quien trabaje después en este equipo…",
+      "onsite": "Qué se hizo in situ, quién, con qué resultado…",
+      "maintenance": "Mantenimiento realizado o previsto…",
+      "replacement": "Qué se sustituyó (fuente, SFP, equipo) y por qué…",
+      "customer_contact": "Con quién se habló, qué se acordó…"
+    },
+    "body": "Texto de la entrada",
+    "when": "Cuándo",
+    "now": "ahora",
+    "add": "Añadir al diario",
+    "written": "escrita {{when}}",
+    "delete": "Eliminar",
+    "confirmDelete": "Confirmar eliminación",
+    "empty": "Ninguna entrada en el diario.",
+    "emptyAll": "Ninguna entrada y ningún evento registrado.",
+    "limit": "Se muestran las {{count}} entradas más recientes.",
+    "sources": {
+      "portal": "interfaz",
+      "agent": "agente",
+      "worker": "automático",
+      "system": "sistema",
+      "api": "API"
+    },
+    "errors": {
+      "kind": "Tipo de entrada no válido.",
+      "body": "Escriba la entrada (como máximo 4000 caracteres).",
+      "occurred_at": "La fecha debe estar en el último año y no en el futuro.",
+      "forbidden": "Solo su autor o un administrador puede eliminarla."
+    }
   }
 }
