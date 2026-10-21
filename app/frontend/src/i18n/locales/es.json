@@ -64,7 +64,8 @@
       "pending": "Por registrar",
       "firmware_attention": "Firmware por revisar",
       "severe": "CVE graves",
-      "eol": "Sin soporte"
+      "eol": "Sin soporte",
+      "decommissioned": "Desactivados"
     },
     "columns": {
       "name": "Equipo",
@@ -2258,7 +2259,8 @@
       "strict": "sin clave desde un router en modo estricto",
       "ambiguous": "IP compartida por varios equipos, nombre de host no concluyente",
       "unknown": "remitente no asociado a un equipo",
-      "quota": "cuota diaria del equipo superada"
+      "quota": "cuota diaria del equipo superada",
+      "decommissioned": "equipo desactivado"
     }
   },
   "nvd": {
@@ -4639,5 +4641,17 @@
     "pending": "esperando la próxima sincronización",
     "exclude": "Excluir de Zabbix",
     "include": "Incluir en Zabbix"
+  },
+  "decommission": {
+    "badge": "Desactivado",
+    "open": "Desactivar equipo…",
+    "title": "Desactivar equipo",
+    "explain": "El equipo sale de la monitorización, las copias de seguridad, las sincronizaciones, los controles de seguridad, los contadores y las listas. Su historial sigue disponible y puedes reactivarlo en cualquier momento.",
+    "reasonLabel": "Motivo",
+    "reasonPlaceholder": "P. ej. sustituido, cliente dado de baja, en almacén",
+    "submit": "Desactivar",
+    "since": "Desactivado el {{when}} por {{who}}",
+    "effects": "Copias de seguridad, monitorización, sincronizaciones y controles quedan suspendidos; el agente es rechazado y las líneas syslog se descartan. El historial sigue disponible.",
+    "reactivate": "Reactivar"
   }
 }

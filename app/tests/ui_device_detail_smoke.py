@@ -66,7 +66,8 @@ def main():
     assert tabs[0] == "overview" and {"monitor", "agent", "diagnostics", "configuration"} <= set(tabs) and "uisp" not in tabs
     assert next(t for t in body["tabs"] if t["key"] == "monitor") == {"key": "monitor"}
     assert body["zabbix"] is None, "no Zabbix block when Zabbix is not configured"
-    assert body["actions"] == {"reboot": True, "incident": True, "manage": True}
+    assert body["actions"] == {"reboot": True, "incident": True, "manage": True, "decommission": True}
+    assert body["decommissioned"] is None
 
     cpe = admin.get(f"/api/ui/v1/devices/{ids['cpe']}").json()
     assert "uisp" in [t["key"] for t in cpe["tabs"]] and "agent" not in [t["key"] for t in cpe["tabs"]] and cpe["agent"] is None
@@ -74,7 +75,7 @@ def main():
     assert admin.get(f"/api/ui/v1/devices/{uuid.uuid4()}").status_code == 404
 
     operator = login(f"ci-dd-op-{suffix}").get(f"/api/ui/v1/devices/{ids['router']}").json()
-    assert operator["actions"] == {"reboot": False, "incident": True, "manage": False}, operator["actions"]  # operators open incidents, not reboot/manage
+    assert operator["actions"] == {"reboot": False, "incident": True, "manage": False, "decommission": False}, operator["actions"]  # operators open incidents, not reboot/manage
 
     scoped = login(f"ci-dd-scoped-{suffix}")
     assert scoped.get(f"/api/ui/v1/devices/{ids['router']}").status_code == 404, "another customer's device is invisible"

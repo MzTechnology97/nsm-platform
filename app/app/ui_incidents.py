@@ -258,7 +258,8 @@ def incident_detail(request: Request, incident_id: uuid.UUID):
                 "reason": candidate.reason, "at": _iso(candidate.entry.at), "source": candidate.entry.source,
             } for candidate in candidates],
             "customer_devices": [device_ref(device) for device in db.scalars(
-                select(Device).where(Device.customer_id == incident.customer_id).order_by(Device.display_name.nullslast(), Device.name)
+                select(Device).where(Device.customer_id == incident.customer_id, Device.decommissioned_at.is_(None))
+                .order_by(Device.display_name.nullslast(), Device.name)
             )] if can_write else [],
             "can_write": can_write,
             "can_export": core.has_permission(user, "reports.generate"),

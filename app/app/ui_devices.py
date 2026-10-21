@@ -9,6 +9,7 @@ per status follow the customer/site/vendor scope like the classic chips.
 from __future__ import annotations
 
 import uuid
+from contextlib import nullcontext
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from sqlalchemy import func, or_, select
@@ -17,6 +18,7 @@ from sqlalchemy.orm import selectinload
 from app import main as core
 from app.customer_drilldown import SEVERE_CVE, _firmware_attention_condition, _severe_cve_exists
 from app.db import SessionLocal
+from app.device_decommission import including_decommissioned
 from app.models import Customer, Device, DeviceVulnerability, SecurityAdvisory, Site
 from app.ui_api import brand_icon, ui_user
 
@@ -56,6 +58,11 @@ def _count(db, *filters) -> int:
     return int(db.scalar(select(func.count(Device.id)).where(*filters)) or 0)
 
 
+def _count_retired(db, *filters) -> int:
+    with including_decommissioned():
+        return _count(db, *filters, Device.decommissioned_at.is_not(None))
+
+
 def _iso(value):
     return value.isoformat() if value else None
 
@@ -83,6 +90,7 @@ def device_row(device: Device, severe: int = 0) -> dict:
         "agent_transport": data.get("agent_transport"),
         "severe_cves": severe,
         "signal_dbm": ((data.get("uisp") or {}).get("metrics") or {}).get("signal_dbm"),
+        "decommissioned_at": _iso(device.decommissioned_at),
     }
 
 
@@ -118,7 +126,10 @@ def list_devices(
                 Device.serial_number.ilike(like), Device.primary_mac.ilike(like), Device.primary_mac == mac if mac else False,
                 Device.management_ip.ilike(like), Device.software_id.ilike(like),
             ))
-        if status == "pending":
+        retired = status == "decommissioned"  # the "Disattivati" filter: devices out of service, hidden everywhere else
+        if retired:
+            filters.append(Device.decommissioned_at.is_not(None))
+        elif status == "pending":
             filters.append(Device.status.in_(PENDING))
         elif status:
             filters.append(Device.status == status)
@@ -137,7 +148,9 @@ def list_devices(
         stmt = (select(Device).outerjoin(Customer, Customer.id == Device.customer_id).where(*filters)
                 .options(selectinload(Device.customer), selectinload(Device.site))
                 .order_by(*order, Device.id).offset(offset).limit(limit))
-        rows = list(db.scalars(stmt))
+        with including_decommissioned() if retired else nullcontext():
+            rows = list(db.scalars(stmt))
+            total = _count(db, *filters)
         ids = [device.id for device in rows]
         severe = {}
         if ids:
@@ -148,7 +161,7 @@ def list_devices(
                        func.lower(SecurityAdvisory.severity).in_(SEVERE_CVE))
                 .group_by(DeviceVulnerability.device_id)).all())
         return {
-            "total": _count(db, *filters),
+            "total": total,
             "offset": offset,
             "items": [device_row(device, int(severe.get(device.id, 0))) for device in rows],
             "counts": {
@@ -159,6 +172,7 @@ def list_devices(
                 "firmware_attention": _count(db, *scope, _firmware_attention_condition()),
                 "severe": _count(db, *scope, _severe_cve_exists()),
                 "eol": _count(db, *scope, Device.lifecycle_status.in_(["eol", "eos"])),
+                "decommissioned": _count_retired(db, *scope),
             },
         }
 
@@ -218,6 +232,7 @@ def _date(value):
 @router.get("/devices/{device_id}")
 def device_detail(request: Request, device_id: uuid.UUID):
     """Everything the device overview shows, in one call."""
+    from app import device_decommission as decommission
     from app import icmp_monitor, zabbix_problems
     from app.backup_capabilities import capability_for_device
     from app.models import ActionIssue, BackupRun
@@ -267,11 +282,13 @@ def device_detail(request: Request, device_id: uuid.UUID):
             "icmp": {"enabled": icmp["enabled"], "target": icmp["effective_target"], "last_rtt": icmp["last_rtt"],
                      "last_loss": icmp["last_loss"], "down": icmp["down"], "last_at": icmp["last_at"]},
             "zabbix": zabbix,
+            "decommissioned": decommission.summary(db, device),
             "tabs": [{"key": key} for key, visible in TABS if visible(device)],
             "actions": {
                 "reboot": mikrotik and core.has_permission(user, "firmware.execute"),
                 "incident": core.has_permission(user, "incidents.write"),
                 "manage": core.has_permission(user, "devices.write"),
+                "decommission": core.has_permission(user, "devices.write"),
             },
         }
 

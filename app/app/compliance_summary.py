@@ -38,7 +38,9 @@ def summarize(db, now, *, customer_id=None, device_ids=None) -> dict:
         "evaluated_devices": len(devices),
         "failing_devices": len(failing_devices),
         "counts": dict(counts),
-        "failing_controls": [(CONTROLS[cid].title if cid in CONTROLS else cid, n) for cid, n in failing_controls.most_common()],
+        # Most failing first, ties by title: the order must not depend on the row order of the query.
+        "failing_controls": sorted(((CONTROLS[cid].title if cid in CONTROLS else cid, n) for cid, n in failing_controls.items()),
+                                   key=lambda item: (-item[1], item[0])),
         "per_device": per_device,
         "exceptions": exceptions,
     }

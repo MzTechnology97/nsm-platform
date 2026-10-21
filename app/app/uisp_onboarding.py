@@ -42,9 +42,11 @@ def device_type_for(candidate: dict) -> str:
 
 def classify(db, candidates: list[dict]) -> list[dict]:
     """Attach the NSM state to every UISP candidate."""
-    linked = {d.external_device_id: d for d in db.scalars(select(Device).where(Device.vendor == "ubiquiti", Device.external_device_id.is_not(None)))}
+    every = {"include_decommissioned": True}  # a decommissioned device is still in NSM: never import it twice
+    linked = {d.external_device_id: d for d in db.scalars(select(Device).where(Device.vendor == "ubiquiti", Device.external_device_id.is_not(None))
+                                                          .execution_options(**every))}
     by_mac = {}
-    for device in db.scalars(select(Device).where(Device.primary_mac.is_not(None))):
+    for device in db.scalars(select(Device).where(Device.primary_mac.is_not(None)).execution_options(**every)):
         by_mac.setdefault(device.primary_mac, []).append(device)
     mac_counts = {}
     for c in candidates:
@@ -55,6 +57,8 @@ def classify(db, candidates: list[dict]) -> list[dict]:
         state, device, reason = "new", None, None
         if not c.get("external_id"):
             state, reason = "blocked", "UISP non espone un identificativo stabile."
+        elif c["external_id"] in linked and linked[c["external_id"]].decommissioned_at is not None:
+            state, reason = "blocked", "Apparato disattivato in NSM: riattivalo per riprendere la sincronizzazione."
         elif c["external_id"] in linked:
             state, device = "linked", linked[c["external_id"]]
         elif not c.get("primary_mac"):

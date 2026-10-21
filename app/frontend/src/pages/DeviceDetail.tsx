@@ -1,11 +1,11 @@
 import { Link, Outlet, useParams } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
 import { BrandIcon } from "../app/BrandIcon";
-import { type DeviceDetail as Detail, useDevice, useZabbixExclude } from "../api/device";
-import { formatRelative } from "../lib/format";
+import { type DeviceDetail as Detail, useDecommission, useDevice, useZabbixExclude } from "../api/device";
+import { formatDateTime, formatRelative } from "../lib/format";
 import { DeviceZabbixPanel, ZabbixSeverity } from "../app/ZabbixProblems";
 
 /** Device tabs and their routes under /devices/$deviceId. */
@@ -65,7 +65,12 @@ function DeviceShell({ detail }: { detail: Detail }) {
         <div>
           <h1 className="ui-with-brand-title">
             <BrandIcon brand={device.brand} />
-            {device.name} <span className={`ui-status ui-status-${device.status}`}>{t(`devices.statusLabel.${device.status}`, { defaultValue: device.status })}</span>
+            {device.name}{" "}
+            {detail.decommissioned ? (
+              <span className="ui-status ui-status-decommissioned">{t("decommission.badge")}</span>
+            ) : (
+              <span className={`ui-status ui-status-${device.status}`}>{t(`devices.statusLabel.${device.status}`, { defaultValue: device.status })}</span>
+            )}
           </h1>
           <p>
             {[device.vendor, device.model, device.device_type].filter(Boolean).join(" · ")}
@@ -80,23 +85,24 @@ function DeviceShell({ detail }: { detail: Detail }) {
           </p>
         </div>
         <div className="ui-actions">
-          {detail.actions.reboot && (
+          {!detail.decommissioned && detail.actions.reboot && (
             <Link className="ui-button ui-button-ghost" to="/devices/$deviceId/reboot" params={{ deviceId: device.id }}>
               {t("device.actions.reboot")}
             </Link>
           )}
-          {detail.actions.incident && (
+          {!detail.decommissioned && detail.actions.incident && (
             <Link className="ui-button ui-button-ghost" to="/incidents/new" search={{ device: device.id }}>
               {t("device.actions.incident")}
             </Link>
           )}
-          {detail.actions.manage && (
+          {!detail.decommissioned && detail.actions.manage && (
             <Link className="ui-button ui-button-ghost" to="/devices/$deviceId/manage" params={{ deviceId: device.id }}>
               {t("device.actions.manage")}
             </Link>
           )}
         </div>
       </header>
+      <DecommissionPanel detail={detail} />
 
       <nav className="ui-tabs" aria-label={t("device.tabs.label")}>
         {detail.tabs.map((tab) =>
@@ -116,6 +122,60 @@ function DeviceShell({ detail }: { detail: Detail }) {
       </nav>
       <Outlet />
     </section>
+  );
+}
+
+/** Out-of-service banner with reactivation, or the "Disattiva" action with its required reason. */
+function DecommissionPanel({ detail }: { detail: Detail }) {
+  const { t, i18n } = useTranslation();
+  const { decommission, reactivate } = useDecommission(detail.device.id);
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const state = detail.decommissioned;
+  const error = (decommission.error ?? reactivate.error) as Error | null;
+
+  if (state) {
+    return (
+      <div className="ui-alert ui-alert-warning ui-decommission" role="status">
+        <div>
+          <strong>{t("decommission.since", { when: formatDateTime(state.at, i18n.language), who: state.by ?? "—" })}</strong>
+          {state.reason && <span className="ui-block">{t("decommission.reasonLabel")}: {state.reason}</span>}
+          <small className="ui-block ui-muted">{t("decommission.effects")}</small>
+          {error && <small className="ui-block ui-backup-error">{error.message}</small>}
+        </div>
+        {detail.actions.decommission && (
+          <button type="button" className="ui-button" disabled={reactivate.isPending} onClick={() => reactivate.mutate()}>
+            {t("decommission.reactivate")}
+          </button>
+        )}
+      </div>
+    );
+  }
+  if (!detail.actions.decommission) return null;
+  if (!open) {
+    return (
+      <div className="ui-decommission-toggle">
+        <button type="button" className="ui-link-button" onClick={() => setOpen(true)}>{t("decommission.open")}</button>
+      </div>
+    );
+  }
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    decommission.mutate(reason.trim(), { onSuccess: () => { setOpen(false); setReason(""); } });
+  };
+  return (
+    <form className="ui-panel ui-admin-form ui-admin-stack ui-danger-zone ui-decommission" onSubmit={submit}>
+      <h2>{t("decommission.title")}</h2>
+      <p className="ui-muted">{t("decommission.explain")}</p>
+      <label><span>{t("decommission.reasonLabel")}</span>
+        <input value={reason} onChange={(event) => setReason(event.target.value)} minLength={5} maxLength={500} required autoComplete="off"
+          placeholder={t("decommission.reasonPlaceholder")} /></label>
+      <div className="ui-row-actions">
+        <button type="submit" className="ui-button ui-button-danger" disabled={decommission.isPending || reason.trim().length < 5}>{t("decommission.submit")}</button>
+        <button type="button" className="ui-button ui-button-ghost" onClick={() => setOpen(false)}>{t("customerForm.cancel")}</button>
+      </div>
+      {error && <small className="ui-backup-error">{error.message}</small>}
+    </form>
   );
 }
 

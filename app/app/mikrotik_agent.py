@@ -85,7 +85,7 @@ def _apply_inventory(db, device: Device, inventory: dict, request: Request, sour
                 Device.vendor == "mikrotik",
                 Device.primary_mac == observed_mac,
                 Device.id != device.id,
-            )
+            ).execution_options(include_decommissioned=True)
         )
         if duplicate:
             raise HTTPException(409, "Il MAC rilevato è già associato a un altro MikroTik.")
@@ -167,6 +167,9 @@ def _authenticate_agent(db, request: Request):
     ):
         raise HTTPException(401, "Credenziali agent non valide.")
     device = db.get(Device, device_id)
+    if device is None and db.scalar(select(Device.id).where(Device.id == device_id).execution_options(include_decommissioned=True)):
+        # Out of service: refused, but the credential is kept so the agent resumes on reactivation.
+        raise HTTPException(403, "Dispositivo disattivato in NSM.")
     if not device or device.vendor != "mikrotik":
         raise HTTPException(401, "Credenziali agent non valide.")
     credential.last_used_at = utcnow()

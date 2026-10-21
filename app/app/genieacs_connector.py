@@ -407,7 +407,7 @@ def apply_candidate(db, device: Device, candidate: dict, actor, event_type="GENI
             Device.external_device_id == candidate["external_id"],
             Device.management_source == "tr069",
             Device.id != device.id,
-        )
+        ).execution_options(include_decommissioned=True)
     )
     if duplicate:
         raise HTTPException(409, "Questo CPE GenieACS è già associato a un altro record NSM.")
@@ -417,6 +417,7 @@ def apply_candidate(db, device: Device, candidate: dict, actor, event_type="GENI
         raise HTTPException(409, "Il MAC GenieACS non coincide con il record NSM.")
     if not device.primary_mac and candidate.get("primary_mac") and db.scalar(
         select(Device.id).where(Device.vendor == device.vendor, Device.primary_mac == candidate["primary_mac"], Device.id != device.id)
+        .execution_options(include_decommissioned=True)
     ):
         raise HTTPException(409, "Il MAC osservato da GenieACS appartiene già a un altro apparato NSM.")
 

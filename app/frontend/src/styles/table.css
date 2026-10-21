@@ -194,6 +194,17 @@
   background: var(--warning);
 }
 
+/* Out of service: a hollow dot, the device is neither up nor down. */
+.ui-status-decommissioned {
+  color: var(--muted);
+}
+
+.ui-status-decommissioned::before {
+  border: 2px solid var(--muted);
+  background: transparent;
+  box-sizing: border-box;
+}
+
 .ui-badge {
   margin-left: var(--space-2);
   padding: 1px 6px;

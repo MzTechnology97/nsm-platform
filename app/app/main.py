@@ -608,7 +608,7 @@ def create_device_record(db, user: User, customer_id: uuid.UUID, *, vendor: str,
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise InputError("duplicate", "Esiste già un apparato dello stesso vendor con questo MAC.", 409)
+        raise InputError("duplicate", "Esiste già un apparato dello stesso vendor con questo MAC (controlla anche tra i disattivati).", 409)
     return device, raw_token
 
 
