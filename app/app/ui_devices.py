@@ -8,10 +8,13 @@ per status follow the customer/site/vendor scope like the classic chips.
 """
 from __future__ import annotations
 
+import csv
+import io
 import uuid
 from contextlib import nullcontext
 
 from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import Response
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
@@ -19,8 +22,11 @@ from app import main as core
 from app.customer_drilldown import SEVERE_CVE, _firmware_attention_condition, _severe_cve_exists
 from app.db import SessionLocal
 from app.device_decommission import including_decommissioned
-from app.models import Customer, Device, DeviceVulnerability, SecurityAdvisory, Site
+from app.mikrotik_device_reboot import parse_uptime
+from app.mikrotik_workspace_ux import _memory_bytes
+from app.models import Customer, Device, DeviceVulnerability, SecurityAdvisory, Site, utcnow
 from app.ui_api import brand_icon, ui_user
+from app.vendor_cpe import evaluable, label
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 MAX_LIMIT = 200
@@ -67,7 +73,38 @@ def _iso(value):
     return value.isoformat() if value else None
 
 
-def device_row(device: Device, severe: int = 0) -> dict:
+def telemetry(device: Device) -> dict:
+    """Last CPU, memory and uptime reported by the agent or the connector (MikroTik, UISP, cnMaestro), or None per field."""
+    data = device.inventory_data or {}
+    cpu = ram = uptime = None
+    if device.vendor == "mikrotik":
+        metrics = data.get("metrics") or {}
+        cpu = _number(metrics.get("cpu_load") or data.get("cpu_load"))
+        free = _memory_bytes(metrics.get("free_memory") or data.get("free_memory"))
+        total = _memory_bytes(metrics.get("total_memory") or data.get("total_memory"))
+        if free is not None and total:
+            ram = round(max(0.0, min(100.0, (1 - free / total) * 100)), 1)
+        uptime = parse_uptime(metrics.get("uptime") or data.get("uptime"))
+    else:
+        for source in ("uisp", "cnmaestro"):
+            metrics = (data.get(source) or {}).get("metrics") or {}
+            if metrics:
+                cpu = _number(metrics.get("cpu_percent"))
+                ram = _number(metrics.get("ram_percent"))
+                uptime = _number(metrics.get("uptime_seconds"))
+                break
+    return {"cpu": cpu, "ram": ram, "uptime_seconds": int(uptime) if uptime is not None else None}
+
+
+def _number(value) -> float | None:
+    try:
+        number = float(str(value).strip().rstrip("%"))
+    except (TypeError, ValueError):
+        return None
+    return number if number >= 0 else None
+
+
+def device_row(device: Device, severe: int = 0, open_cves: int | None = None) -> dict:
     data = device.inventory_data or {}
     return {
         "id": str(device.id),
@@ -91,7 +128,61 @@ def device_row(device: Device, severe: int = 0) -> dict:
         "severe_cves": severe,
         "signal_dbm": ((data.get("uisp") or {}).get("metrics") or {}).get("signal_dbm"),
         "decommissioned_at": _iso(device.decommissioned_at),
+        "telemetry": telemetry(device),
+        # open: every unresolved CVE; evaluated: brand, model and firmware are known, so "0" really means none found.
+        "cves": {"open": open_cves if open_cves is not None else severe, "severe": severe, "evaluated": evaluable(device)},
     }
+
+
+def _filters(q: str, customer: str, site: str, vendor: str, status: str, lifecycle: str, firmware: str, security: str):
+    """(scope, filters, retired) shared by the list and its CSV export."""
+    customer_id, site_id = _uuid(customer), _uuid(site)
+    scope = _scope(customer_id, site_id, vendor)
+    filters = list(scope)
+    term = q.strip()
+    if term:
+        like = f"%{term}%"
+        mac = core.search_mac(term)
+        filters.append(or_(
+            Device.display_name.ilike(like), Device.device_identity.ilike(like), Device.name.ilike(like), Device.model.ilike(like),
+            Device.serial_number.ilike(like), Device.primary_mac.ilike(like), Device.primary_mac == mac if mac else False,
+            Device.management_ip.ilike(like), Device.software_id.ilike(like),
+        ))
+    retired = status == "decommissioned"  # the "Disattivati" filter: devices out of service, hidden everywhere else
+    if retired:
+        filters.append(Device.decommissioned_at.is_not(None))
+    elif status == "pending":
+        filters.append(Device.status.in_(PENDING))
+    elif status:
+        filters.append(Device.status == status)
+    if lifecycle == "eol":
+        filters.append(Device.lifecycle_status.in_(["eol", "eos"]))
+    elif lifecycle:
+        filters.append(Device.lifecycle_status == lifecycle)
+    if firmware == "attention":
+        filters.append(_firmware_attention_condition())
+    if security == "severe":
+        filters.append(_severe_cve_exists())
+    elif security == "exposed":
+        filters.append(Device.id.in_(select(DeviceVulnerability.device_id).where(DeviceVulnerability.status != "resolved")))
+    return scope, filters, retired
+
+
+def _cve_counts(db, ids) -> tuple[dict, dict]:
+    """Open vulnerabilities per device: (all severities, critical or high)."""
+    if not ids:
+        return {}, {}
+    rows = db.execute(
+        select(DeviceVulnerability.device_id, func.lower(SecurityAdvisory.severity), func.count(DeviceVulnerability.id))
+        .join(SecurityAdvisory, SecurityAdvisory.id == DeviceVulnerability.advisory_id)
+        .where(DeviceVulnerability.device_id.in_(ids), DeviceVulnerability.status != "resolved")
+        .group_by(DeviceVulnerability.device_id, func.lower(SecurityAdvisory.severity))).all()
+    open_count, severe = {}, {}
+    for device_id, severity, count in rows:
+        open_count[device_id] = open_count.get(device_id, 0) + int(count)
+        if severity in SEVERE_CVE:
+            severe[device_id] = severe.get(device_id, 0) + int(count)
+    return open_count, severe
 
 
 @router.get("/devices")
@@ -114,34 +205,7 @@ def list_devices(
         raise HTTPException(422, "Ordinamento non supportato.")
     with SessionLocal() as db:
         ui_user(request, db, "devices.read")
-        customer_id, site_id = _uuid(customer), _uuid(site)
-        scope = _scope(customer_id, site_id, vendor)
-        filters = list(scope)
-        term = q.strip()
-        if term:
-            like = f"%{term}%"
-            mac = core.search_mac(term)
-            filters.append(or_(
-                Device.display_name.ilike(like), Device.device_identity.ilike(like), Device.name.ilike(like), Device.model.ilike(like),
-                Device.serial_number.ilike(like), Device.primary_mac.ilike(like), Device.primary_mac == mac if mac else False,
-                Device.management_ip.ilike(like), Device.software_id.ilike(like),
-            ))
-        retired = status == "decommissioned"  # the "Disattivati" filter: devices out of service, hidden everywhere else
-        if retired:
-            filters.append(Device.decommissioned_at.is_not(None))
-        elif status == "pending":
-            filters.append(Device.status.in_(PENDING))
-        elif status:
-            filters.append(Device.status == status)
-        if lifecycle == "eol":
-            filters.append(Device.lifecycle_status.in_(["eol", "eos"]))
-        elif lifecycle:
-            filters.append(Device.lifecycle_status == lifecycle)
-        if firmware == "attention":
-            filters.append(_firmware_attention_condition())
-        if security == "severe":
-            filters.append(_severe_cve_exists())
-
+        scope, filters, retired = _filters(q, customer, site, vendor, status, lifecycle, firmware, security)
         order = SORTS[sort]()
         if direction == "desc" and sort != "last_seen":
             order = tuple(column.desc() for column in order)
@@ -151,19 +215,11 @@ def list_devices(
         with including_decommissioned() if retired else nullcontext():
             rows = list(db.scalars(stmt))
             total = _count(db, *filters)
-        ids = [device.id for device in rows]
-        severe = {}
-        if ids:
-            severe = dict(db.execute(
-                select(DeviceVulnerability.device_id, func.count(DeviceVulnerability.id))
-                .join(SecurityAdvisory, SecurityAdvisory.id == DeviceVulnerability.advisory_id)
-                .where(DeviceVulnerability.device_id.in_(ids), DeviceVulnerability.status != "resolved",
-                       func.lower(SecurityAdvisory.severity).in_(SEVERE_CVE))
-                .group_by(DeviceVulnerability.device_id)).all())
+        open_count, severe = _cve_counts(db, [device.id for device in rows])
         return {
             "total": total,
             "offset": offset,
-            "items": [device_row(device, int(severe.get(device.id, 0))) for device in rows],
+            "items": [device_row(device, severe.get(device.id, 0), open_count.get(device.id, 0)) for device in rows],
             "counts": {
                 "all": _count(db, *scope),
                 "online": _count(db, *scope, Device.status == "online"),
@@ -177,6 +233,49 @@ def list_devices(
         }
 
 
+EXPORT_LIMIT = 10_000
+EXPORT_COLUMNS = ("name", "identity", "vendor", "model", "device_type", "status", "customer", "site", "management_ip", "lan_ip", "serial_number",
+                  "primary_mac", "firmware", "firmware_status", "lifecycle_status", "last_seen", "open_cves", "severe_cves", "decommissioned_at")
+
+
+@router.get("/devices/export.csv")
+def export_devices(request: Request, q: str = "", customer: str = "", site: str = "", vendor: str = "", status: str = "", lifecycle: str = "",
+                   firmware: str = "", security: str = "", ids: str = ""):
+    """The filtered device list (or only the ``ids`` selected in the list) as CSV, audited."""
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.read")
+        _scope_filters, filters, retired = _filters(q, customer, site, vendor, status, lifecycle, firmware, security)
+        selected = [value for value in (_uuid(part) for part in ids.split(",")[:EXPORT_LIMIT]) if value] if ids else []
+        if selected:
+            filters.append(Device.id.in_(selected))
+        stmt = (select(Device).where(*filters).options(selectinload(Device.customer), selectinload(Device.site))
+                .order_by(func.lower(func.coalesce(Device.display_name, Device.device_identity, Device.name)), Device.id).limit(EXPORT_LIMIT))
+        with including_decommissioned() if retired else nullcontext():
+            devices = list(db.scalars(stmt))
+        open_count, severe = _cve_counts(db, [device.id for device in devices])
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(EXPORT_COLUMNS)
+        for device in devices:
+            row = device_row(device, severe.get(device.id, 0), open_count.get(device.id, 0))
+            writer.writerow([
+                row["name"], row["identity"] or "", device.vendor, row["model"] or "", row["device_type"] or "", row["status"],
+                (row["customer"] or {}).get("name", ""), (row["site"] or {}).get("name", ""), row["management_ip"] or "", row["lan_ip"] or "",
+                row["serial_number"] or "", row["primary_mac"] or "", row["firmware"] or "", row["firmware_status"] or "",
+                row["lifecycle_status"] or "", row["last_seen"] or "", row["cves"]["open"], row["cves"]["severe"], row["decommissioned_at"] or "",
+            ])
+        core.add_event(db, "DEVICE_LIST_EXPORTED", actor=user, details={"rows": len(devices), "selected": len(selected),
+                                                                          "filters": {key: value for key, value in (("q", q), ("customer", customer),
+                                                                                      ("site", site), ("vendor", vendor), ("status", status),
+                                                                                      ("lifecycle", lifecycle), ("firmware", firmware),
+                                                                                      ("security", security)) if value}},
+                       source="portal")
+        db.commit()
+    stamp = utcnow().strftime("%Y%m%d-%H%M")
+    return Response("\ufeff" + buffer.getvalue(), media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": f'attachment; filename="nsm-apparati-{stamp}.csv"', "Cache-Control": "no-store"})
+
+
 @router.get("/devices/facets")
 def device_facets(request: Request):
     """Values for the filter menus (customers, their sites and vendors) within the user's scope."""
@@ -185,7 +284,7 @@ def device_facets(request: Request):
         customers = [{"id": str(c.id), "name": c.name} for c in db.scalars(select(Customer).order_by(func.lower(Customer.name)))]
         sites = [{"id": str(s.id), "name": s.name, "customer_id": str(s.customer_id)} for s in db.scalars(select(Site).order_by(func.lower(Site.name)))]
         vendors = sorted({v for v in db.scalars(select(Device.vendor).distinct()) if v})
-        return {"customers": customers, "sites": sites, "vendors": vendors}
+        return {"customers": customers, "sites": sites, "vendors": vendors, "vendor_labels": {vendor: label(vendor) for vendor in vendors}}
 
 
 # Tabs of the device page: (key, condition).
@@ -255,7 +354,7 @@ def device_detail(request: Request, device_id: uuid.UUID):
         capability = capability_for_device(db, device)
         icmp = icmp_monitor.panel(device)
         zabbix = zabbix_problems.api_device(device)
-        row = device_row(device, int(vulns.get("critical", 0)) + int(vulns.get("high", 0)))
+        row = device_row(device, int(vulns.get("critical", 0)) + int(vulns.get("high", 0)), sum(int(value) for value in vulns.values()))
         row.update({
             "display_name": device.display_name,
             "seen_from": data.get("last_source_ip"),

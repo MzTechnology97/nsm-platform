@@ -81,7 +81,8 @@
       "customer": "Client / site",
       "ip": "IP de gestion",
       "firmware": "Firmware",
-      "last_seen": "Dernier contact"
+      "last_seen": "Dernier contact",
+      "resources": "Ressources"
     },
     "statusLabel": {
       "online": "En ligne",
@@ -95,7 +96,36 @@
     "lan": "LAN {{ip}}",
     "emptyHint": "Essayez avec moins de filtres ou une autre recherche.",
     "none": "Aucun équipement pour l'instant",
-    "noneHint": "Ajoutez un équipement depuis la fiche d'un client ou importez-les depuis un CSV."
+    "noneHint": "Ajoutez un équipement depuis la fiche d'un client ou importez-les depuis un CSV.",
+    "export": "Exporter en CSV",
+    "select": "Sélectionner {{name}}",
+    "selectAll": "Tout sélectionner (chargés)",
+    "genericVendor": "Générique",
+    "cpu": "CPU",
+    "ram": "RAM",
+    "uptime": "Temps de fonctionnement",
+    "uptimeShort": "actif depuis {{value}}",
+    "cve": {
+      "openTitle": "{{count}} CVE ouvertes, {{severe}} critiques ou élevées",
+      "cleanTitle": "Aucune CVE ouverte pour ce modèle et ce firmware",
+      "unknownTitle": "Non évaluable : modèle ou version de firmware lisible manquant"
+    },
+    "bulk": {
+      "title": "Actions sur la sélection",
+      "selected_one": "{{count}} sélectionné",
+      "selected_other": "{{count}} sélectionnés",
+      "export": "Exporter en CSV",
+      "backup": "Sauvegarder maintenant",
+      "firmware": "Vérifier le firmware",
+      "decommission": "Désactiver…",
+      "decommissionConfirm_one": "Désactiver {{count}} équipement",
+      "decommissionConfirm_other": "Désactiver {{count}} équipements",
+      "clear": "Annuler la sélection",
+      "mikrotikOnly": "MikroTik uniquement : {{count}} équipements",
+      "progress": "En cours : {{done}} sur {{total}}…",
+      "finished": "Terminé : {{ok}} sur {{total}} réussis.",
+      "moreFailures": "et {{count}} autres"
+    }
   },
   "device": {
     "notFound": "Équipement introuvable ou non visible avec vos autorisations.",

@@ -81,7 +81,8 @@
       "customer": "Customer / site",
       "ip": "Management IP",
       "firmware": "Firmware",
-      "last_seen": "Last seen"
+      "last_seen": "Last seen",
+      "resources": "Resources"
     },
     "statusLabel": {
       "online": "Online",
@@ -95,7 +96,36 @@
     "lan": "LAN {{ip}}",
     "emptyHint": "Try fewer filters or a different search.",
     "none": "No devices yet",
-    "noneHint": "Add a device from a customer page or import them from CSV."
+    "noneHint": "Add a device from a customer page or import them from CSV.",
+    "export": "Export CSV",
+    "select": "Select {{name}}",
+    "selectAll": "Select all loaded",
+    "genericVendor": "Generic",
+    "cpu": "CPU",
+    "ram": "RAM",
+    "uptime": "Uptime",
+    "uptimeShort": "up {{value}}",
+    "cve": {
+      "openTitle": "{{count}} open CVEs, {{severe}} critical or high",
+      "cleanTitle": "No open CVE for this model and firmware",
+      "unknownTitle": "Cannot be evaluated: model or readable firmware version missing"
+    },
+    "bulk": {
+      "title": "Actions on selected devices",
+      "selected_one": "{{count}} selected",
+      "selected_other": "{{count}} selected",
+      "export": "Export CSV",
+      "backup": "Back up now",
+      "firmware": "Check firmware",
+      "decommission": "Decommission…",
+      "decommissionConfirm_one": "Decommission {{count}} device",
+      "decommissionConfirm_other": "Decommission {{count}} devices",
+      "clear": "Clear selection",
+      "mikrotikOnly": "MikroTik only: {{count}} devices",
+      "progress": "Running: {{done}} of {{total}}…",
+      "finished": "Done: {{ok}} of {{total}} succeeded.",
+      "moreFailures": "and {{count}} more"
+    }
   },
   "device": {
     "notFound": "Device not found or not visible with your permissions.",

@@ -25,3 +25,13 @@ describe("device list", () => {
     expect(formatRelative(null, "it", now)).toBe("—");
   });
 });
+
+describe("uptime", () => {
+  it("shows days and hours, hours and minutes, or minutes", async () => {
+    const { formatDuration } = await import("../lib/format");
+    expect(formatDuration(788645, "en")).toBe("9d 3h");
+    expect(formatDuration(7200 + 60 * 5, "en")).toBe("2h 5m");
+    expect(formatDuration(59, "en")).toBe("0m");
+    expect(formatDuration(null, "en")).toBe("—");
+  });
+});

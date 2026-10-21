@@ -1,13 +1,15 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { type DeviceFilters, type DeviceRow, useDeviceFacets, useDevices } from "../api/devices";
+import { api } from "../api/client";
+import { type DeviceFilters, type DeviceRow, devicesExportUrl, useDeviceFacets, useDevices } from "../api/devices";
 import { can, useSession } from "../api/session";
 import { BrandIcon } from "../app/BrandIcon";
 import { EmptyState, Loading } from "../app/States";
-import { formatRelative } from "../lib/format";
+import { formatDuration, formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 
 const STATUS_CHIPS = [
@@ -22,7 +24,10 @@ const ATTENTION_CHIPS = [
   { key: "security", value: "severe", count: "severe" },
   { key: "lifecycle", value: "eol", count: "eol" },
 ] as const;
-const SORTABLE = ["name", "status", "vendor", "customer", "ip", "firmware", "last_seen"] as const;
+const SORTABLE = ["name", "status", "customer", "ip", "firmware", "last_seen"] as const;
+type Sortable = (typeof SORTABLE)[number];
+/** Requests run in parallel by a bulk action. */
+const BULK_PARALLEL = 3;
 const ROW_HEIGHT = 56;
 
 export function Devices() {
@@ -60,7 +65,20 @@ export function Devices() {
 
   const sites = (facets.data?.sites ?? []).filter((site) => !filters.customer || site.customer_id === filters.customer);
 
-  const sortBy = (column: (typeof SORTABLE)[number]) =>
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  useEffect(() => setSelected(new Set()), [filters]);
+  const toggle = (id: string) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const allSelected = rows.length > 0 && rows.every((row) => selected.has(row.id));
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(rows.map((row) => row.id)));
+  const vendorName = (vendor: string) => (vendor === "generic" ? t("devices.genericVendor") : facets.data?.vendor_labels?.[vendor] ?? vendor);
+
+  const sortBy = (column: Sortable) =>
     update({ sort: column, dir: filters.sort === column && filters.dir === "asc" ? "desc" : "asc" });
 
   const canImport = can(session.data, "users.manage");
@@ -78,6 +96,7 @@ export function Devices() {
           <p>{query.isPending ? t("app.loading") : t("devices.subtitle", { count: total })}</p>
         </div>
         <div className="ui-actions">
+          {total > 0 && <a className="ui-button ui-button-ghost" href={devicesExportUrl(filters)} download>{t("devices.export")}</a>}
           {canImport && <Link className="ui-button ui-button-ghost" to="/devices/import">{t("deviceImport.open")}</Link>}
         </div>
       </header>
@@ -137,7 +156,7 @@ export function Devices() {
           <option value="">{t("devices.allVendors")}</option>
           {facets.data?.vendors.map((vendor) => (
             <option key={vendor} value={vendor}>
-              {vendor}
+              {vendorName(vendor)}
             </option>
           ))}
         </select>
@@ -148,14 +167,20 @@ export function Devices() {
         )}
       </div>
 
+      {selected.size > 0 && (
+        <SelectionBar ids={[...selected]} rows={rows} filters={filters} retired={filters.status === "decommissioned"} onClear={() => setSelected(new Set())} />
+      )}
+
       <div className="ui-table" role="table" aria-rowcount={total} aria-busy={query.isFetching}>
         <div className="ui-table-head ui-device-grid" role="row">
-          {SORTABLE.map((column) => (
-            <button key={column} type="button" role="columnheader" className="ui-th" onClick={() => sortBy(column)} aria-sort={filters.sort === column ? (filters.dir === "asc" ? "ascending" : "descending") : "none"}>
-              {t(`devices.columns.${column}`)}
-              {filters.sort === column ? (filters.dir === "asc" ? " ▲" : " ▼") : ""}
-            </button>
+          <span role="columnheader" className="ui-th ui-select-cell">
+            <Checkbox checked={allSelected} label={t("devices.selectAll")} onToggle={toggleAll} />
+          </span>
+          {(["name", "status", "customer", "ip", "firmware"] as const).map((column) => (
+            <SortHeader key={column} column={column} filters={filters} onSort={sortBy} />
           ))}
+          <span role="columnheader" className="ui-th">{t("devices.columns.resources")}</span>
+          <SortHeader column="last_seen" filters={filters} onSort={sortBy} />
         </div>
         {query.isError ? (
           <div className="ui-empty">
@@ -179,7 +204,8 @@ export function Devices() {
               {items.map((item) => {
                 const device = rows[item.index];
                 return (
-                  <DeviceLine key={device.id} device={device} top={item.start} height={item.size} locale={i18n.language} />
+                  <DeviceLine key={device.id} device={device} top={item.start} height={item.size} locale={i18n.language}
+                    selected={selected.has(device.id)} onToggle={toggle} vendorName={vendorName} />
                 );
               })}
             </div>
@@ -193,15 +219,85 @@ export function Devices() {
   );
 }
 
-function DeviceLine({ device, top, height, locale }: { device: DeviceRow; top: number; height: number; locale: string }) {
+function SortHeader({ column, filters, onSort }: { column: Sortable; filters: DeviceFilters; onSort: (column: Sortable) => void }) {
   const { t } = useTranslation();
   return (
-    <Link className="ui-tr ui-device-grid" role="row" to="/devices/$deviceId" params={{ deviceId: device.id }} style={{ transform: `translateY(${top}px)`, height }}>
+    <button type="button" role="columnheader" className="ui-th" onClick={() => onSort(column)}
+      aria-sort={filters.sort === column ? (filters.dir === "asc" ? "ascending" : "descending") : "none"}>
+      {t(`devices.columns.${column}`)}
+      {filters.sort === column ? (filters.dir === "asc" ? " ▲" : " ▼") : ""}
+    </button>
+  );
+}
+
+/** Checkbox drawn as a button: the row is a link, so a native input inside it would also navigate. */
+function Checkbox({ checked, label, onToggle }: { checked: boolean; label: string; onToggle: () => void }) {
+  const click = (event: MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onToggle();
+  };
+  return (
+    <button type="button" role="checkbox" aria-checked={checked} aria-label={label} title={label} className={`ui-checkbox${checked ? " is-checked" : ""}`}
+      onClick={click} />
+  );
+}
+
+/** CVE state of a device: red with the open count, green when evaluated and clean, grey when NSM cannot tell. */
+function CveBadge({ cves }: { cves: DeviceRow["cves"] }) {
+  const { t } = useTranslation();
+  if (!cves) return null;
+  if (cves.open > 0) {
+    return (
+      <span className={`ui-cve-badge ${cves.severe > 0 ? "is-severe" : "is-open"}`} title={t("devices.cve.openTitle", { count: cves.open, severe: cves.severe })}>
+        CVE {cves.open}
+      </span>
+    );
+  }
+  return cves.evaluated
+    ? <span className="ui-cve-badge is-clean" title={t("devices.cve.cleanTitle")}>CVE OK</span>
+    : <span className="ui-cve-badge is-unknown" title={t("devices.cve.unknownTitle")}>CVE ?</span>;
+}
+
+/** CPU and memory use as two thin bars with their value. */
+function Resources({ telemetry, online }: { telemetry: DeviceRow["telemetry"]; online: boolean }) {
+  const { t } = useTranslation();
+  if (!telemetry || (telemetry.cpu == null && telemetry.ram == null)) return <span className="ui-muted">—</span>;
+  const bar = (label: string, value: number | null) =>
+    value == null ? null : (
+      <span className="ui-meter" title={`${label} ${Math.round(value)}%`}>
+        <span className="ui-meter-label">{label}</span>
+        <svg className="ui-meter-track" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true">
+          <rect width="100" height="6" rx="3" className="ui-meter-bg" />
+          <rect width={Math.max(2, Math.min(100, value))} height="6" rx="3" className={`ui-meter-fill${value >= 90 ? " is-danger" : value >= 75 ? " is-warning" : ""}`} />
+        </svg>
+        <span className="ui-meter-value">{Math.round(value)}%</span>
+      </span>
+    );
+  return (
+    <span className={`ui-resources${online ? "" : " is-stale"}`}>
+      {bar(t("devices.cpu"), telemetry.cpu)}
+      {bar(t("devices.ram"), telemetry.ram)}
+    </span>
+  );
+}
+
+function DeviceLine({ device, top, height, locale, selected, onToggle, vendorName }: {
+  device: DeviceRow; top: number; height: number; locale: string; selected: boolean; onToggle: (id: string) => void; vendorName: (vendor: string) => string;
+}) {
+  const { t } = useTranslation();
+  const uptime = device.telemetry?.uptime_seconds;
+  return (
+    <Link className={`ui-tr ui-device-grid${selected ? " is-selected" : ""}`} role="row" to="/devices/$deviceId" params={{ deviceId: device.id }}
+      style={{ transform: `translateY(${top}px)`, height }}>
+      <span role="cell" className="ui-select-cell">
+        <Checkbox checked={selected} label={t("devices.select", { name: device.name })} onToggle={() => onToggle(device.id)} />
+      </span>
       <span role="cell" className="ui-with-brand">
         <BrandIcon brand={device.brand} small />
         <span className="ui-td-main">
           <strong>{device.name}</strong>
-          <small>{device.model ?? device.device_type ?? ""}</small>
+          <small>{[vendorName(device.vendor), device.model ?? device.device_type].filter(Boolean).join(" · ")}</small>
         </span>
       </span>
       <span role="cell">
@@ -210,9 +306,12 @@ function DeviceLine({ device, top, height, locale }: { device: DeviceRow; top: n
         ) : (
           <span className={`ui-status ui-status-${device.status}`}>{t(`devices.statusLabel.${device.status}`, { defaultValue: device.status })}</span>
         )}
-        {device.signal_dbm != null && <small className="ui-muted ui-block">{t("devices.signal", { value: device.signal_dbm })}</small>}
+        {device.signal_dbm != null ? (
+          <small className="ui-muted ui-block">{t("devices.signal", { value: device.signal_dbm })}</small>
+        ) : uptime != null && device.status === "online" ? (
+          <small className="ui-muted ui-block" title={t("devices.uptime")}>{t("devices.uptimeShort", { value: formatDuration(uptime, locale) })}</small>
+        ) : null}
       </span>
-      <span role="cell">{device.vendor}</span>
       <span role="cell" className="ui-td-main">
         <span>{device.customer?.name ?? "—"}</span>
         <small>{device.site?.name ?? ""}</small>
@@ -221,11 +320,109 @@ function DeviceLine({ device, top, height, locale }: { device: DeviceRow; top: n
         {device.management_ip ?? "—"}
         {device.lan_ip && device.lan_ip !== device.management_ip && <small className="ui-muted ui-block">{t("devices.lan", { ip: device.lan_ip })}</small>}
       </span>
+      <span role="cell" className="ui-firmware-cell">
+        <span>{device.firmware ?? "—"}</span>
+        <CveBadge cves={device.cves} />
+      </span>
       <span role="cell">
-        {device.firmware ?? "—"}
-        {device.severe_cves > 0 && <span className="ui-badge ui-badge-danger" title={t("devices.severeCves")}>{device.severe_cves} CVE</span>}
+        <Resources telemetry={device.telemetry} online={device.status === "online"} />
       </span>
       <span role="cell" title={device.last_seen ?? ""}>{formatRelative(device.last_seen, locale)}</span>
     </Link>
+  );
+}
+
+type BulkAction = "backup" | "firmware" | "decommission" | "reactivate";
+interface BulkResult { done: number; total: number; failed: { name: string; message: string }[]; running: boolean }
+
+/** Actions on the selected devices; each runs the same request the device page sends, a few at a time. */
+function SelectionBar({ ids, rows, filters, retired, onClear }: { ids: string[]; rows: DeviceRow[]; filters: DeviceFilters; retired: boolean; onClear: () => void }) {
+  const { t } = useTranslation();
+  const session = useSession();
+  const client = useQueryClient();
+  const [result, setResult] = useState<BulkResult | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [reason, setReason] = useState("");
+  const byId = useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows]);
+  const chosen = ids.map((id) => byId.get(id)).filter((row): row is DeviceRow => Boolean(row));
+  const mikrotik = chosen.filter((row) => row.vendor === "mikrotik");
+
+  const run = async (action: BulkAction, targets: DeviceRow[], body?: object) => {
+    const state: BulkResult = { done: 0, total: targets.length, failed: [], running: true };
+    setResult({ ...state });
+    const path = (row: DeviceRow) => ({
+      backup: `/api/ui/v1/devices/${row.id}/backups/run`,
+      firmware: `/api/ui/v1/firmware/${row.id}/check`,
+      decommission: `/api/ui/v1/devices/${row.id}/decommission`,
+      reactivate: `/api/ui/v1/devices/${row.id}/reactivate`,
+    })[action];
+    const queue = [...targets];
+    const worker = async () => {
+      for (let row = queue.shift(); row; row = queue.shift()) {
+        try {
+          await api(path(row), { method: "POST", body: JSON.stringify(body ?? {}) });
+        } catch (error) {
+          state.failed.push({ name: row.name, message: (error as Error).message });
+        }
+        state.done += 1;
+        setResult({ ...state, failed: [...state.failed] });
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(BULK_PARALLEL, targets.length) }, worker));
+    setResult({ ...state, running: false, failed: [...state.failed] });
+    void client.invalidateQueries({ queryKey: ["devices"] });
+  };
+
+  const busy = result?.running ?? false;
+  return (
+    <div className="ui-selection-bar" role="region" aria-label={t("devices.bulk.title")}>
+      <strong>{t("devices.bulk.selected", { count: ids.length })}</strong>
+      <div className="ui-selection-actions">
+        <a className="ui-button ui-button-small" href={devicesExportUrl(filters, ids)} download>{t("devices.bulk.export")}</a>
+        {!retired && can(session.data, "backup.execute") && (
+          <button type="button" className="ui-button ui-button-small" disabled={busy} onClick={() => void run("backup", chosen)}>{t("devices.bulk.backup")}</button>
+        )}
+        {!retired && mikrotik.length > 0 && can(session.data, "firmware.read") && (
+          <button type="button" className="ui-button ui-button-small" disabled={busy} onClick={() => void run("firmware", mikrotik)}
+            title={mikrotik.length < chosen.length ? t("devices.bulk.mikrotikOnly", { count: mikrotik.length }) : undefined}>
+            {t("devices.bulk.firmware")}
+          </button>
+        )}
+        {can(session.data, "devices.write") && (retired ? (
+          <button type="button" className="ui-button ui-button-small" disabled={busy} onClick={() => void run("reactivate", chosen)}>{t("decommission.reactivate")}</button>
+        ) : (
+          <button type="button" className="ui-button ui-button-small ui-button-danger" disabled={busy} onClick={() => setAsking(true)}>{t("devices.bulk.decommission")}</button>
+        ))}
+        <button type="button" className="ui-button ui-button-ghost ui-button-small" disabled={busy} onClick={onClear}>{t("devices.bulk.clear")}</button>
+      </div>
+      {asking && (
+        <form className="ui-selection-form" onSubmit={(event) => {
+          event.preventDefault();
+          setAsking(false);
+          void run("decommission", chosen, { reason: reason.trim() });
+        }}>
+          <label><span>{t("decommission.reasonLabel")}</span>
+            <input value={reason} onChange={(event) => setReason(event.target.value)} minLength={5} maxLength={500} required autoComplete="off"
+              placeholder={t("decommission.reasonPlaceholder")} /></label>
+          <button type="submit" className="ui-button ui-button-danger ui-button-small" disabled={reason.trim().length < 5}>
+            {t("devices.bulk.decommissionConfirm", { count: chosen.length })}
+          </button>
+          <button type="button" className="ui-button ui-button-ghost ui-button-small" onClick={() => setAsking(false)}>{t("customerForm.cancel")}</button>
+        </form>
+      )}
+      {result && (
+        <div className="ui-selection-result" role="status">
+          {result.running
+            ? t("devices.bulk.progress", { done: result.done, total: result.total })
+            : t("devices.bulk.finished", { ok: result.total - result.failed.length, total: result.total })}
+          {result.failed.length > 0 && (
+            <ul>
+              {result.failed.slice(0, 8).map((item) => <li key={item.name}><strong>{item.name}</strong>: {item.message}</li>)}
+              {result.failed.length > 8 && <li>{t("devices.bulk.moreFailures", { count: result.failed.length - 8 })}</li>}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
