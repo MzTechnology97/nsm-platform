@@ -566,3 +566,31 @@ a.ui-search-result:hover {
   max-height: 360px;
   overflow: auto;
 }
+
+/* Connector compatibility report. */
+.ui-diagnostics .ui-chips {
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.ui-diagnostics-endpoint {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.ui-diagnostics-endpoint > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.ui-diagnostics-keys {
+  margin-top: var(--space-2);
+}
+
+.ui-diagnostics-keys pre {
+  max-height: 260px;
+  overflow: auto;
+  font-size: 12px;
+}

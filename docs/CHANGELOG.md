@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.189 — 2026-10-21
+
+Compatibility check for UISP and cnMaestro
+- **New "Compatibility check" panel** on the UISP and cnMaestro integration pages (administrators). It finds out why a Ubiquiti or Cambium device shows missing or wrong data.
+  - "Run check" reads a small sample from your console with read-only requests: never a reboot, backup or change.
+  - It shows, for every field NSM expects (MAC, model, firmware, status, signal, CPU, interfaces, events…), whether it arrives, in how many devices and under which key.
+  - It also shows which endpoints answer with an error, and the key names the console actually returned, so a field read under a different name can be mapped.
+- **Safe to share.** The report contains only field names, counts and HTTP codes: no device names, IP or MAC addresses, serial numbers or passwords. Identifier-like keys are masked.
+  - "Copy report" puts it on the clipboard to send to support.
+  - The last report is kept, and every run is recorded in the activity log.
 ## 0.49.188 — 2026-10-21
 
 Device page: 30-day availability and tidier tiles

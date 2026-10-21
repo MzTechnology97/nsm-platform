@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { type UispAdmin, useConnectorAction, useUispAdmin } from "../api/admin";
 import { AdminTabs } from "../app/AdminTabs";
+import { ConnectorDiagnostics } from "../app/ConnectorDiagnostics";
 import { IntegrationTabs } from "../app/IntegrationTabs";
 import { formatDateTime } from "../lib/format";
 import { Loading } from "../app/States";
@@ -39,6 +40,7 @@ export function AdminUisp() {
             <State data={data} />
           </div>
           {data.configured && <Sync data={data} />}
+          {data.configured && <ConnectorDiagnostics provider="uisp" />}
           <section className="ui-panel ui-admin-section">
             <h2>{t("genieacs.flowTitle")}</h2>
             <p className="ui-muted">{t("uisp.flowHelp")}</p>

@@ -4951,5 +4951,33 @@
       "when": "La finestra deve essere entro un anno da oggi.",
       "reason": "Indica il motivo (3–500 caratteri)."
     }
+  },
+  "connectorDiagnostics": {
+    "title": "Diagnosi compatibilità",
+    "help": "Legge un campione dalla tua console con sole richieste di lettura e controlla quali campi attesi da NSM arrivano. Il rapporto contiene solo nomi dei campi, conteggi e codici HTTP: niente nomi, IP, MAC o password, quindi si può copiare e inviare al supporto.",
+    "run": "Esegui diagnosi",
+    "running": "Diagnosi in corso…",
+    "copy": "Copia rapporto",
+    "copied": "Copiato",
+    "none": "Nessuna diagnosi eseguita.",
+    "at": "Eseguita il {{when}} · NSM {{version}}",
+    "missing_one": "{{count}} campo atteso non arriva: {{fields}}",
+    "missing_other": "{{count}} campi attesi non arrivano: {{fields}}",
+    "allFound": "Tutti i campi attesi arrivano dalla console.",
+    "rows_one": "{{count}} riga",
+    "rows_other": "{{count}} righe",
+    "keys_one": "{{count}} chiave ricevuta",
+    "keys_other": "{{count}} chiavi ricevute",
+    "columns": {
+      "field": "Campo NSM",
+      "state": "Esito",
+      "found": "Trovato",
+      "key": "Chiave usata / cercata"
+    },
+    "states": {
+      "ok": "presente",
+      "partial": "parziale",
+      "missing": "mancante"
+    }
   }
 }
