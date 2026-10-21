@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { type ArtifactFile, type DiffRow, useBackupArtifact } from "../api/backups";
 import { ApiError } from "../api/client";
 import { formatBytes, formatDateTime } from "../lib/format";
+import { rscSections, tokenizeRsc } from "../lib/rsc";
 import { Loading } from "../app/States";
 
 const SIGN = { added: "+", removed: "−", context: " " } as const;
@@ -25,6 +26,8 @@ export function DeviceBackupArtifact() {
     const needle = filter.trim().toLowerCase();
     return needle ? all.filter((line) => line.text.toLowerCase().includes(needle)) : all;
   }, [data, filter]);
+  const sections = useMemo(() => rscSections(data?.lines ?? []), [data]);
+  const jump = (line: string) => document.getElementById(`rsc-L${line}`)?.scrollIntoView({ block: "start", behavior: "smooth" });
   const rows = useMemo(() => {
     const all = data?.diff?.rows ?? [];
     return changesOnly ? withContext(all, 3) : all;
@@ -127,7 +130,7 @@ export function DeviceBackupArtifact() {
                     <span className="ui-rsc-no" role="cell">{row.old ?? ""}</span>
                     <span className="ui-rsc-no" role="cell">{row.new ?? ""}</span>
                     <span className="ui-rsc-sign" role="cell" aria-label={t(`backupArtifact.kinds.${row.kind}`)}>{SIGN[row.kind]}</span>
-                    <span className="ui-rsc-text" role="cell">{row.text}</span>
+                    <span className="ui-rsc-text" role="cell"><RscLine text={row.text} /></span>
                   </div>
                 ),
               )}
@@ -145,13 +148,24 @@ export function DeviceBackupArtifact() {
           <div className="ui-filter-bar">
             <input type="search" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder={t("backupArtifact.filter")} aria-label={t("backupArtifact.filter")} />
             {filter && <small className="ui-muted">{t("backupArtifact.matches", { count: lines.length })}</small>}
+            {sections.length > 1 && (
+              <label className="ui-rsc-compare">
+                <span>{t("backupArtifact.sections", { count: sections.length })}</span>
+                <select value="" disabled={Boolean(filter)} onChange={(event) => jump(event.target.value)} title={filter ? t("backupArtifact.sectionsFiltered") : undefined}>
+                  <option value="">{t("backupArtifact.jumpTo")}</option>
+                  {sections.map((section) => (
+                    <option key={section.line} value={section.line}>{t("backupArtifact.sectionOption", { path: section.path, count: section.size })}</option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
           {lines.length ? (
             <div className="ui-rsc">
               {lines.map((line) => (
-                <div key={line.number} className="ui-rsc-line">
+                <div key={line.number} id={`rsc-L${line.number}`} className="ui-rsc-line">
                   <span className="ui-rsc-no">{line.number}</span>
-                  <span className="ui-rsc-text">{line.text}</span>
+                  <span className="ui-rsc-text"><RscLine text={line.text} /></span>
                 </div>
               ))}
             </div>
@@ -161,6 +175,17 @@ export function DeviceBackupArtifact() {
         </section>
       )}
     </div>
+  );
+}
+
+/** One export line with RouterOS syntax colours (paths, commands, keys, values, strings, comments). */
+function RscLine({ text }: { text: string }) {
+  return (
+    <>
+      {tokenizeRsc(text).map((token, index) =>
+        token.kind === "text" ? token.text : <span key={index} className={`ui-rsc-${token.kind}`}>{token.text}</span>,
+      )}
+    </>
   );
 }
 

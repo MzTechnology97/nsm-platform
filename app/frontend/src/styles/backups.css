@@ -297,3 +297,133 @@
   background: var(--panel);
   border-block: 1px dashed var(--border);
 }
+
+/* RouterOS syntax colours in the export viewer and the diff. */
+.ui-rsc-path {
+  color: var(--code-path);
+  font-weight: 600;
+}
+
+.ui-rsc-command {
+  color: var(--code-command);
+  font-weight: 600;
+}
+
+.ui-rsc-key {
+  color: var(--code-key);
+}
+
+.ui-rsc-string {
+  color: var(--code-string);
+}
+
+.ui-rsc-comment {
+  color: var(--code-comment);
+  font-style: italic;
+}
+
+/* Diagnostics: last run on each card, RTT chart, traceroute hop bars, log level chips. */
+.ui-diag-last {
+  font-size: 12px;
+}
+
+.ui-diag-last.is-never {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.ui-rtt-chart {
+  margin: var(--space-3) 0;
+}
+
+.ui-rtt-chart svg {
+  display: block;
+  width: 100%;
+  height: 90px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ui-rtt-bar {
+  fill: var(--accent);
+}
+
+.ui-rtt-lost {
+  fill: color-mix(in srgb, var(--danger) 55%, transparent);
+}
+
+.ui-rtt-avg {
+  stroke: var(--warning);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.ui-rtt-chart figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-1);
+  font-size: 12px;
+}
+
+.ui-rtt-avg-key,
+.ui-rtt-lost-key {
+  display: inline-block;
+  width: 14px;
+  vertical-align: middle;
+}
+
+.ui-rtt-avg-key {
+  border-top: 2px dashed var(--warning);
+}
+
+.ui-rtt-lost-key {
+  height: 10px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--danger) 55%, transparent);
+}
+
+.ui-hop-bar-head,
+.ui-hop-bar-cell {
+  width: 28%;
+  min-width: 120px;
+}
+
+.ui-hop-bar {
+  display: block;
+  width: 100%;
+  height: 10px;
+}
+
+.ui-hop-range {
+  fill: color-mix(in srgb, var(--success) 30%, transparent);
+}
+
+.ui-hop-avg {
+  fill: var(--success);
+}
+
+.ui-hop-range.is-warning {
+  fill: color-mix(in srgb, var(--warning) 30%, transparent);
+}
+
+.ui-hop-avg.is-warning {
+  fill: var(--warning);
+}
+
+.ui-hop-range.is-danger {
+  fill: color-mix(in srgb, var(--danger) 30%, transparent);
+}
+
+.ui-hop-avg.is-danger {
+  fill: var(--danger);
+}
+
+.ui-chip-level.is-critical .ui-chip-count,
+.ui-chip-level.is-error .ui-chip-count {
+  color: var(--danger);
+}
+
+.ui-chip-level.is-warning .ui-chip-count {
+  color: var(--warning);
+}

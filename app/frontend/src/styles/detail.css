@@ -177,3 +177,71 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Device overview: current load and open CVEs by severity. */
+.ui-device-health {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.ui-device-health-part {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.ui-device-health-part h3 {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.ui-device-health .ui-resources {
+  max-width: 360px;
+}
+
+.ui-cve-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ui-cve-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.ui-cve-chip:hover {
+  border-color: var(--accent);
+}
+
+.ui-cve-chip.is-critical {
+  border-color: var(--critical);
+  background: color-mix(in srgb, var(--critical) 16%, var(--panel));
+}
+
+.ui-cve-chip.is-high {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, var(--panel));
+}
+
+.ui-cve-chip.is-medium {
+  border-color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 12%, var(--panel));
+}
+
+.ui-cve-chip-all {
+  font-size: 12px;
+}
