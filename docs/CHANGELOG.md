@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.190 — 2026-10-21
+
+Device page fixes
+- **"Disattiva dispositivo…" moved into the device header actions,** as a quiet button that turns red on hover. It no longer floats on its own between the header and the tabs. The form with the reason still opens under the header.
+- **The tab bar no longer shows a small vertical scrollbar.** It only scrolls sideways when the tabs do not fit.
+- **Diagnostics: long outcomes wrap inside their card.** Examples: "Operation not yet available on the legacy RouterOS transport…", and the ping/traceroute summaries. Before, they ran out of the card.
+- **Open issues on the device overview:** severities are translated (Critica, Alta, Attenzione…) instead of CRITICAL/HIGH/WARNING. Titles read as text and become links on hover, so they no longer all look like errors in the branding colour.
 ## 0.49.189 — 2026-10-21
 
 Compatibility check for UISP and cnMaestro

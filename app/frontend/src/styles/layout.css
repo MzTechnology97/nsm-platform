@@ -719,11 +719,15 @@ select:hover {
   margin-bottom: var(--space-3);
 }
 
-.ui-decommission-toggle {
-  display: flex;
-  justify-content: flex-end;
-  margin: calc(-1 * var(--space-2)) 0 var(--space-2);
-  font-size: 13px;
+/* Decommission is rare and reversible: a quiet header action, red only on hover/focus. */
+.ui-button-quiet-danger {
+  color: var(--muted);
+}
+
+.ui-button-quiet-danger:hover,
+.ui-button-quiet-danger:focus-visible {
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 form.ui-decommission {

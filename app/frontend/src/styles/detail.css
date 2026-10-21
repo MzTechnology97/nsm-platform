@@ -31,17 +31,18 @@
 }
 
 /* Tabs: bold labels, the active one in the primary colour with a 3px underline. */
+/* The bottom line is an inset shadow (not a border the tabs overlap with a negative margin), so the bar only scrolls sideways. */
 .ui-tabs {
   display: flex;
   gap: 2px;
   margin: 0 0 var(--space-4);
-  border-bottom: 1px solid var(--border);
+  box-shadow: inset 0 -1px 0 var(--border);
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: thin;
 }
 
 .ui-tab {
-  margin-bottom: -1px;
   padding: 9px 12px;
   border-bottom: 3px solid transparent;
   color: var(--muted);
@@ -710,4 +711,17 @@ a.ui-device-head-cves:hover {
     width: 34px;
     height: 34px;
   }
+}
+
+/* Open issues on the device page: the severity pill carries the colour, the title reads as text (link on hover). */
+.ui-issue-list a {
+  color: var(--heading);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ui-issue-list a:hover,
+.ui-issue-list a:focus-visible {
+  color: var(--accent-text);
+  text-decoration: underline;
 }

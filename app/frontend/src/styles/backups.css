@@ -435,3 +435,18 @@
 .ui-chip-level.is-warning .ui-chip-count {
   color: var(--warning);
 }
+
+/* Diagnostic outcomes are sentences: unlike short status pills they wrap inside the card. */
+.ui-diag-last.ui-status,
+.ui-backup-run > header .ui-status {
+  align-items: flex-start;
+  border-radius: 10px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.ui-diag-last.ui-status::before,
+.ui-backup-run > header .ui-status::before {
+  flex: 0 0 auto;
+  margin-top: 5px;
+}

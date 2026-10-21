@@ -45,6 +45,7 @@ export function DeviceDetail() {
 }
 
 function DeviceShell({ detail }: { detail: Detail }) {
+  const [decommissionOpen, setDecommissionOpen] = useState(false);
   const { t, i18n } = useTranslation();
   const { device } = detail;
   const severe = (detail.vulnerabilities.critical ?? 0) + (detail.vulnerabilities.high ?? 0);
@@ -116,9 +117,14 @@ function DeviceShell({ detail }: { detail: Detail }) {
               {t("device.actions.manage")}
             </Link>
           )}
+          {!detail.decommissioned && detail.actions.decommission && !decommissionOpen && (
+            <button type="button" className="ui-button ui-button-ghost ui-button-quiet-danger" onClick={() => setDecommissionOpen(true)}>
+              {t("decommission.open")}
+            </button>
+          )}
         </div>
       </header>
-      <DecommissionPanel detail={detail} />
+      <DecommissionPanel detail={detail} open={decommissionOpen} onClose={() => setDecommissionOpen(false)} />
 
       <nav className="ui-tabs" aria-label={t("device.tabs.label")}>
         {detail.tabs.map((tab) =>
@@ -141,11 +147,10 @@ function DeviceShell({ detail }: { detail: Detail }) {
   );
 }
 
-/** Out-of-service banner with reactivation, or the "Disattiva" action with its required reason. */
-function DecommissionPanel({ detail }: { detail: Detail }) {
+/** Out-of-service banner with reactivation, or (opened from the header action) the decommission form with its required reason. */
+function DecommissionPanel({ detail, open, onClose }: { detail: Detail; open: boolean; onClose: () => void }) {
   const { t, i18n } = useTranslation();
   const { decommission, reactivate } = useDecommission(detail.device.id);
-  const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const state = detail.decommissioned;
   const error = (decommission.error ?? reactivate.error) as Error | null;
@@ -167,17 +172,10 @@ function DecommissionPanel({ detail }: { detail: Detail }) {
       </div>
     );
   }
-  if (!detail.actions.decommission) return null;
-  if (!open) {
-    return (
-      <div className="ui-decommission-toggle">
-        <button type="button" className="ui-link-button" onClick={() => setOpen(true)}>{t("decommission.open")}</button>
-      </div>
-    );
-  }
+  if (!detail.actions.decommission || !open) return null;
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    decommission.mutate(reason.trim(), { onSuccess: () => { setOpen(false); setReason(""); } });
+    decommission.mutate(reason.trim(), { onSuccess: () => { onClose(); setReason(""); } });
   };
   return (
     <form className="ui-panel ui-admin-form ui-admin-stack ui-danger-zone ui-decommission" onSubmit={submit}>
@@ -188,7 +186,7 @@ function DecommissionPanel({ detail }: { detail: Detail }) {
           placeholder={t("decommission.reasonPlaceholder")} /></label>
       <div className="ui-row-actions">
         <button type="submit" className="ui-button ui-button-danger" disabled={decommission.isPending || reason.trim().length < 5}>{t("decommission.submit")}</button>
-        <button type="button" className="ui-button ui-button-ghost" onClick={() => setOpen(false)}>{t("customerForm.cancel")}</button>
+        <button type="button" className="ui-button ui-button-ghost" onClick={onClose}>{t("customerForm.cancel")}</button>
       </div>
       {error && <small className="ui-backup-error">{error.message}</small>}
     </form>
@@ -274,10 +272,10 @@ export function DeviceOverview() {
           {detail.issues.length === 0 ? (
             <p className="ui-muted">{t("device.issues.none")}</p>
           ) : (
-            <ul className="ui-list">
+            <ul className="ui-list ui-issue-list">
               {detail.issues.map((issue) => (
                 <li key={issue.id}>
-                  <span className={`ui-severity ui-severity-${issue.severity}`}>{issue.severity}</span>
+                  <span className={`ui-severity ui-severity-${issue.severity}`}>{t(`actionCenter.severities.${issue.severity}`, { defaultValue: issue.severity })}</span>
                   <Link to="/action-center" search={{ device: device.id }}>{issue.title}</Link>
                   <small>{formatRelative(issue.created_at, i18n.language)}</small>
                 </li>
