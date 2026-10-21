@@ -5,10 +5,11 @@ import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { api } from "../api/client";
-import { type DeviceFilters, type DeviceRow, devicesExportUrl, useDeviceFacets, useDevices } from "../api/devices";
+import { type DeviceCounts, type DeviceFilters, type DeviceRow, devicesExportUrl, useDeviceFacets, useDevices } from "../api/devices";
 import { can, useSession } from "../api/session";
 import { BrandIcon } from "../app/BrandIcon";
 import { Resources } from "../app/Resources";
+import { RingTile, type TileTone } from "../app/RingTile";
 import { EmptyState, Loading } from "../app/States";
 import { formatDuration, formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
@@ -25,6 +26,15 @@ const ATTENTION_CHIPS = [
   { key: "security", value: "severe", count: "severe" },
   { key: "lifecycle", value: "eol", count: "eol" },
 ] as const;
+/** Summary tiles over the visible inventory (the same figures as the chips). */
+const KPI_TILES = [
+  { count: "online", tone: "success" },
+  { count: "offline", tone: "danger" },
+  { count: "pending", tone: "warning" },
+  { count: "severe", tone: "danger" },
+  { count: "firmware_attention", tone: "warning" },
+  { count: "eol", tone: "warning" },
+] as const satisfies readonly { count: keyof DeviceCounts; tone: TileTone }[];
 const SORTABLE = ["name", "status", "customer", "ip", "firmware", "last_seen"] as const;
 type Sortable = (typeof SORTABLE)[number];
 /** Requests run in parallel by a bulk action. */
@@ -101,6 +111,20 @@ export function Devices() {
           {canImport && <Link className="ui-button ui-button-ghost" to="/devices/import">{t("deviceImport.open")}</Link>}
         </div>
       </header>
+
+      {counts && counts.all > 0 && (
+        <div className="ui-metrics ui-ring-tiles ui-device-kpis">
+          {KPI_TILES.map((tile) => {
+            const value = counts[tile.count];
+            const percent = (100 * value) / counts.all;
+            return (
+              <RingTile key={tile.count} label={t(`devices.chips.${tile.count}`)} value={String(value)} percent={percent}
+                note={t("devices.share", { percent: new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 0 }).format(percent) })}
+                tone={tile.tone === "success" ? "success" : value ? tile.tone : "success"} />
+            );
+          })}
+        </div>
+      )}
 
       <div className="ui-chips" role="group" aria-label={t("devices.status")}>
         {STATUS_CHIPS.map((chip) => (

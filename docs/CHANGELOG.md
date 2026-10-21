@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.187 — 2026-10-21
+
+New look, step 5: lists
+- **Device list.** Above the filters, six tinted tiles with a ring: online, offline, to link, severe CVEs, firmware to check, end of life. Each shows its share of the devices. The chips ("Label · count"), the dense table with status pills, firmware with its CVE pill and the CPU/RAM bars keep the new look. Every row keeps its vendor icon. On phones the tiles sit two by two.
+- **Same look on every list.** Customers, backups, firmware, vulnerabilities, incidents, Action Center, activity log, SLA and the administration lists share the same table header (small grey uppercase labels, now with proper height on every table), row separators, chips and pills.
+  - Severity pills no longer break on two lines.
+  - The small summary tables (charts, CVE device lists) use the same header style.
+  - An empty list inside a panel takes a short band instead of half the screen.
 ## 0.49.186 — 2026-10-21
 
 New look, step 4: dashboard

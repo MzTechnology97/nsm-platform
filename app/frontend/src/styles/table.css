@@ -344,6 +344,7 @@
 }
 
 .ui-data-table th .ui-th {
+  display: block;
   width: 100%;
   padding: 9px 14px;
 }

@@ -415,6 +415,7 @@ a.ui-device-head-cves:hover {
 .ui-severity {
   padding: 2px 9px;
   border-radius: 999px;
+  white-space: nowrap;
   background: var(--neutral-soft);
   color: var(--neutral-text);
   font-size: 11px;
@@ -673,4 +674,20 @@ a.ui-device-head-cves:hover {
   margin-bottom: var(--space-2);
   color: var(--muted);
   font-size: 13px;
+}
+
+@media (max-width: 520px) {
+  .ui-device-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ui-device-kpis .ui-ring-tile {
+    gap: var(--space-2);
+    padding: 10px;
+  }
+
+  .ui-device-kpis .ui-tile-ring {
+    width: 34px;
+    height: 34px;
+  }
 }
