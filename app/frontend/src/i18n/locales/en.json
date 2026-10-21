@@ -2609,7 +2609,8 @@
     "test": "Test connection",
     "syncNow": "Synchronise now",
     "disabledConnector": "The cnMaestro connector is disabled.",
-    "synced": "Synchronisation completed: {{devices}} devices in cnMaestro, {{linked}} linked ({{created}} new), {{unmatched}} NSM Cambium devices without a match."
+    "synced": "Synchronisation completed: {{devices}} devices in cnMaestro, {{linked}} linked ({{created}} new), {{unmatched}} NSM Cambium devices without a match.",
+    "onboarding": "Import from cnMaestro"
   },
   "zabbix": {
     "title": "Integrations · Zabbix",
@@ -4984,6 +4985,28 @@
       "ok": "present",
       "partial": "partial",
       "missing": "missing"
+    }
+  },
+  "cnmOnboarding": {
+    "title": "Import from cnMaestro",
+    "subtitle": "Select the cnMaestro devices to bring into NSM and choose the customer and site yourself: NSM does not derive them from cnMaestro networks and towers. You see a preview before confirming; at confirmation the cnMaestro list is read again.",
+    "doneTitle": "cnMaestro import completed",
+    "done": "{{created}} devices created and {{linked}} linked from cnMaestro.",
+    "empty": "No cnMaestro device in this state.",
+    "emptyFiltered": "No cnMaestro device in this state with the chosen filters.",
+    "allSites": "All towers and networks",
+    "uispSite": "Tower / network",
+    "searchPlaceholder": "Name, model, MAC, IP, tower…",
+    "previewHelp": "New devices in customer {{customer}}. At confirmation the cnMaestro list is read again: devices changed in the meantime are skipped.",
+    "previewHelpSite": "New devices in customer {{customer}}, site {{site}}. At confirmation the cnMaestro list is read again: devices changed in the meantime are skipped.",
+    "skipped_one": "{{count}} skipped because changed in cnMaestro or already present: {{names}}.",
+    "skipped_other": "{{count}} skipped because changed in cnMaestro or already present: {{names}}.",
+    "actions": {
+      "missing": "No longer in cnMaestro"
+    },
+    "columns": {
+      "device": "cnMaestro device",
+      "uispSite": "Tower / network"
     }
   }
 }

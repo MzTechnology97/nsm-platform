@@ -2609,7 +2609,8 @@
     "test": "Tester la connexion",
     "syncNow": "Synchroniser maintenant",
     "disabledConnector": "Le connecteur cnMaestro est désactivé.",
-    "synced": "Synchronisation terminée : {{devices}} équipements dans cnMaestro, {{linked}} associés ({{created}} nouveaux), {{unmatched}} Cambium NSM sans correspondance."
+    "synced": "Synchronisation terminée : {{devices}} équipements dans cnMaestro, {{linked}} associés ({{created}} nouveaux), {{unmatched}} Cambium NSM sans correspondance.",
+    "onboarding": "Importer depuis cnMaestro"
   },
   "zabbix": {
     "title": "Intégrations · Zabbix",
@@ -4984,6 +4985,28 @@
       "ok": "présent",
       "partial": "partiel",
       "missing": "absent"
+    }
+  },
+  "cnmOnboarding": {
+    "title": "Import depuis cnMaestro",
+    "subtitle": "Sélectionnez les équipements cnMaestro à intégrer dans NSM et choisissez vous-même le client et le site : NSM ne les déduit pas des réseaux et tours cnMaestro. Un aperçu précède la confirmation ; à la confirmation, la liste cnMaestro est relue.",
+    "doneTitle": "Import cnMaestro terminé",
+    "done": "{{created}} équipements créés et {{linked}} associés depuis cnMaestro.",
+    "empty": "Aucun équipement cnMaestro dans cet état.",
+    "emptyFiltered": "Aucun équipement cnMaestro dans cet état avec les filtres choisis.",
+    "allSites": "Toutes les tours et réseaux",
+    "uispSite": "Tour / réseau",
+    "searchPlaceholder": "Nom, modèle, MAC, IP, tour…",
+    "previewHelp": "Nouveaux équipements dans le client {{customer}}. À la confirmation, la liste cnMaestro est relue : les équipements modifiés entre-temps sont ignorés.",
+    "previewHelpSite": "Nouveaux équipements dans le client {{customer}}, site {{site}}. À la confirmation, la liste cnMaestro est relue : les équipements modifiés entre-temps sont ignorés.",
+    "skipped_one": "{{count}} ignoré car modifié dans cnMaestro ou déjà présent : {{names}}.",
+    "skipped_other": "{{count}} ignorés car modifiés dans cnMaestro ou déjà présents : {{names}}.",
+    "actions": {
+      "missing": "Plus dans cnMaestro"
+    },
+    "columns": {
+      "device": "Équipement cnMaestro",
+      "uispSite": "Tour / réseau"
     }
   }
 }

@@ -21,6 +21,7 @@ export function AdminCnmaestro() {
           <p>{t("cnmaestro.subtitle")}</p>
         </div>
         <div className="ui-row-actions">
+          {data?.configured && <Link className="ui-button" to="/integrations/cnmaestro/onboarding">{t("cnmaestro.onboarding")}</Link>}
           <Link className="ui-button ui-button-ghost" to="/integrations">{t("cnmaestro.allIntegrations")}</Link>
         </div>
       </header>

@@ -2,7 +2,7 @@ import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { type OnboardingFilters, type OnboardingRow, useOnboarding, useOnboardingCommit, useOnboardingPreview } from "../api/admin";
+import { type OnboardingFilters, type OnboardingProvider, type OnboardingRow, useOnboarding, useOnboardingCommit, useOnboardingPreview } from "../api/admin";
 import { BrandIcon } from "../app/BrandIcon";
 import { useDebounced } from "../lib/hooks";
 import { Loading } from "../app/States";
@@ -11,24 +11,44 @@ const STATES = ["new", "linkable", "linked", "blocked"] as const;
 const SELECTABLE = new Set(["new", "linkable"]);
 
 export function UispOnboarding() {
-  const { t } = useTranslation();
-  const search = useSearch({ from: "/integrations/uisp/onboarding" });
-  const navigate = useNavigate({ from: "/integrations/uisp/onboarding" });
+  return <ConnectorOnboarding provider="uisp" />;
+}
+
+export function CnmaestroOnboarding() {
+  return <ConnectorOnboarding provider="cnmaestro" />;
+}
+
+const PROVIDERS = {
+  uisp: { path: "/integrations/uisp/onboarding", admin: "/admin/integrations/uisp", name: "UISP", group: "uisp_site", strings: "onboarding" },
+  cnmaestro: { path: "/integrations/cnmaestro/onboarding", admin: "/admin/integrations/cnmaestro", name: "cnMaestro", group: "group", strings: "cnmOnboarding" },
+} as const;
+
+/** Bulk onboarding from a connector console: same flow for UISP and cnMaestro, provider-specific wording falls back to the UISP strings. */
+function ConnectorOnboarding({ provider }: { provider: OnboardingProvider }) {
+  const { t: translate } = useTranslation();
+  const config = PROVIDERS[provider];
+  const t = ((key: string, options?: Record<string, unknown>) =>
+    key.startsWith("onboarding.") && config.strings !== "onboarding"
+      ? translate([`${config.strings}.${key.slice("onboarding.".length)}`, key], options)
+      : translate(key, options)) as typeof translate;
+  const search = useSearch({ strict: false }) as OnboardingFilters;
+  const navigate = useNavigate();
   const [text, setText] = useState(search.q ?? "");
   const q = useDebounced(text.trim());
   const state = search.state ?? "new";
-  const query = useOnboarding({ q: search.q, uisp_site: search.uisp_site, state });
+  const groupValue = provider === "uisp" ? search.uisp_site : search.group;
+  const query = useOnboarding({ q: search.q, [config.group]: groupValue, state }, provider);
   const first = query.data?.pages[0];
   const items = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [customer, setCustomer] = useState(search.customer ?? "");
   const [site, setSite] = useState("");
-  const preview = useOnboardingPreview();
-  const commit = useOnboardingCommit();
+  const preview = useOnboardingPreview(provider);
+  const commit = useOnboardingCommit(provider);
   const update = (patch: Partial<OnboardingFilters>) => {
     setSelected(new Set());
     preview.reset();
-    void navigate({ search: (previous: OnboardingFilters) => ({ ...previous, ...patch }), replace: true });
+    void navigate({ to: config.path, search: { ...search, ...patch } as never, replace: true });
   };
 
   useEffect(() => {
@@ -67,7 +87,7 @@ export function UispOnboarding() {
   return (
     <section className="ui-page">
       <nav className="ui-breadcrumbs" aria-label={t("device.breadcrumbs")}>
-        <Link to="/integrations">{t("integrations.title")}</Link> / <Link to="/admin/integrations/uisp">UISP</Link>
+        <Link to="/integrations">{t("integrations.title")}</Link> / <Link to={config.admin}>{config.name}</Link>
       </nav>
       <header className="ui-page-header ui-page-header-row">
         <div>
@@ -85,7 +105,7 @@ export function UispOnboarding() {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("onboarding.searchPlaceholder")} aria-label={t("onboarding.search")} />
-        <select value={search.uisp_site ?? ""} onChange={(event) => update({ uisp_site: event.target.value || undefined })} aria-label={t("onboarding.uispSite")}>
+        <select value={groupValue ?? ""} onChange={(event) => update({ [config.group]: event.target.value || undefined })} aria-label={t("onboarding.uispSite")}>
           <option value="">{t("onboarding.allSites")}</option>
           {first?.uisp_sites.map((name) => <option key={name} value={name}>{name}</option>)}
         </select>
@@ -131,7 +151,7 @@ export function UispOnboarding() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((row) => <Row key={row.external_id ?? row.primary_mac ?? row.device_identity ?? ""} row={row} selectable={selectable} checked={!!row.external_id && selected.has(row.external_id)} onToggle={toggle} />)}
+                {items.map((row, index) => <Row key={row.external_id ?? row.primary_mac ?? `${row.device_identity}-${index}`} row={row} selectable={selectable} checked={!!row.external_id && selected.has(row.external_id)} onToggle={toggle} />)}
               </tbody>
             </table>
           </div>
@@ -154,7 +174,7 @@ export function UispOnboarding() {
           )}
         </>
       ) : (
-        <div className="ui-empty">{search.q || search.uisp_site ? t("onboarding.emptyFiltered") : t("onboarding.empty")}</div>
+        <div className="ui-empty">{search.q || groupValue ? t("onboarding.emptyFiltered") : t("onboarding.empty")}</div>
       )}
 
       {preview.data && (

@@ -2609,7 +2609,8 @@
     "test": "Test connessione",
     "syncNow": "Sincronizza ora",
     "disabledConnector": "Il connettore cnMaestro è disattivato.",
-    "synced": "Sincronizzazione completata: {{devices}} apparati in cnMaestro, {{linked}} collegati ({{created}} nuovi), {{unmatched}} Cambium NSM senza corrispondenza."
+    "synced": "Sincronizzazione completata: {{devices}} apparati in cnMaestro, {{linked}} collegati ({{created}} nuovi), {{unmatched}} Cambium NSM senza corrispondenza.",
+    "onboarding": "Importa da cnMaestro"
   },
   "zabbix": {
     "title": "Integrazioni · Zabbix",
@@ -4984,6 +4985,28 @@
       "ok": "presente",
       "partial": "parziale",
       "missing": "mancante"
+    }
+  },
+  "cnmOnboarding": {
+    "title": "Importazione da cnMaestro",
+    "subtitle": "Seleziona gli apparati cnMaestro da portare in NSM e scegli tu cliente e sede: NSM non li deduce da reti e torri cnMaestro. Prima della conferma vedi un'anteprima; alla conferma l'elenco cnMaestro viene riletto.",
+    "doneTitle": "Importazione da cnMaestro completata",
+    "done": "{{created}} apparati creati e {{linked}} associati da cnMaestro.",
+    "empty": "Nessun apparato cnMaestro in questo stato.",
+    "emptyFiltered": "Nessun apparato cnMaestro in questo stato con i filtri scelti.",
+    "allSites": "Tutte le torri e reti",
+    "uispSite": "Torre / rete",
+    "searchPlaceholder": "Nome, modello, MAC, IP, torre…",
+    "previewHelp": "Nuovi apparati nel cliente {{customer}}. Alla conferma l'elenco cnMaestro viene riletto: gli apparati cambiati nel frattempo vengono saltati.",
+    "previewHelpSite": "Nuovi apparati nel cliente {{customer}}, sede {{site}}. Alla conferma l'elenco cnMaestro viene riletto: gli apparati cambiati nel frattempo vengono saltati.",
+    "skipped_one": "{{count}} saltato perché cambiato in cnMaestro o già presente: {{names}}.",
+    "skipped_other": "{{count}} saltati perché cambiati in cnMaestro o già presenti: {{names}}.",
+    "actions": {
+      "missing": "Non più in cnMaestro"
+    },
+    "columns": {
+      "device": "Apparato cnMaestro",
+      "uispSite": "Torre / rete"
     }
   }
 }
