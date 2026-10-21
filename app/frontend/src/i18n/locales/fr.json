@@ -64,7 +64,8 @@
       "pending": "À enrôler",
       "firmware_attention": "Firmware à vérifier",
       "severe": "CVE graves",
-      "eol": "Hors support"
+      "eol": "Hors support",
+      "decommissioned": "Désactivés"
     },
     "columns": {
       "name": "Équipement",
@@ -2258,7 +2259,8 @@
       "strict": "sans clé depuis un routeur en mode strict",
       "ambiguous": "IP partagée par plusieurs équipements, nom d'hôte non décisif",
       "unknown": "émetteur non associé à un équipement",
-      "quota": "quota journalier de l'équipement dépassé"
+      "quota": "quota journalier de l'équipement dépassé",
+      "decommissioned": "équipement désactivé"
     }
   },
   "nvd": {
@@ -4639,5 +4641,17 @@
     "pending": "en attente de la prochaine synchronisation",
     "exclude": "Exclure de Zabbix",
     "include": "Inclure dans Zabbix"
+  },
+  "decommission": {
+    "badge": "Désactivé",
+    "open": "Désactiver l'équipement…",
+    "title": "Désactiver l'équipement",
+    "explain": "L'équipement sort de la supervision, des sauvegardes, des synchronisations, des contrôles de sécurité, des compteurs et des listes. Son historique reste consultable et vous pouvez le réactiver à tout moment.",
+    "reasonLabel": "Motif",
+    "reasonPlaceholder": "Ex. remplacé, client parti, en stock",
+    "submit": "Désactiver",
+    "since": "Désactivé le {{when}} par {{who}}",
+    "effects": "Sauvegardes, supervision, synchronisations et contrôles sont suspendus ; l'agent est refusé et les lignes syslog sont ignorées. L'historique reste consultable.",
+    "reactivate": "Réactiver"
   }
 }

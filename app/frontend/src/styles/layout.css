@@ -383,3 +383,25 @@ select {
   opacity: 0.6;
   cursor: default;
 }
+
+/* Device decommission: out-of-service banner and the discreet "Disattiva" entry under the header. */
+.ui-alert.ui-decommission {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.ui-decommission-toggle {
+  display: flex;
+  justify-content: flex-end;
+  margin: calc(-1 * var(--space-2)) 0 var(--space-2);
+  font-size: 13px;
+}
+
+form.ui-decommission {
+  margin-bottom: var(--space-3);
+}
+

@@ -302,7 +302,7 @@ def apply_candidate(db, device: Device, candidate: dict, actor, event_type="UISP
             Device.vendor == "ubiquiti",
             Device.external_device_id == candidate["external_id"],
             Device.id != device.id,
-        )
+        ).execution_options(include_decommissioned=True)
     )
     if duplicate:
         raise HTTPException(409, "Questo dispositivo UISP è già associato a un altro record NSM.")

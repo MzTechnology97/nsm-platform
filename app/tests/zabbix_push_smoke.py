@@ -198,6 +198,16 @@ def main():
     assert cpe_host["status"] == 1, "hosts of excluded devices are disabled, not deleted"
     assert "host.delete" not in fake6.calls
 
+    # A decommissioned device leaves Zabbix the same way (host disabled) and comes back on reactivation.
+    assert client.post(f"/api/ui/v1/devices/{ids['mt']}/decommission", headers=headers, json={"reason": "TEST dismesso"}).status_code == 200
+    with SessionLocal() as db:
+        stats = zbx.sync(db)
+    assert stats["disabled"] == 1 and mt_host["status"] == 1, stats
+    assert client.post(f"/api/ui/v1/devices/{ids['mt']}/reactivate", headers=headers).status_code == 200
+    with SessionLocal() as db:
+        zbx.sync(db)
+    assert mt_host["status"] == 0, "reactivated devices are enabled again"
+
     detail = client.get(f"/api/ui/v1/devices/{ids['mt']}").json()["zabbix"]
     assert "zabbix.php?action=latest.view&hostids%5B%5D=" in detail["link"], detail
     assert client.get(f"/api/ui/v1/devices/{ids['cpe']}").json()["zabbix"] == {"link": None, "excluded": True, "problems": None}

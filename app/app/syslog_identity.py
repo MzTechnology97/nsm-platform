@@ -51,6 +51,7 @@ REJECT_REASONS = {
     "ambiguous": "IP condiviso da più apparati, hostname non risolutivo",
     "unknown": "mittente non associato a un apparato",
     "quota": "quota giornaliera del dispositivo superata",
+    "decommissioned": "dispositivo disattivato",
 }
 
 
@@ -120,6 +121,7 @@ class Index:
     strict_ips: set = field(default_factory=set)      # addresses only reachable through a key
     strict_shared: set = field(default_factory=set)   # addresses used by at least one strict device
     networks: list = field(default_factory=list)
+    retired: set = field(default_factory=set)         # keys of decommissioned devices: their lines are dropped
     devices: int = 0
 
 
@@ -128,10 +130,14 @@ def build_index(db, settings: dict, now=None) -> Index:
     index = Index(networks=parse_networks(settings.get("allowed_networks")))
     strict_mode = settings.get("strict_mode", True)
     weak: dict = {}
-    for device in db.scalars(select(Device)):
-        index.devices += 1
+    for device in db.scalars(select(Device).execution_options(include_decommissioned=True)):
         data = device.inventory_data or {}
         key = data.get("syslog_key")
+        if device.decommissioned_at is not None:
+            if isinstance(key, str) and len(key) == 16:
+                index.retired.add(key)
+            continue
+        index.devices += 1
         if isinstance(key, str) and len(key) == 16:
             index.keys[key] = device.id
         if strict_mode and (data.get("syslog_strict") or (data.get("syslog_strict_manual") and isinstance(key, str) and len(key) == 16)):
@@ -189,7 +195,9 @@ def resolve(index: Index, source_ip: str, key: str | None, hostname: str | None)
     """
     if key:
         device_id = index.keys.get(key)
-        return (device_id, None) if device_id else (None, "unknown_key")
+        if device_id:
+            return device_id, None
+        return None, "decommissioned" if key in index.retired else "unknown_key"
     return None, "missing_key"
 
 

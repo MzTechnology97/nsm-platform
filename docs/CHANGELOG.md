@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.175 — 2026-10-21
+
+Device decommission (Disattiva / Riattiva)
+- **Take a device out of service without losing its history.** The device page has "Decommission device…", with a required reason. The device then stops taking part in the platform:
+  - scheduled backups, ping monitoring, agent health and self-update;
+  - UISP and cnMaestro sync, the Zabbix push (its host is disabled, never deleted) and Zabbix problems;
+  - exposure, compliance, CVE matching and firmware checks.
+- **Clean state on decommission.** Its open Action Center issues are closed with a note, its queued jobs are cancelled, and no new issue is opened for it.
+- **Agent and syslog.** Its agent is refused (403) but keeps its credential, so it resumes on reactivation. Its syslog lines are dropped, never reported as an unknown sender.
+- **History stays readable.** Overview, backups, configuration history, diagnostics, jobs, the incidents that involved it and the audit trail still show it. Any other change answers "device decommissioned" until it is reactivated; deleting it is still possible.
+- **Out of counters and lists.** It leaves counters, dashboards, worklists and search. The device list has a "Decommissioned" filter, and the page shows a banner with date, author, reason and "Reactivate".
+- **No duplicates.** UISP import, connector association and agent enrollment still see decommissioned devices, so the same device is never imported twice. Manual creation says to check the decommissioned devices.
+- **Audited.** `DEVICE_DECOMMISSIONED` and `DEVICE_REACTIVATED` events. Migration `0042_device_decommission`.
 ## 0.49.174 — 2026-10-21
 
 Classic interface removal, final shell cleanup (phase 8, R1)

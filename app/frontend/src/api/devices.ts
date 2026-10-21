@@ -25,6 +25,8 @@ export interface DeviceRow {
   agent_transport: string | null;
   severe_cves: number;
   signal_dbm?: number | null;
+  /** Set when the device is out of service ("Disattivati" filter). */
+  decommissioned_at?: string | null;
 }
 
 export interface DeviceCounts {
@@ -35,6 +37,7 @@ export interface DeviceCounts {
   firmware_attention: number;
   severe: number;
   eol: number;
+  decommissioned: number;
 }
 
 export interface DevicePage {

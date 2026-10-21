@@ -8,6 +8,7 @@ from app.agent_health_automation import agent_health_tick
 from app.backup_maintenance import maintenance_tick
 from app.backup_scheduler_capability_guard import install_backup_scheduler_capability_guard
 from app.config import settings
+from app.device_decommission import install_decommission_filter
 from app.device_job_maintenance import expire_delivered_jobs, expire_pending_jobs
 from app.mikrotik_agent_update import reconcile_agent_update_states
 from app.mikrotik_agent_autoupdate import auto_update as auto_update_agents
@@ -57,6 +58,7 @@ last_compliance = 0.0
 last_maintenance = 0.0
 last_telemetry_maintenance = 0.0
 
+install_decommission_filter()  # decommissioned devices are out of every scheduled task
 install_mikrotik_backup_finalization_cleanup()
 install_backup_scheduler_capability_guard()
 register_channels()

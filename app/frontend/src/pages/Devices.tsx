@@ -14,6 +14,7 @@ const STATUS_CHIPS = [
   { key: "online", count: "online" },
   { key: "offline", count: "offline" },
   { key: "pending", count: "pending" },
+  { key: "decommissioned", count: "decommissioned" },
 ] as const;
 const ATTENTION_CHIPS = [
   { key: "firmware", value: "attention", count: "firmware_attention" },
@@ -197,7 +198,11 @@ function DeviceLine({ device, top, height, locale }: { device: DeviceRow; top: n
         </span>
       </span>
       <span role="cell">
-        <span className={`ui-status ui-status-${device.status}`}>{t(`devices.statusLabel.${device.status}`, { defaultValue: device.status })}</span>
+        {device.decommissioned_at ? (
+          <span className="ui-status ui-status-decommissioned">{t("decommission.badge")}</span>
+        ) : (
+          <span className={`ui-status ui-status-${device.status}`}>{t(`devices.statusLabel.${device.status}`, { defaultValue: device.status })}</span>
+        )}
         {device.signal_dbm != null && <small className="ui-muted ui-block">{t("devices.signal", { value: device.signal_dbm })}</small>}
       </span>
       <span role="cell">{device.vendor}</span>

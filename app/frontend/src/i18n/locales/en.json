@@ -64,7 +64,8 @@
       "pending": "To be enrolled",
       "firmware_attention": "Firmware to check",
       "severe": "Severe CVEs",
-      "eol": "Out of support"
+      "eol": "Out of support",
+      "decommissioned": "Decommissioned"
     },
     "columns": {
       "name": "Device",
@@ -2258,7 +2259,8 @@
       "strict": "no key from a router in strict mode",
       "ambiguous": "IP shared by several devices, hostname not decisive",
       "unknown": "sender not linked to a device",
-      "quota": "device daily quota exceeded"
+      "quota": "device daily quota exceeded",
+      "decommissioned": "device decommissioned"
     }
   },
   "nvd": {
@@ -4639,5 +4641,17 @@
     "pending": "waiting for the next sync",
     "exclude": "Exclude from Zabbix",
     "include": "Include in Zabbix"
+  },
+  "decommission": {
+    "badge": "Decommissioned",
+    "open": "Decommission device…",
+    "title": "Decommission device",
+    "explain": "The device leaves monitoring, backups, syncs, security checks, counters and lists. Its history stays readable and you can reactivate it at any time.",
+    "reasonLabel": "Reason",
+    "reasonPlaceholder": "E.g. replaced, customer left, in storage",
+    "submit": "Decommission",
+    "since": "Decommissioned on {{when}} by {{who}}",
+    "effects": "Backups, monitoring, syncs and checks are suspended; the agent is refused and syslog lines are dropped. The history stays readable.",
+    "reactivate": "Reactivate"
   }
 }

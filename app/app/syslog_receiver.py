@@ -168,7 +168,7 @@ class Receiver:
 
     def _reject(self, reason: str, source_ip: str) -> None:
         self.stats["rejected"][reason] = self.stats["rejected"].get(reason, 0) + 1
-        if reason == "rate":
+        if reason in ("rate", "decommissioned"):
             self.stats["dropped"] += 1
             return
         self.stats["unknown"] += 1

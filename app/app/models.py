@@ -104,6 +104,7 @@ class Device(Base, TimestampMixin):
         Index("ix_devices_status", "status"),
         Index("ix_devices_serial_number", "serial_number"),
         Index("ix_devices_device_identity", "device_identity"),
+        Index("ix_devices_decommissioned_at", "decommissioned_at"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -158,6 +159,12 @@ class Device(Base, TimestampMixin):
     lifecycle_match: Mapped[str | None] = mapped_column(String(20))
     lifecycle_record_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("lifecycle_records.id", ondelete="SET NULL")
+    )
+    # Reversible decommission (device_decommission): out of service, history kept, hidden from workers and counters.
+    decommissioned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decommission_reason: Mapped[str | None] = mapped_column(Text)
+    decommissioned_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL", name="fk_devices_decommissioned_by_user")
     )
 
     customer: Mapped["Customer"] = relationship(back_populates="devices")

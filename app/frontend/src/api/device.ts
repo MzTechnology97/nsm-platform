@@ -26,11 +26,39 @@ export interface DeviceDetail {
   icmp: { enabled: boolean; target: string | null; last_rtt: number | null; last_loss: number | null; down: boolean; last_at: string | null };
   zabbix: DeviceZabbix | null;
   tabs: { key: string }[];
-  actions: { reboot: boolean; incident: boolean; manage: boolean };
+  /** Out of service: when, why and by whom; null for a device in service. */
+  decommissioned: Decommission | null;
+  actions: { reboot: boolean; incident: boolean; manage: boolean; decommission: boolean };
+}
+
+export interface Decommission {
+  at: string;
+  reason: string | null;
+  by: string | null;
 }
 
 export function useDevice(id: string) {
   return useQuery({ queryKey: ["device", id], queryFn: () => api<DeviceDetail>(`/api/ui/v1/devices/${encodeURIComponent(id)}`), staleTime: 30_000, refetchInterval: 60_000 });
+}
+
+/** Take a device out of service (reason required) or put it back; lists and counters change with it. */
+export function useDecommission(id: string) {
+  const client = useQueryClient();
+  const refresh = () => {
+    void client.invalidateQueries({ queryKey: ["device", id] });
+    void client.invalidateQueries({ queryKey: ["devices"] });
+  };
+  const base = `/api/ui/v1/devices/${encodeURIComponent(id)}`;
+  return {
+    decommission: useMutation({
+      mutationFn: (reason: string) => api<{ decommissioned: Decommission }>(`${base}/decommission`, { method: "POST", body: JSON.stringify({ reason }) }),
+      onSuccess: refresh,
+    }),
+    reactivate: useMutation({
+      mutationFn: () => api<{ decommissioned: null }>(`${base}/reactivate`, { method: "POST", body: "{}" }),
+      onSuccess: refresh,
+    }),
+  };
 }
 
 /** Keep a device out of the Zabbix push (or bring it back); the next sync applies it. */

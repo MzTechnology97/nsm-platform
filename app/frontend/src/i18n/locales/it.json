@@ -64,7 +64,8 @@
       "pending": "Da associare",
       "firmware_attention": "Firmware da verificare",
       "severe": "CVE gravi",
-      "eol": "Fuori supporto"
+      "eol": "Fuori supporto",
+      "decommissioned": "Disattivati"
     },
     "columns": {
       "name": "Apparato",
@@ -2258,7 +2259,8 @@
       "strict": "senza chiave da un router in modalità rigorosa",
       "ambiguous": "IP condiviso da più apparati, hostname non risolutivo",
       "unknown": "mittente non associato a un apparato",
-      "quota": "quota giornaliera del dispositivo superata"
+      "quota": "quota giornaliera del dispositivo superata",
+      "decommissioned": "dispositivo disattivato"
     }
   },
   "nvd": {
@@ -4639,5 +4641,17 @@
     "pending": "in attesa della prossima sincronizzazione",
     "exclude": "Escludi da Zabbix",
     "include": "Includi in Zabbix"
+  },
+  "decommission": {
+    "badge": "Disattivato",
+    "open": "Disattiva dispositivo…",
+    "title": "Disattiva dispositivo",
+    "explain": "Il dispositivo esce da monitoraggio, backup, sincronizzazioni, controlli di sicurezza, contatori e liste. Lo storico resta consultabile e puoi riattivarlo in ogni momento.",
+    "reasonLabel": "Motivo",
+    "reasonPlaceholder": "Es. sostituito, cliente cessato, in magazzino",
+    "submit": "Disattiva",
+    "since": "Disattivato il {{when}} da {{who}}",
+    "effects": "Backup, monitoraggio, sincronizzazioni e controlli sono sospesi; l'agent viene rifiutato e i log syslog scartati. Lo storico resta consultabile.",
+    "reactivate": "Riattiva"
   }
 }
