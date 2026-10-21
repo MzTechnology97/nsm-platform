@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.192 — 2026-10-21
+
+Import Cambium devices from cnMaestro
+- **New "Import from cnMaestro" page** (Integrations › cnMaestro), the same flow as the UISP onboarding.
+  - Every cnMaestro device is listed with its state in NSM: new, to link to an existing record, already in NSM, or not importable with the reason (no MAC, MAC repeated in cnMaestro, MAC used by another NSM device, device decommissioned).
+  - Filters by text and by tower/network.
+- **You choose the NSM customer and site,** NSM never derives them from cnMaestro networks or towers.
+  - A preview shows what will happen.
+  - At confirmation the cnMaestro list is read again, so a device changed or removed in the meantime is skipped instead of being created from stale data.
+- **No duplicates.** A Cambium device already in NSM with the same MAC is linked to cnMaestro and stays in its own customer.
+  - New devices get name, model, serial, firmware, IP and status from cnMaestro.
+  - Their type comes from the product and mode: APs, subscriber modules and cnMatrix switches.
+- Every import is recorded in the activity log.
 ## 0.49.191 — 2026-10-21
 
 Archive notifications

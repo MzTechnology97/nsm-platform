@@ -2609,7 +2609,8 @@
     "test": "Probar conexión",
     "syncNow": "Sincronizar ahora",
     "disabledConnector": "El conector cnMaestro está desactivado.",
-    "synced": "Sincronización completada: {{devices}} equipos en cnMaestro, {{linked}} vinculados ({{created}} nuevos), {{unmatched}} Cambium de NSM sin coincidencia."
+    "synced": "Sincronización completada: {{devices}} equipos en cnMaestro, {{linked}} vinculados ({{created}} nuevos), {{unmatched}} Cambium de NSM sin coincidencia.",
+    "onboarding": "Importar desde cnMaestro"
   },
   "zabbix": {
     "title": "Integraciones · Zabbix",
@@ -4984,6 +4985,28 @@
       "ok": "presente",
       "partial": "parcial",
       "missing": "ausente"
+    }
+  },
+  "cnmOnboarding": {
+    "title": "Importación desde cnMaestro",
+    "subtitle": "Seleccione los equipos de cnMaestro que quiere llevar a NSM y elija usted el cliente y la sede: NSM no los deduce de las redes y torres de cnMaestro. Antes de confirmar verá una vista previa; al confirmar, la lista de cnMaestro se vuelve a leer.",
+    "doneTitle": "Importación desde cnMaestro completada",
+    "done": "{{created}} equipos creados y {{linked}} asociados desde cnMaestro.",
+    "empty": "Ningún equipo de cnMaestro en este estado.",
+    "emptyFiltered": "Ningún equipo de cnMaestro en este estado con los filtros elegidos.",
+    "allSites": "Todas las torres y redes",
+    "uispSite": "Torre / red",
+    "searchPlaceholder": "Nombre, modelo, MAC, IP, torre…",
+    "previewHelp": "Nuevos equipos en el cliente {{customer}}. Al confirmar, la lista de cnMaestro se vuelve a leer: los equipos cambiados mientras tanto se omiten.",
+    "previewHelpSite": "Nuevos equipos en el cliente {{customer}}, sede {{site}}. Al confirmar, la lista de cnMaestro se vuelve a leer: los equipos cambiados mientras tanto se omiten.",
+    "skipped_one": "{{count}} omitido porque cambió en cnMaestro o ya existe: {{names}}.",
+    "skipped_other": "{{count}} omitidos porque cambiaron en cnMaestro o ya existen: {{names}}.",
+    "actions": {
+      "missing": "Ya no está en cnMaestro"
+    },
+    "columns": {
+      "device": "Equipo de cnMaestro",
+      "uispSite": "Torre / red"
     }
   }
 }

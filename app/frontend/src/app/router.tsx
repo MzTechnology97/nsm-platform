@@ -406,6 +406,17 @@ const uispOnboardingRoute = createRoute({
     ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
   }),
 });
+const cnmaestroOnboardingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/integrations/cnmaestro/onboarding",
+  component: lazyRouteComponent(() => import("../pages/UispOnboarding"), "CnmaestroOnboarding"),
+  validateSearch: (search: Record<string, unknown>): OnboardingFilters => ({
+    ...(typeof search.q === "string" && search.q ? { q: search.q } : {}),
+    ...(typeof search.group === "string" && search.group ? { group: search.group } : {}),
+    ...(typeof search.state === "string" && ["new", "linkable", "linked", "blocked"].includes(search.state) ? { state: search.state as OnboardingFilters["state"] } : {}),
+    ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
+  }),
+});
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/access",
@@ -596,6 +607,7 @@ export const routeTree = rootRoute.addChildren([
   adminGenieacsRoute,
   adminUispRoute,
   uispOnboardingRoute,
+  cnmaestroOnboardingRoute,
   searchRoute,
   notificationsRoute,
   profileRoute,
