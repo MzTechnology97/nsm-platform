@@ -1,4 +1,4 @@
-import { Link, Outlet } from "@tanstack/react-router";
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -7,9 +7,12 @@ import { can, useSession, useUpdatePreferences } from "../api/session";
 import i18n, { LANGUAGE_NAMES, LANGUAGES, pickLanguage, type Language } from "../i18n";
 import { CommandPalette, isApple } from "./CommandPalette";
 import { Icon } from "./Icon";
-import { SECTIONS } from "./sections";
+import { SECTIONS, type Section } from "./sections";
 
 const LANGUAGE_COOKIE = "nsm-lang";
+
+/** Branding colours of a fresh installation (app/app/workflow_ui.py DEFAULT_COLORS). */
+const FACTORY_COLORS = { primary: "#1f5f8b", sidebar: "#111827", highlight: "#f59e0b" };
 
 /** Light or dark for the page, from the preference (``system`` follows the operating system). */
 function useEffectiveTheme(preference: string): "light" | "dark" {
@@ -74,10 +77,15 @@ export function Layout() {
   useEffect(() => {
     if (!branding) return;
     // CSSOM custom properties (allowed by the CSP, unlike inline style attributes).
+    // The factory colours mean "not customised": the theme palette (light and dark) applies instead.
     const root = document.documentElement.style;
-    root.setProperty("--brand-primary", branding.primary_color);
-    root.setProperty("--brand-sidebar", branding.sidebar_color);
-    root.setProperty("--brand-highlight", branding.highlight_color);
+    const apply = (name: string, value: string, factory: string) => {
+      if (value && value.toLowerCase() !== factory) root.setProperty(name, value);
+      else root.removeProperty(name);
+    };
+    apply("--brand-primary", branding.primary_color, FACTORY_COLORS.primary);
+    apply("--brand-sidebar", branding.sidebar_color, FACTORY_COLORS.sidebar);
+    apply("--brand-highlight", branding.highlight_color, FACTORY_COLORS.highlight);
   }, [branding]);
 
   useEffect(() => {
@@ -109,8 +117,15 @@ export function Layout() {
       <aside className="ui-sidebar" aria-label="NSM">
         <div className="ui-brand">
           <span className="ui-brand-name" title={data.branding.portal_name}>
-            {data.branding.has_logo && <img className="ui-brand-logo" src={`/branding/logo?v=${data.branding.logo_version}`} alt="" />}
-            <span className="ui-brand-text">{data.branding.portal_name}</span>
+            {data.branding.has_logo ? (
+              <img className="ui-brand-logo" src={`/branding/logo?v=${data.branding.logo_version}`} alt="" />
+            ) : (
+              <span className="ui-brand-mark" aria-hidden="true">{(data.branding.portal_name.trim()[0] ?? "N").toUpperCase()}</span>
+            )}
+            <span className="ui-brand-words">
+              <span className="ui-brand-text">{data.branding.portal_name}</span>
+              {data.branding.tagline && <span className="ui-brand-tagline">{data.branding.tagline}</span>}
+            </span>
           </span>
           <button type="button" className="ui-icon-button ui-collapse" onClick={() => setCollapsed((value) => !value)} aria-label={t("nav.collapse")}>
             <Icon name="chevron-left" size={18} />
@@ -137,6 +152,7 @@ export function Layout() {
           <button type="button" className="ui-icon-button ui-mobile-menu" onClick={() => setMobileOpen(true)} aria-label={t("nav.open")}>
             <Icon name="menu" />
           </button>
+          <Breadcrumbs sections={visible} />
           <button type="button" className="ui-top-search" onClick={() => setPaletteOpen(true)} aria-haspopup="dialog">
             <Icon name="search" size={16} />
             <span className="ui-top-search-label">{t("palette.trigger")}</span>
@@ -167,7 +183,10 @@ export function Layout() {
             >
               <Icon name={theme === "dark" ? "sun" : "moon"} />
             </button>
-            <Link to="/profile" className="ui-button ui-button-ghost ui-hide-mobile" title={t("profile.title")}>{data.user.display_name}</Link>
+            <Link to="/profile" className="ui-user-link" title={t("profile.title")} aria-label={data.user.display_name}>
+              <span className="ui-user-avatar" aria-hidden="true">{initials(data.user.display_name)}</span>
+              <span className="ui-user-name ui-hide-mobile">{data.user.display_name}</span>
+            </Link>
             <form method="post" action="/logout" className="ui-inline-form">
               <input type="hidden" name="csrf" value={data.csrf_token} />
               <button type="submit" className="ui-button ui-button-ghost">{t("user.logout")}</button>
@@ -181,6 +200,42 @@ export function Layout() {
       {mobileOpen && <button type="button" className="ui-backdrop" aria-label={t("nav.collapse")} onClick={() => setMobileOpen(false)} />}
       <CommandPalette session={data} open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
+  );
+}
+
+/** Up to two initials of the signed-in user, for the avatar circle of the top bar. */
+function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const letters = words.length > 1 ? [words[0], words[words.length - 1]] : words;
+  return letters.map((word) => word[0]).join("").toUpperCase() || "?";
+}
+
+/** Where the page sits: section group, then the section (a link back to it on the pages below it). */
+function Breadcrumbs({ sections }: { sections: Section[] }) {
+  const { t } = useTranslation();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const path = pathname.replace(/^\/app(?=\/|$)/, "") || "/";
+  const matches = (section: Section) => {
+    if (section.route === "/") return path === "/";
+    const root = section.route.startsWith("/admin/") ? "/admin" : section.route;
+    return path === root || path.startsWith(`${root}/`);
+  };
+  const section = sections.filter(matches).sort((a, b) => b.route.length - a.route.length)[0];
+  if (!section) return <span className="ui-top-crumbs" />;
+  const atRoot = path === section.route;
+  return (
+    <nav className="ui-top-crumbs" aria-label={t("nav.breadcrumb")}>
+      <ol>
+        <li className="ui-top-crumbs-group">{t(`nav.groups.${section.group}`)}</li>
+        <li>
+          {atRoot ? (
+            <strong aria-current="page">{t(`nav.${section.key}`)}</strong>
+          ) : (
+            <Link to={section.route}>{t(`nav.${section.key}`)}</Link>
+          )}
+        </li>
+      </ol>
+    </nav>
   );
 }
 

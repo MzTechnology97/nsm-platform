@@ -14,38 +14,49 @@
   margin-bottom: var(--space-3);
 }
 
+/* Filter chips: "Label · count" pills, the active one tinted with the primary colour. */
 .ui-chip {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: 5px 12px;
-  border: 1px solid var(--border);
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
   background: var(--panel);
-  color: var(--text);
+  color: var(--neutral-text);
   font: inherit;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .ui-chip:hover {
-  border-color: var(--border-strong);
+  border-color: var(--accent-border);
+  color: var(--heading);
 }
 
 .ui-chip.is-active {
-  border-color: var(--accent);
+  border-color: var(--accent-border);
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .ui-chip-warning.is-active {
-  border-color: var(--warning);
-  background: color-mix(in srgb, var(--warning) 12%, var(--panel));
-  color: var(--text);
+  border-color: var(--tone-warn-border);
+  background: var(--warning-soft);
+  color: var(--warning);
 }
 
 .ui-chip-count {
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 800;
+}
+
+.ui-chip-count::before {
+  margin-right: 6px;
+  content: "·";
+  content: "·" / "";
 }
 
 .ui-chip-separator {
@@ -64,7 +75,7 @@
 
 .ui-filter-bar input[type="search"] {
   flex: 1 1 280px;
-  min-height: 34px;
+  min-height: 36px;
   padding: 6px 12px;
   border: 1px solid var(--border-strong);
   border-radius: 8px;
@@ -87,32 +98,42 @@
   overflow: hidden;
 }
 
+.ui-table .ui-chips {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+}
+
 .ui-device-grid {
   display: grid;
-  grid-template-columns: 28px minmax(220px, 2.2fr) 130px minmax(160px, 1.5fr) 140px minmax(150px, 1fr) 150px 120px;
+  grid-template-columns: 28px minmax(200px, 2.2fr) 112px minmax(150px, 1.5fr) 130px minmax(140px, 1fr) 140px 110px;
   align-items: center;
   gap: var(--space-3);
   padding: 0 var(--space-4);
 }
 
 .ui-table-head {
-  min-height: 40px;
+  min-height: 36px;
   background: var(--table-head);
   border-bottom: 1px solid var(--border);
 }
 
+/* Column headers: small bold uppercase grey labels. */
 .ui-th {
-  padding: 10px 0;
+  padding: 9px 0;
   border: 0;
   background: none;
   color: var(--muted);
   font: inherit;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 800;
   text-align: left;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   cursor: pointer;
+}
+
+.ui-th:hover {
+  color: var(--heading);
 }
 
 .ui-table-body {
@@ -127,9 +148,14 @@
   top: 0;
   left: 0;
   width: 100%;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--divider);
   color: var(--text);
   text-decoration: none;
+}
+
+.ui-td-main > strong:first-child {
+  color: var(--heading);
+  font-weight: 800;
 }
 
 .ui-tr:hover {
@@ -156,7 +182,7 @@
 
 .ui-mono {
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .ui-table-foot {
@@ -166,55 +192,100 @@
   font-size: 12px;
 }
 
+/* Status as a pill: green up, red down, amber waiting, grey anything else. */
 .ui-status {
+  --status-dot: var(--neutral-fill);
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  max-width: 100%;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--neutral-soft);
+  color: var(--neutral-text);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+  white-space: nowrap;
 }
 
 .ui-status::before {
-  width: 8px;
-  height: 8px;
+  flex: none;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--muted);
+  background: var(--status-dot);
   content: "";
 }
 
-.ui-status-online::before {
-  background: var(--success);
+.ui-status-online,
+.ui-status-success {
+  --status-dot: var(--success-fill);
+  background: var(--success-soft);
+  color: var(--success);
 }
 
-.ui-status-offline::before {
-  background: var(--danger);
+.ui-status-offline,
+.ui-status-danger {
+  --status-dot: var(--danger-fill);
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
-.ui-status-pending_enrollment::before,
-.ui-status-pending_link::before {
-  background: var(--warning);
+.ui-status-warning,
+.ui-status-pending_enrollment,
+.ui-status-pending_link {
+  --status-dot: var(--warning-fill);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+/* A status with no text (command palette) or with rich content (title + note) is a dot, not a pill. */
+.ui-status:empty,
+.ui-status:has(> *) {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.ui-status:has(> *) {
+  align-items: flex-start;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  white-space: normal;
+}
+
+.ui-status:has(> *)::before {
+  margin-top: 0.45em;
+}
+
+.ui-status:empty::before {
+  width: 8px;
+  height: 8px;
 }
 
 /* Out of service: a hollow dot, the device is neither up nor down. */
 .ui-status-decommissioned {
+  --status-dot: transparent;
   color: var(--muted);
 }
 
 .ui-status-decommissioned::before {
-  border: 2px solid var(--muted);
-  background: transparent;
+  border: 2px solid currentColor;
   box-sizing: border-box;
 }
 
 .ui-badge {
   margin-left: var(--space-2);
-  padding: 1px 6px;
-  border-radius: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .ui-badge-danger {
-  background: color-mix(in srgb, var(--danger) 14%, var(--panel));
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
@@ -256,20 +327,35 @@
 
 .ui-data-table th {
   padding: 0;
+  border-bottom: 1px solid var(--border);
   background: var(--table-head);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
   text-align: left;
+  text-transform: uppercase;
   white-space: nowrap;
+}
+
+/* Header cells without a sort button carry the label directly. */
+.ui-data-table th:not(:has(> .ui-th)) {
+  padding: 9px 14px;
 }
 
 .ui-data-table th .ui-th {
   width: 100%;
-  padding: 10px 14px;
+  padding: 9px 14px;
 }
 
 .ui-data-table td {
-  padding: 8px 14px;
-  border-top: 1px solid var(--border);
+  padding: 7px 14px;
+  border-top: 1px solid var(--divider);
   vertical-align: middle;
+}
+
+.ui-data-table tbody tr:first-child td {
+  border-top: 0;
 }
 
 .ui-data-table tbody tr:hover {
@@ -297,8 +383,8 @@
   height: 32px;
   border-radius: 8px;
   background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 700;
+  color: var(--accent-text);
+  font-weight: 800;
 }
 
 .ui-cell-link {
@@ -331,8 +417,8 @@
 }
 
 .ui-cell-title {
-  color: inherit;
-  font-weight: 600;
+  color: var(--heading);
+  font-weight: 800;
   text-decoration: none;
 }
 
@@ -401,18 +487,18 @@
 }
 
 .ui-matrix-cell.is-pass a {
-  background: color-mix(in srgb, var(--success) 16%, var(--panel));
+  background: var(--success-soft);
   color: var(--success);
 }
 
 .ui-matrix-cell.is-fail a {
-  background: color-mix(in srgb, var(--danger) 16%, var(--panel));
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
 .ui-matrix-cell.is-unknown a,
 .ui-matrix-cell.is-exception a {
-  background: color-mix(in srgb, var(--warning) 16%, var(--panel));
+  background: var(--warning-soft);
   color: var(--warning);
 }
 
@@ -519,15 +605,15 @@
   width: 16px;
   height: 16px;
   padding: 0;
-  border: 1.5px solid var(--border-strong);
+  border: 1.5px solid var(--muted);
   border-radius: 4px;
   background: var(--panel);
   cursor: pointer;
 }
 
 .ui-checkbox.is-checked {
-  border-color: var(--accent);
-  background: var(--accent);
+  border-color: var(--accent-solid);
+  background: var(--accent-solid);
 }
 
 .ui-checkbox.is-checked::after {
@@ -558,30 +644,32 @@
   gap: 4px 6px;
 }
 
+/* CVE state next to the firmware: a small tinted pill. */
 .ui-cve-badge {
-  padding: 1px 6px;
-  border: 1px solid currentColor;
+  padding: 1px 7px;
   border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.4;
+  background: var(--neutral-soft);
+  color: var(--neutral-text);
+  font-family: var(--font);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.5;
   white-space: nowrap;
 }
 
 .ui-cve-badge.is-severe {
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
 .ui-cve-badge.is-open {
+  background: var(--warning-soft);
   color: var(--warning);
 }
 
 .ui-cve-badge.is-clean {
+  background: var(--success-soft);
   color: var(--success);
-}
-
-.ui-cve-badge.is-unknown {
-  color: var(--muted);
 }
 
 .ui-resources {
@@ -609,23 +697,23 @@
 
 .ui-meter-track {
   width: 100%;
-  height: 6px;
+  height: 5px;
 }
 
 .ui-meter-bg {
-  fill: var(--border);
+  fill: var(--divider);
 }
 
 .ui-meter-fill {
-  fill: var(--success);
+  fill: var(--success-fill);
 }
 
 .ui-meter-fill.is-warning {
-  fill: var(--warning);
+  fill: var(--warning-fill);
 }
 
 .ui-meter-fill.is-danger {
-  fill: var(--danger);
+  fill: var(--danger-fill);
 }
 
 .ui-meter-value {
@@ -640,7 +728,7 @@
   gap: var(--space-2) var(--space-4);
   margin-bottom: var(--space-3);
   padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--accent);
+  border: 1px solid var(--accent-border);
   border-radius: var(--radius);
   background: var(--accent-soft);
 }

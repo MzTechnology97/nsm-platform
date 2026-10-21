@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.183 — 2026-10-21
+
+New look, step 1: colours, shell and base components
+- **New palette.** Light grey page, white panels with a thin border and 12px corners, almost no shadows; dark navy sidebar; blue primary colour (#1769d6). Headings are bolder; the font is a rounded humanist sans taken from the system (no web fonts are loaded).
+- **Sidebar.** Section titles in small capitals, bold items with their icon, the current page shown as a solid blue pill. The portal name sits next to a round initial (or the uploaded logo) with the tagline under it. On phones the menu still opens as a drawer.
+- **Top bar.** White, with where you are on the left ("Operazioni › Apparati"), the search field, the bell, language, theme, and an avatar with the user's initials (the name is shown on wide screens).
+- **Base components.** Statuses are coloured pills (green online, red offline, amber waiting, grey otherwise); filter chips read "Label · count"; tables have small uppercase grey headers and denser rows; tabs underline the active one in blue; metric tiles are tinted by meaning; alerts are tinted boxes; buttons and fields share one height and radius; focus is always visible.
+- **Dark mode** keeps the same structure on deep blue-grey surfaces, with a lighter blue for links and a darker one behind white text.
+- **Sign-in pages** use the same palette: navy band, white card, round mark, blue button.
+- **Branding.** Custom colours chosen in Administration › Branding still apply everywhere. Colours left at their factory values now follow the new palette (light and dark) instead of the previous blue.
+- No feature, page or API change.
 ## 0.49.182 — 2026-10-21
 
 Planned maintenance windows

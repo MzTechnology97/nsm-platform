@@ -33,7 +33,8 @@
       "governance": "Gobernanza",
       "admin": "Plataforma"
     },
-    "sla": "SLA clientes"
+    "sla": "SLA clientes",
+    "breadcrumb": "Ruta de navegación"
   },
   "user": {
     "language": "Idioma",

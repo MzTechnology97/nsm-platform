@@ -33,7 +33,8 @@
       "governance": "Gouvernance",
       "admin": "Plateforme"
     },
-    "sla": "SLA clients"
+    "sla": "SLA clients",
+    "breadcrumb": "Fil d'Ariane"
   },
   "user": {
     "language": "Langue",

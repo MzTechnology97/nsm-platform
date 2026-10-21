@@ -6,16 +6,21 @@
   margin-bottom: var(--space-2);
   color: var(--muted);
   font-size: 13px;
+  font-weight: 600;
 }
 
 .ui-breadcrumbs a {
   color: var(--muted);
+  text-decoration: none;
+}
+
+.ui-breadcrumbs a:hover {
+  color: var(--accent-text);
+  text-decoration: underline;
 }
 
 .ui-page-header h1 .ui-status {
   margin-left: var(--space-2);
-  font-size: 13px;
-  font-weight: 500;
   vertical-align: middle;
 }
 
@@ -25,32 +30,43 @@
   gap: var(--space-2);
 }
 
+/* Tabs: bold labels, the active one in the primary colour with a 3px underline. */
 .ui-tabs {
   display: flex;
   gap: 2px;
   margin: 0 0 var(--space-4);
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .ui-tab {
-  padding: 10px 14px;
-  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 9px 12px;
+  border-bottom: 3px solid transparent;
   color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
 }
 
 .ui-tab:hover {
-  color: var(--text);
+  border-bottom-color: var(--border-strong);
+  color: var(--heading);
+}
+
+.ui-tab:focus-visible {
+  outline-offset: -2px;
 }
 
 .ui-tab.is-active {
   border-bottom-color: var(--accent);
-  color: var(--text);
-  font-weight: 600;
+  color: var(--accent-text);
+  font-weight: 700;
 }
 
+/* Metric tiles: white by default, tinted by meaning (label in the tone colour, big figure). */
 .ui-metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -62,32 +78,108 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: var(--space-3) var(--space-4);
+  min-width: 0;
+  padding: var(--space-3) 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--panel);
   box-shadow: var(--shadow);
 }
 
-.ui-metric span,
-.ui-metric small {
+.ui-metric span {
   color: var(--muted);
   font-size: 12px;
 }
 
+/* The label: first line of the tile, bold, in the tone colour on tinted tiles. */
+.ui-metric > span:first-child:not(.ui-kpi-icon),
+.ui-kpi-body > span:first-child {
+  font-weight: 800;
+}
+
+.ui-metric small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .ui-metric strong {
   overflow: hidden;
-  font-size: 18px;
+  color: var(--heading);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .ui-metric-danger {
-  border-left: 3px solid var(--danger);
+  border-color: var(--tone-bad-border);
+  background: var(--tone-bad-bg);
+}
+
+.ui-metric-danger > span:first-child:not(.ui-kpi-icon),
+.ui-metric-danger .ui-kpi-body > span:first-child {
+  color: var(--danger);
 }
 
 .ui-metric-warning {
-  border-left: 3px solid var(--warning);
+  border-color: var(--tone-warn-border);
+  background: var(--tone-warn-bg);
+}
+
+.ui-metric-warning > span:first-child:not(.ui-kpi-icon),
+.ui-metric-warning .ui-kpi-body > span:first-child {
+  color: var(--warning);
+}
+
+.ui-metric-success {
+  border-color: var(--tone-good-border);
+  background: var(--tone-good-bg);
+}
+
+.ui-metric-success > span:first-child:not(.ui-kpi-icon),
+.ui-metric-success .ui-kpi-body > span:first-child {
+  color: var(--success);
+}
+
+.ui-metric-info {
+  border-color: var(--tone-info-border);
+  background: var(--tone-info-bg);
+}
+
+.ui-metric-info > span:first-child:not(.ui-kpi-icon),
+.ui-metric-info .ui-kpi-body > span:first-child {
+  color: var(--accent-text);
+}
+
+/* Small progress ring of a tile (SVG attributes only: <circle class="ui-tile-ring-track|ui-tile-ring-value">). */
+.ui-tile-ring {
+  flex: none;
+  width: 44px;
+  height: 44px;
+}
+
+.ui-tile-ring-track {
+  fill: none;
+  stroke: var(--ring-track);
+}
+
+.ui-tile-ring-value {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+}
+
+.ui-metric-danger .ui-tile-ring-value {
+  stroke: var(--danger-fill);
+}
+
+.ui-metric-warning .ui-tile-ring-value {
+  stroke: var(--warning-fill);
+}
+
+.ui-metric-success .ui-tile-ring-value {
+  stroke: var(--success-fill);
 }
 
 .ui-two-columns {
@@ -97,7 +189,7 @@
 }
 
 .ui-panel {
-  padding: var(--space-4);
+  padding: 14px 18px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--panel);
@@ -106,7 +198,9 @@
 
 .ui-panel h2 {
   margin: 0 0 var(--space-3);
-  font-size: 16px;
+  color: var(--heading);
+  font-size: 15px;
+  font-weight: 800;
 }
 
 .ui-dl {
@@ -151,24 +245,24 @@
 }
 
 .ui-severity {
-  padding: 1px 8px;
+  padding: 2px 9px;
   border-radius: 999px;
-  background: var(--surface-soft);
-  color: var(--muted);
+  background: var(--neutral-soft);
+  color: var(--neutral-text);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 800;
   text-transform: uppercase;
 }
 
 .ui-severity-critical,
 .ui-severity-high {
-  background: color-mix(in srgb, var(--danger) 14%, var(--panel));
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
 .ui-severity-warning,
 .ui-severity-medium {
-  background: color-mix(in srgb, var(--warning) 16%, var(--panel));
+  background: var(--warning-soft);
   color: var(--warning);
 }
 
@@ -197,7 +291,7 @@
   margin: 0;
   font-size: 13px;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .ui-device-health .ui-resources {
@@ -216,10 +310,11 @@
   align-items: center;
   gap: 6px;
   padding: 3px 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
   color: var(--text);
   font-size: 12px;
+  font-weight: 700;
   text-decoration: none;
 }
 
@@ -228,18 +323,21 @@
 }
 
 .ui-cve-chip.is-critical {
-  border-color: var(--critical);
-  background: color-mix(in srgb, var(--critical) 16%, var(--panel));
+  border-color: var(--tone-bad-border);
+  background: var(--danger-soft);
+  color: var(--critical);
 }
 
 .ui-cve-chip.is-high {
-  border-color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 12%, var(--panel));
+  border-color: var(--tone-bad-border);
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .ui-cve-chip.is-medium {
-  border-color: var(--warning);
-  background: color-mix(in srgb, var(--warning) 12%, var(--panel));
+  border-color: var(--tone-warn-border);
+  background: var(--warning-soft);
+  color: var(--warning);
 }
 
 .ui-cve-chip-all {

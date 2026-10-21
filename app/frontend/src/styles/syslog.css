@@ -60,31 +60,40 @@
   white-space: nowrap;
 }
 
+/* Alerts: a tinted box per meaning, a stronger edge on the left. */
 .ui-alert {
   margin: var(--space-3) 0;
   padding: 10px 14px;
   border: 1px solid var(--border);
   border-left-width: 4px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--surface-soft);
+  color: var(--text);
 }
 
 .ui-alert-success {
-  border-left-color: var(--success);
+  border-color: var(--tone-good-border);
+  border-left-color: var(--success-fill);
+  background: var(--tone-good-bg);
 }
 
 .ui-alert-danger {
-  border-left-color: var(--danger);
+  border-color: var(--tone-bad-border);
+  border-left-color: var(--danger-fill);
+  background: var(--tone-bad-bg);
 }
 
+/* Primary action: solid primary colour, white bold label. */
 .ui-button-primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
+  border-color: var(--accent-solid);
+  background: var(--accent-solid);
+  color: var(--on-accent);
 }
 
 .ui-button-primary:hover {
-  background: color-mix(in srgb, var(--accent) 85%, #000);
+  border-color: var(--accent-hover);
+  background: var(--accent-hover);
+  color: var(--on-accent);
 }
 
 .ui-button:disabled {

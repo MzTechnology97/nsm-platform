@@ -36,44 +36,22 @@ def branding_theme_css():
             _DEFAULT_HIGHLIGHT,
         )
 
-    css = f"""
-:root {{
-  --brand-primary: {primary} !important;
-  --brand-sidebar: {sidebar} !important;
-  --brand-highlight: {highlight} !important;
-  --accent: {primary} !important;
-  --sidebar: {sidebar} !important;
-  --accent-soft: color-mix(in srgb, {primary} 12%, transparent) !important;
-}}
-.sidebar {{ background: {sidebar} !important; }}
-a, .text-link, .customer-item:hover .customer-main strong {{ color: var(--accent-text); }}
-.button.primary,
-.branding-preview-button {{
-  background: {primary} !important;
-  border-color: {primary} !important;
-  color: #fff !important;
-}}
-.button.primary:hover {{
-  background: color-mix(in srgb, {primary} 82%, #000) !important;
-  border-color: color-mix(in srgb, {primary} 82%, #000) !important;
-}}
-.nav-item.active {{
-  background: color-mix(in srgb, {primary} 30%, transparent) !important;
-}}
-.avatar {{
-  color: var(--accent-text) !important;
-  background: color-mix(in srgb, {primary} 12%, var(--panel)) !important;
-}}
-input:focus, textarea:focus, select:focus {{
-  border-color: {primary} !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, {primary} 16%, transparent) !important;
-}}
-.preference-card.active,
-.admin-tabs a.active {{ border-color: {primary} !important; }}
-.admin-tabs a.active {{ color: var(--accent-text) !important; }}
-.attention-link .nav-icon {{ color: {highlight} !important; }}
-::selection {{ background: color-mix(in srgb, {primary} 32%, transparent); }}
-""".strip()
+    # The sign-in pages (static/app.css) derive every shade from the --brand-* variables. A colour still at its
+    # factory value is left out, so the built-in light/dark palette applies (as in the interface, Layout.tsx).
+    custom = [
+        (name, value)
+        for name, value, factory in (
+            ("--brand-primary", primary, _DEFAULT_PRIMARY),
+            ("--brand-sidebar", sidebar, _DEFAULT_SIDEBAR),
+            ("--brand-highlight", highlight, _DEFAULT_HIGHLIGHT),
+        )
+        if value != factory
+    ]
+    if custom:
+        lines = "\n".join(f"  {name}: {value};" for name, value in custom)
+        css = f":root {{\n{lines}\n}}"
+    else:
+        css = "/* Branding colours at their defaults: the built-in palette applies. */"
 
     return Response(
         content=css,

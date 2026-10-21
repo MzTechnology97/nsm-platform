@@ -62,9 +62,9 @@
 }
 
 .ui-segmented button.is-active {
-  background: var(--accent);
-  color: #fff;
-  font-weight: 600;
+  background: var(--accent-solid);
+  color: var(--on-accent);
+  font-weight: 700;
 }
 
 .ui-chart-grid {
