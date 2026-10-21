@@ -1,12 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 import { type Dashboard, type DeviceBrief, type Distribution, useDashboard } from "../api/admin";
 import { formatDateTime, formatSpan } from "../lib/format";
 import { BrandIcon } from "../app/BrandIcon";
-import { Icon } from "../app/Icon";
 import { InfoTip } from "../app/InfoTip";
+import { TileRing, type TileTone } from "../app/RingTile";
 import { Resources } from "../app/Resources";
 import { Loading } from "../app/States";
 
@@ -48,34 +49,40 @@ export function Home() {
         <Loading />
       ) : (
         <>
+          <TopbarSlot>
+            <LivePill updatedAt={data.updated_at} answeredAt={query.dataUpdatedAt} fetching={query.isFetching} />
+          </TopbarSlot>
           <p className="ui-muted ui-refresh-line">
             {t("dashboard.updated", { when: formatDateTime(data.updated_at, i18n.language, true) })}{" "}
             <Countdown updatedAt={query.dataUpdatedAt} fetching={query.isFetching} />
           </p>
-          <Kpis data={data} />
-          <div className="ui-two-columns">
-            <section className="ui-panel ui-admin-section">
-              <h2>{t("dashboard.coverage")} <InfoTip text={t("dashboard.coverageTip")} /></h2>
-              <p className="ui-muted">{t("dashboard.coverageHelp")}</p>
-              <div className="ui-ring-row">
-                <Ring label={t("dashboard.availability")} value={data.online_count} total={data.device_count} good={t("dashboard.online")} bad={t("dashboard.offline")}
-                  badCount={data.offline_count} tone="success" />
-                <Ring label={t("dashboard.backupCoverage")} value={data.backup_protected_count} total={data.device_count} good={t("dashboard.backupReady")}
-                  bad={t("dashboard.backupNotReady")} badCount={data.backup_blocked_count + data.backup_no_policy_count} tone="accent" />
+          <div className="ui-dash-layout">
+            <div className="ui-dash-main">
+              <Kpis data={data} />
+              <div className="ui-dash-heading">
+                <h2>{t("dashboard.operations")}</h2>
+                <p className="ui-muted">{t("dashboard.operationsHelp")}</p>
               </div>
-            </section>
-            <Attention data={data} />
-          </div>
-          <div className="ui-page-header-row">
-            <div>
-              <h2>{t("dashboard.operations")}</h2>
-              <p className="ui-muted">{t("dashboard.operationsHelp")}</p>
+              <div className="ui-dashboard-grid ui-operations-grid">
+                <Outages data={data} />
+                <Posture data={data} />
+                <Pressure data={data} />
+              </div>
+              <section className="ui-panel ui-admin-section">
+                <h2>{t("dashboard.coverage")} <InfoTip text={t("dashboard.coverageTip")} /></h2>
+                <p className="ui-muted">{t("dashboard.coverageHelp")}</p>
+                <div className="ui-ring-row">
+                  <Ring label={t("dashboard.availability")} value={data.online_count} total={data.device_count} good={t("dashboard.online")} bad={t("dashboard.offline")}
+                    badCount={data.offline_count} tone="success" />
+                  <Ring label={t("dashboard.backupCoverage")} value={data.backup_protected_count} total={data.device_count} good={t("dashboard.backupReady")}
+                    bad={t("dashboard.backupNotReady")} badCount={data.backup_blocked_count + data.backup_no_policy_count} tone="accent" />
+                </div>
+              </section>
             </div>
-          </div>
-          <div className="ui-dashboard-grid ui-operations-grid">
-            <Outages data={data} />
-            <Pressure data={data} />
-            <Posture data={data} />
+            <aside className="ui-dash-side">
+              <Attention data={data} />
+              <Events data={data} />
+            </aside>
           </div>
           <div className="ui-page-header-row">
             <div>
@@ -90,10 +97,7 @@ export function Home() {
             <Bars title={t("dashboard.firmwareVersions")} help={t("dashboard.firmwareHelp")} rows={data.firmware_distribution} />
             <Bars title={t("dashboard.models")} help={t("dashboard.modelsHelp")} rows={data.model_distribution} search={(key) => ({ q: key })} />
           </div>
-          <div className="ui-two-columns">
-            <Advisories data={data} />
-            <Events data={data} />
-          </div>
+          <Advisories data={data} />
         </>
       )}
     </section>
@@ -102,12 +106,13 @@ export function Home() {
 
 type KpiTarget = "/devices" | "/backups" | "/vulnerabilities" | "/firmware" | "/action-center" | "/lifecycle";
 
-function Kpi({ to, search, label, value, note, tone, icon }: { to: KpiTarget; search?: Record<string, string>; label: string; value: number; note: ReactNode;
-  tone?: "danger" | "warning"; icon: string }) {
+/** KPI tile: a link with a ring (share of the inventory), tinted by meaning. */
+function Kpi({ to, search, label, value, note, tone, percent }: { to: KpiTarget; search?: Record<string, string>; label: string; value: number; note: ReactNode;
+  tone?: TileTone; percent: number | null }) {
   return (
-    <Link to={to} search={search as never} className={`ui-metric ui-metric-link ui-kpi${tone ? ` ui-metric-${tone}` : ""}`}>
-      <span className="ui-kpi-icon" aria-hidden="true"><Icon name={icon} size={18} /></span>
-      <span className="ui-kpi-body">
+    <Link to={to} search={search as never} className={`ui-metric ui-metric-link ui-ring-tile ui-kpi${tone ? ` ui-metric-${tone}` : ""}`}>
+      <TileRing percent={percent} />
+      <span className="ui-ring-tile-body">
         <span>{label}</span>
         <strong>{value}</strong>
         <small>{note}</small>
@@ -118,19 +123,53 @@ function Kpi({ to, search, label, value, note, tone, icon }: { to: KpiTarget; se
 
 function Kpis({ data }: { data: Dashboard }) {
   const { t, i18n } = useTranslation();
+  const share = (count: number) => (data.device_count ? (100 * count) / data.device_count : 0);
   return (
     <div className="ui-metrics ui-kpis">
-      <Kpi icon="devices" to="/devices" label={t("dashboard.devices")} value={data.device_count} note={t("dashboard.onlineNote", { count: data.online_count })} />
-      <Kpi icon="monitoring" to="/devices" search={{ status: "online" }} label={t("dashboard.online")} value={data.online_count} note={t("dashboard.reachable")} />
-      <Kpi icon="incidents" to="/devices" search={{ status: "offline" }} label={t("dashboard.offline")} value={data.offline_count} note={t("dashboard.toCheck")} tone={data.offline_count ? "danger" : undefined} />
-      <Kpi icon="backup" to="/backups" label={t("dashboard.backupProtected")} value={data.backup_protected_count} note={t("dashboard.coveragePercent", { percent: formatPercent(data.backup_coverage_percent, i18n.language) })} />
-      <Kpi icon="vulnerabilities" to="/vulnerabilities" label={t("dashboard.severeCve")} value={data.severe_cve_device_count} note={t("dashboard.devicesInvolved")} tone={data.severe_cve_device_count ? "danger" : undefined} />
-      <Kpi icon="firmware" to="/firmware" label={t("dashboard.firmware")} value={data.firmware_attention_count} note={t("dashboard.firmwareNote")} tone={data.firmware_attention_count ? "warning" : undefined} />
-      <Kpi icon="action" to="/action-center" label={t("nav.actionCenter")} value={data.open_issue_count} note={t("dashboard.criticalNote", { count: data.critical_issue_count })}
-        tone={data.critical_issue_count ? "danger" : data.open_issue_count ? "warning" : undefined} />
-      <Kpi icon="lifecycle" to="/lifecycle" label={t("dashboard.eol")} value={data.eol_count} note={t("dashboard.eolNote")} tone={data.eol_count ? "warning" : undefined} />
+      <Kpi to="/devices" label={t("dashboard.devices")} value={data.device_count} note={t("dashboard.onlineNote", { count: data.online_count })}
+        percent={share(data.online_count)} tone="info" />
+      <Kpi to="/devices" search={{ status: "online" }} label={t("dashboard.online")} value={data.online_count} note={t("dashboard.reachable")}
+        percent={share(data.online_count)} tone="success" />
+      <Kpi to="/devices" search={{ status: "offline" }} label={t("dashboard.offline")} value={data.offline_count} note={t("dashboard.toCheck")}
+        percent={share(data.offline_count)} tone={data.offline_count ? "danger" : "success"} />
+      <Kpi to="/backups" label={t("dashboard.backupProtected")} value={data.backup_protected_count}
+        note={t("dashboard.coveragePercent", { percent: formatPercent(data.backup_coverage_percent, i18n.language) })} percent={data.backup_coverage_percent} tone="info" />
+      <Kpi to="/vulnerabilities" label={t("dashboard.severeCve")} value={data.severe_cve_device_count} note={t("dashboard.devicesInvolved")}
+        percent={share(data.severe_cve_device_count)} tone={data.severe_cve_device_count ? "danger" : "success"} />
+      <Kpi to="/firmware" label={t("dashboard.firmware")} value={data.firmware_attention_count} note={t("dashboard.firmwareNote")}
+        percent={share(data.firmware_attention_count)} tone={data.firmware_attention_count ? "warning" : "success"} />
+      <Kpi to="/action-center" label={t("nav.actionCenter")} value={data.open_issue_count} note={t("dashboard.criticalNote", { count: data.critical_issue_count })}
+        percent={data.open_issue_count ? Math.max(8, (100 * data.critical_issue_count) / data.open_issue_count) : 0}
+        tone={data.critical_issue_count ? "danger" : data.open_issue_count ? "warning" : "success"} />
+      <Kpi to="/lifecycle" label={t("dashboard.eol")} value={data.eol_count} note={t("dashboard.eolNote")}
+        percent={share(data.eol_count)} tone={data.eol_count ? "warning" : "success"} />
     </div>
   );
+}
+
+/** Compact "aggiornata 16:54 · prossimo tra 23 s" pill for the top bar. */
+function LivePill({ updatedAt, answeredAt, fetching }: { updatedAt: string; answeredAt: number; fetching: boolean }) {
+  const { t, i18n } = useTranslation();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const seconds = Math.max(0, REFRESH_SECONDS - Math.floor((now - answeredAt) / 1000));
+  const time = new Intl.DateTimeFormat(i18n.language, { hour: "2-digit", minute: "2-digit" }).format(new Date(updatedAt));
+  return (
+    <span className="ui-live-pill" title={t("dashboard.updated", { when: formatDateTime(updatedAt, i18n.language, true) })}>
+      <span className="ui-live-dot" aria-hidden="true" />
+      <span className="ui-live-text">{fetching ? t("dashboard.refreshing") : t("dashboard.live", { time, seconds })}</span>
+    </span>
+  );
+}
+
+/** Renders its children in the page slot of the top bar (next to the breadcrumbs), when the shell has one. */
+function TopbarSlot({ children }: { children: ReactNode }) {
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => setSlot(document.getElementById("ui-topbar-slot")), []);
+  return slot ? createPortal(children, slot) : null;
 }
 
 /** Coverage ring drawn with SVG attributes only (the CSP forbids inline styles). */
@@ -167,23 +206,21 @@ function Attention({ data }: { data: Dashboard }) {
     { key: "pending", to: "/devices", value: data.pending_count, tone: data.pending_count ? "warning" : "online" },
   ];
   return (
-    <section className="ui-panel ui-admin-section">
-      <div className="ui-page-header-row">
+    <section className="ui-attention-card">
+      <div className="ui-attention-head">
         <h2>{t("dashboard.attention")}</h2>
         <Link to="/action-center">{t("dashboard.open")}</Link>
       </div>
-      <p className="ui-muted">{t("dashboard.attentionHelp")}</p>
+      <p>{t("dashboard.attentionHelp")}</p>
       <ul className="ui-attention-list">
         {rows.map((row) => (
           <li key={row.key}>
-            <Link to={row.to} className="ui-attention-row">
-              <span className={`ui-status ui-status-${row.tone}`}>
-                <span>
-                  <strong>{t(`dashboard.attentionItems.${row.key}.title`)}</strong>
-                  <small className="ui-muted ui-block">{t(`dashboard.attentionItems.${row.key}.note`)}</small>
-                </span>
-              </span>
+            <Link to={row.to} className={`ui-attention-row is-${row.tone}`}>
               <b>{row.value}</b>
+              <span>
+                <strong>{t(`dashboard.attentionItems.${row.key}.title`)}</strong>
+                <small className="ui-block">{t(`dashboard.attentionItems.${row.key}.note`)}</small>
+              </span>
             </Link>
           </li>
         ))}
@@ -420,15 +457,17 @@ function Events({ data }: { data: Dashboard }) {
       </div>
       <p className="ui-muted">{t("dashboard.eventsHelp")}</p>
       {data.recent_events.length ? (
-        <ul className="ui-list">
+        <ul className="ui-event-feed">
           {data.recent_events.map((event) => (
-            <li key={event.id}>
+            <li key={event.id} className={`is-${event.severity}`}>
+              <span className="ui-event-dot" aria-hidden="true" />
               <span>
                 <strong title={event.event_type}>{event.label}</strong>
-                <small className="ui-block">{formatDateTime(event.timestamp, i18n.language)} · {t(`actionCenter.severities.${event.severity}`, { defaultValue: event.severity })}</small>
+                <small className="ui-block">
+                  {formatDateTime(event.timestamp, i18n.language)} · {t(`actionCenter.severities.${event.severity}`, { defaultValue: event.severity })}
+                  {" · "}{t(`auditEvents.results.${event.result}`, { defaultValue: event.result })}
+                </small>
               </span>
-              <span />
-              <span className="ui-status">{t(`auditEvents.results.${event.result}`, { defaultValue: event.result })}</span>
             </li>
           ))}
         </ul>

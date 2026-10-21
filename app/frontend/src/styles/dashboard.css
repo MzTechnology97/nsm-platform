@@ -46,6 +46,45 @@
   font-weight: 600;
 }
 
+/* "Da guardare adesso": a dark card in the side column, one row per thing to look at (count first). */
+.ui-attention-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: var(--space-4);
+  border-radius: var(--radius);
+  background: #10192b;
+  color: #dbe4f0;
+}
+
+.ui-attention-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ui-attention-head h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 15px;
+}
+
+.ui-attention-head a {
+  color: #c7d3e3;
+  font-weight: 700;
+}
+
+.ui-attention-head a:hover {
+  color: #fff;
+}
+
+.ui-attention-card > p {
+  margin: 0;
+  color: #9fb0c8;
+  font-size: 13px;
+}
+
 .ui-attention-list {
   display: flex;
   flex-direction: column;
@@ -58,21 +97,47 @@
 .ui-attention-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: inherit;
+  padding: 9px var(--space-3);
+  border-radius: 9px;
+  background: #1a2740;
+  color: #dbe4f0;
   text-decoration: none;
 }
 
 .ui-attention-row:hover {
-  background: var(--surface-hover);
+  background: #22324f;
+  color: #fff;
+}
+
+.ui-attention-row:focus-visible {
+  outline-color: #fff;
 }
 
 .ui-attention-row b {
-  font-size: 18px;
+  min-width: 28px;
+  color: #8ee0b3;
+  font-size: 19px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-attention-row.is-offline b {
+  color: #ff8a8f;
+}
+
+.ui-attention-row.is-warning b {
+  color: #ffc46b;
+}
+
+.ui-attention-row strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ui-attention-row small {
+  color: #9fb0c8;
+  font-size: 12px;
 }
 
 .ui-dashboard-grid {
@@ -430,4 +495,159 @@ a.ui-bars-label:hover {
   font-size: 11px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+/* Dashboard layout: main column (KPIs, operations, coverage) and a side column (attention, recent activity). */
+.ui-dash-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  align-items: start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.ui-dash-main,
+.ui-dash-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.ui-dash-main > .ui-metrics,
+.ui-dash-main > .ui-dashboard-grid,
+.ui-dash-side > .ui-panel,
+.ui-dash-main > .ui-panel {
+  margin: 0;
+}
+
+.ui-dash-heading h2 {
+  margin: 0 0 2px;
+  font-size: 17px;
+}
+
+.ui-dash-heading p {
+  margin: 0;
+}
+
+.ui-dash-main .ui-operations-grid {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+@media (max-width: 1200px) {
+  .ui-dash-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ui-dash-side {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+}
+
+/* Live refresh pill in the top bar ("aggiornata … · prossimo tra … s"); on phones the line stays in the page. */
+.ui-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ui-live-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success-fill);
+}
+
+.ui-live-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 1101px) {
+  .ui-refresh-line {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .ui-topbar-slot .ui-live-pill {
+    display: none;
+  }
+}
+
+/* Recent activity: a dot per event, coloured by severity. */
+.ui-event-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ui-event-feed li {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ui-event-feed strong {
+  color: var(--heading);
+  font-size: 13px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.ui-event-feed small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ui-event-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--neutral-fill);
+}
+
+.is-critical > .ui-event-dot,
+.is-high > .ui-event-dot {
+  background: var(--danger-fill);
+}
+
+.is-warning > .ui-event-dot,
+.is-medium > .ui-event-dot {
+  background: var(--warning-fill);
+}
+
+.is-info > .ui-event-dot,
+.is-low > .ui-event-dot {
+  background: var(--accent);
+}
+
+/* Device rows of the dashboard lists: the vendor icon sits on a small tinted tile. */
+.ui-ops-device .ui-brand-icon {
+  width: 30px;
+  height: 30px;
+  border-color: transparent;
+  border-radius: 8px;
+  background: var(--accent-soft);
+}
+
+.ui-ops-device .ui-brand-icon:not(.is-generic) {
+  background: #fff;
+  border-color: var(--border);
 }

@@ -160,6 +160,7 @@ export function Layout() {
             <Icon name="menu" />
           </button>
           <Breadcrumbs sections={visible} />
+          <div className="ui-topbar-slot" id="ui-topbar-slot" />
           <button type="button" className="ui-top-search" onClick={() => setPaletteOpen(true)} aria-haspopup="dialog">
             <Icon name="search" size={16} />
             <span className="ui-top-search-label">{t("palette.trigger")}</span>
