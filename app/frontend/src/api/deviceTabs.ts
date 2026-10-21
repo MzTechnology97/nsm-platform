@@ -305,3 +305,53 @@ export function useLifecycleAction(id: string, path: string) {
     onSuccess: () => client.invalidateQueries({ queryKey: ["device", id] }),
   });
 }
+
+export type JournalKind = "note" | "onsite" | "maintenance" | "replacement" | "customer_contact";
+
+export interface JournalEntry {
+  id: string;
+  kind: JournalKind;
+  body: string;
+  occurred_at: string;
+  created_at: string;
+  author: string | null;
+  can_delete: boolean;
+}
+
+export interface DeviceEventRow {
+  id: string;
+  event_type: string;
+  label: string;
+  at: string;
+  severity: string;
+  result: string;
+  source: string;
+  actor: string | null;
+}
+
+export interface Logbook {
+  entries: JournalEntry[];
+  events: DeviceEventRow[];
+  kinds: JournalKind[];
+  can_write: boolean;
+  limit: number;
+}
+
+/** Device logbook (operator entries) and, with ``events``, the device's recorded events. */
+export const useLogbook = (id: string, events: boolean) =>
+  useQuery({ queryKey: ["device", id, "logbook", events], queryFn: () => api<Logbook>(`${base(id)}/logbook${events ? "?events=1" : ""}`), placeholderData: keepPreviousData });
+
+export function useLogbookActions(id: string) {
+  const client = useQueryClient();
+  const done = () => client.invalidateQueries({ queryKey: ["device", id, "logbook"] });
+  const add = useMutation({
+    mutationFn: (entry: { kind: JournalKind; body: string; occurred_at?: string }) =>
+      api<JournalEntry>(`${base(id)}/logbook`, { method: "POST", body: JSON.stringify(entry) }),
+    onSuccess: done,
+  });
+  const remove = useMutation({
+    mutationFn: (entryId: string) => api<{ deleted: boolean }>(`${base(id)}/logbook/${encodeURIComponent(entryId)}`, { method: "DELETE" }),
+    onSuccess: done,
+  });
+  return { add, remove };
+}

@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.180 — 2026-10-21
+
+Device logbook
+- **New "Device logbook" in the Activity tab of every device.**
+  - Operators, technicians and administrators write what was done on the device. Each entry has a type: note, site visit, maintenance, replacement or customer contact.
+  - The date can be set back up to a year, for work recorded later.
+  - Entries appear on a timeline with their author.
+  - "Also show recorded events" adds the device's events (backups, firmware, configuration changes…) to the same timeline.
+- **Entries are not edited.** A wrong entry is deleted by its author or an administrator, then written again. Adding and deleting are recorded in the activity log, the deleted text included.
+- **Stays writable after decommissioning,** to record that the device was returned or scrapped. Entries are deleted only with the device.
+- **Permissions:** a new `logbook.write` permission is given to technicians and operators. Auditors can read only.
+- Migration 0043 (`device_journal_entries`).
 ## 0.49.179 — 2026-10-21
 
 Device page (UX-3): health, diagnostics and configuration easier to read

@@ -245,3 +245,166 @@
 .ui-cve-chip-all {
   font-size: 12px;
 }
+
+/* Device logbook (Activity tab): entry form and a vertical timeline mixing entries and recorded events. */
+.ui-logbook {
+  margin-bottom: var(--space-4);
+}
+
+.ui-logbook-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+
+.ui-logbook-form textarea,
+.ui-logbook-form input {
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
+.ui-logbook-form input {
+  color-scheme: inherit;
+}
+
+.ui-logbook-form textarea {
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.ui-logbook-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ui-logbook-when {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ui-timeline {
+  position: relative;
+  margin: 0;
+  padding: 0 0 0 18px;
+  list-style: none;
+}
+
+.ui-timeline::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 5px;
+  width: 2px;
+  background: var(--border);
+}
+
+.ui-timeline-item {
+  position: relative;
+  padding: var(--space-2) 0 var(--space-3);
+}
+
+.ui-timeline-dot {
+  position: absolute;
+  top: 12px;
+  left: -18px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--panel);
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.ui-timeline-item.is-event .ui-timeline-dot {
+  top: 13px;
+  left: -16px;
+  width: 8px;
+  height: 8px;
+  background: var(--border-strong);
+}
+
+.ui-timeline-item.is-event strong {
+  font-weight: 500;
+}
+
+.ui-timeline-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ui-logbook-body {
+  margin: var(--space-1) 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ui-logbook-tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ui-logbook-tag.is-onsite,
+.ui-timeline-item.is-onsite .ui-timeline-dot {
+  background: color-mix(in srgb, var(--success) 18%, var(--panel));
+  color: var(--success);
+}
+
+.ui-timeline-item.is-onsite .ui-timeline-dot {
+  background: var(--success);
+}
+
+.ui-logbook-tag.is-replacement {
+  background: color-mix(in srgb, var(--warning) 18%, var(--panel));
+  color: var(--warning);
+}
+
+.ui-timeline-item.is-replacement .ui-timeline-dot {
+  background: var(--warning);
+}
+
+.ui-logbook-tag.is-maintenance {
+  background: color-mix(in srgb, var(--code-command) 16%, var(--panel));
+  color: var(--code-command);
+}
+
+.ui-timeline-item.is-maintenance .ui-timeline-dot {
+  background: var(--code-command);
+}
+
+.ui-logbook-tag.is-customer_contact {
+  background: color-mix(in srgb, var(--code-key) 16%, var(--panel));
+  color: var(--code-key);
+}
+
+.ui-timeline-item.is-customer_contact .ui-timeline-dot {
+  background: var(--code-key);
+}
+
+.ui-logbook-form .ui-row-actions {
+  align-items: center;
+}
+
+.ui-logbook-toggle {
+  margin-bottom: var(--space-2);
+  color: var(--muted);
+  font-size: 13px;
+}

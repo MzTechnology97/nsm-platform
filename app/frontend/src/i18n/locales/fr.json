@@ -4785,5 +4785,48 @@
       "customer": "Client",
       "site": "Site"
     }
+  },
+  "logbook": {
+    "title": "Journal de l'équipement",
+    "help": "Ce qui a été fait sur cet équipement : interventions, remplacements, contacts client, notes. Les entrées ne se modifient pas : supprimez une entrée erronée (elle reste dans le journal d'activité) et réécrivez-la.",
+    "showEvents": "Afficher aussi les événements enregistrés",
+    "kind": "Type d'entrée",
+    "kinds": {
+      "note": "Note",
+      "onsite": "Intervention sur site",
+      "maintenance": "Maintenance",
+      "replacement": "Remplacement",
+      "customer_contact": "Contact client"
+    },
+    "placeholders": {
+      "note": "Une information utile pour la prochaine personne qui interviendra…",
+      "onsite": "Ce qui a été fait sur site, par qui, avec quel résultat…",
+      "maintenance": "Maintenance effectuée ou prévue…",
+      "replacement": "Ce qui a été remplacé (alimentation, SFP, équipement) et pourquoi…",
+      "customer_contact": "Qui a été contacté, ce qui a été convenu…"
+    },
+    "body": "Texte de l'entrée",
+    "when": "Quand",
+    "now": "maintenant",
+    "add": "Ajouter au journal",
+    "written": "écrite {{when}}",
+    "delete": "Supprimer",
+    "confirmDelete": "Confirmer la suppression",
+    "empty": "Aucune entrée dans le journal.",
+    "emptyAll": "Aucune entrée et aucun événement enregistré.",
+    "limit": "Les {{count}} entrées les plus récentes sont affichées.",
+    "sources": {
+      "portal": "interface",
+      "agent": "agent",
+      "worker": "automatique",
+      "system": "système",
+      "api": "API"
+    },
+    "errors": {
+      "kind": "Type d'entrée non valide.",
+      "body": "Écrivez l'entrée (4000 caractères au maximum).",
+      "occurred_at": "La date doit être dans la dernière année et pas dans le futur.",
+      "forbidden": "Seul son auteur ou un administrateur peut la supprimer."
+    }
   }
 }

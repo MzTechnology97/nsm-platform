@@ -3,9 +3,10 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
-import { type ExposureTab, type JobFilters, type PortForward, useDeviceCompliance, useDeviceExposure, useDeviceJobs, useExposureAction } from "../api/deviceTabs";
+import { type ExposureTab, type JobFilters, type JournalEntry, type JournalKind, type PortForward, type DeviceEventRow, useDeviceCompliance, useDeviceExposure,
+  useDeviceJobs, useExposureAction, useLogbook, useLogbookActions } from "../api/deviceTabs";
 import { BrandIcon } from "../app/BrandIcon";
-import { formatDateTime } from "../lib/format";
+import { formatDateTime, formatRelative, fromLocalInput, toLocalInput } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { Loading } from "../app/States";
 
@@ -13,10 +14,140 @@ const JOB_TONE: Record<string, string> = { completed: "online", succeeded: "onli
   pending: "warning", delivered: "warning", running: "warning" };
 const SEVERITY_TONE: Record<string, string> = { critical: "ui-severity ui-severity-critical", high: "ui-severity ui-severity-high", medium: "ui-severity ui-severity-medium" };
 
-/** Device Activity tab: agent jobs with state and timing; the audit trail opens the activity log filtered on the device. */
+/** Device Activity tab: the logbook (operator entries, optionally with the device's recorded events), then the agent jobs. */
 export function DeviceActivity() {
-  const { t, i18n } = useTranslation();
   const { deviceId } = useParams({ from: "/devices/$deviceId/jobs" });
+  return (
+    <>
+      <DeviceLogbook deviceId={deviceId} />
+      <DeviceJobs deviceId={deviceId} />
+    </>
+  );
+}
+
+type TimelineRow = { at: string; entry?: JournalEntry; event?: DeviceEventRow };
+
+/** What people did on the device (site visits, replacements, customer contacts, notes), newest first; entries are never edited. */
+function DeviceLogbook({ deviceId }: { deviceId: string }) {
+  const { t, i18n } = useTranslation();
+  const [events, setEvents] = useState(false);
+  const query = useLogbook(deviceId, events);
+  const data = query.data;
+  if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
+  if (!data) return <Loading />;
+  const rows: TimelineRow[] = [
+    ...data.entries.map((entry) => ({ at: entry.occurred_at, entry })),
+    ...data.events.map((event) => ({ at: event.at, event })),
+  ].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+  return (
+    <section className="ui-panel ui-admin-section ui-logbook">
+      <div className="ui-page-header-row">
+        <div>
+          <h2>{t("logbook.title")}</h2>
+          <p className="ui-muted">{t("logbook.help")}</p>
+        </div>
+      </div>
+      {data.can_write && <LogbookForm deviceId={deviceId} kinds={data.kinds} />}
+      <label className="ui-with-brand ui-logbook-toggle">
+        <input type="checkbox" checked={events} onChange={(event) => setEvents(event.target.checked)} />
+        {t("logbook.showEvents")}
+      </label>
+      {rows.length ? (
+        <ol className="ui-timeline">
+          {rows.map((row) => (row.entry ? <EntryItem key={`e-${row.entry.id}`} deviceId={deviceId} entry={row.entry} /> : (
+            <li key={`a-${row.event!.id}`} className="ui-timeline-item is-event">
+              <span className="ui-timeline-dot" aria-hidden="true" />
+              <div>
+                <strong title={row.event!.event_type}>{row.event!.label}</strong>
+                <small className="ui-muted ui-block">
+                  {[formatDateTime(row.event!.at, i18n.language), row.event!.actor ?? t(`logbook.sources.${row.event!.source}`, { defaultValue: row.event!.source }),
+                    row.event!.result !== "success" ? t(`auditEvents.results.${row.event!.result}`, { defaultValue: row.event!.result }) : null].filter(Boolean).join(" · ")}
+                </small>
+              </div>
+            </li>
+          )))}
+        </ol>
+      ) : (
+        <div className="ui-empty">{t(events ? "logbook.emptyAll" : "logbook.empty")}</div>
+      )}
+      {data.entries.length >= data.limit && <p className="ui-muted">{t("logbook.limit", { count: data.limit })}</p>}
+    </section>
+  );
+}
+
+function LogbookForm({ deviceId, kinds }: { deviceId: string; kinds: JournalKind[] }) {
+  const { t } = useTranslation();
+  const { add } = useLogbookActions(deviceId);
+  const [kind, setKind] = useState<JournalKind>("note");
+  const [body, setBody] = useState("");
+  const [when, setWhen] = useState("");
+  const error = add.error instanceof ApiError ? (add.error.code ? t(`logbook.errors.${add.error.code}`, { defaultValue: add.error.message }) : add.error.message) : null;
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    add.mutate({ kind, body, occurred_at: when ? fromLocalInput(when) : undefined }, { onSuccess: () => { setBody(""); setWhen(""); setKind("note"); } });
+  };
+  return (
+    <form className="ui-logbook-form" onSubmit={submit}>
+      <div className="ui-logbook-kinds" role="radiogroup" aria-label={t("logbook.kind")}>
+        {kinds.map((value) => (
+          <button key={value} type="button" role="radio" aria-checked={kind === value} className={`ui-chip ui-logbook-kind is-${value}${kind === value ? " is-active" : ""}`}
+            onClick={() => setKind(value)}>
+            {t(`logbook.kinds.${value}`)}
+          </button>
+        ))}
+      </div>
+      <textarea value={body} onChange={(event) => setBody(event.target.value)} rows={3} maxLength={4000} required
+        placeholder={t(`logbook.placeholders.${kind}`)} aria-label={t("logbook.body")} />
+      <div className="ui-row-actions">
+        <label className="ui-logbook-when">
+          <span>{t("logbook.when")}</span>
+          <input type="datetime-local" value={when} max={toLocalInput(null)} onChange={(event) => setWhen(event.target.value)} />
+        </label>
+        <small className="ui-muted">{when ? "" : t("logbook.now")}</small>
+        <button type="submit" className="ui-button ui-grow-end" disabled={add.isPending || !body.trim()}>{t("logbook.add")}</button>
+      </div>
+      {error && <small className="ui-backup-error">{error}</small>}
+    </form>
+  );
+}
+
+function EntryItem({ deviceId, entry }: { deviceId: string; entry: JournalEntry }) {
+  const { t, i18n } = useTranslation();
+  const { remove } = useLogbookActions(deviceId);
+  const [confirm, setConfirm] = useState(false);
+  return (
+    <li className={`ui-timeline-item is-entry is-${entry.kind}`}>
+      <span className="ui-timeline-dot" aria-hidden="true" />
+      <div>
+        <div className="ui-timeline-head">
+          <span className={`ui-logbook-tag is-${entry.kind}`}>{t(`logbook.kinds.${entry.kind}`)}</span>
+          <small className="ui-muted" title={formatDateTime(entry.occurred_at, i18n.language)}>
+            {[entry.author, formatDateTime(entry.occurred_at, i18n.language)].filter(Boolean).join(" · ")}
+            {Math.abs(Date.parse(entry.created_at) - Date.parse(entry.occurred_at)) > 3_600_000 && ` · ${t("logbook.written", { when: formatRelative(entry.created_at, i18n.language) })}`}
+          </small>
+          {entry.can_delete && (
+            <span className="ui-grow-end ui-row-actions">
+              {confirm ? (
+                <>
+                  <button type="button" className="ui-button ui-button-danger ui-button-small" disabled={remove.isPending} onClick={() => remove.mutate(entry.id)}>
+                    {t("logbook.confirmDelete")}
+                  </button>
+                  <button type="button" className="ui-button ui-button-ghost ui-button-small" onClick={() => setConfirm(false)}>{t("customerForm.cancel")}</button>
+                </>
+              ) : (
+                <button type="button" className="ui-link-button" onClick={() => setConfirm(true)}>{t("logbook.delete")}</button>
+              )}
+            </span>
+          )}
+        </div>
+        <p className="ui-logbook-body">{entry.body}</p>
+      </div>
+    </li>
+  );
+}
+
+function DeviceJobs({ deviceId }: { deviceId: string }) {
+  const { t, i18n } = useTranslation();
   const [filters, setFilters] = useState<JobFilters>({});
   const [text, setText] = useState("");
   const q = useDebounced(text, 300);
