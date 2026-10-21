@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.179 — 2026-10-21
+
+Device page (UX-3): health, diagnostics and configuration easier to read
+- **"Resources now" and "Open CVEs" on the overview.**
+  - CPU and memory bars with the uptime.
+  - Open CVEs as severity chips (critical, high, medium, low). Each chip opens the vulnerability list filtered on this device and severity.
+  - "No known CVE" or "Not assessable" when nothing is open.
+- **Readable vendor in the device header** ("MikroTik · RB5009UG+S+").
+- **Diagnostics: last run on every card.** "Last 5 min ago · 0% loss · avg 12 ms", or "Never run".
+- **Ping chart.** One bar per reply, lost replies in red, the average as a dashed line.
+- **Traceroute latency bars.** Each hop shows its best-to-worst range and its average on the scale of the slowest hop: amber with some loss, red from 50% loss.
+- **Device log levels.** Chips with the count of critical, error, warning and info lines. Click one to show only those lines.
+- **RouterOS syntax colours** in the export viewer and in the diff: section paths, commands, keys, values, strings and comments.
+- **Section index.** "Jump to section…" lists every section of the export with its size.
 ## 0.49.178 — 2026-10-21
 
 Dashboard (UX-3): operations at a glance

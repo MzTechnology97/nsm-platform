@@ -5,7 +5,9 @@ import { useTranslation } from "react-i18next";
 import { ApiError } from "../api/client";
 import { BrandIcon } from "../app/BrandIcon";
 import { type DeviceDetail as Detail, useDecommission, useDevice, useZabbixExclude } from "../api/device";
-import { formatDateTime, formatRelative } from "../lib/format";
+import { formatDateTime, formatDuration, formatRelative } from "../lib/format";
+import { InfoTip } from "../app/InfoTip";
+import { Resources } from "../app/Resources";
 import { DeviceZabbixPanel, ZabbixSeverity } from "../app/ZabbixProblems";
 import { Loading } from "../app/States";
 
@@ -74,7 +76,7 @@ function DeviceShell({ detail }: { detail: Detail }) {
             )}
           </h1>
           <p>
-            {[device.vendor, device.model, device.device_type].filter(Boolean).join(" · ")}
+            {[device.vendor === "generic" ? t("devices.genericVendor") : device.brand?.known ? device.brand.label : device.vendor, device.model, device.device_type].filter(Boolean).join(" · ")}
             {detail.zabbix?.problems?.items.length ? (
               <>
                 {" "}
@@ -208,6 +210,8 @@ export function DeviceOverview() {
           tone={detail.icmp.down ? "danger" : undefined} />
       </div>
 
+      <DeviceHealth detail={detail} />
+
       <div className="ui-two-columns">
         <section className="ui-panel">
           <h2>{t("device.identity.title")}</h2>
@@ -255,6 +259,52 @@ export function DeviceOverview() {
       </div>
       {detail.zabbix && <DeviceZabbixPanel zabbix={detail.zabbix} />}
     </>
+  );
+}
+
+const SEVERITIES = ["critical", "high", "medium", "low", "unknown"] as const;
+
+/** Current load (CPU, memory, uptime) and the open CVEs by severity, each opening the filtered vulnerability list. */
+function DeviceHealth({ detail }: { detail: Detail }) {
+  const { t, i18n } = useTranslation();
+  const { device } = detail;
+  const online = device.status === "online";
+  const uptime = device.telemetry?.uptime_seconds;
+  // Advisories without a known severity (empty, "none", null) count as "unknown".
+  const counts: Record<string, number> = {};
+  for (const [level, count] of Object.entries(detail.vulnerabilities)) {
+    const key = (SEVERITIES as readonly string[]).includes(level) ? level : "unknown";
+    counts[key] = (counts[key] ?? 0) + count;
+  }
+  const open = SEVERITIES.filter((level) => (counts[level] ?? 0) > 0);
+  const evaluated = device.cves?.evaluated ?? true;
+  return (
+    <section className="ui-panel ui-device-health">
+      <div className="ui-device-health-part">
+        <h3>{t("device.health.resources")} <InfoTip text={t("device.health.resourcesTip")} /></h3>
+        <Resources telemetry={device.telemetry} online={online} />
+        {uptime != null && (
+          <small className="ui-muted">{online ? t("device.health.uptime", { value: formatDuration(uptime, i18n.language) }) : t("device.health.lastValues")}</small>
+        )}
+      </div>
+      <div className="ui-device-health-part">
+        <h3>{t("device.health.cves")} <InfoTip text={t("device.health.cvesTip")} /></h3>
+        {open.length ? (
+          <div className="ui-cve-chips">
+            {open.map((level) => (
+              <Link key={level} to="/vulnerabilities" search={{ device: device.id, severity: level } as never} className={`ui-cve-chip is-${level}`}>
+                <b>{counts[level]}</b> {t(`vulns.levels.${level}`)}
+              </Link>
+            ))}
+            <Link to="/vulnerabilities" search={{ device: device.id } as never} className="ui-cve-chip-all">{t("device.health.allCves")}</Link>
+          </div>
+        ) : (
+          <span className={`ui-cve-badge ${evaluated ? "is-clean" : "is-unknown"}`}>
+            {evaluated ? t("device.health.noCves") : t("device.health.notEvaluable")}
+          </span>
+        )}
+      </div>
+    </section>
   );
 }
 

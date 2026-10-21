@@ -195,7 +195,18 @@
       "security_update": "mise à jour de sécurité",
       "unknown": ""
     },
-    "lifecycleManage": "Gérer le cycle de vie"
+    "lifecycleManage": "Gérer le cycle de vie",
+    "health": {
+      "resources": "Ressources maintenant",
+      "resourcesTip": "Dernières valeurs de CPU et de mémoire envoyées par l'agent MikroTik ou lues depuis UISP et cnMaestro. Orange dès 75 %, rouge dès 90 %.",
+      "uptime": "Allumé depuis {{value}}",
+      "lastValues": "Hors ligne : dernières valeurs connues",
+      "cves": "CVE ouvertes",
+      "cvesTip": "Vulnérabilités connues pour la marque, le modèle et le firmware de cet équipement, par gravité. Chaque pastille ouvre la liste filtrée.",
+      "allCves": "Toutes les CVE",
+      "noCves": "Aucune CVE connue",
+      "notEvaluable": "Non évaluable : modèle ou firmware manquant"
+    }
   },
   "monitor": {
     "range": "Période",
@@ -727,7 +738,13 @@
       "jitter": "Gigue",
       "host": "Hôte",
       "size": "Taille",
-      "status": "Résultat"
+      "status": "Résultat",
+      "chart_one": "{{count}} réponse, maximum {{peak}}, {{lost}} perdues",
+      "chart_other": "{{count}} réponses, maximum {{peak}}, {{lost}} perdues",
+      "peak": "Échelle : {{value}}",
+      "avgLine": "moyenne {{value}}",
+      "lostBars_one": "{{count}} perdue",
+      "lostBars_other": "{{count}} perdues"
     },
     "trace": {
       "address": "Adresse",
@@ -735,7 +752,8 @@
       "last": "Dernier",
       "avg": "Moyen",
       "best": "Meilleur",
-      "worst": "Pire"
+      "worst": "Pire",
+      "latency": "Latence (meilleure–pire, moyenne)"
     },
     "nb": {
       "interface": "Interface",
@@ -753,7 +771,18 @@
       "static": "statique",
       "none": "Aucun bail trouvé."
     },
-    "noOutput": "L'agent n'a renvoyé aucune sortie."
+    "noOutput": "L'agent n'a renvoyé aucune sortie.",
+    "lastRun": {
+      "never": "Jamais exécuté",
+      "at": "Dernier {{when}}"
+    },
+    "logLevels": {
+      "all": "Tous",
+      "critical": "Critical",
+      "error": "Error",
+      "warning": "Warning",
+      "info": "Info"
+    }
   },
   "customers": {
     "title": "Clients",
@@ -4058,7 +4087,13 @@
       "too_large": "L'export est trop volumineux pour être affiché dans le navigateur : téléchargez-le.",
       "compare_id": "La comparaison demandée n'est pas valide.",
       "compare_binary": "Une comparaison nécessite deux exports texte du même équipement."
-    }
+    },
+    "sections_one": "{{count}} section",
+    "sections_other": "{{count}} sections",
+    "jumpTo": "Aller à la section…",
+    "sectionOption_one": "{{path}} ({{count}} ligne)",
+    "sectionOption_other": "{{path}} ({{count}} lignes)",
+    "sectionsFiltered": "Videz la recherche pour aller à une section."
   },
   "restoreTests": {
     "title": "Historique des tests de restauration",

@@ -195,7 +195,18 @@
       "security_update": "security update",
       "unknown": ""
     },
-    "lifecycleManage": "Manage lifecycle"
+    "lifecycleManage": "Manage lifecycle",
+    "health": {
+      "resources": "Resources now",
+      "resourcesTip": "Last CPU and memory values sent by the MikroTik agent or read from UISP and cnMaestro. Amber from 75%, red from 90%.",
+      "uptime": "Up for {{value}}",
+      "lastValues": "Offline: last known values",
+      "cves": "Open CVEs",
+      "cvesTip": "Known vulnerabilities for this device's brand, model and firmware, by severity. Each chip opens the filtered list.",
+      "allCves": "All CVEs",
+      "noCves": "No known CVE",
+      "notEvaluable": "Not assessable: model or firmware missing"
+    }
   },
   "monitor": {
     "range": "Range",
@@ -727,7 +738,13 @@
       "jitter": "Jitter",
       "host": "Host",
       "size": "Size",
-      "status": "Outcome"
+      "status": "Outcome",
+      "chart_one": "{{count}} reply, peak {{peak}}, {{lost}} lost",
+      "chart_other": "{{count}} replies, peak {{peak}}, {{lost}} lost",
+      "peak": "Scale: {{value}}",
+      "avgLine": "average {{value}}",
+      "lostBars_one": "{{count}} lost",
+      "lostBars_other": "{{count}} lost"
     },
     "trace": {
       "address": "Address",
@@ -735,7 +752,8 @@
       "last": "Last",
       "avg": "Average",
       "best": "Best",
-      "worst": "Worst"
+      "worst": "Worst",
+      "latency": "Latency (best–worst, average)"
     },
     "nb": {
       "interface": "Interface",
@@ -753,7 +771,18 @@
       "static": "static",
       "none": "No lease found."
     },
-    "noOutput": "The agent returned no output."
+    "noOutput": "The agent returned no output.",
+    "lastRun": {
+      "never": "Never run",
+      "at": "Last {{when}}"
+    },
+    "logLevels": {
+      "all": "All",
+      "critical": "Critical",
+      "error": "Error",
+      "warning": "Warning",
+      "info": "Info"
+    }
   },
   "customers": {
     "title": "Customers",
@@ -4058,7 +4087,13 @@
       "too_large": "The export is too large to show in the browser: download it.",
       "compare_id": "The requested comparison is not valid.",
       "compare_binary": "A comparison needs two text exports of the same device."
-    }
+    },
+    "sections_one": "{{count}} section",
+    "sections_other": "{{count}} sections",
+    "jumpTo": "Jump to section…",
+    "sectionOption_one": "{{path}} ({{count}} line)",
+    "sectionOption_other": "{{path}} ({{count}} lines)",
+    "sectionsFiltered": "Clear the search to jump to a section."
   },
   "restoreTests": {
     "title": "Restore test history",

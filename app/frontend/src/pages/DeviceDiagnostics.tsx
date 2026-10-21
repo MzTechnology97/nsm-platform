@@ -6,7 +6,7 @@ import { ApiError } from "../api/client";
 import { type BrandRef, BrandIcon } from "../app/BrandIcon";
 import { DIAGNOSTICS, type DiagnosticJob, type DiagnosticKind, type DiagnosticResult, type Diagnostics, RUNNING, useDiagnosticOutput, useDiagnostics, useRunDiagnostic } from "../api/diagnostics";
 import { diagnosticSummary } from "../lib/diagnostics";
-import { formatDateTime } from "../lib/format";
+import { formatDateTime, formatRelative } from "../lib/format";
 import { Loading } from "../app/States";
 
 const FIELDS: Partial<Record<DiagnosticKind, { name: string; required: boolean; initial: string }[]>> = {
@@ -91,12 +91,25 @@ function DiagnosticCard({ id, kind, data, onQueued }: { id: string; kind: Diagno
         />
       ))}
       {kind === "traceroute" && !data.traceroute && <small className="ui-muted">{t("diagnostics.noTraceroute")}</small>}
+      <LastRun job={data.jobs.find((job) => job.diagnostic === kind)} />
       <button type="submit" className="ui-button" disabled={blocked || run.isPending}>
         {run.isPending ? t("app.loading") : t(`diagnostics.kinds.${kind}.action`)}
       </button>
       {run.isSuccess && <small className="ui-live">{t("diagnostics.queued")}</small>}
       {error && <small className="ui-backup-error">{error}</small>}
     </form>
+  );
+}
+
+/** "Last run 5 min ago · 0% lost, avg 12 ms", or "Never run" (the jobs come newest first). */
+function LastRun({ job }: { job: DiagnosticJob | undefined }) {
+  const { t, i18n } = useTranslation();
+  if (!job) return <small className="ui-diag-last is-never">{t("diagnostics.lastRun.never")}</small>;
+  const tone = RUNNING.has(job.status) ? "pending" : job.status === "success" ? "online" : "offline";
+  return (
+    <small className={`ui-diag-last ui-status ui-status-${tone}`} title={formatDateTime(job.created_at, i18n.language, true)}>
+      {t("diagnostics.lastRun.at", { when: formatRelative(job.created_at, i18n.language) })} · {diagnosticSummary(job, t, i18n.language)}
+    </small>
   );
 }
 
@@ -146,6 +159,7 @@ function ResultView({ result }: { result: DiagnosticResult }) {
             <div><dt>{t("diagnostics.ping.rtt")}</dt><dd>{ms(result.min)} / {ms(result.avg)} / {ms(result.max)}</dd></div>
             <div><dt>{t("diagnostics.ping.jitter")}</dt><dd>{ms(result.jitter)}</dd></div>
           </dl>
+          <RttChart replies={result.replies} avg={result.avg} />
           <table className="ui-log-table">
             <thead><tr><th>#</th><th>{t("diagnostics.ping.host")}</th><th>{t("diagnostics.ping.size")}</th><th>TTL</th><th>RTT</th><th>{t("diagnostics.ping.status")}</th></tr></thead>
             <tbody>
@@ -163,11 +177,13 @@ function ResultView({ result }: { result: DiagnosticResult }) {
       return (
         <div className="ui-diag-result">
           <table className="ui-log-table">
-            <thead><tr><th>Hop</th><th>{t("diagnostics.trace.address")}</th><th>{t("diagnostics.trace.loss")}</th><th>{t("diagnostics.trace.last")}</th><th>{t("diagnostics.trace.avg")}</th><th>{t("diagnostics.trace.best")}</th><th>{t("diagnostics.trace.worst")}</th></tr></thead>
+            <thead><tr><th>Hop</th><th>{t("diagnostics.trace.address")}</th><th className="ui-hop-bar-head">{t("diagnostics.trace.latency")}</th><th>{t("diagnostics.trace.loss")}</th><th>{t("diagnostics.trace.last")}</th><th>{t("diagnostics.trace.avg")}</th><th>{t("diagnostics.trace.best")}</th><th>{t("diagnostics.trace.worst")}</th></tr></thead>
             <tbody>
               {result.hops.map((hop) => (
                 <tr key={hop.hop} className={hop.silent ? "ui-muted" : undefined}>
-                  <td>{hop.hop}</td><td className="ui-mono">{hop.address}</td><td>{hop.loss == null ? "—" : `${hop.loss}%`}</td>
+                  <td>{hop.hop}</td><td className="ui-mono">{hop.address}</td>
+                  <td className="ui-hop-bar-cell"><HopBar hop={hop} scale={traceScale(result.hops)} /></td>
+                  <td>{hop.loss == null ? "—" : <span className={hop.loss >= 50 ? "ui-text-danger" : hop.loss > 0 ? "ui-text-warning" : undefined}>{hop.loss}%</span>}</td>
                   <td>{ms(hop.last)}</td><td>{ms(hop.avg)}</td><td>{ms(hop.best)}</td><td>{ms(hop.worst)}</td>
                 </tr>
               ))}
@@ -212,23 +228,104 @@ function ResultView({ result }: { result: DiagnosticResult }) {
         </div>
       );
     case "logs":
-      return (
-        <div className="ui-diag-result ui-log-wrap ui-log-wrap-short">
-          <table className="ui-log-table">
-            <thead><tr><th>{t("syslog.columns.received")}</th><th>{t("syslog.columns.severity")}</th><th>{t("syslog.columns.topics")}</th><th>{t("syslog.columns.message")}</th></tr></thead>
-            <tbody>
-              {result.entries.map((entry, index) => (
-                <tr key={index}>
-                  <td className="ui-nowrap">{entry.time ?? "—"}</td>
-                  <td><span className={entry.level === "critical" ? "ui-severity ui-severity-critical" : entry.level === "error" ? "ui-severity ui-severity-high" : entry.level === "warning" ? "ui-severity ui-severity-warning" : "ui-severity"}>{entry.level}</span></td>
-                  <td className="ui-mono">{entry.topics}</td><td className="ui-log-message">{entry.message}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
+      return <LogResult entries={result.entries} />;
   }
+}
+
+type LogEntry = Extract<DiagnosticResult, { kind: "logs" }>["entries"][number];
+const LOG_LEVELS = ["critical", "error", "warning", "info"] as const;
+const levelOf = (entry: LogEntry) => ((LOG_LEVELS as readonly string[]).includes(entry.level) ? entry.level : "info");
+const LEVEL_TONE: Record<string, string> = {
+  critical: "ui-severity ui-severity-critical",
+  error: "ui-severity ui-severity-high",
+  warning: "ui-severity ui-severity-warning",
+};
+
+export function LogResult({ entries }: { entries: LogEntry[] }) {
+  const { t } = useTranslation();
+  const [level, setLevel] = useState("");
+  const counts: Record<string, number> = Object.fromEntries(LOG_LEVELS.map((key) => [key, entries.filter((entry) => levelOf(entry) === key).length]));
+  const shown = level ? entries.filter((entry) => levelOf(entry) === level) : entries;
+  return (
+    <div className="ui-diag-result">
+      <div className="ui-chips" role="group" aria-label={t("syslog.columns.severity")}>
+        <button type="button" className={`ui-chip${level ? "" : " is-active"}`} aria-pressed={!level} onClick={() => setLevel("")}>
+          {t("diagnostics.logLevels.all")} <span className="ui-chip-count">{entries.length}</span>
+        </button>
+        {LOG_LEVELS.filter((key) => counts[key]).map((key) => (
+          <button key={key} type="button" className={`ui-chip ui-chip-level is-${key}${level === key ? " is-active" : ""}`} aria-pressed={level === key}
+            onClick={() => setLevel(level === key ? "" : key)}>
+            {t(`diagnostics.logLevels.${key}`)} <span className="ui-chip-count">{counts[key]}</span>
+          </button>
+        ))}
+      </div>
+      <div className="ui-log-wrap ui-log-wrap-short">
+        <table className="ui-log-table">
+          <thead><tr><th>{t("syslog.columns.received")}</th><th>{t("syslog.columns.severity")}</th><th>{t("syslog.columns.topics")}</th><th>{t("syslog.columns.message")}</th></tr></thead>
+          <tbody>
+            {shown.map((entry, index) => (
+              <tr key={index}>
+                <td className="ui-nowrap">{entry.time ?? "—"}</td>
+                <td><span className={LEVEL_TONE[entry.level] ?? "ui-severity"}>{entry.level}</span></td>
+                <td className="ui-mono">{entry.topics}</td><td className="ui-log-message">{entry.message}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+type Reply = Extract<DiagnosticResult, { kind: "ping" }>["replies"][number];
+
+/** One bar per echo reply (height = RTT on the slowest reply), a red bar for each lost one, the average as a dashed line. */
+export function RttChart({ replies, avg }: { replies: Reply[]; avg: number | null }) {
+  const { t, i18n } = useTranslation();
+  if (!replies.length) return null;
+  const peak = Math.max(1, ...replies.map((reply) => reply.rtt ?? 0));
+  const width = 100 / replies.length;
+  const fmt = (value: number) => `${new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(value)} ms`;
+  const lost = replies.filter((reply) => reply.rtt == null).length;
+  return (
+    <figure className="ui-rtt-chart">
+      <svg viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label={t("diagnostics.ping.chart", { count: replies.length, peak: fmt(peak), lost })}>
+        {replies.map((reply, index) => {
+          const rtt = reply.rtt;
+          const height = rtt == null ? 40 : Math.max(1.5, (rtt / peak) * 36);
+          return (
+            <rect key={index} x={index * width + width * 0.15} width={width * 0.7} y={40 - height} height={height} className={rtt == null ? "ui-rtt-lost" : "ui-rtt-bar"}>
+              <title>{`#${reply.seq} · ${rtt == null ? reply.status : fmt(rtt)}`}</title>
+            </rect>
+          );
+        })}
+        {avg != null && <line x1="0" x2="100" y1={40 - (avg / peak) * 36} y2={40 - (avg / peak) * 36} className="ui-rtt-avg" />}
+      </svg>
+      <figcaption className="ui-muted">
+        <span>{t("diagnostics.ping.peak", { value: fmt(peak) })}</span>
+        {avg != null && <span><i className="ui-rtt-avg-key" aria-hidden="true" /> {t("diagnostics.ping.avgLine", { value: fmt(avg) })}</span>}
+        {lost > 0 && <span><i className="ui-rtt-lost-key" aria-hidden="true" /> {t("diagnostics.ping.lostBars", { count: lost })}</span>}
+      </figcaption>
+    </figure>
+  );
+}
+
+type Hop = Extract<DiagnosticResult, { kind: "traceroute" }>["hops"][number];
+const traceScale = (hops: Hop[]) => Math.max(1, ...hops.map((hop) => hop.worst ?? hop.avg ?? 0));
+
+/** Best-to-worst range as a light band and the average as a solid bar, on the slowest hop of the path; silent hops get none. */
+export function HopBar({ hop, scale }: { hop: Hop; scale: number }) {
+  if (hop.silent || hop.avg == null) return <span className="ui-muted">—</span>;
+  const x = (value: number | null) => Math.min(100, Math.max(0, ((value ?? 0) / scale) * 100));
+  const loss = hop.loss ?? 0;
+  const tone = loss >= 50 ? " is-danger" : loss > 0 ? " is-warning" : "";
+  return (
+    <svg className="ui-hop-bar" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+      <rect width="100" height="10" rx="2" className="ui-meter-bg" />
+      {hop.best != null && hop.worst != null && <rect x={x(hop.best)} width={Math.max(1, x(hop.worst) - x(hop.best))} height="10" className={`ui-hop-range${tone}`} />}
+      <rect width={Math.max(1.5, x(hop.avg))} y="2.5" height="5" rx="1" className={`ui-hop-avg${tone}`} />
+    </svg>
+  );
 }
 
 function DeviceLink({ device }: { device: { id: string; name: string; brand?: BrandRef } | null }) {
