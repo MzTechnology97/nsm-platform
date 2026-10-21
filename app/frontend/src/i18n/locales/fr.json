@@ -1,7 +1,6 @@
 {
   "app": {
     "name": "NSM",
-    "preview": "Nouvelle interface (aperçu)",
     "loading": "Chargement…",
     "error": "Impossible de charger les données.",
     "retry": "Réessayer",
@@ -1332,7 +1331,7 @@
     "evaluate": "Évaluer maintenant",
     "baselines": "Référentiels",
     "evaluated": "{{devices}} équipements évalués : {{fail}} non conformes, {{unknown}} sans preuve, {{pass}} conformes.",
-    "noBaselines": "Aucun référentiel défini : les contrôles par défaut s'appliquent. Les référentiels se gèrent sur la page classique.",
+    "noBaselines": "Aucun référentiel défini : les contrôles par défaut s'appliquent. Vous pouvez en créer un dans",
     "states": {
       "label": "Résultat",
       "fail": "Non conformes",
@@ -2249,7 +2248,7 @@
     "integrityHelp": "chaîne de hachage sur les lignes warning/error, ancrée chaque jour dans le journal d'audit",
     "firewall": "Pare-feu de l'hôte",
     "firewallHelp": "Docker publie le port 514 en contournant ufw : ces règles (chaîne DOCKER-USER) ne laissent passer que les réseaux autorisés. Appliquez-les sur le serveur avec ./manage.sh syslog-firewall --apply et répétez après chaque modification des réseaux.",
-    "vendors": "Les instructions par fabricant sont sur la page classique et dans l'onglet Syslog de chaque équipement :",
+    "vendors": "Instructions par fabricant (également dans l'onglet Syslog de chaque équipement) :",
     "vendorsLink": "configuration par fabricant",
     "reasons": {
       "network": "réseau non autorisé",

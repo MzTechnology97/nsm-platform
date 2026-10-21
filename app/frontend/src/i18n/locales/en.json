@@ -1,7 +1,6 @@
 {
   "app": {
     "name": "NSM",
-    "preview": "New interface (preview)",
     "loading": "Loading…",
     "error": "Unable to load data.",
     "retry": "Retry",
@@ -1332,7 +1331,7 @@
     "evaluate": "Evaluate now",
     "baselines": "Baselines",
     "evaluated": "Evaluated {{devices}} devices: {{fail}} non-compliant, {{unknown}} without evidence, {{pass}} compliant.",
-    "noBaselines": "No baseline defined: the default controls apply. Baselines are managed on the classic page.",
+    "noBaselines": "No baseline defined: the default controls apply. You can create one in",
     "states": {
       "label": "Outcome",
       "fail": "Non-compliant",
@@ -2249,7 +2248,7 @@
     "integrityHelp": "hash chain on warning/error lines, anchored daily in the audit log",
     "firewall": "Host firewall",
     "firewallHelp": "Docker publishes port 514 bypassing ufw: these rules (DOCKER-USER chain) only let the allowed networks through. Apply them on the server with ./manage.sh syslog-firewall --apply and repeat after every network change.",
-    "vendors": "Per-vendor instructions are on the classic page and in each device's Syslog tab:",
+    "vendors": "Per-vendor instructions (also in each device's Syslog tab):",
     "vendorsLink": "per-vendor configuration",
     "reasons": {
       "network": "network not allowed",

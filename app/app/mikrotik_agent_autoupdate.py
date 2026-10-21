@@ -54,20 +54,7 @@ AUTO_BATCH = 50
 RETRY_AFTER = timedelta(hours=24)
 # Policies needed by the administrative handlers.
 OPS_POLICIES = frozenset({"read", "write", "reboot", "test"})
-BACKUP_POLICIES = frozenset({"ftp", "policy", "sensitive"})
-STATE_LABELS = {
-    "idle": "Nessun aggiornamento richiesto",
-    "pending": "In coda: l'agent lo riceverà al prossimo heartbeat",
-    "installing": "Script scaricato dal router: installazione in corso",
-    "awaiting_heartbeat": "Installato: in attesa del primo heartbeat con la nuova versione",
-    "verified": "Aggiornamento verificato",
-    "failed": "Aggiornamento non riuscito",
-    "rolled_back": "Aggiornamento annullato: ripristinato lo script precedente",
-    "expired": "Nessun esito entro 30 minuti",
-}
 _POLICY_SPLIT = re.compile(r"[;,_\s]+")
-_MARKER_RE = re.compile(r"^NSM-END-[0-9A-Za-z.-]+$")
-
 _POLICY_PROBE = (
     ':local nsmAgentPolicy ""\n'
     ':do { :set nsmAgentPolicy [:tostr [/system script get [find where name="nsm-agent-heartbeat"] policy]] } on-error={}\n'
@@ -239,8 +226,6 @@ def install_status_policy() -> None:
     from app import mikrotik_agent_update_ui as update_ui
 
     update_ui.agent_update_status = status_with_legacy
-    if getattr(core, "templates", None) is not None:
-        core.templates.env.globals["mikrotik_agent_update_status"] = status_with_legacy
 
 
 def _install_source() -> None:

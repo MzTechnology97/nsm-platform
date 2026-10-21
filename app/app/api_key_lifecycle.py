@@ -112,4 +112,3 @@ def rotate(db, user, old: PlatformApiKey, grace_hours: int) -> tuple[PlatformApi
 
 def install_api_key_lifecycle(app) -> None:
     app.include_router(router)
-    core.templates.env.globals.update(api_key_state=key_state, api_key_review=review, api_key_grace_hours=GRACE_HOURS)

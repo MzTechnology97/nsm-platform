@@ -35,7 +35,7 @@ export function Layout() {
   const branding = session.data?.branding;
   useEffect(() => {
     if (!branding) return;
-    // CSSOM custom properties (allowed by the CSP, unlike inline style attributes), as the classic pages do.
+    // CSSOM custom properties (allowed by the CSP, unlike inline style attributes).
     const root = document.documentElement.style;
     root.setProperty("--brand-primary", branding.primary_color);
     root.setProperty("--brand-sidebar", branding.sidebar_color);
@@ -93,7 +93,6 @@ export function Layout() {
           <button type="button" className="ui-icon-button ui-mobile-menu" onClick={() => setMobileOpen(true)} aria-label={t("nav.open")}>
             <Icon name="menu" />
           </button>
-          <span className="ui-preview-badge">{t("app.preview")}</span>
           <TopSearch />
           <div className="ui-topbar-actions">
             <NotificationBell />

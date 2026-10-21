@@ -1,4 +1,4 @@
-/** Icon from the shared NSM sprite (static/ui-icons.svg), same set as the classic interface. */
+/** Icon from the shared NSM sprite (static/ui-icons.svg). */
 export function Icon({ name, size = 20 }: { name: string; size?: number }) {
   return (
     <svg className="ui-icon" width={size} height={size} aria-hidden="true" focusable="false">

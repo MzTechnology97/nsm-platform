@@ -1,7 +1,6 @@
 {
   "app": {
     "name": "NSM",
-    "preview": "Nuova interfaccia (anteprima)",
     "loading": "Caricamento…",
     "error": "Impossibile caricare i dati.",
     "retry": "Riprova",
@@ -1332,7 +1331,7 @@
     "evaluate": "Valuta ora",
     "baselines": "Baseline",
     "evaluated": "Valutati {{devices}} apparati: {{fail}} non conformità, {{unknown}} senza evidenza, {{pass}} conformi.",
-    "noBaselines": "Nessuna baseline definita: si applicano i controlli predefiniti. Le baseline si gestiscono nella pagina classica.",
+    "noBaselines": "Nessuna baseline definita: si applicano i controlli predefiniti. Puoi crearne una in",
     "states": {
       "label": "Esito",
       "fail": "Non conformi",
@@ -2249,7 +2248,7 @@
     "integrityHelp": "catena di hash sulle righe warning/error, ancorata ogni giorno nel log di audit",
     "firewall": "Firewall dell'host",
     "firewallHelp": "Docker pubblica la porta 514 scavalcando ufw: queste regole (catena DOCKER-USER) lasciano passare solo le reti consentite. Applicale sul server con ./manage.sh syslog-firewall --apply e ripeti dopo ogni modifica delle reti.",
-    "vendors": "Le istruzioni per ogni produttore sono nella pagina classica e nella scheda Syslog di ogni dispositivo:",
+    "vendors": "Istruzioni per produttore (le trovi anche nella scheda Syslog di ogni dispositivo):",
     "vendorsLink": "configurazione per produttore",
     "reasons": {
       "network": "rete non consentita",

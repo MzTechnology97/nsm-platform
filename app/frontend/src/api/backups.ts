@@ -38,7 +38,6 @@ export interface DeviceBackups {
   can_delete: boolean;
   runs: BackupRun[];
   customer_id: string;
-  links: { classic: string; policies: string };
 }
 
 export type BackupFilters = { kind: "all" | "binary" | "export"; status: "all" | "success" | "failed" };

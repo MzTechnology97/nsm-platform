@@ -28,7 +28,7 @@ from sqlalchemy import event, select
 from sqlalchemy.orm import Session, with_loader_criteria
 
 from app import main as core
-from app.db import Base, SessionLocal
+from app.db import Base
 from app.models import Customer, Device, User
 
 router = APIRouter()
@@ -50,10 +50,6 @@ def user_scope(user) -> frozenset | None:
         except ValueError:
             continue
     return frozenset(ids) if ids else None
-
-
-def current_scope() -> frozenset | None:
-    return _scope.get()
 
 
 def activate(user) -> None:
@@ -136,11 +132,6 @@ def set_user_scope(db, actor, target, customer_ids) -> list[str]:
     return chosen
 
 
-def _all_customers():
-    with SessionLocal() as db:
-        return [(str(c.id), c.name) for c in db.scalars(select(Customer).order_by(Customer.name))]
-
-
 def install_customer_scope(app=None) -> None:
     """Install after every other current_user wrapper (login security, 2FA)."""
     from app import ui_extension
@@ -150,6 +141,5 @@ def install_customer_scope(app=None) -> None:
     ui_extension._current_user = _wrap(ui_extension._current_user)
     event.listen(Session, "do_orm_execute", _filter)
     event.listen(Session, "before_flush", _adopt_new_customers)
-    core.templates.env.globals.update(customer_scope_of=user_scope, scope_customer_choices=_all_customers)
     if app is not None:
         app.include_router(router)

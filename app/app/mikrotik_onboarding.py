@@ -139,22 +139,3 @@ def guided_command_from_legacy(command: str) -> tuple[str, dict | None]:
     return build_onboarding_command(base_url, token), onboarding_requirements(base_url)
 
 
-def install_mikrotik_onboarding(core_module):
-    """Enrich enrollment context while leaving stable workspace routing intact."""
-    current_render = core_module.render
-    if getattr(current_render, "_nsm_guided_onboarding", False):
-        return
-
-    def guided_render(request, db, user, template: str, **context):
-        command = context.get("enrollment_command")
-        if command:
-            guided, requirements = guided_command_from_legacy(command)
-            context["enrollment_command"] = guided
-            context["onboarding_requirements"] = requirements
-            details = _legacy_command_details(command)
-            if details:
-                context["enrollment_command_v6"] = build_onboarding_command_v6(*details)
-        return current_render(request, db, user, template, **context)
-
-    guided_render._nsm_guided_onboarding = True
-    core_module.render = guided_render

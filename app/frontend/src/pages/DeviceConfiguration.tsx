@@ -24,7 +24,7 @@ const SPEC: Record<string, Spec> = {
 const GOOD = new Set(["up", "active", "static", "bound", "enabled"]);
 const BAD = new Set(["down", "disabled", "invalid", "inactive", "blocked"]);
 
-/** MikroTik Configuration tab: the latest agent read of each section, filtered as on the classic page, with a refresh request. */
+/** MikroTik Configuration tab: the latest agent read of each section, filtered by state, kind or text, with refresh requests. */
 export function DeviceConfiguration() {
   const { t, i18n } = useTranslation();
   const { deviceId } = useParams({ from: "/devices/$deviceId/configuration" });

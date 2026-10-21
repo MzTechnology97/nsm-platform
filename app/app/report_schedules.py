@@ -13,7 +13,7 @@ import uuid
 from datetime import date, timedelta
 from zoneinfo import ZoneInfo
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException
 from sqlalchemy import select
 
 from app import main as core
@@ -22,7 +22,6 @@ from app.db import SessionLocal
 from app.models import ActionIssue, Customer, Notification, utcnow
 from app.report_models import FREQUENCY_LABELS, ReportSchedule
 from app.reports import FORMATS, REPORTS_PATH, create_report
-from app.ui_feedback import exception_message, flash_redirect
 
 log = logging.getLogger("worker")
 MAX_RECIPIENTS = 20
@@ -192,23 +191,6 @@ def run_report_schedules(now=None) -> dict[str, int]:
             db.commit()
             stats["generated"] += 1
     return stats
-
-
-def _feedback(request: Request, exc: HTTPException):
-    return flash_redirect(
-        request,
-        REPORTS_PATH,
-        "warning" if exc.status_code == 400 else "error",
-        exception_message(exc, "Operazione sulla pianificazione non completata."),
-        title="Pianificazione report",
-    )
-
-
-def _schedule(db, schedule_id: uuid.UUID) -> ReportSchedule:
-    schedule = db.get(ReportSchedule, schedule_id)
-    if not schedule:
-        raise HTTPException(400, "Pianificazione non trovata.")
-    return schedule
 
 
 def create_schedule(db, user, name: str, customer_id: str, output_format: str, frequency: str, recipients: str) -> ReportSchedule:

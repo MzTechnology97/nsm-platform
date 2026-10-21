@@ -160,15 +160,6 @@ a {
   flex-wrap: wrap;
 }
 
-.ui-preview-badge {
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 600;
-}
-
 .ui-content {
   padding: var(--space-5);
   max-width: 1600px;
@@ -311,8 +302,7 @@ select {
     padding: var(--space-3) var(--space-4);
   }
 
-  .ui-hide-mobile,
-  .ui-preview-badge {
+  .ui-hide-mobile {
     display: none;
   }
 

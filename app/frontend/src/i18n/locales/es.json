@@ -1,7 +1,6 @@
 {
   "app": {
     "name": "NSM",
-    "preview": "Nueva interfaz (vista previa)",
     "loading": "Cargando…",
     "error": "No se pudieron cargar los datos.",
     "retry": "Reintentar",
@@ -1332,7 +1331,7 @@
     "evaluate": "Evaluar ahora",
     "baselines": "Líneas base",
     "evaluated": "Evaluados {{devices}} equipos: {{fail}} no conformes, {{unknown}} sin evidencia, {{pass}} conformes.",
-    "noBaselines": "Ninguna línea base definida: se aplican los controles predeterminados. Las líneas base se gestionan en la página clásica.",
+    "noBaselines": "Ninguna línea base definida: se aplican los controles predeterminados. Puedes crear una en",
     "states": {
       "label": "Resultado",
       "fail": "No conformes",
@@ -2249,7 +2248,7 @@
     "integrityHelp": "cadena de hash en las líneas warning/error, anclada cada día en el registro de auditoría",
     "firewall": "Cortafuegos del host",
     "firewallHelp": "Docker publica el puerto 514 saltándose ufw: estas reglas (cadena DOCKER-USER) solo dejan pasar las redes permitidas. Aplícalas en el servidor con ./manage.sh syslog-firewall --apply y repite tras cada cambio de redes.",
-    "vendors": "Las instrucciones por fabricante están en la página clásica y en la pestaña Syslog de cada equipo:",
+    "vendors": "Instrucciones por fabricante (también en la pestaña Syslog de cada equipo):",
     "vendorsLink": "configuración por fabricante",
     "reasons": {
       "network": "red no permitida",

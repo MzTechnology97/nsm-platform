@@ -1,4 +1,4 @@
-/* Design tokens shared with the classic interface (app/static/app.css). */
+/* Design tokens of the interface (the sign-in pages in app/static/app.css use the same palette). */
 :root {
   --bg: #f4f6f8;
   --panel: #ffffff;

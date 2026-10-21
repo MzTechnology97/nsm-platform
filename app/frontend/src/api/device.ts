@@ -25,7 +25,7 @@ export interface DeviceDetail {
   backup: { method: string; status: string; executable: boolean; last_success: string | null };
   icmp: { enabled: boolean; target: string | null; last_rtt: number | null; last_loss: number | null; down: boolean; last_at: string | null };
   zabbix: DeviceZabbix | null;
-  tabs: { key: string; classic: string }[];
+  tabs: { key: string }[];
   actions: { reboot: boolean; incident: boolean; manage: boolean };
 }
 

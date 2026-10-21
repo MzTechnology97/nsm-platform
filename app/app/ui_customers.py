@@ -126,8 +126,7 @@ def customers(request: Request, q: str = "", filter: str = "", sort: str = "name
         }
 
 
-CUSTOMER_TABS = (("overview", ""), ("devices", "/devices"), ("sites", "/sites"), ("graphs", "/graphs"),
-                 ("backups", "/backups"), ("security", "/security"), ("history", "/history"))
+CUSTOMER_TABS = ("overview", "devices", "sites", "graphs", "backups", "security", "history")
 
 
 def _iso(value):
@@ -152,7 +151,6 @@ def customer_detail(request: Request, customer_id: uuid.UUID):
         events = list(db.scalars(select(AuditEvent).where(AuditEvent.customer_id == customer.id).order_by(AuditEvent.timestamp.desc()).limit(8)))
         lifecycle = sum(1 for d in devices if str(d.lifecycle_status or "").lower() in ("eol", "eos"))
         unassigned = [d for d in devices if d.site_id is None]
-        base = f"/customers/{customer.id}"
         return {
             "customer": {"id": str(customer.id), "name": customer.name, "code": customer.code, "active": bool(customer.is_active), "notes": customer.notes},
             "counts": {"devices": len(devices), "sites": len(customer.sites), "online": by_status.get("online", 0), "offline": by_status.get("offline", 0),
@@ -170,9 +168,7 @@ def customer_detail(request: Request, customer_id: uuid.UUID):
             "actions": {"edit": core.has_permission(user, "customers.write"), "add_site": core.has_permission(user, "customers.write"),
                         "add_device": core.has_permission(user, "devices.write"), "incidents": core.has_permission(user, "incidents.read"),
                         "uisp_import": core.has_permission(user, "devices.write")},
-            "tabs": [{"key": key, "classic": f"{base}{suffix}"} for key, suffix in CUSTOMER_TABS],
-            "links": {"edit": f"{base}/edit", "add_site": f"{base}/sites/new", "add_device": f"{base}/devices/new",
-                      "incidents": f"/incidents?customer={customer.id}&status=all", "action_center": f"/action-center?customer={customer.id}"},
+            "tabs": [{"key": key} for key in CUSTOMER_TABS],
         }
 
 

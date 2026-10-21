@@ -255,4 +255,3 @@ def _install_agent_handler():
 def install_mikrotik_syslog_config(app) -> None:
     _install_agent_handler()
     app.include_router(router)
-    core.templates.env.globals.update(syslog_agent_eligibility=eligibility)

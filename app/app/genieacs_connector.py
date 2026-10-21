@@ -624,5 +624,3 @@ def summary() -> dict:
 
 def install_genieacs_connector(app):
     app.include_router(router)
-    core.templates.env.globals["genieacs_summary"] = summary
-    core.templates.env.globals["tr069_capable"] = tr069_capable

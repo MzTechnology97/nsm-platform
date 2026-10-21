@@ -1,14 +1,8 @@
-import re
 
-from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
-from sqlalchemy import func, or_, select
-from sqlalchemy.orm import selectinload
+from fastapi import APIRouter
 
 from app import main as core
 from app.config import settings
-from app.db import SessionLocal
-from app.models import Customer, Device, Site
 from app.preferences import PlatformBranding
 
 router = APIRouter()
@@ -57,88 +51,6 @@ def backup_schedule_label(value: str | None) -> str:
     return cron
 
 
-@router.get("/api/v1/search/suggest")
-def search_suggest(request: Request, q: str = ""):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return JSONResponse({"results": []}, status_code=401)
-        term = q.strip()
-        if len(term) < 2:
-            return {"results": []}
-        like = f"%{term}%"
-        normalized_mac = core.search_mac(term)
-        compact_mac = re.sub(r"[^0-9A-Fa-f]", "", term).upper()
-
-        customers = list(
-            db.scalars(
-                select(Customer)
-                .where(or_(Customer.name.ilike(like), Customer.code.ilike(like)))
-                .order_by(Customer.name)
-                .limit(5)
-            )
-        )
-
-        device_filters = [
-            Device.display_name.ilike(like),
-            Device.device_identity.ilike(like),
-            Device.name.ilike(like),
-            Device.model.ilike(like),
-            Device.serial_number.ilike(like),
-            Device.primary_mac.ilike(like),
-            Device.management_ip.ilike(like),
-        ]
-        if normalized_mac:
-            device_filters.append(Device.primary_mac == normalized_mac)
-        if len(compact_mac) >= 2:
-            normalized_db_mac = func.replace(func.replace(Device.primary_mac, ":", ""), "-", "")
-            device_filters.append(normalized_db_mac.ilike(f"%{compact_mac}%"))
-        devices = list(
-            db.scalars(
-                select(Device)
-                .options(selectinload(Device.customer), selectinload(Device.site))
-                .where(or_(*device_filters))
-                .order_by(Device.display_name.nullslast(), Device.name)
-                .limit(8)
-            )
-        )
-
-        sites = list(
-            db.scalars(
-                select(Site)
-                .options(selectinload(Site.customer))
-                .where(or_(Site.name.ilike(like), Site.address.ilike(like)))
-                .order_by(Site.name)
-                .limit(5)
-            )
-        )
-
-        results = []
-        for item in devices:
-            location = item.site.name if item.site else "senza sede"
-            results.append({
-                "type": "Apparato",
-                "title": item.display_name or item.device_identity or item.name,
-                "subtitle": f"{item.customer.name} · {location} · {item.vendor} · {item.management_ip or item.primary_mac or item.serial_number or 'identificazione in attesa'}",
-                "url": f"/devices/{item.id}",
-            })
-        for item in customers:
-            results.append({
-                "type": "Cliente",
-                "title": item.name,
-                "subtitle": item.code or "Cliente",
-                "url": f"/customers/{item.id}",
-            })
-        for item in sites:
-            results.append({
-                "type": "Sede",
-                "title": item.name,
-                "subtitle": f"{item.customer.name} · {item.address or 'nessun indirizzo'}",
-                "url": f"/customers/{item.customer_id}#sites",
-            })
-        return {"results": results[:15], "query": term}
-
-
 def reset_color(db, user, color_key: str) -> str:
     """Put one brand colour back to its default (audited); returns the default. Caller commits."""
     branding = _branding(db)
@@ -155,5 +67,4 @@ def reset_color(db, user, color_key: str) -> str:
 
 
 def install_workflow_ui(app, templates):
-    templates.env.globals["backup_schedule_label"] = backup_schedule_label
     app.include_router(router)

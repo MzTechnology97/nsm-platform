@@ -486,4 +486,3 @@ def device_link(device) -> str | None:
 
 def install_zabbix_connector(app) -> None:
     app.include_router(router)
-    core.templates.env.globals.update(zabbix_summary=summary, zabbix_device_link=device_link)

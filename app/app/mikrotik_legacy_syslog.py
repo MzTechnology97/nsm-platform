@@ -156,8 +156,6 @@ def install_eligibility():
 
     eligibility._nsm_legacy = True
     syslog_config.eligibility = eligibility
-    if getattr(syslog_config.core, "templates", None) is not None:
-        syslog_config.core.templates.env.globals["syslog_agent_eligibility"] = eligibility
 
 
 def install_mikrotik_legacy_syslog() -> None:
