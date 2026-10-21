@@ -34,7 +34,19 @@
       "admin": "Platform"
     },
     "sla": "Customer SLA",
-    "breadcrumb": "Breadcrumb"
+    "breadcrumb": "Breadcrumb",
+    "badges": {
+      "devices_one": "{{count}} device",
+      "devices_other": "{{count}} devices",
+      "offline_one": "{{count}} offline",
+      "offline_other": "{{count}} offline",
+      "severe_one": "{{count}} device with severe CVEs",
+      "severe_other": "{{count}} devices with severe CVEs",
+      "firmware_one": "{{count}} firmware to update",
+      "firmware_other": "{{count}} firmware to update",
+      "issues_one": "{{count}} open issue",
+      "issues_other": "{{count}} open issues"
+    }
   },
   "user": {
     "language": "Language",

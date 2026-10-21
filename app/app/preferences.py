@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy import DateTime, ForeignKey, Integer, LargeBinary, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.branding_palette import DEFAULT_HIGHLIGHT, DEFAULT_PRIMARY, DEFAULT_SIDEBAR
 from app.db import Base
 
 
@@ -37,13 +38,13 @@ class PlatformBranding(Base):
     )
     tagline: Mapped[str | None] = mapped_column(String(240))
     primary_color: Mapped[str] = mapped_column(
-        String(7), default="#1f5f8b", nullable=False
+        String(7), default=DEFAULT_PRIMARY, nullable=False
     )
     sidebar_color: Mapped[str] = mapped_column(
-        String(7), default="#111827", nullable=False
+        String(7), default=DEFAULT_SIDEBAR, nullable=False
     )
     highlight_color: Mapped[str] = mapped_column(
-        String(7), default="#f59e0b", nullable=False
+        String(7), default=DEFAULT_HIGHLIGHT, nullable=False
     )
     logo_filename: Mapped[str | None] = mapped_column(String(255))
     logo_content_type: Mapped[str | None] = mapped_column(String(80))

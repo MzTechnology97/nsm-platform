@@ -32,7 +32,7 @@ def main():
 
     client, headers = login(f"ci-ub-{suffix}")
     data = client.get("/api/ui/v1/admin/branding").json()
-    assert data["defaults"] == {"primary": "#1f5f8b", "sidebar": "#111827", "highlight": "#f59e0b"} and data["max_logo_bytes"] == 2 * 1024 * 1024
+    assert data["defaults"] == {"primary": "#1769d6", "sidebar": "#10192b", "highlight": "#f79009"} and data["max_logo_bytes"] == 2 * 1024 * 1024
 
     body = {"portal_name": f"CI Portal {suffix}", "tagline": "CI tagline", "primary_color": "#123456", "sidebar_color": "#222222", "highlight_color": "#ABCDEF"}
     assert client.post("/api/ui/v1/admin/branding", json=body).status_code == 403, "CSRF header required"
@@ -42,6 +42,14 @@ def main():
     saved = client.post("/api/ui/v1/admin/branding", headers=headers, json=body).json()
     assert saved["portal_name"] == f"CI Portal {suffix}" and saved["highlight_color"] == "#abcdef" and saved["has_logo"] is False
     assert client.get("/api/ui/v1/session").json()["branding"]["primary_color"] == "#123456", "the shell reads the new colours"
+    theme = client.get("/branding/theme.css").text
+    assert "--brand-primary: #123456;" in theme and "--brand-highlight: #abcdef;" in theme, "custom colours reach the sign-in pages"
+
+    # The previous factory colours count as "not customised": they read as the new palette and stay out of theme.css.
+    legacy = client.post("/api/ui/v1/admin/branding", headers=headers, json={**body, "primary_color": "#1F5F8B", "sidebar_color": "#111827"}).json()
+    assert legacy["primary_color"] == "#1769d6" and legacy["sidebar_color"] == "#10192b", legacy
+    theme = client.get("/branding/theme.css").text
+    assert "--brand-primary" not in theme and "--brand-sidebar" not in theme and "--brand-highlight: #abcdef;" in theme, theme
 
     upload = "/api/ui/v1/admin/branding/logo"
     assert client.post(upload, headers=headers, files={"logo": ("logo.gif", b"GIF89a" + b"\x00" * 16, "image/gif")}).json()["detail"]["code"] == "logo_type"
@@ -54,7 +62,7 @@ def main():
     assert client.get("/api/ui/v1/session").json()["branding"]["has_logo"] is True
     assert client.post("/api/ui/v1/admin/branding/logo/remove", headers=headers).json()["has_logo"] is False
 
-    assert client.post("/api/ui/v1/admin/branding/colors/primary/reset", headers=headers).json()["primary_color"] == "#1f5f8b"
+    assert client.post("/api/ui/v1/admin/branding/colors/primary/reset", headers=headers).json()["primary_color"] == "#1769d6"
     assert client.post("/api/ui/v1/admin/branding/colors/accent/reset", headers=headers).status_code == 404
     with SessionLocal() as db:
         kinds = dict(db.execute(select(AuditEvent.event_type, func.count(AuditEvent.id)).where(AuditEvent.event_type.like("PLATFORM_%"))
