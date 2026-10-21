@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.177 — 2026-10-21
+
+Device list (UX-2): more at a glance, actions on many devices
+- **CVE state on every row.** A red badge with the open CVEs when one is critical or high, orange for other open CVEs, green "CVE OK" when the model and firmware are known and nothing is open, grey "CVE ?" when NSM cannot tell (missing model or firmware).
+- **Resources in the list.** CPU and memory use as two small bars (amber from 75%, red from 90%), and the uptime under the status, from the MikroTik agent or the UISP and cnMaestro connectors. Offline devices show their last values faded.
+- **Readable vendor names.** "MikroTik · RB5009UG+S+" under the device name and in the vendor filter, instead of the internal "mikrotik".
+- **Select and act on many devices.** Check the devices (or all loaded ones). A bar offers: export CSV of the selection, back up now, check firmware (MikroTik), decommission with one reason for all, or reactivate in the "Decommissioned" view. The bar shows the progress and which devices failed and why.
+- **CSV export.** "Export CSV" downloads the whole filtered list (not only the loaded rows) with customer, site, addresses, firmware, lifecycle, last contact and open CVEs. Every export is audited (`DEVICE_LIST_EXPORTED`).
 ## 0.49.176 — 2026-10-21
 
 UX foundations (UX-1): faster navigation, clearer loading and empty states

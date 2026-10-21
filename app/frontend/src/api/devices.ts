@@ -27,6 +27,10 @@ export interface DeviceRow {
   signal_dbm?: number | null;
   /** Set when the device is out of service ("Disattivati" filter). */
   decommissioned_at?: string | null;
+  /** Last CPU and memory use (%) and uptime reported by the agent or the connector. */
+  telemetry?: { cpu: number | null; ram: number | null; uptime_seconds: number | null };
+  /** Open CVEs (all, critical or high); ``evaluated`` false means NSM cannot tell (unknown model or firmware). */
+  cves?: { open: number; severe: number; evaluated: boolean };
 }
 
 export interface DeviceCounts {
@@ -72,6 +76,16 @@ export function devicesUrl(filters: DeviceFilters, offset: number, limit = PAGE_
   return `/api/ui/v1/devices?${params.toString()}`;
 }
 
+/** CSV of the filtered list, or of the selected devices only. */
+export function devicesExportUrl(filters: DeviceFilters, ids: string[] = []): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value && key !== "sort" && key !== "dir") params.set(key, String(value));
+  }
+  if (ids.length) params.set("ids", ids.join(","));
+  return `/api/ui/v1/devices/export.csv?${params.toString()}`;
+}
+
 export function useDevices(filters: DeviceFilters) {
   return useInfiniteQuery({
     queryKey: ["devices", filters],
@@ -87,6 +101,7 @@ export interface Facets {
   customers: { id: string; name: string }[];
   sites: { id: string; name: string; customer_id: string }[];
   vendors: string[];
+  vendor_labels?: Record<string, string>;
 }
 
 export function useDeviceFacets() {

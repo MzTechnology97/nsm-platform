@@ -81,7 +81,8 @@
       "customer": "Cliente / sede",
       "ip": "IP di gestione",
       "firmware": "Firmware",
-      "last_seen": "Ultimo contatto"
+      "last_seen": "Ultimo contatto",
+      "resources": "Risorse"
     },
     "statusLabel": {
       "online": "Online",
@@ -95,7 +96,36 @@
     "lan": "LAN {{ip}}",
     "emptyHint": "Prova con meno filtri o una ricerca diversa.",
     "none": "Nessun apparato ancora",
-    "noneHint": "Aggiungi un apparato dalla scheda di un cliente o importali da CSV."
+    "noneHint": "Aggiungi un apparato dalla scheda di un cliente o importali da CSV.",
+    "export": "Esporta CSV",
+    "select": "Seleziona {{name}}",
+    "selectAll": "Seleziona tutti quelli caricati",
+    "genericVendor": "Generico",
+    "cpu": "CPU",
+    "ram": "RAM",
+    "uptime": "Tempo di attività",
+    "uptimeShort": "attivo da {{value}}",
+    "cve": {
+      "openTitle": "{{count}} CVE aperte, {{severe}} critiche o alte",
+      "cleanTitle": "Nessuna CVE aperta per modello e firmware",
+      "unknownTitle": "Non valutabile: manca il modello o una versione firmware leggibile"
+    },
+    "bulk": {
+      "title": "Azioni sui selezionati",
+      "selected_one": "{{count}} selezionato",
+      "selected_other": "{{count}} selezionati",
+      "export": "Esporta CSV",
+      "backup": "Backup ora",
+      "firmware": "Verifica firmware",
+      "decommission": "Disattiva…",
+      "decommissionConfirm_one": "Disattiva {{count}} apparato",
+      "decommissionConfirm_other": "Disattiva {{count}} apparati",
+      "clear": "Annulla selezione",
+      "mikrotikOnly": "Solo MikroTik: {{count}} apparati",
+      "progress": "In corso: {{done}} di {{total}}…",
+      "finished": "Completato: {{ok}} di {{total}} riusciti.",
+      "moreFailures": "e altri {{count}}"
+    }
   },
   "device": {
     "notFound": "Apparato non trovato o non visibile con i tuoi permessi.",

@@ -35,6 +35,19 @@ export function formatSpan(start: string | null | undefined, end: string | null 
   return unit(rest, "minute");
 }
 
+/** A duration in seconds as "3 d 4 h", "5 h 12 min" or "7 min", localised (uptime). */
+export function formatDuration(seconds: number | null | undefined, locale: string): string {
+  if (seconds == null || !Number.isFinite(seconds)) return "—";
+  const minutes = Math.max(0, Math.floor(seconds / 60));
+  const unit = (value: number, name: "day" | "hour" | "minute") =>
+    new Intl.NumberFormat(locale, { style: "unit", unit: name, unitDisplay: "narrow" }).format(value);
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  if (days) return hours ? `${unit(days, "day")} ${unit(hours, "hour")}` : unit(days, "day");
+  if (hours) return `${unit(hours, "hour")} ${unit(minutes % 60, "minute")}`;
+  return unit(minutes, "minute");
+}
+
 /** ISO timestamp → value for an ``<input type="datetime-local">`` in the browser's timezone. */
 export function toLocalInput(value: string | null | undefined, now: number = Date.now()): string {
   const date = new Date(value ? Date.parse(value) : now);
