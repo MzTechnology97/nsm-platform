@@ -111,6 +111,8 @@ def overview(db, month: str | None = None, now: datetime | None = None) -> dict:
         if rounds:
             per_customer.setdefault(customer_id, []).append((device_id, rounds, up))
     paused = customer_paused_minutes(db, lower, measured_until)
+    paused_month = customer_paused_minutes(db, lower, upper)
+    month_minutes = (upper - lower).total_seconds() / 60
     rows = []
     for customer in db.scalars(select(Customer).order_by(func.lower(Customer.name))):
         # A window on all the customer's devices shortens the month the target applies to.
@@ -122,6 +124,8 @@ def overview(db, month: str | None = None, now: datetime | None = None) -> dict:
         below = sum(1 for _, r, u in devices if r and 100.0 * u / r < (customer.sla_target_pct or availability.TARGET_PERCENT))
         target = customer.sla_target_pct
         budget = round((1 - target / 100.0) * minutes, 1) if target is not None else None
+        # The whole month's allowance (planned customer-wide maintenance excluded): what the alerts compare with.
+        budget_month = round((1 - target / 100.0) * max(0.0, month_minutes - paused_month.get(customer.id, 0.0)), 1) if target is not None else None
         used = round((1 - value / 100.0) * minutes, 1) if value is not None else None
         if target is None:
             verdict = "no_target"
@@ -131,13 +135,67 @@ def overview(db, month: str | None = None, now: datetime | None = None) -> dict:
             verdict = "met" if value >= target else "missed"
         rows.append({"customer": {"id": str(customer.id), "name": customer.name}, "target": target, "availability": value,
                      "devices": len(devices), "below_target": below, "downtime_minutes": int(round((rounds - up) * availability.ROUND_MINUTES)),
-                     "budget_minutes": budget, "used_minutes": used, "verdict": verdict,
+                     "budget_minutes": budget, "budget_month_minutes": budget_month, "used_minutes": used, "verdict": verdict,
                      "maintenance_minutes": int(round(maintenance.get(customer.id, 0.0) * availability.ROUND_MINUTES))})
     order = {"missed": 0, "met": 1, "not_measured": 2, "no_target": 3}
     rows.sort(key=lambda row: (order[row["verdict"]], row["availability"] if row["availability"] is not None else 101, row["customer"]["name"].lower()))
     counts = {key: sum(1 for row in rows if row["verdict"] == key) for key in order}
     return {"month": label, "from": lower, "to": upper, "measured_until": measured_until, "running": running, "months": recent_months(now),
             "rows": rows, "counts": counts, "default_target": availability.TARGET_PERCENT}
+
+
+ALERT_WARN = 0.75
+ALERT_TITLES = {"warn": "SLA a rischio", "missed": "SLA non più rispettabile"}
+
+
+def _it(number: str) -> str:
+    """Decimal comma for the Italian alert text."""
+    return number.replace(".", ",")
+
+
+def _minutes_text(value: float) -> str:
+    return f"{_it(f'{value / 60:.1f}')} h" if value >= 120 else f"{value:.0f} min"
+
+
+def budget_alerts(now: datetime | None = None) -> dict:
+    """Worker task: notify when a customer has used 75% of the month's downtime budget, and when it is used up.
+
+    The budget is the whole month's allowance, so an outage early in the month is not reported as a missed SLA.
+    Each threshold is notified once per customer and month (in-app and on the users' external channels).
+    """
+    from app.models import Notification
+
+    stats = {"warn": 0, "missed": 0}
+    with SessionLocal() as db:
+        data = overview(db, None, now)
+        lower = data["from"]
+        for row in data["rows"]:
+            budget, used = row.get("budget_month_minutes"), row.get("used_minutes")
+            if not budget or used is None or row["availability"] is None:
+                continue
+            share = used / budget
+            level = "missed" if share >= 1 else "warn" if share >= ALERT_WARN else None
+            if level is None:
+                continue
+            name = row["customer"]["name"]
+            title = f"{ALERT_TITLES[level]}: {name} ({data['month']})"
+            customer_id = uuid.UUID(row["customer"]["id"])
+            already = db.scalar(select(Notification.id).where(Notification.customer_id == customer_id, Notification.title == title,
+                                                              Notification.created_at >= lower).limit(1))
+            if already:
+                continue
+            message = (f"{name}: disponibilità {_it(f'{row['availability']:.3f}')}% con obiettivo {_it(f'{row['target']:g}')}%. "
+                       f"Fermo equivalente {_minutes_text(used)} su {_minutes_text(budget)} consentiti nel mese ({share * 100:.0f}%).")
+            if level == "missed":
+                message += " L'obiettivo del mese non è più raggiungibile."
+            db.add(Notification(severity="high" if level == "missed" else "warning", category="monitoring", title=title[:240], message=message,
+                                customer_id=customer_id, source_url=f"/app/sla?customer={customer_id}", is_active=True))
+            core.add_event(db, "SLA_BUDGET_ALERT", customer_id=customer_id, severity="warning",
+                           details={"month": data["month"], "level": level, "share": round(share, 3), "target": row["target"],
+                                    "availability": row["availability"]}, source="worker")
+            stats[level] += 1
+        db.commit()
+    return stats
 
 
 def customer_detail(db, customer: Customer, month: str | None = None, now: datetime | None = None) -> dict:
