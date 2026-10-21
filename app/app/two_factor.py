@@ -296,7 +296,6 @@ def admin_reset_record(db, actor, target, request: Request | None = None) -> Non
 
 def install_two_factor(app) -> None:
     app.include_router(router)
-    core.templates.env.globals["two_factor_state"] = profile_state
     previous = login_security.original_login
 
     def password_then_second_factor(request, username, password, csrf):

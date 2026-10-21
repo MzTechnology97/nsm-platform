@@ -5,7 +5,7 @@ import { RUNNING } from "../api/diagnostics";
 
 const number = (value: number, locale: string) => new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value);
 
-/** One-line outcome of a diagnostic in the user's language (same facts as the classic list). */
+/** One-line outcome of a diagnostic in the user's language. */
 export function diagnosticSummary(job: DiagnosticJob, t: TFunction, locale: string): string {
   if (RUNNING.has(job.status)) return t("diagnostics.summary.running");
   if (job.status !== "success") return job.error || t("diagnostics.summary.failed");

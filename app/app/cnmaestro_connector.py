@@ -413,4 +413,3 @@ def device_metrics(request: Request, device_id: uuid.UUID, range: str = "24h"):
 
 def install_cnmaestro_connector(app) -> None:
     app.include_router(router)
-    core.templates.env.globals.update(cnmaestro_summary=summary, cnmaestro_device=is_cambium)

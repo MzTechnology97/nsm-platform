@@ -93,7 +93,6 @@ def device_agent(request: Request, device_id: uuid.UUID):
                 "update": bool(update.get("outdated") and update.get("self_update_capable") and can_enroll),
                 "reinstall": can_enroll,
             },
-            "links": {"classic": f"/devices/{device.id}/agent", "reinstall": f"/devices/{device.id}/agent/reinstall"},
         }
 
 

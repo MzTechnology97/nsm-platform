@@ -73,7 +73,3 @@ def apply(device, data: dict, raw_addresses, source_ip) -> None:
         data["management_ip_origin"] = "agent"
 
 
-def install_agent_addresses() -> None:
-    from app import main as core
-
-    core.templates.env.globals.update(ip_scope=scope_label)

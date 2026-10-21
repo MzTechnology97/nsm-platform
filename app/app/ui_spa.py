@@ -36,9 +36,9 @@ def spa(request: Request, path: str = ""):
             return RedirectResponse("/login", status_code=303)
     index = dist_dir() / "index.html"
     if not index.is_file():
-        return HTMLResponse("<!doctype html><meta charset=utf-8><title>NSM</title><p>La nuova interfaccia non è stata compilata: "
-                            "ricostruisci l'immagine con <code>./update.sh</code> (oppure <code>npm run build</code> in app/frontend).</p>"
-                            "<p><a href=\"/\">Torna all'interfaccia classica</a></p>", status_code=503)
+        return HTMLResponse("<!doctype html><meta charset=utf-8><title>NSM</title><p>L'interfaccia non è stata compilata: "
+                            "ricostruisci l'immagine con <code>./update.sh</code> (oppure <code>npm run build</code> in app/frontend).</p>",
+                            status_code=503)
     return FileResponse(index, media_type="text/html", headers={"Cache-Control": "no-cache"})
 
 

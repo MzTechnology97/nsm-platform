@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.174 — 2026-10-21
+
+Classic interface removal, final shell cleanup (phase 8, R1)
+- **Classic shell removed.** The old sidebar, top bar, flash messages and dashboard template are gone. Only the sign-in pages (login and two-step verification) still use a server template, now with a layout of their own.
+- **Smaller sign-in stylesheet.** `app.css` keeps only the sign-in rules (about 7 KB instead of 120 KB). The scripts of the classic pages (charts, forms, search, live dashboard) and the shell background image are removed.
+- **No more links to the classic interface.** The device, customer, agent and backup API responses no longer carry `classic` links. Two help texts (compliance baselines, syslog vendor guides) pointed to the classic page and now point to the new one. The "New interface (preview)" badge is gone from the top bar.
+- **Dead code removed.** Template helpers and their installers, the classic theme switch (`/profile/theme`), classic page handlers that no longer ran (dashboard, firmware list, backup policy form, device list drill-down) and the orphan helpers they used.
 ## 0.49.173 — 2026-10-21
 
 Classic interface removal, devices part 2 (phase 8, R1)

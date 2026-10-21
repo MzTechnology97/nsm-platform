@@ -9,7 +9,7 @@ import { formatDateTime } from "../lib/format";
 
 const DELIVERY_TONE: Record<string, string> = { sent: "online", failed: "offline", pending: "warning" };
 
-/** Server error translated by its classic code (``profile.errors.<code>``). */
+/** Server error translated by its code (``profile.errors.<code>``). */
 function useErrorText() {
   const { t } = useTranslation();
   return (error: unknown) =>

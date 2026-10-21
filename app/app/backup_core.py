@@ -158,8 +158,9 @@ def _scope_label(policy, settings, customers, sites, devices):
 
 def _schedule_label(settings, policy):
     if not settings:
-        helper = core.templates.env.globals.get("backup_schedule_label", lambda x: x)
-        return helper(policy.schedule_cron)
+        from app.workflow_ui import backup_schedule_label
+
+        return backup_schedule_label(policy.schedule_cron)
     if settings.schedule_kind == "six_hour":
         return "Ogni 6 ore"
     if settings.schedule_kind == "weekly":
@@ -440,5 +441,4 @@ def install_backup_core(app, templates):
     _remove_route(app, "/operations/backups", "GET")
     _remove_route(app, "/operations/backups/policies", "POST")
     _remove_route(app, "/operations/backups/policies/new", "GET")
-    templates.env.globals["vendor_labels"] = VENDOR_LABELS
     app.include_router(router)

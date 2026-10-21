@@ -2,7 +2,7 @@
  * Fetch wrapper for the NSM UI API (same origin, session cookie).
  *
  * - every change sends the session CSRF token in X-CSRF-Token;
- * - 401 means the session expired: the browser goes to the classic login page;
+ * - 401 means the session expired: the browser goes to the sign-in page;
  * - errors carry the server message (FastAPI "detail").
  */
 

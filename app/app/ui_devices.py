@@ -174,22 +174,22 @@ def device_facets(request: Request):
         return {"customers": customers, "sites": sites, "vendors": vendors}
 
 
-# Tabs of the classic device page: (key, classic path suffix, condition).
+# Tabs of the device page: (key, condition).
 TABS = (
-    ("overview", "", lambda d: True),
-    ("monitor", "/monitor", lambda d: d.vendor == "mikrotik"),
-    ("logs", "/logs", lambda d: True),
-    ("exposure", "/exposure", lambda d: True),
-    ("configuration", "/configuration", lambda d: d.vendor == "mikrotik"),
-    ("diagnostics", "/diagnostics", lambda d: d.vendor == "mikrotik"),
-    ("backups", "/backups", lambda d: True),
-    ("firmware", "/firmware-upgrade", lambda d: d.vendor == "mikrotik"),
-    ("agent", "/agent", lambda d: d.vendor == "mikrotik"),
-    ("uisp", "/uisp", lambda d: d.vendor == "ubiquiti"),
-    ("cnmaestro", "/cnmaestro", lambda d: _cambium(d)),
-    ("acs", "/genieacs", lambda d: _tr069(d)),
-    ("compliance", "/compliance", lambda d: True),
-    ("activity", "/jobs", lambda d: True),
+    ("overview", lambda d: True),
+    ("monitor", lambda d: d.vendor == "mikrotik"),
+    ("logs", lambda d: True),
+    ("exposure", lambda d: True),
+    ("configuration", lambda d: d.vendor == "mikrotik"),
+    ("diagnostics", lambda d: d.vendor == "mikrotik"),
+    ("backups", lambda d: True),
+    ("firmware", lambda d: d.vendor == "mikrotik"),
+    ("agent", lambda d: d.vendor == "mikrotik"),
+    ("uisp", lambda d: d.vendor == "ubiquiti"),
+    ("cnmaestro", lambda d: _cambium(d)),
+    ("acs", lambda d: _tr069(d)),
+    ("compliance", lambda d: True),
+    ("activity", lambda d: True),
 )
 
 
@@ -267,7 +267,7 @@ def device_detail(request: Request, device_id: uuid.UUID):
             "icmp": {"enabled": icmp["enabled"], "target": icmp["effective_target"], "last_rtt": icmp["last_rtt"],
                      "last_loss": icmp["last_loss"], "down": icmp["down"], "last_at": icmp["last_at"]},
             "zabbix": zabbix,
-            "tabs": [{"key": key, "classic": f"/devices/{device.id}{suffix}"} for key, suffix, visible in TABS if visible(device)],
+            "tabs": [{"key": key} for key, visible in TABS if visible(device)],
             "actions": {
                 "reboot": mikrotik and core.has_permission(user, "firmware.execute"),
                 "incident": core.has_permission(user, "incidents.write"),

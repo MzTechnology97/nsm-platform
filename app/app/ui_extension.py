@@ -2,8 +2,8 @@ import re
 import uuid
 from datetime import timezone
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse, Response
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import Response
 
 from app.config import settings
 from app.db import SessionLocal
@@ -12,7 +12,6 @@ from app.preferences import PlatformBranding, UserPreference
 from app.security import (
     csrf_token,
     hash_password,
-    validate_csrf,
     validate_password_strength,
     verify_password,
 )
@@ -102,13 +101,6 @@ def ui_context(request: Request):
         return {"branding": _branding_dict(branding), "theme": theme}
 
 
-def _safe_next(value: str | None, fallback="/"):
-    value = (value or "").strip()
-    if value.startswith("/") and not value.startswith("//"):
-        return value
-    return fallback
-
-
 def _detect_logo_type(data: bytes):
     if data.startswith(b"\x89PNG\r\n\x1a\n"):
         return "image/png"
@@ -153,37 +145,6 @@ def change_own_password_record(db, user, request: Request, current_password: str
     request.session["user_id"] = str(user.id)
     request.session["csrf_token"] = csrf_token(request)
     request.session["auth_at"] = request.session["seen_at"] = changed_at.astimezone(timezone.utc).isoformat()
-
-
-@router.post("/profile/theme")
-def change_theme(
-    request: Request,
-    theme: str = Form(...),
-    next_url: str = Form("/profile"),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    if theme not in ALLOWED_THEMES:
-        raise HTTPException(400, "Tema non valido.")
-    with SessionLocal() as db:
-        user = _current_user(request, db)
-        if not user:
-            return RedirectResponse("/login", status_code=303)
-        pref = db.get(UserPreference, user.id)
-        old_theme = pref.theme if pref else "light"
-        if not pref:
-            pref = UserPreference(user_id=user.id, theme=theme)
-            db.add(pref)
-        else:
-            pref.theme = theme
-        _add_event(
-            db,
-            "USER_THEME_CHANGED",
-            user,
-            {"old_theme": old_theme, "new_theme": theme},
-        )
-        db.commit()
-    return RedirectResponse(_safe_next(next_url), status_code=303)
 
 
 class BrandingError(ValueError):

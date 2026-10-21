@@ -64,8 +64,6 @@ def main():
     for symbol in ("brand-mikrotik", "brand-ubiquiti", "brand-tp-link", "brand-generic"):
         assert f'id="{symbol}"' in sprite, symbol
     assert "Simple Icons (CC0-1.0)" in sprite
-    script = (STATIC / "ui.js").read_text(encoding="utf-8")
-    assert "nsm.search.recent" in script and "sg-row" in script and "brand-icons.svg" in script
 
     listing = client.get("/api/ui/v1/devices", params={"customer": str(ids["customer"])}).text
     assert "brand-mikrotik" in listing and "Cambium Networks" in listing, "every device row carries its vendor icon"

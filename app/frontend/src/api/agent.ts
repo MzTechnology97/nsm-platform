@@ -37,7 +37,6 @@ export interface AgentStatus {
   enrollments: { created_at: string | null; source: string; status: string; expires_at: string | null; used_at: string | null }[];
   firmware: string | null;
   actions: { update: boolean; reinstall: boolean };
-  links: { classic: string; reinstall: string };
 }
 
 const base = (id: string) => `/api/ui/v1/devices/${encodeURIComponent(id)}/agent`;

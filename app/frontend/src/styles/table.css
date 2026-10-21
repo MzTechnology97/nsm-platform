@@ -409,7 +409,7 @@
   color: var(--muted);
 }
 
-/* Vendor icon (same sprite as the classic pages, /static/brand-icons.svg). */
+/* Vendor icon (sprite /static/brand-icons.svg). */
 .ui-brand-icon {
   display: inline-flex;
   flex: none;

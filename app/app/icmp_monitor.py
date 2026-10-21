@@ -341,4 +341,3 @@ def panel(device) -> dict:
 
 def install_icmp_monitor(app) -> None:
     app.add_api_route("/api/v1/devices/{device_id}/latency", device_latency, methods=["GET"], name="device_latency")
-    core.templates.env.globals["icmp_panel"] = panel

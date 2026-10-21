@@ -28,8 +28,7 @@ export interface CustomerDetail {
   events: { timestamp: string | null; type: string; label: string; source: string | null; result: string | null; severity: string }[];
   sites: CustomerSite[];
   actions: { edit: boolean; add_site: boolean; add_device: boolean; incidents: boolean; uisp_import?: boolean };
-  tabs: { key: string; classic: string }[];
-  links: { edit: string; add_site: string; add_device: string; incidents: string; action_center: string };
+  tabs: { key: string }[];
 }
 
 export const useCustomer = (id: string) =>

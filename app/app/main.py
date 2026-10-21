@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Red
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from redis import Redis
-from sqlalchemy import func, or_, select, text
+from sqlalchemy import or_, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from starlette.middleware.sessions import SessionMiddleware
@@ -18,17 +18,13 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import settings
 from app.db import SessionLocal, engine
 from app.models import (
-    ActionIssue,
     AuditEvent,
     BackupPolicy,
-    BackupRun,
     Customer,
     Device,
     DeviceEnrollment,
-    DeviceVulnerability,
     Notification,
     NotificationRead,
-    SecurityAdvisory,
     Site,
     User,
     utcnow,
@@ -63,7 +59,6 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 templates = Jinja2Templates(directory="app/templates")
-templates.env.globals["app_name"] = settings.app_name
 templates.env.globals["app_version"] = APP_VERSION
 templates.env.globals["csrf_token"] = csrf_token
 
@@ -139,10 +134,6 @@ def has_permission(user: User | None, permission: str) -> bool:
     return "*" in perms or permission in perms
 
 
-templates.env.globals["has_permission"] = has_permission
-templates.env.globals["role_labels"] = ROLE_LABELS
-
-
 def fmt_dt(value):
     if not value:
         return "—"
@@ -157,9 +148,6 @@ def fmt_dt(value):
         return value.astimezone(tz).strftime("%d/%m/%Y %H:%M")
     except Exception:
         return value.strftime("%Y-%m-%d %H:%M UTC")
-
-
-templates.env.globals["fmt_dt"] = fmt_dt
 
 
 def current_user(request: Request, db):
@@ -313,61 +301,6 @@ def unread_notification_conditions(user: User):
     return Notification.is_active.is_(True), ~read_exists
 
 
-def common_context(request: Request, db, user: User):
-    unread_conditions = unread_notification_conditions(user)
-    unread_count = (
-        db.scalar(select(func.count(Notification.id)).where(*unread_conditions)) or 0
-    )
-    recent_notifications = list(
-        db.scalars(
-            select(Notification)
-            .where(*unread_conditions)
-            .order_by(Notification.created_at.desc())
-            .limit(8)
-        )
-    )
-    return {
-        "request": request,
-        "user": user,
-        "unread_notification_count": unread_count,
-        "recent_notifications": recent_notifications,
-        "role_labels": ROLE_LABELS,
-    }
-
-
-def render(request: Request, db, user: User, template: str, **context):
-    ctx = common_context(request, db, user)
-    ctx.update(context)
-    return templates.TemplateResponse(request=request, name=template, context=ctx)
-
-
-def status_label(value: str | None):
-    labels = {
-        "online": "Online",
-        "offline": "Offline",
-        "pending_enrollment": "In attesa enrollment",
-        "pending_link": "In attesa associazione",
-        "unknown": "Sconosciuto",
-        "open": "Aperto",
-        "acknowledged": "Preso in carico",
-        "resolved": "Risolto",
-        "planned": "Pianificato",
-        "in_progress": "In lavorazione",
-        "exception": "Eccezione",
-        "current": "Aggiornato",
-        "up_to_date": "Aggiornato",
-        "outdated": "Obsoleto",
-        "update_available": "Aggiornamento disponibile",
-        "security": "Update di sicurezza",
-        "security_update": "Update di sicurezza",
-        "critical": "Critico",
-        "critical_security_update": "Update critico",
-    }
-    return labels.get(value or "", (value or "—").replace("_", " ").title())
-
-
-templates.env.globals["status_label"] = status_label
-
 EVENT_ACRONYMS = {"API", "CSV", "CVE", "IP", "MAC", "PDF", "RSC", "UISP", "UI", "ACS", "NVD", "EOL", "EOS", "TLS", "VPN"}
 
 
@@ -379,9 +312,6 @@ def event_label(value: str | None):
     out = [word if word in EVENT_ACRONYMS else word.lower() for word in words]
     out[0] = out[0] if out[0] in EVENT_ACRONYMS else out[0].capitalize()
     return " ".join(out)
-
-
-templates.env.globals["event_label"] = event_label
 
 
 @app.get("/health")
@@ -465,97 +395,6 @@ def logout(request: Request, csrf: str = Form(...)):
     validate_csrf(request, csrf)
     request.session.clear()
     return RedirectResponse("/login", status_code=303)
-
-
-@app.get("/", response_class=HTMLResponse)
-def dashboard(request: Request):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-
-        customer_count = db.scalar(select(func.count(Customer.id))) or 0
-        device_count = db.scalar(select(func.count(Device.id))) or 0
-        site_count = db.scalar(select(func.count(Site.id))) or 0
-        online_count = (
-            db.scalar(select(func.count(Device.id)).where(Device.status == "online")) or 0
-        )
-        pending_count = (
-            db.scalar(
-                select(func.count(Device.id)).where(
-                    Device.status.in_(["pending_enrollment", "pending_link"])
-                )
-            )
-            or 0
-        )
-        eol_count = (
-            db.scalar(
-                select(func.count(Device.id)).where(
-                    Device.lifecycle_status.in_(["eol", "eos"])
-                )
-            )
-            or 0
-        )
-        open_issue_count = (
-            db.scalar(
-                select(func.count(ActionIssue.id)).where(
-                    ActionIssue.status.in_(["open", "acknowledged"])
-                )
-            )
-            or 0
-        )
-        critical_issue_count = (
-            db.scalar(
-                select(func.count(ActionIssue.id)).where(
-                    ActionIssue.status.in_(["open", "acknowledged"]),
-                    ActionIssue.severity == "critical",
-                )
-            )
-            or 0
-        )
-        backup_failed_count = (
-            db.scalar(
-                select(func.count(BackupRun.id)).where(BackupRun.status == "failed")
-            )
-            or 0
-        )
-        recent_events = list(
-            db.scalars(
-                select(AuditEvent).order_by(AuditEvent.timestamp.desc()).limit(12)
-            )
-        )
-        latest_advisories = db.execute(
-            select(
-                SecurityAdvisory,
-                func.count(DeviceVulnerability.id).label("affected_count"),
-            )
-            .outerjoin(
-                DeviceVulnerability,
-                (DeviceVulnerability.advisory_id == SecurityAdvisory.id)
-                & (DeviceVulnerability.status != "resolved"),
-            )
-            .group_by(SecurityAdvisory.id)
-            .order_by(SecurityAdvisory.published_at.desc().nullslast())
-            .limit(6)
-        ).all()
-
-        return render(
-            request,
-            db,
-            user,
-            "dashboard.html",
-            customer_count=customer_count,
-            site_count=site_count,
-            device_count=device_count,
-            online_count=online_count,
-            pending_count=pending_count,
-            eol_count=eol_count,
-            open_issue_count=open_issue_count,
-            critical_issue_count=critical_issue_count,
-            backup_failed_count=backup_failed_count,
-            recent_events=recent_events,
-            latest_advisories=latest_advisories,
-        )
 
 
 def search_records(db, term: str) -> dict:
@@ -773,16 +612,6 @@ def create_device_record(db, user: User, customer_id: uuid.UUID, *, vendor: str,
     return device, raw_token
 
 
-def enrollment_command(base_url: str, raw_token: str) -> str:
-    """The one-shot RouterOS command that installs the NSM agent with an enrollment token."""
-    base = base_url.rstrip("/")
-    return (
-        f'/tool fetch url="{base}/api/v1/enrollment/mikrotik/bootstrap'
-        f'?token={raw_token}" dst-path="nsm-bootstrap.rsc"; '
-        f'/import file-name="nsm-bootstrap.rsc"'
-    )
-
-
 def effective_backup_policy(db, device: Device):
     policy = db.scalar(
         select(BackupPolicy).where(
@@ -932,124 +761,6 @@ async def mikrotik_enrollment_complete(request: Request):
             "device_id": str(device.id),
             "device_identity": device.device_identity,
         }
-
-
-@app.get("/operations/firmware", response_class=HTMLResponse)
-def firmware(request: Request):
-    with SessionLocal() as db:
-        user = current_user(request, db)
-        if not user:
-            return login_redirect()
-        outdated = (
-            db.scalar(
-                select(func.count(Device.id)).where(
-                    Device.firmware_status.in_(
-                        ["outdated", "security_update", "critical_security_update"]
-                    )
-                )
-            )
-            or 0
-        )
-        unknown = (
-            db.scalar(
-                select(func.count(Device.id)).where(
-                    Device.firmware_status == "unknown"
-                )
-            )
-            or 0
-        )
-        return render(
-            request,
-            db,
-            user,
-            "section.html",
-            title="Firmware",
-            subtitle="Stato firmware e aggiornamenti richiesti.",
-            cards=[("Da aggiornare", outdated), ("Stato sconosciuto", unknown)],
-            message="Il catalogo vendor e le regole di aggiornamento verranno collegati all'inventario osservato.",
-        )
-
-
-@app.post("/operations/backups/policies")
-def create_backup_policy(
-    request: Request,
-    name: str = Form(...),
-    scope_type: str = Form(...),
-    vendor: str = Form(""),
-    customer_id: str = Form(""),
-    device_id: str = Form(""),
-    schedule_cron: str = Form("0 3 * * *"),
-    binary_backup: str | None = Form(None),
-    text_export: str | None = Form(None),
-    pre_firmware_backup: str | None = Form(None),
-    verify_hash: str | None = Form(None),
-    retention_daily: int = Form(30),
-    retention_weekly: int = Form(12),
-    retention_monthly: int = Form(12),
-    retry_count: int = Form(3),
-    csrf: str = Form(...),
-):
-    validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = require_permission(request, db, "backup.configure")
-        if scope_type not in {"global", "vendor", "customer", "device"}:
-            raise HTTPException(400, "Scope non valido.")
-
-        cid = did = None
-        scope_vendor = None
-        if scope_type == "vendor":
-            scope_vendor = opt(vendor)
-            if not scope_vendor:
-                raise HTTPException(400, "Vendor richiesto.")
-        elif scope_type == "customer":
-            try:
-                cid = uuid.UUID(customer_id)
-            except ValueError:
-                raise HTTPException(400, "Cliente richiesto.")
-            if not db.get(Customer, cid):
-                raise HTTPException(400, "Cliente non valido.")
-        elif scope_type == "device":
-            try:
-                did = uuid.UUID(device_id)
-            except ValueError:
-                raise HTTPException(400, "Dispositivo richiesto.")
-            if not db.get(Device, did):
-                raise HTTPException(400, "Dispositivo non valido.")
-
-        policy = BackupPolicy(
-            name=name.strip(),
-            scope_type=scope_type,
-            vendor=scope_vendor,
-            customer_id=cid,
-            device_id=did,
-            schedule_cron=schedule_cron.strip() or "0 3 * * *",
-            binary_backup=bool(binary_backup),
-            text_export=bool(text_export),
-            pre_firmware_backup=bool(pre_firmware_backup),
-            verify_hash=bool(verify_hash),
-            retention_daily=max(0, retention_daily),
-            retention_weekly=max(0, retention_weekly),
-            retention_monthly=max(0, retention_monthly),
-            retry_count=max(0, retry_count),
-        )
-        db.add(policy)
-        try:
-            db.flush()
-            add_event(
-                db,
-                "BACKUP_POLICY_CREATED",
-                actor=user,
-                details={
-                    "policy_id": str(policy.id),
-                    "name": policy.name,
-                    "scope_type": policy.scope_type,
-                },
-            )
-            db.commit()
-        except IntegrityError:
-            db.rollback()
-            raise HTTPException(409, "Esiste già una policy con questo nome.")
-    return RedirectResponse("/operations/backups", status_code=303)
 
 
 def acknowledge_issue_record(db, issue, user) -> bool:

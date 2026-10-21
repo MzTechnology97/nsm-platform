@@ -86,7 +86,7 @@ function PolicyEditor({ data }: { data: PolicyForm }) {
   const sites = useMemo(() => data.sites.filter((site) => site.customer_id === form.customer_id), [data.sites, form.customer_id]);
   const devices = useMemo(() => data.devices.filter((device) => device.customer_id === form.customer_id), [data.devices, form.customer_id]);
   const device = data.devices.find((item) => item.id === form.device_id);
-  // Keep site/device consistent with the chosen customer, as the classic form does.
+  // Keep site/device consistent with the chosen customer.
   useEffect(() => {
     if (form.site_id && !sites.some((site) => site.id === form.site_id)) set("site_id", "");
     if (form.device_id && !devices.some((item) => item.id === form.device_id)) set("device_id", "");

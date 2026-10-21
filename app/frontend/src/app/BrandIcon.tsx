@@ -1,4 +1,4 @@
-/** Manufacturer of a device, as sent by the UI API (same sprite and colours as the classic pages). */
+/** Manufacturer of a device, as sent by the UI API (sprite /static/brand-icons.svg). */
 export interface BrandRef {
   symbol: string;
   color: string | null;

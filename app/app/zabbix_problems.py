@@ -184,7 +184,3 @@ def api_fleet(customer_id=None, vendor: str = "", limit: int = 50) -> dict | Non
     }
 
 
-def install_zabbix_problems(app) -> None:
-    from app import main as core
-
-    core.templates.env.globals.update(zabbix_device_problems=device_problems, zabbix_fleet_problems=fleet_problems)

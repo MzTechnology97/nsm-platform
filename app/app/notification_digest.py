@@ -28,7 +28,6 @@ DIGEST_PERIODS = {"daily": timedelta(days=1), "weekly": timedelta(days=7)}
 DIGEST_LABELS = {"off": "Disattivata", "daily": "Giornaliera", "weekly": "Settimanale"}
 MAX_ATTACHMENT = 15 * 1024 * 1024
 TOP_CVES = 15
-WORKER_ALERT_AFTER = 3
 SEVERITY_ORDER = {"critical": 3, "high": 2, "medium": 1, "low": 0}
 
 
@@ -209,5 +208,3 @@ def worker_task_alert(name: str, failures: int, error: str | None, recovered: bo
         db.commit()
 
 
-def install_notification_digest(app) -> None:
-    core.templates.env.globals["digest_labels"] = DIGEST_LABELS

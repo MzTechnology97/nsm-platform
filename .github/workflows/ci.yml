@@ -87,7 +87,6 @@ jobs:
           agent_fleet = Path('app/app/agent_fleet.py').read_text()
           agent_health = Path('app/app/agent_health_automation.py').read_text()
           workspace_ux = Path('app/app/mikrotik_workspace_ux.py').read_text()
-          ui_js = Path('app/app/static/ui.js').read_text()
           drift = Path('app/app/config_drift.py').read_text()
           configuration = Path('app/app/mikrotik_configuration_unified.py').read_text()
 
@@ -113,8 +112,6 @@ jobs:
               assert marker in agent_health, marker
           for marker in ('human_bytes', 'agent_transport', 'snapshot_blocker', 'Support snapshot non disponibile'):
               assert marker in workspace_ux, marker
-          for marker in ('copyEnrollmentCommand', 'textContent', 'Copiato', 'Copia non riuscita'):
-              assert marker in ui_js, marker
           for marker in ('CONFIG_DRIFT_DETECTED', 'CONFIG_BASELINE_APPROVED', 'config_baseline_artifact_id', '_normalized_export', '_install_backup_completion_hook'):
               assert marker in drift, marker
           # Structured RouterOS sections are normalized by the unified configuration module (the new interface reads them).

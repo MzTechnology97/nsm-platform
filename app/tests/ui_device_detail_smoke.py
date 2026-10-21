@@ -64,7 +64,7 @@ def main():
     assert body["icmp"]["enabled"] and body["icmp"]["last_rtt"] == 12.5 and body["icmp"]["target"] == "198.51.100.30"
     tabs = [t["key"] for t in body["tabs"]]
     assert tabs[0] == "overview" and {"monitor", "agent", "diagnostics", "configuration"} <= set(tabs) and "uisp" not in tabs
-    assert next(t for t in body["tabs"] if t["key"] == "monitor")["classic"] == f"/devices/{ids['router']}/monitor"
+    assert next(t for t in body["tabs"] if t["key"] == "monitor") == {"key": "monitor"}
     assert body["zabbix"] is None, "no Zabbix block when Zabbix is not configured"
     assert body["actions"] == {"reboot": True, "incident": True, "manage": True}
 

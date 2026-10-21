@@ -18,7 +18,6 @@ from app.backup_workspace_capabilities import install_backup_workspace_capabilit
 from app.branding_runtime import install_branding_runtime
 from app.config_drift import install_config_drift
 from app.crud_extension import install_crud
-from app.customer_drilldown import install_customer_drilldown
 from app.dashboard_ui import install_dashboard_ui
 from app.demo_ui import install_demo_ui
 from app.device_backup_explorer import install_device_backup_explorer
@@ -65,7 +64,7 @@ from app.mikrotik_modern_early import install_mikrotik_modern_early
 from app.mikrotik_legacy import router as mikrotik_legacy_router
 from app.mikrotik_legacy_jobs import install_mikrotik_legacy_jobs
 from app.mikrotik_routeros6 import install_mikrotik_routeros6
-from app.mikrotik_legacy_operations import install_mikrotik_legacy_operations, legacy_upgrade_info
+from app.mikrotik_legacy_operations import install_mikrotik_legacy_operations
 from app.mikrotik_legacy_syslog import install_mikrotik_legacy_syslog
 from app.legacy_ftp_backup import install_legacy_ftp_backup
 from app.mikrotik_legacy_backup import install_mikrotik_legacy_backup
@@ -76,7 +75,6 @@ from app.mikrotik_backup_agent import install_mikrotik_backup_agent
 from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_finalization_cleanup
 from app.mikrotik_snapshot_agent import install_mikrotik_snapshot_agent
 from app.mikrotik_diagnostics_agent import install_mikrotik_diagnostics_agent
-from app.mikrotik_onboarding import install_mikrotik_onboarding
 from app.mikrotik_operational_tools import install_mikrotik_operational_tools
 from app.mikrotik_firmware_readiness import install_mikrotik_firmware_readiness
 from app.mikrotik_modern_syntax import install_mikrotik_modern_syntax_guard
@@ -84,20 +82,17 @@ from app.mikrotik_privilege_profile import install_mikrotik_privilege_profile
 from app.mikrotik_workspace import install_mikrotik_workspace
 from app.mikrotik_telemetry import install_mikrotik_telemetry
 from app.interface_traffic import install_interface_traffic
-from app.agent_addresses import install_agent_addresses
 from app.device_logs import install_device_logs
 from app.routerboot_lifecycle import install_routerboot_lifecycle
 from app.mikrotik_device_reboot import install_mikrotik_device_reboot
 from app.mikrotik_syslog_config import install_mikrotik_syslog_config, install_syslog_on_enrollment
 from app.zabbix_connector import install_zabbix_connector
-from app.zabbix_problems import install_zabbix_problems
 from app.device_exposure import install_device_exposure
 from app.acs_admin import install_acs_admin
 from app import shared_ips as _shared_ips
 from app.reports import install_reports
 from app.search_enhancement import install_search_enhancement
 from app.ui_extension import install_ui
-from app.ui_feedback import install_ui_feedback
 from app.uisp_connector import install_uisp_connector
 from app.uisp_sync import install_uisp_sync
 from app.uisp_operations import install_uisp_operations
@@ -107,7 +102,6 @@ from app.compliance_findings import install_compliance_findings
 from app.lifecycle_catalog import install_lifecycle_catalog
 from app.lifecycle_remediation import install_lifecycle_remediation
 from app.routeros_catalog import install_routeros_catalog
-from app.vendor_cpe import install_vendor_cpe
 from app.system_status import install_system_status
 from app.api_key_lifecycle import install_api_key_lifecycle
 from app.login_security import install_login_security
@@ -117,19 +111,15 @@ from app.customer_graphs import install_customer_graphs
 from app.genieacs_connector import install_genieacs_connector
 from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
-from app.notification_digest import install_notification_digest
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.173"
+APP_VERSION = "0.49.174"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
 core.templates.env.globals["asset_version"] = static_asset_version()
-from app.ui_icons import install_ui_icons  # noqa: E402
 
-install_ui_icons()
 install_ui(core.app, core.templates)
-install_ui_feedback(core.app, core.templates)
 install_workflow_ui(core.app, core.templates)
 install_crud(core.app)
 install_api_keys(core.app)
@@ -158,7 +148,6 @@ install_routerboot_lifecycle(core.app)
 install_mikrotik_device_reboot(core.app)
 install_mikrotik_syslog_config(core.app)
 install_zabbix_connector(core.app)
-install_zabbix_problems(core.app)
 install_device_exposure(core.app)
 install_acs_admin(core.app)
 
@@ -170,7 +159,6 @@ def _shared_ip_peers(device):
         return [d.display_name or d.device_identity or d.name for d in _shared_ips.peers(db, device)]
 
 
-core.templates.env.globals["shared_ip_peers"] = _shared_ip_peers
 install_firmware_activation_privilege_guard()
 install_firmware_upgrade_planner(core.app)
 install_agent_ui(core.app)
@@ -183,7 +171,6 @@ install_compliance_findings(core.app)
 install_lifecycle_catalog(core.app)
 install_lifecycle_remediation(core.app)
 install_routeros_catalog(core.app)
-install_vendor_cpe()
 install_system_status(core.app)
 install_api_key_lifecycle(core.app)
 install_login_security(core.app)
@@ -193,16 +180,12 @@ install_customer_graphs(core.app)
 install_genieacs_connector(core.app)
 install_notification_delivery(core.app)
 install_notification_chat(core.app)
-install_notification_digest(core.app)
 install_backup_workspace_capabilities(core.app)
-install_customer_drilldown(core.app)
 install_search_enhancement(core.app)
 install_mikrotik_workspace(core.app)
 install_mikrotik_agent_status(core.app)
-install_mikrotik_onboarding(core)
 install_mikrotik_telemetry(core.app)
 install_interface_traffic(core.app)
-install_agent_addresses()
 install_device_logs(core.app)
 install_dashboard_ui(core.app)
 install_branding_runtime(core.app)
@@ -223,7 +206,6 @@ install_mikrotik_legacy_operations(core.app)
 install_mikrotik_legacy_syslog()
 install_mikrotik_legacy_backup(core.app)
 install_legacy_ftp_backup()
-core.templates.env.globals["legacy_upgrade_info"] = legacy_upgrade_info
 # Core 0.49 keeps its product version while the independently versioned device
 # agent advances to the maintenance generation selected by this policy.
 install_mikrotik_agent_generation()

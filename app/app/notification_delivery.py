@@ -408,4 +408,3 @@ def send_test_record(db, user) -> bool:
 
 def install_notification_delivery(app) -> None:
     app.include_router(router)
-    core.templates.env.globals["notification_preferences"] = user_preferences

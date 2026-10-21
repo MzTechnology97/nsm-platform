@@ -5,10 +5,6 @@ from app.mikrotik_agent_update import agent_update_status
 
 
 def install_mikrotik_agent_update_ui(templates):
-    # Expose a read-only helper for future/detail templates without copying update
-    # policy logic into Jinja.
-    templates.env.globals["mikrotik_agent_update_status"] = agent_update_status
-
     # Agent Fleet already renders row.reasons for any attention state.  Extend
     # its row builder instead of creating another competing fleet route.
     from app import agent_fleet

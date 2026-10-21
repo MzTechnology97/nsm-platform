@@ -239,17 +239,6 @@ def icon(device) -> dict:
     return {"symbol": "brand-generic", "color": None, "label": label(key) if key else "Produttore non indicato", "brand": False}
 
 
-def icon_svg(device, size: int = 20):
-    """Inline SVG referencing the icon sprite (CSP-safe: no style attribute)."""
-    from markupsafe import Markup, escape
-
-    data = icon(device)
-    fill = f' fill="{data["color"]}"' if data["color"] else ""
-    kind = "brand" if data["brand"] else "generic"
-    return Markup(f'<span class="brand-icon brand-icon-{kind}" title="{escape(data["label"])}"><svg width="{size}" height="{size}" viewBox="0 0 24 24"{fill} aria-hidden="true">'
-                  f'<use href="/static/brand-icons.svg#{data["symbol"]}"></use></svg></span>')
-
-
 def label(device_brand: str | None) -> str:
     return BRANDS.get(device_brand or "", {}).get("label", device_brand or "—")
 
@@ -285,16 +274,3 @@ def coverage(devices) -> list[dict]:
     return out
 
 
-def install_vendor_cpe() -> None:
-    from sqlalchemy import select
-
-    from app import main as core
-    from app.db import SessionLocal
-    from app.models import Device
-
-    def _coverage():
-        with SessionLocal() as db:
-            return coverage(db.scalars(select(Device)))
-
-    core.templates.env.globals.update(manual_brands=MANUAL_BRANDS, brand_label=label, cve_coverage=_coverage, cve_evaluable=evaluable, brand_icon=icon_svg,
-                                      device_brand_label=lambda device: label(brand(device)) if brand(device) else None)

@@ -53,7 +53,7 @@ def main():
     assert [s["key"] for s in pending["installation"]["steps"]] == ["token", "pairing", "credential", "heartbeat"]
     assert pending["installation"]["steps"][0]["done"] and not pending["installation"]["steps"][1]["done"]
     assert pending["enrollments"][0]["status"] == "pending" and pending["actions"] == {"update": False, "reinstall": True}
-    assert pending["links"]["reinstall"] == f"/devices/{ids['router']}/agent/reinstall"
+    assert "links" not in pending
     assert client.get(f"/api/ui/v1/devices/{ids['fresh']}/agent").json()["installation"]["key"] == "not_enrolled"
     assert client.get(f"/api/ui/v1/devices/{ids['cpe']}/agent").status_code == 404, "agent tab is MikroTik only"
 

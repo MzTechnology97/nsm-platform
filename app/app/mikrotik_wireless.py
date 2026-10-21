@@ -218,4 +218,3 @@ def _install_sources() -> None:
 def install_mikrotik_wireless(app) -> None:
     _install_sources()
     app.add_api_route("/api/v1/devices/{device_id}/wireless", device_wireless, methods=["GET"], name="device_wireless")
-    core.templates.env.globals["wireless_interfaces"] = interfaces

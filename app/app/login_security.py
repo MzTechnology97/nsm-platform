@@ -179,15 +179,8 @@ def recent_failures(db, limit: int = 20) -> list[dict]:
 original_login = None
 
 
-def _recent_failures_global():
-    with SessionLocal() as db:
-        return recent_failures(db)
-
-
 def install_login_security(app) -> None:
     global original_login
-    core.templates.env.globals.update(login_failures_recent=_recent_failures_global, login_pair_limit=PAIR_LIMIT, login_ip_limit=IP_LIMIT,
-                                      session_idle_minutes=lambda: int(idle_limit().total_seconds() // 60))
     original_login = core.do_login
     app.router.routes[:] = [r for r in app.router.routes
                             if not (getattr(r, "path", None) == "/login" and "POST" in (getattr(r, "methods", None) or set()))]
