@@ -96,35 +96,17 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    page = client.get(f"/devices/{device_id}/routerboot")
+    api = f"/api/ui/v1/devices/{device_id}/routerboot"
+    page = client.get(api)
     assert page.status_code == 200
-    assert "RouterBOOT lifecycle" in page.text
-    assert "ROUTERBOOT 7.22.0" in page.text
+    assert page.json()["stage_confirmation"] == "ROUTERBOOT 7.22.0" and page.json()["can_execute"] is True
+    ui_headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
 
-    wrong = client.post(
-        f"/devices/{device_id}/routerboot/stage",
-        data={"csrf": csrf_from(page.text), "confirmation": "ROUTERBOOT WRONG"},
-        follow_redirects=False,
-    )
-    assert wrong.status_code == 303
-    assert wrong.headers["location"] == f"/devices/{device_id}/routerboot"
-    warning = client.get(wrong.headers["location"])
-    assert warning.status_code == 200
-    assert "Dati non validi" in warning.text
-    assert "Conferma non valida" in warning.text
-    assert "flash-warning" in warning.text
+    wrong = client.post(f"{api}/stage", headers=ui_headers, json={"confirmation": "ROUTERBOOT WRONG"})
+    assert wrong.status_code == 422 and "Conferma non valida" in wrong.json()["detail"]["message"], wrong.text
 
-    # The message is one-shot and must not leak into later page loads.
-    warning_consumed = client.get(f"/devices/{device_id}/routerboot")
-    assert "Conferma non valida" not in warning_consumed.text
-
-    page = client.get(f"/devices/{device_id}/routerboot")
-    queued = client.post(
-        f"/devices/{device_id}/routerboot/stage",
-        data={"csrf": csrf_from(page.text), "confirmation": "ROUTERBOOT 7.22.0"},
-        follow_redirects=False,
-    )
-    assert queued.status_code == 303
+    queued = client.post(f"{api}/stage", headers=ui_headers, json={"confirmation": "ROUTERBOOT 7.22.0"})
+    assert queued.status_code == 200, queued.text
 
     with SessionLocal() as db:
         job = db.scalar(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "routerboot_stage"))
@@ -161,9 +143,9 @@ def main():
         assert state["observed_version"] == "7.22.0"
         assert device.routerboot_version == "7.22.0"
 
-    final_page = client.get(f"/devices/{device_id}/routerboot")
+    final_page = client.get(api)
     assert final_page.status_code == 200
-    assert "RouterBOOT verificato" in final_page.text
+    assert final_page.json()["state"]["status"] == "success" and final_page.json()["current"] == "7.22.0"
 
     source = Path("app/routerboot_lifecycle.py").read_text()
     assert 'STAGE_JOB = "routerboot_stage"' in source

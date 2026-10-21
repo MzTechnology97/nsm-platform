@@ -91,14 +91,18 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-uo-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{ids['device']}/uisp").text
-    assert "Operazioni tramite UISP" in page and "Esegui backup ora" in page and "Aggiorna interfacce" in page and "Carica eventi" in page
-    token = csrf_from(page)
+    uisp_api = f"/api/ui/v1/devices/{ids['device']}/uisp"
+    page = client.get(uisp_api).json()
+    assert page["can"] == {"write": True, "reboot": True, "backup": True, "metrics": True}, page["can"]
+    ui_headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
 
-    # Reboot: confirmation required, then verification from the uptime.
-    client.post(f"/devices/{ids['device']}/uisp/reboot", data={"csrf": token, "confirmation": "ok"})
+    def operation(action, device_key="device", **body):
+        return client.post(f"/api/ui/v1/devices/{ids[device_key]}/uisp/{action}", headers=ui_headers, json=body)
+
+    # Reboot: confirmation by name required, then verification from the uptime.
+    assert operation("reboot", confirm_name="ok").json()["detail"]["code"] == "confirm_name"
     assert ("POST", f"/devices/{uisp_id}/restart") not in fake.calls
-    client.post(f"/devices/{ids['device']}/uisp/reboot", data={"csrf": token, "confirmation": "RIAVVIA"})
+    assert operation("reboot", confirm_name=page["record"]["name"]).status_code == 200
     assert ("POST", f"/devices/{uisp_id}/restart") in fake.calls
     with SessionLocal() as db:
         state = db.get(Device, ids["device"]).inventory_data["uisp_reboot"]
@@ -112,18 +116,19 @@ def main():
         assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "UISP_REBOOT_VERIFIED", AuditEvent.device_id == ids["device"])) is not None
 
     # Manual backup: the new UISP backup is downloaded and archived with its hash.
-    client.post(f"/devices/{ids['device']}/uisp/backup", data={"csrf": token})
+    assert operation("backup").status_code == 200
     with SessionLocal() as db:
         run = db.scalar(select(BackupRun).where(BackupRun.device_id == ids["device"], BackupRun.backup_type == "uisp_backup"))
         assert run.status == "success" and run.sha256 == hashlib.sha256(BACKUP).hexdigest(), run.error_message
         artifact = db.scalar(select(BackupArtifact).where(BackupArtifact.run_id == run.id))
         assert artifact.filename.endswith("_uisp.tar.gz") and (storage_root() / artifact.storage_path).read_bytes() == BACKUP
         assert ("GET", f"/devices/{uisp_id}/backups/b-1") in fake.calls, "the newly created backup is downloaded"
-    assert "Ultimo:" in client.get(f"/devices/{ids['device']}/uisp").text
+    assert client.get(uisp_api).json()["last_backup"]["status"] == "success"
 
     # Read-only token: clear message, failed run recorded.
     fake.readonly = True
-    client.post(f"/devices/{ids['device']}/uisp/backup", data={"csrf": token})
+    refused = operation("backup")
+    assert refused.status_code == 422 and "scrittura" in refused.json()["detail"]["message"]
     with SessionLocal() as db:
         failed = db.scalar(select(BackupRun).where(BackupRun.device_id == ids["device"], BackupRun.status == "failed"))
         assert failed and "scrittura" in failed.error_message
@@ -151,17 +156,16 @@ def main():
         assert scheduled.status == "success"
 
     # Interfaces and events.
-    client.post(f"/devices/{ids['device']}/uisp/interfaces", data={"csrf": token})
-    client.post(f"/devices/{ids['device']}/uisp/events", data={"csrf": token})
-    page = client.get(f"/devices/{ids['device']}/uisp").text
-    assert "eth0" in page and "1000-full" in page and "scollegata" in page and "disattivata" in page
-    assert "Signal degraded" in page
+    assert operation("interfaces").json()["ok"] is True
+    assert operation("events").json()["ok"] is True
+    page = client.get(uisp_api).text
+    assert "eth0" in page and "1000-full" in page and "Signal degraded" in page
     with SessionLocal() as db:
         interfaces = db.get(Device, ids["device"]).inventory_data["uisp_interfaces"]["items"]
         assert interfaces[0]["rx_bps"] == 12000000 and interfaces[1]["plugged"] is False
     # Unlinked devices cannot run operations.
-    response = client.post(f"/devices/{ids['unlinked']}/uisp/backup", data={"csrf": token}, follow_redirects=True)
-    assert "non è associato" in response.text
+    response = operation("backup", device_key="unlinked")
+    assert response.status_code == 422 and "non è associato" in response.json()["detail"]["message"]
     print("UISP operations smoke passed")
 
 

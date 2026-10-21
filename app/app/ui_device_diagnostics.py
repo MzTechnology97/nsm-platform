@@ -78,12 +78,11 @@ def device_diagnostics(request: Request, device_id: uuid.UUID):
         return {
             "transport": transport,
             "online": device.status == "online",
-            "support_snapshot": transport == "modern" or (transport == "legacy" and workspace_ux._legacy_snapshots(device)),
+            "support_snapshot": workspace_ux.diagnostic_blocker(device, "support_snapshot") is None,
             "traceroute": not str(device.firmware_version or "").startswith("6."),
             "can_run": core.has_permission(user, "devices.write"),
             "jobs": [job_row(job, db) for job in jobs],
         }
-
 
 
 @router.get("/devices/{device_id}/diagnostics/jobs/{job_id}/output")
@@ -99,24 +98,23 @@ def diagnostic_output(request: Request, device_id: uuid.UUID, job_id: uuid.UUID)
         return {"id": str(job.id), "diagnostic": KINDS.get(job.job_type, job.job_type), "status": job.status,
                 "data": result.get("data"), "output": result.get("output")}
 
+
 @router.post("/devices/{device_id}/diagnostics/{diagnostic}", dependencies=[Depends(require_csrf)])
 def device_diagnostic_run(request: Request, device_id: uuid.UUID, diagnostic: str, body: dict = Body(default={})):
     if diagnostic not in workspace.DIAGNOSTIC_TYPES:
         raise HTTPException(404, "Diagnostica non supportata.")
-    with SessionLocal() as db:
-        ui_user(request, db, "devices.write")
-        _mikrotik(db, device_id)
     field = lambda key: str((body or {}).get(key) or "")[:300]  # noqa: E731
-    try:
-        # Same guarded entry point as the classic form; the CSRF header was already checked.
-        workspace_ux._guard_diagnostic(request, device_id, diagnostic, field("target"), field("source"), field("query"),
-                                       csrf=request.headers.get("X-CSRF-Token", ""))
-    except HTTPException as exc:
-        raise HTTPException(exc.status_code, {"code": "refused", "message": str(exc.detail)}) from exc
     with SessionLocal() as db:
-        job = db.scalar(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == workspace.DIAGNOSTIC_TYPES[diagnostic])
-                        .order_by(DeviceJob.created_at.desc()).limit(1))
-        return {"queued": True, "job": job_row(job, db) if job else None}
+        user = ui_user(request, db, "devices.write")
+        device = _mikrotik(db, device_id)
+        blocker = workspace_ux.diagnostic_blocker(device, diagnostic)
+        if blocker:
+            raise HTTPException(409, {"code": "refused", "message": blocker})
+        try:
+            job = workspace.queue_diagnostic_record(db, user, device, diagnostic, field("target"), field("source"), field("query"))
+        except HTTPException as exc:
+            raise HTTPException(exc.status_code, {"code": "refused", "message": str(exc.detail)}) from exc
+        return {"queued": True, "job": job_row(job, db)}
 
 
 def install_ui_device_diagnostics(app) -> None:

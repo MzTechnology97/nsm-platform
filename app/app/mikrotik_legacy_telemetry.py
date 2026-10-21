@@ -14,8 +14,6 @@ from app import mikrotik_agent as agent
 from app import mikrotik_agent_status as agent_status
 from app import mikrotik_legacy as legacy
 from app import mikrotik_telemetry as telemetry
-from app import mikrotik_workspace as workspace
-from app import mikrotik_workspace_ux as workspace_ux
 from app.db import SessionLocal
 
 
@@ -58,16 +56,6 @@ async def legacy_heartbeat_with_history(request: Request):
     return response
 
 
-def _legacy_history_context(previous):
-    def wrapped(db, device):
-        ctx = previous(db, device)
-        if ctx.get("agent_transport") == "legacy":
-            ctx["telemetry_history_supported"] = True
-        return ctx
-
-    return wrapped
-
-
 def _legacy_history_capabilities(previous):
     def wrapped(device, credential, backup_capability):
         rows = previous(device, credential, backup_capability)
@@ -94,9 +82,4 @@ def install_mikrotik_legacy_telemetry() -> None:
         name="mikrotik_heartbeat_legacy",
     )
 
-    enhanced = _legacy_history_context(workspace_ux._enhanced_context)
-    workspace_ux._enhanced_context = enhanced
-    workspace._workspace_context = enhanced
-    telemetry._workspace_context = enhanced
-    agent_status._workspace_context = enhanced
     agent_status._agent_capabilities = _legacy_history_capabilities(agent_status._agent_capabilities)

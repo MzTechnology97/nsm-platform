@@ -39,8 +39,8 @@ def main():
     assert client.get(f"/devices/{ids['device']}/diagnostics/jobs/{ids['done']}/export.json").status_code == 401
     page = client.get("/login").text
     client.post("/login", data={"username": f"ci-dx-{suffix}", "password": PASSWORD, "csrf": re.search(r'name="csrf" value="([^"]+)"', page).group(1)})
-    detail = client.get(f"/devices/{ids['device']}/diagnostics/jobs/{ids['done']}").text
-    assert f"/diagnostics/jobs/{ids['done']}/export.json" in detail and "Scarica JSON" in detail
+    jobs = {job["id"]: job for job in client.get(f"/api/ui/v1/devices/{ids['device']}/diagnostics").json()["jobs"]}
+    assert jobs[str(ids["done"])]["export_url"] == f"/devices/{ids['device']}/diagnostics/jobs/{ids['done']}/export.json"
     response = client.get(f"/devices/{ids['device']}/diagnostics/jobs/{ids['done']}/export.json")
     assert response.status_code == 200 and response.headers["content-type"].startswith("application/json")
     assert "attachment" in response.headers["content-disposition"] and "support-snapshot-EDGE-DX" in response.headers["content-disposition"]

@@ -68,12 +68,11 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-cv-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{ids['failing']}/compliance").text
-    assert 'aria-current="page">Compliance<' in page
-    assert "Firmware senza update di sicurezza" in page and "Non conforme" in page and "Gestisci" in page
-    exc_page = client.get(f"/devices/{ids['excepted']}/compliance").text
-    assert "In eccezione" in exc_page and "fino al" in exc_page
-    assert "Nessuna baseline di compliance applicabile" in client.get(f"/devices/{ids['lonely']}/compliance").text
+    rows = client.get(f"/api/ui/v1/devices/{ids['failing']}/compliance").json()["rows"]
+    assert any(r["title"] == "Firmware senza update di sicurezza" and r["status"] == "fail" and r["status_label"] == "Non conforme" for r in rows), rows
+    excepted = client.get(f"/api/ui/v1/devices/{ids['excepted']}/compliance").json()["rows"]
+    assert any(r["excepted"] and r["exception_until"] for r in excepted), excepted
+    assert client.get(f"/api/ui/v1/devices/{ids['lonely']}/compliance").json()["rows"] == []
     security = client.get(f"/api/ui/v1/customers/{ids['customer']}/security").json()["compliance"]
     assert security["failing_devices"] >= 1 and security["counts"].get("exception") == 1, security
     assert client.get(f"/api/ui/v1/customers/{ids['empty']}/security").json()["compliance"]["evaluated_devices"] == 0

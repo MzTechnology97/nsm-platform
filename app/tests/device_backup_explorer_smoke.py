@@ -88,76 +88,40 @@ def main():
     client = TestClient(app)
     login(client)
 
-    explorer = client.get(f"/devices/{device_a}/backups")
+    base = f"/api/ui/v1/devices/{device_a}/backups"
+    explorer = client.get(base)
     assert explorer.status_code == 200, explorer.text
-    assert "Archivio backup · Backup Router A" in explorer.text
-    assert "router-a-new.rsc" in explorer.text and "router-a.backup" in explorer.text
-    assert "other-device-secret.rsc" not in explorer.text
-    assert "Backup adesso" in explorer.text
-    assert f"/devices/{device_a}/backups/artifacts/{new_id}/view" in explorer.text
-    assert f"/devices/{device_a}/backups/artifacts/{new_id}/download" in explorer.text
+    files = {f["filename"]: f for run in explorer.json()["runs"] for f in run["files"]}
+    assert {"router-a-new.rsc", "router-a.backup"} <= set(files) and "other-device-secret.rsc" not in files
+    assert files["router-a-new.rsc"]["viewable"] is True and files["router-a.backup"]["viewable"] is False
+    assert files["router-a-new.rsc"]["download_url"] == f"/devices/{device_a}/backups/artifacts/{new_id}/download"
 
     scoped_download = client.get(f"/devices/{device_a}/backups/artifacts/{new_id}/download")
     assert scoped_download.status_code == 200 and b"set name=NEW" in scoped_download.content
     assert client.get(f"/devices/{device_a}/backups/artifacts/{other_id}/download").status_code == 404
 
-    view = client.get(f"/devices/{device_a}/backups/artifacts/{new_id}/view")
-    assert view.status_code == 200 and "Contenuto export" in view.text and "set name=NEW" in view.text
-    assert "router-a-old.rsc" in view.text and "other-device-secret.rsc" not in view.text
-    assert f"/devices/{device_a}/backups" in view.text
-    diff = client.get(f"/devices/{device_a}/backups/artifacts/{new_id}/view?against={old_id}")
-    assert diff.status_code == 200 and "Diff configurazione" in diff.text
-    assert "set name=OLD" in diff.text and "set name=NEW" in diff.text
+    view = client.get(f"{base}/artifacts/{new_id}").json()
+    assert "set name=NEW" in view["lines"]
+    candidates = {c["filename"] for c in view["candidates"]}
+    assert "router-a-old.rsc" in candidates and "other-device-secret.rsc" not in candidates
+    diff = client.get(f"{base}/artifacts/{new_id}?against={old_id}").json()
+    assert diff["against"]["filename"] == "router-a-old.rsc" and diff["diff"]["rows"]
+    assert "set name=OLD" in str(diff["diff"]["rows"]) and "set name=NEW" in str(diff["diff"]["rows"])
+    assert client.get(f"/devices/{device_a}/backups/artifacts/{new_id}/view?against={old_id}", follow_redirects=False).headers["location"]         == f"/app/devices/{device_a}/backups/artifacts/{new_id}?against={old_id}"
 
-    # Stale/cross-device and binary view attempts are browser workflows: keep
-    # the operator in the explorer with contextual feedback rather than JSON.
-    cross_view = client.get(
-        f"/devices/{device_a}/backups/artifacts/{new_id}/view?against={other_id}",
-        follow_redirects=False,
-    )
-    assert cross_view.status_code == 303
-    assert cross_view.headers["location"] == f"/devices/{device_a}/backups"
-    assert not cross_view.headers.get("content-type", "").startswith("application/json")
-    cross_feedback = client.get(cross_view.headers["location"])
-    assert cross_feedback.status_code == 200
-    assert "Backup non disponibile per questo apparato" in cross_feedback.text
-    assert "flash-warning" in cross_feedback.text
+    # Cross-device, binary and malformed comparisons are refused with a coded error.
+    assert client.get(f"{base}/artifacts/{new_id}?against={other_id}").status_code == 404
+    binary_view = client.get(f"{base}/artifacts/{binary_id}")
+    assert binary_view.status_code == 422 and binary_view.json()["detail"]["code"] == "binary"
+    invalid_compare = client.get(f"{base}/artifacts/{new_id}?against=not-a-uuid")
+    assert invalid_compare.status_code == 422 and invalid_compare.json()["detail"]["code"] == "compare_id"
 
-    binary_view = client.get(
-        f"/devices/{device_a}/backups/artifacts/{binary_id}/view",
-        follow_redirects=False,
-    )
-    assert binary_view.status_code == 303
-    assert binary_view.headers["location"] == f"/devices/{device_a}/backups"
-    assert not binary_view.headers.get("content-type", "").startswith("application/json")
-    binary_feedback = client.get(binary_view.headers["location"])
-    assert binary_feedback.status_code == 200
-    assert "Questo backup è binario e può essere solo scaricato" in binary_feedback.text
-    assert "flash-warning" in binary_feedback.text
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    run_now = client.post(f"{base}/run", headers=headers)
+    assert run_now.status_code == 409 and run_now.json()["detail"]["message"] == "Backup non avviato."
 
-    invalid_compare = client.get(
-        f"/devices/{device_a}/backups/artifacts/{new_id}/view?against=not-a-uuid",
-        follow_redirects=False,
-    )
-    assert invalid_compare.status_code == 303
-    assert invalid_compare.headers["location"] == f"/devices/{device_a}/backups"
-    invalid_feedback = client.get(invalid_compare.headers["location"])
-    assert "Identificativo confronto non valido" in invalid_feedback.text
-    assert "flash-warning" in invalid_feedback.text
-
-    csrf = csrf_from(explorer.text)
-    run_now = client.post(f"/devices/{device_a}/backups/run", data={"csrf": csrf}, follow_redirects=False)
-    assert run_now.status_code == 303 and run_now.headers["location"] == f"/devices/{device_a}/backups"
-    feedback = client.get(run_now.headers["location"])
-    assert feedback.status_code == 200 and "Backup non avviato" in feedback.text
-
-    delete_page = client.get(f"/devices/{device_a}/backups")
-    csrf = csrf_from(delete_page.text)
-    delete = client.post(f"/devices/{device_a}/backups/artifacts/{binary_id}/delete", data={"csrf": csrf}, follow_redirects=False)
-    assert delete.status_code == 303 and delete.headers["location"] == f"/devices/{device_a}/backups"
-    assert not delete.headers.get("content-type", "").startswith("application/json")
-    delete_feedback = client.get(delete.headers["location"])
-    assert "Backup eliminato" in delete_feedback.text and "flash-success" in delete_feedback.text
+    delete = client.delete(f"{base}/artifacts/{binary_id}", headers=headers)
+    assert delete.status_code == 200 and delete.json()["deleted"] is True
 
     with SessionLocal() as db:
         binary = db.get(BackupArtifact, binary_id)
@@ -166,33 +130,12 @@ def main():
         assert not resolve_artifact_path(binary.storage_path).exists()
         assert resolve_artifact_path(other.storage_path).exists()
 
-    # A stale page can submit the same delete twice. The second request must
-    # remain contextual and must not expose FastAPI's raw JSON 404 response.
-    stale_csrf = csrf_from(delete_feedback.text)
-    stale_delete = client.post(
-        f"/devices/{device_a}/backups/artifacts/{binary_id}/delete",
-        data={"csrf": stale_csrf},
-        follow_redirects=False,
-    )
-    assert stale_delete.status_code == 303
-    assert stale_delete.headers["location"] == f"/devices/{device_a}/backups"
-    assert not stale_delete.headers.get("content-type", "").startswith("application/json")
-    stale_feedback = client.get(stale_delete.headers["location"])
-    assert "Backup non disponibile per questo apparato" in stale_feedback.text
-    assert "flash-warning" in stale_feedback.text
+    # A second delete of the same artifact, or reading it, finds nothing.
+    assert client.delete(f"{base}/artifacts/{binary_id}", headers=headers).status_code == 404
+    assert client.get(f"{base}/artifacts/{binary_id}").status_code == 404
 
-    stale_view = client.get(
-        f"/devices/{device_a}/backups/artifacts/{binary_id}/view",
-        follow_redirects=False,
-    )
-    assert stale_view.status_code == 303
-    assert stale_view.headers["location"] == f"/devices/{device_a}/backups"
-    stale_view_feedback = client.get(stale_view.headers["location"])
-    assert "Backup non disponibile per questo apparato" in stale_view_feedback.text
-    assert "flash-warning" in stale_view_feedback.text
-
-    after = client.get(f"/devices/{device_a}/backups")
-    assert "router-a.backup" not in after.text and "other-device-secret.rsc" not in after.text
+    after = {f["filename"] for run in client.get(base).json()["runs"] for f in run["files"]}
+    assert "router-a.backup" not in after and "other-device-secret.rsc" not in after
     print("Device-scoped backup explorer contextual feedback smoke test passed")
 
 

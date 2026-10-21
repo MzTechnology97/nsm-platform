@@ -64,14 +64,14 @@ def main():
     assert "acs" in tabs(ids["tplink"]), "ACS tab for TP-Link CPEs"
     assert "acs" in tabs(ids["ont"]), "ACS tab for a Huawei ONT entered as generic"
     assert "acs" not in tabs(ids["switch"])
-    assert client.get(f"/devices/{ids['switch']}/genieacs").status_code == 400
+    assert client.get(f"/api/ui/v1/devices/{ids['switch']}/genieacs").status_code == 404
 
     # Association of the Huawei ONT by serial.
-    acs_page = client.get(f"/devices/{ids['ont']}/genieacs").text
-    preview = client.post(f"/devices/{ids['ont']}/genieacs/preview", data={"csrf": csrf_from(acs_page)})
-    assert preview.status_code == 200 and ACS_ID in preview.text, preview.text[:500]
-    associated = client.post(f"/devices/{ids['ont']}/genieacs/associate", data={"csrf": csrf_from(preview.text)}, follow_redirects=False)
-    assert associated.status_code == 303, associated.text
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    preview = client.post(f"/api/ui/v1/devices/{ids['ont']}/genieacs/preview", headers=headers)
+    assert preview.status_code == 200 and preview.json()["external_id"] == ACS_ID, preview.text[:500]
+    associated = client.post(f"/api/ui/v1/devices/{ids['ont']}/genieacs/associate", headers=headers)
+    assert associated.status_code == 200, associated.text
     with SessionLocal() as db:
         ont = db.get(Device, ids["ont"])
         assert ont.external_device_id == ACS_ID and ont.management_source == "tr069" and ont.vendor == "generic"

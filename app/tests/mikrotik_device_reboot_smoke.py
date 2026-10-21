@@ -53,19 +53,21 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-rb-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{modern_id}/reboot")
-    assert page.status_code == 200 and "Riavvio controllato" in page.text and f'href="/devices/{modern_id}/reboot">Riavvia<' in page.text
-    token = csrf_from(page.text)
-    assert "in sola lettura" in client.get(f"/devices/{legacy_id}/reboot").text
+    api = f"/api/ui/v1/devices/{modern_id}/reboot"
+    page = client.get(api).json()
+    assert page["blocker"] is None and page["can_execute"] is True
+    name = page["name"]
+    assert "sola lettura" in client.get(f"/api/ui/v1/devices/{legacy_id}/reboot").json()["blocker"]
+    ui_headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
 
-    response = client.post(f"/devices/{modern_id}/reboot", data={"csrf": token, "confirmation": "riavvia", "reason": "TEST porta bloccata"}, follow_redirects=True)
-    assert "scrivi esattamente RIAVVIA" in response.text
-    response = client.post(f"/devices/{modern_id}/reboot", data={"csrf": token, "confirmation": "RIAVVIA", "reason": "no"}, follow_redirects=True)
-    assert "Indica il motivo" in response.text
-    response = client.post(f"/devices/{modern_id}/reboot", data={"csrf": token, "confirmation": "RIAVVIA", "reason": "TEST porta bloccata"}, follow_redirects=True)
-    assert "Riavvio in coda" in response.text
-    again = client.post(f"/devices/{modern_id}/reboot", data={"csrf": token, "confirmation": "RIAVVIA", "reason": "TEST doppio click"}, follow_redirects=True)
-    assert "Operazione in corso" in again.text, "a second reboot cannot be queued while one is pending"
+    def reboot(confirm_name, reason):
+        return client.post(api, headers=ui_headers, json={"confirm_name": confirm_name, "reason": reason})
+
+    assert reboot("wrong name", "TEST porta bloccata").json()["detail"]["code"] == "confirm_name"
+    assert reboot(name, "no").json()["detail"]["code"] == "reason_short"
+    assert reboot(name, "TEST porta bloccata").status_code == 200
+    again = reboot(name, "TEST doppio click")
+    assert again.status_code == 422 and again.json()["detail"]["code"] == "blocked", "a second reboot cannot be queued while one is pending"
 
     agent = TestClient(app)
     headers = {"X-NSM-Device-ID": str(modern_id), "X-NSM-Device-Secret": raw_secret}
@@ -77,7 +79,7 @@ def main():
     assert str(job_id) in {job["id"] for job in beat.json()["jobs"]}
     ack = agent.post(f"/api/v1/agents/mikrotik/device-reboot/{job_id}/ack", headers=headers, json={"status": "accepted", "result": {"uptime": "3d04:05:00"}})
     assert ack.status_code == 200, ack.text
-    assert "in attesa del ritorno online" in client.get(f"/devices/{modern_id}/reboot").text
+    assert client.get(api).json()["state"]["status"] == "rebooting", "waiting for the device to come back online"
 
     # Same uptime trend (no reboot happened yet): nothing is verified.
     agent.post("/api/v1/agents/mikrotik/heartbeat", headers=headers, json={"inventory": {"uptime": "3d04:06:00"}})
@@ -95,10 +97,11 @@ def main():
         assert job.status == "success" and job.result["uptime_after"] == "45s"
         events = set(db.scalars(select(AuditEvent.event_type).where(AuditEvent.device_id == modern_id)))
         assert {"DEVICE_REBOOT_QUEUED", "DEVICE_REBOOT_ACCEPTED", "DEVICE_REBOOT_VERIFIED"} <= events
-    assert "Riavvio verificato" in client.get(f"/devices/{modern_id}/reboot").text
+    assert client.get(api).json()["state"]["status"] == "verified"
 
     # A reboot that never comes back is reported after the verification window.
-    client.post(f"/devices/{modern_id}/reboot", data={"csrf": token, "confirmation": "RIAVVIA", "reason": "TEST secondo riavvio"})
+    second = reboot(name, "TEST secondo riavvio")
+    assert second.status_code == 200, second.text
     with SessionLocal() as db:
         job2 = db.scalar(select(DeviceJob).where(DeviceJob.device_id == modern_id, DeviceJob.job_type == "device_reboot", DeviceJob.status == "pending"))
         job2.status = "delivered"
@@ -112,9 +115,9 @@ def main():
     # Operators read the page but cannot reboot.
     reader = TestClient(app)
     assert reader.post("/login", data={"username": f"ci-rb-op-{suffix}", "password": PASSWORD, "csrf": csrf_from(reader.get("/login").text)}, follow_redirects=False).status_code == 303
-    view = reader.get(f"/devices/{modern_id}/reboot").text
-    assert "Serve il permesso" in view and f'href="/devices/{modern_id}/reboot">Riavvia<' not in view
-    assert reader.post(f"/devices/{modern_id}/reboot", data={"csrf": csrf_from(view), "confirmation": "RIAVVIA", "reason": "TEST operatore"}).status_code == 403
+    assert reader.get(api).json()["can_execute"] is False
+    reader_headers = {"X-CSRF-Token": reader.get("/api/ui/v1/session").json()["csrf_token"]}
+    assert reader.post(api, headers=reader_headers, json={"confirm_name": name, "reason": "TEST operatore"}).status_code == 403
     print("MikroTik device reboot smoke passed")
 
 

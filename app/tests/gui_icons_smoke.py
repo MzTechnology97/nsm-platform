@@ -1,17 +1,12 @@
-"""GUI-02: self-hosted interface icons, sidebar/topbar icons and the ISP/WISP background."""
+"""GUI-02: self-hosted interface icons (shared sprite) and the ISP/WISP background."""
 import re
-import uuid
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from app.db import SessionLocal
 from app.entrypoint import app
-from app.models import Customer, Device, User
-from app.security import hash_password
 from app.ui_icons import ICONS, ui_icon
 
-PASSWORD = "CI-Gui-Icons-2026"
 STATIC = Path(__file__).resolve().parents[1] / "app" / "static"
 
 
@@ -30,26 +25,10 @@ def main():
     except ValueError:
         pass
 
-    suffix = uuid.uuid4().hex[:6]
-    with SessionLocal() as db:
-        db.add(User(username=f"ci-gi-{suffix}", password_hash=hash_password(PASSWORD), role="admin", is_active=True))
-        customer = Customer(name=f"CI Icons {suffix}", code=f"GI{suffix}")
-        db.add(customer)
-        db.flush()
-        device = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-GI-{suffix}", status="online")
-        db.add(device)
-        db.commit()
-        device_id = device.id
-    client = TestClient(app)
-    login = client.get("/login").text
-    csrf = re.search(r'name="csrf" value="([^"]+)"', login).group(1)
-    assert client.post("/login", data={"username": f"ci-gi-{suffix}", "password": PASSWORD, "csrf": csrf}, follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{device_id}/backups").text
+    # The new interface uses the same sprite for its navigation and top bar.
     for name in ("dashboard", "customers", "devices", "vulnerabilities", "access", "admin", "bell", "menu", "search"):
-        assert f"ui-icons.svg?v=" in page and f"#i-{name}\"" in page, name
-    for glyph in ("♢", "☰", "⌕", "▦", "⚙</span>"):
-        assert glyph not in page, glyph
-    assert 'class="icon-button bell" aria-label="Notifiche"' in page
+        assert name in defined, name
+    client = TestClient(app)
     assert client.get("/static/ui-icons.svg").status_code == 200 and client.get("/static/bg-network.svg").status_code == 200
     print("GUI icons smoke passed")
 

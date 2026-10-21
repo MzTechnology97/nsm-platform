@@ -82,7 +82,7 @@ def main():
         assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "UISP_DEVICE_ONBOARDED", AuditEvent.device_id == u.id)) is not None
         assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "CNMAESTRO_DEVICE_LINKED", AuditEvent.device_id == c.id)) is not None
         cambium_id = c.id
-    assert "Collegato a cnMaestro" in client.get(f"/devices/{cambium_id}/cnmaestro").text
+    assert client.get(f"/api/ui/v1/devices/{cambium_id}/cnmaestro").json()["linked"] is True
     print("Connector onboarding smoke passed")
 
 

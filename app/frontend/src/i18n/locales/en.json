@@ -3330,10 +3330,13 @@
     "neverRead": "Section not read by the agent yet.",
     "history": "Export history",
     "refresh": "Refresh section",
+    "refreshAll": "Refresh all",
     "pending": "Reading…",
     "offline": "An online MikroTik with the NSM agent is required.",
     "queued": "Request sent: the agent reads it at the next heartbeat.",
     "already": "A read of this section is already queued.",
+    "queuedAll": "Request sent for {{count}} sections: the agent reads them at the next heartbeat.",
+    "alreadyAll": "Every section is already queued.",
     "sections": {
       "resources": "Resources",
       "interfaces": "Interfaces",

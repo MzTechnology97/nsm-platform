@@ -112,8 +112,9 @@ def main():
         assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "CNMAESTRO_DEVICE_LINKED", AuditEvent.device_id == ap.id)) is not None
         assert cnm.sync(db, now=utcnow() + timedelta(minutes=1), transport=transport)["samples"] == 0, "at most one sample every few minutes"
 
-    device_page = client.get(f"/devices/{ids['sm']}/cnmaestro").text
-    assert "Collegato a cnMaestro" in device_page and "-64 dBm" in device_page and "Grafici cnMaestro" in device_page and "rrd_chart.js" in device_page
+    device_page = client.get(f"/api/ui/v1/devices/{ids['sm']}/cnmaestro").json()
+    assert device_page["linked"] is True and device_page["can"]["metrics"] is True
+    assert {"field": "signal_dbm", "unit": "dBm", "value": -64.0} in device_page["metrics"], device_page["metrics"]
     def tabs(device_id):
         return {tab["key"] for tab in client.get(f"/api/ui/v1/devices/{device_id}").json()["tabs"]}
 

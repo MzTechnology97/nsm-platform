@@ -93,53 +93,14 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    # Legacy structured snapshots are supported through the allow-listed
-    # plain-text transport and use the same successful browser feedback.
-    legacy_page = client.get(f"/devices/{legacy_id}/configuration")
-    token = csrf(legacy_page.text)
-    legacy_post = client.post(
-        f"/devices/{legacy_id}/snapshot/resources",
-        data={"csrf": token},
-        follow_redirects=False,
-    )
-    assert legacy_post.status_code == 303
-    assert legacy_post.headers["location"].startswith(f"/devices/{legacy_id}/configuration")
-    legacy_feedback = client.get(legacy_post.headers["location"])
-    assert legacy_feedback.status_code == 200
-    assert "Snapshot accodato" in legacy_feedback.text
-    assert "flash-success" in legacy_feedback.text
-    # One-shot: refreshing the page must not repeat the stale success message.
-    legacy_refresh = client.get(legacy_post.headers["location"])
-    assert "Snapshot accodato" not in legacy_refresh.text
-    with SessionLocal() as db:
-        legacy_job = db.scalar(
-            select(DeviceJob).where(
-                DeviceJob.device_id == legacy_id,
-                DeviceJob.job_type == "snapshot_section",
-            )
-        )
-        assert legacy_job is not None and (legacy_job.payload or {}).get("section") == "resources"
-
-    # Successful modern browser action remains unchanged.
-    modern_page = client.get(f"/devices/{modern_id}/configuration")
-    token = csrf(modern_page.text)
-    modern_post = client.post(
-        f"/devices/{modern_id}/snapshot/resources",
-        data={"csrf": token},
-        follow_redirects=False,
-    )
-    assert modern_post.status_code == 303
-    modern_feedback = client.get(modern_post.headers["location"])
-    assert "Snapshot accodato" in modern_feedback.text
-    assert "flash-success" in modern_feedback.text
-    with SessionLocal() as db:
-        job = db.scalar(
-            select(DeviceJob).where(
-                DeviceJob.device_id == modern_id,
-                DeviceJob.job_type == "snapshot_section",
-            )
-        )
-        assert job is not None and (job.payload or {}).get("section") == "resources"
+    # Structured snapshots are queued for both legacy (allow-listed plain-text transport) and modern agents.
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    for device_id in (legacy_id, modern_id):
+        queued = client.post(f"/api/ui/v1/devices/{device_id}/configuration/refresh", headers=headers, json={"section": "resources"})
+        assert queued.status_code == 200, queued.text
+        with SessionLocal() as db:
+            job = db.scalar(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "snapshot_section"))
+            assert job is not None and (job.payload or {}).get("section") == "resources"
 
     # Machine-facing contract must stay structured JSON, never UI HTML/flash.
     machine = client.post("/api/v1/agents/mikrotik/heartbeat", json={})

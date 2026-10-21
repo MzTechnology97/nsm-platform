@@ -16,21 +16,17 @@ import uuid
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter
 from sqlalchemy import select
 
 from app import main as core
 from app.backup_models import BackupArtifact
 from app.backup_storage import resolve_artifact_path
 from app.config import settings
-from app.db import SessionLocal
-from app.device_backup_explorer import _artifact_browser_error, _artifact_for_device, _device
+from app.device_backup_explorer import _artifact_for_device
 from app.input_errors import InputError
-from app.models import ActionIssue, BackupRun, Notification, utcnow
+from app.models import ActionIssue, Notification, utcnow
 from app.restore_test_models import BackupRestoreTest
-from app.security import validate_csrf
-from app.ui_feedback import exception_message, flash_redirect
 
 router = APIRouter()
 METHODS = {
@@ -178,29 +174,6 @@ def _sync_issue(db, device, test: BackupRestoreTest, now) -> None:
     )
 
 
-def latest_tests_by_artifact(db, artifact_ids) -> dict[uuid.UUID, BackupRestoreTest]:
-    ids = list(artifact_ids)
-    if not ids:
-        return {}
-    latest: dict[uuid.UUID, BackupRestoreTest] = {}
-    for test in db.scalars(
-        select(BackupRestoreTest)
-        .where(BackupRestoreTest.artifact_id.in_(ids))
-        .order_by(BackupRestoreTest.performed_at.desc())
-    ):
-        latest.setdefault(test.artifact_id, test)
-    return latest
-
-
-def latest_test_for_device(db, device_id) -> BackupRestoreTest | None:
-    return db.scalar(
-        select(BackupRestoreTest)
-        .where(BackupRestoreTest.device_id == device_id)
-        .order_by(BackupRestoreTest.performed_at.desc())
-        .limit(1)
-    )
-
-
 def record_restore_test(
     db, user, device, artifact_id: uuid.UUID, *, method: str, target_label: str,
     target_routeros_version: str, result: str, performed_at: str, notes: str,
@@ -267,138 +240,6 @@ def record_restore_test(
     )
     db.commit()
     return test
-
-
-@router.get(
-    "/devices/{device_id}/backups/artifacts/{artifact_id}/restore-test",
-    response_class=HTMLResponse,
-    name="backup_restore_test_form",
-)
-def restore_test_form(request: Request, device_id: uuid.UUID, artifact_id: uuid.UUID):
-    try:
-        with SessionLocal() as db:
-            user = core.current_user(request, db)
-            if not user:
-                return core.login_redirect()
-            if not core.has_permission(user, "backup.read"):
-                raise HTTPException(403)
-            device = _device(db, device_id)
-            artifact, run = _artifact_for_device(db, device.id, artifact_id)
-            history = list(
-                db.scalars(
-                    select(BackupRestoreTest)
-                    .where(BackupRestoreTest.artifact_id == artifact.id)
-                    .order_by(BackupRestoreTest.performed_at.desc())
-                )
-            )
-            return core.render(
-                request,
-                db,
-                user,
-                "backup_restore_test.html",
-                device=device,
-                artifact=artifact,
-                run=run,
-                integrity=evaluate_artifact_integrity(artifact),
-                source_version=source_routeros_version(artifact),
-                history=history,
-                methods=METHODS,
-                results=RESULTS,
-                can_record=core.has_permission(user, "backup.execute"),
-            )
-    except HTTPException as exc:
-        return _artifact_browser_error(request, device_id, exc)
-
-
-@router.post(
-    "/devices/{device_id}/backups/artifacts/{artifact_id}/restore-test",
-    name="backup_restore_test_record",
-)
-def restore_test_record(
-    request: Request,
-    device_id: uuid.UUID,
-    artifact_id: uuid.UUID,
-    csrf: str = Form(...),
-    method: str = Form(""),
-    target_label: str = Form(""),
-    target_routeros_version: str = Form(""),
-    result: str = Form(""),
-    performed_at: str = Form(""),
-    notes: str = Form(""),
-):
-    form_url = f"/devices/{device_id}/backups/artifacts/{artifact_id}/restore-test"
-    try:
-        validate_csrf(request, csrf)
-        with SessionLocal() as db:
-            user = core.require_permission(request, db, "backup.execute")
-            device = _device(db, device_id)
-            record_restore_test(
-                db, user, device, artifact_id, method=method, target_label=target_label,
-                target_routeros_version=target_routeros_version, result=result,
-                performed_at=performed_at, notes=notes,
-            )
-    except HTTPException as exc:
-        if exc.status_code in {400, 409}:
-            return flash_redirect(
-                request,
-                form_url,
-                "warning",
-                exception_message(exc, "Restore test non registrato."),
-                title="Restore test non registrato",
-            )
-        return _artifact_browser_error(request, device_id, exc)
-    return flash_redirect(
-        request,
-        f"/devices/{device_id}/backups/restore-tests",
-        "success" if result == "passed" else "warning",
-        f"Restore test registrato con esito: {RESULTS[result]}.",
-        title="Restore test registrato",
-    )
-
-
-@router.get(
-    "/devices/{device_id}/backups/restore-tests",
-    response_class=HTMLResponse,
-    name="backup_restore_tests",
-)
-def restore_tests(request: Request, device_id: uuid.UUID):
-    try:
-        with SessionLocal() as db:
-            user = core.current_user(request, db)
-            if not user:
-                return core.login_redirect()
-            if not core.has_permission(user, "backup.read"):
-                raise HTTPException(403)
-            device = _device(db, device_id)
-            tests = list(
-                db.scalars(
-                    select(BackupRestoreTest)
-                    .where(BackupRestoreTest.device_id == device.id)
-                    .order_by(BackupRestoreTest.performed_at.desc())
-                    .limit(200)
-                )
-            )
-            live_artifacts = {
-                artifact_id
-                for artifact_id in db.scalars(
-                    select(BackupArtifact.id)
-                    .join(BackupRun, BackupRun.id == BackupArtifact.run_id)
-                    .where(BackupRun.device_id == device.id, BackupArtifact.deleted_at.is_(None))
-                )
-            }
-            return core.render(
-                request,
-                db,
-                user,
-                "backup_restore_tests.html",
-                device=device,
-                tests=tests,
-                live_artifacts=live_artifacts,
-                methods=METHODS,
-                results=RESULTS,
-            )
-    except HTTPException as exc:
-        return _artifact_browser_error(request, device_id, exc)
 
 
 def install_backup_restore_tests(app) -> None:

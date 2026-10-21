@@ -52,14 +52,17 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-lr-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{ids['old']}/lifecycle").text
-    assert "Gestione fuori supporto" in page and "Da gestire" in page and "Pianifica sostituzione" in page
-    token = csrf_from(page)
-    url = f"/devices/{ids['old']}/lifecycle/remediation"
+    page = client.get(f"/api/ui/v1/devices/{ids['old']}/lifecycle").json()
+    assert page["remediation"]["status"] == "open" and page["can_manage"] is True
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    url = f"/api/ui/v1/devices/{ids['old']}/lifecycle/remediation"
 
-    assert "non può essere nel passato" in client.post(url, data={"csrf": token, "action": "plan", "target_date": (today - timedelta(days=1)).isoformat(), "note": "TEST piano"}, follow_redirects=True).text
-    response = client.post(url, data={"csrf": token, "action": "plan", "target_date": (today + timedelta(days=10)).isoformat(), "note": "TEST sostituzione con hAP ax3"}, follow_redirects=True)
-    assert "Sostituzione pianificata entro" in response.text
+    def act(**form):
+        return client.post(url, headers=headers, json=form)
+
+    assert "non può essere nel passato" in act(action="plan", target_date=(today - timedelta(days=1)).isoformat(), note="TEST piano").json()["detail"]["message"]
+    response = act(action="plan", target_date=(today + timedelta(days=10)).isoformat(), note="TEST sostituzione con hAP ax3")
+    assert "Sostituzione pianificata entro" in response.json()["message"], response.text
     with SessionLocal() as db:
         assert db.scalar(select(LifecycleRemediation.status).where(LifecycleRemediation.device_id == ids["old"])) == "planned"
         assert open_issue(db, ids["old"]) is None, "a plan resolves the issue"
@@ -69,9 +72,9 @@ def main():
         reopened = open_issue(db, ids["old"])
         assert reopened is not None and "non ancora registrata" in reopened.details["message"]
 
-    assert "tra domani e un anno" in client.post(url, data={"csrf": token, "action": "exception", "exception_until": (today + timedelta(days=500)).isoformat(), "note": "TEST budget prossimo anno"}, follow_redirects=True).text
-    response = client.post(url, data={"csrf": token, "action": "exception", "exception_until": (today + timedelta(days=60)).isoformat(), "note": "TEST apparato isolato in DMZ"}, follow_redirects=True)
-    assert "Eccezione valida fino al" in response.text
+    assert "tra domani e un anno" in act(action="exception", exception_until=(today + timedelta(days=500)).isoformat(), note="TEST budget prossimo anno").json()["detail"]["message"]
+    response = act(action="exception", exception_until=(today + timedelta(days=60)).isoformat(), note="TEST apparato isolato in DMZ")
+    assert "Eccezione valida fino al" in response.json()["message"], response.text
     with SessionLocal() as db:
         assert open_issue(db, ids["old"]) is None
         housekeeping(db, now + timedelta(days=61))
@@ -79,10 +82,10 @@ def main():
         rem = db.scalar(select(LifecycleRemediation).where(LifecycleRemediation.device_id == ids["old"]))
         assert rem.status == "open" and open_issue(db, ids["old"]) is not None, "an expired exception is to handle again"
 
-    foreign = client.post(url, data={"csrf": token, "action": "replaced", "replacement_device_id": str(ids["foreign"])}, follow_redirects=True)
-    assert "stesso cliente" in foreign.text
-    response = client.post(url, data={"csrf": token, "action": "replaced", "replacement_device_id": str(ids["new"]), "note": "TEST installato"}, follow_redirects=True)
-    assert "Sostituito da TEST-LR-NEW" in response.text
+    foreign = act(action="replaced", replacement_device_id=str(ids["foreign"]))
+    assert foreign.status_code == 422 and "stesso cliente" in foreign.json()["detail"]["message"]
+    response = act(action="replaced", replacement_device_id=str(ids["new"]), note="TEST installato")
+    assert "Sostituito da TEST-LR-NEW" in response.json()["message"], response.text
     with SessionLocal() as db:
         rem = db.scalar(select(LifecycleRemediation).where(LifecycleRemediation.device_id == ids["old"]))
         assert rem.status == "replaced" and rem.replacement_device_id == ids["new"] and open_issue(db, ids["old"]) is None
@@ -99,15 +102,17 @@ def main():
         pdf = render_pdf(data, report_id="TEST", generated_at=now, generated_by="ci", platform_name="NSM").decode("latin-1")
         assert "Gestione apparati fuori supporto" in pdf
 
-    assert "Riapri la gestione" in client.get(f"/devices/{ids['old']}/lifecycle").text
+    replaced = client.get(f"/api/ui/v1/devices/{ids['old']}/lifecycle").json()["remediation"]
+    assert replaced["status"] == "replaced" and replaced["replacement"]["name"] == "TEST-LR-NEW", replaced
     rows = client.get(f"/api/ui/v1/lifecycle?customer={ids['customer']}&state=eos").json()["items"]
     assert next(row for row in rows if row["id"] == str(ids["old"]))["remediation"]["status"] == "replaced"
 
     reader = TestClient(app)
     assert reader.post("/login", data={"username": f"ci-lr-aud-{suffix}", "password": PASSWORD, "csrf": csrf_from(reader.get("/login").text)}, follow_redirects=False).status_code == 303
-    view = reader.get(f"/devices/{ids['old']}/lifecycle")
-    assert view.status_code == 200 and "Gestione fuori supporto" in view.text and "Pianifica sostituzione" not in view.text and "Salva valore manuale" not in view.text
-    assert reader.post(url, data={"csrf": csrf_from(view.text), "action": "reopen"}).status_code == 403
+    view = reader.get(f"/api/ui/v1/devices/{ids['old']}/lifecycle")
+    assert view.status_code == 200 and view.json()["remediation"]["status"] == "replaced" and view.json()["can_manage"] is False
+    reader_headers = {"X-CSRF-Token": reader.get("/api/ui/v1/session").json()["csrf_token"]}
+    assert reader.post(url, headers=reader_headers, json={"action": "reopen"}).status_code == 403
     print("Lifecycle remediation smoke passed")
 
 

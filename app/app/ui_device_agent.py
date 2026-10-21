@@ -26,6 +26,7 @@ from app import mikrotik_agent_update as updater
 from app.agent_models import DeviceAgentCredential
 from app.backup_capabilities import capability_for_device
 from app.db import SessionLocal
+from app.mikrotik_workspace import _load_device
 from app.models import DeviceEnrollment
 from app.ui_api import require_csrf, ui_user
 
@@ -39,7 +40,7 @@ def _iso(value):
 
 
 def _mikrotik(db, device_id):
-    device = agent_status._load_device(db, device_id)
+    device = _load_device(db, device_id)
     if device.vendor != "mikrotik":
         raise HTTPException(404, "Agent disponibile solo per MikroTik.")
     return device

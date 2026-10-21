@@ -1,4 +1,5 @@
 """SCAN-01 part 2: exposed services checked from the NSM server on the public IP (vendors without the MikroTik Agent check)."""
+import json
 import random
 import re
 import socket
@@ -137,25 +138,28 @@ def main():
     # Page and operator IP.
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-xe-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{ids['cpe']}/exposure").text
-    assert "IP verificato" in page and CPE_IP in page and "TR-069 (CWMP)" in page and "tcp/7547" in page and "esposto" in page
-    ubnt_page = client.get(f"/devices/{ids['ubnt']}/exposure").text
-    assert "IP pubblico del NAT" in ubnt_page and "udp/10001" in ubnt_page
-    token = csrf_from(ubnt_page)
+    tab = lambda key: client.get(f"/api/ui/v1/devices/{ids[key]}/exposure").json()  # noqa: E731
+    page = tab("cpe")
+    assert page["check_mode"] == "external" and page["target"]["ip"] == CPE_IP and page["target"]["public"] is True
+    assert {"port": 7547, "proto": "tcp", "label": "TR-069 (CWMP)"} in page["planned"] and "7547" in json.dumps(page["exposure"])
+    ubnt_page = tab("ubnt")
+    assert "IP pubblico del NAT" in ubnt_page["blocker"] and any(c["port"] == 10001 and c["proto"] == "udp" for c in ubnt_page["planned"])
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    set_target = lambda ip: client.post(f"/api/ui/v1/devices/{ids['ubnt']}/exposure/target", headers=headers, json={"target_ip": ip})  # noqa: E731
     for bad in ("127.0.0.1", "169.254.10.1", "224.0.0.5", "not-an-ip"):
-        client.post(f"/devices/{ids['ubnt']}/exposure/target", data={"csrf": token, "target_ip": bad}, follow_redirects=False)
+        assert set_target(bad).status_code == 422
     with SessionLocal() as db:
         assert "exposure_target_ip" not in (db.get(Device, ids["ubnt"]).inventory_data or {}), "loopback, link-local, multicast refused"
     # Private / CGNAT addresses are accepted for devices reached directly, with a warning.
     assert ext.allowed_target("10.20.30.40") and ext.allowed_target("100.64.1.2") and ext.allowed_target("192.168.1.1") and not ext.allowed_target("127.0.0.1")  # public-data-safety: allow (private-address acceptance is what this test checks)
-    client.post(f"/devices/{ids['ubnt']}/exposure/target", data={"csrf": token, "target_ip": "10.20.30.40"}, follow_redirects=False)  # public-data-safety: allow (private-address acceptance is what this test checks)
+    assert set_target("10.20.30.40").status_code == 200  # public-data-safety: allow (private-address acceptance is what this test checks)
     with SessionLocal() as db:
         ubnt = db.get(Device, ids["ubnt"])
         assert ubnt.inventory_data["exposure_target_ip"] == "10.20.30.40" and ext.target(ubnt) == ("10.20.30.40", "operator") and expo.eligibility(ubnt) is None  # public-data-safety: allow (private-address acceptance is what this test checks)
-    warned = client.get(f"/devices/{ids['ubnt']}/exposure").text
-    assert "verifica su IP non pubblico" in warned and "accesso diretto alla WAN" in warned
-    saved = client.post(f"/devices/{ids['ubnt']}/exposure/target", data={"csrf": token, "target_ip": OTHER_IP}, follow_redirects=False)
-    assert saved.status_code == 303
+    warned = tab("ubnt")
+    assert warned["target"]["public"] is False and "accesso diretto alla WAN" in warned["private_warning"]
+    saved = set_target(OTHER_IP)
+    assert saved.status_code == 200
     with SessionLocal() as db:
         ubnt = db.get(Device, ids["ubnt"])
         assert ubnt.inventory_data["exposure_target_ip"] == OTHER_IP and ext.target(ubnt) == (OTHER_IP, "operator")
@@ -176,9 +180,8 @@ def main():
         data["exposure"] = {**data["exposure"], "checked_at": "2000-01-01T00:00:00+00:00"}
         cpe.inventory_data = data
         db.commit()
-    page = client.get(f"/devices/{ids['cpe']}/exposure").text
-    response = client.post(f"/devices/{ids['cpe']}/exposure/check", data={"csrf": csrf_from(page)}, follow_redirects=False)
-    assert response.status_code == 303
+    response = client.post(f"/api/ui/v1/devices/{ids['cpe']}/exposure/check", headers=headers)
+    assert response.status_code == 200 and response.json()["started"] is True
     with SessionLocal() as db:
         assert ext._due(db.get(Device, ids["cpe"]), utcnow()) == 0
     print("External exposure smoke passed")

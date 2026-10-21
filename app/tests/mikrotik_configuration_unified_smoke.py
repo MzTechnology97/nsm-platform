@@ -1,3 +1,4 @@
+import json
 import uuid
 
 from fastapi.testclient import TestClient
@@ -182,39 +183,29 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    interfaces = client.get(f"/devices/{device_id}/configuration?section=interfaces")
-    assert interfaces.status_code == 200
-    assert "Interfacce" in interfaces.text and "ether1" in interfaces.text and "Totali" in interfaces.text
-    assert "Aggiorna sezione" in interfaces.text and "Aggiorna tutto" in interfaces.text
-    # No duplicated dedicated-page action or top-level Interface tab remains.
-    assert f'href="/devices/{device_id}/interfaces"' not in interfaces.text
+    def section(name):
+        response = client.get(f"/api/ui/v1/devices/{device_id}/configuration?section={name}")
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["section"] == name and data["can_refresh"] is True
+        return json.dumps(data["view"], ensure_ascii=False)
 
-    addresses = client.get(f"/devices/{device_id}/configuration?section=ip_addresses")
-    assert addresses.status_code == 200
-    assert TEST_WAN_ADDRESS in addresses.text and "sfp-sfpplus1" in addresses.text
+    assert "ether1" in section("interfaces")
+    addresses = section("ip_addresses")
+    assert TEST_WAN_ADDRESS in addresses and "sfp-sfpplus1" in addresses
+    routes = section("routes")
+    assert "0.0.0.0/0" in routes and TEST_WAN_GATEWAY in routes
+    ppp = section("ppp_active")
+    for marker in ("sstp-test1", "vpn.example.test", "test-user"):
+        assert marker in ppp, marker
+    resources = section("resources")
+    assert "1d 02:56:32" in resources and "1970-01-02 02:56:32" not in resources
+    assert "3.5 GiB" in resources and "4.0 GiB" in resources
 
-    routes = client.get(f"/devices/{device_id}/configuration?section=routes")
-    assert routes.status_code == 200
-    assert "0.0.0.0/0" in routes.text and TEST_WAN_GATEWAY in routes.text and "ACTIVE" in routes.text
-
-    ppp = client.get(f"/devices/{device_id}/configuration?section=ppp_active")
-    assert ppp.status_code == 200
-    for marker in ("PPP / Tunnel", "sstp-test1", "SSTP", "vpn.example.test", "test-user", "UP"):
-        assert marker in ppp.text, marker
-
-    resources = client.get(f"/devices/{device_id}/configuration?section=resources")
-    assert resources.status_code == 200
-    assert "1d 02:56:32" in resources.text
-    assert "1970-01-02 02:56:32" not in resources.text
-    assert "3.5 GiB" in resources.text and "4.0 GiB" in resources.text
-
-    old_interfaces = client.get(f"/devices/{device_id}/interfaces", follow_redirects=False)
-    assert old_interfaces.status_code == 303
-    assert f"/devices/{device_id}/configuration?section=interfaces" in old_interfaces.headers["location"]
-
-    old_ip = client.get(f"/devices/{device_id}/ip-addresses?q=192.0.2", follow_redirects=False)
-    assert old_ip.status_code == 303
-    assert "section=ip_addresses" in old_ip.headers["location"] and "q=192.0.2" in old_ip.headers["location"]
+    # The former dedicated section pages open the configuration tab of the new interface.
+    for old in ("interfaces", "ip-addresses", "routes", "firewall", "dhcp-leases"):
+        moved = client.get(f"/devices/{device_id}/{old}", follow_redirects=False)
+        assert moved.status_code == 302 and moved.headers["location"] == f"/app/devices/{device_id}/configuration", old
 
     print("Unified MikroTik configuration workspace and PPP/tunnel UX smoke passed")
 

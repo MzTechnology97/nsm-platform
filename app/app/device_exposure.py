@@ -22,11 +22,9 @@ exposures open an Action Center issue and a *security* notification.
 from __future__ import annotations
 
 import ipaddress
-import uuid
 from datetime import timedelta
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter
 from sqlalchemy import select
 
 from app import main as core
@@ -35,8 +33,6 @@ from app import shared_ips
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
 from app.models import ActionIssue, Device, Notification, utcnow
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 
 router = APIRouter()
 MIN_AGENT_VERSION = "0.49.12"
@@ -65,10 +61,6 @@ EXTRAS = {
     "proxy": ("Web proxy", 8080, "tcp", "critical", "Web proxy aperto: il router può essere usato come relay."),
     "btest": ("Bandwidth test", 2000, "tcp", "medium", "Server bandwidth-test raggiungibile: consuma banda e CPU."),
 }
-STATE_LABELS = {"exposed": "esposto", "restricted": "limitato", "protected": "protetto", "uncertain": "da verificare", "disabled": "disattivato",
-               "closed": "chiuso", "filtered": "filtrato"}
-
-
 def _truthy(value) -> bool:
     return str(value).strip().lower() in {"true", "yes", "1"}
 
@@ -397,20 +389,6 @@ def tick(now=None) -> dict:
 
 # --- Pages -------------------------------------------------------------------------------------
 
-@router.get("/devices/{device_id}/exposure", response_class=HTMLResponse, name="device_exposure")
-def exposure_page(request: Request, device_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "security.read"):
-            raise HTTPException(403)
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        return core.render(request, db, user, "device_exposure.html", device=device, state_labels=STATE_LABELS, **page_state(db, device))
-
-
 def page_state(db, device) -> dict:
     """What the device Exposure tab shows, for both interfaces: last result, check mode and target, blocker, NAT context."""
     from app import external_exposure
@@ -481,50 +459,6 @@ def set_target_record(db, user, device, value: str) -> bool:
     return queued
 
 
-@router.post("/devices/{device_id}/exposure/check", name="device_exposure_check")
-async def exposure_check(request: Request, device_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    back = f"/devices/{device_id}/exposure"
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "security.remediate")
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        blocker = eligibility(device)
-        ok, message = request_check_record(db, user, device)
-    if blocker:
-        return flash_redirect(request, back, "warning", message, title="Verifica non disponibile")
-    return flash_redirect(request, back, "success" if ok else "warning", message, title="Verifica avviata" if ok else "Verifica non avviata")
-
-
-@router.post("/devices/{device_id}/exposure/target", name="device_exposure_target")
-async def exposure_target(request: Request, device_id: uuid.UUID):
-    """Public IP to probe (WAN/PPPoE address or public IP of the customer NAT); empty = use the management IP."""
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    back = f"/devices/{device_id}/exposure"
-    value = str(form.get("target_ip") or "").strip()
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "security.remediate")
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        from app.input_errors import InputError
-
-        try:
-            queued = set_target_record(db, user, device, value)
-        except InputError as exc:
-            return flash_redirect(request, back, "danger", str(exc.detail), title="IP non valido")
-    text = "IP per la verifica salvato." + (" La verifica parte entro un minuto." if queued else "")
-    return flash_redirect(request, back, "success", text, title="Esposizione")
-
-
-# --- Fleet view ---------------------------------------------------------------------------------
-
-FLEET_VIEWS = {"exposed": "Con servizi esposti", "setup": "Da configurare", "clean": "Senza esposizioni", "all": "Tutti"}
-
-
 def fleet(db, customer_id=None, device_ids=None) -> dict:
     """Every device with its exposure state: exposed, clean, to be set up (blocker), never checked."""
     from app.models import Customer
@@ -581,4 +515,3 @@ def report_section(db, device_ids) -> dict:
 
 def install_device_exposure(app) -> None:
     app.include_router(router)
-    core.templates.env.globals["exposure_state_labels"] = STATE_LABELS

@@ -1,3 +1,4 @@
+import json
 import re
 import uuid
 
@@ -51,29 +52,26 @@ def main():
     client = TestClient(app)
     login(client, username)
 
+    def interfaces(device_id, query=""):
+        response = client.get(f"/api/ui/v1/devices/{device_id}/configuration?section=interfaces{query}")
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["can_refresh"] is True and data["online"] is True
+        return json.dumps(data["view"], ensure_ascii=False)
+
     old = client.get(f"/devices/{modern_id}/interfaces", follow_redirects=False)
-    assert old.status_code == 303
-    assert f"/devices/{modern_id}/configuration?section=interfaces" in old.headers["location"]
+    assert old.status_code == 302 and old.headers["location"] == f"/app/devices/{modern_id}/configuration"
+    page = interfaces(modern_id)
+    for marker in ("ether1", "ether2", "wlan1", "AA:BB:CC:45:00:01", "1.0 MiB", "2.0 MiB", "WAN"):
+        assert marker in page, marker
+    down = interfaces(modern_id, "&state=down")
+    assert "ether2" in down and "ether1" not in down and "wlan1" not in down
+    search = interfaces(modern_id, "&q=45%3A00%3A03")
+    assert "wlan1" in search and "ether1" not in search
 
-    page = client.get(f"/devices/{modern_id}/configuration?section=interfaces")
-    assert page.status_code == 200
-    for marker in ("Modern CCR", "ether1", "ether2", "wlan1", "AA:BB:CC:45:00:01", "1.0 MiB", "2.0 MiB", "WAN"):
-        assert marker in page.text, marker
-    assert "Aggiorna sezione" in page.text and "Aggiorna tutto" in page.text
+    assert "ether1" in interfaces(legacy_id), "legacy agents read interfaces through the allow-listed transport"
 
-    down = client.get(f"/devices/{modern_id}/configuration?section=interfaces&state=down")
-    assert down.status_code == 200 and "ether2" in down.text and "ether1" not in down.text and "wlan1" not in down.text
-    search = client.get(f"/devices/{modern_id}/configuration?section=interfaces&q=45%3A00%3A03")
-    assert search.status_code == 200 and "wlan1" in search.text and "ether1" not in search.text
-
-    legacy_old = client.get(f"/devices/{legacy_id}/interfaces", follow_redirects=False)
-    assert legacy_old.status_code == 303
-    legacy = client.get(f"/devices/{legacy_id}/configuration?section=interfaces")
-    assert legacy.status_code == 200
-    assert "Aggiorna sezione" in legacy.text and "Aggiorna tutto" in legacy.text
-    assert "ether1" in legacy.text
-
-    print("Core 0.45 MikroTik interface health smoke passed in unified workspace")
+    print("Core 0.45 MikroTik interface health smoke passed")
 
 
 if __name__ == "__main__":

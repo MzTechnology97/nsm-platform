@@ -73,9 +73,10 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-um-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{ids['device']}/uisp").text
-    for marker in ("Stato operativo da UISP", "-70 dBm", "-61 dBm", "150.0 Mbps", "3g 1h 0m", "non esposto da UISP"):
-        assert marker in page, marker
+    metrics = client.get(f"/api/ui/v1/devices/{ids['device']}/uisp").json()["metrics"]
+    signal = next(row for row in metrics["rows"] if row["field"] == "signal_dbm")
+    assert (signal["current"], signal["min"], signal["max"]) == (-70.0, -70.0, -61.0), signal
+    assert metrics["count"] == 2 and -70.0 in [s["signal_dbm"] for s in metrics["samples"]], metrics["samples"]
     device_rows = client.get("/api/ui/v1/devices", params={"customer": str(ids["customer"])}).json()["items"]
     assert next(row for row in device_rows if row["id"] == str(ids["device"]))["signal_dbm"] == -70.0, "UISP signal in the device list"
 

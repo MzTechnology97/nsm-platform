@@ -115,8 +115,8 @@ def main():
     assert client.post(
         "/login", data={"username": username, "password": PASSWORD, "csrf": token}, follow_redirects=False
     ).status_code == 303
-    workspace = client.get(f"/devices/{device_id}/routerboot")
-    assert "ROUTERBOOT 7.22.0" in workspace.text, "staging must be offered again after recovery"
+    workspace = client.get(f"/api/ui/v1/devices/{device_id}/routerboot").json()
+    assert workspace["stage_confirmation"] == "ROUTERBOOT 7.22.0", "staging must be offered again after recovery"
 
     # 2) Reboot job never delivered: back to "staged" (flash already done), reboot offered again.
     _, device_id = seed()

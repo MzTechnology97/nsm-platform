@@ -89,11 +89,11 @@ def login(username):
 
 
 def record(client, device_id, artifact_id, **fields):
-    url = f"/devices/{device_id}/backups/artifacts/{artifact_id}/restore-test"
-    token = client.get("/api/ui/v1/session").json()["csrf_token"]
-    data = {"csrf": token, "method": "isolated_lab", "target_label": "CHR-LAB-TEST", "result": "passed"}
+    url = f"/api/ui/v1/devices/{device_id}/backups/artifacts/{artifact_id}/restore-test"
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    data = {"method": "isolated_lab", "target_label": "CHR-LAB-TEST", "result": "passed"}
     data.update(fields)
-    return client.post(url, data=data, follow_redirects=False)
+    return client.post(url, headers=headers, json=data)
 
 
 def tests_for(device_id):
@@ -122,43 +122,41 @@ def main():
     admin, auditor, device_id, good_id, tampered_id, foreign_id = seed()
     client = login(admin)
 
-    explorer = client.get(f"/devices/{device_id}/backups")
+    base = f"/api/ui/v1/devices/{device_id}/backups"
+    explorer = client.get(base)
     assert explorer.status_code == 200
-    assert "Ultimo restore test" in explorer.text and "Mai eseguito" in explorer.text
-    assert f"/backups/artifacts/{good_id}/restore-test" in explorer.text
+    assert explorer.json()["summary"]["restore"] is None
 
-    form = client.get(f"/devices/{device_id}/backups/artifacts/{good_id}/restore-test")
-    assert form.status_code == 200
-    assert "INTEGRO" in form.text and "7.20.7" in form.text and "Registra restore test" in form.text
+    form = client.get(f"{base}/artifacts/{good_id}/restore-test").json()
+    assert form["integrity"]["ok"] is True and form["source_version"] == "7.20.7" and form["can_record"] is True
 
-    # Validation keeps the operator on the form with contextual feedback.
+    # Validation returns a coded error and records nothing.
     invalid = record(client, device_id, good_id, target_label=" ")
-    assert invalid.status_code == 303 and invalid.headers["location"].endswith(f"/{good_id}/restore-test")
-    assert "Indica il target" in client.get(invalid.headers["location"]).text
+    assert invalid.status_code == 422 and invalid.json()["detail"]["code"] == "target"
     future = (utcnow() + timedelta(days=2)).strftime("%Y-%m-%dT%H:%M")
-    assert "futuro" in client.get(record(client, device_id, good_id, performed_at=future).headers["location"]).text
+    assert record(client, device_id, good_id, performed_at=future).json()["detail"]["code"] == "performed_future"
     assert tests_for(device_id) == []
 
     # A tampered artifact can never be recorded as passed, but failure evidence is accepted.
-    tampered_form = client.get(f"/devices/{device_id}/backups/artifacts/{tampered_id}/restore-test")
-    assert "NON VERIFICATO" in tampered_form.text
+    tampered_form = client.get(f"{base}/artifacts/{tampered_id}/restore-test").json()
+    assert tampered_form["integrity"]["ok"] is False
     refused = record(client, device_id, tampered_id, result="passed")
-    assert "artefatto non verificata" in client.get(refused.headers["location"]).text
+    assert refused.json()["detail"]["code"] == "integrity" and "artefatto non verificata" in refused.json()["detail"]["message"]
     assert tests_for(device_id) == []
     failed = record(client, device_id, tampered_id, result="failed", notes="TEST import error on interfaces")
-    assert failed.status_code == 303 and failed.headers["location"].endswith("/backups/restore-tests")
+    assert failed.status_code == 200 and failed.json()["result"] == "failed"
     issue = open_issue(device_id)
     assert issue is not None and issue.severity == "high"
 
     # Cross-device artifact identifiers are rejected.
     foreign = record(client, device_id, foreign_id)
-    assert foreign.status_code == 303 and foreign.headers["location"].endswith("/backups")
+    assert foreign.status_code in {404, 422}, foreign.text
     assert len(tests_for(device_id)) == 1
 
     passed = record(client, device_id, good_id, target_routeros_version="7.20.7", performed_at="2026-10-01T09:30")
-    assert passed.status_code == 303
-    history = client.get(passed.headers["location"])
-    assert "Restore test registrato" in history.text and "TEST-good.rsc" in history.text
+    assert passed.status_code == 200, passed.text
+    history = client.get(f"{base}/restore-tests").json()["tests"]
+    assert any(t["result"] == "passed" and t["artifact"]["filename"] == "TEST-good.rsc" for t in history)
     recorded = tests_for(device_id)
     assert [t.result for t in recorded] == ["failed", "passed"]
     ok = recorded[-1]
@@ -166,6 +164,7 @@ def main():
     assert ok.source_routeros_version == "7.20.7" and ok.target_routeros_version == "7.20.7"
     assert ok.performed_at.astimezone().year == 2026
     assert open_issue(device_id) is None, "a passed test resolves the open restore issue"
+    assert client.get(base).json()["summary"]["restore"]["result"] in {"passed", "failed"}
     with SessionLocal() as db:
         events = list(
             db.scalars(
@@ -180,20 +179,15 @@ def main():
     with SessionLocal() as db:
         db.get(BackupArtifact, good_id).deleted_at = utcnow()
         db.commit()
-    page = client.get(f"/devices/{device_id}/backups/restore-tests")
-    assert "TEST-good.rsc" in page.text and "non più in archivio" in page.text
+    kept = [t for t in client.get(f"{base}/restore-tests").json()["tests"] if t["artifact"]["filename"] == "TEST-good.rsc"]
+    assert kept and kept[0]["artifact"]["live"] is False
 
     # Read-only roles see evidence but cannot record it.
     viewer = login(auditor)
-    page = viewer.get(f"/devices/{device_id}/backups/artifacts/{tampered_id}/restore-test")
-    assert page.status_code == 200 and "NON VERIFICATO" in page.text
-    assert "Registra restore test" not in page.text
-    denied = viewer.post(
-        f"/devices/{device_id}/backups/artifacts/{tampered_id}/restore-test",
-        data={"csrf": viewer.get("/api/ui/v1/session").json()["csrf_token"], "method": "isolated_lab", "target_label": "X", "result": "failed"},
-        follow_redirects=False,
-    )
-    assert denied.status_code == 303 and denied.headers["location"] == f"/devices/{device_id}"
+    page = viewer.get(f"{base}/artifacts/{tampered_id}/restore-test")
+    assert page.status_code == 200 and page.json()["integrity"]["ok"] is False and page.json()["can_record"] is False
+    denied = record(viewer, device_id, tampered_id, result="failed", target_label="X")
+    assert denied.status_code == 403
     assert len(tests_for(device_id)) == 2
     print("Backup restore-test evidence smoke passed")
 

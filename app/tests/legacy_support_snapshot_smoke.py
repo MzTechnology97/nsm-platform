@@ -56,11 +56,14 @@ def main():
     client = TestClient(app)
     page = client.get("/login").text
     client.post("/login", data={"username": f"ci-ls-{suffix}", "password": PASSWORD, "csrf": re.search(r'name="csrf" value="([^"]+)"', page).group(1)})
-    diagnostics = client.get(f"/devices/{device_id}/diagnostics").text
-    assert f"/devices/{device_id}/diagnostics/support_snapshot" in diagnostics, "support snapshot offered to legacy agents with snapshots"
-    assert f"/devices/{old_id}/diagnostics/support_snapshot" not in client.get(f"/devices/{old_id}/diagnostics").text
-    csrf = re.search(r'name="csrf" value="([^"]+)"', diagnostics).group(1)
-    assert client.post(f"/devices/{device_id}/diagnostics/support_snapshot", data={"csrf": csrf}, follow_redirects=False).status_code == 303
+    diagnostics = client.get(f"/api/ui/v1/devices/{device_id}/diagnostics").json()
+    assert diagnostics["support_snapshot"] is True, "support snapshot offered to legacy agents with snapshots"
+    assert client.get(f"/api/ui/v1/devices/{old_id}/diagnostics").json()["support_snapshot"] is False
+    ui_headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    snapshot_url = f"/api/ui/v1/devices/{device_id}/diagnostics/support_snapshot"
+    assert client.post(snapshot_url, headers=ui_headers).status_code == 200
+    refused = client.post(f"/api/ui/v1/devices/{old_id}/diagnostics/support_snapshot", headers=ui_headers)
+    assert refused.status_code == 409 and "0.49.3+" in refused.json()["detail"]["message"]
 
     headers = {"X-NSM-Device-ID": str(device_id), "X-NSM-Device-Secret": raw}
     # One heartbeat: the agent keeps polling while jobs arrive (7 sections, then an empty line).
@@ -86,7 +89,7 @@ def main():
         assert data["logs_meta"] == {"total": 42, "limit": 20, "truncated": True} and parent.result["missing_sections"] == []
 
     # Sections never collected: the snapshot closes at its expiry with what it has.
-    assert client.post(f"/devices/{device_id}/diagnostics/support_snapshot", data={"csrf": csrf}, follow_redirects=False).status_code == 303
+    assert client.post(snapshot_url, headers=ui_headers).status_code == 200
     first = client.get("/api/v1/agents/mikrotik/legacy/jobs/next", headers=headers).text.split("|")
     client.post(f"/api/v1/agents/mikrotik/legacy/jobs/{first[0]}/complete?status=success", headers={**headers, "Content-Type": "text/plain"}, content=ROWS["resources"].encode())
     with SessionLocal() as db:

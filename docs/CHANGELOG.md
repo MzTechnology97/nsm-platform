@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.173 — 2026-10-21
+
+Classic interface removal, devices part 2 (phase 8, R1)
+- **Classic device tabs removed.** These device pages now exist only in the new interface:
+  - Backup archive, file view and restore tests;
+  - Configuration and its history, Diagnostics;
+  - Firmware upgrade, RouterBOOT, controlled reboot;
+  - Agent, UISP, cnMaestro, GenieACS;
+  - Exposure, Compliance, Lifecycle.
+- **Old addresses keep working.** Each classic address redirects (302) to the same page under `/app`. The file view keeps its comparison (`against`). The former section pages (interfaces, IP addresses, routes, firewall, DHCP leases) open the Configuration tab. Backup downloads, the diagnostic JSON export and the log CSV stay where they were.
+- **Removed with the pages.** Their forms (snapshot, diagnostics, baseline, restore test, plan, stage, activate, cancel, RouterBOOT, reboot, agent update and reinstall, UISP/GenieACS actions, exposure check and target, lifecycle) and their feedback wrappers. Also removed: 20 templates and the classic-only template helpers.
+- **"Refresh all" in Configuration.** The tab can now ask the agent to read every section in one go, as the classic page did. Sections already waiting are not queued twice.
+- **Consistent errors.** Asking for a snapshot on a MikroTik whose agent transport is unknown now returns a coded error, as in the classic page. Associating a UISP device already linked to another record returns a coded error too.
 ## 0.49.172 — 2026-10-16
 
 Classic interface removal, devices part 1 (phase 8, R1)

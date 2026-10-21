@@ -80,27 +80,16 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    page = client.get(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}")
-    assert page.status_code == 200
-    assert "DOWNLOAD 7.21.1" in page.text
-    token = csrf_from(page.text)
+    api = f"/api/ui/v1/devices/{device_id}/firmware-upgrade"
+    plan = client.get(f"{api}?plan={plan_id}").json()["plan"]
+    assert plan["status"] == "approved" and plan["confirmations"]["stage"] == "DOWNLOAD 7.21.1", plan
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
 
-    wrong = client.post(f"/devices/{device_id}/firmware-upgrade/{plan_id}/stage", data={"csrf": token, "confirmation": "DOWNLOAD WRONG"}, follow_redirects=False)
-    assert wrong.status_code == 303
-    assert wrong.headers["location"] == f"/devices/{device_id}/firmware-upgrade?plan={plan_id}"
-    wrong_page = client.get(wrong.headers["location"])
-    assert wrong_page.status_code == 200
-    assert "Conferma non valida" in wrong_page.text
-    assert "DOWNLOAD 7.21.1" in wrong_page.text
+    wrong = client.post(f"{api}/{plan_id}/stage", headers=headers, json={"confirmation": "DOWNLOAD WRONG"})
+    assert wrong.status_code == 422 and "DOWNLOAD 7.21.1" in wrong.json()["detail"]["message"], wrong.text
 
-    page = client.get(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}")
-    token = csrf_from(page.text)
-    queued = client.post(f"/devices/{device_id}/firmware-upgrade/{plan_id}/stage", data={"csrf": token, "confirmation": "DOWNLOAD 7.21.1"}, follow_redirects=False)
-    assert queued.status_code == 303
-    assert queued.headers["location"] == f"/devices/{device_id}/firmware-upgrade?plan={plan_id}"
-    queued_page = client.get(queued.headers["location"])
-    assert "Staging firmware accodato" in queued_page.text
-    assert "download-only" in queued_page.text
+    queued = client.post(f"{api}/{plan_id}/stage", headers=headers, json={"confirmation": "DOWNLOAD 7.21.1"})
+    assert queued.status_code == 200, queued.text
 
     with SessionLocal() as db:
         plan = db.get(FirmwareUpgradePlan, plan_id)
@@ -128,10 +117,8 @@ def main():
         forbidden = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type.in_(["firmware_install", "routeros_upgrade", "firmware_reboot"]))))
         assert forbidden == []
 
-    final_page = client.get(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}")
-    assert final_page.status_code == 200
-    assert "ACTIVATE 7.21.1" in final_page.text
-    assert "Attiva e riavvia MikroTik" in final_page.text
+    final = client.get(f"{api}?plan={plan_id}").json()["plan"]
+    assert final["status"] == "staged" and final["confirmations"]["activate"] == "ACTIVATE 7.21.1"
     with SessionLocal() as db:
         activation_jobs = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "firmware_activate")))
         assert activation_jobs == []

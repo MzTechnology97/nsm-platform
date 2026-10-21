@@ -14,7 +14,6 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 
 from app import main as core
@@ -23,13 +22,10 @@ from app.agent_models import DeviceAgentCredential, DeviceJob
 from app.db import SessionLocal
 from app.mikrotik_privilege_profile import OPERATIONAL_PROFILES
 from app.models import Device, utcnow
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 
 router = APIRouter()
 REBOOT_JOB = "device_reboot"
 STATE_KEY = "device_reboot"
-CONFIRMATION = "RIAVVIA"
 JOB_TTL = timedelta(minutes=10)
 VERIFY_TIMEOUT = timedelta(minutes=15)
 # Jobs that already reboot the Device or must not be interrupted by a reboot.
@@ -37,13 +33,6 @@ CONFLICTING_JOBS = {
     REBOOT_JOB, "routerboot_stage", "routerboot_reboot", "firmware_stage", "firmware_activate",
     "agent_self_update", "backup_mikrotik",
 }
-STATUS_LABELS = {
-    "queued": "In coda: l'agent lo riceverà al prossimo heartbeat",
-    "rebooting": "Riavvio confermato dall'agent, in attesa del ritorno online",
-    "verified": "Riavvio verificato",
-    "failed": "Riavvio non riuscito",
-}
-
 _HANDLER = r'''
     :if ($nsmJobType = "device_reboot") do={
       :local nsmAckUrl ($nsmBase . "/api/v1/agents/mikrotik/device-reboot/" . $nsmJobId . "/ack")
@@ -168,58 +157,6 @@ def reboot_blocker(db, device: Device) -> str | None:
     if busy:
         return f"Operazione in corso sull'apparato ({busy}): attendi che termini."
     return None
-
-
-def _load(db, device_id) -> Device:
-    device = db.get(Device, device_id)
-    if not device:
-        raise HTTPException(404, "Apparato non trovato.")
-    return device
-
-
-@router.get("/devices/{device_id}/reboot", response_class=HTMLResponse, name="device_reboot_page")
-def reboot_page(request: Request, device_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "firmware.read"):
-            raise HTTPException(403)
-        device = _load(db, device_id)
-        history = list(
-            db.scalars(
-                select(DeviceJob)
-                .where(DeviceJob.device_id == device.id, DeviceJob.job_type == REBOOT_JOB)
-                .order_by(DeviceJob.created_at.desc())
-                .limit(10)
-            )
-        )
-        return core.render(
-            request, db, user, "device_reboot.html", title="Riavvio",
-            device=device, blocker=reboot_blocker(db, device), state=_state(device),
-            status_labels=STATUS_LABELS, history=history, confirmation=CONFIRMATION,
-            can_execute=core.has_permission(user, "firmware.execute"),
-        )
-
-
-@router.post("/devices/{device_id}/reboot", name="queue_device_reboot")
-async def queue_reboot(request: Request, device_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    back = f"/devices/{device_id}/reboot"
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "firmware.execute")
-        device = _load(db, device_id)
-        blocker = reboot_blocker(db, device)
-        if blocker:
-            return flash_redirect(request, back, "warning", blocker, title="Riavvio non disponibile")
-        if str(form.get("confirmation") or "").strip() != CONFIRMATION:
-            return flash_redirect(request, back, "warning", f"Per confermare scrivi esattamente {CONFIRMATION}.", title="Conferma mancante")
-        reason = str(form.get("reason") or "").strip()
-        if len(reason) < 5:
-            return flash_redirect(request, back, "warning", "Indica il motivo del riavvio (almeno 5 caratteri).", title="Motivo mancante")
-        queue_reboot_record(db, user, device, reason)
-    return flash_redirect(request, back, "success", "Riavvio in coda: l'agent lo eseguirà al prossimo heartbeat (entro 2 minuti).", title="Riavvio richiesto")
 
 
 @router.post("/api/v1/agents/mikrotik/device-reboot/{job_id}/ack", name="mikrotik_device_reboot_ack")

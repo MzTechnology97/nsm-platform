@@ -32,8 +32,6 @@ from app.agent_models import DeviceAgentCredential, DeviceJob
 from app.db import SessionLocal
 from app.models import Device, utcnow
 from app.routeros_version import is_newer_routeros_version, parse_routeros_version
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 
 router = APIRouter()
 UPGRADE_JOB = "legacy_firmware_upgrade"
@@ -201,26 +199,6 @@ def legacy_reboot_blocker(previous):
         return previous(db, device)
 
     return wrapped
-
-
-@router.post("/devices/{device_id}/legacy-upgrade", name="queue_legacy_firmware_upgrade")
-async def queue_upgrade(request: Request, device_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    back = f"/devices/{device_id}/firmware-upgrade"
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "firmware.execute")
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        from app.input_errors import InputError
-
-        titles = {"blocked": "Aggiornamento non disponibile", "confirmation": "Conferma mancante", "backup_ack": "Backup non confermato"}
-        try:
-            target = queue_legacy_upgrade_record(db, user, device, str(form.get("confirmation") or ""), form.get("backup_ack") is not None)
-        except InputError as exc:
-            return flash_redirect(request, back, "warning", str(exc.detail), title=titles.get(exc.code, "Aggiornamento non disponibile"))
-    return flash_redirect(request, back, "success", f"Aggiornamento a RouterOS {target} in coda: l'agent lo eseguirà al prossimo heartbeat; il router si riavvierà.", title="Aggiornamento richiesto")
 
 
 @router.post("/api/v1/agents/mikrotik/legacy/jobs/{job_id}/ack", response_class=PlainTextResponse, name="mikrotik_legacy_job_ack")

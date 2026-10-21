@@ -136,7 +136,13 @@ def device_uisp_action(request: Request, device_id: uuid.UUID, action: str, body
             if action in ("associate", "refresh"):
                 if not device.primary_mac:
                     raise HTTPException(422, {"code": "no_mac", "message": "Il dispositivo Ubiquiti non ha un MAC associato."})
-                (uisp_connector.associate_record if action == "associate" else uisp_connector.refresh_record)(db, user, device)
+                try:
+                    (uisp_connector.associate_record if action == "associate" else uisp_connector.refresh_record)(db, user, device)
+                except HTTPException as exc:
+                    if exc.status_code != 409:
+                        raise
+                    db.rollback()  # the UISP device already belongs to another NSM record
+                    raise HTTPException(422, {"code": "duplicate", "message": str(exc.detail)}) from None
                 return {"ok": True}
             if action == "reboot":
                 confirm = body.get("confirm_name")

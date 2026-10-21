@@ -25,11 +25,10 @@ import hashlib
 import json
 import os
 import re
-import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 import httpx
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter
 from sqlalchemy import select
 
 from app import main as core
@@ -39,15 +38,12 @@ from app.backup_storage import storage_root
 from app.db import SessionLocal
 from app.models import BackupRun, Device, utcnow
 from app.secret_vault import decrypt_text
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 
 router = APIRouter()
 API = "/nms/api/v2.1"
 TIMEOUT = 30.0
 MAX_BACKUP_BYTES = 50 * 1024 * 1024
 REBOOT_TIMEOUT = timedelta(minutes=20)
-REBOOT_CONFIRM = "RIAVVIA"
 MAX_INTERFACES = 64
 MAX_EVENTS = 50
 ARTIFACT_TYPE = "uisp_backup"
@@ -314,80 +310,6 @@ def _store(device, key, items):
 
 # --- Routes ----------------------------------------------------------------------------------------
 
-def _device(db, device_id) -> Device:
-    device = db.get(Device, device_id)
-    if not device:
-        raise HTTPException(404)
-    return device
-
-
-@router.post("/devices/{device_id}/uisp/reboot", name="uisp_device_reboot")
-def uisp_reboot(request_: Request, device_id: uuid.UUID, csrf: str = Form(...), confirmation: str = Form("")):
-    validate_csrf(request_, csrf)
-    back = f"/devices/{device_id}/uisp#uisp-operations"
-    with SessionLocal() as db:
-        user = core.require_permission(request_, db, "firmware.execute")
-        device = _device(db, device_id)
-        if confirmation.strip() != REBOOT_CONFIRM:
-            return flash_redirect(request_, back, "warning", f"Per confermare scrivi esattamente {REBOOT_CONFIRM}.", title="Riavvio non inviato")
-        try:
-            request_reboot(db, device, user)
-        except UispOperationError as exc:
-            db.rollback()
-            return flash_redirect(request_, back, "danger", str(exc), title="Riavvio non inviato")
-        db.commit()
-    return flash_redirect(request_, back, "success", "Riavvio inviato tramite UISP: NSM verifica il ritorno online entro 20 minuti.", title="Riavvio richiesto")
-
-
-@router.post("/devices/{device_id}/uisp/backup", name="uisp_device_backup")
-def uisp_backup(request_: Request, device_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request_, csrf)
-    back = f"/devices/{device_id}/uisp#uisp-operations"
-    with SessionLocal() as db:
-        user = core.require_permission(request_, db, "backup.execute")
-        device = _device(db, device_id)
-        try:
-            _connection_for(db, device)
-        except UispOperationError as exc:
-            return flash_redirect(request_, back, "danger", str(exc), title="Backup non eseguito")
-        run = run_backup(db, device, actor=user)
-        db.commit()
-        ok, error = run.status == "success", run.error_message
-    if ok:
-        return flash_redirect(request_, back, "success", "Backup scaricato da UISP e archiviato in NSM (vedi Backup dell'apparato).", title="Backup completato")
-    return flash_redirect(request_, back, "danger", error or "Backup non riuscito.", title="Backup non riuscito")
-
-
-@router.post("/devices/{device_id}/uisp/interfaces", name="uisp_device_interfaces")
-def uisp_interfaces(request_: Request, device_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request_, csrf)
-    back = f"/devices/{device_id}/uisp#uisp-interfaces"
-    with SessionLocal() as db:
-        core.require_permission(request_, db, "devices.read")
-        device = _device(db, device_id)
-        try:
-            _store(device, "uisp_interfaces", fetch_interfaces(db, device))
-        except UispOperationError as exc:
-            return flash_redirect(request_, back, "danger", str(exc), title="Interfacce non lette")
-        db.commit()
-    return flash_redirect(request_, back, "success", "Interfacce aggiornate da UISP.", title="Interfacce")
-
-
-@router.post("/devices/{device_id}/uisp/events", name="uisp_device_events")
-def uisp_events(request_: Request, device_id: uuid.UUID, csrf: str = Form(...)):
-    validate_csrf(request_, csrf)
-    back = f"/devices/{device_id}/uisp#uisp-events"
-    with SessionLocal() as db:
-        core.require_permission(request_, db, "devices.read")
-        device = _device(db, device_id)
-        try:
-            _store(device, "uisp_events", fetch_events(db, device))
-        except UispOperationError as exc:
-            return flash_redirect(request_, back, "danger", str(exc), title="Eventi non letti")
-        db.commit()
-    return flash_redirect(request_, back, "success", "Eventi UISP aggiornati.", title="Eventi")
-
-
 def scheduled_backups(now=None) -> dict:
     """Worker task: UISP backups due by policy (idempotent per policy occurrence)."""
     now = now or utcnow()
@@ -399,4 +321,3 @@ def scheduled_backups(now=None) -> dict:
 
 def install_uisp_operations(app) -> None:
     app.include_router(router)
-    core.templates.env.globals["uisp_reboot_confirm"] = REBOOT_CONFIRM

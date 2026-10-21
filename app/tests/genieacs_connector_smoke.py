@@ -200,24 +200,18 @@ def main():
     assert tested.json()["ok"] is True and "Connessione GenieACS NBI riuscita" in tested.json()["message"]
     assert BEARER not in tested.text
 
-    link = client.get(f"/devices/{serial_device_id}/genieacs")
+    acs_api = f"/api/ui/v1/devices/{serial_device_id}/genieacs"
+    link = client.get(acs_api)
     assert link.status_code == 200, link.text
-    assert "NSM TR069 Site" in link.text
-    csrf = csrf_from(link.text)
-    preview = client.post(f"/devices/{serial_device_id}/genieacs/preview", data={"csrf": csrf})
+    assert link.json()["record"]["site"] == "NSM TR069 Site"
+    preview = client.post(f"{acs_api}/preview", headers=headers)
     assert preview.status_code == 200, preview.text
     for marker in (ACS_ID, SERIAL, "XZ000-CI27", "1.0.0-ci27", "TP-Link"):
         assert marker in preview.text, marker
     assert BEARER not in preview.text
 
-    csrf = csrf_from(preview.text)
-    associated = client.post(
-        f"/devices/{serial_device_id}/genieacs/associate",
-        data={"csrf": csrf},
-        follow_redirects=False,
-    )
-    assert associated.status_code == 303, associated.text
-    assert associated.headers["location"].endswith("/genieacs?status=associated")
+    associated = client.post(f"{acs_api}/associate", headers=headers)
+    assert associated.status_code == 200, associated.text
 
     with SessionLocal() as db:
         device = db.get(Device, serial_device_id)
@@ -242,29 +236,20 @@ def main():
         assert BEARER not in str(event.details)
 
     state["firmware"] = "1.0.1-ci27"
-    csrf = client.get("/api/ui/v1/session").json()["csrf_token"]
-    refreshed = client.post(
-        f"/devices/{serial_device_id}/genieacs/refresh",
-        data={"csrf": csrf},
-        follow_redirects=False,
-    )
-    assert refreshed.status_code == 303, refreshed.text
+    refreshed = client.post(f"{acs_api}/refresh", headers=headers)
+    assert refreshed.status_code == 200, refreshed.text
     with SessionLocal() as db:
         device = db.get(Device, serial_device_id)
         assert device.firmware_version == "1.0.1-ci27"
         assert device.customer_id == customer_id and device.site_id == site_id
         assert db.scalar(select(AuditEvent).where(AuditEvent.device_id == serial_device_id, AuditEvent.event_type == "GENIEACS_INVENTORY_REFRESHED"))
 
-    mac_link = client.get(f"/devices/{mac_device_id}/genieacs")
-    csrf = csrf_from(mac_link.text)
-    mac_preview = client.post(f"/devices/{mac_device_id}/genieacs/preview", data={"csrf": csrf})
+    mac_preview = client.post(f"/api/ui/v1/devices/{mac_device_id}/genieacs/preview", headers=headers)
     assert mac_preview.status_code == 200, mac_preview.text
-    assert "001D0F-TPLink-MAC-FALLBACK" in mac_preview.text
-    assert "Corrispondenza univoca trovata per MAC" in mac_preview.text
+    assert mac_preview.json()["external_id"] == "001D0F-TPLink-MAC-FALLBACK" and mac_preview.json()["matched_by"] == "mac"
 
-    detail = client.get(f"/devices/{serial_device_id}/genieacs")
-    assert detail.status_code == 200
-    assert 'id="acs-inventory"' in detail.text and ACS_ID in detail.text and "1.0.1-ci27" in detail.text
+    detail = client.get(acs_api).json()
+    assert detail["inventory"] is not None and detail["record"]["external_id"] == ACS_ID and detail["record"]["firmware_version"] == "1.0.1-ci27"
     assert "acs" in {tab["key"] for tab in client.get(f"/api/ui/v1/devices/{serial_device_id}").json()["tabs"]}, "ACS tab on TR-069 devices"
     hub = client.get("/api/ui/v1/integrations").json()["genieacs"]
     assert hub["state"] == "active" and hub["linked"] >= 1, hub

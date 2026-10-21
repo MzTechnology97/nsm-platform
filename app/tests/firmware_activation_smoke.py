@@ -121,6 +121,17 @@ def login(client, username):
     assert response.status_code == 303
 
 
+def plan_view(client, device_id, plan_id):
+    response = client.get(f"/api/ui/v1/devices/{device_id}/firmware-upgrade?plan={plan_id}")
+    assert response.status_code == 200, response.text
+    return response.json()["plan"]
+
+
+def plan_action(client, device_id, plan_id, action, confirmation):
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    return client.post(f"/api/ui/v1/devices/{device_id}/firmware-upgrade/{plan_id}/{action}", headers=headers, json={"confirmation": confirmation})
+
+
 def main():
     major, minor, *_ = [int(part) for part in app.version.split(".")]
     assert (major, minor) >= (0, 37), app.version
@@ -128,30 +139,19 @@ def main():
     client = TestClient(app)
     login(client, username)
 
-    page = client.get(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}")
-    assert page.status_code == 200
-    assert "ACTIVATE 7.21.1" in page.text
-    assert "Attiva e riavvia MikroTik" in page.text
-    assert "RouterBOOT separato" in page.text
-    token = csrf_from(page.text)
+    plan = plan_view(client, device_id, plan_id)
+    assert plan["confirmations"]["activate"] == "ACTIVATE 7.21.1" and plan["status"] == "staged"
 
     # A pre-0.37 modern agent is not allowed to reboot until it is re-enrolled
-    # with the explicit least-privilege ops-v1 profile. Browser feedback is PRG.
+    # with the explicit least-privilege ops-v1 profile.
     with SessionLocal() as db:
         device = db.get(Device, device_id)
         data = dict(device.inventory_data or {})
         data.pop("agent_privilege_profile", None)
         device.inventory_data = data
         db.commit()
-    blocked = client.post(
-        f"/devices/{device_id}/firmware-upgrade/{plan_id}/activate",
-        data={"csrf": token, "confirmation": "ACTIVATE 7.21.1"},
-        follow_redirects=False,
-    )
-    assert blocked.status_code == 303
-    blocked_page = client.get(blocked.headers["location"])
-    assert "Operazione non disponibile" in blocked_page.text
-    assert "Rigenera / reinstalla agent" in blocked_page.text
+    blocked = plan_action(client, device_id, plan_id, "activate", "ACTIVATE 7.21.1")
+    assert blocked.status_code == 422 and "Rigenera / reinstalla agent" in blocked.json()["detail"]["message"], blocked.text
 
     with SessionLocal() as db:
         device = db.get(Device, device_id)
@@ -160,29 +160,12 @@ def main():
         device.inventory_data = data
         db.commit()
 
-    page = client.get(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}")
-    token = csrf_from(page.text)
-    wrong = client.post(
-        f"/devices/{device_id}/firmware-upgrade/{plan_id}/activate",
-        data={"csrf": token, "confirmation": "ACTIVATE WRONG"},
-        follow_redirects=False,
-    )
-    assert wrong.status_code == 303
-    wrong_page = client.get(wrong.headers["location"])
-    assert "Conferma non valida" in wrong_page.text
-    assert "ACTIVATE 7.21.1" in wrong_page.text
+    wrong = plan_action(client, device_id, plan_id, "activate", "ACTIVATE WRONG")
+    assert wrong.status_code == 422 and wrong.json()["detail"]["code"] == "invalid", wrong.text
+    assert "ACTIVATE 7.21.1" in wrong.json()["detail"]["message"]
 
-    page = client.get(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}")
-    token = csrf_from(page.text)
-    queued = client.post(
-        f"/devices/{device_id}/firmware-upgrade/{plan_id}/activate",
-        data={"csrf": token, "confirmation": "ACTIVATE 7.21.1"},
-        follow_redirects=False,
-    )
-    assert queued.status_code == 303
-    queued_page = client.get(queued.headers["location"])
-    assert "Attivazione firmware accodata" in queued_page.text
-    assert "temporaneamente non raggiungibile" in queued_page.text
+    queued = plan_action(client, device_id, plan_id, "activate", "ACTIVATE 7.21.1")
+    assert queued.status_code == 200, queued.text
 
     with SessionLocal() as db:
         plan = db.get(FirmwareUpgradePlan, plan_id)
@@ -263,9 +246,8 @@ def main():
         assert activation["verification"] == "target_version_confirmed"
         assert activation["observed_version"] == "7.21.1"
 
-    final_page = client.get(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}")
-    assert final_page.status_code == 200
-    assert "Upgrade verificato" in final_page.text
+    final = plan_view(client, device_id, plan_id)
+    assert final["status"] == "success" and final["activation"]["observed_version"] == "7.21.1" and final["activation"]["verified_at"]
 
     source = agent_module._agent_source("https://nsm.example.net", device_id, raw_secret, True)
     assert 'nsmJobType = "firmware_activate"' in source

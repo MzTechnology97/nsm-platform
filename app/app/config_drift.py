@@ -3,17 +3,13 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
 from app import main as core
 from app.backup_models import BackupArtifact
 from app.backup_text_tools import _diff_rows, _read_export
-from app.db import SessionLocal
 from app.models import ActionIssue, BackupRun, Device, utcnow
-from app.security import validate_csrf
-from app.ui_feedback import exception_message, flash_redirect
 
 router = APIRouter()
 BASELINE_KEY = "config_baseline_artifact_id"
@@ -132,74 +128,6 @@ def _history_rows(db, device: Device):
             except HTTPException: summary = {"added": 0, "removed": 0, "error": True}
         rows.append({"artifact": artifact, "run": run, "previous": previous, "summary": summary})
     return rows
-
-
-def _baseline_http_feedback(request: Request, device_id: uuid.UUID, exc: HTTPException):
-    detail = exception_message(exc, "Baseline configurazione non aggiornata.")
-    if exc.status_code == 404 and detail == "Export non disponibile per questo apparato.":
-        return flash_redirect(
-            request,
-            f"/devices/{device_id}/configuration/history",
-            "warning",
-            detail,
-            title="Baseline non aggiornata",
-        )
-    if exc.status_code == 404:
-        return flash_redirect(
-            request,
-            "/devices",
-            "error",
-            exception_message(exc, "Apparato non trovato."),
-            title="Apparato non trovato",
-        )
-    if exc.status_code == 403:
-        return flash_redirect(
-            request,
-            f"/devices/{device_id}",
-            "error",
-            detail,
-            title="Operazione non autorizzata",
-        )
-    if exc.status_code in {400, 409}:
-        return flash_redirect(
-            request,
-            f"/devices/{device_id}/configuration/history",
-            "warning",
-            detail,
-            title="Baseline non aggiornata",
-        )
-    raise exc
-
-
-@router.get("/devices/{device_id}/configuration/history", response_class=HTMLResponse, name="mikrotik_config_history")
-def config_history(request: Request, device_id: uuid.UUID):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user: return core.login_redirect()
-        if not core.has_permission(user, "backup.read"): raise HTTPException(403)
-        device = db.get(Device, device_id)
-        if not device or device.vendor != "mikrotik": raise HTTPException(404)
-        return core.render(request, db, user, "mikrotik_config_history.html", device=device, history=_history_rows(db, device), baseline_id=_baseline_id(device), drift_issue=_open_drift_issue(db, device.id))
-
-
-@router.post("/devices/{device_id}/configuration/history/{artifact_id}/baseline", name="mikrotik_config_baseline_set")
-def set_config_baseline(request: Request, device_id: uuid.UUID, artifact_id: uuid.UUID, csrf: str = Form(...)):
-    try:
-        validate_csrf(request, csrf)
-        with SessionLocal() as db:
-            user = core.require_permission(request, db, "backup.configure")
-            device = db.get(Device, device_id)
-            if not device or device.vendor != "mikrotik": raise HTTPException(404, "Apparato MikroTik non trovato.")
-            set_baseline_record(db, user, device, artifact_id)
-    except HTTPException as exc:
-        return _baseline_http_feedback(request, device_id, exc)
-    return flash_redirect(
-        request,
-        f"/devices/{device_id}/configuration/history",
-        "success",
-        "L'export selezionato è ora la baseline di riferimento per il rilevamento delle variazioni di configurazione.",
-        title="Baseline configurazione aggiornata",
-    )
 
 
 def set_baseline_record(db, user, device: Device, artifact_id: uuid.UUID) -> None:

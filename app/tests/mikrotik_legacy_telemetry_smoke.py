@@ -115,9 +115,10 @@ def main():
 
     assert "monitor" in {tab["key"] for tab in client.get(f"/api/ui/v1/devices/{device_id}").json()["tabs"]}
 
-    status = client.get(f"/devices/{device_id}/agent")
+    status = client.get(f"/api/ui/v1/devices/{device_id}/agent")
     assert status.status_code == 200, status.text
-    assert "Retention 90 giorni · metriche heartbeat legacy" in status.text
+    telemetry = {c["key"]: c for c in status.json()["capabilities"]}["telemetry"]
+    assert telemetry["available"] is True and telemetry["detail"] == "Retention 90 giorni · metriche heartbeat legacy"
 
     print("RouterOS 7.12 legacy telemetry history smoke passed")
 

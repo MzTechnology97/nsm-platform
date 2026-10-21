@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, time
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import Response
 from sqlalchemy import func, or_, select
 
 from app import main as core
@@ -26,14 +26,11 @@ from app.db import SessionLocal
 from app.input_errors import InputError
 from app.lifecycle_models import MATCH_LABELS, LifecycleRecord
 from app.models import Device, utcnow
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 
 router = APIRouter()
 CATALOG_URL = "/security/lifecycle/catalog"
 CSV_FIELDS = ["vendor", "model", "aliases", "eol_date", "eos_date", "source", "source_url", "evidence_date", "notes"]
 LIFECYCLE_STATES = ("supported", "eol", "eos", "unknown")
-UNMATCHED = ("ambiguous", "no_record", "no_model")
 MIN_PREFIX = 4
 
 
@@ -344,45 +341,6 @@ def import_record(db, user, text: str, filename: str | None):
     stats = reconcile(db, now)
     db.commit()
     return created, updated, stats
-
-
-@router.get("/devices/{device_id}/lifecycle", response_class=HTMLResponse, name="device_lifecycle_form")
-def device_lifecycle_form(request: Request, device_id: uuid.UUID):
-    from app.lifecycle_remediation import page_context
-
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "security.read")
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        candidates = load_index(db).correlate(device.vendor, device.model)
-        return core.render(
-            request, db, user, "device_lifecycle_form.html", title="Lifecycle apparato",
-            device=device, correlation=candidates, match_labels=MATCH_LABELS, states=LIFECYCLE_STATES,
-            today=utcnow().date().isoformat(), can_manage=core.has_permission(user, "lifecycle.manage"),
-            **page_context(db, device),
-        )
-
-
-@router.post("/devices/{device_id}/lifecycle", name="device_lifecycle_save")
-async def device_lifecycle_save(request: Request, device_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "lifecycle.manage")
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        back = f"/devices/{device.id}/lifecycle"
-        if form.get("action") == "catalog":
-            label = use_catalog_record(db, user, device)
-            return flash_redirect(request, f"/devices/{device.id}", "success", f"Lifecycle dal catalogo: {label}.", title="Lifecycle aggiornato")
-        try:
-            set_manual_record(db, user, device, str(form.get("lifecycle_status") or ""), str(form.get("source") or ""), form.get("evidence_date"),
-                              form.get("eol_date"), form.get("eos_date"))
-        except ValueError as exc:
-            return flash_redirect(request, back, "warning", str(exc), title="Dato non salvato")
-    return flash_redirect(request, f"/devices/{device_id}", "success", "Valore lifecycle manuale salvato con fonte e data di verifica.", title="Lifecycle aggiornato")
 
 
 def use_catalog_record(db, user, device: Device) -> str:

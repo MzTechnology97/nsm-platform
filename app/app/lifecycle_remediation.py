@@ -12,14 +12,11 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime, timedelta
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter
 from sqlalchemy import select
 
 from app import main as core
-from app.db import SessionLocal
 from app.models import ActionIssue, Device, LifecycleRemediation, LifecycleRemediationHistory, utcnow
-from app.security import validate_csrf
-from app.ui_feedback import flash_redirect
 
 router = APIRouter()
 ATTENTION_STATES = ("eol", "eos")
@@ -135,27 +132,6 @@ def _parse_date(value, label):
         return date.fromisoformat(text)
     except ValueError:
         raise ValueError(f"{label.capitalize()} non valida.") from None
-
-
-@router.post("/devices/{device_id}/lifecycle/remediation", name="lifecycle_remediation_update")
-async def remediation_update(request: Request, device_id: uuid.UUID):
-    form = await request.form()
-    validate_csrf(request, str(form.get("csrf") or ""))
-    back = f"/devices/{device_id}/lifecycle"
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "lifecycle.manage")
-        device = db.get(Device, device_id)
-        if not device:
-            raise HTTPException(404)
-        from app.input_errors import InputError
-
-        try:
-            final_status, message = update_record(db, user, device, str(form.get("action") or ""), form)
-        except InputError as exc:
-            if exc.code == "no_remediation":
-                return flash_redirect(request, back, "warning", str(exc.detail), title="Nessuna azione")
-            return flash_redirect(request, back, "warning", str(exc.detail), title="Gestione non salvata")
-    return flash_redirect(request, back, "success", message, title=STATUS_LABELS[final_status])
 
 
 def update_record(db, user, device: Device, action: str, form) -> tuple[str, str]:

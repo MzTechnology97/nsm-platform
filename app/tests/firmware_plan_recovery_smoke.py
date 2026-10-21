@@ -108,15 +108,21 @@ def login(client, username):
 def post_form(client, device_id, plan_id, action, **data):
     token = client.get("/api/ui/v1/session").json()["csrf_token"]
     return client.post(
-        f"/devices/{device_id}/firmware-upgrade/{plan_id}/{action}",
-        data={"csrf": token, **data},
-        follow_redirects=False,
+        f"/api/ui/v1/devices/{device_id}/firmware-upgrade/{plan_id}/{action}",
+        headers={"X-CSRF-Token": token},
+        json=data,
     )
+
+
+def cancellable(client, device_id, plan_id):
+    """The new interface offers "Cancel plan" for every plan that is not finished."""
+    plan = client.get(f"/api/ui/v1/devices/{device_id}/firmware-upgrade?plan={plan_id}").json()["plan"]
+    return plan["status"] not in {"success", "cancelled", "failed"}
 
 
 def stage(client, device_id, plan_id):
     response = post_form(client, device_id, plan_id, "stage", confirmation=f"DOWNLOAD {TARGET}")
-    assert response.status_code == 303
+    assert response.status_code == 200, response.text
     with SessionLocal() as db:
         job = db.scalar(
             select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "firmware_stage")
@@ -142,13 +148,10 @@ def job_state(job_id):
 def check_cancel_during_staging_withdraws_pending_job(client, user_id):
     device_id, plan_id, _ = seed_device(user_id)
     job_id = stage(client, device_id, plan_id)
-    page = client.get(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}")
-    assert "Annulla piano" in page.text, "staging plans must expose cancellation in the GUI"
+    assert cancellable(client, device_id, plan_id), "staging plans must expose cancellation in the GUI"
 
     cancel = post_form(client, device_id, plan_id, "cancel")
-    assert cancel.status_code == 303
-    feedback = client.get(cancel.headers["location"])
-    assert "Piano annullato" in feedback.text
+    assert cancel.status_code == 200, cancel.text
     assert plan_status(plan_id) == "cancelled"
     status, error = job_state(job_id)
     assert status == "failed" and "annullato" in error
@@ -164,7 +167,7 @@ def check_late_staging_report_cannot_resurrect_cancelled_plan(client, user_id):
     assert job_state(job_id)[0] == "delivered"
 
     cancel = post_form(client, device_id, plan_id, "cancel")
-    assert cancel.status_code == 303
+    assert cancel.status_code == 200, cancel.text
     assert plan_status(plan_id) == "cancelled"
     assert job_state(job_id)[0] == "delivered", "delivered download-only job is left to finish"
 
@@ -186,7 +189,7 @@ def check_late_staging_report_cannot_resurrect_cancelled_plan(client, user_id):
         assert event.details["plan_status"] == "cancelled"
 
     activate = post_form(client, device_id, plan_id, "activate", confirmation=f"ACTIVATE {TARGET}")
-    assert activate.status_code == 303
+    assert activate.status_code == 422
     with SessionLocal() as db:
         jobs = list(
             db.scalars(
@@ -254,7 +257,7 @@ def staged_precheck():
 
 def queue_activation(client, device_id, plan_id):
     response = post_form(client, device_id, plan_id, "activate", confirmation=f"ACTIVATE {TARGET}")
-    assert response.status_code == 303
+    assert response.status_code == 200, response.text
     assert plan_status(plan_id) == "activation_pending"
     with SessionLocal() as db:
         job = db.scalar(
@@ -269,10 +272,9 @@ def check_activation_cancel_rules(client, user_id):
     # Queued but not delivered: cancellation withdraws the job, no reboot can follow.
     device_id, plan_id, raw_secret = seed_device(user_id, plan_status="staged", precheck=staged_precheck())
     job_id = queue_activation(client, device_id, plan_id)
-    page = client.get(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}")
-    assert "Annulla piano" in page.text
+    assert cancellable(client, device_id, plan_id)
     cancel = post_form(client, device_id, plan_id, "cancel")
-    assert cancel.status_code == 303
+    assert cancel.status_code == 200
     assert plan_status(plan_id) == "cancelled"
     assert job_state(job_id)[0] == "failed"
     headers = {"X-NSM-Device-ID": str(device_id), "X-NSM-Device-Secret": raw_secret}
@@ -286,9 +288,7 @@ def check_activation_cancel_rules(client, user_id):
     heartbeat = client.post("/api/v1/agents/mikrotik/heartbeat", headers=headers, json={"inventory": {}})
     assert str(job_id) in {job["id"] for job in heartbeat.json()["jobs"]}
     cancel = post_form(client, device_id, plan_id, "cancel")
-    assert cancel.status_code == 303
-    refused = client.get(cancel.headers["location"])
-    assert "Attivazione già consegnata" in refused.text
+    assert cancel.status_code == 422 and "Attivazione già consegnata" in cancel.json()["detail"]["message"], cancel.text
     assert plan_status(plan_id) == "activation_pending"
 
     # Never acknowledged: the worker closes the plan without any reboot evidence.

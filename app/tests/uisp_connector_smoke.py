@@ -170,29 +170,19 @@ def main():
     assert TOKEN not in tested.text
     csrf = client.get("/api/ui/v1/session").json()["csrf_token"]
 
-    link = client.get(f"/devices/{device_id}/uisp")
+    ui_headers = {"X-CSRF-Token": csrf}
+    uisp_api = f"/api/ui/v1/devices/{device_id}/uisp"
+    link = client.get(uisp_api)
     assert link.status_code == 200, link.text
-    assert "NSM Authoritative Site" in link.text
-    csrf = csrf_from(link.text)
-    preview = client.post(f"/devices/{device_id}/uisp/preview", data={"csrf": csrf})
+    assert link.json()["record"]["site"] == "NSM Authoritative Site"
+    preview = client.post(f"{uisp_api}/preview", headers=ui_headers)
     assert preview.status_code == 200, preview.text
     for marker in (UISP_ID, "CPE Cliente UISP", "NanoBeam 5AC Gen2", "CI26-SERIAL-001", "UISP Foreign Site"):
         assert marker in preview.text, marker
     assert TOKEN not in preview.text
 
-    csrf = csrf_from(preview.text)
-    associated = client.post(
-        f"/devices/{device_id}/uisp/associate",
-        data={"csrf": csrf},
-        follow_redirects=False,
-    )
-    assert associated.status_code == 303, associated.text
-    assert associated.headers["location"] == f"/devices/{device_id}/uisp"
-    associated_feedback = client.get(associated.headers["location"])
-    assert associated_feedback.status_code == 200
-    assert "Associazione UISP completata" in associated_feedback.text
-    assert "flash-success" in associated_feedback.text
-    assert "Associazione UISP completata" not in client.get(associated.headers["location"]).text
+    associated = client.post(f"{uisp_api}/associate", headers=ui_headers)
+    assert associated.status_code == 200 and associated.json() == {"ok": True}, associated.text
 
     with SessionLocal() as db:
         device = db.get(Device, device_id)
@@ -235,37 +225,16 @@ def main():
         duplicate_device_id = duplicate_device.id
 
     state["duplicate"] = True
-    duplicate_page = client.get(f"/devices/{duplicate_device_id}/uisp")
-    assert duplicate_page.status_code == 200
-    duplicate = client.post(
-        f"/devices/{duplicate_device_id}/uisp/associate",
-        data={"csrf": csrf_from(duplicate_page.text)},
-        follow_redirects=False,
-    )
-    assert duplicate.status_code == 303, duplicate.text
-    assert duplicate.headers["location"] == f"/devices/{duplicate_device_id}/uisp"
-    duplicate_feedback = client.get(duplicate.headers["location"])
-    assert duplicate_feedback.status_code == 200
-    assert "già associato a un altro record NSM" in duplicate_feedback.text
-    assert "flash-warning" in duplicate_feedback.text
-    assert not duplicate_feedback.headers.get("content-type", "").startswith("application/json")
+    duplicate = client.post(f"/api/ui/v1/devices/{duplicate_device_id}/uisp/associate", headers=ui_headers)
+    assert duplicate.status_code == 422 and duplicate.json()["detail"]["code"] == "duplicate", duplicate.text
+    assert "già associato a un altro record NSM" in duplicate.json()["detail"]["message"]
     state["duplicate"] = False
 
     state["firmware"] = "8.7.20"
     detail = client.get(f"/api/ui/v1/devices/{device_id}/uisp")
     assert detail.status_code == 200 and UISP_ID in detail.text
-    csrf = client.get("/api/ui/v1/session").json()["csrf_token"]
-    refreshed = client.post(
-        f"/devices/{device_id}/uisp/refresh",
-        data={"csrf": csrf},
-        follow_redirects=False,
-    )
-    assert refreshed.status_code == 303, refreshed.text
-    assert refreshed.headers["location"] == f"/devices/{device_id}/uisp"
-    refreshed_feedback = client.get(refreshed.headers["location"])
-    assert "Refresh UISP completato" in refreshed_feedback.text
-    assert "flash-success" in refreshed_feedback.text
-    assert "Refresh UISP completato" not in client.get(refreshed.headers["location"]).text
+    refreshed = client.post(f"{uisp_api}/refresh", headers=ui_headers)
+    assert refreshed.status_code == 200 and refreshed.json() == {"ok": True}, refreshed.text
     with SessionLocal() as db:
         device = db.get(Device, device_id)
         assert device.firmware_version == "8.7.20"

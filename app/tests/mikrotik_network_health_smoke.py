@@ -61,37 +61,37 @@ def main():
 
     old_ips = client.get(f"/devices/{modern_id}/ip-addresses", follow_redirects=False)
     old_routes = client.get(f"/devices/{modern_id}/routes", follow_redirects=False)
-    assert old_ips.status_code == 303 and "section=ip_addresses" in old_ips.headers["location"]
-    assert old_routes.status_code == 303 and "section=routes" in old_routes.headers["location"]
+    assert old_ips.status_code == 302 and old_ips.headers["location"] == f"/app/devices/{modern_id}/configuration"
+    assert old_routes.status_code == 302 and old_routes.headers["location"] == f"/app/devices/{modern_id}/configuration"
 
-    ips = client.get(f"/devices/{modern_id}/configuration?section=ip_addresses")
+    ips = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=ip_addresses")
     assert ips.status_code == 200
-    for marker in ("Modern CCR", "192.0.2.1/24", "198.51.100.10/24", "ether1", "WAN static", "Aggiorna sezione"):
+    for marker in ("192.0.2.1/24", "198.51.100.10/24", "ether1", "WAN static"):
         assert marker in ips.text, marker
-    dynamic = client.get(f"/devices/{modern_id}/configuration?section=ip_addresses&state=dynamic")
+    dynamic = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=ip_addresses&state=dynamic")
     assert dynamic.status_code == 200 and "198.51.100.10/24" in dynamic.text and "192.0.2.1/24" not in dynamic.text
-    ip_search = client.get(f"/devices/{modern_id}/configuration?section=ip_addresses&q=Old+backup")
+    ip_search = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=ip_addresses&q=Old+backup")
     assert ip_search.status_code == 200 and "203.0.113.20/24" in ip_search.text and "192.0.2.1/24" not in ip_search.text
 
-    routes = client.get(f"/devices/{modern_id}/configuration?section=routes")
+    routes = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=routes")
     assert routes.status_code == 200
     for marker in ("0.0.0.0/0", "192.0.2.254", "Primary default", "198.51.100.0/24", "Connected"):
         assert marker in routes.text, marker
-    defaults = client.get(f"/devices/{modern_id}/configuration?section=routes&state=default")
+    defaults = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=routes&state=default")
     assert defaults.status_code == 200 and "0.0.0.0/0" in defaults.text and "198.51.100.0/24" not in defaults.text
-    inactive = client.get(f"/devices/{modern_id}/configuration?section=routes&state=inactive")
+    inactive = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=routes&state=inactive")
     assert inactive.status_code == 200 and "198.51.100.0/24" in inactive.text and "203.0.113.0/24" not in inactive.text
-    route_search = client.get(f"/devices/{modern_id}/configuration?section=routes&q=Connected")
+    route_search = client.get(f"/api/ui/v1/devices/{modern_id}/configuration?section=routes&q=Connected")
     assert route_search.status_code == 200 and "192.0.2.128/25" in route_search.text and "Primary default" not in route_search.text
 
-    legacy_ips = client.get(f"/devices/{legacy_id}/configuration?section=ip_addresses")
-    legacy_routes = client.get(f"/devices/{legacy_id}/configuration?section=routes")
+    legacy_ips = client.get(f"/api/ui/v1/devices/{legacy_id}/configuration?section=ip_addresses")
+    legacy_routes = client.get(f"/api/ui/v1/devices/{legacy_id}/configuration?section=routes")
     for response in (legacy_ips, legacy_routes):
         assert response.status_code == 200
-        assert "Aggiorna sezione" in response.text and "Aggiorna tutto" in response.text
+        assert response.json()["can_refresh"] is True and response.json()["online"] is True
     assert "192.0.2.1/24" in legacy_ips.text and "0.0.0.0/0" in legacy_routes.text
 
-    print("Core 0.46 MikroTik IP and route health smoke passed in unified workspace")
+    print("Core 0.46 MikroTik IP and route health smoke passed")
 
 
 if __name__ == "__main__":

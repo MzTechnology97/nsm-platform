@@ -50,33 +50,20 @@ def main():
     overview = client.get(f"/api/ui/v1/devices/{legacy_id}")
     assert overview.status_code == 200 and "AA:BB:CC:43:00:01" in overview.text
     assert "monitor" in {tab["key"] for tab in overview.json()["tabs"]}, "legacy agents keep the monitor tab"
-    configuration = client.get(f"/devices/{legacy_id}/configuration")
-    assert configuration.status_code == 200
-    assert "Snapshot configurazione non disponibile" not in configuration.text
-    assert f'action="/devices/{legacy_id}/snapshot/resources"' in configuration.text
-    assert f'action="/devices/{legacy_id}/snapshot-all"' in configuration.text
-    diagnostics = client.get(f"/devices/{legacy_id}/diagnostics")
-    assert diagnostics.status_code == 200 and "NON DISP." in diagnostics.text
-    assert f"/devices/{legacy_id}/diagnostics/jobs/{diagnostic_id}" in diagnostics.text
-    token = csrf(diagnostics.text)
-    snapshot_queued = client.post(
-        f"/devices/{legacy_id}/snapshot/resources",
-        data={"csrf":token},
-        follow_redirects=False,
-    )
-    assert snapshot_queued.status_code == 303
-    support_blocked = client.post(
-        f"/devices/{legacy_id}/diagnostics/support_snapshot",
-        data={"csrf":token},
-        follow_redirects=False,
-    )
-    assert support_blocked.status_code == 303
-    detail = client.get(f"/devices/{legacy_id}/diagnostics/jobs/{diagnostic_id}")
+    configuration = client.get(f"/api/ui/v1/devices/{legacy_id}/configuration")
+    assert configuration.status_code == 200 and configuration.json()["can_refresh"] is True
+    diagnostics = client.get(f"/api/ui/v1/devices/{legacy_id}/diagnostics").json()
+    assert diagnostics["transport"] == "legacy" and diagnostics["support_snapshot"] is False
+    assert str(diagnostic_id) in {job["id"] for job in diagnostics["jobs"]}
+    ui_headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    snapshot_queued = client.post(f"/api/ui/v1/devices/{legacy_id}/configuration/refresh", headers=ui_headers, json={"section": "resources"})
+    assert snapshot_queued.status_code == 200, snapshot_queued.text
+    support_blocked = client.post(f"/api/ui/v1/devices/{legacy_id}/diagnostics/support_snapshot", headers=ui_headers)
+    assert support_blocked.status_code == 409 and "Support snapshot non disponibile" in support_blocked.json()["detail"]["message"]
+    detail = client.get(f"/api/ui/v1/devices/{legacy_id}/diagnostics/jobs/{diagnostic_id}/output")
     assert detail.status_code == 200 and "8.8.8.8" in detail.text and "12ms" in detail.text
-    modern_configuration = client.get(f"/devices/{modern_id}/configuration")
-    assert modern_configuration.status_code == 200
-    assert f'action="/devices/{modern_id}/snapshot/resources"' in modern_configuration.text
-    assert f'action="/devices/{modern_id}/snapshot-all"' in modern_configuration.text
+    modern_refresh = client.post(f"/api/ui/v1/devices/{modern_id}/configuration/refresh", headers=ui_headers, json={"section": "all"})
+    assert modern_refresh.status_code == 200 and modern_refresh.json()["queued"] is True, modern_refresh.text
     print("Core 0.43 real-device workspace UX smoke passed")
 
 

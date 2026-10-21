@@ -60,11 +60,8 @@ def main():
     api = client.get(f"/api/v1/devices/{device_id}/uisp-metrics?range=7d")
     assert api.status_code == 200 and [c["id"] for c in api.json()["charts"]] == ["signal", "capacity", "resources"]
     assert client.get(f"/api/v1/devices/{device_id}/uisp-metrics?range=bad").status_code == 400
-    response = client.get(f"/devices/{device_id}/uisp")
-    page = response.text
-    assert response.status_code == 200, (response.status_code, page[:300])
-    assert "data-series-root" in page and "series_chart.js" in page and "Grafici UISP" in page
-    assert page.index("rrd_chart.js") < page.index("series_chart.js"), "shared Cacti-style renderer loads first"
+    tab = client.get(f"/api/ui/v1/devices/{device_id}/uisp").json()
+    assert tab["can"]["metrics"] is True and tab["metrics"]["count"] >= 1, "the UISP tab offers the charts"
     assert TestClient(app).get(f"/api/v1/devices/{device_id}/uisp-metrics").status_code == 401
     print("UISP graphs smoke passed")
 

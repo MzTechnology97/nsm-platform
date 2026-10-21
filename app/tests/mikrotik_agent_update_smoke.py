@@ -94,15 +94,11 @@ def auth_headers(device_id):
 
 
 def queue_update(client, device_id):
-    page = client.get(f"/devices/{device_id}/agent")
-    assert page.status_code == 200
-    token = _csrf(page.text)
-    response = client.post(
-        f"/devices/{device_id}/agent/update",
-        data={"csrf": token},
-        follow_redirects=False,
-    )
-    assert response.status_code == 303, response.text
+    page = client.get(f"/api/ui/v1/devices/{device_id}/agent")
+    assert page.status_code == 200 and page.json()["actions"]["update"] is True, page.text
+    token = client.get("/api/ui/v1/session").json()["csrf_token"]
+    response = client.post(f"/api/ui/v1/devices/{device_id}/agent/update", headers={"X-CSRF-Token": token})
+    assert response.status_code == 200, response.text
     with SessionLocal() as db:
         jobs = list(
             db.scalars(

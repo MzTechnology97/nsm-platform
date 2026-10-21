@@ -64,7 +64,7 @@ def main():
     devices = tech.get("/api/ui/v1/devices").text
     assert f"TEST-CS-ALPHA-{suffix}" in devices and f"TEST-CS-BETA-{suffix}" not in devices
     assert tech.get(f"/api/ui/v1/devices/{ids['dev_a']}").status_code == 200
-    for path in (f"/api/ui/v1/devices/{ids['dev_b']}", f"/api/ui/v1/devices/{ids['dev_b']}/syslog", f"/devices/{ids['dev_b']}/exposure", f"/api/ui/v1/customers/{ids['beta']}"):
+    for path in (f"/api/ui/v1/devices/{ids['dev_b']}", f"/api/ui/v1/devices/{ids['dev_b']}/syslog", f"/api/ui/v1/devices/{ids['dev_b']}/exposure", f"/api/ui/v1/customers/{ids['beta']}"):
         assert tech.get(path).status_code == 404, path
     customers = tech.get("/api/ui/v1/customers").text
     assert f"CI Scope Alpha {suffix}" in customers and f"CI Scope Beta {suffix}" not in customers
@@ -78,8 +78,8 @@ def main():
         response = tech.get(page)
         assert response.status_code == 200 and f"TEST-CS-BETA-{suffix}" not in response.text and f"CI Scope Beta {suffix}" not in response.text, page
     # Writes on another customer's objects fail like a missing object.
-    page = tech.get(f"/devices/{ids['dev_a']}/exposure").text
-    assert tech.post(f"/devices/{ids['dev_b']}/exposure/check", data={"csrf": csrf_from(page)}).status_code == 404
+    tech_headers = {"X-CSRF-Token": tech.get("/api/ui/v1/session").json()["csrf_token"]}
+    assert tech.post(f"/api/ui/v1/devices/{ids['dev_b']}/exposure/check", headers=tech_headers).status_code == 404
 
     # A customer created by the limited user joins the scope.
     created = tech.post("/api/ui/v1/customers", headers={"X-CSRF-Token": tech.get("/api/ui/v1/session").json()["csrf_token"]},

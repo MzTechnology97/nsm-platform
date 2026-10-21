@@ -1,4 +1,5 @@
 """Shared addresses: header badge, port forwards toward devices behind NAT, Zabbix on shared IPs."""
+import json
 import re
 import uuid
 
@@ -73,11 +74,11 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-ss-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    cam_page = client.get(f"/devices/{ids['cam']}/exposure").text
-    assert "Raggiungibile da Internet tramite port forward" in cam_page and "192.0.2.20:80" in cam_page and "IP condiviso" in cam_page
-    assert "condiviso (1)" in cam_page, "header badge on shared management IP"
-    router_page = client.get(f"/devices/{ids['router']}/exposure").text
-    assert "Port forward verso la rete interna" in router_page and "webcam" in router_page
+    cam_page = client.get(f"/api/ui/v1/devices/{ids['cam']}/exposure").json()
+    assert [peer["id"] for peer in cam_page["shared_peers"]] == [str(ids["router"])], "one other device on the shared management IP"
+    assert cam_page["forwards_in"] and "192.0.2.20" in json.dumps(cam_page["forwards_in"]), cam_page["forwards_in"]
+    router_page = client.get(f"/api/ui/v1/devices/{ids['router']}/exposure").json()
+    assert "webcam" in json.dumps(router_page["exposure"]), "the router lists its port forward towards the internal network"
 
     # Zabbix: both hosts on the shared address are tagged; an override separates the camera.
     with SessionLocal() as db:

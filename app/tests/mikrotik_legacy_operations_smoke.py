@@ -60,14 +60,18 @@ def main():
 
     client = TestClient(app)
     assert client.post("/login", data={"username": f"ci-lo-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
-    page = client.get(f"/devices/{device_id}/firmware-upgrade").text
-    assert "Aggiornamento RouterOS con agent legacy" in page and "AGGIORNA 7.20.4" in page
-    assert "in sola lettura" in client.get(f"/devices/{readonly_id}/firmware-upgrade").text
-    token = csrf_from(page)
-    url = f"/devices/{device_id}/legacy-upgrade"
-    assert "export/backup recente" in client.post(url, data={"csrf": token, "confirmation": "AGGIORNA 7.20.4"}, follow_redirects=True).text
-    assert "scrivi esattamente AGGIORNA 7.20.4" in client.post(url, data={"csrf": token, "confirmation": "AGGIORNA", "backup_ack": "on"}, follow_redirects=True).text
-    assert "in coda" in client.post(url, data={"csrf": token, "confirmation": "AGGIORNA 7.20.4", "backup_ack": "on"}, follow_redirects=True).text
+    def legacy_upgrade(device_id):
+        return client.get(f"/api/ui/v1/devices/{device_id}/firmware-upgrade").json()["legacy"]
+
+    page = legacy_upgrade(device_id)
+    assert page["blocker"] is None and page["target"] == "7.20.4" and page["confirmation"] == "AGGIORNA 7.20.4"
+    assert "sola lettura" in legacy_upgrade(readonly_id)["blocker"]
+    ui_headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    url = f"/api/ui/v1/devices/{device_id}/legacy-upgrade"
+    assert client.post(url, headers=ui_headers, json={"confirmation": "AGGIORNA 7.20.4"}).json()["detail"]["code"] == "backup_ack"
+    assert client.post(url, headers=ui_headers, json={"confirmation": "AGGIORNA", "backup_ack": True}).json()["detail"]["code"] == "confirmation"
+    queued = client.post(url, headers=ui_headers, json={"confirmation": "AGGIORNA 7.20.4", "backup_ack": True})
+    assert queued.status_code == 200 and queued.json()["target"] == "7.20.4", queued.text
 
     headers = {"X-NSM-Legacy-Transport": "headers-v1", "X-NSM-Device-ID": str(device_id), "X-NSM-Device-Secret": raw_secret,
                "X-NSM-Agent-Version": "0.49.6-legacy", "X-NSM-RouterOS": "7.12.1", "X-NSM-Uptime": "9d01:05:00"}
@@ -101,19 +105,20 @@ def main():
         data["firmware_readiness"] = {**data["firmware_readiness"], "latest_version": "8.0.1", "checked_at": utcnow().isoformat()}
         device.inventory_data = data
         db.commit()
-    assert "versioni major" in client.get(f"/devices/{device_id}/firmware-upgrade").text
+    assert "versioni major" in legacy_upgrade(device_id)["blocker"]
     with SessionLocal() as db:
         device = db.get(Device, device_id)
         data = dict(device.inventory_data)
         data["firmware_readiness"] = {**data["firmware_readiness"], "latest_version": "7.21", "checked_at": (utcnow() - timedelta(hours=30)).isoformat()}
         device.inventory_data = data
         db.commit()
-    assert "più di 24 ore" in client.get(f"/devices/{device_id}/firmware-upgrade").text
+    assert "più di 24 ore" in legacy_upgrade(device_id)["blocker"]
 
     # Controlled reboot through the legacy transport.
-    reboot_page = client.get(f"/devices/{device_id}/reboot").text
-    assert "Riavvia TEST-LO-712" in reboot_page
-    assert "Riavvio in coda" in client.post(f"/devices/{device_id}/reboot", data={"csrf": token, "confirmation": "RIAVVIA", "reason": "TEST blocco radio"}, follow_redirects=True).text
+    reboot_url = f"/api/ui/v1/devices/{device_id}/reboot"
+    reboot_page = client.get(reboot_url).json()
+    assert reboot_page["blocker"] is None and reboot_page["name"] == "TEST-LO-712"
+    assert client.post(reboot_url, headers=ui_headers, json={"confirm_name": "TEST-LO-712", "reason": "TEST blocco radio"}).status_code == 200
     with SessionLocal() as db:
         reboot_id = db.scalar(select(DeviceJob.id).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "device_reboot"))
     headers["X-NSM-RouterOS"] = "7.20.4"
@@ -127,7 +132,7 @@ def main():
         db.commit()
     client.post("/api/v1/agents/mikrotik/heartbeat-legacy", headers={**headers, "X-NSM-Uptime": "40s"}, content=b"")
     assert verify_reboots()["verified"] == 1
-    assert "Riavvio verificato" in client.get(f"/devices/{device_id}/reboot").text
+    assert client.get(reboot_url).json()["state"]["status"] == "verified"
     print("MikroTik legacy reboot/upgrade smoke passed")
 
 

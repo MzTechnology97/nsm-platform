@@ -11,15 +11,13 @@ import secrets
 import uuid
 from datetime import timedelta
 
-from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app.agent_models import DeviceAgentCredential, DeviceJob
 from app.backup_core import _effective_policy, _policy_settings
-from app.db import SessionLocal
 from app.firmware_plan_recovery import withdraw_jobs_for_cancel
 from app.firmware_upgrade_models import FirmwareUpgradePlan
 from app.mikrotik_backup import _backup_formats
@@ -251,67 +249,6 @@ def open_plan(db, device: Device, user) -> tuple[uuid.UUID, bool]:
     return plan.id, True
 
 
-@router.post("/devices/{device_id}/firmware-upgrade/plan", name="create_firmware_upgrade_plan")
-def create_plan(request: Request, device_id: uuid.UUID, csrf: str = Form(...)):
-    core.validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "firmware.execute")
-        device = _load_device(db, device_id)
-        plan_id, _ = open_plan(db, device, user)
-        db.commit()
-        return RedirectResponse(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}", status_code=303)
-
-
-@router.get("/devices/{device_id}/firmware-upgrade", response_class=HTMLResponse, name="firmware_upgrade_plan_page")
-def plan_page(request: Request, device_id: uuid.UUID, plan: str | None = None):
-    with SessionLocal() as db:
-        user = core.current_user(request, db)
-        if not user:
-            return core.login_redirect()
-        if not core.has_permission(user, "firmware.read"):
-            raise HTTPException(403)
-        device = _load_device(db, device_id)
-        stmt = select(FirmwareUpgradePlan).where(FirmwareUpgradePlan.device_id == device.id)
-        if plan:
-            try:
-                stmt = stmt.where(FirmwareUpgradePlan.id == uuid.UUID(plan))
-            except ValueError:
-                raise HTTPException(400, "Piano firmware non valido.")
-        stmt = stmt.order_by(FirmwareUpgradePlan.created_at.desc()).limit(1)
-        upgrade_plan = db.scalar(stmt)
-        backup_run = None
-        if upgrade_plan:
-            sync_plan_status(db, upgrade_plan)
-            backup_run = db.get(BackupRun, upgrade_plan.backup_run_id) if upgrade_plan.backup_run_id else None
-            db.commit()
-        return core.render(
-            request,
-            db,
-            user,
-            "firmware_upgrade_plan.html",
-            device=device,
-            plan=upgrade_plan,
-            backup_run=backup_run,
-            readiness=_readiness(device),
-        )
-
-
-@router.post("/devices/{device_id}/firmware-upgrade/{plan_id}/approve", name="approve_firmware_upgrade_plan")
-def approve_plan(
-    request: Request,
-    device_id: uuid.UUID,
-    plan_id: uuid.UUID,
-    csrf: str = Form(...),
-    confirmation: str = Form(...),
-):
-    core.validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "firmware.execute")
-        device = _load_device(db, device_id)
-        approve_record(db, user, device, plan_id, confirmation)
-    return RedirectResponse(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}&approved=1", status_code=303)
-
-
 def device_plan(db, device: Device, plan_id: uuid.UUID) -> FirmwareUpgradePlan:
     plan = db.get(FirmwareUpgradePlan, plan_id)
     if not plan or plan.device_id != device.id:
@@ -363,16 +300,6 @@ def approve_record(db, user, device: Device, plan_id: uuid.UUID, confirmation: s
     )
     db.commit()
     return plan
-
-
-@router.post("/devices/{device_id}/firmware-upgrade/{plan_id}/cancel", name="cancel_firmware_upgrade_plan")
-def cancel_plan(request: Request, device_id: uuid.UUID, plan_id: uuid.UUID, csrf: str = Form(...)):
-    core.validate_csrf(request, csrf)
-    with SessionLocal() as db:
-        user = core.require_permission(request, db, "firmware.execute")
-        device = _load_device(db, device_id)
-        cancel_record(db, user, device, plan_id)
-    return RedirectResponse(f"/devices/{device_id}/firmware-upgrade?plan={plan_id}", status_code=303)
 
 
 def cancel_record(db, user, device: Device, plan_id: uuid.UUID) -> FirmwareUpgradePlan:

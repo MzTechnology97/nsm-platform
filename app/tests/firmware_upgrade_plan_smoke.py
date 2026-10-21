@@ -158,15 +158,11 @@ def main():
     assert firmware_page.status_code == 200
     rows = {row["name"]: row for row in firmware_page.json()["items"]}
     assert rows["CI31 Modern MikroTik"]["can_plan"] is True, "the worklist offers the upgrade plan"
-    csrf = client.get("/api/ui/v1/session").json()["csrf_token"]
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
 
-    create = client.post(
-        f"/devices/{modern_id}/firmware-upgrade/plan",
-        data={"csrf": csrf},
-        follow_redirects=False,
-    )
-    assert create.status_code == 303, create.text
-    assert "/firmware-upgrade?plan=" in create.headers["location"]
+    create = client.post(f"/api/ui/v1/devices/{modern_id}/firmware-upgrade/plan", headers=headers)
+    assert create.status_code == 200, create.text
+    assert create.json()["created"] is True
 
     with SessionLocal() as db:
         plan = db.scalar(
@@ -195,41 +191,22 @@ def main():
         run.completed_at = utcnow()
         db.commit()
 
-    plan_page = client.get(f"/devices/{modern_id}/firmware-upgrade?plan={plan_id}")
-    assert plan_page.status_code == 200
-    assert "Piano firmware pronto" in plan_page.text
-    assert "Gate di sicurezza" in plan_page.text
-    assert "Backup off-device" in plan_page.text
-    assert "Approvazione operatore" in plan_page.text
-    assert "UPGRADE 7.21.1" in plan_page.text
+    api = f"/api/ui/v1/devices/{modern_id}/firmware-upgrade"
+    plan_page = client.get(f"{api}?plan={plan_id}").json()["plan"]
+    assert plan_page["id"] == str(plan_id) and plan_page["backup_status"] == "success"
+    assert plan_page["confirmations"]["approve"] == "UPGRADE 7.21.1"
 
     with SessionLocal() as db:
         plan = db.get(FirmwareUpgradePlan, plan_id)
         assert plan.status == "ready"
         assert plan.ready_at is not None
 
-    approve_csrf = csrf_from(plan_page.text)
-    wrong = client.post(
-        f"/devices/{modern_id}/firmware-upgrade/{plan_id}/approve",
-        data={"csrf": approve_csrf, "confirmation": "UPGRADE WRONG"},
-        follow_redirects=False,
-    )
-    assert wrong.status_code == 303
-    wrong_page = client.get(wrong.headers["location"])
-    assert "Conferma non valida" in wrong_page.text
-    assert "UPGRADE 7.21.1" in wrong_page.text
+    wrong = client.post(f"{api}/{plan_id}/approve", headers=headers, json={"confirmation": "UPGRADE WRONG"})
+    assert wrong.status_code == 422 and "UPGRADE 7.21.1" in wrong.json()["detail"]["message"], wrong.text
 
-    approve_page = client.get(f"/devices/{modern_id}/firmware-upgrade?plan={plan_id}")
-    approve_csrf = csrf_from(approve_page.text)
-    approved = client.post(
-        f"/devices/{modern_id}/firmware-upgrade/{plan_id}/approve",
-        data={"csrf": approve_csrf, "confirmation": "UPGRADE 7.21.1"},
-        follow_redirects=False,
-    )
-    assert approved.status_code == 303, approved.text
-    approved_page = client.get(approved.headers["location"])
-    assert "Piano firmware approvato" in approved_page.text
-    assert "non scarica pacchetti" in approved_page.text
+    approved = client.post(f"{api}/{plan_id}/approve", headers=headers, json={"confirmation": "UPGRADE 7.21.1"})
+    assert approved.status_code == 200, approved.text
+    assert client.get(f"{api}?plan={plan_id}").json()["plan"]["status"] == "approved"
 
     with SessionLocal() as db:
         plan = db.get(FirmwareUpgradePlan, plan_id)
@@ -249,20 +226,15 @@ def main():
         )
         assert execution_jobs == [], "Planning/approval must not queue activation or reboot jobs"
 
-    legacy_csrf = client.get("/api/ui/v1/session").json()["csrf_token"]
-    legacy_attempt = client.post(
-        f"/devices/{legacy_id}/firmware-upgrade/plan",
-        data={"csrf": legacy_csrf},
-        follow_redirects=False,
-    )
-    assert legacy_attempt.status_code == 303
+    legacy_attempt = client.post(f"/api/ui/v1/devices/{legacy_id}/firmware-upgrade/plan", headers=headers)
+    assert legacy_attempt.status_code in {404, 422}, legacy_attempt.text
     with SessionLocal() as db:
         assert db.scalar(select(FirmwareUpgradePlan).where(FirmwareUpgradePlan.device_id == legacy_id)) is None, "no plan for RouterOS < 7.13"
 
-    assert str(app.url_path_for("create_firmware_upgrade_plan", device_id=str(modern_id))) == f"/devices/{modern_id}/firmware-upgrade/plan"
-    assert str(app.url_path_for("firmware_upgrade_plan_page", device_id=str(modern_id))) == f"/devices/{modern_id}/firmware-upgrade"
+    moved = client.get(f"/devices/{modern_id}/firmware-upgrade", follow_redirects=False)
+    assert moved.status_code == 302 and moved.headers["location"] == f"/app/devices/{modern_id}/firmware-upgrade"
 
-    print("Core 0.31 safe firmware upgrade planning smoke passed with contextual UI feedback")
+    print("Core 0.31 safe firmware upgrade planning smoke passed")
 
 
 if __name__ == "__main__":
