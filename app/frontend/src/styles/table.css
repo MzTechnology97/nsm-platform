@@ -758,3 +758,77 @@
   margin-top: var(--space-3);
   font-size: 12px;
 }
+
+/* Planned maintenance on the SLA page. */
+.ui-maintenance {
+  margin-top: var(--space-4);
+}
+
+.ui-maintenance-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ui-maintenance-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border);
+}
+
+.ui-maintenance-list li:first-child {
+  border-top: 0;
+}
+
+.ui-maintenance-list .ui-status {
+  min-width: 110px;
+  padding-top: 2px;
+}
+
+.ui-maintenance-body {
+  flex: 1 1 260px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ui-maintenance-device {
+  display: inline-flex;
+}
+
+.ui-maintenance-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+
+.ui-maintenance-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.ui-maintenance-form input,
+.ui-maintenance-form select {
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
+.ui-maintenance-reason,
+.ui-maintenance-actions {
+  grid-column: 1 / -1;
+}

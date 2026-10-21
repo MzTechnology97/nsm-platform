@@ -201,6 +201,24 @@ class AuditEvent(Base):
     details: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
+class MaintenanceWindow(Base):
+    """Planned maintenance: a period when a customer's devices (all, or one) may be down without counting against availability or the SLA."""
+
+    __tablename__ = "maintenance_windows"
+    __table_args__ = (Index("ix_maintenance_windows_period", "starts_at", "ends_at"), Index("ix_maintenance_windows_customer", "customer_id"))
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    customer_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
+    # None: every device of the customer.
+    device_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("devices.id", ondelete="CASCADE"))
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_by_name: Mapped[str | None] = mapped_column(String(150))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
 class DeviceJournalEntry(Base):
     """Device logbook: what an operator did or saw on a device (site visit, replacement, customer call...).
 

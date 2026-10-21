@@ -4873,7 +4873,7 @@
     "empty": "Nessun cliente.",
     "unmeasured_one": "{{count}} apparato del cliente non ha il monitoraggio ping: non entra nel calcolo.",
     "unmeasured_other": "{{count}} apparati del cliente non hanno il monitoraggio ping: non entrano nel calcolo.",
-    "method": "Disponibilità: quota di controlli ping riusciti (3 echo ogni 2 minuti dal server NSM, basta una risposta), media degli apparati del cliente pesata sui controlli. Gli apparati sotto obiettivo sono confrontati con l'obiettivo del cliente, o con il {{target}}% se non è concordato. Il monitoraggio ping si attiva per apparato da Monitor.",
+    "method": "Disponibilità: quota di controlli ping riusciti (3 echo ogni 2 minuti dal server NSM, basta una risposta), media degli apparati del cliente pesata sui controlli. Gli apparati sotto obiettivo sono confrontati con l'obiettivo del cliente, o con il {{target}}% se non è concordato. Il monitoraggio ping si attiva per apparato da Monitor. I periodi di manutenzione programmata sono esclusi.",
     "customerTarget": "Obiettivo SLA {{value}}% · vedi andamento",
     "device": {
       "name": "Apparato",
@@ -4886,6 +4886,41 @@
     "errors": {
       "target": "L'obiettivo deve essere un numero tra 50 e 100.",
       "month": "Mese non valido."
+    },
+    "maintenanceExcluded": "manutenzione esclusa {{value}}"
+  },
+  "maintenance": {
+    "title": "Manutenzioni programmate",
+    "help": "Periodi in cui gli apparati di un cliente (tutti o uno) possono essere fermi senza pesare su disponibilità e SLA.",
+    "tip": "Durante una finestra i controlli ping non contano né come attivi né come fermi. Una finestra su tutto il cliente riduce anche il mese su cui si calcola il budget. Una finestra scritta dopo il suo inizio è segnata come retroattiva: cambia una misura già fatta.",
+    "add": "Pianifica manutenzione",
+    "states": {
+      "planned": "Programmata",
+      "active": "In corso",
+      "done": "Conclusa"
+    },
+    "allDevices": "tutti gli apparati",
+    "retroactive": "Retroattiva: scritta dopo l'inizio, ha cambiato una disponibilità già misurata.",
+    "delete": "Elimina",
+    "confirmDelete": "Conferma eliminazione",
+    "empty": "Nessuna manutenzione nel mese.",
+    "customer": "Cliente",
+    "chooseCustomer": "Scegli il cliente…",
+    "device": "Apparato",
+    "starts": "Inizio",
+    "ends": "Fine",
+    "reason": "Motivo",
+    "reasonPlaceholder": "Es. sostituzione alimentatore, migrazione dorsale…",
+    "save": "Salva finestra",
+    "errors": {
+      "customer": "Scegli il cliente.",
+      "device": "L'apparato non appartiene al cliente.",
+      "starts_at": "Inizio non valido.",
+      "ends_at": "Fine non valida.",
+      "range": "La fine deve essere dopo l'inizio.",
+      "length": "Una finestra dura al massimo 7 giorni.",
+      "when": "La finestra deve essere entro un anno da oggi.",
+      "reason": "Indica il motivo (3–500 caratteri)."
     }
   }
 }

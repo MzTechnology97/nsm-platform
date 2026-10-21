@@ -8,7 +8,9 @@ rounds estimated as ``ceil(received / 3)``.  Outages are runs of consecutive
 rounds without any reply, measured on the full-resolution samples.
 
 Only devices with ICMP samples in the period are listed: without the monitor
-NSM has no measure of availability and never invents one.
+NSM has no measure of availability and never invents one.  Samples inside a
+planned maintenance window (``maintenance_windows``) are left out: that time
+counts neither as up nor as down.
 """
 from __future__ import annotations
 
@@ -19,6 +21,7 @@ from sqlalchemy import select
 
 from app.agent_models import DevicePingSample
 from app.icmp_monitor import COUNT
+from app.maintenance_windows import outside_maintenance
 from app.models import Device
 
 TARGET_PERCENT = 99.0
@@ -72,7 +75,7 @@ def report_section(db, device_ids, lower: datetime, upper: datetime, target: flo
         return {"devices": [], "measured": 0, "below_target": 0, "average": None, "target": target}
     samples: dict = {}
     for sample in db.scalars(select(DevicePingSample).where(DevicePingSample.device_id.in_(list(device_ids)), DevicePingSample.observed_at >= lower,
-                                                           DevicePingSample.observed_at < upper)
+                                                           DevicePingSample.observed_at < upper, outside_maintenance(db, lower, upper))
                              .order_by(DevicePingSample.device_id, DevicePingSample.observed_at)):
         samples.setdefault(sample.device_id, []).append(sample)
     devices = {d.id: d for d in db.scalars(select(Device).where(Device.id.in_(list(samples))))} if samples else {}
@@ -109,4 +112,5 @@ def render_report_section(doc, section: dict, number: int) -> None:
         [105, 85, 55, 50, 50, 55, 50, 61],
     )
     doc.paragraph("Un controllo (3 echo ogni 2 minuti dal server NSM) è considerato riuscito se almeno una risposta arriva. "
-                  "La misura vale dal punto di vista di NSM: comprende il percorso di rete fino all'apparato.", size=8.5, gray=0.35)
+                  "La misura vale dal punto di vista di NSM: comprende il percorso di rete fino all'apparato. "
+                  "I periodi di manutenzione programmata sono esclusi dal calcolo.", size=8.5, gray=0.35)

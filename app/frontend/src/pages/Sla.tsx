@@ -3,10 +3,12 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
-import { type SlaRow, type SlaVerdict, slaExportUrl, useSetSlaTarget, useSla, useSlaCustomer } from "../api/sla";
+import { type MaintenanceWindowRow, type SlaRow, type SlaVerdict, slaExportUrl, useCustomerDevices, useMaintenance, useMaintenanceActions, useSetSlaTarget, useSla,
+  useSlaCustomer } from "../api/sla";
+import { BrandIcon } from "../app/BrandIcon";
 import { InfoTip } from "../app/InfoTip";
 import { EmptyState, Loading } from "../app/States";
-import { formatDateTime } from "../lib/format";
+import { formatDateTime, fromLocalInput } from "../lib/format";
 
 const VERDICT_TONE: Record<SlaVerdict, string> = { met: "online", missed: "offline", not_measured: "warning", no_target: "unknown" };
 
@@ -91,6 +93,7 @@ export function Sla() {
           ) : (
             <EmptyState title={t("sla.empty")} />
           )}
+          <Maintenance month={search.month} customers={data.rows.map((row) => row.customer)} />
           <p className="ui-muted ui-sla-method">{t("sla.method", { target: data.default_target })}</p>
         </>
       )}
@@ -118,6 +121,7 @@ function SlaLine({ row, canEdit, open, onToggle, month }: { row: SlaRow; canEdit
         <td className="ui-nowrap">
           <strong className={row.verdict === "missed" ? "ui-text-danger" : undefined}>{percent(row.availability, i18n.language)}</strong>
           {row.downtime_minutes > 0 && <small className="ui-block ui-muted">{t("sla.downtime", { value: minutes(row.downtime_minutes, i18n.language) })}</small>}
+          {row.maintenance_minutes > 0 && <small className="ui-block ui-muted">{t("sla.maintenanceExcluded", { value: minutes(row.maintenance_minutes, i18n.language) })}</small>}
         </td>
         <td><Budget row={row} /></td>
         <td>
@@ -217,5 +221,126 @@ function CustomerDevices({ customerId, month }: { customerId: string; month?: st
       </table>
       {data.unmeasured > 0 && <p className="ui-muted">{t("sla.unmeasured", { count: data.unmeasured })}</p>}
     </div>
+  );
+}
+
+const STATE_TONE: Record<MaintenanceWindowRow["state"], string> = { planned: "pending_link", active: "warning", done: "unknown" };
+
+/** Planned maintenance of the month: periods when a customer's devices (all, or one) may be down without counting against the SLA. */
+function Maintenance({ month, customers }: { month?: string; customers: { id: string; name: string }[] }) {
+  const { t, i18n } = useTranslation();
+  const query = useMaintenance(month);
+  const data = query.data;
+  const [adding, setAdding] = useState(false);
+  return (
+    <section className="ui-panel ui-admin-section ui-maintenance">
+      <div className="ui-page-header-row">
+        <div>
+          <h2>{t("maintenance.title")} <InfoTip text={t("maintenance.tip")} /></h2>
+          <p className="ui-muted">{t("maintenance.help")}</p>
+        </div>
+        {data?.can_edit && !adding && <button type="button" className="ui-button" onClick={() => setAdding(true)}>{t("maintenance.add")}</button>}
+      </div>
+      {adding && <MaintenanceForm customers={customers} onDone={() => setAdding(false)} />}
+      {query.error ? (
+        <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
+      ) : !data ? (
+        <Loading />
+      ) : data.items.length ? (
+        <ul className="ui-maintenance-list">
+          {data.items.map((row) => <MaintenanceItem key={row.id} row={row} canEdit={data.can_edit} locale={i18n.language} />)}
+        </ul>
+      ) : (
+        <div className="ui-empty">{t("maintenance.empty")}</div>
+      )}
+    </section>
+  );
+}
+
+function MaintenanceItem({ row, canEdit, locale }: { row: MaintenanceWindowRow; canEdit: boolean; locale: string }) {
+  const { t } = useTranslation();
+  const { remove } = useMaintenanceActions();
+  const [confirm, setConfirm] = useState(false);
+  return (
+    <li>
+      <span className={`ui-status ui-status-${STATE_TONE[row.state]}`}>{t(`maintenance.states.${row.state}`)}</span>
+      <div className="ui-maintenance-body">
+        <strong>{row.customer.name}</strong>
+        {" · "}
+        {row.device ? (
+          <span className="ui-with-brand ui-maintenance-device">
+            <BrandIcon brand={row.device.brand} small />
+            <Link to="/devices/$deviceId" params={{ deviceId: row.device.id }}>{row.device.name}</Link>
+          </span>
+        ) : (
+          <span>{t("maintenance.allDevices")}</span>
+        )}
+        <small className="ui-block">
+          {formatDateTime(row.starts_at, locale)} → {formatDateTime(row.ends_at, locale)} ({minutes(row.minutes, locale)})
+        </small>
+        <small className="ui-block ui-muted">
+          {row.reason} · {[row.author, formatDateTime(row.created_at, locale)].filter(Boolean).join(", ")}
+        </small>
+        {row.retroactive && <small className="ui-block ui-text-warning">{t("maintenance.retroactive")}</small>}
+      </div>
+      {canEdit && (
+        <span className="ui-row-actions ui-grow-end">
+          {confirm ? (
+            <>
+              <button type="button" className="ui-button ui-button-danger ui-button-small" disabled={remove.isPending} onClick={() => remove.mutate(row.id)}>
+                {t("maintenance.confirmDelete")}
+              </button>
+              <button type="button" className="ui-button ui-button-ghost ui-button-small" onClick={() => setConfirm(false)}>{t("customerForm.cancel")}</button>
+            </>
+          ) : (
+            <button type="button" className="ui-link-button" onClick={() => setConfirm(true)}>{t("maintenance.delete")}</button>
+          )}
+        </span>
+      )}
+    </li>
+  );
+}
+
+function MaintenanceForm({ customers, onDone }: { customers: { id: string; name: string }[]; onDone: () => void }) {
+  const { t } = useTranslation();
+  const { create } = useMaintenanceActions();
+  const [customer, setCustomer] = useState("");
+  const [device, setDevice] = useState("");
+  const [starts, setStarts] = useState("");
+  const [ends, setEnds] = useState("");
+  const [reason, setReason] = useState("");
+  const devices = useCustomerDevices(customer);
+  const error = create.error instanceof ApiError
+    ? (create.error.code ? t(`maintenance.errors.${create.error.code}`, { defaultValue: create.error.message }) : create.error.message) : null;
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    create.mutate({ customer_id: customer, device_id: device || undefined, starts_at: fromLocalInput(starts), ends_at: fromLocalInput(ends), reason },
+      { onSuccess: onDone });
+  };
+  return (
+    <form className="ui-maintenance-form" onSubmit={submit}>
+      <label><span>{t("maintenance.customer")}</span>
+        <select value={customer} onChange={(event) => { setCustomer(event.target.value); setDevice(""); }} required>
+          <option value="">{t("maintenance.chooseCustomer")}</option>
+          {customers.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+        </select>
+      </label>
+      <label><span>{t("maintenance.device")}</span>
+        <select value={device} onChange={(event) => setDevice(event.target.value)} disabled={!customer}>
+          <option value="">{t("maintenance.allDevices")}</option>
+          {(devices.data?.items ?? []).map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+        </select>
+      </label>
+      <label><span>{t("maintenance.starts")}</span><input type="datetime-local" value={starts} onChange={(event) => setStarts(event.target.value)} required /></label>
+      <label><span>{t("maintenance.ends")}</span><input type="datetime-local" value={ends} min={starts || undefined} onChange={(event) => setEnds(event.target.value)} required /></label>
+      <label className="ui-maintenance-reason"><span>{t("maintenance.reason")}</span>
+        <input value={reason} onChange={(event) => setReason(event.target.value)} minLength={3} maxLength={500} required placeholder={t("maintenance.reasonPlaceholder")} />
+      </label>
+      <div className="ui-row-actions ui-maintenance-actions">
+        <button type="submit" className="ui-button" disabled={create.isPending}>{t("maintenance.save")}</button>
+        <button type="button" className="ui-button ui-button-ghost" onClick={onDone}>{t("customerForm.cancel")}</button>
+        {error && <small className="ui-backup-error">{error}</small>}
+      </div>
+    </form>
   );
 }

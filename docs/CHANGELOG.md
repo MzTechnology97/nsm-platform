@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.182 — 2026-10-21
+
+Planned maintenance windows
+- **Plan maintenance from the Customer SLA page.** Choose a customer, all its devices or just one, a start, an end (at most 7 days) and a reason.
+- **Excluded from the measure.** Ping checks inside a window count neither as up nor as down, in the SLA, the report availability section and the customer's 30-day availability.
+  - A window on the whole customer also shortens the month the downtime budget is computed on.
+  - The SLA table shows how much maintenance time was excluded.
+- **Retroactive windows stay visible.** A window written after it started is marked "retroactive", because it changed an availability already measured.
+- **Recorded in the activity log.** Every creation and deletion is recorded, and a window on one device also appears in that device's logbook events.
+- Needs `customers.write`. Migration 0045 (`maintenance_windows`).
 ## 0.49.181 — 2026-10-21
 
 Customer SLA
