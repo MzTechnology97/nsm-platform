@@ -6,6 +6,8 @@
 - ``GET /api/ui/v1/notifications``: active notifications newest first with
   the read state of the signed-in user (``main.notification_rows``);
   ``GET .../summary`` returns only the unread count for the top bar;
+- ``POST /api/ui/v1/notifications/archive`` / ``.../unarchive`` (``{"ids": [...]}``)
+  and ``.../archive-read``: personal archive (``archived=1`` on the list shows it);
 - ``POST /api/ui/v1/notifications/{id}/read`` and ``.../read-all`` mark them as
   read through the functions shared with the classic forms;
 - ``GET /api/ui/v1/profile``: account, second factor (pending secret and QR
@@ -82,10 +84,10 @@ def notifications_summary(request: Request):
 
 
 @router.get("/notifications")
-def notifications(request: Request):
+def notifications(request: Request, archived: int = 0):
     with SessionLocal() as db:
         user = ui_user(request, db)
-        rows = core.notification_rows(db, user)
+        rows = core.notification_rows(db, user, archived=bool(archived))
         device_ids = {n.device_id for n, _ in rows if n.device_id}
         devices = {d.id: d for d in db.scalars(select(Device).where(Device.id.in_(device_ids)))} if device_ids else {}
         return jsonable_encoder({
@@ -95,7 +97,41 @@ def notifications(request: Request):
                 "advisory_id": str(n.advisory_id) if n.advisory_id else None, "device": device_ref(devices.get(n.device_id)),
             } for n, is_read in rows],
             "unread": _unread_count(db, user),
+            "archived": core.archived_notification_count(db, user),
         })
+
+
+def _ids(body: dict) -> list[uuid.UUID]:
+    out = []
+    for value in body.get("ids") or []:
+        try:
+            out.append(uuid.UUID(str(value)))
+        except ValueError:
+            continue
+    return out
+
+
+@router.post("/notifications/archive", dependencies=[Depends(require_csrf)])
+def notifications_archive(request: Request, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db)
+        changed = core.archive_notifications_record(db, user, _ids(body), archive=True)
+        return {"archived": changed, "unread": _unread_count(db, user)}
+
+
+@router.post("/notifications/unarchive", dependencies=[Depends(require_csrf)])
+def notifications_unarchive(request: Request, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db)
+        changed = core.archive_notifications_record(db, user, _ids(body), archive=False)
+        return {"restored": changed, "unread": _unread_count(db, user)}
+
+
+@router.post("/notifications/archive-read", dependencies=[Depends(require_csrf)])
+def notifications_archive_read(request: Request):
+    with SessionLocal() as db:
+        user = ui_user(request, db)
+        return {"archived": core.archive_read_notifications_record(db, user), "unread": _unread_count(db, user)}
 
 
 @router.post("/notifications/read-all", dependencies=[Depends(require_csrf)])

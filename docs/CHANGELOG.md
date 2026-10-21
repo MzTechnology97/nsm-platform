@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.191 — 2026-10-21
+
+Archive notifications
+- **Archive notifications from the Notifications page.**
+  - "Archive" on each notification, or "Archive the read ones" to clear every notification already read in one click.
+  - Archived notifications leave your list and the bell count. Archiving also marks them read.
+- **New "Archived" filter.** It shows what you archived, and "Restore" brings a notification back.
+- **The archive is personal.** Notifications are shared, so archiving one hides it only for you; other users keep seeing it, just like the read state.
+- Migration 0047 (`notification_reads.archived_at`).
 ## 0.49.190 — 2026-10-21
 
 Device page fixes

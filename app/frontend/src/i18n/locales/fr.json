@@ -3014,7 +3014,8 @@
     "readAll": "Tout marquer comme lu",
     "show": {
       "all": "Toutes",
-      "unread": "Non lues"
+      "unread": "Non lues",
+      "archived": "Archivées"
     },
     "empty": "Aucune notification.",
     "noUnread": "Aucune notification non lue.",
@@ -3034,7 +3035,12 @@
       "firmware": "Firmware",
       "compliance": "Conformité",
       "other": "Autre"
-    }
+    },
+    "archive": "Archiver",
+    "restore": "Restaurer",
+    "archiveRead_one": "Archiver la lue",
+    "archiveRead_other": "Archiver les {{count}} lues",
+    "noArchived": "Aucune notification archivée."
   },
   "profile": {
     "title": "Profil",

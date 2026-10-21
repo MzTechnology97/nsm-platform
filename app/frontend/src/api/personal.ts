@@ -51,8 +51,23 @@ export interface NotificationItem {
   device: { id: string; name: string; brand: Brand; vendor: string | null; status: string } | null;
 }
 
-export const useNotifications = () =>
-  useQuery({ queryKey: ["notifications", "list"], queryFn: () => api<{ items: NotificationItem[]; unread: number }>("/api/ui/v1/notifications") });
+/** Active notifications of the signed-in user; ``archived`` lists the ones they archived instead. */
+export const useNotifications = (archived = false) =>
+  useQuery({
+    queryKey: ["notifications", "list", archived],
+    queryFn: () => api<{ items: NotificationItem[]; unread: number; archived: number }>(`/api/ui/v1/notifications${archived ? "?archived=1" : ""}`),
+    placeholderData: keepPreviousData,
+  });
+
+/** Personal archive: archive or restore some notifications, or archive every one already read. */
+export function useArchiveNotifications() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ action, ids = [] }: { action: "archive" | "unarchive" | "archive-read"; ids?: string[] }) =>
+      api<{ unread: number }>(`/api/ui/v1/notifications/${action}`, { method: "POST", body: JSON.stringify({ ids }) }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+}
 
 export const useUnreadNotifications = () =>
   useQuery({

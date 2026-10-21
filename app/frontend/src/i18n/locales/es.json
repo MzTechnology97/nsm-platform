@@ -3014,7 +3014,8 @@
     "readAll": "Marcar todas como leídas",
     "show": {
       "all": "Todas",
-      "unread": "Sin leer"
+      "unread": "Sin leer",
+      "archived": "Archivadas"
     },
     "empty": "No hay notificaciones.",
     "noUnread": "No hay notificaciones sin leer.",
@@ -3034,7 +3035,12 @@
       "firmware": "Firmware",
       "compliance": "Cumplimiento",
       "other": "Otro"
-    }
+    },
+    "archive": "Archivar",
+    "restore": "Restaurar",
+    "archiveRead_one": "Archivar la leída",
+    "archiveRead_other": "Archivar las {{count}} leídas",
+    "noArchived": "Ninguna notificación archivada."
   },
   "profile": {
     "title": "Perfil",
