@@ -160,9 +160,13 @@ a {
   flex-wrap: wrap;
 }
 
+/* Wide and ultrawide screens: the content grows up to 1920px and stays centred instead of hugging the sidebar. */
 .ui-content {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1920px;
+  margin-inline: auto;
   padding: var(--space-5);
-  max-width: 1600px;
 }
 
 /* Controls */

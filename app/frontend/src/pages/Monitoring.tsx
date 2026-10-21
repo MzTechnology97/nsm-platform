@@ -7,6 +7,7 @@ import { type Monitoring as Data, MONITORING_STATES, type MonitoringFilters, typ
 import { formatValue } from "../charts/format";
 import { formatRelative } from "../lib/format";
 import { FleetZabbixPanel } from "../app/ZabbixProblems";
+import { Loading } from "../app/States";
 
 export function Monitoring() {
   const { t } = useTranslation();
@@ -56,7 +57,7 @@ export function Monitoring() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : data.items.length ? (
         <>
           <div className="ui-data-wrap" aria-busy={query.isFetching}>

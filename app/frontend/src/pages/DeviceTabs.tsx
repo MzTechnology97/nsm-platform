@@ -7,6 +7,7 @@ import { type ExposureTab, type JobFilters, type PortForward, useDeviceComplianc
 import { BrandIcon } from "../app/BrandIcon";
 import { formatDateTime } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
+import { Loading } from "../app/States";
 
 const JOB_TONE: Record<string, string> = { completed: "online", succeeded: "online", success: "online", failed: "offline", error: "offline", expired: "offline",
   pending: "warning", delivered: "warning", running: "warning" };
@@ -22,7 +23,7 @@ export function DeviceActivity() {
   const query = useDeviceJobs(deviceId, { ...filters, q });
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const offset = data.offset;
   return (
     <section className="ui-panel ui-admin-section">
@@ -135,7 +136,7 @@ export function DeviceExposure() {
   const check = useExposureAction<undefined, { started: boolean; message: string }>(deviceId, "check");
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const exposure = data.exposure;
   const external = data.check_mode === "external";
   return (
@@ -254,7 +255,7 @@ export function DeviceCompliance() {
   const query = useDeviceCompliance(deviceId);
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   return (
     <section className="ui-panel ui-admin-section">
       <div className="ui-page-header-row">

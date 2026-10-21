@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { type ApiKeyRow, type ApiKeys, type NewToken, useApiKeyAction, useApiKeys } from "../api/admin";
 import { AdminTabs } from "../app/AdminTabs";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 const STATE_TONE: Record<string, string> = { active: "online", grace: "warning", expiring: "warning", expired: "offline", replaced: "offline", revoked: "offline" };
 
@@ -25,7 +26,7 @@ export function AdminApiKeys() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <>
           <Review data={data} />

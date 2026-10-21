@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { type OnboardingFilters, type OnboardingRow, useOnboarding, useOnboardingCommit, useOnboardingPreview } from "../api/admin";
 import { BrandIcon } from "../app/BrandIcon";
 import { useDebounced } from "../lib/hooks";
+import { Loading } from "../app/States";
 
 const STATES = ["new", "linkable", "linked", "blocked"] as const;
 const SELECTABLE = new Set(["new", "linkable"]);
@@ -113,7 +114,7 @@ export function UispOnboarding() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !first ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : items.length ? (
         <>
           <div className="ui-data-wrap" aria-busy={query.isFetching}>

@@ -8,6 +8,7 @@ import { FIRMWARE_STATES, type FirmwareFilters, type FirmwareRow, useFirmware, u
 import { useFirmwareAction } from "../api/deviceTabs";
 import { formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
+import { Loading } from "../app/States";
 
 const STATUS_TONE: Record<string, string> = {
   critical_security_update: "ui-severity ui-severity-critical",
@@ -73,7 +74,7 @@ export function Firmware() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !first ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : rows.length ? (
         <>
           <div className="ui-data-wrap" aria-busy={query.isFetching}>

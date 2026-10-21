@@ -26,7 +26,13 @@
     "integrations": "Integraciones",
     "admin": "Administración",
     "collapse": "Contraer menú",
-    "open": "Abrir menú"
+    "open": "Abrir menú",
+    "groups": {
+      "operations": "Operaciones",
+      "security": "Seguridad",
+      "governance": "Gobernanza",
+      "admin": "Plataforma"
+    }
   },
   "user": {
     "language": "Idioma",
@@ -34,7 +40,8 @@
     "light": "Claro",
     "dark": "Oscuro",
     "logout": "Cerrar sesión",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "system": "Sistema"
   },
   "errors": {
     "notFound": "Página no encontrada.",
@@ -85,7 +92,10 @@
       "degraded": "Degradado"
     },
     "signal": "señal {{value}} dBm",
-    "lan": "LAN {{ip}}"
+    "lan": "LAN {{ip}}",
+    "emptyHint": "Prueba con menos filtros o con otra búsqueda.",
+    "none": "Todavía no hay equipos",
+    "noneHint": "Añade un equipo desde la ficha de un cliente o impórtalos desde CSV."
   },
   "device": {
     "notFound": "Equipo no encontrado o no visible con tus permisos.",
@@ -4653,5 +4663,26 @@
     "since": "Desactivado el {{when}} por {{who}}",
     "effects": "Copias de seguridad, monitorización, sincronizaciones y controles quedan suspendidos; el agente es rechazado y las líneas syslog se descartan. El historial sigue disponible.",
     "reactivate": "Reactivar"
+  },
+  "palette": {
+    "title": "Ir a…",
+    "trigger": "Buscar o ir a…",
+    "placeholder": "Página, equipo, cliente, IP, MAC, número de serie…",
+    "recent": "Recientes",
+    "pages": "Páginas",
+    "devices": "Equipos",
+    "customers": "Clientes",
+    "sites": "Sedes",
+    "allResults": "Todos los resultados para «{{term}}»",
+    "noMatches": "No se ha encontrado ningún equipo, cliente o sede.",
+    "move": "mover",
+    "open": "abrir",
+    "close": "cerrar",
+    "kinds": {
+      "page": "Página",
+      "device": "Equipo",
+      "customer": "Cliente",
+      "site": "Sede"
+    }
   }
 }

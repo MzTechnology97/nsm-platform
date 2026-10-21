@@ -6,6 +6,7 @@ import { ApiError, setCsrfToken } from "../api/client";
 import { type ChannelPreference, type Profile as ProfileData, useProfile, useProfileAction } from "../api/personal";
 import { useSession, useUpdatePreferences } from "../api/session";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 const DELIVERY_TONE: Record<string, string> = { sent: "online", failed: "offline", pending: "warning" };
 
@@ -32,7 +33,7 @@ export function Profile() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <>
           <div className="ui-two-columns">
@@ -102,7 +103,7 @@ function Appearance() {
       <h2>{t("profile.appearance")}</h2>
       <p className="ui-muted">{t("profile.appearanceHelp")}</p>
       <div className="ui-chips" role="group" aria-label={t("profile.appearance")}>
-        {(["light", "dark"] as const).map((key) => (
+        {(["system", "light", "dark"] as const).map((key) => (
           <button key={key} type="button" className={`ui-chip${theme === key ? " is-active" : ""}`} aria-pressed={theme === key}
             disabled={update.isPending} onClick={() => update.mutate({ theme: key })}>
             {t(`user.${key}`)}

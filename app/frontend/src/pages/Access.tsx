@@ -7,6 +7,7 @@ import { BrandIcon } from "../app/BrandIcon";
 import { type LifecycleFilters, LIFECYCLE_STATES, useAccess, useLifecycle } from "../api/security";
 import { formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
+import { Loading } from "../app/States";
 
 const HOURS = [1, 24, 168, 720] as const;
 
@@ -39,7 +40,7 @@ export function Access() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <>
           <div className="ui-two-columns ui-section-gap">
@@ -179,7 +180,7 @@ export function Lifecycle() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !first ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : state === "unmatched" ? (
         groups.length ? (
           <div className="ui-data-wrap">

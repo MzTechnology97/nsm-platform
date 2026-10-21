@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { type AdminUser, type AdminUsers as Data, useAdminUsers, useUserAction } from "../api/admin";
 import { AdminTabs } from "../app/AdminTabs";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 export function AdminUsers() {
   const { t } = useTranslation();
@@ -22,7 +23,7 @@ export function AdminUsers() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <>
           <CreateUser data={data} />

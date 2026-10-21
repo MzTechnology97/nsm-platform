@@ -18,7 +18,7 @@ from app.security import (
 
 router = APIRouter()
 MAX_LOGO_BYTES = 2 * 1024 * 1024
-ALLOWED_THEMES = {"light", "dark"}
+ALLOWED_THEMES = {"light", "dark", "system"}
 HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
@@ -89,7 +89,7 @@ def ui_context(request: Request):
     """Jinja helper used by every page, including the unauthenticated login."""
     with SessionLocal() as db:
         branding = db.get(PlatformBranding, 1)
-        theme = "light"
+        theme = None  # signed out: the browser keeps the last theme (theme-init.js)
         raw = request.session.get("user_id")
         if raw:
             try:

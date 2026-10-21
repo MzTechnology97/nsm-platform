@@ -26,7 +26,13 @@
     "integrations": "Integrazioni",
     "admin": "Amministrazione",
     "collapse": "Comprimi menu",
-    "open": "Apri menu"
+    "open": "Apri menu",
+    "groups": {
+      "operations": "Operazioni",
+      "security": "Sicurezza",
+      "governance": "Governance",
+      "admin": "Piattaforma"
+    }
   },
   "user": {
     "language": "Lingua",
@@ -34,7 +40,8 @@
     "light": "Chiaro",
     "dark": "Scuro",
     "logout": "Esci",
-    "profile": "Profilo"
+    "profile": "Profilo",
+    "system": "Sistema"
   },
   "errors": {
     "notFound": "Pagina non trovata.",
@@ -85,7 +92,10 @@
       "degraded": "Degradato"
     },
     "signal": "segnale {{value}} dBm",
-    "lan": "LAN {{ip}}"
+    "lan": "LAN {{ip}}",
+    "emptyHint": "Prova con meno filtri o una ricerca diversa.",
+    "none": "Nessun apparato ancora",
+    "noneHint": "Aggiungi un apparato dalla scheda di un cliente o importali da CSV."
   },
   "device": {
     "notFound": "Apparato non trovato o non visibile con i tuoi permessi.",
@@ -4653,5 +4663,26 @@
     "since": "Disattivato il {{when}} da {{who}}",
     "effects": "Backup, monitoraggio, sincronizzazioni e controlli sono sospesi; l'agent viene rifiutato e i log syslog scartati. Lo storico resta consultabile.",
     "reactivate": "Riattiva"
+  },
+  "palette": {
+    "title": "Vai a…",
+    "trigger": "Cerca o vai a…",
+    "placeholder": "Pagina, apparato, cliente, IP, MAC, seriale…",
+    "recent": "Recenti",
+    "pages": "Pagine",
+    "devices": "Apparati",
+    "customers": "Clienti",
+    "sites": "Sedi",
+    "allResults": "Tutti i risultati per «{{term}}»",
+    "noMatches": "Nessun apparato, cliente o sede trovato.",
+    "move": "sposta",
+    "open": "apri",
+    "close": "chiudi",
+    "kinds": {
+      "page": "Pagina",
+      "device": "Apparato",
+      "customer": "Cliente",
+      "site": "Sede"
+    }
   }
 }

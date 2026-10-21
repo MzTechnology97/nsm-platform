@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { type SystemStatus, useSystemStatus } from "../api/admin";
 import { AdminTabs } from "../app/AdminTabs";
 import { formatBytes, formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 const CONNECTOR_TONE: Record<string, string> = { ok: "online", warning: "warning", error: "offline" };
 
@@ -23,7 +24,7 @@ export function AdminSystem() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <>
           <Version data={data} />

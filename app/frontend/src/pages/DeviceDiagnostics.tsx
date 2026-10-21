@@ -7,6 +7,7 @@ import { type BrandRef, BrandIcon } from "../app/BrandIcon";
 import { DIAGNOSTICS, type DiagnosticJob, type DiagnosticKind, type DiagnosticResult, type Diagnostics, RUNNING, useDiagnosticOutput, useDiagnostics, useRunDiagnostic } from "../api/diagnostics";
 import { diagnosticSummary } from "../lib/diagnostics";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 const FIELDS: Partial<Record<DiagnosticKind, { name: string; required: boolean; initial: string }[]>> = {
   ping: [{ name: "target", required: true, initial: "8.8.8.8" }, { name: "source", required: false, initial: "" }],
@@ -21,7 +22,7 @@ export function DeviceDiagnostics() {
   const data = query.data;
   const [open, setOpen] = useState<string | null>(null);
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const expanded = open ?? data.jobs.find((job) => job.status === "success" && job.result)?.id ?? null;
 
   return (
@@ -245,7 +246,7 @@ function SnapshotOutput({ deviceId, jobId }: { deviceId: string; jobId: string }
   const { t } = useTranslation();
   const query = useDiagnosticOutput(deviceId, jobId, true);
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!query.data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!query.data) return <Loading />;
   const { data, output } = query.data;
   if (data && typeof data === "object" && !Array.isArray(data)) {
     return (

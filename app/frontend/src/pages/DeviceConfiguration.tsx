@@ -6,6 +6,7 @@ import { ApiError } from "../api/client";
 import { type ConfigFilters, useConfigHistory, useConfigRefresh, useDeviceConfiguration, useSetBaseline } from "../api/deviceTabs";
 import { formatBytes, formatDateTime } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
+import { Loading } from "../app/States";
 
 type Spec = { states?: string[]; kinds?: string[]; columns: string[]; mono?: string[] };
 
@@ -36,7 +37,7 @@ export function DeviceConfiguration() {
   const refreshAll = useConfigRefresh(deviceId);
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const spec = SPEC[data.section];
   const view = data.view;
   const pending = data.pending.includes(data.section);
@@ -171,7 +172,7 @@ export function DeviceConfigurationHistory() {
   const setBaseline = useSetBaseline(deviceId);
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   return (
     <section className="ui-panel ui-admin-section">
       <div className="ui-page-header-row">

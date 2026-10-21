@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.176 — 2026-10-21
+
+UX foundations (UX-1): faster navigation, clearer loading and empty states
+- **Command palette.** Ctrl+K (⌘K on Mac), or the search field in the top bar, opens "Search or go to…": pages, then devices, customers and sites as you type, with vendor icon, status and customer. Recently opened items appear first. Enter opens, arrows move, Esc closes; "All results" opens the search page.
+- **Sidebar grouped.** Operations, Security, Governance and Platform headings. The portal name wraps on two lines instead of being cut.
+- **Loading placeholders.** Pages and lists show grey placeholders while they load, instead of a "Loading…" line. The device list no longer says "0 devices match the filters" while it is loading.
+- **Empty states.** The device list says whether nothing matches the filters (with "Reset filters" and the number of active filters) or no device exists yet (with what to do).
+- **Wide and ultrawide screens.** The content grows up to 1920px and stays centred, instead of stopping at 1600px against the sidebar with half the screen empty.
+- **Dashboard.** Every figure has its icon and the cards sit in a regular grid (4, 2 or 1 per row), with no card left alone on a row.
+- **Theme follows the system.** The profile offers System, Light and Dark. The theme is applied before the page draws, so a dark page no longer flashes white.
+- **Sign-in in four languages.** The login and two-step verification pages offer Italiano, English, Français and Español. They follow the browser language until you pick one. The choice, and the language used in the application, are remembered for the next sign-in.
 ## 0.49.175 — 2026-10-21
 
 Device decommission (Disattiva / Riattiva)

@@ -6,6 +6,7 @@ import { type IncidentForm, useCreateIncident, useIncidentForm } from "../api/in
 import { BrandIcon } from "../app/BrandIcon";
 import { fromLocalInput, toLocalInput } from "../lib/format";
 import { useFormError } from "./CustomerForm";
+import { Loading } from "../app/States";
 
 /** New incident: choose the customer (or arrive from a device), then title, severity, start and involved devices. */
 export function IncidentNew() {
@@ -29,7 +30,7 @@ export function IncidentNew() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : !data.customer ? (
         <section className="ui-panel ui-admin-section ui-form-narrow">
           <form className="ui-admin-form ui-admin-stack" onSubmit={(event) => event.preventDefault()}>

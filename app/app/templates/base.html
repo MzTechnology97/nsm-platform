@@ -1,6 +1,7 @@
 {% set ui = ui_context(request) %}
+{% set lang = auth_language(request) %}
 <!doctype html>
-<html lang="it" data-theme="{{ ui.theme or 'light' }}" data-server-theme="{{ ui.theme or '' }}">
+<html lang="{{ lang }}" data-theme="{{ ui.theme or 'light' }}" data-server-theme="{{ ui.theme or '' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -11,6 +12,9 @@
   <link rel="stylesheet" href="/branding/theme.css?v={{ app_version }}" data-runtime-branding>
 </head>
 <body>
-<main class="login-surface">{% block login_content %}{% endblock %}</main>
+<main class="login-surface">
+  <nav class="login-languages" aria-label="{{ auth_text(request, 'language') }}">{% for code, name in auth_languages.items() %}<a href="/login/language/{{ code }}?next={{ request.url.path }}" hreflang="{{ code }}" lang="{{ code }}"{% if code == lang %} aria-current="true"{% endif %}>{{ name }}</a>{% endfor %}</nav>
+  {% block login_content %}{% endblock %}
+</main>
 </body>
 </html>

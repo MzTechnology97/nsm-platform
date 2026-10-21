@@ -323,3 +323,37 @@ input[type="radio"] {
 .brand-mark {
   background: linear-gradient(135deg, var(--brand-primary, #1f5f8b), #0ea5e9); color: #fff;
 }
+
+/* Language selector of the sign-in pages. */
+.login-surface {
+  position: relative;
+}
+
+.login-languages {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.login-languages a {
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: inherit;
+  opacity: .72;
+  text-decoration: none;
+}
+
+.login-languages a:hover,
+.login-languages a:focus-visible {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.login-languages a[aria-current] {
+  opacity: 1;
+  font-weight: 700;
+}
+

@@ -6,6 +6,7 @@ import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
 import { COMPLIANCE_STATUSES, type ComplianceFilters, useCompliance, useComplianceEvaluate } from "../api/security";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 const CELL: Record<string, { mark: string; tone: string }> = {
   pass: { mark: "✓", tone: "is-pass" },
@@ -78,7 +79,7 @@ export function Compliance() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !first ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : items.length ? (
         <>
           <div className="ui-data-wrap" aria-busy={query.isFetching}>

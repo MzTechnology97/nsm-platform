@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { useIntegrations } from "../api/admin";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 const TONE: Record<string, string> = {
   active: "online", error: "offline", disabled: "offline", stale: "offline", partial: "warning", pending: "warning", unconfigured: "unknown", none: "unknown",
@@ -54,7 +55,7 @@ export function Integrations() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <div className="ui-integration-grid">
           <Card name="mikrotik-agent" title={t("integrations.agent.title")} help={t("integrations.agent.help")} state={data.agent.state}

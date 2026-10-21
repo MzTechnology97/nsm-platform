@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { type ArtifactFile, type DiffRow, useBackupArtifact } from "../api/backups";
 import { ApiError } from "../api/client";
 import { formatBytes, formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 const SIGN = { added: "+", removed: "−", context: " " } as const;
 
@@ -51,7 +52,7 @@ export function DeviceBackupArtifact() {
       </div>
     );
   }
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const { artifact, diff } = data;
 
   return (

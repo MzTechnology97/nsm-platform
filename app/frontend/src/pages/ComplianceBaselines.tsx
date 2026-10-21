@@ -6,6 +6,7 @@ import { type BaselineForm, type BaselineRow, type ControlMode, type ControlPara
 import { BrandIcon } from "../app/BrandIcon";
 import { formatDateTime } from "../lib/format";
 import { useFormError } from "./CustomerForm";
+import { Loading } from "../app/States";
 
 function TargetLabel({ row }: { row: BaselineRow }) {
   const { t } = useTranslation();
@@ -55,7 +56,7 @@ export function ComplianceBaselines() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : data.items.length ? (
         <div className="ui-data-wrap">
           <table className="ui-data-table">
@@ -133,7 +134,7 @@ function BaselinePage({ id }: { id?: string }) {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <BaselineEditor data={data} />
       )}

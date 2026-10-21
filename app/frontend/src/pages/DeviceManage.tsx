@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { type ManagedDevice, type MoveTarget, useCustomerDevicesManage, useDeviceManage, useDeviceWrite } from "../api/customer";
 import { BrandIcon } from "../app/BrandIcon";
 import { useFormError } from "./CustomerForm";
+import { Loading } from "../app/States";
 
 /** Customer and site pickers of a move: only the chosen customer's sites are offered. */
 function TargetFields({ targets, customerId, siteId, onChange }: {
@@ -33,11 +34,10 @@ function TargetFields({ targets, customerId, siteId, onChange }: {
 
 /** Device management tab: alias, customer and site; deletion confirmed by typing the device name. */
 export function DeviceManage() {
-  const { t } = useTranslation();
   const { deviceId } = useParams({ from: "/devices/$deviceId/manage" });
   const query = useDeviceManage(deviceId);
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!query.data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!query.data) return <Loading />;
   return (
     <div className="ui-two-columns">
       <EditDevice key={query.data.device.id} device={query.data.device} targets={query.data.targets} />
@@ -116,7 +116,7 @@ export function CustomerDevicesManage() {
   const [text, setText] = useState("");
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
 
   const term = text.trim().toLowerCase();
   const rows = term

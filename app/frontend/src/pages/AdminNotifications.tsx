@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { type NotificationAdmin, useNotificationAction, useNotificationAdmin } from "../api/admin";
 import { AdminTabs } from "../app/AdminTabs";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 const STATUS_FILTERS = ["", "pending", "sent", "failed"] as const;
 const DELIVERY_TONE: Record<string, string> = { sent: "online", failed: "offline", pending: "warning" };
@@ -25,7 +26,7 @@ export function AdminNotifications() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <>
           <div className="ui-two-columns">

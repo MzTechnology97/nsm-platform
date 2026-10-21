@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ApiError } from "../api/client";
 import { type FirmwarePlanTab, useFirmwareAction, useFirmwarePlan } from "../api/deviceTabs";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 type Plan = NonNullable<FirmwarePlanTab["plan"]>;
 const STATUS_TONE: Record<string, string> = { success: "online", cancelled: "offline", failed: "offline", ready: "online", approved: "online", staged: "online" };
@@ -73,7 +74,7 @@ export function DeviceFirmwareUpgrade() {
   const create = useFirmwareAction(deviceId, "firmware-upgrade/plan");
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const plan = data.plan;
   const active = plan && !["success", "cancelled", "failed"].includes(plan.status);
   const catalog = data.catalog;

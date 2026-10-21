@@ -26,7 +26,13 @@
     "integrations": "Intégrations",
     "admin": "Administration",
     "collapse": "Réduire le menu",
-    "open": "Ouvrir le menu"
+    "open": "Ouvrir le menu",
+    "groups": {
+      "operations": "Opérations",
+      "security": "Sécurité",
+      "governance": "Gouvernance",
+      "admin": "Plateforme"
+    }
   },
   "user": {
     "language": "Langue",
@@ -34,7 +40,8 @@
     "light": "Clair",
     "dark": "Sombre",
     "logout": "Se déconnecter",
-    "profile": "Profil"
+    "profile": "Profil",
+    "system": "Système"
   },
   "errors": {
     "notFound": "Page introuvable.",
@@ -85,7 +92,10 @@
       "degraded": "Dégradé"
     },
     "signal": "signal {{value}} dBm",
-    "lan": "LAN {{ip}}"
+    "lan": "LAN {{ip}}",
+    "emptyHint": "Essayez avec moins de filtres ou une autre recherche.",
+    "none": "Aucun équipement pour l'instant",
+    "noneHint": "Ajoutez un équipement depuis la fiche d'un client ou importez-les depuis un CSV."
   },
   "device": {
     "notFound": "Équipement introuvable ou non visible avec vos autorisations.",
@@ -4653,5 +4663,26 @@
     "since": "Désactivé le {{when}} par {{who}}",
     "effects": "Sauvegardes, supervision, synchronisations et contrôles sont suspendus ; l'agent est refusé et les lignes syslog sont ignorées. L'historique reste consultable.",
     "reactivate": "Réactiver"
+  },
+  "palette": {
+    "title": "Aller à…",
+    "trigger": "Rechercher ou aller à…",
+    "placeholder": "Page, équipement, client, IP, MAC, numéro de série…",
+    "recent": "Récents",
+    "pages": "Pages",
+    "devices": "Équipements",
+    "customers": "Clients",
+    "sites": "Sites",
+    "allResults": "Tous les résultats pour « {{term}} »",
+    "noMatches": "Aucun équipement, client ou site trouvé.",
+    "move": "déplacer",
+    "open": "ouvrir",
+    "close": "fermer",
+    "kinds": {
+      "page": "Page",
+      "device": "Équipement",
+      "customer": "Client",
+      "site": "Site"
+    }
   }
 }

@@ -6,6 +6,7 @@ import { type GenieacsAdmin, useConnectorAction, useGenieacsAdmin } from "../api
 import { AdminTabs } from "../app/AdminTabs";
 import { IntegrationTabs } from "../app/IntegrationTabs";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 const AUTH_MODES = ["none", "basic", "bearer"] as const;
 const FLOW = ["create", "search", "preview", "link"] as const;
@@ -30,7 +31,7 @@ export function AdminGenieacs() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <>
           <Integrated data={data} />

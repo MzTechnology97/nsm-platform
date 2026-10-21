@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { type CustomerFilter, type CustomerFilters, type CustomerRow, type CustomerSort, useCustomers } from "../api/customers";
 import type { DeviceFilters } from "../api/devices";
 import { useDebounced } from "../lib/hooks";
+import { Loading } from "../app/States";
 
 const CHIPS: { key: CustomerFilter; count: "all" | Exclude<CustomerFilter, ""> }[] = [
   { key: "", count: "all" },
@@ -69,7 +70,7 @@ export function Customers() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : data.items.length ? (
         <div className="ui-data-wrap" aria-busy={query.isFetching}>
           <table className="ui-data-table">

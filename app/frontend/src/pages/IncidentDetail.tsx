@@ -15,6 +15,7 @@ import {
 } from "../api/incidents";
 import { BrandIcon, type BrandRef } from "../app/BrandIcon";
 import { formatDateTime, formatSpan, fromLocalInput, toLocalInput } from "../lib/format";
+import { Loading } from "../app/States";
 
 const GENERIC: BrandRef = { symbol: "brand-generic", color: null, label: "", known: false };
 const SEVERITY_TONE: Record<string, string> = {
@@ -46,7 +47,7 @@ export function IncidentDetail() {
       </section>
     );
   }
-  if (!data) return <section className="ui-page"><div className="ui-empty">{t("app.loading")}</div></section>;
+  if (!data) return <section className="ui-page"><Loading /></section>;
   const { incident } = data;
 
   return (

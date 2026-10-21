@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ApiError } from "../api/client";
 import { useDeviceReboot, useDeviceRouterboot, useOperation } from "../api/deviceTabs";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 const JOB_TONE: Record<string, string> = { success: "online", completed: "online", failed: "offline", expired: "offline", pending: "warning", delivered: "warning", running: "warning" };
 const STATE_TONE: Record<string, string> = { verified: "online", success: "online", failed: "offline", queued: "warning", rebooting: "warning", staging: "warning",
@@ -24,7 +25,7 @@ export function DeviceReboot() {
   const [typed, setTyped] = useState("");
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const state = data.state;
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -117,7 +118,7 @@ export function DeviceRouterboot() {
   const query = useDeviceRouterboot(deviceId);
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const status = data.state.status ?? "idle";
   const busy = ["staging", "staged", "reboot_pending", "rebooting"].includes(status);
   const steps = [

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { type ReportPage, type ReportRow, type ReportSchedule, useReportAction, useReports } from "../api/admin";
 import { useDeviceFacets } from "../api/devices";
 import { formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 function formatSize(bytes: number, locale: string): string {
   const mb = bytes >= 1_048_576;
@@ -32,7 +33,7 @@ export function Reports() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !first ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <>
           {first.can_generate && <GenerateForm page={first} />}

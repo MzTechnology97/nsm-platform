@@ -9,6 +9,7 @@ import { describeCron } from "../lib/cron";
 import { formatDateTime, formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { Metric } from "./DeviceDetail";
+import { Loading } from "../app/States";
 
 const BUCKET_TONE = { protected: "ui-severity", blocked: "ui-severity ui-severity-warning", no_policy: "ui-severity ui-severity-high" } as const;
 
@@ -75,7 +76,7 @@ export function BackupsOverview() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : data.items.length ? (
         <>
           <div className="ui-data-wrap" aria-busy={query.isFetching}>

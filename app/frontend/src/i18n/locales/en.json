@@ -26,7 +26,13 @@
     "integrations": "Integrations",
     "admin": "Administration",
     "collapse": "Collapse menu",
-    "open": "Open menu"
+    "open": "Open menu",
+    "groups": {
+      "operations": "Operations",
+      "security": "Security",
+      "governance": "Governance",
+      "admin": "Platform"
+    }
   },
   "user": {
     "language": "Language",
@@ -34,7 +40,8 @@
     "light": "Light",
     "dark": "Dark",
     "logout": "Sign out",
-    "profile": "Profile"
+    "profile": "Profile",
+    "system": "System"
   },
   "errors": {
     "notFound": "Page not found.",
@@ -85,7 +92,10 @@
       "degraded": "Degraded"
     },
     "signal": "signal {{value}} dBm",
-    "lan": "LAN {{ip}}"
+    "lan": "LAN {{ip}}",
+    "emptyHint": "Try fewer filters or a different search.",
+    "none": "No devices yet",
+    "noneHint": "Add a device from a customer page or import them from CSV."
   },
   "device": {
     "notFound": "Device not found or not visible with your permissions.",
@@ -4653,5 +4663,26 @@
     "since": "Decommissioned on {{when}} by {{who}}",
     "effects": "Backups, monitoring, syncs and checks are suspended; the agent is refused and syslog lines are dropped. The history stays readable.",
     "reactivate": "Reactivate"
+  },
+  "palette": {
+    "title": "Go to…",
+    "trigger": "Search or go to…",
+    "placeholder": "Page, device, customer, IP, MAC, serial…",
+    "recent": "Recent",
+    "pages": "Pages",
+    "devices": "Devices",
+    "customers": "Customers",
+    "sites": "Sites",
+    "allResults": "All results for “{{term}}”",
+    "noMatches": "No device, customer or site found.",
+    "move": "move",
+    "open": "open",
+    "close": "close",
+    "kinds": {
+      "page": "Page",
+      "device": "Device",
+      "customer": "Customer",
+      "site": "Site"
+    }
   }
 }

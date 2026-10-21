@@ -6,6 +6,7 @@ import { type RestoreTest, type RestoreTestInput, useRecordRestoreTest, useResto
 import { formatBytes, formatDateTime, fromLocalInput } from "../lib/format";
 import { useFormError } from "./CustomerForm";
 import { Metric } from "./DeviceDetail";
+import { Loading } from "../app/States";
 
 const RESULT_TONE: Record<string, string> = { passed: "ui-severity", partial: "ui-severity ui-severity-warning", failed: "ui-severity ui-severity-high" };
 
@@ -31,7 +32,7 @@ export function DeviceRestoreTests() {
   const query = useRestoreTests(deviceId);
 
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!query.data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!query.data) return <Loading />;
   const tests = query.data.tests;
 
   return (
@@ -110,7 +111,7 @@ export function DeviceRestoreTest() {
   const data = query.data;
 
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const { artifact, integrity } = data;
   const yesNo = (value: boolean, yes: string, no: string) => (value ? t(yes) : t(no));
 

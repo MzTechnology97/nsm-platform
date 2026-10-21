@@ -1,12 +1,34 @@
-import { Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { type FormEvent, useEffect, useState } from "react";
+import { Link, Outlet } from "@tanstack/react-router";
+import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useUnreadNotifications } from "../api/personal";
 import { can, useSession, useUpdatePreferences } from "../api/session";
 import i18n, { LANGUAGE_NAMES, LANGUAGES, pickLanguage, type Language } from "../i18n";
+import { CommandPalette, isApple } from "./CommandPalette";
 import { Icon } from "./Icon";
 import { SECTIONS } from "./sections";
+
+const LANGUAGE_COOKIE = "nsm-lang";
+
+/** Light or dark for the page, from the preference (``system`` follows the operating system). */
+function useEffectiveTheme(preference: string): "light" | "dark" {
+  const [systemDark, setSystemDark] = useState(() => window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false);
+  useEffect(() => {
+    const query = window.matchMedia?.("(prefers-color-scheme: dark)");
+    if (!query) return;
+    const listener = (event: MediaQueryListEvent) => setSystemDark(event.matches);
+    query.addEventListener("change", listener);
+    return () => query.removeEventListener("change", listener);
+  }, []);
+  if (preference === "system") return systemDark ? "dark" : "light";
+  return preference === "dark" ? "dark" : "light";
+}
+
+function readLanguageCookie(): string | null {
+  const match = document.cookie.match(/(?:^|; )nsm-lang=([a-z]{2})/);
+  return match ? match[1] : null;
+}
 
 const SIDEBAR_KEY = "nsm-ui-sidebar-collapsed";
 
@@ -24,13 +46,29 @@ export function Layout() {
   const update = useUpdatePreferences();
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const theme = session.data?.preferences.theme ?? "light";
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const preference = session.data?.preferences.theme ?? "light";
+  const theme = useEffectiveTheme(preference);
 
   useEffect(() => {
     if (!session.data) return;
-    void i18n.changeLanguage(pickLanguage(session.data.preferences.language));
-    document.documentElement.lang = i18n.language;
+    void i18n.changeLanguage(pickLanguage(session.data.preferences.language ?? readLanguageCookie())).then(() => {
+      document.documentElement.lang = i18n.language;
+      // The sign-in pages read the same cookie: the next login opens in this language.
+      document.cookie = `${LANGUAGE_COOKIE}=${i18n.language}; path=/; max-age=31536000; samesite=lax`;
+    });
   }, [session.data]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPaletteOpen((value) => !value);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const branding = session.data?.branding;
   useEffect(() => {
@@ -45,11 +83,11 @@ export function Layout() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     try {
-      localStorage.setItem("nsm-theme", theme);
+      localStorage.setItem("nsm-theme", preference);
     } catch {
       /* private mode */
     }
-  }, [theme]);
+  }, [theme, preference]);
 
   useEffect(() => {
     try {
@@ -64,26 +102,32 @@ export function Layout() {
 
   const data = session.data;
   const visible = SECTIONS.filter((section) => !section.permission || can(data, section.permission));
+  const groups = [...new Set(visible.map((section) => section.group))];
 
   return (
     <div className={`ui-shell${collapsed ? " is-collapsed" : ""}${mobileOpen ? " is-mobile-open" : ""}`}>
       <aside className="ui-sidebar" aria-label="NSM">
         <div className="ui-brand">
-          <span className="ui-brand-name">
+          <span className="ui-brand-name" title={data.branding.portal_name}>
             {data.branding.has_logo && <img className="ui-brand-logo" src={`/branding/logo?v=${data.branding.logo_version}`} alt="" />}
-            {data.branding.portal_name}
+            <span className="ui-brand-text">{data.branding.portal_name}</span>
           </span>
           <button type="button" className="ui-icon-button ui-collapse" onClick={() => setCollapsed((value) => !value)} aria-label={t("nav.collapse")}>
             <Icon name="chevron-left" size={18} />
           </button>
         </div>
         <nav className="ui-nav">
-          {visible.map((section) => (
-            <Link key={section.key} to={section.route} className="ui-nav-item" activeProps={{ className: "ui-nav-item is-active" }}
-              activeOptions={{ exact: section.route === "/" }} onClick={() => setMobileOpen(false)}>
-              <Icon name={section.icon} />
-              <span className="ui-nav-label">{t(`nav.${section.key}`)}</span>
-            </Link>
+          {groups.map((group) => (
+            <Fragment key={group}>
+              <span className="ui-nav-group">{t(`nav.groups.${group}`)}</span>
+              {visible.filter((section) => section.group === group).map((section) => (
+                <Link key={section.key} to={section.route} className="ui-nav-item" activeProps={{ className: "ui-nav-item is-active" }}
+                  activeOptions={{ exact: section.route === "/" }} onClick={() => setMobileOpen(false)} title={t(`nav.${section.key}`)}>
+                  <Icon name={section.icon} />
+                  <span className="ui-nav-label">{t(`nav.${section.key}`)}</span>
+                </Link>
+              ))}
+            </Fragment>
           ))}
         </nav>
         <div className="ui-sidebar-footer">{t("app.version", { version: data.version })}</div>
@@ -93,7 +137,11 @@ export function Layout() {
           <button type="button" className="ui-icon-button ui-mobile-menu" onClick={() => setMobileOpen(true)} aria-label={t("nav.open")}>
             <Icon name="menu" />
           </button>
-          <TopSearch />
+          <button type="button" className="ui-top-search" onClick={() => setPaletteOpen(true)} aria-haspopup="dialog">
+            <Icon name="search" size={16} />
+            <span className="ui-top-search-label">{t("palette.trigger")}</span>
+            <kbd className="ui-kbd ui-hide-mobile">{isApple ? "⌘K" : "Ctrl K"}</kbd>
+          </button>
           <div className="ui-topbar-actions">
             <NotificationBell />
             <label className="ui-select-label">
@@ -115,6 +163,7 @@ export function Layout() {
               className="ui-icon-button"
               onClick={() => update.mutate({ theme: theme === "dark" ? "light" : "dark" })}
               aria-label={`${t("user.theme")}: ${theme === "dark" ? t("user.light") : t("user.dark")}`}
+              title={`${t("user.theme")}: ${theme === "dark" ? t("user.light") : t("user.dark")}`}
             >
               <Icon name={theme === "dark" ? "sun" : "moon"} />
             </button>
@@ -130,28 +179,8 @@ export function Layout() {
         </main>
       </div>
       {mobileOpen && <button type="button" className="ui-backdrop" aria-label={t("nav.collapse")} onClick={() => setMobileOpen(false)} />}
+      <CommandPalette session={data} open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
-  );
-}
-
-/** Global search box of the top bar: opens the search page with the term in the address. */
-function TopSearch() {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const [term, setTerm] = useState("");
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    const q = term.trim();
-    if (!q) return;
-    setTerm("");
-    void navigate({ to: "/search", search: { q } });
-  };
-  return (
-    <form className="ui-top-search" role="search" onSubmit={submit}>
-      <Icon name="search" size={16} />
-      <input type="search" value={term} onChange={(event) => setTerm(event.target.value)} placeholder={t("search.placeholder")}
-        aria-label={t("search.title")} autoComplete="off" />
-    </form>
   );
 }
 

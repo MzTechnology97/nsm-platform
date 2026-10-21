@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { type BrandingAdmin, useBrandingAction, useBrandingAdmin } from "../api/admin";
 import { ApiError } from "../api/client";
 import { AdminTabs } from "../app/AdminTabs";
+import { Loading } from "../app/States";
 
 const COLORS = [
   ["primary", "primary_color"],
@@ -33,7 +34,7 @@ export function AdminBranding() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <div className="ui-two-columns">
           <Identity key={`${data.primary_color}${data.sidebar_color}${data.highlight_color}`} data={data} />

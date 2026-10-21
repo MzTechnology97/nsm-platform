@@ -6,6 +6,7 @@ import { type CustomerChart, chartColumns, GRAPH_RANGES, type GraphRange, useCus
 import { BrandIcon } from "../app/BrandIcon";
 import { formatValue, type Unit } from "../charts/format";
 import { type ChartSeries, TimeChart } from "../charts/TimeChart";
+import { Loading } from "../app/States";
 
 export interface GraphsSearch {
   site?: string;
@@ -61,7 +62,7 @@ export function CustomerGraphs() {
         {charts.error ? (
           <div className="ui-alert ui-alert-danger">{(charts.error as Error).message}</div>
         ) : !charts.data ? (
-          <div className="ui-empty">{t("app.loading")}</div>
+          <Loading />
         ) : charts.data.charts.length ? (
           <div className="ui-chart-grid">
             {charts.data.charts.map((chart) => <Chart key={chart.id} chart={chart} />)}

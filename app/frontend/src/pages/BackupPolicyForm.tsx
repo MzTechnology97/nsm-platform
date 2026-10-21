@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { type PolicyForm, type PolicyState, type ScheduleKind, type ScopeType, usePolicyForm, usePolicyWrite } from "../api/backupPolicies";
 import { BrandIcon } from "../app/BrandIcon";
 import { useFormError } from "./CustomerForm";
+import { Loading } from "../app/States";
 
 const SCOPES: ScopeType[] = ["global", "vendor", "customer", "site", "device"];
 const CUSTOMER_SCOPES = new Set<ScopeType>(["customer", "site", "device"]);
@@ -63,7 +64,7 @@ function PolicyPage({ params }: { params: Parameters<typeof usePolicyForm>[0] })
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{errorText(query.error, "backupPolicy.errors")}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : (
         <>
           <PolicyEditor key={`${data.mode}-${data.policy?.id ?? data.context?.id ?? "new"}-${data.policy?.enabled ?? ""}`} data={data} />

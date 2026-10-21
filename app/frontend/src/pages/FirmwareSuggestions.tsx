@@ -6,6 +6,7 @@ import { useDeviceFacets } from "../api/devices";
 import { type Suggestion, SUGGESTION_KINDS, type SuggestionFilters, useApplySuggestions, useSuggestions } from "../api/operations";
 import { BrandIcon } from "../app/BrandIcon";
 import { useFormError } from "./CustomerForm";
+import { Loading } from "../app/States";
 
 const KIND_TONE: Record<string, string> = {
   plan: "ui-status ui-status-online", legacy: "ui-status ui-status-online", check: "ui-status ui-status-warning",
@@ -73,7 +74,7 @@ export function FirmwareSuggestions() {
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !data ? (
-        <div className="ui-empty">{t("app.loading")}</div>
+        <Loading />
       ) : data.items.length ? (
         <>
           <div className="ui-data-wrap" aria-busy={query.isFetching}>

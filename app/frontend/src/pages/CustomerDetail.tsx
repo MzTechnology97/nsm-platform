@@ -7,6 +7,7 @@ import { type CustomerDetail as Detail, useCustomer } from "../api/customer";
 import { formatDateTime, formatRelative } from "../lib/format";
 import { SiteForm } from "./CustomerForm";
 import { Metric } from "./DeviceDetail";
+import { Loading } from "../app/States";
 
 /** Customer tabs already in the new interface; "devices" opens the device list filtered on the customer. */
 const MIGRATED_TABS = {
@@ -20,7 +21,7 @@ export function CustomerDetail() {
   const { t } = useTranslation();
   const { customerId } = useParams({ from: "/customers/$customerId" });
   const query = useCustomer(customerId);
-  if (query.isPending) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (query.isPending) return <Loading />;
   if (query.isError) {
     const status = query.error instanceof ApiError ? query.error.status : 0;
     return <div className="ui-empty">{status === 404 ? t("customer.notFound") : t("app.error")}</div>;

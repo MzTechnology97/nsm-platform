@@ -6,6 +6,7 @@ import { ApiError } from "../api/client";
 import { type GenieacsCandidate, useCnmaestroMetrics, useDeviceCnmaestro, useDeviceGenieacs, useGenieacsAction } from "../api/deviceConnectors";
 import { formatDateTime } from "../lib/format";
 import { metricValue, RANGES, SeriesCharts } from "./DeviceUisp";
+import { Loading } from "../app/States";
 
 function message(error: unknown) {
   return error instanceof ApiError ? error.message : (error as Error | null)?.message;
@@ -20,7 +21,7 @@ export function DeviceCnmaestro() {
   const data = query.data;
   const metrics = useCnmaestroMetrics(deviceId, range, Boolean(data?.linked && data.can.metrics));
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const meta = data.meta;
   return (
     <>
@@ -77,7 +78,7 @@ export function DeviceGenieacs() {
   const refresh = useGenieacsAction(deviceId, "refresh");
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const enabled = Boolean(data.connection?.enabled);
   const record = data.record;
   const candidate = preview.data;

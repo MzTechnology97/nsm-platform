@@ -6,6 +6,7 @@ import { ApiError } from "../api/client";
 import { type LifecycleTab, useDeviceLifecycle, useLifecycleAction } from "../api/deviceTabs";
 import { BrandIcon } from "../app/BrandIcon";
 import { formatDate, formatDateTime } from "../lib/format";
+import { Loading } from "../app/States";
 
 
 function message(error: unknown) {
@@ -19,7 +20,7 @@ export function DeviceLifecycle() {
   const query = useDeviceLifecycle(deviceId);
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
-  if (!data) return <div className="ui-empty">{t("app.loading")}</div>;
+  if (!data) return <Loading />;
   const device = data.device;
   return (
     <>
