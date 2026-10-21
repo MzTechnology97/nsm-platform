@@ -1,64 +1,149 @@
-/* Design tokens of the interface (the sign-in pages in app/static/app.css use the same palette). */
+/* Design tokens of the interface (the sign-in pages in app/static/app.css use the same palette).
+   Light: soft grey page, white panels with a thin border, dark navy sidebar, blue primary.
+   Branding: Layout.tsx sets --brand-primary / --brand-sidebar / --brand-highlight on :root (CSSOM) only when the
+   administrator chose a custom colour; otherwise the fallbacks below apply. */
 :root {
-  --bg: #f4f6f8;
+  /* Surfaces */
+  --bg: #f0f3f8;
   --panel: #ffffff;
-  --brand-primary: #1f5f8b;
-  --brand-sidebar: #111827;
-  --brand-highlight: #f59e0b;
-  --sidebar: var(--brand-sidebar);
-  --sidebar-text: #d7dde5;
-  --sidebar-muted: #8b98aa;
-  --sidebar-active: rgba(255, 255, 255, 0.08);
-  --text: #16202a;
-  --muted: #687481;
-  --border: #e2e7ec;
-  --border-strong: #cfd7de;
-  --accent: var(--brand-primary);
-  --accent-soft: #eaf3f9;
-  --highlight: var(--brand-highlight);
-  --success: #238636;
-  --warning: #b7791f;
-  --danger: #c53030;
-  --critical: #9b1c1c;
-  --topbar-bg: rgba(255, 255, 255, 0.96);
-  --surface-soft: #f7f9fb;
-  --surface-hover: #f3f5f7;
-  --table-head: #fbfcfd;
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 6px 18px rgba(16, 24, 40, 0.04);
-  --radius: 10px;
+  --surface-soft: #f6f8fc;
+  --surface-hover: #f3f6fb;
+  --table-head: #f6f8fc;
+  --topbar-bg: #ffffff;
+  --border: #e3e9f2;
+  --border-strong: #d6dfeb;
+  --divider: #edf2f8;
+
+  /* Text */
+  --text: #23324a;
+  --heading: #10213a;
+  --muted: #5f6e84;
+
+  /* Primary (overridable by branding) */
+  --accent: var(--brand-primary, #1769d6);
+  --accent-solid: var(--accent);
+  --accent-hover: color-mix(in srgb, var(--accent-solid) 72%, #000);
+  --accent-soft: color-mix(in srgb, var(--accent) 10%, var(--panel));
+  --accent-border: color-mix(in srgb, var(--accent) 30%, var(--panel));
+  --accent-text: var(--accent);
+  --on-accent: #ffffff;
+  --highlight: var(--brand-highlight, #f79009);
+
+  /* Sidebar */
+  --sidebar: var(--brand-sidebar, #10192b);
+  --sidebar-text: #9fb0c8;
+  --sidebar-strong: #ffffff;
+  --sidebar-muted: #7f91ab;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active: var(--accent-solid);
+  --sidebar-card: #1a2740;
+
+  /* Meaning: text-safe tones, soft fills for pills, vivid fills for dots/meters/rings */
+  --success: #18794e;
+  --warning: #9a5b00;
+  --danger: #b42318;
+  --critical: #8a1c13;
+  --success-soft: #e3f7ec;
+  --warning-soft: #fff4e0;
+  --danger-soft: #fdecec;
+  --neutral-soft: #edf2f8;
+  --neutral-text: #3d4f69;
+  --success-fill: #12b76a;
+  --warning-fill: #f79009;
+  --danger-fill: #e5484d;
+  --neutral-fill: #b6c2d3;
+
+  /* Tinted KPI tiles */
+  --tone-good-bg: #f2fbf6;
+  --tone-good-border: #cdeedb;
+  --tone-bad-bg: #fef5f5;
+  --tone-bad-border: #f7d4d2;
+  --tone-warn-bg: #fffaf0;
+  --tone-warn-border: #f6e1b5;
+  --tone-info-bg: color-mix(in srgb, var(--accent) 5%, var(--panel));
+  --tone-info-border: color-mix(in srgb, var(--accent) 22%, var(--panel));
+  --ring-track: #ffffff;
+
+  --shadow: 0 1px 2px rgba(16, 33, 58, 0.04);
+  --shadow-pop: 0 18px 48px rgba(16, 33, 58, 0.18);
+  --radius: 12px;
+  --radius-sm: 8px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
   --space-6: 32px;
-  --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --code-path: #1f5f8b;
-  --code-command: #7c3aed;
+  /* Rounded humanist sans: the first installed font wins (no web fonts: the CSP allows only 'self'). */
+  --font: "Nunito Sans", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --font-mono: "Source Code Pro", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --code-path: #1769d6;
+  --code-command: #6d3fd6;
   --code-key: #9a3412;
   --code-string: #15803d;
-  --code-comment: #6b7280;
+  --code-comment: #5f6e84;
   color-scheme: light;
 }
 
+/* Dark: same structure, deep blue-grey surfaces. */
 :root[data-theme="dark"] {
-  --bg: #0b1220;
-  --panel: #111827;
-  --text: #e5e7eb;
-  --muted: #94a3b8;
-  --border: #263449;
-  --border-strong: #3a4a61;
-  --accent-soft: #15263a;
-  --topbar-bg: rgba(15, 23, 42, 0.96);
-  --surface-soft: #0f172a;
-  --surface-hover: #172033;
-  --table-head: #0f172a;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.16);
-  --code-path: #7cc4f8;
+  --bg: #0d1117;
+  --panel: #161b26;
+  --surface-soft: #11161f;
+  --surface-hover: #1c2230;
+  --table-head: #11161f;
+  --topbar-bg: #161b26;
+  --border: #222a3a;
+  --border-strong: #2f3a4f;
+  --divider: #1e2533;
+
+  --text: #c9d1d9;
+  --heading: #f0f6fc;
+  --muted: #8b949e;
+
+  --accent: var(--brand-primary, #4c8dff);
+  /* Solid fills carry white text: a darker step of the primary keeps it readable. */
+  --accent-solid: color-mix(in srgb, var(--accent) 72%, #000);
+  --accent-hover: color-mix(in srgb, var(--accent) 60%, #000);
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, var(--panel));
+  --accent-border: color-mix(in srgb, var(--accent) 40%, var(--panel));
+  --accent-text: color-mix(in srgb, var(--accent) 80%, #fff);
+
+  --sidebar: var(--brand-sidebar, #070a0f);
+  --sidebar-text: #9aa8bc;
+  --sidebar-muted: #7d8aa0;
+  --sidebar-card: #141b29;
+
+  --success: #5fd08f;
+  --warning: #f0b450;
+  --danger: #ff8f87;
+  --critical: #ff7b72;
+  --success-soft: #12301f;
+  --warning-soft: #33250c;
+  --danger-soft: #3a1518;
+  --neutral-soft: #222a3a;
+  --neutral-text: #b8c3d1;
+  --success-fill: #2fbf71;
+  --warning-fill: #f2a23a;
+  --danger-fill: #f0585d;
+  --neutral-fill: #4a566b;
+
+  --tone-good-bg: #102419;
+  --tone-good-border: #1d4430;
+  --tone-bad-bg: #2a1316;
+  --tone-bad-border: #4d2328;
+  --tone-warn-bg: #2a2010;
+  --tone-warn-border: #4d3a17;
+  --tone-info-bg: color-mix(in srgb, var(--accent) 10%, var(--panel));
+  --tone-info-border: color-mix(in srgb, var(--accent) 30%, var(--panel));
+  --ring-track: rgba(255, 255, 255, 0.08);
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-pop: 0 18px 48px rgba(0, 0, 0, 0.5);
+  --code-path: #79b0ff;
   --code-command: #c4b5fd;
   --code-key: #fdba74;
   --code-string: #86efac;
-  --code-comment: #8b98aa;
+  --code-comment: #8b949e;
   color-scheme: dark;
 }

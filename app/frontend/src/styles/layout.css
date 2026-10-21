@@ -12,10 +12,44 @@ body {
   font-family: var(--font);
   font-size: 14px;
   line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--heading);
+  font-weight: 800;
 }
 
 a {
-  color: var(--accent);
+  color: var(--accent-text);
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+:root[data-theme="dark"] a:hover {
+  color: var(--heading);
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--font-mono);
+}
+
+/* One visible focus ring everywhere (keyboard only). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
 .ui-visually-hidden {
@@ -44,7 +78,7 @@ a {
   stroke-linejoin: round;
 }
 
-/* Shell */
+/* Shell: dark sidebar on the left, white top bar, grey content area. */
 .ui-shell {
   display: grid;
   grid-template-columns: 236px 1fr;
@@ -52,7 +86,7 @@ a {
 }
 
 .ui-shell.is-collapsed {
-  grid-template-columns: 64px 1fr;
+  grid-template-columns: 68px 1fr;
 }
 
 .ui-sidebar {
@@ -61,9 +95,13 @@ a {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  padding: var(--space-4) var(--space-3);
   background: var(--sidebar);
   color: var(--sidebar-text);
+  font-size: 13px;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
 }
 
 .ui-brand {
@@ -71,9 +109,8 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: var(--space-4);
-  font-weight: 700;
-  color: #fff;
+  padding: 4px var(--space-1) 18px var(--space-2);
+  color: var(--sidebar-strong);
 }
 
 .ui-brand-name {
@@ -82,54 +119,137 @@ a {
   gap: var(--space-2);
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.ui-brand-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent-solid);
+  color: var(--on-accent);
+  font-size: 15px;
+  font-weight: 800;
 }
 
 .ui-brand-logo {
-  max-height: 28px;
+  max-height: 34px;
   max-width: 96px;
   object-fit: contain;
+}
+
+.ui-brand-words {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ui-brand-tagline {
+  overflow: hidden;
+  color: var(--sidebar-muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ui-nav {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0 var(--space-2) var(--space-4);
+  padding-bottom: var(--space-4);
 }
 
 .ui-nav-item {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: 9px var(--space-3);
-  border-radius: 8px;
+  gap: 10px;
+  min-height: 36px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
   color: var(--sidebar-text);
+  font-weight: 700;
   text-decoration: none;
 }
 
-.ui-nav-item:hover,
-.ui-nav-item.is-active {
-  background: var(--sidebar-active);
-  color: #fff;
+.ui-nav-item .ui-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.ui-nav-item:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-strong);
 }
 
 .ui-nav-item.is-active {
-  box-shadow: inset 3px 0 0 var(--highlight);
+  background: var(--sidebar-active);
+  color: var(--on-accent);
+}
+
+.ui-nav-item:focus-visible {
+  outline-color: var(--sidebar-strong);
+  outline-offset: -2px;
+}
+
+.ui-nav-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Count on the right of an item (only for figures the page already has). */
+.ui-nav-badge {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #22304a;
+  color: #c7d3e3;
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-nav-badge.is-danger {
+  background: #7a1f26;
+  color: #fecdd0;
+}
+
+.ui-nav-badge.is-warning {
+  background: #6b4310;
+  color: #fde3b0;
+}
+
+.ui-nav-item.is-active .ui-nav-badge {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
 }
 
 .ui-sidebar-footer {
   margin-top: auto;
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-2) 0;
   color: var(--sidebar-muted);
   font-size: 12px;
 }
 
-.is-collapsed .ui-nav-label,
-.is-collapsed .ui-brand-name,
-.is-collapsed .ui-sidebar-footer {
-  display: none;
+/* Collapsed (icons only): a desktop choice, the phone drawer always shows the labels. */
+@media (min-width: 861px) {
+  .is-collapsed .ui-nav-label,
+  .is-collapsed .ui-nav-badge,
+  .is-collapsed .ui-brand-name,
+  .is-collapsed .ui-sidebar-footer {
+    display: none;
+  }
+
+  .is-collapsed .ui-brand,
+  .is-collapsed .ui-nav-item {
+    justify-content: center;
+  }
 }
 
 .is-collapsed .ui-collapse .ui-icon {
@@ -147,7 +267,8 @@ a {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-5);
+  min-height: 58px;
+  padding: var(--space-2) 26px;
   background: var(--topbar-bg);
   border-bottom: 1px solid var(--border);
 }
@@ -156,8 +277,95 @@ a {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-left: auto;
   flex-wrap: wrap;
+}
+
+/* Where the page sits: "Operazioni › Apparati". */
+.ui-top-crumbs {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ui-top-crumbs ol {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  white-space: nowrap;
+}
+
+.ui-top-crumbs li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ui-top-crumbs li + li::before {
+  color: var(--neutral-fill);
+  content: "›";
+  content: "›" / "";
+}
+
+.ui-top-crumbs-group,
+.ui-top-crumbs a {
+  color: var(--muted);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ui-top-crumbs a:hover {
+  color: var(--accent-text);
+  text-decoration: underline;
+}
+
+.ui-top-crumbs strong {
+  overflow: hidden;
+  color: var(--heading);
+  font-weight: 800;
+  text-overflow: ellipsis;
+}
+
+/* Signed-in user: avatar circle with initials, name on wide screens. */
+.ui-user-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: 2px 10px 2px 2px;
+  border-radius: 999px;
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.ui-user-link:hover {
+  background: var(--surface-hover);
+  color: var(--heading);
+}
+
+.ui-user-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ui-user-name {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Wide and ultrawide screens: the content grows up to 1920px and stays centred instead of hugging the sidebar. */
@@ -166,7 +374,7 @@ a {
   width: 100%;
   max-width: 1920px;
   margin-inline: auto;
-  padding: var(--space-5);
+  padding: 20px 26px var(--space-6);
 }
 
 /* Controls */
@@ -175,36 +383,56 @@ a {
 select {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
-  min-height: 34px;
-  padding: 6px 12px;
+  min-height: 36px;
+  padding: 7px 14px;
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--panel);
   color: var(--text);
   font: inherit;
+  font-weight: 700;
   text-decoration: none;
   cursor: pointer;
 }
 
+select {
+  font-weight: 600;
+}
+
 .ui-icon-button {
-  padding: 6px;
+  min-width: 36px;
+  padding: 7px;
   border-color: transparent;
   background: transparent;
   color: inherit;
 }
 
 .ui-icon-button:hover,
-.ui-button:hover {
+.ui-button:hover,
+select:hover {
   background: var(--surface-hover);
+  color: var(--heading);
+}
+
+.ui-sidebar .ui-icon-button {
+  color: var(--sidebar-text);
+}
+
+.ui-sidebar .ui-collapse {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 4px;
 }
 
 .ui-sidebar .ui-icon-button:hover {
-  background: var(--sidebar-active);
+  background: var(--sidebar-hover);
+  color: var(--sidebar-strong);
 }
 
 .ui-button-ghost {
-  border-color: var(--border);
+  border-color: var(--border-strong);
 }
 
 .ui-inline-form {
@@ -216,14 +444,41 @@ select {
   display: none;
 }
 
+/* Base field look for every input of the content area (zero specificity: page rules still win). */
+:where(.ui-content, .ui-palette) :where(input:not([type="checkbox"], [type="radio"], [type="color"], [type="range"], [type="file"]), textarea) {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
+:where(.ui-content) :where(input, textarea, select):focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  outline-offset: 0;
+}
+
+:where(.ui-content) :where(input, textarea)::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+:where(.ui-content) :where(input[type="checkbox"], input[type="radio"]) {
+  accent-color: var(--accent-solid);
+}
+
 /* Pages */
 .ui-page-header h1 {
-  margin: 0 0 var(--space-2);
+  margin: 0 0 var(--space-1);
+  color: var(--heading);
   font-size: 22px;
+  font-weight: 800;
+  line-height: 1.25;
 }
 
 .ui-page-header p {
-  margin: 0 0 var(--space-5);
+  margin: 0 0 var(--space-4);
   color: var(--muted);
   max-width: 820px;
 }
@@ -238,7 +493,7 @@ select {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-4);
+  padding: 14px var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--panel);
@@ -248,21 +503,23 @@ select {
 }
 
 .ui-card-link:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-border);
+  color: var(--text);
 }
 
 .ui-tag {
   align-self: flex-start;
-  padding: 1px 8px;
+  padding: 2px 9px;
   border-radius: 999px;
-  background: var(--surface-soft);
-  color: var(--muted);
+  background: var(--neutral-soft);
+  color: var(--neutral-text);
   font-size: 11px;
+  font-weight: 800;
 }
 
 .ui-tag-new {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 @media (max-width: 860px) {
@@ -298,12 +555,17 @@ select {
     z-index: 10;
     display: block;
     border: 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(7, 10, 15, 0.5);
   }
 
-  .ui-topbar,
+  .ui-topbar {
+    gap: var(--space-2);
+    min-height: 54px;
+    padding: var(--space-2) var(--space-4);
+  }
+
   .ui-content {
-    padding: var(--space-3) var(--space-4);
+    padding: var(--space-4) var(--space-4) var(--space-5);
   }
 
   .ui-hide-mobile {
@@ -312,10 +574,39 @@ select {
 
   .ui-topbar-actions {
     flex-wrap: nowrap;
+    gap: 2px;
+  }
+
+  .ui-user-link {
+    padding: 2px;
   }
 
   .ui-card {
     padding: var(--space-3);
+  }
+}
+
+/* Phones: the page title already says where we are, the top bar keeps only the controls. */
+@media (max-width: 640px) {
+  .ui-top-crumbs ol {
+    display: none;
+  }
+
+  .ui-topbar select {
+    max-width: 104px;
+    padding-inline: 8px;
+  }
+
+  .ui-page-header-row {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1100px) {
+  .ui-top-crumbs-group,
+  .ui-top-crumbs li + li::before {
+    display: none;
   }
 }
 
@@ -324,11 +615,12 @@ select {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  flex: 0 1 320px;
+  flex: 0 1 340px;
   min-width: 0;
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  margin-left: auto;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
   background: var(--panel);
   color: var(--muted);
 }
@@ -353,16 +645,17 @@ select {
 
 .ui-bell-count {
   position: absolute;
-  top: -2px;
-  right: -4px;
+  top: 0;
+  right: -2px;
   min-width: 18px;
   padding: 0 4px;
+  border: 2px solid var(--topbar-bg);
   border-radius: 9px;
-  background: var(--danger);
+  background: var(--danger-fill);
   color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 18px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 14px;
   text-align: center;
 }
 
@@ -377,8 +670,9 @@ select {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--accent);
+  color: var(--accent-text);
   font: inherit;
+  font-weight: 700;
   text-decoration: underline;
   cursor: pointer;
 }
@@ -408,4 +702,3 @@ select {
 form.ui-decommission {
   margin-bottom: var(--space-3);
 }
-
