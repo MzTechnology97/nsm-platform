@@ -2814,7 +2814,7 @@
     "customers": "Clients",
     "sites": "Sites",
     "refresh": "Actualiser",
-    "updated": "Mis à jour le {{when}}, actualisé toutes les 30 secondes.",
+    "updated": "Mis à jour le {{when}}.",
     "coverage": "Couverture",
     "coverageHelp": "Part des équipements joignables et protégés par une sauvegarde récente.",
     "availability": "Disponibilité",
@@ -2888,7 +2888,43 @@
     "firmwareNote": "À mettre à jour",
     "criticalNote": "{{count}} critiques",
     "eol": "Fin de vie",
-    "eolNote": "Équipements EOL ou EOS"
+    "eolNote": "Équipements EOL ou EOS",
+    "nextRefresh": "prochaine mise à jour dans {{seconds}} s",
+    "refreshing": "mise à jour…",
+    "coverageTip": "Disponibilité : équipements en ligne sur le total. Couverture des sauvegardes : équipements avec une politique de sauvegarde active que NSM peut exécuter (agent ou identifiants prêts).",
+    "operations": "État opérationnel",
+    "operationsHelp": "Ce qui est hors ligne et depuis quand, ce qui est chargé, l'exposition du parc.",
+    "outages": {
+      "title": "Équipements hors ligne",
+      "tip": "Équipements hors ligne regroupés par temps écoulé depuis le dernier contact. La liste montre d'abord les pannes les plus récentes : ce sont elles à examiner tout de suite.",
+      "buckets": {
+        "hour": "< 1 heure",
+        "day": "< 1 jour",
+        "week": "< 7 jours",
+        "older": "> 7 jours",
+        "never": "jamais vus"
+      },
+      "since": "hors ligne depuis {{span}}",
+      "empty": "Aucun équipement hors ligne."
+    },
+    "pressure": {
+      "title": "Charge des ressources",
+      "tip": "CPU ou mémoire des équipements en ligne, depuis l'agent MikroTik ou les connecteurs UISP et cnMaestro. Attention dès 75 %, critique dès 90 %.",
+      "hot": "≥ 90 %",
+      "warn": "75–90 %",
+      "reporting_one": "{{count}} équipement remonte CPU et mémoire",
+      "reporting_other": "{{count}} équipements remontent CPU et mémoire",
+      "noMetrics": "Aucun équipement en ligne ne remonte encore CPU et mémoire.",
+      "top": "Les plus chargés"
+    },
+    "posture": {
+      "title": "Exposition CVE",
+      "tip": "Chaque équipement dans un seul groupe : CVE graves (critiques ou élevées), autres CVE ouvertes, aucune CVE connue (marque, modèle et firmware connus) ou non évaluable (modèle ou firmware manquant).",
+      "severe": "CVE graves",
+      "exposed": "Autres CVE ouvertes",
+      "clean": "Aucune CVE connue",
+      "unknown": "Non évaluables"
+    }
   },
   "search": {
     "title": "Recherche globale",

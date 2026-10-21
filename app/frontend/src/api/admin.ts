@@ -3,6 +3,7 @@ import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClie
 
 import type { BrandRef } from "../app/BrandIcon";
 import { api } from "./client";
+import type { DeviceRow } from "./devices";
 
 export interface AuditFilters {
   event_type?: string;
@@ -631,10 +632,14 @@ export function useOnboardingCommit() {
 }
 
 export interface Distribution {
+  /** Stored value (vendor key, model, firmware), null when unknown. */
+  key: string | null;
   label: string;
   count: number;
   percent: number;
 }
+
+export type DeviceBrief = Pick<DeviceRow, "id" | "name" | "brand" | "vendor" | "model" | "customer" | "last_seen" | "telemetry">;
 
 export interface Dashboard {
   customer_count: number;
@@ -657,6 +662,13 @@ export interface Dashboard {
   vendor_distribution: Distribution[];
   firmware_distribution: Distribution[];
   model_distribution: Distribution[];
+  /** Offline devices by how long they have been down. */
+  offline_aging: { hour: number; day: number; week: number; older: number; never: number };
+  /** Most recent outages first. */
+  recent_outages: DeviceBrief[];
+  /** Online devices with CPU or memory from 75% (warn) or 90% (hot), and the five most loaded of those reporting. */
+  resource_pressure: { warn: number; hot: number; reporting: number; top: DeviceBrief[] };
+  cve_posture: { severe: number; exposed: number; clean: number; unknown: number };
   recent_events: { id: string; event_type: string; label: string; timestamp: string; severity: string; result: string }[];
   latest_advisories: { id: string; cve_id: string; vendor: string | null; product: string | null; severity: string; published_at: string | null; affected: number }[];
   updated_at: string;

@@ -2814,7 +2814,7 @@
     "customers": "Clientes",
     "sites": "Sedes",
     "refresh": "Actualizar",
-    "updated": "Actualizado el {{when}}, se actualiza cada 30 segundos.",
+    "updated": "Actualizado el {{when}}.",
     "coverage": "Cobertura",
     "coverageHelp": "Proporción de equipos accesibles y protegidos por una copia reciente.",
     "availability": "Disponibilidad",
@@ -2888,7 +2888,43 @@
     "firmwareNote": "Por actualizar",
     "criticalNote": "{{count}} críticos",
     "eol": "Fin de vida",
-    "eolNote": "Equipos EOL o EOS"
+    "eolNote": "Equipos EOL o EOS",
+    "nextRefresh": "próxima actualización en {{seconds}} s",
+    "refreshing": "actualizando…",
+    "coverageTip": "Disponibilidad: equipos en línea sobre el total. Cobertura de copias: equipos con una política de copia activa que NSM puede ejecutar (agente o credenciales listos).",
+    "operations": "Estado operativo",
+    "operationsHelp": "Qué está caído y desde cuándo, qué está bajo carga, cuán expuesto está el parque.",
+    "outages": {
+      "title": "Equipos sin conexión",
+      "tip": "Equipos sin conexión agrupados por el tiempo desde el último contacto. La lista muestra primero las caídas más recientes: son las que hay que mirar ya.",
+      "buckets": {
+        "hour": "< 1 hora",
+        "day": "< 1 día",
+        "week": "< 7 días",
+        "older": "> 7 días",
+        "never": "nunca vistos"
+      },
+      "since": "caído desde hace {{span}}",
+      "empty": "Ningún equipo sin conexión."
+    },
+    "pressure": {
+      "title": "Carga de recursos",
+      "tip": "CPU o memoria de los equipos en línea, del agente MikroTik o de los conectores UISP y cnMaestro. Atención desde el 75 %, crítico desde el 90 %.",
+      "hot": "≥ 90 %",
+      "warn": "75–90 %",
+      "reporting_one": "{{count}} equipo informa CPU y memoria",
+      "reporting_other": "{{count}} equipos informan CPU y memoria",
+      "noMetrics": "Ningún equipo en línea informa todavía CPU y memoria.",
+      "top": "Los más cargados"
+    },
+    "posture": {
+      "title": "Exposición CVE",
+      "tip": "Cada equipo en un solo grupo: CVE graves (críticas o altas), otras CVE abiertas, ninguna CVE conocida (marca, modelo y firmware conocidos) o no evaluable (falta el modelo o el firmware).",
+      "severe": "CVE graves",
+      "exposed": "Otras CVE abiertas",
+      "clean": "Ninguna CVE conocida",
+      "unknown": "No evaluables"
+    }
   },
   "search": {
     "title": "Búsqueda global",

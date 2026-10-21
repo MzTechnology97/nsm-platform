@@ -3,6 +3,7 @@ from datetime import timedelta
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
 
 from app import main as core
 from app.backup_capabilities import active_mikrotik_agent_device_ids, backup_readiness
@@ -21,6 +22,8 @@ from app.models import (
     Site,
     utcnow,
 )
+from app.ui_devices import _cve_counts, device_row
+from app.vendor_cpe import evaluable, label as vendor_label
 
 router = APIRouter()
 SEVERE_CVE = ("critical", "high")
@@ -45,22 +48,86 @@ def _count(db, model, *filters):
     return int(db.scalar(stmt) or 0)
 
 
-def _distribution(db, column, total: int, limit: int = 6):
-    label = func.coalesce(column, "Sconosciuto")
+def _distribution(db, column, total: int, limit: int = 6, readable=None):
+    """Top values of a device column; ``key`` is the stored value (None when unknown) for links, ``label`` what to show."""
     rows = db.execute(
-        select(label.label("label"), func.count(Device.id).label("count"))
-        .group_by(label)
-        .order_by(func.count(Device.id).desc(), label)
+        select(column.label("key"), func.count(Device.id).label("count"))
+        .group_by(column)
+        .order_by(func.count(Device.id).desc(), column.nullslast())
         .limit(limit)
     ).all()
     return [
         {
-            "label": str(row.label or "Sconosciuto"),
+            "key": row.key,
+            "label": (readable(row.key) if readable else str(row.key)) if row.key else "Sconosciuto",
             "count": int(row.count or 0),
             "percent": round((int(row.count or 0) / total * 100), 1) if total else 0,
         }
         for row in rows
     ]
+
+
+OUTAGE_BUCKETS = (("hour", timedelta(hours=1)), ("day", timedelta(days=1)), ("week", timedelta(days=7)))
+PRESSURE_WARN, PRESSURE_HOT = 75, 90
+
+
+def _brief(row: dict) -> dict:
+    return {key: row[key] for key in ("id", "name", "brand", "vendor", "model", "customer", "last_seen", "telemetry")}
+
+
+def _operations(db) -> dict:
+    """Offline devices by how long they have been down, CPU/RAM pressure on online devices (the five most loaded), CVE state of the inventory."""
+    devices = list(db.scalars(select(Device).options(selectinload(Device.customer), selectinload(Device.site))))
+    now = utcnow()
+    aging = {"hour": 0, "day": 0, "week": 0, "older": 0, "never": 0}
+    offline = []
+    for device in devices:
+        if device.status != "offline":
+            continue
+        offline.append(device)
+        if not device.last_seen:
+            aging["never"] += 1
+            continue
+        down = now - device.last_seen
+        aging[next((key for key, limit in OUTAGE_BUCKETS if down < limit), "older")] += 1
+    # Most recent outages first: a device that went down minutes ago is the one to look at.
+    offline.sort(key=lambda device: (device.last_seen is None, -(device.last_seen.timestamp() if device.last_seen else 0)))
+
+    pressure = {"warn": 0, "hot": 0, "reporting": 0, "top": []}
+    loaded = []
+    for device in devices:
+        if device.status != "online":
+            continue
+        row = device_row(device)
+        usage = [value for value in (row["telemetry"]["cpu"], row["telemetry"]["ram"]) if value is not None]
+        if not usage:
+            continue
+        pressure["reporting"] += 1
+        peak = max(usage)
+        if peak >= PRESSURE_HOT:
+            pressure["hot"] += 1
+        elif peak >= PRESSURE_WARN:
+            pressure["warn"] += 1
+        loaded.append((peak, row["name"].lower(), row))
+    pressure["top"] = [_brief(row) for _peak, _name, row in sorted(loaded, key=lambda item: (-item[0], item[1]))[:5]]
+
+    open_count, severe = _cve_counts(db, [device.id for device in devices])
+    posture = {"severe": 0, "exposed": 0, "clean": 0, "unknown": 0}
+    for device in devices:
+        if severe.get(device.id):
+            posture["severe"] += 1
+        elif open_count.get(device.id):
+            posture["exposed"] += 1
+        elif evaluable(device):
+            posture["clean"] += 1
+        else:
+            posture["unknown"] += 1
+    return {
+        "offline_aging": aging,
+        "recent_outages": [_brief(device_row(device)) for device in offline[:6]],
+        "resource_pressure": pressure,
+        "cve_posture": posture,
+    }
 
 
 def _backup_coverage(db, devices):
@@ -184,9 +251,10 @@ def dashboard_data(db) -> dict:
         **summary,
         "recent_events": recent_events,
         "latest_advisories": latest_advisories,
-        "vendor_distribution": _distribution(db, Device.vendor, summary["device_count"]),
+        "vendor_distribution": _distribution(db, Device.vendor, summary["device_count"], readable=vendor_label),
         "firmware_distribution": _distribution(db, Device.firmware_version, summary["device_count"]),
         "model_distribution": _distribution(db, Device.model, summary["device_count"]),
+        **_operations(db),
     }
 
 

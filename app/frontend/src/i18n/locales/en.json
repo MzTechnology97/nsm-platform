@@ -2814,7 +2814,7 @@
     "customers": "Customers",
     "sites": "Sites",
     "refresh": "Refresh",
-    "updated": "Updated {{when}}, refreshes every 30 seconds.",
+    "updated": "Updated {{when}}.",
     "coverage": "Coverage",
     "coverageHelp": "Share of devices that are reachable and protected by a recent backup.",
     "availability": "Availability",
@@ -2888,7 +2888,43 @@
     "firmwareNote": "To update",
     "criticalNote": "{{count}} critical",
     "eol": "End of life",
-    "eolNote": "EOL or EOS devices"
+    "eolNote": "EOL or EOS devices",
+    "nextRefresh": "next refresh in {{seconds}} s",
+    "refreshing": "refreshing…",
+    "coverageTip": "Availability: online devices out of all devices. Backup coverage: devices with an active backup policy that NSM can run (agent or credentials ready).",
+    "operations": "Operations",
+    "operationsHelp": "What is down and for how long, what is under load, how exposed the inventory is.",
+    "outages": {
+      "title": "Offline devices",
+      "tip": "Offline devices grouped by time since the last contact. The list shows the most recent outages first: those are the ones to look at now.",
+      "buckets": {
+        "hour": "< 1 hour",
+        "day": "< 1 day",
+        "week": "< 7 days",
+        "older": "> 7 days",
+        "never": "never seen"
+      },
+      "since": "down for {{span}}",
+      "empty": "No device is offline."
+    },
+    "pressure": {
+      "title": "Resource load",
+      "tip": "CPU or memory of online devices, from the MikroTik agent or the UISP and cnMaestro connectors. Warning from 75%, critical from 90%.",
+      "hot": "≥ 90%",
+      "warn": "75–90%",
+      "reporting_one": "{{count}} device reports CPU and memory",
+      "reporting_other": "{{count}} devices report CPU and memory",
+      "noMetrics": "No online device reports CPU and memory yet.",
+      "top": "Most loaded"
+    },
+    "posture": {
+      "title": "CVE exposure",
+      "tip": "Each device in one group only: severe CVEs (critical or high), other open CVEs, no known CVE (brand, model and firmware known) or not assessable (model or firmware missing).",
+      "severe": "Severe CVEs",
+      "exposed": "Other open CVEs",
+      "clean": "No known CVE",
+      "unknown": "Not assessable"
+    }
   },
   "search": {
     "title": "Global search",
