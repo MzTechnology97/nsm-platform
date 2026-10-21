@@ -12,12 +12,14 @@ import csv
 import io
 import uuid
 from contextlib import nullcontext
+from datetime import timedelta
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
+from app import availability
 from app import main as core
 from app.customer_drilldown import SEVERE_CVE, _firmware_attention_condition, _severe_cve_exists
 from app.db import SessionLocal
@@ -132,6 +134,19 @@ def device_row(device: Device, severe: int = 0, open_cves: int | None = None) ->
         # open: every unresolved CVE; evaluated: brand, model and firmware are known, so "0" really means none found.
         "cves": {"open": open_cves if open_cves is not None else severe, "severe": severe, "evaluated": evaluable(device)},
     }
+
+
+def _availability_30d(db, device: Device) -> dict:
+    """Ping availability of the last 30 days (maintenance windows excluded), against the customer's SLA target or the 99% default."""
+    now = utcnow()
+    target = device.customer.sla_target_pct if device.customer else None
+    section = availability.report_section(db, [device.id], now - timedelta(days=30), now, target)
+    row = section["devices"][0] if section["devices"] else None
+    if not row:
+        return {"measured": False, "availability": None, "downtime_minutes": None, "outages": None, "target": section["target"],
+                "customer_target": target is not None}
+    return {"measured": True, "availability": row["availability"], "downtime_minutes": row["downtime_minutes"], "outages": row["outages"],
+            "target": section["target"], "customer_target": target is not None}
 
 
 def _filters(q: str, customer: str, site: str, vendor: str, status: str, lifecycle: str, firmware: str, security: str):
@@ -380,6 +395,7 @@ def device_detail(request: Request, device_id: uuid.UUID):
                        "last_success": _iso(last_backup.completed_at or last_backup.started_at) if last_backup else None},
             "icmp": {"enabled": icmp["enabled"], "target": icmp["effective_target"], "last_rtt": icmp["last_rtt"],
                      "last_loss": icmp["last_loss"], "down": icmp["down"], "last_at": icmp["last_at"]},
+            "availability_30d": _availability_30d(db, device),
             "zabbix": zabbix,
             "decommissioned": decommission.summary(db, device),
             "tabs": [{"key": key} for key, visible in TABS if visible(device)],

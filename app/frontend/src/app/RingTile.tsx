@@ -24,13 +24,15 @@ export function TileRing({ percent }: { percent: number | null }) {
 export function RingTile({ label, value, note, percent, tone }: {
   label: ReactNode; value: string; note?: ReactNode; percent: number | null; tone?: TileTone;
 }) {
+  // A word ("non attivo", "Agent MikroTik") is shown smaller on one line than a figure, so tiles keep one height.
+  const text = value.length > 8 && !/^[\d.,%\s/:-]+$/.test(value);
   return (
     <article className={`ui-metric ui-ring-tile${tone ? ` ui-metric-${tone}` : ""}`}>
       <TileRing percent={percent} />
       <span className="ui-ring-tile-body">
         <span>{label}</span>
-        <strong>{value}</strong>
-        {note && <small>{note}</small>}
+        <strong className={text ? "is-text" : undefined} title={value}>{value}</strong>
+        {note && <small title={typeof note === "string" ? note : undefined}>{note}</small>}
       </span>
     </article>
   );

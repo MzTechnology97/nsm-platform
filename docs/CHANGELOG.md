@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.188 — 2026-10-21
+
+Device page: 30-day availability and tidier tiles
+- **New "Availability 30 d" tile on the device overview.** It shows the ping availability of the last 30 days, with the measured downtime and the number of outages.
+  - Maintenance windows are left out of the measure.
+  - The tile is green from the customer's SLA target (or 99% when none is agreed), amber within one point below, red under that.
+  - Without NSM ping it says "not measured" and points to the Monitor tab.
+- **Tidier overview tiles.**
+  - Words such as "not active" are shown smaller on one line, with the full text on hover. Notes may use two lines.
+  - The Backup tile shows when the last backup ran, with the method underneath.
+  - The tiles now sit four per row at 1440 px, so none is left alone on a second row. The device list keeps its six tiles on one row.
 ## 0.49.187 — 2026-10-21
 
 New look, step 5: lists

@@ -225,7 +225,17 @@
     "head": {
       "cves_one": "{{count}} CVE",
       "cves_other": "{{count}} CVE"
-    }
+    },
+    "availability": {
+      "label": "Disponibilité 30 j",
+      "tip": "Part des contrôles ping réussis sur les 30 derniers jours, fenêtres de maintenance exclues. Vert dès {{target}} % (objectif SLA du client, ou 99 % s'il n'est pas convenu).",
+      "none": "aucune coupure",
+      "downtime_one": "arrêt {{value}} · {{count}} coupure",
+      "downtime_other": "arrêt {{value}} · {{count}} coupures",
+      "notMeasured": "non mesurée",
+      "notMeasuredNote": "activez le ping NSM dans Monitor"
+    },
+    "backupNever": "jamais"
   },
   "monitor": {
     "range": "Période",
