@@ -5071,6 +5071,10 @@
     "ACS_CONFIG_REFRESH_REQUESTED": "CPE configuration re-read requested",
     "ACS_DIAGNOSTIC_COMPLETED": "ACS diagnostic completed",
     "ACS_DIAGNOSTIC_REQUESTED": "ACS diagnostic requested",
+    "ACS_FIRMWARE_FAILED": "CPE firmware upgrade failed",
+    "ACS_FIRMWARE_FILE_STORED": "Firmware image loaded into the ACS",
+    "ACS_FIRMWARE_REQUESTED": "CPE firmware upgrade requested",
+    "ACS_FIRMWARE_VERIFIED": "CPE firmware upgrade verified",
     "ACS_MIGRATION_COMPLETED": "ACS migration completed",
     "ACS_MIGRATION_STARTED": "ACS migration started",
     "ACS_REBOOT_REQUESTED": "CPE reboot requested",
@@ -5630,6 +5634,33 @@
       "size": "Test size (MB)",
       "save": "Save",
       "saved": "Saved."
+    }
+  },
+  "acsFirmware": {
+    "title": "Firmware",
+    "help": "Upload the image downloaded from the vendor's site: NSM stores it in the ACS for this model, then the CPE downloads it from the ACS file server, installs it and reboots. NSM confirms the upgrade when the CPE reports the new version.",
+    "current": "Installed version",
+    "model": "Model (product class)",
+    "uploadTitle": "Load an image into the ACS",
+    "image": "Firmware file (max {{max}} MB)",
+    "version": "Version of the image",
+    "versionPlaceholder": "as on the vendor's site, e.g. 1.2.0 Build 250101",
+    "upload": "Load into the ACS",
+    "uploading": "Loading…",
+    "runTitle": "Upgrade the CPE",
+    "noFiles": "No image for this model in the ACS yet: load one above.",
+    "file": "Image",
+    "noVersion": "version not given",
+    "confirm": "Type {{name}} to confirm",
+    "warning": "The CPE reboots after installing: the customer's connection drops for a few minutes. Use only images for this exact model and hardware version.",
+    "run": "Upgrade firmware",
+    "waitingContact": "it will start at the next contact with the ACS",
+    "notExpected": "not the expected version {{version}}",
+    "states": {
+      "requested": "Upgrade requested {{when}} from {{from}}, waiting for the CPE to report the new version",
+      "verified": "Upgraded {{when}}: {{from}} → {{to}}",
+      "failed": "The CPE reported an error {{when}}",
+      "unconfirmed": "Upgrade requested but no new version reported within 30 minutes ({{when}})"
     }
   }
 }

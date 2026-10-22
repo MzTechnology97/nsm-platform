@@ -1,0 +1,158 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type FormEvent, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import { api } from "../api/client";
+import { formatDateTime } from "../lib/format";
+
+interface FirmwareFile { name: string; size: number | null; uploaded_at: string | null; product_class: string | null; version: string | null }
+
+interface Upgrade {
+  state: "requested" | "verified" | "failed" | "unconfirmed";
+  file_name: string;
+  expected_version: string | null;
+  from_version: string | null;
+  to_version: string | null;
+  matches?: boolean | null;
+  requested_at: string;
+  completed_at: string | null;
+  by: string | null;
+  started: boolean;
+  fault: { code: string; message: string; at: string } | null;
+}
+
+interface AcsFirmwareData {
+  linked: boolean;
+  can_run: boolean;
+  confirm_name: string;
+  current_version: string | null;
+  product_class: string | null;
+  files: FirmwareFile[];
+  files_error: string | null;
+  max_mb: number;
+  upgrade: Upgrade | null;
+}
+
+const path = (id: string) => `/api/ui/v1/devices/${encodeURIComponent(id)}/acs/firmware`;
+const mb = (bytes: number | null) => (bytes == null ? "—" : `${(bytes / 1048576).toFixed(1)} MB`);
+
+/** Firmware upgrade of a TR-069 CPE through GenieACS (ACS-08): image stored in GenieACS, download task, verified from the reported version. */
+export function AcsFirmware({ deviceId }: { deviceId: string }) {
+  const { t, i18n } = useTranslation();
+  const client = useQueryClient();
+  const key = ["device", deviceId, "acs-firmware"];
+  const query = useQuery({
+    queryKey: key,
+    queryFn: () => api<AcsFirmwareData>(path(deviceId)),
+    refetchInterval: (state) => (state.state.data?.upgrade?.state === "requested" ? 15000 : false),
+  });
+  const [image, setImage] = useState<File | null>(null);
+  const [version, setVersion] = useState("");
+  const [chosen, setChosen] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const upload = useMutation({
+    mutationFn: () => {
+      const form = new FormData();
+      if (image) form.append("image", image);
+      form.append("version", version);
+      return api<{ file_name: string; size: number }>(`${path(deviceId)}/files`, { method: "POST", body: form });
+    },
+    onSuccess: (data) => {
+      setChosen(data.file_name);
+      setImage(null);
+      void client.invalidateQueries({ queryKey: key });
+    },
+  });
+  const run = useMutation({
+    mutationFn: () => api<AcsFirmwareData>(path(deviceId), { method: "POST", body: JSON.stringify({ file_name: chosen, confirm }) }),
+    onSuccess: (data) => {
+      setConfirm("");
+      client.setQueryData(key, data);
+    },
+  });
+  const data = query.data;
+  if (!data || !data.linked) return null;
+  const upgrade = data.upgrade;
+  const running = upgrade?.state === "requested";
+  const submitUpload = (event: FormEvent) => {
+    event.preventDefault();
+    upload.mutate();
+  };
+  const submitRun = (event: FormEvent) => {
+    event.preventDefault();
+    run.mutate();
+  };
+  return (
+    <section className="ui-panel ui-admin-section">
+      <h2>{t("acsFirmware.title")}</h2>
+      <p className="ui-muted">{t("acsFirmware.help")}</p>
+      <dl className="ui-dl">
+        <div><dt>{t("acsFirmware.current")}</dt><dd className="ui-mono">{data.current_version ?? "—"}</dd></div>
+        <div><dt>{t("acsFirmware.model")}</dt><dd>{data.product_class ?? "—"}</dd></div>
+      </dl>
+      {upgrade && (
+        <div className={`ui-alert${upgrade.state === "failed" || upgrade.state === "unconfirmed" ? " ui-alert-warning" : upgrade.state === "verified" ? " ui-alert-success" : ""}`}>
+          {t(`acsFirmware.states.${upgrade.state}`, {
+            when: formatDateTime(upgrade.completed_at ?? upgrade.requested_at, i18n.language),
+            from: upgrade.from_version ?? "—", to: upgrade.to_version ?? "—",
+          })}
+          {running && !upgrade.started ? ` · ${t("acsFirmware.waitingContact")}` : ""}
+          {upgrade.state === "verified" && upgrade.matches === false ? ` · ${t("acsFirmware.notExpected", { version: upgrade.expected_version })}` : ""}
+          {upgrade.fault ? <span className="ui-mono"> · {upgrade.fault.code} {upgrade.fault.message}</span> : null}
+          <small className="ui-muted"> · {upgrade.file_name}{upgrade.by ? ` · ${upgrade.by}` : ""}</small>
+        </div>
+      )}
+      {data.files_error && <div className="ui-alert ui-alert-warning">{data.files_error}</div>}
+      {data.can_run && (
+        <>
+          <h3>{t("acsFirmware.uploadTitle")}</h3>
+          <form className="ui-admin-form" onSubmit={submitUpload}>
+            <label>
+              <span>{t("acsFirmware.image", { max: data.max_mb })}</span>
+              <input type="file" accept=".bin,.img,.w,.fw,application/octet-stream" onChange={(event) => setImage(event.target.files?.[0] ?? null)} />
+            </label>
+            <label>
+              <span>{t("acsFirmware.version")}</span>
+              <input value={version} onChange={(event) => setVersion(event.target.value)} placeholder={t("acsFirmware.versionPlaceholder")} spellCheck={false} />
+            </label>
+            <div className="ui-row-actions">
+              <button type="submit" className="ui-button ui-button-ghost" disabled={!image || upload.isPending}>
+                {upload.isPending ? t("acsFirmware.uploading") : t("acsFirmware.upload")}
+              </button>
+            </div>
+          </form>
+          {upload.error && <div className="ui-alert ui-alert-danger">{(upload.error as Error).message}</div>}
+          <h3>{t("acsFirmware.runTitle")}</h3>
+          {data.files.length === 0 ? (
+            <p className="ui-muted">{t("acsFirmware.noFiles")}</p>
+          ) : (
+            <form className="ui-admin-form" onSubmit={submitRun}>
+              <label>
+                <span>{t("acsFirmware.file")}</span>
+                <select value={chosen} onChange={(event) => setChosen(event.target.value)} required>
+                  <option value="">—</option>
+                  {data.files.map((file) => (
+                    <option key={file.name} value={file.name}>
+                      {file.name} · {file.version || t("acsFirmware.noVersion")} · {mb(file.size)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>{t("acsFirmware.confirm", { name: data.confirm_name })}</span>
+                <input value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="off" spellCheck={false} />
+              </label>
+              <p className="ui-muted">{t("acsFirmware.warning")}</p>
+              <div className="ui-row-actions">
+                <button type="submit" className="ui-button ui-button-danger" disabled={!chosen || confirm.trim() !== data.confirm_name || running || run.isPending}>
+                  {t("acsFirmware.run")}
+                </button>
+              </div>
+            </form>
+          )}
+          {run.error && <div className="ui-alert ui-alert-danger">{(run.error as Error).message}</div>}
+        </>
+      )}
+    </section>
+  );
+}

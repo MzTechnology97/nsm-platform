@@ -430,6 +430,8 @@ Only expose backup/restore where the real CPE data model and connector expose a 
 
 ### ACS-08 — firmware workflow
 
+**Implemented in `main` (Core 0.49.219)** for one CPE at a time: vendor image loaded into GenieACS per model, `download` task after typed confirmation and model check, verified from the reported `SoftwareVersion`, faults and timeout reported, audited. Next: campaigns over many CPEs with staged rollout.
+
 - firmware target/evidence model;
 - controlled ACS operation;
 - progress/result state;
