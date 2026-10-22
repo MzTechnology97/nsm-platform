@@ -438,6 +438,8 @@ export interface AcsAdmin {
   base_provision: string;
   provision_script: string;
   presets: { name: string; precondition: string }[];
+  /** NSM templates in GenieACS: when NSM last installed them and whether they match this version (kept current automatically). */
+  templates?: { installed_at: string | null; current: boolean; auto: boolean };
 }
 
 export const useAcsAdmin = () => useQuery({ queryKey: ["admin-acs"], queryFn: () => api<AcsAdmin>("/api/ui/v1/admin/acs") });

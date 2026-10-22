@@ -2582,7 +2582,10 @@
     "presetText": "condition <code>{{condition}}</code>, événements bootstrap, boot et periodic → provision <code>{{provision}}</code>",
     "script": "Script de la provision {{name}}",
     "migrationHint": "Vous gérez déjà une flotte de CPE sur un ACS cloud (par exemple TAUC) ?",
-    "migrationLink": "Migrer les CPE vers cet ACS"
+    "migrationLink": "Migrer les CPE vers cet ACS",
+    "templatesCurrent": "Les modèles NSM sont à jour (installés le {{when}}). NSM les met à jour seul après chaque mise à jour.",
+    "templatesPending": "Cette version de NSM a des modèles plus récents que ceux installés le {{when}} : NSM les installe sous 30 minutes, ou cliquez sur Installer.",
+    "templatesAuto": "Une fois installés, NSM tient ces modèles à jour seul après chaque mise à jour."
   },
   "demo": {
     "subtitle": "Jeu de données isolé pour essayer l'interface et les flux sans utiliser de vrais clients.",
@@ -5060,6 +5063,7 @@
     "ACS_MIGRATION_COMPLETED": "Migration ACS terminée",
     "ACS_MIGRATION_STARTED": "Migration ACS démarrée",
     "ACS_TEMPLATES_INSTALLED": "Modèles ACS installés",
+    "ACS_TEMPLATES_UPDATED": "Modèles ACS mis à jour par NSM",
     "AGENT_HEALTH_ISSUE_OPENED": "Problème d'agent signalé",
     "AGENT_HEALTH_RECOVERED": "Agent rétabli",
     "API_KEY_CREATED": "Clé API créée",
