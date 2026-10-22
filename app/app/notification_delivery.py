@@ -179,7 +179,10 @@ def fan_out(db, notification: Notification) -> int:
                       .where(UserNotificationPreference.enabled.is_(True), User.is_active.is_(True))).all()
     if not rows:
         return 0
-    subject, body = compose(db, notification.title, notification.message, level, category, notification.source_url)
+    from app.maintenance_windows import labelled_title
+
+    title = labelled_title(notification.title, notification.maintenance_window_id)
+    subject, body = compose(db, title, notification.message, level, category, notification.source_url)
     queued = 0
     for pref, user in rows:
         if pref.channel not in CHANNELS or not wants(pref, level, category):
@@ -203,6 +206,12 @@ def _fan_out_new_notifications(session, flush_context, instances):
         for notification in new:
             if notification.id is None:
                 notification.id = uuid.uuid4()
+            if notification.maintenance_window_id is None and (notification.device_id or notification.customer_id):
+                from app.maintenance_windows import active_window
+
+                window = active_window(session, device_id=notification.device_id, customer_id=notification.customer_id,
+                                       at=notification.created_at or utcnow())
+                notification.maintenance_window_id = window.id if window else None
             if notification.is_active is False:
                 continue
             fan_out(session, notification)

@@ -3053,7 +3053,9 @@
     "restore": "Restore",
     "archiveRead_one": "Archive the read one",
     "archiveRead_other": "Archive the {{count}} read",
-    "noArchived": "No archived notifications."
+    "noArchived": "No archived notifications.",
+    "maintenance": "during planned maintenance",
+    "maintenanceHint": "Planned maintenance: {{reason}} (until {{until}}). The alert is sent as usual."
   },
   "profile": {
     "title": "Profile",

@@ -3053,7 +3053,9 @@
     "restore": "Ripristina",
     "archiveRead_one": "Archivia la letta",
     "archiveRead_other": "Archivia le {{count}} lette",
-    "noArchived": "Nessuna notifica archiviata."
+    "noArchived": "Nessuna notifica archiviata.",
+    "maintenance": "in manutenzione programmata",
+    "maintenanceHint": "Manutenzione programmata: {{reason}} (fino al {{until}}). L'avviso è inviato normalmente."
   },
   "profile": {
     "title": "Profilo",

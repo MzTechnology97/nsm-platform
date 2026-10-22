@@ -290,6 +290,8 @@ class Notification(Base):
     )
     source_url: Mapped[str | None] = mapped_column(String(1000))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Planned maintenance the notification fell in (set when it is created): shown as a label, the alert itself is unchanged.
+    maintenance_window_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("maintenance_windows.id", ondelete="SET NULL"))
 
 
 class NotificationRead(Base):

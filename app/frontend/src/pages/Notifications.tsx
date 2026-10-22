@@ -79,6 +79,11 @@ function Row({ item, archived, busy, onRead, onArchive }: { item: NotificationIt
       <div className="ui-notification-body">
         <div className="ui-notification-title">
           <strong>{item.title}</strong>
+          {item.maintenance && (
+            <span className="ui-chip" title={t("notifications.maintenanceHint", { reason: item.maintenance.reason, until: formatDateTime(item.maintenance.ends_at, i18n.language) })}>
+              {t("notifications.maintenance")}
+            </span>
+          )}
           <span className={`ui-severity ui-severity-${item.severity}`}>{t(`actionCenter.severities.${item.severity}`, { defaultValue: item.severity })}</span>
           {!item.is_read && <span className="ui-chip ui-chip-warning">{t("notifications.new")}</span>}
         </div>

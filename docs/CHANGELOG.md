@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.200 — 2026-10-22
+
+Alerts during planned maintenance
+- **Notifications raised during a planned maintenance window say so.** If the device, or its whole customer, is in a maintenance window when the alert is raised, the notification is still sent as usual. It is labelled *in manutenzione programmata*:
+  - on the *Notifiche* page, where the label shows the window's reason and end on hover;
+  - in the subject of the e-mail, Telegram and Slack messages.
+- Nothing is suppressed, and Action Center issues are unchanged.
+
 ## 0.49.199 — 2026-10-22
 
 UISP and cnMaestro checked on the real consoles
