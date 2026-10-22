@@ -1815,7 +1815,8 @@
       "notifications": "Notifications",
       "syslog": "Syslog",
       "acs": "ACS",
-      "system": "System"
+      "system": "System",
+      "serverMigration": "Server migration"
     }
   },
   "adminUsers": {
@@ -5249,6 +5250,10 @@
     "SECURITY_MATCHING_COMPLETED": "Vulnerability matching completed",
     "SECURITY_SOURCE_CONFIGURED": "Security source configured",
     "SERIAL_DISCOVERED": "Serial number read",
+    "SERVER_MIGRATION_CANCELLED": "Server migration cancelled",
+    "SERVER_MIGRATION_CREATED": "Server migration created",
+    "SERVER_MIGRATION_STARTED": "Devices sent to the new server",
+    "SERVER_MIGRATION_VERIFIED": "New server verified",
     "SITE_ADDED": "Site added",
     "SITE_DELETED": "Site deleted",
     "SITE_UPDATED": "Site updated",
@@ -5502,5 +5507,78 @@
       "address": "Address",
       "rtt": "Times"
     }
+  },
+  "serverMigration": {
+    "subtitle": "Move NSM to a server with another address: this server tells MikroTik agents and TR-069 CPEs the new address.",
+    "howTitle": "How it works",
+    "how": "Devices know NSM by address. This server hands MikroTik agents a script pointing at the new address and sets the new ACS URL on TR-069 CPEs (the only CWMP write). Routers need no manual change.",
+    "steps": {
+      "install": "Install the same NSM version on the new server.",
+      "create": "Create the migration here with the new server's address.",
+      "restore": "Take a database dump here (<code>sudo ./manage.sh backup-db</code>) and restore it on the new server with <code>secrets/bootstrap.env</code> and <code>.env</code> (<code>sudo ./manage.sh restore-db</code>): the dump must be taken after creating the migration.",
+      "settings": "On the new server: ACS_CWMP_URL in .env, the syslog public address (Amministrazione → Syslog), the legacy backup FTP receiver settings, the ACS templates installed.",
+      "pilot": "Verify the new server, try a pilot on a few devices, confirm they arrived, then migrate all.",
+      "reinstall": "Agents that cannot update themselves must be reinstalled from the new server (device Agent tab)."
+    },
+    "readiness": {
+      "capable": "Self-updating agents",
+      "capableHint": "move to the new server by themselves",
+      "reinstall": "Agents to reinstall",
+      "reinstallHint": "reinstall from the new server",
+      "tr069": "TR-069 CPEs",
+      "tr069Hint": "receive the new ACS URL"
+    },
+    "createTitle": "New migration",
+    "createHelp": "The new server's address as the routers reach it (http or https, no path). With https the certificate must be valid: routers check it.",
+    "create": "Create migration",
+    "fields": {
+      "agentUrl": "New server address (agents)",
+      "acsUrl": "New ACS URL (TR-069 CPEs)",
+      "syslog": "Syslog to",
+      "created": "Created"
+    },
+    "noSyslog": "cannot be determined: reconfigure syslog from the new server",
+    "runningTitle": "Migration in progress",
+    "cancel": "Cancel migration",
+    "cancelConfirm": "Cancel the migration? Sends not yet delivered are stopped; devices already moved stay on the new server.",
+    "verifyTitle": "New server check",
+    "verifyHelp": "This server checks that the new one answers and is a restore of this database. Repeat it within 24 hours of starting.",
+    "verified": "Verified {{when}}: version {{version}}, {{devices}} devices.",
+    "verify": "Verify",
+    "pilotTitle": "Pilot",
+    "pilotHelp": "Pick up to {{max}} devices to move first. After a few minutes press \"Refresh confirmations\": once they arrived you can migrate all.",
+    "search": "Search device or customer",
+    "startPilot": "Start pilot ({{count}})",
+    "startAll": "Migrate all",
+    "startAllConfirm": "Send the new address to every self-updating agent and every TR-069 CPE?",
+    "allNeedsPilot": "\"Migrate all\" is enabled once at least one pilot device arrived on the new server.",
+    "itemsTitle": "Devices",
+    "confirm": "Refresh confirmations",
+    "retire": "Decommission arrived devices here",
+    "retireConfirm": "Decommission on this server the {{count}} devices that arrived on the new one? They stop raising alerts here; their data stays readable.",
+    "retired": "decommissioned here",
+    "noItems": "No device sent yet.",
+    "cols": {
+      "device": "Device",
+      "customer": "Customer",
+      "kind": "Type",
+      "online": "Online",
+      "status": "Status",
+      "detail": "Detail",
+      "arrived": "Arrived"
+    },
+    "kind": {
+      "agent": "MikroTik agent",
+      "tr069": "TR-069 CPE"
+    },
+    "status": {
+      "queued": "Waiting",
+      "sent": "Sent",
+      "arrived": "Arrived",
+      "failed": "Failed",
+      "reinstall": "To reinstall"
+    },
+    "yes": "yes",
+    "no": "no"
   }
 }

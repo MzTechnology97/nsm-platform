@@ -1815,7 +1815,8 @@
       "notifications": "Notifications",
       "syslog": "Syslog",
       "acs": "ACS",
-      "system": "Système"
+      "system": "Système",
+      "serverMigration": "Migration du serveur"
     }
   },
   "adminUsers": {
@@ -5249,6 +5250,10 @@
     "SECURITY_MATCHING_COMPLETED": "Corrélation des vulnérabilités terminée",
     "SECURITY_SOURCE_CONFIGURED": "Source de sécurité configurée",
     "SERIAL_DISCOVERED": "Numéro de série relevé",
+    "SERVER_MIGRATION_CANCELLED": "Migration du serveur annulée",
+    "SERVER_MIGRATION_CREATED": "Migration du serveur créée",
+    "SERVER_MIGRATION_STARTED": "Équipements envoyés au nouveau serveur",
+    "SERVER_MIGRATION_VERIFIED": "Nouveau serveur vérifié",
     "SITE_ADDED": "Site ajouté",
     "SITE_DELETED": "Site supprimé",
     "SITE_UPDATED": "Site modifié",
@@ -5502,5 +5507,78 @@
       "address": "Adresse",
       "rtt": "Temps"
     }
+  },
+  "serverMigration": {
+    "subtitle": "Déplacer NSM vers un serveur à une autre adresse : ce serveur communique la nouvelle adresse aux agents MikroTik et aux CPE TR-069.",
+    "howTitle": "Fonctionnement",
+    "how": "Les équipements connaissent NSM par son adresse. Ce serveur fournit aux agents MikroTik un script qui pointe vers la nouvelle adresse et règle la nouvelle URL ACS sur les CPE TR-069 (seule écriture CWMP). Aucune intervention sur les routeurs.",
+    "steps": {
+      "install": "Installez la même version de NSM sur le nouveau serveur.",
+      "create": "Créez ici la migration avec l'adresse du nouveau serveur.",
+      "restore": "Faites une sauvegarde de la base ici (<code>sudo ./manage.sh backup-db</code>) et restaurez-la sur le nouveau serveur avec <code>secrets/bootstrap.env</code> et <code>.env</code> (<code>sudo ./manage.sh restore-db</code>) : la sauvegarde doit être faite après la création de la migration.",
+      "settings": "Sur le nouveau serveur : ACS_CWMP_URL dans .env, adresse publique du syslog (Amministrazione → Syslog), réglages du récepteur FTP des sauvegardes legacy, modèles ACS installés.",
+      "pilot": "Vérifiez le nouveau serveur, essayez un pilote sur quelques équipements, confirmez leur arrivée, puis migrez tout.",
+      "reinstall": "Les agents qui ne se mettent pas à jour seuls doivent être réinstallés depuis le nouveau serveur (onglet Agent de l'équipement)."
+    },
+    "readiness": {
+      "capable": "Agents auto-actualisables",
+      "capableHint": "passent seuls au nouveau serveur",
+      "reinstall": "Agents à réinstaller",
+      "reinstallHint": "à réinstaller depuis le nouveau serveur",
+      "tr069": "CPE TR-069",
+      "tr069Hint": "reçoivent la nouvelle URL ACS"
+    },
+    "createTitle": "Nouvelle migration",
+    "createHelp": "Adresse du nouveau serveur telle que les routeurs l'atteignent (http ou https, sans chemin). En https le certificat doit être valide : les routeurs le vérifient.",
+    "create": "Créer la migration",
+    "fields": {
+      "agentUrl": "Adresse du nouveau serveur (agents)",
+      "acsUrl": "Nouvelle URL ACS (CPE TR-069)",
+      "syslog": "Syslog vers",
+      "created": "Créée"
+    },
+    "noSyslog": "indéterminable : reconfigurez le syslog depuis le nouveau serveur",
+    "runningTitle": "Migration en cours",
+    "cancel": "Annuler la migration",
+    "cancelConfirm": "Annuler la migration ? Les envois non encore livrés sont arrêtés ; les équipements déjà passés restent sur le nouveau serveur.",
+    "verifyTitle": "Vérification du nouveau serveur",
+    "verifyHelp": "Ce serveur vérifie que le nouveau répond et qu'il est une restauration de cette base. À refaire dans les 24 heures avant le lancement.",
+    "verified": "Vérifié {{when}} : version {{version}}, {{devices}} équipements.",
+    "verify": "Vérifier",
+    "pilotTitle": "Pilote",
+    "pilotHelp": "Choisissez jusqu'à {{max}} équipements à déplacer en premier. Après quelques minutes, appuyez sur « Actualiser les confirmations » : une fois arrivés, vous pouvez tout migrer.",
+    "search": "Chercher un équipement ou un client",
+    "startPilot": "Lancer le pilote ({{count}})",
+    "startAll": "Tout migrer",
+    "startAllConfirm": "Envoyer la nouvelle adresse à tous les agents auto-actualisables et à tous les CPE TR-069 ?",
+    "allNeedsPilot": "« Tout migrer » s'active dès qu'au moins un équipement du pilote est arrivé sur le nouveau serveur.",
+    "itemsTitle": "Équipements",
+    "confirm": "Actualiser les confirmations",
+    "retire": "Désactiver ici les arrivés",
+    "retireConfirm": "Désactiver sur ce serveur les {{count}} équipements arrivés sur le nouveau ? Ils cessent de générer des alertes ici ; leurs données restent consultables.",
+    "retired": "désactivé ici",
+    "noItems": "Aucun équipement envoyé.",
+    "cols": {
+      "device": "Équipement",
+      "customer": "Client",
+      "kind": "Type",
+      "online": "En ligne",
+      "status": "État",
+      "detail": "Détail",
+      "arrived": "Arrivé"
+    },
+    "kind": {
+      "agent": "Agent MikroTik",
+      "tr069": "CPE TR-069"
+    },
+    "status": {
+      "queued": "En attente",
+      "sent": "Envoyé",
+      "arrived": "Arrivé",
+      "failed": "Échec",
+      "reinstall": "À réinstaller"
+    },
+    "yes": "oui",
+    "no": "non"
   }
 }
