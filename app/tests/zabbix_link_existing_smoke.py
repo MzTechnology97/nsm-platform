@@ -55,7 +55,7 @@ def main():
     renamed = fake.operator_host(f"TEST-ZL-NAME-{suffix}", "198.51.100.99")  # stale IP in Zabbix: linked by name, IP then updated
     fake.operator_host("NAT cliente A", "203.0.113.50")
     fake.operator_host("NAT cliente B", "203.0.113.50")
-    fake.operator_host("Router di un altro cliente", "192.168.1.1")  # factory LAN address: must never be matched by IP
+    fake.operator_host("Router di un altro cliente", "192.168.1.1")  # factory LAN address: must never be matched by IP  # public-data-safety: allow (factory LAN default under test)
     operator_templates = {hid: list(h["templates"]) for hid, h in fake.hosts.items()}
 
     with SessionLocal() as db:
@@ -71,7 +71,7 @@ def main():
             "name": Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-ZL-NAME-{suffix}", management_ip="198.51.100.72", status="online"),
             "ambiguous": Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-ZL-NAT-{suffix}", management_ip="203.0.113.50", status="online"),
             "new": Device(customer_id=customer.id, vendor="generic", device_type="other", name=f"TEST-ZL-NEW-{suffix}", management_ip="198.51.100.73", status="online"),
-            "cpe": Device(customer_id=customer.id, vendor="tp-link", device_type="router", name=f"TEST-ZL-CPE-{suffix}", management_ip="192.168.1.1", status="online"),
+            "cpe": Device(customer_id=customer.id, vendor="tp-link", device_type="router", name=f"TEST-ZL-CPE-{suffix}", management_ip="192.168.1.1", status="online"),  # public-data-safety: allow (factory LAN default under test)
         }
         db.add_all(devices.values())
         db.commit()
