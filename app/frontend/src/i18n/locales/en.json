@@ -4,7 +4,8 @@
     "loading": "Loading…",
     "error": "Unable to load data.",
     "retry": "Retry",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "copyFailed": "The browser did not allow copying: select the text and press Ctrl+C."
   },
   "nav": {
     "dashboard": "Dashboard",

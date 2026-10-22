@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { api } from "../api/client";
+import { copyText } from "../lib/clipboard";
 import { formatDateTime } from "../lib/format";
 
 type FieldState = "ok" | "partial" | "missing";
@@ -49,16 +50,14 @@ export function ConnectorDiagnostics({ provider }: { provider: "uisp" | "cnmaest
     onSuccess: (data) => client.setQueryData(key, data),
   });
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const report = query.data?.report ?? null;
   const copy = async () => {
     if (!report) return;
-    try {
-      await navigator.clipboard.writeText(report.text);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2500);
-    } catch {
-      setCopied(false);
-    }
+    const ok = await copyText(report.text);
+    setCopied(ok);
+    if (ok) window.setTimeout(() => setCopied(false), 2500);
+    else setCopyFailed(true);
   };
   return (
     <section className="ui-panel ui-admin-section ui-diagnostics">
@@ -75,6 +74,7 @@ export function ConnectorDiagnostics({ provider }: { provider: "uisp" | "cnmaest
         </div>
       </div>
       {run.error && <div className="ui-alert ui-alert-danger">{(run.error as Error).message}</div>}
+      {copyFailed && <div className="ui-alert ui-alert-warning">{t("app.copyFailed")}</div>}
       {!report ? (
         <div className="ui-empty">{t("connectorDiagnostics.none")}</div>
       ) : (

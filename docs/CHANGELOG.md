@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.208 — 2026-10-22
+
+Copy buttons
+- **"Copia" works when NSM is opened over plain HTTP.** Browsers allow the clipboard API only on HTTPS, so on an installation reached at http:// these buttons did nothing:
+  - the agent install command;
+  - the new API key;
+  - the 2FA recovery codes;
+  - the connector compatibility report.
+  They now copy through the browser's older copy command. If the browser refuses that too, a message asks you to select the text and press Ctrl+C.
+
 ## 0.49.207 — 2026-10-22
 
 Ubiquiti firmware catalog
