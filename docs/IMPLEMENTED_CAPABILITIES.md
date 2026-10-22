@@ -801,7 +801,7 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 
 ### Lifecycle from the web (LIFE-04)
 
-`app/lifecycle_web.py`, migration 0055:
+`app/lifecycle_web.py`, migration 0054:
 
 - for every vendor + model in the inventory NSM asks [eol.network](https://eol.network), a free database of the end-of-sale / end-of-support notices vendors publish on their own sites (MikroTik product pages, Ubiquiti *Vintage and Legacy*, Cambium product lifecycle, TP-Link EOL lists, 90+ vendors); each answer keeps the official vendor page, the eol.network page and the date the source was read;
 - *EOL / EOS → Catalogo lifecycle → Ciclo di vita dal web*: per model the product found, vendor status, published dates, match confidence and source; *Nessun avviso di fine vita pubblicato* when there is no notice; *Cerca con un altro nome* (the SKU on the label) when the inventory name is a marketing name;

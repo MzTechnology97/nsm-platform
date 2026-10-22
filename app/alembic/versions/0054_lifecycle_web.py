@@ -1,15 +1,15 @@
 """Lifecycle looked up on the web, one row per inventory model.
 
-Revision ID: 0055_lifecycle_web
-Revises: 0054_server_migration
+Revision ID: 0054_lifecycle_web
+Revises: 0053_server_migration
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
 
-revision: str = "0055_lifecycle_web"
-down_revision: Union[str, None] = "0054_server_migration"
+revision: str = "0054_lifecycle_web"
+down_revision: Union[str, None] = "0053_server_migration"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
