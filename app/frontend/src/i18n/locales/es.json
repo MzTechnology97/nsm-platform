@@ -245,6 +245,20 @@
         "pppoe": "asociada por usuario PPPoE",
         "ip": "asociada por IP estática"
       }
+    },
+    "pingToggle": {
+      "open": "Ping desde NSM: activar o desactivar",
+      "title": "Ping desde NSM",
+      "help": "NSM hace ping al equipo cada minuto: latencia, pérdida y cortes aparecen en Monitor y cuentan para la disponibilidad.",
+      "on": "Activado",
+      "off": "Desactivado",
+      "target": "Dirección consultada: {{target}}",
+      "noTarget": "El equipo no tiene IP de gestión: defina primero una dirección en Monitor → Impostazioni monitoraggio.",
+      "readOnly": "Para cambiarlo se necesita el permiso de edición de equipos.",
+      "savedOn": "Ping activado: el primer resultado llega en menos de un minuto.",
+      "savedOff": "Ping desactivado.",
+      "more": "Umbrales y dirección en Monitor",
+      "close": "Cerrar"
     }
   },
   "monitor": {
