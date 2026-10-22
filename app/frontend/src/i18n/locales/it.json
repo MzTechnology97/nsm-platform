@@ -5112,6 +5112,7 @@
     "DEVICE_SNAPSHOT_BATCH_QUEUED": "Aggiornamento configurazione in coda",
     "DEVICE_SNAPSHOT_QUEUED": "Aggiornamento sezione configurazione in coda",
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Interfacce monitorate modificate",
+    "DEVICE_VENDOR_CORRECTED": "Vendor dell'apparato corretto",
     "DIAGNOSTIC_EXPORTED": "Diagnostica esportata",
     "EXPOSURE_CHECK_REQUESTED": "Verifica esposizione richiesta",
     "EXPOSURE_EXTERNAL_CHECK": "Verifica esposizione dall'esterno",
