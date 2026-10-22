@@ -23,12 +23,12 @@ def tr181_row(*, connection_request_url="http://203.0.113.87:7547/tr069"):
                            "HardwareVersion": parameter("VX230v v1.0 00000000")},
             "ManagementServer": {"ConnectionRequestURL": parameter(connection_request_url)},
             "IP": {"Interface": {
-                "1": {"IPv4Address": {"1": {"IPAddress": parameter("192.168.1.1")}}},
+                "1": {"IPv4Address": {"1": {"IPAddress": parameter("198.51.100.1")}}},
                 "2": {"IPv4Address": {"1": {"IPAddress": parameter("0.0.0.0")}}},
                 "6": {"IPv4Address": {"1": {"IPAddress": parameter("203.0.113.87")}}},
             }},
             "Ethernet": {
-                "Interface": {"1": {"MACAddress": parameter(LAN_MAC.lower())}, "2": {"MACAddress": parameter("00:00:00:00:00:00")},
+                "Interface": {"1": {"MACAddress": parameter(LAN_MAC.lower())}, "2": {"MACAddress": parameter("00:00:00:00:00:00")},  # public-data-safety: allow (all-zero MAC that NSM must skip)
                               "5": {"MACAddress": parameter(WAN_MAC)}},
                 "Link": {"1": {"MACAddress": parameter(LAN_MAC)}},
             },
@@ -50,7 +50,7 @@ def main():
 
     # Without a usable connection-request URL, the first routable IPv4 of any interface (0.0.0.0 and loopback skipped).
     fallback = acs.candidate_from_genieacs(tr181_row(connection_request_url="http://cpe.example.test:7547/"), connection, "serial")
-    assert fallback["management_ip"] == "192.168.1.1"
+    assert fallback["management_ip"] == "198.51.100.1"
 
     # Projection fetches wildcard paths through their parent object; MAC queries stay bounded per path.
     projection = acs._projection(connection)
