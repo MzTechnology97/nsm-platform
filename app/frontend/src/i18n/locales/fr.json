@@ -3053,7 +3053,9 @@
     "restore": "Restaurer",
     "archiveRead_one": "Archiver la lue",
     "archiveRead_other": "Archiver les {{count}} lues",
-    "noArchived": "Aucune notification archivée."
+    "noArchived": "Aucune notification archivée.",
+    "maintenance": "pendant une maintenance planifiée",
+    "maintenanceHint": "Maintenance planifiée : {{reason}} (jusqu'au {{until}}). L'alerte est envoyée normalement."
   },
   "profile": {
     "title": "Profil",

@@ -3053,7 +3053,9 @@
     "restore": "Restaurar",
     "archiveRead_one": "Archivar la leída",
     "archiveRead_other": "Archivar las {{count}} leídas",
-    "noArchived": "Ninguna notificación archivada."
+    "noArchived": "Ninguna notificación archivada.",
+    "maintenance": "durante un mantenimiento programado",
+    "maintenanceHint": "Mantenimiento programado: {{reason}} (hasta el {{until}}). El aviso se envía igualmente."
   },
   "profile": {
     "title": "Perfil",

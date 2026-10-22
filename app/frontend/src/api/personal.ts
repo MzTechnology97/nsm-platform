@@ -48,6 +48,8 @@ export interface NotificationItem {
   source_url: string | null;
   is_read: boolean;
   advisory_id: string | null;
+  /** Planned maintenance the notification fell in: shown as a label next to the title. */
+  maintenance: { reason: string; ends_at: string } | null;
   device: { id: string; name: string; brand: Brand; vendor: string | null; status: string } | null;
 }
 

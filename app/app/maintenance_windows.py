@@ -10,6 +10,10 @@
   create or remove a window, audited (``MAINTENANCE_WINDOW_CREATED`` /
   ``MAINTENANCE_WINDOW_DELETED``).
 
+Notifications raised while a window covers their device or customer are
+linked to it (``notifications.maintenance_window_id``) and shown and sent with
+"in manutenzione programmata" after the title; they are not suppressed.
+
 Windows are single periods (no recurrence), at most 7 days long and at most a
 year back. Customer scope applies through the global ORM filter.
 """
@@ -52,6 +56,29 @@ def outside_maintenance(db, lower: datetime, upper: datetime):
         else:
             inside.append(and_(DevicePingSample.device_id.in_(select(Device.id).where(Device.customer_id == window.customer_id)), period))
     return not_(or_(*inside)) if inside else true()
+
+
+MAINTENANCE_LABEL = "in manutenzione programmata"
+
+
+def active_window(db, *, device_id=None, customer_id=None, at: datetime | None = None) -> MaintenanceWindow | None:
+    """The window covering ``at`` for this device (its own, or its customer's) or, without a device, for the customer as a whole."""
+    at = at or utcnow()
+    if device_id is not None and customer_id is None:
+        customer_id = db.scalar(select(Device.customer_id).where(Device.id == device_id).execution_options(include_decommissioned=True))
+    if customer_id is None:
+        return None
+    scope = MaintenanceWindow.device_id.is_(None)
+    if device_id is not None:
+        scope = or_(scope, MaintenanceWindow.device_id == device_id)
+    return db.scalar(select(MaintenanceWindow).where(MaintenanceWindow.customer_id == customer_id, scope,
+                                                     MaintenanceWindow.starts_at <= at, MaintenanceWindow.ends_at > at)
+                     .order_by(MaintenanceWindow.ends_at.desc()).limit(1))
+
+
+def labelled_title(title: str, window_id) -> str:
+    """Title shown and sent for a notification: the stored title stays as written (callers deduplicate on it)."""
+    return f"{title} · {MAINTENANCE_LABEL}" if window_id else title
 
 
 def customer_paused_minutes(db, lower: datetime, upper: datetime) -> dict:

@@ -34,7 +34,7 @@ from sqlalchemy import func, select
 from app import login_security, notification_delivery, notification_digest, two_factor, ui_extension
 from app import main as core
 from app.db import SessionLocal
-from app.models import Device, Notification
+from app.models import Device, MaintenanceWindow, Notification
 from app.ui_api import brand_icon, require_csrf, ui_user
 from app.ui_incidents import device_ref
 
@@ -90,11 +90,15 @@ def notifications(request: Request, archived: int = 0):
         rows = core.notification_rows(db, user, archived=bool(archived))
         device_ids = {n.device_id for n, _ in rows if n.device_id}
         devices = {d.id: d for d in db.scalars(select(Device).where(Device.id.in_(device_ids)))} if device_ids else {}
+        window_ids = {n.maintenance_window_id for n, _ in rows if n.maintenance_window_id}
+        windows = {w.id: w for w in db.scalars(select(MaintenanceWindow).where(MaintenanceWindow.id.in_(window_ids)))} if window_ids else {}
         return jsonable_encoder({
             "items": [{
                 "id": str(n.id), "created_at": n.created_at, "severity": n.severity or "info", "category": n.category or "system",
                 "title": n.title, "message": n.message, "source_url": _safe_url(n.source_url), "is_read": bool(is_read),
                 "advisory_id": str(n.advisory_id) if n.advisory_id else None, "device": device_ref(devices.get(n.device_id)),
+                "maintenance": ({"reason": windows[n.maintenance_window_id].reason, "ends_at": windows[n.maintenance_window_id].ends_at}
+                                if n.maintenance_window_id in windows else None),
             } for n, is_read in rows],
             "unread": _unread_count(db, user),
             "archived": core.archived_notification_count(db, user),
