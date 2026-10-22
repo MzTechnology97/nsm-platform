@@ -2702,7 +2702,16 @@
         "title": "Acceso con contraseña",
         "text": "username (5.4+) o user (versiones anteriores)"
       }
-    }
+    },
+    "linked": "Hosts existentes vinculados",
+    "linkedNote": "hosts que ya tenías en Zabbix, usados tal cual",
+    "ambiguous": "No vinculados, varios hosts de Zabbix podrían corresponder: {{names}}. Indica una IP de Zabbix dedicada o renombra el host.",
+    "ipUpdated": "IP actualizada en los hosts vinculados tras un cambio de dirección: {{names}}.",
+    "linkExisting": "Usar los hosts ya presentes en Zabbix",
+    "linkExistingHelp": "Un equipo se vincula al host de Zabbix con la misma IP (o, si no, el mismo nombre) cuando solo uno coincide: NSM muestra sus problemas y no crea un host nsm-. Grupos, plantillas y etiquetas de tus hosts no se tocan.",
+    "updateIp": "Actualizar la IP de los hosts vinculados cuando cambie",
+    "updateIpHelp": "Para routers con IP pública dinámica o tras NAT: NSM escribe en la interfaz principal del host la dirección actual del equipo (IP pública del router o la desde la que se conecta su agente).",
+    "templatesFromZabbix": "Sugerencias: las {{count}} plantillas de tu Zabbix."
   },
   "genieacs": {
     "title": "Integraciones · GenieACS / TR-069",
@@ -4816,7 +4825,11 @@
     },
     "pending": "esperando la próxima sincronización",
     "exclude": "Excluir de Zabbix",
-    "include": "Incluir en Zabbix"
+    "include": "Incluir en Zabbix",
+    "linked": {
+      "ip": "host de Zabbix existente, vinculado por IP",
+      "name": "host de Zabbix existente, vinculado por nombre"
+    }
   },
   "decommission": {
     "badge": "Desactivado",
@@ -5253,6 +5266,8 @@
     "VULNERABILITY_STATUS_CHANGED": "Estado de la vulnerabilidad cambiado",
     "ZABBIX_DEVICE_IP_CHANGED": "IP de Zabbix cambiada",
     "ZABBIX_DEVICE_SCOPE_CHANGED": "Equipo incluido o excluido de Zabbix",
+    "ZABBIX_HOST_IP_UPDATED": "IP del host de Zabbix actualizada",
+    "ZABBIX_HOST_LINKED": "Equipo vinculado a un host de Zabbix existente",
     "ZABBIX_SETTINGS_CHANGED": "Ajustes de Zabbix cambiados",
     "ZABBIX_SYNC_REQUESTED": "Sincronización de Zabbix solicitada"
   },
