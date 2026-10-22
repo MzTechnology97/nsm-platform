@@ -3955,7 +3955,21 @@
       "errors": "Errores"
     },
     "disabled": "desactivada",
-    "noRows": "Sin datos de UISP."
+    "noRows": "Sin datos de UISP.",
+    "eventTypes": {
+      "device": "equipo",
+      "device-state": "estado",
+      "device-interface": "interfaz",
+      "device-restart": "reinicio",
+      "device-upgrade": "actualización",
+      "device-backup": "copia",
+      "device-outage": "interrupción"
+    },
+    "levels": {
+      "info": "Info",
+      "warning": "Atención",
+      "error": "Error"
+    }
   },
   "deviceCnmaestro": {
     "linked": "Vinculado a cnMaestro desde el {{when}} (MAC {{mac}}).",

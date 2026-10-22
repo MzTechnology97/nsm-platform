@@ -45,10 +45,13 @@ def main():
                         firmware_version="1.1.0 Build 20230705 rel.12345", status="online")
         ont = Device(customer_id=customer.id, vendor="generic", device_type="ont", name=f"TEST-VF-HW-{suffix}", model="HG8245H", firmware_version="V5R020C10S115",
                      status="online", inventory_data={"manufacturer": "huawei"})
-        db.add_all([linked, loose, nano, archer, ont])
+        # Linked through UISP, which sends only "8.7.9" and the platform code: the catalog still finds its version.
+        uisp_only = Device(customer_id=customer.id, vendor="ubiquiti", device_type="wireless_cpe", name=f"TEST-VF-PBE-{suffix}", model="PowerBeam 5AC Gen2",
+                           firmware_version="8.7.9", status="online", inventory_data={"uisp_firmware": {"current": "8.7.9", "latest": None, "platform": "XC"}})
+        db.add_all([linked, loose, nano, archer, ont, uisp_only])
         db.add(User(username=f"ci-vf-{suffix}", password_hash=hash_password(PASSWORD), role="admin", is_active=True))
         db.commit()
-        ids = {"linked": linked.id, "loose": loose.id, "nano": nano.id, "archer": archer.id, "ont": ont.id}
+        ids = {"linked": linked.id, "loose": loose.id, "nano": nano.id, "archer": archer.id, "ont": ont.id, "uisp_only": uisp_only.id}
         brands = vf.brands_in_inventory(db)
         assert {"ubiquiti", "tp-link", "huawei"} <= set(brands) and "cambium" not in brands and "mikrotik" not in brands
 
@@ -57,19 +60,24 @@ def main():
 
     def ubnt(request: httpx.Request):
         params = request.url.params.get_list("filter")
-        platform = next(p.split("~~")[-1] for p in params if "platform" in p)
+        # As the service files them: the airOS platform under "product", the family under "platform".
+        assert "eq~~platform~~airmax" in params, params
+        platform = next(p.split("~~")[-1] for p in params if p.startswith("eq~~product~~"))
         seen.append(platform)
-        version = {"XW": "v6.3.11", "WA": "v8.7.13+build.1"}.get(platform)
-        return httpx.Response(200, json={"_embedded": {"firmware": [{"version": version, "created": "2026-09-01T10:00:00Z",
-                                                                     "_links": {"changelog": {"href": "https://dl.ui.com/notes.txt"}}}]}})
+        version = {"XW": "v6.3.11", "WA": "v8.7.13+build.1", "XC": "v8.7.14"}.get(platform)
+        rows = [{"version": version, "created": "2026-09-01T10:00:00Z", "_links": {"changelog": {"href": "https://dl.ui.com/notes.txt"}}},
+                {"version": "v8.7.20-cs", "created": "2021-04-15T10:00:00Z"}]  # custom-script build: ignored
+        return httpx.Response(200, json={"_embedded": {"firmware": rows}})
 
     stats = vf.run_scheduled(transport=httpx.MockTransport(ubnt))
-    assert sorted(seen) == ["WA", "XW"] and stats["vendor_api"]["created"] == 2 and stats["uisp"] >= 1
+    assert sorted(seen) == ["WA", "XC", "XW"] and stats["vendor_api"]["created"] == 3 and stats["uisp"] >= 1, (seen, stats)
     with SessionLocal() as db:
         loose, linked, nano = (db.get(Device, ids[k]) for k in ("loose", "linked", "nano"))
         assert loose.firmware_status == "update_available" and loose.recommended_firmware_version == "8.7.13", "newest of UISP and vendor API"
         assert linked.inventory_data.get("vendor_firmware") is None, "UISP keeps deciding for the devices it manages"
         assert nano.recommended_firmware_version == "6.3.11" and nano.inventory_data["vendor_firmware"]["source"] == "vendor_api"
+        uisp_only = db.get(Device, ids["uisp_only"])
+        assert uisp_only.firmware_status == "update_available" and uisp_only.recommended_firmware_version == "8.7.14", "platform from UISP, -cs build ignored"
         assert db.get(Device, ids["archer"]).inventory_data.get("vendor_firmware") is None, "no TP-Link release yet: state untouched"
 
     client = TestClient(app)

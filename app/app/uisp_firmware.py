@@ -1,10 +1,12 @@
 """Ubiquiti firmware state from UISP (UBNT-06, read-only step).
 
-UISP returns a ``firmware`` object per Network Device (``current``, ``latest``,
+UISP may return a ``firmware`` object per Network Device (``current``, ``latest``,
 ``latestOnCurrentMajorVersion``, ``compatible``, ``prerelease``; schema on each
 instance at ``/nms/api-docs/``).  NSM stores what UISP exposes and derives the
-firmware state only when both versions are present and comparable; nothing is
-inferred when UISP does not say.  Upgrades are still executed from UISP; NSM
+firmware state when both versions are present and comparable.  Consoles checked
+in production send only ``compatible``: there ``overview.canUpgrade`` marks an
+unknown state as "update available", and ``identification.platformId`` lets the
+vendor catalog (``vendor_firmware``) find the recommended version.  Upgrades are still executed from UISP; NSM
 sees the result at the next synchronization.
 """
 from __future__ import annotations
@@ -27,6 +29,7 @@ def extract(row: dict) -> dict | None:
     """Firmware fields exposed by UISP for one device row, or None."""
     firmware = row.get("firmware") if isinstance(row.get("firmware"), dict) else {}
     identification = row.get("identification") if isinstance(row.get("identification"), dict) else {}
+    overview = row.get("overview") if isinstance(row.get("overview"), dict) else {}
     current = _text(firmware.get("current")) or _text(identification.get("firmwareVersion"))
     latest = _text(firmware.get("latest"))
     if not current and not latest:
@@ -37,6 +40,10 @@ def extract(row: dict) -> dict | None:
         "latest_same_major": _text(firmware.get("latestOnCurrentMajorVersion")),
         "compatible": _bool(firmware.get("compatible")),
         "prerelease": _bool(firmware.get("prerelease")),
+        # Real consoles send only firmware.compatible: overview.canUpgrade says whether UISP offers a newer firmware,
+        # identification.platformId lets the vendor catalog find the version.
+        "can_upgrade": _bool(overview.get("canUpgrade")),
+        "platform": _text(identification.get("platformId"), 8),
     }
 
 
@@ -67,3 +74,6 @@ def apply(device, firmware: dict | None, now) -> None:
     elif newer is False:
         device.recommended_firmware_version = None
         device.firmware_status = "current"
+    elif firmware.get("can_upgrade") is True and not inventory.get("vendor_firmware") and (device.firmware_status or "unknown").lower() == "unknown":
+        # No version to compare and no catalog verdict yet: UISP at least says an upgrade exists.
+        device.firmware_status = "update_available"

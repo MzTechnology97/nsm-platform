@@ -211,11 +211,11 @@ function Firmware({ data }: { data: UispTab }) {
         <>
           <dl className="ui-dl">
             <div><dt>{t("deviceUisp.fields.installed")}</dt><dd className="ui-mono">{fw.current ?? data.record.firmware_version ?? "—"}</dd></div>
-            <div><dt>{t("deviceUisp.fields.latest")}</dt><dd className="ui-mono">{fw.latest ?? t("deviceUisp.notExposed")}{fw.prerelease ? ` (${t("deviceUisp.prerelease")})` : ""}</dd></div>
+            <div><dt>{t("deviceUisp.fields.latest")}</dt><dd className="ui-mono">{fw.latest ?? data.record.recommended_firmware_version ?? t("deviceUisp.notExposed")}{fw.prerelease ? ` (${t("deviceUisp.prerelease")})` : ""}</dd></div>
             <div><dt>{t("deviceUisp.fields.sameMajor")}</dt><dd className="ui-mono">{fw.latest_same_major ?? "—"}</dd></div>
             <div><dt>{t("deviceUisp.fields.compatible")}</dt><dd>{fw.compatible === true ? t("deviceUisp.yes") : fw.compatible === false ? t("deviceUisp.no") : "—"}</dd></div>
           </dl>
-          {fw.latest && data.record.recommended_firmware_version && <div className="ui-alert ui-alert-warning">{t("deviceUisp.updateAvailable")}</div>}
+          {((fw.latest && data.record.recommended_firmware_version) || fw.can_upgrade === true) && <div className="ui-alert ui-alert-warning">{t("deviceUisp.updateAvailable")}</div>}
           {fw.compatible === false && <div className="ui-alert ui-alert-warning">{t("deviceUisp.incompatible")}</div>}
         </>
       ) : (
@@ -227,6 +227,7 @@ function Firmware({ data }: { data: UispTab }) {
 
 function Operations({ deviceId, data }: { deviceId: string; data: UispTab }) {
   const { t, i18n } = useTranslation();
+  const eventKind = (kind: string | null | undefined) => (kind ? t(`deviceUisp.eventTypes.${kind}`, { defaultValue: kind }) : "");
   const backup = useUispAction(deviceId, "backup");
   const interfaces = useUispAction(deviceId, "interfaces");
   const events = useUispAction(deviceId, "events");
@@ -297,9 +298,9 @@ function Operations({ deviceId, data }: { deviceId: string; data: UispTab }) {
           <ul className="ui-list">
             {data.events.items.map((event, index) => (
               <li key={`${event.at}-${index}`}>
-                <span><strong>{event.message || event.type}</strong><small className="ui-muted ui-block">{[event.at, event.type].filter(Boolean).join(" · ")}</small></span>
+                <span><strong>{event.message || eventKind(event.type)}</strong><small className="ui-muted ui-block">{[event.at, eventKind(event.type)].filter(Boolean).join(" · ")}</small></span>
                 <span />
-                <span className="ui-severity">{event.level || "—"}</span>
+                <span className="ui-severity">{event.level ? t(`deviceUisp.levels.${event.level}`, { defaultValue: event.level }) : "—"}</span>
               </li>
             ))}
           </ul>

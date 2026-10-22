@@ -298,8 +298,18 @@ def fetch_events(db, device) -> list[dict]:
         if not isinstance(row, dict):
             continue
         out.append({"at": str(_dig(row, "timestamp", "date", "createdAt") or "")[:40], "level": str(_dig(row, "level", "severity") or "")[:20],
-                    "type": str(_dig(row, "type", "tag") or "")[:40], "message": str(_dig(row, "message", "text") or "")[:500]})
+                    "type": _event_type(row)[:40], "message": str(_dig(row, "message", "text") or "")[:500]})
     return out[:MAX_EVENTS]
+
+
+def _event_type(row: dict) -> str:
+    """Kind of a UISP log entry: ``type``/``tag`` when present, else the most specific of ``tags`` (``device-state`` over ``device``)."""
+    value = _dig(row, "type", "tag")
+    if value:
+        return str(value)
+    tags = [str(tag) for tag in row.get("tags") or [] if isinstance(tag, str) and tag] if isinstance(row.get("tags"), list) else []
+    specific = [tag for tag in tags if tag != "device"]
+    return (specific or tags or [""])[0]
 
 
 def _store(device, key, items):

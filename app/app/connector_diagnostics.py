@@ -59,6 +59,8 @@ UISP_DEVICE_FIELDS = {
     "firmware più recente": ("firmware.latest",),
     "firmware stessa major": ("firmware.latestOnCurrentMajorVersion",),
     "firmware compatibile": ("firmware.compatible",),
+    "aggiornamento disponibile": ("overview.canUpgrade",),
+    "piattaforma airOS": ("identification.platformId",),
 }
 UISP_INTERFACE_FIELDS = {
     "nome": ("identification.name", "name"),
@@ -73,7 +75,7 @@ UISP_INTERFACE_FIELDS = {
 UISP_EVENT_FIELDS = {
     "data": ("timestamp", "date", "createdAt"),
     "livello": ("level", "severity"),
-    "tipo": ("type", "tag"),
+    "tipo": ("type", "tag", "tags"),
     "messaggio": ("message", "text"),
 }
 UISP_BACKUP_FIELDS = {"id": ("id", "identification.id"), "data": ("timestamp", "createdAt", "date")}
@@ -82,6 +84,11 @@ CNM_DEVICE_FIELDS = {
     "modello": ("product", "hardware_version"), "firmware": ("software_version",), "tipo": ("type",), "rete": ("network",), "torre": ("tower",),
 }
 CNM_STAT_FIELDS = {"mac": ("mac",), **{label: keys for _field, (label, _unit, keys) in cnm.FIELDS.items()}}
+# Wi-Fi APs: per-band clients and traffic, summed by cnmaestro_connector.metrics; uptime from the time in the current status.
+for _label, _extra in (("Stazioni collegate", ("radio.24ghz.num_clients", "radio.5ghz.num_clients")),
+                       ("Throughput downlink", ("radio.24ghz.tx_bps", "radio.5ghz.tx_bps")),
+                       ("Throughput uplink", ("radio.24ghz.rx_bps", "radio.5ghz.rx_bps")), ("Uptime", ("status_time",))):
+    CNM_STAT_FIELDS[_label] = tuple(CNM_STAT_FIELDS[_label]) + _extra
 
 
 def _dig(row, path: str):

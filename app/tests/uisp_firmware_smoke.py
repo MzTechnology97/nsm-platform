@@ -26,7 +26,11 @@ def csrf_from(html):
 def main():
     assert is_newer("8.7.18", "WA.v8.7.11") is True and is_newer("8.7.11", "8.7.11") is False and is_newer("v2.0.9", "2.0.10") is False
     assert is_newer("latest", "8.7.11") is None
-    assert extract({"identification": {"firmwareVersion": "8.7.11"}}) == {"current": "8.7.11", "latest": None, "latest_same_major": None, "compatible": None, "prerelease": None}
+    assert extract({"identification": {"firmwareVersion": "8.7.11"}}) == {"current": "8.7.11", "latest": None, "latest_same_major": None, "compatible": None,
+                                                                         "prerelease": None, "can_upgrade": None, "platform": None}
+    # As real consoles send it: only firmware.compatible, the upgrade flag in overview and the airOS platform in identification.
+    real = extract({"identification": {"firmwareVersion": "8.7.15", "platformId": "WA"}, "overview": {"canUpgrade": True}, "firmware": {"compatible": True}})
+    assert real["latest"] is None and real["can_upgrade"] is True and real["platform"] == "WA"
     assert extract({"identification": {}}) is None
     assert extract({"firmware": {"current": "8.7.11", "latest": "8.7.18", "compatible": True, "prerelease": False, "latestOnCurrentMajorVersion": "8.7.18"}})["latest"] == "8.7.18"
 

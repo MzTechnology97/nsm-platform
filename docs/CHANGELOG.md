@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.199 — 2026-10-22
+
+UISP and cnMaestro checked on the real consoles
+- **Ubiquiti firmware catalog fixed.** The requests to the Ubiquiti update service used its two filters the wrong way round, so the catalog stayed empty. NSM now gets the recommended airOS version for every platform in use (for example 8.7.x for WA/XC, 6.3.x for XW) and ignores the "-cs" custom-script builds.
+- **Ubiquiti devices linked through UISP get a firmware state.** UISP sends only "8.7.15" and no latest version. NSM now reads the airOS platform from UISP so the catalog applies, and marks the device *Aggiornamento disponibile* when UISP says an upgrade exists and nothing else is known.
+- **UISP device log:** the kind of event comes from UISP's tags (*stato*, *interfaccia*, *riavvio*…), translated, and so is the level. It used to be empty.
+- **cnMaestro Wi-Fi access points (cnPilot):** connected clients and downlink/uplink traffic now come from the 2.4 and 5 GHz radios, so the *Stazioni* and *Throughput* charts fill in. Uptime, which cnMaestro does not send, is shown as the time online for online devices.
+- **cnMaestro import** groups devices by tower, else by site, else by network (towers are rarely set).
+- The compatibility check looks for these fields too, so its report matches what NSM reads.
+
 ## 0.49.198 — 2026-10-22
 
 Device pages

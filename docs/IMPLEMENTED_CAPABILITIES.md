@@ -542,7 +542,9 @@ Validation pending: periodic sync against a real UISP instance (the consumed end
 
 ### Device operations (UBNT-08 step 2)
 
-Reboot with uptime verification, configuration backup archived in NSM (manual and by policy), interfaces and UISP events on the device UISP tab. Endpoint field names follow the UISP documentation and are still to be confirmed on a real console.
+Reboot with uptime verification, configuration backup archived in NSM (manual and by policy), interfaces and UISP events on the device UISP tab. The read endpoints (`/devices`, `/devices/{id}`, interfaces, backups, `/logs`) were checked on the operator's console on 2026-10-22 (Core 0.49.199): the kind of a log entry comes from its `tags`; the serial number is not sent by UISP (devices are matched by MAC). Reboot and backup requests are not exercised on the real console yet.
+
+Firmware on real consoles: UISP sends only `firmware.compatible`, not the installed/latest versions. NSM therefore reads the airOS platform (`identification.platformId`: WA, XW, XC…) so the Ubiquiti update service can give the recommended version, and uses `overview.canUpgrade` to mark an otherwise unknown state as *update available*.
 
 ### Compatibility check (Core 0.49.189)
 
@@ -566,7 +568,7 @@ These future features must only be exposed when the actual vendor API capability
 - bulk onboarding (Core 0.49.192): *Integrazioni → cnMaestro → Importa da cnMaestro*, the same flow as UISP — NSM state per device (new, to link, already in NSM, not importable with the reason), explicit Customer/Site, preview, commit from fresh cnMaestro data, existing Cambium records with the same MAC linked instead of duplicated; device type from product family and mode; `CNMAESTRO_BULK_ONBOARDING` audit;
 - compatibility check (Core 0.49.189), as for UISP, on `/devices` and `/devices/statistics`.
 
-Validation pending: field names against a real cnMaestro (use the compatibility check).
+Checked on the operator's cnMaestro on 2026-10-22 (Core 0.49.199): `/devices` and `/devices/statistics` field names confirmed; Wi-Fi access points (cnPilot) report clients and traffic per band, which NSM sums for the *stations* and *throughput* charts; cnMaestro sends no uptime, so NSM shows the time online (`status_time`) for online devices; the import groups devices by tower, else site, else network.
 
 ### Not implemented yet
 
