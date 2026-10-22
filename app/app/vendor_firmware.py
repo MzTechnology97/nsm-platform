@@ -52,8 +52,12 @@ _last_vendor_attempt: datetime | None = None
 
 
 def platform_of(device) -> str:
+    """airOS platform (WA, XW, XC…) from the full firmware string, else the platform UISP reports (its firmware string is only "8.7.15")."""
     match = _AIROS.match(str(device.firmware_version or ""))
-    return match.group(1) if match else ""
+    if match:
+        return match.group(1)
+    platform = str(((device.inventory_data or {}).get("uisp_firmware") or {}).get("platform") or "")
+    return platform if re.fullmatch(r"[A-Z0-9]{2,4}", platform) else ""
 
 
 def version_key(brand: str, value) -> tuple | None:
@@ -154,7 +158,8 @@ def refresh_vendor_api(db, now=None, transport=None) -> dict:
         return stats
     with httpx.Client(timeout=20.0, transport=transport, follow_redirects=False, headers={"Accept": "application/json"}) as client:
         for platform in platforms:
-            params = [("filter", "eq~~product~~airos"), ("filter", f"eq~~platform~~{platform}"), ("filter", "eq~~channel~~release")]
+            # The service files the airOS platform code under "product" and the family under "platform".
+            params = [("filter", "eq~~platform~~airmax"), ("filter", f"eq~~product~~{platform}"), ("filter", "eq~~channel~~release")]
             try:
                 response = client.get(UBNT_API, params=params)
                 response.raise_for_status()
@@ -164,8 +169,8 @@ def refresh_vendor_api(db, now=None, transport=None) -> dict:
                 continue
             for row in rows:
                 version = str(row.get("version") or "").lstrip("vV").split("+")[0]
-                if not version_key("ubiquiti", version):
-                    continue
+                if not version_key("ubiquiti", version) or version.endswith("-cs"):
+                    continue  # "-cs" builds are custom-script variants of an older release
                 created = str(row.get("created") or "")[:10]
                 try:
                     released = date.fromisoformat(created) if created else None

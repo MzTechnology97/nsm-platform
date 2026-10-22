@@ -207,6 +207,19 @@ def metrics(row: dict) -> dict:
             if low <= number <= high:
                 out[field] = int(number) if field in INTEGER_FIELDS else round(number, 2)
             break
+    # Wi-Fi access points (cnPilot) report clients and traffic per band (radio.24ghz, radio.5ghz…):
+    # stations are the clients of every band, downlink what the AP sends to them, uplink what it receives.
+    radio = row.get("radio") if isinstance(row.get("radio"), dict) else {}
+    bands = [value for key, value in radio.items() if key.endswith("ghz") and isinstance(value, dict)]
+    for field, key in (("stations", "num_clients"), ("dl_throughput_bps", "tx_bps"), ("ul_throughput_bps", "rx_bps")):
+        values = [band[key] for band in bands if isinstance(band.get(key), (int, float)) and not isinstance(band.get(key), bool)]
+        if field not in out and values and RANGE_LIMITS[field][0] <= sum(values) <= RANGE_LIMITS[field][1]:
+            out[field] = int(sum(values))
+    # No uptime in the statistics: for an online device, the time in the current status is the time since it came online.
+    status_time = row.get("status_time")
+    if ("uptime_seconds" not in out and str(row.get("status") or "").lower() == "online" and isinstance(status_time, (int, float))
+            and not isinstance(status_time, bool) and 0 <= status_time <= RANGE_LIMITS["uptime_seconds"][1]):
+        out["uptime_seconds"] = int(status_time)
     return out
 
 

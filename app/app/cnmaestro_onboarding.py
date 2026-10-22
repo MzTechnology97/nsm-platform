@@ -57,7 +57,7 @@ def _candidates(row) -> list[dict]:
         for raw in client.paged("/devices", "l'elenco apparati"):
             candidate = cnm.candidate(raw)
             candidate["mode"] = str(raw.get("mode") or raw.get("network_mode") or "").strip() or None
-            candidate["group"] = str(raw.get("tower") or raw.get("network") or "").strip() or None
+            candidate["group"] = str(raw.get("tower") or raw.get("site") or raw.get("network") or "").strip() or None
             out.append(candidate)
         return out
     finally:

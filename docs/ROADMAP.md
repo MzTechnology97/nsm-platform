@@ -233,7 +233,7 @@ Implement only diagnostics actually exposed and validated by the integration con
 
 ### UBNT-06 — firmware workflow
 
-**Step 1 implemented in `main`** (`app/uisp_firmware.py`): installed/latest version and compatibility read from UISP at every sync, firmware state on the Device and in the firmware worklist. Field names to be confirmed on a real UISP instance (`/nms/api-docs/`). Planning and execution remain open: upgrades are run from UISP.
+**Step 1 implemented in `main`** (`app/uisp_firmware.py`): installed/latest version and compatibility read from UISP at every sync, firmware state on the Device and in the firmware worklist. Checked on the operator's console (2026-10-22): it sends only `compatible`, so the recommended version comes from the Ubiquiti update service by airOS platform (`identification.platformId`) and `overview.canUpgrade` marks unknown states as update available (Core 0.49.199). Planning and execution remain open: upgrades are run from UISP.
 
 - read current/available state where supported;
 - planning/approval model;
@@ -251,7 +251,7 @@ Implement only diagnostics actually exposed and validated by the integration con
 ### UBNT-08 — full UISP device management (requested 2026-10-07)
 
 **Step 1 done (Core 0.49.49)**: UISP history charts (signal, capacity, CPU/RAM, stations) on the device UISP tab.
-**Step 2 done (Core 0.49.68)**: reboot with uptime verification, configuration backup archived in NSM (manual and by policy), interfaces and UISP events on the device UISP tab. Endpoint field names to be confirmed on a real console. Remaining: firmware upgrade execution through UISP.
+**Step 2 done (Core 0.49.68)**: reboot with uptime verification, configuration backup archived in NSM (manual and by policy), interfaces and UISP events on the device UISP tab. Read endpoints checked on the operator's console (Core 0.49.199); reboot and backup requests not yet exercised there. Remaining: firmware upgrade execution through UISP.
 
 Bring Ubiquiti devices managed through the UISP API to the depth of the MikroTik agent, for every operation the UISP API actually exposes and that can be verified on a real instance:
 
@@ -434,14 +434,14 @@ Only expose backup/restore where the real CPE data model and connector expose a 
 
 ### VEND-01 — firmware catalogs for other vendors (requested 2026-10-07)
 
-**Implemented in `main` (Core 0.49.69)**: *Firmware → Cataloghi altri produttori* — Ubiquiti from UISP and from the official update service (`fw-update.ubnt.com`, airOS platforms read from the installed firmware string; to be confirmed from the deployed instance), other brands from releases entered from the official download pages; device firmware state evaluated per model. Next: official machine-readable sources for other brands where they exist.
+**Implemented in `main` (Core 0.49.69)**: *Firmware → Cataloghi altri produttori* — Ubiquiti from UISP and from the official update service (`fw-update.ubnt.com`, airOS platform from the installed firmware string or from UISP; checked from the deployed instance in Core 0.49.199, where the request filters were corrected: the service files the platform code under `product` and the family `airmax` under `platform`), other brands from releases entered from the official download pages; device firmware state evaluated per model. Next: official machine-readable sources for other brands where they exist.
 
 Release catalogs like the RouterOS one (versions per channel/model, release notes, security classification) for Ubiquiti, TP-Link, Tenda, Cambium and similar vendors. Each catalog is enabled only when the inventory contains devices of that brand, reads only official vendor sources and never guesses versions it cannot verify.
 
 ### VEND-02 — cnMaestro integration for Cambium (requested 2026-10-07)
 
 **Step 1 implemented in `main` (Core 0.49.70)**: OAuth2 client credentials, paged inventory and statistics, linking by MAC/serial, identity/firmware/IP/status sync every 15 minutes, metrics history (signal, SNR, throughput, CPU/memory, stations) with Cacti-style graphs on the device *cnMaestro* tab.
-**Step 2 implemented in `main`**: compatibility check on the real console (Core 0.49.189) and bulk onboarding like UISP (Core 0.49.192). Field names to be confirmed with the compatibility report from the operator's cnMaestro. Next: operations where the cnMaestro API supports them.
+**Step 2 implemented in `main`**: compatibility check on the real console (Core 0.49.189) and bulk onboarding like UISP (Core 0.49.192). Field names checked on the operator's cnMaestro (Core 0.49.199; Wi-Fi AP per-band clients and traffic, time online as uptime). Next: operations where the cnMaestro API supports them.
 
 Read-only cnMaestro (cloud/on-premises) connector for Cambium radios: discovery and association like UISP, periodic sync, full monitoring and statistics (signal, link quality, capacity, interfaces, uptime, history) in the style of the MikroTik and UISP views; later operations only where the cnMaestro API supports them.
 

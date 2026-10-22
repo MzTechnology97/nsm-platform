@@ -23,7 +23,8 @@ export interface UispTab {
     samples: { observed_at: string; signal_dbm: number | null; cpu_percent: number | null; ram_percent: number | null; downlink_capacity_bps: number | null;
       uplink_capacity_bps: number | null }[];
   } | null;
-  firmware: { current?: string; latest?: string; latest_same_major?: string; prerelease?: boolean; compatible?: boolean | null; observed_at?: string } | null;
+  firmware: { current?: string; latest?: string; latest_same_major?: string; prerelease?: boolean; compatible?: boolean | null; can_upgrade?: boolean | null;
+    platform?: string | null; observed_at?: string } | null;
   reboot: { status?: string; requested_at?: string; requested_by?: string; detail?: string; uptime_before?: number | null } | null;
   last_backup: { started_at: string; status: string; error: string | null } | null;
   interfaces: { items: { name: string; label: string; type: string; enabled: boolean; status: string; speed: string; mtu: number | null; rx_bps: number | null;
