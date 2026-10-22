@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.207 — 2026-10-22
+
+Ubiquiti firmware catalog
+- **The Ubiquiti catalog no longer waits a day after a restart.** The worker asks the Ubiquiti update service once a day. Right after a restart it could ask before UISP had reported which airOS platforms are in use; with nothing to ask, the next try was 24 hours later. Now an empty attempt does not count, and the catalog fills in at the next cycle after the UISP sync.
+
 ## 0.49.206 — 2026-10-22
 
 TR-069 CPEs: diagnostics and resources
