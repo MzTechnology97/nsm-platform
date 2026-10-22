@@ -799,6 +799,15 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - Device lifecycle page shows the decision panel (read-only without `lifecycle.manage`); the EOL/EOS worklist has a *Gestione* column;
 - evidence reports: counts by remediation state, overdue plans, Devices still to handle, active exceptions with reason and expiry; CSV column `lifecycle_remediation`.
 
+### Lifecycle from the web (LIFE-04)
+
+`app/lifecycle_web.py`, migration 0055:
+
+- for every vendor + model in the inventory NSM asks [eol.network](https://eol.network), a free database of the end-of-sale / end-of-support notices vendors publish on their own sites (MikroTik product pages, Ubiquiti *Vintage and Legacy*, Cambium product lifecycle, TP-Link EOL lists, 90+ vendors); each answer keeps the official vendor page, the eol.network page and the date the source was read;
+- *EOL / EOS → Catalogo lifecycle → Ciclo di vita dal web*: per model the product found, vendor status, published dates, match confidence and source; *Nessun avviso di fine vita pubblicato* when there is no notice; *Cerca con un altro nome* (the SKU on the label) when the inventory name is a marketing name;
+- what is found is a proposal: *Applica al catalogo* (one model) or *Applica le corrispondenze esatte* writes a catalog record through the same path as a hand-written one (source, link, evidence date, audit `LIFECYCLE_RECORD_SAVED` + `LIFECYCLE_WEB_APPLIED`, devices re-correlated); a vendor status without a published date (MikroTik *Discontinued*, Ubiquiti *Vintage*/*Legacy*) is dated on the day the source was read and the note says so; the product code becomes an alias when it differs from the inventory name;
+- worker: new models are looked up, the others re-checked every 30 days; keyless search 8 models per run (the public limit is 10 requests a minute, 429 defers the rest), with `EOL_NETWORK_API_KEY` batch match of 100 models; `LIFECYCLE_WEB_LOOKUP=off` disables it; read `security.read`, run/apply `lifecycle.manage`; manual runs audited `LIFECYCLE_WEB_LOOKUP`.
+
 ## 17. Public read-only API
 
 ### Implemented

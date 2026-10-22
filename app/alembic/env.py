@@ -17,6 +17,7 @@ from app import incident_models  # noqa: F401
 from app import compliance_models  # noqa: F401
 from app import acs_migration_models  # noqa: F401
 from app import server_migration_models  # noqa: F401
+from app import lifecycle_web_models  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
