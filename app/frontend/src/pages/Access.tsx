@@ -47,23 +47,25 @@ export function Access() {
             <section className="ui-panel">
               <h2>{t("access.devices.title")}</h2>
               {data.devices.length ? (
-                <table className="ui-stats-table">
-                  <thead><tr><th>{t("access.devices.device")}</th><th>{t("access.devices.customer")}</th><th>{t("access.devices.failures")}</th></tr></thead>
-                  <tbody>
-                    {data.devices.map((row) => row.device && (
-                      <tr key={row.device.id}>
-                        <td>
-                          <span className="ui-with-brand">
-                            <BrandIcon brand={row.device.brand} small />
-                            <Link to="/devices/$deviceId/syslog" params={{ deviceId: row.device.id }}>{row.device.name}</Link>
-                          </span>
-                        </td>
-                        <td>{row.device.customer ? <Link to="/customers/$customerId" params={{ customerId: row.device.customer.id }}>{row.device.customer.name}</Link> : "—"}</td>
-                        <td className={row.failures >= 5 ? "ui-text-danger" : undefined}>{row.failures}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="ui-table-scroll">
+                  <table className="ui-stats-table">
+                    <thead><tr><th>{t("access.devices.device")}</th><th>{t("access.devices.customer")}</th><th>{t("access.devices.failures")}</th></tr></thead>
+                    <tbody>
+                      {data.devices.map((row) => row.device && (
+                        <tr key={row.device.id}>
+                          <td>
+                            <span className="ui-with-brand">
+                              <BrandIcon brand={row.device.brand} small />
+                              <Link to="/devices/$deviceId/syslog" params={{ deviceId: row.device.id }}>{row.device.name}</Link>
+                            </span>
+                          </td>
+                          <td>{row.device.customer ? <Link to="/customers/$customerId" params={{ customerId: row.device.customer.id }}>{row.device.customer.name}</Link> : "—"}</td>
+                          <td className={row.failures >= 5 ? "ui-text-danger" : undefined}>{row.failures}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
                 <p className="ui-muted">{t("access.none")}</p>
               )}
@@ -71,21 +73,23 @@ export function Access() {
             <section className="ui-panel">
               <h2>{t("access.sources.title")}</h2>
               {data.sources.length ? (
-                <table className="ui-stats-table">
-                  <thead><tr><th>{t("access.sources.ip")}</th><th>{t("access.sources.failures")}</th><th>{t("access.sources.devices")}</th></tr></thead>
-                  <tbody>
-                    {data.sources.map((row) => (
-                      <tr key={row.ip ?? "unknown"}>
-                        <td>
-                          <code>{row.ip ?? t("syslog.access.unknown")}</code>{" "}
-                          {row.public && <span className="ui-severity ui-severity-high">{t("syslog.access.public")}</span>}
-                        </td>
-                        <td>{row.failures}</td>
-                        <td className={row.devices > 1 ? "ui-text-warning" : undefined}>{row.devices}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="ui-table-scroll">
+                  <table className="ui-stats-table">
+                    <thead><tr><th>{t("access.sources.ip")}</th><th>{t("access.sources.failures")}</th><th>{t("access.sources.devices")}</th></tr></thead>
+                    <tbody>
+                      {data.sources.map((row) => (
+                        <tr key={row.ip ?? "unknown"}>
+                          <td>
+                            <code>{row.ip ?? t("syslog.access.unknown")}</code>{" "}
+                            {row.public && <span className="ui-severity ui-severity-high">{t("syslog.access.public")}</span>}
+                          </td>
+                          <td>{row.failures}</td>
+                          <td className={row.devices > 1 ? "ui-text-warning" : undefined}>{row.devices}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
                 <p className="ui-muted">{t("access.none")}</p>
               )}

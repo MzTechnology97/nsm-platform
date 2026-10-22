@@ -52,6 +52,10 @@ samp {
   background: color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
+p code {
+  overflow-wrap: anywhere;
+}
+
 .ui-visually-hidden {
   position: absolute;
   width: 1px;

@@ -314,6 +314,7 @@
 
 /* Plain sortable tables (tens to a few thousand rows). */
 .ui-data-wrap {
+  position: relative;
   overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);

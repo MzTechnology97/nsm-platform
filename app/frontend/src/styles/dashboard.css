@@ -251,13 +251,13 @@
 }
 
 .ui-info-tip::after {
-  content: attr(data-tip);
+  content: none;
   position: absolute;
   z-index: 20;
   top: calc(100% + 6px);
   left: 50%;
   width: max-content;
-  max-width: 280px;
+  max-width: min(280px, 72vw);
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -267,8 +267,10 @@
   font-size: 12px;
   font-style: normal;
   font-weight: 400;
+  letter-spacing: normal;
   line-height: 1.45;
   text-align: left;
+  text-transform: none;
   white-space: normal;
   opacity: 0;
   pointer-events: none;
@@ -278,6 +280,7 @@
 
 .ui-info-tip:hover::after,
 .ui-info-tip:focus-visible::after {
+  content: attr(data-tip);
   opacity: 1;
 }
 

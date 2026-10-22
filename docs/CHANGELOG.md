@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.195 — 2026-10-22
+
+Phone-width layout
+- **No page scrolls sideways on a phone any more** (checked at 375 px on every page of the interface):
+  - small summary tables (traffic statistics on the device monitor, customer graphs, backup coverage, access, unassessed vulnerabilities) scroll inside their panel;
+  - wide lists such as the event log stay inside their scrolling frame;
+  - the "i" help bubbles no longer widen the page while hidden, and fit the screen when shown;
+  - the CSV column list on the lifecycle catalog page wraps.
+- **Help bubbles inside table headers** are written in normal case instead of capitals.
+
 ## 0.49.194 — 2026-10-21
 
 SLA budget alerts
