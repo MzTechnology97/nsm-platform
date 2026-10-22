@@ -13,7 +13,7 @@ Zabbix: use the hosts you already have
 - **Your hosts are not modified.** Groups, templates and tags stay as they are. The one exception is optional and on by default: when a router changes address (dynamic public IP, NAT), NSM updates the IP of the host's main interface.
 - **Devices with no host in Zabbix** still get an `nsm-` host, as before.
 - **Devices that match several Zabbix hosts** (for example customers behind the same NAT address) are listed on the Zabbix page and not guessed.
-- **Factory LAN addresses (192.168.1.1, 192.168.0.1, 192.168.88.1…) never link a device to a Zabbix host by IP**, because many unrelated devices use them. A device whose address is one of them gets no `nsm-` host either, since Zabbix could not reach it. The Zabbix page lists it, so you can enter the address Zabbix must use.
+- **Factory LAN addresses (the default LAN address of home routers and CPEs) never link a device to a Zabbix host by IP**, because many unrelated devices use them. A device whose address is one of them gets no `nsm-` host either, since Zabbix could not reach it. The Zabbix page lists it, so you can enter the address Zabbix must use.
 - **The template fields suggest the templates of your Zabbix**, so the names can be picked instead of typed.
 - The device page says when its Zabbix host is one of yours, linked by IP or by name.
 
