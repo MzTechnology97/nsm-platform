@@ -750,12 +750,11 @@ def admin_acs(request: Request):
     with SessionLocal() as db:
         ui_user(request, db, "users.manage")
         connection = genieacs_connector._connection(db)
-        _scheme, host = acs_admin._public_host(request)
         return {
             "state": "unconfigured" if connection is None else "active" if connection.is_enabled else "disabled",
             "base_url": connection.base_url if connection else None,
             "internal_available": bool(genieacs_connector.internal_nbi_url()),
-            "panel_url": acs_admin.panel_url(request), "acs_url": f"http://{host}:7547/",
+            "panel_url": acs_admin.panel_url(request), "acs_url": acs_admin.cpe_acs_url(request),
             "base_provision": acs_admin.BASE_PROVISION, "provision_script": acs_admin.BASE_PROVISION_SCRIPT,
             "presets": [{"name": name, "precondition": preset["precondition"]} for name, preset in acs_admin.PRESETS.items()],
             "templates": acs_admin.template_status(connection),
