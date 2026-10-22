@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.198 — 2026-10-22
+
+Device pages
+- **No raw codes left on the device pages:**
+  - the data source in the identity panel (for example *agent MikroTik*, *UISP*, *manuale* instead of `mikrotik_agent`);
+  - the origin of agent enrollments;
+  - the kind of backup run (*agent MikroTik · .backup e .rsc* instead of `mikrotik_multi`).
+  All of them are translated in the four languages.
+
 ## 0.49.197 — 2026-10-22
 
 Documentation

@@ -511,6 +511,11 @@
       "no_agent": "Terminez l'enrôlement de l'agent avant la sauvegarde.",
       "no_policy": "Aucune politique de sauvegarde effective pour cet équipement.",
       "pending": "Une sauvegarde est déjà en file ou en cours."
+    },
+    "types": {
+      "mikrotik_multi": "agent MikroTik · .backup et .rsc",
+      "mikrotik": "agent MikroTik",
+      "demo": "données de démo"
     }
   },
   "cron": {

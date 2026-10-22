@@ -511,6 +511,11 @@
       "no_agent": "Completa el enrolamiento del agente antes de la copia.",
       "no_policy": "Ninguna política de copia efectiva para este equipo.",
       "pending": "Ya hay una copia en cola o en curso."
+    },
+    "types": {
+      "mikrotik_multi": "agente MikroTik · .backup y .rsc",
+      "mikrotik": "agente MikroTik",
+      "demo": "datos de demostración"
     }
   },
   "cron": {

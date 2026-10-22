@@ -511,6 +511,11 @@
       "no_agent": "Completa l'enrollment dell'agent prima del backup.",
       "no_policy": "Nessuna policy di backup effettiva per questo apparato.",
       "pending": "Un backup è già in coda o in esecuzione."
+    },
+    "types": {
+      "mikrotik_multi": "agent MikroTik · .backup e .rsc",
+      "mikrotik": "agent MikroTik",
+      "demo": "dati demo"
     }
   },
   "cron": {
