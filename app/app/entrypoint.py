@@ -53,6 +53,7 @@ from app.device_logbook import install_device_logbook
 from app.sla import install_sla
 from app.maintenance_windows import install_maintenance_windows
 from app.connector_diagnostics import install_connector_diagnostics
+from app.ui_acs_migration import install_acs_migration
 from app.cnmaestro_onboarding import install_cnmaestro_onboarding
 from app.nav_counts import install_nav_counts
 from app.ui_device_connectors import install_ui_device_connectors
@@ -121,7 +122,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.201"
+APP_VERSION = "0.49.202"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -247,6 +248,7 @@ install_device_logbook(core.app)
 install_sla(core.app)
 install_maintenance_windows(core.app)
 install_connector_diagnostics(core.app)
+install_acs_migration(core.app)
 install_cnmaestro_onboarding(core.app)
 install_nav_counts(core.app)
 install_ui_device_connectors(core.app)
