@@ -33,6 +33,7 @@ import {
 import { DeviceDetail, DeviceOverview } from "../pages/DeviceDetail";
 import { Devices } from "../pages/Devices";
 
+import type { IspbillingFilters } from "../api/ispbilling";
 import { Layout } from "./Layout";
 
 function NotFound() {
@@ -370,6 +371,11 @@ const adminAcsRoute = createRoute({
   path: "/admin/acs",
   component: lazyRouteComponent(() => import("../pages/AdminAcs"), "AdminAcs"),
 });
+const adminAcsMigrationRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/acs/migration",
+  component: lazyRouteComponent(() => import("../pages/AcsMigration"), "AcsMigration"),
+});
 const adminDemoRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin/demo",
@@ -394,6 +400,22 @@ const adminUispRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin/integrations/uisp",
   component: lazyRouteComponent(() => import("../pages/AdminUisp"), "AdminUisp"),
+});
+const adminIspbillingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/integrations/ispbilling",
+  component: lazyRouteComponent(() => import("../pages/AdminIspbilling"), "AdminIspbilling"),
+});
+const ispbillingImportRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/integrations/ispbilling/import",
+  component: lazyRouteComponent(() => import("../pages/IspbillingImport"), "IspbillingImport"),
+  validateSearch: (search: Record<string, unknown>): IspbillingFilters => ({
+    ...(typeof search.q === "string" && search.q ? { q: search.q } : {}),
+    ...(typeof search.status === "string" && search.status ? { status: search.status } : {}),
+    ...(typeof search.group === "string" && search.group ? { group: search.group } : {}),
+    ...(search.state === "new" || search.state === "linkable" || search.state === "linked" ? { state: search.state } : {}),
+  }),
 });
 const uispOnboardingRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -601,6 +623,7 @@ export const routeTree = rootRoute.addChildren([
   routerosRoute,
   adminBrandingRoute,
   adminAcsRoute,
+  adminAcsMigrationRoute,
   adminDemoRoute,
   adminCnmaestroRoute,
   adminZabbixRoute,
@@ -608,6 +631,8 @@ export const routeTree = rootRoute.addChildren([
   adminUispRoute,
   uispOnboardingRoute,
   cnmaestroOnboardingRoute,
+  adminIspbillingRoute,
+  ispbillingImportRoute,
   searchRoute,
   notificationsRoute,
   profileRoute,

@@ -32,7 +32,7 @@ def main():
 
     client = login(f"ci-ui-int-{suffix}")
     data = client.get("/api/ui/v1/integrations").json()
-    assert set(data) == {"can_admin", "agent", "uisp", "api", "nvd", "genieacs", "cnmaestro", "zabbix"} and data["can_admin"] is True
+    assert set(data) == {"can_admin", "agent", "uisp", "api", "nvd", "genieacs", "cnmaestro", "ispbilling", "zabbix"} and data["can_admin"] is True
     assert data["agent"]["state"] in ("none", "stale", "partial", "active")
     for key in ("uisp", "nvd", "genieacs", "cnmaestro", "zabbix"):
         assert data[key]["state"] in ("unconfigured", "disabled", "error", "active", "pending"), (key, data[key])
