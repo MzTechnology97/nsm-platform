@@ -545,12 +545,15 @@ export interface ZabbixAdmin {
     templates: { mikrotik: string; ubiquiti: string; default: string };
     scope: "all" | "customers";
     customer_ids: string[];
+    link_existing: boolean;
+    update_linked_ip: boolean;
   };
   version: string | null;
   last_test_status: string | null;
   last_error: string | null;
   last_sync_at: string | null;
-  last_sync: { status: string | null; created: number; updated: number; disabled: number; skipped: number; missing_templates: string[]; errors: string[] };
+  last_sync: { status: string | null; created: number; updated: number; disabled: number; skipped: number; missing_templates: string[]; errors: string[];
+    linked: number; ambiguous: string[]; ip_updated: string[]; factory_ip: string[] };
   problems: { problems: number | null; with_problems: number | null; at: string | null; status: string | null; error: string | null };
   frontend: string | null;
   customers: { id: string; name: string }[];
@@ -559,6 +562,11 @@ export interface ZabbixAdmin {
 
 export const useZabbixAdmin = () =>
   useQuery({ queryKey: ["admin-zabbix"], queryFn: () => api<ZabbixAdmin>("/api/ui/v1/admin/integrations/zabbix") });
+
+/** Template names read from Zabbix (only once the connection is configured). */
+export const useZabbixTemplates = (enabled: boolean) =>
+  useQuery({ queryKey: ["admin-zabbix-templates"], enabled, staleTime: 5 * 60_000, retry: false,
+    queryFn: () => api<{ templates: string[] }>("/api/ui/v1/admin/integrations/zabbix/templates") });
 
 export interface GenieacsAdmin {
   configured: boolean;

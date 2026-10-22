@@ -370,6 +370,7 @@ function ZabbixField({ deviceId, zabbix, canEdit }: { deviceId: string; zabbix: 
   return (
     <Field label="Zabbix" value={state}>
       {zabbix.link ? <a href={zabbix.link} target="_blank" rel="noopener noreferrer">{t("zabbixProblems.open")}</a> : state}
+      {zabbix.linked && <small className="ui-muted ui-block">{t(`zabbixProblems.linked.${zabbix.match === "name" ? "name" : "ip"}`)}</small>}
       {canEdit && (
         <>
           {" · "}

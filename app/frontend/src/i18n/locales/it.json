@@ -2711,7 +2711,17 @@
         "title": "Login con password",
         "text": "username (5.4+) o user (versioni precedenti)"
       }
-    }
+    },
+    "linked": "Host esistenti collegati",
+    "linkedNote": "host che avevi già in Zabbix, usati così come sono",
+    "ambiguous": "Non collegati, più host Zabbix potrebbero corrispondere: {{names}}. Imposta un IP Zabbix dedicato o rinomina l'host.",
+    "ipUpdated": "IP aggiornato sugli host collegati dopo un cambio di indirizzo: {{names}}.",
+    "linkExisting": "Usa gli host già presenti in Zabbix",
+    "linkExistingHelp": "Un apparato viene collegato all'host Zabbix con lo stesso IP (o, in mancanza, lo stesso nome) quando ne corrisponde uno solo: NSM ne mostra i problemi e non crea un host nsm- per lui. Gruppi, template e tag dei tuoi host non vengono toccati.",
+    "updateIp": "Aggiorna l'IP degli host collegati quando cambia",
+    "updateIpHelp": "Per router con IP pubblico dinamico o dietro NAT: NSM scrive sull'interfaccia principale dell'host l'indirizzo attuale dell'apparato (IP pubblico del router o quello da cui si collega il suo agent).",
+    "templatesFromZabbix": "Suggerimenti: i {{count}} template del tuo Zabbix.",
+    "factoryIp": "Non in Zabbix, il loro indirizzo è un IP LAN di fabbrica (es. 192.168.1.1) che Zabbix non raggiunge: {{names}}. Indica l'indirizzo da usare per Zabbix, oppure dai all'host Zabbix lo stesso nome dell'apparato."
   },
   "genieacs": {
     "title": "Integrazioni · GenieACS / TR-069",
@@ -4825,7 +4835,11 @@
     },
     "pending": "in attesa della prossima sincronizzazione",
     "exclude": "Escludi da Zabbix",
-    "include": "Includi in Zabbix"
+    "include": "Includi in Zabbix",
+    "linked": {
+      "ip": "host Zabbix esistente, collegato per IP",
+      "name": "host Zabbix esistente, collegato per nome"
+    }
   },
   "decommission": {
     "badge": "Disattivato",
@@ -5267,6 +5281,8 @@
     "VULNERABILITY_STATUS_CHANGED": "Stato della vulnerabilità cambiato",
     "ZABBIX_DEVICE_IP_CHANGED": "IP per Zabbix cambiato",
     "ZABBIX_DEVICE_SCOPE_CHANGED": "Apparato incluso o escluso da Zabbix",
+    "ZABBIX_HOST_IP_UPDATED": "IP dell'host Zabbix aggiornato",
+    "ZABBIX_HOST_LINKED": "Apparato collegato a un host Zabbix esistente",
     "ZABBIX_SETTINGS_CHANGED": "Impostazioni Zabbix modificate",
     "ZABBIX_SYNC_REQUESTED": "Sincronizzazione Zabbix richiesta"
   },
