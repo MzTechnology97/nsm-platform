@@ -1,6 +1,7 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
@@ -123,13 +124,13 @@ function Row({ row }: { row: FirmwareRow }) {
         </div>
       </td>
       <td>
-        {row.vendor ?? "—"}
+        {row.brand?.known ? row.brand.label : row.vendor ?? "—"}
         <small className="ui-muted ui-block">{[row.model, row.channel].filter(Boolean).join(" · ") || "—"}</small>
       </td>
       <td className="ui-mono">{row.firmware ?? "—"}</td>
       <td>
         {row.newer ? <strong className="ui-text-warning ui-mono">{row.recommended}</strong> : <span className="ui-mono">{row.recommended ?? "—"}</span>}
-        {row.readiness && <small className="ui-muted ui-block">{row.readiness}</small>}
+        {row.readiness && <small className="ui-muted ui-block">{routerosStatus(t, row.readiness)}</small>}
       </td>
       <td>
         <span className={STATUS_TONE[row.firmware_status] ?? "ui-severity"}>{t(`firmware.status.${row.firmware_status}`, { defaultValue: row.firmware_status })}</span>
@@ -165,4 +166,18 @@ function PreparePlan({ deviceId }: { deviceId: string }) {
       {create.error && <small className="ui-backup-error ui-block">{(create.error as Error).message}</small>}
     </>
   );
+}
+
+const ROUTEROS_STATUS: Record<string, string> = {
+  "New version is available": "newVersion",
+  "System is already up to date": "upToDate",
+  "finding out latest version...": "checking",
+  "Downloaded, please reboot router to upgrade it": "downloaded",
+  "ERROR: could not resolve dns name": "dnsError",
+};
+
+/** The update status RouterOS reports, translated when it is one of the known messages. */
+function routerosStatus(t: TFunction, status: string) {
+  const key = ROUTEROS_STATUS[status];
+  return key ? t(`firmware.routeros.${key}`) : status;
 }

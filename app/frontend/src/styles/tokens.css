@@ -51,6 +51,8 @@
   --success-fill: #12b76a;
   --warning-fill: #f79009;
   --danger-fill: #e5484d;
+  /* White counts on red: darker than the fill so small numbers stay readable. */
+  --danger-badge: #c9252c;
   --neutral-fill: #b6c2d3;
 
   /* Tinted KPI tiles */

@@ -258,6 +258,8 @@ function initials(name: string): string {
   return letters.map((word) => word[0]).join("").toUpperCase() || "?";
 }
 
+const PERSONAL_PAGES: Record<string, string> = { "/notifications": "notifications.title", "/profile": "profile.title" };
+
 /** Where the page sits: section group, then the section (a link back to it on the pages below it). */
 function Breadcrumbs({ sections }: { sections: Section[] }) {
   const { t } = useTranslation();
@@ -269,7 +271,18 @@ function Breadcrumbs({ sections }: { sections: Section[] }) {
     return path === root || path.startsWith(`${root}/`);
   };
   const section = sections.filter(matches).sort((a, b) => b.route.length - a.route.length)[0];
-  if (!section) return <span className="ui-top-crumbs" />;
+  if (!section) {
+    const personal = PERSONAL_PAGES[path];
+    return personal ? (
+      <nav className="ui-top-crumbs" aria-label={t("nav.breadcrumb")}>
+        <ol>
+          <li><strong aria-current="page">{t(personal)}</strong></li>
+        </ol>
+      </nav>
+    ) : (
+      <span className="ui-top-crumbs" />
+    );
+  }
   const atRoot = path === section.route;
   return (
     <nav className="ui-top-crumbs" aria-label={t("nav.breadcrumb")}>

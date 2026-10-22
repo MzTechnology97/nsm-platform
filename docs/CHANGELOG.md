@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.196 — 2026-10-22
+
+Event names in your language
+- **Activity events have names in Italian, English, French and Spanish** (for example *Accesso* instead of "User login", *Export visualizzato* instead of "Backup export viewed") on the dashboard, the activity log (also in the type filter), the customer overview and the device *Attività* tab. The code stays visible under the name in the activity log.
+- **The source of an event is translated too** (*interfaccia*, *automatico*, *agent MikroTik*, *UISP*…), and so are the result on the customer overview and the severity and category of the customer's open issues.
+- **Firmware list:** manufacturer names written properly (*MikroTik*, *TP-Link*) and the update status reported by RouterOS translated (*Nuova versione disponibile*).
+- **Smaller fixes:** the *Notifiche* page has its title in the top bar; the facts under a device name no longer start a wrapped line with "·"; the unread counter on the bell uses a darker red, easier to read.
+- A test now fails when a new kind of event has no name in the four languages.
+
 ## 0.49.195 — 2026-10-22
 
 Phone-width layout

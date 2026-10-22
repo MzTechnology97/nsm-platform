@@ -7,6 +7,7 @@ import { type CustomerDetail as Detail, useCustomer } from "../api/customer";
 import { formatDateTime, formatRelative } from "../lib/format";
 import { SiteForm } from "./CustomerForm";
 import { Metric } from "./DeviceDetail";
+import { eventLabel, eventSource } from "../lib/events";
 import { Loading } from "../app/States";
 
 /** Customer tabs already in the new interface; "devices" opens the device list filtered on the customer. */
@@ -154,14 +155,14 @@ export function CustomerOverview() {
           <ul className="ui-list">
             {data.issues.map((issue) => (
               <li key={issue.id}>
-                <span className={`ui-severity ui-severity-${issue.severity}`}>{issue.severity}</span>
+                <span className={`ui-severity ui-severity-${issue.severity}`}>{t(`actionCenter.severities.${issue.severity}`, { defaultValue: issue.severity })}</span>
                 {issue.device_id ? (
                   <Link to="/devices/$deviceId" params={{ deviceId: issue.device_id }}>{issue.title}</Link>
                 ) : (
                   <span>{issue.title}</span>
                 )}
                 <small className="ui-muted">
-                  {issue.category} · {formatRelative(issue.updated_at, i18n.language)}
+                  {t(`actionCenter.categories.${issue.category}`, { defaultValue: issue.category })} · {formatRelative(issue.updated_at, i18n.language)}
                 </small>
               </li>
             ))}
@@ -194,9 +195,9 @@ export function CustomerOverview() {
                 {data.events.map((event, index) => (
                   <tr key={`${event.timestamp}-${index}`}>
                     <td className="ui-nowrap">{formatDateTime(event.timestamp, i18n.language)}</td>
-                    <td title={event.type}>{event.label}</td>
-                    <td>{event.source ?? "—"}</td>
-                    <td>{event.result ?? "—"}</td>
+                    <td title={event.type}>{eventLabel(t, event.type, event.label)}</td>
+                    <td>{eventSource(t, event.source)}</td>
+                    <td>{event.result ? t(`auditEvents.results.${event.result}`, { defaultValue: event.result }) : "—"}</td>
                   </tr>
                 ))}
               </tbody>
