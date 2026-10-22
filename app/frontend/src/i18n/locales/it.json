@@ -2549,7 +2549,7 @@
     "steps": {
       "cpe": {
         "title": "Sulla CPE:",
-        "text": "Advanced → System Tools → CWMP Settings (oppure TR-069): CWMP abilitato; ACS URL <code>{{url}}</code>; ACS Username e Password vuoti per la prima prova, poi impostali; Periodic Inform abilitato ogni 300 secondi; Connection Request Username e Password con credenziali tue, servono a GenieACS per contattare la CPE."
+        "text": "Advanced → System Tools → CWMP Settings (su alcuni firmware: TR-069). Imposta solo: CWMP attivo; Inform attivo; ACS URL <code>{{url}}</code>; ACS Username e Password vuoti; Periodic Inform attivo (l'intervallo lo regola NSP); Connection Request Username e Password a scelta, servono per riavvio e diagnostica immediati. Salva senza toccare altri campi: WAN, PPPoE, Wi-Fi e LAN restano come sono."
       },
       "network": {
         "title": "Rete:",
@@ -2561,7 +2561,7 @@
       },
       "verify": {
         "title": "Verifica nel pannello ACS:",
-        "text": "in Devices compare la CPE con produttore, modello e seriale; in Faults eventuali errori."
+        "text": "entro circa 5 minuti la CPE compare in Devices con produttore, modello e seriale; in Faults eventuali errori."
       },
       "nsm": {
         "title": "In NSM:",
@@ -2585,7 +2585,14 @@
     "migrationLink": "Migra i CPE verso questo ACS",
     "templatesCurrent": "I modelli NSM sono aggiornati (installati il {{when}}). NSM li aggiorna da solo dopo ogni aggiornamento.",
     "templatesPending": "Questa versione di NSM ha modelli più recenti di quelli installati il {{when}}: NSM li installa entro 30 minuti, oppure premi Installa ora.",
-    "templatesAuto": "Una volta installati, NSM tiene aggiornati questi modelli da solo dopo ogni aggiornamento."
+    "templatesAuto": "Una volta installati, NSM tiene aggiornati questi modelli da solo dopo ogni aggiornamento.",
+    "guideIntro": "Su ogni router serve un solo passaggio manuale: accendere il CWMP e impostare l'ACS URL. Da lì NSP riconosce la CPE e la monitora in sola lettura, senza modificarne la configurazione.",
+    "readonlyTitle": "Cosa fa NSP e cosa non tocca",
+    "readonly": {
+      "reads": "Legge: stato online/offline, ultimo contatto, modello, firmware, IP, CPU, memoria, traffico WAN, client Wi-Fi e linea DSL.",
+      "actions": "Azioni disponibili: riavvio, verifica firmware, diagnostica.",
+      "never": "Non modifica Wi-Fi, LAN, DHCP, PPPoE o altra configurazione del router. L'unica impostazione che scrive è l'intervallo di inform del CWMP."
+    }
   },
   "demo": {
     "subtitle": "Dataset isolato per provare interfaccia e flussi di lavoro senza usare clienti reali.",
