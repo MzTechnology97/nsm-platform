@@ -5171,6 +5171,7 @@
     "LEGACY_FIRMWARE_UPGRADE_FAILED": "Actualización de firmware legacy fallida",
     "LEGACY_FIRMWARE_UPGRADE_QUEUED": "Actualización de firmware legacy en cola",
     "LEGACY_FIRMWARE_UPGRADE_VERIFIED": "Actualización de firmware legacy verificada",
+    "LEGACY_FTP_SETTINGS_CHANGED": "Subredes del receptor FTP legacy cambiadas",
     "LIFECYCLE_CATALOG_IMPORTED": "Catálogo de ciclo de vida importado",
     "LIFECYCLE_DEVICE_DECOMMISSIONED": "Equipo retirado (ciclo de vida)",
     "LIFECYCLE_DEVICE_REPLACED": "Equipo sustituido",
@@ -5451,5 +5452,22 @@
     "radius": "Cuentas RADIUS",
     "radiusMatched": "{{count}} asociadas a un equipo",
     "radiusError": "Cuentas RADIUS no leídas: {{error}}"
+  },
+  "legacyFtp": {
+    "title": "Copias legacy por FTP",
+    "help": "Receptor de las copias de los routers RouterOS 6 y 7.12 (agente legacy). Dirección y puerto se configuran en el servidor con ./manage.sh legacy-backup-enable <IPv4> [puerto]; aquí elige qué subredes pueden enviar.",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "address": "Dirección para los routers",
+    "passive": "puertos pasivos {{ports}}",
+    "subnets": "Subredes permitidas",
+    "any": "todas",
+    "enableHint": "Para activarlo, en el servidor: ./manage.sh legacy-backup-enable <IPv4 de NSM alcanzable por los routers> [puerto]",
+    "noSubnets": "Ninguna subred definida: cualquier dirección que llegue al servidor puede conectarse al receptor.",
+    "subnetsLabel": "Subredes autorizadas a enviar copias",
+    "subnetsHelp": "Una por línea o separadas por comas, p. ej. 198.51.100.0/24. El receptor rechaza otros orígenes en menos de un minuto.",
+    "saved": "Guardado: el receptor lo aplica en menos de un minuto.",
+    "firewall": "Reglas de cortafuegos en el servidor",
+    "firewallHelp": "Para bloquear también otros orígenes antes de NSM, ejecute ./manage.sh legacy-ftp-firewall --apply en el servidor (lo hace solo legacy-backup-enable)."
   }
 }

@@ -5171,6 +5171,7 @@
     "LEGACY_FIRMWARE_UPGRADE_FAILED": "Aggiornamento firmware legacy fallito",
     "LEGACY_FIRMWARE_UPGRADE_QUEUED": "Aggiornamento firmware legacy in coda",
     "LEGACY_FIRMWARE_UPGRADE_VERIFIED": "Aggiornamento firmware legacy verificato",
+    "LEGACY_FTP_SETTINGS_CHANGED": "Subnet del ricevitore FTP legacy modificate",
     "LIFECYCLE_CATALOG_IMPORTED": "Catalogo lifecycle importato",
     "LIFECYCLE_DEVICE_DECOMMISSIONED": "Apparato dismesso (lifecycle)",
     "LIFECYCLE_DEVICE_REPLACED": "Apparato sostituito",
@@ -5451,5 +5452,22 @@
     "radius": "Account RADIUS",
     "radiusMatched": "{{count}} abbinati a un apparato",
     "radiusError": "Account RADIUS non letti: {{error}}"
+  },
+  "legacyFtp": {
+    "title": "Backup legacy via FTP",
+    "help": "Ricevitore dei backup dei router RouterOS 6 e 7.12 (agent legacy). Indirizzo e porta si impostano sul server con ./manage.sh legacy-backup-enable <IPv4> [porta]; qui scegli quali subnet possono inviare.",
+    "active": "Attivo",
+    "inactive": "Non attivo",
+    "address": "Indirizzo per i router",
+    "passive": "porte passive {{ports}}",
+    "subnets": "Subnet abilitate",
+    "any": "tutte",
+    "enableHint": "Per attivarlo, sul server: ./manage.sh legacy-backup-enable <IPv4 di NSM raggiungibile dai router> [porta]",
+    "noSubnets": "Nessuna subnet impostata: qualsiasi indirizzo che raggiunge il server può collegarsi al ricevitore.",
+    "subnetsLabel": "Subnet abilitate a inviare backup",
+    "subnetsHelp": "Una per riga o separate da virgole, es. 198.51.100.0/24. Il ricevitore rifiuta le altre provenienze entro un minuto.",
+    "saved": "Salvato: il ricevitore lo applica entro un minuto.",
+    "firewall": "Regole firewall sul server",
+    "firewallHelp": "Per bloccare le altre provenienze anche prima che arrivino a NSM, sul server esegui ./manage.sh legacy-ftp-firewall --apply (lo fa da solo legacy-backup-enable)."
   }
 }

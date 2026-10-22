@@ -567,6 +567,35 @@ def integrations(request: Request):
         }
 
 
+def _legacy_ftp_payload(db) -> dict:
+    from app import legacy_ftp_backup, legacy_ftp_firewall
+
+    networks = legacy_ftp_backup.allowed_networks(db)
+    return {**legacy_ftp_backup.status(), "allowed_networks": networks, "firewall_script": legacy_ftp_firewall.render(networks)}
+
+
+@router.get("/admin/legacy-ftp")
+def admin_legacy_ftp(request: Request):
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        return _legacy_ftp_payload(db)
+
+
+@router.post("/admin/legacy-ftp", dependencies=[Depends(require_csrf)])
+def admin_legacy_ftp_save(request: Request, body: dict = Body(default={})):
+    from app import legacy_ftp_backup
+
+    def save(db, user):
+        try:
+            legacy_ftp_backup.save_settings(db, user, allowed_networks=_text(body, "allowed_networks"))
+        except legacy_ftp_backup.InvalidNetworks as error:
+            raise HTTPException(422, {"code": "invalid_networks", "message": f"Subnet non valide: {error}"}) from None
+        db.flush()
+        return _legacy_ftp_payload(db)
+
+    return _admin_write(request, save)
+
+
 @router.get("/admin/syslog")
 def admin_syslog(request: Request):
     with SessionLocal() as db:

@@ -723,3 +723,23 @@ export interface Dashboard {
 
 export const useDashboard = () =>
   useQuery({ queryKey: ["dashboard"], queryFn: () => api<Dashboard>("/api/ui/v1/dashboard"), refetchInterval: 30_000, staleTime: 10_000 });
+
+export interface LegacyFtpSettings {
+  enabled: boolean;
+  public_host: string | null;
+  port: number;
+  passive_ports: string;
+  allowed_networks: string[];
+  firewall_script: string;
+}
+
+export const useLegacyFtp = () =>
+  useQuery({ queryKey: ["admin-legacy-ftp"], queryFn: () => api<LegacyFtpSettings>("/api/ui/v1/admin/legacy-ftp") });
+
+export function useLegacyFtpSave() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { allowed_networks: string }) => api<LegacyFtpSettings>("/api/ui/v1/admin/legacy-ftp", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: (data) => client.setQueryData(["admin-legacy-ftp"], data),
+  });
+}
