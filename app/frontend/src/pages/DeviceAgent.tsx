@@ -5,6 +5,7 @@ import { type AgentStatus, useAgent, useAgentReinstall, useAgentUpdate } from ".
 import { EnrollmentCommand } from "../app/EnrollmentCommand";
 import { formatDateTime, formatRelative } from "../lib/format";
 import { Metric } from "./DeviceDetail";
+import { eventSource } from "../lib/events";
 import { Loading } from "../app/States";
 
 const TONE: Record<AgentStatus["installation"]["severity"], string> = {
@@ -145,7 +146,7 @@ export function DeviceAgent() {
                 {data.enrollments.map((row, index) => (
                   <tr key={`${row.created_at}-${index}`}>
                     <td className="ui-nowrap">{formatDateTime(row.created_at, i18n.language)}</td>
-                    <td>{row.source}</td>
+                    <td>{eventSource(t, row.source)}</td>
                     <td><span className="ui-severity">{t(`agent.enrollments.statuses.${row.status}`, { defaultValue: row.status })}</span></td>
                     <td className="ui-nowrap">{formatDateTime(row.expires_at, i18n.language)}</td>
                     <td className="ui-nowrap">{formatDateTime(row.used_at, i18n.language)}</td>

@@ -127,7 +127,7 @@ function RunCard({ id, run, canDelete }: { id: string; run: BackupRun; canDelete
         <span className={run.status === "success" ? "ui-status ui-status-online" : run.status === "failed" ? "ui-status ui-status-offline" : "ui-status ui-status-pending"}>
           {t(`backups.status.${run.status}`, { defaultValue: run.status })}
         </span>
-        {run.backup_type && <small className="ui-muted">{run.backup_type}</small>}
+        {run.backup_type && <small className="ui-muted">{t(`backups.types.${run.backup_type}`, { defaultValue: run.backup_type })}</small>}
       </header>
       {run.error && <p className="ui-backup-error">{run.error}</p>}
       {run.files.length ? (

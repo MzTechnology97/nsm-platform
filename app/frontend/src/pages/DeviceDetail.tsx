@@ -10,6 +10,7 @@ import { InfoTip } from "../app/InfoTip";
 import { Resources } from "../app/Resources";
 import { DeviceZabbixPanel, ZabbixSeverity } from "../app/ZabbixProblems";
 import { Loading } from "../app/States";
+import { eventSource } from "../lib/events";
 import { RingTile, type TileTone } from "../app/RingTile";
 
 /** Device tabs and their routes under /devices/$deviceId. */
@@ -252,7 +253,7 @@ export function DeviceOverview() {
             <Field label={t("device.identity.architecture")} value={device.architecture} />
             <Field label={t("device.identity.routerboot")} value={device.routerboot} />
             <Field label={t("device.identity.uptime")} value={device.uptime} />
-            <Field label={t("device.identity.source")} value={device.management_source} />
+            <Field label={t("device.identity.source")} value={eventSource(t, device.management_source)} />
             <Field label={t("device.identity.lifecycle")} value="—">
               <Link to="/devices/$deviceId/lifecycle" params={{ deviceId: device.id }}>
                 {device.lifecycle_status && device.lifecycle_status !== "unknown" ? [device.lifecycle_status.toUpperCase(), device.eos_date].filter(Boolean).join(" · ") : t("device.lifecycleManage")}

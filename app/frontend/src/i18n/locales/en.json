@@ -511,6 +511,11 @@
       "no_agent": "Complete the agent enrollment before backing up.",
       "no_policy": "No effective backup policy for this device.",
       "pending": "A backup is already queued or running."
+    },
+    "types": {
+      "mikrotik_multi": "MikroTik agent · .backup and .rsc",
+      "mikrotik": "MikroTik agent",
+      "demo": "demo data"
     }
   },
   "cron": {
