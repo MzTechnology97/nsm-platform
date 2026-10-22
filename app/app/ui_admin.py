@@ -76,6 +76,7 @@ from app import (
     api_keys,
     capacity,
     cnmaestro_connector,
+    ispbilling_connector,
     connector_health,
     customer_scope,
     dashboard_ui,
@@ -541,6 +542,7 @@ def integrations(request: Request):
         user = ui_user(request, db)
         hub = integrations_hub.hub_state(db)
         acs, cnm, zbx = genieacs_connector.summary(), cnmaestro_connector.summary(), zabbix_connector.summary()
+        ispb = ispbilling_connector.summary(db)
         uisp_sync, nvd_sync = hub["uisp_sync"], hub["nvd_sync"]
         agents_total, agents_stale = hub["agents_total"], hub["agents_stale"]
         return {
@@ -557,6 +559,9 @@ def integrations(request: Request):
                          "linked": acs["linked"], "pending": acs["pending"]},
             "cnmaestro": {"state": _connector_state(cnm["connection"], cnm["connection"].last_test_status if cnm["connection"] else None),
                           "cambium": cnm["cambium"], "linked": cnm["linked"]},
+            "ispbilling": {"state": _connector_state(ispb["connection"], ((ispb["connection"].settings or {}).get("last_sync") or {}).get("status")
+                                                      or ispb["connection"].last_test_status if ispb["connection"] else None),
+                           "customers": ispb["customers"], "linked": ispb["linked"], "details_pending": ispb["details_pending"]},
             "zabbix": {"state": _connector_state(zbx["connection"], zbx["connection"].last_test_status if zbx["connection"] else None),
                        "version": zbx["settings"].get("version"), "linked": zbx["linked"], "frontend": zbx["frontend"]},
         }

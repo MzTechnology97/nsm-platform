@@ -44,6 +44,14 @@ for (const root of ["InternetGatewayDevice", "Device"]) {
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.ExternalIPAddress", {value: hourly});
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.ExternalIPAddress", {value: hourly});
 declare("Device.IP.Interface.*.IPv4Address.*.IPAddress", {value: hourly});
+// Interface MAC addresses, used by NSM to find a CPE by the MAC on its label.
+for (const path of ["Device.Ethernet.Interface.*.MACAddress", "Device.Ethernet.Link.*.MACAddress",
+                    "InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.MACAddress",
+                    "InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.MACAddress",
+                    "InternetGatewayDevice.WANDevice.*.WANEthernetInterfaceConfig.MACAddress",
+                    "InternetGatewayDevice.LANDevice.*.LANEthernetInterfaceConfig.*.MACAddress"]) {
+  declare(path, {value: daily});
+}
 """
 # Presets: when the provision runs. TP-Link first; a generic one for every other CPE.
 PRESETS = {
