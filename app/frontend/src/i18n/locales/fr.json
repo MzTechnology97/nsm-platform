@@ -237,6 +237,7 @@
       "notMeasuredNote": "activez le ping NSM dans Monitor"
     },
     "backupNever": "jamais",
+    "backupNotAvailable": "non disponible",
     "ispbilling": {
       "title": "Compte ISPBilling",
       "help": "Le compte RADIUS ISPBilling servi par cet équipement, lu dans la facturation.",
@@ -245,8 +246,7 @@
         "pppoe": "associé par utilisateur PPPoE",
         "ip": "associé par IP statique"
       }
-    },
-    "backupNotAvailable": "non disponible"
+    }
   },
   "monitor": {
     "range": "Période",
