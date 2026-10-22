@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.202 — 2026-10-22
+
+Bulk migration of customer CPEs to the self-hosted ACS
+- **Move a whole fleet of TP-Link routers from the vendor cloud (TAUC) onto your own GenieACS** without configuring each router by hand. In *Amministrazione → ACS → Migra i CPE verso questo ACS* you give the management subnet, the port, the target ACS URL (the integrated GenieACS by default) and one shared credential for the fleet.
+- **Dry run (available now):** NSM reaches every address on the management network and reports which are TP-Link CPEs, with model and firmware — an inventory of what can be migrated, without sending any credential. Checked on a real TP-Link VX230v.
+- **Apply:** rewrites the CWMP ACS URL on each router through its web interface. The TP-Link login differs per firmware and is turned on after validation on the live fleet, so until then each host reports that the change needs validation instead of guessing.
+- **Safeguards:** administrators only; IPv4 subnets up to 4096 addresses per run; a host is checked before any credential is sent, so the credential never reaches a non-CPE; the `.0`/`.255` addresses and the ACS server are skipped; the credential is used only during the run and never stored or logged; one run at a time, with per-host results and an audit entry.
+
 ## 0.49.201 — 2026-10-22
 
 GenieACS: IP and MAC of TR-181 CPEs
