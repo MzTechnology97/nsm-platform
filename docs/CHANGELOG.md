@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.211 — 2026-10-22
+
+History of TR-069 CPEs
+- **The *ACS* tab of a TP-Link or other TR-069 CPE now shows the line and Wi-Fi:**
+  - WAN state and type (PPPoE or IP), address, time connected and last connection error;
+  - Wi-Fi radios with channel, width and connected clients;
+  - LAN hosts;
+  - for DSL lines, speed, SNR margin and attenuation.
+- **Charts over 24 hours, 7, 30 and 90 days:** WAN traffic, CPU and memory, Wi-Fi clients and LAN hosts, DSL speed and quality, kept for 90 days.
+- **Online and offline from the ACS:** a CPE is shown offline after three missed periodic contacts (at least 15 minutes).
+- **Firmware without traffic counters:** some versions, like the one on the TP-Link VX230v, leave the WAN byte counters at zero. NSM says so instead of drawing a flat line.
+- NSM reads all this from GenieACS every two minutes and sends nothing to the CPEs. The NSM rule in GenieACS makes the CPE report these values at every contact (5 minutes); NSM updates the rule by itself, as from 0.49.210.
+
 ## 0.49.210 — 2026-10-22
 
 ACS templates updated automatically
