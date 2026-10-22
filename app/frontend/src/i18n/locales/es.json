@@ -5630,6 +5630,7 @@
       "size": "Tamaño de la prueba (MB)",
       "save": "Guardar",
       "saved": "Guardado."
-    }
+    },
+    "short": "El servidor envió solo {{bytes}} bytes en lugar del archivo (redirección o rechazo): usa NSM u otro servidor de prueba."
   }
 }

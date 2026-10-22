@@ -6,7 +6,7 @@ import { formatDateTime } from "../lib/format";
 
 type Kind = "download" | "upload";
 
-interface SpeedResult { state: string; bytes: number | null; seconds: number | null; mbps: number | null; began_at: string | null }
+interface SpeedResult { state: string; bytes: number | null; seconds: number | null; mbps: number | null; short?: boolean; began_at: string | null }
 
 interface SpeedTest {
   state: "requested" | "complete" | "error" | "timeout";
@@ -93,6 +93,7 @@ export function AcsSpeedtest({ deviceId }: { deviceId: string }) {
                   {result.state}{KNOWN_ERRORS.includes(result.state) ? ` · ${t(`acsSpeedtest.errors.${result.state}`)}` : ""}
                 </small>
               )}
+              {result?.short && <small>{t("acsSpeedtest.short", { bytes: result.bytes })}</small>}
               {test?.error && <small>{test.error}</small>}
             </div>
           );

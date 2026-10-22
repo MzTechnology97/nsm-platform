@@ -5630,6 +5630,7 @@
       "size": "Test size (MB)",
       "save": "Save",
       "saved": "Saved."
-    }
+    },
+    "short": "The server sent only {{bytes}} bytes instead of the file (redirect or refusal): use NSM or another test server."
   }
 }
