@@ -56,6 +56,7 @@ from app.connector_diagnostics import install_connector_diagnostics
 from app.cnmaestro_onboarding import install_cnmaestro_onboarding
 from app.nav_counts import install_nav_counts
 from app.ui_device_connectors import install_ui_device_connectors
+from app.acs_diagnostics import install_acs_diagnostics
 from app.ui_backup_policies import install_ui_backup_policies
 from app.legacy_redirects import install_legacy_redirects
 from app.ui_spa import install_ui_spa
@@ -250,6 +251,7 @@ install_connector_diagnostics(core.app)
 install_cnmaestro_onboarding(core.app)
 install_nav_counts(core.app)
 install_ui_device_connectors(core.app)
+install_acs_diagnostics(core.app)
 install_ui_backup_policies(core.app)
 install_ui_spa(core.app)
 # The syntax guard must wrap the final composed modern source, including the

@@ -235,7 +235,8 @@
       "notMeasured": "no medida",
       "notMeasuredNote": "active el ping de NSM en Monitor"
     },
-    "backupNever": "nunca"
+    "backupNever": "nunca",
+    "backupNotAvailable": "no disponible"
   },
   "monitor": {
     "range": "Intervalo",
@@ -4035,7 +4036,7 @@
     },
     "refresh": "Actualizar desde GenieACS",
     "refreshed": "Inventario actualizado desde GenieACS.",
-    "notYet": "El diagnóstico, la copia y la actualización de firmware a través del ACS aún no están disponibles.",
+    "notYet": "La copia de seguridad y la actualización de firmware a través del ACS aún no están disponibles.",
     "verifyTitle": "Comprobar la coincidencia",
     "searchTitle": "Buscar en GenieACS",
     "searchSerialMac": "NSM busca el número de serie {{serial}} y, si no lo encuentra, el MAC {{mac}}; la búsqueda no modifica nada.",
@@ -5045,6 +5046,8 @@
     }
   },
   "eventTypes": {
+    "ACS_DIAGNOSTIC_COMPLETED": "Diagnóstico ACS completado",
+    "ACS_DIAGNOSTIC_REQUESTED": "Diagnóstico ACS solicitado",
     "ACS_TEMPLATES_INSTALLED": "Plantillas ACS instaladas",
     "AGENT_HEALTH_ISSUE_OPENED": "Problema del agente notificado",
     "AGENT_HEALTH_RECOVERED": "Agente recuperado",
@@ -5294,6 +5297,40 @@
     "syslog": "syslog",
     "routeros_catalog": "catálogo RouterOS",
     "measure": "medición",
-    "job": "tarea"
+    "job": "tarea",
+    "tr069": "TR-069 (ACS)",
+    "acs": "ACS"
+  },
+  "acsDiagnostics": {
+    "title": "Diagnóstico desde el CPE",
+    "help": "El propio CPE ejecuta la prueba a través del ACS (TR-069): el resultado es lo que ve la línea del cliente. Empieza enseguida si el CPE acepta la solicitud de conexión; si no, en su próximo contacto con el ACS.",
+    "kind": "Prueba",
+    "kinds": {
+      "ping": "Ping",
+      "traceroute": "Traceroute"
+    },
+    "target": "Destino",
+    "targetPlaceholder": "Dirección IP o nombre de host",
+    "run": "Ejecutar",
+    "states": {
+      "requested": "En ejecución en el CPE…",
+      "complete": "Completado",
+      "error": "El CPE ha indicado un error",
+      "timeout": "Sin respuesta del CPE en 4 minutos"
+    },
+    "waitingContact": "el CPE no aceptó la solicitud de conexión: empezará en el próximo contacto",
+    "cpeState": "Estado del CPE",
+    "noHops": "El CPE no devolvió saltos.",
+    "ping": {
+      "received": "Respuestas",
+      "min": "Mínimo",
+      "avg": "Medio",
+      "max": "Máximo"
+    },
+    "trace": {
+      "host": "Host",
+      "address": "Dirección",
+      "rtt": "Tiempos"
+    }
   }
 }

@@ -35,11 +35,15 @@ BASE_PROVISION_SCRIPT = """// NSM base provisioning (installed from NSM > Ammini
 const now = Date.now();
 const hourly = now - 3600 * 1000;
 const daily = now - 24 * 3600 * 1000;
+const fresh = now - 4 * 60 * 1000;  // re-read at every periodic inform (5 minutes): CPU, memory and uptime shown in NSM
 
 for (const root of ["InternetGatewayDevice", "Device"]) {
   declare(root + ".ManagementServer.PeriodicInformEnable", {value: daily}, {value: true});
   declare(root + ".ManagementServer.PeriodicInformInterval", {value: daily}, {value: 300});
   declare(root + ".DeviceInfo.*", {value: hourly});
+  declare(root + ".DeviceInfo.ProcessStatus.CPUUsage", {value: fresh});
+  declare(root + ".DeviceInfo.MemoryStatus.*", {value: fresh});
+  declare(root + ".DeviceInfo.UpTime", {value: fresh});
 }
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.ExternalIPAddress", {value: hourly});
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.ExternalIPAddress", {value: hourly});
