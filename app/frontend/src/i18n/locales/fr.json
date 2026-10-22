@@ -4,7 +4,8 @@
     "loading": "Chargement…",
     "error": "Impossible de charger les données.",
     "retry": "Réessayer",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "copyFailed": "Le navigateur n'a pas autorisé la copie : sélectionnez le texte et appuyez sur Ctrl+C."
   },
   "nav": {
     "dashboard": "Tableau de bord",
@@ -236,6 +237,15 @@
       "notMeasuredNote": "activez le ping NSM dans Monitor"
     },
     "backupNever": "jamais",
+    "ispbilling": {
+      "title": "Compte ISPBilling",
+      "help": "Le compte RADIUS ISPBilling servi par cet équipement, lu dans la facturation.",
+      "otherCustomer": "ISPBilling facture ce compte à un autre client que celui de l'équipement dans NSM.",
+      "matched": {
+        "pppoe": "associé par utilisateur PPPoE",
+        "ip": "associé par IP statique"
+      }
+    },
     "backupNotAvailable": "non disponible"
   },
   "monitor": {
@@ -5462,7 +5472,10 @@
     "doneTitle": "Import terminé",
     "done": "{{created}} clients créés, {{linked}} liés ; {{sites}} sites créés, {{sitesLinked}} liés à des sites existants.",
     "skipped": "{{count}} ignorés.",
-    "openCustomers": "Ouvrir les clients"
+    "openCustomers": "Ouvrir les clients",
+    "radius": "Comptes RADIUS",
+    "radiusMatched": "{{count}} associés à un équipement",
+    "radiusError": "Comptes RADIUS non lus : {{error}}"
   },
   "acsDiagnostics": {
     "title": "Diagnostic depuis le CPE",

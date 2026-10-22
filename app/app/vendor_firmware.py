@@ -232,6 +232,9 @@ def run_scheduled(now=None, transport=None) -> dict:
         if _last_vendor_attempt is None or now - _last_vendor_attempt >= UBNT_REFRESH:
             _last_vendor_attempt = now
             stats["vendor_api"] = refresh_vendor_api(db, now, transport)
+            if not stats["vendor_api"]["platforms"]:
+                # Nothing to ask yet (e.g. the worker started before UISP reported the platforms): try again next cycle.
+                _last_vendor_attempt = None
         stats["evaluation"] = evaluate(db, now)
         db.commit()
     return stats
