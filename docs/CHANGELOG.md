@@ -4,6 +4,21 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.203 — 2026-10-22
+
+Customers and sites from ISPBilling
+- **New ISPBilling integration** (*Integrazioni → ISPBilling*): connect NSM to the ISPBilling billing system with a read-only API key. NSM never writes to ISPBilling.
+- **NSM keeps a copy of the ISPBilling registry**, refreshed every 6 hours or on request (*Leggi ora*):
+  - customers with name, code, kind, status and group;
+  - the installation address of every service.
+  Fiscal data, contacts and payment data are not copied.
+- **Importa da ISPBilling** lists the customers as *Nuovi*, *Da collegare* (an NSM customer with the same code or name exists) or *Già in NSM*. You choose which ones to bring in, see a preview, then confirm:
+  - each becomes an NSM customer, or is linked to the existing one;
+  - each gets one site per installation address (for example *Sede Centrale Comune*, or the address itself);
+  - addresses already present in NSM are reused, and nothing already in NSM is renamed or removed;
+  - running the import again only adds new sites.
+- Every import is recorded in the activity log.
+
 ## 0.49.202 — 2026-10-22
 
 Bulk migration of customer CPEs to the self-hosted ACS

@@ -292,6 +292,7 @@ export interface IntegrationsHub {
   nvd: { state: ConnectorState; advisories: number; last_success_at: string | null };
   genieacs: { state: ConnectorState; linked: number; pending: number };
   cnmaestro: { state: ConnectorState; cambium: number; linked: number };
+  ispbilling: { state: ConnectorState; customers: number; linked: number; details_pending: number };
   zabbix: { state: ConnectorState; version: string | null; linked: number; frontend: string | null };
 }
 

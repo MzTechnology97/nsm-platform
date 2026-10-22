@@ -41,7 +41,7 @@ export function Integrations() {
   const when = (value: string | null) => (value ? formatDateTime(value, i18n.language) : t("adminUsers.never"));
   const state = (key: string) => t(`integrations.states.${key}`);
 
-  const manageRoute = (to: "/admin/integrations/cnmaestro" | "/admin/integrations/zabbix" | "/admin/integrations/genieacs" | "/admin/integrations/uisp", configured: boolean) =>
+  const manageRoute = (to: "/admin/integrations/cnmaestro" | "/admin/integrations/zabbix" | "/admin/integrations/genieacs" | "/admin/integrations/uisp" | "/admin/integrations/ispbilling", configured: boolean) =>
     data?.can_admin ? <Link className="ui-button ui-button-ghost ui-button-small" to={to}>{configured ? t("integrations.manage") : t("integrations.configure")}</Link> : null;
 
   return (
@@ -102,6 +102,14 @@ export function Integrations() {
           <Card name="cnmaestro" title={t("integrations.cnmaestro.title")} help={t("integrations.cnmaestro.help")} state={data.cnmaestro.state} label={state(data.cnmaestro.state)}
             actions={manageRoute("/admin/integrations/cnmaestro", data.cnmaestro.state !== "unconfigured")}>
             <Facts items={[[t("integrations.cnmaestro.cambium"), data.cnmaestro.cambium], [t("integrations.cnmaestro.linked"), data.cnmaestro.linked]]} />
+          </Card>
+
+          <Card name="ispbilling" title={t("integrations.ispbilling.title")} help={t("integrations.ispbilling.help")} state={data.ispbilling.state} label={state(data.ispbilling.state)}
+            actions={<>
+              {data.can_admin && data.ispbilling.state !== "unconfigured" && <Link className="ui-button ui-button-ghost ui-button-small" to="/integrations/ispbilling/import">{t("ispbilling.import")}</Link>}
+              {manageRoute("/admin/integrations/ispbilling", data.ispbilling.state !== "unconfigured")}
+            </>}>
+            <Facts items={[[t("integrations.ispbilling.customers"), data.ispbilling.customers], [t("integrations.ispbilling.linked"), data.ispbilling.linked]]} />
           </Card>
 
           <Card name="zabbix" title={t("integrations.zabbix.title")} help={t("integrations.zabbix.help")} state={data.zabbix.state} label={state(data.zabbix.state)}
