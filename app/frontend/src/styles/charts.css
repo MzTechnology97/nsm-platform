@@ -120,6 +120,12 @@
   color: var(--muted);
 }
 
+.ui-table-scroll {
+  position: relative;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 .ui-chart-legend,
 .ui-stats-table {
   width: 100%;

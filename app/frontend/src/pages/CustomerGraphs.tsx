@@ -114,25 +114,27 @@ export function CustomerGraphs() {
             <h2>{t("customerGraphs.top.title")}</h2>
             <p className="ui-muted">{t("customerGraphs.top.hint")}</p>
             {data.top.length ? (
-              <table className="ui-stats-table">
-                <thead>
-                  <tr><th>{t("customerGraphs.top.device")}</th><th>{t("customerGraphs.sites.in")}</th><th>{t("customerGraphs.sites.out")}</th></tr>
-                </thead>
-                <tbody>
-                  {data.top.map((row) => (
-                    <tr key={row.id}>
-                      <td>
-                        <span className="ui-with-brand">
-                          <BrandIcon brand={row.brand} small />
-                          <Link to="/devices/$deviceId/monitor" params={{ deviceId: row.id }}>{row.name}</Link>
-                        </span>
-                      </td>
-                      <td>{bps(row.rx_bps)}</td>
-                      <td>{bps(row.tx_bps)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="ui-table-scroll">
+                <table className="ui-stats-table">
+                  <thead>
+                    <tr><th>{t("customerGraphs.top.device")}</th><th>{t("customerGraphs.sites.in")}</th><th>{t("customerGraphs.sites.out")}</th></tr>
+                  </thead>
+                  <tbody>
+                    {data.top.map((row) => (
+                      <tr key={row.id}>
+                        <td>
+                          <span className="ui-with-brand">
+                            <BrandIcon brand={row.brand} small />
+                            <Link to="/devices/$deviceId/monitor" params={{ deviceId: row.id }}>{row.name}</Link>
+                          </span>
+                        </td>
+                        <td>{bps(row.rx_bps)}</td>
+                        <td>{bps(row.tx_bps)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <p className="ui-muted">{t("customerGraphs.top.none")}</p>
             )}
@@ -178,28 +180,30 @@ function Availability({ data }: { data: NonNullable<ReturnType<typeof useGraphsS
           <p className="ui-muted">
             {t("customerGraphs.availability.summary", { average: pct(data.average), count: data.measured, below: data.below_target, target: data.target })}
           </p>
-          <table className="ui-stats-table">
-            <thead>
-              <tr>
-                <th>{t("customerGraphs.top.device")}</th>
-                <th>{t("customerGraphs.availability.value")}</th>
-                <th>{t("customerGraphs.availability.downtime")}</th>
-                <th>{t("customerGraphs.availability.outages")}</th>
-                <th>RTT</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.devices.slice(0, 15).map((row) => (
-                <tr key={row.device_id}>
-                  <td><Link to="/devices/$deviceId/monitor" params={{ deviceId: row.device_id }}>{row.device}</Link></td>
-                  <td className={row.availability < data.target ? "ui-text-danger" : undefined}>{pct(row.availability)}</td>
-                  <td>{t("customerGraphs.availability.minutes", { count: row.downtime_minutes })}</td>
-                  <td>{row.outages}</td>
-                  <td>{row.rtt_avg == null ? "—" : formatValue(row.rtt_avg, "ms", i18n.language)}</td>
+          <div className="ui-table-scroll">
+            <table className="ui-stats-table">
+              <thead>
+                <tr>
+                  <th>{t("customerGraphs.top.device")}</th>
+                  <th>{t("customerGraphs.availability.value")}</th>
+                  <th>{t("customerGraphs.availability.downtime")}</th>
+                  <th>{t("customerGraphs.availability.outages")}</th>
+                  <th>RTT</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {data.devices.slice(0, 15).map((row) => (
+                  <tr key={row.device_id}>
+                    <td><Link to="/devices/$deviceId/monitor" params={{ deviceId: row.device_id }}>{row.device}</Link></td>
+                    <td className={row.availability < data.target ? "ui-text-danger" : undefined}>{pct(row.availability)}</td>
+                    <td>{t("customerGraphs.availability.minutes", { count: row.downtime_minutes })}</td>
+                    <td>{row.outages}</td>
+                    <td>{row.rtt_avg == null ? "—" : formatValue(row.rtt_avg, "ms", i18n.language)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {data.devices.length > 15 && <p className="ui-muted">{t("customerGraphs.availability.more", { count: data.devices.length })}</p>}
         </>
       ) : (

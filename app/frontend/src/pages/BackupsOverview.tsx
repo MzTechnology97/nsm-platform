@@ -103,28 +103,30 @@ export function BackupsOverview() {
         <div className="ui-two-columns ui-section-gap">
           <section className="ui-panel">
             <h2>{t("backupOverview.coverage.title")}</h2>
-            <table className="ui-stats-table">
-              <thead>
-                <tr>
-                  <th>{t("backupOverview.coverage.customer")}</th>
-                  <th>{t("backupOverview.coverage.protected")}</th>
-                  <th>{t("backupOverview.coverage.blocked")}</th>
-                  <th>{t("backupOverview.coverage.noPolicy")}</th>
-                  <th>{t("backupOverview.coverage.alerts")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.customers.map((row) => (
-                  <tr key={row.id}>
-                    <td><Link to="/customers/$customerId" params={{ customerId: row.id }}>{row.name}</Link></td>
-                    <td>{row.protected}/{row.devices}</td>
-                    <td className={row.blocked ? "ui-text-warning" : undefined}>{row.blocked}</td>
-                    <td className={row.no_policy ? "ui-text-danger" : undefined}>{row.no_policy}</td>
-                    <td className={row.backup_alerts ? "ui-text-danger" : undefined}>{row.backup_alerts}</td>
+            <div className="ui-table-scroll">
+              <table className="ui-stats-table">
+                <thead>
+                  <tr>
+                    <th>{t("backupOverview.coverage.customer")}</th>
+                    <th>{t("backupOverview.coverage.protected")}</th>
+                    <th>{t("backupOverview.coverage.blocked")}</th>
+                    <th>{t("backupOverview.coverage.noPolicy")}</th>
+                    <th>{t("backupOverview.coverage.alerts")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.customers.map((row) => (
+                    <tr key={row.id}>
+                      <td><Link to="/customers/$customerId" params={{ customerId: row.id }}>{row.name}</Link></td>
+                      <td>{row.protected}/{row.devices}</td>
+                      <td className={row.blocked ? "ui-text-warning" : undefined}>{row.blocked}</td>
+                      <td className={row.no_policy ? "ui-text-danger" : undefined}>{row.no_policy}</td>
+                      <td className={row.backup_alerts ? "ui-text-danger" : undefined}>{row.backup_alerts}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
           <section className="ui-panel">
             <h2>{t("backupOverview.policies.title")}</h2>

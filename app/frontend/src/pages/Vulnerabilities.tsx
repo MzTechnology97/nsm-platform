@@ -186,24 +186,26 @@ export function VulnerabilityDetail() {
         <section className="ui-panel ui-section-gap">
           <h2>{t("vulns.unassessed.title", { count: data.unassessed.length })}</h2>
           <p className="ui-muted">{t("vulns.unassessed.hint")}</p>
-          <table className="ui-stats-table">
-            <thead><tr><th>{t("vulns.columns.device")}</th><th>{t("vulns.columns.customer")}</th><th>{t("vulns.columns.version")}</th><th>{t("vulns.columns.reason")}</th></tr></thead>
-            <tbody>
-              {data.unassessed.map((row) => (
-                <tr key={row.device.id}>
-                  <td>
-                    <span className="ui-with-brand">
-                      <BrandIcon brand={row.device.brand} small />
-                      <Link to="/devices/$deviceId" params={{ deviceId: row.device.id }}>{row.device.name}</Link>
-                    </span>
-                  </td>
-                  <td>{row.customer ? <Link to="/customers/$customerId" params={{ customerId: row.customer.id }}>{row.customer.name}</Link> : "—"}</td>
-                  <td className="ui-mono">{row.version ?? "—"}</td>
-                  <td>{row.reason}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="ui-table-scroll">
+            <table className="ui-stats-table">
+              <thead><tr><th>{t("vulns.columns.device")}</th><th>{t("vulns.columns.customer")}</th><th>{t("vulns.columns.version")}</th><th>{t("vulns.columns.reason")}</th></tr></thead>
+              <tbody>
+                {data.unassessed.map((row) => (
+                  <tr key={row.device.id}>
+                    <td>
+                      <span className="ui-with-brand">
+                        <BrandIcon brand={row.device.brand} small />
+                        <Link to="/devices/$deviceId" params={{ deviceId: row.device.id }}>{row.device.name}</Link>
+                      </span>
+                    </td>
+                    <td>{row.customer ? <Link to="/customers/$customerId" params={{ customerId: row.customer.id }}>{row.customer.name}</Link> : "—"}</td>
+                    <td className="ui-mono">{row.version ?? "—"}</td>
+                    <td>{row.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
     </section>

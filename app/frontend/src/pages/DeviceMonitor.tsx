@@ -99,30 +99,32 @@ function TrafficPanel({ id, range }: { id: string; range: Range }) {
         legend={false}
       />
       {traffic && (
-        <table className="ui-stats-table">
-          <thead>
-            <tr>
-              <th />
-              <th>{t("monitor.legend.current")}</th>
-              <th>{t("monitor.legend.avg")}</th>
-              <th>{t("monitor.legend.max")}</th>
-              <th>{t("monitor.p95")}</th>
-              <th>{t("monitor.volume")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(["rx", "tx"] as const).map((dir) => (
-              <tr key={dir}>
-                <td><span className={`ui-key ui-key-${dir === "rx" ? "b" : "a"}`}>{dir === "rx" ? t("monitor.in") : t("monitor.out")}</span></td>
-                <td>{fmt(traffic.stats[dir].current, "bps")}</td>
-                <td>{fmt(traffic.stats[dir].avg, "bps")}</td>
-                <td>{fmt(traffic.stats[dir].max, "bps")}</td>
-                <td>{fmt(traffic.stats[dir].p95, "bps")}</td>
-                <td>{fmt(traffic.stats[dir].bytes, "bytes")}</td>
+        <div className="ui-table-scroll">
+          <table className="ui-stats-table">
+            <thead>
+              <tr>
+                <th />
+                <th>{t("monitor.legend.current")}</th>
+                <th>{t("monitor.legend.avg")}</th>
+                <th>{t("monitor.legend.max")}</th>
+                <th>{t("monitor.p95")}</th>
+                <th>{t("monitor.volume")}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {(["rx", "tx"] as const).map((dir) => (
+                <tr key={dir}>
+                  <td><span className={`ui-key ui-key-${dir === "rx" ? "b" : "a"}`}>{dir === "rx" ? t("monitor.in") : t("monitor.out")}</span></td>
+                  <td>{fmt(traffic.stats[dir].current, "bps")}</td>
+                  <td>{fmt(traffic.stats[dir].avg, "bps")}</td>
+                  <td>{fmt(traffic.stats[dir].max, "bps")}</td>
+                  <td>{fmt(traffic.stats[dir].p95, "bps")}</td>
+                  <td>{fmt(traffic.stats[dir].bytes, "bytes")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       {traffic?.stats.errors?.supported ? (
         <TimeChart
