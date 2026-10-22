@@ -632,13 +632,20 @@ ACS URL (the integrated GenieACS by default), the inform interval and one shared
   memory for the run and never stored or logged. Audit events `ACS_MIGRATION_STARTED` /
   `ACS_MIGRATION_COMPLETED` carry counts only.
 
+### Diagnostics from the CPE (ACS-06, Core 0.49.206)
+
+On the *ACS* tab of a linked CPE, technicians (`devices.write`) run a ping or a traceroute that the CPE itself performs: NSM asks GenieACS for a `setParameterValues` task with a connection request (TR-181 `Device.IP.Diagnostics.IPPing` / `TraceRoute`, TR-098 `InternetGatewayDevice.IPPingDiagnostics` / `TraceRouteDiagnostics`; data model detected from the GenieACS record), then follows the test by asking GenieACS to re-read the object at most every 8 s while the page is open, until `Complete` or `Error_*` (given up after 4 minutes). When the CPE refuses the connection request the test starts at its next periodic contact. Results (replies, min/avg/max; hops with addresses and times) are kept per test on the device; audit `ACS_DIAGNOSTIC_REQUESTED` / `ACS_DIAGNOSTIC_COMPLETED`. These are the only commands NSM sends through GenieACS.
+
+### Current resources of CPEs (ACS-05 step 1, Core 0.49.206)
+
+Every 5 minutes the worker reads from GenieACS, in one read-only NBI query for all linked CPEs, `DeviceInfo.ProcessStatus.CPUUsage`, `MemoryStatus.Total/Free` and `UpTime` (TR-181 and TR-098) and keeps them on the device with the time the CPE reported them; the device page and list show them as current resources when under 2 hours old. The NSM provision declares these values with a 4-minute age, so the CPE reports them at every periodic inform (reinstall the templates from *Amministrazione → ACS* after upgrading). History and charts are not stored yet.
+
 ### Not implemented
 
 - bulk ACS discovery/onboarding from the ACS side (this migration drives the CPEs, not GenieACS);
 - vendor-specific TR-098/TR-181 parameter profiles beyond identity and firmware;
 - vendor parameter profiles;
-- monitoring/history through ACS;
-- TR-069 diagnostics;
+- monitoring history and charts through ACS;
 - capability-aware backup/restore through ACS;
 - firmware deployment/verification through ACS.
 
@@ -663,6 +670,7 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - pages of up to 2000 records with the documented pause between requests (6.5 s without key, 1 s with key);
 - idempotent upsert by CVE id; an unchanged record only refreshes `fetched_at`; provenance kept on the advisory (`source`, NVD `vulnStatus`, published/modified, fetched);
 - records that cannot be normalized are skipped and listed in the admin page (bounded list) instead of aborting the run;
+- each NVD request is tried up to three times (timeouts 30, 60 and 90 s; also on HTTP 5xx) before the run fails, because NVD has slow periods (Core 0.49.204); rate limiting (403/429) and other client errors are not retried;
 - transport/HTTP failures back off exponentially (max 24 h); after 3 consecutive failures one Action Center issue is opened and resolved by the next success; audit events for configuration, runs and failures;
 - worker cycle: ingestion when due (default every 6 h), matching every 15 min;
 - requires outbound HTTPS from the app and worker containers to `services.nvd.nist.gov` (manual *Aggiorna ora* runs in the app, scheduled runs in the worker).

@@ -14,6 +14,15 @@ connector creates or updates one Zabbix host:
 
 Hosts whose NSM device was deleted or excluded are *disabled*, never deleted.
 
+Existing hosts (operator decision 2026-10-22): when Zabbix already monitors a
+device, NSM links to that host instead of creating ``nsm-<id>``. The link is
+made on the host's interface IP, else on its exact name (visible or technical,
+case-insensitive), and only when exactly one host matches; ambiguous devices
+are reported and left alone. A linked host keeps its groups, templates and
+tags; NSM only keeps its interface IP equal to the device address when that
+changes (dynamic public IPs, NAT), if ``update_linked_ip`` is on. Its problems
+are shown in NSM like those of the hosts NSM created.
+
 API versions: ``apiinfo.version`` is read first.  Zabbix 7.2+ only accepts the
 ``Authorization: Bearer`` header; 5.4 – 7.1 accept the token in the request
 ``auth`` field (used for all of them).  Username/password login uses
@@ -51,7 +60,16 @@ DEFAULT_SETTINGS = {
     "templates": {"mikrotik": "", "ubiquiti": "", "default": "ICMP Ping"},
     "scope": "all",  # all | customers
     "customer_ids": [],
+    "link_existing": True,  # link to hosts already monitored in Zabbix instead of creating nsm-<id>
+    "update_linked_ip": True,  # keep a linked host's interface IP equal to the device address
 }
+
+
+# Factory LAN addresses of CPEs and routers (TP-Link, Ubiquiti, MikroTik, ISP gateways): many unrelated devices answer on
+# them, so they never identify a Zabbix host, and an nsm- host on one would poll nothing reachable. Such devices are
+# linked by name only, or get a Zabbix IP set by the operator.
+FACTORY_LAN_IPS = frozenset({"192.168.0.1", "192.168.1.1", "192.168.2.1", "192.168.0.254", "192.168.1.254", "192.168.88.1",
+                             "192.168.100.1", "192.168.1.20", "192.168.178.1", "10.0.0.1", "10.0.0.138", "10.0.0.2"})
 
 
 class ZabbixError(RuntimeError):
@@ -254,14 +272,81 @@ def _template_ids(client, names: set) -> dict:
     return found
 
 
+def _is_nsm_host(host: dict) -> bool:
+    return str(host.get("host") or "").startswith("nsm-") or any(
+        t.get("tag") == "source" and t.get("value") == "nsm" for t in host.get("tags") or [])
+
+
+def _index(hosts: list[dict]) -> tuple[dict, dict]:
+    """Operator hosts by interface IP and by lower-case name (visible and technical)."""
+    by_ip: dict = {}
+    by_name: dict = {}
+    for host in hosts:
+        for ip in {i.get("ip") for i in host.get("interfaces") or [] if i.get("ip")}:
+            by_ip.setdefault(ip, []).append(host)
+        for name in {str(host.get(k) or "").strip().lower() for k in ("name", "host")} - {""}:
+            by_name.setdefault(name, []).append(host)
+    return by_ip, by_name
+
+
+def match_host(device, ip: str | None, by_ip: dict, by_name: dict) -> tuple[dict | None, str | None]:
+    """(host, how) for the one operator host that is this device; (None, "ambiguous") when several could be."""
+    candidates = by_ip.get(ip) or [] if ip and ip not in FACTORY_LAN_IPS else []
+    if len(candidates) == 1:
+        return candidates[0], "ip"
+    if len(candidates) > 1:
+        return None, "ambiguous"
+    names = {str(v).strip().lower() for v in (device.display_name, device.device_identity, device.name) if v and str(v).strip()}
+    found = {h["hostid"]: h for name in names for h in by_name.get(name, [])}
+    if len(found) == 1:
+        return next(iter(found.values())), "name"
+    return (None, "ambiguous") if found else (None, None)
+
+
+def _main_interface(host: dict) -> dict | None:
+    interfaces = host.get("interfaces") or []
+    return next((i for i in interfaces if str(i.get("main")) == "1" and str(i.get("useip", "1")) == "1"), None)
+
+
+def _link_existing(db, client, device, ip, host, how, settings, stats, now) -> str:
+    """Record the link to an operator host and keep its interface IP current; returns the hostid."""
+    data = dict(device.inventory_data or {})
+    current = data.get("zabbix") or {}
+    if current.get("hostid") != host["hostid"] or not current.get("linked"):
+        data["zabbix"] = {"hostid": host["hostid"], "host": host.get("host"), "linked": True, "match": how, "linked_at": now.isoformat()}
+        device.inventory_data = data
+        stats["linked_new"] += 1
+        core.add_event(db, "ZABBIX_HOST_LINKED", customer_id=device.customer_id, device_id=device.id, source="worker",
+                       details={"hostid": host["hostid"], "host": _clip(host.get("name") or host.get("host"), 128), "match": how})
+    stats["linked"] += 1
+    main = _main_interface(host)
+    if settings.get("update_linked_ip") and ip and main and main.get("ip") != ip:
+        client.call("hostinterface.update", {"interfaceid": main["interfaceid"], "ip": ip})
+        stats["ip_updated"].append(_clip(host.get("name") or host.get("host"), 128))
+        core.add_event(db, "ZABBIX_HOST_IP_UPDATED", customer_id=device.customer_id, device_id=device.id, source="worker",
+                       details={"hostid": host["hostid"], "from": main.get("ip"), "to": ip})
+    return host["hostid"]
+
+
+def template_names(row) -> list[str]:
+    """Visible names of the templates in Zabbix, for the settings form."""
+    client = client_for(row)
+    try:
+        client.connect()
+        return sorted({str(t.get("name") or t.get("host")) for t in client.call("template.get", {"output": ["host", "name"]}) or []})[:2000]
+    finally:
+        client.close()
+
+
 def sync(db, row=None, now=None) -> dict:
-    """Push NSM devices to Zabbix; returns counters and errors (stored on the connection)."""
+    """Link NSM devices to existing Zabbix hosts, push the others; returns counters and errors (stored on the connection)."""
     now = now or utcnow()
     row = row or connection_row(db)
     if row is None or not row.is_enabled:
         return {"status": "disabled"}
     settings = settings_of(row)
-    stats = {"created": 0, "updated": 0, "disabled": 0, "skipped": 0, "errors": [], "missing_templates": [], "shared_ip": []}
+    stats = {"created": 0, "updated": 0, "disabled": 0, "skipped": 0, "errors": [], "missing_templates": [], "shared_ip": [],
+             "linked": 0, "linked_new": 0, "ambiguous": [], "ip_updated": [], "factory_ip": []}
     client = client_for(row)
     try:
         version = client.connect()
@@ -270,13 +355,46 @@ def sync(db, row=None, now=None) -> dict:
         sites = {s.id: s for s in db.scalars(select(Site))}
         wanted = {}
         addresses: dict = {}
+        operator_hosts = []
+        if settings.get("link_existing", True):
+            operator_hosts = [h for h in client.call("host.get", {"output": ["hostid", "host", "name", "status"], "selectTags": ["tag", "value"],
+                                                                  "selectInterfaces": ["interfaceid", "ip", "type", "main", "useip"]}) or []
+                              if not _is_nsm_host(h)]
+        by_id = {h["hostid"]: h for h in operator_hosts}
+        by_ip, by_name = _index(operator_hosts)
         for device in devices:
-            if eligible(device, settings):
-                payload = host_payload(device, customers.get(device.customer_id), sites.get(device.site_id), settings)
-                wanted[host_name(device)] = (device, payload)
-                addresses.setdefault(payload["interface"]["ip"], []).append(payload)
-            else:
+            data = device.inventory_data or {}
+            if not eligible(device, settings):
                 stats["skipped"] += 1
+                if (data.get("zabbix") or {}).get("linked"):  # excluded or out of scope: forget the link, the host is the operator's
+                    device.inventory_data = {k: v for k, v in data.items() if k not in ("zabbix", "zabbix_problems")}
+                continue
+            ip = _valid_ip(data.get("zabbix_ip")) or _valid_ip(device.management_ip)
+            linked = data.get("zabbix") or {}
+            host, how = (by_id.get(linked.get("hostid")), linked.get("match")) if linked.get("linked") else (None, None)
+            if host is None and operator_hosts:
+                host, how = match_host(device, ip, by_ip, by_name)
+            if host is not None:
+                try:
+                    _link_existing(db, client, device, ip, host, how, settings, stats, now)
+                except ZabbixError as exc:
+                    stats["errors"].append(f"{_clip(host.get('name'), 128)}: {exc}"[:300])
+                continue
+            if how == "ambiguous":
+                stats["ambiguous"].append(_clip(device.display_name or device.device_identity or device.name, 128))
+                continue
+            if ip in FACTORY_LAN_IPS and not _valid_ip(data.get("zabbix_ip")):
+                # Its LAN address as seen by the ACS/CPE: Zabbix could not reach it; wait for a Zabbix IP from the operator.
+                stats["factory_ip"].append(_clip(device.display_name or device.device_identity or device.name, 128))
+                continue
+            if linked.get("linked"):  # the linked host was deleted in Zabbix: push the device like any other
+                device.inventory_data = {k: v for k, v in data.items() if k != "zabbix"}
+            payload = host_payload(device, customers.get(device.customer_id), sites.get(device.site_id), settings)
+            wanted[host_name(device)] = (device, payload)
+            addresses.setdefault(payload["interface"]["ip"], []).append(payload)
+        stats["ambiguous"] = sorted(stats["ambiguous"])[:200]
+        stats["factory_ip"] = sorted(stats["factory_ip"])[:200]
+        stats["ip_updated"] = sorted(stats["ip_updated"])[:200]
         existing = {h["host"]: h for h in client.call("host.get", {"output": ["hostid", "host", "name", "status"], "tags": [{"tag": "source", "value": "nsm", "operator": 1}],
                                                                     "selectInterfaces": ["interfaceid", "ip", "type", "main"]})}
         for same in addresses.values():
@@ -374,7 +492,8 @@ def credential_info(row) -> tuple[str, str]:
 
 
 def save_config(db, user, *, api_url: str, auth_mode: str, token: str, username: str, password: str, verify_tls: bool, enabled: bool,
-                group_prefix: str, interface: str, snmp_community: str, templates: dict, scope: str, customer_ids) -> ConnectorIntegration:
+                group_prefix: str, interface: str, snmp_community: str, templates: dict, scope: str, customer_ids,
+                link_existing: bool = True, update_linked_ip: bool = True) -> ConnectorIntegration:
     """Store connection and host settings (credentials encrypted, kept when empty), audited. ValueError with the reason. Caller commits."""
     row = connection_row(db)
     url = normalize_api_url(api_url or "")
@@ -401,6 +520,8 @@ def save_config(db, user, *, api_url: str, auth_mode: str, token: str, username:
         "templates": {key: str((templates or {}).get(key) or "").strip()[:128] for key in ("mikrotik", "ubiquiti", "default")},
         "scope": "customers" if scope == "customers" else "all",
         "customer_ids": [str(v) for v in (customer_ids or [])][:500],
+        "link_existing": bool(link_existing),
+        "update_linked_ip": bool(update_linked_ip),
     }
     encrypted = encrypt_text(json.dumps(secret, separators=(",", ":")))
     if row is None:
