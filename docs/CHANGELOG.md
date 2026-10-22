@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.204 — 2026-10-22
+
+NVD advisories
+- **A slow moment of NVD no longer makes the advisory update fail.** Every request to NVD is tried up to three times, waiting longer each time (30, 60 and 90 seconds), and also when NVD answers with a temporary server error. Before, a single 30-second timeout on one of the products followed made the whole update fail, and the next attempt was hours later.
+- NVD's rate-limit answers are still reported at once, as before.
+
 ## 0.49.206 — 2026-10-22
 
 NVD advisories
