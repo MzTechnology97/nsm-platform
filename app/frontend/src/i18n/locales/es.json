@@ -4,7 +4,8 @@
     "loading": "Cargando…",
     "error": "No se pudieron cargar los datos.",
     "retry": "Reintentar",
-    "version": "Versión {{version}}"
+    "version": "Versión {{version}}",
+    "copyFailed": "El navegador no permitió copiar: seleccione el texto y pulse Ctrl+C."
   },
   "nav": {
     "dashboard": "Panel",
@@ -236,7 +237,16 @@
       "notMeasuredNote": "active el ping de NSM en Monitor"
     },
     "backupNever": "nunca",
-    "backupNotAvailable": "no disponible"
+    "backupNotAvailable": "no disponible",
+    "ispbilling": {
+      "title": "Cuenta ISPBilling",
+      "help": "La cuenta RADIUS de ISPBilling servida por este equipo, leída de la facturación.",
+      "otherCustomer": "ISPBilling factura esta cuenta a un cliente distinto del cliente NSM del equipo.",
+      "matched": {
+        "pppoe": "asociada por usuario PPPoE",
+        "ip": "asociada por IP estática"
+      }
+    }
   },
   "monitor": {
     "range": "Intervalo",
@@ -4048,7 +4058,7 @@
     },
     "refresh": "Actualizar desde GenieACS",
     "refreshed": "Inventario actualizado desde GenieACS.",
-    "notYet": "La copia de seguridad y la actualización de firmware a través del ACS aún no están disponibles.",
+    "notYet": "El diagnóstico, la copia y la actualización de firmware a través del ACS aún no están disponibles.",
     "verifyTitle": "Comprobar la coincidencia",
     "searchTitle": "Buscar en GenieACS",
     "searchSerialMac": "NSM busca el número de serie {{serial}} y, si no lo encuentra, el MAC {{mac}}; la búsqueda no modifica nada.",
@@ -5462,7 +5472,10 @@
     "doneTitle": "Importación completada",
     "done": "{{created}} clientes creados, {{linked}} vinculados; {{sites}} sedes creadas, {{sitesLinked}} vinculadas a sedes existentes.",
     "skipped": "{{count}} omitidos.",
-    "openCustomers": "Abrir los clientes"
+    "openCustomers": "Abrir los clientes",
+    "radius": "Cuentas RADIUS",
+    "radiusMatched": "{{count}} asociadas a un equipo",
+    "radiusError": "Cuentas RADIUS no leídas: {{error}}"
   },
   "acsDiagnostics": {
     "title": "Diagnóstico desde el CPE",

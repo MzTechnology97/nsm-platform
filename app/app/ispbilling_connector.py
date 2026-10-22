@@ -9,6 +9,8 @@
   (``subscription-services/service-instances/{id}`` → ``address``). The list of instances is read at every sync;
   details are read only for instances whose address is not known yet or that changed, ``DETAIL_BUDGET`` per worker
   cycle, so the first full read is spread over a few cycles.
+- **RADIUS accounts** (``ispradius2/accounts``): read at every full sync and matched to NSM devices
+  (``ispbilling_radius``), shown on the device page.
 - **Schedule**: the worker syncs every ``SYNC_INTERVAL``, or at its next cycle when an administrator asks for it,
   and keeps reading pending details at every cycle until none is left.
 
@@ -26,10 +28,11 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
 
+from app import ispbilling_radius
 from app import main as core
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
-from app.ispbilling_models import IspbillingAddress, IspbillingCustomer, IspbillingServiceInstance
+from app.ispbilling_models import IspbillingAddress, IspbillingCustomer, IspbillingRadiusAccount, IspbillingServiceInstance
 from app.models import utcnow
 from app.secret_vault import decrypt_text, encrypt_text
 from app.ui_api import require_csrf, ui_user
@@ -299,6 +302,14 @@ def sync(db, row=None, now=None, transport=None, full: bool = True) -> dict:
                 stats["customers"] = _upsert_customers(db, client.paged("/crm/customers", "l'elenco clienti"), now)
                 stats["service_instances"] = _upsert_instances(db, client.paged("/subscription-services/service-instances", "l'elenco servizi"), now)
                 db.flush()
+                # RADIUS accounts are optional (the key may lack the Radius permission): their error does not stop the read.
+                try:
+                    stats["radius_accounts"] = ispbilling_radius.upsert_accounts(db, client.paged("/ispradius2/accounts", "gli account RADIUS"), now)
+                except IspbillingError as exc:
+                    stats["radius_error"] = str(exc)[:300]
+                db.flush()
+                stats["radius_matched"] = {k: v for k, v in ispbilling_radius.match_devices(db).items() if k != "accounts"}
+                db.flush()
             stats.update(read_pending_details(db, client, now))
         finally:
             client.close()
@@ -341,7 +352,10 @@ def summary(db) -> dict:
     linked = int(db.scalar(select(func.count()).select_from(IspbillingCustomer).where(IspbillingCustomer.nsm_customer_id.is_not(None))) or 0)
     pending = int(db.scalar(select(func.count()).select_from(IspbillingServiceInstance).where(IspbillingServiceInstance.detail_read_at.is_(None))) or 0)
     addresses = int(db.scalar(select(func.count()).select_from(IspbillingAddress)) or 0)
-    return {"connection": row, "customers": customers, "linked": linked, "addresses": addresses, "details_pending": pending}
+    accounts = int(db.scalar(select(func.count()).select_from(IspbillingRadiusAccount)) or 0)
+    matched = int(db.scalar(select(func.count()).select_from(IspbillingRadiusAccount).where(IspbillingRadiusAccount.nsm_device_id.is_not(None))) or 0)
+    return {"connection": row, "customers": customers, "linked": linked, "addresses": addresses, "details_pending": pending,
+            "radius_accounts": accounts, "radius_matched": matched}
 
 
 # --- Administration API ---------------------------------------------------------------------------
@@ -356,6 +370,7 @@ def _payload(db) -> dict:
         "last_tested_at": row.last_tested_at if row else None, "last_sync_at": row.last_sync_at if row else None,
         "last_sync": settings.get("last_sync") or {}, "sync_requested": bool(settings.get("sync_requested")),
         "customers": info["customers"], "linked": info["linked"], "addresses": info["addresses"], "details_pending": info["details_pending"],
+        "radius_accounts": info["radius_accounts"], "radius_matched": info["radius_matched"],
     })
 
 

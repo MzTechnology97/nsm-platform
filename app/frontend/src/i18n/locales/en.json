@@ -4,7 +4,8 @@
     "loading": "Loading…",
     "error": "Unable to load data.",
     "retry": "Retry",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "copyFailed": "The browser did not allow copying: select the text and press Ctrl+C."
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -236,7 +237,16 @@
       "notMeasuredNote": "enable NSM ping in Monitor"
     },
     "backupNever": "never",
-    "backupNotAvailable": "not available"
+    "backupNotAvailable": "not available",
+    "ispbilling": {
+      "title": "ISPBilling account",
+      "help": "The ISPBilling RADIUS account served by this device, read from the billing system.",
+      "otherCustomer": "ISPBilling bills this account to a different customer than the device's NSM customer.",
+      "matched": {
+        "pppoe": "matched by PPPoE user",
+        "ip": "matched by static IP"
+      }
+    }
   },
   "monitor": {
     "range": "Range",
@@ -4048,7 +4058,7 @@
     },
     "refresh": "Refresh from GenieACS",
     "refreshed": "Inventory refreshed from GenieACS.",
-    "notYet": "Backup and firmware upgrades through the ACS are not available yet.",
+    "notYet": "Diagnostics, backup and firmware upgrade through the ACS are not available yet.",
     "verifyTitle": "Check the match",
     "searchTitle": "Search GenieACS",
     "searchSerialMac": "NSM looks up the serial {{serial}} and, if not found, the MAC {{mac}}; the lookup changes nothing.",
@@ -5462,7 +5472,10 @@
     "doneTitle": "Import done",
     "done": "{{created}} customers created, {{linked}} linked; {{sites}} sites created, {{sitesLinked}} linked to existing ones.",
     "skipped": "{{count}} skipped.",
-    "openCustomers": "Open customers"
+    "openCustomers": "Open customers",
+    "radius": "RADIUS accounts",
+    "radiusMatched": "{{count}} matched to a device",
+    "radiusError": "RADIUS accounts not read: {{error}}"
   },
   "acsDiagnostics": {
     "title": "Diagnostics from the CPE",

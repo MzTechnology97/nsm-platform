@@ -56,6 +56,16 @@ p code {
   overflow-wrap: anywhere;
 }
 
+/* Hidden text area used to copy over plain HTTP (lib/clipboard.ts): off screen, still selectable. */
+.ui-copy-buffer {
+  position: fixed;
+  top: -1000px;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
 .ui-visually-hidden {
   position: absolute;
   width: 1px;

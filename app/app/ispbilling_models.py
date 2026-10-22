@@ -64,3 +64,24 @@ class IspbillingServiceInstance(Base):
     # None until the detail (with the address) has been read for this version of the instance.
     detail_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class IspbillingRadiusAccount(Base):
+    """A PPPoE account of ISPBilling Radius 2.0, and the NSM device it was matched to (PPPoE user, else static IP)."""
+
+    __tablename__ = "ispbilling_radius_accounts"
+    __table_args__ = (Index("ix_ispbilling_radius_username", "username"), Index("ix_ispbilling_radius_device", "nsm_device_id"))
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    external_id: Mapped[str] = mapped_column(String(40), unique=True, nullable=False)
+    customer_external_id: Mapped[str | None] = mapped_column(String(40))
+    address_external_id: Mapped[str | None] = mapped_column(String(40))
+    username: Mapped[str] = mapped_column(String(200), nullable=False)
+    static_ip: Mapped[str | None] = mapped_column(String(64))
+    profile_name: Mapped[str | None] = mapped_column(String(120))
+    status: Mapped[str | None] = mapped_column(String(40))
+    cpe_type: Mapped[str | None] = mapped_column(String(40))
+    nsm_device_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("devices.id", ondelete="SET NULL"))
+    # "pppoe" (the device's PPPoE client uses this username) or "ip" (its management IP is the account's static IP).
+    matched_by: Mapped[str | None] = mapped_column(String(10))
+    seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
