@@ -585,9 +585,15 @@ Checked on the operator's cnMaestro on 2026-10-22 (Core 0.49.199): `/devices` an
 
 Checked on the operator's ISPBilling (2026-10-22): 837 customers, 1,697 service instances; endpoints, paging (`?page=N`, 20 rows) and fields as above.
 
+RADIUS accounts (Core 0.49.209, migration 0051):
+- the PPPoE accounts of *ISP Billing Radius 2.0* are read at every full read;
+- each is matched to the NSM device whose PPPoE client uses that username (latest *Sessioni PPP* snapshot of a MikroTik agent, case ignored), else to the device whose management IP is the account's static IP; ambiguous matches are left out;
+- the device overview shows the account (username, profile, ISPBilling status such as *Sospeso*, ISPBilling customer) and warns when ISPBilling bills a different customer than the device's NSM customer;
+- a key without the Radius permission only skips the accounts.
+
 ### Not implemented yet
 
-RADIUS accounts ↔ devices, warehouse serial numbers ↔ devices and ISPBilling activities in the device logbook (approved, next steps of ISPB-01).
+Warehouse serial numbers ↔ devices and ISPBilling activities in the device logbook (approved, next steps of ISPB-01).
 
 ## 14. TR-069 / ACS-managed CPE
 

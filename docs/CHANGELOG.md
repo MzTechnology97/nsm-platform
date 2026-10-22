@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.209 — 2026-10-22
+
+ISPBilling RADIUS accounts on the device page
+- **NSM now reads the PPPoE accounts of ISPBilling Radius 2.0** together with customers and services.
+- **Each account is matched to the device that uses it:**
+  - the MikroTik whose PPPoE client logs in with that username (from the agent's PPP snapshot);
+  - otherwise the device whose management IP is the account's static IP.
+  When two devices fit equally, nothing is guessed.
+- **On the device overview, the *Account ISPBilling* panel** shows the username, the profile (for example *FWA 100/20*), the ISPBilling status (*Attivo*, *Sospeso*, *Terminato*) and the ISPBilling customer. It warns when ISPBilling bills a different customer than the one the device belongs to in NSM.
+- *Integrazioni → ISPBilling* shows how many accounts were read and matched. If the API key has no Radius permission, only the accounts are skipped and the page says so.
+
 ## 0.49.208 — 2026-10-22
 
 Copy buttons
