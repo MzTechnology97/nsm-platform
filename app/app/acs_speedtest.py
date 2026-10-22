@@ -52,6 +52,7 @@ DEFAULT_SIZE_MB, MIN_SIZE_MB, MAX_SIZE_MB = 25, 1, 200
 LINK_VALID = timedelta(minutes=15)
 GIVE_UP = timedelta(minutes=10)
 MAX_TRANSFERS = 4
+MIN_VALID_BYTES = 1024 * 1024
 FILENAME = "nsm-speedtest.bin"
 _CHUNK = os.urandom(64 * 1024)  # random bytes: nothing on the way can compress them
 _transfers = 0
@@ -154,17 +155,31 @@ def _bytes(record: dict, base: str, names: tuple[str, ...], high32: str) -> int 
     return None
 
 
+def _begin(record: dict, base: str, end: datetime | None) -> datetime | None:
+    """Start of the transfer: BOMTime, unless it is not before EOMTime or not after the request (the VX230v
+    reports BOMTime an hour off), then the TCP open response, then the request time."""
+    request = _time(nbi._value(record, f"{base}.ROMTime"))
+    for name in ("BOMTime", "TCPOpenResponseTime", "ROMTime"):
+        stamp = _time(nbi._value(record, f"{base}.{name}"))
+        if stamp and end and stamp < end and (request is None or stamp >= request):
+            return stamp
+    return None
+
+
 def parse_result(model: str, kind: str, record: dict) -> dict:
     base = OBJECTS[model][kind]
     state = str(nbi._value(record, f"{base}.DiagnosticsState") or "")
-    begin, end = _time(nbi._value(record, f"{base}.BOMTime")), _time(nbi._value(record, f"{base}.EOMTime"))
+    end = _time(nbi._value(record, f"{base}.EOMTime"))
+    begin = _begin(record, base, end)
     if kind == "download":
         moved = _bytes(record, base, ("TestBytesReceived", "TotalBytesReceived"), "X_TP_TotalBytesReceivedHigh32")
     else:
         moved = _bytes(record, base, ("TestBytesSent", "TotalBytesSent", "TestFileLength"), "X_TP_TotalBytesSentHigh32")
     seconds = (end - begin).total_seconds() if begin and end else None
-    mbps = round(moved * 8 / seconds / 1_000_000, 1) if moved and seconds and seconds > 0 else None
-    return {"state": state, "bytes": moved, "seconds": round(seconds, 2) if seconds else None, "mbps": mbps,
+    # A server that redirects or refuses the CPE (403 without a browser User-Agent) "completes" with a few hundred bytes.
+    short = bool(moved is not None and moved < MIN_VALID_BYTES and state.lower() in ("complete", "completed"))
+    mbps = round(moved * 8 / seconds / 1_000_000, 1) if moved and seconds and seconds > 0 and not short else None
+    return {"state": state, "bytes": moved, "seconds": round(seconds, 2) if seconds else None, "mbps": mbps, "short": short,
             "began_at": begin.isoformat() if begin else None}
 
 
@@ -201,14 +216,18 @@ def request_record(db, user, device, connection, kind: str, now: datetime | None
     if model is None:
         raise HTTPException(409, {"code": "unsupported", "message": "Il CPE non espone il test di velocità TR-143 (DownloadDiagnostics/UploadDiagnostics)."})
     config = speedtest_settings(connection)
-    record = nbi._read(connection, device.external_device_id, [ACS_URL[model]])
-    url = test_url(device, kind, config, record, model, now)
     base = OBJECTS[model][kind]
+    record = nbi._read(connection, device.external_device_id, [ACS_URL[model], f"{base}.ProtocolVersion"])
+    url = test_url(device, kind, config, record, model, now)
     size = config["size_mb"] * 1024 * 1024
     if kind == "download":
         values = [[f"{base}.DownloadURL", url, "xsd:string"]]
     else:
         values = [[f"{base}.UploadURL", url, "xsd:string"], [f"{base}.TestFileLength", size, "xsd:unsignedInt"]]
+    # With "Any" the VX230v tries IPv6 first and fails without IPv6 on the WAN (Error_InitConnectionFailed).
+    protocol = nbi._node(record, f"{base}.ProtocolVersion")
+    if isinstance(protocol, dict) and protocol.get("_writable") and ":" not in (urlsplit(url).hostname or ""):
+        values.append([f"{base}.ProtocolVersion", "IPv4", "xsd:string"])
     values.append([f"{base}.DiagnosticsState", "Requested", "xsd:string"])
     started = nbi._task(connection, device.external_device_id, {"name": "setParameterValues", "parameterValues": values})
     server = "custom" if config["download_url" if kind == "download" else "upload_url"] else "nsm"

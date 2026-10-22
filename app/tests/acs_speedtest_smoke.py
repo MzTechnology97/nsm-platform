@@ -30,7 +30,7 @@ class FakeNbi:
     """Applies setParameterValues like a CPE; a refresh of a requested test completes it (or fails it when ``fail`` is set)."""
 
     def __init__(self):
-        self.records, self.tasks, self.fail = {}, [], None
+        self.records, self.tasks, self.fail, self.mode = {}, [], None, "normal"
 
     def node(self, record, path):
         node = record
@@ -58,10 +58,13 @@ class FakeNbi:
                     obj["DiagnosticsState"]["_value"] = self.fail
                 else:
                     obj["DiagnosticsState"]["_value"] = "Completed"
-                    obj["BOMTime"] = leaf("2026-10-22T10:00:00.000000Z", False)
+                    obj["ROMTime"] = leaf("2026-10-22T09:59:59.900Z", False)
+                    obj["TCPOpenResponseTime"] = leaf("2026-10-22T10:00:00.000Z", False)
+                    # The VX230v reports BOMTime an hour off; NSM falls back to the TCP open response.
+                    obj["BOMTime"] = leaf("2026-10-22T11:00:00.300Z" if self.mode == "vx" else "2026-10-22T10:00:00.000000Z", False)
                     obj["EOMTime"] = leaf("2026-10-22T10:00:02.500000Z", False)
                     if task["objectName"].endswith("DownloadDiagnostics"):
-                        obj["TestBytesReceived"] = leaf(26214400, False)
+                        obj["TestBytesReceived"] = leaf(585 if self.mode == "short" else 26214400, False)
                     else:
                         obj["TotalBytesSent"] = leaf(13107200, False)
         return httpx.Response(200, json={"_id": "t"})
@@ -74,7 +77,7 @@ def main():
     ext = f"202BC1-VX230v-P{suffix}"
     fake.records[ext] = {"_id": ext, "Device": {
         "ManagementServer": {"URL": leaf("http://198.51.100.20:7547/")},
-        "IP": {"Diagnostics": {"DownloadDiagnostics": {"DownloadURL": leaf(""), "DiagnosticsState": leaf("None")},
+        "IP": {"Diagnostics": {"DownloadDiagnostics": {"DownloadURL": leaf(""), "DiagnosticsState": leaf("None"), "ProtocolVersion": leaf("Any")},
                                "UploadDiagnostics": {"UploadURL": leaf(""), "TestFileLength": leaf(0), "DiagnosticsState": leaf("None")}}}}}
     with SessionLocal() as db:
         db.query(ConnectorIntegration).filter_by(provider="genieacs").delete()
@@ -111,6 +114,8 @@ def main():
     values = {path: value for path, value, _ in fake.tasks[-1]["parameterValues"]}
     link = values[f"{BASE}.DownloadDiagnostics.DownloadURL"]
     assert values[f"{BASE}.DownloadDiagnostics.DiagnosticsState"] == "Requested"
+    assert values[f"{BASE}.DownloadDiagnostics.ProtocolVersion"] == "IPv4", "IPv4 forced where the CPE allows it"
+    assert f"{BASE}.UploadDiagnostics.ProtocolVersion" not in str(fake.tasks), "not set where the CPE has no such parameter"
     parts = urlsplit(link)
     assert parts.scheme == "http" and parts.netloc == "198.51.100.20" and parts.path.startswith(f"/acs-speedtest/{device_id}/"), link
     assert tech.post(f"{url}/upload").status_code == 409, "one test at a time"
@@ -152,6 +157,17 @@ def main():
     failed = auditor.get(url).json()["tests"]["download"]
     assert failed["state"] == "error" and failed["result"]["state"] == "Error_InitConnectionFailed", failed
 
+    # VX230v times (BOMTime an hour off): measured from the TCP open response. A few hundred bytes: no Mbps.
+    fake.fail, fake.mode = None, "vx"
+    tech.post(f"{url}/download").raise_for_status()
+    vx = auditor.get(url).json()["tests"]["download"]["result"]
+    assert vx["seconds"] == 2.5 and vx["mbps"] == 83.9 and vx["short"] is False, vx
+    fake.mode = "short"
+    tech.post(f"{url}/download").raise_for_status()
+    short = auditor.get(url).json()["tests"]["download"]["result"]
+    assert short["short"] is True and short["mbps"] is None and short["bytes"] == 585, short
+    fake.mode = "normal"
+
     # With an NSM address set, the link uses it instead of the ACS host.
     admin.post("/api/ui/v1/admin/acs/speedtest", json={"server_url": "https://nsm.example.test", "size_mb": 25}).raise_for_status()
     fake.fail = None
@@ -162,7 +178,7 @@ def main():
 
     with SessionLocal() as db:
         kinds = sorted(e.event_type for e in db.scalars(select(AuditEvent).where(AuditEvent.device_id == device_id)))
-        assert kinds.count("ACS_SPEEDTEST_REQUESTED") == 4 and kinds.count("ACS_SPEEDTEST_COMPLETED") == 4, kinds
+        assert kinds.count("ACS_SPEEDTEST_REQUESTED") == 6 and kinds.count("ACS_SPEEDTEST_COMPLETED") == 6, kinds
         assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "ACS_SPEEDTEST_SETTINGS_CHANGED").order_by(AuditEvent.timestamp.desc()).limit(1))
 
     nbi.TRANSPORT = None

@@ -5634,7 +5634,8 @@
       "size": "Taille du test (Mo)",
       "save": "Enregistrer",
       "saved": "Enregistré."
-    }
+    },
+    "short": "Le serveur n'a envoyé que {{bytes}} octets au lieu du fichier (redirection ou refus) : utilisez NSM ou un autre serveur de test."
   },
   "acsFirmware": {
     "title": "Firmware",

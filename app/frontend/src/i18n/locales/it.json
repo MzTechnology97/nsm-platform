@@ -5634,7 +5634,8 @@
       "size": "Dimensione del test (MB)",
       "save": "Salva",
       "saved": "Salvato."
-    }
+    },
+    "short": "Il server ha inviato solo {{bytes}} byte invece del file (redirect o rifiuto): usa NSM o un altro server di test."
   },
   "acsFirmware": {
     "title": "Firmware",
