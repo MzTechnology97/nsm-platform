@@ -585,9 +585,15 @@ Checked on the operator's cnMaestro on 2026-10-22 (Core 0.49.199): `/devices` an
 
 Checked on the operator's ISPBilling (2026-10-22): 837 customers, 1,697 service instances; endpoints, paging (`?page=N`, 20 rows) and fields as above.
 
+RADIUS accounts (Core 0.49.209, migration 0051):
+- the PPPoE accounts of *ISP Billing Radius 2.0* are read at every full read;
+- each is matched to the NSM device whose PPPoE client uses that username (latest *Sessioni PPP* snapshot of a MikroTik agent, case ignored), else to the device whose management IP is the account's static IP; ambiguous matches are left out;
+- the device overview shows the account (username, profile, ISPBilling status such as *Sospeso*, ISPBilling customer) and warns when ISPBilling bills a different customer than the device's NSM customer;
+- a key without the Radius permission only skips the accounts.
+
 ### Not implemented yet
 
-RADIUS accounts ↔ devices, warehouse serial numbers ↔ devices and ISPBilling activities in the device logbook (approved, next steps of ISPB-01).
+Warehouse serial numbers ↔ devices and ISPBilling activities in the device logbook (approved, next steps of ISPB-01).
 
 ## 14. TR-069 / ACS-managed CPE
 
@@ -638,16 +644,15 @@ On the *ACS* tab, technicians (`devices.write`) change the CPE's Wi-Fi: per radi
 
 Once the operator has installed the NSM base templates (*Amministrazione → ACS*), the worker checks right after every restart and then every 30 minutes whether the provision and presets of the running NSM version differ from the ones installed (fingerprint kept on the GenieACS connector) and reinstalls them, audited `ACS_TEMPLATES_UPDATED`. Installations made by older versions are recognised from the provision script in GenieACS. Templates never installed are left alone. The ACS page shows when they were installed and whether they are current.
 
-### Current resources of CPEs (ACS-05 step 1, Core 0.49.206)
+### Monitoring and history of CPEs (ACS-05, Core 0.49.206 and 0.49.211)
 
-Every 5 minutes the worker reads from GenieACS, in one read-only NBI query for all linked CPEs, `DeviceInfo.ProcessStatus.CPUUsage`, `MemoryStatus.Total/Free` and `UpTime` (TR-181 and TR-098) and keeps them on the device with the time the CPE reported them; the device page and list show them as current resources when under 2 hours old. The NSM provision declares these values with a 4-minute age, so the CPE reports them at every periodic inform (since Core 0.49.210 NSM reinstalls its templates by itself after an upgrade). History and charts are not stored yet.
+Every 2 minutes the worker reads from GenieACS (read only, one NBI query per 20 CPEs) the state of every linked TR-069 CPE at its last Inform: CPU, memory, uptime, WAN (chosen by the connection-request address, PPP or public IP: state, type, address, time connected, last error), Wi-Fi radios and clients, LAN hosts, DSL line (rates, SNR margin, attenuation), for TR-181 and TR-098. It keeps the state on the device, stores one sample per new Inform for 90 days (WAN bit rates from the byte counters between two Informs; counters stuck at zero with the WAN up, as on the TP-Link VX230v, are reported as not available) and sets the device online/offline from the last Inform (three missed periodic Informs, at least 15 minutes). The device page and list show CPU/RAM/uptime as current when the last Inform is under 2 hours old; the *ACS* tab shows the line and Wi-Fi state and charts over 24 h / 7 / 30 / 90 days. The NSM provision declares these values with a 4-minute age so the CPE reports them at every periodic inform; NSM keeps the provision current itself (0.49.210).
 
 ### Not implemented
 
 - bulk ACS discovery/onboarding from the ACS side (this migration drives the CPEs, not GenieACS);
 - vendor-specific TR-098/TR-181 parameter profiles beyond identity and firmware;
 - vendor parameter profiles;
-- monitoring history and charts through ACS;
 - capability-aware backup/restore through ACS;
 - firmware deployment/verification through ACS.
 
