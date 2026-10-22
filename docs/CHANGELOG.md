@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.201 — 2026-10-22
+
+GenieACS: IP and MAC of TR-181 CPEs
+- **NSM now reads the IP address and the MAC addresses of TR-181 CPEs** such as the TP-Link VX230v (checked on a real router). Before, both stayed empty because NSM only looked at the first instance of each object, while these routers keep the WAN on another one (for example `Device.IP.Interface.6`).
+  - **IP:** NSM uses the address the CPE gives GenieACS for connection requests, then the first usable address of any interface.
+  - **MAC:** NSM reads the MAC of every interface (LAN, WAN, links). A device is found and matched by any of them, so the MAC on the label works whichever port it belongs to. A MAC already written on the NSM record is kept.
+- **MAC parameter paths accept `*`** for every instance (`Device.Ethernet.Interface.*.MACAddress`). Connectors still on the old default list switch to the new one automatically; paths written by an administrator are kept.
+- **Base provisioning:** it now asks every CPE for its interface MACs. To use it, press *Installa template base* again in *Amministrazione → ACS*.
 ## 0.49.200 — 2026-10-22
 
 Alerts during planned maintenance
