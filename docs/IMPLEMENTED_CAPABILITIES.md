@@ -636,9 +636,13 @@ ACS URL (the integrated GenieACS by default), the inform interval and one shared
 
 On the *ACS* tab of a linked CPE, technicians (`devices.write`) run a ping or a traceroute that the CPE itself performs: NSM asks GenieACS for a `setParameterValues` task with a connection request (TR-181 `Device.IP.Diagnostics.IPPing` / `TraceRoute`, TR-098 `InternetGatewayDevice.IPPingDiagnostics` / `TraceRouteDiagnostics`; data model detected from the GenieACS record), then follows the test by asking GenieACS to re-read the object at most every 8 s while the page is open, until `Complete` or `Error_*` (given up after 4 minutes). When the CPE refuses the connection request the test starts at its next periodic contact. Results (replies, min/avg/max; hops with addresses and times) are kept per test on the device; audit `ACS_DIAGNOSTIC_REQUESTED` / `ACS_DIAGNOSTIC_COMPLETED`. These are the only commands NSM sends through GenieACS.
 
+### NSM templates kept current (Core 0.49.210)
+
+Once the operator has installed the NSM base templates (*Amministrazione → ACS*), the worker checks right after every restart and then every 30 minutes whether the provision and presets of the running NSM version differ from the ones installed (fingerprint kept on the GenieACS connector) and reinstalls them, audited `ACS_TEMPLATES_UPDATED`. Installations made by older versions are recognised from the provision script in GenieACS. Templates never installed are left alone. The ACS page shows when they were installed and whether they are current.
+
 ### Current resources of CPEs (ACS-05 step 1, Core 0.49.206)
 
-Every 5 minutes the worker reads from GenieACS, in one read-only NBI query for all linked CPEs, `DeviceInfo.ProcessStatus.CPUUsage`, `MemoryStatus.Total/Free` and `UpTime` (TR-181 and TR-098) and keeps them on the device with the time the CPE reported them; the device page and list show them as current resources when under 2 hours old. The NSM provision declares these values with a 4-minute age, so the CPE reports them at every periodic inform (reinstall the templates from *Amministrazione → ACS* after upgrading). History and charts are not stored yet.
+Every 5 minutes the worker reads from GenieACS, in one read-only NBI query for all linked CPEs, `DeviceInfo.ProcessStatus.CPUUsage`, `MemoryStatus.Total/Free` and `UpTime` (TR-181 and TR-098) and keeps them on the device with the time the CPE reported them; the device page and list show them as current resources when under 2 hours old. The NSM provision declares these values with a 4-minute age, so the CPE reports them at every periodic inform (since Core 0.49.210 NSM reinstalls its templates by itself after an upgrade). History and charts are not stored yet.
 
 ### Not implemented
 

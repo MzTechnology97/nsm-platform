@@ -2592,7 +2592,10 @@
     "presetText": "condition <code>{{condition}}</code>, bootstrap, boot and periodic events → provision <code>{{provision}}</code>",
     "script": "Script of provision {{name}}",
     "migrationHint": "Already running a fleet of CPEs on a cloud ACS (e.g. TAUC)?",
-    "migrationLink": "Migrate the CPEs to this ACS"
+    "migrationLink": "Migrate the CPEs to this ACS",
+    "templatesCurrent": "NSM templates are up to date (installed {{when}}). NSM updates them by itself after every upgrade.",
+    "templatesPending": "This NSM version has newer templates than the ones installed {{when}}: NSM installs them within 30 minutes, or press Install now.",
+    "templatesAuto": "Once installed, NSM keeps these templates up to date by itself after every upgrade."
   },
   "demo": {
     "subtitle": "Isolated dataset to try the interface and workflows without using real customers.",
@@ -5070,6 +5073,7 @@
     "ACS_MIGRATION_COMPLETED": "ACS migration completed",
     "ACS_MIGRATION_STARTED": "ACS migration started",
     "ACS_TEMPLATES_INSTALLED": "ACS templates installed",
+    "ACS_TEMPLATES_UPDATED": "ACS templates updated by NSM",
     "AGENT_HEALTH_ISSUE_OPENED": "Agent health issue opened",
     "AGENT_HEALTH_RECOVERED": "Agent recovered",
     "API_KEY_CREATED": "API key created",

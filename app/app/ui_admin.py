@@ -758,6 +758,7 @@ def admin_acs(request: Request):
             "panel_url": acs_admin.panel_url(request), "acs_url": f"http://{host}:7547/",
             "base_provision": acs_admin.BASE_PROVISION, "provision_script": acs_admin.BASE_PROVISION_SCRIPT,
             "presets": [{"name": name, "precondition": preset["precondition"]} for name, preset in acs_admin.PRESETS.items()],
+            "templates": acs_admin.template_status(connection),
         }
 
 

@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.210 — 2026-10-22
+
+ACS templates updated automatically
+- **The NSM templates in GenieACS follow NSM updates by themselves.** If you installed them once (*Amministrazione → ACS → Installa template base*), NSM checks right after every update, and then every 30 minutes, whether this version brings new ones. If it does, it reinstalls them: for example, to make the CPEs report CPU and memory every 5 minutes. You no longer need to press the button again after an update.
+- Templates you never installed are not touched: installing them stays your choice.
+- The ACS page shows when the templates were last installed and whether they match this version. Every automatic update is recorded in the activity log.
+
 ## 0.49.209 — 2026-10-22
 
 ISPBilling RADIUS accounts on the device page
