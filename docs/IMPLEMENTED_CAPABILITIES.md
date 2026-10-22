@@ -574,6 +574,21 @@ Checked on the operator's cnMaestro on 2026-10-22 (Core 0.49.199): `/devices` an
 
 - operations through cnMaestro (reboot, backup, firmware) — only where the cnMaestro API supports them and they can be verified.
 
+## 13c. ISPBilling (billing / CRM)
+
+### Implemented (ISPB-01, Core 0.49.203)
+
+- read-only connector (*Integrazioni → ISPBilling*, administrators): API key of ISPBilling (`Authorization: Bearer api_id:api_key`, encrypted; the key is never shown again), connection test, read on request;
+- local mirror read by the worker every 6 hours (migration 0050): customers (`crm/customers`: name, internal code, kind, status, group, registered address) and service instances; the installation address of each service comes from its detail and is read incrementally (150 per worker cycle, an address shared by several services read once per pass);
+- never stored: fiscal code, VAT number, contacts, payment data and the `password` field returned by the API; nothing is written to ISPBilling;
+- *Importa da ISPBilling*: customers by state (*Nuovi*, *Da collegare* — an NSM customer with the same code or name exists, *Già in NSM*), filters by text, ISPBilling status and group, preview and commit of up to 300 customers; a customer is created (code = ISPBilling internal code when free) or linked, and gets one site per installation address (named after the ISPBilling label, or the address when the label is generic; the registered address when there is no service); an address already present on that NSM customer is linked, not duplicated; nothing in NSM is renamed, moved or deleted; importing again adds only new sites; audited (`ISPBILLING_CONFIGURED`, `ISPBILLING_SYNC_REQUESTED`, `ISPBILLING_CUSTOMERS_IMPORTED`).
+
+Checked on the operator's ISPBilling (2026-10-22): 837 customers, 1,697 service instances; endpoints, paging (`?page=N`, 20 rows) and fields as above.
+
+### Not implemented yet
+
+RADIUS accounts ↔ devices, warehouse serial numbers ↔ devices and ISPBilling activities in the device logbook (approved, next steps of ISPB-01).
+
 ## 14. TR-069 / ACS-managed CPE
 
 ### Implemented foundation only

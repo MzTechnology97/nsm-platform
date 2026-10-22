@@ -2293,7 +2293,14 @@
       "nvd": "Advisory NVD",
       "genieacs": "GenieACS / TR-069",
       "zabbix": "Zabbix",
-      "cnmaestro": "cnMaestro"
+      "cnmaestro": "cnMaestro",
+      "ispbilling": "ISPBilling"
+    },
+    "ispbilling": {
+      "title": "ISPBilling",
+      "help": "Facturación: registro de clientes y sedes, importado en NSM.",
+      "customers": "Clientes leídos",
+      "linked": "En NSM"
     }
   },
   "syslogAdmin": {
@@ -5146,6 +5153,9 @@
     "INCIDENT_STATUS_CHANGED": "Estado del incidente cambiado",
     "INTERFACE_ERRORS_DETECTED": "Errores de interfaz detectados",
     "INVENTORY_DISCOVERED": "Inventario detectado",
+    "ISPBILLING_CONFIGURED": "Conector ISPBilling configurado",
+    "ISPBILLING_CUSTOMERS_IMPORTED": "Clientes importados desde ISPBilling",
+    "ISPBILLING_SYNC_REQUESTED": "Lectura de ISPBilling solicitada",
     "ISSUE_ACKNOWLEDGED": "Aviso asumido",
     "LEGACY_FIRMWARE_UPGRADE_ACCEPTED": "Actualización de firmware legacy aceptada",
     "LEGACY_FIRMWARE_UPGRADE_FAILED": "Actualización de firmware legacy fallida",
@@ -5349,5 +5359,84 @@
       "configured": "Configurados",
       "failed": "Fallidos"
     }
+  },
+  "ispbilling": {
+    "title": "ISPBilling",
+    "subtitle": "Registro de clientes del sistema de facturación ISPBilling: clientes y sedes, importados en NSM a petición.",
+    "import": "Importar clientes",
+    "lastSync": "Última lectura",
+    "syncQueued": "Lectura en cola",
+    "syncFailed": "Última lectura fallida",
+    "syncAuto": "Cada 6 horas",
+    "syncNow": "Leer ahora",
+    "customers": "Clientes en ISPBilling",
+    "customersHint": "{{linked}} ya en NSM",
+    "addresses": "Direcciones de instalación",
+    "addressesPending": "{{count}} servicios aún por leer",
+    "addressesDone": "Todas leídas",
+    "connection": "Conexión",
+    "connectionHelp": "Cree en ISPBilling una clave API con lectura de clientes y servicios y añada la IP de este servidor entre las autorizadas. NSM nunca escribe en ISPBilling.",
+    "url": "Dirección de ISPBilling",
+    "apiId": "API id",
+    "apiKey": "Clave API",
+    "enabled": "Leer ISPBilling periódicamente",
+    "actionsHelp": "Una lectura completa tarda unos minutos: se hace en segundo plano y las direcciones de instalación llegan en los ciclos siguientes.",
+    "importTitle": "Importar desde ISPBilling",
+    "importSubtitle": "Elija los clientes que llevar a NSM: cada uno se convierte en cliente NSM (o se vincula al de mismo código o nombre) con una sede por dirección de instalación. Nada de lo que ya está en NSM se renombra ni se elimina.",
+    "notConfigured": "ISPBilling aún no está configurado.",
+    "mirrorAt": "Datos leídos de ISPBilling el {{when}}.",
+    "mirrorNever": "ISPBilling aún no se ha leído: use «Leer ahora» en la página ISPBilling.",
+    "states": {
+      "new": "Nuevos",
+      "linkable": "Por vincular",
+      "linked": "Ya en NSM"
+    },
+    "searchPlaceholder": "Nombre, código o dirección…",
+    "search": "Buscar clientes de ISPBilling",
+    "status": "Estado ISPBilling",
+    "allStatuses": "Todos los estados",
+    "group": "Grupo ISPBilling",
+    "allGroups": "Todos los grupos",
+    "statuses": {
+      "active": "Activo",
+      "waiting_confirmation": "Pendiente de confirmación",
+      "activation_in_progress": "Activación en curso",
+      "suspended": "Suspendido",
+      "terminated": "Dado de baja"
+    },
+    "kinds": {
+      "private": "Particular",
+      "business": "Empresa",
+      "association": "Asociación"
+    },
+    "columns": {
+      "customer": "Cliente",
+      "kind": "Tipo",
+      "status": "Estado",
+      "sites": "Sedes",
+      "nsm": "En NSM",
+      "action": "Qué ocurre"
+    },
+    "noSites": "Sin dirección",
+    "byCode": "mismo código",
+    "byName": "mismo nombre",
+    "empty": "Ningún cliente de ISPBilling en este estado.",
+    "preview": "Vista previa de {{count}} (máx. {{max}})",
+    "previewHelp": "No se cambia nada hasta que confirme.",
+    "actions": {
+      "create": "Nuevo cliente NSM",
+      "link": "Vincular al cliente existente",
+      "update": "Ya importado: añade las sedes que faltan",
+      "skip": "Omitido"
+    },
+    "matchCode": "{{name}} (mismo código)",
+    "matchName": "{{name}} (mismo nombre: compruebe que es el mismo cliente)",
+    "codeInUse": "Su código lo usa otro cliente NSM: se crea sin código.",
+    "siteExisting": "{{name}} (ya en NSM)",
+    "confirm": "Importar {{count}}",
+    "doneTitle": "Importación completada",
+    "done": "{{created}} clientes creados, {{linked}} vinculados; {{sites}} sedes creadas, {{sitesLinked}} vinculadas a sedes existentes.",
+    "skipped": "{{count}} omitidos.",
+    "openCustomers": "Abrir los clientes"
   }
 }
