@@ -8,6 +8,7 @@ import { type ExposureTab, type JobFilters, type JournalEntry, type JournalKind,
 import { BrandIcon } from "../app/BrandIcon";
 import { formatDateTime, formatRelative, fromLocalInput, toLocalInput } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
+import { eventLabel, eventSource } from "../lib/events";
 import { Loading } from "../app/States";
 
 const JOB_TONE: Record<string, string> = { completed: "online", succeeded: "online", success: "online", failed: "offline", error: "offline", expired: "offline",
@@ -58,9 +59,9 @@ function DeviceLogbook({ deviceId }: { deviceId: string }) {
             <li key={`a-${row.event!.id}`} className="ui-timeline-item is-event">
               <span className="ui-timeline-dot" aria-hidden="true" />
               <div>
-                <strong title={row.event!.event_type}>{row.event!.label}</strong>
+                <strong title={row.event!.event_type}>{eventLabel(t, row.event!.event_type, row.event!.label)}</strong>
                 <small className="ui-muted ui-block">
-                  {[formatDateTime(row.event!.at, i18n.language), row.event!.actor ?? t(`logbook.sources.${row.event!.source}`, { defaultValue: row.event!.source }),
+                  {[formatDateTime(row.event!.at, i18n.language), row.event!.actor ?? eventSource(t, row.event!.source),
                     row.event!.result !== "success" ? t(`auditEvents.results.${row.event!.result}`, { defaultValue: row.event!.result }) : null].filter(Boolean).join(" · ")}
                 </small>
               </div>

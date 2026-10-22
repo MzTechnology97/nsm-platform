@@ -7,6 +7,7 @@ import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
 import { formatDateTime } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
+import { eventLabel, eventSource } from "../lib/events";
 import { Loading } from "../app/States";
 
 const SEVERITIES = ["critical", "high", "warning", "medium", "low", "info"] as const;
@@ -56,7 +57,7 @@ export function AuditEvents() {
       <div className="ui-filter-bar">
         <select value={search.event_type ?? ""} onChange={(event) => update({ event_type: event.target.value || undefined })} aria-label={t("auditEvents.type")}>
           <option value="">{t("auditEvents.allTypes")}</option>
-          {first?.event_types.map((type) => <option key={type} value={type}>{type}</option>)}
+          {first?.event_types.map((type) => <option key={type} value={type}>{eventLabel(t, type)}</option>)}
         </select>
         <select value={search.severity ?? ""} onChange={(event) => update({ severity: event.target.value || undefined })} aria-label={t("auditEvents.severity")}>
           <option value="">{t("auditEvents.allSeverities")}</option>
@@ -123,7 +124,7 @@ function Row({ row }: { row: AuditEventRow }) {
     <tr>
       <td className="ui-nowrap">{formatDateTime(row.timestamp, i18n.language, true)}</td>
       <td>
-        <strong>{row.label}</strong>
+        <strong>{eventLabel(t, row.event_type, row.label)}</strong>
         <small className="ui-muted ui-block"><code>{row.event_type}</code></small>
       </td>
       <td>
@@ -147,7 +148,7 @@ function Row({ row }: { row: AuditEventRow }) {
       </td>
       <td>
         {row.actor ?? <span className="ui-muted">{t("auditEvents.system")}</span>}
-        <small className="ui-muted ui-block">{row.source}</small>
+        <small className="ui-muted ui-block">{eventSource(t, row.source)}</small>
       </td>
       <td className="ui-audit-details">{details ? <code title={details}>{details}</code> : <span className="ui-muted">—</span>}</td>
     </tr>

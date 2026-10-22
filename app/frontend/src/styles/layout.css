@@ -682,7 +682,7 @@ select:hover {
   padding: 0 4px;
   border: 2px solid var(--topbar-bg);
   border-radius: 9px;
-  background: var(--danger-fill);
+  background: var(--danger-badge);
   color: #fff;
   font-size: 10px;
   font-weight: 800;

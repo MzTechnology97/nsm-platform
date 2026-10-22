@@ -9,6 +9,7 @@ import { BrandIcon } from "../app/BrandIcon";
 import { InfoTip } from "../app/InfoTip";
 import { TileRing, type TileTone } from "../app/RingTile";
 import { Resources } from "../app/Resources";
+import { eventLabel } from "../lib/events";
 import { Loading } from "../app/States";
 
 const REFRESH_SECONDS = 30;
@@ -462,7 +463,7 @@ function Events({ data }: { data: Dashboard }) {
             <li key={event.id} className={`is-${event.severity}`}>
               <span className="ui-event-dot" aria-hidden="true" />
               <span>
-                <strong title={event.event_type}>{event.label}</strong>
+                <strong title={event.event_type}>{eventLabel(t, event.event_type, event.label)}</strong>
                 <small className="ui-block">
                   {formatDateTime(event.timestamp, i18n.language)} · {t(`actionCenter.severities.${event.severity}`, { defaultValue: event.severity })}
                   {" · "}{t(`auditEvents.results.${event.result}`, { defaultValue: event.result })}
