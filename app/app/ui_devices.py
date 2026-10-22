@@ -96,9 +96,9 @@ def telemetry(device: Device) -> dict:
                 uptime = _number(metrics.get("uptime_seconds"))
                 break
         else:
-            from app import acs_resources
+            from app import acs_monitoring
 
-            metrics = acs_resources.current(device) or {}
+            metrics = acs_monitoring.current(device) or {}
             cpu, ram, uptime = _number(metrics.get("cpu_percent")), _number(metrics.get("ram_percent")), _number(metrics.get("uptime_seconds"))
     return {"cpu": cpu, "ram": ram, "uptime_seconds": int(uptime) if uptime is not None else None}
 

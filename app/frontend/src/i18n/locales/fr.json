@@ -5508,5 +5508,29 @@
       "address": "Adresse",
       "rtt": "Temps"
     }
+  },
+  "acsMonitor": {
+    "title": "Ligne et Wi-Fi",
+    "waiting": "Pas encore de données : NSM lit le CPE depuis l'ACS toutes les quelques minutes.",
+    "lastInform": "Dernier contact avec l'ACS {{when}} · {{model}}",
+    "every": "toutes les {{minutes}} min",
+    "wan": "WAN",
+    "wanIp": "Adresse WAN",
+    "connectedFor": "Connecté depuis",
+    "uptime": "Uptime",
+    "wifiClients": "Clients Wi-Fi",
+    "lanHosts": "Hôtes LAN",
+    "lastError": "Dernière erreur de connexion",
+    "countersMissing": "Le CPE ne remonte pas ses compteurs WAN (ils restent à 0) : pas de graphique de trafic avec ce firmware.",
+    "radio": "Radio",
+    "channel": "Canal",
+    "bandwidth": "Largeur",
+    "standard": "Norme",
+    "clients": "Clients",
+    "dsl": "Ligne DSL",
+    "dslRate": "Débit desc. / mont.",
+    "dslSnr": "Marge SNR",
+    "dslAttenuation": "Atténuation",
+    "charts": "Historique depuis l'ACS"
   }
 }

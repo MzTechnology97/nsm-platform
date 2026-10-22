@@ -414,7 +414,7 @@ Normalize relevant Device identity and firmware fields from supported data model
 
 ### ACS-05 — monitoring/history
 
-**Step 1 implemented in `main` (Core 0.49.206)**: current CPU, memory and uptime read from GenieACS every 5 minutes and shown on the device. Next: history and charts (WAN throughput, DSL/PON levels).
+**Implemented in `main` (Core 0.49.206, 0.49.211)**: state at every Inform (CPU, memory, WAN, Wi-Fi, LAN hosts, DSL), 90-day samples and charts on the device ACS tab, online/offline from the last Inform. Next: PON optical levels where CPEs expose them; alerts on WAN down / DSL degradation.
 
 Persist only supported, stable operational data with capability-aware unavailable states.
 
