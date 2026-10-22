@@ -4,7 +4,8 @@
     "loading": "Chargement…",
     "error": "Impossible de charger les données.",
     "retry": "Réessayer",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "copyFailed": "Le navigateur n'a pas autorisé la copie : sélectionnez le texte et appuyez sur Ctrl+C."
   },
   "nav": {
     "dashboard": "Tableau de bord",
