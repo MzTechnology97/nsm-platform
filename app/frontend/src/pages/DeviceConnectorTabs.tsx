@@ -9,6 +9,7 @@ import { metricValue, RANGES, SeriesCharts } from "./DeviceUisp";
 import { Loading } from "../app/States";
 import { AcsDiagnostics } from "../app/AcsDiagnostics";
 import { AcsWifi } from "../app/AcsWifi";
+import { AcsSnapshot } from "../app/AcsSnapshot";
 import { AcsMonitor } from "../app/AcsMonitor";
 
 function message(error: unknown) {
@@ -139,6 +140,7 @@ export function DeviceGenieacs() {
       {record.external_id && <AcsMonitor deviceId={deviceId} />}
       {record.external_id && enabled && <AcsDiagnostics deviceId={deviceId} />}
       {record.external_id && enabled && <AcsWifi deviceId={deviceId} deviceName={record.name} />}
+      {record.external_id && enabled && <AcsSnapshot deviceId={deviceId} />}
       <section className="ui-panel ui-admin-section">
         <div className="ui-page-header-row">
           <div>

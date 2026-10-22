@@ -5068,12 +5068,14 @@
     }
   },
   "eventTypes": {
+    "ACS_CONFIG_REFRESH_REQUESTED": "CPE configuration re-read requested",
     "ACS_DIAGNOSTIC_COMPLETED": "ACS diagnostic completed",
     "ACS_DIAGNOSTIC_REQUESTED": "ACS diagnostic requested",
     "ACS_MIGRATION_COMPLETED": "ACS migration completed",
     "ACS_MIGRATION_STARTED": "ACS migration started",
     "ACS_REBOOT_REQUESTED": "CPE reboot requested",
     "ACS_REBOOT_VERIFIED": "CPE reboot verified",
+    "ACS_SNAPSHOT_ARCHIVED": "TR-069 configuration snapshot archived",
     "ACS_TEMPLATES_INSTALLED": "ACS templates installed",
     "ACS_TEMPLATES_UPDATED": "ACS templates updated by NSM",
     "ACS_WIFI_CHANGED": "Wi-Fi changed through the ACS",
@@ -5573,5 +5575,15 @@
       "unconfirmed": "Reboot requested {{when}} but not confirmed by the ACS within 15 minutes"
     },
     "waitingContact": "it will start at the next contact with the ACS"
+  },
+  "acsSnapshot": {
+    "title": "Configuration snapshot",
+    "help": "Archives the CPE's configuration parameters, as the ACS read them, in the Backup tab, where you can open and compare snapshots. Passwords and changing values are left out. Not restorable with one click. Backup policies with the TR-069 option take one automatically when something changed.",
+    "refresh": "Read the configuration again from the CPE",
+    "save": "Save snapshot now",
+    "refreshStarted": "The ACS is reading the whole configuration: on a large CPE it takes a few minutes, then save the snapshot.",
+    "refreshQueued": "The CPE did not accept the connection request: the configuration will be read at its next contact.",
+    "saved": "Snapshot saved.",
+    "open": "Open the Backup tab"
   }
 }

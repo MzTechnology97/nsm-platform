@@ -424,6 +424,8 @@ Persist only supported, stable operational data with capability-aware unavailabl
 
 ### ACS-07 — backup/restore capability
 
+**Backup implemented in `main` (Core 0.49.217)** as configuration-parameter snapshots archived and comparable in the device Backup tab, scheduled by backup policy (GenieACS has no `Upload` task for the vendor file). Restore is not implemented.
+
 Only expose backup/restore where the real CPE data model and connector expose a verifiable supported mechanism.
 
 ### ACS-08 — firmware workflow

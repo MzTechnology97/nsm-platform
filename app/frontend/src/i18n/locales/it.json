@@ -5068,12 +5068,14 @@
     }
   },
   "eventTypes": {
+    "ACS_CONFIG_REFRESH_REQUESTED": "Rilettura configurazione del CPE richiesta",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnostica ACS completata",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnostica ACS richiesta",
     "ACS_MIGRATION_COMPLETED": "Migrazione ACS completata",
     "ACS_MIGRATION_STARTED": "Migrazione ACS avviata",
     "ACS_REBOOT_REQUESTED": "Riavvio del CPE richiesto",
     "ACS_REBOOT_VERIFIED": "Riavvio del CPE verificato",
+    "ACS_SNAPSHOT_ARCHIVED": "Istantanea configurazione TR-069 archiviata",
     "ACS_TEMPLATES_INSTALLED": "Modelli ACS installati",
     "ACS_TEMPLATES_UPDATED": "Modelli ACS aggiornati da NSM",
     "ACS_WIFI_CHANGED": "Wi-Fi modificato tramite ACS",
@@ -5573,5 +5575,15 @@
       "unconfirmed": "Riavvio richiesto il {{when}} ma non confermato dall'ACS entro 15 minuti"
     },
     "waitingContact": "partirà al prossimo contatto con l'ACS"
+  },
+  "acsSnapshot": {
+    "title": "Istantanea della configurazione",
+    "help": "Archivia i parametri di configurazione del CPE, come li ha letti l'ACS, nella scheda Backup, dove le istantanee si aprono e si confrontano. Password e valori che cambiano da soli sono esclusi. Non si ripristina con un clic. Le policy di backup con l'opzione TR-069 ne salvano una in automatico quando qualcosa è cambiato.",
+    "refresh": "Rileggi configurazione dal CPE",
+    "save": "Salva istantanea ora",
+    "refreshStarted": "L'ACS sta rileggendo tutta la configurazione: su un CPE grande servono alcuni minuti, poi salva l'istantanea.",
+    "refreshQueued": "Il CPE non ha accettato la richiesta di connessione: la configurazione verrà letta al prossimo contatto.",
+    "saved": "Istantanea salvata.",
+    "open": "Apri la scheda Backup"
   }
 }

@@ -61,6 +61,7 @@ from app.nav_counts import install_nav_counts
 from app.ui_device_connectors import install_ui_device_connectors
 from app.acs_diagnostics import install_acs_diagnostics
 from app.acs_actions import install_acs_actions
+from app.acs_snapshot import install_acs_snapshot
 from app.acs_monitoring import install_acs_monitoring
 from app.ui_backup_policies import install_ui_backup_policies
 from app.legacy_redirects import install_legacy_redirects
@@ -261,6 +262,7 @@ install_nav_counts(core.app)
 install_ui_device_connectors(core.app)
 install_acs_diagnostics(core.app)
 install_acs_actions(core.app)
+install_acs_snapshot(core.app)
 install_acs_monitoring(core.app)
 install_ui_backup_policies(core.app)
 install_ui_spa(core.app)
