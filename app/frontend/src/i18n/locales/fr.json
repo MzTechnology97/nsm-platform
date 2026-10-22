@@ -2294,7 +2294,14 @@
       "nvd": "Advisory NVD",
       "genieacs": "GenieACS / TR-069",
       "zabbix": "Zabbix",
-      "cnmaestro": "cnMaestro"
+      "cnmaestro": "cnMaestro",
+      "ispbilling": "ISPBilling"
+    },
+    "ispbilling": {
+      "title": "ISPBilling",
+      "help": "Facturation : registre des clients et sites, importé dans NSM.",
+      "customers": "Clients lus",
+      "linked": "Dans NSM"
     }
   },
   "syslogAdmin": {
@@ -2573,7 +2580,9 @@
     "notConnected": "Reliez d'abord GenieACS dans Intégrations → GenieACS (bouton « Utiliser GenieACS intégré »).",
     "preset": "Preset",
     "presetText": "condition <code>{{condition}}</code>, événements bootstrap, boot et periodic → provision <code>{{provision}}</code>",
-    "script": "Script de la provision {{name}}"
+    "script": "Script de la provision {{name}}",
+    "migrationHint": "Vous gérez déjà une flotte de CPE sur un ACS cloud (par exemple TAUC) ?",
+    "migrationLink": "Migrer les CPE vers cet ACS"
   },
   "demo": {
     "subtitle": "Jeu de données isolé pour essayer l'interface et les flux sans utiliser de vrais clients.",
@@ -5048,6 +5057,8 @@
   "eventTypes": {
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnostic ACS terminé",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnostic ACS demandé",
+    "ACS_MIGRATION_COMPLETED": "Migration ACS terminée",
+    "ACS_MIGRATION_STARTED": "Migration ACS démarrée",
     "ACS_TEMPLATES_INSTALLED": "Modèles ACS installés",
     "AGENT_HEALTH_ISSUE_OPENED": "Problème d'agent signalé",
     "AGENT_HEALTH_RECOVERED": "Agent rétabli",
@@ -5159,6 +5170,9 @@
     "INCIDENT_STATUS_CHANGED": "Statut de l'incident modifié",
     "INTERFACE_ERRORS_DETECTED": "Erreurs d'interface détectées",
     "INVENTORY_DISCOVERED": "Inventaire relevé",
+    "ISPBILLING_CONFIGURED": "Connecteur ISPBilling configuré",
+    "ISPBILLING_CUSTOMERS_IMPORTED": "Clients importés depuis ISPBilling",
+    "ISPBILLING_SYNC_REQUESTED": "Lecture ISPBilling demandée",
     "ISSUE_ACKNOWLEDGED": "Signalement pris en charge",
     "LEGACY_FIRMWARE_UPGRADE_ACCEPTED": "Mise à jour firmware legacy acceptée",
     "LEGACY_FIRMWARE_UPGRADE_FAILED": "Échec de la mise à jour firmware legacy",
@@ -5300,6 +5314,151 @@
     "job": "tâche",
     "tr069": "TR-069 (ACS)",
     "acs": "ACS"
+  },
+  "acsMigration": {
+    "subtitle": "Migrer en masse les CPE des clients vers l'ACS intégré en reconfigurant le CWMP sur le réseau de gestion.",
+    "backToAcs": "Retour à ACS",
+    "intro": "Indiquez le sous-réseau de gestion de vos routeurs, le port et les identifiants communs de la flotte : NSM atteint chaque équipement et définit l'URL ACS cible. Lancez d'abord une simulation pour voir quels CPE sont joignables.",
+    "applyPending": "La réécriture CWMP via l'interface web TP-Link est en validation sur le terrain pour ce firmware : seule la simulation d'inventaire est disponible pour l'instant.",
+    "formTitle": "Nouvelle migration",
+    "formHelp": "Sous-réseaux IPv4 uniquement, au plus {{max}} adresses par exécution. Les adresses .0 et .255 et le serveur ACS sont ignorés.",
+    "credentialsHelp": "Les identifiants ne servent que pendant l'exécution et ne sont jamais stockés. Une simulation n'en a pas besoin : aucun identifiant n'est envoyé aux équipements.",
+    "dryRun": "Simulation (inventaire)",
+    "apply": "Appliquer la migration",
+    "recentTitle": "Exécutions récentes",
+    "noRuns": "Aucune exécution pour l'instant.",
+    "runTitle": "Exécution · {{subnet}}",
+    "cancel": "Arrêter",
+    "progress": "Progression",
+    "fields": {
+      "subnet": "Sous-réseau de gestion (CIDR)",
+      "port": "Port de gestion",
+      "informInterval": "Intervalle d'inform (secondes)",
+      "targetAcsUrl": "URL ACS cible (CWMP)",
+      "username": "Utilisateur des routeurs",
+      "password": "Mot de passe des routeurs"
+    },
+    "cols": {
+      "when": "Quand",
+      "subnet": "Sous-réseau",
+      "mode": "Mode",
+      "status": "État",
+      "found": "CPE trouvés",
+      "changed": "Configurés"
+    },
+    "hostCols": {
+      "address": "Adresse",
+      "status": "Résultat",
+      "model": "Modèle",
+      "firmware": "Firmware",
+      "detail": "Détail"
+    },
+    "mode": {
+      "dry": "Simulation",
+      "apply": "Appliquée"
+    },
+    "runStatus": {
+      "pending": "En attente",
+      "running": "En cours",
+      "done": "Terminée",
+      "failed": "Échouée",
+      "cancelled": "Arrêtée"
+    },
+    "hostStatus": {
+      "pending": "En attente",
+      "unreachable": "Injoignable",
+      "not_cpe": "Pas un CPE",
+      "auth_failed": "Identifiants refusés",
+      "already_target": "Déjà sur l'ACS",
+      "configured": "Configuré",
+      "error": "Erreur",
+      "skipped": "Ignoré"
+    },
+    "counters": {
+      "processed": "Traités",
+      "reachable": "Joignables",
+      "configured": "Configurés",
+      "failed": "Échoués"
+    }
+  },
+  "ispbilling": {
+    "title": "ISPBilling",
+    "subtitle": "Registre clients du logiciel de facturation ISPBilling : clients et sites, importés dans NSM à la demande.",
+    "import": "Importer les clients",
+    "lastSync": "Dernière lecture",
+    "syncQueued": "Lecture en file d'attente",
+    "syncFailed": "Dernière lecture échouée",
+    "syncAuto": "Toutes les 6 heures",
+    "syncNow": "Lire maintenant",
+    "customers": "Clients dans ISPBilling",
+    "customersHint": "{{linked}} déjà dans NSM",
+    "addresses": "Adresses d'installation",
+    "addressesPending": "{{count}} services encore à lire",
+    "addressesDone": "Toutes lues",
+    "connection": "Connexion",
+    "connectionHelp": "Créez dans ISPBilling une clé API avec lecture des clients et des services et ajoutez l'IP de ce serveur aux IP autorisées. NSM n'écrit jamais dans ISPBilling.",
+    "url": "Adresse d'ISPBilling",
+    "apiId": "API id",
+    "apiKey": "Clé API",
+    "enabled": "Lire ISPBilling périodiquement",
+    "actionsHelp": "Une lecture complète prend quelques minutes : elle se fait en arrière-plan et les adresses d'installation arrivent aux cycles suivants.",
+    "importTitle": "Importer depuis ISPBilling",
+    "importSubtitle": "Choisissez les clients à importer : chacun devient un client NSM (ou est lié à celui de même code ou nom) avec un site par adresse d'installation. Rien de ce qui existe dans NSM n'est renommé ni supprimé.",
+    "notConfigured": "ISPBilling n'est pas encore configuré.",
+    "mirrorAt": "Données lues dans ISPBilling le {{when}}.",
+    "mirrorNever": "ISPBilling n'a pas encore été lu : utilisez « Lire maintenant » sur la page ISPBilling.",
+    "states": {
+      "new": "Nouveaux",
+      "linkable": "À lier",
+      "linked": "Déjà dans NSM"
+    },
+    "searchPlaceholder": "Nom, code ou adresse…",
+    "search": "Rechercher des clients ISPBilling",
+    "status": "Statut ISPBilling",
+    "allStatuses": "Tous les statuts",
+    "group": "Groupe ISPBilling",
+    "allGroups": "Tous les groupes",
+    "statuses": {
+      "active": "Actif",
+      "waiting_confirmation": "En attente de confirmation",
+      "activation_in_progress": "Activation en cours",
+      "suspended": "Suspendu",
+      "terminated": "Résilié"
+    },
+    "kinds": {
+      "private": "Particulier",
+      "business": "Entreprise",
+      "association": "Association"
+    },
+    "columns": {
+      "customer": "Client",
+      "kind": "Type",
+      "status": "Statut",
+      "sites": "Sites",
+      "nsm": "Dans NSM",
+      "action": "Ce qui se passe"
+    },
+    "noSites": "Aucune adresse",
+    "byCode": "même code",
+    "byName": "même nom",
+    "empty": "Aucun client ISPBilling dans cet état.",
+    "preview": "Aperçu de {{count}} (max {{max}})",
+    "previewHelp": "Rien n'est modifié avant votre confirmation.",
+    "actions": {
+      "create": "Nouveau client NSM",
+      "link": "Lier au client existant",
+      "update": "Déjà importé : ajoute les sites manquants",
+      "skip": "Ignoré"
+    },
+    "matchCode": "{{name}} (même code)",
+    "matchName": "{{name}} (même nom : vérifiez qu'il s'agit du même client)",
+    "codeInUse": "Son code est utilisé par un autre client NSM : il est créé sans code.",
+    "siteExisting": "{{name}} (déjà dans NSM)",
+    "confirm": "Importer {{count}}",
+    "doneTitle": "Import terminé",
+    "done": "{{created}} clients créés, {{linked}} liés ; {{sites}} sites créés, {{sitesLinked}} liés à des sites existants.",
+    "skipped": "{{count}} ignorés.",
+    "openCustomers": "Ouvrir les clients"
   },
   "acsDiagnostics": {
     "title": "Diagnostic depuis le CPE",

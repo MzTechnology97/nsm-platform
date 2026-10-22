@@ -574,6 +574,21 @@ Checked on the operator's cnMaestro on 2026-10-22 (Core 0.49.199): `/devices` an
 
 - operations through cnMaestro (reboot, backup, firmware) — only where the cnMaestro API supports them and they can be verified.
 
+## 13c. ISPBilling (billing / CRM)
+
+### Implemented (ISPB-01, Core 0.49.203)
+
+- read-only connector (*Integrazioni → ISPBilling*, administrators): API key of ISPBilling (`Authorization: Bearer api_id:api_key`, encrypted; the key is never shown again), connection test, read on request;
+- local mirror read by the worker every 6 hours (migration 0050): customers (`crm/customers`: name, internal code, kind, status, group, registered address) and service instances; the installation address of each service comes from its detail and is read incrementally (150 per worker cycle, an address shared by several services read once per pass);
+- never stored: fiscal code, VAT number, contacts, payment data and the `password` field returned by the API; nothing is written to ISPBilling;
+- *Importa da ISPBilling*: customers by state (*Nuovi*, *Da collegare* — an NSM customer with the same code or name exists, *Già in NSM*), filters by text, ISPBilling status and group, preview and commit of up to 300 customers; a customer is created (code = ISPBilling internal code when free) or linked, and gets one site per installation address (named after the ISPBilling label, or the address when the label is generic; the registered address when there is no service); an address already present on that NSM customer is linked, not duplicated; nothing in NSM is renamed, moved or deleted; importing again adds only new sites; audited (`ISPBILLING_CONFIGURED`, `ISPBILLING_SYNC_REQUESTED`, `ISPBILLING_CUSTOMERS_IMPORTED`).
+
+Checked on the operator's ISPBilling (2026-10-22): 837 customers, 1,697 service instances; endpoints, paging (`?page=N`, 20 rows) and fields as above.
+
+### Not implemented yet
+
+RADIUS accounts ↔ devices, warehouse serial numbers ↔ devices and ISPBilling activities in the device logbook (approved, next steps of ISPB-01).
+
 ## 14. TR-069 / ACS-managed CPE
 
 ### Implemented foundation only
@@ -587,8 +602,29 @@ Checked on the operator's cnMaestro on 2026-10-22 (Core 0.49.199): `/devices` an
 - integrated GenieACS in the Docker stack (compose profile `acs`, `./manage.sh acs-enable`): cwmp (7547) and fs (7567) published, NBI internal, UI on the host loopback only, MongoDB internal; image built from the official npm package, non-root, privileges dropped; *Usa GenieACS integrato* configures the connector in one click;
 
 - *Amministrazione → Integrazioni → GenieACS / TR-069*: NBI URL (loopback, localhost, credentials in the URL refused), authentication none / HTTP Basic / Bearer for a reverse proxy (encrypted), configurable MAC parameter paths, online window, connectivity test that reads nothing;
-- *ACS* tab on TP-Link/TR-069 Devices: lookup by serial number (`_deviceId._SerialNumber`) then MAC, preview, explicit association that keeps the NSM Customer/Site, refresh by the stored GenieACS ID that refuses a changed serial; identity, model, firmware, hardware, IP, last Inform and online state are normalized from TR-098 and TR-181 paths; audit events `GENIEACS_*` without secrets;
+- *ACS* tab on TP-Link/TR-069 Devices: lookup by serial number (`_deviceId._SerialNumber`) then MAC (any interface MAC; parameter paths accept `*` for every instance, Core 0.49.201), preview, explicit association that keeps the NSM Customer/Site, refresh by the stored GenieACS ID that refuses a changed serial; identity, model, firmware, hardware, IP, last Inform and online state are normalized from TR-098 and TR-181 paths (management IP from the CPE's connection-request URL, then any interface address; checked on a real TP-Link VX230v, TR-181); audit events `GENIEACS_*` without secrets;
 - the integrations hub shows the real connector state and how many TR-069 CPE are associated or still to associate.
+
+### Bulk migration to the self-hosted ACS (Core 0.49.202)
+
+*Amministrazione → ACS → Migra i CPE verso questo ACS* (administrators) moves a fleet of customer CPEs
+from a vendor cloud ACS (e.g. TP-Link TAUC) onto the integrated GenieACS by rewriting the CWMP ACS URL
+over the operator's own management network, instead of touching each router by hand. The operator gives
+the management subnet (CIDR, IPv4, capped at 4096 addresses per run), the management port, the target
+ACS URL (the integrated GenieACS by default), the inform interval and one shared fleet credential.
+
+- A host is TCP-probed first and fingerprinted from its web page; the credential is sent only to a host
+  that answers as the chosen vendor's CPE, never to an arbitrary open port. The `.0`/`.255` addresses
+  and the ACS server are skipped.
+- *Dry run* (available now, validated on a real TP-Link VX230v): reports which addresses are reachable
+  CPEs and their model/firmware, without authenticating — an inventory of what can be migrated.
+- *Apply* rewrites CWMP on each CPE through the vendor web interface (TP-Link encrypted login: MD5
+  identity hash, per-session AES-CBC key wrapped with the device RSA key, `stok` token). The login
+  differs per firmware and is enabled after field validation, so until then apply reports
+  `needs_validation` per host rather than guessing.
+- One run at a time, bounded concurrency; per-host results are kept; the credential is held only in
+  memory for the run and never stored or logged. Audit events `ACS_MIGRATION_STARTED` /
+  `ACS_MIGRATION_COMPLETED` carry counts only.
 
 ### Diagnostics from the CPE (ACS-06, Core 0.49.206)
 
@@ -600,7 +636,7 @@ Every 5 minutes the worker reads from GenieACS, in one read-only NBI query for a
 
 ### Not implemented
 
-- bulk ACS discovery/onboarding;
+- bulk ACS discovery/onboarding from the ACS side (this migration drives the CPEs, not GenieACS);
 - vendor-specific TR-098/TR-181 parameter profiles beyond identity and firmware;
 - vendor parameter profiles;
 - monitoring history and charts through ACS;

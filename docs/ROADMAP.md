@@ -391,7 +391,7 @@ The selected ACS is **GenieACS** (as preferred in `PRODUCT_REQUIREMENTS.md`); NS
 
 ### ACS-02 — Device discovery and association
 
-**Implemented in `main`** for per-Device association (serial, then MAC) of TR-069 CPEs of any brand (TP-Link, or Huawei/ZTE/others entered as *Altro produttore* with type router, ONT, wireless CPE or other — Core 0.49.66); bulk onboarding remains open.
+**Implemented in `main`** for per-Device association (serial, then MAC) of TR-069 CPEs of any brand (TP-Link, or Huawei/ZTE/others entered as *Altro produttore* with type router, ONT, wireless CPE or other — Core 0.49.66). **Bulk migration of an existing fleet (Core 0.49.202):** *Amministrazione → ACS* reconfigures the CWMP ACS URL on a whole management subnet of TP-Link CPEs so a fleet already on a vendor cloud ACS (TAUC) moves to the integrated GenieACS without touching each router by hand. The dry-run inventory (reachability + model/firmware, validated on a real VX230v) is available; the authenticated CWMP rewrite via the TP-Link web interface is enabled after per-firmware field validation. Next: validate the TP-Link web login on the live fleet, then add the DNS/TAUC-side bulk paths discussed with the operator.
 
 - match candidates using reliable ACS identifiers;
 - preview before association;
@@ -446,6 +446,16 @@ Release catalogs like the RouterOS one (versions per channel/model, release note
 **Step 2 implemented in `main`**: compatibility check on the real console (Core 0.49.189) and bulk onboarding like UISP (Core 0.49.192). Field names checked on the operator's cnMaestro (Core 0.49.199; Wi-Fi AP per-band clients and traffic, time online as uptime). Next: operations where the cnMaestro API supports them.
 
 Read-only cnMaestro (cloud/on-premises) connector for Cambium radios: discovery and association like UISP, periodic sync, full monitoring and statistics (signal, link quality, capacity, interfaces, uptime, history) in the style of the MikroTik and UISP views; later operations only where the cnMaestro API supports them.
+
+### ISPB-01 — ISPBilling integration (requested 2026-10-22)
+
+Import the customer registry and sites from the operator's billing system (ISPBilling, `https://ispbilling.it/api/docs`), then automate around it. Approved by the operator: (1) customers, (2) services → sites, (3) RADIUS accounts ↔ devices, (4) warehouse serials/MACs ↔ devices, (5) activities into the device logbook; invoices and payments stay out of NSM.
+
+**Step 1 implemented in `main` (Core 0.49.203)**: read-only connector, mirror refreshed by the worker, import page for customers and their installation addresses as sites (details in `IMPLEMENTED_CAPABILITIES.md` §13c). Next: RADIUS accounts (PPPoE username, static IP, profile, status) matched to devices; then warehouse and activities.
+
+### TAUC-01 — TP-Link Aginet Unified Cloud connector (requested 2026-10-22)
+
+Research and build a connector on the TAUC Open API. Public research (2026-10-22) found only TP-Link product pages stating "Open API", webhooks and API gateways for zero-touch provisioning, with TR-069/TR-369 and TR-181 on the device side; no public API reference. Blocked on the API documentation from the operator's TAUC console or TP-Link service-provider support, and on API credentials entered by the operator.
 
 ## 7. Cross-vendor vulnerability management
 

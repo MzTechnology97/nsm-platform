@@ -4,6 +4,37 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.203 — 2026-10-22
+
+Customers and sites from ISPBilling
+- **New ISPBilling integration** (*Integrazioni → ISPBilling*): connect NSM to the ISPBilling billing system with a read-only API key. NSM never writes to ISPBilling.
+- **NSM keeps a copy of the ISPBilling registry**, refreshed every 6 hours or on request (*Leggi ora*):
+  - customers with name, code, kind, status and group;
+  - the installation address of every service.
+  Fiscal data, contacts and payment data are not copied.
+- **Importa da ISPBilling** lists the customers as *Nuovi*, *Da collegare* (an NSM customer with the same code or name exists) or *Già in NSM*. You choose which ones to bring in, see a preview, then confirm:
+  - each becomes an NSM customer, or is linked to the existing one;
+  - each gets one site per installation address (for example *Sede Centrale Comune*, or the address itself);
+  - addresses already present in NSM are reused, and nothing already in NSM is renamed or removed;
+  - running the import again only adds new sites.
+- Every import is recorded in the activity log.
+
+## 0.49.202 — 2026-10-22
+
+Bulk migration of customer CPEs to the self-hosted ACS
+- **Move a whole fleet of TP-Link routers from the vendor cloud (TAUC) onto your own GenieACS** without configuring each router by hand. In *Amministrazione → ACS → Migra i CPE verso questo ACS* you give the management subnet, the port, the target ACS URL (the integrated GenieACS by default) and one shared credential for the fleet.
+- **Dry run (available now):** NSM reaches every address on the management network and reports which are TP-Link CPEs, with model and firmware — an inventory of what can be migrated, without sending any credential. Checked on a real TP-Link VX230v.
+- **Apply:** rewrites the CWMP ACS URL on each router through its web interface. The TP-Link login differs per firmware and is turned on after validation on the live fleet, so until then each host reports that the change needs validation instead of guessing.
+- **Safeguards:** administrators only; IPv4 subnets up to 4096 addresses per run; a host is checked before any credential is sent, so the credential never reaches a non-CPE; the `.0`/`.255` addresses and the ACS server are skipped; the credential is used only during the run and never stored or logged; one run at a time, with per-host results and an audit entry.
+
+## 0.49.201 — 2026-10-22
+
+GenieACS: IP and MAC of TR-181 CPEs
+- **NSM now reads the IP address and the MAC addresses of TR-181 CPEs** such as the TP-Link VX230v (checked on a real router). Before, both stayed empty because NSM only looked at the first instance of each object, while these routers keep the WAN on another one (for example `Device.IP.Interface.6`).
+  - **IP:** NSM uses the address the CPE gives GenieACS for connection requests, then the first usable address of any interface.
+  - **MAC:** NSM reads the MAC of every interface (LAN, WAN, links). A device is found and matched by any of them, so the MAC on the label works whichever port it belongs to. A MAC already written on the NSM record is kept.
+- **MAC parameter paths accept `*`** for every instance (`Device.Ethernet.Interface.*.MACAddress`). Connectors still on the old default list switch to the new one automatically; paths written by an administrator are kept.
+- **Base provisioning:** it now asks every CPE for its interface MACs. To use it, press *Installa template base* again in *Amministrazione → ACS*.
 ## 0.49.200 — 2026-10-22
 
 Alerts during planned maintenance
