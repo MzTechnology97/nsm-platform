@@ -30,6 +30,7 @@ from app.mikrotik_syslog_config import auto_configure as auto_configure_syslog
 from app.zabbix_connector import scheduled_sync as zabbix_sync
 from app.zabbix_problems import scheduled_refresh as zabbix_problems_refresh
 from app.acs_resources import scheduled_refresh as acs_resources_refresh
+from app.acs_syslog import auto_configure as acs_syslog_auto
 from app.acs_admin import auto_update as acs_templates_auto_update
 from app.device_exposure import tick as exposure_tick
 from app.external_exposure import tick as external_exposure_tick
@@ -104,6 +105,7 @@ while True:
             run_task("ispbilling_sync", ispbilling_sync)
             run_task("zabbix_problems", zabbix_problems_refresh)
             run_task("acs_resources", acs_resources_refresh)
+            run_task("acs_syslog_auto", acs_syslog_auto)
             run_task("acs_templates", acs_templates_auto_update)
             run_task("exposure_check", exposure_tick)
             run_task("exposure_external_check", external_exposure_tick)

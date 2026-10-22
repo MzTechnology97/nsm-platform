@@ -610,6 +610,10 @@ RADIUS accounts ↔ devices, warehouse serial numbers ↔ devices and ISPBilling
 - the integrations hub shows the real connector state and how many TR-069 CPE are associated or still to associate;
 - *Amministrazione → ACS → Configurare una CPE TP-Link* (Core 0.49.213): step-by-step guide for adding a TP-Link CPE — one manual step on the router (CWMP on, ACS URL, Periodic Inform), then NSP reads it; what NSP reads (state, model, firmware, IP, CPU, memory, WAN traffic, Wi-Fi clients, DSL), the actions it offers (reboot, firmware check, diagnostics) and what it never changes (Wi-Fi, LAN, DHCP, PPPoE; it writes only the CWMP inform interval). The ACS URL shown comes from `ACS_CWMP_URL` when set.
 
+### CPE syslog through the ACS (Core 0.49.220)
+
+TP-Link CPEs (Aginet firmware) keep their log settings in `Device.DeviceInfo.X_TP_LogCfg`; NSM writes `LogToRemote`, `ServerIP`, `ServerPort` (514) and `RemoteSeverity` through GenieACS, nothing else. From the device *Syslog* tab (applied at once via connection request), from *Amministrazione → ACS → Syslog dei CPE TR-069* for every associated TP-Link (applied at the next Inform), and by the worker for new CPEs when syslog *Configura automaticamente* is on. The receiver address is the syslog public address, else the host of `ACS_CWMP_URL`. TP-Link lines carry no NSM key: they are attributed by sender address, so NSM re-reads the management IP (WAN, from the connection-request URL) before configuring. Checked on a real VX230v. Audit `ACS_SYSLOG_CONFIGURED`.
+
 ### Bulk migration to the self-hosted ACS (Core 0.49.202)
 
 *Amministrazione → ACS → Migra i CPE verso questo ACS* (administrators) moves a fleet of customer CPEs

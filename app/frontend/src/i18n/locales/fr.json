@@ -5070,6 +5070,7 @@
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnostic ACS demandé",
     "ACS_MIGRATION_COMPLETED": "Migration ACS terminée",
     "ACS_MIGRATION_STARTED": "Migration ACS démarrée",
+    "ACS_SYSLOG_CONFIGURED": "Syslog du CPE configuré via ACS",
     "ACS_TEMPLATES_INSTALLED": "Modèles ACS installés",
     "ACS_TEMPLATES_UPDATED": "Modèles ACS mis à jour par NSM",
     "AGENT_HEALTH_ISSUE_OPENED": "Problème d'agent signalé",
@@ -5580,5 +5581,36 @@
     },
     "yes": "oui",
     "no": "non"
+  },
+  "acsSyslog": {
+    "title": "Syslog via ACS (TR-069)",
+    "hint": "NSM règle le CPE pour envoyer ses journaux au récepteur NSM via GenieACS : envoi distant, adresse, port et niveau minimum uniquement.",
+    "target": "Récepteur NSM",
+    "noTarget": "indéterminable : réglez l'adresse publique dans Amministrazione → Syslog",
+    "managementIp": "Adresse d'origine des journaux",
+    "current": "Configuration",
+    "applied": "vers {{ip}}, niveau {{level}}, appliquée {{when}}",
+    "queued": "vers {{ip}}, niveau {{level}}, envoyée {{when}} : appliquée au prochain contact",
+    "never": "pas encore configurée par NSM",
+    "identification": "Les TP-Link ne prennent pas d'identifiant : NSM reconnaît leurs journaux à l'adresse de l'expéditeur, l'IP de gestion lue depuis l'ACS (mise à jour à chaque configuration).",
+    "level": "Niveau minimum",
+    "configure": "Configurer",
+    "reconfigure": "Reconfigurer",
+    "doneNow": "Réglages de journalisation appliqués sur le CPE.",
+    "doneLater": "Réglages envoyés : le CPE les applique à son prochain contact avec l'ACS.",
+    "levels": {
+      "error": "Erreur",
+      "warning": "Avertissement",
+      "notice": "Notice",
+      "info": "Information",
+      "debug": "Débogage"
+    },
+    "adminTitle": "Syslog des CPE TR-069",
+    "adminHint": "Régler tous les CPE TP-Link associés pour envoyer leurs journaux vers {{target}}:{{port}} (au prochain contact de chacun).",
+    "adminCounts": "{{configured}} CPE sur {{cpes}} envoient déjà vers cette adresse.",
+    "autoOn": "La configuration automatique est active (Amministrazione → Syslog) : les nouveaux CPE sont configurés seuls.",
+    "autoOff": "La configuration automatique est désactivée (Amministrazione → Syslog).",
+    "adminRun": "Tout configurer",
+    "adminDone": "{{queued}} envoyés, {{skipped}} déjà en place, {{failed}} non pris en charge ou en échec."
   }
 }
