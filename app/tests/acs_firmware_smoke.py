@@ -11,11 +11,13 @@ from sqlalchemy import select
 
 from app import acs_diagnostics as nbi
 from app import acs_firmware as fw
+from app import vendor_firmware
 from app.db import SessionLocal
 from app.entrypoint import app
 from app.integration_models import ConnectorIntegration
 from app.models import AuditEvent, Customer, Device, User
 from app.secret_vault import encrypt_text
+from app.vendor_firmware_models import VendorFirmwareRelease
 from app.security import hash_password
 
 PASSWORD = "CI-ACS-Firmware-2026"
@@ -70,7 +72,7 @@ def main():
         db.add(customer)
         db.flush()
         cpe = Device(customer_id=customer.id, vendor="tp-link", device_type="router", name=f"TEST-ACSF-{suffix}", external_device_id=ext,
-                     management_source="tr069", status="online")
+                     management_source="tr069", status="online", model="VX230v", firmware_version=OLD)
         ont = Device(customer_id=customer.id, vendor="tp-link", device_type="ont", name=f"TEST-ACSF-ONT-{suffix}", external_device_id=other,
                      management_source="tr069", status="online")
         db.add_all([cpe, ont])
@@ -93,6 +95,21 @@ def main():
     state = auditor.get(url).json()
     assert state["current_version"] == OLD and state["product_class"] == "VX230v" and state["files"] == [] and state["can_run"] is False
     assert auditor.post(f"{url}/files", files={"image": ("fw.bin", image)}, data={"version": "x"}).status_code == 403
+
+    # Like the other devices: a Firmware tab, and the newest catalog release against the installed version.
+    tabs = [tab["key"] for tab in auditor.get(f"/api/ui/v1/devices/{device_id}").json()["tabs"]]
+    assert "firmware" in tabs and "acs" in tabs, tabs
+    assert state["catalog"] is None
+    with SessionLocal() as db:
+        db.query(VendorFirmwareRelease).filter_by(brand="tp-link").delete()
+        db.add(VendorFirmwareRelease(brand="tp-link", model_pattern="vx230v", version="0.19.0 Build 260323", source="operator",
+                                     notes_url="https://www.tp-link.example.test/it/support/download/vx230v/"))
+        db.commit()
+        vendor_firmware.evaluate(db)
+        db.commit()
+    catalog = auditor.get(url).json()["catalog"]
+    assert catalog["latest"] == "0.19.0 Build 260323" and catalog["newer"] is True and catalog["status"] == "update_available", catalog
+    assert catalog["notes_url"].endswith("/vx230v/") and catalog["source"] == "operatore"
 
     # Upload: stored in GenieACS for this model, nothing sent to the CPE.
     assert tech.post(f"{url}/files", files={"image": ("tiny.bin", b"x" * 100)}).status_code == 422
@@ -152,6 +169,7 @@ def main():
 
     nbi.TRANSPORT = None
     with SessionLocal() as db:
+        db.query(VendorFirmwareRelease).filter_by(brand="tp-link").delete()
         db.query(ConnectorIntegration).filter_by(provider="genieacs").delete()
         db.commit()
     print("ACS firmware smoke passed")

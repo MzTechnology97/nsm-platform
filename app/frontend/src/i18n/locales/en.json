@@ -5661,6 +5661,13 @@
       "verified": "Upgraded {{when}}: {{from}} → {{to}}",
       "failed": "The CPE reported an error {{when}}",
       "unconfirmed": "Upgrade requested but no new version reported within 30 minutes ({{when}})"
-    }
+    },
+    "available": "Latest available",
+    "noCatalog": "no release in the firmware catalog for this model",
+    "catalogNewer": "Version {{version}} is newer than the installed one.",
+    "catalogSecurity": "Version {{version}} fixes security issues: upgrade recommended.",
+    "catalogCurrent": "The installed version is the latest in the catalog.",
+    "notes": "release notes",
+    "catalogs": "Firmware catalogs"
   }
 }

@@ -5661,6 +5661,13 @@
       "verified": "Mis à jour le {{when}} : {{from}} → {{to}}",
       "failed": "Le CPE a signalé une erreur le {{when}}",
       "unconfirmed": "Mise à jour demandée mais aucune nouvelle version annoncée en 30 minutes ({{when}})"
-    }
+    },
+    "available": "Dernière disponible",
+    "noCatalog": "aucune version au catalogue pour ce modèle",
+    "catalogNewer": "La version {{version}} est plus récente que celle installée.",
+    "catalogSecurity": "La version {{version}} corrige des failles de sécurité : mise à jour conseillée.",
+    "catalogCurrent": "La version installée est la dernière du catalogue.",
+    "notes": "notes de version",
+    "catalogs": "Catalogues firmware"
   }
 }

@@ -213,10 +213,29 @@ def _confirm_name(device) -> str:
     return device.display_name or device.device_identity or device.name
 
 
+def catalog_info(db, device) -> dict | None:
+    """The newest release of the firmware catalog for this CPE (``vendor_firmware.evaluate``), as on the other devices' firmware tab."""
+    info = (device.inventory_data or {}).get("vendor_firmware") or {}
+    if not info.get("latest"):
+        return None
+    from app.vendor_firmware import SOURCE_LABELS
+    from app.vendor_firmware_models import VendorFirmwareRelease
+
+    release = None
+    try:
+        release = db.get(VendorFirmwareRelease, uuid.UUID(str(info.get("release_id"))))
+    except (TypeError, ValueError):
+        pass
+    return {"latest": info["latest"], "source": SOURCE_LABELS.get(info.get("source"), info.get("source")), "security": bool(info.get("security")),
+            "status": device.firmware_status, "newer": device.firmware_status in ("update_available", "security_update"),
+            "released_at": release.released_at.isoformat() if release and release.released_at else None,
+            "notes_url": release.notes_url if release else None}
+
+
 def _payload(db, device, connection, can_run: bool) -> dict:
     entry = (device.inventory_data or {}).get("acs_firmware")
     out = {"linked": True, "can_run": can_run, "confirm_name": _confirm_name(device), "upgrade": entry, "files": [], "files_error": None,
-           "current_version": None, "product_class": None, "max_mb": MAX_IMAGE // (1024 * 1024)}
+           "current_version": None, "product_class": None, "max_mb": MAX_IMAGE // (1024 * 1024), "catalog": catalog_info(db, device)}
     try:
         record = _read_device(connection, device.external_device_id)
         identity = _identity(record)

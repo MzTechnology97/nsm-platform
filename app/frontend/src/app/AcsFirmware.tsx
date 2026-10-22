@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -31,6 +32,8 @@ interface AcsFirmwareData {
   files_error: string | null;
   max_mb: number;
   upgrade: Upgrade | null;
+  /** Newest release of the firmware catalog for this model (Firmware → Cataloghi), as for the other devices. */
+  catalog: { latest: string; source: string; security: boolean; status: string | null; newer: boolean; released_at: string | null; notes_url: string | null } | null;
 }
 
 const path = (id: string) => `/api/ui/v1/devices/${encodeURIComponent(id)}/acs/firmware`;
@@ -86,10 +89,19 @@ export function AcsFirmware({ deviceId }: { deviceId: string }) {
     <section className="ui-panel ui-admin-section">
       <h2>{t("acsFirmware.title")}</h2>
       <p className="ui-muted">{t("acsFirmware.help")}</p>
-      <dl className="ui-dl">
-        <div><dt>{t("acsFirmware.current")}</dt><dd className="ui-mono">{data.current_version ?? "—"}</dd></div>
-        <div><dt>{t("acsFirmware.model")}</dt><dd>{data.product_class ?? "—"}</dd></div>
-      </dl>
+      <div className="ui-metrics">
+        <div className="ui-metric"><span>{t("acsFirmware.current")}</span><strong className="ui-mono">{data.current_version ?? "—"}</strong>
+          <small>{data.product_class ?? "—"}</small></div>
+        <div className="ui-metric"><span>{t("acsFirmware.available")}</span><strong className="ui-mono">{data.catalog?.latest ?? "—"}</strong>
+          <small>{data.catalog ? `${data.catalog.source}${data.catalog.released_at ? ` · ${formatDateTime(data.catalog.released_at, i18n.language)}` : ""}` : t("acsFirmware.noCatalog")}</small></div>
+      </div>
+      {data.catalog && (
+        <p className={data.catalog.security ? "ui-alert ui-alert-warning" : "ui-muted"}>
+          {data.catalog.newer ? t(data.catalog.security ? "acsFirmware.catalogSecurity" : "acsFirmware.catalogNewer", { version: data.catalog.latest }) : t("acsFirmware.catalogCurrent")}
+          {data.catalog.notes_url && <> · <a href={data.catalog.notes_url} target="_blank" rel="noopener noreferrer">{t("acsFirmware.notes")}</a></>}
+          {" · "}<Link to="/firmware/catalogs">{t("acsFirmware.catalogs")}</Link>
+        </p>
+      )}
       {upgrade && (
         <div className={`ui-alert${upgrade.state === "failed" || upgrade.state === "unconfirmed" ? " ui-alert-warning" : upgrade.state === "verified" ? " ui-alert-success" : ""}`}>
           {t(`acsFirmware.states.${upgrade.state}`, {

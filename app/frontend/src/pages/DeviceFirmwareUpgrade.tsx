@@ -3,7 +3,9 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
+import { useDevice } from "../api/device";
 import { type FirmwarePlanTab, useFirmwareAction, useFirmwarePlan } from "../api/deviceTabs";
+import { AcsFirmware } from "../app/AcsFirmware";
 import { formatDateTime } from "../lib/format";
 import { Loading } from "../app/States";
 
@@ -66,10 +68,18 @@ function PlanSteps({ plan }: { plan: Plan }) {
   );
 }
 
-/** RouterOS upgrade plan: pre-upgrade backup, approval, package download and activation as separate, confirmed and verified steps. */
+/** Firmware tab: the RouterOS upgrade plan for MikroTik, the ACS upgrade for TR-069 CPEs (ACS-08). */
 export function DeviceFirmwareUpgrade() {
-  const { t, i18n } = useTranslation();
   const { deviceId } = useParams({ from: "/devices/$deviceId/firmware-upgrade" });
+  const device = useDevice(deviceId);
+  if (!device.data) return <Loading />;
+  if (device.data.device.vendor !== "mikrotik" && device.data.tabs.some((tab) => tab.key === "acs")) return <AcsFirmware deviceId={deviceId} />;
+  return <RouterosFirmwareUpgrade deviceId={deviceId} />;
+}
+
+/** RouterOS upgrade plan: pre-upgrade backup, approval, package download and activation as separate, confirmed and verified steps. */
+function RouterosFirmwareUpgrade({ deviceId }: { deviceId: string }) {
+  const { t, i18n } = useTranslation();
   const query = useFirmwarePlan(deviceId);
   const create = useFirmwareAction(deviceId, "firmware-upgrade/plan");
   const data = query.data;
