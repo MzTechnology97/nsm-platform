@@ -1552,7 +1552,8 @@
       "agent": "Agent",
       "integration": "Integraciones",
       "interface_errors": "Errores de interfaz",
-      "configuration": "Configuración"
+      "configuration": "Configuración",
+      "acs": "CPE (ACS)"
     },
     "state": {
       "open": "Abierto",
@@ -5068,6 +5069,9 @@
     }
   },
   "eventTypes": {
+    "ACS_ALERT_OPENED": "Aviso de CPE abierto",
+    "ACS_ALERT_RESOLVED": "Aviso de CPE resuelto",
+    "ACS_ALERT_SETTINGS_CHANGED": "Ajustes de avisos de CPE modificados",
     "ACS_CONFIG_REFRESH_REQUESTED": "Relectura de la configuración del CPE solicitada",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnóstico ACS completado",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnóstico ACS solicitado",
@@ -5670,5 +5674,20 @@
     "catalogCurrent": "La versión instalada es la última del catálogo.",
     "notes": "notas de la versión",
     "catalogs": "Catálogos de firmware"
+  },
+  "acsAlerts": {
+    "title": "Avisos de los CPE",
+    "help": "NSM abre una incidencia en el Centro de acciones, con una notificación, cuando un CPE TR-069 deja de contactar con el ACS, su WAN cae, la WAN se reconecta o el CPE se reinicia demasiado, o la línea DSL empeora. Las incidencias se cierran solas cuando el problema termina. 0 desactiva un umbral.",
+    "fields": {
+      "enabled": "Avisos de los CPE TR-069 activos",
+      "offline": "CPE que ya no contacta con el ACS (tres Inform periódicos perdidos)",
+      "wan_down": "WAN caída mientras el CPE aún contacta con el ACS (línea de respaldo o red de gestión)",
+      "reconnects_per_hour": "Reconexiones WAN por hora",
+      "reboots_per_day": "Reinicios del CPE en 24 horas",
+      "snr_min_db": "Margen SNR DSL mínimo (dB)",
+      "dsl_rate_drop_percent": "Caída del downstream DSL respecto a la mediana de 7 días (%)"
+    },
+    "save": "Guardar",
+    "saved": "Guardado."
   }
 }

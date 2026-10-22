@@ -1552,7 +1552,8 @@
       "agent": "Agent",
       "integration": "Integrazioni",
       "interface_errors": "Errori interfaccia",
-      "configuration": "Configurazione"
+      "configuration": "Configurazione",
+      "acs": "CPE (ACS)"
     },
     "state": {
       "open": "Aperta",
@@ -5068,6 +5069,9 @@
     }
   },
   "eventTypes": {
+    "ACS_ALERT_OPENED": "Avviso CPE aperto",
+    "ACS_ALERT_RESOLVED": "Avviso CPE risolto",
+    "ACS_ALERT_SETTINGS_CHANGED": "Impostazioni avvisi CPE modificate",
     "ACS_CONFIG_REFRESH_REQUESTED": "Rilettura configurazione del CPE richiesta",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnostica ACS completata",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnostica ACS richiesta",
@@ -5670,5 +5674,20 @@
     "catalogCurrent": "La versione installata è l'ultima del catalogo.",
     "notes": "note di rilascio",
     "catalogs": "Cataloghi firmware"
+  },
+  "acsAlerts": {
+    "title": "Avvisi dei CPE",
+    "help": "NSM apre una segnalazione nel Centro azioni, con una notifica, quando un CPE TR-069 smette di contattare l'ACS, ha la WAN giù, la WAN si riconnette o il CPE si riavvia troppo spesso, o la linea DSL peggiora. Le segnalazioni si chiudono da sole quando il problema finisce. 0 disattiva una soglia.",
+    "fields": {
+      "enabled": "Avvisi per i CPE TR-069 attivi",
+      "offline": "CPE che non contatta più l'ACS (tre Inform periodici mancati)",
+      "wan_down": "WAN giù mentre il CPE contatta ancora l'ACS (linea di backup o rete di gestione)",
+      "reconnects_per_hour": "Riconnessioni WAN all'ora",
+      "reboots_per_day": "Riavvii del CPE in 24 ore",
+      "snr_min_db": "Margine SNR DSL minimo (dB)",
+      "dsl_rate_drop_percent": "Calo del downstream DSL rispetto alla mediana di 7 giorni (%)"
+    },
+    "save": "Salva",
+    "saved": "Salvato."
   }
 }

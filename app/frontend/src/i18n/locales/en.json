@@ -1552,7 +1552,8 @@
       "agent": "Agent",
       "integration": "Integrations",
       "interface_errors": "Interface errors",
-      "configuration": "Configuration"
+      "configuration": "Configuration",
+      "acs": "CPE (ACS)"
     },
     "state": {
       "open": "Open",
@@ -5068,6 +5069,9 @@
     }
   },
   "eventTypes": {
+    "ACS_ALERT_OPENED": "CPE alert opened",
+    "ACS_ALERT_RESOLVED": "CPE alert resolved",
+    "ACS_ALERT_SETTINGS_CHANGED": "CPE alert settings changed",
     "ACS_CONFIG_REFRESH_REQUESTED": "CPE configuration re-read requested",
     "ACS_DIAGNOSTIC_COMPLETED": "ACS diagnostic completed",
     "ACS_DIAGNOSTIC_REQUESTED": "ACS diagnostic requested",
@@ -5670,5 +5674,20 @@
     "catalogCurrent": "The installed version is the latest in the catalog.",
     "notes": "release notes",
     "catalogs": "Firmware catalogs"
+  },
+  "acsAlerts": {
+    "title": "Alerts of the CPEs",
+    "help": "NSM opens an issue in the Action Center, with a notification, when a TR-069 CPE stops contacting the ACS, its WAN is down, the WAN reconnects or the CPE reboots too often, or the DSL line degrades. Issues close by themselves when the problem ends. 0 disables a threshold.",
+    "fields": {
+      "enabled": "Alerts for TR-069 CPEs on",
+      "offline": "CPE no longer contacting the ACS (three missed periodic Informs)",
+      "wan_down": "WAN down while the CPE still contacts the ACS (backup line or management network)",
+      "reconnects_per_hour": "WAN reconnections per hour",
+      "reboots_per_day": "CPE reboots in 24 hours",
+      "snr_min_db": "Minimum DSL SNR margin (dB)",
+      "dsl_rate_drop_percent": "DSL downstream drop against the 7-day median (%)"
+    },
+    "save": "Save",
+    "saved": "Saved."
   }
 }

@@ -5,6 +5,7 @@ import { useAcsAdmin, useAcsTemplates } from "../api/admin";
 import { ApiError } from "../api/client";
 import { AdminTabs } from "../app/AdminTabs";
 import { AcsSpeedtestSettings } from "../app/AcsSpeedtestSettings";
+import { AcsAlertSettings } from "../app/AcsAlertSettings";
 import { Loading } from "../app/States";
 import { formatDateTime } from "../lib/format";
 
@@ -71,6 +72,8 @@ export function AdminAcs() {
           </section>
 
           <AcsSpeedtestSettings />
+
+          <AcsAlertSettings />
 
           <section className="ui-panel ui-admin-section" id="templates">
             <div className="ui-page-header-row">
