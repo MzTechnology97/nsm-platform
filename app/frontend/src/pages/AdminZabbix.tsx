@@ -79,6 +79,7 @@ function Status({ data }: { data: ZabbixAdmin }) {
       {last.missing_templates.length > 0 && <div className="ui-alert ui-alert-warning">{t("zabbix.missingTemplates", { names: last.missing_templates.join(", ") })}</div>}
       {(last.ambiguous ?? []).length > 0 && <div className="ui-alert ui-alert-warning">{t("zabbix.ambiguous", { names: last.ambiguous.join(", ") })}</div>}
       {(last.ip_updated ?? []).length > 0 && <div className="ui-alert">{t("zabbix.ipUpdated", { names: last.ip_updated.join(", ") })}</div>}
+      {(last.factory_ip ?? []).length > 0 && <div className="ui-alert ui-alert-warning">{t("zabbix.factoryIp", { names: last.factory_ip.join(", ") })}</div>}
       {last.errors.length > 0 && (
         <div className="ui-alert ui-alert-warning">
           <strong>{t("zabbix.lastErrors")}</strong>

@@ -65,6 +65,13 @@ DEFAULT_SETTINGS = {
 }
 
 
+# Factory LAN addresses of CPEs and routers (TP-Link, Ubiquiti, MikroTik, ISP gateways): many unrelated devices answer on
+# them, so they never identify a Zabbix host, and an nsm- host on one would poll nothing reachable. Such devices are
+# linked by name only, or get a Zabbix IP set by the operator.
+FACTORY_LAN_IPS = frozenset({"192.168.0.1", "192.168.1.1", "192.168.2.1", "192.168.0.254", "192.168.1.254", "192.168.88.1",
+                             "192.168.100.1", "192.168.1.20", "192.168.178.1", "10.0.0.1", "10.0.0.138", "10.0.0.2"})
+
+
 class ZabbixError(RuntimeError):
     pass
 
@@ -284,7 +291,7 @@ def _index(hosts: list[dict]) -> tuple[dict, dict]:
 
 def match_host(device, ip: str | None, by_ip: dict, by_name: dict) -> tuple[dict | None, str | None]:
     """(host, how) for the one operator host that is this device; (None, "ambiguous") when several could be."""
-    candidates = by_ip.get(ip) or [] if ip else []
+    candidates = by_ip.get(ip) or [] if ip and ip not in FACTORY_LAN_IPS else []
     if len(candidates) == 1:
         return candidates[0], "ip"
     if len(candidates) > 1:
@@ -339,7 +346,7 @@ def sync(db, row=None, now=None) -> dict:
         return {"status": "disabled"}
     settings = settings_of(row)
     stats = {"created": 0, "updated": 0, "disabled": 0, "skipped": 0, "errors": [], "missing_templates": [], "shared_ip": [],
-             "linked": 0, "linked_new": 0, "ambiguous": [], "ip_updated": []}
+             "linked": 0, "linked_new": 0, "ambiguous": [], "ip_updated": [], "factory_ip": []}
     client = client_for(row)
     try:
         version = client.connect()
@@ -376,12 +383,17 @@ def sync(db, row=None, now=None) -> dict:
             if how == "ambiguous":
                 stats["ambiguous"].append(_clip(device.display_name or device.device_identity or device.name, 128))
                 continue
+            if ip in FACTORY_LAN_IPS and not _valid_ip(data.get("zabbix_ip")):
+                # Its LAN address as seen by the ACS/CPE: Zabbix could not reach it; wait for a Zabbix IP from the operator.
+                stats["factory_ip"].append(_clip(device.display_name or device.device_identity or device.name, 128))
+                continue
             if linked.get("linked"):  # the linked host was deleted in Zabbix: push the device like any other
                 device.inventory_data = {k: v for k, v in data.items() if k != "zabbix"}
             payload = host_payload(device, customers.get(device.customer_id), sites.get(device.site_id), settings)
             wanted[host_name(device)] = (device, payload)
             addresses.setdefault(payload["interface"]["ip"], []).append(payload)
         stats["ambiguous"] = sorted(stats["ambiguous"])[:200]
+        stats["factory_ip"] = sorted(stats["factory_ip"])[:200]
         stats["ip_updated"] = sorted(stats["ip_updated"])[:200]
         existing = {h["host"]: h for h in client.call("host.get", {"output": ["hostid", "host", "name", "status"], "tags": [{"tag": "source", "value": "nsm", "operator": 1}],
                                                                     "selectInterfaces": ["interfaceid", "ip", "type", "main"]})}

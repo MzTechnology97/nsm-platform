@@ -55,6 +55,7 @@ def main():
     renamed = fake.operator_host(f"TEST-ZL-NAME-{suffix}", "198.51.100.99")  # stale IP in Zabbix: linked by name, IP then updated
     fake.operator_host("NAT cliente A", "203.0.113.50")
     fake.operator_host("NAT cliente B", "203.0.113.50")
+    fake.operator_host("Router di un altro cliente", "192.168.1.1")  # factory LAN address: must never be matched by IP
     operator_templates = {hid: list(h["templates"]) for hid, h in fake.hosts.items()}
 
     with SessionLocal() as db:
@@ -70,6 +71,7 @@ def main():
             "name": Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-ZL-NAME-{suffix}", management_ip="198.51.100.72", status="online"),
             "ambiguous": Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-ZL-NAT-{suffix}", management_ip="203.0.113.50", status="online"),
             "new": Device(customer_id=customer.id, vendor="generic", device_type="other", name=f"TEST-ZL-NEW-{suffix}", management_ip="198.51.100.73", status="online"),
+            "cpe": Device(customer_id=customer.id, vendor="tp-link", device_type="router", name=f"TEST-ZL-CPE-{suffix}", management_ip="192.168.1.1", status="online"),
         }
         db.add_all(devices.values())
         db.commit()
@@ -81,6 +83,7 @@ def main():
     assert result["linked"] == 2 and result["linked_new"] == 2 and result["created"] == 1, result
     assert result["ambiguous"] == [f"TEST-ZL-NAT-{suffix}"], "two operator hosts on one NAT address: not guessed"
     assert result["ip_updated"] == [f"TEST-ZL-NAME-{suffix}"], result
+    assert result["factory_ip"] == [f"TEST-ZL-CPE-{suffix}"], "LAN default address: neither linked to a stranger nor pushed"
     nsm_hosts = [h for h in fake.hosts.values() if h["host"].startswith("nsm-")]
     assert len(nsm_hosts) == 1 and nsm_hosts[0]["interfaces"][0]["ip"] == "198.51.100.73", "only the device Zabbix did not know gets an nsm- host"
     assert nsm_hosts[0]["templates"] == [{"templateid": "10999"}]
@@ -93,6 +96,7 @@ def main():
         assert linked.inventory_data["zabbix"] == {**linked.inventory_data["zabbix"], "hostid": by_ip, "linked": True, "match": "ip"}
         assert db.get(Device, ids["name"]).inventory_data["zabbix"]["match"] == "name"
         assert "zabbix" not in (db.get(Device, ids["ambiguous"]).inventory_data or {})
+        assert "zabbix" not in (db.get(Device, ids["cpe"]).inventory_data or {})
         kinds = sorted(e.event_type for e in db.scalars(select(AuditEvent).where(AuditEvent.device_id.in_(list(ids.values())))))
         assert kinds == ["ZABBIX_HOST_IP_UPDATED", "ZABBIX_HOST_LINKED", "ZABBIX_HOST_LINKED"], kinds
 

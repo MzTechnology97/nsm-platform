@@ -867,7 +867,8 @@ def _zabbix_payload(db) -> dict:
         "last_sync_at": row.last_sync_at if row else None,
         "last_sync": {"status": last.get("status"), "created": last.get("created", 0), "updated": last.get("updated", 0), "disabled": last.get("disabled", 0),
                       "skipped": last.get("skipped", 0), "missing_templates": last.get("missing_templates") or [], "errors": (last.get("errors") or [])[:10],
-                      "linked": last.get("linked", 0), "ambiguous": (last.get("ambiguous") or [])[:50], "ip_updated": (last.get("ip_updated") or [])[:50]},
+                      "linked": last.get("linked", 0), "ambiguous": (last.get("ambiguous") or [])[:50], "ip_updated": (last.get("ip_updated") or [])[:50],
+                      "factory_ip": (last.get("factory_ip") or [])[:50]},
         "problems": {key: problems.get(key) for key in ("problems", "with_problems", "at", "status", "error")},
         "frontend": zabbix_connector.frontend_url(row.base_url) if row else None,
         "customers": [{"id": str(c.id), "name": c.name} for c in db.scalars(select(Customer).order_by(Customer.name))],
@@ -934,7 +935,7 @@ def admin_zabbix_templates(request: Request):
 def admin_zabbix_sync(request: Request):
     def run(db, user):
         result = zabbix_connector.sync_now(db, user)
-        return jsonable_encoder({key: result.get(key) for key in ("status", "created", "updated", "disabled", "skipped", "errors", "linked", "ambiguous", "ip_updated")})
+        return jsonable_encoder({key: result.get(key) for key in ("status", "created", "updated", "disabled", "skipped", "errors", "linked", "ambiguous", "ip_updated", "factory_ip")})
 
     return _admin_write(request, run)
 

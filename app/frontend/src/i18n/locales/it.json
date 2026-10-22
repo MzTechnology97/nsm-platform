@@ -2711,7 +2711,8 @@
     "linkExistingHelp": "Un apparato viene collegato all'host Zabbix con lo stesso IP (o, in mancanza, lo stesso nome) quando ne corrisponde uno solo: NSM ne mostra i problemi e non crea un host nsm- per lui. Gruppi, template e tag dei tuoi host non vengono toccati.",
     "updateIp": "Aggiorna l'IP degli host collegati quando cambia",
     "updateIpHelp": "Per router con IP pubblico dinamico o dietro NAT: NSM scrive sull'interfaccia principale dell'host l'indirizzo attuale dell'apparato (IP pubblico del router o quello da cui si collega il suo agent).",
-    "templatesFromZabbix": "Suggerimenti: i {{count}} template del tuo Zabbix."
+    "templatesFromZabbix": "Suggerimenti: i {{count}} template del tuo Zabbix.",
+    "factoryIp": "Non in Zabbix, il loro indirizzo è un IP LAN di fabbrica (es. 192.168.1.1) che Zabbix non raggiunge: {{names}}. Indica l'indirizzo da usare per Zabbix, oppure dai all'host Zabbix lo stesso nome dell'apparato."
   },
   "genieacs": {
     "title": "Integrazioni · GenieACS / TR-069",

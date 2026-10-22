@@ -2711,7 +2711,8 @@
     "linkExistingHelp": "Un équipement est lié à l'hôte Zabbix ayant la même IP (ou, à défaut, le même nom) quand un seul correspond : NSM affiche ses problèmes et ne crée pas d'hôte nsm-. Groupes, modèles et tags de vos hôtes ne sont pas modifiés.",
     "updateIp": "Mettre à jour l'IP des hôtes liés quand elle change",
     "updateIpHelp": "Pour les routeurs à IP publique dynamique ou derrière un NAT : NSM écrit l'adresse actuelle de l'équipement (IP publique du routeur ou celle depuis laquelle son agent se connecte) sur l'interface principale de l'hôte.",
-    "templatesFromZabbix": "Suggestions : les {{count}} modèles de votre Zabbix."
+    "templatesFromZabbix": "Suggestions : les {{count}} modèles de votre Zabbix.",
+    "factoryIp": "Absents de Zabbix, leur adresse est une IP LAN d'usine (ex. 192.168.1.1) que Zabbix ne joint pas : {{names}}. Indiquez l'adresse à utiliser pour Zabbix, ou donnez à l'hôte Zabbix le nom de l'équipement."
   },
   "genieacs": {
     "title": "Intégrations · GenieACS / TR-069",

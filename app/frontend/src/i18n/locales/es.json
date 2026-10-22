@@ -2711,7 +2711,8 @@
     "linkExistingHelp": "Un equipo se vincula al host de Zabbix con la misma IP (o, si no, el mismo nombre) cuando solo uno coincide: NSM muestra sus problemas y no crea un host nsm-. Grupos, plantillas y etiquetas de tus hosts no se tocan.",
     "updateIp": "Actualizar la IP de los hosts vinculados cuando cambie",
     "updateIpHelp": "Para routers con IP pública dinámica o tras NAT: NSM escribe en la interfaz principal del host la dirección actual del equipo (IP pública del router o la desde la que se conecta su agente).",
-    "templatesFromZabbix": "Sugerencias: las {{count}} plantillas de tu Zabbix."
+    "templatesFromZabbix": "Sugerencias: las {{count}} plantillas de tu Zabbix.",
+    "factoryIp": "No en Zabbix, su dirección es una IP LAN de fábrica (p. ej. 192.168.1.1) que Zabbix no alcanza: {{names}}. Indica la dirección que debe usar Zabbix o da al host de Zabbix el nombre del equipo."
   },
   "genieacs": {
     "title": "Integraciones · GenieACS / TR-069",

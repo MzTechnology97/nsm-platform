@@ -510,7 +510,7 @@ export interface ZabbixAdmin {
   last_error: string | null;
   last_sync_at: string | null;
   last_sync: { status: string | null; created: number; updated: number; disabled: number; skipped: number; missing_templates: string[]; errors: string[];
-    linked: number; ambiguous: string[]; ip_updated: string[] };
+    linked: number; ambiguous: string[]; ip_updated: string[]; factory_ip: string[] };
   problems: { problems: number | null; with_problems: number | null; at: string | null; status: string | null; error: string | null };
   frontend: string | null;
   customers: { id: string; name: string }[];

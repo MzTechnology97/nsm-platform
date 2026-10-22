@@ -2711,7 +2711,8 @@
     "linkExistingHelp": "A device is linked to the Zabbix host with the same IP (or, failing that, the same name) when exactly one matches: NSM shows its problems and creates no nsm- host for it. Groups, templates and tags of your hosts are not touched.",
     "updateIp": "Update the IP of linked hosts when it changes",
     "updateIpHelp": "For routers with a dynamic public IP or behind NAT: NSM writes the device's current address (public address of the router, or the one its agent connects from) on the host's main interface.",
-    "templatesFromZabbix": "Suggestions: the {{count}} templates of your Zabbix."
+    "templatesFromZabbix": "Suggestions: the {{count}} templates of your Zabbix.",
+    "factoryIp": "Not in Zabbix, their address is a factory LAN address (e.g. 192.168.1.1) Zabbix cannot reach: {{names}}. Set the address Zabbix must use on the device page, or name the Zabbix host like the device."
   },
   "genieacs": {
     "title": "Integrations · GenieACS / TR-069",
