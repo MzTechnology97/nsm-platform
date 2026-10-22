@@ -235,7 +235,8 @@
       "notMeasured": "non misurata",
       "notMeasuredNote": "attiva il ping da NSM nel Monitor"
     },
-    "backupNever": "mai"
+    "backupNever": "mai",
+    "backupNotAvailable": "non disponibile"
   },
   "monitor": {
     "range": "Intervallo",
@@ -4044,7 +4045,7 @@
     },
     "refresh": "Aggiorna da GenieACS",
     "refreshed": "Inventario aggiornato da GenieACS.",
-    "notYet": "Diagnostica, backup e aggiornamento firmware tramite ACS non sono ancora disponibili.",
+    "notYet": "Backup e aggiornamento firmware tramite ACS non sono ancora disponibili.",
     "verifyTitle": "Verifica corrispondenza",
     "searchTitle": "Cerca in GenieACS",
     "searchSerialMac": "NSM cerca il seriale {{serial}} e, se non lo trova, il MAC {{mac}}; la ricerca non modifica nulla.",
@@ -5054,6 +5055,8 @@
     }
   },
   "eventTypes": {
+    "ACS_DIAGNOSTIC_COMPLETED": "Diagnostica ACS completata",
+    "ACS_DIAGNOSTIC_REQUESTED": "Diagnostica ACS richiesta",
     "ACS_MIGRATION_COMPLETED": "Migrazione ACS completata",
     "ACS_MIGRATION_STARTED": "Migrazione ACS avviata",
     "ACS_TEMPLATES_INSTALLED": "Modelli ACS installati",
@@ -5308,7 +5311,9 @@
     "syslog": "syslog",
     "routeros_catalog": "catalogo RouterOS",
     "measure": "misura",
-    "job": "attività"
+    "job": "attività",
+    "tr069": "TR-069 (ACS)",
+    "acs": "ACS"
   },
   "acsMigration": {
     "subtitle": "Migra in blocco i CPE dei clienti verso l'ACS integrato riconfigurando il CWMP sulla rete di gestione.",
@@ -5454,5 +5459,37 @@
     "done": "{{created}} clienti creati, {{linked}} collegati; {{sites}} sedi create, {{sitesLinked}} collegate a sedi esistenti.",
     "skipped": "{{count}} saltati.",
     "openCustomers": "Apri i clienti"
+  },
+  "acsDiagnostics": {
+    "title": "Diagnostica dal CPE",
+    "help": "Il test lo esegue il CPE stesso tramite l'ACS (TR-069): il risultato è quello che vede la linea del cliente. Parte subito se il CPE accetta la richiesta di connessione, altrimenti al suo prossimo contatto con l'ACS.",
+    "kind": "Test",
+    "kinds": {
+      "ping": "Ping",
+      "traceroute": "Traceroute"
+    },
+    "target": "Destinazione",
+    "targetPlaceholder": "Indirizzo IP o nome host",
+    "run": "Esegui",
+    "states": {
+      "requested": "In esecuzione sul CPE…",
+      "complete": "Completato",
+      "error": "Il CPE ha segnalato un errore",
+      "timeout": "Nessuna risposta dal CPE entro 4 minuti"
+    },
+    "waitingContact": "il CPE non ha accettato la richiesta di connessione: partirà al prossimo contatto",
+    "cpeState": "Stato del CPE",
+    "noHops": "Il CPE non ha restituito salti.",
+    "ping": {
+      "received": "Risposte",
+      "min": "Minimo",
+      "avg": "Medio",
+      "max": "Massimo"
+    },
+    "trace": {
+      "host": "Host",
+      "address": "Indirizzo",
+      "rtt": "Tempi"
+    }
   }
 }

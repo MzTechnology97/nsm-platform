@@ -414,11 +414,13 @@ Normalize relevant Device identity and firmware fields from supported data model
 
 ### ACS-05 — monitoring/history
 
+**Step 1 implemented in `main` (Core 0.49.206)**: current CPU, memory and uptime read from GenieACS every 5 minutes and shown on the device. Next: history and charts (WAN throughput, DSL/PON levels).
+
 Persist only supported, stable operational data with capability-aware unavailable states.
 
 ### ACS-06 — diagnostics
 
-Add capability-gated standardized diagnostics where the ACS/CPE supports them.
+**Implemented in `main` (Core 0.49.206)**: ping and traceroute run by the CPE through GenieACS (TR-181 and TR-098), results on the device ACS tab. Next: download/upload speed tests (`Device.IP.Diagnostics.DownloadDiagnostics`/`UploadDiagnostics`, exposed by the TP-Link VX230v) once a test server is chosen.
 
 ### ACS-07 — backup/restore capability
 

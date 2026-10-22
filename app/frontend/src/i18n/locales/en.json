@@ -235,7 +235,8 @@
       "notMeasured": "not measured",
       "notMeasuredNote": "enable NSM ping in Monitor"
     },
-    "backupNever": "never"
+    "backupNever": "never",
+    "backupNotAvailable": "not available"
   },
   "monitor": {
     "range": "Range",
@@ -4044,7 +4045,7 @@
     },
     "refresh": "Refresh from GenieACS",
     "refreshed": "Inventory refreshed from GenieACS.",
-    "notYet": "Diagnostics, backup and firmware upgrade through the ACS are not available yet.",
+    "notYet": "Backup and firmware upgrades through the ACS are not available yet.",
     "verifyTitle": "Check the match",
     "searchTitle": "Search GenieACS",
     "searchSerialMac": "NSM looks up the serial {{serial}} and, if not found, the MAC {{mac}}; the lookup changes nothing.",
@@ -5054,6 +5055,8 @@
     }
   },
   "eventTypes": {
+    "ACS_DIAGNOSTIC_COMPLETED": "ACS diagnostic completed",
+    "ACS_DIAGNOSTIC_REQUESTED": "ACS diagnostic requested",
     "ACS_MIGRATION_COMPLETED": "ACS migration completed",
     "ACS_MIGRATION_STARTED": "ACS migration started",
     "ACS_TEMPLATES_INSTALLED": "ACS templates installed",
@@ -5308,7 +5311,9 @@
     "syslog": "syslog",
     "routeros_catalog": "RouterOS catalog",
     "measure": "measurement",
-    "job": "job"
+    "job": "job",
+    "tr069": "TR-069 (ACS)",
+    "acs": "ACS"
   },
   "acsMigration": {
     "subtitle": "Bulk-migrate customer CPEs to the integrated ACS by reconfiguring CWMP over the management network.",
@@ -5454,5 +5459,37 @@
     "done": "{{created}} customers created, {{linked}} linked; {{sites}} sites created, {{sitesLinked}} linked to existing ones.",
     "skipped": "{{count}} skipped.",
     "openCustomers": "Open customers"
+  },
+  "acsDiagnostics": {
+    "title": "Diagnostics from the CPE",
+    "help": "The CPE itself runs the test through the ACS (TR-069), so the result is what the customer's line sees. It starts at once when the CPE accepts the connection request, otherwise at its next contact with the ACS.",
+    "kind": "Test",
+    "kinds": {
+      "ping": "Ping",
+      "traceroute": "Traceroute"
+    },
+    "target": "Destination",
+    "targetPlaceholder": "IP address or host name",
+    "run": "Run",
+    "states": {
+      "requested": "Running on the CPE…",
+      "complete": "Completed",
+      "error": "The CPE reported an error",
+      "timeout": "No answer from the CPE within 4 minutes"
+    },
+    "waitingContact": "the CPE did not accept the connection request: it will start at its next contact",
+    "cpeState": "CPE state",
+    "noHops": "The CPE returned no hops.",
+    "ping": {
+      "received": "Replies",
+      "min": "Minimum",
+      "avg": "Average",
+      "max": "Maximum"
+    },
+    "trace": {
+      "host": "Host",
+      "address": "Address",
+      "rtt": "Times"
+    }
   }
 }
