@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.206 — 2026-10-22
+
+TR-069 CPEs: diagnostics and resources
+- **Ping and traceroute run by the CPE itself**, on the *ACS* tab of a TP-Link or other TR-069 device linked to GenieACS. The result is what the customer's line sees:
+  - ping: replies, minimum, average and maximum time;
+  - traceroute: every hop with its address and times.
+- **When the test starts:** at once when the CPE accepts GenieACS's connection request, otherwise at its next contact with the ACS. The page follows it until it ends, and gives up after 4 minutes without an answer.
+- **Who can run it:** technicians and administrators. Every test is recorded in the activity log. The last result of each test stays on the device.
+- **CPU, memory and uptime of TR-069 CPEs** (for example the TP-Link VX230v) are shown on the device page and in the device list, as for MikroTik devices. NSM reads them from GenieACS every 5 minutes without sending anything to the CPE, and does not show values more than 2 hours old.
+  - **After the update, press *Installa modelli* again in *Amministrazione → ACS*.** That updates the NSM rule in GenieACS, so the CPE reports these values at every periodic contact (5 minutes) instead of once an hour.
+- **Device page of TR-069 CPEs:** the *Backup* tile says *non disponibile* instead of an orange "mai", because backups through the ACS are not supported yet. The data source reads *TR-069 (ACS)*.
+
 ## 0.49.205 — 2026-10-22
 
 Zabbix: use the hosts you already have
