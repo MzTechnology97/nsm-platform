@@ -5062,8 +5062,11 @@
     "ACS_DIAGNOSTIC_REQUESTED": "ACS diagnostic requested",
     "ACS_MIGRATION_COMPLETED": "ACS migration completed",
     "ACS_MIGRATION_STARTED": "ACS migration started",
+    "ACS_REBOOT_REQUESTED": "CPE reboot requested",
+    "ACS_REBOOT_VERIFIED": "CPE reboot verified",
     "ACS_TEMPLATES_INSTALLED": "ACS templates installed",
     "ACS_TEMPLATES_UPDATED": "ACS templates updated by NSM",
+    "ACS_WIFI_CHANGED": "Wi-Fi changed through the ACS",
     "AGENT_HEALTH_ISSUE_OPENED": "Agent health issue opened",
     "AGENT_HEALTH_RECOVERED": "Agent recovered",
     "API_KEY_CREATED": "API key created",
@@ -5495,5 +5498,43 @@
       "address": "Address",
       "rtt": "Times"
     }
+  },
+  "acsWifi": {
+    "title": "Wi-Fi",
+    "help": "Radios and Wi-Fi networks of the CPE as the ACS last read them. Changes are sent to the CPE through the ACS; Wi-Fi clients may reconnect. Passwords cannot be read, only replaced.",
+    "reread": "Read again from the CPE",
+    "empty": "The ACS has not read the Wi-Fi of this CPE yet: use Read again from the CPE.",
+    "radio": "Radio",
+    "channel": "Channel",
+    "enabled": "On",
+    "nowOn": "now on {{channel}}",
+    "auto": "Automatic",
+    "band": "Band",
+    "ssid": "Network name",
+    "password": "New password",
+    "passwordKeep": "leave empty to keep it",
+    "security": "Security",
+    "inactive_one": "{{count}} disabled network",
+    "inactive_other": "{{count}} disabled networks",
+    "apply_one": "Send {{count}} change",
+    "apply_other": "Send {{count}} changes",
+    "confirmText": "The CPE applies them at once: Wi-Fi clients may disconnect.",
+    "confirm": "Confirm and send",
+    "cancel": "Cancel",
+    "discard": "Discard changes",
+    "applied": "Sent: the CPE applied the changes.",
+    "queued": "Queued: the CPE did not accept the connection request and will apply them at its next contact."
+  },
+  "acsReboot": {
+    "title": "Reboot the CPE",
+    "help": "The CPE reboots through the ACS and the customer's connection drops for a few minutes. Type {{name}} to confirm.",
+    "confirm": "Device name",
+    "run": "Reboot",
+    "states": {
+      "requested": "Reboot requested {{when}}, waiting for the CPE to come back",
+      "verified": "Rebooted: the CPE came back {{when}}",
+      "unconfirmed": "Reboot requested {{when}} but not confirmed by the ACS within 15 minutes"
+    },
+    "waitingContact": "it will start at the next contact with the ACS"
   }
 }

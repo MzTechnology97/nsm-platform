@@ -5062,8 +5062,11 @@
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnostic ACS demandé",
     "ACS_MIGRATION_COMPLETED": "Migration ACS terminée",
     "ACS_MIGRATION_STARTED": "Migration ACS démarrée",
+    "ACS_REBOOT_REQUESTED": "Redémarrage du CPE demandé",
+    "ACS_REBOOT_VERIFIED": "Redémarrage du CPE vérifié",
     "ACS_TEMPLATES_INSTALLED": "Modèles ACS installés",
     "ACS_TEMPLATES_UPDATED": "Modèles ACS mis à jour par NSM",
+    "ACS_WIFI_CHANGED": "Wi-Fi modifié via l'ACS",
     "AGENT_HEALTH_ISSUE_OPENED": "Problème d'agent signalé",
     "AGENT_HEALTH_RECOVERED": "Agent rétabli",
     "API_KEY_CREATED": "Clé API créée",
@@ -5495,5 +5498,43 @@
       "address": "Adresse",
       "rtt": "Temps"
     }
+  },
+  "acsWifi": {
+    "title": "Wi-Fi",
+    "help": "Radios et réseaux Wi-Fi du CPE tels que l'ACS les a lus la dernière fois. Les modifications sont envoyées au CPE via l'ACS ; les clients Wi-Fi peuvent se reconnecter. Les mots de passe ne se lisent pas, ils se remplacent.",
+    "reread": "Relire depuis le CPE",
+    "empty": "L'ACS n'a pas encore lu le Wi-Fi de ce CPE : utilisez Relire depuis le CPE.",
+    "radio": "Radio",
+    "channel": "Canal",
+    "enabled": "Active",
+    "nowOn": "actuellement sur {{channel}}",
+    "auto": "Automatique",
+    "band": "Bande",
+    "ssid": "Nom du réseau",
+    "password": "Nouveau mot de passe",
+    "passwordKeep": "laisser vide pour le garder",
+    "security": "Sécurité",
+    "inactive_one": "{{count}} réseau désactivé",
+    "inactive_other": "{{count}} réseaux désactivés",
+    "apply_one": "Envoyer {{count}} modification",
+    "apply_other": "Envoyer {{count}} modifications",
+    "confirmText": "Le CPE les applique aussitôt : les clients Wi-Fi peuvent se déconnecter.",
+    "confirm": "Confirmer et envoyer",
+    "cancel": "Annuler",
+    "discard": "Annuler les modifications",
+    "applied": "Envoyées : le CPE a appliqué les modifications.",
+    "queued": "En file : le CPE n'a pas accepté la demande de connexion et les appliquera au prochain contact."
+  },
+  "acsReboot": {
+    "title": "Redémarrer le CPE",
+    "help": "Le CPE redémarre via l'ACS et la connexion du client est coupée quelques minutes. Saisissez {{name}} pour confirmer.",
+    "confirm": "Nom de l'équipement",
+    "run": "Redémarrer",
+    "states": {
+      "requested": "Redémarrage demandé le {{when}}, en attente du retour du CPE",
+      "verified": "Redémarré : le CPE est revenu le {{when}}",
+      "unconfirmed": "Redémarrage demandé le {{when}} mais non confirmé par l'ACS en 15 minutes"
+    },
+    "waitingContact": "il démarrera au prochain contact avec l'ACS"
   }
 }

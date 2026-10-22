@@ -5062,8 +5062,11 @@
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnóstico ACS solicitado",
     "ACS_MIGRATION_COMPLETED": "Migración ACS completada",
     "ACS_MIGRATION_STARTED": "Migración ACS iniciada",
+    "ACS_REBOOT_REQUESTED": "Reinicio del CPE solicitado",
+    "ACS_REBOOT_VERIFIED": "Reinicio del CPE verificado",
     "ACS_TEMPLATES_INSTALLED": "Plantillas ACS instaladas",
     "ACS_TEMPLATES_UPDATED": "Plantillas ACS actualizadas por NSM",
+    "ACS_WIFI_CHANGED": "Wi-Fi modificado a través del ACS",
     "AGENT_HEALTH_ISSUE_OPENED": "Problema del agente notificado",
     "AGENT_HEALTH_RECOVERED": "Agente recuperado",
     "API_KEY_CREATED": "Clave API creada",
@@ -5495,5 +5498,43 @@
       "address": "Dirección",
       "rtt": "Tiempos"
     }
+  },
+  "acsWifi": {
+    "title": "Wi-Fi",
+    "help": "Radios y redes Wi-Fi del CPE tal como el ACS las leyó por última vez. Los cambios se envían al CPE a través del ACS; los clientes Wi-Fi pueden reconectarse. Las contraseñas no se pueden leer, solo sustituir.",
+    "reread": "Volver a leer del CPE",
+    "empty": "El ACS aún no ha leído el Wi-Fi de este CPE: usa Volver a leer del CPE.",
+    "radio": "Radio",
+    "channel": "Canal",
+    "enabled": "Activa",
+    "nowOn": "ahora en {{channel}}",
+    "auto": "Automático",
+    "band": "Banda",
+    "ssid": "Nombre de red",
+    "password": "Nueva contraseña",
+    "passwordKeep": "dejar vacío para mantenerla",
+    "security": "Seguridad",
+    "inactive_one": "{{count}} red desactivada",
+    "inactive_other": "{{count}} redes desactivadas",
+    "apply_one": "Enviar {{count}} cambio",
+    "apply_other": "Enviar {{count}} cambios",
+    "confirmText": "El CPE los aplica enseguida: los clientes Wi-Fi pueden desconectarse.",
+    "confirm": "Confirmar y enviar",
+    "cancel": "Cancelar",
+    "discard": "Descartar cambios",
+    "applied": "Enviados: el CPE aplicó los cambios.",
+    "queued": "En cola: el CPE no aceptó la solicitud de conexión y los aplicará en el próximo contacto."
+  },
+  "acsReboot": {
+    "title": "Reiniciar el CPE",
+    "help": "El CPE se reinicia a través del ACS y la conexión del cliente cae unos minutos. Escribe {{name}} para confirmar.",
+    "confirm": "Nombre del equipo",
+    "run": "Reiniciar",
+    "states": {
+      "requested": "Reinicio solicitado el {{when}}, esperando que vuelva el CPE",
+      "verified": "Reiniciado: el CPE volvió el {{when}}",
+      "unconfirmed": "Reinicio solicitado el {{when}} pero no confirmado por el ACS en 15 minutos"
+    },
+    "waitingContact": "empezará en el próximo contacto con el ACS"
   }
 }
