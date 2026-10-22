@@ -161,7 +161,8 @@ def api_device(device) -> dict | None:
             configured = bool(row and row.is_enabled)
         return {"link": None, "excluded": False, "problems": None} if configured else None
     problems = device_problems(device)
-    return {"link": link, "excluded": False, "problems": None if problems is None else {
+    linked = ((device.inventory_data or {}).get("zabbix") or {})
+    return {"link": link, "excluded": False, "linked": bool(linked.get("linked")), "match": linked.get("match"), "problems": None if problems is None else {
         "items": [{"name": p["name"], "severity": int(p["severity"]), "since": p.get("since"), "acknowledged": bool(p.get("acknowledged"))}
                   for p in problems["items"]],
         "checked_at": problems["checked_at"], "stale": bool(problems["stale"])}}
