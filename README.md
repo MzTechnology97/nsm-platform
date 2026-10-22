@@ -137,9 +137,15 @@ Never commit production tokens, API keys, private keys, enrollment credentials, 
 
 ## Screenshots
 
-Interface screenshots are useful documentation, but only **sanitized demo screenshots** are acceptable in this public repository. No authenticated/sanitized running NSM UI was available while this documentation snapshot was prepared, so no screenshot has been fabricated or copied from a real deployment.
+Captured from a local demo instance with synthetic data only (Core 0.49.196, Italian interface). More views in [`docs/images/`](docs/images/); new captures follow the checklist in [`docs/README.md`](docs/README.md).
 
-When a safe demo instance is available, add captures under `docs/images/` following the checklist in [`docs/README.md`](docs/README.md). Screens must contain synthetic Customers, Devices, addresses and identifiers only.
+| | |
+|---|---|
+| ![Dashboard](docs/images/dashboard.png) Dashboard | ![Device overview](docs/images/device-overview.png) Device overview |
+| ![Device list](docs/images/devices.png) Device list | ![Customer](docs/images/customer.png) Customer overview |
+| ![Device monitor](docs/images/device-monitor.png) Device monitor (30 days) | ![Device backups](docs/images/device-backups.png) Device backups |
+| ![Action Center](docs/images/action-center.png) Action Center | ![Customer SLA](docs/images/sla.png) Customer SLA |
+| ![Dashboard, dark theme](docs/images/dashboard-dark.png) Dark theme | ![Device on a phone](docs/images/device-overview-phone.png) Phone width |
 
 ## Deployment and update
 
