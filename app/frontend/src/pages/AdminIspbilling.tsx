@@ -61,7 +61,12 @@ function Status({ data }: { data: IspbillingAdmin }) {
           <span>{t("ispbilling.addresses")}</span><strong>{data.addresses}</strong>
           <small>{data.details_pending ? t("ispbilling.addressesPending", { count: data.details_pending }) : t("ispbilling.addressesDone")}</small>
         </div>
+        <div className="ui-metric">
+          <span>{t("ispbilling.radius")}</span><strong>{data.radius_accounts}</strong>
+          <small>{t("ispbilling.radiusMatched", { count: data.radius_matched })}</small>
+        </div>
       </div>
+      {last.radius_error && <div className="ui-alert ui-alert-warning">{t("ispbilling.radiusError", { error: last.radius_error })}</div>}
       {last.status === "failed" && last.error && <div className="ui-alert ui-alert-warning">{last.error}</div>}
       {data.last_test_status === "failed" && data.last_error && <div className="ui-alert ui-alert-warning">{data.last_error}</div>}
     </>

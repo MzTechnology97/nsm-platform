@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
 import { BrandIcon } from "../app/BrandIcon";
-import { type DeviceDetail as Detail, useDecommission, useDevice, useZabbixExclude } from "../api/device";
+import { type DeviceDetail as Detail, useDecommission, useDevice, useZabbixExclude, type DeviceIspbillingAccount } from "../api/device";
 import { formatDateTime, formatDuration, formatRelative } from "../lib/format";
 import { InfoTip } from "../app/InfoTip";
 import { Resources } from "../app/Resources";
@@ -285,8 +285,37 @@ export function DeviceOverview() {
           )}
         </section>
       </div>
+      {detail.ispbilling?.length ? <IspbillingAccounts accounts={detail.ispbilling} /> : null}
       {detail.zabbix && <DeviceZabbixPanel zabbix={detail.zabbix} />}
     </>
+  );
+}
+
+const RADIUS_TONE: Record<string, string> = { attivo: "online", sospeso: "warning", terminato: "offline" };
+
+/** The ISPBilling RADIUS accounts of this device: who is billed for it and whether the account is active. */
+function IspbillingAccounts({ accounts }: { accounts: DeviceIspbillingAccount[] }) {
+  const { t } = useTranslation();
+  return (
+    <section className="ui-panel">
+      <h2>{t("device.ispbilling.title")}</h2>
+      <p className="ui-muted">{t("device.ispbilling.help")}</p>
+      <ul className="ui-list">
+        {accounts.map((account) => (
+          <li key={account.username}>
+            <span>
+              <strong className="ui-mono">{account.username}</strong>
+              <small className="ui-muted ui-block">
+                {[account.profile, account.customer, t(`device.ispbilling.matched.${account.matched_by ?? "pppoe"}`)].filter(Boolean).join(" · ")}
+              </small>
+              {account.same_customer === false && <small className="ui-key-hint ui-block">{t("device.ispbilling.otherCustomer")}</small>}
+            </span>
+            <span />
+            <span className={`ui-status ui-status-${RADIUS_TONE[(account.status ?? "").toLowerCase()] ?? "unknown"}`}>{account.status ?? "—"}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

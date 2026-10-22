@@ -347,7 +347,7 @@ def _date(value):
 def device_detail(request: Request, device_id: uuid.UUID):
     """Everything the device overview shows, in one call."""
     from app import device_decommission as decommission
-    from app import icmp_monitor, zabbix_problems
+    from app import icmp_monitor, ispbilling_radius, zabbix_problems
     from app.backup_capabilities import capability_for_device
     from app.models import ActionIssue, BackupRun
 
@@ -396,6 +396,7 @@ def device_detail(request: Request, device_id: uuid.UUID):
             "icmp": {"enabled": icmp["enabled"], "target": icmp["effective_target"], "last_rtt": icmp["last_rtt"],
                      "last_loss": icmp["last_loss"], "down": icmp["down"], "last_at": icmp["last_at"]},
             "availability_30d": _availability_30d(db, device),
+            "ispbilling": ispbilling_radius.device_accounts(db, device),
             "zabbix": zabbix,
             "decommissioned": decommission.summary(db, device),
             "tabs": [{"key": key} for key, visible in TABS if visible(device)],

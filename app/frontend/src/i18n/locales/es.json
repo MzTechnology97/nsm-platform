@@ -235,7 +235,16 @@
       "notMeasured": "no medida",
       "notMeasuredNote": "active el ping de NSM en Monitor"
     },
-    "backupNever": "nunca"
+    "backupNever": "nunca",
+    "ispbilling": {
+      "title": "Cuenta ISPBilling",
+      "help": "La cuenta RADIUS de ISPBilling servida por este equipo, leída de la facturación.",
+      "otherCustomer": "ISPBilling factura esta cuenta a un cliente distinto del cliente NSM del equipo.",
+      "matched": {
+        "pppoe": "asociada por usuario PPPoE",
+        "ip": "asociada por IP estática"
+      }
+    }
   },
   "monitor": {
     "range": "Intervalo",
@@ -5437,6 +5446,9 @@
     "doneTitle": "Importación completada",
     "done": "{{created}} clientes creados, {{linked}} vinculados; {{sites}} sedes creadas, {{sitesLinked}} vinculadas a sedes existentes.",
     "skipped": "{{count}} omitidos.",
-    "openCustomers": "Abrir los clientes"
+    "openCustomers": "Abrir los clientes",
+    "radius": "Cuentas RADIUS",
+    "radiusMatched": "{{count}} asociadas a un equipo",
+    "radiusError": "Cuentas RADIUS no leídas: {{error}}"
   }
 }
