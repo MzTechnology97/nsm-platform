@@ -621,6 +621,7 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - pages of up to 2000 records with the documented pause between requests (6.5 s without key, 1 s with key);
 - idempotent upsert by CVE id; an unchanged record only refreshes `fetched_at`; provenance kept on the advisory (`source`, NVD `vulnStatus`, published/modified, fetched);
 - records that cannot be normalized are skipped and listed in the admin page (bounded list) instead of aborting the run;
+- each NVD request is tried up to three times (timeouts 30, 60 and 90 s; also on HTTP 5xx) before the run fails, because NVD has slow periods (Core 0.49.206); rate limiting (403/429) and other client errors are not retried;
 - transport/HTTP failures back off exponentially (max 24 h); after 3 consecutive failures one Action Center issue is opened and resolved by the next success; audit events for configuration, runs and failures;
 - worker cycle: ingestion when due (default every 6 h), matching every 15 min;
 - requires outbound HTTPS from the app and worker containers to `services.nvd.nist.gov` (manual *Aggiorna ora* runs in the app, scheduled runs in the worker).
