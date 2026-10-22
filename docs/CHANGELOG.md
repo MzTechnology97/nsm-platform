@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.197 — 2026-10-22
+
+Documentation
+- **Screenshots of the interface** in `docs/images/` and in the README: dashboard (light and dark), device list, customer, device overview (also at phone width), monitor, backups, agents, firmware, vulnerabilities, Action Center, notifications and customer SLA. They come from a demo instance with synthetic data only (documentation IP addresses, `02:` MAC addresses, "Demo" names).
+
 ## 0.49.196 — 2026-10-22
 
 Event names in your language

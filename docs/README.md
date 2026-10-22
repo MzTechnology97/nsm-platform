@@ -123,7 +123,26 @@ Do not update documentation to claim a capability before its implementation exis
 
 ## Screenshots
 
-Screenshots may be stored under `docs/images/` when a safe demo instance is available.
+Screenshots are stored under `docs/images/`. The current set was captured on 2026-10-22 (Core 0.49.196) from a local demo instance seeded with synthetic data, at 1440 px (and 375 px for the phone view), Italian interface:
+
+| File | View |
+|---|---|
+| `dashboard.png`, `dashboard-dark.png` | Dashboard, light and dark theme |
+| `devices.png` | Device list |
+| `customer.png` | Customer overview |
+| `device-overview.png`, `device-overview-phone.png` | Device overview, desktop and phone |
+| `device-monitor.png` | Device monitor, 30 days |
+| `device-backups.png` | Device-scoped backup explorer |
+| `agents.png` | Agent fleet |
+| `firmware.png` | Firmware worklist |
+| `vulnerabilities.png` | Vulnerabilities |
+| `action-center.png` | Action Center |
+| `notifications.png` | Notification Center |
+| `sla.png` | Customer SLA |
+
+Still missing: the UISP and cnMaestro onboarding with synthetic data (the demo instance has no connector configured).
+
+Replace a capture when its page changes visibly.
 
 Required safety rules:
 
@@ -136,7 +155,7 @@ Required safety rules:
 - no logs containing operational identifiers;
 - review the final image manually before committing it.
 
-Recommended first screenshot set:
+Recommended screenshot set:
 
 1. Dashboard;
 2. Customer profile / Devices;
