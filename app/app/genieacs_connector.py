@@ -31,13 +31,26 @@ GENIEACS_TIMEOUT_SECONDS = 12.0
 GENIEACS_MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 GENIEACS_ONLINE_WINDOW_MINUTES = 1440
 
+# "*" matches every instance (Device.Ethernet.Interface.1, .2, …): CPEs number their objects freely.
 DEFAULT_MAC_PARAMETER_PATHS = (
+    "Device.Ethernet.Interface.*.MACAddress",
+    "Device.Ethernet.Link.*.MACAddress",
+    "InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.MACAddress",
+    "InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.MACAddress",
+    "InternetGatewayDevice.WANDevice.*.WANEthernetInterfaceConfig.MACAddress",
+    "InternetGatewayDevice.LANDevice.*.LANEthernetInterfaceConfig.*.MACAddress",
+)
+# Defaults saved on connectors before Core 0.49.201: replaced by the current defaults when read.
+LEGACY_MAC_PARAMETER_PATHS = (
     "InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.MACAddress",
     "InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.MACAddress",
     "Device.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.MACAddress",
     "Device.Ethernet.Interface.1.MACAddress",
     "InternetGatewayDevice.LANDevice.1.LANEthernetInterfaceConfig.1.MACAddress",
 )
+# Searching by MAC, GenieACS has no wildcard: each path is expanded to at most this many concrete
+# instances (8 for one "*", 2×2 for two, 2×2×2 for three) and queried on its own, keeping the URL short.
+MAC_QUERY_MAX_PATHS = 8
 MODEL_PATHS = (
     "Device.DeviceInfo.ModelName",
     "InternetGatewayDevice.DeviceInfo.ModelName",
@@ -50,10 +63,15 @@ HARDWARE_PATHS = (
     "Device.DeviceInfo.HardwareVersion",
     "InternetGatewayDevice.DeviceInfo.HardwareVersion",
 )
+# The address the CPE gives the ACS for connection requests comes first: it is the one the ACS reaches it on.
+CONNECTION_REQUEST_URL_PATHS = (
+    "Device.ManagementServer.ConnectionRequestURL",
+    "InternetGatewayDevice.ManagementServer.ConnectionRequestURL",
+)
 IP_PATHS = (
-    "Device.IP.Interface.1.IPv4Address.1.IPAddress",
-    "InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.ExternalIPAddress",
-    "InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.ExternalIPAddress",
+    "Device.IP.Interface.*.IPv4Address.*.IPAddress",
+    "InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.ExternalIPAddress",
+    "InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.ExternalIPAddress",
 )
 BASE_PROJECTION = (
     "_id",
@@ -62,6 +80,7 @@ BASE_PROJECTION = (
     *MODEL_PATHS,
     *SOFTWARE_PATHS,
     *HARDWARE_PATHS,
+    *CONNECTION_REQUEST_URL_PATHS,
     *IP_PATHS,
 )
 
@@ -190,12 +209,87 @@ def _nested(data: dict, path: str):
     return current
 
 
+def _instance_order(key: str):
+    return (0, int(key)) if key.isdigit() else (1, key)
+
+
+def _values(data: dict, path: str) -> list:
+    """Every value at ``path``; a "*" segment walks all instances in numeric order."""
+    nodes = [data]
+    for part in path.split("."):
+        following = []
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            if part == "*":
+                following.extend(node[key] for key in sorted((k for k in node if not k.startswith("_")), key=_instance_order))
+            elif part in node:
+                following.append(node[part])
+        nodes = following
+    values = []
+    for node in nodes:
+        value = node.get("_value") if isinstance(node, dict) and "_value" in node else node
+        if value not in {None, ""} and not isinstance(value, (dict, list)):
+            values.append(value)
+    return values
+
+
 def _first_value(row: dict, paths):
     for path in paths:
-        value = _nested(row, path)
-        if value not in {None, ""} and not isinstance(value, (dict, list)):
-            return value
+        values = _values(row, path)
+        if values:
+            return values[0]
     return None
+
+
+def _usable_ipv4(value) -> str | None:
+    try:
+        address = ipaddress.IPv4Address(str(value).strip())
+    except ValueError:
+        return None
+    if address.is_loopback or address.is_link_local or address.is_unspecified or address.is_multicast:
+        return None
+    return str(address)
+
+
+def _management_ip(row: dict) -> str | None:
+    for path in CONNECTION_REQUEST_URL_PATHS:
+        for url in _values(row, path):
+            host = urlsplit(str(url)).hostname
+            if host and _usable_ipv4(host):
+                return _usable_ipv4(host)
+    for path in IP_PATHS:
+        for value in _values(row, path):
+            if _usable_ipv4(value):
+                return _usable_ipv4(value)
+    return None
+
+
+def _macs(row: dict, paths) -> list[str]:
+    found = []
+    for path in paths:
+        for value in _values(row, path):
+            mac = _normalize_mac_quiet(value)
+            if mac and mac != "00:00:00:00:00:00" and mac not in found:
+                found.append(mac)
+    return found
+
+
+def _projection_path(path: str) -> str:
+    """GenieACS projects whole objects: a wildcard path is fetched through its parent object."""
+    head = path.split(".*", 1)[0]
+    return head
+
+
+def _expand_instances(path: str) -> list[str]:
+    stars = path.count("*")
+    if not stars:
+        return [path]
+    per_star = max(1, int(round(MAC_QUERY_MAX_PATHS ** (1 / stars), 6)))
+    paths = [path]
+    for _ in range(stars):
+        paths = [item.replace("*", str(index), 1) for item in paths for index in range(1, per_star + 1)]
+    return paths[:MAC_QUERY_MAX_PATHS]
 
 
 def _normalize_mac_quiet(value):
@@ -245,7 +339,7 @@ def _mac_paths(connection: ConnectorIntegration) -> tuple[str, ...]:
     configured = (connection.settings or {}).get("mac_parameter_paths")
     if isinstance(configured, list):
         clean = tuple(str(item).strip() for item in configured if str(item).strip())
-        if clean:
+        if clean and clean != LEGACY_MAC_PARAMETER_PATHS:
             return clean[:20]
     return DEFAULT_MAC_PARAMETER_PATHS
 
@@ -255,19 +349,19 @@ def candidate_from_genieacs(row: dict, connection: ConnectorIntegration, matched
     serial = device_id.get("_SerialNumber")
     manufacturer = device_id.get("_Manufacturer")
     product_class = device_id.get("_ProductClass")
-    mac_paths = _mac_paths(connection)
-    observed_mac = _normalize_mac_quiet(_first_value(row, mac_paths))
+    macs = _macs(row, _mac_paths(connection))
     model = _first_value(row, MODEL_PATHS) or product_class
     firmware = _first_value(row, SOFTWARE_PATHS)
     hardware = _first_value(row, HARDWARE_PATHS)
-    management_ip = _first_value(row, IP_PATHS)
+    management_ip = _management_ip(row)
     last_seen = _parse_seen(row.get("_lastInform"))
     online_window = int((connection.settings or {}).get("online_window_minutes") or GENIEACS_ONLINE_WINDOW_MINUTES)
     identity_parts = [part for part in (manufacturer, model, serial) if part]
     return {
         "external_id": str(row.get("_id") or "").strip() or None,
         "serial_number": str(serial).strip()[:150] if serial else None,
-        "primary_mac": observed_mac,
+        "primary_mac": macs[0] if macs else None,
+        "macs": macs,
         "manufacturer": str(manufacturer).strip()[:150] if manufacturer else None,
         "product_class": str(product_class).strip()[:150] if product_class else None,
         "device_identity": " · ".join(str(part).strip() for part in identity_parts)[:200] if identity_parts else None,
@@ -316,7 +410,7 @@ def _connection(db, enabled_only=False):
 
 
 def _projection(connection):
-    return tuple(dict.fromkeys((*BASE_PROJECTION, *_mac_paths(connection))))
+    return tuple(dict.fromkeys(_projection_path(path) for path in (*BASE_PROJECTION, *_mac_paths(connection))))
 
 
 def _query_serial(connection, serial: str):
@@ -330,16 +424,13 @@ def _query_serial(connection, serial: str):
 
 def _query_mac(connection, mac: str):
     wanted = core.norm_mac(mac)
-    alternatives = []
+    rows = {}
     for path in _mac_paths(connection):
-        alternatives.append({path: {"$in": [wanted, wanted.lower()]}})
-    rows = _http_get(
-        connection,
-        query={"$or": alternatives},
-        projection=_projection(connection),
-    )
-    candidates = [candidate_from_genieacs(row, connection, "mac") for row in rows]
-    return [candidate for candidate in candidates if candidate.get("primary_mac") == wanted]
+        alternatives = [{concrete: {"$in": [wanted, wanted.lower()]}} for concrete in _expand_instances(path)]
+        for row in _http_get(connection, query={"$or": alternatives}, projection=_projection(connection)):
+            rows.setdefault(str(row.get("_id")), row)
+    candidates = [candidate_from_genieacs(row, connection, "mac") for row in rows.values()]
+    return [candidate for candidate in candidates if wanted in candidate.get("macs", [])]
 
 
 def lookup_device(connection: ConnectorIntegration, device: Device) -> dict:
@@ -360,9 +451,15 @@ def lookup_device(connection: ConnectorIntegration, device: Device) -> dict:
         raise GenieAcsConnectorError("Il CPE GenieACS non espone un identificativo stabile.")
     if device.serial_number and candidate.get("serial_number") and candidate["serial_number"] != device.serial_number:
         raise GenieAcsConnectorError("Il seriale osservato da GenieACS non coincide con il record NSM.")
-    if device.primary_mac and candidate.get("primary_mac") and candidate["primary_mac"] != core.norm_mac(device.primary_mac):
+    if not _mac_matches(device, candidate):
         raise GenieAcsConnectorError("Il MAC osservato da GenieACS non coincide con il record NSM.")
     return candidate
+
+
+def _mac_matches(device: Device, candidate: dict) -> bool:
+    """The MAC on the NSM record is one of the CPE's interfaces (LAN, WAN, …), or one side is unknown."""
+    macs = candidate.get("macs") or ([candidate["primary_mac"]] if candidate.get("primary_mac") else [])
+    return not device.primary_mac or not macs or core.norm_mac(device.primary_mac) in macs
 
 
 def lookup_by_external_id(connection: ConnectorIntegration, external_id: str) -> dict:
@@ -413,7 +510,7 @@ def apply_candidate(db, device: Device, candidate: dict, actor, event_type="GENI
         raise HTTPException(409, "Questo CPE GenieACS è già associato a un altro record NSM.")
     if device.serial_number and candidate.get("serial_number") and candidate["serial_number"] != device.serial_number:
         raise HTTPException(409, "Il seriale GenieACS non coincide con il record NSM.")
-    if device.primary_mac and candidate.get("primary_mac") and candidate["primary_mac"] != core.norm_mac(device.primary_mac):
+    if not _mac_matches(device, candidate):
         raise HTTPException(409, "Il MAC GenieACS non coincide con il record NSM.")
     if not device.primary_mac and candidate.get("primary_mac") and db.scalar(
         select(Device.id).where(Device.vendor == device.vendor, Device.primary_mac == candidate["primary_mac"], Device.id != device.id)
@@ -426,7 +523,7 @@ def apply_candidate(db, device: Device, candidate: dict, actor, event_type="GENI
     device.device_identity = candidate.get("device_identity") or device.device_identity
     device.model = candidate.get("model") or device.model
     device.serial_number = candidate.get("serial_number") or device.serial_number
-    device.primary_mac = candidate.get("primary_mac") or device.primary_mac
+    device.primary_mac = device.primary_mac or candidate.get("primary_mac")
     device.firmware_version = candidate.get("firmware_version") or device.firmware_version
     device.management_ip = candidate.get("management_ip") or device.management_ip
     device.status = candidate.get("status") or device.status
