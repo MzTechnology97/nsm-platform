@@ -5076,6 +5076,9 @@
     "ACS_REBOOT_REQUESTED": "Riavvio del CPE richiesto",
     "ACS_REBOOT_VERIFIED": "Riavvio del CPE verificato",
     "ACS_SNAPSHOT_ARCHIVED": "Istantanea configurazione TR-069 archiviata",
+    "ACS_SPEEDTEST_COMPLETED": "Test di velocità del CPE completato",
+    "ACS_SPEEDTEST_REQUESTED": "Test di velocità del CPE richiesto",
+    "ACS_SPEEDTEST_SETTINGS_CHANGED": "Impostazioni del test di velocità modificate",
     "ACS_TEMPLATES_INSTALLED": "Modelli ACS installati",
     "ACS_TEMPLATES_UPDATED": "Modelli ACS aggiornati da NSM",
     "ACS_WIFI_CHANGED": "Wi-Fi modificato tramite ACS",
@@ -5585,5 +5588,48 @@
     "refreshQueued": "Il CPE non ha accettato la richiesta di connessione: la configurazione verrà letta al prossimo contatto.",
     "saved": "Istantanea salvata.",
     "open": "Apri la scheda Backup"
+  },
+  "acsSpeedtest": {
+    "title": "Test di velocità dal CPE",
+    "help": "Il CPE stesso scarica o invia un file da {{size}} MB (TR-143): il risultato è la velocità della linea del cliente fino al server di test, non del Wi-Fi. Durante il test la connessione del cliente è occupata.",
+    "run": {
+      "download": "Prova download",
+      "upload": "Prova upload"
+    },
+    "kinds": {
+      "download": "Download",
+      "upload": "Upload"
+    },
+    "mbps": "{{value}} Mbps",
+    "never": "Mai eseguito",
+    "detail": "{{size}} MB in {{seconds}} s",
+    "toNsm": "verso il server NSM",
+    "waitingContact": "partirà al prossimo contatto con l'ACS",
+    "states": {
+      "requested": "In corso",
+      "complete": "Completato",
+      "error": "Non riuscito sul CPE",
+      "timeout": "Nessuna risposta dal CPE entro 10 minuti"
+    },
+    "errors": {
+      "Error_InitConnectionFailed": "il CPE non è riuscito a collegarsi al server di test (indirizzo o firewall)",
+      "Error_NoResponse": "il server di test non ha risposto",
+      "Error_TransferFailed": "il trasferimento si è interrotto",
+      "Error_IncorrectSize": "la dimensione del file non corrisponde",
+      "Error_Timeout": "il trasferimento ha impiegato troppo"
+    },
+    "settings": {
+      "title": "Test di velocità dei CPE",
+      "help": "Per impostazione predefinita il CPE scarica e invia il file di test da NSM stesso, all'indirizzo che usa per l'ACS sulla porta HTTP 80, con un link valido 15 minuti solo per quel test. Imposta l'indirizzo di NSM se i CPE lo raggiungono altrove (per esempio in HTTPS con un nome DNS), oppure altri URL di download e upload per misurare verso un altro server.",
+      "server_url": "Indirizzo di NSM per i CPE",
+      "server_urlPlaceholder": "vuoto: l'host dell'ACS sulla porta 80",
+      "download_url": "Altro URL di download",
+      "download_urlPlaceholder": "vuoto: NSM",
+      "upload_url": "Altro URL di upload",
+      "upload_urlPlaceholder": "vuoto: NSM",
+      "size": "Dimensione del test (MB)",
+      "save": "Salva",
+      "saved": "Salvato."
+    }
   }
 }

@@ -1,0 +1,176 @@
+"""ACS-06: TR-143 speed test of TR-069 CPEs through GenieACS (fake NBI) and NSM's signed test file endpoints."""
+import json
+import re
+import uuid
+from datetime import timedelta
+from urllib.parse import unquote, urlsplit
+
+import httpx
+from fastapi.testclient import TestClient
+from sqlalchemy import select
+
+from app import acs_diagnostics as nbi
+from app import acs_speedtest as speed
+from app.db import SessionLocal
+from app.entrypoint import app
+from app.integration_models import ConnectorIntegration
+from app.models import AuditEvent, Customer, Device, User, utcnow
+from app.secret_vault import encrypt_text
+from app.security import hash_password
+
+PASSWORD = "CI-ACS-Speed-2026"
+BASE = "Device.IP.Diagnostics"
+
+
+def leaf(value, writable=True):
+    return {"_value": value, "_writable": writable}
+
+
+class FakeNbi:
+    """Applies setParameterValues like a CPE; a refresh of a requested test completes it (or fails it when ``fail`` is set)."""
+
+    def __init__(self):
+        self.records, self.tasks, self.fail = {}, [], None
+
+    def node(self, record, path):
+        node = record
+        for part in path.split("."):
+            node = node.setdefault(part, {})
+        return node
+
+    def __call__(self, request: httpx.Request):
+        if request.method == "GET" and request.url.path == "/devices":
+            record = self.records.get(json.loads(request.url.params["query"])["_id"])
+            return httpx.Response(200, json=[record] if record else [])
+        match = re.fullmatch(r"/devices/(.+)/tasks", request.url.path)
+        record = self.records.get(unquote(match.group(1))) if match else None
+        if record is None:
+            return httpx.Response(404)
+        task = json.loads(request.content)
+        self.tasks.append(task)
+        if task["name"] == "setParameterValues":
+            for path, value, _kind in task["parameterValues"]:
+                self.node(record, path)["_value"] = value
+        elif task["name"] == "refreshObject":
+            obj = self.node(record, task["objectName"])
+            if obj.get("DiagnosticsState", {}).get("_value") == "Requested":
+                if self.fail:
+                    obj["DiagnosticsState"]["_value"] = self.fail
+                else:
+                    obj["DiagnosticsState"]["_value"] = "Completed"
+                    obj["BOMTime"] = leaf("2026-10-22T10:00:00.000000Z", False)
+                    obj["EOMTime"] = leaf("2026-10-22T10:00:02.500000Z", False)
+                    if task["objectName"].endswith("DownloadDiagnostics"):
+                        obj["TestBytesReceived"] = leaf(26214400, False)
+                    else:
+                        obj["TotalBytesSent"] = leaf(13107200, False)
+        return httpx.Response(200, json={"_id": "t"})
+
+
+def main():
+    suffix = uuid.uuid4().hex[:6].upper()
+    fake = FakeNbi()
+    nbi.TRANSPORT = httpx.MockTransport(fake)
+    ext = f"202BC1-VX230v-P{suffix}"
+    fake.records[ext] = {"_id": ext, "Device": {
+        "ManagementServer": {"URL": leaf("http://198.51.100.20:7547/")},
+        "IP": {"Diagnostics": {"DownloadDiagnostics": {"DownloadURL": leaf(""), "DiagnosticsState": leaf("None")},
+                               "UploadDiagnostics": {"UploadURL": leaf(""), "TestFileLength": leaf(0), "DiagnosticsState": leaf("None")}}}}}
+    with SessionLocal() as db:
+        db.query(ConnectorIntegration).filter_by(provider="genieacs").delete()
+        db.add(ConnectorIntegration(provider="genieacs", name="GenieACS", base_url="http://genieacs.example.test:7557",
+                                    secret_encrypted=encrypt_text(json.dumps({"mode": "none"})), is_enabled=True, settings={}))
+        customer = Customer(name=f"CI ACS Speed {suffix}", code=f"AP{suffix}")
+        db.add(customer)
+        db.flush()
+        cpe = Device(customer_id=customer.id, vendor="tp-link", device_type="router", name=f"TEST-ACSP-{suffix}", external_device_id=ext,
+                     management_source="tr069", status="online")
+        db.add(cpe)
+        for role in ("technician", "auditor", "admin"):
+            db.add(User(username=f"ci-acsp-{role}-{suffix}", password_hash=hash_password(PASSWORD), role=role, is_active=True))
+        db.commit()
+        device_id = cpe.id
+
+    def login(name):
+        client = TestClient(app)
+        token = re.search(r'name="csrf" value="([^"]+)"', client.get("/login").text).group(1)
+        assert client.post("/login", data={"username": name, "password": PASSWORD, "csrf": token}, follow_redirects=False).status_code == 303
+        client.headers["X-CSRF-Token"] = client.get("/api/ui/v1/session").json()["csrf_token"]
+        return client
+
+    tech, auditor, admin = (login(f"ci-acsp-{role}-{suffix}") for role in ("technician", "auditor", "admin"))
+    url = f"/api/ui/v1/devices/{device_id}/acs/speedtest"
+
+    start = auditor.get(url).json()
+    assert start["linked"] and start["can_run"] is False and start["size_mb"] == 25 and start["tests"] == {"download": None, "upload": None}
+    assert auditor.post(f"{url}/download").status_code == 403
+
+    # Download towards NSM: a signed link on the host the CPE uses for the ACS, port 80.
+    running = tech.post(f"{url}/download").json()
+    assert running["tests"]["download"]["state"] == "requested" and running["model"] == "tr181"
+    values = {path: value for path, value, _ in fake.tasks[-1]["parameterValues"]}
+    link = values[f"{BASE}.DownloadDiagnostics.DownloadURL"]
+    assert values[f"{BASE}.DownloadDiagnostics.DiagnosticsState"] == "Requested"
+    parts = urlsplit(link)
+    assert parts.scheme == "http" and parts.netloc == "198.51.100.20" and parts.path.startswith(f"/acs-speedtest/{device_id}/"), link
+    assert tech.post(f"{url}/upload").status_code == 409, "one test at a time"
+
+    # NSM serves exactly the signed size; a changed size, a wrong signature or an expired link get nothing.
+    public = TestClient(app)
+    small = speed.signed_path(device_id, 300_000, utcnow())
+    body = public.get(small)
+    assert body.status_code == 200 and len(body.content) == 300_000 and body.headers["content-type"] == "application/octet-stream"
+    pieces = small.split("/")
+    assert public.get("/".join(pieces[:4] + ["400000"] + pieces[5:])).status_code == 404
+    assert public.get("/".join(pieces[:5] + ["0" * 32] + pieces[6:])).status_code == 404
+    assert public.get(speed.signed_path(device_id, 300_000, utcnow() - timedelta(hours=1))).status_code == 404
+    assert public.put(small, content=b"x" * 300_000).status_code == 200
+    assert public.post(small, content=b"x" * (300_000 + 2 * 1024 * 1024)).status_code == 413
+
+    # Result: 25 MB in 2.5 s = 83.9 Mbps, audited.
+    done = auditor.get(url).json()["tests"]["download"]
+    assert done["state"] == "complete" and done["result"]["mbps"] == 83.9 and done["result"]["seconds"] == 2.5, done
+    assert done["server"] == "nsm" and done["size_mb"] == 25
+
+    # Upload towards another server set by the administrator, with a smaller file.
+    assert tech.post("/api/ui/v1/admin/acs/speedtest", json={"size_mb": 5}).status_code == 403
+    bad = admin.post("/api/ui/v1/admin/acs/speedtest", json={"size_mb": 500})
+    assert bad.status_code == 422 and "MB" in bad.json()["detail"]["message"]
+    assert admin.post("/api/ui/v1/admin/acs/speedtest", json={"server_url": "https://nsm.example.test/path"}).status_code == 422
+    saved = admin.post("/api/ui/v1/admin/acs/speedtest", json={"upload_url": "http://speed.example.test/upload", "size_mb": 10}).json()
+    assert saved["upload_url"] == "http://speed.example.test/upload" and saved["size_mb"] == 10 and saved["download_url"] == ""
+    tech.post(f"{url}/upload").raise_for_status()
+    values = {path: value for path, value, _ in fake.tasks[-1]["parameterValues"]}
+    assert values[f"{BASE}.UploadDiagnostics.UploadURL"] == "http://speed.example.test/upload"
+    assert values[f"{BASE}.UploadDiagnostics.TestFileLength"] == 10 * 1024 * 1024
+    upload = auditor.get(url).json()["tests"]["upload"]
+    assert upload["state"] == "complete" and upload["result"]["mbps"] == 41.9 and upload["server"] == "custom" and upload["host"] == "speed.example.test"
+
+    # A failure on the CPE keeps its TR-143 state.
+    fake.fail = "Error_InitConnectionFailed"
+    tech.post(f"{url}/download").raise_for_status()
+    failed = auditor.get(url).json()["tests"]["download"]
+    assert failed["state"] == "error" and failed["result"]["state"] == "Error_InitConnectionFailed", failed
+
+    # With an NSM address set, the link uses it instead of the ACS host.
+    admin.post("/api/ui/v1/admin/acs/speedtest", json={"server_url": "https://nsm.example.test", "size_mb": 25}).raise_for_status()
+    fake.fail = None
+    tech.post(f"{url}/download").raise_for_status()
+    link = {path: value for path, value, _ in fake.tasks[-1]["parameterValues"]}[f"{BASE}.DownloadDiagnostics.DownloadURL"]
+    assert link.startswith(f"https://nsm.example.test/acs-speedtest/{device_id}/"), link
+    auditor.get(url)
+
+    with SessionLocal() as db:
+        kinds = sorted(e.event_type for e in db.scalars(select(AuditEvent).where(AuditEvent.device_id == device_id)))
+        assert kinds.count("ACS_SPEEDTEST_REQUESTED") == 4 and kinds.count("ACS_SPEEDTEST_COMPLETED") == 4, kinds
+        assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "ACS_SPEEDTEST_SETTINGS_CHANGED").order_by(AuditEvent.timestamp.desc()).limit(1))
+
+    nbi.TRANSPORT = None
+    with SessionLocal() as db:
+        db.query(ConnectorIntegration).filter_by(provider="genieacs").delete()
+        db.commit()
+    print("ACS speed test smoke passed")
+
+
+if __name__ == "__main__":
+    main()
