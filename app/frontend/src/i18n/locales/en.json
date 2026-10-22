@@ -236,7 +236,8 @@
       "notMeasured": "not measured",
       "notMeasuredNote": "enable NSM ping in Monitor"
     },
-    "backupNever": "never"
+    "backupNever": "never",
+    "backupNotAvailable": "not available"
   },
   "monitor": {
     "range": "Range",
@@ -2712,7 +2713,17 @@
         "title": "Password login",
         "text": "username (5.4+) or user (earlier versions)"
       }
-    }
+    },
+    "linked": "Existing hosts linked",
+    "linkedNote": "hosts you already had in Zabbix, used as they are",
+    "ambiguous": "Not linked, several Zabbix hosts could be them: {{names}}. Give them a dedicated Zabbix IP or rename the host.",
+    "ipUpdated": "IP updated on linked hosts after an address change: {{names}}.",
+    "linkExisting": "Use the hosts already in Zabbix",
+    "linkExistingHelp": "A device is linked to the Zabbix host with the same IP (or, failing that, the same name) when exactly one matches: NSM shows its problems and creates no nsm- host for it. Groups, templates and tags of your hosts are not touched.",
+    "updateIp": "Update the IP of linked hosts when it changes",
+    "updateIpHelp": "For routers with a dynamic public IP or behind NAT: NSM writes the device's current address (public address of the router, or the one its agent connects from) on the host's main interface.",
+    "templatesFromZabbix": "Suggestions: the {{count}} templates of your Zabbix.",
+    "factoryIp": "Not in Zabbix, their address is a factory LAN address (e.g. 192.168.1.1) Zabbix cannot reach: {{names}}. Set the address Zabbix must use on the device page, or name the Zabbix host like the device."
   },
   "genieacs": {
     "title": "Integrations · GenieACS / TR-069",
@@ -4035,7 +4046,7 @@
     },
     "refresh": "Refresh from GenieACS",
     "refreshed": "Inventory refreshed from GenieACS.",
-    "notYet": "Diagnostics, backup and firmware upgrade through the ACS are not available yet.",
+    "notYet": "Backup and firmware upgrades through the ACS are not available yet.",
     "verifyTitle": "Check the match",
     "searchTitle": "Search GenieACS",
     "searchSerialMac": "NSM looks up the serial {{serial}} and, if not found, the MAC {{mac}}; the lookup changes nothing.",
@@ -4826,7 +4837,11 @@
     },
     "pending": "waiting for the next sync",
     "exclude": "Exclude from Zabbix",
-    "include": "Include in Zabbix"
+    "include": "Include in Zabbix",
+    "linked": {
+      "ip": "existing Zabbix host, linked by IP",
+      "name": "existing Zabbix host, linked by name"
+    }
   },
   "decommission": {
     "badge": "Decommissioned",
@@ -5041,6 +5056,8 @@
     }
   },
   "eventTypes": {
+    "ACS_DIAGNOSTIC_COMPLETED": "ACS diagnostic completed",
+    "ACS_DIAGNOSTIC_REQUESTED": "ACS diagnostic requested",
     "ACS_MIGRATION_COMPLETED": "ACS migration completed",
     "ACS_MIGRATION_STARTED": "ACS migration started",
     "ACS_TEMPLATES_INSTALLED": "ACS templates installed",
@@ -5268,6 +5285,8 @@
     "VULNERABILITY_STATUS_CHANGED": "Vulnerability status changed",
     "ZABBIX_DEVICE_IP_CHANGED": "Zabbix IP changed",
     "ZABBIX_DEVICE_SCOPE_CHANGED": "Device included or excluded in Zabbix",
+    "ZABBIX_HOST_IP_UPDATED": "Zabbix host IP updated",
+    "ZABBIX_HOST_LINKED": "Device linked to an existing Zabbix host",
     "ZABBIX_SETTINGS_CHANGED": "Zabbix settings changed",
     "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested"
   },
@@ -5293,7 +5312,9 @@
     "syslog": "syslog",
     "routeros_catalog": "RouterOS catalog",
     "measure": "measurement",
-    "job": "job"
+    "job": "job",
+    "tr069": "TR-069 (ACS)",
+    "acs": "ACS"
   },
   "acsMigration": {
     "subtitle": "Bulk-migrate customer CPEs to the integrated ACS by reconfiguring CWMP over the management network.",
@@ -5439,5 +5460,37 @@
     "done": "{{created}} customers created, {{linked}} linked; {{sites}} sites created, {{sitesLinked}} linked to existing ones.",
     "skipped": "{{count}} skipped.",
     "openCustomers": "Open customers"
+  },
+  "acsDiagnostics": {
+    "title": "Diagnostics from the CPE",
+    "help": "The CPE itself runs the test through the ACS (TR-069), so the result is what the customer's line sees. It starts at once when the CPE accepts the connection request, otherwise at its next contact with the ACS.",
+    "kind": "Test",
+    "kinds": {
+      "ping": "Ping",
+      "traceroute": "Traceroute"
+    },
+    "target": "Destination",
+    "targetPlaceholder": "IP address or host name",
+    "run": "Run",
+    "states": {
+      "requested": "Running on the CPE…",
+      "complete": "Completed",
+      "error": "The CPE reported an error",
+      "timeout": "No answer from the CPE within 4 minutes"
+    },
+    "waitingContact": "the CPE did not accept the connection request: it will start at its next contact",
+    "cpeState": "CPE state",
+    "noHops": "The CPE returned no hops.",
+    "ping": {
+      "received": "Replies",
+      "min": "Minimum",
+      "avg": "Average",
+      "max": "Maximum"
+    },
+    "trace": {
+      "host": "Host",
+      "address": "Address",
+      "rtt": "Times"
+    }
   }
 }

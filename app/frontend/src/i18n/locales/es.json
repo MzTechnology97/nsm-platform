@@ -236,7 +236,8 @@
       "notMeasured": "no medida",
       "notMeasuredNote": "active el ping de NSM en Monitor"
     },
-    "backupNever": "nunca"
+    "backupNever": "nunca",
+    "backupNotAvailable": "no disponible"
   },
   "monitor": {
     "range": "Intervalo",
@@ -2712,7 +2713,17 @@
         "title": "Acceso con contraseña",
         "text": "username (5.4+) o user (versiones anteriores)"
       }
-    }
+    },
+    "linked": "Hosts existentes vinculados",
+    "linkedNote": "hosts que ya tenías en Zabbix, usados tal cual",
+    "ambiguous": "No vinculados, varios hosts de Zabbix podrían corresponder: {{names}}. Indica una IP de Zabbix dedicada o renombra el host.",
+    "ipUpdated": "IP actualizada en los hosts vinculados tras un cambio de dirección: {{names}}.",
+    "linkExisting": "Usar los hosts ya presentes en Zabbix",
+    "linkExistingHelp": "Un equipo se vincula al host de Zabbix con la misma IP (o, si no, el mismo nombre) cuando solo uno coincide: NSM muestra sus problemas y no crea un host nsm-. Grupos, plantillas y etiquetas de tus hosts no se tocan.",
+    "updateIp": "Actualizar la IP de los hosts vinculados cuando cambie",
+    "updateIpHelp": "Para routers con IP pública dinámica o tras NAT: NSM escribe en la interfaz principal del host la dirección actual del equipo (IP pública del router o la desde la que se conecta su agente).",
+    "templatesFromZabbix": "Sugerencias: las {{count}} plantillas de tu Zabbix.",
+    "factoryIp": "No en Zabbix, su dirección es una IP LAN de fábrica (p. ej. 192.168.1.1) que Zabbix no alcanza: {{names}}. Indica la dirección que debe usar Zabbix o da al host de Zabbix el nombre del equipo."
   },
   "genieacs": {
     "title": "Integraciones · GenieACS / TR-069",
@@ -4035,7 +4046,7 @@
     },
     "refresh": "Actualizar desde GenieACS",
     "refreshed": "Inventario actualizado desde GenieACS.",
-    "notYet": "El diagnóstico, la copia y la actualización de firmware a través del ACS aún no están disponibles.",
+    "notYet": "La copia de seguridad y la actualización de firmware a través del ACS aún no están disponibles.",
     "verifyTitle": "Comprobar la coincidencia",
     "searchTitle": "Buscar en GenieACS",
     "searchSerialMac": "NSM busca el número de serie {{serial}} y, si no lo encuentra, el MAC {{mac}}; la búsqueda no modifica nada.",
@@ -4826,7 +4837,11 @@
     },
     "pending": "esperando la próxima sincronización",
     "exclude": "Excluir de Zabbix",
-    "include": "Incluir en Zabbix"
+    "include": "Incluir en Zabbix",
+    "linked": {
+      "ip": "host de Zabbix existente, vinculado por IP",
+      "name": "host de Zabbix existente, vinculado por nombre"
+    }
   },
   "decommission": {
     "badge": "Desactivado",
@@ -5041,6 +5056,8 @@
     }
   },
   "eventTypes": {
+    "ACS_DIAGNOSTIC_COMPLETED": "Diagnóstico ACS completado",
+    "ACS_DIAGNOSTIC_REQUESTED": "Diagnóstico ACS solicitado",
     "ACS_MIGRATION_COMPLETED": "Migración ACS completada",
     "ACS_MIGRATION_STARTED": "Migración ACS iniciada",
     "ACS_TEMPLATES_INSTALLED": "Plantillas ACS instaladas",
@@ -5268,6 +5285,8 @@
     "VULNERABILITY_STATUS_CHANGED": "Estado de la vulnerabilidad cambiado",
     "ZABBIX_DEVICE_IP_CHANGED": "IP de Zabbix cambiada",
     "ZABBIX_DEVICE_SCOPE_CHANGED": "Equipo incluido o excluido de Zabbix",
+    "ZABBIX_HOST_IP_UPDATED": "IP del host de Zabbix actualizada",
+    "ZABBIX_HOST_LINKED": "Equipo vinculado a un host de Zabbix existente",
     "ZABBIX_SETTINGS_CHANGED": "Ajustes de Zabbix cambiados",
     "ZABBIX_SYNC_REQUESTED": "Sincronización de Zabbix solicitada"
   },
@@ -5293,7 +5312,9 @@
     "syslog": "syslog",
     "routeros_catalog": "catálogo RouterOS",
     "measure": "medición",
-    "job": "tarea"
+    "job": "tarea",
+    "tr069": "TR-069 (ACS)",
+    "acs": "ACS"
   },
   "acsMigration": {
     "subtitle": "Migra en bloque los CPE de los clientes al ACS integrado reconfigurando el CWMP en la red de gestión.",
@@ -5439,5 +5460,37 @@
     "done": "{{created}} clientes creados, {{linked}} vinculados; {{sites}} sedes creadas, {{sitesLinked}} vinculadas a sedes existentes.",
     "skipped": "{{count}} omitidos.",
     "openCustomers": "Abrir los clientes"
+  },
+  "acsDiagnostics": {
+    "title": "Diagnóstico desde el CPE",
+    "help": "El propio CPE ejecuta la prueba a través del ACS (TR-069): el resultado es lo que ve la línea del cliente. Empieza enseguida si el CPE acepta la solicitud de conexión; si no, en su próximo contacto con el ACS.",
+    "kind": "Prueba",
+    "kinds": {
+      "ping": "Ping",
+      "traceroute": "Traceroute"
+    },
+    "target": "Destino",
+    "targetPlaceholder": "Dirección IP o nombre de host",
+    "run": "Ejecutar",
+    "states": {
+      "requested": "En ejecución en el CPE…",
+      "complete": "Completado",
+      "error": "El CPE ha indicado un error",
+      "timeout": "Sin respuesta del CPE en 4 minutos"
+    },
+    "waitingContact": "el CPE no aceptó la solicitud de conexión: empezará en el próximo contacto",
+    "cpeState": "Estado del CPE",
+    "noHops": "El CPE no devolvió saltos.",
+    "ping": {
+      "received": "Respuestas",
+      "min": "Mínimo",
+      "avg": "Medio",
+      "max": "Máximo"
+    },
+    "trace": {
+      "host": "Host",
+      "address": "Dirección",
+      "rtt": "Tiempos"
+    }
   }
 }
