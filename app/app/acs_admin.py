@@ -8,11 +8,19 @@
   login as a second step.
 - In GenieACS a "template" is a **provision** (script that reads and sets
   parameters) applied by a **preset** (when: events and device precondition).
+- Once installed, the templates follow NSM upgrades by themselves: the worker
+  (``auto_update``, right after a restart and then every ``AUTO_CHECK``)
+  reinstalls them when the provision or presets of this NSM version differ
+  from the ones it installed (fingerprint kept on the GenieACS connector,
+  ``settings["acs_templates"]``). Templates never installed are left alone:
+  installing them stays the operator's choice.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+from datetime import datetime, timedelta
 from urllib.parse import quote, urlsplit
 
 import httpx
@@ -22,8 +30,11 @@ from fastapi.responses import RedirectResponse, Response
 from app import genieacs_connector as acs
 from app import main as core
 from app.db import SessionLocal
+from app.models import utcnow
 
 router = APIRouter()
+AUTO_CHECK = timedelta(minutes=30)
+_last_auto_check: datetime | None = None
 ACS_UI_PORT = int(os.getenv("ACS_UI_PORT", "7080"))
 PANEL_URL = os.getenv("GENIEACS_UI_PUBLIC_URL", "").strip()
 
@@ -35,11 +46,30 @@ BASE_PROVISION_SCRIPT = """// NSM base provisioning (installed from NSM > Ammini
 const now = Date.now();
 const hourly = now - 3600 * 1000;
 const daily = now - 24 * 3600 * 1000;
+const fresh = now - 4 * 60 * 1000;  // re-read at every periodic inform (5 minutes): CPU, memory and uptime shown in NSM
 
 for (const root of ["InternetGatewayDevice", "Device"]) {
   declare(root + ".ManagementServer.PeriodicInformEnable", {value: daily}, {value: true});
   declare(root + ".ManagementServer.PeriodicInformInterval", {value: daily}, {value: 300});
   declare(root + ".DeviceInfo.*", {value: hourly});
+  declare(root + ".DeviceInfo.ProcessStatus.CPUUsage", {value: fresh});
+  declare(root + ".DeviceInfo.MemoryStatus.*", {value: fresh});
+  declare(root + ".DeviceInfo.UpTime", {value: fresh});
+}
+// Monitoring (ACS-05): WAN counters and state, Wi-Fi clients, LAN hosts, DSL line, read at every periodic inform.
+for (const path of ["Device.IP.Interface.*.Status", "Device.IP.Interface.*.Stats.BytesReceived", "Device.IP.Interface.*.Stats.BytesSent",
+                    "Device.PPP.Interface.*.ConnectionStatus", "Device.WiFi.AccessPoint.*.AssociatedDeviceNumberOfEntries",
+                    "Device.Hosts.HostNumberOfEntries", "Device.DSL.Line.*.Status", "Device.DSL.Line.*.LinkStatus",
+                    "Device.DSL.Line.*.DownstreamNoiseMargin", "Device.DSL.Line.*.DownstreamAttenuation",
+                    "Device.DSL.Channel.*.DownstreamCurrRate", "Device.DSL.Channel.*.UpstreamCurrRate",
+                    "InternetGatewayDevice.WANDevice.*.WANCommonInterfaceConfig.TotalBytesReceived",
+                    "InternetGatewayDevice.WANDevice.*.WANCommonInterfaceConfig.TotalBytesSent",
+                    "InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.ConnectionStatus",
+                    "InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.ConnectionStatus",
+                    "InternetGatewayDevice.LANDevice.*.WLANConfiguration.*.TotalAssociations",
+                    "InternetGatewayDevice.LANDevice.*.Hosts.HostNumberOfEntries",
+                    "InternetGatewayDevice.WANDevice.*.WANDSLInterfaceConfig.*"]) {
+  declare(path, {value: fresh});
 }
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.ExternalIPAddress", {value: hourly});
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.ExternalIPAddress", {value: hourly});
@@ -120,6 +150,80 @@ def install_templates(connection) -> list[str]:
 NOT_CONNECTED = "Collega prima GenieACS in Integrazioni → GenieACS (pulsante «Usa GenieACS integrato»)."
 
 
+def templates_fingerprint() -> str:
+    """Fingerprint of the provision and presets this NSM version installs."""
+    body = json.dumps({"script": BASE_PROVISION_SCRIPT, "presets": PRESETS, "events": PRESET_EVENTS}, sort_keys=True)
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()[:16]
+
+
+def _record_installed(connection, now) -> None:
+    settings = dict(connection.settings or {})
+    settings["acs_templates"] = {"fingerprint": templates_fingerprint(), "installed_at": now.isoformat()}
+    connection.settings = settings
+
+
+def _installed_script(connection) -> str | None:
+    """Script of the NSM provision currently in GenieACS, None when it is not there."""
+    auth_config = acs._load_auth(connection)
+    headers = {"Accept": "application/json"}
+    auth = None
+    if auth_config["mode"] == "basic":
+        auth = httpx.BasicAuth(auth_config["username"], auth_config["secret"])
+    elif auth_config["mode"] == "bearer":
+        headers["Authorization"] = f"Bearer {auth_config['secret']}"
+    try:
+        with httpx.Client(timeout=acs.GENIEACS_TIMEOUT_SECONDS, verify=bool(connection.verify_tls), follow_redirects=False, headers=headers, auth=auth) as client:
+            response = client.get(f"{connection.base_url.rstrip('/')}/provisions/", params={"query": json.dumps({"_id": BASE_PROVISION})})
+    except httpx.HTTPError as exc:
+        raise acs.GenieAcsConnectorError("Connessione alla NBI GenieACS non riuscita.") from exc
+    if response.status_code != 200:
+        raise acs.GenieAcsConnectorError(f"GenieACS ha risposto HTTP {response.status_code} leggendo i modelli.")
+    rows = response.json() if response.content else []
+    return str(rows[0].get("script") or "") if isinstance(rows, list) and rows else None
+
+
+def template_status(connection) -> dict:
+    """What the admin page says about the templates, from the stored fingerprint (no call to GenieACS)."""
+    stored = (connection.settings or {}).get("acs_templates") if connection else None
+    return {"installed_at": (stored or {}).get("installed_at"), "current": bool(stored) and stored.get("fingerprint") == templates_fingerprint(),
+            "auto": True}
+
+
+def auto_update(now: datetime | None = None) -> dict:
+    """Worker task: bring installed NSM templates up to this NSM version (audited); never installs them the first time."""
+    global _last_auto_check
+    now = now or utcnow()
+    if _last_auto_check is not None and now - _last_auto_check < AUTO_CHECK:
+        return {"status": "not_due"}
+    _last_auto_check = now
+    with SessionLocal() as db:
+        connection = acs._connection(db)
+        if connection is None or not connection.is_enabled:
+            return {"status": "disabled"}
+        stored = (connection.settings or {}).get("acs_templates") or {}
+        if stored.get("fingerprint") == templates_fingerprint():
+            return {"status": "current"}
+        try:
+            if not stored:
+                # Installed before NSM kept a fingerprint, or never installed: decide from what GenieACS holds.
+                script = _installed_script(connection)
+                if script is None:
+                    return {"status": "not_installed"}
+                if script.strip() == BASE_PROVISION_SCRIPT.strip():
+                    _record_installed(connection, now)
+                    db.commit()
+                    return {"status": "current"}
+            done = install_templates(connection)
+        except acs.GenieAcsConnectorError as exc:
+            return {"status": "failed", "error": str(exc)[:200]}
+        previous = stored.get("installed_at")
+        _record_installed(connection, now)
+        core.add_event(db, "ACS_TEMPLATES_UPDATED", details={"items": done, "previous_install": previous, "fingerprint": templates_fingerprint()},
+                       source="worker")
+        db.commit()
+        return {"status": "updated", "items": done}
+
+
 def install_base_templates(db, user) -> list[str]:
     """Install the NSM provision and presets in the linked GenieACS (audited).
 
@@ -129,6 +233,7 @@ def install_base_templates(db, user) -> list[str]:
     if connection is None or not connection.is_enabled:
         raise acs.GenieAcsConnectorError(NOT_CONNECTED)
     done = install_templates(connection)
+    _record_installed(connection, utcnow())
     core.add_event(db, "ACS_TEMPLATES_INSTALLED", actor=user, details={"items": done}, source="portal")
     return done
 

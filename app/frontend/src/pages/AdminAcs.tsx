@@ -5,11 +5,12 @@ import { useAcsAdmin, useAcsTemplates } from "../api/admin";
 import { ApiError } from "../api/client";
 import { AdminTabs } from "../app/AdminTabs";
 import { Loading } from "../app/States";
+import { formatDateTime } from "../lib/format";
 
 const STEPS = ["cpe", "network", "templates", "verify", "nsm"] as const;
 
 export function AdminAcs() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const query = useAcsAdmin();
   const install = useAcsTemplates();
   const data = query.data;
@@ -74,6 +75,13 @@ export function AdminAcs() {
               <button type="button" className="ui-button" disabled={install.isPending} onClick={() => install.mutate()}>{t("acs.install")}</button>
             </div>
             <p className="ui-muted">{t("acs.templatesHelp")}</p>
+            {data.templates?.installed_at ? (
+              <div className={`ui-alert${data.templates.current ? "" : " ui-alert-warning"}`}>
+                {t(data.templates.current ? "acs.templatesCurrent" : "acs.templatesPending", { when: formatDateTime(data.templates.installed_at, i18n.language) })}
+              </div>
+            ) : (
+              <p className="ui-muted">{t("acs.templatesAuto")}</p>
+            )}
             {install.data && <div className="ui-alert">{t("acs.installed", { items: install.data.installed.join(", ") })}</div>}
             {installError && <div className="ui-alert ui-alert-warning">{installError}</div>}
             <dl className="ui-dl">

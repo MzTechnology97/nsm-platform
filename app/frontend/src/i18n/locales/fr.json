@@ -237,6 +237,7 @@
       "notMeasuredNote": "activez le ping NSM dans Monitor"
     },
     "backupNever": "jamais",
+    "backupNotAvailable": "non disponible",
     "ispbilling": {
       "title": "Compte ISPBilling",
       "help": "Le compte RADIUS ISPBilling servi par cet équipement, lu dans la facturation.",
@@ -2591,7 +2592,10 @@
     "presetText": "condition <code>{{condition}}</code>, événements bootstrap, boot et periodic → provision <code>{{provision}}</code>",
     "script": "Script de la provision {{name}}",
     "migrationHint": "Vous gérez déjà une flotte de CPE sur un ACS cloud (par exemple TAUC) ?",
-    "migrationLink": "Migrer les CPE vers cet ACS"
+    "migrationLink": "Migrer les CPE vers cet ACS",
+    "templatesCurrent": "Les modèles NSM sont à jour (installés le {{when}}). NSM les met à jour seul après chaque mise à jour.",
+    "templatesPending": "Cette version de NSM a des modèles plus récents que ceux installés le {{when}} : NSM les installe sous 30 minutes, ou cliquez sur Installer.",
+    "templatesAuto": "Une fois installés, NSM tient ces modèles à jour seul après chaque mise à jour."
   },
   "demo": {
     "subtitle": "Jeu de données isolé pour essayer l'interface et les flux sans utiliser de vrais clients.",
@@ -2721,7 +2725,17 @@
         "title": "Connexion par mot de passe",
         "text": "username (5.4+) ou user (versions antérieures)"
       }
-    }
+    },
+    "linked": "Hôtes existants liés",
+    "linkedNote": "hôtes déjà présents dans Zabbix, utilisés tels quels",
+    "ambiguous": "Non liés, plusieurs hôtes Zabbix pourraient correspondre : {{names}}. Indiquez une IP Zabbix dédiée ou renommez l'hôte.",
+    "ipUpdated": "IP mise à jour sur les hôtes liés après un changement d'adresse : {{names}}.",
+    "linkExisting": "Utiliser les hôtes déjà présents dans Zabbix",
+    "linkExistingHelp": "Un équipement est lié à l'hôte Zabbix ayant la même IP (ou, à défaut, le même nom) quand un seul correspond : NSM affiche ses problèmes et ne crée pas d'hôte nsm-. Groupes, modèles et tags de vos hôtes ne sont pas modifiés.",
+    "updateIp": "Mettre à jour l'IP des hôtes liés quand elle change",
+    "updateIpHelp": "Pour les routeurs à IP publique dynamique ou derrière un NAT : NSM écrit l'adresse actuelle de l'équipement (IP publique du routeur ou celle depuis laquelle son agent se connecte) sur l'interface principale de l'hôte.",
+    "templatesFromZabbix": "Suggestions : les {{count}} modèles de votre Zabbix.",
+    "factoryIp": "Absents de Zabbix, leur adresse est une IP LAN d'usine (ex. 192.168.1.1) que Zabbix ne joint pas : {{names}}. Indiquez l'adresse à utiliser pour Zabbix, ou donnez à l'hôte Zabbix le nom de l'équipement."
   },
   "genieacs": {
     "title": "Intégrations · GenieACS / TR-069",
@@ -4044,7 +4058,7 @@
     },
     "refresh": "Actualiser depuis GenieACS",
     "refreshed": "Inventaire actualisé depuis GenieACS.",
-    "notYet": "Diagnostic, sauvegarde et mise à jour firmware via l'ACS ne sont pas encore disponibles.",
+    "notYet": "La sauvegarde et la mise à jour du firmware via l'ACS ne sont pas encore disponibles.",
     "verifyTitle": "Vérifier la correspondance",
     "searchTitle": "Chercher dans GenieACS",
     "searchSerialMac": "NSM cherche le numéro de série {{serial}} puis, à défaut, le MAC {{mac}} ; la recherche ne modifie rien.",
@@ -4835,7 +4849,11 @@
     },
     "pending": "en attente de la prochaine synchronisation",
     "exclude": "Exclure de Zabbix",
-    "include": "Inclure dans Zabbix"
+    "include": "Inclure dans Zabbix",
+    "linked": {
+      "ip": "hôte Zabbix existant, lié par IP",
+      "name": "hôte Zabbix existant, lié par nom"
+    }
   },
   "decommission": {
     "badge": "Désactivé",
@@ -5050,9 +5068,12 @@
     }
   },
   "eventTypes": {
+    "ACS_DIAGNOSTIC_COMPLETED": "Diagnostic ACS terminé",
+    "ACS_DIAGNOSTIC_REQUESTED": "Diagnostic ACS demandé",
     "ACS_MIGRATION_COMPLETED": "Migration ACS terminée",
     "ACS_MIGRATION_STARTED": "Migration ACS démarrée",
     "ACS_TEMPLATES_INSTALLED": "Modèles ACS installés",
+    "ACS_TEMPLATES_UPDATED": "Modèles ACS mis à jour par NSM",
     "AGENT_HEALTH_ISSUE_OPENED": "Problème d'agent signalé",
     "AGENT_HEALTH_RECOVERED": "Agent rétabli",
     "API_KEY_CREATED": "Clé API créée",
@@ -5277,6 +5298,8 @@
     "VULNERABILITY_STATUS_CHANGED": "Statut de la vulnérabilité modifié",
     "ZABBIX_DEVICE_IP_CHANGED": "IP Zabbix modifiée",
     "ZABBIX_DEVICE_SCOPE_CHANGED": "Équipement inclus ou exclu de Zabbix",
+    "ZABBIX_HOST_IP_UPDATED": "IP de l'hôte Zabbix mise à jour",
+    "ZABBIX_HOST_LINKED": "Équipement lié à un hôte Zabbix existant",
     "ZABBIX_SETTINGS_CHANGED": "Paramètres Zabbix modifiés",
     "ZABBIX_SYNC_REQUESTED": "Synchronisation Zabbix demandée"
   },
@@ -5302,7 +5325,9 @@
     "syslog": "syslog",
     "routeros_catalog": "catalogue RouterOS",
     "measure": "mesure",
-    "job": "tâche"
+    "job": "tâche",
+    "tr069": "TR-069 (ACS)",
+    "acs": "ACS"
   },
   "acsMigration": {
     "subtitle": "Migrer en masse les CPE des clients vers l'ACS intégré en reconfigurant le CWMP sur le réseau de gestion.",
@@ -5451,5 +5476,61 @@
     "radius": "Comptes RADIUS",
     "radiusMatched": "{{count}} associés à un équipement",
     "radiusError": "Comptes RADIUS non lus : {{error}}"
+  },
+  "acsDiagnostics": {
+    "title": "Diagnostic depuis le CPE",
+    "help": "Le CPE exécute lui-même le test via l'ACS (TR-069) : le résultat est celui que voit la ligne du client. Il démarre aussitôt si le CPE accepte la demande de connexion, sinon à son prochain contact avec l'ACS.",
+    "kind": "Test",
+    "kinds": {
+      "ping": "Ping",
+      "traceroute": "Traceroute"
+    },
+    "target": "Destination",
+    "targetPlaceholder": "Adresse IP ou nom d'hôte",
+    "run": "Lancer",
+    "states": {
+      "requested": "En cours sur le CPE…",
+      "complete": "Terminé",
+      "error": "Le CPE a signalé une erreur",
+      "timeout": "Pas de réponse du CPE en 4 minutes"
+    },
+    "waitingContact": "le CPE n'a pas accepté la demande de connexion : il démarrera au prochain contact",
+    "cpeState": "État du CPE",
+    "noHops": "Le CPE n'a renvoyé aucun saut.",
+    "ping": {
+      "received": "Réponses",
+      "min": "Minimum",
+      "avg": "Moyenne",
+      "max": "Maximum"
+    },
+    "trace": {
+      "host": "Hôte",
+      "address": "Adresse",
+      "rtt": "Temps"
+    }
+  },
+  "acsMonitor": {
+    "title": "Ligne et Wi-Fi",
+    "waiting": "Pas encore de données : NSM lit le CPE depuis l'ACS toutes les quelques minutes.",
+    "lastInform": "Dernier contact avec l'ACS {{when}} · {{model}}",
+    "every": "toutes les {{minutes}} min",
+    "wan": "WAN",
+    "wanIp": "Adresse WAN",
+    "connectedFor": "Connecté depuis",
+    "uptime": "Uptime",
+    "wifiClients": "Clients Wi-Fi",
+    "lanHosts": "Hôtes LAN",
+    "lastError": "Dernière erreur de connexion",
+    "countersMissing": "Le CPE ne remonte pas ses compteurs WAN (ils restent à 0) : pas de graphique de trafic avec ce firmware.",
+    "radio": "Radio",
+    "channel": "Canal",
+    "bandwidth": "Largeur",
+    "standard": "Norme",
+    "clients": "Clients",
+    "dsl": "Ligne DSL",
+    "dslRate": "Débit desc. / mont.",
+    "dslSnr": "Marge SNR",
+    "dslAttenuation": "Atténuation",
+    "charts": "Historique depuis l'ACS"
   }
 }
