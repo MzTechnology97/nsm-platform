@@ -1298,7 +1298,8 @@
         "too_many": "Troppi apparati selezionati.",
         "confirm": "Scrivi la frase di conferma esatta."
       }
-    }
+    },
+    "campaigns": "Campagne TR-069"
   },
   "vulns": {
     "title": "Vulnerabilità",
@@ -5482,7 +5483,15 @@
     "ZABBIX_SYNC_REQUESTED": "Sincronizzazione Zabbix richiesta",
     "ACS_CONFIG_RESTORE_REQUESTED": "Ripristino della configurazione del CPE richiesto",
     "ACS_CONFIG_RESTORE_VERIFIED": "Ripristino della configurazione del CPE verificato",
-    "ACS_CONFIG_RESTORE_FAILED": "Ripristino della configurazione del CPE non riuscito"
+    "ACS_CONFIG_RESTORE_FAILED": "Ripristino della configurazione del CPE non riuscito",
+    "ACS_FIRMWARE_CAMPAIGN_CREATED": "Campagna firmware TR-069 creata",
+    "ACS_FIRMWARE_CAMPAIGN_STARTED": "Campagna firmware TR-069 avviata",
+    "ACS_FIRMWARE_CAMPAIGN_RESUMED": "Campagna firmware TR-069 ripresa",
+    "ACS_FIRMWARE_CAMPAIGN_PAUSED": "Campagna firmware TR-069 in pausa",
+    "ACS_FIRMWARE_CAMPAIGN_CANCELLED": "Campagna firmware TR-069 annullata",
+    "ACS_FIRMWARE_CAMPAIGN_STOPPED": "Campagna firmware TR-069 fermata",
+    "ACS_FIRMWARE_CAMPAIGN_COMPLETED": "Campagna firmware TR-069 completata",
+    "ACS_FIRMWARE_CAMPAIGN_WAVE_STARTED": "Ondata di una campagna firmware avviata"
   },
   "eventSources": {
     "portal": "interfaccia",
@@ -6388,5 +6397,77 @@
       "unverified": "Parametri scritti, ma la rilettura dal CPE non è riuscita (errore {{fault}}).",
       "unconfirmed": "Il CPE non ha eseguito il ripristino entro 30 minuti: il comando è stato cancellato da GenieACS."
     }
+  },
+  "acsCampaigns": {
+    "title": "Campagne firmware TR-069",
+    "subtitle": "Aggiorna molti CPE dello stesso modello: prima un CPE pilota, poi a ondate, solo nella finestra oraria scelta. Al primo aggiornamento fallito o non confermato la campagna si ferma da sola.",
+    "back": "Torna al firmware",
+    "backList": "Tutte le campagne",
+    "new": "Nuova campagna",
+    "close": "Chiudi",
+    "newTitle": "Nuova campagna",
+    "newHelp": "Scegli un'immagine già in GenieACS (caricata dalla scheda Firmware di un CPE o dai cataloghi): la campagna riguarda i CPE collegati di quel modello. Viene creata in bozza: non parte nulla finché non la avvii scrivendo il suo nome.",
+    "chooseFile": "Scegli l'immagine…",
+    "noFiles": "Nessuna immagine firmware in GenieACS: caricala prima dalla scheda Firmware di un CPE.",
+    "pilotAuto": "Il primo per nome",
+    "createDraft": "Crea la bozza",
+    "selected": "{{count}} CPE {{model}} scelti su {{total}} collegati.",
+    "fields": {
+      "name": "Nome della campagna",
+      "file": "Immagine firmware",
+      "expected": "Versione attesa dopo l'aggiornamento",
+      "waveSize": "CPE per ondata",
+      "window": "Finestra oraria ({{tz}}): inizio e fine",
+      "pilot": "CPE pilota"
+    },
+    "columns": {
+      "name": "Campagna",
+      "state": "Stato",
+      "model": "Modello → versione",
+      "progress": "Avanzamento",
+      "created": "Creata",
+      "device": "CPE",
+      "customer": "Cliente",
+      "version": "Versione",
+      "when": "Quando",
+      "error": "Dettaglio"
+    },
+    "status": {
+      "draft": "Bozza",
+      "running": "In corso",
+      "paused": "In pausa",
+      "stopped": "Fermata",
+      "completed": "Completata",
+      "cancelled": "Annullata"
+    },
+    "device": {
+      "pending": "In attesa",
+      "requested": "In aggiornamento",
+      "verified": "Aggiornato",
+      "failed": "Fallito",
+      "unconfirmed": "Non confermato",
+      "skipped": "Saltato",
+      "cancelled": "Annullato"
+    },
+    "errors": {
+      "already": "già alla versione attesa",
+      "not_linked": "non più collegato a GenieACS",
+      "unexpected_version": "versione diversa da quella attesa",
+      "no_new_version": "nessuna nuova versione dopo 30 minuti",
+      "device_removed": "apparato eliminato"
+    },
+    "summary": "{{model}} → {{version}} · {{file}} · ondate da {{wave}} · finestra {{start}}–{{end}} ({{tz}})",
+    "rules": "Il pilota viene aggiornato da solo; le ondate successive partono solo quando l'ondata precedente è tutta verificata e solo nella finestra oraria. Gli aggiornamenti già inviati non si possono richiamare: pausa e annulla fermano solo i CPE non ancora partiti.",
+    "stopped": "Campagna fermata: {{reason}}. Controlla il CPE, poi riprendi la campagna per continuare con gli altri.",
+    "outsideWindow": "Fuori dalla finestra oraria: la prossima ondata partirà all'inizio della finestra.",
+    "confirmStart": "Scrivi «{{name}}» per avviare la campagna",
+    "confirmResume": "Scrivi «{{name}}» per riprendere la campagna",
+    "start": "Avvia la campagna",
+    "resume": "Riprendi",
+    "pause": "Pausa",
+    "cancel": "Annulla la campagna",
+    "pilot": "Pilota",
+    "wave": "Ondata {{number}}",
+    "empty": "Nessuna campagna ancora."
   }
 }
