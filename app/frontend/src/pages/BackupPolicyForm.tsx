@@ -1,7 +1,7 @@
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SearchSelect } from "../app/SearchSelect";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { type PolicyForm, type PolicyState, type ScheduleKind, type ScopeType, usePolicyForm, usePolicyWrite } from "../api/backupPolicies";
 import { BrandIcon } from "../app/BrandIcon";
@@ -140,7 +140,7 @@ function PolicyEditor({ data }: { data: PolicyForm }) {
           )}
           {CUSTOMER_SCOPES.has(form.scope_type) && (
             <label><span>{t("backupPolicy.customer")}</span>
-              <SearchSelect value={form.customer_id} options={data.customers.map((customer) => ({ value: customer.id, label: customer.name }))} onChange={(value) => set("customer_id", value)} emptyLabel={t("backupPolicy.choose")} disabled={Boolean(data.context)} required /></label>
+              <SearchSelect value={form.customer_id} options={data.customers.map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => set("customer_id", value)} emptyLabel={t("backupPolicy.choose")} disabled={Boolean(data.context)} required /></label>
           )}
           {form.scope_type === "site" && (
             <label><span>{t("backupPolicy.site")}</span>

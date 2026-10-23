@@ -2,7 +2,7 @@ import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { SearchSelect } from "../app/SearchSelect";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 import { type OnboardingFilters, type OnboardingProvider, type OnboardingRow, useOnboarding, useOnboardingCommit, useOnboardingPreview } from "../api/admin";
 import { BrandIcon } from "../app/BrandIcon";
 import { useDebounced } from "../lib/hooks";
@@ -114,7 +114,7 @@ function ConnectorOnboarding({ provider }: { provider: OnboardingProvider }) {
           <label>
             <span>{t("onboarding.customer")}</span>
             <SearchSelect value={customer} required placeholder={t("onboarding.customerSearch")} ariaLabel={t("onboarding.customer")}
-              options={(first?.customers ?? []).map((item) => ({ value: item.id, label: item.name }))}
+              options={(first?.customers ?? []).map((item) => ({ value: item.id, label: customerLabel(item) }))}
               onChange={(value) => { setCustomer(value); setSite(""); preview.reset(); }} />
           </label>
           <label>

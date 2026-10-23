@@ -1,7 +1,7 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SearchSelect } from "../app/SearchSelect";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { useDeviceFacets } from "../api/devices";
 import { type Suggestion, SUGGESTION_KINDS, type SuggestionFilters, useApplySuggestions, useSuggestions } from "../api/operations";
@@ -66,7 +66,7 @@ export function FirmwareSuggestions() {
       </div>
       {data && data.security > 0 && <p><span className="ui-severity ui-severity-high">{t("firmwareSuggestions.security")}</span> {t("firmwareSuggestions.securityCount", { count: data.security })}</p>}
       <div className="ui-filter-bar">
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customer.name }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
       </div>
 
       {query.error ? (

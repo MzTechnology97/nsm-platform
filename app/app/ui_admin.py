@@ -367,7 +367,7 @@ def admin_api_keys(request: Request, response: Response):
         return {
             "scopes": [API_SCOPE_INVENTORY_READ, *OPTIONAL_READ_SCOPES], "expiry_days": [30, 90, 365, 0],
             "grace_hours": list(api_key_lifecycle.GRACE_HOURS),
-            "customers": [{"id": str(c.id), "name": c.name} for c in customers],
+            "customers": [{"id": str(c.id), "name": c.name, "code": c.code} for c in customers],
             "review": api_key_lifecycle.review(keys, now),
             "keys": [{
                 "id": str(k.id), "name": k.name, "prefix": k.key_prefix, "scopes": list(k.scopes or []), "active": k.is_active,
@@ -905,7 +905,7 @@ def _zabbix_payload(db) -> dict:
                       "factory_ip": (last.get("factory_ip") or [])[:50]},
         "problems": {key: problems.get(key) for key in ("problems", "with_problems", "at", "status", "error")},
         "frontend": zabbix_connector.frontend_url(row.base_url) if row else None,
-        "customers": [{"id": str(c.id), "name": c.name} for c in db.scalars(select(Customer).order_by(Customer.name))],
+        "customers": [{"id": str(c.id), "name": c.name, "code": c.code} for c in db.scalars(select(Customer).order_by(Customer.name))],
         "shared": [{"ip": ip, "devices": [{**device_ref(d), "lan_ip": (d.inventory_data or {}).get("lan_ip"), "zabbix_ip": (d.inventory_data or {}).get("zabbix_ip")}
                                           for d in devices]} for ip, devices in sorted(shared_ips.shared_map(db).items())],
     })
@@ -1147,7 +1147,7 @@ def uisp_onboarding_list(request: Request, q: str = "", uisp_site: str = "", sta
             "error": error, "total": len(filtered), "offset": offset, "limit": ONBOARDING_PAGE, "max_batch": uisp_onboarding.MAX_BATCH,
             "counts": {key: sum(1 for r in rows if r["state"] == key) for key in ("new", "linkable", "linked", "blocked")},
             "uisp_sites": sorted({(r.get("site") or {}).get("name") for r in rows if (r.get("site") or {}).get("name")}),
-            "customers": [{"id": str(c.id), "name": c.name} for c in db.scalars(select(Customer).order_by(Customer.name))],
+            "customers": [{"id": str(c.id), "name": c.name, "code": c.code} for c in db.scalars(select(Customer).order_by(Customer.name))],
             "sites": [{"id": str(site.id), "name": site.name, "customer_id": str(site.customer_id)} for site in db.scalars(select(Site).order_by(Site.name))],
             "items": [_onboarding_row(row) for row in filtered[offset:offset + ONBOARDING_PAGE]],
         }

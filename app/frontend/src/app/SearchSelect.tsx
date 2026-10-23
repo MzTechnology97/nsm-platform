@@ -7,6 +7,9 @@ export interface SearchOption {
 }
 
 const MAX_SHOWN = 100;
+
+/** "Name · code" of a customer, so the same name can be told apart and the code can be searched. */
+export const customerLabel = (customer: { name: string; code?: string | null }) => (customer.code ? `${customer.name} · ${customer.code}` : customer.name);
 const fold = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 /** Every typed word must appear in the label, in any order ("nicco ross" finds "Niccolò Rossi"). */
 const matches = (label: string, words: string[]) => {
