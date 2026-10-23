@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.235 — 2026-10-23
+
+ISPBilling
+- **Automatic import of new customers and sites.** It is off until an administrator switches it on, in *Integrazioni → ISPBilling → Importazione automatica*. After each read:
+  - customers new in ISPBilling are created in NSM with their sites, once their service addresses are read;
+  - new installation addresses of customers already in NSM become sites;
+  - customers that look like an existing NSM customer (same code or name) are not imported: the page counts them and links to the import page, where they can be linked by hand.
+- **Deleted customers and sites are not recreated.** Everything already in the mirror when this version is installed counts as handled (migration 0056), as does everything imported since. A customer or site deleted in NSM afterwards is therefore not created again.
+
 ## 0.49.234 — 2026-10-23
 
 Quick import buttons

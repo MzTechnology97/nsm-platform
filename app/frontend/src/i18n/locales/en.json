@@ -4086,7 +4086,7 @@
     },
     "refresh": "Refresh from GenieACS",
     "refreshed": "Inventory refreshed from GenieACS.",
-    "notYet": "Diagnostics, backup and firmware upgrade through the ACS are not available yet.",
+    "notYet": "Backup and firmware upgrades through the ACS are not available yet.",
     "verifyTitle": "Check the match",
     "searchTitle": "Search GenieACS",
     "searchSerialMac": "NSM looks up the serial {{serial}} and, if not found, the MAC {{mac}}; the lookup changes nothing.",
@@ -5232,6 +5232,8 @@
     "INCIDENT_STATUS_CHANGED": "Incident status changed",
     "INTERFACE_ERRORS_DETECTED": "Interface errors detected",
     "INVENTORY_DISCOVERED": "Inventory read",
+    "ISPBILLING_AUTO_IMPORTED": "Customers imported automatically from ISPBilling",
+    "ISPBILLING_AUTO_IMPORT_CHANGED": "ISPBilling automatic import changed",
     "ISPBILLING_CONFIGURED": "ISPBilling connector configured",
     "ISPBILLING_CUSTOMERS_IMPORTED": "Customers imported from ISPBilling",
     "ISPBILLING_DEVICE_LINKED": "Device assigned from ISPBilling",
@@ -5466,7 +5468,14 @@
     "openCustomers": "Open customers",
     "radius": "RADIUS accounts",
     "radiusMatched": "{{count}} matched to a device",
-    "radiusError": "RADIUS accounts not read: {{error}}"
+    "radiusError": "RADIUS accounts not read: {{error}}",
+    "autoTitle": "Automatic import",
+    "autoHelp": "After each read, customers new in ISPBilling are created in NSM with their sites, and new installation addresses of customers already imported become sites. Customers similar to an existing NSM customer are left to review on the import page.",
+    "autoEnabled": "Import new customers and sites automatically",
+    "autoLast": "Last check {{at}}: {{created}} customers created, {{sites}} sites added.",
+    "autoNever": "It runs after the next read.",
+    "autoReview_one": "{{count}} ISPBilling customer looks like an existing NSM customer and was not imported:",
+    "autoReview_other": "{{count}} ISPBilling customers look like existing NSM customers and were not imported:"
   },
   "acsDiagnostics": {
     "title": "Diagnostics from the CPE",
