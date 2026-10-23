@@ -54,6 +54,7 @@ export function AdminAcs() {
 
           <section className="ui-panel ui-admin-section" id="guide">
             <h2>{t("acs.guideTitle")}</h2>
+            <p>{t("acs.guideIntro")}</p>
             <p className="ui-muted">{t("acs.guideHelp")}</p>
             <ol className="ui-acs-steps">
               {STEPS.map((step) => (
@@ -63,6 +64,10 @@ export function AdminAcs() {
                 </li>
               ))}
             </ol>
+            <h3>{t("acs.readonlyTitle")}</h3>
+            <ul className="ui-acs-steps">
+              {(["reads", "actions", "never"] as const).map((key) => <li key={key}>{t(`acs.readonly.${key}`)}</li>)}
+            </ul>
             <h3>{t("acs.securityTitle")}</h3>
             <ul className="ui-acs-steps">
               <li><Trans i18nKey="acs.security.auth" components={{ code: <code /> }} /></li>
