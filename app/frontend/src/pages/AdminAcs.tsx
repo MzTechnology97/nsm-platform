@@ -4,6 +4,8 @@ import { Trans, useTranslation } from "react-i18next";
 import { useAcsAdmin, useAcsTemplates } from "../api/admin";
 import { ApiError } from "../api/client";
 import { AdminTabs } from "../app/AdminTabs";
+import { AcsSpeedtestSettings } from "../app/AcsSpeedtestSettings";
+import { AcsSyslogAdminPanel } from "../app/AcsSyslog";
 import { Loading } from "../app/States";
 import { formatDateTime } from "../lib/format";
 
@@ -74,6 +76,8 @@ export function AdminAcs() {
             </ul>
           </section>
 
+          <AcsSpeedtestSettings />
+
           <section className="ui-panel ui-admin-section" id="templates">
             <div className="ui-page-header-row">
               <h2>{t("acs.templatesTitle")}</h2>
@@ -102,6 +106,7 @@ export function AdminAcs() {
               <pre className="ui-code-block">{data.provision_script}</pre>
             </details>
           </section>
+          <AcsSyslogAdminPanel />
         </>
       )}
     </section>

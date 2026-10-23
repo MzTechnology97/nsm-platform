@@ -132,6 +132,7 @@ The `syslog` service receives device logs on **514 UDP/TCP**: the process listen
   1. Mount a certificate and key into the `syslog` container, e.g. with a `docker-compose.override.yml` adding `volumes: ["./secrets/syslog-tls:/tls:ro"]`, `ports: ["6514:6514/tcp"]` and `environment: {SYSLOG_TLS_CERT: /tls/cert.pem, SYSLOG_TLS_KEY: /tls/key.pem}`.
   2. Point the devices to port 6514.
 - **Integrity.** Warning, error and critical lines are hash-chained per device and anchored daily in the audit log; use *Verifica integrità* in the device Syslog tab before quoting logs as evidence.
+- **TP-Link CPEs (TR-069).** NSM sets their remote syslog through GenieACS (device *Syslog* tab, *Amministrazione → ACS*, or automatically with *Configura automaticamente*). They send from their WAN address: allow UDP/TCP 514 from the CPE networks to NSM on any firewall in between, as for 7547.
 - **Rate limit.** Each sender is limited to 50 lines per second, with bursts of 200.
 - **Retention.** Warning, error and critical lines of a device are kept for its whole life and removed only with the device. Info, notice and debug lines are kept for up to 90 days (configurable, never more). The worker deletes old lines in batches.
 - **Status.** The receiver publishes its status every 10 seconds; *Sistema → Connettori* shows it as "Server syslog".

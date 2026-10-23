@@ -297,7 +297,7 @@ Next steps:
 
 
 **Receiver.** A syslog receiver integrated in the stack, as a Docker service (UDP/TCP 514, optionally TLS 6514).
-- Messages are matched to devices only by the per-device key `NSM-<16 hex>` (logging prefix on MikroTik, origin-id on Cisco, device name elsewhere); lines without a key are always discarded (Core 0.49.74, operator decision).
+- Messages are matched to devices only by the per-device key `NSM-<16 hex>` (logging prefix on MikroTik, origin-id on Cisco, device name elsewhere); lines without a key are always discarded (Core 0.49.74, operator decision), except from the address of a TR-069 CPE that NSM itself set to send syslog through the ACS, when no other device uses that address (Core 0.49.220: TP-Link takes no key).
 - Logs are stored with retention and indexing.
 
 **Device configuration.** Configured automatically:
@@ -421,13 +421,17 @@ Persist only supported, stable operational data with capability-aware unavailabl
 
 ### ACS-06 — diagnostics
 
-**Implemented in `main` (Core 0.49.206)**: ping and traceroute run by the CPE through GenieACS (TR-181 and TR-098), results on the device ACS tab. Next: download/upload speed tests (`Device.IP.Diagnostics.DownloadDiagnostics`/`UploadDiagnostics`, exposed by the TP-Link VX230v) once a test server is chosen.
+**Implemented in `main` (Core 0.49.206)**: ping and traceroute run by the CPE through GenieACS (TR-181 and TR-098), results on the device ACS tab; download/upload speed tests (TR-143) towards NSM itself or a server set by the administrator (Core 0.49.218).
 
 ### ACS-07 — backup/restore capability
+
+**Backup implemented in `main` (Core 0.49.217)** as configuration-parameter snapshots archived and comparable in the device Backup tab, scheduled by backup policy (GenieACS has no `Upload` task for the vendor file). Restore is not implemented.
 
 Only expose backup/restore where the real CPE data model and connector expose a verifiable supported mechanism.
 
 ### ACS-08 — firmware workflow
+
+**Implemented in `main` (Core 0.49.219)** for one CPE at a time, on the device Firmware tab like the other devices (installed version against the catalog's newest release): vendor image loaded into GenieACS per model, `download` task after typed confirmation and model check, verified from the reported `SoftwareVersion`, faults and timeout reported, audited. Next: campaigns over many CPEs with staged rollout.
 
 - firmware target/evidence model;
 - controlled ACS operation;

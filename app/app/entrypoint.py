@@ -55,6 +55,7 @@ from app.maintenance_windows import install_maintenance_windows
 from app.connector_diagnostics import install_connector_diagnostics
 from app.ui_acs_migration import install_acs_migration
 from app.server_migration import install_server_migration
+from app.acs_syslog import install_acs_syslog
 from app.cnmaestro_onboarding import install_cnmaestro_onboarding
 from app.uisp_auto_customer import install_uisp_auto_customer
 from app.ispbilling_connector import install_ispbilling_connector
@@ -62,6 +63,10 @@ from app.ispbilling_import import install_ispbilling_import
 from app.nav_counts import install_nav_counts
 from app.ui_device_connectors import install_ui_device_connectors
 from app.acs_diagnostics import install_acs_diagnostics
+from app.acs_actions import install_acs_actions
+from app.acs_snapshot import install_acs_snapshot
+from app.acs_speedtest import install_acs_speedtest
+from app.acs_firmware import install_acs_firmware
 from app.acs_monitoring import install_acs_monitoring
 from app.ui_backup_policies import install_ui_backup_policies
 from app.legacy_redirects import install_legacy_redirects
@@ -128,7 +133,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.215"
+APP_VERSION = "0.49.220"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -256,6 +261,7 @@ install_maintenance_windows(core.app)
 install_connector_diagnostics(core.app)
 install_acs_migration(core.app)
 install_server_migration(core.app)
+install_acs_syslog(core.app)
 install_cnmaestro_onboarding(core.app)
 install_uisp_auto_customer(core.app)
 install_ispbilling_connector(core.app)
@@ -263,6 +269,10 @@ install_ispbilling_import(core.app)
 install_nav_counts(core.app)
 install_ui_device_connectors(core.app)
 install_acs_diagnostics(core.app)
+install_acs_actions(core.app)
+install_acs_snapshot(core.app)
+install_acs_speedtest(core.app)
+install_acs_firmware(core.app)
 install_acs_monitoring(core.app)
 install_ui_backup_policies(core.app)
 install_ui_spa(core.app)

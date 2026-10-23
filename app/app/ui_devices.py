@@ -317,7 +317,7 @@ TABS = (
     ("configuration", lambda d: d.vendor == "mikrotik"),
     ("diagnostics", lambda d: d.vendor == "mikrotik"),
     ("backups", lambda d: True),
-    ("firmware", lambda d: d.vendor == "mikrotik"),
+    ("firmware", lambda d: d.vendor == "mikrotik" or _tr069(d)),
     ("agent", lambda d: d.vendor == "mikrotik"),
     ("uisp", lambda d: d.vendor == "ubiquiti"),
     ("cnmaestro", lambda d: _cambium(d)),

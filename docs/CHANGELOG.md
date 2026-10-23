@@ -4,6 +4,50 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.220 — 2026-10-22
+
+TP-Link CPE syslog through the ACS
+- **NSM sets the TP-Link CPEs to send their logs to the NSM syslog receiver,** through GenieACS (TR-069). It writes only four log settings: remote logging on, receiver address, port 514 and minimum level. Local logging and everything else stay as they are.
+- **Three ways:**
+  - one CPE, from its *Syslog* tab (applied at once when the CPE answers);
+  - every associated TP-Link, from *Amministrazione → ACS → Syslog dei CPE TR-069* (applied at each one's next contact);
+  - automatically for new CPEs when *Configura automaticamente* is on in *Amministrazione → Syslog* (it is on by default).
+- **No identifier needed on TP-Link.** The syslog receiver otherwise accepts only lines with an NSM key, but a TP-Link can't add one. So lines without a key are accepted from the address of a CPE that NSM itself configured this way, and only when no other device uses that address. Every other line without a key is still discarded. Before configuring, NSM refreshes the CPE's management IP from the ACS, which is the WAN address the logs come from.
+- Checked on a real TP-Link VX230v. A firewall between the CPE networks and NSM must let UDP/TCP 514 through, as it does for 7547.
+
+## 0.49.219 — 2026-10-23
+
+Firmware upgrade of TR-069 CPEs
+- **TP-Link and other TR-069 CPEs now have the *Firmware* tab, like MikroTik devices.** It shows the installed version next to the newest one in the firmware catalog for that model, the same information shown on the device overview and in the firmware list.
+- **Upgrade from the *Firmware* tab.** Load the image downloaded from the vendor's site: NSM stores it in the ACS for that model. Then choose it and type the device name to start. The CPE downloads the image from the ACS file server, installs it and reboots.
+- **NSM checks the result itself.** The upgrade is confirmed when the CPE reports the new version, and NSM says whether it is the version you expected. If the CPE reports an error, the error is shown. If no new version arrives within 30 minutes, the upgrade is marked as not confirmed. The follow-up runs even when nobody has the page open.
+- **Built-in safeguards:** an image loaded for one model cannot be sent to another, only one upgrade runs at a time per CPE, and images already in the ACS can be reused for other CPEs of the same model.
+## 0.49.218 — 2026-10-22
+
+Speed test from TR-069 CPEs
+- **Download and upload test from the CPE** in the *ACS* tab. The CPE itself downloads or sends a test file (TR-143), so the result is the speed of the customer's line up to the test server, not of the Wi-Fi. Results are in Mbps, with the size and the duration.
+- **NSM is the default test server.** The CPE reaches it at the same address it uses for the ACS, on HTTP port 80. Each test gets its own link, valid 15 minutes and only for that test.
+- ***Amministrazione → ACS → Test di velocità dei CPE*** lets you set the NSM address if the CPEs reach it elsewhere (for example over HTTPS with a DNS name), other download and upload URLs to measure towards another server, and the size of the test (25 MB by default).
+- **One test at a time per CPE.** While it runs, the customer's connection is busy. If the CPE reports an error, its TR-143 code is shown with an explanation, for example when it cannot reach the test server.
+## 0.49.217 — 2026-10-22
+
+Configuration snapshots of TR-069 CPEs
+- **Snapshot of a CPE's configuration** (TP-Link or other TR-069 device) from the *ACS* tab. It is archived in the device's *Backup* tab as a text file, one parameter per line, with the configuration parameters as the ACS read them. You can open it and compare two snapshots to see exactly what changed, as with RouterOS exports.
+- **Backup policies with the TR-069 option** take one automatically, and only when the configuration has changed since the last snapshot. The *Backup* tile of these CPEs therefore shows the last snapshot.
+- **Left out of the snapshot:** passwords and keys (CPEs do not report them anyway) and values that change on their own (counters, times).
+- **No one-click restore:** a snapshot documents the configuration and shows what changed. To put a setting back, do it by hand or from the Wi-Fi settings.
+- ***Rileggi configurazione dal CPE*** makes the ACS read the CPE's whole configuration again. Use it before the first snapshot of a newly linked CPE.
+
+## 0.49.216 — 2026-10-22
+
+Wi-Fi and reboot of TR-069 CPEs from NSM
+- **Wi-Fi on the *ACS* tab** of a TP-Link or other TR-069 CPE, for technicians and administrators:
+  - per radio (2.4 / 5 GHz): automatic channel or one of the channels the CPE allows, and on/off;
+  - per network: name, new password and on/off.
+  Networks that are off are grouped apart. Passwords cannot be read, because CPEs do not report them: you can only set a new one.
+- **Changes are checked before sending:** name of 1 to 32 characters, password of 8 to 63, allowed channels. Then they are sent to the CPE through the ACS in one go, after a confirmation. If the CPE is not reachable at that moment they apply at its next contact. The activity log records what changed, never the password.
+- **Reboot of the CPE** from the same tab: you type the device name to confirm. NSM shows when the CPE came back.
+
 ## 0.49.215 — 2026-10-22
 
 Legacy backups over FTP: subnets, port, firewall

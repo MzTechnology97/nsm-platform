@@ -625,6 +625,10 @@ Warehouse serial numbers ↔ devices and ISPBilling activities in the device log
 - the integrations hub shows the real connector state and how many TR-069 CPE are associated or still to associate;
 - *Amministrazione → ACS → Configurare una CPE TP-Link* (Core 0.49.213): step-by-step guide for adding a TP-Link CPE — one manual step on the router (CWMP on, ACS URL, Periodic Inform), then NSP reads it; what NSP reads (state, model, firmware, IP, CPU, memory, WAN traffic, Wi-Fi clients, DSL), the actions it offers (reboot, firmware check, diagnostics) and what it never changes (Wi-Fi, LAN, DHCP, PPPoE; it writes only the CWMP inform interval). The ACS URL shown comes from `ACS_CWMP_URL` when set.
 
+### CPE syslog through the ACS (Core 0.49.220)
+
+TP-Link CPEs (Aginet firmware) keep their log settings in `Device.DeviceInfo.X_TP_LogCfg`; NSM writes `LogToRemote`, `ServerIP`, `ServerPort` (514) and `RemoteSeverity` through GenieACS, nothing else. From the device *Syslog* tab (applied at once via connection request), from *Amministrazione → ACS → Syslog dei CPE TR-069* for every associated TP-Link (applied at the next Inform), and by the worker for new CPEs when syslog *Configura automaticamente* is on. The receiver address is the syslog public address, else the host of `ACS_CWMP_URL`. TP-Link lines carry no NSM key: the key-only receiver accepts a keyless line only from the management IP of a TR-069 CPE that NSM itself configured this way, and only when no other device uses that address (`syslog_identity.Index.by_address`); every other keyless line is still discarded. NSM re-reads the management IP (WAN, from the connection-request URL) before configuring. Checked on a real VX230v. Audit `ACS_SYSLOG_CONFIGURED`.
+
 ### Bulk migration to the self-hosted ACS (Core 0.49.202)
 
 *Amministrazione → ACS → Migra i CPE verso questo ACS* (administrators) moves a fleet of customer CPEs
@@ -652,7 +656,23 @@ Every 10 minutes the worker (`acs_customer_tags`) reads the tags of the TR-069 C
 
 ### Diagnostics from the CPE (ACS-06, Core 0.49.206)
 
-On the *ACS* tab of a linked CPE, technicians (`devices.write`) run a ping or a traceroute that the CPE itself performs: NSM asks GenieACS for a `setParameterValues` task with a connection request (TR-181 `Device.IP.Diagnostics.IPPing` / `TraceRoute`, TR-098 `InternetGatewayDevice.IPPingDiagnostics` / `TraceRouteDiagnostics`; data model detected from the GenieACS record), then follows the test by asking GenieACS to re-read the object at most every 8 s while the page is open, until `Complete` or `Error_*` (given up after 4 minutes). When the CPE refuses the connection request the test starts at its next periodic contact. Results (replies, min/avg/max; hops with addresses and times) are kept per test on the device; audit `ACS_DIAGNOSTIC_REQUESTED` / `ACS_DIAGNOSTIC_COMPLETED`. These are the only commands NSM sends through GenieACS.
+On the *ACS* tab of a linked CPE, technicians (`devices.write`) run a ping or a traceroute that the CPE itself performs: NSM asks GenieACS for a `setParameterValues` task with a connection request (TR-181 `Device.IP.Diagnostics.IPPing` / `TraceRoute`, TR-098 `InternetGatewayDevice.IPPingDiagnostics` / `TraceRouteDiagnostics`; data model detected from the GenieACS record), then follows the test by asking GenieACS to re-read the object at most every 8 s while the page is open, until `Complete` or `Error_*` (given up after 4 minutes). When the CPE refuses the connection request the test starts at its next periodic contact. Results (replies, min/avg/max; hops with addresses and times) are kept per test on the device; audit `ACS_DIAGNOSTIC_REQUESTED` / `ACS_DIAGNOSTIC_COMPLETED`. Other commands sent through GenieACS are the Wi-Fi changes and the reboot described below.
+
+### Speed test from the CPE (ACS-06, Core 0.49.218)
+
+On the *ACS* tab, technicians (`devices.write`) run a download or upload test that the CPE itself performs over HTTP (TR-143 `DownloadDiagnostics` / `UploadDiagnostics`, TR-181 and TR-098), so the result is the speed of the customer's line up to the test server, not of the Wi-Fi. By default the test server is NSM itself: the CPE reaches it at the host it uses for the ACS (`ManagementServer.URL`) on HTTP port 80, or at the NSM address set in *Amministrazione → ACS → Test di velocità dei CPE*; each test gets its own HMAC-signed link (device, size, 15-minute expiry) to `/acs-speedtest/…`, which streams the random test file or reads and discards the upload, at most 4 transfers at once. The administrator can instead give other download/upload URLs and the size (1–200 MB, 25 by default). One test at a time per CPE, followed like ping and traceroute (given up after 10 minutes); Mbps from the CPE's test bytes over `EOMTime − BOMTime` (TP-Link high-32-bit counters included). Audit `ACS_SPEEDTEST_REQUESTED`, `ACS_SPEEDTEST_COMPLETED`, `ACS_SPEEDTEST_SETTINGS_CHANGED`.
+
+### Firmware upgrade (ACS-08, Core 0.49.219)
+
+TR-069 CPEs get the device *Firmware* tab like MikroTik devices: it shows the installed version against the newest release of the firmware catalog for the model (*Firmware → Cataloghi*, `vendor_firmware.evaluate`, the same state shown on the overview tile and in the firmware worklist). There technicians (`devices.write`) load the vendor image (up to 128 MB) into GenieACS for the CPE's model (NBI `PUT /files`, `fileType` "1 Firmware Upgrade Image" with OUI, product class and the version given; audit `ACS_FIRMWARE_FILE_STORED` with size and SHA-256) and start the upgrade by typing the device name: a GenieACS `download` task with a connection request, after checking that the image is for the CPE's product class (`ACS_FIRMWARE_REQUESTED`). The CPE fetches the file from the GenieACS file server (port 7567, at the host the CPE uses for the ACS), installs it and reboots. One upgrade at a time per CPE, followed on the page and by the worker (`acs_firmware_follow`): *verified* when GenieACS reports a different `SoftwareVersion` (with whether it contains the expected version, `ACS_FIRMWARE_VERIFIED`), *failed* on a GenieACS fault for the CPE after the request (`ACS_FIRMWARE_FAILED`), *unconfirmed* after 30 minutes. Images already in GenieACS for the same model are listed for reuse.
+
+### Configuration snapshots (ACS-07, Core 0.49.217)
+
+GenieACS cannot download a CPE's vendor configuration file (no TR-069 `Upload` task), so NSM archives the CPE's writable parameters as GenieACS last read them: a text file `path = value` (sorted, commented header) in the device backup archive (`BackupRun`/`BackupArtifact`, type `tr069_parameters`), viewable and comparable in the *Backup* tab like a RouterOS export. Secrets (pass/key/secret/PSK/PIN names) and values that change by themselves (statistics, counters, times) are left out. Taken from the *ACS* tab (`backup.execute`) or by backup policies with the TR-069 option (worker `acs_scheduled_snapshots`, one per occurrence, not stored when identical to the previous one); TR-069 CPEs linked to an enabled GenieACS therefore have an executable backup method (*ACS / TR-069 (parametri)*). *Rileggi configurazione dal CPE* asks GenieACS to re-read the whole tree first. Audit `ACS_SNAPSHOT_ARCHIVED`, `ACS_CONFIG_REFRESH_REQUESTED`. Not restorable with one click.
+
+### Wi-Fi settings and reboot (Core 0.49.216)
+
+On the *ACS* tab, technicians (`devices.write`) change the CPE's Wi-Fi: per radio the channel (automatic or one of the channels the CPE allows) and on/off; per network the name, a new password (passwords are never readable, CPEs do not report them) and on/off. Changes are validated (name 1–32 printable characters, password 8–63, known networks/radios, allowed channels), sent as one `setParameterValues` task with a connection request (queued until the next contact when the CPE refuses it) and audited `ACS_WIFI_CHANGED` with the names of the changed fields only. *Rileggi dal CPE* asks GenieACS to re-read the Wi-Fi object. Reboot requires typing the device name, is sent as a GenieACS `reboot` task (`ACS_REBOOT_REQUESTED`) and is confirmed when GenieACS reports a later boot (`ACS_REBOOT_VERIFIED`, unconfirmed after 15 minutes). TR-181 (`Device.WiFi.Radio/SSID/AccessPoint`) and TR-098 (`LANDevice.1.WLANConfiguration`) are handled.
 
 ### NSM templates kept current (Core 0.49.210)
 
@@ -667,8 +687,8 @@ Every 2 minutes the worker reads from GenieACS (read only, one NBI query per 20 
 - bulk ACS discovery/onboarding from the ACS side (this migration drives the CPEs, not GenieACS);
 - vendor-specific TR-098/TR-181 parameter profiles beyond identity and firmware;
 - vendor parameter profiles;
-- capability-aware backup/restore through ACS;
-- firmware deployment/verification through ACS.
+- restore of a configuration through ACS;
+- firmware campaigns over many CPEs through ACS.
 
 Until an actual connector is selected and implemented, roadmap documentation should stay technology-neutral where possible rather than accumulating unused third-party API references.
 
