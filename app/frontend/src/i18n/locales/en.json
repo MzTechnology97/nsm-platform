@@ -2619,6 +2619,8 @@
     "preset": "Preset",
     "presetText": "condition <code>{{condition}}</code>, bootstrap, boot and periodic events → provision <code>{{provision}}</code>",
     "script": "Script of provision {{name}}",
+    "migrationHint": "Already running a fleet of CPEs on a cloud ACS (e.g. TAUC)?",
+    "migrationLink": "Migrate the CPEs to this ACS",
     "templatesCurrent": "NSM templates are up to date (installed {{when}}). NSM updates them by itself after every upgrade.",
     "templatesPending": "This NSM version has newer templates than the ones installed {{when}}: NSM installs them within 30 minutes, or press Install now.",
     "templatesAuto": "Once installed, NSM keeps these templates up to date by itself after every upgrade.",
@@ -2628,9 +2630,7 @@
       "reads": "Reads: online/offline state, last contact, model, firmware, IP, CPU, memory, WAN traffic, Wi-Fi clients and DSL line.",
       "actions": "Available actions: reboot, firmware check, diagnostics.",
       "never": "Does not change Wi-Fi, LAN, DHCP, PPPoE or any other router configuration. The only setting it writes is the CWMP inform interval."
-    },
-    "migrationHint": "Already running a fleet of CPEs on a cloud ACS (e.g. TAUC)?",
-    "migrationLink": "Migrate the CPEs to this ACS"
+    }
   },
   "demo": {
     "subtitle": "Isolated dataset to try the interface and workflows without using real customers.",
@@ -4417,6 +4417,10 @@
       "verify_hash": {
         "title": "SHA-256",
         "help": "Records the integrity of the produced files."
+      },
+      "cambium_config": {
+        "title": "Cambium configuration (SSH)",
+        "help": "The ePMP running configuration read over SSH; needs the Cambium SSH credentials."
       }
     },
     "retention_daily": "Daily",
@@ -5192,6 +5196,9 @@
     "BACKUP_STALE_ATTEMPT_REPORT_IGNORED": "Late backup report ignored",
     "BRAS_CONFIG_SAVED": "BRAS connection saved",
     "BRAS_SYNC_REQUESTED": "BRAS read requested",
+    "CAMBIUM_BACKUP_ARCHIVED": "Cambium configuration archived",
+    "CAMBIUM_BACKUP_FAILED": "Cambium backup failed",
+    "CAMBIUM_SSH_CREDENTIALS_CHANGED": "Cambium SSH credentials changed",
     "CNMAESTRO_BULK_ONBOARDING": "cnMaestro import",
     "CNMAESTRO_CONFIGURED": "cnMaestro connector configured",
     "CNMAESTRO_DEVICE_LINKED": "Device linked to cnMaestro",
@@ -5445,6 +5452,72 @@
     "job": "job",
     "tr069": "TR-069 (ACS)",
     "acs": "ACS"
+  },
+  "acsMigration": {
+    "subtitle": "Bulk-migrate customer CPEs to the integrated ACS by reconfiguring CWMP over the management network.",
+    "backToAcs": "Back to ACS",
+    "intro": "Enter your routers' management subnet, port and the fleet's shared credentials: NSM reaches each device and sets the target ACS URL. Run a dry run first to see which CPEs are reachable.",
+    "applyPending": "The TP-Link web-interface CWMP rewrite is in field validation for this firmware: for now only the inventory dry run is available.",
+    "formTitle": "New migration",
+    "formHelp": "IPv4 subnets only, at most {{max}} addresses per run. The .0 and .255 addresses and the ACS server are skipped.",
+    "credentialsHelp": "Credentials are used only during the run and are never stored. A dry run does not need them: no credential is sent to any device.",
+    "dryRun": "Dry run (inventory)",
+    "apply": "Apply migration",
+    "recentTitle": "Recent runs",
+    "noRuns": "No runs yet.",
+    "runTitle": "Run · {{subnet}}",
+    "cancel": "Stop",
+    "progress": "Progress",
+    "fields": {
+      "subnet": "Management subnet (CIDR)",
+      "port": "Management port",
+      "informInterval": "Inform interval (seconds)",
+      "targetAcsUrl": "Target ACS URL (CWMP)",
+      "username": "Router username",
+      "password": "Router password"
+    },
+    "cols": {
+      "when": "When",
+      "subnet": "Subnet",
+      "mode": "Mode",
+      "status": "Status",
+      "found": "CPEs found",
+      "changed": "Configured"
+    },
+    "hostCols": {
+      "address": "Address",
+      "status": "Outcome",
+      "model": "Model",
+      "firmware": "Firmware",
+      "detail": "Detail"
+    },
+    "mode": {
+      "dry": "Dry run",
+      "apply": "Applied"
+    },
+    "runStatus": {
+      "pending": "Pending",
+      "running": "Running",
+      "done": "Done",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "hostStatus": {
+      "pending": "Pending",
+      "unreachable": "Unreachable",
+      "not_cpe": "Not a CPE",
+      "auth_failed": "Credentials refused",
+      "already_target": "Already on the ACS",
+      "configured": "Configured",
+      "error": "Error",
+      "skipped": "Skipped"
+    },
+    "counters": {
+      "processed": "Processed",
+      "reachable": "Reachable",
+      "configured": "Configured",
+      "failed": "Failed"
+    }
   },
   "ispbilling": {
     "title": "ISPBilling",
@@ -5724,6 +5797,8 @@
     "help": "Archives the CPE's configuration parameters, as the ACS read them, in the Backup tab, where you can open and compare snapshots. Passwords and changing values are left out. Not restorable with one click. Backup policies with the TR-069 option take one automatically when something changed.",
     "refresh": "Read the configuration again from the CPE",
     "save": "Save snapshot now",
+    "refreshStarted": "The ACS is reading the whole configuration: on a large CPE it takes a few minutes, then save the snapshot.",
+    "refreshQueued": "The CPE did not accept the connection request: the configuration will be read at its next contact.",
     "saved": "Snapshot saved.",
     "open": "Open the Backup tab",
     "refreshState": {
@@ -5731,9 +5806,7 @@
       "done": "Configuration read again ({{objects}} objects): save the snapshot.",
       "partial": "Configuration read again in part: {{done}} of {{objects}} objects."
     },
-    "refreshFailed": "Not read (the task was removed so the CPE's queue is not blocked): {{list}}.",
-    "refreshStarted": "The ACS is reading the whole configuration: on a large CPE it takes a few minutes, then save the snapshot.",
-    "refreshQueued": "The CPE did not accept the connection request: the configuration will be read at its next contact."
+    "refreshFailed": "Not read (the task was removed so the CPE's queue is not blocked): {{list}}."
   },
   "acsSpeedtest": {
     "title": "Speed test from the CPE",
@@ -5925,71 +5998,39 @@
     "otherNamePlaceholder": "e.g. the code on the label (LBE-5AC-16-120)",
     "search": "Search"
   },
-  "acsMigration": {
-    "subtitle": "Bulk-migrate customer CPEs to the integrated ACS by reconfiguring CWMP over the management network.",
-    "backToAcs": "Back to ACS",
-    "intro": "Enter your routers' management subnet, port and the fleet's shared credentials: NSM reaches each device and sets the target ACS URL. Run a dry run first to see which CPEs are reachable.",
-    "applyPending": "The TP-Link web-interface CWMP rewrite is in field validation for this firmware: for now only the inventory dry run is available.",
-    "formTitle": "New migration",
-    "formHelp": "IPv4 subnets only, at most {{max}} addresses per run. The .0 and .255 addresses and the ACS server are skipped.",
-    "credentialsHelp": "Credentials are used only during the run and are never stored. A dry run does not need them: no credential is sent to any device.",
-    "dryRun": "Dry run (inventory)",
-    "apply": "Apply migration",
-    "recentTitle": "Recent runs",
-    "noRuns": "No runs yet.",
-    "runTitle": "Run · {{subnet}}",
-    "cancel": "Stop",
-    "progress": "Progress",
-    "fields": {
-      "subnet": "Management subnet (CIDR)",
-      "port": "Management port",
-      "informInterval": "Inform interval (seconds)",
-      "targetAcsUrl": "Target ACS URL (CWMP)",
-      "username": "Router username",
-      "password": "Router password"
+  "cambiumBackup": {
+    "title": "Configuration backup (SSH)",
+    "help": "cnMaestro cannot export device configurations, so NSM logs in to the ePMP over SSH, reads the running configuration (config show json) and archives it in the Backup tab, complete and restorable from the ePMP Backup/Restore page. Backup policies with the Cambium option run it on schedule.",
+    "run": "Back up now",
+    "running": "Reading the configuration…",
+    "done": "Configuration archived.",
+    "open": "Open the backups",
+    "source": {
+      "device": "Credentials: this device's.",
+      "shared": "Credentials: the shared Cambium ones ({{username}}).",
+      "none": "No SSH credentials: set the shared ones in Administration → cnMaestro or this device's below."
     },
-    "cols": {
-      "when": "When",
-      "subnet": "Subnet",
-      "mode": "Mode",
-      "status": "Status",
-      "found": "CPEs found",
-      "changed": "Configured"
+    "noIp": "The management address of the device is not known.",
+    "last": "Last backup {{when}}: {{status}}.",
+    "status": {
+      "success": "archived",
+      "failed": "failed"
     },
-    "hostCols": {
-      "address": "Address",
-      "status": "Outcome",
-      "model": "Model",
-      "firmware": "Firmware",
-      "detail": "Detail"
-    },
-    "mode": {
-      "dry": "Dry run",
-      "apply": "Applied"
-    },
-    "runStatus": {
-      "pending": "Pending",
-      "running": "Running",
-      "done": "Done",
-      "failed": "Failed",
-      "cancelled": "Cancelled"
-    },
-    "hostStatus": {
-      "pending": "Pending",
-      "unreachable": "Unreachable",
-      "not_cpe": "Not a CPE",
-      "auth_failed": "Credentials refused",
-      "already_target": "Already on the ACS",
-      "configured": "Configured",
-      "error": "Error",
-      "skipped": "Skipped"
-    },
-    "counters": {
-      "processed": "Processed",
-      "reachable": "Reachable",
-      "configured": "Configured",
-      "failed": "Failed"
-    }
+    "hostKey": "SSH host key {{key}} (remembered at the first backup).",
+    "hostKeyChanged": "The SSH key of the device changed ({{key}}): backups are stopped until you accept it. Accept only if the device was replaced or reset.",
+    "acceptKey": "Accept the new key",
+    "own": "Credentials of this device",
+    "ownHelp": "Only when this device does not use the shared Cambium credentials.",
+    "username": "SSH user",
+    "password": "SSH password",
+    "keepPassword": "leave empty to keep it",
+    "port": "SSH port",
+    "save": "Save",
+    "saved": "Saved.",
+    "clear": "Use the shared ones",
+    "sharedTitle": "SSH credentials of the Cambium devices",
+    "sharedHelp": "Used by NSM to back up the configuration of every Cambium ePMP over SSH (cnMaestro cannot export it). A device can have its own credentials on its cnMaestro tab. Stored encrypted; the password is never shown again.",
+    "remove": "Remove"
   },
   "acsAlerts": {
     "title": "Alerts of the CPEs",
