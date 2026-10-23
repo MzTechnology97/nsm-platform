@@ -1825,7 +1825,8 @@
       "notifications": "Notifiche",
       "syslog": "Syslog",
       "acs": "ACS",
-      "system": "Sistema"
+      "system": "Sistema",
+      "serverMigration": "Migrazione server"
     }
   },
   "adminUsers": {
@@ -5259,6 +5260,10 @@
     "SECURITY_MATCHING_COMPLETED": "Correlazione vulnerabilità completata",
     "SECURITY_SOURCE_CONFIGURED": "Fonte di sicurezza configurata",
     "SERIAL_DISCOVERED": "Numero di serie rilevato",
+    "SERVER_MIGRATION_CANCELLED": "Migrazione del server annullata",
+    "SERVER_MIGRATION_CREATED": "Migrazione del server creata",
+    "SERVER_MIGRATION_STARTED": "Apparati inviati al nuovo server",
+    "SERVER_MIGRATION_VERIFIED": "Nuovo server verificato",
     "SITE_ADDED": "Sede aggiunta",
     "SITE_DELETED": "Sede eliminata",
     "SITE_UPDATED": "Sede modificata",
@@ -5539,5 +5544,78 @@
     "dslSnr": "Margine SNR",
     "dslAttenuation": "Attenuazione",
     "charts": "Storico dall'ACS"
+  },
+  "serverMigration": {
+    "subtitle": "Sposta NSM su un server con un altro indirizzo: questo server comunica il nuovo indirizzo ad agent MikroTik e CPE TR-069.",
+    "howTitle": "Come funziona",
+    "how": "Gli apparati conoscono NSM per indirizzo. Questo server consegna agli agent MikroTik uno script che punta al nuovo indirizzo e imposta il nuovo ACS URL sui CPE TR-069 (l'unica scrittura CWMP). Non serve toccare i router.",
+    "steps": {
+      "install": "Installa sul nuovo server la stessa versione di NSM.",
+      "create": "Crea qui la migrazione con l'indirizzo del nuovo server.",
+      "restore": "Fai un backup del database qui (<code>sudo ./manage.sh backup-db</code>) e ripristinalo sul nuovo server con <code>secrets/bootstrap.env</code> e <code>.env</code> (<code>sudo ./manage.sh restore-db</code>): il backup va fatto dopo aver creato la migrazione.",
+      "settings": "Sul nuovo server: ACS_CWMP_URL nel .env, indirizzo pubblico del syslog (Amministrazione → Syslog), impostazioni del ricevitore FTP dei backup legacy, template ACS installati.",
+      "pilot": "Verifica il nuovo server, prova un pilota su pochi apparati, conferma che sono arrivati, poi migra tutti.",
+      "reinstall": "Gli agent che non si aggiornano da soli vanno reinstallati dal nuovo server (scheda Agent dell'apparato)."
+    },
+    "readiness": {
+      "capable": "Agent aggiornabili",
+      "capableHint": "passano al nuovo server da soli",
+      "reinstall": "Agent da reinstallare",
+      "reinstallHint": "da reinstallare dal nuovo server",
+      "tr069": "CPE TR-069",
+      "tr069Hint": "ricevono il nuovo ACS URL"
+    },
+    "createTitle": "Nuova migrazione",
+    "createHelp": "Indirizzo del nuovo server come lo raggiungono i router (http o https, senza percorso). Con https il certificato deve essere valido: i router lo controllano.",
+    "create": "Crea migrazione",
+    "fields": {
+      "agentUrl": "Indirizzo del nuovo server (agent)",
+      "acsUrl": "Nuovo ACS URL (CPE TR-069)",
+      "syslog": "Syslog verso",
+      "created": "Creata"
+    },
+    "noSyslog": "non determinabile: riconfigura il syslog dal nuovo server",
+    "runningTitle": "Migrazione in corso",
+    "cancel": "Annulla migrazione",
+    "cancelConfirm": "Annullare la migrazione? Gli invii non ancora consegnati vengono fermati; gli apparati già passati restano sul nuovo server.",
+    "verifyTitle": "Verifica del nuovo server",
+    "verifyHelp": "Questo server controlla che il nuovo risponda e sia un ripristino di questo database. Va ripetuta entro 24 ore dall'avvio.",
+    "verified": "Verificato {{when}}: versione {{version}}, {{devices}} apparati.",
+    "verify": "Verifica",
+    "pilotTitle": "Pilota",
+    "pilotHelp": "Scegli fino a {{max}} apparati da spostare per primi. Dopo qualche minuto premi «Aggiorna conferme»: quando risultano arrivati puoi migrare tutti.",
+    "search": "Cerca apparato o cliente",
+    "startPilot": "Avvia pilota ({{count}})",
+    "startAll": "Migra tutti",
+    "startAllConfirm": "Inviare il nuovo indirizzo a tutti gli agent aggiornabili e a tutti i CPE TR-069?",
+    "allNeedsPilot": "«Migra tutti» si attiva dopo che almeno un apparato del pilota è arrivato sul nuovo server.",
+    "itemsTitle": "Apparati",
+    "confirm": "Aggiorna conferme",
+    "retire": "Disattiva qui gli arrivati",
+    "retireConfirm": "Disattivare su questo server i {{count}} apparati arrivati sul nuovo? Smettono di generare avvisi qui; i dati restano consultabili.",
+    "retired": "disattivato qui",
+    "noItems": "Nessun apparato inviato.",
+    "cols": {
+      "device": "Apparato",
+      "customer": "Cliente",
+      "kind": "Tipo",
+      "online": "Online",
+      "status": "Stato",
+      "detail": "Dettaglio",
+      "arrived": "Arrivato"
+    },
+    "kind": {
+      "agent": "Agent MikroTik",
+      "tr069": "CPE TR-069"
+    },
+    "status": {
+      "queued": "In attesa",
+      "sent": "Inviato",
+      "arrived": "Arrivato",
+      "failed": "Non riuscito",
+      "reinstall": "Da reinstallare"
+    },
+    "yes": "sì",
+    "no": "no"
   }
 }

@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.214 — 2026-10-22
+
+Moving NSM to a server with another address
+- **New page *Amministrazione → Migrazione server*.** When NSM moves to a server with another IP address, the old server tells the devices the new one, so no router has to be touched by hand:
+  - MikroTik agents that update themselves receive a script that talks to the new address, preceded by the syslog setting towards it;
+  - TR-069 CPEs receive the new ACS URL through GenieACS — the only CWMP setting that changes;
+  - agents that cannot update themselves are listed, to be reinstalled from the new server.
+- **Safe by steps:** the new server must be a restore of this database (NSM checks it with a token created with the migration, and refuses an address that leads back to this same server); a pilot on up to 10 devices comes first, and "migrate all" unlocks only after a pilot device has shown up on the new server.
+- **Arrivals confirmed by the new server** (last heartbeat or last Inform after the switch). The devices that arrived can then be taken out of service on the old server, so it stops raising "unreachable" alerts for them.
+- The step-by-step procedure (backup and restore, settings to check on the new server) is on the page and in `OPERATIONS.md`.
+
 ## 0.49.213 — 2026-10-22
 
 Guide: adding a TP-Link CPE to the ACS

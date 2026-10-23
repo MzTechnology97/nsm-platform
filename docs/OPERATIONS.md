@@ -80,6 +80,19 @@ health check fails (`Backup DB disponibile per recovery: …`).
 3. If the failed release had already migrated the database, restore the
    pre-upgrade dump with `restore-db`.
 
+## Moving NSM to a server with another address
+
+Devices know NSM by address: a MikroTik agent has the server URL in its script, a TR-069 CPE has the ACS URL in its CWMP settings. *Amministrazione → Migrazione server* (administrators) has the OLD server tell them the new address, so no router is touched by hand. A DNS name that simply points to the new server needs none of this.
+
+1. Install the same NSM release on the new server.
+2. On the old server, create the migration with the new address as the routers reach it (`http(s)://host[:port]`) and the new ACS URL. With https the certificate must be valid: RouterOS checks it.
+3. On the old server `sudo ./manage.sh backup-db`, then on the new one restore `secrets/bootstrap.env`, `.env` and the dump (`sudo ./manage.sh restore-db <dump>`). The dump must be taken after step 2: it carries the migration and its token.
+4. On the new server: `ACS_CWMP_URL`, the syslog public address (*Amministrazione → Syslog*), the legacy backup FTP receiver settings, and *Installa template base* in *Amministrazione → ACS*.
+5. *Verifica* on the old server: the new one must answer `/api/v1/server-migration/check` with the token (only a restore of this database can) and must not be this same server.
+6. *Pilota* on up to 10 devices, *Aggiorna conferme* after a few minutes, then *Migra tutti* (enabled once a pilot device arrived). Self-updating agents get a syslog job towards the new address and an `agent_self_update` whose script heartbeats to the new URL; TR-069 CPEs get `ManagementServer.URL` set through GenieACS. Offline agents switch when they come back (jobs last 7 days).
+7. Agents that cannot update themselves are listed *Da reinstallare*: reinstall them from the new server.
+8. *Disattiva qui gli arrivati* takes the moved devices out of service on the old server, so it stops raising "unreachable" for them; then retire the old server.
+
 ## Integrated GenieACS (TR-069)
 
 **Panel access.**

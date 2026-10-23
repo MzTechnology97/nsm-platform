@@ -494,6 +494,45 @@ export function useCancelAcsMigration(runId: string) {
   });
 }
 
+// --- Server migration (new address) ----------------------------------------------------------------
+
+export interface ServerMigrationItemRow {
+  device_id: string; name: string | null; customer: string | null; kind: "agent" | "tr069"; status: string;
+  detail: string | null; updated_at: string; arrived_at: string | null; decommissioned: boolean;
+}
+export interface ServerMigrationState {
+  readiness: { agents: number; agents_capable: number; agents_reinstall: number; tr069: number };
+  candidates: { id: string; name: string | null; customer: string | null; kind: "agent" | "tr069"; online: boolean }[];
+  migration: {
+    id: string; created_at: string; created_by: string | null; agent_base_url: string; acs_url: string | null; syslog_ip: string | null;
+    status: string; verified_at: string | null; verify_valid: boolean; target_check: { version?: string; devices?: number } | null;
+    counts: Record<string, number>; pilot_arrived: boolean;
+  } | null;
+  items: ServerMigrationItemRow[];
+}
+
+export const useServerMigration = () =>
+  useQuery({ queryKey: ["server-migration"], queryFn: () => api<ServerMigrationState>("/api/ui/v1/admin/server-migration") });
+
+export function useServerMigrationCreate() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { agent_base_url: string; acs_url: string }) =>
+      api<ServerMigrationState>("/api/ui/v1/admin/server-migration", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: (data) => client.setQueryData(["server-migration"], data),
+  });
+}
+
+export function useServerMigrationAction(migrationId: string, action: "verify" | "start" | "confirm" | "cancel" | "retire") {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body?: object) =>
+      api<ServerMigrationState & { result: Record<string, unknown> }>(`/api/ui/v1/admin/server-migration/${migrationId}/${action}`,
+        { method: "POST", body: JSON.stringify(body ?? {}) }),
+    onSuccess: (data) => client.setQueryData(["server-migration"], data),
+  });
+}
+
 export const useDemoAdmin = () =>
   useQuery({ queryKey: ["admin-demo"], queryFn: () => api<{ demo_customers: number }>("/api/ui/v1/admin/demo") });
 

@@ -595,6 +595,10 @@ RADIUS accounts (Core 0.49.209, migration 0051):
 
 Warehouse serial numbers ↔ devices and ISPBilling activities in the device logbook (approved, next steps of ISPB-01).
 
+## 13c. Moving NSM to another server address (Core 0.49.214)
+
+*Amministrazione → Migrazione server*: the old server tells MikroTik agents (self-update with a script for the new URL, plus a syslog job towards the new address) and TR-069 CPEs (`ManagementServer.URL` via GenieACS) the new address. The new server must be a restore of this database: a token created with the migration is checked through `/api/v1/server-migration/check`, and a target answering with this process's own instance id is refused. Pilot of up to 10 devices, arrivals confirmed by the new server (`/api/v1/server-migration/confirm`: last heartbeat or last Inform), then all devices; agents that cannot self-update are listed for reinstallation; devices that arrived can be decommissioned on the old server. Audited (`SERVER_MIGRATION_*`). Procedure in `OPERATIONS.md`.
+
 ## 14. TR-069 / ACS-managed CPE
 
 ### Implemented foundation only
