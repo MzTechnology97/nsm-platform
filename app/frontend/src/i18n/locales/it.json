@@ -4429,6 +4429,10 @@
       "verify_hash": {
         "title": "SHA-256",
         "help": "Registra l'integrità dei file prodotti."
+      },
+      "cambium_config": {
+        "title": "Configurazione Cambium (SSH)",
+        "help": "La configurazione in uso dell'ePMP letta in SSH; servono le credenziali SSH dei Cambium."
       }
     },
     "retention_daily": "Giornaliere",
@@ -5204,6 +5208,9 @@
     "BACKUP_RESTORE_TEST_RECORDED": "Restore test registrato",
     "BACKUP_RETENTION_DELETED": "Backup vecchi rimossi dalla retention",
     "BACKUP_STALE_ATTEMPT_REPORT_IGNORED": "Esito di backup tardivo ignorato",
+    "CAMBIUM_BACKUP_ARCHIVED": "Configurazione Cambium archiviata",
+    "CAMBIUM_BACKUP_FAILED": "Backup Cambium non riuscito",
+    "CAMBIUM_SSH_CREDENTIALS_CHANGED": "Credenziali SSH Cambium modificate",
     "CNMAESTRO_BULK_ONBOARDING": "Importazione da cnMaestro",
     "CNMAESTRO_CONFIGURED": "Connettore cnMaestro configurato",
     "CNMAESTRO_DEVICE_LINKED": "Apparato collegato a cnMaestro",
@@ -6191,5 +6198,39 @@
       "WirelessSettings": "Wireless",
       "LANSettings": "LAN"
     }
+  },
+  "cambiumBackup": {
+    "title": "Backup configurazione (SSH)",
+    "help": "cnMaestro non permette di esportare la configurazione degli apparati: NSM entra in SSH sull'ePMP, legge la configurazione in uso (config show json) e la archivia nella scheda Backup, completa e ripristinabile dalla pagina Backup/Restore dell'ePMP. Le policy di backup con l'opzione Cambium la eseguono in automatico.",
+    "run": "Esegui backup ora",
+    "running": "Lettura della configurazione…",
+    "done": "Configurazione archiviata.",
+    "open": "Apri i backup",
+    "source": {
+      "device": "Credenziali: quelle di questo apparato.",
+      "shared": "Credenziali: quelle comuni dei Cambium ({{username}}).",
+      "none": "Nessuna credenziale SSH: imposta quelle comuni in Amministrazione → cnMaestro o quelle di questo apparato qui sotto."
+    },
+    "noIp": "L'indirizzo di gestione dell'apparato non è noto.",
+    "last": "Ultimo backup {{when}}: {{status}}.",
+    "status": {
+      "success": "archiviato",
+      "failed": "non riuscito"
+    },
+    "hostKey": "Chiave SSH dell'apparato {{key}} (memorizzata al primo backup).",
+    "hostKeyChanged": "La chiave SSH dell'apparato è cambiata ({{key}}): i backup sono fermi finché non la accetti. Accettala solo se l'apparato è stato sostituito o resettato.",
+    "acceptKey": "Accetta la nuova chiave",
+    "own": "Credenziali di questo apparato",
+    "ownHelp": "Solo se questo apparato non usa le credenziali comuni dei Cambium.",
+    "username": "Utente SSH",
+    "password": "Password SSH",
+    "keepPassword": "lascia vuoto per mantenerla",
+    "port": "Porta SSH",
+    "save": "Salva",
+    "saved": "Salvato.",
+    "clear": "Usa quelle comuni",
+    "sharedTitle": "Credenziali SSH degli apparati Cambium",
+    "sharedHelp": "Usate da NSM per il backup della configurazione di ogni Cambium ePMP in SSH (cnMaestro non permette di esportarla). Un apparato può avere credenziali proprie nella sua scheda cnMaestro. Salvate cifrate; la password non viene più mostrata.",
+    "remove": "Rimuovi"
   }
 }

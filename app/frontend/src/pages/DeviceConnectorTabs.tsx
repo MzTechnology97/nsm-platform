@@ -13,6 +13,7 @@ import { AcsWifi } from "../app/AcsWifi";
 import { AcsSnapshot } from "../app/AcsSnapshot";
 import { AcsPortMapping } from "../app/AcsPortMapping";
 import { AcsMonitor } from "../app/AcsMonitor";
+import { CambiumBackup } from "../app/CambiumBackup";
 import { TplinkAccess } from "../app/TplinkAccess";
 import { TplinkSettings } from "../app/TplinkSettings";
 
@@ -69,6 +70,7 @@ export function DeviceCnmaestro() {
       {data.linked && data.can.metrics && (
         <MonitorLink deviceId={deviceId} />
       )}
+      <CambiumBackup deviceId={deviceId} />
     </>
   );
 }
