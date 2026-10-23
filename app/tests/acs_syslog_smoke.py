@@ -12,6 +12,7 @@ from sqlalchemy import delete, select
 from app import acs_diagnostics
 from app import acs_syslog
 from app import genieacs_connector as acs
+from app import syslog_identity as identity
 from app import syslog_receiver
 from app.db import SessionLocal
 from app.entrypoint import app
@@ -103,6 +104,29 @@ def main():
             assert db.get(Device, ids["old"]).inventory_data["tr069"]["syslog"]["failed_target"] == "198.51.100.30"
             events = [e.details for e in db.scalars(select(AuditEvent).where(AuditEvent.event_type == "ACS_SYSLOG_CONFIGURED", AuditEvent.device_id == ids["cpe"]))]
             assert len(events) >= 2 and all(set(e) == {"server_ip", "port", "level", "applied"} for e in events)
+
+        # Receiver: TP-Link lines carry no key; accepted from the address of a CPE NSM pointed at itself, nowhere else.
+        with SessionLocal() as db:
+            customer_id = db.get(Device, ids["cpe"]).customer_id
+            db.get(Device, ids["old"]).management_ip = "203.0.113.90"  # the mocked ACS gave every CPE the same WAN address
+            db.add_all([
+                Device(customer_id=customer_id, vendor="tp-link", device_type="router", name=f"CI220-NEW-{suffix}", status="online",
+                       management_source="tr069", management_ip="203.0.113.88"),
+                Device(customer_id=customer_id, vendor="mikrotik", device_type="router", name=f"CI220-MT2-{suffix}", status="online",
+                       management_ip="203.0.113.89", inventory_data={"syslog_key": "ci220key" + suffix + "ab"}),
+            ])
+            db.commit()
+            index = identity.build_index(db, {})
+        assert identity.resolve(index, "203.0.113.87", None, None) == (ids["cpe"], None), "configured CPE, by address"
+        assert identity.resolve(index, "203.0.113.88", None, None) == (None, "missing_key"), "CPE not configured by NSM"
+        assert identity.resolve(index, "203.0.113.89", None, None) == (None, "missing_key"), "keyed devices still need their key"
+        with SessionLocal() as db:
+            db.add(Device(customer_id=customer_id, vendor="tp-link", device_type="router", name=f"CI220-TWIN-{suffix}", status="online",
+                          management_source="tr069", management_ip="203.0.113.87",
+                          inventory_data={"tr069": {"syslog": {"server_ip": "198.51.100.30"}}}))
+            db.commit()
+            index = identity.build_index(db, {})
+        assert identity.resolve(index, "203.0.113.87", None, None) == (None, "missing_key"), "two CPEs behind one address: no guess"
     finally:
         acs_diagnostics.TRANSPORT = None
         acs.lookup_by_external_id = original_lookup
