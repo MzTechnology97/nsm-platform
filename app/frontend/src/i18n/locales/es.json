@@ -2619,6 +2619,8 @@
     "preset": "Preset",
     "presetText": "condición <code>{{condition}}</code>, eventos bootstrap, boot y periodic → provision <code>{{provision}}</code>",
     "script": "Script de la provision {{name}}",
+    "migrationHint": "¿Ya gestionas una flota de CPE en un ACS en la nube (por ejemplo TAUC)?",
+    "migrationLink": "Migrar los CPE a este ACS",
     "templatesCurrent": "Las plantillas NSM están al día (instaladas el {{when}}). NSM las actualiza solo tras cada actualización.",
     "templatesPending": "Esta versión de NSM tiene plantillas más recientes que las instaladas el {{when}}: NSM las instala en 30 minutos, o pulsa Instalar.",
     "templatesAuto": "Una vez instaladas, NSM mantiene estas plantillas al día tras cada actualización.",
@@ -2628,9 +2630,7 @@
       "reads": "Lee: estado en línea/fuera de línea, último contacto, modelo, firmware, IP, CPU, memoria, tráfico WAN, clientes Wi-Fi y línea DSL.",
       "actions": "Acciones disponibles: reinicio, comprobación de firmware, diagnóstico.",
       "never": "No cambia Wi-Fi, LAN, DHCP, PPPoE ni ninguna otra configuración del router. El único ajuste que escribe es el intervalo de inform del CWMP."
-    },
-    "migrationHint": "¿Ya gestionas una flota de CPE en un ACS en la nube (por ejemplo TAUC)?",
-    "migrationLink": "Migrar los CPE a este ACS"
+    }
   },
   "demo": {
     "subtitle": "Conjunto de datos aislado para probar la interfaz y los flujos sin usar clientes reales.",
@@ -5413,6 +5413,7 @@
     "VENDOR_FIRMWARE_RELEASE_ADDED": "Versión de firmware del fabricante añadida",
     "VENDOR_FIRMWARE_RELEASE_DELETED": "Versión de firmware del fabricante eliminada",
     "VULNERABILITY_STATUS_CHANGED": "Estado de la vulnerabilidad cambiado",
+    "ZABBIX_CUSTOMER_SCOPE_CHANGED": "Cliente añadido a Zabbix o retirado",
     "ZABBIX_DEVICE_IP_CHANGED": "IP de Zabbix cambiada",
     "ZABBIX_DEVICE_SCOPE_CHANGED": "Equipo incluido o excluido de Zabbix",
     "ZABBIX_HOST_IP_UPDATED": "IP del host de Zabbix actualizada",
@@ -5445,6 +5446,72 @@
     "job": "tarea",
     "tr069": "TR-069 (ACS)",
     "acs": "ACS"
+  },
+  "acsMigration": {
+    "subtitle": "Migra en bloque los CPE de los clientes al ACS integrado reconfigurando el CWMP en la red de gestión.",
+    "backToAcs": "Volver a ACS",
+    "intro": "Indica la subred de gestión de tus routers, el puerto y las credenciales comunes de la flota: NSM llega a cada equipo y establece la URL ACS de destino. Haz primero una simulación para ver qué CPE son accesibles.",
+    "applyPending": "La reescritura CWMP mediante la interfaz web de TP-Link está en validación sobre el terreno para este firmware: por ahora solo está disponible la simulación de inventario.",
+    "formTitle": "Nueva migración",
+    "formHelp": "Solo subredes IPv4, como máximo {{max}} direcciones por ejecución. Las direcciones .0 y .255 y el servidor ACS se omiten.",
+    "credentialsHelp": "Las credenciales se usan solo durante la ejecución y nunca se guardan. Una simulación no las necesita: no se envía ninguna credencial a los equipos.",
+    "dryRun": "Simular (inventario)",
+    "apply": "Aplicar migración",
+    "recentTitle": "Ejecuciones recientes",
+    "noRuns": "Todavía no hay ejecuciones.",
+    "runTitle": "Ejecución · {{subnet}}",
+    "cancel": "Detener",
+    "progress": "Progreso",
+    "fields": {
+      "subnet": "Subred de gestión (CIDR)",
+      "port": "Puerto de gestión",
+      "informInterval": "Intervalo de inform (segundos)",
+      "targetAcsUrl": "URL ACS de destino (CWMP)",
+      "username": "Usuario de los routers",
+      "password": "Contraseña de los routers"
+    },
+    "cols": {
+      "when": "Cuándo",
+      "subnet": "Subred",
+      "mode": "Modo",
+      "status": "Estado",
+      "found": "CPE encontrados",
+      "changed": "Configurados"
+    },
+    "hostCols": {
+      "address": "Dirección",
+      "status": "Resultado",
+      "model": "Modelo",
+      "firmware": "Firmware",
+      "detail": "Detalle"
+    },
+    "mode": {
+      "dry": "Simulación",
+      "apply": "Aplicada"
+    },
+    "runStatus": {
+      "pending": "Pendiente",
+      "running": "En curso",
+      "done": "Completada",
+      "failed": "Fallida",
+      "cancelled": "Detenida"
+    },
+    "hostStatus": {
+      "pending": "Pendiente",
+      "unreachable": "Inaccesible",
+      "not_cpe": "No es un CPE",
+      "auth_failed": "Credenciales rechazadas",
+      "already_target": "Ya en el ACS",
+      "configured": "Configurado",
+      "error": "Error",
+      "skipped": "Omitido"
+    },
+    "counters": {
+      "processed": "Procesados",
+      "reachable": "Accesibles",
+      "configured": "Configurados",
+      "failed": "Fallidos"
+    }
   },
   "ispbilling": {
     "title": "ISPBilling",
@@ -5724,6 +5791,8 @@
     "help": "Archiva los parámetros de configuración del CPE, tal como los leyó el ACS, en la pestaña Copias, donde las instantáneas se abren y comparan. Se excluyen contraseñas y valores que cambian solos. No se restaura con un clic. Las políticas con la opción TR-069 guardan una automáticamente cuando algo cambia.",
     "refresh": "Volver a leer la configuración del CPE",
     "save": "Guardar instantánea ahora",
+    "refreshStarted": "El ACS está leyendo toda la configuración: en un CPE grande tarda unos minutos; después guarda la instantánea.",
+    "refreshQueued": "El CPE no aceptó la solicitud de conexión: la configuración se leerá en el próximo contacto.",
     "saved": "Instantánea guardada.",
     "open": "Abrir la pestaña Copias",
     "refreshState": {
@@ -5731,9 +5800,28 @@
       "done": "Configuración releída ({{objects}} objetos): guarda la instantánea.",
       "partial": "Configuración releída en parte: {{done}} de {{objects}} objetos."
     },
-    "refreshFailed": "No leídos (tarea eliminada para no bloquear la cola del CPE): {{list}}.",
-    "refreshStarted": "El ACS está leyendo toda la configuración: en un CPE grande tarda unos minutos; después guarda la instantánea.",
-    "refreshQueued": "El CPE no aceptó la solicitud de conexión: la configuración se leerá en el próximo contacto."
+    "refreshFailed": "No leídos (tarea eliminada para no bloquear la cola del CPE): {{list}}."
+  },
+  "zabbixScope": {
+    "addDevice": "Añadir a Zabbix",
+    "removeDevice": "Quitar de Zabbix",
+    "working": "Enviando a Zabbix…",
+    "addCustomer": "Añadir a Zabbix",
+    "removeCustomer": "Quitar de Zabbix",
+    "notIncluded": "no incluido",
+    "customerSummary": "{{inZabbix}} de {{devices}} dispositivos están en Zabbix",
+    "confirmAdd_one": "¿Añadir a Zabbix el dispositivo de este cliente? Se envía en el acto.",
+    "confirmAdd_other": "¿Añadir a Zabbix los {{count}} dispositivos de este cliente? Se envían en el acto.",
+    "confirmRemove_one": "¿Quitar de Zabbix el dispositivo de este cliente? Su host se desactiva, no se borra.",
+    "confirmRemove_other": "¿Quitar de Zabbix los {{count}} dispositivos de este cliente? Sus hosts se desactivan, no se borran.",
+    "customerDone": "En Zabbix: {{inZabbix}} de {{devices}} dispositivos · sin dirección IP: {{noIp}}",
+    "outcome": {
+      "pushed": "Creado en Zabbix",
+      "linked": "Vinculado al host ya presente en Zabbix",
+      "no_ip": "Sin dirección IP: define una IP para Zabbix",
+      "factory_ip": "IP LAN de fábrica: define una dirección accesible para Zabbix",
+      "pending": "En espera del próximo envío"
+    }
   },
   "acsSpeedtest": {
     "title": "Prueba de velocidad desde el CPE",
@@ -5924,72 +6012,6 @@
     "otherName": "Buscar con otro nombre",
     "otherNamePlaceholder": "p. ej. el código de la etiqueta (LBE-5AC-16-120)",
     "search": "Buscar"
-  },
-  "acsMigration": {
-    "subtitle": "Migra en bloque los CPE de los clientes al ACS integrado reconfigurando el CWMP en la red de gestión.",
-    "backToAcs": "Volver a ACS",
-    "intro": "Indica la subred de gestión de tus routers, el puerto y las credenciales comunes de la flota: NSM llega a cada equipo y establece la URL ACS de destino. Haz primero una simulación para ver qué CPE son accesibles.",
-    "applyPending": "La reescritura CWMP mediante la interfaz web de TP-Link está en validación sobre el terreno para este firmware: por ahora solo está disponible la simulación de inventario.",
-    "formTitle": "Nueva migración",
-    "formHelp": "Solo subredes IPv4, como máximo {{max}} direcciones por ejecución. Las direcciones .0 y .255 y el servidor ACS se omiten.",
-    "credentialsHelp": "Las credenciales se usan solo durante la ejecución y nunca se guardan. Una simulación no las necesita: no se envía ninguna credencial a los equipos.",
-    "dryRun": "Simular (inventario)",
-    "apply": "Aplicar migración",
-    "recentTitle": "Ejecuciones recientes",
-    "noRuns": "Todavía no hay ejecuciones.",
-    "runTitle": "Ejecución · {{subnet}}",
-    "cancel": "Detener",
-    "progress": "Progreso",
-    "fields": {
-      "subnet": "Subred de gestión (CIDR)",
-      "port": "Puerto de gestión",
-      "informInterval": "Intervalo de inform (segundos)",
-      "targetAcsUrl": "URL ACS de destino (CWMP)",
-      "username": "Usuario de los routers",
-      "password": "Contraseña de los routers"
-    },
-    "cols": {
-      "when": "Cuándo",
-      "subnet": "Subred",
-      "mode": "Modo",
-      "status": "Estado",
-      "found": "CPE encontrados",
-      "changed": "Configurados"
-    },
-    "hostCols": {
-      "address": "Dirección",
-      "status": "Resultado",
-      "model": "Modelo",
-      "firmware": "Firmware",
-      "detail": "Detalle"
-    },
-    "mode": {
-      "dry": "Simulación",
-      "apply": "Aplicada"
-    },
-    "runStatus": {
-      "pending": "Pendiente",
-      "running": "En curso",
-      "done": "Completada",
-      "failed": "Fallida",
-      "cancelled": "Detenida"
-    },
-    "hostStatus": {
-      "pending": "Pendiente",
-      "unreachable": "Inaccesible",
-      "not_cpe": "No es un CPE",
-      "auth_failed": "Credenciales rechazadas",
-      "already_target": "Ya en el ACS",
-      "configured": "Configurado",
-      "error": "Error",
-      "skipped": "Omitido"
-    },
-    "counters": {
-      "processed": "Procesados",
-      "reachable": "Accesibles",
-      "configured": "Configurados",
-      "failed": "Fallidos"
-    }
   },
   "acsAlerts": {
     "title": "Avisos de los CPE",
