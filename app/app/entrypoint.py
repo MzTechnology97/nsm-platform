@@ -64,6 +64,7 @@ from app.acs_diagnostics import install_acs_diagnostics
 from app.acs_actions import install_acs_actions
 from app.acs_snapshot import install_acs_snapshot
 from app.acs_monitoring import install_acs_monitoring
+from app.monitor_sources import install_monitor_sources
 from app.ui_backup_policies import install_ui_backup_policies
 from app.legacy_redirects import install_legacy_redirects
 from app.ui_spa import install_ui_spa
@@ -266,6 +267,7 @@ install_acs_diagnostics(core.app)
 install_acs_actions(core.app)
 install_acs_snapshot(core.app)
 install_acs_monitoring(core.app)
+install_monitor_sources(core.app)
 install_ui_backup_policies(core.app)
 install_ui_spa(core.app)
 # The syntax guard must wrap the final composed modern source, including the

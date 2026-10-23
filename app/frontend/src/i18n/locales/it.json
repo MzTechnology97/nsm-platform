@@ -321,6 +321,27 @@
       "waiting": "In attesa del primo campione.",
       "last": "Ultimo ping: {{rtt}}, perdita {{loss}}%.",
       "globallyOff": "Il monitoraggio ping è disattivato per tutta la piattaforma (ICMP_MONITOR)."
+    },
+    "source": {
+      "none": "Questo apparato non ha una fonte di metriche (agent NSM, ACS, UISP o cnMaestro): resta disponibile il ping da NSM.",
+      "from_one": "Dati da {{source}} · {{count}} campione",
+      "from_other": "Dati da {{source}} · {{count}} campioni",
+      "noResources": "{{source}} non fornisce CPU e memoria per questo apparato.",
+      "noTraffic": "{{source}} non fornisce il traffico per questo apparato.",
+      "pingOff": "Ping da NSM disattivato: attivalo in «Impostazioni monitoraggio».",
+      "chartsTitle": "Grafici",
+      "chartsMoved": "I grafici di questo apparato sono nella scheda Monitor, con lo stesso schema di tutti gli apparati.",
+      "openMonitor": "Apri Monitor",
+      "names": {
+        "tr069": "ACS (TR-069)",
+        "uisp": "UISP",
+        "cnmaestro": "cnMaestro"
+      },
+      "extra": {
+        "tr069": "Linea e client",
+        "uisp": "Radio",
+        "cnmaestro": "Radio"
+      }
     }
   },
   "syslog": {

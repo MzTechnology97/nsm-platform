@@ -319,6 +319,8 @@ Sampling and consolidation: 2-minute heartbeat (Agent 0.49.18); `telemetry_rollu
 
 Retention (90 days) never removes the newest sample of a device or interface (`telemetry_retention.expire_keep_latest`): an offline device keeps its last telemetry visible (MON-02).
 
+Monitor tab for every device (MON-03, Core 0.49.242): every device has the *Monitor* tab with the same toolbar (1 h, 24 h, 7 days, 30 days, *Impostazioni monitoraggio*) and panels in the same order: *Risorse* (CPU and memory), *Traffico*, *Latenza e perdita (ping da NSM)*, then what only that source has. MikroTik routers use the agent metrics (and *Wireless*). TR-069 CPEs, Ubiquiti and Cambium devices use their source through `GET /api/ui/v1/devices/{id}/monitor/source` (`app/monitor_sources.py`, `monitoring.read`): the ACS (WAN traffic, *Linea e client*: Wi-Fi clients, LAN hosts, DSL), UISP (*Radio*: signal, capacity, stations) or cnMaestro (throughput; *Radio*: signal, SNR, stations). Devices without a source show the ping only. The *ACS*, *UISP* and *cnMaestro* tabs keep the device state and point to Monitor for the charts.
+
 NSM monitoring is intentionally lightweight and does not attempt to replace a full NMS.
 
 ### Syslog configured by the Agent (LOG-01 step 2)
