@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.241 — 2026-10-23
+
+Pages wait instead of failing during updates
+- **The portal no longer shows errors or half-loaded pages while NSM updates itself.** At every update the API restarts for 10–30 seconds. Until now the proxy (Caddy) answered with an error straight away and noticed the API was back only after up to 15 seconds. Now it holds requests for up to 60 seconds and checks the API every 3 seconds. The page loads a moment later instead of failing.
+- On the production server this affected 157 requests in one day, all at update times.
+- The update now also applies changes to the proxy configuration. Before, the proxy kept using the old configuration until it was restarted by hand.
+
 ## 0.49.240 — 2026-10-23
 
 Legacy backups
