@@ -4,6 +4,22 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.242 — 2026-10-23
+
+The same Monitor tab for every device
+- **Every device now has the *Monitor* tab, laid out like the MikroTik routers'.** The same buttons (1 hour, 24 hours, 7 days, 30 days, *Impostazioni monitoraggio*) and the same panels in the same order:
+  1. *Risorse*: CPU and memory, each chart with current, minimum, average and maximum;
+  2. *Traffico*;
+  3. *Latenza e perdita (ping da NSM)*;
+  4. what only that kind of device has.
+- **Where the data comes from:**
+  - MikroTik: the NSM agent, as before.
+  - TP-Link and other TR-069 CPEs: the ACS. That means WAN traffic, plus Wi-Fi clients, LAN hosts and the DSL line under *Linea e client*.
+  - Ubiquiti: UISP, with radio signal, link capacity and stations under *Radio*.
+  - Cambium: cnMaestro. That means throughput, plus signal, SNR and stations under *Radio*.
+  - Devices without any of these sources show the ping. It can be turned on from *Impostazioni monitoraggio*.
+- The *ACS*, *UISP* and *cnMaestro* tabs keep the device state (line, Wi-Fi, connector). For the charts they link to *Monitor*.
+
 ## 0.49.241 — 2026-10-23
 
 Pages wait instead of failing during updates
