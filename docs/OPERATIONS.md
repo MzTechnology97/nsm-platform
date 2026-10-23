@@ -191,6 +191,7 @@ Dumps taken before the rotation still need the old key: store it with them. If t
 
 ## Health and monitoring
 
+- During an update the API container is recreated (10–30 s). Caddy holds requests for up to 60 s while the API comes back, checking its health every 3 s, so pages wait instead of failing with *502 / no upstreams available*. `update.sh` recreates the Caddy container only when `config/Caddyfile` changed: Caddy mounts that single file and would otherwise keep the old copy.
 - `GET /health` (also `/api/v1/health`): `200` when PostgreSQL and Redis
   answer, `503` otherwise. The `worker` field reports `alive` (heartbeat
   younger than 180 s), the heartbeat age and the names of failing tasks; it is
