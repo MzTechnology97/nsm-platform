@@ -446,6 +446,10 @@ A complete cybersecurity view for an ISP/WISP, taking as reference the open-sour
 - **reputation**: AbuseIPDB score and reports (optional API key), correlated with the customer and device owning the address;
 - **availability**: DNS resolution, HTTP/HTTPS status and response time of the operator's public services;
 - out of scope for now (user, 2026-10-23): domains, SSL certificates and mail authentication (SPF/DKIM/DMARC);
+- **operator's public subnets** (requested 2026-10-23): the operator declares the public prefixes it owns or uses (allocations, NAT pools, server ranges). Every address in them is monitored (DNSBL, reputation, reports) whether or not it is assigned to a customer:
+  - a listed **unassigned** address (no session, no device, no static IP at that time) is flagged as such, since it can mean spoofing, a hijacked or misrouted prefix, or a forgotten assignment;
+  - a listed address of a NAT pool is reported with the pool and gateway, without a customer (see the attribution scope);
+  - a listed address assigned to a customer gets the customer and the device;
 - **assets from NSM**: public IPs of devices and customers (and ISPBilling/RADIUS pools) imported automatically, ranges by CIDR, per-asset checks and schedules;
 - **monitoring and alerts**:
   - scheduled re-checks and a needs-attention view (listed, poor reputation, down);
