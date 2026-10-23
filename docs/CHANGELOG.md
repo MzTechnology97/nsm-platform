@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.226 — 2026-10-23
+
+Alerts of TR-069 CPEs
+- **TP-Link and other TR-069 CPEs now raise alerts** in the Action Center, with a notification:
+  - when the CPE stops contacting the ACS;
+  - when its WAN is down but the CPE is still reachable, for example over the 4G backup;
+  - when the WAN reconnects or the CPE reboots too often;
+  - when the DSL line degrades (low SNR margin, or a speed well below the usual one).
+- **Each alert closes by itself** when the problem ends. Notifications during planned maintenance are labelled, as for the other devices.
+- **No duplicate alerts:** a CPE the ping monitor already reports as unreachable gets no second alert.
+- ***Amministrazione → ACS → Avvisi dei CPE*** turns each alert on or off and sets its thresholds.
 ## 0.49.225 — 2026-10-22
 
 ACS
