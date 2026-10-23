@@ -5172,6 +5172,7 @@
     "ACS_PORT_MAPPING_CHANGED": "Redirection de ports du CPE modifiée",
     "ACS_REBOOT_REQUESTED": "Redémarrage du CPE demandé",
     "ACS_REBOOT_VERIFIED": "Redémarrage du CPE vérifié",
+    "ACS_SETTINGS_CHANGED": "Paramètres avancés du CPE modifiés",
     "ACS_SNAPSHOT_ARCHIVED": "Instantané de configuration TR-069 archivé",
     "ACS_SPEEDTEST_COMPLETED": "Test de débit du CPE terminé",
     "ACS_SPEEDTEST_REQUESTED": "Test de débit du CPE demandé",
@@ -6150,5 +6151,45 @@
     "telnetDisable": "Désactiver Telnet LAN",
     "sent": "Envoyé au CPE.",
     "readAt": "Dernier contact du CPE : {{when}}."
+  },
+  "tplinkSettings": {
+    "title": "Paramètres avancés du CPE",
+    "help": "Paramètres envoyés via TR-069, certains absents de la page web du CPE. Seules les valeurs modifiées sont envoyées.",
+    "refresh": "Relire depuis le CPE",
+    "reading": "Lecture…",
+    "pagesHelp": "Pages que le client peut modifier depuis la page web du CPE (non cochée : lecture seule).",
+    "adminHelp": "Nouveau mot de passe du compte administrateur du CPE. NSM l'envoie une fois et ne le conserve ni ne l'affiche.",
+    "adminPassword": "Nouveau mot de passe administrateur (8–64 caractères)",
+    "save_one": "Envoyer {{count}} modification",
+    "save_other": "Envoyer {{count}} modifications",
+    "sent": "Envoyé au CPE.",
+    "groups": {
+      "upgrades": "Mises à jour firmware",
+      "network": "Réseau",
+      "pages": "Pages du client",
+      "admin": "Identifiants administrateur"
+    },
+    "fields": {
+      "upgrades_managed": "Firmware uniquement depuis l'ACS (le CPE ne se met pas à jour seul)",
+      "cloud_auto_upgrade": "Mise à jour automatique depuis le cloud TP-Link",
+      "ntp_server_1": "Serveur NTP 1",
+      "ntp_server_2": "Serveur NTP 2",
+      "nat_timeouts": "Délais de session NAT personnalisés",
+      "nat_tcp_established": "Délai TCP établies (s)",
+      "nat_udp": "Délai UDP (s)",
+      "nat_udp_stream": "Délai flux UDP (s)",
+      "reboot_schedule": "Redémarrage programmé",
+      "reboot_hours": "Heure du redémarrage",
+      "reboot_minutes": "Minute du redémarrage"
+    },
+    "pages": {
+      "FirmwareUpgrade": "Mise à jour firmware",
+      "BackupRestore": "Sauvegarde et restauration",
+      "CWMPSettings": "Paramètres CWMP (TR-069)",
+      "UserAccount": "Compte utilisateur",
+      "Internet": "Internet",
+      "WirelessSettings": "Sans fil",
+      "LANSettings": "LAN"
+    }
   }
 }

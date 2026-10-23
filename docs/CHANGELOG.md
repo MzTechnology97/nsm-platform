@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.249 — 2026-10-23
+
+TR-069
+- **Advanced TP-Link settings on the device's ACS tab.** A new panel sends settings that the CPE's own web page does not always offer:
+  - firmware only from the ACS;
+  - TP-Link's automatic cloud upgrade on or off;
+  - NTP servers;
+  - NAT session timeouts;
+  - the time of the scheduled reboot;
+  - which web pages the customer may change;
+  - a new administrator password, which NSM never stores or shows.
+  Only the changed values are sent, and each change is recorded in the activity log.
+
 ## 0.49.248 — 2026-10-23
 
 TR-069

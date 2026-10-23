@@ -5172,6 +5172,7 @@
     "ACS_PORT_MAPPING_CHANGED": "CPE port forwarding changed",
     "ACS_REBOOT_REQUESTED": "CPE reboot requested",
     "ACS_REBOOT_VERIFIED": "CPE reboot verified",
+    "ACS_SETTINGS_CHANGED": "CPE advanced settings changed",
     "ACS_SNAPSHOT_ARCHIVED": "TR-069 configuration snapshot archived",
     "ACS_SPEEDTEST_COMPLETED": "CPE speed test completed",
     "ACS_SPEEDTEST_REQUESTED": "CPE speed test requested",
@@ -6150,5 +6151,45 @@
     "telnetDisable": "Switch off LAN Telnet",
     "sent": "Sent to the CPE.",
     "readAt": "Last contact of the CPE: {{when}}."
+  },
+  "tplinkSettings": {
+    "title": "Advanced CPE settings",
+    "help": "Settings sent over TR-069, some of them not offered by the CPE's own web page. Only changed values are sent.",
+    "refresh": "Read from the CPE",
+    "reading": "Reading…",
+    "pagesHelp": "Pages the customer may change from the CPE's web page (unticked: read only).",
+    "adminHelp": "New password of the CPE's administrator account. NSM sends it once and never stores or shows it.",
+    "adminPassword": "New administrator password (8–64 characters)",
+    "save_one": "Send {{count}} change",
+    "save_other": "Send {{count}} changes",
+    "sent": "Sent to the CPE.",
+    "groups": {
+      "upgrades": "Firmware upgrades",
+      "network": "Network",
+      "pages": "Customer pages",
+      "admin": "Administrator credentials"
+    },
+    "fields": {
+      "upgrades_managed": "Firmware only from the ACS (the CPE does not upgrade by itself)",
+      "cloud_auto_upgrade": "Automatic upgrade from TP-Link's cloud",
+      "ntp_server_1": "NTP server 1",
+      "ntp_server_2": "NTP server 2",
+      "nat_timeouts": "Custom NAT session timeouts",
+      "nat_tcp_established": "TCP established timeout (s)",
+      "nat_udp": "UDP timeout (s)",
+      "nat_udp_stream": "UDP stream timeout (s)",
+      "reboot_schedule": "Scheduled reboot",
+      "reboot_hours": "Reboot hour",
+      "reboot_minutes": "Reboot minute"
+    },
+    "pages": {
+      "FirmwareUpgrade": "Firmware upgrade",
+      "BackupRestore": "Backup and restore",
+      "CWMPSettings": "CWMP (TR-069) settings",
+      "UserAccount": "User account",
+      "Internet": "Internet",
+      "WirelessSettings": "Wireless",
+      "LANSettings": "LAN"
+    }
   }
 }
