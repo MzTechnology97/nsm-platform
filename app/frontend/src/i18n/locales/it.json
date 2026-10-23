@@ -5097,7 +5097,9 @@
     "ACS_CONFIG_REFRESH_REQUESTED": "Rilettura configurazione del CPE richiesta",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnostica ACS completata",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnostica ACS richiesta",
+    "ACS_FIRMWARE_AUTO_CHANGED": "Download automatico firmware modificato",
     "ACS_FIRMWARE_FAILED": "Aggiornamento firmware del CPE non riuscito",
+    "ACS_FIRMWARE_FILE_FETCHED": "Firmware scaricato dal produttore nell'ACS",
     "ACS_FIRMWARE_FILE_STORED": "Immagine firmware caricata nell'ACS",
     "ACS_FIRMWARE_REQUESTED": "Aggiornamento firmware del CPE richiesto",
     "ACS_FIRMWARE_VERIFIED": "Aggiornamento firmware del CPE verificato",
@@ -5728,7 +5730,11 @@
     "catalogSecurity": "La versione {{version}} corregge problemi di sicurezza: aggiornamento consigliato.",
     "catalogCurrent": "La versione installata è l'ultima del catalogo.",
     "notes": "note di rilascio",
-    "catalogs": "Cataloghi firmware"
+    "catalogs": "Cataloghi firmware",
+    "fetch": "Scarica {{version}} dal sito TP-Link nell'ACS",
+    "fetching": "Download da TP-Link…",
+    "fetched": "Immagine caricata nell'ACS e selezionata qui sotto: conferma l'aggiornamento quando vuoi.",
+    "ready": "La versione {{version}} è già nell'ACS e selezionata qui sotto: conferma l'aggiornamento quando vuoi."
   },
   "acsSyslog": {
     "title": "Syslog via ACS (TR-069)",
@@ -5904,5 +5910,12 @@
     },
     "save": "Salva",
     "saved": "Salvato."
+  },
+  "acsFirmwareAuto": {
+    "title": "Download automatico dei firmware",
+    "help": "Quando TP-Link pubblica un firmware più recente per un modello e una versione hardware che hai, NSM scarica l'archivio ufficiale dal sito italiano e carica l'immagine nell'ACS, una volta per versione. Non installa nulla: ogni aggiornamento resta da confermare nella scheda Firmware dell'apparato.",
+    "enabled": "Scarica in automatico nell'ACS i firmware TP-Link più recenti",
+    "fetched_one": "{{count}} versione scaricata finora.",
+    "fetched_other": "{{count}} versioni scaricate finora."
   }
 }

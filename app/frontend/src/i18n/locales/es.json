@@ -5097,7 +5097,9 @@
     "ACS_CONFIG_REFRESH_REQUESTED": "Relectura de la configuración del CPE solicitada",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnóstico ACS completado",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnóstico ACS solicitado",
+    "ACS_FIRMWARE_AUTO_CHANGED": "Descarga automática de firmware modificada",
     "ACS_FIRMWARE_FAILED": "Actualización de firmware del CPE fallida",
+    "ACS_FIRMWARE_FILE_FETCHED": "Firmware descargado del fabricante en el ACS",
     "ACS_FIRMWARE_FILE_STORED": "Imagen de firmware cargada en el ACS",
     "ACS_FIRMWARE_REQUESTED": "Actualización de firmware del CPE solicitada",
     "ACS_FIRMWARE_VERIFIED": "Actualización de firmware del CPE verificada",
@@ -5728,7 +5730,11 @@
     "catalogSecurity": "La versión {{version}} corrige problemas de seguridad: actualización recomendada.",
     "catalogCurrent": "La versión instalada es la última del catálogo.",
     "notes": "notas de la versión",
-    "catalogs": "Catálogos de firmware"
+    "catalogs": "Catálogos de firmware",
+    "fetch": "Descargar {{version}} del sitio de TP-Link en el ACS",
+    "fetching": "Descargando de TP-Link…",
+    "fetched": "Imagen cargada en el ACS y seleccionada abajo: confirma la actualización cuando quieras.",
+    "ready": "La versión {{version}} ya está en el ACS y seleccionada abajo: confirma la actualización cuando quieras."
   },
   "acsSyslog": {
     "title": "Syslog vía ACS (TR-069)",
@@ -5904,5 +5910,12 @@
     },
     "save": "Guardar",
     "saved": "Guardado."
+  },
+  "acsFirmwareAuto": {
+    "title": "Descarga automática de firmware",
+    "help": "Cuando TP-Link publica un firmware más reciente para un modelo y una versión de hardware que tienes, NSM descarga el archivo oficial del sitio italiano y carga la imagen en el ACS, una vez por versión. No se instala nada: cada actualización sigue requiriendo tu confirmación en la pestaña Firmware del equipo.",
+    "enabled": "Descargar automáticamente en el ACS los firmware de TP-Link más recientes",
+    "fetched_one": "{{count}} versión descargada hasta ahora.",
+    "fetched_other": "{{count}} versiones descargadas hasta ahora."
   }
 }

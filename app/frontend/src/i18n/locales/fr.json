@@ -5097,7 +5097,9 @@
     "ACS_CONFIG_REFRESH_REQUESTED": "Relecture de la configuration du CPE demandée",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnostic ACS terminé",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnostic ACS demandé",
+    "ACS_FIRMWARE_AUTO_CHANGED": "Téléchargement automatique des firmwares modifié",
     "ACS_FIRMWARE_FAILED": "Échec de la mise à jour du firmware du CPE",
+    "ACS_FIRMWARE_FILE_FETCHED": "Firmware téléchargé du constructeur dans l'ACS",
     "ACS_FIRMWARE_FILE_STORED": "Image firmware chargée dans l'ACS",
     "ACS_FIRMWARE_REQUESTED": "Mise à jour du firmware du CPE demandée",
     "ACS_FIRMWARE_VERIFIED": "Mise à jour du firmware du CPE vérifiée",
@@ -5728,7 +5730,11 @@
     "catalogSecurity": "La version {{version}} corrige des failles de sécurité : mise à jour conseillée.",
     "catalogCurrent": "La version installée est la dernière du catalogue.",
     "notes": "notes de version",
-    "catalogs": "Catalogues firmware"
+    "catalogs": "Catalogues firmware",
+    "fetch": "Télécharger {{version}} depuis le site TP-Link dans l'ACS",
+    "fetching": "Téléchargement depuis TP-Link…",
+    "fetched": "Image chargée dans l'ACS et sélectionnée ci-dessous : confirmez la mise à jour quand vous voulez.",
+    "ready": "La version {{version}} est déjà dans l'ACS et sélectionnée ci-dessous : confirmez la mise à jour quand vous voulez."
   },
   "acsSyslog": {
     "title": "Syslog via ACS (TR-069)",
@@ -5904,5 +5910,12 @@
     },
     "save": "Enregistrer",
     "saved": "Enregistré."
+  },
+  "acsFirmwareAuto": {
+    "title": "Téléchargement automatique des firmwares",
+    "help": "Quand TP-Link publie un firmware plus récent pour un modèle et une version matérielle que vous avez, NSM télécharge l'archive officielle depuis le site italien et charge l'image dans l'ACS, une fois par version. Rien n'est installé : chaque mise à jour reste à confirmer dans l'onglet Firmware de l'équipement.",
+    "enabled": "Télécharger automatiquement dans l'ACS les firmwares TP-Link plus récents",
+    "fetched_one": "{{count}} version téléchargée jusqu'ici.",
+    "fetched_other": "{{count}} versions téléchargées jusqu'ici."
   }
 }

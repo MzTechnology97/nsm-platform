@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.227 — 2026-10-23
+
+TP-Link firmware from the official site
+- **NSM now knows the latest firmware of every TP-Link model you have.** Every day it reads the official TP-Link Italian download page for the hardware version of your devices, for example V1 for the VX230v. The newest version appears on the device overview, in the firmware list and in *Firmware → Cataloghi*, as for the other brands. Firmware for another hardware version is never proposed, because it can damage the device.
+- **One-click download into the ACS.** When a newer version is out, the device's *Firmware* tab offers *Scarica dal sito TP-Link nell'ACS*. NSM downloads the official archive (only from TP-Link's server), extracts the firmware and selects it for the upgrade. The upgrade itself still waits for your confirmation.
+- **Automatic download (on by default).** When a newer version is published, NSM downloads it into the ACS by itself, once per version. It is then ready and preselected on the *Firmware* tab of every CPE of that model. Nothing is installed without your confirmation. You can turn it off in *Amministrazione → ACS → Download automatico dei firmware*.
 ## 0.49.226 — 2026-10-23
 
 Alerts of TR-069 CPEs
