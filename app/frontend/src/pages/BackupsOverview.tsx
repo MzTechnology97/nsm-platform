@@ -1,7 +1,7 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SearchSelect } from "../app/SearchSelect";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
@@ -11,6 +11,8 @@ import { formatDateTime, formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { Metric } from "./DeviceDetail";
 import { Loading } from "../app/States";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 
 const BUCKET_TONE = { protected: "ui-severity", blocked: "ui-severity ui-severity-warning", no_policy: "ui-severity ui-severity-high" } as const;
 
@@ -26,7 +28,8 @@ export function BackupsOverview() {
     if ((search.q ?? "") !== q) update({ q: q || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
-  const query = useBackupOverview(search);
+  const paging = usePaging(JSON.stringify(search));
+  const query = useBackupOverview(search, pageParams(paging));
   const data = query.data;
   const view = search.view ?? "attention";
 
@@ -68,7 +71,7 @@ export function BackupsOverview() {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("backupOverview.search")} aria-label={t("backupOverview.search")} autoComplete="off" />
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customer.name }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
       </div>
 
       {query.error ? (
@@ -91,7 +94,7 @@ export function BackupsOverview() {
               </tbody>
             </table>
           </div>
-          {data.total > data.items.length && <p className="ui-muted">{t("monitoring.limited", { shown: data.items.length, total: data.total })}</p>}
+          <Pager total={data.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
         <div className="ui-empty">{view === "attention" ? t("backupOverview.allGood") : t("backupOverview.empty")}</div>

@@ -50,6 +50,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
 
+from app import pagination
 from app import device_exposure
 from app import interface_traffic
 from app.activity_worklists import ACTIVE_JOB_STATES, _device_job_query
@@ -77,19 +78,19 @@ def _device(db, device_id: uuid.UUID) -> Device:
 
 @router.get("/devices/{device_id}/jobs")
 def device_jobs(request: Request, device_id: uuid.UUID, status: str = "", job_type: str = "", q: str = "", from_date: str = "",
-                to_date: str = "", offset: int = 0):
+                to_date: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         ui_user(request, db, "devices.read")
         device = _device(db, device_id)
         stmt = _device_job_query(device.id, status, job_type, q[:100], from_date, to_date)
         total = int(db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
-        offset = max(0, int(offset or 0))
-        jobs = list(db.scalars(stmt.order_by(DeviceJob.created_at.desc()).offset(offset).limit(JOB_PAGE)))
+        offset, size = pagination.window(offset, limit, JOB_PAGE)
+        jobs = list(db.scalars(stmt.order_by(DeviceJob.created_at.desc()).offset(offset).limit(size)))
         active = int(db.scalar(select(func.count(DeviceJob.id)).where(DeviceJob.device_id == device.id, DeviceJob.status.in_(ACTIVE_JOB_STATES))) or 0)
         return jsonable_encoder({
             "items": [{"id": str(j.id), "job_type": j.job_type, "status": j.status, "created_at": j.created_at, "delivered_at": j.delivered_at,
                        "completed_at": j.completed_at, "expires_at": j.expires_at, "attempts": j.attempts, "last_error": j.last_error} for j in jobs],
-            "total": total, "offset": offset, "page_size": JOB_PAGE, "active": active,
+            "total": total, "offset": offset, "page_size": size, "limit": size, "active": active,
             "job_types": list(db.scalars(select(DeviceJob.job_type).where(DeviceJob.device_id == device.id).distinct().order_by(DeviceJob.job_type))),
             "statuses": list(db.scalars(select(DeviceJob.status).where(DeviceJob.device_id == device.id).distinct().order_by(DeviceJob.status))),
         })

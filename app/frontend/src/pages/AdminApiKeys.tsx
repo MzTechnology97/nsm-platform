@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SearchSelect } from "../app/SearchSelect";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { type ApiKeyRow, type ApiKeys, type NewToken, useApiKeyAction, useApiKeys } from "../api/admin";
 import { AdminTabs } from "../app/AdminTabs";
@@ -105,7 +105,7 @@ function CreateKey({ data, onToken }: { data: ApiKeys; onToken: (token: NewToken
         <label><span>{t("apiKeys.name")}</span><input value={name} onChange={(event) => setName(event.target.value)} maxLength={160} required /></label>
         <label>
           <span>{t("apiKeys.customer")}</span>
-          <SearchSelect value={customer} options={data.customers.map((item) => ({ value: item.id, label: item.name }))} onChange={(value) => setCustomer(value)} emptyLabel={t("reports.allCustomers")} />
+          <SearchSelect value={customer} options={data.customers.map((item) => ({ value: item.id, label: customerLabel(item) }))} onChange={(value) => setCustomer(value)} emptyLabel={t("reports.allCustomers")} />
         </label>
         <label>
           <span>{t("apiKeys.expiry")}</span>

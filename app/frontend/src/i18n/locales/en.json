@@ -5090,6 +5090,7 @@
     }
   },
   "eventTypes": {
+    "ACS_CUSTOMER_TAG_SET": "CPE tagged with its customer in GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "ACS diagnostic completed",
     "ACS_DIAGNOSTIC_REQUESTED": "ACS diagnostic requested",
     "ACS_MIGRATION_COMPLETED": "ACS migration completed",
@@ -5662,5 +5663,12 @@
     "ispbilling": "Import from ISPBilling",
     "uisp": "Import from UISP",
     "cnmaestro": "Import from cnMaestro"
+  },
+  "pager": {
+    "label": "Pages",
+    "range": "{{from}}–{{to}} of {{total}}",
+    "previous": "Previous page",
+    "next": "Next page",
+    "size": "Rows per page"
   }
 }

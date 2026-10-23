@@ -1,7 +1,9 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SearchSelect } from "../app/SearchSelect";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 
 import { useDeviceFacets } from "../api/devices";
 import { INCIDENT_STATUSES, type IncidentFilters, type IncidentRow, type IncidentStatusFilter, useIncidents } from "../api/incidents";
@@ -24,9 +26,10 @@ export function Incidents() {
   const [text, setText] = useState(search.q ?? "");
   const q = useDebounced(text.trim());
   const facets = useDeviceFacets();
-  const query = useIncidents(search);
-  const first = query.data?.pages[0];
-  const items = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
+  const paging = usePaging(JSON.stringify(search));
+  const query = useIncidents(search, pageParams(paging));
+  const first = query.data;
+  const items = useMemo(() => query.data?.items ?? [], [query.data]);
   const current: IncidentStatusFilter = search.status ?? "active";
   const update = (patch: Partial<IncidentFilters>) => void navigate({ search: (previous: IncidentFilters) => ({ ...previous, ...patch }), replace: true });
 
@@ -57,7 +60,7 @@ export function Incidents() {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("incidents.searchPlaceholder")} aria-label={t("incidents.search")} />
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customer.name }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
       </div>
 
       {query.error ? (
@@ -82,12 +85,8 @@ export function Incidents() {
           </div>
           <div className="ui-table-foot">
             <span>{t("firmware.shown", { shown: items.length, total: first.total })}</span>
-            {query.hasNextPage && (
-              <button type="button" className="ui-button ui-button-ghost" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
-                {query.isFetchingNextPage ? t("app.loading") : t("firmware.more")}
-              </button>
-            )}
           </div>
+          <Pager total={first.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
         <div className="ui-empty">{search.q || search.customer || search.status ? t("incidents.empty") : t("incidents.noneActive")}</div>

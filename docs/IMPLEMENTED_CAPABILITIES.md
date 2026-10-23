@@ -637,6 +637,10 @@ ACS URL (the integrated GenieACS by default), the inform interval and one shared
   memory for the run and never stored or logged. Audit events `ACS_MIGRATION_STARTED` /
   `ACS_MIGRATION_COMPLETED` carry counts only.
 
+### Customer tag in GenieACS (Core 0.49.237)
+
+Every 10 minutes the worker (`acs_customer_tags`) reads the tags of the TR-069 CPEs linked in NSM (one NBI query per 50 CPEs) and makes each carry its NSM customer's name as a GenieACS tag (whitespace collapsed, at most 100 characters), so the GenieACS panel shows and filters whose CPE it is: added after the link, moved when the device changes customer or the customer is renamed (the previous NSM tag is removed), added again if removed by hand; tags set by hand or by provisions are never touched. The tag NSM set is kept in `inventory_data["tr069"]["customer_tag"]`; audit `ACS_CUSTOMER_TAG_SET`. GenieACS encodes any character in tags, so names with spaces, apostrophes or accents are fine.
+
 ### Diagnostics from the CPE (ACS-06, Core 0.49.206)
 
 On the *ACS* tab of a linked CPE, technicians (`devices.write`) run a ping or a traceroute that the CPE itself performs: NSM asks GenieACS for a `setParameterValues` task with a connection request (TR-181 `Device.IP.Diagnostics.IPPing` / `TraceRoute`, TR-098 `InternetGatewayDevice.IPPingDiagnostics` / `TraceRouteDiagnostics`; data model detected from the GenieACS record), then follows the test by asking GenieACS to re-read the object at most every 8 s while the page is open, until `Complete` or `Error_*` (given up after 4 minutes). When the CPE refuses the connection request the test starts at its next periodic contact. Results (replies, min/avg/max; hops with addresses and times) are kept per test on the device; audit `ACS_DIAGNOSTIC_REQUESTED` / `ACS_DIAGNOSTIC_COMPLETED`. These are the only commands NSM sends through GenieACS.

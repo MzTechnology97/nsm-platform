@@ -1,7 +1,9 @@
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SearchSelect } from "../app/SearchSelect";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 
 import { ApiError } from "../api/client";
 import { BrandIcon } from "../app/BrandIcon";
@@ -32,9 +34,10 @@ export function Vulnerabilities() {
     if ((search.q ?? "") !== q) update({ q: q || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
-  const query = useVulnerabilities(search);
-  const rows = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
-  const first = query.data?.pages[0];
+  const paging = usePaging(JSON.stringify(search));
+  const query = useVulnerabilities(search, pageParams(paging));
+  const rows = useMemo(() => query.data?.items ?? [], [query.data]);
+  const first = query.data;
   const severity = search.severity ?? "";
 
   return (
@@ -68,7 +71,7 @@ export function Vulnerabilities() {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("vulns.search")} aria-label={t("vulns.search")} autoComplete="off" />
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customer.name }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
         <select value={search.vendor ?? ""} onChange={(event) => update({ vendor: event.target.value || undefined })} aria-label={t("devices.vendor")}>
           <option value="">{t("devices.allVendors")}</option>
           {first?.vendors.map((vendor) => <option key={vendor} value={vendor}>{vendor}</option>)}
@@ -117,12 +120,8 @@ export function Vulnerabilities() {
           </div>
           <div className="ui-table-foot">
             <span>{t("firmware.shown", { shown: rows.length, total: first.total })}</span>
-            {query.hasNextPage && (
-              <button type="button" className="ui-button ui-button-ghost" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
-                {query.isFetchingNextPage ? t("app.loading") : t("firmware.more")}
-              </button>
-            )}
           </div>
+          <Pager total={first.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
         <div className="ui-empty">{t("vulns.empty")}</div>
@@ -220,7 +219,7 @@ function Impacted({ data, onFilter, customer, status }: { data: AdvisoryDetail; 
           <p className="ui-muted">{t("vulns.impacted.hint")}</p>
         </div>
         <div className="ui-actions">
-          <SearchSelect value={customer ?? ""} options={data.customers.map((row) => ({ value: row.id, label: `${row.name} (${row.devices})` }))} onChange={(value) => onFilter({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+          <SearchSelect value={customer ?? ""} options={data.customers.map((row) => ({ value: row.id, label: `${customerLabel(row)} (${row.devices})` }))} onChange={(value) => onFilter({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
           <div className="ui-segmented" role="group" aria-label={t("vulns.state")}>
             {STATUSES.map((value) => (
               <button key={value} type="button" className={status === value ? "is-active" : undefined} onClick={() => onFilter({ status: value === "open" ? undefined : value })}>

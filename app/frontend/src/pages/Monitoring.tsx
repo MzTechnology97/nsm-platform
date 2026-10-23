@@ -1,6 +1,6 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { SearchSelect } from "../app/SearchSelect";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
@@ -9,13 +9,16 @@ import { formatValue } from "../charts/format";
 import { formatRelative } from "../lib/format";
 import { FleetZabbixPanel } from "../app/ZabbixProblems";
 import { Loading } from "../app/States";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 
 export function Monitoring() {
   const { t } = useTranslation();
   const search = useSearch({ from: "/monitoring" });
   const navigate = useNavigate({ from: "/monitoring" });
   const facets = useDeviceFacets();
-  const query = useMonitoring(search);
+  const paging = usePaging(JSON.stringify(search));
+  const query = useMonitoring(search, pageParams(paging));
   const data = query.data;
   const state = search.state ?? "attention";
   const update = (patch: Partial<MonitoringFilters>) => void navigate({ search: (previous: MonitoringFilters) => ({ ...previous, ...patch }), replace: true });
@@ -43,7 +46,7 @@ export function Monitoring() {
         ))}
       </div>
       <div className="ui-filter-bar">
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customer.name }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
         <select value={search.vendor ?? ""} onChange={(event) => update({ vendor: event.target.value || undefined })} aria-label={t("devices.vendor")}>
           <option value="">{t("devices.allVendors")}</option>
           {facets.data?.vendors.map((vendor) => <option key={vendor} value={vendor}>{vendor}</option>)}
@@ -72,7 +75,7 @@ export function Monitoring() {
               </tbody>
             </table>
           </div>
-          {data.total > data.items.length && <p className="ui-muted">{t("monitoring.limited", { shown: data.items.length, total: data.total })}</p>}
+          <Pager total={data.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
         <div className="ui-empty">{state === "attention" ? t("monitoring.allGood") : t("monitoring.empty")}</div>

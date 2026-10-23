@@ -1,7 +1,9 @@
 import { useSearch } from "@tanstack/react-router";
 import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SearchSelect } from "../app/SearchSelect";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 
 import { type ReportPage, type ReportRow, type ReportSchedule, useReportAction, useReports } from "../api/admin";
 import { useDeviceFacets } from "../api/devices";
@@ -16,9 +18,10 @@ function formatSize(bytes: number, locale: string): string {
 
 export function Reports() {
   const { t } = useTranslation();
-  const query = useReports();
-  const first = query.data?.pages[0];
-  const items = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
+  const paging = usePaging(JSON.stringify(""));
+  const query = useReports(pageParams(paging));
+  const first = query.data;
+  const items = useMemo(() => query.data?.items ?? [], [query.data]);
   const { error: downloadError } = useSearch({ from: "/reports" });
 
   return (
@@ -58,12 +61,8 @@ export function Reports() {
                 </div>
                 <div className="ui-table-foot">
                   <span>{t("firmware.shown", { shown: items.length, total: first.total })}</span>
-                  {query.hasNextPage && (
-                    <button type="button" className="ui-button ui-button-ghost" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
-                      {query.isFetchingNextPage ? t("app.loading") : t("firmware.more")}
-                    </button>
-                  )}
                 </div>
+                <Pager total={first.total} paging={paging} busy={query.isFetching} />
               </>
             ) : (
               <div className="ui-empty">{first.can_generate ? t("reports.emptyCanGenerate") : t("reports.empty")}</div>
@@ -79,7 +78,7 @@ function CustomerSelect({ value, onChange }: { value: string; onChange: (value: 
   const { t } = useTranslation();
   const facets = useDeviceFacets();
   return (
-    <SearchSelect value={value} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customer.name }))} onChange={(value) => onChange(value)} emptyLabel={t("reports.allCustomers")} />
+    <SearchSelect value={value} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => onChange(value)} emptyLabel={t("reports.allCustomers")} />
   );
 }
 
