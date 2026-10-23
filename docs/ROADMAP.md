@@ -490,7 +490,13 @@ CrowdSec (open-source security engine, free community blocklist) to protect NSM 
 ### MOD-01 — optional modules (requested 2026-10-23)
 
 The security services below, and the other integrations of this roadmap (CrowdSec, external probe, third-party data, UniFi, BRAS, NetFlow collector…), are **modules** that each installation turns on or off. This keeps NSM usable by operators with different networks and needs:
-- one page, *Amministrazione → Moduli*, with every module, what it does, what it needs (API key, mailbox, flow exporter, external host…) and its state (off, on, error);
+- **one place for each thing, no duplicates** (user, 2026-10-23):
+  - a single *Moduli* section lists every module, with what it does, what it needs (API key, mailbox, flow exporter, external host…) and its state: off, on or error;
+  - it replaces today's two entry points: the *Integrazioni* hub, whose cards lead to *Amministrazione → Integrazioni → …*, and the separate admin tabs such as *Syslog* or *ACS*;
+  - each module has **its own page** with the same tabs everywhere: *Configurazione* (all its settings, and only there), *Stato e diagnosi*, *Dati* (what it collected, e.g. imports or onboarding), *Registro* (its audit events);
+  - *Amministrazione* keeps only the core: users and roles, API keys, branding, system, server migration, demo, authorized management networks (ACCESS-01);
+  - device and customer pages show a module's data in their tabs but never its configuration. They link to the module page instead;
+  - old addresses (`/admin/integrations/...`, `/admin/syslog`, `/admin/acs`, `/integrations`) redirect to the module page, and global search points to it;
 - **off by default** unless it only reads data NSM already has;
 - a module that is off has no worker task, no data collection, no outgoing request, no menu entry and no notification. Its data is kept read-only until the operator deletes it;
 - each module has its own settings, permissions, retention and audit events (`MODULE_ENABLED` / `MODULE_DISABLED`), and declares the modules it depends on: SEC-12 needs SEC-11 or another incident source, SEC-17 needs SEC-16's collector, SEC-19 can use the external probe;
