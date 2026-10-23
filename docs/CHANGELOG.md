@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.215 — 2026-10-22
+
+Legacy backups over FTP: subnets, port, firewall
+- **Choose who may send backups.** *Amministrazione → Sistema → Backup legacy via FTP* lists the subnets allowed to send backups to the FTP receiver of RouterOS 6 and 7.12 routers, one per line or separated by commas. The receiver refuses any other origin within a minute. With no subnet set, it still accepts everyone, as before, and the page warns about it.
+- **Custom port.** `./manage.sh legacy-backup-enable <IPv4 of NSM> [port]` sets the port the routers use (default 2121). The passive ports can be changed with `LEGACY_FTP_PASV_PORTS`.
+- **Firewall handled by the same command.** It opens the ports in ufw or firewalld when one of them is active. When subnets are set in NSM, it also adds host rules that block other origins before they reach the receiver. `./manage.sh legacy-ftp-firewall --apply` refreshes those rules after the subnets change.
+
 ## 0.49.214 — 2026-10-22
 
 Moving NSM to a server with another address
