@@ -487,6 +487,57 @@ CrowdSec (open-source security engine, free community blocklist) to protect NSM 
 - **Reputation of the operator's addresses** (with CYBER-01): customer public IPs that appear in the community blocklist point to a compromised CPE or router, and get an Action Center issue on the owning device.
 - **Optional, operator's choice per device**: the blocklist as a RouterOS address list (`crowdsec`) on MikroTik routers through the Agent, with a drop rule on the input chain. It is applied only with explicit confirmation and can be removed, and it is never written by default.
 
+### ISP security services (requested 2026-10-23)
+
+All linked to customers and devices through the IP attribution of CYBER-01 (public addresses only; NAT addresses reported with the public IP) and to the Action Center and the existing notification channels.
+
+#### SEC-10 — Shadowserver reports
+Free daily reports for network owners: open services, infected hosts and botnet members on the operator's addresses. NSM imports them (subscription by e-mail or the Shadowserver reports API) and links each entry to the customer and device that held the IP. Report history is kept per address.
+
+#### SEC-11 — incoming abuse e-mails
+NSM reads the abuse mailbox (IMAP, read-only folder) and parses the standard formats (ARF, X-ARF, the usual plain-text reports). Each message becomes an incident with IP, port, time and time zone, the attributed customer, and the original message attached.
+
+#### SEC-12 — abuse incident workflow
+From the incident to the notice to the customer, with an e-mail template and the evidence, then to closure. States, assignee, deadlines and history are kept, so the record also answers whoever reported it. Repeated incidents on the same customer are grouped.
+
+#### SEC-13 — Spamhaus DROP / EDROP
+The free lists are checked daily:
+- alert if one of the operator's prefixes appears;
+- optional, per device and with confirmation: a RouterOS address list blocking those networks on MikroTik through the Agent.
+
+#### SEC-14 — BGP monitoring of the operator's prefixes
+For the operator's prefixes and ASN, using public data (RIPE RIS live, RIPEstat):
+- RPKI ROA validity;
+- route objects in the RIPE database;
+- alerts on hijacks, more-specific announcements or unexpected origin ASNs.
+
+#### SEC-15 — RIPE contact data
+Checks that the abuse contact (`abuse-c`) and the objects of the operator's ASN and inetnums are present and current, and that the abuse address answers.
+
+#### SEC-16 — outbound abuse from customers (NetFlow/IPFIX)
+MikroTik `traffic-flow` (or any IPFIX exporter) sent to an NSM collector, aggregated per customer IP:
+- SMTP 25 spikes (spam);
+- scanning (many destinations or ports);
+- participation in a DDoS (high outbound rates towards one target).
+
+A likely compromised CPE is flagged before the reports arrive.
+
+#### SEC-17 — inbound DDoS detection
+Thresholds per IP or customer on the same flows (packets/s, bits/s, new flows/s), with alerts. Optional, with confirmation: remote-triggered blackhole (RTBH) of the attacked address only, through the operator's edge router.
+
+#### SEC-18 — default credentials on customer devices
+Detected from the configuration NSM already reads, never by trying to log in: factory passwords on CPEs and routers (e.g. `ubnt`/`ubnt` on airOS, default TR-069 / web passwords, no password on RouterOS), and default TR-069 connection-request credentials. A finding with a remediation hint is added to the device's security page.
+
+#### SEC-19 — honeypot on unused public addresses
+The operator's free public addresses (from the subnets of CYBER-01) are used as a trap, by a light sensor on the NSM probe or a dedicated host:
+- a customer IP contacting them from inside the network is likely infected;
+- contacts from Internet show the scans in progress.
+
+They feed the reputation and CrowdSec (CROWDSEC-01).
+
+#### SEC-20 — periodic security report
+Weekly or monthly, per customer and for the whole network, as PDF or e-mail through the existing report builder: exposures, blacklists, abuse incidents, vulnerable firmware, default credentials, and the trend against the previous period.
+
 ### ZBX-01 — Zabbix API integration (requested 2026-10-07)
 
 **Decided with the user (2026-10-08): NSM pushes its devices to Zabbix. Implemented in `main` (Core 0.49.51).** Hosts, groups per customer, templates per manufacturer, tags and inventory; 6.x and 7.x authentication; hosts disabled (not deleted) when devices leave NSM. Zabbix problems are shown inside NSM since Core 0.49.62 (device header and overview, Monitoring). **Since Core 0.49.205 (operator decision 2026-10-22)**: devices already monitored in the operator's Zabbix are linked to their existing host (same IP, else same name, only when exactly one matches) instead of getting a duplicate `nsm-` host; linked hosts are never modified except their interface IP, kept equal to the device address for dynamic public IPs/NAT (option); ambiguous matches are reported; the settings form suggests the templates found in Zabbix.
