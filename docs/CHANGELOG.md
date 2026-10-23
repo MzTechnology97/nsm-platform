@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.230 — 2026-10-23
+
+Tests
+- **The activity-log test no longer fails when CI runs just after midnight UTC.** Its date-filter check now starts from the previous day.
+
 ## 0.49.229 — 2026-10-23
 
 ISPBilling accounts linked to CPEs
