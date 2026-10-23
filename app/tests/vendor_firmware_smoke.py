@@ -27,6 +27,11 @@ def main():
     assert vf.is_newer("ubiquiti", "8.7.12", "WA.ipq40xx.v8.7.11.46972.220614.0420") is True
     assert vf.is_newer("ubiquiti", "8.7.11", "XC.ar934x.v8.7.11.46972.220614.0420") is False
 
+    # Before any airOS platform is known the refresh asks nothing and is not counted: the next cycle tries again.
+    vf._last_vendor_attempt = None
+    empty = vf.run_scheduled(transport=httpx.MockTransport(lambda request: httpx.Response(500)))
+    assert empty["vendor_api"]["platforms"] == 0 and vf._last_vendor_attempt is None, empty
+
     suffix = uuid.uuid4().hex[:6]
     with SessionLocal() as db:
         for row in db.scalars(select(VendorFirmwareRelease)):

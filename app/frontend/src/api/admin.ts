@@ -438,6 +438,8 @@ export interface AcsAdmin {
   base_provision: string;
   provision_script: string;
   presets: { name: string; precondition: string }[];
+  /** NSM templates in GenieACS: when NSM last installed them and whether they match this version (kept current automatically). */
+  templates?: { installed_at: string | null; current: boolean; auto: boolean };
 }
 
 export const useAcsAdmin = () => useQuery({ queryKey: ["admin-acs"], queryFn: () => api<AcsAdmin>("/api/ui/v1/admin/acs") });
@@ -489,6 +491,45 @@ export function useCancelAcsMigration(runId: string) {
   return useMutation({
     mutationFn: () => api<{ cancelled: boolean }>(`/api/ui/v1/admin/acs/migration/${runId}/cancel`, { method: "POST" }),
     onSuccess: () => client.invalidateQueries({ queryKey: ["acs-migration"] }),
+  });
+}
+
+// --- Server migration (new address) ----------------------------------------------------------------
+
+export interface ServerMigrationItemRow {
+  device_id: string; name: string | null; customer: string | null; kind: "agent" | "tr069"; status: string;
+  detail: string | null; updated_at: string; arrived_at: string | null; decommissioned: boolean;
+}
+export interface ServerMigrationState {
+  readiness: { agents: number; agents_capable: number; agents_reinstall: number; tr069: number };
+  candidates: { id: string; name: string | null; customer: string | null; kind: "agent" | "tr069"; online: boolean }[];
+  migration: {
+    id: string; created_at: string; created_by: string | null; agent_base_url: string; acs_url: string | null; syslog_ip: string | null;
+    status: string; verified_at: string | null; verify_valid: boolean; target_check: { version?: string; devices?: number } | null;
+    counts: Record<string, number>; pilot_arrived: boolean;
+  } | null;
+  items: ServerMigrationItemRow[];
+}
+
+export const useServerMigration = () =>
+  useQuery({ queryKey: ["server-migration"], queryFn: () => api<ServerMigrationState>("/api/ui/v1/admin/server-migration") });
+
+export function useServerMigrationCreate() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { agent_base_url: string; acs_url: string }) =>
+      api<ServerMigrationState>("/api/ui/v1/admin/server-migration", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: (data) => client.setQueryData(["server-migration"], data),
+  });
+}
+
+export function useServerMigrationAction(migrationId: string, action: "verify" | "start" | "confirm" | "cancel" | "retire") {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body?: object) =>
+      api<ServerMigrationState & { result: Record<string, unknown> }>(`/api/ui/v1/admin/server-migration/${migrationId}/${action}`,
+        { method: "POST", body: JSON.stringify(body ?? {}) }),
+    onSuccess: (data) => client.setQueryData(["server-migration"], data),
   });
 }
 
@@ -545,12 +586,15 @@ export interface ZabbixAdmin {
     templates: { mikrotik: string; ubiquiti: string; default: string };
     scope: "all" | "customers";
     customer_ids: string[];
+    link_existing: boolean;
+    update_linked_ip: boolean;
   };
   version: string | null;
   last_test_status: string | null;
   last_error: string | null;
   last_sync_at: string | null;
-  last_sync: { status: string | null; created: number; updated: number; disabled: number; skipped: number; missing_templates: string[]; errors: string[] };
+  last_sync: { status: string | null; created: number; updated: number; disabled: number; skipped: number; missing_templates: string[]; errors: string[];
+    linked: number; ambiguous: string[]; ip_updated: string[]; factory_ip: string[] };
   problems: { problems: number | null; with_problems: number | null; at: string | null; status: string | null; error: string | null };
   frontend: string | null;
   customers: { id: string; name: string }[];
@@ -559,6 +603,11 @@ export interface ZabbixAdmin {
 
 export const useZabbixAdmin = () =>
   useQuery({ queryKey: ["admin-zabbix"], queryFn: () => api<ZabbixAdmin>("/api/ui/v1/admin/integrations/zabbix") });
+
+/** Template names read from Zabbix (only once the connection is configured). */
+export const useZabbixTemplates = (enabled: boolean) =>
+  useQuery({ queryKey: ["admin-zabbix-templates"], enabled, staleTime: 5 * 60_000, retry: false,
+    queryFn: () => api<{ templates: string[] }>("/api/ui/v1/admin/integrations/zabbix/templates") });
 
 export interface GenieacsAdmin {
   configured: boolean;
@@ -723,3 +772,23 @@ export interface Dashboard {
 
 export const useDashboard = () =>
   useQuery({ queryKey: ["dashboard"], queryFn: () => api<Dashboard>("/api/ui/v1/dashboard"), refetchInterval: 30_000, staleTime: 10_000 });
+
+export interface LegacyFtpSettings {
+  enabled: boolean;
+  public_host: string | null;
+  port: number;
+  passive_ports: string;
+  allowed_networks: string[];
+  firewall_script: string;
+}
+
+export const useLegacyFtp = () =>
+  useQuery({ queryKey: ["admin-legacy-ftp"], queryFn: () => api<LegacyFtpSettings>("/api/ui/v1/admin/legacy-ftp") });
+
+export function useLegacyFtpSave() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { allowed_networks: string }) => api<LegacyFtpSettings>("/api/ui/v1/admin/legacy-ftp", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: (data) => client.setQueryData(["admin-legacy-ftp"], data),
+  });
+}

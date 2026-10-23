@@ -21,13 +21,28 @@ export function TileRing({ percent }: { percent: number | null }) {
 }
 
 /** Metric tile with a ring on the left: label in the tone colour, the figure, a short note. */
-export function RingTile({ label, value, note, percent, tone }: {
+export function RingTile({ label, value, note, percent, tone, onClick, actionLabel }: {
   label: ReactNode; value: string; note?: ReactNode; percent: number | null; tone?: TileTone;
+  /** Makes the whole tile a button (e.g. the ping tile opens its on/off window). */
+  onClick?: () => void; actionLabel?: string;
 }) {
   // A word ("non attivo", "Agent MikroTik") is shown smaller on one line than a figure, so tiles keep one height.
   const text = value.length > 8 && !/^[\d.,%\s/:-]+$/.test(value);
+  const className = `ui-metric ui-ring-tile${tone ? ` ui-metric-${tone}` : ""}${onClick ? " is-clickable" : ""}`;
+  if (onClick) {
+    return (
+      <button type="button" className={className} onClick={onClick} aria-label={actionLabel} title={actionLabel}>
+        <TileRing percent={percent} />
+        <span className="ui-ring-tile-body">
+          <span>{label}</span>
+          <strong className={text ? "is-text" : undefined}>{value}</strong>
+          {note && <small>{note}</small>}
+        </span>
+      </button>
+    );
+  }
   return (
-    <article className={`ui-metric ui-ring-tile${tone ? ` ui-metric-${tone}` : ""}`}>
+    <article className={className}>
       <TileRing percent={percent} />
       <span className="ui-ring-tile-body">
         <span>{label}</span>

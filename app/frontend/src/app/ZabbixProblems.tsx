@@ -14,6 +14,9 @@ export interface ZabbixProblem {
 export interface DeviceZabbix {
   link: string | null;
   excluded: boolean;
+  /** Linked to a host the operator already had in Zabbix (by IP or name), not created by NSM. */
+  linked?: boolean;
+  match?: "ip" | "name" | null;
   problems: { items: ZabbixProblem[]; checked_at: string | null; stale: boolean } | null;
 }
 
