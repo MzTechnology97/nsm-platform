@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { type ApiKeyRow, type ApiKeys, type NewToken, useApiKeyAction, useApiKeys } from "../api/admin";
 import { AdminTabs } from "../app/AdminTabs";
 import { formatDateTime } from "../lib/format";
+import { copyText } from "../lib/clipboard";
 import { Loading } from "../app/States";
 
 const STATE_TONE: Record<string, string> = { active: "online", grace: "warning", expiring: "warning", expired: "offline", replaced: "offline", revoked: "offline" };
@@ -49,8 +50,8 @@ export function AdminApiKeys() {
 
 function TokenNotice({ token, onDone }: { token: NewToken; onDone: () => void }) {
   const { t } = useTranslation();
-  const [copied, setCopied] = useState(false);
-  const copy = () => void navigator.clipboard?.writeText(token.token).then(() => setCopied(true));
+  const [copied, setCopied] = useState<boolean | null>(null);
+  const copy = () => void copyText(token.token).then(setCopied);
   return (
     <div className="ui-alert ui-alert-warning ui-token-notice" role="alert">
       <strong>{t("apiKeys.tokenTitle", { name: token.name })}</strong>
@@ -60,6 +61,7 @@ function TokenNotice({ token, onDone }: { token: NewToken; onDone: () => void })
         <button type="button" className="ui-button ui-button-small" onClick={copy}>{copied ? t("apiKeys.copied") : t("apiKeys.copy")}</button>
         <button type="button" className="ui-button ui-button-ghost ui-button-small" onClick={onDone}>{t("apiKeys.stored")}</button>
       </div>
+      {copied === false && <small className="ui-key-hint ui-block">{t("app.copyFailed")}</small>}
     </div>
   );
 }

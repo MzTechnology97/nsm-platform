@@ -12,12 +12,14 @@ export interface IspbillingAdmin {
   last_error: string | null;
   last_tested_at: string | null;
   last_sync_at: string | null;
-  last_sync: { status?: string; error?: string; customers?: number; service_instances?: number; details_read?: number; details_pending?: number; at?: string };
+  last_sync: { status?: string; error?: string; radius_error?: string; customers?: number; service_instances?: number; details_read?: number; details_pending?: number; at?: string };
   sync_requested: boolean;
   customers: number;
   linked: number;
   addresses: number;
   details_pending: number;
+  radius_accounts: number;
+  radius_matched: number;
 }
 
 export const useIspbillingAdmin = () =>

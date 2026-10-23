@@ -8,6 +8,7 @@ import { formatDateTime } from "../lib/format";
 import { metricValue, RANGES, SeriesCharts } from "./DeviceUisp";
 import { Loading } from "../app/States";
 import { AcsDiagnostics } from "../app/AcsDiagnostics";
+import { AcsMonitor } from "../app/AcsMonitor";
 
 function message(error: unknown) {
   return error instanceof ApiError ? error.message : (error as Error | null)?.message;
@@ -134,6 +135,7 @@ export function DeviceGenieacs() {
           <p className="ui-muted">{t("deviceGenieacs.notYet")}</p>
         </section>
       )}
+      {record.external_id && <AcsMonitor deviceId={deviceId} />}
       {record.external_id && enabled && <AcsDiagnostics deviceId={deviceId} />}
       <section className="ui-panel ui-admin-section">
         <div className="ui-page-header-row">

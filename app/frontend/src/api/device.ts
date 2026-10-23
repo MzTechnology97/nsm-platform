@@ -28,6 +28,8 @@ export interface DeviceDetail {
   availability_30d?: { measured: boolean; availability: number | null; downtime_minutes: number | null; outages: number | null; target: number;
     customer_target: boolean };
   zabbix: DeviceZabbix | null;
+  /** ISPBilling RADIUS accounts matched to the device (PPPoE user, else static IP). */
+  ispbilling?: DeviceIspbillingAccount[];
   tabs: { key: string }[];
   /** Out of service: when, why and by whom; null for a device in service. */
   decommissioned: Decommission | null;
@@ -72,4 +74,15 @@ export function useZabbixExclude(id: string) {
       api<{ excluded: boolean }>(`/api/ui/v1/devices/${encodeURIComponent(id)}/zabbix/exclude`, { method: "POST", body: JSON.stringify({ exclude }) }),
     onSuccess: () => void client.invalidateQueries({ queryKey: ["device", id] }),
   });
+}
+
+export interface DeviceIspbillingAccount {
+  username: string;
+  profile: string | null;
+  status: string | null;
+  static_ip: string | null;
+  matched_by: "pppoe" | "ip" | null;
+  customer: string | null;
+  /** False when ISPBilling bills another NSM customer; null when that ISPBilling customer is not imported. */
+  same_customer: boolean | null;
 }
