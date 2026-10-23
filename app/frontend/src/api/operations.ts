@@ -216,7 +216,25 @@ export interface FirmwarePage {
   limit: number;
   counts: Record<FirmwareState, number>;
   items: FirmwareRow[];
+  uisp_bulk_max?: number;
   links: { catalogs: string; suggestions: string };
+}
+
+export interface UispBulkResult {
+  target: string;
+  maintenance_window: boolean;
+  started: { id: string; name: string; version: string; from_version: string | null }[];
+  skipped: { id: string; name: string | null; code: string; message: string }[];
+}
+
+/** Ubiquiti upgrade through UISP for several devices of the worklist, in one UISP task. */
+export function useUispBulkUpgrade() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { device_ids: string[]; target: string; maintenance_window: boolean; confirm: string }) =>
+      api<UispBulkResult>("/api/ui/v1/firmware/uisp-upgrade", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["firmware"] }),
+  });
 }
 
 export function firmwareUrl(filters: FirmwareFilters, offset = 0): string {

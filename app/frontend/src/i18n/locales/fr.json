@@ -1247,7 +1247,39 @@
       "dnsError": "Erreur : nom du serveur de mise à jour non résolu"
     },
     "uispUpgrade": "Mettre à jour via UISP",
-    "uispRunning": "Mise à jour UISP en cours"
+    "uispRunning": "Mise à jour UISP en cours",
+    "uispBulk": {
+      "label": "Mise à jour groupée via UISP",
+      "selectAll": "Sélectionner les équipements à mettre à jour via UISP",
+      "select": "Sélectionner {{name}}",
+      "selected_one": "{{count}} équipement sélectionné (au plus {{max}})",
+      "selected_other": "{{count}} équipements sélectionnés (au plus {{max}})",
+      "target": "Version",
+      "recommended": "Version recommandée pour chaque équipement",
+      "version": "{{version}} pour tous",
+      "maintenance": "Dans la fenêtre de maintenance UISP",
+      "confirm": "Saisissez {{phrase}} pour confirmer",
+      "help": "UISP reçoit une seule tâche avec tous les équipements sélectionnés et les met à jour un par un. Saisissez {{phrase}} pour confirmer.",
+      "run": "Mettre à jour via UISP ({{count}})",
+      "tooMany": "Au plus {{max}} équipements à la fois.",
+      "done_one": "Mise à jour lancée dans UISP pour {{count}} équipement.",
+      "done_other": "Mise à jour lancée dans UISP pour {{count}} équipements.",
+      "doneMaintenance_one": "Mise à jour planifiée dans UISP pour {{count}} équipement : elle démarrera dans la fenêtre de maintenance.",
+      "doneMaintenance_other": "Mise à jour planifiée dans UISP pour {{count}} équipements : elles démarreront dans la fenêtre de maintenance.",
+      "started": "Lancée vers {{version}}",
+      "skipped": {
+        "running": "Ignoré : une mise à jour est déjà en cours",
+        "no_version": "Ignoré : UISP n'a pas de version plus récente pour sa plateforme",
+        "version_unavailable": "Ignoré : version indisponible dans UISP pour sa plateforme",
+        "not_linked": "Ignoré : non associé à UISP",
+        "not_found": "Ignoré : équipement introuvable"
+      },
+      "errors": {
+        "empty": "Sélectionnez au moins un équipement.",
+        "too_many": "Trop d'équipements sélectionnés.",
+        "confirm": "Saisissez exactement la phrase de confirmation."
+      }
+    }
   },
   "vulns": {
     "title": "Vulnérabilités",
@@ -5344,6 +5376,7 @@
     "UISP_DEVICE_MISSING": "Équipement absent d'UISP",
     "UISP_DEVICE_ONBOARDED": "Équipement importé depuis UISP",
     "UISP_FIRMWARE_UPGRADE_FAILED": "Échec de la mise à jour du firmware UISP",
+    "UISP_FIRMWARE_BULK_UPGRADE": "Mise à jour groupée du firmware UISP",
     "UISP_FIRMWARE_UPGRADE_REQUESTED": "Mise à jour du firmware UISP demandée",
     "UISP_FIRMWARE_UPGRADE_VERIFIED": "Mise à jour du firmware UISP vérifiée",
     "UISP_INVENTORY_REFRESHED": "Données UISP actualisées",

@@ -6,13 +6,14 @@ import type { TFunction } from "i18next";
 
 import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
-import { FIRMWARE_STATES, type FirmwareFilters, type FirmwareRow, useFirmware, useFirmwareCheck } from "../api/operations";
+import { FIRMWARE_STATES, type FirmwareFilters, type FirmwareRow, type UispBulkResult, useFirmware, useFirmwareCheck } from "../api/operations";
 import { useFirmwareAction } from "../api/deviceTabs";
 import { formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { Loading } from "../app/States";
 import { Pager } from "../app/Pager";
 import { pageParams, usePaging } from "../lib/paging";
+import { UispBulkOutcome, UispBulkUpgrade, uispSelectable } from "../app/UispBulkUpgrade";
 
 const STATUS_TONE: Record<string, string> = {
   critical_security_update: "ui-severity ui-severity-critical",
@@ -28,7 +29,12 @@ export function Firmware() {
   const facets = useDeviceFacets();
   const [text, setText] = useState(search.q ?? "");
   const q = useDebounced(text.trim());
-  const update = (patch: Partial<FirmwareFilters>) => void navigate({ search: (previous: FirmwareFilters) => ({ ...previous, ...patch }), replace: true });
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulk, setBulk] = useState<UispBulkResult>();
+  const update = (patch: Partial<FirmwareFilters>) => {
+    setSelected(new Set());
+    void navigate({ search: (previous: FirmwareFilters) => ({ ...previous, ...patch }), replace: true });
+  };
   useEffect(() => {
     if ((search.q ?? "") !== q) update({ q: q || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -38,6 +44,15 @@ export function Firmware() {
   const rows = useMemo(() => query.data?.items ?? [], [query.data]);
   const first = query.data;
   const state = search.state ?? "attention";
+  // Ubiquiti devices linked to UISP can be upgraded together (one UISP task).
+  const selectable = rows.filter(uispSelectable);
+  const bulkMax = first?.uisp_bulk_max ?? 50;
+  const toggle = (id: string) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelected(next);
+  };
 
   return (
     <section className="ui-page">
@@ -83,16 +98,25 @@ export function Firmware() {
             <table className="ui-data-table">
               <thead>
                 <tr>
+                  {selectable.length > 0 && (
+                    <th>
+                      <input type="checkbox" aria-label={t("firmware.uispBulk.selectAll")} checked={selectable.every((row) => selected.has(row.id))}
+                        onChange={(event) => setSelected(event.target.checked ? new Set(selectable.slice(0, bulkMax).map((row) => row.id)) : new Set())} />
+                    </th>
+                  )}
                   {["device", "vendor", "installed", "recommended", "status", "verified", "actions"].map((column) => (
                     <th key={column}><span className="ui-th">{t(`firmware.columns.${column}`)}</span></th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => <Row key={row.id} row={row} />)}
+                {rows.map((row) => (
+                  <Row key={row.id} row={row} bulk={bulk} select={selectable.length > 0 ? { checked: selected.has(row.id), onToggle: () => toggle(row.id) } : undefined} />
+                ))}
               </tbody>
             </table>
           </div>
+          <UispBulkUpgrade rows={rows} selected={selected} max={bulkMax} onDone={(result) => { setBulk(result); setSelected(new Set()); }} />
           <Pager total={first.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
@@ -102,12 +126,15 @@ export function Firmware() {
   );
 }
 
-function Row({ row }: { row: FirmwareRow }) {
+function Row({ row, select, bulk }: { row: FirmwareRow; select?: { checked: boolean; onToggle: () => void }; bulk?: UispBulkResult }) {
   const { t, i18n } = useTranslation();
   const check = useFirmwareCheck();
   const checked = check.isSuccess && check.variables === row.id;
   return (
     <tr>
+      {select && (
+        <td>{uispSelectable(row) && <input type="checkbox" checked={select.checked} onChange={select.onToggle} aria-label={t("firmware.uispBulk.select", { name: row.name })} />}</td>
+      )}
       <td>
         <div className="ui-with-brand">
           <BrandIcon brand={row.brand} small />
@@ -146,6 +173,7 @@ function Row({ row }: { row: FirmwareRow }) {
           <Link className="ui-button ui-button-ghost ui-button-small" to="/devices/$deviceId/firmware-upgrade" params={{ deviceId: row.id }}>{t("firmware.plan")}</Link>
         </div>
         {check.error && check.variables === row.id && <small className="ui-backup-error">{(check.error as Error).message}</small>}
+        <UispBulkOutcome result={bulk} id={row.id} />
       </td>
     </tr>
   );
