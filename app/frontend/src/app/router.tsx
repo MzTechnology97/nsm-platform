@@ -239,27 +239,33 @@ const complianceRoute = createRoute({
     ...(typeof search.control === "string" && search.control ? { control: search.control } : {}),
   }),
 });
-const actionCenterRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/action-center",
-  component: lazyRouteComponent(() => import("../pages/ActionCenter"), "ActionCenter"),
-  validateSearch: (search: Record<string, unknown>): IssueFilters => ({
+function parseIssueSearch(search: Record<string, unknown>): IssueFilters {
+  return {
     ...(typeof search.severity === "string" && search.severity ? { severity: search.severity } : {}),
     ...(typeof search.category === "string" && search.category ? { category: search.category } : {}),
     ...(typeof search.status === "string" && ISSUE_STATUSES.includes(search.status as never) ? { status: search.status as IssueFilters["status"] } : {}),
     ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
     ...(typeof search.device === "string" && search.device ? { device: search.device } : {}),
-  }),
+  };
+}
+const actionCenterRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/action-center",
+  component: lazyRouteComponent(() => import("../pages/ActionCenter"), "ActionCenter"),
+  validateSearch: parseIssueSearch,
 });
+function parseIncidentSearch(search: Record<string, unknown>): IncidentFilters {
+  return {
+    ...(typeof search.status === "string" && ([...INCIDENT_STATUSES, "all"] as string[]).includes(search.status) ? { status: search.status as IncidentFilters["status"] } : {}),
+    ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
+    ...(typeof search.q === "string" && search.q ? { q: search.q } : {}),
+  };
+}
 const incidentsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/incidents",
   component: lazyRouteComponent(() => import("../pages/Incidents"), "Incidents"),
-  validateSearch: (search: Record<string, unknown>): IncidentFilters => ({
-    ...(typeof search.status === "string" && ([...INCIDENT_STATUSES, "all"] as string[]).includes(search.status) ? { status: search.status as IncidentFilters["status"] } : {}),
-    ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
-    ...(typeof search.q === "string" && search.q ? { q: search.q } : {}),
-  }),
+  validateSearch: parseIncidentSearch,
 });
 const incidentNewRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -330,14 +336,36 @@ const customerHistoryRoute = createRoute({
   validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseAuditSearch(search)),
 });
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function parseSlaSearch(search: Record<string, unknown>): { month?: string; customer?: string } {
+  return {
+    ...(typeof search.month === "string" && /^\d{4}-\d{2}$/.test(search.month) ? { month: search.month } : {}),
+    ...(typeof search.customer === "string" && UUID_RE.test(search.customer) ? { customer: search.customer } : {}),
+  };
+}
 const slaRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/sla",
   component: lazyRouteComponent(() => import("../pages/Sla"), "Sla"),
-  validateSearch: (search: Record<string, unknown>): { month?: string; customer?: string } => ({
-    ...(typeof search.month === "string" && /^\d{4}-\d{2}$/.test(search.month) ? { month: search.month } : {}),
-    ...(typeof search.customer === "string" && UUID_RE.test(search.customer) ? { customer: search.customer } : {}),
-  }),
+  validateSearch: parseSlaSearch,
+});
+// Issues, incidents and SLA as tabs of a customer, like the device, backup and activity lists.
+const customerActionsRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/actions",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerActions"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseIssueSearch(search)),
+});
+const customerIncidentsRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/incidents",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerIncidents"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseIncidentSearch(search)),
+});
+const customerSlaRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/sla",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerSla"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseSlaSearch(search)),
 });
 const reportsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -668,7 +696,7 @@ export const routeTree = rootRoute.addChildren([
   notificationsRoute,
   profileRoute,
   customerNewRoute,
-  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute, customerDevicesManageRoute, customerDevicesRoute, customerBackupsRoute, customerHistoryRoute]),
+  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute, customerDevicesManageRoute, customerDevicesRoute, customerBackupsRoute, customerHistoryRoute, customerActionsRoute, customerIncidentsRoute, customerSlaRoute]),
   deviceImportRoute,
   deviceRoute.addChildren([deviceOverviewRoute, deviceManageRoute, deviceExposureRoute, deviceComplianceRoute, deviceJobsRoute, deviceConfigurationRoute, deviceConfigurationHistoryRoute, deviceRebootRoute, deviceRouterbootRoute, deviceFirmwareRoute, deviceUispRoute, deviceCnmaestroRoute, deviceGenieacsRoute, deviceLifecycleRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceBackupArtifactRoute, deviceRestoreTestsRoute, deviceRestoreTestRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

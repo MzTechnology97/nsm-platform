@@ -880,7 +880,10 @@
       "graphs": "Grafici",
       "backups": "Backup",
       "security": "Sicurezza",
-      "history": "Attività"
+      "history": "Attività",
+      "actions": "Segnalazioni",
+      "incidents": "Incidenti",
+      "sla": "SLA"
     },
     "metrics": {
       "devices": "Apparati online",

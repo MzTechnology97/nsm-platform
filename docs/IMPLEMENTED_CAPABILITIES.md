@@ -15,7 +15,7 @@ An open PR does not count as implemented in `main`.
 - Server-side validation prevents assigning a Device to a Site owned by another Customer.
 - Device identity separates editable operator alias from observed device identity.
 - Customer list and customer profile workspaces.
-- Customer tabs/workspaces for Devices, Sites, Backups, Security and History. Since Core 0.49.277 the Devices, Backups and History tabs (and the overview shortcuts and site rows) stay inside the customer's page: the same lists as the global pages, scoped to that customer, without the customer picker and the cross-customer sections (`/app/customers/{id}/devices|backups|history`; the classic `/customers/{id}/…` addresses redirect there).
+- Customer tabs/workspaces for Devices, Sites, Backups, Security and History. Since Core 0.49.277 the Devices, Backups and History tabs (and the overview shortcuts and site rows) stay inside the customer's page: the same lists as the global pages, scoped to that customer, without the customer picker and the cross-customer sections (`/app/customers/{id}/devices|backups|history`; the classic `/customers/{id}/…` addresses redirect there). Since Core 0.49.278 the customer also has *Segnalazioni*, *Incidenti* and *SLA* tabs (`/actions`, `/incidents`, `/sla`; shown with the permission of the matching global page: `issues.read`, `incidents.read`, `reports.read`), and the header *Incidenti* button, the SLA target link and the overview *Tutte* link of the issues open them.
 - Global Device inventory with server-side filtering and pagination.
 - Device management/edit/delete workflows.
 - Customer/Site create/edit/delete workflows.
