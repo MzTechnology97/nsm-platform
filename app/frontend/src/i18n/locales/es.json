@@ -5320,6 +5320,7 @@
     "UISP_SYNC_CONFLICT": "Conflicto en la sincronización UISP",
     "UISP_SYNC_FAILED": "Sincronización UISP fallida",
     "UISP_SYSLOG_CONFIGURED": "Syslog del dispositivo configurado mediante UISP",
+    "UISP_SYSLOG_LEVEL_CHANGED": "Nivel mínimo del dispositivo cambiado",
     "UISP_SYSLOG_RESTORED": "Configuración del dispositivo restaurada mediante UISP",
     "USER_2FA_DISABLED": "Acceso en dos pasos desactivado",
     "USER_2FA_ENABLED": "Acceso en dos pasos activado",
@@ -5924,6 +5925,10 @@
     "restore": "Restaurar configuración anterior",
     "working": "UISP está aplicando…",
     "done": "Configuración aplicada: el CPE se reinicia y los registros llegan en unos minutos.",
-    "restored": "Configuración anterior aplicada: el CPE se reinicia."
+    "restored": "Configuración anterior aplicada: el CPE se reinicia.",
+    "level": "Nivel mínimo conservado",
+    "saveLevel": "Guardar nivel",
+    "levelSaved": "Nivel guardado: efectivo al instante, sin reinicio.",
+    "levelHelp": "airOS envía todos los registros: NSM conserva solo el nivel elegido o más grave (warning por defecto). Los inicios de sesión siguen registrados para la página Accessi."
   }
 }

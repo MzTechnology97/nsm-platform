@@ -125,10 +125,12 @@ class Index:
     retired: set = field(default_factory=set)         # keys of decommissioned devices: their lines are dropped
     by_address: dict = field(default_factory=dict)    # ip -> device_id: TR-069 CPEs NSM pointed at itself (no key possible)
     by_name: list = field(default_factory=list)       # (customer name words, device_id): Ubiquiti set through UISP in customer-name mode
+    min_severity: dict = field(default_factory=dict)  # device_id -> worst severity number kept (airOS cannot filter by itself)
     devices: int = 0
 
 
 TR069_FRESH = timedelta(minutes=30)
+UISP_LEVELS = {"error": 3, "warning": 4, "notice": 5, "info": 6, "debug": 7}  # same names as uisp_syslog.LEVELS
 
 
 def tr069_addresses(device, now) -> set[str]:
@@ -182,6 +184,7 @@ def build_index(db, settings: dict, now=None) -> Index:
                 index.known_ips.add(ip)
         uisp_syslog = data.get("uisp_syslog") if isinstance(data.get("uisp_syslog"), dict) else {}
         if device.vendor == "ubiquiti" and uisp_syslog.get("status") == "applied":
+            index.min_severity[device.id] = UISP_LEVELS.get(uisp_syslog.get("level") or "warning", 4)
             if uisp_syslog.get("mode") == "address" and _norm(device.management_ip):
                 keyless.setdefault(_norm(device.management_ip), set()).add(device.id)
                 index.known_ips.add(_norm(device.management_ip))

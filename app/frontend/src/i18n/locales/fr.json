@@ -5320,6 +5320,7 @@
     "UISP_SYNC_CONFLICT": "Conflit de synchronisation UISP",
     "UISP_SYNC_FAILED": "Échec de la synchronisation UISP",
     "UISP_SYSLOG_CONFIGURED": "Syslog de l'équipement configuré via UISP",
+    "UISP_SYSLOG_LEVEL_CHANGED": "Niveau minimum de l'équipement modifié",
     "UISP_SYSLOG_RESTORED": "Configuration de l'équipement restaurée via UISP",
     "USER_2FA_DISABLED": "Connexion à deux facteurs désactivée",
     "USER_2FA_ENABLED": "Connexion à deux facteurs activée",
@@ -5924,6 +5925,10 @@
     "restore": "Restaurer la configuration précédente",
     "working": "UISP applique…",
     "done": "Configuration appliquée : le CPE redémarre et les journaux arrivent sous quelques minutes.",
-    "restored": "Configuration précédente appliquée : le CPE redémarre."
+    "restored": "Configuration précédente appliquée : le CPE redémarre.",
+    "level": "Niveau minimum conservé",
+    "saveLevel": "Enregistrer le niveau",
+    "levelSaved": "Niveau enregistré : effectif immédiatement, sans redémarrage.",
+    "levelHelp": "airOS envoie tous les journaux : NSM ne garde que le niveau choisi ou plus grave (warning par défaut). Les connexions restent enregistrées pour la page Accessi."
   }
 }
