@@ -73,6 +73,7 @@ from app.acs_firmware import install_acs_firmware
 from app.tplink_cloud_firmware import install_tplink_cloud_firmware
 from app.acs_alerts import install_acs_alerts
 from app.acs_port_mapping import install_acs_port_mapping
+from app.acs_profiles import install_acs_profiles
 from app.ispbilling_cpe_link import install_ispbilling_cpe_link
 from app.acs_monitoring import install_acs_monitoring
 from app.ui_backup_policies import install_ui_backup_policies
@@ -288,6 +289,7 @@ install_acs_firmware(core.app)
 install_tplink_cloud_firmware(core.app)
 install_acs_alerts(core.app)
 install_acs_port_mapping(core.app)
+install_acs_profiles(core.app)
 install_ispbilling_cpe_link(core.app)
 install_acs_monitoring(core.app)
 install_ui_backup_policies(core.app)

@@ -6296,5 +6296,64 @@
     "uptime": "conectado desde hace {{value}}",
     "never": "Nunca vista en el BRAS",
     "noDevice": "Ningún equipo asociado"
+  },
+  "acsCapabilities": {
+    "title": "Funciones de NSM en este CPE",
+    "help": "Perfil de parámetros {{model}} · {{vendor}}, según el registro de GenieACS (último Inform {{when}}). Leído sin enviar nada al CPE.",
+    "notRead": "GenieACS aún no ha leído el modelo de datos del CPE.",
+    "vendors": {
+      "tp-link": "extensiones TP-Link",
+      "generic": "solo parámetros estándar"
+    },
+    "columns": {
+      "capability": "Función",
+      "status": "Estado",
+      "why": "Motivo / rutas",
+      "writes": "Escribe en el CPE"
+    },
+    "status": {
+      "available": "Disponible",
+      "rpc": "Disponible (RPC TR-069)",
+      "not_exposed": "No expuesto",
+      "unsupported": "No compatible"
+    },
+    "reasons": {
+      "found": "El CPE expone los parámetros:",
+      "not_reported": "El CPE no informa de estos parámetros (o GenieACS aún no los ha leído).",
+      "no_dsl": "No hay línea DSL en el modelo de datos del CPE.",
+      "no_pon": "El CPE no expone niveles ópticos PON.",
+      "download_rpc": "RPC estándar Download: necesita una imagen para el modelo en GenieACS.",
+      "reboot_rpc": "RPC estándar Reboot.",
+      "nsm_tr098": "En TR-098, CPU y memoria existen en pocos CPE: NSM solo las lee en TR-181.",
+      "vendor_tr181": "Solo existe como extensión TP-Link del firmware TR-181 (Aginet).",
+      "vendor_tplink": "Solo existe como extensión TP-Link (X_TP_*).",
+      "no_standard": "Ningún parámetro estándar en este modelo de datos.",
+      "no_upload_task": "GenieACS no tiene la tarea Upload: el archivo de configuración del fabricante no se puede descargar. NSM archiva los parámetros.",
+      "snapshots": "{{count}} instantáneas de parámetros archivadas.",
+      "no_snapshot": "Aún no hay instantáneas: cree una desde la sección Instantánea."
+    },
+    "caps": {
+      "identity": "Identidad y firmware",
+      "resources": "CPU y memoria",
+      "wan": "Estado WAN",
+      "wifi": "Wi-Fi (lectura y cambios)",
+      "dsl": "Línea DSL",
+      "pon": "Niveles ópticos PON",
+      "ping": "Ping desde el CPE",
+      "traceroute": "Traceroute desde el CPE",
+      "speedtest": "Test de velocidad",
+      "firmware": "Actualización de firmware (imagen)",
+      "firmware_cloud": "Firmware desde la nube de TP-Link",
+      "syslog": "Syslog hacia NSM",
+      "port_mapping": "Redirección de puertos y DMZ",
+      "upnp": "Estado UPnP",
+      "remote_access": "Acceso web remoto",
+      "reboot": "Reinicio",
+      "inform_interval": "Intervalo de Inform",
+      "config_snapshot": "Instantánea de la configuración",
+      "config_file": "Archivo de configuración del fabricante"
+    },
+    "writesYes": "sí, a petición",
+    "writesNo": "no"
   }
 }

@@ -25,6 +25,7 @@ from urllib.parse import quote, urlsplit
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 
+from app import acs_profiles as profiles
 from app import acs_diagnostics
 from app import genieacs_connector as acs
 from app import main as core
@@ -33,7 +34,7 @@ from app.db import SessionLocal
 from app.models import Device, utcnow
 from app.ui_api import require_csrf, ui_user
 
-ROOT = "Device.DeviceInfo.X_TP_LogCfg"
+ROOT = profiles.vendor_path("tp-link", "syslog")
 PROBE = f"{ROOT}.ServerIP"
 LEVELS = {"error": 3, "warning": 4, "notice": 5, "info": 6, "debug": 7}
 DEFAULT_LEVEL = "info"
