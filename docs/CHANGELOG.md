@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.228 — 2026-10-23
+
+Port forwarding, DMZ and UPnP of TR-069 CPEs
+- **The *ACS* tab shows what each CPE exposes to the Internet:**
+  - the port forwards, with protocol, external port, internal host and port, and whether each one is on;
+  - the DMZ, when the CPE reports one, with a warning if it is on;
+  - whether UPnP is on.
+- **Monitoring only:** nothing is changed on the CPE from NSM. The values are re-read every hour, or on demand with *Rileggi dal CPE*.
+- **Every change is recorded in the device activity**, for example a new port forward, the DMZ turned on, or UPnP turned on or off.
 ## 0.49.227 — 2026-10-23
 
 TP-Link firmware from the official site

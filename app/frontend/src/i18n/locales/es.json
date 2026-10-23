@@ -5105,6 +5105,7 @@
     "ACS_FIRMWARE_VERIFIED": "Actualización de firmware del CPE verificada",
     "ACS_MIGRATION_COMPLETED": "Migración ACS completada",
     "ACS_MIGRATION_STARTED": "Migración ACS iniciada",
+    "ACS_PORT_MAPPING_CHANGED": "Redirección de puertos del CPE cambiada",
     "ACS_REBOOT_REQUESTED": "Reinicio del CPE solicitado",
     "ACS_REBOOT_VERIFIED": "Reinicio del CPE verificado",
     "ACS_SNAPSHOT_ARCHIVED": "Instantánea de configuración TR-069 archivada",
@@ -5917,5 +5918,27 @@
     "enabled": "Descargar automáticamente en el ACS los firmware de TP-Link más recientes",
     "fetched_one": "{{count}} versión descargada hasta ahora.",
     "fetched_other": "{{count}} versiones descargadas hasta ahora."
+  },
+  "acsPortMapping": {
+    "title": "Redirección de puertos, DMZ y UPnP",
+    "help": "Lo que el CPE expone a Internet, tal como el ACS lo leyó por última vez (cada hora). Solo supervisión: desde NSM no se cambia nada. Cada cambio queda registrado en la actividad del equipo.",
+    "reread": "Volver a leer del CPE",
+    "rereadStarted": "El ACS está volviendo a leer el CPE: los valores se actualizan en la próxima lectura (unos 2 minutos).",
+    "rereadQueued": "El CPE no aceptó la solicitud de conexión: se leerá en el próximo contacto.",
+    "notRead": "El ACS aún no ha leído el NAT de este CPE: usa Volver a leer del CPE.",
+    "forwards": "Redirecciones activas",
+    "on": "Activo",
+    "off": "Inactivo",
+    "notReported": "no informado por el CPE",
+    "upnpHint": "los dispositivos de la LAN pueden abrir puertos solos",
+    "dmzWarning": "DMZ activa: todo puerto no redirigido a otro sitio llega a {{host}} desde Internet.",
+    "none": "No hay redirecciones de puertos configuradas.",
+    "protocol": "Protocolo",
+    "external": "Puerto externo",
+    "internal": "Hacia",
+    "from": "Desde",
+    "description": "Descripción",
+    "any": "todos",
+    "anywhere": "cualquier origen"
   }
 }
