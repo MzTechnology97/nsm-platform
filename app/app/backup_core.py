@@ -18,6 +18,7 @@ router = APIRouter()
 VENDOR_LABELS = {
     "mikrotik": "MikroTik",
     "ubiquiti": "Ubiquiti",
+    "cambium": "Cambium Networks",
     "tp-link": "TP-Link / TR-069",
     "generic": "Generic / Legacy",
 }
@@ -27,6 +28,7 @@ DEFAULT_OPTIONS = {
     "mikrotik_export": True,
     "ubiquiti_connector_config": True,
     "tr069_config": True,
+    "cambium_config": True,
     "generic_snapshot": True,
     "pre_firmware": True,
     "verify_hash": True,

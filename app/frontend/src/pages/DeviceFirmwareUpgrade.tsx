@@ -6,6 +6,7 @@ import { ApiError } from "../api/client";
 import { useDevice } from "../api/device";
 import { type FirmwarePlanTab, useFirmwareAction, useFirmwarePlan } from "../api/deviceTabs";
 import { AcsFirmware } from "../app/AcsFirmware";
+import { UispFirmware } from "../app/UispFirmware";
 import { FirmwareSchedulePanel } from "../app/FirmwareSchedule";
 import { formatDateTime } from "../lib/format";
 import { Loading } from "../app/States";
@@ -69,12 +70,13 @@ function PlanSteps({ plan }: { plan: Plan }) {
   );
 }
 
-/** Firmware tab: the RouterOS upgrade plan for MikroTik, the ACS upgrade for TR-069 CPEs (ACS-08). */
+/** Firmware tab: the RouterOS upgrade plan for MikroTik, the ACS upgrade for TR-069 CPEs (ACS-08), the UISP upgrade for Ubiquiti. */
 export function DeviceFirmwareUpgrade() {
   const { deviceId } = useParams({ from: "/devices/$deviceId/firmware-upgrade" });
   const device = useDevice(deviceId);
   if (!device.data) return <Loading />;
   if (device.data.device.vendor !== "mikrotik" && device.data.tabs.some((tab) => tab.key === "acs")) return <AcsFirmware deviceId={deviceId} />;
+  if (device.data.device.vendor === "ubiquiti" && device.data.tabs.some((tab) => tab.key === "uisp")) return <UispFirmware deviceId={deviceId} />;
   return <RouterosFirmwareUpgrade deviceId={deviceId} />;
 }
 

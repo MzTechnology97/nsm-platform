@@ -1,16 +1,19 @@
 import { Link, Outlet, useParams } from "@tanstack/react-router";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { IspbillingLinkProposal } from "../app/IspbillingLinks";
 
 import { ApiError } from "../api/client";
 import { BrandIcon } from "../app/BrandIcon";
-import { type DeviceDetail as Detail, useDecommission, useDevice, useZabbixExclude, type DeviceIspbillingAccount } from "../api/device";
+import { type DeviceDetail as Detail, useDecommission, useDevice, type DeviceIspbillingAccount } from "../api/device";
 import { formatDateTime, formatDuration, formatRelative } from "../lib/format";
 import { InfoTip } from "../app/InfoTip";
 import { Resources } from "../app/Resources";
 import { DeviceZabbixPanel, ZabbixSeverity } from "../app/ZabbixProblems";
+import { DeviceZabbixButton } from "../app/ZabbixScope";
 import { Loading } from "../app/States";
 import { eventSource } from "../lib/events";
+import { PingToggleDialog } from "../app/PingToggle";
 import { RingTile, type TileTone } from "../app/RingTile";
 
 /** Device tabs and their routes under /devices/$deviceId. */
@@ -213,6 +216,7 @@ export function DeviceOverview() {
   const firmwareTone: TileTone | undefined = device.firmware_status === "security_update" ? "danger"
     : device.firmware_status === "update_available" || (device.recommended_firmware && device.recommended_firmware !== device.firmware) ? "warning"
       : device.firmware_status === "current" ? "success" : undefined;
+  const [pingOpen, setPingOpen] = useState(false);
   const loss = detail.icmp.enabled ? detail.icmp.last_loss : null;
   return (
     <>
@@ -226,7 +230,8 @@ export function DeviceOverview() {
           value={!detail.icmp.enabled ? t("device.pingOff") : detail.icmp.down ? t("device.pingDown") : detail.icmp.last_rtt != null ? `${detail.icmp.last_rtt} ms` : t("device.pingWaiting")}
           note={loss != null ? t("device.loss", { value: loss }) : (detail.icmp.target ?? undefined)}
           percent={!detail.icmp.enabled ? null : detail.icmp.down ? 0 : loss != null ? 100 - loss : null}
-          tone={detail.icmp.down ? "danger" : detail.icmp.enabled && detail.icmp.last_rtt != null ? "success" : undefined} />
+          tone={detail.icmp.down ? "danger" : detail.icmp.enabled && detail.icmp.last_rtt != null ? "success" : undefined}
+          onClick={() => setPingOpen(true)} actionLabel={t("device.pingToggle.open")} />
         <AvailabilityTile detail={detail} />
         <RingTile label={t("device.metrics.vulnerabilities")} value={String(openVulns)} note={t("device.severe", { count: severe })}
           percent={openVulns ? Math.max(8, (100 * severe) / openVulns) : 0} tone={severe ? "danger" : openVulns ? "warning" : "success"} />
@@ -242,6 +247,7 @@ export function DeviceOverview() {
           percent={detail.backup.last_success ? 100 : 0}
           tone={detail.backup.last_success ? "success" : NO_BACKUP_METHOD.has(detail.backup.status) ? undefined : !detail.backup.executable ? "warning" : undefined} />
       </div>
+      {pingOpen && <PingToggleDialog deviceId={detail.device.id} onClose={() => setPingOpen(false)} />}
 
       <DeviceHealth detail={detail} showResources={cpu == null && ram == null} />
 
@@ -290,7 +296,7 @@ export function DeviceOverview() {
           )}
         </section>
       </div>
-      {detail.ispbilling?.length ? <IspbillingAccounts accounts={detail.ispbilling} /> : null}
+      {detail.ispbilling?.length ? <IspbillingAccounts deviceId={detail.device.id} accounts={detail.ispbilling} canManage={detail.actions.manage} /> : null}
       {detail.zabbix && <DeviceZabbixPanel zabbix={detail.zabbix} />}
     </>
   );
@@ -299,7 +305,7 @@ export function DeviceOverview() {
 const RADIUS_TONE: Record<string, string> = { attivo: "online", sospeso: "warning", terminato: "offline" };
 
 /** The ISPBilling RADIUS accounts of this device: who is billed for it and whether the account is active. */
-function IspbillingAccounts({ accounts }: { accounts: DeviceIspbillingAccount[] }) {
+function IspbillingAccounts({ deviceId, accounts, canManage }: { deviceId: string; accounts: DeviceIspbillingAccount[]; canManage: boolean }) {
   const { t } = useTranslation();
   return (
     <section className="ui-panel">
@@ -314,6 +320,7 @@ function IspbillingAccounts({ accounts }: { accounts: DeviceIspbillingAccount[] 
                 {[account.profile, account.customer, t(`device.ispbilling.matched.${account.matched_by ?? "pppoe"}`)].filter(Boolean).join(" · ")}
               </small>
               {account.same_customer === false && <small className="ui-key-hint ui-block">{t("device.ispbilling.otherCustomer")}</small>}
+              {canManage && account.link && <IspbillingLinkProposal deviceId={deviceId} account={account.account} link={account.link} />}
             </span>
             <span />
             <span className={`ui-status ui-status-${RADIUS_TONE[(account.status ?? "").toLowerCase()] ?? "unknown"}`}>{account.status ?? "—"}</span>
@@ -399,8 +406,9 @@ function minutesLabel(value: number, locale: string): string {
 
 function ZabbixField({ deviceId, zabbix, canEdit }: { deviceId: string; zabbix: NonNullable<Detail["zabbix"]>; canEdit: boolean }) {
   const { t } = useTranslation();
-  const toggle = useZabbixExclude(deviceId);
-  const state = zabbix.excluded ? t("zabbixProblems.excluded") : zabbix.link ? t("zabbixProblems.open") : t("zabbixProblems.pending");
+  const inZabbix = !zabbix.excluded && zabbix.in_scope !== false;
+  const state = zabbix.excluded ? t("zabbixProblems.excluded") : zabbix.link ? t("zabbixProblems.open")
+    : zabbix.in_scope === false ? t("zabbixScope.notIncluded") : zabbix.outcome && zabbix.outcome !== "pending" ? t(`zabbixScope.outcome.${zabbix.outcome}`) : t("zabbixProblems.pending");
   return (
     <Field label="Zabbix" value={state}>
       {zabbix.link ? <a href={zabbix.link} target="_blank" rel="noopener noreferrer">{t("zabbixProblems.open")}</a> : state}
@@ -408,12 +416,9 @@ function ZabbixField({ deviceId, zabbix, canEdit }: { deviceId: string; zabbix: 
       {canEdit && (
         <>
           {" · "}
-          <button type="button" className="ui-link-button" disabled={toggle.isPending} onClick={() => toggle.mutate(!zabbix.excluded)}>
-            {zabbix.excluded ? t("zabbixProblems.include") : t("zabbixProblems.exclude")}
-          </button>
+          <DeviceZabbixButton deviceId={deviceId} inZabbix={inZabbix} />
         </>
       )}
-      {toggle.error && <small className="ui-text-danger ui-block">{(toggle.error as Error).message}</small>}
     </Field>
   );
 }

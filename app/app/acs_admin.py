@@ -74,6 +74,15 @@ for (const path of ["Device.IP.Interface.*.Status", "Device.IP.Interface.*.Stats
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.ExternalIPAddress", {value: hourly});
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.ExternalIPAddress", {value: hourly});
 declare("Device.IP.Interface.*.IPv4Address.*.IPAddress", {value: hourly});
+// Remote web management (port, protocol, allowed host): qualifies the exposure check from NSM.
+for (const root of ["InternetGatewayDevice", "Device"]) {
+  declare(root + ".UserInterface.RemoteAccess.*", {value: daily});
+}
+// Port forwarding, DMZ and UPnP (monitoring only), re-read every hour.
+declare("Device.NAT.PortMapping.*.*", {value: hourly});
+declare("Device.NAT.*.*", {value: hourly});  // vendor flags such as X_TP_UPnPCfg.Enable, DMZ objects
+declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.PortMapping.*.*", {value: hourly});
+declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.PortMapping.*.*", {value: hourly});
 // Interface MAC addresses, used by NSM to find a CPE by the MAC on its label.
 for (const path of ["Device.Ethernet.Interface.*.MACAddress", "Device.Ethernet.Link.*.MACAddress",
                     "InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.MACAddress",
@@ -88,7 +97,9 @@ PRESETS = {
     "nsm-tplink": {"weight": 10, "precondition": 'DeviceID.Manufacturer LIKE "TP-L%"'},
     "nsm-all-cpe": {"weight": 0, "precondition": "true"},
 }
-PRESET_EVENTS = {"0 BOOTSTRAP": True, "1 BOOT": True, "2 PERIODIC": True}
+# No event filter: GenieACS applies a preset only when EVERY event it lists is in the session, so
+# {BOOTSTRAP, BOOT, PERIODIC} never matched a periodic inform. The script's age limits avoid repeated reads.
+PRESET_EVENTS: dict = {}
 
 
 def _public_host(request: Request) -> tuple[str, str]:

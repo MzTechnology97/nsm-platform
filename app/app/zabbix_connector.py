@@ -45,6 +45,7 @@ from sqlalchemy import select
 from app import main as core
 from app import vendor_cpe
 from app.db import SessionLocal
+from app.input_errors import InputError
 from app.integration_models import ConnectorIntegration
 from app.models import Customer, Device, Site, utcnow
 from app.secret_vault import decrypt_text, encrypt_text
@@ -206,13 +207,23 @@ def _valid_ip(value) -> str | None:
         return None
 
 
-def eligible(device, settings: dict) -> bool:
+def in_scope(device, settings: dict) -> bool:
+    """Whether the operator wants this device in Zabbix: every device, or its customer, or the device itself (*Aggiungi a Zabbix*)."""
     data = device.inventory_data or {}
-    if data.get("zabbix_exclude") or not (_valid_ip(data.get("zabbix_ip")) or _valid_ip(device.management_ip)):
+    if data.get("zabbix_exclude"):
         return False
     if settings.get("scope") == "customers":
-        return str(device.customer_id) in set(settings.get("customer_ids") or [])
+        return data.get("zabbix_include") is True or str(device.customer_id) in set(settings.get("customer_ids") or [])
     return True
+
+
+def address_of(device) -> str | None:
+    data = device.inventory_data or {}
+    return _valid_ip(data.get("zabbix_ip")) or _valid_ip(device.management_ip)
+
+
+def eligible(device, settings: dict) -> bool:
+    return bool(address_of(device)) and in_scope(device, settings)
 
 
 def _clip(value, size):
@@ -583,6 +594,111 @@ def set_exclude_record(db, user, device, exclude: bool) -> bool:
     core.add_event(db, "ZABBIX_DEVICE_SCOPE_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id,
                    details={"exclude": data["zabbix_exclude"]}, source="portal")
     return data["zabbix_exclude"]
+
+
+# --- "Aggiungi a Zabbix" from the device and customer pages -----------------------------------------
+
+class ZabbixScopeError(InputError, ValueError):
+    pass
+
+
+def _enabled_row(db):
+    row = connection_row(db)
+    if row is None or not row.is_enabled:
+        raise ZabbixScopeError("not_configured", "Zabbix non è configurato o è disattivato (Integrazioni → Zabbix).")
+    return row
+
+
+def device_outcome(device) -> str:
+    """After a push: linked (operator host), pushed (nsm- host), or why it is not in Zabbix."""
+    data = device.inventory_data or {}
+    zbx = data.get("zabbix") or {}
+    if zbx.get("hostid"):
+        return "linked" if zbx.get("linked") else "pushed"
+    ip = address_of(device)
+    if not ip:
+        return "no_ip"
+    if ip in FACTORY_LAN_IPS and not _valid_ip(data.get("zabbix_ip")):
+        return "factory_ip"
+    return "pending"
+
+
+def _push(db, row) -> dict:
+    result = sync(db, row)
+    return {"status": result["status"], "error": (result.get("errors") or [None])[0] if result["status"] == "failed" else None}
+
+
+def add_device(db, user, device) -> dict:
+    """Put one device in Zabbix (also when its customer is not in the scope) and push it now; audited, commits."""
+    row = _enabled_row(db)
+    data = dict(device.inventory_data or {})
+    data["zabbix_include"] = True
+    data.pop("zabbix_exclude", None)
+    device.inventory_data = data
+    core.add_event(db, "ZABBIX_DEVICE_SCOPE_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id,
+                   details={"include": True, "exclude": False}, source="portal")
+    db.commit()
+    push = _push(db, row)
+    db.refresh(device)
+    return {**push, "outcome": device_outcome(device)}
+
+
+def remove_device(db, user, device) -> dict:
+    """Take one device out of Zabbix (its host is disabled, never deleted) and push now; audited, commits."""
+    row = _enabled_row(db)
+    data = dict(device.inventory_data or {})
+    data["zabbix_include"] = False
+    data["zabbix_exclude"] = True
+    device.inventory_data = data
+    core.add_event(db, "ZABBIX_DEVICE_SCOPE_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id,
+                   details={"include": False, "exclude": True}, source="portal")
+    db.commit()
+    return _push(db, row)
+
+
+def customer_state(db, customer) -> dict | None:
+    row = connection_row(db)
+    if row is None or not row.is_enabled:
+        return None
+    settings = settings_of(row)
+    devices = list(db.scalars(select(Device).where(Device.customer_id == customer.id)))
+    return {
+        "scope": settings.get("scope"),
+        "included": settings.get("scope") != "customers" or str(customer.id) in set(settings.get("customer_ids") or []),
+        "devices": len(devices),
+        "in_zabbix": sum(1 for d in devices if ((d.inventory_data or {}).get("zabbix") or {}).get("hostid")),
+        "selected": sum(1 for d in devices if in_scope(d, settings)),
+        "no_ip": sum(1 for d in devices if in_scope(d, settings) and not address_of(d)),
+    }
+
+
+def set_customer(db, user, customer, include: bool) -> dict:
+    """Add a customer's devices to Zabbix (or take them out) and push now; audited, commits.
+
+    With scope *customers* the customer joins (leaves) the list; its devices lose their own exclusion when added and
+    their own inclusion when removed. With scope *all* the devices only lose (gain) their own exclusion.
+    """
+    row = _enabled_row(db)
+    settings = settings_of(row)
+    if settings.get("scope") == "customers":
+        ids = [i for i in settings.get("customer_ids") or [] if i != str(customer.id)]
+        if include:
+            ids.append(str(customer.id))
+        row.settings = {**(row.settings or {}), "customer_ids": ids}
+    for device in db.scalars(select(Device).where(Device.customer_id == customer.id)):
+        data = dict(device.inventory_data or {})
+        if include:
+            data.pop("zabbix_exclude", None)
+        else:
+            data["zabbix_include"] = False
+            if settings.get("scope") != "customers":
+                data["zabbix_exclude"] = True
+        device.inventory_data = data
+    core.add_event(db, "ZABBIX_CUSTOMER_SCOPE_CHANGED", actor=user, customer_id=customer.id,
+                   details={"customer": customer.name, "include": include}, source="portal")
+    db.commit()
+    push = _push(db, row)
+    return {**push, **(customer_state(db, customer) or {})}
 
 
 def summary() -> dict:

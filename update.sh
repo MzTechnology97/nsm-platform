@@ -110,6 +110,12 @@ cd "$PLATFORM_DIR"
 info "Build immagini e applico migrazioni..."
 docker compose build api worker migrate
 docker compose up -d --build
+# config/ was replaced by a fresh copy, but Caddy mounts the Caddyfile as a single file and keeps reading the
+# old one until its container is recreated: recreate it only when the configuration really changed.
+if ! docker compose exec -T caddy cat /etc/caddy/Caddyfile 2>/dev/null | cmp -s - "$PLATFORM_DIR/config/Caddyfile"; then
+  info "Configurazione Caddy cambiata: ricreo il proxy..."
+  docker compose up -d --no-deps --force-recreate caddy
+fi
 
 info "Verifico health..."
 for _ in $(seq 1 60); do

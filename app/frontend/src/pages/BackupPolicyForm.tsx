@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { type PolicyForm, type PolicyState, type ScheduleKind, type ScopeType, usePolicyForm, usePolicyWrite } from "../api/backupPolicies";
 import { BrandIcon } from "../app/BrandIcon";
@@ -15,6 +16,7 @@ const VENDOR_OPTIONS: Record<string, string[]> = {
   mikrotik: ["mikrotik_binary", "mikrotik_export"],
   ubiquiti: ["ubiquiti_connector_config"],
   "tp-link": ["tr069_config"],
+  cambium: ["cambium_config"],
   generic: ["generic_snapshot"],
 };
 const COMMON_OPTIONS = ["pre_firmware", "verify_hash"];
@@ -139,10 +141,7 @@ function PolicyEditor({ data }: { data: PolicyForm }) {
           )}
           {CUSTOMER_SCOPES.has(form.scope_type) && (
             <label><span>{t("backupPolicy.customer")}</span>
-              <select value={form.customer_id} onChange={(event) => set("customer_id", event.target.value)} required disabled={Boolean(data.context)}>
-                <option value="">{t("backupPolicy.choose")}</option>
-                {data.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
-              </select></label>
+              <SearchSelect value={form.customer_id} options={data.customers.map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => set("customer_id", value)} emptyLabel={t("backupPolicy.choose")} disabled={Boolean(data.context)} required /></label>
           )}
           {form.scope_type === "site" && (
             <label><span>{t("backupPolicy.site")}</span>
@@ -153,10 +152,7 @@ function PolicyEditor({ data }: { data: PolicyForm }) {
           )}
           {form.scope_type === "device" && (
             <label className="ui-admin-wide"><span>{t("backupPolicy.device")}</span>
-              <select value={form.device_id} onChange={(event) => set("device_id", event.target.value)} required>
-                <option value="">{form.customer_id ? t("backupPolicy.chooseDevice") : t("backupPolicy.chooseCustomerFirst")}</option>
-                {devices.map((item) => <option key={item.id} value={item.id}>{item.name} · {vendorLabel(data, item.vendor)}</option>)}
-              </select></label>
+              <SearchSelect value={form.device_id} options={devices.map((item) => ({ value: item.id, label: `${item.name} · ${vendorLabel(data, item.vendor)}` }))} onChange={(value) => set("device_id", value)} emptyLabel={form.customer_id ? t("backupPolicy.chooseDevice") : t("backupPolicy.chooseCustomerFirst")} required /></label>
           )}
           {form.scope_type === "device" && device && (
             <span className="ui-with-brand ui-policy-device"><BrandIcon brand={device.brand} small /> <span>{device.name}</span></span>
