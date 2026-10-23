@@ -444,7 +444,7 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 ### Legacy full backup over FTP (Agent 0.49.16)
 
-- the legacy agent (RouterOS 6.48/6.49 and 7.12) runs `/system backup save` with the job password and `/export` (`hide-sensitive` on v6), then uploads both with `/tool fetch upload=yes mode=ftp` to the upload-only FTP receiver of NSM (`app/legacy_ftp_server.py`, compose profile `legacyftp`, `./manage.sh legacy-backup-enable <IPv4>`, ports 2121 and 30100–30109);
+- the legacy agent (RouterOS 6.48/6.49 and 7.12) runs `/system backup save` with the job password and `/export` (`hide-sensitive` on v6), then uploads both with `/tool fetch upload=yes mode=ftp` to the upload-only FTP receiver of NSM (`app/legacy_ftp_server.py`, compose profile `legacyftp`, `./manage.sh legacy-backup-enable <IPv4> [port]`, default ports 2121 and 30100–30109, `LEGACY_FTP_PASV_PORTS` for the passive range); since Core 0.49.215 the subnets allowed to send are set in *Amministrazione → Sistema → Backup legacy via FTP*: the receiver refuses other origins (refreshed every minute), `./manage.sh legacy-ftp-firewall --apply` enforces them in `DOCKER-USER` too, and `legacy-backup-enable` opens the ports in ufw/firewalld when active and applies those rules;
 - one-time account per job (only the password SHA-256 stored), only the two expected file names, once each, up to 64 MB, passive mode with the data peer bound to the control peer;
 - files are archived like any other artifact (SHA-256, audit, retention) and the device counts as protected;
 - requires the policies `ftp`, `policy` and `sensitive` (observed from Agent 0.49.17).
@@ -595,6 +595,10 @@ RADIUS accounts (Core 0.49.209, migration 0051):
 
 Warehouse serial numbers ↔ devices and ISPBilling activities in the device logbook (approved, next steps of ISPB-01).
 
+## 13c. Moving NSM to another server address (Core 0.49.214)
+
+*Amministrazione → Migrazione server*: the old server tells MikroTik agents (self-update with a script for the new URL, plus a syslog job towards the new address) and TR-069 CPEs (`ManagementServer.URL` via GenieACS) the new address. The new server must be a restore of this database: a token created with the migration is checked through `/api/v1/server-migration/check`, and a target answering with this process's own instance id is refused. Pilot of up to 10 devices, arrivals confirmed by the new server (`/api/v1/server-migration/confirm`: last heartbeat or last Inform), then all devices; agents that cannot self-update are listed for reinstallation; devices that arrived can be decommissioned on the old server. Audited (`SERVER_MIGRATION_*`). Procedure in `OPERATIONS.md`.
+
 ## 14. TR-069 / ACS-managed CPE
 
 ### Implemented foundation only
@@ -609,7 +613,8 @@ Warehouse serial numbers ↔ devices and ISPBilling activities in the device log
 
 - *Amministrazione → Integrazioni → GenieACS / TR-069*: NBI URL (loopback, localhost, credentials in the URL refused), authentication none / HTTP Basic / Bearer for a reverse proxy (encrypted), configurable MAC parameter paths, online window, connectivity test that reads nothing;
 - *ACS* tab on TP-Link/TR-069 Devices: lookup by serial number (`_deviceId._SerialNumber`) then MAC (any interface MAC; parameter paths accept `*` for every instance, Core 0.49.201), preview, explicit association that keeps the NSM Customer/Site, refresh by the stored GenieACS ID that refuses a changed serial; identity, model, firmware, hardware, IP, last Inform and online state are normalized from TR-098 and TR-181 paths (management IP from the CPE's connection-request URL, then any interface address; checked on a real TP-Link VX230v, TR-181); audit events `GENIEACS_*` without secrets;
-- the integrations hub shows the real connector state and how many TR-069 CPE are associated or still to associate.
+- the integrations hub shows the real connector state and how many TR-069 CPE are associated or still to associate;
+- *Amministrazione → ACS → Configurare una CPE TP-Link* (Core 0.49.213): step-by-step guide for adding a TP-Link CPE — one manual step on the router (CWMP on, ACS URL, Periodic Inform), then NSP reads it; what NSP reads (state, model, firmware, IP, CPU, memory, WAN traffic, Wi-Fi clients, DSL), the actions it offers (reboot, firmware check, diagnostics) and what it never changes (Wi-Fi, LAN, DHCP, PPPoE; it writes only the CWMP inform interval). The ACS URL shown comes from `ACS_CWMP_URL` when set.
 
 ### Bulk migration to the self-hosted ACS (Core 0.49.202)
 
