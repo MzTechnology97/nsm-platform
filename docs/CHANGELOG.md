@@ -4,6 +4,39 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.225 — 2026-10-22
+
+ACS
+- **The bulk CPE migration to the self-hosted ACS was removed.** It was meant to rewrite the CWMP ACS URL of a fleet of TP-Link CPEs over the management network, but the TP-Link web login could not be used on the operator's firmware. The *Amministrazione → ACS → migrazione* page, its API and its two tables (migration 0055) are gone. CPEs are pointed at the integrated GenieACS as described in the TP-Link guide on *Amministrazione → ACS*. Past migration events keep their labels in the activity log.
+
+## 0.49.224 — 2026-10-22
+
+Audit label
+- **The audit log now names the `DEVICE_VENDOR_CORRECTED` event** (*Vendor dell'apparato corretto*) in all four languages, instead of showing the raw code. It was recorded when a device's vendor was corrected on the server (generic → cambium).
+
+## 0.49.223 — 2026-10-22
+
+UISP backups
+- **Two UISP backups of the same device in the same second no longer overwrite each other.** The file name now includes the backup run, for example `20261022T170000Z_ap-tetto_1a2b3c4d_uisp.tar.gz`.
+
+## 0.49.222 — 2026-10-22
+
+Ping from NSM, on and off from the device page
+- **Click the *Ping da NSM* tile** on the device overview: a small window opens with an on/off switch.
+  - It shows the address that is pinged.
+  - It saves at once, and the first result arrives within a minute.
+  - Thresholds and a different address stay in *Monitor → Impostazioni monitoraggio*, linked from the window.
+- Users without the permission to edit devices see the window read-only. When the device has no address to ping, the switch cannot be turned on and the window says why.
+
+## 0.49.221 — 2026-10-22
+
+Lifecycle from the web
+- **NSM looks up the real end of life of every model in the inventory on the web,** through eol.network, a free database of the end-of-sale and end-of-support notices vendors publish on their own sites (MikroTik, Ubiquiti, Cambium, TP-Link and 90+ more). For each model it keeps the official vendor page and the day it was read.
+- **New section *Ciclo di vita dal web*** in *EOL / EOS → Catalogo lifecycle*: product found, vendor status, published dates, how sure the match is, and the sources. A model with no notice shows *Nessun avviso di fine vita pubblicato*. When the inventory has a marketing name (e.g. "LiteBeam 5AC"), *Cerca con un altro nome* searches with the code on the label.
+- **Nothing changes until you apply it:** *Applica al catalogo* for one model, or *Applica le corrispondenze esatte* for all. The catalog record has the source, link and date like one entered by hand, and the devices are re-correlated. When the vendor gives a status but no date (MikroTik *Discontinued*, Ubiquiti *Vintage*/*Legacy*), the date is the day the source was read, and the note says so.
+- **Automatic:** the worker looks up new models and re-checks the others every 30 days. Without a key it does a few models per run (the public limit is 10 requests a minute). With a free key (`EOL_NETWORK_API_KEY`) it does all of them at once. `LIFECYCLE_WEB_LOOKUP=off` turns it off.
+- Only vendor and model names are sent.
+
 ## 0.49.220 — 2026-10-22
 
 TP-Link CPE syslog through the ACS
