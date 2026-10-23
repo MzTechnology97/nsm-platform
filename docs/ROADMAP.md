@@ -163,13 +163,36 @@ Possible focused PRs:
 - support snapshot on legacy agents — **done** in Core 0.49.82 (assembled from the read-only section jobs);
 - support-snapshot evidence: JSON download with audited SHA-256 — **done** in Core 0.49.88.
 
-### MTK-06 — SNMP and NTP set by the Agent (requested 2026-10-23)
+### ACCESS-01 — global management list, SNMP and NTP on every device (requested 2026-10-23)
 
-**Decided with the user (2026-10-23), implementation in Core 0.49.287 (Agent 0.49.27):**
-- the MikroTik Agent turns on SNMP with the `public` community, read-only, answering only the addresses of a new global list (*Reti autorizzate SNMP* in Amministrazione, prefilled with the NSM/Zabbix server);
-- it sets the NTP client to the Italian national time servers (INRIM `ntp1.inrim.it`, `ntp2.inrim.it`) and the clock to `Europe/Rome`, with automatic daylight saving time;
-- it is applied automatically to every MikroTik, like the syslog, and a single device can be excluded;
-- clock and synchronization state are shown on the device.
+**Decided with the user (2026-10-23):**
+- a single global list, *Reti di gestione autorizzate* (Amministrazione), prefilled with the NSM/Zabbix server, valid for **every** device: MikroTik, Ubiquiti CPEs, TP-Link, Cambium and the others;
+- SNMP with the `public` community, read-only, answering only those addresses;
+- NTP client towards the Italian national time servers (INRIM `ntp1.inrim.it`, `ntp2.inrim.it`), clock `Europe/Rome` with automatic daylight saving time;
+- applied automatically, with per-device exclusion; clock and synchronization state shown on the device.
+
+Per vendor:
+- **MikroTik (Agent)**: Core 0.49.287 / Agent 0.49.27:
+  - `/snmp community` `public` limited to the list, `/snmp enabled=yes`;
+  - `/system ntp client` with the INRIM servers;
+  - `/system clock time-zone-name=Europe/Rome`.
+- **Ubiquiti airOS (UISP)**: UISP does not set SNMP, ACL or firewall rules today. NSM can do it like the syslog (UISP backup → edited `system.cfg` → apply, which reboots the CPE):
+  - `snmp.status`, `snmp.community` and `snmp.location` exist in the archived configurations;
+  - airOS has no address list for SNMP, so the ACL needs firewall rules (`iptables.sys.fw.*`: accept SNMP and the management ports from the list, drop them from the others on the WAN);
+  - the NTP keys (`ntpclient.*`) and the timezone keys need checking;
+  - rule keys and ordering must be validated on a test CPE first, because a wrong rule can lock the CPE out of management.
+- **TP-Link and other CPEs (TR-069)**:
+  - NTP and timezone through `Device.Time.*` (`NTPServer1..`, `LocalTimeZone`);
+  - SNMP and ACL only where the data model of the model exposes them; ACL writes were rejected (9003) on the VX230v, so this is per model.
+- **Cambium (cnMaestro)**: configuration through cnMaestro (templates/API), to be verified on the operator's console.
+
+**ACL capacity (to evaluate, requested 2026-10-23):** measure, for each vendor and model, how many entries each ACL accepts before NSM relies on it, and record the limit in the vendor capabilities:
+- MikroTik: `/snmp community addresses`, `/ip service available-from`, firewall address lists;
+- airOS: firewall rules (`iptables.sys.fw.N`);
+- TP-Link and other TR-069 CPEs: ACL tables of the data model (on the VX230v only a Ping row exists and writes were rejected);
+- Cambium: management access lists.
+
+When the global list is longer than a device accepts, NSM merges contiguous networks into larger prefixes where possible. Otherwise it does not apply a partial list and warns on the device, which avoids locking out a management address.
 
 ## 4. GUI quality and regression queue
 
