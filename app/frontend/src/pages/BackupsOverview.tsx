@@ -11,6 +11,8 @@ import { formatDateTime, formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { Metric } from "./DeviceDetail";
 import { Loading } from "../app/States";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 
 const BUCKET_TONE = { protected: "ui-severity", blocked: "ui-severity ui-severity-warning", no_policy: "ui-severity ui-severity-high" } as const;
 
@@ -26,7 +28,8 @@ export function BackupsOverview() {
     if ((search.q ?? "") !== q) update({ q: q || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
-  const query = useBackupOverview(search);
+  const paging = usePaging(JSON.stringify(search));
+  const query = useBackupOverview(search, pageParams(paging));
   const data = query.data;
   const view = search.view ?? "attention";
 
@@ -91,7 +94,7 @@ export function BackupsOverview() {
               </tbody>
             </table>
           </div>
-          {data.total > data.items.length && <p className="ui-muted">{t("monitoring.limited", { shown: data.items.length, total: data.total })}</p>}
+          <Pager total={data.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
         <div className="ui-empty">{view === "attention" ? t("backupOverview.allGood") : t("backupOverview.empty")}</div>

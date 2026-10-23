@@ -41,7 +41,13 @@ install_components(){
   install -m 0755 "$REPO_DIR/scripts/nsm-auto-update.sh" /usr/local/sbin/nsm-auto-update
   install -m 0644 "$REPO_DIR/deploy/systemd/nsm-auto-update.service" /etc/systemd/system/nsm-auto-update.service
   install -m 0644 "$REPO_DIR/deploy/systemd/nsm-auto-update.timer" /etc/systemd/system/nsm-auto-update.timer
+  # Legacy backup FTP firewall: re-applied at boot and when the subnets allowed in NSM change (no-op unless
+  # LEGACY_FTP_ENABLED=1, see ./manage.sh legacy-backup-enable).
+  install -m 0755 "$REPO_DIR/scripts/nsm-legacy-ftp-firewall.sh" /usr/local/sbin/nsm-legacy-ftp-firewall
+  install -m 0644 "$REPO_DIR/deploy/systemd/nsm-legacy-ftp-firewall.service" /etc/systemd/system/nsm-legacy-ftp-firewall.service
+  install -m 0644 "$REPO_DIR/deploy/systemd/nsm-legacy-ftp-firewall.timer" /etc/systemd/system/nsm-legacy-ftp-firewall.timer
   systemctl daemon-reload
+  systemctl enable --now nsm-legacy-ftp-firewall.timer >/dev/null 2>&1 || true
 }
 
 # During a normal validated deployment, update.sh invokes this mode to refresh

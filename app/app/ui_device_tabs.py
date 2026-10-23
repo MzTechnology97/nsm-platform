@@ -50,6 +50,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
 
+from app import pagination
 from app import device_exposure
 from app import interface_traffic
 from app.activity_worklists import ACTIVE_JOB_STATES, _device_job_query
@@ -77,19 +78,19 @@ def _device(db, device_id: uuid.UUID) -> Device:
 
 @router.get("/devices/{device_id}/jobs")
 def device_jobs(request: Request, device_id: uuid.UUID, status: str = "", job_type: str = "", q: str = "", from_date: str = "",
-                to_date: str = "", offset: int = 0):
+                to_date: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         ui_user(request, db, "devices.read")
         device = _device(db, device_id)
         stmt = _device_job_query(device.id, status, job_type, q[:100], from_date, to_date)
         total = int(db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
-        offset = max(0, int(offset or 0))
-        jobs = list(db.scalars(stmt.order_by(DeviceJob.created_at.desc()).offset(offset).limit(JOB_PAGE)))
+        offset, size = pagination.window(offset, limit, JOB_PAGE)
+        jobs = list(db.scalars(stmt.order_by(DeviceJob.created_at.desc()).offset(offset).limit(size)))
         active = int(db.scalar(select(func.count(DeviceJob.id)).where(DeviceJob.device_id == device.id, DeviceJob.status.in_(ACTIVE_JOB_STATES))) or 0)
         return jsonable_encoder({
             "items": [{"id": str(j.id), "job_type": j.job_type, "status": j.status, "created_at": j.created_at, "delivered_at": j.delivered_at,
                        "completed_at": j.completed_at, "expires_at": j.expires_at, "attempts": j.attempts, "last_error": j.last_error} for j in jobs],
-            "total": total, "offset": offset, "page_size": JOB_PAGE, "active": active,
+            "total": total, "offset": offset, "page_size": size, "limit": size, "active": active,
             "job_types": list(db.scalars(select(DeviceJob.job_type).where(DeviceJob.device_id == device.id).distinct().order_by(DeviceJob.job_type))),
             "statuses": list(db.scalars(select(DeviceJob.status).where(DeviceJob.device_id == device.id).distinct().order_by(DeviceJob.status))),
         })
@@ -140,6 +141,42 @@ def device_exposure_target(request: Request, device_id: uuid.UUID, body: dict = 
         except InputError as exc:
             raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from None
         return {"queued": queued}
+
+
+@router.post("/devices/{device_id}/exposure/acl", dependencies=[Depends(require_csrf)])
+def device_exposure_acl(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    """Declare (or, with ``remove``, withdraw) that a service found open from NSM is filtered by an ACL on the device."""
+    from app import external_exposure
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "security.remediate")
+        device = _device(db, device_id)
+        result = dict((device.inventory_data or {}).get("exposure") or {})
+        if result.get("source") != "external":
+            raise HTTPException(409, {"code": "not_external", "message": "Le dichiarazioni valgono per la verifica dal server NSM."})
+        proto, port = str(body.get("proto") or "").lower(), body.get("port")
+        finding = next((f for f in result.get("findings") or [] if f.get("proto") == proto and f.get("port") == port), None)
+        if finding is None:
+            raise HTTPException(404, {"code": "no_finding", "message": "Servizio non presente nell'ultima verifica."})
+        key = f"{proto}/{port}"
+        data = dict(device.inventory_data or {})
+        declarations = dict(data.get("exposure_acl") or {})
+        if body.get("remove"):
+            declarations.pop(key, None)
+            event, details = "EXPOSURE_ACL_REMOVED", {"service": key, "label": finding.get("label")}
+        else:
+            allowed = " ".join(str(body.get("allowed") or "").split())[:300]
+            if len(allowed) < 3:
+                raise HTTPException(422, {"code": "allowed", "message": "Indica da quali indirizzi è consentito il servizio (es. IP o subnet dell'ACS/NOC)."})
+            declarations[key] = {"allowed": allowed, "note": " ".join(str(body.get("note") or "").split())[:300] or None,
+                                 "by": user.display_name or user.username, "at": utcnow().isoformat()}
+            event, details = "EXPOSURE_ACL_DECLARED", {"service": key, "label": finding.get("label"), "allowed": allowed}
+        data["exposure_acl"] = declarations
+        device.inventory_data = data
+        external_exposure._store_and_sync(db, device, external_exposure.qualify(result, declarations))
+        core.add_event(db, event, actor=user, customer_id=device.customer_id, device_id=device.id, source="portal", details=details)
+        db.commit()
+        return {"exposure": (device.inventory_data or {}).get("exposure")}
 
 
 @router.get("/devices/{device_id}/compliance")

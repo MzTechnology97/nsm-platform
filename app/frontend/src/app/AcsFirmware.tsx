@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { api } from "../api/client";
 import { formatDateTime } from "../lib/format";
+import { TplinkCloudFirmware } from "./TplinkCloudFirmware";
 
 interface FirmwareFile { name: string; size: number | null; uploaded_at: string | null; product_class: string | null; version: string | null }
 
@@ -134,6 +135,7 @@ export function AcsFirmware({ deviceId }: { deviceId: string }) {
           <small className="ui-muted"> · {upgrade.file_name}{upgrade.by ? ` · ${upgrade.by}` : ""}</small>
         </div>
       )}
+      <TplinkCloudFirmware deviceId={deviceId} running={running} />
       {data.files_error && <div className="ui-alert ui-alert-warning">{data.files_error}</div>}
       {data.can_run && (
         <>

@@ -27,7 +27,7 @@ An open PR does not count as implemented in `main`.
 
 ### Important boundary
 
-A Site is customer-local. UISP or another connector may retain external organization/site metadata, but that metadata must not silently redefine NSM ownership.
+A Site is customer-local. UISP or another connector may retain external organization/site metadata, but that metadata must not silently redefine NSM ownership. The one exception is the UISP endpoint import (operator request, Core 0.49.244): a UISP customer endpoint matched by name, or linked by the operator, places its *new* devices under that customer; existing records are never moved.
 
 ## 2. Authentication, users, permissions and branding
 
@@ -319,6 +319,8 @@ Sampling and consolidation: 2-minute heartbeat (Agent 0.49.18); `telemetry_rollu
 
 Retention (90 days) never removes the newest sample of a device or interface (`telemetry_retention.expire_keep_latest`): an offline device keeps its last telemetry visible (MON-02).
 
+Monitor tab for every device (MON-03, Core 0.49.242): every device has the *Monitor* tab with the same toolbar (1 h, 24 h, 7 days, 30 days, *Impostazioni monitoraggio*) and panels in the same order: *Risorse* (CPU and memory), *Traffico*, *Latenza e perdita (ping da NSM)*, then what only that source has. MikroTik routers use the agent metrics (and *Wireless*). TR-069 CPEs, Ubiquiti and Cambium devices use their source through `GET /api/ui/v1/devices/{id}/monitor/source` (`app/monitor_sources.py`, `monitoring.read`): the ACS (WAN traffic, *Linea e client*: Wi-Fi clients, LAN hosts, DSL), UISP (*Radio*: signal, capacity, stations) or cnMaestro (throughput; *Radio*: signal, SNR, stations). Devices without a source show the ping only. The *ACS*, *UISP* and *cnMaestro* tabs keep the device state and point to Monitor for the charts.
+
 NSM monitoring is intentionally lightweight and does not attempt to replace a full NMS.
 
 ### Syslog configured by the Agent (LOG-01 step 2)
@@ -444,7 +446,7 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 ### Legacy full backup over FTP (Agent 0.49.16)
 
-- the legacy agent (RouterOS 6.48/6.49 and 7.12) runs `/system backup save` with the job password and `/export` (`hide-sensitive` on v6), then uploads both with `/tool fetch upload=yes mode=ftp` to the upload-only FTP receiver of NSM (`app/legacy_ftp_server.py`, compose profile `legacyftp`, `./manage.sh legacy-backup-enable <IPv4> [port]`, default ports 2121 and 30100–30109, `LEGACY_FTP_PASV_PORTS` for the passive range); since Core 0.49.215 the subnets allowed to send are set in *Amministrazione → Sistema → Backup legacy via FTP*: the receiver refuses other origins (refreshed every minute), `./manage.sh legacy-ftp-firewall --apply` enforces them in `DOCKER-USER` too, and `legacy-backup-enable` opens the ports in ufw/firewalld when active and applies those rules;
+- the legacy agent (RouterOS 6.48/6.49 and 7.12) runs `/system backup save` with the job password and `/export` (`hide-sensitive` on v6), then uploads both with `/tool fetch upload=yes mode=ftp` to the upload-only FTP receiver of NSM (`app/legacy_ftp_server.py`, compose profile `legacyftp`, `./manage.sh legacy-backup-enable <IPv4> [port]`, default ports 2121 and 30100–30109, `LEGACY_FTP_PASV_PORTS` for the passive range); since Core 0.49.215 the subnets allowed to send are set in *Amministrazione → Sistema → Backup legacy via FTP*: the receiver refuses other origins (refreshed every minute), `./manage.sh legacy-ftp-firewall --apply` enforces them in `DOCKER-USER` too, and `legacy-backup-enable` opens the ports in ufw/firewalld when active and applies those rules; since Core 0.49.240 the automatic update also installs `nsm-legacy-ftp-firewall.timer`, which applies those rules at boot and within two minutes of a change of the subnets, and removes them when no subnet is left;
 - one-time account per job (only the password SHA-256 stored), only the two expected file names, once each, up to 64 MB, passive mode with the data peer bound to the control peer;
 - files are archived like any other artifact (SHA-256, audit, retention) and the device counts as protected;
 - requires the policies `ftp`, `policy` and `sensitive` (observed from Agent 0.49.17).
@@ -517,6 +519,15 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 - *Integrazioni → UISP → Onboarding dispositivi* (and *Importa da UISP* on a customer's device list): every UISP device with its NSM state — *Nuovo*, *Da associare* (an unlinked Ubiquiti record with the same MAC), *Già in NSM* (same UISP id), *Non importabile* (no stable id, no MAC, MAC repeated in UISP or used by another NSM Device);
 - the operator selects up to 200 devices and chooses the NSM Customer and optional Site explicitly (UISP sites are shown, never imported); preview before confirmation;
 - at confirmation the UISP list is read again: changed or vanished devices are skipped and reported; new Devices are created with type from the UISP role, existing records are associated and keep their Customer; `devices.write` required; `DEVICE_ADDED`, `UISP_DEVICE_ASSOCIATED` and `UISP_BULK_ONBOARDING` audit events.
+
+### Endpoints to customers, automatic import (Core 0.49.244)
+
+- *Integrazioni → UISP → Onboarding → Clienti UISP*: every UISP *endpoint* site (customer site, read from `/nms/api/v2.1/sites`) with its NSM customer;
+- **matched**: the name of its UISP CRM client, or the site name, is the name of exactly one NSM customer (case, accents, punctuation and word order ignored); an ambiguous name is never guessed; on the operator's UISP this covered 560 of 738 endpoints, none ambiguous;
+- the others are *Da verificare*: linked to a customer with a searchable select or ignored; the choice is kept in the UISP connector settings and always wins over the name; *Annulla scelta* forgets it;
+- every 30 minutes (and right after a link), new UISP devices of matched or linked endpoints are created under that customer, at its site when it has exactly one; an unlinked record with the same MAC is associated and keeps its customer; at most 300 per run;
+- infrastructure *sites* (towers, APs, backhaul) are never imported automatically: they stay in the manual onboarding;
+- switch *Importa in automatico* (on by default); `devices.read` to see, `devices.write` to change; `UISP_SITE_LINKED`, `UISP_SITE_IGNORED`, `UISP_AUTO_CUSTOMERS_CHANGED` and `UISP_AUTO_IMPORTED` audit events.
 
 ### Implemented
 
@@ -625,7 +636,7 @@ Warehouse serial numbers ↔ devices and ISPBilling activities in the device log
 
 ### CPE syslog through the ACS (Core 0.49.220)
 
-TP-Link CPEs (Aginet firmware) keep their log settings in `Device.DeviceInfo.X_TP_LogCfg`; NSM writes `LogToRemote`, `ServerIP`, `ServerPort` (514) and `RemoteSeverity` through GenieACS, nothing else. From the device *Syslog* tab (applied at once via connection request), from *Amministrazione → ACS → Syslog dei CPE TR-069* for every associated TP-Link (applied at the next Inform), and by the worker for new CPEs when syslog *Configura automaticamente* is on. The receiver address is the syslog public address, else the host of `ACS_CWMP_URL`. TP-Link lines carry no NSM key: the key-only receiver accepts a keyless line only from the management IP of a TR-069 CPE that NSM itself configured this way, and only when no other device uses that address (`syslog_identity.Index.by_address`); every other keyless line is still discarded. NSM re-reads the management IP (WAN, from the connection-request URL) before configuring. Checked on a real VX230v. Audit `ACS_SYSLOG_CONFIGURED`.
+TP-Link CPEs (Aginet firmware) keep their log settings in `Device.DeviceInfo.X_TP_LogCfg`; NSM writes `LogToRemote`, `ServerIP`, `ServerPort` (514) and `RemoteSeverity` through GenieACS, nothing else. From the device *Syslog* tab (applied at once via connection request), from *Amministrazione → ACS → Syslog dei CPE TR-069* for every associated TP-Link (applied at the next Inform), and by the worker for new CPEs when syslog *Configura automaticamente* is on. The receiver address is the syslog public address, else the host of `ACS_CWMP_URL`. TP-Link lines carry no NSM key: the key-only receiver accepts a keyless line only from the address of a TR-069 CPE that NSM itself configured this way: its management IP or, while its last Inform is less than 30 minutes old, the WAN address of that Inform (ConnectionRequestURL host, so dynamic IPs follow every PPP reconnection; Core 0.49.245); only when no other device uses that address, CGNAT included (`syslog_identity.Index.by_address`); every other keyless line is still discarded. NSM re-reads the management IP (WAN, from the connection-request URL) before configuring. Checked on a real VX230v. Audit `ACS_SYSLOG_CONFIGURED`.
 
 ### Bulk migration to the self-hosted ACS (removed in Core 0.49.225)
 
@@ -651,9 +662,22 @@ The device *ACS* tab shows the CPE's remote web access (TR-181 `Device.UserInter
 
 TR-069 CPEs get the device *Firmware* tab like MikroTik devices: it shows the installed version against the newest release of the firmware catalog for the model (*Firmware → Cataloghi*, `vendor_firmware.evaluate`, the same state shown on the overview tile and in the firmware worklist). There technicians (`devices.write`) load the vendor image (up to 128 MB) into GenieACS for the CPE's model (NBI `PUT /files`, `fileType` "1 Firmware Upgrade Image" with OUI, product class and the version given; audit `ACS_FIRMWARE_FILE_STORED` with size and SHA-256) and start the upgrade by typing the device name: a GenieACS `download` task with a connection request, after checking that the image is for the CPE's product class (`ACS_FIRMWARE_REQUESTED`). The CPE fetches the file from the GenieACS file server (port 7567, at the host the CPE uses for the ACS), installs it and reboots. One upgrade at a time per CPE, followed on the page and by the worker (`acs_firmware_follow`): *verified* when GenieACS reports a different `SoftwareVersion` (with whether it contains the expected version, `ACS_FIRMWARE_VERIFIED`), *failed* on a GenieACS fault for the CPE after the request (`ACS_FIRMWARE_FAILED`), *unconfirmed* after 30 minutes. Images already in GenieACS for the same model are listed for reuse.
 
+**From TP-Link's cloud (Core 0.49.246, `tplink_cloud_firmware`).** TP-Link CPEs exposing `Device.X_TP_CloudService` ask TP-Link's cloud for newer firmware by themselves (the *Online Upgrade* box of their web page) and keep the answer in `FwUpgradeInfo` (`Version`, `ReleaseDate`, `ReleaseLog`, `Url`, `Progress`, `Status`). The *Firmware* box shows that offer with its release notes. The worker queues a read of it once a day for each TP-Link CPE, at its next periodic contact, and *Verifica ora* reads it at once. Technicians start the CPE's own upgrade by typing the device name: `FwUpgradeInfo.NeedStartUpgrade` and then `X_TP_Upgrade_Action` set to true, one `setParameterValues` task each, only when the offered version differs from the installed one. On a VX230v (2026-10-23) this took the CPE from 0.16.0 to 0.19.0 Build 260323 in about two minutes. The upgrade is followed and audited like an image upgrade (`ACS_FIRMWARE_REQUESTED` with `method: tplink_cloud`, then *verified*, *failed* or *unconfirmed*).
+
 ### TP-Link firmware from the official site (VEND-01, Core 0.49.227)
 
 TP-Link has no firmware API, so once a day (and with *Aggiorna* on *Firmware → Cataloghi*) NSM reads the official Italian download page of every TP-Link model in the inventory (`https://www.tp-link.com/it/support/download/<model>/`, or the `/v<hardware>/` page when the model has several hardware versions) for the hardware version its devices report (TR-069 `HardwareVersion`, e.g. `VX230v v1.0` → V1) and records each image of the *Firmware* tab as a catalog release (source *sito ufficiale*, platform = hardware version; images of other hardware versions are ignored). Versions compare by release number, then by build. The device overview, the firmware worklist and the device *Firmware* tab therefore show the newest version like for the other brands. On a TR-069 CPE with a newer release, *Scarica dal sito TP-Link nell'ACS* reads the page again, downloads that image's `.zip` (HTTPS from `static.tp-link.com` only, 128 MB at most), extracts its single `.bin`, stores it in GenieACS with the version (audit `ACS_FIRMWARE_FILE_FETCHED` with link and SHA-256) and selects it for the upgrade, which still needs the typed confirmation. The download is also automatic (operator decision 2026-10-23, on by default, *Amministrazione → ACS → Download automatico dei firmware*): after each catalog evaluation NSM loads into GenieACS the newer image of every TR-069 CPE, once per model, hardware version and version (at most 3 per run), so it is ready and preselected on the device's *Firmware* tab; nothing is installed (audit `ACS_FIRMWARE_FILE_FETCHED` with `trigger` auto/manual, `ACS_FIRMWARE_AUTO_CHANGED`). Checked on the operator's VX230v page (2026-10-23: `0.19.0 Build 260323`, V1, EU1).
+
+### Firmware uploaded into the catalogs (VEND-01, Core 0.49.247)
+
+The manual *Aggiungi una release* form is gone (operator request 2026-10-23): on each catalog of *Firmware → Cataloghi* the operator (`firmware.execute`) uploads the image itself (`.bin`, `.img`, `.zip`; 64 KB–128 MB) and NSM reads what the official file says:
+
+- TP-Link: model, hardware version (the catalog platform: an image for V1 never applies to a V2 device), version and date (the build is `YYMMDD`) from the official name `VX230v(EU1)_V1_0.19.0 Build 260323`; a `.zip` must hold one `.bin`, which is the image kept;
+- Ubiquiti: airOS platform (`XC`, `WA`, `XW`, `XM`…), version and date from the name `XC.qca956x.v8.7.25.46619.240712.1445.bin`, or from the image header when the file was renamed;
+- Cambium: version from `ePMP-AC-v4.8.1.img`, models from the family (AC → ePMP 3000 / Force 300, AX → ePMP 4000 / Force 400, GPS_Synced → ePMP 1000-2000 / Force 1xx-2xx) among the models of the inventory;
+- other brands: the version.
+
+Only what cannot be read is asked (version; models, chosen among the brand's models in the inventory). The date falls back to the file date, then to the day of the upload. The image is staged until confirmation (24 h), then recorded as an operator release and kept under the backup storage (`firmware/<release>/`, downloadable from the catalog, removed with the release). When TR-069 CPEs match the release, the image is also put in GenieACS once per product class, ready on their *Firmware* tab; nothing is installed. Audit `VENDOR_FIRMWARE_RELEASE_ADDED` with file name, size, SHA-256 and GenieACS files. A release can list several models (`|`-separated patterns).
 
 ### Configuration snapshots (ACS-07, Core 0.49.217)
 
