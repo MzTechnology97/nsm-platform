@@ -133,7 +133,7 @@ def overview(db, month: str | None = None, now: datetime | None = None) -> dict:
             verdict = "not_measured"
         else:
             verdict = "met" if value >= target else "missed"
-        rows.append({"customer": {"id": str(customer.id), "name": customer.name}, "target": target, "availability": value,
+        rows.append({"customer": {"id": str(customer.id), "name": customer.name, "code": customer.code}, "target": target, "availability": value,
                      "devices": len(devices), "below_target": below, "downtime_minutes": int(round((rounds - up) * availability.ROUND_MINUTES)),
                      "budget_minutes": budget, "budget_month_minutes": budget_month, "used_minutes": used, "verdict": verdict,
                      "maintenance_minutes": int(round(maintenance.get(customer.id, 0.0) * availability.ROUND_MINUTES))})

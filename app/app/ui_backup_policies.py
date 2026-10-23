@@ -91,7 +91,7 @@ def policy_form(request: Request, policy: str = "", clone: bool = False, custome
             "context": {"id": str(context.id), "name": context.name} if context else None,
             "vendors": [{"key": key, "label": label} for key, label in backup_core.VENDOR_LABELS.items()],
             "options": list(backup_core.DEFAULT_OPTIONS),
-            "customers": [{"id": str(c.id), "name": c.name} for c in customers],
+            "customers": [{"id": str(c.id), "name": c.name, "code": c.code} for c in customers],
             "sites": [{"id": str(s.id), "name": s.name, "customer_id": str(s.customer_id)} for s in sites],
             "devices": [{"id": str(d.id), "name": d.display_name or d.device_identity or d.name, "customer_id": str(d.customer_id),
                          "vendor": d.vendor, "brand": brand_icon(d)} for d in devices],

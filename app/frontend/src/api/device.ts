@@ -1,6 +1,7 @@
 import type { DeviceZabbix } from "../app/ZabbixProblems";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { IspbillingLinkState } from "../app/IspbillingLinks";
 import { api } from "./client";
 import type { DeviceRow } from "./devices";
 
@@ -77,11 +78,15 @@ export function useZabbixExclude(id: string) {
 }
 
 export interface DeviceIspbillingAccount {
+  /** ISPBilling account id. */
+  account: string;
+  /** What NSM proposes for the device's customer and site (ispbilling_cpe_link). */
+  link: IspbillingLinkState | null;
   username: string;
   profile: string | null;
   status: string | null;
   static_ip: string | null;
-  matched_by: "pppoe" | "ip" | null;
+  matched_by: "pppoe" | "cpe_pppoe" | "ip" | "caller_mac" | "caller_ip" | null;
   customer: string | null;
   /** False when ISPBilling bills another NSM customer; null when that ISPBilling customer is not imported. */
   same_customer: boolean | null;

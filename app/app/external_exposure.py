@@ -14,6 +14,19 @@ answer on the device's **public** address:
   cycle, every 24 hours, on demand at most once every ``MIN_INTERVAL``; each
   check is written to the audit log.
 
+Answers from the NSM server can be misleading when the device's ACL admits that server (operator report 2026-10-23):
+
+- a TR-069 CPE linked to the NSM GenieACS accepts connection requests (tcp/7547) from its ACS, which is the NSM server:
+  an open CWMP port is *da verificare* (low), not *esposto*, because from here it cannot be told whether others are
+  filtered;
+- for those CPEs NSM also reads the remote web management settings (``UserInterface.RemoteAccess``: enabled, port,
+  protocol, TP-Link ``X_TP_RemoteAll``/``X_TP_RemoteHost``), probes that port too (e.g. 20443) and reports it as
+  open to everyone or limited to the configured host;
+- the operator can declare a service *filtrata da ACL* with the allowed addresses (``inventory_data["exposure_acl"]``
+  keyed ``proto/port``, ``security.remediate``, audited ``EXPOSURE_ACL_DECLARED``/``EXPOSURE_ACL_REMOVED``): the
+  service is then *limitato* with who declared it and when. Each finding keeps the raw probe result (``probe``), so a
+  declaration applies at once, without probing again.
+
 The result has the same shape as the Agent check (``inventory_data["exposure"]``
 with ``source="external"``), so the page, the Action Center issue and the
 notifications are shared.  On an address shared by several devices (customer
@@ -223,13 +236,16 @@ def probe_udp(ip: str, key: str, port: int, timeout: float) -> tuple[str, str]:
     return "filtered", "nessuna risposta (chiusa o filtrata)"
 
 
-def scan(ip: str, keys: list[str], timeout: float = TIMEOUT_SECONDS) -> list[dict]:
+def scan(ip: str, keys: list[str], timeout: float = TIMEOUT_SECONDS, extra: dict | None = None) -> list[dict]:
+    checks = {**CHECKS, **(extra or {})}
+
     def run(key):
-        port, proto, label, severity, why = CHECKS[key]
+        port, proto, label, severity, why = checks[key]
         state, reason = probe_tcp(ip, port, timeout) if proto == "tcp" else probe_udp(ip, key, port, timeout)
         state = {"open": "exposed"}.get(state, state)
         return {"service": key, "label": label, "port": port, "proto": proto, "state": state,
-                "severity": severity if state == "exposed" else "info", "reason": reason, "why": why}
+                "severity": severity if state == "exposed" else "info", "reason": reason, "why": why,
+                "probe": {"state": state, "severity": severity, "reason": reason}}
 
     with ThreadPoolExecutor(max_workers=min(MAX_WORKERS, max(1, len(keys)))) as pool:
         findings = list(pool.map(run, keys))
@@ -239,29 +255,119 @@ def scan(ip: str, keys: list[str], timeout: float = TIMEOUT_SECONDS) -> list[dic
 
 # --- Checks, requests, worker ---------------------------------------------------------------
 
-def run_check(db, device, actor=None) -> dict:
+def _flag(value) -> bool | None:
+    if value is None or value == "":
+        return None
+    return str(value).strip().lower() in ("true", "1", "on", "enabled")
+
+
+def tr069_context(db, device) -> dict | None:
+    """For a TR-069 CPE linked to the NSM GenieACS: {"acs": True, "remote": remote web management settings or None}."""
+    from app import acs_diagnostics as nbi
+    from app import genieacs_connector as acs
+
+    if not device.external_device_id or not acs.tr069_capable(device):
+        return None
+    connection = acs._connection(db)
+    if connection is None or not connection.is_enabled:
+        return None
+    context = {"acs": True, "remote": None}
+    try:
+        record = nbi._read(connection, device.external_device_id, ["Device.UserInterface.RemoteAccess", "InternetGatewayDevice.UserInterface.RemoteAccess"])
+    except nbi.AcsDiagnosticError:
+        return context
+    for root in ("Device", "InternetGatewayDevice"):
+        node = nbi._node(record, f"{root}.UserInterface.RemoteAccess")
+        if not isinstance(node, dict):
+            continue
+        value = lambda name: nbi._value(record, f"{root}.UserInterface.RemoteAccess.{name}")  # noqa: E731
+        enabled = _flag(value("Enable"))
+        if enabled is None:
+            continue  # not read by the ACS yet
+        try:
+            port = int(value("Port") or value("X_TP_Port") or 0)
+        except (TypeError, ValueError):
+            port = 0
+        context["remote"] = {"enabled": enabled, "port": port if 0 < port < 65536 else None,
+                             "protocol": str(value("Protocol") or value("X_TP_Protocol") or "").upper()[:10] or None,
+                             "all": _flag(value("X_TP_RemoteAll")), "host": str(value("X_TP_RemoteHost") or "").strip()[:100] or None}
+        break
+    return context
+
+
+def remote_check(context: dict | None) -> dict:
+    """Extra probe for the CPE's remote web management port, when enabled on a port not already checked."""
+    remote = (context or {}).get("remote") or {}
+    if not remote.get("enabled") or not remote.get("port"):
+        return {}
+    https = remote.get("protocol") == "HTTPS"
+    return {"remote-web": (remote["port"], "tcp", f"Gestione web remota ({remote.get('protocol') or 'HTTP'})", "medium" if https else "high",
+                           "Interfaccia di gestione del CPE raggiungibile da Internet." + ("" if https else " Senza cifratura: credenziali in chiaro."))}
+
+
+def qualify(result: dict, declarations: dict) -> dict:
+    """Apply what the probe from NSM cannot know: CWMP admitted for the ACS, the CPE's remote management settings, the operator's ACL declarations."""
+    context = result.get("tr069") or {}
+    remote = context.get("remote") or {}
+    for finding in result["findings"]:
+        probe = finding.get("probe") or {"state": finding["state"], "severity": finding["severity"], "reason": finding["reason"]}
+        finding["probe"] = probe
+        state, severity, reason = probe["state"], probe["severity"] if probe["state"] == "exposed" else "info", probe["reason"]
+        finding.pop("acl", None)
+        if state == "exposed" and finding["service"] == "cwmp" and context.get("acs"):
+            state, severity = "uncertain", "low"
+            reason = ("risponde al server NSM, che è l'ACS di questo CPE: i CPE accettano le richieste di connessione dal proprio ACS, "
+                      "quindi da qui non si può sapere se la porta è filtrata per il resto di Internet")
+        if state == "exposed" and remote.get("enabled") and finding["proto"] == "tcp" and finding["port"] == remote.get("port"):
+            if remote.get("host") and not remote.get("all"):
+                state, severity = "restricted", "info"
+                reason = f"il CPE ammette la gestione remota solo da {remote['host']} (configurazione letta via TR-069)"
+            elif remote.get("all"):
+                reason = f"{reason}; il CPE ammette la gestione remota da qualsiasi indirizzo (configurazione letta via TR-069)"
+        declared = declarations.get(f"{finding['proto']}/{finding['port']}")
+        if declared and state in ("exposed", "uncertain"):
+            finding["acl"] = declared
+            state, severity = "restricted", "info"
+            reason = (f"filtrata da ACL secondo {declared.get('by') or 'un operatore'} ({str(declared.get('at') or '')[:10]}): "
+                      f"consentita solo da {declared.get('allowed')}")
+        finding.update({"state": state, "severity": severity, "reason": reason})
+    result["findings"].sort(key=lambda f: (f["state"] != "exposed", f["state"] != "uncertain", -SEVERITY_RANK.get(f["severity"], 0), f["port"]))
+    exposed = [f for f in result["findings"] if f["state"] == "exposed"]
+    worst = max((SEVERITY_RANK[f["severity"]] for f in exposed), default=0)
+    result.update({"exposed": len(exposed), "uncertain": sum(1 for f in result["findings"] if f["state"] == "uncertain"),
+                   "worst": next((k for k, v in SEVERITY_RANK.items() if v == worst), "info") if exposed else None})
+    return result
+
+
+def _store_and_sync(db, device, result: dict) -> None:
     from app import device_exposure as expo
 
-    ip, origin = target(device)
-    keys = plan(device)
-    findings = scan(ip, keys)
-    exposed = [f for f in findings if f["state"] == "exposed"]
-    worst = max((SEVERITY_RANK[f["severity"]] for f in exposed), default=0)
-    shared = [d.display_name or d.device_identity or d.name for d in db.scalars(select(Device).where(Device.management_ip == ip, Device.id != device.id))]
-    result = {
-        "checked_at": utcnow().isoformat(), "source": "external", "target_ip": ip, "target_origin": origin, "vendor_key": vendor_key(device),
-        "findings": findings, "ports_checked": len(keys), "exposed": len(exposed), "uncertain": 0,
-        "worst": next((k for k, v in SEVERITY_RANK.items() if v == worst), "info") if exposed else None,
-        "shared_with": sorted(shared)[:20], "port_forwards": [], "private_target": not _public(ip),
-    }
     data = dict(device.inventory_data or {})
     data["exposure"] = result
     device.inventory_data = data
-    behind_nat = bool(shared) and not _is_edge(device)
-    if behind_nat:
+    if result.get("shared_with") and not _is_edge(device):
         result["issue_skipped"] = "IP condiviso: la risposta arriva dal router di bordo"
     else:
         expo._sync_issue(db, device, result)
+
+
+def run_check(db, device, actor=None) -> dict:
+    ip, origin = target(device)
+    keys = plan(device)
+    context = tr069_context(db, device)
+    extra = remote_check(context)
+    if extra and extra["remote-web"][0] in {CHECKS[k][0] for k in keys if CHECKS[k][1] == "tcp"}:
+        extra = {}  # that port is already probed: the configuration qualifies its finding
+    findings = scan(ip, keys + list(extra), extra=extra)
+    shared = [d.display_name or d.device_identity or d.name for d in db.scalars(select(Device).where(Device.management_ip == ip, Device.id != device.id))]
+    result = {
+        "checked_at": utcnow().isoformat(), "source": "external", "target_ip": ip, "target_origin": origin, "vendor_key": vendor_key(device),
+        "findings": findings, "ports_checked": len(keys) + len(extra), "exposed": 0, "uncertain": 0, "worst": None,
+        "shared_with": sorted(shared)[:20], "port_forwards": [], "private_target": not _public(ip), "tr069": context,
+    }
+    qualify(result, (device.inventory_data or {}).get("exposure_acl") or {})
+    exposed = [f for f in result["findings"] if f["state"] == "exposed"]
+    _store_and_sync(db, device, result)
     core.add_event(db, "EXPOSURE_EXTERNAL_CHECK", actor=actor, customer_id=device.customer_id, device_id=device.id, source="portal" if actor else "worker",
                    details={"target_ip": ip, "ports": [f"{f['proto']}/{f['port']}" for f in findings], "exposed": [f"{f['proto']}/{f['port']}" for f in exposed]})
     return result

@@ -297,7 +297,7 @@ Next steps:
 
 
 **Receiver.** A syslog receiver integrated in the stack, as a Docker service (UDP/TCP 514, optionally TLS 6514).
-- Messages are matched to devices only by the per-device key `NSM-<16 hex>` (logging prefix on MikroTik, origin-id on Cisco, device name elsewhere); lines without a key are always discarded (Core 0.49.74, operator decision).
+- Messages are matched to devices only by the per-device key `NSM-<16 hex>` (logging prefix on MikroTik, origin-id on Cisco, device name elsewhere); lines without a key are always discarded (Core 0.49.74, operator decision), except from the address of a TR-069 CPE that NSM itself set to send syslog through the ACS, when no other device uses that address (Core 0.49.220: TP-Link takes no key).
 - Logs are stored with retention and indexing.
 
 **Device configuration.** Configured automatically:
@@ -345,6 +345,7 @@ Telemetry of a device that goes offline must never be deleted: the last received
 **Step 2 done (Core 0.49.60)**: the check from the NSM server on the public IP for the other manufacturers (and MikroTik without the modern agent), with the IP given by the operator when it cannot be determined.
 **Since Core 0.49.73** the operator can also target a private/CGNAT address (device reached directly, e.g. via VPN), with an explicit warning that the result is distorted when the device sits behind another router or NAT.
 **Step 3 done (Core 0.49.61)**: the fleet view *Security → Esposizione*, exposed services in the security newsletter and in the evidence report (section 3).
+**Core 0.49.239** (operator report 2026-10-23: a port filtered by an ACL that admits the NSM server looked exposed): an open CWMP port on a TR-069 CPE managed by NSM is *da verificare* (NSM is its ACS), the CPE's remote web management settings read via TR-069 decide *esposto*/*limitato* and its port is probed too, and the operator can declare any service filtered by an ACL with the allowed addresses. Operator decision (2026-10-23): ACLs are declared by hand; no second vantage point (no external port-check service, no probe from another site).
 
 A port/service scanner run from the NSM server against the WAN address of each managed device.
 - **Targets.** Any vendor, not only MikroTik. The target is the detected WAN/PPPoE address, and the operator can pick or override the correct WAN IP when it cannot be determined.
@@ -391,7 +392,7 @@ The selected ACS is **GenieACS** (as preferred in `PRODUCT_REQUIREMENTS.md`); NS
 
 ### ACS-02 — Device discovery and association
 
-**Implemented in `main`** for per-Device association (serial, then MAC) of TR-069 CPEs of any brand (TP-Link, or Huawei/ZTE/others entered as *Altro produttore* with type router, ONT, wireless CPE or other — Core 0.49.66). **Bulk migration of an existing fleet (Core 0.49.202):** *Amministrazione → ACS* reconfigures the CWMP ACS URL on a whole management subnet of TP-Link CPEs so a fleet already on a vendor cloud ACS (TAUC) moves to the integrated GenieACS without touching each router by hand. The dry-run inventory (reachability + model/firmware, validated on a real VX230v) is available; the authenticated CWMP rewrite via the TP-Link web interface is enabled after per-firmware field validation. Next: validate the TP-Link web login on the live fleet, then add the DNS/TAUC-side bulk paths discussed with the operator.
+**Implemented in `main`** for per-Device association (serial, then MAC) of TR-069 CPEs of any brand (TP-Link, or Huawei/ZTE/others entered as *Altro produttore* with type router, ONT, wireless CPE or other — Core 0.49.66). The bulk CWMP rewrite of an existing fleet (Core 0.49.202) was removed in Core 0.49.225: unusable on the operator's TP-Link firmware.
 
 - match candidates using reliable ACS identifiers;
 - preview before association;
@@ -414,19 +415,23 @@ Normalize relevant Device identity and firmware fields from supported data model
 
 ### ACS-05 — monitoring/history
 
-**Implemented in `main` (Core 0.49.206, 0.49.211)**: state at every Inform (CPU, memory, WAN, Wi-Fi, LAN hosts, DSL), 90-day samples and charts on the device ACS tab, online/offline from the last Inform. Next: PON optical levels where CPEs expose them; alerts on WAN down / DSL degradation.
+**Implemented in `main` (Core 0.49.206, 0.49.211)**: state at every Inform (CPU, memory, WAN, Wi-Fi, LAN hosts, DSL), 90-day samples and charts on the device ACS tab, online/offline from the last Inform. Alerts on CPE offline, WAN down, WAN reconnections, reboots and DSL degradation (Core 0.49.226). Next: PON optical levels where CPEs expose them.
 
 Persist only supported, stable operational data with capability-aware unavailable states.
 
 ### ACS-06 — diagnostics
 
-**Implemented in `main` (Core 0.49.206)**: ping and traceroute run by the CPE through GenieACS (TR-181 and TR-098), results on the device ACS tab. Next: download/upload speed tests (`Device.IP.Diagnostics.DownloadDiagnostics`/`UploadDiagnostics`, exposed by the TP-Link VX230v) once a test server is chosen.
+**Implemented in `main` (Core 0.49.206)**: ping and traceroute run by the CPE through GenieACS (TR-181 and TR-098), results on the device ACS tab; download/upload speed tests (TR-143) towards NSM itself or a server set by the administrator (Core 0.49.218).
 
 ### ACS-07 — backup/restore capability
+
+**Backup implemented in `main` (Core 0.49.217)** as configuration-parameter snapshots archived and comparable in the device Backup tab, scheduled by backup policy (GenieACS has no `Upload` task for the vendor file). Restore is not implemented.
 
 Only expose backup/restore where the real CPE data model and connector expose a verifiable supported mechanism.
 
 ### ACS-08 — firmware workflow
+
+**Implemented in `main` (Core 0.49.219)** for one CPE at a time, on the device Firmware tab like the other devices (installed version against the catalog's newest release): vendor image loaded into GenieACS per model, `download` task after typed confirmation and model check, verified from the reported `SoftwareVersion`, faults and timeout reported, audited. Next: campaigns over many CPEs with staged rollout.
 
 - firmware target/evidence model;
 - controlled ACS operation;
@@ -436,7 +441,7 @@ Only expose backup/restore where the real CPE data model and connector expose a 
 
 ### VEND-01 — firmware catalogs for other vendors (requested 2026-10-07)
 
-**Implemented in `main` (Core 0.49.69)**: *Firmware → Cataloghi altri produttori* — Ubiquiti from UISP and from the official update service (`fw-update.ubnt.com`, airOS platform from the installed firmware string or from UISP; checked from the deployed instance in Core 0.49.199, where the request filters were corrected: the service files the platform code under `product` and the family `airmax` under `platform`), other brands from releases entered from the official download pages; device firmware state evaluated per model. Next: official machine-readable sources for other brands where they exist.
+**Implemented in `main` (Core 0.49.69)**: *Firmware → Cataloghi altri produttori* — Ubiquiti from UISP and from the official update service (`fw-update.ubnt.com`, airOS platform from the installed firmware string or from UISP; checked from the deployed instance in Core 0.49.199, where the request filters were corrected: the service files the platform code under `product` and the family `airmax` under `platform`), other brands from releases entered from the official download pages; device firmware state evaluated per model. **Core 0.49.227**: TP-Link from the official Italian download pages per model and hardware version, with one-click download into the ACS for TR-069 CPEs. Next: official machine-readable sources for other brands where they exist.
 
 Release catalogs like the RouterOS one (versions per channel/model, release notes, security classification) for Ubiquiti, TP-Link, Tenda, Cambium and similar vendors. Each catalog is enabled only when the inventory contains devices of that brand, reads only official vendor sources and never guesses versions it cannot verify.
 
@@ -451,7 +456,7 @@ Read-only cnMaestro (cloud/on-premises) connector for Cambium radios: discovery 
 
 Import the customer registry and sites from the operator's billing system (ISPBilling, `https://ispbilling.it/api/docs`), then automate around it. Approved by the operator: (1) customers, (2) services → sites, (3) RADIUS accounts ↔ devices, (4) warehouse serials/MACs ↔ devices, (5) activities into the device logbook; invoices and payments stay out of NSM.
 
-**Step 1 implemented in `main` (Core 0.49.203)**: read-only connector, mirror refreshed by the worker, import page for customers and their installation addresses as sites (details in `IMPLEMENTED_CAPABILITIES.md` §13c). **Step 2 implemented (Core 0.49.209)**: RADIUS accounts matched to devices (PPPoE user, then static IP) and shown on the device page with their ISPBilling status. Next: warehouse and activities.
+**Step 1 implemented in `main` (Core 0.49.203)**: read-only connector, mirror refreshed by the worker, import page for customers and their installation addresses as sites (details in `IMPLEMENTED_CAPABILITIES.md` §13c). **Step 2 implemented (Core 0.49.209)**: RADIUS accounts matched to devices (PPPoE user, then static IP) and shown on the device page with their ISPBilling status. **Core 0.49.229**: also by the CPE's own PPPoE user (TR-069) and by the caller-id MAC/address of the PPP session on a concentrator in NSM; customer and site proposed for confirmation. Next: warehouse and activities.
 
 ### TAUC-01 — TP-Link Aginet Unified Cloud connector (requested 2026-10-22)
 

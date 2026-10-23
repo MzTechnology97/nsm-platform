@@ -68,6 +68,7 @@ from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, Resp
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
 
+from app import pagination
 from app import (
     acs_admin,
     advisory_admin,
@@ -131,13 +132,13 @@ def _iso(value):
 
 @router.get("/audit/events")
 def audit_events(request: Request, event_type: str = "", result: str = "", severity: str = "", customer: str = "", device: str = "",
-                 q: str = "", from_date: str = "", to_date: str = "", offset: int = 0):
+                 q: str = "", from_date: str = "", to_date: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         ui_user(request, db, "audit.read")
         stmt = _audit_query(event_type, result, severity, _uuid(customer), device, q, from_date, to_date)
         total = int(db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
-        offset = max(0, int(offset or 0))
-        events = list(db.scalars(stmt.order_by(AuditEvent.timestamp.desc(), AuditEvent.id).offset(offset).limit(EVENT_PAGE)))
+        offset, size = pagination.window(offset, limit, EVENT_PAGE)
+        events = list(db.scalars(stmt.order_by(AuditEvent.timestamp.desc(), AuditEvent.id).offset(offset).limit(size)))
 
         def lookup(model, ids):
             ids = {value for value in ids if value}
@@ -147,7 +148,7 @@ def audit_events(request: Request, event_type: str = "", result: str = "", sever
         devices = lookup(Device, (event.device_id for event in events))
         actors = lookup(User, (event.actor_user_id for event in events))
         return {
-            "total": total, "offset": offset, "limit": EVENT_PAGE,
+            "total": total, "offset": offset, "limit": size,
             "event_types": list(db.scalars(select(AuditEvent.event_type).distinct().order_by(AuditEvent.event_type))),
             "results": [value for value in db.scalars(select(AuditEvent.result).distinct().order_by(AuditEvent.result)) if value],
             "items": [{
@@ -171,19 +172,19 @@ def _customer_ref(customers: dict, customer_id):
 
 
 @router.get("/reports")
-def reports_archive(request: Request, offset: int = 0):
+def reports_archive(request: Request, offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         user = ui_user(request, db, "reports.read")
         total = int(db.scalar(select(func.count(GeneratedReport.id))) or 0)
-        offset = max(0, int(offset or 0))
-        rows = list(db.scalars(select(GeneratedReport).order_by(GeneratedReport.generated_at.desc(), GeneratedReport.id).offset(offset).limit(REPORT_PAGE)))
+        offset, size = pagination.window(offset, limit, REPORT_PAGE)
+        rows = list(db.scalars(select(GeneratedReport).order_by(GeneratedReport.generated_at.desc(), GeneratedReport.id).offset(offset).limit(size)))
         schedules = list(db.scalars(select(ReportSchedule).order_by(ReportSchedule.created_at)))
         customers = {c.id: c for c in db.scalars(select(Customer).where(Customer.id.in_(
             {r.customer_id for r in rows if r.customer_id} | {s.customer_id for s in schedules if s.customer_id})))}
         authors = {u.id: u for u in db.scalars(select(User).where(User.id.in_({r.generated_by_user_id for r in rows if r.generated_by_user_id})))}
         today = utcnow().date()
         return {
-            "total": total, "offset": offset, "limit": REPORT_PAGE,
+            "total": total, "offset": offset, "limit": size,
             "can_generate": core.has_permission(user, "reports.generate"),
             "default_start": (today - timedelta(days=reports.DEFAULT_PERIOD_DAYS - 1)).isoformat(), "default_end": today.isoformat(),
             "max_days": reports.MAX_PERIOD_DAYS, "formats": list(reports.FORMATS), "frequencies": list(FREQUENCY_LABELS),
@@ -367,7 +368,7 @@ def admin_api_keys(request: Request, response: Response):
         return {
             "scopes": [API_SCOPE_INVENTORY_READ, *OPTIONAL_READ_SCOPES], "expiry_days": [30, 90, 365, 0],
             "grace_hours": list(api_key_lifecycle.GRACE_HOURS),
-            "customers": [{"id": str(c.id), "name": c.name} for c in customers],
+            "customers": [{"id": str(c.id), "name": c.name, "code": c.code} for c in customers],
             "review": api_key_lifecycle.review(keys, now),
             "keys": [{
                 "id": str(k.id), "name": k.name, "prefix": k.key_prefix, "scopes": list(k.scopes or []), "active": k.is_active,
@@ -905,7 +906,7 @@ def _zabbix_payload(db) -> dict:
                       "factory_ip": (last.get("factory_ip") or [])[:50]},
         "problems": {key: problems.get(key) for key in ("problems", "with_problems", "at", "status", "error")},
         "frontend": zabbix_connector.frontend_url(row.base_url) if row else None,
-        "customers": [{"id": str(c.id), "name": c.name} for c in db.scalars(select(Customer).order_by(Customer.name))],
+        "customers": [{"id": str(c.id), "name": c.name, "code": c.code} for c in db.scalars(select(Customer).order_by(Customer.name))],
         "shared": [{"ip": ip, "devices": [{**device_ref(d), "lan_ip": (d.inventory_data or {}).get("lan_ip"), "zabbix_ip": (d.inventory_data or {}).get("zabbix_ip")}
                                           for d in devices]} for ip, devices in sorted(shared_ips.shared_map(db).items())],
     })
@@ -1133,7 +1134,7 @@ def _onboarding_user(request: Request, db):
 
 
 @router.get("/integrations/uisp/onboarding")
-def uisp_onboarding_list(request: Request, q: str = "", uisp_site: str = "", state: str = "new", offset: int = 0):
+def uisp_onboarding_list(request: Request, q: str = "", uisp_site: str = "", state: str = "new", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         user = _onboarding_user(request, db)
         error, rows = None, []
@@ -1142,14 +1143,14 @@ def uisp_onboarding_list(request: Request, q: str = "", uisp_site: str = "", sta
         except uisp_connector.UispConnectorError as exc:
             error = str(exc)
         filtered = uisp_onboarding._filter(rows, q, uisp_site, state if state in ("new", "linkable", "linked", "blocked") else "new")
-        offset = max(0, int(offset or 0))
+        offset, size = pagination.window(offset, limit, ONBOARDING_PAGE)
         return {
-            "error": error, "total": len(filtered), "offset": offset, "limit": ONBOARDING_PAGE, "max_batch": uisp_onboarding.MAX_BATCH,
+            "error": error, "total": len(filtered), "offset": offset, "limit": size, "max_batch": uisp_onboarding.MAX_BATCH,
             "counts": {key: sum(1 for r in rows if r["state"] == key) for key in ("new", "linkable", "linked", "blocked")},
             "uisp_sites": sorted({(r.get("site") or {}).get("name") for r in rows if (r.get("site") or {}).get("name")}),
-            "customers": [{"id": str(c.id), "name": c.name} for c in db.scalars(select(Customer).order_by(Customer.name))],
+            "customers": [{"id": str(c.id), "name": c.name, "code": c.code} for c in db.scalars(select(Customer).order_by(Customer.name))],
             "sites": [{"id": str(site.id), "name": site.name, "customer_id": str(site.customer_id)} for site in db.scalars(select(Site).order_by(Site.name))],
-            "items": [_onboarding_row(row) for row in filtered[offset:offset + ONBOARDING_PAGE]],
+            "items": [_onboarding_row(row) for row in filtered[offset:offset + size]],
         }
 
 
