@@ -5391,6 +5391,7 @@
     "VENDOR_FIRMWARE_RELEASE_ADDED": "Versione firmware del produttore aggiunta",
     "VENDOR_FIRMWARE_RELEASE_DELETED": "Versione firmware del produttore eliminata",
     "VULNERABILITY_STATUS_CHANGED": "Stato della vulnerabilità cambiato",
+    "ZABBIX_CUSTOMER_SCOPE_CHANGED": "Cliente aggiunto o rimosso da Zabbix",
     "ZABBIX_DEVICE_IP_CHANGED": "IP per Zabbix cambiato",
     "ZABBIX_DEVICE_SCOPE_CHANGED": "Apparato incluso o escluso da Zabbix",
     "ZABBIX_HOST_IP_UPDATED": "IP dell'host Zabbix aggiornato",
@@ -6035,5 +6036,26 @@
     "previous": "Pagina precedente",
     "next": "Pagina successiva",
     "size": "Righe per pagina"
+  },
+  "zabbixScope": {
+    "addDevice": "Aggiungi a Zabbix",
+    "removeDevice": "Rimuovi da Zabbix",
+    "working": "Invio a Zabbix…",
+    "addCustomer": "Aggiungi a Zabbix",
+    "removeCustomer": "Rimuovi da Zabbix",
+    "notIncluded": "non incluso",
+    "customerSummary": "{{inZabbix}} apparati su {{devices}} sono in Zabbix",
+    "confirmAdd_one": "Aggiungere a Zabbix l'apparato di questo cliente? Viene inviato subito.",
+    "confirmAdd_other": "Aggiungere a Zabbix i {{count}} apparati di questo cliente? Vengono inviati subito.",
+    "confirmRemove_one": "Rimuovere da Zabbix l'apparato di questo cliente? L'host viene disattivato, non cancellato.",
+    "confirmRemove_other": "Rimuovere da Zabbix i {{count}} apparati di questo cliente? Gli host vengono disattivati, non cancellati.",
+    "customerDone": "In Zabbix: {{inZabbix}} apparati su {{devices}} · senza indirizzo IP: {{noIp}}",
+    "outcome": {
+      "pushed": "Creato in Zabbix",
+      "linked": "Collegato all'host già presente in Zabbix",
+      "no_ip": "Senza indirizzo IP: imposta un IP per Zabbix",
+      "factory_ip": "IP di fabbrica della LAN: imposta un IP raggiungibile per Zabbix",
+      "pending": "In attesa del prossimo invio"
+    }
   }
 }

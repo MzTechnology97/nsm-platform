@@ -5391,6 +5391,7 @@
     "VENDOR_FIRMWARE_RELEASE_ADDED": "Vendor firmware release added",
     "VENDOR_FIRMWARE_RELEASE_DELETED": "Vendor firmware release deleted",
     "VULNERABILITY_STATUS_CHANGED": "Vulnerability status changed",
+    "ZABBIX_CUSTOMER_SCOPE_CHANGED": "Customer added to or removed from Zabbix",
     "ZABBIX_DEVICE_IP_CHANGED": "Zabbix IP changed",
     "ZABBIX_DEVICE_SCOPE_CHANGED": "Device included or excluded in Zabbix",
     "ZABBIX_HOST_IP_UPDATED": "Zabbix host IP updated",
@@ -6035,5 +6036,26 @@
     "previous": "Previous page",
     "next": "Next page",
     "size": "Rows per page"
+  },
+  "zabbixScope": {
+    "addDevice": "Add to Zabbix",
+    "removeDevice": "Remove from Zabbix",
+    "working": "Sending to Zabbix…",
+    "addCustomer": "Add to Zabbix",
+    "removeCustomer": "Remove from Zabbix",
+    "notIncluded": "not included",
+    "customerSummary": "{{inZabbix}} of {{devices}} devices are in Zabbix",
+    "confirmAdd_one": "Add this customer's device to Zabbix? It is sent right away.",
+    "confirmAdd_other": "Add this customer's {{count}} devices to Zabbix? They are sent right away.",
+    "confirmRemove_one": "Remove this customer's device from Zabbix? Its host is disabled, not deleted.",
+    "confirmRemove_other": "Remove this customer's {{count}} devices from Zabbix? Their hosts are disabled, not deleted.",
+    "customerDone": "In Zabbix: {{inZabbix}} of {{devices}} devices · without an IP address: {{noIp}}",
+    "outcome": {
+      "pushed": "Created in Zabbix",
+      "linked": "Linked to the host already in Zabbix",
+      "no_ip": "No IP address: set an IP for Zabbix",
+      "factory_ip": "Factory LAN IP: set an address Zabbix can reach",
+      "pending": "Waiting for the next push"
+    }
   }
 }

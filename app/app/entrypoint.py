@@ -108,6 +108,7 @@ from app.routerboot_lifecycle import install_routerboot_lifecycle
 from app.mikrotik_device_reboot import install_mikrotik_device_reboot
 from app.mikrotik_syslog_config import install_mikrotik_syslog_config, install_syslog_on_enrollment
 from app.zabbix_connector import install_zabbix_connector
+from app.ui_zabbix_scope import install_ui_zabbix_scope
 from app.device_exposure import install_device_exposure
 from app.acs_admin import install_acs_admin
 from app import shared_ips as _shared_ips
@@ -136,7 +137,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.242"
+APP_VERSION = "0.49.243"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -172,6 +173,7 @@ install_routerboot_lifecycle(core.app)
 install_mikrotik_device_reboot(core.app)
 install_mikrotik_syslog_config(core.app)
 install_zabbix_connector(core.app)
+install_ui_zabbix_scope(core.app)
 install_device_exposure(core.app)
 install_acs_admin(core.app)
 
