@@ -154,6 +154,23 @@ def main():
     assert [f["name"] for f in client.get(url).json()["files"]] == [fetched["file_name"]]
     again = client.post(f"{url}/fetch", json={"version": "0.19.0 Build 260323"}).json()
     assert again["file_name"] == fetched["file_name"] and len(fake.files) == 1, "same image: not stored twice"
+    # Automatic download (on by default): the newer image is loaded into the ACS once per model, hardware and version.
+    fake.files.clear()
+    with SessionLocal() as db:
+        auto = tplink_firmware.auto_fetch(db)
+        db.commit()
+        assert auto["fetched"] == 1 and not auto["errors"], auto
+        assert tplink_firmware.auto_fetch(db)["fetched"] == 0, "already downloaded: not again"
+        connection = db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == "genieacs"))
+        assert tplink_firmware.auto_settings(connection)["fetched"] == ["vx230v|1.|0.19.0 Build 260323"]
+        connection.settings = {**connection.settings, "firmware_auto": {"enabled": False, "fetched": []}}
+        db.commit()
+        assert tplink_firmware.auto_fetch(db)["status"] == "off"
+    assert list(fake.files) == [fetched["file_name"]], "the same image as the manual download"
+    ready = client.get(url).json()
+    assert [f["version"] for f in ready["files"]] == ["0.19.0 Build 260323"], "ready on the Firmware tab, nothing installed"
+    assert ready["upgrade"] is None
+
     # Refused: a link outside the official server, a version no longer on the site, an archive with two images.
     mirror = client.post(f"{url}/fetch", json={"version": "0.17.0 Build 250101"})
     assert mirror.status_code == 422 and "ufficiale" in mirror.json()["detail"]["message"]
@@ -164,7 +181,8 @@ def main():
 
     with SessionLocal() as db:
         events = [e.details for e in db.scalars(select(AuditEvent).where(AuditEvent.device_id == ids["vx"], AuditEvent.event_type == "ACS_FIRMWARE_FILE_FETCHED"))]
-        assert len(events) == 2 and events[0]["url"].startswith("https://static.tp-link.com/") and len(events[0]["sha256"]) == 64
+        assert sorted(e["trigger"] for e in events) == ["auto", "manual", "manual"], events
+        assert events[0]["url"].startswith("https://static.tp-link.com/") and len(events[0]["sha256"]) == 64
         db.query(VendorFirmwareRelease).filter_by(brand="tp-link").delete()
         db.query(ConnectorIntegration).filter_by(provider="genieacs").delete()
         db.commit()

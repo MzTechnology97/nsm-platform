@@ -74,13 +74,16 @@ export function AcsFirmware({ deviceId }: { deviceId: string }) {
     },
   });
   const run = useMutation({
-    mutationFn: () => api<AcsFirmwareData>(path(deviceId), { method: "POST", body: JSON.stringify({ file_name: chosen, confirm }) }),
+    mutationFn: () => api<AcsFirmwareData>(path(deviceId), { method: "POST", body: JSON.stringify({ file_name: chosen || ready?.name || "", confirm }) }),
     onSuccess: (data) => {
       setConfirm("");
       client.setQueryData(key, data);
     },
   });
   const data = query.data;
+  // The image of the newest catalog release, when already in the ACS (downloaded automatically or by hand), is preselected.
+  const ready = data?.catalog ? data.files.find((file) => file.version === data.catalog?.latest) : undefined;
+  const selected = chosen || ready?.name || "";
   if (!data || !data.linked) return null;
   const upgrade = data.upgrade;
   const running = upgrade?.state === "requested";
@@ -109,7 +112,8 @@ export function AcsFirmware({ deviceId }: { deviceId: string }) {
           {" · "}<Link to="/firmware/catalogs">{t("acsFirmware.catalogs")}</Link>
         </p>
       )}
-      {data.can_run && data.catalog?.newer && data.catalog.fetchable && (
+      {data.catalog?.newer && ready && <div className="ui-alert ui-alert-success">{t("acsFirmware.ready", { version: data.catalog.latest })}</div>}
+      {data.can_run && data.catalog?.newer && data.catalog.fetchable && !ready && (
         <div className="ui-row-actions">
           <button type="button" className="ui-button" disabled={fetchImage.isPending} onClick={() => data.catalog && fetchImage.mutate(data.catalog.latest)}>
             {fetchImage.isPending ? t("acsFirmware.fetching") : t("acsFirmware.fetch", { version: data.catalog.latest })}
@@ -157,7 +161,7 @@ export function AcsFirmware({ deviceId }: { deviceId: string }) {
             <form className="ui-admin-form" onSubmit={submitRun}>
               <label>
                 <span>{t("acsFirmware.file")}</span>
-                <select value={chosen} onChange={(event) => setChosen(event.target.value)} required>
+                <select value={selected} onChange={(event) => setChosen(event.target.value)} required>
                   <option value="">—</option>
                   {data.files.map((file) => (
                     <option key={file.name} value={file.name}>
@@ -172,7 +176,7 @@ export function AcsFirmware({ deviceId }: { deviceId: string }) {
               </label>
               <p className="ui-muted">{t("acsFirmware.warning")}</p>
               <div className="ui-row-actions">
-                <button type="submit" className="ui-button ui-button-danger" disabled={!chosen || confirm.trim() !== data.confirm_name || running || run.isPending}>
+                <button type="submit" className="ui-button ui-button-danger" disabled={!selected || confirm.trim() !== data.confirm_name || running || run.isPending}>
                   {t("acsFirmware.run")}
                 </button>
               </div>

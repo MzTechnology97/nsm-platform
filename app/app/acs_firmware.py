@@ -312,27 +312,13 @@ def device_acs_firmware_fetch(request: Request, device_id: uuid.UUID, body: dict
         if not version:
             raise HTTPException(422, {"code": "no_version", "message": "Indica la versione da scaricare."})
         try:
-            path, original, url = tplink_firmware.fetch_image(device, version, MAX_IMAGE)
+            result = tplink_firmware.store_release(db, device, connection, version, actor=user)
         except tplink_firmware.TplinkError as exc:
             raise HTTPException(422, {"code": "vendor_site", "message": str(exc)}) from None
-        try:
-            digest = hashlib.sha256()
-            with open(path, "rb") as image:
-                while chunk := image.read(1024 * 1024):
-                    digest.update(chunk)
-            size = os.path.getsize(path)
-            identity = _identity(nbi._read(connection, device.external_device_id, ["_deviceId"]))
-            name = file_name_for(identity, original, digest.hexdigest())
-            if name not in {f["name"] for f in list_files(connection, identity.get("product_class"))}:
-                store_file(connection, identity, name, path, version)
         except (nbi.AcsDiagnosticError, FirmwareError) as exc:
             raise HTTPException(422, {"code": "genieacs", "message": str(exc)}) from None
-        finally:
-            os.unlink(path)
-        core.add_event(db, "ACS_FIRMWARE_FILE_FETCHED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal",
-                       details={"file": name, "size": size, "sha256": digest.hexdigest(), "version": version, "url": url})
         db.commit()
-        return {"file_name": name, "size": size, "sha256": digest.hexdigest(), "version": version}
+        return result
 
 
 @router.post("/devices/{device_id}/acs/firmware", dependencies=[Depends(require_csrf)])
@@ -352,6 +338,36 @@ def device_acs_firmware_run(request: Request, device_id: uuid.UUID, body: dict =
             raise HTTPException(422, {"code": "genieacs", "message": str(exc)}) from None
         db.commit()
         return _payload(db, device, connection, True)
+
+
+@router.get("/admin/acs/firmware-auto")
+def admin_acs_firmware_auto(request: Request):
+    from app import tplink_firmware
+
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        connection = acs._connection(db)
+        config = tplink_firmware.auto_settings(connection)
+        return {"linked": connection is not None, "enabled": config["enabled"], "fetched": len(config["fetched"])}
+
+
+@router.post("/admin/acs/firmware-auto", dependencies=[Depends(require_csrf)])
+def admin_acs_firmware_auto_save(request: Request, body: dict = Body(default={})):
+    from app import tplink_firmware
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "users.manage")
+        connection = acs._connection(db)
+        if connection is None:
+            raise HTTPException(409, {"code": "not_connected", "message": "Collega prima GenieACS (Integrazioni → GenieACS)."})
+        config = tplink_firmware.auto_settings(connection)
+        enabled = bool((body or {}).get("enabled"))
+        stored = dict(connection.settings or {})
+        stored["firmware_auto"] = {"enabled": enabled, "fetched": config["fetched"]}
+        connection.settings = stored
+        core.add_event(db, "ACS_FIRMWARE_AUTO_CHANGED", actor=user, source="portal", details={"enabled": enabled})
+        db.commit()
+        return {"linked": True, "enabled": enabled, "fetched": len(config["fetched"])}
 
 
 def install_acs_firmware(app) -> None:
