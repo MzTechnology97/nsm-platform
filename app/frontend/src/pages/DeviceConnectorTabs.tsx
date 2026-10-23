@@ -14,6 +14,8 @@ import { AcsSnapshot } from "../app/AcsSnapshot";
 import { AcsPortMapping } from "../app/AcsPortMapping";
 import { AcsMonitor } from "../app/AcsMonitor";
 import { CambiumBackup } from "../app/CambiumBackup";
+import { TplinkAccess } from "../app/TplinkAccess";
+import { TplinkSettings } from "../app/TplinkSettings";
 
 function message(error: unknown) {
   return error instanceof ApiError ? error.message : (error as Error | null)?.message;
@@ -145,6 +147,8 @@ export function DeviceGenieacs() {
       {record.external_id && enabled && <AcsWifi deviceId={deviceId} deviceName={record.name} />}
       {record.external_id && enabled && <AcsSnapshot deviceId={deviceId} />}
       {record.external_id && <AcsPortMapping deviceId={deviceId} />}
+      {record.external_id && enabled && <TplinkAccess deviceId={deviceId} />}
+      {record.external_id && enabled && <TplinkSettings deviceId={deviceId} />}
       <section className="ui-panel ui-admin-section">
         <div className="ui-page-header-row">
           <div>
