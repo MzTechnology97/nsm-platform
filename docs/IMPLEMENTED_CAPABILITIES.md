@@ -27,7 +27,7 @@ An open PR does not count as implemented in `main`.
 
 ### Important boundary
 
-A Site is customer-local. UISP or another connector may retain external organization/site metadata, but that metadata must not silently redefine NSM ownership.
+A Site is customer-local. UISP or another connector may retain external organization/site metadata, but that metadata must not silently redefine NSM ownership. The one exception is the UISP endpoint import (operator request, Core 0.49.244): a UISP customer endpoint matched by name, or linked by the operator, places its *new* devices under that customer; existing records are never moved.
 
 ## 2. Authentication, users, permissions and branding
 
@@ -319,6 +319,8 @@ Sampling and consolidation: 2-minute heartbeat (Agent 0.49.18); `telemetry_rollu
 
 Retention (90 days) never removes the newest sample of a device or interface (`telemetry_retention.expire_keep_latest`): an offline device keeps its last telemetry visible (MON-02).
 
+Monitor tab for every device (MON-03, Core 0.49.242): every device has the *Monitor* tab with the same toolbar (1 h, 24 h, 7 days, 30 days, *Impostazioni monitoraggio*) and panels in the same order: *Risorse* (CPU and memory), *Traffico*, *Latenza e perdita (ping da NSM)*, then what only that source has. MikroTik routers use the agent metrics (and *Wireless*). TR-069 CPEs, Ubiquiti and Cambium devices use their source through `GET /api/ui/v1/devices/{id}/monitor/source` (`app/monitor_sources.py`, `monitoring.read`): the ACS (WAN traffic, *Linea e client*: Wi-Fi clients, LAN hosts, DSL), UISP (*Radio*: signal, capacity, stations) or cnMaestro (throughput; *Radio*: signal, SNR, stations). Devices without a source show the ping only. The *ACS*, *UISP* and *cnMaestro* tabs keep the device state and point to Monitor for the charts.
+
 NSM monitoring is intentionally lightweight and does not attempt to replace a full NMS.
 
 ### Syslog configured by the Agent (LOG-01 step 2)
@@ -444,7 +446,7 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 ### Legacy full backup over FTP (Agent 0.49.16)
 
-- the legacy agent (RouterOS 6.48/6.49 and 7.12) runs `/system backup save` with the job password and `/export` (`hide-sensitive` on v6), then uploads both with `/tool fetch upload=yes mode=ftp` to the upload-only FTP receiver of NSM (`app/legacy_ftp_server.py`, compose profile `legacyftp`, `./manage.sh legacy-backup-enable <IPv4> [port]`, default ports 2121 and 30100–30109, `LEGACY_FTP_PASV_PORTS` for the passive range); since Core 0.49.215 the subnets allowed to send are set in *Amministrazione → Sistema → Backup legacy via FTP*: the receiver refuses other origins (refreshed every minute), `./manage.sh legacy-ftp-firewall --apply` enforces them in `DOCKER-USER` too, and `legacy-backup-enable` opens the ports in ufw/firewalld when active and applies those rules;
+- the legacy agent (RouterOS 6.48/6.49 and 7.12) runs `/system backup save` with the job password and `/export` (`hide-sensitive` on v6), then uploads both with `/tool fetch upload=yes mode=ftp` to the upload-only FTP receiver of NSM (`app/legacy_ftp_server.py`, compose profile `legacyftp`, `./manage.sh legacy-backup-enable <IPv4> [port]`, default ports 2121 and 30100–30109, `LEGACY_FTP_PASV_PORTS` for the passive range); since Core 0.49.215 the subnets allowed to send are set in *Amministrazione → Sistema → Backup legacy via FTP*: the receiver refuses other origins (refreshed every minute), `./manage.sh legacy-ftp-firewall --apply` enforces them in `DOCKER-USER` too, and `legacy-backup-enable` opens the ports in ufw/firewalld when active and applies those rules; since Core 0.49.240 the automatic update also installs `nsm-legacy-ftp-firewall.timer`, which applies those rules at boot and within two minutes of a change of the subnets, and removes them when no subnet is left;
 - one-time account per job (only the password SHA-256 stored), only the two expected file names, once each, up to 64 MB, passive mode with the data peer bound to the control peer;
 - files are archived like any other artifact (SHA-256, audit, retention) and the device counts as protected;
 - requires the policies `ftp`, `policy` and `sensitive` (observed from Agent 0.49.17).
@@ -518,6 +520,15 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 - the operator selects up to 200 devices and chooses the NSM Customer and optional Site explicitly (UISP sites are shown, never imported); preview before confirmation;
 - at confirmation the UISP list is read again: changed or vanished devices are skipped and reported; new Devices are created with type from the UISP role, existing records are associated and keep their Customer; `devices.write` required; `DEVICE_ADDED`, `UISP_DEVICE_ASSOCIATED` and `UISP_BULK_ONBOARDING` audit events.
 
+### Endpoints to customers, automatic import (Core 0.49.244)
+
+- *Integrazioni → UISP → Onboarding → Clienti UISP*: every UISP *endpoint* site (customer site, read from `/nms/api/v2.1/sites`) with its NSM customer;
+- **matched**: the name of its UISP CRM client, or the site name, is the name of exactly one NSM customer (case, accents, punctuation and word order ignored); an ambiguous name is never guessed; on the operator's UISP this covered 560 of 738 endpoints, none ambiguous;
+- the others are *Da verificare*: linked to a customer with a searchable select or ignored; the choice is kept in the UISP connector settings and always wins over the name; *Annulla scelta* forgets it;
+- every 30 minutes (and right after a link), new UISP devices of matched or linked endpoints are created under that customer, at its site when it has exactly one; an unlinked record with the same MAC is associated and keeps its customer; at most 300 per run;
+- infrastructure *sites* (towers, APs, backhaul) are never imported automatically: they stay in the manual onboarding;
+- switch *Importa in automatico* (on by default); `devices.read` to see, `devices.write` to change; `UISP_SITE_LINKED`, `UISP_SITE_IGNORED`, `UISP_AUTO_CUSTOMERS_CHANGED` and `UISP_AUTO_IMPORTED` audit events.
+
 ### Implemented
 
 - administrator-configurable read-only UISP connector;
@@ -582,6 +593,7 @@ Checked on the operator's cnMaestro on 2026-10-22 (Core 0.49.199): `/devices` an
 - local mirror read by the worker every 6 hours (migration 0050): customers (`crm/customers`: name, internal code, kind, status, group, registered address) and service instances; the installation address of each service comes from its detail and is read incrementally (150 per worker cycle, an address shared by several services read once per pass);
 - never stored: fiscal code, VAT number, contacts, payment data and the `password` field returned by the API; nothing is written to ISPBilling;
 - *Importa da ISPBilling*: customers by state (*Nuovi*, *Da collegare* — an NSM customer with the same code or name exists, *Già in NSM*), filters by text, ISPBilling status and group, preview and commit of up to 300 customers; a customer is created (code = ISPBilling internal code when free) or linked, and gets one site per installation address (named after the ISPBilling label, or the address when the label is generic; the registered address when there is no service); an address already present on that NSM customer is linked, not duplicated; nothing in NSM is renamed, moved or deleted; importing again adds only new sites; audited (`ISPBILLING_CONFIGURED`, `ISPBILLING_SYNC_REQUESTED`, `ISPBILLING_CUSTOMERS_IMPORTED`).
+- *Importazione automatica* (Core 0.49.235, off until an administrator switches it on in *Integrazioni → ISPBilling*): after each successful read, customers new in ISPBilling are created with their sites once the addresses of all their services are read, and new installation addresses of customers already in NSM become sites; customers that look like an existing NSM customer (same code or name) are not touched and are counted as *to review* on the import page; what was already in the mirror when 0.49.235 was installed, and anything imported or linked since, is marked handled, so a customer or site deleted in NSM is not created again; audited (`ISPBILLING_AUTO_IMPORT_CHANGED`, `ISPBILLING_AUTO_IMPORTED`).
 
 Checked on the operator's ISPBilling (2026-10-22): 837 customers, 1,697 service instances; endpoints, paging (`?page=N`, 20 rows) and fields as above.
 
@@ -590,6 +602,12 @@ RADIUS accounts (Core 0.49.209, migration 0051):
 - each is matched to the NSM device whose PPPoE client uses that username (latest *Sessioni PPP* snapshot of a MikroTik agent, case ignored), else to the device whose management IP is the account's static IP; ambiguous matches are left out;
 - the device overview shows the account (username, profile, ISPBilling status such as *Sospeso*, ISPBilling customer) and warns when ISPBilling bills a different customer than the device's NSM customer;
 - a key without the Radius permission only skips the accounts.
+
+Accounts → CPEs and proposals (Core 0.49.229, operator decisions 2026-10-23):
+- three more ways to find an account's device, after the two above: the PPPoE username a TR-069 CPE logs in with, as GenieACS reports it (`cpe_pppoe`; checked on the operator's VX230v, whose username is one of the 958 ISPBilling accounts); the caller-id MAC of the account's active session on a PPPoE concentrator in NSM (MikroTik `/ppp active` in the *Sessioni PPP* snapshot) equal to a device's primary MAC (`caller_mac`, e.g. a UISP radio); that session's address equal to a device's management IP (`caller_ip`). ISPBilling itself exposes no caller-id (checked read-only: not in `ispradius2/accounts`, no session endpoint);
+- NSM then compares the device's customer and site with the account's ISPBilling customer and installation address as imported: *site* to set (same customer) is a proposal; *another customer* is never changed by itself and shown to check; *customer not imported* points to the import;
+- nothing is applied without an operator (`devices.write`): *Assegna la sede* on the device page or in *Integrazioni → ISPBilling → Apparati da assegnare*, *Riassegna…* with a second confirmation for a device of another customer (its old site is cleared), *Ignora* to stop proposing an account for that device; audit `ISPBILLING_DEVICE_LINKED` (before/after) and `ISPBILLING_LINK_DISMISSED`;
+- the concentrator snapshot keeps at most 500 sessions and about 60 KB, so on a large concentrator part of the sessions may be missing.
 
 ### Not implemented yet
 
@@ -618,11 +636,15 @@ Warehouse serial numbers ↔ devices and ISPBilling activities in the device log
 
 ### CPE syslog through the ACS (Core 0.49.220)
 
-TP-Link CPEs (Aginet firmware) keep their log settings in `Device.DeviceInfo.X_TP_LogCfg`; NSM writes `LogToRemote`, `ServerIP`, `ServerPort` (514) and `RemoteSeverity` through GenieACS, nothing else. From the device *Syslog* tab (applied at once via connection request), from *Amministrazione → ACS → Syslog dei CPE TR-069* for every associated TP-Link (applied at the next Inform), and by the worker for new CPEs when syslog *Configura automaticamente* is on. The receiver address is the syslog public address, else the host of `ACS_CWMP_URL`. TP-Link lines carry no NSM key: the key-only receiver accepts a keyless line only from the management IP of a TR-069 CPE that NSM itself configured this way, and only when no other device uses that address (`syslog_identity.Index.by_address`); every other keyless line is still discarded. NSM re-reads the management IP (WAN, from the connection-request URL) before configuring. Checked on a real VX230v. Audit `ACS_SYSLOG_CONFIGURED`.
+TP-Link CPEs (Aginet firmware) keep their log settings in `Device.DeviceInfo.X_TP_LogCfg`; NSM writes `LogToRemote`, `ServerIP`, `ServerPort` (514) and `RemoteSeverity` through GenieACS, nothing else. From the device *Syslog* tab (applied at once via connection request), from *Amministrazione → ACS → Syslog dei CPE TR-069* for every associated TP-Link (applied at the next Inform), and by the worker for new CPEs when syslog *Configura automaticamente* is on. The receiver address is the syslog public address, else the host of `ACS_CWMP_URL`. TP-Link lines carry no NSM key: the key-only receiver accepts a keyless line only from the address of a TR-069 CPE that NSM itself configured this way: its management IP or, while its last Inform is less than 30 minutes old, the WAN address of that Inform (ConnectionRequestURL host, so dynamic IPs follow every PPP reconnection; Core 0.49.245); only when no other device uses that address, CGNAT included (`syslog_identity.Index.by_address`); every other keyless line is still discarded. NSM re-reads the management IP (WAN, from the connection-request URL) before configuring. Checked on a real VX230v. Audit `ACS_SYSLOG_CONFIGURED`.
 
 ### Bulk migration to the self-hosted ACS (removed in Core 0.49.225)
 
 The tool that rewrote the CWMP ACS URL of a fleet of TP-Link CPEs over the management network (Core 0.49.202) was removed: on the operator's firmware the TP-Link web login could not be used. CPEs are pointed at the integrated GenieACS as described in *Amministrazione → ACS* (TP-Link guide).
+
+### Customer tag in GenieACS (Core 0.49.237)
+
+Every 10 minutes the worker (`acs_customer_tags`) reads the tags of the TR-069 CPEs linked in NSM (one NBI query per 50 CPEs) and makes each carry its NSM customer's name as a GenieACS tag (whitespace collapsed, at most 100 characters), so the GenieACS panel shows and filters whose CPE it is: added after the link, moved when the device changes customer or the customer is renamed (the previous NSM tag is removed), added again if removed by hand; tags set by hand or by provisions are never touched. The tag NSM set is kept in `inventory_data["tr069"]["customer_tag"]`; audit `ACS_CUSTOMER_TAG_SET`. GenieACS encodes any character in tags, so names with spaces, apostrophes or accents are fine.
 
 ### Diagnostics from the CPE (ACS-06, Core 0.49.206)
 
@@ -657,6 +679,10 @@ Once the operator has installed the NSM base templates (*Amministrazione → ACS
 ### Monitoring and history of CPEs (ACS-05, Core 0.49.206 and 0.49.211)
 
 Every 2 minutes the worker reads from GenieACS (read only, one NBI query per 20 CPEs) the state of every linked TR-069 CPE at its last Inform: CPU, memory, uptime, WAN (chosen by the connection-request address, PPP or public IP: state, type, address, time connected, last error), Wi-Fi radios and clients, LAN hosts, DSL line (rates, SNR margin, attenuation), for TR-181 and TR-098. It keeps the state on the device, stores one sample per new Inform for 90 days (WAN bit rates from the byte counters between two Informs; counters stuck at zero with the WAN up, as on the TP-Link VX230v, are reported as not available) and sets the device online/offline from the last Inform (three missed periodic Informs, at least 15 minutes). The device page and list show CPU/RAM/uptime as current when the last Inform is under 2 hours old; the *ACS* tab shows the line and Wi-Fi state and charts over 24 h / 7 / 30 / 90 days. The NSM provision declares these values with a 4-minute age so the CPE reports them at every periodic inform; NSM keeps the provision current itself (0.49.210).
+
+### Port forwarding, DMZ and UPnP (Core 0.49.228, monitoring only)
+
+At every monitoring read NSM also parses the CPE's port mappings (TR-181 `Device.NAT.PortMapping`, TR-098 `WANPPPConnection`/`WANIPConnection` `PortMapping`), a DMZ when the CPE reports one (any vendor object named `…DMZ…` under `Device.NAT`/`Device.Firewall` or a TR-098 WAN connection, e.g. `X_TP_DMZ`) and whether UPnP is on (`Device.UPnP.Device.Enable` or a vendor flag such as TP-Link `Device.NAT.X_TP_UPnPCfg.Enable`). The *ACS* tab shows them (protocol, external ports, internal host and port, allowed origin, description, on/off; DMZ host with a warning; UPnP), with *Rileggi dal CPE* (`devices.write`, a GenieACS `refreshObject` of `Device.NAT`, a read). Nothing is changed on the CPE. A change between two reads is audited `ACS_PORT_MAPPING_CHANGED` with the forwards added/removed, the DMZ and UPnP (warning when something new is exposed). The NSM base provision re-reads these objects every hour. Checked read-only on the operator's VX230v: no port mapping, UPnP on, no DMZ object in the data model.
 
 ### Alerts of CPEs (Core 0.49.226)
 

@@ -1,0 +1,10 @@
+[Unit]
+Description=Apply the NSM legacy backup FTP firewall at boot and when the allowed subnets change
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=2min
+Unit=nsm-legacy-ftp-firewall.service
+
+[Install]
+WantedBy=timers.target

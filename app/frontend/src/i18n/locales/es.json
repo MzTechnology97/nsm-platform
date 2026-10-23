@@ -244,7 +244,10 @@
       "otherCustomer": "ISPBilling factura esta cuenta a un cliente distinto del cliente NSM del equipo.",
       "matched": {
         "pppoe": "asociada por usuario PPPoE",
-        "ip": "asociada por IP estática"
+        "ip": "asociada por IP estática",
+        "cpe_pppoe": "asociado por el usuario PPPoE del CPE",
+        "caller_mac": "asociado por el caller-id (MAC) de la sesión PPP",
+        "caller_ip": "asociado por la dirección de la sesión PPP"
       }
     },
     "pingToggle": {
@@ -335,6 +338,27 @@
       "waiting": "Esperando la primera muestra.",
       "last": "Último ping: {{rtt}}, pérdida {{loss}} %.",
       "globallyOff": "La monitorización ping está desactivada para toda la plataforma (ICMP_MONITOR)."
+    },
+    "source": {
+      "none": "Este dispositivo no tiene fuente de métricas (agente NSM, ACS, UISP o cnMaestro): el ping desde NSM sigue disponible.",
+      "from_one": "Datos de {{source}} · {{count}} muestra",
+      "from_other": "Datos de {{source}} · {{count}} muestras",
+      "noResources": "{{source}} no proporciona CPU ni memoria para este dispositivo.",
+      "noTraffic": "{{source}} no proporciona el tráfico de este dispositivo.",
+      "pingOff": "Ping desde NSM desactivado: actívalo en «Ajustes de monitorización».",
+      "chartsTitle": "Gráficos",
+      "chartsMoved": "Los gráficos de este dispositivo están en la pestaña Monitor, con el mismo esquema que todos los dispositivos.",
+      "openMonitor": "Abrir Monitor",
+      "names": {
+        "tr069": "ACS (TR-069)",
+        "uisp": "UISP",
+        "cnmaestro": "cnMaestro"
+      },
+      "extra": {
+        "tr069": "Línea y clientes",
+        "uisp": "Radio",
+        "cnmaestro": "Radio"
+      }
     }
   },
   "syslog": {
@@ -2933,7 +2957,8 @@
     "skipped_one": "{{count}} omitido por haber cambiado en UISP o estar ya presente: {{names}}.",
     "skipped_other": "{{count}} omitidos por haber cambiado en UISP o estar ya presentes: {{names}}.",
     "openCustomer": "Abrir el cliente",
-    "again": "Nueva alta"
+    "again": "Nueva alta",
+    "customerSearch": "Buscar un cliente…"
   },
   "dashboard": {
     "title": "Panel",
@@ -3385,7 +3410,8 @@
       "not_owned": "Uno o más equipos ya no pertenecen al cliente: recarga la página.",
       "confirm_count": "El número de confirmación no coincide.",
       "action_invalid": "Acción no válida."
-    }
+    },
+    "customerSearch": "Buscar un cliente…"
   },
   "deviceImport": {
     "open": "Importar CSV",
@@ -3511,7 +3537,19 @@
     "noServices": "Ningún servicio detectado.",
     "pendingExternal": "Comprobación en curso: el servidor NSM revisa los puertos en un minuto.",
     "pendingAgent": "Comprobación en curso: el agente enviará servicios y firewall en el próximo heartbeat.",
-    "never": "Todavía no hay comprobaciones: empieza sola cuando el equipo está conectado, o con «Comprobar ahora»."
+    "never": "Todavía no hay comprobaciones: empieza sola cuando el equipo está conectado, o con «Comprobar ahora».",
+    "acl": {
+      "column": "ACL",
+      "help": "La verificación parte del servidor NSM: un servicio filtrado por una ACL que admite a NSM (por ejemplo el ACS) parece abierto desde aquí. Si está filtrado para todos los demás, declaralo con las direcciones admitidas: se mostrará como limitado, con quién lo declaró.",
+      "declare": "Filtrado por ACL…",
+      "allowed": "Permitido solo desde",
+      "allowedPlaceholder": "p. ej. 198.51.100.0/24, NOC",
+      "note": "Nota (opcional)",
+      "save": "Declarar",
+      "remove": "Quitar declaración",
+      "declared": "Declarado por {{by}} el {{when}}",
+      "uncertainHint": "abiertos hacia NSM, por verificar"
+    }
   },
   "deviceCompliance": {
     "title": "Cumplimiento",
@@ -4081,7 +4119,7 @@
     },
     "refresh": "Actualizar desde GenieACS",
     "refreshed": "Inventario actualizado desde GenieACS.",
-    "notYet": "La copia de seguridad y la actualización de firmware a través del ACS aún no están disponibles.",
+    "notYet": "El diagnóstico, la copia y la actualización de firmware a través del ACS aún no están disponibles.",
     "verifyTitle": "Comprobar la coincidencia",
     "searchTitle": "Buscar en GenieACS",
     "searchSerialMac": "NSM busca el número de serie {{serial}} y, si no lo encuentra, el MAC {{mac}}; la búsqueda no modifica nada.",
@@ -5095,6 +5133,7 @@
     "ACS_ALERT_RESOLVED": "Aviso de CPE resuelto",
     "ACS_ALERT_SETTINGS_CHANGED": "Ajustes de avisos de CPE modificados",
     "ACS_CONFIG_REFRESH_REQUESTED": "Relectura de la configuración del CPE solicitada",
+    "ACS_CUSTOMER_TAG_SET": "CPE etiquetado con su cliente en GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnóstico ACS completado",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnóstico ACS solicitado",
     "ACS_FIRMWARE_AUTO_CHANGED": "Descarga automática de firmware modificada",
@@ -5105,6 +5144,7 @@
     "ACS_FIRMWARE_VERIFIED": "Actualización de firmware del CPE verificada",
     "ACS_MIGRATION_COMPLETED": "Migración ACS completada",
     "ACS_MIGRATION_STARTED": "Migración ACS iniciada",
+    "ACS_PORT_MAPPING_CHANGED": "Redirección de puertos del CPE cambiada",
     "ACS_REBOOT_REQUESTED": "Reinicio del CPE solicitado",
     "ACS_REBOOT_VERIFIED": "Reinicio del CPE verificado",
     "ACS_SNAPSHOT_ARCHIVED": "Instantánea de configuración TR-069 archivada",
@@ -5186,6 +5226,8 @@
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Interfaces monitorizadas modificadas",
     "DEVICE_VENDOR_CORRECTED": "Fabricante del dispositivo corregido",
     "DIAGNOSTIC_EXPORTED": "Diagnóstico exportado",
+    "EXPOSURE_ACL_DECLARED": "Servicio expuesto declarado filtrado por ACL",
+    "EXPOSURE_ACL_REMOVED": "Declaración ACL retirada",
     "EXPOSURE_CHECK_REQUESTED": "Comprobación de exposición solicitada",
     "EXPOSURE_EXTERNAL_CHECK": "Comprobación de exposición externa",
     "EXPOSURE_ISSUE_OPENED": "Servicios expuestos notificados",
@@ -5226,8 +5268,12 @@
     "INCIDENT_STATUS_CHANGED": "Estado del incidente cambiado",
     "INTERFACE_ERRORS_DETECTED": "Errores de interfaz detectados",
     "INVENTORY_DISCOVERED": "Inventario detectado",
+    "ISPBILLING_AUTO_IMPORTED": "Clientes importados automáticamente desde ISPBilling",
+    "ISPBILLING_AUTO_IMPORT_CHANGED": "Importación automática de ISPBilling modificada",
     "ISPBILLING_CONFIGURED": "Conector ISPBilling configurado",
     "ISPBILLING_CUSTOMERS_IMPORTED": "Clientes importados desde ISPBilling",
+    "ISPBILLING_DEVICE_LINKED": "Equipo asignado desde ISPBilling",
+    "ISPBILLING_LINK_DISMISSED": "Propuesta de ISPBilling ignorada",
     "ISPBILLING_SYNC_REQUESTED": "Lectura de ISPBilling solicitada",
     "ISSUE_ACKNOWLEDGED": "Aviso asumido",
     "LEGACY_FIRMWARE_UPGRADE_ACCEPTED": "Actualización de firmware legacy aceptada",
@@ -5310,6 +5356,8 @@
     "SYSLOG_AGENT_CONFIG_SKIPPED": "Configuración syslog omitida",
     "SYSLOG_CHAIN_ANCHOR": "Punto de control de integridad syslog",
     "SYSLOG_SETTINGS_CHANGED": "Ajustes de syslog cambiados",
+    "UISP_AUTO_CUSTOMERS_CHANGED": "Importación automática UISP modificada",
+    "UISP_AUTO_IMPORTED": "Equipos UISP importados automáticamente",
     "UISP_BACKUP_ARCHIVED": "Copia UISP archivada",
     "UISP_BACKUP_FAILED": "Copia UISP fallida",
     "UISP_BULK_ONBOARDING": "Importación desde UISP",
@@ -5323,6 +5371,8 @@
     "UISP_REBOOT_FAILED": "Reinicio mediante UISP fallido",
     "UISP_REBOOT_REQUESTED": "Reinicio solicitado mediante UISP",
     "UISP_REBOOT_VERIFIED": "Reinicio mediante UISP verificado",
+    "UISP_SITE_IGNORED": "Endpoint UISP ignorado",
+    "UISP_SITE_LINKED": "Endpoint UISP vinculado a un cliente",
     "UISP_SYNC_COMPLETED": "Sincronización UISP completada",
     "UISP_SYNC_CONFLICT": "Conflicto en la sincronización UISP",
     "UISP_SYNC_FAILED": "Sincronización UISP fallida",
@@ -5345,6 +5395,7 @@
     "VENDOR_FIRMWARE_RELEASE_ADDED": "Versión de firmware del fabricante añadida",
     "VENDOR_FIRMWARE_RELEASE_DELETED": "Versión de firmware del fabricante eliminada",
     "VULNERABILITY_STATUS_CHANGED": "Estado de la vulnerabilidad cambiado",
+    "ZABBIX_CUSTOMER_SCOPE_CHANGED": "Cliente añadido a Zabbix o retirado",
     "ZABBIX_DEVICE_IP_CHANGED": "IP de Zabbix cambiada",
     "ZABBIX_DEVICE_SCOPE_CHANGED": "Equipo incluido o excluido de Zabbix",
     "ZABBIX_HOST_IP_UPDATED": "IP del host de Zabbix actualizada",
@@ -5458,7 +5509,14 @@
     "openCustomers": "Abrir los clientes",
     "radius": "Cuentas RADIUS",
     "radiusMatched": "{{count}} asociadas a un equipo",
-    "radiusError": "Cuentas RADIUS no leídas: {{error}}"
+    "radiusError": "Cuentas RADIUS no leídas: {{error}}",
+    "autoTitle": "Importación automática",
+    "autoHelp": "Tras cada lectura, los clientes nuevos de ISPBilling se crean en NSM con sus sedes, y las nuevas direcciones de instalación de clientes ya importados pasan a ser sedes. Los clientes parecidos a un cliente NSM existente quedan por revisar en la página de importación.",
+    "autoEnabled": "Importar automáticamente clientes y sedes nuevos",
+    "autoLast": "Última comprobación {{at}}: {{created}} clientes creados, {{sites}} sedes añadidas.",
+    "autoNever": "Se ejecuta tras la próxima lectura.",
+    "autoReview_one": "{{count}} cliente de ISPBilling se parece a un cliente NSM existente y no se importó:",
+    "autoReview_other": "{{count}} clientes de ISPBilling se parecen a clientes NSM existentes y no se importaron:"
   },
   "acsDiagnostics": {
     "title": "Diagnóstico desde el CPE",
@@ -5931,5 +5989,118 @@
     "enabled": "Descargar automáticamente en el ACS los firmware de TP-Link más recientes",
     "fetched_one": "{{count}} versión descargada hasta ahora.",
     "fetched_other": "{{count}} versiones descargadas hasta ahora."
+  },
+  "acsPortMapping": {
+    "title": "Redirección de puertos, DMZ y UPnP",
+    "help": "Lo que el CPE expone a Internet, tal como el ACS lo leyó por última vez (cada hora). Solo supervisión: desde NSM no se cambia nada. Cada cambio queda registrado en la actividad del equipo.",
+    "reread": "Volver a leer del CPE",
+    "rereadStarted": "El ACS está volviendo a leer el CPE: los valores se actualizan en la próxima lectura (unos 2 minutos).",
+    "rereadQueued": "El CPE no aceptó la solicitud de conexión: se leerá en el próximo contacto.",
+    "notRead": "El ACS aún no ha leído el NAT de este CPE: usa Volver a leer del CPE.",
+    "forwards": "Redirecciones activas",
+    "on": "Activo",
+    "off": "Inactivo",
+    "notReported": "no informado por el CPE",
+    "upnpHint": "los dispositivos de la LAN pueden abrir puertos solos",
+    "dmzWarning": "DMZ activa: todo puerto no redirigido a otro sitio llega a {{host}} desde Internet.",
+    "none": "No hay redirecciones de puertos configuradas.",
+    "protocol": "Protocolo",
+    "external": "Puerto externo",
+    "internal": "Hacia",
+    "from": "Desde",
+    "description": "Descripción",
+    "any": "todos",
+    "anywhere": "cualquier origen"
+  },
+  "ispbillingLinks": {
+    "title": "Equipos que asignar desde ISPBilling",
+    "help": "Para cada cuenta RADIUS NSM encuentra el equipo (usuario PPPoE de un MikroTik o de un CPE TR-069, IP estática, caller-id o dirección de la sesión PPP en un concentrador en NSM) y compara cliente y sede con ISPBilling. Nada cambia hasta que un operador confirma; un equipo de otro cliente nunca se mueve solo.",
+    "counts": {
+      "site": "Sede que asignar",
+      "conflict": "Otro cliente, por revisar",
+      "not_imported": "Cliente no importado",
+      "linked": "Ya alineados"
+    },
+    "empty": "Nada que confirmar.",
+    "device": "Equipo",
+    "account": "Cuenta ISPBilling",
+    "now": "Ahora en NSM",
+    "ispbilling": "En ISPBilling",
+    "applySite": "Asignar la sede",
+    "check": "Revisar",
+    "proposeSite": "ISPBilling instala esta cuenta en {{site}}.",
+    "conflict": "ISPBilling factura esta cuenta a {{customer}}: en NSM el equipo es de otro cliente.",
+    "reassignAsk": "Reasignar…",
+    "reassignConfirm": "¿Mover el equipo a {{customer}}?",
+    "reassign": "Mover",
+    "dismiss": "Ignorar",
+    "notImported": "El cliente ISPBilling de esta cuenta aún no está en NSM.",
+    "import": "Importarlo"
+  },
+  "searchSelect": {
+    "placeholder": "Escribe para buscar…",
+    "none": "Sin resultados.",
+    "more_one": "{{count}} más: sigue escribiendo para acotar.",
+    "more_other": "{{count}} más: sigue escribiendo para acotar."
+  },
+  "quickImport": {
+    "ispbilling": "Importar desde ISPBilling",
+    "uisp": "Importar desde UISP",
+    "cnmaestro": "Importar desde cnMaestro"
+  },
+  "pager": {
+    "label": "Páginas",
+    "range": "{{from}}–{{to}} de {{total}}",
+    "previous": "Página anterior",
+    "next": "Página siguiente",
+    "size": "Filas por página"
+  },
+  "zabbixScope": {
+    "addDevice": "Añadir a Zabbix",
+    "removeDevice": "Quitar de Zabbix",
+    "working": "Enviando a Zabbix…",
+    "addCustomer": "Añadir a Zabbix",
+    "removeCustomer": "Quitar de Zabbix",
+    "notIncluded": "no incluido",
+    "customerSummary": "{{inZabbix}} de {{devices}} dispositivos están en Zabbix",
+    "confirmAdd_one": "¿Añadir a Zabbix el dispositivo de este cliente? Se envía en el acto.",
+    "confirmAdd_other": "¿Añadir a Zabbix los {{count}} dispositivos de este cliente? Se envían en el acto.",
+    "confirmRemove_one": "¿Quitar de Zabbix el dispositivo de este cliente? Su host se desactiva, no se borra.",
+    "confirmRemove_other": "¿Quitar de Zabbix los {{count}} dispositivos de este cliente? Sus hosts se desactivan, no se borran.",
+    "customerDone": "En Zabbix: {{inZabbix}} de {{devices}} dispositivos · sin dirección IP: {{noIp}}",
+    "outcome": {
+      "pushed": "Creado en Zabbix",
+      "linked": "Vinculado al host ya presente en Zabbix",
+      "no_ip": "Sin dirección IP: define una IP para Zabbix",
+      "factory_ip": "IP LAN de fábrica: define una dirección accesible para Zabbix",
+      "pending": "En espera del próximo envío"
+    }
+  },
+  "uispCustomers": {
+    "open": "Clientes UISP → NSM",
+    "title": "Clientes UISP",
+    "subtitle": "Cada endpoint UISP (sitio del cliente) se asocia al cliente NSM con el mismo nombre que su cliente CRM UISP o que el sitio; los demás se vinculan aquí. Los nuevos equipos de los endpoints asociados o vinculados se importan automáticamente bajo ese cliente. Los sitios de infraestructura quedan en el onboarding manual.",
+    "auto": "Importar automáticamente los equipos de los endpoints asociados y vinculados",
+    "imported": "{{created}} equipos creados y {{linked}} vinculados para {{customers}} clientes.",
+    "states": {
+      "label": "Estado de los endpoints",
+      "unmatched": "Por revisar",
+      "matched": "Asociados por nombre",
+      "linked": "Vinculados a mano",
+      "ignored": "Ignorados"
+    },
+    "search": "Sitio UISP, cliente CRM o cliente NSM…",
+    "empty": "Nada aquí.",
+    "columns": {
+      "site": "Endpoint UISP",
+      "client": "Cliente CRM UISP",
+      "customer": "Cliente NSM",
+      "devices": "Equipos en NSM"
+    },
+    "parent": "bajo {{name}}",
+    "choose": "Vincular a un cliente…",
+    "byName": "mismo nombre",
+    "ignore": "Ignorar",
+    "reset": "Deshacer"
   }
 }

@@ -28,6 +28,7 @@ from app.syslog_receiver import cleanup as syslog_cleanup
 from app.syslog_security import evaluate as evaluate_access_alerts
 from app.mikrotik_syslog_config import auto_configure as auto_configure_syslog
 from app.zabbix_connector import scheduled_sync as zabbix_sync
+from app.acs_customer_tags import run as acs_customer_tags
 from app.zabbix_problems import scheduled_refresh as zabbix_problems_refresh
 from app.acs_monitoring import cleanup as acs_metrics_cleanup, collect as acs_monitoring_collect
 from app.acs_syslog import auto_configure as acs_syslog_auto
@@ -47,6 +48,7 @@ from app.uisp_operations import scheduled_backups as uisp_scheduled_backups, ver
 from app.mikrotik_legacy_operations import verify_upgrades as verify_legacy_upgrades
 from app.report_schedules import run_report_schedules
 from app.uisp_sync import sync_uisp_devices
+from app.uisp_auto_customer import run as uisp_auto_customer
 from app.advisory_sources import sync_security_advisories
 from app.compliance import run_scheduled_evaluation as run_compliance_evaluation
 from app.sla import budget_alerts as sla_budget_alerts
@@ -97,6 +99,7 @@ while True:
             if any(reboot_stats.values()):
                 log.info("Device reboot verification: %s", reboot_stats)
             uisp_stats = run_task("uisp_sync", sync_uisp_devices)
+            run_task("uisp_auto_customer", uisp_auto_customer)
             report_stats = run_task("report_schedules", run_report_schedules)
             advisory_stats = run_task("security_advisories", sync_security_advisories)
             run_task("telegram_updates", poll_telegram_updates)
@@ -107,6 +110,7 @@ while True:
             run_task("interface_error_alerts", interface_error_alerts)
             run_task("zabbix_sync", zabbix_sync)
             run_task("cnmaestro_sync", cnmaestro_sync)
+            run_task("acs_customer_tags", acs_customer_tags)
             run_task("ispbilling_sync", ispbilling_sync)
             run_task("zabbix_problems", zabbix_problems_refresh)
             run_task("acs_monitoring", acs_monitoring_collect)

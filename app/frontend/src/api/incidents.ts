@@ -1,4 +1,4 @@
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { BrandRef } from "../app/BrandIcon";
 import { api } from "./client";
@@ -44,12 +44,10 @@ function query(params: Record<string, string | number | undefined>): string {
   return text ? `?${text}` : "";
 }
 
-export const useIssues = (filters: IssueFilters) =>
-  useInfiniteQuery({
-    queryKey: ["issues", filters],
-    queryFn: ({ pageParam }) => api<IssuePage>(`/api/ui/v1/action-center${query({ ...filters, offset: pageParam })}`),
-    initialPageParam: 0,
-    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+export const useIssues = (filters: IssueFilters, page: { offset: number; limit: number }) =>
+  useQuery({
+    queryKey: ["issues", filters, page],
+    queryFn: () => api<IssuePage>(`/api/ui/v1/action-center${query({ ...filters, offset: page.offset, limit: page.limit })}`),
     placeholderData: keepPreviousData,
     staleTime: 20_000,
     refetchInterval: 60_000,
@@ -95,12 +93,10 @@ export interface IncidentPage {
   items: IncidentRow[];
 }
 
-export const useIncidents = (filters: IncidentFilters) =>
-  useInfiniteQuery({
-    queryKey: ["incidents", filters],
-    queryFn: ({ pageParam }) => api<IncidentPage>(`/api/ui/v1/incidents${query({ ...filters, offset: pageParam })}`),
-    initialPageParam: 0,
-    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+export const useIncidents = (filters: IncidentFilters, page: { offset: number; limit: number }) =>
+  useQuery({
+    queryKey: ["incidents", filters, page],
+    queryFn: () => api<IncidentPage>(`/api/ui/v1/incidents${query({ ...filters, offset: page.offset, limit: page.limit })}`),
     placeholderData: keepPreviousData,
     staleTime: 20_000,
   });

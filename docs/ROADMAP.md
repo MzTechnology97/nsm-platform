@@ -212,7 +212,7 @@ Original scope:
 
 ### UBNT-03 — bulk onboarding/association
 
-**Implemented in `main`** (`app/uisp_onboarding.py`): UISP list with NSM state, explicit Customer/Site, preview, re-read at confirmation.
+**Implemented in `main`** (`app/uisp_onboarding.py`): UISP list with NSM state, explicit Customer/Site, preview, re-read at confirmation. Customer endpoints: automatic import under the NSM customer with the same name, or the one the operator linked (`app/uisp_auto_customer.py`, Core 0.49.244); infrastructure sites stay manual (operator decision 2026-10-23).
 
 - bounded discovery list;
 - duplicate/conflict handling;
@@ -345,6 +345,7 @@ Telemetry of a device that goes offline must never be deleted: the last received
 **Step 2 done (Core 0.49.60)**: the check from the NSM server on the public IP for the other manufacturers (and MikroTik without the modern agent), with the IP given by the operator when it cannot be determined.
 **Since Core 0.49.73** the operator can also target a private/CGNAT address (device reached directly, e.g. via VPN), with an explicit warning that the result is distorted when the device sits behind another router or NAT.
 **Step 3 done (Core 0.49.61)**: the fleet view *Security → Esposizione*, exposed services in the security newsletter and in the evidence report (section 3).
+**Core 0.49.239** (operator report 2026-10-23: a port filtered by an ACL that admits the NSM server looked exposed): an open CWMP port on a TR-069 CPE managed by NSM is *da verificare* (NSM is its ACS), the CPE's remote web management settings read via TR-069 decide *esposto*/*limitato* and its port is probed too, and the operator can declare any service filtered by an ACL with the allowed addresses. Operator decision (2026-10-23): ACLs are declared by hand; no second vantage point (no external port-check service, no probe from another site).
 
 A port/service scanner run from the NSM server against the WAN address of each managed device.
 - **Targets.** Any vendor, not only MikroTik. The target is the detected WAN/PPPoE address, and the operator can pick or override the correct WAN IP when it cannot be determined.
@@ -357,7 +358,7 @@ A port/service scanner run from the NSM server against the WAN address of each m
 
 ### ZBX-01 — Zabbix API integration (requested 2026-10-07)
 
-**Decided with the user (2026-10-08): NSM pushes its devices to Zabbix. Implemented in `main` (Core 0.49.51).** Hosts, groups per customer, templates per manufacturer, tags and inventory; 6.x and 7.x authentication; hosts disabled (not deleted) when devices leave NSM. Zabbix problems are shown inside NSM since Core 0.49.62 (device header and overview, Monitoring). **Since Core 0.49.205 (operator decision 2026-10-22)**: devices already monitored in the operator's Zabbix are linked to their existing host (same IP, else same name, only when exactly one matches) instead of getting a duplicate `nsm-` host; linked hosts are never modified except their interface IP, kept equal to the device address for dynamic public IPs/NAT (option); ambiguous matches are reported; the settings form suggests the templates found in Zabbix.
+**Decided with the user (2026-10-08): NSM pushes its devices to Zabbix. Implemented in `main` (Core 0.49.51).** Hosts, groups per customer, templates per manufacturer, tags and inventory; 6.x and 7.x authentication; hosts disabled (not deleted) when devices leave NSM. Zabbix problems are shown inside NSM since Core 0.49.62 (device header and overview, Monitoring). **Since Core 0.49.205 (operator decision 2026-10-22)**: devices already monitored in the operator's Zabbix are linked to their existing host (same IP, else same name, only when exactly one matches) instead of getting a duplicate `nsm-` host; linked hosts are never modified except their interface IP, kept equal to the device address for dynamic public IPs/NAT (option); ambiguous matches are reported; the settings form suggests the templates found in Zabbix. **Since Core 0.49.243 (operator request 2026-10-23)**: *Aggiungi a Zabbix* / *Rimuovi da Zabbix* on every device (opt-in kept on the device, also outside the customer scope) and on every customer (joins/leaves the scope with all its devices); each click pushes at once and reports the result (created, linked, no IP, factory LAN IP); removed hosts are disabled, never deleted; audited `ZABBIX_DEVICE_SCOPE_CHANGED` / `ZABBIX_CUSTOMER_SCOPE_CHANGED`.
 
 Integration with the operator's Zabbix (currently 6.x; support both the 6.x API and 7.x, where authentication moved to an API token in the `Authorization` header). How it applies to devices (import hosts/items, link NSM devices to Zabbix hosts, show problems and graphs, or push NSM devices to Zabbix) is to be decided with the user before implementation.
 
@@ -455,7 +456,7 @@ Read-only cnMaestro (cloud/on-premises) connector for Cambium radios: discovery 
 
 Import the customer registry and sites from the operator's billing system (ISPBilling, `https://ispbilling.it/api/docs`), then automate around it. Approved by the operator: (1) customers, (2) services → sites, (3) RADIUS accounts ↔ devices, (4) warehouse serials/MACs ↔ devices, (5) activities into the device logbook; invoices and payments stay out of NSM.
 
-**Step 1 implemented in `main` (Core 0.49.203)**: read-only connector, mirror refreshed by the worker, import page for customers and their installation addresses as sites (details in `IMPLEMENTED_CAPABILITIES.md` §13c). **Step 2 implemented (Core 0.49.209)**: RADIUS accounts matched to devices (PPPoE user, then static IP) and shown on the device page with their ISPBilling status. Next: warehouse and activities.
+**Step 1 implemented in `main` (Core 0.49.203)**: read-only connector, mirror refreshed by the worker, import page for customers and their installation addresses as sites (details in `IMPLEMENTED_CAPABILITIES.md` §13c). **Step 2 implemented (Core 0.49.209)**: RADIUS accounts matched to devices (PPPoE user, then static IP) and shown on the device page with their ISPBilling status. **Core 0.49.229**: also by the CPE's own PPPoE user (TR-069) and by the caller-id MAC/address of the PPP session on a concentrator in NSM; customer and site proposed for confirmation. Next: warehouse and activities.
 
 ### TAUC-01 — TP-Link Aginet Unified Cloud connector (requested 2026-10-22)
 
