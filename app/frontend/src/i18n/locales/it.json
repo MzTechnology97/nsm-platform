@@ -4073,7 +4073,8 @@
       "info": "Informativo",
       "warning": "Attenzione",
       "error": "Errore"
-    }
+    },
+    "moreEvents": "Mostra altri ({{shown}} di {{total}})"
   },
   "deviceCnmaestro": {
     "linked": "Collegato a cnMaestro dal {{when}} (MAC {{mac}}).",

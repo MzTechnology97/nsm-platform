@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.256 — 2026-10-23
+
+Interface
+- **The UISP reboot form stays inside its panel.** Stacked forms next to another column no longer spill to the right of the panel. The same fix applies to every stacked form.
+- **UISP events are paged.** The *Eventi UISP* list shows 20 events at a time, with *Mostra altri*. Times are in local format, and device names appear without UISP's backticks.
+
 ## 0.49.255 — 2026-10-23
 
 Scheduled firmware upgrades
