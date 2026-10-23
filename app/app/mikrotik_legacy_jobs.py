@@ -41,6 +41,10 @@ LEGACY_SNAPSHOT_SECTIONS = {
     "ppp_active",
     "dhcp_leases",
     "logs",
+    # MTK-05, Agent 0.49.24 (mikrotik_snapshot_capabilities gates older Agents).
+    "queues",
+    "certificates",
+    "routing",
 }
 LEGACY_JOB_TYPES = {
     "inventory_refresh",
@@ -101,6 +105,24 @@ _RECORD_SCHEMAS = {
         "disabled", "running", "comment",
     ),
     "LG": ("time", "topics", "message"),
+    "QS": (
+        "name", "target", "parent", "max-limit", "limit-at", "burst-limit", "priority",
+        "queue", "rate", "bytes", "dropped", "disabled", "dynamic", "invalid", "comment",
+    ),
+    "QT": (
+        "name", "parent", "packet-mark", "max-limit", "limit-at", "priority", "queue",
+        "rate", "bytes", "dropped", "disabled", "invalid", "comment",
+    ),
+    "CE": (
+        "name", "common-name", "issuer", "invalid-before", "invalid-after", "expires-after",
+        "trusted", "private-key", "authority", "expired", "revoked",
+    ),
+    # RouterOS 7 /routing bgp session uses dotted keys, RouterOS 6 /routing bgp peer dashed ones.
+    "BG": (
+        "name", "instance", "remote.address", "remote-address", "remote.as", "remote-as",
+        "established", "state", "uptime", "prefix-count", "disabled",
+    ),
+    "ON": ("instance", "area", "address", "router-id", "interface", "state", "state-changes", "adjacency"),
 }
 _PPP_GROUPS = {
     "PS": "sstp_clients",
@@ -218,6 +240,12 @@ def parse_legacy_snapshot(section: str, output: str) -> dict:
                 data[group].append(row)
     elif section == "dhcp_leases":
         data = [row for tag, row in records if tag == "DH"]
+    elif section == "queues":
+        data = {"simple": [row for tag, row in records if tag == "QS"], "tree": [row for tag, row in records if tag == "QT"]}
+    elif section == "certificates":
+        data = [row for tag, row in records if tag == "CE"]
+    elif section == "routing":
+        data = {"bgp": [row for tag, row in records if tag == "BG"], "ospf": [row for tag, row in records if tag == "ON"]}
     else:
         data = [row for tag, row in records if tag == "LG"]
 
@@ -236,16 +264,46 @@ def parse_legacy_snapshot(section: str, output: str) -> dict:
 # Rows collected per menu and total wire size.  RouterOS limits http-data to
 # 64 KiB, and walking a full BGP table or thousands of leases would load the
 # router: rows are read by id up to the limit and the rest is only counted.
-ROW_LIMITS = {"IP": 500, "RT": 300, "IF": 300, "FF": 300, "FN": 300, "DH": 500, "PA": 500, "PC": 100}
+ROW_LIMITS = {"IP": 500, "RT": 300, "IF": 300, "FF": 300, "FN": 300, "DH": 500, "PA": 500, "PC": 100,
+              "QS": 300, "QT": 300, "CE": 100, "BG": 100, "ON": 100}
 MAX_LEGACY_OUTPUT = 56000
 
 
-def _ros_row(tag: str, menu: str, fields: tuple[str, ...], *, tolerate_missing_menu: bool = False) -> str:
+def _row_expression(tag: str, fields: tuple[str, ...]) -> str:
     expression = f'"{tag}|"'
     for field in fields:
         expression += f' . [$nsmLegacyFieldSafe ($nsmRow->"{field}")]'
         if field != fields[-1]:
             expression += ' . "|"'
+    return expression
+
+
+def _append_line(expression: str) -> str:
+    return (
+        f'  :local nsmLine ({expression})\n'
+        f'  :if (([:len $nsmJobOutput] + [:len $nsmLine]) < {MAX_LEGACY_OUTPUT}) do={{ :set nsmJobOutput [$nsmLegacyAppend $nsmJobOutput $nsmLine] }} else={{ :set nsmTruncated true }}\n'
+    )
+
+
+def _ros_routing(tag: str, kind: str) -> str:
+    """BGP sessions / OSPF neighbors: the menus differ between RouterOS 6 and 7, so they are read through :parse."""
+    from app.mikrotik_snapshot_agent import routing_parse
+
+    limit = ROW_LIMITS[tag]
+    body = (
+        ':local nsmRows [:toarray ""]\n'
+        + routing_parse(kind, "nsmRows")
+        + ':set nsmTotal ($nsmTotal + [:len $nsmRows])\n'
+        f':if ([:len $nsmRows] > {limit}) do={{ :set nsmRows [:pick $nsmRows 0 {limit}]; :set nsmTruncated true }}\n'
+        ':foreach nsmRow in=$nsmRows do={\n'
+        + _append_line(_row_expression(tag, _RECORD_SCHEMAS[tag]))
+        + '}\n'
+    )
+    return ':do {\n' + textwrap.indent(body, '  ') + '} on-error={}\n'
+
+
+def _ros_row(tag: str, menu: str, fields: tuple[str, ...], *, tolerate_missing_menu: bool = False) -> str:
+    expression = _row_expression(tag, fields)
     limit = ROW_LIMITS["PC" if tag in _PPP_GROUPS else tag]
     body = (
         f':local nsmIds [{menu} find]\n'
@@ -253,9 +311,8 @@ def _ros_row(tag: str, menu: str, fields: tuple[str, ...], *, tolerate_missing_m
         f':if ([:len $nsmIds] > {limit}) do={{ :set nsmIds [:pick $nsmIds 0 {limit}]; :set nsmTruncated true }}\n'
         ':foreach nsmId in=$nsmIds do={\n'
         f'  :local nsmRow [{menu} get $nsmId]\n'
-        f'  :local nsmLine ({expression})\n'
-        f'  :if (([:len $nsmJobOutput] + [:len $nsmLine]) < {MAX_LEGACY_OUTPUT}) do={{ :set nsmJobOutput [$nsmLegacyAppend $nsmJobOutput $nsmLine] }} else={{ :set nsmTruncated true }}\n'
-        '}\n'
+        + _append_line(expression)
+        + '}\n'
     )
     # Each menu gets its own scope; optional menus (tunnel clients) may not exist.
     return ':do {\n' + textwrap.indent(body, '  ') + ('} on-error={}\n' if tolerate_missing_menu else '}\n')
@@ -298,6 +355,9 @@ def _snapshot_handler_source() -> str:
 :local nsmMeta ("META|" . $nsmTotal . "|" . $nsmLimit . "|" . $nsmTruncated)
 :set nsmJobOutput [$nsmLegacyAppend $nsmJobOutput $nsmMeta]
 '''
+    queues = _ros_row("QS", "/queue simple", _RECORD_SCHEMAS["QS"]) + _ros_row("QT", "/queue tree", _RECORD_SCHEMAS["QT"])
+    certificates = _ros_row("CE", "/certificate", _RECORD_SCHEMAS["CE"])
+    routing = _ros_routing("BG", "bgp") + _ros_routing("ON", "ospf")
     body = ''.join((
         _ros_section("resources", resources),
         _ros_section("ip_addresses", ip_addresses),
@@ -307,6 +367,9 @@ def _snapshot_handler_source() -> str:
         _ros_section("ppp_active", ppp),
         _ros_section("dhcp_leases", dhcp),
         _ros_section("logs", logs),
+        _ros_section("queues", queues),
+        _ros_section("certificates", certificates),
+        _ros_section("routing", routing),
     ))
     meta = (
         ':if (($nsmSection != "resources") && ($nsmSection != "logs")) do={\n'
@@ -496,6 +559,16 @@ def legacy_job_next(request: Request):
                 job.last_error = "L'agent legacy installato non supporta gli snapshot strutturati: reinstallalo (agent 0.49.3 o successivo)."
                 job.completed_at = now
                 continue
+            if job.job_type == "snapshot_section":
+                from app.mikrotik_snapshot_capabilities import section_support, unsupported_message
+
+                support = section_support(device, str((job.payload or {}).get("section") or ""))
+                if not support["supported"]:
+                    # An Agent that does not know the section would report an empty success.
+                    job.status = "failed"
+                    job.last_error = unsupported_message(support)
+                    job.completed_at = now
+                    continue
             try:
                 line = _job_line(job)
             except HTTPException:

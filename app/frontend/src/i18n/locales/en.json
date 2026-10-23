@@ -3618,7 +3618,10 @@
       "firewall": "Firewall",
       "dhcp_leases": "DHCP",
       "ppp_active": "PPP / VPN",
-      "logs": "Warning/error log"
+      "logs": "Warning/error log",
+      "queues": "Queues",
+      "certificates": "Certificates",
+      "routing": "BGP / OSPF"
     },
     "resources": {
       "cpu_load": "CPU load",
@@ -3651,7 +3654,16 @@
       "sessions": "Sessions",
       "warning": "Warning",
       "error": "Error",
-      "critical": "Critical"
+      "critical": "Critical",
+      "simple": "Simple",
+      "tree": "Tree",
+      "saturated": "Saturated",
+      "valid": "Valid",
+      "expiring": "Expiring",
+      "expired": "Expired",
+      "revoked": "Revoked",
+      "bgp": "BGP",
+      "ospf": "OSPF"
     },
     "states": {
       "up": "up",
@@ -3667,7 +3679,12 @@
       "bound": "bound",
       "waiting": "waiting",
       "blocked": "blocked",
-      "offered": "offered"
+      "offered": "offered",
+      "saturated": "saturated",
+      "valid": "valid",
+      "expiring": "expiring",
+      "expired": "expired",
+      "revoked": "revoked"
     },
     "kinds": {
       "filter": "Filter",
@@ -3677,7 +3694,11 @@
       "l2tp": "L2TP",
       "pppoe": "PPPoE",
       "pptp": "PPTP",
-      "ovpn": "OVPN"
+      "ovpn": "OVPN",
+      "simple": "Simple queue",
+      "tree": "Queue tree",
+      "bgp": "BGP",
+      "ospf": "OSPF"
     },
     "search": "Search the section",
     "state": "State",
@@ -3723,7 +3744,20 @@
       "uptime": "Uptime",
       "time": "Time",
       "topics": "Topics",
-      "message": "Message"
+      "message": "Message",
+      "target": "Target",
+      "parent": "Parent",
+      "max_limit": "Max limit",
+      "rate": "Rate (up / down)",
+      "usage": "Usage",
+      "common_name": "Common name",
+      "issuer": "Issuer",
+      "not_after": "Valid until",
+      "days_left": "Days left",
+      "role": "Role",
+      "remote_as": "AS / area",
+      "session_state": "Session",
+      "prefixes": "Prefixes"
     },
     "historyTitle": "Configuration history",
     "historyHelp": "Archived RouterOS exports, approved baseline and automatically detected changes.",
@@ -3753,7 +3787,13 @@
     "view": "View",
     "diff": "Differences",
     "setBaseline": "Set as baseline",
-    "noExports": "No configuration export: the history appears after the first MikroTik backup in .rsc format."
+    "noExports": "No configuration export: the history appears after the first MikroTik backup in .rsc format.",
+    "unsupported": {
+      "no_transport": "Section not available: the agent transport has not been detected or validated.",
+      "transport": "Section not available with the legacy agent (RouterOS 6 / 7.12).",
+      "agent_outdated": "Section available from agent {{version}}: update or reinstall the agent from the Agent tab."
+    },
+    "unsupportedShort": "Not available with the installed agent"
   },
   "deviceReboot": {
     "title": "Controlled reboot",

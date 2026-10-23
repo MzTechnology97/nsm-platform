@@ -3618,7 +3618,10 @@
       "firewall": "Firewall",
       "dhcp_leases": "DHCP",
       "ppp_active": "PPP / VPN",
-      "logs": "Log warning/error"
+      "logs": "Log warning/error",
+      "queues": "Colas",
+      "certificates": "Certificados",
+      "routing": "BGP / OSPF"
     },
     "resources": {
       "cpu_load": "Carga de CPU",
@@ -3651,7 +3654,16 @@
       "sessions": "Sesiones",
       "warning": "Warning",
       "error": "Error",
-      "critical": "Critical"
+      "critical": "Critical",
+      "simple": "Simple",
+      "tree": "Árbol",
+      "saturated": "Saturadas",
+      "valid": "Válidos",
+      "expiring": "Por caducar",
+      "expired": "Caducados",
+      "revoked": "Revocados",
+      "bgp": "BGP",
+      "ospf": "OSPF"
     },
     "states": {
       "up": "activa",
@@ -3667,7 +3679,12 @@
       "bound": "asignada",
       "waiting": "en espera",
       "blocked": "bloqueada",
-      "offered": "ofrecida"
+      "offered": "ofrecida",
+      "saturated": "saturada",
+      "valid": "válido",
+      "expiring": "por caducar",
+      "expired": "caducado",
+      "revoked": "revocado"
     },
     "kinds": {
       "filter": "Filter",
@@ -3677,7 +3694,11 @@
       "l2tp": "L2TP",
       "pppoe": "PPPoE",
       "pptp": "PPTP",
-      "ovpn": "OVPN"
+      "ovpn": "OVPN",
+      "simple": "Queue simple",
+      "tree": "Queue tree",
+      "bgp": "BGP",
+      "ospf": "OSPF"
     },
     "search": "Buscar en la sección",
     "state": "Estado",
@@ -3723,7 +3744,20 @@
       "uptime": "Uptime",
       "time": "Hora",
       "topics": "Temas",
-      "message": "Mensaje"
+      "message": "Mensaje",
+      "target": "Destino",
+      "parent": "Padre",
+      "max_limit": "Límite máximo",
+      "rate": "Tráfico (subida / bajada)",
+      "usage": "Uso",
+      "common_name": "Nombre común",
+      "issuer": "Emisor",
+      "not_after": "Válido hasta",
+      "days_left": "Días restantes",
+      "role": "Rol",
+      "remote_as": "AS / área",
+      "session_state": "Sesión",
+      "prefixes": "Prefijos"
     },
     "historyTitle": "Historial de configuración",
     "historyHelp": "Exportaciones RouterOS archivadas, baseline aprobada y cambios detectados automáticamente.",
@@ -3753,7 +3787,13 @@
     "view": "Ver",
     "diff": "Diferencias",
     "setBaseline": "Fijar como baseline",
-    "noExports": "Ninguna exportación de configuración: el historial aparece tras la primera copia MikroTik en formato .rsc."
+    "noExports": "Ninguna exportación de configuración: el historial aparece tras la primera copia MikroTik en formato .rsc.",
+    "unsupported": {
+      "no_transport": "Sección no disponible: el transporte del agente no se ha detectado o validado.",
+      "transport": "Sección no disponible con el agente legacy (RouterOS 6 / 7.12).",
+      "agent_outdated": "Sección disponible desde el agente {{version}}: actualiza o reinstala el agente desde la pestaña Agente."
+    },
+    "unsupportedShort": "No disponible con el agente instalado"
   },
   "deviceReboot": {
     "title": "Reinicio controlado",
