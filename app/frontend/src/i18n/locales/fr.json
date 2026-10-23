@@ -244,8 +244,25 @@
       "otherCustomer": "ISPBilling facture ce compte à un autre client que celui de l'équipement dans NSM.",
       "matched": {
         "pppoe": "associé par utilisateur PPPoE",
-        "ip": "associé par IP statique"
+        "ip": "associé par IP statique",
+        "cpe_pppoe": "associé par l'utilisateur PPPoE du CPE",
+        "caller_mac": "associé par le caller-id (MAC) de la session PPP",
+        "caller_ip": "associé par l'adresse de la session PPP"
       }
+    },
+    "pingToggle": {
+      "open": "Ping depuis NSM : activer ou désactiver",
+      "title": "Ping depuis NSM",
+      "help": "NSM interroge l'équipement par ping chaque minute : latence, perte et coupures apparaissent dans Monitor et comptent pour la disponibilité.",
+      "on": "Activé",
+      "off": "Désactivé",
+      "target": "Adresse interrogée : {{target}}",
+      "noTarget": "L'équipement n'a pas d'IP de gestion : définissez d'abord une adresse dans Monitor → Impostazioni monitoraggio.",
+      "readOnly": "La modification demande le droit de modifier les équipements.",
+      "savedOn": "Ping activé : le premier résultat arrive en moins d'une minute.",
+      "savedOff": "Ping désactivé.",
+      "more": "Seuils et adresse dans Monitor",
+      "close": "Fermer"
     }
   },
   "monitor": {
@@ -1552,7 +1569,8 @@
       "agent": "Agent",
       "integration": "Intégrations",
       "interface_errors": "Erreurs d'interface",
-      "configuration": "Configuration"
+      "configuration": "Configuration",
+      "acs": "CPE (ACS)"
     },
     "state": {
       "open": "Ouvert",
@@ -2560,7 +2578,7 @@
     "steps": {
       "cpe": {
         "title": "Sur la CPE :",
-        "text": "Advanced → System Tools → CWMP Settings (TR-069 sur certains firmwares). Réglez uniquement : CWMP activé ; Inform activé ; URL ACS <code>{{url}}</code> ; ACS Username et Password vides ; Periodic Inform activé (NSP règle l'intervalle) ; Connection Request Username et Password à votre choix, nécessaires pour le redémarrage et le diagnostic immédiats. Enregistrez sans toucher aux autres champs : WAN, PPPoE, Wi-Fi et LAN restent tels quels."
+        "text": "Advanced → System Tools → CWMP Settings (ou TR-069) : CWMP activé ; ACS URL <code>{{url}}</code> ; ACS Username et Password vides pour le premier essai, puis définissez-les ; Periodic Inform activé toutes les 300 secondes ; Connection Request Username et Password avec vos identifiants, utilisés par GenieACS pour contacter la CPE."
       },
       "network": {
         "title": "Réseau :",
@@ -2572,7 +2590,7 @@
       },
       "verify": {
         "title": "Vérifiez dans le panneau ACS :",
-        "text": "en 5 minutes environ le CPE apparaît dans Devices avec fabricant, modèle et numéro de série ; les erreurs éventuelles dans Faults."
+        "text": "la CPE apparaît dans Devices avec fabricant, modèle et numéro de série ; les erreurs éventuelles dans Faults."
       },
       "nsm": {
         "title": "Dans NSM :",
@@ -2592,8 +2610,6 @@
     "preset": "Preset",
     "presetText": "condition <code>{{condition}}</code>, événements bootstrap, boot et periodic → provision <code>{{provision}}</code>",
     "script": "Script de la provision {{name}}",
-    "migrationHint": "Vous gérez déjà une flotte de CPE sur un ACS cloud (par exemple TAUC) ?",
-    "migrationLink": "Migrer les CPE vers cet ACS",
     "templatesCurrent": "Les modèles NSM sont à jour (installés le {{when}}). NSM les met à jour seul après chaque mise à jour.",
     "templatesPending": "Cette version de NSM a des modèles plus récents que ceux installés le {{when}} : NSM les installe sous 30 minutes, ou cliquez sur Installer.",
     "templatesAuto": "Une fois installés, NSM tient ces modèles à jour seul après chaque mise à jour.",
@@ -2603,7 +2619,9 @@
       "reads": "Lit : état en ligne/hors ligne, dernier contact, modèle, firmware, IP, CPU, mémoire, trafic WAN, clients Wi-Fi et ligne DSL.",
       "actions": "Actions disponibles : redémarrage, vérification du firmware, diagnostic.",
       "never": "Ne modifie ni le Wi-Fi, ni le LAN, ni le DHCP, ni le PPPoE, ni aucune autre configuration du routeur. Le seul réglage qu'il écrit est l'intervalle d'inform du CWMP."
-    }
+    },
+    "migrationHint": "Vous gérez déjà une flotte de CPE sur un ACS cloud (par exemple TAUC) ?",
+    "migrationLink": "Migrer les CPE vers cet ACS"
   },
   "demo": {
     "subtitle": "Jeu de données isolé pour essayer l'interface et les flux sans utiliser de vrais clients.",
@@ -5076,12 +5094,31 @@
     }
   },
   "eventTypes": {
+    "ACS_ALERT_OPENED": "Alerte CPE ouverte",
+    "ACS_ALERT_RESOLVED": "Alerte CPE résolue",
+    "ACS_ALERT_SETTINGS_CHANGED": "Paramètres des alertes CPE modifiés",
+    "ACS_CONFIG_REFRESH_REQUESTED": "Relecture de la configuration du CPE demandée",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnostic ACS terminé",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnostic ACS demandé",
+    "ACS_FIRMWARE_AUTO_CHANGED": "Téléchargement automatique des firmwares modifié",
+    "ACS_FIRMWARE_FAILED": "Échec de la mise à jour du firmware du CPE",
+    "ACS_FIRMWARE_FILE_FETCHED": "Firmware téléchargé du constructeur dans l'ACS",
+    "ACS_FIRMWARE_FILE_STORED": "Image firmware chargée dans l'ACS",
+    "ACS_FIRMWARE_REQUESTED": "Mise à jour du firmware du CPE demandée",
+    "ACS_FIRMWARE_VERIFIED": "Mise à jour du firmware du CPE vérifiée",
     "ACS_MIGRATION_COMPLETED": "Migration ACS terminée",
     "ACS_MIGRATION_STARTED": "Migration ACS démarrée",
+    "ACS_PORT_MAPPING_CHANGED": "Redirection de ports du CPE modifiée",
+    "ACS_REBOOT_REQUESTED": "Redémarrage du CPE demandé",
+    "ACS_REBOOT_VERIFIED": "Redémarrage du CPE vérifié",
+    "ACS_SNAPSHOT_ARCHIVED": "Instantané de configuration TR-069 archivé",
+    "ACS_SPEEDTEST_COMPLETED": "Test de débit du CPE terminé",
+    "ACS_SPEEDTEST_REQUESTED": "Test de débit du CPE demandé",
+    "ACS_SPEEDTEST_SETTINGS_CHANGED": "Paramètres du test de débit modifiés",
+    "ACS_SYSLOG_CONFIGURED": "Syslog du CPE configuré via ACS",
     "ACS_TEMPLATES_INSTALLED": "Modèles ACS installés",
     "ACS_TEMPLATES_UPDATED": "Modèles ACS mis à jour par NSM",
+    "ACS_WIFI_CHANGED": "Wi-Fi modifié via l'ACS",
     "AGENT_HEALTH_ISSUE_OPENED": "Problème d'agent signalé",
     "AGENT_HEALTH_RECOVERED": "Agent rétabli",
     "API_KEY_CREATED": "Clé API créée",
@@ -5151,6 +5188,7 @@
     "DEVICE_SNAPSHOT_BATCH_QUEUED": "Actualisation de la configuration en file d'attente",
     "DEVICE_SNAPSHOT_QUEUED": "Actualisation d'une section en file d'attente",
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Interfaces surveillées modifiées",
+    "DEVICE_VENDOR_CORRECTED": "Fabricant de l'équipement corrigé",
     "DIAGNOSTIC_EXPORTED": "Diagnostic exporté",
     "EXPOSURE_CHECK_REQUESTED": "Vérification d'exposition demandée",
     "EXPOSURE_EXTERNAL_CHECK": "Vérification d'exposition externe",
@@ -5194,12 +5232,15 @@
     "INVENTORY_DISCOVERED": "Inventaire relevé",
     "ISPBILLING_CONFIGURED": "Connecteur ISPBilling configuré",
     "ISPBILLING_CUSTOMERS_IMPORTED": "Clients importés depuis ISPBilling",
+    "ISPBILLING_DEVICE_LINKED": "Équipement affecté depuis ISPBilling",
+    "ISPBILLING_LINK_DISMISSED": "Proposition ISPBilling ignorée",
     "ISPBILLING_SYNC_REQUESTED": "Lecture ISPBilling demandée",
     "ISSUE_ACKNOWLEDGED": "Signalement pris en charge",
     "LEGACY_FIRMWARE_UPGRADE_ACCEPTED": "Mise à jour firmware legacy acceptée",
     "LEGACY_FIRMWARE_UPGRADE_FAILED": "Échec de la mise à jour firmware legacy",
     "LEGACY_FIRMWARE_UPGRADE_QUEUED": "Mise à jour firmware legacy en file d'attente",
     "LEGACY_FIRMWARE_UPGRADE_VERIFIED": "Mise à jour firmware legacy vérifiée",
+    "LEGACY_FTP_SETTINGS_CHANGED": "Sous-réseaux du récepteur FTP legacy modifiés",
     "LIFECYCLE_CATALOG_IMPORTED": "Catalogue de cycle de vie importé",
     "LIFECYCLE_DEVICE_DECOMMISSIONED": "Équipement retiré (cycle de vie)",
     "LIFECYCLE_DEVICE_REPLACED": "Équipement remplacé",
@@ -5211,6 +5252,8 @@
     "LIFECYCLE_REMEDIATION_REOPENED": "Remédiation de cycle de vie rouverte",
     "LIFECYCLE_REPLACEMENT_PLANNED": "Remplacement planifié",
     "LIFECYCLE_STATUS_CHANGED": "Statut de cycle de vie modifié",
+    "LIFECYCLE_WEB_APPLIED": "Cycle de vie du web appliqué au catalogue",
+    "LIFECYCLE_WEB_LOOKUP": "Cycle de vie recherché sur le web",
     "MAC_DISCOVERED": "Adresse MAC relevée",
     "MAINTENANCE_WINDOW_CREATED": "Fenêtre de maintenance créée",
     "MAINTENANCE_WINDOW_DELETED": "Fenêtre de maintenance supprimée",
@@ -5340,72 +5383,6 @@
     "job": "tâche",
     "tr069": "TR-069 (ACS)",
     "acs": "ACS"
-  },
-  "acsMigration": {
-    "subtitle": "Migrer en masse les CPE des clients vers l'ACS intégré en reconfigurant le CWMP sur le réseau de gestion.",
-    "backToAcs": "Retour à ACS",
-    "intro": "Indiquez le sous-réseau de gestion de vos routeurs, le port et les identifiants communs de la flotte : NSM atteint chaque équipement et définit l'URL ACS cible. Lancez d'abord une simulation pour voir quels CPE sont joignables.",
-    "applyPending": "La réécriture CWMP via l'interface web TP-Link est en validation sur le terrain pour ce firmware : seule la simulation d'inventaire est disponible pour l'instant.",
-    "formTitle": "Nouvelle migration",
-    "formHelp": "Sous-réseaux IPv4 uniquement, au plus {{max}} adresses par exécution. Les adresses .0 et .255 et le serveur ACS sont ignorés.",
-    "credentialsHelp": "Les identifiants ne servent que pendant l'exécution et ne sont jamais stockés. Une simulation n'en a pas besoin : aucun identifiant n'est envoyé aux équipements.",
-    "dryRun": "Simulation (inventaire)",
-    "apply": "Appliquer la migration",
-    "recentTitle": "Exécutions récentes",
-    "noRuns": "Aucune exécution pour l'instant.",
-    "runTitle": "Exécution · {{subnet}}",
-    "cancel": "Arrêter",
-    "progress": "Progression",
-    "fields": {
-      "subnet": "Sous-réseau de gestion (CIDR)",
-      "port": "Port de gestion",
-      "informInterval": "Intervalle d'inform (secondes)",
-      "targetAcsUrl": "URL ACS cible (CWMP)",
-      "username": "Utilisateur des routeurs",
-      "password": "Mot de passe des routeurs"
-    },
-    "cols": {
-      "when": "Quand",
-      "subnet": "Sous-réseau",
-      "mode": "Mode",
-      "status": "État",
-      "found": "CPE trouvés",
-      "changed": "Configurés"
-    },
-    "hostCols": {
-      "address": "Adresse",
-      "status": "Résultat",
-      "model": "Modèle",
-      "firmware": "Firmware",
-      "detail": "Détail"
-    },
-    "mode": {
-      "dry": "Simulation",
-      "apply": "Appliquée"
-    },
-    "runStatus": {
-      "pending": "En attente",
-      "running": "En cours",
-      "done": "Terminée",
-      "failed": "Échouée",
-      "cancelled": "Arrêtée"
-    },
-    "hostStatus": {
-      "pending": "En attente",
-      "unreachable": "Injoignable",
-      "not_cpe": "Pas un CPE",
-      "auth_failed": "Identifiants refusés",
-      "already_target": "Déjà sur l'ACS",
-      "configured": "Configuré",
-      "error": "Erreur",
-      "skipped": "Ignoré"
-    },
-    "counters": {
-      "processed": "Traités",
-      "reachable": "Joignables",
-      "configured": "Configurés",
-      "failed": "Échoués"
-    }
   },
   "ispbilling": {
     "title": "ISPBilling",
@@ -5617,5 +5594,381 @@
     },
     "yes": "oui",
     "no": "non"
+  },
+  "legacyFtp": {
+    "title": "Sauvegardes legacy via FTP",
+    "help": "Récepteur des sauvegardes des routeurs RouterOS 6 et 7.12 (Agent legacy). Adresse et port se règlent sur le serveur avec ./manage.sh legacy-backup-enable <IPv4> [port] ; ici vous choisissez les sous-réseaux autorisés.",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "address": "Adresse pour les routeurs",
+    "passive": "ports passifs {{ports}}",
+    "subnets": "Sous-réseaux autorisés",
+    "any": "toutes",
+    "enableHint": "Pour l'activer, sur le serveur : ./manage.sh legacy-backup-enable <IPv4 de NSM joignable par les routeurs> [port]",
+    "noSubnets": "Aucun sous-réseau défini : toute adresse qui atteint le serveur peut se connecter au récepteur.",
+    "subnetsLabel": "Sous-réseaux autorisés à envoyer des sauvegardes",
+    "subnetsHelp": "Un par ligne ou séparés par des virgules, ex. 198.51.100.0/24. Le récepteur refuse les autres origines en moins d'une minute.",
+    "saved": "Enregistré : le récepteur l'applique en moins d'une minute.",
+    "firewall": "Règles de pare-feu sur le serveur",
+    "firewallHelp": "Pour bloquer aussi les autres origines avant NSM, exécutez ./manage.sh legacy-ftp-firewall --apply sur le serveur (fait automatiquement par legacy-backup-enable)."
+  },
+  "acsWifi": {
+    "title": "Wi-Fi",
+    "help": "Radios et réseaux Wi-Fi du CPE tels que l'ACS les a lus la dernière fois. Les modifications sont envoyées au CPE via l'ACS ; les clients Wi-Fi peuvent se reconnecter. Les mots de passe ne se lisent pas, ils se remplacent.",
+    "reread": "Relire depuis le CPE",
+    "empty": "L'ACS n'a pas encore lu le Wi-Fi de ce CPE : utilisez Relire depuis le CPE.",
+    "radio": "Radio",
+    "channel": "Canal",
+    "enabled": "Active",
+    "nowOn": "actuellement sur {{channel}}",
+    "auto": "Automatique",
+    "band": "Bande",
+    "ssid": "Nom du réseau",
+    "password": "Nouveau mot de passe",
+    "passwordKeep": "laisser vide pour le garder",
+    "security": "Sécurité",
+    "inactive_one": "{{count}} réseau désactivé",
+    "inactive_other": "{{count}} réseaux désactivés",
+    "apply_one": "Envoyer {{count}} modification",
+    "apply_other": "Envoyer {{count}} modifications",
+    "confirmText": "Le CPE les applique aussitôt : les clients Wi-Fi peuvent se déconnecter.",
+    "confirm": "Confirmer et envoyer",
+    "cancel": "Annuler",
+    "discard": "Annuler les modifications",
+    "applied": "Envoyées : le CPE a appliqué les modifications.",
+    "queued": "En file : le CPE n'a pas accepté la demande de connexion et les appliquera au prochain contact."
+  },
+  "acsReboot": {
+    "title": "Redémarrer le CPE",
+    "help": "Le CPE redémarre via l'ACS et la connexion du client est coupée quelques minutes. Saisissez {{name}} pour confirmer.",
+    "confirm": "Nom de l'équipement",
+    "run": "Redémarrer",
+    "states": {
+      "requested": "Redémarrage demandé le {{when}}, en attente du retour du CPE",
+      "verified": "Redémarré : le CPE est revenu le {{when}}",
+      "unconfirmed": "Redémarrage demandé le {{when}} mais non confirmé par l'ACS en 15 minutes"
+    },
+    "waitingContact": "il démarrera au prochain contact avec l'ACS"
+  },
+  "acsSnapshot": {
+    "title": "Instantané de la configuration",
+    "help": "Archive les paramètres de configuration du CPE, tels que l'ACS les a lus, dans l'onglet Sauvegardes, où les instantanés s'ouvrent et se comparent. Mots de passe et valeurs changeantes exclus. Pas de restauration en un clic. Les politiques avec l'option TR-069 en prennent un automatiquement quand quelque chose a changé.",
+    "refresh": "Relire la configuration depuis le CPE",
+    "save": "Enregistrer un instantané",
+    "refreshStarted": "L'ACS relit toute la configuration : sur un gros CPE cela prend quelques minutes, puis enregistrez l'instantané.",
+    "refreshQueued": "Le CPE n'a pas accepté la demande de connexion : la configuration sera lue au prochain contact.",
+    "saved": "Instantané enregistré.",
+    "open": "Ouvrir l'onglet Sauvegardes"
+  },
+  "acsSpeedtest": {
+    "title": "Test de débit depuis le CPE",
+    "help": "Le CPE télécharge ou envoie lui-même un fichier de {{size}} Mo (TR-143) : le résultat est le débit de la ligne du client jusqu'au serveur de test, pas du Wi-Fi. Pendant le test la connexion du client est occupée.",
+    "run": {
+      "download": "Tester le téléchargement",
+      "upload": "Tester l'envoi"
+    },
+    "kinds": {
+      "download": "Téléchargement",
+      "upload": "Envoi"
+    },
+    "mbps": "{{value}} Mbit/s",
+    "never": "Jamais lancé",
+    "detail": "{{size}} Mo en {{seconds}} s",
+    "toNsm": "vers le serveur NSM",
+    "waitingContact": "il démarrera au prochain contact avec l'ACS",
+    "states": {
+      "requested": "En cours",
+      "complete": "Terminé",
+      "error": "Échec sur le CPE",
+      "timeout": "Pas de réponse du CPE en 10 minutes"
+    },
+    "errors": {
+      "Error_InitConnectionFailed": "le CPE n'a pas pu joindre le serveur de test (adresse ou pare-feu)",
+      "Error_NoResponse": "le serveur de test n'a pas répondu",
+      "Error_TransferFailed": "le transfert s'est interrompu",
+      "Error_IncorrectSize": "la taille du fichier ne correspond pas",
+      "Error_Timeout": "le transfert a pris trop de temps"
+    },
+    "settings": {
+      "title": "Test de débit des CPE",
+      "help": "Par défaut le CPE télécharge et envoie le fichier de test depuis NSM, à l'adresse qu'il utilise pour l'ACS sur le port HTTP 80, avec un lien valable 15 minutes pour ce seul test. Indiquez l'adresse de NSM si les CPE la joignent ailleurs (par exemple en HTTPS avec un nom DNS), ou d'autres URL pour mesurer vers un autre serveur.",
+      "server_url": "Adresse de NSM pour les CPE",
+      "server_urlPlaceholder": "vide : l'hôte de l'ACS sur le port 80",
+      "download_url": "Autre URL de téléchargement",
+      "download_urlPlaceholder": "vide : NSM",
+      "upload_url": "Autre URL d'envoi",
+      "upload_urlPlaceholder": "vide : NSM",
+      "size": "Taille du test (Mo)",
+      "save": "Enregistrer",
+      "saved": "Enregistré."
+    },
+    "short": "Le serveur n'a envoyé que {{bytes}} octets au lieu du fichier (redirection ou refus) : utilisez NSM ou un autre serveur de test."
+  },
+  "acsFirmware": {
+    "title": "Firmware",
+    "help": "Chargez l'image téléchargée depuis le site du constructeur : NSM l'enregistre dans l'ACS pour ce modèle, puis le CPE la télécharge depuis le serveur de fichiers de l'ACS, l'installe et redémarre. NSM confirme la mise à jour quand le CPE annonce la nouvelle version.",
+    "current": "Version installée",
+    "model": "Modèle (product class)",
+    "uploadTitle": "Charger une image dans l'ACS",
+    "image": "Fichier firmware (max {{max}} Mo)",
+    "version": "Version de l'image",
+    "versionPlaceholder": "comme sur le site du constructeur, ex. 1.2.0 Build 250101",
+    "upload": "Charger dans l'ACS",
+    "uploading": "Chargement…",
+    "runTitle": "Mettre à jour le CPE",
+    "noFiles": "Aucune image pour ce modèle dans l'ACS : chargez-en une ci-dessus.",
+    "file": "Image",
+    "noVersion": "version non indiquée",
+    "confirm": "Saisissez {{name}} pour confirmer",
+    "warning": "Le CPE redémarre après l'installation : la connexion du client est coupée quelques minutes. N'utilisez que des images pour ce modèle et cette version matérielle exacts.",
+    "run": "Mettre à jour le firmware",
+    "waitingContact": "il démarrera au prochain contact avec l'ACS",
+    "notExpected": "ce n'est pas la version attendue {{version}}",
+    "states": {
+      "requested": "Mise à jour demandée le {{when}} depuis {{from}}, en attente de la nouvelle version du CPE",
+      "verified": "Mis à jour le {{when}} : {{from}} → {{to}}",
+      "failed": "Le CPE a signalé une erreur le {{when}}",
+      "unconfirmed": "Mise à jour demandée mais aucune nouvelle version annoncée en 30 minutes ({{when}})"
+    },
+    "available": "Dernière disponible",
+    "noCatalog": "aucune version au catalogue pour ce modèle",
+    "catalogNewer": "La version {{version}} est plus récente que celle installée.",
+    "catalogSecurity": "La version {{version}} corrige des failles de sécurité : mise à jour conseillée.",
+    "catalogCurrent": "La version installée est la dernière du catalogue.",
+    "notes": "notes de version",
+    "catalogs": "Catalogues firmware",
+    "fetch": "Télécharger {{version}} depuis le site TP-Link dans l'ACS",
+    "fetching": "Téléchargement depuis TP-Link…",
+    "fetched": "Image chargée dans l'ACS et sélectionnée ci-dessous : confirmez la mise à jour quand vous voulez.",
+    "ready": "La version {{version}} est déjà dans l'ACS et sélectionnée ci-dessous : confirmez la mise à jour quand vous voulez."
+  },
+  "acsSyslog": {
+    "title": "Syslog via ACS (TR-069)",
+    "hint": "NSM règle le CPE pour envoyer ses journaux au récepteur NSM via GenieACS : envoi distant, adresse, port et niveau minimum uniquement.",
+    "target": "Récepteur NSM",
+    "noTarget": "indéterminable : réglez l'adresse publique dans Amministrazione → Syslog",
+    "managementIp": "Adresse d'origine des journaux",
+    "current": "Configuration",
+    "applied": "vers {{ip}}, niveau {{level}}, appliquée {{when}}",
+    "queued": "vers {{ip}}, niveau {{level}}, envoyée {{when}} : appliquée au prochain contact",
+    "never": "pas encore configurée par NSM",
+    "identification": "Les TP-Link ne prennent pas d'identifiant : NSM reconnaît leurs journaux à l'adresse de l'expéditeur, l'IP de gestion lue depuis l'ACS (mise à jour à chaque configuration).",
+    "level": "Niveau minimum",
+    "configure": "Configurer",
+    "reconfigure": "Reconfigurer",
+    "doneNow": "Réglages de journalisation appliqués sur le CPE.",
+    "doneLater": "Réglages envoyés : le CPE les applique à son prochain contact avec l'ACS.",
+    "levels": {
+      "error": "Erreur",
+      "warning": "Avertissement",
+      "notice": "Notice",
+      "info": "Information",
+      "debug": "Débogage"
+    },
+    "adminTitle": "Syslog des CPE TR-069",
+    "adminHint": "Régler tous les CPE TP-Link associés pour envoyer leurs journaux vers {{target}}:{{port}} (au prochain contact de chacun).",
+    "adminCounts": "{{configured}} CPE sur {{cpes}} envoient déjà vers cette adresse.",
+    "autoOn": "La configuration automatique est active (Amministrazione → Syslog) : les nouveaux CPE sont configurés seuls.",
+    "autoOff": "La configuration automatique est désactivée (Amministrazione → Syslog).",
+    "adminRun": "Tout configurer",
+    "adminDone": "{{queued}} envoyés, {{skipped}} déjà en place, {{failed}} non pris en charge ou en échec."
+  },
+  "lifecycleWeb": {
+    "title": "Cycle de vie depuis le web",
+    "hint": "NSM recherche les avis de fin de vente et de fin de support publiés par les fabricants pour chaque modèle de l'inventaire, via {{provider}} (qui rassemble les pages officielles MikroTik, Ubiquiti, Cambium, TP-Link et d'autres). Ce qu'il trouve est une proposition : elle n'entre au catalogue que lorsque vous l'appliquez.",
+    "disabled": "La recherche web est désactivée sur ce serveur (LIFECYCLE_WEB_LOOKUP=off).",
+    "keyed": "Recherche avec clé API : tous les modèles en une fois.",
+    "keyless": "Recherche publique sans clé : quelques modèles à la fois, le worker complète le reste automatiquement.",
+    "pending_one": "{{count}} modèle pas encore recherché.",
+    "pending_other": "{{count}} modèles pas encore recherchés.",
+    "run": "Rechercher sur le web",
+    "ran": "{{checked}} modèles recherchés : {{found}} avec avis, {{not_found}} sans avis, {{errors}} erreurs.",
+    "deferred_one": "{{count}} reporté au prochain passage (limite de requêtes).",
+    "deferred_other": "{{count}} reportés au prochain passage (limite de requêtes).",
+    "applyExact_one": "Appliquer {{count}} correspondance exacte",
+    "applyExact_other": "Appliquer {{count}} correspondances exactes",
+    "appliedAll": "{{applied}} appliquées au catalogue, {{skipped}} ignorées.",
+    "empty": "Aucun modèle recherché : cliquez sur « Rechercher sur le web ».",
+    "columns": {
+      "model": "Modèle en inventaire",
+      "found": "Trouvé sur le web",
+      "dates": "Dates publiées",
+      "source": "Source",
+      "action": "Action"
+    },
+    "vendorStatus": {
+      "discontinued": "Plus fabriqué",
+      "vintage": "Vintage",
+      "legacy": "Legacy",
+      "end_of_sale": "Fin de vente",
+      "end_of_life": "Fin de vie",
+      "supported": "Pris en charge",
+      "aging": "Fin du support sous 24 mois",
+      "approaching_eol": "Fin du support sous 12 mois",
+      "announced": "Fin de vie annoncée",
+      "unknown": "Non indiqué"
+    },
+    "confidence": {
+      "exact": "Correspondance exacte",
+      "prefix": "Correspondance partielle : à vérifier",
+      "family": "Même famille : à vérifier",
+      "search": "Résultat de recherche : à vérifier"
+    },
+    "devices_one": "{{count}} équipement",
+    "devices_other": "{{count}} équipements",
+    "searchedAs": "recherché comme « {{name}} »",
+    "others_one": "{{count}} autre résultat",
+    "others_other": "{{count}} autres résultats",
+    "replacement": "Successeur : {{name}}",
+    "notFound": "Aucun avis de fin de vie publié",
+    "error": "Recherche échouée ({{error}})",
+    "notChecked": "Pas encore recherché",
+    "checked": "vérifié le {{when}}",
+    "endOfSale": "Fin de vente",
+    "endOfUpdates": "Fin des mises à jour/du support",
+    "unpublished": "non publiée",
+    "readAt": "source lue le {{when}}",
+    "applied": "Appliqué au catalogue le {{when}}",
+    "inCatalog": "Déjà au catalogue ({{source}})",
+    "apply": "Appliquer au catalogue",
+    "applyThis": "Appliquer {{name}}",
+    "otherName": "Rechercher sous un autre nom",
+    "otherNamePlaceholder": "ex. le code sur l'étiquette (LBE-5AC-16-120)",
+    "search": "Rechercher"
+  },
+  "acsMigration": {
+    "subtitle": "Migrer en masse les CPE des clients vers l'ACS intégré en reconfigurant le CWMP sur le réseau de gestion.",
+    "backToAcs": "Retour à ACS",
+    "intro": "Indiquez le sous-réseau de gestion de vos routeurs, le port et les identifiants communs de la flotte : NSM atteint chaque équipement et définit l'URL ACS cible. Lancez d'abord une simulation pour voir quels CPE sont joignables.",
+    "applyPending": "La réécriture CWMP via l'interface web TP-Link est en validation sur le terrain pour ce firmware : seule la simulation d'inventaire est disponible pour l'instant.",
+    "formTitle": "Nouvelle migration",
+    "formHelp": "Sous-réseaux IPv4 uniquement, au plus {{max}} adresses par exécution. Les adresses .0 et .255 et le serveur ACS sont ignorés.",
+    "credentialsHelp": "Les identifiants ne servent que pendant l'exécution et ne sont jamais stockés. Une simulation n'en a pas besoin : aucun identifiant n'est envoyé aux équipements.",
+    "dryRun": "Simulation (inventaire)",
+    "apply": "Appliquer la migration",
+    "recentTitle": "Exécutions récentes",
+    "noRuns": "Aucune exécution pour l'instant.",
+    "runTitle": "Exécution · {{subnet}}",
+    "cancel": "Arrêter",
+    "progress": "Progression",
+    "fields": {
+      "subnet": "Sous-réseau de gestion (CIDR)",
+      "port": "Port de gestion",
+      "informInterval": "Intervalle d'inform (secondes)",
+      "targetAcsUrl": "URL ACS cible (CWMP)",
+      "username": "Utilisateur des routeurs",
+      "password": "Mot de passe des routeurs"
+    },
+    "cols": {
+      "when": "Quand",
+      "subnet": "Sous-réseau",
+      "mode": "Mode",
+      "status": "État",
+      "found": "CPE trouvés",
+      "changed": "Configurés"
+    },
+    "hostCols": {
+      "address": "Adresse",
+      "status": "Résultat",
+      "model": "Modèle",
+      "firmware": "Firmware",
+      "detail": "Détail"
+    },
+    "mode": {
+      "dry": "Simulation",
+      "apply": "Appliquée"
+    },
+    "runStatus": {
+      "pending": "En attente",
+      "running": "En cours",
+      "done": "Terminée",
+      "failed": "Échouée",
+      "cancelled": "Arrêtée"
+    },
+    "hostStatus": {
+      "pending": "En attente",
+      "unreachable": "Injoignable",
+      "not_cpe": "Pas un CPE",
+      "auth_failed": "Identifiants refusés",
+      "already_target": "Déjà sur l'ACS",
+      "configured": "Configuré",
+      "error": "Erreur",
+      "skipped": "Ignoré"
+    },
+    "counters": {
+      "processed": "Traités",
+      "reachable": "Joignables",
+      "configured": "Configurés",
+      "failed": "Échoués"
+    }
+  },
+  "acsAlerts": {
+    "title": "Alertes des CPE",
+    "help": "NSM ouvre un ticket dans le Centre d'actions, avec une notification, quand un CPE TR-069 ne contacte plus l'ACS, que sa WAN est coupée, que la WAN se reconnecte ou que le CPE redémarre trop souvent, ou que la ligne DSL se dégrade. Les tickets se ferment seuls quand le problème cesse. 0 désactive un seuil.",
+    "fields": {
+      "enabled": "Alertes des CPE TR-069 actives",
+      "offline": "CPE qui ne contacte plus l'ACS (trois Inform périodiques manqués)",
+      "wan_down": "WAN coupée alors que le CPE contacte encore l'ACS (ligne de secours ou réseau de gestion)",
+      "reconnects_per_hour": "Reconnexions WAN par heure",
+      "reboots_per_day": "Redémarrages du CPE en 24 heures",
+      "snr_min_db": "Marge SNR DSL minimale (dB)",
+      "dsl_rate_drop_percent": "Baisse du débit DSL descendant par rapport à la médiane sur 7 jours (%)"
+    },
+    "save": "Enregistrer",
+    "saved": "Enregistré."
+  },
+  "acsFirmwareAuto": {
+    "title": "Téléchargement automatique des firmwares",
+    "help": "Quand TP-Link publie un firmware plus récent pour un modèle et une version matérielle que vous avez, NSM télécharge l'archive officielle depuis le site italien et charge l'image dans l'ACS, une fois par version. Rien n'est installé : chaque mise à jour reste à confirmer dans l'onglet Firmware de l'équipement.",
+    "enabled": "Télécharger automatiquement dans l'ACS les firmwares TP-Link plus récents",
+    "fetched_one": "{{count}} version téléchargée jusqu'ici.",
+    "fetched_other": "{{count}} versions téléchargées jusqu'ici."
+  },
+  "acsPortMapping": {
+    "title": "Redirection de ports, DMZ et UPnP",
+    "help": "Ce que le CPE expose vers Internet, tel que l'ACS l'a lu la dernière fois (chaque heure). Surveillance seule : rien n'est modifié depuis NSM. Chaque changement est enregistré dans l'activité de l'équipement.",
+    "reread": "Relire depuis le CPE",
+    "rereadStarted": "L'ACS relit le CPE : les valeurs se mettent à jour à la prochaine lecture (environ 2 minutes).",
+    "rereadQueued": "Le CPE n'a pas accepté la demande de connexion : il sera lu au prochain contact.",
+    "notRead": "L'ACS n'a pas encore lu le NAT de ce CPE : utilisez Relire depuis le CPE.",
+    "forwards": "Redirections actives",
+    "on": "Actif",
+    "off": "Inactif",
+    "notReported": "non indiqué par le CPE",
+    "upnpHint": "les appareils du LAN peuvent ouvrir des ports eux-mêmes",
+    "dmzWarning": "DMZ active : tout port non redirigé ailleurs atteint {{host}} depuis Internet.",
+    "none": "Aucune redirection de port configurée.",
+    "protocol": "Protocole",
+    "external": "Port externe",
+    "internal": "Vers",
+    "from": "Depuis",
+    "description": "Description",
+    "any": "toutes",
+    "anywhere": "partout"
+  },
+  "ispbillingLinks": {
+    "title": "Équipements à affecter depuis ISPBilling",
+    "help": "Pour chaque compte RADIUS, NSM trouve l'équipement (utilisateur PPPoE d'un MikroTik ou d'un CPE TR-069, IP statique, caller-id ou adresse de la session PPP sur un concentrateur dans NSM) et compare client et site avec ISPBilling. Rien ne change sans confirmation d'un opérateur ; un équipement d'un autre client n'est jamais déplacé seul.",
+    "counts": {
+      "site": "Site à définir",
+      "conflict": "Autre client, à vérifier",
+      "not_imported": "Client non importé",
+      "linked": "Déjà alignés"
+    },
+    "empty": "Rien à confirmer.",
+    "device": "Équipement",
+    "account": "Compte ISPBilling",
+    "now": "Actuellement dans NSM",
+    "ispbilling": "Dans ISPBilling",
+    "applySite": "Définir le site",
+    "check": "Vérifier",
+    "proposeSite": "ISPBilling installe ce compte à {{site}}.",
+    "conflict": "ISPBilling facture ce compte à {{customer}} : dans NSM l'équipement appartient à un autre client.",
+    "reassignAsk": "Réaffecter…",
+    "reassignConfirm": "Déplacer l'équipement vers {{customer}} ?",
+    "reassign": "Déplacer",
+    "dismiss": "Ignorer",
+    "notImported": "Le client ISPBilling de ce compte n'est pas encore dans NSM.",
+    "import": "L'importer"
   }
 }

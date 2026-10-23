@@ -122,6 +122,7 @@ class Index:
     strict_shared: set = field(default_factory=set)   # addresses used by at least one strict device
     networks: list = field(default_factory=list)
     retired: set = field(default_factory=set)         # keys of decommissioned devices: their lines are dropped
+    by_address: dict = field(default_factory=dict)    # ip -> device_id: TR-069 CPEs NSM pointed at itself (no key possible)
     devices: int = 0
 
 
@@ -130,6 +131,7 @@ def build_index(db, settings: dict, now=None) -> Index:
     index = Index(networks=parse_networks(settings.get("allowed_networks")))
     strict_mode = settings.get("strict_mode", True)
     weak: dict = {}
+    keyless: dict = {}
     for device in db.scalars(select(Device).execution_options(include_decommissioned=True)):
         data = device.inventory_data or {}
         key = data.get("syslog_key")
@@ -151,6 +153,8 @@ def build_index(db, settings: dict, now=None) -> Index:
         if fresh:
             strong.append(data.get("last_source_ip"))
         entry = (device.id, names_of(device))
+        if device.management_source == "tr069" and device.management_ip and ((data.get("tr069") or {}).get("syslog") or {}).get("server_ip"):
+            keyless.setdefault(_norm(device.management_ip), set()).add(device.id)
         for ip in strong:
             norm = _norm(ip)
             if not norm:
@@ -174,6 +178,10 @@ def build_index(db, settings: dict, now=None) -> Index:
             index.candidates[ip] = entries
     # Addresses of strict devices: a keyless line from there is spoofing or a misconfiguration.
     index.strict_ips = {ip for ip in index.known_ips if not index.candidates.get(ip)}
+    # TR-069 CPEs cannot add a key (TP-Link): their address identifies them, only when no other device uses it.
+    for ip, ids in keyless.items():
+        if ip and len(ids) == 1 and ip not in index.strict_shared and len(index.candidates.get(ip) or []) <= 1:
+            index.by_address[ip] = next(iter(ids))
     return index
 
 
@@ -191,13 +199,16 @@ def resolve(index: Index, source_ip: str, key: str | None, hostname: str | None)
     """(device_id, None) when certain, else (None, reject reason).
 
     Key only (operator decision 2026-10-09): a line is accepted only when it carries
-    the key of a known device; lines without a key are always discarded.
+    the key of a known device; lines without a key are discarded, except from the address
+    of a TR-069 CPE that NSM itself set to send syslog (TP-Link takes no key; ``Index.by_address``).
     """
     if key:
         device_id = index.keys.get(key)
         if device_id:
             return device_id, None
         return None, "decommissioned" if key in index.retired else "unknown_key"
+    if source_ip in index.by_address:
+        return index.by_address[source_ip], None
     return None, "missing_key"
 
 
