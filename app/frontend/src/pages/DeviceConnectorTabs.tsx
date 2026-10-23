@@ -11,6 +11,7 @@ import { AcsDiagnostics } from "../app/AcsDiagnostics";
 import { AcsSpeedtest } from "../app/AcsSpeedtest";
 import { AcsWifi } from "../app/AcsWifi";
 import { AcsSnapshot } from "../app/AcsSnapshot";
+import { AcsPortMapping } from "../app/AcsPortMapping";
 import { AcsMonitor } from "../app/AcsMonitor";
 import { TplinkAccess } from "../app/TplinkAccess";
 import { TplinkSettings } from "../app/TplinkSettings";
@@ -145,6 +146,7 @@ export function DeviceGenieacs() {
       {record.external_id && enabled && <AcsSpeedtest deviceId={deviceId} />}
       {record.external_id && enabled && <AcsWifi deviceId={deviceId} deviceName={record.name} />}
       {record.external_id && enabled && <AcsSnapshot deviceId={deviceId} />}
+      {record.external_id && <AcsPortMapping deviceId={deviceId} />}
       {record.external_id && enabled && <TplinkAccess deviceId={deviceId} />}
       {record.external_id && enabled && <TplinkSettings deviceId={deviceId} />}
       <section className="ui-panel ui-admin-section">

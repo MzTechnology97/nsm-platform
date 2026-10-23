@@ -19,6 +19,7 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import func, select
 
+from app import acs_port_mapping
 from app import genieacs_connector as acs
 from app.acs_models import AcsMetricSample
 from app.db import SessionLocal
@@ -53,6 +54,7 @@ PROJECTION = (
     "Device.Hosts.HostNumberOfEntries", "Device.DSL.Line", "Device.DSL.Channel",
     "InternetGatewayDevice.DeviceInfo.UpTime", "InternetGatewayDevice.ManagementServer.PeriodicInformInterval",
     "InternetGatewayDevice.ManagementServer.ConnectionRequestURL", "InternetGatewayDevice.WANDevice", "InternetGatewayDevice.LANDevice",
+    *acs_port_mapping.PROJECTION,
 )
 
 _last_run = 0.0
@@ -151,6 +153,8 @@ def _tr181(root: dict, cr_host: str | None) -> dict:
             "connected_for": connected_for or None,
             "last_error": (_value(ppp, "LastConnectionError") if ppp else None),
             "up": _up(_value(ppp, "ConnectionStatus") if ppp else _value(node, "Status")),
+            # PPPoE username the CPE logs in with: matched to the ISPBilling RADIUS account (ispbilling_radius).
+            "username": (str(_value(ppp, "Username") or "").strip() or None) if ppp else None,
         }
         state["counters"] = {"rx": _int(_value(node, "Stats", "BytesReceived")), "tx": _int(_value(node, "Stats", "BytesSent"))}
     # Wi-Fi: clients per radio through AccessPoint → SSID → Radio.
@@ -214,7 +218,8 @@ def _tr098(root: dict, cr_host: str | None) -> dict:
         node = wan["node"]
         state["wan"] = {"status": wan["status"], "type": "PPPoE" if wan["kind"] == "WANPPPConnection" else (_value(node, "AddressingType") or "IP"),
                         "ip": wan["ip"], "connected_for": _int(_value(node, "Uptime")), "last_error": _value(node, "LastConnectionError"),
-                        "up": _up(wan["status"])}
+                        "up": _up(wan["status"]),
+                        "username": (str(_value(node, "Username") or "").strip() or None) if wan["kind"] == "WANPPPConnection" else None}
         common = _value_obj(root, "WANDevice", wan["wan"], "WANCommonInterfaceConfig") or {}
         state["counters"] = {"rx": _int(_value(common, "TotalBytesReceived")), "tx": _int(_value(common, "TotalBytesSent"))}
     radios, hosts, clients = [], None, None
@@ -265,6 +270,7 @@ def read_state(row: dict) -> dict:
     last_boot = _parse_time(row.get("_lastBoot"))
     state["last_inform"] = last_inform.isoformat() if last_inform else None
     state["last_boot"] = last_boot.isoformat() if last_boot else None
+    state["nat"] = acs_port_mapping.parse(row)
     return state
 
 
@@ -297,6 +303,10 @@ def apply_state(db, device: Device, state: dict, now: datetime) -> bool:
     data = dict(device.inventory_data or {})
     tr = dict(data.get("tr069") or {})
     previous = tr.get("monitor") if isinstance(tr.get("monitor"), dict) else None
+    if state.get("nat") is None:
+        state["nat"] = (previous or {}).get("nat")  # not read this time: keep the last one
+    else:
+        acs_port_mapping.record(db, device, (previous or {}).get("nat"), state["nat"])
     last_inform = _parse_time(state.get("last_inform"))
     added = False
     if last_inform is not None:
