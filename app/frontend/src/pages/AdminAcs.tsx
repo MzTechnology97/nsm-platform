@@ -4,6 +4,9 @@ import { Trans, useTranslation } from "react-i18next";
 import { useAcsAdmin, useAcsTemplates } from "../api/admin";
 import { ApiError } from "../api/client";
 import { AdminTabs } from "../app/AdminTabs";
+import { AcsSpeedtestSettings } from "../app/AcsSpeedtestSettings";
+import { AcsAlertSettings } from "../app/AcsAlertSettings";
+import { AcsFirmwareAutoSettings } from "../app/AcsFirmwareAutoSettings";
 import { Loading } from "../app/States";
 import { formatDateTime } from "../lib/format";
 
@@ -73,6 +76,12 @@ export function AdminAcs() {
               <li>{t("acs.security.network")}</li>
             </ul>
           </section>
+
+          <AcsSpeedtestSettings />
+
+          <AcsAlertSettings />
+
+          <AcsFirmwareAutoSettings />
 
           <section className="ui-panel ui-admin-section" id="templates">
             <div className="ui-page-header-row">
