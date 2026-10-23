@@ -425,8 +425,8 @@ A port/service scanner run from the NSM server against the WAN address of each m
 - the state is recomputed every cycle from the inventory. A reboot, a PPPoE/WAN reconnection, a new public address (dynamic IP), a NAT ↔ public switch or a configuration change triggers a new check, besides the daily one. A device with several connections is public when any of them is.
 
 Next steps (decided with the user):
-- **0.49.289 — configurable external probe**: a small NSM probe service (container) installed on a host outside the operator network (any VPS). NSM sends it signed, rate-limited requests limited to the inventory's public addresses and the planned ports, and stores which vantage point answered.
-- **0.49.290 — third-party data**: optional Shodan / Censys API keys (what Internet scanners saw, with their date), shown next to NSM's own result and never used as sole proof.
+- **0.49.291 — configurable external probe**: a small NSM probe service (container) installed on a host outside the operator network (any VPS). NSM sends it signed, rate-limited requests limited to the inventory's public addresses and the planned ports, and stores which vantage point answered.
+- **0.49.292 — third-party data**: optional Shodan / Censys API keys (what Internet scanners saw, with their date), shown next to NSM's own result and never used as sole proof.
 - When neither is configured NSM keeps probing from its own server, and says so: from inside the network the operator's border filters are not visible.
 
 ### SCAN-03 — extended port scanner for ISP/WISP networks (requested 2026-10-23)
