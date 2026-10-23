@@ -5479,7 +5479,10 @@
     "ZABBIX_HOST_IP_UPDATED": "IP de l'hôte Zabbix mise à jour",
     "ZABBIX_HOST_LINKED": "Équipement lié à un hôte Zabbix existant",
     "ZABBIX_SETTINGS_CHANGED": "Paramètres Zabbix modifiés",
-    "ZABBIX_SYNC_REQUESTED": "Synchronisation Zabbix demandée"
+    "ZABBIX_SYNC_REQUESTED": "Synchronisation Zabbix demandée",
+    "ACS_CONFIG_RESTORE_REQUESTED": "Restauration de la configuration du CPE demandée",
+    "ACS_CONFIG_RESTORE_VERIFIED": "Restauration de la configuration du CPE vérifiée",
+    "ACS_CONFIG_RESTORE_FAILED": "Restauration de la configuration du CPE échouée"
   },
   "eventSources": {
     "portal": "interface",
@@ -6331,7 +6334,8 @@
       "no_standard": "Aucun paramètre standard dans ce modèle de données.",
       "no_upload_task": "GenieACS n'a pas de tâche Upload : le fichier de configuration du fabricant ne peut pas être téléchargé. NSM archive les paramètres.",
       "snapshots": "{{count}} instantanés de paramètres archivés.",
-      "no_snapshot": "Aucun instantané : créez-en un depuis la section Instantané."
+      "no_snapshot": "Aucun instantané : créez-en un depuis la section Instantané.",
+      "restore_preview": "Depuis la page de l'instantané : aperçu des différences et confirmation."
     },
     "caps": {
       "identity": "Identité et firmware",
@@ -6352,9 +6356,37 @@
       "reboot": "Redémarrage",
       "inform_interval": "Intervalle d'Inform",
       "config_snapshot": "Instantané de la configuration",
-      "config_file": "Fichier de configuration du fabricant"
+      "config_file": "Fichier de configuration du fabricant",
+      "config_restore": "Restauration depuis un instantané"
     },
     "writesYes": "oui, sur demande",
     "writesNo": "non"
+  },
+  "acsRestore": {
+    "title": "Restaurer sur le CPE",
+    "intro": "Remettez sur le CPE certains paramètres de cet instantané : voyez d'abord ce qui changerait, puis choisissez ce qu'il faut restaurer.",
+    "prepare": "Préparer la restauration",
+    "help": "Seuls les paramètres modifiables dont la valeur actuelle (lue maintenant depuis l'ACS) diffère de l'instantané. Exclus : mots de passe et clés (absents des instantanés), valeurs qui changent seules, le lien avec l'ACS (ManagementServer) et les paramètres qui lancent des actions (diagnostics, mises à jour, réinitialisations). NSM envoie une seule commande setParameterValues, puis relit les paramètres sur le CPE.",
+    "skipped": "Déjà identiques : {{unchanged}} · absents du CPE : {{missing}} · non modifiables : {{not_writable}} · exclus : {{excluded}} · non convertibles : {{invalid}}.",
+    "nothing": "Rien à restaurer : le CPE a déjà les valeurs de l'instantané.",
+    "all": "Tout sélectionner",
+    "columns": {
+      "path": "Paramètre",
+      "current": "Valeur actuelle",
+      "snapshot": "Valeur dans l'instantané"
+    },
+    "confirm": "Saisissez « {{name}} » pour restaurer {{count}} paramètres",
+    "run": "Restaurer {{count}} paramètres",
+    "noPermission": "La restauration nécessite le droit de modifier les équipements.",
+    "queued": "Le CPE n'a pas répondu à la demande de connexion : la commande partira au prochain contact.",
+    "states": {
+      "requested": "Restauration de {{count}} paramètres envoyée à GenieACS ({{when}}) : en attente de l'exécution par le CPE.",
+      "verifying": "Paramètres écrits : NSM les relit sur le CPE pour les vérifier.",
+      "verified": "Restauration vérifiée ({{when}}) : le CPE indique les {{count}} valeurs de l'instantané.",
+      "mismatch": "Restauration effectuée, mais le CPE indique d'autres valeurs pour ces paramètres ({{when}}) :",
+      "failed": "Le CPE a refusé la restauration (erreur {{fault}}). La commande a été supprimée de GenieACS avec son erreur : la file du CPE n'est pas bloquée.",
+      "unverified": "Paramètres écrits, mais la relecture sur le CPE a échoué (erreur {{fault}}).",
+      "unconfirmed": "Le CPE n'a pas exécuté la restauration dans les 30 minutes : la commande a été supprimée de GenieACS."
+    }
   }
 }

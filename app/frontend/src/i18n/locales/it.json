@@ -5479,7 +5479,10 @@
     "ZABBIX_HOST_IP_UPDATED": "IP dell'host Zabbix aggiornato",
     "ZABBIX_HOST_LINKED": "Apparato collegato a un host Zabbix esistente",
     "ZABBIX_SETTINGS_CHANGED": "Impostazioni Zabbix modificate",
-    "ZABBIX_SYNC_REQUESTED": "Sincronizzazione Zabbix richiesta"
+    "ZABBIX_SYNC_REQUESTED": "Sincronizzazione Zabbix richiesta",
+    "ACS_CONFIG_RESTORE_REQUESTED": "Ripristino della configurazione del CPE richiesto",
+    "ACS_CONFIG_RESTORE_VERIFIED": "Ripristino della configurazione del CPE verificato",
+    "ACS_CONFIG_RESTORE_FAILED": "Ripristino della configurazione del CPE non riuscito"
   },
   "eventSources": {
     "portal": "interfaccia",
@@ -6331,7 +6334,8 @@
       "no_standard": "Nessun parametro standard in questo modello dati.",
       "no_upload_task": "GenieACS non ha il task Upload: il file di configurazione del produttore non si può scaricare. NSM archivia i parametri.",
       "snapshots": "{{count}} istantanee dei parametri archiviate.",
-      "no_snapshot": "Nessuna istantanea ancora: si crea dalla sezione Istantanea."
+      "no_snapshot": "Nessuna istantanea ancora: si crea dalla sezione Istantanea.",
+      "restore_preview": "Dalla pagina dell'istantanea: anteprima delle differenze e conferma."
     },
     "caps": {
       "identity": "Identità e firmware",
@@ -6352,9 +6356,37 @@
       "reboot": "Riavvio",
       "inform_interval": "Intervallo di Inform",
       "config_snapshot": "Istantanea della configurazione",
-      "config_file": "File di configurazione del produttore"
+      "config_file": "File di configurazione del produttore",
+      "config_restore": "Ripristino da istantanea"
     },
     "writesYes": "sì, su richiesta",
     "writesNo": "no"
+  },
+  "acsRestore": {
+    "title": "Ripristina sul CPE",
+    "intro": "Riporta sul CPE alcuni parametri di questa istantanea: prima vedi cosa cambierebbe, poi scegli tu cosa ripristinare.",
+    "prepare": "Prepara il ripristino",
+    "help": "Elenco dei soli parametri scrivibili il cui valore attuale (letto ora dall'ACS) è diverso dall'istantanea. Esclusi password e chiavi (non sono nelle istantanee), valori che cambiano da soli, il collegamento all'ACS (ManagementServer) e i parametri che avviano azioni (diagnostica, aggiornamenti, reset). NSM invia un solo comando setParameterValues e poi rilegge i parametri dal CPE.",
+    "skipped": "Già uguali: {{unchanged}} · non più presenti sul CPE: {{missing}} · non scrivibili: {{not_writable}} · esclusi: {{excluded}} · non convertibili: {{invalid}}.",
+    "nothing": "Nessun parametro da ripristinare: il CPE ha già i valori dell'istantanea.",
+    "all": "Seleziona tutti",
+    "columns": {
+      "path": "Parametro",
+      "current": "Valore attuale",
+      "snapshot": "Valore nell'istantanea"
+    },
+    "confirm": "Scrivi «{{name}}» per ripristinare {{count}} parametri",
+    "run": "Ripristina {{count}} parametri",
+    "noPermission": "Il ripristino richiede il permesso di modificare gli apparati.",
+    "queued": "Il CPE non ha risposto alla richiesta di connessione: il comando parte al prossimo contatto.",
+    "states": {
+      "requested": "Ripristino di {{count}} parametri inviato a GenieACS ({{when}}): in attesa che il CPE lo esegua.",
+      "verifying": "Parametri scritti: NSM li sta rileggendo dal CPE per verificarli.",
+      "verified": "Ripristino verificato ({{when}}): il CPE riporta i {{count}} valori dell'istantanea.",
+      "mismatch": "Ripristino eseguito, ma il CPE riporta valori diversi per questi parametri ({{when}}):",
+      "failed": "Il CPE ha rifiutato il ripristino (errore {{fault}}). Il comando è stato cancellato da GenieACS insieme all'errore: la coda del CPE non è bloccata.",
+      "unverified": "Parametri scritti, ma la rilettura dal CPE non è riuscita (errore {{fault}}).",
+      "unconfirmed": "Il CPE non ha eseguito il ripristino entro 30 minuti: il comando è stato cancellato da GenieACS."
+    }
   }
 }
