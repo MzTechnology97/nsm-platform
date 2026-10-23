@@ -17,12 +17,16 @@
 """
 from __future__ import annotations
 
+import os
 import uuid
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
+from app import pagination
 from app import agent_fleet
 from app import backup_workspace_capabilities as backup_overview
 from app import firmware_suggestions as suggestions_view
@@ -72,8 +76,9 @@ def monitoring_row(row: dict) -> dict:
 
 
 @router.get("/monitoring")
-def monitoring(request: Request, state: str = "attention", customer: str = "", vendor: str = ""):
+def monitoring(request: Request, state: str = "attention", customer: str = "", vendor: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
+        offset, size = pagination.window(offset, limit, MONITORING_LIMIT)
         user = ui_user(request, db, "monitoring.read")
         state = state if state in MONITORING_STATES else "attention"
         customer_id = _uuid(customer)
@@ -84,8 +89,8 @@ def monitoring(request: Request, state: str = "attention", customer: str = "", v
             rows = [row for row in rows if state in row["flags"]]
         rows.sort(key=lambda row: (-len(row["flags"]), row["device"].status != "offline", -(row["cpu"] or 0)))
         return {
-            "state": state, "total": len(rows), "limit": MONITORING_LIMIT,
-            "items": [monitoring_row(row) for row in rows[:MONITORING_LIMIT]],
+            "state": state, "total": len(rows), "offset": offset, "limit": size,
+            "items": [monitoring_row(row) for row in rows[offset:offset + size]],
             "counts": counts,
             "thresholds": {"cpu": fleet.HIGH_CPU, "memory": fleet.LOW_MEMORY_PERCENT, "loss": fleet.HIGH_LOSS_PERCENT,
                            "stale_minutes": int(fleet.STALE_AGENT_AFTER.total_seconds() // 60)},
@@ -130,8 +135,9 @@ def agent_row(row: dict) -> dict:
 
 
 @router.get("/agents")
-def agents(request: Request, q: str = "", customer: str = "", state: str = "attention", transport: str = "", install: str = ""):
+def agents(request: Request, q: str = "", customer: str = "", state: str = "attention", transport: str = "", install: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
+        offset, size = pagination.window(offset, limit, AGENT_LIMIT)
         ui_user(request, db, "devices.read")
         state = state if state in agent_fleet.STATES else "attention"
         transport = transport if transport in ("legacy", "modern", "unknown") else ""
@@ -142,8 +148,8 @@ def agents(request: Request, q: str = "", customer: str = "", state: str = "atte
         summary["outdated"] = sum(1 for row in scope_rows if row["credential_active"] and (row.get("agent_update") or {}).get("outdated"))
         summary.update({key: sum(1 for row in scope_rows if agent_fleet._matches_health(row, key))
                         for key in ("offline", "stale", "no_credential", "unknown_transport")})
-        return {"state": state, "total": len(rows), "limit": AGENT_LIMIT, "summary": summary,
-                "items": [agent_row(row) for row in rows[:AGENT_LIMIT]]}
+        return {"state": state, "total": len(rows), "offset": offset, "limit": size, "summary": summary,
+                "items": [agent_row(row) for row in rows[offset:offset + size]]}
 
 
 BACKUP_LIMIT = 500
@@ -166,20 +172,21 @@ def backup_row(row: dict) -> dict:
 
 
 @router.get("/backups")
-def backups(request: Request, view: str = "attention", customer: str = "", q: str = ""):
+def backups(request: Request, view: str = "attention", customer: str = "", q: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
+        offset, size = pagination.window(offset, limit, BACKUP_LIMIT)
         user = ui_user(request, db, "backup.read")
         view = view if view in backup_overview.BACKUP_VIEWS else "attention"
         state = backup_overview.backup_overview_state(db)
         counts, rows = backup_overview.select_backup_rows(state["device_rows"], view, _uuid(customer), q[:100])
         customers = state["customer_rows"]
         return {
-            "view": view, "total": len(rows), "limit": BACKUP_LIMIT,
+            "view": view, "total": len(rows), "offset": offset, "limit": size,
             "counts": {key: counts.get(key, 0) for key in backup_overview.BACKUP_VIEWS},
             "totals": {"devices": len(state["devices"]), "protected": sum(r["protected"] for r in customers), "blocked": sum(r["blocked"] for r in customers),
                        "no_policy": sum(r["no_policy"] for r in customers), "backup_alerts": sum(r["backup_alerts"] for r in customers),
                        "active_policies": sum(1 for p in state["policies"] if p.is_enabled)},
-            "items": [backup_row(row) for row in rows[:BACKUP_LIMIT]],
+            "items": [backup_row(row) for row in rows[offset:offset + size]],
             "customers": [{"id": str(r["customer"].id), "name": r["customer"].name, "devices": r["devices"], "protected": r["protected"],
                            "blocked": r["blocked"], "no_policy": r["no_policy"], "backup_alerts": r["backup_alerts"]}
                           for r in customers if r["devices"]],
@@ -214,7 +221,7 @@ def firmware_row(device, can_execute: bool) -> dict:
 
 
 @router.get("/firmware")
-def firmware(request: Request, q: str = "", customer: str = "", vendor: str = "", state: str = "attention", offset: int = 0):
+def firmware(request: Request, q: str = "", customer: str = "", vendor: str = "", state: str = "attention", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         user = ui_user(request, db, "firmware.read")
         state = state if state in FIRMWARE_STATES else "attention"
@@ -224,12 +231,12 @@ def firmware(request: Request, q: str = "", customer: str = "", vendor: str = ""
         if state_expr is not None:
             filters.append(state_expr)
         total = int(db.scalar(select(func.count(Device.id)).where(*filters)) or 0)
-        offset = max(0, int(offset or 0))
+        offset, size = pagination.window(offset, limit, FIRMWARE_PAGE)
         devices = list(db.scalars(select(Device).where(*filters).options(selectinload(Device.customer), selectinload(Device.site))
                                   .order_by(Device.customer_id, Device.vendor, Device.display_name.nullslast(), Device.name)
-                                  .offset(offset).limit(FIRMWARE_PAGE)))
+                                  .offset(offset).limit(size)))
         can_execute = core.has_permission(user, "firmware.execute")
-        return {"state": state, "total": total, "offset": offset, "limit": FIRMWARE_PAGE,
+        return {"state": state, "total": total, "offset": offset, "limit": size,
                 "counts": firmware_worklist.state_counts(db, scope),
                 "items": [firmware_row(device, can_execute) for device in devices],
                 "links": {"catalogs": "/operations/firmware/catalogs", "suggestions": "/operations/firmware/suggestions"}}
@@ -292,8 +299,12 @@ def firmware_suggestions_apply(request: Request, body: dict = Body(default={})):
 
 
 def _release(row) -> dict:
+    from app import firmware_upload
+
+    image = firmware_upload.stored_file(row) if row.source == "operator" else None
     return {"id": str(row.id), "version": row.version, "model_pattern": row.model_pattern or None, "platform": row.platform or None,
-            "released_at": _iso(row.released_at), "source": row.source, "security": bool(row.security), "notes_url": row.notes_url, "notes": row.notes}
+            "released_at": _iso(row.released_at), "source": row.source, "security": bool(row.security), "notes_url": row.notes_url, "notes": row.notes,
+            "file": {"name": image["name"], "size": image["size"], "sha256": image["sha256"], "acs_files": image.get("acs_files") or []} if image else None}
 
 
 @router.get("/firmware/catalogs")
@@ -323,6 +334,63 @@ def firmware_catalog_add(request: Request, body: dict = Body(default={})):
         except InputError as exc:
             raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
         return {"brand": brand, "version": version, "to_update": stats["outdated"] + stats["security"]}
+
+
+@router.post("/firmware/catalogs/upload", dependencies=[Depends(require_csrf)])
+async def firmware_catalog_upload(request: Request, brand: str = Form(...), image: UploadFile = File(...), file_date: str = Form("")):
+    """Stage a vendor image and say what NSM read from its name/header; nothing is recorded until confirmation."""
+    import tempfile
+
+    from app import acs_firmware, firmware_upload
+
+    with SessionLocal() as db:
+        ui_user(request, db, "firmware.execute")
+    temp = tempfile.NamedTemporaryFile(prefix="nsm-fwup-", delete=False)
+    size = 0
+    try:
+        with temp:
+            while chunk := await image.read(1024 * 1024):
+                size += len(chunk)
+                if size > acs_firmware.MAX_IMAGE:
+                    raise HTTPException(413, {"code": "too_large", "message": f"Il file supera {acs_firmware.MAX_IMAGE // (1024 * 1024)} MB."})
+                temp.write(chunk)
+        if size < acs_firmware.MIN_IMAGE:
+            raise HTTPException(422, {"code": "too_small", "message": "Il file è troppo piccolo per essere un firmware."})
+        with SessionLocal() as db:
+            user = ui_user(request, db, "firmware.execute")
+            try:
+                return await run_in_threadpool(firmware_upload.stage, db, user, brand, image.filename or "", temp.name, file_date)
+            except InputError as exc:
+                raise HTTPException(exc.status_code if exc.status_code != 400 else 422, {"code": exc.code, "message": str(exc.detail)}) from exc
+    finally:
+        if os.path.exists(temp.name):
+            os.unlink(temp.name)
+
+
+@router.post("/firmware/catalogs/upload/{token}", dependencies=[Depends(require_csrf)])
+def firmware_catalog_upload_confirm(request: Request, token: str, body: dict = Body(default={})):
+    from app import firmware_upload
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.execute")
+        try:
+            return firmware_upload.confirm(db, user, token, body)
+        except InputError as exc:
+            raise HTTPException(exc.status_code if exc.status_code != 400 else 422, {"code": exc.code, "message": str(exc.detail)}) from exc
+
+
+@router.get("/firmware/catalogs/releases/{release_id}/file")
+def firmware_catalog_file(request: Request, release_id: uuid.UUID):
+    from app import firmware_upload
+    from app.vendor_firmware_models import VendorFirmwareRelease
+
+    with SessionLocal() as db:
+        ui_user(request, db, "firmware.read")
+        row = db.get(VendorFirmwareRelease, release_id)
+        path = firmware_upload.file_path(row) if row else None
+        if path is None:
+            raise HTTPException(404, {"code": "not_found", "message": "Nessuna immagine per questa release."})
+        return FileResponse(path, filename=path.name, media_type="application/octet-stream")
 
 
 @router.post("/firmware/catalogs/releases/{release_id}/delete", dependencies=[Depends(require_csrf)])

@@ -338,6 +338,27 @@
       "waiting": "En attente du premier échantillon.",
       "last": "Dernier ping : {{rtt}}, perte {{loss}} %.",
       "globallyOff": "La surveillance ping est désactivée pour toute la plateforme (ICMP_MONITOR)."
+    },
+    "source": {
+      "none": "Cet équipement n'a pas de source de métriques (agent NSM, ACS, UISP ou cnMaestro) : le ping depuis NSM reste disponible.",
+      "from_one": "Données de {{source}} · {{count}} échantillon",
+      "from_other": "Données de {{source}} · {{count}} échantillons",
+      "noResources": "{{source}} ne fournit ni CPU ni mémoire pour cet équipement.",
+      "noTraffic": "{{source}} ne fournit pas le trafic de cet équipement.",
+      "pingOff": "Ping depuis NSM désactivé : activez-le dans « Paramètres de supervision ».",
+      "chartsTitle": "Graphiques",
+      "chartsMoved": "Les graphiques de cet équipement sont dans l'onglet Monitor, présentés comme pour tous les équipements.",
+      "openMonitor": "Ouvrir Monitor",
+      "names": {
+        "tr069": "ACS (TR-069)",
+        "uisp": "UISP",
+        "cnmaestro": "cnMaestro"
+      },
+      "extra": {
+        "tr069": "Ligne et clients",
+        "uisp": "Radio",
+        "cnmaestro": "Radio"
+      }
     }
   },
   "syslog": {
@@ -3516,7 +3537,19 @@
     "noServices": "Aucun service détecté.",
     "pendingExternal": "Vérification en cours : le serveur NSM contrôle les ports dans la minute.",
     "pendingAgent": "Vérification en cours : l'agent enverra services et pare-feu au prochain heartbeat.",
-    "never": "Aucune vérification pour l'instant : elle démarre automatiquement quand l'équipement est connecté, ou avec « Vérifier maintenant »."
+    "never": "Aucune vérification pour l'instant : elle démarre automatiquement quand l'équipement est connecté, ou avec « Vérifier maintenant ».",
+    "acl": {
+      "column": "ACL",
+      "help": "La vérification part du serveur NSM : un service filtré par une ACL qui admet NSM (par exemple l'ACS) semble ouvert d'ici. S'il est filtré pour tous les autres, déclarez-le avec les adresses admises : il apparaîtra comme limité, avec l'auteur de la déclaration.",
+      "declare": "Filtré par ACL…",
+      "allowed": "Autorisé depuis",
+      "allowedPlaceholder": "ex. 198.51.100.0/24, NOC",
+      "note": "Note (facultative)",
+      "save": "Déclarer",
+      "remove": "Retirer la déclaration",
+      "declared": "Déclaré par {{by}} le {{when}}",
+      "uncertainHint": "ouverts vers NSM, à vérifier"
+    }
   },
   "deviceCompliance": {
     "title": "Conformité",
@@ -4793,7 +4826,31 @@
       "url": "Le lien des notes doit être une adresse http(s).",
       "date": "Date de sortie non valide.",
       "exists": "Cette version est déjà dans le catalogue.",
-      "not_operator": "Seules les versions saisies par les opérateurs peuvent être supprimées."
+      "not_operator": "Seules les versions saisies par les opérateurs peuvent être supprimées.",
+      "extension": "Téléversez l'image du fabricant (.bin, .img ou .zip).",
+      "archive": "Le .zip doit contenir une seule image (.bin/.img) : téléversez l'image directement.",
+      "expired": "Téléversement expiré : téléversez à nouveau le fichier.",
+      "too_large": "Le fichier est trop volumineux.",
+      "too_small": "Le fichier est trop petit pour être un firmware."
+    },
+    "upload": {
+      "button": "Téléverser un firmware {{label}}",
+      "reading": "Lecture du fichier…",
+      "hint": {
+        "tp-link": "Le .zip du site officiel ou son .bin, avec le nom officiel (ex. VX230v(EU1)_V1_0.19.0 Build 260323) : modèle, version matérielle, version et date en sont lus.",
+        "ubiquiti": "Le .bin airOS (ex. XC.qca956x.v8.7.25…bin, WA…, XW…, XM…) : plateforme, version et date sont lues dans le nom ou l'en-tête de l'image.",
+        "cambium": "L'image ePMP (ex. ePMP-AC-v4.8.1.img) : version depuis le nom, modèles depuis la famille (AC, AX, GPS_Synced).",
+        "other": "L'image du fabricant avec son nom officiel : la version en est lue, les modèles sont demandés."
+      },
+      "staged": "{{name}} ({{size}}) téléversé.",
+      "read": "Version lue : {{version}}.",
+      "models": "Modèles concernés par l'image",
+      "modelsHint": "Aucun sélectionné = tous les modèles de la marque.",
+      "cancel": "Annuler",
+      "for": "Modèles : {{models}}.",
+      "inAcs_one": "prête dans GenieACS pour {{count}} classe de produit",
+      "inAcs_other": "prête dans GenieACS pour {{count}} classes de produit",
+      "download": "image {{name}}"
     }
   },
   "incidentNew": {
@@ -5196,6 +5253,8 @@
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Interfaces surveillées modifiées",
     "DEVICE_VENDOR_CORRECTED": "Fabricant de l'équipement corrigé",
     "DIAGNOSTIC_EXPORTED": "Diagnostic exporté",
+    "EXPOSURE_ACL_DECLARED": "Service exposé déclaré filtré par ACL",
+    "EXPOSURE_ACL_REMOVED": "Déclaration ACL retirée",
     "EXPOSURE_CHECK_REQUESTED": "Vérification d'exposition demandée",
     "EXPOSURE_EXTERNAL_CHECK": "Vérification d'exposition externe",
     "EXPOSURE_ISSUE_OPENED": "Services exposés signalés",
@@ -5324,6 +5383,8 @@
     "SYSLOG_AGENT_CONFIG_SKIPPED": "Configuration syslog ignorée",
     "SYSLOG_CHAIN_ANCHOR": "Point de contrôle d'intégrité syslog",
     "SYSLOG_SETTINGS_CHANGED": "Paramètres syslog modifiés",
+    "UISP_AUTO_CUSTOMERS_CHANGED": "Import automatique UISP modifié",
+    "UISP_AUTO_IMPORTED": "Équipements UISP importés automatiquement",
     "UISP_BACKUP_ARCHIVED": "Sauvegarde UISP archivée",
     "UISP_BACKUP_FAILED": "Échec de la sauvegarde UISP",
     "UISP_BULK_ONBOARDING": "Import depuis UISP",
@@ -5337,6 +5398,8 @@
     "UISP_REBOOT_FAILED": "Échec du redémarrage via UISP",
     "UISP_REBOOT_REQUESTED": "Redémarrage demandé via UISP",
     "UISP_REBOOT_VERIFIED": "Redémarrage via UISP vérifié",
+    "UISP_SITE_IGNORED": "Endpoint UISP ignoré",
+    "UISP_SITE_LINKED": "Endpoint UISP lié à un client",
     "UISP_SYNC_COMPLETED": "Synchronisation UISP terminée",
     "UISP_SYNC_CONFLICT": "Conflit de synchronisation UISP",
     "UISP_SYNC_FAILED": "Échec de la synchronisation UISP",
@@ -5359,6 +5422,7 @@
     "VENDOR_FIRMWARE_RELEASE_ADDED": "Version firmware du fabricant ajoutée",
     "VENDOR_FIRMWARE_RELEASE_DELETED": "Version firmware du fabricant supprimée",
     "VULNERABILITY_STATUS_CHANGED": "Statut de la vulnérabilité modifié",
+    "ZABBIX_CUSTOMER_SCOPE_CHANGED": "Client ajouté à Zabbix ou retiré",
     "ZABBIX_DEVICE_IP_CHANGED": "IP Zabbix modifiée",
     "ZABBIX_DEVICE_SCOPE_CHANGED": "Équipement inclus ou exclu de Zabbix",
     "ZABBIX_HOST_IP_UPDATED": "IP de l'hôte Zabbix mise à jour",
@@ -5755,7 +5819,21 @@
     "fetch": "Télécharger {{version}} depuis le site TP-Link dans l'ACS",
     "fetching": "Téléchargement depuis TP-Link…",
     "fetched": "Image chargée dans l'ACS et sélectionnée ci-dessous : confirmez la mise à jour quand vous voulez.",
-    "ready": "La version {{version}} est déjà dans l'ACS et sélectionnée ci-dessous : confirmez la mise à jour quand vous voulez."
+    "ready": "La version {{version}} est déjà dans l'ACS et sélectionnée ci-dessous : confirmez la mise à jour quand vous voulez.",
+    "cloud": {
+      "title": "Mise à jour depuis le cloud TP-Link",
+      "help": "Le CPE interroge lui-même le cloud TP-Link pour un firmware plus récent, comme dans l'encadré Online Upgrade de sa page web. NSM lit sa réponse chaque jour et peut lancer la mise à jour : le CPE télécharge l'image chez TP-Link, l'installe et redémarre.",
+      "newer": "Le cloud TP-Link propose la {{version}}.",
+      "current": "Le CPE a déjà la version proposée par le cloud TP-Link.",
+      "released": "publiée le {{date}}",
+      "none": "Le CPE n'a pas encore rapporté de réponse du cloud TP-Link.",
+      "checked": "Dernière lecture depuis le CPE : {{when}}.",
+      "neverChecked": "Lu depuis le CPE une fois par jour.",
+      "check": "Vérifier maintenant",
+      "checking": "Lecture depuis le CPE…",
+      "warning": "Le CPE télécharge l'image chez TP-Link et redémarre : le client est hors ligne quelques minutes. Le firmware TP-Link ne peut en général pas être rétrogradé.",
+      "run": "Mettre à jour en {{version}} depuis le cloud TP-Link"
+    }
   },
   "acsSyslog": {
     "title": "Syslog via ACS (TR-069)",
@@ -5996,6 +6074,61 @@
     "ispbilling": "Importer depuis ISPBilling",
     "uisp": "Importer depuis UISP",
     "cnmaestro": "Importer depuis cnMaestro"
+  },
+  "pager": {
+    "label": "Pages",
+    "range": "{{from}}–{{to}} sur {{total}}",
+    "previous": "Page précédente",
+    "next": "Page suivante",
+    "size": "Lignes par page"
+  },
+  "zabbixScope": {
+    "addDevice": "Ajouter à Zabbix",
+    "removeDevice": "Retirer de Zabbix",
+    "working": "Envoi à Zabbix…",
+    "addCustomer": "Ajouter à Zabbix",
+    "removeCustomer": "Retirer de Zabbix",
+    "notIncluded": "non inclus",
+    "customerSummary": "{{inZabbix}} équipements sur {{devices}} sont dans Zabbix",
+    "confirmAdd_one": "Ajouter l'équipement de ce client à Zabbix ? Il est envoyé immédiatement.",
+    "confirmAdd_other": "Ajouter les {{count}} équipements de ce client à Zabbix ? Ils sont envoyés immédiatement.",
+    "confirmRemove_one": "Retirer l'équipement de ce client de Zabbix ? Son hôte est désactivé, pas supprimé.",
+    "confirmRemove_other": "Retirer les {{count}} équipements de ce client de Zabbix ? Leurs hôtes sont désactivés, pas supprimés.",
+    "customerDone": "Dans Zabbix : {{inZabbix}} équipements sur {{devices}} · sans adresse IP : {{noIp}}",
+    "outcome": {
+      "pushed": "Créé dans Zabbix",
+      "linked": "Lié à l'hôte déjà présent dans Zabbix",
+      "no_ip": "Sans adresse IP : définissez une IP pour Zabbix",
+      "factory_ip": "IP LAN d'usine : définissez une adresse joignable par Zabbix",
+      "pending": "En attente du prochain envoi"
+    }
+  },
+  "uispCustomers": {
+    "open": "Clients UISP → NSM",
+    "title": "Clients UISP",
+    "subtitle": "Chaque endpoint UISP (site du client) est associé au client NSM portant le même nom que son client CRM UISP ou que le site ; les autres se lient ici. Les nouveaux équipements des endpoints associés ou liés sont importés automatiquement sous ce client. Les sites d'infrastructure restent dans l'onboarding manuel.",
+    "auto": "Importer automatiquement les équipements des endpoints associés et liés",
+    "imported": "{{created}} équipements créés et {{linked}} liés pour {{customers}} clients.",
+    "states": {
+      "label": "État des endpoints",
+      "unmatched": "À vérifier",
+      "matched": "Associés par nom",
+      "linked": "Liés à la main",
+      "ignored": "Ignorés"
+    },
+    "search": "Site UISP, client CRM ou client NSM…",
+    "empty": "Rien ici.",
+    "columns": {
+      "site": "Endpoint UISP",
+      "client": "Client CRM UISP",
+      "customer": "Client NSM",
+      "devices": "Équipements dans NSM"
+    },
+    "parent": "sous {{name}}",
+    "choose": "Lier à un client…",
+    "byName": "même nom",
+    "ignore": "Ignorer",
+    "reset": "Annuler"
   },
   "tplinkAccess": {
     "title": "Accès distant et Telnet",

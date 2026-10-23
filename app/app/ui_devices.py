@@ -239,6 +239,7 @@ def list_devices(
         return {
             "total": total,
             "offset": offset,
+            "limit": limit,
             "items": [device_row(device, severe.get(device.id, 0), open_count.get(device.id, 0)) for device in rows],
             "counts": {
                 "all": _count(db, *scope),
@@ -310,7 +311,7 @@ def device_facets(request: Request):
 # Tabs of the device page: (key, condition).
 TABS = (
     ("overview", lambda d: True),
-    ("monitor", lambda d: d.vendor == "mikrotik"),
+    ("monitor", lambda d: True),  # MikroTik: agent metrics; others: their source (ACS, UISP, cnMaestro) and the ping from NSM
     ("logs", lambda d: True),
     ("exposure", lambda d: True),
     ("configuration", lambda d: d.vendor == "mikrotik"),

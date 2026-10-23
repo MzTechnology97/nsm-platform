@@ -89,7 +89,7 @@ def view(db, device, hours: int = 24) -> dict:
             "metrics_at": ((device.inventory_data or {}).get("uisp") or {}).get("metrics_at")}
 
 
-RANGES = {"24h": timedelta(hours=24), "7d": timedelta(days=7), "30d": timedelta(days=30), "90d": timedelta(days=90)}
+RANGES = {"1h": timedelta(hours=1), "24h": timedelta(hours=24), "7d": timedelta(days=7), "30d": timedelta(days=30), "90d": timedelta(days=90)}
 MAX_POINTS = 400
 # A sync gap longer than this breaks the line instead of drawing across an outage.
 GAP = timedelta(minutes=30)
