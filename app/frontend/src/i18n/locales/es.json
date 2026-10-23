@@ -2918,7 +2918,8 @@
     "skipped_one": "{{count}} omitido por haber cambiado en UISP o estar ya presente: {{names}}.",
     "skipped_other": "{{count}} omitidos por haber cambiado en UISP o estar ya presentes: {{names}}.",
     "openCustomer": "Abrir el cliente",
-    "again": "Nueva alta"
+    "again": "Nueva alta",
+    "customerSearch": "Buscar un cliente…"
   },
   "dashboard": {
     "title": "Panel",
@@ -3370,7 +3371,8 @@
       "not_owned": "Uno o más equipos ya no pertenecen al cliente: recarga la página.",
       "confirm_count": "El número de confirmación no coincide.",
       "action_invalid": "Acción no válida."
-    }
+    },
+    "customerSearch": "Buscar un cliente…"
   },
   "deviceImport": {
     "open": "Importar CSV",
@@ -5195,6 +5197,8 @@
     "INCIDENT_STATUS_CHANGED": "Estado del incidente cambiado",
     "INTERFACE_ERRORS_DETECTED": "Errores de interfaz detectados",
     "INVENTORY_DISCOVERED": "Inventario detectado",
+    "ISPBILLING_AUTO_IMPORTED": "Clientes importados automáticamente desde ISPBilling",
+    "ISPBILLING_AUTO_IMPORT_CHANGED": "Importación automática de ISPBilling modificada",
     "ISPBILLING_CONFIGURED": "Conector ISPBilling configurado",
     "ISPBILLING_CUSTOMERS_IMPORTED": "Clientes importados desde ISPBilling",
     "ISPBILLING_SYNC_REQUESTED": "Lectura de ISPBilling solicitada",
@@ -5317,9 +5321,7 @@
     "ZABBIX_HOST_IP_UPDATED": "IP del host de Zabbix actualizada",
     "ZABBIX_HOST_LINKED": "Equipo vinculado a un host de Zabbix existente",
     "ZABBIX_SETTINGS_CHANGED": "Ajustes de Zabbix cambiados",
-    "ZABBIX_SYNC_REQUESTED": "Sincronización de Zabbix solicitada",
-    "ISPBILLING_AUTO_IMPORTED": "Clientes importados automáticamente desde ISPBilling",
-    "ISPBILLING_AUTO_IMPORT_CHANGED": "Importación automática de ISPBilling modificada"
+    "ZABBIX_SYNC_REQUESTED": "Sincronización de Zabbix solicitada"
   },
   "eventSources": {
     "portal": "interfaz",
@@ -5647,6 +5649,12 @@
     "saved": "Guardado: el receptor lo aplica en menos de un minuto.",
     "firewall": "Reglas de cortafuegos en el servidor",
     "firewallHelp": "Para bloquear también otros orígenes antes de NSM, ejecute ./manage.sh legacy-ftp-firewall --apply en el servidor (lo hace solo legacy-backup-enable)."
+  },
+  "searchSelect": {
+    "placeholder": "Escribe para buscar…",
+    "none": "Sin resultados.",
+    "more_one": "{{count}} más: sigue escribiendo para acotar.",
+    "more_other": "{{count}} más: sigue escribiendo para acotar."
   },
   "acsWifi": {
     "title": "Wi-Fi",

@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { ApiError } from "../api/client";
 import { BrandIcon } from "../app/BrandIcon";
@@ -67,10 +68,7 @@ export function Vulnerabilities() {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("vulns.search")} aria-label={t("vulns.search")} autoComplete="off" />
-        <select value={search.customer ?? ""} onChange={(event) => update({ customer: event.target.value || undefined })} aria-label={t("devices.customer")}>
-          <option value="">{t("devices.allCustomers")}</option>
-          {facets.data?.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
-        </select>
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
         <select value={search.vendor ?? ""} onChange={(event) => update({ vendor: event.target.value || undefined })} aria-label={t("devices.vendor")}>
           <option value="">{t("devices.allVendors")}</option>
           {first?.vendors.map((vendor) => <option key={vendor} value={vendor}>{vendor}</option>)}
@@ -222,10 +220,7 @@ function Impacted({ data, onFilter, customer, status }: { data: AdvisoryDetail; 
           <p className="ui-muted">{t("vulns.impacted.hint")}</p>
         </div>
         <div className="ui-actions">
-          <select value={customer ?? ""} onChange={(event) => onFilter({ customer: event.target.value || undefined })} aria-label={t("devices.customer")}>
-            <option value="">{t("devices.allCustomers")}</option>
-            {data.customers.map((row) => <option key={row.id} value={row.id}>{row.name} ({row.devices})</option>)}
-          </select>
+          <SearchSelect value={customer ?? ""} options={data.customers.map((row) => ({ value: row.id, label: `${customerLabel(row)} (${row.devices})` }))} onChange={(value) => onFilter({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
           <div className="ui-segmented" role="group" aria-label={t("vulns.state")}>
             {STATUSES.map((value) => (
               <button key={value} type="button" className={status === value ? "is-active" : undefined} onClick={() => onFilter({ status: value === "open" ? undefined : value })}>

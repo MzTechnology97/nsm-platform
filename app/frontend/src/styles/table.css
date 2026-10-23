@@ -88,6 +88,10 @@
   flex: 0 1 200px;
 }
 
+.ui-filter-bar .ui-search-select {
+  flex: 0 1 220px;
+}
+
 .ui-table {
   display: flex;
   flex-direction: column;

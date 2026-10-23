@@ -98,7 +98,7 @@ export function useDevices(filters: DeviceFilters) {
 }
 
 export interface Facets {
-  customers: { id: string; name: string }[];
+  customers: { id: string; name: string; code?: string | null }[];
   sites: { id: string; name: string; customer_id: string }[];
   vendors: string[];
   vendor_labels?: Record<string, string>;

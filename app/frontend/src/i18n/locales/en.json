@@ -2918,7 +2918,8 @@
     "skipped_one": "{{count}} skipped because changed in UISP or already present: {{names}}.",
     "skipped_other": "{{count}} skipped because changed in UISP or already present: {{names}}.",
     "openCustomer": "Open the customer",
-    "again": "New onboarding"
+    "again": "New onboarding",
+    "customerSearch": "Search a customer…"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -3370,7 +3371,8 @@
       "not_owned": "One or more devices no longer belong to the customer: reload the page.",
       "confirm_count": "The confirmation number does not match.",
       "action_invalid": "Invalid action."
-    }
+    },
+    "customerSearch": "Search a customer…"
   },
   "deviceImport": {
     "open": "Import CSV",
@@ -5195,6 +5197,8 @@
     "INCIDENT_STATUS_CHANGED": "Incident status changed",
     "INTERFACE_ERRORS_DETECTED": "Interface errors detected",
     "INVENTORY_DISCOVERED": "Inventory read",
+    "ISPBILLING_AUTO_IMPORTED": "Customers imported automatically from ISPBilling",
+    "ISPBILLING_AUTO_IMPORT_CHANGED": "ISPBilling automatic import changed",
     "ISPBILLING_CONFIGURED": "ISPBilling connector configured",
     "ISPBILLING_CUSTOMERS_IMPORTED": "Customers imported from ISPBilling",
     "ISPBILLING_SYNC_REQUESTED": "ISPBilling read requested",
@@ -5317,9 +5321,7 @@
     "ZABBIX_HOST_IP_UPDATED": "Zabbix host IP updated",
     "ZABBIX_HOST_LINKED": "Device linked to an existing Zabbix host",
     "ZABBIX_SETTINGS_CHANGED": "Zabbix settings changed",
-    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested",
-    "ISPBILLING_AUTO_IMPORTED": "Customers imported automatically from ISPBilling",
-    "ISPBILLING_AUTO_IMPORT_CHANGED": "ISPBilling automatic import changed"
+    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested"
   },
   "eventSources": {
     "portal": "interface",
@@ -5647,6 +5649,12 @@
     "saved": "Saved: the receiver applies it within a minute.",
     "firewall": "Firewall rules on the server",
     "firewallHelp": "To block other origins before they reach NSM too, run ./manage.sh legacy-ftp-firewall --apply on the server (done automatically by legacy-backup-enable)."
+  },
+  "searchSelect": {
+    "placeholder": "Type to search…",
+    "none": "No match.",
+    "more_one": "{{count}} more: keep typing to narrow down.",
+    "more_other": "{{count}} more: keep typing to narrow down."
   },
   "acsWifi": {
     "title": "Wi-Fi",
