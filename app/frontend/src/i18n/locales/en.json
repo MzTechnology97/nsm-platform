@@ -5082,6 +5082,7 @@
     "ACS_FIRMWARE_VERIFIED": "CPE firmware upgrade verified",
     "ACS_MIGRATION_COMPLETED": "ACS migration completed",
     "ACS_MIGRATION_STARTED": "ACS migration started",
+    "ACS_PORT_MAPPING_CHANGED": "CPE port forwarding changed",
     "ACS_REBOOT_REQUESTED": "CPE reboot requested",
     "ACS_REBOOT_VERIFIED": "CPE reboot verified",
     "ACS_SNAPSHOT_ARCHIVED": "TR-069 configuration snapshot archived",
@@ -5693,5 +5694,27 @@
     },
     "save": "Save",
     "saved": "Saved."
+  },
+  "acsPortMapping": {
+    "title": "Port forwarding, DMZ and UPnP",
+    "help": "What the CPE exposes to the Internet, as the ACS last read it (every hour). Monitoring only: nothing is changed from NSM. A change is recorded in the device activity.",
+    "reread": "Read again from the CPE",
+    "rereadStarted": "The ACS is reading the CPE again: the values update at the next monitoring read (about 2 minutes).",
+    "rereadQueued": "The CPE did not accept the connection request: it will be read at its next contact.",
+    "notRead": "The ACS has not read this CPE's NAT yet: use Read again from the CPE.",
+    "forwards": "Active port forwards",
+    "on": "On",
+    "off": "Off",
+    "notReported": "not reported by the CPE",
+    "upnpHint": "devices in the LAN can open ports by themselves",
+    "dmzWarning": "DMZ on: every port not forwarded elsewhere reaches {{host}} from the Internet.",
+    "none": "No port forwarding configured.",
+    "protocol": "Protocol",
+    "external": "External port",
+    "internal": "To",
+    "from": "From",
+    "description": "Description",
+    "any": "all",
+    "anywhere": "anywhere"
   }
 }
