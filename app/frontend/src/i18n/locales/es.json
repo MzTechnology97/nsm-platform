@@ -237,6 +237,7 @@
       "notMeasuredNote": "active el ping de NSM en Monitor"
     },
     "backupNever": "nunca",
+    "backupNotAvailable": "no disponible",
     "ispbilling": {
       "title": "Cuenta ISPBilling",
       "help": "La cuenta RADIUS de ISPBilling servida por este equipo, leída de la facturación.",
@@ -246,7 +247,20 @@
         "ip": "asociada por IP estática"
       }
     },
-    "backupNotAvailable": "no disponible"
+    "pingToggle": {
+      "open": "Ping desde NSM: activar o desactivar",
+      "title": "Ping desde NSM",
+      "help": "NSM hace ping al equipo cada minuto: latencia, pérdida y cortes aparecen en Monitor y cuentan para la disponibilidad.",
+      "on": "Activado",
+      "off": "Desactivado",
+      "target": "Dirección consultada: {{target}}",
+      "noTarget": "El equipo no tiene IP de gestión: defina primero una dirección en Monitor → Impostazioni monitoraggio.",
+      "readOnly": "Para cambiarlo se necesita el permiso de edición de equipos.",
+      "savedOn": "Ping activado: el primer resultado llega en menos de un minuto.",
+      "savedOff": "Ping desactivado.",
+      "more": "Umbrales y dirección en Monitor",
+      "close": "Cerrar"
+    }
   },
   "monitor": {
     "range": "Intervalo",
@@ -2595,8 +2609,6 @@
     "preset": "Preset",
     "presetText": "condición <code>{{condition}}</code>, eventos bootstrap, boot y periodic → provision <code>{{provision}}</code>",
     "script": "Script de la provision {{name}}",
-    "migrationHint": "¿Ya gestionas una flota de CPE en un ACS en la nube (por ejemplo TAUC)?",
-    "migrationLink": "Migrar los CPE a este ACS",
     "templatesCurrent": "Las plantillas NSM están al día (instaladas el {{when}}). NSM las actualiza solo tras cada actualización.",
     "templatesPending": "Esta versión de NSM tiene plantillas más recientes que las instaladas el {{when}}: NSM las instala en 30 minutos, o pulsa Instalar.",
     "templatesAuto": "Una vez instaladas, NSM mantiene estas plantillas al día tras cada actualización.",
@@ -2606,7 +2618,9 @@
       "reads": "Lee: estado en línea/fuera de línea, último contacto, modelo, firmware, IP, CPU, memoria, tráfico WAN, clientes Wi-Fi y línea DSL.",
       "actions": "Acciones disponibles: reinicio, comprobación de firmware, diagnóstico.",
       "never": "No cambia Wi-Fi, LAN, DHCP, PPPoE ni ninguna otra configuración del router. El único ajuste que escribe es el intervalo de inform del CWMP."
-    }
+    },
+    "migrationHint": "¿Ya gestionas una flota de CPE en un ACS en la nube (por ejemplo TAUC)?",
+    "migrationLink": "Migrar los CPE a este ACS"
   },
   "demo": {
     "subtitle": "Conjunto de datos aislado para probar la interfaz y los flujos sin usar clientes reales.",
@@ -4773,8 +4787,12 @@
     "deleteConfirm": "¿Eliminar la versión {{version}} del catálogo?",
     "empty": "Ninguna versión en el catálogo {{label}}: sube la última imagen desde la página de descarga oficial.",
     "emptyUbiquiti": "No hay versiones en el catálogo {{label}}: vincula los equipos a UISP o actualiza las fuentes.",
+    "add": "Añadir una versión de {{label}}",
     "version": "Versión",
+    "models": "Modelos",
+    "modelsPlaceholder": "vacío = todos; p. ej. archer c6* o eap225",
     "released": "Fecha de publicación",
+    "notesUrl": "Notas de la versión (enlace oficial)",
     "notes": "Notas",
     "fixesSecurity": "Corrige vulnerabilidades de seguridad",
     "addSubmit": "Añadir al catálogo",
@@ -5208,6 +5226,7 @@
     "DEVICE_SNAPSHOT_BATCH_QUEUED": "Actualización de configuración en cola",
     "DEVICE_SNAPSHOT_QUEUED": "Actualización de sección en cola",
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Interfaces monitorizadas modificadas",
+    "DEVICE_VENDOR_CORRECTED": "Fabricante del dispositivo corregido",
     "DIAGNOSTIC_EXPORTED": "Diagnóstico exportado",
     "EXPOSURE_ACL_DECLARED": "Servicio expuesto declarado filtrado por ACL",
     "EXPOSURE_ACL_REMOVED": "Declaración ACL retirada",
@@ -5271,6 +5290,8 @@
     "LIFECYCLE_REMEDIATION_REOPENED": "Remediación de ciclo de vida reabierta",
     "LIFECYCLE_REPLACEMENT_PLANNED": "Sustitución planificada",
     "LIFECYCLE_STATUS_CHANGED": "Estado de ciclo de vida cambiado",
+    "LIFECYCLE_WEB_APPLIED": "Ciclo de vida de la web aplicado al catálogo",
+    "LIFECYCLE_WEB_LOOKUP": "Ciclo de vida buscado en la web",
     "MAC_DISCOVERED": "Dirección MAC detectada",
     "MAINTENANCE_WINDOW_CREATED": "Ventana de mantenimiento creada",
     "MAINTENANCE_WINDOW_DELETED": "Ventana de mantenimiento eliminada",
@@ -5407,72 +5428,6 @@
     "job": "tarea",
     "tr069": "TR-069 (ACS)",
     "acs": "ACS"
-  },
-  "acsMigration": {
-    "subtitle": "Migra en bloque los CPE de los clientes al ACS integrado reconfigurando el CWMP en la red de gestión.",
-    "backToAcs": "Volver a ACS",
-    "intro": "Indica la subred de gestión de tus routers, el puerto y las credenciales comunes de la flota: NSM llega a cada equipo y establece la URL ACS de destino. Haz primero una simulación para ver qué CPE son accesibles.",
-    "applyPending": "La reescritura CWMP mediante la interfaz web de TP-Link está en validación sobre el terreno para este firmware: por ahora solo está disponible la simulación de inventario.",
-    "formTitle": "Nueva migración",
-    "formHelp": "Solo subredes IPv4, como máximo {{max}} direcciones por ejecución. Las direcciones .0 y .255 y el servidor ACS se omiten.",
-    "credentialsHelp": "Las credenciales se usan solo durante la ejecución y nunca se guardan. Una simulación no las necesita: no se envía ninguna credencial a los equipos.",
-    "dryRun": "Simular (inventario)",
-    "apply": "Aplicar migración",
-    "recentTitle": "Ejecuciones recientes",
-    "noRuns": "Todavía no hay ejecuciones.",
-    "runTitle": "Ejecución · {{subnet}}",
-    "cancel": "Detener",
-    "progress": "Progreso",
-    "fields": {
-      "subnet": "Subred de gestión (CIDR)",
-      "port": "Puerto de gestión",
-      "informInterval": "Intervalo de inform (segundos)",
-      "targetAcsUrl": "URL ACS de destino (CWMP)",
-      "username": "Usuario de los routers",
-      "password": "Contraseña de los routers"
-    },
-    "cols": {
-      "when": "Cuándo",
-      "subnet": "Subred",
-      "mode": "Modo",
-      "status": "Estado",
-      "found": "CPE encontrados",
-      "changed": "Configurados"
-    },
-    "hostCols": {
-      "address": "Dirección",
-      "status": "Resultado",
-      "model": "Modelo",
-      "firmware": "Firmware",
-      "detail": "Detalle"
-    },
-    "mode": {
-      "dry": "Simulación",
-      "apply": "Aplicada"
-    },
-    "runStatus": {
-      "pending": "Pendiente",
-      "running": "En curso",
-      "done": "Completada",
-      "failed": "Fallida",
-      "cancelled": "Detenida"
-    },
-    "hostStatus": {
-      "pending": "Pendiente",
-      "unreachable": "Inaccesible",
-      "not_cpe": "No es un CPE",
-      "auth_failed": "Credenciales rechazadas",
-      "already_target": "Ya en el ACS",
-      "configured": "Configurado",
-      "error": "Error",
-      "skipped": "Omitido"
-    },
-    "counters": {
-      "processed": "Procesados",
-      "reachable": "Accesibles",
-      "configured": "Configurados",
-      "failed": "Fallidos"
-    }
   },
   "ispbilling": {
     "title": "ISPBilling",
@@ -5612,6 +5567,96 @@
     "dslAttenuation": "Atenuación",
     "charts": "Historial desde el ACS"
   },
+  "serverMigration": {
+    "subtitle": "Mueve NSM a un servidor con otra dirección: este servidor comunica la nueva dirección a los agentes MikroTik y a los CPE TR-069.",
+    "howTitle": "Cómo funciona",
+    "how": "Los equipos conocen NSM por su dirección. Este servidor entrega a los agentes MikroTik un script que apunta a la nueva dirección y configura la nueva URL ACS en los CPE TR-069 (la única escritura CWMP). No hay que tocar los routers.",
+    "steps": {
+      "install": "Instala en el nuevo servidor la misma versión de NSM.",
+      "create": "Crea aquí la migración con la dirección del nuevo servidor.",
+      "restore": "Haz una copia de la base de datos aquí (<code>sudo ./manage.sh backup-db</code>) y restáurala en el nuevo servidor con <code>secrets/bootstrap.env</code> y <code>.env</code> (<code>sudo ./manage.sh restore-db</code>): la copia debe hacerse después de crear la migración.",
+      "settings": "En el nuevo servidor: ACS_CWMP_URL en .env, dirección pública del syslog (Amministrazione → Syslog), ajustes del receptor FTP de copias legacy, plantillas ACS instaladas.",
+      "pilot": "Verifica el nuevo servidor, prueba un piloto en pocos equipos, confirma que llegaron y luego migra todos.",
+      "reinstall": "Los agentes que no se actualizan solos deben reinstalarse desde el nuevo servidor (pestaña Agente del equipo)."
+    },
+    "readiness": {
+      "capable": "Agentes autoactualizables",
+      "capableHint": "pasan solos al nuevo servidor",
+      "reinstall": "Agentes por reinstalar",
+      "reinstallHint": "reinstalar desde el nuevo servidor",
+      "tr069": "CPE TR-069",
+      "tr069Hint": "reciben la nueva URL ACS"
+    },
+    "createTitle": "Nueva migración",
+    "createHelp": "Dirección del nuevo servidor tal como la alcanzan los routers (http o https, sin ruta). Con https el certificado debe ser válido: los routers lo comprueban.",
+    "create": "Crear migración",
+    "fields": {
+      "agentUrl": "Dirección del nuevo servidor (agentes)",
+      "acsUrl": "Nueva URL ACS (CPE TR-069)",
+      "syslog": "Syslog hacia",
+      "created": "Creada"
+    },
+    "noSyslog": "no determinable: reconfigura el syslog desde el nuevo servidor",
+    "runningTitle": "Migración en curso",
+    "cancel": "Cancelar migración",
+    "cancelConfirm": "¿Cancelar la migración? Los envíos aún no entregados se detienen; los equipos ya movidos se quedan en el nuevo servidor.",
+    "verifyTitle": "Verificación del nuevo servidor",
+    "verifyHelp": "Este servidor comprueba que el nuevo responde y que es una restauración de esta base de datos. Repítela dentro de las 24 horas previas al inicio.",
+    "verified": "Verificado {{when}}: versión {{version}}, {{devices}} equipos.",
+    "verify": "Verificar",
+    "pilotTitle": "Piloto",
+    "pilotHelp": "Elige hasta {{max}} equipos para mover primero. Tras unos minutos pulsa «Actualizar confirmaciones»: cuando hayan llegado podrás migrar todos.",
+    "search": "Buscar equipo o cliente",
+    "startPilot": "Iniciar piloto ({{count}})",
+    "startAll": "Migrar todos",
+    "startAllConfirm": "¿Enviar la nueva dirección a todos los agentes autoactualizables y a todos los CPE TR-069?",
+    "allNeedsPilot": "«Migrar todos» se activa cuando al menos un equipo del piloto llegó al nuevo servidor.",
+    "itemsTitle": "Equipos",
+    "confirm": "Actualizar confirmaciones",
+    "retire": "Desactivar aquí los llegados",
+    "retireConfirm": "¿Desactivar en este servidor los {{count}} equipos que llegaron al nuevo? Dejan de generar avisos aquí; sus datos siguen consultables.",
+    "retired": "desactivado aquí",
+    "noItems": "Ningún equipo enviado.",
+    "cols": {
+      "device": "Equipo",
+      "customer": "Cliente",
+      "kind": "Tipo",
+      "online": "En línea",
+      "status": "Estado",
+      "detail": "Detalle",
+      "arrived": "Llegado"
+    },
+    "kind": {
+      "agent": "Agente MikroTik",
+      "tr069": "CPE TR-069"
+    },
+    "status": {
+      "queued": "En espera",
+      "sent": "Enviado",
+      "arrived": "Llegado",
+      "failed": "Fallido",
+      "reinstall": "Por reinstalar"
+    },
+    "yes": "sí",
+    "no": "no"
+  },
+  "legacyFtp": {
+    "title": "Copias legacy por FTP",
+    "help": "Receptor de las copias de los routers RouterOS 6 y 7.12 (agente legacy). Dirección y puerto se configuran en el servidor con ./manage.sh legacy-backup-enable <IPv4> [puerto]; aquí elige qué subredes pueden enviar.",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "address": "Dirección para los routers",
+    "passive": "puertos pasivos {{ports}}",
+    "subnets": "Subredes permitidas",
+    "any": "todas",
+    "enableHint": "Para activarlo, en el servidor: ./manage.sh legacy-backup-enable <IPv4 de NSM alcanzable por los routers> [puerto]",
+    "noSubnets": "Ninguna subred definida: cualquier dirección que llegue al servidor puede conectarse al receptor.",
+    "subnetsLabel": "Subredes autorizadas a enviar copias",
+    "subnetsHelp": "Una por línea o separadas por comas, p. ej. 198.51.100.0/24. El receptor rechaza otros orígenes en menos de un minuto.",
+    "saved": "Guardado: el receptor lo aplica en menos de un minuto.",
+    "firewall": "Reglas de cortafuegos en el servidor",
+    "firewallHelp": "Para bloquear también otros orígenes antes de NSM, ejecute ./manage.sh legacy-ftp-firewall --apply en el servidor (lo hace solo legacy-backup-enable)."
+  },
   "acsWifi": {
     "title": "Wi-Fi",
     "help": "Radios y redes Wi-Fi del CPE tal como el ACS las leyó por última vez. Los cambios se envían al CPE a través del ACS; los clientes Wi-Fi pueden reconectarse. Las contraseñas no se pueden leer, solo sustituir.",
@@ -5744,119 +5789,21 @@
     "fetch": "Descargar {{version}} del sitio de TP-Link en el ACS",
     "fetching": "Descargando de TP-Link…",
     "fetched": "Imagen cargada en el ACS y seleccionada abajo: confirma la actualización cuando quieras.",
-    "ready": "La versión {{version}} ya está en el ACS y seleccionada abajo: confirma la actualización cuando quieras."
-  },
-  "acsAlerts": {
-    "title": "Avisos de los CPE",
-    "help": "NSM abre una incidencia en el Centro de acciones, con una notificación, cuando un CPE TR-069 deja de contactar con el ACS, su WAN cae, la WAN se reconecta o el CPE se reinicia demasiado, o la línea DSL empeora. Las incidencias se cierran solas cuando el problema termina. 0 desactiva un umbral.",
-    "fields": {
-      "enabled": "Avisos de los CPE TR-069 activos",
-      "offline": "CPE que ya no contacta con el ACS (tres Inform periódicos perdidos)",
-      "wan_down": "WAN caída mientras el CPE aún contacta con el ACS (línea de respaldo o red de gestión)",
-      "reconnects_per_hour": "Reconexiones WAN por hora",
-      "reboots_per_day": "Reinicios del CPE en 24 horas",
-      "snr_min_db": "Margen SNR DSL mínimo (dB)",
-      "dsl_rate_drop_percent": "Caída del downstream DSL respecto a la mediana de 7 días (%)"
-    },
-    "save": "Guardar",
-    "saved": "Guardado."
-  },
-  "acsFirmwareAuto": {
-    "title": "Descarga automática de firmware",
-    "help": "Cuando TP-Link publica un firmware más reciente para un modelo y una versión de hardware que tienes, NSM descarga el archivo oficial del sitio italiano y carga la imagen en el ACS, una vez por versión. No se instala nada: cada actualización sigue requiriendo tu confirmación en la pestaña Firmware del equipo.",
-    "enabled": "Descargar automáticamente en el ACS los firmware de TP-Link más recientes",
-    "fetched_one": "{{count}} versión descargada hasta ahora.",
-    "fetched_other": "{{count}} versiones descargadas hasta ahora."
-  },
-  "serverMigration": {
-    "subtitle": "Mueve NSM a un servidor con otra dirección: este servidor comunica la nueva dirección a los agentes MikroTik y a los CPE TR-069.",
-    "howTitle": "Cómo funciona",
-    "how": "Los equipos conocen NSM por su dirección. Este servidor entrega a los agentes MikroTik un script que apunta a la nueva dirección y configura la nueva URL ACS en los CPE TR-069 (la única escritura CWMP). No hay que tocar los routers.",
-    "steps": {
-      "install": "Instala en el nuevo servidor la misma versión de NSM.",
-      "create": "Crea aquí la migración con la dirección del nuevo servidor.",
-      "restore": "Haz una copia de la base de datos aquí (<code>sudo ./manage.sh backup-db</code>) y restáurala en el nuevo servidor con <code>secrets/bootstrap.env</code> y <code>.env</code> (<code>sudo ./manage.sh restore-db</code>): la copia debe hacerse después de crear la migración.",
-      "settings": "En el nuevo servidor: ACS_CWMP_URL en .env, dirección pública del syslog (Amministrazione → Syslog), ajustes del receptor FTP de copias legacy, plantillas ACS instaladas.",
-      "pilot": "Verifica el nuevo servidor, prueba un piloto en pocos equipos, confirma que llegaron y luego migra todos.",
-      "reinstall": "Los agentes que no se actualizan solos deben reinstalarse desde el nuevo servidor (pestaña Agente del equipo)."
-    },
-    "readiness": {
-      "capable": "Agentes autoactualizables",
-      "capableHint": "pasan solos al nuevo servidor",
-      "reinstall": "Agentes por reinstalar",
-      "reinstallHint": "reinstalar desde el nuevo servidor",
-      "tr069": "CPE TR-069",
-      "tr069Hint": "reciben la nueva URL ACS"
-    },
-    "createTitle": "Nueva migración",
-    "createHelp": "Dirección del nuevo servidor tal como la alcanzan los routers (http o https, sin ruta). Con https el certificado debe ser válido: los routers lo comprueban.",
-    "create": "Crear migración",
-    "fields": {
-      "agentUrl": "Dirección del nuevo servidor (agentes)",
-      "acsUrl": "Nueva URL ACS (CPE TR-069)",
-      "syslog": "Syslog hacia",
-      "created": "Creada"
-    },
-    "noSyslog": "no determinable: reconfigura el syslog desde el nuevo servidor",
-    "runningTitle": "Migración en curso",
-    "cancel": "Cancelar migración",
-    "cancelConfirm": "¿Cancelar la migración? Los envíos aún no entregados se detienen; los equipos ya movidos se quedan en el nuevo servidor.",
-    "verifyTitle": "Verificación del nuevo servidor",
-    "verifyHelp": "Este servidor comprueba que el nuevo responde y que es una restauración de esta base de datos. Repítela dentro de las 24 horas previas al inicio.",
-    "verified": "Verificado {{when}}: versión {{version}}, {{devices}} equipos.",
-    "verify": "Verificar",
-    "pilotTitle": "Piloto",
-    "pilotHelp": "Elige hasta {{max}} equipos para mover primero. Tras unos minutos pulsa «Actualizar confirmaciones»: cuando hayan llegado podrás migrar todos.",
-    "search": "Buscar equipo o cliente",
-    "startPilot": "Iniciar piloto ({{count}})",
-    "startAll": "Migrar todos",
-    "startAllConfirm": "¿Enviar la nueva dirección a todos los agentes autoactualizables y a todos los CPE TR-069?",
-    "allNeedsPilot": "«Migrar todos» se activa cuando al menos un equipo del piloto llegó al nuevo servidor.",
-    "itemsTitle": "Equipos",
-    "confirm": "Actualizar confirmaciones",
-    "retire": "Desactivar aquí los llegados",
-    "retireConfirm": "¿Desactivar en este servidor los {{count}} equipos que llegaron al nuevo? Dejan de generar avisos aquí; sus datos siguen consultables.",
-    "retired": "desactivado aquí",
-    "noItems": "Ningún equipo enviado.",
-    "cols": {
-      "device": "Equipo",
-      "customer": "Cliente",
-      "kind": "Tipo",
-      "online": "En línea",
-      "status": "Estado",
-      "detail": "Detalle",
-      "arrived": "Llegado"
-    },
-    "kind": {
-      "agent": "Agente MikroTik",
-      "tr069": "CPE TR-069"
-    },
-    "status": {
-      "queued": "En espera",
-      "sent": "Enviado",
-      "arrived": "Llegado",
-      "failed": "Fallido",
-      "reinstall": "Por reinstalar"
-    },
-    "yes": "sí",
-    "no": "no"
-  },
-  "legacyFtp": {
-    "title": "Copias legacy por FTP",
-    "help": "Receptor de las copias de los routers RouterOS 6 y 7.12 (agente legacy). Dirección y puerto se configuran en el servidor con ./manage.sh legacy-backup-enable <IPv4> [puerto]; aquí elige qué subredes pueden enviar.",
-    "active": "Activo",
-    "inactive": "Inactivo",
-    "address": "Dirección para los routers",
-    "passive": "puertos pasivos {{ports}}",
-    "subnets": "Subredes permitidas",
-    "any": "todas",
-    "enableHint": "Para activarlo, en el servidor: ./manage.sh legacy-backup-enable <IPv4 de NSM alcanzable por los routers> [puerto]",
-    "noSubnets": "Ninguna subred definida: cualquier dirección que llegue al servidor puede conectarse al receptor.",
-    "subnetsLabel": "Subredes autorizadas a enviar copias",
-    "subnetsHelp": "Una por línea o separadas por comas, p. ej. 198.51.100.0/24. El receptor rechaza otros orígenes en menos de un minuto.",
-    "saved": "Guardado: el receptor lo aplica en menos de un minuto.",
-    "firewall": "Reglas de cortafuegos en el servidor",
-    "firewallHelp": "Para bloquear también otros orígenes antes de NSM, ejecute ./manage.sh legacy-ftp-firewall --apply en el servidor (lo hace solo legacy-backup-enable)."
+    "ready": "La versión {{version}} ya está en el ACS y seleccionada abajo: confirma la actualización cuando quieras.",
+    "cloud": {
+      "title": "Actualización desde la nube de TP-Link",
+      "help": "El CPE consulta por sí mismo a la nube de TP-Link si hay un firmware más reciente, como en el recuadro Online Upgrade de su página web. NSM lee su respuesta cada día y puede iniciar la actualización: el CPE descarga la imagen de TP-Link, la instala y se reinicia.",
+      "newer": "La nube de TP-Link ofrece la {{version}}.",
+      "current": "El CPE ya tiene la versión ofrecida por la nube de TP-Link.",
+      "released": "publicada el {{date}}",
+      "none": "El CPE aún no ha informado una respuesta de la nube de TP-Link.",
+      "checked": "Última lectura del CPE: {{when}}.",
+      "neverChecked": "Leído del CPE una vez al día.",
+      "check": "Comprobar ahora",
+      "checking": "Leyendo del CPE…",
+      "warning": "El CPE descarga la imagen de TP-Link y se reinicia: el cliente queda sin conexión unos minutos. Normalmente el firmware de TP-Link no se puede volver a una versión anterior.",
+      "run": "Actualizar a {{version}} desde la nube de TP-Link"
+    }
   },
   "acsSyslog": {
     "title": "Syslog vía ACS (TR-069)",
@@ -5888,6 +5835,157 @@
     "autoOff": "La configuración automática está desactivada (Amministrazione → Syslog).",
     "adminRun": "Configurar todos",
     "adminDone": "{{queued}} enviados, {{skipped}} ya configurados, {{failed}} no compatibles o fallidos."
+  },
+  "lifecycleWeb": {
+    "title": "Ciclo de vida desde la web",
+    "hint": "NSM busca los avisos de fin de venta y fin de soporte que publican los fabricantes para cada modelo del inventario, mediante {{provider}} (reúne las páginas oficiales de MikroTik, Ubiquiti, Cambium, TP-Link y otros). Lo que encuentra es una propuesta: entra en el catálogo solo cuando la aplicas.",
+    "disabled": "La búsqueda web está desactivada en este servidor (LIFECYCLE_WEB_LOOKUP=off).",
+    "keyed": "Búsqueda con clave API: todos los modelos a la vez.",
+    "keyless": "Búsqueda pública sin clave: pocos modelos cada vez, el worker completa el resto automáticamente.",
+    "pending_one": "{{count}} modelo aún sin buscar.",
+    "pending_other": "{{count}} modelos aún sin buscar.",
+    "run": "Buscar en la web",
+    "ran": "{{checked}} modelos buscados: {{found}} con aviso, {{not_found}} sin aviso, {{errors}} errores.",
+    "deferred_one": "{{count}} aplazado a la próxima ronda (límite de peticiones).",
+    "deferred_other": "{{count}} aplazados a la próxima ronda (límite de peticiones).",
+    "applyExact_one": "Aplicar {{count}} coincidencia exacta",
+    "applyExact_other": "Aplicar {{count}} coincidencias exactas",
+    "appliedAll": "{{applied}} aplicadas al catálogo, {{skipped}} omitidas.",
+    "empty": "Ningún modelo buscado todavía: pulsa «Buscar en la web».",
+    "columns": {
+      "model": "Modelo en inventario",
+      "found": "Encontrado en la web",
+      "dates": "Fechas publicadas",
+      "source": "Fuente",
+      "action": "Acción"
+    },
+    "vendorStatus": {
+      "discontinued": "Descatalogado",
+      "vintage": "Vintage",
+      "legacy": "Legacy",
+      "end_of_sale": "Fin de venta",
+      "end_of_life": "Fin de vida",
+      "supported": "Soportado",
+      "aging": "Fin de soporte en 24 meses",
+      "approaching_eol": "Fin de soporte en 12 meses",
+      "announced": "Fin de vida anunciado",
+      "unknown": "No indicado"
+    },
+    "confidence": {
+      "exact": "Coincidencia exacta",
+      "prefix": "Coincidencia parcial: verifícala",
+      "family": "Misma familia: verifícala",
+      "search": "Resultado de búsqueda: verifícalo"
+    },
+    "devices_one": "{{count}} dispositivo",
+    "devices_other": "{{count}} dispositivos",
+    "searchedAs": "buscado como «{{name}}»",
+    "others_one": "{{count}} resultado más",
+    "others_other": "{{count}} resultados más",
+    "replacement": "Sucesor: {{name}}",
+    "notFound": "Ningún aviso de fin de vida publicado",
+    "error": "Búsqueda fallida ({{error}})",
+    "notChecked": "Aún sin buscar",
+    "checked": "verificado el {{when}}",
+    "endOfSale": "Fin de venta",
+    "endOfUpdates": "Fin de actualizaciones/soporte",
+    "unpublished": "no publicada",
+    "readAt": "fuente leída el {{when}}",
+    "applied": "Aplicado al catálogo el {{when}}",
+    "inCatalog": "Ya en el catálogo ({{source}})",
+    "apply": "Aplicar al catálogo",
+    "applyThis": "Aplicar {{name}}",
+    "otherName": "Buscar con otro nombre",
+    "otherNamePlaceholder": "p. ej. el código de la etiqueta (LBE-5AC-16-120)",
+    "search": "Buscar"
+  },
+  "acsMigration": {
+    "subtitle": "Migra en bloque los CPE de los clientes al ACS integrado reconfigurando el CWMP en la red de gestión.",
+    "backToAcs": "Volver a ACS",
+    "intro": "Indica la subred de gestión de tus routers, el puerto y las credenciales comunes de la flota: NSM llega a cada equipo y establece la URL ACS de destino. Haz primero una simulación para ver qué CPE son accesibles.",
+    "applyPending": "La reescritura CWMP mediante la interfaz web de TP-Link está en validación sobre el terreno para este firmware: por ahora solo está disponible la simulación de inventario.",
+    "formTitle": "Nueva migración",
+    "formHelp": "Solo subredes IPv4, como máximo {{max}} direcciones por ejecución. Las direcciones .0 y .255 y el servidor ACS se omiten.",
+    "credentialsHelp": "Las credenciales se usan solo durante la ejecución y nunca se guardan. Una simulación no las necesita: no se envía ninguna credencial a los equipos.",
+    "dryRun": "Simular (inventario)",
+    "apply": "Aplicar migración",
+    "recentTitle": "Ejecuciones recientes",
+    "noRuns": "Todavía no hay ejecuciones.",
+    "runTitle": "Ejecución · {{subnet}}",
+    "cancel": "Detener",
+    "progress": "Progreso",
+    "fields": {
+      "subnet": "Subred de gestión (CIDR)",
+      "port": "Puerto de gestión",
+      "informInterval": "Intervalo de inform (segundos)",
+      "targetAcsUrl": "URL ACS de destino (CWMP)",
+      "username": "Usuario de los routers",
+      "password": "Contraseña de los routers"
+    },
+    "cols": {
+      "when": "Cuándo",
+      "subnet": "Subred",
+      "mode": "Modo",
+      "status": "Estado",
+      "found": "CPE encontrados",
+      "changed": "Configurados"
+    },
+    "hostCols": {
+      "address": "Dirección",
+      "status": "Resultado",
+      "model": "Modelo",
+      "firmware": "Firmware",
+      "detail": "Detalle"
+    },
+    "mode": {
+      "dry": "Simulación",
+      "apply": "Aplicada"
+    },
+    "runStatus": {
+      "pending": "Pendiente",
+      "running": "En curso",
+      "done": "Completada",
+      "failed": "Fallida",
+      "cancelled": "Detenida"
+    },
+    "hostStatus": {
+      "pending": "Pendiente",
+      "unreachable": "Inaccesible",
+      "not_cpe": "No es un CPE",
+      "auth_failed": "Credenciales rechazadas",
+      "already_target": "Ya en el ACS",
+      "configured": "Configurado",
+      "error": "Error",
+      "skipped": "Omitido"
+    },
+    "counters": {
+      "processed": "Procesados",
+      "reachable": "Accesibles",
+      "configured": "Configurados",
+      "failed": "Fallidos"
+    }
+  },
+  "acsAlerts": {
+    "title": "Avisos de los CPE",
+    "help": "NSM abre una incidencia en el Centro de acciones, con una notificación, cuando un CPE TR-069 deja de contactar con el ACS, su WAN cae, la WAN se reconecta o el CPE se reinicia demasiado, o la línea DSL empeora. Las incidencias se cierran solas cuando el problema termina. 0 desactiva un umbral.",
+    "fields": {
+      "enabled": "Avisos de los CPE TR-069 activos",
+      "offline": "CPE que ya no contacta con el ACS (tres Inform periódicos perdidos)",
+      "wan_down": "WAN caída mientras el CPE aún contacta con el ACS (línea de respaldo o red de gestión)",
+      "reconnects_per_hour": "Reconexiones WAN por hora",
+      "reboots_per_day": "Reinicios del CPE en 24 horas",
+      "snr_min_db": "Margen SNR DSL mínimo (dB)",
+      "dsl_rate_drop_percent": "Caída del downstream DSL respecto a la mediana de 7 días (%)"
+    },
+    "save": "Guardar",
+    "saved": "Guardado."
+  },
+  "acsFirmwareAuto": {
+    "title": "Descarga automática de firmware",
+    "help": "Cuando TP-Link publica un firmware más reciente para un modelo y una versión de hardware que tienes, NSM descarga el archivo oficial del sitio italiano y carga la imagen en el ACS, una vez por versión. No se instala nada: cada actualización sigue requiriendo tu confirmación en la pestaña Firmware del equipo.",
+    "enabled": "Descargar automáticamente en el ACS los firmware de TP-Link más recientes",
+    "fetched_one": "{{count}} versión descargada hasta ahora.",
+    "fetched_other": "{{count}} versiones descargadas hasta ahora."
   },
   "searchSelect": {
     "placeholder": "Escribe para buscar…",

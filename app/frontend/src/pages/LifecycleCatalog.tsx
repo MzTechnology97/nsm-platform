@@ -6,6 +6,7 @@ import { type CatalogFilters, type CatalogRecord, useCatalogForm, useCatalogWrit
 import { formatDate, formatDateTime } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { useFormError } from "./CustomerForm";
+import { LifecycleWebPanel } from "../app/LifecycleWeb";
 import { Loading } from "../app/States";
 
 const STATUS_TONE = { supported: "ui-severity", eol: "ui-severity ui-severity-warning", eos: "ui-severity ui-severity-high" } as const;
@@ -86,6 +87,7 @@ export function LifecycleCatalog() {
         <div className="ui-empty">{search.q || search.vendor ? t("lifecycleCatalog.noMatch") : t("lifecycleCatalog.empty")}</div>
       )}
 
+      <LifecycleWebPanel />
       {data?.can_manage && <ImportPanel fields={data.csv_fields} />}
     </section>
   );

@@ -36,6 +36,7 @@ from app.acs_admin import auto_update as acs_templates_auto_update
 from app.acs_snapshot import scheduled_snapshots as acs_scheduled_snapshots
 from app.acs_config_refresh import follow as acs_config_refresh_follow
 from app.acs_firmware import follow_upgrades as acs_firmware_follow
+from app.tplink_cloud_firmware import daily_refresh as tplink_cloud_refresh
 from app.acs_alerts import evaluate as acs_alerts_evaluate
 from app.device_exposure import tick as exposure_tick
 from app.external_exposure import tick as external_exposure_tick
@@ -54,6 +55,7 @@ from app.advisory_sources import sync_security_advisories
 from app.compliance import run_scheduled_evaluation as run_compliance_evaluation
 from app.sla import budget_alerts as sla_budget_alerts
 from app.lifecycle_catalog import run_scheduled_reconcile as run_lifecycle_reconcile
+from app.lifecycle_web import auto_lookup as lifecycle_web_lookup
 from app.worker_status import beat, run_task, started
 from app.notification_delivery import deliver_pending as deliver_notifications
 from app.notification_chat import poll_telegram_updates, register_channels
@@ -120,6 +122,7 @@ while True:
             run_task("acs_scheduled_snapshots", acs_scheduled_snapshots)
             run_task("acs_config_refresh", acs_config_refresh_follow)
             run_task("acs_firmware_follow", acs_firmware_follow)
+            run_task("tplink_cloud_firmware", tplink_cloud_refresh)
             run_task("acs_alerts", acs_alerts_evaluate)
             run_task("exposure_check", exposure_tick)
             run_task("exposure_external_check", external_exposure_tick)
@@ -153,6 +156,7 @@ while True:
             last_maintenance = now_mono
 
         if now_mono - last_compliance >= COMPLIANCE_INTERVAL_SECONDS:
+            run_task("lifecycle_web_lookup", lifecycle_web_lookup)  # proposals only: the catalog changes when an operator applies them
             lifecycle_stats = run_task("lifecycle_reconcile", run_lifecycle_reconcile)
             catalog_stats = run_task("routeros_catalog", run_routeros_catalog)  # an unreachable upgrade server must not stop the worker
             run_task("vendor_firmware_catalogs", run_vendor_firmware)
