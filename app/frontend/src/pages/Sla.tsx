@@ -1,6 +1,7 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { ApiError } from "../api/client";
 import { type MaintenanceWindowRow, type SlaRow, type SlaVerdict, slaExportUrl, useCustomerDevices, useMaintenance, useMaintenanceActions, useSetSlaTarget, useSla,
@@ -320,16 +321,10 @@ function MaintenanceForm({ customers, onDone }: { customers: { id: string; name:
   return (
     <form className="ui-maintenance-form" onSubmit={submit}>
       <label><span>{t("maintenance.customer")}</span>
-        <select value={customer} onChange={(event) => { setCustomer(event.target.value); setDevice(""); }} required>
-          <option value="">{t("maintenance.chooseCustomer")}</option>
-          {customers.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
-        </select>
+        <SearchSelect value={customer} options={customers.map((row) => ({ value: row.id, label: customerLabel(row) }))} onChange={(value) => { setCustomer(value); setDevice(""); }} emptyLabel={t("maintenance.chooseCustomer")} required />
       </label>
       <label><span>{t("maintenance.device")}</span>
-        <select value={device} onChange={(event) => setDevice(event.target.value)} disabled={!customer}>
-          <option value="">{t("maintenance.allDevices")}</option>
-          {(devices.data?.items ?? []).map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
-        </select>
+        <SearchSelect value={device} options={(devices.data?.items ?? []).map((row) => ({ value: row.id, label: row.name }))} onChange={(value) => setDevice(value)} emptyLabel={t("maintenance.allDevices")} disabled={!customer} />
       </label>
       <label><span>{t("maintenance.starts")}</span><input type="datetime-local" value={starts} onChange={(event) => setStarts(event.target.value)} required /></label>
       <label><span>{t("maintenance.ends")}</span><input type="datetime-local" value={ends} min={starts || undefined} onChange={(event) => setEnds(event.target.value)} required /></label>

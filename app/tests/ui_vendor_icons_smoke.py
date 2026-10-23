@@ -31,10 +31,14 @@ def main():
         tplink = Device(customer_id=customer.id, vendor="generic", device_type="cpe", name=f"TEST-UI-TP-{suffix}", status="offline",
                         inventory_data={"manufacturer": "tp-link"})
         unknown = Device(customer_id=customer.id, vendor="generic", device_type="cpe", name=f"TEST-UI-GEN-{suffix}", status="offline")
-        db.add_all([router, radio, tplink, unknown])
+        epmp = Device(customer_id=customer.id, vendor="cambium", device_type="wireless_cpe", name=f"TEST-UI-CMB-{suffix}", status="offline")
+        # Added as "generic" before the vendor was corrected, with the manufacturer recognised as Cambium.
+        epmp_generic = Device(customer_id=customer.id, vendor="generic", device_type="wireless_cpe", name=f"TEST-UI-CMBG-{suffix}", status="offline",
+                              inventory_data={"manufacturer": "cambium"})
+        db.add_all([router, radio, tplink, unknown, epmp, epmp_generic])
         db.add(User(username=f"ci-ui-{suffix}", password_hash=hash_password(PASSWORD), role="admin", is_active=True))
         db.commit()
-        ids = {k: str(v.id) for k, v in dict(router=router, radio=radio, tplink=tplink, unknown=unknown, customer=customer).items()}
+        ids = {k: str(v.id) for k, v in dict(router=router, radio=radio, tplink=tplink, unknown=unknown, epmp=epmp, epmp_generic=epmp_generic, customer=customer).items()}
 
     client = login(f"ci-ui-{suffix}")
     rows = {r["id"]: r["brand"] for r in client.get(f"/api/ui/v1/devices?customer={ids['customer']}").json()["items"]}
@@ -42,6 +46,11 @@ def main():
     assert rows[ids["radio"]]["symbol"] == "brand-ubiquiti" and rows[ids["radio"]]["color"] == "#0559C9"
     assert rows[ids["tplink"]]["symbol"] == "brand-tp-link", "manually added devices use the declared manufacturer"
     assert rows[ids["unknown"]] == {"symbol": "brand-generic", "color": None, "label": "Produttore non indicato", "known": False}
+    # Cambium has its own logo (it fell back to the generic icon before).
+    for key in ("epmp", "epmp_generic"):
+        assert rows[ids[key]] == {"symbol": "brand-cambium", "color": "#003D79", "label": "Cambium Networks", "known": True}, rows[ids[key]]
+    sprite = client.get("/static/brand-icons.svg").text
+    assert all(f'id="brand-{key}"' in sprite for key in ("cambium", "mikrotik", "ubiquiti", "tp-link", "generic"))
 
     assert client.get(f"/api/ui/v1/devices/{ids['router']}").json()["device"]["brand"]["symbol"] == "brand-mikrotik"
     monitoring = {r["id"]: r for r in client.get(f"/api/ui/v1/monitoring?customer={ids['customer']}&state=all").json()["items"]}

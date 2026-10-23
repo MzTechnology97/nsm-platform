@@ -1,6 +1,7 @@
 import { Link, useParams } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SearchSelect } from "../app/SearchSelect";
 
 import { ApiError } from "../api/client";
 import { type LifecycleTab, useDeviceLifecycle, useLifecycleAction } from "../api/deviceTabs";
@@ -162,10 +163,9 @@ function Remediation({ deviceId, data }: { deviceId: string; data: LifecycleTab 
           )}
           {action === "replaced" && (
             <label><span>{t("deviceLifecycle.replacement")}</span>
-              <select value={form.replacement_device_id} onChange={set("replacement_device_id")} required>
-                <option value="" disabled>—</option>
-                {data.replacement_candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name}{candidate.model ? ` · ${candidate.model}` : ""}</option>)}
-              </select></label>
+              <SearchSelect value={form.replacement_device_id} required ariaLabel={t("deviceLifecycle.replacement")}
+                options={data.replacement_candidates.map((candidate) => ({ value: candidate.id, label: `${candidate.name}${candidate.model ? ` · ${candidate.model}` : ""}` }))}
+                onChange={(value) => set("replacement_device_id")({ target: { value } })} /></label>
           )}
           <label className="ui-admin-wide"><span>{t(`deviceLifecycle.notes.${action}`)}</span><input value={form.note} onChange={set("note")} maxLength={500} required={action !== "replaced"} /></label>
           <button type="submit" className="ui-button" disabled={act.isPending}>{t(`deviceLifecycle.submit.${action}`)}</button>
