@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useConnectorAction, useZabbixAdmin, type ZabbixAdmin } from "../api/admin";
+import { useConnectorAction, useZabbixAdmin, useZabbixTemplates, type ZabbixAdmin } from "../api/admin";
 import { AdminTabs } from "../app/AdminTabs";
 import { BrandIcon } from "../app/BrandIcon";
 import { IntegrationTabs } from "../app/IntegrationTabs";
@@ -60,6 +60,10 @@ function Status({ data }: { data: ZabbixAdmin }) {
           <small>{last.status ? t(`zabbix.syncStates.${last.status}`, { defaultValue: last.status }) : t("cnmaestro.syncAuto")}</small>
         </div>
         <div className="ui-metric">
+          <span>{t("zabbix.linked")}</span><strong>{last.linked ?? 0}</strong>
+          <small>{t("zabbix.linkedNote")}</small>
+        </div>
+        <div className="ui-metric">
           <span>{t("zabbix.hosts")}</span><strong>{last.created + last.updated}</strong>
           <small>{t("zabbix.hostsNote", { created: last.created, updated: last.updated, disabled: last.disabled })}</small>
         </div>
@@ -73,6 +77,9 @@ function Status({ data }: { data: ZabbixAdmin }) {
         <div className="ui-metric"><span>{t("zabbix.skipped")}</span><strong>{last.skipped}</strong><small>{t("zabbix.skippedNote")}</small></div>
       </div>
       {last.missing_templates.length > 0 && <div className="ui-alert ui-alert-warning">{t("zabbix.missingTemplates", { names: last.missing_templates.join(", ") })}</div>}
+      {(last.ambiguous ?? []).length > 0 && <div className="ui-alert ui-alert-warning">{t("zabbix.ambiguous", { names: last.ambiguous.join(", ") })}</div>}
+      {(last.ip_updated ?? []).length > 0 && <div className="ui-alert">{t("zabbix.ipUpdated", { names: last.ip_updated.join(", ") })}</div>}
+      {(last.factory_ip ?? []).length > 0 && <div className="ui-alert ui-alert-warning">{t("zabbix.factoryIp", { names: last.factory_ip.join(", ") })}</div>}
       {last.errors.length > 0 && (
         <div className="ui-alert ui-alert-warning">
           <strong>{t("zabbix.lastErrors")}</strong>
@@ -136,6 +143,7 @@ function Connection({ data }: { data: ZabbixAdmin }) {
     enabled: data.configured ? data.enabled : true, ...data.settings, templates: { ...data.settings.templates }, customer_ids: [...data.settings.customer_ids],
   });
   const save = useConnectorAction<typeof form>("zabbix", "");
+  const templates = useZabbixTemplates(data.configured && data.last_test_status === "success");
   const set = (key: keyof typeof form) => (event: { target: { value: string } }) => setForm({ ...form, [key]: event.target.value });
   const setTemplate = (key: keyof typeof form.templates) => (event: { target: { value: string } }) =>
     setForm({ ...form, templates: { ...form.templates, [key]: event.target.value } });
@@ -181,6 +189,16 @@ function Connection({ data }: { data: ZabbixAdmin }) {
         )}
         <label className="ui-with-brand"><input type="checkbox" checked={form.verify_tls} onChange={(event) => setForm({ ...form, verify_tls: event.target.checked })} /> <span>{t("cnmaestro.verifyTls")}</span></label>
         <h3>{t("zabbix.hostsTitle")}</h3>
+        <label className="ui-with-brand">
+          <input type="checkbox" checked={form.link_existing} onChange={(event) => setForm({ ...form, link_existing: event.target.checked })} />
+          <span>{t("zabbix.linkExisting")}</span>
+        </label>
+        <small className="ui-muted">{t("zabbix.linkExistingHelp")}</small>
+        <label className="ui-with-brand">
+          <input type="checkbox" checked={form.update_linked_ip} disabled={!form.link_existing} onChange={(event) => setForm({ ...form, update_linked_ip: event.target.checked })} />
+          <span>{t("zabbix.updateIp")}</span>
+        </label>
+        <small className="ui-muted">{t("zabbix.updateIpHelp")}</small>
         <label><span>{t("zabbix.groupPrefix")}</span><input value={form.group_prefix} onChange={set("group_prefix")} /><small className="ui-muted">{t("zabbix.groupHelp", { prefix: form.group_prefix || "NSM" })}</small></label>
         <label>
           <span>{t("zabbix.interface")}</span>
@@ -190,13 +208,16 @@ function Connection({ data }: { data: ZabbixAdmin }) {
           </select>
         </label>
         <label><span>{t("zabbix.community")}</span><input value={form.snmp_community} onChange={set("snmp_community")} /><small className="ui-muted">{t("zabbix.communityHelp")}</small></label>
-        <label><span>{t("zabbix.templates.mikrotik")}</span><input value={form.templates.mikrotik} placeholder="MikroTik by SNMP" onChange={setTemplate("mikrotik")} /></label>
-        <label><span>{t("zabbix.templates.ubiquiti")}</span><input value={form.templates.ubiquiti} placeholder="ICMP Ping" onChange={setTemplate("ubiquiti")} /></label>
+        <label><span>{t("zabbix.templates.mikrotik")}</span><input value={form.templates.mikrotik} list="zabbix-templates" placeholder="MikroTik by SNMP" onChange={setTemplate("mikrotik")} /></label>
+        <label><span>{t("zabbix.templates.ubiquiti")}</span><input value={form.templates.ubiquiti} list="zabbix-templates" placeholder="ICMP Ping" onChange={setTemplate("ubiquiti")} /></label>
         <label>
           <span>{t("zabbix.templates.default")}</span>
-          <input value={form.templates.default} placeholder="ICMP Ping" onChange={setTemplate("default")} />
-          <small className="ui-muted">{t("zabbix.templatesHelp")}</small>
+          <input value={form.templates.default} list="zabbix-templates" placeholder="ICMP Ping" onChange={setTemplate("default")} />
+          <small className="ui-muted">{t("zabbix.templatesHelp")}{templates.data ? ` ${t("zabbix.templatesFromZabbix", { count: templates.data.templates.length })}` : ""}</small>
         </label>
+        <datalist id="zabbix-templates">
+          {(templates.data?.templates ?? []).map((name) => <option key={name} value={name} />)}
+        </datalist>
         <h3>{t("zabbix.scopeTitle")}</h3>
         <label>
           <span>{t("zabbix.scope")}</span>

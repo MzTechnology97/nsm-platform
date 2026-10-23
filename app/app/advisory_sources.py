@@ -48,6 +48,9 @@ MAX_WINDOW = timedelta(days=119)
 CURSOR_OVERLAP = timedelta(hours=2)
 PAGE_PAUSE_SECONDS = {True: 1.0, False: 6.5}  # with / without API key
 HTTP_TIMEOUT_SECONDS = 30.0
+# NVD has slow periods: one request is tried with growing timeouts (and again on 5xx) before the whole sync fails.
+RETRY_TIMEOUTS = (HTTP_TIMEOUT_SECONDS, 60.0, 90.0)
+RETRY_STATUSES = frozenset({500, 502, 503, 504})
 MAX_PAGES = 50
 
 INTERVAL_DEFAULT_MINUTES = 360
@@ -246,6 +249,25 @@ def _nvd_time(value: datetime) -> str:
     return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000+00:00")
 
 
+def _get(client: httpx.Client, url: str, params: dict, sleep, pause: float) -> httpx.Response:
+    """One NVD request, tried again after a timeout, a network error or a 5xx; the last answer or error wins."""
+    attempts = len(RETRY_TIMEOUTS)
+    for attempt, timeout in enumerate(RETRY_TIMEOUTS, start=1):
+        try:
+            response = client.get(url, params=params, timeout=timeout)
+        except httpx.TimeoutException as exc:
+            if attempt == attempts:
+                raise AdvisorySourceError(f"timeout verso NVD ({attempts} tentativi, fino a {int(timeout)} s)") from exc
+        except httpx.HTTPError as exc:
+            if attempt == attempts:
+                raise AdvisorySourceError(f"errore di rete verso NVD: {exc.__class__.__name__}") from exc
+        else:
+            if response.status_code not in RETRY_STATUSES or attempt == attempts:
+                return response
+        sleep(pause * attempt)
+    raise AssertionError("unreachable")
+
+
 def fetch_nvd(
     base_url: str,
     api_key: str | None,
@@ -273,12 +295,7 @@ def fetch_nvd(
                 if not first_request:
                     sleep(pause)
                 first_request = False
-                try:
-                    response = client.get(base_url, params=params)
-                except httpx.TimeoutException as exc:
-                    raise AdvisorySourceError("timeout verso NVD") from exc
-                except httpx.HTTPError as exc:
-                    raise AdvisorySourceError(f"errore di rete verso NVD: {exc.__class__.__name__}") from exc
+                response = _get(client, base_url, params, sleep, pause)
                 if response.status_code in (403, 429):
                     raise AdvisorySourceError(f"NVD ha rifiutato la richiesta (HTTP {response.status_code}, limite di frequenza o API key non valida)")
                 if response.status_code >= 400:

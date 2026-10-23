@@ -595,6 +595,10 @@ RADIUS accounts (Core 0.49.209, migration 0051):
 
 Warehouse serial numbers ↔ devices and ISPBilling activities in the device logbook (approved, next steps of ISPB-01).
 
+## 13c. Moving NSM to another server address (Core 0.49.214)
+
+*Amministrazione → Migrazione server*: the old server tells MikroTik agents (self-update with a script for the new URL, plus a syslog job towards the new address) and TR-069 CPEs (`ManagementServer.URL` via GenieACS) the new address. The new server must be a restore of this database: a token created with the migration is checked through `/api/v1/server-migration/check`, and a target answering with this process's own instance id is refused. Pilot of up to 10 devices, arrivals confirmed by the new server (`/api/v1/server-migration/confirm`: last heartbeat or last Inform), then all devices; agents that cannot self-update are listed for reinstallation; devices that arrived can be decommissioned on the old server. Audited (`SERVER_MIGRATION_*`). Procedure in `OPERATIONS.md`.
+
 ## 14. TR-069 / ACS-managed CPE
 
 ### Implemented foundation only
@@ -609,7 +613,12 @@ Warehouse serial numbers ↔ devices and ISPBilling activities in the device log
 
 - *Amministrazione → Integrazioni → GenieACS / TR-069*: NBI URL (loopback, localhost, credentials in the URL refused), authentication none / HTTP Basic / Bearer for a reverse proxy (encrypted), configurable MAC parameter paths, online window, connectivity test that reads nothing;
 - *ACS* tab on TP-Link/TR-069 Devices: lookup by serial number (`_deviceId._SerialNumber`) then MAC (any interface MAC; parameter paths accept `*` for every instance, Core 0.49.201), preview, explicit association that keeps the NSM Customer/Site, refresh by the stored GenieACS ID that refuses a changed serial; identity, model, firmware, hardware, IP, last Inform and online state are normalized from TR-098 and TR-181 paths (management IP from the CPE's connection-request URL, then any interface address; checked on a real TP-Link VX230v, TR-181); audit events `GENIEACS_*` without secrets;
-- the integrations hub shows the real connector state and how many TR-069 CPE are associated or still to associate.
+- the integrations hub shows the real connector state and how many TR-069 CPE are associated or still to associate;
+- *Amministrazione → ACS → Configurare una CPE TP-Link* (Core 0.49.213): step-by-step guide for adding a TP-Link CPE — one manual step on the router (CWMP on, ACS URL, Periodic Inform), then NSP reads it; what NSP reads (state, model, firmware, IP, CPU, memory, WAN traffic, Wi-Fi clients, DSL), the actions it offers (reboot, firmware check, diagnostics) and what it never changes (Wi-Fi, LAN, DHCP, PPPoE; it writes only the CWMP inform interval). The ACS URL shown comes from `ACS_CWMP_URL` when set.
+
+### CPE syslog through the ACS (Core 0.49.220)
+
+TP-Link CPEs (Aginet firmware) keep their log settings in `Device.DeviceInfo.X_TP_LogCfg`; NSM writes `LogToRemote`, `ServerIP`, `ServerPort` (514) and `RemoteSeverity` through GenieACS, nothing else. From the device *Syslog* tab (applied at once via connection request), from *Amministrazione → ACS → Syslog dei CPE TR-069* for every associated TP-Link (applied at the next Inform), and by the worker for new CPEs when syslog *Configura automaticamente* is on. The receiver address is the syslog public address, else the host of `ACS_CWMP_URL`. TP-Link lines carry no NSM key: the key-only receiver accepts a keyless line only from the management IP of a TR-069 CPE that NSM itself configured this way, and only when no other device uses that address (`syslog_identity.Index.by_address`); every other keyless line is still discarded. NSM re-reads the management IP (WAN, from the connection-request URL) before configuring. Checked on a real VX230v. Audit `ACS_SYSLOG_CONFIGURED`.
 
 ### Bulk migration to the self-hosted ACS (Core 0.49.202)
 
@@ -632,15 +641,41 @@ ACS URL (the integrated GenieACS by default), the inform interval and one shared
   memory for the run and never stored or logged. Audit events `ACS_MIGRATION_STARTED` /
   `ACS_MIGRATION_COMPLETED` carry counts only.
 
+### Diagnostics from the CPE (ACS-06, Core 0.49.206)
+
+On the *ACS* tab of a linked CPE, technicians (`devices.write`) run a ping or a traceroute that the CPE itself performs: NSM asks GenieACS for a `setParameterValues` task with a connection request (TR-181 `Device.IP.Diagnostics.IPPing` / `TraceRoute`, TR-098 `InternetGatewayDevice.IPPingDiagnostics` / `TraceRouteDiagnostics`; data model detected from the GenieACS record), then follows the test by asking GenieACS to re-read the object at most every 8 s while the page is open, until `Complete` or `Error_*` (given up after 4 minutes). When the CPE refuses the connection request the test starts at its next periodic contact. Results (replies, min/avg/max; hops with addresses and times) are kept per test on the device; audit `ACS_DIAGNOSTIC_REQUESTED` / `ACS_DIAGNOSTIC_COMPLETED`. Other commands sent through GenieACS are the Wi-Fi changes and the reboot described below.
+
+### Speed test from the CPE (ACS-06, Core 0.49.218)
+
+On the *ACS* tab, technicians (`devices.write`) run a download or upload test that the CPE itself performs over HTTP (TR-143 `DownloadDiagnostics` / `UploadDiagnostics`, TR-181 and TR-098), so the result is the speed of the customer's line up to the test server, not of the Wi-Fi. By default the test server is NSM itself: the CPE reaches it at the host it uses for the ACS (`ManagementServer.URL`) on HTTP port 80, or at the NSM address set in *Amministrazione → ACS → Test di velocità dei CPE*; each test gets its own HMAC-signed link (device, size, 15-minute expiry) to `/acs-speedtest/…`, which streams the random test file or reads and discards the upload, at most 4 transfers at once. The administrator can instead give other download/upload URLs and the size (1–200 MB, 25 by default). One test at a time per CPE, followed like ping and traceroute (given up after 10 minutes); Mbps from the CPE's test bytes over `EOMTime − BOMTime` (TP-Link high-32-bit counters included). Audit `ACS_SPEEDTEST_REQUESTED`, `ACS_SPEEDTEST_COMPLETED`, `ACS_SPEEDTEST_SETTINGS_CHANGED`.
+
+### Firmware upgrade (ACS-08, Core 0.49.219)
+
+TR-069 CPEs get the device *Firmware* tab like MikroTik devices: it shows the installed version against the newest release of the firmware catalog for the model (*Firmware → Cataloghi*, `vendor_firmware.evaluate`, the same state shown on the overview tile and in the firmware worklist). There technicians (`devices.write`) load the vendor image (up to 128 MB) into GenieACS for the CPE's model (NBI `PUT /files`, `fileType` "1 Firmware Upgrade Image" with OUI, product class and the version given; audit `ACS_FIRMWARE_FILE_STORED` with size and SHA-256) and start the upgrade by typing the device name: a GenieACS `download` task with a connection request, after checking that the image is for the CPE's product class (`ACS_FIRMWARE_REQUESTED`). The CPE fetches the file from the GenieACS file server (port 7567, at the host the CPE uses for the ACS), installs it and reboots. One upgrade at a time per CPE, followed on the page and by the worker (`acs_firmware_follow`): *verified* when GenieACS reports a different `SoftwareVersion` (with whether it contains the expected version, `ACS_FIRMWARE_VERIFIED`), *failed* on a GenieACS fault for the CPE after the request (`ACS_FIRMWARE_FAILED`), *unconfirmed* after 30 minutes. Images already in GenieACS for the same model are listed for reuse.
+
+### Configuration snapshots (ACS-07, Core 0.49.217)
+
+GenieACS cannot download a CPE's vendor configuration file (no TR-069 `Upload` task), so NSM archives the CPE's writable parameters as GenieACS last read them: a text file `path = value` (sorted, commented header) in the device backup archive (`BackupRun`/`BackupArtifact`, type `tr069_parameters`), viewable and comparable in the *Backup* tab like a RouterOS export. Secrets (pass/key/secret/PSK/PIN names) and values that change by themselves (statistics, counters, times) are left out. Taken from the *ACS* tab (`backup.execute`) or by backup policies with the TR-069 option (worker `acs_scheduled_snapshots`, one per occurrence, not stored when identical to the previous one); TR-069 CPEs linked to an enabled GenieACS therefore have an executable backup method (*ACS / TR-069 (parametri)*). *Rileggi configurazione dal CPE* asks GenieACS to re-read the whole tree first. Audit `ACS_SNAPSHOT_ARCHIVED`, `ACS_CONFIG_REFRESH_REQUESTED`. Not restorable with one click.
+
+### Wi-Fi settings and reboot (Core 0.49.216)
+
+On the *ACS* tab, technicians (`devices.write`) change the CPE's Wi-Fi: per radio the channel (automatic or one of the channels the CPE allows) and on/off; per network the name, a new password (passwords are never readable, CPEs do not report them) and on/off. Changes are validated (name 1–32 printable characters, password 8–63, known networks/radios, allowed channels), sent as one `setParameterValues` task with a connection request (queued until the next contact when the CPE refuses it) and audited `ACS_WIFI_CHANGED` with the names of the changed fields only. *Rileggi dal CPE* asks GenieACS to re-read the Wi-Fi object. Reboot requires typing the device name, is sent as a GenieACS `reboot` task (`ACS_REBOOT_REQUESTED`) and is confirmed when GenieACS reports a later boot (`ACS_REBOOT_VERIFIED`, unconfirmed after 15 minutes). TR-181 (`Device.WiFi.Radio/SSID/AccessPoint`) and TR-098 (`LANDevice.1.WLANConfiguration`) are handled.
+
+### NSM templates kept current (Core 0.49.210)
+
+Once the operator has installed the NSM base templates (*Amministrazione → ACS*), the worker checks right after every restart and then every 30 minutes whether the provision and presets of the running NSM version differ from the ones installed (fingerprint kept on the GenieACS connector) and reinstalls them, audited `ACS_TEMPLATES_UPDATED`. Installations made by older versions are recognised from the provision script in GenieACS. Templates never installed are left alone. The ACS page shows when they were installed and whether they are current.
+
+### Monitoring and history of CPEs (ACS-05, Core 0.49.206 and 0.49.211)
+
+Every 2 minutes the worker reads from GenieACS (read only, one NBI query per 20 CPEs) the state of every linked TR-069 CPE at its last Inform: CPU, memory, uptime, WAN (chosen by the connection-request address, PPP or public IP: state, type, address, time connected, last error), Wi-Fi radios and clients, LAN hosts, DSL line (rates, SNR margin, attenuation), for TR-181 and TR-098. It keeps the state on the device, stores one sample per new Inform for 90 days (WAN bit rates from the byte counters between two Informs; counters stuck at zero with the WAN up, as on the TP-Link VX230v, are reported as not available) and sets the device online/offline from the last Inform (three missed periodic Informs, at least 15 minutes). The device page and list show CPU/RAM/uptime as current when the last Inform is under 2 hours old; the *ACS* tab shows the line and Wi-Fi state and charts over 24 h / 7 / 30 / 90 days. The NSM provision declares these values with a 4-minute age so the CPE reports them at every periodic inform; NSM keeps the provision current itself (0.49.210).
+
 ### Not implemented
 
 - bulk ACS discovery/onboarding from the ACS side (this migration drives the CPEs, not GenieACS);
 - vendor-specific TR-098/TR-181 parameter profiles beyond identity and firmware;
 - vendor parameter profiles;
-- monitoring/history through ACS;
-- TR-069 diagnostics;
-- capability-aware backup/restore through ACS;
-- firmware deployment/verification through ACS.
+- restore of a configuration through ACS;
+- firmware campaigns over many CPEs through ACS.
 
 Until an actual connector is selected and implemented, roadmap documentation should stay technology-neutral where possible rather than accumulating unused third-party API references.
 
@@ -663,6 +698,7 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - pages of up to 2000 records with the documented pause between requests (6.5 s without key, 1 s with key);
 - idempotent upsert by CVE id; an unchanged record only refreshes `fetched_at`; provenance kept on the advisory (`source`, NVD `vulnStatus`, published/modified, fetched);
 - records that cannot be normalized are skipped and listed in the admin page (bounded list) instead of aborting the run;
+- each NVD request is tried up to three times (timeouts 30, 60 and 90 s; also on HTTP 5xx) before the run fails, because NVD has slow periods (Core 0.49.204); rate limiting (403/429) and other client errors are not retried;
 - transport/HTTP failures back off exponentially (max 24 h); after 3 consecutive failures one Action Center issue is opened and resolved by the next success; audit events for configuration, runs and failures;
 - worker cycle: ingestion when due (default every 6 h), matching every 15 min;
 - requires outbound HTTPS from the app and worker containers to `services.nvd.nist.gov` (manual *Aggiorna ora* runs in the app, scheduled runs in the worker).
@@ -783,6 +819,15 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - one Action Center issue per Device (`lifecycle`, critical for EOS) while it is still to handle, its planned replacement is overdue or its exception expired; resolved automatically otherwise; re-evaluated with the catalog and by the worker;
 - Device lifecycle page shows the decision panel (read-only without `lifecycle.manage`); the EOL/EOS worklist has a *Gestione* column;
 - evidence reports: counts by remediation state, overdue plans, Devices still to handle, active exceptions with reason and expiry; CSV column `lifecycle_remediation`.
+
+### Lifecycle from the web (LIFE-04)
+
+`app/lifecycle_web.py`, migration 0054:
+
+- for every vendor + model in the inventory NSM asks [eol.network](https://eol.network), a free database of the end-of-sale / end-of-support notices vendors publish on their own sites (MikroTik product pages, Ubiquiti *Vintage and Legacy*, Cambium product lifecycle, TP-Link EOL lists, 90+ vendors); each answer keeps the official vendor page, the eol.network page and the date the source was read;
+- *EOL / EOS → Catalogo lifecycle → Ciclo di vita dal web*: per model the product found, vendor status, published dates, match confidence and source; *Nessun avviso di fine vita pubblicato* when there is no notice; *Cerca con un altro nome* (the SKU on the label) when the inventory name is a marketing name;
+- what is found is a proposal: *Applica al catalogo* (one model) or *Applica le corrispondenze esatte* writes a catalog record through the same path as a hand-written one (source, link, evidence date, audit `LIFECYCLE_RECORD_SAVED` + `LIFECYCLE_WEB_APPLIED`, devices re-correlated); a vendor status without a published date (MikroTik *Discontinued*, Ubiquiti *Vintage*/*Legacy*) is dated on the day the source was read and the note says so; the product code becomes an alias when it differs from the inventory name;
+- worker: new models are looked up, the others re-checked every 30 days; keyless search 8 models per run (the public limit is 10 requests a minute, 429 defers the rest), with `EOL_NETWORK_API_KEY` batch match of 100 models; `LIFECYCLE_WEB_LOOKUP=off` disables it; read `security.read`, run/apply `lifecycle.manage`; manual runs audited `LIFECYCLE_WEB_LOOKUP`.
 
 ## 17. Public read-only API
 

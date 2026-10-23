@@ -779,14 +779,14 @@ def admin_acs(request: Request):
     with SessionLocal() as db:
         ui_user(request, db, "users.manage")
         connection = genieacs_connector._connection(db)
-        _scheme, host = acs_admin._public_host(request)
         return {
             "state": "unconfigured" if connection is None else "active" if connection.is_enabled else "disabled",
             "base_url": connection.base_url if connection else None,
             "internal_available": bool(genieacs_connector.internal_nbi_url()),
-            "panel_url": acs_admin.panel_url(request), "acs_url": f"http://{host}:7547/",
+            "panel_url": acs_admin.panel_url(request), "acs_url": acs_admin.cpe_acs_url(request),
             "base_provision": acs_admin.BASE_PROVISION, "provision_script": acs_admin.BASE_PROVISION_SCRIPT,
             "presets": [{"name": name, "precondition": preset["precondition"]} for name, preset in acs_admin.PRESETS.items()],
+            "templates": acs_admin.template_status(connection),
         }
 
 
@@ -895,11 +895,14 @@ def _zabbix_payload(db) -> dict:
     return jsonable_encoder({
         "configured": row is not None, "enabled": bool(row and row.is_enabled), "api_url": row.base_url if row else "",
         "auth_mode": mode, "username": username, "verify_tls": bool(row.verify_tls) if row else True,
-        "settings": {key: settings[key] for key in ("group_prefix", "interface", "snmp_community", "templates", "scope", "customer_ids")},
+        "settings": {key: settings[key] for key in ("group_prefix", "interface", "snmp_community", "templates", "scope", "customer_ids",
+                                                     "link_existing", "update_linked_ip")},
         "version": settings.get("version"), "last_test_status": row.last_test_status if row else None, "last_error": row.last_error if row else None,
         "last_sync_at": row.last_sync_at if row else None,
         "last_sync": {"status": last.get("status"), "created": last.get("created", 0), "updated": last.get("updated", 0), "disabled": last.get("disabled", 0),
-                      "skipped": last.get("skipped", 0), "missing_templates": last.get("missing_templates") or [], "errors": (last.get("errors") or [])[:10]},
+                      "skipped": last.get("skipped", 0), "missing_templates": last.get("missing_templates") or [], "errors": (last.get("errors") or [])[:10],
+                      "linked": last.get("linked", 0), "ambiguous": (last.get("ambiguous") or [])[:50], "ip_updated": (last.get("ip_updated") or [])[:50],
+                      "factory_ip": (last.get("factory_ip") or [])[:50]},
         "problems": {key: problems.get(key) for key in ("problems", "with_problems", "at", "status", "error")},
         "frontend": zabbix_connector.frontend_url(row.base_url) if row else None,
         "customers": [{"id": str(c.id), "name": c.name} for c in db.scalars(select(Customer).order_by(Customer.name))],
@@ -926,7 +929,8 @@ def admin_zabbix_save(request: Request, body: dict = Body(default={})):
                 db, user, api_url=_text(body, "api_url"), auth_mode=_text(body, "auth_mode"), token=_text(body, "token"), username=_text(body, "username"),
                 password=_text(body, "password"), verify_tls=body.get("verify_tls") is not False, enabled=body.get("enabled") is True,
                 group_prefix=_text(body, "group_prefix") or "NSM", interface=_text(body, "interface"), snmp_community=_text(body, "snmp_community"),
-                templates=templates, scope=_text(body, "scope"), customer_ids=customer_ids)
+                templates=templates, scope=_text(body, "scope"), customer_ids=customer_ids,
+                link_existing=body.get("link_existing") is not False, update_linked_ip=body.get("update_linked_ip") is not False)
         except ValueError as error:
             raise HTTPException(422, {"code": "invalid", "message": str(error)}) from None
         db.flush()
@@ -947,11 +951,25 @@ def admin_zabbix_test(request: Request):
     return _admin_write(request, run)
 
 
+@router.get("/admin/integrations/zabbix/templates")
+def admin_zabbix_templates(request: Request):
+    """Template names read from Zabbix, offered in the settings form."""
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        row = zabbix_connector.connection_row(db)
+        if row is None:
+            raise HTTPException(422, {"code": "not_configured", "message": "Salva prima la configurazione."})
+        try:
+            return {"templates": zabbix_connector.template_names(row)}
+        except zabbix_connector.ZabbixError as error:
+            raise HTTPException(502, {"code": "zabbix", "message": str(error)}) from None
+
+
 @router.post("/admin/integrations/zabbix/sync", dependencies=[Depends(require_csrf)])
 def admin_zabbix_sync(request: Request):
     def run(db, user):
         result = zabbix_connector.sync_now(db, user)
-        return jsonable_encoder({key: result.get(key) for key in ("status", "created", "updated", "disabled", "skipped", "errors")})
+        return jsonable_encoder({key: result.get(key) for key in ("status", "created", "updated", "disabled", "skipped", "errors", "linked", "ambiguous", "ip_updated", "factory_ip")})
 
     return _admin_write(request, run)
 
