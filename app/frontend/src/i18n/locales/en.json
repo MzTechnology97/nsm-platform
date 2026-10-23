@@ -246,6 +246,20 @@
         "pppoe": "matched by PPPoE user",
         "ip": "matched by static IP"
       }
+    },
+    "pingToggle": {
+      "open": "Ping from NSM: switch on or off",
+      "title": "Ping from NSM",
+      "help": "NSM pings the device every minute: latency, loss and outages appear on the Monitor tab and count for the availability.",
+      "on": "On",
+      "off": "Off",
+      "target": "Address pinged: {{target}}",
+      "noTarget": "The device has no management IP: set an address in Monitor → Impostazioni monitoraggio first.",
+      "readOnly": "Changing it needs the permission to edit devices.",
+      "savedOn": "Ping on: the first result arrives within a minute.",
+      "savedOff": "Ping off.",
+      "more": "Thresholds and address in Monitor",
+      "close": "Close"
     }
   },
   "monitor": {

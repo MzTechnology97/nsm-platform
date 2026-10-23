@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.222 — 2026-10-22
+
+Ping from NSM, on and off from the device page
+- **Click the *Ping da NSM* tile** on the device overview: a small window opens with an on/off switch.
+  - It shows the address that is pinged.
+  - It saves at once, and the first result arrives within a minute.
+  - Thresholds and a different address stay in *Monitor → Impostazioni monitoraggio*, linked from the window.
+- Users without the permission to edit devices see the window read-only. When the device has no address to ping, the switch cannot be turned on and the window says why.
+
 ## 0.49.221 — 2026-10-22
 
 Lifecycle from the web

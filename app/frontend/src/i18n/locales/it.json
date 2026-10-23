@@ -246,6 +246,20 @@
         "pppoe": "abbinato per utente PPPoE",
         "ip": "abbinato per IP statico"
       }
+    },
+    "pingToggle": {
+      "open": "Ping da NSM: attiva o disattiva",
+      "title": "Ping da NSM",
+      "help": "NSM interroga l'apparato con un ping ogni minuto: latenza, perdita e interruzioni compaiono nel Monitor e contano per la disponibilità.",
+      "on": "Attivo",
+      "off": "Non attivo",
+      "target": "Indirizzo interrogato: {{target}}",
+      "noTarget": "L'apparato non ha un IP di gestione: imposta prima un indirizzo in Monitor → Impostazioni monitoraggio.",
+      "readOnly": "Per cambiarlo serve il permesso di modifica degli apparati.",
+      "savedOn": "Ping attivato: il primo risultato arriva entro un minuto.",
+      "savedOff": "Ping disattivato.",
+      "more": "Soglie e indirizzo nel Monitor",
+      "close": "Chiudi"
     }
   },
   "monitor": {
