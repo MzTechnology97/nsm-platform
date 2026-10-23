@@ -5713,7 +5713,12 @@
       "save": "Enregistrer",
       "saved": "Enregistré."
     },
-    "short": "Le serveur n'a envoyé que {{bytes}} octets au lieu du fichier (redirection ou refus) : utilisez NSM ou un autre serveur de test."
+    "short": "Le serveur n'a envoyé que {{bytes}} octets au lieu du fichier (redirection ou refus) : utilisez NSM ou un autre serveur de test.",
+    "timedHelp": "Sur les CPE qui le permettent le test dure {{seconds}} secondes et mesure le débit toutes les 2 secondes.",
+    "plan": "Offre ISPBilling du client : {{plans}}",
+    "breakdown": "soutenu {{sustained}} · moyen {{average}} · pic {{peak}} Mbit/s",
+    "tooShort": "test court : il peut mesurer le burst initial au lieu de la limite de l'offre",
+    "burstNote": "Le test va jusqu'au serveur NSM en passant par le BRAS : si le profil PPPoE a un burst, les premières secondes vont plus vite que l'offre. Comparez le débit soutenu avec l'offre."
   },
   "acsFirmware": {
     "title": "Firmware",

@@ -29,6 +29,7 @@ import hashlib
 import hmac
 import os
 import re
+import threading
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -49,6 +50,12 @@ router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 public = APIRouter(include_in_schema=False)
 KINDS = ("download", "upload")
 DEFAULT_SIZE_MB, MIN_SIZE_MB, MAX_SIZE_MB = 25, 1, 200
+# A short test fits inside the burst of a PPPoE rate limit (e.g. 100M with a higher burst for a few seconds) and measures
+# the peak, not the plan. When the CPE supports a time-based test (TR-143 TimeBasedTestDuration) it runs for TIMED_SECONDS,
+# with one incremental result every TIMED_INTERVAL seconds: the speed held in the second half is the "sustained" one.
+TIMED_SECONDS = 20
+TIMED_INTERVAL = 2
+TIMED_SIZE = 4096 * 1024 * 1024  # bytes the test link allows; the CPE stops when the time is up
 LINK_VALID = timedelta(minutes=15)
 GIVE_UP = timedelta(minutes=10)
 MAX_TRANSFERS = 4
@@ -56,6 +63,48 @@ MIN_VALID_BYTES = 1024 * 1024
 FILENAME = "nsm-speedtest.bin"
 _CHUNK = os.urandom(64 * 1024)  # random bytes: nothing on the way can compress them
 _transfers = 0
+SERVER_INTERVAL = 2.0  # seconds per server-side measurement
+
+
+class _Meter:
+    """Bytes moved by one NSM test transfer, in SERVER_INTERVAL buckets (monotonic clock)."""
+
+    def __init__(self):
+        self.start = time.monotonic()
+        self.buckets: list[int] = []
+
+    def add(self, moved: int) -> None:
+        index = int((time.monotonic() - self.start) // SERVER_INTERVAL)
+        while len(self.buckets) <= index:
+            self.buckets.append(0)
+        self.buckets[index] += moved
+
+    def mbps(self) -> list[float]:
+        # The last bucket is partial: it would read slower than the line.
+        full = self.buckets[:-1] if len(self.buckets) > 1 else self.buckets
+        return [round(b * 8 / SERVER_INTERVAL / 1_000_000, 1) for b in full]
+
+
+def _save_later(device_id: str, kind: str, meter: "_Meter") -> None:
+    """From a transfer's ``finally``: a thread, because the request may already be cancelled (the CPE closed it)."""
+    threading.Thread(target=save_server_intervals, args=(device_id, kind, meter.mbps()), daemon=True).start()
+
+
+def save_server_intervals(device_id: str, kind: str, intervals: list[float]) -> None:
+    """Attach NSM's own measurements to the running test of the device (read when the CPE reports the result)."""
+    try:
+        uid = uuid.UUID(str(device_id))
+    except ValueError:
+        return
+    with SessionLocal() as db:
+        device = db.get(Device, uid)
+        tests = dict((device.inventory_data or {}).get("acs_speedtest") or {}) if device else {}
+        entry = dict(tests.get(kind) or {})
+        if not device or entry.get("state") != "requested":
+            return
+        entry["server_intervals"] = intervals[:120]
+        _store(device, kind, entry)
+        db.commit()
 
 OBJECTS = {
     "tr181": {"download": "Device.IP.Diagnostics.DownloadDiagnostics", "upload": "Device.IP.Diagnostics.UploadDiagnostics"},
@@ -109,7 +158,7 @@ def signed_path(device_id, size: int, now: datetime) -> str:
 
 
 def _check_link(device_id: str, expires: int, size: int, signature: str) -> None:
-    if not hmac.compare_digest(signature, _signature(device_id, expires, size)) or expires < time.time() or not 0 < size <= MAX_SIZE_MB * 1024 * 1024:
+    if not hmac.compare_digest(signature, _signature(device_id, expires, size)) or expires < time.time() or not 0 < size <= max(MAX_SIZE_MB * 1024 * 1024, TIMED_SIZE):
         raise HTTPException(404)
 
 
@@ -119,7 +168,7 @@ def _acs_host(record: dict, model: str) -> str | None:
     return f"[{host}]" if host and ":" in host else host
 
 
-def test_url(device, kind: str, config: dict, record: dict, model: str, now: datetime) -> str:
+def test_url(device, kind: str, config: dict, record: dict, model: str, now: datetime, size: int | None = None) -> str:
     custom = config["download_url" if kind == "download" else "upload_url"]
     if custom:
         return custom
@@ -129,7 +178,7 @@ def test_url(device, kind: str, config: dict, record: dict, model: str, now: dat
         if not host:
             raise HTTPException(409, {"code": "no_server", "message": "Non so a quale indirizzo il CPE raggiunge NSM: impostalo in Amministrazione → ACS → Test di velocità."})
         base = f"http://{host}"
-    return base + signed_path(device.id, config["size_mb"] * 1024 * 1024, now)
+    return base + signed_path(device.id, size or config["size_mb"] * 1024 * 1024, now)
 
 
 # --- Results -----------------------------------------------------------------------------------
@@ -166,6 +215,28 @@ def _begin(record: dict, base: str, end: datetime | None) -> datetime | None:
     return None
 
 
+def _intervals(record: dict, base: str, kind: str) -> list[float]:
+    """Mbps of each incremental result (time-based tests), in time order."""
+    node = nbi._node(record, f"{base}.IncrementalResult")
+    rows = []
+    for key, value in sorted(((k, v) for k, v in (node or {}).items() if isinstance(v, dict) and not k.startswith("_")), key=lambda kv: int(kv[0]) if kv[0].isdigit() else 0):
+        moved = nbi._number(nbi._value(value, "TestBytesReceived" if kind == "download" else "TestBytesSent"))
+        start, end = _time(nbi._value(value, "StartTime")), _time(nbi._value(value, "EndTime"))
+        seconds = (end - start).total_seconds() if start and end else None
+        if moved and seconds and seconds > 0:
+            rows.append(round(moved * 8 / seconds / 1_000_000, 1))
+    return rows
+
+
+def sustained_of(intervals: list[float]) -> float | None:
+    """Median of the second half: what is left once a burst at the start is over."""
+    tail = sorted(intervals[len(intervals) // 2:])
+    if len(intervals) < 4 or not tail:
+        return None
+    middle = len(tail) // 2
+    return tail[middle] if len(tail) % 2 else round((tail[middle - 1] + tail[middle]) / 2, 1)
+
+
 def parse_result(model: str, kind: str, record: dict) -> dict:
     base = OBJECTS[model][kind]
     state = str(nbi._value(record, f"{base}.DiagnosticsState") or "")
@@ -179,8 +250,10 @@ def parse_result(model: str, kind: str, record: dict) -> dict:
     # A server that redirects or refuses the CPE (403 without a browser User-Agent) "completes" with a few hundred bytes.
     short = bool(moved is not None and moved < MIN_VALID_BYTES and state.lower() in ("complete", "completed"))
     mbps = round(moved * 8 / seconds / 1_000_000, 1) if moved and seconds and seconds > 0 and not short else None
+    intervals = _intervals(record, base, kind)
     return {"state": state, "bytes": moved, "seconds": round(seconds, 2) if seconds else None, "mbps": mbps, "short": short,
-            "began_at": begin.isoformat() if begin else None}
+            "began_at": begin.isoformat() if begin else None, "intervals": intervals or None,
+            "peak_mbps": max(intervals) if intervals else None, "sustained_mbps": sustained_of(intervals)}
 
 
 # Objects GenieACS must read once before the TR-143 diagnostics appear in its record (a new CPE has not been walked yet).
@@ -244,13 +317,21 @@ def request_record(db, user, device, connection, kind: str, now: datetime | None
         raise HTTPException(409, {"code": "unsupported", "message": "Il CPE non espone il test di velocità TR-143 (DownloadDiagnostics/UploadDiagnostics)."})
     config = speedtest_settings(connection)
     base = OBJECTS[model][kind]
-    record = nbi._read(connection, device.external_device_id, [ACS_URL[model], f"{base}.ProtocolVersion"])
-    url = test_url(device, kind, config, record, model, now)
-    size = config["size_mb"] * 1024 * 1024
+    record = nbi._read(connection, device.external_device_id, [ACS_URL[model], f"{base}.ProtocolVersion", f"{base}.TimeBasedTestDuration",
+                                                                f"{base}.TimeBasedTestMeasurementInterval"])
+    duration = nbi._node(record, f"{base}.TimeBasedTestDuration")
+    timed = isinstance(duration, dict) and bool(duration.get("_writable"))
+    size = TIMED_SIZE if timed else config["size_mb"] * 1024 * 1024
+    url = test_url(device, kind, config, record, model, now, size)
     if kind == "download":
         values = [[f"{base}.DownloadURL", url, "xsd:string"]]
     else:
         values = [[f"{base}.UploadURL", url, "xsd:string"], [f"{base}.TestFileLength", size, "xsd:unsignedInt"]]
+    if timed:
+        values.append([f"{base}.TimeBasedTestDuration", TIMED_SECONDS, "xsd:unsignedInt"])
+        interval = nbi._node(record, f"{base}.TimeBasedTestMeasurementInterval")
+        if isinstance(interval, dict) and interval.get("_writable"):
+            values.append([f"{base}.TimeBasedTestMeasurementInterval", TIMED_INTERVAL, "xsd:unsignedInt"])
     # With "Any" the VX230v tries IPv6 first and fails without IPv6 on the WAN (Error_InitConnectionFailed).
     protocol = nbi._node(record, f"{base}.ProtocolVersion")
     if isinstance(protocol, dict) and protocol.get("_writable") and ":" not in (urlsplit(url).hostname or ""):
@@ -258,11 +339,13 @@ def request_record(db, user, device, connection, kind: str, now: datetime | None
     values.append([f"{base}.DiagnosticsState", "Requested", "xsd:string"])
     started = nbi._task(connection, device.external_device_id, {"name": "setParameterValues", "parameterValues": values})
     server = "custom" if config["download_url" if kind == "download" else "upload_url"] else "nsm"
-    entry = {"state": "requested", "server": server, "host": urlsplit(url).hostname, "size_mb": config["size_mb"], "requested_at": now.isoformat(),
+    entry = {"state": "requested", "server": server, "host": urlsplit(url).hostname, "size_mb": None if timed else config["size_mb"],
+             "seconds": TIMED_SECONDS if timed else None, "requested_at": now.isoformat(),
              "by": user.username if user else None, "started": started, "checked_at": None, "result": None}
     _store(device, kind, entry, model)
     core.add_event(db, "ACS_SPEEDTEST_REQUESTED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal",
-                   details={"kind": kind, "server": server, "size_mb": config["size_mb"], "started": started})
+                   details={"kind": kind, "server": server, "size_mb": None if timed else config["size_mb"], "seconds": TIMED_SECONDS if timed else None,
+                            "started": started})
     return entry
 
 
@@ -290,6 +373,11 @@ def refresh_record(db, device, connection, now: datetime | None = None) -> bool:
         state = (result or {}).get("state", "")
         finished = state.lower() in ("complete", "completed")
         if finished or state.startswith("Error"):
+            if result is not None and not result.get("intervals") and entry.get("server_intervals"):
+                # The CPE gives no incremental results: NSM's own measurements of the same transfer.
+                intervals = entry["server_intervals"]
+                result = {**result, "intervals": intervals, "peak_mbps": max(intervals) if intervals else None,
+                          "sustained_mbps": sustained_of(intervals), "intervals_source": "nsm"}
             entry.update({"state": "complete" if finished else "error", "result": result, "completed_at": now.isoformat(), "error": None})
             core.add_event(db, "ACS_SPEEDTEST_COMPLETED", customer_id=device.customer_id, device_id=device.id, source="worker",
                            details={"kind": kind, "state": state, "mbps": (result or {}).get("mbps")})
@@ -305,7 +393,18 @@ def _payload(device, connection, can_run: bool) -> dict:
     config = speedtest_settings(connection)
     return {"linked": bool(device.external_device_id and connection and connection.is_enabled), "can_run": can_run, "model": tests.get("model"),
             "size_mb": config["size_mb"], "custom": {"download": bool(config["download_url"]), "upload": bool(config["upload_url"])},
-            "tests": {kind: tests.get(kind) for kind in KINDS}}
+            "tests": {kind: tests.get(kind) for kind in KINDS}, "timed_seconds": TIMED_SECONDS, "plans": _plans(device)}
+
+
+def _plans(device) -> list[str]:
+    """RADIUS profiles of the ISPBilling accounts matched to this CPE, to compare with the measured speed."""
+    try:
+        from app import ispbilling_radius
+
+        with SessionLocal() as db:
+            return sorted({a["profile"] for a in ispbilling_radius.device_accounts(db, device) if a.get("profile")})
+    except Exception:  # noqa: BLE001 - ISPBilling not configured or not reachable: no plan shown
+        return []
 
 
 # --- Routes ------------------------------------------------------------------------------------
@@ -384,15 +483,18 @@ def speedtest_download(device_id: str, expires: int, size: int, signature: str, 
         # The slot is taken when the transfer starts, so an abandoned response holds none.
         if not _take_slot():
             return
+        meter = _Meter()
         try:
             left = size
             while left > 0:
                 piece = _CHUNK if left >= len(_CHUNK) else _CHUNK[:left]
                 left -= len(piece)
                 yield piece
+                meter.add(len(piece))
                 await asyncio.sleep(0)
         finally:
             _free_slot()
+            _save_later(device_id, "download", meter)  # also when the CPE closes the connection at the end of a time-based test
 
     return StreamingResponse(stream(), media_type="application/octet-stream",
                              headers={"Content-Length": str(size), "Cache-Control": "no-store"})
@@ -403,14 +505,17 @@ async def speedtest_upload(request: Request, device_id: str, expires: int, size:
     _check_link(device_id, expires, size, signature)
     if not _take_slot():
         raise HTTPException(503)
+    meter = _Meter()
     try:
         received = 0
         async for chunk in request.stream():
             received += len(chunk)
+            meter.add(len(chunk))
             if received > size + 1024 * 1024:
                 return Response(status_code=413)
     finally:
         _free_slot()
+        _save_later(device_id, "upload", meter)
     return Response(status_code=200)
 
 
