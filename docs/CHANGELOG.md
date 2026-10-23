@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.232 — 2026-10-23
+
+ACS monitoring refreshed again
+- **Fixed: NSM's ACS provisioning never ran at the periodic contacts of the CPEs.** In GenieACS the NSM presets listed three events (bootstrap, boot, periodic). GenieACS applies a preset only when all of them are in the same session, which never happens during normal operation. So uptime, CPU, RAM, WAN traffic, Wi-Fi clients, LAN hosts and DSL were never re-read. The history and charts stayed empty (TP-Link HB210) or frozen (VX230v).
+- The presets now run at every contact. Each value is still re-read only when it is older than its interval (5 minutes for monitoring, hourly or daily for the rest).
+- After the update, NSM reinstalls the templates in GenieACS on its own. Values reappear at each CPE's next contact.
+
 ## 0.49.231 — 2026-10-23
 
 Activity
