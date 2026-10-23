@@ -189,6 +189,16 @@ Per vendor:
   - SNMP and ACL only where the data model of the model exposes them; ACL writes were rejected (9003) on the VX230v, so this is per model.
 - **Cambium (cnMaestro)**: configuration through cnMaestro (templates/API), to be verified on the operator's console.
 
+**Exposure link (requested 2026-10-23):**
+- When the exposure check (SCAN-01) finds critical services open to everyone, the device page and the exposure list offer **Applica regole ACL ai servizi critici esposti**. The button applies the management list to the exposed services only, through the same channel as above, with a confirmation and, for airOS, the reboot warning.
+- A service limited by the ACL is **not** critical. On MikroTik the configuration check already marks it *limitato*. The external scan runs from the NSM server, which is in the list, and would still see the port open: when NSM knows the ACL is applied (last successful configuration with the current list), the finding becomes *limitato* instead of *esposto*.
+
+Snapshot of the operator's network (read-only, 2026-10-23, 282 of 644 devices checked):
+- Ubiquiti CPEs: SSH open to Internet on 265 of 268, discovery UDP 10001 on 262 (amplification), web on 2 and SNMP on 1.
+- MikroTik: Winbox exposed on 2 routers, SNMP on 1 router plus 1 external result, bandwidth-test on 3. One legacy router seen externally with FTP and Telnet (critical) and API/web open, to be confirmed: an external scan of a shared IP may reach another device.
+- TP-Link: TR-069 CWMP 7547 open to Internet on 2.
+- Cambium: SSH on 1 CPE.
+
 **ACL capacity (to evaluate, requested 2026-10-23):** measure, for each vendor and model, how many entries each ACL accepts before NSM relies on it, and record the limit in the vendor capabilities:
 - MikroTik: `/snmp community addresses`, `/ip service available-from`, firewall address lists;
 - airOS: firewall rules (`iptables.sys.fw.N`);
