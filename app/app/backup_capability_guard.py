@@ -7,6 +7,7 @@ _VENDOR_KEYS = {
     "mikrotik": {"mikrotik_binary", "mikrotik_export"},
     "ubiquiti": {"ubiquiti_connector_config"},
     "tp-link": {"tr069_config"},
+    "cambium": {"cambium_config"},
     "generic": {"generic_snapshot"},
 }
 _COMMON_KEYS = {"pre_firmware", "verify_hash"}
