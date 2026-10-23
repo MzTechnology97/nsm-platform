@@ -1,7 +1,7 @@
 """ISPBilling automatic import: mark the mirror customers and addresses already handled (ISPB-01).
 
 Revision ID: 0056_ispbilling_handled
-Revises: 0053_server_migration
+Revises: 0055_drop_acs_migration
 """
 from typing import Sequence, Union
 
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision: str = "0056_ispbilling_handled"
-down_revision: Union[str, None] = "0053_server_migration"
+down_revision: Union[str, None] = "0055_drop_acs_migration"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
