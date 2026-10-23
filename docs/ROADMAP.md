@@ -444,11 +444,11 @@ Profiles: *vendor* (today's list), *extended* (the list above, default for publi
 A complete cybersecurity view for an ISP/WISP, taking as reference the open-source project AbuseBox (`bekkaze/abusebox`, MIT), re-implemented inside NSM on its own inventory:
 - **blacklists**: DNSBL checks (tens of providers) of the operator's public IPs (customers, CGNAT pool, servers) and of whole subnets (/24), with links to each provider's removal page and delisting tracking;
 - **reputation**: AbuseIPDB score and reports (optional API key), correlated with the customer and device owning the address;
-- **domains and mail**: WHOIS and expiry, DNS records, SSL certificates and expiry, SPF/DKIM/DMARC grading of the operator's domains;
 - **availability**: DNS resolution, HTTP/HTTPS status and response time of the operator's public services;
+- out of scope for now (user, 2026-10-23): domains, SSL certificates and mail authentication (SPF/DKIM/DMARC);
 - **assets from NSM**: public IPs of devices and customers (and ISPBilling/RADIUS pools) imported automatically, ranges by CIDR, per-asset checks and schedules;
 - **monitoring and alerts**:
-  - scheduled re-checks and a needs-attention view (listed, expiring, down, weak mail security);
+  - scheduled re-checks and a needs-attention view (listed, poor reputation, down);
   - activity log, with history and charts of listings over time;
   - alerts through the existing NSM channels (email, Telegram, webhook) and Action Center issues; CSV export.
 
