@@ -607,6 +607,7 @@ a.ui-search-result:hover {
 .ui-ispbilling-auto h3,
 .ui-ispbilling-auto p {
   margin: 0;
+}
 
 /* Select with a search box (SearchSelect): long lists such as customers. */
 .ui-search-select {
