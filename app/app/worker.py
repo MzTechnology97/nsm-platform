@@ -49,6 +49,7 @@ from app.advisory_sources import sync_security_advisories
 from app.compliance import run_scheduled_evaluation as run_compliance_evaluation
 from app.sla import budget_alerts as sla_budget_alerts
 from app.lifecycle_catalog import run_scheduled_reconcile as run_lifecycle_reconcile
+from app.lifecycle_web import auto_lookup as lifecycle_web_lookup
 from app.worker_status import beat, run_task, started
 from app.notification_delivery import deliver_pending as deliver_notifications
 from app.notification_chat import poll_telegram_updates, register_channels
@@ -143,6 +144,7 @@ while True:
             last_maintenance = now_mono
 
         if now_mono - last_compliance >= COMPLIANCE_INTERVAL_SECONDS:
+            run_task("lifecycle_web_lookup", lifecycle_web_lookup)  # proposals only: the catalog changes when an operator applies them
             lifecycle_stats = run_task("lifecycle_reconcile", run_lifecycle_reconcile)
             catalog_stats = run_task("routeros_catalog", run_routeros_catalog)  # an unreachable upgrade server must not stop the worker
             run_task("vendor_firmware_catalogs", run_vendor_firmware)
