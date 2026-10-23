@@ -54,6 +54,7 @@ from app.sla import install_sla
 from app.maintenance_windows import install_maintenance_windows
 from app.connector_diagnostics import install_connector_diagnostics
 from app.ui_acs_migration import install_acs_migration
+from app.server_migration import install_server_migration
 from app.cnmaestro_onboarding import install_cnmaestro_onboarding
 from app.ispbilling_connector import install_ispbilling_connector
 from app.ispbilling_import import install_ispbilling_import
@@ -128,7 +129,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.203"
+APP_VERSION = "0.49.216"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -255,6 +256,7 @@ install_sla(core.app)
 install_maintenance_windows(core.app)
 install_connector_diagnostics(core.app)
 install_acs_migration(core.app)
+install_server_migration(core.app)
 install_cnmaestro_onboarding(core.app)
 install_ispbilling_connector(core.app)
 install_ispbilling_import(core.app)

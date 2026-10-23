@@ -4,6 +4,131 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.216 — 2026-10-22
+
+Wi-Fi and reboot of TR-069 CPEs from NSM
+- **Wi-Fi on the *ACS* tab** of a TP-Link or other TR-069 CPE, for technicians and administrators:
+  - per radio (2.4 / 5 GHz): automatic channel or one of the channels the CPE allows, and on/off;
+  - per network: name, new password and on/off.
+  Networks that are off are grouped apart. Passwords cannot be read, because CPEs do not report them: you can only set a new one.
+- **Changes are checked before sending:** name of 1 to 32 characters, password of 8 to 63, allowed channels. Then they are sent to the CPE through the ACS in one go, after a confirmation. If the CPE is not reachable at that moment they apply at its next contact. The activity log records what changed, never the password.
+- **Reboot of the CPE** from the same tab: you type the device name to confirm. NSM shows when the CPE came back.
+
+## 0.49.215 — 2026-10-22
+
+Legacy backups over FTP: subnets, port, firewall
+- **Choose who may send backups.** *Amministrazione → Sistema → Backup legacy via FTP* lists the subnets allowed to send backups to the FTP receiver of RouterOS 6 and 7.12 routers, one per line or separated by commas. The receiver refuses any other origin within a minute. With no subnet set, it still accepts everyone, as before, and the page warns about it.
+- **Custom port.** `./manage.sh legacy-backup-enable <IPv4 of NSM> [port]` sets the port the routers use (default 2121). The passive ports can be changed with `LEGACY_FTP_PASV_PORTS`.
+- **Firewall handled by the same command.** It opens the ports in ufw or firewalld when one of them is active. When subnets are set in NSM, it also adds host rules that block other origins before they reach the receiver. `./manage.sh legacy-ftp-firewall --apply` refreshes those rules after the subnets change.
+
+## 0.49.214 — 2026-10-22
+
+Moving NSM to a server with another address
+- **New page *Amministrazione → Migrazione server*.** When NSM moves to a server with another IP address, the old server tells the devices the new one, so no router has to be touched by hand:
+  - MikroTik agents that update themselves receive a script that talks to the new address, preceded by the syslog setting towards it;
+  - TR-069 CPEs receive the new ACS URL through GenieACS — the only CWMP setting that changes;
+  - agents that cannot update themselves are listed, to be reinstalled from the new server.
+- **Safe by steps:** the new server must be a restore of this database (NSM checks it with a token created with the migration, and refuses an address that leads back to this same server); a pilot on up to 10 devices comes first, and "migrate all" unlocks only after a pilot device has shown up on the new server.
+- **Arrivals confirmed by the new server** (last heartbeat or last Inform after the switch). The devices that arrived can then be taken out of service on the old server, so it stops raising "unreachable" alerts for them.
+- The step-by-step procedure (backup and restore, settings to check on the new server) is on the page and in `OPERATIONS.md`.
+
+## 0.49.213 — 2026-10-22
+
+Guide: adding a TP-Link CPE to the ACS
+- **Step-by-step guide in *Amministrazione → ACS → Configurare una CPE TP-Link*.** One manual step on each router — CWMP on, Inform on, the ACS URL and Periodic Inform — then NSP recognises the CPE. The guide says to save without touching anything else: WAN, PPPoE, Wi-Fi and LAN stay as they are.
+- **New section "Cosa fa NSP e cosa non tocca":** what NSP reads (state, last contact, model, firmware, IP, CPU, memory, WAN traffic, Wi-Fi clients, DSL line), the actions it offers (reboot, firmware check, diagnostics) and what it never changes (Wi-Fi, LAN, DHCP, PPPoE). The only setting it writes is the CWMP inform interval.
+- **The right ACS URL for the routers:** set `ACS_CWMP_URL` in `.env` to the address the routers reach NSP on (for example `http://<server>:7547`). The guide and the CPE migration then show that address instead of the one the administrator opened NSP with.
+
+## 0.49.212 — 2026-10-22
+
+Legacy MikroTik agent: failures say why
+- **A failed job on a RouterOS 7.12 (legacy) router now reports the reason**, not only "RouterOS legacy job execution failed". RouterOS 7.12 cannot pass the error text to the script, so the Agent records the step it was on and the reason. For a backup, the reason can be, for example:
+  - the export command failed;
+  - the export file was not created;
+  - the export is too large for the legacy transport;
+  - the export was read only in part ("export read incomplete: 4095/18230 bytes");
+  - the upload to NSM failed.
+  The reason appears in the backup history and in the device jobs.
+- **Agent 0.49.23**: legacy Agents update themselves automatically. Modern Agents get the same version, with no other change.
+
+## 0.49.211 — 2026-10-22
+
+History of TR-069 CPEs
+- **The *ACS* tab of a TP-Link or other TR-069 CPE now shows the line and Wi-Fi:**
+  - WAN state and type (PPPoE or IP), address, time connected and last connection error;
+  - Wi-Fi radios with channel, width and connected clients;
+  - LAN hosts;
+  - for DSL lines, speed, SNR margin and attenuation.
+- **Charts over 24 hours, 7, 30 and 90 days:** WAN traffic, CPU and memory, Wi-Fi clients and LAN hosts, DSL speed and quality, kept for 90 days.
+- **Online and offline from the ACS:** a CPE is shown offline after three missed periodic contacts (at least 15 minutes).
+- **Firmware without traffic counters:** some versions, like the one on the TP-Link VX230v, leave the WAN byte counters at zero. NSM says so instead of drawing a flat line.
+- NSM reads all this from GenieACS every two minutes and sends nothing to the CPEs. The NSM rule in GenieACS makes the CPE report these values at every contact (5 minutes); NSM updates the rule by itself, as from 0.49.210.
+
+## 0.49.210 — 2026-10-22
+
+ACS templates updated automatically
+- **The NSM templates in GenieACS follow NSM updates by themselves.** If you installed them once (*Amministrazione → ACS → Installa template base*), NSM checks right after every update, and then every 30 minutes, whether this version brings new ones. If it does, it reinstalls them: for example, to make the CPEs report CPU and memory every 5 minutes. You no longer need to press the button again after an update.
+- Templates you never installed are not touched: installing them stays your choice.
+- The ACS page shows when the templates were last installed and whether they match this version. Every automatic update is recorded in the activity log.
+
+## 0.49.209 — 2026-10-22
+
+ISPBilling RADIUS accounts on the device page
+- **NSM now reads the PPPoE accounts of ISPBilling Radius 2.0** together with customers and services.
+- **Each account is matched to the device that uses it:**
+  - the MikroTik whose PPPoE client logs in with that username (from the agent's PPP snapshot);
+  - otherwise the device whose management IP is the account's static IP.
+  When two devices fit equally, nothing is guessed.
+- **On the device overview, the *Account ISPBilling* panel** shows the username, the profile (for example *FWA 100/20*), the ISPBilling status (*Attivo*, *Sospeso*, *Terminato*) and the ISPBilling customer. It warns when ISPBilling bills a different customer than the one the device belongs to in NSM.
+- *Integrazioni → ISPBilling* shows how many accounts were read and matched. If the API key has no Radius permission, only the accounts are skipped and the page says so.
+
+## 0.49.208 — 2026-10-22
+
+Copy buttons
+- **"Copia" works when NSM is opened over plain HTTP.** Browsers allow the clipboard API only on HTTPS, so on an installation reached at http:// these buttons did nothing:
+  - the agent install command;
+  - the new API key;
+  - the 2FA recovery codes;
+  - the connector compatibility report.
+  They now copy through the browser's older copy command. If the browser refuses that too, a message asks you to select the text and press Ctrl+C.
+
+## 0.49.207 — 2026-10-22
+
+Ubiquiti firmware catalog
+- **The Ubiquiti catalog no longer waits a day after a restart.** The worker asks the Ubiquiti update service once a day. Right after a restart it could ask before UISP had reported which airOS platforms are in use; with nothing to ask, the next try was 24 hours later. Now an empty attempt does not count, and the catalog fills in at the next cycle after the UISP sync.
+
+## 0.49.206 — 2026-10-22
+
+TR-069 CPEs: diagnostics and resources
+- **Ping and traceroute run by the CPE itself**, on the *ACS* tab of a TP-Link or other TR-069 device linked to GenieACS. The result is what the customer's line sees:
+  - ping: replies, minimum, average and maximum time;
+  - traceroute: every hop with its address and times.
+- **When the test starts:** at once when the CPE accepts GenieACS's connection request, otherwise at its next contact with the ACS. The page follows it until it ends, and gives up after 4 minutes without an answer.
+- **Who can run it:** technicians and administrators. Every test is recorded in the activity log. The last result of each test stays on the device.
+- **CPU, memory and uptime of TR-069 CPEs** (for example the TP-Link VX230v) are shown on the device page and in the device list, as for MikroTik devices. NSM reads them from GenieACS every 5 minutes without sending anything to the CPE, and does not show values more than 2 hours old.
+  - **After the update, press *Installa modelli* again in *Amministrazione → ACS*.** That updates the NSM rule in GenieACS, so the CPE reports these values at every periodic contact (5 minutes) instead of once an hour.
+- **Device page of TR-069 CPEs:** the *Backup* tile says *non disponibile* instead of an orange "mai", because backups through the ACS are not supported yet. The data source reads *TR-069 (ACS)*.
+
+## 0.49.205 — 2026-10-22
+
+Zabbix: use the hosts you already have
+- **NSM no longer duplicates the devices Zabbix already monitors.** When a Zabbix host has the same IP as an NSM device, NSM links to it. If the IP in Zabbix is out of date, NSM links on the same name instead. A link is made only when exactly one host matches.
+  - NSM shows that host's problems on the device page and in *Monitoring*.
+  - It does not create an `nsm-` host for that device.
+- **Your hosts are not modified.** Groups, templates and tags stay as they are. The one exception is optional and on by default: when a router changes address (dynamic public IP, NAT), NSM updates the IP of the host's main interface.
+- **Devices with no host in Zabbix** still get an `nsm-` host, as before.
+- **Devices that match several Zabbix hosts** (for example customers behind the same NAT address) are listed on the Zabbix page and not guessed.
+- **Factory LAN addresses (the default LAN address of home routers and CPEs) never link a device to a Zabbix host by IP**, because many unrelated devices use them. A device whose address is one of them gets no `nsm-` host either, since Zabbix could not reach it. The Zabbix page lists it, so you can enter the address Zabbix must use.
+- **The template fields suggest the templates of your Zabbix**, so the names can be picked instead of typed.
+- The device page says when its Zabbix host is one of yours, linked by IP or by name.
+
+## 0.49.204 — 2026-10-22
+
+NVD advisories
+- **A slow moment of NVD no longer makes the advisory update fail.** Every request to NVD is tried up to three times, waiting longer each time (30, 60 and 90 seconds), and also when NVD answers with a temporary server error. Before, a single 30-second timeout on one of the products followed made the whole update fail, and the next attempt was hours later.
+- NVD's rate-limit answers are still reported at once, as before.
+
+
 ## 0.49.203 — 2026-10-22
 
 Customers and sites from ISPBilling
