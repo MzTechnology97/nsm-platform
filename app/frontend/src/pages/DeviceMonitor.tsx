@@ -7,6 +7,7 @@ import { columns, RANGES, type Range, useIcmpSettings, useLatency, useMetrics, u
 import { formatValue } from "../charts/format";
 import { TimeChart } from "../charts/TimeChart";
 import { Loading } from "../app/States";
+import { SourcePanels } from "../app/MonitorSource";
 
 export function DeviceMonitor() {
   const { t } = useTranslation();
@@ -14,6 +15,8 @@ export function DeviceMonitor() {
   const { data: detail } = useDevice(deviceId);
   const [range, setRange] = useState<Range>("24h");
   const [picking, setPicking] = useState(false);
+  // MikroTik: metrics sent by the NSM agent. Every other device: its source (ACS, UISP, cnMaestro), same panels.
+  const native = detail?.device.vendor === "mikrotik";
 
   return (
     <div className="ui-monitor">
@@ -29,12 +32,23 @@ export function DeviceMonitor() {
           {t("monitor.settings")}
         </button>
       </div>
-      {picking && <InterfacePicker id={deviceId} onDone={() => setPicking(false)} />}
+      {picking && native && <InterfacePicker id={deviceId} onDone={() => setPicking(false)} />}
       {picking && <PingSettings id={deviceId} />}
-      <ResourcesPanel id={deviceId} range={range} />
-      <TrafficPanel id={deviceId} range={range} />
-      {detail?.icmp.enabled && <LatencyPanel id={deviceId} range={range} />}
-      <WirelessPanel id={deviceId} range={range} />
+      {!detail ? null : native ? (
+        <>
+          <ResourcesPanel id={deviceId} range={range} />
+          <TrafficPanel id={deviceId} range={range} />
+          {detail.icmp.enabled && <LatencyPanel id={deviceId} range={range} />}
+          <WirelessPanel id={deviceId} range={range} />
+        </>
+      ) : (
+        <SourcePanels id={deviceId} range={range} latency={detail.icmp.enabled ? <LatencyPanel id={deviceId} range={range} /> : (
+          <section className="ui-panel">
+            <h2>{t("monitor.latency")}</h2>
+            <p className="ui-muted">{t("monitor.source.pingOff")}</p>
+          </section>
+        )} />
+      )}
     </div>
   );
 }
