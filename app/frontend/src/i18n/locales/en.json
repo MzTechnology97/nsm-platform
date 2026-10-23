@@ -1264,7 +1264,41 @@
       "dnsError": "Error: update server name not resolved"
     },
     "uispUpgrade": "Upgrade via UISP",
-    "uispRunning": "UISP upgrade in progress"
+    "uispRunning": "UISP upgrade in progress",
+    "preparing": "Checking…",
+    "preparingHelp": "The plan is prepared by itself as soon as the check finishes.",
+    "uispBulk": {
+      "label": "Bulk upgrade via UISP",
+      "selectAll": "Select the devices that can be upgraded via UISP",
+      "select": "Select {{name}}",
+      "selected_one": "{{count}} device selected (at most {{max}})",
+      "selected_other": "{{count}} devices selected (at most {{max}})",
+      "target": "Version",
+      "recommended": "Recommended version for each device",
+      "version": "{{version}} for all",
+      "maintenance": "In the UISP maintenance window",
+      "confirm": "Type {{phrase}} to confirm",
+      "help": "UISP gets one task with all the selected devices and upgrades them one by one. Type {{phrase}} to confirm.",
+      "run": "Upgrade via UISP ({{count}})",
+      "tooMany": "At most {{max}} devices at a time.",
+      "done_one": "Upgrade started in UISP for {{count}} device.",
+      "done_other": "Upgrade started in UISP for {{count}} devices.",
+      "doneMaintenance_one": "Upgrade queued in UISP for {{count}} device: it will start in the maintenance window.",
+      "doneMaintenance_other": "Upgrade queued in UISP for {{count}} devices: they will start in the maintenance window.",
+      "started": "Started to {{version}}",
+      "skipped": {
+        "running": "Skipped: an upgrade is already in progress",
+        "no_version": "Skipped: UISP has no newer version for its platform",
+        "version_unavailable": "Skipped: version not available in UISP for its platform",
+        "not_linked": "Skipped: not linked to UISP",
+        "not_found": "Skipped: device not found"
+      },
+      "errors": {
+        "empty": "Select at least one device.",
+        "too_many": "Too many devices selected.",
+        "confirm": "Type the exact confirmation phrase."
+      }
+    }
   },
   "vulns": {
     "title": "Vulnerabilities",
@@ -2619,8 +2653,6 @@
     "preset": "Preset",
     "presetText": "condition <code>{{condition}}</code>, bootstrap, boot and periodic events → provision <code>{{provision}}</code>",
     "script": "Script of provision {{name}}",
-    "migrationHint": "Already running a fleet of CPEs on a cloud ACS (e.g. TAUC)?",
-    "migrationLink": "Migrate the CPEs to this ACS",
     "templatesCurrent": "NSM templates are up to date (installed {{when}}). NSM updates them by itself after every upgrade.",
     "templatesPending": "This NSM version has newer templates than the ones installed {{when}}: NSM installs them within 30 minutes, or press Install now.",
     "templatesAuto": "Once installed, NSM keeps these templates up to date by itself after every upgrade.",
@@ -2630,7 +2662,9 @@
       "reads": "Reads: online/offline state, last contact, model, firmware, IP, CPU, memory, WAN traffic, Wi-Fi clients and DSL line.",
       "actions": "Available actions: reboot, firmware check, diagnostics.",
       "never": "Does not change Wi-Fi, LAN, DHCP, PPPoE or any other router configuration. The only setting it writes is the CWMP inform interval."
-    }
+    },
+    "migrationHint": "Already running a fleet of CPEs on a cloud ACS (e.g. TAUC)?",
+    "migrationLink": "Migrate the CPEs to this ACS"
   },
   "demo": {
     "subtitle": "Isolated dataset to try the interface and workflows without using real customers.",
@@ -3913,7 +3947,11 @@
       "blocked": "Upgrade not available.",
       "confirmation": "Invalid confirmation.",
       "backup_ack": "Confirm that you have a recent backup."
-    }
+    },
+    "checkNow": "Check for updates",
+    "checking": "Checking…",
+    "preparing": "Checking for updates: the plan is prepared by itself as soon as the result arrives (within 1–2 minutes).",
+    "prepareFailed": "Plan not prepared after the check: {{error}}"
   },
   "deviceUisp": {
     "recordTitle": "NSM record",
@@ -5268,6 +5306,11 @@
     "FIRMWARE_UPGRADE_PLAN_CANCELLED": "Upgrade plan cancelled",
     "FIRMWARE_UPGRADE_PLAN_CREATED": "Upgrade plan created",
     "FIRMWARE_UPGRADE_PLAN_EXPIRED": "Upgrade plan expired",
+    "FIRMWARE_UPGRADE_SCHEDULED": "Firmware upgrade scheduled",
+    "FIRMWARE_UPGRADE_SCHEDULE_CANCELLED": "Scheduled upgrade cancelled",
+    "FIRMWARE_UPGRADE_SCHEDULE_DONE": "Scheduled upgrade completed",
+    "FIRMWARE_UPGRADE_SCHEDULE_FAILED": "Scheduled upgrade failed",
+    "FIRMWARE_UPGRADE_SCHEDULE_STARTED": "Scheduled upgrade started",
     "FIRMWARE_UPGRADE_VERIFICATION_FAILED": "Upgrade verification failed",
     "FIRMWARE_UPGRADE_VERIFIED": "Upgrade verified",
     "GENIEACS_CONNECTOR_CONFIGURED": "GenieACS connector configured",
@@ -5388,6 +5431,7 @@
     "UISP_DEVICE_ASSOCIATED": "Device linked to UISP",
     "UISP_DEVICE_MISSING": "Device no longer in UISP",
     "UISP_DEVICE_ONBOARDED": "Device imported from UISP",
+    "UISP_FIRMWARE_BULK_UPGRADE": "UISP bulk firmware upgrade",
     "UISP_FIRMWARE_UPGRADE_FAILED": "UISP firmware upgrade failed",
     "UISP_FIRMWARE_UPGRADE_REQUESTED": "UISP firmware upgrade requested",
     "UISP_FIRMWARE_UPGRADE_VERIFIED": "UISP firmware upgrade verified",
@@ -5452,72 +5496,6 @@
     "job": "job",
     "tr069": "TR-069 (ACS)",
     "acs": "ACS"
-  },
-  "acsMigration": {
-    "subtitle": "Bulk-migrate customer CPEs to the integrated ACS by reconfiguring CWMP over the management network.",
-    "backToAcs": "Back to ACS",
-    "intro": "Enter your routers' management subnet, port and the fleet's shared credentials: NSM reaches each device and sets the target ACS URL. Run a dry run first to see which CPEs are reachable.",
-    "applyPending": "The TP-Link web-interface CWMP rewrite is in field validation for this firmware: for now only the inventory dry run is available.",
-    "formTitle": "New migration",
-    "formHelp": "IPv4 subnets only, at most {{max}} addresses per run. The .0 and .255 addresses and the ACS server are skipped.",
-    "credentialsHelp": "Credentials are used only during the run and are never stored. A dry run does not need them: no credential is sent to any device.",
-    "dryRun": "Dry run (inventory)",
-    "apply": "Apply migration",
-    "recentTitle": "Recent runs",
-    "noRuns": "No runs yet.",
-    "runTitle": "Run · {{subnet}}",
-    "cancel": "Stop",
-    "progress": "Progress",
-    "fields": {
-      "subnet": "Management subnet (CIDR)",
-      "port": "Management port",
-      "informInterval": "Inform interval (seconds)",
-      "targetAcsUrl": "Target ACS URL (CWMP)",
-      "username": "Router username",
-      "password": "Router password"
-    },
-    "cols": {
-      "when": "When",
-      "subnet": "Subnet",
-      "mode": "Mode",
-      "status": "Status",
-      "found": "CPEs found",
-      "changed": "Configured"
-    },
-    "hostCols": {
-      "address": "Address",
-      "status": "Outcome",
-      "model": "Model",
-      "firmware": "Firmware",
-      "detail": "Detail"
-    },
-    "mode": {
-      "dry": "Dry run",
-      "apply": "Applied"
-    },
-    "runStatus": {
-      "pending": "Pending",
-      "running": "Running",
-      "done": "Done",
-      "failed": "Failed",
-      "cancelled": "Cancelled"
-    },
-    "hostStatus": {
-      "pending": "Pending",
-      "unreachable": "Unreachable",
-      "not_cpe": "Not a CPE",
-      "auth_failed": "Credentials refused",
-      "already_target": "Already on the ACS",
-      "configured": "Configured",
-      "error": "Error",
-      "skipped": "Skipped"
-    },
-    "counters": {
-      "processed": "Processed",
-      "reachable": "Reachable",
-      "configured": "Configured",
-      "failed": "Failed"
-    }
   },
   "ispbilling": {
     "title": "ISPBilling",
@@ -5797,8 +5775,6 @@
     "help": "Archives the CPE's configuration parameters, as the ACS read them, in the Backup tab, where you can open and compare snapshots. Passwords and changing values are left out. Not restorable with one click. Backup policies with the TR-069 option take one automatically when something changed.",
     "refresh": "Read the configuration again from the CPE",
     "save": "Save snapshot now",
-    "refreshStarted": "The ACS is reading the whole configuration: on a large CPE it takes a few minutes, then save the snapshot.",
-    "refreshQueued": "The CPE did not accept the connection request: the configuration will be read at its next contact.",
     "saved": "Snapshot saved.",
     "open": "Open the Backup tab",
     "refreshState": {
@@ -5806,7 +5782,9 @@
       "done": "Configuration read again ({{objects}} objects): save the snapshot.",
       "partial": "Configuration read again in part: {{done}} of {{objects}} objects."
     },
-    "refreshFailed": "Not read (the task was removed so the CPE's queue is not blocked): {{list}}."
+    "refreshFailed": "Not read (the task was removed so the CPE's queue is not blocked): {{list}}.",
+    "refreshStarted": "The ACS is reading the whole configuration: on a large CPE it takes a few minutes, then save the snapshot.",
+    "refreshQueued": "The CPE did not accept the connection request: the configuration will be read at its next contact."
   },
   "acsSpeedtest": {
     "title": "Speed test from the CPE",
@@ -5998,39 +5976,71 @@
     "otherNamePlaceholder": "e.g. the code on the label (LBE-5AC-16-120)",
     "search": "Search"
   },
-  "cambiumBackup": {
-    "title": "Configuration backup (SSH)",
-    "help": "cnMaestro cannot export device configurations, so NSM logs in to the ePMP over SSH, reads the running configuration (config show json) and archives it in the Backup tab, complete and restorable from the ePMP Backup/Restore page. Backup policies with the Cambium option run it on schedule.",
-    "run": "Back up now",
-    "running": "Reading the configuration…",
-    "done": "Configuration archived.",
-    "open": "Open the backups",
-    "source": {
-      "device": "Credentials: this device's.",
-      "shared": "Credentials: the shared Cambium ones ({{username}}).",
-      "none": "No SSH credentials: set the shared ones in Administration → cnMaestro or this device's below."
+  "acsMigration": {
+    "subtitle": "Bulk-migrate customer CPEs to the integrated ACS by reconfiguring CWMP over the management network.",
+    "backToAcs": "Back to ACS",
+    "intro": "Enter your routers' management subnet, port and the fleet's shared credentials: NSM reaches each device and sets the target ACS URL. Run a dry run first to see which CPEs are reachable.",
+    "applyPending": "The TP-Link web-interface CWMP rewrite is in field validation for this firmware: for now only the inventory dry run is available.",
+    "formTitle": "New migration",
+    "formHelp": "IPv4 subnets only, at most {{max}} addresses per run. The .0 and .255 addresses and the ACS server are skipped.",
+    "credentialsHelp": "Credentials are used only during the run and are never stored. A dry run does not need them: no credential is sent to any device.",
+    "dryRun": "Dry run (inventory)",
+    "apply": "Apply migration",
+    "recentTitle": "Recent runs",
+    "noRuns": "No runs yet.",
+    "runTitle": "Run · {{subnet}}",
+    "cancel": "Stop",
+    "progress": "Progress",
+    "fields": {
+      "subnet": "Management subnet (CIDR)",
+      "port": "Management port",
+      "informInterval": "Inform interval (seconds)",
+      "targetAcsUrl": "Target ACS URL (CWMP)",
+      "username": "Router username",
+      "password": "Router password"
     },
-    "noIp": "The management address of the device is not known.",
-    "last": "Last backup {{when}}: {{status}}.",
-    "status": {
-      "success": "archived",
-      "failed": "failed"
+    "cols": {
+      "when": "When",
+      "subnet": "Subnet",
+      "mode": "Mode",
+      "status": "Status",
+      "found": "CPEs found",
+      "changed": "Configured"
     },
-    "hostKey": "SSH host key {{key}} (remembered at the first backup).",
-    "hostKeyChanged": "The SSH key of the device changed ({{key}}): backups are stopped until you accept it. Accept only if the device was replaced or reset.",
-    "acceptKey": "Accept the new key",
-    "own": "Credentials of this device",
-    "ownHelp": "Only when this device does not use the shared Cambium credentials.",
-    "username": "SSH user",
-    "password": "SSH password",
-    "keepPassword": "leave empty to keep it",
-    "port": "SSH port",
-    "save": "Save",
-    "saved": "Saved.",
-    "clear": "Use the shared ones",
-    "sharedTitle": "SSH credentials of the Cambium devices",
-    "sharedHelp": "Used by NSM to back up the configuration of every Cambium ePMP over SSH (cnMaestro cannot export it). A device can have its own credentials on its cnMaestro tab. Stored encrypted; the password is never shown again.",
-    "remove": "Remove"
+    "hostCols": {
+      "address": "Address",
+      "status": "Outcome",
+      "model": "Model",
+      "firmware": "Firmware",
+      "detail": "Detail"
+    },
+    "mode": {
+      "dry": "Dry run",
+      "apply": "Applied"
+    },
+    "runStatus": {
+      "pending": "Pending",
+      "running": "Running",
+      "done": "Done",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "hostStatus": {
+      "pending": "Pending",
+      "unreachable": "Unreachable",
+      "not_cpe": "Not a CPE",
+      "auth_failed": "Credentials refused",
+      "already_target": "Already on the ACS",
+      "configured": "Configured",
+      "error": "Error",
+      "skipped": "Skipped"
+    },
+    "counters": {
+      "processed": "Processed",
+      "reachable": "Reachable",
+      "configured": "Configured",
+      "failed": "Failed"
+    }
   },
   "acsAlerts": {
     "title": "Alerts of the CPEs",
@@ -6120,6 +6130,67 @@
       "failed": "Upgrade to {{version}} failed.",
       "unconfirmed": "Upgrade to {{version}} not confirmed."
     }
+  },
+  "firmwareSchedule": {
+    "title": "Scheduled upgrade",
+    "help": "Choose when to upgrade, for example at night. At that time NSM runs every phase by itself with no further confirmation: check, pre-upgrade backup, approval, download, activation with reboot and version verification. If the device cannot be reached within 2 hours, the upgrade is not run.",
+    "when": "Date and time",
+    "schedule": "Schedule upgrade",
+    "move": "Move",
+    "cancel": "Cancel schedule",
+    "at": "for {{when}}",
+    "confirm": "Schedule the RouterOS upgrade (currently {{target}}) for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "confirmMany_one": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "confirmMany_other": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "selected_one": "{{count}} selected",
+    "selected_other": "{{count}} selected",
+    "scheduleMany": "Schedule upgrade",
+    "select": "Select {{name}}",
+    "done_one": "{{count}} upgrade scheduled.",
+    "done_other": "{{count}} upgrades scheduled.",
+    "skipped": "Not scheduled (RouterOS 7.13+ with the modern agent required): {{names}}.",
+    "states": {
+      "scheduled": "Scheduled",
+      "checking": "Checking",
+      "running": "Running",
+      "success": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "cambiumBackup": {
+    "title": "Configuration backup (SSH)",
+    "help": "cnMaestro cannot export device configurations, so NSM logs in to the ePMP over SSH, reads the running configuration (config show json) and archives it in the Backup tab, complete and restorable from the ePMP Backup/Restore page. Backup policies with the Cambium option run it on schedule.",
+    "run": "Back up now",
+    "running": "Reading the configuration…",
+    "done": "Configuration archived.",
+    "open": "Open the backups",
+    "source": {
+      "device": "Credentials: this device's.",
+      "shared": "Credentials: the shared Cambium ones ({{username}}).",
+      "none": "No SSH credentials: set the shared ones in Administration → cnMaestro or this device's below."
+    },
+    "noIp": "The management address of the device is not known.",
+    "last": "Last backup {{when}}: {{status}}.",
+    "status": {
+      "success": "archived",
+      "failed": "failed"
+    },
+    "hostKey": "SSH host key {{key}} (remembered at the first backup).",
+    "hostKeyChanged": "The SSH key of the device changed ({{key}}): backups are stopped until you accept it. Accept only if the device was replaced or reset.",
+    "acceptKey": "Accept the new key",
+    "own": "Credentials of this device",
+    "ownHelp": "Only when this device does not use the shared Cambium credentials.",
+    "username": "SSH user",
+    "password": "SSH password",
+    "keepPassword": "leave empty to keep it",
+    "port": "SSH port",
+    "save": "Save",
+    "saved": "Saved.",
+    "clear": "Use the shared ones",
+    "sharedTitle": "SSH credentials of the Cambium devices",
+    "sharedHelp": "Used by NSM to back up the configuration of every Cambium ePMP over SSH (cnMaestro cannot export it). A device can have its own credentials on its cnMaestro tab. Stored encrypted; the password is never shown again.",
+    "remove": "Remove"
   },
   "acsPortMapping": {
     "title": "Port forwarding, DMZ and UPnP",
