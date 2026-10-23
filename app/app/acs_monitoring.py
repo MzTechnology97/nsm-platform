@@ -19,7 +19,7 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import func, select
 
-from app import acs_port_mapping
+from app import acs_pon, acs_port_mapping
 from app import genieacs_connector as acs
 from app.acs_models import AcsMetricSample
 from app.db import SessionLocal
@@ -45,7 +45,13 @@ CHARTS = (
     ("acs_clients", "Client Wi-Fi e host LAN", "", (("wifi_clients", "Client Wi-Fi"), ("lan_hosts", "Host LAN"))),
     ("acs_dsl_rate", "Velocità linea DSL", "bps", (("dsl_down_bps", "Downstream"), ("dsl_up_bps", "Upstream"))),
     ("acs_dsl_quality", "Qualità linea DSL", "dB", (("dsl_snr_down_db", "Margine SNR"), ("dsl_attenuation_down_db", "Attenuazione"))),
+    ("acs_pon_power", "Livelli ottici PON", "dBm", (("pon_rx_dbm", "Rx"), ("pon_tx_dbm", "Tx"))),
+    ("acs_pon_temperature", "Temperatura modulo ottico", "°C", (("pon_temperature_c", "Temperatura"),)),
+    ("acs_pon_bias", "Corrente di polarizzazione laser", "mA", (("pon_bias_ma", "Bias"),)),
+    ("acs_pon_voltage", "Tensione modulo ottico", "V", (("pon_voltage_v", "Tensione"),)),
 )
+PON_COLUMNS = {"rx_dbm": "pon_rx_dbm", "tx_dbm": "pon_tx_dbm", "temperature_c": "pon_temperature_c", "voltage_v": "pon_voltage_v",
+               "bias_ma": "pon_bias_ma"}
 PROJECTION = (
     "_id", "_lastInform", "_lastBoot",
     "Device.DeviceInfo.UpTime", "Device.DeviceInfo.ProcessStatus.CPUUsage", "Device.DeviceInfo.MemoryStatus",
@@ -54,7 +60,7 @@ PROJECTION = (
     "Device.Hosts.HostNumberOfEntries", "Device.DSL.Line", "Device.DSL.Channel",
     "InternetGatewayDevice.DeviceInfo.UpTime", "InternetGatewayDevice.ManagementServer.PeriodicInformInterval",
     "InternetGatewayDevice.ManagementServer.ConnectionRequestURL", "InternetGatewayDevice.WANDevice", "InternetGatewayDevice.LANDevice",
-    *acs_port_mapping.PROJECTION,
+    *acs_port_mapping.PROJECTION, *acs_pon.PROJECTION,
 )
 
 _last_run = 0.0
@@ -271,6 +277,7 @@ def read_state(row: dict) -> dict:
     state["last_inform"] = last_inform.isoformat() if last_inform else None
     state["last_boot"] = last_boot.isoformat() if last_boot else None
     state["nat"] = acs_port_mapping.parse(row)
+    state["pon"] = acs_pon.parse(row)
     return state
 
 
@@ -327,6 +334,7 @@ def apply_state(db, device: Device, state: dict, now: datetime) -> bool:
                     ram_percent=state.get("ram"), wan_rx_bps=rx_bps, wan_tx_bps=tx_bps, wifi_clients=state.get("wifi_clients"),
                     lan_hosts=state.get("lan_hosts"), dsl_down_bps=dsl.get("down_bps"), dsl_up_bps=dsl.get("up_bps"),
                     dsl_snr_down_db=dsl.get("snr_down_db"), dsl_attenuation_down_db=dsl.get("attenuation_down_db"),
+                    **{column: (state.get("pon") or {}).get(key) for key, column in PON_COLUMNS.items()},
                 ))
                 added = True
             counters = state.get("counters") or {}
@@ -379,7 +387,8 @@ def collect(now: datetime | None = None, force: bool = False) -> dict:
 def cleanup(now: datetime | None = None) -> int:
     now = now or utcnow()
     with SessionLocal() as db:
-        deleted = expire_keep_latest(db, AcsMetricSample, now - timedelta(days=RETENTION_DAYS), "device_id")
+        # MON-02: the newest sample of each CPE survives, and so does its newest optical reading.
+        deleted = expire_keep_latest(db, AcsMetricSample, now - timedelta(days=RETENTION_DAYS), "device_id", also_keep=("pon_rx_dbm",))
         db.commit()
         return deleted
 
@@ -401,7 +410,9 @@ def series(db, device: Device, range_key: str = "24h") -> dict:
         points = _bucket(samples, names)
         charts.append({"id": key, "title": title, "unit": unit,
                        "series": [{"field": f, "label": label, "points": [[p["t"], p[f]] for p in points]} for f, label in fields]})
-    return {"range": range_key, "sample_count": len(samples), "charts": charts}
+    # MON-02: an offline CPE keeps showing when NSM last heard from it, even outside the range.
+    last = db.scalar(select(func.max(AcsMetricSample.observed_at)).where(AcsMetricSample.device_id == device.id))
+    return {"range": range_key, "sample_count": len(samples), "charts": charts, "last_sample_at": last.isoformat() if last else None}
 
 
 def current(device) -> dict | None:
@@ -413,7 +424,7 @@ def current(device) -> dict | None:
     return {"cpu_percent": state.get("cpu"), "ram_percent": state.get("ram"), "uptime_seconds": state.get("uptime")}
 
 
-STATE_KEYS = ("data_model", "uptime", "cpu", "ram", "wan", "wifi", "wifi_clients", "lan_hosts", "dsl", "inform_interval", "last_inform", "last_boot", "read_at")
+STATE_KEYS = ("data_model", "uptime", "cpu", "ram", "wan", "wifi", "wifi_clients", "lan_hosts", "dsl", "inform_interval", "last_inform", "last_boot", "read_at", "pon")
 
 
 @router.get("/devices/{device_id}/acs/monitor")

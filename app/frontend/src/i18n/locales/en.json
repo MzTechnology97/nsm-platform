@@ -4012,7 +4012,11 @@
       "signal": "Radio signal",
       "capacity": "Link capacity",
       "resources": "CPU and RAM",
-      "stations": "Connected stations"
+      "stations": "Connected stations",
+      "acs_pon_power": "PON optical levels",
+      "acs_pon_temperature": "Optical module temperature",
+      "acs_pon_bias": "Laser bias current",
+      "acs_pon_voltage": "Optical module voltage"
     },
     "series": {
       "cpu_percent": "CPU",
@@ -4022,7 +4026,12 @@
       "uplink_capacity_bps": "Uplink capacity",
       "uptime_seconds": "Uptime",
       "frequency_mhz": "Frequency",
-      "stations": "Connected stations"
+      "stations": "Connected stations",
+      "pon_rx_dbm": "Rx",
+      "pon_tx_dbm": "Tx",
+      "pon_temperature_c": "Temperature",
+      "pon_bias_ma": "Bias",
+      "pon_voltage_v": "Voltage"
     },
     "metricsTitle": "Operational state from UISP",
     "metricsHelp": "Statistics over the last {{hours}} hours ({{count}} samples); last value {{when}}.",
@@ -5640,7 +5649,19 @@
     "dslRate": "Down / up rate",
     "dslSnr": "SNR margin",
     "dslAttenuation": "Attenuation",
-    "charts": "History from the ACS"
+    "charts": "History from the ACS",
+    "pon": {
+      "title": "PON optical levels",
+      "rx_dbm": "Received (Rx)",
+      "tx_dbm": "Transmitted (Tx)",
+      "temperature_c": "Module temperature",
+      "voltage_v": "Supply voltage",
+      "bias_ma": "Laser bias current",
+      "status": "PON state",
+      "notExposed": "not reported by the CPE",
+      "help": "Read from the CPE every hour by the NSM provision; last reading {{when}} from"
+    },
+    "lastSample": "No sample in this period: the last one NSM received from the CPE is from {{when}}."
   },
   "serverMigration": {
     "subtitle": "Move NSM to a server with another address: this server tells MikroTik agents and TR-069 CPEs the new address.",
@@ -6044,7 +6065,7 @@
   },
   "acsAlerts": {
     "title": "Alerts of the CPEs",
-    "help": "NSM opens an issue in the Action Center, with a notification, when a TR-069 CPE stops contacting the ACS, its WAN is down, the WAN reconnects or the CPE reboots too often, or the DSL line degrades. Issues close by themselves when the problem ends. 0 disables a threshold.",
+    "help": "NSM opens an issue in the Action Center, with a notification, when a TR-069 CPE stops contacting the ACS, its WAN is down, the WAN reconnects or the CPE reboots too often, the DSL line degrades or the PON received level falls under the threshold. Issues close by themselves when the problem ends. 0 disables a threshold.",
     "fields": {
       "enabled": "Alerts for TR-069 CPEs on",
       "offline": "CPE no longer contacting the ACS (three missed periodic Informs)",
@@ -6052,7 +6073,8 @@
       "reconnects_per_hour": "WAN reconnections per hour",
       "reboots_per_day": "CPE reboots in 24 hours",
       "snr_min_db": "Minimum DSL SNR margin (dB)",
-      "dsl_rate_drop_percent": "DSL downstream drop against the 7-day median (%)"
+      "dsl_rate_drop_percent": "DSL downstream drop against the 7-day median (%)",
+      "pon_rx_min_dbm": "Minimum PON received level (dBm, e.g. −27)"
     },
     "save": "Save",
     "saved": "Saved."
