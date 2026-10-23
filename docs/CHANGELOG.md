@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.233 — 2026-10-23
+
+Search in long customer and device lists
+- **Customer fields now have a search box, and show the customer code next to the name** (e.g. *Mario Rossi · C840*), so customers with the same name can be told apart and found by code.
+- **Search:** type part of the name or the code: every word you type must appear, in any order, and case and accents are ignored. For example "nicco ross" finds "Niccolò Rossi". Pick with the mouse, or with the arrow keys and Enter.
+- **Where:**
+  - UISP and cnMaestro onboarding, for both the customer and the UISP site;
+  - *Gestisci apparato*, when moving a device to another customer;
+  - the customer filters of the lists: devices, Action Center, vulnerabilities, firmware, monitoring, incidents, backups, compliance, exposure, activity log, reports, agents and access;
+  - the forms for a new incident, a backup policy, a compliance baseline, a maintenance window and an API key;
+  - the device and site fields of backup policies, compliance baselines and maintenance windows, and the replacement device in the lifecycle.
+- Short lists, such as vendors, roles and states, stay as normal menus.
 ## 0.49.232 — 2026-10-23
 
 ACS monitoring refreshed again
