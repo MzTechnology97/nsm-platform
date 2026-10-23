@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.239 — 2026-10-23
+
+Exposure: ports filtered by ACL no longer reported as exposed
+- **TR-069 port (7547) of CPEs managed by NSM.** NSM is their ACS, so the port always answers the NSM server. It is now shown as *da verificare*, with low severity, and no longer as *esposto, alta*. From the NSM server alone it cannot be told whether others are filtered.
+- **Remote web management of TP-Link CPEs.** NSM now reads, through the ACS, whether it is on, on which port and from which addresses it is allowed. That port is checked too (for example 20443). It is reported as open to everyone or limited to the allowed address, as the CPE's configuration says.
+- ***Filtrata da ACL…* on the *Esposizione* tab.** For any device, when a service looks open from NSM but is filtered for everyone else by an ACL, declare it with the allowed addresses. It is then shown as limited, with who declared it and when. The declaration stays valid at the next checks and can be removed at any time.
 ## 0.49.238 — 2026-10-23
 
 Pages on every list
