@@ -43,6 +43,7 @@ from app.acs_firmware import follow_upgrades as acs_firmware_follow
 from app.acs_firmware_campaigns import follow as acs_firmware_campaigns_follow
 from app.tplink_cloud_firmware import daily_refresh as tplink_cloud_refresh
 from app.acs_alerts import evaluate as acs_alerts_evaluate
+from app.tplink_access import enforce_telnet_policy as tplink_telnet_policy
 from app.device_exposure import tick as exposure_tick
 from app.external_exposure import tick as external_exposure_tick
 from app.syslog_integrity import anchor_heads as syslog_anchor
@@ -134,6 +135,7 @@ while True:
             run_task("acs_firmware_campaigns", acs_firmware_campaigns_follow)
             run_task("tplink_cloud_firmware", tplink_cloud_refresh)
             run_task("acs_alerts", acs_alerts_evaluate)
+            run_task("tplink_telnet_policy", tplink_telnet_policy)
             run_task("exposure_check", exposure_tick)
             run_task("exposure_external_check", external_exposure_tick)
             run_task("syslog_chain_anchor", syslog_anchor)

@@ -1,11 +1,11 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { api } from "../api/client";
 import type { UispChart } from "../api/deviceConnectors";
 import { formatDateTime } from "../lib/format";
-import { metricValue, RANGES, SeriesCharts } from "../pages/DeviceUisp";
+import { metricValue } from "../pages/DeviceUisp";
+import { MonitorLink } from "./MonitorLink";
 
 interface AcsState {
   data_model: string | null;
@@ -70,7 +70,7 @@ function PonLevels({ pon }: { pon: AcsPon }) {
 /** State of a TR-069 CPE at its last Inform (WAN, Wi-Fi, DSL) and its charts, read from GenieACS by the worker (ACS-05). */
 export function AcsMonitor({ deviceId }: { deviceId: string }) {
   const { t, i18n } = useTranslation();
-  const [range, setRange] = useState<(typeof RANGES)[number]>("24h");
+  const range = "24h";  // state only: the charts are in the Monitor tab
   const query = useQuery({
     queryKey: ["device", deviceId, "acs-monitor", range],
     queryFn: () => api<AcsMonitorData>(`/api/ui/v1/devices/${encodeURIComponent(deviceId)}/acs/monitor?range=${range}`),
@@ -137,7 +137,7 @@ export function AcsMonitor({ deviceId }: { deviceId: string }) {
       {data.sample_count === 0 && data.last_sample_at && (
         <div className="ui-alert">{t("acsMonitor.lastSample", { when: formatDateTime(data.last_sample_at, i18n.language) })}</div>
       )}
-      <SeriesCharts title={t("acsMonitor.charts")} range={range} onRange={setRange} charts={data.charts} count={data.sample_count} pending={query.isFetching} />
+      <MonitorLink deviceId={deviceId} />
     </>
   );
 }
