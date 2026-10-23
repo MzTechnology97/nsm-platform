@@ -1192,7 +1192,8 @@
       "off": "disabled",
       "none": "No policy configured."
     },
-    "createPolicy": "Create policy"
+    "createPolicy": "Create policy",
+    "subtitleCustomer": "Backup protection of this customer's devices: policy, method that can run and outcome of the last run."
   },
   "firmware": {
     "title": "Firmware",
