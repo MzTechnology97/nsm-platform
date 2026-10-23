@@ -824,6 +824,7 @@ button.ui-ring-tile:focus-visible {
 
 .ui-switch input:disabled + .ui-switch-track {
   opacity: 0.5;
+}
 
 /* Firmware from TP-Link's cloud, inside the ACS firmware panel. */
 .ui-tplink-cloud {
