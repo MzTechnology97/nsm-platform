@@ -5237,6 +5237,9 @@
     "CAMBIUM_BACKUP_ARCHIVED": "Cambium configuration archived",
     "CAMBIUM_BACKUP_FAILED": "Cambium backup failed",
     "CAMBIUM_SSH_CREDENTIALS_CHANGED": "Cambium SSH credentials changed",
+    "CAMBIUM_SYSLOG_CONFIGURED": "ePMP syslog configured over SSH",
+    "CAMBIUM_SYSLOG_FAILED": "ePMP syslog configuration failed",
+    "CAMBIUM_SYSLOG_RESTORED": "ePMP syslog set back to the previous values",
     "CNMAESTRO_BULK_ONBOARDING": "cnMaestro import",
     "CNMAESTRO_CONFIGURED": "cnMaestro connector configured",
     "CNMAESTRO_DEVICE_LINKED": "Device linked to cnMaestro",
@@ -6315,5 +6318,57 @@
     "uptime": "connected for {{value}}",
     "never": "Never seen on the BRAS",
     "noDevice": "No device matched"
+  },
+  "cambiumSyslog": {
+    "title": "ePMP syslog",
+    "hint": "cnMaestro cannot change the configuration through its API: NSM sets the syslog from the ePMP SSH console with the Cambium backup credentials. It first shows the parameters it will change; the configuration read right before is kept as a backup.",
+    "target": "NSM receiver",
+    "noTarget": "cannot be determined: set the public address in Amministrazione → Syslog",
+    "credentials": "SSH credentials",
+    "credentialSource": {
+      "device": "of this device",
+      "shared": "shared Cambium ones (Amministrazione → cnMaestro)",
+      "none": "not set"
+    },
+    "current": "NSM configuration",
+    "never": "not configured by NSM yet",
+    "status": {
+      "applied": "{{mode}} · applied {{when}} by {{by}}",
+      "unverified": "{{mode}} · applied {{when}} by {{by}}, values not confirmed by the ePMP",
+      "failed": "failed on {{when}} ({{mode}})",
+      "restored": "previous values restored (was: {{mode}})"
+    },
+    "error": "Error",
+    "unverified": "Parameters not confirmed",
+    "notReady": "The device management address, the Cambium SSH credentials and the syslog receiver address are needed.",
+    "modeTitle": "How NSM recognises the logs",
+    "recommended": "recommended",
+    "modes": {
+      "key": {
+        "label": "NSM key in the device name",
+        "help": "NSM appends -NSM-… to the ePMP name, which appears in every log line: it works even if the IP changes or the NAT is shared."
+      },
+      "customer_name": {
+        "label": "ePMP name equal to the NSM customer",
+        "help": "The ePMP name must be the customer's ({{customer}}), in any order. Accepted only if no other device uses the same name."
+      },
+      "address": {
+        "label": "Device address",
+        "help": "NSM recognises the logs by the ePMP management address. Discarded if other devices use the same IP (NAT)."
+      }
+    },
+    "preview": "Preview the changes",
+    "reading": "Reading the configuration…",
+    "nothing": "The ePMP already sends its logs to NSM in this mode: nothing to change.",
+    "param": "Parameter",
+    "before": "Current",
+    "after": "New",
+    "noReboot": "The changes are applied with config commit, without a reboot.",
+    "confirm": "To confirm, type the device name: {{name}}",
+    "configure": "Apply on the ePMP",
+    "restore": "Restore the previous values",
+    "working": "Connecting to the ePMP…",
+    "done": "Syslog configured: the logs arrive within a few minutes.",
+    "restored": "Previous values restored on the ePMP."
   }
 }

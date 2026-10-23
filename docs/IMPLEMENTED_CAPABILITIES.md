@@ -621,6 +621,19 @@ The cnMaestro API cannot export a device configuration. This was checked on the 
 - the backup capability of Cambium devices is *SSH (Cambium ePMP)*, executable when credentials and the management address are known;
 - audit `CAMBIUM_BACKUP_ARCHIVED`, `CAMBIUM_BACKUP_FAILED`, `CAMBIUM_SSH_CREDENTIALS_CHANGED`.
 
+### Remote syslog of ePMP devices over SSH (LOG-01, Core 0.49.265)
+
+`app/cambium_syslog.py`. The cnMaestro API v2 cannot set it: checked with GET only on the operator's cnMaestro on-premises on 2026-10-23, there is no device configuration or template endpoint (`/devices/{mac}/config`, `/templates`, `/configurations` are not routes) and the jobs it lists are only *configuration* jobs of Wi-Fi AP groups. NSM therefore uses the ePMP CLI over SSH with the credentials of the Cambium backups (shared, or per device) and the same host-key pinning:
+
+- the parameter names are read from the running configuration (`config show json`), not assumed: the first empty *syslog server* address (or the one already pointing at NSM), its port and the remote-syslog enable flag; a device whose server slots are all used by someone else is refused;
+- *Anteprima delle modifiche* lists every parameter NSM would change (current → new) without writing anything;
+- *Applica sull'ePMP*, after typing the device name, reads the configuration again (it must give the previewed plan), archives it as a Cambium backup (the restore point), runs `config set` for each change and `config commit` (no reboot), then reads the configuration back; values not confirmed by the device are reported (`unverified`). A command refused by the CLI stops before the commit and is recorded as failed;
+- *Ripristina i valori precedenti* sets back only the parameters NSM changed that still hold NSM's value;
+- identification modes as for UISP: `key` (default, `-NSM-<key>` appended to the device name), `customer_name` (ePMP name equal to the NSM customer, unique), `address` (management address, unique). The receiver accepts keyless lines of a Cambium device only in the last two modes, configured by NSM;
+- permissions: state `monitoring.read`, preview/apply/restore `devices.write`; audit `CAMBIUM_SYSLOG_CONFIGURED`, `CAMBIUM_SYSLOG_FAILED`, `CAMBIUM_SYSLOG_RESTORED`.
+
+Validation pending: the parameter names and the `config set`/`config commit` answers of a real ePMP (Force 400, 5.10.4) — the tests use a synthetic CLI.
+
 ### Not implemented yet
 
 - operations through cnMaestro (reboot, firmware) — only where the cnMaestro API supports them and they can be verified;
@@ -1030,7 +1043,7 @@ A production identifier must never be copied into a test merely because it repro
 The following are approved roadmap areas, not current runtime capabilities:
 
 - Ubiquiti firmware execution through UISP and operations through cnMaestro (only where the vendor API supports them and they are verified on a real console);
-- remote syslog configuration through the UISP and cnMaestro APIs (LOG-01 next step);
+- remote syslog configuration for vendors other than MikroTik, TP-Link (ACS), Ubiquiti (UISP) and Cambium ePMP (SSH) (LOG-01 next step);
 - ACS parameter profiles, monitoring, diagnostics, backup and firmware (ACS-04..08);
 - production DR/restore validation program;
 - additional vendor/connector capabilities beyond those explicitly described above.
