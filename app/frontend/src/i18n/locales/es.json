@@ -5792,7 +5792,21 @@
     "fetch": "Descargar {{version}} del sitio de TP-Link en el ACS",
     "fetching": "Descargando de TP-Link…",
     "fetched": "Imagen cargada en el ACS y seleccionada abajo: confirma la actualización cuando quieras.",
-    "ready": "La versión {{version}} ya está en el ACS y seleccionada abajo: confirma la actualización cuando quieras."
+    "ready": "La versión {{version}} ya está en el ACS y seleccionada abajo: confirma la actualización cuando quieras.",
+    "cloud": {
+      "title": "Actualización desde la nube de TP-Link",
+      "help": "El CPE consulta por sí mismo a la nube de TP-Link si hay un firmware más reciente, como en el recuadro Online Upgrade de su página web. NSM lee su respuesta cada día y puede iniciar la actualización: el CPE descarga la imagen de TP-Link, la instala y se reinicia.",
+      "newer": "La nube de TP-Link ofrece la {{version}}.",
+      "current": "El CPE ya tiene la versión ofrecida por la nube de TP-Link.",
+      "released": "publicada el {{date}}",
+      "none": "El CPE aún no ha informado una respuesta de la nube de TP-Link.",
+      "checked": "Última lectura del CPE: {{when}}.",
+      "neverChecked": "Leído del CPE una vez al día.",
+      "check": "Comprobar ahora",
+      "checking": "Leyendo del CPE…",
+      "warning": "El CPE descarga la imagen de TP-Link y se reinicia: el cliente queda sin conexión unos minutos. Normalmente el firmware de TP-Link no se puede volver a una versión anterior.",
+      "run": "Actualizar a {{version}} desde la nube de TP-Link"
+    }
   },
   "acsSyslog": {
     "title": "Syslog vía ACS (TR-069)",
