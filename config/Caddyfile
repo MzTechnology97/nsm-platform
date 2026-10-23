@@ -14,10 +14,13 @@
 		X-Permitted-Cross-Domain-Policies "none"
 		Content-Security-Policy "default-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'self'"
 	}
+	# While the API restarts (every update) requests wait for it instead of failing with 502.
 	reverse_proxy api:8000 {
 		health_uri /health
-		health_interval 15s
+		health_interval 3s
 		health_timeout 3s
+		lb_try_duration 60s
+		lb_try_interval 250ms
 	}
 }
 
@@ -33,6 +36,8 @@
 	}
 	forward_auth api:8000 {
 		uri /internal/acs-ui/auth
+		lb_try_duration 60s
+		lb_try_interval 250ms
 	}
 	reverse_proxy genieacs-ui:3000
 }

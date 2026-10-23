@@ -66,13 +66,17 @@ from app.ui_device_connectors import install_ui_device_connectors
 from app.acs_diagnostics import install_acs_diagnostics
 from app.acs_actions import install_acs_actions
 from app.acs_snapshot import install_acs_snapshot
+from app.cambium_backup import install_cambium_backup
 from app.acs_speedtest import install_acs_speedtest
 from app.acs_firmware import install_acs_firmware
 from app.tplink_cloud_firmware import install_tplink_cloud_firmware
 from app.acs_alerts import install_acs_alerts
 from app.acs_port_mapping import install_acs_port_mapping
 from app.ispbilling_cpe_link import install_ispbilling_cpe_link
+from app.tplink_access import install_tplink_access
+from app.tplink_settings import install_tplink_settings
 from app.acs_monitoring import install_acs_monitoring
+from app.monitor_sources import install_monitor_sources
 from app.ui_backup_policies import install_ui_backup_policies
 from app.legacy_redirects import install_legacy_redirects
 from app.ui_spa import install_ui_spa
@@ -110,6 +114,7 @@ from app.routerboot_lifecycle import install_routerboot_lifecycle
 from app.mikrotik_device_reboot import install_mikrotik_device_reboot
 from app.mikrotik_syslog_config import install_mikrotik_syslog_config, install_syslog_on_enrollment
 from app.zabbix_connector import install_zabbix_connector
+from app.ui_zabbix_scope import install_ui_zabbix_scope
 from app.device_exposure import install_device_exposure
 from app.acs_admin import install_acs_admin
 from app import shared_ips as _shared_ips
@@ -139,7 +144,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.239"
+APP_VERSION = "0.49.251"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -175,6 +180,7 @@ install_routerboot_lifecycle(core.app)
 install_mikrotik_device_reboot(core.app)
 install_mikrotik_syslog_config(core.app)
 install_zabbix_connector(core.app)
+install_ui_zabbix_scope(core.app)
 install_device_exposure(core.app)
 install_acs_admin(core.app)
 
@@ -279,13 +285,17 @@ install_ui_device_connectors(core.app)
 install_acs_diagnostics(core.app)
 install_acs_actions(core.app)
 install_acs_snapshot(core.app)
+install_cambium_backup(core.app)
 install_acs_speedtest(core.app)
 install_acs_firmware(core.app)
 install_tplink_cloud_firmware(core.app)
 install_acs_alerts(core.app)
 install_acs_port_mapping(core.app)
 install_ispbilling_cpe_link(core.app)
+install_tplink_access(core.app)
+install_tplink_settings(core.app)
 install_acs_monitoring(core.app)
+install_monitor_sources(core.app)
 install_ui_backup_policies(core.app)
 install_ui_spa(core.app)
 # The syntax guard must wrap the final composed modern source, including the

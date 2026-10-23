@@ -1,6 +1,7 @@
 """TP-Link syslog via TR-069: target address, one CPE (management IP refreshed, four values written),
 unsupported firmware, non-TR-069 device, bulk queue, worker auto-configuration. GenieACS is mocked."""
 import json
+from datetime import timedelta
 import os
 import re
 import uuid
@@ -17,7 +18,7 @@ from app import syslog_receiver
 from app.db import SessionLocal
 from app.entrypoint import app
 from app.integration_models import ConnectorIntegration
-from app.models import AuditEvent, Customer, Device, User
+from app.models import AuditEvent, Customer, Device, User, utcnow
 from app.secret_vault import encrypt_text
 from app.security import hash_password
 
@@ -127,6 +128,33 @@ def main():
             db.commit()
             index = identity.build_index(db, {})
         assert identity.resolve(index, "203.0.113.87", None, None) == (None, "missing_key"), "two CPEs behind one address: no guess"
+
+        # Dynamic WAN IP: the address of the last Inform (ConnectionRequestURL host) counts while that Inform is recent.
+        with SessionLocal() as db:
+            for name in (f"CI220-TWIN-{suffix}",):
+                twin = db.scalar(select(Device).where(Device.name == name))
+                twin.management_ip = "203.0.113.91"
+            fresh = utcnow().isoformat()
+            dyn = Device(customer_id=customer_id, vendor="tp-link", device_type="router", name=f"CI220-DYN-{suffix}", status="online",
+                         management_source="tr069", management_ip="203.0.113.92",
+                         inventory_data={"tr069": {"syslog": {"server_ip": "198.51.100.30"}, "monitor": {"last_inform": fresh, "wan_address": "203.0.113.93"}}})
+            old_inform = Device(customer_id=customer_id, vendor="tp-link", device_type="router", name=f"CI220-OLD2-{suffix}", status="online",
+                                management_source="tr069", management_ip="203.0.113.94",
+                                inventory_data={"tr069": {"syslog": {"server_ip": "198.51.100.30"},
+                                                          "monitor": {"last_inform": (utcnow() - timedelta(hours=2)).isoformat(), "wan_address": "203.0.113.95"}}})
+            cgnat = [Device(customer_id=customer_id, vendor="tp-link", device_type="router", name=f"CI220-CGN{n}-{suffix}", status="online",
+                            management_source="tr069", management_ip=f"203.0.113.{96 + n}",
+                            inventory_data={"tr069": {"syslog": {"server_ip": "198.51.100.30"}, "monitor": {"last_inform": fresh, "wan_address": "203.0.113.99"}}})
+                     for n in (0, 1)]
+            db.add_all([dyn, old_inform, *cgnat])
+            db.commit()
+            dyn_id = dyn.id
+            index = identity.build_index(db, {})
+        assert identity.resolve(index, "203.0.113.93", None, None) == (dyn_id, None), "new WAN address from the last Inform"
+        assert identity.resolve(index, "203.0.113.92", None, None) == (dyn_id, None), "management IP still accepted"
+        assert identity.resolve(index, "203.0.113.95", None, None) == (None, "missing_key"), "an old Inform does not vouch for an address"
+        assert identity.resolve(index, "203.0.113.99", None, None) == (None, "missing_key"), "CGNAT: two CPEs on one public address"
+        assert "203.0.113.93" in index.known_ips, "allowed also without configured networks"
     finally:
         acs_diagnostics.TRANSPORT = None
         acs.lookup_by_external_id = original_lookup
