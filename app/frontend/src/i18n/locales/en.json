@@ -5091,6 +5091,7 @@
     "ACS_SPEEDTEST_COMPLETED": "CPE speed test completed",
     "ACS_SPEEDTEST_REQUESTED": "CPE speed test requested",
     "ACS_SPEEDTEST_SETTINGS_CHANGED": "CPE speed test settings changed",
+    "ACS_SYSLOG_CONFIGURED": "CPE syslog configured via ACS",
     "ACS_TEMPLATES_INSTALLED": "ACS templates installed",
     "ACS_TEMPLATES_UPDATED": "ACS templates updated by NSM",
     "ACS_WIFI_CHANGED": "Wi-Fi changed through the ACS",
@@ -5773,5 +5774,36 @@
     "catalogCurrent": "The installed version is the latest in the catalog.",
     "notes": "release notes",
     "catalogs": "Firmware catalogs"
+  },
+  "acsSyslog": {
+    "title": "Syslog via ACS (TR-069)",
+    "hint": "NSM sets the CPE to send its logs to the NSM receiver through GenieACS: remote logging, address, port and minimum level only.",
+    "target": "NSM receiver",
+    "noTarget": "cannot be determined: set the public address in Amministrazione → Syslog",
+    "managementIp": "Address the logs come from",
+    "current": "Configuration",
+    "applied": "to {{ip}}, level {{level}}, applied {{when}}",
+    "queued": "to {{ip}}, level {{level}}, sent {{when}}: applied at the next contact",
+    "never": "not configured by NSM yet",
+    "identification": "TP-Link devices take no identifier: NSM recognises their logs by sender address, the management IP read from the ACS (refreshed at every configuration).",
+    "level": "Minimum level",
+    "configure": "Configure",
+    "reconfigure": "Configure again",
+    "doneNow": "Log settings applied on the CPE.",
+    "doneLater": "Settings sent: the CPE applies them at its next contact with the ACS.",
+    "levels": {
+      "error": "Error",
+      "warning": "Warning",
+      "notice": "Notice",
+      "info": "Information",
+      "debug": "Debug"
+    },
+    "adminTitle": "TR-069 CPE syslog",
+    "adminHint": "Set every associated TP-Link CPE to send its logs to {{target}}:{{port}} (at each one's next contact).",
+    "adminCounts": "{{configured}} of {{cpes}} CPEs already send to this address.",
+    "autoOn": "Automatic configuration is on (Amministrazione → Syslog): new CPEs are configured by themselves.",
+    "autoOff": "Automatic configuration is off (Amministrazione → Syslog).",
+    "adminRun": "Configure all",
+    "adminDone": "{{queued}} sent, {{skipped}} already set, {{failed}} not supported or failed."
   }
 }

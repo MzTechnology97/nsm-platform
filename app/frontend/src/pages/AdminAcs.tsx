@@ -5,6 +5,7 @@ import { useAcsAdmin, useAcsTemplates } from "../api/admin";
 import { ApiError } from "../api/client";
 import { AdminTabs } from "../app/AdminTabs";
 import { AcsSpeedtestSettings } from "../app/AcsSpeedtestSettings";
+import { AcsSyslogAdminPanel } from "../app/AcsSyslog";
 import { Loading } from "../app/States";
 import { formatDateTime } from "../lib/format";
 
@@ -105,6 +106,7 @@ export function AdminAcs() {
               <pre className="ui-code-block">{data.provision_script}</pre>
             </details>
           </section>
+          <AcsSyslogAdminPanel />
         </>
       )}
     </section>

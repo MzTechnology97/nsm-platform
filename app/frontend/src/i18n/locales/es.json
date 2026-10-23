@@ -5091,6 +5091,7 @@
     "ACS_SPEEDTEST_COMPLETED": "Prueba de velocidad del CPE completada",
     "ACS_SPEEDTEST_REQUESTED": "Prueba de velocidad del CPE solicitada",
     "ACS_SPEEDTEST_SETTINGS_CHANGED": "Ajustes de la prueba de velocidad modificados",
+    "ACS_SYSLOG_CONFIGURED": "Syslog del CPE configurado vía ACS",
     "ACS_TEMPLATES_INSTALLED": "Plantillas ACS instaladas",
     "ACS_TEMPLATES_UPDATED": "Plantillas ACS actualizadas por NSM",
     "ACS_WIFI_CHANGED": "Wi-Fi modificado a través del ACS",
@@ -5773,5 +5774,36 @@
     "catalogCurrent": "La versión instalada es la última del catálogo.",
     "notes": "notas de la versión",
     "catalogs": "Catálogos de firmware"
+  },
+  "acsSyslog": {
+    "title": "Syslog vía ACS (TR-069)",
+    "hint": "NSM configura el CPE para enviar sus registros al receptor de NSM mediante GenieACS: solo envío remoto, dirección, puerto y nivel mínimo.",
+    "target": "Receptor NSM",
+    "noTarget": "no determinable: configura la dirección pública en Amministrazione → Syslog",
+    "managementIp": "Dirección de origen de los registros",
+    "current": "Configuración",
+    "applied": "hacia {{ip}}, nivel {{level}}, aplicada {{when}}",
+    "queued": "hacia {{ip}}, nivel {{level}}, enviada {{when}}: se aplica en el próximo contacto",
+    "never": "aún no configurada por NSM",
+    "identification": "Los TP-Link no admiten identificador: NSM reconoce sus registros por la dirección del remitente, la IP de gestión leída del ACS (actualizada en cada configuración).",
+    "level": "Nivel mínimo",
+    "configure": "Configurar",
+    "reconfigure": "Configurar de nuevo",
+    "doneNow": "Ajustes de registro aplicados en el CPE.",
+    "doneLater": "Ajustes enviados: el CPE los aplica en su próximo contacto con el ACS.",
+    "levels": {
+      "error": "Error",
+      "warning": "Advertencia",
+      "notice": "Aviso",
+      "info": "Información",
+      "debug": "Depuración"
+    },
+    "adminTitle": "Syslog de los CPE TR-069",
+    "adminHint": "Configura todos los CPE TP-Link asociados para enviar sus registros a {{target}}:{{port}} (en el próximo contacto de cada uno).",
+    "adminCounts": "{{configured}} de {{cpes}} CPE ya envían a esta dirección.",
+    "autoOn": "La configuración automática está activa (Amministrazione → Syslog): los nuevos CPE se configuran solos.",
+    "autoOff": "La configuración automática está desactivada (Amministrazione → Syslog).",
+    "adminRun": "Configurar todos",
+    "adminDone": "{{queued}} enviados, {{skipped}} ya configurados, {{failed}} no compatibles o fallidos."
   }
 }

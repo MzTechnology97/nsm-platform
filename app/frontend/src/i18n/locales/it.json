@@ -5091,6 +5091,7 @@
     "ACS_SPEEDTEST_COMPLETED": "Test di velocità del CPE completato",
     "ACS_SPEEDTEST_REQUESTED": "Test di velocità del CPE richiesto",
     "ACS_SPEEDTEST_SETTINGS_CHANGED": "Impostazioni del test di velocità modificate",
+    "ACS_SYSLOG_CONFIGURED": "Syslog del CPE configurato via ACS",
     "ACS_TEMPLATES_INSTALLED": "Modelli ACS installati",
     "ACS_TEMPLATES_UPDATED": "Modelli ACS aggiornati da NSM",
     "ACS_WIFI_CHANGED": "Wi-Fi modificato tramite ACS",
@@ -5773,5 +5774,36 @@
     "catalogCurrent": "La versione installata è l'ultima del catalogo.",
     "notes": "note di rilascio",
     "catalogs": "Cataloghi firmware"
+  },
+  "acsSyslog": {
+    "title": "Syslog via ACS (TR-069)",
+    "hint": "NSM imposta sul CPE l'invio dei log al proprio ricevitore tramite GenieACS: solo invio remoto, indirizzo, porta e livello minimo.",
+    "target": "Ricevitore NSM",
+    "noTarget": "non determinabile: imposta l'indirizzo pubblico in Amministrazione → Syslog",
+    "managementIp": "IP da cui arrivano i log",
+    "current": "Configurazione",
+    "applied": "verso {{ip}}, livello {{level}}, applicata {{when}}",
+    "queued": "verso {{ip}}, livello {{level}}, inviata {{when}}: si applica al prossimo contatto",
+    "never": "non ancora configurata da NSM",
+    "identification": "Sui TP-Link non si imposta un identificativo: NSM riconosce i log dall'indirizzo del mittente, cioè l'IP di gestione letto dall'ACS (aggiornato a ogni configurazione).",
+    "level": "Livello minimo",
+    "configure": "Configura",
+    "reconfigure": "Configura di nuovo",
+    "doneNow": "Impostazioni di log applicate sul CPE.",
+    "doneLater": "Impostazioni inviate: il CPE le applica al prossimo contatto con l'ACS.",
+    "levels": {
+      "error": "Errore",
+      "warning": "Warning",
+      "notice": "Notice",
+      "info": "Informazioni",
+      "debug": "Debug"
+    },
+    "adminTitle": "Syslog dei CPE TR-069",
+    "adminHint": "Imposta su tutti i CPE TP-Link associati l'invio dei log verso {{target}}:{{port}} (al prossimo contatto di ciascuno).",
+    "adminCounts": "{{configured}} CPE su {{cpes}} già configurati verso questo indirizzo.",
+    "autoOn": "La configurazione automatica è attiva (Amministrazione → Syslog): i nuovi CPE vengono configurati da soli.",
+    "autoOff": "La configurazione automatica è spenta (Amministrazione → Syslog).",
+    "adminRun": "Configura su tutti",
+    "adminDone": "{{queued}} inviati, {{skipped}} già a posto, {{failed}} non supportati o non riusciti."
   }
 }
