@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.237 — 2026-10-23
+
+Customer name as a tag in GenieACS
+- **Every TP-Link or other TR-069 CPE linked in NSM now carries its customer's name as a tag in GenieACS**, so the GenieACS panel shows, and can filter, whose CPE it is. The tag is added after the link.
+- **The tag stays aligned on its own:**
+  - it follows the device when it moves to another customer, and the old tag is removed;
+  - it follows the customer when it is renamed;
+  - it is put back if someone removes it in GenieACS.
+- **Tags you set yourself in GenieACS are never touched.**
 ## 0.49.236 — 2026-10-23
 
 Cambium logo on Cambium devices
