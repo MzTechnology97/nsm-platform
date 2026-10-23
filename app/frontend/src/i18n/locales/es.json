@@ -5636,7 +5636,7 @@
     "subnetsHelp": "Una por línea o separadas por comas, p. ej. 198.51.100.0/24. El receptor rechaza otros orígenes en menos de un minuto.",
     "saved": "Guardado: el receptor lo aplica en menos de un minuto.",
     "firewall": "Reglas de cortafuegos en el servidor",
-    "firewallHelp": "Para bloquear también otros orígenes antes de NSM, ejecute ./manage.sh legacy-ftp-firewall --apply en el servidor (lo hace solo legacy-backup-enable)."
+    "firewallHelp": "El servidor también bloquea otros orígenes en su cortafuegos (cadena DOCKER-USER): con la actualización automática instalada, las reglas siguen estas subredes en dos minutos y vuelven tras un reinicio. Sin ella, ejecute ./manage.sh legacy-ftp-firewall --apply en el servidor."
   },
   "acsWifi": {
     "title": "Wi-Fi",

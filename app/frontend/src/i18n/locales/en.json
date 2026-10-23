@@ -5636,7 +5636,7 @@
     "subnetsHelp": "One per line or separated by commas, e.g. 198.51.100.0/24. The receiver refuses other origins within a minute.",
     "saved": "Saved: the receiver applies it within a minute.",
     "firewall": "Firewall rules on the server",
-    "firewallHelp": "To block other origins before they reach NSM too, run ./manage.sh legacy-ftp-firewall --apply on the server (done automatically by legacy-backup-enable)."
+    "firewallHelp": "The server also blocks other origins in its firewall (DOCKER-USER chain): with the automatic update installed, the rules follow these subnets within two minutes and come back after a reboot. Without it, run ./manage.sh legacy-ftp-firewall --apply on the server."
   },
   "acsWifi": {
     "title": "Wi-Fi",

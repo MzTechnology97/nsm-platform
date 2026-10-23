@@ -5636,7 +5636,7 @@
     "subnetsHelp": "Un par ligne ou séparés par des virgules, ex. 198.51.100.0/24. Le récepteur refuse les autres origines en moins d'une minute.",
     "saved": "Enregistré : le récepteur l'applique en moins d'une minute.",
     "firewall": "Règles de pare-feu sur le serveur",
-    "firewallHelp": "Pour bloquer aussi les autres origines avant NSM, exécutez ./manage.sh legacy-ftp-firewall --apply sur le serveur (fait automatiquement par legacy-backup-enable)."
+    "firewallHelp": "Le serveur bloque aussi les autres origines dans son pare-feu (chaîne DOCKER-USER) : avec la mise à jour automatique installée, les règles suivent ces sous-réseaux en deux minutes et reviennent après un redémarrage. Sans elle, exécutez ./manage.sh legacy-ftp-firewall --apply sur le serveur."
   },
   "acsWifi": {
     "title": "Wi-Fi",
