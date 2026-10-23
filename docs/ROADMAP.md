@@ -460,7 +460,7 @@ A complete cybersecurity view for an ISP/WISP, taking as reference the open-sour
 - **attribution with a confidence level**:
   - *exact*: a RADIUS/PPP session covering the time;
   - *probable*: the address reported by the device in that window;
-  - *ambiguous*: CGNAT or shared NAT address, with the list of candidate customers;
+  - *not attributed*: NAT pool or CGNAT address, reported with the public IP only (see the scope below);
 - **scope decided with the user (2026-10-23)**:
   - **public addresses** (static public IP, or a public IP received from a dynamic pool): the customer is attributed from NSM's own data only, i.e. the BRAS session log, the RADIUS accounting and the static IPs, with no external syslog;
   - **NAT addresses** (customers behind the edge NAT, NAT pools, CGNAT): NSM does **not** look for the responsible customer. It reports the public IP, the time and, when declared, the NAT gateway or pool it belongs to; the operator finds the customer with their own NAT logs;
