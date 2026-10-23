@@ -1,5 +1,5 @@
 import type { SyslogGuide } from "../app/SyslogGuides";
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { BrandRef } from "../app/BrandIcon";
 import { api } from "./client";
@@ -46,12 +46,10 @@ export function queryString(params: Record<string, string | number | undefined>)
   return text ? `?${text}` : "";
 }
 
-export const useAuditEvents = (filters: AuditFilters) =>
-  useInfiniteQuery({
-    queryKey: ["audit-events", filters],
-    queryFn: ({ pageParam }) => api<AuditPage>(`/api/ui/v1/audit/events${queryString({ ...filters, offset: pageParam })}`),
-    initialPageParam: 0,
-    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+export const useAuditEvents = (filters: AuditFilters, page: { offset: number; limit: number }) =>
+  useQuery({
+    queryKey: ["audit-events", filters, page],
+    queryFn: () => api<AuditPage>(`/api/ui/v1/audit/events${queryString({ ...filters, offset: page.offset, limit: page.limit })}`),
     placeholderData: keepPreviousData,
     staleTime: 15_000,
   });
@@ -104,12 +102,10 @@ export interface ReportPage {
   schedules: ReportSchedule[];
 }
 
-export const useReports = () =>
-  useInfiniteQuery({
-    queryKey: ["reports"],
-    queryFn: ({ pageParam }) => api<ReportPage>(`/api/ui/v1/reports${queryString({ offset: pageParam })}`),
-    initialPageParam: 0,
-    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+export const useReports = (page: { offset: number; limit: number }) =>
+  useQuery({
+    queryKey: ["reports", page],
+    queryFn: () => api<ReportPage>(`/api/ui/v1/reports${queryString({ offset: page.offset, limit: page.limit })}`),
     staleTime: 15_000,
   });
 
@@ -454,46 +450,6 @@ export function useAcsTemplates() {
 
 // --- Bulk CPE → ACS migration ---------------------------------------------------------------------
 
-export interface AcsMigrationRun {
-  id: string; created_at: string; finished_at: string | null; created_by: string | null; vendor: string;
-  subnet: string; port: number; target_acs_url: string; inform_interval: number; dry_run: boolean; status: string;
-  error: string | null; total_hosts: number; processed: number; reachable: number; configured: number;
-  already_target: number; failed: number;
-}
-export interface AcsMigrationHost {
-  address: string; status: string; detail: string | null; model: string | null; firmware: string | null;
-  previous_acs_url: string | null; duration_ms: number | null;
-}
-export interface AcsMigrationState {
-  defaults: { vendor: string; port: number; inform_interval: number; target_acs_url: string; max_hosts: number; hard_max_hosts: number; min_inform_interval: number };
-  vendors: string[]; apply_available: boolean; active_run_id: string | null; runs: AcsMigrationRun[];
-}
-
-export const useAcsMigration = () =>
-  useQuery({ queryKey: ["acs-migration"], queryFn: () => api<AcsMigrationState>("/api/ui/v1/admin/acs/migration"),
-            refetchInterval: (q) => (q.state.data?.active_run_id ? 2000 : false) });
-
-export const useAcsMigrationRun = (runId: string | null) =>
-  useQuery({ queryKey: ["acs-migration-run", runId], enabled: Boolean(runId),
-             queryFn: () => api<{ run: AcsMigrationRun; hosts: AcsMigrationHost[]; active: boolean }>(`/api/ui/v1/admin/acs/migration/${runId}`),
-             refetchInterval: (q) => (q.state.data?.active ? 1500 : false) });
-
-export function useStartAcsMigration() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (body: object) => api<{ run: AcsMigrationRun }>("/api/ui/v1/admin/acs/migration", { method: "POST", body: JSON.stringify(body) }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["acs-migration"] }),
-  });
-}
-
-export function useCancelAcsMigration(runId: string) {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: () => api<{ cancelled: boolean }>(`/api/ui/v1/admin/acs/migration/${runId}/cancel`, { method: "POST" }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["acs-migration"] }),
-  });
-}
-
 // --- Server migration (new address) ----------------------------------------------------------------
 
 export interface ServerMigrationItemRow {
@@ -695,12 +651,10 @@ export interface OnboardingPage {
   items: OnboardingRow[];
 }
 
-export const useOnboarding = (filters: OnboardingFilters, provider: OnboardingProvider = "uisp") =>
-  useInfiniteQuery({
-    queryKey: [`${provider}-onboarding`, filters],
-    queryFn: ({ pageParam }) => api<OnboardingPage>(`/api/ui/v1/integrations/${provider}/onboarding${queryString({ ...filters, customer: undefined, offset: pageParam })}`),
-    initialPageParam: 0,
-    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+export const useOnboarding = (filters: OnboardingFilters, provider: OnboardingProvider = "uisp", page: { offset: number; limit: number }) =>
+  useQuery({
+    queryKey: [`${provider}-onboarding`, filters, page],
+    queryFn: () => api<OnboardingPage>(`/api/ui/v1/integrations/${provider}/onboarding${queryString({ ...filters, customer: undefined, offset: page.offset, limit: page.limit })}`),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   });

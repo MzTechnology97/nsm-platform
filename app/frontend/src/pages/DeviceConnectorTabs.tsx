@@ -1,15 +1,17 @@
 import { Link, useParams } from "@tanstack/react-router";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
-import { type GenieacsCandidate, useCnmaestroMetrics, useDeviceCnmaestro, useDeviceGenieacs, useGenieacsAction } from "../api/deviceConnectors";
+import { type GenieacsCandidate, useDeviceCnmaestro, useDeviceGenieacs, useGenieacsAction } from "../api/deviceConnectors";
 import { formatDateTime } from "../lib/format";
-import { metricValue, RANGES, SeriesCharts } from "./DeviceUisp";
+import { metricValue } from "./DeviceUisp";
 import { Loading } from "../app/States";
+import { MonitorLink } from "../app/MonitorLink";
 import { AcsDiagnostics } from "../app/AcsDiagnostics";
+import { AcsSpeedtest } from "../app/AcsSpeedtest";
 import { AcsWifi } from "../app/AcsWifi";
 import { AcsSnapshot } from "../app/AcsSnapshot";
+import { AcsPortMapping } from "../app/AcsPortMapping";
 import { AcsMonitor } from "../app/AcsMonitor";
 
 function message(error: unknown) {
@@ -21,9 +23,7 @@ export function DeviceCnmaestro() {
   const { t, i18n } = useTranslation();
   const { deviceId } = useParams({ from: "/devices/$deviceId/cnmaestro" });
   const query = useDeviceCnmaestro(deviceId);
-  const [range, setRange] = useState<(typeof RANGES)[number]>("24h");
   const data = query.data;
-  const metrics = useCnmaestroMetrics(deviceId, range, Boolean(data?.linked && data.can.metrics));
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
   if (!data) return <Loading />;
   const meta = data.meta;
@@ -65,8 +65,7 @@ export function DeviceCnmaestro() {
         )}
       </section>
       {data.linked && data.can.metrics && (
-        <SeriesCharts title={t("deviceCnmaestro.chartsTitle")} range={range} onRange={setRange} charts={metrics.data?.charts}
-          count={metrics.data?.sample_count ?? 0} pending={metrics.isPending} />
+        <MonitorLink deviceId={deviceId} />
       )}
     </>
   );
@@ -139,8 +138,10 @@ export function DeviceGenieacs() {
       )}
       {record.external_id && <AcsMonitor deviceId={deviceId} />}
       {record.external_id && enabled && <AcsDiagnostics deviceId={deviceId} />}
+      {record.external_id && enabled && <AcsSpeedtest deviceId={deviceId} />}
       {record.external_id && enabled && <AcsWifi deviceId={deviceId} deviceName={record.name} />}
       {record.external_id && enabled && <AcsSnapshot deviceId={deviceId} />}
+      {record.external_id && <AcsPortMapping deviceId={deviceId} />}
       <section className="ui-panel ui-admin-section">
         <div className="ui-page-header-row">
           <div>

@@ -3,9 +3,13 @@ import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { api } from "../api/client";
 import { type DeviceCounts, type DeviceFilters, type DeviceRow, devicesExportUrl, useDeviceFacets, useDevices } from "../api/devices";
+import { pageParams, usePaging } from "../lib/paging";
+import { Pager } from "../app/Pager";
+import { useIntegrations } from "../api/admin";
 import { can, useSession } from "../api/session";
 import { BrandIcon } from "../app/BrandIcon";
 import { Resources } from "../app/Resources";
@@ -60,19 +64,15 @@ export function Devices() {
 
   const filters = useMemo<DeviceFilters>(() => ({ ...search, sort: search.sort ?? "name", dir: search.dir ?? "asc" }), [search]);
   const activeFilters = Object.entries(search).filter(([key, value]) => value && key !== "sort" && key !== "dir").length;
-  const query = useDevices(filters);
-  const rows = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
-  const first = query.data?.pages[0];
-  const total = first?.total ?? 0;
-  const counts = first?.counts;
+  const paging = usePaging(JSON.stringify(filters));
+  const query = useDevices(filters, pageParams(paging));
+  const rows = useMemo(() => query.data?.items ?? [], [query.data]);
+  const total = query.data?.total ?? 0;
+  const counts = query.data?.counts;
 
   const parent = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({ count: rows.length, getScrollElement: () => parent.current, estimateSize: () => ROW_HEIGHT, overscan: 12 });
   const items = virtualizer.getVirtualItems();
-  const last = items[items.length - 1];
-  useEffect(() => {
-    if (last && last.index >= rows.length - 20 && query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage();
-  }, [last, rows.length, query]);
 
   const sites = (facets.data?.sites ?? []).filter((site) => !filters.customer || site.customer_id === filters.customer);
 
@@ -93,6 +93,7 @@ export function Devices() {
     update({ sort: column, dir: filters.sort === column && filters.dir === "asc" ? "desc" : "asc" });
 
   const canImport = can(session.data, "users.manage");
+  const hub = useIntegrations();
   const filtered = Object.keys(search).length > 0 || Boolean(text);
   const resetFilters = () => {
     setText("");
@@ -109,6 +110,13 @@ export function Devices() {
         <div className="ui-actions">
           {total > 0 && <a className="ui-button ui-button-ghost" href={devicesExportUrl(filters)} download>{t("devices.export")}</a>}
           {canImport && <Link className="ui-button ui-button-ghost" to="/devices/import">{t("deviceImport.open")}</Link>}
+          {/* Onboarding from a connector only while it is enabled and its last sync or test succeeded (devices.write). */}
+          {can(session.data, "devices.write") && hub.data?.uisp.state === "active" && (
+            <Link className="ui-button ui-button-ghost" to="/integrations/uisp/onboarding">{t("quickImport.uisp")}</Link>
+          )}
+          {can(session.data, "devices.write") && hub.data?.cnmaestro.state === "active" && (
+            <Link className="ui-button ui-button-ghost" to="/integrations/cnmaestro/onboarding">{t("quickImport.cnmaestro")}</Link>
+          )}
         </div>
       </header>
 
@@ -161,14 +169,7 @@ export function Devices() {
           placeholder={t("devices.searchPlaceholder")}
           aria-label={t("devices.search")}
         />
-        <select value={filters.customer ?? ""} onChange={(event) => update({ customer: event.target.value || undefined, site: undefined })} aria-label={t("devices.customer")}>
-          <option value="">{t("devices.allCustomers")}</option>
-          {facets.data?.customers.map((customer) => (
-            <option key={customer.id} value={customer.id}>
-              {customer.name}
-            </option>
-          ))}
-        </select>
+        <SearchSelect value={filters.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined, site: undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
         <select value={filters.site ?? ""} onChange={(event) => update({ site: event.target.value || undefined })} aria-label={t("devices.site")} disabled={!sites.length}>
           <option value="">{t("devices.allSites")}</option>
           {sites.map((site) => (
@@ -240,6 +241,7 @@ export function Devices() {
           {query.isFetching ? t("app.loading") : t("devices.shown", { shown: rows.length, total })}
         </div>
       </div>
+      <Pager total={total} paging={paging} busy={query.isFetching} />
     </section>
   );
 }

@@ -1,6 +1,7 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
@@ -8,6 +9,8 @@ import { AGENT_STATES, type AgentFilters, type AgentRow, useAgentFleet } from ".
 import { formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { Loading } from "../app/States";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 
 /** Summary counter shown on each state chip. */
 const CHIP_COUNT: Record<(typeof AGENT_STATES)[number], string> = {
@@ -32,7 +35,8 @@ export function Agents() {
     if ((search.q ?? "") !== q) update({ q: q || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
-  const query = useAgentFleet(search);
+  const paging = usePaging(JSON.stringify(search));
+  const query = useAgentFleet(search, pageParams(paging));
   const data = query.data;
   const state = search.state ?? "attention";
   const summary = data?.summary;
@@ -64,10 +68,7 @@ export function Agents() {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("agents.search")} aria-label={t("agents.search")} autoComplete="off" />
-        <select value={search.customer ?? ""} onChange={(event) => update({ customer: event.target.value || undefined })} aria-label={t("devices.customer")}>
-          <option value="">{t("devices.allCustomers")}</option>
-          {facets.data?.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
-        </select>
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
         <select value={search.transport ?? ""} onChange={(event) => update({ transport: (event.target.value || undefined) as AgentFilters["transport"] })} aria-label={t("agents.transport")}>
           <option value="">{t("agents.allTransports")}</option>
           {(["modern", "legacy", "unknown"] as const).map((value) => <option key={value} value={value}>{t(`agents.transports.${value}`)}</option>)}
@@ -98,7 +99,7 @@ export function Agents() {
               </tbody>
             </table>
           </div>
-          {data.total > data.items.length && <p className="ui-muted">{t("monitoring.limited", { shown: data.items.length, total: data.total })}</p>}
+          <Pager total={data.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
         <div className="ui-empty">{state === "attention" ? t("agents.allGood") : t("agents.empty")}</div>
