@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.231 — 2026-10-23
+
+Activity
+- **Date filters use the local day.** In the activity log and in a device's jobs, "from" and "to" dates are now days of the server time zone (`APP_TIMEZONE`, Europe/Rome by default). Before, they were UTC days, so events between midnight and 01:00 (02:00 in summer) Italian time fell on the previous day.
+
 ## 0.49.230 — 2026-10-23
 
 Tests
