@@ -417,6 +417,41 @@ A port/service scanner run from the NSM server against the WAN address of each m
 - **Results.** Devices at risk are flagged like CVE exposure: per-device findings, a fleet "exposed services" view, severity, and inclusion in the vulnerability digest and reports.
 - **Safety.** Scheduled and on-demand scans, only toward addresses of managed devices, with rate limiting and an audit trail.
 
+### SCAN-02 — exposure only for devices reachable from Internet, from a real outside vantage point (requested 2026-10-23)
+
+**Step 1 in Core 0.49.288**:
+- every device gets its uplinks (MikroTik Agent addresses, TR-069 WAN, console, operator target), classified public / CGNAT / private;
+- only devices with a public address raise exposure issues and notifications; services on devices behind NAT, CGNAT or on a LAN are informational (*solo rete interna*), and their open issues close by themselves;
+- the state is recomputed every cycle from the inventory. A reboot, a PPPoE/WAN reconnection, a new public address (dynamic IP), a NAT ↔ public switch or a configuration change triggers a new check, besides the daily one. A device with several connections is public when any of them is.
+
+Next steps (decided with the user):
+- **0.49.289 — configurable external probe**: a small NSM probe service (container) installed on a host outside the operator network (any VPS). NSM sends it signed, rate-limited requests limited to the inventory's public addresses and the planned ports, and stores which vantage point answered.
+- **0.49.290 — third-party data**: optional Shodan / Censys API keys (what Internet scanners saw, with their date), shown next to NSM's own result and never used as sole proof.
+- When neither is configured NSM keeps probing from its own server, and says so: from inside the network the operator's border filters are not visible.
+
+### SCAN-03 — extended port scanner for ISP/WISP networks (requested 2026-10-23)
+
+Beyond the management ports of each vendor, check the ports of other protocols that matter on customer devices and the ones historically abused for attacks:
+- amplification: NTP 123, CLDAP 389, memcached 11211, chargen 19, QOTD 17, WS-Discovery 3702, mDNS 5353, NetBIOS 137, RPC portmapper 111, plus the DNS/SNMP/SSDP/UBNT discovery already checked;
+- remote access and file sharing: RDP 3389, VNC 5900, SMB 445, NetBIOS 139, TR-064 49000, Telnet 2323, PPTP 1723, IPMI 623;
+- databases and services left open: MySQL 3306, MSSQL 1433, PostgreSQL 5432, Redis 6379, MongoDB 27017, Elasticsearch 9200, Docker 2375/2376;
+- IoT and VoIP: RTSP 554, SIP 5060, MQTT 1883, Modbus 502.
+
+Profiles: *vendor* (today's list), *extended* (the list above, default for public devices) and *full* (all TCP ports, only from the external probe, operator-triggered and rate-limited). Each port has a severity and an explanation. Results feed the same exposure findings, Action Center and the ACL button (ACCESS-01). Only addresses of the inventory are ever scanned.
+
+### CYBER-01 — abuse and reputation toolkit for the operator's addresses (requested 2026-10-23)
+
+A complete cybersecurity view for an ISP/WISP, taking as reference the open-source project AbuseBox (`bekkaze/abusebox`, MIT), re-implemented inside NSM on its own inventory:
+- **blacklists**: DNSBL checks (tens of providers) of the operator's public IPs (customers, CGNAT pool, servers) and of whole subnets (/24), with links to each provider's removal page and delisting tracking;
+- **reputation**: AbuseIPDB score and reports (optional API key), correlated with the customer and device owning the address;
+- **domains and mail**: WHOIS and expiry, DNS records, SSL certificates and expiry, SPF/DKIM/DMARC grading of the operator's domains;
+- **availability**: DNS resolution, HTTP/HTTPS status and response time of the operator's public services;
+- **assets from NSM**: public IPs of devices and customers (and ISPBilling/RADIUS pools) imported automatically, ranges by CIDR, per-asset checks and schedules;
+- **monitoring and alerts**:
+  - scheduled re-checks and a needs-attention view (listed, expiring, down, weak mail security);
+  - activity log, with history and charts of listings over time;
+  - alerts through the existing NSM channels (email, Telegram, webhook) and Action Center issues; CSV export.
+
 ### ZBX-01 — Zabbix API integration (requested 2026-10-07)
 
 **Decided with the user (2026-10-08): NSM pushes its devices to Zabbix. Implemented in `main` (Core 0.49.51).** Hosts, groups per customer, templates per manufacturer, tags and inventory; 6.x and 7.x authentication; hosts disabled (not deleted) when devices leave NSM. Zabbix problems are shown inside NSM since Core 0.49.62 (device header and overview, Monitoring). **Since Core 0.49.205 (operator decision 2026-10-22)**: devices already monitored in the operator's Zabbix are linked to their existing host (same IP, else same name, only when exactly one matches) instead of getting a duplicate `nsm-` host; linked hosts are never modified except their interface IP, kept equal to the device address for dynamic public IPs/NAT (option); ambiguous matches are reported; the settings form suggests the templates found in Zabbix.
