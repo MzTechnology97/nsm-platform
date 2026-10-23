@@ -53,7 +53,9 @@ def _handler(base_url: str, check_certificate: bool) -> str:
               :local nsmBaseName ("nsm-" . [:pick $nsmJobId 0 8])
               :local nsmName ($nsmBaseName . ".rsc")
               :do {{ /file remove [find where (name=$nsmName || name=("flash/" . $nsmName))] }} on-error={{}}
+              :set nsmJobError "export command failed"
               /export file=$nsmBaseName
+              :set nsmJobError "export file not readable"
               :local nsmPath ""
               :local nsmSize 0
               :local nsmPrev 0
@@ -69,15 +71,17 @@ def _handler(base_url: str, check_certificate: bool) -> str:
                 }}
               }}
               :local nsmText ""
+              :set nsmJobError ("export read failed (" . $nsmSize . " bytes)")
               :if (($nsmSize > 0) && ($nsmSize = $nsmPrev) && ($nsmSize <= {LEGACY_EXPORT_MAX_BYTES})) do={{ :set nsmText [/file get [find where name=$nsmPath] contents] }}
               :do {{ /file remove [find where (name=$nsmName || name=("flash/" . $nsmName))] }} on-error={{}}
-              :if ([:len $nsmPath] = 0) do={{ :error "NSM export file not created" }}
-              :if ($nsmSize = 0) do={{ :error "NSM export file is empty" }}
-              :if ($nsmSize != $nsmPrev) do={{ :error "NSM export size did not settle" }}
-              :if ($nsmSize > {LEGACY_EXPORT_MAX_BYTES}) do={{ :error ("NSM export too large for the legacy transport: " . $nsmSize . " bytes") }}
-              :if ([:len $nsmText] != $nsmSize) do={{ :error ("NSM export read incomplete: " . [:len $nsmText] . "/" . $nsmSize) }}
+              :if ([:len $nsmPath] = 0) do={{ :set nsmJobError "export file not created"; :error $nsmJobError }}
+              :if ($nsmSize = 0) do={{ :set nsmJobError "export file is empty"; :error $nsmJobError }}
+              :if ($nsmSize != $nsmPrev) do={{ :set nsmJobError "export size did not settle"; :error $nsmJobError }}
+              :if ($nsmSize > {LEGACY_EXPORT_MAX_BYTES}) do={{ :set nsmJobError ("export too large for the legacy transport: " . $nsmSize . " bytes"); :error $nsmJobError }}
+              :if ([:len $nsmText] != $nsmSize) do={{ :set nsmJobError ("export read incomplete: " . [:len $nsmText] . "/" . $nsmSize . " bytes"); :error $nsmJobError }}
+              :set nsmJobError ("export upload failed (" . $nsmSize . " bytes)")
               :local nsmUp [/tool fetch url={artifact} http-method=post http-header-field=("Content-Type:text/plain," . $nsmLegacyHeaders) http-data=$nsmText output=user as-value{cert}]
-              :if (($nsmUp->"data") != "ok") do={{ :error "NSM export upload rejected" }}
+              :if (($nsmUp->"data") != "ok") do={{ :set nsmJobError "export upload rejected by NSM"; :error $nsmJobError }}
               :set nsmJobOutput ("export_bytes=" . $nsmSize)
             }}
 '''

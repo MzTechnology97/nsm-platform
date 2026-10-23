@@ -1,7 +1,7 @@
-import type { ReactNode } from "react";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { type SystemStatus, useSystemStatus } from "../api/admin";
+import { type LegacyFtpSettings, type SystemStatus, useLegacyFtp, useLegacyFtpSave, useSystemStatus } from "../api/admin";
 import { AdminTabs } from "../app/AdminTabs";
 import { formatBytes, formatDateTime } from "../lib/format";
 import { Loading } from "../app/States";
@@ -36,6 +36,7 @@ export function AdminSystem() {
           <Drills data={data} />
         </>
       )}
+      <LegacyFtp />
     </section>
   );
 }
@@ -293,5 +294,56 @@ function Drills({ data }: { data: SystemStatus }) {
         <div className="ui-alert ui-alert-warning">{t("system.drills.none")}</div>
       )}
     </Panel>
+  );
+}
+
+/** Receiver of legacy RouterOS backups over FTP: where routers send, and from which subnets they may. */
+function LegacyFtp() {
+  const { t } = useTranslation();
+  const query = useLegacyFtp();
+  const data = query.data;
+  if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
+  if (!data) return null;
+  return (
+    <Panel title={t("legacyFtp.title")} help={t("legacyFtp.help")}
+      badge={<Badge tone={data.enabled ? "online" : "warning"}>{data.enabled ? t("legacyFtp.active") : t("legacyFtp.inactive")}</Badge>}>
+      <div className="ui-metrics">
+        <Metric label={t("legacyFtp.address")} value={data.public_host ? `${data.public_host}:${data.port}` : "—"} note={t("legacyFtp.passive", { ports: data.passive_ports })} />
+        <Metric label={t("legacyFtp.subnets")} value={data.allowed_networks.length || t("legacyFtp.any")} warn={!data.allowed_networks.length} />
+      </div>
+      {!data.enabled && <p className="ui-muted">{t("legacyFtp.enableHint")}</p>}
+      <LegacyFtpForm data={data} />
+    </Panel>
+  );
+}
+
+function LegacyFtpForm({ data }: { data: LegacyFtpSettings }) {
+  const { t } = useTranslation();
+  const save = useLegacyFtpSave();
+  const [text, setText] = useState(data.allowed_networks.join("\n"));
+  useEffect(() => setText(data.allowed_networks.join("\n")), [data.allowed_networks]);
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    save.mutate({ allowed_networks: text });
+  };
+  return (
+    <form className="ui-admin-form ui-admin-stack" onSubmit={submit}>
+      {!data.allowed_networks.length && <div className="ui-alert ui-alert-warning">{t("legacyFtp.noSubnets")}</div>}
+      <label>
+        <span>{t("legacyFtp.subnetsLabel")}</span>
+        <textarea rows={4} value={text} onChange={(event) => setText(event.target.value)} placeholder={"198.51.100.0/24\n203.0.113.0/24"} spellCheck={false} />
+        <small className="ui-muted">{t("legacyFtp.subnetsHelp")}</small>
+      </label>
+      <button type="submit" className="ui-button" disabled={save.isPending}>{t("cnmaestro.save")}</button>
+      {save.isSuccess && <small className="ui-live">{t("legacyFtp.saved")}</small>}
+      {save.error && <small className="ui-backup-error">{(save.error as Error).message}</small>}
+      {data.allowed_networks.length > 0 && (
+        <details>
+          <summary>{t("legacyFtp.firewall")}</summary>
+          <p className="ui-muted">{t("legacyFtp.firewallHelp")}</p>
+          <pre className="ui-code-block">{data.firewall_script}</pre>
+        </details>
+      )}
+    </form>
   );
 }

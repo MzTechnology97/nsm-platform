@@ -237,6 +237,7 @@
       "notMeasuredNote": "attiva il ping da NSM nel Monitor"
     },
     "backupNever": "mai",
+    "backupNotAvailable": "non disponibile",
     "ispbilling": {
       "title": "Account ISPBilling",
       "help": "L'account RADIUS di ISPBilling servito da questo apparato, letto dal gestionale.",
@@ -246,7 +247,20 @@
         "ip": "abbinato per IP statico"
       }
     },
-    "backupNotAvailable": "non disponibile"
+    "pingToggle": {
+      "open": "Ping da NSM: attiva o disattiva",
+      "title": "Ping da NSM",
+      "help": "NSM interroga l'apparato con un ping ogni minuto: latenza, perdita e interruzioni compaiono nel Monitor e contano per la disponibilità.",
+      "on": "Attivo",
+      "off": "Non attivo",
+      "target": "Indirizzo interrogato: {{target}}",
+      "noTarget": "L'apparato non ha un IP di gestione: imposta prima un indirizzo in Monitor → Impostazioni monitoraggio.",
+      "readOnly": "Per cambiarlo serve il permesso di modifica degli apparati.",
+      "savedOn": "Ping attivato: il primo risultato arriva entro un minuto.",
+      "savedOff": "Ping disattivato.",
+      "more": "Soglie e indirizzo nel Monitor",
+      "close": "Chiudi"
+    }
   },
   "monitor": {
     "range": "Intervallo",
@@ -1826,7 +1840,8 @@
       "notifications": "Notifiche",
       "syslog": "Syslog",
       "acs": "ACS",
-      "system": "Sistema"
+      "system": "Sistema",
+      "serverMigration": "Migrazione server"
     }
   },
   "adminUsers": {
@@ -2592,11 +2607,18 @@
     "preset": "Preset",
     "presetText": "condizione <code>{{condition}}</code>, eventi bootstrap, boot e periodic → provision <code>{{provision}}</code>",
     "script": "Script della provision {{name}}",
-    "migrationHint": "Hai già una flotta di CPE su un ACS cloud (per esempio TAUC)?",
-    "migrationLink": "Migra i CPE verso questo ACS",
     "templatesCurrent": "I modelli NSM sono aggiornati (installati il {{when}}). NSM li aggiorna da solo dopo ogni aggiornamento.",
     "templatesPending": "Questa versione di NSM ha modelli più recenti di quelli installati il {{when}}: NSM li installa entro 30 minuti, oppure premi Installa ora.",
-    "templatesAuto": "Una volta installati, NSM tiene aggiornati questi modelli da solo dopo ogni aggiornamento."
+    "templatesAuto": "Una volta installati, NSM tiene aggiornati questi modelli da solo dopo ogni aggiornamento.",
+    "guideIntro": "Su ogni router serve un solo passaggio manuale: accendere il CWMP e impostare l'ACS URL. Da lì NSP riconosce la CPE e la monitora in sola lettura, senza modificarne la configurazione.",
+    "readonlyTitle": "Cosa fa NSP e cosa non tocca",
+    "readonly": {
+      "reads": "Legge: stato online/offline, ultimo contatto, modello, firmware, IP, CPU, memoria, traffico WAN, client Wi-Fi e linea DSL.",
+      "actions": "Azioni disponibili: riavvio, verifica firmware, diagnostica.",
+      "never": "Non modifica Wi-Fi, LAN, DHCP, PPPoE o altra configurazione del router. L'unica impostazione che scrive è l'intervallo di inform del CWMP."
+    },
+    "migrationHint": "Hai già una flotta di CPE su un ACS cloud (per esempio TAUC)?",
+    "migrationLink": "Migra i CPE verso questo ACS"
   },
   "demo": {
     "subtitle": "Dataset isolato per provare interfaccia e flussi di lavoro senza usare clienti reali.",
@@ -5089,6 +5111,7 @@
     "ACS_SPEEDTEST_COMPLETED": "Test di velocità del CPE completato",
     "ACS_SPEEDTEST_REQUESTED": "Test di velocità del CPE richiesto",
     "ACS_SPEEDTEST_SETTINGS_CHANGED": "Impostazioni del test di velocità modificate",
+    "ACS_SYSLOG_CONFIGURED": "Syslog del CPE configurato via ACS",
     "ACS_TEMPLATES_INSTALLED": "Modelli ACS installati",
     "ACS_TEMPLATES_UPDATED": "Modelli ACS aggiornati da NSM",
     "ACS_WIFI_CHANGED": "Wi-Fi modificato tramite ACS",
@@ -5161,6 +5184,7 @@
     "DEVICE_SNAPSHOT_BATCH_QUEUED": "Aggiornamento configurazione in coda",
     "DEVICE_SNAPSHOT_QUEUED": "Aggiornamento sezione configurazione in coda",
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Interfacce monitorate modificate",
+    "DEVICE_VENDOR_CORRECTED": "Vendor dell'apparato corretto",
     "DIAGNOSTIC_EXPORTED": "Diagnostica esportata",
     "EXPOSURE_CHECK_REQUESTED": "Verifica esposizione richiesta",
     "EXPOSURE_EXTERNAL_CHECK": "Verifica esposizione dall'esterno",
@@ -5210,6 +5234,7 @@
     "LEGACY_FIRMWARE_UPGRADE_FAILED": "Aggiornamento firmware legacy fallito",
     "LEGACY_FIRMWARE_UPGRADE_QUEUED": "Aggiornamento firmware legacy in coda",
     "LEGACY_FIRMWARE_UPGRADE_VERIFIED": "Aggiornamento firmware legacy verificato",
+    "LEGACY_FTP_SETTINGS_CHANGED": "Subnet del ricevitore FTP legacy modificate",
     "LIFECYCLE_CATALOG_IMPORTED": "Catalogo lifecycle importato",
     "LIFECYCLE_DEVICE_DECOMMISSIONED": "Apparato dismesso (lifecycle)",
     "LIFECYCLE_DEVICE_REPLACED": "Apparato sostituito",
@@ -5221,6 +5246,8 @@
     "LIFECYCLE_REMEDIATION_REOPENED": "Rimedio lifecycle riaperto",
     "LIFECYCLE_REPLACEMENT_PLANNED": "Sostituzione pianificata",
     "LIFECYCLE_STATUS_CHANGED": "Stato lifecycle cambiato",
+    "LIFECYCLE_WEB_APPLIED": "Ciclo di vita dal web applicato al catalogo",
+    "LIFECYCLE_WEB_LOOKUP": "Ciclo di vita cercato sul web",
     "MAC_DISCOVERED": "Indirizzo MAC rilevato",
     "MAINTENANCE_WINDOW_CREATED": "Finestra di manutenzione creata",
     "MAINTENANCE_WINDOW_DELETED": "Finestra di manutenzione eliminata",
@@ -5270,6 +5297,10 @@
     "SECURITY_MATCHING_COMPLETED": "Correlazione vulnerabilità completata",
     "SECURITY_SOURCE_CONFIGURED": "Fonte di sicurezza configurata",
     "SERIAL_DISCOVERED": "Numero di serie rilevato",
+    "SERVER_MIGRATION_CANCELLED": "Migrazione del server annullata",
+    "SERVER_MIGRATION_CREATED": "Migrazione del server creata",
+    "SERVER_MIGRATION_STARTED": "Apparati inviati al nuovo server",
+    "SERVER_MIGRATION_VERIFIED": "Nuovo server verificato",
     "SITE_ADDED": "Sede aggiunta",
     "SITE_DELETED": "Sede eliminata",
     "SITE_UPDATED": "Sede modificata",
@@ -5346,72 +5377,6 @@
     "job": "attività",
     "tr069": "TR-069 (ACS)",
     "acs": "ACS"
-  },
-  "acsMigration": {
-    "subtitle": "Migra in blocco i CPE dei clienti verso l'ACS integrato riconfigurando il CWMP sulla rete di gestione.",
-    "backToAcs": "Torna ad ACS",
-    "intro": "Indica la subnet di gestione dei tuoi router, la porta e le credenziali comuni della flotta: NSM raggiunge ogni apparato e imposta l'URL ACS di destinazione. Prima fai una simulazione per vedere quali CPE sono raggiungibili.",
-    "applyPending": "La riscrittura CWMP via interfaccia web TP-Link è in validazione sul campo per questo firmware: per ora è disponibile la sola ricognizione (simulazione).",
-    "formTitle": "Nuova migrazione",
-    "formHelp": "Solo subnet IPv4, al massimo {{max}} indirizzi per esecuzione. Gli indirizzi .0 e .255 e il server ACS vengono saltati.",
-    "credentialsHelp": "Le credenziali sono usate solo durante l'esecuzione e non vengono mai salvate. Nella simulazione non servono: nessuna credenziale viene inviata agli apparati.",
-    "dryRun": "Simula (ricognizione)",
-    "apply": "Applica migrazione",
-    "recentTitle": "Esecuzioni recenti",
-    "noRuns": "Nessuna esecuzione finora.",
-    "runTitle": "Esecuzione · {{subnet}}",
-    "cancel": "Interrompi",
-    "progress": "Avanzamento",
-    "fields": {
-      "subnet": "Subnet di gestione (CIDR)",
-      "port": "Porta di gestione",
-      "informInterval": "Intervallo inform (secondi)",
-      "targetAcsUrl": "URL ACS di destinazione (CWMP)",
-      "username": "Utente dei router",
-      "password": "Password dei router"
-    },
-    "cols": {
-      "when": "Quando",
-      "subnet": "Subnet",
-      "mode": "Modalità",
-      "status": "Stato",
-      "found": "CPE trovati",
-      "changed": "Configurati"
-    },
-    "hostCols": {
-      "address": "Indirizzo",
-      "status": "Esito",
-      "model": "Modello",
-      "firmware": "Firmware",
-      "detail": "Dettaglio"
-    },
-    "mode": {
-      "dry": "Simulazione",
-      "apply": "Applicata"
-    },
-    "runStatus": {
-      "pending": "In attesa",
-      "running": "In corso",
-      "done": "Completata",
-      "failed": "Fallita",
-      "cancelled": "Interrotta"
-    },
-    "hostStatus": {
-      "pending": "In attesa",
-      "unreachable": "Non raggiungibile",
-      "not_cpe": "Non è un CPE",
-      "auth_failed": "Credenziali rifiutate",
-      "already_target": "Già sull'ACS",
-      "configured": "Configurato",
-      "error": "Errore",
-      "skipped": "Saltato"
-    },
-    "counters": {
-      "processed": "Elaborati",
-      "reachable": "Raggiungibili",
-      "configured": "Configurati",
-      "failed": "Falliti"
-    }
   },
   "ispbilling": {
     "title": "ISPBilling",
@@ -5550,6 +5515,96 @@
     "dslSnr": "Margine SNR",
     "dslAttenuation": "Attenuazione",
     "charts": "Storico dall'ACS"
+  },
+  "serverMigration": {
+    "subtitle": "Sposta NSM su un server con un altro indirizzo: questo server comunica il nuovo indirizzo ad agent MikroTik e CPE TR-069.",
+    "howTitle": "Come funziona",
+    "how": "Gli apparati conoscono NSM per indirizzo. Questo server consegna agli agent MikroTik uno script che punta al nuovo indirizzo e imposta il nuovo ACS URL sui CPE TR-069 (l'unica scrittura CWMP). Non serve toccare i router.",
+    "steps": {
+      "install": "Installa sul nuovo server la stessa versione di NSM.",
+      "create": "Crea qui la migrazione con l'indirizzo del nuovo server.",
+      "restore": "Fai un backup del database qui (<code>sudo ./manage.sh backup-db</code>) e ripristinalo sul nuovo server con <code>secrets/bootstrap.env</code> e <code>.env</code> (<code>sudo ./manage.sh restore-db</code>): il backup va fatto dopo aver creato la migrazione.",
+      "settings": "Sul nuovo server: ACS_CWMP_URL nel .env, indirizzo pubblico del syslog (Amministrazione → Syslog), impostazioni del ricevitore FTP dei backup legacy, template ACS installati.",
+      "pilot": "Verifica il nuovo server, prova un pilota su pochi apparati, conferma che sono arrivati, poi migra tutti.",
+      "reinstall": "Gli agent che non si aggiornano da soli vanno reinstallati dal nuovo server (scheda Agent dell'apparato)."
+    },
+    "readiness": {
+      "capable": "Agent aggiornabili",
+      "capableHint": "passano al nuovo server da soli",
+      "reinstall": "Agent da reinstallare",
+      "reinstallHint": "da reinstallare dal nuovo server",
+      "tr069": "CPE TR-069",
+      "tr069Hint": "ricevono il nuovo ACS URL"
+    },
+    "createTitle": "Nuova migrazione",
+    "createHelp": "Indirizzo del nuovo server come lo raggiungono i router (http o https, senza percorso). Con https il certificato deve essere valido: i router lo controllano.",
+    "create": "Crea migrazione",
+    "fields": {
+      "agentUrl": "Indirizzo del nuovo server (agent)",
+      "acsUrl": "Nuovo ACS URL (CPE TR-069)",
+      "syslog": "Syslog verso",
+      "created": "Creata"
+    },
+    "noSyslog": "non determinabile: riconfigura il syslog dal nuovo server",
+    "runningTitle": "Migrazione in corso",
+    "cancel": "Annulla migrazione",
+    "cancelConfirm": "Annullare la migrazione? Gli invii non ancora consegnati vengono fermati; gli apparati già passati restano sul nuovo server.",
+    "verifyTitle": "Verifica del nuovo server",
+    "verifyHelp": "Questo server controlla che il nuovo risponda e sia un ripristino di questo database. Va ripetuta entro 24 ore dall'avvio.",
+    "verified": "Verificato {{when}}: versione {{version}}, {{devices}} apparati.",
+    "verify": "Verifica",
+    "pilotTitle": "Pilota",
+    "pilotHelp": "Scegli fino a {{max}} apparati da spostare per primi. Dopo qualche minuto premi «Aggiorna conferme»: quando risultano arrivati puoi migrare tutti.",
+    "search": "Cerca apparato o cliente",
+    "startPilot": "Avvia pilota ({{count}})",
+    "startAll": "Migra tutti",
+    "startAllConfirm": "Inviare il nuovo indirizzo a tutti gli agent aggiornabili e a tutti i CPE TR-069?",
+    "allNeedsPilot": "«Migra tutti» si attiva dopo che almeno un apparato del pilota è arrivato sul nuovo server.",
+    "itemsTitle": "Apparati",
+    "confirm": "Aggiorna conferme",
+    "retire": "Disattiva qui gli arrivati",
+    "retireConfirm": "Disattivare su questo server i {{count}} apparati arrivati sul nuovo? Smettono di generare avvisi qui; i dati restano consultabili.",
+    "retired": "disattivato qui",
+    "noItems": "Nessun apparato inviato.",
+    "cols": {
+      "device": "Apparato",
+      "customer": "Cliente",
+      "kind": "Tipo",
+      "online": "Online",
+      "status": "Stato",
+      "detail": "Dettaglio",
+      "arrived": "Arrivato"
+    },
+    "kind": {
+      "agent": "Agent MikroTik",
+      "tr069": "CPE TR-069"
+    },
+    "status": {
+      "queued": "In attesa",
+      "sent": "Inviato",
+      "arrived": "Arrivato",
+      "failed": "Non riuscito",
+      "reinstall": "Da reinstallare"
+    },
+    "yes": "sì",
+    "no": "no"
+  },
+  "legacyFtp": {
+    "title": "Backup legacy via FTP",
+    "help": "Ricevitore dei backup dei router RouterOS 6 e 7.12 (agent legacy). Indirizzo e porta si impostano sul server con ./manage.sh legacy-backup-enable <IPv4> [porta]; qui scegli quali subnet possono inviare.",
+    "active": "Attivo",
+    "inactive": "Non attivo",
+    "address": "Indirizzo per i router",
+    "passive": "porte passive {{ports}}",
+    "subnets": "Subnet abilitate",
+    "any": "tutte",
+    "enableHint": "Per attivarlo, sul server: ./manage.sh legacy-backup-enable <IPv4 di NSM raggiungibile dai router> [porta]",
+    "noSubnets": "Nessuna subnet impostata: qualsiasi indirizzo che raggiunge il server può collegarsi al ricevitore.",
+    "subnetsLabel": "Subnet abilitate a inviare backup",
+    "subnetsHelp": "Una per riga o separate da virgole, es. 198.51.100.0/24. Il ricevitore rifiuta le altre provenienze entro un minuto.",
+    "saved": "Salvato: il ricevitore lo applica entro un minuto.",
+    "firewall": "Regole firewall sul server",
+    "firewallHelp": "Per bloccare le altre provenienze anche prima che arrivino a NSM, sul server esegui ./manage.sh legacy-ftp-firewall --apply (lo fa da solo legacy-backup-enable)."
   },
   "acsWifi": {
     "title": "Wi-Fi",
@@ -5693,6 +5748,166 @@
       "checking": "Lettura dal CPE…",
       "warning": "Il CPE scarica l'immagine da TP-Link e si riavvia: il cliente resta senza connessione per qualche minuto. Di solito il firmware TP-Link non si può riportare a una versione precedente.",
       "run": "Aggiorna a {{version}} dal cloud TP-Link"
+    }
+  },
+  "acsSyslog": {
+    "title": "Syslog via ACS (TR-069)",
+    "hint": "NSM imposta sul CPE l'invio dei log al proprio ricevitore tramite GenieACS: solo invio remoto, indirizzo, porta e livello minimo.",
+    "target": "Ricevitore NSM",
+    "noTarget": "non determinabile: imposta l'indirizzo pubblico in Amministrazione → Syslog",
+    "managementIp": "IP da cui arrivano i log",
+    "current": "Configurazione",
+    "applied": "verso {{ip}}, livello {{level}}, applicata {{when}}",
+    "queued": "verso {{ip}}, livello {{level}}, inviata {{when}}: si applica al prossimo contatto",
+    "never": "non ancora configurata da NSM",
+    "identification": "Sui TP-Link non si imposta un identificativo: NSM riconosce i log dall'indirizzo del mittente, cioè l'IP di gestione letto dall'ACS (aggiornato a ogni configurazione).",
+    "level": "Livello minimo",
+    "configure": "Configura",
+    "reconfigure": "Configura di nuovo",
+    "doneNow": "Impostazioni di log applicate sul CPE.",
+    "doneLater": "Impostazioni inviate: il CPE le applica al prossimo contatto con l'ACS.",
+    "levels": {
+      "error": "Errore",
+      "warning": "Warning",
+      "notice": "Notice",
+      "info": "Informazioni",
+      "debug": "Debug"
+    },
+    "adminTitle": "Syslog dei CPE TR-069",
+    "adminHint": "Imposta su tutti i CPE TP-Link associati l'invio dei log verso {{target}}:{{port}} (al prossimo contatto di ciascuno).",
+    "adminCounts": "{{configured}} CPE su {{cpes}} già configurati verso questo indirizzo.",
+    "autoOn": "La configurazione automatica è attiva (Amministrazione → Syslog): i nuovi CPE vengono configurati da soli.",
+    "autoOff": "La configurazione automatica è spenta (Amministrazione → Syslog).",
+    "adminRun": "Configura su tutti",
+    "adminDone": "{{queued}} inviati, {{skipped}} già a posto, {{failed}} non supportati o non riusciti."
+  },
+  "lifecycleWeb": {
+    "title": "Ciclo di vita dal web",
+    "hint": "NSM cerca gli avvisi di fine vendita e fine supporto pubblicati dai vendor per ogni modello in inventario, tramite {{provider}} (raccoglie le pagine ufficiali MikroTik, Ubiquiti, Cambium, TP-Link e altri). Ciò che trova è una proposta: entra nel catalogo solo quando la applichi.",
+    "disabled": "La ricerca web è disattivata su questo server (LIFECYCLE_WEB_LOOKUP=off).",
+    "keyed": "Ricerca con chiave API: tutti i modelli in una volta.",
+    "keyless": "Ricerca pubblica senza chiave: pochi modelli per volta, il resto lo completa il worker in automatico.",
+    "pending_one": "{{count}} modello non ancora cercato.",
+    "pending_other": "{{count}} modelli non ancora cercati.",
+    "run": "Cerca sul web",
+    "ran": "{{checked}} modelli cercati: {{found}} con avviso, {{not_found}} senza avviso, {{errors}} errori.",
+    "deferred_one": "{{count}} rimandato al prossimo giro (limite di richieste).",
+    "deferred_other": "{{count}} rimandati al prossimo giro (limite di richieste).",
+    "applyExact_one": "Applica {{count}} corrispondenza esatta",
+    "applyExact_other": "Applica {{count}} corrispondenze esatte",
+    "appliedAll": "{{applied}} applicate al catalogo, {{skipped}} saltate.",
+    "empty": "Nessun modello ancora cercato: premi «Cerca sul web».",
+    "columns": {
+      "model": "Modello in inventario",
+      "found": "Trovato sul web",
+      "dates": "Date pubblicate",
+      "source": "Fonte",
+      "action": "Azione"
+    },
+    "vendorStatus": {
+      "discontinued": "Fuori produzione",
+      "vintage": "Vintage",
+      "legacy": "Legacy",
+      "end_of_sale": "Fine vendita",
+      "end_of_life": "Fine vita",
+      "supported": "Supportato",
+      "aging": "Fine supporto entro 24 mesi",
+      "approaching_eol": "Fine supporto entro 12 mesi",
+      "announced": "Fine vita annunciata",
+      "unknown": "Non indicato"
+    },
+    "confidence": {
+      "exact": "Corrispondenza esatta",
+      "prefix": "Corrispondenza parziale: da verificare",
+      "family": "Stessa famiglia: da verificare",
+      "search": "Risultato di ricerca: da verificare"
+    },
+    "devices_one": "{{count}} dispositivo",
+    "devices_other": "{{count}} dispositivi",
+    "searchedAs": "cercato come «{{name}}»",
+    "others_one": "{{count}} altro risultato",
+    "others_other": "altri {{count}} risultati",
+    "replacement": "Sostituto: {{name}}",
+    "notFound": "Nessun avviso di fine vita pubblicato",
+    "error": "Ricerca non riuscita ({{error}})",
+    "notChecked": "Non ancora cercato",
+    "checked": "verificato il {{when}}",
+    "endOfSale": "Fine vendita",
+    "endOfUpdates": "Fine aggiornamenti/supporto",
+    "unpublished": "non pubblicata",
+    "readAt": "fonte letta il {{when}}",
+    "applied": "Applicato al catalogo il {{when}}",
+    "inCatalog": "Già in catalogo ({{source}})",
+    "apply": "Applica al catalogo",
+    "applyThis": "Applica {{name}}",
+    "otherName": "Cerca con un altro nome",
+    "otherNamePlaceholder": "es. codice sull'etichetta (LBE-5AC-16-120)",
+    "search": "Cerca"
+  },
+  "acsMigration": {
+    "subtitle": "Migra in blocco i CPE dei clienti verso l'ACS integrato riconfigurando il CWMP sulla rete di gestione.",
+    "backToAcs": "Torna ad ACS",
+    "intro": "Indica la subnet di gestione dei tuoi router, la porta e le credenziali comuni della flotta: NSM raggiunge ogni apparato e imposta l'URL ACS di destinazione. Prima fai una simulazione per vedere quali CPE sono raggiungibili.",
+    "applyPending": "La riscrittura CWMP via interfaccia web TP-Link è in validazione sul campo per questo firmware: per ora è disponibile la sola ricognizione (simulazione).",
+    "formTitle": "Nuova migrazione",
+    "formHelp": "Solo subnet IPv4, al massimo {{max}} indirizzi per esecuzione. Gli indirizzi .0 e .255 e il server ACS vengono saltati.",
+    "credentialsHelp": "Le credenziali sono usate solo durante l'esecuzione e non vengono mai salvate. Nella simulazione non servono: nessuna credenziale viene inviata agli apparati.",
+    "dryRun": "Simula (ricognizione)",
+    "apply": "Applica migrazione",
+    "recentTitle": "Esecuzioni recenti",
+    "noRuns": "Nessuna esecuzione finora.",
+    "runTitle": "Esecuzione · {{subnet}}",
+    "cancel": "Interrompi",
+    "progress": "Avanzamento",
+    "fields": {
+      "subnet": "Subnet di gestione (CIDR)",
+      "port": "Porta di gestione",
+      "informInterval": "Intervallo inform (secondi)",
+      "targetAcsUrl": "URL ACS di destinazione (CWMP)",
+      "username": "Utente dei router",
+      "password": "Password dei router"
+    },
+    "cols": {
+      "when": "Quando",
+      "subnet": "Subnet",
+      "mode": "Modalità",
+      "status": "Stato",
+      "found": "CPE trovati",
+      "changed": "Configurati"
+    },
+    "hostCols": {
+      "address": "Indirizzo",
+      "status": "Esito",
+      "model": "Modello",
+      "firmware": "Firmware",
+      "detail": "Dettaglio"
+    },
+    "mode": {
+      "dry": "Simulazione",
+      "apply": "Applicata"
+    },
+    "runStatus": {
+      "pending": "In attesa",
+      "running": "In corso",
+      "done": "Completata",
+      "failed": "Fallita",
+      "cancelled": "Interrotta"
+    },
+    "hostStatus": {
+      "pending": "In attesa",
+      "unreachable": "Non raggiungibile",
+      "not_cpe": "Non è un CPE",
+      "auth_failed": "Credenziali rifiutate",
+      "already_target": "Già sull'ACS",
+      "configured": "Configurato",
+      "error": "Errore",
+      "skipped": "Saltato"
+    },
+    "counters": {
+      "processed": "Elaborati",
+      "reachable": "Raggiungibili",
+      "configured": "Configurati",
+      "failed": "Falliti"
     }
   },
   "acsAlerts": {
