@@ -5076,6 +5076,7 @@
     "ACS_DIAGNOSTIC_COMPLETED": "ACS diagnostic completed",
     "ACS_DIAGNOSTIC_REQUESTED": "ACS diagnostic requested",
     "ACS_FIRMWARE_FAILED": "CPE firmware upgrade failed",
+    "ACS_FIRMWARE_FILE_FETCHED": "Firmware downloaded from the vendor into the ACS",
     "ACS_FIRMWARE_FILE_STORED": "Firmware image loaded into the ACS",
     "ACS_FIRMWARE_REQUESTED": "CPE firmware upgrade requested",
     "ACS_FIRMWARE_VERIFIED": "CPE firmware upgrade verified",
@@ -5673,7 +5674,10 @@
     "catalogSecurity": "Version {{version}} fixes security issues: upgrade recommended.",
     "catalogCurrent": "The installed version is the latest in the catalog.",
     "notes": "release notes",
-    "catalogs": "Firmware catalogs"
+    "catalogs": "Firmware catalogs",
+    "fetch": "Download {{version}} from the TP-Link site into the ACS",
+    "fetching": "Downloading from TP-Link…",
+    "fetched": "Image loaded into the ACS and selected below: confirm the upgrade when you are ready."
   },
   "acsAlerts": {
     "title": "Alerts of the CPEs",

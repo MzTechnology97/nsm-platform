@@ -33,7 +33,7 @@ interface AcsFirmwareData {
   max_mb: number;
   upgrade: Upgrade | null;
   /** Newest release of the firmware catalog for this model (Firmware → Cataloghi), as for the other devices. */
-  catalog: { latest: string; source: string; security: boolean; status: string | null; newer: boolean; released_at: string | null; notes_url: string | null } | null;
+  catalog: { latest: string; source: string; security: boolean; status: string | null; newer: boolean; fetchable: boolean; released_at: string | null; notes_url: string | null } | null;
 }
 
 const path = (id: string) => `/api/ui/v1/devices/${encodeURIComponent(id)}/acs/firmware`;
@@ -63,6 +63,13 @@ export function AcsFirmware({ deviceId }: { deviceId: string }) {
     onSuccess: (data) => {
       setChosen(data.file_name);
       setImage(null);
+      void client.invalidateQueries({ queryKey: key });
+    },
+  });
+  const fetchImage = useMutation({
+    mutationFn: (target: string) => api<{ file_name: string; size: number }>(`${path(deviceId)}/fetch`, { method: "POST", body: JSON.stringify({ version: target }) }),
+    onSuccess: (result) => {
+      setChosen(result.file_name);
       void client.invalidateQueries({ queryKey: key });
     },
   });
@@ -101,6 +108,15 @@ export function AcsFirmware({ deviceId }: { deviceId: string }) {
           {data.catalog.notes_url && <> · <a href={data.catalog.notes_url} target="_blank" rel="noopener noreferrer">{t("acsFirmware.notes")}</a></>}
           {" · "}<Link to="/firmware/catalogs">{t("acsFirmware.catalogs")}</Link>
         </p>
+      )}
+      {data.can_run && data.catalog?.newer && data.catalog.fetchable && (
+        <div className="ui-row-actions">
+          <button type="button" className="ui-button" disabled={fetchImage.isPending} onClick={() => data.catalog && fetchImage.mutate(data.catalog.latest)}>
+            {fetchImage.isPending ? t("acsFirmware.fetching") : t("acsFirmware.fetch", { version: data.catalog.latest })}
+          </button>
+          {fetchImage.data && <small className="ui-live">{t("acsFirmware.fetched")}</small>}
+          {fetchImage.error && <small className="ui-backup-error">{(fetchImage.error as Error).message}</small>}
+        </div>
       )}
       {upgrade && (
         <div className={`ui-alert${upgrade.state === "failed" || upgrade.state === "unconfirmed" ? " ui-alert-warning" : upgrade.state === "verified" ? " ui-alert-success" : ""}`}>
