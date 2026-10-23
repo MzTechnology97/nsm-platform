@@ -237,6 +237,7 @@
       "notMeasuredNote": "enable NSM ping in Monitor"
     },
     "backupNever": "never",
+    "backupNotAvailable": "not available",
     "ispbilling": {
       "title": "ISPBilling account",
       "help": "The ISPBilling RADIUS account served by this device, read from the billing system.",
@@ -245,8 +246,7 @@
         "pppoe": "matched by PPPoE user",
         "ip": "matched by static IP"
       }
-    },
-    "backupNotAvailable": "not available"
+    }
   },
   "monitor": {
     "range": "Range",
@@ -1246,6 +1246,8 @@
       "downloaded": "Downloaded, reboot to upgrade",
       "dnsError": "Error: update server name not resolved"
     },
+    "preparing": "Checking…",
+    "preparingHelp": "The plan is prepared by itself as soon as the check finishes.",
     "uispUpgrade": "Upgrade via UISP",
     "uispRunning": "UISP upgrade in progress",
     "uispBulk": {
@@ -3921,7 +3923,11 @@
       "blocked": "Upgrade not available.",
       "confirmation": "Invalid confirmation.",
       "backup_ack": "Confirm that you have a recent backup."
-    }
+    },
+    "checkNow": "Check for updates",
+    "checking": "Checking…",
+    "preparing": "Checking for updates: the plan is prepared by itself as soon as the result arrives (within 1–2 minutes).",
+    "prepareFailed": "Plan not prepared after the check: {{error}}"
   },
   "deviceUisp": {
     "recordTitle": "NSM record",
@@ -4805,8 +4811,12 @@
     "deleteConfirm": "Delete release {{version}} from the catalog?",
     "empty": "No release in the {{label}} catalog: upload the latest image from the official download page.",
     "emptyUbiquiti": "No release in the {{label}} catalog: link the devices to UISP or refresh the sources.",
+    "add": "Add a {{label}} release",
     "version": "Version",
+    "models": "Models",
+    "modelsPlaceholder": "empty = all; e.g. archer c6* or eap225",
     "released": "Release date",
+    "notesUrl": "Release notes (official link)",
     "notes": "Notes",
     "fixesSecurity": "Fixes security vulnerabilities",
     "addSubmit": "Add to the catalog",
@@ -5261,6 +5271,11 @@
     "FIRMWARE_UPGRADE_PLAN_CANCELLED": "Upgrade plan cancelled",
     "FIRMWARE_UPGRADE_PLAN_CREATED": "Upgrade plan created",
     "FIRMWARE_UPGRADE_PLAN_EXPIRED": "Upgrade plan expired",
+    "FIRMWARE_UPGRADE_SCHEDULED": "Firmware upgrade scheduled",
+    "FIRMWARE_UPGRADE_SCHEDULE_CANCELLED": "Scheduled upgrade cancelled",
+    "FIRMWARE_UPGRADE_SCHEDULE_DONE": "Scheduled upgrade completed",
+    "FIRMWARE_UPGRADE_SCHEDULE_FAILED": "Scheduled upgrade failed",
+    "FIRMWARE_UPGRADE_SCHEDULE_STARTED": "Scheduled upgrade started",
     "FIRMWARE_UPGRADE_VERIFICATION_FAILED": "Upgrade verification failed",
     "FIRMWARE_UPGRADE_VERIFIED": "Upgrade verified",
     "GENIEACS_CONNECTOR_CONFIGURED": "GenieACS connector configured",
@@ -5303,6 +5318,8 @@
     "LIFECYCLE_REMEDIATION_REOPENED": "Lifecycle remediation reopened",
     "LIFECYCLE_REPLACEMENT_PLANNED": "Replacement planned",
     "LIFECYCLE_STATUS_CHANGED": "Lifecycle status changed",
+    "LIFECYCLE_WEB_APPLIED": "Web lifecycle applied to the catalog",
+    "LIFECYCLE_WEB_LOOKUP": "Lifecycle looked up on the web",
     "MAC_DISCOVERED": "MAC address read",
     "MAINTENANCE_WINDOW_CREATED": "Maintenance window created",
     "MAINTENANCE_WINDOW_DELETED": "Maintenance window deleted",
@@ -5375,8 +5392,8 @@
     "UISP_DEVICE_ASSOCIATED": "Device linked to UISP",
     "UISP_DEVICE_MISSING": "Device no longer in UISP",
     "UISP_DEVICE_ONBOARDED": "Device imported from UISP",
-    "UISP_FIRMWARE_UPGRADE_FAILED": "UISP firmware upgrade failed",
     "UISP_FIRMWARE_BULK_UPGRADE": "UISP bulk firmware upgrade",
+    "UISP_FIRMWARE_UPGRADE_FAILED": "UISP firmware upgrade failed",
     "UISP_FIRMWARE_UPGRADE_REQUESTED": "UISP firmware upgrade requested",
     "UISP_FIRMWARE_UPGRADE_VERIFIED": "UISP firmware upgrade verified",
     "UISP_INVENTORY_REFRESHED": "UISP data refreshed",
@@ -5645,6 +5662,96 @@
     "dslAttenuation": "Attenuation",
     "charts": "History from the ACS"
   },
+  "serverMigration": {
+    "subtitle": "Move NSM to a server with another address: this server tells MikroTik agents and TR-069 CPEs the new address.",
+    "howTitle": "How it works",
+    "how": "Devices know NSM by address. This server hands MikroTik agents a script pointing at the new address and sets the new ACS URL on TR-069 CPEs (the only CWMP write). Routers need no manual change.",
+    "steps": {
+      "install": "Install the same NSM version on the new server.",
+      "create": "Create the migration here with the new server's address.",
+      "restore": "Take a database dump here (<code>sudo ./manage.sh backup-db</code>) and restore it on the new server with <code>secrets/bootstrap.env</code> and <code>.env</code> (<code>sudo ./manage.sh restore-db</code>): the dump must be taken after creating the migration.",
+      "settings": "On the new server: ACS_CWMP_URL in .env, the syslog public address (Amministrazione → Syslog), the legacy backup FTP receiver settings, the ACS templates installed.",
+      "pilot": "Verify the new server, try a pilot on a few devices, confirm they arrived, then migrate all.",
+      "reinstall": "Agents that cannot update themselves must be reinstalled from the new server (device Agent tab)."
+    },
+    "readiness": {
+      "capable": "Self-updating agents",
+      "capableHint": "move to the new server by themselves",
+      "reinstall": "Agents to reinstall",
+      "reinstallHint": "reinstall from the new server",
+      "tr069": "TR-069 CPEs",
+      "tr069Hint": "receive the new ACS URL"
+    },
+    "createTitle": "New migration",
+    "createHelp": "The new server's address as the routers reach it (http or https, no path). With https the certificate must be valid: routers check it.",
+    "create": "Create migration",
+    "fields": {
+      "agentUrl": "New server address (agents)",
+      "acsUrl": "New ACS URL (TR-069 CPEs)",
+      "syslog": "Syslog to",
+      "created": "Created"
+    },
+    "noSyslog": "cannot be determined: reconfigure syslog from the new server",
+    "runningTitle": "Migration in progress",
+    "cancel": "Cancel migration",
+    "cancelConfirm": "Cancel the migration? Sends not yet delivered are stopped; devices already moved stay on the new server.",
+    "verifyTitle": "New server check",
+    "verifyHelp": "This server checks that the new one answers and is a restore of this database. Repeat it within 24 hours of starting.",
+    "verified": "Verified {{when}}: version {{version}}, {{devices}} devices.",
+    "verify": "Verify",
+    "pilotTitle": "Pilot",
+    "pilotHelp": "Pick up to {{max}} devices to move first. After a few minutes press \"Refresh confirmations\": once they arrived you can migrate all.",
+    "search": "Search device or customer",
+    "startPilot": "Start pilot ({{count}})",
+    "startAll": "Migrate all",
+    "startAllConfirm": "Send the new address to every self-updating agent and every TR-069 CPE?",
+    "allNeedsPilot": "\"Migrate all\" is enabled once at least one pilot device arrived on the new server.",
+    "itemsTitle": "Devices",
+    "confirm": "Refresh confirmations",
+    "retire": "Decommission arrived devices here",
+    "retireConfirm": "Decommission on this server the {{count}} devices that arrived on the new one? They stop raising alerts here; their data stays readable.",
+    "retired": "decommissioned here",
+    "noItems": "No device sent yet.",
+    "cols": {
+      "device": "Device",
+      "customer": "Customer",
+      "kind": "Type",
+      "online": "Online",
+      "status": "Status",
+      "detail": "Detail",
+      "arrived": "Arrived"
+    },
+    "kind": {
+      "agent": "MikroTik agent",
+      "tr069": "TR-069 CPE"
+    },
+    "status": {
+      "queued": "Waiting",
+      "sent": "Sent",
+      "arrived": "Arrived",
+      "failed": "Failed",
+      "reinstall": "To reinstall"
+    },
+    "yes": "yes",
+    "no": "no"
+  },
+  "legacyFtp": {
+    "title": "Legacy backups over FTP",
+    "help": "Receiver of the backups of RouterOS 6 and 7.12 routers (legacy Agent). Address and port are set on the server with ./manage.sh legacy-backup-enable <IPv4> [port]; here you choose which subnets may send.",
+    "active": "Active",
+    "inactive": "Not active",
+    "address": "Address for the routers",
+    "passive": "passive ports {{ports}}",
+    "subnets": "Allowed subnets",
+    "any": "any",
+    "enableHint": "To activate it, run on the server: ./manage.sh legacy-backup-enable <IPv4 of NSM reachable by the routers> [port]",
+    "noSubnets": "No subnet set: any address that reaches the server can connect to the receiver.",
+    "subnetsLabel": "Subnets allowed to send backups",
+    "subnetsHelp": "One per line or separated by commas, e.g. 198.51.100.0/24. The receiver refuses other origins within a minute.",
+    "saved": "Saved: the receiver applies it within a minute.",
+    "firewall": "Firewall rules on the server",
+    "firewallHelp": "To block other origins before they reach NSM too, run ./manage.sh legacy-ftp-firewall --apply on the server (done automatically by legacy-backup-enable)."
+  },
   "acsWifi": {
     "title": "Wi-Fi",
     "help": "Radios and Wi-Fi networks of the CPE as the ACS last read them. Changes are sent to the CPE through the ACS; Wi-Fi clients may reconnect. Passwords cannot be read, only replaced.",
@@ -5688,6 +5795,8 @@
     "help": "Archives the CPE's configuration parameters, as the ACS read them, in the Backup tab, where you can open and compare snapshots. Passwords and changing values are left out. Not restorable with one click. Backup policies with the TR-069 option take one automatically when something changed.",
     "refresh": "Read the configuration again from the CPE",
     "save": "Save snapshot now",
+    "refreshStarted": "The ACS is reading the whole configuration: on a large CPE it takes a few minutes, then save the snapshot.",
+    "refreshQueued": "The CPE did not accept the connection request: the configuration will be read at its next contact.",
     "saved": "Snapshot saved.",
     "open": "Open the Backup tab",
     "refreshState": {
@@ -5779,118 +5888,6 @@
     "fetched": "Image loaded into the ACS and selected below: confirm the upgrade when you are ready.",
     "ready": "Version {{version}} is already in the ACS and selected below: confirm the upgrade when you are ready."
   },
-  "acsAlerts": {
-    "title": "Alerts of the CPEs",
-    "help": "NSM opens an issue in the Action Center, with a notification, when a TR-069 CPE stops contacting the ACS, its WAN is down, the WAN reconnects or the CPE reboots too often, or the DSL line degrades. Issues close by themselves when the problem ends. 0 disables a threshold.",
-    "fields": {
-      "enabled": "Alerts for TR-069 CPEs on",
-      "offline": "CPE no longer contacting the ACS (three missed periodic Informs)",
-      "wan_down": "WAN down while the CPE still contacts the ACS (backup line or management network)",
-      "reconnects_per_hour": "WAN reconnections per hour",
-      "reboots_per_day": "CPE reboots in 24 hours",
-      "snr_min_db": "Minimum DSL SNR margin (dB)",
-      "dsl_rate_drop_percent": "DSL downstream drop against the 7-day median (%)"
-    },
-    "save": "Save",
-    "saved": "Saved."
-  },
-  "acsFirmwareAuto": {
-    "title": "Automatic firmware download",
-    "help": "When TP-Link publishes a newer firmware for a model and hardware version you have, NSM downloads the official archive from the Italian site and loads the image into the ACS, once per version. Nothing is installed: each upgrade still needs your confirmation on the device's Firmware tab.",
-    "enabled": "Download newer TP-Link firmware into the ACS automatically",
-    "fetched_one": "{{count}} version downloaded so far.",
-    "fetched_other": "{{count}} versions downloaded so far."
-  },
-  "serverMigration": {
-    "subtitle": "Move NSM to a server with another address: this server tells MikroTik agents and TR-069 CPEs the new address.",
-    "howTitle": "How it works",
-    "how": "Devices know NSM by address. This server hands MikroTik agents a script pointing at the new address and sets the new ACS URL on TR-069 CPEs (the only CWMP write). Routers need no manual change.",
-    "steps": {
-      "install": "Install the same NSM version on the new server.",
-      "create": "Create the migration here with the new server's address.",
-      "restore": "Take a database dump here (<code>sudo ./manage.sh backup-db</code>) and restore it on the new server with <code>secrets/bootstrap.env</code> and <code>.env</code> (<code>sudo ./manage.sh restore-db</code>): the dump must be taken after creating the migration.",
-      "settings": "On the new server: ACS_CWMP_URL in .env, the syslog public address (Amministrazione → Syslog), the legacy backup FTP receiver settings, the ACS templates installed.",
-      "pilot": "Verify the new server, try a pilot on a few devices, confirm they arrived, then migrate all.",
-      "reinstall": "Agents that cannot update themselves must be reinstalled from the new server (device Agent tab)."
-    },
-    "readiness": {
-      "capable": "Self-updating agents",
-      "capableHint": "move to the new server by themselves",
-      "reinstall": "Agents to reinstall",
-      "reinstallHint": "reinstall from the new server",
-      "tr069": "TR-069 CPEs",
-      "tr069Hint": "receive the new ACS URL"
-    },
-    "createTitle": "New migration",
-    "createHelp": "The new server's address as the routers reach it (http or https, no path). With https the certificate must be valid: routers check it.",
-    "create": "Create migration",
-    "fields": {
-      "agentUrl": "New server address (agents)",
-      "acsUrl": "New ACS URL (TR-069 CPEs)",
-      "syslog": "Syslog to",
-      "created": "Created"
-    },
-    "noSyslog": "cannot be determined: reconfigure syslog from the new server",
-    "runningTitle": "Migration in progress",
-    "cancel": "Cancel migration",
-    "cancelConfirm": "Cancel the migration? Sends not yet delivered are stopped; devices already moved stay on the new server.",
-    "verifyTitle": "New server check",
-    "verifyHelp": "This server checks that the new one answers and is a restore of this database. Repeat it within 24 hours of starting.",
-    "verified": "Verified {{when}}: version {{version}}, {{devices}} devices.",
-    "verify": "Verify",
-    "pilotTitle": "Pilot",
-    "pilotHelp": "Pick up to {{max}} devices to move first. After a few minutes press \"Refresh confirmations\": once they arrived you can migrate all.",
-    "search": "Search device or customer",
-    "startPilot": "Start pilot ({{count}})",
-    "startAll": "Migrate all",
-    "startAllConfirm": "Send the new address to every self-updating agent and every TR-069 CPE?",
-    "allNeedsPilot": "\"Migrate all\" is enabled once at least one pilot device arrived on the new server.",
-    "itemsTitle": "Devices",
-    "confirm": "Refresh confirmations",
-    "retire": "Decommission arrived devices here",
-    "retireConfirm": "Decommission on this server the {{count}} devices that arrived on the new one? They stop raising alerts here; their data stays readable.",
-    "retired": "decommissioned here",
-    "noItems": "No device sent yet.",
-    "cols": {
-      "device": "Device",
-      "customer": "Customer",
-      "kind": "Type",
-      "online": "Online",
-      "status": "Status",
-      "detail": "Detail",
-      "arrived": "Arrived"
-    },
-    "kind": {
-      "agent": "MikroTik agent",
-      "tr069": "TR-069 CPE"
-    },
-    "status": {
-      "queued": "Waiting",
-      "sent": "Sent",
-      "arrived": "Arrived",
-      "failed": "Failed",
-      "reinstall": "To reinstall"
-    },
-    "yes": "yes",
-    "no": "no"
-  },
-  "legacyFtp": {
-    "title": "Legacy backups over FTP",
-    "help": "Receiver of the backups of RouterOS 6 and 7.12 routers (legacy Agent). Address and port are set on the server with ./manage.sh legacy-backup-enable <IPv4> [port]; here you choose which subnets may send.",
-    "active": "Active",
-    "inactive": "Not active",
-    "address": "Address for the routers",
-    "passive": "passive ports {{ports}}",
-    "subnets": "Allowed subnets",
-    "any": "any",
-    "enableHint": "To activate it, run on the server: ./manage.sh legacy-backup-enable <IPv4 of NSM reachable by the routers> [port]",
-    "noSubnets": "No subnet set: any address that reaches the server can connect to the receiver.",
-    "subnetsLabel": "Subnets allowed to send backups",
-    "subnetsHelp": "One per line or separated by commas, e.g. 198.51.100.0/24. The receiver refuses other origins within a minute.",
-    "saved": "Saved: the receiver applies it within a minute.",
-    "firewall": "Firewall rules on the server",
-    "firewallHelp": "To block other origins before they reach NSM too, run ./manage.sh legacy-ftp-firewall --apply on the server (done automatically by legacy-backup-enable)."
-  },
   "acsSyslog": {
     "title": "Syslog via ACS (TR-069)",
     "hint": "NSM sets the CPE to send its logs to the NSM receiver through GenieACS: remote logging, address, port and minimum level only.",
@@ -5921,6 +5918,118 @@
     "autoOff": "Automatic configuration is off (Amministrazione → Syslog).",
     "adminRun": "Configure all",
     "adminDone": "{{queued}} sent, {{skipped}} already set, {{failed}} not supported or failed."
+  },
+  "lifecycleWeb": {
+    "title": "Lifecycle from the web",
+    "hint": "NSM looks up the end-of-sale and end-of-support notices vendors publish for every inventory model, through {{provider}} (it collects the official MikroTik, Ubiquiti, Cambium, TP-Link and other pages). What it finds is a proposal: it reaches the catalog only when you apply it.",
+    "disabled": "Web lookup is off on this server (LIFECYCLE_WEB_LOOKUP=off).",
+    "keyed": "Lookup with an API key: every model at once.",
+    "keyless": "Public lookup without a key: a few models at a time, the worker completes the rest automatically.",
+    "pending_one": "{{count}} model not looked up yet.",
+    "pending_other": "{{count}} models not looked up yet.",
+    "run": "Look up on the web",
+    "ran": "{{checked}} models looked up: {{found}} with a notice, {{not_found}} without, {{errors}} errors.",
+    "deferred_one": "{{count}} left for the next round (request limit).",
+    "deferred_other": "{{count}} left for the next round (request limit).",
+    "applyExact_one": "Apply {{count}} exact match",
+    "applyExact_other": "Apply {{count}} exact matches",
+    "appliedAll": "{{applied}} applied to the catalog, {{skipped}} skipped.",
+    "empty": "No model looked up yet: press “Look up on the web”.",
+    "columns": {
+      "model": "Inventory model",
+      "found": "Found on the web",
+      "dates": "Published dates",
+      "source": "Source",
+      "action": "Action"
+    },
+    "vendorStatus": {
+      "discontinued": "Discontinued",
+      "vintage": "Vintage",
+      "legacy": "Legacy",
+      "end_of_sale": "End of sale",
+      "end_of_life": "End of life",
+      "supported": "Supported",
+      "aging": "Support ends within 24 months",
+      "approaching_eol": "Support ends within 12 months",
+      "announced": "End of life announced",
+      "unknown": "Not stated"
+    },
+    "confidence": {
+      "exact": "Exact match",
+      "prefix": "Partial match: check it",
+      "family": "Same family: check it",
+      "search": "Search result: check it"
+    },
+    "devices_one": "{{count}} device",
+    "devices_other": "{{count}} devices",
+    "searchedAs": "searched as “{{name}}”",
+    "others_one": "{{count}} more result",
+    "others_other": "{{count}} more results",
+    "replacement": "Successor: {{name}}",
+    "notFound": "No end-of-life notice published",
+    "error": "Lookup failed ({{error}})",
+    "notChecked": "Not looked up yet",
+    "checked": "checked {{when}}",
+    "endOfSale": "End of sale",
+    "endOfUpdates": "End of updates/support",
+    "unpublished": "not published",
+    "readAt": "source read {{when}}",
+    "applied": "Applied to the catalog {{when}}",
+    "inCatalog": "Already in the catalog ({{source}})",
+    "apply": "Apply to the catalog",
+    "applyThis": "Apply {{name}}",
+    "otherName": "Search under another name",
+    "otherNamePlaceholder": "e.g. the code on the label (LBE-5AC-16-120)",
+    "search": "Search"
+  },
+  "firmwareSchedule": {
+    "title": "Scheduled upgrade",
+    "help": "Choose when to upgrade, for example at night. At that time NSM runs every phase by itself with no further confirmation: check, pre-upgrade backup, approval, download, activation with reboot and version verification. If the device cannot be reached within 2 hours, the upgrade is not run.",
+    "when": "Date and time",
+    "schedule": "Schedule upgrade",
+    "move": "Move",
+    "cancel": "Cancel schedule",
+    "at": "for {{when}}",
+    "confirm": "Schedule the RouterOS upgrade (currently {{target}}) for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "confirmMany_one": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "confirmMany_other": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "selected_one": "{{count}} selected",
+    "selected_other": "{{count}} selected",
+    "scheduleMany": "Schedule upgrade",
+    "select": "Select {{name}}",
+    "done_one": "{{count}} upgrade scheduled.",
+    "done_other": "{{count}} upgrades scheduled.",
+    "skipped": "Not scheduled (RouterOS 7.13+ with the modern agent required): {{names}}.",
+    "states": {
+      "scheduled": "Scheduled",
+      "checking": "Checking",
+      "running": "Running",
+      "success": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "acsAlerts": {
+    "title": "Alerts of the CPEs",
+    "help": "NSM opens an issue in the Action Center, with a notification, when a TR-069 CPE stops contacting the ACS, its WAN is down, the WAN reconnects or the CPE reboots too often, or the DSL line degrades. Issues close by themselves when the problem ends. 0 disables a threshold.",
+    "fields": {
+      "enabled": "Alerts for TR-069 CPEs on",
+      "offline": "CPE no longer contacting the ACS (three missed periodic Informs)",
+      "wan_down": "WAN down while the CPE still contacts the ACS (backup line or management network)",
+      "reconnects_per_hour": "WAN reconnections per hour",
+      "reboots_per_day": "CPE reboots in 24 hours",
+      "snr_min_db": "Minimum DSL SNR margin (dB)",
+      "dsl_rate_drop_percent": "DSL downstream drop against the 7-day median (%)"
+    },
+    "save": "Save",
+    "saved": "Saved."
+  },
+  "acsFirmwareAuto": {
+    "title": "Automatic firmware download",
+    "help": "When TP-Link publishes a newer firmware for a model and hardware version you have, NSM downloads the official archive from the Italian site and loads the image into the ACS, once per version. Nothing is installed: each upgrade still needs your confirmation on the device's Firmware tab.",
+    "enabled": "Download newer TP-Link firmware into the ACS automatically",
+    "fetched_one": "{{count}} version downloaded so far.",
+    "fetched_other": "{{count}} versions downloaded so far."
   },
   "searchSelect": {
     "placeholder": "Type to search…",

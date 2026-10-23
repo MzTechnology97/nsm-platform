@@ -110,6 +110,7 @@ A shared contextual-feedback pattern now covers the principal browser actions th
 - MikroTik Agent reinstall/update-facing browser flows;
 - RouterOS firmware and RouterBOOT actions;
 - RouterOS upgrade planning/approval/staging/activation/cancel paths;
+- *Prepara upgrade* in one click (an old readiness check is run first and the plan opens when it arrives) and *Verifica aggiornamenti* in the device Firmware tab (Core 0.49.254); scheduled RouterOS upgrades (`app/firmware_schedule.py`, Core 0.49.255): one device from its Firmware tab or several from the firmware worklist, at a chosen time; at that time the worker runs readiness, plan with a fresh pre-upgrade backup (a plan older than 12 hours is replaced), approval, download and activation with no further confirmation, the scheduling operator as actor; a device not online within 2 hours is not upgraded; audited `FIRMWARE_UPGRADE_SCHEDULED`, `…_SCHEDULE_STARTED`, `…_SCHEDULE_DONE`, `…_SCHEDULE_FAILED`, `…_SCHEDULE_CANCELLED`;
 - manual backup actions;
 - backup-policy actions/forms;
 - Backup Explorer stale/view/delete failures;
@@ -853,6 +854,15 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - one Action Center issue per Device (`lifecycle`, critical for EOS) while it is still to handle, its planned replacement is overdue or its exception expired; resolved automatically otherwise; re-evaluated with the catalog and by the worker;
 - Device lifecycle page shows the decision panel (read-only without `lifecycle.manage`); the EOL/EOS worklist has a *Gestione* column;
 - evidence reports: counts by remediation state, overdue plans, Devices still to handle, active exceptions with reason and expiry; CSV column `lifecycle_remediation`.
+
+### Lifecycle from the web (LIFE-04)
+
+`app/lifecycle_web.py`, migration 0054:
+
+- for every vendor + model in the inventory NSM asks [eol.network](https://eol.network), a free database of the end-of-sale / end-of-support notices vendors publish on their own sites (MikroTik product pages, Ubiquiti *Vintage and Legacy*, Cambium product lifecycle, TP-Link EOL lists, 90+ vendors); each answer keeps the official vendor page, the eol.network page and the date the source was read;
+- *EOL / EOS → Catalogo lifecycle → Ciclo di vita dal web*: per model the product found, vendor status, published dates, match confidence and source; *Nessun avviso di fine vita pubblicato* when there is no notice; *Cerca con un altro nome* (the SKU on the label) when the inventory name is a marketing name;
+- what is found is a proposal: *Applica al catalogo* (one model) or *Applica le corrispondenze esatte* writes a catalog record through the same path as a hand-written one (source, link, evidence date, audit `LIFECYCLE_RECORD_SAVED` + `LIFECYCLE_WEB_APPLIED`, devices re-correlated); a vendor status without a published date (MikroTik *Discontinued*, Ubiquiti *Vintage*/*Legacy*) is dated on the day the source was read and the note says so; the product code becomes an alias when it differs from the inventory name;
+- worker: new models are looked up, the others re-checked every 30 days; keyless search 8 models per run (the public limit is 10 requests a minute, 429 defers the rest), with `EOL_NETWORK_API_KEY` batch match of 100 models; `LIFECYCLE_WEB_LOOKUP=off` disables it; read `security.read`, run/apply `lifecycle.manage`; manual runs audited `LIFECYCLE_WEB_LOOKUP`.
 
 ## 17. Public read-only API
 

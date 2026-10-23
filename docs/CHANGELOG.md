@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.221 — 2026-10-22
+
+Lifecycle from the web
+- **NSM looks up the real end of life of every model in the inventory on the web,** through eol.network, a free database of the end-of-sale and end-of-support notices vendors publish on their own sites (MikroTik, Ubiquiti, Cambium, TP-Link and 90+ more). For each model it keeps the official vendor page and the day it was read.
+- **New section *Ciclo di vita dal web*** in *EOL / EOS → Catalogo lifecycle*: product found, vendor status, published dates, how sure the match is, and the sources. A model with no notice shows *Nessun avviso di fine vita pubblicato*. When the inventory has a marketing name (e.g. "LiteBeam 5AC"), *Cerca con un altro nome* searches with the code on the label.
+- **Nothing changes until you apply it:** *Applica al catalogo* for one model, or *Applica le corrispondenze esatte* for all. The catalog record has the source, link and date like one entered by hand, and the devices are re-correlated. When the vendor gives a status but no date (MikroTik *Discontinued*, Ubiquiti *Vintage*/*Legacy*), the date is the day the source was read, and the note says so.
+- **Automatic:** the worker looks up new models and re-checks the others every 30 days. Without a key it does a few models per run (the public limit is 10 requests a minute). With a free key (`EOL_NETWORK_API_KEY`) it does all of them at once. `LIFECYCLE_WEB_LOOKUP=off` turns it off.
+- Only vendor and model names are sent.
+
 ## 0.49.220 — 2026-10-22
 
 TP-Link CPE syslog through the ACS

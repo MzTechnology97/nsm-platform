@@ -137,6 +137,10 @@ The `syslog` service receives device logs on **514 UDP/TCP**: the process listen
 - **Retention.** Warning, error and critical lines of a device are kept for its whole life and removed only with the device. Info, notice and debug lines are kept for up to 90 days (configurable, never more). The worker deletes old lines in batches.
 - **Status.** The receiver publishes its status every 10 seconds; *Sistema → Connettori* shows it as "Server syslog".
 
+## Lifecycle lookup on the web
+
+The worker and *Catalogo lifecycle → Ciclo di vita dal web* send the vendor and model names of the inventory (nothing else) to `https://eol.network` over HTTPS; the server must reach it on port 443. Without a key the public search allows 10 requests a minute, so NSM looks up 8 models per run and completes the rest over the following runs. A free account key in `.env` (`EOL_NETWORK_API_KEY=...`, then `sudo ./manage.sh up`) looks up every model in one call. `LIFECYCLE_WEB_LOOKUP=off` disables every lookup. Nothing reaches the catalog until an operator applies it.
+
 ## Capacity and retention
 
 *Amministrazione → Sistema → Capacità e retention* shows the largest tables, the size of the backup archive, its growth over the last 30 days and how long the backup volume lasts at that rate (warning under 90 days).

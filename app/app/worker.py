@@ -14,6 +14,7 @@ from app.mikrotik_agent_update import reconcile_agent_update_states
 from app.mikrotik_agent_autoupdate import auto_update as auto_update_agents
 from app.firmware_activation import reconcile_firmware_activations
 from app.firmware_plan_recovery import reconcile_firmware_plan_jobs
+from app.firmware_schedule import tick as firmware_schedule_tick
 from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_finalization_cleanup
 from app.mikrotik_telemetry import telemetry_cleanup
 from app.uisp_metrics import cleanup as uisp_metrics_cleanup
@@ -54,6 +55,7 @@ from app.advisory_sources import sync_security_advisories
 from app.compliance import run_scheduled_evaluation as run_compliance_evaluation
 from app.sla import budget_alerts as sla_budget_alerts
 from app.lifecycle_catalog import run_scheduled_reconcile as run_lifecycle_reconcile
+from app.lifecycle_web import auto_lookup as lifecycle_web_lookup
 from app.worker_status import beat, run_task, started
 from app.notification_delivery import deliver_pending as deliver_notifications
 from app.notification_chat import poll_telegram_updates, register_channels
@@ -91,6 +93,7 @@ while True:
             run_task("agent_auto_update", auto_update_agents)
             firmware_stats = run_task("firmware_activation", reconcile_firmware_activations)
             firmware_plan_stats = run_task("firmware_plans", reconcile_firmware_plan_jobs)
+            run_task("firmware_schedule", firmware_schedule_tick)
             routerboot_stats = run_task("routerboot_verification", routerboot_verification_tick)
             reboot_stats = dict(run_task("device_reboot_verification", verify_reboots))
             run_task("uisp_reboot_verification", uisp_verify_reboots)
@@ -153,6 +156,7 @@ while True:
             last_maintenance = now_mono
 
         if now_mono - last_compliance >= COMPLIANCE_INTERVAL_SECONDS:
+            run_task("lifecycle_web_lookup", lifecycle_web_lookup)  # proposals only: the catalog changes when an operator applies them
             lifecycle_stats = run_task("lifecycle_reconcile", run_lifecycle_reconcile)
             catalog_stats = run_task("routeros_catalog", run_routeros_catalog)  # an unreachable upgrade server must not stop the worker
             run_task("vendor_firmware_catalogs", run_vendor_firmware)

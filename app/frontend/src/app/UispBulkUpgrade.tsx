@@ -23,7 +23,7 @@ export function UispBulkOutcome({ result, id }: { result?: UispBulkResult; id: s
  */
 export function UispBulkUpgrade({ rows, selected, max, onDone }: {
   rows: FirmwareRow[];
-  selected: Set<string>;
+  selected: string[];
   max: number;
   onDone: (result: UispBulkResult) => void;
 }) {
@@ -33,13 +33,13 @@ export function UispBulkUpgrade({ rows, selected, max, onDone }: {
   const [target, setTarget] = useState("recommended");
   const [maintenance, setMaintenance] = useState(false);
   const [confirm, setConfirm] = useState("");
-  const count = selected.size;
+  const count = selected.length;
   const phrase = `AGGIORNA ${count}`;
-  const versions = [...new Set(rows.filter((row) => selected.has(row.id) && row.recommended).map((row) => row.recommended as string))]
+  const versions = [...new Set(rows.filter((row) => selected.includes(row.id) && row.recommended).map((row) => row.recommended as string))]
     .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
   const choice = target === "recommended" || versions.includes(target) ? target : "recommended";
   const result = run.data;
-  const submit = () => run.mutate({ device_ids: [...selected], target: choice, maintenance_window: maintenance, confirm: confirm.trim() }, {
+  const submit = () => run.mutate({ device_ids: selected, target: choice, maintenance_window: maintenance, confirm: confirm.trim() }, {
     onSuccess: (data) => { setConfirm(""); onDone(data); },
   });
 

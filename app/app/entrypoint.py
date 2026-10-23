@@ -27,6 +27,7 @@ from app.firmware_activation import install_firmware_activation
 from app.firmware_activation_privilege_guard import install_firmware_activation_privilege_guard
 from app.firmware_package_staging import install_firmware_package_staging
 from app.firmware_upgrade_planner import install_firmware_upgrade_planner
+from app.firmware_schedule import install_firmware_schedule
 from app.mikrotik_agent import install_mikrotik_agent
 from app.mikrotik_agent_generation import install_mikrotik_agent_generation
 from app.mikrotik_agent_status import install_mikrotik_agent_status
@@ -56,6 +57,7 @@ from app.connector_diagnostics import install_connector_diagnostics
 from app.ui_acs_migration import install_acs_migration
 from app.server_migration import install_server_migration
 from app.acs_syslog import install_acs_syslog
+from app.lifecycle_web import install_lifecycle_web
 from app.cnmaestro_onboarding import install_cnmaestro_onboarding
 from app.uisp_auto_customer import install_uisp_auto_customer
 from app.ispbilling_connector import install_ispbilling_connector
@@ -135,7 +137,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.220"
+APP_VERSION = "0.49.221"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -184,6 +186,7 @@ def _shared_ip_peers(device):
 
 install_firmware_activation_privilege_guard()
 install_firmware_upgrade_planner(core.app)
+install_firmware_schedule(core.app)
 install_agent_ui(core.app)
 install_uisp_connector(core.app)
 install_uisp_sync(core.app)
@@ -265,6 +268,7 @@ install_connector_diagnostics(core.app)
 install_acs_migration(core.app)
 install_server_migration(core.app)
 install_acs_syslog(core.app)
+install_lifecycle_web(core.app)
 install_cnmaestro_onboarding(core.app)
 install_uisp_auto_customer(core.app)
 install_ispbilling_connector(core.app)
