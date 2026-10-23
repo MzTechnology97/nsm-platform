@@ -5291,6 +5291,8 @@
     "SYSLOG_AGENT_CONFIG_SKIPPED": "Configurazione syslog saltata",
     "SYSLOG_CHAIN_ANCHOR": "Punto di controllo integrità syslog",
     "SYSLOG_SETTINGS_CHANGED": "Impostazioni syslog modificate",
+    "UISP_AUTO_CUSTOMERS_CHANGED": "Importazione automatica UISP modificata",
+    "UISP_AUTO_IMPORTED": "Apparati UISP importati in automatico",
     "UISP_BACKUP_ARCHIVED": "Backup UISP archiviato",
     "UISP_BACKUP_FAILED": "Backup UISP fallito",
     "UISP_BULK_ONBOARDING": "Importazione da UISP",
@@ -5304,6 +5306,8 @@
     "UISP_REBOOT_FAILED": "Riavvio tramite UISP fallito",
     "UISP_REBOOT_REQUESTED": "Riavvio richiesto tramite UISP",
     "UISP_REBOOT_VERIFIED": "Riavvio tramite UISP verificato",
+    "UISP_SITE_IGNORED": "Endpoint UISP ignorato",
+    "UISP_SITE_LINKED": "Endpoint UISP collegato a un cliente",
     "UISP_SYNC_COMPLETED": "Sincronizzazione UISP completata",
     "UISP_SYNC_CONFLICT": "Conflitto nella sincronizzazione UISP",
     "UISP_SYNC_FAILED": "Sincronizzazione UISP fallita",
@@ -5670,5 +5674,32 @@
     "previous": "Pagina precedente",
     "next": "Pagina successiva",
     "size": "Righe per pagina"
+  },
+  "uispCustomers": {
+    "open": "Clienti UISP → NSM",
+    "title": "Clienti UISP",
+    "subtitle": "Ogni endpoint UISP (sito del cliente) viene abbinato al cliente NSM con lo stesso nome del suo client CRM UISP o del sito; gli altri si collegano qui. I nuovi apparati degli endpoint abbinati o collegati vengono importati in automatico sotto quel cliente. I siti di infrastruttura restano nell'onboarding manuale.",
+    "auto": "Importa in automatico gli apparati degli endpoint abbinati e collegati",
+    "imported": "{{created}} apparati creati e {{linked}} collegati per {{customers}} clienti.",
+    "states": {
+      "label": "Stato endpoint",
+      "unmatched": "Da verificare",
+      "matched": "Abbinati per nome",
+      "linked": "Collegati a mano",
+      "ignored": "Ignorati"
+    },
+    "search": "Sito UISP, client CRM o cliente NSM…",
+    "empty": "Niente qui.",
+    "columns": {
+      "site": "Endpoint UISP",
+      "client": "Client CRM UISP",
+      "customer": "Cliente NSM",
+      "devices": "Apparati in NSM"
+    },
+    "parent": "sotto {{name}}",
+    "choose": "Collega a un cliente…",
+    "byName": "stesso nome",
+    "ignore": "Ignora",
+    "reset": "Annulla scelta"
   }
 }

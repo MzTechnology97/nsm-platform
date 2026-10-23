@@ -43,6 +43,7 @@ from app.uisp_operations import scheduled_backups as uisp_scheduled_backups, ver
 from app.mikrotik_legacy_operations import verify_upgrades as verify_legacy_upgrades
 from app.report_schedules import run_report_schedules
 from app.uisp_sync import sync_uisp_devices
+from app.uisp_auto_customer import run as uisp_auto_customer
 from app.advisory_sources import sync_security_advisories
 from app.compliance import run_scheduled_evaluation as run_compliance_evaluation
 from app.sla import budget_alerts as sla_budget_alerts
@@ -92,6 +93,7 @@ while True:
             if any(reboot_stats.values()):
                 log.info("Device reboot verification: %s", reboot_stats)
             uisp_stats = run_task("uisp_sync", sync_uisp_devices)
+            run_task("uisp_auto_customer", uisp_auto_customer)
             report_stats = run_task("report_schedules", run_report_schedules)
             advisory_stats = run_task("security_advisories", sync_security_advisories)
             run_task("telegram_updates", poll_telegram_updates)

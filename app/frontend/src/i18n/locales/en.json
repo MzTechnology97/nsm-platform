@@ -5291,6 +5291,8 @@
     "SYSLOG_AGENT_CONFIG_SKIPPED": "Syslog setup skipped",
     "SYSLOG_CHAIN_ANCHOR": "Syslog integrity checkpoint",
     "SYSLOG_SETTINGS_CHANGED": "Syslog settings changed",
+    "UISP_AUTO_CUSTOMERS_CHANGED": "UISP automatic import changed",
+    "UISP_AUTO_IMPORTED": "UISP devices imported automatically",
     "UISP_BACKUP_ARCHIVED": "UISP backup archived",
     "UISP_BACKUP_FAILED": "UISP backup failed",
     "UISP_BULK_ONBOARDING": "UISP import",
@@ -5304,6 +5306,8 @@
     "UISP_REBOOT_FAILED": "UISP reboot failed",
     "UISP_REBOOT_REQUESTED": "Reboot requested through UISP",
     "UISP_REBOOT_VERIFIED": "UISP reboot verified",
+    "UISP_SITE_IGNORED": "UISP endpoint ignored",
+    "UISP_SITE_LINKED": "UISP endpoint linked to a customer",
     "UISP_SYNC_COMPLETED": "UISP sync completed",
     "UISP_SYNC_CONFLICT": "UISP sync conflict",
     "UISP_SYNC_FAILED": "UISP sync failed",
@@ -5670,5 +5674,32 @@
     "previous": "Previous page",
     "next": "Next page",
     "size": "Rows per page"
+  },
+  "uispCustomers": {
+    "open": "UISP customers → NSM",
+    "title": "UISP customers",
+    "subtitle": "Each UISP endpoint (customer site) is matched to the NSM customer with the same name as its UISP CRM client or as the site; the others can be linked here. New devices of matched or linked endpoints are imported under that customer automatically. Infrastructure sites stay in the manual onboarding.",
+    "auto": "Import the devices of matched and linked endpoints automatically",
+    "imported": "{{created}} devices created and {{linked}} linked for {{customers}} customers.",
+    "states": {
+      "label": "Endpoint state",
+      "unmatched": "To check",
+      "matched": "Matched by name",
+      "linked": "Linked by hand",
+      "ignored": "Ignored"
+    },
+    "search": "UISP site, CRM client or NSM customer…",
+    "empty": "Nothing here.",
+    "columns": {
+      "site": "UISP endpoint",
+      "client": "UISP CRM client",
+      "customer": "NSM customer",
+      "devices": "Devices in NSM"
+    },
+    "parent": "under {{name}}",
+    "choose": "Link to a customer…",
+    "byName": "same name",
+    "ignore": "Ignore",
+    "reset": "Undo"
   }
 }
