@@ -9,6 +9,10 @@ TP-Link publishes no firmware API: each model has a download page
   → ``V1``), and records each image as a catalog release (source ``vendor_site``, platform = hardware version), so
   the device page, the firmware list and the catalogs show the newest version like for the other brands. Images of
   another hardware version are ignored: they can damage the device.
+- Automatic download (operator decision 2026-10-23, ``auto_fetch``, on by default, *Amministrazione → ACS*): when a
+  TR-069 CPE has a newer ``vendor_site`` release, NSM downloads that image into GenieACS by itself, once per model,
+  hardware version and version (``settings["firmware_auto"]`` of the GenieACS connector), so it is ready on the
+  device's *Firmware* tab. Installing it still needs the operator's typed confirmation.
 - *Scarica dal sito TP-Link* (``fetch_image``) reads the page again, downloads that image's ``.zip`` (HTTPS from
   ``static.tp-link.com`` only, at most ``acs_firmware.MAX_IMAGE``), extracts its ``.bin`` and hands it to the ACS
   upgrade (``acs_firmware``). Nothing is installed without the operator.
@@ -262,3 +266,77 @@ def _extract_bin(path: str, max_bytes: int) -> tuple[str, str]:
             return out.name, os.path.basename(entry.filename)
     except zipfile.BadZipFile as exc:
         raise TplinkError("Il file scaricato da TP-Link non è un archivio valido.") from exc
+
+
+# --- Automatic download into the ACS ------------------------------------------------------------
+
+AUTO_PER_RUN = 3
+
+
+def auto_settings(connection) -> dict:
+    stored = ((connection.settings or {}).get("firmware_auto") or {}) if connection else {}
+    return {"enabled": stored.get("enabled", True), "fetched": list(stored.get("fetched") or [])}
+
+
+def store_release(db, device, connection, version: str, actor=None, trigger: str = "manual") -> dict:
+    """Download one release of the official site and store its image in GenieACS (not twice); audited. Caller commits."""
+    import hashlib
+
+    from app import acs_diagnostics as nbi
+    from app import acs_firmware as fw
+    from app import main as core
+
+    path, original, url = fetch_image(device, version, fw.MAX_IMAGE)
+    try:
+        digest = hashlib.sha256()
+        with open(path, "rb") as image:
+            while chunk := image.read(1024 * 1024):
+                digest.update(chunk)
+        size = os.path.getsize(path)
+        identity = fw._identity(nbi._read(connection, device.external_device_id, ["_deviceId"]))
+        name = fw.file_name_for(identity, original, digest.hexdigest())
+        if name not in {f["name"] for f in fw.list_files(connection, identity.get("product_class"))}:
+            fw.store_file(connection, identity, name, path, version)
+    finally:
+        os.unlink(path)
+    core.add_event(db, "ACS_FIRMWARE_FILE_FETCHED", actor=actor, customer_id=device.customer_id, device_id=device.id,
+                   source="portal" if actor else "worker",
+                   details={"file": name, "size": size, "sha256": digest.hexdigest(), "version": version, "url": url, "trigger": trigger})
+    return {"file_name": name, "size": size, "sha256": digest.hexdigest(), "version": version}
+
+
+def auto_fetch(db, now: datetime | None = None) -> dict:
+    """Download into GenieACS the newer official images of the TR-069 CPEs, once per model, hardware and version. Caller commits."""
+    from app import acs_diagnostics as nbi
+    from app import acs_firmware as fw
+    from app import genieacs_connector as acs
+
+    connection = acs._connection(db)
+    if connection is None or not connection.is_enabled:
+        return {"status": "disabled"}
+    config = auto_settings(connection)
+    if not config["enabled"]:
+        return {"status": "off"}
+    done, stats = set(config["fetched"]), {"status": "success", "fetched": 0, "errors": []}
+    for device in db.scalars(select(Device).where(Device.management_source == "tr069", Device.external_device_id.is_not(None))):
+        info = (device.inventory_data or {}).get("vendor_firmware") or {}
+        if info.get("source") != "vendor_site" or device.firmware_status not in ("update_available", "security_update"):
+            continue
+        hardware = hardware_key(((device.inventory_data or {}).get("tr069") or {}).get("hardware_version"))
+        key = f"{slug(device.model)}|{hardware[0] if hardware else ''}.{hardware[1] if hardware else ''}|{info['latest']}"
+        if key in done:
+            continue
+        if stats["fetched"] >= AUTO_PER_RUN:
+            break
+        try:
+            store_release(db, device, connection, info["latest"], trigger="auto")
+        except (TplinkError, nbi.AcsDiagnosticError, fw.FirmwareError) as exc:
+            stats["errors"].append(f"{device.model} {info['latest']}: {exc}"[:200])
+            continue
+        done.add(key)
+        stats["fetched"] += 1
+    if stats["fetched"]:
+        stored = dict(connection.settings or {})
+        stored["firmware_auto"] = {"enabled": True, "fetched": sorted(done)[-500:]}
+        connection.settings = stored
+    return stats

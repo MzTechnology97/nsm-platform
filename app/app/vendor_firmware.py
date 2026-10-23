@@ -250,6 +250,7 @@ def run_scheduled(now=None, transport=None) -> dict:
 
         stats["tplink_site"] = tplink_firmware.refresh(db, now)
         stats["evaluation"] = evaluate(db, now)
+        stats["tplink_auto"] = tplink_firmware.auto_fetch(db, now)
         db.commit()
     return stats
 
