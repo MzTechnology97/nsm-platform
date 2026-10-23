@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.224 — 2026-10-22
+
+Audit label
+- **The audit log now names the `DEVICE_VENDOR_CORRECTED` event** (*Vendor dell'apparato corretto*) in all four languages, instead of showing the raw code. It was recorded when a device's vendor was corrected on the server (generic → cambium).
+
 ## 0.49.223 — 2026-10-22
 
 UISP backups
