@@ -142,6 +142,42 @@ def device_exposure_target(request: Request, device_id: uuid.UUID, body: dict = 
         return {"queued": queued}
 
 
+@router.post("/devices/{device_id}/exposure/acl", dependencies=[Depends(require_csrf)])
+def device_exposure_acl(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    """Declare (or, with ``remove``, withdraw) that a service found open from NSM is filtered by an ACL on the device."""
+    from app import external_exposure
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "security.remediate")
+        device = _device(db, device_id)
+        result = dict((device.inventory_data or {}).get("exposure") or {})
+        if result.get("source") != "external":
+            raise HTTPException(409, {"code": "not_external", "message": "Le dichiarazioni valgono per la verifica dal server NSM."})
+        proto, port = str(body.get("proto") or "").lower(), body.get("port")
+        finding = next((f for f in result.get("findings") or [] if f.get("proto") == proto and f.get("port") == port), None)
+        if finding is None:
+            raise HTTPException(404, {"code": "no_finding", "message": "Servizio non presente nell'ultima verifica."})
+        key = f"{proto}/{port}"
+        data = dict(device.inventory_data or {})
+        declarations = dict(data.get("exposure_acl") or {})
+        if body.get("remove"):
+            declarations.pop(key, None)
+            event, details = "EXPOSURE_ACL_REMOVED", {"service": key, "label": finding.get("label")}
+        else:
+            allowed = " ".join(str(body.get("allowed") or "").split())[:300]
+            if len(allowed) < 3:
+                raise HTTPException(422, {"code": "allowed", "message": "Indica da quali indirizzi è consentito il servizio (es. IP o subnet dell'ACS/NOC)."})
+            declarations[key] = {"allowed": allowed, "note": " ".join(str(body.get("note") or "").split())[:300] or None,
+                                 "by": user.display_name or user.username, "at": utcnow().isoformat()}
+            event, details = "EXPOSURE_ACL_DECLARED", {"service": key, "label": finding.get("label"), "allowed": allowed}
+        data["exposure_acl"] = declarations
+        device.inventory_data = data
+        external_exposure._store_and_sync(db, device, external_exposure.qualify(result, declarations))
+        core.add_event(db, event, actor=user, customer_id=device.customer_id, device_id=device.id, source="portal", details=details)
+        db.commit()
+        return {"exposure": (device.inventory_data or {}).get("exposure")}
+
+
 @router.get("/devices/{device_id}/compliance")
 def device_compliance(request: Request, device_id: uuid.UUID):
     with SessionLocal() as db:

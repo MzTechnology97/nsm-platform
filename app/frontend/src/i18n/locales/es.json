@@ -3498,7 +3498,19 @@
     "noServices": "Ningún servicio detectado.",
     "pendingExternal": "Comprobación en curso: el servidor NSM revisa los puertos en un minuto.",
     "pendingAgent": "Comprobación en curso: el agente enviará servicios y firewall en el próximo heartbeat.",
-    "never": "Todavía no hay comprobaciones: empieza sola cuando el equipo está conectado, o con «Comprobar ahora»."
+    "never": "Todavía no hay comprobaciones: empieza sola cuando el equipo está conectado, o con «Comprobar ahora».",
+    "acl": {
+      "column": "ACL",
+      "help": "La verificación parte del servidor NSM: un servicio filtrado por una ACL que admite a NSM (por ejemplo el ACS) parece abierto desde aquí. Si está filtrado para todos los demás, declaralo con las direcciones admitidas: se mostrará como limitado, con quién lo declaró.",
+      "declare": "Filtrado por ACL…",
+      "allowed": "Permitido solo desde",
+      "allowedPlaceholder": "p. ej. 198.51.100.0/24, NOC",
+      "note": "Nota (opcional)",
+      "save": "Declarar",
+      "remove": "Quitar declaración",
+      "declared": "Declarado por {{by}} el {{when}}",
+      "uncertainHint": "abiertos hacia NSM, por verificar"
+    }
   },
   "deviceCompliance": {
     "title": "Cumplimiento",
@@ -5154,6 +5166,8 @@
     "DEVICE_SNAPSHOT_QUEUED": "Actualización de sección en cola",
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Interfaces monitorizadas modificadas",
     "DIAGNOSTIC_EXPORTED": "Diagnóstico exportado",
+    "EXPOSURE_ACL_DECLARED": "Servicio expuesto declarado filtrado por ACL",
+    "EXPOSURE_ACL_REMOVED": "Declaración ACL retirada",
     "EXPOSURE_CHECK_REQUESTED": "Comprobación de exposición solicitada",
     "EXPOSURE_EXTERNAL_CHECK": "Comprobación de exposición externa",
     "EXPOSURE_ISSUE_OPENED": "Servicios expuestos notificados",

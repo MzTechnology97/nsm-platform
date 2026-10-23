@@ -3498,7 +3498,19 @@
     "noServices": "No service detected.",
     "pendingExternal": "Check in progress: the NSM server checks the ports within a minute.",
     "pendingAgent": "Check in progress: the agent sends services and firewall at the next heartbeat.",
-    "never": "No check yet: it starts automatically once the device is connected, or with «Check now»."
+    "never": "No check yet: it starts automatically once the device is connected, or with «Check now».",
+    "acl": {
+      "column": "ACL",
+      "help": "The check starts from the NSM server: a service filtered by an ACL that admits NSM (for example the ACS) looks open from here. If it is filtered for everyone else, declare it with the allowed addresses: it is then shown as limited, with who declared it.",
+      "declare": "Filtered by ACL…",
+      "allowed": "Allowed from",
+      "allowedPlaceholder": "e.g. 198.51.100.0/24, NOC",
+      "note": "Note (optional)",
+      "save": "Declare",
+      "remove": "Remove declaration",
+      "declared": "Declared by {{by}} on {{when}}",
+      "uncertainHint": "open towards NSM, to check"
+    }
   },
   "deviceCompliance": {
     "title": "Compliance",
@@ -5154,6 +5166,8 @@
     "DEVICE_SNAPSHOT_QUEUED": "Configuration section refresh queued",
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Monitored interfaces changed",
     "DIAGNOSTIC_EXPORTED": "Diagnostic exported",
+    "EXPOSURE_ACL_DECLARED": "Exposed service declared filtered by ACL",
+    "EXPOSURE_ACL_REMOVED": "ACL declaration removed",
     "EXPOSURE_CHECK_REQUESTED": "Exposure check requested",
     "EXPOSURE_EXTERNAL_CHECK": "External exposure check",
     "EXPOSURE_ISSUE_OPENED": "Exposed services reported",
