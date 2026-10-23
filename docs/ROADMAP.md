@@ -487,6 +487,44 @@ CrowdSec (open-source security engine, free community blocklist) to protect NSM 
 - **Reputation of the operator's addresses** (with CYBER-01): customer public IPs that appear in the community blocklist point to a compromised CPE or router, and get an Action Center issue on the owning device.
 - **Optional, operator's choice per device**: the blocklist as a RouterOS address list (`crowdsec`) on MikroTik routers through the Agent, with a drop rule on the input chain. It is applied only with explicit confirmation and can be removed, and it is never written by default.
 
+### DOC-01 — platform manual, the complete guide to NSM (requested 2026-10-23)
+
+A complete manual of the whole platform, meant to be its reference ("the bible"):
+- written in the **third person** ("the operator opens…, NSM shows…"), step by step;
+- with **screenshots** of every step and real-looking **examples**.
+
+The module guides of MOD-01 are chapters of it. Contents:
+- **getting started**:
+  - installation, first access, setup wizard;
+  - modules, users and roles;
+  - branding, notifications;
+- **customers and sites**:
+  - creating a customer, by hand or imported from ISPBilling;
+  - sites, contacts, the customer page;
+- **adding a device, by type**:
+  - MikroTik with the Agent, modern and legacy RouterOS;
+  - Ubiquiti through UISP, UniFi through the controller, Cambium through cnMaestro;
+  - TP-Link and other CPEs through TR-069 / GenieACS;
+  - other devices by hand;
+  - bulk onboarding from each console;
+- **daily work**:
+  - backups (policies, restore, compare);
+  - monitoring and graphs, Zabbix;
+  - syslog and access logs, alarms and the Action Center;
+  - firmware (check, plan, schedule, upgrade);
+- **security**:
+  - exposure and reachability, CVE and lifecycle;
+  - management networks (SNMP, SSH, NTP);
+  - reputation, abuse incidents and the other security modules;
+- **reports**, the global search, the API (with examples);
+- **operations**: upgrades, backups of NSM itself, server migration, troubleshooting, FAQ, glossary.
+
+How it is built:
+- **Built into NSM** (*Guida* in the menu, no Internet needed) and exportable as PDF; versioned with the releases, with a "what's new" page from the changelog.
+- **Screenshots generated automatically** from the demo dataset (synthetic data only, as the public data-safety rules require) by a browser script in CI, so they follow the interface at every release.
+- **Italian first**, then English, French and Spanish.
+- A PR that changes a flow updates the matching chapter, and CI reports pages whose screenshots changed.
+
 ### MOD-01 — optional modules (requested 2026-10-23)
 
 The security services below, and the other integrations of this roadmap (CrowdSec, external probe, third-party data, UniFi, BRAS, NetFlow collector…), are **modules** that each installation turns on or off. This keeps NSM usable by operators with different networks and needs:
