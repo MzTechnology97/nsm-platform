@@ -1,7 +1,7 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SearchSelect } from "../app/SearchSelect";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { type BaselineForm, type BaselineRow, type ControlMode, type ControlParams, useBaselineForm, useBaselines, useBaselineWrite } from "../api/security";
 import { BrandIcon } from "../app/BrandIcon";
@@ -190,7 +190,7 @@ function BaselineEditor({ data }: { data: BaselineForm }) {
           {form.scope_type === "customer" && (
             <label><span>{t("complianceBaselines.customer")}</span>
               <SearchSelect value={form.customer_id} required ariaLabel={t("complianceBaselines.customer")}
-                options={data.customers.map((customer) => ({ value: customer.id, label: customer.name }))}
+                options={data.customers.map((customer) => ({ value: customer.id, label: customerLabel(customer) }))}
                 onChange={(value) => set("customer_id")({ target: { value } })} /></label>
           )}
           {form.scope_type === "site" && (

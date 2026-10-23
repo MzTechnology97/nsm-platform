@@ -181,7 +181,7 @@ def incident_form(request: Request, customer: str = "", device: str = "", title:
                                   .order_by(Device.display_name.nullslast(), Device.name))) if selected else []
         sites = list(db.scalars(select(Site).where(Site.customer_id == selected.id).order_by(Site.name))) if selected else []
         return {
-            "customers": [{"id": str(c.id), "name": c.name} for c in db.scalars(select(Customer).order_by(Customer.name))],
+            "customers": [{"id": str(c.id), "name": c.name, "code": c.code} for c in db.scalars(select(Customer).order_by(Customer.name))],
             "customer": {"id": str(selected.id), "name": selected.name} if selected else None,
             "sites": [{"id": str(site.id), "name": site.name} for site in sites],
             "devices": [{**device_ref(d), "vendor": d.vendor, "model": d.model, "status": d.status, "site_id": str(d.site_id) if d.site_id else None} for d in devices],
