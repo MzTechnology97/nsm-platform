@@ -4,11 +4,12 @@ import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
 import { BrandIcon } from "../app/BrandIcon";
-import { type DeviceDetail as Detail, useDecommission, useDevice, useZabbixExclude, type DeviceIspbillingAccount } from "../api/device";
+import { type DeviceDetail as Detail, useDecommission, useDevice, type DeviceIspbillingAccount } from "../api/device";
 import { formatDateTime, formatDuration, formatRelative } from "../lib/format";
 import { InfoTip } from "../app/InfoTip";
 import { Resources } from "../app/Resources";
 import { DeviceZabbixPanel, ZabbixSeverity } from "../app/ZabbixProblems";
+import { DeviceZabbixButton } from "../app/ZabbixScope";
 import { Loading } from "../app/States";
 import { eventSource } from "../lib/events";
 import { RingTile, type TileTone } from "../app/RingTile";
@@ -399,8 +400,9 @@ function minutesLabel(value: number, locale: string): string {
 
 function ZabbixField({ deviceId, zabbix, canEdit }: { deviceId: string; zabbix: NonNullable<Detail["zabbix"]>; canEdit: boolean }) {
   const { t } = useTranslation();
-  const toggle = useZabbixExclude(deviceId);
-  const state = zabbix.excluded ? t("zabbixProblems.excluded") : zabbix.link ? t("zabbixProblems.open") : t("zabbixProblems.pending");
+  const inZabbix = !zabbix.excluded && zabbix.in_scope !== false;
+  const state = zabbix.excluded ? t("zabbixProblems.excluded") : zabbix.link ? t("zabbixProblems.open")
+    : zabbix.in_scope === false ? t("zabbixScope.notIncluded") : zabbix.outcome && zabbix.outcome !== "pending" ? t(`zabbixScope.outcome.${zabbix.outcome}`) : t("zabbixProblems.pending");
   return (
     <Field label="Zabbix" value={state}>
       {zabbix.link ? <a href={zabbix.link} target="_blank" rel="noopener noreferrer">{t("zabbixProblems.open")}</a> : state}
@@ -408,12 +410,9 @@ function ZabbixField({ deviceId, zabbix, canEdit }: { deviceId: string; zabbix: 
       {canEdit && (
         <>
           {" · "}
-          <button type="button" className="ui-link-button" disabled={toggle.isPending} onClick={() => toggle.mutate(!zabbix.excluded)}>
-            {zabbix.excluded ? t("zabbixProblems.include") : t("zabbixProblems.exclude")}
-          </button>
+          <DeviceZabbixButton deviceId={deviceId} inZabbix={inZabbix} />
         </>
       )}
-      {toggle.error && <small className="ui-text-danger ui-block">{(toggle.error as Error).message}</small>}
     </Field>
   );
 }

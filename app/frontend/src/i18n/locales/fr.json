@@ -5314,6 +5314,7 @@
     "VENDOR_FIRMWARE_RELEASE_ADDED": "Version firmware du fabricant ajoutée",
     "VENDOR_FIRMWARE_RELEASE_DELETED": "Version firmware du fabricant supprimée",
     "VULNERABILITY_STATUS_CHANGED": "Statut de la vulnérabilité modifié",
+    "ZABBIX_CUSTOMER_SCOPE_CHANGED": "Client ajouté à Zabbix ou retiré",
     "ZABBIX_DEVICE_IP_CHANGED": "IP Zabbix modifiée",
     "ZABBIX_DEVICE_SCOPE_CHANGED": "Équipement inclus ou exclu de Zabbix",
     "ZABBIX_HOST_IP_UPDATED": "IP de l'hôte Zabbix mise à jour",
@@ -5688,5 +5689,26 @@
     "refreshQueued": "Le CPE n'a pas accepté la demande de connexion : la configuration sera lue au prochain contact.",
     "saved": "Instantané enregistré.",
     "open": "Ouvrir l'onglet Sauvegardes"
+  },
+  "zabbixScope": {
+    "addDevice": "Ajouter à Zabbix",
+    "removeDevice": "Retirer de Zabbix",
+    "working": "Envoi à Zabbix…",
+    "addCustomer": "Ajouter à Zabbix",
+    "removeCustomer": "Retirer de Zabbix",
+    "notIncluded": "non inclus",
+    "customerSummary": "{{inZabbix}} équipements sur {{devices}} sont dans Zabbix",
+    "confirmAdd_one": "Ajouter l'équipement de ce client à Zabbix ? Il est envoyé immédiatement.",
+    "confirmAdd_other": "Ajouter les {{count}} équipements de ce client à Zabbix ? Ils sont envoyés immédiatement.",
+    "confirmRemove_one": "Retirer l'équipement de ce client de Zabbix ? Son hôte est désactivé, pas supprimé.",
+    "confirmRemove_other": "Retirer les {{count}} équipements de ce client de Zabbix ? Leurs hôtes sont désactivés, pas supprimés.",
+    "customerDone": "Dans Zabbix : {{inZabbix}} équipements sur {{devices}} · sans adresse IP : {{noIp}}",
+    "outcome": {
+      "pushed": "Créé dans Zabbix",
+      "linked": "Lié à l'hôte déjà présent dans Zabbix",
+      "no_ip": "Sans adresse IP : définissez une IP pour Zabbix",
+      "factory_ip": "IP LAN d'usine : définissez une adresse joignable par Zabbix",
+      "pending": "En attente du prochain envoi"
+    }
   }
 }
