@@ -128,7 +128,7 @@ Do not present legacy backup as available before this is complete.
 
 Goal: prove that stored artifacts remain operationally useful without unsafe automatic production restore.
 
-**Implemented in `main`**, including report integration (last restore test per device in the backup report).
+**Implemented in `main`**, including report integration (last restore test per device in the backup report) and, from Core 0.49.273, the fleet *restore readiness* worklist (recent complete backup + recent passed restore test per MikroTik).
 
 Original scope:
 

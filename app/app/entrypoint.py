@@ -45,6 +45,7 @@ from app.ui_device_agent import install_ui_device_agent
 from app.ui_device_diagnostics import install_ui_device_diagnostics
 from app.ui_customers import install_ui_customers
 from app.ui_operations import install_ui_operations
+from app.mikrotik_fleet_readiness import install_mikrotik_fleet_readiness
 from app.ui_security import install_ui_security
 from app.ui_incidents import install_ui_incidents
 from app.ui_admin import install_ui_admin
@@ -260,6 +261,7 @@ install_ui_device_agent(core.app)
 install_ui_device_diagnostics(core.app)
 install_ui_customers(core.app)
 install_ui_operations(core.app)
+install_mikrotik_fleet_readiness(core.app)
 install_ui_security(core.app)
 install_ui_incidents(core.app)
 install_ui_admin(core.app)

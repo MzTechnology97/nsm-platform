@@ -57,6 +57,7 @@ export function Firmware() {
         <div className="ui-actions">
           <Link to="/firmware/suggestions" search={search.customer ? { customer: search.customer } : {}} className="ui-button ui-button-ghost">{t("firmware.suggestions")}</Link>
           <Link to="/firmware/catalogs" className="ui-button ui-button-ghost">{t("firmware.catalogs")}</Link>
+          <Link to="/firmware/routerboot" className="ui-button ui-button-ghost">{t("firmware.routerboot")}</Link>
         </div>
       </header>
 

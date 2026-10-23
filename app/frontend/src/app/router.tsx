@@ -515,6 +515,16 @@ const firmwareCatalogsRoute = createRoute({
   path: "/firmware/catalogs",
   component: lazyRouteComponent(() => import("../pages/FirmwareCatalogs"), "FirmwareCatalogs"),
 });
+const restoreReadinessRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/backups/restore-readiness",
+  component: lazyRouteComponent(() => import("../pages/MikrotikFleet"), "RestoreReadinessPage"),
+});
+const routerbootFleetRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/firmware/routerboot",
+  component: lazyRouteComponent(() => import("../pages/MikrotikFleet"), "RouterbootFleetPage"),
+});
 const firmwareSuggestionsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/firmware/suggestions",
@@ -599,7 +609,9 @@ export const routeTree = rootRoute.addChildren([
   backupPolicyNewRoute,
   backupPolicyEditRoute,
   backupPolicyCloneRoute,
+  restoreReadinessRoute,
   firmwareRoute,
+  routerbootFleetRoute,
   firmwareSuggestionsRoute,
   firmwareCatalogsRoute,
   vulnerabilitiesRoute,

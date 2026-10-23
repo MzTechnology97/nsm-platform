@@ -444,6 +444,11 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 - Backup Explorer shows the latest restore result per artifact and per Device; device history page `/devices/{id}/backups/restore-tests`;
 - NSM never restores a production Device automatically.
 
+### Restore readiness of the fleet (Core 0.49.273)
+
+- *Backup → Pronti al ripristino* (`/backups/restore-readiness`, `backup.read`): for every MikroTik the first missing step towards a usable restore: no successful backup, backup older than 7 days, incomplete backup (a format the installed agent can produce is missing, e.g. `.backup` next to `.rsc`), last restore test not passed or recorded on a non-intact file, never tested, test older than 180 days, otherwise *ready*;
+- worklist with counters, customer and text filters; each row links to the device backups or to its restore tests to record a new one; read-only, nothing is restored (idea of the unmerged Core 0.50 *restore readiness* branch, rebuilt on MTK-03).
+
 ### RouterOS 7.12 legacy `.rsc` export (Agent 0.49.7)
 
 - RouterOS 7.12 has no `/file read` chunking nor base64 conversion; the legacy agent exports the configuration, waits for a settled file, reads it with `/file get … contents` (RouterOS limit ~60 KB), removes it and posts the text to NSM, which checks the declared size and archives it with SHA-256 like any other artifact;
@@ -488,6 +493,8 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 - RouterBOOT recovery: a flash job the Agent never ran closes the workflow as failed (staging offered again), an undelivered reboot returns to `staged` (reboot offered again), and a reboot with no post-reboot reading fails after the verify timeout;
 - contextual GUI feedback around browser actions;
 - pre-upgrade backup gates/controls where applicable;
+- **RouterBOOT of the fleet** (Core 0.49.273, idea of the unmerged Core 0.39 branch): *Firmware → RouterBOOT* (`/firmware/routerboot`, `firmware.read`) lists the MikroTiks whose RouterBOOT differs from the upgrade available after RouterOS, with the workflow state (to upgrade, in progress, failed, not read, up to date) and why it cannot run yet (legacy agent, unsuitable agent profile, offline); the action opens the existing per-device flash + reboot flow, there is no bulk flash;
+- **firmware policy guard** (Core 0.49.273, from the unmerged Core 0.37 branch): package staging, like activation, is refused before any job when the modern agent has no operational profile (`ops-v1`/`ops-v2`), with the reinstall hint;
 - **controlled reboot** (Agent 0.49.5, `firmware.execute`): *Riavvia* on every MikroTik header and `/devices/{id}/reboot` with mandatory reason and typed `RIAVVIA` confirmation; the Agent acknowledges the job to NSM before running `/system reboot` (no acknowledgement, no reboot); NSM marks it verified only when a later heartbeat reports an uptime shorter than the time since the acknowledgement, otherwise fails it after 15 minutes; refused while backup, firmware, RouterBOOT or self-update jobs are running; modern agents with an operational profile only (legacy agents are read-only); history and audit (`DEVICE_REBOOT_QUEUED/ACCEPTED/VERIFIED/FAILED`).
 
 ### RouterOS release catalog (MTK-04)
