@@ -493,7 +493,17 @@ The security services below, and the other integrations of this roadmap (CrowdSe
 - **one place for each thing, no duplicates** (user, 2026-10-23):
   - a single *Moduli* section lists every module, with what it does, what it needs (API key, mailbox, flow exporter, external host…) and its state: off, on or error;
   - it replaces today's two entry points: the *Integrazioni* hub, whose cards lead to *Amministrazione → Integrazioni → …*, and the separate admin tabs such as *Syslog* or *ACS*;
-  - each module has **its own page** with the same tabs everywhere: *Configurazione* (all its settings, and only there), *Stato e diagnosi*, *Dati* (what it collected, e.g. imports or onboarding), *Registro* (its audit events);
+  - each module has **its own page** with the same tabs everywhere: *Guida*, *Configurazione* (all its settings, and only there), *Stato e diagnosi*, *Dati* (what it collected, e.g. imports or onboarding), *Registro* (its audit events);
+  - the ***Guida*** tab is the module's wiki (user, 2026-10-23). It explains:
+    - what the module does and what it does not;
+    - how it works: data sources, what is read or written on devices and external services, timing;
+    - what it needs and the setup steps on the other side (e.g. creating the API key or the read-only user);
+    - every setting;
+    - permissions, retention and privacy;
+    - limits and known issues, with troubleshooting from the *Stato e diagnosi* messages;
+    - the version that introduced or changed it.
+
+    The guide is written in the four languages, ships with NSM (no Internet needed), is opened from every *?* next to the module's settings, and is searchable from the global search. A PR that changes a module's behaviour updates its guide, which the static checks verify.
   - *Amministrazione* keeps only the core: users and roles, API keys, branding, system, server migration, demo, authorized management networks (ACCESS-01);
   - device and customer pages show a module's data in their tabs but never its configuration. They link to the module page instead;
   - old addresses (`/admin/integrations/...`, `/admin/syslog`, `/admin/acs`, `/integrations`) redirect to the module page, and global search points to it;
