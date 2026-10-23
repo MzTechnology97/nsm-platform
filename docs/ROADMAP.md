@@ -487,9 +487,19 @@ CrowdSec (open-source security engine, free community blocklist) to protect NSM 
 - **Reputation of the operator's addresses** (with CYBER-01): customer public IPs that appear in the community blocklist point to a compromised CPE or router, and get an Action Center issue on the owning device.
 - **Optional, operator's choice per device**: the blocklist as a RouterOS address list (`crowdsec`) on MikroTik routers through the Agent, with a drop rule on the input chain. It is applied only with explicit confirmation and can be removed, and it is never written by default.
 
+### MOD-01 — optional modules (requested 2026-10-23)
+
+The security services below, and the other integrations of this roadmap (CrowdSec, external probe, third-party data, UniFi, BRAS, NetFlow collector…), are **modules** that each installation turns on or off. This keeps NSM usable by operators with different networks and needs:
+- one page, *Amministrazione → Moduli*, with every module, what it does, what it needs (API key, mailbox, flow exporter, external host…) and its state (off, on, error);
+- **off by default** unless it only reads data NSM already has;
+- a module that is off has no worker task, no data collection, no outgoing request, no menu entry and no notification. Its data is kept read-only until the operator deletes it;
+- each module has its own settings, permissions, retention and audit events (`MODULE_ENABLED` / `MODULE_DISABLED`), and declares the modules it depends on: SEC-12 needs SEC-11 or another incident source, SEC-17 needs SEC-16's collector, SEC-19 can use the external probe;
+- the core (inventory, agents, backups, monitoring, exposure from configuration) is never a module;
+- existing switches such as `EXPOSURE_EXTERNAL_CHECK` become module settings.
+
 ### ISP security services (requested 2026-10-23)
 
-All linked to customers and devices through the IP attribution of CYBER-01 (public addresses only; NAT addresses reported with the public IP) and to the Action Center and the existing notification channels.
+Each service is a module (MOD-01), enabled independently. All linked to customers and devices through the IP attribution of CYBER-01 (public addresses only; NAT addresses reported with the public IP) and to the Action Center and the existing notification channels.
 
 #### SEC-10 — Shadowserver reports
 Free daily reports for network owners: open services, infected hosts and botnet members on the operator's addresses. NSM imports them (subscription by e-mail or the Shadowserver reports API) and links each entry to the customer and device that held the IP. Report history is kept per address.
