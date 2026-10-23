@@ -591,6 +591,12 @@ RADIUS accounts (Core 0.49.209, migration 0051):
 - the device overview shows the account (username, profile, ISPBilling status such as *Sospeso*, ISPBilling customer) and warns when ISPBilling bills a different customer than the device's NSM customer;
 - a key without the Radius permission only skips the accounts.
 
+Accounts → CPEs and proposals (Core 0.49.229, operator decisions 2026-10-23):
+- three more ways to find an account's device, after the two above: the PPPoE username a TR-069 CPE logs in with, as GenieACS reports it (`cpe_pppoe`; checked on the operator's VX230v, whose username is one of the 958 ISPBilling accounts); the caller-id MAC of the account's active session on a PPPoE concentrator in NSM (MikroTik `/ppp active` in the *Sessioni PPP* snapshot) equal to a device's primary MAC (`caller_mac`, e.g. a UISP radio); that session's address equal to a device's management IP (`caller_ip`). ISPBilling itself exposes no caller-id (checked read-only: not in `ispradius2/accounts`, no session endpoint);
+- NSM then compares the device's customer and site with the account's ISPBilling customer and installation address as imported: *site* to set (same customer) is a proposal; *another customer* is never changed by itself and shown to check; *customer not imported* points to the import;
+- nothing is applied without an operator (`devices.write`): *Assegna la sede* on the device page or in *Integrazioni → ISPBilling → Apparati da assegnare*, *Riassegna…* with a second confirmation for a device of another customer (its old site is cleared), *Ignora* to stop proposing an account for that device; audit `ISPBILLING_DEVICE_LINKED` (before/after) and `ISPBILLING_LINK_DISMISSED`;
+- the concentrator snapshot keeps at most 500 sessions and about 60 KB, so on a large concentrator part of the sessions may be missing.
+
 ### Not implemented yet
 
 Warehouse serial numbers ↔ devices and ISPBilling activities in the device logbook (approved, next steps of ISPB-01).

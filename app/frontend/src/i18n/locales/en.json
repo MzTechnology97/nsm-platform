@@ -243,7 +243,10 @@
       "otherCustomer": "ISPBilling bills this account to a different customer than the device's NSM customer.",
       "matched": {
         "pppoe": "matched by PPPoE user",
-        "ip": "matched by static IP"
+        "ip": "matched by static IP",
+        "cpe_pppoe": "matched by the PPPoE user of the CPE",
+        "caller_mac": "matched by the caller-id (MAC) of the PPP session",
+        "caller_ip": "matched by the address of the PPP session"
       }
     },
     "backupNotAvailable": "not available"
@@ -5202,6 +5205,8 @@
     "INVENTORY_DISCOVERED": "Inventory read",
     "ISPBILLING_CONFIGURED": "ISPBilling connector configured",
     "ISPBILLING_CUSTOMERS_IMPORTED": "Customers imported from ISPBilling",
+    "ISPBILLING_DEVICE_LINKED": "Device assigned from ISPBilling",
+    "ISPBILLING_LINK_DISMISSED": "ISPBilling proposal ignored",
     "ISPBILLING_SYNC_REQUESTED": "ISPBilling read requested",
     "ISSUE_ACKNOWLEDGED": "Issue taken in charge",
     "LEGACY_FIRMWARE_UPGRADE_ACCEPTED": "Legacy firmware upgrade accepted",
@@ -5689,5 +5694,30 @@
     },
     "save": "Save",
     "saved": "Saved."
+  },
+  "ispbillingLinks": {
+    "title": "Devices to assign from ISPBilling",
+    "help": "For each RADIUS account NSM finds the device (PPPoE user of a MikroTik or of a TR-069 CPE, static IP, caller-id or address of the PPP session on a concentrator in NSM) and compares its customer and site with ISPBilling. Nothing changes until an operator confirms; a device of another customer is never moved by itself.",
+    "counts": {
+      "site": "Site to set",
+      "conflict": "Other customer, to check",
+      "not_imported": "Customer not imported",
+      "linked": "Already aligned"
+    },
+    "empty": "Nothing to confirm.",
+    "device": "Device",
+    "account": "ISPBilling account",
+    "now": "In NSM now",
+    "ispbilling": "In ISPBilling",
+    "applySite": "Set the site",
+    "check": "Check",
+    "proposeSite": "ISPBilling installs this account at {{site}}.",
+    "conflict": "ISPBilling bills this account to {{customer}}: the device belongs to another customer in NSM.",
+    "reassignAsk": "Reassign…",
+    "reassignConfirm": "Move the device to {{customer}}?",
+    "reassign": "Move",
+    "dismiss": "Ignore",
+    "notImported": "The ISPBilling customer of this account is not in NSM yet.",
+    "import": "Import it"
   }
 }
