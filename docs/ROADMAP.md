@@ -494,7 +494,22 @@ The security services below, and the other integrations of this roadmap (CrowdSe
 - **off by default** unless it only reads data NSM already has;
 - a module that is off has no worker task, no data collection, no outgoing request, no menu entry and no notification. Its data is kept read-only until the operator deletes it;
 - each module has its own settings, permissions, retention and audit events (`MODULE_ENABLED` / `MODULE_DISABLED`), and declares the modules it depends on: SEC-12 needs SEC-11 or another incident source, SEC-17 needs SEC-16's collector, SEC-19 can use the external probe;
-- the core (inventory, agents, backups, monitoring, exposure from configuration) is never a module;
+- **existing integrations become modules too** (user, 2026-10-23):
+  - UISP;
+  - GenieACS / TR-069 ACS, with the TP-Link extensions and the TR-069 speed test;
+  - Zabbix;
+  - cnMaestro;
+  - ISPBilling (and its RADIUS accounts);
+  - UniFi;
+  - MikroTik BRAS;
+  - syslog receiver and device logs;
+  - NVD advisories and vendor CVE matching;
+  - legacy FTP backup receiver;
+  - notification channels (e-mail, Telegram);
+  - The Dude, when it is done;
+- a module that runs its own containers (GenieACS, syslog receiver, NAT/flow collectors) starts them only when on, through Docker Compose profiles managed by the installer and `manage.sh`;
+- **upgrade without surprises**: on existing installations every integration already configured or in use stays on, and only the new modules start off. A fresh installation asks which modules to enable in the setup wizard;
+- the core is never a module: inventory, customers and sites, users and roles, audit, MikroTik Agent, backups, monitoring and graphs, firmware, exposure from configuration;
 - existing switches such as `EXPOSURE_EXTERNAL_CHECK` become module settings.
 
 ### ISP security services (requested 2026-10-23)
