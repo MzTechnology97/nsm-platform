@@ -5178,6 +5178,7 @@
     "DEVICE_SNAPSHOT_BATCH_QUEUED": "Actualisation de la configuration en file d'attente",
     "DEVICE_SNAPSHOT_QUEUED": "Actualisation d'une section en file d'attente",
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Interfaces surveillées modifiées",
+    "DEVICE_VENDOR_CORRECTED": "Fabricant de l'équipement corrigé",
     "DIAGNOSTIC_EXPORTED": "Diagnostic exporté",
     "EXPOSURE_CHECK_REQUESTED": "Vérification d'exposition demandée",
     "EXPOSURE_EXTERNAL_CHECK": "Vérification d'exposition externe",
