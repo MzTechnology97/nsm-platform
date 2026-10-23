@@ -72,6 +72,83 @@ def public_port() -> int:
     return int(os.getenv("LEGACY_FTP_PORT", "2121") or 2121)
 
 
+def passive_ports() -> str:
+    """Passive data ports, "low-high" (published 1:1 by Docker; ``LEGACY_FTP_PASV_PORTS``)."""
+    return os.getenv("LEGACY_FTP_PASV_PORTS", "30100-30109").strip() or "30100-30109"
+
+
+# --- Receiver settings kept in NSM (Amministrazione → Sistema) --------------------------------------------
+
+SETTINGS_PROVIDER = "legacy_ftp"
+MAX_NETWORKS = 200
+
+
+class InvalidNetworks(ValueError):
+    def __init__(self, values: list[str]):
+        super().__init__(", ".join(values))
+        self.values = values
+
+
+def _settings_row(db):
+    from app.integration_models import ConnectorIntegration
+
+    return db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == SETTINGS_PROVIDER))
+
+
+def allowed_networks(db) -> list[str]:
+    """Subnets allowed to reach the receiver; empty means no restriction (as before this setting existed)."""
+    row = _settings_row(db)
+    return [str(n) for n in ((row.settings or {}).get("allowed_networks") or [])] if row else []
+
+
+def parse_networks(values) -> list:
+    parsed = []
+    for value in values or []:
+        try:
+            parsed.append(ipaddress.ip_network(str(value).strip(), strict=False))
+        except ValueError:
+            continue
+    return parsed
+
+
+def peer_allowed(peer: str, networks: list) -> bool:
+    if not networks:
+        return True
+    try:
+        address = ipaddress.ip_address(str(peer).split("%")[0])
+    except ValueError:
+        return False
+    if address.version == 6 and address.ipv4_mapped:
+        address = address.ipv4_mapped
+    return any(address.version == n.version and address in n for n in networks)
+
+
+def save_settings(db, user, *, allowed_networks: str) -> dict:
+    """Store the allowed subnets (one per line or comma separated), audited. Raises ``InvalidNetworks``. Caller commits."""
+    from app.integration_models import ConnectorIntegration
+
+    raw = [part.strip() for part in str(allowed_networks or "").replace(",", "\n").splitlines() if part.strip()]
+    networks, invalid = [], []
+    for value in raw[:MAX_NETWORKS]:
+        parsed = parse_networks([value])
+        (networks if parsed else invalid).append(str(parsed[0]) if parsed else value[:60])
+    if invalid:
+        raise InvalidNetworks(invalid)
+    networks = list(dict.fromkeys(networks))
+    row = _settings_row(db)
+    if row is None:
+        row = ConnectorIntegration(provider=SETTINGS_PROVIDER, name="Ricevitore FTP backup legacy", base_url="ftp://nsm", secret_encrypted="", settings={})
+        db.add(row)
+    row.settings = {**(row.settings or {}), "allowed_networks": networks}
+    core.add_event(db, "LEGACY_FTP_SETTINGS_CHANGED", actor=user, details={"allowed_networks": networks}, source="portal")
+    return {"allowed_networks": networks}
+
+
+def status() -> dict:
+    """What the receiver is configured with on the host (``./manage.sh legacy-backup-enable``)."""
+    return {"enabled": enabled(), "public_host": public_host() or None, "port": public_port(), "passive_ports": passive_ports()}
+
+
 def _version_ok(device) -> bool:
     match = re.match(r"(\d+)\.(\d+)\.(\d+)", str((device.inventory_data or {}).get("agent_version") or ""))
     return bool(match) and tuple(int(p) for p in match.groups()) >= tuple(int(p) for p in MIN_AGENT_VERSION.split("."))

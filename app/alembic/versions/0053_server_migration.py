@@ -1,7 +1,7 @@
 """Moving NSM to a new server address: migrations and per-device items.
 
 Revision ID: 0053_server_migration
-Revises: 0050_ispbilling
+Revises: 0052_acs_metric_samples
 """
 from typing import Sequence, Union
 
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision: str = "0053_server_migration"
-down_revision: Union[str, None] = "0050_ispbilling"
+down_revision: Union[str, None] = "0052_acs_metric_samples"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

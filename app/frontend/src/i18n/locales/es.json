@@ -4,7 +4,8 @@
     "loading": "Cargando…",
     "error": "No se pudieron cargar los datos.",
     "retry": "Reintentar",
-    "version": "Versión {{version}}"
+    "version": "Versión {{version}}",
+    "copyFailed": "El navegador no permitió copiar: seleccione el texto y pulse Ctrl+C."
   },
   "nav": {
     "dashboard": "Panel",
@@ -236,7 +237,16 @@
       "notMeasuredNote": "active el ping de NSM en Monitor"
     },
     "backupNever": "nunca",
-    "backupNotAvailable": "no disponible"
+    "backupNotAvailable": "no disponible",
+    "ispbilling": {
+      "title": "Cuenta ISPBilling",
+      "help": "La cuenta RADIUS de ISPBilling servida por este equipo, leída de la facturación.",
+      "otherCustomer": "ISPBilling factura esta cuenta a un cliente distinto del cliente NSM del equipo.",
+      "matched": {
+        "pppoe": "asociada por usuario PPPoE",
+        "ip": "asociada por IP estática"
+      }
+    }
   },
   "monitor": {
     "range": "Intervalo",
@@ -2550,7 +2560,7 @@
     "steps": {
       "cpe": {
         "title": "En el CPE:",
-        "text": "Advanced → System Tools → CWMP Settings (TR-069 en algunos firmwares). Configura solo: CWMP activado; Inform activado; URL ACS <code>{{url}}</code>; ACS Username y Password vacíos; Periodic Inform activado (NSP ajusta el intervalo); Connection Request Username y Password a tu elección, necesarios para reinicio y diagnóstico inmediatos. Guarda sin tocar otros campos: WAN, PPPoE, Wi-Fi y LAN se quedan como están."
+        "text": "Advanced → System Tools → CWMP Settings (o TR-069): CWMP activado; ACS URL <code>{{url}}</code>; ACS Username y Password vacíos en la primera prueba, luego configúralos; Periodic Inform activado cada 300 segundos; Connection Request Username y Password con tus credenciales, los usa GenieACS para contactar con el CPE."
       },
       "network": {
         "title": "Red:",
@@ -2562,7 +2572,7 @@
       },
       "verify": {
         "title": "Comprueba en el panel ACS:",
-        "text": "en unos 5 minutos el CPE aparece en Devices con fabricante, modelo y número de serie; los errores, si los hay, en Faults."
+        "text": "el CPE aparece en Devices con fabricante, modelo y número de serie; los errores, en Faults."
       },
       "nsm": {
         "title": "En NSM:",
@@ -5066,13 +5076,25 @@
     }
   },
   "eventTypes": {
+    "ACS_CONFIG_REFRESH_REQUESTED": "Relectura de la configuración del CPE solicitada",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnóstico ACS completado",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnóstico ACS solicitado",
+    "ACS_FIRMWARE_FAILED": "Actualización de firmware del CPE fallida",
+    "ACS_FIRMWARE_FILE_STORED": "Imagen de firmware cargada en el ACS",
+    "ACS_FIRMWARE_REQUESTED": "Actualización de firmware del CPE solicitada",
+    "ACS_FIRMWARE_VERIFIED": "Actualización de firmware del CPE verificada",
     "ACS_MIGRATION_COMPLETED": "Migración ACS completada",
     "ACS_MIGRATION_STARTED": "Migración ACS iniciada",
+    "ACS_REBOOT_REQUESTED": "Reinicio del CPE solicitado",
+    "ACS_REBOOT_VERIFIED": "Reinicio del CPE verificado",
+    "ACS_SNAPSHOT_ARCHIVED": "Instantánea de configuración TR-069 archivada",
+    "ACS_SPEEDTEST_COMPLETED": "Prueba de velocidad del CPE completada",
+    "ACS_SPEEDTEST_REQUESTED": "Prueba de velocidad del CPE solicitada",
+    "ACS_SPEEDTEST_SETTINGS_CHANGED": "Ajustes de la prueba de velocidad modificados",
     "ACS_SYSLOG_CONFIGURED": "Syslog del CPE configurado vía ACS",
     "ACS_TEMPLATES_INSTALLED": "Plantillas ACS instaladas",
     "ACS_TEMPLATES_UPDATED": "Plantillas ACS actualizadas por NSM",
+    "ACS_WIFI_CHANGED": "Wi-Fi modificado a través del ACS",
     "AGENT_HEALTH_ISSUE_OPENED": "Problema del agente notificado",
     "AGENT_HEALTH_RECOVERED": "Agente recuperado",
     "API_KEY_CREATED": "Clave API creada",
@@ -5191,6 +5213,7 @@
     "LEGACY_FIRMWARE_UPGRADE_FAILED": "Actualización de firmware legacy fallida",
     "LEGACY_FIRMWARE_UPGRADE_QUEUED": "Actualización de firmware legacy en cola",
     "LEGACY_FIRMWARE_UPGRADE_VERIFIED": "Actualización de firmware legacy verificada",
+    "LEGACY_FTP_SETTINGS_CHANGED": "Subredes del receptor FTP legacy cambiadas",
     "LIFECYCLE_CATALOG_IMPORTED": "Catálogo de ciclo de vida importado",
     "LIFECYCLE_DEVICE_DECOMMISSIONED": "Equipo retirado (ciclo de vida)",
     "LIFECYCLE_DEVICE_REPLACED": "Equipo sustituido",
@@ -5475,7 +5498,10 @@
     "doneTitle": "Importación completada",
     "done": "{{created}} clientes creados, {{linked}} vinculados; {{sites}} sedes creadas, {{sitesLinked}} vinculadas a sedes existentes.",
     "skipped": "{{count}} omitidos.",
-    "openCustomers": "Abrir los clientes"
+    "openCustomers": "Abrir los clientes",
+    "radius": "Cuentas RADIUS",
+    "radiusMatched": "{{count}} asociadas a un equipo",
+    "radiusError": "Cuentas RADIUS no leídas: {{error}}"
   },
   "acsDiagnostics": {
     "title": "Diagnóstico desde el CPE",
@@ -5508,6 +5534,30 @@
       "address": "Dirección",
       "rtt": "Tiempos"
     }
+  },
+  "acsMonitor": {
+    "title": "Línea y Wi-Fi",
+    "waiting": "Aún sin datos: NSM lee el CPE desde el ACS cada pocos minutos.",
+    "lastInform": "Último contacto con el ACS {{when}} · {{model}}",
+    "every": "cada {{minutes}} min",
+    "wan": "WAN",
+    "wanIp": "Dirección WAN",
+    "connectedFor": "Conectado desde hace",
+    "uptime": "Uptime",
+    "wifiClients": "Clientes Wi-Fi",
+    "lanHosts": "Hosts LAN",
+    "lastError": "Último error de conexión",
+    "countersMissing": "El CPE no informa sus contadores WAN (se quedan en 0): sin gráfico de tráfico con este firmware.",
+    "radio": "Radio",
+    "channel": "Canal",
+    "bandwidth": "Ancho",
+    "standard": "Estándar",
+    "clients": "Clientes",
+    "dsl": "Línea DSL",
+    "dslRate": "Velocidad bajada / subida",
+    "dslSnr": "Margen SNR",
+    "dslAttenuation": "Atenuación",
+    "charts": "Historial desde el ACS"
   },
   "serverMigration": {
     "subtitle": "Mueve NSM a un servidor con otra dirección: este servidor comunica la nueva dirección a los agentes MikroTik y a los CPE TR-069.",
@@ -5581,6 +5631,149 @@
     },
     "yes": "sí",
     "no": "no"
+  },
+  "legacyFtp": {
+    "title": "Copias legacy por FTP",
+    "help": "Receptor de las copias de los routers RouterOS 6 y 7.12 (agente legacy). Dirección y puerto se configuran en el servidor con ./manage.sh legacy-backup-enable <IPv4> [puerto]; aquí elige qué subredes pueden enviar.",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "address": "Dirección para los routers",
+    "passive": "puertos pasivos {{ports}}",
+    "subnets": "Subredes permitidas",
+    "any": "todas",
+    "enableHint": "Para activarlo, en el servidor: ./manage.sh legacy-backup-enable <IPv4 de NSM alcanzable por los routers> [puerto]",
+    "noSubnets": "Ninguna subred definida: cualquier dirección que llegue al servidor puede conectarse al receptor.",
+    "subnetsLabel": "Subredes autorizadas a enviar copias",
+    "subnetsHelp": "Una por línea o separadas por comas, p. ej. 198.51.100.0/24. El receptor rechaza otros orígenes en menos de un minuto.",
+    "saved": "Guardado: el receptor lo aplica en menos de un minuto.",
+    "firewall": "Reglas de cortafuegos en el servidor",
+    "firewallHelp": "Para bloquear también otros orígenes antes de NSM, ejecute ./manage.sh legacy-ftp-firewall --apply en el servidor (lo hace solo legacy-backup-enable)."
+  },
+  "acsWifi": {
+    "title": "Wi-Fi",
+    "help": "Radios y redes Wi-Fi del CPE tal como el ACS las leyó por última vez. Los cambios se envían al CPE a través del ACS; los clientes Wi-Fi pueden reconectarse. Las contraseñas no se pueden leer, solo sustituir.",
+    "reread": "Volver a leer del CPE",
+    "empty": "El ACS aún no ha leído el Wi-Fi de este CPE: usa Volver a leer del CPE.",
+    "radio": "Radio",
+    "channel": "Canal",
+    "enabled": "Activa",
+    "nowOn": "ahora en {{channel}}",
+    "auto": "Automático",
+    "band": "Banda",
+    "ssid": "Nombre de red",
+    "password": "Nueva contraseña",
+    "passwordKeep": "dejar vacío para mantenerla",
+    "security": "Seguridad",
+    "inactive_one": "{{count}} red desactivada",
+    "inactive_other": "{{count}} redes desactivadas",
+    "apply_one": "Enviar {{count}} cambio",
+    "apply_other": "Enviar {{count}} cambios",
+    "confirmText": "El CPE los aplica enseguida: los clientes Wi-Fi pueden desconectarse.",
+    "confirm": "Confirmar y enviar",
+    "cancel": "Cancelar",
+    "discard": "Descartar cambios",
+    "applied": "Enviados: el CPE aplicó los cambios.",
+    "queued": "En cola: el CPE no aceptó la solicitud de conexión y los aplicará en el próximo contacto."
+  },
+  "acsReboot": {
+    "title": "Reiniciar el CPE",
+    "help": "El CPE se reinicia a través del ACS y la conexión del cliente cae unos minutos. Escribe {{name}} para confirmar.",
+    "confirm": "Nombre del equipo",
+    "run": "Reiniciar",
+    "states": {
+      "requested": "Reinicio solicitado el {{when}}, esperando que vuelva el CPE",
+      "verified": "Reiniciado: el CPE volvió el {{when}}",
+      "unconfirmed": "Reinicio solicitado el {{when}} pero no confirmado por el ACS en 15 minutos"
+    },
+    "waitingContact": "empezará en el próximo contacto con el ACS"
+  },
+  "acsSnapshot": {
+    "title": "Instantánea de la configuración",
+    "help": "Archiva los parámetros de configuración del CPE, tal como los leyó el ACS, en la pestaña Copias, donde las instantáneas se abren y comparan. Se excluyen contraseñas y valores que cambian solos. No se restaura con un clic. Las políticas con la opción TR-069 guardan una automáticamente cuando algo cambia.",
+    "refresh": "Volver a leer la configuración del CPE",
+    "save": "Guardar instantánea ahora",
+    "refreshStarted": "El ACS está leyendo toda la configuración: en un CPE grande tarda unos minutos; después guarda la instantánea.",
+    "refreshQueued": "El CPE no aceptó la solicitud de conexión: la configuración se leerá en el próximo contacto.",
+    "saved": "Instantánea guardada.",
+    "open": "Abrir la pestaña Copias"
+  },
+  "acsSpeedtest": {
+    "title": "Prueba de velocidad desde el CPE",
+    "help": "El propio CPE descarga o envía un archivo de {{size}} MB (TR-143): el resultado es la velocidad de la línea del cliente hasta el servidor de prueba, no del Wi-Fi. Durante la prueba la conexión del cliente está ocupada.",
+    "run": {
+      "download": "Probar descarga",
+      "upload": "Probar subida"
+    },
+    "kinds": {
+      "download": "Descarga",
+      "upload": "Subida"
+    },
+    "mbps": "{{value}} Mbps",
+    "never": "Nunca ejecutada",
+    "detail": "{{size}} MB en {{seconds}} s",
+    "toNsm": "hacia el servidor NSM",
+    "waitingContact": "empezará en el próximo contacto con el ACS",
+    "states": {
+      "requested": "En curso",
+      "complete": "Completada",
+      "error": "Fallida en el CPE",
+      "timeout": "Sin respuesta del CPE en 10 minutos"
+    },
+    "errors": {
+      "Error_InitConnectionFailed": "el CPE no pudo conectar con el servidor de prueba (dirección o firewall)",
+      "Error_NoResponse": "el servidor de prueba no respondió",
+      "Error_TransferFailed": "la transferencia se interrumpió",
+      "Error_IncorrectSize": "el tamaño del archivo no coincide",
+      "Error_Timeout": "la transferencia tardó demasiado"
+    },
+    "settings": {
+      "title": "Prueba de velocidad de los CPE",
+      "help": "Por defecto el CPE descarga y envía el archivo de prueba desde el propio NSM, en la dirección que usa para el ACS en el puerto HTTP 80, con un enlace válido 15 minutos solo para esa prueba. Indica la dirección de NSM si los CPE la alcanzan en otro lugar (por ejemplo en HTTPS con un nombre DNS), u otras URL para medir hacia otro servidor.",
+      "server_url": "Dirección de NSM para los CPE",
+      "server_urlPlaceholder": "vacío: el host del ACS en el puerto 80",
+      "download_url": "Otra URL de descarga",
+      "download_urlPlaceholder": "vacío: NSM",
+      "upload_url": "Otra URL de subida",
+      "upload_urlPlaceholder": "vacío: NSM",
+      "size": "Tamaño de la prueba (MB)",
+      "save": "Guardar",
+      "saved": "Guardado."
+    },
+    "short": "El servidor envió solo {{bytes}} bytes en lugar del archivo (redirección o rechazo): usa NSM u otro servidor de prueba."
+  },
+  "acsFirmware": {
+    "title": "Firmware",
+    "help": "Sube la imagen descargada del sitio del fabricante: NSM la guarda en el ACS para este modelo, luego el CPE la descarga del servidor de archivos del ACS, la instala y se reinicia. NSM confirma la actualización cuando el CPE informa la nueva versión.",
+    "current": "Versión instalada",
+    "model": "Modelo (product class)",
+    "uploadTitle": "Cargar una imagen en el ACS",
+    "image": "Archivo de firmware (máx. {{max}} MB)",
+    "version": "Versión de la imagen",
+    "versionPlaceholder": "como en el sitio del fabricante, p. ej. 1.2.0 Build 250101",
+    "upload": "Cargar en el ACS",
+    "uploading": "Cargando…",
+    "runTitle": "Actualizar el CPE",
+    "noFiles": "Ninguna imagen para este modelo en el ACS: carga una arriba.",
+    "file": "Imagen",
+    "noVersion": "versión no indicada",
+    "confirm": "Escribe {{name}} para confirmar",
+    "warning": "El CPE se reinicia tras la instalación: la conexión del cliente cae unos minutos. Usa solo imágenes para este modelo y versión de hardware exactos.",
+    "run": "Actualizar firmware",
+    "waitingContact": "empezará en el próximo contacto con el ACS",
+    "notExpected": "no es la versión esperada {{version}}",
+    "states": {
+      "requested": "Actualización solicitada el {{when}} desde {{from}}, esperando que el CPE informe la nueva versión",
+      "verified": "Actualizado el {{when}}: {{from}} → {{to}}",
+      "failed": "El CPE informó un error el {{when}}",
+      "unconfirmed": "Actualización solicitada pero sin nueva versión en 30 minutos ({{when}})"
+    },
+    "available": "Última disponible",
+    "noCatalog": "ninguna versión en el catálogo para este modelo",
+    "catalogNewer": "La versión {{version}} es más reciente que la instalada.",
+    "catalogSecurity": "La versión {{version}} corrige problemas de seguridad: actualización recomendada.",
+    "catalogCurrent": "La versión instalada es la última del catálogo.",
+    "notes": "notas de la versión",
+    "catalogs": "Catálogos de firmware"
   },
   "acsSyslog": {
     "title": "Syslog vía ACS (TR-069)",

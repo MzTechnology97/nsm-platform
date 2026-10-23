@@ -56,6 +56,21 @@ for (const root of ["InternetGatewayDevice", "Device"]) {
   declare(root + ".DeviceInfo.MemoryStatus.*", {value: fresh});
   declare(root + ".DeviceInfo.UpTime", {value: fresh});
 }
+// Monitoring (ACS-05): WAN counters and state, Wi-Fi clients, LAN hosts, DSL line, read at every periodic inform.
+for (const path of ["Device.IP.Interface.*.Status", "Device.IP.Interface.*.Stats.BytesReceived", "Device.IP.Interface.*.Stats.BytesSent",
+                    "Device.PPP.Interface.*.ConnectionStatus", "Device.WiFi.AccessPoint.*.AssociatedDeviceNumberOfEntries",
+                    "Device.Hosts.HostNumberOfEntries", "Device.DSL.Line.*.Status", "Device.DSL.Line.*.LinkStatus",
+                    "Device.DSL.Line.*.DownstreamNoiseMargin", "Device.DSL.Line.*.DownstreamAttenuation",
+                    "Device.DSL.Channel.*.DownstreamCurrRate", "Device.DSL.Channel.*.UpstreamCurrRate",
+                    "InternetGatewayDevice.WANDevice.*.WANCommonInterfaceConfig.TotalBytesReceived",
+                    "InternetGatewayDevice.WANDevice.*.WANCommonInterfaceConfig.TotalBytesSent",
+                    "InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.ConnectionStatus",
+                    "InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.ConnectionStatus",
+                    "InternetGatewayDevice.LANDevice.*.WLANConfiguration.*.TotalAssociations",
+                    "InternetGatewayDevice.LANDevice.*.Hosts.HostNumberOfEntries",
+                    "InternetGatewayDevice.WANDevice.*.WANDSLInterfaceConfig.*"]) {
+  declare(path, {value: fresh});
+}
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.ExternalIPAddress", {value: hourly});
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.ExternalIPAddress", {value: hourly});
 declare("Device.IP.Interface.*.IPv4Address.*.IPAddress", {value: hourly});
