@@ -139,7 +139,7 @@ The whole operator interface is the React application served under `/app` (class
 - device list (0.49.177): CVE state per row (severe/open/clean/not assessable), CPU/RAM and uptime, readable vendor names, multi-select bar (CSV, backup now, firmware check, decommission/reactivate) and audited CSV export of the filtered list (`DEVICE_LIST_EXPORTED`);
 - dashboard (0.49.178, 0.49.186): offline devices by time down with the latest outages, five most loaded devices, CVE exposure of the inventory, refresh countdown, clickable vendor/model distributions, dark *Da guardare* column;
 - device page (0.49.179, 0.49.185, 0.49.188, 0.49.190): header card with status/CVE pills and actions (decommission included), ring tiles for CPU, memory, ping, 30-day availability (ping, maintenance excluded, against the customer SLA target), open CVEs, firmware and backup; CVE chips by severity; diagnostics with last run per card, ping RTT chart, traceroute hop latency bars and log level filters; RouterOS export viewer with syntax colours and a section index;
-- device logbook (0.49.180): operator entries per device (note, site visit, maintenance, replacement, customer contact; optional back-dating up to a year) in the *Attività* tab, merged on request with the device's recorded events; never edited, deleted only by the author or an administrator, audited (`DEVICE_LOG_ADDED` / `DEVICE_LOG_DELETED`); permission `logbook.write` (technician, operator); writable on decommissioned devices.
+- device logbook (0.49.180): operator entries per device (note, site visit, maintenance, replacement, customer contact; optional back-dating up to a year) in the *Attività* tab, merged on request with the device's recorded events; never edited, deleted only by the author or an administrator, audited (`DEVICE_LOG_ADDED` / `DEVICE_LOG_DELETED`); permission `logbook.write` (technician, operator); writable on decommissioned devices; with ISPBilling connected, the timeline also shows the ISPBilling activities of the device or its customer (0.49.262, §13c).
 
 ### Global search and manufacturer icons
 
@@ -634,9 +634,17 @@ Accounts → CPEs and proposals (Core 0.49.229, operator decisions 2026-10-23):
 - nothing is applied without an operator (`devices.write`): *Assegna la sede* on the device page or in *Integrazioni → ISPBilling → Apparati da assegnare*, *Riassegna…* with a second confirmation for a device of another customer (its old site is cleared), *Ignora* to stop proposing an account for that device; audit `ISPBILLING_DEVICE_LINKED` (before/after) and `ISPBILLING_LINK_DISMISSED`;
 - the concentrator snapshot keeps at most 500 sessions and about 60 KB, so on a large concentrator part of the sessions may be missing.
 
+Activities in the device logbook (Core 0.49.262, ISPB-01 step 5):
+- the device *Attività* tab adds to its timeline the ISPBilling activities (installations, maintenance, visits) of the ISPBilling customer imported as the device's customer, with type, period (all-day shown as a date), teams, subject and description; *Pianificata* while it has not started, *Annullata* (with the reason) when ISPBilling cancelled it; a checkbox hides them;
+- an activity is the device's when its address is the address of a RADIUS account matched to the device or an address imported as the device's site; activities at another site or another device of the customer are left out; the others are shown as *attività del cliente*;
+- read on demand from `activities/activities` (cursor pagination, `filters` on `customer_id`) when the tab is opened, kept in memory 5 minutes, never stored; team names from `activities/teams`; the customer's name, phone number and e-mail returned by the API, and the team members, are dropped before anything reaches the browser; ISPBilling unreachable or the key without the Activities permission only shows a note, the logbook still works;
+- the numeric `status` of ISPBilling is not documented (every activity read on the operator's ISPBilling on 2026-10-23 had `0`), so NSM does not interpret it.
+
+Checked read-only on the operator's ISPBilling (2026-10-23): 118 activities over 6 cursor pages, 80 with a customer and an address; the `customer_id` filter returns only that customer's activities.
+
 ### Not implemented yet
 
-Warehouse serial numbers ↔ devices and ISPBilling activities in the device logbook (approved, next steps of ISPB-01).
+Warehouse serial numbers ↔ devices (approved, next step of ISPB-01).
 
 ## 13c. Moving NSM to another server address (Core 0.49.214)
 

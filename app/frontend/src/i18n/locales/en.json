@@ -5037,6 +5037,18 @@
       "body": "Write the entry (at most 4000 characters).",
       "occurred_at": "The date must be within the last year and not in the future.",
       "forbidden": "Only its author or an administrator can delete it."
+    },
+    "ispbilling": {
+      "show": "Also show ISPBilling activities",
+      "source": "ISPBilling",
+      "untitled": "Activity",
+      "customerScope": "customer activity",
+      "states": {
+        "planned": "Planned",
+        "cancelled": "Cancelled"
+      },
+      "reason": "Cancelled: {{reason}}",
+      "error": "ISPBilling activities not available: {{error}}"
     }
   },
   "sla": {
