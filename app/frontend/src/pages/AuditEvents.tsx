@@ -1,6 +1,9 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 
 import { type AuditEventRow, type AuditFilters, queryString, useAuditEvents } from "../api/admin";
 import { useDeviceFacets } from "../api/devices";
@@ -27,9 +30,10 @@ export function AuditEvents() {
   const [deviceText, setDeviceText] = useState(search.device ?? "");
   const q = useDebounced(text.trim());
   const device = useDebounced(deviceText.trim());
-  const query = useAuditEvents(search);
-  const first = query.data?.pages[0];
-  const items = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
+  const paging = usePaging(JSON.stringify(search));
+  const query = useAuditEvents(search, pageParams(paging));
+  const first = query.data;
+  const items = useMemo(() => query.data?.items ?? [], [query.data]);
   const update = (patch: Partial<AuditFilters>) => void navigate({ search: (previous: AuditFilters) => ({ ...previous, ...patch }), replace: true });
 
   useEffect(() => {
@@ -67,10 +71,7 @@ export function AuditEvents() {
           <option value="">{t("auditEvents.allResults")}</option>
           {first?.results.map((key) => <option key={key} value={key}>{t(`auditEvents.results.${key}`, { defaultValue: key })}</option>)}
         </select>
-        <select value={search.customer ?? ""} onChange={(event) => update({ customer: event.target.value || undefined })} aria-label={t("devices.customer")}>
-          <option value="">{t("devices.allCustomers")}</option>
-          {facets.data?.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
-        </select>
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
         <label className="ui-date-filter">
           <span>{t("auditEvents.from")}</span>
           <input type="date" value={search.from_date ?? ""} onChange={(event) => update({ from_date: event.target.value || undefined })} />
@@ -103,12 +104,8 @@ export function AuditEvents() {
           </div>
           <div className="ui-table-foot">
             <span>{t("firmware.shown", { shown: items.length, total: first.total })}</span>
-            {query.hasNextPage && (
-              <button type="button" className="ui-button ui-button-ghost" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
-                {query.isFetchingNextPage ? t("app.loading") : t("firmware.more")}
-              </button>
-            )}
           </div>
+          <Pager total={first.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
         <div className="ui-empty">{filtered ? t("auditEvents.empty") : t("auditEvents.none")}</div>

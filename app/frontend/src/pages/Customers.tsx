@@ -2,9 +2,13 @@ import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useIntegrations } from "../api/admin";
 import { type CustomerFilter, type CustomerFilters, type CustomerRow, type CustomerSort, useCustomers } from "../api/customers";
+import { can, useSession } from "../api/session";
 import type { DeviceFilters } from "../api/devices";
 import { useDebounced } from "../lib/hooks";
+import { pageParams, usePaging } from "../lib/paging";
+import { Pager } from "../app/Pager";
 import { Loading } from "../app/States";
 
 const CHIPS: { key: CustomerFilter; count: "all" | Exclude<CustomerFilter, ""> }[] = [
@@ -29,7 +33,8 @@ export function Customers() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  const query = useCustomers(search);
+  const paging = usePaging(JSON.stringify(search));
+  const query = useCustomers(search, pageParams(paging));
   const data = query.data;
   const sort = search.sort ?? "name";
   // Counters start from the largest, names from A.
@@ -39,6 +44,8 @@ export function Customers() {
     update({ sort: column, dir: sort === column ? (current === "asc" ? "desc" : "asc") : natural });
   };
 
+  const session = useSession();
+  const hub = useIntegrations();
   return (
     <section className="ui-page">
       <header className="ui-page-header ui-page-header-row">
@@ -47,6 +54,10 @@ export function Customers() {
           <p>{t("customers.subtitle", { count: data?.counts.all ?? 0 })}</p>
         </div>
         <div className="ui-actions">
+          {/* Only while ISPBilling is enabled and its last read or test succeeded, for whoever may import (users.manage). */}
+          {can(session.data, "users.manage") && hub.data?.ispbilling.state === "active" && (
+            <Link className="ui-button ui-button-ghost" to="/integrations/ispbilling/import">{t("quickImport.ispbilling")}</Link>
+          )}
           {data?.can_create && <Link className="ui-button ui-button-primary" to="/customers/new">{t("customers.add")}</Link>}
         </div>
       </header>
@@ -92,6 +103,7 @@ export function Customers() {
               ))}
             </tbody>
           </table>
+          <Pager total={data.total} paging={paging} busy={query.isFetching} />
         </div>
       ) : (
         <div className="ui-empty">{search.q || search.filter ? t("customers.noMatch") : t("customers.empty")}</div>

@@ -31,6 +31,7 @@ class FakeNbi:
 
     def __init__(self):
         self.records, self.tasks, self.fail, self.mode = {}, [], None, "normal"
+        self.hidden, self.unreachable = {}, set()  # objects GenieACS has not walked yet; CPEs not answering connection requests
 
     def node(self, record, path):
         node = record
@@ -48,6 +49,13 @@ class FakeNbi:
             return httpx.Response(404)
         task = json.loads(request.content)
         self.tasks.append(task)
+        ext = unquote(match.group(1))
+        if ext in self.unreachable:
+            return httpx.Response(202, json={"_id": "t"})
+        if task["name"] == "refreshObject" and (ext, task["objectName"]) in self.hidden:
+            parent, _sep, name = task["objectName"].rpartition(".")
+            self.node(record, parent)[name] = self.hidden.pop((ext, task["objectName"]))
+            return httpx.Response(200, json={"_id": "t"})
         if task["name"] == "setParameterValues":
             for path, value, _kind in task["parameterValues"]:
                 self.node(record, path)["_value"] = value
@@ -175,6 +183,32 @@ def main():
     link = {path: value for path, value, _ in fake.tasks[-1]["parameterValues"]}[f"{BASE}.DownloadDiagnostics.DownloadURL"]
     assert link.startswith(f"https://nsm.example.test/acs-speedtest/{device_id}/"), link
     auditor.get(url)
+
+    # A CPE GenieACS has not walked yet (real HB210): the diagnostics are read first, then the test starts.
+    fresh_ext = f"186945-HB210-P{suffix}"
+    fake.records[fresh_ext] = {"_id": fresh_ext, "Device": {"DeviceInfo": {"SoftwareVersion": leaf("1.0", False)},
+                                                            "ManagementServer": {"URL": leaf("http://198.51.100.20:7547/")}}}
+    fake.hidden[(fresh_ext, "Device.IP.Diagnostics")] = {
+        "DownloadDiagnostics": {"DownloadURL": leaf(""), "DiagnosticsState": leaf("None")},
+        "UploadDiagnostics": {"UploadURL": leaf(""), "TestFileLength": leaf(0), "DiagnosticsState": leaf("None")}}
+    quiet_ext = f"186945-HB210-Q{suffix}"
+    fake.records[quiet_ext] = {"_id": quiet_ext, "Device": {"DeviceInfo": {"SoftwareVersion": leaf("1.0", False)}}}
+    fake.unreachable.add(quiet_ext)
+    with SessionLocal() as db:
+        customer_id = db.get(Device, device_id).customer_id
+        fresh = Device(customer_id=customer_id, vendor="tp-link", device_type="router", name=f"TEST-ACSP-NEW-{suffix}", external_device_id=fresh_ext,
+                       management_source="tr069", status="online")
+        quiet = Device(customer_id=customer_id, vendor="tp-link", device_type="router", name=f"TEST-ACSP-QUIET-{suffix}", external_device_id=quiet_ext,
+                       management_source="tr069", status="online")
+        db.add_all([fresh, quiet])
+        db.commit()
+        fresh_id, quiet_id = fresh.id, quiet.id
+    started = tech.post(f"/api/ui/v1/devices/{fresh_id}/acs/speedtest/download")
+    assert started.status_code == 200, started.text
+    assert {"name": "refreshObject", "objectName": "Device.IP.Diagnostics"} in fake.tasks, "objects discovered before the test"
+    assert fake.tasks[-1]["name"] == "setParameterValues"
+    pending = tech.post(f"/api/ui/v1/devices/{quiet_id}/acs/speedtest/download")
+    assert pending.status_code == 409 and pending.json()["detail"]["code"] == "discovering", pending.text
 
     with SessionLocal() as db:
         kinds = sorted(e.event_type for e in db.scalars(select(AuditEvent).where(AuditEvent.device_id == device_id)))

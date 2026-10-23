@@ -46,6 +46,8 @@ export interface ExposureFinding {
   state: string;
   severity?: string;
   reason?: string;
+  /** Operator declaration: the service is filtered by an ACL on the device (external check only). */
+  acl?: { allowed: string; note: string | null; by: string | null; at: string | null };
 }
 
 export interface PortForward {
