@@ -3,6 +3,7 @@ import { type FormEvent, type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IspbillingLinkProposal } from "../app/IspbillingLinks";
 
+import { PppoeSession } from "../app/PppoeSession";
 import { ApiError } from "../api/client";
 import { BrandIcon } from "../app/BrandIcon";
 import { type DeviceDetail as Detail, useDecommission, useDevice, useZabbixExclude, type DeviceIspbillingAccount } from "../api/device";
@@ -314,6 +315,7 @@ function IspbillingAccounts({ deviceId, accounts, canManage }: { deviceId: strin
               <small className="ui-muted ui-block">
                 {[account.profile, account.customer, t(`device.ispbilling.matched.${account.matched_by ?? "pppoe"}`)].filter(Boolean).join(" · ")}
               </small>
+              {account.session !== undefined && <PppoeSession session={account.session} />}
               {account.same_customer === false && <small className="ui-key-hint ui-block">{t("device.ispbilling.otherCustomer")}</small>}
               {canManage && account.link && <IspbillingLinkProposal deviceId={deviceId} account={account.account} link={account.link} />}
             </span>

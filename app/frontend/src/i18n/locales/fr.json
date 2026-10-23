@@ -2312,13 +2312,20 @@
       "genieacs": "GenieACS / TR-069",
       "zabbix": "Zabbix",
       "cnmaestro": "cnMaestro",
-      "ispbilling": "ISPBilling"
+      "ispbilling": "ISPBilling",
+      "bras": "BRAS MikroTik"
     },
     "ispbilling": {
       "title": "ISPBilling",
       "help": "Facturation : registre des clients et sites, importé dans NSM.",
       "customers": "Clients lus",
       "linked": "Dans NSM"
+    },
+    "bras": {
+      "title": "BRAS MikroTik",
+      "help": "Concentrateur PPPoE : sessions des clients (lecture seule).",
+      "online": "En ligne",
+      "offline": "Hors ligne"
     }
   },
   "syslogAdmin": {
@@ -5169,6 +5176,8 @@
     "BACKUP_RESTORE_TEST_RECORDED": "Test de restauration enregistré",
     "BACKUP_RETENTION_DELETED": "Anciennes sauvegardes supprimées par la rétention",
     "BACKUP_STALE_ATTEMPT_REPORT_IGNORED": "Rapport de sauvegarde tardif ignoré",
+    "BRAS_CONFIG_SAVED": "Connexion BRAS enregistrée",
+    "BRAS_SYNC_REQUESTED": "Lecture BRAS demandée",
     "CNMAESTRO_BULK_ONBOARDING": "Import depuis cnMaestro",
     "CNMAESTRO_CONFIGURED": "Connecteur cnMaestro configuré",
     "CNMAESTRO_DEVICE_LINKED": "Équipement lié à cnMaestro",
@@ -5259,6 +5268,8 @@
     "INCIDENT_STATUS_CHANGED": "Statut de l'incident modifié",
     "INTERFACE_ERRORS_DETECTED": "Erreurs d'interface détectées",
     "INVENTORY_DISCOVERED": "Inventaire relevé",
+    "ISPBILLING_AUTO_IMPORTED": "Clients importés automatiquement depuis ISPBilling",
+    "ISPBILLING_AUTO_IMPORT_CHANGED": "Import automatique ISPBilling modifié",
     "ISPBILLING_CONFIGURED": "Connecteur ISPBilling configuré",
     "ISPBILLING_CUSTOMERS_IMPORTED": "Clients importés depuis ISPBilling",
     "ISPBILLING_DEVICE_LINKED": "Équipement affecté depuis ISPBilling",
@@ -5390,9 +5401,7 @@
     "ZABBIX_HOST_IP_UPDATED": "IP de l'hôte Zabbix mise à jour",
     "ZABBIX_HOST_LINKED": "Équipement lié à un hôte Zabbix existant",
     "ZABBIX_SETTINGS_CHANGED": "Paramètres Zabbix modifiés",
-    "ZABBIX_SYNC_REQUESTED": "Synchronisation Zabbix demandée",
-    "ISPBILLING_AUTO_IMPORTED": "Clients importés automatiquement depuis ISPBilling",
-    "ISPBILLING_AUTO_IMPORT_CHANGED": "Import automatique ISPBilling modifié"
+    "ZABBIX_SYNC_REQUESTED": "Synchronisation Zabbix demandée"
   },
   "eventSources": {
     "portal": "interface",
@@ -6023,5 +6032,41 @@
       "failed": "Échec de la mise à jour vers {{version}}.",
       "unconfirmed": "Mise à jour vers {{version}} non confirmée."
     }
+  },
+  "bras": {
+    "title": "BRAS MikroTik",
+    "subtitle": "Concentrateur PPPoE lu avec un utilisateur RouterOS en lecture seule : sessions des clients toutes les quelques minutes, rien n'est modifié sur le routeur.",
+    "online": "En ligne",
+    "onlineHint": "Sessions PPPoE ouvertes",
+    "offline": "Hors ligne",
+    "offlineHint": "Vues avant, non connectées",
+    "lastSync": "Dernière lecture",
+    "every": "Lu toutes les {{minutes}} min",
+    "connection": "Connexion",
+    "connectionHelp": "https://adresse pour l'API REST de RouterOS 7, ou api-ssl://adresse:8729 (api://adresse:8728) pour l'API RouterOS.",
+    "url": "Adresse",
+    "username": "Utilisateur en lecture seule",
+    "password": "Mot de passe",
+    "passwordKeep": "inchangé",
+    "interval": "Lire toutes les (minutes)",
+    "verifyTls": "Vérifier le certificat TLS",
+    "enabled": "Activé",
+    "save": "Enregistrer",
+    "actions": "Vérification",
+    "userHint": "Sur le BRAS, un utilisateur en lecture seule (exemple) :",
+    "test": "Tester la connexion",
+    "syncNow": "Lire maintenant",
+    "synced": "{{sessions}} sessions lues : {{came}} en ligne, {{went}} hors ligne."
+  },
+  "pppoe": {
+    "title": "Connexions PPPoE",
+    "help": "Comptes RADIUS du client (ISPBilling) et leur session sur le BRAS, lue {{when}}.",
+    "noBras": "Comptes RADIUS du client (ISPBilling). Connectez le BRAS (Intégrations) pour voir s'ils sont en ligne.",
+    "online": "En ligne",
+    "offline": "Hors ligne",
+    "offlineSince": "depuis {{when}}",
+    "uptime": "connecté depuis {{value}}",
+    "never": "Jamais vue sur le BRAS",
+    "noDevice": "Aucun équipement associé"
   }
 }
