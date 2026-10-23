@@ -3119,7 +3119,12 @@
     "archiveRead_other": "Archivia le {{count}} lette",
     "noArchived": "Nessuna notifica archiviata.",
     "maintenance": "in manutenzione programmata",
-    "maintenanceHint": "Manutenzione programmata: {{reason}} (fino al {{until}}). L'avviso è inviato normalmente."
+    "maintenanceHint": "Manutenzione programmata: {{reason}} (fino al {{until}}). L'avviso è inviato normalmente.",
+    "menu": {
+      "seeAll": "Vedi tutte le notifiche",
+      "openDevice": "Apri apparato",
+      "newTab": "I collegamenti si aprono in una nuova scheda: la pagina che stai usando resta aperta."
+    }
   },
   "profile": {
     "title": "Profilo",

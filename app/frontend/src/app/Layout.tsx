@@ -3,11 +3,11 @@ import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useNavCounts, type NavCounts } from "../api/navCounts";
-import { useUnreadNotifications } from "../api/personal";
 import { can, useSession, useUpdatePreferences } from "../api/session";
 import i18n, { LANGUAGE_NAMES, LANGUAGES, pickLanguage, type Language } from "../i18n";
 import { CommandPalette, isApple } from "./CommandPalette";
 import { Icon } from "./Icon";
+import { NotificationMenu } from "./NotificationMenu";
 import { SECTIONS, type Section } from "./sections";
 
 const LANGUAGE_COOKIE = "nsm-lang";
@@ -167,7 +167,7 @@ export function Layout() {
             <kbd className="ui-kbd ui-hide-mobile">{isApple ? "⌘K" : "Ctrl K"}</kbd>
           </button>
           <div className="ui-topbar-actions">
-            <NotificationBell />
+            <NotificationMenu />
             <label className="ui-select-label">
               <span className="ui-visually-hidden">{t("user.language")}</span>
               <select
@@ -300,14 +300,3 @@ function Breadcrumbs({ sections }: { sections: Section[] }) {
   );
 }
 
-/** Bell with the unread count of the signed-in user, refreshed every minute. */
-function NotificationBell() {
-  const { t } = useTranslation();
-  const unread = useUnreadNotifications().data?.unread ?? 0;
-  return (
-    <Link to="/notifications" className="ui-icon-button ui-bell" aria-label={t("notifications.bell", { count: unread })} title={t("notifications.bell", { count: unread })}>
-      <Icon name="bell" />
-      {unread > 0 && <span className="ui-bell-count">{unread > 99 ? "99+" : unread}</span>}
-    </Link>
-  );
-}

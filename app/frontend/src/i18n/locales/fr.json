@@ -3119,7 +3119,12 @@
     "archiveRead_other": "Archiver les {{count}} lues",
     "noArchived": "Aucune notification archivée.",
     "maintenance": "pendant une maintenance planifiée",
-    "maintenanceHint": "Maintenance planifiée : {{reason}} (jusqu'au {{until}}). L'alerte est envoyée normalement."
+    "maintenanceHint": "Maintenance planifiée : {{reason}} (jusqu'au {{until}}). L'alerte est envoyée normalement.",
+    "menu": {
+      "seeAll": "Voir toutes les notifications",
+      "openDevice": "Ouvrir l'équipement",
+      "newTab": "Les liens s'ouvrent dans un nouvel onglet : la page que vous utilisez reste ouverte."
+    }
   },
   "profile": {
     "title": "Profil",
