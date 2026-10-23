@@ -4287,7 +4287,8 @@
     "jumpTo": "Jump to section…",
     "sectionOption_one": "{{path}} ({{count}} line)",
     "sectionOption_other": "{{path}} ({{count}} lines)",
-    "sectionsFiltered": "Clear the search to jump to a section."
+    "sectionsFiltered": "Clear the search to jump to a section.",
+    "contentHelpTr069": "Read only. The CPE's configuration parameters as the ACS (TR-069) read them: no passwords and no values that change by themselves (counters, times)."
   },
   "restoreTests": {
     "title": "Restore test history",
