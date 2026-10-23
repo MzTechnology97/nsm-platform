@@ -452,6 +452,18 @@ A complete cybersecurity view for an ISP/WISP, taking as reference the open-sour
   - activity log, with history and charts of listings over time;
   - alerts through the existing NSM channels (email, Telegram, webhook) and Action Center issues; CSV export.
 
+**IP attribution at the time of the incident (requested 2026-10-23):** every reputation event (AbuseIPDB report, DNSBL listing, CrowdSec decision, abuse e-mail) carries an IP and a time; NSM finds who had that IP *at that moment*, not now, because PPPoE addresses are dynamic:
+- **address history**: a table of assignments (IP, device, customer, source, from, to), fed by what NSM already sees:
+  - PPP sessions of the concentrators (MikroTik `/ppp active` snapshots, PPPoE login/logout lines in the concentrator syslog);
+  - the WAN address changes of TR-069 CPEs, MikroTik Agents and UISP devices (SCAN-02 records every change);
+  - static IPs of the ISPBilling RADIUS accounts and, if ISPBilling or the RADIUS server exposes it, the accounting (Framed-IP-Address with start/stop);
+- **attribution with a confidence level**:
+  - *exact*: a RADIUS/PPP session covering the time;
+  - *probable*: the address reported by the device in that window;
+  - *ambiguous*: CGNAT or shared NAT address, with the list of candidate customers. Exact attribution behind CGNAT needs the port and the NAT translation logs (port-block allocation or deterministic NAT), to be evaluated;
+- the incident is linked to the customer and device found (customer page, Action Center), with the evidence used;
+- configurable retention of the history, as operational data. It is not the legal traffic-data register, which stays where the operator keeps it.
+
 ### CROWDSEC-01 — CrowdSec integration (requested 2026-10-23)
 
 CrowdSec (open-source security engine, free community blocklist) to protect NSM itself and to enrich the security view of the network:
