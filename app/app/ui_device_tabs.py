@@ -471,6 +471,7 @@ def device_firmware_upgrade(request: Request, device_id: uuid.UUID, plan: str = 
             "can_execute": core.has_permission(user, "firmware.execute"),
             "check_pending": _readiness_pending(db, device),
             "preparing": planner.prepare_state(device),
+            "schedule": __import__("app.firmware_schedule", fromlist=["api_state"]).api_state(device),
             "plan": None,
             "legacy": None,
         }

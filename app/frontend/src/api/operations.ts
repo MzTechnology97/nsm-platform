@@ -185,6 +185,8 @@ export interface FirmwareFilters {
 }
 
 export interface FirmwareRow {
+  schedule?: import("../app/FirmwareSchedule").FirmwareSchedule | null;
+  can_schedule?: boolean;
   id: string;
   name: string;
   brand?: BrandRef;

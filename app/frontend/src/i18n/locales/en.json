@@ -5189,6 +5189,11 @@
     "FIRMWARE_UPGRADE_PLAN_CANCELLED": "Upgrade plan cancelled",
     "FIRMWARE_UPGRADE_PLAN_CREATED": "Upgrade plan created",
     "FIRMWARE_UPGRADE_PLAN_EXPIRED": "Upgrade plan expired",
+    "FIRMWARE_UPGRADE_SCHEDULED": "Firmware upgrade scheduled",
+    "FIRMWARE_UPGRADE_SCHEDULE_CANCELLED": "Scheduled upgrade cancelled",
+    "FIRMWARE_UPGRADE_SCHEDULE_DONE": "Scheduled upgrade completed",
+    "FIRMWARE_UPGRADE_SCHEDULE_FAILED": "Scheduled upgrade failed",
+    "FIRMWARE_UPGRADE_SCHEDULE_STARTED": "Scheduled upgrade started",
     "FIRMWARE_UPGRADE_VERIFICATION_FAILED": "Upgrade verification failed",
     "FIRMWARE_UPGRADE_VERIFIED": "Upgrade verified",
     "GENIEACS_CONNECTOR_CONFIGURED": "GenieACS connector configured",
@@ -5876,5 +5881,32 @@
     "otherName": "Search under another name",
     "otherNamePlaceholder": "e.g. the code on the label (LBE-5AC-16-120)",
     "search": "Search"
+  },
+  "firmwareSchedule": {
+    "title": "Scheduled upgrade",
+    "help": "Choose when to upgrade, for example at night. At that time NSM runs every phase by itself with no further confirmation: check, pre-upgrade backup, approval, download, activation with reboot and version verification. If the device cannot be reached within 2 hours, the upgrade is not run.",
+    "when": "Date and time",
+    "schedule": "Schedule upgrade",
+    "move": "Move",
+    "cancel": "Cancel schedule",
+    "at": "for {{when}}",
+    "confirm": "Schedule the RouterOS upgrade (currently {{target}}) for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "confirmMany_one": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "confirmMany_other": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "selected_one": "{{count}} selected",
+    "selected_other": "{{count}} selected",
+    "scheduleMany": "Schedule upgrade",
+    "select": "Select {{name}}",
+    "done_one": "{{count}} upgrade scheduled.",
+    "done_other": "{{count}} upgrades scheduled.",
+    "skipped": "Not scheduled (RouterOS 7.13+ with the modern agent required): {{names}}.",
+    "states": {
+      "scheduled": "Scheduled",
+      "checking": "Checking",
+      "running": "Running",
+      "success": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    }
   }
 }

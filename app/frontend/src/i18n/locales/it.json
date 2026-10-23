@@ -5189,6 +5189,11 @@
     "FIRMWARE_UPGRADE_PLAN_CANCELLED": "Piano di aggiornamento annullato",
     "FIRMWARE_UPGRADE_PLAN_CREATED": "Piano di aggiornamento creato",
     "FIRMWARE_UPGRADE_PLAN_EXPIRED": "Piano di aggiornamento scaduto",
+    "FIRMWARE_UPGRADE_SCHEDULED": "Aggiornamento firmware programmato",
+    "FIRMWARE_UPGRADE_SCHEDULE_CANCELLED": "Aggiornamento programmato annullato",
+    "FIRMWARE_UPGRADE_SCHEDULE_DONE": "Aggiornamento programmato completato",
+    "FIRMWARE_UPGRADE_SCHEDULE_FAILED": "Aggiornamento programmato non riuscito",
+    "FIRMWARE_UPGRADE_SCHEDULE_STARTED": "Aggiornamento programmato avviato",
     "FIRMWARE_UPGRADE_VERIFICATION_FAILED": "Verifica aggiornamento fallita",
     "FIRMWARE_UPGRADE_VERIFIED": "Aggiornamento verificato",
     "GENIEACS_CONNECTOR_CONFIGURED": "Connettore GenieACS configurato",
@@ -5876,5 +5881,32 @@
     "otherName": "Cerca con un altro nome",
     "otherNamePlaceholder": "es. codice sull'etichetta (LBE-5AC-16-120)",
     "search": "Cerca"
+  },
+  "firmwareSchedule": {
+    "title": "Aggiornamento programmato",
+    "help": "Scegli quando aggiornare, per esempio di notte. A quell'ora NSM esegue da solo tutte le fasi senza altre conferme: verifica, backup pre-aggiornamento, approvazione, download, attivazione con riavvio e controllo della versione. Se l'apparato non è raggiungibile entro 2 ore, l'aggiornamento non viene eseguito.",
+    "when": "Data e ora",
+    "schedule": "Programma aggiornamento",
+    "move": "Sposta",
+    "cancel": "Annulla programmazione",
+    "at": "per il {{when}}",
+    "confirm": "Programmare l'aggiornamento RouterOS (oggi {{target}}) per il {{when}}? A quell'ora tutte le fasi, riavvio compreso, partono senza altre conferme.",
+    "confirmMany_one": "Programmare l'aggiornamento di {{count}} MikroTik per il {{when}}? A quell'ora tutte le fasi, riavvio compreso, partono senza altre conferme.",
+    "confirmMany_other": "Programmare l'aggiornamento di {{count}} MikroTik per il {{when}}? A quell'ora tutte le fasi, riavvio compreso, partono senza altre conferme.",
+    "selected_one": "{{count}} selezionato",
+    "selected_other": "{{count}} selezionati",
+    "scheduleMany": "Programma aggiornamento",
+    "select": "Seleziona {{name}}",
+    "done_one": "{{count}} aggiornamento programmato.",
+    "done_other": "{{count}} aggiornamenti programmati.",
+    "skipped": "Non programmati (serve RouterOS 7.13+ con agent moderno): {{names}}.",
+    "states": {
+      "scheduled": "Programmato",
+      "checking": "In verifica",
+      "running": "In corso",
+      "success": "Completato",
+      "failed": "Non riuscito",
+      "cancelled": "Annullato"
+    }
   }
 }

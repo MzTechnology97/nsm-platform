@@ -110,6 +110,7 @@ A shared contextual-feedback pattern now covers the principal browser actions th
 - MikroTik Agent reinstall/update-facing browser flows;
 - RouterOS firmware and RouterBOOT actions;
 - RouterOS upgrade planning/approval/staging/activation/cancel paths;
+- *Prepara upgrade* in one click (an old readiness check is run first and the plan opens when it arrives) and *Verifica aggiornamenti* in the device Firmware tab (Core 0.49.254); scheduled RouterOS upgrades (`app/firmware_schedule.py`, Core 0.49.255): one device from its Firmware tab or several from the firmware worklist, at a chosen time; at that time the worker runs readiness, plan with a fresh pre-upgrade backup (a plan older than 12 hours is replaced), approval, download and activation with no further confirmation, the scheduling operator as actor; a device not online within 2 hours is not upgraded; audited `FIRMWARE_UPGRADE_SCHEDULED`, `…_SCHEDULE_STARTED`, `…_SCHEDULE_DONE`, `…_SCHEDULE_FAILED`, `…_SCHEDULE_CANCELLED`;
 - manual backup actions;
 - backup-policy actions/forms;
 - Backup Explorer stale/view/delete failures;
