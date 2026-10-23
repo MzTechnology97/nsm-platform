@@ -130,6 +130,7 @@
 
 .ui-admin-form.ui-admin-stack {
   flex-direction: column;
+  flex-wrap: nowrap; /* with wrap a height-bound column (grid cell) spills into new columns past the panel edge */
   align-items: stretch;
 }
 

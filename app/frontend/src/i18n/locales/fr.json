@@ -4026,7 +4026,8 @@
       "info": "Info",
       "warning": "Attention",
       "error": "Erreur"
-    }
+    },
+    "moreEvents": "Afficher plus ({{shown}} sur {{total}})"
   },
   "deviceCnmaestro": {
     "linked": "Relié à cnMaestro depuis le {{when}} (MAC {{mac}}).",
