@@ -27,6 +27,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy import func, select
 
+from app import pagination
 from app import compliance as compliance_view
 from app import device_exposure
 from app import main as core
@@ -77,7 +78,7 @@ def advisory_head(advisory: SecurityAdvisory) -> dict:
 
 @router.get("/vulnerabilities")
 def vulnerabilities(request: Request, q: str = "", customer: str = "", vendor: str = "", severity: str = "", status: str = "open",
-                    device: str = "", offset: int = 0):
+                    device: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         ui_user(request, db, "security.read")
         status = status if status in STATUSES else "open"
@@ -88,14 +89,14 @@ def vulnerabilities(request: Request, q: str = "", customer: str = "", vendor: s
         counts = security.advisory_severity_counts(db, filters)
         base = security.advisory_rows_query(filters, severity)
         total = int(db.scalar(select(func.count()).select_from(base.subquery())) or 0)
-        offset = max(0, int(offset or 0))
-        rows = db.execute(base.order_by(*security.ADVISORY_ORDER).offset(offset).limit(ADVISORY_PAGE)).all()
+        offset, size = pagination.window(offset, limit, ADVISORY_PAGE)
+        rows = db.execute(base.order_by(*security.ADVISORY_ORDER).offset(offset).limit(size)).all()
         vendors: list[str] = []
         for item in db.scalars(select(SecurityAdvisory.vendor).where(SecurityAdvisory.vendor.is_not(None)).distinct().order_by(SecurityAdvisory.vendor)):
             if item and item.lower() not in {v.lower() for v in vendors}:
                 vendors.append(item)
         return {
-            "status": status, "severity": severity, "total": total, "offset": offset, "limit": ADVISORY_PAGE,
+            "status": status, "severity": severity, "total": total, "offset": offset, "limit": size,
             "counts": {key: counts.get(key, 0) for key in ("all", "severe", "critical", "high", "medium", "low", "unknown")},
             "device": {"id": str(selected.id), "name": selected.display_name or selected.device_identity or selected.name, "brand": brand_icon(selected)} if selected else None,
             "vendors": vendors,
@@ -157,14 +158,15 @@ EXPOSURE_LIMIT = 500
 
 
 @router.get("/exposure")
-def exposure(request: Request, view: str = "exposed", customer: str = ""):
+def exposure(request: Request, view: str = "exposed", customer: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
+        offset, size = pagination.window(offset, limit, EXPOSURE_LIMIT)
         ui_user(request, db, "security.read")
         view = view if view in EXPOSURE_VIEWS else "exposed"
         data = device_exposure.fleet(db, _uuid(customer))
         rows = [r for r in data["rows"] if r["state"] in EXPOSURE_VIEWS[view]]
         return {
-            "view": view, "total": len(rows), "limit": EXPOSURE_LIMIT, "counts": data["counts"],
+            "view": view, "total": len(rows), "offset": offset, "limit": size, "counts": data["counts"],
             "items": [{
                 "id": str(r["device"].id), "name": r["device"].display_name or r["device"].device_identity or r["device"].name, "brand": brand_icon(r["device"]),
                 "vendor": r["device"].vendor, "customer": {"id": str(r["customer"].id), "name": r["customer"].name} if r["customer"] else None,
@@ -172,7 +174,7 @@ def exposure(request: Request, view: str = "exposed", customer: str = ""):
                 "target_ip": r["target_ip"], "shared": r["shared"], "private": r["private"],
                 "findings": [{"label": f.get("label"), "proto": f.get("proto"), "port": f.get("port"), "severity": f.get("severity") or "info"}
                              for f in r["exposed"]],
-            } for r in rows[:EXPOSURE_LIMIT]],
+            } for r in rows[offset:offset + size]],
         }
 
 
@@ -212,26 +214,26 @@ LIFECYCLE_PAGE = 100
 
 
 @router.get("/lifecycle")
-def lifecycle(request: Request, q: str = "", customer: str = "", vendor: str = "", state: str = "", offset: int = 0):
+def lifecycle(request: Request, q: str = "", customer: str = "", vendor: str = "", state: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         ui_user(request, db, "security.read")
         state = state if state in LIFECYCLE_STATES else ""
         today = utcnow().date()
         scope = lifecycle_view.scope_filters(q.strip()[:100], _uuid(customer), vendor.strip())
         filters = [*scope, lifecycle_view._state_filter(state, today)]
-        offset = max(0, int(offset or 0))
+        offset, size = pagination.window(offset, limit, LIFECYCLE_PAGE)
         counts = lifecycle_view.state_counts(db, scope, today)
-        base = {"state": state, "offset": offset, "limit": LIFECYCLE_PAGE, "counts": counts, "upcoming_days": lifecycle_view.UPCOMING_DAYS}
+        base = {"state": state, "offset": offset, "limit": size, "counts": counts, "upcoming_days": lifecycle_view.UPCOMING_DAYS}
         if state == "unmatched":
             grouped = db.execute(select(Device.vendor, Device.model, Device.lifecycle_match, func.count(Device.id), func.count(func.distinct(Device.customer_id)))
                                  .where(*filters).group_by(Device.vendor, Device.model, Device.lifecycle_match)
                                  .order_by(func.count(Device.id).desc(), Device.vendor, Device.model)).all()
             return {**base, "total": len(grouped), "items": [], "groups": [
-                {"vendor": v, "model": m, "match": match, "devices": int(n), "customers": int(c)} for v, m, match, n, c in grouped[offset:offset + LIFECYCLE_PAGE]]}
+                {"vendor": v, "model": m, "match": match, "devices": int(n), "customers": int(c)} for v, m, match, n, c in grouped[offset:offset + size]]}
         total = int(db.scalar(select(func.count(Device.id)).where(*filters)) or 0)
         devices = list(db.scalars(select(Device).where(*filters).options(selectinload(Device.customer), selectinload(Device.site))
                                   .order_by(Device.lifecycle_status, Device.eos_date.nullslast(), Device.vendor, Device.display_name.nullslast(), Device.name)
-                                  .offset(offset).limit(LIFECYCLE_PAGE)))
+                                  .offset(offset).limit(size)))
         remediations = {r.device_id: r for r in db.scalars(select(LifecycleRemediation).where(LifecycleRemediation.device_id.in_([d.id for d in devices] or [None])))}
         return {**base, "total": total, "groups": [], "items": [{
             "id": str(d.id), "name": d.display_name or d.device_identity or d.name, "brand": brand_icon(d), "vendor": d.vendor, "model": d.model,
@@ -246,7 +248,7 @@ COMPLIANCE_STATUSES = ("fail", "exception", "unknown", "pass", "not_applicable",
 
 
 @router.get("/compliance")
-def compliance(request: Request, status: str = "fail", customer: str = "", control: str = "", offset: int = 0):
+def compliance(request: Request, status: str = "fail", customer: str = "", control: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         user = ui_user(request, db, "compliance.read")
         status = status if status in COMPLIANCE_STATUSES else "fail"
@@ -254,10 +256,10 @@ def compliance(request: Request, status: str = "fail", customer: str = "", contr
         now = utcnow()
         matrix = compliance_view.compliance_matrix(db, _uuid(customer), control, now)
         selected = compliance_view.select_devices(matrix, status, now)
-        offset = max(0, int(offset or 0))
+        offset, size = pagination.window(offset, limit, COMPLIANCE_PAGE)
         devices, by_device, device_status = matrix["devices"], matrix["by_device"], matrix["device_status"]
         return {
-            "status": status, "control": control, "total": len(selected), "offset": offset, "limit": COMPLIANCE_PAGE,
+            "status": status, "control": control, "total": len(selected), "offset": offset, "limit": size,
             "totals": dict(matrix["totals"]), "device_counts": dict(matrix["device_counts"]), "devices_total": len(devices),
             "last_eval": _iso(matrix["last_eval"]),
             "controls": [{"id": cid, "title": compliance_view.CONTROLS[cid].title, "category": compliance_view.CONTROLS[cid].category}
@@ -268,7 +270,7 @@ def compliance(request: Request, status: str = "fail", customer: str = "", contr
                 "device": _device_ref(devices[d]), "status": device_status[d],
                 "results": {cid: {"id": str(r.id), "status": r.status, "exception": bool(in_exception(r, now)), "evidence": r.evidence}
                             for cid, r in by_device[d].items()},
-            } for d in selected[offset:offset + COMPLIANCE_PAGE]],
+            } for d in selected[offset:offset + size]],
         }
 
 

@@ -926,3 +926,53 @@
 .ui-maintenance-actions {
   grid-column: 1 / -1;
 }
+
+/* Pages of a list (Pager): range, page numbers and rows per page. */
+.ui-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ui-pager-pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.ui-pager-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ui-pager-gap {
+  padding: 0 2px;
+}
+
+.ui-pager-pages .ui-button {
+  min-width: 32px;
+  justify-content: center;
+}
+
+.ui-pager-size {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ui-pager-size select {
+  min-height: 30px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}

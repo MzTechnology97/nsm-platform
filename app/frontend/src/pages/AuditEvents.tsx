@@ -2,6 +2,8 @@ import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SearchSelect, customerLabel } from "../app/SearchSelect";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 
 import { type AuditEventRow, type AuditFilters, queryString, useAuditEvents } from "../api/admin";
 import { useDeviceFacets } from "../api/devices";
@@ -28,9 +30,10 @@ export function AuditEvents() {
   const [deviceText, setDeviceText] = useState(search.device ?? "");
   const q = useDebounced(text.trim());
   const device = useDebounced(deviceText.trim());
-  const query = useAuditEvents(search);
-  const first = query.data?.pages[0];
-  const items = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
+  const paging = usePaging(JSON.stringify(search));
+  const query = useAuditEvents(search, pageParams(paging));
+  const first = query.data;
+  const items = useMemo(() => query.data?.items ?? [], [query.data]);
   const update = (patch: Partial<AuditFilters>) => void navigate({ search: (previous: AuditFilters) => ({ ...previous, ...patch }), replace: true });
 
   useEffect(() => {
@@ -101,12 +104,8 @@ export function AuditEvents() {
           </div>
           <div className="ui-table-foot">
             <span>{t("firmware.shown", { shown: items.length, total: first.total })}</span>
-            {query.hasNextPage && (
-              <button type="button" className="ui-button ui-button-ghost" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
-                {query.isFetchingNextPage ? t("app.loading") : t("firmware.more")}
-              </button>
-            )}
           </div>
+          <Pager total={first.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
         <div className="ui-empty">{filtered ? t("auditEvents.empty") : t("auditEvents.none")}</div>

@@ -5993,5 +5993,12 @@
     "ispbilling": "Importer depuis ISPBilling",
     "uisp": "Importer depuis UISP",
     "cnmaestro": "Importer depuis cnMaestro"
+  },
+  "pager": {
+    "label": "Pages",
+    "range": "{{from}}–{{to}} sur {{total}}",
+    "previous": "Page précédente",
+    "next": "Page suivante",
+    "size": "Lignes par page"
   }
 }

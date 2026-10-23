@@ -239,6 +239,7 @@ def list_devices(
         return {
             "total": total,
             "offset": offset,
+            "limit": limit,
             "items": [device_row(device, severe.get(device.id, 0), open_count.get(device.id, 0)) for device in rows],
             "counts": {
                 "all": _count(db, *scope),
