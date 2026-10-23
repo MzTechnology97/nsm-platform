@@ -7,6 +7,7 @@ import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { api } from "../api/client";
 import { type DeviceCounts, type DeviceFilters, type DeviceRow, devicesExportUrl, useDeviceFacets, useDevices } from "../api/devices";
+import { useIntegrations } from "../api/admin";
 import { can, useSession } from "../api/session";
 import { BrandIcon } from "../app/BrandIcon";
 import { Resources } from "../app/Resources";
@@ -94,6 +95,7 @@ export function Devices() {
     update({ sort: column, dir: filters.sort === column && filters.dir === "asc" ? "desc" : "asc" });
 
   const canImport = can(session.data, "users.manage");
+  const hub = useIntegrations();
   const filtered = Object.keys(search).length > 0 || Boolean(text);
   const resetFilters = () => {
     setText("");
@@ -110,6 +112,13 @@ export function Devices() {
         <div className="ui-actions">
           {total > 0 && <a className="ui-button ui-button-ghost" href={devicesExportUrl(filters)} download>{t("devices.export")}</a>}
           {canImport && <Link className="ui-button ui-button-ghost" to="/devices/import">{t("deviceImport.open")}</Link>}
+          {/* Onboarding from a connector only while it is enabled and its last sync or test succeeded (devices.write). */}
+          {can(session.data, "devices.write") && hub.data?.uisp.state === "active" && (
+            <Link className="ui-button ui-button-ghost" to="/integrations/uisp/onboarding">{t("quickImport.uisp")}</Link>
+          )}
+          {can(session.data, "devices.write") && hub.data?.cnmaestro.state === "active" && (
+            <Link className="ui-button ui-button-ghost" to="/integrations/cnmaestro/onboarding">{t("quickImport.cnmaestro")}</Link>
+          )}
         </div>
       </header>
 

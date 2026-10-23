@@ -5978,5 +5978,10 @@
     "none": "Sin resultados.",
     "more_one": "{{count}} más: sigue escribiendo para acotar.",
     "more_other": "{{count}} más: sigue escribiendo para acotar."
+  },
+  "quickImport": {
+    "ispbilling": "Importar desde ISPBilling",
+    "uisp": "Importar desde UISP",
+    "cnmaestro": "Importar desde cnMaestro"
   }
 }
