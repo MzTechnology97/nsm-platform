@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.220 — 2026-10-22
+
+TP-Link CPE syslog through the ACS
+- **NSM sets the TP-Link CPEs to send their logs to the NSM syslog receiver,** through GenieACS (TR-069). It writes only four log settings: remote logging on, receiver address, port 514 and minimum level. Local logging and everything else stay as they are.
+- **Three ways:**
+  - one CPE, from its *Syslog* tab (applied at once when the CPE answers);
+  - every associated TP-Link, from *Amministrazione → ACS → Syslog dei CPE TR-069* (applied at each one's next contact);
+  - automatically for new CPEs when *Configura automaticamente* is on in *Amministrazione → Syslog* (it is on by default).
+- **No identifier needed on TP-Link.** The syslog receiver otherwise accepts only lines with an NSM key, but a TP-Link can't add one. So lines without a key are accepted from the address of a CPE that NSM itself configured this way, and only when no other device uses that address. Every other line without a key is still discarded. Before configuring, NSM refreshes the CPE's management IP from the ACS, which is the WAN address the logs come from.
+- Checked on a real TP-Link VX230v. A firewall between the CPE networks and NSM must let UDP/TCP 514 through, as it does for 7547.
+
 ## 0.49.219 — 2026-10-23
 
 Firmware upgrade of TR-069 CPEs
