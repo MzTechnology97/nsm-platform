@@ -358,7 +358,9 @@
         "tr069": "Line and clients",
         "uisp": "Radio",
         "cnmaestro": "Radio"
-      }
+      },
+      "latestTitle": "Last values received",
+      "latestAt": "No data in this range: last sample from {{source}} on {{when}}"
     }
   },
   "syslog": {
@@ -4033,7 +4035,9 @@
       "signal": "Radio signal",
       "capacity": "Link capacity",
       "resources": "CPU and RAM",
-      "stations": "Connected stations"
+      "stations": "Connected stations",
+      "snr": "SNR",
+      "throughput": "Throughput"
     },
     "series": {
       "cpu_percent": "CPU",
@@ -4043,7 +4047,10 @@
       "uplink_capacity_bps": "Uplink capacity",
       "uptime_seconds": "Uptime",
       "frequency_mhz": "Frequency",
-      "stations": "Connected stations"
+      "stations": "Connected stations",
+      "snr_db": "SNR",
+      "dl_throughput_bps": "Downlink",
+      "ul_throughput_bps": "Uplink"
     },
     "metricsTitle": "Operational state from UISP",
     "metricsHelp": "Statistics over the last {{hours}} hours ({{count}} samples); last value {{when}}.",
@@ -4139,7 +4146,8 @@
       "uptime_seconds": "Uptime",
       "dl_throughput_bps": "Downlink throughput",
       "ul_throughput_bps": "Uplink throughput"
-    }
+    },
+    "metricsAt": "Values from {{when}}."
   },
   "deviceGenieacs": {
     "recordHelp": "Customer and site stay those of NSM: GenieACS does not change them.",

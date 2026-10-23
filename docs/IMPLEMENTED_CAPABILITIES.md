@@ -636,6 +636,12 @@ The cnMaestro API cannot export a device configuration. This was checked on the 
 
 Validation pending: the parameter names and the `config set`/`config commit` answers of a real ePMP (Force 400, 5.10.4) — the tests use a synthetic CLI.
 
+### Monitor graphs and last values (MON-01/MON-02, Core 0.49.266)
+
+The samples NSM reads from cnMaestro every 15 minutes (`cambium_metric_samples`) feed the device *Monitor* tab with the renderer every device uses (current/min/avg/max legend, gaps on missing data): *Risorse* (CPU, memory), *Traffico* (downlink/uplink throughput), ping from NSM, then *Radio* (signal, SNR, connected stations), ranges 1 h to 90 days.
+
+MON-02: the 90-day retention deletes old samples except the newest of each device, so a Cambium device offline for months keeps its last sample. When the chosen range has none, the Monitor tab shows *Ultimi valori ricevuti* with their time. A sync in which cnMaestro sends no statistics for a device no longer clears its last values on the *cnMaestro* tab, which also shows when they were read (`metrics_at`).
+
 ### Not implemented yet
 
 - operations through cnMaestro (reboot, firmware) — only where the cnMaestro API supports them and they can be verified;

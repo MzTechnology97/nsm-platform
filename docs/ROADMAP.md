@@ -272,7 +272,7 @@ Next steps:
 - ~~interface errors and drops~~ — done in Core 0.49.83 (Agent 0.49.20, *Errori e drop* chart);
 - ~~latency series~~ — done in Core 0.49.85 (ICMP latency and loss from NSM for any vendor, unreachable alert);
 - ~~signal series (MikroTik wireless)~~ — done in Core 0.49.86 (Agent 0.49.21, *Segnale wireless* panel);
-- the same graphs for UISP devices (from `uisp_metric_samples`) and, later, cnMaestro;
+- ~~the same graphs for UISP devices and cnMaestro~~ — done in Core 0.49.242 (Monitor tab for every device) and 0.49.266 (cnMaestro history in the standard panels, last values of offline Cambium devices);
 - ~~graphs aggregated per customer and per site~~ — done in Core 0.49.72 (customer *Grafici* tab with site filter).
 
 ### LOG-01 — integrated syslog server and live device logs (requested 2026-10-07)
@@ -317,6 +317,7 @@ Next steps:
 
 Telemetry of a device that goes offline must never be deleted: the last received values stay visible, with their timestamp. Retention cleanup always keeps the newest sample of each device and interface.
 - **Done in 0.49.43** for MikroTik metrics, interface traffic and UISP metrics.
+- **Done in 0.49.266** for cnMaestro (Cambium): the retention keeps the newest sample of each device, a sync without statistics keeps the last values on the device, and the Monitor tab shows them with their time when the range has no samples.
 - **Still to do:** other connectors when they get history.
 
 ### INV-07 — MikroTik devices without IP in the device list (bug)
