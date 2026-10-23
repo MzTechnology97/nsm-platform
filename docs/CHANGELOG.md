@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.240 — 2026-10-23
+
+Legacy backups
+- **The FTP receiver's firewall rules come back after a reboot.** They are the server rules that let only the subnets allowed in NSM reach the receiver. The automatic update now installs a small timer that applies them:
+  - at boot;
+  - within two minutes of a change of the subnets in *Amministrazione → Sistema*;
+  - by removing them when no subnet is left.
+  `./manage.sh legacy-ftp-firewall --apply` is still available by hand.
+
 ## 0.49.239 — 2026-10-23
 
 Exposure: ports filtered by ACL no longer reported as exposed
