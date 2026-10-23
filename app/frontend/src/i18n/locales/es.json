@@ -1209,7 +1209,8 @@
       "off": "desactivada",
       "none": "Ninguna política configurada."
     },
-    "createPolicy": "Crear política"
+    "createPolicy": "Crear política",
+    "subtitleCustomer": "Protección de copias de los equipos de este cliente: política, método ejecutable y resultado de la última ejecución."
   },
   "firmware": {
     "title": "Firmware",

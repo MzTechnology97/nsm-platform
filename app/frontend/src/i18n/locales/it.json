@@ -1209,7 +1209,8 @@
       "off": "disattivata",
       "none": "Nessuna policy configurata."
     },
-    "createPolicy": "Crea policy"
+    "createPolicy": "Crea policy",
+    "subtitleCustomer": "Protezione backup degli apparati di questo cliente: policy, metodo eseguibile ed esito dell'ultima esecuzione."
   },
   "firmware": {
     "title": "Firmware",

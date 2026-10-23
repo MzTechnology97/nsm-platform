@@ -1209,7 +1209,8 @@
       "off": "désactivée",
       "none": "Aucune politique configurée."
     },
-    "createPolicy": "Créer une politique"
+    "createPolicy": "Créer une politique",
+    "subtitleCustomer": "Protection des sauvegardes des équipements de ce client : politique, méthode exécutable et résultat de la dernière exécution."
   },
   "firmware": {
     "title": "Firmware",
