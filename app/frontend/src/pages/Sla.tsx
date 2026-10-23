@@ -1,7 +1,7 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SearchSelect } from "../app/SearchSelect";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { ApiError } from "../api/client";
 import { type MaintenanceWindowRow, type SlaRow, type SlaVerdict, slaExportUrl, useCustomerDevices, useMaintenance, useMaintenanceActions, useSetSlaTarget, useSla,
@@ -321,7 +321,7 @@ function MaintenanceForm({ customers, onDone }: { customers: { id: string; name:
   return (
     <form className="ui-maintenance-form" onSubmit={submit}>
       <label><span>{t("maintenance.customer")}</span>
-        <SearchSelect value={customer} options={customers.map((row) => ({ value: row.id, label: row.name }))} onChange={(value) => { setCustomer(value); setDevice(""); }} emptyLabel={t("maintenance.chooseCustomer")} required />
+        <SearchSelect value={customer} options={customers.map((row) => ({ value: row.id, label: customerLabel(row) }))} onChange={(value) => { setCustomer(value); setDevice(""); }} emptyLabel={t("maintenance.chooseCustomer")} required />
       </label>
       <label><span>{t("maintenance.device")}</span>
         <SearchSelect value={device} options={(devices.data?.items ?? []).map((row) => ({ value: row.id, label: row.name }))} onChange={(value) => setDevice(value)} emptyLabel={t("maintenance.allDevices")} disabled={!customer} />

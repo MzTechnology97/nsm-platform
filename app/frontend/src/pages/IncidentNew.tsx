@@ -1,7 +1,7 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SearchSelect } from "../app/SearchSelect";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { type IncidentForm, useCreateIncident, useIncidentForm } from "../api/incidents";
 import { BrandIcon } from "../app/BrandIcon";
@@ -37,7 +37,7 @@ export function IncidentNew() {
           <form className="ui-admin-form ui-admin-stack" onSubmit={(event) => event.preventDefault()}>
             <label><span>{t("incidentNew.customer")}</span>
               <SearchSelect value="" placeholder={t("incidentNew.chooseCustomer")} ariaLabel={t("incidentNew.customer")}
-                options={data.customers.map((customer) => ({ value: customer.id, label: customer.name }))}
+                options={data.customers.map((customer) => ({ value: customer.id, label: customerLabel(customer) }))}
                 onChange={(value) => { if (value) void navigate({ search: { ...search, customer: value, device: undefined } }); }} /></label>
           </form>
         </section>
