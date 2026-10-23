@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.250 — 2026-10-23
+
+Speed test on newly added CPEs
+- **Fixed: "Il CPE non espone il test di velocità TR-143" on CPEs that do have it** (for example a TP-Link HB210 just added). GenieACS had not read the diagnostic objects of the CPE yet. NSM now asks the CPE for them first, then starts the test.
+- If the CPE does not answer at once, NSM says so: GenieACS reads it at its next contact, so retry a few minutes later.
+
 ## 0.49.249 — 2026-10-23
 
 TR-069
