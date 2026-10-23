@@ -217,6 +217,9 @@ def firmware_row(device, can_execute: bool) -> dict:
         "firmware_status": (device.firmware_status or "unknown").lower(), "verified_at": _iso(device.inventory_last_verified_at),
         "can_check": mikrotik and online,
         "can_plan": mikrotik and online and newer and transport != "legacy" and can_execute,
+        # Ubiquiti linked to UISP: the upgrade is queued in UISP from the device Firmware tab (uisp_firmware_upgrade).
+        "can_uisp_upgrade": (device.vendor or "").lower() == "ubiquiti" and bool(device.external_device_id) and newer and can_execute,
+        "uisp_upgrade": (data.get("uisp_upgrade") or {}).get("state"),
     }
 
 

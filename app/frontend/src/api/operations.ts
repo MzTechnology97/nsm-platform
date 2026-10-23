@@ -205,6 +205,8 @@ export interface FirmwareRow {
   verified_at: string | null;
   can_check: boolean;
   can_plan: boolean;
+  can_uisp_upgrade?: boolean;
+  uisp_upgrade?: string | null;
 }
 
 export interface FirmwarePage {

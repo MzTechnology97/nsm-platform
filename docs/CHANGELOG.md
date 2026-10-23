@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.252 — 2026-10-23
+
+Ubiquiti firmware upgrade through UISP
+
+### Added
+
+- Ubiquiti firmware upgrade through UISP. Devices linked to UISP get the device *Firmware* tab, and the firmware worklist shows *Aggiorna via UISP*. The tab offers the stable images UISP has for the device's airOS platform that are newer than the installed one, with the recommended version first.
+- After typing the device name, NSM queues the upgrade in UISP, either now or in UISP's maintenance window. The UISP token needs write permission.
+- The upgrade is followed until UISP reports the device on the new version (*verified*). It ends as *failed* when UISP marks it failed or canceled, and as *unconfirmed* after 60 minutes (48 hours in the maintenance window).
+- Audit events: `UISP_FIRMWARE_UPGRADE_REQUESTED`, `UISP_FIRMWARE_UPGRADE_VERIFIED`, `UISP_FIRMWARE_UPGRADE_FAILED`.
 ## 0.49.251 — 2026-10-23
 
 Cambium: ePMP configuration backups over SSH

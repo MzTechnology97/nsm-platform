@@ -1283,7 +1283,9 @@
       "checking": "Ricerca dell'ultima versione…",
       "downloaded": "Scaricato, riavviare per aggiornare",
       "dnsError": "Errore: nome del server di aggiornamento non risolto"
-    }
+    },
+    "uispUpgrade": "Aggiorna via UISP",
+    "uispRunning": "Aggiornamento UISP in corso"
   },
   "vulns": {
     "title": "Vulnerabilità",
@@ -4119,7 +4121,7 @@
     },
     "refresh": "Aggiorna da GenieACS",
     "refreshed": "Inventario aggiornato da GenieACS.",
-    "notYet": "Backup e aggiornamento firmware tramite ACS non sono ancora disponibili.",
+    "notYet": "Diagnostica, backup e aggiornamento firmware tramite ACS non sono ancora disponibili.",
     "verifyTitle": "Verifica corrispondenza",
     "searchTitle": "Cerca in GenieACS",
     "searchSerialMac": "NSM cerca il seriale {{serial}} e, se non lo trova, il MAC {{mac}}; la ricerca non modifica nulla.",
@@ -4780,7 +4782,7 @@
   },
   "firmwareCatalogs": {
     "title": "Cataloghi firmware",
-    "subtitle": "Un catalogo per ogni produttore presente nell'inventario. Ubiquiti: versioni da UISP e dal servizio di aggiornamento ufficiale; altri produttori: release inserite dagli operatori dalla pagina di download ufficiale. NSM non stima mai le versioni. MikroTik ha il proprio",
+    "subtitle": "Un catalogo per ogni produttore presente nell'inventario. Ubiquiti: versioni da UISP e dal servizio di aggiornamento ufficiale; TP-Link: il sito ufficiale; tutti i produttori: immagini caricate dagli operatori (versione, modelli e data vengono letti dal file). NSM non stima mai le versioni. MikroTik ha il proprio",
     "routeros": "catalogo RouterOS",
     "refresh": "Aggiorna fonti e ricalcola",
     "refreshed": "UISP: {{uisp}} nuove versioni; API Ubiquiti: {{vendor_api}} nuove su {{platforms}} piattaforme; {{evaluated}} apparati valutati.",
@@ -4811,7 +4813,7 @@
     "releaseNotes": "note ↗",
     "delete": "Elimina",
     "deleteConfirm": "Eliminare la release {{version}} dal catalogo?",
-    "empty": "Nessuna release nel catalogo {{label}}: aggiungi l'ultima release dalla pagina di download ufficiale.",
+    "empty": "Nessuna release nel catalogo {{label}}: carica l'ultima immagine dalla pagina di download ufficiale.",
     "emptyUbiquiti": "Nessuna release nel catalogo {{label}}: collega gli apparati a UISP o aggiorna le fonti.",
     "add": "Aggiungi una release {{label}}",
     "version": "Versione",
@@ -4826,10 +4828,10 @@
     "added_other": "Release {{version}} aggiunta: {{count}} apparati da aggiornare.",
     "errors": {
       "brand": "Il catalogo esiste solo per i produttori presenti nell'inventario.",
-      "version": "Versione non riconosciuta: usa il formato del produttore (es. 1.2.3).",
+      "version": "Versione non riconosciuta: indicala nel formato del produttore (es. 1.2.3 o 0.19.0 Build 260323).",
       "url": "Il link alle note deve essere un indirizzo http(s).",
       "date": "Data di rilascio non valida.",
-      "exists": "Questa release è già nel catalogo.",
+      "exists": "Questa release è già nel catalogo con la sua immagine.",
       "not_operator": "Si possono eliminare solo le release inserite dagli operatori.",
       "extension": "Carica l'immagine del produttore (.bin, .img o .zip).",
       "archive": "Lo .zip deve contenere una sola immagine (.bin/.img): carica direttamente l'immagine.",
@@ -5400,6 +5402,9 @@
     "UISP_DEVICE_ASSOCIATED": "Apparato collegato a UISP",
     "UISP_DEVICE_MISSING": "Apparato non più presente in UISP",
     "UISP_DEVICE_ONBOARDED": "Apparato importato da UISP",
+    "UISP_FIRMWARE_UPGRADE_FAILED": "Aggiornamento firmware UISP non riuscito",
+    "UISP_FIRMWARE_UPGRADE_REQUESTED": "Aggiornamento firmware UISP richiesto",
+    "UISP_FIRMWARE_UPGRADE_VERIFIED": "Aggiornamento firmware UISP verificato",
     "UISP_INVENTORY_REFRESHED": "Dati UISP aggiornati",
     "UISP_INVENTORY_SYNCED": "Inventario UISP sincronizzato",
     "UISP_REBOOT_FAILED": "Riavvio tramite UISP fallito",
@@ -6232,5 +6237,27 @@
     "sharedTitle": "Credenziali SSH degli apparati Cambium",
     "sharedHelp": "Usate da NSM per il backup della configurazione di ogni Cambium ePMP in SSH (cnMaestro non permette di esportarla). Un apparato può avere credenziali proprie nella sua scheda cnMaestro. Salvate cifrate; la password non viene più mostrata.",
     "remove": "Rimuovi"
+  },
+  "uispFirmware": {
+    "title": "Aggiornamento firmware tramite UISP",
+    "help": "UISP scarica l'immagine e la installa sull'apparato, come con il suo Upgrade; NSM segue l'aggiornamento e verifica la nuova versione riportata da UISP. Il token UISP deve avere i permessi di scrittura.",
+    "installed": "Installata",
+    "platform": "piattaforma {{platform}}",
+    "recommended": "Consigliata",
+    "recommendedTag": "consigliata",
+    "version": "Versione disponibile in UISP",
+    "window": "Installa nella finestra di manutenzione configurata in UISP (altrimenti subito)",
+    "confirm": "Scrivi {{name}} per confermare: l'apparato si riavvia e il cliente perde la connessione per qualche minuto.",
+    "start": "Aggiorna a {{version}}",
+    "noNewer": "UISP non ha firmware stabili più recenti per questo apparato.",
+    "progress": "Avanzamento UISP: {{percent}}%.",
+    "inWindow": "Programmato nella finestra di manutenzione UISP.",
+    "requested": "Richiesto {{when}} da {{who}} (da {{from}})",
+    "states": {
+      "requested": "Aggiornamento a {{version}} in corso in UISP.",
+      "verified": "Aggiornamento a {{version}} verificato.",
+      "failed": "Aggiornamento a {{version}} non riuscito.",
+      "unconfirmed": "Aggiornamento a {{version}} non confermato."
+    }
   }
 }

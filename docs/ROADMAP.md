@@ -233,7 +233,7 @@ Implement only diagnostics actually exposed and validated by the integration con
 
 ### UBNT-06 — firmware workflow
 
-**Step 1 implemented in `main`** (`app/uisp_firmware.py`): installed/latest version and compatibility read from UISP at every sync, firmware state on the Device and in the firmware worklist. Checked on the operator's console (2026-10-22): it sends only `compatible`, so the recommended version comes from the Ubiquiti update service by airOS platform (`identification.platformId`) and `overview.canUpgrade` marks unknown states as update available (Core 0.49.199). Planning and execution remain open: upgrades are run from UISP.
+**Step 1 implemented in `main`** (`app/uisp_firmware.py`): installed/latest version and compatibility read from UISP at every sync, firmware state on the Device and in the firmware worklist. Checked on the operator's console (2026-10-22): it sends only `compatible`, so the recommended version comes from the Ubiquiti update service by airOS platform (`identification.platformId`) and `overview.canUpgrade` marks unknown states as update available (Core 0.49.199). **Step 2 (Core 0.49.252)**: upgrade started from NSM through UISP (`POST /tasks`, version chosen among UISP's stable images for the platform, typed confirmation, optional maintenance window), followed and verified on the version UISP reports (`app/uisp_firmware_upgrade.py`). Open: bulk upgrades.
 
 - read current/available state where supported;
 - planning/approval model;

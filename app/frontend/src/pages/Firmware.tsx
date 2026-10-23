@@ -138,6 +138,11 @@ function Row({ row }: { row: FirmwareRow }) {
             </button>
           )}
           {row.can_plan && <PreparePlan deviceId={row.id} />}
+          {row.uisp_upgrade === "requested" ? (
+            <span className="ui-tag">{t("firmware.uispRunning")}</span>
+          ) : row.can_uisp_upgrade && (
+            <Link className="ui-button ui-button-danger ui-button-small" to="/devices/$deviceId/firmware-upgrade" params={{ deviceId: row.id }}>{t("firmware.uispUpgrade")}</Link>
+          )}
           <Link className="ui-button ui-button-ghost ui-button-small" to="/devices/$deviceId/firmware-upgrade" params={{ deviceId: row.id }}>{t("firmware.plan")}</Link>
         </div>
         {check.error && check.variables === row.id && <small className="ui-backup-error">{(check.error as Error).message}</small>}
