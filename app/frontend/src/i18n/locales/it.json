@@ -5637,7 +5637,7 @@
     "subnetsHelp": "Una per riga o separate da virgole, es. 198.51.100.0/24. Il ricevitore rifiuta le altre provenienze entro un minuto.",
     "saved": "Salvato: il ricevitore lo applica entro un minuto.",
     "firewall": "Regole firewall sul server",
-    "firewallHelp": "Per bloccare le altre provenienze anche prima che arrivino a NSM, sul server esegui ./manage.sh legacy-ftp-firewall --apply (lo fa da solo legacy-backup-enable)."
+    "firewallHelp": "Il server blocca le altre provenienze anche nel suo firewall (catena DOCKER-USER): con l'aggiornamento automatico installato le regole seguono queste subnet entro due minuti e tornano dopo un riavvio. Senza, sul server esegui ./manage.sh legacy-ftp-firewall --apply."
   },
   "acsWifi": {
     "title": "Wi-Fi",
