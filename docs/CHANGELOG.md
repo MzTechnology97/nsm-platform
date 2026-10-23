@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.217 — 2026-10-22
+
+Configuration snapshots of TR-069 CPEs
+- **Snapshot of a CPE's configuration** (TP-Link or other TR-069 device) from the *ACS* tab. It is archived in the device's *Backup* tab as a text file, one parameter per line, with the configuration parameters as the ACS read them. You can open it and compare two snapshots to see exactly what changed, as with RouterOS exports.
+- **Backup policies with the TR-069 option** take one automatically, and only when the configuration has changed since the last snapshot. The *Backup* tile of these CPEs therefore shows the last snapshot.
+- **Left out of the snapshot:** passwords and keys (CPEs do not report them anyway) and values that change on their own (counters, times).
+- **No one-click restore:** a snapshot documents the configuration and shows what changed. To put a setting back, do it by hand or from the Wi-Fi settings.
+- ***Rileggi configurazione dal CPE*** makes the ACS read the CPE's whole configuration again. Use it before the first snapshot of a newly linked CPE.
+
 ## 0.49.216 — 2026-10-22
 
 Wi-Fi and reboot of TR-069 CPEs from NSM
