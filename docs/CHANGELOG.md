@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.258 — 2026-10-23
+
+TR-069 snapshots can be compared
+- **Fixed: "Confronta con" said "Nessun altro export testuale" on TR-069 snapshots** even when the device had several. The menu offered only RouterOS exports. Now it lists the older snapshots of the same CPE, so you can see what changed between two of them.
+- The text above a TR-069 snapshot no longer talks about RouterOS. It says the parameters are the ones read by the ACS, without passwords and without values that change by themselves.
+
 ## 0.49.257 — 2026-10-23
 
 Syslog of Ubiquiti devices configured through UISP
