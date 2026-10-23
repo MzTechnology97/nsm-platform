@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.216 — 2026-10-22
+
+Wi-Fi and reboot of TR-069 CPEs from NSM
+- **Wi-Fi on the *ACS* tab** of a TP-Link or other TR-069 CPE, for technicians and administrators:
+  - per radio (2.4 / 5 GHz): automatic channel or one of the channels the CPE allows, and on/off;
+  - per network: name, new password and on/off.
+  Networks that are off are grouped apart. Passwords cannot be read, because CPEs do not report them: you can only set a new one.
+- **Changes are checked before sending:** name of 1 to 32 characters, password of 8 to 63, allowed channels. Then they are sent to the CPE through the ACS in one go, after a confirmation. If the CPE is not reachable at that moment they apply at its next contact. The activity log records what changed, never the password.
+- **Reboot of the CPE** from the same tab: you type the device name to confirm. NSM shows when the CPE came back.
+
 ## 0.49.215 — 2026-10-22
 
 Legacy backups over FTP: subnets, port, firewall
