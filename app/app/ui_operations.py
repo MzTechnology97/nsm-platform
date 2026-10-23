@@ -340,11 +340,14 @@ def firmware_catalog_delete(request: Request, release_id: uuid.UUID):
 def firmware_catalog_refresh(request: Request):
     with SessionLocal() as db:
         ui_user(request, db, "firmware.execute")
+    from app import tplink_firmware
+
     vendor_firmware._last_vendor_attempt = None
+    tplink_firmware._last_refresh = None
     stats = vendor_firmware.run_scheduled()
-    api = stats.get("vendor_api") or {}
-    return {"uisp": stats.get("uisp", 0), "vendor_api": api.get("created", 0), "platforms": api.get("platforms", 0),
-            "errors": list(api.get("errors") or [])[:3], "evaluated": stats["evaluation"]["evaluated"]}
+    api, site = stats.get("vendor_api") or {}, stats.get("tplink_site") or {}
+    return {"uisp": stats.get("uisp", 0), "vendor_api": api.get("created", 0) + site.get("created", 0), "platforms": api.get("platforms", 0),
+            "errors": (list(api.get("errors") or []) + list(site.get("errors") or []))[:3], "evaluated": stats["evaluation"]["evaluated"]}
 
 def install_ui_operations(app) -> None:
     app.include_router(router)

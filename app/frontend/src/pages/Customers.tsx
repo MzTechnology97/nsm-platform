@@ -2,7 +2,9 @@ import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useIntegrations } from "../api/admin";
 import { type CustomerFilter, type CustomerFilters, type CustomerRow, type CustomerSort, useCustomers } from "../api/customers";
+import { can, useSession } from "../api/session";
 import type { DeviceFilters } from "../api/devices";
 import { useDebounced } from "../lib/hooks";
 import { Loading } from "../app/States";
@@ -39,6 +41,8 @@ export function Customers() {
     update({ sort: column, dir: sort === column ? (current === "asc" ? "desc" : "asc") : natural });
   };
 
+  const session = useSession();
+  const hub = useIntegrations();
   return (
     <section className="ui-page">
       <header className="ui-page-header ui-page-header-row">
@@ -47,6 +51,10 @@ export function Customers() {
           <p>{t("customers.subtitle", { count: data?.counts.all ?? 0 })}</p>
         </div>
         <div className="ui-actions">
+          {/* Only while ISPBilling is enabled and its last read or test succeeded, for whoever may import (users.manage). */}
+          {can(session.data, "users.manage") && hub.data?.ispbilling.state === "active" && (
+            <Link className="ui-button ui-button-ghost" to="/integrations/ispbilling/import">{t("quickImport.ispbilling")}</Link>
+          )}
           {data?.can_create && <Link className="ui-button ui-button-primary" to="/customers/new">{t("customers.add")}</Link>}
         </div>
       </header>
