@@ -128,6 +128,7 @@ def main():
     stats = ispb.scheduled_sync()
     assert stats["status"] == "success" and stats["customers"] == 5 and stats["service_instances"] == 5, stats
     assert stats["details_read"] == 4 and stats["details_reused"] == 1 and stats["details_pending"] == 0, stats
+    assert "auto_import" not in stats, "automatic import off by default"
     assert ispb.scheduled_sync()["status"] == "not_due"
     with SessionLocal() as db:
         mirror = {c.external_id: c for c in db.scalars(select(IspbillingCustomer))}
@@ -180,6 +181,47 @@ def main():
     assert stats["details_read"] == 2 and sorted(details)[-1].endswith("/7006"), (stats, details)
     assert admin.get(f"{base}/customers", params={"state": "linked"}).json()["counts"]["linked"] == 5
     assert admin.post(f"{base}/commit", json={"external_ids": ["9001"]}).json()["sites_created"] == 1
+
+    # Automatic import: switched on by an administrator; new customers and new addresses of linked customers only.
+    assert operator.post(f"{api}/auto-import", json={"enabled": True}).status_code == 403
+    switched = admin.post(f"{api}/auto-import", json={"enabled": True}).json()
+    assert switched["auto_import"] is True and switched["last_auto_import"] is None
+    with SessionLocal() as db:
+        db.add(Customer(name=f"Officina esistente {suffix}", code=f"C-LIKE-{suffix}"))
+        school = db.scalar(select(IspbillingAddress).where(IspbillingAddress.external_id == "5005"))
+        db.delete(db.get(Site, school.nsm_site_id))  # deleted in NSM after the import: not created again
+        db.commit()
+    fake.customers += [
+        {"customer_id": "9006", "internal_code": f"C-AUTO-{suffix}", "type": "private", "first_name": "Luca", "last_name": f"Verdi {suffix}", "status": "active",
+         "address_line1": "Via Nuova 6", "postal_code": "00100", "city": "Roma", "state_code": "RM", "country_code": "IT"},
+        {"customer_id": "9007", "internal_code": f"C-LIKE-{suffix}", "type": "business", "business_name": f"Officina {suffix}", "status": "active",
+         "address_line1": "Via Ponte 7", "postal_code": "00100", "city": "Roma", "state_code": "RM", "country_code": "IT"},
+    ]
+    fake.instances += [
+        {"service_instance_id": "7007", "customer_id": "9006", "address_id": "5006", "name": "FWA", "status": "active", "updated_at": "2026-10-22"},
+        {"service_instance_id": "7008", "customer_id": "9001", "address_id": "5007", "name": "FWA", "status": "active", "updated_at": "2026-10-22"},
+    ]
+    fake.addresses["5006"] = {"address_id": "5006", "description": "Casa Verdi", "address_line1": "Via Nuova 6", "postal_code": "00100", "city": "Roma", "state_code": "RM"}
+    fake.addresses["5007"] = {"address_id": "5007", "description": "Sede Biblioteca", "address_line1": "Via Libri 7", "postal_code": "00100", "city": "Roma", "state_code": "RM"}
+    admin.post(f"{api}/sync").raise_for_status()
+    stats = ispb.scheduled_sync()
+    assert stats["auto_import"] | {"at": None} == {"at": None, "created": 1, "sites_created": 2, "sites_linked": 0, "to_review": 1}, stats
+    with SessionLocal() as db:
+        verdi = db.scalar(select(Customer).where(Customer.code == f"C-AUTO-{suffix}"))
+        assert verdi.name == f"Luca Verdi {suffix}" and [s.name for s in verdi.sites] == ["Casa Verdi"], "sites from the service addresses"
+        comune = db.scalar(select(Customer).where(Customer.code == f"C-NEW-{suffix}"))
+        assert sorted(s.name for s in comune.sites) == ["Sede Biblioteca", "Sede Centrale Comune", "Sede Cimitero Comunale"], "no school again"
+        assert db.scalar(select(IspbillingCustomer).where(IspbillingCustomer.external_id == "9007")).nsm_customer_id is None, "similar: left to review"
+        assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "ISPBILLING_AUTO_IMPORTED")).details["created"] == 1
+        assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "ISPBILLING_AUTO_IMPORT_CHANGED")).details == {"enabled": True}
+    payload = admin.get(api).json()
+    assert payload["last_auto_import"]["to_review"] == 1 and payload["last_auto_import"]["created"] == 1
+    admin.post(f"{api}/sync").raise_for_status()
+    again = ispb.scheduled_sync()["auto_import"]
+    assert (again["created"], again["sites_created"], again["sites_linked"], again["to_review"]) == (0, 0, 0, 1), again
+    assert admin.post(f"{api}/auto-import", json={"enabled": False}).json()["auto_import"] is False
+    admin.post(f"{api}/sync").raise_for_status()
+    assert "auto_import" not in ispb.scheduled_sync()
 
     # A refused key is reported, the mirror kept.
     fake.deny = True

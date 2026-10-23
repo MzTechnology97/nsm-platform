@@ -244,7 +244,10 @@
       "otherCustomer": "ISPBilling bills this account to a different customer than the device's NSM customer.",
       "matched": {
         "pppoe": "matched by PPPoE user",
-        "ip": "matched by static IP"
+        "ip": "matched by static IP",
+        "cpe_pppoe": "matched by the PPPoE user of the CPE",
+        "caller_mac": "matched by the caller-id (MAC) of the PPP session",
+        "caller_ip": "matched by the address of the PPP session"
       }
     },
     "pingToggle": {
@@ -5144,6 +5147,7 @@
     "ACS_FIRMWARE_VERIFIED": "CPE firmware upgrade verified",
     "ACS_MIGRATION_COMPLETED": "ACS migration completed",
     "ACS_MIGRATION_STARTED": "ACS migration started",
+    "ACS_PORT_MAPPING_CHANGED": "CPE port forwarding changed",
     "ACS_REBOOT_REQUESTED": "CPE reboot requested",
     "ACS_REBOOT_VERIFIED": "CPE reboot verified",
     "ACS_SNAPSHOT_ARCHIVED": "TR-069 configuration snapshot archived",
@@ -5267,8 +5271,12 @@
     "INCIDENT_STATUS_CHANGED": "Incident status changed",
     "INTERFACE_ERRORS_DETECTED": "Interface errors detected",
     "INVENTORY_DISCOVERED": "Inventory read",
+    "ISPBILLING_AUTO_IMPORTED": "Customers imported automatically from ISPBilling",
+    "ISPBILLING_AUTO_IMPORT_CHANGED": "ISPBilling automatic import changed",
     "ISPBILLING_CONFIGURED": "ISPBilling connector configured",
     "ISPBILLING_CUSTOMERS_IMPORTED": "Customers imported from ISPBilling",
+    "ISPBILLING_DEVICE_LINKED": "Device assigned from ISPBilling",
+    "ISPBILLING_LINK_DISMISSED": "ISPBilling proposal ignored",
     "ISPBILLING_SYNC_REQUESTED": "ISPBilling read requested",
     "ISSUE_ACKNOWLEDGED": "Issue taken in charge",
     "LEGACY_FIRMWARE_UPGRADE_ACCEPTED": "Legacy firmware upgrade accepted",
@@ -5503,7 +5511,14 @@
     "openCustomers": "Open customers",
     "radius": "RADIUS accounts",
     "radiusMatched": "{{count}} matched to a device",
-    "radiusError": "RADIUS accounts not read: {{error}}"
+    "radiusError": "RADIUS accounts not read: {{error}}",
+    "autoTitle": "Automatic import",
+    "autoHelp": "After each read, customers new in ISPBilling are created in NSM with their sites, and new installation addresses of customers already imported become sites. Customers similar to an existing NSM customer are left to review on the import page.",
+    "autoEnabled": "Import new customers and sites automatically",
+    "autoLast": "Last check {{at}}: {{created}} customers created, {{sites}} sites added.",
+    "autoNever": "It runs after the next read.",
+    "autoReview_one": "{{count}} ISPBilling customer looks like an existing NSM customer and was not imported:",
+    "autoReview_other": "{{count}} ISPBilling customers look like existing NSM customers and were not imported:"
   },
   "acsDiagnostics": {
     "title": "Diagnostics from the CPE",
@@ -5976,6 +5991,53 @@
     "enabled": "Download newer TP-Link firmware into the ACS automatically",
     "fetched_one": "{{count}} version downloaded so far.",
     "fetched_other": "{{count}} versions downloaded so far."
+  },
+  "acsPortMapping": {
+    "title": "Port forwarding, DMZ and UPnP",
+    "help": "What the CPE exposes to the Internet, as the ACS last read it (every hour). Monitoring only: nothing is changed from NSM. A change is recorded in the device activity.",
+    "reread": "Read again from the CPE",
+    "rereadStarted": "The ACS is reading the CPE again: the values update at the next monitoring read (about 2 minutes).",
+    "rereadQueued": "The CPE did not accept the connection request: it will be read at its next contact.",
+    "notRead": "The ACS has not read this CPE's NAT yet: use Read again from the CPE.",
+    "forwards": "Active port forwards",
+    "on": "On",
+    "off": "Off",
+    "notReported": "not reported by the CPE",
+    "upnpHint": "devices in the LAN can open ports by themselves",
+    "dmzWarning": "DMZ on: every port not forwarded elsewhere reaches {{host}} from the Internet.",
+    "none": "No port forwarding configured.",
+    "protocol": "Protocol",
+    "external": "External port",
+    "internal": "To",
+    "from": "From",
+    "description": "Description",
+    "any": "all",
+    "anywhere": "anywhere"
+  },
+  "ispbillingLinks": {
+    "title": "Devices to assign from ISPBilling",
+    "help": "For each RADIUS account NSM finds the device (PPPoE user of a MikroTik or of a TR-069 CPE, static IP, caller-id or address of the PPP session on a concentrator in NSM) and compares its customer and site with ISPBilling. Nothing changes until an operator confirms; a device of another customer is never moved by itself.",
+    "counts": {
+      "site": "Site to set",
+      "conflict": "Other customer, to check",
+      "not_imported": "Customer not imported",
+      "linked": "Already aligned"
+    },
+    "empty": "Nothing to confirm.",
+    "device": "Device",
+    "account": "ISPBilling account",
+    "now": "In NSM now",
+    "ispbilling": "In ISPBilling",
+    "applySite": "Set the site",
+    "check": "Check",
+    "proposeSite": "ISPBilling installs this account at {{site}}.",
+    "conflict": "ISPBilling bills this account to {{customer}}: the device belongs to another customer in NSM.",
+    "reassignAsk": "Reassign…",
+    "reassignConfirm": "Move the device to {{customer}}?",
+    "reassign": "Move",
+    "dismiss": "Ignore",
+    "notImported": "The ISPBilling customer of this account is not in NSM yet.",
+    "import": "Import it"
   },
   "searchSelect": {
     "placeholder": "Type to search…",
