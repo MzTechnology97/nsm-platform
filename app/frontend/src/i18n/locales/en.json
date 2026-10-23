@@ -5078,6 +5078,7 @@
     "ACS_CONFIG_REFRESH_REQUESTED": "CPE configuration re-read requested",
     "ACS_DIAGNOSTIC_COMPLETED": "ACS diagnostic completed",
     "ACS_DIAGNOSTIC_REQUESTED": "ACS diagnostic requested",
+    "ACS_FIRMWARE_AUTO_CHANGED": "Automatic firmware download changed",
     "ACS_FIRMWARE_FAILED": "CPE firmware upgrade failed",
     "ACS_FIRMWARE_FILE_FETCHED": "Firmware downloaded from the vendor into the ACS",
     "ACS_FIRMWARE_FILE_STORED": "Firmware image loaded into the ACS",
@@ -5683,7 +5684,8 @@
     "catalogs": "Firmware catalogs",
     "fetch": "Download {{version}} from the TP-Link site into the ACS",
     "fetching": "Downloading from TP-Link…",
-    "fetched": "Image loaded into the ACS and selected below: confirm the upgrade when you are ready."
+    "fetched": "Image loaded into the ACS and selected below: confirm the upgrade when you are ready.",
+    "ready": "Version {{version}} is already in the ACS and selected below: confirm the upgrade when you are ready."
   },
   "acsAlerts": {
     "title": "Alerts of the CPEs",
@@ -5699,6 +5701,13 @@
     },
     "save": "Save",
     "saved": "Saved."
+  },
+  "acsFirmwareAuto": {
+    "title": "Automatic firmware download",
+    "help": "When TP-Link publishes a newer firmware for a model and hardware version you have, NSM downloads the official archive from the Italian site and loads the image into the ACS, once per version. Nothing is installed: each upgrade still needs your confirmation on the device's Firmware tab.",
+    "enabled": "Download newer TP-Link firmware into the ACS automatically",
+    "fetched_one": "{{count}} version downloaded so far.",
+    "fetched_other": "{{count}} versions downloaded so far."
   },
   "acsPortMapping": {
     "title": "Port forwarding, DMZ and UPnP",
