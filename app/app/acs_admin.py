@@ -108,7 +108,9 @@ PRESETS = {
     "nsm-tplink": {"weight": 10, "precondition": 'DeviceID.Manufacturer LIKE "TP-L%"'},
     "nsm-all-cpe": {"weight": 0, "precondition": "true"},
 }
-PRESET_EVENTS = {"0 BOOTSTRAP": True, "1 BOOT": True, "2 PERIODIC": True}
+# No event filter: GenieACS applies a preset only when EVERY event it lists is in the session, so
+# {BOOTSTRAP, BOOT, PERIODIC} never matched a periodic inform. The script's age limits avoid repeated reads.
+PRESET_EVENTS: dict = {}
 
 
 def _public_host(request: Request) -> tuple[str, str]:
