@@ -67,6 +67,9 @@ def real_probes():
 
 
 def main():
+    # These checks predate SCAN-02: every test device counts as reachable from Internet (reachability_smoke covers NAT).
+    from app import reachability
+    reachability.current = lambda device: {"state": "public", "reason": "test", "public_addresses": []}
     real_probes()
     ext._public = lambda value: str(value or "").strip() in TEST_PUBLIC
     calls = []

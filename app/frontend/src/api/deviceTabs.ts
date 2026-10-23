@@ -89,6 +89,16 @@ export interface ExposureTab {
   check_mode: "agent" | "external";
   target: { ip: string | null; source: string; override: string; public: boolean };
   private_warning: string;
+  /** Internet reachability (SCAN-02): uplinks NSM knows, public or behind NAT, last change. */
+  reachability: {
+    state: "public" | "nat" | "unknown" | null;
+    reason: string | null;
+    public_addresses: string[];
+    uplinks: { source: string; interface: string | null; type: string | null; address: string; class: string | null; up: boolean | null }[];
+    changed_at: string | null;
+    change_reasons: string[];
+    checked_at: string | null;
+  };
   planned: { port: number; proto: string; label: string }[];
   shared_peers: { id: string; name: string; brand: BrandRef }[];
   forwards_in: PortForward[];

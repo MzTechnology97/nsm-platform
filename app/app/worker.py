@@ -28,6 +28,7 @@ from app.syslog_receiver import cleanup as syslog_cleanup
 from app.syslog_security import evaluate as evaluate_access_alerts
 from app.mikrotik_syslog_config import auto_configure as auto_configure_syslog
 from app.management_access import auto_configure as auto_configure_management
+from app.reachability import refresh as reachability_refresh
 from app.zabbix_connector import scheduled_sync as zabbix_sync
 from app.acs_customer_tags import run as acs_customer_tags
 from app.zabbix_problems import scheduled_refresh as zabbix_problems_refresh
@@ -105,6 +106,7 @@ while True:
             run_task("syslog_access_alerts", evaluate_access_alerts)
             run_task("syslog_agent_config", auto_configure_syslog)
             run_task("management_access_auto", auto_configure_management)
+            run_task("reachability", reachability_refresh)
             run_task("icmp_monitor", icmp_tick)
             run_task("interface_error_alerts", interface_error_alerts)
             run_task("zabbix_sync", zabbix_sync)
