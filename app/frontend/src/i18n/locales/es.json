@@ -1844,7 +1844,8 @@
       "syslog": "Syslog",
       "acs": "ACS",
       "system": "Sistema",
-      "serverMigration": "Migración del servidor"
+      "serverMigration": "Migración del servidor",
+      "managementAccess": "Redes de gestión"
     }
   },
   "adminUsers": {
@@ -5262,6 +5263,9 @@
     "MAC_DISCOVERED": "Dirección MAC detectada",
     "MAINTENANCE_WINDOW_CREATED": "Ventana de mantenimiento creada",
     "MAINTENANCE_WINDOW_DELETED": "Ventana de mantenimiento eliminada",
+    "MANAGEMENT_ACCESS_CHANGED": "Redes de gestión autorizadas modificadas",
+    "MANAGEMENT_ACCESS_EXCLUSION_CHANGED": "Exclusión de las redes de gestión modificada",
+    "MANAGEMENT_ACCESS_QUEUED": "Configuración de SNMP, SSH y hora enviada al equipo",
     "MIKROTIK_AGENT_PRIVILEGE_PROFILE_OBSERVED": "Permisos del agente detectados",
     "MIKROTIK_AGENT_PRIVILEGE_PROFILE_SELECTED": "Perfil de permisos del agente elegido",
     "MIKROTIK_AGENT_TRANSPORT_SELECTED": "Transporte del agente elegido",
@@ -6000,5 +6004,70 @@
     "previous": "Página anterior",
     "next": "Página siguiente",
     "size": "Filas por página"
+  },
+  "managementAccess": {
+    "subtitle": "Redes de gestión autorizadas: las direcciones desde las que se gestionan los equipos (NSM, Zabbix, NOC). La misma lista vale para todos los fabricantes: SNMP y SSH solo responden a estas redes, y la fecha y la hora se sincronizan por NTP.",
+    "notSaved": "Lista aún no guardada: hasta que la guarde NSM no modifica ningún equipo. Revise las redes propuestas y pulse Guardar.",
+    "mikrotikTitle": "MikroTik (mediante el agente)",
+    "applyAll": "Aplicar a todos ahora",
+    "counts": {
+      "applied": "Configurados",
+      "pending_one": "{{count}} en curso",
+      "pending_other": "{{count}} en curso",
+      "failed": "Fallidos",
+      "todo_one": "{{count}} por configurar",
+      "todo_other": "{{count}} por configurar",
+      "excluded": "Excluidos",
+      "notEligible_one": "{{count}} con agente por actualizar o legacy",
+      "notEligible_other": "{{count}} con agente por actualizar o legacy"
+    },
+    "applied": "Configuración enviada a {{queued}} equipos ({{skipped}} omitidos: excluidos, no aptos o ya en curso).",
+    "settingsTitle": "Ajustes",
+    "settingsHelp": "Con la aplicación automática el agente MikroTik aplica los ajustes a cada router en cuanto se actualiza, y de nuevo cuando cambian.",
+    "networks": "Redes de gestión autorizadas",
+    "networksHelp": "Una red por línea, IPv4 o IPv6, por ejemplo 198.51.100.10/32 o 203.0.113.0/24. Como máximo {{max}}.",
+    "suggested": "Propuestas por NSM: {{list}}.",
+    "lockoutWarning": "SSH y SNMP solo aceptarán estas redes: añada todas las direcciones desde las que accede a los equipos (NOC, VPN, oficina). El agente se comunica con NSM de salida y no depende de esta lista.",
+    "community": "Comunidad SNMP (solo lectura)",
+    "ntpServers": "Servidores NTP",
+    "timezone": "Zona horaria",
+    "restrictSsh": "Limitar también el acceso SSH a estas redes",
+    "autoConfigure": "Aplicar automáticamente a los equipos",
+    "saved": "Ajustes guardados.",
+    "vendorsTitle": "Fabricantes",
+    "vendors": {
+      "mikrotik": {
+        "name": "MikroTik",
+        "state": "mediante el agente 0.49.27: comunidad SNMP limitada a las redes, servicio SSH con «disponible desde», cliente NTP y zona horaria."
+      },
+      "ubiquiti": {
+        "name": "Ubiquiti airOS",
+        "state": "siguiente paso mediante UISP: cortafuegos airOS con reglas para SSH, descubrimiento y SNMP (reinicia la CPE)."
+      },
+      "tr069": {
+        "name": "TP-Link y CPE TR-069",
+        "state": "siguiente paso: NTP y zona horaria mediante TR-069; SNMP y ACL donde el modelo los expone."
+      },
+      "cambium": {
+        "name": "Cambium",
+        "state": "siguiente paso mediante cnMaestro, por verificar en la consola."
+      }
+    },
+    "device": {
+      "title": "SNMP, SSH y hora",
+      "hint": "Ajustes de las redes de gestión autorizadas (Administración → Redes de gestión).",
+      "states": {
+        "applied": "Aplicados",
+        "pending": "En curso",
+        "failed": "Fallidos",
+        "todo": "Por aplicar",
+        "excluded": "Excluido",
+        "notEligible": "No disponible"
+      },
+      "clock": "Reloj del router: {{date}} {{time}} ({{zone}}) · NTP: {{ntp}}",
+      "lastRun": "Última aplicación: {{when}}",
+      "exclude": "Excluir este equipo",
+      "apply": "Aplicar ahora"
+    }
   }
 }
