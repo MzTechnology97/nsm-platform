@@ -2918,7 +2918,8 @@
     "skipped_one": "{{count}} omitido por haber cambiado en UISP o estar ya presente: {{names}}.",
     "skipped_other": "{{count}} omitidos por haber cambiado en UISP o estar ya presentes: {{names}}.",
     "openCustomer": "Abrir el cliente",
-    "again": "Nueva alta"
+    "again": "Nueva alta",
+    "customerSearch": "Buscar un cliente…"
   },
   "dashboard": {
     "title": "Panel",
@@ -3370,7 +3371,8 @@
       "not_owned": "Uno o más equipos ya no pertenecen al cliente: recarga la página.",
       "confirm_count": "El número de confirmación no coincide.",
       "action_invalid": "Acción no válida."
-    }
+    },
+    "customerSearch": "Buscar un cliente…"
   },
   "deviceImport": {
     "open": "Importar CSV",
@@ -5635,5 +5637,11 @@
     "saved": "Guardado: el receptor lo aplica en menos de un minuto.",
     "firewall": "Reglas de cortafuegos en el servidor",
     "firewallHelp": "Para bloquear también otros orígenes antes de NSM, ejecute ./manage.sh legacy-ftp-firewall --apply en el servidor (lo hace solo legacy-backup-enable)."
+  },
+  "searchSelect": {
+    "placeholder": "Escribe para buscar…",
+    "none": "Sin resultados.",
+    "more_one": "{{count}} más: sigue escribiendo para acotar.",
+    "more_other": "{{count}} más: sigue escribiendo para acotar."
   }
 }

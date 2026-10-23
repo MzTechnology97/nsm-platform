@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SearchSelect } from "../app/SearchSelect";
 
 import { type BaselineForm, type BaselineRow, type ControlMode, type ControlParams, useBaselineForm, useBaselines, useBaselineWrite } from "../api/security";
 import { BrandIcon } from "../app/BrandIcon";
@@ -188,24 +189,21 @@ function BaselineEditor({ data }: { data: BaselineForm }) {
           )}
           {form.scope_type === "customer" && (
             <label><span>{t("complianceBaselines.customer")}</span>
-              <select value={form.customer_id} onChange={set("customer_id")} required>
-                <option value="">—</option>
-                {data.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
-              </select></label>
+              <SearchSelect value={form.customer_id} required ariaLabel={t("complianceBaselines.customer")}
+                options={data.customers.map((customer) => ({ value: customer.id, label: customer.name }))}
+                onChange={(value) => set("customer_id")({ target: { value } })} /></label>
           )}
           {form.scope_type === "site" && (
             <label className="ui-admin-wide"><span>{t("complianceBaselines.site")}</span>
-              <select value={form.site_id} onChange={set("site_id")} required>
-                <option value="">—</option>
-                {data.sites.map((site) => <option key={site.id} value={site.id}>{site.customer ? `${site.customer} · ` : ""}{site.name}</option>)}
-              </select></label>
+              <SearchSelect value={form.site_id} required ariaLabel={t("complianceBaselines.site")}
+                options={data.sites.map((site) => ({ value: site.id, label: `${site.customer ? `${site.customer} · ` : ""}${site.name}` }))}
+                onChange={(value) => set("site_id")({ target: { value } })} /></label>
           )}
           {form.scope_type === "device" && (
             <label className="ui-admin-wide"><span>{t("complianceBaselines.device")}</span>
-              <select value={form.device_id} onChange={set("device_id")} required>
-                <option value="">—</option>
-                {data.devices.map((item) => <option key={item.id} value={item.id}>{item.customer ? `${item.customer.name} · ` : ""}{item.name}</option>)}
-              </select></label>
+              <SearchSelect value={form.device_id} required ariaLabel={t("complianceBaselines.device")}
+                options={data.devices.map((item) => ({ value: item.id, label: `${item.customer ? `${item.customer.name} · ` : ""}${item.name}` }))}
+                onChange={(value) => set("device_id")({ target: { value } })} /></label>
           )}
           {form.scope_type === "device" && device && (
             <span className="ui-with-brand ui-policy-device"><BrandIcon brand={device.brand} small /> <span>{device.name}</span></span>

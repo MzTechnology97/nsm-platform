@@ -2918,7 +2918,8 @@
     "skipped_one": "{{count}} skipped because changed in UISP or already present: {{names}}.",
     "skipped_other": "{{count}} skipped because changed in UISP or already present: {{names}}.",
     "openCustomer": "Open the customer",
-    "again": "New onboarding"
+    "again": "New onboarding",
+    "customerSearch": "Search a customer…"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -3370,7 +3371,8 @@
       "not_owned": "One or more devices no longer belong to the customer: reload the page.",
       "confirm_count": "The confirmation number does not match.",
       "action_invalid": "Invalid action."
-    }
+    },
+    "customerSearch": "Search a customer…"
   },
   "deviceImport": {
     "open": "Import CSV",
@@ -5635,5 +5637,11 @@
     "saved": "Saved: the receiver applies it within a minute.",
     "firewall": "Firewall rules on the server",
     "firewallHelp": "To block other origins before they reach NSM too, run ./manage.sh legacy-ftp-firewall --apply on the server (done automatically by legacy-backup-enable)."
+  },
+  "searchSelect": {
+    "placeholder": "Type to search…",
+    "none": "No match.",
+    "more_one": "{{count}} more: keep typing to narrow down.",
+    "more_other": "{{count}} more: keep typing to narrow down."
   }
 }

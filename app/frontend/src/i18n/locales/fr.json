@@ -2918,7 +2918,8 @@
     "skipped_one": "{{count}} ignoré car modifié dans UISP ou déjà présent : {{names}}.",
     "skipped_other": "{{count}} ignorés car modifiés dans UISP ou déjà présents : {{names}}.",
     "openCustomer": "Ouvrir le client",
-    "again": "Nouvelle intégration"
+    "again": "Nouvelle intégration",
+    "customerSearch": "Rechercher un client…"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -3370,7 +3371,8 @@
       "not_owned": "Un ou plusieurs équipements n'appartiennent plus au client : rechargez la page.",
       "confirm_count": "Le nombre de confirmation ne correspond pas.",
       "action_invalid": "Action non valide."
-    }
+    },
+    "customerSearch": "Rechercher un client…"
   },
   "deviceImport": {
     "open": "Importer un CSV",
@@ -5635,5 +5637,11 @@
     "saved": "Enregistré : le récepteur l'applique en moins d'une minute.",
     "firewall": "Règles de pare-feu sur le serveur",
     "firewallHelp": "Pour bloquer aussi les autres origines avant NSM, exécutez ./manage.sh legacy-ftp-firewall --apply sur le serveur (fait automatiquement par legacy-backup-enable)."
+  },
+  "searchSelect": {
+    "placeholder": "Tapez pour rechercher…",
+    "none": "Aucun résultat.",
+    "more_one": "{{count}} de plus : continuez à taper pour affiner.",
+    "more_other": "{{count}} de plus : continuez à taper pour affiner."
   }
 }

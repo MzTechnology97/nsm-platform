@@ -1,6 +1,7 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SearchSelect } from "../app/SearchSelect";
 
 import { type AuditEventRow, type AuditFilters, queryString, useAuditEvents } from "../api/admin";
 import { useDeviceFacets } from "../api/devices";
@@ -67,10 +68,7 @@ export function AuditEvents() {
           <option value="">{t("auditEvents.allResults")}</option>
           {first?.results.map((key) => <option key={key} value={key}>{t(`auditEvents.results.${key}`, { defaultValue: key })}</option>)}
         </select>
-        <select value={search.customer ?? ""} onChange={(event) => update({ customer: event.target.value || undefined })} aria-label={t("devices.customer")}>
-          <option value="">{t("devices.allCustomers")}</option>
-          {facets.data?.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
-        </select>
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customer.name }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
         <label className="ui-date-filter">
           <span>{t("auditEvents.from")}</span>
           <input type="date" value={search.from_date ?? ""} onChange={(event) => update({ from_date: event.target.value || undefined })} />
