@@ -76,7 +76,7 @@ def _iso(value):
 
 
 def telemetry(device: Device) -> dict:
-    """Last CPU, memory and uptime reported by the agent or the connector (MikroTik, UISP, cnMaestro), or None per field."""
+    """Last CPU, memory and uptime reported by the agent or the connector (MikroTik, UISP, cnMaestro, GenieACS), or None per field."""
     data = device.inventory_data or {}
     cpu = ram = uptime = None
     if device.vendor == "mikrotik":
@@ -95,6 +95,11 @@ def telemetry(device: Device) -> dict:
                 ram = _number(metrics.get("ram_percent"))
                 uptime = _number(metrics.get("uptime_seconds"))
                 break
+        else:
+            from app import acs_monitoring
+
+            metrics = acs_monitoring.current(device) or {}
+            cpu, ram, uptime = _number(metrics.get("cpu_percent")), _number(metrics.get("ram_percent")), _number(metrics.get("uptime_seconds"))
     return {"cpu": cpu, "ram": ram, "uptime_seconds": int(uptime) if uptime is not None else None}
 
 
@@ -311,7 +316,7 @@ TABS = (
     ("configuration", lambda d: d.vendor == "mikrotik"),
     ("diagnostics", lambda d: d.vendor == "mikrotik"),
     ("backups", lambda d: True),
-    ("firmware", lambda d: d.vendor == "mikrotik"),
+    ("firmware", lambda d: d.vendor == "mikrotik" or _tr069(d)),
     ("agent", lambda d: d.vendor == "mikrotik"),
     ("uisp", lambda d: d.vendor == "ubiquiti"),
     ("cnmaestro", lambda d: _cambium(d)),

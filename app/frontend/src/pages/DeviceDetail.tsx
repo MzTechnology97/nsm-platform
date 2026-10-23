@@ -15,6 +15,9 @@ import { PingToggleDialog } from "../app/PingToggle";
 import { RingTile, type TileTone } from "../app/RingTile";
 
 /** Device tabs and their routes under /devices/$deviceId. */
+// Backup methods NSM cannot run yet (TR-069 CPEs, unknown vendors): "never" would read as a failure.
+const NO_BACKUP_METHOD = new Set(["acs_required", "unsupported"]);
+
 const MIGRATED_TABS = {
   overview: "/devices/$deviceId",
   monitor: "/devices/$deviceId/monitor",
@@ -236,9 +239,11 @@ export function DeviceOverview() {
             : t(`device.firmwareStatus.${device.firmware_status ?? "unknown"}`, { defaultValue: "" })}
           percent={firmwareTone === "success" ? 100 : firmwareTone ? 50 : null} tone={firmwareTone} />
         <RingTile label={t("device.metrics.backup")}
-          value={detail.backup.last_success ? formatRelative(detail.backup.last_success, i18n.language) : t("device.backupNever")}
+          value={detail.backup.last_success ? formatRelative(detail.backup.last_success, i18n.language)
+            : NO_BACKUP_METHOD.has(detail.backup.status) ? t("device.backupNotAvailable") : t("device.backupNever")}
           note={detail.backup.method}
-          percent={detail.backup.last_success ? 100 : 0} tone={!detail.backup.executable ? "warning" : detail.backup.last_success ? "success" : undefined} />
+          percent={detail.backup.last_success ? 100 : 0}
+          tone={detail.backup.last_success ? "success" : NO_BACKUP_METHOD.has(detail.backup.status) ? undefined : !detail.backup.executable ? "warning" : undefined} />
       </div>
       {pingOpen && <PingToggleDialog deviceId={detail.device.id} onClose={() => setPingOpen(false)} />}
 
@@ -403,6 +408,7 @@ function ZabbixField({ deviceId, zabbix, canEdit }: { deviceId: string; zabbix: 
   return (
     <Field label="Zabbix" value={state}>
       {zabbix.link ? <a href={zabbix.link} target="_blank" rel="noopener noreferrer">{t("zabbixProblems.open")}</a> : state}
+      {zabbix.linked && <small className="ui-muted ui-block">{t(`zabbixProblems.linked.${zabbix.match === "name" ? "name" : "ip"}`)}</small>}
       {canEdit && (
         <>
           {" · "}

@@ -1,0 +1,104 @@
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import { api } from "../api/client";
+import type { UispChart } from "../api/deviceConnectors";
+import { formatDateTime } from "../lib/format";
+import { metricValue, RANGES, SeriesCharts } from "../pages/DeviceUisp";
+
+interface AcsState {
+  data_model: string | null;
+  uptime: number | null;
+  cpu: number | null;
+  ram: number | null;
+  wan: { status: string | null; type: string | null; ip: string | null; connected_for: number | null; last_error: string | null; up: boolean;
+    counters_reported?: boolean | null } | null;
+  wifi: { band: string | null; enabled: boolean | string | null; status: string | null; channel: number | null; bandwidth: string | null;
+    standards: string | null; clients: number | null }[] | null;
+  wifi_clients: number | null;
+  lan_hosts: number | null;
+  dsl: { status: string | null; link_status: string | null; standard: string | null; down_bps: number | null; up_bps: number | null;
+    snr_down_db: number | null; attenuation_down_db: number | null } | null;
+  inform_interval: number | null;
+  last_inform: string | null;
+}
+
+interface AcsMonitorData {
+  state: AcsState | null;
+  online_window_minutes: number;
+  range: string;
+  sample_count: number;
+  charts: UispChart[];
+}
+
+/** State of a TR-069 CPE at its last Inform (WAN, Wi-Fi, DSL) and its charts, read from GenieACS by the worker (ACS-05). */
+export function AcsMonitor({ deviceId }: { deviceId: string }) {
+  const { t, i18n } = useTranslation();
+  const [range, setRange] = useState<(typeof RANGES)[number]>("24h");
+  const query = useQuery({
+    queryKey: ["device", deviceId, "acs-monitor", range],
+    queryFn: () => api<AcsMonitorData>(`/api/ui/v1/devices/${encodeURIComponent(deviceId)}/acs/monitor?range=${range}`),
+    placeholderData: keepPreviousData,
+  });
+  const data = query.data;
+  if (!data) return null;
+  const state = data.state;
+  const duration = (seconds: number | null) => metricValue("uptime_seconds", "s", seconds, i18n.language);
+  return (
+    <>
+      <section className="ui-panel ui-admin-section">
+        <h2>{t("acsMonitor.title")}</h2>
+        {!state ? (
+          <p className="ui-muted">{t("acsMonitor.waiting")}</p>
+        ) : (
+          <>
+            <p className="ui-muted">
+              {t("acsMonitor.lastInform", { when: formatDateTime(state.last_inform, i18n.language), model: state.data_model ?? "—" })}
+              {state.inform_interval ? ` · ${t("acsMonitor.every", { minutes: Math.round(state.inform_interval / 60) })}` : ""}
+            </p>
+            <dl className="ui-dl">
+              <div><dt>{t("acsMonitor.wan")}</dt><dd>{state.wan ? `${state.wan.status ?? "—"} · ${state.wan.type ?? "—"}` : "—"}</dd></div>
+              <div><dt>{t("acsMonitor.wanIp")}</dt><dd className="ui-mono">{state.wan?.ip ?? "—"}</dd></div>
+              <div><dt>{t("acsMonitor.connectedFor")}</dt><dd>{duration(state.wan?.connected_for ?? null)}</dd></div>
+              <div><dt>{t("acsMonitor.uptime")}</dt><dd>{duration(state.uptime)}</dd></div>
+              <div><dt>{t("acsMonitor.wifiClients")}</dt><dd>{state.wifi_clients ?? "—"}</dd></div>
+              <div><dt>{t("acsMonitor.lanHosts")}</dt><dd>{state.lan_hosts ?? "—"}</dd></div>
+              {state.wan?.last_error && state.wan.last_error !== "ERROR_NONE" && (
+                <div><dt>{t("acsMonitor.lastError")}</dt><dd className="ui-mono">{state.wan.last_error}</dd></div>
+              )}
+            </dl>
+            {state.wan?.counters_reported === false && <div className="ui-alert">{t("acsMonitor.countersMissing")}</div>}
+            {state.wifi && state.wifi.length > 0 && (
+              <div className="ui-table-scroll">
+                <table className="ui-stats-table">
+                  <thead><tr><th>{t("acsMonitor.radio")}</th><th>{t("acsMonitor.channel")}</th><th>{t("acsMonitor.bandwidth")}</th><th>{t("acsMonitor.standard")}</th><th>{t("acsMonitor.clients")}</th></tr></thead>
+                  <tbody>
+                    {state.wifi.map((radio, index) => (
+                      <tr key={`${radio.band}-${index}`}>
+                        <td>{radio.band ?? "—"}{radio.status && radio.status !== "Up" ? ` · ${radio.status}` : ""}</td>
+                        <td>{radio.channel ?? "—"}</td>
+                        <td>{radio.bandwidth ?? "—"}</td>
+                        <td>{radio.standards ?? "—"}</td>
+                        <td>{radio.clients ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {state.dsl && (
+              <dl className="ui-dl">
+                <div><dt>{t("acsMonitor.dsl")}</dt><dd>{[state.dsl.link_status ?? state.dsl.status, state.dsl.standard].filter(Boolean).join(" · ") || "—"}</dd></div>
+                <div><dt>{t("acsMonitor.dslRate")}</dt><dd>{metricValue("dsl", "bps", state.dsl.down_bps, i18n.language)} / {metricValue("dsl", "bps", state.dsl.up_bps, i18n.language)}</dd></div>
+                <div><dt>{t("acsMonitor.dslSnr")}</dt><dd>{state.dsl.snr_down_db != null ? `${state.dsl.snr_down_db} dB` : "—"}</dd></div>
+                <div><dt>{t("acsMonitor.dslAttenuation")}</dt><dd>{state.dsl.attenuation_down_db != null ? `${state.dsl.attenuation_down_db} dB` : "—"}</dd></div>
+              </dl>
+            )}
+          </>
+        )}
+      </section>
+      <SeriesCharts title={t("acsMonitor.charts")} range={range} onRange={setRange} charts={data.charts} count={data.sample_count} pending={query.isFetching} />
+    </>
+  );
+}

@@ -4,12 +4,15 @@ import { Trans, useTranslation } from "react-i18next";
 import { useAcsAdmin, useAcsTemplates } from "../api/admin";
 import { ApiError } from "../api/client";
 import { AdminTabs } from "../app/AdminTabs";
+import { AcsSpeedtestSettings } from "../app/AcsSpeedtestSettings";
+import { AcsSyslogAdminPanel } from "../app/AcsSyslog";
 import { Loading } from "../app/States";
+import { formatDateTime } from "../lib/format";
 
 const STEPS = ["cpe", "network", "templates", "verify", "nsm"] as const;
 
 export function AdminAcs() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const query = useAcsAdmin();
   const install = useAcsTemplates();
   const data = query.data;
@@ -52,6 +55,7 @@ export function AdminAcs() {
 
           <section className="ui-panel ui-admin-section" id="guide">
             <h2>{t("acs.guideTitle")}</h2>
+            <p>{t("acs.guideIntro")}</p>
             <p className="ui-muted">{t("acs.guideHelp")}</p>
             <ol className="ui-acs-steps">
               {STEPS.map((step) => (
@@ -61,6 +65,10 @@ export function AdminAcs() {
                 </li>
               ))}
             </ol>
+            <h3>{t("acs.readonlyTitle")}</h3>
+            <ul className="ui-acs-steps">
+              {(["reads", "actions", "never"] as const).map((key) => <li key={key}>{t(`acs.readonly.${key}`)}</li>)}
+            </ul>
             <h3>{t("acs.securityTitle")}</h3>
             <ul className="ui-acs-steps">
               <li><Trans i18nKey="acs.security.auth" components={{ code: <code /> }} /></li>
@@ -68,12 +76,21 @@ export function AdminAcs() {
             </ul>
           </section>
 
+          <AcsSpeedtestSettings />
+
           <section className="ui-panel ui-admin-section" id="templates">
             <div className="ui-page-header-row">
               <h2>{t("acs.templatesTitle")}</h2>
               <button type="button" className="ui-button" disabled={install.isPending} onClick={() => install.mutate()}>{t("acs.install")}</button>
             </div>
             <p className="ui-muted">{t("acs.templatesHelp")}</p>
+            {data.templates?.installed_at ? (
+              <div className={`ui-alert${data.templates.current ? "" : " ui-alert-warning"}`}>
+                {t(data.templates.current ? "acs.templatesCurrent" : "acs.templatesPending", { when: formatDateTime(data.templates.installed_at, i18n.language) })}
+              </div>
+            ) : (
+              <p className="ui-muted">{t("acs.templatesAuto")}</p>
+            )}
             {install.data && <div className="ui-alert">{t("acs.installed", { items: install.data.installed.join(", ") })}</div>}
             {installError && <div className="ui-alert ui-alert-warning">{installError}</div>}
             <dl className="ui-dl">
@@ -89,6 +106,7 @@ export function AdminAcs() {
               <pre className="ui-code-block">{data.provision_script}</pre>
             </details>
           </section>
+          <AcsSyslogAdminPanel />
         </>
       )}
     </section>
