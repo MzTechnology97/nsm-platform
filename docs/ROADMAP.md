@@ -297,7 +297,7 @@ Next steps:
 
 
 **Receiver.** A syslog receiver integrated in the stack, as a Docker service (UDP/TCP 514, optionally TLS 6514).
-- Messages are matched to devices only by the per-device key `NSM-<16 hex>` (logging prefix on MikroTik, origin-id on Cisco, device name elsewhere); lines without a key are always discarded (Core 0.49.74, operator decision).
+- Messages are matched to devices only by the per-device key `NSM-<16 hex>` (logging prefix on MikroTik, origin-id on Cisco, device name elsewhere); lines without a key are always discarded (Core 0.49.74, operator decision), except from the address of a TR-069 CPE that NSM itself set to send syslog through the ACS, when no other device uses that address (Core 0.49.220: TP-Link takes no key).
 - Logs are stored with retention and indexing.
 
 **Device configuration.** Configured automatically:
@@ -392,7 +392,7 @@ The selected ACS is **GenieACS** (as preferred in `PRODUCT_REQUIREMENTS.md`); NS
 
 ### ACS-02 — Device discovery and association
 
-**Implemented in `main`** for per-Device association (serial, then MAC) of TR-069 CPEs of any brand (TP-Link, or Huawei/ZTE/others entered as *Altro produttore* with type router, ONT, wireless CPE or other — Core 0.49.66). **Bulk migration of an existing fleet (Core 0.49.202):** *Amministrazione → ACS* reconfigures the CWMP ACS URL on a whole management subnet of TP-Link CPEs so a fleet already on a vendor cloud ACS (TAUC) moves to the integrated GenieACS without touching each router by hand. The dry-run inventory (reachability + model/firmware, validated on a real VX230v) is available; the authenticated CWMP rewrite via the TP-Link web interface is enabled after per-firmware field validation. Next: validate the TP-Link web login on the live fleet, then add the DNS/TAUC-side bulk paths discussed with the operator.
+**Implemented in `main`** for per-Device association (serial, then MAC) of TR-069 CPEs of any brand (TP-Link, or Huawei/ZTE/others entered as *Altro produttore* with type router, ONT, wireless CPE or other — Core 0.49.66). The bulk CWMP rewrite of an existing fleet (Core 0.49.202) was removed in Core 0.49.225: unusable on the operator's TP-Link firmware.
 
 - match candidates using reliable ACS identifiers;
 - preview before association;

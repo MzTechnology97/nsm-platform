@@ -12,6 +12,7 @@ import { Resources } from "../app/Resources";
 import { DeviceZabbixPanel, ZabbixSeverity } from "../app/ZabbixProblems";
 import { Loading } from "../app/States";
 import { eventSource } from "../lib/events";
+import { PingToggleDialog } from "../app/PingToggle";
 import { RingTile, type TileTone } from "../app/RingTile";
 
 /** Device tabs and their routes under /devices/$deviceId. */
@@ -214,6 +215,7 @@ export function DeviceOverview() {
   const firmwareTone: TileTone | undefined = device.firmware_status === "security_update" ? "danger"
     : device.firmware_status === "update_available" || (device.recommended_firmware && device.recommended_firmware !== device.firmware) ? "warning"
       : device.firmware_status === "current" ? "success" : undefined;
+  const [pingOpen, setPingOpen] = useState(false);
   const loss = detail.icmp.enabled ? detail.icmp.last_loss : null;
   return (
     <>
@@ -227,7 +229,8 @@ export function DeviceOverview() {
           value={!detail.icmp.enabled ? t("device.pingOff") : detail.icmp.down ? t("device.pingDown") : detail.icmp.last_rtt != null ? `${detail.icmp.last_rtt} ms` : t("device.pingWaiting")}
           note={loss != null ? t("device.loss", { value: loss }) : (detail.icmp.target ?? undefined)}
           percent={!detail.icmp.enabled ? null : detail.icmp.down ? 0 : loss != null ? 100 - loss : null}
-          tone={detail.icmp.down ? "danger" : detail.icmp.enabled && detail.icmp.last_rtt != null ? "success" : undefined} />
+          tone={detail.icmp.down ? "danger" : detail.icmp.enabled && detail.icmp.last_rtt != null ? "success" : undefined}
+          onClick={() => setPingOpen(true)} actionLabel={t("device.pingToggle.open")} />
         <AvailabilityTile detail={detail} />
         <RingTile label={t("device.metrics.vulnerabilities")} value={String(openVulns)} note={t("device.severe", { count: severe })}
           percent={openVulns ? Math.max(8, (100 * severe) / openVulns) : 0} tone={severe ? "danger" : openVulns ? "warning" : "success"} />
@@ -243,6 +246,7 @@ export function DeviceOverview() {
           percent={detail.backup.last_success ? 100 : 0}
           tone={detail.backup.last_success ? "success" : NO_BACKUP_METHOD.has(detail.backup.status) ? undefined : !detail.backup.executable ? "warning" : undefined} />
       </div>
+      {pingOpen && <PingToggleDialog deviceId={detail.device.id} onClose={() => setPingOpen(false)} />}
 
       <DeviceHealth detail={detail} showResources={cpu == null && ram == null} />
 

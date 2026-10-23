@@ -31,6 +31,7 @@ from app.zabbix_connector import scheduled_sync as zabbix_sync
 from app.acs_customer_tags import run as acs_customer_tags
 from app.zabbix_problems import scheduled_refresh as zabbix_problems_refresh
 from app.acs_monitoring import cleanup as acs_metrics_cleanup, collect as acs_monitoring_collect
+from app.acs_syslog import auto_configure as acs_syslog_auto
 from app.acs_admin import auto_update as acs_templates_auto_update
 from app.acs_snapshot import scheduled_snapshots as acs_scheduled_snapshots
 from app.acs_firmware import follow_upgrades as acs_firmware_follow
@@ -50,6 +51,7 @@ from app.advisory_sources import sync_security_advisories
 from app.compliance import run_scheduled_evaluation as run_compliance_evaluation
 from app.sla import budget_alerts as sla_budget_alerts
 from app.lifecycle_catalog import run_scheduled_reconcile as run_lifecycle_reconcile
+from app.lifecycle_web import auto_lookup as lifecycle_web_lookup
 from app.worker_status import beat, run_task, started
 from app.notification_delivery import deliver_pending as deliver_notifications
 from app.notification_chat import poll_telegram_updates, register_channels
@@ -109,6 +111,7 @@ while True:
             run_task("ispbilling_sync", ispbilling_sync)
             run_task("zabbix_problems", zabbix_problems_refresh)
             run_task("acs_monitoring", acs_monitoring_collect)
+            run_task("acs_syslog_auto", acs_syslog_auto)
             run_task("acs_templates", acs_templates_auto_update)
             run_task("acs_scheduled_snapshots", acs_scheduled_snapshots)
             run_task("acs_firmware_follow", acs_firmware_follow)
@@ -145,6 +148,7 @@ while True:
             last_maintenance = now_mono
 
         if now_mono - last_compliance >= COMPLIANCE_INTERVAL_SECONDS:
+            run_task("lifecycle_web_lookup", lifecycle_web_lookup)  # proposals only: the catalog changes when an operator applies them
             lifecycle_stats = run_task("lifecycle_reconcile", run_lifecycle_reconcile)
             catalog_stats = run_task("routeros_catalog", run_routeros_catalog)  # an unreachable upgrade server must not stop the worker
             run_task("vendor_firmware_catalogs", run_vendor_firmware)
