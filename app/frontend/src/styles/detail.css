@@ -728,3 +728,100 @@ a.ui-device-head-cves:hover {
   color: var(--accent-text);
   text-decoration: underline;
 }
+
+/* A tile that opens a window (ping on/off): same look, pointer and focus ring. */
+button.ui-ring-tile {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.ui-ring-tile:hover {
+  border-color: var(--accent);
+}
+
+button.ui-ring-tile:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ui-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 14vh var(--space-4) var(--space-4);
+  background: rgba(7, 10, 15, 0.5);
+}
+
+.ui-dialog {
+  display: grid;
+  gap: var(--space-3);
+  width: min(420px, 100%);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.ui-dialog h2 {
+  margin: 0;
+}
+
+/* On/off switch built on a checkbox (keyboard and screen readers keep the checkbox semantics). */
+.ui-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ui-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.ui-switch-track {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--border-strong);
+  transition: background 0.15s ease;
+}
+
+.ui-switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s ease;
+}
+
+.ui-switch input:checked + .ui-switch-track {
+  background: var(--accent);
+}
+
+.ui-switch input:checked + .ui-switch-track .ui-switch-thumb {
+  transform: translateX(20px);
+}
+
+.ui-switch input:focus-visible + .ui-switch-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ui-switch input:disabled + .ui-switch-track {
+  opacity: 0.5;
+}

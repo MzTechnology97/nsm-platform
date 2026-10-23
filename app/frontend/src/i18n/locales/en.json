@@ -246,6 +246,20 @@
         "pppoe": "matched by PPPoE user",
         "ip": "matched by static IP"
       }
+    },
+    "pingToggle": {
+      "open": "Ping from NSM: switch on or off",
+      "title": "Ping from NSM",
+      "help": "NSM pings the device every minute: latency, loss and outages appear on the Monitor tab and count for the availability.",
+      "on": "On",
+      "off": "Off",
+      "target": "Address pinged: {{target}}",
+      "noTarget": "The device has no management IP: set an address in Monitor → Impostazioni monitoraggio first.",
+      "readOnly": "Changing it needs the permission to edit devices.",
+      "savedOn": "Ping on: the first result arrives within a minute.",
+      "savedOff": "Ping off.",
+      "more": "Thresholds and address in Monitor",
+      "close": "Close"
     }
   },
   "monitor": {
@@ -2593,8 +2607,6 @@
     "preset": "Preset",
     "presetText": "condition <code>{{condition}}</code>, bootstrap, boot and periodic events → provision <code>{{provision}}</code>",
     "script": "Script of provision {{name}}",
-    "migrationHint": "Already running a fleet of CPEs on a cloud ACS (e.g. TAUC)?",
-    "migrationLink": "Migrate the CPEs to this ACS",
     "templatesCurrent": "NSM templates are up to date (installed {{when}}). NSM updates them by itself after every upgrade.",
     "templatesPending": "This NSM version has newer templates than the ones installed {{when}}: NSM installs them within 30 minutes, or press Install now.",
     "templatesAuto": "Once installed, NSM keeps these templates up to date by itself after every upgrade.",
@@ -2604,7 +2616,9 @@
       "reads": "Reads: online/offline state, last contact, model, firmware, IP, CPU, memory, WAN traffic, Wi-Fi clients and DSL line.",
       "actions": "Available actions: reboot, firmware check, diagnostics.",
       "never": "Does not change Wi-Fi, LAN, DHCP, PPPoE or any other router configuration. The only setting it writes is the CWMP inform interval."
-    }
+    },
+    "migrationHint": "Already running a fleet of CPEs on a cloud ACS (e.g. TAUC)?",
+    "migrationLink": "Migrate the CPEs to this ACS"
   },
   "demo": {
     "subtitle": "Isolated dataset to try the interface and workflows without using real customers.",
@@ -5170,6 +5184,7 @@
     "DEVICE_SNAPSHOT_BATCH_QUEUED": "Configuration refresh queued",
     "DEVICE_SNAPSHOT_QUEUED": "Configuration section refresh queued",
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Monitored interfaces changed",
+    "DEVICE_VENDOR_CORRECTED": "Device vendor corrected",
     "DIAGNOSTIC_EXPORTED": "Diagnostic exported",
     "EXPOSURE_CHECK_REQUESTED": "Exposure check requested",
     "EXPOSURE_EXTERNAL_CHECK": "External exposure check",
@@ -5231,6 +5246,8 @@
     "LIFECYCLE_REMEDIATION_REOPENED": "Lifecycle remediation reopened",
     "LIFECYCLE_REPLACEMENT_PLANNED": "Replacement planned",
     "LIFECYCLE_STATUS_CHANGED": "Lifecycle status changed",
+    "LIFECYCLE_WEB_APPLIED": "Web lifecycle applied to the catalog",
+    "LIFECYCLE_WEB_LOOKUP": "Lifecycle looked up on the web",
     "MAC_DISCOVERED": "MAC address read",
     "MAINTENANCE_WINDOW_CREATED": "Maintenance window created",
     "MAINTENANCE_WINDOW_DELETED": "Maintenance window deleted",
@@ -5360,72 +5377,6 @@
     "job": "job",
     "tr069": "TR-069 (ACS)",
     "acs": "ACS"
-  },
-  "acsMigration": {
-    "subtitle": "Bulk-migrate customer CPEs to the integrated ACS by reconfiguring CWMP over the management network.",
-    "backToAcs": "Back to ACS",
-    "intro": "Enter your routers' management subnet, port and the fleet's shared credentials: NSM reaches each device and sets the target ACS URL. Run a dry run first to see which CPEs are reachable.",
-    "applyPending": "The TP-Link web-interface CWMP rewrite is in field validation for this firmware: for now only the inventory dry run is available.",
-    "formTitle": "New migration",
-    "formHelp": "IPv4 subnets only, at most {{max}} addresses per run. The .0 and .255 addresses and the ACS server are skipped.",
-    "credentialsHelp": "Credentials are used only during the run and are never stored. A dry run does not need them: no credential is sent to any device.",
-    "dryRun": "Dry run (inventory)",
-    "apply": "Apply migration",
-    "recentTitle": "Recent runs",
-    "noRuns": "No runs yet.",
-    "runTitle": "Run · {{subnet}}",
-    "cancel": "Stop",
-    "progress": "Progress",
-    "fields": {
-      "subnet": "Management subnet (CIDR)",
-      "port": "Management port",
-      "informInterval": "Inform interval (seconds)",
-      "targetAcsUrl": "Target ACS URL (CWMP)",
-      "username": "Router username",
-      "password": "Router password"
-    },
-    "cols": {
-      "when": "When",
-      "subnet": "Subnet",
-      "mode": "Mode",
-      "status": "Status",
-      "found": "CPEs found",
-      "changed": "Configured"
-    },
-    "hostCols": {
-      "address": "Address",
-      "status": "Outcome",
-      "model": "Model",
-      "firmware": "Firmware",
-      "detail": "Detail"
-    },
-    "mode": {
-      "dry": "Dry run",
-      "apply": "Applied"
-    },
-    "runStatus": {
-      "pending": "Pending",
-      "running": "Running",
-      "done": "Done",
-      "failed": "Failed",
-      "cancelled": "Cancelled"
-    },
-    "hostStatus": {
-      "pending": "Pending",
-      "unreachable": "Unreachable",
-      "not_cpe": "Not a CPE",
-      "auth_failed": "Credentials refused",
-      "already_target": "Already on the ACS",
-      "configured": "Configured",
-      "error": "Error",
-      "skipped": "Skipped"
-    },
-    "counters": {
-      "processed": "Processed",
-      "reachable": "Reachable",
-      "configured": "Configured",
-      "failed": "Failed"
-    }
   },
   "ispbilling": {
     "title": "ISPBilling",
@@ -5815,6 +5766,135 @@
     "autoOff": "Automatic configuration is off (Amministrazione → Syslog).",
     "adminRun": "Configure all",
     "adminDone": "{{queued}} sent, {{skipped}} already set, {{failed}} not supported or failed."
+  },
+  "lifecycleWeb": {
+    "title": "Lifecycle from the web",
+    "hint": "NSM looks up the end-of-sale and end-of-support notices vendors publish for every inventory model, through {{provider}} (it collects the official MikroTik, Ubiquiti, Cambium, TP-Link and other pages). What it finds is a proposal: it reaches the catalog only when you apply it.",
+    "disabled": "Web lookup is off on this server (LIFECYCLE_WEB_LOOKUP=off).",
+    "keyed": "Lookup with an API key: every model at once.",
+    "keyless": "Public lookup without a key: a few models at a time, the worker completes the rest automatically.",
+    "pending_one": "{{count}} model not looked up yet.",
+    "pending_other": "{{count}} models not looked up yet.",
+    "run": "Look up on the web",
+    "ran": "{{checked}} models looked up: {{found}} with a notice, {{not_found}} without, {{errors}} errors.",
+    "deferred_one": "{{count}} left for the next round (request limit).",
+    "deferred_other": "{{count}} left for the next round (request limit).",
+    "applyExact_one": "Apply {{count}} exact match",
+    "applyExact_other": "Apply {{count}} exact matches",
+    "appliedAll": "{{applied}} applied to the catalog, {{skipped}} skipped.",
+    "empty": "No model looked up yet: press “Look up on the web”.",
+    "columns": {
+      "model": "Inventory model",
+      "found": "Found on the web",
+      "dates": "Published dates",
+      "source": "Source",
+      "action": "Action"
+    },
+    "vendorStatus": {
+      "discontinued": "Discontinued",
+      "vintage": "Vintage",
+      "legacy": "Legacy",
+      "end_of_sale": "End of sale",
+      "end_of_life": "End of life",
+      "supported": "Supported",
+      "aging": "Support ends within 24 months",
+      "approaching_eol": "Support ends within 12 months",
+      "announced": "End of life announced",
+      "unknown": "Not stated"
+    },
+    "confidence": {
+      "exact": "Exact match",
+      "prefix": "Partial match: check it",
+      "family": "Same family: check it",
+      "search": "Search result: check it"
+    },
+    "devices_one": "{{count}} device",
+    "devices_other": "{{count}} devices",
+    "searchedAs": "searched as “{{name}}”",
+    "others_one": "{{count}} more result",
+    "others_other": "{{count}} more results",
+    "replacement": "Successor: {{name}}",
+    "notFound": "No end-of-life notice published",
+    "error": "Lookup failed ({{error}})",
+    "notChecked": "Not looked up yet",
+    "checked": "checked {{when}}",
+    "endOfSale": "End of sale",
+    "endOfUpdates": "End of updates/support",
+    "unpublished": "not published",
+    "readAt": "source read {{when}}",
+    "applied": "Applied to the catalog {{when}}",
+    "inCatalog": "Already in the catalog ({{source}})",
+    "apply": "Apply to the catalog",
+    "applyThis": "Apply {{name}}",
+    "otherName": "Search under another name",
+    "otherNamePlaceholder": "e.g. the code on the label (LBE-5AC-16-120)",
+    "search": "Search"
+  },
+  "acsMigration": {
+    "subtitle": "Bulk-migrate customer CPEs to the integrated ACS by reconfiguring CWMP over the management network.",
+    "backToAcs": "Back to ACS",
+    "intro": "Enter your routers' management subnet, port and the fleet's shared credentials: NSM reaches each device and sets the target ACS URL. Run a dry run first to see which CPEs are reachable.",
+    "applyPending": "The TP-Link web-interface CWMP rewrite is in field validation for this firmware: for now only the inventory dry run is available.",
+    "formTitle": "New migration",
+    "formHelp": "IPv4 subnets only, at most {{max}} addresses per run. The .0 and .255 addresses and the ACS server are skipped.",
+    "credentialsHelp": "Credentials are used only during the run and are never stored. A dry run does not need them: no credential is sent to any device.",
+    "dryRun": "Dry run (inventory)",
+    "apply": "Apply migration",
+    "recentTitle": "Recent runs",
+    "noRuns": "No runs yet.",
+    "runTitle": "Run · {{subnet}}",
+    "cancel": "Stop",
+    "progress": "Progress",
+    "fields": {
+      "subnet": "Management subnet (CIDR)",
+      "port": "Management port",
+      "informInterval": "Inform interval (seconds)",
+      "targetAcsUrl": "Target ACS URL (CWMP)",
+      "username": "Router username",
+      "password": "Router password"
+    },
+    "cols": {
+      "when": "When",
+      "subnet": "Subnet",
+      "mode": "Mode",
+      "status": "Status",
+      "found": "CPEs found",
+      "changed": "Configured"
+    },
+    "hostCols": {
+      "address": "Address",
+      "status": "Outcome",
+      "model": "Model",
+      "firmware": "Firmware",
+      "detail": "Detail"
+    },
+    "mode": {
+      "dry": "Dry run",
+      "apply": "Applied"
+    },
+    "runStatus": {
+      "pending": "Pending",
+      "running": "Running",
+      "done": "Done",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "hostStatus": {
+      "pending": "Pending",
+      "unreachable": "Unreachable",
+      "not_cpe": "Not a CPE",
+      "auth_failed": "Credentials refused",
+      "already_target": "Already on the ACS",
+      "configured": "Configured",
+      "error": "Error",
+      "skipped": "Skipped"
+    },
+    "counters": {
+      "processed": "Processed",
+      "reachable": "Reachable",
+      "configured": "Configured",
+      "failed": "Failed"
+    }
   },
   "acsAlerts": {
     "title": "Alerts of the CPEs",

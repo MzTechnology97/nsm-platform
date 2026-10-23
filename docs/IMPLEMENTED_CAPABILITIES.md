@@ -620,26 +620,9 @@ Warehouse serial numbers ↔ devices and ISPBilling activities in the device log
 
 TP-Link CPEs (Aginet firmware) keep their log settings in `Device.DeviceInfo.X_TP_LogCfg`; NSM writes `LogToRemote`, `ServerIP`, `ServerPort` (514) and `RemoteSeverity` through GenieACS, nothing else. From the device *Syslog* tab (applied at once via connection request), from *Amministrazione → ACS → Syslog dei CPE TR-069* for every associated TP-Link (applied at the next Inform), and by the worker for new CPEs when syslog *Configura automaticamente* is on. The receiver address is the syslog public address, else the host of `ACS_CWMP_URL`. TP-Link lines carry no NSM key: the key-only receiver accepts a keyless line only from the management IP of a TR-069 CPE that NSM itself configured this way, and only when no other device uses that address (`syslog_identity.Index.by_address`); every other keyless line is still discarded. NSM re-reads the management IP (WAN, from the connection-request URL) before configuring. Checked on a real VX230v. Audit `ACS_SYSLOG_CONFIGURED`.
 
-### Bulk migration to the self-hosted ACS (Core 0.49.202)
+### Bulk migration to the self-hosted ACS (removed in Core 0.49.225)
 
-*Amministrazione → ACS → Migra i CPE verso questo ACS* (administrators) moves a fleet of customer CPEs
-from a vendor cloud ACS (e.g. TP-Link TAUC) onto the integrated GenieACS by rewriting the CWMP ACS URL
-over the operator's own management network, instead of touching each router by hand. The operator gives
-the management subnet (CIDR, IPv4, capped at 4096 addresses per run), the management port, the target
-ACS URL (the integrated GenieACS by default), the inform interval and one shared fleet credential.
-
-- A host is TCP-probed first and fingerprinted from its web page; the credential is sent only to a host
-  that answers as the chosen vendor's CPE, never to an arbitrary open port. The `.0`/`.255` addresses
-  and the ACS server are skipped.
-- *Dry run* (available now, validated on a real TP-Link VX230v): reports which addresses are reachable
-  CPEs and their model/firmware, without authenticating — an inventory of what can be migrated.
-- *Apply* rewrites CWMP on each CPE through the vendor web interface (TP-Link encrypted login: MD5
-  identity hash, per-session AES-CBC key wrapped with the device RSA key, `stok` token). The login
-  differs per firmware and is enabled after field validation, so until then apply reports
-  `needs_validation` per host rather than guessing.
-- One run at a time, bounded concurrency; per-host results are kept; the credential is held only in
-  memory for the run and never stored or logged. Audit events `ACS_MIGRATION_STARTED` /
-  `ACS_MIGRATION_COMPLETED` carry counts only.
+The tool that rewrote the CWMP ACS URL of a fleet of TP-Link CPEs over the management network (Core 0.49.202) was removed: on the operator's firmware the TP-Link web login could not be used. CPEs are pointed at the integrated GenieACS as described in *Amministrazione → ACS* (TP-Link guide).
 
 ### Diagnostics from the CPE (ACS-06, Core 0.49.206)
 
@@ -827,6 +810,15 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - one Action Center issue per Device (`lifecycle`, critical for EOS) while it is still to handle, its planned replacement is overdue or its exception expired; resolved automatically otherwise; re-evaluated with the catalog and by the worker;
 - Device lifecycle page shows the decision panel (read-only without `lifecycle.manage`); the EOL/EOS worklist has a *Gestione* column;
 - evidence reports: counts by remediation state, overdue plans, Devices still to handle, active exceptions with reason and expiry; CSV column `lifecycle_remediation`.
+
+### Lifecycle from the web (LIFE-04)
+
+`app/lifecycle_web.py`, migration 0054:
+
+- for every vendor + model in the inventory NSM asks [eol.network](https://eol.network), a free database of the end-of-sale / end-of-support notices vendors publish on their own sites (MikroTik product pages, Ubiquiti *Vintage and Legacy*, Cambium product lifecycle, TP-Link EOL lists, 90+ vendors); each answer keeps the official vendor page, the eol.network page and the date the source was read;
+- *EOL / EOS → Catalogo lifecycle → Ciclo di vita dal web*: per model the product found, vendor status, published dates, match confidence and source; *Nessun avviso di fine vita pubblicato* when there is no notice; *Cerca con un altro nome* (the SKU on the label) when the inventory name is a marketing name;
+- what is found is a proposal: *Applica al catalogo* (one model) or *Applica le corrispondenze esatte* writes a catalog record through the same path as a hand-written one (source, link, evidence date, audit `LIFECYCLE_RECORD_SAVED` + `LIFECYCLE_WEB_APPLIED`, devices re-correlated); a vendor status without a published date (MikroTik *Discontinued*, Ubiquiti *Vintage*/*Legacy*) is dated on the day the source was read and the note says so; the product code becomes an alias when it differs from the inventory name;
+- worker: new models are looked up, the others re-checked every 30 days; keyless search 8 models per run (the public limit is 10 requests a minute, 429 defers the rest), with `EOL_NETWORK_API_KEY` batch match of 100 models; `LIFECYCLE_WEB_LOOKUP=off` disables it; read `security.read`, run/apply `lifecycle.manage`; manual runs audited `LIFECYCLE_WEB_LOOKUP`.
 
 ## 17. Public read-only API
 

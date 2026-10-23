@@ -246,6 +246,20 @@
         "pppoe": "abbinato per utente PPPoE",
         "ip": "abbinato per IP statico"
       }
+    },
+    "pingToggle": {
+      "open": "Ping da NSM: attiva o disattiva",
+      "title": "Ping da NSM",
+      "help": "NSM interroga l'apparato con un ping ogni minuto: latenza, perdita e interruzioni compaiono nel Monitor e contano per la disponibilità.",
+      "on": "Attivo",
+      "off": "Non attivo",
+      "target": "Indirizzo interrogato: {{target}}",
+      "noTarget": "L'apparato non ha un IP di gestione: imposta prima un indirizzo in Monitor → Impostazioni monitoraggio.",
+      "readOnly": "Per cambiarlo serve il permesso di modifica degli apparati.",
+      "savedOn": "Ping attivato: il primo risultato arriva entro un minuto.",
+      "savedOff": "Ping disattivato.",
+      "more": "Soglie e indirizzo nel Monitor",
+      "close": "Chiudi"
     }
   },
   "monitor": {
@@ -2593,8 +2607,6 @@
     "preset": "Preset",
     "presetText": "condizione <code>{{condition}}</code>, eventi bootstrap, boot e periodic → provision <code>{{provision}}</code>",
     "script": "Script della provision {{name}}",
-    "migrationHint": "Hai già una flotta di CPE su un ACS cloud (per esempio TAUC)?",
-    "migrationLink": "Migra i CPE verso questo ACS",
     "templatesCurrent": "I modelli NSM sono aggiornati (installati il {{when}}). NSM li aggiorna da solo dopo ogni aggiornamento.",
     "templatesPending": "Questa versione di NSM ha modelli più recenti di quelli installati il {{when}}: NSM li installa entro 30 minuti, oppure premi Installa ora.",
     "templatesAuto": "Una volta installati, NSM tiene aggiornati questi modelli da solo dopo ogni aggiornamento.",
@@ -2604,7 +2616,9 @@
       "reads": "Legge: stato online/offline, ultimo contatto, modello, firmware, IP, CPU, memoria, traffico WAN, client Wi-Fi e linea DSL.",
       "actions": "Azioni disponibili: riavvio, verifica firmware, diagnostica.",
       "never": "Non modifica Wi-Fi, LAN, DHCP, PPPoE o altra configurazione del router. L'unica impostazione che scrive è l'intervallo di inform del CWMP."
-    }
+    },
+    "migrationHint": "Hai già una flotta di CPE su un ACS cloud (per esempio TAUC)?",
+    "migrationLink": "Migra i CPE verso questo ACS"
   },
   "demo": {
     "subtitle": "Dataset isolato per provare interfaccia e flussi di lavoro senza usare clienti reali.",
@@ -5170,6 +5184,7 @@
     "DEVICE_SNAPSHOT_BATCH_QUEUED": "Aggiornamento configurazione in coda",
     "DEVICE_SNAPSHOT_QUEUED": "Aggiornamento sezione configurazione in coda",
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Interfacce monitorate modificate",
+    "DEVICE_VENDOR_CORRECTED": "Vendor dell'apparato corretto",
     "DIAGNOSTIC_EXPORTED": "Diagnostica esportata",
     "EXPOSURE_CHECK_REQUESTED": "Verifica esposizione richiesta",
     "EXPOSURE_EXTERNAL_CHECK": "Verifica esposizione dall'esterno",
@@ -5231,6 +5246,8 @@
     "LIFECYCLE_REMEDIATION_REOPENED": "Rimedio lifecycle riaperto",
     "LIFECYCLE_REPLACEMENT_PLANNED": "Sostituzione pianificata",
     "LIFECYCLE_STATUS_CHANGED": "Stato lifecycle cambiato",
+    "LIFECYCLE_WEB_APPLIED": "Ciclo di vita dal web applicato al catalogo",
+    "LIFECYCLE_WEB_LOOKUP": "Ciclo di vita cercato sul web",
     "MAC_DISCOVERED": "Indirizzo MAC rilevato",
     "MAINTENANCE_WINDOW_CREATED": "Finestra di manutenzione creata",
     "MAINTENANCE_WINDOW_DELETED": "Finestra di manutenzione eliminata",
@@ -5360,72 +5377,6 @@
     "job": "attività",
     "tr069": "TR-069 (ACS)",
     "acs": "ACS"
-  },
-  "acsMigration": {
-    "subtitle": "Migra in blocco i CPE dei clienti verso l'ACS integrato riconfigurando il CWMP sulla rete di gestione.",
-    "backToAcs": "Torna ad ACS",
-    "intro": "Indica la subnet di gestione dei tuoi router, la porta e le credenziali comuni della flotta: NSM raggiunge ogni apparato e imposta l'URL ACS di destinazione. Prima fai una simulazione per vedere quali CPE sono raggiungibili.",
-    "applyPending": "La riscrittura CWMP via interfaccia web TP-Link è in validazione sul campo per questo firmware: per ora è disponibile la sola ricognizione (simulazione).",
-    "formTitle": "Nuova migrazione",
-    "formHelp": "Solo subnet IPv4, al massimo {{max}} indirizzi per esecuzione. Gli indirizzi .0 e .255 e il server ACS vengono saltati.",
-    "credentialsHelp": "Le credenziali sono usate solo durante l'esecuzione e non vengono mai salvate. Nella simulazione non servono: nessuna credenziale viene inviata agli apparati.",
-    "dryRun": "Simula (ricognizione)",
-    "apply": "Applica migrazione",
-    "recentTitle": "Esecuzioni recenti",
-    "noRuns": "Nessuna esecuzione finora.",
-    "runTitle": "Esecuzione · {{subnet}}",
-    "cancel": "Interrompi",
-    "progress": "Avanzamento",
-    "fields": {
-      "subnet": "Subnet di gestione (CIDR)",
-      "port": "Porta di gestione",
-      "informInterval": "Intervallo inform (secondi)",
-      "targetAcsUrl": "URL ACS di destinazione (CWMP)",
-      "username": "Utente dei router",
-      "password": "Password dei router"
-    },
-    "cols": {
-      "when": "Quando",
-      "subnet": "Subnet",
-      "mode": "Modalità",
-      "status": "Stato",
-      "found": "CPE trovati",
-      "changed": "Configurati"
-    },
-    "hostCols": {
-      "address": "Indirizzo",
-      "status": "Esito",
-      "model": "Modello",
-      "firmware": "Firmware",
-      "detail": "Dettaglio"
-    },
-    "mode": {
-      "dry": "Simulazione",
-      "apply": "Applicata"
-    },
-    "runStatus": {
-      "pending": "In attesa",
-      "running": "In corso",
-      "done": "Completata",
-      "failed": "Fallita",
-      "cancelled": "Interrotta"
-    },
-    "hostStatus": {
-      "pending": "In attesa",
-      "unreachable": "Non raggiungibile",
-      "not_cpe": "Non è un CPE",
-      "auth_failed": "Credenziali rifiutate",
-      "already_target": "Già sull'ACS",
-      "configured": "Configurato",
-      "error": "Errore",
-      "skipped": "Saltato"
-    },
-    "counters": {
-      "processed": "Elaborati",
-      "reachable": "Raggiungibili",
-      "configured": "Configurati",
-      "failed": "Falliti"
-    }
   },
   "ispbilling": {
     "title": "ISPBilling",
@@ -5815,6 +5766,135 @@
     "autoOff": "La configurazione automatica è spenta (Amministrazione → Syslog).",
     "adminRun": "Configura su tutti",
     "adminDone": "{{queued}} inviati, {{skipped}} già a posto, {{failed}} non supportati o non riusciti."
+  },
+  "lifecycleWeb": {
+    "title": "Ciclo di vita dal web",
+    "hint": "NSM cerca gli avvisi di fine vendita e fine supporto pubblicati dai vendor per ogni modello in inventario, tramite {{provider}} (raccoglie le pagine ufficiali MikroTik, Ubiquiti, Cambium, TP-Link e altri). Ciò che trova è una proposta: entra nel catalogo solo quando la applichi.",
+    "disabled": "La ricerca web è disattivata su questo server (LIFECYCLE_WEB_LOOKUP=off).",
+    "keyed": "Ricerca con chiave API: tutti i modelli in una volta.",
+    "keyless": "Ricerca pubblica senza chiave: pochi modelli per volta, il resto lo completa il worker in automatico.",
+    "pending_one": "{{count}} modello non ancora cercato.",
+    "pending_other": "{{count}} modelli non ancora cercati.",
+    "run": "Cerca sul web",
+    "ran": "{{checked}} modelli cercati: {{found}} con avviso, {{not_found}} senza avviso, {{errors}} errori.",
+    "deferred_one": "{{count}} rimandato al prossimo giro (limite di richieste).",
+    "deferred_other": "{{count}} rimandati al prossimo giro (limite di richieste).",
+    "applyExact_one": "Applica {{count}} corrispondenza esatta",
+    "applyExact_other": "Applica {{count}} corrispondenze esatte",
+    "appliedAll": "{{applied}} applicate al catalogo, {{skipped}} saltate.",
+    "empty": "Nessun modello ancora cercato: premi «Cerca sul web».",
+    "columns": {
+      "model": "Modello in inventario",
+      "found": "Trovato sul web",
+      "dates": "Date pubblicate",
+      "source": "Fonte",
+      "action": "Azione"
+    },
+    "vendorStatus": {
+      "discontinued": "Fuori produzione",
+      "vintage": "Vintage",
+      "legacy": "Legacy",
+      "end_of_sale": "Fine vendita",
+      "end_of_life": "Fine vita",
+      "supported": "Supportato",
+      "aging": "Fine supporto entro 24 mesi",
+      "approaching_eol": "Fine supporto entro 12 mesi",
+      "announced": "Fine vita annunciata",
+      "unknown": "Non indicato"
+    },
+    "confidence": {
+      "exact": "Corrispondenza esatta",
+      "prefix": "Corrispondenza parziale: da verificare",
+      "family": "Stessa famiglia: da verificare",
+      "search": "Risultato di ricerca: da verificare"
+    },
+    "devices_one": "{{count}} dispositivo",
+    "devices_other": "{{count}} dispositivi",
+    "searchedAs": "cercato come «{{name}}»",
+    "others_one": "{{count}} altro risultato",
+    "others_other": "altri {{count}} risultati",
+    "replacement": "Sostituto: {{name}}",
+    "notFound": "Nessun avviso di fine vita pubblicato",
+    "error": "Ricerca non riuscita ({{error}})",
+    "notChecked": "Non ancora cercato",
+    "checked": "verificato il {{when}}",
+    "endOfSale": "Fine vendita",
+    "endOfUpdates": "Fine aggiornamenti/supporto",
+    "unpublished": "non pubblicata",
+    "readAt": "fonte letta il {{when}}",
+    "applied": "Applicato al catalogo il {{when}}",
+    "inCatalog": "Già in catalogo ({{source}})",
+    "apply": "Applica al catalogo",
+    "applyThis": "Applica {{name}}",
+    "otherName": "Cerca con un altro nome",
+    "otherNamePlaceholder": "es. codice sull'etichetta (LBE-5AC-16-120)",
+    "search": "Cerca"
+  },
+  "acsMigration": {
+    "subtitle": "Migra in blocco i CPE dei clienti verso l'ACS integrato riconfigurando il CWMP sulla rete di gestione.",
+    "backToAcs": "Torna ad ACS",
+    "intro": "Indica la subnet di gestione dei tuoi router, la porta e le credenziali comuni della flotta: NSM raggiunge ogni apparato e imposta l'URL ACS di destinazione. Prima fai una simulazione per vedere quali CPE sono raggiungibili.",
+    "applyPending": "La riscrittura CWMP via interfaccia web TP-Link è in validazione sul campo per questo firmware: per ora è disponibile la sola ricognizione (simulazione).",
+    "formTitle": "Nuova migrazione",
+    "formHelp": "Solo subnet IPv4, al massimo {{max}} indirizzi per esecuzione. Gli indirizzi .0 e .255 e il server ACS vengono saltati.",
+    "credentialsHelp": "Le credenziali sono usate solo durante l'esecuzione e non vengono mai salvate. Nella simulazione non servono: nessuna credenziale viene inviata agli apparati.",
+    "dryRun": "Simula (ricognizione)",
+    "apply": "Applica migrazione",
+    "recentTitle": "Esecuzioni recenti",
+    "noRuns": "Nessuna esecuzione finora.",
+    "runTitle": "Esecuzione · {{subnet}}",
+    "cancel": "Interrompi",
+    "progress": "Avanzamento",
+    "fields": {
+      "subnet": "Subnet di gestione (CIDR)",
+      "port": "Porta di gestione",
+      "informInterval": "Intervallo inform (secondi)",
+      "targetAcsUrl": "URL ACS di destinazione (CWMP)",
+      "username": "Utente dei router",
+      "password": "Password dei router"
+    },
+    "cols": {
+      "when": "Quando",
+      "subnet": "Subnet",
+      "mode": "Modalità",
+      "status": "Stato",
+      "found": "CPE trovati",
+      "changed": "Configurati"
+    },
+    "hostCols": {
+      "address": "Indirizzo",
+      "status": "Esito",
+      "model": "Modello",
+      "firmware": "Firmware",
+      "detail": "Dettaglio"
+    },
+    "mode": {
+      "dry": "Simulazione",
+      "apply": "Applicata"
+    },
+    "runStatus": {
+      "pending": "In attesa",
+      "running": "In corso",
+      "done": "Completata",
+      "failed": "Fallita",
+      "cancelled": "Interrotta"
+    },
+    "hostStatus": {
+      "pending": "In attesa",
+      "unreachable": "Non raggiungibile",
+      "not_cpe": "Non è un CPE",
+      "auth_failed": "Credenziali rifiutate",
+      "already_target": "Già sull'ACS",
+      "configured": "Configurato",
+      "error": "Errore",
+      "skipped": "Saltato"
+    },
+    "counters": {
+      "processed": "Elaborati",
+      "reachable": "Raggiungibili",
+      "configured": "Configurati",
+      "failed": "Falliti"
+    }
   },
   "acsAlerts": {
     "title": "Avvisi dei CPE",
