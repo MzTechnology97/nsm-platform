@@ -37,6 +37,7 @@ from app.acs_admin import auto_update as acs_templates_auto_update
 from app.acs_snapshot import scheduled_snapshots as acs_scheduled_snapshots
 from app.acs_config_refresh import follow as acs_config_refresh_follow
 from app.acs_firmware import follow_upgrades as acs_firmware_follow
+from app.tplink_cloud_firmware import daily_refresh as tplink_cloud_refresh
 from app.acs_alerts import evaluate as acs_alerts_evaluate
 from app.device_exposure import tick as exposure_tick
 from app.external_exposure import tick as external_exposure_tick
@@ -123,6 +124,7 @@ while True:
             run_task("acs_scheduled_snapshots", acs_scheduled_snapshots)
             run_task("acs_config_refresh", acs_config_refresh_follow)
             run_task("acs_firmware_follow", acs_firmware_follow)
+            run_task("tplink_cloud_firmware", tplink_cloud_refresh)
             run_task("acs_alerts", acs_alerts_evaluate)
             run_task("exposure_check", exposure_tick)
             run_task("exposure_external_check", external_exposure_tick)

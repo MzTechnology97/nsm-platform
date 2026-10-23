@@ -4,6 +4,47 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.227 — 2026-10-23
+
+TP-Link firmware from the official site
+- **NSM now knows the latest firmware of every TP-Link model you have.** Every day it reads the official TP-Link Italian download page for the hardware version of your devices, for example V1 for the VX230v. The newest version appears on the device overview, in the firmware list and in *Firmware → Cataloghi*, as for the other brands. Firmware for another hardware version is never proposed, because it can damage the device.
+- **One-click download into the ACS.** When a newer version is out, the device's *Firmware* tab offers *Scarica dal sito TP-Link nell'ACS*. NSM downloads the official archive (only from TP-Link's server), extracts the firmware and selects it for the upgrade. The upgrade itself still waits for your confirmation.
+- **Automatic download (on by default).** When a newer version is published, NSM downloads it into the ACS by itself, once per version. It is then ready and preselected on the *Firmware* tab of every CPE of that model. Nothing is installed without your confirmation. You can turn it off in *Amministrazione → ACS → Download automatico dei firmware*.
+## 0.49.226 — 2026-10-23
+
+Alerts of TR-069 CPEs
+- **TP-Link and other TR-069 CPEs now raise alerts** in the Action Center, with a notification:
+  - when the CPE stops contacting the ACS;
+  - when its WAN is down but the CPE is still reachable, for example over the 4G backup;
+  - when the WAN reconnects or the CPE reboots too often;
+  - when the DSL line degrades (low SNR margin, or a speed well below the usual one).
+- **Each alert closes by itself** when the problem ends. Notifications during planned maintenance are labelled, as for the other devices.
+- **No duplicate alerts:** a CPE the ping monitor already reports as unreachable gets no second alert.
+- ***Amministrazione → ACS → Avvisi dei CPE*** turns each alert on or off and sets its thresholds.
+## 0.49.225 — 2026-10-22
+
+ACS
+- **The bulk CPE migration to the self-hosted ACS was removed.** It was meant to rewrite the CWMP ACS URL of a fleet of TP-Link CPEs over the management network, but the TP-Link web login could not be used on the operator's firmware. The *Amministrazione → ACS → migrazione* page, its API and its two tables (migration 0055) are gone. CPEs are pointed at the integrated GenieACS as described in the TP-Link guide on *Amministrazione → ACS*. Past migration events keep their labels in the activity log.
+
+## 0.49.224 — 2026-10-22
+
+Audit label
+- **The audit log now names the `DEVICE_VENDOR_CORRECTED` event** (*Vendor dell'apparato corretto*) in all four languages, instead of showing the raw code. It was recorded when a device's vendor was corrected on the server (generic → cambium).
+
+## 0.49.223 — 2026-10-22
+
+UISP backups
+- **Two UISP backups of the same device in the same second no longer overwrite each other.** The file name now includes the backup run, for example `20261022T170000Z_ap-tetto_1a2b3c4d_uisp.tar.gz`.
+
+## 0.49.222 — 2026-10-22
+
+Ping from NSM, on and off from the device page
+- **Click the *Ping da NSM* tile** on the device overview: a small window opens with an on/off switch.
+  - It shows the address that is pinged.
+  - It saves at once, and the first result arrives within a minute.
+  - Thresholds and a different address stay in *Monitor → Impostazioni monitoraggio*, linked from the window.
+- Users without the permission to edit devices see the window read-only. When the device has no address to ping, the switch cannot be turned on and the window says why.
+
 ## 0.49.221 — 2026-10-22
 
 Lifecycle from the web
