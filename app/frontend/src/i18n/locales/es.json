@@ -6120,5 +6120,38 @@
       "exclude": "Excluir este equipo",
       "apply": "Aplicar ahora"
     }
+  },
+  "backupPolicies": {
+    "title": "Políticas de copia de seguridad",
+    "subtitle": "Todas las políticas de copia de seguridad con los equipos que protegen: edítelas, duplíquelas, actívelas o desactívelas y elimínelas aquí.",
+    "back": "Volver a las copias",
+    "manage_one": "Políticas de copia ({{count}})",
+    "manage_other": "Políticas de copia ({{count}})",
+    "overviewHint": "{{active}} activas de {{count}}. Gestiónelas todas desde la página Políticas de copia de seguridad.",
+    "show": {
+      "all": "Todas",
+      "on": "Activas",
+      "off": "Desactivadas"
+    },
+    "filter": "Filtrar por nombre, ámbito o descripción",
+    "noMatch": "Ninguna política coincide con el filtro.",
+    "columns": {
+      "name": "Política",
+      "scope": "Ámbito",
+      "schedule": "Programación",
+      "devices": "Equipos",
+      "state": "Estado",
+      "actions": "Acciones"
+    },
+    "shared": "política general: protege también equipos de otros clientes",
+    "coverage": "{{protected}} protegidos · {{blocked}} bloqueados",
+    "failed_one": "{{count}} fallido",
+    "failed_other": "{{count}} fallidos",
+    "edit": "Editar",
+    "clone": "Duplicar",
+    "disable": "Desactivar",
+    "enable": "Activar",
+    "cancel": "Cancelar",
+    "confirm": "Para eliminar, escriba el nombre de la política: {{name}}"
   }
 }

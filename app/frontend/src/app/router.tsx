@@ -147,6 +147,11 @@ const backupsRoute = createRoute({
   component: lazyRouteComponent(() => import("../pages/BackupsOverview"), "BackupsOverview"),
   validateSearch: parseBackupOverviewSearch,
 });
+const backupPoliciesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/backups/policies",
+  component: lazyRouteComponent(() => import("../pages/BackupPolicies"), "BackupPolicies"),
+});
 const backupPolicyNewRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/backups/policies/new",
@@ -616,6 +621,7 @@ export const routeTree = rootRoute.addChildren([
   monitoringRoute,
   agentsRoute,
   backupsRoute,
+  backupPoliciesRoute,
   backupPolicyNewRoute,
   backupPolicyEditRoute,
   backupPolicyCloneRoute,

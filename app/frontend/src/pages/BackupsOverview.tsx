@@ -1,12 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { BackupPolicyList } from "../app/BackupPolicyList";
 import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
 import { BACKUP_VIEWS, type BackupOverviewFilters, type BackupOverviewRow, useBackupOverview } from "../api/operations";
-import { describeCron } from "../lib/cron";
 import { formatDateTime, formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { Metric } from "./DeviceDetail";
@@ -18,7 +19,7 @@ import { pageParams, usePaging } from "../lib/paging";
 const BUCKET_TONE = { protected: "ui-severity", blocked: "ui-severity ui-severity-warning", no_policy: "ui-severity ui-severity-high" } as const;
 
 export function BackupsOverview() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   // Globally or as a customer's "Backup" tab (the customer filter is then fixed and its picker hidden).
   const { search, update, customer: scope } = useListSearch<BackupOverviewFilters>();
   const facets = useDeviceFacets();
@@ -46,6 +47,9 @@ export function BackupsOverview() {
           <p>{t(scope ? "backupOverview.subtitleCustomer" : "backupOverview.subtitle")}</p>
         </div>
         <div className="ui-actions">
+          {!scope && (
+            <Link to="/backups/policies" className="ui-button">{t("backupPolicies.manage", { count: data?.policies.length ?? 0 })}</Link>
+          )}
           {data?.can_configure && (
             <Link to="/backups/policies/new" search={search.customer ? { customer: search.customer } : {}} className="ui-button ui-button-primary">{t("backupOverview.newPolicy")}</Link>
           )}
@@ -135,22 +139,14 @@ export function BackupsOverview() {
             </div>
           </section>}
           <section className="ui-panel">
-            <h2>{t("backupOverview.policies.title")}</h2>
-            <p className="ui-muted">{t("backupOverview.policies.hint")}</p>
-            {data.policies.length ? (
-              <ul className="ui-cap-list">
-                {data.policies.map((policy) => (
-                  <li key={policy.id}>
-                    <div>
-                      {data.can_configure ? <Link to="/backups/policies/$policyId/edit" params={{ policyId: policy.id }}>{policy.name}</Link> : <strong>{policy.name}</strong>}
-                      <small className="ui-muted">{policy.scope} · {describeCron(policy.schedule, t, i18n.language)}</small>
-                    </div>
-                    <span className={policy.enabled ? "ui-severity" : "ui-severity ui-severity-warning"}>{policy.enabled ? t("backupOverview.policies.on") : t("backupOverview.policies.off")}</span>
-                  </li>
-                ))}
-              </ul>
+            <div className="ui-page-header-row">
+              <h2>{t("backupOverview.policies.title")}</h2>
+              {!scope && <Link to="/backups/policies">{t("backupPolicies.manage", { count: data.policies.length })}</Link>}
+            </div>
+            {scope ? (
+              <BackupPolicyList customerId={scope} />
             ) : (
-              <p className="ui-muted">{t("backupOverview.policies.none")}</p>
+              <p className="ui-muted">{t("backupPolicies.overviewHint", { active: totals!.active_policies, count: data.policies.length })}</p>
             )}
           </section>
         </div>
