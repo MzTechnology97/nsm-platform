@@ -14,6 +14,7 @@ from app.mikrotik_agent_update import reconcile_agent_update_states
 from app.mikrotik_agent_autoupdate import auto_update as auto_update_agents
 from app.firmware_activation import reconcile_firmware_activations
 from app.firmware_plan_recovery import reconcile_firmware_plan_jobs
+from app.firmware_schedule import tick as firmware_schedule_tick
 from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_finalization_cleanup
 from app.mikrotik_telemetry import telemetry_cleanup
 from app.uisp_metrics import cleanup as uisp_metrics_cleanup
@@ -95,6 +96,7 @@ while True:
             run_task("agent_auto_update", auto_update_agents)
             firmware_stats = run_task("firmware_activation", reconcile_firmware_activations)
             firmware_plan_stats = run_task("firmware_plans", reconcile_firmware_plan_jobs)
+            run_task("firmware_schedule", firmware_schedule_tick)
             routerboot_stats = run_task("routerboot_verification", routerboot_verification_tick)
             reboot_stats = dict(run_task("device_reboot_verification", verify_reboots))
             run_task("uisp_reboot_verification", uisp_verify_reboots)

@@ -5289,6 +5289,11 @@
     "FIRMWARE_UPGRADE_PLAN_CANCELLED": "Plan de actualización cancelado",
     "FIRMWARE_UPGRADE_PLAN_CREATED": "Plan de actualización creado",
     "FIRMWARE_UPGRADE_PLAN_EXPIRED": "Plan de actualización caducado",
+    "FIRMWARE_UPGRADE_SCHEDULED": "Actualización de firmware programada",
+    "FIRMWARE_UPGRADE_SCHEDULE_CANCELLED": "Actualización programada cancelada",
+    "FIRMWARE_UPGRADE_SCHEDULE_DONE": "Actualización programada completada",
+    "FIRMWARE_UPGRADE_SCHEDULE_FAILED": "Actualización programada fallida",
+    "FIRMWARE_UPGRADE_SCHEDULE_STARTED": "Actualización programada iniciada",
     "FIRMWARE_UPGRADE_VERIFICATION_FAILED": "Fallo en la verificación de la actualización",
     "FIRMWARE_UPGRADE_VERIFIED": "Actualización verificada",
     "GENIEACS_CONNECTOR_CONFIGURED": "Conector GenieACS configurado",
@@ -6271,6 +6276,33 @@
       "verified": "Actualización a {{version}} verificada.",
       "failed": "La actualización a {{version}} ha fallado.",
       "unconfirmed": "Actualización a {{version}} no confirmada."
+    }
+  },
+  "firmwareSchedule": {
+    "title": "Actualización programada",
+    "help": "Elige cuándo actualizar, por ejemplo de noche. A esa hora NSM ejecuta solo todas las fases sin más confirmaciones: comprobación, copia previa, aprobación, descarga, activación con reinicio y control de la versión. Si el dispositivo no es accesible en 2 horas, la actualización no se ejecuta.",
+    "when": "Fecha y hora",
+    "schedule": "Programar actualización",
+    "move": "Mover",
+    "cancel": "Cancelar programación",
+    "at": "para el {{when}}",
+    "confirm": "¿Programar la actualización de RouterOS (ahora {{target}}) para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "confirmMany_one": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "confirmMany_other": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "selected_one": "{{count}} seleccionado",
+    "selected_other": "{{count}} seleccionados",
+    "scheduleMany": "Programar actualización",
+    "select": "Seleccionar {{name}}",
+    "done_one": "{{count}} actualización programada.",
+    "done_other": "{{count}} actualizaciones programadas.",
+    "skipped": "No programados (se requiere RouterOS 7.13+ con el agente moderno): {{names}}.",
+    "states": {
+      "scheduled": "Programada",
+      "checking": "Comprobando",
+      "running": "En curso",
+      "success": "Completada",
+      "failed": "Fallida",
+      "cancelled": "Cancelada"
     }
   }
 }

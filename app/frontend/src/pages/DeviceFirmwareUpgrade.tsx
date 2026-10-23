@@ -7,6 +7,7 @@ import { useDevice } from "../api/device";
 import { type FirmwarePlanTab, useFirmwareAction, useFirmwarePlan } from "../api/deviceTabs";
 import { AcsFirmware } from "../app/AcsFirmware";
 import { UispFirmware } from "../app/UispFirmware";
+import { FirmwareSchedulePanel } from "../app/FirmwareSchedule";
 import { formatDateTime } from "../lib/format";
 import { Loading } from "../app/States";
 
@@ -132,6 +133,11 @@ function RouterosFirmwareUpgrade({ deviceId }: { deviceId: string }) {
           ? <div className="ui-alert ui-alert-warning">{t("firmwarePlan.prepareFailed", { error: data.preparing.error })}</div>
           : <div className="ui-alert">{t("firmwarePlan.preparing")}</div>)}
       </section>
+
+      {!data.legacy && (data.schedule || data.can_execute) && (
+        <FirmwareSchedulePanel deviceId={deviceId} schedule={data.schedule} canExecute={data.can_execute}
+          target={data.readiness.latest_version ?? data.recommended} />
+      )}
 
       {data.legacy && (
         <section className="ui-panel ui-admin-section">

@@ -5289,6 +5289,11 @@
     "FIRMWARE_UPGRADE_PLAN_CANCELLED": "Plan de mise à jour annulé",
     "FIRMWARE_UPGRADE_PLAN_CREATED": "Plan de mise à jour créé",
     "FIRMWARE_UPGRADE_PLAN_EXPIRED": "Plan de mise à jour expiré",
+    "FIRMWARE_UPGRADE_SCHEDULED": "Mise à jour du firmware programmée",
+    "FIRMWARE_UPGRADE_SCHEDULE_CANCELLED": "Mise à jour programmée annulée",
+    "FIRMWARE_UPGRADE_SCHEDULE_DONE": "Mise à jour programmée terminée",
+    "FIRMWARE_UPGRADE_SCHEDULE_FAILED": "Mise à jour programmée échouée",
+    "FIRMWARE_UPGRADE_SCHEDULE_STARTED": "Mise à jour programmée lancée",
     "FIRMWARE_UPGRADE_VERIFICATION_FAILED": "Échec de la vérification de mise à jour",
     "FIRMWARE_UPGRADE_VERIFIED": "Mise à jour vérifiée",
     "GENIEACS_CONNECTOR_CONFIGURED": "Connecteur GenieACS configuré",
@@ -6271,6 +6276,33 @@
       "verified": "Mise à jour vers {{version}} vérifiée.",
       "failed": "Échec de la mise à jour vers {{version}}.",
       "unconfirmed": "Mise à jour vers {{version}} non confirmée."
+    }
+  },
+  "firmwareSchedule": {
+    "title": "Mise à jour programmée",
+    "help": "Choisissez quand mettre à jour, par exemple la nuit. À cette heure NSM exécute seul toutes les phases sans autre confirmation : vérification, sauvegarde préalable, approbation, téléchargement, activation avec redémarrage et contrôle de la version. Si l'équipement n'est pas joignable dans les 2 heures, la mise à jour n'est pas exécutée.",
+    "when": "Date et heure",
+    "schedule": "Programmer la mise à jour",
+    "move": "Déplacer",
+    "cancel": "Annuler la programmation",
+    "at": "pour le {{when}}",
+    "confirm": "Programmer la mise à jour RouterOS (actuellement {{target}}) pour le {{when}} ? À cette heure toutes les phases, redémarrage compris, démarrent sans autre confirmation.",
+    "confirmMany_one": "Programmer la mise à jour de {{count}} MikroTik pour le {{when}} ? À cette heure toutes les phases, redémarrage compris, démarrent sans autre confirmation.",
+    "confirmMany_other": "Programmer la mise à jour de {{count}} MikroTik pour le {{when}} ? À cette heure toutes les phases, redémarrage compris, démarrent sans autre confirmation.",
+    "selected_one": "{{count}} sélectionné",
+    "selected_other": "{{count}} sélectionnés",
+    "scheduleMany": "Programmer la mise à jour",
+    "select": "Sélectionner {{name}}",
+    "done_one": "{{count}} mise à jour programmée.",
+    "done_other": "{{count}} mises à jour programmées.",
+    "skipped": "Non programmés (RouterOS 7.13+ avec l'agent moderne requis) : {{names}}.",
+    "states": {
+      "scheduled": "Programmée",
+      "checking": "En vérification",
+      "running": "En cours",
+      "success": "Terminée",
+      "failed": "Échouée",
+      "cancelled": "Annulée"
     }
   }
 }

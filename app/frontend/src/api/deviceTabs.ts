@@ -248,6 +248,7 @@ export interface FirmwarePlanTab {
   /** A RouterOS update check is queued or running; *Prepara upgrade* asked while it runs (``error`` when the plan could not be opened). */
   check_pending?: boolean;
   preparing?: { at: string; error?: string } | null;
+  schedule?: import("../app/FirmwareSchedule").FirmwareSchedule | null;
   plan: {
     id: string;
     target_version: string;

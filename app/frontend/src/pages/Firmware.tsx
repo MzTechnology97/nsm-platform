@@ -13,6 +13,7 @@ import { useDebounced } from "../lib/hooks";
 import { Loading } from "../app/States";
 import { Pager } from "../app/Pager";
 import { pageParams, usePaging } from "../lib/paging";
+import { ScheduleBadge, ScheduleBar } from "../app/FirmwareSchedule";
 
 const STATUS_TONE: Record<string, string> = {
   critical_security_update: "ui-severity ui-severity-critical",
@@ -38,6 +39,8 @@ export function Firmware() {
   const rows = useMemo(() => query.data?.items ?? [], [query.data]);
   const first = query.data;
   const state = search.state ?? "attention";
+  const [selected, setSelected] = useState<string[]>([]);
+  const toggle = (id: string) => setSelected((list) => (list.includes(id) ? list.filter((item) => item !== id) : [...list, id]));
 
   return (
     <section className="ui-page">
@@ -73,6 +76,8 @@ export function Firmware() {
         </select>
       </div>
 
+      <ScheduleBar selected={selected} onDone={() => setSelected([])} />
+
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
       ) : !first ? (
@@ -89,7 +94,7 @@ export function Firmware() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => <Row key={row.id} row={row} />)}
+                {rows.map((row) => <Row key={row.id} row={row} selected={selected.includes(row.id)} onSelect={() => toggle(row.id)} />)}
               </tbody>
             </table>
           </div>
@@ -102,7 +107,7 @@ export function Firmware() {
   );
 }
 
-function Row({ row }: { row: FirmwareRow }) {
+function Row({ row, selected, onSelect }: { row: FirmwareRow; selected: boolean; onSelect: () => void }) {
   const { t, i18n } = useTranslation();
   const check = useFirmwareCheck();
   const checked = check.isSuccess && check.variables === row.id;
@@ -110,6 +115,7 @@ function Row({ row }: { row: FirmwareRow }) {
     <tr>
       <td>
         <div className="ui-with-brand">
+          {row.can_schedule && <input type="checkbox" checked={selected} onChange={onSelect} aria-label={t("firmwareSchedule.select", { name: row.name })} />}
           <BrandIcon brand={row.brand} small />
           <span>
             <Link to="/devices/$deviceId" params={{ deviceId: row.id }} className="ui-cell-title">{row.name}</Link>
@@ -128,6 +134,7 @@ function Row({ row }: { row: FirmwareRow }) {
       </td>
       <td>
         <span className={STATUS_TONE[row.firmware_status] ?? "ui-severity"}>{t(`firmware.status.${row.firmware_status}`, { defaultValue: row.firmware_status })}</span>
+        {row.schedule && <ScheduleBadge schedule={row.schedule} />}
       </td>
       <td className="ui-nowrap">{row.verified_at ? formatRelative(row.verified_at, i18n.language) : <span className="ui-muted">{t("firmware.notVerified")}</span>}</td>
       <td>
