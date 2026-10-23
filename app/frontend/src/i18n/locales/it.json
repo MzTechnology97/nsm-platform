@@ -5643,5 +5643,10 @@
     "none": "Nessun risultato.",
     "more_one": "Altri {{count}}: continua a scrivere per restringere.",
     "more_other": "Altri {{count}}: continua a scrivere per restringere."
+  },
+  "quickImport": {
+    "ispbilling": "Importa da ISPBilling",
+    "uisp": "Importa da UISP",
+    "cnmaestro": "Importa da cnMaestro"
   }
 }
