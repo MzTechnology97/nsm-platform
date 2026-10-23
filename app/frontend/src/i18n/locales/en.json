@@ -2936,7 +2936,8 @@
     "skipped_one": "{{count}} skipped because changed in UISP or already present: {{names}}.",
     "skipped_other": "{{count}} skipped because changed in UISP or already present: {{names}}.",
     "openCustomer": "Open the customer",
-    "again": "New onboarding"
+    "again": "New onboarding",
+    "customerSearch": "Search a customer…"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -3388,7 +3389,8 @@
       "not_owned": "One or more devices no longer belong to the customer: reload the page.",
       "confirm_count": "The confirmation number does not match.",
       "action_invalid": "Invalid action."
-    }
+    },
+    "customerSearch": "Search a customer…"
   },
   "deviceImport": {
     "open": "Import CSV",
@@ -4084,7 +4086,7 @@
     },
     "refresh": "Refresh from GenieACS",
     "refreshed": "Inventory refreshed from GenieACS.",
-    "notYet": "Backup and firmware upgrades through the ACS are not available yet.",
+    "notYet": "Diagnostics, backup and firmware upgrade through the ACS are not available yet.",
     "verifyTitle": "Check the match",
     "searchTitle": "Search GenieACS",
     "searchSerialMac": "NSM looks up the serial {{serial}} and, if not found, the MAC {{mac}}; the lookup changes nothing.",
@@ -5970,5 +5972,11 @@
     "dismiss": "Ignore",
     "notImported": "The ISPBilling customer of this account is not in NSM yet.",
     "import": "Import it"
+  },
+  "searchSelect": {
+    "placeholder": "Type to search…",
+    "none": "No match.",
+    "more_one": "{{count}} more: keep typing to narrow down.",
+    "more_other": "{{count}} more: keep typing to narrow down."
   }
 }
