@@ -452,6 +452,20 @@ A complete cybersecurity view for an ISP/WISP, taking as reference the open-sour
   - activity log, with history and charts of listings over time;
   - alerts through the existing NSM channels (email, Telegram, webhook) and Action Center issues; CSV export.
 
+### CROWDSEC-01 — CrowdSec integration (requested 2026-10-23)
+
+CrowdSec (open-source security engine, free community blocklist) to protect NSM itself and to enrich the security view of the network:
+- **protect the NSM server and the external probe**:
+  - CrowdSec engine with the parsers for the NSM web/API (Caddy), SSH and the syslog receiver;
+  - bouncers that block the attacking IPs (Caddy bouncer, firewall bouncer);
+  - installed and updated by the NSM installer.
+- **NSM reads the decisions** through the CrowdSec Local API, with a read-only key:
+  - IPs blocked and why, on the *Sicurezza → Accessi* page;
+  - correlated with the login failures that the customers' devices send through syslog.
+- **NSM as a source**: brute-force attempts seen in the devices' syslog become CrowdSec alerts, so an IP that attacks one customer is known for all of them.
+- **Reputation of the operator's addresses** (with CYBER-01): customer public IPs that appear in the community blocklist point to a compromised CPE or router, and get an Action Center issue on the owning device.
+- **Optional, operator's choice per device**: the blocklist as a RouterOS address list (`crowdsec`) on MikroTik routers through the Agent, with a drop rule on the input chain. It is applied only with explicit confirmation and can be removed, and it is never written by default.
+
 ### ZBX-01 — Zabbix API integration (requested 2026-10-07)
 
 **Decided with the user (2026-10-08): NSM pushes its devices to Zabbix. Implemented in `main` (Core 0.49.51).** Hosts, groups per customer, templates per manufacturer, tags and inventory; 6.x and 7.x authentication; hosts disabled (not deleted) when devices leave NSM. Zabbix problems are shown inside NSM since Core 0.49.62 (device header and overview, Monitoring). **Since Core 0.49.205 (operator decision 2026-10-22)**: devices already monitored in the operator's Zabbix are linked to their existing host (same IP, else same name, only when exactly one matches) instead of getting a duplicate `nsm-` host; linked hosts are never modified except their interface IP, kept equal to the device address for dynamic public IPs/NAT (option); ambiguous matches are reported; the settings form suggests the templates found in Zabbix.
