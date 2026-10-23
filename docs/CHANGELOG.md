@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.212 — 2026-10-22
+
+Legacy MikroTik agent: failures say why
+- **A failed job on a RouterOS 7.12 (legacy) router now reports the reason**, not only "RouterOS legacy job execution failed". RouterOS 7.12 cannot pass the error text to the script, so the Agent records the step it was on and the reason. For a backup, the reason can be, for example:
+  - the export command failed;
+  - the export file was not created;
+  - the export is too large for the legacy transport;
+  - the export was read only in part ("export read incomplete: 4095/18230 bytes");
+  - the upload to NSM failed.
+  The reason appears in the backup history and in the device jobs.
+- **Agent 0.49.23**: legacy Agents update themselves automatically. Modern Agents get the same version, with no other change.
+
 ## 0.49.211 — 2026-10-22
 
 History of TR-069 CPEs
