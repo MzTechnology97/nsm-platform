@@ -168,6 +168,7 @@ Possible focused PRs:
 **Decided with the user (2026-10-23):**
 - a single global list, *Reti di gestione autorizzate* (Amministrazione), prefilled with the NSM/Zabbix server, valid for **every** device: MikroTik, Ubiquiti CPEs, TP-Link, Cambium and the others;
 - SNMP with the `public` community, read-only, answering only those addresses;
+- SSH accepted only from those addresses, on every device;
 - NTP client towards the Italian national time servers (INRIM `ntp1.inrim.it`, `ntp2.inrim.it`), clock `Europe/Rome` with automatic daylight saving time;
 - applied automatically, with per-device exclusion; clock and synchronization state shown on the device.
 
@@ -175,10 +176,11 @@ Per vendor:
 - **MikroTik (Agent)**: Core 0.49.287 / Agent 0.49.27:
   - `/snmp community` `public` limited to the list, `/snmp enabled=yes`;
   - `/system ntp client` with the INRIM servers;
-  - `/system clock time-zone-name=Europe/Rome`.
+  - `/system clock time-zone-name=Europe/Rome`;
+  - SSH: *available-from* of `/ip service ssh` (not a firewall rule, so the operator's firewall order is never touched).
 - **Ubiquiti airOS (UISP)**: UISP does not set SNMP, ACL or firewall rules today. NSM can do it like the syslog (UISP backup → edited `system.cfg` → apply, which reboots the CPE):
   - `snmp.status`, `snmp.community` and `snmp.location` exist in the archived configurations;
-  - airOS has no address list for SNMP, so the ACL needs firewall rules (`iptables.sys.fw.*`: accept SNMP and the management ports from the list, drop them from the others on the WAN);
+  - airOS has no address list for SNMP or SSH (`sshd.*` has only port and status), so the ACL needs firewall rules (`iptables.sys.fw.*`: accept SNMP, SSH and the management ports from the list, drop them from the others on the WAN);
   - the NTP keys (`ntpclient.*`) and the timezone keys need checking;
   - rule keys and ordering must be validated on a test CPE first, because a wrong rule can lock the CPE out of management.
 - **TP-Link and other CPEs (TR-069)**:
