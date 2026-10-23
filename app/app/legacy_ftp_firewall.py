@@ -6,7 +6,9 @@ renders an idempotent script that lets only the subnets allowed in *Amministrazi
 The receiver refuses other origins by itself as well; these rules stop them before they reach it.
 
 On the host: ``./manage.sh legacy-ftp-firewall`` prints the script, ``--apply`` runs it (root);
-``./manage.sh legacy-backup-enable`` applies it when subnets are configured.
+``./manage.sh legacy-backup-enable`` applies it when subnets are configured. With the automatic update installed,
+``nsm-legacy-ftp-firewall.timer`` (``scripts/nsm-legacy-ftp-firewall.sh``) applies it at boot and within two minutes
+of a change of the subnets, and removes it when no subnet is left.
 """
 from __future__ import annotations
 

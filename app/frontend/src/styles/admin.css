@@ -594,3 +594,98 @@ a.ui-search-result:hover {
   overflow: auto;
   font-size: 12px;
 }
+
+/* ISPBilling: the automatic import, under the connection actions. */
+.ui-ispbilling-auto {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.ui-ispbilling-auto h3,
+.ui-ispbilling-auto p {
+  margin: 0;
+}
+
+/* Select with a search box (SearchSelect): long lists such as customers. */
+.ui-search-select {
+  position: relative;
+  min-width: 0;
+}
+
+.ui-search-select input {
+  width: 100%;
+  min-height: 36px;
+  box-sizing: border-box;
+  padding: 5px 30px 5px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+}
+
+.ui-search-select input::placeholder {
+  color: var(--text);
+}
+
+.ui-search-select input:focus::placeholder {
+  color: var(--muted);
+}
+
+.ui-search-select::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.ui-search-select-list {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 320px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+}
+
+.ui-search-select-item {
+  padding: 7px 10px;
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ui-search-select-item.is-active {
+  background: var(--accent-soft);
+}
+
+.ui-search-select-item.is-selected {
+  font-weight: 700;
+}
+
+.ui-search-select-empty {
+  padding: 7px 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}

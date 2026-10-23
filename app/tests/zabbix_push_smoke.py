@@ -210,7 +210,8 @@ def main():
 
     detail = client.get(f"/api/ui/v1/devices/{ids['mt']}").json()["zabbix"]
     assert "zabbix.php?action=latest.view&hostids%5B%5D=" in detail["link"], detail
-    assert client.get(f"/api/ui/v1/devices/{ids['cpe']}").json()["zabbix"] == {"link": None, "excluded": True, "problems": None}
+    excluded = client.get(f"/api/ui/v1/devices/{ids['cpe']}").json()["zabbix"]
+    assert {k: excluded[k] for k in ("link", "excluded", "problems", "in_scope")} == {"link": None, "excluded": True, "problems": None, "in_scope": False}, excluded
     hub = client.get("/api/ui/v1/integrations").json()["zabbix"]
     assert hub["state"] == "active" and hub["version"] == "6.0.30", hub
 

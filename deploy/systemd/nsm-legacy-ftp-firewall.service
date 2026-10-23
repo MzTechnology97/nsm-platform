@@ -1,0 +1,13 @@
+[Unit]
+Description=NSM Platform legacy backup FTP firewall (subnets allowed in NSM)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+EnvironmentFile=-/etc/default/nsm-auto-update
+ExecStart=/usr/local/sbin/nsm-legacy-ftp-firewall
+TimeoutStartSec=2min
+PrivateTmp=true

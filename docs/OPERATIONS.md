@@ -115,7 +115,7 @@ The Docker stack can run GenieACS next to NSM (optional compose profile `acs`), 
 1. `sudo ./manage.sh acs-enable`: generates `GENIEACS_UI_JWT_SECRET` in `secrets/bootstrap.env`, sets `COMPOSE_PROFILES=acs` and `GENIEACS_INTERNAL_NBI_URL` in `.env`, builds and starts the services. Later `update.sh` runs keep them running.
 2. *Amministrazione → Integrazioni → GenieACS / TR-069 → Usa GenieACS integrato*, then *Test connessione*.
 3. Open the GenieACS UI through the SSH tunnel and create its administrator **at the first access** (the first visitor sets it, which is why the UI is not published).
-4. Set `ACS_CWMP_URL=http://<address the CPEs reach NSP on>:7547` in `.env`, then `sudo ./manage.sh up` (it recreates the containers; `restart` does not reload `.env`): *Amministrazione → ACS* shows it in the TP-Link guide and the CPE migration offers it as target. Without it NSP shows the address the administrator opened it with.
+4. Set `ACS_CWMP_URL=http://<address the CPEs reach NSP on>:7547` in `.env`, then `sudo ./manage.sh up` (it recreates the containers; `restart` does not reload `.env`): *Amministrazione → ACS* shows it in the TP-Link guide. Without it NSP shows the address the administrator opened it with.
 5. Configure the CPE following *Amministrazione → ACS → Configurare una CPE TP-Link*: only CWMP on, Inform on, the ACS URL and Periodic Inform; WAN, PPPoE, Wi-Fi and LAN are not touched. Allow 7547 and 7567 only from the customer networks on the host firewall.
 6. Include `data/genieacs-mongo` in the off-host backups.
 
@@ -136,6 +136,10 @@ The `syslog` service receives device logs on **514 UDP/TCP**: the process listen
 - **Rate limit.** Each sender is limited to 50 lines per second, with bursts of 200.
 - **Retention.** Warning, error and critical lines of a device are kept for its whole life and removed only with the device. Info, notice and debug lines are kept for up to 90 days (configurable, never more). The worker deletes old lines in batches.
 - **Status.** The receiver publishes its status every 10 seconds; *Sistema → Connettori* shows it as "Server syslog".
+
+## Lifecycle lookup on the web
+
+The worker and *Catalogo lifecycle → Ciclo di vita dal web* send the vendor and model names of the inventory (nothing else) to `https://eol.network` over HTTPS; the server must reach it on port 443. Without a key the public search allows 10 requests a minute, so NSM looks up 8 models per run and completes the rest over the following runs. A free account key in `.env` (`EOL_NETWORK_API_KEY=...`, then `sudo ./manage.sh up`) looks up every model in one call. `LIFECYCLE_WEB_LOOKUP=off` disables every lookup. Nothing reaches the catalog until an operator applies it.
 
 ## Capacity and retention
 
@@ -192,6 +196,7 @@ Dumps taken before the rotation still need the old key: store it with them. If t
 
 ## Health and monitoring
 
+- During an update the API container is recreated (10–30 s). Caddy holds requests for up to 60 s while the API comes back, checking its health every 3 s, so pages wait instead of failing with *502 / no upstreams available*. `update.sh` recreates the Caddy container only when `config/Caddyfile` changed: Caddy mounts that single file and would otherwise keep the old copy.
 - `GET /health` (also `/api/v1/health`): `200` when PostgreSQL and Redis
   answer, `503` otherwise. The `worker` field reports `alive` (heartbeat
   younger than 180 s), the heartbeat age and the names of failing tasks; it is
