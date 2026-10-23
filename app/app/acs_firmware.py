@@ -228,6 +228,8 @@ def catalog_info(db, device) -> dict | None:
         pass
     return {"latest": info["latest"], "source": SOURCE_LABELS.get(info.get("source"), info.get("source")), "security": bool(info.get("security")),
             "status": device.firmware_status, "newer": device.firmware_status in ("update_available", "security_update"),
+            # The image can be downloaded from the vendor's site by NSM (tplink_firmware.fetch_image).
+            "fetchable": info.get("source") == "vendor_site",
             "released_at": release.released_at.isoformat() if release and release.released_at else None,
             "notes_url": release.notes_url if release else None}
 
@@ -296,6 +298,41 @@ async def device_acs_firmware_upload(request: Request, device_id: uuid.UUID, ima
                                 "product_class": identity.get("product_class")})
         db.commit()
     return {"file_name": name, "size": size, "sha256": digest.hexdigest()}
+
+
+@router.post("/devices/{device_id}/acs/firmware/fetch", dependencies=[Depends(require_csrf)])
+def device_acs_firmware_fetch(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    """Download a catalog release from TP-Link's official site and store its image in GenieACS (nothing is sent to the CPE yet)."""
+    from app import tplink_firmware
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.write")
+        device, connection = nbi._linked(db, device_id)
+        version = str((body or {}).get("version") or "").strip()[:80]
+        if not version:
+            raise HTTPException(422, {"code": "no_version", "message": "Indica la versione da scaricare."})
+        try:
+            path, original, url = tplink_firmware.fetch_image(device, version, MAX_IMAGE)
+        except tplink_firmware.TplinkError as exc:
+            raise HTTPException(422, {"code": "vendor_site", "message": str(exc)}) from None
+        try:
+            digest = hashlib.sha256()
+            with open(path, "rb") as image:
+                while chunk := image.read(1024 * 1024):
+                    digest.update(chunk)
+            size = os.path.getsize(path)
+            identity = _identity(nbi._read(connection, device.external_device_id, ["_deviceId"]))
+            name = file_name_for(identity, original, digest.hexdigest())
+            if name not in {f["name"] for f in list_files(connection, identity.get("product_class"))}:
+                store_file(connection, identity, name, path, version)
+        except (nbi.AcsDiagnosticError, FirmwareError) as exc:
+            raise HTTPException(422, {"code": "genieacs", "message": str(exc)}) from None
+        finally:
+            os.unlink(path)
+        core.add_event(db, "ACS_FIRMWARE_FILE_FETCHED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal",
+                       details={"file": name, "size": size, "sha256": digest.hexdigest(), "version": version, "url": url})
+        db.commit()
+        return {"file_name": name, "size": size, "sha256": digest.hexdigest(), "version": version}
 
 
 @router.post("/devices/{device_id}/acs/firmware", dependencies=[Depends(require_csrf)])

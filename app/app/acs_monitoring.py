@@ -19,6 +19,7 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import func, select
 
+from app import acs_port_mapping
 from app import genieacs_connector as acs
 from app.acs_models import AcsMetricSample
 from app.db import SessionLocal
@@ -53,6 +54,7 @@ PROJECTION = (
     "Device.Hosts.HostNumberOfEntries", "Device.DSL.Line", "Device.DSL.Channel",
     "InternetGatewayDevice.DeviceInfo.UpTime", "InternetGatewayDevice.ManagementServer.PeriodicInformInterval",
     "InternetGatewayDevice.ManagementServer.ConnectionRequestURL", "InternetGatewayDevice.WANDevice", "InternetGatewayDevice.LANDevice",
+    *acs_port_mapping.PROJECTION,
 )
 
 _last_run = 0.0
@@ -268,6 +270,7 @@ def read_state(row: dict) -> dict:
     last_boot = _parse_time(row.get("_lastBoot"))
     state["last_inform"] = last_inform.isoformat() if last_inform else None
     state["last_boot"] = last_boot.isoformat() if last_boot else None
+    state["nat"] = acs_port_mapping.parse(row)
     return state
 
 
@@ -300,6 +303,10 @@ def apply_state(db, device: Device, state: dict, now: datetime) -> bool:
     data = dict(device.inventory_data or {})
     tr = dict(data.get("tr069") or {})
     previous = tr.get("monitor") if isinstance(tr.get("monitor"), dict) else None
+    if state.get("nat") is None:
+        state["nat"] = (previous or {}).get("nat")  # not read this time: keep the last one
+    else:
+        acs_port_mapping.record(db, device, (previous or {}).get("nat"), state["nat"])
     last_inform = _parse_time(state.get("last_inform"))
     added = False
     if last_inform is not None:
