@@ -22,7 +22,8 @@ def csrf_from(html):
 
 def main():
     assert vf.version_key("ubiquiti", "XC.ar934x.v8.7.11.46972.220614.0420") == (8, 7, 11)
-    assert vf.version_key("tp-link", "1.1.0 Build 20230705 rel.12345") == (1, 1, 0)
+    # TP-Link: release number, then build (tplink_firmware.version_key).
+    assert vf.version_key("tp-link", "1.1.0 Build 20230705 rel.12345") == (1, 1, 0, 20230705)
     assert vf.version_key("huawei", "V5R020C10S115") is None
     assert vf.is_newer("ubiquiti", "8.7.12", "WA.ipq40xx.v8.7.11.46972.220614.0420") is True
     assert vf.is_newer("ubiquiti", "8.7.11", "XC.ar934x.v8.7.11.46972.220614.0420") is False
@@ -92,7 +93,7 @@ def main():
     catalogs = {c["brand"]: c for c in client.get(api).json()["catalogs"]}
     assert {"tp-link", "huawei"} <= set(catalogs) and "cambium" not in catalogs, set(catalogs)
     assert any(r["source"] == "vendor_api" for c in catalogs.values() for r in c["releases"])
-    assert catalogs["tp-link"]["page"] == "https://www.tp-link.com/support/download/"
+    assert catalogs["tp-link"]["page"] == "https://www.tp-link.com/it/support/download/"
     assert client.post(f"{api}/releases", headers=headers, json={"brand": "cambium", "version": "4.7.1"}).status_code == 422
     assert client.post(f"{api}/releases", headers=headers, json={"brand": "tp-link", "version": "nuova"}).status_code == 422
     with SessionLocal() as db:
