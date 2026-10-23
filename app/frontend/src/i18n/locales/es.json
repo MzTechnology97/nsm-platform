@@ -5078,6 +5078,7 @@
     }
   },
   "eventTypes": {
+    "ACS_CUSTOMER_TAG_SET": "CPE etiquetado con su cliente en GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnóstico ACS completado",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnóstico ACS solicitado",
     "ACS_MIGRATION_COMPLETED": "Migración ACS completada",

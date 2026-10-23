@@ -28,6 +28,7 @@ from app.syslog_receiver import cleanup as syslog_cleanup
 from app.syslog_security import evaluate as evaluate_access_alerts
 from app.mikrotik_syslog_config import auto_configure as auto_configure_syslog
 from app.zabbix_connector import scheduled_sync as zabbix_sync
+from app.acs_customer_tags import run as acs_customer_tags
 from app.zabbix_problems import scheduled_refresh as zabbix_problems_refresh
 from app.acs_monitoring import cleanup as acs_metrics_cleanup, collect as acs_monitoring_collect
 from app.acs_admin import auto_update as acs_templates_auto_update
@@ -101,6 +102,7 @@ while True:
             run_task("interface_error_alerts", interface_error_alerts)
             run_task("zabbix_sync", zabbix_sync)
             run_task("cnmaestro_sync", cnmaestro_sync)
+            run_task("acs_customer_tags", acs_customer_tags)
             run_task("ispbilling_sync", ispbilling_sync)
             run_task("zabbix_problems", zabbix_problems_refresh)
             run_task("acs_monitoring", acs_monitoring_collect)
