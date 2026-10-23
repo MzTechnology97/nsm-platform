@@ -17,6 +17,9 @@ export interface DeviceZabbix {
   /** Linked to a host the operator already had in Zabbix (by IP or name), not created by NSM. */
   linked?: boolean;
   match?: "ip" | "name" | null;
+  /** Wanted in Zabbix (scope, customer or the device itself) and what happened at the last push. */
+  in_scope?: boolean;
+  outcome?: "pushed" | "linked" | "no_ip" | "factory_ip" | "pending";
   problems: { items: ZabbixProblem[]; checked_at: string | null; stale: boolean } | null;
 }
 
