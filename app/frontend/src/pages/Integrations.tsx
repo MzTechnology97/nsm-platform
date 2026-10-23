@@ -41,7 +41,7 @@ export function Integrations() {
   const when = (value: string | null) => (value ? formatDateTime(value, i18n.language) : t("adminUsers.never"));
   const state = (key: string) => t(`integrations.states.${key}`);
 
-  const manageRoute = (to: "/admin/integrations/cnmaestro" | "/admin/integrations/unifi" | "/admin/integrations/zabbix" | "/admin/integrations/genieacs" | "/admin/integrations/uisp" | "/admin/integrations/ispbilling", configured: boolean) =>
+  const manageRoute = (to: "/admin/integrations/cnmaestro" | "/admin/integrations/zabbix" | "/admin/integrations/genieacs" | "/admin/integrations/uisp" | "/admin/integrations/ispbilling", configured: boolean) =>
     data?.can_admin ? <Link className="ui-button ui-button-ghost ui-button-small" to={to}>{configured ? t("integrations.manage") : t("integrations.configure")}</Link> : null;
 
   return (
@@ -105,7 +105,8 @@ export function Integrations() {
           </Card>
 
           <Card name="unifi" title={t("integrations.unifi.title")} help={t("integrations.unifi.help")} state={data.unifi.state} label={state(data.unifi.state)}
-            actions={manageRoute("/admin/integrations/unifi", data.unifi.state !== "unconfigured")}>
+            actions={data.can_admin && <Link className="ui-button ui-button-ghost ui-button-small" to="/admin/integrations/unifi">
+              {data.unifi.state !== "unconfigured" ? t("integrations.manage") : t("integrations.configure")}</Link>}>
             <Facts items={[[t("integrations.unifi.devices"), data.unifi.devices ?? "—"], [t("integrations.unifi.linked"), data.unifi.linked]]} />
           </Card>
 
