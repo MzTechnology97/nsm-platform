@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.234 — 2026-10-23
+
+Quick import buttons
+- ***Clienti* has an *Importa da ISPBilling* button.** It opens the customer import directly. It appears only while ISPBilling is enabled and its last read or test succeeded, and only for users who may import (administrators).
+- ***Apparati* has *Importa da UISP*** (and ***Importa da cnMaestro***, when that integration is in use). Each opens the onboarding of that integration. They appear only while the integration is enabled and its last sync or test succeeded, and only for users who may add devices.
 ## 0.49.233 — 2026-10-23
 
 Search in long customer and device lists
