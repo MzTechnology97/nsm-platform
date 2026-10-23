@@ -601,6 +601,12 @@ RADIUS accounts (Core 0.49.209, migration 0051):
 - the device overview shows the account (username, profile, ISPBilling status such as *Sospeso*, ISPBilling customer) and warns when ISPBilling bills a different customer than the device's NSM customer;
 - a key without the Radius permission only skips the accounts.
 
+Accounts → CPEs and proposals (Core 0.49.229, operator decisions 2026-10-23):
+- three more ways to find an account's device, after the two above: the PPPoE username a TR-069 CPE logs in with, as GenieACS reports it (`cpe_pppoe`; checked on the operator's VX230v, whose username is one of the 958 ISPBilling accounts); the caller-id MAC of the account's active session on a PPPoE concentrator in NSM (MikroTik `/ppp active` in the *Sessioni PPP* snapshot) equal to a device's primary MAC (`caller_mac`, e.g. a UISP radio); that session's address equal to a device's management IP (`caller_ip`). ISPBilling itself exposes no caller-id (checked read-only: not in `ispradius2/accounts`, no session endpoint);
+- NSM then compares the device's customer and site with the account's ISPBilling customer and installation address as imported: *site* to set (same customer) is a proposal; *another customer* is never changed by itself and shown to check; *customer not imported* points to the import;
+- nothing is applied without an operator (`devices.write`): *Assegna la sede* on the device page or in *Integrazioni → ISPBilling → Apparati da assegnare*, *Riassegna…* with a second confirmation for a device of another customer (its old site is cleared), *Ignora* to stop proposing an account for that device; audit `ISPBILLING_DEVICE_LINKED` (before/after) and `ISPBILLING_LINK_DISMISSED`;
+- the concentrator snapshot keeps at most 500 sessions and about 60 KB, so on a large concentrator part of the sessions may be missing.
+
 ### Not implemented yet
 
 Warehouse serial numbers ↔ devices and ISPBilling activities in the device logbook (approved, next steps of ISPB-01).
@@ -697,6 +703,10 @@ Once the operator has installed the NSM base templates (*Amministrazione → ACS
 ### Monitoring and history of CPEs (ACS-05, Core 0.49.206 and 0.49.211)
 
 Every 2 minutes the worker reads from GenieACS (read only, one NBI query per 20 CPEs) the state of every linked TR-069 CPE at its last Inform: CPU, memory, uptime, WAN (chosen by the connection-request address, PPP or public IP: state, type, address, time connected, last error), Wi-Fi radios and clients, LAN hosts, DSL line (rates, SNR margin, attenuation), for TR-181 and TR-098. It keeps the state on the device, stores one sample per new Inform for 90 days (WAN bit rates from the byte counters between two Informs; counters stuck at zero with the WAN up, as on the TP-Link VX230v, are reported as not available) and sets the device online/offline from the last Inform (three missed periodic Informs, at least 15 minutes). The device page and list show CPU/RAM/uptime as current when the last Inform is under 2 hours old; the *ACS* tab shows the line and Wi-Fi state and charts over 24 h / 7 / 30 / 90 days. The NSM provision declares these values with a 4-minute age so the CPE reports them at every periodic inform; NSM keeps the provision current itself (0.49.210).
+
+### Port forwarding, DMZ and UPnP (Core 0.49.228, monitoring only)
+
+At every monitoring read NSM also parses the CPE's port mappings (TR-181 `Device.NAT.PortMapping`, TR-098 `WANPPPConnection`/`WANIPConnection` `PortMapping`), a DMZ when the CPE reports one (any vendor object named `…DMZ…` under `Device.NAT`/`Device.Firewall` or a TR-098 WAN connection, e.g. `X_TP_DMZ`) and whether UPnP is on (`Device.UPnP.Device.Enable` or a vendor flag such as TP-Link `Device.NAT.X_TP_UPnPCfg.Enable`). The *ACS* tab shows them (protocol, external ports, internal host and port, allowed origin, description, on/off; DMZ host with a warning; UPnP), with *Rileggi dal CPE* (`devices.write`, a GenieACS `refreshObject` of `Device.NAT`, a read). Nothing is changed on the CPE. A change between two reads is audited `ACS_PORT_MAPPING_CHANGED` with the forwards added/removed, the DMZ and UPnP (warning when something new is exposed). The NSM base provision re-reads these objects every hour. Checked read-only on the operator's VX230v: no port mapping, UPnP on, no DMZ object in the data model.
 
 ### Alerts of CPEs (Core 0.49.226)
 

@@ -68,6 +68,8 @@ from app.acs_snapshot import install_acs_snapshot
 from app.acs_speedtest import install_acs_speedtest
 from app.acs_firmware import install_acs_firmware
 from app.acs_alerts import install_acs_alerts
+from app.acs_port_mapping import install_acs_port_mapping
+from app.ispbilling_cpe_link import install_ispbilling_cpe_link
 from app.acs_monitoring import install_acs_monitoring
 from app.ui_backup_policies import install_ui_backup_policies
 from app.legacy_redirects import install_legacy_redirects
@@ -277,6 +279,8 @@ install_acs_snapshot(core.app)
 install_acs_speedtest(core.app)
 install_acs_firmware(core.app)
 install_acs_alerts(core.app)
+install_acs_port_mapping(core.app)
+install_ispbilling_cpe_link(core.app)
 install_acs_monitoring(core.app)
 install_ui_backup_policies(core.app)
 install_ui_spa(core.app)
