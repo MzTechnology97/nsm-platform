@@ -31,7 +31,12 @@ def main():
     handler = source[source.index('($nsmJobType = "backup_mikrotik")'):source.index('($nsmJobType = "snapshot_section")')]
     for marker in ("/export file=$nsmBaseName", "($nsmSize <= 60000)", "contents]", '"/artifact?size=" . $nsmSize', "http-data=$nsmText"):
         assert marker in handler, marker
-    assert handler.index("/file remove") < handler.index(':error "NSM export file not created"'), "the file is removed before any error"
+    assert handler.index("/file remove") < handler.index(':set nsmJobError "export file not created"; :error $nsmJobError'), "the file is removed before any error"
+    # RouterOS 7.12 cannot read the :error text in on-error: each step names itself and the failure carries the reason.
+    for marker in (':set nsmJobError "export command failed"', ':set nsmJobError ("export read incomplete: "', ':set nsmJobError ("export upload failed ('):
+        assert marker in handler, marker
+    assert ':if ([:len $nsmJobError] > 0) do={ :set nsmJobOutput ($nsmJobOutput . ": " . $nsmJobError) }' in source
+    assert source.index(':local nsmJobError ""') < source.index('($nsmJobType = "backup_mikrotik")')
     v6, _, _ = mikrotik_legacy._select_agent_source("http://nsm.example.test", uuid.UUID(int=81), "CI81-secret", "6.49.18")
     validate_routeros6(v6)
 
