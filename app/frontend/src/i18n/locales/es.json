@@ -4119,7 +4119,7 @@
     },
     "refresh": "Actualizar desde GenieACS",
     "refreshed": "Inventario actualizado desde GenieACS.",
-    "notYet": "El diagnóstico, la copia y la actualización de firmware a través del ACS aún no están disponibles.",
+    "notYet": "La copia de seguridad y la actualización de firmware a través del ACS aún no están disponibles.",
     "verifyTitle": "Comprobar la coincidencia",
     "searchTitle": "Buscar en GenieACS",
     "searchSerialMac": "NSM busca el número de serie {{serial}} y, si no lo encuentra, el MAC {{mac}}; la búsqueda no modifica nada.",
@@ -4776,7 +4776,7 @@
   },
   "firmwareCatalogs": {
     "title": "Catálogos de firmware",
-    "subtitle": "Un catálogo por cada fabricante del inventario. Ubiquiti: versiones de UISP y del servicio de actualización oficial; TP-Link: el sitio oficial; todas las marcas: imágenes subidas por los operadores (versión, modelos y fecha se leen del archivo). NSM nunca adivina versiones. MikroTik tiene el suyo",
+    "subtitle": "Un catálogo por cada fabricante del inventario. Ubiquiti: versiones de UISP y del servicio de actualización oficial; otros fabricantes: versiones introducidas por los operadores desde la página de descarga oficial. NSM nunca estima versiones. MikroTik tiene su propio",
     "routeros": "catálogo RouterOS",
     "refresh": "Actualizar fuentes y recalcular",
     "refreshed": "UISP: {{uisp}} versiones nuevas; API de Ubiquiti: {{vendor_api}} nuevas en {{platforms}} plataformas; {{evaluated}} equipos evaluados.",
@@ -4807,7 +4807,7 @@
     "releaseNotes": "notas ↗",
     "delete": "Eliminar",
     "deleteConfirm": "¿Eliminar la versión {{version}} del catálogo?",
-    "empty": "Ninguna versión en el catálogo {{label}}: sube la última imagen desde la página de descarga oficial.",
+    "empty": "No hay versiones en el catálogo {{label}}: añade la última desde la página de descarga oficial.",
     "emptyUbiquiti": "No hay versiones en el catálogo {{label}}: vincula los equipos a UISP o actualiza las fuentes.",
     "add": "Añadir una versión de {{label}}",
     "version": "Versión",
@@ -4822,10 +4822,10 @@
     "added_other": "Versión {{version}} añadida: {{count}} equipos por actualizar.",
     "errors": {
       "brand": "Los catálogos solo existen para fabricantes del inventario.",
-      "version": "Versión no reconocida: indícala en el formato del fabricante (p. ej. 1.2.3 o 0.19.0 Build 260323).",
+      "version": "Versión no reconocida: usa el formato del fabricante (p. ej. 1.2.3).",
       "url": "El enlace de las notas debe ser una dirección http(s).",
       "date": "Fecha de publicación no válida.",
-      "exists": "Esta versión ya está en el catálogo con su imagen.",
+      "exists": "Esta versión ya está en el catálogo.",
       "not_operator": "Solo se pueden eliminar las versiones introducidas por operadores.",
       "extension": "Sube la imagen del fabricante (.bin, .img o .zip).",
       "archive": "El .zip debe contener una sola imagen (.bin/.img): sube la imagen directamente.",
@@ -5153,6 +5153,7 @@
     }
   },
   "eventTypes": {
+    "ACS_ACCESS_CHANGED": "Acceso remoto o Telnet del CPE modificado",
     "ACS_ALERT_OPENED": "Aviso de CPE abierto",
     "ACS_ALERT_RESOLVED": "Aviso de CPE resuelto",
     "ACS_ALERT_SETTINGS_CHANGED": "Ajustes de avisos de CPE modificados",
@@ -5176,6 +5177,7 @@
     "ACS_SPEEDTEST_REQUESTED": "Prueba de velocidad del CPE solicitada",
     "ACS_SPEEDTEST_SETTINGS_CHANGED": "Ajustes de la prueba de velocidad modificados",
     "ACS_SYSLOG_CONFIGURED": "Syslog del CPE configurado vía ACS",
+    "ACS_TELNET_DISABLED": "Telnet LAN del CPE desactivado por la política",
     "ACS_TEMPLATES_INSTALLED": "Plantillas ACS instaladas",
     "ACS_TEMPLATES_UPDATED": "Plantillas ACS actualizadas por NSM",
     "ACS_WIFI_CHANGED": "Wi-Fi modificado a través del ACS",
@@ -6126,5 +6128,27 @@
     "byName": "mismo nombre",
     "ignore": "Ignorar",
     "reset": "Deshacer"
+  },
+  "tplinkAccess": {
+    "title": "Acceso remoto y Telnet",
+    "help": "Leídos del ACS; los cambios se envían enseguida al CPE.",
+    "remoteTitle": "Acceso web remoto",
+    "exposed": "La página web del CPE ({{protocol}}, puerto {{port}}) es accesible desde cualquier dirección de Internet.",
+    "restricted": "Acceso web remoto activo ({{protocol}}, puerto {{port}}), limitado por el CPE a algunas direcciones.",
+    "remoteOff": "Acceso web remoto desactivado.",
+    "enable": "Activar acceso remoto",
+    "disable": "Desactivar acceso remoto",
+    "protocol": "Protocolo",
+    "port": "Puerto",
+    "apply": "Aplicar puerto y protocolo",
+    "noAllowList": "La limitación a algunas direcciones no está disponible: en el firmware de TP-Link probado cierra la página a todos.",
+    "telnetTitle": "Telnet LAN",
+    "telnetOn": "Telnet está activo en la LAN: NSM lo desactiva en la próxima comprobación diaria.",
+    "telnetAllowed": "Telnet está activo en la LAN, permitido a mano en este equipo.",
+    "telnetOff": "Telnet está desactivado en la LAN (predeterminado de NSM).",
+    "telnetEnable": "Permitir Telnet LAN en este equipo",
+    "telnetDisable": "Desactivar Telnet LAN",
+    "sent": "Enviado al CPE.",
+    "readAt": "Último contacto del CPE: {{when}}."
   }
 }

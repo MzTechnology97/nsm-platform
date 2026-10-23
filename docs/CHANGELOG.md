@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.248 — 2026-10-23
+
+TR-069
+- **Remote access and LAN Telnet on the device's ACS tab.** The tab shows whether the CPE's web page can be reached from the Internet, with protocol and port, and warns when any address can open it. Technicians can switch remote access on or off and change its port or protocol. Open pages are only reported, never closed by NSM.
+- **LAN Telnet is off by default on TP-Link CPEs.** Once a day NSM switches it off where it is on, unless a technician allowed it on that device.
+
 ## 0.49.247 — 2026-10-23
 
 Firmware catalogs: upload the image
