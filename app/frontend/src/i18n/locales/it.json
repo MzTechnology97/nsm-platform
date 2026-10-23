@@ -5343,7 +5343,9 @@
     "ZABBIX_HOST_IP_UPDATED": "IP dell'host Zabbix aggiornato",
     "ZABBIX_HOST_LINKED": "Apparato collegato a un host Zabbix esistente",
     "ZABBIX_SETTINGS_CHANGED": "Impostazioni Zabbix modificate",
-    "ZABBIX_SYNC_REQUESTED": "Sincronizzazione Zabbix richiesta"
+    "ZABBIX_SYNC_REQUESTED": "Sincronizzazione Zabbix richiesta",
+    "ACS_ACCESS_CHANGED": "Accesso remoto o Telnet del CPE modificato",
+    "ACS_TELNET_DISABLED": "Telnet LAN del CPE spento dalla policy"
   },
   "eventSources": {
     "portal": "interfaccia",
@@ -5884,5 +5886,27 @@
     "otherName": "Cerca con un altro nome",
     "otherNamePlaceholder": "es. codice sull'etichetta (LBE-5AC-16-120)",
     "search": "Cerca"
+  },
+  "tplinkAccess": {
+    "title": "Accesso remoto e Telnet",
+    "help": "Letti dall'ACS; le modifiche vengono inviate subito al CPE.",
+    "remoteTitle": "Accesso web remoto",
+    "exposed": "La pagina web del CPE ({{protocol}}, porta {{port}}) è raggiungibile da qualsiasi indirizzo Internet.",
+    "restricted": "Accesso web remoto attivo ({{protocol}}, porta {{port}}), limitato dal CPE ad alcuni indirizzi.",
+    "remoteOff": "Accesso web remoto spento.",
+    "enable": "Attiva accesso remoto",
+    "disable": "Disattiva accesso remoto",
+    "protocol": "Protocollo",
+    "port": "Porta",
+    "apply": "Applica porta e protocollo",
+    "noAllowList": "La limitazione ad alcuni indirizzi non è disponibile: sul firmware TP-Link provato chiude la pagina a tutti.",
+    "telnetTitle": "Telnet LAN",
+    "telnetOn": "Il Telnet è attivo nella LAN: NSM lo spegne al prossimo controllo giornaliero.",
+    "telnetAllowed": "Il Telnet è attivo nella LAN, consentito a mano su questo apparato.",
+    "telnetOff": "Il Telnet è spento nella LAN (predefinito NSM).",
+    "telnetEnable": "Consenti il Telnet LAN su questo apparato",
+    "telnetDisable": "Spegni il Telnet LAN",
+    "sent": "Inviato al CPE.",
+    "readAt": "Ultimo contatto del CPE: {{when}}."
   }
 }

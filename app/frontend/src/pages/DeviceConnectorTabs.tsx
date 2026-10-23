@@ -12,6 +12,7 @@ import { AcsSpeedtest } from "../app/AcsSpeedtest";
 import { AcsWifi } from "../app/AcsWifi";
 import { AcsSnapshot } from "../app/AcsSnapshot";
 import { AcsMonitor } from "../app/AcsMonitor";
+import { TplinkAccess } from "../app/TplinkAccess";
 
 function message(error: unknown) {
   return error instanceof ApiError ? error.message : (error as Error | null)?.message;
@@ -143,6 +144,7 @@ export function DeviceGenieacs() {
       {record.external_id && enabled && <AcsSpeedtest deviceId={deviceId} />}
       {record.external_id && enabled && <AcsWifi deviceId={deviceId} deviceName={record.name} />}
       {record.external_id && enabled && <AcsSnapshot deviceId={deviceId} />}
+      {record.external_id && enabled && <TplinkAccess deviceId={deviceId} />}
       <section className="ui-panel ui-admin-section">
         <div className="ui-page-header-row">
           <div>

@@ -5343,7 +5343,9 @@
     "ZABBIX_HOST_IP_UPDATED": "Zabbix host IP updated",
     "ZABBIX_HOST_LINKED": "Device linked to an existing Zabbix host",
     "ZABBIX_SETTINGS_CHANGED": "Zabbix settings changed",
-    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested"
+    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested",
+    "ACS_ACCESS_CHANGED": "CPE remote access or Telnet changed",
+    "ACS_TELNET_DISABLED": "CPE LAN Telnet switched off by policy"
   },
   "eventSources": {
     "portal": "interface",
@@ -5884,5 +5886,27 @@
     "otherName": "Search under another name",
     "otherNamePlaceholder": "e.g. the code on the label (LBE-5AC-16-120)",
     "search": "Search"
+  },
+  "tplinkAccess": {
+    "title": "Remote access and Telnet",
+    "help": "Read from the ACS; changes are sent to the CPE at once.",
+    "remoteTitle": "Remote web access",
+    "exposed": "The web page of the CPE ({{protocol}}, port {{port}}) can be reached from any Internet address.",
+    "restricted": "Remote web access is on ({{protocol}}, port {{port}}), limited by the CPE to some addresses.",
+    "remoteOff": "Remote web access is off.",
+    "enable": "Switch on remote access",
+    "disable": "Switch off remote access",
+    "protocol": "Protocol",
+    "port": "Port",
+    "apply": "Apply port and protocol",
+    "noAllowList": "Limiting it to some addresses is not available: on the TP-Link firmware tested it closes the page for everyone.",
+    "telnetTitle": "LAN Telnet",
+    "telnetOn": "Telnet is on in the LAN: NSM switches it off at the next daily check.",
+    "telnetAllowed": "Telnet is on in the LAN, allowed by hand on this device.",
+    "telnetOff": "Telnet is off in the LAN (NSM default).",
+    "telnetEnable": "Allow LAN Telnet on this device",
+    "telnetDisable": "Switch off LAN Telnet",
+    "sent": "Sent to the CPE.",
+    "readAt": "Last contact of the CPE: {{when}}."
   }
 }
