@@ -6,6 +6,8 @@ import { ApiError } from "../api/client";
 import { AdminTabs } from "../app/AdminTabs";
 import { AcsSpeedtestSettings } from "../app/AcsSpeedtestSettings";
 import { AcsSyslogAdminPanel } from "../app/AcsSyslog";
+import { AcsAlertSettings } from "../app/AcsAlertSettings";
+import { AcsFirmwareAutoSettings } from "../app/AcsFirmwareAutoSettings";
 import { Loading } from "../app/States";
 import { formatDateTime } from "../lib/format";
 
@@ -50,7 +52,6 @@ export function AdminAcs() {
             </div>
             <p className="ui-muted">{t("acs.panelHelp")}</p>
             {data.state === "unconfigured" && <p className="ui-muted">{t("acs.linkHint")} <Link to="/admin/integrations/genieacs">{t("acs.linkPage")}</Link></p>}
-            <p className="ui-muted">{t("acs.migrationHint")} <Link to="/admin/acs/migration">{t("acs.migrationLink")}</Link></p>
           </section>
 
           <section className="ui-panel ui-admin-section" id="guide">
@@ -77,6 +78,10 @@ export function AdminAcs() {
           </section>
 
           <AcsSpeedtestSettings />
+
+          <AcsAlertSettings />
+
+          <AcsFirmwareAutoSettings />
 
           <section className="ui-panel ui-admin-section" id="templates">
             <div className="ui-page-header-row">

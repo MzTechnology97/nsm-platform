@@ -55,7 +55,7 @@ BRANDS = {
 ICONS = {
     "mikrotik": "#293239", "ubiquiti": "#0559C9", "tp-link": "#4ACBD6", "huawei": "#FF0000", "fortinet": "#EE3124",
     "juniper": "#84B135", "cisco": "#1BA0D7", "paloalto": "#F04E23", "sonicwall": "#FF791A", "netgear": "#2C262D",
-    "asus": "#000000", "linksys": "#000000", "avm": "#E2001A",
+    "asus": "#000000", "linksys": "#000000", "avm": "#E2001A", "cambium": "#003D79",
 }
 # Manufacturers selectable for manually added ("generic") devices.
 # Cambium has its own vendor with cnMaestro onboarding.

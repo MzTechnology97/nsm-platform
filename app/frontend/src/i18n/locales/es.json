@@ -244,7 +244,10 @@
       "otherCustomer": "ISPBilling factura esta cuenta a un cliente distinto del cliente NSM del equipo.",
       "matched": {
         "pppoe": "asociada por usuario PPPoE",
-        "ip": "asociada por IP estática"
+        "ip": "asociada por IP estática",
+        "cpe_pppoe": "asociado por el usuario PPPoE del CPE",
+        "caller_mac": "asociado por el caller-id (MAC) de la sesión PPP",
+        "caller_ip": "asociado por la dirección de la sesión PPP"
       }
     },
     "pingToggle": {
@@ -1566,7 +1569,8 @@
       "agent": "Agent",
       "integration": "Integraciones",
       "interface_errors": "Errores de interfaz",
-      "configuration": "Configuración"
+      "configuration": "Configuración",
+      "acs": "CPE (ACS)"
     },
     "state": {
       "open": "Abierto",
@@ -2606,8 +2610,6 @@
     "preset": "Preset",
     "presetText": "condición <code>{{condition}}</code>, eventos bootstrap, boot y periodic → provision <code>{{provision}}</code>",
     "script": "Script de la provision {{name}}",
-    "migrationHint": "¿Ya gestionas una flota de CPE en un ACS en la nube (por ejemplo TAUC)?",
-    "migrationLink": "Migrar los CPE a este ACS",
     "templatesCurrent": "Las plantillas NSM están al día (instaladas el {{when}}). NSM las actualiza solo tras cada actualización.",
     "templatesPending": "Esta versión de NSM tiene plantillas más recientes que las instaladas el {{when}}: NSM las instala en 30 minutos, o pulsa Instalar.",
     "templatesAuto": "Una vez instaladas, NSM mantiene estas plantillas al día tras cada actualización.",
@@ -2617,7 +2619,9 @@
       "reads": "Lee: estado en línea/fuera de línea, último contacto, modelo, firmware, IP, CPU, memoria, tráfico WAN, clientes Wi-Fi y línea DSL.",
       "actions": "Acciones disponibles: reinicio, comprobación de firmware, diagnóstico.",
       "never": "No cambia Wi-Fi, LAN, DHCP, PPPoE ni ninguna otra configuración del router. El único ajuste que escribe es el intervalo de inform del CWMP."
-    }
+    },
+    "migrationHint": "¿Ya gestionas una flota de CPE en un ACS en la nube (por ejemplo TAUC)?",
+    "migrationLink": "Migrar los CPE a este ACS"
   },
   "demo": {
     "subtitle": "Conjunto de datos aislado para probar la interfaz y los flujos sin usar clientes reales.",
@@ -2932,7 +2936,8 @@
     "skipped_one": "{{count}} omitido por haber cambiado en UISP o estar ya presente: {{names}}.",
     "skipped_other": "{{count}} omitidos por haber cambiado en UISP o estar ya presentes: {{names}}.",
     "openCustomer": "Abrir el cliente",
-    "again": "Nueva alta"
+    "again": "Nueva alta",
+    "customerSearch": "Buscar un cliente…"
   },
   "dashboard": {
     "title": "Panel",
@@ -3384,7 +3389,8 @@
       "not_owned": "Uno o más equipos ya no pertenecen al cliente: recarga la página.",
       "confirm_count": "El número de confirmación no coincide.",
       "action_invalid": "Acción no válida."
-    }
+    },
+    "customerSearch": "Buscar un cliente…"
   },
   "deviceImport": {
     "open": "Importar CSV",
@@ -5090,15 +5096,23 @@
     }
   },
   "eventTypes": {
+    "ACS_ACCESS_CHANGED": "Acceso remoto o Telnet del CPE modificado",
+    "ACS_ALERT_OPENED": "Aviso de CPE abierto",
+    "ACS_ALERT_RESOLVED": "Aviso de CPE resuelto",
+    "ACS_ALERT_SETTINGS_CHANGED": "Ajustes de avisos de CPE modificados",
     "ACS_CONFIG_REFRESH_REQUESTED": "Relectura de la configuración del CPE solicitada",
+    "ACS_CUSTOMER_TAG_SET": "CPE etiquetado con su cliente en GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnóstico ACS completado",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnóstico ACS solicitado",
+    "ACS_FIRMWARE_AUTO_CHANGED": "Descarga automática de firmware modificada",
     "ACS_FIRMWARE_FAILED": "Actualización de firmware del CPE fallida",
+    "ACS_FIRMWARE_FILE_FETCHED": "Firmware descargado del fabricante en el ACS",
     "ACS_FIRMWARE_FILE_STORED": "Imagen de firmware cargada en el ACS",
     "ACS_FIRMWARE_REQUESTED": "Actualización de firmware del CPE solicitada",
     "ACS_FIRMWARE_VERIFIED": "Actualización de firmware del CPE verificada",
     "ACS_MIGRATION_COMPLETED": "Migración ACS completada",
     "ACS_MIGRATION_STARTED": "Migración ACS iniciada",
+    "ACS_PORT_MAPPING_CHANGED": "Redirección de puertos del CPE cambiada",
     "ACS_REBOOT_REQUESTED": "Reinicio del CPE solicitado",
     "ACS_REBOOT_VERIFIED": "Reinicio del CPE verificado",
     "ACS_SNAPSHOT_ARCHIVED": "Instantánea de configuración TR-069 archivada",
@@ -5106,6 +5120,7 @@
     "ACS_SPEEDTEST_REQUESTED": "Prueba de velocidad del CPE solicitada",
     "ACS_SPEEDTEST_SETTINGS_CHANGED": "Ajustes de la prueba de velocidad modificados",
     "ACS_SYSLOG_CONFIGURED": "Syslog del CPE configurado vía ACS",
+    "ACS_TELNET_DISABLED": "Telnet LAN del CPE desactivado por la política",
     "ACS_TEMPLATES_INSTALLED": "Plantillas ACS instaladas",
     "ACS_TEMPLATES_UPDATED": "Plantillas ACS actualizadas por NSM",
     "ACS_WIFI_CHANGED": "Wi-Fi modificado a través del ACS",
@@ -5178,6 +5193,7 @@
     "DEVICE_SNAPSHOT_BATCH_QUEUED": "Actualización de configuración en cola",
     "DEVICE_SNAPSHOT_QUEUED": "Actualización de sección en cola",
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Interfaces monitorizadas modificadas",
+    "DEVICE_VENDOR_CORRECTED": "Fabricante del dispositivo corregido",
     "DIAGNOSTIC_EXPORTED": "Diagnóstico exportado",
     "EXPOSURE_CHECK_REQUESTED": "Comprobación de exposición solicitada",
     "EXPOSURE_EXTERNAL_CHECK": "Comprobación de exposición externa",
@@ -5219,8 +5235,12 @@
     "INCIDENT_STATUS_CHANGED": "Estado del incidente cambiado",
     "INTERFACE_ERRORS_DETECTED": "Errores de interfaz detectados",
     "INVENTORY_DISCOVERED": "Inventario detectado",
+    "ISPBILLING_AUTO_IMPORTED": "Clientes importados automáticamente desde ISPBilling",
+    "ISPBILLING_AUTO_IMPORT_CHANGED": "Importación automática de ISPBilling modificada",
     "ISPBILLING_CONFIGURED": "Conector ISPBilling configurado",
     "ISPBILLING_CUSTOMERS_IMPORTED": "Clientes importados desde ISPBilling",
+    "ISPBILLING_DEVICE_LINKED": "Equipo asignado desde ISPBilling",
+    "ISPBILLING_LINK_DISMISSED": "Propuesta de ISPBilling ignorada",
     "ISPBILLING_SYNC_REQUESTED": "Lectura de ISPBilling solicitada",
     "ISSUE_ACKNOWLEDGED": "Aviso asumido",
     "LEGACY_FIRMWARE_UPGRADE_ACCEPTED": "Actualización de firmware legacy aceptada",
@@ -5343,9 +5363,7 @@
     "ZABBIX_HOST_IP_UPDATED": "IP del host de Zabbix actualizada",
     "ZABBIX_HOST_LINKED": "Equipo vinculado a un host de Zabbix existente",
     "ZABBIX_SETTINGS_CHANGED": "Ajustes de Zabbix cambiados",
-    "ZABBIX_SYNC_REQUESTED": "Sincronización de Zabbix solicitada",
-    "ACS_ACCESS_CHANGED": "Acceso remoto o Telnet del CPE modificado",
-    "ACS_TELNET_DISABLED": "Telnet LAN del CPE desactivado por la política"
+    "ZABBIX_SYNC_REQUESTED": "Sincronización de Zabbix solicitada"
   },
   "eventSources": {
     "portal": "interfaz",
@@ -5372,72 +5390,6 @@
     "job": "tarea",
     "tr069": "TR-069 (ACS)",
     "acs": "ACS"
-  },
-  "acsMigration": {
-    "subtitle": "Migra en bloque los CPE de los clientes al ACS integrado reconfigurando el CWMP en la red de gestión.",
-    "backToAcs": "Volver a ACS",
-    "intro": "Indica la subred de gestión de tus routers, el puerto y las credenciales comunes de la flota: NSM llega a cada equipo y establece la URL ACS de destino. Haz primero una simulación para ver qué CPE son accesibles.",
-    "applyPending": "La reescritura CWMP mediante la interfaz web de TP-Link está en validación sobre el terreno para este firmware: por ahora solo está disponible la simulación de inventario.",
-    "formTitle": "Nueva migración",
-    "formHelp": "Solo subredes IPv4, como máximo {{max}} direcciones por ejecución. Las direcciones .0 y .255 y el servidor ACS se omiten.",
-    "credentialsHelp": "Las credenciales se usan solo durante la ejecución y nunca se guardan. Una simulación no las necesita: no se envía ninguna credencial a los equipos.",
-    "dryRun": "Simular (inventario)",
-    "apply": "Aplicar migración",
-    "recentTitle": "Ejecuciones recientes",
-    "noRuns": "Todavía no hay ejecuciones.",
-    "runTitle": "Ejecución · {{subnet}}",
-    "cancel": "Detener",
-    "progress": "Progreso",
-    "fields": {
-      "subnet": "Subred de gestión (CIDR)",
-      "port": "Puerto de gestión",
-      "informInterval": "Intervalo de inform (segundos)",
-      "targetAcsUrl": "URL ACS de destino (CWMP)",
-      "username": "Usuario de los routers",
-      "password": "Contraseña de los routers"
-    },
-    "cols": {
-      "when": "Cuándo",
-      "subnet": "Subred",
-      "mode": "Modo",
-      "status": "Estado",
-      "found": "CPE encontrados",
-      "changed": "Configurados"
-    },
-    "hostCols": {
-      "address": "Dirección",
-      "status": "Resultado",
-      "model": "Modelo",
-      "firmware": "Firmware",
-      "detail": "Detalle"
-    },
-    "mode": {
-      "dry": "Simulación",
-      "apply": "Aplicada"
-    },
-    "runStatus": {
-      "pending": "Pendiente",
-      "running": "En curso",
-      "done": "Completada",
-      "failed": "Fallida",
-      "cancelled": "Detenida"
-    },
-    "hostStatus": {
-      "pending": "Pendiente",
-      "unreachable": "Inaccesible",
-      "not_cpe": "No es un CPE",
-      "auth_failed": "Credenciales rechazadas",
-      "already_target": "Ya en el ACS",
-      "configured": "Configurado",
-      "error": "Error",
-      "skipped": "Omitido"
-    },
-    "counters": {
-      "processed": "Procesados",
-      "reachable": "Accesibles",
-      "configured": "Configurados",
-      "failed": "Fallidos"
-    }
   },
   "ispbilling": {
     "title": "ISPBilling",
@@ -5519,7 +5471,14 @@
     "openCustomers": "Abrir los clientes",
     "radius": "Cuentas RADIUS",
     "radiusMatched": "{{count}} asociadas a un equipo",
-    "radiusError": "Cuentas RADIUS no leídas: {{error}}"
+    "radiusError": "Cuentas RADIUS no leídas: {{error}}",
+    "autoTitle": "Importación automática",
+    "autoHelp": "Tras cada lectura, los clientes nuevos de ISPBilling se crean en NSM con sus sedes, y las nuevas direcciones de instalación de clientes ya importados pasan a ser sedes. Los clientes parecidos a un cliente NSM existente quedan por revisar en la página de importación.",
+    "autoEnabled": "Importar automáticamente clientes y sedes nuevos",
+    "autoLast": "Última comprobación {{at}}: {{created}} clientes creados, {{sites}} sedes añadidas.",
+    "autoNever": "Se ejecuta tras la próxima lectura.",
+    "autoReview_one": "{{count}} cliente de ISPBilling se parece a un cliente NSM existente y no se importó:",
+    "autoReview_other": "{{count}} clientes de ISPBilling se parecen a clientes NSM existentes y no se importaron:"
   },
   "acsDiagnostics": {
     "title": "Diagnóstico desde el CPE",
@@ -5791,7 +5750,11 @@
     "catalogSecurity": "La versión {{version}} corrige problemas de seguridad: actualización recomendada.",
     "catalogCurrent": "La versión instalada es la última del catálogo.",
     "notes": "notas de la versión",
-    "catalogs": "Catálogos de firmware"
+    "catalogs": "Catálogos de firmware",
+    "fetch": "Descargar {{version}} del sitio de TP-Link en el ACS",
+    "fetching": "Descargando de TP-Link…",
+    "fetched": "Imagen cargada en el ACS y seleccionada abajo: confirma la actualización cuando quieras.",
+    "ready": "La versión {{version}} ya está en el ACS y seleccionada abajo: confirma la actualización cuando quieras."
   },
   "acsSyslog": {
     "title": "Syslog vía ACS (TR-069)",
@@ -5886,6 +5849,152 @@
     "otherName": "Buscar con otro nombre",
     "otherNamePlaceholder": "p. ej. el código de la etiqueta (LBE-5AC-16-120)",
     "search": "Buscar"
+  },
+  "acsMigration": {
+    "subtitle": "Migra en bloque los CPE de los clientes al ACS integrado reconfigurando el CWMP en la red de gestión.",
+    "backToAcs": "Volver a ACS",
+    "intro": "Indica la subred de gestión de tus routers, el puerto y las credenciales comunes de la flota: NSM llega a cada equipo y establece la URL ACS de destino. Haz primero una simulación para ver qué CPE son accesibles.",
+    "applyPending": "La reescritura CWMP mediante la interfaz web de TP-Link está en validación sobre el terreno para este firmware: por ahora solo está disponible la simulación de inventario.",
+    "formTitle": "Nueva migración",
+    "formHelp": "Solo subredes IPv4, como máximo {{max}} direcciones por ejecución. Las direcciones .0 y .255 y el servidor ACS se omiten.",
+    "credentialsHelp": "Las credenciales se usan solo durante la ejecución y nunca se guardan. Una simulación no las necesita: no se envía ninguna credencial a los equipos.",
+    "dryRun": "Simular (inventario)",
+    "apply": "Aplicar migración",
+    "recentTitle": "Ejecuciones recientes",
+    "noRuns": "Todavía no hay ejecuciones.",
+    "runTitle": "Ejecución · {{subnet}}",
+    "cancel": "Detener",
+    "progress": "Progreso",
+    "fields": {
+      "subnet": "Subred de gestión (CIDR)",
+      "port": "Puerto de gestión",
+      "informInterval": "Intervalo de inform (segundos)",
+      "targetAcsUrl": "URL ACS de destino (CWMP)",
+      "username": "Usuario de los routers",
+      "password": "Contraseña de los routers"
+    },
+    "cols": {
+      "when": "Cuándo",
+      "subnet": "Subred",
+      "mode": "Modo",
+      "status": "Estado",
+      "found": "CPE encontrados",
+      "changed": "Configurados"
+    },
+    "hostCols": {
+      "address": "Dirección",
+      "status": "Resultado",
+      "model": "Modelo",
+      "firmware": "Firmware",
+      "detail": "Detalle"
+    },
+    "mode": {
+      "dry": "Simulación",
+      "apply": "Aplicada"
+    },
+    "runStatus": {
+      "pending": "Pendiente",
+      "running": "En curso",
+      "done": "Completada",
+      "failed": "Fallida",
+      "cancelled": "Detenida"
+    },
+    "hostStatus": {
+      "pending": "Pendiente",
+      "unreachable": "Inaccesible",
+      "not_cpe": "No es un CPE",
+      "auth_failed": "Credenciales rechazadas",
+      "already_target": "Ya en el ACS",
+      "configured": "Configurado",
+      "error": "Error",
+      "skipped": "Omitido"
+    },
+    "counters": {
+      "processed": "Procesados",
+      "reachable": "Accesibles",
+      "configured": "Configurados",
+      "failed": "Fallidos"
+    }
+  },
+  "acsAlerts": {
+    "title": "Avisos de los CPE",
+    "help": "NSM abre una incidencia en el Centro de acciones, con una notificación, cuando un CPE TR-069 deja de contactar con el ACS, su WAN cae, la WAN se reconecta o el CPE se reinicia demasiado, o la línea DSL empeora. Las incidencias se cierran solas cuando el problema termina. 0 desactiva un umbral.",
+    "fields": {
+      "enabled": "Avisos de los CPE TR-069 activos",
+      "offline": "CPE que ya no contacta con el ACS (tres Inform periódicos perdidos)",
+      "wan_down": "WAN caída mientras el CPE aún contacta con el ACS (línea de respaldo o red de gestión)",
+      "reconnects_per_hour": "Reconexiones WAN por hora",
+      "reboots_per_day": "Reinicios del CPE en 24 horas",
+      "snr_min_db": "Margen SNR DSL mínimo (dB)",
+      "dsl_rate_drop_percent": "Caída del downstream DSL respecto a la mediana de 7 días (%)"
+    },
+    "save": "Guardar",
+    "saved": "Guardado."
+  },
+  "acsFirmwareAuto": {
+    "title": "Descarga automática de firmware",
+    "help": "Cuando TP-Link publica un firmware más reciente para un modelo y una versión de hardware que tienes, NSM descarga el archivo oficial del sitio italiano y carga la imagen en el ACS, una vez por versión. No se instala nada: cada actualización sigue requiriendo tu confirmación en la pestaña Firmware del equipo.",
+    "enabled": "Descargar automáticamente en el ACS los firmware de TP-Link más recientes",
+    "fetched_one": "{{count}} versión descargada hasta ahora.",
+    "fetched_other": "{{count}} versiones descargadas hasta ahora."
+  },
+  "acsPortMapping": {
+    "title": "Redirección de puertos, DMZ y UPnP",
+    "help": "Lo que el CPE expone a Internet, tal como el ACS lo leyó por última vez (cada hora). Solo supervisión: desde NSM no se cambia nada. Cada cambio queda registrado en la actividad del equipo.",
+    "reread": "Volver a leer del CPE",
+    "rereadStarted": "El ACS está volviendo a leer el CPE: los valores se actualizan en la próxima lectura (unos 2 minutos).",
+    "rereadQueued": "El CPE no aceptó la solicitud de conexión: se leerá en el próximo contacto.",
+    "notRead": "El ACS aún no ha leído el NAT de este CPE: usa Volver a leer del CPE.",
+    "forwards": "Redirecciones activas",
+    "on": "Activo",
+    "off": "Inactivo",
+    "notReported": "no informado por el CPE",
+    "upnpHint": "los dispositivos de la LAN pueden abrir puertos solos",
+    "dmzWarning": "DMZ activa: todo puerto no redirigido a otro sitio llega a {{host}} desde Internet.",
+    "none": "No hay redirecciones de puertos configuradas.",
+    "protocol": "Protocolo",
+    "external": "Puerto externo",
+    "internal": "Hacia",
+    "from": "Desde",
+    "description": "Descripción",
+    "any": "todos",
+    "anywhere": "cualquier origen"
+  },
+  "ispbillingLinks": {
+    "title": "Equipos que asignar desde ISPBilling",
+    "help": "Para cada cuenta RADIUS NSM encuentra el equipo (usuario PPPoE de un MikroTik o de un CPE TR-069, IP estática, caller-id o dirección de la sesión PPP en un concentrador en NSM) y compara cliente y sede con ISPBilling. Nada cambia hasta que un operador confirma; un equipo de otro cliente nunca se mueve solo.",
+    "counts": {
+      "site": "Sede que asignar",
+      "conflict": "Otro cliente, por revisar",
+      "not_imported": "Cliente no importado",
+      "linked": "Ya alineados"
+    },
+    "empty": "Nada que confirmar.",
+    "device": "Equipo",
+    "account": "Cuenta ISPBilling",
+    "now": "Ahora en NSM",
+    "ispbilling": "En ISPBilling",
+    "applySite": "Asignar la sede",
+    "check": "Revisar",
+    "proposeSite": "ISPBilling instala esta cuenta en {{site}}.",
+    "conflict": "ISPBilling factura esta cuenta a {{customer}}: en NSM el equipo es de otro cliente.",
+    "reassignAsk": "Reasignar…",
+    "reassignConfirm": "¿Mover el equipo a {{customer}}?",
+    "reassign": "Mover",
+    "dismiss": "Ignorar",
+    "notImported": "El cliente ISPBilling de esta cuenta aún no está en NSM.",
+    "import": "Importarlo"
+  },
+  "searchSelect": {
+    "placeholder": "Escribe para buscar…",
+    "none": "Sin resultados.",
+    "more_one": "{{count}} más: sigue escribiendo para acotar.",
+    "more_other": "{{count}} más: sigue escribiendo para acotar."
+  },
+  "quickImport": {
+    "ispbilling": "Importar desde ISPBilling",
+    "uisp": "Importar desde UISP",
+    "cnmaestro": "Importar desde cnMaestro"
   },
   "tplinkAccess": {
     "title": "Acceso remoto y Telnet",

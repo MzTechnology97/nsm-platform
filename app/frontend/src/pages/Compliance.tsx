@@ -1,6 +1,7 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
@@ -64,10 +65,7 @@ export function Compliance() {
         ))}
       </div>
       <div className="ui-filter-bar">
-        <select value={search.customer ?? ""} onChange={(event) => update({ customer: event.target.value || undefined })} aria-label={t("devices.customer")}>
-          <option value="">{t("devices.allCustomers")}</option>
-          {facets.data?.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
-        </select>
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
         <select value={search.control ?? ""} onChange={(event) => update({ control: event.target.value || undefined })} aria-label={t("compliance.control")}>
           <option value="">{t("compliance.allControls")}</option>
           {first?.controls.map((control) => (

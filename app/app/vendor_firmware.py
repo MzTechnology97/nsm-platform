@@ -8,6 +8,8 @@ catalog).  Sources, all official:
 - **vendor_api** — Ubiquiti's public firmware update service
   (``fw-update.ubnt.com``) for the airOS platforms found in the inventory
   (``XC``, ``WA``, ``XW``…, read from the installed firmware string);
+- **vendor_site** — TP-Link's official Italian download pages, read once a day
+  for the models and hardware versions in the inventory (``tplink_firmware``);
 - **operator** — releases entered from the manufacturer's official download
   page (TP-Link, Tenda, Cambium, Huawei, …): version, models, date, notes link
   and whether it fixes security issues.  NSM never guesses a version.
@@ -35,11 +37,11 @@ from app.vendor_firmware_models import VendorFirmwareRelease
 
 UBNT_API = "https://fw-update.ubnt.com/api/firmware-latest"
 UBNT_REFRESH = timedelta(hours=24)
-SOURCE_LABELS = {"uisp": "UISP", "vendor_api": "API ufficiale", "operator": "operatore"}
+SOURCE_LABELS = {"uisp": "UISP", "vendor_api": "API ufficiale", "vendor_site": "sito ufficiale", "operator": "operatore"}
 # Official download / support pages shown next to each catalog.
 OFFICIAL_PAGES = {
     "ubiquiti": "https://www.ui.com/download",
-    "tp-link": "https://www.tp-link.com/support/download/",
+    "tp-link": "https://www.tp-link.com/it/support/download/",
     "cambium": "https://support.cambiumnetworks.com/files",
     "tenda": "https://www.tendacn.com/download",
     "huawei": "https://support.huawei.com/enterprise/",
@@ -52,7 +54,12 @@ _last_vendor_attempt: datetime | None = None
 
 
 def platform_of(device) -> str:
-    """airOS platform (WA, XW, XC…) from the full firmware string, else the platform UISP reports (its firmware string is only "8.7.15")."""
+    """airOS platform (WA, XW, XC…) from the full firmware string, else the platform UISP reports (its firmware string is only "8.7.15");
+    for TP-Link the hardware version (V1, V3.2…), since an image for another hardware version can damage the device."""
+    if vendor_cpe.brand(device) == "tp-link":
+        from app import tplink_firmware
+
+        return tplink_firmware.hardware_label(device) or ""
     match = _AIROS.match(str(device.firmware_version or ""))
     if match:
         return match.group(1)
@@ -61,6 +68,10 @@ def platform_of(device) -> str:
 
 
 def version_key(brand: str, value) -> tuple | None:
+    if brand == "tp-link":
+        from app import tplink_firmware
+
+        return tplink_firmware.version_key(value)
     text = str(value or "")
     match = _AIROS.match(text)
     if match:
@@ -235,7 +246,11 @@ def run_scheduled(now=None, transport=None) -> dict:
             if not stats["vendor_api"]["platforms"]:
                 # Nothing to ask yet (e.g. the worker started before UISP reported the platforms): try again next cycle.
                 _last_vendor_attempt = None
+        from app import tplink_firmware
+
+        stats["tplink_site"] = tplink_firmware.refresh(db, now)
         stats["evaluation"] = evaluate(db, now)
+        stats["tplink_auto"] = tplink_firmware.auto_fetch(db, now)
         db.commit()
     return stats
 
