@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.254 — 2026-10-23
+
+RouterOS upgrade: one click to prepare, check from the device
+- **Fixed: *Prepara upgrade* answered "Esegui prima una verifica firmware recente" when the check was older than 6 hours or still running.** Now one click is enough: if the check is not recent, NSM runs it and prepares the plan by itself when the result arrives, within 1–2 minutes. The button shows *Verifica in corso…* meanwhile.
+- ***Verifica aggiornamenti* in the device's *Firmware* tab:** before, it was only in the *Firmware* menu list.
+- The *Firmware* tab updates by itself while a check or a plan preparation is running. If the plan cannot be prepared after the check (e.g. device offline), it says why.
+
 ## 0.49.253 — 2026-10-23
 
 ACS: configuration re-read object by object

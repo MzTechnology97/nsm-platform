@@ -1285,7 +1285,9 @@
       "dnsError": "Errore: nome del server di aggiornamento non risolto"
     },
     "uispUpgrade": "Aggiorna via UISP",
-    "uispRunning": "Aggiornamento UISP in corso"
+    "uispRunning": "Aggiornamento UISP in corso",
+    "preparing": "Verifica in corso…",
+    "preparingHelp": "Il piano si prepara da solo appena la verifica finisce."
   },
   "vulns": {
     "title": "Vulnerabilità",
@@ -3927,7 +3929,11 @@
       "blocked": "Aggiornamento non disponibile.",
       "confirmation": "Conferma non valida.",
       "backup_ack": "Conferma di avere un backup recente."
-    }
+    },
+    "checkNow": "Verifica aggiornamenti",
+    "checking": "Verifica in corso…",
+    "preparing": "Verifica degli aggiornamenti in corso: il piano si prepara da solo appena arriva il risultato (entro 1–2 minuti).",
+    "prepareFailed": "Piano non preparato dopo la verifica: {{error}}"
   },
   "deviceUisp": {
     "recordTitle": "Record NSM",

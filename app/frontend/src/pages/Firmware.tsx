@@ -158,10 +158,11 @@ function PreparePlan({ deviceId }: { deviceId: string }) {
   const create = useFirmwareAction(deviceId, "firmware-upgrade/plan");
   return (
     <>
-      <button type="button" className="ui-button ui-button-primary ui-button-small" disabled={create.isPending}
-        onClick={() => create.mutate(undefined, { onSuccess: () => void navigate({ to: "/devices/$deviceId/firmware-upgrade", params: { deviceId } }) })}>
-        {t("firmware.prepare")}
+      <button type="button" className="ui-button ui-button-primary ui-button-small" disabled={create.isPending || Boolean(create.data?.checking)}
+        onClick={() => create.mutate(undefined, { onSuccess: (result) => { if (!result.checking) void navigate({ to: "/devices/$deviceId/firmware-upgrade", params: { deviceId } }); } })}>
+        {create.data?.checking ? t("firmware.preparing") : t("firmware.prepare")}
       </button>
+      {create.data?.checking && <small className="ui-muted ui-block">{t("firmware.preparingHelp")}</small>}
       {create.error && <small className="ui-backup-error ui-block">{(create.error as Error).message}</small>}
     </>
   );

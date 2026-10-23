@@ -467,6 +467,14 @@ def _plan_error(exc: HTTPException) -> HTTPException:
     return exc
 
 
+def _readiness_pending(db, device) -> bool:
+    from app.agent_models import DeviceJob
+    from app.mikrotik_firmware_readiness import JOB_TYPE
+
+    return bool(db.scalar(select(DeviceJob.id).where(DeviceJob.device_id == device.id, DeviceJob.job_type == JOB_TYPE,
+                                                      DeviceJob.status.in_(["pending", "delivered"])).limit(1)))
+
+
 def _firmware_device(db, device_id: uuid.UUID) -> Device:
     from app import firmware_upgrade_planner as planner
 
@@ -498,6 +506,8 @@ def device_firmware_upgrade(request: Request, device_id: uuid.UUID, plan: str = 
             "agent_transport": data.get("agent_transport"),
             "catalog": data.get("firmware_catalog"),
             "can_execute": core.has_permission(user, "firmware.execute"),
+            "check_pending": _readiness_pending(db, device),
+            "preparing": planner.prepare_state(device),
             "plan": None,
             "legacy": None,
         }
@@ -530,11 +540,24 @@ def device_firmware_plan(request: Request, device_id: uuid.UUID):
         user = ui_user(request, db, "firmware.execute")
         device = _firmware_device(db, device_id)
         try:
-            plan_id, created = planner.open_plan(db, device, user)
+            result = planner.request_plan(db, device, user)
         except HTTPException as exc:
             raise _plan_error(exc) from None
         db.commit()
-        return {"plan_id": str(plan_id), "created": created}
+        return result
+
+
+@router.post("/devices/{device_id}/firmware-upgrade/check", dependencies=[Depends(require_csrf)])
+def device_firmware_check(request: Request, device_id: uuid.UUID):
+    """*Verifica aggiornamenti* from the device Firmware tab (same check as the firmware worklist)."""
+    from app import mikrotik_firmware_readiness as readiness
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.read")
+        device = _firmware_device(db, device_id)
+        state = readiness.queue_readiness_job(db, device, user)
+        db.commit()
+        return {"state": state}
 
 
 @router.post("/devices/{device_id}/firmware-upgrade/{plan_id}/{action}", dependencies=[Depends(require_csrf)])

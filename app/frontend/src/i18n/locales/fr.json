@@ -1285,7 +1285,9 @@
       "dnsError": "Erreur : nom du serveur de mise à jour non résolu"
     },
     "uispUpgrade": "Mettre à jour via UISP",
-    "uispRunning": "Mise à jour UISP en cours"
+    "uispRunning": "Mise à jour UISP en cours",
+    "preparing": "Vérification…",
+    "preparingHelp": "Le plan se prépare tout seul dès la fin de la vérification."
   },
   "vulns": {
     "title": "Vulnérabilités",
@@ -3927,7 +3929,11 @@
       "blocked": "Mise à jour non disponible.",
       "confirmation": "Confirmation non valide.",
       "backup_ack": "Confirmez avoir une sauvegarde récente."
-    }
+    },
+    "checkNow": "Vérifier les mises à jour",
+    "checking": "Vérification…",
+    "preparing": "Vérification des mises à jour : le plan se prépare tout seul dès l'arrivée du résultat (sous 1 à 2 minutes).",
+    "prepareFailed": "Plan non préparé après la vérification : {{error}}"
   },
   "deviceUisp": {
     "recordTitle": "Fiche NSM",

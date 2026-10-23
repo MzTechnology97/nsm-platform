@@ -1285,7 +1285,9 @@
       "dnsError": "Error: update server name not resolved"
     },
     "uispUpgrade": "Upgrade via UISP",
-    "uispRunning": "UISP upgrade in progress"
+    "uispRunning": "UISP upgrade in progress",
+    "preparing": "Checking…",
+    "preparingHelp": "The plan is prepared by itself as soon as the check finishes."
   },
   "vulns": {
     "title": "Vulnerabilities",
@@ -3927,7 +3929,11 @@
       "blocked": "Upgrade not available.",
       "confirmation": "Invalid confirmation.",
       "backup_ack": "Confirm that you have a recent backup."
-    }
+    },
+    "checkNow": "Check for updates",
+    "checking": "Checking…",
+    "preparing": "Checking for updates: the plan is prepared by itself as soon as the result arrives (within 1–2 minutes).",
+    "prepareFailed": "Plan not prepared after the check: {{error}}"
   },
   "deviceUisp": {
     "recordTitle": "NSM record",
