@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.245 — 2026-10-23
+
+TP-Link syslog with a dynamic IP
+- **TP-Link logs keep arriving when the router changes public IP.** A TP-Link sends its logs from its WAN address and can't add an identifier. NSM recognised it only by the management IP it had saved, which goes stale with a dynamic IP at every PPP reconnection.
+- Now NSM also uses the WAN address the router reports to the ACS at every contact, which arrives every 5 minutes. It is used only while that contact is less than 30 minutes old.
+- If several routers share the same public address (CGNAT), their lines are still discarded. NSM doesn't guess which one sent them.
+
 ## 0.49.244 — 2026-10-23
 
 UISP customers matched to NSM, automatic device import
