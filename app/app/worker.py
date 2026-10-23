@@ -28,6 +28,7 @@ from app.syslog_receiver import cleanup as syslog_cleanup
 from app.syslog_security import evaluate as evaluate_access_alerts
 from app.mikrotik_syslog_config import auto_configure as auto_configure_syslog
 from app.zabbix_connector import scheduled_sync as zabbix_sync
+from app.acs_customer_tags import run as acs_customer_tags
 from app.zabbix_problems import scheduled_refresh as zabbix_problems_refresh
 from app.acs_monitoring import cleanup as acs_metrics_cleanup, collect as acs_monitoring_collect
 from app.acs_syslog import auto_configure as acs_syslog_auto
@@ -35,6 +36,9 @@ from app.acs_admin import auto_update as acs_templates_auto_update
 from app.acs_snapshot import scheduled_snapshots as acs_scheduled_snapshots
 from app.cambium_backup import scheduled_backups as cambium_scheduled_backups
 from app.acs_firmware import follow_upgrades as acs_firmware_follow
+from app.tplink_cloud_firmware import daily_refresh as tplink_cloud_refresh
+from app.acs_alerts import evaluate as acs_alerts_evaluate
+from app.tplink_access import enforce_telnet_policy as tplink_telnet_policy
 from app.device_exposure import tick as exposure_tick
 from app.external_exposure import tick as external_exposure_tick
 from app.syslog_integrity import anchor_heads as syslog_anchor
@@ -46,6 +50,7 @@ from app.uisp_operations import scheduled_backups as uisp_scheduled_backups, ver
 from app.mikrotik_legacy_operations import verify_upgrades as verify_legacy_upgrades
 from app.report_schedules import run_report_schedules
 from app.uisp_sync import sync_uisp_devices
+from app.uisp_auto_customer import run as uisp_auto_customer
 from app.advisory_sources import sync_security_advisories
 from app.compliance import run_scheduled_evaluation as run_compliance_evaluation
 from app.sla import budget_alerts as sla_budget_alerts
@@ -96,6 +101,7 @@ while True:
             if any(reboot_stats.values()):
                 log.info("Device reboot verification: %s", reboot_stats)
             uisp_stats = run_task("uisp_sync", sync_uisp_devices)
+            run_task("uisp_auto_customer", uisp_auto_customer)
             report_stats = run_task("report_schedules", run_report_schedules)
             advisory_stats = run_task("security_advisories", sync_security_advisories)
             run_task("telegram_updates", poll_telegram_updates)
@@ -106,6 +112,7 @@ while True:
             run_task("interface_error_alerts", interface_error_alerts)
             run_task("zabbix_sync", zabbix_sync)
             run_task("cnmaestro_sync", cnmaestro_sync)
+            run_task("acs_customer_tags", acs_customer_tags)
             run_task("ispbilling_sync", ispbilling_sync)
             run_task("zabbix_problems", zabbix_problems_refresh)
             run_task("acs_monitoring", acs_monitoring_collect)
@@ -114,6 +121,9 @@ while True:
             run_task("acs_scheduled_snapshots", acs_scheduled_snapshots)
             run_task("cambium_scheduled_backups", cambium_scheduled_backups)
             run_task("acs_firmware_follow", acs_firmware_follow)
+            run_task("tplink_cloud_firmware", tplink_cloud_refresh)
+            run_task("acs_alerts", acs_alerts_evaluate)
+            run_task("tplink_telnet_policy", tplink_telnet_policy)
             run_task("exposure_check", exposure_tick)
             run_task("exposure_external_check", external_exposure_tick)
             run_task("syslog_chain_anchor", syslog_anchor)

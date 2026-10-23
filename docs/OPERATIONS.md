@@ -115,7 +115,7 @@ The Docker stack can run GenieACS next to NSM (optional compose profile `acs`), 
 1. `sudo ./manage.sh acs-enable`: generates `GENIEACS_UI_JWT_SECRET` in `secrets/bootstrap.env`, sets `COMPOSE_PROFILES=acs` and `GENIEACS_INTERNAL_NBI_URL` in `.env`, builds and starts the services. Later `update.sh` runs keep them running.
 2. *Amministrazione → Integrazioni → GenieACS / TR-069 → Usa GenieACS integrato*, then *Test connessione*.
 3. Open the GenieACS UI through the SSH tunnel and create its administrator **at the first access** (the first visitor sets it, which is why the UI is not published).
-4. Set `ACS_CWMP_URL=http://<address the CPEs reach NSP on>:7547` in `.env`, then `sudo ./manage.sh up` (it recreates the containers; `restart` does not reload `.env`): *Amministrazione → ACS* shows it in the TP-Link guide and the CPE migration offers it as target. Without it NSP shows the address the administrator opened it with.
+4. Set `ACS_CWMP_URL=http://<address the CPEs reach NSP on>:7547` in `.env`, then `sudo ./manage.sh up` (it recreates the containers; `restart` does not reload `.env`): *Amministrazione → ACS* shows it in the TP-Link guide. Without it NSP shows the address the administrator opened it with.
 5. Configure the CPE following *Amministrazione → ACS → Configurare una CPE TP-Link*: only CWMP on, Inform on, the ACS URL and Periodic Inform; WAN, PPPoE, Wi-Fi and LAN are not touched. Allow 7547 and 7567 only from the customer networks on the host firewall.
 6. Include `data/genieacs-mongo` in the off-host backups.
 
@@ -196,6 +196,7 @@ Dumps taken before the rotation still need the old key: store it with them. If t
 
 ## Health and monitoring
 
+- During an update the API container is recreated (10–30 s). Caddy holds requests for up to 60 s while the API comes back, checking its health every 3 s, so pages wait instead of failing with *502 / no upstreams available*. `update.sh` recreates the Caddy container only when `config/Caddyfile` changed: Caddy mounts that single file and would otherwise keep the old copy.
 - `GET /health` (also `/api/v1/health`): `200` when PostgreSQL and Redis
   answer, `503` otherwise. The `worker` field reports `alive` (heartbeat
   younger than 180 s), the heartbeat age and the names of failing tasks; it is

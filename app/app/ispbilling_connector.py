@@ -14,8 +14,8 @@
 - **Schedule**: the worker syncs every ``SYNC_INTERVAL``, or at its next cycle when an administrator asks for it,
   and keeps reading pending details at every cycle until none is left.
 
-Nothing is written to ISPBilling. Customers and sites are created in NSM only from the import page
-(``ispbilling_import``).
+Nothing is written to ISPBilling. Customers and sites are created in NSM from the import page, or after each
+successful read when the automatic import is switched on (``ispbilling_import.auto_import``).
 """
 from __future__ import annotations
 
@@ -331,7 +331,9 @@ def sync(db, row=None, now=None, transport=None, full: bool = True) -> dict:
 
 
 def scheduled_sync(now=None, transport=None) -> dict:
-    """Worker task: full sync when due or requested, else keep reading pending addresses."""
+    """Worker task: full sync when due or requested, else keep reading pending addresses; then the automatic import."""
+    from app.ispbilling_import import auto_import  # it imports this module
+
     now = now or utcnow()
     with SessionLocal() as db:
         row = connection_row(db)
@@ -339,11 +341,26 @@ def scheduled_sync(now=None, transport=None) -> dict:
             return {"status": "disabled"}
         requested = bool((row.settings or {}).get("sync_requested"))
         if requested or row.last_sync_at is None or now - row.last_sync_at >= SYNC_INTERVAL:
-            return sync(db, row, now, transport, full=True)
-        pending = db.scalar(select(func.count()).select_from(IspbillingServiceInstance).where(IspbillingServiceInstance.detail_read_at.is_(None)))
-        if not pending:
-            return {"status": "not_due"}
-        return sync(db, row, now, transport, full=False)
+            stats = sync(db, row, now, transport, full=True)
+        else:
+            pending = db.scalar(select(func.count()).select_from(IspbillingServiceInstance).where(IspbillingServiceInstance.detail_read_at.is_(None)))
+            if not pending:
+                return {"status": "not_due"}
+            stats = sync(db, row, now, transport, full=False)
+        if stats.get("status") == "success":
+            imported = auto_import(db, connection_row(db), now)
+            if imported is not None:
+                stats["auto_import"] = imported
+        return stats
+
+
+def save_auto_import(db, user, enabled: bool) -> None:
+    """Switch the automatic import of new customers and sites on or off, audited. Caller commits."""
+    row = connection_row(db)
+    if row is None:
+        raise ValueError("Configura prima ISPBilling.")
+    row.settings = {**(row.settings or {}), "auto_import": bool(enabled)}
+    core.add_event(db, "ISPBILLING_AUTO_IMPORT_CHANGED", actor=user, details={"enabled": bool(enabled)}, source="portal")
 
 
 def summary(db) -> dict:
@@ -369,6 +386,7 @@ def _payload(db) -> dict:
         "api_id": api_id_of(row), "last_test_status": row.last_test_status if row else None, "last_error": row.last_error if row else None,
         "last_tested_at": row.last_tested_at if row else None, "last_sync_at": row.last_sync_at if row else None,
         "last_sync": settings.get("last_sync") or {}, "sync_requested": bool(settings.get("sync_requested")),
+        "auto_import": bool(settings.get("auto_import")), "last_auto_import": settings.get("last_auto_import"),
         "customers": info["customers"], "linked": info["linked"], "addresses": info["addresses"], "details_pending": info["details_pending"],
         "radius_accounts": info["radius_accounts"], "radius_matched": info["radius_matched"],
     })
@@ -429,6 +447,19 @@ def admin_ispbilling_sync(request: Request):
             raise HTTPException(422, {"code": "not_configured", "message": "Configura e attiva prima ISPBilling."})
         row.settings = {**(row.settings or {}), "sync_requested": True}
         core.add_event(db, "ISPBILLING_SYNC_REQUESTED", actor=user, source="portal")
+        db.flush()
+        return _payload(db)
+
+    return _write(request, run)
+
+
+@router.post("/admin/integrations/ispbilling/auto-import", dependencies=[Depends(require_csrf)])
+def admin_ispbilling_auto_import(request: Request, body: dict = Body(default={})):
+    def run(db, user):
+        try:
+            save_auto_import(db, user, body.get("enabled") is True)
+        except ValueError as error:
+            raise HTTPException(422, {"code": "not_configured", "message": str(error)}) from None
         db.flush()
         return _payload(db)
 

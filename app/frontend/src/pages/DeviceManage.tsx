@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { type ManagedDevice, type MoveTarget, useCustomerDevicesManage, useDeviceManage, useDeviceWrite } from "../api/customer";
 import { BrandIcon } from "../app/BrandIcon";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 import { useFormError } from "./CustomerForm";
 import { Loading } from "../app/States";
 
@@ -19,10 +20,8 @@ function TargetFields({ targets, customerId, siteId, onChange }: {
   return (
     <>
       <label><span>{t("deviceManage.customer")}</span>
-        <select value={customerId} onChange={(event) => onChange(event.target.value, "")} required>
-          <option value="" disabled>{t("deviceManage.chooseCustomer")}</option>
-          {targets.map((target) => <option key={target.id} value={target.id}>{target.name}</option>)}
-        </select></label>
+        <SearchSelect value={customerId} required placeholder={t("deviceManage.customerSearch")} ariaLabel={t("deviceManage.customer")}
+          options={targets.map((target) => ({ value: target.id, label: customerLabel(target) }))} onChange={(value) => onChange(value, "")} /></label>
       <label><span>{t("deviceManage.site")}</span>
         <select value={siteId} onChange={(event) => onChange(customerId, event.target.value)}>
           <option value="">{t("deviceNew.noSite")}</option>
