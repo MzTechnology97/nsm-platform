@@ -56,6 +56,7 @@ from app.connector_diagnostics import install_connector_diagnostics
 from app.ui_acs_migration import install_acs_migration
 from app.server_migration import install_server_migration
 from app.acs_syslog import install_acs_syslog
+from app.uisp_syslog import install_uisp_syslog
 from app.lifecycle_web import install_lifecycle_web
 from app.cnmaestro_onboarding import install_cnmaestro_onboarding
 from app.ispbilling_connector import install_ispbilling_connector
@@ -262,6 +263,7 @@ install_connector_diagnostics(core.app)
 install_acs_migration(core.app)
 install_server_migration(core.app)
 install_acs_syslog(core.app)
+install_uisp_syslog(core.app)
 install_lifecycle_web(core.app)
 install_cnmaestro_onboarding(core.app)
 install_ispbilling_connector(core.app)
