@@ -373,6 +373,7 @@ def _legacy_agent_extension(base_url: str, check_certificate: bool) -> str:
           }}
           :local nsmJobStatus "success"
           :local nsmJobOutput ""
+          :local nsmJobError ""
           :do {{
             :if ($nsmJobType = "inventory_refresh") do={{ :set nsmJobOutput "Inventory refreshed by heartbeat" }}
             :if ($nsmJobType = "diagnostic_ping") do={{
@@ -401,7 +402,11 @@ def _legacy_agent_extension(base_url: str, check_certificate: bool) -> str:
               :do {{ :set nsmRbUpgrade [/system routerboard get upgrade-firmware] }} on-error={{}}
               :set nsmJobOutput ("channel=" . $nsmChannel . ";installed=" . $nsmInstalled . ";latest=" . $nsmLatest . ";status=" . $nsmUpdateStatus . ";free_hdd=" . $nsmFreeHdd . ";rb_current=" . $nsmRbCurrent . ";rb_upgrade=" . $nsmRbUpgrade)
             }}
-{snapshot_handler}          }} on-error={{ :set nsmJobStatus "failed"; :set nsmJobOutput "RouterOS legacy job execution failed" }}
+{snapshot_handler}          }} on-error={{
+            :set nsmJobStatus "failed"
+            :set nsmJobOutput "RouterOS legacy job execution failed"
+            :if ([:len $nsmJobError] > 0) do={{ :set nsmJobOutput ($nsmJobOutput . ": " . $nsmJobError) }}
+          }}
           :local nsmDoneUrl ("{done_base}" . $nsmJobId . "/complete?status=" . $nsmJobStatus)
           :local nsmDoneHeaders ("Content-Type:text/plain," . $nsmLegacyHeaders)
           :do {{ /tool fetch url=$nsmDoneUrl http-method=post http-header-field=$nsmDoneHeaders http-data=$nsmJobOutput output=user as-value{cert} }} on-error={{ :log warning "NSM legacy job completion failed" }}

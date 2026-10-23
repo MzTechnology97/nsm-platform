@@ -10,13 +10,16 @@ SYST/FEAT/PWD/CWD/NOOP/OPTS/QUIT.  Anything else answers 502.
   ``MAX_FILE_BYTES``; no listing, download, delete or rename;
 - passive mode only, data connection accepted only from the control
   connection's address, within ``DATA_TIMEOUT``;
-- per-address connection limit and idle timeouts.
+- per-address connection limit and idle timeouts;
+- only the subnets allowed in *Amministrazione → Sistema* may connect (re-read
+  every ``SETTINGS_REFRESH`` seconds; no subnet means no restriction).
 """
 from __future__ import annotations
 
 import asyncio
 import logging
 import os
+import time
 import uuid
 from pathlib import Path
 
@@ -27,6 +30,7 @@ CONTROL_TIMEOUT = 120
 DATA_TIMEOUT = 60
 MAX_PER_ADDRESS = 4
 MAX_AUTH_FAILURES = 3
+SETTINGS_REFRESH = 60
 
 
 def _passive_ports() -> list[int]:
@@ -182,16 +186,34 @@ class Session:
 
 
 class Server:
-    def __init__(self):
+    def __init__(self, networks_loader=None):
         self.ports = _passive_ports()
         self.busy: set[int] = set()
         self.per_address: dict[str, int] = {}
+        self.networks_loader = networks_loader or _load_networks
+        self.networks: list = []
+        self.networks_at = None
+
+    def allowed(self, peer: str) -> bool:
+        now = time.monotonic()
+        if self.networks_at is None or now - self.networks_at >= SETTINGS_REFRESH:
+            try:
+                self.networks = lfb.parse_networks(self.networks_loader())
+            except Exception:  # noqa: BLE001 - keep the last known list if the database is briefly unavailable
+                log.exception("allowed subnets not refreshed")
+            self.networks_at = now
+        return lfb.peer_allowed(peer, self.networks)
 
     def free_ports(self):
         return [p for p in self.ports if p not in self.busy]
 
     async def client(self, reader, writer):
         peer = (writer.get_extra_info("peername") or ("?", 0))[0]
+        if not self.allowed(peer):
+            log.warning("refused %s: not in the allowed subnets", peer)
+            writer.write(b"421 Origin not allowed\r\n")
+            writer.close()
+            return
         if self.per_address.get(peer, 0) >= MAX_PER_ADDRESS:
             writer.write(b"421 Too many connections\r\n")
             writer.close()
@@ -203,8 +225,8 @@ class Server:
             self.per_address[peer] -= 1
 
 
-async def serve(port: int = 2121, bind: str = "0.0.0.0", stop: asyncio.Event | None = None):
-    server = Server()
+async def serve(port: int = 2121, bind: str = "0.0.0.0", stop: asyncio.Event | None = None, networks_loader=None):
+    server = Server(networks_loader)
     listener = await asyncio.start_server(server.client, host=bind, port=port)
     log.info("Legacy backup FTP receiver on %s:%s, passive %s", bind, port, server.ports[0])
     async with listener:
@@ -212,6 +234,13 @@ async def serve(port: int = 2121, bind: str = "0.0.0.0", stop: asyncio.Event | N
             await listener.serve_forever()
         else:
             await stop.wait()
+
+
+def _load_networks() -> list[str]:
+    from app.db import SessionLocal
+
+    with SessionLocal() as db:
+        return lfb.allowed_networks(db)
 
 
 def main():
