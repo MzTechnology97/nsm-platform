@@ -4376,6 +4376,10 @@
       "verify_hash": {
         "title": "SHA-256",
         "help": "Records the integrity of the produced files."
+      },
+      "cambium_config": {
+        "title": "Cambium configuration (SSH)",
+        "help": "The ePMP running configuration read over SSH; needs the Cambium SSH credentials."
       }
     },
     "retention_daily": "Daily",
@@ -5117,6 +5121,9 @@
     "BACKUP_RESTORE_TEST_RECORDED": "Restore test recorded",
     "BACKUP_RETENTION_DELETED": "Old backups removed by retention",
     "BACKUP_STALE_ATTEMPT_REPORT_IGNORED": "Late backup report ignored",
+    "CAMBIUM_BACKUP_ARCHIVED": "Cambium configuration archived",
+    "CAMBIUM_BACKUP_FAILED": "Cambium backup failed",
+    "CAMBIUM_SSH_CREDENTIALS_CHANGED": "Cambium SSH credentials changed",
     "CNMAESTRO_BULK_ONBOARDING": "cnMaestro import",
     "CNMAESTRO_CONFIGURED": "cnMaestro connector configured",
     "CNMAESTRO_DEVICE_LINKED": "Device linked to cnMaestro",
@@ -5870,5 +5877,39 @@
     "otherName": "Search under another name",
     "otherNamePlaceholder": "e.g. the code on the label (LBE-5AC-16-120)",
     "search": "Search"
+  },
+  "cambiumBackup": {
+    "title": "Configuration backup (SSH)",
+    "help": "cnMaestro cannot export device configurations, so NSM logs in to the ePMP over SSH, reads the running configuration (config show json) and archives it in the Backup tab, complete and restorable from the ePMP Backup/Restore page. Backup policies with the Cambium option run it on schedule.",
+    "run": "Back up now",
+    "running": "Reading the configuration…",
+    "done": "Configuration archived.",
+    "open": "Open the backups",
+    "source": {
+      "device": "Credentials: this device's.",
+      "shared": "Credentials: the shared Cambium ones ({{username}}).",
+      "none": "No SSH credentials: set the shared ones in Administration → cnMaestro or this device's below."
+    },
+    "noIp": "The management address of the device is not known.",
+    "last": "Last backup {{when}}: {{status}}.",
+    "status": {
+      "success": "archived",
+      "failed": "failed"
+    },
+    "hostKey": "SSH host key {{key}} (remembered at the first backup).",
+    "hostKeyChanged": "The SSH key of the device changed ({{key}}): backups are stopped until you accept it. Accept only if the device was replaced or reset.",
+    "acceptKey": "Accept the new key",
+    "own": "Credentials of this device",
+    "ownHelp": "Only when this device does not use the shared Cambium credentials.",
+    "username": "SSH user",
+    "password": "SSH password",
+    "keepPassword": "leave empty to keep it",
+    "port": "SSH port",
+    "save": "Save",
+    "saved": "Saved.",
+    "clear": "Use the shared ones",
+    "sharedTitle": "SSH credentials of the Cambium devices",
+    "sharedHelp": "Used by NSM to back up the configuration of every Cambium ePMP over SSH (cnMaestro cannot export it). A device can have its own credentials on its cnMaestro tab. Stored encrypted; the password is never shown again.",
+    "remove": "Remove"
   }
 }

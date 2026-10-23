@@ -65,6 +65,7 @@ from app.ui_device_connectors import install_ui_device_connectors
 from app.acs_diagnostics import install_acs_diagnostics
 from app.acs_actions import install_acs_actions
 from app.acs_snapshot import install_acs_snapshot
+from app.cambium_backup import install_cambium_backup
 from app.acs_speedtest import install_acs_speedtest
 from app.acs_firmware import install_acs_firmware
 from app.acs_monitoring import install_acs_monitoring
@@ -271,6 +272,7 @@ install_ui_device_connectors(core.app)
 install_acs_diagnostics(core.app)
 install_acs_actions(core.app)
 install_acs_snapshot(core.app)
+install_cambium_backup(core.app)
 install_acs_speedtest(core.app)
 install_acs_firmware(core.app)
 install_acs_monitoring(core.app)

@@ -15,6 +15,7 @@ const VENDOR_OPTIONS: Record<string, string[]> = {
   mikrotik: ["mikrotik_binary", "mikrotik_export"],
   ubiquiti: ["ubiquiti_connector_config"],
   "tp-link": ["tr069_config"],
+  cambium: ["cambium_config"],
   generic: ["generic_snapshot"],
 };
 const COMMON_OPTIONS = ["pre_firmware", "verify_hash"];

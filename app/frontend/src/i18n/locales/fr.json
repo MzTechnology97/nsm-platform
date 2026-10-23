@@ -4376,6 +4376,10 @@
       "verify_hash": {
         "title": "SHA-256",
         "help": "Enregistre l'intégrité des fichiers produits."
+      },
+      "cambium_config": {
+        "title": "Configuration Cambium (SSH)",
+        "help": "La configuration en cours de l'ePMP lue en SSH ; nécessite les identifiants SSH Cambium."
       }
     },
     "retention_daily": "Quotidiennes",
@@ -5117,6 +5121,9 @@
     "BACKUP_RESTORE_TEST_RECORDED": "Test de restauration enregistré",
     "BACKUP_RETENTION_DELETED": "Anciennes sauvegardes supprimées par la rétention",
     "BACKUP_STALE_ATTEMPT_REPORT_IGNORED": "Rapport de sauvegarde tardif ignoré",
+    "CAMBIUM_BACKUP_ARCHIVED": "Configuration Cambium archivée",
+    "CAMBIUM_BACKUP_FAILED": "Sauvegarde Cambium échouée",
+    "CAMBIUM_SSH_CREDENTIALS_CHANGED": "Identifiants SSH Cambium modifiés",
     "CNMAESTRO_BULK_ONBOARDING": "Import depuis cnMaestro",
     "CNMAESTRO_CONFIGURED": "Connecteur cnMaestro configuré",
     "CNMAESTRO_DEVICE_LINKED": "Équipement lié à cnMaestro",
@@ -5870,5 +5877,39 @@
     "otherName": "Rechercher sous un autre nom",
     "otherNamePlaceholder": "ex. le code sur l'étiquette (LBE-5AC-16-120)",
     "search": "Rechercher"
+  },
+  "cambiumBackup": {
+    "title": "Sauvegarde de la configuration (SSH)",
+    "help": "cnMaestro ne peut pas exporter la configuration des équipements : NSM se connecte en SSH à l'ePMP, lit la configuration en cours (config show json) et l'archive dans l'onglet Sauvegardes, complète et restaurable depuis la page Backup/Restore de l'ePMP. Les politiques de sauvegarde avec l'option Cambium l'exécutent automatiquement.",
+    "run": "Sauvegarder maintenant",
+    "running": "Lecture de la configuration…",
+    "done": "Configuration archivée.",
+    "open": "Ouvrir les sauvegardes",
+    "source": {
+      "device": "Identifiants : ceux de cet équipement.",
+      "shared": "Identifiants : ceux communs aux Cambium ({{username}}).",
+      "none": "Aucun identifiant SSH : définissez ceux communs dans Administration → cnMaestro ou ceux de cet équipement ci-dessous."
+    },
+    "noIp": "L'adresse de gestion de l'équipement est inconnue.",
+    "last": "Dernière sauvegarde {{when}} : {{status}}.",
+    "status": {
+      "success": "archivée",
+      "failed": "échouée"
+    },
+    "hostKey": "Clé SSH de l'équipement {{key}} (mémorisée à la première sauvegarde).",
+    "hostKeyChanged": "La clé SSH de l'équipement a changé ({{key}}) : les sauvegardes sont arrêtées jusqu'à ce que vous l'acceptiez. Acceptez-la seulement si l'équipement a été remplacé ou réinitialisé.",
+    "acceptKey": "Accepter la nouvelle clé",
+    "own": "Identifiants de cet équipement",
+    "ownHelp": "Seulement si cet équipement n'utilise pas les identifiants communs Cambium.",
+    "username": "Utilisateur SSH",
+    "password": "Mot de passe SSH",
+    "keepPassword": "laisser vide pour le conserver",
+    "port": "Port SSH",
+    "save": "Enregistrer",
+    "saved": "Enregistré.",
+    "clear": "Utiliser ceux communs",
+    "sharedTitle": "Identifiants SSH des équipements Cambium",
+    "sharedHelp": "Utilisés par NSM pour sauvegarder en SSH la configuration de chaque Cambium ePMP (cnMaestro ne peut pas l'exporter). Un équipement peut avoir ses propres identifiants dans son onglet cnMaestro. Stockés chiffrés ; le mot de passe n'est plus jamais affiché.",
+    "remove": "Supprimer"
   }
 }

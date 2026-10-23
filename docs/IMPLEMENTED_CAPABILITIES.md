@@ -570,9 +570,22 @@ These future features must only be exposed when the actual vendor API capability
 
 Checked on the operator's cnMaestro on 2026-10-22 (Core 0.49.199): `/devices` and `/devices/statistics` field names confirmed; Wi-Fi access points (cnPilot) report clients and traffic per band, which NSM sums for the *stations* and *throughput* charts; cnMaestro sends no uptime, so NSM shows the time online (`status_time`) for online devices; the import groups devices by tower, else site, else network.
 
+### Configuration backup over SSH (Core 0.49.251)
+
+The cnMaestro API cannot export a device configuration. This was checked on the operator's cnMaestro on-premises on 2026-10-23: no configuration or backup endpoint in API v1 or v2, and jobs are configuration pushes only. On the operator's ePMP Force 400 the web interface is closed while SSH is open. NSM therefore backs up Cambium ePMP devices over SSH (operator decision 2026-10-23):
+
+- it logs in to the ePMP CLI (`asyncssh`, password authentication) and runs `config show json`, falling back to `config show dump`; the pager is handled;
+- the complete running configuration is archived in the device *Backup* tab (`cambium_config`, sorted JSON, download only because it holds the device secrets) and can be restored from the ePMP *Backup/Restore* page;
+- credentials: one SSH user/password/port for all Cambium devices (*Amministrazione → cnMaestro*), overridable on a device (*cnMaestro* tab). They are stored encrypted (connector settings and device inventory data) and passwords are never returned;
+- the first SSH host key seen is remembered per device; a different key stops the backups until an operator accepts it;
+- run from the *cnMaestro* tab (`backup.execute`) or by backup policies with the new *Configurazione Cambium (SSH)* option (worker `cambium_scheduled_backups`; an unchanged configuration is not stored twice; failures are recorded as failed runs);
+- the backup capability of Cambium devices is *SSH (Cambium ePMP)*, executable when credentials and the management address are known;
+- audit `CAMBIUM_BACKUP_ARCHIVED`, `CAMBIUM_BACKUP_FAILED`, `CAMBIUM_SSH_CREDENTIALS_CHANGED`.
+
 ### Not implemented yet
 
-- operations through cnMaestro (reboot, backup, firmware) — only where the cnMaestro API supports them and they can be verified.
+- operations through cnMaestro (reboot, firmware) — only where the cnMaestro API supports them and they can be verified;
+- cnMaestro API v2: the connector still reads `/api/v1`, which the operator's console reports as deprecated (sunset 3.2.0).
 
 ## 13c. ISPBilling (billing / CRM)
 
