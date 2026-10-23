@@ -5679,7 +5679,21 @@
     "fetch": "Download {{version}} from the TP-Link site into the ACS",
     "fetching": "Downloading from TP-Link…",
     "fetched": "Image loaded into the ACS and selected below: confirm the upgrade when you are ready.",
-    "ready": "Version {{version}} is already in the ACS and selected below: confirm the upgrade when you are ready."
+    "ready": "Version {{version}} is already in the ACS and selected below: confirm the upgrade when you are ready.",
+    "cloud": {
+      "title": "Upgrade from TP-Link's cloud",
+      "help": "The CPE asks TP-Link's cloud for newer firmware by itself, as in the Online Upgrade box of its web page. NSM reads its answer daily and can start that upgrade: the CPE downloads the image from TP-Link, installs it and reboots.",
+      "newer": "TP-Link's cloud offers {{version}}.",
+      "current": "The CPE already runs the version offered by TP-Link's cloud.",
+      "released": "released {{date}}",
+      "none": "The CPE has not reported an answer from TP-Link's cloud yet.",
+      "checked": "Last read from the CPE: {{when}}.",
+      "neverChecked": "Read from the CPE once a day.",
+      "check": "Check now",
+      "checking": "Reading from the CPE…",
+      "warning": "The CPE downloads the image from TP-Link and reboots: the customer is offline for a few minutes. TP-Link firmware usually cannot be downgraded.",
+      "run": "Upgrade to {{version}} from TP-Link's cloud"
+    }
   },
   "acsAlerts": {
     "title": "Alerts of the CPEs",

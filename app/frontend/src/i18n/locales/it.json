@@ -5679,7 +5679,21 @@
     "fetch": "Scarica {{version}} dal sito TP-Link nell'ACS",
     "fetching": "Download da TP-Link…",
     "fetched": "Immagine caricata nell'ACS e selezionata qui sotto: conferma l'aggiornamento quando vuoi.",
-    "ready": "La versione {{version}} è già nell'ACS e selezionata qui sotto: conferma l'aggiornamento quando vuoi."
+    "ready": "La versione {{version}} è già nell'ACS e selezionata qui sotto: conferma l'aggiornamento quando vuoi.",
+    "cloud": {
+      "title": "Aggiornamento dal cloud TP-Link",
+      "help": "Il CPE chiede da solo al cloud TP-Link se c'è un firmware più recente, come nel riquadro Online Upgrade della sua pagina web. NSM legge la risposta ogni giorno e può avviare l'aggiornamento: il CPE scarica l'immagine da TP-Link, la installa e si riavvia.",
+      "newer": "Il cloud TP-Link propone la {{version}}.",
+      "current": "Il CPE ha già la versione proposta dal cloud TP-Link.",
+      "released": "rilasciata il {{date}}",
+      "none": "Il CPE non ha ancora riportato una risposta del cloud TP-Link.",
+      "checked": "Ultima lettura dal CPE: {{when}}.",
+      "neverChecked": "Letto dal CPE una volta al giorno.",
+      "check": "Verifica ora",
+      "checking": "Lettura dal CPE…",
+      "warning": "Il CPE scarica l'immagine da TP-Link e si riavvia: il cliente resta senza connessione per qualche minuto. Di solito il firmware TP-Link non si può riportare a una versione precedente.",
+      "run": "Aggiorna a {{version}} dal cloud TP-Link"
+    }
   },
   "acsAlerts": {
     "title": "Avvisi dei CPE",
