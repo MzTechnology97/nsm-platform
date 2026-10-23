@@ -4091,6 +4091,56 @@
       "info": "Informativo",
       "warning": "Attenzione",
       "error": "Errore"
+    },
+    "diag": {
+      "stationsTitle": "Collegamenti wireless (UISP)",
+      "stationsHelp": "Letti su richiesta: segnale dai due lati e per catena, rumore, link score, capacità e latenza come li misura UISP.",
+      "columns": {
+        "station": "Stazione",
+        "signal": "Segnale (qui / remoto)",
+        "noise": "Rumore",
+        "score": "Link score",
+        "capacity": "Capacità down / up",
+        "latency": "Latenza",
+        "hints": "Diagnosi"
+      },
+      "chains": "catene {{rx}} · {{tx}}",
+      "airTime": "air time {{value}}%",
+      "healthy": "Nessun problema rilevato",
+      "hints": {
+        "weak_signal": "Segnale debole",
+        "fair_signal": "Segnale discreto",
+        "chain_imbalance": "Catene sbilanciate",
+        "low_snr": "SNR basso",
+        "low_score": "Link score basso",
+        "high_airtime": "Air time saturo",
+        "high_latency": "Latenza alta",
+        "disconnected": "Disconnessa",
+        "stale": "Dati UISP vecchi"
+      },
+      "speedTest": "Test di velocità",
+      "speedTestTitle": "Test di velocità verso {{peer}}",
+      "speedTestHelp": "UISP esegue il test tra le due radio: il collegamento wireless resta saturo per tutta la durata e i clienti collegati vanno più lenti.",
+      "direction": "Direzione",
+      "duration": "Durata (secondi, 5–60)",
+      "directions": {
+        "downlink": "Download",
+        "uplink": "Upload",
+        "bidirectional": "Entrambe le direzioni"
+      },
+      "confirm": "Ho capito che il collegamento resterà saturo per {{seconds}} secondi",
+      "start": "Avvia il test",
+      "stop": "Ferma il test",
+      "lastTest": "Test di velocità verso {{peer}}",
+      "states": {
+        "running": "In corso",
+        "completed": "Completato",
+        "stopped": "Fermato",
+        "no_result": "Nessun risultato da UISP",
+        "unconfirmed": "Non confermato da UISP"
+      },
+      "result": "media {{avg}}, picco {{max}}",
+      "noResult": "UISP non ha inviato misure per questo test."
     }
   },
   "deviceCnmaestro": {
@@ -5481,7 +5531,10 @@
     "ZABBIX_HOST_IP_UPDATED": "IP dell'host Zabbix aggiornato",
     "ZABBIX_HOST_LINKED": "Apparato collegato a un host Zabbix esistente",
     "ZABBIX_SETTINGS_CHANGED": "Impostazioni Zabbix modificate",
-    "ZABBIX_SYNC_REQUESTED": "Sincronizzazione Zabbix richiesta"
+    "ZABBIX_SYNC_REQUESTED": "Sincronizzazione Zabbix richiesta",
+    "UISP_SPEEDTEST_STARTED": "Test di velocità UISP avviato",
+    "UISP_SPEEDTEST_FINISHED": "Test di velocità UISP concluso",
+    "UISP_SPEEDTEST_STOPPED": "Test di velocità UISP fermato"
   },
   "eventSources": {
     "portal": "interfaccia",

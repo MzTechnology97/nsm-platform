@@ -3,7 +3,8 @@ import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
-import { type UispCandidate, type UispChart as Chart, type UispTab, useDeviceUisp, useUispAction, useUispMetrics } from "../api/deviceConnectors";
+import { type UispCandidate, type UispChart as Chart, type UispStation, type UispTab, useDeviceUisp, useUispAction, useUispMetrics,
+  useUispSpeedTest } from "../api/deviceConnectors";
 import { formatValue, type Unit } from "../charts/format";
 import { type ChartSeries, TimeChart } from "../charts/TimeChart";
 import { formatDateTime } from "../lib/format";
@@ -255,6 +256,7 @@ function Operations({ deviceId, data }: { deviceId: string; data: UispTab }) {
           {data.can.reboot && <UispReboot deviceId={deviceId} data={data} />}
         </div>
       </section>
+      <UispStations deviceId={deviceId} data={data} />
       <section className="ui-panel ui-admin-section">
         <div className="ui-page-header-row">
           <div>
@@ -307,6 +309,139 @@ function Operations({ deviceId, data }: { deviceId: string; data: UispTab }) {
         ) : data.events ? <div className="ui-empty">{t("deviceUisp.noRows")}</div> : null}
       </section>
     </>
+  );
+}
+
+const dbm = (value: number | null) => (value == null ? "—" : `${value} dBm`);
+const SPEED_DIRECTIONS = ["downlink", "uplink", "bidirectional"] as const;
+
+/** airMAX links of the device as UISP measured them, with hints; a speed test towards one of them (it saturates the link). */
+function UispStations({ deviceId, data }: { deviceId: string; data: UispTab }) {
+  const { t, i18n } = useTranslation();
+  const read = useUispAction(deviceId, "stations");
+  const [peer, setPeer] = useState<UispStation | null>(null);
+  const running = data.speedtest?.status === "running";
+  return (
+    <section className="ui-panel ui-admin-section">
+      <div className="ui-page-header-row">
+        <div>
+          <h2>{t("deviceUisp.diag.stationsTitle")}</h2>
+          <p className="ui-muted">{data.stations ? t("deviceUisp.readAt", { when: formatDateTime(data.stations.fetched_at, i18n.language) }) : t("deviceUisp.diag.stationsHelp")}</p>
+        </div>
+        <button type="button" className="ui-button ui-button-ghost" disabled={read.isPending} onClick={() => read.mutate(undefined)}>{t("deviceUisp.read")}</button>
+      </div>
+      {read.error && <div className="ui-alert ui-alert-danger">{message(read.error)}</div>}
+      {data.stations?.items.length ? (
+        <div className="ui-data-wrap">
+          <table className="ui-data-table">
+            <thead><tr>{["station", "signal", "noise", "score", "capacity", "latency", "hints", ""].map((key) => (
+              <th key={key}><span className="ui-th">{key ? t(`deviceUisp.diag.columns.${key}`) : ""}</span></th>
+            ))}</tr></thead>
+            <tbody>
+              {data.stations.items.map((row, index) => (
+                <tr key={row.mac ?? row.uisp_id ?? index}>
+                  <td>
+                    {row.device_id ? <Link to="/devices/$deviceId" params={{ deviceId: row.device_id }}><strong>{row.device_name ?? row.name ?? "—"}</strong></Link>
+                      : <strong>{row.name ?? "—"}</strong>}
+                    <small className="ui-muted ui-block">{[row.model, row.mac, row.distance_m != null ? `${row.distance_m} m` : null].filter(Boolean).join(" · ")}</small>
+                  </td>
+                  <td>
+                    {dbm(row.rx_signal)} / {dbm(row.tx_signal)}
+                    {(row.rx_chains.length > 0 || row.tx_chains.length > 0) && <small className="ui-muted ui-block">{t("deviceUisp.diag.chains", { rx: row.rx_chains.join(" / ") || "—", tx: row.tx_chains.join(" / ") || "—" })}</small>}
+                  </td>
+                  <td>{dbm(row.noise_floor)}</td>
+                  <td>
+                    {row.link_score == null ? "—" : `${Math.round(row.link_score * 100)}%`}
+                    {row.air_time != null && <small className="ui-muted ui-block">{t("deviceUisp.diag.airTime", { value: Math.round(row.air_time * 100) })}</small>}
+                  </td>
+                  <td>
+                    {row.downlink_capacity_bps == null ? "—" : formatValue(row.downlink_capacity_bps, "bps", i18n.language)}
+                    {" / "}{row.uplink_capacity_bps == null ? "—" : formatValue(row.uplink_capacity_bps, "bps", i18n.language)}
+                  </td>
+                  <td>{row.latency_ms == null ? "—" : `${row.latency_ms} ms`}</td>
+                  <td>
+                    {row.hints.length ? (
+                      <span className="ui-chips">{row.hints.map((hint) => <span key={hint} className={`ui-chip ui-uisp-hint is-${hint}`}>{t(`deviceUisp.diag.hints.${hint}`)}</span>)}</span>
+                    ) : <span className="ui-status ui-status-online">{t("deviceUisp.diag.healthy")}</span>}
+                    {row.score_hint && <small className="ui-muted ui-block" lang="en">{row.score_hint}</small>}
+                  </td>
+                  <td>
+                    {data.can.speedtest && row.uisp_id && data.connection?.enabled && (
+                      <button type="button" className="ui-button ui-button-ghost ui-button-small" disabled={running} onClick={() => setPeer(row)}>{t("deviceUisp.diag.speedTest")}</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : data.stations ? <div className="ui-empty">{t("deviceUisp.noRows")}</div> : null}
+      {peer && !running && <SpeedTestForm deviceId={deviceId} peer={peer} onDone={() => setPeer(null)} />}
+      {data.speedtest && <SpeedTestState deviceId={deviceId} data={data} />}
+    </section>
+  );
+}
+
+function SpeedTestForm({ deviceId, peer, onDone }: { deviceId: string; peer: UispStation; onDone: () => void }) {
+  const { t } = useTranslation();
+  const start = useUispAction(deviceId, "speedtest");
+  const [direction, setDirection] = useState<(typeof SPEED_DIRECTIONS)[number]>("downlink");
+  const [duration, setDuration] = useState(10);
+  const [confirm, setConfirm] = useState(false);
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    start.mutate({ peer: peer.uisp_id, direction, duration, confirm }, { onSuccess: onDone });
+  };
+  return (
+    <form className="ui-admin-form ui-admin-stack ui-danger-zone" onSubmit={submit}>
+      <h3>{t("deviceUisp.diag.speedTestTitle", { peer: peer.device_name ?? peer.name ?? peer.mac ?? "—" })}</h3>
+      <p className="ui-muted">{t("deviceUisp.diag.speedTestHelp")}</p>
+      <label><span>{t("deviceUisp.diag.direction")}</span>
+        <select value={direction} onChange={(event) => setDirection(event.target.value as (typeof SPEED_DIRECTIONS)[number])}>
+          {SPEED_DIRECTIONS.map((key) => <option key={key} value={key}>{t(`deviceUisp.diag.directions.${key}`)}</option>)}
+        </select>
+      </label>
+      <label><span>{t("deviceUisp.diag.duration")}</span>
+        <input type="number" min={5} max={60} value={duration} onChange={(event) => setDuration(Number(event.target.value))} required />
+      </label>
+      <label className="ui-with-brand"><input type="checkbox" checked={confirm} onChange={(event) => setConfirm(event.target.checked)} />{t("deviceUisp.diag.confirm", { seconds: duration })}</label>
+      <div className="ui-row-actions">
+        <button type="submit" className="ui-button ui-button-danger" disabled={start.isPending || !confirm}>{t("deviceUisp.diag.start")}</button>
+        <button type="button" className="ui-button ui-button-ghost" onClick={onDone}>{t("customerForm.cancel")}</button>
+      </div>
+      {start.error && <small className="ui-backup-error">{message(start.error)}</small>}
+    </form>
+  );
+}
+
+function SpeedTestState({ deviceId, data }: { deviceId: string; data: UispTab }) {
+  const { t, i18n } = useTranslation();
+  const running = data.speedtest?.status === "running";
+  const poll = useUispSpeedTest(deviceId, running);
+  const stop = useUispAction(deviceId, "speedtest-stop");
+  const state = (running ? poll.data : null) ?? data.speedtest;
+  if (!state) return null;
+  const tone = state.status === "completed" ? "online" : state.status === "running" ? "warning" : "offline";
+  return (
+    <div className="ui-uisp-speedtest">
+      <h3>{t("deviceUisp.diag.lastTest", { peer: state.peer_name ?? state.peer })}</h3>
+      <p>
+        <span className={`ui-status ui-status-${tone}`}>{t(`deviceUisp.diag.states.${state.status}`, { defaultValue: state.status })}</span>{" "}
+        <small className="ui-muted">{[t(`deviceUisp.diag.directions.${state.direction}`), `${state.duration} s`, formatDateTime(state.started_at, i18n.language), state.requested_by]
+          .filter(Boolean).join(" · ")}</small>
+      </p>
+      {Object.keys(state.summary ?? {}).length ? (
+        <dl className="ui-dl">
+          {Object.entries(state.summary).map(([direction, value]) => (
+            <div key={direction}><dt>{t(`deviceUisp.diag.directions.${direction}`, { defaultValue: direction })}</dt>
+              <dd>{t("deviceUisp.diag.result", { avg: formatValue(value.avg_bps, "bps", i18n.language), max: formatValue(value.max_bps, "bps", i18n.language) })}</dd></div>
+          ))}
+        </dl>
+      ) : state.status !== "running" ? <p className="ui-muted">{t("deviceUisp.diag.noResult")}</p> : null}
+      {state.poll_error && <small className="ui-backup-error ui-block">{state.poll_error}</small>}
+      {running && data.can.speedtest && <button type="button" className="ui-button ui-button-ghost" disabled={stop.isPending} onClick={() => stop.mutate(undefined)}>{t("deviceUisp.diag.stop")}</button>}
+      {stop.error && <small className="ui-backup-error ui-block">{message(stop.error)}</small>}
+    </div>
   );
 }
 

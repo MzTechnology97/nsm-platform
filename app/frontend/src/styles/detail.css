@@ -729,6 +729,31 @@ a.ui-device-head-cves:hover {
   color: var(--accent);
 }
 
+/* UISP diagnostics: link hints (warning tone for signal and score, muted for stale data) and the speed-test result box. */
+.ui-uisp-hint {
+  border-color: color-mix(in srgb, var(--warning) 40%, var(--border));
+  color: var(--warning);
+  font-size: 11px;
+}
+
+.ui-uisp-hint.is-weak_signal,
+.ui-uisp-hint.is-disconnected {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+  color: var(--danger);
+}
+
+.ui-uisp-hint.is-stale {
+  color: var(--muted);
+}
+
+.ui-uisp-speedtest {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+
 .ui-logbook-toggle {
   margin-bottom: var(--space-2);
   color: var(--muted);
