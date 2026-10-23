@@ -465,7 +465,10 @@ A complete cybersecurity view for an ISP/WISP, taking as reference the open-sour
   - the session log records the address each session really got, so pool fallback, static NAT and dynamic NAT need no special case: a public address is attributed directly, a private/CGNAT one goes through the NAT step;
   - **NAT gateways** are declared in NSM (any vendor), each with the public pools it uses and how its translations can be known:
     - *deterministic*: internal range → public range with a port-block size, computed;
-    - *translation logs*: NAT or port-block-allocation events received through syslog (MikroTik firewall NAT logging and the common CGN formats) or IPFIX NAT events, stored compactly (inside IP, public IP and port block, start/end) with their own retention;
+    - *translation logs*: NAT or port-block-allocation events (MikroTik firewall NAT logging and the common CGN formats, or IPFIX NAT events). Many operators already keep them on a **dedicated log server**, as this operator does (2026-10-23). NSM then does not need to store them:
+      - **search on demand** in the existing archive at incident time: a read-only connector to the log server, either SSH/SFTP with a read-only user over the plain or rotated (`.gz`) files, or the API of the log platform in use (Graylog, Elasticsearch/OpenSearch, Loki), one per type;
+      - or a **copy forwarded** to NSM (rsyslog relay to a dedicated NSM port), stored compactly (inside IP, public IP and port block, start/end) with its own retention;
+      - the line format is described per gateway (preset for MikroTik NAT logging, a configurable pattern for the others);
     - *none*;
   - lookup by **IP, optional port and time**:
     - public address: the session that had it;
