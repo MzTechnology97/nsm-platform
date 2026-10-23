@@ -674,4 +674,17 @@ a.ui-search-result:hover {
   color: var(--muted);
   font-size: 12px;
   font-weight: 500;
+
+/* ISPBilling: the automatic import, under the connection actions. */
+.ui-ispbilling-auto {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.ui-ispbilling-auto h3,
+.ui-ispbilling-auto p {
+  margin: 0;
 }

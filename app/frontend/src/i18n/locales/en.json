@@ -5390,7 +5390,9 @@
     "ZABBIX_HOST_IP_UPDATED": "Zabbix host IP updated",
     "ZABBIX_HOST_LINKED": "Device linked to an existing Zabbix host",
     "ZABBIX_SETTINGS_CHANGED": "Zabbix settings changed",
-    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested"
+    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested",
+    "ISPBILLING_AUTO_IMPORTED": "Customers imported automatically from ISPBilling",
+    "ISPBILLING_AUTO_IMPORT_CHANGED": "ISPBilling automatic import changed"
   },
   "eventSources": {
     "portal": "interface",
@@ -5564,7 +5566,14 @@
     "openCustomers": "Open customers",
     "radius": "RADIUS accounts",
     "radiusMatched": "{{count}} matched to a device",
-    "radiusError": "RADIUS accounts not read: {{error}}"
+    "radiusError": "RADIUS accounts not read: {{error}}",
+    "autoTitle": "Automatic import",
+    "autoHelp": "After each read, customers new in ISPBilling are created in NSM with their sites, and new installation addresses of customers already imported become sites. Customers similar to an existing NSM customer are left to review on the import page.",
+    "autoEnabled": "Import new customers and sites automatically",
+    "autoLast": "Last check {{at}}: {{created}} customers created, {{sites}} sites added.",
+    "autoNever": "It runs after the next read.",
+    "autoReview_one": "{{count}} ISPBilling customer looks like an existing NSM customer and was not imported:",
+    "autoReview_other": "{{count}} ISPBilling customers look like existing NSM customers and were not imported:"
   },
   "acsDiagnostics": {
     "title": "Diagnostics from the CPE",

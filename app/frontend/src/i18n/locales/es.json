@@ -5390,7 +5390,9 @@
     "ZABBIX_HOST_IP_UPDATED": "IP del host de Zabbix actualizada",
     "ZABBIX_HOST_LINKED": "Equipo vinculado a un host de Zabbix existente",
     "ZABBIX_SETTINGS_CHANGED": "Ajustes de Zabbix cambiados",
-    "ZABBIX_SYNC_REQUESTED": "Sincronización de Zabbix solicitada"
+    "ZABBIX_SYNC_REQUESTED": "Sincronización de Zabbix solicitada",
+    "ISPBILLING_AUTO_IMPORTED": "Clientes importados automáticamente desde ISPBilling",
+    "ISPBILLING_AUTO_IMPORT_CHANGED": "Importación automática de ISPBilling modificada"
   },
   "eventSources": {
     "portal": "interfaz",
@@ -5564,7 +5566,14 @@
     "openCustomers": "Abrir los clientes",
     "radius": "Cuentas RADIUS",
     "radiusMatched": "{{count}} asociadas a un equipo",
-    "radiusError": "Cuentas RADIUS no leídas: {{error}}"
+    "radiusError": "Cuentas RADIUS no leídas: {{error}}",
+    "autoTitle": "Importación automática",
+    "autoHelp": "Tras cada lectura, los clientes nuevos de ISPBilling se crean en NSM con sus sedes, y las nuevas direcciones de instalación de clientes ya importados pasan a ser sedes. Los clientes parecidos a un cliente NSM existente quedan por revisar en la página de importación.",
+    "autoEnabled": "Importar automáticamente clientes y sedes nuevos",
+    "autoLast": "Última comprobación {{at}}: {{created}} clientes creados, {{sites}} sedes añadidas.",
+    "autoNever": "Se ejecuta tras la próxima lectura.",
+    "autoReview_one": "{{count}} cliente de ISPBilling se parece a un cliente NSM existente y no se importó:",
+    "autoReview_other": "{{count}} clientes de ISPBilling se parecen a clientes NSM existentes y no se importaron:"
   },
   "acsDiagnostics": {
     "title": "Diagnóstico desde el CPE",
