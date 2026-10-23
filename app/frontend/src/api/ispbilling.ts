@@ -14,6 +14,8 @@ export interface IspbillingAdmin {
   last_sync_at: string | null;
   last_sync: { status?: string; error?: string; radius_error?: string; customers?: number; service_instances?: number; details_read?: number; details_pending?: number; at?: string };
   sync_requested: boolean;
+  auto_import: boolean;
+  last_auto_import: { at: string; created: number; sites_created: number; sites_linked: number; to_review: number } | null;
   customers: number;
   linked: number;
   addresses: number;
