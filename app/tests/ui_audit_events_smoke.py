@@ -67,8 +67,9 @@ def main():
     assert types(f"event_type={kind}_OLD") == [f"{kind}_OLD"]
     assert types(f"q=needle-{suffix}") == [f"{kind}_BACKUP"], "text search looks inside details"
     assert types(f"device=TEST-UM-MT-{suffix}") == [f"{kind}_BACKUP"]
-    today = now.date().isoformat()
-    assert types(f"customer={ids['mine']}&from_date={today}") == [f"{kind}_BACKUP", f"{kind}_LOGIN"]
+    # From yesterday (UTC days): the events of the last minutes stay in when the test runs just after midnight, the 3-day-old one stays out.
+    since = (now - timedelta(days=1)).date().isoformat()
+    assert types(f"customer={ids['mine']}&from_date={since}") == [f"{kind}_BACKUP", f"{kind}_LOGIN"]
     assert client.get("/api/ui/v1/audit/events?from_date=yesterday").status_code == 400
     assert client.get("/app/events?severity=warning").status_code in (200, 503)  # 503 when the frontend is not built (CI integration)
 
