@@ -38,7 +38,7 @@ DEFAULT_INFORM_SECONDS = 300
 MIN_OFFLINE_AFTER = timedelta(minutes=15)
 # Counters that stay at zero this long after boot, with the WAN up, are "not reported" rather than "no traffic".
 ZERO_COUNTER_GRACE_SECONDS = 600
-RANGES = {"24h": timedelta(hours=24), "7d": timedelta(days=7), "30d": timedelta(days=30), "90d": timedelta(days=90)}
+RANGES = {"1h": timedelta(hours=1), "24h": timedelta(hours=24), "7d": timedelta(days=7), "30d": timedelta(days=30), "90d": timedelta(days=90)}
 CHARTS = (
     ("acs_wan", "Traffico WAN", "bps", (("wan_rx_bps", "Download"), ("wan_tx_bps", "Upload"))),
     ("resources", "CPU e memoria", "%", (("cpu_percent", "CPU"), ("ram_percent", "Memoria"))),
@@ -278,6 +278,8 @@ def read_state(row: dict) -> dict:
     state["last_boot"] = last_boot.isoformat() if last_boot else None
     state["nat"] = acs_port_mapping.parse(row)
     state["pon"] = acs_pon.parse(row)
+    # Sent by the CPE at every Inform: its current WAN address, also with a dynamic IP (syslog attribution of TP-Link CPEs).
+    state["wan_address"] = cr_host
     return state
 
 

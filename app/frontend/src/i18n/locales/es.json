@@ -338,6 +338,27 @@
       "waiting": "Esperando la primera muestra.",
       "last": "Último ping: {{rtt}}, pérdida {{loss}} %.",
       "globallyOff": "La monitorización ping está desactivada para toda la plataforma (ICMP_MONITOR)."
+    },
+    "source": {
+      "none": "Este dispositivo no tiene fuente de métricas (agente NSM, ACS, UISP o cnMaestro): el ping desde NSM sigue disponible.",
+      "from_one": "Datos de {{source}} · {{count}} muestra",
+      "from_other": "Datos de {{source}} · {{count}} muestras",
+      "noResources": "{{source}} no proporciona CPU ni memoria para este dispositivo.",
+      "noTraffic": "{{source}} no proporciona el tráfico de este dispositivo.",
+      "pingOff": "Ping desde NSM desactivado: actívalo en «Ajustes de monitorización».",
+      "chartsTitle": "Gráficos",
+      "chartsMoved": "Los gráficos de este dispositivo están en la pestaña Monitor, con el mismo esquema que todos los dispositivos.",
+      "openMonitor": "Abrir Monitor",
+      "names": {
+        "tr069": "ACS (TR-069)",
+        "uisp": "UISP",
+        "cnmaestro": "cnMaestro"
+      },
+      "extra": {
+        "tr069": "Línea y clientes",
+        "uisp": "Radio",
+        "cnmaestro": "Radio"
+      }
     }
   },
   "syslog": {
@@ -5193,6 +5214,7 @@
     }
   },
   "eventTypes": {
+    "ACS_ACCESS_CHANGED": "Acceso remoto o Telnet del CPE modificado",
     "ACS_ALERT_OPENED": "Aviso de CPE abierto",
     "ACS_ALERT_RESOLVED": "Aviso de CPE resuelto",
     "ACS_ALERT_SETTINGS_CHANGED": "Ajustes de avisos de CPE modificados",
@@ -5212,11 +5234,13 @@
     "ACS_PORT_MAPPING_CHANGED": "Redirección de puertos del CPE cambiada",
     "ACS_REBOOT_REQUESTED": "Reinicio del CPE solicitado",
     "ACS_REBOOT_VERIFIED": "Reinicio del CPE verificado",
+    "ACS_SETTINGS_CHANGED": "Ajustes avanzados del CPE modificados",
     "ACS_SNAPSHOT_ARCHIVED": "Instantánea de configuración TR-069 archivada",
     "ACS_SPEEDTEST_COMPLETED": "Prueba de velocidad del CPE completada",
     "ACS_SPEEDTEST_REQUESTED": "Prueba de velocidad del CPE solicitada",
     "ACS_SPEEDTEST_SETTINGS_CHANGED": "Ajustes de la prueba de velocidad modificados",
     "ACS_SYSLOG_CONFIGURED": "Syslog del CPE configurado vía ACS",
+    "ACS_TELNET_DISABLED": "Telnet LAN del CPE desactivado por la política",
     "ACS_TEMPLATES_INSTALLED": "Plantillas ACS instaladas",
     "ACS_TEMPLATES_UPDATED": "Plantillas ACS actualizadas por NSM",
     "ACS_WIFI_CHANGED": "Wi-Fi modificado a través del ACS",
@@ -5474,6 +5498,7 @@
     "VENDOR_FIRMWARE_RELEASE_ADDED": "Versión de firmware del fabricante añadida",
     "VENDOR_FIRMWARE_RELEASE_DELETED": "Versión de firmware del fabricante eliminada",
     "VULNERABILITY_STATUS_CHANGED": "Estado de la vulnerabilidad cambiado",
+    "ZABBIX_CUSTOMER_SCOPE_CHANGED": "Cliente añadido a Zabbix o retirado",
     "ZABBIX_DEVICE_IP_CHANGED": "IP de Zabbix cambiada",
     "ZABBIX_DEVICE_SCOPE_CHANGED": "Equipo incluido o excluido de Zabbix",
     "ZABBIX_HOST_IP_UPDATED": "IP del host de Zabbix actualizada",
@@ -5800,6 +5825,8 @@
     "help": "Archiva los parámetros de configuración del CPE, tal como los leyó el ACS, en la pestaña Copias, donde las instantáneas se abren y comparan. Se excluyen contraseñas y valores que cambian solos. No se restaura con un clic. Las políticas con la opción TR-069 guardan una automáticamente cuando algo cambia.",
     "refresh": "Volver a leer la configuración del CPE",
     "save": "Guardar instantánea ahora",
+    "refreshStarted": "El ACS está leyendo toda la configuración: en un CPE grande tarda unos minutos; después guarda la instantánea.",
+    "refreshQueued": "El CPE no aceptó la solicitud de conexión: la configuración se leerá en el próximo contacto.",
     "saved": "Instantánea guardada.",
     "open": "Abrir la pestaña Copias",
     "refreshState": {
@@ -5807,9 +5834,7 @@
       "done": "Configuración releída ({{objects}} objetos): guarda la instantánea.",
       "partial": "Configuración releída en parte: {{done}} de {{objects}} objetos."
     },
-    "refreshFailed": "No leídos (tarea eliminada para no bloquear la cola del CPE): {{list}}.",
-    "refreshStarted": "El ACS está leyendo toda la configuración: en un CPE grande tarda unos minutos; después guarda la instantánea.",
-    "refreshQueued": "El CPE no aceptó la solicitud de conexión: la configuración se leerá en el próximo contacto."
+    "refreshFailed": "No leídos (tarea eliminada para no bloquear la cola del CPE): {{list}}."
   },
   "acsSpeedtest": {
     "title": "Prueba de velocidad desde el CPE",
@@ -6155,6 +6180,27 @@
     "next": "Página siguiente",
     "size": "Filas por página"
   },
+  "zabbixScope": {
+    "addDevice": "Añadir a Zabbix",
+    "removeDevice": "Quitar de Zabbix",
+    "working": "Enviando a Zabbix…",
+    "addCustomer": "Añadir a Zabbix",
+    "removeCustomer": "Quitar de Zabbix",
+    "notIncluded": "no incluido",
+    "customerSummary": "{{inZabbix}} de {{devices}} dispositivos están en Zabbix",
+    "confirmAdd_one": "¿Añadir a Zabbix el dispositivo de este cliente? Se envía en el acto.",
+    "confirmAdd_other": "¿Añadir a Zabbix los {{count}} dispositivos de este cliente? Se envían en el acto.",
+    "confirmRemove_one": "¿Quitar de Zabbix el dispositivo de este cliente? Su host se desactiva, no se borra.",
+    "confirmRemove_other": "¿Quitar de Zabbix los {{count}} dispositivos de este cliente? Sus hosts se desactivan, no se borran.",
+    "customerDone": "En Zabbix: {{inZabbix}} de {{devices}} dispositivos · sin dirección IP: {{noIp}}",
+    "outcome": {
+      "pushed": "Creado en Zabbix",
+      "linked": "Vinculado al host ya presente en Zabbix",
+      "no_ip": "Sin dirección IP: define una IP para Zabbix",
+      "factory_ip": "IP LAN de fábrica: define una dirección accesible para Zabbix",
+      "pending": "En espera del próximo envío"
+    }
+  },
   "uispCustomers": {
     "open": "Clientes UISP → NSM",
     "title": "Clientes UISP",
@@ -6181,6 +6227,102 @@
     "byName": "mismo nombre",
     "ignore": "Ignorar",
     "reset": "Deshacer"
+  },
+  "tplinkAccess": {
+    "title": "Acceso remoto y Telnet",
+    "help": "Leídos del ACS; los cambios se envían enseguida al CPE.",
+    "remoteTitle": "Acceso web remoto",
+    "exposed": "La página web del CPE ({{protocol}}, puerto {{port}}) es accesible desde cualquier dirección de Internet.",
+    "restricted": "Acceso web remoto activo ({{protocol}}, puerto {{port}}), limitado por el CPE a algunas direcciones.",
+    "remoteOff": "Acceso web remoto desactivado.",
+    "enable": "Activar acceso remoto",
+    "disable": "Desactivar acceso remoto",
+    "protocol": "Protocolo",
+    "port": "Puerto",
+    "apply": "Aplicar puerto y protocolo",
+    "noAllowList": "La limitación a algunas direcciones no está disponible: en el firmware de TP-Link probado cierra la página a todos.",
+    "telnetTitle": "Telnet LAN",
+    "telnetOn": "Telnet está activo en la LAN: NSM lo desactiva en la próxima comprobación diaria.",
+    "telnetAllowed": "Telnet está activo en la LAN, permitido a mano en este equipo.",
+    "telnetOff": "Telnet está desactivado en la LAN (predeterminado de NSM).",
+    "telnetEnable": "Permitir Telnet LAN en este equipo",
+    "telnetDisable": "Desactivar Telnet LAN",
+    "sent": "Enviado al CPE.",
+    "readAt": "Último contacto del CPE: {{when}}."
+  },
+  "tplinkSettings": {
+    "title": "Ajustes avanzados del CPE",
+    "help": "Ajustes enviados por TR-069, algunos no disponibles en la página web del CPE. Solo se envían los valores modificados.",
+    "refresh": "Releer del CPE",
+    "reading": "Leyendo…",
+    "pagesHelp": "Páginas que el cliente puede modificar desde la página web del CPE (sin marcar: solo lectura).",
+    "adminHelp": "Nueva contraseña de la cuenta de administrador del CPE. NSM la envía una vez y nunca la guarda ni la muestra.",
+    "adminPassword": "Nueva contraseña de administrador (8–64 caracteres)",
+    "save_one": "Enviar {{count}} cambio",
+    "save_other": "Enviar {{count}} cambios",
+    "sent": "Enviado al CPE.",
+    "groups": {
+      "upgrades": "Actualizaciones de firmware",
+      "network": "Red",
+      "pages": "Páginas del cliente",
+      "admin": "Credenciales de administrador"
+    },
+    "fields": {
+      "upgrades_managed": "Firmware solo desde el ACS (el CPE no se actualiza solo)",
+      "cloud_auto_upgrade": "Actualización automática desde la nube de TP-Link",
+      "ntp_server_1": "Servidor NTP 1",
+      "ntp_server_2": "Servidor NTP 2",
+      "nat_timeouts": "Tiempos de sesión NAT personalizados",
+      "nat_tcp_established": "Tiempo TCP establecidas (s)",
+      "nat_udp": "Tiempo UDP (s)",
+      "nat_udp_stream": "Tiempo flujos UDP (s)",
+      "reboot_schedule": "Reinicio programado",
+      "reboot_hours": "Hora del reinicio",
+      "reboot_minutes": "Minuto del reinicio"
+    },
+    "pages": {
+      "FirmwareUpgrade": "Actualización de firmware",
+      "BackupRestore": "Copia y restauración",
+      "CWMPSettings": "Ajustes CWMP (TR-069)",
+      "UserAccount": "Cuenta de usuario",
+      "Internet": "Internet",
+      "WirelessSettings": "Inalámbrico",
+      "LANSettings": "LAN"
+    }
+  },
+  "cambiumBackup": {
+    "title": "Copia de seguridad de la configuración (SSH)",
+    "help": "cnMaestro no permite exportar la configuración de los equipos: NSM entra por SSH en el ePMP, lee la configuración en uso (config show json) y la archiva en la pestaña Copias, completa y restaurable desde la página Backup/Restore del ePMP. Las políticas de copia con la opción Cambium la ejecutan automáticamente.",
+    "run": "Hacer copia ahora",
+    "running": "Leyendo la configuración…",
+    "done": "Configuración archivada.",
+    "open": "Abrir las copias",
+    "source": {
+      "device": "Credenciales: las de este equipo.",
+      "shared": "Credenciales: las comunes de los Cambium ({{username}}).",
+      "none": "Sin credenciales SSH: define las comunes en Administración → cnMaestro o las de este equipo abajo."
+    },
+    "noIp": "La dirección de gestión del equipo no es conocida.",
+    "last": "Última copia {{when}}: {{status}}.",
+    "status": {
+      "success": "archivada",
+      "failed": "fallida"
+    },
+    "hostKey": "Clave SSH del equipo {{key}} (memorizada en la primera copia).",
+    "hostKeyChanged": "La clave SSH del equipo cambió ({{key}}): las copias están paradas hasta que la aceptes. Acéptala solo si el equipo fue sustituido o reiniciado.",
+    "acceptKey": "Aceptar la nueva clave",
+    "own": "Credenciales de este equipo",
+    "ownHelp": "Solo si este equipo no usa las credenciales comunes de los Cambium.",
+    "username": "Usuario SSH",
+    "password": "Contraseña SSH",
+    "keepPassword": "deja vacío para conservarla",
+    "port": "Puerto SSH",
+    "save": "Guardar",
+    "saved": "Guardado.",
+    "clear": "Usar las comunes",
+    "sharedTitle": "Credenciales SSH de los equipos Cambium",
+    "sharedHelp": "Usadas por NSM para copiar por SSH la configuración de cada Cambium ePMP (cnMaestro no permite exportarla). Un equipo puede tener credenciales propias en su pestaña cnMaestro. Guardadas cifradas; la contraseña no se vuelve a mostrar.",
+    "remove": "Eliminar"
   },
   "uispFirmware": {
     "title": "Actualización de firmware mediante UISP",
@@ -6266,40 +6408,6 @@
       "failed": "Fallida",
       "cancelled": "Cancelada"
     }
-  },
-  "cambiumBackup": {
-    "title": "Copia de seguridad de la configuración (SSH)",
-    "help": "cnMaestro no permite exportar la configuración de los equipos: NSM entra por SSH en el ePMP, lee la configuración en uso (config show json) y la archiva en la pestaña Copias, completa y restaurable desde la página Backup/Restore del ePMP. Las políticas de copia con la opción Cambium la ejecutan automáticamente.",
-    "run": "Hacer copia ahora",
-    "running": "Leyendo la configuración…",
-    "done": "Configuración archivada.",
-    "open": "Abrir las copias",
-    "source": {
-      "device": "Credenciales: las de este equipo.",
-      "shared": "Credenciales: las comunes de los Cambium ({{username}}).",
-      "none": "Sin credenciales SSH: define las comunes en Administración → cnMaestro o las de este equipo abajo."
-    },
-    "noIp": "La dirección de gestión del equipo no es conocida.",
-    "last": "Última copia {{when}}: {{status}}.",
-    "status": {
-      "success": "archivada",
-      "failed": "fallida"
-    },
-    "hostKey": "Clave SSH del equipo {{key}} (memorizada en la primera copia).",
-    "hostKeyChanged": "La clave SSH del equipo cambió ({{key}}): las copias están paradas hasta que la aceptes. Acéptala solo si el equipo fue sustituido o reiniciado.",
-    "acceptKey": "Aceptar la nueva clave",
-    "own": "Credenciales de este equipo",
-    "ownHelp": "Solo si este equipo no usa las credenciales comunes de los Cambium.",
-    "username": "Usuario SSH",
-    "password": "Contraseña SSH",
-    "keepPassword": "deja vacío para conservarla",
-    "port": "Puerto SSH",
-    "save": "Guardar",
-    "saved": "Guardado.",
-    "clear": "Usar las comunes",
-    "sharedTitle": "Credenciales SSH de los equipos Cambium",
-    "sharedHelp": "Usadas por NSM para copiar por SSH la configuración de cada Cambium ePMP (cnMaestro no permite exportarla). Un equipo puede tener credenciales propias en su pestaña cnMaestro. Guardadas cifradas; la contraseña no se vuelve a mostrar.",
-    "remove": "Eliminar"
   },
   "acsCapabilities": {
     "title": "Funciones de NSM en este CPE",
