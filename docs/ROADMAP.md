@@ -461,20 +461,11 @@ A complete cybersecurity view for an ISP/WISP, taking as reference the open-sour
   - *exact*: a RADIUS/PPP session covering the time;
   - *probable*: the address reported by the device in that window;
   - *ambiguous*: CGNAT or shared NAT address, with the list of candidate customers;
-- **generic NAT model**, usable by any operator and not tied to one network (operator's setup, 2026-10-23: a dedicated PPPoE BRAS, a separate edge router doing the customers' NAT, RADIUS profiles with public pools that fall back to a NAT pool when exhausted, and NAT-only profiles, static or dynamic):
-  - the session log records the address each session really got, so pool fallback, static NAT and dynamic NAT need no special case: a public address is attributed directly, a private/CGNAT one goes through the NAT step;
-  - **NAT gateways** are declared in NSM (any vendor), each with the public pools it uses and how its translations can be known:
-    - *deterministic*: internal range → public range with a port-block size, computed;
-    - *translation logs*: NAT or port-block-allocation events (MikroTik firewall NAT logging and the common CGN formats, or IPFIX NAT events). Many operators already keep them on a **dedicated log server**, as this operator does (2026-10-23). NSM then does not need to store them:
-      - **search on demand** in the existing archive at incident time: a read-only connector to the log server, either SSH/SFTP with a read-only user over the plain or rotated (`.gz`) files, or the API of the log platform in use (Graylog, Elasticsearch/OpenSearch, Loki), one per type;
-      - or a **copy forwarded** to NSM (rsyslog relay to a dedicated NSM port), stored compactly (inside IP, public IP and port block, start/end) with its own retention;
-      - the line format is described per gateway (preset for MikroTik NAT logging, a configurable pattern for the others);
-    - *none*;
-  - lookup by **IP, optional port and time**:
-    - public address: the session that had it;
-    - NAT pool address with port and translation data: the internal address, then its session and customer;
-    - without port or translation data: the customers whose sessions were behind that gateway at that time (*ambiguous*, with the count);
-  - the edge router and the BRAS can be different devices; clocks must be synchronized (NTP, ACCESS-01) and the time zone of each report is normalized;
+- **scope decided with the user (2026-10-23)**:
+  - **public addresses** (static public IP, or a public IP received from a dynamic pool): the customer is attributed from NSM's own data only, i.e. the BRAS session log, the RADIUS accounting and the static IPs, with no external syslog;
+  - **NAT addresses** (customers behind the edge NAT, NAT pools, CGNAT): NSM does **not** look for the responsible customer. It reports the public IP, the time and, when declared, the NAT gateway or pool it belongs to; the operator finds the customer with their own NAT logs;
+  - generic for any operator: dedicated BRAS or not, public pools that fall back to NAT pools, static or dynamic NAT profiles. The session log records the address each session really got, so no case needs a special rule;
+- later, optional: attribution behind NAT from deterministic NAT rules or from the operator's NAT log server (search on demand, read-only), only if requested;
 - the incident is linked to the customer and device found (customer page, Action Center), with the evidence used;
 - configurable retention of the history, as operational data. It is not the legal traffic-data register, which stays where the operator keeps it.
 
