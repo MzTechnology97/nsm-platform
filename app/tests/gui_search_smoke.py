@@ -45,7 +45,7 @@ def main():
     devices = {r["title"]: r for r in data["results"] if r["type"] == "Apparato"}
     mt_row, cam_row = devices[f"TEST-GS-MT-{suffix}"], devices[f"TEST-GS-CAM-{suffix}"]
     assert mt_row["status"] == "online" and mt_row["icon"]["symbol"] == "brand-mikrotik" and mt_row["icon"]["brand"] is True
-    assert cam_row["icon"]["symbol"] == "brand-generic" and cam_row["icon"]["label"] == "Cambium Networks" and "Cambium Networks" in cam_row["subtitle"]
+    assert cam_row["icon"]["symbol"] == "brand-cambium" and cam_row["icon"]["label"] == "Cambium Networks" and "Cambium Networks" in cam_row["subtitle"]
     assert data["counts"]["Apparato"] >= 2
 
     pages = client.get("/api/v1/search/suggest?q=firmw").json()["results"]

@@ -6,8 +6,8 @@ instance at ``/nms/api-docs/``).  NSM stores what UISP exposes and derives the
 firmware state when both versions are present and comparable.  Consoles checked
 in production send only ``compatible``: there ``overview.canUpgrade`` marks an
 unknown state as "update available", and ``identification.platformId`` lets the
-vendor catalog (``vendor_firmware``) find the recommended version.  Upgrades are still executed from UISP; NSM
-sees the result at the next synchronization.
+vendor catalog (``vendor_firmware``) find the recommended version.  Upgrades are queued in UISP from the device
+Firmware tab (``uisp_firmware_upgrade``) and verified on the version UISP reports.
 """
 from __future__ import annotations
 

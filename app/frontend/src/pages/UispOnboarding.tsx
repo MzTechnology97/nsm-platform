@@ -2,6 +2,9 @@ import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 import { type OnboardingFilters, type OnboardingProvider, type OnboardingRow, useOnboarding, useOnboardingCommit, useOnboardingPreview } from "../api/admin";
 import { BrandIcon } from "../app/BrandIcon";
 import { useDebounced } from "../lib/hooks";
@@ -37,9 +40,11 @@ function ConnectorOnboarding({ provider }: { provider: OnboardingProvider }) {
   const q = useDebounced(text.trim());
   const state = search.state ?? "new";
   const groupValue = provider === "uisp" ? search.uisp_site : search.group;
-  const query = useOnboarding({ q: search.q, [config.group]: groupValue, state }, provider);
-  const first = query.data?.pages[0];
-  const items = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
+  const onboardingFilters = { q: search.q, [config.group]: groupValue, state };
+  const paging = usePaging(JSON.stringify(onboardingFilters));
+  const query = useOnboarding(onboardingFilters, provider, pageParams(paging));
+  const first = query.data;
+  const items = useMemo(() => query.data?.items ?? [], [query.data]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [customer, setCustomer] = useState(search.customer ?? "");
   const [site, setSite] = useState("");
@@ -94,6 +99,9 @@ function ConnectorOnboarding({ provider }: { provider: OnboardingProvider }) {
           <h1>{t("onboarding.title")}</h1>
           <p>{t("onboarding.subtitle")}</p>
         </div>
+        {provider === "uisp" && (
+          <div className="ui-actions"><Link className="ui-button ui-button-ghost" to="/integrations/uisp/customers">{t("uispCustomers.open")}</Link></div>
+        )}
       </header>
       {first?.error && <div className="ui-alert ui-alert-danger">{first.error}</div>}
       <div className="ui-chips" role="group" aria-label={t("onboarding.stateFilter")}>
@@ -105,20 +113,16 @@ function ConnectorOnboarding({ provider }: { provider: OnboardingProvider }) {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("onboarding.searchPlaceholder")} aria-label={t("onboarding.search")} />
-        <select value={groupValue ?? ""} onChange={(event) => update({ [config.group]: event.target.value || undefined })} aria-label={t("onboarding.uispSite")}>
-          <option value="">{t("onboarding.allSites")}</option>
-          {first?.uisp_sites.map((name) => <option key={name} value={name}>{name}</option>)}
-        </select>
+        <SearchSelect value={groupValue ?? ""} options={(first?.uisp_sites ?? []).map((name) => ({ value: name, label: name }))} onChange={(value) => update({ [config.group]: value || undefined })} emptyLabel={t("onboarding.allSites")} ariaLabel={t("onboarding.uispSite")} />
       </div>
 
       {selectable && (
         <div className="ui-admin-form">
           <label>
             <span>{t("onboarding.customer")}</span>
-            <select value={customer} onChange={(event) => { setCustomer(event.target.value); setSite(""); preview.reset(); }} required>
-              <option value="">{t("onboarding.choose")}</option>
-              {first?.customers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
+            <SearchSelect value={customer} required placeholder={t("onboarding.customerSearch")} ariaLabel={t("onboarding.customer")}
+              options={(first?.customers ?? []).map((item) => ({ value: item.id, label: customerLabel(item) }))}
+              onChange={(value) => { setCustomer(value); setSite(""); preview.reset(); }} />
           </label>
           <label>
             <span>{t("onboarding.site")}</span>
@@ -157,12 +161,8 @@ function ConnectorOnboarding({ provider }: { provider: OnboardingProvider }) {
           </div>
           <div className="ui-table-foot">
             <span>{t("firmware.shown", { shown: items.length, total: first.total })}</span>
-            {query.hasNextPage && (
-              <button type="button" className="ui-button ui-button-ghost" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
-                {query.isFetchingNextPage ? t("app.loading") : t("firmware.more")}
-              </button>
-            )}
           </div>
+          <Pager total={first.total} paging={paging} busy={query.isFetching} />
           {selectable && (
             <div className="ui-row-actions">
               <button type="button" className="ui-button" disabled={!selected.size || !customer || selected.size > first.max_batch || preview.isPending}

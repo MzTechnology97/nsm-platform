@@ -183,12 +183,36 @@ def parse_result(model: str, kind: str, record: dict) -> dict:
             "began_at": begin.isoformat() if begin else None}
 
 
-def detect_model(connection, external_id: str) -> str | None:
+# Objects GenieACS must read once before the TR-143 diagnostics appear in its record (a new CPE has not been walked yet).
+DISCOVER = {"tr181": ["Device.IP.Diagnostics"], "tr098": [OBJECTS["tr098"]["download"], OBJECTS["tr098"]["upload"]]}
+
+
+class DiscoveryPending(Exception):
+    """The CPE did not answer the connection request: GenieACS reads it at its next contact."""
+
+
+def _known_model(connection, external_id: str) -> str | None:
     record = nbi._read(connection, external_id, [OBJECTS["tr181"]["download"], OBJECTS["tr098"]["download"]])
     for model, objects in OBJECTS.items():
         if nbi._node(record, objects["download"]):
             return model
     return None
+
+
+def detect_model(connection, external_id: str, discover: bool = False) -> str | None:
+    """TR-181 or TR-098 diagnostics of the CPE, as GenieACS has them; with ``discover`` the objects are read from the CPE first
+    when GenieACS does not have them yet. Raises ``DiscoveryPending`` when the CPE could not be asked at once."""
+    model = _known_model(connection, external_id)
+    if model or not discover:
+        return model
+    roots = nbi._read(connection, external_id, ["Device.DeviceInfo.SoftwareVersion", "InternetGatewayDevice.DeviceInfo.SoftwareVersion"])
+    root = "tr181" if nbi._node(roots, "Device.DeviceInfo") else "tr098" if nbi._node(roots, "InternetGatewayDevice.DeviceInfo") else None
+    if root is None:
+        return None
+    applied = [nbi._task(connection, external_id, {"name": "refreshObject", "objectName": name}) for name in DISCOVER[root]]
+    if not all(applied):
+        raise DiscoveryPending()
+    return _known_model(connection, external_id)
 
 
 # --- Records -----------------------------------------------------------------------------------
@@ -212,7 +236,10 @@ def request_record(db, user, device, connection, kind: str, now: datetime | None
     running = next((k for k in KINDS if (tests.get(k) or {}).get("state") == "requested"), None)
     if running:
         raise HTTPException(409, {"code": "running", "message": "C'è già un test di velocità in corso su questo CPE: attendi che finisca."})
-    model = tests.get("model") or detect_model(connection, device.external_device_id)
+    try:
+        model = tests.get("model") or detect_model(connection, device.external_device_id, discover=True)
+    except DiscoveryPending:
+        raise HTTPException(409, {"code": "discovering", "message": "Il CPE non ha risposto subito: GenieACS legge i suoi oggetti di diagnostica al prossimo contatto. Riprova tra qualche minuto."}) from None
     if model is None:
         raise HTTPException(409, {"code": "unsupported", "message": "Il CPE non espone il test di velocità TR-143 (DownloadDiagnostics/UploadDiagnostics)."})
     config = speedtest_settings(connection)
