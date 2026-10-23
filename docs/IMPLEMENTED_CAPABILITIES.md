@@ -504,7 +504,8 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 - every UISP sync and refresh stores the `firmware` object UISP exposes (installed, latest, latest on the same major, compatibility, pre-release) in `inventory_data.uisp_firmware`;
 - when both installed and latest are present and comparable, the Device gets the recommended version and `update_available` or `current`, so Ubiquiti devices appear in the firmware worklist; nothing is inferred when UISP does not expose a latest version;
-- the UISP tab shows a *Firmware da UISP* panel and warns when UISP reports the installed firmware as not compatible; upgrades are still executed from UISP and seen at the next sync.
+- the UISP tab shows a *Firmware da UISP* panel and warns when UISP reports the installed firmware as not compatible;
+- upgrade through UISP (Core 0.49.252): Ubiquiti devices linked to UISP get the device *Firmware* tab (and *Aggiorna via UISP* in the firmware worklist). It offers the stable images UISP has for the device's airOS platform (`GET /firmwares`) newer than the installed one, the recommended version first. After typing the device name, NSM queues the upgrade in UISP (`POST /tasks` with device and version, now or in UISP's maintenance window); the token needs write permission. One upgrade at a time per device, followed on the page and by the worker (`uisp_firmware_follow`): *verified* when UISP reports the device on the requested version, *failed* when UISP marks that upgrade failed or canceled, *unconfirmed* after 60 minutes (48 hours in the maintenance window). The `upgrade` object of the UISP device record alone is not trusted: on the operator's console it still reported an older successful upgrade. Audit `UISP_FIRMWARE_UPGRADE_REQUESTED`, `UISP_FIRMWARE_UPGRADE_VERIFIED`, `UISP_FIRMWARE_UPGRADE_FAILED`.
 
 ### Monitoring (UBNT-02)
 

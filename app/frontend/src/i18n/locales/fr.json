@@ -1245,7 +1245,9 @@
       "checking": "Recherche de la dernière version…",
       "downloaded": "Téléchargé, redémarrer pour mettre à jour",
       "dnsError": "Erreur : nom du serveur de mise à jour non résolu"
-    }
+    },
+    "uispUpgrade": "Mettre à jour via UISP",
+    "uispRunning": "Mise à jour UISP en cours"
   },
   "vulns": {
     "title": "Vulnérabilités",
@@ -5340,6 +5342,9 @@
     "UISP_DEVICE_ASSOCIATED": "Équipement lié à UISP",
     "UISP_DEVICE_MISSING": "Équipement absent d'UISP",
     "UISP_DEVICE_ONBOARDED": "Équipement importé depuis UISP",
+    "UISP_FIRMWARE_UPGRADE_FAILED": "Échec de la mise à jour du firmware UISP",
+    "UISP_FIRMWARE_UPGRADE_REQUESTED": "Mise à jour du firmware UISP demandée",
+    "UISP_FIRMWARE_UPGRADE_VERIFIED": "Mise à jour du firmware UISP vérifiée",
     "UISP_INVENTORY_REFRESHED": "Données UISP actualisées",
     "UISP_INVENTORY_SYNCED": "Inventaire UISP synchronisé",
     "UISP_REBOOT_FAILED": "Échec du redémarrage via UISP",
@@ -5923,5 +5928,27 @@
     "byName": "même nom",
     "ignore": "Ignorer",
     "reset": "Annuler"
+  },
+  "uispFirmware": {
+    "title": "Mise à jour du firmware via UISP",
+    "help": "UISP télécharge l'image et l'installe sur l'équipement, comme avec sa propre mise à jour ; NSM suit la mise à jour et vérifie la nouvelle version signalée par UISP. Le jeton UISP doit avoir les droits d'écriture.",
+    "installed": "Installée",
+    "platform": "plateforme {{platform}}",
+    "recommended": "Recommandée",
+    "recommendedTag": "recommandée",
+    "version": "Version disponible dans UISP",
+    "window": "Installer dans la fenêtre de maintenance configurée dans UISP (sinon maintenant)",
+    "confirm": "Tapez {{name}} pour confirmer : l'équipement redémarre et le client perd la connexion quelques minutes.",
+    "start": "Mettre à jour vers {{version}}",
+    "noNewer": "UISP n'a pas de firmware stable plus récent pour cet équipement.",
+    "progress": "Progression UISP : {{percent}} %.",
+    "inWindow": "Planifiée dans la fenêtre de maintenance UISP.",
+    "requested": "Demandée {{when}} par {{who}} (depuis {{from}})",
+    "states": {
+      "requested": "Mise à jour vers {{version}} en cours dans UISP.",
+      "verified": "Mise à jour vers {{version}} vérifiée.",
+      "failed": "Échec de la mise à jour vers {{version}}.",
+      "unconfirmed": "Mise à jour vers {{version}} non confirmée."
+    }
   }
 }

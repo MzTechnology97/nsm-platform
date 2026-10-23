@@ -44,6 +44,7 @@ from app.vendor_firmware import run_scheduled as run_vendor_firmware
 from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
 from app.mikrotik_device_reboot import verify_reboots
 from app.uisp_operations import scheduled_backups as uisp_scheduled_backups, verify_reboots as uisp_verify_reboots
+from app.uisp_firmware_upgrade import follow_upgrades as uisp_firmware_follow
 from app.mikrotik_legacy_operations import verify_upgrades as verify_legacy_upgrades
 from app.report_schedules import run_report_schedules
 from app.uisp_sync import sync_uisp_devices
@@ -92,6 +93,7 @@ while True:
             routerboot_stats = run_task("routerboot_verification", routerboot_verification_tick)
             reboot_stats = dict(run_task("device_reboot_verification", verify_reboots))
             run_task("uisp_reboot_verification", uisp_verify_reboots)
+            run_task("uisp_firmware_follow", uisp_firmware_follow)
             run_task("uisp_scheduled_backups", uisp_scheduled_backups)
             reboot_stats.update({f"upgrade_{k}": v for k, v in run_task("legacy_upgrade_verification", verify_legacy_upgrades).items()})
             if any(reboot_stats.values()):

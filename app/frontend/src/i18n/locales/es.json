@@ -1245,7 +1245,9 @@
       "checking": "Buscando la última versión…",
       "downloaded": "Descargado, reiniciar para actualizar",
       "dnsError": "Error: nombre del servidor de actualización no resuelto"
-    }
+    },
+    "uispUpgrade": "Actualizar vía UISP",
+    "uispRunning": "Actualización UISP en curso"
   },
   "vulns": {
     "title": "Vulnerabilidades",
@@ -5340,6 +5342,9 @@
     "UISP_DEVICE_ASSOCIATED": "Equipo vinculado a UISP",
     "UISP_DEVICE_MISSING": "Equipo ya no presente en UISP",
     "UISP_DEVICE_ONBOARDED": "Equipo importado desde UISP",
+    "UISP_FIRMWARE_UPGRADE_FAILED": "Actualización de firmware UISP fallida",
+    "UISP_FIRMWARE_UPGRADE_REQUESTED": "Actualización de firmware UISP solicitada",
+    "UISP_FIRMWARE_UPGRADE_VERIFIED": "Actualización de firmware UISP verificada",
     "UISP_INVENTORY_REFRESHED": "Datos de UISP actualizados",
     "UISP_INVENTORY_SYNCED": "Inventario UISP sincronizado",
     "UISP_REBOOT_FAILED": "Reinicio mediante UISP fallido",
@@ -5923,5 +5928,27 @@
     "byName": "mismo nombre",
     "ignore": "Ignorar",
     "reset": "Deshacer"
+  },
+  "uispFirmware": {
+    "title": "Actualización de firmware mediante UISP",
+    "help": "UISP descarga la imagen y la instala en el equipo, como con su propio Upgrade; NSM sigue la actualización y verifica la nueva versión indicada por UISP. El token UISP necesita permisos de escritura.",
+    "installed": "Instalada",
+    "platform": "plataforma {{platform}}",
+    "recommended": "Recomendada",
+    "recommendedTag": "recomendada",
+    "version": "Versión disponible en UISP",
+    "window": "Instalar en la ventana de mantenimiento configurada en UISP (si no, ahora)",
+    "confirm": "Escribe {{name}} para confirmar: el equipo se reinicia y el cliente pierde la conexión unos minutos.",
+    "start": "Actualizar a {{version}}",
+    "noNewer": "UISP no tiene firmware estable más reciente para este equipo.",
+    "progress": "Progreso UISP: {{percent}}%.",
+    "inWindow": "Programada en la ventana de mantenimiento UISP.",
+    "requested": "Solicitada {{when}} por {{who}} (desde {{from}})",
+    "states": {
+      "requested": "Actualización a {{version}} en curso en UISP.",
+      "verified": "Actualización a {{version}} verificada.",
+      "failed": "La actualización a {{version}} ha fallado.",
+      "unconfirmed": "Actualización a {{version}} no confirmada."
+    }
   }
 }

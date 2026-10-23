@@ -116,6 +116,7 @@ from app.ui_extension import install_ui
 from app.uisp_connector import install_uisp_connector
 from app.uisp_sync import install_uisp_sync
 from app.uisp_operations import install_uisp_operations
+from app.uisp_firmware_upgrade import install_uisp_firmware_upgrade
 from app.cnmaestro_connector import install_cnmaestro_connector
 from app.advisory_admin import install_advisory_admin
 from app.compliance_findings import install_compliance_findings
@@ -187,6 +188,7 @@ install_agent_ui(core.app)
 install_uisp_connector(core.app)
 install_uisp_sync(core.app)
 install_uisp_operations(core.app)
+install_uisp_firmware_upgrade(core.app)
 install_cnmaestro_connector(core.app)
 install_advisory_admin(core.app)
 install_compliance_findings(core.app)

@@ -1245,7 +1245,9 @@
       "checking": "Looking for the latest version…",
       "downloaded": "Downloaded, reboot to upgrade",
       "dnsError": "Error: update server name not resolved"
-    }
+    },
+    "uispUpgrade": "Upgrade via UISP",
+    "uispRunning": "UISP upgrade in progress"
   },
   "vulns": {
     "title": "Vulnerabilities",
@@ -5340,6 +5342,9 @@
     "UISP_DEVICE_ASSOCIATED": "Device linked to UISP",
     "UISP_DEVICE_MISSING": "Device no longer in UISP",
     "UISP_DEVICE_ONBOARDED": "Device imported from UISP",
+    "UISP_FIRMWARE_UPGRADE_FAILED": "UISP firmware upgrade failed",
+    "UISP_FIRMWARE_UPGRADE_REQUESTED": "UISP firmware upgrade requested",
+    "UISP_FIRMWARE_UPGRADE_VERIFIED": "UISP firmware upgrade verified",
     "UISP_INVENTORY_REFRESHED": "UISP data refreshed",
     "UISP_INVENTORY_SYNCED": "UISP inventory synchronised",
     "UISP_REBOOT_FAILED": "UISP reboot failed",
@@ -5923,5 +5928,27 @@
     "byName": "same name",
     "ignore": "Ignore",
     "reset": "Undo"
+  },
+  "uispFirmware": {
+    "title": "Firmware upgrade through UISP",
+    "help": "UISP downloads the image and installs it on the device, as with UISP's own Upgrade; NSM follows the upgrade and verifies the new version reported by UISP. The UISP token needs write permission.",
+    "installed": "Installed",
+    "platform": "platform {{platform}}",
+    "recommended": "Recommended",
+    "recommendedTag": "recommended",
+    "version": "Version available in UISP",
+    "window": "Install in the maintenance window configured in UISP (otherwise now)",
+    "confirm": "Type {{name}} to confirm: the device reboots and the customer loses the connection for a few minutes.",
+    "start": "Upgrade to {{version}}",
+    "noNewer": "UISP has no newer stable firmware for this device.",
+    "progress": "UISP progress: {{percent}}%.",
+    "inWindow": "Scheduled in the UISP maintenance window.",
+    "requested": "Requested {{when}} by {{who}} (from {{from}})",
+    "states": {
+      "requested": "Upgrade to {{version}} in progress in UISP.",
+      "verified": "Upgrade to {{version}} verified.",
+      "failed": "Upgrade to {{version}} failed.",
+      "unconfirmed": "Upgrade to {{version}} not confirmed."
+    }
   }
 }
