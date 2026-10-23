@@ -1,4 +1,4 @@
-import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { api } from "./client";
 import type { BrandRef } from "../app/BrandIcon";
@@ -64,7 +64,7 @@ export interface DeviceFilters {
   dir?: "asc" | "desc";
 }
 
-export const PAGE_SIZE = 100;
+export const PAGE_SIZE = 50;
 
 export function devicesUrl(filters: DeviceFilters, offset: number, limit = PAGE_SIZE): string {
   const params = new URLSearchParams();
@@ -86,12 +86,11 @@ export function devicesExportUrl(filters: DeviceFilters, ids: string[] = []): st
   return `/api/ui/v1/devices/export.csv?${params.toString()}`;
 }
 
-export function useDevices(filters: DeviceFilters) {
-  return useInfiniteQuery({
-    queryKey: ["devices", filters],
-    initialPageParam: 0,
-    queryFn: ({ pageParam }) => api<DevicePage>(devicesUrl(filters, pageParam)),
-    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.items.length : undefined),
+/** One page of the device list (50, 100 or 200 rows). */
+export function useDevices(filters: DeviceFilters, page: { offset: number; limit: number }) {
+  return useQuery({
+    queryKey: ["devices", filters, page],
+    queryFn: () => api<DevicePage>(devicesUrl(filters, page.offset, page.limit)),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   });

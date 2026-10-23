@@ -7,6 +7,8 @@ import { SearchSelect } from "../app/SearchSelect";
 
 import { api } from "../api/client";
 import { type DeviceCounts, type DeviceFilters, type DeviceRow, devicesExportUrl, useDeviceFacets, useDevices } from "../api/devices";
+import { pageParams, usePaging } from "../lib/paging";
+import { Pager } from "../app/Pager";
 import { useIntegrations } from "../api/admin";
 import { can, useSession } from "../api/session";
 import { BrandIcon } from "../app/BrandIcon";
@@ -62,19 +64,15 @@ export function Devices() {
 
   const filters = useMemo<DeviceFilters>(() => ({ ...search, sort: search.sort ?? "name", dir: search.dir ?? "asc" }), [search]);
   const activeFilters = Object.entries(search).filter(([key, value]) => value && key !== "sort" && key !== "dir").length;
-  const query = useDevices(filters);
-  const rows = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
-  const first = query.data?.pages[0];
-  const total = first?.total ?? 0;
-  const counts = first?.counts;
+  const paging = usePaging(JSON.stringify(filters));
+  const query = useDevices(filters, pageParams(paging));
+  const rows = useMemo(() => query.data?.items ?? [], [query.data]);
+  const total = query.data?.total ?? 0;
+  const counts = query.data?.counts;
 
   const parent = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({ count: rows.length, getScrollElement: () => parent.current, estimateSize: () => ROW_HEIGHT, overscan: 12 });
   const items = virtualizer.getVirtualItems();
-  const last = items[items.length - 1];
-  useEffect(() => {
-    if (last && last.index >= rows.length - 20 && query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage();
-  }, [last, rows.length, query]);
 
   const sites = (facets.data?.sites ?? []).filter((site) => !filters.customer || site.customer_id === filters.customer);
 
@@ -243,6 +241,7 @@ export function Devices() {
           {query.isFetching ? t("app.loading") : t("devices.shown", { shown: rows.length, total })}
         </div>
       </div>
+      <Pager total={total} paging={paging} busy={query.isFetching} />
     </section>
   );
 }

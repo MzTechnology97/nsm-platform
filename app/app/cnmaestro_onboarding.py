@@ -20,6 +20,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from sqlalchemy import select
 
+from app import pagination
 from app import cnmaestro_connector as cnm
 from app import connector_onboarding
 from app import main as core
@@ -212,7 +213,7 @@ def _text(body: dict, key: str) -> str:
 
 
 @router.get("/integrations/cnmaestro/onboarding")
-def onboarding_list(request: Request, q: str = "", group: str = "", state: str = "new", offset: int = 0):
+def onboarding_list(request: Request, q: str = "", group: str = "", state: str = "new", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         user = _user(request, db)
         error, rows = None, []
@@ -221,14 +222,14 @@ def onboarding_list(request: Request, q: str = "", group: str = "", state: str =
         except cnm.CnMaestroError as exc:
             error = str(exc)
         filtered = _filter(rows, q, group, state if state in STATES else "new")
-        offset = max(0, int(offset or 0))
+        offset, size = pagination.window(offset, limit, PAGE_SIZE)
         return {
-            "error": error, "total": len(filtered), "offset": offset, "limit": PAGE_SIZE, "max_batch": MAX_BATCH,
+            "error": error, "total": len(filtered), "offset": offset, "limit": size, "max_batch": MAX_BATCH,
             "counts": {key: sum(1 for r in rows if r["state"] == key) for key in STATES},
             "uisp_sites": sorted({r["group"] for r in rows if r.get("group")}),
             "customers": [{"id": str(c.id), "name": c.name} for c in db.scalars(select(Customer).order_by(Customer.name))],
             "sites": [{"id": str(s.id), "name": s.name, "customer_id": str(s.customer_id)} for s in db.scalars(select(Site).order_by(Site.name))],
-            "items": [_row(row) for row in filtered[offset:offset + PAGE_SIZE]],
+            "items": [_row(row) for row in filtered[offset:offset + size]],
         }
 
 

@@ -19,6 +19,7 @@ import uuid
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from sqlalchemy import case, func, select
 
+from app import pagination
 from app import incidents as incident_flow
 from app import main as core
 from app.db import SessionLocal
@@ -63,7 +64,7 @@ def device_ref(device) -> dict | None:
 
 
 @router.get("/action-center")
-def action_center(request: Request, severity: str = "", category: str = "", status: str = "", customer: str = "", device: str = "", offset: int = 0):
+def action_center(request: Request, severity: str = "", category: str = "", status: str = "", customer: str = "", device: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         user = ui_user(request, db, "issues.read")
         customer_id = _uuid(customer)
@@ -83,13 +84,13 @@ def action_center(request: Request, severity: str = "", category: str = "", stat
         if category:
             filters.append(ActionIssue.category == category)
         total = int(db.scalar(select(func.count(ActionIssue.id)).where(*filters)) or 0)
-        offset = max(0, int(offset or 0))
+        offset, size = pagination.window(offset, limit, ISSUE_PAGE)
         issues = list(db.scalars(select(ActionIssue).where(*filters).order_by(SEVERITY_ORDER, ActionIssue.created_at.desc())
-                                 .offset(offset).limit(ISSUE_PAGE)))
+                                 .offset(offset).limit(size)))
         devices = {d.id: d for d in db.scalars(select(Device).where(Device.id.in_({i.device_id for i in issues if i.device_id})))} if issues else {}
         customers = {c.id: c for c in db.scalars(select(Customer).where(Customer.id.in_({i.customer_id for i in issues if i.customer_id})))} if issues else {}
         return {
-            "total": total, "offset": offset, "limit": ISSUE_PAGE, "scope_total": sum(c["count"] for c in categories),
+            "total": total, "offset": offset, "limit": size, "scope_total": sum(c["count"] for c in categories),
             "categories": categories, "severities": severities,
             "can_ack": core.has_permission(user, "issues.ack"),
             "can_incident": core.has_permission(user, "incidents.write"),
@@ -115,19 +116,19 @@ def action_center_ack(request: Request, issue_id: uuid.UUID):
 
 
 @router.get("/incidents")
-def incidents(request: Request, status: str = "active", customer: str = "", q: str = "", offset: int = 0):
+def incidents(request: Request, status: str = "active", customer: str = "", q: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         user = ui_user(request, db, "incidents.read")
         scope = incident_flow.list_scope(_uuid(customer), q.strip()[:200])
         counts = incident_flow.status_counts(db, scope)
         filters = [*scope, *incident_flow.status_filter(status)]
         total = int(db.scalar(select(func.count(Incident.id)).where(*filters)) or 0)
-        offset = max(0, int(offset or 0))
+        offset, size = pagination.window(offset, limit, INCIDENT_PAGE)
         rows = db.execute(
             select(Incident, Customer, IncidentHypothesis)
             .join(Customer, Customer.id == Incident.customer_id)
             .outerjoin(IncidentHypothesis, IncidentHypothesis.id == Incident.root_cause_hypothesis_id)
-            .where(*filters).order_by(Incident.started_at.desc(), Incident.id).offset(offset).limit(INCIDENT_PAGE)
+            .where(*filters).order_by(Incident.started_at.desc(), Incident.id).offset(offset).limit(size)
         ).all()
         linked: dict = {}
         if rows:
@@ -138,7 +139,7 @@ def incidents(request: Request, status: str = "active", customer: str = "", q: s
             ).all():
                 linked.setdefault(incident_id, []).append(device)
         return {
-            "total": total, "offset": offset, "limit": INCIDENT_PAGE,
+            "total": total, "offset": offset, "limit": size,
             "counts": {key: int(counts.get(key, 0)) for key in ("active", *incident_flow.INCIDENT_STATUSES, "all")},
             "can_write": core.has_permission(user, "incidents.write"),
             "items": [{

@@ -8,6 +8,8 @@ import { EXPOSURE_VIEWS, type ExposureFilters, type ExposureRow, useExposure } f
 import { formatRelative } from "../lib/format";
 import { SEVERITY_TONE } from "./Vulnerabilities";
 import { Loading } from "../app/States";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 
 const VIEW_COUNT = { exposed: "exposed", setup: "setup", clean: "clean", pending: "pending", all: "total" } as const;
 
@@ -16,7 +18,8 @@ export function Exposure() {
   const search = useSearch({ from: "/exposure" });
   const navigate = useNavigate({ from: "/exposure" });
   const facets = useDeviceFacets();
-  const query = useExposure(search);
+  const paging = usePaging(JSON.stringify(search));
+  const query = useExposure(search, pageParams(paging));
   const data = query.data;
   const view = search.view ?? "exposed";
   const update = (patch: Partial<ExposureFilters>) => void navigate({ search: (previous: ExposureFilters) => ({ ...previous, ...patch }), replace: true });
@@ -67,7 +70,7 @@ export function Exposure() {
               </tbody>
             </table>
           </div>
-          {data.total > data.items.length && <p className="ui-muted">{t("monitoring.limited", { shown: data.items.length, total: data.total })}</p>}
+          <Pager total={data.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
         <div className="ui-empty">{view === "exposed" ? t("exposure.allGood") : t("exposure.empty")}</div>

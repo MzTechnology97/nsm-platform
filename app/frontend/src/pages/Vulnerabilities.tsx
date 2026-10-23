@@ -1,7 +1,9 @@
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SearchSelect } from "../app/SearchSelect";
+
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";import { SearchSelect } from "../app/SearchSelect";
 
 import { ApiError } from "../api/client";
 import { BrandIcon } from "../app/BrandIcon";
@@ -32,9 +34,10 @@ export function Vulnerabilities() {
     if ((search.q ?? "") !== q) update({ q: q || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
-  const query = useVulnerabilities(search);
-  const rows = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
-  const first = query.data?.pages[0];
+  const paging = usePaging(JSON.stringify(search));
+  const query = useVulnerabilities(search, pageParams(paging));
+  const rows = useMemo(() => query.data?.items ?? [], [query.data]);
+  const first = query.data;
   const severity = search.severity ?? "";
 
   return (
@@ -117,12 +120,8 @@ export function Vulnerabilities() {
           </div>
           <div className="ui-table-foot">
             <span>{t("firmware.shown", { shown: rows.length, total: first.total })}</span>
-            {query.hasNextPage && (
-              <button type="button" className="ui-button ui-button-ghost" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
-                {query.isFetchingNextPage ? t("app.loading") : t("firmware.more")}
-              </button>
-            )}
           </div>
+          <Pager total={first.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
         <div className="ui-empty">{t("vulns.empty")}</div>
