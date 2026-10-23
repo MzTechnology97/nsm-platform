@@ -77,6 +77,7 @@ from app.acs_alerts import install_acs_alerts
 from app.acs_port_mapping import install_acs_port_mapping
 from app.ispbilling_cpe_link import install_ispbilling_cpe_link
 from app.acs_monitoring import install_acs_monitoring
+from app.monitor_sources import install_monitor_sources
 from app.ui_backup_policies import install_ui_backup_policies
 from app.legacy_redirects import install_legacy_redirects
 from app.ui_spa import install_ui_spa
@@ -294,6 +295,7 @@ install_acs_alerts(core.app)
 install_acs_port_mapping(core.app)
 install_ispbilling_cpe_link(core.app)
 install_acs_monitoring(core.app)
+install_monitor_sources(core.app)
 install_ui_backup_policies(core.app)
 install_ui_spa(core.app)
 # The syntax guard must wrap the final composed modern source, including the
