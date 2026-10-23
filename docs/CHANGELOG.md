@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.218 — 2026-10-22
+
+Speed test from TR-069 CPEs
+- **Download and upload test from the CPE** in the *ACS* tab. The CPE itself downloads or sends a test file (TR-143), so the result is the speed of the customer's line up to the test server, not of the Wi-Fi. Results are in Mbps, with the size and the duration.
+- **NSM is the default test server.** The CPE reaches it at the same address it uses for the ACS, on HTTP port 80. Each test gets its own link, valid 15 minutes and only for that test.
+- ***Amministrazione → ACS → Test di velocità dei CPE*** lets you set the NSM address if the CPEs reach it elsewhere (for example over HTTPS with a DNS name), other download and upload URLs to measure towards another server, and the size of the test (25 MB by default).
+- **One test at a time per CPE.** While it runs, the customer's connection is busy. If the CPE reports an error, its TR-143 code is shown with an explanation, for example when it cannot reach the test server.
 ## 0.49.217 — 2026-10-22
 
 Configuration snapshots of TR-069 CPEs
