@@ -10,8 +10,8 @@ describe("device list", () => {
     expect(parseDeviceSearch({ sort: "last_seen", dir: "desc" })).toEqual({ sort: "last_seen", dir: "desc" });
   });
 
-  it("builds the API URL with filters and the block to load", () => {
-    const url = new URL(devicesUrl({ q: "router 1", vendor: "mikrotik", status: "" }, 200), "http://nsm.example.test");
+  it("builds the API URL with filters and the page to load", () => {
+    const url = new URL(devicesUrl({ q: "router 1", vendor: "mikrotik", status: "" }, 200, 100), "http://nsm.example.test");
     expect(url.pathname).toBe("/api/ui/v1/devices");
     expect(Object.fromEntries(url.searchParams)).toEqual({ q: "router 1", vendor: "mikrotik", offset: "200", limit: "100" });
   });

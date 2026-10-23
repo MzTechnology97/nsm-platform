@@ -1,6 +1,7 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 import type { TFunction } from "i18next";
 
 import { useDeviceFacets } from "../api/devices";
@@ -10,6 +11,9 @@ import { useFirmwareAction } from "../api/deviceTabs";
 import { formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { Loading } from "../app/States";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
+import { ScheduleBadge, ScheduleBar } from "../app/FirmwareSchedule";
 
 const STATUS_TONE: Record<string, string> = {
   critical_security_update: "ui-severity ui-severity-critical",
@@ -30,10 +34,13 @@ export function Firmware() {
     if ((search.q ?? "") !== q) update({ q: q || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
-  const query = useFirmware(search);
-  const rows = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
-  const first = query.data?.pages[0];
+  const paging = usePaging(JSON.stringify(search));
+  const query = useFirmware(search, pageParams(paging));
+  const rows = useMemo(() => query.data?.items ?? [], [query.data]);
+  const first = query.data;
   const state = search.state ?? "attention";
+  const [selected, setSelected] = useState<string[]>([]);
+  const toggle = (id: string) => setSelected((list) => (list.includes(id) ? list.filter((item) => item !== id) : [...list, id]));
 
   return (
     <section className="ui-page">
@@ -62,15 +69,14 @@ export function Firmware() {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("firmware.search")} aria-label={t("firmware.search")} autoComplete="off" />
-        <select value={search.customer ?? ""} onChange={(event) => update({ customer: event.target.value || undefined })} aria-label={t("devices.customer")}>
-          <option value="">{t("devices.allCustomers")}</option>
-          {facets.data?.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
-        </select>
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
         <select value={search.vendor ?? ""} onChange={(event) => update({ vendor: event.target.value || undefined })} aria-label={t("devices.vendor")}>
           <option value="">{t("devices.allVendors")}</option>
           {facets.data?.vendors.map((vendor) => <option key={vendor} value={vendor}>{vendor}</option>)}
         </select>
       </div>
+
+      <ScheduleBar selected={selected} onDone={() => setSelected([])} />
 
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
@@ -88,18 +94,11 @@ export function Firmware() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => <Row key={row.id} row={row} />)}
+                {rows.map((row) => <Row key={row.id} row={row} selected={selected.includes(row.id)} onSelect={() => toggle(row.id)} />)}
               </tbody>
             </table>
           </div>
-          <div className="ui-table-foot">
-            <span>{t("firmware.shown", { shown: rows.length, total: first.total })}</span>
-            {query.hasNextPage && (
-              <button type="button" className="ui-button ui-button-ghost" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
-                {query.isFetchingNextPage ? t("app.loading") : t("firmware.more")}
-              </button>
-            )}
-          </div>
+          <Pager total={first.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
         <div className="ui-empty">{state === "attention" ? t("firmware.allGood") : t("firmware.empty")}</div>
@@ -108,7 +107,7 @@ export function Firmware() {
   );
 }
 
-function Row({ row }: { row: FirmwareRow }) {
+function Row({ row, selected, onSelect }: { row: FirmwareRow; selected: boolean; onSelect: () => void }) {
   const { t, i18n } = useTranslation();
   const check = useFirmwareCheck();
   const checked = check.isSuccess && check.variables === row.id;
@@ -116,6 +115,7 @@ function Row({ row }: { row: FirmwareRow }) {
     <tr>
       <td>
         <div className="ui-with-brand">
+          {row.can_schedule && <input type="checkbox" checked={selected} onChange={onSelect} aria-label={t("firmwareSchedule.select", { name: row.name })} />}
           <BrandIcon brand={row.brand} small />
           <span>
             <Link to="/devices/$deviceId" params={{ deviceId: row.id }} className="ui-cell-title">{row.name}</Link>
@@ -134,6 +134,7 @@ function Row({ row }: { row: FirmwareRow }) {
       </td>
       <td>
         <span className={STATUS_TONE[row.firmware_status] ?? "ui-severity"}>{t(`firmware.status.${row.firmware_status}`, { defaultValue: row.firmware_status })}</span>
+        {row.schedule && <ScheduleBadge schedule={row.schedule} />}
       </td>
       <td className="ui-nowrap">{row.verified_at ? formatRelative(row.verified_at, i18n.language) : <span className="ui-muted">{t("firmware.notVerified")}</span>}</td>
       <td>
@@ -144,6 +145,11 @@ function Row({ row }: { row: FirmwareRow }) {
             </button>
           )}
           {row.can_plan && <PreparePlan deviceId={row.id} />}
+          {row.uisp_upgrade === "requested" ? (
+            <span className="ui-tag">{t("firmware.uispRunning")}</span>
+          ) : row.can_uisp_upgrade && (
+            <Link className="ui-button ui-button-danger ui-button-small" to="/devices/$deviceId/firmware-upgrade" params={{ deviceId: row.id }}>{t("firmware.uispUpgrade")}</Link>
+          )}
           <Link className="ui-button ui-button-ghost ui-button-small" to="/devices/$deviceId/firmware-upgrade" params={{ deviceId: row.id }}>{t("firmware.plan")}</Link>
         </div>
         {check.error && check.variables === row.id && <small className="ui-backup-error">{(check.error as Error).message}</small>}
@@ -159,10 +165,11 @@ function PreparePlan({ deviceId }: { deviceId: string }) {
   const create = useFirmwareAction(deviceId, "firmware-upgrade/plan");
   return (
     <>
-      <button type="button" className="ui-button ui-button-primary ui-button-small" disabled={create.isPending}
-        onClick={() => create.mutate(undefined, { onSuccess: () => void navigate({ to: "/devices/$deviceId/firmware-upgrade", params: { deviceId } }) })}>
-        {t("firmware.prepare")}
+      <button type="button" className="ui-button ui-button-primary ui-button-small" disabled={create.isPending || Boolean(create.data?.checking)}
+        onClick={() => create.mutate(undefined, { onSuccess: (result) => { if (!result.checking) void navigate({ to: "/devices/$deviceId/firmware-upgrade", params: { deviceId } }); } })}>
+        {create.data?.checking ? t("firmware.preparing") : t("firmware.prepare")}
       </button>
+      {create.data?.checking && <small className="ui-muted ui-block">{t("firmware.preparingHelp")}</small>}
       {create.error && <small className="ui-backup-error ui-block">{(create.error as Error).message}</small>}
     </>
   );
