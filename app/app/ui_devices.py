@@ -311,7 +311,7 @@ def device_facets(request: Request):
 # Tabs of the device page: (key, condition).
 TABS = (
     ("overview", lambda d: True),
-    ("monitor", lambda d: d.vendor == "mikrotik"),
+    ("monitor", lambda d: True),  # MikroTik: agent metrics; others: their source (ACS, UISP, cnMaestro) and the ping from NSM
     ("logs", lambda d: True),
     ("exposure", lambda d: True),
     ("configuration", lambda d: d.vendor == "mikrotik"),

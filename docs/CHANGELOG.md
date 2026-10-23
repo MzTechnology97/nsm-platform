@@ -4,6 +4,50 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.243 — 2026-10-23
+
+Add to Zabbix from the device and customer pages
+- **Device:** next to the *Zabbix* field of the overview, *Aggiungi a Zabbix* sends that device to Zabbix right away, even when its customer is not among those selected in *Integrazioni → Zabbix*. NSM says what happened:
+  - created in Zabbix;
+  - linked to the host already in Zabbix;
+  - no IP address;
+  - factory LAN IP to replace.
+  - *Rimuovi da Zabbix* takes it out.
+- **Customer:** in the customer header, *Aggiungi a Zabbix* adds every device of the customer (after a confirmation) and sends them right away. It then reports how many are in Zabbix and how many have no IP address. *Rimuovi da Zabbix* takes them all out.
+- Removed devices get their host disabled in Zabbix, never deleted. Every change is recorded in the activity log.
+
+## 0.49.242 — 2026-10-23
+
+The same Monitor tab for every device
+- **Every device now has the *Monitor* tab, laid out like the MikroTik routers'.** The same buttons (1 hour, 24 hours, 7 days, 30 days, *Impostazioni monitoraggio*) and the same panels in the same order:
+  1. *Risorse*: CPU and memory, each chart with current, minimum, average and maximum;
+  2. *Traffico*;
+  3. *Latenza e perdita (ping da NSM)*;
+  4. what only that kind of device has.
+- **Where the data comes from:**
+  - MikroTik: the NSM agent, as before.
+  - TP-Link and other TR-069 CPEs: the ACS. That means WAN traffic, plus Wi-Fi clients, LAN hosts and the DSL line under *Linea e client*.
+  - Ubiquiti: UISP, with radio signal, link capacity and stations under *Radio*.
+  - Cambium: cnMaestro. That means throughput, plus signal, SNR and stations under *Radio*.
+  - Devices without any of these sources show the ping. It can be turned on from *Impostazioni monitoraggio*.
+- The *ACS*, *UISP* and *cnMaestro* tabs keep the device state (line, Wi-Fi, connector). For the charts they link to *Monitor*.
+
+## 0.49.241 — 2026-10-23
+
+Pages wait instead of failing during updates
+- **The portal no longer shows errors or half-loaded pages while NSM updates itself.** At every update the API restarts for 10–30 seconds. Until now the proxy (Caddy) answered with an error straight away and noticed the API was back only after up to 15 seconds. Now it holds requests for up to 60 seconds and checks the API every 3 seconds. The page loads a moment later instead of failing.
+- On the production server this affected 157 requests in one day, all at update times.
+- The update now also applies changes to the proxy configuration. Before, the proxy kept using the old configuration until it was restarted by hand.
+
+## 0.49.240 — 2026-10-23
+
+Legacy backups
+- **The FTP receiver's firewall rules come back after a reboot.** They are the server rules that let only the subnets allowed in NSM reach the receiver. The automatic update now installs a small timer that applies them:
+  - at boot;
+  - within two minutes of a change of the subnets in *Amministrazione → Sistema*;
+  - by removing them when no subnet is left.
+  `./manage.sh legacy-ftp-firewall --apply` is still available by hand.
+
 ## 0.49.239 — 2026-10-23
 
 Exposure: ports filtered by ACL no longer reported as exposed

@@ -319,6 +319,8 @@ Sampling and consolidation: 2-minute heartbeat (Agent 0.49.18); `telemetry_rollu
 
 Retention (90 days) never removes the newest sample of a device or interface (`telemetry_retention.expire_keep_latest`): an offline device keeps its last telemetry visible (MON-02).
 
+Monitor tab for every device (MON-03, Core 0.49.242): every device has the *Monitor* tab with the same toolbar (1 h, 24 h, 7 days, 30 days, *Impostazioni monitoraggio*) and panels in the same order: *Risorse* (CPU and memory), *Traffico*, *Latenza e perdita (ping da NSM)*, then what only that source has. MikroTik routers use the agent metrics (and *Wireless*). TR-069 CPEs, Ubiquiti and Cambium devices use their source through `GET /api/ui/v1/devices/{id}/monitor/source` (`app/monitor_sources.py`, `monitoring.read`): the ACS (WAN traffic, *Linea e client*: Wi-Fi clients, LAN hosts, DSL), UISP (*Radio*: signal, capacity, stations) or cnMaestro (throughput; *Radio*: signal, SNR, stations). Devices without a source show the ping only. The *ACS*, *UISP* and *cnMaestro* tabs keep the device state and point to Monitor for the charts.
+
 NSM monitoring is intentionally lightweight and does not attempt to replace a full NMS.
 
 ### Syslog configured by the Agent (LOG-01 step 2)
@@ -444,7 +446,7 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 ### Legacy full backup over FTP (Agent 0.49.16)
 
-- the legacy agent (RouterOS 6.48/6.49 and 7.12) runs `/system backup save` with the job password and `/export` (`hide-sensitive` on v6), then uploads both with `/tool fetch upload=yes mode=ftp` to the upload-only FTP receiver of NSM (`app/legacy_ftp_server.py`, compose profile `legacyftp`, `./manage.sh legacy-backup-enable <IPv4> [port]`, default ports 2121 and 30100–30109, `LEGACY_FTP_PASV_PORTS` for the passive range); since Core 0.49.215 the subnets allowed to send are set in *Amministrazione → Sistema → Backup legacy via FTP*: the receiver refuses other origins (refreshed every minute), `./manage.sh legacy-ftp-firewall --apply` enforces them in `DOCKER-USER` too, and `legacy-backup-enable` opens the ports in ufw/firewalld when active and applies those rules;
+- the legacy agent (RouterOS 6.48/6.49 and 7.12) runs `/system backup save` with the job password and `/export` (`hide-sensitive` on v6), then uploads both with `/tool fetch upload=yes mode=ftp` to the upload-only FTP receiver of NSM (`app/legacy_ftp_server.py`, compose profile `legacyftp`, `./manage.sh legacy-backup-enable <IPv4> [port]`, default ports 2121 and 30100–30109, `LEGACY_FTP_PASV_PORTS` for the passive range); since Core 0.49.215 the subnets allowed to send are set in *Amministrazione → Sistema → Backup legacy via FTP*: the receiver refuses other origins (refreshed every minute), `./manage.sh legacy-ftp-firewall --apply` enforces them in `DOCKER-USER` too, and `legacy-backup-enable` opens the ports in ufw/firewalld when active and applies those rules; since Core 0.49.240 the automatic update also installs `nsm-legacy-ftp-firewall.timer`, which applies those rules at boot and within two minutes of a change of the subnets, and removes them when no subnet is left;
 - one-time account per job (only the password SHA-256 stored), only the two expected file names, once each, up to 64 MB, passive mode with the data peer bound to the control peer;
 - files are archived like any other artifact (SHA-256, audit, retention) and the device counts as protected;
 - requires the policies `ftp`, `policy` and `sensitive` (observed from Agent 0.49.17).
