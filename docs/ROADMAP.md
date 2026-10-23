@@ -460,7 +460,18 @@ A complete cybersecurity view for an ISP/WISP, taking as reference the open-sour
 - **attribution with a confidence level**:
   - *exact*: a RADIUS/PPP session covering the time;
   - *probable*: the address reported by the device in that window;
-  - *ambiguous*: CGNAT or shared NAT address, with the list of candidate customers. The operator uses CGNAT (confirmed 2026-10-23): exact attribution there uses the source port of the report and the NAT translation logs of the CGNAT router (port-block allocation logged through syslog, or deterministic NAT computed from the configuration), to be designed on the operator's CGNAT setup;
+  - *ambiguous*: CGNAT or shared NAT address, with the list of candidate customers;
+- **generic NAT model**, usable by any operator and not tied to one network (operator's setup, 2026-10-23: a dedicated PPPoE BRAS, a separate edge router doing the customers' NAT, RADIUS profiles with public pools that fall back to a NAT pool when exhausted, and NAT-only profiles, static or dynamic):
+  - the session log records the address each session really got, so pool fallback, static NAT and dynamic NAT need no special case: a public address is attributed directly, a private/CGNAT one goes through the NAT step;
+  - **NAT gateways** are declared in NSM (any vendor), each with the public pools it uses and how its translations can be known:
+    - *deterministic*: internal range → public range with a port-block size, computed;
+    - *translation logs*: NAT or port-block-allocation events received through syslog (MikroTik firewall NAT logging and the common CGN formats) or IPFIX NAT events, stored compactly (inside IP, public IP and port block, start/end) with their own retention;
+    - *none*;
+  - lookup by **IP, optional port and time**:
+    - public address: the session that had it;
+    - NAT pool address with port and translation data: the internal address, then its session and customer;
+    - without port or translation data: the customers whose sessions were behind that gateway at that time (*ambiguous*, with the count);
+  - the edge router and the BRAS can be different devices; clocks must be synchronized (NTP, ACCESS-01) and the time zone of each report is normalized;
 - the incident is linked to the customer and device found (customer page, Action Center), with the evidence used;
 - configurable retention of the history, as operational data. It is not the legal traffic-data register, which stays where the operator keeps it.
 
