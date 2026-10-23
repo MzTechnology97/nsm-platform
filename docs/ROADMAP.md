@@ -244,6 +244,8 @@ Implement only diagnostics actually exposed and validated by the integration con
 
 ### UBNT-07 — security and lifecycle correlation
 
+**CVE part implemented (Core 0.49.267)**: airOS platform → NVD hardware family (airMAX AC / M / XW / XM / TI), release compared without build numbers, model lists never matched by guess. Lifecycle correlation is LIFE-02.
+
 - normalize Ubiquiti model/version identity;
 - correlate with the future advisory/lifecycle ingestion framework;
 - never infer vulnerability from brand alone.
@@ -482,7 +484,7 @@ External sources should be documented only after an adapter actually uses them.
 
 ### SEC-02 — Device ↔ advisory matching
 
-**Implemented in `main` for MikroTik RouterOS** (`app/advisory_matching.py`). Other vendors are not evaluated until their product/version mapping exists.
+**Implemented in `main` for MikroTik RouterOS** (`app/advisory_matching.py`). **Core 0.49.267**: version matching for the other vendors through `vendor_cpe` — Ubiquiti airMAX by hardware family from the airOS platform, TP-Link release and build, product names without punctuation; data that is not enough stays *unknown*.
 
 - vendor/product/model normalization;
 - version range evaluation;
