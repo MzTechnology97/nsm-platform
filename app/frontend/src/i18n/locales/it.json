@@ -4776,7 +4776,7 @@
   },
   "firmwareCatalogs": {
     "title": "Cataloghi firmware",
-    "subtitle": "Un catalogo per ogni produttore presente nell'inventario. Ubiquiti: versioni da UISP e dal servizio di aggiornamento ufficiale; altri produttori: release inserite dagli operatori dalla pagina di download ufficiale. NSM non stima mai le versioni. MikroTik ha il proprio",
+    "subtitle": "Un catalogo per ogni produttore presente nell'inventario. Ubiquiti: versioni da UISP e dal servizio di aggiornamento ufficiale; TP-Link: il sito ufficiale; tutti i produttori: immagini caricate dagli operatori (versione, modelli e data vengono letti dal file). NSM non stima mai le versioni. MikroTik ha il proprio",
     "routeros": "catalogo RouterOS",
     "refresh": "Aggiorna fonti e ricalcola",
     "refreshed": "UISP: {{uisp}} nuove versioni; API Ubiquiti: {{vendor_api}} nuove su {{platforms}} piattaforme; {{evaluated}} apparati valutati.",
@@ -4807,7 +4807,7 @@
     "releaseNotes": "note ↗",
     "delete": "Elimina",
     "deleteConfirm": "Eliminare la release {{version}} dal catalogo?",
-    "empty": "Nessuna release nel catalogo {{label}}: aggiungi l'ultima release dalla pagina di download ufficiale.",
+    "empty": "Nessuna release nel catalogo {{label}}: carica l'ultima immagine dalla pagina di download ufficiale.",
     "emptyUbiquiti": "Nessuna release nel catalogo {{label}}: collega gli apparati a UISP o aggiorna le fonti.",
     "add": "Aggiungi una release {{label}}",
     "version": "Versione",
@@ -4822,11 +4822,35 @@
     "added_other": "Release {{version}} aggiunta: {{count}} apparati da aggiornare.",
     "errors": {
       "brand": "Il catalogo esiste solo per i produttori presenti nell'inventario.",
-      "version": "Versione non riconosciuta: usa il formato del produttore (es. 1.2.3).",
+      "version": "Versione non riconosciuta: indicala nel formato del produttore (es. 1.2.3 o 0.19.0 Build 260323).",
       "url": "Il link alle note deve essere un indirizzo http(s).",
       "date": "Data di rilascio non valida.",
-      "exists": "Questa release è già nel catalogo.",
-      "not_operator": "Si possono eliminare solo le release inserite dagli operatori."
+      "exists": "Questa release è già nel catalogo con la sua immagine.",
+      "not_operator": "Si possono eliminare solo le release inserite dagli operatori.",
+      "extension": "Carica l'immagine del produttore (.bin, .img o .zip).",
+      "archive": "Lo .zip deve contenere una sola immagine (.bin/.img): carica direttamente l'immagine.",
+      "expired": "Caricamento scaduto: carica di nuovo il file.",
+      "too_large": "Il file è troppo grande.",
+      "too_small": "Il file è troppo piccolo per essere un firmware."
+    },
+    "upload": {
+      "button": "Carica firmware {{label}}",
+      "reading": "Lettura del file…",
+      "hint": {
+        "tp-link": "Lo .zip del sito ufficiale o il suo .bin, con il nome ufficiale (es. VX230v(EU1)_V1_0.19.0 Build 260323): modello, versione hardware, versione e data vengono letti da lì.",
+        "ubiquiti": "Il .bin airOS (es. XC.qca956x.v8.7.25…bin, WA…, XW…, XM…): piattaforma, versione e data vengono letti dal nome o dall'intestazione dell'immagine.",
+        "cambium": "L'immagine ePMP (es. ePMP-AC-v4.8.1.img): versione dal nome, modelli dalla famiglia (AC, AX, GPS_Synced).",
+        "other": "L'immagine del produttore con il nome ufficiale: la versione viene letta da lì, i modelli vengono chiesti."
+      },
+      "staged": "{{name}} ({{size}}) caricato.",
+      "read": "Versione letta: {{version}}.",
+      "models": "Modelli a cui è destinata l'immagine",
+      "modelsHint": "Nessuno selezionato = tutti i modelli del produttore.",
+      "cancel": "Annulla",
+      "for": "Modelli: {{models}}.",
+      "inAcs_one": "pronta in GenieACS per {{count}} classe di prodotto",
+      "inAcs_other": "pronta in GenieACS per {{count}} classi di prodotto",
+      "download": "immagine {{name}}"
     }
   },
   "incidentNew": {

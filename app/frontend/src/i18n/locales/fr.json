@@ -4776,7 +4776,7 @@
   },
   "firmwareCatalogs": {
     "title": "Catalogues firmware",
-    "subtitle": "Un catalogue par fabricant présent dans l'inventaire. Ubiquiti : versions depuis UISP et le service de mise à jour officiel ; autres fabricants : versions saisies par les opérateurs depuis la page de téléchargement officielle. NSM n'estime jamais une version. MikroTik a son propre",
+    "subtitle": "Un catalogue par fabricant présent dans l'inventaire. Ubiquiti : versions depuis UISP et le service de mise à jour officiel ; TP-Link : le site officiel ; toutes les marques : images téléversées par les opérateurs (version, modèles et date sont lus dans le fichier). NSM ne devine jamais les versions. MikroTik a le sien",
     "routeros": "catalogue RouterOS",
     "refresh": "Actualiser les sources et réévaluer",
     "refreshed": "UISP : {{uisp}} nouvelles versions ; API Ubiquiti : {{vendor_api}} nouvelles sur {{platforms}} plateformes ; {{evaluated}} équipements évalués.",
@@ -4807,7 +4807,7 @@
     "releaseNotes": "notes ↗",
     "delete": "Supprimer",
     "deleteConfirm": "Supprimer la version {{version}} du catalogue ?",
-    "empty": "Aucune version dans le catalogue {{label}} : ajoutez la dernière depuis la page de téléchargement officielle.",
+    "empty": "Aucune version dans le catalogue {{label}} : téléversez la dernière image depuis la page de téléchargement officielle.",
     "emptyUbiquiti": "Aucune version dans le catalogue {{label}} : reliez les équipements à UISP ou actualisez les sources.",
     "add": "Ajouter une version {{label}}",
     "version": "Version",
@@ -4822,11 +4822,35 @@
     "added_other": "Version {{version}} ajoutée : {{count}} équipements à mettre à jour.",
     "errors": {
       "brand": "Les catalogues n'existent que pour les fabricants de l'inventaire.",
-      "version": "Version non reconnue : utilisez le format du fabricant (ex. 1.2.3).",
+      "version": "Version non reconnue : indiquez-la au format du fabricant (ex. 1.2.3 ou 0.19.0 Build 260323).",
       "url": "Le lien des notes doit être une adresse http(s).",
       "date": "Date de sortie non valide.",
-      "exists": "Cette version est déjà dans le catalogue.",
-      "not_operator": "Seules les versions saisies par les opérateurs peuvent être supprimées."
+      "exists": "Cette version est déjà dans le catalogue avec son image.",
+      "not_operator": "Seules les versions saisies par les opérateurs peuvent être supprimées.",
+      "extension": "Téléversez l'image du fabricant (.bin, .img ou .zip).",
+      "archive": "Le .zip doit contenir une seule image (.bin/.img) : téléversez l'image directement.",
+      "expired": "Téléversement expiré : téléversez à nouveau le fichier.",
+      "too_large": "Le fichier est trop volumineux.",
+      "too_small": "Le fichier est trop petit pour être un firmware."
+    },
+    "upload": {
+      "button": "Téléverser un firmware {{label}}",
+      "reading": "Lecture du fichier…",
+      "hint": {
+        "tp-link": "Le .zip du site officiel ou son .bin, avec le nom officiel (ex. VX230v(EU1)_V1_0.19.0 Build 260323) : modèle, version matérielle, version et date en sont lus.",
+        "ubiquiti": "Le .bin airOS (ex. XC.qca956x.v8.7.25…bin, WA…, XW…, XM…) : plateforme, version et date sont lues dans le nom ou l'en-tête de l'image.",
+        "cambium": "L'image ePMP (ex. ePMP-AC-v4.8.1.img) : version depuis le nom, modèles depuis la famille (AC, AX, GPS_Synced).",
+        "other": "L'image du fabricant avec son nom officiel : la version en est lue, les modèles sont demandés."
+      },
+      "staged": "{{name}} ({{size}}) téléversé.",
+      "read": "Version lue : {{version}}.",
+      "models": "Modèles concernés par l'image",
+      "modelsHint": "Aucun sélectionné = tous les modèles de la marque.",
+      "cancel": "Annuler",
+      "for": "Modèles : {{models}}.",
+      "inAcs_one": "prête dans GenieACS pour {{count}} classe de produit",
+      "inAcs_other": "prête dans GenieACS pour {{count}} classes de produit",
+      "download": "image {{name}}"
     }
   },
   "incidentNew": {

@@ -17,9 +17,12 @@
 """
 from __future__ import annotations
 
+import os
 import uuid
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
@@ -296,8 +299,12 @@ def firmware_suggestions_apply(request: Request, body: dict = Body(default={})):
 
 
 def _release(row) -> dict:
+    from app import firmware_upload
+
+    image = firmware_upload.stored_file(row) if row.source == "operator" else None
     return {"id": str(row.id), "version": row.version, "model_pattern": row.model_pattern or None, "platform": row.platform or None,
-            "released_at": _iso(row.released_at), "source": row.source, "security": bool(row.security), "notes_url": row.notes_url, "notes": row.notes}
+            "released_at": _iso(row.released_at), "source": row.source, "security": bool(row.security), "notes_url": row.notes_url, "notes": row.notes,
+            "file": {"name": image["name"], "size": image["size"], "sha256": image["sha256"], "acs_files": image.get("acs_files") or []} if image else None}
 
 
 @router.get("/firmware/catalogs")
@@ -327,6 +334,63 @@ def firmware_catalog_add(request: Request, body: dict = Body(default={})):
         except InputError as exc:
             raise HTTPException(422, {"code": exc.code, "message": str(exc.detail)}) from exc
         return {"brand": brand, "version": version, "to_update": stats["outdated"] + stats["security"]}
+
+
+@router.post("/firmware/catalogs/upload", dependencies=[Depends(require_csrf)])
+async def firmware_catalog_upload(request: Request, brand: str = Form(...), image: UploadFile = File(...), file_date: str = Form("")):
+    """Stage a vendor image and say what NSM read from its name/header; nothing is recorded until confirmation."""
+    import tempfile
+
+    from app import acs_firmware, firmware_upload
+
+    with SessionLocal() as db:
+        ui_user(request, db, "firmware.execute")
+    temp = tempfile.NamedTemporaryFile(prefix="nsm-fwup-", delete=False)
+    size = 0
+    try:
+        with temp:
+            while chunk := await image.read(1024 * 1024):
+                size += len(chunk)
+                if size > acs_firmware.MAX_IMAGE:
+                    raise HTTPException(413, {"code": "too_large", "message": f"Il file supera {acs_firmware.MAX_IMAGE // (1024 * 1024)} MB."})
+                temp.write(chunk)
+        if size < acs_firmware.MIN_IMAGE:
+            raise HTTPException(422, {"code": "too_small", "message": "Il file è troppo piccolo per essere un firmware."})
+        with SessionLocal() as db:
+            user = ui_user(request, db, "firmware.execute")
+            try:
+                return await run_in_threadpool(firmware_upload.stage, db, user, brand, image.filename or "", temp.name, file_date)
+            except InputError as exc:
+                raise HTTPException(exc.status_code if exc.status_code != 400 else 422, {"code": exc.code, "message": str(exc.detail)}) from exc
+    finally:
+        if os.path.exists(temp.name):
+            os.unlink(temp.name)
+
+
+@router.post("/firmware/catalogs/upload/{token}", dependencies=[Depends(require_csrf)])
+def firmware_catalog_upload_confirm(request: Request, token: str, body: dict = Body(default={})):
+    from app import firmware_upload
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.execute")
+        try:
+            return firmware_upload.confirm(db, user, token, body)
+        except InputError as exc:
+            raise HTTPException(exc.status_code if exc.status_code != 400 else 422, {"code": exc.code, "message": str(exc.detail)}) from exc
+
+
+@router.get("/firmware/catalogs/releases/{release_id}/file")
+def firmware_catalog_file(request: Request, release_id: uuid.UUID):
+    from app import firmware_upload
+    from app.vendor_firmware_models import VendorFirmwareRelease
+
+    with SessionLocal() as db:
+        ui_user(request, db, "firmware.read")
+        row = db.get(VendorFirmwareRelease, release_id)
+        path = firmware_upload.file_path(row) if row else None
+        if path is None:
+            raise HTTPException(404, {"code": "not_found", "message": "Nessuna immagine per questa release."})
+        return FileResponse(path, filename=path.name, media_type="application/octet-stream")
 
 
 @router.post("/firmware/catalogs/releases/{release_id}/delete", dependencies=[Depends(require_csrf)])

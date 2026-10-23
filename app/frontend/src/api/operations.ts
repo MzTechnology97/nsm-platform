@@ -326,6 +326,7 @@ export interface VendorRelease {
   security: boolean;
   notes_url: string | null;
   notes: string | null;
+  file?: { name: string; size: number; sha256: string; acs_files: string[] } | null;
 }
 
 export interface VendorCatalog {
