@@ -9,7 +9,6 @@ The credential is read from the request, passed to the run in memory, and never 
 """
 from __future__ import annotations
 
-import os
 import uuid
 from urllib.parse import urlsplit
 
@@ -17,6 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select
 
+from app import acs_admin
 from app import acs_migration as mig
 from app.acs_migration_models import AcsMigrationHost, AcsMigrationRun
 from app.db import SessionLocal
@@ -33,11 +33,7 @@ def _public_host(request: Request) -> str:
 
 
 def _suggested_target(request: Request) -> str:
-    configured = os.getenv("ACS_CWMP_URL", "").strip()
-    if configured:
-        return configured
-    host = _public_host(request)
-    return mig.default_target_url(host) if host else ""
+    return acs_admin.cpe_acs_url(request).rstrip("/")
 
 
 def _skip_set(request: Request) -> set[str]:

@@ -102,8 +102,9 @@ The Docker stack can run GenieACS next to NSM (optional compose profile `acs`), 
 1. `sudo ./manage.sh acs-enable`: generates `GENIEACS_UI_JWT_SECRET` in `secrets/bootstrap.env`, sets `COMPOSE_PROFILES=acs` and `GENIEACS_INTERNAL_NBI_URL` in `.env`, builds and starts the services. Later `update.sh` runs keep them running.
 2. *Amministrazione → Integrazioni → GenieACS / TR-069 → Usa GenieACS integrato*, then *Test connessione*.
 3. Open the GenieACS UI through the SSH tunnel and create its administrator **at the first access** (the first visitor sets it, which is why the UI is not published).
-4. Configure the CPE (TR-069 ACS URL `http://<server>:7547`); allow 7547 and 7567 only from the customer networks on the host firewall.
-5. Include `data/genieacs-mongo` in the off-host backups.
+4. Set `ACS_CWMP_URL=http://<address the CPEs reach NSP on>:7547` in `.env`, then `sudo ./manage.sh up` (it recreates the containers; `restart` does not reload `.env`): *Amministrazione → ACS* shows it in the TP-Link guide and the CPE migration offers it as target. Without it NSP shows the address the administrator opened it with.
+5. Configure the CPE following *Amministrazione → ACS → Configurare una CPE TP-Link*: only CWMP on, Inform on, the ACS URL and Periodic Inform; WAN, PPPoE, Wi-Fi and LAN are not touched. Allow 7547 and 7567 only from the customer networks on the host firewall.
+6. Include `data/genieacs-mongo` in the off-host backups.
 
 ## Integrated syslog server
 

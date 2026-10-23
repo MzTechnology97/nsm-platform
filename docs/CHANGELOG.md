@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.213 — 2026-10-22
+
+Guide: adding a TP-Link CPE to the ACS
+- **Step-by-step guide in *Amministrazione → ACS → Configurare una CPE TP-Link*.** One manual step on each router — CWMP on, Inform on, the ACS URL and Periodic Inform — then NSP recognises the CPE. The guide says to save without touching anything else: WAN, PPPoE, Wi-Fi and LAN stay as they are.
+- **New section "Cosa fa NSP e cosa non tocca":** what NSP reads (state, last contact, model, firmware, IP, CPU, memory, WAN traffic, Wi-Fi clients, DSL line), the actions it offers (reboot, firmware check, diagnostics) and what it never changes (Wi-Fi, LAN, DHCP, PPPoE). The only setting it writes is the CWMP inform interval.
+- **The right ACS URL for the routers:** set `ACS_CWMP_URL` in `.env` to the address the routers reach NSP on (for example `http://<server>:7547`). The guide and the CPE migration then show that address instead of the one the administrator opened NSP with.
+
 ## 0.49.212 — 2026-10-22
 
 Legacy MikroTik agent: failures say why

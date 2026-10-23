@@ -609,7 +609,8 @@ Warehouse serial numbers ↔ devices and ISPBilling activities in the device log
 
 - *Amministrazione → Integrazioni → GenieACS / TR-069*: NBI URL (loopback, localhost, credentials in the URL refused), authentication none / HTTP Basic / Bearer for a reverse proxy (encrypted), configurable MAC parameter paths, online window, connectivity test that reads nothing;
 - *ACS* tab on TP-Link/TR-069 Devices: lookup by serial number (`_deviceId._SerialNumber`) then MAC (any interface MAC; parameter paths accept `*` for every instance, Core 0.49.201), preview, explicit association that keeps the NSM Customer/Site, refresh by the stored GenieACS ID that refuses a changed serial; identity, model, firmware, hardware, IP, last Inform and online state are normalized from TR-098 and TR-181 paths (management IP from the CPE's connection-request URL, then any interface address; checked on a real TP-Link VX230v, TR-181); audit events `GENIEACS_*` without secrets;
-- the integrations hub shows the real connector state and how many TR-069 CPE are associated or still to associate.
+- the integrations hub shows the real connector state and how many TR-069 CPE are associated or still to associate;
+- *Amministrazione → ACS → Configurare una CPE TP-Link* (Core 0.49.213): step-by-step guide for adding a TP-Link CPE — one manual step on the router (CWMP on, ACS URL, Periodic Inform), then NSP reads it; what NSP reads (state, model, firmware, IP, CPU, memory, WAN traffic, Wi-Fi clients, DSL), the actions it offers (reboot, firmware check, diagnostics) and what it never changes (Wi-Fi, LAN, DHCP, PPPoE; it writes only the CWMP inform interval). The ACS URL shown comes from `ACS_CWMP_URL` when set.
 
 ### Bulk migration to the self-hosted ACS (Core 0.49.202)
 

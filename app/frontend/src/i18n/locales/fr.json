@@ -2559,7 +2559,7 @@
     "steps": {
       "cpe": {
         "title": "Sur la CPE :",
-        "text": "Advanced → System Tools → CWMP Settings (ou TR-069) : CWMP activé ; ACS URL <code>{{url}}</code> ; ACS Username et Password vides pour le premier essai, puis définissez-les ; Periodic Inform activé toutes les 300 secondes ; Connection Request Username et Password avec vos identifiants, utilisés par GenieACS pour contacter la CPE."
+        "text": "Advanced → System Tools → CWMP Settings (TR-069 sur certains firmwares). Réglez uniquement : CWMP activé ; Inform activé ; URL ACS <code>{{url}}</code> ; ACS Username et Password vides ; Periodic Inform activé (NSP règle l'intervalle) ; Connection Request Username et Password à votre choix, nécessaires pour le redémarrage et le diagnostic immédiats. Enregistrez sans toucher aux autres champs : WAN, PPPoE, Wi-Fi et LAN restent tels quels."
       },
       "network": {
         "title": "Réseau :",
@@ -2571,7 +2571,7 @@
       },
       "verify": {
         "title": "Vérifiez dans le panneau ACS :",
-        "text": "la CPE apparaît dans Devices avec fabricant, modèle et numéro de série ; les erreurs éventuelles dans Faults."
+        "text": "en 5 minutes environ le CPE apparaît dans Devices avec fabricant, modèle et numéro de série ; les erreurs éventuelles dans Faults."
       },
       "nsm": {
         "title": "Dans NSM :",
@@ -2595,7 +2595,14 @@
     "migrationLink": "Migrer les CPE vers cet ACS",
     "templatesCurrent": "Les modèles NSM sont à jour (installés le {{when}}). NSM les met à jour seul après chaque mise à jour.",
     "templatesPending": "Cette version de NSM a des modèles plus récents que ceux installés le {{when}} : NSM les installe sous 30 minutes, ou cliquez sur Installer.",
-    "templatesAuto": "Une fois installés, NSM tient ces modèles à jour seul après chaque mise à jour."
+    "templatesAuto": "Une fois installés, NSM tient ces modèles à jour seul après chaque mise à jour.",
+    "guideIntro": "Chaque routeur demande une seule étape manuelle : activer le CWMP et saisir l'URL ACS. Ensuite NSP reconnaît le CPE et le surveille en lecture seule, sans modifier sa configuration.",
+    "readonlyTitle": "Ce que NSP fait et ne touche pas",
+    "readonly": {
+      "reads": "Lit : état en ligne/hors ligne, dernier contact, modèle, firmware, IP, CPU, mémoire, trafic WAN, clients Wi-Fi et ligne DSL.",
+      "actions": "Actions disponibles : redémarrage, vérification du firmware, diagnostic.",
+      "never": "Ne modifie ni le Wi-Fi, ni le LAN, ni le DHCP, ni le PPPoE, ni aucune autre configuration du routeur. Le seul réglage qu'il écrit est l'intervalle d'inform du CWMP."
+    }
   },
   "demo": {
     "subtitle": "Jeu de données isolé pour essayer l'interface et les flux sans utiliser de vrais clients.",
