@@ -1264,7 +1264,41 @@
       "dnsError": "Error: nombre del servidor de actualización no resuelto"
     },
     "uispUpgrade": "Actualizar vía UISP",
-    "uispRunning": "Actualización UISP en curso"
+    "uispRunning": "Actualización UISP en curso",
+    "preparing": "Comprobando…",
+    "preparingHelp": "El plan se prepara solo en cuanto termina la comprobación.",
+    "uispBulk": {
+      "label": "Actualización masiva vía UISP",
+      "selectAll": "Seleccionar los equipos actualizables vía UISP",
+      "select": "Seleccionar {{name}}",
+      "selected_one": "{{count}} equipo seleccionado (máximo {{max}})",
+      "selected_other": "{{count}} equipos seleccionados (máximo {{max}})",
+      "target": "Versión",
+      "recommended": "Versión recomendada para cada equipo",
+      "version": "{{version}} para todos",
+      "maintenance": "En la ventana de mantenimiento de UISP",
+      "confirm": "Escribe {{phrase}} para confirmar",
+      "help": "UISP recibe una sola tarea con todos los equipos seleccionados y los actualiza uno por uno. Escribe {{phrase}} para confirmar.",
+      "run": "Actualizar vía UISP ({{count}})",
+      "tooMany": "Como máximo {{max}} equipos a la vez.",
+      "done_one": "Actualización iniciada en UISP para {{count}} equipo.",
+      "done_other": "Actualización iniciada en UISP para {{count}} equipos.",
+      "doneMaintenance_one": "Actualización en cola en UISP para {{count}} equipo: empezará en la ventana de mantenimiento.",
+      "doneMaintenance_other": "Actualización en cola en UISP para {{count}} equipos: empezarán en la ventana de mantenimiento.",
+      "started": "Iniciada hacia {{version}}",
+      "skipped": {
+        "running": "Omitido: ya hay una actualización en curso",
+        "no_version": "Omitido: UISP no tiene versiones más recientes para su plataforma",
+        "version_unavailable": "Omitido: versión no disponible en UISP para su plataforma",
+        "not_linked": "Omitido: no vinculado a UISP",
+        "not_found": "Omitido: equipo no encontrado"
+      },
+      "errors": {
+        "empty": "Selecciona al menos un equipo.",
+        "too_many": "Demasiados equipos seleccionados.",
+        "confirm": "Escribe exactamente la frase de confirmación."
+      }
+    }
   },
   "vulns": {
     "title": "Vulnerabilidades",
@@ -2619,8 +2653,6 @@
     "preset": "Preset",
     "presetText": "condición <code>{{condition}}</code>, eventos bootstrap, boot y periodic → provision <code>{{provision}}</code>",
     "script": "Script de la provision {{name}}",
-    "migrationHint": "¿Ya gestionas una flota de CPE en un ACS en la nube (por ejemplo TAUC)?",
-    "migrationLink": "Migrar los CPE a este ACS",
     "templatesCurrent": "Las plantillas NSM están al día (instaladas el {{when}}). NSM las actualiza solo tras cada actualización.",
     "templatesPending": "Esta versión de NSM tiene plantillas más recientes que las instaladas el {{when}}: NSM las instala en 30 minutos, o pulsa Instalar.",
     "templatesAuto": "Una vez instaladas, NSM mantiene estas plantillas al día tras cada actualización.",
@@ -2630,7 +2662,9 @@
       "reads": "Lee: estado en línea/fuera de línea, último contacto, modelo, firmware, IP, CPU, memoria, tráfico WAN, clientes Wi-Fi y línea DSL.",
       "actions": "Acciones disponibles: reinicio, comprobación de firmware, diagnóstico.",
       "never": "No cambia Wi-Fi, LAN, DHCP, PPPoE ni ninguna otra configuración del router. El único ajuste que escribe es el intervalo de inform del CWMP."
-    }
+    },
+    "migrationHint": "¿Ya gestionas una flota de CPE en un ACS en la nube (por ejemplo TAUC)?",
+    "migrationLink": "Migrar los CPE a este ACS"
   },
   "demo": {
     "subtitle": "Conjunto de datos aislado para probar la interfaz y los flujos sin usar clientes reales.",
@@ -3913,7 +3947,11 @@
       "blocked": "Actualización no disponible.",
       "confirmation": "Confirmación no válida.",
       "backup_ack": "Confirma que tienes una copia reciente."
-    }
+    },
+    "checkNow": "Buscar actualizaciones",
+    "checking": "Comprobando…",
+    "preparing": "Comprobando actualizaciones: el plan se prepara solo en cuanto llega el resultado (en 1–2 minutos).",
+    "prepareFailed": "Plan no preparado tras la comprobación: {{error}}"
   },
   "deviceUisp": {
     "recordTitle": "Registro NSM",
@@ -5268,6 +5306,11 @@
     "FIRMWARE_UPGRADE_PLAN_CANCELLED": "Plan de actualización cancelado",
     "FIRMWARE_UPGRADE_PLAN_CREATED": "Plan de actualización creado",
     "FIRMWARE_UPGRADE_PLAN_EXPIRED": "Plan de actualización caducado",
+    "FIRMWARE_UPGRADE_SCHEDULED": "Actualización de firmware programada",
+    "FIRMWARE_UPGRADE_SCHEDULE_CANCELLED": "Actualización programada cancelada",
+    "FIRMWARE_UPGRADE_SCHEDULE_DONE": "Actualización programada completada",
+    "FIRMWARE_UPGRADE_SCHEDULE_FAILED": "Actualización programada fallida",
+    "FIRMWARE_UPGRADE_SCHEDULE_STARTED": "Actualización programada iniciada",
     "FIRMWARE_UPGRADE_VERIFICATION_FAILED": "Fallo en la verificación de la actualización",
     "FIRMWARE_UPGRADE_VERIFIED": "Actualización verificada",
     "GENIEACS_CONNECTOR_CONFIGURED": "Conector GenieACS configurado",
@@ -5388,6 +5431,7 @@
     "UISP_DEVICE_ASSOCIATED": "Equipo vinculado a UISP",
     "UISP_DEVICE_MISSING": "Equipo ya no presente en UISP",
     "UISP_DEVICE_ONBOARDED": "Equipo importado desde UISP",
+    "UISP_FIRMWARE_BULK_UPGRADE": "Actualización masiva de firmware UISP",
     "UISP_FIRMWARE_UPGRADE_FAILED": "Actualización de firmware UISP fallida",
     "UISP_FIRMWARE_UPGRADE_REQUESTED": "Actualización de firmware UISP solicitada",
     "UISP_FIRMWARE_UPGRADE_VERIFIED": "Actualización de firmware UISP verificada",
@@ -5452,72 +5496,6 @@
     "job": "tarea",
     "tr069": "TR-069 (ACS)",
     "acs": "ACS"
-  },
-  "acsMigration": {
-    "subtitle": "Migra en bloque los CPE de los clientes al ACS integrado reconfigurando el CWMP en la red de gestión.",
-    "backToAcs": "Volver a ACS",
-    "intro": "Indica la subred de gestión de tus routers, el puerto y las credenciales comunes de la flota: NSM llega a cada equipo y establece la URL ACS de destino. Haz primero una simulación para ver qué CPE son accesibles.",
-    "applyPending": "La reescritura CWMP mediante la interfaz web de TP-Link está en validación sobre el terreno para este firmware: por ahora solo está disponible la simulación de inventario.",
-    "formTitle": "Nueva migración",
-    "formHelp": "Solo subredes IPv4, como máximo {{max}} direcciones por ejecución. Las direcciones .0 y .255 y el servidor ACS se omiten.",
-    "credentialsHelp": "Las credenciales se usan solo durante la ejecución y nunca se guardan. Una simulación no las necesita: no se envía ninguna credencial a los equipos.",
-    "dryRun": "Simular (inventario)",
-    "apply": "Aplicar migración",
-    "recentTitle": "Ejecuciones recientes",
-    "noRuns": "Todavía no hay ejecuciones.",
-    "runTitle": "Ejecución · {{subnet}}",
-    "cancel": "Detener",
-    "progress": "Progreso",
-    "fields": {
-      "subnet": "Subred de gestión (CIDR)",
-      "port": "Puerto de gestión",
-      "informInterval": "Intervalo de inform (segundos)",
-      "targetAcsUrl": "URL ACS de destino (CWMP)",
-      "username": "Usuario de los routers",
-      "password": "Contraseña de los routers"
-    },
-    "cols": {
-      "when": "Cuándo",
-      "subnet": "Subred",
-      "mode": "Modo",
-      "status": "Estado",
-      "found": "CPE encontrados",
-      "changed": "Configurados"
-    },
-    "hostCols": {
-      "address": "Dirección",
-      "status": "Resultado",
-      "model": "Modelo",
-      "firmware": "Firmware",
-      "detail": "Detalle"
-    },
-    "mode": {
-      "dry": "Simulación",
-      "apply": "Aplicada"
-    },
-    "runStatus": {
-      "pending": "Pendiente",
-      "running": "En curso",
-      "done": "Completada",
-      "failed": "Fallida",
-      "cancelled": "Detenida"
-    },
-    "hostStatus": {
-      "pending": "Pendiente",
-      "unreachable": "Inaccesible",
-      "not_cpe": "No es un CPE",
-      "auth_failed": "Credenciales rechazadas",
-      "already_target": "Ya en el ACS",
-      "configured": "Configurado",
-      "error": "Error",
-      "skipped": "Omitido"
-    },
-    "counters": {
-      "processed": "Procesados",
-      "reachable": "Accesibles",
-      "configured": "Configurados",
-      "failed": "Fallidos"
-    }
   },
   "ispbilling": {
     "title": "ISPBilling",
@@ -5797,8 +5775,6 @@
     "help": "Archiva los parámetros de configuración del CPE, tal como los leyó el ACS, en la pestaña Copias, donde las instantáneas se abren y comparan. Se excluyen contraseñas y valores que cambian solos. No se restaura con un clic. Las políticas con la opción TR-069 guardan una automáticamente cuando algo cambia.",
     "refresh": "Volver a leer la configuración del CPE",
     "save": "Guardar instantánea ahora",
-    "refreshStarted": "El ACS está leyendo toda la configuración: en un CPE grande tarda unos minutos; después guarda la instantánea.",
-    "refreshQueued": "El CPE no aceptó la solicitud de conexión: la configuración se leerá en el próximo contacto.",
     "saved": "Instantánea guardada.",
     "open": "Abrir la pestaña Copias",
     "refreshState": {
@@ -5806,7 +5782,9 @@
       "done": "Configuración releída ({{objects}} objetos): guarda la instantánea.",
       "partial": "Configuración releída en parte: {{done}} de {{objects}} objetos."
     },
-    "refreshFailed": "No leídos (tarea eliminada para no bloquear la cola del CPE): {{list}}."
+    "refreshFailed": "No leídos (tarea eliminada para no bloquear la cola del CPE): {{list}}.",
+    "refreshStarted": "El ACS está leyendo toda la configuración: en un CPE grande tarda unos minutos; después guarda la instantánea.",
+    "refreshQueued": "El CPE no aceptó la solicitud de conexión: la configuración se leerá en el próximo contacto."
   },
   "acsSpeedtest": {
     "title": "Prueba de velocidad desde el CPE",
@@ -5998,39 +5976,71 @@
     "otherNamePlaceholder": "p. ej. el código de la etiqueta (LBE-5AC-16-120)",
     "search": "Buscar"
   },
-  "cambiumBackup": {
-    "title": "Copia de seguridad de la configuración (SSH)",
-    "help": "cnMaestro no permite exportar la configuración de los equipos: NSM entra por SSH en el ePMP, lee la configuración en uso (config show json) y la archiva en la pestaña Copias, completa y restaurable desde la página Backup/Restore del ePMP. Las políticas de copia con la opción Cambium la ejecutan automáticamente.",
-    "run": "Hacer copia ahora",
-    "running": "Leyendo la configuración…",
-    "done": "Configuración archivada.",
-    "open": "Abrir las copias",
-    "source": {
-      "device": "Credenciales: las de este equipo.",
-      "shared": "Credenciales: las comunes de los Cambium ({{username}}).",
-      "none": "Sin credenciales SSH: define las comunes en Administración → cnMaestro o las de este equipo abajo."
+  "acsMigration": {
+    "subtitle": "Migra en bloque los CPE de los clientes al ACS integrado reconfigurando el CWMP en la red de gestión.",
+    "backToAcs": "Volver a ACS",
+    "intro": "Indica la subred de gestión de tus routers, el puerto y las credenciales comunes de la flota: NSM llega a cada equipo y establece la URL ACS de destino. Haz primero una simulación para ver qué CPE son accesibles.",
+    "applyPending": "La reescritura CWMP mediante la interfaz web de TP-Link está en validación sobre el terreno para este firmware: por ahora solo está disponible la simulación de inventario.",
+    "formTitle": "Nueva migración",
+    "formHelp": "Solo subredes IPv4, como máximo {{max}} direcciones por ejecución. Las direcciones .0 y .255 y el servidor ACS se omiten.",
+    "credentialsHelp": "Las credenciales se usan solo durante la ejecución y nunca se guardan. Una simulación no las necesita: no se envía ninguna credencial a los equipos.",
+    "dryRun": "Simular (inventario)",
+    "apply": "Aplicar migración",
+    "recentTitle": "Ejecuciones recientes",
+    "noRuns": "Todavía no hay ejecuciones.",
+    "runTitle": "Ejecución · {{subnet}}",
+    "cancel": "Detener",
+    "progress": "Progreso",
+    "fields": {
+      "subnet": "Subred de gestión (CIDR)",
+      "port": "Puerto de gestión",
+      "informInterval": "Intervalo de inform (segundos)",
+      "targetAcsUrl": "URL ACS de destino (CWMP)",
+      "username": "Usuario de los routers",
+      "password": "Contraseña de los routers"
     },
-    "noIp": "La dirección de gestión del equipo no es conocida.",
-    "last": "Última copia {{when}}: {{status}}.",
-    "status": {
-      "success": "archivada",
-      "failed": "fallida"
+    "cols": {
+      "when": "Cuándo",
+      "subnet": "Subred",
+      "mode": "Modo",
+      "status": "Estado",
+      "found": "CPE encontrados",
+      "changed": "Configurados"
     },
-    "hostKey": "Clave SSH del equipo {{key}} (memorizada en la primera copia).",
-    "hostKeyChanged": "La clave SSH del equipo cambió ({{key}}): las copias están paradas hasta que la aceptes. Acéptala solo si el equipo fue sustituido o reiniciado.",
-    "acceptKey": "Aceptar la nueva clave",
-    "own": "Credenciales de este equipo",
-    "ownHelp": "Solo si este equipo no usa las credenciales comunes de los Cambium.",
-    "username": "Usuario SSH",
-    "password": "Contraseña SSH",
-    "keepPassword": "deja vacío para conservarla",
-    "port": "Puerto SSH",
-    "save": "Guardar",
-    "saved": "Guardado.",
-    "clear": "Usar las comunes",
-    "sharedTitle": "Credenciales SSH de los equipos Cambium",
-    "sharedHelp": "Usadas por NSM para copiar por SSH la configuración de cada Cambium ePMP (cnMaestro no permite exportarla). Un equipo puede tener credenciales propias en su pestaña cnMaestro. Guardadas cifradas; la contraseña no se vuelve a mostrar.",
-    "remove": "Eliminar"
+    "hostCols": {
+      "address": "Dirección",
+      "status": "Resultado",
+      "model": "Modelo",
+      "firmware": "Firmware",
+      "detail": "Detalle"
+    },
+    "mode": {
+      "dry": "Simulación",
+      "apply": "Aplicada"
+    },
+    "runStatus": {
+      "pending": "Pendiente",
+      "running": "En curso",
+      "done": "Completada",
+      "failed": "Fallida",
+      "cancelled": "Detenida"
+    },
+    "hostStatus": {
+      "pending": "Pendiente",
+      "unreachable": "Inaccesible",
+      "not_cpe": "No es un CPE",
+      "auth_failed": "Credenciales rechazadas",
+      "already_target": "Ya en el ACS",
+      "configured": "Configurado",
+      "error": "Error",
+      "skipped": "Omitido"
+    },
+    "counters": {
+      "processed": "Procesados",
+      "reachable": "Accesibles",
+      "configured": "Configurados",
+      "failed": "Fallidos"
+    }
   },
   "acsAlerts": {
     "title": "Avisos de los CPE",
@@ -6120,6 +6130,67 @@
       "failed": "La actualización a {{version}} ha fallado.",
       "unconfirmed": "Actualización a {{version}} no confirmada."
     }
+  },
+  "firmwareSchedule": {
+    "title": "Actualización programada",
+    "help": "Elige cuándo actualizar, por ejemplo de noche. A esa hora NSM ejecuta solo todas las fases sin más confirmaciones: comprobación, copia previa, aprobación, descarga, activación con reinicio y control de la versión. Si el dispositivo no es accesible en 2 horas, la actualización no se ejecuta.",
+    "when": "Fecha y hora",
+    "schedule": "Programar actualización",
+    "move": "Mover",
+    "cancel": "Cancelar programación",
+    "at": "para el {{when}}",
+    "confirm": "¿Programar la actualización de RouterOS (ahora {{target}}) para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "confirmMany_one": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "confirmMany_other": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "selected_one": "{{count}} seleccionado",
+    "selected_other": "{{count}} seleccionados",
+    "scheduleMany": "Programar actualización",
+    "select": "Seleccionar {{name}}",
+    "done_one": "{{count}} actualización programada.",
+    "done_other": "{{count}} actualizaciones programadas.",
+    "skipped": "No programados (se requiere RouterOS 7.13+ con el agente moderno): {{names}}.",
+    "states": {
+      "scheduled": "Programada",
+      "checking": "Comprobando",
+      "running": "En curso",
+      "success": "Completada",
+      "failed": "Fallida",
+      "cancelled": "Cancelada"
+    }
+  },
+  "cambiumBackup": {
+    "title": "Copia de seguridad de la configuración (SSH)",
+    "help": "cnMaestro no permite exportar la configuración de los equipos: NSM entra por SSH en el ePMP, lee la configuración en uso (config show json) y la archiva en la pestaña Copias, completa y restaurable desde la página Backup/Restore del ePMP. Las políticas de copia con la opción Cambium la ejecutan automáticamente.",
+    "run": "Hacer copia ahora",
+    "running": "Leyendo la configuración…",
+    "done": "Configuración archivada.",
+    "open": "Abrir las copias",
+    "source": {
+      "device": "Credenciales: las de este equipo.",
+      "shared": "Credenciales: las comunes de los Cambium ({{username}}).",
+      "none": "Sin credenciales SSH: define las comunes en Administración → cnMaestro o las de este equipo abajo."
+    },
+    "noIp": "La dirección de gestión del equipo no es conocida.",
+    "last": "Última copia {{when}}: {{status}}.",
+    "status": {
+      "success": "archivada",
+      "failed": "fallida"
+    },
+    "hostKey": "Clave SSH del equipo {{key}} (memorizada en la primera copia).",
+    "hostKeyChanged": "La clave SSH del equipo cambió ({{key}}): las copias están paradas hasta que la aceptes. Acéptala solo si el equipo fue sustituido o reiniciado.",
+    "acceptKey": "Aceptar la nueva clave",
+    "own": "Credenciales de este equipo",
+    "ownHelp": "Solo si este equipo no usa las credenciales comunes de los Cambium.",
+    "username": "Usuario SSH",
+    "password": "Contraseña SSH",
+    "keepPassword": "deja vacío para conservarla",
+    "port": "Puerto SSH",
+    "save": "Guardar",
+    "saved": "Guardado.",
+    "clear": "Usar las comunes",
+    "sharedTitle": "Credenciales SSH de los equipos Cambium",
+    "sharedHelp": "Usadas por NSM para copiar por SSH la configuración de cada Cambium ePMP (cnMaestro no permite exportarla). Un equipo puede tener credenciales propias en su pestaña cnMaestro. Guardadas cifradas; la contraseña no se vuelve a mostrar.",
+    "remove": "Eliminar"
   },
   "acsPortMapping": {
     "title": "Redirección de puertos, DMZ y UPnP",
