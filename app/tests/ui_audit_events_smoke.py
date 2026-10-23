@@ -1,7 +1,7 @@
 """New interface, audit events API: newest first, classic filters, device with vendor icon, actor, permissions, scope."""
 import re
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
@@ -44,6 +44,8 @@ def main():
                        severity="info", result="success", source="portal", details={"note": f"needle-{suffix}"}),
             AuditEvent(event_type=f"{kind}_LOGIN", customer_id=mine.id, timestamp=now - timedelta(minutes=2), severity="warning", result="failed", source="ci"),
             AuditEvent(event_type=f"{kind}_OLD", customer_id=mine.id, timestamp=now - timedelta(days=3), severity="info", result="success", source="ci"),
+            # 22:30 UTC on 14 July is 00:30 of 15 July in Rome (CEST): date filters use APP_TIMEZONE days (CI: Europe/Rome).
+            AuditEvent(event_type=f"{kind}_NIGHT", timestamp=datetime(2026, 7, 14, 22, 30, tzinfo=timezone.utc), severity="info", result="success", source="ci"),
             AuditEvent(event_type=f"{kind}_FOREIGN", customer_id=other.id, timestamp=now - timedelta(minutes=3), severity="info", result="success", source="ci"),
         ])
         db.commit()
@@ -67,8 +69,11 @@ def main():
     assert types(f"event_type={kind}_OLD") == [f"{kind}_OLD"]
     assert types(f"q=needle-{suffix}") == [f"{kind}_BACKUP"], "text search looks inside details"
     assert types(f"device=TEST-UM-MT-{suffix}") == [f"{kind}_BACKUP"]
-    today = now.date().isoformat()
-    assert types(f"customer={ids['mine']}&from_date={today}") == [f"{kind}_BACKUP", f"{kind}_LOGIN"]
+    # From yesterday (UTC days): the events of the last minutes stay in when the test runs just after midnight, the 3-day-old one stays out.
+    since = (now - timedelta(days=1)).date().isoformat()
+    assert types(f"customer={ids['mine']}&from_date={since}") == [f"{kind}_BACKUP", f"{kind}_LOGIN"]
+    assert types(f"event_type={kind}_NIGHT&from_date=2026-07-15&to_date=2026-07-15") == [f"{kind}_NIGHT"], "local day, not UTC"
+    assert types(f"event_type={kind}_NIGHT&to_date=2026-07-14") == []
     assert client.get("/api/ui/v1/audit/events?from_date=yesterday").status_code == 400
     assert client.get("/app/events?severity=warning").status_code in (200, 503)  # 503 when the frontend is not built (CI integration)
 

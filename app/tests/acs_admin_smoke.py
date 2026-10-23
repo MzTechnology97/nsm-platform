@@ -85,6 +85,7 @@ def main():
     assert b"PeriodicInformInterval" in calls[0][2] and calls[0][1] == "application/javascript"
     tplink = json.loads(calls[1][2])
     assert tplink["precondition"] == 'DeviceID.Manufacturer LIKE "TP-L%"' and tplink["configurations"][0]["name"] == "nsm-base"
+    assert tplink["events"] == {}, "every listed event must be in the session: no filter, or periodic informs never run nsm-base"
     print("ACS admin smoke passed")
 
 

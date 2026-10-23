@@ -4,6 +4,96 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.239 — 2026-10-23
+
+Exposure: ports filtered by ACL no longer reported as exposed
+- **TR-069 port (7547) of CPEs managed by NSM.** NSM is their ACS, so the port always answers the NSM server. It is now shown as *da verificare*, with low severity, and no longer as *esposto, alta*. From the NSM server alone it cannot be told whether others are filtered.
+- **Remote web management of TP-Link CPEs.** NSM now reads, through the ACS, whether it is on, on which port and from which addresses it is allowed. That port is checked too (for example 20443). It is reported as open to everyone or limited to the allowed address, as the CPE's configuration says.
+- ***Filtrata da ACL…* on the *Esposizione* tab.** For any device, when a service looks open from NSM but is filtered for everyone else by an ACL, declare it with the allowed addresses. It is then shown as limited, with who declared it and when. The declaration stays valid at the next checks and can be removed at any time.
+## 0.49.238 — 2026-10-23
+
+Pages on every list
+- **The lists now load one page at a time**: 50, 100 or 200 rows, as you choose. They show "1–50 of 838", the page numbers and the previous/next buttons. Your choice of rows per page is remembered.
+  - *Clienti* used to load every customer at once and was slow; it now loads one page.
+  - *Apparati*, *Firmware*, *Vulnerabilità*, *Lifecycle*, *Compliance*, *Action Center*, *Incidenti*, *Eventi*, *Report*, UISP and cnMaestro onboarding, and the ISPBilling import used to load more rows as you scrolled; they now show pages.
+- **No devices hidden on large fleets any more.** *Monitoring*, *Agent*, *Backup* and *Esposizione* showed at most 500 devices; every device is now reachable through the pages.
+- Changing a filter, the search or the sort takes you back to page 1. The counters on the chips always cover the whole list, not just the page.
+## 0.49.237 — 2026-10-23
+
+Customer name as a tag in GenieACS
+- **Every TP-Link or other TR-069 CPE linked in NSM now carries its customer's name as a tag in GenieACS**, so the GenieACS panel shows, and can filter, whose CPE it is. The tag is added after the link.
+- **The tag stays aligned on its own:**
+  - it follows the device when it moves to another customer, and the old tag is removed;
+  - it follows the customer when it is renamed;
+  - it is put back if someone removes it in GenieACS.
+- **Tags you set yourself in GenieACS are never touched.**
+## 0.49.236 — 2026-10-23
+
+Cambium logo on Cambium devices
+- **Cambium devices now show the Cambium Networks logo** instead of the generic device icon: ePMP, cnPilot, PMP and the others, in every list, page and in the global search. This also applies to devices added as generic whose manufacturer was recognised as Cambium.
+## 0.49.235 — 2026-10-23
+
+ISPBilling
+- **Automatic import of new customers and sites.** It is off until an administrator switches it on, in *Integrazioni → ISPBilling → Importazione automatica*. After each read:
+  - customers new in ISPBilling are created in NSM with their sites, once their service addresses are read;
+  - new installation addresses of customers already in NSM become sites;
+  - customers that look like an existing NSM customer (same code or name) are not imported: the page counts them and links to the import page, where they can be linked by hand.
+- **Deleted customers and sites are not recreated.** Everything already in the mirror when this version is installed counts as handled (migration 0056), as does everything imported since. A customer or site deleted in NSM afterwards is therefore not created again.
+
+## 0.49.234 — 2026-10-23
+
+Quick import buttons
+- ***Clienti* has an *Importa da ISPBilling* button.** It opens the customer import directly. It appears only while ISPBilling is enabled and its last read or test succeeded, and only for users who may import (administrators).
+- ***Apparati* has *Importa da UISP*** (and ***Importa da cnMaestro***, when that integration is in use). Each opens the onboarding of that integration. They appear only while the integration is enabled and its last sync or test succeeded, and only for users who may add devices.
+## 0.49.233 — 2026-10-23
+
+Search in long customer and device lists
+- **Customer fields now have a search box, and show the customer code next to the name** (e.g. *Mario Rossi · C840*), so customers with the same name can be told apart and found by code.
+- **Search:** type part of the name or the code: every word you type must appear, in any order, and case and accents are ignored. For example "nicco ross" finds "Niccolò Rossi". Pick with the mouse, or with the arrow keys and Enter.
+- **Where:**
+  - UISP and cnMaestro onboarding, for both the customer and the UISP site;
+  - *Gestisci apparato*, when moving a device to another customer;
+  - the customer filters of the lists: devices, Action Center, vulnerabilities, firmware, monitoring, incidents, backups, compliance, exposure, activity log, reports, agents and access;
+  - the forms for a new incident, a backup policy, a compliance baseline, a maintenance window and an API key;
+  - the device and site fields of backup policies, compliance baselines and maintenance windows, and the replacement device in the lifecycle.
+- Short lists, such as vendors, roles and states, stay as normal menus.
+## 0.49.232 — 2026-10-23
+
+ACS monitoring refreshed again
+- **Fixed: NSM's ACS provisioning never ran at the periodic contacts of the CPEs.** In GenieACS the NSM presets listed three events (bootstrap, boot, periodic). GenieACS applies a preset only when all of them are in the same session, which never happens during normal operation. So uptime, CPU, RAM, WAN traffic, Wi-Fi clients, LAN hosts and DSL were never re-read. The history and charts stayed empty (TP-Link HB210) or frozen (VX230v).
+- The presets now run at every contact. Each value is still re-read only when it is older than its interval (5 minutes for monitoring, hourly or daily for the rest).
+- After the update, NSM reinstalls the templates in GenieACS on its own. Values reappear at each CPE's next contact.
+
+## 0.49.231 — 2026-10-23
+
+Activity
+- **Date filters use the local day.** In the activity log and in a device's jobs, "from" and "to" dates are now days of the server time zone (`APP_TIMEZONE`, Europe/Rome by default). Before, they were UTC days, so events between midnight and 01:00 (02:00 in summer) Italian time fell on the previous day.
+
+## 0.49.230 — 2026-10-23
+
+Tests
+- **The activity-log test no longer fails when CI runs just after midnight UTC.** Its date-filter check now starts from the previous day.
+
+## 0.49.229 — 2026-10-23
+
+ISPBilling accounts linked to CPEs
+- **NSM finds the device of each ISPBilling PPPoE account in more ways:**
+  - the PPPoE username a TP-Link or other TR-069 CPE logs in with;
+  - the caller-id (MAC) of the account's PPP session on the PPPoE concentrator, which also finds UISP radios;
+  - the address of that session.
+  The concentrator must be a MikroTik in NSM.
+- **Customer and site are proposed, never applied by themselves.** When the device belongs to the same customer but sits at another site, the device page and *Integrazioni → ISPBilling → Apparati da assegnare* propose the site from ISPBilling, applied with one click.
+- **Devices of another customer are only flagged:** NSM never moves them by itself. You can still reassign one from the device page, with a second confirmation.
+- ***Ignora*** stops a proposal from coming back. Every assignment is recorded in the audit with the customer and site before and after.
+## 0.49.228 — 2026-10-23
+
+Port forwarding, DMZ and UPnP of TR-069 CPEs
+- **The *ACS* tab shows what each CPE exposes to the Internet:**
+  - the port forwards, with protocol, external port, internal host and port, and whether each one is on;
+  - the DMZ, when the CPE reports one, with a warning if it is on;
+  - whether UPnP is on.
+- **Monitoring only:** nothing is changed on the CPE from NSM. The values are re-read every hour, or on demand with *Rileggi dal CPE*.
+- **Every change is recorded in the device activity**, for example a new port forward, the DMZ turned on, or UPnP turned on or off.
 ## 0.49.227 — 2026-10-23
 
 TP-Link firmware from the official site
