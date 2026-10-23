@@ -9,6 +9,7 @@ import { SiteForm } from "./CustomerForm";
 import { Metric } from "./DeviceDetail";
 import { eventLabel, eventSource } from "../lib/events";
 import { Loading } from "../app/States";
+import { CustomerZabbixButton } from "../app/ZabbixScope";
 
 /** Customer tabs already in the new interface; "devices" opens the device list filtered on the customer. */
 const MIGRATED_TABS = {
@@ -67,6 +68,7 @@ function CustomerShell({ detail }: { detail: Detail }) {
           {detail.actions.add_device && (
             <Link className="ui-button ui-button-ghost" to="/customers/$customerId/devices/manage" params={{ customerId: customer.id }}>{t("customer.actions.manageDevices")}</Link>
           )}
+          <CustomerZabbixButton customerId={customer.id} />
           {detail.actions.uisp_import && (
             <Link className="ui-button ui-button-ghost" to="/integrations/uisp/onboarding" search={{ customer: customer.id }}>{t("customer.actions.uispImport")}</Link>
           )}
