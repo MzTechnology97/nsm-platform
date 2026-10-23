@@ -5079,6 +5079,10 @@
     "ACS_CONFIG_REFRESH_REQUESTED": "Relectura de la configuración del CPE solicitada",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnóstico ACS completado",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnóstico ACS solicitado",
+    "ACS_FIRMWARE_FAILED": "Actualización de firmware del CPE fallida",
+    "ACS_FIRMWARE_FILE_STORED": "Imagen de firmware cargada en el ACS",
+    "ACS_FIRMWARE_REQUESTED": "Actualización de firmware del CPE solicitada",
+    "ACS_FIRMWARE_VERIFIED": "Actualización de firmware del CPE verificada",
     "ACS_MIGRATION_COMPLETED": "Migración ACS completada",
     "ACS_MIGRATION_STARTED": "Migración ACS iniciada",
     "ACS_REBOOT_REQUESTED": "Reinicio del CPE solicitado",
@@ -5735,5 +5739,39 @@
       "saved": "Guardado."
     },
     "short": "El servidor envió solo {{bytes}} bytes en lugar del archivo (redirección o rechazo): usa NSM u otro servidor de prueba."
+  },
+  "acsFirmware": {
+    "title": "Firmware",
+    "help": "Sube la imagen descargada del sitio del fabricante: NSM la guarda en el ACS para este modelo, luego el CPE la descarga del servidor de archivos del ACS, la instala y se reinicia. NSM confirma la actualización cuando el CPE informa la nueva versión.",
+    "current": "Versión instalada",
+    "model": "Modelo (product class)",
+    "uploadTitle": "Cargar una imagen en el ACS",
+    "image": "Archivo de firmware (máx. {{max}} MB)",
+    "version": "Versión de la imagen",
+    "versionPlaceholder": "como en el sitio del fabricante, p. ej. 1.2.0 Build 250101",
+    "upload": "Cargar en el ACS",
+    "uploading": "Cargando…",
+    "runTitle": "Actualizar el CPE",
+    "noFiles": "Ninguna imagen para este modelo en el ACS: carga una arriba.",
+    "file": "Imagen",
+    "noVersion": "versión no indicada",
+    "confirm": "Escribe {{name}} para confirmar",
+    "warning": "El CPE se reinicia tras la instalación: la conexión del cliente cae unos minutos. Usa solo imágenes para este modelo y versión de hardware exactos.",
+    "run": "Actualizar firmware",
+    "waitingContact": "empezará en el próximo contacto con el ACS",
+    "notExpected": "no es la versión esperada {{version}}",
+    "states": {
+      "requested": "Actualización solicitada el {{when}} desde {{from}}, esperando que el CPE informe la nueva versión",
+      "verified": "Actualizado el {{when}}: {{from}} → {{to}}",
+      "failed": "El CPE informó un error el {{when}}",
+      "unconfirmed": "Actualización solicitada pero sin nueva versión en 30 minutos ({{when}})"
+    },
+    "available": "Última disponible",
+    "noCatalog": "ninguna versión en el catálogo para este modelo",
+    "catalogNewer": "La versión {{version}} es más reciente que la instalada.",
+    "catalogSecurity": "La versión {{version}} corrige problemas de seguridad: actualización recomendada.",
+    "catalogCurrent": "La versión instalada es la última del catálogo.",
+    "notes": "notas de la versión",
+    "catalogs": "Catálogos de firmware"
   }
 }

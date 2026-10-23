@@ -64,6 +64,7 @@ from app.acs_diagnostics import install_acs_diagnostics
 from app.acs_actions import install_acs_actions
 from app.acs_snapshot import install_acs_snapshot
 from app.acs_speedtest import install_acs_speedtest
+from app.acs_firmware import install_acs_firmware
 from app.acs_monitoring import install_acs_monitoring
 from app.ui_backup_policies import install_ui_backup_policies
 from app.legacy_redirects import install_legacy_redirects
@@ -130,7 +131,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.218"
+APP_VERSION = "0.49.219"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -267,6 +268,7 @@ install_acs_diagnostics(core.app)
 install_acs_actions(core.app)
 install_acs_snapshot(core.app)
 install_acs_speedtest(core.app)
+install_acs_firmware(core.app)
 install_acs_monitoring(core.app)
 install_ui_backup_policies(core.app)
 install_ui_spa(core.app)
