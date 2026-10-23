@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.246 — 2026-10-23
+
+TR-069
+- **TP-Link CPEs can be upgraded from TP-Link's cloud.** The device's *Firmware* box shows the version that TP-Link's cloud offers the CPE, with its release date and notes, the same as the router's own *Online Upgrade* box. NSM reads that offer once a day, or at once with *Verifica ora*. *Aggiorna dal cloud TP-Link* asks you to type the device name, then has the CPE download, install and reboot. The upgrade is followed and recorded like an upgrade from an uploaded image. Tested on a VX230v: 0.16.0 to 0.19.0 in about two minutes.
+
 ## 0.49.245 — 2026-10-23
 
 TP-Link syslog with a dynamic IP
