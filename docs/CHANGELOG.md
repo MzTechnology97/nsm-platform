@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.229 — 2026-10-23
+
+ISPBilling accounts linked to CPEs
+- **NSM finds the device of each ISPBilling PPPoE account in more ways:**
+  - the PPPoE username a TP-Link or other TR-069 CPE logs in with;
+  - the caller-id (MAC) of the account's PPP session on the PPPoE concentrator, which also finds UISP radios;
+  - the address of that session.
+  The concentrator must be a MikroTik in NSM.
+- **Customer and site are proposed, never applied by themselves.** When the device belongs to the same customer but sits at another site, the device page and *Integrazioni → ISPBilling → Apparati da assegnare* propose the site from ISPBilling, applied with one click.
+- **Devices of another customer are only flagged:** NSM never moves them by itself. You can still reassign one from the device page, with a second confirmation.
+- ***Ignora*** stops a proposal from coming back. Every assignment is recorded in the audit with the customer and site before and after.
 ## 0.49.228 — 2026-10-23
 
 Port forwarding, DMZ and UPnP of TR-069 CPEs

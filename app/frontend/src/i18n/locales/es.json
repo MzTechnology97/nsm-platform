@@ -244,7 +244,10 @@
       "otherCustomer": "ISPBilling factura esta cuenta a un cliente distinto del cliente NSM del equipo.",
       "matched": {
         "pppoe": "asociada por usuario PPPoE",
-        "ip": "asociada por IP estática"
+        "ip": "asociada por IP estática",
+        "cpe_pppoe": "asociado por el usuario PPPoE del CPE",
+        "caller_mac": "asociado por el caller-id (MAC) de la sesión PPP",
+        "caller_ip": "asociado por la dirección de la sesión PPP"
       }
     },
     "pingToggle": {
@@ -5229,6 +5232,8 @@
     "INVENTORY_DISCOVERED": "Inventario detectado",
     "ISPBILLING_CONFIGURED": "Conector ISPBilling configurado",
     "ISPBILLING_CUSTOMERS_IMPORTED": "Clientes importados desde ISPBilling",
+    "ISPBILLING_DEVICE_LINKED": "Equipo asignado desde ISPBilling",
+    "ISPBILLING_LINK_DISMISSED": "Propuesta de ISPBilling ignorada",
     "ISPBILLING_SYNC_REQUESTED": "Lectura de ISPBilling solicitada",
     "ISSUE_ACKNOWLEDGED": "Aviso asumido",
     "LEGACY_FIRMWARE_UPGRADE_ACCEPTED": "Actualización de firmware legacy aceptada",
@@ -5940,5 +5945,30 @@
     "description": "Descripción",
     "any": "todos",
     "anywhere": "cualquier origen"
+  },
+  "ispbillingLinks": {
+    "title": "Equipos que asignar desde ISPBilling",
+    "help": "Para cada cuenta RADIUS NSM encuentra el equipo (usuario PPPoE de un MikroTik o de un CPE TR-069, IP estática, caller-id o dirección de la sesión PPP en un concentrador en NSM) y compara cliente y sede con ISPBilling. Nada cambia hasta que un operador confirma; un equipo de otro cliente nunca se mueve solo.",
+    "counts": {
+      "site": "Sede que asignar",
+      "conflict": "Otro cliente, por revisar",
+      "not_imported": "Cliente no importado",
+      "linked": "Ya alineados"
+    },
+    "empty": "Nada que confirmar.",
+    "device": "Equipo",
+    "account": "Cuenta ISPBilling",
+    "now": "Ahora en NSM",
+    "ispbilling": "En ISPBilling",
+    "applySite": "Asignar la sede",
+    "check": "Revisar",
+    "proposeSite": "ISPBilling instala esta cuenta en {{site}}.",
+    "conflict": "ISPBilling factura esta cuenta a {{customer}}: en NSM el equipo es de otro cliente.",
+    "reassignAsk": "Reasignar…",
+    "reassignConfirm": "¿Mover el equipo a {{customer}}?",
+    "reassign": "Mover",
+    "dismiss": "Ignorar",
+    "notImported": "El cliente ISPBilling de esta cuenta aún no está en NSM.",
+    "import": "Importarlo"
   }
 }

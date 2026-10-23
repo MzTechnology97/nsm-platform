@@ -1,6 +1,7 @@
 import { Link, Outlet, useParams } from "@tanstack/react-router";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { IspbillingLinkProposal } from "../app/IspbillingLinks";
 
 import { ApiError } from "../api/client";
 import { BrandIcon } from "../app/BrandIcon";
@@ -294,7 +295,7 @@ export function DeviceOverview() {
           )}
         </section>
       </div>
-      {detail.ispbilling?.length ? <IspbillingAccounts accounts={detail.ispbilling} /> : null}
+      {detail.ispbilling?.length ? <IspbillingAccounts deviceId={detail.device.id} accounts={detail.ispbilling} canManage={detail.actions.manage} /> : null}
       {detail.zabbix && <DeviceZabbixPanel zabbix={detail.zabbix} />}
     </>
   );
@@ -303,7 +304,7 @@ export function DeviceOverview() {
 const RADIUS_TONE: Record<string, string> = { attivo: "online", sospeso: "warning", terminato: "offline" };
 
 /** The ISPBilling RADIUS accounts of this device: who is billed for it and whether the account is active. */
-function IspbillingAccounts({ accounts }: { accounts: DeviceIspbillingAccount[] }) {
+function IspbillingAccounts({ deviceId, accounts, canManage }: { deviceId: string; accounts: DeviceIspbillingAccount[]; canManage: boolean }) {
   const { t } = useTranslation();
   return (
     <section className="ui-panel">
@@ -318,6 +319,7 @@ function IspbillingAccounts({ accounts }: { accounts: DeviceIspbillingAccount[] 
                 {[account.profile, account.customer, t(`device.ispbilling.matched.${account.matched_by ?? "pppoe"}`)].filter(Boolean).join(" · ")}
               </small>
               {account.same_customer === false && <small className="ui-key-hint ui-block">{t("device.ispbilling.otherCustomer")}</small>}
+              {canManage && account.link && <IspbillingLinkProposal deviceId={deviceId} account={account.account} link={account.link} />}
             </span>
             <span />
             <span className={`ui-status ui-status-${RADIUS_TONE[(account.status ?? "").toLowerCase()] ?? "unknown"}`}>{account.status ?? "—"}</span>

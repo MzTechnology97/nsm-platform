@@ -153,6 +153,8 @@ def _tr181(root: dict, cr_host: str | None) -> dict:
             "connected_for": connected_for or None,
             "last_error": (_value(ppp, "LastConnectionError") if ppp else None),
             "up": _up(_value(ppp, "ConnectionStatus") if ppp else _value(node, "Status")),
+            # PPPoE username the CPE logs in with: matched to the ISPBilling RADIUS account (ispbilling_radius).
+            "username": (str(_value(ppp, "Username") or "").strip() or None) if ppp else None,
         }
         state["counters"] = {"rx": _int(_value(node, "Stats", "BytesReceived")), "tx": _int(_value(node, "Stats", "BytesSent"))}
     # Wi-Fi: clients per radio through AccessPoint → SSID → Radio.
@@ -216,7 +218,8 @@ def _tr098(root: dict, cr_host: str | None) -> dict:
         node = wan["node"]
         state["wan"] = {"status": wan["status"], "type": "PPPoE" if wan["kind"] == "WANPPPConnection" else (_value(node, "AddressingType") or "IP"),
                         "ip": wan["ip"], "connected_for": _int(_value(node, "Uptime")), "last_error": _value(node, "LastConnectionError"),
-                        "up": _up(wan["status"])}
+                        "up": _up(wan["status"]),
+                        "username": (str(_value(node, "Username") or "").strip() or None) if wan["kind"] == "WANPPPConnection" else None}
         common = _value_obj(root, "WANDevice", wan["wan"], "WANCommonInterfaceConfig") or {}
         state["counters"] = {"rx": _int(_value(common, "TotalBytesReceived")), "tx": _int(_value(common, "TotalBytesSent"))}
     radios, hosts, clients = [], None, None
