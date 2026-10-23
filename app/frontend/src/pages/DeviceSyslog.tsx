@@ -9,6 +9,7 @@ import { useDebounced } from "../lib/hooks";
 import { Metric } from "./DeviceDetail";
 import { SyslogGuides } from "../app/SyslogGuides";
 import { AcsSyslogPanel } from "../app/AcsSyslog";
+import { UispSyslogPanel } from "../app/UispSyslog";
 
 const SEVERITY_FILTERS = ["", "4", "3", "2"] as const;
 
@@ -41,6 +42,7 @@ export function DeviceSyslog() {
       {data && <AccessPanel access={data.access} />}
       <IntegrityPanel id={deviceId} />
       <AcsSyslogPanel id={deviceId} />
+      <UispSyslogPanel id={deviceId} />
       {data && <SetupPanel id={deviceId} summary={data} />}
     </div>
   );
