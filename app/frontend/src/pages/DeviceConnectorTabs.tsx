@@ -13,6 +13,7 @@ import { AcsWifi } from "../app/AcsWifi";
 import { AcsSnapshot } from "../app/AcsSnapshot";
 import { AcsPortMapping } from "../app/AcsPortMapping";
 import { AcsMonitor } from "../app/AcsMonitor";
+import { CambiumBackup } from "../app/CambiumBackup";
 
 function message(error: unknown) {
   return error instanceof ApiError ? error.message : (error as Error | null)?.message;
@@ -70,6 +71,7 @@ export function DeviceCnmaestro() {
         <SeriesCharts title={t("deviceCnmaestro.chartsTitle")} range={range} onRange={setRange} charts={metrics.data?.charts}
           count={metrics.data?.sample_count ?? 0} pending={metrics.isPending} />
       )}
+      <CambiumBackup deviceId={deviceId} />
     </>
   );
 }

@@ -2619,6 +2619,8 @@
     "preset": "Preset",
     "presetText": "condition <code>{{condition}}</code>, événements bootstrap, boot et periodic → provision <code>{{provision}}</code>",
     "script": "Script de la provision {{name}}",
+    "migrationHint": "Vous gérez déjà une flotte de CPE sur un ACS cloud (par exemple TAUC) ?",
+    "migrationLink": "Migrer les CPE vers cet ACS",
     "templatesCurrent": "Les modèles NSM sont à jour (installés le {{when}}). NSM les met à jour seul après chaque mise à jour.",
     "templatesPending": "Cette version de NSM a des modèles plus récents que ceux installés le {{when}} : NSM les installe sous 30 minutes, ou cliquez sur Installer.",
     "templatesAuto": "Une fois installés, NSM tient ces modèles à jour seul après chaque mise à jour.",
@@ -2628,9 +2630,7 @@
       "reads": "Lit : état en ligne/hors ligne, dernier contact, modèle, firmware, IP, CPU, mémoire, trafic WAN, clients Wi-Fi et ligne DSL.",
       "actions": "Actions disponibles : redémarrage, vérification du firmware, diagnostic.",
       "never": "Ne modifie ni le Wi-Fi, ni le LAN, ni le DHCP, ni le PPPoE, ni aucune autre configuration du routeur. Le seul réglage qu'il écrit est l'intervalle d'inform du CWMP."
-    },
-    "migrationHint": "Vous gérez déjà une flotte de CPE sur un ACS cloud (par exemple TAUC) ?",
-    "migrationLink": "Migrer les CPE vers cet ACS"
+    }
   },
   "demo": {
     "subtitle": "Jeu de données isolé pour essayer l'interface et les flux sans utiliser de vrais clients.",
@@ -4417,6 +4417,10 @@
       "verify_hash": {
         "title": "SHA-256",
         "help": "Enregistre l'intégrité des fichiers produits."
+      },
+      "cambium_config": {
+        "title": "Configuration Cambium (SSH)",
+        "help": "La configuration en cours de l'ePMP lue en SSH ; nécessite les identifiants SSH Cambium."
       }
     },
     "retention_daily": "Quotidiennes",
@@ -5192,6 +5196,9 @@
     "BACKUP_STALE_ATTEMPT_REPORT_IGNORED": "Rapport de sauvegarde tardif ignoré",
     "BRAS_CONFIG_SAVED": "Connexion BRAS enregistrée",
     "BRAS_SYNC_REQUESTED": "Lecture BRAS demandée",
+    "CAMBIUM_BACKUP_ARCHIVED": "Configuration Cambium archivée",
+    "CAMBIUM_BACKUP_FAILED": "Sauvegarde Cambium échouée",
+    "CAMBIUM_SSH_CREDENTIALS_CHANGED": "Identifiants SSH Cambium modifiés",
     "CNMAESTRO_BULK_ONBOARDING": "Import depuis cnMaestro",
     "CNMAESTRO_CONFIGURED": "Connecteur cnMaestro configuré",
     "CNMAESTRO_DEVICE_LINKED": "Équipement lié à cnMaestro",
@@ -5445,6 +5452,72 @@
     "job": "tâche",
     "tr069": "TR-069 (ACS)",
     "acs": "ACS"
+  },
+  "acsMigration": {
+    "subtitle": "Migrer en masse les CPE des clients vers l'ACS intégré en reconfigurant le CWMP sur le réseau de gestion.",
+    "backToAcs": "Retour à ACS",
+    "intro": "Indiquez le sous-réseau de gestion de vos routeurs, le port et les identifiants communs de la flotte : NSM atteint chaque équipement et définit l'URL ACS cible. Lancez d'abord une simulation pour voir quels CPE sont joignables.",
+    "applyPending": "La réécriture CWMP via l'interface web TP-Link est en validation sur le terrain pour ce firmware : seule la simulation d'inventaire est disponible pour l'instant.",
+    "formTitle": "Nouvelle migration",
+    "formHelp": "Sous-réseaux IPv4 uniquement, au plus {{max}} adresses par exécution. Les adresses .0 et .255 et le serveur ACS sont ignorés.",
+    "credentialsHelp": "Les identifiants ne servent que pendant l'exécution et ne sont jamais stockés. Une simulation n'en a pas besoin : aucun identifiant n'est envoyé aux équipements.",
+    "dryRun": "Simulation (inventaire)",
+    "apply": "Appliquer la migration",
+    "recentTitle": "Exécutions récentes",
+    "noRuns": "Aucune exécution pour l'instant.",
+    "runTitle": "Exécution · {{subnet}}",
+    "cancel": "Arrêter",
+    "progress": "Progression",
+    "fields": {
+      "subnet": "Sous-réseau de gestion (CIDR)",
+      "port": "Port de gestion",
+      "informInterval": "Intervalle d'inform (secondes)",
+      "targetAcsUrl": "URL ACS cible (CWMP)",
+      "username": "Utilisateur des routeurs",
+      "password": "Mot de passe des routeurs"
+    },
+    "cols": {
+      "when": "Quand",
+      "subnet": "Sous-réseau",
+      "mode": "Mode",
+      "status": "État",
+      "found": "CPE trouvés",
+      "changed": "Configurés"
+    },
+    "hostCols": {
+      "address": "Adresse",
+      "status": "Résultat",
+      "model": "Modèle",
+      "firmware": "Firmware",
+      "detail": "Détail"
+    },
+    "mode": {
+      "dry": "Simulation",
+      "apply": "Appliquée"
+    },
+    "runStatus": {
+      "pending": "En attente",
+      "running": "En cours",
+      "done": "Terminée",
+      "failed": "Échouée",
+      "cancelled": "Arrêtée"
+    },
+    "hostStatus": {
+      "pending": "En attente",
+      "unreachable": "Injoignable",
+      "not_cpe": "Pas un CPE",
+      "auth_failed": "Identifiants refusés",
+      "already_target": "Déjà sur l'ACS",
+      "configured": "Configuré",
+      "error": "Erreur",
+      "skipped": "Ignoré"
+    },
+    "counters": {
+      "processed": "Traités",
+      "reachable": "Joignables",
+      "configured": "Configurés",
+      "failed": "Échoués"
+    }
   },
   "ispbilling": {
     "title": "ISPBilling",
@@ -5724,6 +5797,8 @@
     "help": "Archive les paramètres de configuration du CPE, tels que l'ACS les a lus, dans l'onglet Sauvegardes, où les instantanés s'ouvrent et se comparent. Mots de passe et valeurs changeantes exclus. Pas de restauration en un clic. Les politiques avec l'option TR-069 en prennent un automatiquement quand quelque chose a changé.",
     "refresh": "Relire la configuration depuis le CPE",
     "save": "Enregistrer un instantané",
+    "refreshStarted": "L'ACS relit toute la configuration : sur un gros CPE cela prend quelques minutes, puis enregistrez l'instantané.",
+    "refreshQueued": "Le CPE n'a pas accepté la demande de connexion : la configuration sera lue au prochain contact.",
     "saved": "Instantané enregistré.",
     "open": "Ouvrir l'onglet Sauvegardes",
     "refreshState": {
@@ -5731,9 +5806,7 @@
       "done": "Configuration relue ({{objects}} objets) : enregistrez l'instantané.",
       "partial": "Configuration relue en partie : {{done}} sur {{objects}} objets."
     },
-    "refreshFailed": "Non lus (tâche supprimée pour ne pas bloquer la file du CPE) : {{list}}.",
-    "refreshStarted": "L'ACS relit toute la configuration : sur un gros CPE cela prend quelques minutes, puis enregistrez l'instantané.",
-    "refreshQueued": "Le CPE n'a pas accepté la demande de connexion : la configuration sera lue au prochain contact."
+    "refreshFailed": "Non lus (tâche supprimée pour ne pas bloquer la file du CPE) : {{list}}."
   },
   "acsSpeedtest": {
     "title": "Test de débit depuis le CPE",
@@ -5925,71 +5998,39 @@
     "otherNamePlaceholder": "ex. le code sur l'étiquette (LBE-5AC-16-120)",
     "search": "Rechercher"
   },
-  "acsMigration": {
-    "subtitle": "Migrer en masse les CPE des clients vers l'ACS intégré en reconfigurant le CWMP sur le réseau de gestion.",
-    "backToAcs": "Retour à ACS",
-    "intro": "Indiquez le sous-réseau de gestion de vos routeurs, le port et les identifiants communs de la flotte : NSM atteint chaque équipement et définit l'URL ACS cible. Lancez d'abord une simulation pour voir quels CPE sont joignables.",
-    "applyPending": "La réécriture CWMP via l'interface web TP-Link est en validation sur le terrain pour ce firmware : seule la simulation d'inventaire est disponible pour l'instant.",
-    "formTitle": "Nouvelle migration",
-    "formHelp": "Sous-réseaux IPv4 uniquement, au plus {{max}} adresses par exécution. Les adresses .0 et .255 et le serveur ACS sont ignorés.",
-    "credentialsHelp": "Les identifiants ne servent que pendant l'exécution et ne sont jamais stockés. Une simulation n'en a pas besoin : aucun identifiant n'est envoyé aux équipements.",
-    "dryRun": "Simulation (inventaire)",
-    "apply": "Appliquer la migration",
-    "recentTitle": "Exécutions récentes",
-    "noRuns": "Aucune exécution pour l'instant.",
-    "runTitle": "Exécution · {{subnet}}",
-    "cancel": "Arrêter",
-    "progress": "Progression",
-    "fields": {
-      "subnet": "Sous-réseau de gestion (CIDR)",
-      "port": "Port de gestion",
-      "informInterval": "Intervalle d'inform (secondes)",
-      "targetAcsUrl": "URL ACS cible (CWMP)",
-      "username": "Utilisateur des routeurs",
-      "password": "Mot de passe des routeurs"
+  "cambiumBackup": {
+    "title": "Sauvegarde de la configuration (SSH)",
+    "help": "cnMaestro ne peut pas exporter la configuration des équipements : NSM se connecte en SSH à l'ePMP, lit la configuration en cours (config show json) et l'archive dans l'onglet Sauvegardes, complète et restaurable depuis la page Backup/Restore de l'ePMP. Les politiques de sauvegarde avec l'option Cambium l'exécutent automatiquement.",
+    "run": "Sauvegarder maintenant",
+    "running": "Lecture de la configuration…",
+    "done": "Configuration archivée.",
+    "open": "Ouvrir les sauvegardes",
+    "source": {
+      "device": "Identifiants : ceux de cet équipement.",
+      "shared": "Identifiants : ceux communs aux Cambium ({{username}}).",
+      "none": "Aucun identifiant SSH : définissez ceux communs dans Administration → cnMaestro ou ceux de cet équipement ci-dessous."
     },
-    "cols": {
-      "when": "Quand",
-      "subnet": "Sous-réseau",
-      "mode": "Mode",
-      "status": "État",
-      "found": "CPE trouvés",
-      "changed": "Configurés"
+    "noIp": "L'adresse de gestion de l'équipement est inconnue.",
+    "last": "Dernière sauvegarde {{when}} : {{status}}.",
+    "status": {
+      "success": "archivée",
+      "failed": "échouée"
     },
-    "hostCols": {
-      "address": "Adresse",
-      "status": "Résultat",
-      "model": "Modèle",
-      "firmware": "Firmware",
-      "detail": "Détail"
-    },
-    "mode": {
-      "dry": "Simulation",
-      "apply": "Appliquée"
-    },
-    "runStatus": {
-      "pending": "En attente",
-      "running": "En cours",
-      "done": "Terminée",
-      "failed": "Échouée",
-      "cancelled": "Arrêtée"
-    },
-    "hostStatus": {
-      "pending": "En attente",
-      "unreachable": "Injoignable",
-      "not_cpe": "Pas un CPE",
-      "auth_failed": "Identifiants refusés",
-      "already_target": "Déjà sur l'ACS",
-      "configured": "Configuré",
-      "error": "Erreur",
-      "skipped": "Ignoré"
-    },
-    "counters": {
-      "processed": "Traités",
-      "reachable": "Joignables",
-      "configured": "Configurés",
-      "failed": "Échoués"
-    }
+    "hostKey": "Clé SSH de l'équipement {{key}} (mémorisée à la première sauvegarde).",
+    "hostKeyChanged": "La clé SSH de l'équipement a changé ({{key}}) : les sauvegardes sont arrêtées jusqu'à ce que vous l'acceptiez. Acceptez-la seulement si l'équipement a été remplacé ou réinitialisé.",
+    "acceptKey": "Accepter la nouvelle clé",
+    "own": "Identifiants de cet équipement",
+    "ownHelp": "Seulement si cet équipement n'utilise pas les identifiants communs Cambium.",
+    "username": "Utilisateur SSH",
+    "password": "Mot de passe SSH",
+    "keepPassword": "laisser vide pour le conserver",
+    "port": "Port SSH",
+    "save": "Enregistrer",
+    "saved": "Enregistré.",
+    "clear": "Utiliser ceux communs",
+    "sharedTitle": "Identifiants SSH des équipements Cambium",
+    "sharedHelp": "Utilisés par NSM pour sauvegarder en SSH la configuration de chaque Cambium ePMP (cnMaestro ne peut pas l'exporter). Un équipement peut avoir ses propres identifiants dans son onglet cnMaestro. Stockés chiffrés ; le mot de passe n'est plus jamais affiché.",
+    "remove": "Supprimer"
   },
   "acsAlerts": {
     "title": "Alertes des CPE",
