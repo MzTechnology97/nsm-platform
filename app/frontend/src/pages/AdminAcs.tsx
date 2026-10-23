@@ -50,7 +50,6 @@ export function AdminAcs() {
             </div>
             <p className="ui-muted">{t("acs.panelHelp")}</p>
             {data.state === "unconfigured" && <p className="ui-muted">{t("acs.linkHint")} <Link to="/admin/integrations/genieacs">{t("acs.linkPage")}</Link></p>}
-            <p className="ui-muted">{t("acs.migrationHint")} <Link to="/admin/acs/migration">{t("acs.migrationLink")}</Link></p>
           </section>
 
           <section className="ui-panel ui-admin-section" id="guide">

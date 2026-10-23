@@ -2606,8 +2606,6 @@
     "preset": "Preset",
     "presetText": "condition <code>{{condition}}</code>, bootstrap, boot and periodic events → provision <code>{{provision}}</code>",
     "script": "Script of provision {{name}}",
-    "migrationHint": "Already running a fleet of CPEs on a cloud ACS (e.g. TAUC)?",
-    "migrationLink": "Migrate the CPEs to this ACS",
     "templatesCurrent": "NSM templates are up to date (installed {{when}}). NSM updates them by itself after every upgrade.",
     "templatesPending": "This NSM version has newer templates than the ones installed {{when}}: NSM installs them within 30 minutes, or press Install now.",
     "templatesAuto": "Once installed, NSM keeps these templates up to date by itself after every upgrade.",
@@ -5371,72 +5369,6 @@
     "job": "job",
     "tr069": "TR-069 (ACS)",
     "acs": "ACS"
-  },
-  "acsMigration": {
-    "subtitle": "Bulk-migrate customer CPEs to the integrated ACS by reconfiguring CWMP over the management network.",
-    "backToAcs": "Back to ACS",
-    "intro": "Enter your routers' management subnet, port and the fleet's shared credentials: NSM reaches each device and sets the target ACS URL. Run a dry run first to see which CPEs are reachable.",
-    "applyPending": "The TP-Link web-interface CWMP rewrite is in field validation for this firmware: for now only the inventory dry run is available.",
-    "formTitle": "New migration",
-    "formHelp": "IPv4 subnets only, at most {{max}} addresses per run. The .0 and .255 addresses and the ACS server are skipped.",
-    "credentialsHelp": "Credentials are used only during the run and are never stored. A dry run does not need them: no credential is sent to any device.",
-    "dryRun": "Dry run (inventory)",
-    "apply": "Apply migration",
-    "recentTitle": "Recent runs",
-    "noRuns": "No runs yet.",
-    "runTitle": "Run · {{subnet}}",
-    "cancel": "Stop",
-    "progress": "Progress",
-    "fields": {
-      "subnet": "Management subnet (CIDR)",
-      "port": "Management port",
-      "informInterval": "Inform interval (seconds)",
-      "targetAcsUrl": "Target ACS URL (CWMP)",
-      "username": "Router username",
-      "password": "Router password"
-    },
-    "cols": {
-      "when": "When",
-      "subnet": "Subnet",
-      "mode": "Mode",
-      "status": "Status",
-      "found": "CPEs found",
-      "changed": "Configured"
-    },
-    "hostCols": {
-      "address": "Address",
-      "status": "Outcome",
-      "model": "Model",
-      "firmware": "Firmware",
-      "detail": "Detail"
-    },
-    "mode": {
-      "dry": "Dry run",
-      "apply": "Applied"
-    },
-    "runStatus": {
-      "pending": "Pending",
-      "running": "Running",
-      "done": "Done",
-      "failed": "Failed",
-      "cancelled": "Cancelled"
-    },
-    "hostStatus": {
-      "pending": "Pending",
-      "unreachable": "Unreachable",
-      "not_cpe": "Not a CPE",
-      "auth_failed": "Credentials refused",
-      "already_target": "Already on the ACS",
-      "configured": "Configured",
-      "error": "Error",
-      "skipped": "Skipped"
-    },
-    "counters": {
-      "processed": "Processed",
-      "reachable": "Reachable",
-      "configured": "Configured",
-      "failed": "Failed"
-    }
   },
   "ispbilling": {
     "title": "ISPBilling",

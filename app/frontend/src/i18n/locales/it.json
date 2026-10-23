@@ -2606,8 +2606,6 @@
     "preset": "Preset",
     "presetText": "condizione <code>{{condition}}</code>, eventi bootstrap, boot e periodic → provision <code>{{provision}}</code>",
     "script": "Script della provision {{name}}",
-    "migrationHint": "Hai già una flotta di CPE su un ACS cloud (per esempio TAUC)?",
-    "migrationLink": "Migra i CPE verso questo ACS",
     "templatesCurrent": "I modelli NSM sono aggiornati (installati il {{when}}). NSM li aggiorna da solo dopo ogni aggiornamento.",
     "templatesPending": "Questa versione di NSM ha modelli più recenti di quelli installati il {{when}}: NSM li installa entro 30 minuti, oppure premi Installa ora.",
     "templatesAuto": "Una volta installati, NSM tiene aggiornati questi modelli da solo dopo ogni aggiornamento.",
@@ -5371,72 +5369,6 @@
     "job": "attività",
     "tr069": "TR-069 (ACS)",
     "acs": "ACS"
-  },
-  "acsMigration": {
-    "subtitle": "Migra in blocco i CPE dei clienti verso l'ACS integrato riconfigurando il CWMP sulla rete di gestione.",
-    "backToAcs": "Torna ad ACS",
-    "intro": "Indica la subnet di gestione dei tuoi router, la porta e le credenziali comuni della flotta: NSM raggiunge ogni apparato e imposta l'URL ACS di destinazione. Prima fai una simulazione per vedere quali CPE sono raggiungibili.",
-    "applyPending": "La riscrittura CWMP via interfaccia web TP-Link è in validazione sul campo per questo firmware: per ora è disponibile la sola ricognizione (simulazione).",
-    "formTitle": "Nuova migrazione",
-    "formHelp": "Solo subnet IPv4, al massimo {{max}} indirizzi per esecuzione. Gli indirizzi .0 e .255 e il server ACS vengono saltati.",
-    "credentialsHelp": "Le credenziali sono usate solo durante l'esecuzione e non vengono mai salvate. Nella simulazione non servono: nessuna credenziale viene inviata agli apparati.",
-    "dryRun": "Simula (ricognizione)",
-    "apply": "Applica migrazione",
-    "recentTitle": "Esecuzioni recenti",
-    "noRuns": "Nessuna esecuzione finora.",
-    "runTitle": "Esecuzione · {{subnet}}",
-    "cancel": "Interrompi",
-    "progress": "Avanzamento",
-    "fields": {
-      "subnet": "Subnet di gestione (CIDR)",
-      "port": "Porta di gestione",
-      "informInterval": "Intervallo inform (secondi)",
-      "targetAcsUrl": "URL ACS di destinazione (CWMP)",
-      "username": "Utente dei router",
-      "password": "Password dei router"
-    },
-    "cols": {
-      "when": "Quando",
-      "subnet": "Subnet",
-      "mode": "Modalità",
-      "status": "Stato",
-      "found": "CPE trovati",
-      "changed": "Configurati"
-    },
-    "hostCols": {
-      "address": "Indirizzo",
-      "status": "Esito",
-      "model": "Modello",
-      "firmware": "Firmware",
-      "detail": "Dettaglio"
-    },
-    "mode": {
-      "dry": "Simulazione",
-      "apply": "Applicata"
-    },
-    "runStatus": {
-      "pending": "In attesa",
-      "running": "In corso",
-      "done": "Completata",
-      "failed": "Fallita",
-      "cancelled": "Interrotta"
-    },
-    "hostStatus": {
-      "pending": "In attesa",
-      "unreachable": "Non raggiungibile",
-      "not_cpe": "Non è un CPE",
-      "auth_failed": "Credenziali rifiutate",
-      "already_target": "Già sull'ACS",
-      "configured": "Configurato",
-      "error": "Errore",
-      "skipped": "Saltato"
-    },
-    "counters": {
-      "processed": "Elaborati",
-      "reachable": "Raggiungibili",
-      "configured": "Configurati",
-      "failed": "Falliti"
-    }
   },
   "ispbilling": {
     "title": "ISPBilling",
