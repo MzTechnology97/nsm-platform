@@ -543,7 +543,8 @@ def legacy_job_next(request: Request):
                     or_(DeviceJob.expires_at.is_(None), DeviceJob.expires_at > now),
                 )
                 .order_by(DeviceJob.created_at)
-                .limit(10)
+                # Jobs refused below do not use the turn: a full snapshot batch (11 sections) must not leave one behind.
+                .limit(50)
             )
         )
         for job in jobs:
