@@ -163,6 +163,14 @@ Possible focused PRs:
 - support snapshot on legacy agents — **done** in Core 0.49.82 (assembled from the read-only section jobs);
 - support-snapshot evidence: JSON download with audited SHA-256 — **done** in Core 0.49.88.
 
+### MTK-06 — SNMP and NTP set by the Agent (requested 2026-10-23)
+
+**Decided with the user (2026-10-23), implementation in Core 0.49.287 (Agent 0.49.27):**
+- the MikroTik Agent turns on SNMP with the `public` community, read-only, answering only the addresses of a new global list (*Reti autorizzate SNMP* in Amministrazione, prefilled with the NSM/Zabbix server);
+- it sets the NTP client to the Italian national time servers (INRIM `ntp1.inrim.it`, `ntp2.inrim.it`) and the clock to `Europe/Rome`, with automatic daylight saving time;
+- it is applied automatically to every MikroTik, like the syslog, and a single device can be excluded;
+- clock and synchronization state are shown on the device.
+
 ## 4. GUI quality and regression queue
 
 The contextual browser-feedback program is mostly implemented. Keep the GUI tracker focused on reproducible defects rather than broad rewrites.
@@ -388,6 +396,26 @@ Integration with MikroTik The Dude through the RouterOS API of the Dude server (
 - use Dude up/down and service state as an extra monitoring source on the device page and in alerts, without duplicating polling;
 - correlate Dude outages with NSM events (agent heartbeat, firmware jobs, backups);
 - link from the NSM device to the Dude map element.
+
+### GUI-OPEN — open the device: web interface, Winbox, management console (requested 2026-10-23)
+
+Buttons on the device page (and in the device list menu) to reach the device where it is managed. The operator always types the credentials: NSM never stores or passes them.
+
+- **Open web interface**, for TP-Link routers, Ubiquiti CPEs, MikroTik and the other devices whose web server is enabled. NSM builds `http(s)://<management address>:<port>` from the port it discovers:
+  - **UISP**: the web port of airOS in the device configuration (`httpd` / `httpsd` port of `system.cfg`, or the UISP device fields if exposed);
+  - **TR-069**: the CPE's HTTP/HTTPS management port and whether remote web access is enabled (`Device.UserInterface.RemoteAccess.*` and the vendor extensions, e.g. TP-Link);
+  - **MikroTik Agent**: `www` / `www-ssl` of `/ip service`, already read by the services snapshot (enabled, port, allowed addresses).
+
+  The button appears only when the web interface is enabled. It warns when the address is private or the service only accepts some addresses (*available-from*).
+- **Open in Winbox**, for MikroTik: the Agent knows the address and the `winbox` port of `/ip service`, and the button opens Winbox on the operator's PC with that address and port. Browsers cannot start a program without a registered URL protocol: to be verified whether the Winbox release in use registers one (Winbox 4). Otherwise NSM offers a small optional handler for Windows (e.g. `nsm-winbox://`, registered once per PC) that starts `winbox.exe <address>:<port>`. Fallback: copy `address:port` to the clipboard.
+- **Open in the management console**: the device page in the console that manages it, built from the link NSM already stores:
+  - *Open in UISP*: UISP device page from the UISP id;
+  - *Open in UniFi*: UniFi Network device from the site and MAC (UBNT-09);
+  - *Open in cnMaestro*: cnMaestro device page from the MAC;
+  - *Open in GenieACS / ACS*: ACS device page from the TR-069 id;
+  - *Open in Zabbix*: the linked Zabbix host (already shown as a link where available).
+
+  Every console URL format is checked on the operator's console before the button is enabled.
 
 ### GUI-SEARCH — global search bar
 
