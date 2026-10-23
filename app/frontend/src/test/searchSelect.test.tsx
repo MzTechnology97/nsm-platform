@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { SearchSelect } from "../app/SearchSelect";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 import i18n from "../i18n";
 
 const options = [
@@ -24,6 +24,18 @@ describe("searchable select", () => {
     expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Niccolò Rossi"]);
     fireEvent.keyDown(input, { key: "Enter" });
     expect(onChange).toHaveBeenCalledWith("1");
+  });
+
+  it("shows the customer code next to the name and finds a customer by code", async () => {
+    await i18n.changeLanguage("it");
+    const onChange = vi.fn();
+    const customers = [{ id: "a", name: "Mario Rossi", code: "C840" }, { id: "b", name: "Mario Rossi", code: "C618" }, { id: "c", name: "Senza Codice", code: null }];
+    render(<SearchSelect value="" options={customers.map((c) => ({ value: c.id, label: customerLabel(c) }))} onChange={onChange} ariaLabel="Cliente" />);
+    const input = screen.getByRole("combobox", { name: "Cliente" });
+    fireEvent.focus(input);
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Mario Rossi · C840", "Mario Rossi · C618", "Senza Codice"]);
+    fireEvent.change(input, { target: { value: "c618" } });
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Mario Rossi · C618"]);
   });
 
   it("offers the empty choice first, caps long lists and says how many are left", async () => {

@@ -1,9 +1,9 @@
 import { useSearch } from "@tanstack/react-router";
 import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 import { Pager } from "../app/Pager";
-import { pageParams, usePaging } from "../lib/paging";import { SearchSelect } from "../app/SearchSelect";
+import { pageParams, usePaging } from "../lib/paging";
 
 import { type ReportPage, type ReportRow, type ReportSchedule, useReportAction, useReports } from "../api/admin";
 import { useDeviceFacets } from "../api/devices";
@@ -78,7 +78,7 @@ function CustomerSelect({ value, onChange }: { value: string; onChange: (value: 
   const { t } = useTranslation();
   const facets = useDeviceFacets();
   return (
-    <SearchSelect value={value} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customer.name }))} onChange={(value) => onChange(value)} emptyLabel={t("reports.allCustomers")} />
+    <SearchSelect value={value} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => onChange(value)} emptyLabel={t("reports.allCustomers")} />
   );
 }
 

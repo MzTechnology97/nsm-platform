@@ -125,11 +125,11 @@ def vulnerability_detail(request: Request, advisory_id: uuid.UUID, customer: str
                               .join(Customer, Customer.id == Device.customer_id)
                               .where(*filters)
                               .order_by(Customer.name, Device.display_name.nullslast(), Device.name)).all()
-        customers = db.execute(select(Customer.id, Customer.name, func.count(func.distinct(Device.id)))
+        customers = db.execute(select(Customer.id, Customer.name, Customer.code, func.count(func.distinct(Device.id)))
                                .join(Device, Device.customer_id == Customer.id)
                                .join(DeviceVulnerability, DeviceVulnerability.device_id == Device.id)
                                .where(DeviceVulnerability.advisory_id == advisory.id, DeviceVulnerability.status != "resolved")
-                               .group_by(Customer.id, Customer.name).order_by(Customer.name)).all()
+                               .group_by(Customer.id, Customer.name, Customer.code).order_by(Customer.name)).all()
         return {
             **advisory_head(advisory),
             "affected_versions": advisory.affected_versions or {}, "fixed_versions": advisory.fixed_versions or {},
@@ -137,7 +137,7 @@ def vulnerability_detail(request: Request, advisory_id: uuid.UUID, customer: str
             "source_status": getattr(advisory, "source_status", None), "fetched_at": _iso(getattr(advisory, "fetched_at", None)),
             "rules": [describe_rule(rule) for rule in advisory.match_rules or []],
             "status": status,
-            "customers": [{"id": str(cid), "name": name, "devices": int(n)} for cid, name, n in customers],
+            "customers": [{"id": str(cid), "name": name, "code": code, "devices": int(n)} for cid, name, code, n in customers],
             "impacted": [{
                 "finding_id": str(impact.id), "status": impact.status, "detected_at": _iso(impact.detected_at), "resolved_at": _iso(impact.resolved_at),
                 "installed_version": impact.installed_version or device.firmware_version, "fixed_version": impact.fixed_version,
@@ -377,7 +377,7 @@ def compliance_baseline_form(request: Request, baseline: str = ""):
             "controls": [{"id": c.id, "title": c.title, "category": c.category, "description": c.description,
                           "defaults": c.defaults, "params_help": c.params_help} for c in compliance_view.CONTROLS.values()],
             "scopes": list(SCOPE_LABELS), "vendors": list(compliance_view.VENDORS),
-            "customers": [{"id": str(c.id), "name": c.name} for c in context["customers"]],
+            "customers": [{"id": str(c.id), "name": c.name, "code": c.code} for c in context["customers"]],
             "sites": [{"id": str(site.id), "name": site.name, "customer_id": str(site.customer_id), "customer": site.customer.name if site.customer else None}
                       for site in context["sites"]],
             "devices": [_device_ref(device) for device in context["devices"]],

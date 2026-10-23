@@ -1,9 +1,9 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 import { Pager } from "../app/Pager";
-import { pageParams, usePaging } from "../lib/paging";import { SearchSelect } from "../app/SearchSelect";
+import { pageParams, usePaging } from "../lib/paging";
 
 import { useDeviceFacets } from "../api/devices";
 import { type IssueFilters, type IssueRow, useAckIssue, useIssues } from "../api/incidents";
@@ -72,7 +72,7 @@ export function ActionCenter() {
         <select value={search.status ?? ""} onChange={(event) => update({ status: (event.target.value || undefined) as IssueFilters["status"] })} aria-label={t("actionCenter.status")}>
           {STATUSES.map((value) => <option key={value} value={value}>{t(`actionCenter.statuses.${value || "active"}`)}</option>)}
         </select>
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customer.name }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
       </div>
 
       {query.error ? (

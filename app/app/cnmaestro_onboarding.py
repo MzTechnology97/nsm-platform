@@ -227,7 +227,7 @@ def onboarding_list(request: Request, q: str = "", group: str = "", state: str =
             "error": error, "total": len(filtered), "offset": offset, "limit": size, "max_batch": MAX_BATCH,
             "counts": {key: sum(1 for r in rows if r["state"] == key) for key in STATES},
             "uisp_sites": sorted({r["group"] for r in rows if r.get("group")}),
-            "customers": [{"id": str(c.id), "name": c.name} for c in db.scalars(select(Customer).order_by(Customer.name))],
+            "customers": [{"id": str(c.id), "name": c.name, "code": c.code} for c in db.scalars(select(Customer).order_by(Customer.name))],
             "sites": [{"id": str(s.id), "name": s.name, "customer_id": str(s.customer_id)} for s in db.scalars(select(Site).order_by(Site.name))],
             "items": [_row(row) for row in filtered[offset:offset + size]],
         }

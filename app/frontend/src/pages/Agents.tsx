@@ -1,7 +1,7 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SearchSelect } from "../app/SearchSelect";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 
 import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
@@ -68,7 +68,7 @@ export function Agents() {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("agents.search")} aria-label={t("agents.search")} autoComplete="off" />
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customer.name }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
         <select value={search.transport ?? ""} onChange={(event) => update({ transport: (event.target.value || undefined) as AgentFilters["transport"] })} aria-label={t("agents.transport")}>
           <option value="">{t("agents.allTransports")}</option>
           {(["modern", "legacy", "unknown"] as const).map((value) => <option key={value} value={value}>{t(`agents.transports.${value}`)}</option>)}

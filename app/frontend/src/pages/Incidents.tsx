@@ -1,9 +1,9 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 import { Pager } from "../app/Pager";
-import { pageParams, usePaging } from "../lib/paging";import { SearchSelect } from "../app/SearchSelect";
+import { pageParams, usePaging } from "../lib/paging";
 
 import { useDeviceFacets } from "../api/devices";
 import { INCIDENT_STATUSES, type IncidentFilters, type IncidentRow, type IncidentStatusFilter, useIncidents } from "../api/incidents";
@@ -60,7 +60,7 @@ export function Incidents() {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("incidents.searchPlaceholder")} aria-label={t("incidents.search")} />
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customer.name }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
       </div>
 
       {query.error ? (

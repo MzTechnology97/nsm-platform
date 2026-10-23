@@ -1,9 +1,9 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
 import { Pager } from "../app/Pager";
-import { pageParams, usePaging } from "../lib/paging";import { SearchSelect } from "../app/SearchSelect";
+import { pageParams, usePaging } from "../lib/paging";
 
 import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
@@ -68,7 +68,7 @@ export function Compliance() {
         ))}
       </div>
       <div className="ui-filter-bar">
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customer.name }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
         <select value={search.control ?? ""} onChange={(event) => update({ control: event.target.value || undefined })} aria-label={t("compliance.control")}>
           <option value="">{t("compliance.allControls")}</option>
           {first?.controls.map((control) => (

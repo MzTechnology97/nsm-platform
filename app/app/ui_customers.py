@@ -418,7 +418,7 @@ def _targets(db) -> list[dict]:
     from sqlalchemy.orm import selectinload
 
     customers = db.scalars(select(Customer).options(selectinload(Customer.sites)).order_by(Customer.name))
-    return [{"id": str(c.id), "name": c.name, "sites": [{"id": str(site.id), "name": site.name} for site in sorted(c.sites, key=lambda x: x.name.lower())]}
+    return [{"id": str(c.id), "name": c.name, "code": c.code, "sites": [{"id": str(site.id), "name": site.name} for site in sorted(c.sites, key=lambda x: x.name.lower())]}
             for c in customers]
 
 
