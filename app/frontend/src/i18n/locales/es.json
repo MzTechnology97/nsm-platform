@@ -4261,7 +4261,8 @@
     "jumpTo": "Ir a la sección…",
     "sectionOption_one": "{{path}} ({{count}} línea)",
     "sectionOption_other": "{{path}} ({{count}} líneas)",
-    "sectionsFiltered": "Vacíe la búsqueda para ir a una sección."
+    "sectionsFiltered": "Vacíe la búsqueda para ir a una sección.",
+    "contentHelpTr069": "Solo lectura. Parámetros de configuración del CPE tal como los leyó el ACS (TR-069): sin contraseñas ni valores que cambian solos (contadores, tiempos)."
   },
   "restoreTests": {
     "title": "Historial de pruebas de restauración",
