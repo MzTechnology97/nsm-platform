@@ -77,10 +77,20 @@ export interface CnmaestroTab {
   record: { mac: string | null; serial: string | null };
   metrics: { field: string; unit: string; value: number | null }[];
   configured: boolean;
-  can: { metrics: boolean; configure: boolean };
+  name: string;
+  reboot: { status: string; requested_at: string; requested_by?: string | null; detail?: string } | null;
+  can: { metrics: boolean; configure: boolean; reboot: boolean };
 }
 
 export const useDeviceCnmaestro = (id: string) => useQuery({ queryKey: ["device", id, "cnmaestro"], queryFn: () => api<CnmaestroTab>(`${base(id)}/cnmaestro`) });
+
+export function useCnmaestroReboot(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (confirm_name: string) => api<{ ok: boolean }>(`${base(id)}/cnmaestro/reboot`, { method: "POST", body: JSON.stringify({ confirm_name }) }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: ["device", id] }),
+  });
+}
 
 export const useCnmaestroMetrics = (id: string, range: string, enabled: boolean) =>
   useQuery({

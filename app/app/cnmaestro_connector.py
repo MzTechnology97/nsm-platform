@@ -1,4 +1,5 @@
-"""cnMaestro connector for Cambium radios (VEND-02), read-only, on the northbound API **v2**.
+"""cnMaestro connector for Cambium radios (VEND-02), on the northbound API **v2**: read-only here; the one write
+call, the reboot, is in ``cnmaestro_operations``.
 
 cnMaestro marks every v1 response as deprecated ("must be changed to v2", sunset
 3.2.0), so the connector uses ``/api/v2``. Checked with GET only on the
@@ -171,6 +172,21 @@ class Client:
         if note:
             self.deprecation = str((note.get("message") if isinstance(note, dict) else note) or "")[:300] or None
         return payload
+
+    def post(self, path, body=None, what="la richiesta"):
+        """Write call (device operations): any 2xx is accepted; the JSON answer, or {} when there is none."""
+        if self.token is None:
+            self.login()
+        try:
+            response = self.http.post(f"{self.base}{path}", json=body or {}, headers={"Authorization": f"Bearer {self.token}"})
+        except httpx.HTTPError as exc:
+            raise CnMaestroError(f"cnMaestro non raggiungibile: {type(exc).__name__}.") from exc
+        if not 200 <= response.status_code < 300:
+            self._fail(response, what)
+        try:
+            return response.json() if response.content else {}
+        except ValueError:
+            return {}
 
     def paged(self, path, what):
         rows, offset = [], 0

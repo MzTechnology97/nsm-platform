@@ -4147,7 +4147,17 @@
       "dl_throughput_bps": "Rendimiento de bajada",
       "ul_throughput_bps": "Rendimiento de subida"
     },
-    "metricsAt": "Valores del {{when}}."
+    "metricsAt": "Valores del {{when}}.",
+    "rebootTitle": "Reinicio mediante cnMaestro",
+    "rebootHelp": "cnMaestro reinicia el equipo; NSM comprueba que vuelva en línea en 20 minutos.",
+    "rebootStates": {
+      "requested": "reinicio en verificación",
+      "verified": "reinicio verificado",
+      "failed": "reinicio no verificado"
+    },
+    "reboot": "Reiniciar mediante cnMaestro",
+    "rebootSent": "Reinicio enviado mediante cnMaestro.",
+    "firmwareNote": "La actualización de firmware no está disponible en la API de cnMaestro: iníciala desde la interfaz de cnMaestro; NSM ve la nueva versión en la siguiente sincronización."
   },
   "deviceGenieacs": {
     "recordHelp": "Cliente y sede siguen siendo los de NSM: GenieACS no los modifica.",
@@ -5272,6 +5282,9 @@
     "CNMAESTRO_BULK_ONBOARDING": "Importación desde cnMaestro",
     "CNMAESTRO_CONFIGURED": "Conector cnMaestro configurado",
     "CNMAESTRO_DEVICE_LINKED": "Equipo vinculado a cnMaestro",
+    "CNMAESTRO_REBOOT_FAILED": "Reinicio mediante cnMaestro no verificado",
+    "CNMAESTRO_REBOOT_REQUESTED": "Reinicio solicitado mediante cnMaestro",
+    "CNMAESTRO_REBOOT_VERIFIED": "Reinicio mediante cnMaestro verificado",
     "COMPLIANCE_ACKNOWLEDGED": "No conformidad asumida",
     "COMPLIANCE_BASELINE_SAVED": "Línea base de cumplimiento guardada",
     "COMPLIANCE_EVALUATED": "Cumplimiento evaluado",
