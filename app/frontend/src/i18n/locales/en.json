@@ -237,7 +237,6 @@
       "notMeasuredNote": "enable NSM ping in Monitor"
     },
     "backupNever": "never",
-    "backupNotAvailable": "not available",
     "ispbilling": {
       "title": "ISPBilling account",
       "help": "The ISPBilling RADIUS account served by this device, read from the billing system.",
@@ -246,7 +245,8 @@
         "pppoe": "matched by PPPoE user",
         "ip": "matched by static IP"
       }
-    }
+    },
+    "backupNotAvailable": "not available"
   },
   "monitor": {
     "range": "Range",
@@ -1552,7 +1552,8 @@
       "agent": "Agent",
       "integration": "Integrations",
       "interface_errors": "Interface errors",
-      "configuration": "Configuration"
+      "configuration": "Configuration",
+      "acs": "CPE (ACS)"
     },
     "state": {
       "open": "Open",
@@ -5090,11 +5091,16 @@
     }
   },
   "eventTypes": {
+    "ACS_ALERT_OPENED": "CPE alert opened",
+    "ACS_ALERT_RESOLVED": "CPE alert resolved",
+    "ACS_ALERT_SETTINGS_CHANGED": "CPE alert settings changed",
     "ACS_CONFIG_REFRESH_REQUESTED": "CPE configuration re-read requested",
     "ACS_CUSTOMER_TAG_SET": "CPE tagged with its customer in GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "ACS diagnostic completed",
     "ACS_DIAGNOSTIC_REQUESTED": "ACS diagnostic requested",
+    "ACS_FIRMWARE_AUTO_CHANGED": "Automatic firmware download changed",
     "ACS_FIRMWARE_FAILED": "CPE firmware upgrade failed",
+    "ACS_FIRMWARE_FILE_FETCHED": "Firmware downloaded from the vendor into the ACS",
     "ACS_FIRMWARE_FILE_STORED": "Firmware image loaded into the ACS",
     "ACS_FIRMWARE_REQUESTED": "CPE firmware upgrade requested",
     "ACS_FIRMWARE_VERIFIED": "CPE firmware upgrade verified",
@@ -5580,96 +5586,6 @@
     "dslAttenuation": "Attenuation",
     "charts": "History from the ACS"
   },
-  "serverMigration": {
-    "subtitle": "Move NSM to a server with another address: this server tells MikroTik agents and TR-069 CPEs the new address.",
-    "howTitle": "How it works",
-    "how": "Devices know NSM by address. This server hands MikroTik agents a script pointing at the new address and sets the new ACS URL on TR-069 CPEs (the only CWMP write). Routers need no manual change.",
-    "steps": {
-      "install": "Install the same NSM version on the new server.",
-      "create": "Create the migration here with the new server's address.",
-      "restore": "Take a database dump here (<code>sudo ./manage.sh backup-db</code>) and restore it on the new server with <code>secrets/bootstrap.env</code> and <code>.env</code> (<code>sudo ./manage.sh restore-db</code>): the dump must be taken after creating the migration.",
-      "settings": "On the new server: ACS_CWMP_URL in .env, the syslog public address (Amministrazione → Syslog), the legacy backup FTP receiver settings, the ACS templates installed.",
-      "pilot": "Verify the new server, try a pilot on a few devices, confirm they arrived, then migrate all.",
-      "reinstall": "Agents that cannot update themselves must be reinstalled from the new server (device Agent tab)."
-    },
-    "readiness": {
-      "capable": "Self-updating agents",
-      "capableHint": "move to the new server by themselves",
-      "reinstall": "Agents to reinstall",
-      "reinstallHint": "reinstall from the new server",
-      "tr069": "TR-069 CPEs",
-      "tr069Hint": "receive the new ACS URL"
-    },
-    "createTitle": "New migration",
-    "createHelp": "The new server's address as the routers reach it (http or https, no path). With https the certificate must be valid: routers check it.",
-    "create": "Create migration",
-    "fields": {
-      "agentUrl": "New server address (agents)",
-      "acsUrl": "New ACS URL (TR-069 CPEs)",
-      "syslog": "Syslog to",
-      "created": "Created"
-    },
-    "noSyslog": "cannot be determined: reconfigure syslog from the new server",
-    "runningTitle": "Migration in progress",
-    "cancel": "Cancel migration",
-    "cancelConfirm": "Cancel the migration? Sends not yet delivered are stopped; devices already moved stay on the new server.",
-    "verifyTitle": "New server check",
-    "verifyHelp": "This server checks that the new one answers and is a restore of this database. Repeat it within 24 hours of starting.",
-    "verified": "Verified {{when}}: version {{version}}, {{devices}} devices.",
-    "verify": "Verify",
-    "pilotTitle": "Pilot",
-    "pilotHelp": "Pick up to {{max}} devices to move first. After a few minutes press \"Refresh confirmations\": once they arrived you can migrate all.",
-    "search": "Search device or customer",
-    "startPilot": "Start pilot ({{count}})",
-    "startAll": "Migrate all",
-    "startAllConfirm": "Send the new address to every self-updating agent and every TR-069 CPE?",
-    "allNeedsPilot": "\"Migrate all\" is enabled once at least one pilot device arrived on the new server.",
-    "itemsTitle": "Devices",
-    "confirm": "Refresh confirmations",
-    "retire": "Decommission arrived devices here",
-    "retireConfirm": "Decommission on this server the {{count}} devices that arrived on the new one? They stop raising alerts here; their data stays readable.",
-    "retired": "decommissioned here",
-    "noItems": "No device sent yet.",
-    "cols": {
-      "device": "Device",
-      "customer": "Customer",
-      "kind": "Type",
-      "online": "Online",
-      "status": "Status",
-      "detail": "Detail",
-      "arrived": "Arrived"
-    },
-    "kind": {
-      "agent": "MikroTik agent",
-      "tr069": "TR-069 CPE"
-    },
-    "status": {
-      "queued": "Waiting",
-      "sent": "Sent",
-      "arrived": "Arrived",
-      "failed": "Failed",
-      "reinstall": "To reinstall"
-    },
-    "yes": "yes",
-    "no": "no"
-  },
-  "legacyFtp": {
-    "title": "Legacy backups over FTP",
-    "help": "Receiver of the backups of RouterOS 6 and 7.12 routers (legacy Agent). Address and port are set on the server with ./manage.sh legacy-backup-enable <IPv4> [port]; here you choose which subnets may send.",
-    "active": "Active",
-    "inactive": "Not active",
-    "address": "Address for the routers",
-    "passive": "passive ports {{ports}}",
-    "subnets": "Allowed subnets",
-    "any": "any",
-    "enableHint": "To activate it, run on the server: ./manage.sh legacy-backup-enable <IPv4 of NSM reachable by the routers> [port]",
-    "noSubnets": "No subnet set: any address that reaches the server can connect to the receiver.",
-    "subnetsLabel": "Subnets allowed to send backups",
-    "subnetsHelp": "One per line or separated by commas, e.g. 198.51.100.0/24. The receiver refuses other origins within a minute.",
-    "saved": "Saved: the receiver applies it within a minute.",
-    "firewall": "Firewall rules on the server",
-    "firewallHelp": "To block other origins before they reach NSM too, run ./manage.sh legacy-ftp-firewall --apply on the server (done automatically by legacy-backup-enable)."
-  },
   "acsWifi": {
     "title": "Wi-Fi",
     "help": "Radios and Wi-Fi networks of the CPE as the ACS last read them. Changes are sent to the CPE through the ACS; Wi-Fi clients may reconnect. Passwords cannot be read, only replaced.",
@@ -5794,7 +5710,123 @@
     "catalogSecurity": "Version {{version}} fixes security issues: upgrade recommended.",
     "catalogCurrent": "The installed version is the latest in the catalog.",
     "notes": "release notes",
-    "catalogs": "Firmware catalogs"
+    "catalogs": "Firmware catalogs",
+    "fetch": "Download {{version}} from the TP-Link site into the ACS",
+    "fetching": "Downloading from TP-Link…",
+    "fetched": "Image loaded into the ACS and selected below: confirm the upgrade when you are ready.",
+    "ready": "Version {{version}} is already in the ACS and selected below: confirm the upgrade when you are ready."
+  },
+  "acsAlerts": {
+    "title": "Alerts of the CPEs",
+    "help": "NSM opens an issue in the Action Center, with a notification, when a TR-069 CPE stops contacting the ACS, its WAN is down, the WAN reconnects or the CPE reboots too often, or the DSL line degrades. Issues close by themselves when the problem ends. 0 disables a threshold.",
+    "fields": {
+      "enabled": "Alerts for TR-069 CPEs on",
+      "offline": "CPE no longer contacting the ACS (three missed periodic Informs)",
+      "wan_down": "WAN down while the CPE still contacts the ACS (backup line or management network)",
+      "reconnects_per_hour": "WAN reconnections per hour",
+      "reboots_per_day": "CPE reboots in 24 hours",
+      "snr_min_db": "Minimum DSL SNR margin (dB)",
+      "dsl_rate_drop_percent": "DSL downstream drop against the 7-day median (%)"
+    },
+    "save": "Save",
+    "saved": "Saved."
+  },
+  "acsFirmwareAuto": {
+    "title": "Automatic firmware download",
+    "help": "When TP-Link publishes a newer firmware for a model and hardware version you have, NSM downloads the official archive from the Italian site and loads the image into the ACS, once per version. Nothing is installed: each upgrade still needs your confirmation on the device's Firmware tab.",
+    "enabled": "Download newer TP-Link firmware into the ACS automatically",
+    "fetched_one": "{{count}} version downloaded so far.",
+    "fetched_other": "{{count}} versions downloaded so far."
+  },
+  "serverMigration": {
+    "subtitle": "Move NSM to a server with another address: this server tells MikroTik agents and TR-069 CPEs the new address.",
+    "howTitle": "How it works",
+    "how": "Devices know NSM by address. This server hands MikroTik agents a script pointing at the new address and sets the new ACS URL on TR-069 CPEs (the only CWMP write). Routers need no manual change.",
+    "steps": {
+      "install": "Install the same NSM version on the new server.",
+      "create": "Create the migration here with the new server's address.",
+      "restore": "Take a database dump here (<code>sudo ./manage.sh backup-db</code>) and restore it on the new server with <code>secrets/bootstrap.env</code> and <code>.env</code> (<code>sudo ./manage.sh restore-db</code>): the dump must be taken after creating the migration.",
+      "settings": "On the new server: ACS_CWMP_URL in .env, the syslog public address (Amministrazione → Syslog), the legacy backup FTP receiver settings, the ACS templates installed.",
+      "pilot": "Verify the new server, try a pilot on a few devices, confirm they arrived, then migrate all.",
+      "reinstall": "Agents that cannot update themselves must be reinstalled from the new server (device Agent tab)."
+    },
+    "readiness": {
+      "capable": "Self-updating agents",
+      "capableHint": "move to the new server by themselves",
+      "reinstall": "Agents to reinstall",
+      "reinstallHint": "reinstall from the new server",
+      "tr069": "TR-069 CPEs",
+      "tr069Hint": "receive the new ACS URL"
+    },
+    "createTitle": "New migration",
+    "createHelp": "The new server's address as the routers reach it (http or https, no path). With https the certificate must be valid: routers check it.",
+    "create": "Create migration",
+    "fields": {
+      "agentUrl": "New server address (agents)",
+      "acsUrl": "New ACS URL (TR-069 CPEs)",
+      "syslog": "Syslog to",
+      "created": "Created"
+    },
+    "noSyslog": "cannot be determined: reconfigure syslog from the new server",
+    "runningTitle": "Migration in progress",
+    "cancel": "Cancel migration",
+    "cancelConfirm": "Cancel the migration? Sends not yet delivered are stopped; devices already moved stay on the new server.",
+    "verifyTitle": "New server check",
+    "verifyHelp": "This server checks that the new one answers and is a restore of this database. Repeat it within 24 hours of starting.",
+    "verified": "Verified {{when}}: version {{version}}, {{devices}} devices.",
+    "verify": "Verify",
+    "pilotTitle": "Pilot",
+    "pilotHelp": "Pick up to {{max}} devices to move first. After a few minutes press \"Refresh confirmations\": once they arrived you can migrate all.",
+    "search": "Search device or customer",
+    "startPilot": "Start pilot ({{count}})",
+    "startAll": "Migrate all",
+    "startAllConfirm": "Send the new address to every self-updating agent and every TR-069 CPE?",
+    "allNeedsPilot": "\"Migrate all\" is enabled once at least one pilot device arrived on the new server.",
+    "itemsTitle": "Devices",
+    "confirm": "Refresh confirmations",
+    "retire": "Decommission arrived devices here",
+    "retireConfirm": "Decommission on this server the {{count}} devices that arrived on the new one? They stop raising alerts here; their data stays readable.",
+    "retired": "decommissioned here",
+    "noItems": "No device sent yet.",
+    "cols": {
+      "device": "Device",
+      "customer": "Customer",
+      "kind": "Type",
+      "online": "Online",
+      "status": "Status",
+      "detail": "Detail",
+      "arrived": "Arrived"
+    },
+    "kind": {
+      "agent": "MikroTik agent",
+      "tr069": "TR-069 CPE"
+    },
+    "status": {
+      "queued": "Waiting",
+      "sent": "Sent",
+      "arrived": "Arrived",
+      "failed": "Failed",
+      "reinstall": "To reinstall"
+    },
+    "yes": "yes",
+    "no": "no"
+  },
+  "legacyFtp": {
+    "title": "Legacy backups over FTP",
+    "help": "Receiver of the backups of RouterOS 6 and 7.12 routers (legacy Agent). Address and port are set on the server with ./manage.sh legacy-backup-enable <IPv4> [port]; here you choose which subnets may send.",
+    "active": "Active",
+    "inactive": "Not active",
+    "address": "Address for the routers",
+    "passive": "passive ports {{ports}}",
+    "subnets": "Allowed subnets",
+    "any": "any",
+    "enableHint": "To activate it, run on the server: ./manage.sh legacy-backup-enable <IPv4 of NSM reachable by the routers> [port]",
+    "noSubnets": "No subnet set: any address that reaches the server can connect to the receiver.",
+    "subnetsLabel": "Subnets allowed to send backups",
+    "subnetsHelp": "One per line or separated by commas, e.g. 198.51.100.0/24. The receiver refuses other origins within a minute.",
+    "saved": "Saved: the receiver applies it within a minute.",
+    "firewall": "Firewall rules on the server",
+    "firewallHelp": "To block other origins before they reach NSM too, run ./manage.sh legacy-ftp-firewall --apply on the server (done automatically by legacy-backup-enable)."
   },
   "acsSyslog": {
     "title": "Syslog via ACS (TR-069)",
