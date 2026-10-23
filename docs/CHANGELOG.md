@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.243 — 2026-10-23
+
+Add to Zabbix from the device and customer pages
+- **Device:** next to the *Zabbix* field of the overview, *Aggiungi a Zabbix* sends that device to Zabbix right away, even when its customer is not among those selected in *Integrazioni → Zabbix*. NSM says what happened:
+  - created in Zabbix;
+  - linked to the host already in Zabbix;
+  - no IP address;
+  - factory LAN IP to replace.
+  - *Rimuovi da Zabbix* takes it out.
+- **Customer:** in the customer header, *Aggiungi a Zabbix* adds every device of the customer (after a confirmation) and sends them right away. It then reports how many are in Zabbix and how many have no IP address. *Rimuovi da Zabbix* takes them all out.
+- Removed devices get their host disabled in Zabbix, never deleted. Every change is recorded in the activity log.
+
 ## 0.49.242 — 2026-10-23
 
 The same Monitor tab for every device
