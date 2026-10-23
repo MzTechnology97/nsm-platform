@@ -320,6 +320,8 @@ Sampling and consolidation: 2-minute heartbeat (Agent 0.49.18); `telemetry_rollu
 
 Retention (90 days) never removes the newest sample of a device or interface (`telemetry_retention.expire_keep_latest`): an offline device keeps its last telemetry visible (MON-02).
 
+Monitor tab for every device (MON-03, Core 0.49.242): every device has the *Monitor* tab with the same toolbar (1 h, 24 h, 7 days, 30 days, *Impostazioni monitoraggio*) and panels in the same order: *Risorse* (CPU and memory), *Traffico*, *Latenza e perdita (ping da NSM)*, then what only that source has. MikroTik routers use the agent metrics (and *Wireless*). TR-069 CPEs, Ubiquiti and Cambium devices use their source through `GET /api/ui/v1/devices/{id}/monitor/source` (`app/monitor_sources.py`, `monitoring.read`): the ACS (WAN traffic, *Linea e client*: Wi-Fi clients, LAN hosts, DSL), UISP (*Radio*: signal, capacity, stations) or cnMaestro (throughput; *Radio*: signal, SNR, stations). Devices without a source show the ping only. The *ACS*, *UISP* and *cnMaestro* tabs keep the device state and point to Monitor for the charts.
+
 NSM monitoring is intentionally lightweight and does not attempt to replace a full NMS.
 
 ### Syslog configured by the Agent (LOG-01 step 2)
@@ -445,7 +447,7 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 ### Legacy full backup over FTP (Agent 0.49.16)
 
-- the legacy agent (RouterOS 6.48/6.49 and 7.12) runs `/system backup save` with the job password and `/export` (`hide-sensitive` on v6), then uploads both with `/tool fetch upload=yes mode=ftp` to the upload-only FTP receiver of NSM (`app/legacy_ftp_server.py`, compose profile `legacyftp`, `./manage.sh legacy-backup-enable <IPv4> [port]`, default ports 2121 and 30100–30109, `LEGACY_FTP_PASV_PORTS` for the passive range); since Core 0.49.215 the subnets allowed to send are set in *Amministrazione → Sistema → Backup legacy via FTP*: the receiver refuses other origins (refreshed every minute), `./manage.sh legacy-ftp-firewall --apply` enforces them in `DOCKER-USER` too, and `legacy-backup-enable` opens the ports in ufw/firewalld when active and applies those rules;
+- the legacy agent (RouterOS 6.48/6.49 and 7.12) runs `/system backup save` with the job password and `/export` (`hide-sensitive` on v6), then uploads both with `/tool fetch upload=yes mode=ftp` to the upload-only FTP receiver of NSM (`app/legacy_ftp_server.py`, compose profile `legacyftp`, `./manage.sh legacy-backup-enable <IPv4> [port]`, default ports 2121 and 30100–30109, `LEGACY_FTP_PASV_PORTS` for the passive range); since Core 0.49.215 the subnets allowed to send are set in *Amministrazione → Sistema → Backup legacy via FTP*: the receiver refuses other origins (refreshed every minute), `./manage.sh legacy-ftp-firewall --apply` enforces them in `DOCKER-USER` too, and `legacy-backup-enable` opens the ports in ufw/firewalld when active and applies those rules; since Core 0.49.240 the automatic update also installs `nsm-legacy-ftp-firewall.timer`, which applies those rules at boot and within two minutes of a change of the subnets, and removes them when no subnet is left;
 - one-time account per job (only the password SHA-256 stored), only the two expected file names, once each, up to 64 MB, passive mode with the data peer bound to the control peer;
 - files are archived like any other artifact (SHA-256, audit, retention) and the device counts as protected;
 - requires the policies `ftp`, `policy` and `sensitive` (observed from Agent 0.49.17).
@@ -707,6 +709,22 @@ On the *ACS* tab of a linked CPE, technicians (`devices.write`) run a ping or a 
 ### Speed test from the CPE (ACS-06, Core 0.49.218)
 
 On the *ACS* tab, technicians (`devices.write`) run a download or upload test that the CPE itself performs over HTTP (TR-143 `DownloadDiagnostics` / `UploadDiagnostics`, TR-181 and TR-098), so the result is the speed of the customer's line up to the test server, not of the Wi-Fi. By default the test server is NSM itself: the CPE reaches it at the host it uses for the ACS (`ManagementServer.URL`) on HTTP port 80, or at the NSM address set in *Amministrazione → ACS → Test di velocità dei CPE*; each test gets its own HMAC-signed link (device, size, 15-minute expiry) to `/acs-speedtest/…`, which streams the random test file or reads and discards the upload, at most 4 transfers at once. The administrator can instead give other download/upload URLs and the size (1–200 MB, 25 by default). One test at a time per CPE, followed like ping and traceroute (given up after 10 minutes); Mbps from the CPE's test bytes over `EOMTime − BOMTime` (TP-Link high-32-bit counters included). Audit `ACS_SPEEDTEST_REQUESTED`, `ACS_SPEEDTEST_COMPLETED`, `ACS_SPEEDTEST_SETTINGS_CHANGED`.
+
+### Remote access and LAN Telnet (ACS-09, Core 0.49.248)
+
+The device *ACS* tab shows the CPE's remote web access (TR-181 `Device.UserInterface.RemoteAccess`: on or off, protocol, port, and TP-Link `X_TP_RemoteAll`) with a warning when the page can be reached from any Internet address, and its LAN Telnet (TP-Link `X_TP_AppCfg.TelnetCfg.TelnetLocalEnabled`). Technicians (`devices.write`) switch remote access on or off and change its port (1024–65535) or protocol (HTTP/HTTPS); a new port or protocol is followed by `Enable` false then true, because the CPE only applies it then. Each change is one connection request, audited `ACS_ACCESS_CHANGED`. Operator decisions (2026-10-23): open pages are only reported, never closed automatically, and limiting them to some addresses is not offered. On a VX230v (0.19.0), `X_TP_RemoteAll` false closed the page for every address, the allowed host included, and the `X_TP_AppCfg.ACL` entries refused every value (cwmp 9003). LAN Telnet is off by default: once a day per TP-Link CPE the worker (`tplink_telnet_policy`) queues `TelnetLocalEnabled` false for the next contact when GenieACS shows it on (`ACS_TELNET_DISABLED`), unless a technician allowed it on that device.
+
+### Advanced TP-Link settings (ACS-10, Core 0.49.249)
+
+The device *ACS* tab has an *Impostazioni avanzate del CPE* panel. It covers settings that TR-069 exposes on TP-Link CPEs, some of them missing from the CPE's own web page. Only parameters whose meaning is clear are offered, as read on a VX230v and an HB210:
+- firmware only from the ACS (`ManagementServer.UpgradesManaged`) and TP-Link's automatic cloud upgrade (`X_TP_CloudService.FwAutoUpgrade.Enable`);
+- NTP servers 1–2;
+- NAT session timeouts (`X_TP_SessionTimeout`, with ranges);
+- the time of the scheduled reboot (`X_TP_AppCfg.RebootScheduleCfg`; the CPE's recurrence is kept);
+- which pages of the CPE's web interface the customer may change (`X_TP_USER_RESTRICTION.PageAccessRights.<page>.Editable`). `VisibilityLevel` is left out because its values are undocumented;
+- a new administrator password (`X_TP_UserCfg.AdminPwd`). It needs the typed device name, and NSM never stores or shows it.
+
+Technicians (`devices.write`) send only the changed values, in one `setParameterValues` with a connection request, audited `ACS_SETTINGS_CHANGED` with the names changed (never the password). *Rileggi dal CPE* re-reads the objects. The syslog level stays with the syslog configuration (`acs_syslog`).
 
 ### Firmware upgrade (ACS-08, Core 0.49.219)
 

@@ -64,7 +64,7 @@ def main():
         return [tab["key"] for tab in client.get(f"/api/ui/v1/devices/{device_id}").json()["tabs"]]
 
     assert tabs(mt_id) == ["overview", "monitor", "logs", "exposure", "configuration", "diagnostics", "backups", "firmware", "agent", "compliance", "activity"]
-    assert tabs(ub_id) == ["overview", "logs", "exposure", "backups", "uisp", "compliance", "activity"]
+    assert tabs(ub_id) == ["overview", "monitor", "logs", "exposure", "backups", "uisp", "compliance", "activity"], "Monitor for every device"
 
     # Backup archive filters.
     def archive(query=""):
