@@ -354,7 +354,8 @@ def legacy_update_source(request: Request, job_id: uuid.UUID):
         if str(data.get("agent_transport") or "") != "legacy":
             raise HTTPException(409, "Self-update legacy non applicabile a questo agent.")
         raw_secret = request.headers.get("X-NSM-Device-Secret", "").strip()
-        base_url = str(request.base_url).rstrip("/")
+        # A server migration hands the router a script for the new address (server_migration).
+        base_url = str((job.payload or {}).get("target_base_url") or request.base_url).rstrip("/")
         routeros = str(device.firmware_version or "").split(" ")[0]
         source, transport, version = legacy._select_agent_source(base_url, device.id, raw_secret, routeros)
         end = marker(updater._target_version_for_transport("legacy"))

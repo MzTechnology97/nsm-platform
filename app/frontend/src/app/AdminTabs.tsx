@@ -12,6 +12,7 @@ const ADMIN_PAGES: { key: string; route: string }[] = [
   { key: "syslog", route: "/admin/syslog" },
   { key: "acs", route: "/admin/acs" },
   { key: "system", route: "/admin/system" },
+  { key: "serverMigration", route: "/admin/server-migration" },
 ];
 
 export function AdminTabs() {

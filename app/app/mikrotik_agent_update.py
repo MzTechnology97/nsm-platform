@@ -239,7 +239,8 @@ def agent_update_source(request: Request, job_id: uuid.UUID):
         if str(data.get("agent_transport") or "") != "modern":
             raise HTTPException(409, "Self-update non supportato dal transport corrente.")
         raw_secret = request.headers.get("X-NSM-Device-Secret", "").strip()
-        base_url = str(request.base_url).rstrip("/")
+        # A server migration hands the router a script for the new address (server_migration).
+        base_url = str((job.payload or {}).get("target_base_url") or request.base_url).rstrip("/")
         source = agent._agent_source(base_url, device.id, raw_secret, base_url.lower().startswith("https://"))
         digest = _sha512_text(source)
         data["agent_expected_version"] = TARGET_AGENT_VERSION
