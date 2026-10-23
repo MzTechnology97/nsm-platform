@@ -2676,8 +2676,6 @@
     "preset": "Preset",
     "presetText": "condition <code>{{condition}}</code>, événements bootstrap, boot et periodic → provision <code>{{provision}}</code>",
     "script": "Script de la provision {{name}}",
-    "migrationHint": "Vous gérez déjà une flotte de CPE sur un ACS cloud (par exemple TAUC) ?",
-    "migrationLink": "Migrer les CPE vers cet ACS",
     "templatesCurrent": "Les modèles NSM sont à jour (installés le {{when}}). NSM les met à jour seul après chaque mise à jour.",
     "templatesPending": "Cette version de NSM a des modèles plus récents que ceux installés le {{when}} : NSM les installe sous 30 minutes, ou cliquez sur Installer.",
     "templatesAuto": "Une fois installés, NSM tient ces modèles à jour seul après chaque mise à jour.",
@@ -2687,7 +2685,9 @@
       "reads": "Lit : état en ligne/hors ligne, dernier contact, modèle, firmware, IP, CPU, mémoire, trafic WAN, clients Wi-Fi et ligne DSL.",
       "actions": "Actions disponibles : redémarrage, vérification du firmware, diagnostic.",
       "never": "Ne modifie ni le Wi-Fi, ni le LAN, ni le DHCP, ni le PPPoE, ni aucune autre configuration du routeur. Le seul réglage qu'il écrit est l'intervalle d'inform du CWMP."
-    }
+    },
+    "migrationHint": "Vous gérez déjà une flotte de CPE sur un ACS cloud (par exemple TAUC) ?",
+    "migrationLink": "Migrer les CPE vers cet ACS"
   },
   "demo": {
     "subtitle": "Jeu de données isolé pour essayer l'interface et les flux sans utiliser de vrais clients.",
@@ -5544,72 +5544,6 @@
     "tr069": "TR-069 (ACS)",
     "acs": "ACS"
   },
-  "acsMigration": {
-    "subtitle": "Migrer en masse les CPE des clients vers l'ACS intégré en reconfigurant le CWMP sur le réseau de gestion.",
-    "backToAcs": "Retour à ACS",
-    "intro": "Indiquez le sous-réseau de gestion de vos routeurs, le port et les identifiants communs de la flotte : NSM atteint chaque équipement et définit l'URL ACS cible. Lancez d'abord une simulation pour voir quels CPE sont joignables.",
-    "applyPending": "La réécriture CWMP via l'interface web TP-Link est en validation sur le terrain pour ce firmware : seule la simulation d'inventaire est disponible pour l'instant.",
-    "formTitle": "Nouvelle migration",
-    "formHelp": "Sous-réseaux IPv4 uniquement, au plus {{max}} adresses par exécution. Les adresses .0 et .255 et le serveur ACS sont ignorés.",
-    "credentialsHelp": "Les identifiants ne servent que pendant l'exécution et ne sont jamais stockés. Une simulation n'en a pas besoin : aucun identifiant n'est envoyé aux équipements.",
-    "dryRun": "Simulation (inventaire)",
-    "apply": "Appliquer la migration",
-    "recentTitle": "Exécutions récentes",
-    "noRuns": "Aucune exécution pour l'instant.",
-    "runTitle": "Exécution · {{subnet}}",
-    "cancel": "Arrêter",
-    "progress": "Progression",
-    "fields": {
-      "subnet": "Sous-réseau de gestion (CIDR)",
-      "port": "Port de gestion",
-      "informInterval": "Intervalle d'inform (secondes)",
-      "targetAcsUrl": "URL ACS cible (CWMP)",
-      "username": "Utilisateur des routeurs",
-      "password": "Mot de passe des routeurs"
-    },
-    "cols": {
-      "when": "Quand",
-      "subnet": "Sous-réseau",
-      "mode": "Mode",
-      "status": "État",
-      "found": "CPE trouvés",
-      "changed": "Configurés"
-    },
-    "hostCols": {
-      "address": "Adresse",
-      "status": "Résultat",
-      "model": "Modèle",
-      "firmware": "Firmware",
-      "detail": "Détail"
-    },
-    "mode": {
-      "dry": "Simulation",
-      "apply": "Appliquée"
-    },
-    "runStatus": {
-      "pending": "En attente",
-      "running": "En cours",
-      "done": "Terminée",
-      "failed": "Échouée",
-      "cancelled": "Arrêtée"
-    },
-    "hostStatus": {
-      "pending": "En attente",
-      "unreachable": "Injoignable",
-      "not_cpe": "Pas un CPE",
-      "auth_failed": "Identifiants refusés",
-      "already_target": "Déjà sur l'ACS",
-      "configured": "Configuré",
-      "error": "Erreur",
-      "skipped": "Ignoré"
-    },
-    "counters": {
-      "processed": "Traités",
-      "reachable": "Joignables",
-      "configured": "Configurés",
-      "failed": "Échoués"
-    }
-  },
   "ispbilling": {
     "title": "ISPBilling",
     "subtitle": "Registre clients du logiciel de facturation ISPBilling : clients et sites, importés dans NSM à la demande.",
@@ -5888,8 +5822,6 @@
     "help": "Archive les paramètres de configuration du CPE, tels que l'ACS les a lus, dans l'onglet Sauvegardes, où les instantanés s'ouvrent et se comparent. Mots de passe et valeurs changeantes exclus. Pas de restauration en un clic. Les politiques avec l'option TR-069 en prennent un automatiquement quand quelque chose a changé.",
     "refresh": "Relire la configuration depuis le CPE",
     "save": "Enregistrer un instantané",
-    "refreshStarted": "L'ACS relit toute la configuration : sur un gros CPE cela prend quelques minutes, puis enregistrez l'instantané.",
-    "refreshQueued": "Le CPE n'a pas accepté la demande de connexion : la configuration sera lue au prochain contact.",
     "saved": "Instantané enregistré.",
     "open": "Ouvrir l'onglet Sauvegardes",
     "refreshState": {
@@ -5897,7 +5829,9 @@
       "done": "Configuration relue ({{objects}} objets) : enregistrez l'instantané.",
       "partial": "Configuration relue en partie : {{done}} sur {{objects}} objets."
     },
-    "refreshFailed": "Non lus (tâche supprimée pour ne pas bloquer la file du CPE) : {{list}}."
+    "refreshFailed": "Non lus (tâche supprimée pour ne pas bloquer la file du CPE) : {{list}}.",
+    "refreshStarted": "L'ACS relit toute la configuration : sur un gros CPE cela prend quelques minutes, puis enregistrez l'instantané.",
+    "refreshQueued": "Le CPE n'a pas accepté la demande de connexion : la configuration sera lue au prochain contact."
   },
   "acsSpeedtest": {
     "title": "Test de débit depuis le CPE",
@@ -6089,44 +6023,71 @@
     "otherNamePlaceholder": "ex. le code sur l'étiquette (LBE-5AC-16-120)",
     "search": "Rechercher"
   },
-  "uispSyslog": {
-    "title": "Syslog via UISP",
-    "hint": "UISP règle le CPE pour envoyer ses journaux au récepteur NSM : il prend une sauvegarde de la configuration, modifie seulement les lignes syslog et la réapplique. La sauvegarde prise juste avant reste comme point de restauration.",
-    "target": "Récepteur NSM",
-    "noTarget": "indéterminable : réglez l'adresse publique dans Amministrazione → Syslog",
-    "inUisp": "Dans UISP",
-    "liveOn": "journal distant actif vers {{server}}:{{port}}",
-    "liveOff": "journal distant non configuré",
-    "unsupported": "UISP ne gère pas les services de cet équipement : configurez le syslog depuis l'interface airOS.",
-    "current": "Configuration NSM",
-    "never": "pas encore configuré par NSM",
-    "status": {
-      "applied": "{{mode}} · appliquée le {{when}} par {{by}}",
-      "restored": "configuration précédente restaurée (était : {{mode}})"
+  "acsMigration": {
+    "subtitle": "Migrer en masse les CPE des clients vers l'ACS intégré en reconfigurant le CWMP sur le réseau de gestion.",
+    "backToAcs": "Retour à ACS",
+    "intro": "Indiquez le sous-réseau de gestion de vos routeurs, le port et les identifiants communs de la flotte : NSM atteint chaque équipement et définit l'URL ACS cible. Lancez d'abord une simulation pour voir quels CPE sont joignables.",
+    "applyPending": "La réécriture CWMP via l'interface web TP-Link est en validation sur le terrain pour ce firmware : seule la simulation d'inventaire est disponible pour l'instant.",
+    "formTitle": "Nouvelle migration",
+    "formHelp": "Sous-réseaux IPv4 uniquement, au plus {{max}} adresses par exécution. Les adresses .0 et .255 et le serveur ACS sont ignorés.",
+    "credentialsHelp": "Les identifiants ne servent que pendant l'exécution et ne sont jamais stockés. Une simulation n'en a pas besoin : aucun identifiant n'est envoyé aux équipements.",
+    "dryRun": "Simulation (inventaire)",
+    "apply": "Appliquer la migration",
+    "recentTitle": "Exécutions récentes",
+    "noRuns": "Aucune exécution pour l'instant.",
+    "runTitle": "Exécution · {{subnet}}",
+    "cancel": "Arrêter",
+    "progress": "Progression",
+    "fields": {
+      "subnet": "Sous-réseau de gestion (CIDR)",
+      "port": "Port de gestion",
+      "informInterval": "Intervalle d'inform (secondes)",
+      "targetAcsUrl": "URL ACS cible (CWMP)",
+      "username": "Utilisateur des routeurs",
+      "password": "Mot de passe des routeurs"
     },
-    "modeTitle": "Comment NSM reconnaît les journaux",
-    "recommended": "recommandé",
-    "modes": {
-      "key": {
-        "label": "Clé NSM dans le nom de l'équipement",
-        "help": "UISP ajoute NSM-… au nom (hostname) du CPE : cela fonctionne même si l'IP change ou si le NAT est partagé."
-      },
-      "customer_name": {
-        "label": "Nom du CPE égal au client NSM",
-        "help": "Le nom du CPE dans UISP doit être celui du client ({{customer}}), dans n'importe quel ordre. Accepté seulement si aucun autre équipement n'utilise ce nom."
-      },
-      "address": {
-        "label": "Adresse de l'équipement",
-        "help": "NSM reconnaît les journaux à l'IP du CPE telle que UISP la voit. Rejetés si d'autres équipements utilisent la même IP (NAT)."
-      }
+    "cols": {
+      "when": "Quand",
+      "subnet": "Sous-réseau",
+      "mode": "Mode",
+      "status": "État",
+      "found": "CPE trouvés",
+      "changed": "Configurés"
     },
-    "reboot": "Appliquer la configuration redémarre le CPE : le client reste sans connexion 2 à 3 minutes.",
-    "confirm": "Pour confirmer, saisissez le nom de l'équipement : {{name}}",
-    "configure": "Configurer via UISP",
-    "restore": "Restaurer la configuration précédente",
-    "working": "UISP applique…",
-    "done": "Configuration appliquée : le CPE redémarre et les journaux arrivent sous quelques minutes.",
-    "restored": "Configuration précédente appliquée : le CPE redémarre."
+    "hostCols": {
+      "address": "Adresse",
+      "status": "Résultat",
+      "model": "Modèle",
+      "firmware": "Firmware",
+      "detail": "Détail"
+    },
+    "mode": {
+      "dry": "Simulation",
+      "apply": "Appliquée"
+    },
+    "runStatus": {
+      "pending": "En attente",
+      "running": "En cours",
+      "done": "Terminée",
+      "failed": "Échouée",
+      "cancelled": "Arrêtée"
+    },
+    "hostStatus": {
+      "pending": "En attente",
+      "unreachable": "Injoignable",
+      "not_cpe": "Pas un CPE",
+      "auth_failed": "Identifiants refusés",
+      "already_target": "Déjà sur l'ACS",
+      "configured": "Configuré",
+      "error": "Erreur",
+      "skipped": "Ignoré"
+    },
+    "counters": {
+      "processed": "Traités",
+      "reachable": "Joignables",
+      "configured": "Configurés",
+      "failed": "Échoués"
+    }
   },
   "acsAlerts": {
     "title": "Alertes des CPE",
@@ -6149,6 +6110,53 @@
     "enabled": "Télécharger automatiquement dans l'ACS les firmwares TP-Link plus récents",
     "fetched_one": "{{count}} version téléchargée jusqu'ici.",
     "fetched_other": "{{count}} versions téléchargées jusqu'ici."
+  },
+  "acsPortMapping": {
+    "title": "Redirection de ports, DMZ et UPnP",
+    "help": "Ce que le CPE expose vers Internet, tel que l'ACS l'a lu la dernière fois (chaque heure). Surveillance seule : rien n'est modifié depuis NSM. Chaque changement est enregistré dans l'activité de l'équipement.",
+    "reread": "Relire depuis le CPE",
+    "rereadStarted": "L'ACS relit le CPE : les valeurs se mettent à jour à la prochaine lecture (environ 2 minutes).",
+    "rereadQueued": "Le CPE n'a pas accepté la demande de connexion : il sera lu au prochain contact.",
+    "notRead": "L'ACS n'a pas encore lu le NAT de ce CPE : utilisez Relire depuis le CPE.",
+    "forwards": "Redirections actives",
+    "on": "Actif",
+    "off": "Inactif",
+    "notReported": "non indiqué par le CPE",
+    "upnpHint": "les appareils du LAN peuvent ouvrir des ports eux-mêmes",
+    "dmzWarning": "DMZ active : tout port non redirigé ailleurs atteint {{host}} depuis Internet.",
+    "none": "Aucune redirection de port configurée.",
+    "protocol": "Protocole",
+    "external": "Port externe",
+    "internal": "Vers",
+    "from": "Depuis",
+    "description": "Description",
+    "any": "toutes",
+    "anywhere": "partout"
+  },
+  "ispbillingLinks": {
+    "title": "Équipements à affecter depuis ISPBilling",
+    "help": "Pour chaque compte RADIUS, NSM trouve l'équipement (utilisateur PPPoE d'un MikroTik ou d'un CPE TR-069, IP statique, caller-id ou adresse de la session PPP sur un concentrateur dans NSM) et compare client et site avec ISPBilling. Rien ne change sans confirmation d'un opérateur ; un équipement d'un autre client n'est jamais déplacé seul.",
+    "counts": {
+      "site": "Site à définir",
+      "conflict": "Autre client, à vérifier",
+      "not_imported": "Client non importé",
+      "linked": "Déjà alignés"
+    },
+    "empty": "Rien à confirmer.",
+    "device": "Équipement",
+    "account": "Compte ISPBilling",
+    "now": "Actuellement dans NSM",
+    "ispbilling": "Dans ISPBilling",
+    "applySite": "Définir le site",
+    "check": "Vérifier",
+    "proposeSite": "ISPBilling installe ce compte à {{site}}.",
+    "conflict": "ISPBilling facture ce compte à {{customer}} : dans NSM l'équipement appartient à un autre client.",
+    "reassignAsk": "Réaffecter…",
+    "reassignConfirm": "Déplacer l'équipement vers {{customer}} ?",
+    "reassign": "Déplacer",
+    "dismiss": "Ignorer",
+    "notImported": "Le client ISPBilling de ce compte n'est pas encore dans NSM.",
+    "import": "L'importer"
   },
   "searchSelect": {
     "placeholder": "Tapez pour rechercher…",
@@ -6217,6 +6225,81 @@
       "unconfirmed": "Mise à jour vers {{version}} non confirmée."
     }
   },
+  "bras": {
+    "title": "BRAS MikroTik",
+    "subtitle": "Concentrateur PPPoE lu avec un utilisateur RouterOS en lecture seule : sessions des clients toutes les quelques minutes, rien n'est modifié sur le routeur.",
+    "online": "En ligne",
+    "onlineHint": "Sessions PPPoE ouvertes",
+    "offline": "Hors ligne",
+    "offlineHint": "Vues avant, non connectées",
+    "lastSync": "Dernière lecture",
+    "every": "Lu toutes les {{minutes}} min",
+    "connection": "Connexion",
+    "connectionHelp": "https://adresse pour l'API REST de RouterOS 7, ou api-ssl://adresse:8729 (api://adresse:8728) pour l'API RouterOS.",
+    "url": "Adresse",
+    "username": "Utilisateur en lecture seule",
+    "password": "Mot de passe",
+    "passwordKeep": "inchangé",
+    "interval": "Lire toutes les (minutes)",
+    "verifyTls": "Vérifier le certificat TLS",
+    "enabled": "Activé",
+    "save": "Enregistrer",
+    "actions": "Vérification",
+    "userHint": "Sur le BRAS, un utilisateur en lecture seule (exemple) :",
+    "test": "Tester la connexion",
+    "syncNow": "Lire maintenant",
+    "synced": "{{sessions}} sessions lues : {{came}} en ligne, {{went}} hors ligne."
+  },
+  "pppoe": {
+    "title": "Connexions PPPoE",
+    "help": "Comptes RADIUS du client (ISPBilling) et leur session sur le BRAS, lue {{when}}.",
+    "noBras": "Comptes RADIUS du client (ISPBilling). Connectez le BRAS (Intégrations) pour voir s'ils sont en ligne.",
+    "online": "En ligne",
+    "offline": "Hors ligne",
+    "offlineSince": "depuis {{when}}",
+    "uptime": "connecté depuis {{value}}",
+    "never": "Jamais vue sur le BRAS",
+    "noDevice": "Aucun équipement associé"
+  },
+  "uispSyslog": {
+    "title": "Syslog via UISP",
+    "hint": "UISP règle le CPE pour envoyer ses journaux au récepteur NSM : il prend une sauvegarde de la configuration, modifie seulement les lignes syslog et la réapplique. La sauvegarde prise juste avant reste comme point de restauration.",
+    "target": "Récepteur NSM",
+    "noTarget": "indéterminable : réglez l'adresse publique dans Amministrazione → Syslog",
+    "inUisp": "Dans UISP",
+    "liveOn": "journal distant actif vers {{server}}:{{port}}",
+    "liveOff": "journal distant non configuré",
+    "unsupported": "UISP ne gère pas les services de cet équipement : configurez le syslog depuis l'interface airOS.",
+    "current": "Configuration NSM",
+    "never": "pas encore configuré par NSM",
+    "status": {
+      "applied": "{{mode}} · appliquée le {{when}} par {{by}}",
+      "restored": "configuration précédente restaurée (était : {{mode}})"
+    },
+    "modeTitle": "Comment NSM reconnaît les journaux",
+    "recommended": "recommandé",
+    "modes": {
+      "key": {
+        "label": "Clé NSM dans le nom de l'équipement",
+        "help": "UISP ajoute NSM-… au nom (hostname) du CPE : cela fonctionne même si l'IP change ou si le NAT est partagé."
+      },
+      "customer_name": {
+        "label": "Nom du CPE égal au client NSM",
+        "help": "Le nom du CPE dans UISP doit être celui du client ({{customer}}), dans n'importe quel ordre. Accepté seulement si aucun autre équipement n'utilise ce nom."
+      },
+      "address": {
+        "label": "Adresse de l'équipement",
+        "help": "NSM reconnaît les journaux à l'IP du CPE telle que UISP la voit. Rejetés si d'autres équipements utilisent la même IP (NAT)."
+      }
+    },
+    "reboot": "Appliquer la configuration redémarre le CPE : le client reste sans connexion 2 à 3 minutes.",
+    "confirm": "Pour confirmer, saisissez le nom de l'équipement : {{name}}",
+    "configure": "Configurer via UISP",
+    "restore": "Restaurer la configuration précédente",
+    "working": "UISP applique…",
+    "done": "Configuration appliquée : le CPE redémarre et les journaux arrivent sous quelques minutes.",
+    "restored": "Configuration précédente appliquée : le CPE redémarre."
+  },
   "firmwareSchedule": {
     "title": "Mise à jour programmée",
     "help": "Choisissez quand mettre à jour, par exemple la nuit. À cette heure NSM exécute seul toutes les phases sans autre confirmation : vérification, sauvegarde préalable, approbation, téléchargement, activation avec redémarrage et contrôle de la version. Si l'équipement n'est pas joignable dans les 2 heures, la mise à jour n'est pas exécutée.",
@@ -6277,89 +6360,6 @@
     "sharedTitle": "Identifiants SSH des équipements Cambium",
     "sharedHelp": "Utilisés par NSM pour sauvegarder en SSH la configuration de chaque Cambium ePMP (cnMaestro ne peut pas l'exporter). Un équipement peut avoir ses propres identifiants dans son onglet cnMaestro. Stockés chiffrés ; le mot de passe n'est plus jamais affiché.",
     "remove": "Supprimer"
-  },
-  "acsPortMapping": {
-    "title": "Redirection de ports, DMZ et UPnP",
-    "help": "Ce que le CPE expose vers Internet, tel que l'ACS l'a lu la dernière fois (chaque heure). Surveillance seule : rien n'est modifié depuis NSM. Chaque changement est enregistré dans l'activité de l'équipement.",
-    "reread": "Relire depuis le CPE",
-    "rereadStarted": "L'ACS relit le CPE : les valeurs se mettent à jour à la prochaine lecture (environ 2 minutes).",
-    "rereadQueued": "Le CPE n'a pas accepté la demande de connexion : il sera lu au prochain contact.",
-    "notRead": "L'ACS n'a pas encore lu le NAT de ce CPE : utilisez Relire depuis le CPE.",
-    "forwards": "Redirections actives",
-    "on": "Actif",
-    "off": "Inactif",
-    "notReported": "non indiqué par le CPE",
-    "upnpHint": "les appareils du LAN peuvent ouvrir des ports eux-mêmes",
-    "dmzWarning": "DMZ active : tout port non redirigé ailleurs atteint {{host}} depuis Internet.",
-    "none": "Aucune redirection de port configurée.",
-    "protocol": "Protocole",
-    "external": "Port externe",
-    "internal": "Vers",
-    "from": "Depuis",
-    "description": "Description",
-    "any": "toutes",
-    "anywhere": "partout"
-  },
-  "ispbillingLinks": {
-    "title": "Équipements à affecter depuis ISPBilling",
-    "help": "Pour chaque compte RADIUS, NSM trouve l'équipement (utilisateur PPPoE d'un MikroTik ou d'un CPE TR-069, IP statique, caller-id ou adresse de la session PPP sur un concentrateur dans NSM) et compare client et site avec ISPBilling. Rien ne change sans confirmation d'un opérateur ; un équipement d'un autre client n'est jamais déplacé seul.",
-    "counts": {
-      "site": "Site à définir",
-      "conflict": "Autre client, à vérifier",
-      "not_imported": "Client non importé",
-      "linked": "Déjà alignés"
-    },
-    "empty": "Rien à confirmer.",
-    "device": "Équipement",
-    "account": "Compte ISPBilling",
-    "now": "Actuellement dans NSM",
-    "ispbilling": "Dans ISPBilling",
-    "applySite": "Définir le site",
-    "check": "Vérifier",
-    "proposeSite": "ISPBilling installe ce compte à {{site}}.",
-    "conflict": "ISPBilling facture ce compte à {{customer}} : dans NSM l'équipement appartient à un autre client.",
-    "reassignAsk": "Réaffecter…",
-    "reassignConfirm": "Déplacer l'équipement vers {{customer}} ?",
-    "reassign": "Déplacer",
-    "dismiss": "Ignorer",
-    "notImported": "Le client ISPBilling de ce compte n'est pas encore dans NSM.",
-    "import": "L'importer"
-  },
-  "bras": {
-    "title": "BRAS MikroTik",
-    "subtitle": "Concentrateur PPPoE lu avec un utilisateur RouterOS en lecture seule : sessions des clients toutes les quelques minutes, rien n'est modifié sur le routeur.",
-    "online": "En ligne",
-    "onlineHint": "Sessions PPPoE ouvertes",
-    "offline": "Hors ligne",
-    "offlineHint": "Vues avant, non connectées",
-    "lastSync": "Dernière lecture",
-    "every": "Lu toutes les {{minutes}} min",
-    "connection": "Connexion",
-    "connectionHelp": "https://adresse pour l'API REST de RouterOS 7, ou api-ssl://adresse:8729 (api://adresse:8728) pour l'API RouterOS.",
-    "url": "Adresse",
-    "username": "Utilisateur en lecture seule",
-    "password": "Mot de passe",
-    "passwordKeep": "inchangé",
-    "interval": "Lire toutes les (minutes)",
-    "verifyTls": "Vérifier le certificat TLS",
-    "enabled": "Activé",
-    "save": "Enregistrer",
-    "actions": "Vérification",
-    "userHint": "Sur le BRAS, un utilisateur en lecture seule (exemple) :",
-    "test": "Tester la connexion",
-    "syncNow": "Lire maintenant",
-    "synced": "{{sessions}} sessions lues : {{came}} en ligne, {{went}} hors ligne."
-  },
-  "pppoe": {
-    "title": "Connexions PPPoE",
-    "help": "Comptes RADIUS du client (ISPBilling) et leur session sur le BRAS, lue {{when}}.",
-    "noBras": "Comptes RADIUS du client (ISPBilling). Connectez le BRAS (Intégrations) pour voir s'ils sont en ligne.",
-    "online": "En ligne",
-    "offline": "Hors ligne",
-    "offlineSince": "depuis {{when}}",
-    "uptime": "connecté depuis {{value}}",
-    "never": "Jamais vue sur le BRAS",
-    "noDevice": "Aucun équipement associé"
   },
   "cambiumSyslog": {
     "title": "Syslog de l'ePMP",
