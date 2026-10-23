@@ -41,7 +41,7 @@ export function Integrations() {
   const when = (value: string | null) => (value ? formatDateTime(value, i18n.language) : t("adminUsers.never"));
   const state = (key: string) => t(`integrations.states.${key}`);
 
-  const manageRoute = (to: "/admin/integrations/cnmaestro" | "/admin/integrations/zabbix" | "/admin/integrations/genieacs" | "/admin/integrations/uisp" | "/admin/integrations/ispbilling", configured: boolean) =>
+  const manageRoute = (to: "/admin/integrations/cnmaestro" | "/admin/integrations/unifi" | "/admin/integrations/zabbix" | "/admin/integrations/genieacs" | "/admin/integrations/uisp" | "/admin/integrations/ispbilling", configured: boolean) =>
     data?.can_admin ? <Link className="ui-button ui-button-ghost ui-button-small" to={to}>{configured ? t("integrations.manage") : t("integrations.configure")}</Link> : null;
 
   return (
@@ -102,6 +102,11 @@ export function Integrations() {
           <Card name="cnmaestro" title={t("integrations.cnmaestro.title")} help={t("integrations.cnmaestro.help")} state={data.cnmaestro.state} label={state(data.cnmaestro.state)}
             actions={manageRoute("/admin/integrations/cnmaestro", data.cnmaestro.state !== "unconfigured")}>
             <Facts items={[[t("integrations.cnmaestro.cambium"), data.cnmaestro.cambium], [t("integrations.cnmaestro.linked"), data.cnmaestro.linked]]} />
+          </Card>
+
+          <Card name="unifi" title={t("integrations.unifi.title")} help={t("integrations.unifi.help")} state={data.unifi.state} label={state(data.unifi.state)}
+            actions={manageRoute("/admin/integrations/unifi", data.unifi.state !== "unconfigured")}>
+            <Facts items={[[t("integrations.unifi.devices"), data.unifi.devices ?? "—"], [t("integrations.unifi.linked"), data.unifi.linked]]} />
           </Card>
 
           <Card name="ispbilling" title={t("integrations.ispbilling.title")} help={t("integrations.ispbilling.help")} state={data.ispbilling.state} label={state(data.ispbilling.state)}
