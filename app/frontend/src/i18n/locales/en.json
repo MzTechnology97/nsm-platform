@@ -5428,6 +5428,8 @@
     "UISP_SYNC_COMPLETED": "UISP sync completed",
     "UISP_SYNC_CONFLICT": "UISP sync conflict",
     "UISP_SYNC_FAILED": "UISP sync failed",
+    "UISP_SYSLOG_CONFIGURED": "Device syslog configured through UISP",
+    "UISP_SYSLOG_RESTORED": "Device configuration restored through UISP",
     "USER_2FA_DISABLED": "Two-factor sign-in disabled",
     "USER_2FA_ENABLED": "Two-factor sign-in enabled",
     "USER_2FA_RECOVERY_REGENERATED": "Two-factor recovery codes renewed",
@@ -6305,5 +6307,44 @@
       "failed": "Failed",
       "cancelled": "Cancelled"
     }
+  },
+  "uispSyslog": {
+    "title": "Syslog through UISP",
+    "hint": "UISP sets the CPE to send its logs to the NSM receiver: it takes a configuration backup, changes only the syslog lines and applies it again. The backup taken right before is kept as the restore point.",
+    "target": "NSM receiver",
+    "noTarget": "cannot be determined: set the public address in Amministrazione → Syslog",
+    "inUisp": "In UISP",
+    "liveOn": "remote log on, towards {{server}}:{{port}}",
+    "liveOff": "remote log not configured",
+    "unsupported": "UISP does not manage this device's services: configure syslog from the airOS interface.",
+    "current": "NSM configuration",
+    "never": "not configured by NSM yet",
+    "status": {
+      "applied": "{{mode}} · applied {{when}} by {{by}}",
+      "restored": "previous configuration restored (was: {{mode}})"
+    },
+    "modeTitle": "How NSM recognises the logs",
+    "recommended": "recommended",
+    "modes": {
+      "key": {
+        "label": "NSM key in the device name",
+        "help": "UISP adds NSM-… to the CPE name (hostname): it works even if the IP changes or the NAT is shared."
+      },
+      "customer_name": {
+        "label": "CPE name equal to the NSM customer",
+        "help": "The CPE name in UISP must be the customer's ({{customer}}), in any order. Accepted only if no other device uses the same name."
+      },
+      "address": {
+        "label": "Device address",
+        "help": "NSM recognises the logs by the CPE IP as UISP sees it. Discarded if other devices use the same IP (NAT)."
+      }
+    },
+    "reboot": "Applying the configuration reboots the CPE: the customer is offline for 2–3 minutes.",
+    "confirm": "To confirm, type the device name: {{name}}",
+    "configure": "Configure through UISP",
+    "restore": "Restore previous configuration",
+    "working": "UISP is applying…",
+    "done": "Configuration applied: the CPE reboots and the logs arrive within a few minutes.",
+    "restored": "Previous configuration applied: the CPE reboots."
   }
 }

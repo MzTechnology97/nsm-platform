@@ -4,6 +4,22 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.257 — 2026-10-23
+
+Syslog of Ubiquiti devices configured through UISP
+- **The *Syslog* tab of a Ubiquiti device linked to UISP has *Syslog tramite UISP*:** UISP sets the CPE to send its logs to NSM, so they no longer have to be set by hand on airOS.
+- **How it works:**
+  - UISP takes a backup of the configuration;
+  - NSM changes only the syslog lines (server and port 514);
+  - UISP applies it.
+  - The CPE restarts and the customer is offline for 2–3 minutes. It runs only when you ask, after typing the device name.
+  - The backup taken just before is kept: *Ripristina configurazione precedente* puts it back.
+- **How NSM recognises the logs, chosen per device:**
+  - *NSM key in the device name* (recommended): UISP adds NSM-… to the hostname. It also works if the IP changes or the NAT is shared.
+  - *CPE name equal to the NSM customer* (e.g. "RIZZO MICHELA" for the customer Michela Rizzo, words in any order). Accepted only if no other device uses that name.
+  - *Device address*, as UISP sees it. Discarded if other devices share the same IP.
+- Devices whose services UISP does not manage keep the manual instructions.
+
 ## 0.49.256 — 2026-10-23
 
 Interface
