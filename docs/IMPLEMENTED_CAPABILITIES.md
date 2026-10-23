@@ -444,7 +444,7 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 ### Legacy full backup over FTP (Agent 0.49.16)
 
-- the legacy agent (RouterOS 6.48/6.49 and 7.12) runs `/system backup save` with the job password and `/export` (`hide-sensitive` on v6), then uploads both with `/tool fetch upload=yes mode=ftp` to the upload-only FTP receiver of NSM (`app/legacy_ftp_server.py`, compose profile `legacyftp`, `./manage.sh legacy-backup-enable <IPv4>`, ports 2121 and 30100–30109);
+- the legacy agent (RouterOS 6.48/6.49 and 7.12) runs `/system backup save` with the job password and `/export` (`hide-sensitive` on v6), then uploads both with `/tool fetch upload=yes mode=ftp` to the upload-only FTP receiver of NSM (`app/legacy_ftp_server.py`, compose profile `legacyftp`, `./manage.sh legacy-backup-enable <IPv4> [port]`, default ports 2121 and 30100–30109, `LEGACY_FTP_PASV_PORTS` for the passive range); since Core 0.49.215 the subnets allowed to send are set in *Amministrazione → Sistema → Backup legacy via FTP*: the receiver refuses other origins (refreshed every minute), `./manage.sh legacy-ftp-firewall --apply` enforces them in `DOCKER-USER` too, and `legacy-backup-enable` opens the ports in ufw/firewalld when active and applies those rules;
 - one-time account per job (only the password SHA-256 stored), only the two expected file names, once each, up to 64 MB, passive mode with the data peer bound to the control peer;
 - files are archived like any other artifact (SHA-256, audit, retention) and the device counts as protected;
 - requires the policies `ftp`, `policy` and `sensitive` (observed from Agent 0.49.17).
@@ -595,6 +595,10 @@ RADIUS accounts (Core 0.49.209, migration 0051):
 
 Warehouse serial numbers ↔ devices and ISPBilling activities in the device logbook (approved, next steps of ISPB-01).
 
+## 13c. Moving NSM to another server address (Core 0.49.214)
+
+*Amministrazione → Migrazione server*: the old server tells MikroTik agents (self-update with a script for the new URL, plus a syslog job towards the new address) and TR-069 CPEs (`ManagementServer.URL` via GenieACS) the new address. The new server must be a restore of this database: a token created with the migration is checked through `/api/v1/server-migration/check`, and a target answering with this process's own instance id is refused. Pilot of up to 10 devices, arrivals confirmed by the new server (`/api/v1/server-migration/confirm`: last heartbeat or last Inform), then all devices; agents that cannot self-update are listed for reinstallation; devices that arrived can be decommissioned on the old server. Audited (`SERVER_MIGRATION_*`). Procedure in `OPERATIONS.md`.
+
 ## 14. TR-069 / ACS-managed CPE
 
 ### Implemented foundation only
@@ -609,28 +613,16 @@ Warehouse serial numbers ↔ devices and ISPBilling activities in the device log
 
 - *Amministrazione → Integrazioni → GenieACS / TR-069*: NBI URL (loopback, localhost, credentials in the URL refused), authentication none / HTTP Basic / Bearer for a reverse proxy (encrypted), configurable MAC parameter paths, online window, connectivity test that reads nothing;
 - *ACS* tab on TP-Link/TR-069 Devices: lookup by serial number (`_deviceId._SerialNumber`) then MAC (any interface MAC; parameter paths accept `*` for every instance, Core 0.49.201), preview, explicit association that keeps the NSM Customer/Site, refresh by the stored GenieACS ID that refuses a changed serial; identity, model, firmware, hardware, IP, last Inform and online state are normalized from TR-098 and TR-181 paths (management IP from the CPE's connection-request URL, then any interface address; checked on a real TP-Link VX230v, TR-181); audit events `GENIEACS_*` without secrets;
-- the integrations hub shows the real connector state and how many TR-069 CPE are associated or still to associate.
+- the integrations hub shows the real connector state and how many TR-069 CPE are associated or still to associate;
+- *Amministrazione → ACS → Configurare una CPE TP-Link* (Core 0.49.213): step-by-step guide for adding a TP-Link CPE — one manual step on the router (CWMP on, ACS URL, Periodic Inform), then NSP reads it; what NSP reads (state, model, firmware, IP, CPU, memory, WAN traffic, Wi-Fi clients, DSL), the actions it offers (reboot, firmware check, diagnostics) and what it never changes (Wi-Fi, LAN, DHCP, PPPoE; it writes only the CWMP inform interval). The ACS URL shown comes from `ACS_CWMP_URL` when set.
 
-### Bulk migration to the self-hosted ACS (Core 0.49.202)
+### CPE syslog through the ACS (Core 0.49.220)
 
-*Amministrazione → ACS → Migra i CPE verso questo ACS* (administrators) moves a fleet of customer CPEs
-from a vendor cloud ACS (e.g. TP-Link TAUC) onto the integrated GenieACS by rewriting the CWMP ACS URL
-over the operator's own management network, instead of touching each router by hand. The operator gives
-the management subnet (CIDR, IPv4, capped at 4096 addresses per run), the management port, the target
-ACS URL (the integrated GenieACS by default), the inform interval and one shared fleet credential.
+TP-Link CPEs (Aginet firmware) keep their log settings in `Device.DeviceInfo.X_TP_LogCfg`; NSM writes `LogToRemote`, `ServerIP`, `ServerPort` (514) and `RemoteSeverity` through GenieACS, nothing else. From the device *Syslog* tab (applied at once via connection request), from *Amministrazione → ACS → Syslog dei CPE TR-069* for every associated TP-Link (applied at the next Inform), and by the worker for new CPEs when syslog *Configura automaticamente* is on. The receiver address is the syslog public address, else the host of `ACS_CWMP_URL`. TP-Link lines carry no NSM key: the key-only receiver accepts a keyless line only from the management IP of a TR-069 CPE that NSM itself configured this way, and only when no other device uses that address (`syslog_identity.Index.by_address`); every other keyless line is still discarded. NSM re-reads the management IP (WAN, from the connection-request URL) before configuring. Checked on a real VX230v. Audit `ACS_SYSLOG_CONFIGURED`.
 
-- A host is TCP-probed first and fingerprinted from its web page; the credential is sent only to a host
-  that answers as the chosen vendor's CPE, never to an arbitrary open port. The `.0`/`.255` addresses
-  and the ACS server are skipped.
-- *Dry run* (available now, validated on a real TP-Link VX230v): reports which addresses are reachable
-  CPEs and their model/firmware, without authenticating — an inventory of what can be migrated.
-- *Apply* rewrites CWMP on each CPE through the vendor web interface (TP-Link encrypted login: MD5
-  identity hash, per-session AES-CBC key wrapped with the device RSA key, `stok` token). The login
-  differs per firmware and is enabled after field validation, so until then apply reports
-  `needs_validation` per host rather than guessing.
-- One run at a time, bounded concurrency; per-host results are kept; the credential is held only in
-  memory for the run and never stored or logged. Audit events `ACS_MIGRATION_STARTED` /
-  `ACS_MIGRATION_COMPLETED` carry counts only.
+### Bulk migration to the self-hosted ACS (removed in Core 0.49.225)
+
+The tool that rewrote the CWMP ACS URL of a fleet of TP-Link CPEs over the management network (Core 0.49.202) was removed: on the operator's firmware the TP-Link web login could not be used. CPEs are pointed at the integrated GenieACS as described in *Amministrazione → ACS* (TP-Link guide).
 
 ### Diagnostics from the CPE (ACS-06, Core 0.49.206)
 
@@ -822,6 +814,15 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - one Action Center issue per Device (`lifecycle`, critical for EOS) while it is still to handle, its planned replacement is overdue or its exception expired; resolved automatically otherwise; re-evaluated with the catalog and by the worker;
 - Device lifecycle page shows the decision panel (read-only without `lifecycle.manage`); the EOL/EOS worklist has a *Gestione* column;
 - evidence reports: counts by remediation state, overdue plans, Devices still to handle, active exceptions with reason and expiry; CSV column `lifecycle_remediation`.
+
+### Lifecycle from the web (LIFE-04)
+
+`app/lifecycle_web.py`, migration 0054:
+
+- for every vendor + model in the inventory NSM asks [eol.network](https://eol.network), a free database of the end-of-sale / end-of-support notices vendors publish on their own sites (MikroTik product pages, Ubiquiti *Vintage and Legacy*, Cambium product lifecycle, TP-Link EOL lists, 90+ vendors); each answer keeps the official vendor page, the eol.network page and the date the source was read;
+- *EOL / EOS → Catalogo lifecycle → Ciclo di vita dal web*: per model the product found, vendor status, published dates, match confidence and source; *Nessun avviso di fine vita pubblicato* when there is no notice; *Cerca con un altro nome* (the SKU on the label) when the inventory name is a marketing name;
+- what is found is a proposal: *Applica al catalogo* (one model) or *Applica le corrispondenze esatte* writes a catalog record through the same path as a hand-written one (source, link, evidence date, audit `LIFECYCLE_RECORD_SAVED` + `LIFECYCLE_WEB_APPLIED`, devices re-correlated); a vendor status without a published date (MikroTik *Discontinued*, Ubiquiti *Vintage*/*Legacy*) is dated on the day the source was read and the note says so; the product code becomes an alias when it differs from the inventory name;
+- worker: new models are looked up, the others re-checked every 30 days; keyless search 8 models per run (the public limit is 10 requests a minute, 429 defers the rest), with `EOL_NETWORK_API_KEY` batch match of 100 models; `LIFECYCLE_WEB_LOOKUP=off` disables it; read `security.read`, run/apply `lifecycle.manage`; manual runs audited `LIFECYCLE_WEB_LOOKUP`.
 
 ## 17. Public read-only API
 

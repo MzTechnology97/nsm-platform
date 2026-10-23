@@ -8,6 +8,7 @@ import { formatDateTime, formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { Metric } from "./DeviceDetail";
 import { SyslogGuides } from "../app/SyslogGuides";
+import { AcsSyslogPanel } from "../app/AcsSyslog";
 
 const SEVERITY_FILTERS = ["", "4", "3", "2"] as const;
 
@@ -39,6 +40,7 @@ export function DeviceSyslog() {
       <LivePanel id={deviceId} csvUrl={data?.csv_url ?? `/devices/${deviceId}/logs.csv`} />
       {data && <AccessPanel access={data.access} />}
       <IntegrityPanel id={deviceId} />
+      <AcsSyslogPanel id={deviceId} />
       {data && <SetupPanel id={deviceId} summary={data} />}
     </div>
   );

@@ -59,14 +59,50 @@ case "$cmd" in
     ;;
   legacy-backup-enable)
     # Upload-only FTP receiver for RouterOS 6 / 7.12 backups (legacy Agent 0.49.16+).
-    host="${1:-}"
-    case "$host" in *.*.*.*) ;; *) echo "Uso: ./manage.sh legacy-backup-enable <IPv4 di NSM raggiungibile dai router>" >&2; exit 1 ;; esac
+    # Arguments: IPv4 of NSM reachable by the routers, optional control port (default 2121).
+    host="${1:-}"; port="${2:-}"
+    case "$host" in *.*.*.*) ;; *) echo "Uso: ./manage.sh legacy-backup-enable <IPv4 di NSM raggiungibile dai router> [porta]" >&2; exit 1 ;; esac
+    if [ -n "$port" ]; then
+      case "$port" in ''|*[!0-9]*) echo "Porta non valida: $port" >&2; exit 1 ;; esac
+      [ "$port" -ge 1 ] && [ "$port" -le 65535 ] || { echo "Porta non valida: $port" >&2; exit 1; }
+      sed -i "/^LEGACY_FTP_PORT=/d" .env && echo "LEGACY_FTP_PORT=$port" >> .env
+    fi
     grep -q '^LEGACY_FTP_ENABLED=' .env || echo "LEGACY_FTP_ENABLED=1" >> .env
     sed -i "/^LEGACY_FTP_PUBLIC_HOST=/d" .env && echo "LEGACY_FTP_PUBLIC_HOST=$host" >> .env
     add_compose_profile legacyftp
     docker compose up -d --build
-    echo "Ricevitore FTP dei backup legacy attivo su $host:${LEGACY_FTP_PORT:-2121} (passive 30100-30109)."
-    echo "Apri queste porte solo dalle reti dei router; poi reinstalla l'agent legacy (0.49.16+, profilo legacy-ops-v1)."
+    ftp_port=$(sed -n 's/^LEGACY_FTP_PORT=//p' .env | tail -n 1); ftp_port=${ftp_port:-2121}
+    pasv=$(sed -n 's/^LEGACY_FTP_PASV_PORTS=//p' .env | tail -n 1); pasv=${pasv:-30100-30109}
+    # Host firewall: open the ports when ufw or firewalld is active (NSM itself filters by the allowed subnets).
+    if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
+      ufw allow "$ftp_port/tcp" >/dev/null && ufw allow "$(echo "$pasv" | tr '-' ':')/tcp" >/dev/null && echo "ufw: porte $ftp_port e $pasv aperte."
+    elif command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state >/dev/null 2>&1; then
+      firewall-cmd --permanent --add-port="$ftp_port/tcp" --add-port="$pasv/tcp" >/dev/null && firewall-cmd --reload >/dev/null && echo "firewalld: porte $ftp_port e $pasv aperte."
+    else
+      echo "Nessun firewall attivo sul server: le porte $ftp_port e $pasv sono gia raggiungibili."
+    fi
+    # Allowed subnets from NSM (Amministrazione -> Sistema): enforce them in DOCKER-USER too when configured.
+    script=$(mktemp)
+    docker compose exec -T api python -m app.legacy_ftp_firewall > "$script" 2>/dev/null || true
+    if [ -s "$script" ] && ! grep -q '^exit 1' "$script"; then
+      sh "$script" && echo "Firewall: accesso al ricevitore limitato alle subnet configurate in NSM."
+    else
+      echo "Nessuna subnet configurata in NSM: impostale in Amministrazione -> Sistema, poi ./manage.sh legacy-ftp-firewall --apply"
+    fi
+    rm -f "$script"
+    echo "Ricevitore FTP dei backup legacy attivo su $host:$ftp_port (passive $pasv)."
+    ;;
+  legacy-ftp-firewall)
+    # Allow the legacy backup FTP ports only from the subnets configured in NSM (DOCKER-USER chain). --apply runs the rules.
+    script=$(mktemp)
+    docker compose exec -T api python -m app.legacy_ftp_firewall > "$script"
+    cat "$script"
+    if [ "${1:-}" = "--apply" ]; then
+      sh "$script" && echo "Regole firewall del ricevitore FTP applicate."
+    else
+      echo "# Rivedi le regole e applicale con: ./manage.sh legacy-ftp-firewall --apply"
+    fi
+    rm -f "$script"
     ;;
   acs-enable)
     # Enable the integrated GenieACS stack: UI secret, compose profile, NBI URL for NSM.
@@ -141,7 +177,8 @@ Uso: ./manage.sh <comando>
   rotate-secrets        Ricifra i segreti con la nuova ENCRYPTION_MASTER_KEY
   syslog-firewall       Regole firewall host per le porte syslog dalle reti consentite (--apply per applicarle)
   acs-enable            Attiva GenieACS integrato (TR-069) nello stack Docker
-  legacy-backup-enable  Attiva il ricevitore FTP per i backup dei RouterOS 6 / 7.12 (argomento: IPv4 di NSM)
+  legacy-backup-enable  Attiva il ricevitore FTP per i backup dei RouterOS 6 / 7.12 (argomenti: IPv4 di NSM, [porta])
+  legacy-ftp-firewall   Regole firewall per il ricevitore FTP dalle subnet consentite in NSM (--apply per applicarle)
   restore-db <dump>     Sostituisce il database con un dump (chiede conferma)
   seed-demo      Crea dataset demo reversibile con backup fittizi
   clear-demo     Rimuove esclusivamente il dataset demo

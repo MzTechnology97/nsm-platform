@@ -103,6 +103,16 @@ def _public_host(request: Request) -> tuple[str, str]:
     return scheme.split(",")[0].strip(), (urlsplit(f"//{host}").hostname or "")
 
 
+def cpe_acs_url(request: Request) -> str:
+    """The ACS URL the CPEs are told to use: ``ACS_CWMP_URL`` when set (the address the routers reach NSP on),
+    else the host the administrator opened NSP with, port 7547."""
+    configured = os.getenv("ACS_CWMP_URL", "").strip()
+    if configured:
+        return configured
+    _scheme, host = _public_host(request)
+    return f"http://{host}:7547/"
+
+
 def panel_url(request: Request) -> str:
     if PANEL_URL:
         return PANEL_URL
