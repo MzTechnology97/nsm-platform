@@ -4,6 +4,10 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.236 — 2026-10-23
+
+Cambium logo on Cambium devices
+- **Cambium devices now show the Cambium Networks logo** instead of the generic device icon: ePMP, cnPilot, PMP and the others, in every list, page and in the global search. This also applies to devices added as generic whose manufacturer was recognised as Cambium.
 ## 0.49.235 — 2026-10-23
 
 ISPBilling
