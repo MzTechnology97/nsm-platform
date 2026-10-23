@@ -5,7 +5,12 @@ At every full ISPBilling read the PPPoE accounts of *ISP Billing Radius 2.0* (``
 
 1. **PPPoE user**: a MikroTik whose PPPoE client (latest *Sessioni PPP* snapshot of the agent) uses the account's
    username, compared without case;
-2. **static IP**: a device whose management IP is the account's static IP.
+2. **CPE PPPoE user** (``cpe_pppoe``): a TR-069 CPE whose WAN logs in with the account's username, as GenieACS
+   reports it (``acs_monitoring``, ``inventory_data["tr069"]["monitor"]["wan"]["username"]``);
+3. **static IP**: a device whose management IP is the account's static IP;
+4. **caller-id** (``caller_mac``): the account's active session on a PPPoE concentrator in NSM (MikroTik
+   ``/ppp active`` in the *Sessioni PPP* snapshot) comes from the MAC of a device (its primary MAC);
+5. **session address** (``caller_ip``): that session's address is a device's management IP.
 
 An account matching several devices the same way is left unmatched. The device page then shows the account
 (username, profile, ISPBilling status — e.g. *Sospeso* — and whether the ISPBilling customer is the device's NSM
@@ -17,10 +22,18 @@ from sqlalchemy import select
 
 from app.agent_models import DeviceJob
 from app.ispbilling_models import IspbillingCustomer, IspbillingRadiusAccount
+from app import main as core
 from app.models import Device
 
 SNAPSHOT_SECTION = "ppp_active"
 PPP_CLIENT_GROUPS = ("pppoe_clients",)
+
+
+def _mac(value) -> str | None:
+    try:
+        return core.norm_mac(str(value or ""))
+    except ValueError:  # not a MAC (e.g. an L2TP caller-id, which is an IP address)
+        return None
 
 
 def _text(value, limit: int) -> str | None:
@@ -71,18 +84,64 @@ def pppoe_users(db) -> dict[str, set]:
     return users
 
 
+def ppp_sessions(db) -> dict[str, list[tuple[str | None, str | None]]]:
+    """Active PPP sessions on the concentrators in NSM: username (lower case) → [(caller-id MAC, address)]."""
+    jobs = db.scalars(select(DeviceJob).where(DeviceJob.job_type == "snapshot_section", DeviceJob.status == "success")
+                      .order_by(DeviceJob.device_id, DeviceJob.completed_at.desc().nullslast(), DeviceJob.created_at.desc()))
+    seen, sessions = set(), {}
+    for job in jobs:
+        if (job.payload or {}).get("section") != SNAPSHOT_SECTION or job.device_id in seen:
+            continue
+        seen.add(job.device_id)
+        data = (job.result or {}).get("data") if isinstance(job.result, dict) else None
+        active = data.get("active") if isinstance(data, dict) else None
+        for session in active if isinstance(active, list) else []:
+            if not isinstance(session, dict):
+                continue
+            user = str(session.get("name") or "").strip().lower()
+            if user:
+                mac = _mac(session.get("caller-id") or session.get("calling-station-id"))
+                address = str(session.get("address") or "").strip() or None
+                sessions.setdefault(user, []).append((mac, address))
+    return sessions
+
+
+def cpe_pppoe_users(db) -> dict[str, set]:
+    """PPPoE usernames TR-069 CPEs log in with (as GenieACS reports them) → device ids."""
+    users: dict[str, set] = {}
+    for device_id, data in db.execute(select(Device.id, Device.inventory_data).where(Device.management_source == "tr069")):
+        wan = (((data or {}).get("tr069") or {}).get("monitor") or {}).get("wan")
+        user = str(wan.get("username") or "").strip().lower() if isinstance(wan, dict) else ""
+        if user:
+            users.setdefault(user, set()).add(device_id)
+    return users
+
+
 def match_devices(db) -> dict:
     """Match every account to at most one device; returns counts. Caller flushes/commits."""
     by_user = pppoe_users(db)
+    by_cpe_user = cpe_pppoe_users(db)
+    sessions = ppp_sessions(db)
     by_ip: dict[str, set] = {}
     for device_id, ip in db.execute(select(Device.id, Device.management_ip).where(Device.management_ip.is_not(None))):
         by_ip.setdefault(str(ip).strip(), set()).add(device_id)
-    stats = {"accounts": 0, "pppoe": 0, "ip": 0, "ambiguous": 0}
+    by_mac: dict[str, set] = {}
+    for device_id, mac in db.execute(select(Device.id, Device.primary_mac).where(Device.primary_mac.is_not(None))):
+        if _mac(mac):
+            by_mac.setdefault(_mac(mac), set()).add(device_id)
+    stats = {"accounts": 0, "pppoe": 0, "cpe_pppoe": 0, "ip": 0, "caller_mac": 0, "caller_ip": 0, "ambiguous": 0}
     for account in db.scalars(select(IspbillingRadiusAccount)):
         stats["accounts"] += 1
-        found, how = by_user.get(account.username.lower(), set()), "pppoe"
+        user = account.username.lower()
+        found, how = by_user.get(user, set()), "pppoe"
+        if not found:
+            found, how = by_cpe_user.get(user, set()), "cpe_pppoe"
         if not found and account.static_ip:
             found, how = by_ip.get(account.static_ip, set()), "ip"
+        if not found:
+            found, how = set().union(*(by_mac.get(mac, set()) for mac, _ip in sessions.get(user, []) if mac)), "caller_mac"
+        if not found:
+            found, how = set().union(*(by_ip.get(ip, set()) for _mac, ip in sessions.get(user, []) if ip)), "caller_ip"
         if len(found) == 1:
             account.nsm_device_id, account.matched_by = next(iter(found)), how
             stats[how] += 1
@@ -100,10 +159,14 @@ def device_accounts(db, device) -> list[dict]:
         return []
     customers = {c.external_id: c for c in db.scalars(select(IspbillingCustomer).where(
         IspbillingCustomer.external_id.in_([a.customer_external_id for a in accounts if a.customer_external_id])))}
+    from app.ispbilling_cpe_link import device_links
+
+    links = device_links(db, device)
     out = []
     for account in accounts:
         customer = customers.get(account.customer_external_id or "")
         out.append({
+            "account": account.external_id, "link": links.get(account.external_id),
             "username": account.username, "profile": account.profile_name, "status": account.status, "static_ip": account.static_ip,
             "matched_by": account.matched_by, "customer": customer.name if customer else None,
             # None when that ISPBilling customer is not imported in NSM yet.
