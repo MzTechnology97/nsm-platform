@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.238 — 2026-10-23
+
+Pages on every list
+- **The lists now load one page at a time**: 50, 100 or 200 rows, as you choose. They show "1–50 of 838", the page numbers and the previous/next buttons. Your choice of rows per page is remembered.
+  - *Clienti* used to load every customer at once and was slow; it now loads one page.
+  - *Apparati*, *Firmware*, *Vulnerabilità*, *Lifecycle*, *Compliance*, *Action Center*, *Incidenti*, *Eventi*, *Report*, UISP and cnMaestro onboarding, and the ISPBilling import used to load more rows as you scrolled; they now show pages.
+- **No devices hidden on large fleets any more.** *Monitoring*, *Agent*, *Backup* and *Esposizione* showed at most 500 devices; every device is now reachable through the pages.
+- Changing a filter, the search or the sort takes you back to page 1. The counters on the chips always cover the whole list, not just the page.
 ## 0.49.237 — 2026-10-23
 
 Customer name as a tag in GenieACS
