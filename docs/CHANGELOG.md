@@ -4,6 +4,24 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.255 — 2026-10-23
+
+Scheduled firmware upgrades
+- **RouterOS upgrades can be scheduled, for example at night.**
+  - One device: *Aggiornamento programmato* in the *Firmware* tab.
+  - Several devices: select them in the *Firmware* list and press *Programma aggiornamento*.
+  - Default time: the next 03:00.
+- **One confirmation, when you schedule.** At the chosen time NSM runs every phase by itself, with no further confirmation:
+  1. update check;
+  2. a new backup before the upgrade;
+  3. approval;
+  4. download of the packages;
+  5. activation with reboot;
+  6. check of the installed version.
+- A plan prepared earlier is reused if its backup is less than 12 hours old, otherwise it is replaced.
+- If the device is not reachable within 2 hours of the scheduled time, the upgrade is not run, and the list says so. If a phase fails, the schedule stops with the reason.
+- The list and the device show the state: scheduled, checking, running, completed, failed. A schedule can be moved or cancelled until the download starts. Every phase is recorded in the activity log.
+
 ## 0.49.254 — 2026-10-23
 
 RouterOS upgrade: one click to prepare, check from the device
