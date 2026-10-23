@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.219 — 2026-10-23
+
+Firmware upgrade of TR-069 CPEs
+- **TP-Link and other TR-069 CPEs now have the *Firmware* tab, like MikroTik devices.** It shows the installed version next to the newest one in the firmware catalog for that model, the same information shown on the device overview and in the firmware list.
+- **Upgrade from the *Firmware* tab.** Load the image downloaded from the vendor's site: NSM stores it in the ACS for that model. Then choose it and type the device name to start. The CPE downloads the image from the ACS file server, installs it and reboots.
+- **NSM checks the result itself.** The upgrade is confirmed when the CPE reports the new version, and NSM says whether it is the version you expected. If the CPE reports an error, the error is shown. If no new version arrives within 30 minutes, the upgrade is marked as not confirmed. The follow-up runs even when nobody has the page open.
+- **Built-in safeguards:** an image loaded for one model cannot be sent to another, only one upgrade runs at a time per CPE, and images already in the ACS can be reused for other CPEs of the same model.
 ## 0.49.218 — 2026-10-22
 
 Speed test from TR-069 CPEs
