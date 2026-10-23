@@ -5222,6 +5222,7 @@
     }
   },
   "eventTypes": {
+    "ACS_ACCESS_CHANGED": "Accesso remoto o Telnet del CPE modificato",
     "ACS_ALERT_OPENED": "Avviso CPE aperto",
     "ACS_ALERT_RESOLVED": "Avviso CPE risolto",
     "ACS_ALERT_SETTINGS_CHANGED": "Impostazioni avvisi CPE modificate",
@@ -5241,11 +5242,13 @@
     "ACS_PORT_MAPPING_CHANGED": "Port forwarding del CPE cambiato",
     "ACS_REBOOT_REQUESTED": "Riavvio del CPE richiesto",
     "ACS_REBOOT_VERIFIED": "Riavvio del CPE verificato",
+    "ACS_SETTINGS_CHANGED": "Impostazioni avanzate del CPE modificate",
     "ACS_SNAPSHOT_ARCHIVED": "Istantanea configurazione TR-069 archiviata",
     "ACS_SPEEDTEST_COMPLETED": "Test di velocità del CPE completato",
     "ACS_SPEEDTEST_REQUESTED": "Test di velocità del CPE richiesto",
     "ACS_SPEEDTEST_SETTINGS_CHANGED": "Impostazioni del test di velocità modificate",
     "ACS_SYSLOG_CONFIGURED": "Syslog del CPE configurato via ACS",
+    "ACS_TELNET_DISABLED": "Telnet LAN del CPE spento dalla policy",
     "ACS_TEMPLATES_INSTALLED": "Modelli ACS installati",
     "ACS_TEMPLATES_UPDATED": "Modelli ACS aggiornati da NSM",
     "ACS_WIFI_CHANGED": "Wi-Fi modificato tramite ACS",
@@ -5511,6 +5514,7 @@
     "VENDOR_FIRMWARE_RELEASE_ADDED": "Versione firmware del produttore aggiunta",
     "VENDOR_FIRMWARE_RELEASE_DELETED": "Versione firmware del produttore eliminata",
     "VULNERABILITY_STATUS_CHANGED": "Stato della vulnerabilità cambiato",
+    "ZABBIX_CUSTOMER_SCOPE_CHANGED": "Cliente aggiunto o rimosso da Zabbix",
     "ZABBIX_DEVICE_IP_CHANGED": "IP per Zabbix cambiato",
     "ZABBIX_DEVICE_SCOPE_CHANGED": "Apparato incluso o escluso da Zabbix",
     "ZABBIX_HOST_IP_UPDATED": "IP dell'host Zabbix aggiornato",
@@ -5822,6 +5826,8 @@
     "help": "Archivia i parametri di configurazione del CPE, come li ha letti l'ACS, nella scheda Backup, dove le istantanee si aprono e si confrontano. Password e valori che cambiano da soli sono esclusi. Non si ripristina con un clic. Le policy di backup con l'opzione TR-069 ne salvano una in automatico quando qualcosa è cambiato.",
     "refresh": "Rileggi configurazione dal CPE",
     "save": "Salva istantanea ora",
+    "refreshStarted": "L'ACS sta rileggendo tutta la configurazione: su un CPE grande servono alcuni minuti, poi salva l'istantanea.",
+    "refreshQueued": "Il CPE non ha accettato la richiesta di connessione: la configurazione verrà letta al prossimo contatto.",
     "saved": "Istantanea salvata.",
     "open": "Apri la scheda Backup",
     "refreshState": {
@@ -5829,9 +5835,7 @@
       "done": "Configurazione riletta ({{objects}} oggetti): salva l'istantanea.",
       "partial": "Configurazione riletta in parte: {{done}} di {{objects}} oggetti."
     },
-    "refreshFailed": "Non letti (task rimosso per non bloccare la coda del CPE): {{list}}.",
-    "refreshStarted": "L'ACS sta rileggendo tutta la configurazione: su un CPE grande servono alcuni minuti, poi salva l'istantanea.",
-    "refreshQueued": "Il CPE non ha accettato la richiesta di connessione: la configurazione verrà letta al prossimo contatto."
+    "refreshFailed": "Non letti (task rimosso per non bloccare la coda del CPE): {{list}}."
   },
   "acsSpeedtest": {
     "title": "Test di velocità dal CPE",
@@ -6176,6 +6180,27 @@
     "next": "Pagina successiva",
     "size": "Righe per pagina"
   },
+  "zabbixScope": {
+    "addDevice": "Aggiungi a Zabbix",
+    "removeDevice": "Rimuovi da Zabbix",
+    "working": "Invio a Zabbix…",
+    "addCustomer": "Aggiungi a Zabbix",
+    "removeCustomer": "Rimuovi da Zabbix",
+    "notIncluded": "non incluso",
+    "customerSummary": "{{inZabbix}} apparati su {{devices}} sono in Zabbix",
+    "confirmAdd_one": "Aggiungere a Zabbix l'apparato di questo cliente? Viene inviato subito.",
+    "confirmAdd_other": "Aggiungere a Zabbix i {{count}} apparati di questo cliente? Vengono inviati subito.",
+    "confirmRemove_one": "Rimuovere da Zabbix l'apparato di questo cliente? L'host viene disattivato, non cancellato.",
+    "confirmRemove_other": "Rimuovere da Zabbix i {{count}} apparati di questo cliente? Gli host vengono disattivati, non cancellati.",
+    "customerDone": "In Zabbix: {{inZabbix}} apparati su {{devices}} · senza indirizzo IP: {{noIp}}",
+    "outcome": {
+      "pushed": "Creato in Zabbix",
+      "linked": "Collegato all'host già presente in Zabbix",
+      "no_ip": "Senza indirizzo IP: imposta un IP per Zabbix",
+      "factory_ip": "IP di fabbrica della LAN: imposta un IP raggiungibile per Zabbix",
+      "pending": "In attesa del prossimo invio"
+    }
+  },
   "uispCustomers": {
     "open": "Clienti UISP → NSM",
     "title": "Clienti UISP",
@@ -6202,6 +6227,102 @@
     "byName": "stesso nome",
     "ignore": "Ignora",
     "reset": "Annulla scelta"
+  },
+  "tplinkAccess": {
+    "title": "Accesso remoto e Telnet",
+    "help": "Letti dall'ACS; le modifiche vengono inviate subito al CPE.",
+    "remoteTitle": "Accesso web remoto",
+    "exposed": "La pagina web del CPE ({{protocol}}, porta {{port}}) è raggiungibile da qualsiasi indirizzo Internet.",
+    "restricted": "Accesso web remoto attivo ({{protocol}}, porta {{port}}), limitato dal CPE ad alcuni indirizzi.",
+    "remoteOff": "Accesso web remoto spento.",
+    "enable": "Attiva accesso remoto",
+    "disable": "Disattiva accesso remoto",
+    "protocol": "Protocollo",
+    "port": "Porta",
+    "apply": "Applica porta e protocollo",
+    "noAllowList": "La limitazione ad alcuni indirizzi non è disponibile: sul firmware TP-Link provato chiude la pagina a tutti.",
+    "telnetTitle": "Telnet LAN",
+    "telnetOn": "Il Telnet è attivo nella LAN: NSM lo spegne al prossimo controllo giornaliero.",
+    "telnetAllowed": "Il Telnet è attivo nella LAN, consentito a mano su questo apparato.",
+    "telnetOff": "Il Telnet è spento nella LAN (predefinito NSM).",
+    "telnetEnable": "Consenti il Telnet LAN su questo apparato",
+    "telnetDisable": "Spegni il Telnet LAN",
+    "sent": "Inviato al CPE.",
+    "readAt": "Ultimo contatto del CPE: {{when}}."
+  },
+  "tplinkSettings": {
+    "title": "Impostazioni avanzate del CPE",
+    "help": "Impostazioni inviate via TR-069, alcune non presenti nella pagina web del CPE. Vengono inviati solo i valori modificati.",
+    "refresh": "Rileggi dal CPE",
+    "reading": "Lettura…",
+    "pagesHelp": "Pagine che il cliente può modificare dalla pagina web del CPE (senza spunta: sola lettura).",
+    "adminHelp": "Nuova password dell'account amministratore del CPE. NSM la invia una volta e non la salva né la mostra.",
+    "adminPassword": "Nuova password amministratore (8–64 caratteri)",
+    "save_one": "Invia {{count}} modifica",
+    "save_other": "Invia {{count}} modifiche",
+    "sent": "Inviato al CPE.",
+    "groups": {
+      "upgrades": "Aggiornamenti firmware",
+      "network": "Rete",
+      "pages": "Pagine del cliente",
+      "admin": "Credenziali amministratore"
+    },
+    "fields": {
+      "upgrades_managed": "Firmware solo dall'ACS (il CPE non si aggiorna da solo)",
+      "cloud_auto_upgrade": "Aggiornamento automatico dal cloud TP-Link",
+      "ntp_server_1": "Server NTP 1",
+      "ntp_server_2": "Server NTP 2",
+      "nat_timeouts": "Timeout sessioni NAT personalizzati",
+      "nat_tcp_established": "Timeout TCP stabilite (s)",
+      "nat_udp": "Timeout UDP (s)",
+      "nat_udp_stream": "Timeout flussi UDP (s)",
+      "reboot_schedule": "Riavvio programmato",
+      "reboot_hours": "Ora del riavvio",
+      "reboot_minutes": "Minuto del riavvio"
+    },
+    "pages": {
+      "FirmwareUpgrade": "Aggiornamento firmware",
+      "BackupRestore": "Backup e ripristino",
+      "CWMPSettings": "Impostazioni CWMP (TR-069)",
+      "UserAccount": "Account utente",
+      "Internet": "Internet",
+      "WirelessSettings": "Wireless",
+      "LANSettings": "LAN"
+    }
+  },
+  "cambiumBackup": {
+    "title": "Backup configurazione (SSH)",
+    "help": "cnMaestro non permette di esportare la configurazione degli apparati: NSM entra in SSH sull'ePMP, legge la configurazione in uso (config show json) e la archivia nella scheda Backup, completa e ripristinabile dalla pagina Backup/Restore dell'ePMP. Le policy di backup con l'opzione Cambium la eseguono in automatico.",
+    "run": "Esegui backup ora",
+    "running": "Lettura della configurazione…",
+    "done": "Configurazione archiviata.",
+    "open": "Apri i backup",
+    "source": {
+      "device": "Credenziali: quelle di questo apparato.",
+      "shared": "Credenziali: quelle comuni dei Cambium ({{username}}).",
+      "none": "Nessuna credenziale SSH: imposta quelle comuni in Amministrazione → cnMaestro o quelle di questo apparato qui sotto."
+    },
+    "noIp": "L'indirizzo di gestione dell'apparato non è noto.",
+    "last": "Ultimo backup {{when}}: {{status}}.",
+    "status": {
+      "success": "archiviato",
+      "failed": "non riuscito"
+    },
+    "hostKey": "Chiave SSH dell'apparato {{key}} (memorizzata al primo backup).",
+    "hostKeyChanged": "La chiave SSH dell'apparato è cambiata ({{key}}): i backup sono fermi finché non la accetti. Accettala solo se l'apparato è stato sostituito o resettato.",
+    "acceptKey": "Accetta la nuova chiave",
+    "own": "Credenziali di questo apparato",
+    "ownHelp": "Solo se questo apparato non usa le credenziali comuni dei Cambium.",
+    "username": "Utente SSH",
+    "password": "Password SSH",
+    "keepPassword": "lascia vuoto per mantenerla",
+    "port": "Porta SSH",
+    "save": "Salva",
+    "saved": "Salvato.",
+    "clear": "Usa quelle comuni",
+    "sharedTitle": "Credenziali SSH degli apparati Cambium",
+    "sharedHelp": "Usate da NSM per il backup della configurazione di ogni Cambium ePMP in SSH (cnMaestro non permette di esportarla). Un apparato può avere credenziali proprie nella sua scheda cnMaestro. Salvate cifrate; la password non viene più mostrata.",
+    "remove": "Rimuovi"
   },
   "uispFirmware": {
     "title": "Aggiornamento firmware tramite UISP",
@@ -6326,40 +6447,6 @@
       "failed": "Non riuscito",
       "cancelled": "Annullato"
     }
-  },
-  "cambiumBackup": {
-    "title": "Backup configurazione (SSH)",
-    "help": "cnMaestro non permette di esportare la configurazione degli apparati: NSM entra in SSH sull'ePMP, legge la configurazione in uso (config show json) e la archivia nella scheda Backup, completa e ripristinabile dalla pagina Backup/Restore dell'ePMP. Le policy di backup con l'opzione Cambium la eseguono in automatico.",
-    "run": "Esegui backup ora",
-    "running": "Lettura della configurazione…",
-    "done": "Configurazione archiviata.",
-    "open": "Apri i backup",
-    "source": {
-      "device": "Credenziali: quelle di questo apparato.",
-      "shared": "Credenziali: quelle comuni dei Cambium ({{username}}).",
-      "none": "Nessuna credenziale SSH: imposta quelle comuni in Amministrazione → cnMaestro o quelle di questo apparato qui sotto."
-    },
-    "noIp": "L'indirizzo di gestione dell'apparato non è noto.",
-    "last": "Ultimo backup {{when}}: {{status}}.",
-    "status": {
-      "success": "archiviato",
-      "failed": "non riuscito"
-    },
-    "hostKey": "Chiave SSH dell'apparato {{key}} (memorizzata al primo backup).",
-    "hostKeyChanged": "La chiave SSH dell'apparato è cambiata ({{key}}): i backup sono fermi finché non la accetti. Accettala solo se l'apparato è stato sostituito o resettato.",
-    "acceptKey": "Accetta la nuova chiave",
-    "own": "Credenziali di questo apparato",
-    "ownHelp": "Solo se questo apparato non usa le credenziali comuni dei Cambium.",
-    "username": "Utente SSH",
-    "password": "Password SSH",
-    "keepPassword": "lascia vuoto per mantenerla",
-    "port": "Porta SSH",
-    "save": "Salva",
-    "saved": "Salvato.",
-    "clear": "Usa quelle comuni",
-    "sharedTitle": "Credenziali SSH degli apparati Cambium",
-    "sharedHelp": "Usate da NSM per il backup della configurazione di ogni Cambium ePMP in SSH (cnMaestro non permette di esportarla). Un apparato può avere credenziali proprie nella sua scheda cnMaestro. Salvate cifrate; la password non viene più mostrata.",
-    "remove": "Rimuovi"
   },
   "cambiumSyslog": {
     "title": "Syslog dell'ePMP",
