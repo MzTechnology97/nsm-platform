@@ -641,6 +641,10 @@ ACS URL (the integrated GenieACS by default), the inform interval and one shared
 
 On the *ACS* tab of a linked CPE, technicians (`devices.write`) run a ping or a traceroute that the CPE itself performs: NSM asks GenieACS for a `setParameterValues` task with a connection request (TR-181 `Device.IP.Diagnostics.IPPing` / `TraceRoute`, TR-098 `InternetGatewayDevice.IPPingDiagnostics` / `TraceRouteDiagnostics`; data model detected from the GenieACS record), then follows the test by asking GenieACS to re-read the object at most every 8 s while the page is open, until `Complete` or `Error_*` (given up after 4 minutes). When the CPE refuses the connection request the test starts at its next periodic contact. Results (replies, min/avg/max; hops with addresses and times) are kept per test on the device; audit `ACS_DIAGNOSTIC_REQUESTED` / `ACS_DIAGNOSTIC_COMPLETED`. Other commands sent through GenieACS are the Wi-Fi changes and the reboot described below.
 
+### Configuration snapshots (ACS-07, Core 0.49.217)
+
+GenieACS cannot download a CPE's vendor configuration file (no TR-069 `Upload` task), so NSM archives the CPE's writable parameters as GenieACS last read them: a text file `path = value` (sorted, commented header) in the device backup archive (`BackupRun`/`BackupArtifact`, type `tr069_parameters`), viewable and comparable in the *Backup* tab like a RouterOS export. Secrets (pass/key/secret/PSK/PIN names) and values that change by themselves (statistics, counters, times) are left out. Taken from the *ACS* tab (`backup.execute`) or by backup policies with the TR-069 option (worker `acs_scheduled_snapshots`, one per occurrence, not stored when identical to the previous one); TR-069 CPEs linked to an enabled GenieACS therefore have an executable backup method (*ACS / TR-069 (parametri)*). *Rileggi configurazione dal CPE* asks GenieACS to re-read the whole tree first. Audit `ACS_SNAPSHOT_ARCHIVED`, `ACS_CONFIG_REFRESH_REQUESTED`. Not restorable with one click.
+
 ### Wi-Fi settings and reboot (Core 0.49.216)
 
 On the *ACS* tab, technicians (`devices.write`) change the CPE's Wi-Fi: per radio the channel (automatic or one of the channels the CPE allows) and on/off; per network the name, a new password (passwords are never readable, CPEs do not report them) and on/off. Changes are validated (name 1–32 printable characters, password 8–63, known networks/radios, allowed channels), sent as one `setParameterValues` task with a connection request (queued until the next contact when the CPE refuses it) and audited `ACS_WIFI_CHANGED` with the names of the changed fields only. *Rileggi dal CPE* asks GenieACS to re-read the Wi-Fi object. Reboot requires typing the device name, is sent as a GenieACS `reboot` task (`ACS_REBOOT_REQUESTED`) and is confirmed when GenieACS reports a later boot (`ACS_REBOOT_VERIFIED`, unconfirmed after 15 minutes). TR-181 (`Device.WiFi.Radio/SSID/AccessPoint`) and TR-098 (`LANDevice.1.WLANConfiguration`) are handled.
@@ -658,7 +662,7 @@ Every 2 minutes the worker reads from GenieACS (read only, one NBI query per 20 
 - bulk ACS discovery/onboarding from the ACS side (this migration drives the CPEs, not GenieACS);
 - vendor-specific TR-098/TR-181 parameter profiles beyond identity and firmware;
 - vendor parameter profiles;
-- capability-aware backup/restore through ACS;
+- restore of a configuration through ACS;
 - firmware deployment/verification through ACS.
 
 Until an actual connector is selected and implemented, roadmap documentation should stay technology-neutral where possible rather than accumulating unused third-party API references.

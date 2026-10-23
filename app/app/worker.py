@@ -31,6 +31,7 @@ from app.zabbix_connector import scheduled_sync as zabbix_sync
 from app.zabbix_problems import scheduled_refresh as zabbix_problems_refresh
 from app.acs_monitoring import cleanup as acs_metrics_cleanup, collect as acs_monitoring_collect
 from app.acs_admin import auto_update as acs_templates_auto_update
+from app.acs_snapshot import scheduled_snapshots as acs_scheduled_snapshots
 from app.device_exposure import tick as exposure_tick
 from app.external_exposure import tick as external_exposure_tick
 from app.syslog_integrity import anchor_heads as syslog_anchor
@@ -105,6 +106,7 @@ while True:
             run_task("zabbix_problems", zabbix_problems_refresh)
             run_task("acs_monitoring", acs_monitoring_collect)
             run_task("acs_templates", acs_templates_auto_update)
+            run_task("acs_scheduled_snapshots", acs_scheduled_snapshots)
             run_task("exposure_check", exposure_tick)
             run_task("exposure_external_check", external_exposure_tick)
             run_task("syslog_chain_anchor", syslog_anchor)
