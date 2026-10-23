@@ -220,7 +220,8 @@ def run_backup(db, device, actor=None, policy=None, trigger="manual") -> BackupR
             raise UispOperationError("Il backup scaricato da UISP è vuoto.")
         extension = ".tar.gz" if content[:2] == b"\x1f\x8b" else ".bin"
         label = re.sub(r"[^A-Za-z0-9._-]+", "-", device.device_identity or device.name or "ubiquiti").strip("-._")[:60] or "ubiquiti"
-        filename = f"{now.strftime('%Y%m%dT%H%M%SZ')}_{label}_uisp{extension}"
+        # The run id keeps two backups of the same device taken within one second apart.
+        filename = f"{now.strftime('%Y%m%dT%H%M%SZ')}_{label}_{str(run.id)[:8]}_uisp{extension}"
         folder = storage_root() / "devices" / str(device.id) / now.strftime("%Y") / now.strftime("%m")
         folder.mkdir(parents=True, exist_ok=True)
         path = folder / filename
