@@ -78,7 +78,7 @@ def main():
     with SessionLocal() as db:
         stats = ispb.sync(db)
     assert stats["status"] == "success" and stats["radius_accounts"] == 4, stats
-    assert stats["radius_matched"] == {"pppoe": 1, "ip": 1, "ambiguous": 1}, stats
+    assert stats["radius_matched"] == {"pppoe": 1, "cpe_pppoe": 0, "ip": 1, "caller_mac": 0, "caller_ip": 0, "ambiguous": 1}, stats
     with SessionLocal() as db:
         rows = {a.external_id: a for a in db.scalars(select(IspbillingRadiusAccount))}
         assert rows["8001"].nsm_device_id == ids["mikrotik"] and rows["8001"].matched_by == "pppoe"
@@ -90,8 +90,10 @@ def main():
     token = re.search(r'name="csrf" value="([^"]+)"', client.get("/login").text).group(1)
     assert client.post("/login", data={"username": f"ci-rad-{suffix}", "password": PASSWORD, "csrf": token}, follow_redirects=False).status_code == 303
     mt = client.get(f"/api/ui/v1/devices/{ids['mikrotik']}").json()["ispbilling"]
-    assert mt == [{"username": f"Cliente.Uno.{suffix}@example.test", "profile": "FWA 100/20", "status": "Attivo", "static_ip": None,
-                   "matched_by": "pppoe", "customer": f"Cliente Uno {suffix}", "same_customer": True}], mt
+    assert [{k: v for k, v in row.items() if k not in ("account", "link")} for row in mt] == [{
+        "username": f"Cliente.Uno.{suffix}@example.test", "profile": "FWA 100/20", "status": "Attivo", "static_ip": None,
+        "matched_by": "pppoe", "customer": f"Cliente Uno {suffix}", "same_customer": True}], mt
+    assert mt[0]["account"] == "8001" and mt[0]["link"]["state"] == "linked", "same customer, no site in ISPBilling: nothing to propose"
     ub = client.get(f"/api/ui/v1/devices/{ids['ubnt']}").json()["ispbilling"]
     assert ub[0]["status"] == "Sospeso" and ub[0]["same_customer"] is False, "imported as another NSM customer: shown as a mismatch"
     assert client.get(f"/api/ui/v1/devices/{ids['twin']}").json()["ispbilling"] == []
