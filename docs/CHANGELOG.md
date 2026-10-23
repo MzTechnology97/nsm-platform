@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.247 — 2026-10-23
+
+Firmware catalogs: upload the image
+
+### Changed
+
+- Firmware catalogs: the manual *Aggiungi una release* form is replaced by *Carica firmware*. The operator uploads the vendor image (`.bin`, `.img` or `.zip`) and NSM reads version, models or platform and release date from the official file name; for Ubiquiti it also reads the airOS image header, so renamed files still work. Only what cannot be read is asked: the version, or the models, picked among the brand's models in the inventory.
+  - TP-Link: model, hardware version and version from `VX230v(EU1)_V1_0.19.0 Build 260323`, with the build as the date.
+  - Ubiquiti: platform and version from `XC.….v8.7.25….bin`, `WA`, `XW` and `XM`.
+  - Cambium: version and family models from `ePMP-AC-v4.8.1.img`.
+- The image is kept with the release and can be downloaded from the catalog. For matching TR-069 CPEs it is also put in GenieACS, ready on the device *Firmware* tab; nothing is installed. Audited with file name, size and SHA-256.
 ## 0.49.246 — 2026-10-23
 
 TR-069
