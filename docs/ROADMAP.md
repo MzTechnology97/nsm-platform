@@ -420,7 +420,7 @@ Persist only supported, stable operational data with capability-aware unavailabl
 
 ### ACS-06 — diagnostics
 
-**Implemented in `main` (Core 0.49.206)**: ping and traceroute run by the CPE through GenieACS (TR-181 and TR-098), results on the device ACS tab. Next: download/upload speed tests (`Device.IP.Diagnostics.DownloadDiagnostics`/`UploadDiagnostics`, exposed by the TP-Link VX230v) once a test server is chosen.
+**Implemented in `main` (Core 0.49.206)**: ping and traceroute run by the CPE through GenieACS (TR-181 and TR-098), results on the device ACS tab; download/upload speed tests (TR-143) towards NSM itself or a server set by the administrator (Core 0.49.218).
 
 ### ACS-07 — backup/restore capability
 
