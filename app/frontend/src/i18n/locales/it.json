@@ -5116,6 +5116,7 @@
     "ACS_ALERT_OPENED": "Avviso CPE aperto",
     "ACS_ALERT_RESOLVED": "Avviso CPE risolto",
     "ACS_ALERT_SETTINGS_CHANGED": "Impostazioni avvisi CPE modificate",
+    "ACS_CONFIG_REFRESH_COMPLETED": "Configurazione del CPE riletta",
     "ACS_CONFIG_REFRESH_REQUESTED": "Rilettura configurazione del CPE richiesta",
     "ACS_CUSTOMER_TAG_SET": "CPE etichettato con il cliente in GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnostica ACS completata",
@@ -5654,10 +5655,14 @@
     "help": "Archivia i parametri di configurazione del CPE, come li ha letti l'ACS, nella scheda Backup, dove le istantanee si aprono e si confrontano. Password e valori che cambiano da soli sono esclusi. Non si ripristina con un clic. Le policy di backup con l'opzione TR-069 ne salvano una in automatico quando qualcosa è cambiato.",
     "refresh": "Rileggi configurazione dal CPE",
     "save": "Salva istantanea ora",
-    "refreshStarted": "L'ACS sta rileggendo tutta la configurazione: su un CPE grande servono alcuni minuti, poi salva l'istantanea.",
-    "refreshQueued": "Il CPE non ha accettato la richiesta di connessione: la configurazione verrà letta al prossimo contatto.",
     "saved": "Istantanea salvata.",
-    "open": "Apri la scheda Backup"
+    "open": "Apri la scheda Backup",
+    "refreshState": {
+      "running": "L'ACS sta rileggendo la configurazione oggetto per oggetto: {{done}} di {{objects}} letti (giro {{round}}). Puoi lasciare la pagina e tornare dopo, poi salva l'istantanea.",
+      "done": "Configurazione riletta ({{objects}} oggetti): salva l'istantanea.",
+      "partial": "Configurazione riletta in parte: {{done}} di {{objects}} oggetti."
+    },
+    "refreshFailed": "Non letti (task rimosso per non bloccare la coda del CPE): {{list}}."
   },
   "acsSpeedtest": {
     "title": "Test di velocità dal CPE",

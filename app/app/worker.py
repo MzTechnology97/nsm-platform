@@ -34,6 +34,7 @@ from app.acs_monitoring import cleanup as acs_metrics_cleanup, collect as acs_mo
 from app.acs_syslog import auto_configure as acs_syslog_auto
 from app.acs_admin import auto_update as acs_templates_auto_update
 from app.acs_snapshot import scheduled_snapshots as acs_scheduled_snapshots
+from app.acs_config_refresh import follow as acs_config_refresh_follow
 from app.acs_firmware import follow_upgrades as acs_firmware_follow
 from app.acs_alerts import evaluate as acs_alerts_evaluate
 from app.device_exposure import tick as exposure_tick
@@ -117,6 +118,7 @@ while True:
             run_task("acs_syslog_auto", acs_syslog_auto)
             run_task("acs_templates", acs_templates_auto_update)
             run_task("acs_scheduled_snapshots", acs_scheduled_snapshots)
+            run_task("acs_config_refresh", acs_config_refresh_follow)
             run_task("acs_firmware_follow", acs_firmware_follow)
             run_task("acs_alerts", acs_alerts_evaluate)
             run_task("exposure_check", exposure_tick)

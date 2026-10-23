@@ -5116,6 +5116,7 @@
     "ACS_ALERT_OPENED": "CPE alert opened",
     "ACS_ALERT_RESOLVED": "CPE alert resolved",
     "ACS_ALERT_SETTINGS_CHANGED": "CPE alert settings changed",
+    "ACS_CONFIG_REFRESH_COMPLETED": "CPE configuration read again",
     "ACS_CONFIG_REFRESH_REQUESTED": "CPE configuration re-read requested",
     "ACS_CUSTOMER_TAG_SET": "CPE tagged with its customer in GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "ACS diagnostic completed",
@@ -5654,10 +5655,14 @@
     "help": "Archives the CPE's configuration parameters, as the ACS read them, in the Backup tab, where you can open and compare snapshots. Passwords and changing values are left out. Not restorable with one click. Backup policies with the TR-069 option take one automatically when something changed.",
     "refresh": "Read the configuration again from the CPE",
     "save": "Save snapshot now",
-    "refreshStarted": "The ACS is reading the whole configuration: on a large CPE it takes a few minutes, then save the snapshot.",
-    "refreshQueued": "The CPE did not accept the connection request: the configuration will be read at its next contact.",
     "saved": "Snapshot saved.",
-    "open": "Open the Backup tab"
+    "open": "Open the Backup tab",
+    "refreshState": {
+      "running": "The ACS is reading the configuration object by object: {{done}} of {{objects}} read (round {{round}}). Keep the page open or come back later, then save the snapshot.",
+      "done": "Configuration read again ({{objects}} objects): save the snapshot.",
+      "partial": "Configuration read again in part: {{done}} of {{objects}} objects."
+    },
+    "refreshFailed": "Not read (the task was removed so the CPE's queue is not blocked): {{list}}."
   },
   "acsSpeedtest": {
     "title": "Speed test from the CPE",

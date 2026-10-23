@@ -5116,6 +5116,7 @@
     "ACS_ALERT_OPENED": "Aviso de CPE abierto",
     "ACS_ALERT_RESOLVED": "Aviso de CPE resuelto",
     "ACS_ALERT_SETTINGS_CHANGED": "Ajustes de avisos de CPE modificados",
+    "ACS_CONFIG_REFRESH_COMPLETED": "Configuración del CPE releída",
     "ACS_CONFIG_REFRESH_REQUESTED": "Relectura de la configuración del CPE solicitada",
     "ACS_CUSTOMER_TAG_SET": "CPE etiquetado con su cliente en GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnóstico ACS completado",
@@ -5654,10 +5655,14 @@
     "help": "Archiva los parámetros de configuración del CPE, tal como los leyó el ACS, en la pestaña Copias, donde las instantáneas se abren y comparan. Se excluyen contraseñas y valores que cambian solos. No se restaura con un clic. Las políticas con la opción TR-069 guardan una automáticamente cuando algo cambia.",
     "refresh": "Volver a leer la configuración del CPE",
     "save": "Guardar instantánea ahora",
-    "refreshStarted": "El ACS está leyendo toda la configuración: en un CPE grande tarda unos minutos; después guarda la instantánea.",
-    "refreshQueued": "El CPE no aceptó la solicitud de conexión: la configuración se leerá en el próximo contacto.",
     "saved": "Instantánea guardada.",
-    "open": "Abrir la pestaña Copias"
+    "open": "Abrir la pestaña Copias",
+    "refreshState": {
+      "running": "El ACS está releyendo la configuración objeto por objeto: {{done}} de {{objects}} leídos (ronda {{round}}). Puedes salir de la página y volver más tarde; luego guarda la instantánea.",
+      "done": "Configuración releída ({{objects}} objetos): guarda la instantánea.",
+      "partial": "Configuración releída en parte: {{done}} de {{objects}} objetos."
+    },
+    "refreshFailed": "No leídos (tarea eliminada para no bloquear la cola del CPE): {{list}}."
   },
   "acsSpeedtest": {
     "title": "Prueba de velocidad desde el CPE",
