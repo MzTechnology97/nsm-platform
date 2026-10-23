@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.223 — 2026-10-22
+
+UISP backups
+- **Two UISP backups of the same device in the same second no longer overwrite each other.** The file name now includes the backup run, for example `20261022T170000Z_ap-tetto_1a2b3c4d_uisp.tar.gz`.
+
 ## 0.49.222 — 2026-10-22
 
 Ping from NSM, on and off from the device page
