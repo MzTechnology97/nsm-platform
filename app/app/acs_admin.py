@@ -56,9 +56,29 @@ for (const root of ["InternetGatewayDevice", "Device"]) {
   declare(root + ".DeviceInfo.MemoryStatus.*", {value: fresh});
   declare(root + ".DeviceInfo.UpTime", {value: fresh});
 }
+// Monitoring (ACS-05): WAN counters and state, Wi-Fi clients, LAN hosts, DSL line, read at every periodic inform.
+for (const path of ["Device.IP.Interface.*.Status", "Device.IP.Interface.*.Stats.BytesReceived", "Device.IP.Interface.*.Stats.BytesSent",
+                    "Device.PPP.Interface.*.ConnectionStatus", "Device.WiFi.AccessPoint.*.AssociatedDeviceNumberOfEntries",
+                    "Device.Hosts.HostNumberOfEntries", "Device.DSL.Line.*.Status", "Device.DSL.Line.*.LinkStatus",
+                    "Device.DSL.Line.*.DownstreamNoiseMargin", "Device.DSL.Line.*.DownstreamAttenuation",
+                    "Device.DSL.Channel.*.DownstreamCurrRate", "Device.DSL.Channel.*.UpstreamCurrRate",
+                    "InternetGatewayDevice.WANDevice.*.WANCommonInterfaceConfig.TotalBytesReceived",
+                    "InternetGatewayDevice.WANDevice.*.WANCommonInterfaceConfig.TotalBytesSent",
+                    "InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.ConnectionStatus",
+                    "InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.ConnectionStatus",
+                    "InternetGatewayDevice.LANDevice.*.WLANConfiguration.*.TotalAssociations",
+                    "InternetGatewayDevice.LANDevice.*.Hosts.HostNumberOfEntries",
+                    "InternetGatewayDevice.WANDevice.*.WANDSLInterfaceConfig.*"]) {
+  declare(path, {value: fresh});
+}
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.ExternalIPAddress", {value: hourly});
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.ExternalIPAddress", {value: hourly});
 declare("Device.IP.Interface.*.IPv4Address.*.IPAddress", {value: hourly});
+// Port forwarding, DMZ and UPnP (monitoring only), re-read every hour.
+declare("Device.NAT.PortMapping.*.*", {value: hourly});
+declare("Device.NAT.*.*", {value: hourly});  // vendor flags such as X_TP_UPnPCfg.Enable, DMZ objects
+declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.PortMapping.*.*", {value: hourly});
+declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.PortMapping.*.*", {value: hourly});
 // Interface MAC addresses, used by NSM to find a CPE by the MAC on its label.
 for (const path of ["Device.Ethernet.Interface.*.MACAddress", "Device.Ethernet.Link.*.MACAddress",
                     "InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.MACAddress",
@@ -81,6 +101,16 @@ def _public_host(request: Request) -> tuple[str, str]:
     scheme = request.headers.get("x-forwarded-proto") or request.url.scheme or "http"
     host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.hostname or ""
     return scheme.split(",")[0].strip(), (urlsplit(f"//{host}").hostname or "")
+
+
+def cpe_acs_url(request: Request) -> str:
+    """The ACS URL the CPEs are told to use: ``ACS_CWMP_URL`` when set (the address the routers reach NSP on),
+    else the host the administrator opened NSP with, port 7547."""
+    configured = os.getenv("ACS_CWMP_URL", "").strip()
+    if configured:
+        return configured
+    _scheme, host = _public_host(request)
+    return f"http://{host}:7547/"
 
 
 def panel_url(request: Request) -> str:

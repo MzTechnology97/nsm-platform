@@ -140,7 +140,7 @@ services:
     cap_drop: [ALL]
     ports:
       - "${LEGACY_FTP_PORT:-2121}:2121/tcp"
-      - "30100-30109:30100-30109/tcp"
+      - "${LEGACY_FTP_PASV_PORTS:-30100-30109}:${LEGACY_FTP_PASV_PORTS:-30100-30109}/tcp"
     depends_on:
       postgres:
         condition: service_healthy

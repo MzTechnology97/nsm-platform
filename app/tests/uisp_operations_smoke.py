@@ -122,6 +122,7 @@ def main():
         assert run.status == "success" and run.sha256 == hashlib.sha256(BACKUP).hexdigest(), run.error_message
         artifact = db.scalar(select(BackupArtifact).where(BackupArtifact.run_id == run.id))
         assert artifact.filename.endswith("_uisp.tar.gz") and (storage_root() / artifact.storage_path).read_bytes() == BACKUP
+        assert f"_{str(artifact.run_id)[:8]}_uisp" in artifact.filename, "the run id makes the name unique"
         assert ("GET", f"/devices/{uisp_id}/backups/b-1") in fake.calls, "the newly created backup is downloaded"
     assert client.get(uisp_api).json()["last_backup"]["status"] == "success"
 

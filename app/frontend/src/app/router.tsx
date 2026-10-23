@@ -371,10 +371,10 @@ const adminAcsRoute = createRoute({
   path: "/admin/acs",
   component: lazyRouteComponent(() => import("../pages/AdminAcs"), "AdminAcs"),
 });
-const adminAcsMigrationRoute = createRoute({
+const adminServerMigrationRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/admin/acs/migration",
-  component: lazyRouteComponent(() => import("../pages/AcsMigration"), "AcsMigration"),
+  path: "/admin/server-migration",
+  component: lazyRouteComponent(() => import("../pages/AdminServerMigration"), "AdminServerMigration"),
 });
 const adminDemoRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -623,7 +623,7 @@ export const routeTree = rootRoute.addChildren([
   routerosRoute,
   adminBrandingRoute,
   adminAcsRoute,
-  adminAcsMigrationRoute,
+  adminServerMigrationRoute,
   adminDemoRoute,
   adminCnmaestroRoute,
   adminZabbixRoute,
