@@ -4738,7 +4738,7 @@
   },
   "firmwareCatalogs": {
     "title": "Firmware catalogs",
-    "subtitle": "One catalog per manufacturer in the inventory. Ubiquiti: versions from UISP and the official update service; other manufacturers: releases entered by operators from the official download page. NSM never guesses versions. MikroTik has its own",
+    "subtitle": "One catalog per manufacturer in the inventory. Ubiquiti: versions from UISP and from the official update service; TP-Link: the official site; every brand: images uploaded by operators (version, models and date are read from the file). NSM never guesses versions. MikroTik has its own",
     "routeros": "RouterOS catalog",
     "refresh": "Refresh sources and re-evaluate",
     "refreshed": "UISP: {{uisp}} new versions; Ubiquiti API: {{vendor_api}} new across {{platforms}} platforms; {{evaluated}} devices evaluated.",
@@ -4769,14 +4769,10 @@
     "releaseNotes": "notes ↗",
     "delete": "Delete",
     "deleteConfirm": "Delete release {{version}} from the catalog?",
-    "empty": "No release in the {{label}} catalog: add the latest release from the official download page.",
+    "empty": "No release in the {{label}} catalog: upload the latest image from the official download page.",
     "emptyUbiquiti": "No release in the {{label}} catalog: link the devices to UISP or refresh the sources.",
-    "add": "Add a {{label}} release",
     "version": "Version",
-    "models": "Models",
-    "modelsPlaceholder": "empty = all; e.g. archer c6* or eap225",
     "released": "Release date",
-    "notesUrl": "Release notes (official link)",
     "notes": "Notes",
     "fixesSecurity": "Fixes security vulnerabilities",
     "addSubmit": "Add to the catalog",
@@ -4784,11 +4780,35 @@
     "added_other": "Release {{version}} added: {{count}} devices to update.",
     "errors": {
       "brand": "Catalogs exist only for manufacturers in the inventory.",
-      "version": "Unrecognised version: use the manufacturer's format (e.g. 1.2.3).",
+      "version": "Version not recognised: give it in the manufacturer's format (e.g. 1.2.3 or 0.19.0 Build 260323).",
       "url": "The notes link must be an http(s) address.",
       "date": "Invalid release date.",
-      "exists": "This release is already in the catalog.",
-      "not_operator": "Only releases entered by operators can be deleted."
+      "exists": "This release is already in the catalog with its image.",
+      "not_operator": "Only releases entered by operators can be deleted.",
+      "extension": "Upload the manufacturer's image (.bin, .img or .zip).",
+      "archive": "The .zip must contain exactly one image (.bin/.img): upload the image directly.",
+      "expired": "Upload expired: upload the file again.",
+      "too_large": "The file is too large.",
+      "too_small": "The file is too small to be a firmware image."
+    },
+    "upload": {
+      "button": "Upload {{label}} firmware",
+      "reading": "Reading the file…",
+      "hint": {
+        "tp-link": "The .zip of the official site or its .bin, with the official name (e.g. VX230v(EU1)_V1_0.19.0 Build 260323): model, hardware version, version and date are read from it.",
+        "ubiquiti": "The airOS .bin (e.g. XC.qca956x.v8.7.25…bin, WA…, XW…, XM…): platform, version and date are read from the name or the image header.",
+        "cambium": "The ePMP image (e.g. ePMP-AC-v4.8.1.img): version from the name, models from the family (AC, AX, GPS_Synced).",
+        "other": "The manufacturer's image with its official name: the version is read from it, the models are asked."
+      },
+      "staged": "{{name}} ({{size}}) uploaded.",
+      "read": "Version read: {{version}}.",
+      "models": "Models this image is for",
+      "modelsHint": "None selected = all models of the brand.",
+      "cancel": "Cancel",
+      "for": "Models: {{models}}.",
+      "inAcs_one": "ready in GenieACS for {{count}} product class",
+      "inAcs_other": "ready in GenieACS for {{count}} product classes",
+      "download": "image {{name}}"
     }
   },
   "incidentNew": {
