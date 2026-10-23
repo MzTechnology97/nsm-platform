@@ -1,4 +1,4 @@
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { queryString } from "./admin";
 import { api } from "./client";
@@ -14,6 +14,8 @@ export interface IspbillingAdmin {
   last_sync_at: string | null;
   last_sync: { status?: string; error?: string; radius_error?: string; customers?: number; service_instances?: number; details_read?: number; details_pending?: number; at?: string };
   sync_requested: boolean;
+  auto_import: boolean;
+  last_auto_import: { at: string; created: number; sites_created: number; sites_linked: number; to_review: number } | null;
   customers: number;
   linked: number;
   addresses: number;
@@ -66,12 +68,10 @@ export interface IspbillingPage {
   items: IspbillingRow[];
 }
 
-export const useIspbillingCustomers = (filters: IspbillingFilters) =>
-  useInfiniteQuery({
-    queryKey: ["ispbilling-customers", filters],
-    queryFn: ({ pageParam }) => api<IspbillingPage>(`/api/ui/v1/integrations/ispbilling/customers${queryString({ ...filters, offset: pageParam })}`),
-    initialPageParam: 0,
-    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+export const useIspbillingCustomers = (filters: IspbillingFilters, page: { offset: number; limit: number }) =>
+  useQuery({
+    queryKey: ["ispbilling-customers", filters, page],
+    queryFn: () => api<IspbillingPage>(`/api/ui/v1/integrations/ispbilling/customers${queryString({ ...filters, offset: page.offset, limit: page.limit })}`),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   });

@@ -29,20 +29,27 @@ export interface CustomerFilters {
 
 export interface CustomerList {
   total: number;
+  offset: number;
+  limit: number;
   items: CustomerRow[];
   counts: Record<"all" | "alerts" | "severe" | "updates" | "offline", number>;
   can_create: boolean;
 }
 
-export function customersUrl(filters: CustomerFilters): string {
+export function customersUrl(filters: CustomerFilters, page?: { offset: number; limit: number }): string {
   const search = new URLSearchParams();
   for (const key of ["q", "filter", "sort", "dir"] as const) {
     const value = filters[key];
     if (value) search.set(key, value);
   }
+  if (page) {
+    search.set("offset", String(page.offset));
+    search.set("limit", String(page.limit));
+  }
   const query = search.toString();
   return `/api/ui/v1/customers${query ? `?${query}` : ""}`;
 }
 
-export const useCustomers = (filters: CustomerFilters) =>
-  useQuery({ queryKey: ["customers", filters], queryFn: () => api<CustomerList>(customersUrl(filters)), placeholderData: keepPreviousData, staleTime: 30_000 });
+/** One page of the customer list (the counts cover every customer). */
+export const useCustomers = (filters: CustomerFilters, page: { offset: number; limit: number }) =>
+  useQuery({ queryKey: ["customers", filters, page], queryFn: () => api<CustomerList>(customersUrl(filters, page)), placeholderData: keepPreviousData, staleTime: 30_000 });

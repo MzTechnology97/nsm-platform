@@ -1,6 +1,9 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SearchSelect, customerLabel } from "../app/SearchSelect";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 
 import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
@@ -138,10 +141,11 @@ export function Lifecycle() {
     if ((search.q ?? "") !== q) update({ q: q || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
-  const query = useLifecycle(search);
-  const first = query.data?.pages[0];
-  const items = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
-  const groups = useMemo(() => query.data?.pages.flatMap((page) => page.groups) ?? [], [query.data]);
+  const paging = usePaging(JSON.stringify(search));
+  const query = useLifecycle(search, pageParams(paging));
+  const first = query.data;
+  const items = useMemo(() => query.data?.items ?? [], [query.data]);
+  const groups = useMemo(() => query.data?.groups ?? [], [query.data]);
   const state = search.state ?? "";
   const date = (value: string | null) => (value ? new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" }).format(new Date(value)) : "—");
 
@@ -171,10 +175,7 @@ export function Lifecycle() {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("lifecycle.search")} aria-label={t("lifecycle.search")} autoComplete="off" />
-        <select value={search.customer ?? ""} onChange={(event) => update({ customer: event.target.value || undefined })} aria-label={t("devices.customer")}>
-          <option value="">{t("devices.allCustomers")}</option>
-          {facets.data?.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
-        </select>
+        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
         <select value={search.vendor ?? ""} onChange={(event) => update({ vendor: event.target.value || undefined })} aria-label={t("devices.vendor")}>
           <option value="">{t("devices.allVendors")}</option>
           {facets.data?.vendors.map((vendor) => <option key={vendor} value={vendor}>{vendor}</option>)}
@@ -252,12 +253,8 @@ export function Lifecycle() {
           </div>
           <div className="ui-table-foot">
             <span>{t("firmware.shown", { shown: items.length, total: first.total })}</span>
-            {query.hasNextPage && (
-              <button type="button" className="ui-button ui-button-ghost" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
-                {query.isFetchingNextPage ? t("app.loading") : t("firmware.more")}
-              </button>
-            )}
           </div>
+          <Pager total={first.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
         <div className="ui-empty">{state ? t("lifecycle.empty") : t("lifecycle.allGood")}</div>

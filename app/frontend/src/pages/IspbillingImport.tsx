@@ -2,6 +2,8 @@ import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 import { type IspbillingFilters, type IspbillingRow, useIspbillingCommit, useIspbillingCustomers, useIspbillingPreview } from "../api/ispbilling";
 import { formatDateTime } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
@@ -18,9 +20,11 @@ export function IspbillingImport() {
   const [text, setText] = useState(search.q ?? "");
   const q = useDebounced(text.trim());
   const state = search.state ?? "new";
-  const query = useIspbillingCustomers({ ...search, state });
-  const first = query.data?.pages[0];
-  const items = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
+  const importFilters = { ...search, state };
+  const paging = usePaging(JSON.stringify(importFilters));
+  const query = useIspbillingCustomers(importFilters, pageParams(paging));
+  const first = query.data;
+  const items = useMemo(() => query.data?.items ?? [], [query.data]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const preview = useIspbillingPreview();
   const commit = useIspbillingCommit();
@@ -119,12 +123,8 @@ export function IspbillingImport() {
           </div>
           <div className="ui-table-foot">
             <span>{t("firmware.shown", { shown: items.length, total: first.total })}</span>
-            {query.hasNextPage && (
-              <button type="button" className="ui-button ui-button-ghost" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
-                {query.isFetchingNextPage ? t("app.loading") : t("firmware.more")}
-              </button>
-            )}
           </div>
+          <Pager total={first.total} paging={paging} busy={query.isFetching} />
           <div className="ui-row-actions">
             <button type="button" className="ui-button" disabled={!selected.size || selected.size > MAX_BATCH || preview.isPending} onClick={() => preview.mutate([...selected])}>
               {t("ispbilling.preview", { count: selected.size, max: MAX_BATCH })}
