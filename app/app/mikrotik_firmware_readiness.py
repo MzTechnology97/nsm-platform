@@ -209,6 +209,10 @@ async def firmware_readiness_complete(request: Request, job_id: uuid.UUID):
         job.result = normalized if status == "success" else result
         job.last_error = _clean(payload.get("error"), 4000) or None
         job.completed_at = utcnow()
+        if status == "success":
+            from app.firmware_upgrade_planner import prepare_after_readiness
+
+            prepare_after_readiness(db, device)  # *Prepara upgrade* clicked while the check was running
         core.add_event(
             db,
             "FIRMWARE_READINESS_COMPLETED",

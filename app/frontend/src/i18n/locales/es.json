@@ -1245,7 +1245,9 @@
       "checking": "Buscando la última versión…",
       "downloaded": "Descargado, reiniciar para actualizar",
       "dnsError": "Error: nombre del servidor de actualización no resuelto"
-    }
+    },
+    "preparing": "Comprobando…",
+    "preparingHelp": "El plan se prepara solo en cuanto termina la comprobación."
   },
   "vulns": {
     "title": "Vulnerabilidades",
@@ -3872,7 +3874,11 @@
       "blocked": "Actualización no disponible.",
       "confirmation": "Confirmación no válida.",
       "backup_ack": "Confirma que tienes una copia reciente."
-    }
+    },
+    "checkNow": "Buscar actualizaciones",
+    "checking": "Comprobando…",
+    "preparing": "Comprobando actualizaciones: el plan se prepara solo en cuanto llega el resultado (en 1–2 minutos).",
+    "prepareFailed": "Plan no preparado tras la comprobación: {{error}}"
   },
   "deviceUisp": {
     "recordTitle": "Registro NSM",
