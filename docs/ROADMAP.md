@@ -181,6 +181,7 @@ Per vendor:
 - **Ubiquiti airOS (UISP)**: UISP does not set SNMP, ACL or firewall rules today. NSM can do it like the syslog (UISP backup → edited `system.cfg` → apply, which reboots the CPE):
   - `snmp.status`, `snmp.community` and `snmp.location` exist in the archived configurations;
   - airOS has no address list for SNMP or SSH (`sshd.*` has only port and status), so the ACL needs firewall rules (`iptables.sys.fw.*`: accept SNMP, SSH and the management ports from the list, drop them from the others on the WAN);
+  - **chosen approach (user, 2026-10-23)**: enable the airOS firewall and create ACL rules for the important services: SSH (TCP 22 or the configured `sshd.port`), discovery (UDP 10001) and SNMP (UDP 161). Each is accepted only from the list and dropped from other sources; the web ports follow the same pattern if requested;
   - the NTP keys (`ntpclient.*`) and the timezone keys need checking;
   - rule keys and ordering must be validated on a test CPE first, because a wrong rule can lock the CPE out of management.
 - **TP-Link and other CPEs (TR-069)**:
