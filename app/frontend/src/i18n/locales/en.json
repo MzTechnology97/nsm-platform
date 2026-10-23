@@ -4,7 +4,8 @@
     "loading": "Loading…",
     "error": "Unable to load data.",
     "retry": "Retry",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "copyFailed": "The browser did not allow copying: select the text and press Ctrl+C."
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -236,7 +237,16 @@
       "notMeasuredNote": "enable NSM ping in Monitor"
     },
     "backupNever": "never",
-    "backupNotAvailable": "not available"
+    "backupNotAvailable": "not available",
+    "ispbilling": {
+      "title": "ISPBilling account",
+      "help": "The ISPBilling RADIUS account served by this device, read from the billing system.",
+      "otherCustomer": "ISPBilling bills this account to a different customer than the device's NSM customer.",
+      "matched": {
+        "pppoe": "matched by PPPoE user",
+        "ip": "matched by static IP"
+      }
+    }
   },
   "monitor": {
     "range": "Range",
@@ -5474,7 +5484,10 @@
     "doneTitle": "Import done",
     "done": "{{created}} customers created, {{linked}} linked; {{sites}} sites created, {{sitesLinked}} linked to existing ones.",
     "skipped": "{{count}} skipped.",
-    "openCustomers": "Open customers"
+    "openCustomers": "Open customers",
+    "radius": "RADIUS accounts",
+    "radiusMatched": "{{count}} matched to a device",
+    "radiusError": "RADIUS accounts not read: {{error}}"
   },
   "acsDiagnostics": {
     "title": "Diagnostics from the CPE",
@@ -5507,6 +5520,30 @@
       "address": "Address",
       "rtt": "Times"
     }
+  },
+  "acsMonitor": {
+    "title": "Line and Wi-Fi",
+    "waiting": "No data yet: NSM reads the CPE from the ACS every few minutes.",
+    "lastInform": "Last contact with the ACS {{when}} · {{model}}",
+    "every": "every {{minutes}} min",
+    "wan": "WAN",
+    "wanIp": "WAN address",
+    "connectedFor": "Connected for",
+    "uptime": "Uptime",
+    "wifiClients": "Wi-Fi clients",
+    "lanHosts": "LAN hosts",
+    "lastError": "Last connection error",
+    "countersMissing": "The CPE does not report its WAN byte counters (they stay at 0): no traffic chart for this firmware.",
+    "radio": "Radio",
+    "channel": "Channel",
+    "bandwidth": "Width",
+    "standard": "Standard",
+    "clients": "Clients",
+    "dsl": "DSL line",
+    "dslRate": "Down / up rate",
+    "dslSnr": "SNR margin",
+    "dslAttenuation": "Attenuation",
+    "charts": "History from the ACS"
   },
   "serverMigration": {
     "subtitle": "Move NSM to a server with another address: this server tells MikroTik agents and TR-069 CPEs the new address.",

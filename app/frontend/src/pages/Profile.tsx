@@ -6,6 +6,7 @@ import { ApiError, setCsrfToken } from "../api/client";
 import { type ChannelPreference, type Profile as ProfileData, useProfile, useProfileAction } from "../api/personal";
 import { useSession, useUpdatePreferences } from "../api/session";
 import { formatDateTime } from "../lib/format";
+import { copyText } from "../lib/clipboard";
 import { Loading } from "../app/States";
 
 const DELIVERY_TONE: Record<string, string> = { sent: "online", failed: "offline", pending: "warning" };
@@ -154,10 +155,8 @@ function Password() {
 
 function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone: () => void }) {
   const { t } = useTranslation();
-  const [copied, setCopied] = useState(false);
-  const copy = () => {
-    void navigator.clipboard?.writeText(codes.join("\n")).then(() => setCopied(true), () => setCopied(false));
-  };
+  const [copied, setCopied] = useState<boolean | null>(null);
+  const copy = () => void copyText(codes.join("\n")).then(setCopied);
   return (
     <div className="ui-alert ui-alert-warning">
       <strong>{t("profile.codesTitle")}</strong>
@@ -167,6 +166,7 @@ function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone: () => void 
         <button type="button" className="ui-button ui-button-ghost ui-button-small" onClick={copy}>{copied ? t("profile.copied") : t("profile.copy")}</button>
         <button type="button" className="ui-button ui-button-small" onClick={onDone}>{t("profile.codesSaved")}</button>
       </div>
+      {copied === false && <small className="ui-key-hint ui-block">{t("app.copyFailed")}</small>}
     </div>
   );
 }

@@ -61,6 +61,7 @@ from app.ispbilling_import import install_ispbilling_import
 from app.nav_counts import install_nav_counts
 from app.ui_device_connectors import install_ui_device_connectors
 from app.acs_diagnostics import install_acs_diagnostics
+from app.acs_monitoring import install_acs_monitoring
 from app.ui_backup_policies import install_ui_backup_policies
 from app.legacy_redirects import install_legacy_redirects
 from app.ui_spa import install_ui_spa
@@ -126,7 +127,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.203"
+APP_VERSION = "0.49.213"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -260,6 +261,7 @@ install_ispbilling_import(core.app)
 install_nav_counts(core.app)
 install_ui_device_connectors(core.app)
 install_acs_diagnostics(core.app)
+install_acs_monitoring(core.app)
 install_ui_backup_policies(core.app)
 install_ui_spa(core.app)
 # The syntax guard must wrap the final composed modern source, including the
