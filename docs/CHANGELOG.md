@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.251 — 2026-10-23
+
+Cambium: ePMP configuration backups over SSH
+
+### Added
+
+- Cambium ePMP configuration backups over SSH. The cnMaestro API cannot export device configurations, so NSM logs in to the ePMP CLI over SSH, reads the running configuration (`config show json`) and archives it in the device *Backup* tab. The archived configuration is complete and can be restored from the ePMP *Backup/Restore* page. The backup runs from the device *cnMaestro* tab or on schedule through backup policies with the new *Configurazione Cambium (SSH)* option; an unchanged configuration is not stored twice.
+- SSH credentials: one set for all Cambium devices in *Amministrazione → cnMaestro*, overridable per device, stored encrypted and never shown again. The first SSH host key of each device is remembered, and a different key stops the backups until an operator accepts it.
+- New dependency: `asyncssh`.
+
 ## 0.49.250 — 2026-10-23
 
 Speed test on newly added CPEs
