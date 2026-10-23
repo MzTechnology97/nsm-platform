@@ -6,6 +6,7 @@ import { useConnectorAction } from "../api/admin";
 import { type IspbillingAdmin, useIspbillingAdmin } from "../api/ispbilling";
 import { AdminTabs } from "../app/AdminTabs";
 import { IntegrationTabs } from "../app/IntegrationTabs";
+import { IspbillingLinks } from "../app/IspbillingLinks";
 import { formatDateTime } from "../lib/format";
 import { Loading } from "../app/States";
 
@@ -39,6 +40,7 @@ export function AdminIspbilling() {
             <Connection data={data} />
             <Actions data={data} />
           </div>
+          {data.configured && <IspbillingLinks />}
         </>
       )}
     </section>
@@ -106,9 +108,11 @@ function Connection({ data }: { data: IspbillingAdmin }) {
 }
 
 function Actions({ data }: { data: IspbillingAdmin }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const test = useConnectorAction<object, { ok: boolean; message: string }>("ispbilling", "/test");
   const sync = useConnectorAction<object>("ispbilling", "/sync");
+  const auto = useConnectorAction<{ enabled: boolean }>("ispbilling", "/auto-import");
+  const last = data.last_auto_import;
   return (
     <section className="ui-panel ui-admin-section">
       <h2>{t("cnmaestro.actions")}</h2>
@@ -121,6 +125,26 @@ function Actions({ data }: { data: IspbillingAdmin }) {
       </div>
       {test.data && <div className={`ui-alert${test.data.ok ? "" : " ui-alert-warning"}`}>{test.data.message}</div>}
       {(test.error || sync.error) && <small className="ui-backup-error">{((test.error || sync.error) as Error).message}</small>}
+      <div className="ui-ispbilling-auto">
+        <h3>{t("ispbilling.autoTitle")}</h3>
+        <p className="ui-muted">{t("ispbilling.autoHelp")}</p>
+        <label className="ui-with-brand">
+          <input type="checkbox" checked={auto.isPending && auto.variables ? auto.variables.enabled : data.auto_import}
+            disabled={!data.configured || auto.isPending} onChange={(event) => auto.mutate({ enabled: event.target.checked })} />
+          <span>{t("ispbilling.autoEnabled")}</span>
+        </label>
+        {data.auto_import && (
+          <small className="ui-muted">
+            {last ? t("ispbilling.autoLast", { at: formatDateTime(last.at, i18n.language), created: last.created, sites: last.sites_created + last.sites_linked }) : t("ispbilling.autoNever")}
+          </small>
+        )}
+        {data.auto_import && last && last.to_review > 0 && (
+          <div className="ui-alert ui-alert-warning">
+            {t("ispbilling.autoReview", { count: last.to_review })} <Link to="/integrations/ispbilling/import" search={{ state: "linkable" }}>{t("ispbilling.import")}</Link>
+          </div>
+        )}
+        {auto.error && <small className="ui-backup-error">{(auto.error as Error).message}</small>}
+      </div>
     </section>
   );
 }
