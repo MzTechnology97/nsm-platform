@@ -89,7 +89,8 @@ function CustomerShell({ detail }: { detail: Detail }) {
               to={MIGRATED_TABS[tab.key as keyof typeof MIGRATED_TABS]}
               params={{ customerId: customer.id }}
               className="ui-tab"
-              activeOptions={{ exact: true, includeSearch: false }}
+              // Only the overview needs an exact match: the other tabs stay highlighted on their sub-pages (Security → Firmware…).
+              activeOptions={{ exact: tab.key === "overview", includeSearch: false }}
               activeProps={{ className: "ui-tab is-active", "aria-current": "page" }}
             >
               {t(`customer.tabs.${tab.key}`)}

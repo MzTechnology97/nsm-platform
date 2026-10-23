@@ -189,6 +189,10 @@ export function parseVulnSearch(search: Record<string, unknown>): VulnFilters {
   return out;
 }
 
+function parseAdvisorySearch(search: Record<string, unknown>): Pick<VulnFilters, "customer" | "status"> {
+  const out = parseVulnSearch(search);
+  return { ...(out.customer ? { customer: out.customer } : {}), ...(out.status ? { status: out.status } : {}) };
+}
 const vulnerabilitiesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/vulnerabilities",
@@ -204,10 +208,7 @@ const vulnerabilityRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/vulnerabilities/$advisoryId",
   component: lazyRouteComponent(() => import("../pages/Vulnerabilities"), "VulnerabilityDetail"),
-  validateSearch: (search: Record<string, unknown>): Pick<VulnFilters, "customer" | "status"> => {
-    const out = parseVulnSearch(search);
-    return { ...(out.customer ? { customer: out.customer } : {}), ...(out.status ? { status: out.status } : {}) };
-  },
+  validateSearch: parseAdvisorySearch,
 });
 const complianceBaselinesRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -229,15 +230,18 @@ const complianceResultRoute = createRoute({
   path: "/compliance/results/$resultId",
   component: lazyRouteComponent(() => import("../pages/ComplianceResult"), "ComplianceResult"),
 });
+function parseComplianceSearch(search: Record<string, unknown>): ComplianceFilters {
+  return {
+    ...(typeof search.status === "string" && (COMPLIANCE_STATUSES as readonly string[]).includes(search.status) ? { status: search.status as ComplianceFilters["status"] } : {}),
+    ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
+    ...(typeof search.control === "string" && search.control ? { control: search.control } : {}),
+  };
+}
 const complianceRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/compliance",
   component: lazyRouteComponent(() => import("../pages/Compliance"), "Compliance"),
-  validateSearch: (search: Record<string, unknown>): ComplianceFilters => ({
-    ...(typeof search.status === "string" && (COMPLIANCE_STATUSES as readonly string[]).includes(search.status) ? { status: search.status as ComplianceFilters["status"] } : {}),
-    ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
-    ...(typeof search.control === "string" && search.control ? { control: search.control } : {}),
-  }),
+  validateSearch: parseComplianceSearch,
 });
 function parseIssueSearch(search: Record<string, unknown>): IssueFilters {
   return {
@@ -360,6 +364,31 @@ const customerIncidentsRoute = createRoute({
   path: "/incidents",
   component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerIncidents"),
   validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseIncidentSearch(search)),
+});
+// The security views of a customer: vulnerabilities (and a CVE's detail), firmware and compliance, under its Security tab.
+const customerVulnerabilitiesRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/security/vulnerabilities",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerVulnerabilities"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseVulnSearch(search)),
+});
+const customerVulnerabilityRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/security/vulnerabilities/$advisoryId",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerVulnerability"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseAdvisorySearch(search)),
+});
+const customerFirmwareRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/security/firmware",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerFirmware"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseFirmwareSearch(search)),
+});
+const customerComplianceRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/security/compliance",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerCompliance"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseComplianceSearch(search)),
 });
 const customerSlaRoute = createRoute({
   getParentRoute: () => customerRoute,
@@ -696,7 +725,7 @@ export const routeTree = rootRoute.addChildren([
   notificationsRoute,
   profileRoute,
   customerNewRoute,
-  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute, customerDevicesManageRoute, customerDevicesRoute, customerBackupsRoute, customerHistoryRoute, customerActionsRoute, customerIncidentsRoute, customerSlaRoute]),
+  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute, customerDevicesManageRoute, customerDevicesRoute, customerBackupsRoute, customerHistoryRoute, customerActionsRoute, customerIncidentsRoute, customerSlaRoute, customerVulnerabilitiesRoute, customerVulnerabilityRoute, customerFirmwareRoute, customerComplianceRoute]),
   deviceImportRoute,
   deviceRoute.addChildren([deviceOverviewRoute, deviceManageRoute, deviceExposureRoute, deviceComplianceRoute, deviceJobsRoute, deviceConfigurationRoute, deviceConfigurationHistoryRoute, deviceRebootRoute, deviceRouterbootRoute, deviceFirmwareRoute, deviceUispRoute, deviceCnmaestroRoute, deviceGenieacsRoute, deviceLifecycleRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceBackupArtifactRoute, deviceRestoreTestsRoute, deviceRestoreTestRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

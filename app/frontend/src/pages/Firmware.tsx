@@ -1,6 +1,7 @@
-import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useListSearch } from "../app/CustomerScope";
 import { SearchSelect, customerLabel } from "../app/SearchSelect";
 import type { TFunction } from "i18next";
 
@@ -23,12 +24,11 @@ const STATUS_TONE: Record<string, string> = {
 
 export function Firmware() {
   const { t } = useTranslation();
-  const search = useSearch({ from: "/firmware" });
-  const navigate = useNavigate({ from: "/firmware" });
+  // Globally or inside a customer's security tab (the customer filter is then fixed and its picker hidden).
+  const { search, update, customer: scope } = useListSearch<FirmwareFilters>();
   const facets = useDeviceFacets();
   const [text, setText] = useState(search.q ?? "");
   const q = useDebounced(text.trim());
-  const update = (patch: Partial<FirmwareFilters>) => void navigate({ search: (previous: FirmwareFilters) => ({ ...previous, ...patch }), replace: true });
   useEffect(() => {
     if ((search.q ?? "") !== q) update({ q: q || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -40,10 +40,10 @@ export function Firmware() {
   const state = search.state ?? "attention";
 
   return (
-    <section className="ui-page">
+    <section className={scope ? "ui-customer-list" : "ui-page"}>
       <header className="ui-page-header ui-page-header-row">
         <div>
-          <h1>{t("firmware.title")}</h1>
+          {scope ? <h2>{t("firmware.title")}</h2> : <h1>{t("firmware.title")}</h1>}
           <p>{t("firmware.subtitle")}</p>
         </div>
         <div className="ui-actions">
@@ -66,7 +66,7 @@ export function Firmware() {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("firmware.search")} aria-label={t("firmware.search")} autoComplete="off" />
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        {!scope && <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />}
         <select value={search.vendor ?? ""} onChange={(event) => update({ vendor: event.target.value || undefined })} aria-label={t("devices.vendor")}>
           <option value="">{t("devices.allVendors")}</option>
           {facets.data?.vendors.map((vendor) => <option key={vendor} value={vendor}>{vendor}</option>)}
