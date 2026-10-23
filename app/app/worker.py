@@ -29,6 +29,8 @@ from app.syslog_security import evaluate as evaluate_access_alerts
 from app.mikrotik_syslog_config import auto_configure as auto_configure_syslog
 from app.zabbix_connector import scheduled_sync as zabbix_sync
 from app.zabbix_problems import scheduled_refresh as zabbix_problems_refresh
+from app.acs_monitoring import cleanup as acs_metrics_cleanup, collect as acs_monitoring_collect
+from app.acs_admin import auto_update as acs_templates_auto_update
 from app.device_exposure import tick as exposure_tick
 from app.external_exposure import tick as external_exposure_tick
 from app.syslog_integrity import anchor_heads as syslog_anchor
@@ -101,6 +103,8 @@ while True:
             run_task("cnmaestro_sync", cnmaestro_sync)
             run_task("ispbilling_sync", ispbilling_sync)
             run_task("zabbix_problems", zabbix_problems_refresh)
+            run_task("acs_monitoring", acs_monitoring_collect)
+            run_task("acs_templates", acs_templates_auto_update)
             run_task("exposure_check", exposure_tick)
             run_task("exposure_external_check", external_exposure_tick)
             run_task("syslog_chain_anchor", syslog_anchor)
@@ -148,7 +152,7 @@ while True:
 
         if now_mono - last_telemetry_maintenance >= TELEMETRY_MAINTENANCE_INTERVAL_SECONDS:
             run_task("telemetry_consolidation", consolidate_telemetry, default=0)
-            deleted = run_task("telemetry_retention", telemetry_cleanup, default=0) + run_task("uisp_metrics_retention", uisp_metrics_cleanup, default=0) + run_task("cnmaestro_metrics_retention", cnmaestro_cleanup, default=0) + run_task("interface_traffic_retention", interface_traffic_cleanup, default=0) + run_task("icmp_retention", icmp_cleanup, default=0) + run_task("wireless_retention", wireless_cleanup, default=0) + run_task("syslog_retention", syslog_cleanup, default=0)
+            deleted = run_task("telemetry_retention", telemetry_cleanup, default=0) + run_task("uisp_metrics_retention", uisp_metrics_cleanup, default=0) + run_task("cnmaestro_metrics_retention", cnmaestro_cleanup, default=0) + run_task("interface_traffic_retention", interface_traffic_cleanup, default=0) + run_task("icmp_retention", icmp_cleanup, default=0) + run_task("wireless_retention", wireless_cleanup, default=0) + run_task("syslog_retention", syslog_cleanup, default=0) + run_task("acs_metrics_retention", acs_metrics_cleanup, default=0)
             if deleted:
                 log.info("Telemetry retention: rimossi %s campioni scaduti", deleted)
             last_telemetry_maintenance = now_mono

@@ -237,6 +237,7 @@
       "notMeasuredNote": "attiva il ping da NSM nel Monitor"
     },
     "backupNever": "mai",
+    "backupNotAvailable": "non disponibile",
     "ispbilling": {
       "title": "Account ISPBilling",
       "help": "L'account RADIUS di ISPBilling servito da questo apparato, letto dal gestionale.",
@@ -1824,7 +1825,8 @@
       "notifications": "Notifiche",
       "syslog": "Syslog",
       "acs": "ACS",
-      "system": "Sistema"
+      "system": "Sistema",
+      "serverMigration": "Migrazione server"
     }
   },
   "adminUsers": {
@@ -2591,7 +2593,17 @@
     "presetText": "condizione <code>{{condition}}</code>, eventi bootstrap, boot e periodic → provision <code>{{provision}}</code>",
     "script": "Script della provision {{name}}",
     "migrationHint": "Hai già una flotta di CPE su un ACS cloud (per esempio TAUC)?",
-    "migrationLink": "Migra i CPE verso questo ACS"
+    "migrationLink": "Migra i CPE verso questo ACS",
+    "templatesCurrent": "I modelli NSM sono aggiornati (installati il {{when}}). NSM li aggiorna da solo dopo ogni aggiornamento.",
+    "templatesPending": "Questa versione di NSM ha modelli più recenti di quelli installati il {{when}}: NSM li installa entro 30 minuti, oppure premi Installa ora.",
+    "templatesAuto": "Una volta installati, NSM tiene aggiornati questi modelli da solo dopo ogni aggiornamento.",
+    "guideIntro": "Su ogni router serve un solo passaggio manuale: accendere il CWMP e impostare l'ACS URL. Da lì NSP riconosce la CPE e la monitora in sola lettura, senza modificarne la configurazione.",
+    "readonlyTitle": "Cosa fa NSP e cosa non tocca",
+    "readonly": {
+      "reads": "Legge: stato online/offline, ultimo contatto, modello, firmware, IP, CPU, memoria, traffico WAN, client Wi-Fi e linea DSL.",
+      "actions": "Azioni disponibili: riavvio, verifica firmware, diagnostica.",
+      "never": "Non modifica Wi-Fi, LAN, DHCP, PPPoE o altra configurazione del router. L'unica impostazione che scrive è l'intervallo di inform del CWMP."
+    }
   },
   "demo": {
     "subtitle": "Dataset isolato per provare interfaccia e flussi di lavoro senza usare clienti reali.",
@@ -2721,7 +2733,17 @@
         "title": "Login con password",
         "text": "username (5.4+) o user (versioni precedenti)"
       }
-    }
+    },
+    "linked": "Host esistenti collegati",
+    "linkedNote": "host che avevi già in Zabbix, usati così come sono",
+    "ambiguous": "Non collegati, più host Zabbix potrebbero corrispondere: {{names}}. Imposta un IP Zabbix dedicato o rinomina l'host.",
+    "ipUpdated": "IP aggiornato sugli host collegati dopo un cambio di indirizzo: {{names}}.",
+    "linkExisting": "Usa gli host già presenti in Zabbix",
+    "linkExistingHelp": "Un apparato viene collegato all'host Zabbix con lo stesso IP (o, in mancanza, lo stesso nome) quando ne corrisponde uno solo: NSM ne mostra i problemi e non crea un host nsm- per lui. Gruppi, template e tag dei tuoi host non vengono toccati.",
+    "updateIp": "Aggiorna l'IP degli host collegati quando cambia",
+    "updateIpHelp": "Per router con IP pubblico dinamico o dietro NAT: NSM scrive sull'interfaccia principale dell'host l'indirizzo attuale dell'apparato (IP pubblico del router o quello da cui si collega il suo agent).",
+    "templatesFromZabbix": "Suggerimenti: i {{count}} template del tuo Zabbix.",
+    "factoryIp": "Non in Zabbix, il loro indirizzo è un IP LAN di fabbrica (es. 192.168.1.1) che Zabbix non raggiunge: {{names}}. Indica l'indirizzo da usare per Zabbix, oppure dai all'host Zabbix lo stesso nome dell'apparato."
   },
   "genieacs": {
     "title": "Integrazioni · GenieACS / TR-069",
@@ -4835,7 +4857,11 @@
     },
     "pending": "in attesa della prossima sincronizzazione",
     "exclude": "Escludi da Zabbix",
-    "include": "Includi in Zabbix"
+    "include": "Includi in Zabbix",
+    "linked": {
+      "ip": "host Zabbix esistente, collegato per IP",
+      "name": "host Zabbix esistente, collegato per nome"
+    }
   },
   "decommission": {
     "badge": "Disattivato",
@@ -5050,9 +5076,12 @@
     }
   },
   "eventTypes": {
+    "ACS_DIAGNOSTIC_COMPLETED": "Diagnostica ACS completata",
+    "ACS_DIAGNOSTIC_REQUESTED": "Diagnostica ACS richiesta",
     "ACS_MIGRATION_COMPLETED": "Migrazione ACS completata",
     "ACS_MIGRATION_STARTED": "Migrazione ACS avviata",
     "ACS_TEMPLATES_INSTALLED": "Modelli ACS installati",
+    "ACS_TEMPLATES_UPDATED": "Modelli ACS aggiornati da NSM",
     "AGENT_HEALTH_ISSUE_OPENED": "Problema dell'agent segnalato",
     "AGENT_HEALTH_RECOVERED": "Agent tornato regolare",
     "API_KEY_CREATED": "Chiave API creata",
@@ -5232,6 +5261,10 @@
     "SECURITY_MATCHING_COMPLETED": "Correlazione vulnerabilità completata",
     "SECURITY_SOURCE_CONFIGURED": "Fonte di sicurezza configurata",
     "SERIAL_DISCOVERED": "Numero di serie rilevato",
+    "SERVER_MIGRATION_CANCELLED": "Migrazione del server annullata",
+    "SERVER_MIGRATION_CREATED": "Migrazione del server creata",
+    "SERVER_MIGRATION_STARTED": "Apparati inviati al nuovo server",
+    "SERVER_MIGRATION_VERIFIED": "Nuovo server verificato",
     "SITE_ADDED": "Sede aggiunta",
     "SITE_DELETED": "Sede eliminata",
     "SITE_UPDATED": "Sede modificata",
@@ -5278,6 +5311,8 @@
     "VULNERABILITY_STATUS_CHANGED": "Stato della vulnerabilità cambiato",
     "ZABBIX_DEVICE_IP_CHANGED": "IP per Zabbix cambiato",
     "ZABBIX_DEVICE_SCOPE_CHANGED": "Apparato incluso o escluso da Zabbix",
+    "ZABBIX_HOST_IP_UPDATED": "IP dell'host Zabbix aggiornato",
+    "ZABBIX_HOST_LINKED": "Apparato collegato a un host Zabbix esistente",
     "ZABBIX_SETTINGS_CHANGED": "Impostazioni Zabbix modificate",
     "ZABBIX_SYNC_REQUESTED": "Sincronizzazione Zabbix richiesta"
   },
@@ -5303,7 +5338,9 @@
     "syslog": "syslog",
     "routeros_catalog": "catalogo RouterOS",
     "measure": "misura",
-    "job": "attività"
+    "job": "attività",
+    "tr069": "TR-069 (ACS)",
+    "acs": "ACS"
   },
   "acsMigration": {
     "subtitle": "Migra in blocco i CPE dei clienti verso l'ACS integrato riconfigurando il CWMP sulla rete di gestione.",
@@ -5452,6 +5489,135 @@
     "radius": "Account RADIUS",
     "radiusMatched": "{{count}} abbinati a un apparato",
     "radiusError": "Account RADIUS non letti: {{error}}"
+  },
+  "acsDiagnostics": {
+    "title": "Diagnostica dal CPE",
+    "help": "Il test lo esegue il CPE stesso tramite l'ACS (TR-069): il risultato è quello che vede la linea del cliente. Parte subito se il CPE accetta la richiesta di connessione, altrimenti al suo prossimo contatto con l'ACS.",
+    "kind": "Test",
+    "kinds": {
+      "ping": "Ping",
+      "traceroute": "Traceroute"
+    },
+    "target": "Destinazione",
+    "targetPlaceholder": "Indirizzo IP o nome host",
+    "run": "Esegui",
+    "states": {
+      "requested": "In esecuzione sul CPE…",
+      "complete": "Completato",
+      "error": "Il CPE ha segnalato un errore",
+      "timeout": "Nessuna risposta dal CPE entro 4 minuti"
+    },
+    "waitingContact": "il CPE non ha accettato la richiesta di connessione: partirà al prossimo contatto",
+    "cpeState": "Stato del CPE",
+    "noHops": "Il CPE non ha restituito salti.",
+    "ping": {
+      "received": "Risposte",
+      "min": "Minimo",
+      "avg": "Medio",
+      "max": "Massimo"
+    },
+    "trace": {
+      "host": "Host",
+      "address": "Indirizzo",
+      "rtt": "Tempi"
+    }
+  },
+  "acsMonitor": {
+    "title": "Linea e Wi-Fi",
+    "waiting": "Nessun dato ancora: NSM legge il CPE dall'ACS ogni pochi minuti.",
+    "lastInform": "Ultimo contatto con l'ACS {{when}} · {{model}}",
+    "every": "ogni {{minutes}} min",
+    "wan": "WAN",
+    "wanIp": "Indirizzo WAN",
+    "connectedFor": "Connesso da",
+    "uptime": "Uptime",
+    "wifiClients": "Client Wi-Fi",
+    "lanHosts": "Host LAN",
+    "lastError": "Ultimo errore di connessione",
+    "countersMissing": "Il CPE non riporta i contatori di traffico WAN (restano a 0): niente grafico del traffico con questo firmware.",
+    "radio": "Radio",
+    "channel": "Canale",
+    "bandwidth": "Larghezza",
+    "standard": "Standard",
+    "clients": "Client",
+    "dsl": "Linea DSL",
+    "dslRate": "Velocità down / up",
+    "dslSnr": "Margine SNR",
+    "dslAttenuation": "Attenuazione",
+    "charts": "Storico dall'ACS"
+  },
+  "serverMigration": {
+    "subtitle": "Sposta NSM su un server con un altro indirizzo: questo server comunica il nuovo indirizzo ad agent MikroTik e CPE TR-069.",
+    "howTitle": "Come funziona",
+    "how": "Gli apparati conoscono NSM per indirizzo. Questo server consegna agli agent MikroTik uno script che punta al nuovo indirizzo e imposta il nuovo ACS URL sui CPE TR-069 (l'unica scrittura CWMP). Non serve toccare i router.",
+    "steps": {
+      "install": "Installa sul nuovo server la stessa versione di NSM.",
+      "create": "Crea qui la migrazione con l'indirizzo del nuovo server.",
+      "restore": "Fai un backup del database qui (<code>sudo ./manage.sh backup-db</code>) e ripristinalo sul nuovo server con <code>secrets/bootstrap.env</code> e <code>.env</code> (<code>sudo ./manage.sh restore-db</code>): il backup va fatto dopo aver creato la migrazione.",
+      "settings": "Sul nuovo server: ACS_CWMP_URL nel .env, indirizzo pubblico del syslog (Amministrazione → Syslog), impostazioni del ricevitore FTP dei backup legacy, template ACS installati.",
+      "pilot": "Verifica il nuovo server, prova un pilota su pochi apparati, conferma che sono arrivati, poi migra tutti.",
+      "reinstall": "Gli agent che non si aggiornano da soli vanno reinstallati dal nuovo server (scheda Agent dell'apparato)."
+    },
+    "readiness": {
+      "capable": "Agent aggiornabili",
+      "capableHint": "passano al nuovo server da soli",
+      "reinstall": "Agent da reinstallare",
+      "reinstallHint": "da reinstallare dal nuovo server",
+      "tr069": "CPE TR-069",
+      "tr069Hint": "ricevono il nuovo ACS URL"
+    },
+    "createTitle": "Nuova migrazione",
+    "createHelp": "Indirizzo del nuovo server come lo raggiungono i router (http o https, senza percorso). Con https il certificato deve essere valido: i router lo controllano.",
+    "create": "Crea migrazione",
+    "fields": {
+      "agentUrl": "Indirizzo del nuovo server (agent)",
+      "acsUrl": "Nuovo ACS URL (CPE TR-069)",
+      "syslog": "Syslog verso",
+      "created": "Creata"
+    },
+    "noSyslog": "non determinabile: riconfigura il syslog dal nuovo server",
+    "runningTitle": "Migrazione in corso",
+    "cancel": "Annulla migrazione",
+    "cancelConfirm": "Annullare la migrazione? Gli invii non ancora consegnati vengono fermati; gli apparati già passati restano sul nuovo server.",
+    "verifyTitle": "Verifica del nuovo server",
+    "verifyHelp": "Questo server controlla che il nuovo risponda e sia un ripristino di questo database. Va ripetuta entro 24 ore dall'avvio.",
+    "verified": "Verificato {{when}}: versione {{version}}, {{devices}} apparati.",
+    "verify": "Verifica",
+    "pilotTitle": "Pilota",
+    "pilotHelp": "Scegli fino a {{max}} apparati da spostare per primi. Dopo qualche minuto premi «Aggiorna conferme»: quando risultano arrivati puoi migrare tutti.",
+    "search": "Cerca apparato o cliente",
+    "startPilot": "Avvia pilota ({{count}})",
+    "startAll": "Migra tutti",
+    "startAllConfirm": "Inviare il nuovo indirizzo a tutti gli agent aggiornabili e a tutti i CPE TR-069?",
+    "allNeedsPilot": "«Migra tutti» si attiva dopo che almeno un apparato del pilota è arrivato sul nuovo server.",
+    "itemsTitle": "Apparati",
+    "confirm": "Aggiorna conferme",
+    "retire": "Disattiva qui gli arrivati",
+    "retireConfirm": "Disattivare su questo server i {{count}} apparati arrivati sul nuovo? Smettono di generare avvisi qui; i dati restano consultabili.",
+    "retired": "disattivato qui",
+    "noItems": "Nessun apparato inviato.",
+    "cols": {
+      "device": "Apparato",
+      "customer": "Cliente",
+      "kind": "Tipo",
+      "online": "Online",
+      "status": "Stato",
+      "detail": "Dettaglio",
+      "arrived": "Arrivato"
+    },
+    "kind": {
+      "agent": "Agent MikroTik",
+      "tr069": "CPE TR-069"
+    },
+    "status": {
+      "queued": "In attesa",
+      "sent": "Inviato",
+      "arrived": "Arrivato",
+      "failed": "Non riuscito",
+      "reinstall": "Da reinstallare"
+    },
+    "yes": "sì",
+    "no": "no"
   },
   "legacyFtp": {
     "title": "Backup legacy via FTP",

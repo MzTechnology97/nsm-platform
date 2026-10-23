@@ -357,7 +357,7 @@ A port/service scanner run from the NSM server against the WAN address of each m
 
 ### ZBX-01 — Zabbix API integration (requested 2026-10-07)
 
-**Decided with the user (2026-10-08): NSM pushes its devices to Zabbix. Implemented in `main` (Core 0.49.51).** Hosts, groups per customer, templates per manufacturer, tags and inventory; 6.x and 7.x authentication; hosts disabled (not deleted) when devices leave NSM. Zabbix problems are shown inside NSM since Core 0.49.62 (device header and overview, Monitoring).
+**Decided with the user (2026-10-08): NSM pushes its devices to Zabbix. Implemented in `main` (Core 0.49.51).** Hosts, groups per customer, templates per manufacturer, tags and inventory; 6.x and 7.x authentication; hosts disabled (not deleted) when devices leave NSM. Zabbix problems are shown inside NSM since Core 0.49.62 (device header and overview, Monitoring). **Since Core 0.49.205 (operator decision 2026-10-22)**: devices already monitored in the operator's Zabbix are linked to their existing host (same IP, else same name, only when exactly one matches) instead of getting a duplicate `nsm-` host; linked hosts are never modified except their interface IP, kept equal to the device address for dynamic public IPs/NAT (option); ambiguous matches are reported; the settings form suggests the templates found in Zabbix.
 
 Integration with the operator's Zabbix (currently 6.x; support both the 6.x API and 7.x, where authentication moved to an API token in the `Authorization` header). How it applies to devices (import hosts/items, link NSM devices to Zabbix hosts, show problems and graphs, or push NSM devices to Zabbix) is to be decided with the user before implementation.
 
@@ -414,11 +414,13 @@ Normalize relevant Device identity and firmware fields from supported data model
 
 ### ACS-05 — monitoring/history
 
+**Implemented in `main` (Core 0.49.206, 0.49.211)**: state at every Inform (CPU, memory, WAN, Wi-Fi, LAN hosts, DSL), 90-day samples and charts on the device ACS tab, online/offline from the last Inform. Next: PON optical levels where CPEs expose them; alerts on WAN down / DSL degradation.
+
 Persist only supported, stable operational data with capability-aware unavailable states.
 
 ### ACS-06 — diagnostics
 
-Add capability-gated standardized diagnostics where the ACS/CPE supports them.
+**Implemented in `main` (Core 0.49.206)**: ping and traceroute run by the CPE through GenieACS (TR-181 and TR-098), results on the device ACS tab. Next: download/upload speed tests (`Device.IP.Diagnostics.DownloadDiagnostics`/`UploadDiagnostics`, exposed by the TP-Link VX230v) once a test server is chosen.
 
 ### ACS-07 — backup/restore capability
 

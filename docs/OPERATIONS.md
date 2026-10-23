@@ -80,6 +80,19 @@ health check fails (`Backup DB disponibile per recovery: …`).
 3. If the failed release had already migrated the database, restore the
    pre-upgrade dump with `restore-db`.
 
+## Moving NSM to a server with another address
+
+Devices know NSM by address: a MikroTik agent has the server URL in its script, a TR-069 CPE has the ACS URL in its CWMP settings. *Amministrazione → Migrazione server* (administrators) has the OLD server tell them the new address, so no router is touched by hand. A DNS name that simply points to the new server needs none of this.
+
+1. Install the same NSM release on the new server.
+2. On the old server, create the migration with the new address as the routers reach it (`http(s)://host[:port]`) and the new ACS URL. With https the certificate must be valid: RouterOS checks it.
+3. On the old server `sudo ./manage.sh backup-db`, then on the new one restore `secrets/bootstrap.env`, `.env` and the dump (`sudo ./manage.sh restore-db <dump>`). The dump must be taken after step 2: it carries the migration and its token.
+4. On the new server: `ACS_CWMP_URL`, the syslog public address (*Amministrazione → Syslog*), the legacy backup FTP receiver settings, and *Installa template base* in *Amministrazione → ACS*.
+5. *Verifica* on the old server: the new one must answer `/api/v1/server-migration/check` with the token (only a restore of this database can) and must not be this same server.
+6. *Pilota* on up to 10 devices, *Aggiorna conferme* after a few minutes, then *Migra tutti* (enabled once a pilot device arrived). Self-updating agents get a syslog job towards the new address and an `agent_self_update` whose script heartbeats to the new URL; TR-069 CPEs get `ManagementServer.URL` set through GenieACS. Offline agents switch when they come back (jobs last 7 days).
+7. Agents that cannot update themselves are listed *Da reinstallare*: reinstall them from the new server.
+8. *Disattiva qui gli arrivati* takes the moved devices out of service on the old server, so it stops raising "unreachable" for them; then retire the old server.
+
 ## Integrated GenieACS (TR-069)
 
 **Panel access.**
@@ -102,8 +115,9 @@ The Docker stack can run GenieACS next to NSM (optional compose profile `acs`), 
 1. `sudo ./manage.sh acs-enable`: generates `GENIEACS_UI_JWT_SECRET` in `secrets/bootstrap.env`, sets `COMPOSE_PROFILES=acs` and `GENIEACS_INTERNAL_NBI_URL` in `.env`, builds and starts the services. Later `update.sh` runs keep them running.
 2. *Amministrazione → Integrazioni → GenieACS / TR-069 → Usa GenieACS integrato*, then *Test connessione*.
 3. Open the GenieACS UI through the SSH tunnel and create its administrator **at the first access** (the first visitor sets it, which is why the UI is not published).
-4. Configure the CPE (TR-069 ACS URL `http://<server>:7547`); allow 7547 and 7567 only from the customer networks on the host firewall.
-5. Include `data/genieacs-mongo` in the off-host backups.
+4. Set `ACS_CWMP_URL=http://<address the CPEs reach NSP on>:7547` in `.env`, then `sudo ./manage.sh up` (it recreates the containers; `restart` does not reload `.env`): *Amministrazione → ACS* shows it in the TP-Link guide and the CPE migration offers it as target. Without it NSP shows the address the administrator opened it with.
+5. Configure the CPE following *Amministrazione → ACS → Configurare una CPE TP-Link*: only CWMP on, Inform on, the ACS URL and Periodic Inform; WAN, PPPoE, Wi-Fi and LAN are not touched. Allow 7547 and 7567 only from the customer networks on the host firewall.
+6. Include `data/genieacs-mongo` in the off-host backups.
 
 ## Integrated syslog server
 
