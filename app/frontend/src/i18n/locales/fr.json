@@ -4058,7 +4058,7 @@
     },
     "refresh": "Actualiser depuis GenieACS",
     "refreshed": "Inventaire actualisé depuis GenieACS.",
-    "notYet": "Diagnostic, sauvegarde et mise à jour firmware via l'ACS ne sont pas encore disponibles.",
+    "notYet": "La sauvegarde et la mise à jour du firmware via l'ACS ne sont pas encore disponibles.",
     "verifyTitle": "Vérifier la correspondance",
     "searchTitle": "Chercher dans GenieACS",
     "searchSerialMac": "NSM cherche le numéro de série {{serial}} puis, à défaut, le MAC {{mac}} ; la recherche ne modifie rien.",
@@ -5508,5 +5508,29 @@
       "address": "Adresse",
       "rtt": "Temps"
     }
+  },
+  "acsMonitor": {
+    "title": "Ligne et Wi-Fi",
+    "waiting": "Pas encore de données : NSM lit le CPE depuis l'ACS toutes les quelques minutes.",
+    "lastInform": "Dernier contact avec l'ACS {{when}} · {{model}}",
+    "every": "toutes les {{minutes}} min",
+    "wan": "WAN",
+    "wanIp": "Adresse WAN",
+    "connectedFor": "Connecté depuis",
+    "uptime": "Uptime",
+    "wifiClients": "Clients Wi-Fi",
+    "lanHosts": "Hôtes LAN",
+    "lastError": "Dernière erreur de connexion",
+    "countersMissing": "Le CPE ne remonte pas ses compteurs WAN (ils restent à 0) : pas de graphique de trafic avec ce firmware.",
+    "radio": "Radio",
+    "channel": "Canal",
+    "bandwidth": "Largeur",
+    "standard": "Norme",
+    "clients": "Clients",
+    "dsl": "Ligne DSL",
+    "dslRate": "Débit desc. / mont.",
+    "dslSnr": "Marge SNR",
+    "dslAttenuation": "Atténuation",
+    "charts": "Historique depuis l'ACS"
   }
 }

@@ -640,16 +640,15 @@ On the *ACS* tab of a linked CPE, technicians (`devices.write`) run a ping or a 
 
 Once the operator has installed the NSM base templates (*Amministrazione → ACS*), the worker checks right after every restart and then every 30 minutes whether the provision and presets of the running NSM version differ from the ones installed (fingerprint kept on the GenieACS connector) and reinstalls them, audited `ACS_TEMPLATES_UPDATED`. Installations made by older versions are recognised from the provision script in GenieACS. Templates never installed are left alone. The ACS page shows when they were installed and whether they are current.
 
-### Current resources of CPEs (ACS-05 step 1, Core 0.49.206)
+### Monitoring and history of CPEs (ACS-05, Core 0.49.206 and 0.49.211)
 
-Every 5 minutes the worker reads from GenieACS, in one read-only NBI query for all linked CPEs, `DeviceInfo.ProcessStatus.CPUUsage`, `MemoryStatus.Total/Free` and `UpTime` (TR-181 and TR-098) and keeps them on the device with the time the CPE reported them; the device page and list show them as current resources when under 2 hours old. The NSM provision declares these values with a 4-minute age, so the CPE reports them at every periodic inform (since Core 0.49.210 NSM reinstalls its templates by itself after an upgrade). History and charts are not stored yet.
+Every 2 minutes the worker reads from GenieACS (read only, one NBI query per 20 CPEs) the state of every linked TR-069 CPE at its last Inform: CPU, memory, uptime, WAN (chosen by the connection-request address, PPP or public IP: state, type, address, time connected, last error), Wi-Fi radios and clients, LAN hosts, DSL line (rates, SNR margin, attenuation), for TR-181 and TR-098. It keeps the state on the device, stores one sample per new Inform for 90 days (WAN bit rates from the byte counters between two Informs; counters stuck at zero with the WAN up, as on the TP-Link VX230v, are reported as not available) and sets the device online/offline from the last Inform (three missed periodic Informs, at least 15 minutes). The device page and list show CPU/RAM/uptime as current when the last Inform is under 2 hours old; the *ACS* tab shows the line and Wi-Fi state and charts over 24 h / 7 / 30 / 90 days. The NSM provision declares these values with a 4-minute age so the CPE reports them at every periodic inform; NSM keeps the provision current itself (0.49.210).
 
 ### Not implemented
 
 - bulk ACS discovery/onboarding from the ACS side (this migration drives the CPEs, not GenieACS);
 - vendor-specific TR-098/TR-181 parameter profiles beyond identity and firmware;
 - vendor parameter profiles;
-- monitoring history and charts through ACS;
 - capability-aware backup/restore through ACS;
 - firmware deployment/verification through ACS.
 
