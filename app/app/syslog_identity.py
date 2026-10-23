@@ -126,6 +126,20 @@ class Index:
     devices: int = 0
 
 
+TR069_FRESH = timedelta(minutes=30)
+
+
+def tr069_addresses(device, now) -> set[str]:
+    """Addresses a TR-069 CPE sends syslog from: its management IP and, while its last Inform is recent, the WAN address
+    of that Inform (dynamic IPs change at every PPP reconnection; the ACS reads it again at each contact)."""
+    found = {_norm(device.management_ip)}
+    monitor = ((device.inventory_data or {}).get("tr069") or {}).get("monitor") or {}
+    last_inform = _parse_time(monitor.get("last_inform"))
+    if last_inform is not None and now - last_inform <= TR069_FRESH:
+        found |= {_norm(monitor.get("wan_address")), _norm((monitor.get("wan") or {}).get("ip"))}
+    return {ip for ip in found if ip}
+
+
 def build_index(db, settings: dict, now=None) -> Index:
     now = now or utcnow()
     index = Index(networks=parse_networks(settings.get("allowed_networks")))
@@ -153,8 +167,10 @@ def build_index(db, settings: dict, now=None) -> Index:
         if fresh:
             strong.append(data.get("last_source_ip"))
         entry = (device.id, names_of(device))
-        if device.management_source == "tr069" and device.management_ip and ((data.get("tr069") or {}).get("syslog") or {}).get("server_ip"):
-            keyless.setdefault(_norm(device.management_ip), set()).add(device.id)
+        if device.management_source == "tr069" and ((data.get("tr069") or {}).get("syslog") or {}).get("server_ip"):
+            for ip in tr069_addresses(device, now):
+                keyless.setdefault(ip, set()).add(device.id)
+                index.known_ips.add(ip)
         for ip in strong:
             norm = _norm(ip)
             if not norm:
@@ -180,8 +196,9 @@ def build_index(db, settings: dict, now=None) -> Index:
     index.strict_ips = {ip for ip in index.known_ips if not index.candidates.get(ip)}
     # TR-069 CPEs cannot add a key (TP-Link): their address identifies them, only when no other device uses it.
     for ip, ids in keyless.items():
-        if ip and len(ids) == 1 and ip not in index.strict_shared and len(index.candidates.get(ip) or []) <= 1:
-            index.by_address[ip] = next(iter(ids))
+        device_id = next(iter(ids))
+        if len(ids) == 1 and ip not in index.strict_shared and all(e[0] == device_id for e in index.candidates.get(ip) or []):
+            index.by_address[ip] = device_id
     return index
 
 
