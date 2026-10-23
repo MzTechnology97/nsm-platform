@@ -6,6 +6,7 @@ import { useConnectorAction } from "../api/admin";
 import { type IspbillingAdmin, useIspbillingAdmin } from "../api/ispbilling";
 import { AdminTabs } from "../app/AdminTabs";
 import { IntegrationTabs } from "../app/IntegrationTabs";
+import { IspbillingLinks } from "../app/IspbillingLinks";
 import { formatDateTime } from "../lib/format";
 import { Loading } from "../app/States";
 
@@ -39,6 +40,7 @@ export function AdminIspbilling() {
             <Connection data={data} />
             <Actions data={data} />
           </div>
+          {data.configured && <IspbillingLinks />}
         </>
       )}
     </section>
