@@ -2560,7 +2560,7 @@
     "steps": {
       "cpe": {
         "title": "On the CPE:",
-        "text": "Advanced → System Tools → CWMP Settings (TR-069 on some firmware). Set only: CWMP on; Inform on; ACS URL <code>{{url}}</code>; ACS Username and Password empty; Periodic Inform on (NSP sets the interval); Connection Request Username and Password of your choice, needed for immediate reboot and diagnostics. Save without touching other fields: WAN, PPPoE, Wi-Fi and LAN stay as they are."
+        "text": "Advanced → System Tools → CWMP Settings (or TR-069): CWMP enabled; ACS URL <code>{{url}}</code>; ACS Username and Password empty for the first test, then set them; Periodic Inform enabled every 300 seconds; Connection Request Username and Password with your own credentials, used by GenieACS to contact the CPE."
       },
       "network": {
         "title": "Network:",
@@ -2572,7 +2572,7 @@
       },
       "verify": {
         "title": "Check in the ACS panel:",
-        "text": "within about 5 minutes the CPE shows in Devices with manufacturer, model and serial; errors, if any, in Faults."
+        "text": "the CPE appears in Devices with vendor, model and serial; any errors appear in Faults."
       },
       "nsm": {
         "title": "In NSM:",
@@ -4066,7 +4066,7 @@
     },
     "refresh": "Refresh from GenieACS",
     "refreshed": "Inventory refreshed from GenieACS.",
-    "notYet": "Backup and firmware upgrades through the ACS are not available yet.",
+    "notYet": "Diagnostics, backup and firmware upgrade through the ACS are not available yet.",
     "verifyTitle": "Check the match",
     "searchTitle": "Search GenieACS",
     "searchSerialMac": "NSM looks up the serial {{serial}} and, if not found, the MAC {{mac}}; the lookup changes nothing.",
@@ -5200,6 +5200,7 @@
     "LEGACY_FIRMWARE_UPGRADE_FAILED": "Legacy firmware upgrade failed",
     "LEGACY_FIRMWARE_UPGRADE_QUEUED": "Legacy firmware upgrade queued",
     "LEGACY_FIRMWARE_UPGRADE_VERIFIED": "Legacy firmware upgrade verified",
+    "LEGACY_FTP_SETTINGS_CHANGED": "Legacy FTP receiver subnets changed",
     "LIFECYCLE_CATALOG_IMPORTED": "Lifecycle catalog imported",
     "LIFECYCLE_DEVICE_DECOMMISSIONED": "Device retired (lifecycle)",
     "LIFECYCLE_DEVICE_REPLACED": "Device replaced",
@@ -5617,5 +5618,22 @@
     },
     "yes": "yes",
     "no": "no"
+  },
+  "legacyFtp": {
+    "title": "Legacy backups over FTP",
+    "help": "Receiver of the backups of RouterOS 6 and 7.12 routers (legacy Agent). Address and port are set on the server with ./manage.sh legacy-backup-enable <IPv4> [port]; here you choose which subnets may send.",
+    "active": "Active",
+    "inactive": "Not active",
+    "address": "Address for the routers",
+    "passive": "passive ports {{ports}}",
+    "subnets": "Allowed subnets",
+    "any": "any",
+    "enableHint": "To activate it, run on the server: ./manage.sh legacy-backup-enable <IPv4 of NSM reachable by the routers> [port]",
+    "noSubnets": "No subnet set: any address that reaches the server can connect to the receiver.",
+    "subnetsLabel": "Subnets allowed to send backups",
+    "subnetsHelp": "One per line or separated by commas, e.g. 198.51.100.0/24. The receiver refuses other origins within a minute.",
+    "saved": "Saved: the receiver applies it within a minute.",
+    "firewall": "Firewall rules on the server",
+    "firewallHelp": "To block other origins before they reach NSM too, run ./manage.sh legacy-ftp-firewall --apply on the server (done automatically by legacy-backup-enable)."
   }
 }
