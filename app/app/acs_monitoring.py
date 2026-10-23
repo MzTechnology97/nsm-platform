@@ -265,6 +265,8 @@ def read_state(row: dict) -> dict:
     last_boot = _parse_time(row.get("_lastBoot"))
     state["last_inform"] = last_inform.isoformat() if last_inform else None
     state["last_boot"] = last_boot.isoformat() if last_boot else None
+    # Sent by the CPE at every Inform: its current WAN address, also with a dynamic IP (syslog attribution of TP-Link CPEs).
+    state["wan_address"] = cr_host
     return state
 
 
