@@ -454,43 +454,42 @@ export function useAcsTemplates() {
 
 // --- Bulk CPE → ACS migration ---------------------------------------------------------------------
 
-export interface AcsMigrationRun {
-  id: string; created_at: string; finished_at: string | null; created_by: string | null; vendor: string;
-  subnet: string; port: number; target_acs_url: string; inform_interval: number; dry_run: boolean; status: string;
-  error: string | null; total_hosts: number; processed: number; reachable: number; configured: number;
-  already_target: number; failed: number;
+// --- Server migration (new address) ----------------------------------------------------------------
+
+export interface ServerMigrationItemRow {
+  device_id: string; name: string | null; customer: string | null; kind: "agent" | "tr069"; status: string;
+  detail: string | null; updated_at: string; arrived_at: string | null; decommissioned: boolean;
 }
-export interface AcsMigrationHost {
-  address: string; status: string; detail: string | null; model: string | null; firmware: string | null;
-  previous_acs_url: string | null; duration_ms: number | null;
-}
-export interface AcsMigrationState {
-  defaults: { vendor: string; port: number; inform_interval: number; target_acs_url: string; max_hosts: number; hard_max_hosts: number; min_inform_interval: number };
-  vendors: string[]; apply_available: boolean; active_run_id: string | null; runs: AcsMigrationRun[];
+export interface ServerMigrationState {
+  readiness: { agents: number; agents_capable: number; agents_reinstall: number; tr069: number };
+  candidates: { id: string; name: string | null; customer: string | null; kind: "agent" | "tr069"; online: boolean }[];
+  migration: {
+    id: string; created_at: string; created_by: string | null; agent_base_url: string; acs_url: string | null; syslog_ip: string | null;
+    status: string; verified_at: string | null; verify_valid: boolean; target_check: { version?: string; devices?: number } | null;
+    counts: Record<string, number>; pilot_arrived: boolean;
+  } | null;
+  items: ServerMigrationItemRow[];
 }
 
-export const useAcsMigration = () =>
-  useQuery({ queryKey: ["acs-migration"], queryFn: () => api<AcsMigrationState>("/api/ui/v1/admin/acs/migration"),
-            refetchInterval: (q) => (q.state.data?.active_run_id ? 2000 : false) });
+export const useServerMigration = () =>
+  useQuery({ queryKey: ["server-migration"], queryFn: () => api<ServerMigrationState>("/api/ui/v1/admin/server-migration") });
 
-export const useAcsMigrationRun = (runId: string | null) =>
-  useQuery({ queryKey: ["acs-migration-run", runId], enabled: Boolean(runId),
-             queryFn: () => api<{ run: AcsMigrationRun; hosts: AcsMigrationHost[]; active: boolean }>(`/api/ui/v1/admin/acs/migration/${runId}`),
-             refetchInterval: (q) => (q.state.data?.active ? 1500 : false) });
-
-export function useStartAcsMigration() {
+export function useServerMigrationCreate() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (body: object) => api<{ run: AcsMigrationRun }>("/api/ui/v1/admin/acs/migration", { method: "POST", body: JSON.stringify(body) }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["acs-migration"] }),
+    mutationFn: (body: { agent_base_url: string; acs_url: string }) =>
+      api<ServerMigrationState>("/api/ui/v1/admin/server-migration", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: (data) => client.setQueryData(["server-migration"], data),
   });
 }
 
-export function useCancelAcsMigration(runId: string) {
+export function useServerMigrationAction(migrationId: string, action: "verify" | "start" | "confirm" | "cancel" | "retire") {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: () => api<{ cancelled: boolean }>(`/api/ui/v1/admin/acs/migration/${runId}/cancel`, { method: "POST" }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["acs-migration"] }),
+    mutationFn: (body?: object) =>
+      api<ServerMigrationState & { result: Record<string, unknown> }>(`/api/ui/v1/admin/server-migration/${migrationId}/${action}`,
+        { method: "POST", body: JSON.stringify(body ?? {}) }),
+    onSuccess: (data) => client.setQueryData(["server-migration"], data),
   });
 }
 
@@ -733,3 +732,23 @@ export interface Dashboard {
 
 export const useDashboard = () =>
   useQuery({ queryKey: ["dashboard"], queryFn: () => api<Dashboard>("/api/ui/v1/dashboard"), refetchInterval: 30_000, staleTime: 10_000 });
+
+export interface LegacyFtpSettings {
+  enabled: boolean;
+  public_host: string | null;
+  port: number;
+  passive_ports: string;
+  allowed_networks: string[];
+  firewall_script: string;
+}
+
+export const useLegacyFtp = () =>
+  useQuery({ queryKey: ["admin-legacy-ftp"], queryFn: () => api<LegacyFtpSettings>("/api/ui/v1/admin/legacy-ftp") });
+
+export function useLegacyFtpSave() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { allowed_networks: string }) => api<LegacyFtpSettings>("/api/ui/v1/admin/legacy-ftp", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: (data) => client.setQueryData(["admin-legacy-ftp"], data),
+  });
+}
