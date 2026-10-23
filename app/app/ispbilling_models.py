@@ -30,6 +30,8 @@ class IspbillingCustomer(Base):
     # Named nsm_* (not customer_id) on purpose: the mirror is administration data, outside the customer scope filter.
     nsm_customer_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"))
     linked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Set once the customer was imported, linked or left for review: the automatic import looks only at rows without it.
+    handled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
 
@@ -45,6 +47,8 @@ class IspbillingAddress(Base):
     label: Mapped[str | None] = mapped_column(String(200))
     address: Mapped[str] = mapped_column(String(300), nullable=False)
     nsm_site_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("sites.id", ondelete="SET NULL"))
+    # Set once a site was created or linked for it: a site deleted in NSM afterwards is not created again.
+    handled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
 
@@ -82,6 +86,7 @@ class IspbillingRadiusAccount(Base):
     status: Mapped[str | None] = mapped_column(String(40))
     cpe_type: Mapped[str | None] = mapped_column(String(40))
     nsm_device_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("devices.id", ondelete="SET NULL"))
-    # "pppoe" (the device's PPPoE client uses this username) or "ip" (its management IP is the account's static IP).
+    # "pppoe" (the device's PPPoE client uses this username), "cpe_pppoe" (a TR-069 CPE logs in with it), "ip" (its management
+    # IP is the account's static IP), "caller_mac" / "caller_ip" (the account's PPP session comes from the device's MAC / IP).
     matched_by: Mapped[str | None] = mapped_column(String(10))
     seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
