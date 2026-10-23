@@ -27,7 +27,7 @@ An open PR does not count as implemented in `main`.
 
 ### Important boundary
 
-A Site is customer-local. UISP or another connector may retain external organization/site metadata, but that metadata must not silently redefine NSM ownership.
+A Site is customer-local. UISP or another connector may retain external organization/site metadata, but that metadata must not silently redefine NSM ownership. The one exception is the UISP endpoint import (operator request, Core 0.49.244): a UISP customer endpoint matched by name, or linked by the operator, places its *new* devices under that customer; existing records are never moved.
 
 ## 2. Authentication, users, permissions and branding
 
@@ -519,6 +519,15 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 - *Integrazioni → UISP → Onboarding dispositivi* (and *Importa da UISP* on a customer's device list): every UISP device with its NSM state — *Nuovo*, *Da associare* (an unlinked Ubiquiti record with the same MAC), *Già in NSM* (same UISP id), *Non importabile* (no stable id, no MAC, MAC repeated in UISP or used by another NSM Device);
 - the operator selects up to 200 devices and chooses the NSM Customer and optional Site explicitly (UISP sites are shown, never imported); preview before confirmation;
 - at confirmation the UISP list is read again: changed or vanished devices are skipped and reported; new Devices are created with type from the UISP role, existing records are associated and keep their Customer; `devices.write` required; `DEVICE_ADDED`, `UISP_DEVICE_ASSOCIATED` and `UISP_BULK_ONBOARDING` audit events.
+
+### Endpoints to customers, automatic import (Core 0.49.244)
+
+- *Integrazioni → UISP → Onboarding → Clienti UISP*: every UISP *endpoint* site (customer site, read from `/nms/api/v2.1/sites`) with its NSM customer;
+- **matched**: the name of its UISP CRM client, or the site name, is the name of exactly one NSM customer (case, accents, punctuation and word order ignored); an ambiguous name is never guessed; on the operator's UISP this covered 560 of 738 endpoints, none ambiguous;
+- the others are *Da verificare*: linked to a customer with a searchable select or ignored; the choice is kept in the UISP connector settings and always wins over the name; *Annulla scelta* forgets it;
+- every 30 minutes (and right after a link), new UISP devices of matched or linked endpoints are created under that customer, at its site when it has exactly one; an unlinked record with the same MAC is associated and keeps its customer; at most 300 per run;
+- infrastructure *sites* (towers, APs, backhaul) are never imported automatically: they stay in the manual onboarding;
+- switch *Importa in automatico* (on by default); `devices.read` to see, `devices.write` to change; `UISP_SITE_LINKED`, `UISP_SITE_IGNORED`, `UISP_AUTO_CUSTOMERS_CHANGED` and `UISP_AUTO_IMPORTED` audit events.
 
 ### Implemented
 

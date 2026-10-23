@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.244 — 2026-10-23
+
+UISP customers matched to NSM, automatic device import
+
+### Added
+
+- UISP: customer endpoints matched to NSM customers, and automatic import of their devices. *Integrazioni → UISP → Onboarding → Clienti UISP* lists every UISP endpoint (customer site) with its NSM customer. An endpoint is matched when the name of its UISP CRM client, or the site name, is the name of exactly one NSM customer; case, accents, punctuation and word order are ignored, and an ambiguous name is never guessed. The others are listed *Da verificare*: link them to a customer with a searchable select, or ignore them. The choice is remembered and always wins over the name.
+- Every 30 minutes, and right after a link, new UISP devices of matched or linked endpoints are created under that customer, at its site when it has exactly one. An unlinked record with the same MAC is associated and keeps its customer. Infrastructure sites (towers, APs, backhaul) stay in the manual onboarding. The automatic import can be switched off on the same page. Audit events: `UISP_SITE_LINKED`, `UISP_SITE_IGNORED`, `UISP_AUTO_CUSTOMERS_CHANGED`, `UISP_AUTO_IMPORTED`.
 ## 0.49.243 — 2026-10-23
 
 Add to Zabbix from the device and customer pages

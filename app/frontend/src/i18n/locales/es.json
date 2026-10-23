@@ -5356,6 +5356,8 @@
     "SYSLOG_AGENT_CONFIG_SKIPPED": "Configuración syslog omitida",
     "SYSLOG_CHAIN_ANCHOR": "Punto de control de integridad syslog",
     "SYSLOG_SETTINGS_CHANGED": "Ajustes de syslog cambiados",
+    "UISP_AUTO_CUSTOMERS_CHANGED": "Importación automática UISP modificada",
+    "UISP_AUTO_IMPORTED": "Equipos UISP importados automáticamente",
     "UISP_BACKUP_ARCHIVED": "Copia UISP archivada",
     "UISP_BACKUP_FAILED": "Copia UISP fallida",
     "UISP_BULK_ONBOARDING": "Importación desde UISP",
@@ -5369,6 +5371,8 @@
     "UISP_REBOOT_FAILED": "Reinicio mediante UISP fallido",
     "UISP_REBOOT_REQUESTED": "Reinicio solicitado mediante UISP",
     "UISP_REBOOT_VERIFIED": "Reinicio mediante UISP verificado",
+    "UISP_SITE_IGNORED": "Endpoint UISP ignorado",
+    "UISP_SITE_LINKED": "Endpoint UISP vinculado a un cliente",
     "UISP_SYNC_COMPLETED": "Sincronización UISP completada",
     "UISP_SYNC_CONFLICT": "Conflicto en la sincronización UISP",
     "UISP_SYNC_FAILED": "Sincronización UISP fallida",
@@ -5658,7 +5662,7 @@
     "subnetsHelp": "Una por línea o separadas por comas, p. ej. 198.51.100.0/24. El receptor rechaza otros orígenes en menos de un minuto.",
     "saved": "Guardado: el receptor lo aplica en menos de un minuto.",
     "firewall": "Reglas de cortafuegos en el servidor",
-    "firewallHelp": "El servidor también bloquea otros orígenes en su cortafuegos (cadena DOCKER-USER): con la actualización automática instalada, las reglas siguen estas subredes en dos minutos y vuelven tras un reinicio. Sin ella, ejecute ./manage.sh legacy-ftp-firewall --apply en el servidor."
+    "firewallHelp": "Para bloquear también otros orígenes antes de NSM, ejecute ./manage.sh legacy-ftp-firewall --apply en el servidor (lo hace solo legacy-backup-enable)."
   },
   "acsWifi": {
     "title": "Wi-Fi",
@@ -6057,5 +6061,32 @@
       "factory_ip": "IP LAN de fábrica: define una dirección accesible para Zabbix",
       "pending": "En espera del próximo envío"
     }
+  },
+  "uispCustomers": {
+    "open": "Clientes UISP → NSM",
+    "title": "Clientes UISP",
+    "subtitle": "Cada endpoint UISP (sitio del cliente) se asocia al cliente NSM con el mismo nombre que su cliente CRM UISP o que el sitio; los demás se vinculan aquí. Los nuevos equipos de los endpoints asociados o vinculados se importan automáticamente bajo ese cliente. Los sitios de infraestructura quedan en el onboarding manual.",
+    "auto": "Importar automáticamente los equipos de los endpoints asociados y vinculados",
+    "imported": "{{created}} equipos creados y {{linked}} vinculados para {{customers}} clientes.",
+    "states": {
+      "label": "Estado de los endpoints",
+      "unmatched": "Por revisar",
+      "matched": "Asociados por nombre",
+      "linked": "Vinculados a mano",
+      "ignored": "Ignorados"
+    },
+    "search": "Sitio UISP, cliente CRM o cliente NSM…",
+    "empty": "Nada aquí.",
+    "columns": {
+      "site": "Endpoint UISP",
+      "client": "Cliente CRM UISP",
+      "customer": "Cliente NSM",
+      "devices": "Equipos en NSM"
+    },
+    "parent": "bajo {{name}}",
+    "choose": "Vincular a un cliente…",
+    "byName": "mismo nombre",
+    "ignore": "Ignorar",
+    "reset": "Deshacer"
   }
 }
