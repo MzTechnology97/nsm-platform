@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.253 — 2026-10-23
+
+ACS: configuration re-read object by object
+
+### Fixed
+
+- TR-069 *Rileggi configurazione dal CPE*: on large CPEs (an HB210 has 8137 parameters), refreshing the whole root went over GenieACS's RPC limit. The task failed with `too_many_rpcs`, and the faulted task blocked the CPE's whole task queue, a syslog setting included.
+  - The configuration is now re-read object by object, in rounds of at most 2500 parameters per CWMP session; objects above 2000 parameters are split into their children.
+  - A faulted refresh task is deleted together with its fault, so the queue never stays blocked. On `too_many_rpcs` the object is split further when possible.
+  - NSM's leftover tasks are removed after 90 minutes.
+  - The page shows the progress (objects read and round).
+  - New audit event: `ACS_CONFIG_REFRESH_COMPLETED`.
 ## 0.49.252 — 2026-10-23
 
 Ubiquiti firmware upgrade through UISP

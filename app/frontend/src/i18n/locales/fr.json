@@ -5163,6 +5163,7 @@
     "ACS_ALERT_OPENED": "Alerte CPE ouverte",
     "ACS_ALERT_RESOLVED": "Alerte CPE résolue",
     "ACS_ALERT_SETTINGS_CHANGED": "Paramètres des alertes CPE modifiés",
+    "ACS_CONFIG_REFRESH_COMPLETED": "Configuration du CPE relue",
     "ACS_CONFIG_REFRESH_REQUESTED": "Relecture de la configuration du CPE demandée",
     "ACS_CUSTOMER_TAG_SET": "CPE étiqueté avec son client dans GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnostic ACS terminé",
@@ -5749,7 +5750,13 @@
     "refreshStarted": "L'ACS relit toute la configuration : sur un gros CPE cela prend quelques minutes, puis enregistrez l'instantané.",
     "refreshQueued": "Le CPE n'a pas accepté la demande de connexion : la configuration sera lue au prochain contact.",
     "saved": "Instantané enregistré.",
-    "open": "Ouvrir l'onglet Sauvegardes"
+    "open": "Ouvrir l'onglet Sauvegardes",
+    "refreshState": {
+      "running": "L'ACS relit la configuration objet par objet : {{done}} sur {{objects}} lus (tour {{round}}). Vous pouvez quitter la page et revenir plus tard, puis enregistrer l'instantané.",
+      "done": "Configuration relue ({{objects}} objets) : enregistrez l'instantané.",
+      "partial": "Configuration relue en partie : {{done}} sur {{objects}} objets."
+    },
+    "refreshFailed": "Non lus (tâche supprimée pour ne pas bloquer la file du CPE) : {{list}}."
   },
   "acsSpeedtest": {
     "title": "Test de débit depuis le CPE",
