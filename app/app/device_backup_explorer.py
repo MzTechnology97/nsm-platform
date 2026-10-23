@@ -60,7 +60,7 @@ def _artifact_kind(artifact: BackupArtifact) -> str:
 
 
 def _is_human_readable(artifact: BackupArtifact) -> bool:
-    return artifact.artifact_type == "mikrotik_export" or artifact.filename.lower().endswith(".rsc")
+    return artifact.artifact_type in ("mikrotik_export", "tr069_parameters") or artifact.filename.lower().endswith(".rsc")
 
 
 def artifact_text_record(db, user, device: Device, artifact_id: uuid.UUID, against: str = "") -> dict:
