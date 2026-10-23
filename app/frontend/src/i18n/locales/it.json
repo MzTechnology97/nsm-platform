@@ -1566,7 +1566,8 @@
       "agent": "Agent",
       "integration": "Integrazioni",
       "interface_errors": "Errori interfaccia",
-      "configuration": "Configurazione"
+      "configuration": "Configurazione",
+      "acs": "CPE (ACS)"
     },
     "state": {
       "open": "Aperta",
@@ -2615,7 +2616,9 @@
       "reads": "Legge: stato online/offline, ultimo contatto, modello, firmware, IP, CPU, memoria, traffico WAN, client Wi-Fi e linea DSL.",
       "actions": "Azioni disponibili: riavvio, verifica firmware, diagnostica.",
       "never": "Non modifica Wi-Fi, LAN, DHCP, PPPoE o altra configurazione del router. L'unica impostazione che scrive è l'intervallo di inform del CWMP."
-    }
+    },
+    "migrationHint": "Hai già una flotta di CPE su un ACS cloud (per esempio TAUC)?",
+    "migrationLink": "Migra i CPE verso questo ACS"
   },
   "demo": {
     "subtitle": "Dataset isolato per provare interfaccia e flussi di lavoro senza usare clienti reali.",
@@ -5088,6 +5091,9 @@
     }
   },
   "eventTypes": {
+    "ACS_ALERT_OPENED": "Avviso CPE aperto",
+    "ACS_ALERT_RESOLVED": "Avviso CPE risolto",
+    "ACS_ALERT_SETTINGS_CHANGED": "Impostazioni avvisi CPE modificate",
     "ACS_CONFIG_REFRESH_REQUESTED": "Rilettura configurazione del CPE richiesta",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnostica ACS completata",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnostica ACS richiesta",
@@ -5817,5 +5823,86 @@
     "otherName": "Cerca con un altro nome",
     "otherNamePlaceholder": "es. codice sull'etichetta (LBE-5AC-16-120)",
     "search": "Cerca"
+  },
+  "acsMigration": {
+    "subtitle": "Migra in blocco i CPE dei clienti verso l'ACS integrato riconfigurando il CWMP sulla rete di gestione.",
+    "backToAcs": "Torna ad ACS",
+    "intro": "Indica la subnet di gestione dei tuoi router, la porta e le credenziali comuni della flotta: NSM raggiunge ogni apparato e imposta l'URL ACS di destinazione. Prima fai una simulazione per vedere quali CPE sono raggiungibili.",
+    "applyPending": "La riscrittura CWMP via interfaccia web TP-Link è in validazione sul campo per questo firmware: per ora è disponibile la sola ricognizione (simulazione).",
+    "formTitle": "Nuova migrazione",
+    "formHelp": "Solo subnet IPv4, al massimo {{max}} indirizzi per esecuzione. Gli indirizzi .0 e .255 e il server ACS vengono saltati.",
+    "credentialsHelp": "Le credenziali sono usate solo durante l'esecuzione e non vengono mai salvate. Nella simulazione non servono: nessuna credenziale viene inviata agli apparati.",
+    "dryRun": "Simula (ricognizione)",
+    "apply": "Applica migrazione",
+    "recentTitle": "Esecuzioni recenti",
+    "noRuns": "Nessuna esecuzione finora.",
+    "runTitle": "Esecuzione · {{subnet}}",
+    "cancel": "Interrompi",
+    "progress": "Avanzamento",
+    "fields": {
+      "subnet": "Subnet di gestione (CIDR)",
+      "port": "Porta di gestione",
+      "informInterval": "Intervallo inform (secondi)",
+      "targetAcsUrl": "URL ACS di destinazione (CWMP)",
+      "username": "Utente dei router",
+      "password": "Password dei router"
+    },
+    "cols": {
+      "when": "Quando",
+      "subnet": "Subnet",
+      "mode": "Modalità",
+      "status": "Stato",
+      "found": "CPE trovati",
+      "changed": "Configurati"
+    },
+    "hostCols": {
+      "address": "Indirizzo",
+      "status": "Esito",
+      "model": "Modello",
+      "firmware": "Firmware",
+      "detail": "Dettaglio"
+    },
+    "mode": {
+      "dry": "Simulazione",
+      "apply": "Applicata"
+    },
+    "runStatus": {
+      "pending": "In attesa",
+      "running": "In corso",
+      "done": "Completata",
+      "failed": "Fallita",
+      "cancelled": "Interrotta"
+    },
+    "hostStatus": {
+      "pending": "In attesa",
+      "unreachable": "Non raggiungibile",
+      "not_cpe": "Non è un CPE",
+      "auth_failed": "Credenziali rifiutate",
+      "already_target": "Già sull'ACS",
+      "configured": "Configurato",
+      "error": "Errore",
+      "skipped": "Saltato"
+    },
+    "counters": {
+      "processed": "Elaborati",
+      "reachable": "Raggiungibili",
+      "configured": "Configurati",
+      "failed": "Falliti"
+    }
+  },
+  "acsAlerts": {
+    "title": "Avvisi dei CPE",
+    "help": "NSM apre una segnalazione nel Centro azioni, con una notifica, quando un CPE TR-069 smette di contattare l'ACS, ha la WAN giù, la WAN si riconnette o il CPE si riavvia troppo spesso, o la linea DSL peggiora. Le segnalazioni si chiudono da sole quando il problema finisce. 0 disattiva una soglia.",
+    "fields": {
+      "enabled": "Avvisi per i CPE TR-069 attivi",
+      "offline": "CPE che non contatta più l'ACS (tre Inform periodici mancati)",
+      "wan_down": "WAN giù mentre il CPE contatta ancora l'ACS (linea di backup o rete di gestione)",
+      "reconnects_per_hour": "Riconnessioni WAN all'ora",
+      "reboots_per_day": "Riavvii del CPE in 24 ore",
+      "snr_min_db": "Margine SNR DSL minimo (dB)",
+      "dsl_rate_drop_percent": "Calo del downstream DSL rispetto alla mediana di 7 giorni (%)"
+    },
+    "save": "Salva",
+    "saved": "Salvato."
   }
 }

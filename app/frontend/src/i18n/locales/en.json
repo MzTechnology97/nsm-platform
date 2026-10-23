@@ -1566,7 +1566,8 @@
       "agent": "Agent",
       "integration": "Integrations",
       "interface_errors": "Interface errors",
-      "configuration": "Configuration"
+      "configuration": "Configuration",
+      "acs": "CPE (ACS)"
     },
     "state": {
       "open": "Open",
@@ -2615,7 +2616,9 @@
       "reads": "Reads: online/offline state, last contact, model, firmware, IP, CPU, memory, WAN traffic, Wi-Fi clients and DSL line.",
       "actions": "Available actions: reboot, firmware check, diagnostics.",
       "never": "Does not change Wi-Fi, LAN, DHCP, PPPoE or any other router configuration. The only setting it writes is the CWMP inform interval."
-    }
+    },
+    "migrationHint": "Already running a fleet of CPEs on a cloud ACS (e.g. TAUC)?",
+    "migrationLink": "Migrate the CPEs to this ACS"
   },
   "demo": {
     "subtitle": "Isolated dataset to try the interface and workflows without using real customers.",
@@ -5088,6 +5091,9 @@
     }
   },
   "eventTypes": {
+    "ACS_ALERT_OPENED": "CPE alert opened",
+    "ACS_ALERT_RESOLVED": "CPE alert resolved",
+    "ACS_ALERT_SETTINGS_CHANGED": "CPE alert settings changed",
     "ACS_CONFIG_REFRESH_REQUESTED": "CPE configuration re-read requested",
     "ACS_DIAGNOSTIC_COMPLETED": "ACS diagnostic completed",
     "ACS_DIAGNOSTIC_REQUESTED": "ACS diagnostic requested",
@@ -5817,5 +5823,86 @@
     "otherName": "Search under another name",
     "otherNamePlaceholder": "e.g. the code on the label (LBE-5AC-16-120)",
     "search": "Search"
+  },
+  "acsMigration": {
+    "subtitle": "Bulk-migrate customer CPEs to the integrated ACS by reconfiguring CWMP over the management network.",
+    "backToAcs": "Back to ACS",
+    "intro": "Enter your routers' management subnet, port and the fleet's shared credentials: NSM reaches each device and sets the target ACS URL. Run a dry run first to see which CPEs are reachable.",
+    "applyPending": "The TP-Link web-interface CWMP rewrite is in field validation for this firmware: for now only the inventory dry run is available.",
+    "formTitle": "New migration",
+    "formHelp": "IPv4 subnets only, at most {{max}} addresses per run. The .0 and .255 addresses and the ACS server are skipped.",
+    "credentialsHelp": "Credentials are used only during the run and are never stored. A dry run does not need them: no credential is sent to any device.",
+    "dryRun": "Dry run (inventory)",
+    "apply": "Apply migration",
+    "recentTitle": "Recent runs",
+    "noRuns": "No runs yet.",
+    "runTitle": "Run · {{subnet}}",
+    "cancel": "Stop",
+    "progress": "Progress",
+    "fields": {
+      "subnet": "Management subnet (CIDR)",
+      "port": "Management port",
+      "informInterval": "Inform interval (seconds)",
+      "targetAcsUrl": "Target ACS URL (CWMP)",
+      "username": "Router username",
+      "password": "Router password"
+    },
+    "cols": {
+      "when": "When",
+      "subnet": "Subnet",
+      "mode": "Mode",
+      "status": "Status",
+      "found": "CPEs found",
+      "changed": "Configured"
+    },
+    "hostCols": {
+      "address": "Address",
+      "status": "Outcome",
+      "model": "Model",
+      "firmware": "Firmware",
+      "detail": "Detail"
+    },
+    "mode": {
+      "dry": "Dry run",
+      "apply": "Applied"
+    },
+    "runStatus": {
+      "pending": "Pending",
+      "running": "Running",
+      "done": "Done",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "hostStatus": {
+      "pending": "Pending",
+      "unreachable": "Unreachable",
+      "not_cpe": "Not a CPE",
+      "auth_failed": "Credentials refused",
+      "already_target": "Already on the ACS",
+      "configured": "Configured",
+      "error": "Error",
+      "skipped": "Skipped"
+    },
+    "counters": {
+      "processed": "Processed",
+      "reachable": "Reachable",
+      "configured": "Configured",
+      "failed": "Failed"
+    }
+  },
+  "acsAlerts": {
+    "title": "Alerts of the CPEs",
+    "help": "NSM opens an issue in the Action Center, with a notification, when a TR-069 CPE stops contacting the ACS, its WAN is down, the WAN reconnects or the CPE reboots too often, or the DSL line degrades. Issues close by themselves when the problem ends. 0 disables a threshold.",
+    "fields": {
+      "enabled": "Alerts for TR-069 CPEs on",
+      "offline": "CPE no longer contacting the ACS (three missed periodic Informs)",
+      "wan_down": "WAN down while the CPE still contacts the ACS (backup line or management network)",
+      "reconnects_per_hour": "WAN reconnections per hour",
+      "reboots_per_day": "CPE reboots in 24 hours",
+      "snr_min_db": "Minimum DSL SNR margin (dB)",
+      "dsl_rate_drop_percent": "DSL downstream drop against the 7-day median (%)"
+    },
+    "save": "Save",
+    "saved": "Saved."
   }
 }
