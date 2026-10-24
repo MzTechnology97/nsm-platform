@@ -4119,7 +4119,8 @@
       "info": "Info",
       "warning": "Warning",
       "error": "Error"
-    }
+    },
+    "moreEvents": "Show more ({{shown}} of {{total}})"
   },
   "deviceCnmaestro": {
     "linked": "Linked to cnMaestro since {{when}} (MAC {{mac}}).",
@@ -4317,7 +4318,8 @@
     "jumpTo": "Jump to section…",
     "sectionOption_one": "{{path}} ({{count}} line)",
     "sectionOption_other": "{{path}} ({{count}} lines)",
-    "sectionsFiltered": "Clear the search to jump to a section."
+    "sectionsFiltered": "Clear the search to jump to a section.",
+    "contentHelpTr069": "Read only. The CPE's configuration parameters as the ACS (TR-069) read them: no passwords and no values that change by themselves (counters, times)."
   },
   "restoreTests": {
     "title": "Restore test history",
@@ -5278,6 +5280,10 @@
     "BRAS_SYNC_REQUESTED": "BRAS read requested",
     "CAMBIUM_BACKUP_ARCHIVED": "Cambium configuration archived",
     "CAMBIUM_BACKUP_FAILED": "Cambium backup failed",
+    "CAMBIUM_FIRMWARE_IMAGE_SERVED": "ePMP firmware image downloaded from NSM",
+    "CAMBIUM_FIRMWARE_UPGRADE_FAILED": "ePMP firmware upgrade failed",
+    "CAMBIUM_FIRMWARE_UPGRADE_REQUESTED": "ePMP firmware upgrade started over SSH",
+    "CAMBIUM_FIRMWARE_UPGRADE_VERIFIED": "ePMP firmware upgrade verified",
     "CAMBIUM_SSH_CREDENTIALS_CHANGED": "Cambium SSH credentials changed",
     "CAMBIUM_SYSLOG_CONFIGURED": "ePMP syslog configured over SSH",
     "CAMBIUM_SYSLOG_FAILED": "ePMP syslog configuration failed",
@@ -5520,11 +5526,7 @@
     "ZABBIX_HOST_IP_UPDATED": "Zabbix host IP updated",
     "ZABBIX_HOST_LINKED": "Device linked to an existing Zabbix host",
     "ZABBIX_SETTINGS_CHANGED": "Zabbix settings changed",
-    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested",
-    "CAMBIUM_FIRMWARE_UPGRADE_REQUESTED": "ePMP firmware upgrade started over SSH",
-    "CAMBIUM_FIRMWARE_UPGRADE_VERIFIED": "ePMP firmware upgrade verified",
-    "CAMBIUM_FIRMWARE_UPGRADE_FAILED": "ePMP firmware upgrade failed",
-    "CAMBIUM_FIRMWARE_IMAGE_SERVED": "ePMP firmware image downloaded from NSM"
+    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested"
   },
   "eventSources": {
     "portal": "interface",
@@ -6350,6 +6352,72 @@
       "unconfirmed": "Upgrade to {{version}} not confirmed."
     }
   },
+  "firmwareSchedule": {
+    "title": "Scheduled upgrade",
+    "help": "Choose when to upgrade, for example at night. At that time NSM runs every phase by itself with no further confirmation: check, pre-upgrade backup, approval, download, activation with reboot and version verification. If the device cannot be reached within 2 hours, the upgrade is not run.",
+    "when": "Date and time",
+    "schedule": "Schedule upgrade",
+    "move": "Move",
+    "cancel": "Cancel schedule",
+    "at": "for {{when}}",
+    "confirm": "Schedule the RouterOS upgrade (currently {{target}}) for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "confirmMany_one": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "confirmMany_other": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "selected_one": "{{count}} selected",
+    "selected_other": "{{count}} selected",
+    "scheduleMany": "Schedule upgrade",
+    "select": "Select {{name}}",
+    "done_one": "{{count}} upgrade scheduled.",
+    "done_other": "{{count}} upgrades scheduled.",
+    "skipped": "Not scheduled (RouterOS 7.13+ with the modern agent required): {{names}}.",
+    "states": {
+      "scheduled": "Scheduled",
+      "checking": "Checking",
+      "running": "Running",
+      "success": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "uispSyslog": {
+    "title": "Syslog through UISP",
+    "hint": "UISP sets the CPE to send its logs to the NSM receiver: it takes a configuration backup, changes only the syslog lines and applies it again. The backup taken right before is kept as the restore point.",
+    "target": "NSM receiver",
+    "noTarget": "cannot be determined: set the public address in Amministrazione → Syslog",
+    "inUisp": "In UISP",
+    "liveOn": "remote log on, towards {{server}}:{{port}}",
+    "liveOff": "remote log not configured",
+    "unsupported": "UISP does not manage this device's services: configure syslog from the airOS interface.",
+    "current": "NSM configuration",
+    "never": "not configured by NSM yet",
+    "status": {
+      "applied": "{{mode}} · applied {{when}} by {{by}}",
+      "restored": "previous configuration restored (was: {{mode}})"
+    },
+    "modeTitle": "How NSM recognises the logs",
+    "recommended": "recommended",
+    "modes": {
+      "key": {
+        "label": "NSM key in the device name",
+        "help": "UISP adds NSM-… to the CPE name (hostname): it works even if the IP changes or the NAT is shared."
+      },
+      "customer_name": {
+        "label": "CPE name equal to the NSM customer",
+        "help": "The CPE name in UISP must be the customer's ({{customer}}), in any order. Accepted only if no other device uses the same name."
+      },
+      "address": {
+        "label": "Device address",
+        "help": "NSM recognises the logs by the CPE IP as UISP sees it. Discarded if other devices use the same IP (NAT)."
+      }
+    },
+    "reboot": "Applying the configuration reboots the CPE: the customer is offline for 2–3 minutes.",
+    "confirm": "To confirm, type the device name: {{name}}",
+    "configure": "Configure through UISP",
+    "restore": "Restore previous configuration",
+    "working": "UISP is applying…",
+    "done": "Configuration applied: the CPE reboots and the logs arrive within a few minutes.",
+    "restored": "Previous configuration applied: the CPE reboots."
+  },
   "cambiumFirmware": {
     "title": "Firmware upgrade over SSH",
     "help": "cnMaestro cannot upgrade over its API, so NSM uses the ePMP console with the SSH credentials of the Cambium backups: it backs up the configuration, tells the radio's software update agent to download the image from NSM (signed link valid for 2 hours) and then checks the new version on cnMaestro or on the ePMP. The image comes from the Cambium catalog (Firmware → Catalogs → Upload firmware). The ePMP needs SNMP active with a read-write community: NSM does not change it.",
@@ -6437,72 +6505,6 @@
     "uptime": "connected for {{value}}",
     "never": "Never seen on the BRAS",
     "noDevice": "No device matched"
-  },
-  "uispSyslog": {
-    "title": "Syslog through UISP",
-    "hint": "UISP sets the CPE to send its logs to the NSM receiver: it takes a configuration backup, changes only the syslog lines and applies it again. The backup taken right before is kept as the restore point.",
-    "target": "NSM receiver",
-    "noTarget": "cannot be determined: set the public address in Amministrazione → Syslog",
-    "inUisp": "In UISP",
-    "liveOn": "remote log on, towards {{server}}:{{port}}",
-    "liveOff": "remote log not configured",
-    "unsupported": "UISP does not manage this device's services: configure syslog from the airOS interface.",
-    "current": "NSM configuration",
-    "never": "not configured by NSM yet",
-    "status": {
-      "applied": "{{mode}} · applied {{when}} by {{by}}",
-      "restored": "previous configuration restored (was: {{mode}})"
-    },
-    "modeTitle": "How NSM recognises the logs",
-    "recommended": "recommended",
-    "modes": {
-      "key": {
-        "label": "NSM key in the device name",
-        "help": "UISP adds NSM-… to the CPE name (hostname): it works even if the IP changes or the NAT is shared."
-      },
-      "customer_name": {
-        "label": "CPE name equal to the NSM customer",
-        "help": "The CPE name in UISP must be the customer's ({{customer}}), in any order. Accepted only if no other device uses the same name."
-      },
-      "address": {
-        "label": "Device address",
-        "help": "NSM recognises the logs by the CPE IP as UISP sees it. Discarded if other devices use the same IP (NAT)."
-      }
-    },
-    "reboot": "Applying the configuration reboots the CPE: the customer is offline for 2–3 minutes.",
-    "confirm": "To confirm, type the device name: {{name}}",
-    "configure": "Configure through UISP",
-    "restore": "Restore previous configuration",
-    "working": "UISP is applying…",
-    "done": "Configuration applied: the CPE reboots and the logs arrive within a few minutes.",
-    "restored": "Previous configuration applied: the CPE reboots."
-  },
-  "firmwareSchedule": {
-    "title": "Scheduled upgrade",
-    "help": "Choose when to upgrade, for example at night. At that time NSM runs every phase by itself with no further confirmation: check, pre-upgrade backup, approval, download, activation with reboot and version verification. If the device cannot be reached within 2 hours, the upgrade is not run.",
-    "when": "Date and time",
-    "schedule": "Schedule upgrade",
-    "move": "Move",
-    "cancel": "Cancel schedule",
-    "at": "for {{when}}",
-    "confirm": "Schedule the RouterOS upgrade (currently {{target}}) for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
-    "confirmMany_one": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
-    "confirmMany_other": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
-    "selected_one": "{{count}} selected",
-    "selected_other": "{{count}} selected",
-    "scheduleMany": "Schedule upgrade",
-    "select": "Select {{name}}",
-    "done_one": "{{count}} upgrade scheduled.",
-    "done_other": "{{count}} upgrades scheduled.",
-    "skipped": "Not scheduled (RouterOS 7.13+ with the modern agent required): {{names}}.",
-    "states": {
-      "scheduled": "Scheduled",
-      "checking": "Checking",
-      "running": "Running",
-      "success": "Completed",
-      "failed": "Failed",
-      "cancelled": "Cancelled"
-    }
   },
   "cambiumSyslog": {
     "title": "ePMP syslog",

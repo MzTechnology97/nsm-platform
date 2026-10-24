@@ -4119,7 +4119,8 @@
       "info": "Info",
       "warning": "Atención",
       "error": "Error"
-    }
+    },
+    "moreEvents": "Mostrar más ({{shown}} de {{total}})"
   },
   "deviceCnmaestro": {
     "linked": "Vinculado a cnMaestro desde el {{when}} (MAC {{mac}}).",
@@ -4317,7 +4318,8 @@
     "jumpTo": "Ir a la sección…",
     "sectionOption_one": "{{path}} ({{count}} línea)",
     "sectionOption_other": "{{path}} ({{count}} líneas)",
-    "sectionsFiltered": "Vacíe la búsqueda para ir a una sección."
+    "sectionsFiltered": "Vacíe la búsqueda para ir a una sección.",
+    "contentHelpTr069": "Solo lectura. Parámetros de configuración del CPE tal como los leyó el ACS (TR-069): sin contraseñas ni valores que cambian solos (contadores, tiempos)."
   },
   "restoreTests": {
     "title": "Historial de pruebas de restauración",
@@ -5278,6 +5280,10 @@
     "BRAS_SYNC_REQUESTED": "Lectura BRAS solicitada",
     "CAMBIUM_BACKUP_ARCHIVED": "Configuración Cambium archivada",
     "CAMBIUM_BACKUP_FAILED": "Copia Cambium fallida",
+    "CAMBIUM_FIRMWARE_IMAGE_SERVED": "Imagen de firmware ePMP descargada desde NSM",
+    "CAMBIUM_FIRMWARE_UPGRADE_FAILED": "Actualización de firmware ePMP fallida",
+    "CAMBIUM_FIRMWARE_UPGRADE_REQUESTED": "Actualización de firmware ePMP iniciada por SSH",
+    "CAMBIUM_FIRMWARE_UPGRADE_VERIFIED": "Actualización de firmware ePMP verificada",
     "CAMBIUM_SSH_CREDENTIALS_CHANGED": "Credenciales SSH Cambium modificadas",
     "CAMBIUM_SYSLOG_CONFIGURED": "Syslog del ePMP configurado por SSH",
     "CAMBIUM_SYSLOG_FAILED": "Configuración del syslog del ePMP fallida",
@@ -5520,11 +5526,7 @@
     "ZABBIX_HOST_IP_UPDATED": "IP del host de Zabbix actualizada",
     "ZABBIX_HOST_LINKED": "Equipo vinculado a un host de Zabbix existente",
     "ZABBIX_SETTINGS_CHANGED": "Ajustes de Zabbix cambiados",
-    "ZABBIX_SYNC_REQUESTED": "Sincronización de Zabbix solicitada",
-    "CAMBIUM_FIRMWARE_UPGRADE_REQUESTED": "Actualización de firmware ePMP iniciada por SSH",
-    "CAMBIUM_FIRMWARE_UPGRADE_VERIFIED": "Actualización de firmware ePMP verificada",
-    "CAMBIUM_FIRMWARE_UPGRADE_FAILED": "Actualización de firmware ePMP fallida",
-    "CAMBIUM_FIRMWARE_IMAGE_SERVED": "Imagen de firmware ePMP descargada desde NSM"
+    "ZABBIX_SYNC_REQUESTED": "Sincronización de Zabbix solicitada"
   },
   "eventSources": {
     "portal": "interfaz",
@@ -6350,6 +6352,72 @@
       "unconfirmed": "Actualización a {{version}} no confirmada."
     }
   },
+  "firmwareSchedule": {
+    "title": "Actualización programada",
+    "help": "Elige cuándo actualizar, por ejemplo de noche. A esa hora NSM ejecuta solo todas las fases sin más confirmaciones: comprobación, copia previa, aprobación, descarga, activación con reinicio y control de la versión. Si el dispositivo no es accesible en 2 horas, la actualización no se ejecuta.",
+    "when": "Fecha y hora",
+    "schedule": "Programar actualización",
+    "move": "Mover",
+    "cancel": "Cancelar programación",
+    "at": "para el {{when}}",
+    "confirm": "¿Programar la actualización de RouterOS (ahora {{target}}) para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "confirmMany_one": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "confirmMany_other": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "selected_one": "{{count}} seleccionado",
+    "selected_other": "{{count}} seleccionados",
+    "scheduleMany": "Programar actualización",
+    "select": "Seleccionar {{name}}",
+    "done_one": "{{count}} actualización programada.",
+    "done_other": "{{count}} actualizaciones programadas.",
+    "skipped": "No programados (se requiere RouterOS 7.13+ con el agente moderno): {{names}}.",
+    "states": {
+      "scheduled": "Programada",
+      "checking": "Comprobando",
+      "running": "En curso",
+      "success": "Completada",
+      "failed": "Fallida",
+      "cancelled": "Cancelada"
+    }
+  },
+  "uispSyslog": {
+    "title": "Syslog mediante UISP",
+    "hint": "UISP configura el CPE para enviar sus registros al receptor de NSM: toma una copia de la configuración, cambia solo las líneas de syslog y la vuelve a aplicar. La copia tomada justo antes queda como punto de restauración.",
+    "target": "Receptor NSM",
+    "noTarget": "no determinable: configura la dirección pública en Amministrazione → Syslog",
+    "inUisp": "En UISP",
+    "liveOn": "registro remoto activo hacia {{server}}:{{port}}",
+    "liveOff": "registro remoto no configurado",
+    "unsupported": "UISP no gestiona los servicios de este dispositivo: configura el syslog desde la interfaz airOS.",
+    "current": "Configuración NSM",
+    "never": "aún no configurado por NSM",
+    "status": {
+      "applied": "{{mode}} · aplicada el {{when}} por {{by}}",
+      "restored": "configuración anterior restaurada (era: {{mode}})"
+    },
+    "modeTitle": "Cómo reconoce NSM los registros",
+    "recommended": "recomendado",
+    "modes": {
+      "key": {
+        "label": "Clave NSM en el nombre del dispositivo",
+        "help": "UISP añade NSM-… al nombre (hostname) del CPE: funciona aunque cambie la IP o comparta el NAT."
+      },
+      "customer_name": {
+        "label": "Nombre del CPE igual al cliente NSM",
+        "help": "El nombre del CPE en UISP debe ser el del cliente ({{customer}}), en cualquier orden. Aceptado solo si ningún otro dispositivo usa el mismo nombre."
+      },
+      "address": {
+        "label": "Dirección del dispositivo",
+        "help": "NSM reconoce los registros por la IP del CPE tal como la ve UISP. Descartados si otros dispositivos usan la misma IP (NAT)."
+      }
+    },
+    "reboot": "Aplicar la configuración reinicia el CPE: el cliente queda sin conexión 2–3 minutos.",
+    "confirm": "Para confirmar escribe el nombre del dispositivo: {{name}}",
+    "configure": "Configurar mediante UISP",
+    "restore": "Restaurar configuración anterior",
+    "working": "UISP está aplicando…",
+    "done": "Configuración aplicada: el CPE se reinicia y los registros llegan en unos minutos.",
+    "restored": "Configuración anterior aplicada: el CPE se reinicia."
+  },
   "cambiumFirmware": {
     "title": "Actualización de firmware por SSH",
     "help": "cnMaestro no permite la actualización desde su API, así que NSM usa la consola del ePMP con las credenciales SSH de las copias de Cambium: guarda la configuración, pide al agente de actualización de la radio que descargue la imagen desde NSM (enlace firmado válido 2 horas) y luego verifica la nueva versión en cnMaestro o en el ePMP. La imagen viene del catálogo Cambium (Firmware → Catálogos → Cargar firmware). El ePMP necesita SNMP activo con una comunidad de lectura/escritura: NSM no la cambia.",
@@ -6437,72 +6505,6 @@
     "uptime": "conectado desde hace {{value}}",
     "never": "Nunca vista en el BRAS",
     "noDevice": "Ningún equipo asociado"
-  },
-  "uispSyslog": {
-    "title": "Syslog mediante UISP",
-    "hint": "UISP configura el CPE para enviar sus registros al receptor de NSM: toma una copia de la configuración, cambia solo las líneas de syslog y la vuelve a aplicar. La copia tomada justo antes queda como punto de restauración.",
-    "target": "Receptor NSM",
-    "noTarget": "no determinable: configura la dirección pública en Amministrazione → Syslog",
-    "inUisp": "En UISP",
-    "liveOn": "registro remoto activo hacia {{server}}:{{port}}",
-    "liveOff": "registro remoto no configurado",
-    "unsupported": "UISP no gestiona los servicios de este dispositivo: configura el syslog desde la interfaz airOS.",
-    "current": "Configuración NSM",
-    "never": "aún no configurado por NSM",
-    "status": {
-      "applied": "{{mode}} · aplicada el {{when}} por {{by}}",
-      "restored": "configuración anterior restaurada (era: {{mode}})"
-    },
-    "modeTitle": "Cómo reconoce NSM los registros",
-    "recommended": "recomendado",
-    "modes": {
-      "key": {
-        "label": "Clave NSM en el nombre del dispositivo",
-        "help": "UISP añade NSM-… al nombre (hostname) del CPE: funciona aunque cambie la IP o comparta el NAT."
-      },
-      "customer_name": {
-        "label": "Nombre del CPE igual al cliente NSM",
-        "help": "El nombre del CPE en UISP debe ser el del cliente ({{customer}}), en cualquier orden. Aceptado solo si ningún otro dispositivo usa el mismo nombre."
-      },
-      "address": {
-        "label": "Dirección del dispositivo",
-        "help": "NSM reconoce los registros por la IP del CPE tal como la ve UISP. Descartados si otros dispositivos usan la misma IP (NAT)."
-      }
-    },
-    "reboot": "Aplicar la configuración reinicia el CPE: el cliente queda sin conexión 2–3 minutos.",
-    "confirm": "Para confirmar escribe el nombre del dispositivo: {{name}}",
-    "configure": "Configurar mediante UISP",
-    "restore": "Restaurar configuración anterior",
-    "working": "UISP está aplicando…",
-    "done": "Configuración aplicada: el CPE se reinicia y los registros llegan en unos minutos.",
-    "restored": "Configuración anterior aplicada: el CPE se reinicia."
-  },
-  "firmwareSchedule": {
-    "title": "Actualización programada",
-    "help": "Elige cuándo actualizar, por ejemplo de noche. A esa hora NSM ejecuta solo todas las fases sin más confirmaciones: comprobación, copia previa, aprobación, descarga, activación con reinicio y control de la versión. Si el dispositivo no es accesible en 2 horas, la actualización no se ejecuta.",
-    "when": "Fecha y hora",
-    "schedule": "Programar actualización",
-    "move": "Mover",
-    "cancel": "Cancelar programación",
-    "at": "para el {{when}}",
-    "confirm": "¿Programar la actualización de RouterOS (ahora {{target}}) para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
-    "confirmMany_one": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
-    "confirmMany_other": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
-    "selected_one": "{{count}} seleccionado",
-    "selected_other": "{{count}} seleccionados",
-    "scheduleMany": "Programar actualización",
-    "select": "Seleccionar {{name}}",
-    "done_one": "{{count}} actualización programada.",
-    "done_other": "{{count}} actualizaciones programadas.",
-    "skipped": "No programados (se requiere RouterOS 7.13+ con el agente moderno): {{names}}.",
-    "states": {
-      "scheduled": "Programada",
-      "checking": "Comprobando",
-      "running": "En curso",
-      "success": "Completada",
-      "failed": "Fallida",
-      "cancelled": "Cancelada"
-    }
   },
   "cambiumSyslog": {
     "title": "Syslog del ePMP",
