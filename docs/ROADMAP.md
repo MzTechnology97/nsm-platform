@@ -207,6 +207,24 @@ Snapshot of the operator's network (read-only, 2026-10-23, 282 of 644 devices ch
 
 When the global list is longer than a device accepts, NSM merges contiguous networks into larger prefixes where possible. Otherwise it does not apply a partial list and warns on the device, which avoids locking out a management address.
 
+### ACCESS-02 — UPnP check and turn-off on every device (requested 2026-10-23)
+
+UPnP lets any device on the customer LAN open ports on the router towards Internet, and on some firmwares it answers from the WAN too (SSDP 1900, amplification). It is enabled in about a third of the archived airOS configurations (`upnpd.status=enabled`, 315 of 928 backup files, often bound to `ppp+`).
+- **Detection, every vendor**:
+  - MikroTik: `/ip upnp` enabled and its interfaces, from the Agent snapshot;
+  - Ubiquiti airOS: `upnpd.status` and `upnpd.devname` from the UISP configuration backups;
+  - TP-Link and other TR-069 CPEs: `Device.UPnP.Device.Enable` or the vendor flags (`X_TP_UPnPCfg.Enable`), already read hourly by the NSM provision;
+  - Cambium: from cnMaestro, to be verified;
+  - plus the SSDP answer from outside (external check, external probe).
+
+  Each device shows *UPnP attivo (solo LAN / anche verso WAN)*. The exposure page and the fleet list filter on it.
+- **Turn it off**:
+  - a *Disattiva UPnP* button on the device, and a **bulk** action from the list with a preview of the devices;
+  - per vendor: MikroTik through the Agent (`/ip upnp set enabled=no`), TR-069 through a parameter write, airOS through the UISP configuration edit (which reboots the CPE, said in the confirmation), Cambium through cnMaestro;
+  - every action is audited and reversible (*Riattiva*);
+  - the bulk action runs in waves, and stops at the first error.
+- **Suggestion, not imposed**: some customers need UPnP (consoles, VoIP, cameras). NSM suggests turning it off, and never turns it off by itself unless the operator sets a policy for it.
+
 ## 4. GUI quality and regression queue
 
 The contextual browser-feedback program is mostly implemented. Keep the GUI tracker focused on reproducible defects rather than broad rewrites.
