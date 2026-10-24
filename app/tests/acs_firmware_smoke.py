@@ -1,6 +1,6 @@
 """ACS-08: firmware upgrade of TR-069 CPEs through GenieACS (fake NBI with files, tasks and faults).
 
-A faulted or never-run download task is deleted with its fault (fix 0.49.293: a faulted task blocks the CPE's queue)."""
+A faulted or never-run download task is deleted with its fault (fix 0.49.292: a faulted task blocks the CPE's queue)."""
 import json
 import re
 import uuid
@@ -187,7 +187,7 @@ def main():
         assert event.details["task_removed"] is True and event.details["fault_removed"] is True and event.details["task_id"] == "task2", event.details
     assert auditor.get(url).json()["upgrade"]["state"] == "failed" and len(fake.deleted) == 2, "cleaned up once"
 
-    # No answer within 30 minutes: unconfirmed, and the download still queued is deleted. An entry from before 0.49.293
+    # No answer within 30 minutes: unconfirmed, and the download still queued is deleted. An entry from before 0.49.292
     # has no task id: the queued download of the same image is found through GET /tasks (other tasks are left alone).
     fake.faults.clear()
     fake.deleted.clear()

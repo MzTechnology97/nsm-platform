@@ -1,7 +1,7 @@
 """ACS-08 campaigns: pilot CPE first, then waves, only inside the window, automatic stop at the first failed or
 unconfirmed upgrade, typed confirmation, pause/resume/cancel, audit (fake NBI only).
 
-The faulted or never-run download tasks are deleted from GenieACS with their fault (0.49.293), and the campaign still
+The faulted or never-run download tasks are deleted from GenieACS with their fault (0.49.292), and the campaign still
 stops at the first bad result."""
 import json
 import re
