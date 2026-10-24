@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.259 — 2026-10-23
+
+cnMaestro API v2
+### Changed
+- **The cnMaestro connector now uses the API v2.** cnMaestro marked every v1 answer as deprecated ("must be changed to v2", sunset 3.2.0). NSM now reads the device list from `/api/v2/devices` and the statistics from `/api/v2/devices/statistics`, and logs in on `/api/v2/access/token`. It falls back to the v1 login only if a console refuses the v2 one. Nothing else uses v1.
+- **Wi-Fi access points (cnPilot) keep their charts.** API v2 sends each band as a `radios` list. NSM now reads that list for connected clients and throughput, and the compatibility check looks for these fields too.
+- **A deprecation notice from cnMaestro is now visible.** If an answer says an API is deprecated, the notice is kept in the last sync result and shown by *Sincronizza ora*, together with how many devices were adopted.
+
+### Fixed
+- **A Cambium device added by hand is now managed by cnMaestro once linked.** An ePMP added as a generic device and later corrected to Cambium was linked by MAC, but it stayed *manuale*: it had no external ID, and its IP was never updated from cnMaestro. Now, when the sync or the import links such a device, its source becomes cnMaestro and the cnMaestro MAC becomes its external ID, as for a device created through the connector. This is recorded once in the activity log (`CNMAESTRO_DEVICE_LINKED`). Devices with another source are left unchanged.
 ## 0.49.258 — 2026-10-23
 
 TR-069 snapshots can be compared
