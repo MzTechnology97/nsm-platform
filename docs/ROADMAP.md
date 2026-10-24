@@ -504,6 +504,62 @@ External sources should be documented only after an adapter actually uses them.
 
 **Implemented in `main`.** Evidence reports include advisory source provenance (stale warning), findings by remediation state, unhandled critical/high, resolutions in the period with reason and mean time to resolve, active exceptions with justification, open critical/high table and not-evaluable devices; CSV adds per-device unhandled and excepted counts.
 
+### Detection ideas from Wazuh (requested 2026-10-24)
+
+The operator looked at Wazuh (`wazuh/wazuh`, open-source SIEM/XDR) and asked to bring five of its ideas into NSM. NSM already has, from the same family:
+- brute-force and access alerts from syslog (LOG-01, `syslog_security.py`);
+- tamper-evident syslog (`syslog_integrity.py`);
+- MikroTik configuration drift (`config_drift.py`);
+- compliance baselines (COMP-01…04);
+- CVE matching (SEC-01…05);
+- incident correlation (INC-03).
+
+Rules:
+- Wazuh is GPLv2: its ideas are re-implemented, its code, decoders and rules are not copied.
+- Each item is a module (MOD-01): off by default unless it only reads data NSM already has, with its own *Guida*.
+- No Wazuh server, indexer or endpoint agent is part of these items. Endpoint monitoring of customers' PCs and servers through the Wazuh agent was discussed with the operator (2026-10-24) and is not on the roadmap until they decide.
+
+#### SIEM-01 — configurable syslog rules with a rule tester
+
+Today the access patterns are fixed in the code. The operator gets rules editable from the portal:
+- **match**: vendor, severity, program/topic, regular expression with named fields (user, source IP, interface…);
+- **level** and the alert it raises (notification, Action Center issue, incident evidence);
+- **correlation**: N matches in T minutes, grouped by device, source IP or user; a rule that fires only after another one (e.g. success after failures);
+- **exceptions and throttling**: ignored sources (NSM itself, technicians' addresses), at most one alert per key in a window;
+- **rule tester**: paste a log line (or pick one from a device's live log) and see which rules match, the extracted fields and the resulting level, before saving;
+- the current built-in patterns become the default rule set, read-only and copyable; every change is audited and versioned.
+
+#### SIEM-02 — threat-intelligence IP lists on access and firewall logs
+
+Source addresses of failed and successful logins and of logged firewall drops are matched against IP lists:
+- public lists, downloaded on a schedule: Spamhaus DROP/EDROP (shared with SEC-13), FireHOL level 1, abuse.ch;
+- the CrowdSec community blocklist when CROWDSEC-01 is on, and the AbuseIPDB score of CYBER-01 when its key is set;
+- **operator lists**: trusted addresses (NSM, technicians, monitoring) that never alert, and own blocklists;
+- effect: a failed login from a listed IP raises the level; a **successful** login from a listed IP is critical; the list and the entry are shown in the alert as evidence;
+- one shared list store with SEC-13 and CROWDSEC-01, no second downloader.
+
+#### SIEM-03 — who changed the configuration
+
+Every configuration change NSM detects is attributed:
+- **by NSM**: matched with NSM's own audit (Agent update, profile push, restore, firmware, TR-069 set), e.g. a legacy router's export that grew after the Agent 0.49.23 update because the previous Agent script is kept for rollback;
+- **by an operator on the device**: from the device's log (RouterOS `… changed by <user> via winbox/ssh/web from <IP>`, the equivalent lines of the other vendors), with user, service and source address;
+- **unknown**: no matching NSM action nor log line.
+Sources: MikroTik drift between exports, TR-069 parameter changes, UISP/cnMaestro configuration changes. The Action Center alerts only on **unknown** changes and on changes from public or non-trusted addresses; the device history shows every change with its author.
+
+#### SIEM-04 — active response, opt-in
+
+When an access rule fires (brute force, listed IP), NSM can block the source on the affected MikroTik:
+- RouterOS address list `nsm-block` with a timeout (e.g. 1 hour, doubled on repeat), and one input-chain drop rule installed once by the Agent;
+- **off by default**, enabled per customer or device by the operator, with a preview of the change and audit of every block and unblock;
+- never blocks NSM, the trusted lists of SIEM-02 or the device's management networks (ACCESS-01);
+- the same mechanism as the optional blocklists of SEC-13 and CROWDSEC-01 (one address-list writer in the Agent, different list names).
+
+#### SIEM-05 — MITRE ATT&CK and regulatory mapping
+
+- Every alert type, rule (SIEM-01) and compliance control (COMP-01) carries MITRE ATT&CK tactics/techniques (e.g. brute force T1110, valid accounts T1078, exposed remote services T1133) and the requirements it evidences: NIS2 (Italy: D.Lgs. 138/2024, art. 21 measures), ISO/IEC 27001:2022 Annex A, GDPR art. 32.
+- Filters by tactic and by framework in *Sicurezza* and the Action Center.
+- A report per framework (REP-01…04): for each requirement, the NSM controls that evidence it, their state in the period and the open gaps. It supports the operator's own assessment and is not a certification.
+
 ## 8. Lifecycle / EOL / EOS roadmap
 
 ### LIFE-01 — lifecycle source ingestion
