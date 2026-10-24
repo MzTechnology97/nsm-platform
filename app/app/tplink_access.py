@@ -16,6 +16,14 @@
   when GenieACS shows it on, unless a technician allowed it on that device (``inventory_data["tplink_access"]``).
   Audited ``ACS_TELNET_DISABLED``.
 
+- **ISP default** (TP-Link *Aginet Config → Save current settings as default settings*; TR-069
+  ``Device.X_TP_ISPRestore.ISPConfigFlag``): true when the CPE has an ISP default, the configuration it returns to after
+  a reset instead of TP-Link's factory values. Checked on the operator's VX230v (0.19.0) on 2026-10-24: writing the flag
+  false then true over TR-069 saves the running configuration as the new default (a marker survived a factory reset);
+  writing true when it is already true does nothing; false alone leaves the running configuration untouched. *Salva come
+  default* (``devices.write``, device name typed) sends the two writes and is audited ``ACS_ISP_DEFAULT_SAVED``; the tab
+  says when NSM changed the CPE after the last save, so the operator knows the default is older.
+
 ``GET /api/ui/v1/devices/{id}/acs/access`` (``devices.read``) reads GenieACS only; ``POST`` (``devices.write``)
 applies one change with a connection request, audited ``ACS_ACCESS_CHANGED``.
 """
@@ -42,6 +50,8 @@ router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 REMOTE = "Device.UserInterface.RemoteAccess"
 TELNET = "Device.X_TP_AppCfg.TelnetCfg"
 TELNET_LAN = f"{TELNET}.TelnetLocalEnabled"
+ISP_RESTORE = "Device.X_TP_ISPRestore"
+ISP_FLAG = f"{ISP_RESTORE}.ISPConfigFlag"
 POLICY_EVERY = timedelta(hours=24)
 POLICY_BATCH = 50
 PROTOCOLS = ("HTTP", "HTTPS")
@@ -80,7 +90,7 @@ def _confirm_name(device) -> str:
 
 
 def _read(connection, external_id: str) -> dict:
-    return nbi._read(connection, external_id, ["_lastInform", REMOTE, TELNET])
+    return nbi._read(connection, external_id, ["_lastInform", REMOTE, TELNET, ISP_RESTORE])
 
 
 def _bool(value):
@@ -107,7 +117,9 @@ def state(record: dict) -> dict:
         # Without X_TP_RemoteAll the CPE does not say who may connect: treat an enabled page as reachable by anyone.
         remote["exposed"] = remote["enabled"] and remote["open_to_all"] is not False
     telnet = _bool(nbi._value(record, TELNET_LAN))
-    return {"remote": remote, "telnet_lan": None if telnet is None else {"enabled": telnet}}
+    flag = _bool(nbi._value(record, ISP_FLAG))
+    return {"remote": remote, "telnet_lan": None if telnet is None else {"enabled": telnet},
+            "isp_default": None if flag is None else {"saved": flag}}
 
 
 def _settings(device) -> dict:
@@ -129,6 +141,12 @@ def _payload(device, connection, can_edit: bool) -> dict:
         out["error"] = str(exc)
         return out
     out.update(state(record), last_inform=record.get("_lastInform"))
+    if out.get("isp_default") is not None:
+        settings = _settings(device)
+        saved_at, changed_at = settings.get("default_saved_at"), settings.get("changed_at")
+        out["isp_default"].update({"saved_at": saved_at, "saved_by": settings.get("default_saved_by"),
+                                   # NSM changed the CPE after its last save: a reset would bring back the older default.
+                                   "changed_since": bool(changed_at and (not saved_at or changed_at > saved_at))})
     return out
 
 
@@ -141,6 +159,19 @@ def apply_change(db, user, device, connection, body: dict) -> dict:
     record = _read(connection, device.external_device_id)
     current = state(record)
     details: dict = {}
+    if body.get("save_default"):
+        if current["isp_default"] is None:
+            raise HTTPException(422, {"code": "unsupported", "message": "Questo CPE non espone il default ISP (Aginet Config)."})
+        if str(body.get("confirm") or "").strip() != _confirm_name(device):
+            raise HTTPException(422, {"code": "confirm", "message": "Scrivi il nome dell'apparato per confermare."})
+        # False then true: the CPE stores its running configuration as the ISP default only on that transition.
+        _spv(connection, device.external_device_id, [[ISP_FLAG, False, "xsd:boolean"]])
+        started = _spv(connection, device.external_device_id, [[ISP_FLAG, True, "xsd:boolean"]])
+        now = utcnow().isoformat()
+        _save_settings(device, {"default_saved_at": now, "default_saved_by": user.username if user else None})
+        details = {"started": started, "had_default": current["isp_default"]["saved"]}
+        core.add_event(db, "ACS_ISP_DEFAULT_SAVED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal", details=details)
+        return details
     if "telnet_lan" in body:
         if current["telnet_lan"] is None:
             raise HTTPException(422, {"code": "unsupported", "message": "Questo CPE non espone il Telnet LAN."})
@@ -173,6 +204,7 @@ def apply_change(db, user, device, connection, body: dict) -> dict:
                 _spv(connection, device.external_device_id, [[f"{REMOTE}.Enable", False, "xsd:boolean"]])
             details.update({"started": _spv(connection, device.external_device_id, [[f"{REMOTE}.Enable", remote["enabled"], "xsd:boolean"]]),
                             "allowed_before": before, "allowed_after": after})
+            _save_settings(device, {"changed_at": utcnow().isoformat()})
             core.add_event(db, "ACS_ACCESS_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal", details=details)
             return details
         protocol = body.get("protocol")
@@ -199,6 +231,7 @@ def apply_change(db, user, device, connection, body: dict) -> dict:
             _spv(connection, device.external_device_id, [[f"{REMOTE}.Enable", False, "xsd:boolean"]])
         details["started"] = _spv(connection, device.external_device_id, [[f"{REMOTE}.Enable", enabled, "xsd:boolean"]])
         details.update({"remote_enabled": enabled, **{v[0].rsplit(".", 1)[1].lower(): v[1] for v in values}})
+    _save_settings(device, {"changed_at": utcnow().isoformat()})
     core.add_event(db, "ACS_ACCESS_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal", details=details)
     return details
 

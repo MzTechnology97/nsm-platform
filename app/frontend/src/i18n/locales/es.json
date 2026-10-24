@@ -5181,6 +5181,7 @@
     "ACS_FIRMWARE_FILE_STORED": "Imagen de firmware cargada en el ACS",
     "ACS_FIRMWARE_REQUESTED": "Actualización de firmware del CPE solicitada",
     "ACS_FIRMWARE_VERIFIED": "Actualización de firmware del CPE verificada",
+    "ACS_ISP_DEFAULT_SAVED": "Configuración del CPE guardada como predeterminada",
     "ACS_MIGRATION_COMPLETED": "Migración ACS completada",
     "ACS_MIGRATION_STARTED": "Migración ACS iniciada",
     "ACS_PORT_MAPPING_CHANGED": "Redirección de puertos del CPE cambiada",
@@ -6193,7 +6194,15 @@
     "allowApply_one": "Permitir solo esta dirección",
     "allowApply_other": "Permitir solo estas {{count}}",
     "allowAll": "Permitir desde cualquier dirección",
-    "allowAllConfirm": "¿Abrir la página de gestión del CPE a cualquier dirección de Internet?"
+    "allowAllConfirm": "¿Abrir la página de gestión del CPE a cualquier dirección de Internet?",
+    "defaultTitle": "Configuración predeterminada (tras un reinicio)",
+    "defaultSaved": "Predeterminado ISP guardado: tras un reinicio el CPE vuelve a la configuración guardada (PPPoE, ACS, acceso remoto…).",
+    "defaultMissing": "Sin predeterminado ISP guardado: tras un reinicio el CPE vuelve a los valores de fábrica de TP-Link, sin PPPoE ni ACS.",
+    "defaultSavedAt": "Último guardado desde NSM {{when}} ({{who}}).",
+    "defaultStale": "NSM modificó este CPE tras el último guardado: vuelve a guardar el predeterminado para mantener los cambios tras un reinicio.",
+    "defaultHelp": "Guarda la configuración en uso como predeterminada del CPE, como Aginet Config → Save current settings as default settings en su página. No reinicia nada. El predeterminado incluye también las credenciales PPPoE, el Wi-Fi y la contraseña de administrador: un reinicio ya no borra el CPE. Antes de darlo a otro cliente, bórralo desde la página del CPE (Aginet Config → Restore all default settings to Vendor default value).",
+    "defaultConfirm": "Escribe {{name}} para confirmar",
+    "defaultSave": "Guardar la configuración actual como predeterminada"
   },
   "tplinkSettings": {
     "title": "Ajustes avanzados del CPE",

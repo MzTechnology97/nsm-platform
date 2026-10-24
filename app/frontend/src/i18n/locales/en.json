@@ -5181,6 +5181,7 @@
     "ACS_FIRMWARE_FILE_STORED": "Firmware image loaded into the ACS",
     "ACS_FIRMWARE_REQUESTED": "CPE firmware upgrade requested",
     "ACS_FIRMWARE_VERIFIED": "CPE firmware upgrade verified",
+    "ACS_ISP_DEFAULT_SAVED": "CPE configuration saved as default",
     "ACS_MIGRATION_COMPLETED": "ACS migration completed",
     "ACS_MIGRATION_STARTED": "ACS migration started",
     "ACS_PORT_MAPPING_CHANGED": "CPE port forwarding changed",
@@ -6193,7 +6194,15 @@
     "allowApply_one": "Allow only this address",
     "allowApply_other": "Allow only these {{count}}",
     "allowAll": "Allow from any address",
-    "allowAllConfirm": "Open the CPE's management page to every Internet address?"
+    "allowAllConfirm": "Open the CPE's management page to every Internet address?",
+    "defaultTitle": "Default configuration (after a reset)",
+    "defaultSaved": "ISP default saved: after a reset the CPE returns to the saved configuration (PPPoE, ACS, remote access…).",
+    "defaultMissing": "No ISP default saved: after a reset the CPE returns to TP-Link's factory values, without PPPoE and without the ACS.",
+    "defaultSavedAt": "Last saved from NSM {{when}} by {{who}}.",
+    "defaultStale": "NSM changed this CPE after the last save: save the default again to keep the changes after a reset.",
+    "defaultHelp": "Saves the running configuration as the CPE's default, like Aginet Config → Save current settings as default settings on its page. Nothing restarts. The default also holds the PPPoE credentials, Wi-Fi and admin password: a reset no longer wipes the CPE. Before giving it to another customer, clear it on the CPE's page (Aginet Config → Restore all default settings to Vendor default value).",
+    "defaultConfirm": "Type {{name}} to confirm",
+    "defaultSave": "Save the current configuration as default"
   },
   "tplinkSettings": {
     "title": "Advanced CPE settings",
