@@ -2355,7 +2355,8 @@
       "zabbix": "Zabbix",
       "cnmaestro": "cnMaestro",
       "ispbilling": "ISPBilling",
-      "probe": "Sonde externe"
+      "probe": "Sonde externe",
+      "threatLists": "Listes de menaces"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5470,6 +5471,8 @@
     "SYSLOG_AGENT_CONFIG_SKIPPED": "Configuration syslog ignorée",
     "SYSLOG_CHAIN_ANCHOR": "Point de contrôle d'intégrité syslog",
     "SYSLOG_SETTINGS_CHANGED": "Paramètres syslog modifiés",
+    "THREAT_LISTS_CONFIGURED": "Listes de menaces configurées",
+    "THREAT_LIST_MATCH": "Adresse de l'opérateur trouvée dans une liste de menaces",
     "UISP_AUTO_CUSTOMERS_CHANGED": "Import automatique UISP modifié",
     "UISP_AUTO_IMPORTED": "Équipements UISP importés automatiquement",
     "UISP_BACKUP_ARCHIVED": "Sauvegarde UISP archivée",
@@ -6536,5 +6539,47 @@
       "sources": "Dans PROBE_ALLOWED_SOURCES indiquez l'IP publique de sortie du serveur NSM, ainsi personne d'autre ne peut l'utiliser.",
       "connect": "Saisissez ici adresse, nom et secret, enregistrez et cliquez sur « Tester la sonde »."
     }
+  },
+  "threatLists": {
+    "title": "Intégrations · Listes de menaces",
+    "subtitle": "Listes publiques de réseaux à bloquer (Spamhaus DROP), comparées chaque jour à vos préfixes, aux IP publiques de l'inventaire et aux IP qui tentent de se connecter aux équipements. Lecture seule : aucun équipement n'est modifié.",
+    "refresh": "Mettre à jour",
+    "settingsTitle": "Paramètres",
+    "enabled": "Activer les listes de menaces (mise à jour quotidienne)",
+    "prefixes": "Préfixes publics de l'opérateur",
+    "prefixesHelp": "Un par ligne, par exemple 203.0.113.0/24. Si l'un d'eux apparaît dans une liste, NSM ouvre une alerte : demandez le retrait sans attendre.",
+    "useSource": "Utiliser cette liste",
+    "url": "Adresse de la liste",
+    "saved": "Paramètres enregistrés.",
+    "sourcesTitle": "Listes",
+    "loaded_one": "{{count}} réseau · mise à jour {{when}}",
+    "loaded_other": "{{count}} réseaux · mise à jour {{when}}",
+    "never": "pas encore téléchargée",
+    "failed": "Dernier téléchargement en échec ({{error}}) : la copie précédente est conservée.",
+    "on": "active",
+    "off": "désactivée",
+    "checked": "Dernier contrôle : {{when}}",
+    "notChecked": "Pas encore contrôlé.",
+    "matchesTitle": "Vos adresses en liste",
+    "matchesHelp": "Préfixes de l'opérateur et IP publiques des équipements situés dans un réseau de la liste. Chacun a une alerte dans l'Action Center.",
+    "noMatches": "Aucune de vos adresses n'est en liste.",
+    "operatorPrefix": "Préfixe de l'opérateur",
+    "columns": {
+      "what": "Quoi",
+      "address": "Adresse",
+      "network": "Réseau en liste",
+      "source": "Liste"
+    },
+    "attackersTitle": "Connexions depuis des réseaux en liste (7 derniers jours)",
+    "attackersHelp": "IP qui ont tenté de se connecter aux équipements (depuis le syslog) et appartiennent à des réseaux en liste. Informatif.",
+    "noAttackers": "Aucune tentative de connexion depuis des réseaux en liste.",
+    "attackerColumns": {
+      "ip": "IP",
+      "attempts": "Tentatives",
+      "network": "Réseau en liste",
+      "last": "Dernière"
+    },
+    "attempts_one": "{{count}} tentative sur {{devices}} équipements",
+    "attempts_other": "{{count}} tentatives sur {{devices}} équipements"
   }
 }

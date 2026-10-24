@@ -2355,7 +2355,8 @@
       "zabbix": "Zabbix",
       "cnmaestro": "cnMaestro",
       "ispbilling": "ISPBilling",
-      "probe": "Sonda esterna"
+      "probe": "Sonda esterna",
+      "threatLists": "Liste di minaccia"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5470,6 +5471,8 @@
     "SYSLOG_AGENT_CONFIG_SKIPPED": "Configurazione syslog saltata",
     "SYSLOG_CHAIN_ANCHOR": "Punto di controllo integrità syslog",
     "SYSLOG_SETTINGS_CHANGED": "Impostazioni syslog modificate",
+    "THREAT_LISTS_CONFIGURED": "Liste di minaccia configurate",
+    "THREAT_LIST_MATCH": "Indirizzo dell'operatore trovato in una lista di minaccia",
     "UISP_AUTO_CUSTOMERS_CHANGED": "Importazione automatica UISP modificata",
     "UISP_AUTO_IMPORTED": "Apparati UISP importati in automatico",
     "UISP_BACKUP_ARCHIVED": "Backup UISP archiviato",
@@ -6536,5 +6539,47 @@
       "sources": "In PROBE_ALLOWED_SOURCES metti l'IP pubblico da cui esce il server NSM, così nessun altro può usarla.",
       "connect": "Inserisci qui indirizzo, nome e segreto, salva e premi «Prova la sonda»."
     }
+  },
+  "threatLists": {
+    "title": "Integrazioni · Liste di minaccia",
+    "subtitle": "Liste pubbliche di reti da bloccare (Spamhaus DROP), confrontate ogni giorno con i tuoi prefissi, gli IP pubblici dell'inventario e gli IP che tentano l'accesso agli apparati. Solo lettura: nessun apparato viene modificato.",
+    "refresh": "Aggiorna ora",
+    "settingsTitle": "Impostazioni",
+    "enabled": "Attiva le liste di minaccia (aggiornamento giornaliero)",
+    "prefixes": "Prefissi pubblici dell'operatore",
+    "prefixesHelp": "Uno per riga, ad esempio 203.0.113.0/24. Se uno di questi compare in una lista, NSM apre una segnalazione: va chiesta subito la rimozione.",
+    "useSource": "Usa questa lista",
+    "url": "Indirizzo della lista",
+    "saved": "Impostazioni salvate.",
+    "sourcesTitle": "Liste",
+    "loaded_one": "{{count}} rete · aggiornata {{when}}",
+    "loaded_other": "{{count}} reti · aggiornata {{when}}",
+    "never": "non ancora scaricata",
+    "failed": "Ultimo download non riuscito ({{error}}): resta la copia precedente.",
+    "on": "attiva",
+    "off": "disattivata",
+    "checked": "Ultimo controllo: {{when}}",
+    "notChecked": "Non ancora controllato.",
+    "matchesTitle": "Tuoi indirizzi in lista",
+    "matchesHelp": "Prefissi dell'operatore e IP pubblici degli apparati che si trovano in una rete della lista. Per ognuno c'è una segnalazione nell'Action Center.",
+    "noMatches": "Nessuno dei tuoi indirizzi è in lista.",
+    "operatorPrefix": "Prefisso dell'operatore",
+    "columns": {
+      "what": "Cosa",
+      "address": "Indirizzo",
+      "network": "Rete in lista",
+      "source": "Lista"
+    },
+    "attackersTitle": "Accessi da reti in lista (ultimi 7 giorni)",
+    "attackersHelp": "IP che hanno tentato l'accesso agli apparati (dal syslog) e che appartengono a reti in lista. Informativo.",
+    "noAttackers": "Nessun tentativo di accesso da reti in lista.",
+    "attackerColumns": {
+      "ip": "IP",
+      "attempts": "Tentativi",
+      "network": "Rete in lista",
+      "last": "Ultimo"
+    },
+    "attempts_one": "{{count}} tentativo su {{devices}} apparati",
+    "attempts_other": "{{count}} tentativi su {{devices}} apparati"
   }
 }

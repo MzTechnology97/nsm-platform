@@ -10,6 +10,7 @@ const INTEGRATION_PAGES: { key: string; route: string }[] = [
   { key: "cnmaestro", route: "/admin/integrations/cnmaestro" },
   { key: "ispbilling", route: "/admin/integrations/ispbilling" },
   { key: "probe", route: "/admin/integrations/probe" },
+  { key: "threatLists", route: "/admin/integrations/threat-lists" },
 ];
 
 export function IntegrationTabs() {
