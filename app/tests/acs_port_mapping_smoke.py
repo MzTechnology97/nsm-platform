@@ -42,7 +42,7 @@ def main():
 
     # VX230v as read on the operator's CPE: no mapping, UPnP on, no DMZ object.
     vx = acs_port_mapping.parse(tr181("x", []))
-    assert vx == {"mappings": [], "dmz": None, "upnp": True}, vx
+    assert vx == {"mappings": [], "dmz": None, "upnp": True, "upnp_path": "Device.NAT.X_TP_UPnPCfg.Enable"}, vx
     assert acs_port_mapping.parse({"_id": "x", "Device": {"DeviceInfo": {}}}) is None, "NAT not read yet"
     full = acs_port_mapping.parse(tr181("x", [mapping(443, "192.0.2.10"), mapping(3389, "192.0.2.11", enabled=False)], dmz="192.0.2.20"))
     assert [(m["external_port"], m["internal_client"], m["enabled"]) for m in full["mappings"]] == [(443, "192.0.2.10", True), (3389, "192.0.2.11", False)]

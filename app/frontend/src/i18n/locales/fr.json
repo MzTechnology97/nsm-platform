@@ -5500,6 +5500,9 @@
     "UISP_SYNC_FAILED": "Échec de la synchronisation UISP",
     "UISP_SYSLOG_CONFIGURED": "Syslog de l'équipement configuré via UISP",
     "UISP_SYSLOG_RESTORED": "Configuration de l'équipement restaurée via UISP",
+    "UPNP_DISABLED": "UPnP désactivé par NSM",
+    "UPNP_DISABLE_FAILED": "Échec de la désactivation UPnP",
+    "UPNP_DISABLE_REQUESTED": "Désactivation UPnP demandée",
     "USER_2FA_DISABLED": "Connexion à deux facteurs désactivée",
     "USER_2FA_ENABLED": "Connexion à deux facteurs activée",
     "USER_2FA_RECOVERY_REGENERATED": "Codes de secours 2FA renouvelés",
@@ -6618,5 +6621,56 @@
     },
     "dmz": "La DMZ est active : les ports hors des exceptions de la DMZ vont vers l'équipement du client, pas vers la CPE. NSM ne met aucune règle sur ces ports pour ne pas bloquer le client.",
     "notProtected": "Ces ports ne sont pas modifiés car la CPE les redirige vers le client (redirection de port ou DMZ) : une règle y bloquerait le service du client."
+  },
+  "upnp": {
+    "hint": "Avec UPnP, n'importe quel appareil du LAN du client peut ouvrir des ports vers Internet sans contrôle. NSM conseille de le désactiver ; il ne le fait jamais de lui-même.",
+    "on": "UPnP actif",
+    "off": "UPnP désactivé",
+    "offByNsm": "Désactivé par NSM",
+    "unknown": "Pas encore lu",
+    "status": {
+      "queued": "En file",
+      "running": "En cours",
+      "failed": "Échec",
+      "stopped": "Arrêtée"
+    },
+    "source": {
+      "agent": "Lu par l'agent MikroTik (contrôle d'exposition)",
+      "tr069": "Lu via TR-069 (lecture horaire)",
+      "uisp": "Lu dans la dernière sauvegarde UISP archivée"
+    },
+    "method": {
+      "agent": "Agent MikroTik",
+      "tr069": "TR-069",
+      "uisp": "UISP (airOS)",
+      "null": "—"
+    },
+    "readAt": "lu le {{when}}",
+    "devname": "ports ouverts sur {{name}}",
+    "done": "Désactivé le {{when}} par {{by}}.",
+    "waiting": "Commande envoyée : la CPE l'applique à son prochain contact avec l'ACS.",
+    "reboot": "Sur airOS, la désactivation passe par UISP et redémarre la CPE : le client est hors ligne pendant 2 à 3 minutes. La sauvegarde prise juste avant reste comme point de restauration.",
+    "confirm": "Pour confirmer, saisissez le nom de l'équipement : {{name}}",
+    "disable": "Désactiver UPnP",
+    "working": "Désactivation en cours…",
+    "fleetHint": "Équipements avec UPnP actif, tous fabricants. Choisissez lesquels désactiver : MikroTik et TR-069 immédiatement, les CPE airOS une par minute (chacune redémarre) ; à la première erreur airOS, les autres airOS de la même demande s'arrêtent.",
+    "counts": "Actif : {{on}} · désactivé : {{off}} · non lu : {{unknown}} · en cours : {{in_progress}} · échecs : {{failed}}",
+    "none": "Aucun équipement avec UPnP actif.",
+    "all": "Tout sélectionner",
+    "columns": {
+      "device": "Équipement",
+      "customer": "Client",
+      "method": "Désactivation via",
+      "state": "État"
+    },
+    "bulkReboot_one": "{{count}} CPE airOS va redémarrer (2 à 3 minutes hors ligne).",
+    "bulkReboot_other": "{{count}} CPE airOS vont redémarrer, une par minute (2 à 3 minutes hors ligne chacune).",
+    "bulkConfirm": "Pour confirmer, saisissez le nombre d'équipements choisis : {{count}}",
+    "bulkDisable_one": "Désactiver UPnP sur {{count}} équipement",
+    "bulkDisable_other": "Désactiver UPnP sur {{count}} équipements",
+    "bulkQueued_one": "{{count}} équipement en file.",
+    "bulkQueued_other": "{{count}} équipements en file.",
+    "bulkSkipped_one": "{{count}} ignoré (non pris en charge ou déjà en cours).",
+    "bulkSkipped_other": "{{count}} ignorés (non pris en charge ou déjà en cours)."
   }
 }

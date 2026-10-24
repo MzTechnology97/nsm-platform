@@ -9,6 +9,7 @@ import { formatRelative } from "../lib/format";
 import { SEVERITY_TONE } from "./Vulnerabilities";
 import { Loading } from "../app/States";
 import { Pager } from "../app/Pager";
+import { UpnpFleetPanel } from "../app/UpnpPanel";
 import { pageParams, usePaging } from "../lib/paging";
 
 const VIEW_COUNT = { exposed: "exposed", internal: "internal", setup: "setup", clean: "clean", pending: "pending", all: "total" } as const;
@@ -75,6 +76,7 @@ export function Exposure() {
       ) : (
         <div className="ui-empty">{view === "exposed" ? t("exposure.allGood") : t("exposure.empty")}</div>
       )}
+      <UpnpFleetPanel customer={search.customer} />
     </section>
   );
 }

@@ -5500,6 +5500,9 @@
     "UISP_SYNC_FAILED": "UISP sync failed",
     "UISP_SYSLOG_CONFIGURED": "Device syslog configured through UISP",
     "UISP_SYSLOG_RESTORED": "Device configuration restored through UISP",
+    "UPNP_DISABLED": "UPnP turned off by NSM",
+    "UPNP_DISABLE_FAILED": "UPnP turn-off failed",
+    "UPNP_DISABLE_REQUESTED": "UPnP turn-off requested",
     "USER_2FA_DISABLED": "Two-factor sign-in disabled",
     "USER_2FA_ENABLED": "Two-factor sign-in enabled",
     "USER_2FA_RECOVERY_REGENERATED": "Two-factor recovery codes renewed",
@@ -6618,5 +6621,56 @@
     },
     "dmz": "The DMZ is on: ports not among the DMZ exceptions go to the customer's device, not to the CPE. NSM puts no rule on those ports so the customer is not blocked.",
     "notProtected": "These ports are left alone because the CPE forwards them to the customer (port forward or DMZ): a rule there would block the customer's service."
+  },
+  "upnp": {
+    "hint": "With UPnP any device of the customer LAN can open ports towards Internet without control. NSM suggests turning it off; it never does it on its own.",
+    "on": "UPnP on",
+    "off": "UPnP off",
+    "offByNsm": "Turned off by NSM",
+    "unknown": "Not read yet",
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "failed": "Failed",
+      "stopped": "Stopped"
+    },
+    "source": {
+      "agent": "Read by the MikroTik agent (exposure check)",
+      "tr069": "Read through TR-069 (hourly read)",
+      "uisp": "Read from the last archived UISP backup"
+    },
+    "method": {
+      "agent": "MikroTik agent",
+      "tr069": "TR-069",
+      "uisp": "UISP (airOS)",
+      "null": "—"
+    },
+    "readAt": "read on {{when}}",
+    "devname": "ports opened on {{name}}",
+    "done": "Turned off on {{when}} by {{by}}.",
+    "waiting": "Command sent: the CPE applies it at its next contact with the ACS.",
+    "reboot": "On airOS the turn-off goes through UISP and reboots the CPE: the customer is offline for 2–3 minutes. The backup taken right before is kept as the restore point.",
+    "confirm": "To confirm, type the device name: {{name}}",
+    "disable": "Turn UPnP off",
+    "working": "Turning off…",
+    "fleetHint": "Devices with UPnP on, every vendor. Choose which to turn off: MikroTik and TR-069 at once, airOS CPEs one per minute (each reboots); at the first airOS error the other airOS devices of the same request stop.",
+    "counts": "On: {{on}} · off: {{off}} · not read: {{unknown}} · running: {{in_progress}} · failed: {{failed}}",
+    "none": "No device with UPnP on.",
+    "all": "Select all",
+    "columns": {
+      "device": "Device",
+      "customer": "Customer",
+      "method": "Turned off through",
+      "state": "State"
+    },
+    "bulkReboot_one": "{{count}} airOS CPE will reboot (2–3 minutes offline).",
+    "bulkReboot_other": "{{count}} airOS CPEs will reboot, one per minute (2–3 minutes offline each).",
+    "bulkConfirm": "To confirm, type the number of chosen devices: {{count}}",
+    "bulkDisable_one": "Turn UPnP off on {{count}} device",
+    "bulkDisable_other": "Turn UPnP off on {{count}} devices",
+    "bulkQueued_one": "{{count}} device queued.",
+    "bulkQueued_other": "{{count}} devices queued.",
+    "bulkSkipped_one": "{{count}} skipped (not supported or already running).",
+    "bulkSkipped_other": "{{count}} skipped (not supported or already running)."
   }
 }

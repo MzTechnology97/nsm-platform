@@ -6,6 +6,7 @@ import { ApiError } from "../api/client";
 import { type ExposureFinding, type ExposureTab, type JobFilters, type JournalEntry, type JournalKind, type PortForward, type DeviceEventRow, useDeviceCompliance, useDeviceExposure,
   useDeviceJobs, useExposureAction, useLogbook, useLogbookActions } from "../api/deviceTabs";
 import { BrandIcon } from "../app/BrandIcon";
+import { UpnpDevicePanel } from "../app/UpnpPanel";
 import { formatDateTime, formatRelative, fromLocalInput, toLocalInput } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { eventLabel, eventSource } from "../lib/events";
@@ -274,6 +275,7 @@ export function DeviceExposure() {
   const declarable = Boolean(exposure && exposure.source === "external" && data.can_remediate);
   return (
     <>
+      <UpnpDevicePanel id={deviceId} />
       <section className="ui-panel ui-admin-section">
         <div className="ui-page-header-row">
           <div>
