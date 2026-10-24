@@ -57,7 +57,13 @@ for (const root of ["InternetGatewayDevice", "Device"]) {
   declare(root + ".DeviceInfo.UpTime", {value: fresh});
 }
 // Monitoring (ACS-05): WAN counters and state, Wi-Fi clients, LAN hosts, DSL line, read at every periodic inform.
+// The layers below the WAN interface (PPP, VLAN, Ethernet) too: some firmwares keep the counters only there, and the
+// connected time (LastChange, X_TP_Uptime) so a PPPoE reconnection is seen.
 for (const path of ["Device.IP.Interface.*.Status", "Device.IP.Interface.*.Stats.BytesReceived", "Device.IP.Interface.*.Stats.BytesSent",
+                    "Device.IP.Interface.*.LastChange", "Device.IP.Interface.*.X_TP_Uptime", "Device.PPP.Interface.*.LastChange",
+                    "Device.PPP.Interface.*.Stats.BytesReceived", "Device.PPP.Interface.*.Stats.BytesSent",
+                    "Device.Ethernet.VLANTermination.*.Stats.BytesReceived", "Device.Ethernet.VLANTermination.*.Stats.BytesSent",
+                    "Device.Ethernet.Link.*.Stats.BytesReceived", "Device.Ethernet.Link.*.Stats.BytesSent",
                     "Device.PPP.Interface.*.ConnectionStatus", "Device.WiFi.AccessPoint.*.AssociatedDeviceNumberOfEntries",
                     "Device.Hosts.HostNumberOfEntries", "Device.DSL.Line.*.Status", "Device.DSL.Line.*.LinkStatus",
                     "Device.DSL.Line.*.DownstreamNoiseMargin", "Device.DSL.Line.*.DownstreamAttenuation",

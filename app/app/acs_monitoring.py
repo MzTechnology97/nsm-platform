@@ -51,6 +51,7 @@ PROJECTION = (
     "Device.DeviceInfo.UpTime", "Device.DeviceInfo.ProcessStatus.CPUUsage", "Device.DeviceInfo.MemoryStatus",
     "Device.ManagementServer.PeriodicInformInterval", "Device.ManagementServer.ConnectionRequestURL",
     "Device.PPP.Interface", "Device.IP.Interface", "Device.WiFi.Radio", "Device.WiFi.SSID", "Device.WiFi.AccessPoint",
+    "Device.Ethernet.VLANTermination", "Device.Ethernet.Link", "Device.Ethernet.Interface",
     "Device.Hosts.HostNumberOfEntries", "Device.DSL.Line", "Device.DSL.Channel",
     "InternetGatewayDevice.DeviceInfo.UpTime", "InternetGatewayDevice.ManagementServer.PeriodicInformInterval",
     "InternetGatewayDevice.ManagementServer.ConnectionRequestURL", "InternetGatewayDevice.WANDevice", "InternetGatewayDevice.LANDevice",
@@ -73,10 +74,56 @@ def _value(node, *parts):
 
 
 def _int(value):
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    text = str(value).strip() if value is not None else ""
+    if text.isdigit():
+        return int(text)  # exact: 64-bit counters do not fit a float
     try:
-        return int(float(value))
+        return int(float(text))
     except (TypeError, ValueError):
         return None
+
+
+# Some firmwares (TP-Link HB210) report the all-ones value for counters they do not keep: it never changes, so it is
+# "not available", not traffic.
+COUNTER_SENTINELS = {2**32 - 1, 2**64 - 1}
+
+
+def _counter(node) -> tuple[int, int] | None:
+    """(rx, tx) bytes from a TR-181 ``Stats`` object, or None when missing or stuck at the all-ones value."""
+    rx, tx = _int(_value(node, "Stats", "BytesReceived")), _int(_value(node, "Stats", "BytesSent"))
+    if rx is None or tx is None or rx in COUNTER_SENTINELS or tx in COUNTER_SENTINELS:
+        return None
+    return rx, tx
+
+
+def _layer(root: dict, reference: str):
+    """The object a TR-181 ``LowerLayers`` entry points to (``Device.PPP.Interface.3.`` → its node)."""
+    parts = [p for p in str(reference or "").split(",")[0].strip().rstrip(".").split(".") if p]
+    if len(parts) < 3 or parts[0] != "Device":
+        return None
+    return _value_obj(root, *parts[1:])
+
+
+def _wan_counters(root: dict, node: dict) -> tuple[dict, str | None]:
+    """Byte counters of the WAN: the IP interface, else the layers below it (PPP, VLAN, Ethernet link/interface)."""
+    found = _counter(node)
+    if found:
+        return {"rx": found[0], "tx": found[1]}, "ip"
+    reference, depth = str(_value(node, "LowerLayers") or ""), 0
+    while reference and depth < 4:
+        layer = _layer(root, reference)
+        if not isinstance(layer, dict):
+            break
+        found = _counter(layer)
+        if found:
+            kind = reference.split(".")[1].lower() if "." in reference else "lower"
+            return {"rx": found[0], "tx": found[1]}, kind
+        reference, depth = str(_value(layer, "LowerLayers") or ""), depth + 1
+    return {"rx": None, "tx": None}, None
 
 
 def _float(value):
@@ -144,7 +191,7 @@ def _tr181(root: dict, cr_host: str | None) -> dict:
         if wan["lower"].startswith("Device.PPP.Interface."):
             ppp_index = wan["lower"].split(".")[3] if len(wan["lower"].split(".")) > 3 else ""
             ppp = _value_obj(root, "PPP", "Interface", ppp_index)
-        last_change = _int(_value(node, "LastChange"))
+        last_change = _int(_value(node, "LastChange")) or (_int(_value(ppp, "LastChange")) if ppp else None)
         connected_for = last_change if last_change else _int(_value(node, "X_TP_Uptime"))
         state["wan"] = {
             "status": (_value(ppp, "ConnectionStatus") if ppp else None) or _value(node, "Status"),
@@ -156,7 +203,7 @@ def _tr181(root: dict, cr_host: str | None) -> dict:
             # PPPoE username the CPE logs in with: matched to the ISPBilling RADIUS account (ispbilling_radius).
             "username": (str(_value(ppp, "Username") or "").strip() or None) if ppp else None,
         }
-        state["counters"] = {"rx": _int(_value(node, "Stats", "BytesReceived")), "tx": _int(_value(node, "Stats", "BytesSent"))}
+        state["counters"], state["wan"]["counters_source"] = _wan_counters(root, node)
     # Wi-Fi: clients per radio through AccessPoint → SSID → Radio.
     wifi = _value_obj(root, "WiFi") or {}
     ssid_radio = {key: str(_value(node, "LowerLayers") or "") for key, node in _instances(wifi.get("SSID"))}
