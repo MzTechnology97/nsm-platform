@@ -554,6 +554,22 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 Validation pending: periodic sync against a real UISP instance (the consumed endpoint is the same one used by manual refresh).
 
+### Syslog through UISP (UBNT-09, Core 0.49.257)
+
+`app/uisp_syslog.py`. UISP 3.x reads an airOS device's services but cannot write them (`PUT /devices/{id}/services` → 501 *setServices is not implemented*). So NSM restores a configuration the way UISP itself does:
+1. a fresh backup (`POST /devices/{id}/backups`), kept as the restore point;
+2. `system.cfg` with only `syslog.remote.status/ip/port` changed (and, in key mode, `NSM-<key>` appended to `resolv.host.1.name`);
+3. the changed file uploaded (`PUT /devices/{id}/backups`, multipart) and applied (`POST …/{backupId}/apply`). The CPE reboots and is back in 2–3 minutes (checked on a LiteBeam 5AC, airOS 8.7.15).
+
+It runs only from the device *Syslog* tab, with the device name typed as confirmation (`devices.write`), never from the worker. *Ripristina configurazione precedente* applies the restore point. Devices whose services UISP does not expose (404) keep the manual guide.
+
+Identification per device:
+- `key`, the default: the NSM key in the hostname;
+- `customer_name`: the UISP hostname must equal the NSM customer's name, words in any order. The name is saved on the device (`match_name`) because the receiver's database account cannot read customers. A line is accepted only when exactly one device uses that name, and only among the first 160 characters of the line;
+- `address`: the management IP from UISP, accepted only when no other device uses it.
+
+Audit `UISP_SYSLOG_CONFIGURED`, `UISP_SYSLOG_RESTORED`.
+
 ### Device operations (UBNT-08 step 2)
 
 Reboot with uptime verification, configuration backup archived in NSM (manual and by policy), interfaces and UISP events on the device UISP tab. The read endpoints (`/devices`, `/devices/{id}`, interfaces, backups, `/logs`) were checked on the operator's console on 2026-10-22 (Core 0.49.199): the kind of a log entry comes from its `tags`; the serial number is not sent by UISP (devices are matched by MAC). Reboot and backup requests are not exercised on the real console yet.
@@ -576,13 +592,24 @@ These future features must only be exposed when the actual vendor API capability
 
 ### Implemented (VEND-02)
 
-- read-only cnMaestro connector (cloud or on-premises): OAuth2 client credentials (encrypted), connection test, paged inventory and statistics;
+- read-only cnMaestro connector (cloud or on-premises, API v2 since Core 0.49.259): OAuth2 client credentials (encrypted), connection test, paged inventory and statistics;
 - linking by MAC (then serial) when a Cambium device is added in NSM: the device is created only if cnMaestro knows it exactly once;
 - sync every 15 minutes of identity, model, firmware, IP and status, metrics history (signal, SNR, throughput, CPU/memory, connected stations; 90 days) with graphs on the device *cnMaestro* tab;
 - bulk onboarding (Core 0.49.192): *Integrazioni → cnMaestro → Importa da cnMaestro*, the same flow as UISP — NSM state per device (new, to link, already in NSM, not importable with the reason), explicit Customer/Site, preview, commit from fresh cnMaestro data, existing Cambium records with the same MAC linked instead of duplicated; device type from product family and mode; `CNMAESTRO_BULK_ONBOARDING` audit;
 - compatibility check (Core 0.49.189), as for UISP, on `/devices` and `/devices/statistics`.
 
 Checked on the operator's cnMaestro on 2026-10-22 (Core 0.49.199): `/devices` and `/devices/statistics` field names confirmed; Wi-Fi access points (cnPilot) report clients and traffic per band, which NSM sums for the *stations* and *throughput* charts; cnMaestro sends no uptime, so NSM shows the time online (`status_time`) for online devices; the import groups devices by tower, else site, else network.
+
+### API v2 and adoption of hand-made records (Core 0.49.259)
+
+cnMaestro marks every v1 answer as deprecated (sunset 3.2.0). Checked with GET only on the operator's cnMaestro on-premises on 2026-10-23, the connector now reads the northbound API v2:
+
+- inventory `GET /api/v2/devices` and statistics `GET /api/v2/devices/statistics` (paged, no deprecation note); v2 adds `mode`, `ap_mac`, `overrides` and `config.version` to devices and gives Wi-Fi access points a `radios` list (with `band`) instead of `radio.24ghz`/`radio.5ghz`, which NSM reads for stations and throughput (the compatibility check looks for `radios.N.*`);
+- also present in v2, not used yet: `/api/v2/devices/{mac}`, `/api/v2/devices/{mac}/statistics`, `/api/v2/devices/{mac}/performance` (`start_time` required), `/api/v2/networks`, `/api/v2/alarms`, `/api/v2/jobs`; the aggregate `/api/v2/devices/performance` is retired (HTTP 301, device level only);
+- login `POST /api/v2/access/token`; the v2 token endpoint answers a GET like the v1 one, but the POST could not be tried read-only, so when v2 refuses it with anything but 401/403 NSM logs in on `/api/v1/access/token` — the only v1 call left;
+- a `deprecation` note in any cnMaestro answer is kept in the last sync result (and returned by *Sincronizza ora*).
+
+A Cambium device created by hand (for example added as generic and corrected to Cambium later) was linked by MAC on the sync but kept `management_source`/`inventory_source` `manual` and no external id, so it looked unmanaged and its IP was never refreshed from cnMaestro. The matching itself was correct (MAC normalised on both sides, serial also read from `msn`). Now a linked Cambium device with a manual (or empty) source becomes managed by cnMaestro — `management_source` and `inventory_source` `cnmaestro`, the cnMaestro MAC as external id — both on the sync and on the bulk-onboarding link; the change is audited once in `CNMAESTRO_DEVICE_LINKED` (`changes`). Other sources are never overwritten.
 
 ### Configuration backup over SSH (Core 0.49.251)
 
@@ -599,7 +626,7 @@ The cnMaestro API cannot export a device configuration. This was checked on the 
 ### Not implemented yet
 
 - operations through cnMaestro (reboot, firmware) — only where the cnMaestro API supports them and they can be verified;
-- cnMaestro API v2: the connector still reads `/api/v1`, which the operator's console reports as deprecated (sunset 3.2.0).
+- per-device performance history from `/api/v2/devices/{mac}/performance` (NSM keeps its own samples from the statistics).
 
 ## 13c. ISPBilling (billing / CRM)
 
