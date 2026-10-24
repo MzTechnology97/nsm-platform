@@ -1439,7 +1439,8 @@
       "none": "Aucune alerte d'accès.",
       "users": "utilisateurs : {{list}}",
       "openIncident": "Ouvrir un incident"
-    }
+    },
+    "rules": "Règles syslog"
   },
   "lifecycle": {
     "title": "Cycle de vie",
@@ -6347,5 +6348,107 @@
     "working": "UISP applique…",
     "done": "Configuration appliquée : le CPE redémarre et les journaux arrivent sous quelques minutes.",
     "restored": "Configuration précédente appliquée : le CPE redémarre."
+  },
+  "syslogRules": {
+    "title": "Règles syslog",
+    "subtitle": "Vos propres règles sur les logs des équipements, en plus des alertes d'accès intégrées : expression régulière, seuil dans le temps, exceptions et action. Testez-les sur une ligne de log avant de les enregistrer.",
+    "toAccess": "Accès",
+    "new": "Nouvelle règle",
+    "listTitle": "Règles de l'opérateur",
+    "none": "Aucune règle : partez d'un modèle avec « Nouvelle règle ».",
+    "columns": {
+      "name": "Règle",
+      "match": "Correspondance",
+      "correlation": "Seuil",
+      "level": "Niveau",
+      "alerts": "Alertes 24 h",
+      "actions": "Actions"
+    },
+    "disabled": "désactivée",
+    "anyVendor": "tout fabricant",
+    "maxSeverity": "jusqu'à la sévérité {{level}}",
+    "countIn": "{{count}} en {{minutes}} min, par {{group}}",
+    "single": "chaque ligne",
+    "afterRule": "après « {{name}} » sous {{minutes}} min",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "confirmDelete": "Supprimer la règle « {{name}} » ?",
+    "editTitle": "Modifier la règle",
+    "newTitle": "Nouvelle règle",
+    "template": "Partir d'un modèle",
+    "templateNone": "— aucun modèle —",
+    "fields": {
+      "name": "Nom",
+      "pattern": "Expression régulière sur le message",
+      "patternHelp": "Les groupes nommés deviennent les champs de l'alerte : (?P<ip>…) adresse, (?P<user>…) utilisateur, (?P<svc>…) service. Pas de quantificateurs imbriqués comme (a+)+.",
+      "vendor": "Fabricant",
+      "maxSeverity": "Sévérité jusqu'à",
+      "topic": "Topic ou programme contient",
+      "count": "Lignes nécessaires",
+      "countHelp": "1 = chaque ligne ; plus = seuil dans la fenêtre.",
+      "window": "Fenêtre (minutes)",
+      "groupBy": "Compter par",
+      "afterRule": "Seulement après la règle",
+      "afterNone": "— aucune —",
+      "afterMinutes": "Sous (minutes)",
+      "ignore": "Adresses à ignorer",
+      "ignoreHelp": "IP ou réseaux du groupe ip, un par ligne (NSM, techniciens, supervision).",
+      "throttle": "Au plus une alerte toutes les (minutes)",
+      "level": "Niveau",
+      "action": "Action",
+      "enabled": "Règle active"
+    },
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "groups": {
+      "device": "équipement",
+      "ip": "adresse",
+      "user": "utilisateur",
+      "device_ip": "équipement et adresse"
+    },
+    "levels": {
+      "info": "info",
+      "warning": "avertissement",
+      "high": "élevé",
+      "critical": "critique"
+    },
+    "actions": {
+      "event": "événement seul",
+      "notification": "événement et notification",
+      "issue": "notification et Action Center"
+    },
+    "testerTitle": "Tester sur une ligne de log",
+    "testerHelp": "Collez une ligne du syslog d'un équipement : voyez quelles règles, et celle que vous modifiez, la capturent et quels champs elles extraient. Rien n'est enregistré.",
+    "tester": {
+      "message": "Message",
+      "severity": "Sévérité",
+      "run": "Tester",
+      "draft": "brouillon",
+      "matched": "correspond",
+      "notMatched": "non",
+      "noMatch": "ne correspond pas",
+      "noFields": "aucun champ",
+      "ignored": "adresse ignorée",
+      "firesAlone": "cette ligne seule déclenche l'alerte",
+      "needsCorrelation": "il faut le seuil ou la règle précédente",
+      "noRules": "Aucune règle à tester."
+    },
+    "builtinTitle": "Alertes d'accès intégrées",
+    "builtinHelp": "Toujours actives sur tous les équipements qui envoient le syslog ; elles ne se modifient pas.",
+    "builtin": {
+      "brute_force": "Tentatives de connexion échouées",
+      "success_after_failures": "Connexion réussie après des échecs",
+      "new_public_source": "Connexion depuis une nouvelle adresse publique"
+    },
+    "severities": {
+      "0": "0 urgence",
+      "1": "1 alerte",
+      "2": "2 critique",
+      "3": "3 erreur",
+      "4": "4 avertissement",
+      "5": "5 notice",
+      "6": "6 info",
+      "7": "7 débogage"
+    }
   }
 }

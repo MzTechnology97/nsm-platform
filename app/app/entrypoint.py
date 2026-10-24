@@ -75,6 +75,7 @@ from app.acs_alerts import install_acs_alerts
 from app.acs_port_mapping import install_acs_port_mapping
 from app.ispbilling_cpe_link import install_ispbilling_cpe_link
 from app.tplink_access import install_tplink_access
+from app.ui_syslog_rules import install_ui_syslog_rules
 from app.tplink_settings import install_tplink_settings
 from app.acs_monitoring import install_acs_monitoring
 from app.monitor_sources import install_monitor_sources
@@ -295,6 +296,7 @@ install_acs_alerts(core.app)
 install_acs_port_mapping(core.app)
 install_ispbilling_cpe_link(core.app)
 install_tplink_access(core.app)
+install_ui_syslog_rules(core.app)
 install_tplink_settings(core.app)
 install_acs_monitoring(core.app)
 install_monitor_sources(core.app)
