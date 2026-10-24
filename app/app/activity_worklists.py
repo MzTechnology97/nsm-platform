@@ -4,13 +4,15 @@ from __future__ import annotations
 import csv
 import io
 import uuid
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 from sqlalchemy import String, cast, or_, select
 
 from app import main as core
+from app.config import settings
 from app.agent_models import DeviceJob
 from app.db import SessionLocal
 from app.models import AuditEvent, Customer, Device
@@ -19,7 +21,15 @@ router = APIRouter()
 ACTIVE_JOB_STATES = ("pending", "delivered", "running")
 
 
+def _tz():
+    try:
+        return ZoneInfo(settings.app_timezone)
+    except Exception:
+        return ZoneInfo("UTC")
+
+
 def _parse_day(value: str, end: bool = False):
+    """A YYYY-MM-DD filter as a day of APP_TIMEZONE: its start, or with ``end`` the start of the next day (exclusive)."""
     value = (value or "").strip()
     if not value:
         return None
@@ -27,7 +37,7 @@ def _parse_day(value: str, end: bool = False):
         parsed = date.fromisoformat(value)
     except ValueError as exc:
         raise HTTPException(400, "Data non valida. Usa YYYY-MM-DD.") from exc
-    return datetime.combine(parsed, time.max if end else time.min, tzinfo=timezone.utc)
+    return datetime.combine(parsed + timedelta(days=1) if end else parsed, time.min, tzinfo=_tz())
 
 
 def _uuid(value: str):
@@ -62,7 +72,7 @@ def _device_job_query(device_id, status: str, job_type: str, q: str, from_date: 
     if start:
         stmt = stmt.where(DeviceJob.created_at >= start)
     if end:
-        stmt = stmt.where(DeviceJob.created_at <= end)
+        stmt = stmt.where(DeviceJob.created_at < end)
     return stmt
 
 
@@ -103,7 +113,7 @@ def _audit_query(event_type: str, result: str, severity: str, customer_id, devic
     if start:
         stmt = stmt.where(AuditEvent.timestamp >= start)
     if end:
-        stmt = stmt.where(AuditEvent.timestamp <= end)
+        stmt = stmt.where(AuditEvent.timestamp < end)
     return stmt
 
 

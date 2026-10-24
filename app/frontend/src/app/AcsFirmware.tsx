@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { api } from "../api/client";
 import { formatDateTime } from "../lib/format";
+import { TplinkCloudFirmware } from "./TplinkCloudFirmware";
 
 interface FirmwareFile { name: string; size: number | null; uploaded_at: string | null; product_class: string | null; version: string | null }
 
@@ -33,7 +34,7 @@ interface AcsFirmwareData {
   max_mb: number;
   upgrade: Upgrade | null;
   /** Newest release of the firmware catalog for this model (Firmware → Cataloghi), as for the other devices. */
-  catalog: { latest: string; source: string; security: boolean; status: string | null; newer: boolean; released_at: string | null; notes_url: string | null } | null;
+  catalog: { latest: string; source: string; security: boolean; status: string | null; newer: boolean; fetchable: boolean; released_at: string | null; notes_url: string | null } | null;
 }
 
 const path = (id: string) => `/api/ui/v1/devices/${encodeURIComponent(id)}/acs/firmware`;
@@ -66,14 +67,24 @@ export function AcsFirmware({ deviceId }: { deviceId: string }) {
       void client.invalidateQueries({ queryKey: key });
     },
   });
+  const fetchImage = useMutation({
+    mutationFn: (target: string) => api<{ file_name: string; size: number }>(`${path(deviceId)}/fetch`, { method: "POST", body: JSON.stringify({ version: target }) }),
+    onSuccess: (result) => {
+      setChosen(result.file_name);
+      void client.invalidateQueries({ queryKey: key });
+    },
+  });
   const run = useMutation({
-    mutationFn: () => api<AcsFirmwareData>(path(deviceId), { method: "POST", body: JSON.stringify({ file_name: chosen, confirm }) }),
+    mutationFn: () => api<AcsFirmwareData>(path(deviceId), { method: "POST", body: JSON.stringify({ file_name: chosen || ready?.name || "", confirm }) }),
     onSuccess: (data) => {
       setConfirm("");
       client.setQueryData(key, data);
     },
   });
   const data = query.data;
+  // The image of the newest catalog release, when already in the ACS (downloaded automatically or by hand), is preselected.
+  const ready = data?.catalog ? data.files.find((file) => file.version === data.catalog?.latest) : undefined;
+  const selected = chosen || ready?.name || "";
   if (!data || !data.linked) return null;
   const upgrade = data.upgrade;
   const running = upgrade?.state === "requested";
@@ -102,6 +113,16 @@ export function AcsFirmware({ deviceId }: { deviceId: string }) {
           {" · "}<Link to="/firmware/catalogs">{t("acsFirmware.catalogs")}</Link>
         </p>
       )}
+      {data.catalog?.newer && ready && <div className="ui-alert ui-alert-success">{t("acsFirmware.ready", { version: data.catalog.latest })}</div>}
+      {data.can_run && data.catalog?.newer && data.catalog.fetchable && !ready && (
+        <div className="ui-row-actions">
+          <button type="button" className="ui-button" disabled={fetchImage.isPending} onClick={() => data.catalog && fetchImage.mutate(data.catalog.latest)}>
+            {fetchImage.isPending ? t("acsFirmware.fetching") : t("acsFirmware.fetch", { version: data.catalog.latest })}
+          </button>
+          {fetchImage.data && <small className="ui-live">{t("acsFirmware.fetched")}</small>}
+          {fetchImage.error && <small className="ui-backup-error">{(fetchImage.error as Error).message}</small>}
+        </div>
+      )}
       {upgrade && (
         <div className={`ui-alert${upgrade.state === "failed" || upgrade.state === "unconfirmed" ? " ui-alert-warning" : upgrade.state === "verified" ? " ui-alert-success" : ""}`}>
           {t(`acsFirmware.states.${upgrade.state}`, {
@@ -114,6 +135,7 @@ export function AcsFirmware({ deviceId }: { deviceId: string }) {
           <small className="ui-muted"> · {upgrade.file_name}{upgrade.by ? ` · ${upgrade.by}` : ""}</small>
         </div>
       )}
+      <TplinkCloudFirmware deviceId={deviceId} running={running} />
       {data.files_error && <div className="ui-alert ui-alert-warning">{data.files_error}</div>}
       {data.can_run && (
         <>
@@ -141,7 +163,7 @@ export function AcsFirmware({ deviceId }: { deviceId: string }) {
             <form className="ui-admin-form" onSubmit={submitRun}>
               <label>
                 <span>{t("acsFirmware.file")}</span>
-                <select value={chosen} onChange={(event) => setChosen(event.target.value)} required>
+                <select value={selected} onChange={(event) => setChosen(event.target.value)} required>
                   <option value="">—</option>
                   {data.files.map((file) => (
                     <option key={file.name} value={file.name}>
@@ -156,7 +178,7 @@ export function AcsFirmware({ deviceId }: { deviceId: string }) {
               </label>
               <p className="ui-muted">{t("acsFirmware.warning")}</p>
               <div className="ui-row-actions">
-                <button type="submit" className="ui-button ui-button-danger" disabled={!chosen || confirm.trim() !== data.confirm_name || running || run.isPending}>
+                <button type="submit" className="ui-button ui-button-danger" disabled={!selected || confirm.trim() !== data.confirm_name || running || run.isPending}>
                   {t("acsFirmware.run")}
                 </button>
               </div>

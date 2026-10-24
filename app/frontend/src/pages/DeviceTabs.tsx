@@ -3,7 +3,7 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
-import { type ExposureTab, type JobFilters, type JournalEntry, type JournalKind, type PortForward, type DeviceEventRow, useDeviceCompliance, useDeviceExposure,
+import { type ExposureFinding, type ExposureTab, type JobFilters, type JournalEntry, type JournalKind, type PortForward, type DeviceEventRow, useDeviceCompliance, useDeviceExposure,
   useDeviceJobs, useExposureAction, useLogbook, useLogbookActions } from "../api/deviceTabs";
 import { BrandIcon } from "../app/BrandIcon";
 import { formatDateTime, formatRelative, fromLocalInput, toLocalInput } from "../lib/format";
@@ -271,6 +271,7 @@ export function DeviceExposure() {
   if (!data) return <Loading />;
   const exposure = data.exposure;
   const external = data.check_mode === "external";
+  const declarable = Boolean(exposure && exposure.source === "external" && data.can_remediate);
   return (
     <>
       <section className="ui-panel ui-admin-section">
@@ -329,8 +330,12 @@ export function DeviceExposure() {
               <small>{exposure.worst ? t("deviceExposure.worst", { severity: exposure.worst }) : t("deviceExposure.noneReachable")}</small>
             </div>
             {exposure.source === "external" ? (
-              <div className="ui-metric"><span>{t("deviceExposure.checkedIp")}</span><strong className="ui-mono">{exposure.target_ip}</strong>
-                <small>{t("deviceExposure.portsChecked", { count: exposure.ports_checked ?? 0 })}</small></div>
+              <>
+                <div className="ui-metric"><span>{t("deviceExposure.checkedIp")}</span><strong className="ui-mono">{exposure.target_ip}</strong>
+                  <small>{t("deviceExposure.portsChecked", { count: exposure.ports_checked ?? 0 })}</small></div>
+                {exposure.uncertain ? <div className="ui-metric ui-metric-warning"><span>{t("deviceExposure.uncertain")}</span><strong>{exposure.uncertain}</strong>
+                  <small>{t("deviceExposure.acl.uncertainHint")}</small></div> : null}
+              </>
             ) : (
               <>
                 <div className={`ui-metric${exposure.uncertain ? " ui-metric-warning" : ""}`}><span>{t("deviceExposure.uncertain")}</span><strong>{exposure.uncertain ?? 0}</strong></div>
@@ -344,10 +349,12 @@ export function DeviceExposure() {
           {exposure.source !== "external" && exposure.input_drop === false && <div className="ui-alert ui-alert-warning">{t("deviceExposure.noDrop")}</div>}
           {exposure.private_target && <div className="ui-alert ui-alert-warning">{t("deviceExposure.privateResult", { ip: exposure.target_ip })}</div>}
           {exposure.shared_with?.length ? <div className="ui-alert ui-alert-warning">{t("deviceExposure.sharedResult", { peers: exposure.shared_with.join(", ") })}</div> : null}
+          {exposure.source === "external" && data.can_remediate && <p className="ui-muted">{t("deviceExposure.acl.help")}</p>}
           {exposure.findings?.length ? (
             <div className="ui-data-wrap">
               <table className="ui-data-table">
-                <thead><tr>{["service", "port", "state", "severity", "reason"].map((key) => <th key={key}><span className="ui-th">{t(`deviceExposure.columns.${key}`)}</span></th>)}</tr></thead>
+                <thead><tr>{["service", "port", "state", "severity", "reason"].map((key) => <th key={key}><span className="ui-th">{t(`deviceExposure.columns.${key}`)}</span></th>)}
+                  {declarable && <th><span className="ui-th">{t("deviceExposure.acl.column")}</span></th>}</tr></thead>
                 <tbody>
                   {exposure.findings.map((finding, index) => (
                     <tr key={`${finding.label}-${finding.port ?? index}`}>
@@ -358,6 +365,7 @@ export function DeviceExposure() {
                       <td>{finding.state === "exposed" || finding.state === "uncertain"
                         ? <span className={SEVERITY_TONE[finding.severity ?? ""] ?? "ui-severity"}>{finding.severity}</span> : "—"}</td>
                       <td>{finding.reason}</td>
+                      {declarable && <td><AclCell deviceId={deviceId} finding={finding} /></td>}
                     </tr>
                   ))}
                 </tbody>
@@ -426,5 +434,40 @@ export function DeviceCompliance() {
         <div className="ui-empty">{t("deviceCompliance.empty")} <Link to="/compliance">{t("deviceCompliance.configure")}</Link></div>
       )}
     </section>
+  );
+}
+
+/** "Filtered by an ACL" declaration of one service found open from the NSM server. */
+function AclCell({ deviceId, finding }: { deviceId: string; finding: ExposureFinding }) {
+  const { t, i18n } = useTranslation();
+  const action = useExposureAction<{ proto?: string; port?: number | string | null; allowed?: string; note?: string; remove?: boolean }>(deviceId, "acl");
+  const [open, setOpen] = useState(false);
+  const [allowed, setAllowed] = useState("");
+  const [note, setNote] = useState("");
+  if (finding.acl) {
+    return (
+      <span className="ui-block">
+        <small className="ui-muted ui-block">{t("deviceExposure.acl.declared", { by: finding.acl.by ?? "—", when: formatDateTime(finding.acl.at, i18n.language) })}</small>
+        {finding.acl.note && <small className="ui-muted ui-block">{finding.acl.note}</small>}
+        <button type="button" className="ui-button ui-button-ghost ui-button-small" disabled={action.isPending}
+          onClick={() => action.mutate({ proto: finding.proto, port: finding.port, remove: true })}>{t("deviceExposure.acl.remove")}</button>
+      </span>
+    );
+  }
+  if (finding.state !== "exposed" && finding.state !== "uncertain") return null;
+  if (!open) {
+    return <button type="button" className="ui-button ui-button-ghost ui-button-small" onClick={() => setOpen(true)}>{t("deviceExposure.acl.declare")}</button>;
+  }
+  return (
+    <form className="ui-admin-form ui-admin-stack" onSubmit={(event) => { event.preventDefault(); action.mutate({ proto: finding.proto, port: finding.port, allowed, note }, { onSuccess: () => setOpen(false) }); }}>
+      <label><span>{t("deviceExposure.acl.allowed")}</span>
+        <input value={allowed} onChange={(event) => setAllowed(event.target.value)} required minLength={3} placeholder={t("deviceExposure.acl.allowedPlaceholder")} /></label>
+      <label><span>{t("deviceExposure.acl.note")}</span><input value={note} onChange={(event) => setNote(event.target.value)} /></label>
+      <div className="ui-row-actions">
+        <button type="submit" className="ui-button ui-button-small" disabled={action.isPending}>{t("deviceExposure.acl.save")}</button>
+        <button type="button" className="ui-button ui-button-ghost ui-button-small" onClick={() => setOpen(false)}>{t("customerForm.cancel")}</button>
+      </div>
+      {action.error && <small className="ui-backup-error">{(action.error as Error).message}</small>}
+    </form>
   );
 }

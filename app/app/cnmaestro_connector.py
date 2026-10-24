@@ -65,7 +65,7 @@ MAX_PAGES = 100
 SYNC_INTERVAL = timedelta(minutes=15)
 MIN_SAMPLE_INTERVAL = timedelta(minutes=4)
 RETENTION_DAYS = 90
-RANGES = {"24h": timedelta(hours=24), "7d": timedelta(days=7), "30d": timedelta(days=30), "90d": timedelta(days=90)}
+RANGES = {"1h": timedelta(hours=1), "24h": timedelta(hours=24), "7d": timedelta(days=7), "30d": timedelta(days=30), "90d": timedelta(days=90)}
 FIELDS = {  # NSM field -> (label, unit, candidate keys in the statistics row)
     "signal_dbm": ("Segnale", "dBm", ("rssi", "dl_rssi", "radio.dl_rssi", "radio.rssi", "radio.dl_rssi_avg")),
     "snr_db": ("SNR", "dB", ("snr", "dl_snr", "radio.dl_snr", "radio.snr")),
