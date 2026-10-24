@@ -61,6 +61,7 @@ from app.lifecycle_web import install_lifecycle_web
 from app.cnmaestro_onboarding import install_cnmaestro_onboarding
 from app.uisp_auto_customer import install_uisp_auto_customer
 from app.ispbilling_connector import install_ispbilling_connector
+from app.mikrotik_bras import install_mikrotik_bras
 from app.ispbilling_import import install_ispbilling_import
 from app.nav_counts import install_nav_counts
 from app.ui_device_connectors import install_ui_device_connectors
@@ -145,7 +146,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.260"
+APP_VERSION = "0.49.261"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -281,6 +282,7 @@ install_lifecycle_web(core.app)
 install_cnmaestro_onboarding(core.app)
 install_uisp_auto_customer(core.app)
 install_ispbilling_connector(core.app)
+install_mikrotik_bras(core.app)
 install_ispbilling_import(core.app)
 install_nav_counts(core.app)
 install_ui_device_connectors(core.app)

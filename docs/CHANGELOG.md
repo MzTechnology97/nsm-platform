@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.261 — 2026-10-23
+
+MikroTik BRAS: customers' PPPoE sessions
+
+### Added
+
+- MikroTik BRAS (*Integrazioni → BRAS MikroTik*): NSM reads the PPPoE concentrator with a read-only RouterOS user, through the RouterOS 7 REST API or the RouterOS API (`api-ssl`/`api`, RouterOS 6.43+), and never changes anything on it.
+  - Every 5 minutes (configurable) it reads the active PPP sessions: online with IP, caller-id MAC and uptime, or offline since when. A failed read changes nothing.
+  - The sessions feed the existing ISPBilling account matching (caller-id MAC or session address to a device; several candidates mean no match).
+  - The device page shows the PPPoE session of each account; the customer page lists its RADIUS accounts with their session state (*Connessioni PPPoE*).
+  - Migration 0057 (`bras_sessions`).
 ## 0.49.260 — 2026-10-23
 
 Bulk Ubiquiti firmware upgrade through UISP

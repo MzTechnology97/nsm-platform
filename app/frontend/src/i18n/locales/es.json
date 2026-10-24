@@ -2381,13 +2381,20 @@
       "genieacs": "GenieACS / TR-069",
       "zabbix": "Zabbix",
       "cnmaestro": "cnMaestro",
-      "ispbilling": "ISPBilling"
+      "ispbilling": "ISPBilling",
+      "bras": "BRAS MikroTik"
     },
     "ispbilling": {
       "title": "ISPBilling",
       "help": "Facturación: registro de clientes y sedes, importado en NSM.",
       "customers": "Clientes leídos",
       "linked": "En NSM"
+    },
+    "bras": {
+      "title": "BRAS MikroTik",
+      "help": "Concentrador PPPoE: sesiones de los clientes (solo lectura).",
+      "online": "En línea",
+      "offline": "Sin conexión"
     }
   },
   "syslogAdmin": {
@@ -5251,6 +5258,8 @@
     "BACKUP_RESTORE_TEST_RECORDED": "Prueba de restauración registrada",
     "BACKUP_RETENTION_DELETED": "Copias antiguas eliminadas por la retención",
     "BACKUP_STALE_ATTEMPT_REPORT_IGNORED": "Informe de copia tardío ignorado",
+    "BRAS_CONFIG_SAVED": "Conexión BRAS guardada",
+    "BRAS_SYNC_REQUESTED": "Lectura BRAS solicitada",
     "CAMBIUM_BACKUP_ARCHIVED": "Configuración Cambium archivada",
     "CAMBIUM_BACKUP_FAILED": "Copia Cambium fallida",
     "CAMBIUM_SSH_CREDENTIALS_CHANGED": "Credenciales SSH Cambium modificadas",
@@ -6380,5 +6389,41 @@
     "working": "UISP está aplicando…",
     "done": "Configuración aplicada: el CPE se reinicia y los registros llegan en unos minutos.",
     "restored": "Configuración anterior aplicada: el CPE se reinicia."
+  },
+  "bras": {
+    "title": "BRAS MikroTik",
+    "subtitle": "Concentrador PPPoE leído con un usuario RouterOS de solo lectura: sesiones de los clientes cada pocos minutos, nada se modifica en el router.",
+    "online": "En línea",
+    "onlineHint": "Sesiones PPPoE abiertas",
+    "offline": "Sin conexión",
+    "offlineHint": "Vistas antes, ahora sin conexión",
+    "lastSync": "Última lectura",
+    "every": "Leído cada {{minutes}} min",
+    "connection": "Conexión",
+    "connectionHelp": "https://dirección para la API REST de RouterOS 7, o api-ssl://dirección:8729 (api://dirección:8728) para la API RouterOS.",
+    "url": "Dirección",
+    "username": "Usuario de solo lectura",
+    "password": "Contraseña",
+    "passwordKeep": "sin cambios",
+    "interval": "Leer cada (minutos)",
+    "verifyTls": "Verificar el certificado TLS",
+    "enabled": "Activado",
+    "save": "Guardar",
+    "actions": "Comprobación",
+    "userHint": "En el BRAS, un usuario que solo puede leer (ejemplo):",
+    "test": "Probar conexión",
+    "syncNow": "Leer ahora",
+    "synced": "{{sessions}} sesiones leídas: {{came}} en línea, {{went}} sin conexión."
+  },
+  "pppoe": {
+    "title": "Conexiones PPPoE",
+    "help": "Cuentas RADIUS del cliente (ISPBilling) y su sesión en el BRAS, leída {{when}}.",
+    "noBras": "Cuentas RADIUS del cliente (ISPBilling). Conecta el BRAS (Integraciones) para ver si están en línea.",
+    "online": "En línea",
+    "offline": "Sin conexión",
+    "offlineSince": "desde {{when}}",
+    "uptime": "conectado desde hace {{value}}",
+    "never": "Nunca vista en el BRAS",
+    "noDevice": "Ningún equipo asociado"
   }
 }

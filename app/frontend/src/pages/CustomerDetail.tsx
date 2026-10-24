@@ -2,6 +2,7 @@ import { Link, Outlet, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { CustomerPppoe } from "../app/PppoeSession";
 import { ApiError } from "../api/client";
 import { type CustomerDetail as Detail, useCustomer } from "../api/customer";
 import { formatDateTime, formatRelative } from "../lib/format";
@@ -144,6 +145,8 @@ export function CustomerOverview() {
         <Link to="/devices" search={{ customer: data.customer.id, firmware: "attention" }}>{t("customer.links.updates")}</Link>
         <Link to="/devices" search={{ customer: data.customer.id, lifecycle: "eol" }}>{t("customer.links.lifecycle")}</Link>
       </div>
+
+      <CustomerPppoe customerId={data.customer.id} />
 
       <section className="ui-panel">
         <div className="ui-panel-header">

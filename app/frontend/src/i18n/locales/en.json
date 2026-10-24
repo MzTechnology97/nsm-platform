@@ -2381,13 +2381,20 @@
       "genieacs": "GenieACS / TR-069",
       "zabbix": "Zabbix",
       "cnmaestro": "cnMaestro",
-      "ispbilling": "ISPBilling"
+      "ispbilling": "ISPBilling",
+      "bras": "MikroTik BRAS"
     },
     "ispbilling": {
       "title": "ISPBilling",
       "help": "Billing system: customer registry and sites, imported into NSM.",
       "customers": "Customers read",
       "linked": "In NSM"
+    },
+    "bras": {
+      "title": "MikroTik BRAS",
+      "help": "PPPoE concentrator: customers' sessions (read-only).",
+      "online": "Online",
+      "offline": "Offline"
     }
   },
   "syslogAdmin": {
@@ -5251,6 +5258,8 @@
     "BACKUP_RESTORE_TEST_RECORDED": "Restore test recorded",
     "BACKUP_RETENTION_DELETED": "Old backups removed by retention",
     "BACKUP_STALE_ATTEMPT_REPORT_IGNORED": "Late backup report ignored",
+    "BRAS_CONFIG_SAVED": "BRAS connection saved",
+    "BRAS_SYNC_REQUESTED": "BRAS read requested",
     "CAMBIUM_BACKUP_ARCHIVED": "Cambium configuration archived",
     "CAMBIUM_BACKUP_FAILED": "Cambium backup failed",
     "CAMBIUM_SSH_CREDENTIALS_CHANGED": "Cambium SSH credentials changed",
@@ -6380,5 +6389,41 @@
     "working": "UISP is applying…",
     "done": "Configuration applied: the CPE reboots and the logs arrive within a few minutes.",
     "restored": "Previous configuration applied: the CPE reboots."
+  },
+  "bras": {
+    "title": "MikroTik BRAS",
+    "subtitle": "PPPoE concentrator read with a read-only RouterOS user: customers' sessions every few minutes, nothing changed on the router.",
+    "online": "Online",
+    "onlineHint": "PPPoE sessions open now",
+    "offline": "Offline",
+    "offlineHint": "Seen before, not connected now",
+    "lastSync": "Last read",
+    "every": "Read every {{minutes}} min",
+    "connection": "Connection",
+    "connectionHelp": "https://address for the RouterOS 7 REST API, or api-ssl://address:8729 (api://address:8728) for the RouterOS API.",
+    "url": "Address",
+    "username": "Read-only user",
+    "password": "Password",
+    "passwordKeep": "unchanged",
+    "interval": "Read every (minutes)",
+    "verifyTls": "Verify the TLS certificate",
+    "enabled": "Enabled",
+    "save": "Save",
+    "actions": "Check",
+    "userHint": "On the BRAS, a user that can only read (example):",
+    "test": "Test connection",
+    "syncNow": "Read now",
+    "synced": "{{sessions}} sessions read: {{came}} came online, {{went}} went offline."
+  },
+  "pppoe": {
+    "title": "PPPoE connections",
+    "help": "RADIUS accounts of the customer (ISPBilling) and their session on the BRAS, read {{when}}.",
+    "noBras": "RADIUS accounts of the customer (ISPBilling). Connect the BRAS (Integrations) to see whether they are online.",
+    "online": "Online",
+    "offline": "Offline",
+    "offlineSince": "since {{when}}",
+    "uptime": "connected for {{value}}",
+    "never": "Never seen on the BRAS",
+    "noDevice": "No device matched"
   }
 }
