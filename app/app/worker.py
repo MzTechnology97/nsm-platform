@@ -51,6 +51,7 @@ from app.routerboot_lifecycle import verification_tick as routerboot_verificatio
 from app.mikrotik_device_reboot import verify_reboots
 from app.uisp_operations import scheduled_backups as uisp_scheduled_backups, verify_reboots as uisp_verify_reboots
 from app.cnmaestro_operations import verify_reboots as cnmaestro_verify_reboots
+from app.cambium_firmware import follow_upgrades as cambium_firmware_follow
 from app.uisp_firmware_upgrade import follow_upgrades as uisp_firmware_follow
 from app.mikrotik_legacy_operations import verify_upgrades as verify_legacy_upgrades
 from app.report_schedules import run_report_schedules
@@ -104,6 +105,7 @@ while True:
             run_task("uisp_reboot_verification", uisp_verify_reboots)
             run_task("cnmaestro_reboot_verification", cnmaestro_verify_reboots)
             run_task("uisp_firmware_follow", uisp_firmware_follow)
+            run_task("cambium_firmware_follow", cambium_firmware_follow)
             run_task("uisp_scheduled_backups", uisp_scheduled_backups)
             reboot_stats.update({f"upgrade_{k}": v for k, v in run_task("legacy_upgrade_verification", verify_legacy_upgrades).items()})
             if any(reboot_stats.values()):

@@ -5520,7 +5520,11 @@
     "ZABBIX_HOST_IP_UPDATED": "IP dell'host Zabbix aggiornato",
     "ZABBIX_HOST_LINKED": "Apparato collegato a un host Zabbix esistente",
     "ZABBIX_SETTINGS_CHANGED": "Impostazioni Zabbix modificate",
-    "ZABBIX_SYNC_REQUESTED": "Sincronizzazione Zabbix richiesta"
+    "ZABBIX_SYNC_REQUESTED": "Sincronizzazione Zabbix richiesta",
+    "CAMBIUM_FIRMWARE_UPGRADE_REQUESTED": "Aggiornamento firmware ePMP avviato via SSH",
+    "CAMBIUM_FIRMWARE_UPGRADE_VERIFIED": "Aggiornamento firmware ePMP verificato",
+    "CAMBIUM_FIRMWARE_UPGRADE_FAILED": "Aggiornamento firmware ePMP non riuscito",
+    "CAMBIUM_FIRMWARE_IMAGE_SERVED": "Immagine firmware ePMP scaricata da NSM"
   },
   "eventSources": {
     "portal": "interfaccia",
@@ -6344,6 +6348,58 @@
       "verified": "Aggiornamento a {{version}} verificato.",
       "failed": "Aggiornamento a {{version}} non riuscito.",
       "unconfirmed": "Aggiornamento a {{version}} non confermato."
+    }
+  },
+  "cambiumFirmware": {
+    "title": "Aggiornamento firmware via SSH",
+    "help": "cnMaestro non permette l'aggiornamento dalla sua API, quindi NSM usa la console dell'ePMP con le credenziali SSH dei backup Cambium: salva la configurazione, chiede all'agente di aggiornamento della radio di scaricare l'immagine da NSM (link firmato valido 2 ore) e poi verifica la nuova versione su cnMaestro o sull'ePMP. L'immagine viene dal catalogo Cambium (Firmware → Cataloghi → Carica firmware). L'ePMP deve avere SNMP attivo con una community di lettura/scrittura: NSM non la modifica.",
+    "installed": "Installato",
+    "recommended": "Raccomandato",
+    "server": "Indirizzo di NSM per l'apparato",
+    "verifiedBy": "Verifica della versione",
+    "byCnmaestro": "cnMaestro (versione software), altrimenti SSH",
+    "bySsh": "SSH sull'ePMP (non collegato a cnMaestro)",
+    "noCredentials": "Imposta utente e password SSH dei Cambium (Amministrazione → cnMaestro) o di questo apparato (scheda cnMaestro).",
+    "noServer": "NSM non sa a quale indirizzo l'apparato lo raggiunge: impostalo in Amministrazione → ACS → Test di velocità (indirizzo di NSM per i CPE) o in Amministrazione → Syslog.",
+    "check": "Verifica prerequisiti (sola lettura)",
+    "checkReady": "Pronto:",
+    "checkBusy": "Non pronto:",
+    "checkAgent": "agente di aggiornamento {{state}}",
+    "lastError": "ultimo errore: {{error}}",
+    "image": "Immagine dal catalogo NSM",
+    "security": "sicurezza",
+    "steps": {
+      "backup": "Backup SSH della configurazione in uso (un errore ferma l'aggiornamento).",
+      "command": "L'ePMP scarica l'immagine da {{server}} e la installa.",
+      "reboot": "L'ePMP si riavvia da solo: il cliente perde la connessione per qualche minuto.",
+      "verify": "NSM verifica la nuova versione (fino a 45 minuti)."
+    },
+    "confirm": "Scrivi {{name}} per confermare: l'apparato si riavvia e il cliente perde la connessione per qualche minuto.",
+    "start": "Aggiorna a {{version}}",
+    "running": "Backup e comando in corso…",
+    "noNewer": "Il catalogo non ha immagini più recenti della versione installata per questo modello.",
+    "noImages": "Nessuna immagine Cambium per questo modello nel catalogo: caricala da Firmware → Cataloghi.",
+    "agent": "ePMP: {{state}}.",
+    "served": "Immagine scaricata da NSM.",
+    "notServed": "Immagine non ancora scaricata da NSM.",
+    "requested": "Richiesto {{when}} da {{who}} (da {{from}})",
+    "states": {
+      "requested": "Aggiornamento a {{version}} in corso.",
+      "verified": "Aggiornamento a {{version}} verificato.",
+      "failed": "Aggiornamento a {{version}} non riuscito.",
+      "unconfirmed": "Aggiornamento a {{version}} non confermato."
+    },
+    "agentStates": {
+      "idle": "inattivo",
+      "downloading": "download dell'immagine",
+      "verifying": "verifica della firma",
+      "pre_update": "script prima dell'aggiornamento",
+      "flashing": "scrittura della flash",
+      "uboot": "scrittura di U-Boot",
+      "post_update": "script dopo l'aggiornamento",
+      "finished": "terminato, in attesa del riavvio",
+      "config_downgrade": "script di downgrade della configurazione",
+      "unknown": "sconosciuto"
     }
   },
   "bras": {
