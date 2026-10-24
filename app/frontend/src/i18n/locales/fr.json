@@ -6587,7 +6587,7 @@
   "uispFirewall": {
     "upToDate": "Règles NSM déjà appliquées et à jour ({{count}}) : rien à faire.",
     "title": "Pare-feu de gestion (airOS)",
-    "hint": "NSM limite SSH, SNMP et la découverte de la CPE aux réseaux de gestion autorisés et au LAN du client : règles ACCEPT pour ces réseaux, puis DROP pour tous les autres. Les règles existantes restent et les règles identiques ne sont pas dupliquées.",
+    "hint": "NSM limite les services choisis de la CPE (SSH, gestion web, SNMP, découverte) aux réseaux de gestion autorisés et au LAN du client : règles ACCEPT pour ces réseaux, puis DROP pour tous les autres. Les règles existantes restent et les règles identiques ne sont pas dupliquées. Les ports redirigés vers le client (redirection de port, DMZ) ne sont pas modifiés.",
     "applied": "Appliquées le {{when}} par {{by}} : {{added}} règles ajoutées, {{skipped}} déjà présentes.",
     "restored": "Configuration précédente restaurée le {{when}}.",
     "from": "Depuis la dernière sauvegarde UISP : mode {{mode}}, LAN {{lan}}, règles NSM déjà présentes : {{nsm}}.",
@@ -6608,6 +6608,15 @@
     "apply": "Appliquer les règles via UISP",
     "working": "UISP applique…",
     "done": "Règles appliquées : la CPE redémarre.",
-    "restore": "Restaurer la configuration précédente"
+    "restore": "Restaurer la configuration précédente",
+    "services": "Services à protéger",
+    "service": {
+      "ssh": "SSH",
+      "web": "Gestion web (HTTP/HTTPS)",
+      "snmp": "SNMP",
+      "discovery": "Découverte Ubiquiti"
+    },
+    "dmz": "La DMZ est active : les ports hors des exceptions de la DMZ vont vers l'équipement du client, pas vers la CPE. NSM ne met aucune règle sur ces ports pour ne pas bloquer le client.",
+    "notProtected": "Ces ports ne sont pas modifiés car la CPE les redirige vers le client (redirection de port ou DMZ) : une règle y bloquerait le service du client."
   }
 }

@@ -6587,7 +6587,7 @@
   "uispFirewall": {
     "upToDate": "Reglas NSM ya aplicadas y actualizadas ({{count}}): nada que hacer.",
     "title": "Cortafuegos de gestión (airOS)",
-    "hint": "NSM limita SSH, SNMP y el descubrimiento de la CPE a las redes de gestión autorizadas y a la LAN del cliente: reglas ACCEPT para esas redes y luego DROP para todos los demás. Las reglas existentes se mantienen y las iguales no se duplican.",
+    "hint": "NSM limita los servicios elegidos de la CPE (SSH, gestión web, SNMP, descubrimiento) a las redes de gestión autorizadas y a la LAN del cliente: reglas ACCEPT para esas redes y luego DROP para todos los demás. Las reglas existentes se mantienen y las iguales no se duplican. Los puertos reenviados al cliente (reenvío de puertos, DMZ) no se tocan.",
     "applied": "Aplicadas el {{when}} por {{by}}: {{added}} reglas añadidas, {{skipped}} ya presentes.",
     "restored": "Configuración anterior restaurada el {{when}}.",
     "from": "Desde la última copia de UISP: modo {{mode}}, LAN {{lan}}, reglas NSM ya presentes: {{nsm}}.",
@@ -6608,6 +6608,15 @@
     "apply": "Aplicar las reglas mediante UISP",
     "working": "UISP está aplicando…",
     "done": "Reglas aplicadas: la CPE se reinicia.",
-    "restore": "Restaurar la configuración anterior"
+    "restore": "Restaurar la configuración anterior",
+    "services": "Servicios a proteger",
+    "service": {
+      "ssh": "SSH",
+      "web": "Gestión web (HTTP/HTTPS)",
+      "snmp": "SNMP",
+      "discovery": "Descubrimiento Ubiquiti"
+    },
+    "dmz": "La DMZ está activa: los puertos que no están entre las excepciones de la DMZ van al equipo del cliente, no a la CPE. NSM no pone reglas en esos puertos para no bloquear al cliente.",
+    "notProtected": "Estos puertos no se tocan porque la CPE los reenvía al cliente (reenvío de puertos o DMZ): una regla ahí bloquearía el servicio del cliente."
   }
 }

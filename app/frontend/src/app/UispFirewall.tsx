@@ -15,6 +15,8 @@ interface Plan {
   skipped: Rule[];
   open_to_all: string[];
   blocker: string | null;
+  not_protected: { service: string; protocol: number; port: number; reason: string }[];
+  dmz: boolean;
   nsm_rules: number;
   up_to_date: boolean;
   backup: { id: string; timestamp: string | null };
@@ -26,6 +28,8 @@ interface FirewallState {
   can_configure: boolean;
   plan: Plan | null;
   error: string | null;
+  services: string[];
+  default_services: string[];
 }
 
 const proto = (value: number | string | null) => (value === 6 ? "TCP" : value === 17 ? "UDP" : value ?? "—");
@@ -34,15 +38,22 @@ function message(error: unknown) {
   return error instanceof ApiError ? error.message : (error as Error | null)?.message;
 }
 
-/** UISP tab of an airOS CPE: firewall rules that limit SSH, SNMP and discovery to the management networks and the LAN. */
+/** UISP tab of an airOS CPE: firewall rules that limit the chosen services (SSH, web, SNMP, discovery) to the management networks and the LAN. */
 export function UispFirewallPanel({ id }: { id: string }) {
   const { t, i18n } = useTranslation();
   const client = useQueryClient();
-  const query = useQuery({ queryKey: ["device", id, "uisp-firewall"], queryFn: () => api<FirewallState>(`/api/ui/v1/devices/${id}/uisp/firewall`), retry: false });
+  const [chosen, setChosen] = useState<string[] | null>(null);
+  const selection = chosen?.join(",") ?? "";
+  const query = useQuery({
+    queryKey: ["device", id, "uisp-firewall", selection],
+    queryFn: () => api<FirewallState>(`/api/ui/v1/devices/${id}/uisp/firewall${selection ? `?services=${selection}` : ""}`),
+    retry: false,
+    placeholderData: (previous) => previous,
+  });
   const [typed, setTyped] = useState("");
   const done = () => { setTyped(""); void client.invalidateQueries({ queryKey: ["device", id] }); };
   const apply = useMutation({
-    mutationFn: (confirmation: string) => api(`/api/ui/v1/devices/${id}/uisp/firewall`, { method: "POST", body: JSON.stringify({ confirmation }) }),
+    mutationFn: (confirmation: string) => api(`/api/ui/v1/devices/${id}/uisp/firewall`, { method: "POST", body: JSON.stringify({ confirmation, services: active }) }),
     onSuccess: done,
   });
   const restore = useMutation({
@@ -50,8 +61,10 @@ export function UispFirewallPanel({ id }: { id: string }) {
     onSuccess: done,
   });
   const data = query.data;
+  const active = chosen ?? data?.default_services ?? [];
   if (!data) return null;
   const plan = data.plan;
+  const toggle = (service: string) => setChosen(active.includes(service) ? active.filter((s) => s !== service) : data.services.filter((s) => s === service || active.includes(s)));
   const submit = (event: FormEvent) => {
     event.preventDefault();
     apply.mutate(typed);
@@ -66,10 +79,26 @@ export function UispFirewallPanel({ id }: { id: string }) {
           : t("uispFirewall.applied", { when: formatDateTime(data.state.applied_at, i18n.language), by: data.state.by ?? "—", added: data.state.rules_added, skipped: data.state.skipped })}</p>
       )}
       {data.error && <div className="ui-alert ui-alert-warning">{data.error}</div>}
+      <fieldset className="ui-row-actions">
+        <legend>{t("uispFirewall.services")}</legend>
+        {data.services.map((service) => (
+          <label key={service}>
+            <input type="checkbox" checked={active.includes(service)} disabled={active.length === 1 && active.includes(service)} onChange={() => toggle(service)} />{" "}
+            {t(`uispFirewall.service.${service}`)}
+          </label>
+        ))}
+      </fieldset>
       {plan && (
         <>
           <p className="ui-muted">{t("uispFirewall.from", { mode: plan.netmode, lan: plan.lan.join(", ") || "—", nsm: plan.nsm_rules })}</p>
           {plan.blocker && <div className="ui-alert ui-alert-warning">{plan.blocker}</div>}
+          {plan.dmz && <div className="ui-alert ui-alert-warning">{t("uispFirewall.dmz")}</div>}
+          {plan.not_protected.length > 0 && (
+            <div className="ui-alert ui-alert-warning">
+              {t("uispFirewall.notProtected")}
+              <ul>{plan.not_protected.map((item, index) => <li key={index}>{proto(item.protocol)}/{item.port} · {t(`uispFirewall.service.${item.service}`)}: {item.reason}</li>)}</ul>
+            </div>
+          )}
           {plan.open_to_all.length > 0 && <div className="ui-alert ui-alert-warning">{t("uispFirewall.openToAll", { services: plan.open_to_all.join(", ") })}</div>}
           {plan.up_to_date && <p className="ui-live">{t("uispFirewall.upToDate", { count: plan.nsm_rules })}</p>}
           {plan.add.length > 0 && !plan.up_to_date && (

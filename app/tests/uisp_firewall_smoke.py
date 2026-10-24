@@ -1,5 +1,5 @@
-"""ACCESS-01 for airOS: firewall rules through UISP (SSH, SNMP, discovery only from the management networks and the LAN),
-operator rules kept, equal rules not duplicated, idempotent, bridge mode refused, restore point. UISP is mocked."""
+"""ACCESS-01 for airOS: firewall rules through UISP (the chosen services among SSH, web, SNMP, discovery only from the management
+networks and the LAN), ports forwarded to the customer (port forward, DMZ) left alone, operator rules kept, equal rules not duplicated, idempotent, bridge mode refused, restore point. UISP is mocked."""
 import re
 import uuid
 
@@ -43,6 +43,25 @@ snmp.status=enabled
 sshd.port=2222
 sshd.status=enabled
 """
+WEB = """httpd.port=20080
+httpd.https.port=20443
+httpd.https.status=enabled
+httpd.status=enabled
+"""
+FORWARD = """iptables.sys.portfw.status=enabled
+iptables.sys.portfw.1.dport=20443
+iptables.sys.portfw.1.host=192.0.2.10
+iptables.sys.portfw.1.proto=tcp
+iptables.sys.portfw.1.status=enabled
+"""
+DMZ = """iptables.sys.dmz.status=enabled
+iptables.sys.dmz.1.host=192.0.2.20
+iptables.sys.dmz.1.status=enabled
+iptables.sys.dmz.1.except.status=enabled
+iptables.sys.dmz.1.except.1.port=2222
+iptables.sys.dmz.1.except.1.proto=TCP
+iptables.sys.dmz.1.except.1.status=enabled
+"""
 
 
 def main():
@@ -81,6 +100,33 @@ def main():
     wide = fw.plan(CFG, ["203.0.113.0/24", "192.0.2.0/23"])
     assert not any(r["src"] == "192.0.2.0/24" for r in wide["add"]), "the LAN inside a management network adds no rule"
     assert {r["src"] for r in wide["add"] if r["target"] == "ACCEPT"} == {"203.0.113.0/24", "192.0.2.0/23"}
+
+    # Web management on httpd.port / httpd.https.port, only when chosen.
+    web_cfg = CFG + WEB
+    assert [p["port"] for p in fw.plan(web_cfg, MGMT)["ports"]] == [2222, 161, 10001], "web is not in the default services"
+    with_web = fw.plan(web_cfg, MGMT, ("ssh", "web"))
+    assert [p["port"] for p in with_web["ports"]] == [2222, 20080, 20443]
+    assert ("DROP", 6, 20443, None) in {(r["target"], r["protocol"], r["port"], r["src"]) for r in with_web["add"]}
+    try:
+        fw.parse_services("nothing")
+        raise AssertionError("no service chosen must be refused")
+    except fw.UispFirewallError:
+        pass
+    assert fw.parse_services("web,ssh") == ("ssh", "web")
+
+    # A port forwarded to the customer is never touched: a rule there would block the customer's service.
+    fwd = web_cfg + FORWARD
+    forwarded = fw.plan(fwd, MGMT, ("ssh", "web"))
+    assert [p["port"] for p in forwarded["ports"]] == [2222, 20080]
+    assert [(n["port"], "192.0.2.10" in n["reason"]) for n in forwarded["not_protected"]] == [(20443, True)]
+    assert not any(r["port"] == 20443 for r in forwarded["add"])
+    assert fw.plan(fwd.replace("portfw.status=enabled", "portfw.status=disabled"), MGMT, ("web",))["not_protected"] == [], "forwards off"
+    # DMZ on: every port goes to the DMZ host except the exceptions (here SSH on 2222/TCP).
+    dmz = CFG + DMZ
+    in_dmz = fw.plan(dmz, MGMT)
+    assert in_dmz["dmz"] is True and [p["port"] for p in in_dmz["ports"]] == [2222]
+    assert sorted(n["port"] for n in in_dmz["not_protected"]) == [161, 10001]
+    assert fw.edit_config(dmz, MGMT).count("--dport 161") == 0, "nothing written on a port that goes to the DMZ host"
 
     bridge = fw.plan(CFG.replace("netmode=router", "netmode=bridge"), MGMT)
     assert bridge["blocker"] and "bridge" in bridge["blocker"]
@@ -137,6 +183,8 @@ def main():
     applied_cfg = cfg_of(next(b[2] for b in dev["backups"] if b[0] == dev["applied"][-1]))
     assert "iptables.sys.fw.status=enabled" in applied_cfg and applied_cfg.count("NSM-ACL") == 12
     assert "-A FIREWALL --protocol 17 --dport 10001 -j DROP" in applied_cfg and "operator-web" in applied_cfg
+    assert client.get(url("router") + "?services=web").json()["plan"]["services"] == ["web"]
+    assert "servizio" in client.get(url("router") + "?services=x").json()["error"]
     page = client.get(url("router")).json()
     assert page["plan"]["nsm_rules"] == 12 and page["plan"]["up_to_date"] is True, "applied: nothing more to do, no useless reboot"
     assert fw.plan(applied_cfg, MGMT[:1])["up_to_date"] is False, "a changed list needs a new apply"

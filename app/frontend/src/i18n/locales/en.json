@@ -6587,7 +6587,7 @@
   "uispFirewall": {
     "upToDate": "NSM rules already applied and up to date ({{count}}): nothing to do.",
     "title": "Management firewall (airOS)",
-    "hint": "NSM limits SSH, SNMP and discovery of the CPE to the authorized management networks and the customer LAN: ACCEPT rules for those networks, then DROP for everybody else. Existing rules stay and equal ones are not duplicated.",
+    "hint": "NSM limits the chosen services of the CPE (SSH, web management, SNMP, discovery) to the authorized management networks and the customer LAN: ACCEPT rules for those networks, then DROP for everybody else. Existing rules stay and equal ones are not duplicated. Ports forwarded to the customer (port forward, DMZ) are left alone.",
     "applied": "Applied on {{when}} by {{by}}: {{added}} rules added, {{skipped}} already present.",
     "restored": "Previous configuration restored on {{when}}.",
     "from": "From the last UISP backup: mode {{mode}}, LAN {{lan}}, NSM rules already present: {{nsm}}.",
@@ -6608,6 +6608,15 @@
     "apply": "Apply the rules through UISP",
     "working": "UISP is applying…",
     "done": "Rules applied: the CPE reboots.",
-    "restore": "Restore previous configuration"
+    "restore": "Restore previous configuration",
+    "services": "Services to protect",
+    "service": {
+      "ssh": "SSH",
+      "web": "Web management (HTTP/HTTPS)",
+      "snmp": "SNMP",
+      "discovery": "Ubiquiti discovery"
+    },
+    "dmz": "The DMZ is on: ports not among the DMZ exceptions go to the customer's device, not to the CPE. NSM puts no rule on those ports so the customer is not blocked.",
+    "notProtected": "These ports are left alone because the CPE forwards them to the customer (port forward or DMZ): a rule there would block the customer's service."
   }
 }
