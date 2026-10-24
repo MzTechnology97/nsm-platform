@@ -290,7 +290,7 @@ def tr069_context(db, device) -> dict | None:
             port = 0
         context["remote"] = {"enabled": enabled, "port": port if 0 < port < 65536 else None,
                              "protocol": str(value("Protocol") or value("X_TP_Protocol") or "").upper()[:10] or None,
-                             "all": _flag(value("X_TP_RemoteAll")), "host": str(value("X_TP_RemoteHost") or "").strip()[:100] or None}
+                             "all": _flag(value("X_TP_RemoteAll")), "host": ", ".join(p.strip() for p in str(value("X_TP_RemoteHost") or "").split(",") if p.strip())[:300] or None}
         break
     return context
 

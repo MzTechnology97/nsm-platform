@@ -6175,7 +6175,6 @@
     "protocol": "Protocolo",
     "port": "Puerto",
     "apply": "Aplicar puerto y protocolo",
-    "noAllowList": "La limitación a algunas direcciones no está disponible: en el firmware de TP-Link probado cierra la página a todos.",
     "telnetTitle": "Telnet LAN",
     "telnetOn": "Telnet está activo en la LAN: NSM lo desactiva en la próxima comprobación diaria.",
     "telnetAllowed": "Telnet está activo en la LAN, permitido a mano en este equipo.",
@@ -6183,7 +6182,18 @@
     "telnetEnable": "Permitir Telnet LAN en este equipo",
     "telnetDisable": "Desactivar Telnet LAN",
     "sent": "Enviado al CPE.",
-    "readAt": "Último contacto del CPE: {{when}}."
+    "readAt": "Último contacto del CPE: {{when}}.",
+    "allowedList": "Permitido solo desde: {{list}}.",
+    "allowTitle": "Direcciones permitidas para la gestión remota",
+    "allowHelp": "Direcciones o redes en notación CIDR (192.0.2.10 o 198.51.100.0/24), como en la página del CPE. Incluye las redes desde las que se conectan los técnicos: el resto se rechaza.",
+    "allowEntry": "Dirección o red {{n}}",
+    "allowRemove": "Quitar",
+    "allowAdd": "Añadir una dirección o red",
+    "allowConfirm": "Escribe {{name}} para confirmar: una lista errónea cierra la página del CPE también a los técnicos.",
+    "allowApply_one": "Permitir solo esta dirección",
+    "allowApply_other": "Permitir solo estas {{count}}",
+    "allowAll": "Permitir desde cualquier dirección",
+    "allowAllConfirm": "¿Abrir la página de gestión del CPE a cualquier dirección de Internet?"
   },
   "tplinkSettings": {
     "title": "Ajustes avanzados del CPE",

@@ -1,12 +1,16 @@
 """ACS-09: remote web access and LAN Telnet of TR-069 CPEs, from the device's *ACS* tab (operator decisions 2026-10-23).
 
 - **Remote web access** (TR-181 ``Device.UserInterface.RemoteAccess``: ``Enable``, ``Protocol``, ``Port``; TP-Link
-  ``X_TP_RemoteAll``): shown on the device page with a warning when it is reachable from any address, and switched on or
-  off, or moved to another port or protocol, by technicians. Restricting it to some addresses is not offered: on a
-  VX230v (0.19.0) ``X_TP_RemoteAll`` false closed the page for every address, the allowed host included, and the
-  ``X_TP_AppCfg.ACL`` entries refused every value (cwmp 9003). Nothing changes by default: open pages are only
-  reported. A change of port or protocol is applied with ``Enable`` false then true, as the CPE only re-reads its
-  settings then (seen on the VX230v).
+  ``X_TP_RemoteAll`` and ``X_TP_RemoteHost``): shown on the device page with a warning when it is reachable from any
+  address, or with the addresses it is limited to; switched on or off, moved to another port or protocol, limited to
+  some addresses or opened to all, by technicians. The allow-list is what the CPE's own page *Client Device Allowed for
+  Remote Management → Only the Following IP Addresses* writes, checked on a VX230v (0.19.0) on 2026-10-24:
+  ``X_TP_RemoteAll`` false and ``X_TP_RemoteHost`` a comma-separated list of IPv4 networks in CIDR notation
+  (``192.0.2.10/32,198.51.100.0/24``). A single address without ``/prefix`` is not accepted by that firmware (the
+  earlier attempt that closed the page for everyone), so NSM always writes ``address/prefix``. Limiting needs the device
+  name typed as confirmation (a wrong list locks the technicians out; recovery: open to all). Nothing changes by
+  default (operator decision 2026-10-23): open pages are only reported. Every change of port, protocol or allow-list
+  is applied with ``Enable`` false then true, as the CPE only re-reads its settings then (seen on the VX230v).
 - **LAN Telnet** (TP-Link ``Device.X_TP_AppCfg.TelnetCfg.TelnetLocalEnabled``): off by default. Once a day per
   TP-Link CPE the worker (``enforce_telnet_policy``) queues ``TelnetLocalEnabled`` false for the CPE's next contact
   when GenieACS shows it on, unless a technician allowed it on that device (``inventory_data["tplink_access"]``).
@@ -17,6 +21,7 @@ applies one change with a connection request, audited ``ACS_ACCESS_CHANGED``.
 """
 from __future__ import annotations
 
+import ipaddress
 import json
 import uuid
 from datetime import datetime, timedelta
@@ -40,6 +45,38 @@ TELNET_LAN = f"{TELNET}.TelnetLocalEnabled"
 POLICY_EVERY = timedelta(hours=24)
 POLICY_BATCH = 50
 PROTOCOLS = ("HTTP", "HTTPS")
+MAX_ALLOWED = 16
+MAX_HOST_LENGTH = 256
+
+
+def allow_list(value) -> list[str]:
+    """``X_TP_RemoteHost`` as a list of networks (empty entries dropped)."""
+    return [part.strip() for part in str(value or "").split(",") if part.strip()]
+
+
+def normalize_allowed(entries) -> list[str]:
+    """Operator input → IPv4 networks as the CPE stores them (``address/prefix``; a bare address becomes ``/32``)."""
+    if not isinstance(entries, list) or not entries:
+        raise HTTPException(422, {"code": "allowed", "message": "Indica almeno un indirizzo o una rete."})
+    out: list[str] = []
+    for entry in entries:
+        text = str(entry or "").strip()
+        try:
+            network = ipaddress.ip_network(text if "/" in text else f"{text}/32", strict=False)
+        except ValueError:
+            raise HTTPException(422, {"code": "allowed", "message": f"Indirizzo o rete non valida: {text[:60] or '(vuoto)'}."}) from None
+        if network.version != 4:
+            raise HTTPException(422, {"code": "allowed", "message": "Il CPE accetta solo indirizzi IPv4."})
+        value = f"{network.network_address}/{network.prefixlen}"
+        if value not in out:
+            out.append(value)
+    if len(out) > MAX_ALLOWED or len(",".join(out)) > MAX_HOST_LENGTH:
+        raise HTTPException(422, {"code": "allowed", "message": f"Al massimo {MAX_ALLOWED} indirizzi o reti."})
+    return out
+
+
+def _confirm_name(device) -> str:
+    return device.display_name or device.device_identity or device.name
 
 
 def _read(connection, external_id: str) -> dict:
@@ -64,6 +101,9 @@ def state(record: dict) -> dict:
                   "port": nbi._number(nbi._value(record, f"{REMOTE}.Port")),
                   "open_to_all": _bool(nbi._value(record, f"{REMOTE}.X_TP_RemoteAll")),
                   "protocols": [p for p in PROTOCOLS if p in supported.split(",")] or list(PROTOCOLS)}
+        remote["allowed"] = allow_list(nbi._value(record, f"{REMOTE}.X_TP_RemoteHost")) if remote["open_to_all"] is False else []
+        # The allow-list can be edited only where the CPE exposes both TP-Link parameters.
+        remote["allow_list_supported"] = remote["open_to_all"] is not None and nbi._value(record, f"{REMOTE}.X_TP_RemoteHost") is not None
         # Without X_TP_RemoteAll the CPE does not say who may connect: treat an enabled page as reachable by anyone.
         remote["exposed"] = remote["enabled"] and remote["open_to_all"] is not False
     telnet = _bool(nbi._value(record, TELNET_LAN))
@@ -82,7 +122,7 @@ def _save_settings(device, values: dict) -> None:
 
 def _payload(device, connection, can_edit: bool) -> dict:
     out = {"remote": None, "telnet_lan": None, "telnet_allowed": bool(_settings(device).get("telnet_lan_allowed")),
-           "last_inform": None, "can_edit": can_edit, "error": None}
+           "last_inform": None, "can_edit": can_edit, "error": None, "confirm_name": _confirm_name(device)}
     try:
         record = _read(connection, device.external_device_id)
     except nbi.AcsDiagnosticError as exc:
@@ -114,6 +154,27 @@ def apply_change(db, user, device, connection, body: dict) -> dict:
         if remote is None:
             raise HTTPException(422, {"code": "unsupported", "message": "Questo CPE non espone l'accesso web remoto."})
         values = []
+        if "allowed" in body or body.get("allow_all"):
+            if not remote.get("allow_list_supported"):
+                raise HTTPException(422, {"code": "unsupported", "message": "Questo CPE non espone la lista degli indirizzi ammessi."})
+            before = remote.get("allowed") if remote.get("open_to_all") is False else "tutti"
+            if body.get("allow_all"):
+                values = [[f"{REMOTE}.X_TP_RemoteAll", True, "xsd:boolean"], [f"{REMOTE}.X_TP_RemoteHost", "", "xsd:string"]]
+                after = "tutti"
+            else:
+                if str(body.get("confirm") or "").strip() != _confirm_name(device):
+                    raise HTTPException(422, {"code": "confirm", "message": "Scrivi il nome dell'apparato per confermare la limitazione."})
+                allowed = normalize_allowed(body.get("allowed"))
+                values = [[f"{REMOTE}.X_TP_RemoteHost", ",".join(allowed), "xsd:string"], [f"{REMOTE}.X_TP_RemoteAll", False, "xsd:boolean"]]
+                after = allowed
+            _spv(connection, device.external_device_id, values)
+            if remote["enabled"]:
+                # Like port and protocol: the CPE applies the allow-list only when the page is switched off and on again.
+                _spv(connection, device.external_device_id, [[f"{REMOTE}.Enable", False, "xsd:boolean"]])
+            details.update({"started": _spv(connection, device.external_device_id, [[f"{REMOTE}.Enable", remote["enabled"], "xsd:boolean"]]),
+                            "allowed_before": before, "allowed_after": after})
+            core.add_event(db, "ACS_ACCESS_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal", details=details)
+            return details
         protocol = body.get("protocol")
         if protocol is not None:
             protocol = str(protocol).upper()
