@@ -5483,6 +5483,8 @@
     "UISP_DEVICE_ASSOCIATED": "Equipo vinculado a UISP",
     "UISP_DEVICE_MISSING": "Equipo ya no presente en UISP",
     "UISP_DEVICE_ONBOARDED": "Equipo importado desde UISP",
+    "UISP_FIREWALL_CONFIGURED": "Reglas de cortafuegos de gestión aplicadas mediante UISP",
+    "UISP_FIREWALL_RESTORED": "Cortafuegos del equipo restaurado mediante UISP",
     "UISP_FIRMWARE_UPGRADE_FAILED": "Actualización de firmware UISP fallida",
     "UISP_FIRMWARE_UPGRADE_REQUESTED": "Actualización de firmware UISP solicitada",
     "UISP_FIRMWARE_UPGRADE_VERIFIED": "Actualización de firmware UISP verificada",
@@ -6581,5 +6583,31 @@
     },
     "attempts_one": "{{count}} intento en {{devices}} equipos",
     "attempts_other": "{{count}} intentos en {{devices}} equipos"
+  },
+  "uispFirewall": {
+    "upToDate": "Reglas NSM ya aplicadas y actualizadas ({{count}}): nada que hacer.",
+    "title": "Cortafuegos de gestión (airOS)",
+    "hint": "NSM limita SSH, SNMP y el descubrimiento de la CPE a las redes de gestión autorizadas y a la LAN del cliente: reglas ACCEPT para esas redes y luego DROP para todos los demás. Las reglas existentes se mantienen y las iguales no se duplican.",
+    "applied": "Aplicadas el {{when}} por {{by}}: {{added}} reglas añadidas, {{skipped}} ya presentes.",
+    "restored": "Configuración anterior restaurada el {{when}}.",
+    "from": "Desde la última copia de UISP: modo {{mode}}, LAN {{lan}}, reglas NSM ya presentes: {{nsm}}.",
+    "openToAll": "Una regla existente ya acepta a todos en: {{services}}. El DROP de NSM no tiene efecto mientras exista.",
+    "columns": {
+      "target": "Acción",
+      "service": "Servicio",
+      "source": "Origen",
+      "comment": "Comentario"
+    },
+    "everyoneElse": "todos los demás",
+    "nothingToAdd": "Ninguna regla que añadir: la CPE ya está protegida.",
+    "skipped_one": "{{count}} regla ya presente no se duplicará",
+    "skipped_other": "{{count}} reglas ya presentes no se duplicarán",
+    "because": "{{rule}} ya lo hace",
+    "reboot": "Aplicar las reglas reinicia la CPE: el cliente queda sin conexión 2–3 minutos. La copia tomada justo antes queda como punto de restauración.",
+    "confirm": "Para confirmar, escriba el nombre del equipo: {{name}}",
+    "apply": "Aplicar las reglas mediante UISP",
+    "working": "UISP está aplicando…",
+    "done": "Reglas aplicadas: la CPE se reinicia.",
+    "restore": "Restaurar la configuración anterior"
   }
 }
