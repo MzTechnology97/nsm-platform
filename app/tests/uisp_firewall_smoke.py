@@ -78,6 +78,10 @@ def main():
     smaller = fw.rules_of(fw.edit_config(edited, ["198.51.100.0/24"]))
     assert not any("203.0.113.10/32" in r["fields"]["cmd"] and r["fields"]["comment"].startswith("NSM-ACL") for r in smaller), "follows the list"
 
+    wide = fw.plan(CFG, ["172.16.0.0/12", "192.0.2.0/23"])  # public-data-safety: allow (private management range of the operator's kind)
+    assert not any(r["src"] == "192.0.2.0/24" for r in wide["add"]), "the LAN inside a management network adds no rule"
+    assert {r["src"] for r in wide["add"] if r["target"] == "ACCEPT"} == {"172.16.0.0/12", "192.0.2.0/23"}
+
     bridge = fw.plan(CFG.replace("netmode=router", "netmode=bridge"), MGMT)
     assert bridge["blocker"] and "bridge" in bridge["blocker"]
     assert fw.plan(CFG, [])["blocker"], "no management networks saved: nothing is applied"

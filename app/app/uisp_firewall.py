@@ -129,6 +129,9 @@ def plan(text: str, networks: list[str]) -> dict:
         ports.append((name, protocol, port))
     # airOS iptables is IPv4: IPv6 management networks are not written here.
     sources = [s for s in dict.fromkeys([*networks, *lans]) if ":" not in s]
+    # A network inside another listed one adds nothing (e.g. the LAN 192.168.1.0/24 with 192.168.0.0/16 as management).
+    parsed = {s: _network(s) for s in sources}
+    sources = [s for s in sources if parsed[s] and not any(o != s and parsed[o] and parsed[s] != parsed[o] and parsed[s].subnet_of(parsed[o]) for o in sources)]
     accepts, drops, skipped, open_to_all = [], [], [], []
     for name, protocol, port in ports:
         same = [r for r in operator if r["enabled"] and not r["negated"] and r["protocol"] == protocol and r["dport"] == port]
