@@ -462,6 +462,22 @@ Import the customer registry and sites from the operator's billing system (ISPBi
 
 Research and build a connector on the TAUC Open API. Public research (2026-10-22) found only TP-Link product pages stating "Open API", webhooks and API gateways for zero-touch provisioning, with TR-069/TR-369 and TR-181 on the device side; no public API reference. Blocked on the API documentation from the operator's TAUC console or TP-Link service-provider support, and on API credentials entered by the operator.
 
+### ACS-11 — evaluate an alternative ACS with its own dashboard: Oktopus (requested 2026-10-24)
+
+The operator wants a clear, simple dashboard for the TR-069 CPEs. Options reviewed on 2026-10-24: dashboards on top of GenieACS (`safrinnetwork/GACS-dashboard`: separate PHP/MySQL application with its own users and default credentials, a single published commit, Indonesian UI; `aanmochtar80/GenieACS-Dashboard` in Go; the official `genieacs-gui`, unmaintained since 2022) were not adopted. The operator chose to study **Oktopus** (`OktopUSP/oktopus`, open-source TR-369/USP controller with TR-069 support) as a possible replacement for GenieACS.
+
+Feasibility study only, no change to the running ACS. To check on a lab instance before any decision:
+
+- TR-069 coverage of the CPE models in use (TP-Link first): inform, connection requests, parameter read/write, reboot, factory reset, firmware download, vendor `X_TP_*` objects; TR-369 support of the same models;
+- northbound API usable by NSM for what it already does through the GenieACS NBI (inventory, monitoring, Wi-Fi, diagnostics and speed tests, firmware and campaigns, configuration snapshots and restore, remote access, ISP default, customer tags);
+- dashboard: fleet view, per-CPE detail, search by customer, users and permissions;
+- licence, release cadence, maintainers, Docker deployment next to the NSM stack, resource use, security record;
+- migration path: CPEs moved per group by changing the ACS URL, rollback to GenieACS.
+
+Outcome: a written comparison (keep GenieACS, move to Oktopus, or run both during a migration) for the operator's decision.
+
+GenieACS customer tags: since Core 0.49.237 NSM tags every linked CPE in GenieACS with its customer, so the GenieACS device list shows whose CPE it is; since Core 0.49.299 the tag is "Name · code", so namesakes are told apart.
+
 ## 7. Cross-vendor vulnerability management
 
 ### SEC-05 — multi-vendor CVE correlation
