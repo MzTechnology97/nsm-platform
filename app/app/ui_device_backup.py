@@ -199,6 +199,7 @@ def device_backup_artifact(request: Request, device_id: uuid.UUID, artifact_id: 
             diff = {"rows": view["diff_rows"], "summary": view["diff_summary"]}
         return {
             "artifact": _file(artifact, view["run"]),
+            "artifact_type": artifact.artifact_type,
             "lines": view["text"].splitlines(),
             "candidates": [_file(a, r) for a, r in view["candidates"]],
             "against": _file(view["against_artifact"], view["against_run"]) if view["against_artifact"] is not None else None,

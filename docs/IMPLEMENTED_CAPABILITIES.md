@@ -554,6 +554,22 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 Validation pending: periodic sync against a real UISP instance (the consumed endpoint is the same one used by manual refresh).
 
+### Syslog through UISP (UBNT-09, Core 0.49.257)
+
+`app/uisp_syslog.py`. UISP 3.x reads an airOS device's services but cannot write them (`PUT /devices/{id}/services` → 501 *setServices is not implemented*). So NSM restores a configuration the way UISP itself does:
+1. a fresh backup (`POST /devices/{id}/backups`), kept as the restore point;
+2. `system.cfg` with only `syslog.remote.status/ip/port` changed (and, in key mode, `NSM-<key>` appended to `resolv.host.1.name`);
+3. the changed file uploaded (`PUT /devices/{id}/backups`, multipart) and applied (`POST …/{backupId}/apply`). The CPE reboots and is back in 2–3 minutes (checked on a LiteBeam 5AC, airOS 8.7.15).
+
+It runs only from the device *Syslog* tab, with the device name typed as confirmation (`devices.write`), never from the worker. *Ripristina configurazione precedente* applies the restore point. Devices whose services UISP does not expose (404) keep the manual guide.
+
+Identification per device:
+- `key`, the default: the NSM key in the hostname;
+- `customer_name`: the UISP hostname must equal the NSM customer's name, words in any order. The name is saved on the device (`match_name`) because the receiver's database account cannot read customers. A line is accepted only when exactly one device uses that name, and only among the first 160 characters of the line;
+- `address`: the management IP from UISP, accepted only when no other device uses it.
+
+Audit `UISP_SYSLOG_CONFIGURED`, `UISP_SYSLOG_RESTORED`.
+
 ### Device operations (UBNT-08 step 2)
 
 Reboot with uptime verification, configuration backup archived in NSM (manual and by policy), interfaces and UISP events on the device UISP tab. The read endpoints (`/devices`, `/devices/{id}`, interfaces, backups, `/logs`) were checked on the operator's console on 2026-10-22 (Core 0.49.199): the kind of a log entry comes from its `tags`; the serial number is not sent by UISP (devices are matched by MAC). Reboot and backup requests are not exercised on the real console yet.
