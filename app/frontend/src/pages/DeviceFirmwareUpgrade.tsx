@@ -6,11 +6,11 @@ import { ApiError } from "../api/client";
 import { useDevice } from "../api/device";
 import { type FirmwarePlanTab, useFirmwareAction, useFirmwarePlan } from "../api/deviceTabs";
 import { AcsFirmware } from "../app/AcsFirmware";
-import { CambiumFirmware } from "../app/CambiumFirmware";
 import { UispFirmware } from "../app/UispFirmware";
 import { FirmwareSchedulePanel } from "../app/FirmwareSchedule";
 import { formatDateTime } from "../lib/format";
 import { Loading } from "../app/States";
+import { CambiumFirmware } from "../app/CambiumFirmware";
 
 type Plan = NonNullable<FirmwarePlanTab["plan"]>;
 const STATUS_TONE: Record<string, string> = { success: "online", cancelled: "offline", failed: "offline", ready: "online", approved: "online", staged: "online" };
