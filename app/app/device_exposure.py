@@ -347,7 +347,9 @@ def _sync_issue(db, device, result: dict) -> bool:
         return False
     severity = "critical" if any(f["severity"] == "critical" for f in severe) else "high"
     name = device.display_name or device.device_identity or device.name
-    how = (f"rispondono da Internet sull'IP {result.get('target_ip')} (verifica dal server NSM)" if result.get("source") == "external"
+    vantage = result.get("vantage") or {}
+    where = f"dalla sonda esterna «{vantage.get('name')}»" if vantage.get("kind") == "probe" else "dal server NSM"
+    how = (f"rispondono da Internet sull'IP {result.get('target_ip')} (verifica {where})" if result.get("source") == "external"
            else "raggiungibili dalla WAN secondo la configurazione del router")
     db.add(ActionIssue(category=ISSUE_CATEGORY, severity="critical" if severity == "critical" else "warning", status="open", title=ISSUE_TITLE,
                        details=details, customer_id=device.customer_id, device_id=device.id))

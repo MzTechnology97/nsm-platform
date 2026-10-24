@@ -2354,7 +2354,8 @@
       "genieacs": "GenieACS / TR-069",
       "zabbix": "Zabbix",
       "cnmaestro": "cnMaestro",
-      "ispbilling": "ISPBilling"
+      "ispbilling": "ISPBilling",
+      "probe": "Sonda esterna"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -3604,6 +3605,14 @@
         "config": "configurazione cambiata"
       },
       "recheck": "A ogni cambio la verifica dei servizi riparte da sola."
+    },
+    "vantage": {
+      "label": "Verificato da",
+      "probe": "sonda esterna",
+      "server": "server NSM",
+      "probeHint": "fuori dalla rete: vede ciò che vede Internet",
+      "serverHint": "dentro la rete: non vede i filtri di bordo",
+      "fallback": "La sonda esterna non ha risposto ({{error}}): la verifica è stata fatta dal server NSM."
     }
   },
   "deviceCompliance": {
@@ -5325,7 +5334,9 @@
     "EXPOSURE_ACL_REMOVED": "Dichiarazione ACL rimossa",
     "EXPOSURE_CHECK_REQUESTED": "Verifica esposizione richiesta",
     "EXPOSURE_EXTERNAL_CHECK": "Verifica esposizione dall'esterno",
+    "EXPOSURE_ISSUE_CLOSED_NOT_PUBLIC": "Segnalazione di esposizione chiusa: apparato non raggiungibile da Internet",
     "EXPOSURE_ISSUE_OPENED": "Servizi esposti segnalati",
+    "EXPOSURE_PROBE_CONFIGURED": "Sonda esterna configurata",
     "EXPOSURE_TARGET_IP_CHANGED": "IP pubblico da verificare cambiato",
     "FIRMWARE_ACTIVATION_ACCEPTED": "Attivazione firmware accettata",
     "FIRMWARE_ACTIVATION_QUEUED": "Attivazione firmware in coda",
@@ -5397,6 +5408,9 @@
     "MAC_DISCOVERED": "Indirizzo MAC rilevato",
     "MAINTENANCE_WINDOW_CREATED": "Finestra di manutenzione creata",
     "MAINTENANCE_WINDOW_DELETED": "Finestra di manutenzione eliminata",
+    "MANAGEMENT_ACCESS_CHANGED": "Reti di gestione autorizzate modificate",
+    "MANAGEMENT_ACCESS_EXCLUSION_CHANGED": "Esclusione dalle reti di gestione modificata",
+    "MANAGEMENT_ACCESS_QUEUED": "Configurazione SNMP, SSH e ora inviata all'apparato",
     "MIKROTIK_AGENT_PRIVILEGE_PROFILE_OBSERVED": "Permessi dell'agent rilevati",
     "MIKROTIK_AGENT_PRIVILEGE_PROFILE_SELECTED": "Profilo permessi dell'agent scelto",
     "MIKROTIK_AGENT_TRANSPORT_SELECTED": "Trasporto dell'agent scelto",
@@ -5506,11 +5520,7 @@
     "ZABBIX_HOST_IP_UPDATED": "IP dell'host Zabbix aggiornato",
     "ZABBIX_HOST_LINKED": "Apparato collegato a un host Zabbix esistente",
     "ZABBIX_SETTINGS_CHANGED": "Impostazioni Zabbix modificate",
-    "ZABBIX_SYNC_REQUESTED": "Sincronizzazione Zabbix richiesta",
-    "EXPOSURE_ISSUE_CLOSED_NOT_PUBLIC": "Segnalazione di esposizione chiusa: apparato non raggiungibile da Internet",
-    "MANAGEMENT_ACCESS_CHANGED": "Reti di gestione autorizzate modificate",
-    "MANAGEMENT_ACCESS_EXCLUSION_CHANGED": "Esclusione dalle reti di gestione modificata",
-    "MANAGEMENT_ACCESS_QUEUED": "Configurazione SNMP, SSH e ora inviata all'apparato"
+    "ZABBIX_SYNC_REQUESTED": "Sincronizzazione Zabbix richiesta"
   },
   "eventSources": {
     "portal": "interfaccia",
@@ -6499,5 +6509,32 @@
     "enable": "Attiva",
     "cancel": "Annulla",
     "confirm": "Per eliminare scrivi il nome della policy: {{name}}"
+  },
+  "probeAdmin": {
+    "title": "Integrazioni · Sonda esterna",
+    "subtitle": "Verifica le porte esposte da fuori della tua rete. Il server NSM è dentro la rete e non vede i filtri di bordo; la sonda, installata su un server esterno (ad esempio un VPS), vede ciò che vede Internet.",
+    "connection": "Connessione",
+    "connectionHelp": "Le richieste sono firmate con il segreto condiviso e contengono solo gli IP pubblici dell'inventario e le porte previste. Se la sonda non risponde, NSM verifica dal proprio server e lo segnala.",
+    "url": "Indirizzo della sonda",
+    "name": "Nome mostrato nei risultati",
+    "secret": "Segreto condiviso (PROBE_SECRET)",
+    "enabled": "Usa la sonda per le verifiche dall'esterno",
+    "saved": "Sonda salvata.",
+    "state": "Stato",
+    "notConfigured": "Non configurata",
+    "off": "Disattivata",
+    "ok": "Raggiungibile",
+    "failed": "Non raggiungibile",
+    "untested": "Da provare",
+    "lastTest": "Ultima prova: {{when}}",
+    "test": "Prova la sonda",
+    "howTitle": "Installazione sul server esterno",
+    "how": {
+      "host": "Un server fuori dalla tua rete, con un'altra connessione Internet, e Docker installato.",
+      "secret": "Genera un segreto di almeno 32 caratteri (ad esempio con openssl rand -hex 32): va sia nella sonda sia qui.",
+      "run": "Copia la cartella probe del repository e avvia il container con i comandi qui sotto.",
+      "sources": "In PROBE_ALLOWED_SOURCES metti l'IP pubblico da cui esce il server NSM, così nessun altro può usarla.",
+      "connect": "Inserisci qui indirizzo, nome e segreto, salva e premi «Prova la sonda»."
+    }
   }
 }

@@ -115,6 +115,7 @@ from app.routerboot_lifecycle import install_routerboot_lifecycle
 from app.mikrotik_device_reboot import install_mikrotik_device_reboot
 from app.mikrotik_syslog_config import install_mikrotik_syslog_config, install_syslog_on_enrollment
 from app.management_access import install_management_access
+from app.exposure_probe import install_exposure_probe
 from app.zabbix_connector import install_zabbix_connector
 from app.ui_zabbix_scope import install_ui_zabbix_scope
 from app.device_exposure import install_device_exposure
@@ -182,6 +183,7 @@ install_routerboot_lifecycle(core.app)
 install_mikrotik_device_reboot(core.app)
 install_mikrotik_syslog_config(core.app)
 install_management_access(core.app)
+install_exposure_probe(core.app)
 install_zabbix_connector(core.app)
 install_ui_zabbix_scope(core.app)
 install_device_exposure(core.app)

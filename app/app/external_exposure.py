@@ -37,8 +37,6 @@ from __future__ import annotations
 
 import ipaddress
 import os
-import socket
-import struct
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
@@ -171,84 +169,27 @@ def blocker(device) -> str | None:
 
 # --- Probes (one connection or one datagram per check) --------------------------------------
 
-def probe_tcp(ip: str, port: int, timeout: float) -> tuple[str, str]:
-    try:
-        with socket.create_connection((ip, port), timeout=timeout):
-            return "open", "la porta accetta connessioni"
-    except ConnectionRefusedError:
-        return "closed", "connessione rifiutata"
-    except (socket.timeout, TimeoutError):
-        return "filtered", "nessuna risposta (filtrata)"
-    except OSError as exc:
-        return "filtered", f"non raggiungibile ({exc.__class__.__name__})"
+from app.port_probes import (  # noqa: E402 - re-exported: the checks and the tests use them from here
+    DNS_QUERY, DNS_QUERY_ID, SSDP_QUERY, UBNT_QUERY, _ber, _udp_exchange, dns_verdict, probe_tcp, probe_udp, snmp_request,
+)
 
 
-def _ber(tag: int, body: bytes) -> bytes:
-    if len(body) < 128:
-        return bytes([tag, len(body)]) + body
-    size = len(body).to_bytes((len(body).bit_length() + 7) // 8, "big")
-    return bytes([tag, 0x80 | len(size)]) + size + body
-
-
-def snmp_request(community: str = "public", request_id: int = 0x4E534D01) -> bytes:
-    """SNMPv2c GetRequest for sysDescr.0 (read-only)."""
-    oid = _ber(0x06, bytes([0x2B, 6, 1, 2, 1, 1, 1, 0]))
-    varbinds = _ber(0x30, _ber(0x30, oid + b"\x05\x00"))
-    pdu = _ber(0xA0, _ber(0x02, request_id.to_bytes(4, "big")) + _ber(0x02, b"\x00") + _ber(0x02, b"\x00") + varbinds)
-    return _ber(0x30, _ber(0x02, b"\x01") + _ber(0x04, community.encode()) + pdu)
-
-
-DNS_QUERY_ID = 0x4E53
-# Recursive query for the root NS set: answered with RA=1/NOERROR only by an open resolver.
-DNS_QUERY = struct.pack(">HHHHHH", DNS_QUERY_ID, 0x0100, 1, 0, 0, 0) + b"\x00" + struct.pack(">HH", 2, 1)
-SSDP_QUERY = b'M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: 1\r\nST: ssdp:all\r\n\r\n'
-UBNT_QUERY = b"\x01\x00\x00\x00"
-
-
-def _udp_exchange(ip: str, port: int, payload: bytes, timeout: float) -> bytes | None:
-    family = socket.AF_INET6 if ":" in ip else socket.AF_INET
-    with socket.socket(family, socket.SOCK_DGRAM) as sock:
-        sock.settimeout(timeout)
-        try:
-            sock.sendto(payload, (ip, port))
-            data, _addr = sock.recvfrom(4096)
-            return data
-        except (socket.timeout, TimeoutError, OSError):
-            return None
-
-
-def dns_verdict(answer: bytes | None) -> tuple[str, str]:
-    if not answer or len(answer) < 12:
-        return "filtered", "nessuna risposta (chiusa o filtrata)"
-    ident, flags, _qd, ancount, _ns, _ar = struct.unpack(">HHHHHH", answer[:12])
-    if ident != DNS_QUERY_ID or not flags & 0x8000:
-        return "filtered", "risposta non valida"
-    if flags & 0x0080 and flags & 0x000F == 0 and ancount:
-        return "exposed", "risolve query ricorsive per chiunque (resolver aperto)"
-    return "restricted", "il DNS risponde ma rifiuta la ricorsione"
-
-
-def probe_udp(ip: str, key: str, port: int, timeout: float) -> tuple[str, str]:
-    if key == "dns":
-        return dns_verdict(_udp_exchange(ip, port, DNS_QUERY, timeout))
-    if key == "snmp":
-        answer = _udp_exchange(ip, port, snmp_request(), timeout)
-        if answer and answer[:1] == b"\x30":
-            return "exposed", "risponde alla community «public»"
-        return "filtered", "nessuna risposta con la community «public»"
-    payload = SSDP_QUERY if key == "ssdp" else UBNT_QUERY
-    answer = _udp_exchange(ip, port, payload, timeout)
-    if answer:
-        return "exposed", f"risponde da Internet ({len(answer)} byte per {len(payload)} inviati)"
-    return "filtered", "nessuna risposta (chiusa o filtrata)"
-
-
-def scan(ip: str, keys: list[str], timeout: float = TIMEOUT_SECONDS, extra: dict | None = None) -> list[dict]:
+def scan(ip: str, keys: list[str], timeout: float = TIMEOUT_SECONDS, extra: dict | None = None, remote=None) -> list[dict]:
+    """Probe ``keys`` on ``ip`` from this server or, with ``remote`` (the external probe row), from outside the network;
+    a probe failure raises ``exposure_probe.ProbeError`` so the caller can fall back."""
     checks = {**CHECKS, **(extra or {})}
+    answers = None
+    if remote is not None:
+        from app import exposure_probe
+
+        answers = exposure_probe.scan(remote, ip, [(key, checks[key][0], checks[key][1]) for key in keys], timeout)
 
     def run(key):
         port, proto, label, severity, why = checks[key]
-        state, reason = probe_tcp(ip, port, timeout) if proto == "tcp" else probe_udp(ip, key, port, timeout)
+        if answers is not None:
+            state, reason = answers.get(key, ("filtered", "nessuna risposta dalla sonda esterna"))
+        else:
+            state, reason = probe_tcp(ip, port, timeout) if proto == "tcp" else probe_udp(ip, key, port, timeout)
         state = {"open": "exposed"}.get(state, state)
         return {"service": key, "label": label, "port": port, "proto": proto, "state": state,
                 "severity": severity if state == "exposed" else "info", "reason": reason, "why": why,
@@ -365,18 +306,31 @@ def run_check(db, device, actor=None) -> dict:
     extra = remote_check(context)
     if extra and extra["remote-web"][0] in {CHECKS[k][0] for k in keys if CHECKS[k][1] == "tcp"}:
         extra = {}  # that port is already probed: the configuration qualifies its finding
-    findings = scan(ip, keys + list(extra), extra=extra)
+    from app import exposure_probe
+
+    vantage, vantage_error, findings = {"kind": "nsm_server", "name": None}, None, None
+    probe_row = exposure_probe.active(db) if _public(ip) else None
+    if probe_row is not None:
+        try:
+            findings = scan(ip, keys + list(extra), extra=extra, remote=probe_row)
+            vantage = {"kind": "probe", "name": exposure_probe.name_of(probe_row)}
+        except exposure_probe.ProbeError as exc:
+            vantage_error = str(exc)  # checked from the NSM server instead, and the page says why
+    if findings is None:
+        findings = scan(ip, keys + list(extra), extra=extra)
     shared = [d.display_name or d.device_identity or d.name for d in db.scalars(select(Device).where(Device.management_ip == ip, Device.id != device.id))]
     result = {
         "checked_at": utcnow().isoformat(), "source": "external", "target_ip": ip, "target_origin": origin, "vendor_key": vendor_key(device),
         "findings": findings, "ports_checked": len(keys) + len(extra), "exposed": 0, "uncertain": 0, "worst": None,
         "shared_with": sorted(shared)[:20], "port_forwards": [], "private_target": not _public(ip), "tr069": context,
+        "vantage": vantage, "vantage_error": vantage_error,
     }
     qualify(result, (device.inventory_data or {}).get("exposure_acl") or {})
     exposed = [f for f in result["findings"] if f["state"] == "exposed"]
     _store_and_sync(db, device, result)
     core.add_event(db, "EXPOSURE_EXTERNAL_CHECK", actor=actor, customer_id=device.customer_id, device_id=device.id, source="portal" if actor else "worker",
-                   details={"target_ip": ip, "ports": [f"{f['proto']}/{f['port']}" for f in findings], "exposed": [f"{f['proto']}/{f['port']}" for f in exposed]})
+                   details={"target_ip": ip, "ports": [f"{f['proto']}/{f['port']}" for f in findings], "exposed": [f"{f['proto']}/{f['port']}" for f in exposed],
+                            "vantage": vantage["kind"]})
     return result
 
 
