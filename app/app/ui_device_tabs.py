@@ -344,12 +344,13 @@ def device_configuration_history(request: Request, device_id: uuid.UUID):
                 "id": str(artifact.id), "filename": artifact.filename, "size_bytes": artifact.size_bytes or 0, "sha256": (artifact.sha256 or "")[:12] or None,
                 "completed_at": (run.completed_at if run else None) or artifact.created_at, "previous_id": str(previous.id) if previous else None,
                 "summary": summary, "baseline": baseline is not None and str(baseline) == str(artifact.id),
+                "attribution": row["attribution"],
             })
         details = (issue.details or {}) if issue else {}
         return jsonable_encoder({
             "rows": rows, "baseline_id": str(baseline) if baseline else None,
             "drift": {"added": details.get("added", 0), "removed": details.get("removed", 0), "reference_kind": details.get("reference_kind"),
-                      "severity": issue.severity} if issue else None,
+                      "severity": issue.severity, "attribution": details.get("attribution")} if issue else None,
             "can_baseline": core.has_permission(user, "backup.configure"),
         })
 

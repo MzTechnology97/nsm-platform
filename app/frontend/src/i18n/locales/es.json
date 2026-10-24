@@ -3708,7 +3708,7 @@
       "message": "Mensaje"
     },
     "historyTitle": "Historial de configuración",
-    "historyHelp": "Exportaciones RouterOS archivadas, baseline aprobada y cambios detectados automáticamente.",
+    "historyHelp": "Exports RouterOS archivados, línea base aprobada y cambios detectados automáticamente, con quién los hizo: NSM, un operador que inició sesión o desconocido. Los scripts del agente NSM no se comparan.",
     "back": "Configuración",
     "driftBaseline": "Cambio por revisar: {{added}} líneas añadidas y {{removed}} eliminadas respecto a la baseline aprobada.",
     "driftPrevious": "Cambio por revisar: {{added}} líneas añadidas y {{removed}} eliminadas respecto a la exportación anterior.",
@@ -3724,7 +3724,8 @@
       "sha": "SHA-256",
       "change": "Cambio",
       "state": "Estado",
-      "actions": "Acciones"
+      "actions": "Acciones",
+      "author": "Autor"
     },
     "firstExport": "primera exportación",
     "noChange": "sin cambios",
@@ -3735,7 +3736,18 @@
     "view": "Ver",
     "diff": "Diferencias",
     "setBaseline": "Fijar como baseline",
-    "noExports": "Ninguna exportación de configuración: el historial aparece tras la primera copia MikroTik en formato .rsc."
+    "noExports": "Ninguna exportación de configuración: el historial aparece tras la primera copia MikroTik en formato .rsc.",
+    "author": {
+      "nsm": "NSM",
+      "operator": "Operador",
+      "unknown": "Desconocido",
+      "mixed": "Mixto"
+    },
+    "driftAuthor": "Último cambio: {{author}}.",
+    "loginLine": "{{user}} desde {{ip}} vía {{service}}",
+    "publicLogin": "dirección pública",
+    "noLogins": "ningún acceso registrado (necesita el syslog del equipo)",
+    "partlyNsm": "cambiado en parte por NSM"
   },
   "deviceReboot": {
     "title": "Reinicio controlado",
