@@ -6530,11 +6530,11 @@
     "test": "Probar la sonda",
     "howTitle": "Instalación en el servidor externo",
     "how": {
-      "host": "Un servidor fuera de su red, con otra conexión a Internet, y Docker instalado.",
-      "secret": "Genere un secreto de al menos 32 caracteres (por ejemplo con openssl rand -hex 32): va en la sonda y aquí.",
-      "run": "Copie la carpeta probe del repositorio y arranque el contenedor con los comandos de abajo.",
-      "sources": "En PROBE_ALLOWED_SOURCES ponga la IP pública de salida del servidor NSM, así nadie más puede usarla.",
-      "connect": "Introduzca aquí dirección, nombre y secreto, guarde y pulse «Probar la sonda»."
+      "host": "Un servidor fuera de su red (por ejemplo un VPS Debian o Ubuntu) con otra conexión a Internet.",
+      "secret": "El instalador genera el secreto compartido y lo muestra al final (de nuevo con «sudo bash install.sh show-secret»).",
+      "run": "En el servidor ejecute los comandos de abajo: instalan Docker si falta, descargan la sonda y la arrancan.",
+      "sources": "En --allow ponga la IP pública de salida del servidor NSM, así nadie más puede usarla. Con --domain la sonda responde en HTTPS a través de Caddy.",
+      "connect": "Introduzca aquí la dirección, el nombre y el secreto mostrados por el instalador, guarde y pulse «Probar la sonda»."
     }
   }
 }

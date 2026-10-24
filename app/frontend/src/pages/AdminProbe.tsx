@@ -20,6 +20,13 @@ interface ProbeAdmin {
 }
 
 const URL = "/api/ui/v1/admin/integrations/probe";
+// probe/install.sh: installs Docker when missing, downloads the probe, writes the secret and starts it.
+const INSTALL_COMMANDS = [
+  "curl -fsSL https://raw.githubusercontent.com/MzTechnology97/nsm-platform/main/probe/install.sh -o install.sh",
+  "sudo bash install.sh --allow <NSM-public-IP> --name probe-1",
+  "# HTTPS through Caddy: add --domain probe.example.net",
+  "# later: sudo bash install.sh status | update | show-secret | uninstall",
+].join("\n");
 
 /** External probe (SCAN-02): where it is, the shared secret, test. */
 export function AdminProbe() {
@@ -62,7 +69,7 @@ export function AdminProbe() {
             <ol className="ui-admin-stack">
               {["host", "secret", "run", "sources", "connect"].map((key) => <li key={key}>{t(`probeAdmin.how.${key}`)}</li>)}
             </ol>
-            <pre className="ui-code-block"><code>{"cd probe\ncp .env.example .env   # PROBE_SECRET, PROBE_NAME, PROBE_ALLOWED_SOURCES\ndocker compose up -d --build"}</code></pre>
+            <pre className="ui-code-block"><code>{INSTALL_COMMANDS}</code></pre>
           </section>
         </div>
       )}
