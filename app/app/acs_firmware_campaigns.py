@@ -10,7 +10,8 @@ A campaign upgrades the CPEs of one model with one image already in GenieACS, re
   allowed, equal start and end means always).
 - **Automatic stop at the first failed or unconfirmed upgrade**: a GenieACS fault, no new version after 30
   minutes, or a version that does not contain the expected one. The CPEs already requested are still followed;
-  nothing new starts until the operator resumes the campaign.
+  nothing new starts until the operator resumes the campaign. The faulted or never-run ``download`` task is deleted
+  from GenieACS with its fault, so the CPE's queue is not left blocked (``task_removed`` in the stop audit).
 - **Typed confirmation** (the campaign name) to start or resume; pause and cancel at any time. Upgrades already
   sent cannot be called back: they are followed to the end.
 
@@ -304,7 +305,12 @@ def _stop_if_bad(db, campaign, rows) -> bool:
     campaign.stop_reason = f"{_name(device) if device else first.device_id}: {first.status} ({first.error or '—'})"
     for r in bad:
         r.reported = True  # a resume goes on with the other CPEs
-    _event(db, "STOPPED", campaign, device=str(first.device_id), status=first.status, error=first.error)
+    # The single-CPE upgrade already deleted its faulted / never-run task from GenieACS (acs_firmware._cleanup).
+    entry = ((device.inventory_data or {}).get("acs_firmware") or {}) if device else {}
+    if not (first.requested_at and entry.get("requested_at") and datetime.fromisoformat(entry["requested_at"]) == first.requested_at):
+        entry = {}  # failed before any task was queued, or an older upgrade's entry
+    _event(db, "STOPPED", campaign, device=str(first.device_id), status=first.status, error=first.error,
+           task_removed=bool(entry.get("task_removed")), fault_removed=bool(entry.get("fault_removed")))
     return True
 
 

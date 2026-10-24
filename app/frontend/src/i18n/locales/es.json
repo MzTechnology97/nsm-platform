@@ -5229,6 +5229,7 @@
     "ACS_FIRMWARE_FILE_FETCHED": "Firmware descargado del fabricante en el ACS",
     "ACS_FIRMWARE_FILE_STORED": "Imagen de firmware cargada en el ACS",
     "ACS_FIRMWARE_REQUESTED": "Actualización de firmware del CPE solicitada",
+    "ACS_FIRMWARE_UNCONFIRMED": "Actualización de firmware del CPE no confirmada",
     "ACS_FIRMWARE_VERIFIED": "Actualización de firmware del CPE verificada",
     "ACS_MIGRATION_COMPLETED": "Migración ACS completada",
     "ACS_MIGRATION_STARTED": "Migración ACS iniciada",
@@ -5909,6 +5910,7 @@
     "run": "Actualizar firmware",
     "waitingContact": "empezará en el próximo contacto con el ACS",
     "notExpected": "no es la versión esperada {{version}}",
+    "taskRemoved": "la tarea de descarga se eliminó de la cola del CPE en GenieACS",
     "states": {
       "requested": "Actualización solicitada el {{when}} desde {{from}}, esperando que el CPE informe la nueva versión",
       "verified": "Actualizado el {{when}}: {{from}} → {{to}}",

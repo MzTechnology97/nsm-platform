@@ -1,5 +1,8 @@
 """ACS-08 campaigns: pilot CPE first, then waves, only inside the window, automatic stop at the first failed or
-unconfirmed upgrade, typed confirmation, pause/resume/cancel, audit (fake NBI only)."""
+unconfirmed upgrade, typed confirmation, pause/resume/cancel, audit (fake NBI only).
+
+The faulted or never-run download tasks are deleted from GenieACS with their fault (0.49.293), and the campaign still
+stops at the first bad result."""
 import json
 import re
 import uuid
@@ -37,6 +40,7 @@ def main():
 
     suffix = uuid.uuid4().hex[:6].upper()
     versions, faults, tasks = {}, {}, []
+    queue, deleted = {}, []  # queued GenieACS tasks by id; ("task" | "fault", id) deleted through the NBI
 
     def handler(request: httpx.Request):
         path = request.url.path
@@ -50,9 +54,22 @@ def main():
         if request.method == "GET" and path == "/faults":
             ext = json.loads(request.url.params["query"])["device"]
             return httpx.Response(200, json=faults.get(ext, []))
+        if request.method == "GET" and path == "/tasks":
+            ext = json.loads(request.url.params["query"])["device"]
+            return httpx.Response(200, json=[{"_id": i, **t} for i, t in queue.items() if t["device"] == ext])
+        if request.method == "DELETE" and path.startswith("/tasks/"):
+            deleted.append(("task", path[len("/tasks/"):]))
+            return httpx.Response(200 if queue.pop(path[len("/tasks/"):], None) else 404)
+        if request.method == "DELETE" and path.startswith("/faults/"):
+            fault_id = path[len("/faults/"):]
+            deleted.append(("fault", fault_id))
+            for ext in faults:
+                faults[ext] = [f for f in faults[ext] if f["_id"] != fault_id]
+            return httpx.Response(200)
         if request.method == "POST" and path.endswith("/tasks"):
             ext = path.split("/")[2]
             tasks.append((httpx.URL(f"http://x/{ext}").path.strip("/"), json.loads(request.content)))
+            queue[f"t{len(tasks)}"] = {"device": tasks[-1][0], **tasks[-1][1]}
             return httpx.Response(202, json={"_id": f"t{len(tasks)}"})
         return httpx.Response(404)
 
@@ -126,16 +143,22 @@ def main():
         detail = tech.get(f"/api/ui/v1/acs/firmware-campaigns/{cid}").json()
         assert detail["counts"] == {"verified": 1, "requested": 5, "pending": 7, "skipped": 1}, detail["counts"]
 
-        # One of the wave fails (GenieACS fault): automatic stop, nothing new starts.
+        # One of the wave fails (GenieACS fault): automatic stop, nothing new starts, and the faulted task is deleted with
+        # its fault so the CPE's queue is not left blocked.
         for ext in wave1[:4]:
             versions[ext] = "0.19.0 Build 260323"
-        faults[wave1[4]] = [{"_id": f"{wave1[4]}:task_x", "channel": "task_x", "code": "cwmp.9010", "message": "Download failed",
+        for i, (ext, _task) in enumerate(tasks[:5], start=1):
+            queue.pop(f"t{i}", None)  # run by the CPEs now verified
+        faulted = f"t{6}"
+        assert queue[faulted]["device"] == wave1[4]
+        faults[wave1[4]] = [{"_id": f"{wave1[4]}:task_{faulted}", "channel": f"task_{faulted}", "code": "too_many_rpcs", "message": "Too many RPCs",
                              "timestamp": (now + timedelta(minutes=3)).isoformat().replace("+00:00", "Z")}]
         campaigns.follow(now=now + timedelta(minutes=4), force=True)
         detail = tech.get(f"/api/ui/v1/acs/firmware-campaigns/{cid}").json()
-        assert detail["status"] == "stopped" and "cwmp.9010" in detail["stop_reason"] and len(tasks) == 6, detail
+        assert detail["status"] == "stopped" and "too_many_rpcs" in detail["stop_reason"] and len(tasks) == 6, detail
+        assert deleted == [("task", faulted), ("fault", f"{wave1[4]}:task_{faulted}")] and faulted not in queue and not faults[wave1[4]], deleted
         campaigns.follow(now=now + timedelta(minutes=5), force=True)
-        assert len(tasks) == 6
+        assert len(tasks) == 6 and len(deleted) == 2
 
         # Resume (typed): the next wave starts; pause stops new waves; nothing answers for 30 minutes: unconfirmed, stop.
         assert tech.post(f"/api/ui/v1/acs/firmware-campaigns/{cid}/start", json={"confirm": name}).json()["status"] == "running"
@@ -145,6 +168,9 @@ def main():
         campaigns.follow(now=now + timedelta(minutes=40), force=True)
         detail = tech.get(f"/api/ui/v1/acs/firmware-campaigns/{cid}").json()
         assert detail["status"] == "stopped" and detail["counts"].get("unconfirmed") == 5 and len(tasks) == 11, detail["counts"]
+        # The five downloads never run are deleted from the CPEs' queues.
+        assert sorted(i for kind, i in deleted[2:] if kind == "task") == sorted(f"t{i}" for i in range(7, 12)) and len(deleted) == 7, deleted
+        assert not [i for i in queue if i in {f"t{n}" for n in range(7, 12)}], queue
 
         # Cancel: the CPEs not started are cancelled.
         cancelled = tech.post(f"/api/ui/v1/acs/firmware-campaigns/{cid}/cancel").json()
@@ -177,6 +203,9 @@ def main():
             assert {"ACS_FIRMWARE_CAMPAIGN_CREATED", "ACS_FIRMWARE_CAMPAIGN_STARTED", "ACS_FIRMWARE_CAMPAIGN_WAVE_STARTED", "ACS_FIRMWARE_CAMPAIGN_STOPPED",
                     "ACS_FIRMWARE_CAMPAIGN_RESUMED", "ACS_FIRMWARE_CAMPAIGN_PAUSED", "ACS_FIRMWARE_CAMPAIGN_CANCELLED"} <= set(kinds), kinds
             assert kinds.count("ACS_FIRMWARE_CAMPAIGN_STOPPED") == 2
+            stops = [e.details for e in db.scalars(select(AuditEvent).where(AuditEvent.event_type == "ACS_FIRMWARE_CAMPAIGN_STOPPED")
+                                                    .order_by(AuditEvent.timestamp)) if (e.details or {}).get("campaign_id") == cid]
+            assert [(d["status"], d["task_removed"], d["fault_removed"]) for d in stops] == [("failed", True, True), ("unconfirmed", True, False)], stops
             requested = db.scalar(select(AuditEvent).where(AuditEvent.event_type == "ACS_FIRMWARE_REQUESTED", AuditEvent.device_id == ids[3]))
             assert requested is not None and requested.actor_user_id is not None
             db.query(AcsFirmwareCampaignDevice).filter(AcsFirmwareCampaignDevice.campaign_id.in_([uuid.UUID(cid), uuid.UUID(second["id"])])).delete()

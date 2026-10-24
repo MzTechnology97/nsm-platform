@@ -1,4 +1,6 @@
-"""ACS-08: firmware upgrade of TR-069 CPEs through GenieACS (fake NBI with files, tasks and faults)."""
+"""ACS-08: firmware upgrade of TR-069 CPEs through GenieACS (fake NBI with files, tasks and faults).
+
+A faulted or never-run download task is deleted with its fault (fix 0.49.293: a faulted task blocks the CPE's queue)."""
 import json
 import re
 import uuid
@@ -28,6 +30,7 @@ NEW = "0.17.0 2.0.0 v606c.0 Build 250901 Rel.20001n"
 class FakeNbi:
     def __init__(self):
         self.records, self.files, self.tasks, self.faults = {}, {}, [], []
+        self.queue, self.deleted = {}, []  # queued tasks by id; ("task" | "fault", id) deleted through the NBI
 
     def __call__(self, request: httpx.Request):
         if request.method == "GET" and request.url.path == "/devices":
@@ -46,10 +49,26 @@ class FakeNbi:
         if request.method == "GET" and request.url.path == "/faults":
             device = json.loads(request.url.params["query"])["device"]
             return httpx.Response(200, json=[f for f in self.faults if f["device"] == device])
+        if request.method == "GET" and request.url.path == "/tasks":
+            device = json.loads(request.url.params["query"])["device"]
+            return httpx.Response(200, json=[{"_id": i, **t} for i, t in self.queue.items() if t["device"] == device])
+        if request.method == "DELETE" and request.url.path.startswith("/tasks/"):
+            task_id = unquote(request.url.path[len("/tasks/"):])
+            self.deleted.append(("task", task_id))
+            return httpx.Response(200 if self.queue.pop(task_id, None) else 404)
+        if request.method == "DELETE" and request.url.path.startswith("/faults/"):
+            fault_id = unquote(request.url.path[len("/faults/"):])
+            self.deleted.append(("fault", fault_id))
+            before = len(self.faults)
+            self.faults[:] = [f for f in self.faults if f.get("_id") != fault_id]
+            return httpx.Response(200 if len(self.faults) < before else 404)
         match = re.fullmatch(r"/devices/(.+)/tasks", request.url.path)
         if match and unquote(match.group(1)) in self.records:
-            self.tasks.append(json.loads(request.content))
-            return httpx.Response(200, json={"_id": "t"})
+            body = json.loads(request.content)
+            self.tasks.append(body)
+            task_id = f"task{len(self.tasks)}"
+            self.queue[task_id] = {"device": unquote(match.group(1)), **body}
+            return httpx.Response(200, json={"_id": task_id})
         return httpx.Response(404)
 
 
@@ -130,6 +149,7 @@ def main():
     assert tech.post(url, json={"file_name": "missing.bin", "confirm": f"TEST-ACSF-{suffix}"}).status_code == 404
     started = tech.post(url, json={"file_name": name, "confirm": f"TEST-ACSF-{suffix}"}).json()["upgrade"]
     assert started["state"] == "requested" and started["from_version"] == OLD and started["expected_version"] == "1.2.0 Build 250901"
+    assert started["task_id"] == "task1", "the id GenieACS gave the task is kept"
     assert fake.tasks == [{"name": "download", "fileType": "1 Firmware Upgrade Image", "fileName": name}]
     assert tech.post(url, json={"file_name": name, "confirm": f"TEST-ACSF-{suffix}"}).status_code == 409, "one upgrade at a time"
     assert auditor.get(url).json()["upgrade"]["state"] == "requested"
@@ -139,6 +159,8 @@ def main():
     assert fw.follow_upgrades()["followed"] == 1
     done = auditor.get(url).json()["upgrade"]
     assert done["state"] == "verified" and done["to_version"] == NEW and done["matches"] is False, done
+    assert fake.deleted == [], "a verified upgrade deletes nothing"
+    fake.queue.clear()  # GenieACS drops a task once the CPE has run it
 
     # A fault after the request: failed with the CPE's code.
     with SessionLocal() as db:
@@ -147,21 +169,50 @@ def main():
         data["acs_firmware"] = None
         device.inventory_data = data
         db.commit()
+    # The faulted task stays queued in GenieACS and would block every later task of the CPE (HB210, too_many_rpcs on
+    # 2026-10-23): NSM deletes it with its fault, and only those (another channel's fault and other tasks stay).
     tech.post(url, json={"file_name": name, "confirm": f"TEST-ACSF-{suffix}"}).raise_for_status()
-    fake.faults.append({"device": ext, "channel": "task_1", "code": "cwmp.9010", "message": "Download failure",
-                        "timestamp": (datetime.now(timezone.utc) + timedelta(seconds=5)).isoformat()})
+    soon = (datetime.now(timezone.utc) + timedelta(seconds=5)).isoformat()
+    fake.queue["foreign"] = {"device": ext, "name": "refreshObject", "objectName": "Device.WiFi"}
+    fake.faults += [{"_id": f"{ext}:default", "device": ext, "channel": "default", "code": "script", "message": "provision", "timestamp": soon},
+                    {"_id": f"{ext}:task_task2", "device": ext, "channel": "task_task2", "code": "too_many_rpcs", "message": "Too many RPCs",
+                     "timestamp": soon}]
     failed = auditor.get(url).json()["upgrade"]
-    assert failed["state"] == "failed" and failed["fault"]["code"] == "cwmp.9010", failed
+    assert failed["state"] == "failed" and failed["fault"]["code"] == "too_many_rpcs", failed
+    assert failed["task_removed"] is True and failed["fault_removed"] is True, failed
+    assert fake.deleted == [("task", "task2"), ("fault", f"{ext}:task_task2")], fake.deleted
+    assert set(fake.queue) == {"foreign"} and [f["channel"] for f in fake.faults] == ["default"]
+    with SessionLocal() as db:
+        event = db.scalar(select(AuditEvent).where(AuditEvent.device_id == device_id, AuditEvent.event_type == "ACS_FIRMWARE_FAILED"))
+        assert event.details["task_removed"] is True and event.details["fault_removed"] is True and event.details["task_id"] == "task2", event.details
+    assert auditor.get(url).json()["upgrade"]["state"] == "failed" and len(fake.deleted) == 2, "cleaned up once"
 
-    # No answer within 30 minutes: unconfirmed.
+    # No answer within 30 minutes: unconfirmed, and the download still queued is deleted. An entry from before 0.49.293
+    # has no task id: the queued download of the same image is found through GET /tasks (other tasks are left alone).
     fake.faults.clear()
+    fake.deleted.clear()
+    fake.queue = {"old-dl": {"device": other, "name": "download", "fileType": fw.FILE_TYPE, "fileName": name},
+                  "other-dl": {"device": other, "name": "download", "fileType": fw.FILE_TYPE, "fileName": "another.bin"},
+                  "refresh": {"device": other, "name": "refreshObject", "objectName": "Device"}}
     with SessionLocal() as db:
         device = db.get(Device, ont_id)
         connection = fw.acs._connection(db)
         fw._store(device, {"state": "requested", "file_name": name, "from_version": OLD, "requested_at": (datetime.now(timezone.utc) - timedelta(minutes=31)).isoformat()})
         fake.records[other] = record(other, product="HB210", version=OLD)
         assert fw.refresh_upgrade(db, device, connection) and device.inventory_data["acs_firmware"]["state"] == "unconfirmed"
+        assert device.inventory_data["acs_firmware"]["task_removed"] is True
+        assert fake.deleted == [("task", "old-dl")] and set(fake.queue) == {"other-dl", "refresh"}, fake.deleted
         db.commit()
+        # A task the CPE already ran (no longer queued) is not deleted again; the timeout is still audited.
+        fake.deleted.clear()
+        fw._store(device, {"state": "requested", "file_name": name, "from_version": OLD, "task_id": "gone",
+                           "requested_at": (datetime.now(timezone.utc) - timedelta(minutes=31)).isoformat()})
+        assert fw.refresh_upgrade(db, device, connection) and device.inventory_data["acs_firmware"]["task_removed"] is False
+        assert fake.deleted == [], fake.deleted
+        db.commit()
+        events = [e.details for e in db.scalars(select(AuditEvent).where(AuditEvent.device_id == ont_id, AuditEvent.event_type == "ACS_FIRMWARE_UNCONFIRMED")
+                                                .order_by(AuditEvent.timestamp))]
+        assert [e["task_removed"] for e in events] == [True, False], events
 
     with SessionLocal() as db:
         kinds = sorted(e.event_type for e in db.scalars(select(AuditEvent).where(AuditEvent.device_id == device_id)))
