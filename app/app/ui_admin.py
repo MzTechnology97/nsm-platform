@@ -157,7 +157,7 @@ def audit_events(request: Request, event_type: str = "", result: str = "", sever
                 "customer": {"id": str(event.customer_id), "name": customers[event.customer_id].name} if event.customer_id in customers else None,
                 "device": device_ref(devices.get(event.device_id)),
                 "actor": actors[event.actor_user_id].username if event.actor_user_id in actors else None,
-                "details": event.details or {},
+                "details": zabbix_connector.mask_audit_details(event.event_type, event.details or {}),
             } for event in events],
         }
 
@@ -902,8 +902,7 @@ def _zabbix_payload(db) -> dict:
     return jsonable_encoder({
         "configured": row is not None, "enabled": bool(row and row.is_enabled), "api_url": row.base_url if row else "",
         "auth_mode": mode, "username": username, "verify_tls": bool(row.verify_tls) if row else True,
-        "settings": {key: settings[key] for key in ("group_prefix", "interface", "snmp_community", "templates", "scope", "customer_ids",
-                                                     "link_existing", "update_linked_ip")},
+        "settings": zabbix_connector.public_settings(row),  # a literal SNMP community never leaves the server, only whether it is set
         "version": settings.get("version"), "last_test_status": row.last_test_status if row else None, "last_error": row.last_error if row else None,
         "last_sync_at": row.last_sync_at if row else None,
         "last_sync": {"status": last.get("status"), "created": last.get("created", 0), "updated": last.get("updated", 0), "disabled": last.get("disabled", 0),
@@ -922,6 +921,8 @@ def _zabbix_payload(db) -> dict:
 def admin_zabbix(request: Request):
     with SessionLocal() as db:
         ui_user(request, db, "users.manage")
+        if zabbix_connector.migrate_snmp_community(db, zabbix_connector.connection_row(db)):
+            db.commit()
         return _zabbix_payload(db)
 
 
