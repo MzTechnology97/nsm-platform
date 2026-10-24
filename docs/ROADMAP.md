@@ -212,7 +212,7 @@ Original scope:
 
 ### UBNT-03 — bulk onboarding/association
 
-**Implemented in `main`** (`app/uisp_onboarding.py`): UISP list with NSM state, explicit Customer/Site, preview, re-read at confirmation.
+**Implemented in `main`** (`app/uisp_onboarding.py`): UISP list with NSM state, explicit Customer/Site, preview, re-read at confirmation. Customer endpoints: automatic import under the NSM customer with the same name, or the one the operator linked (`app/uisp_auto_customer.py`, Core 0.49.244); infrastructure sites stay manual (operator decision 2026-10-23).
 
 - bounded discovery list;
 - duplicate/conflict handling;
@@ -233,7 +233,7 @@ Implement only diagnostics actually exposed and validated by the integration con
 
 ### UBNT-06 — firmware workflow
 
-**Step 1 implemented in `main`** (`app/uisp_firmware.py`): installed/latest version and compatibility read from UISP at every sync, firmware state on the Device and in the firmware worklist. Checked on the operator's console (2026-10-22): it sends only `compatible`, so the recommended version comes from the Ubiquiti update service by airOS platform (`identification.platformId`) and `overview.canUpgrade` marks unknown states as update available (Core 0.49.199). Planning and execution remain open: upgrades are run from UISP.
+**Step 1 implemented in `main`** (`app/uisp_firmware.py`): installed/latest version and compatibility read from UISP at every sync, firmware state on the Device and in the firmware worklist. Checked on the operator's console (2026-10-22): it sends only `compatible`, so the recommended version comes from the Ubiquiti update service by airOS platform (`identification.platformId`) and `overview.canUpgrade` marks unknown states as update available (Core 0.49.199). **Step 2 (Core 0.49.252)**: upgrade started from NSM through UISP (`POST /tasks`, version chosen among UISP's stable images for the platform, typed confirmation, optional maintenance window), followed and verified on the version UISP reports (`app/uisp_firmware_upgrade.py`). Open: bulk upgrades.
 
 - read current/available state where supported;
 - planning/approval model;
@@ -345,6 +345,7 @@ Telemetry of a device that goes offline must never be deleted: the last received
 **Step 2 done (Core 0.49.60)**: the check from the NSM server on the public IP for the other manufacturers (and MikroTik without the modern agent), with the IP given by the operator when it cannot be determined.
 **Since Core 0.49.73** the operator can also target a private/CGNAT address (device reached directly, e.g. via VPN), with an explicit warning that the result is distorted when the device sits behind another router or NAT.
 **Step 3 done (Core 0.49.61)**: the fleet view *Security → Esposizione*, exposed services in the security newsletter and in the evidence report (section 3).
+**Core 0.49.239** (operator report 2026-10-23: a port filtered by an ACL that admits the NSM server looked exposed): an open CWMP port on a TR-069 CPE managed by NSM is *da verificare* (NSM is its ACS), the CPE's remote web management settings read via TR-069 decide *esposto*/*limitato* and its port is probed too, and the operator can declare any service filtered by an ACL with the allowed addresses. Operator decision (2026-10-23): ACLs are declared by hand; no second vantage point (no external port-check service, no probe from another site).
 
 A port/service scanner run from the NSM server against the WAN address of each managed device.
 - **Targets.** Any vendor, not only MikroTik. The target is the detected WAN/PPPoE address, and the operator can pick or override the correct WAN IP when it cannot be determined.
@@ -357,7 +358,7 @@ A port/service scanner run from the NSM server against the WAN address of each m
 
 ### ZBX-01 — Zabbix API integration (requested 2026-10-07)
 
-**Decided with the user (2026-10-08): NSM pushes its devices to Zabbix. Implemented in `main` (Core 0.49.51).** Hosts, groups per customer, templates per manufacturer, tags and inventory; 6.x and 7.x authentication; hosts disabled (not deleted) when devices leave NSM. Zabbix problems are shown inside NSM since Core 0.49.62 (device header and overview, Monitoring). **Since Core 0.49.205 (operator decision 2026-10-22)**: devices already monitored in the operator's Zabbix are linked to their existing host (same IP, else same name, only when exactly one matches) instead of getting a duplicate `nsm-` host; linked hosts are never modified except their interface IP, kept equal to the device address for dynamic public IPs/NAT (option); ambiguous matches are reported; the settings form suggests the templates found in Zabbix.
+**Decided with the user (2026-10-08): NSM pushes its devices to Zabbix. Implemented in `main` (Core 0.49.51).** Hosts, groups per customer, templates per manufacturer, tags and inventory; 6.x and 7.x authentication; hosts disabled (not deleted) when devices leave NSM. Zabbix problems are shown inside NSM since Core 0.49.62 (device header and overview, Monitoring). **Since Core 0.49.205 (operator decision 2026-10-22)**: devices already monitored in the operator's Zabbix are linked to their existing host (same IP, else same name, only when exactly one matches) instead of getting a duplicate `nsm-` host; linked hosts are never modified except their interface IP, kept equal to the device address for dynamic public IPs/NAT (option); ambiguous matches are reported; the settings form suggests the templates found in Zabbix. **Since Core 0.49.243 (operator request 2026-10-23)**: *Aggiungi a Zabbix* / *Rimuovi da Zabbix* on every device (opt-in kept on the device, also outside the customer scope) and on every customer (joins/leaves the scope with all its devices); each click pushes at once and reports the result (created, linked, no IP, factory LAN IP); removed hosts are disabled, never deleted; audited `ZABBIX_DEVICE_SCOPE_CHANGED` / `ZABBIX_CUSTOMER_SCOPE_CHANGED`.
 
 Integration with the operator's Zabbix (currently 6.x; support both the 6.x API and 7.x, where authentication moved to an API token in the `Authorization` header). How it applies to devices (import hosts/items, link NSM devices to Zabbix hosts, show problems and graphs, or push NSM devices to Zabbix) is to be decided with the user before implementation.
 
@@ -440,14 +441,14 @@ Only expose backup/restore where the real CPE data model and connector expose a 
 
 ### VEND-01 — firmware catalogs for other vendors (requested 2026-10-07)
 
-**Implemented in `main` (Core 0.49.69)**: *Firmware → Cataloghi altri produttori* — Ubiquiti from UISP and from the official update service (`fw-update.ubnt.com`, airOS platform from the installed firmware string or from UISP; checked from the deployed instance in Core 0.49.199, where the request filters were corrected: the service files the platform code under `product` and the family `airmax` under `platform`), other brands from releases entered from the official download pages; device firmware state evaluated per model. **Core 0.49.227**: TP-Link from the official Italian download pages per model and hardware version, with one-click download into the ACS for TR-069 CPEs. Next: official machine-readable sources for other brands where they exist.
+**Implemented in `main` (Core 0.49.69)**: *Firmware → Cataloghi altri produttori* — Ubiquiti from UISP and from the official update service (`fw-update.ubnt.com`, airOS platform from the installed firmware string or from UISP; checked from the deployed instance in Core 0.49.199, where the request filters were corrected: the service files the platform code under `product` and the family `airmax` under `platform`), other brands from releases entered from the official download pages; device firmware state evaluated per model. **Core 0.49.227**: TP-Link from the official Italian download pages per model and hardware version, with one-click download into the ACS for TR-069 CPEs. **Core 0.49.247**: operator releases are uploaded images; version, models or platform and date are read from the official file name (airOS header too), and only the rest is asked. Next: official machine-readable sources for other brands where they exist.
 
 Release catalogs like the RouterOS one (versions per channel/model, release notes, security classification) for Ubiquiti, TP-Link, Tenda, Cambium and similar vendors. Each catalog is enabled only when the inventory contains devices of that brand, reads only official vendor sources and never guesses versions it cannot verify.
 
 ### VEND-02 — cnMaestro integration for Cambium (requested 2026-10-07)
 
 **Step 1 implemented in `main` (Core 0.49.70)**: OAuth2 client credentials, paged inventory and statistics, linking by MAC/serial, identity/firmware/IP/status sync every 15 minutes, metrics history (signal, SNR, throughput, CPU/memory, stations) with Cacti-style graphs on the device *cnMaestro* tab.
-**Step 2 implemented in `main`**: compatibility check on the real console (Core 0.49.189) and bulk onboarding like UISP (Core 0.49.192). Field names checked on the operator's cnMaestro (Core 0.49.199; Wi-Fi AP per-band clients and traffic, time online as uptime). Next: operations where the cnMaestro API supports them.
+**Step 2 implemented in `main`**: compatibility check on the real console (Core 0.49.189) and bulk onboarding like UISP (Core 0.49.192). Field names checked on the operator's cnMaestro (Core 0.49.199; Wi-Fi AP per-band clients and traffic, time online as uptime). **Core 0.49.251**: configuration backup of ePMP devices over SSH (`config show json`), because the cnMaestro API cannot export configurations; shared SSH credentials with per-device override; backup policy option. Next: operations where the cnMaestro API supports them, and the move to cnMaestro API v2 (v1 deprecated).
 
 Read-only cnMaestro (cloud/on-premises) connector for Cambium radios: discovery and association like UISP, periodic sync, full monitoring and statistics (signal, link quality, capacity, interfaces, uptime, history) in the style of the MikroTik and UISP views; later operations only where the cnMaestro API supports them.
 

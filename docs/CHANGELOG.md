@@ -4,6 +4,191 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.257 — 2026-10-23
+
+Syslog of Ubiquiti devices configured through UISP
+- **The *Syslog* tab of a Ubiquiti device linked to UISP has *Syslog tramite UISP*:** UISP sets the CPE to send its logs to NSM, so they no longer have to be set by hand on airOS.
+- **How it works:**
+  - UISP takes a backup of the configuration;
+  - NSM changes only the syslog lines (server and port 514);
+  - UISP applies it.
+  - The CPE restarts and the customer is offline for 2–3 minutes. It runs only when you ask, after typing the device name.
+  - The backup taken just before is kept: *Ripristina configurazione precedente* puts it back.
+- **How NSM recognises the logs, chosen per device:**
+  - *NSM key in the device name* (recommended): UISP adds NSM-… to the hostname. It also works if the IP changes or the NAT is shared.
+  - *CPE name equal to the NSM customer* (e.g. "RIZZO MICHELA" for the customer Michela Rizzo, words in any order). Accepted only if no other device uses that name.
+  - *Device address*, as UISP sees it. Discarded if other devices share the same IP.
+- Devices whose services UISP does not manage keep the manual instructions.
+
+## 0.49.256 — 2026-10-23
+
+Interface
+- **The UISP reboot form stays inside its panel.** Stacked forms next to another column no longer spill to the right of the panel. The same fix applies to every stacked form.
+- **UISP events are paged.** The *Eventi UISP* list shows 20 events at a time, with *Mostra altri*. Times are in local format, and device names appear without UISP's backticks.
+
+## 0.49.255 — 2026-10-23
+
+Scheduled firmware upgrades
+- **RouterOS upgrades can be scheduled, for example at night.**
+  - One device: *Aggiornamento programmato* in the *Firmware* tab.
+  - Several devices: select them in the *Firmware* list and press *Programma aggiornamento*.
+  - Default time: the next 03:00.
+- **One confirmation, when you schedule.** At the chosen time NSM runs every phase by itself, with no further confirmation:
+  1. update check;
+  2. a new backup before the upgrade;
+  3. approval;
+  4. download of the packages;
+  5. activation with reboot;
+  6. check of the installed version.
+- A plan prepared earlier is reused if its backup is less than 12 hours old, otherwise it is replaced.
+- If the device is not reachable within 2 hours of the scheduled time, the upgrade is not run, and the list says so. If a phase fails, the schedule stops with the reason.
+- The list and the device show the state: scheduled, checking, running, completed, failed. A schedule can be moved or cancelled until the download starts. Every phase is recorded in the activity log.
+
+## 0.49.254 — 2026-10-23
+
+RouterOS upgrade: one click to prepare, check from the device
+- **Fixed: *Prepara upgrade* answered "Esegui prima una verifica firmware recente" when the check was older than 6 hours or still running.** Now one click is enough: if the check is not recent, NSM runs it and prepares the plan by itself when the result arrives, within 1–2 minutes. The button shows *Verifica in corso…* meanwhile.
+- ***Verifica aggiornamenti* in the device's *Firmware* tab:** before, it was only in the *Firmware* menu list.
+- The *Firmware* tab updates by itself while a check or a plan preparation is running. If the plan cannot be prepared after the check (e.g. device offline), it says why.
+
+## 0.49.253 — 2026-10-23
+
+ACS: configuration re-read object by object
+
+### Fixed
+
+- TR-069 *Rileggi configurazione dal CPE*: on large CPEs (an HB210 has 8137 parameters), refreshing the whole root went over GenieACS's RPC limit. The task failed with `too_many_rpcs`, and the faulted task blocked the CPE's whole task queue, a syslog setting included.
+  - The configuration is now re-read object by object, in rounds of at most 2500 parameters per CWMP session; objects above 2000 parameters are split into their children.
+  - A faulted refresh task is deleted together with its fault, so the queue never stays blocked. On `too_many_rpcs` the object is split further when possible.
+  - NSM's leftover tasks are removed after 90 minutes.
+  - The page shows the progress (objects read and round).
+  - New audit event: `ACS_CONFIG_REFRESH_COMPLETED`.
+## 0.49.252 — 2026-10-23
+
+Ubiquiti firmware upgrade through UISP
+
+### Added
+
+- Ubiquiti firmware upgrade through UISP. Devices linked to UISP get the device *Firmware* tab, and the firmware worklist shows *Aggiorna via UISP*. The tab offers the stable images UISP has for the device's airOS platform that are newer than the installed one, with the recommended version first.
+- After typing the device name, NSM queues the upgrade in UISP, either now or in UISP's maintenance window. The UISP token needs write permission.
+- The upgrade is followed until UISP reports the device on the new version (*verified*). It ends as *failed* when UISP marks it failed or canceled, and as *unconfirmed* after 60 minutes (48 hours in the maintenance window).
+- Audit events: `UISP_FIRMWARE_UPGRADE_REQUESTED`, `UISP_FIRMWARE_UPGRADE_VERIFIED`, `UISP_FIRMWARE_UPGRADE_FAILED`.
+## 0.49.251 — 2026-10-23
+
+Cambium: ePMP configuration backups over SSH
+
+### Added
+
+- Cambium ePMP configuration backups over SSH. The cnMaestro API cannot export device configurations, so NSM logs in to the ePMP CLI over SSH, reads the running configuration (`config show json`) and archives it in the device *Backup* tab. The archived configuration is complete and can be restored from the ePMP *Backup/Restore* page. The backup runs from the device *cnMaestro* tab or on schedule through backup policies with the new *Configurazione Cambium (SSH)* option; an unchanged configuration is not stored twice.
+- SSH credentials: one set for all Cambium devices in *Amministrazione → cnMaestro*, overridable per device, stored encrypted and never shown again. The first SSH host key of each device is remembered, and a different key stops the backups until an operator accepts it.
+- New dependency: `asyncssh`.
+
+## 0.49.250 — 2026-10-23
+
+Speed test on newly added CPEs
+- **Fixed: "Il CPE non espone il test di velocità TR-143" on CPEs that do have it** (for example a TP-Link HB210 just added). GenieACS had not read the diagnostic objects of the CPE yet. NSM now asks the CPE for them first, then starts the test.
+- If the CPE does not answer at once, NSM says so: GenieACS reads it at its next contact, so retry a few minutes later.
+
+## 0.49.249 — 2026-10-23
+
+TR-069
+- **Advanced TP-Link settings on the device's ACS tab.** A new panel sends settings that the CPE's own web page does not always offer:
+  - firmware only from the ACS;
+  - TP-Link's automatic cloud upgrade on or off;
+  - NTP servers;
+  - NAT session timeouts;
+  - the time of the scheduled reboot;
+  - which web pages the customer may change;
+  - a new administrator password, which NSM never stores or shows.
+  Only the changed values are sent, and each change is recorded in the activity log.
+
+## 0.49.248 — 2026-10-23
+
+TR-069
+- **Remote access and LAN Telnet on the device's ACS tab.** The tab shows whether the CPE's web page can be reached from the Internet, with protocol and port, and warns when any address can open it. Technicians can switch remote access on or off and change its port or protocol. Open pages are only reported, never closed by NSM.
+- **LAN Telnet is off by default on TP-Link CPEs.** Once a day NSM switches it off where it is on, unless a technician allowed it on that device.
+
+## 0.49.247 — 2026-10-23
+
+Firmware catalogs: upload the image
+
+### Changed
+
+- Firmware catalogs: the manual *Aggiungi una release* form is replaced by *Carica firmware*. The operator uploads the vendor image (`.bin`, `.img` or `.zip`) and NSM reads version, models or platform and release date from the official file name; for Ubiquiti it also reads the airOS image header, so renamed files still work. Only what cannot be read is asked: the version, or the models, picked among the brand's models in the inventory.
+  - TP-Link: model, hardware version and version from `VX230v(EU1)_V1_0.19.0 Build 260323`, with the build as the date.
+  - Ubiquiti: platform and version from `XC.….v8.7.25….bin`, `WA`, `XW` and `XM`.
+  - Cambium: version and family models from `ePMP-AC-v4.8.1.img`.
+- The image is kept with the release and can be downloaded from the catalog. For matching TR-069 CPEs it is also put in GenieACS, ready on the device *Firmware* tab; nothing is installed. Audited with file name, size and SHA-256.
+## 0.49.246 — 2026-10-23
+
+TR-069
+- **TP-Link CPEs can be upgraded from TP-Link's cloud.** The device's *Firmware* box shows the version that TP-Link's cloud offers the CPE, with its release date and notes, the same as the router's own *Online Upgrade* box. NSM reads that offer once a day, or at once with *Verifica ora*. *Aggiorna dal cloud TP-Link* asks you to type the device name, then has the CPE download, install and reboot. The upgrade is followed and recorded like an upgrade from an uploaded image. Tested on a VX230v: 0.16.0 to 0.19.0 in about two minutes.
+
+## 0.49.245 — 2026-10-23
+
+TP-Link syslog with a dynamic IP
+- **TP-Link logs keep arriving when the router changes public IP.** A TP-Link sends its logs from its WAN address and can't add an identifier. NSM recognised it only by the management IP it had saved, which goes stale with a dynamic IP at every PPP reconnection.
+- Now NSM also uses the WAN address the router reports to the ACS at every contact, which arrives every 5 minutes. It is used only while that contact is less than 30 minutes old.
+- If several routers share the same public address (CGNAT), their lines are still discarded. NSM doesn't guess which one sent them.
+
+## 0.49.244 — 2026-10-23
+
+UISP customers matched to NSM, automatic device import
+
+### Added
+
+- UISP: customer endpoints matched to NSM customers, and automatic import of their devices. *Integrazioni → UISP → Onboarding → Clienti UISP* lists every UISP endpoint (customer site) with its NSM customer. An endpoint is matched when the name of its UISP CRM client, or the site name, is the name of exactly one NSM customer; case, accents, punctuation and word order are ignored, and an ambiguous name is never guessed. The others are listed *Da verificare*: link them to a customer with a searchable select, or ignore them. The choice is remembered and always wins over the name.
+- Every 30 minutes, and right after a link, new UISP devices of matched or linked endpoints are created under that customer, at its site when it has exactly one. An unlinked record with the same MAC is associated and keeps its customer. Infrastructure sites (towers, APs, backhaul) stay in the manual onboarding. The automatic import can be switched off on the same page. Audit events: `UISP_SITE_LINKED`, `UISP_SITE_IGNORED`, `UISP_AUTO_CUSTOMERS_CHANGED`, `UISP_AUTO_IMPORTED`.
+## 0.49.243 — 2026-10-23
+
+Add to Zabbix from the device and customer pages
+- **Device:** next to the *Zabbix* field of the overview, *Aggiungi a Zabbix* sends that device to Zabbix right away, even when its customer is not among those selected in *Integrazioni → Zabbix*. NSM says what happened:
+  - created in Zabbix;
+  - linked to the host already in Zabbix;
+  - no IP address;
+  - factory LAN IP to replace.
+  - *Rimuovi da Zabbix* takes it out.
+- **Customer:** in the customer header, *Aggiungi a Zabbix* adds every device of the customer (after a confirmation) and sends them right away. It then reports how many are in Zabbix and how many have no IP address. *Rimuovi da Zabbix* takes them all out.
+- Removed devices get their host disabled in Zabbix, never deleted. Every change is recorded in the activity log.
+
+## 0.49.242 — 2026-10-23
+
+The same Monitor tab for every device
+- **Every device now has the *Monitor* tab, laid out like the MikroTik routers'.** The same buttons (1 hour, 24 hours, 7 days, 30 days, *Impostazioni monitoraggio*) and the same panels in the same order:
+  1. *Risorse*: CPU and memory, each chart with current, minimum, average and maximum;
+  2. *Traffico*;
+  3. *Latenza e perdita (ping da NSM)*;
+  4. what only that kind of device has.
+- **Where the data comes from:**
+  - MikroTik: the NSM agent, as before.
+  - TP-Link and other TR-069 CPEs: the ACS. That means WAN traffic, plus Wi-Fi clients, LAN hosts and the DSL line under *Linea e client*.
+  - Ubiquiti: UISP, with radio signal, link capacity and stations under *Radio*.
+  - Cambium: cnMaestro. That means throughput, plus signal, SNR and stations under *Radio*.
+  - Devices without any of these sources show the ping. It can be turned on from *Impostazioni monitoraggio*.
+- The *ACS*, *UISP* and *cnMaestro* tabs keep the device state (line, Wi-Fi, connector). For the charts they link to *Monitor*.
+
+## 0.49.241 — 2026-10-23
+
+Pages wait instead of failing during updates
+- **The portal no longer shows errors or half-loaded pages while NSM updates itself.** At every update the API restarts for 10–30 seconds. Until now the proxy (Caddy) answered with an error straight away and noticed the API was back only after up to 15 seconds. Now it holds requests for up to 60 seconds and checks the API every 3 seconds. The page loads a moment later instead of failing.
+- On the production server this affected 157 requests in one day, all at update times.
+- The update now also applies changes to the proxy configuration. Before, the proxy kept using the old configuration until it was restarted by hand.
+
+## 0.49.240 — 2026-10-23
+
+Legacy backups
+- **The FTP receiver's firewall rules come back after a reboot.** They are the server rules that let only the subnets allowed in NSM reach the receiver. The automatic update now installs a small timer that applies them:
+  - at boot;
+  - within two minutes of a change of the subnets in *Amministrazione → Sistema*;
+  - by removing them when no subnet is left.
+  `./manage.sh legacy-ftp-firewall --apply` is still available by hand.
+
+## 0.49.239 — 2026-10-23
+
+Exposure: ports filtered by ACL no longer reported as exposed
+- **TR-069 port (7547) of CPEs managed by NSM.** NSM is their ACS, so the port always answers the NSM server. It is now shown as *da verificare*, with low severity, and no longer as *esposto, alta*. From the NSM server alone it cannot be told whether others are filtered.
+- **Remote web management of TP-Link CPEs.** NSM now reads, through the ACS, whether it is on, on which port and from which addresses it is allowed. That port is checked too (for example 20443). It is reported as open to everyone or limited to the allowed address, as the CPE's configuration says.
+- ***Filtrata da ACL…* on the *Esposizione* tab.** For any device, when a service looks open from NSM but is filtered for everyone else by an ACL, declare it with the allowed addresses. It is then shown as limited, with who declared it and when. The declaration stays valid at the next checks and can be removed at any time.
 ## 0.49.238 — 2026-10-23
 
 Pages on every list

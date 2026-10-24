@@ -452,6 +452,11 @@ const ispbillingImportRoute = createRoute({
     ...(search.state === "new" || search.state === "linkable" || search.state === "linked" ? { state: search.state } : {}),
   }),
 });
+const uispCustomersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/integrations/uisp/customers",
+  component: lazyRouteComponent(() => import("../pages/UispCustomers"), "UispCustomers"),
+});
 const uispOnboardingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/integrations/uisp/onboarding",
@@ -667,6 +672,7 @@ export const routeTree = rootRoute.addChildren([
   adminGenieacsRoute,
   adminUispRoute,
   uispOnboardingRoute,
+  uispCustomersRoute,
   cnmaestroOnboardingRoute,
   adminIspbillingRoute,
   ispbillingImportRoute,

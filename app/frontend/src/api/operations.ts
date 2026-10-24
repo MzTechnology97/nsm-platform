@@ -187,6 +187,8 @@ export interface FirmwareFilters {
 }
 
 export interface FirmwareRow {
+  schedule?: import("../app/FirmwareSchedule").FirmwareSchedule | null;
+  can_schedule?: boolean;
   id: string;
   name: string;
   brand?: BrandRef;
@@ -205,6 +207,8 @@ export interface FirmwareRow {
   verified_at: string | null;
   can_check: boolean;
   can_plan: boolean;
+  can_uisp_upgrade?: boolean;
+  uisp_upgrade?: string | null;
 }
 
 export interface FirmwarePage {
@@ -326,6 +330,7 @@ export interface VendorRelease {
   security: boolean;
   notes_url: string | null;
   notes: string | null;
+  file?: { name: string; size: number; sha256: string; acs_files: string[] } | null;
 }
 
 export interface VendorCatalog {
