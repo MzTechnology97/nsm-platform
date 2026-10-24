@@ -32,6 +32,7 @@ from __future__ import annotations
 import ipaddress
 import re
 import secrets
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
@@ -123,6 +124,7 @@ class Index:
     networks: list = field(default_factory=list)
     retired: set = field(default_factory=set)         # keys of decommissioned devices: their lines are dropped
     by_address: dict = field(default_factory=dict)    # ip -> device_id: TR-069 CPEs NSM pointed at itself (no key possible)
+    by_name: list = field(default_factory=list)       # (customer name words, device_id): Ubiquiti set through UISP in customer-name mode
     devices: int = 0
 
 
@@ -140,12 +142,19 @@ def tr069_addresses(device, now) -> set[str]:
     return {ip for ip in found if ip}
 
 
+def name_tokens(value) -> frozenset:
+    """Words of a name without case, accents or punctuation: "Rizzo, Michela" = "MICHELA RIZZO"."""
+    folded = unicodedata.normalize("NFD", str(value or "")).encode("ascii", "ignore").decode().upper()
+    return frozenset(word for word in re.split(r"[^A-Z0-9]+", folded) if len(word) >= 2)
+
+
 def build_index(db, settings: dict, now=None) -> Index:
     now = now or utcnow()
     index = Index(networks=parse_networks(settings.get("allowed_networks")))
     strict_mode = settings.get("strict_mode", True)
     weak: dict = {}
     keyless: dict = {}
+    by_name: dict = {}
     for device in db.scalars(select(Device).execution_options(include_decommissioned=True)):
         data = device.inventory_data or {}
         key = data.get("syslog_key")
@@ -171,6 +180,14 @@ def build_index(db, settings: dict, now=None) -> Index:
             for ip in tr069_addresses(device, now):
                 keyless.setdefault(ip, set()).add(device.id)
                 index.known_ips.add(ip)
+        uisp_syslog = data.get("uisp_syslog") if isinstance(data.get("uisp_syslog"), dict) else {}
+        if device.vendor == "ubiquiti" and uisp_syslog.get("status") == "applied":
+            if uisp_syslog.get("mode") == "address" and _norm(device.management_ip):
+                keyless.setdefault(_norm(device.management_ip), set()).add(device.id)
+                index.known_ips.add(_norm(device.management_ip))
+            elif uisp_syslog.get("mode") == "customer_name" and name_tokens(uisp_syslog.get("match_name")):
+                # The customer's name saved when NSM configured the device: the receiver's account cannot read customers.
+                by_name.setdefault(name_tokens(uisp_syslog.get("match_name")), set()).add(device.id)
         for ip in strong:
             norm = _norm(ip)
             if not norm:
@@ -199,6 +216,8 @@ def build_index(db, settings: dict, now=None) -> Index:
         device_id = next(iter(ids))
         if len(ids) == 1 and ip not in index.strict_shared and all(e[0] == device_id for e in index.candidates.get(ip) or []):
             index.by_address[ip] = device_id
+    # Hostname = customer name: only a name that exactly one device uses identifies it.
+    index.by_name = [(tokens, next(iter(ids))) for tokens, ids in by_name.items() if len(ids) == 1]
     return index
 
 
@@ -212,7 +231,7 @@ def allowed(index: Index, source_ip: str) -> bool:
     return source_ip in index.known_ips
 
 
-def resolve(index: Index, source_ip: str, key: str | None, hostname: str | None):
+def resolve(index: Index, source_ip: str, key: str | None, hostname: str | None, text: str | None = None):
     """(device_id, None) when certain, else (None, reject reason).
 
     Key only (operator decision 2026-10-09): a line is accepted only when it carries
@@ -226,6 +245,14 @@ def resolve(index: Index, source_ip: str, key: str | None, hostname: str | None)
         return None, "decommissioned" if key in index.retired else "unknown_key"
     if source_ip in index.by_address:
         return index.by_address[source_ip], None
+    if text and index.by_name:
+        # airOS puts the hostname (which may contain spaces) before the program name: look at the line's start only.
+        words = name_tokens(text[:160])
+        matches = {device_id for tokens, device_id in index.by_name if tokens <= words}
+        if len(matches) == 1:
+            return matches.pop(), None
+        if len(matches) > 1:
+            return None, "ambiguous"
     return None, "missing_key"
 
 

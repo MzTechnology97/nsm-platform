@@ -91,7 +91,10 @@ def link(db, device, vendor: str, candidate: dict, actor) -> None:
     device.device_identity = candidate.get("name") or device.device_identity
     device.management_ip = device.management_ip or candidate.get("ip")
     device.status = candidate.get("status") or "unknown"
+    from app import cnmaestro_connector as cnm
+
+    changes = cnm.adopt(device, candidate["mac"], now)  # a Cambium record created by hand becomes managed by cnMaestro
     device.inventory_source = "cnmaestro"
     device.inventory_last_verified_at = now
-    core.add_event(db, "CNMAESTRO_DEVICE_LINKED", actor=actor, customer_id=device.customer_id, device_id=device.id,
-                   details={"mac": candidate["mac"], "serial": candidate.get("serial"), "onboarding": True}, source="portal")
+    core.add_event(db, "CNMAESTRO_DEVICE_LINKED", actor=actor, customer_id=device.customer_id, device_id=device.id, source="portal",
+                   details={"mac": candidate["mac"], "serial": candidate.get("serial"), "onboarding": True, **({"changes": changes} if changes else {})})

@@ -245,6 +245,10 @@ export interface FirmwarePlanTab {
   agent_transport: string | null;
   catalog: { channel?: string; latest_version?: string; released_at?: string; newer?: boolean | null; security?: boolean; security_reasons?: string[] } | null;
   can_execute: boolean;
+  /** A RouterOS update check is queued or running; *Prepara upgrade* asked while it runs (``error`` when the plan could not be opened). */
+  check_pending?: boolean;
+  preparing?: { at: string; error?: string } | null;
+  schedule?: import("../app/FirmwareSchedule").FirmwareSchedule | null;
   plan: {
     id: string;
     target_version: string;
@@ -269,14 +273,15 @@ export const useFirmwarePlan = (id: string) =>
   useQuery({
     queryKey: ["device", id, "firmware-plan"],
     queryFn: () => api<FirmwarePlanTab>(`${base(id)}/firmware-upgrade`),
-    refetchInterval: (q) => (["draft", "backup_pending", "staging", "activation_pending", "reboot_pending"].includes(q.state.data?.plan?.status ?? "") ? 15_000 : 60_000),
+    refetchInterval: (q) => (["draft", "backup_pending", "staging", "activation_pending", "reboot_pending"].includes(q.state.data?.plan?.status ?? "")
+      || q.state.data?.check_pending || (q.state.data?.preparing && !q.state.data.preparing.error) ? 10_000 : 60_000),
   });
 
 /** Plan steps (create, approve, stage, activate, cancel, legacy upgrade); the plan and the firmware worklist reload afterwards. */
 export function useFirmwareAction<TBody = object>(id: string, path: string) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (body?: TBody) => api<{ plan_id?: string }>(`${base(id)}/${path}`, { method: "POST", body: JSON.stringify(body ?? {}) }),
+    mutationFn: (body?: TBody) => api<{ plan_id?: string | null; checking?: boolean; state?: string }>(`${base(id)}/${path}`, { method: "POST", body: JSON.stringify(body ?? {}) }),
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ["device", id, "firmware-plan"] });
       void client.invalidateQueries({ queryKey: ["firmware"] });
