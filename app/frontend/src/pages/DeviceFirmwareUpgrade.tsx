@@ -7,8 +7,8 @@ import { useDevice } from "../api/device";
 import { type FirmwarePlanTab, useFirmwareAction, useFirmwarePlan } from "../api/deviceTabs";
 import { AcsFirmware } from "../app/AcsFirmware";
 import { CambiumFirmware } from "../app/CambiumFirmware";
-import { FirmwareSchedulePanel } from "../app/FirmwareSchedule";
 import { UispFirmware } from "../app/UispFirmware";
+import { FirmwareSchedulePanel } from "../app/FirmwareSchedule";
 import { formatDateTime } from "../lib/format";
 import { Loading } from "../app/States";
 
