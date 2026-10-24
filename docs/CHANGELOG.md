@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.260 — 2026-10-23
+
+Bulk Ubiquiti firmware upgrade through UISP
+
+### Added
+
+- Firmware worklist: bulk Ubiquiti upgrade through UISP. The rows with *Aggiorna via UISP* can be selected (up to 50) and upgraded together with *Aggiorna via UISP (N)*.
+  - Target: each device's recommended version (NSM's recommendation when UISP offers it for the platform, else UISP's newest stable image), or one version for all; now or in UISP's maintenance window; typed confirmation `AGGIORNA N`.
+  - Every device goes through the checks of the single upgrade (linked to UISP, no upgrade in progress, version offered for its platform). The ones that pass are queued in one UISP task (`POST /tasks`), the others are reported per row with the reason; then each device is followed and verified as a single upgrade.
+  - New route `POST /api/ui/v1/firmware/uisp-upgrade` (`devices.write`).
+  - New audit event: `UISP_FIRMWARE_BULK_UPGRADE`; `UISP_FIRMWARE_UPGRADE_REQUESTED` is still written for every device.
 ## 0.49.259 — 2026-10-23
 
 cnMaestro API v2

@@ -1287,7 +1287,39 @@
     "uispUpgrade": "Actualizar vía UISP",
     "uispRunning": "Actualización UISP en curso",
     "preparing": "Comprobando…",
-    "preparingHelp": "El plan se prepara solo en cuanto termina la comprobación."
+    "preparingHelp": "El plan se prepara solo en cuanto termina la comprobación.",
+    "uispBulk": {
+      "label": "Actualización masiva vía UISP",
+      "selectAll": "Seleccionar los equipos actualizables vía UISP",
+      "select": "Seleccionar {{name}}",
+      "selected_one": "{{count}} equipo seleccionado (máximo {{max}})",
+      "selected_other": "{{count}} equipos seleccionados (máximo {{max}})",
+      "target": "Versión",
+      "recommended": "Versión recomendada para cada equipo",
+      "version": "{{version}} para todos",
+      "maintenance": "En la ventana de mantenimiento de UISP",
+      "confirm": "Escribe {{phrase}} para confirmar",
+      "help": "UISP recibe una sola tarea con todos los equipos seleccionados y los actualiza uno por uno. Escribe {{phrase}} para confirmar.",
+      "run": "Actualizar vía UISP ({{count}})",
+      "tooMany": "Como máximo {{max}} equipos a la vez.",
+      "done_one": "Actualización iniciada en UISP para {{count}} equipo.",
+      "done_other": "Actualización iniciada en UISP para {{count}} equipos.",
+      "doneMaintenance_one": "Actualización en cola en UISP para {{count}} equipo: empezará en la ventana de mantenimiento.",
+      "doneMaintenance_other": "Actualización en cola en UISP para {{count}} equipos: empezarán en la ventana de mantenimiento.",
+      "started": "Iniciada hacia {{version}}",
+      "skipped": {
+        "running": "Omitido: ya hay una actualización en curso",
+        "no_version": "Omitido: UISP no tiene versiones más recientes para su plataforma",
+        "version_unavailable": "Omitido: versión no disponible en UISP para su plataforma",
+        "not_linked": "Omitido: no vinculado a UISP",
+        "not_found": "Omitido: equipo no encontrado"
+      },
+      "errors": {
+        "empty": "Selecciona al menos un equipo.",
+        "too_many": "Demasiados equipos seleccionados.",
+        "confirm": "Escribe exactamente la frase de confirmación."
+      }
+    }
   },
   "vulns": {
     "title": "Vulnerabilidades",
@@ -5416,6 +5448,7 @@
     "UISP_DEVICE_ASSOCIATED": "Equipo vinculado a UISP",
     "UISP_DEVICE_MISSING": "Equipo ya no presente en UISP",
     "UISP_DEVICE_ONBOARDED": "Equipo importado desde UISP",
+    "UISP_FIRMWARE_BULK_UPGRADE": "Actualización masiva de firmware UISP",
     "UISP_FIRMWARE_UPGRADE_FAILED": "Actualización de firmware UISP fallida",
     "UISP_FIRMWARE_UPGRADE_REQUESTED": "Actualización de firmware UISP solicitada",
     "UISP_FIRMWARE_UPGRADE_VERIFIED": "Actualización de firmware UISP verificada",

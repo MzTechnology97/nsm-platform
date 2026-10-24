@@ -1287,7 +1287,39 @@
     "uispUpgrade": "Upgrade via UISP",
     "uispRunning": "UISP upgrade in progress",
     "preparing": "Checking…",
-    "preparingHelp": "The plan is prepared by itself as soon as the check finishes."
+    "preparingHelp": "The plan is prepared by itself as soon as the check finishes.",
+    "uispBulk": {
+      "label": "Bulk upgrade via UISP",
+      "selectAll": "Select the devices that can be upgraded via UISP",
+      "select": "Select {{name}}",
+      "selected_one": "{{count}} device selected (at most {{max}})",
+      "selected_other": "{{count}} devices selected (at most {{max}})",
+      "target": "Version",
+      "recommended": "Recommended version for each device",
+      "version": "{{version}} for all",
+      "maintenance": "In the UISP maintenance window",
+      "confirm": "Type {{phrase}} to confirm",
+      "help": "UISP gets one task with all the selected devices and upgrades them one by one. Type {{phrase}} to confirm.",
+      "run": "Upgrade via UISP ({{count}})",
+      "tooMany": "At most {{max}} devices at a time.",
+      "done_one": "Upgrade started in UISP for {{count}} device.",
+      "done_other": "Upgrade started in UISP for {{count}} devices.",
+      "doneMaintenance_one": "Upgrade queued in UISP for {{count}} device: it will start in the maintenance window.",
+      "doneMaintenance_other": "Upgrade queued in UISP for {{count}} devices: they will start in the maintenance window.",
+      "started": "Started to {{version}}",
+      "skipped": {
+        "running": "Skipped: an upgrade is already in progress",
+        "no_version": "Skipped: UISP has no newer version for its platform",
+        "version_unavailable": "Skipped: version not available in UISP for its platform",
+        "not_linked": "Skipped: not linked to UISP",
+        "not_found": "Skipped: device not found"
+      },
+      "errors": {
+        "empty": "Select at least one device.",
+        "too_many": "Too many devices selected.",
+        "confirm": "Type the exact confirmation phrase."
+      }
+    }
   },
   "vulns": {
     "title": "Vulnerabilities",
@@ -5416,6 +5448,7 @@
     "UISP_DEVICE_ASSOCIATED": "Device linked to UISP",
     "UISP_DEVICE_MISSING": "Device no longer in UISP",
     "UISP_DEVICE_ONBOARDED": "Device imported from UISP",
+    "UISP_FIRMWARE_BULK_UPGRADE": "UISP bulk firmware upgrade",
     "UISP_FIRMWARE_UPGRADE_FAILED": "UISP firmware upgrade failed",
     "UISP_FIRMWARE_UPGRADE_REQUESTED": "UISP firmware upgrade requested",
     "UISP_FIRMWARE_UPGRADE_VERIFIED": "UISP firmware upgrade verified",

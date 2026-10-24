@@ -1287,7 +1287,39 @@
     "uispUpgrade": "Aggiorna via UISP",
     "uispRunning": "Aggiornamento UISP in corso",
     "preparing": "Verifica in corso…",
-    "preparingHelp": "Il piano si prepara da solo appena la verifica finisce."
+    "preparingHelp": "Il piano si prepara da solo appena la verifica finisce.",
+    "uispBulk": {
+      "label": "Aggiornamento in blocco via UISP",
+      "selectAll": "Seleziona gli apparati aggiornabili via UISP",
+      "select": "Seleziona {{name}}",
+      "selected_one": "{{count}} apparato selezionato (massimo {{max}})",
+      "selected_other": "{{count}} apparati selezionati (massimo {{max}})",
+      "target": "Versione",
+      "recommended": "Versione consigliata per ogni apparato",
+      "version": "{{version}} per tutti",
+      "maintenance": "Nella finestra di manutenzione UISP",
+      "confirm": "Scrivi {{phrase}} per confermare",
+      "help": "UISP riceve un solo task con tutti gli apparati selezionati e li aggiorna uno per uno. Scrivi {{phrase}} per confermare.",
+      "run": "Aggiorna via UISP ({{count}})",
+      "tooMany": "Al massimo {{max}} apparati per volta.",
+      "done_one": "Aggiornamento avviato in UISP per {{count}} apparato.",
+      "done_other": "Aggiornamento avviato in UISP per {{count}} apparati.",
+      "doneMaintenance_one": "Aggiornamento accodato in UISP per {{count}} apparato: partirà nella finestra di manutenzione.",
+      "doneMaintenance_other": "Aggiornamento accodato in UISP per {{count}} apparati: partirà nella finestra di manutenzione.",
+      "started": "Avviato verso {{version}}",
+      "skipped": {
+        "running": "Saltato: un aggiornamento è già in corso",
+        "no_version": "Saltato: UISP non ha versioni più recenti per la sua piattaforma",
+        "version_unavailable": "Saltato: versione non disponibile in UISP per la sua piattaforma",
+        "not_linked": "Saltato: non collegato a UISP",
+        "not_found": "Saltato: apparato non trovato"
+      },
+      "errors": {
+        "empty": "Seleziona almeno un apparato.",
+        "too_many": "Troppi apparati selezionati.",
+        "confirm": "Scrivi la frase di conferma esatta."
+      }
+    }
   },
   "vulns": {
     "title": "Vulnerabilità",
@@ -5416,6 +5448,7 @@
     "UISP_DEVICE_ASSOCIATED": "Apparato collegato a UISP",
     "UISP_DEVICE_MISSING": "Apparato non più presente in UISP",
     "UISP_DEVICE_ONBOARDED": "Apparato importato da UISP",
+    "UISP_FIRMWARE_BULK_UPGRADE": "Aggiornamento firmware UISP in blocco",
     "UISP_FIRMWARE_UPGRADE_FAILED": "Aggiornamento firmware UISP non riuscito",
     "UISP_FIRMWARE_UPGRADE_REQUESTED": "Aggiornamento firmware UISP richiesto",
     "UISP_FIRMWARE_UPGRADE_VERIFIED": "Aggiornamento firmware UISP verificato",
