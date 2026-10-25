@@ -619,6 +619,18 @@ Each service is a module (MOD-01), enabled independently. All linked to customer
 #### SEC-10 — Shadowserver reports
 Free daily reports for network owners: open services, infected hosts and botnet members on the operator's addresses. NSM imports them (subscription by e-mail or the Shadowserver reports API) and links each entry to the customer and device that held the IP. Report history is kept per address.
 
+**Status (2026-10-25)**: the operator submitted the subscription for their ASN/subnets to a dedicated mailbox, without a PGP key (not needed: NSM uses the API). The API access was not asked in the form, so it was requested afterwards through the Shadowserver contact form / `report_admin@shadowserver.org`. Shadowserver verifies the network ownership (WHOIS references) before activating; waiting for the reports and the API key and secret.
+
+**Implementation once the credentials arrive**:
+- **module and settings**: *Integrazioni → Shadowserver* (MOD-01), off by default; API key and secret stored encrypted, never shown again, *Test* button (list of the reports of the last day); the credentials are entered on the server, never in chat or in the repository;
+- **download**: once a day, after the morning generation (UTC): `reports/list` for the previous days not yet imported, requests signed with HMAC-SHA256 of the secret, then each report downloaded by id; CSV parsed by report type, imported once (report id kept), compressed or not;
+- **report types first**: open/exposed services (SNMP, DNS resolvers, SSDP/UPnP, NTP, Telnet, RDP, HTTP admin pages…), DDoS amplifiers, compromised hosts and botnet drones (sinkhole reports), vulnerable devices (CVE scans); unknown types kept raw and listed, not lost;
+- **results**:
+  - each row is matched to the device and customer that held the IP at the report time (CYBER-01 attribution: public addresses get the customer, NAT addresses only the IP and pool), and to the exposure finding NSM already has for that device (SCAN-02/SCAN-03), so an external confirmation and NSM's own check are shown together;
+  - Action Center issues by type and severity (e.g. infected host, open resolver, SNMP *public* reachable), closed when the address no longer appears for a configurable number of days;
+  - ACCESS-01 / ACCESS-02 buttons (management ACL, UPnP off) offered from the issue when the device supports them;
+- **volume**: Delta mode can be asked to Shadowserver when the e-mails are too many; NSM does not need the e-mails once the API works.
+
 #### SEC-11 — incoming abuse e-mails
 NSM reads the abuse mailbox (IMAP, read-only folder) and parses the standard formats (ARF, X-ARF, the usual plain-text reports). Each message becomes an incident with IP, port, time and time zone, the attributed customer, and the original message attached.
 
