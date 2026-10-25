@@ -491,6 +491,24 @@ A complete cybersecurity view for an ISP/WISP, taking as reference the open-sour
 - the incident is linked to the customer and device found (customer page, Action Center), with the evidence used;
 - configurable retention of the history, as operational data. It is not the legal traffic-data register, which stays where the operator keeps it.
 
+### ABUSEIPDB-01 — AbuseIPDB integration (requested 2026-10-25)
+
+First reputation source of CYBER-01. The operator is creating a free AbuseIPDB account for the API key (2026-10-25); NSM must work within the free plan and use more only when the operator upgrades.
+- **module and settings**: *Integrazioni → AbuseIPDB* as its own module (MOD-01), off by default; API key stored encrypted, *Test* button, maximum report age (`maxAgeInDays`, default 30), score threshold for an alert (default 25), checks per day left for NSM;
+- **quota first**: the free plan has a daily limit on checks and a smaller limit on block checks; NSM reads the remaining quota from the response headers (`X-RateLimit-Remaining`, `Retry-After`), shows it on the module page, spreads the checks over the day and stops before the limit, never retrying on HTTP 429. The exact limits of each plan are read from the account, not hard-coded;
+- **what is checked**, inside the operator's own address space only:
+  - the declared public subnets (CYBER-01) with `GET /api/v2/check-block` per /24 (each call returns the reported addresses of the block, so a whole /24 costs one call);
+  - the public IPs of devices and customers that are not inside a declared subnet, with `GET /api/v2/check`, one per address, oldest check first;
+  - every address again when it changes (SCAN-02) or when a report is new;
+- **what NSM keeps**: per address, the abuse confidence score, the number of reports and distinct reporters, the categories (port scan, brute force, web attack, spam…), the last report time and, with `verbose`, the last reports' comments and countries; history of the score for charts;
+- **results**:
+  - an Action Center issue for an address above the threshold, with the customer and device found by the attribution at the time of the reports (CYBER-01 scope: public addresses get the customer, NAT addresses get only the public IP and the pool);
+  - the score on the device and customer pages and in the exposure/security views; an unassigned address with reports is flagged as such;
+  - alerts through the existing channels; the issue closes when the score falls below the threshold;
+- **attacker look-up (later, optional)**: the score of the external addresses seen in NSM's own logs (failed logins in the syslog of routers and CPEs, SIEM-01 rules) to rank them; it uses the same daily quota, so it stays off unless the operator turns it on;
+- **reporting to AbuseIPDB (later, opt-in only)**: `POST /api/v2/report` for attackers NSM is sure about (e.g. repeated SSH brute force against a device), with categories and a comment that never contains customer data or internal addresses; disabled by default and rate-limited;
+- **privacy**: only IP addresses leave NSM, never names or customer data; the key is never shown again after saving.
+
 ### CROWDSEC-01 — CrowdSec integration (requested 2026-10-23)
 
 CrowdSec (open-source security engine, free community blocklist) to protect NSM itself and to enrich the security view of the network:
