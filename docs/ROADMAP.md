@@ -509,6 +509,16 @@ First reputation source of CYBER-01. The operator is creating a free AbuseIPDB a
 - **reporting to AbuseIPDB (later, opt-in only)**: `POST /api/v2/report` for attackers NSM is sure about (e.g. repeated SSH brute force against a device), with categories and a comment that never contains customer data or internal addresses; disabled by default and rate-limited;
 - **privacy**: only IP addresses leave NSM, never names or customer data; the key is never shown again after saving.
 
+### RIPESTAT-01 — prefixes, BGP and RPKI of the operator through RIPEstat (requested 2026-10-25)
+
+RIPEstat Data API (`https://stat.ripe.net/data/<call>/data.json`): free, no account and no key, every request carries `sourceapp=nsm` (checked 2026-10-25). It has no reputation data (the old `blocklist` call no longer exists), so it complements ABUSEIPDB-01 and Shadowserver on the routing side:
+- **module and settings**: *Integrazioni → RIPEstat* (MOD-01), off by default; the operator's ASNs; checks every few hours, few calls (one per ASN and per prefix), cached;
+- **public subnets from the ASN**: `announced-prefixes` (and the allocations of the ASN holder) proposed as the declared public subnets of CYBER-01, so AbuseIPDB and Shadowserver cover all of them; the operator confirms, nothing is added silently;
+- **hijack and route watch**: `routing-status` / `visibility` per declared prefix: alert when a prefix is announced by another origin ASN, a more specific appears, a prefix is no longer announced or its visibility drops (Action Center issue, alert channels);
+- **RPKI**: `rpki-validation` (ASN + prefix) for every announced prefix; *invalid* or *not found* (no ROA) reported with what to create in the RIPE portal;
+- **registry hygiene**: `abuse-contact-finder` compared with the mailbox NSM reads abuse reports from (SEC abuse workflow); `reverse-dns-consistency` of the prefixes; `maxmind-geo-lite` geolocation of the prefixes, to catch ranges placed in the wrong country (customers blocked by streaming services and banks);
+- **read-only**: NSM never changes anything at RIPE; links open the RIPE portal pages to fix ROAs, contacts and reverse DNS.
+
 ### CROWDSEC-01 — CrowdSec integration (requested 2026-10-23)
 
 CrowdSec (open-source security engine, free community blocklist) to protect NSM itself and to enrich the security view of the network:
