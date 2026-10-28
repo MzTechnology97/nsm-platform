@@ -2,6 +2,7 @@ import { Link, Outlet, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { CustomerPppoe } from "../app/PppoeSession";
 import { ApiError } from "../api/client";
 import { type CustomerDetail as Detail, useCustomer } from "../api/customer";
 import { formatDateTime, formatRelative } from "../lib/format";
@@ -9,6 +10,7 @@ import { SiteForm } from "./CustomerForm";
 import { Metric } from "./DeviceDetail";
 import { eventLabel, eventSource } from "../lib/events";
 import { Loading } from "../app/States";
+import { CustomerZabbixButton } from "../app/ZabbixScope";
 
 /** Customer tabs: every one stays inside the customer's page (the device, backup and activity lists are scoped to it). */
 const MIGRATED_TABS = {
@@ -73,6 +75,7 @@ function CustomerShell({ detail }: { detail: Detail }) {
           {detail.actions.add_device && (
             <Link className="ui-button ui-button-ghost" to="/customers/$customerId/devices/manage" params={{ customerId: customer.id }}>{t("customer.actions.manageDevices")}</Link>
           )}
+          <CustomerZabbixButton customerId={customer.id} />
           {detail.actions.uisp_import && (
             <Link className="ui-button ui-button-ghost" to="/integrations/uisp/onboarding" search={{ customer: customer.id }}>{t("customer.actions.uispImport")}</Link>
           )}
@@ -137,6 +140,8 @@ export function CustomerOverview() {
         <Link to="/customers/$customerId/devices" params={{ customerId: data.customer.id }} search={{ firmware: "attention" }}>{t("customer.links.updates")}</Link>
         <Link to="/customers/$customerId/devices" params={{ customerId: data.customer.id }} search={{ lifecycle: "eol" }}>{t("customer.links.lifecycle")}</Link>
       </div>
+
+      <CustomerPppoe customerId={data.customer.id} />
 
       <section className="ui-panel">
         <div className="ui-panel-header">

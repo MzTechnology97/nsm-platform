@@ -458,11 +458,6 @@ const adminServerMigrationRoute = createRoute({
   path: "/admin/server-migration",
   component: lazyRouteComponent(() => import("../pages/AdminServerMigration"), "AdminServerMigration"),
 });
-const adminAcsMigrationRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/admin/acs/migration",
-  component: lazyRouteComponent(() => import("../pages/AcsMigration"), "AcsMigration"),
-});
 const adminDemoRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin/demo",
@@ -493,6 +488,11 @@ const adminIspbillingRoute = createRoute({
   path: "/admin/integrations/ispbilling",
   component: lazyRouteComponent(() => import("../pages/AdminIspbilling"), "AdminIspbilling"),
 });
+const adminBrasRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/integrations/bras",
+  component: lazyRouteComponent(() => import("../pages/AdminBras"), "AdminBras"),
+});
 const ispbillingImportRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/integrations/ispbilling/import",
@@ -503,6 +503,11 @@ const ispbillingImportRoute = createRoute({
     ...(typeof search.group === "string" && search.group ? { group: search.group } : {}),
     ...(search.state === "new" || search.state === "linkable" || search.state === "linked" ? { state: search.state } : {}),
   }),
+});
+const uispCustomersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/integrations/uisp/customers",
+  component: lazyRouteComponent(() => import("../pages/UispCustomers"), "UispCustomers"),
 });
 const uispOnboardingRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -592,6 +597,26 @@ const firmwareCatalogsRoute = createRoute({
   path: "/firmware/catalogs",
   component: lazyRouteComponent(() => import("../pages/FirmwareCatalogs"), "FirmwareCatalogs"),
 });
+const restoreReadinessRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/backups/restore-readiness",
+  component: lazyRouteComponent(() => import("../pages/MikrotikFleet"), "RestoreReadinessPage"),
+});
+const routerbootFleetRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/firmware/routerboot",
+  component: lazyRouteComponent(() => import("../pages/MikrotikFleet"), "RouterbootFleetPage"),
+});
+const firmwareCampaignsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/firmware/campaigns",
+  component: lazyRouteComponent(() => import("../pages/AcsFirmwareCampaigns"), "AcsFirmwareCampaigns"),
+});
+const firmwareCampaignRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/firmware/campaigns/$campaignId",
+  component: lazyRouteComponent(() => import("../pages/AcsFirmwareCampaigns"), "AcsFirmwareCampaign"),
+});
 const firmwareSuggestionsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/firmware/suggestions",
@@ -676,9 +701,13 @@ export const routeTree = rootRoute.addChildren([
   backupPolicyNewRoute,
   backupPolicyEditRoute,
   backupPolicyCloneRoute,
+  restoreReadinessRoute,
   firmwareRoute,
+  routerbootFleetRoute,
   firmwareSuggestionsRoute,
   firmwareCatalogsRoute,
+  firmwareCampaignsRoute,
+  firmwareCampaignRoute,
   vulnerabilitiesRoute,
   vulnerabilityRoute,
   vulnerabilityFindingRoute,
@@ -710,7 +739,6 @@ export const routeTree = rootRoute.addChildren([
   routerosRoute,
   adminBrandingRoute,
   adminAcsRoute,
-  adminAcsMigrationRoute,
   adminServerMigrationRoute,
   adminDemoRoute,
   adminCnmaestroRoute,
@@ -718,8 +746,10 @@ export const routeTree = rootRoute.addChildren([
   adminGenieacsRoute,
   adminUispRoute,
   uispOnboardingRoute,
+  uispCustomersRoute,
   cnmaestroOnboardingRoute,
   adminIspbillingRoute,
+  adminBrasRoute,
   ispbillingImportRoute,
   searchRoute,
   notificationsRoute,

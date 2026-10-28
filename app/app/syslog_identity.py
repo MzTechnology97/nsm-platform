@@ -32,6 +32,7 @@ from __future__ import annotations
 import ipaddress
 import re
 import secrets
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
@@ -122,7 +123,33 @@ class Index:
     strict_shared: set = field(default_factory=set)   # addresses used by at least one strict device
     networks: list = field(default_factory=list)
     retired: set = field(default_factory=set)         # keys of decommissioned devices: their lines are dropped
+    by_address: dict = field(default_factory=dict)    # ip -> device_id: TR-069 CPEs NSM pointed at itself (no key possible)
+    by_name: list = field(default_factory=list)       # (customer name words, device_id): Ubiquiti/Cambium set by NSM in customer-name mode
+    min_severity: dict = field(default_factory=dict)  # device_id -> worst severity number kept (airOS cannot filter by itself)
     devices: int = 0
+
+
+TR069_FRESH = timedelta(minutes=30)
+UISP_LEVELS = {"error": 3, "warning": 4, "notice": 5, "info": 6, "debug": 7}  # same names as uisp_syslog.LEVELS
+# inventory_data keys of the syslog configuration NSM applied to a device (UISP for Ubiquiti, SSH for Cambium ePMP)
+CONFIGURED_BY_NSM = ("uisp_syslog", "cambium_syslog")
+
+
+def tr069_addresses(device, now) -> set[str]:
+    """Addresses a TR-069 CPE sends syslog from: its management IP and, while its last Inform is recent, the WAN address
+    of that Inform (dynamic IPs change at every PPP reconnection; the ACS reads it again at each contact)."""
+    found = {_norm(device.management_ip)}
+    monitor = ((device.inventory_data or {}).get("tr069") or {}).get("monitor") or {}
+    last_inform = _parse_time(monitor.get("last_inform"))
+    if last_inform is not None and now - last_inform <= TR069_FRESH:
+        found |= {_norm(monitor.get("wan_address")), _norm((monitor.get("wan") or {}).get("ip"))}
+    return {ip for ip in found if ip}
+
+
+def name_tokens(value) -> frozenset:
+    """Words of a name without case, accents or punctuation: "Rizzo, Michela" = "MICHELA RIZZO"."""
+    folded = unicodedata.normalize("NFD", str(value or "")).encode("ascii", "ignore").decode().upper()
+    return frozenset(word for word in re.split(r"[^A-Z0-9]+", folded) if len(word) >= 2)
 
 
 def build_index(db, settings: dict, now=None) -> Index:
@@ -130,6 +157,8 @@ def build_index(db, settings: dict, now=None) -> Index:
     index = Index(networks=parse_networks(settings.get("allowed_networks")))
     strict_mode = settings.get("strict_mode", True)
     weak: dict = {}
+    keyless: dict = {}
+    by_name: dict = {}
     for device in db.scalars(select(Device).execution_options(include_decommissioned=True)):
         data = device.inventory_data or {}
         key = data.get("syslog_key")
@@ -151,6 +180,21 @@ def build_index(db, settings: dict, now=None) -> Index:
         if fresh:
             strong.append(data.get("last_source_ip"))
         entry = (device.id, names_of(device))
+        if device.management_source == "tr069" and ((data.get("tr069") or {}).get("syslog") or {}).get("server_ip"):
+            for ip in tr069_addresses(device, now):
+                keyless.setdefault(ip, set()).add(device.id)
+                index.known_ips.add(ip)
+        # Ubiquiti set through UISP, Cambium ePMP set over SSH: NSM itself pointed them at the receiver, in the chosen mode.
+        configured = next((data[k] for k in CONFIGURED_BY_NSM if isinstance(data.get(k), dict)), {})
+        if configured.get("status") in ("applied", "unverified"):
+            if device.vendor == "ubiquiti" and configured is data.get("uisp_syslog"):
+                index.min_severity[device.id] = UISP_LEVELS.get(configured.get("level") or "warning", 4)
+            if configured.get("mode") == "address" and _norm(device.management_ip):
+                keyless.setdefault(_norm(device.management_ip), set()).add(device.id)
+                index.known_ips.add(_norm(device.management_ip))
+            elif configured.get("mode") == "customer_name" and name_tokens(configured.get("match_name")):
+                # The customer's name saved when NSM configured the device: the receiver's account cannot read customers.
+                by_name.setdefault(name_tokens(configured.get("match_name")), set()).add(device.id)
         for ip in strong:
             norm = _norm(ip)
             if not norm:
@@ -174,6 +218,13 @@ def build_index(db, settings: dict, now=None) -> Index:
             index.candidates[ip] = entries
     # Addresses of strict devices: a keyless line from there is spoofing or a misconfiguration.
     index.strict_ips = {ip for ip in index.known_ips if not index.candidates.get(ip)}
+    # TR-069 CPEs cannot add a key (TP-Link): their address identifies them, only when no other device uses it.
+    for ip, ids in keyless.items():
+        device_id = next(iter(ids))
+        if len(ids) == 1 and ip not in index.strict_shared and all(e[0] == device_id for e in index.candidates.get(ip) or []):
+            index.by_address[ip] = device_id
+    # Hostname = customer name: only a name that exactly one device uses identifies it.
+    index.by_name = [(tokens, next(iter(ids))) for tokens, ids in by_name.items() if len(ids) == 1]
     return index
 
 
@@ -187,17 +238,28 @@ def allowed(index: Index, source_ip: str) -> bool:
     return source_ip in index.known_ips
 
 
-def resolve(index: Index, source_ip: str, key: str | None, hostname: str | None):
+def resolve(index: Index, source_ip: str, key: str | None, hostname: str | None, text: str | None = None):
     """(device_id, None) when certain, else (None, reject reason).
 
     Key only (operator decision 2026-10-09): a line is accepted only when it carries
-    the key of a known device; lines without a key are always discarded.
+    the key of a known device; lines without a key are discarded, except from the address
+    of a TR-069 CPE that NSM itself set to send syslog (TP-Link takes no key; ``Index.by_address``).
     """
     if key:
         device_id = index.keys.get(key)
         if device_id:
             return device_id, None
         return None, "decommissioned" if key in index.retired else "unknown_key"
+    if source_ip in index.by_address:
+        return index.by_address[source_ip], None
+    if text and index.by_name:
+        # airOS puts the hostname (which may contain spaces) before the program name: look at the line's start only.
+        words = name_tokens(text[:160])
+        matches = {device_id for tokens, device_id in index.by_name if tokens <= words}
+        if len(matches) == 1:
+            return matches.pop(), None
+        if len(matches) > 1:
+            return None, "ambiguous"
     return None, "missing_key"
 
 

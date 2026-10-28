@@ -544,6 +544,9 @@ def integrations(request: Request):
         hub = integrations_hub.hub_state(db)
         acs, cnm, zbx = genieacs_connector.summary(), cnmaestro_connector.summary(), zabbix_connector.summary()
         ispb = ispbilling_connector.summary(db)
+        from app import mikrotik_bras
+
+        bras = mikrotik_bras.summary(db)
         uisp_sync, nvd_sync = hub["uisp_sync"], hub["nvd_sync"]
         agents_total, agents_stale = hub["agents_total"], hub["agents_stale"]
         return {
@@ -563,6 +566,9 @@ def integrations(request: Request):
             "ispbilling": {"state": _connector_state(ispb["connection"], ((ispb["connection"].settings or {}).get("last_sync") or {}).get("status")
                                                       or ispb["connection"].last_test_status if ispb["connection"] else None),
                            "customers": ispb["customers"], "linked": ispb["linked"], "details_pending": ispb["details_pending"]},
+            "bras": {"state": _connector_state(bras["connection"], ((bras["connection"].settings or {}).get("last_sync") or {}).get("status")
+                                                or bras["connection"].last_test_status if bras["connection"] else None),
+                     "online": bras["online"], "offline": bras["offline"]},
             "zabbix": {"state": _connector_state(zbx["connection"], zbx["connection"].last_test_status if zbx["connection"] else None),
                        "version": zbx["settings"].get("version"), "linked": zbx["linked"], "frontend": zbx["frontend"]},
         }
@@ -882,7 +888,8 @@ def admin_cnmaestro_test(request: Request):
 def admin_cnmaestro_sync(request: Request):
     def run(db, user):
         stats = cnmaestro_connector.sync(db)
-        return jsonable_encoder({key: stats.get(key) for key in ("status", "error", "cnmaestro_devices", "linked", "new_links", "unmatched", "samples")})
+        return jsonable_encoder({key: stats.get(key) for key in ("status", "error", "cnmaestro_devices", "linked", "new_links", "adopted",
+                                                                     "unmatched", "samples", "deprecation")})
 
     return _admin_write(request, run)
 
