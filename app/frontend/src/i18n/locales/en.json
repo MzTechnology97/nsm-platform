@@ -5281,6 +5281,9 @@
     "ACS_ALERT_SETTINGS_CHANGED": "CPE alert settings changed",
     "ACS_CONFIG_REFRESH_COMPLETED": "CPE configuration read again",
     "ACS_CONFIG_REFRESH_REQUESTED": "CPE configuration re-read requested",
+    "ACS_CONFIG_RESTORE_FAILED": "CPE configuration restore failed",
+    "ACS_CONFIG_RESTORE_REQUESTED": "CPE configuration restore requested",
+    "ACS_CONFIG_RESTORE_VERIFIED": "CPE configuration restore verified",
     "ACS_CUSTOMER_TAG_SET": "CPE tagged with its customer in GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "ACS diagnostic completed",
     "ACS_DIAGNOSTIC_REQUESTED": "ACS diagnostic requested",
@@ -6157,7 +6160,7 @@
   },
   "acsAlerts": {
     "title": "Alerts of the CPEs",
-    "help": "NSM opens an issue in the Action Center, with a notification, when a TR-069 CPE stops contacting the ACS, its WAN is down, the WAN reconnects or the CPE reboots too often, or the DSL line degrades. Issues close by themselves when the problem ends. 0 disables a threshold.",
+    "help": "NSM opens an issue in the Action Center, with a notification, when a TR-069 CPE stops contacting the ACS, its WAN is down, the WAN reconnects or the CPE reboots too often, the DSL line degrades or the PON received level falls under the threshold. Issues close by themselves when the problem ends. 0 disables a threshold.",
     "fields": {
       "enabled": "Alerts for TR-069 CPEs on",
       "offline": "CPE no longer contacting the ACS (three missed periodic Informs)",
@@ -6544,7 +6547,8 @@
       "no_standard": "No standard parameter in this data model.",
       "no_upload_task": "GenieACS has no Upload task: the vendor configuration file cannot be downloaded. NSM archives the parameters.",
       "snapshots": "{{count}} parameter snapshots archived.",
-      "no_snapshot": "No snapshot yet: take one from the Snapshot section."
+      "no_snapshot": "No snapshot yet: take one from the Snapshot section.",
+      "restore_preview": "From the snapshot's page: preview of the differences and confirmation."
     },
     "caps": {
       "identity": "Identity and firmware",
@@ -6565,7 +6569,8 @@
       "reboot": "Reboot",
       "inform_interval": "Inform interval",
       "config_snapshot": "Configuration snapshot",
-      "config_file": "Vendor configuration file"
+      "config_file": "Vendor configuration file",
+      "config_restore": "Restore from a snapshot"
     },
     "writesYes": "yes, on request",
     "writesNo": "no"
@@ -6621,5 +6626,32 @@
     "working": "Connecting to the ePMP…",
     "done": "Syslog configured: the logs arrive within a few minutes.",
     "restored": "Previous values restored on the ePMP."
+  },
+  "acsRestore": {
+    "title": "Restore on the CPE",
+    "intro": "Bring some parameters of this snapshot back to the CPE: first see what would change, then choose what to restore.",
+    "prepare": "Prepare the restore",
+    "help": "Only the writable parameters whose current value (read now from the ACS) differs from the snapshot. Left out: passwords and keys (not in snapshots), values that change by themselves, the ACS link (ManagementServer) and parameters that start actions (diagnostics, upgrades, resets). NSM sends a single setParameterValues command, then reads the parameters back from the CPE.",
+    "skipped": "Already equal: {{unchanged}} · no longer on the CPE: {{missing}} · not writable: {{not_writable}} · left out: {{excluded}} · not convertible: {{invalid}}.",
+    "nothing": "Nothing to restore: the CPE already has the snapshot's values.",
+    "all": "Select all",
+    "columns": {
+      "path": "Parameter",
+      "current": "Current value",
+      "snapshot": "Value in the snapshot"
+    },
+    "confirm": "Type “{{name}}” to restore {{count}} parameters",
+    "run": "Restore {{count}} parameters",
+    "noPermission": "Restoring needs the permission to change devices.",
+    "queued": "The CPE did not answer the connection request: the command runs at its next contact.",
+    "states": {
+      "requested": "Restore of {{count}} parameters sent to GenieACS ({{when}}): waiting for the CPE to run it.",
+      "verifying": "Parameters written: NSM is reading them back from the CPE to verify them.",
+      "verified": "Restore verified ({{when}}): the CPE reports the {{count}} values of the snapshot.",
+      "mismatch": "Restore done, but the CPE reports different values for these parameters ({{when}}):",
+      "failed": "The CPE refused the restore (fault {{fault}}). The command was deleted from GenieACS with its fault: the CPE's queue is not blocked.",
+      "unverified": "Parameters written, but reading them back from the CPE failed (fault {{fault}}).",
+      "unconfirmed": "The CPE did not run the restore within 30 minutes: the command was deleted from GenieACS."
+    }
   }
 }

@@ -5281,6 +5281,9 @@
     "ACS_ALERT_SETTINGS_CHANGED": "Ajustes de avisos de CPE modificados",
     "ACS_CONFIG_REFRESH_COMPLETED": "Configuración del CPE releída",
     "ACS_CONFIG_REFRESH_REQUESTED": "Relectura de la configuración del CPE solicitada",
+    "ACS_CONFIG_RESTORE_FAILED": "Restauración de la configuración del CPE fallida",
+    "ACS_CONFIG_RESTORE_REQUESTED": "Restauración de la configuración del CPE solicitada",
+    "ACS_CONFIG_RESTORE_VERIFIED": "Restauración de la configuración del CPE verificada",
     "ACS_CUSTOMER_TAG_SET": "CPE etiquetado con su cliente en GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnóstico ACS completado",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnóstico ACS solicitado",
@@ -6157,7 +6160,7 @@
   },
   "acsAlerts": {
     "title": "Avisos de los CPE",
-    "help": "NSM abre una incidencia en el Centro de acciones, con una notificación, cuando un CPE TR-069 deja de contactar con el ACS, su WAN cae, la WAN se reconecta o el CPE se reinicia demasiado, o la línea DSL empeora. Las incidencias se cierran solas cuando el problema termina. 0 desactiva un umbral.",
+    "help": "NSM abre una incidencia en el Centro de acciones, con una notificación, cuando un CPE TR-069 deja de contactar con el ACS, su WAN está caída, la WAN se reconecta o el CPE se reinicia con demasiada frecuencia, la línea DSL se degrada o el nivel PON recibido baja del umbral. Las incidencias se cierran solas cuando el problema termina. 0 desactiva un umbral.",
     "fields": {
       "enabled": "Avisos de los CPE TR-069 activos",
       "offline": "CPE que ya no contacta con el ACS (tres Inform periódicos perdidos)",
@@ -6544,7 +6547,8 @@
       "no_standard": "Ningún parámetro estándar en este modelo de datos.",
       "no_upload_task": "GenieACS no tiene la tarea Upload: el archivo de configuración del fabricante no se puede descargar. NSM archiva los parámetros.",
       "snapshots": "{{count}} instantáneas de parámetros archivadas.",
-      "no_snapshot": "Aún no hay instantáneas: cree una desde la sección Instantánea."
+      "no_snapshot": "Aún no hay instantáneas: cree una desde la sección Instantánea.",
+      "restore_preview": "Desde la página de la instantánea: vista previa de las diferencias y confirmación."
     },
     "caps": {
       "identity": "Identidad y firmware",
@@ -6565,7 +6569,8 @@
       "reboot": "Reinicio",
       "inform_interval": "Intervalo de Inform",
       "config_snapshot": "Instantánea de la configuración",
-      "config_file": "Archivo de configuración del fabricante"
+      "config_file": "Archivo de configuración del fabricante",
+      "config_restore": "Restauración desde una instantánea"
     },
     "writesYes": "sí, a petición",
     "writesNo": "no"
@@ -6621,5 +6626,32 @@
     "working": "Conectando con el ePMP…",
     "done": "Syslog configurado: los registros llegan en unos minutos.",
     "restored": "Valores anteriores restaurados en el ePMP."
+  },
+  "acsRestore": {
+    "title": "Restaurar en el CPE",
+    "intro": "Devuelva al CPE algunos parámetros de esta instantánea: primero vea qué cambiaría y luego elija qué restaurar.",
+    "prepare": "Preparar la restauración",
+    "help": "Solo los parámetros modificables cuyo valor actual (leído ahora desde el ACS) difiere de la instantánea. Excluidos: contraseñas y claves (no están en las instantáneas), valores que cambian solos, el enlace con el ACS (ManagementServer) y los parámetros que inician acciones (diagnóstico, actualizaciones, reinicios de fábrica). NSM envía un único comando setParameterValues y luego vuelve a leer los parámetros del CPE.",
+    "skipped": "Ya iguales: {{unchanged}} · ya no están en el CPE: {{missing}} · no modificables: {{not_writable}} · excluidos: {{excluded}} · no convertibles: {{invalid}}.",
+    "nothing": "Nada que restaurar: el CPE ya tiene los valores de la instantánea.",
+    "all": "Seleccionar todos",
+    "columns": {
+      "path": "Parámetro",
+      "current": "Valor actual",
+      "snapshot": "Valor en la instantánea"
+    },
+    "confirm": "Escriba «{{name}}» para restaurar {{count}} parámetros",
+    "run": "Restaurar {{count}} parámetros",
+    "noPermission": "La restauración requiere permiso para modificar equipos.",
+    "queued": "El CPE no respondió a la solicitud de conexión: el comando se ejecutará en el próximo contacto.",
+    "states": {
+      "requested": "Restauración de {{count}} parámetros enviada a GenieACS ({{when}}): esperando a que el CPE la ejecute.",
+      "verifying": "Parámetros escritos: NSM los está releyendo del CPE para verificarlos.",
+      "verified": "Restauración verificada ({{when}}): el CPE informa de los {{count}} valores de la instantánea.",
+      "mismatch": "Restauración hecha, pero el CPE informa de valores distintos para estos parámetros ({{when}}):",
+      "failed": "El CPE rechazó la restauración (error {{fault}}). El comando se eliminó de GenieACS junto con su error: la cola del CPE no está bloqueada.",
+      "unverified": "Parámetros escritos, pero la relectura del CPE falló (error {{fault}}).",
+      "unconfirmed": "El CPE no ejecutó la restauración en 30 minutos: el comando se eliminó de GenieACS."
+    }
   }
 }
