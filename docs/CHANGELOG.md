@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.264 — 2026-10-28
+
+ACS: parameter profiles for TR-069 CPEs
+
+### Added
+
+- Parameter profiles of TR-069 CPEs (ACS-04): `acs_profiles` is the one map of the TR-098 / TR-181 paths NSM uses, with TP-Link vendor paths only where a feature exists only as an extension and explicit unsupported entries with their reason (CPU/memory on TR-098, syslog and cloud firmware on TR-098, UPnP on TR-098, the vendor configuration file).
+- *Capacità NSM su questo CPE* on the device *ACS* tab: for every NSM function (Wi-Fi, diagnostics, speed test, firmware, PON, port forwarding, syslog, snapshot…) whether it is available, a standard RPC, not exposed by the CPE or not supported, why, the paths found and whether NSM writes to the CPE for it. One read-only GenieACS read of small objects; nothing is sent to the CPE.
+
+### Changed
+
+- The diagnostics, speed test, Wi-Fi, syslog, TP-Link cloud firmware, firmware, snapshot and configuration-refresh modules take their object paths from the profile map.
 ## 0.49.263 — 2026-10-28
 
 ACS: PON optical levels of TR-069 CPEs and history of offline CPEs
