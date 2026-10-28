@@ -291,7 +291,7 @@ Next steps:
 **Step 2 done (Core 0.49.47, Agent 0.49.11).** The modern MikroTik agent configures remote syslog (action `nsm`: critical, error, warning, account), on demand, for all devices, or automatically.
 
 Next steps:
-- remote syslog setup for other vendors through their APIs (UISP/airOS, cnMaestro);
+- remote syslog setup for other vendors: ~~UISP/airOS~~ — done in 0.49.257 (UISP backup applied); ~~Cambium ePMP~~ — done in 0.49.265 over SSH (the cnMaestro API has no configuration endpoint; preview, typed confirmation, restore point); others with guided instructions;
 - ~~legacy agent support~~ — done in 0.49.67 (Agent 0.49.15, legacy-ops-v1 profile);
 - ~~incidents and reports built from the access events~~ — done in 0.49.50 (report section, incident evidence, incident from alert).
 

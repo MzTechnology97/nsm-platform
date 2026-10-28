@@ -5284,6 +5284,9 @@
     "CAMBIUM_BACKUP_ARCHIVED": "Configurazione Cambium archiviata",
     "CAMBIUM_BACKUP_FAILED": "Backup Cambium non riuscito",
     "CAMBIUM_SSH_CREDENTIALS_CHANGED": "Credenziali SSH Cambium modificate",
+    "CAMBIUM_SYSLOG_CONFIGURED": "Syslog dell'ePMP configurato via SSH",
+    "CAMBIUM_SYSLOG_FAILED": "Configurazione del syslog dell'ePMP non riuscita",
+    "CAMBIUM_SYSLOG_RESTORED": "Syslog dell'ePMP riportato ai valori precedenti",
     "CNMAESTRO_BULK_ONBOARDING": "Importazione da cnMaestro",
     "CNMAESTRO_CONFIGURED": "Connettore cnMaestro configurato",
     "CNMAESTRO_DEVICE_LINKED": "Apparato collegato a cnMaestro",
@@ -6106,7 +6109,7 @@
   },
   "acsAlerts": {
     "title": "Avvisi dei CPE",
-    "help": "NSM apre una segnalazione nel Centro azioni, con una notifica, quando un CPE TR-069 smette di contattare l'ACS, ha la WAN giù, la WAN si riconnette o il CPE si riavvia troppo spesso, la linea DSL peggiora o il livello PON ricevuto scende sotto la soglia. Le segnalazioni si chiudono da sole quando il problema finisce. 0 disattiva una soglia.",
+    "help": "NSM apre una segnalazione nel Centro azioni, con una notifica, quando un CPE TR-069 smette di contattare l'ACS, ha la WAN giù, la WAN si riconnette o il CPE si riavvia troppo spesso, o la linea DSL peggiora. Le segnalazioni si chiudono da sole quando il problema finisce. 0 disattiva una soglia.",
     "fields": {
       "enabled": "Avvisi per i CPE TR-069 attivi",
       "offline": "CPE che non contatta più l'ACS (tre Inform periodici mancati)",
@@ -6518,5 +6521,57 @@
     },
     "writesYes": "sì, su richiesta",
     "writesNo": "no"
+  },
+  "cambiumSyslog": {
+    "title": "Syslog dell'ePMP",
+    "hint": "cnMaestro non permette di cambiare la configurazione via API: NSM imposta il syslog dalla console SSH dell'ePMP con le credenziali dei backup Cambium. Prima mostra i parametri che cambierà; la configurazione letta subito prima resta come backup.",
+    "target": "Ricevitore NSM",
+    "noTarget": "non determinabile: imposta l'indirizzo pubblico in Amministrazione → Syslog",
+    "credentials": "Credenziali SSH",
+    "credentialSource": {
+      "device": "di questo apparato",
+      "shared": "comuni dei Cambium (Amministrazione → cnMaestro)",
+      "none": "non impostate"
+    },
+    "current": "Configurazione NSM",
+    "never": "non ancora configurato da NSM",
+    "status": {
+      "applied": "{{mode}} · applicata il {{when}} da {{by}}",
+      "unverified": "{{mode}} · applicata il {{when}} da {{by}}, valori non confermati dall'ePMP",
+      "failed": "non riuscita il {{when}} ({{mode}})",
+      "restored": "valori precedenti ripristinati (era: {{mode}})"
+    },
+    "error": "Errore",
+    "unverified": "Parametri non confermati",
+    "notReady": "Servono l'indirizzo di gestione dell'apparato, le credenziali SSH dei Cambium e l'indirizzo del ricevitore syslog.",
+    "modeTitle": "Come NSM riconosce i log",
+    "recommended": "consigliata",
+    "modes": {
+      "key": {
+        "label": "Chiave NSM nel nome dell'apparato",
+        "help": "NSM aggiunge -NSM-… al nome dell'ePMP, che compare in ogni riga di log: funziona anche se cambia IP o condivide il NAT."
+      },
+      "customer_name": {
+        "label": "Nome dell'ePMP uguale al cliente NSM",
+        "help": "Il nome dell'ePMP deve essere quello del cliente ({{customer}}), in qualsiasi ordine. Accettato solo se nessun altro apparato usa lo stesso nome."
+      },
+      "address": {
+        "label": "Indirizzo dell'apparato",
+        "help": "NSM riconosce i log dall'indirizzo di gestione dell'ePMP. Scartati se lo stesso IP è usato da altri apparati (NAT)."
+      }
+    },
+    "preview": "Anteprima delle modifiche",
+    "reading": "Lettura della configurazione…",
+    "nothing": "L'ePMP invia già i log a NSM in questa modalità: niente da cambiare.",
+    "param": "Parametro",
+    "before": "Attuale",
+    "after": "Nuovo",
+    "noReboot": "Le modifiche si applicano con config commit, senza riavvio.",
+    "confirm": "Per confermare scrivi il nome del dispositivo: {{name}}",
+    "configure": "Applica sull'ePMP",
+    "restore": "Ripristina i valori precedenti",
+    "working": "Collegamento all'ePMP…",
+    "done": "Syslog configurato: i log arrivano entro qualche minuto.",
+    "restored": "Valori precedenti ripristinati sull'ePMP."
   }
 }

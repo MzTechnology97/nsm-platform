@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.265 — 2026-10-28
+
+Remote syslog of Cambium ePMP devices
+
+### Added
+- **NSM can now set a Cambium ePMP to send its logs to the NSM receiver (LOG-01).** The cnMaestro API has no configuration endpoint, so NSM uses the ePMP SSH console with the credentials already saved for the Cambium backups. On the device *Syslog* tab, *Anteprima delle modifiche* reads the running configuration and lists every parameter NSM would change, with the current and the new value; nothing is written. *Applica sull'ePMP*, after typing the device name, archives the configuration as a Cambium backup (the restore point), runs `config set` for each change and `config commit` (no reboot), then reads the values back. *Ripristina i valori precedenti* sets back only the parameters NSM changed.
+- **Parameter names come from the device.** NSM picks the first free syslog server of the ePMP (or the one already pointing at NSM), its port and the remote syslog switch from `config show json`. If every server is used by someone else, or the configuration has no syslog server, NSM refuses and says so.
+- **Three ways to recognise the logs, as for UISP.** The NSM key appended to the device name (the default), the ePMP name equal to the NSM customer, or the management address. The receiver accepts lines without a key from a Cambium device only in the last two modes, configured by NSM, and only when the name or address belongs to that device alone.
+- Activity log: `CAMBIUM_SYSLOG_CONFIGURED`, `CAMBIUM_SYSLOG_FAILED`, `CAMBIUM_SYSLOG_RESTORED`.
+
+### Changed
+- The Cambium backup counts the content of the configuration sections, not only the top-level keys, when it checks that the ePMP returned a real configuration.
 ## 0.49.264 — 2026-10-28
 
 ACS: parameter profiles for TR-069 CPEs

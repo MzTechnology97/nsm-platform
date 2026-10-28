@@ -57,6 +57,7 @@ from app.connector_diagnostics import install_connector_diagnostics
 from app.server_migration import install_server_migration
 from app.acs_syslog import install_acs_syslog
 from app.uisp_syslog import install_uisp_syslog
+from app.cambium_syslog import install_cambium_syslog
 from app.lifecycle_web import install_lifecycle_web
 from app.cnmaestro_onboarding import install_cnmaestro_onboarding
 from app.uisp_auto_customer import install_uisp_auto_customer
@@ -148,7 +149,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.264"
+APP_VERSION = "0.49.265"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -280,6 +281,7 @@ install_connector_diagnostics(core.app)
 install_server_migration(core.app)
 install_acs_syslog(core.app)
 install_uisp_syslog(core.app)
+install_cambium_syslog(core.app)
 install_lifecycle_web(core.app)
 install_cnmaestro_onboarding(core.app)
 install_uisp_auto_customer(core.app)
