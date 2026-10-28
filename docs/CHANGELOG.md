@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.273 — 2026-10-28
+
+MikroTik: ideas recovered from unmerged branches
+
+### Added
+
+- **Restore readiness** worklist (Backups → Restore readiness): for every MikroTik, whether NSM holds a successful backup from the last 7 days with every format the agent can produce and a passed restore test from the last 180 days recorded on an intact file. Each row shows the first missing step and links to the device backups or restore tests. Read-only: nothing is restored.
+- **RouterBOOT** worklist (Firmware → RouterBOOT): MikroTiks whose RouterBOOT differs from the available upgrade, with the workflow state and why the upgrade cannot run yet (legacy agent, agent profile, offline, never read). The action opens the existing per-device flash and reboot flow; there is no bulk flash.
+
+### Changed
+
+- RouterOS package staging is refused before any job when the modern agent has no operational profile, as activation already was, with the hint to reinstall the agent.
 ## 0.49.272 — 2026-10-28
 
 UISP: diagnostics through the UISP API

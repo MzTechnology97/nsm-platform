@@ -1232,7 +1232,8 @@
       "off": "disattivata",
       "none": "Nessuna policy configurata."
     },
-    "createPolicy": "Crea policy"
+    "createPolicy": "Crea policy",
+    "restoreReadiness": "Pronti al ripristino"
   },
   "firmware": {
     "title": "Firmware",
@@ -1322,7 +1323,8 @@
         "confirm": "Scrivi la frase di conferma esatta."
       }
     },
-    "campaigns": "Campagne TR-069"
+    "campaigns": "Campagne TR-069",
+    "routerboot": "RouterBOOT"
   },
   "vulns": {
     "title": "Vulnerabilità",
@@ -6800,5 +6802,92 @@
     "pilot": "Pilota",
     "wave": "Ondata {{number}}",
     "empty": "Nessuna campagna ancora."
+  },
+  "restoreReadiness": {
+    "title": "MikroTik pronti al ripristino",
+    "subtitle": "Pronto al ripristino: un backup completo degli ultimi {{backup}} giorni e un restore test superato negli ultimi {{test}} giorni, registrato su un file integro. Nessun ripristino viene eseguito automaticamente.",
+    "back": "Backup",
+    "search": "Cerca apparato o cliente",
+    "states": {
+      "label": "Prontezza al ripristino",
+      "attention": "Da verificare",
+      "no_backup": "Senza backup",
+      "backup_stale": "Backup vecchio",
+      "backup_incomplete": "Backup incompleto",
+      "restore_failed": "Test non superato",
+      "no_restore_test": "Mai testato",
+      "restore_stale": "Test vecchio",
+      "ready": "Pronti",
+      "all": "Tutti"
+    },
+    "columns": {
+      "device": "Apparato",
+      "state": "Prontezza",
+      "backup": "Ultimo backup riuscito",
+      "test": "Ultimo restore test",
+      "next": "Prossimo passo"
+    },
+    "formats": {
+      "mikrotik_binary": ".backup",
+      "mikrotik_export": ".rsc"
+    },
+    "missing": "Manca: {{formats}}",
+    "never": "mai",
+    "noTest": "nessun test",
+    "results": {
+      "passed": "Superato",
+      "partial": "Parziale",
+      "failed": "Non superato"
+    },
+    "integrityFailed": "Integrità del file non confermata",
+    "openBackups": "Backup",
+    "recordTest": "Registra un test",
+    "openTests": "Restore test",
+    "limited": "Primi {{shown}} di {{total}} apparati: restringi la ricerca.",
+    "allGood": "Tutti i MikroTik sono pronti al ripristino.",
+    "empty": "Nessun MikroTik in questo stato."
+  },
+  "routerbootFleet": {
+    "title": "RouterBOOT MikroTik",
+    "subtitle": "Apparati con RouterBOOT diverso dalla versione disponibile dopo l'aggiornamento RouterOS. L'aggiornamento resta per singolo apparato: flash e poi riavvio, ciascuno confermato e verificato.",
+    "back": "Firmware",
+    "search": "Cerca apparato o cliente",
+    "states": {
+      "label": "Stato RouterBOOT",
+      "attention": "Da verificare",
+      "pending": "Da aggiornare",
+      "blocked": "Bloccati",
+      "in_progress": "In corso",
+      "failed": "Falliti",
+      "unknown": "Non letti",
+      "current": "Aggiornati",
+      "all": "Tutti"
+    },
+    "reasons": {
+      "not_modern": "Serve l'agent moderno (RouterOS 7.13+)",
+      "profile": "Profilo agent non idoneo: reinstalla l'agent",
+      "offline": "Apparato offline",
+      "not_read": "Esegui una verifica firmware per leggere RouterBOOT"
+    },
+    "workflow": {
+      "staging": "flash in corso",
+      "staged": "flash eseguito, serve il riavvio",
+      "reboot_pending": "riavvio in coda",
+      "rebooting": "riavvio e verifica"
+    },
+    "columns": {
+      "device": "Apparato",
+      "state": "Stato",
+      "current": "Attuale",
+      "available": "Disponibile",
+      "checked": "Ultima verifica",
+      "next": "Prossimo passo"
+    },
+    "stale": "Verifica più vecchia di 24 h",
+    "upgrade": "Aggiorna",
+    "open": "Apri",
+    "limited": "Primi {{shown}} di {{total}} apparati: restringi la ricerca.",
+    "allGood": "Tutti i RouterBOOT sono aggiornati.",
+    "empty": "Nessun MikroTik in questo stato."
   }
 }
