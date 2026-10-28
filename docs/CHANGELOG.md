@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.262 — 2026-10-28
+
+ISPBilling activities in the device logbook
+
+### Added
+
+- ISPBilling activities in the device logbook (ISPB-01, step 5): the device *Attività* tab shows, in the same timeline as the logbook entries, the installations, maintenance and visits that ISPBilling has for the device's customer, with type, date (a date only for all-day activities), teams, subject and description, *Pianificata* while not started and *Annullata* with its reason; a checkbox hides them.
+  - An activity is the device's when its ISPBilling address is the address of a RADIUS account matched to the device or an address imported as the device's site; activities at another site or another device of the same customer are left out, the others are marked *attività del cliente*.
+  - Read on demand from ISPBilling (`activities/activities`, cursor pagination, filtered by customer) when the tab is opened and kept in memory for 5 minutes; nothing is stored and nothing is written to ISPBilling. The customer's name, phone number and e-mail returned with each activity, and the team members, never reach the browser.
+  - ISPBilling's numeric activity status is not documented and is not interpreted; an error from ISPBilling only shows a note under the logbook.
+
 ## 0.49.261 — 2026-10-23
 
 MikroTik BRAS: customers' PPPoE sessions
