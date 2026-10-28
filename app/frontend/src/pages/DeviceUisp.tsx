@@ -12,7 +12,7 @@ import { MonitorLink } from "../app/MonitorLink";
 import { UispFirewallPanel } from "../app/UispFirewall";
 
 export const RANGES = ["24h", "7d", "30d", "90d"] as const;
-const UNIT: Record<string, Unit | undefined> = { "%": "%", dBm: "dBm", bps: "bps", "": "count" };
+const UNIT: Record<string, Unit | undefined> = { "%": "%", dBm: "dBm", dB: "dB", "°C": "°C", V: "V", mA: "mA", bps: "bps", "": "count" };
 const COLORS: ChartSeries["color"][] = ["a", "b", "c", "d"];
 
 function message(error: unknown) {
