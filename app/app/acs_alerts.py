@@ -13,6 +13,8 @@ condition clears (planned maintenance only labels the notification):
 - ``reboots`` — the CPE rebooted at least ``reboots_per_day`` times in 24 hours (uptime went back).
 - ``dsl`` — DSL downstream SNR margin under ``snr_min_db`` on the last three samples, or downstream rate
   ``dsl_rate_drop_percent`` below the 7-day median.
+- ``pon`` — PON received optical level under ``pon_rx_min_dbm`` (default −27 dBm, the sensitivity of a GPON
+  class B+ ONT) on the last two optical readings, for CPEs that expose their optical levels (``acs_pon``).
 
 Thresholds and switches: *Amministrazione → ACS → Avvisi dei CPE* (``settings["alerts"]`` of the
 GenieACS connector); audited ``ACS_ALERT_OPENED`` / ``ACS_ALERT_RESOLVED``.
@@ -39,14 +41,15 @@ CATEGORY = "acs"
 RUN_INTERVAL_SECONDS = 120
 OPEN_STATES = ("open", "acknowledged")
 DEFAULTS = {"enabled": True, "offline": True, "wan_down": True, "reconnects_per_hour": 3, "reboots_per_day": 3, "snr_min_db": 6.0,
-            "dsl_rate_drop_percent": 30}
-LIMITS = {"reconnects_per_hour": (0, 60), "reboots_per_day": (0, 100), "snr_min_db": (0.0, 30.0), "dsl_rate_drop_percent": (0, 90)}
+            "dsl_rate_drop_percent": 30, "pon_rx_min_dbm": -27.0}
+LIMITS = {"reconnects_per_hour": (0, 60), "reboots_per_day": (0, 100), "snr_min_db": (0.0, 30.0), "dsl_rate_drop_percent": (0, 90), "pon_rx_min_dbm": (-40.0, 0.0)}
 KINDS = {
     "offline": ("CPE non raggiungibile dall'ACS", "high", "warning"),
     "wan_down": ("WAN del CPE giù", "high", "warning"),
     "wan_flaps": ("Riconnessioni WAN frequenti", "medium", "warning"),
     "reboots": ("Riavvii frequenti del CPE", "medium", "warning"),
     "dsl": ("Linea DSL degradata", "medium", "warning"),
+    "pon": ("Livello ottico PON basso", "medium", "warning"),
 }
 _last_run = 0.0
 
@@ -119,6 +122,24 @@ def _dsl_problem(db, device, state: dict, config: dict, now: datetime) -> dict |
     return reasons or None
 
 
+def _pon_problem(db, device, state: dict, config: dict, now: datetime) -> dict | None:
+    """Received optical level under the threshold on the last two distinct readings (0 disables)."""
+    pon = state.get("pon") or {}
+    threshold = config["pon_rx_min_dbm"]
+    if not threshold or pon.get("rx_dbm") is None or pon["rx_dbm"] >= threshold:
+        return None
+    rows = db.scalars(select(AcsMetricSample.pon_rx_dbm).where(AcsMetricSample.device_id == device.id, AcsMetricSample.pon_rx_dbm.is_not(None),
+                                                                 AcsMetricSample.observed_at >= now - timedelta(days=2))
+                      .order_by(AcsMetricSample.observed_at.desc()).limit(50)).all()
+    # The provision re-reads the optics every hour: consecutive samples repeat the same reading.
+    readings = [value for index, value in enumerate(rows) if index == 0 or value != rows[index - 1]]
+    if len(readings) < 2 and len(rows) < 13:
+        return None
+    if any(value >= threshold for value in readings[:2]):
+        return None
+    return {"rx_dbm": pon["rx_dbm"], "threshold_dbm": threshold, "tx_dbm": pon.get("tx_dbm"), "source": pon.get("source")}
+
+
 def conditions(db, device, state: dict, tracking: dict, config: dict, now: datetime, icmp_down: bool) -> dict:
     """{kind: details} of the conditions that hold now."""
     found = {}
@@ -138,6 +159,9 @@ def conditions(db, device, state: dict, tracking: dict, config: dict, now: datet
     dsl = _dsl_problem(db, device, state, config, now)
     if dsl:
         found["dsl"] = dsl
+    pon = _pon_problem(db, device, state, config, now)
+    if pon:
+        found["pon"] = pon
     return found
 
 
@@ -151,6 +175,8 @@ def _message(kind: str, name: str, details: dict) -> str:
         return f"{name}: {details['reconnects_last_hour']} riconnessioni WAN nell'ultima ora."
     if kind == "reboots":
         return f"{name}: {details['reboots_last_day']} riavvii nelle ultime 24 ore."
+    if kind == "pon":
+        return f"{name}: livello ottico ricevuto {details['rx_dbm']} dBm, sotto la soglia di {details['threshold_dbm']} dBm. Controlla fibra, connettori e splitter."
     parts = []
     if "snr_down_db" in details:
         parts.append(f"margine SNR {details['snr_down_db']} dB")

@@ -6,8 +6,8 @@ import { ApiError } from "../api/client";
 import { useDevice } from "../api/device";
 import { type FirmwarePlanTab, useFirmwareAction, useFirmwarePlan } from "../api/deviceTabs";
 import { AcsFirmware } from "../app/AcsFirmware";
-import { FirmwareSchedulePanel } from "../app/FirmwareSchedule";
 import { UispFirmware } from "../app/UispFirmware";
+import { FirmwareSchedulePanel } from "../app/FirmwareSchedule";
 import { formatDateTime } from "../lib/format";
 import { Loading } from "../app/States";
 

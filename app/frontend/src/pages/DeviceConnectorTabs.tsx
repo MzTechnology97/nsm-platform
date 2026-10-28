@@ -13,6 +13,7 @@ import { AcsWifi } from "../app/AcsWifi";
 import { AcsSnapshot } from "../app/AcsSnapshot";
 import { AcsPortMapping } from "../app/AcsPortMapping";
 import { AcsMonitor } from "../app/AcsMonitor";
+import { AcsCapabilities } from "../app/AcsCapabilities";
 import { CambiumBackup } from "../app/CambiumBackup";
 import { TplinkAccess } from "../app/TplinkAccess";
 import { TplinkSettings } from "../app/TplinkSettings";
@@ -39,6 +40,7 @@ export function DeviceCnmaestro() {
             ? t("deviceCnmaestro.linked", { when: formatDateTime(meta.linked_at, i18n.language), mac: meta.mac })
             : t("deviceCnmaestro.notLinked", { mac: data.record.mac ?? t("deviceCnmaestro.missing"), serial: data.record.serial ?? t("deviceCnmaestro.missing") })}
           {meta.last_sync_at && ` ${t("deviceCnmaestro.lastSync", { when: formatDateTime(meta.last_sync_at, i18n.language) })}`}
+          {meta.metrics_at && ` ${t("deviceCnmaestro.metricsAt", { when: formatDateTime(meta.metrics_at, i18n.language) })}`}
         </p>
         {!data.configured && (
           <div className="ui-alert ui-alert-warning">{t("deviceCnmaestro.notConfigured")}{" "}
@@ -141,6 +143,7 @@ export function DeviceGenieacs() {
         </section>
       )}
       {record.external_id && <AcsMonitor deviceId={deviceId} />}
+      {record.external_id && enabled && <AcsCapabilities deviceId={deviceId} />}
       {record.external_id && enabled && <AcsDiagnostics deviceId={deviceId} />}
       {record.external_id && enabled && <AcsSpeedtest deviceId={deviceId} />}
       {record.external_id && enabled && <AcsWifi deviceId={deviceId} deviceName={record.name} />}

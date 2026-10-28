@@ -26,7 +26,9 @@ operator's cnMaestro on-premises (2026-10-23): ``/api/v2/devices``,
 
 Every ``SYNC_INTERVAL`` the worker links Cambium devices of NSM to cnMaestro by
 MAC (then serial), updates identity, firmware, IP and status, and stores a
-metrics sample (90 days; the newest sample of an offline device is kept).
+metrics sample (90 days; the newest sample of an offline device is kept, MON-02,
+and so are the last values on the device: a sync without statistics does not clear them).
+The samples feed the device *Monitor* tab (``monitor_sources``) with the charts every device uses.
 A linked device created by hand (``management_source`` ``manual``, e.g. added
 as generic and corrected to Cambium later) becomes managed by cnMaestro like a
 device created through the connector, with the cnMaestro MAC as external id.
@@ -339,7 +341,9 @@ def sync(db, row=None, now=None, transport=None) -> dict:
             meta.update({"name": found["name"], "type": found["type"], "network": found["network"], "tower": found["tower"],
                          "status": found["status"], "last_sync_at": now.isoformat()})
             values = statistics.get(found["mac"]) or {}
-            meta["metrics"] = values
+            if values:  # MON-02: an offline device keeps showing the last values it reported, with their time
+                meta["metrics"] = values
+                meta["metrics_at"] = now.isoformat()
             data["cnmaestro"] = meta
             device.inventory_data = data
             device.model = device.model or found["model"]
@@ -406,7 +410,18 @@ def series(db, device, range_key="24h") -> dict:
             continue
         points = _bucket(samples, names)
         charts.append({"id": key, "title": title, "unit": unit, "series": [{"field": f, "label": label, "points": [[p["t"], p[f]] for p in points]} for f, label in fields]})
-    return {"range": range_key, "sample_count": len(samples), "charts": charts}
+    return {"range": range_key, "sample_count": len(samples), "charts": charts, "latest": latest(db, device)}
+
+
+def latest(db, device) -> dict | None:
+    """The newest sample of the device whatever its age (MON-02: kept by the retention), for a range without samples."""
+    sample = db.scalar(select(CambiumMetricSample).where(CambiumMetricSample.device_id == device.id)
+                       .order_by(CambiumMetricSample.observed_at.desc()).limit(1))
+    if sample is None:
+        return None
+    values = [{"field": field, "label": label, "unit": unit, "value": getattr(sample, field)}
+              for field, (label, unit, _keys) in FIELDS.items() if getattr(sample, field, None) is not None]
+    return {"observed_at": sample.observed_at.isoformat(), "values": values}
 
 
 def summary() -> dict:

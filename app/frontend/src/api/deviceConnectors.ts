@@ -73,7 +73,7 @@ export function useUispAction<TResult = { ok: boolean }>(id: string, action: str
 
 export interface CnmaestroTab {
   linked: boolean;
-  meta: { mac?: string; linked_at?: string; last_sync_at?: string; name?: string; type?: string; network?: string; tower?: string; status?: string };
+  meta: { mac?: string; linked_at?: string; last_sync_at?: string; metrics_at?: string; name?: string; type?: string; network?: string; tower?: string; status?: string };
   record: { mac: string | null; serial: string | null };
   metrics: { field: string; unit: string; value: number | null }[];
   configured: boolean;
