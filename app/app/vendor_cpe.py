@@ -6,6 +6,18 @@ example ``tp-link:archer_c6_firmware``, ``cambiumnetworks:epmp_1000_firmware``,
 ``mimosa:b5_firmware``) plus a few family products (Ubiquiti ``airos``,
 ``airmax_ac_firmware``…).  A Device is only evaluated when its brand, model
 and firmware version are known; nothing is inferred from the brand alone.
+
+Ubiquiti (UBNT-07): NVD scopes most airOS records to hardware *families*
+(``airmax_ac``, ``airmax_m``, ``airmax_m_xw``…) rather than to models, and UISP
+model names do not follow NVD's hardware names.  The family comes from the airOS
+platform — the prefix of the full firmware string (``WA.ar934x.v8.7.11``) or the
+``platformId`` UISP reports — never from the model name: WA/XC are airMAX AC,
+XM/XW/TI are airMAX M.  Versions are compared on the release (``8.7.11``),
+without the build numbers of the full string.
+
+TP-Link: release number, then build date when both sides carry one
+(``1.1.4 Build 20230219``; a six-digit build ``230219`` is read as 2023-02-19);
+a bound without a build covers every build of that release.
 """
 from __future__ import annotations
 
@@ -61,6 +73,15 @@ ICONS = {
 # Cambium has its own vendor with cnMaestro onboarding.
 MANUAL_BRANDS = tuple(key for key in BRANDS if key not in ("mikrotik", "ubiquiti", "cambium"))
 _DOTTED = re.compile(r"(\d+(?:\.\d+)+)")
+# airOS: <platform>.<cpu>.v<release>.<build>… (``XW.ar934x.v6.3.6.33330.210818.1753``), or <platform>.v<release>.
+_AIROS = re.compile(r"^([A-Z0-9]{2,4})\.(?:[A-Za-z0-9_-]+\.)??v(\d+\.\d+(?:\.\d+)?)")
+# airOS platform → NVD hardware families of the airMAX records.
+UBIQUITI_FAMILIES = {
+    "WA": ("airmax_ac",), "XC": ("airmax_ac",), "2WA": ("airmax_ac",), "2XC": ("airmax_ac",),
+    "XM": ("airmax_m", "airmax_m_xm"), "XW": ("airmax_m", "airmax_m_xw"), "TI": ("airmax_m", "airmax_m_ti"),
+}
+_TPLINK_DOTTED = re.compile(r"(\d+)\.(\d+)(?:\.(\d+))?")
+_TPLINK_BUILD = re.compile(r"build[\s_.-]*(\d{6,8})", re.I)
 # Huawei VRP: V200R019C10SPC800 (version, release, customization, service pack, hot patch).
 _HUAWEI = re.compile(r"V(\d{3})R(\d{3})C(\d{2})(?:SPC(\d{3}))?(?:SPH(\d{3}))?", re.I)
 # Cisco: IOS 15.2(4)M3 / 12.2(55)SE12, ASA 9.12(4)18, NX-OS 9.3(8), IOS-XE 17.3.4a.
@@ -115,6 +136,42 @@ def _ubiquiti_families(model_slug: str) -> list[str]:
     return products
 
 
+def ubiquiti_platform(device) -> str | None:
+    """airOS platform (WA, XC, XW…) from the full firmware string, else the ``platformId`` UISP reported."""
+    match = _AIROS.match(str(device.firmware_version or "").strip())
+    if match:
+        return match.group(1)
+    platform = str(((device.inventory_data or {}).get("uisp_firmware") or {}).get("platform") or "").strip().upper()
+    return platform if re.fullmatch(r"[A-Z0-9]{2,4}", platform) else None
+
+
+def hardware_families(device) -> tuple[str, ...]:
+    """NVD hardware families the Device belongs to, when its platform says so (Ubiquiti airMAX); empty otherwise."""
+    if brand(device) != "ubiquiti":
+        return ()
+    return UBIQUITI_FAMILIES.get(ubiquiti_platform(device) or "", ())
+
+
+def ubiquiti_release(value) -> str:
+    """``WA.ar934x.v8.7.11.46972.220614.0420`` → ``8.7.11``; other strings unchanged."""
+    text = str(value or "").strip()
+    match = _AIROS.match(text)
+    return match.group(2) if match else text
+
+
+def tplink_key(value) -> tuple | None:
+    """((major, minor, patch), build as YYYYMMDD or None); None when there is no release number."""
+    text = str(value or "")
+    dotted = _TPLINK_DOTTED.search(text)
+    if not dotted:
+        return None
+    build = _TPLINK_BUILD.search(text)
+    number = build.group(1) if build else None
+    if number and len(number) == 6:
+        number = "20" + number
+    return tuple(int(p or 0) for p in dotted.groups()), (int(number) if number and len(number) == 8 else None)
+
+
 def products(device) -> tuple[str, ...]:
     """CPE products that may describe the Device firmware (most specific first)."""
     key = brand(device)
@@ -125,8 +182,13 @@ def products(device) -> tuple[str, ...]:
     model_slug = slug(device.model)
     # Single-OS vendors (FortiOS, Junos, PAN-OS…) can be evaluated from the OS version even without a model.
     candidates = [f"{model_slug}_firmware"] if model_slug else []
-    if key == "ubiquiti" and model_slug:
-        candidates += _ubiquiti_families(model_slug)
+    if key == "ubiquiti":
+        families = hardware_families(device)
+        if families:
+            # The platform decides the family: airOS plus the family firmware products (airmax_ac_firmware, airmax_m_xw_firmware…).
+            candidates += ["airos"] + [f"{family}_firmware" for family in families]
+        elif model_slug:
+            candidates += _ubiquiti_families(model_slug)
     if key == "cisco":
         candidates += cisco_families(model_slug, device.firmware_version)
     candidates += list(BRANDS[key].get("families", ()))
@@ -182,6 +244,8 @@ def normalize_version(device_brand: str | None, value) -> str | None:
     if device_brand == "cisco" and cisco_key(value):
         match = _CISCO_PAREN.search(str(value)) or _CISCO_DOTTED.search(str(value))
         return match.group(0)
+    if device_brand == "ubiquiti":
+        value = ubiquiti_release(value)
     parsed = version_tuple(value)
     return ".".join(str(p) for p in parsed) if parsed else None
 
@@ -199,6 +263,17 @@ def compare(device_brand: str | None, left, right) -> int | None:
             return None  # different release trains are not ordered
         left_key, right_key = (a[0], a[2]), (b[0], b[2])
         return (left_key > right_key) - (left_key < right_key)
+    if device_brand == "tp-link":
+        a, b = tplink_key(left), tplink_key(right)
+        if a is None or b is None:
+            return None
+        if a[0] != b[0]:
+            return (a[0] > b[0]) - (a[0] < b[0])
+        if a[1] is None or b[1] is None:
+            return 0  # a release without a build covers all its builds
+        return (a[1] > b[1]) - (a[1] < b[1])
+    if device_brand == "ubiquiti":
+        left, right = ubiquiti_release(left), ubiquiti_release(right)
     a, b = version_tuple(left), version_tuple(right)
     if a is None or b is None:
         return None
@@ -216,6 +291,10 @@ def parseable(device_brand: str | None, value) -> bool:
         return True
     if device_brand == "cisco":
         return cisco_key(value) is not None
+    if device_brand == "tp-link":
+        return tplink_key(value) is not None
+    if device_brand == "ubiquiti":
+        value = ubiquiti_release(value)
     return version_tuple(value) is not None
 
 

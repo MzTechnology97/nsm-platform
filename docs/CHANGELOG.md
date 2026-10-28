@@ -4,6 +4,117 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.275 — 2026-10-28
+
+GUI: icons in page headers and empty states
+
+### Changed
+
+- Interface: every page header and every empty state now shows the icon of the section it belongs to, from the same icon set as the sidebar. It follows the light and dark theme. Device and customer pages keep their manufacturer icon.
+## 0.49.274 — 2026-10-28
+
+Docs: roadmap and README status sync
+
+### Changed
+
+- Documentation brought up to date:
+  - the README product status table, unchanged since 2026-09-30: incidents, compliance and reports are implemented, plus the TR-069/ACS, Cambium, ISPBilling and monitoring rows;
+  - the product scope check and priority order, recovered from the closed PR #60, now in `ARCHITECTURE.md`;
+  - the classic browser-feedback section marked as historical, now that the React interface shows errors in context.
+## 0.49.273 — 2026-10-28
+
+MikroTik: ideas recovered from unmerged branches
+
+### Added
+
+- **Restore readiness** worklist (Backups → Restore readiness): for every MikroTik, whether NSM holds a successful backup from the last 7 days with every format the agent can produce and a passed restore test from the last 180 days recorded on an intact file. Each row shows the first missing step and links to the device backups or restore tests. Read-only: nothing is restored.
+- **RouterBOOT** worklist (Firmware → RouterBOOT): MikroTiks whose RouterBOOT differs from the available upgrade, with the workflow state and why the upgrade cannot run yet (legacy agent, agent profile, offline, never read). The action opens the existing per-device flash and reboot flow; there is no bulk flash.
+
+### Changed
+
+- RouterOS package staging is refused before any job when the modern agent has no operational profile, as activation already was, with the hint to reinstall the agent.
+## 0.49.272 — 2026-10-28
+
+UISP: diagnostics through the UISP API
+
+### Added
+
+- UISP diagnostics on the device UISP tab (UBNT-05). The UISP API has no ping or traceroute; NSM uses what it exposes for airMAX radios.
+  - *Collegamenti wireless (UISP)*, read on demand: for an access point its stations, for a station its access point, with signal on both sides and per chain, noise floor, link score and air time, capacity, latency, distance and the station's NSM device when its MAC is known. Plain hints: weak or fair signal, unbalanced chains, low SNR, low link score, saturated air time, high latency, disconnected, old UISP data; UISP's own advice is shown as it comes.
+  - Speed test between the device and one of its stations through UISP (download, upload or both, 5–60 seconds), with permission `devices.write` and an explicit confirmation that the link will be saturated; one test per device at a time, progress every 2 seconds, average and peak per direction, *Ferma il test*. Audited (`UISP_SPEEDTEST_STARTED`, `UISP_SPEEDTEST_FINISHED`, `UISP_SPEEDTEST_STOPPED`). Tested against a fake UISP: not yet run on real radios.
+
+## 0.49.271 — 2026-10-28
+
+Reboot of Cambium devices through cnMaestro
+
+### Added
+- **Cambium devices can be rebooted through cnMaestro, with verification.** The *cnMaestro* tab of a linked device has *Riavvia tramite cnMaestro*. You type the device name to confirm (permission `firmware.execute`), and only one reboot per device can be pending. NSM records how long the device has been online and asks cnMaestro to reboot it. The worker then reads the device on cnMaestro and marks the reboot *verified* when the time online restarts, the device comes back after being offline, or the last reboot reason changes. It is *not verified* after 20 minutes without any of these. If cnMaestro refuses, for example because the API client lacks write permission, the reason is shown and nothing is recorded. Activity log: `CNMAESTRO_REBOOT_REQUESTED`, `CNMAESTRO_REBOOT_VERIFIED`, `CNMAESTRO_REBOOT_FAILED`.
+
+### Changed
+- **Firmware upgrades of Cambium devices stay in cnMaestro.** The cnMaestro API v2 has no software image or upgrade endpoint, so NSM does not offer the upgrade. The *cnMaestro* tab says so, and NSM shows the new version after the next sync.
+## 0.49.270 — 2026-10-28
+
+ACS: firmware campaigns over many TR-069 CPEs
+
+### Added
+
+- Firmware campaigns over many TR-069 CPEs (ACS-08), *Firmware → Campagne TR-069*: one image already in GenieACS for one model, created as a draft and started by typing the campaign name; one pilot CPE first, then waves (10 CPEs by default, configurable 1–50), each only after the previous one is fully verified and only inside the chosen time window; automatic stop at the first failed or unconfirmed upgrade; pause, resume (typed name) and cancel; a page with the state of every CPE by wave. Reuses the single-CPE upgrade; migration `0059_acs_firmware_campaigns`; audit `ACS_FIRMWARE_CAMPAIGN_*`.
+## 0.49.269 — 2026-10-28
+
+ACS: restore of TR-069 configuration snapshots
+
+### Added
+
+- Restore of a TR-069 configuration snapshot with preview and confirmation (ACS-07): on a snapshot's page NSM lists only the parameters still writable on the CPE whose current value differs (secrets, values that change by themselves, `ManagementServer` and action parameters left out); the technician ticks what to restore and types the device name; one `setParameterValues` task, then a `getParameterValues` read-back to verify. A faulted task is deleted together with its fault so the CPE's queue never stays blocked; leftover tasks are deleted after 30 minutes. Audit `ACS_CONFIG_RESTORE_REQUESTED`, `ACS_CONFIG_RESTORE_VERIFIED`, `ACS_CONFIG_RESTORE_FAILED`.
+
+### Changed
+
+- Includes the TR-069 snapshot comparison fix (older snapshots of the same CPE offered for comparison in the *Backup* tab).
+## 0.49.268 — 2026-10-28
+
+MikroTik: queues, certificates and routing diagnostics
+
+### Added
+
+- MikroTik Configuration tab: three read-only sections for modern and legacy agents (RouterOS 6.48/6.49 and 7.12), Agent 0.49.24:
+  - **Queues**: simple queues and queue tree with the current rate against the max limit; a queue at 90% or more of its limit is flagged as saturated;
+  - **Certificates**: expiry date and days left, with expired, expiring within 30 days and revoked certificates first;
+  - **BGP / OSPF**: BGP sessions (RouterOS 7 sessions, RouterOS 6 peers) and OSPF neighbors, up or down, with remote address, AS or area, uptime and prefixes.
+- Bounded reads like the other sections (300 queues per menu, 100 certificates, 100 BGP sessions and 100 OSPF neighbors); the route table is never read, and a router without the routing menus still loads the agent.
+
+### Changed
+
+- Explicit capability gate per snapshot section and agent transport: an agent that cannot read a section is no longer asked for it. The Configuration tab marks those sections with the update or reinstall hint, *Refresh all* skips them, and a legacy job for a section the agent cannot read fails with the reason instead of an empty result.
+- MTK-01 (legacy snapshot pagination) evaluated against the production legacy snapshots: not needed for now; the evidence is in the roadmap.
+
+### Fixed
+
+- *Refresh all* no longer queues the exposed-services section on legacy agents, where it always failed.
+## 0.49.267 — 2026-10-28
+
+Security: CVE version matching beyond RouterOS
+
+### Added
+
+- Vulnerabilities: CVE version matching for vendors other than MikroTik (SEC-02, UBNT-07).
+  - Ubiquiti airMAX: NVD scopes most airOS CVEs to hardware families (`airmax_ac`, `airmax_m`, `airmax_m_xw`…). NSM now reads the family from the airOS platform (prefix of the full firmware string, or the platform UISP reports: WA/XC airMAX AC, XM/XW/TI airMAX M), never from the model name, evaluates the family firmware products too and compares the release without build numbers. Without the platform a family-limited CVE stays *unknown*; a model list from NVD that does not contain the device is *unknown* when the version is in range, never a guess. The finding evidence records the family.
+  - TP-Link: release, then build date when both sides have one (`1.1.4 Build 20230219`); a bound without a build covers all builds of its release.
+  - Product names are compared without punctuation (`airfiber_60-lr_firmware` matches *airFiber 60 LR*).
+
+### Changed
+
+- After the upgrade the next NVD matching cycle opens the Ubiquiti findings that were missed: on the operator's data (dry run) 41 high-confidence findings on the 30 airMAX radios (CVE-2026-21639 and CVE-2022-44565).
+
+## 0.49.266 — 2026-10-28
+
+cnMaestro graphs in the Monitor tab and last values of offline Cambium devices
+
+### Added
+- **Cambium devices have the same Monitor charts as every other device (MON-01).** The history NSM reads from cnMaestro fills the Monitor panels: CPU and memory, downlink/uplink throughput, the ping from NSM, then signal, SNR and connected stations. The charts use the common renderer, with current, minimum, average and maximum, and ranges from 1 hour to 90 days. Series and chart names are now translated.
+- **An offline Cambium device still shows what it last reported (MON-02).** When the chosen range has no samples, the Monitor tab shows *Ultimi valori ricevuti* with their date. The 90-day cleanup of the cnMaestro history always keeps the newest sample of each device.
+
+### Fixed
+- **A cnMaestro sync without statistics no longer clears the last values of a device.** When cnMaestro stopped sending statistics for a device (for example an offline radio), its *cnMaestro* tab lost every value. Now the last values stay, and the tab says when they were read.
 ## 0.49.265 — 2026-10-28
 
 Remote syslog of Cambium ePMP devices

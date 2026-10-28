@@ -358,7 +358,9 @@
         "tr069": "Ligne et clients",
         "uisp": "Radio",
         "cnmaestro": "Radio"
-      }
+      },
+      "latestTitle": "Dernières valeurs reçues",
+      "latestAt": "Aucune donnée sur cette période : dernier échantillon de {{source}} le {{when}}"
     }
   },
   "syslog": {
@@ -1230,7 +1232,8 @@
       "off": "désactivée",
       "none": "Aucune politique configurée."
     },
-    "createPolicy": "Créer une politique"
+    "createPolicy": "Créer une politique",
+    "restoreReadiness": "Prêts à restaurer"
   },
   "firmware": {
     "title": "Firmware",
@@ -1319,7 +1322,9 @@
         "too_many": "Trop d'équipements sélectionnés.",
         "confirm": "Saisissez exactement la phrase de confirmation."
       }
-    }
+    },
+    "campaigns": "Campagnes TR-069",
+    "routerboot": "RouterBOOT"
   },
   "vulns": {
     "title": "Vulnérabilités",
@@ -3639,7 +3644,10 @@
       "firewall": "Pare-feu",
       "dhcp_leases": "DHCP",
       "ppp_active": "PPP / VPN",
-      "logs": "Journal warning/error"
+      "logs": "Journal warning/error",
+      "queues": "Files d'attente",
+      "certificates": "Certificats",
+      "routing": "BGP / OSPF"
     },
     "resources": {
       "cpu_load": "Charge CPU",
@@ -3672,7 +3680,16 @@
       "sessions": "Sessions",
       "warning": "Warning",
       "error": "Error",
-      "critical": "Critical"
+      "critical": "Critical",
+      "simple": "Simple",
+      "tree": "Arbre",
+      "saturated": "Saturées",
+      "valid": "Valides",
+      "expiring": "Bientôt expirés",
+      "expired": "Expirés",
+      "revoked": "Révoqués",
+      "bgp": "BGP",
+      "ospf": "OSPF"
     },
     "states": {
       "up": "active",
@@ -3688,7 +3705,12 @@
       "bound": "attribué",
       "waiting": "en attente",
       "blocked": "bloqué",
-      "offered": "proposé"
+      "offered": "proposé",
+      "saturated": "saturée",
+      "valid": "valide",
+      "expiring": "expire bientôt",
+      "expired": "expiré",
+      "revoked": "révoqué"
     },
     "kinds": {
       "filter": "Filter",
@@ -3698,7 +3720,11 @@
       "l2tp": "L2TP",
       "pppoe": "PPPoE",
       "pptp": "PPTP",
-      "ovpn": "OVPN"
+      "ovpn": "OVPN",
+      "simple": "Queue simple",
+      "tree": "Queue tree",
+      "bgp": "BGP",
+      "ospf": "OSPF"
     },
     "search": "Rechercher dans la section",
     "state": "État",
@@ -3744,7 +3770,20 @@
       "uptime": "Uptime",
       "time": "Heure",
       "topics": "Sujets",
-      "message": "Message"
+      "message": "Message",
+      "target": "Cible",
+      "parent": "Parent",
+      "max_limit": "Limite max",
+      "rate": "Débit (up / down)",
+      "usage": "Utilisation",
+      "common_name": "Nom commun",
+      "issuer": "Émetteur",
+      "not_after": "Valide jusqu'au",
+      "days_left": "Jours restants",
+      "role": "Rôle",
+      "remote_as": "AS / zone",
+      "session_state": "Session",
+      "prefixes": "Préfixes"
     },
     "historyTitle": "Historique de configuration",
     "historyHelp": "Exports RouterOS archivés, baseline approuvée et changements détectés automatiquement.",
@@ -3774,7 +3813,13 @@
     "view": "Afficher",
     "diff": "Différences",
     "setBaseline": "Définir comme baseline",
-    "noExports": "Aucun export de configuration : l'historique apparaît après la première sauvegarde MikroTik au format .rsc."
+    "noExports": "Aucun export de configuration : l'historique apparaît après la première sauvegarde MikroTik au format .rsc.",
+    "unsupported": {
+      "no_transport": "Section indisponible : le transport de l'agent n'a pas été détecté ou validé.",
+      "transport": "Section indisponible avec l'agent legacy (RouterOS 6 / 7.12).",
+      "agent_outdated": "Section disponible à partir de l'agent {{version}} : mettez à jour ou réinstallez l'agent depuis l'onglet Agent."
+    },
+    "unsupportedShort": "Indisponible avec l'agent installé"
   },
   "deviceReboot": {
     "title": "Redémarrage contrôlé",
@@ -4037,7 +4082,9 @@
       "acs_pon_power": "Niveaux optiques PON",
       "acs_pon_temperature": "Température du module optique",
       "acs_pon_bias": "Courant de polarisation laser",
-      "acs_pon_voltage": "Tension du module optique"
+      "acs_pon_voltage": "Tension du module optique",
+      "snr": "SNR",
+      "throughput": "Débit"
     },
     "series": {
       "cpu_percent": "CPU",
@@ -4052,7 +4099,10 @@
       "pon_tx_dbm": "Tx",
       "pon_temperature_c": "Température",
       "pon_bias_ma": "Polarisation",
-      "pon_voltage_v": "Tension"
+      "pon_voltage_v": "Tension",
+      "snr_db": "SNR",
+      "dl_throughput_bps": "Descendant",
+      "ul_throughput_bps": "Montant"
     },
     "metricsTitle": "État opérationnel depuis UISP",
     "metricsHelp": "Statistiques sur les {{hours}} dernières heures ({{count}} échantillons) ; dernière valeur {{when}}.",
@@ -4122,7 +4172,57 @@
       "warning": "Attention",
       "error": "Erreur"
     },
-    "moreEvents": "Afficher plus ({{shown}} sur {{total}})"
+    "moreEvents": "Afficher plus ({{shown}} sur {{total}})",
+    "diag": {
+      "stationsTitle": "Liaisons sans fil (UISP)",
+      "stationsHelp": "Lues à la demande : signal des deux côtés et par chaîne, bruit, link score, capacité et latence mesurés par UISP.",
+      "columns": {
+        "station": "Station",
+        "signal": "Signal (ici / distant)",
+        "noise": "Bruit",
+        "score": "Link score",
+        "capacity": "Capacité desc. / mont.",
+        "latency": "Latence",
+        "hints": "Diagnostic"
+      },
+      "chains": "chaînes {{rx}} · {{tx}}",
+      "airTime": "temps d'antenne {{value}} %",
+      "healthy": "Aucun problème relevé",
+      "hints": {
+        "weak_signal": "Signal faible",
+        "fair_signal": "Signal moyen",
+        "chain_imbalance": "Chaînes déséquilibrées",
+        "low_snr": "SNR bas",
+        "low_score": "Link score bas",
+        "high_airtime": "Temps d'antenne saturé",
+        "high_latency": "Latence élevée",
+        "disconnected": "Déconnectée",
+        "stale": "Données UISP anciennes"
+      },
+      "speedTest": "Test de débit",
+      "speedTestTitle": "Test de débit vers {{peer}}",
+      "speedTestHelp": "UISP exécute le test entre les deux radios : la liaison sans fil est saturée pendant toute la durée et les clients derrière elle sont ralentis.",
+      "direction": "Sens",
+      "duration": "Durée (secondes, 5–60)",
+      "directions": {
+        "downlink": "Descendant",
+        "uplink": "Montant",
+        "bidirectional": "Les deux sens"
+      },
+      "confirm": "Je comprends que la liaison sera saturée pendant {{seconds}} secondes",
+      "start": "Lancer le test",
+      "stop": "Arrêter le test",
+      "lastTest": "Test de débit vers {{peer}}",
+      "states": {
+        "running": "En cours",
+        "completed": "Terminé",
+        "stopped": "Arrêté",
+        "no_result": "Aucun résultat d'UISP",
+        "unconfirmed": "Non confirmé par UISP"
+      },
+      "result": "moyenne {{avg}}, pic {{max}}",
+      "noResult": "UISP n'a envoyé aucune mesure pour ce test."
+    }
   },
   "deviceCnmaestro": {
     "linked": "Relié à cnMaestro depuis le {{when}} (MAC {{mac}}).",
@@ -4149,7 +4249,18 @@
       "uptime_seconds": "Uptime",
       "dl_throughput_bps": "Débit descendant",
       "ul_throughput_bps": "Débit montant"
-    }
+    },
+    "metricsAt": "Valeurs du {{when}}.",
+    "rebootTitle": "Redémarrage via cnMaestro",
+    "rebootHelp": "cnMaestro redémarre l'équipement ; NSM vérifie qu'il revient en ligne sous 20 minutes.",
+    "rebootStates": {
+      "requested": "redémarrage en vérification",
+      "verified": "redémarrage vérifié",
+      "failed": "redémarrage non vérifié"
+    },
+    "reboot": "Redémarrer via cnMaestro",
+    "rebootSent": "Redémarrage envoyé via cnMaestro.",
+    "firmwareNote": "La mise à jour du firmware n'est pas disponible dans l'API de cnMaestro : lancez-la depuis l'interface de cnMaestro ; NSM voit la nouvelle version à la synchronisation suivante."
   },
   "deviceGenieacs": {
     "recordHelp": "Client et site restent ceux de NSM : GenieACS ne les modifie pas.",
@@ -5233,10 +5344,21 @@
     "ACS_ALERT_SETTINGS_CHANGED": "Paramètres des alertes CPE modifiés",
     "ACS_CONFIG_REFRESH_COMPLETED": "Configuration du CPE relue",
     "ACS_CONFIG_REFRESH_REQUESTED": "Relecture de la configuration du CPE demandée",
+    "ACS_CONFIG_RESTORE_FAILED": "Restauration de la configuration du CPE échouée",
+    "ACS_CONFIG_RESTORE_REQUESTED": "Restauration de la configuration du CPE demandée",
+    "ACS_CONFIG_RESTORE_VERIFIED": "Restauration de la configuration du CPE vérifiée",
     "ACS_CUSTOMER_TAG_SET": "CPE étiqueté avec son client dans GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnostic ACS terminé",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnostic ACS demandé",
     "ACS_FIRMWARE_AUTO_CHANGED": "Téléchargement automatique des firmwares modifié",
+    "ACS_FIRMWARE_CAMPAIGN_CANCELLED": "Campagne firmware TR-069 annulée",
+    "ACS_FIRMWARE_CAMPAIGN_COMPLETED": "Campagne firmware TR-069 terminée",
+    "ACS_FIRMWARE_CAMPAIGN_CREATED": "Campagne firmware TR-069 créée",
+    "ACS_FIRMWARE_CAMPAIGN_PAUSED": "Campagne firmware TR-069 en pause",
+    "ACS_FIRMWARE_CAMPAIGN_RESUMED": "Campagne firmware TR-069 reprise",
+    "ACS_FIRMWARE_CAMPAIGN_STARTED": "Campagne firmware TR-069 lancée",
+    "ACS_FIRMWARE_CAMPAIGN_STOPPED": "Campagne firmware TR-069 arrêtée",
+    "ACS_FIRMWARE_CAMPAIGN_WAVE_STARTED": "Vague d'une campagne firmware lancée",
     "ACS_FIRMWARE_FAILED": "Échec de la mise à jour du firmware du CPE",
     "ACS_FIRMWARE_FILE_FETCHED": "Firmware téléchargé du constructeur dans l'ACS",
     "ACS_FIRMWARE_FILE_STORED": "Image firmware chargée dans l'ACS",
@@ -5290,6 +5412,9 @@
     "CNMAESTRO_BULK_ONBOARDING": "Import depuis cnMaestro",
     "CNMAESTRO_CONFIGURED": "Connecteur cnMaestro configuré",
     "CNMAESTRO_DEVICE_LINKED": "Équipement lié à cnMaestro",
+    "CNMAESTRO_REBOOT_FAILED": "Redémarrage via cnMaestro non vérifié",
+    "CNMAESTRO_REBOOT_REQUESTED": "Redémarrage demandé via cnMaestro",
+    "CNMAESTRO_REBOOT_VERIFIED": "Redémarrage via cnMaestro vérifié",
     "COMPLIANCE_ACKNOWLEDGED": "Non-conformité prise en charge",
     "COMPLIANCE_BASELINE_SAVED": "Référentiel de conformité enregistré",
     "COMPLIANCE_EVALUATED": "Conformité évaluée",
@@ -5492,6 +5617,9 @@
     "UISP_REBOOT_VERIFIED": "Redémarrage via UISP vérifié",
     "UISP_SITE_IGNORED": "Endpoint UISP ignoré",
     "UISP_SITE_LINKED": "Endpoint UISP lié à un client",
+    "UISP_SPEEDTEST_FINISHED": "Test de débit UISP terminé",
+    "UISP_SPEEDTEST_STARTED": "Test de débit UISP lancé",
+    "UISP_SPEEDTEST_STOPPED": "Test de débit UISP arrêté",
     "UISP_SYNC_COMPLETED": "Synchronisation UISP terminée",
     "UISP_SYNC_CONFLICT": "Conflit de synchronisation UISP",
     "UISP_SYNC_FAILED": "Échec de la synchronisation UISP",
@@ -6501,7 +6629,8 @@
       "no_standard": "Aucun paramètre standard dans ce modèle de données.",
       "no_upload_task": "GenieACS n'a pas de tâche Upload : le fichier de configuration du fabricant ne peut pas être téléchargé. NSM archive les paramètres.",
       "snapshots": "{{count}} instantanés de paramètres archivés.",
-      "no_snapshot": "Aucun instantané : créez-en un depuis la section Instantané."
+      "no_snapshot": "Aucun instantané : créez-en un depuis la section Instantané.",
+      "restore_preview": "Depuis la page de l'instantané : aperçu des différences et confirmation."
     },
     "caps": {
       "identity": "Identité et firmware",
@@ -6522,7 +6651,8 @@
       "reboot": "Redémarrage",
       "inform_interval": "Intervalle d'Inform",
       "config_snapshot": "Instantané de la configuration",
-      "config_file": "Fichier de configuration du fabricant"
+      "config_file": "Fichier de configuration du fabricant",
+      "config_restore": "Restauration depuis un instantané"
     },
     "writesYes": "oui, sur demande",
     "writesNo": "non"
@@ -6578,5 +6708,191 @@
     "working": "Connexion à l'ePMP…",
     "done": "Syslog configuré : les journaux arrivent dans quelques minutes.",
     "restored": "Valeurs précédentes restaurées sur l'ePMP."
+  },
+  "acsRestore": {
+    "title": "Restaurer sur le CPE",
+    "intro": "Remettez sur le CPE certains paramètres de cet instantané : voyez d'abord ce qui changerait, puis choisissez ce qu'il faut restaurer.",
+    "prepare": "Préparer la restauration",
+    "help": "Seuls les paramètres modifiables dont la valeur actuelle (lue maintenant depuis l'ACS) diffère de l'instantané. Exclus : mots de passe et clés (absents des instantanés), valeurs qui changent seules, le lien avec l'ACS (ManagementServer) et les paramètres qui lancent des actions (diagnostics, mises à jour, réinitialisations). NSM envoie une seule commande setParameterValues, puis relit les paramètres sur le CPE.",
+    "skipped": "Déjà identiques : {{unchanged}} · absents du CPE : {{missing}} · non modifiables : {{not_writable}} · exclus : {{excluded}} · non convertibles : {{invalid}}.",
+    "nothing": "Rien à restaurer : le CPE a déjà les valeurs de l'instantané.",
+    "all": "Tout sélectionner",
+    "columns": {
+      "path": "Paramètre",
+      "current": "Valeur actuelle",
+      "snapshot": "Valeur dans l'instantané"
+    },
+    "confirm": "Saisissez « {{name}} » pour restaurer {{count}} paramètres",
+    "run": "Restaurer {{count}} paramètres",
+    "noPermission": "La restauration nécessite le droit de modifier les équipements.",
+    "queued": "Le CPE n'a pas répondu à la demande de connexion : la commande partira au prochain contact.",
+    "states": {
+      "requested": "Restauration de {{count}} paramètres envoyée à GenieACS ({{when}}) : en attente de l'exécution par le CPE.",
+      "verifying": "Paramètres écrits : NSM les relit sur le CPE pour les vérifier.",
+      "verified": "Restauration vérifiée ({{when}}) : le CPE indique les {{count}} valeurs de l'instantané.",
+      "mismatch": "Restauration effectuée, mais le CPE indique d'autres valeurs pour ces paramètres ({{when}}) :",
+      "failed": "Le CPE a refusé la restauration (erreur {{fault}}). La commande a été supprimée de GenieACS avec son erreur : la file du CPE n'est pas bloquée.",
+      "unverified": "Paramètres écrits, mais la relecture sur le CPE a échoué (erreur {{fault}}).",
+      "unconfirmed": "Le CPE n'a pas exécuté la restauration dans les 30 minutes : la commande a été supprimée de GenieACS."
+    }
+  },
+  "acsCampaigns": {
+    "title": "Campagnes firmware TR-069",
+    "subtitle": "Mettez à jour de nombreux CPE du même modèle : d'abord un CPE pilote, puis par vagues, uniquement dans la plage horaire choisie. La campagne s'arrête seule à la première mise à jour échouée ou non confirmée.",
+    "back": "Retour au firmware",
+    "backList": "Toutes les campagnes",
+    "new": "Nouvelle campagne",
+    "close": "Fermer",
+    "newTitle": "Nouvelle campagne",
+    "newHelp": "Choisissez une image déjà dans GenieACS (chargée depuis l'onglet Firmware d'un CPE ou depuis les catalogues) : la campagne porte sur les CPE liés de ce modèle. Elle est créée en brouillon : rien ne part tant que vous ne la lancez pas en saisissant son nom.",
+    "chooseFile": "Choisissez l'image…",
+    "noFiles": "Aucune image firmware dans GenieACS : chargez-en une depuis l'onglet Firmware d'un CPE.",
+    "pilotAuto": "Le premier par nom",
+    "createDraft": "Créer le brouillon",
+    "selected": "{{count}} CPE {{model}} choisis sur {{total}} liés.",
+    "fields": {
+      "name": "Nom de la campagne",
+      "file": "Image firmware",
+      "expected": "Version attendue après la mise à jour",
+      "waveSize": "CPE par vague",
+      "window": "Plage horaire ({{tz}}) : début et fin",
+      "pilot": "CPE pilote"
+    },
+    "columns": {
+      "name": "Campagne",
+      "state": "État",
+      "model": "Modèle → version",
+      "progress": "Avancement",
+      "created": "Créée",
+      "device": "CPE",
+      "customer": "Client",
+      "version": "Version",
+      "when": "Quand",
+      "error": "Détail"
+    },
+    "status": {
+      "draft": "Brouillon",
+      "running": "En cours",
+      "paused": "En pause",
+      "stopped": "Arrêtée",
+      "completed": "Terminée",
+      "cancelled": "Annulée"
+    },
+    "device": {
+      "pending": "En attente",
+      "requested": "En mise à jour",
+      "verified": "Mis à jour",
+      "failed": "Échec",
+      "unconfirmed": "Non confirmé",
+      "skipped": "Ignoré",
+      "cancelled": "Annulé"
+    },
+    "errors": {
+      "already": "déjà à la version attendue",
+      "not_linked": "plus lié à GenieACS",
+      "unexpected_version": "version différente de celle attendue",
+      "no_new_version": "aucune nouvelle version après 30 minutes",
+      "device_removed": "équipement supprimé"
+    },
+    "summary": "{{model}} → {{version}} · {{file}} · vagues de {{wave}} · plage {{start}}–{{end}} ({{tz}})",
+    "rules": "Le pilote est mis à jour seul ; les vagues suivantes partent seulement quand la vague précédente est entièrement vérifiée, et seulement dans la plage horaire. Les mises à jour déjà envoyées ne peuvent pas être rappelées : pause et annulation n'arrêtent que les CPE pas encore lancés.",
+    "stopped": "Campagne arrêtée : {{reason}}. Vérifiez le CPE, puis reprenez la campagne pour continuer avec les autres.",
+    "outsideWindow": "Hors plage horaire : la prochaine vague partira à l'ouverture de la plage.",
+    "confirmStart": "Saisissez « {{name}} » pour lancer la campagne",
+    "confirmResume": "Saisissez « {{name}} » pour reprendre la campagne",
+    "start": "Lancer la campagne",
+    "resume": "Reprendre",
+    "pause": "Pause",
+    "cancel": "Annuler la campagne",
+    "pilot": "Pilote",
+    "wave": "Vague {{number}}",
+    "empty": "Aucune campagne pour l'instant."
+  },
+  "restoreReadiness": {
+    "title": "MikroTik prêts à restaurer",
+    "subtitle": "Prêt à restaurer : une sauvegarde complète des {{backup}} derniers jours et un test de restauration réussi des {{test}} derniers jours, enregistré sur un fichier intact. Rien n'est restauré automatiquement.",
+    "back": "Sauvegardes",
+    "search": "Rechercher un équipement ou un client",
+    "states": {
+      "label": "Préparation à la restauration",
+      "attention": "À vérifier",
+      "no_backup": "Sans sauvegarde",
+      "backup_stale": "Sauvegarde ancienne",
+      "backup_incomplete": "Sauvegarde incomplète",
+      "restore_failed": "Test échoué",
+      "no_restore_test": "Jamais testé",
+      "restore_stale": "Test ancien",
+      "ready": "Prêts",
+      "all": "Tous"
+    },
+    "columns": {
+      "device": "Équipement",
+      "state": "Préparation",
+      "backup": "Dernière sauvegarde réussie",
+      "test": "Dernier test de restauration",
+      "next": "Étape suivante"
+    },
+    "formats": {
+      "mikrotik_binary": ".backup",
+      "mikrotik_export": ".rsc"
+    },
+    "missing": "Manquant : {{formats}}",
+    "never": "jamais",
+    "noTest": "aucun test",
+    "results": {
+      "passed": "Réussi",
+      "partial": "Partiel",
+      "failed": "Échoué"
+    },
+    "integrityFailed": "Intégrité du fichier non confirmée",
+    "openBackups": "Sauvegardes",
+    "recordTest": "Enregistrer un test",
+    "openTests": "Tests de restauration",
+    "limited": "Premiers {{shown}} sur {{total}} équipements : affinez la recherche.",
+    "allGood": "Tous les MikroTik sont prêts à restaurer.",
+    "empty": "Aucun MikroTik dans cet état."
+  },
+  "routerbootFleet": {
+    "title": "RouterBOOT MikroTik",
+    "subtitle": "Équipements dont le RouterBOOT diffère de la version disponible après la mise à jour RouterOS. La mise à jour reste par équipement : flash puis redémarrage, chacun confirmé et vérifié.",
+    "back": "Firmware",
+    "search": "Rechercher un équipement ou un client",
+    "states": {
+      "label": "État RouterBOOT",
+      "attention": "À vérifier",
+      "pending": "À mettre à jour",
+      "blocked": "Bloqués",
+      "in_progress": "En cours",
+      "failed": "Échoués",
+      "unknown": "Non lus",
+      "current": "À jour",
+      "all": "Tous"
+    },
+    "reasons": {
+      "not_modern": "Nécessite l'agent moderne (RouterOS 7.13+)",
+      "profile": "Profil d'agent inadapté : réinstallez l'agent",
+      "offline": "Équipement hors ligne",
+      "not_read": "Lancez une vérification firmware pour lire RouterBOOT"
+    },
+    "workflow": {
+      "staging": "flash en cours",
+      "staged": "flash effectué, redémarrage requis",
+      "reboot_pending": "redémarrage en file",
+      "rebooting": "redémarrage et vérification"
+    },
+    "columns": {
+      "device": "Équipement",
+      "state": "État",
+      "current": "Actuel",
+      "available": "Disponible",
+      "checked": "Dernière vérification",
+      "next": "Étape suivante"
+    },
+    "stale": "Vérification de plus de 24 h",
+    "upgrade": "Mettre à jour",
+    "open": "Ouvrir",
+    "limited": "Premiers {{shown}} sur {{total}} équipements : affinez la recherche.",
+    "allGood": "Tous les RouterBOOT sont à jour.",
+    "empty": "Aucun MikroTik dans cet état."
   }
 }
