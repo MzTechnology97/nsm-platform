@@ -1321,7 +1321,8 @@
         "too_many": "Demasiados equipos seleccionados.",
         "confirm": "Escribe exactamente la frase de confirmación."
       }
-    }
+    },
+    "campaigns": "Campañas TR-069"
   },
   "vulns": {
     "title": "Vulnerabilidades",
@@ -5288,6 +5289,14 @@
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnóstico ACS completado",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnóstico ACS solicitado",
     "ACS_FIRMWARE_AUTO_CHANGED": "Descarga automática de firmware modificada",
+    "ACS_FIRMWARE_CAMPAIGN_CANCELLED": "Campaña de firmware TR-069 cancelada",
+    "ACS_FIRMWARE_CAMPAIGN_COMPLETED": "Campaña de firmware TR-069 completada",
+    "ACS_FIRMWARE_CAMPAIGN_CREATED": "Campaña de firmware TR-069 creada",
+    "ACS_FIRMWARE_CAMPAIGN_PAUSED": "Campaña de firmware TR-069 en pausa",
+    "ACS_FIRMWARE_CAMPAIGN_RESUMED": "Campaña de firmware TR-069 reanudada",
+    "ACS_FIRMWARE_CAMPAIGN_STARTED": "Campaña de firmware TR-069 iniciada",
+    "ACS_FIRMWARE_CAMPAIGN_STOPPED": "Campaña de firmware TR-069 detenida",
+    "ACS_FIRMWARE_CAMPAIGN_WAVE_STARTED": "Oleada de una campaña de firmware iniciada",
     "ACS_FIRMWARE_FAILED": "Actualización de firmware del CPE fallida",
     "ACS_FIRMWARE_FILE_FETCHED": "Firmware descargado del fabricante en el ACS",
     "ACS_FIRMWARE_FILE_STORED": "Imagen de firmware cargada en el ACS",
@@ -6653,5 +6662,77 @@
       "unverified": "Parámetros escritos, pero la relectura del CPE falló (error {{fault}}).",
       "unconfirmed": "El CPE no ejecutó la restauración en 30 minutos: el comando se eliminó de GenieACS."
     }
+  },
+  "acsCampaigns": {
+    "title": "Campañas de firmware TR-069",
+    "subtitle": "Actualice muchos CPE del mismo modelo: primero un CPE piloto, luego por oleadas, solo dentro de la franja horaria elegida. La campaña se detiene sola con la primera actualización fallida o no confirmada.",
+    "back": "Volver al firmware",
+    "backList": "Todas las campañas",
+    "new": "Nueva campaña",
+    "close": "Cerrar",
+    "newTitle": "Nueva campaña",
+    "newHelp": "Elija una imagen que ya esté en GenieACS (cargada desde la pestaña Firmware de un CPE o desde los catálogos): la campaña abarca los CPE vinculados de ese modelo. Se crea como borrador: no se envía nada hasta que la inicie escribiendo su nombre.",
+    "chooseFile": "Elija la imagen…",
+    "noFiles": "No hay imágenes de firmware en GenieACS: cargue una desde la pestaña Firmware de un CPE.",
+    "pilotAuto": "El primero por nombre",
+    "createDraft": "Crear el borrador",
+    "selected": "{{count}} CPE {{model}} elegidos de {{total}} vinculados.",
+    "fields": {
+      "name": "Nombre de la campaña",
+      "file": "Imagen de firmware",
+      "expected": "Versión esperada tras la actualización",
+      "waveSize": "CPE por oleada",
+      "window": "Franja horaria ({{tz}}): inicio y fin",
+      "pilot": "CPE piloto"
+    },
+    "columns": {
+      "name": "Campaña",
+      "state": "Estado",
+      "model": "Modelo → versión",
+      "progress": "Progreso",
+      "created": "Creada",
+      "device": "CPE",
+      "customer": "Cliente",
+      "version": "Versión",
+      "when": "Cuándo",
+      "error": "Detalle"
+    },
+    "status": {
+      "draft": "Borrador",
+      "running": "En curso",
+      "paused": "En pausa",
+      "stopped": "Detenida",
+      "completed": "Completada",
+      "cancelled": "Cancelada"
+    },
+    "device": {
+      "pending": "En espera",
+      "requested": "Actualizando",
+      "verified": "Actualizado",
+      "failed": "Fallido",
+      "unconfirmed": "No confirmado",
+      "skipped": "Omitido",
+      "cancelled": "Cancelado"
+    },
+    "errors": {
+      "already": "ya en la versión esperada",
+      "not_linked": "ya no vinculado a GenieACS",
+      "unexpected_version": "versión distinta de la esperada",
+      "no_new_version": "ninguna versión nueva tras 30 minutos",
+      "device_removed": "equipo eliminado"
+    },
+    "summary": "{{model}} → {{version}} · {{file}} · oleadas de {{wave}} · franja {{start}}–{{end}} ({{tz}})",
+    "rules": "El piloto se actualiza solo; las oleadas siguientes empiezan solo cuando la anterior está verificada por completo y solo dentro de la franja horaria. Las actualizaciones ya enviadas no se pueden retirar: pausa y cancelar solo detienen los CPE que aún no han empezado.",
+    "stopped": "Campaña detenida: {{reason}}. Revise el CPE y luego reanude la campaña para seguir con los demás.",
+    "outsideWindow": "Fuera de la franja horaria: la próxima oleada empezará cuando se abra la franja.",
+    "confirmStart": "Escriba «{{name}}» para iniciar la campaña",
+    "confirmResume": "Escriba «{{name}}» para reanudar la campaña",
+    "start": "Iniciar la campaña",
+    "resume": "Reanudar",
+    "pause": "Pausa",
+    "cancel": "Cancelar la campaña",
+    "pilot": "Piloto",
+    "wave": "Oleada {{number}}",
+    "empty": "Aún no hay campañas."
   }
 }

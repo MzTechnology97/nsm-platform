@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.270 — 2026-10-28
+
+ACS: firmware campaigns over many TR-069 CPEs
+
+### Added
+
+- Firmware campaigns over many TR-069 CPEs (ACS-08), *Firmware → Campagne TR-069*: one image already in GenieACS for one model, created as a draft and started by typing the campaign name; one pilot CPE first, then waves (10 CPEs by default, configurable 1–50), each only after the previous one is fully verified and only inside the chosen time window; automatic stop at the first failed or unconfirmed upgrade; pause, resume (typed name) and cancel; a page with the state of every CPE by wave. Reuses the single-CPE upgrade; migration `0059_acs_firmware_campaigns`; audit `ACS_FIRMWARE_CAMPAIGN_*`.
 ## 0.49.269 — 2026-10-28
 
 ACS: restore of TR-069 configuration snapshots

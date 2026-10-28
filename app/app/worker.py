@@ -40,6 +40,7 @@ from app.cambium_backup import scheduled_backups as cambium_scheduled_backups
 from app.acs_config_refresh import follow as acs_config_refresh_follow
 from app.acs_config_restore import follow as acs_config_restore_follow
 from app.acs_firmware import follow_upgrades as acs_firmware_follow
+from app.acs_firmware_campaigns import follow as acs_firmware_campaigns_follow
 from app.tplink_cloud_firmware import daily_refresh as tplink_cloud_refresh
 from app.acs_alerts import evaluate as acs_alerts_evaluate
 from app.tplink_access import enforce_telnet_policy as tplink_telnet_policy
@@ -131,6 +132,7 @@ while True:
             run_task("acs_config_refresh", acs_config_refresh_follow)
             run_task("acs_config_restore", acs_config_restore_follow)
             run_task("acs_firmware_follow", acs_firmware_follow)
+            run_task("acs_firmware_campaigns", acs_firmware_campaigns_follow)
             run_task("tplink_cloud_firmware", tplink_cloud_refresh)
             run_task("acs_alerts", acs_alerts_evaluate)
             run_task("tplink_telnet_policy", tplink_telnet_policy)

@@ -1321,7 +1321,8 @@
         "too_many": "Too many devices selected.",
         "confirm": "Type the exact confirmation phrase."
       }
-    }
+    },
+    "campaigns": "TR-069 campaigns"
   },
   "vulns": {
     "title": "Vulnerabilities",
@@ -5288,6 +5289,14 @@
     "ACS_DIAGNOSTIC_COMPLETED": "ACS diagnostic completed",
     "ACS_DIAGNOSTIC_REQUESTED": "ACS diagnostic requested",
     "ACS_FIRMWARE_AUTO_CHANGED": "Automatic firmware download changed",
+    "ACS_FIRMWARE_CAMPAIGN_CANCELLED": "TR-069 firmware campaign cancelled",
+    "ACS_FIRMWARE_CAMPAIGN_COMPLETED": "TR-069 firmware campaign completed",
+    "ACS_FIRMWARE_CAMPAIGN_CREATED": "TR-069 firmware campaign created",
+    "ACS_FIRMWARE_CAMPAIGN_PAUSED": "TR-069 firmware campaign paused",
+    "ACS_FIRMWARE_CAMPAIGN_RESUMED": "TR-069 firmware campaign resumed",
+    "ACS_FIRMWARE_CAMPAIGN_STARTED": "TR-069 firmware campaign started",
+    "ACS_FIRMWARE_CAMPAIGN_STOPPED": "TR-069 firmware campaign stopped",
+    "ACS_FIRMWARE_CAMPAIGN_WAVE_STARTED": "Firmware campaign wave started",
     "ACS_FIRMWARE_FAILED": "CPE firmware upgrade failed",
     "ACS_FIRMWARE_FILE_FETCHED": "Firmware downloaded from the vendor into the ACS",
     "ACS_FIRMWARE_FILE_STORED": "Firmware image loaded into the ACS",
@@ -6653,5 +6662,77 @@
       "unverified": "Parameters written, but reading them back from the CPE failed (fault {{fault}}).",
       "unconfirmed": "The CPE did not run the restore within 30 minutes: the command was deleted from GenieACS."
     }
+  },
+  "acsCampaigns": {
+    "title": "TR-069 firmware campaigns",
+    "subtitle": "Upgrade many CPEs of the same model: one pilot CPE first, then in waves, only inside the chosen time window. The campaign stops by itself at the first failed or unconfirmed upgrade.",
+    "back": "Back to firmware",
+    "backList": "All campaigns",
+    "new": "New campaign",
+    "close": "Close",
+    "newTitle": "New campaign",
+    "newHelp": "Choose an image already in GenieACS (loaded from a CPE's Firmware tab or from the catalogs): the campaign covers the linked CPEs of that model. It is created as a draft: nothing starts until you start it by typing its name.",
+    "chooseFile": "Choose the image…",
+    "noFiles": "No firmware image in GenieACS: load one from a CPE's Firmware tab first.",
+    "pilotAuto": "The first by name",
+    "createDraft": "Create the draft",
+    "selected": "{{count}} {{model}} CPEs chosen out of {{total}} linked.",
+    "fields": {
+      "name": "Campaign name",
+      "file": "Firmware image",
+      "expected": "Expected version after the upgrade",
+      "waveSize": "CPEs per wave",
+      "window": "Time window ({{tz}}): start and end",
+      "pilot": "Pilot CPE"
+    },
+    "columns": {
+      "name": "Campaign",
+      "state": "State",
+      "model": "Model → version",
+      "progress": "Progress",
+      "created": "Created",
+      "device": "CPE",
+      "customer": "Customer",
+      "version": "Version",
+      "when": "When",
+      "error": "Detail"
+    },
+    "status": {
+      "draft": "Draft",
+      "running": "Running",
+      "paused": "Paused",
+      "stopped": "Stopped",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "device": {
+      "pending": "Waiting",
+      "requested": "Upgrading",
+      "verified": "Upgraded",
+      "failed": "Failed",
+      "unconfirmed": "Unconfirmed",
+      "skipped": "Skipped",
+      "cancelled": "Cancelled"
+    },
+    "errors": {
+      "already": "already on the expected version",
+      "not_linked": "no longer linked to GenieACS",
+      "unexpected_version": "version differs from the expected one",
+      "no_new_version": "no new version after 30 minutes",
+      "device_removed": "device deleted"
+    },
+    "summary": "{{model}} → {{version}} · {{file}} · waves of {{wave}} · window {{start}}–{{end}} ({{tz}})",
+    "rules": "The pilot is upgraded alone; the next waves start only when the previous wave is fully verified and only inside the time window. Upgrades already sent cannot be called back: pause and cancel only stop the CPEs not started yet.",
+    "stopped": "Campaign stopped: {{reason}}. Check the CPE, then resume the campaign to go on with the others.",
+    "outsideWindow": "Outside the time window: the next wave starts when the window opens.",
+    "confirmStart": "Type “{{name}}” to start the campaign",
+    "confirmResume": "Type “{{name}}” to resume the campaign",
+    "start": "Start the campaign",
+    "resume": "Resume",
+    "pause": "Pause",
+    "cancel": "Cancel the campaign",
+    "pilot": "Pilot",
+    "wave": "Wave {{number}}",
+    "empty": "No campaign yet."
   }
 }

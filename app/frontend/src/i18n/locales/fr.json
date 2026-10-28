@@ -1321,7 +1321,8 @@
         "too_many": "Trop d'équipements sélectionnés.",
         "confirm": "Saisissez exactement la phrase de confirmation."
       }
-    }
+    },
+    "campaigns": "Campagnes TR-069"
   },
   "vulns": {
     "title": "Vulnérabilités",
@@ -5288,6 +5289,14 @@
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnostic ACS terminé",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnostic ACS demandé",
     "ACS_FIRMWARE_AUTO_CHANGED": "Téléchargement automatique des firmwares modifié",
+    "ACS_FIRMWARE_CAMPAIGN_CANCELLED": "Campagne firmware TR-069 annulée",
+    "ACS_FIRMWARE_CAMPAIGN_COMPLETED": "Campagne firmware TR-069 terminée",
+    "ACS_FIRMWARE_CAMPAIGN_CREATED": "Campagne firmware TR-069 créée",
+    "ACS_FIRMWARE_CAMPAIGN_PAUSED": "Campagne firmware TR-069 en pause",
+    "ACS_FIRMWARE_CAMPAIGN_RESUMED": "Campagne firmware TR-069 reprise",
+    "ACS_FIRMWARE_CAMPAIGN_STARTED": "Campagne firmware TR-069 lancée",
+    "ACS_FIRMWARE_CAMPAIGN_STOPPED": "Campagne firmware TR-069 arrêtée",
+    "ACS_FIRMWARE_CAMPAIGN_WAVE_STARTED": "Vague d'une campagne firmware lancée",
     "ACS_FIRMWARE_FAILED": "Échec de la mise à jour du firmware du CPE",
     "ACS_FIRMWARE_FILE_FETCHED": "Firmware téléchargé du constructeur dans l'ACS",
     "ACS_FIRMWARE_FILE_STORED": "Image firmware chargée dans l'ACS",
@@ -6653,5 +6662,77 @@
       "unverified": "Paramètres écrits, mais la relecture sur le CPE a échoué (erreur {{fault}}).",
       "unconfirmed": "Le CPE n'a pas exécuté la restauration dans les 30 minutes : la commande a été supprimée de GenieACS."
     }
+  },
+  "acsCampaigns": {
+    "title": "Campagnes firmware TR-069",
+    "subtitle": "Mettez à jour de nombreux CPE du même modèle : d'abord un CPE pilote, puis par vagues, uniquement dans la plage horaire choisie. La campagne s'arrête seule à la première mise à jour échouée ou non confirmée.",
+    "back": "Retour au firmware",
+    "backList": "Toutes les campagnes",
+    "new": "Nouvelle campagne",
+    "close": "Fermer",
+    "newTitle": "Nouvelle campagne",
+    "newHelp": "Choisissez une image déjà dans GenieACS (chargée depuis l'onglet Firmware d'un CPE ou depuis les catalogues) : la campagne porte sur les CPE liés de ce modèle. Elle est créée en brouillon : rien ne part tant que vous ne la lancez pas en saisissant son nom.",
+    "chooseFile": "Choisissez l'image…",
+    "noFiles": "Aucune image firmware dans GenieACS : chargez-en une depuis l'onglet Firmware d'un CPE.",
+    "pilotAuto": "Le premier par nom",
+    "createDraft": "Créer le brouillon",
+    "selected": "{{count}} CPE {{model}} choisis sur {{total}} liés.",
+    "fields": {
+      "name": "Nom de la campagne",
+      "file": "Image firmware",
+      "expected": "Version attendue après la mise à jour",
+      "waveSize": "CPE par vague",
+      "window": "Plage horaire ({{tz}}) : début et fin",
+      "pilot": "CPE pilote"
+    },
+    "columns": {
+      "name": "Campagne",
+      "state": "État",
+      "model": "Modèle → version",
+      "progress": "Avancement",
+      "created": "Créée",
+      "device": "CPE",
+      "customer": "Client",
+      "version": "Version",
+      "when": "Quand",
+      "error": "Détail"
+    },
+    "status": {
+      "draft": "Brouillon",
+      "running": "En cours",
+      "paused": "En pause",
+      "stopped": "Arrêtée",
+      "completed": "Terminée",
+      "cancelled": "Annulée"
+    },
+    "device": {
+      "pending": "En attente",
+      "requested": "En mise à jour",
+      "verified": "Mis à jour",
+      "failed": "Échec",
+      "unconfirmed": "Non confirmé",
+      "skipped": "Ignoré",
+      "cancelled": "Annulé"
+    },
+    "errors": {
+      "already": "déjà à la version attendue",
+      "not_linked": "plus lié à GenieACS",
+      "unexpected_version": "version différente de celle attendue",
+      "no_new_version": "aucune nouvelle version après 30 minutes",
+      "device_removed": "équipement supprimé"
+    },
+    "summary": "{{model}} → {{version}} · {{file}} · vagues de {{wave}} · plage {{start}}–{{end}} ({{tz}})",
+    "rules": "Le pilote est mis à jour seul ; les vagues suivantes partent seulement quand la vague précédente est entièrement vérifiée, et seulement dans la plage horaire. Les mises à jour déjà envoyées ne peuvent pas être rappelées : pause et annulation n'arrêtent que les CPE pas encore lancés.",
+    "stopped": "Campagne arrêtée : {{reason}}. Vérifiez le CPE, puis reprenez la campagne pour continuer avec les autres.",
+    "outsideWindow": "Hors plage horaire : la prochaine vague partira à l'ouverture de la plage.",
+    "confirmStart": "Saisissez « {{name}} » pour lancer la campagne",
+    "confirmResume": "Saisissez « {{name}} » pour reprendre la campagne",
+    "start": "Lancer la campagne",
+    "resume": "Reprendre",
+    "pause": "Pause",
+    "cancel": "Annuler la campagne",
+    "pilot": "Pilote",
+    "wave": "Vague {{number}}",
+    "empty": "Aucune campagne pour l'instant."
   }
 }
