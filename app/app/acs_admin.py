@@ -74,11 +74,26 @@ for (const path of ["Device.IP.Interface.*.Status", "Device.IP.Interface.*.Stats
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.ExternalIPAddress", {value: hourly});
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.ExternalIPAddress", {value: hourly});
 declare("Device.IP.Interface.*.IPv4Address.*.IPAddress", {value: hourly});
+// Remote web management (port, protocol, allowed host): qualifies the exposure check from NSM.
+for (const root of ["InternetGatewayDevice", "Device"]) {
+  declare(root + ".UserInterface.RemoteAccess.*", {value: daily});
+}
 // Port forwarding, DMZ and UPnP (monitoring only), re-read every hour.
 declare("Device.NAT.PortMapping.*.*", {value: hourly});
 declare("Device.NAT.*.*", {value: hourly});  // vendor flags such as X_TP_UPnPCfg.Enable, DMZ objects
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.PortMapping.*.*", {value: hourly});
 declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.PortMapping.*.*", {value: hourly});
+// PON optical levels (Rx/Tx, temperature, voltage, bias) where the CPE exposes them, re-read every hour.
+for (const path of ["Device.Optical.Interface.*.*",
+                    "InternetGatewayDevice.WANDevice.*.X_GponInterafceConfig.*",
+                    "InternetGatewayDevice.WANDevice.*.X_GponInterfaceConfig.*",
+                    "InternetGatewayDevice.WANDevice.*.X_ZTE-COM_WANPONInterfaceConfig.*",
+                    "InternetGatewayDevice.WANDevice.*.X_CT-COM_GponInterfaceConfig.*",
+                    "InternetGatewayDevice.WANDevice.*.X_CT-COM_EponInterfaceConfig.*",
+                    "InternetGatewayDevice.WANDevice.*.X_CMCC_GponInterfaceConfig.*",
+                    "InternetGatewayDevice.WANDevice.*.WANPONInterfaceConfig.*"]) {
+  declare(path, {value: hourly});
+}
 // Interface MAC addresses, used by NSM to find a CPE by the MAC on its label.
 for (const path of ["Device.Ethernet.Interface.*.MACAddress", "Device.Ethernet.Link.*.MACAddress",
                     "InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.MACAddress",

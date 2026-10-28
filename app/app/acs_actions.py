@@ -26,6 +26,7 @@ from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 
+from app import acs_profiles as profiles
 from app import acs_diagnostics as nbi
 from app import genieacs_connector as acs
 from app import main as core
@@ -37,8 +38,8 @@ router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 SSID_RE = re.compile(r"^[\x20-\x7e]{1,32}$")
 PASSWORD_RE = re.compile(r"^[\x20-\x7e]{8,63}$")
 REBOOT_GIVE_UP = timedelta(minutes=15)
-TR181_WIFI = "Device.WiFi"
-TR098_WLAN = "InternetGatewayDevice.LANDevice.1.WLANConfiguration"
+TR181_WIFI = profiles.path("tr181", "wifi")
+TR098_WLAN = profiles.path("tr098", "wifi")
 
 
 def _v(node, *parts):
