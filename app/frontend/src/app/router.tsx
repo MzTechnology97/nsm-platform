@@ -446,6 +446,11 @@ const adminIspbillingRoute = createRoute({
   path: "/admin/integrations/ispbilling",
   component: lazyRouteComponent(() => import("../pages/AdminIspbilling"), "AdminIspbilling"),
 });
+const adminBrasRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/integrations/bras",
+  component: lazyRouteComponent(() => import("../pages/AdminBras"), "AdminBras"),
+});
 const ispbillingImportRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/integrations/ispbilling/import",
@@ -681,6 +686,7 @@ export const routeTree = rootRoute.addChildren([
   uispCustomersRoute,
   cnmaestroOnboardingRoute,
   adminIspbillingRoute,
+  adminBrasRoute,
   ispbillingImportRoute,
   searchRoute,
   notificationsRoute,

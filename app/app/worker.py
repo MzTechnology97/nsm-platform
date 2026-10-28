@@ -20,6 +20,7 @@ from app.mikrotik_telemetry import telemetry_cleanup
 from app.uisp_metrics import cleanup as uisp_metrics_cleanup
 from app.cnmaestro_connector import cleanup as cnmaestro_cleanup, scheduled_sync as cnmaestro_sync
 from app.ispbilling_connector import scheduled_sync as ispbilling_sync
+from app.mikrotik_bras import scheduled_sync as bras_sync
 from app.interface_traffic import cleanup as interface_traffic_cleanup
 from app.telemetry_rollup import consolidate as consolidate_telemetry
 from app.icmp_monitor import cleanup as icmp_cleanup, tick as icmp_tick
@@ -123,6 +124,7 @@ while True:
             run_task("cnmaestro_sync", cnmaestro_sync)
             run_task("acs_customer_tags", acs_customer_tags)
             run_task("ispbilling_sync", ispbilling_sync)
+            run_task("bras_sync", bras_sync)
             run_task("zabbix_problems", zabbix_problems_refresh)
             run_task("acs_monitoring", acs_monitoring_collect)
             run_task("acs_syslog_auto", acs_syslog_auto)

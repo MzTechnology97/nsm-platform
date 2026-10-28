@@ -9,6 +9,7 @@ const INTEGRATION_PAGES: { key: string; route: string }[] = [
   { key: "zabbix", route: "/admin/integrations/zabbix" },
   { key: "cnmaestro", route: "/admin/integrations/cnmaestro" },
   { key: "ispbilling", route: "/admin/integrations/ispbilling" },
+  { key: "bras", route: "/admin/integrations/bras" },
   { key: "probe", route: "/admin/integrations/probe" },
 ];
 

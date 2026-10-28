@@ -89,6 +89,7 @@ export interface DiffRow {
 
 export interface ArtifactText {
   artifact: ArtifactFile;
+  artifact_type?: string;
   lines: string[];
   candidates: ArtifactFile[];
   against: ArtifactFile | null;

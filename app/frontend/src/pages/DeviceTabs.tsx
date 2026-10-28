@@ -3,10 +3,10 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
-import { type ExposureFinding, type ExposureTab, type JobFilters, type JournalEntry, type JournalKind, type PortForward, type DeviceEventRow, useDeviceCompliance, useDeviceExposure,
-  useDeviceJobs, useExposureAction, useLogbook, useLogbookActions } from "../api/deviceTabs";
+import { type ExposureFinding, type ExposureTab, type IspbillingActivity, type JobFilters, type JournalEntry, type JournalKind, type PortForward, type DeviceEventRow,
+  useDeviceCompliance, useDeviceExposure, useDeviceJobs, useExposureAction, useIspbillingActivities, useLogbook, useLogbookActions } from "../api/deviceTabs";
 import { BrandIcon } from "../app/BrandIcon";
-import { formatDateTime, formatRelative, fromLocalInput, toLocalInput } from "../lib/format";
+import { formatDate, formatDateTime, formatRelative, fromLocalInput, toLocalInput } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { eventLabel, eventSource } from "../lib/events";
 import { Loading } from "../app/States";
@@ -26,20 +26,26 @@ export function DeviceActivity() {
   );
 }
 
-type TimelineRow = { at: string; entry?: JournalEntry; event?: DeviceEventRow };
+type TimelineRow = { at: string; entry?: JournalEntry; event?: DeviceEventRow; activity?: IspbillingActivity };
 
 /** What people did on the device (site visits, replacements, customer contacts, notes), newest first; entries are never edited. */
 function DeviceLogbook({ deviceId }: { deviceId: string }) {
   const { t, i18n } = useTranslation();
   const [events, setEvents] = useState(false);
+  const [billing, setBilling] = useState(true);
   const query = useLogbook(deviceId, events);
+  const ispbilling = useIspbillingActivities(deviceId, billing);
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
   if (!data) return <Loading />;
+  // ISPBilling is optional: its activities join the timeline when the connector is on and the customer was imported from it.
+  const billingData = ispbilling.data;
+  const billingLinked = !!billingData?.available && billingData.linked;
   const rows: TimelineRow[] = [
     ...data.entries.map((entry) => ({ at: entry.occurred_at, entry })),
     ...data.events.map((event) => ({ at: event.at, event })),
-  ].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+    ...(billing && billingLinked ? billingData!.activities.map((activity) => ({ at: activity.start ?? "", activity })) : []),
+  ].sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0));
   return (
     <section className="ui-panel ui-admin-section ui-logbook">
       <div className="ui-page-header-row">
@@ -53,9 +59,18 @@ function DeviceLogbook({ deviceId }: { deviceId: string }) {
         <input type="checkbox" checked={events} onChange={(event) => setEvents(event.target.checked)} />
         {t("logbook.showEvents")}
       </label>
+      {billingLinked && (
+        <label className="ui-with-brand ui-logbook-toggle">
+          <input type="checkbox" checked={billing} onChange={(event) => setBilling(event.target.checked)} />
+          {t("logbook.ispbilling.show")}
+        </label>
+      )}
+      {billing && billingLinked && billingData!.error && <p className="ui-muted">{t("logbook.ispbilling.error", { error: billingData!.error })}</p>}
       {rows.length ? (
         <ol className="ui-timeline">
-          {rows.map((row) => (row.entry ? <EntryItem key={`e-${row.entry.id}`} deviceId={deviceId} entry={row.entry} /> : (
+          {rows.map((row) => (row.entry ? <EntryItem key={`e-${row.entry.id}`} deviceId={deviceId} entry={row.entry} /> : row.activity ? (
+            <ActivityItem key={`i-${row.activity.id}`} activity={row.activity} />
+          ) : (
             <li key={`a-${row.event!.id}`} className="ui-timeline-item is-event">
               <span className="ui-timeline-dot" aria-hidden="true" />
               <div>
@@ -142,6 +157,30 @@ function EntryItem({ deviceId, entry }: { deviceId: string; entry: JournalEntry 
           )}
         </div>
         <p className="ui-logbook-body">{entry.body}</p>
+      </div>
+    </li>
+  );
+}
+
+/** An ISPBilling activity (installation, intervention…) of the device's place or of its customer; read-only here. */
+function ActivityItem({ activity }: { activity: IspbillingActivity }) {
+  const { t, i18n } = useTranslation();
+  const when = activity.all_day ? formatDate(activity.start, i18n.language) : formatDateTime(activity.start, i18n.language);
+  return (
+    <li className={`ui-timeline-item is-ispbilling is-${activity.kind}${activity.state === "cancelled" ? " is-cancelled" : ""}`}>
+      <span className="ui-timeline-dot" aria-hidden="true" />
+      <div>
+        <div className="ui-timeline-head">
+          <span className={`ui-logbook-tag is-${activity.kind}`}>{activity.type ?? t("logbook.ispbilling.untitled")}</span>
+          {activity.state !== "past" && <span className={`ui-logbook-state is-${activity.state}`}>{t(`logbook.ispbilling.states.${activity.state}`)}</span>}
+          <small className="ui-muted">
+            {[when, activity.teams.join(", "), activity.customer, activity.scope === "customer" ? t("logbook.ispbilling.customerScope") : null,
+              t("logbook.ispbilling.source")].filter(Boolean).join(" · ")}
+          </small>
+        </div>
+        {activity.subject && <strong className="ui-block">{activity.subject}</strong>}
+        {activity.description && <p className="ui-logbook-body">{activity.description}</p>}
+        {activity.cancellation_reason && <small className="ui-muted ui-block">{t("logbook.ispbilling.reason", { reason: activity.cancellation_reason })}</small>}
       </div>
     </li>
   );
