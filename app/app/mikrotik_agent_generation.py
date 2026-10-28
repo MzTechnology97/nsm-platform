@@ -23,6 +23,7 @@ Agent 0.49.20: interface errors and drops in every heartbeat (MON-01).
 Agent 0.49.21: wireless registration table (signal, CCQ, peers) in every heartbeat (MON-01).
 Agent 0.49.22: interface counters of every interface, each read on its own (monitored-interface fix).
 Agent 0.49.23: the legacy Agent reports why a job failed (step and reason), e.g. a backup export read limit.
+Agent 0.49.24: read-only snapshot sections queues, certificates and routing (BGP/OSPF), modern and legacy (MTK-05).
 Agent 0.49.25: firmware staging waits for and verifies the RouterOS package; activation reboots only with the package on the router.
 """
 from __future__ import annotations

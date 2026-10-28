@@ -179,6 +179,62 @@ def _load_device(db, device_id):
     return device
 
 
+PREPARE_KEY = "firmware_prepare_request"
+PREPARE_MAX_AGE = timedelta(minutes=30)
+
+
+def request_plan(db, device: Device, user) -> dict:
+    """*Prepara upgrade* in one click: the plan at once when the readiness check is recent, else the check is queued and
+    the plan is opened when its result arrives (``prepare_after_readiness``). The caller commits."""
+    if _readiness_fresh(device):
+        plan_id, created = open_plan(db, device, user)
+        return {"plan_id": str(plan_id), "created": created}
+    from app.mikrotik_firmware_readiness import queue_readiness_job
+
+    if device.vendor != "mikrotik":
+        raise HTTPException(400, "Piano firmware disponibile solo per MikroTik in questa fase.")
+    state = queue_readiness_job(db, device, user)
+    if state == "agent_required":
+        raise HTTPException(409, "Il MikroTik deve essere online con l'agent NSM per verificare gli aggiornamenti.")
+    data = dict(device.inventory_data or {})
+    data[PREPARE_KEY] = {"user_id": str(user.id) if user else None, "at": utcnow().isoformat()}
+    device.inventory_data = data
+    return {"plan_id": None, "checking": True}
+
+
+def prepare_state(device: Device) -> dict | None:
+    request = (device.inventory_data or {}).get(PREPARE_KEY)
+    return dict(request) if isinstance(request, dict) else None
+
+
+def prepare_after_readiness(db, device: Device) -> None:
+    """Called when a readiness check of the device completes: opens the plan someone asked for meanwhile (audited by
+    ``open_plan``), or records why it could not be opened. The caller commits."""
+    from app.models import User
+
+    request = prepare_state(device)
+    if not request or request.get("error"):
+        return
+    data = dict(device.inventory_data or {})
+    try:
+        at = __import__("datetime").datetime.fromisoformat(str(request.get("at")))
+    except ValueError:
+        at = None
+    if at is None or utcnow() - at > PREPARE_MAX_AGE:
+        data.pop(PREPARE_KEY, None)
+        device.inventory_data = data
+        return
+    user = db.get(User, uuid.UUID(request["user_id"])) if request.get("user_id") else None
+    try:
+        open_plan(db, device, user)
+        data = dict(device.inventory_data or {})
+        data.pop(PREPARE_KEY, None)
+    except HTTPException as exc:
+        data = dict(device.inventory_data or {})
+        data[PREPARE_KEY] = {**request, "error": str(exc.detail)[:300]}
+    device.inventory_data = data
+
+
 def open_plan(db, device: Device, user) -> tuple[uuid.UUID, bool]:
     """Create (or return the active) upgrade plan; raises HTTPException when not allowed.
 
