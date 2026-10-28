@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.276 — 2026-10-28
+
+Syslog: warning and worse by default on every device
+- **TP-Link (through the ACS):**
+  - The default level is now *warning* instead of *info*.
+  - CPEs that NSM configured by itself move to warning automatically at their next contact.
+  - A level chosen by a technician on a device stays as it is. From now on NSM records who set the level.
+- **Ubiquiti airOS (through UISP):**
+  - airOS has no level setting and sends every log, so NSM keeps only *warning* and worse (default).
+  - The level is changed from the device's *Syslog* tab and applies at once, with no reboot.
+  - Logins are always kept, so the *Accessi* page still sees them.
+- **MikroTik:** unchanged. They already send warning and worse, plus logins for the *Accessi* page.
+- Note: TP-Links at warning probably no longer send their logins, which they usually log at info or notice. If you need them on a device, set its level to *Informazioni* from its *Syslog* tab.
+
 ## 0.49.275 — 2026-10-28
 
 GUI: icons in page headers and empty states
