@@ -4198,7 +4198,17 @@
       "dl_throughput_bps": "Downlink throughput",
       "ul_throughput_bps": "Uplink throughput"
     },
-    "metricsAt": "Values from {{when}}."
+    "metricsAt": "Values from {{when}}.",
+    "rebootTitle": "Reboot through cnMaestro",
+    "rebootHelp": "cnMaestro reboots the device; NSM checks it comes back online within 20 minutes.",
+    "rebootStates": {
+      "requested": "reboot being verified",
+      "verified": "reboot verified",
+      "failed": "reboot not verified"
+    },
+    "reboot": "Reboot through cnMaestro",
+    "rebootSent": "Reboot sent through cnMaestro.",
+    "firmwareNote": "Firmware upgrades are not available through the cnMaestro API: start them from the cnMaestro interface, and NSM sees the new version at the next sync."
   },
   "deviceGenieacs": {
     "recordHelp": "Customer and site stay those of NSM: GenieACS does not change them.",
@@ -5350,6 +5360,9 @@
     "CNMAESTRO_BULK_ONBOARDING": "cnMaestro import",
     "CNMAESTRO_CONFIGURED": "cnMaestro connector configured",
     "CNMAESTRO_DEVICE_LINKED": "Device linked to cnMaestro",
+    "CNMAESTRO_REBOOT_FAILED": "Reboot through cnMaestro not verified",
+    "CNMAESTRO_REBOOT_REQUESTED": "Reboot requested through cnMaestro",
+    "CNMAESTRO_REBOOT_VERIFIED": "Reboot through cnMaestro verified",
     "COMPLIANCE_ACKNOWLEDGED": "Compliance finding acknowledged",
     "COMPLIANCE_BASELINE_SAVED": "Compliance baseline saved",
     "COMPLIANCE_EVALUATED": "Compliance evaluated",

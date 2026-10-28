@@ -14,7 +14,8 @@
 
 - ``GET /api/ui/v1/devices/{id}/cnmaestro`` (``devices.read``): link state and the
   last values read by the cnMaestro sync; ``GET .../cnmaestro/metrics``
-  (``monitoring.read``) the chart series;
+  (``monitoring.read``) the chart series; ``POST .../cnmaestro/reboot``
+  (``firmware.execute``, typed device name) through ``cnmaestro_operations``;
 - ``GET /api/ui/v1/devices/{id}/genieacs`` (``devices.read``, TR-069 CPEs):
   record, connector and inventory read from GenieACS; ``POST .../preview``
   (lookup by serial then MAC, read-only), ``.../associate`` and ``.../refresh``
@@ -192,8 +193,34 @@ def device_cnmaestro(request: Request, device_id: uuid.UUID):
             "record": {"mac": device.primary_mac, "serial": device.serial_number},
             "metrics": [{"field": field, "unit": unit, "value": metrics.get(field)} for field, (_label, unit, _keys) in cnm.FIELDS.items()],
             "configured": connection is not None,
-            "can": {"metrics": core.has_permission(user, "monitoring.read"), "configure": core.has_permission(user, "users.manage")},
+            "name": _name(device),
+            "reboot": (device.inventory_data or {}).get("cnmaestro_reboot"),
+            "can": {"metrics": core.has_permission(user, "monitoring.read"), "configure": core.has_permission(user, "users.manage"),
+                    "reboot": bool(meta.get("mac") and connection is not None and connection.is_enabled and core.has_permission(user, "firmware.execute"))},
         })
+
+
+@router.post("/devices/{device_id}/cnmaestro/reboot", dependencies=[Depends(require_csrf)])
+def device_cnmaestro_reboot(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    """Reboot through cnMaestro with the device name typed as confirmation; the worker verifies it (cnmaestro_operations)."""
+    from app import cnmaestro_connector as cnm
+    from app import cnmaestro_operations as ops
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.execute")
+        device = db.get(Device, device_id)
+        if not device or not cnm.is_cambium(device):
+            raise HTTPException(404)
+        confirm = body.get("confirm_name")
+        if not isinstance(confirm, str) or confirm.strip() != _name(device):
+            raise HTTPException(422, {"code": "confirm_name", "message": "Il nome di conferma non corrisponde all'apparato."})
+        try:
+            state = ops.request_reboot(db, device, user)
+        except ops.CnMaestroOperationError as exc:
+            db.rollback()
+            raise HTTPException(422, {"code": "cnmaestro", "message": str(exc)}) from None
+        db.commit()
+        return {"ok": True, "reboot": state}
 
 
 @router.get("/devices/{device_id}/cnmaestro/metrics")

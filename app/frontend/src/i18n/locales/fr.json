@@ -4198,7 +4198,17 @@
       "dl_throughput_bps": "Débit descendant",
       "ul_throughput_bps": "Débit montant"
     },
-    "metricsAt": "Valeurs du {{when}}."
+    "metricsAt": "Valeurs du {{when}}.",
+    "rebootTitle": "Redémarrage via cnMaestro",
+    "rebootHelp": "cnMaestro redémarre l'équipement ; NSM vérifie qu'il revient en ligne sous 20 minutes.",
+    "rebootStates": {
+      "requested": "redémarrage en vérification",
+      "verified": "redémarrage vérifié",
+      "failed": "redémarrage non vérifié"
+    },
+    "reboot": "Redémarrer via cnMaestro",
+    "rebootSent": "Redémarrage envoyé via cnMaestro.",
+    "firmwareNote": "La mise à jour du firmware n'est pas disponible dans l'API de cnMaestro : lancez-la depuis l'interface de cnMaestro ; NSM voit la nouvelle version à la synchronisation suivante."
   },
   "deviceGenieacs": {
     "recordHelp": "Client et site restent ceux de NSM : GenieACS ne les modifie pas.",
@@ -5350,6 +5360,9 @@
     "CNMAESTRO_BULK_ONBOARDING": "Import depuis cnMaestro",
     "CNMAESTRO_CONFIGURED": "Connecteur cnMaestro configuré",
     "CNMAESTRO_DEVICE_LINKED": "Équipement lié à cnMaestro",
+    "CNMAESTRO_REBOOT_FAILED": "Redémarrage via cnMaestro non vérifié",
+    "CNMAESTRO_REBOOT_REQUESTED": "Redémarrage demandé via cnMaestro",
+    "CNMAESTRO_REBOOT_VERIFIED": "Redémarrage via cnMaestro vérifié",
     "COMPLIANCE_ACKNOWLEDGED": "Non-conformité prise en charge",
     "COMPLIANCE_BASELINE_SAVED": "Référentiel de conformité enregistré",
     "COMPLIANCE_EVALUATED": "Conformité évaluée",

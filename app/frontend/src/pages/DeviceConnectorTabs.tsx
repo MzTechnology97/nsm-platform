@@ -1,8 +1,9 @@
 import { Link, useParams } from "@tanstack/react-router";
+import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
-import { type GenieacsCandidate, useDeviceCnmaestro, useDeviceGenieacs, useGenieacsAction } from "../api/deviceConnectors";
+import { type CnmaestroTab, type GenieacsCandidate, useCnmaestroReboot, useDeviceCnmaestro, useDeviceGenieacs, useGenieacsAction } from "../api/deviceConnectors";
 import { formatDateTime } from "../lib/format";
 import { metricValue } from "./DeviceUisp";
 import { Loading } from "../app/States";
@@ -73,7 +74,41 @@ export function DeviceCnmaestro() {
         <MonitorLink deviceId={deviceId} />
       )}
       <CambiumBackup deviceId={deviceId} />
+      {data.can.reboot && <CnmaestroReboot deviceId={deviceId} data={data} />}
     </>
+  );
+}
+
+/** Reboot through cnMaestro with the device name typed as confirmation; the worker checks it came back (time online restarted). */
+function CnmaestroReboot({ deviceId, data }: { deviceId: string; data: CnmaestroTab }) {
+  const { t, i18n } = useTranslation();
+  const reboot = useCnmaestroReboot(deviceId);
+  const [typed, setTyped] = useState("");
+  const state = data.reboot;
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    reboot.mutate(typed, { onSuccess: () => setTyped("") });
+  };
+  return (
+    <section className="ui-panel">
+      <form className="ui-admin-form ui-admin-stack ui-danger-zone" onSubmit={submit}>
+        <h3>{t("deviceCnmaestro.rebootTitle")}</h3>
+        <p className="ui-muted">{t("deviceCnmaestro.rebootHelp")}</p>
+        {state?.status && (
+          <small className={state.status === "failed" ? "ui-backup-error" : "ui-muted"}>
+            {t(`deviceCnmaestro.rebootStates.${state.status}`, { defaultValue: state.status })} · {formatDateTime(state.requested_at, i18n.language)}{state.detail ? ` · ${state.detail}` : ""}
+          </small>
+        )}
+        <label><span>{t("customerForm.confirmName", { name: data.name })}</span>
+          <input value={typed} onChange={(event) => setTyped(event.target.value)} required autoComplete="off" /></label>
+        <button type="submit" className="ui-button ui-button-danger" disabled={reboot.isPending || typed.trim() !== data.name || state?.status === "requested"}>
+          {t("deviceCnmaestro.reboot")}
+        </button>
+        {reboot.isSuccess && <small className="ui-live">{t("deviceCnmaestro.rebootSent")}</small>}
+        {reboot.error && <small className="ui-backup-error">{message(reboot.error)}</small>}
+        <p className="ui-muted">{t("deviceCnmaestro.firmwareNote")}</p>
+      </form>
+    </section>
   );
 }
 

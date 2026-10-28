@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.271 — 2026-10-28
+
+Reboot of Cambium devices through cnMaestro
+
+### Added
+- **Cambium devices can be rebooted through cnMaestro, with verification.** The *cnMaestro* tab of a linked device has *Riavvia tramite cnMaestro*. You type the device name to confirm (permission `firmware.execute`), and only one reboot per device can be pending. NSM records how long the device has been online and asks cnMaestro to reboot it. The worker then reads the device on cnMaestro and marks the reboot *verified* when the time online restarts, the device comes back after being offline, or the last reboot reason changes. It is *not verified* after 20 minutes without any of these. If cnMaestro refuses, for example because the API client lacks write permission, the reason is shown and nothing is recorded. Activity log: `CNMAESTRO_REBOOT_REQUESTED`, `CNMAESTRO_REBOOT_VERIFIED`, `CNMAESTRO_REBOOT_FAILED`.
+
+### Changed
+- **Firmware upgrades of Cambium devices stay in cnMaestro.** The cnMaestro API v2 has no software image or upgrade endpoint, so NSM does not offer the upgrade. The *cnMaestro* tab says so, and NSM shows the new version after the next sync.
 ## 0.49.270 — 2026-10-28
 
 ACS: firmware campaigns over many TR-069 CPEs

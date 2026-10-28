@@ -649,9 +649,21 @@ The samples NSM reads from cnMaestro every 15 minutes (`cambium_metric_samples`)
 
 MON-02: the 90-day retention deletes old samples except the newest of each device, so a Cambium device offline for months keeps its last sample. When the chosen range has none, the Monitor tab shows *Ultimi valori ricevuti* with their time. A sync in which cnMaestro sends no statistics for a device no longer clears its last values on the *cnMaestro* tab, which also shows when they were read (`metrics_at`).
 
+### Reboot through cnMaestro (VEND-02 step 3, Core 0.49.271)
+
+`app/cnmaestro_operations.py`, operator decision 2026-10-23 (reboot and firmware). What the API v2 offers was checked with GET only on the operator's cnMaestro on-premises; action paths were tried only on a made-up MAC:
+
+- `/api/v2/devices/{mac}/reboot` is a route: a GET is answered `500 BAD REQUEST`, like the other device actions, while unknown paths answer a plain `Bad Request`. NSM sends `POST /api/v2/devices/{mac}/reboot` from the *cnMaestro* tab, with the device name typed as confirmation (`firmware.execute`), one reboot at a time per device. A refusal (for example an API client without write permission) is shown and nothing is recorded;
+- the worker (`cnmaestro_reboot_verification`) reads `GET /api/v2/devices/{mac}`. The reboot is *verified* when the time online (`status_time`) restarts after the request, when the device was seen offline and is back, or when `last_reboot_reason` changes. It is *failed* after 20 minutes without any of these;
+- audit `CNMAESTRO_REBOOT_REQUESTED`, `CNMAESTRO_REBOOT_VERIFIED`, `CNMAESTRO_REBOOT_FAILED`.
+
+**Firmware upgrade: not possible through the API.** There is no route for software images or upgrades (`/software`, `/firmware`, `/images`, `/devices/{mac}/upgrade`, `/devices/{mac}/software_update`), and the jobs cnMaestro lists are only *configuration* jobs of Wi-Fi AP groups. NSM does not offer it: upgrades are started from the cnMaestro interface, and NSM sees the new version at the next sync.
+
+Validation pending: the reboot POST on the real console. Only GET requests were sent; the tests use a mocked cnMaestro.
+
 ### Not implemented yet
 
-- operations through cnMaestro (reboot, firmware) — only where the cnMaestro API supports them and they can be verified;
+- firmware upgrades through cnMaestro (no API; see above);
 - per-device performance history from `/api/v2/devices/{mac}/performance` (NSM keeps its own samples from the statistics).
 
 ## 13c. ISPBilling (billing / CRM)
@@ -1096,7 +1108,7 @@ A production identifier must never be copied into a test merely because it repro
 
 The following are approved roadmap areas, not current runtime capabilities:
 
-- Ubiquiti firmware execution through UISP and operations through cnMaestro (only where the vendor API supports them and they are verified on a real console);
+- Ubiquiti firmware execution through UISP and firmware upgrades through cnMaestro (only where the vendor API supports them and they are verified on a real console; the cnMaestro API v2 has none, the reboot is done in Core 0.49.271);
 - remote syslog configuration for vendors other than MikroTik, TP-Link (ACS), Ubiquiti (UISP) and Cambium ePMP (SSH) (LOG-01 next step);
 - ACS parameter profiles, monitoring, diagnostics, backup and firmware (ACS-04..08);
 - production DR/restore validation program;
