@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.277 — 2026-10-28
+
+Customers
+- **Devices, Backup and Activity stay inside the customer.** On a customer's page these tabs no longer open the global pages. They now show the same lists under the customer's header, with that customer's devices, backups and events only. The customer picker and the sections covering every customer are hidden.
+- **Customer links open the customer's own Devices tab.** This covers the overview shortcuts (offline, severe CVEs, updates, end of life), the site rows and the "all events" link. The Devices tab opens already filtered.
+- **Old addresses follow.** `/customers/<id>/devices`, `/backups` and `/history` now lead to these tabs.
+
 ## 0.49.276 — 2026-10-28
 
 Syslog: warning and worse by default on every device
