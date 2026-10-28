@@ -33,7 +33,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from sqlalchemy import func, select
 
 from app import main as core
-from app.bras_models import BrasSession
+from app.bras_models import BrasSession, IpAssignment
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
 from app.models import Customer, Device, utcnow
@@ -45,6 +45,7 @@ PROVIDER = "mikrotik_bras"
 TIMEOUT = 30.0
 MAX_SESSIONS = 20000
 DEFAULT_INTERVAL = 5
+DEFAULT_RETENTION_DAYS = 365  # address history (CYBER-01): operational data, not the legal traffic-data register
 TRANSPORT = None  # tests swap in an httpx.MockTransport (REST)
 API_CONNECT = None  # tests swap in a fake RouterOS API connection factory
 _MAC = re.compile(r"^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$")
@@ -267,6 +268,7 @@ def sync(db, now: datetime | None = None) -> dict:
             continue
         current[user] = session
     existing = {r.username: r for r in db.scalars(select(BrasSession))}
+    history = {r.username: r for r in db.scalars(select(IpAssignment).where(IpAssignment.source == "bras", IpAssignment.ended_at.is_(None)))}
     came, went = 0, 0
     for user, session in current.items():
         record = existing.get(user)
@@ -286,10 +288,14 @@ def sync(db, now: datetime | None = None) -> dict:
         record.session_id, record.uptime_seconds = session_id, uptime
         if restarted or record.started_at is None:
             record.started_at = now - timedelta(seconds=uptime) if uptime is not None else now
+        _log_address(db, history, record, restarted, now)
     for user, record in existing.items():
         if record.online and user not in current:
             record.online, record.offline_since, record.uptime_seconds = False, now, None
             went += 1
+    for user, entry in history.items():
+        if user not in current:
+            entry.ended_at = now  # gone between the previous read and this one
     stats = {"status": "success", "at": now.isoformat(), "sessions": len(current), "came_online": came, "went_offline": went, "duplicates": duplicates}
     settings["last_sync"] = stats
     settings.pop("sync_requested", None)
@@ -304,6 +310,28 @@ def sync(db, now: datetime | None = None) -> dict:
     return stats
 
 
+def _log_address(db, history: dict, record: BrasSession, restarted: bool, now: datetime) -> None:
+    """Keep one ``ip_assignments`` row per session and address: close it when the session restarts or its address changes."""
+    entry, moved = history.get(record.username), False
+    if entry is not None and (restarted or entry.address != record.address):
+        entry.ended_at, entry = now, None
+        moved = not restarted  # same session, new address: the new address starts now
+    if entry is None and record.address:
+        history[record.username] = IpAssignment(id=uuid.uuid4(), address=record.address, username=record.username, caller_id=record.caller_id,
+                                                source="bras", started_at=now if moved else (record.started_at or now))
+        db.add(history[record.username])
+
+
+def purge_history(db, now: datetime) -> int:
+    """Drop the address history older than the retention (connector setting ``retention_days``)."""
+    row = connection_row(db)
+    days = int((row.settings or {}).get("retention_days") or DEFAULT_RETENTION_DAYS) if row else DEFAULT_RETENTION_DAYS
+    old = list(db.scalars(select(IpAssignment).where(IpAssignment.ended_at < now - timedelta(days=days))))
+    for entry in old:
+        db.delete(entry)
+    return len(old)
+
+
 def scheduled_sync(now: datetime | None = None) -> dict:
     """Worker task: read the BRAS every ``interval_minutes`` or when asked."""
     now = now or utcnow()
@@ -316,6 +344,7 @@ def scheduled_sync(now: datetime | None = None) -> dict:
         if not settings.get("sync_requested") and row.last_sync_at and now - row.last_sync_at < interval:
             return {"status": "not_due"}
         result = sync(db, now)
+        result["purged"] = purge_history(db, now)
         db.commit()
         return result
 
@@ -371,6 +400,7 @@ def _payload(db) -> dict:
     info = summary(db)
     out = {"configured": row is not None, "enabled": bool(row and row.is_enabled), "url": row.base_url if row else "",
            "verify_tls": bool(row.verify_tls) if row else False, "username": None, "interval_minutes": DEFAULT_INTERVAL,
+           "retention_days": DEFAULT_RETENTION_DAYS,
            "last_sync": None, "last_sync_at": None, "sync_requested": False, "online": info["online"], "offline": info["offline"],
            "last_test_status": row.last_test_status if row else None, "last_error": row.last_error if row else None}
     if row:
@@ -379,7 +409,8 @@ def _payload(db) -> dict:
             out["username"] = _credentials(row)[0]
         except BrasError:
             out["username"] = None
-        out.update({"interval_minutes": int(settings.get("interval_minutes") or DEFAULT_INTERVAL), "last_sync": settings.get("last_sync"),
+        out.update({"interval_minutes": int(settings.get("interval_minutes") or DEFAULT_INTERVAL),
+                    "retention_days": int(settings.get("retention_days") or DEFAULT_RETENTION_DAYS), "last_sync": settings.get("last_sync"),
                     "last_sync_at": row.last_sync_at.isoformat() if row.last_sync_at else None, "sync_requested": bool(settings.get("sync_requested"))})
     return out
 
@@ -399,15 +430,21 @@ def save_config(db, user, body: dict) -> None:
         interval = max(1, min(60, int(body.get("interval_minutes") or DEFAULT_INTERVAL)))
     except (TypeError, ValueError):
         raise ValueError("Intervallo non valido (1–60 minuti).") from None
+    try:
+        retention = int(body.get("retention_days") or (row.settings if row else {}).get("retention_days") or DEFAULT_RETENTION_DAYS)
+    except (TypeError, ValueError):
+        raise ValueError("Conservazione non valida (30–3650 giorni).") from None
+    if not 30 <= retention <= 3650:
+        raise ValueError("Conservazione non valida (30–3650 giorni).")
     secret = encrypt_text(json.dumps({"username": username, "password": password}))
     if row is None:
         row = ConnectorIntegration(provider=PROVIDER, name="BRAS MikroTik", base_url=url, secret_encrypted=secret, settings={})
         db.add(row)
     row.base_url, row.secret_encrypted = url, secret
     row.verify_tls, row.is_enabled = body.get("verify_tls") is True, body.get("enabled") is not False
-    row.settings = {**(row.settings or {}), "interval_minutes": interval}
+    row.settings = {**(row.settings or {}), "interval_minutes": interval, "retention_days": retention}
     core.add_event(db, "BRAS_CONFIG_SAVED", actor=user, source="portal",
-                   details={"url": url, "username": username, "verify_tls": row.verify_tls, "enabled": row.is_enabled, "interval_minutes": interval,
+                   details={"url": url, "username": username, "verify_tls": row.verify_tls, "enabled": row.is_enabled, "interval_minutes": interval, "retention_days": retention,
                             "password_changed": bool(body.get("password"))})
 
 

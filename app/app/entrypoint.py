@@ -122,6 +122,7 @@ from app.management_access import install_management_access
 from app.upnp_control import install_upnp_control
 from app.abuseipdb import install_abuseipdb
 from app.ripestat import install_ripestat
+from app.ip_attribution import install_ip_attribution
 from app.exposure_probe import install_exposure_probe
 from app.threat_lists import install_threat_lists
 from app.uisp_firewall import install_uisp_firewall
@@ -195,6 +196,7 @@ install_management_access(core.app)
 install_upnp_control(core.app)
 install_abuseipdb(core.app)
 install_ripestat(core.app)
+install_ip_attribution(core.app)
 install_exposure_probe(core.app)
 install_threat_lists(core.app)
 install_uisp_firewall(core.app)

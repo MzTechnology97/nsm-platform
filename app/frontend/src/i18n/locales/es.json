@@ -5450,6 +5450,7 @@
     "INCIDENT_STATUS_CHANGED": "Estado del incidente cambiado",
     "INTERFACE_ERRORS_DETECTED": "Errores de interfaz detectados",
     "INVENTORY_DISCOVERED": "Inventario detectado",
+    "IP_ATTRIBUTION_LOOKUP": "Búsqueda de quién tenía una dirección IP",
     "ISPBILLING_AUTO_IMPORTED": "Clientes importados automáticamente desde ISPBilling",
     "ISPBILLING_AUTO_IMPORT_CHANGED": "Importación automática de ISPBilling modificada",
     "ISPBILLING_CONFIGURED": "Conector ISPBilling configurado",
@@ -6529,7 +6530,21 @@
     "userHint": "En el BRAS, un usuario que solo puede leer (ejemplo):",
     "test": "Probar conexión",
     "syncNow": "Leer ahora",
-    "synced": "{{sessions}} sesiones leídas: {{came}} en línea, {{went}} sin conexión."
+    "synced": "{{sessions}} sesiones leídas: {{came}} en línea, {{went}} sin conexión.",
+    "retention": "Historial de direcciones (días)",
+    "whoHad": {
+      "title": "¿Quién tenía esta IP?",
+      "help": "A partir de una dirección pública y una hora (por ejemplo la de un informe de abuso), encuentra la sesión PPPoE del BRAS que la tenía, y así el cliente y el equipo. El historial empieza cuando NSM comenzó a leer el BRAS; cada búsqueda queda registrada en el registro de actividad.",
+      "address": "Dirección IP",
+      "at": "Fecha y hora",
+      "search": "Buscar",
+      "exact": "Sesión PPPoE:",
+      "static": "IP estática de la cuenta:",
+      "none": "Ninguna sesión ni IP estática para esta dirección a esa hora. Puede ser una dirección de NAT/CGNAT, no asignada o anterior al historial.",
+      "noCustomer": "cuenta sin cliente vinculado",
+      "window": "del {{from}} al {{to}}",
+      "stillOnline": "ahora (aún conectado)"
+    }
   },
   "pppoe": {
     "title": "Conexiones PPPoE",

@@ -20,6 +20,7 @@ the score falls below the threshold. Only IP addresses leave NSM.
 from __future__ import annotations
 
 import ipaddress
+import uuid
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -27,6 +28,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select
 
+from app import ip_attribution
 from app import main as core
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
@@ -289,27 +291,32 @@ def evaluate(db, row, prefixes=None, holders=None) -> dict:
         score = result.get("score") or 0
         if score < settings["threshold"] or result.get("whitelisted"):
             continue
-        device = holders.get(address)
-        unassigned = device is None and _inside(address, prefixes)
+        # Who held the address at the last report (BRAS session, static IP), else the device that has it now.
+        held = ip_attribution.who_had(db, address, ip_attribution.parse_when(result.get("last")) or utcnow())
+        device = db.get(Device, uuid.UUID(held["device"]["id"])) if held["device"] else holders.get(address)
+        customer_id = uuid.UUID(held["customer"]["id"]) if held["customer"] else (device.customer_id if device else None)
+        unassigned = device is None and customer_id is None and _inside(address, prefixes)
         title = _issue_title(address)
         keep.add(title)
         details = {"address": address, "score": score, "reports": result.get("reports"), "last": result.get("last"),
                    "categories": result.get("categories") or [], "block": result.get("block"), "unassigned": unassigned,
-                   "device_id": str(device.id) if device else None}
+                   "device_id": str(device.id) if device else None,
+                   "attribution": {k: held[k] for k in ("confidence", "username", "from", "to", "customer")} if held["confidence"] != "none" else None}
         severity = "critical" if score >= 75 else "high"
         issue = db.scalar(select(ActionIssue).where(ActionIssue.category == ISSUE_CATEGORY, ActionIssue.title == title,
                                                     ActionIssue.status.in_(["open", "acknowledged"])))
         if issue:
             issue.details, issue.severity, issue.updated_at = details, severity, utcnow()
-            issue.device_id, issue.customer_id = (device.id, device.customer_id) if device else (None, None)
+            issue.device_id, issue.customer_id = (device.id if device else None), customer_id
             continue
-        who = (device.display_name or device.name) if device else ("indirizzo non assegnato" if unassigned else "nessun dispositivo noto")
+        who = (device.display_name or device.name) if device else (held["customer"]["name"] if held["customer"] else
+                                                                   "indirizzo non assegnato" if unassigned else "nessun dispositivo noto")
         message = f"{address} ({who}): punteggio di abuso {score}%, {result.get('reports')} segnalazioni su AbuseIPDB."
         db.add(ActionIssue(category=ISSUE_CATEGORY, severity=severity, status="open", title=title, details=details,
-                           customer_id=device.customer_id if device else None, device_id=device.id if device else None))
-        db.add(Notification(severity="critical" if severity == "critical" else "warning", category="security", title=title, message=message, customer_id=device.customer_id if device else None,
+                           customer_id=customer_id, device_id=device.id if device else None))
+        db.add(Notification(severity="critical" if severity == "critical" else "warning", category="security", title=title, message=message, customer_id=customer_id,
                             device_id=device.id if device else None, source_url="/admin/integrations/abuseipdb", is_active=True))
-        core.add_event(db, "ABUSEIPDB_LISTED", customer_id=device.customer_id if device else None, device_id=device.id if device else None,
+        core.add_event(db, "ABUSEIPDB_LISTED", customer_id=customer_id, device_id=device.id if device else None,
                        severity="warning", source="worker", details={k: details[k] for k in ("address", "score", "reports", "unassigned")})
         opened += 1
     closed = 0
