@@ -2391,7 +2391,8 @@
       "probe": "Sonde externe",
       "threatLists": "Listes de menaces",
       "abuseipdb": "AbuseIPDB",
-      "ripestat": "RIPEstat"
+      "ripestat": "RIPEstat",
+      "dnsbl": "Listes noires DNS"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5401,6 +5402,8 @@
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Interfaces surveillées modifiées",
     "DEVICE_VENDOR_CORRECTED": "Fabricant de l'équipement corrigé",
     "DIAGNOSTIC_EXPORTED": "Diagnostic exporté",
+    "DNSBL_CONFIGURED": "Réglages des listes noires DNS modifiés",
+    "DNSBL_LISTED": "Adresse sur une liste noire DNS",
     "EXPOSURE_ACL_DECLARED": "Service exposé déclaré filtré par ACL",
     "EXPOSURE_ACL_REMOVED": "Déclaration ACL retirée",
     "EXPOSURE_CHECK_REQUESTED": "Vérification d'exposition demandée",
@@ -7001,5 +7004,56 @@
     "refreshHours": "Lecture toutes les (heures)",
     "help": "Exemple : AS64500 AS64501. Les préfixes vérifiés sont ceux déclarés dans Listes de menaces.",
     "saved": "Paramètres enregistrés."
+  },
+  "dnsbl": {
+    "title": "Listes noires DNS",
+    "subtitle": "Vérifie si vos adresses IPv4 publiques figurent sur les listes noires DNS (DNSBL). Gratuit, sans compte : NSM ne fait que des requêtes DNS et n'envoie rien aux listes.",
+    "test": "Tester les listes",
+    "run": "Vérifier maintenant",
+    "waiting": "Passage complet terminé : le prochain démarre après l'intervalle de revérification.",
+    "ran_one": "{{count}} adresse vérifiée.",
+    "ran_other": "{{count}} adresses vérifiées.",
+    "statusTitle": "État",
+    "coverage": "Adresses à vérifier : {{addresses}} ; position dans le passage en cours : {{position}}.",
+    "prefixes": "Vos préfixes : {{list}}.",
+    "noPrefixes": "Aucun préfixe déclaré : seules les adresses publiques des équipements sont vérifiées.",
+    "prefixesLink": "Gérer les préfixes",
+    "lastCycle": "Dernier passage complet : {{when}}.",
+    "refused": "{{zone}} refuse les requêtes de ce serveur ({{detail}}) : en général le résolveur DNS est public ou la limite gratuite est dépassée. Ses résultats ne sont pas fiables.",
+    "zoneError": "{{zone}} ne répond pas correctement ({{detail}}) : une erreur n'ajoute ni ne retire d'inscription.",
+    "healthTitle": "Test des listes ({{when}})",
+    "healthOk": "OK",
+    "state": {
+      "listed": "Inscrite",
+      "clean": "Ne répond pas au test",
+      "refused": "Refusée",
+      "error": "Erreur"
+    },
+    "listedTitle": "Adresses sur liste noire",
+    "listedHelp": "Chaque adresse inscrite ouvre un problème dans le Centre d'actions, avec le client et l'équipement qui la détiennent maintenant. Il se ferme tout seul quand l'adresse ne figure plus sur aucune liste.",
+    "noListed": "Aucune adresse sur liste noire.",
+    "columns": {
+      "address": "Adresse",
+      "lists": "Listes",
+      "holder": "Attribuée à",
+      "since": "Depuis"
+    },
+    "unassigned": "Votre adresse, non attribuée",
+    "unknownHolder": "Aucun équipement connu",
+    "removal": "Retrait",
+    "settingsTitle": "Réglages",
+    "enabled": "Module activé",
+    "zones": "Listes à vérifier",
+    "fields": {
+      "recheck_hours": "Revérification (heures)",
+      "per_run": "Adresses par exécution (chaque minute)"
+    },
+    "saved": "Enregistré.",
+    "lookupTitle": "Vérifier une adresse",
+    "lookup": "Vérifier",
+    "lookupListed_one": "sur {{count}} liste",
+    "lookupListed_other": "sur {{count}} listes",
+    "lookupClean": "sur aucune liste",
+    "lookupFailed": "Non vérifiées : {{list}}."
   }
 }

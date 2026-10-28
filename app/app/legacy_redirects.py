@@ -73,6 +73,7 @@ REDIRECTS: dict[str, Target] = {
     "/admin/integrations/threat-lists": ("/app/admin/integrations/threat-lists", None),
     "/admin/integrations/abuseipdb": ("/app/admin/integrations/abuseipdb", None),
     "/admin/integrations/ripestat": ("/app/admin/integrations/ripestat", None),
+    "/admin/integrations/dnsbl": ("/app/admin/integrations/dnsbl", None),
     "/admin/integrations/nvd": ("/app/admin/integrations/nvd", None),
     "/admin/integrations/routeros": ("/app/integrations/routeros", None),
     # Customers and sites.

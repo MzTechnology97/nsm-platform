@@ -2391,7 +2391,8 @@
       "probe": "Sonda esterna",
       "threatLists": "Liste di minaccia",
       "abuseipdb": "AbuseIPDB",
-      "ripestat": "RIPEstat"
+      "ripestat": "RIPEstat",
+      "dnsbl": "Blacklist DNS"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5401,6 +5402,8 @@
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Interfacce monitorate modificate",
     "DEVICE_VENDOR_CORRECTED": "Vendor dell'apparato corretto",
     "DIAGNOSTIC_EXPORTED": "Diagnostica esportata",
+    "DNSBL_CONFIGURED": "Configurazione blacklist DNS modificata",
+    "DNSBL_LISTED": "Indirizzo in blacklist DNS",
     "EXPOSURE_ACL_DECLARED": "Servizio esposto dichiarato filtrato da ACL",
     "EXPOSURE_ACL_REMOVED": "Dichiarazione ACL rimossa",
     "EXPOSURE_CHECK_REQUESTED": "Verifica esposizione richiesta",
@@ -7001,5 +7004,56 @@
     "refreshHours": "Lettura ogni (ore)",
     "help": "Esempio: AS64500 AS64501. I prefissi da controllare sono quelli dichiarati in Liste di minaccia.",
     "saved": "Impostazioni salvate."
+  },
+  "dnsbl": {
+    "title": "Blacklist DNS",
+    "subtitle": "Controlla se i tuoi indirizzi IPv4 pubblici sono nelle blacklist DNS (DNSBL). Gratuito, senza account: NSM fa solo interrogazioni DNS, non invia nulla alle liste.",
+    "test": "Prova le liste",
+    "run": "Controlla ora",
+    "waiting": "Giro completo: il prossimo parte dopo l'intervallo di ricontrollo.",
+    "ran_one": "Controllato {{count}} indirizzo.",
+    "ran_other": "Controllati {{count}} indirizzi.",
+    "statusTitle": "Stato",
+    "coverage": "Indirizzi da controllare: {{addresses}}; posizione nel giro attuale: {{position}}.",
+    "prefixes": "I tuoi prefissi: {{list}}.",
+    "noPrefixes": "Nessun prefisso dichiarato: vengono controllati solo gli indirizzi pubblici dei dispositivi.",
+    "prefixesLink": "Gestisci i prefissi",
+    "lastCycle": "Ultimo giro completo: {{when}}.",
+    "refused": "{{zone}} rifiuta le interrogazioni di questo server ({{detail}}): di solito il resolver DNS è pubblico o il limite gratuito è superato. Le sue segnalazioni non sono affidabili.",
+    "zoneError": "{{zone}} non risponde correttamente ({{detail}}): un errore non aggiunge né toglie segnalazioni.",
+    "healthTitle": "Prova delle liste ({{when}})",
+    "healthOk": "OK",
+    "state": {
+      "listed": "In lista",
+      "clean": "Non risponde alla prova",
+      "refused": "Rifiutata",
+      "error": "Errore"
+    },
+    "listedTitle": "Indirizzi in blacklist",
+    "listedHelp": "Ogni indirizzo in lista apre una segnalazione nel Centro azioni, con il cliente e il dispositivo che lo hanno ora. Si chiude da sola quando l'indirizzo non è più in nessuna lista.",
+    "noListed": "Nessun indirizzo in blacklist.",
+    "columns": {
+      "address": "Indirizzo",
+      "lists": "Liste",
+      "holder": "Assegnato a",
+      "since": "Da"
+    },
+    "unassigned": "Tuo indirizzo, non assegnato",
+    "unknownHolder": "Nessun dispositivo noto",
+    "removal": "Rimozione",
+    "settingsTitle": "Impostazioni",
+    "enabled": "Modulo attivo",
+    "zones": "Liste da controllare",
+    "fields": {
+      "recheck_hours": "Ricontrollo (ore)",
+      "per_run": "Indirizzi per esecuzione (ogni minuto)"
+    },
+    "saved": "Salvato.",
+    "lookupTitle": "Controlla un indirizzo",
+    "lookup": "Controlla",
+    "lookupListed_one": "in {{count}} lista",
+    "lookupListed_other": "in {{count}} liste",
+    "lookupClean": "in nessuna lista",
+    "lookupFailed": "Non verificate: {{list}}."
   }
 }

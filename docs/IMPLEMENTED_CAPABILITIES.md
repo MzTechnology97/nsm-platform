@@ -761,6 +761,14 @@ The PPPoE concentrator is not managed by NSM: *Integrazioni → BRAS MikroTik* (
 - *Integrazioni → BRAS MikroTik → Chi aveva questo IP?* (`GET /api/ui/v1/security/ip-attribution`, `customers.read`), every look-up audited as `IP_ATTRIBUTION_LOOKUP`;
 - AbuseIPDB issues are assigned to the customer and device that held the address at the last report (`details.attribution`), not to whoever has it now.
 
+### DNS blacklists of the operator's addresses (CYBER-01, Core 0.49.312)
+
+*Integrazioni → Blacklist DNS* (MOD-01, off by default, no account), after the blacklist checks of AbuseBox (`bekkaze/abusebox`, MIT), re-implemented:
+- what is checked: every IPv4 address of the operator's prefixes (threat lists page) and the public IPv4 addresses of the inventory outside them (at most 4096); `per_run` addresses per worker run (default 100, every minute) round robin, a full pass again after `recheck_hours` (default 24);
+- how: a DNS look-up of `<reversed address>.<zone>` through the server's resolver; `127.0.0.0/8` = listed (the codes are kept), NXDOMAIN = not listed, `127.255.255.x` = refused (Spamhaus through a public resolver or over the free limit), any other answer = error. A refused or failed query neither lists nor clears an address, and the zone is reported on the page;
+- lists: SpamCop, PSBL, DroneBL, UCEPROTECT level 1, NiX Spam, Mailspike, SPFBL on by default; Spamhaus ZEN (free only for low-volume non-commercial use, never through public resolvers) and Barracuda (resolver registration) off; *Prova le liste* queries the test entry `127.0.0.2` of every zone;
+- a listed address opens an Action Center issue (`dnsbl`; *high* on DroneBL or several lists, else *medium*) with the holder now (BRAS session or static IP from the CYBER-01 history, else the device with that address) or *unassigned* inside the operator's prefixes, the removal page of each list, a notification and `DNSBL_LISTED`; it closes when a pass finds the address on no list. Manual look-up of any public IPv4. Settings audited as `DNSBL_CONFIGURED`. Only DNS queries leave NSM.
+
 ### Firmware uploaded into the catalogs (VEND-01, Core 0.49.247)
 
 The manual *Aggiungi una release* form is gone (operator request 2026-10-23): on each catalog of *Firmware → Cataloghi* the operator (`firmware.execute`) uploads the image itself (`.bin`, `.img`, `.zip`; 64 KB–128 MB) and NSM reads what the official file says:
