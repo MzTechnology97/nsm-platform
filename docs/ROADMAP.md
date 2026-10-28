@@ -100,6 +100,8 @@ After the current P0 gates are closed, continue MikroTik work in focused PRs.
 
 Trigger this PR only if normal-size physical RouterOS 7.12.x snapshot acceptance shows practical payload limits for real firewall/DHCP sections.
 
+**Not needed for now (evaluated 2026-10-23, Core 0.49.268)**: the production legacy fleet is one RouterOS 7.12 router (Agent 0.49.23-legacy). Its latest successful section reads are far below the 56 KB rows-v1 wire limit (largest: routes and logs about 2 KB of data each); no section other than `logs` was ever truncated, and `logs` is truncated by design (last 20 of the warning/error entries). The only failures were expired jobs and the `services` section, which the legacy Agent cannot read (now refused explicitly by the MTK-05 capability gate). Re-evaluate when a legacy router with large firewall/DHCP tables is enrolled: the job result keeps `total`, `limit` and `truncated` for that check.
+
 Scope:
 
 - bounded chunk/page protocol for allow-listed snapshot data;
@@ -159,7 +161,7 @@ Possible focused PRs:
 
 - richer ping/traceroute presentation and history — **done** (`app/mikrotik_diagnostic_views.py`);
 - structured neighbor/DHCP/log result presentation — **done**, for modern and legacy agents;
-- bounded additional read-only diagnostics with explicit capability gates;
+- bounded additional read-only diagnostics with explicit capability gates — **done** in Core 0.49.268 (Agent 0.49.24): queues, certificates and BGP/OSPF sessions for modern and legacy agents, per-section capability gate (`app/mikrotik_snapshot_capabilities.py`);
 - support snapshot on legacy agents — **done** in Core 0.49.82 (assembled from the read-only section jobs);
 - support-snapshot evidence: JSON download with audited SHA-256 — **done** in Core 0.49.88.
 

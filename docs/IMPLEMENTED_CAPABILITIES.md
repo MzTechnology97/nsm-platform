@@ -394,9 +394,16 @@ NSM monitoring is intentionally lightweight and does not attempt to replace a fu
 - **structured results (MTK-05)** for modern (`result.data`) and legacy agents (the `:tostr` output is parsed back into rows): ping with sent/received, loss, min/avg/max RTT, jitter and per-packet table; traceroute hop table with reached/not-reached; neighbors and DHCP leases linked to NSM Devices by MAC; logs newest first with level badges; the raw output stays available;
 - **history**: every ping/traceroute result lists the previous 10 runs towards the same target on the same Device; the diagnostics page lists the last 25 diagnostics with a one-line outcome (loss and average RTT, hops, events).
 
+### ISP sections and capability gate (MTK-05, Core 0.49.268, Agent 0.49.24)
+
+- three more read-only sections in the Configuration tab, for modern and legacy agents (RouterOS 6.48/6.49 and 7.12): **queues** (simple queues and queue tree, current rate against `max-limit`, a queue at 90% or more of its limit is flagged *saturated*), **certificates** (expiry from `invalid-after` in both RouterOS date formats or `expires-after`; expired, expiring within 30 days, revoked; soonest first) and **BGP / OSPF** (BGP sessions from `/routing bgp session` on RouterOS 7 or `/routing bgp peer` on RouterOS 6, OSPF neighbors; up/down, remote address and AS, uptime, prefixes);
+- bounded as the other sections: up to 300 queues per menu, 100 certificates, 100 BGP sessions and 100 OSPF neighbors; the full route table is never read; the routing menus are compiled at run time with `:parse`, so a router without them (or without the RouterOS 6 routing package) still loads the Agent and returns no rows;
+- only `print`/`get` reads; no command that changes state;
+- **explicit capability gate** per section and transport: an Agent that does not know a section is never asked for it (it would report an empty success). The new sections need Agent 0.49.24, `services` is modern-only; the single refresh is refused with the reason, *Refresh all* skips what the Agent cannot read, a legacy job for an unreadable section fails explicitly at delivery, and the Configuration tab marks the unavailable sections with the update/reinstall hint.
+
 ### Still incomplete
 
-- broader bounded advanced diagnostics;
+- broader bounded advanced diagnostics (SFP optical levels need `/interface ethernet monitor`, not a print; address lists and connection tracking can hold tens of thousands of entries);
 - complete real-device validation matrix across supported RouterOS families.
 
 ## 11. MikroTik backup transport
