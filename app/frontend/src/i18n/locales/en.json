@@ -6459,5 +6459,64 @@
     "uptime": "connected for {{value}}",
     "never": "Never seen on the BRAS",
     "noDevice": "No device matched"
+  },
+  "acsCapabilities": {
+    "title": "NSM capabilities on this CPE",
+    "help": "{{model}} parameter profile · {{vendor}}, from the GenieACS record (last Inform {{when}}). Read without sending anything to the CPE.",
+    "notRead": "GenieACS has not read the CPE's data model yet.",
+    "vendors": {
+      "tp-link": "TP-Link extensions",
+      "generic": "standard parameters only"
+    },
+    "columns": {
+      "capability": "Feature",
+      "status": "State",
+      "why": "Why / paths",
+      "writes": "Writes to the CPE"
+    },
+    "status": {
+      "available": "Available",
+      "rpc": "Available (TR-069 RPC)",
+      "not_exposed": "Not exposed",
+      "unsupported": "Not supported"
+    },
+    "reasons": {
+      "found": "The CPE exposes the parameters:",
+      "not_reported": "The CPE does not report these parameters (or GenieACS has not read them yet).",
+      "no_dsl": "No DSL line in the CPE's data model.",
+      "no_pon": "The CPE exposes no PON optical levels.",
+      "download_rpc": "Standard Download RPC: needs an image for the model in GenieACS.",
+      "reboot_rpc": "Standard Reboot RPC.",
+      "nsm_tr098": "In TR-098 CPU and memory exist on few CPEs: NSM reads them on TR-181 only.",
+      "vendor_tr181": "Exists only as a TP-Link extension of the TR-181 (Aginet) firmware.",
+      "vendor_tplink": "Exists only as a TP-Link extension (X_TP_*).",
+      "no_standard": "No standard parameter in this data model.",
+      "no_upload_task": "GenieACS has no Upload task: the vendor configuration file cannot be downloaded. NSM archives the parameters.",
+      "snapshots": "{{count}} parameter snapshots archived.",
+      "no_snapshot": "No snapshot yet: take one from the Snapshot section."
+    },
+    "caps": {
+      "identity": "Identity and firmware",
+      "resources": "CPU and memory",
+      "wan": "WAN state",
+      "wifi": "Wi-Fi (read and change)",
+      "dsl": "DSL line",
+      "pon": "PON optical levels",
+      "ping": "Ping from the CPE",
+      "traceroute": "Traceroute from the CPE",
+      "speedtest": "Speed test",
+      "firmware": "Firmware upgrade (image)",
+      "firmware_cloud": "Firmware from TP-Link's cloud",
+      "syslog": "Syslog to NSM",
+      "port_mapping": "Port forwarding and DMZ",
+      "upnp": "UPnP state",
+      "remote_access": "Remote web access",
+      "reboot": "Reboot",
+      "inform_interval": "Inform interval",
+      "config_snapshot": "Configuration snapshot",
+      "config_file": "Vendor configuration file"
+    },
+    "writesYes": "yes, on request",
+    "writesNo": "no"
   }
 }
