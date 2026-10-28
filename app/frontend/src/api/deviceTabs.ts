@@ -361,6 +361,36 @@ export interface Logbook {
 export const useLogbook = (id: string, events: boolean) =>
   useQuery({ queryKey: ["device", id, "logbook", events], queryFn: () => api<Logbook>(`${base(id)}/logbook${events ? "?events=1" : ""}`), placeholderData: keepPreviousData });
 
+export interface IspbillingActivity {
+  id: string;
+  type: string | null;
+  kind: "onsite" | "maintenance" | "other";
+  color: string | null;
+  subject: string | null;
+  description: string | null;
+  start: string | null;
+  end: string | null;
+  all_day: boolean;
+  state: "planned" | "past" | "cancelled";
+  cancellation_reason: string | null;
+  status_code: string | null;
+  teams: string[];
+  scope: "device" | "customer";
+  customer: string | null;
+}
+
+export interface IspbillingActivities {
+  available: boolean;
+  linked: boolean;
+  activities: IspbillingActivity[];
+  error: string | null;
+}
+
+/** ISPBilling activities (interventions, installations) of the device or of its customer, read on demand from ISPBilling. */
+export const useIspbillingActivities = (id: string, enabled: boolean) =>
+  useQuery({ queryKey: ["device", id, "ispbilling-activities"], queryFn: () => api<IspbillingActivities>(`${base(id)}/ispbilling-activities`),
+    enabled, staleTime: 60_000, retry: false });
+
 export function useLogbookActions(id: string) {
   const client = useQueryClient();
   const done = () => client.invalidateQueries({ queryKey: ["device", id, "logbook"] });

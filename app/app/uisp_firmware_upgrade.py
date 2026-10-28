@@ -15,7 +15,13 @@ Ubiquiti device linked to UISP now starts it, through the same API UISP's own *U
   The ``upgrade`` object of the device record alone is not trusted: on the operator's console it still said
   "success 8.7.15" for a device running 8.7.4.
 
-Audit: ``UISP_FIRMWARE_UPGRADE_REQUESTED``, ``UISP_FIRMWARE_UPGRADE_VERIFIED``, ``UISP_FIRMWARE_UPGRADE_FAILED``.
+Bulk (``POST /firmware/uisp-upgrade``, from the firmware worklist): up to ``MAX_BULK`` devices, the target is either
+``recommended`` (per device, as preselected on the tab) or one version; each device goes through the same checks as the
+single request (``plan_upgrade``), the ones that pass are queued in one ``POST /tasks`` and the others are reported as
+skipped with the reason. Typed confirmation ``AGGIORNA <n>``.
+
+Audit: ``UISP_FIRMWARE_UPGRADE_REQUESTED`` (per device), ``UISP_FIRMWARE_BULK_UPGRADE``, ``UISP_FIRMWARE_UPGRADE_VERIFIED``,
+``UISP_FIRMWARE_UPGRADE_FAILED``.
 """
 from __future__ import annotations
 
@@ -34,6 +40,7 @@ from app.vendor_cpe import version_tuple
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 TIMEOUT = timedelta(minutes=60)
+MAX_BULK = 50
 MAINTENANCE_TIMEOUT = timedelta(hours=48)
 KEY = "uisp_upgrade"
 
@@ -59,11 +66,17 @@ def _record(connection, device) -> dict:
     return row if isinstance(row, dict) else {}
 
 
-def available(connection, platform: str, installed: str | None) -> list[dict]:
-    """Stable UISP images for this platform, newest first; only versions newer than the installed one."""
+def firmwares(connection) -> list:
     rows = ops.request(connection, "GET", "/firmwares", what="l'elenco dei firmware") or []
+    return rows if isinstance(rows, list) else []
+
+
+def available(connection, platform: str, installed: str | None, rows: list | None = None) -> list[dict]:
+    """Stable UISP images for this platform, newest first; only versions newer than the installed one.
+
+    ``rows``: the ``/firmwares`` list already read (a bulk request reads it once)."""
     seen, out = set(), []
-    for row in rows if isinstance(rows, list) else []:
+    for row in firmwares(connection) if rows is None else rows:
         ident = row.get("identification") or {}
         version = str(ident.get("version") or "")
         if ident.get("platformId") != platform or not ident.get("stable", True) or version in seen or not _version(version):
@@ -81,25 +94,94 @@ def _store(device, entry: dict) -> None:
     device.inventory_data = data
 
 
+class UpgradeRefused(ops.UispOperationError):
+    """A device that cannot be upgraded now; ``code`` is the reason shown per row of a bulk request."""
+
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
+def plan_upgrade(device, connection, version: str | None, rows: list | None = None) -> dict:
+    """Check one device before queueing: no upgrade running, ``version`` offered by UISP for its platform.
+
+    ``version`` None = the recommended one, as preselected on the tab: NSM's recommendation when UISP offers it,
+    else UISP's newest stable image."""
+    if ((device.inventory_data or {}).get(KEY) or {}).get("state") == "requested":
+        raise UpgradeRefused("running", "Un aggiornamento è già in corso per questo apparato.")
+    ident = _record(connection, device).get("identification") or {}
+    installed, platform = ident.get("firmwareVersion") or device.firmware_version, ident.get("platformId") or ""
+    versions = [r["version"] for r in available(connection, platform, installed, rows)]
+    if version is None:
+        if not versions:
+            raise UpgradeRefused("no_version", f"UISP non ha versioni stabili più recenti di {installed or '?'} per la piattaforma {platform or '?'}.")
+        version = device.recommended_firmware_version if device.recommended_firmware_version in versions else versions[0]
+    elif version not in versions:
+        raise UpgradeRefused("version_unavailable", f"UISP non ha la versione {version} per la piattaforma {platform or '?'} o non è più recente di quella installata.")
+    return {"version": version, "installed": installed, "platform": platform}
+
+
+def _queue(connection, items: list[tuple], maintenance_window: bool) -> None:
+    """One UISP task for all the ``(device, plan)`` pairs."""
+    ops.request(connection, "POST", "/tasks", what="l'avvio dell'aggiornamento", write=True,
+                json_body={"upgradeInMaintenanceWindow": bool(maintenance_window),
+                           "upgrades": [{"deviceId": device.external_device_id, "firmwareVersion": plan["version"]} for device, plan in items]})
+
+
+def _requested(db, user, device, plan: dict, maintenance_window: bool, now: datetime, bulk: bool = False) -> dict:
+    entry = {"state": "requested", "version": plan["version"], "from_version": plan["installed"], "platform": plan["platform"],
+             "maintenance_window": bool(maintenance_window), "requested_at": now.isoformat(), "requested_by": user.username if user else None, "progress": None}
+    _store(device, entry)
+    details = {"uisp_id": device.external_device_id, "from": plan["installed"], "to": plan["version"], "maintenance_window": bool(maintenance_window)}
+    core.add_event(db, "UISP_FIRMWARE_UPGRADE_REQUESTED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal",
+                   details={**details, "bulk": True} if bulk else details)
+    return entry
+
+
 def request_upgrade(db, user, device, connection, version: str, maintenance_window: bool, now: datetime | None = None) -> dict:
     """Queue the upgrade in UISP (audited). Caller commits."""
+    plan = plan_upgrade(device, connection, version)
+    _queue(connection, [(device, plan)], maintenance_window)
+    return _requested(db, user, device, plan, maintenance_window, now or utcnow())
+
+
+def request_bulk(db, user, device_ids: list, target: str | None, maintenance_window: bool, now: datetime | None = None) -> dict:
+    """Queue the upgrade of several devices in one UISP task; the devices that cannot go are skipped. Caller commits.
+
+    ``target`` None = the recommended version of each device."""
     now = now or utcnow()
-    entry = (device.inventory_data or {}).get(KEY) or {}
-    if entry.get("state") == "requested":
-        raise ops.UispOperationError("Un aggiornamento è già in corso per questo apparato.")
-    record = _record(connection, device)
-    ident = record.get("identification") or {}
-    installed, platform = ident.get("firmwareVersion") or device.firmware_version, ident.get("platformId") or ""
-    if version not in {r["version"] for r in available(connection, platform, installed)}:
-        raise ops.UispOperationError(f"UISP non ha la versione {version} per la piattaforma {platform or '?'} o non è più recente di quella installata.")
-    ops.request(connection, "POST", "/tasks", what="l'avvio dell'aggiornamento", write=True,
-                json_body={"upgradeInMaintenanceWindow": bool(maintenance_window), "upgrades": [{"deviceId": device.external_device_id, "firmwareVersion": version}]})
-    entry = {"state": "requested", "version": version, "from_version": installed, "platform": platform, "maintenance_window": bool(maintenance_window),
-             "requested_at": now.isoformat(), "requested_by": user.username if user else None, "progress": None}
-    _store(device, entry)
-    core.add_event(db, "UISP_FIRMWARE_UPGRADE_REQUESTED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal",
-                   details={"uisp_id": device.external_device_id, "from": installed, "to": version, "maintenance_window": bool(maintenance_window)})
-    return entry
+    planned, skipped, connection, rows = [], [], None, None
+    for device_id in device_ids:
+        device = db.get(Device, device_id)
+        if device is None:
+            skipped.append({"id": str(device_id), "name": None, "code": "not_found", "message": "Apparato non trovato."})
+            continue
+        name = _confirm_name(device)
+        try:
+            connection = ops._connection_for(db, device)
+        except ops.UispOperationError as exc:
+            skipped.append({"id": str(device.id), "name": name, "code": "not_linked", "message": str(exc)})
+            continue
+        if rows is None:
+            rows = firmwares(connection)  # read once; a failure here stops the whole request
+        try:
+            planned.append((device, plan_upgrade(device, connection, target, rows)))
+        except UpgradeRefused as exc:
+            skipped.append({"id": str(device.id), "name": name, "code": exc.code, "message": str(exc)})
+        except ops.UispOperationError as exc:
+            skipped.append({"id": str(device.id), "name": name, "code": "uisp", "message": str(exc)})
+    if planned:
+        _queue(connection, planned, maintenance_window)
+    started = []
+    for device, plan in planned:
+        _requested(db, user, device, plan, maintenance_window, now, bulk=True)
+        started.append({"id": str(device.id), "name": _confirm_name(device), "version": plan["version"], "from_version": plan["installed"]})
+    core.add_event(db, "UISP_FIRMWARE_BULK_UPGRADE", actor=user, source="portal", result="success" if started else "failure",
+                   severity="info" if started else "warning",
+                   details={"target": target or "recommended", "maintenance_window": bool(maintenance_window), "requested": len(device_ids),
+                            "started": len(started), "skipped": len(skipped), "devices": [r["id"] for r in started],
+                            "skip_codes": sorted({r["code"] for r in skipped})})
+    return {"target": target or "recommended", "maintenance_window": bool(maintenance_window), "started": started, "skipped": skipped}
 
 
 def refresh_upgrade(db, device, connection, now: datetime | None = None) -> bool:
@@ -211,6 +293,35 @@ def device_uisp_firmware_run(request: Request, device_id: uuid.UUID, body: dict 
             raise HTTPException(422, {"code": "uisp", "message": str(exc)}) from None
         db.commit()
         return _payload(device, connection, True)
+
+
+@router.post("/firmware/uisp-upgrade", dependencies=[Depends(require_csrf)])
+def firmware_uisp_bulk_upgrade(request: Request, body: dict = Body(default={})):
+    """Bulk upgrade from the firmware worklist: ``{device_ids, target, maintenance_window, confirm: "AGGIORNA <n>"}``."""
+    body = body or {}
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.write")
+        ids: list[uuid.UUID] = []
+        for value in body.get("device_ids") or []:
+            try:
+                device_id = uuid.UUID(str(value))
+            except ValueError:
+                continue
+            if device_id not in ids:
+                ids.append(device_id)
+        if not ids:
+            raise HTTPException(422, {"code": "empty", "message": "Seleziona almeno un apparato."})
+        if len(ids) > MAX_BULK:
+            raise HTTPException(422, {"code": "too_many", "message": f"Al massimo {MAX_BULK} apparati per volta."})
+        if str(body.get("confirm") or "").strip() != f"AGGIORNA {len(ids)}":
+            raise HTTPException(422, {"code": "confirm", "message": f"Scrivi AGGIORNA {len(ids)} per confermare."})
+        target = str(body.get("target") or "recommended").strip()[:40]
+        try:
+            result = request_bulk(db, user, ids, None if target == "recommended" else target, bool(body.get("maintenance_window")))
+        except ops.UispOperationError as exc:
+            raise HTTPException(422, {"code": "uisp", "message": str(exc)}) from None
+        db.commit()
+        return result
 
 
 def install_uisp_firmware_upgrade(app) -> None:
