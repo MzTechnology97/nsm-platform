@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.275 — 2026-10-28
+
+GUI: icons in page headers and empty states
+
+### Changed
+
+- Interface: every page header and every empty state now shows the icon of the section it belongs to, from the same icon set as the sidebar. It follows the light and dark theme. Device and customer pages keep their manufacturer icon.
 ## 0.49.274 — 2026-10-28
 
 Docs: roadmap and README status sync
