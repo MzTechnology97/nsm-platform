@@ -34,9 +34,9 @@ class FakeCnMaestro:
         ]
 
     def __call__(self, req: httpx.Request):
-        if req.url.path == "/api/v1/access/token":
+        if req.url.path == "/api/v2/access/token":
             return httpx.Response(200, json={"access_token": "ci"})
-        if req.url.path == "/api/v1/devices":
+        if req.url.path == "/api/v2/devices":
             return httpx.Response(200, json={"data": self.rows, "paging": {"total": len(self.rows)}})
         return httpx.Response(404)
 
@@ -119,6 +119,7 @@ def main():
         linked = db.get(Device, ids["existing"])
         assert str(linked.customer_id) == ids["other"], "an associated device stays in its own customer"
         assert linked.inventory_data["cnmaestro"]["mac"] == macs[1] and linked.model == "Force 300"
+        assert (linked.management_source, linked.inventory_source, linked.external_device_id) == ("cnmaestro", "cnmaestro", macs[1]),             "a hand-made Cambium record becomes managed by cnMaestro"
         kinds = [e.event_type for e in db.scalars(select(AuditEvent).where(AuditEvent.customer_id == uuid.UUID(ids["target"])))]
         assert kinds.count("CNMAESTRO_BULK_ONBOARDING") == 2 and "DEVICE_ADDED" in kinds
     assert page("new")["counts"]["linked"] == 3
