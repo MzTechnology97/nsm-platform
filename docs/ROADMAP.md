@@ -167,7 +167,7 @@ Possible focused PRs:
 
 ## 4. GUI quality and regression queue
 
-The contextual browser-feedback program is mostly implemented. Keep the GUI tracker focused on reproducible defects rather than broad rewrites.
+The classic contextual browser-feedback program ended with the removal of the classic interface (R1, Core 0.49.168–0.49.174); the React interface shows API errors in context (`ApiError`). Keep the GUI tracker focused on reproducible defects rather than broad rewrites.
 
 When a new GUI bug is found:
 

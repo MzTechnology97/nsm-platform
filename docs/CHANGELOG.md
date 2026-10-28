@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.274 — 2026-10-28
+
+Docs: roadmap and README status sync
+
+### Changed
+
+- Documentation brought up to date:
+  - the README product status table, unchanged since 2026-09-30: incidents, compliance and reports are implemented, plus the TR-069/ACS, Cambium, ISPBilling and monitoring rows;
+  - the product scope check and priority order, recovered from the closed PR #60, now in `ARCHITECTURE.md`;
+  - the classic browser-feedback section marked as historical, now that the React interface shows errors in context.
 ## 0.49.273 — 2026-10-28
 
 MikroTik: ideas recovered from unmerged branches

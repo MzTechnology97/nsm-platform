@@ -105,7 +105,7 @@ Audit history, notifications and Action Center are different concepts:
 
 ### Implemented
 
-A shared contextual-feedback pattern now covers the principal browser actions that previously could escape to raw FastAPI JSON pages. Current covered areas include:
+*Historical (classic interface, removed in R1, Core 0.49.168–0.49.174).* In the React interface every API error becomes an `ApiError` carrying the server's `{code, message}`, shown in context on the page that started the action; there is no page that falls back to raw JSON. The classic shared contextual-feedback pattern covered these browser actions:
 
 - MikroTik Agent reinstall/update-facing browser flows;
 - RouterOS firmware and RouterBOOT actions;
