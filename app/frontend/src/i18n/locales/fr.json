@@ -4033,7 +4033,11 @@
       "signal": "Signal radio",
       "capacity": "Capacité du lien",
       "resources": "CPU et RAM",
-      "stations": "Stations connectées"
+      "stations": "Stations connectées",
+      "acs_pon_power": "Niveaux optiques PON",
+      "acs_pon_temperature": "Température du module optique",
+      "acs_pon_bias": "Courant de polarisation laser",
+      "acs_pon_voltage": "Tension du module optique"
     },
     "series": {
       "cpu_percent": "CPU",
@@ -4043,7 +4047,12 @@
       "uplink_capacity_bps": "Capacité montante",
       "uptime_seconds": "Uptime",
       "frequency_mhz": "Fréquence",
-      "stations": "Stations connectées"
+      "stations": "Stations connectées",
+      "pon_rx_dbm": "Rx",
+      "pon_tx_dbm": "Tx",
+      "pon_temperature_c": "Température",
+      "pon_bias_ma": "Polarisation",
+      "pon_voltage_v": "Tension"
     },
     "metricsTitle": "État opérationnel depuis UISP",
     "metricsHelp": "Statistiques sur les {{hours}} dernières heures ({{count}} échantillons) ; dernière valeur {{when}}.",
@@ -5681,7 +5690,19 @@
     "dslRate": "Débit desc. / mont.",
     "dslSnr": "Marge SNR",
     "dslAttenuation": "Atténuation",
-    "charts": "Historique depuis l'ACS"
+    "charts": "Historique depuis l'ACS",
+    "pon": {
+      "title": "Niveaux optiques PON",
+      "rx_dbm": "Reçu (Rx)",
+      "tx_dbm": "Émis (Tx)",
+      "temperature_c": "Température du module",
+      "voltage_v": "Tension d'alimentation",
+      "bias_ma": "Courant de polarisation laser",
+      "status": "État PON",
+      "notExposed": "non fourni par le CPE",
+      "help": "Lus sur le CPE toutes les heures par la provision NSM ; dernière lecture {{when}} depuis"
+    },
+    "lastSample": "Aucun échantillon sur cette période : le dernier reçu du CPE date du {{when}}."
   },
   "serverMigration": {
     "subtitle": "Déplacer NSM vers un serveur à une autre adresse : ce serveur communique la nouvelle adresse aux agents MikroTik et aux CPE TR-069.",
@@ -6085,7 +6106,7 @@
   },
   "acsAlerts": {
     "title": "Alertes des CPE",
-    "help": "NSM ouvre un ticket dans le Centre d'actions, avec une notification, quand un CPE TR-069 ne contacte plus l'ACS, que sa WAN est coupée, que la WAN se reconnecte ou que le CPE redémarre trop souvent, ou que la ligne DSL se dégrade. Les tickets se ferment seuls quand le problème cesse. 0 désactive un seuil.",
+    "help": "NSM ouvre un signalement dans le Centre d'actions, avec une notification, quand un CPE TR-069 ne contacte plus l'ACS, que sa WAN est coupée, que la WAN se reconnecte ou que le CPE redémarre trop souvent, que la ligne DSL se dégrade ou que le niveau PON reçu passe sous le seuil. Les signalements se ferment seuls quand le problème disparaît. 0 désactive un seuil.",
     "fields": {
       "enabled": "Alertes des CPE TR-069 actives",
       "offline": "CPE qui ne contacte plus l'ACS (trois Inform périodiques manqués)",
@@ -6093,7 +6114,8 @@
       "reconnects_per_hour": "Reconnexions WAN par heure",
       "reboots_per_day": "Redémarrages du CPE en 24 heures",
       "snr_min_db": "Marge SNR DSL minimale (dB)",
-      "dsl_rate_drop_percent": "Baisse du débit DSL descendant par rapport à la médiane sur 7 jours (%)"
+      "dsl_rate_drop_percent": "Baisse du débit DSL descendant par rapport à la médiane sur 7 jours (%)",
+      "pon_rx_min_dbm": "Niveau PON reçu minimal (dBm, ex. −27)"
     },
     "save": "Enregistrer",
     "saved": "Enregistré."

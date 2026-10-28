@@ -4033,7 +4033,11 @@
       "signal": "Señal de radio",
       "capacity": "Capacidad del enlace",
       "resources": "CPU y RAM",
-      "stations": "Estaciones conectadas"
+      "stations": "Estaciones conectadas",
+      "acs_pon_power": "Niveles ópticos PON",
+      "acs_pon_temperature": "Temperatura del módulo óptico",
+      "acs_pon_bias": "Corriente de polarización del láser",
+      "acs_pon_voltage": "Tensión del módulo óptico"
     },
     "series": {
       "cpu_percent": "CPU",
@@ -4043,7 +4047,12 @@
       "uplink_capacity_bps": "Capacidad de subida",
       "uptime_seconds": "Uptime",
       "frequency_mhz": "Frecuencia",
-      "stations": "Estaciones conectadas"
+      "stations": "Estaciones conectadas",
+      "pon_rx_dbm": "Rx",
+      "pon_tx_dbm": "Tx",
+      "pon_temperature_c": "Temperatura",
+      "pon_bias_ma": "Polarización",
+      "pon_voltage_v": "Tensión"
     },
     "metricsTitle": "Estado operativo desde UISP",
     "metricsHelp": "Estadísticas de las últimas {{hours}} horas ({{count}} muestras); último dato {{when}}.",
@@ -5681,7 +5690,19 @@
     "dslRate": "Velocidad bajada / subida",
     "dslSnr": "Margen SNR",
     "dslAttenuation": "Atenuación",
-    "charts": "Historial desde el ACS"
+    "charts": "Historial desde el ACS",
+    "pon": {
+      "title": "Niveles ópticos PON",
+      "rx_dbm": "Recibido (Rx)",
+      "tx_dbm": "Transmitido (Tx)",
+      "temperature_c": "Temperatura del módulo",
+      "voltage_v": "Tensión de alimentación",
+      "bias_ma": "Corriente de polarización del láser",
+      "status": "Estado PON",
+      "notExposed": "no informado por el CPE",
+      "help": "Leídos del CPE cada hora por la provisión de NSM; última lectura {{when}} desde"
+    },
+    "lastSample": "Ninguna muestra en este periodo: la última recibida del CPE es del {{when}}."
   },
   "serverMigration": {
     "subtitle": "Mueve NSM a un servidor con otra dirección: este servidor comunica la nueva dirección a los agentes MikroTik y a los CPE TR-069.",
@@ -6085,7 +6106,7 @@
   },
   "acsAlerts": {
     "title": "Avisos de los CPE",
-    "help": "NSM abre una incidencia en el Centro de acciones, con una notificación, cuando un CPE TR-069 deja de contactar con el ACS, su WAN cae, la WAN se reconecta o el CPE se reinicia demasiado, o la línea DSL empeora. Las incidencias se cierran solas cuando el problema termina. 0 desactiva un umbral.",
+    "help": "NSM abre una incidencia en el Centro de acciones, con una notificación, cuando un CPE TR-069 deja de contactar con el ACS, su WAN está caída, la WAN se reconecta o el CPE se reinicia con demasiada frecuencia, la línea DSL se degrada o el nivel PON recibido baja del umbral. Las incidencias se cierran solas cuando el problema termina. 0 desactiva un umbral.",
     "fields": {
       "enabled": "Avisos de los CPE TR-069 activos",
       "offline": "CPE que ya no contacta con el ACS (tres Inform periódicos perdidos)",
@@ -6093,7 +6114,8 @@
       "reconnects_per_hour": "Reconexiones WAN por hora",
       "reboots_per_day": "Reinicios del CPE en 24 horas",
       "snr_min_db": "Margen SNR DSL mínimo (dB)",
-      "dsl_rate_drop_percent": "Caída del downstream DSL respecto a la mediana de 7 días (%)"
+      "dsl_rate_drop_percent": "Caída del downstream DSL respecto a la mediana de 7 días (%)",
+      "pon_rx_min_dbm": "Nivel PON recibido mínimo (dBm, p. ej. −27)"
     },
     "save": "Guardar",
     "saved": "Guardado."

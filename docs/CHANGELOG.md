@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.263 — 2026-10-28
+
+ACS: PON optical levels of TR-069 CPEs and history of offline CPEs
+
+### Added
+
+- PON optical levels of TR-069 CPEs (ACS-05): received and transmitted power (dBm), module temperature, supply voltage and laser bias current, read from TR-181 `Device.Optical.Interface` and TR-098 vendor GPON/EPON objects (Huawei `X_GponInterafceConfig`, ZTE `X_ZTE-COM_WANPONInterfaceConfig`, CT-COM/CMCC, `WANPONInterfaceConfig`) with unit normalization. The NSM base provision re-reads these objects once an hour (values only, no refresh of the root); values are kept in the ACS history with charts on the device *ACS* tab.
+- ACS alert `pon`: received optical level under a threshold (default −27 dBm, *Amministrazione → ACS → Avvisi dei CPE*, 0 disables) on the last two readings.
+
+### Changed
+
+- MON-02 for the ACS: the history cleanup keeps the newest sample of every CPE and its newest optical reading; the *ACS* tab shows when the last sample arrived when the chosen range has none. Migration `0058_acs_pon_optics` adds the optical columns to `acs_metric_samples`.
 ## 0.49.262 — 2026-10-28
 
 ISPBilling activities in the device logbook
