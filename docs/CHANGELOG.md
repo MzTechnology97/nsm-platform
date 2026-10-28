@@ -4,6 +4,21 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.267 — 2026-10-28
+
+Security: CVE version matching beyond RouterOS
+
+### Added
+
+- Vulnerabilities: CVE version matching for vendors other than MikroTik (SEC-02, UBNT-07).
+  - Ubiquiti airMAX: NVD scopes most airOS CVEs to hardware families (`airmax_ac`, `airmax_m`, `airmax_m_xw`…). NSM now reads the family from the airOS platform (prefix of the full firmware string, or the platform UISP reports: WA/XC airMAX AC, XM/XW/TI airMAX M), never from the model name, evaluates the family firmware products too and compares the release without build numbers. Without the platform a family-limited CVE stays *unknown*; a model list from NVD that does not contain the device is *unknown* when the version is in range, never a guess. The finding evidence records the family.
+  - TP-Link: release, then build date when both sides have one (`1.1.4 Build 20230219`); a bound without a build covers all builds of its release.
+  - Product names are compared without punctuation (`airfiber_60-lr_firmware` matches *airFiber 60 LR*).
+
+### Changed
+
+- After the upgrade the next NVD matching cycle opens the Ubiquiti findings that were missed: on the operator's data (dry run) 41 high-confidence findings on the 30 airMAX radios (CVE-2026-21639 and CVE-2022-44565).
+
 ## 0.49.266 — 2026-10-28
 
 cnMaestro graphs in the Monitor tab and last values of offline Cambium devices
