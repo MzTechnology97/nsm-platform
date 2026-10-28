@@ -111,6 +111,18 @@ def _uisp_enabled(db) -> bool:
     return bool(row and row.is_enabled)
 
 
+def _tr069_linked(db, device) -> bool:
+    """A TR-069 CPE linked to an enabled GenieACS: its parameters can be archived (acs_snapshot)."""
+    if not getattr(device, "external_device_id", None):
+        return False
+    from app import genieacs_connector
+
+    if not genieacs_connector.tr069_capable(device):
+        return False
+    row = genieacs_connector._connection(db)
+    return bool(row and row.is_enabled)
+
+
 def capability_for_device(db, device, *, active_agent: bool | None = None) -> BackupCapability:
     vendor = normalize_vendor(getattr(device, "vendor", None))
 
@@ -172,6 +184,24 @@ def capability_for_device(db, device, *, active_agent: bool | None = None) -> Ba
             artifact_types=("mikrotik_binary", "mikrotik_export"),
         )
 
+    if vendor == "cambium":
+        from app import cambium_backup
+
+        creds, source = cambium_backup.effective_credentials(db, device)
+        ready = creds is not None and bool(getattr(device, "management_ip", None))
+        return BackupCapability(
+            vendor=vendor,
+            method_key="cambium_ssh",
+            label="SSH (Cambium ePMP)",
+            status="available" if ready else "credentials_required",
+            executable=ready,
+            reason=("Configurazione completa letta in SSH dall'apparato (config show json) e archiviata in NSM; credenziali "
+                    + ("dell'apparato." if source == "device" else "comuni dei Cambium.")) if ready else
+                   "Imposta utente e password SSH dei Cambium (Amministrazione → cnMaestro) o dell'apparato, e l'indirizzo di gestione.",
+            policy_option_keys=("cambium_config",),
+            artifact_types=("cambium_config",),
+        )
+
     if vendor == "ubiquiti" and getattr(device, "external_device_id", None) and _uisp_enabled(db):
         return BackupCapability(
             vendor=vendor,
@@ -193,6 +223,18 @@ def capability_for_device(db, device, *, active_agent: bool | None = None) -> Ba
             executable=False,
             reason="Associa l'apparato a UISP (scheda UISP) con il connettore attivo per rendere il backup eseguibile.",
             policy_option_keys=("ubiquiti_connector_config",),
+        )
+
+    if _tr069_linked(db, device):
+        return BackupCapability(
+            vendor=vendor,
+            method_key="tr069_acs",
+            label="ACS / TR-069 (parametri)",
+            status="available",
+            executable=True,
+            reason="Istantanea dei parametri di configurazione letti dall'ACS, archiviata in NSM e confrontabile (non ripristinabile con un clic).",
+            policy_option_keys=("tr069_config",),
+            artifact_types=("tr069_parameters",),
         )
 
     if vendor == "tp-link":

@@ -15,12 +15,20 @@ Rule shape (JSON)::
       "requires": [["rb750gr3", "rb760igs"], ...] # hardware: one per group
     }
 
-A Device is only evaluated when NSM knows its product (MikroTik → RouterOS).
+A Device is only evaluated when NSM knows its product (MikroTik → RouterOS,
+other brands → ``vendor_cpe``). Product names are compared without
+punctuation (``airfiber_60-lr_firmware`` = ``airfiber_60_lr_firmware``).
+Hardware constraints are met by the Device model or, for Ubiquiti, by its
+airOS hardware family (``airmax_ac``, ``airmax_m_xw``…, from the platform).
 A rule never matches on brand alone:
 
 * no version on the Device, an unparseable version, a rule with no version and
   no bounds, or a hardware constraint with an unknown model → ``unknown``;
 * a different product or an unmet hardware constraint → ``not_applicable``;
+  a rule limited to hardware families with a Device whose platform is not
+  known → ``unknown``; for Ubiquiti, whose UISP model names differ from NVD's
+  hardware names, a model list without the Device model is ``unknown`` when the
+  version is in range (``not_affected`` otherwise), never ``not_applicable``;
 * otherwise the version comparison decides ``affected`` / ``not_affected``.
 
 Only ``affected`` creates or keeps an open ``DeviceVulnerability``; findings
@@ -53,6 +61,10 @@ MATCHED_SOURCES = ("nvd",)
 REJECTED_STATUSES = ("rejected",)
 
 _RANK = {NOT_APPLICABLE: 0, NOT_AFFECTED: 1, UNKNOWN: 2, AFFECTED: 3}
+# NVD hardware names that stand for a family of devices, not a model (compared as model_key).
+FAMILY_HARDWARE = {"airmaxac", "airmaxm", "airmaxmxm", "airmaxmxw", "airmaxmti"}
+# Brands whose NSM model names cannot be compared with NVD's hardware lists (UISP "NanoStation M5" vs NVD "nsm5").
+UNLISTED_MODEL_UNKNOWN = {"ubiquiti"}
 
 
 @dataclass(frozen=True)
@@ -63,6 +75,7 @@ class DeviceProfile:
     model_key: str | None
     cpe_vendors: tuple = ()
     products: tuple = ()
+    hardware: tuple = ()  # NVD hardware families from the platform (Ubiquiti airMAX)
 
     def __post_init__(self):
         # A profile built only with vendor/product (single-product brands) matches that pair.
@@ -93,7 +106,7 @@ def device_profile(device: Device) -> DeviceProfile:
     products = vendor_cpe.products(device)
     version = (device.firmware_version or "").strip() or None
     return DeviceProfile(vendor=brand, product=products[0] if products else None, version=version, model_key=model_key(device.model),
-                         cpe_vendors=vendor_cpe.cpe_vendors(device), products=products)
+                         cpe_vendors=vendor_cpe.cpe_vendors(device), products=products, hardware=vendor_cpe.hardware_families(device))
 
 
 def _version_check(rule: dict, installed, brand: str = "mikrotik") -> tuple[str, str, str | None]:
@@ -128,16 +141,23 @@ def _version_check(rule: dict, installed, brand: str = "mikrotik") -> tuple[str,
 def evaluate_rule(rule: dict, profile: DeviceProfile) -> Assessment:
     if not profile.product:
         return Assessment(NOT_APPLICABLE, reason="prodotto dell'apparato non mappato")
-    if (rule.get("vendor") or "").lower() not in profile.cpe_vendors or (rule.get("product") or "").lower() not in profile.products:
+    if (rule.get("vendor") or "").lower() not in profile.cpe_vendors or model_key(rule.get("product")) not in {model_key(p) for p in profile.products}:
         return Assessment(NOT_APPLICABLE, reason="prodotto diverso")
+    own = {key for key in (profile.model_key, *(model_key(f) for f in profile.hardware)) if key}
+    unlisted = False
     for group in rule.get("requires") or []:
         keys = {model_key(item) for item in group if model_key(item)}
-        if not keys:
+        if not keys or keys & own:
             continue
+        if keys <= FAMILY_HARDWARE:
+            if not profile.hardware:
+                return Assessment(UNKNOWN, reason="regola limitata a famiglie hardware, piattaforma dell'apparato sconosciuta", rule=rule)
+            return Assessment(NOT_APPLICABLE, reason="famiglia hardware diversa", rule=rule)
         if not profile.model_key:
             return Assessment(UNKNOWN, reason="regola limitata a modelli specifici, modello apparato sconosciuto", rule=rule)
-        if profile.model_key not in keys:
+        if profile.vendor not in UNLISTED_MODEL_UNKNOWN:
             return Assessment(NOT_APPLICABLE, reason="modello hardware non incluso", rule=rule)
+        unlisted = True
     if not profile.version:
         return Assessment(UNKNOWN, reason="versione installata sconosciuta", rule=rule)
     if not vendor_cpe.parseable(profile.vendor, profile.version):
@@ -145,6 +165,8 @@ def evaluate_rule(rule: dict, profile: DeviceProfile) -> Assessment:
     state, reason, fixed = _version_check(rule, profile.version, profile.vendor)
     if state == UNKNOWN:
         return Assessment(UNKNOWN, reason=reason, rule=rule)
+    if unlisted and state == AFFECTED:
+        return Assessment(UNKNOWN, reason="versione nell'intervallo, ma il modello non è confrontabile con l'elenco hardware NVD", rule=rule)
     confidence = None
     if state == AFFECTED:
         open_ended = not rule.get("version") and not (rule.get("end_excluding") or rule.get("end_including"))
@@ -168,6 +190,8 @@ def assess(rules: list[dict], profile: DeviceProfile) -> Assessment:
             "installed_version": profile.version,
             "reason": best.reason,
         }
+        if profile.hardware:
+            best.evidence["hardware_family"] = list(profile.hardware)
     return best
 
 

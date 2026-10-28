@@ -60,7 +60,7 @@ def _artifact_kind(artifact: BackupArtifact) -> str:
 
 
 def _is_human_readable(artifact: BackupArtifact) -> bool:
-    return artifact.artifact_type == "mikrotik_export" or artifact.filename.lower().endswith(".rsc")
+    return artifact.artifact_type in ("mikrotik_export", "tr069_parameters") or artifact.filename.lower().endswith(".rsc")
 
 
 def artifact_text_record(db, user, device: Device, artifact_id: uuid.UUID, against: str = "") -> dict:
@@ -69,7 +69,7 @@ def artifact_text_record(db, user, device: Device, artifact_id: uuid.UUID, again
     if not _is_human_readable(artifact):
         raise InputError("binary", "Questo backup è binario e può essere solo scaricato.", 415)
     text = _read_export(artifact)
-    candidates = _comparison_candidates(db, device.id, artifact.id)
+    candidates = _comparison_candidates(db, device.id, artifact.id, "tr069_parameters" if artifact.artifact_type == "tr069_parameters" else "mikrotik_export")
     against_artifact = against_run = None
     diff_rows = []
     diff_summary = None

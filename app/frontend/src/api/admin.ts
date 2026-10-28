@@ -289,6 +289,7 @@ export interface IntegrationsHub {
   genieacs: { state: ConnectorState; linked: number; pending: number };
   cnmaestro: { state: ConnectorState; cambium: number; linked: number };
   ispbilling: { state: ConnectorState; customers: number; linked: number; details_pending: number };
+  bras?: { state: ConnectorState; online: number; offline: number };
   zabbix: { state: ConnectorState; version: string | null; linked: number; frontend: string | null };
 }
 
@@ -449,46 +450,6 @@ export function useAcsTemplates() {
 }
 
 // --- Bulk CPE → ACS migration ---------------------------------------------------------------------
-
-export interface AcsMigrationRun {
-  id: string; created_at: string; finished_at: string | null; created_by: string | null; vendor: string;
-  subnet: string; port: number; target_acs_url: string; inform_interval: number; dry_run: boolean; status: string;
-  error: string | null; total_hosts: number; processed: number; reachable: number; configured: number;
-  already_target: number; failed: number;
-}
-export interface AcsMigrationHost {
-  address: string; status: string; detail: string | null; model: string | null; firmware: string | null;
-  previous_acs_url: string | null; duration_ms: number | null;
-}
-export interface AcsMigrationState {
-  defaults: { vendor: string; port: number; inform_interval: number; target_acs_url: string; max_hosts: number; hard_max_hosts: number; min_inform_interval: number };
-  vendors: string[]; apply_available: boolean; active_run_id: string | null; runs: AcsMigrationRun[];
-}
-
-export const useAcsMigration = () =>
-  useQuery({ queryKey: ["acs-migration"], queryFn: () => api<AcsMigrationState>("/api/ui/v1/admin/acs/migration"),
-            refetchInterval: (q) => (q.state.data?.active_run_id ? 2000 : false) });
-
-export const useAcsMigrationRun = (runId: string | null) =>
-  useQuery({ queryKey: ["acs-migration-run", runId], enabled: Boolean(runId),
-             queryFn: () => api<{ run: AcsMigrationRun; hosts: AcsMigrationHost[]; active: boolean }>(`/api/ui/v1/admin/acs/migration/${runId}`),
-             refetchInterval: (q) => (q.state.data?.active ? 1500 : false) });
-
-export function useStartAcsMigration() {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: (body: object) => api<{ run: AcsMigrationRun }>("/api/ui/v1/admin/acs/migration", { method: "POST", body: JSON.stringify(body) }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["acs-migration"] }),
-  });
-}
-
-export function useCancelAcsMigration(runId: string) {
-  const client = useQueryClient();
-  return useMutation({
-    mutationFn: () => api<{ cancelled: boolean }>(`/api/ui/v1/admin/acs/migration/${runId}/cancel`, { method: "POST" }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["acs-migration"] }),
-  });
-}
 
 // --- Server migration (new address) ----------------------------------------------------------------
 
