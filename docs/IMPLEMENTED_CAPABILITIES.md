@@ -139,7 +139,7 @@ The whole operator interface is the React application served under `/app` (class
 - device list (0.49.177): CVE state per row (severe/open/clean/not assessable), CPU/RAM and uptime, readable vendor names, multi-select bar (CSV, backup now, firmware check, decommission/reactivate) and audited CSV export of the filtered list (`DEVICE_LIST_EXPORTED`);
 - dashboard (0.49.178, 0.49.186): offline devices by time down with the latest outages, five most loaded devices, CVE exposure of the inventory, refresh countdown, clickable vendor/model distributions, dark *Da guardare* column;
 - device page (0.49.179, 0.49.185, 0.49.188, 0.49.190): header card with status/CVE pills and actions (decommission included), ring tiles for CPU, memory, ping, 30-day availability (ping, maintenance excluded, against the customer SLA target), open CVEs, firmware and backup; CVE chips by severity; diagnostics with last run per card, ping RTT chart, traceroute hop latency bars and log level filters; RouterOS export viewer with syntax colours and a section index;
-- device logbook (0.49.180): operator entries per device (note, site visit, maintenance, replacement, customer contact; optional back-dating up to a year) in the *Attività* tab, merged on request with the device's recorded events; never edited, deleted only by the author or an administrator, audited (`DEVICE_LOG_ADDED` / `DEVICE_LOG_DELETED`); permission `logbook.write` (technician, operator); writable on decommissioned devices.
+- device logbook (0.49.180): operator entries per device (note, site visit, maintenance, replacement, customer contact; optional back-dating up to a year) in the *Attività* tab, merged on request with the device's recorded events; never edited, deleted only by the author or an administrator, audited (`DEVICE_LOG_ADDED` / `DEVICE_LOG_DELETED`); permission `logbook.write` (technician, operator); writable on decommissioned devices; with ISPBilling connected, the timeline also shows the ISPBilling activities of the device or its customer (0.49.262, §13c).
 
 ### Global search and manufacturer icons
 
@@ -554,6 +554,22 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 Validation pending: periodic sync against a real UISP instance (the consumed endpoint is the same one used by manual refresh).
 
+### Syslog through UISP (UBNT-09, Core 0.49.257)
+
+`app/uisp_syslog.py`. UISP 3.x reads an airOS device's services but cannot write them (`PUT /devices/{id}/services` → 501 *setServices is not implemented*). So NSM restores a configuration the way UISP itself does:
+1. a fresh backup (`POST /devices/{id}/backups`), kept as the restore point;
+2. `system.cfg` with only `syslog.remote.status/ip/port` changed (and, in key mode, `NSM-<key>` appended to `resolv.host.1.name`);
+3. the changed file uploaded (`PUT /devices/{id}/backups`, multipart) and applied (`POST …/{backupId}/apply`). The CPE reboots and is back in 2–3 minutes (checked on a LiteBeam 5AC, airOS 8.7.15).
+
+It runs only from the device *Syslog* tab, with the device name typed as confirmation (`devices.write`), never from the worker. *Ripristina configurazione precedente* applies the restore point. Devices whose services UISP does not expose (404) keep the manual guide.
+
+Identification per device:
+- `key`, the default: the NSM key in the hostname;
+- `customer_name`: the UISP hostname must equal the NSM customer's name, words in any order. The name is saved on the device (`match_name`) because the receiver's database account cannot read customers. A line is accepted only when exactly one device uses that name, and only among the first 160 characters of the line;
+- `address`: the management IP from UISP, accepted only when no other device uses it.
+
+Audit `UISP_SYSLOG_CONFIGURED`, `UISP_SYSLOG_RESTORED`.
+
 ### Device operations (UBNT-08 step 2)
 
 Reboot with uptime verification, configuration backup archived in NSM (manual and by policy), interfaces and UISP events on the device UISP tab. The read endpoints (`/devices`, `/devices/{id}`, interfaces, backups, `/logs`) were checked on the operator's console on 2026-10-22 (Core 0.49.199): the kind of a log entry comes from its `tags`; the serial number is not sent by UISP (devices are matched by MAC). Reboot and backup requests are not exercised on the real console yet.
@@ -636,9 +652,17 @@ Accounts → CPEs and proposals (Core 0.49.229, operator decisions 2026-10-23):
 - nothing is applied without an operator (`devices.write`): *Assegna la sede* on the device page or in *Integrazioni → ISPBilling → Apparati da assegnare*, *Riassegna…* with a second confirmation for a device of another customer (its old site is cleared), *Ignora* to stop proposing an account for that device; audit `ISPBILLING_DEVICE_LINKED` (before/after) and `ISPBILLING_LINK_DISMISSED`;
 - the concentrator snapshot keeps at most 500 sessions and about 60 KB, so on a large concentrator part of the sessions may be missing.
 
+Activities in the device logbook (Core 0.49.262, ISPB-01 step 5):
+- the device *Attività* tab adds to its timeline the ISPBilling activities (installations, maintenance, visits) of the ISPBilling customer imported as the device's customer, with type, period (all-day shown as a date), teams, subject and description; *Pianificata* while it has not started, *Annullata* (with the reason) when ISPBilling cancelled it; a checkbox hides them;
+- an activity is the device's when its address is the address of a RADIUS account matched to the device or an address imported as the device's site; activities at another site or another device of the customer are left out; the others are shown as *attività del cliente*;
+- read on demand from `activities/activities` (cursor pagination, `filters` on `customer_id`) when the tab is opened, kept in memory 5 minutes, never stored; team names from `activities/teams`; the customer's name, phone number and e-mail returned by the API, and the team members, are dropped before anything reaches the browser; ISPBilling unreachable or the key without the Activities permission only shows a note, the logbook still works;
+- the numeric `status` of ISPBilling is not documented (every activity read on the operator's ISPBilling on 2026-10-23 had `0`), so NSM does not interpret it.
+
+Checked read-only on the operator's ISPBilling (2026-10-23): 118 activities over 6 cursor pages, 80 with a customer and an address; the `customer_id` filter returns only that customer's activities.
+
 ### Not implemented yet
 
-Warehouse serial numbers ↔ devices and ISPBilling activities in the device logbook (approved, next steps of ISPB-01).
+Warehouse serial numbers ↔ devices (approved, next step of ISPB-01).
 
 ## 13c. Moving NSM to another server address (Core 0.49.214)
 

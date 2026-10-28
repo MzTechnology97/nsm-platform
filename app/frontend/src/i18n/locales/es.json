@@ -4121,7 +4121,8 @@
       "info": "Info",
       "warning": "Atención",
       "error": "Error"
-    }
+    },
+    "moreEvents": "Mostrar más ({{shown}} de {{total}})"
   },
   "deviceCnmaestro": {
     "linked": "Vinculado a cnMaestro desde el {{when}} (MAC {{mac}}).",
@@ -4308,7 +4309,8 @@
     "jumpTo": "Ir a la sección…",
     "sectionOption_one": "{{path}} ({{count}} línea)",
     "sectionOption_other": "{{path}} ({{count}} líneas)",
-    "sectionsFiltered": "Vacíe la búsqueda para ir a una sección."
+    "sectionsFiltered": "Vacíe la búsqueda para ir a una sección.",
+    "contentHelpTr069": "Solo lectura. Parámetros de configuración del CPE tal como los leyó el ACS (TR-069): sin contraseñas ni valores que cambian solos (contadores, tiempos)."
   },
   "restoreTests": {
     "title": "Historial de pruebas de restauración",
@@ -5067,6 +5069,18 @@
       "body": "Escriba la entrada (como máximo 4000 caracteres).",
       "occurred_at": "La fecha debe estar en el último año y no en el futuro.",
       "forbidden": "Solo su autor o un administrador puede eliminarla."
+    },
+    "ispbilling": {
+      "show": "Mostrar también las actividades de ISPBilling",
+      "source": "ISPBilling",
+      "untitled": "Actividad",
+      "customerScope": "actividad del cliente",
+      "states": {
+        "planned": "Planificada",
+        "cancelled": "Cancelada"
+      },
+      "reason": "Cancelada: {{reason}}",
+      "error": "Actividades de ISPBilling no disponibles: {{error}}"
     }
   },
   "sla": {
@@ -5478,6 +5492,8 @@
     "UISP_SYNC_COMPLETED": "Sincronización UISP completada",
     "UISP_SYNC_CONFLICT": "Conflicto en la sincronización UISP",
     "UISP_SYNC_FAILED": "Sincronización UISP fallida",
+    "UISP_SYSLOG_CONFIGURED": "Syslog del dispositivo configurado mediante UISP",
+    "UISP_SYSLOG_RESTORED": "Configuración del dispositivo restaurada mediante UISP",
     "USER_2FA_DISABLED": "Acceso en dos pasos desactivado",
     "USER_2FA_ENABLED": "Acceso en dos pasos activado",
     "USER_2FA_RECOVERY_REGENERATED": "Códigos de recuperación 2FA regenerados",
@@ -6342,6 +6358,72 @@
       "unconfirmed": "Actualización a {{version}} no confirmada."
     }
   },
+  "firmwareSchedule": {
+    "title": "Actualización programada",
+    "help": "Elige cuándo actualizar, por ejemplo de noche. A esa hora NSM ejecuta solo todas las fases sin más confirmaciones: comprobación, copia previa, aprobación, descarga, activación con reinicio y control de la versión. Si el dispositivo no es accesible en 2 horas, la actualización no se ejecuta.",
+    "when": "Fecha y hora",
+    "schedule": "Programar actualización",
+    "move": "Mover",
+    "cancel": "Cancelar programación",
+    "at": "para el {{when}}",
+    "confirm": "¿Programar la actualización de RouterOS (ahora {{target}}) para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "confirmMany_one": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "confirmMany_other": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "selected_one": "{{count}} seleccionado",
+    "selected_other": "{{count}} seleccionados",
+    "scheduleMany": "Programar actualización",
+    "select": "Seleccionar {{name}}",
+    "done_one": "{{count}} actualización programada.",
+    "done_other": "{{count}} actualizaciones programadas.",
+    "skipped": "No programados (se requiere RouterOS 7.13+ con el agente moderno): {{names}}.",
+    "states": {
+      "scheduled": "Programada",
+      "checking": "Comprobando",
+      "running": "En curso",
+      "success": "Completada",
+      "failed": "Fallida",
+      "cancelled": "Cancelada"
+    }
+  },
+  "uispSyslog": {
+    "title": "Syslog mediante UISP",
+    "hint": "UISP configura el CPE para enviar sus registros al receptor de NSM: toma una copia de la configuración, cambia solo las líneas de syslog y la vuelve a aplicar. La copia tomada justo antes queda como punto de restauración.",
+    "target": "Receptor NSM",
+    "noTarget": "no determinable: configura la dirección pública en Amministrazione → Syslog",
+    "inUisp": "En UISP",
+    "liveOn": "registro remoto activo hacia {{server}}:{{port}}",
+    "liveOff": "registro remoto no configurado",
+    "unsupported": "UISP no gestiona los servicios de este dispositivo: configura el syslog desde la interfaz airOS.",
+    "current": "Configuración NSM",
+    "never": "aún no configurado por NSM",
+    "status": {
+      "applied": "{{mode}} · aplicada el {{when}} por {{by}}",
+      "restored": "configuración anterior restaurada (era: {{mode}})"
+    },
+    "modeTitle": "Cómo reconoce NSM los registros",
+    "recommended": "recomendado",
+    "modes": {
+      "key": {
+        "label": "Clave NSM en el nombre del dispositivo",
+        "help": "UISP añade NSM-… al nombre (hostname) del CPE: funciona aunque cambie la IP o comparta el NAT."
+      },
+      "customer_name": {
+        "label": "Nombre del CPE igual al cliente NSM",
+        "help": "El nombre del CPE en UISP debe ser el del cliente ({{customer}}), en cualquier orden. Aceptado solo si ningún otro dispositivo usa el mismo nombre."
+      },
+      "address": {
+        "label": "Dirección del dispositivo",
+        "help": "NSM reconoce los registros por la IP del CPE tal como la ve UISP. Descartados si otros dispositivos usan la misma IP (NAT)."
+      }
+    },
+    "reboot": "Aplicar la configuración reinicia el CPE: el cliente queda sin conexión 2–3 minutos.",
+    "confirm": "Para confirmar escribe el nombre del dispositivo: {{name}}",
+    "configure": "Configurar mediante UISP",
+    "restore": "Restaurar configuración anterior",
+    "working": "UISP está aplicando…",
+    "done": "Configuración aplicada: el CPE se reinicia y los registros llegan en unos minutos.",
+    "restored": "Configuración anterior aplicada: el CPE se reinicia."
+  },
   "bras": {
     "title": "BRAS MikroTik",
     "subtitle": "Concentrador PPPoE leído con un usuario RouterOS de solo lectura: sesiones de los clientes cada pocos minutos, nada se modifica en el router.",
@@ -6377,33 +6459,6 @@
     "uptime": "conectado desde hace {{value}}",
     "never": "Nunca vista en el BRAS",
     "noDevice": "Ningún equipo asociado"
-  },
-  "firmwareSchedule": {
-    "title": "Actualización programada",
-    "help": "Elige cuándo actualizar, por ejemplo de noche. A esa hora NSM ejecuta solo todas las fases sin más confirmaciones: comprobación, copia previa, aprobación, descarga, activación con reinicio y control de la versión. Si el dispositivo no es accesible en 2 horas, la actualización no se ejecuta.",
-    "when": "Fecha y hora",
-    "schedule": "Programar actualización",
-    "move": "Mover",
-    "cancel": "Cancelar programación",
-    "at": "para el {{when}}",
-    "confirm": "¿Programar la actualización de RouterOS (ahora {{target}}) para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
-    "confirmMany_one": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
-    "confirmMany_other": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
-    "selected_one": "{{count}} seleccionado",
-    "selected_other": "{{count}} seleccionados",
-    "scheduleMany": "Programar actualización",
-    "select": "Seleccionar {{name}}",
-    "done_one": "{{count}} actualización programada.",
-    "done_other": "{{count}} actualizaciones programadas.",
-    "skipped": "No programados (se requiere RouterOS 7.13+ con el agente moderno): {{names}}.",
-    "states": {
-      "scheduled": "Programada",
-      "checking": "Comprobando",
-      "running": "En curso",
-      "success": "Completada",
-      "failed": "Fallida",
-      "cancelled": "Cancelada"
-    }
   },
   "acsCapabilities": {
     "title": "Funciones de NSM en este CPE",
