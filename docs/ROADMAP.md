@@ -100,6 +100,8 @@ After the current P0 gates are closed, continue MikroTik work in focused PRs.
 
 Trigger this PR only if normal-size physical RouterOS 7.12.x snapshot acceptance shows practical payload limits for real firewall/DHCP sections.
 
+**Not needed for now (evaluated 2026-10-23, Core 0.49.268)**: the production legacy fleet is one RouterOS 7.12 router (Agent 0.49.23-legacy). Its latest successful section reads are far below the 56 KB rows-v1 wire limit (largest: routes and logs about 2 KB of data each); no section other than `logs` was ever truncated, and `logs` is truncated by design (last 20 of the warning/error entries). The only failures were expired jobs and the `services` section, which the legacy Agent cannot read (now refused explicitly by the MTK-05 capability gate). Re-evaluate when a legacy router with large firewall/DHCP tables is enrolled: the job result keeps `total`, `limit` and `truncated` for that check.
+
 Scope:
 
 - bounded chunk/page protocol for allow-listed snapshot data;
@@ -159,7 +161,7 @@ Possible focused PRs:
 
 - richer ping/traceroute presentation and history — **done** (`app/mikrotik_diagnostic_views.py`);
 - structured neighbor/DHCP/log result presentation — **done**, for modern and legacy agents;
-- bounded additional read-only diagnostics with explicit capability gates;
+- bounded additional read-only diagnostics with explicit capability gates — **done** in Core 0.49.268 (Agent 0.49.24): queues, certificates and BGP/OSPF sessions for modern and legacy agents, per-section capability gate (`app/mikrotik_snapshot_capabilities.py`);
 - support snapshot on legacy agents — **done** in Core 0.49.82 (assembled from the read-only section jobs);
 - support-snapshot evidence: JSON download with audited SHA-256 — **done** in Core 0.49.88.
 
@@ -244,6 +246,8 @@ Implement only diagnostics actually exposed and validated by the integration con
 
 ### UBNT-07 — security and lifecycle correlation
 
+**CVE part implemented (Core 0.49.267)**: airOS platform → NVD hardware family (airMAX AC / M / XW / XM / TI), release compared without build numbers, model lists never matched by guess. Lifecycle correlation is LIFE-02.
+
 - normalize Ubiquiti model/version identity;
 - correlate with the future advisory/lifecycle ingestion framework;
 - never infer vulnerability from brand alone.
@@ -317,6 +321,7 @@ Next steps:
 
 Telemetry of a device that goes offline must never be deleted: the last received values stay visible, with their timestamp. Retention cleanup always keeps the newest sample of each device and interface.
 - **Done in 0.49.43** for MikroTik metrics, interface traffic and UISP metrics.
+- **Done** for cnMaestro metrics, ICMP, wireless and the ACS history (Core 0.49.263: newest sample of each CPE and its newest optical reading; the ACS tab shows when the last sample arrived).
 - **Done in 0.49.266** for cnMaestro (Cambium): the retention keeps the newest sample of each device, a sync without statistics keeps the last values on the device, and the Monitor tab shows them with their time when the range has no samples.
 - **Still to do:** other connectors when they get history.
 
@@ -409,6 +414,8 @@ Normalize relevant Device identity and firmware fields from supported data model
 
 ### ACS-04 — parameter profiles
 
+**Implemented in `main` (Core 0.49.264)**: one map of the TR-098/TR-181 paths (`acs_profiles`) used by every ACS module, TP-Link vendor paths only where required, explicit unsupported entries with their reason, and the *Capacità NSM* view of each CPE (read only), tested on sanitized TP-Link TR-181 and Huawei TR-098 structures.
+
 - TR-098 / TR-181 mapping profiles;
 - vendor/model-specific profiles only where required;
 - explicit unsupported fields;
@@ -416,7 +423,7 @@ Normalize relevant Device identity and firmware fields from supported data model
 
 ### ACS-05 — monitoring/history
 
-**Implemented in `main` (Core 0.49.206, 0.49.211)**: state at every Inform (CPU, memory, WAN, Wi-Fi, LAN hosts, DSL), 90-day samples and charts on the device ACS tab, online/offline from the last Inform. Alerts on CPE offline, WAN down, WAN reconnections, reboots and DSL degradation (Core 0.49.226). Next: PON optical levels where CPEs expose them.
+**Implemented in `main` (Core 0.49.206, 0.49.211)**: state at every Inform (CPU, memory, WAN, Wi-Fi, LAN hosts, DSL), 90-day samples and charts on the device ACS tab, online/offline from the last Inform. Alerts on CPE offline, WAN down, WAN reconnections, reboots and DSL degradation (Core 0.49.226). PON optical levels (Rx/Tx, temperature, voltage, bias) from TR-181 `Device.Optical` and TR-098 vendor GPON objects, read hourly, with charts and a low-Rx alert (Core 0.49.263).
 
 Persist only supported, stable operational data with capability-aware unavailable states.
 
@@ -426,13 +433,13 @@ Persist only supported, stable operational data with capability-aware unavailabl
 
 ### ACS-07 — backup/restore capability
 
-**Backup implemented in `main` (Core 0.49.217)** as configuration-parameter snapshots archived and comparable in the device Backup tab, scheduled by backup policy (GenieACS has no `Upload` task for the vendor file). Restore is not implemented.
+**Backup implemented in `main` (Core 0.49.217)** as configuration-parameter snapshots archived and comparable in the device Backup tab, scheduled by backup policy (GenieACS has no `Upload` task for the vendor file). **Restore implemented (Core 0.49.269)**: preview of the writable parameters that differ, operator selection, typed confirmation, one `setParameterValues` task, verification by reading back, faulted tasks deleted with their fault.
 
 Only expose backup/restore where the real CPE data model and connector expose a verifiable supported mechanism.
 
 ### ACS-08 — firmware workflow
 
-**Implemented in `main` (Core 0.49.219)** for one CPE at a time, on the device Firmware tab like the other devices (installed version against the catalog's newest release): vendor image loaded into GenieACS per model, `download` task after typed confirmation and model check, verified from the reported `SoftwareVersion`, faults and timeout reported, audited. Next: campaigns over many CPEs with staged rollout.
+**Implemented in `main` (Core 0.49.219)** for one CPE at a time, on the device Firmware tab like the other devices (installed version against the catalog's newest release): vendor image loaded into GenieACS per model, `download` task after typed confirmation and model check, verified from the reported `SoftwareVersion`, faults and timeout reported, audited. **Campaigns (Core 0.49.270)**: one pilot CPE, then waves (10 by default) inside a time window, automatic stop at the first failed or unconfirmed upgrade, typed confirmation, pause/resume/cancel, per-CPE state page.
 
 - firmware target/evidence model;
 - controlled ACS operation;
@@ -457,7 +464,7 @@ Read-only cnMaestro (cloud/on-premises) connector for Cambium radios: discovery 
 
 Import the customer registry and sites from the operator's billing system (ISPBilling, `https://ispbilling.it/api/docs`), then automate around it. Approved by the operator: (1) customers, (2) services → sites, (3) RADIUS accounts ↔ devices, (4) warehouse serials/MACs ↔ devices, (5) activities into the device logbook; invoices and payments stay out of NSM.
 
-**Step 1 implemented in `main` (Core 0.49.203)**: read-only connector, mirror refreshed by the worker, import page for customers and their installation addresses as sites (details in `IMPLEMENTED_CAPABILITIES.md` §13c). **Step 2 implemented (Core 0.49.209)**: RADIUS accounts matched to devices (PPPoE user, then static IP) and shown on the device page with their ISPBilling status. **Core 0.49.229**: also by the CPE's own PPPoE user (TR-069) and by the caller-id MAC/address of the PPP session on a concentrator in NSM; customer and site proposed for confirmation. Next: warehouse and activities.
+**Step 1 implemented in `main` (Core 0.49.203)**: read-only connector, mirror refreshed by the worker, import page for customers and their installation addresses as sites (details in `IMPLEMENTED_CAPABILITIES.md` §13c). **Step 2 implemented (Core 0.49.209)**: RADIUS accounts matched to devices (PPPoE user, then static IP) and shown on the device page with their ISPBilling status. **Core 0.49.229**: also by the CPE's own PPPoE user (TR-069) and by the caller-id MAC/address of the PPP session on a concentrator in NSM; customer and site proposed for confirmation. **Step 5 implemented (Core 0.49.262)**: ISPBilling activities of the device's place or customer in the device Activity tab, read on demand. Next: warehouse.
 
 ### TAUC-01 — TP-Link Aginet Unified Cloud connector (requested 2026-10-22)
 
@@ -483,7 +490,7 @@ External sources should be documented only after an adapter actually uses them.
 
 ### SEC-02 — Device ↔ advisory matching
 
-**Implemented in `main` for MikroTik RouterOS** (`app/advisory_matching.py`). Other vendors are not evaluated until their product/version mapping exists.
+**Implemented in `main` for MikroTik RouterOS** (`app/advisory_matching.py`). **Core 0.49.267**: version matching for the other vendors through `vendor_cpe` — Ubiquiti airMAX by hardware family from the airOS platform, TP-Link release and build, product names without punctuation; data that is not enough stays *unknown*.
 
 - vendor/product/model normalization;
 - version range evaluation;

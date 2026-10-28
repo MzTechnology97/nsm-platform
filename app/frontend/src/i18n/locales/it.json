@@ -1321,7 +1321,8 @@
         "too_many": "Troppi apparati selezionati.",
         "confirm": "Scrivi la frase di conferma esatta."
       }
-    }
+    },
+    "campaigns": "Campagne TR-069"
   },
   "vulns": {
     "title": "Vulnerabilità",
@@ -3641,7 +3642,10 @@
       "firewall": "Firewall",
       "dhcp_leases": "DHCP",
       "ppp_active": "PPP / VPN",
-      "logs": "Log warning/error"
+      "logs": "Log warning/error",
+      "queues": "Code",
+      "certificates": "Certificati",
+      "routing": "BGP / OSPF"
     },
     "resources": {
       "cpu_load": "Carico CPU",
@@ -3674,7 +3678,16 @@
       "sessions": "Sessioni",
       "warning": "Warning",
       "error": "Error",
-      "critical": "Critical"
+      "critical": "Critical",
+      "simple": "Simple",
+      "tree": "Tree",
+      "saturated": "Sature",
+      "valid": "Validi",
+      "expiring": "In scadenza",
+      "expired": "Scaduti",
+      "revoked": "Revocati",
+      "bgp": "BGP",
+      "ospf": "OSPF"
     },
     "states": {
       "up": "attiva",
@@ -3690,7 +3703,12 @@
       "bound": "assegnato",
       "waiting": "in attesa",
       "blocked": "bloccato",
-      "offered": "offerto"
+      "offered": "offerto",
+      "saturated": "satura",
+      "valid": "valido",
+      "expiring": "in scadenza",
+      "expired": "scaduto",
+      "revoked": "revocato"
     },
     "kinds": {
       "filter": "Filter",
@@ -3700,7 +3718,11 @@
       "l2tp": "L2TP",
       "pppoe": "PPPoE",
       "pptp": "PPTP",
-      "ovpn": "OVPN"
+      "ovpn": "OVPN",
+      "simple": "Queue simple",
+      "tree": "Queue tree",
+      "bgp": "BGP",
+      "ospf": "OSPF"
     },
     "search": "Cerca nella sezione",
     "state": "Stato",
@@ -3746,7 +3768,20 @@
       "uptime": "Uptime",
       "time": "Ora",
       "topics": "Argomenti",
-      "message": "Messaggio"
+      "message": "Messaggio",
+      "target": "Target",
+      "parent": "Parent",
+      "max_limit": "Limite massimo",
+      "rate": "Traffico (up / down)",
+      "usage": "Uso",
+      "common_name": "Common name",
+      "issuer": "Emittente",
+      "not_after": "Valido fino al",
+      "days_left": "Giorni rimasti",
+      "role": "Ruolo",
+      "remote_as": "AS / area",
+      "session_state": "Sessione",
+      "prefixes": "Prefissi"
     },
     "historyTitle": "Cronologia configurazione",
     "historyHelp": "Export RouterOS archiviati, baseline approvata e variazioni rilevate automaticamente.",
@@ -3776,7 +3811,13 @@
     "view": "Visualizza",
     "diff": "Differenze",
     "setBaseline": "Imposta come baseline",
-    "noExports": "Nessun export di configurazione: la cronologia compare dopo il primo backup MikroTik in formato .rsc."
+    "noExports": "Nessun export di configurazione: la cronologia compare dopo il primo backup MikroTik in formato .rsc.",
+    "unsupported": {
+      "no_transport": "Sezione non disponibile: transport dell'agent non rilevato o non validato.",
+      "transport": "Sezione non disponibile con l'agent legacy (RouterOS 6 / 7.12).",
+      "agent_outdated": "Sezione disponibile dall'agent {{version}}: aggiorna o reinstalla l'agent dalla scheda Agent."
+    },
+    "unsupportedShort": "Non disponibile con l'agent installato"
   },
   "deviceReboot": {
     "title": "Riavvio controllato",
@@ -4036,6 +4077,10 @@
       "capacity": "Capacità del link",
       "resources": "CPU e RAM",
       "stations": "Stazioni collegate",
+      "acs_pon_power": "Livelli ottici PON",
+      "acs_pon_temperature": "Temperatura del modulo ottico",
+      "acs_pon_bias": "Corrente di polarizzazione laser",
+      "acs_pon_voltage": "Tensione del modulo ottico",
       "snr": "SNR",
       "throughput": "Throughput"
     },
@@ -4048,6 +4093,11 @@
       "uptime_seconds": "Uptime",
       "frequency_mhz": "Frequenza",
       "stations": "Stazioni collegate",
+      "pon_rx_dbm": "Rx",
+      "pon_tx_dbm": "Tx",
+      "pon_temperature_c": "Temperatura",
+      "pon_bias_ma": "Bias",
+      "pon_voltage_v": "Tensione",
       "snr_db": "SNR",
       "dl_throughput_bps": "Downlink",
       "ul_throughput_bps": "Uplink"
@@ -4119,7 +4169,8 @@
       "info": "Informativo",
       "warning": "Attenzione",
       "error": "Errore"
-    }
+    },
+    "moreEvents": "Mostra altri ({{shown}} di {{total}})"
   },
   "deviceCnmaestro": {
     "linked": "Collegato a cnMaestro dal {{when}} (MAC {{mac}}).",
@@ -4317,7 +4368,8 @@
     "jumpTo": "Vai alla sezione…",
     "sectionOption_one": "{{path}} ({{count}} riga)",
     "sectionOption_other": "{{path}} ({{count}} righe)",
-    "sectionsFiltered": "Svuota la ricerca per saltare a una sezione."
+    "sectionsFiltered": "Svuota la ricerca per saltare a una sezione.",
+    "contentHelpTr069": "Sola lettura. Parametri di configurazione del CPE come li ha letti l'ACS (TR-069): senza password e senza valori che cambiano da soli (contatori, tempi)."
   },
   "restoreTests": {
     "title": "Storico restore test",
@@ -5076,6 +5128,18 @@
       "body": "Scrivi la nota (al massimo 4000 caratteri).",
       "occurred_at": "La data deve essere nell'ultimo anno e non nel futuro.",
       "forbidden": "Solo chi l'ha scritta o un amministratore può eliminarla."
+    },
+    "ispbilling": {
+      "show": "Mostra anche le attività di ISPBilling",
+      "source": "ISPBilling",
+      "untitled": "Attività",
+      "customerScope": "attività del cliente",
+      "states": {
+        "planned": "Pianificata",
+        "cancelled": "Annullata"
+      },
+      "reason": "Annullata: {{reason}}",
+      "error": "Attività di ISPBilling non disponibili: {{error}}"
     }
   },
   "sla": {
@@ -5228,10 +5292,21 @@
     "ACS_ALERT_SETTINGS_CHANGED": "Impostazioni avvisi CPE modificate",
     "ACS_CONFIG_REFRESH_COMPLETED": "Configurazione del CPE riletta",
     "ACS_CONFIG_REFRESH_REQUESTED": "Rilettura configurazione del CPE richiesta",
+    "ACS_CONFIG_RESTORE_FAILED": "Ripristino della configurazione del CPE non riuscito",
+    "ACS_CONFIG_RESTORE_REQUESTED": "Ripristino della configurazione del CPE richiesto",
+    "ACS_CONFIG_RESTORE_VERIFIED": "Ripristino della configurazione del CPE verificato",
     "ACS_CUSTOMER_TAG_SET": "CPE etichettato con il cliente in GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnostica ACS completata",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnostica ACS richiesta",
     "ACS_FIRMWARE_AUTO_CHANGED": "Download automatico firmware modificato",
+    "ACS_FIRMWARE_CAMPAIGN_CANCELLED": "Campagna firmware TR-069 annullata",
+    "ACS_FIRMWARE_CAMPAIGN_COMPLETED": "Campagna firmware TR-069 completata",
+    "ACS_FIRMWARE_CAMPAIGN_CREATED": "Campagna firmware TR-069 creata",
+    "ACS_FIRMWARE_CAMPAIGN_PAUSED": "Campagna firmware TR-069 in pausa",
+    "ACS_FIRMWARE_CAMPAIGN_RESUMED": "Campagna firmware TR-069 ripresa",
+    "ACS_FIRMWARE_CAMPAIGN_STARTED": "Campagna firmware TR-069 avviata",
+    "ACS_FIRMWARE_CAMPAIGN_STOPPED": "Campagna firmware TR-069 fermata",
+    "ACS_FIRMWARE_CAMPAIGN_WAVE_STARTED": "Ondata di una campagna firmware avviata",
     "ACS_FIRMWARE_FAILED": "Aggiornamento firmware del CPE non riuscito",
     "ACS_FIRMWARE_FILE_FETCHED": "Firmware scaricato dal produttore nell'ACS",
     "ACS_FIRMWARE_FILE_STORED": "Immagine firmware caricata nell'ACS",
@@ -5691,7 +5766,19 @@
     "dslRate": "Velocità down / up",
     "dslSnr": "Margine SNR",
     "dslAttenuation": "Attenuazione",
-    "charts": "Storico dall'ACS"
+    "charts": "Storico dall'ACS",
+    "pon": {
+      "title": "Livelli ottici PON",
+      "rx_dbm": "Ricevuto (Rx)",
+      "tx_dbm": "Trasmesso (Tx)",
+      "temperature_c": "Temperatura del modulo",
+      "voltage_v": "Tensione di alimentazione",
+      "bias_ma": "Corrente di polarizzazione laser",
+      "status": "Stato PON",
+      "notExposed": "non riportato dal CPE",
+      "help": "Letti dal CPE ogni ora dalla provision NSM; ultima lettura {{when}} da"
+    },
+    "lastSample": "Nessun campione in questo periodo: l'ultimo ricevuto dal CPE è del {{when}}."
   },
   "serverMigration": {
     "subtitle": "Sposta NSM su un server con un altro indirizzo: questo server comunica il nuovo indirizzo ad agent MikroTik e CPE TR-069.",
@@ -6095,7 +6182,7 @@
   },
   "acsAlerts": {
     "title": "Avvisi dei CPE",
-    "help": "NSM apre una segnalazione nel Centro azioni, con una notifica, quando un CPE TR-069 smette di contattare l'ACS, ha la WAN giù, la WAN si riconnette o il CPE si riavvia troppo spesso, o la linea DSL peggiora. Le segnalazioni si chiudono da sole quando il problema finisce. 0 disattiva una soglia.",
+    "help": "NSM apre una segnalazione nel Centro azioni, con una notifica, quando un CPE TR-069 smette di contattare l'ACS, ha la WAN giù, la WAN si riconnette o il CPE si riavvia troppo spesso, la linea DSL peggiora o il livello PON ricevuto scende sotto la soglia. Le segnalazioni si chiudono da sole quando il problema finisce. 0 disattiva una soglia.",
     "fields": {
       "enabled": "Avvisi per i CPE TR-069 attivi",
       "offline": "CPE che non contatta più l'ACS (tre Inform periodici mancati)",
@@ -6103,7 +6190,8 @@
       "reconnects_per_hour": "Riconnessioni WAN all'ora",
       "reboots_per_day": "Riavvii del CPE in 24 ore",
       "snr_min_db": "Margine SNR DSL minimo (dB)",
-      "dsl_rate_drop_percent": "Calo del downstream DSL rispetto alla mediana di 7 giorni (%)"
+      "dsl_rate_drop_percent": "Calo del downstream DSL rispetto alla mediana di 7 giorni (%)",
+      "pon_rx_min_dbm": "Livello PON ricevuto minimo (dBm, es. −27)"
     },
     "save": "Salva",
     "saved": "Salvato."
@@ -6346,41 +6434,32 @@
       "unconfirmed": "Aggiornamento a {{version}} non confermato."
     }
   },
-  "bras": {
-    "title": "BRAS MikroTik",
-    "subtitle": "Concentratore PPPoE letto con un utente RouterOS di sola lettura: le sessioni dei clienti ogni pochi minuti, nulla viene modificato sul router.",
-    "online": "Online",
-    "onlineHint": "Sessioni PPPoE aperte ora",
-    "offline": "Offline",
-    "offlineHint": "Viste prima, ora non connesse",
-    "lastSync": "Ultima lettura",
-    "every": "Letto ogni {{minutes}} min",
-    "connection": "Connessione",
-    "connectionHelp": "https://indirizzo per l'API REST di RouterOS 7, oppure api-ssl://indirizzo:8729 (api://indirizzo:8728) per l'API RouterOS.",
-    "url": "Indirizzo",
-    "username": "Utente di sola lettura",
-    "password": "Password",
-    "passwordKeep": "invariata",
-    "interval": "Leggi ogni (minuti)",
-    "verifyTls": "Verifica il certificato TLS",
-    "enabled": "Attivo",
-    "save": "Salva",
-    "actions": "Verifica",
-    "userHint": "Sul BRAS, un utente che può solo leggere (esempio):",
-    "test": "Prova connessione",
-    "syncNow": "Leggi ora",
-    "synced": "{{sessions}} sessioni lette: {{came}} entrate online, {{went}} andate offline."
-  },
-  "pppoe": {
-    "title": "Connessioni PPPoE",
-    "help": "Account RADIUS del cliente (ISPBilling) e la loro sessione sul BRAS, letta {{when}}.",
-    "noBras": "Account RADIUS del cliente (ISPBilling). Collega il BRAS (Integrazioni) per vedere se sono online.",
-    "online": "Online",
-    "offline": "Offline",
-    "offlineSince": "da {{when}}",
-    "uptime": "connesso da {{value}}",
-    "never": "Mai vista sul BRAS",
-    "noDevice": "Nessun apparato abbinato"
+  "firmwareSchedule": {
+    "title": "Aggiornamento programmato",
+    "help": "Scegli quando aggiornare, per esempio di notte. A quell'ora NSM esegue da solo tutte le fasi senza altre conferme: verifica, backup pre-aggiornamento, approvazione, download, attivazione con riavvio e controllo della versione. Se l'apparato non è raggiungibile entro 2 ore, l'aggiornamento non viene eseguito.",
+    "when": "Data e ora",
+    "schedule": "Programma aggiornamento",
+    "move": "Sposta",
+    "cancel": "Annulla programmazione",
+    "at": "per il {{when}}",
+    "confirm": "Programmare l'aggiornamento RouterOS (oggi {{target}}) per il {{when}}? A quell'ora tutte le fasi, riavvio compreso, partono senza altre conferme.",
+    "confirmMany_one": "Programmare l'aggiornamento di {{count}} MikroTik per il {{when}}? A quell'ora tutte le fasi, riavvio compreso, partono senza altre conferme.",
+    "confirmMany_other": "Programmare l'aggiornamento di {{count}} MikroTik per il {{when}}? A quell'ora tutte le fasi, riavvio compreso, partono senza altre conferme.",
+    "selected_one": "{{count}} selezionato",
+    "selected_other": "{{count}} selezionati",
+    "scheduleMany": "Programma aggiornamento",
+    "select": "Seleziona {{name}}",
+    "done_one": "{{count}} aggiornamento programmato.",
+    "done_other": "{{count}} aggiornamenti programmati.",
+    "skipped": "Non programmati (serve RouterOS 7.13+ con agent moderno): {{names}}.",
+    "states": {
+      "scheduled": "Programmato",
+      "checking": "In verifica",
+      "running": "In corso",
+      "success": "Completato",
+      "failed": "Non riuscito",
+      "cancelled": "Annullato"
+    }
   },
   "uispSyslog": {
     "title": "Syslog tramite UISP",
@@ -6421,32 +6500,102 @@
     "done": "Configurazione applicata: il CPE si riavvia e i log arrivano entro qualche minuto.",
     "restored": "Configurazione precedente applicata: il CPE si riavvia."
   },
-  "firmwareSchedule": {
-    "title": "Aggiornamento programmato",
-    "help": "Scegli quando aggiornare, per esempio di notte. A quell'ora NSM esegue da solo tutte le fasi senza altre conferme: verifica, backup pre-aggiornamento, approvazione, download, attivazione con riavvio e controllo della versione. Se l'apparato non è raggiungibile entro 2 ore, l'aggiornamento non viene eseguito.",
-    "when": "Data e ora",
-    "schedule": "Programma aggiornamento",
-    "move": "Sposta",
-    "cancel": "Annulla programmazione",
-    "at": "per il {{when}}",
-    "confirm": "Programmare l'aggiornamento RouterOS (oggi {{target}}) per il {{when}}? A quell'ora tutte le fasi, riavvio compreso, partono senza altre conferme.",
-    "confirmMany_one": "Programmare l'aggiornamento di {{count}} MikroTik per il {{when}}? A quell'ora tutte le fasi, riavvio compreso, partono senza altre conferme.",
-    "confirmMany_other": "Programmare l'aggiornamento di {{count}} MikroTik per il {{when}}? A quell'ora tutte le fasi, riavvio compreso, partono senza altre conferme.",
-    "selected_one": "{{count}} selezionato",
-    "selected_other": "{{count}} selezionati",
-    "scheduleMany": "Programma aggiornamento",
-    "select": "Seleziona {{name}}",
-    "done_one": "{{count}} aggiornamento programmato.",
-    "done_other": "{{count}} aggiornamenti programmati.",
-    "skipped": "Non programmati (serve RouterOS 7.13+ con agent moderno): {{names}}.",
-    "states": {
-      "scheduled": "Programmato",
-      "checking": "In verifica",
-      "running": "In corso",
-      "success": "Completato",
-      "failed": "Non riuscito",
-      "cancelled": "Annullato"
-    }
+  "bras": {
+    "title": "BRAS MikroTik",
+    "subtitle": "Concentratore PPPoE letto con un utente RouterOS di sola lettura: le sessioni dei clienti ogni pochi minuti, nulla viene modificato sul router.",
+    "online": "Online",
+    "onlineHint": "Sessioni PPPoE aperte ora",
+    "offline": "Offline",
+    "offlineHint": "Viste prima, ora non connesse",
+    "lastSync": "Ultima lettura",
+    "every": "Letto ogni {{minutes}} min",
+    "connection": "Connessione",
+    "connectionHelp": "https://indirizzo per l'API REST di RouterOS 7, oppure api-ssl://indirizzo:8729 (api://indirizzo:8728) per l'API RouterOS.",
+    "url": "Indirizzo",
+    "username": "Utente di sola lettura",
+    "password": "Password",
+    "passwordKeep": "invariata",
+    "interval": "Leggi ogni (minuti)",
+    "verifyTls": "Verifica il certificato TLS",
+    "enabled": "Attivo",
+    "save": "Salva",
+    "actions": "Verifica",
+    "userHint": "Sul BRAS, un utente che può solo leggere (esempio):",
+    "test": "Prova connessione",
+    "syncNow": "Leggi ora",
+    "synced": "{{sessions}} sessioni lette: {{came}} entrate online, {{went}} andate offline."
+  },
+  "pppoe": {
+    "title": "Connessioni PPPoE",
+    "help": "Account RADIUS del cliente (ISPBilling) e la loro sessione sul BRAS, letta {{when}}.",
+    "noBras": "Account RADIUS del cliente (ISPBilling). Collega il BRAS (Integrazioni) per vedere se sono online.",
+    "online": "Online",
+    "offline": "Offline",
+    "offlineSince": "da {{when}}",
+    "uptime": "connesso da {{value}}",
+    "never": "Mai vista sul BRAS",
+    "noDevice": "Nessun apparato abbinato"
+  },
+  "acsCapabilities": {
+    "title": "Capacità NSM su questo CPE",
+    "help": "Profilo parametri {{model}} · {{vendor}}, dal record GenieACS (ultimo Inform {{when}}). Letto senza inviare nulla al CPE.",
+    "notRead": "GenieACS non ha ancora letto il modello dati del CPE.",
+    "vendors": {
+      "tp-link": "estensioni TP-Link",
+      "generic": "solo parametri standard"
+    },
+    "columns": {
+      "capability": "Funzione",
+      "status": "Stato",
+      "why": "Perché / percorsi",
+      "writes": "Scrive sul CPE"
+    },
+    "status": {
+      "available": "Disponibile",
+      "rpc": "Disponibile (RPC TR-069)",
+      "not_exposed": "Non esposto",
+      "unsupported": "Non supportato"
+    },
+    "reasons": {
+      "found": "Il CPE espone i parametri:",
+      "not_reported": "Il CPE non riporta questi parametri (o GenieACS non li ha ancora letti).",
+      "no_dsl": "Nessuna linea DSL nel modello dati del CPE.",
+      "no_pon": "Il CPE non espone livelli ottici PON.",
+      "download_rpc": "RPC standard Download: serve un'immagine per il modello in GenieACS.",
+      "reboot_rpc": "RPC standard Reboot.",
+      "nsm_tr098": "In TR-098 CPU e memoria esistono solo su pochi CPE: NSM le legge solo in TR-181.",
+      "vendor_tr181": "Esiste solo come estensione TP-Link nel firmware TR-181 (Aginet).",
+      "vendor_tplink": "Esiste solo come estensione TP-Link (X_TP_*).",
+      "no_standard": "Nessun parametro standard in questo modello dati.",
+      "no_upload_task": "GenieACS non ha il task Upload: il file di configurazione del produttore non si può scaricare. NSM archivia i parametri.",
+      "snapshots": "{{count}} istantanee dei parametri archiviate.",
+      "no_snapshot": "Nessuna istantanea ancora: si crea dalla sezione Istantanea.",
+      "restore_preview": "Dalla pagina dell'istantanea: anteprima delle differenze e conferma."
+    },
+    "caps": {
+      "identity": "Identità e firmware",
+      "resources": "CPU e memoria",
+      "wan": "Stato WAN",
+      "wifi": "Wi-Fi (lettura e modifica)",
+      "dsl": "Linea DSL",
+      "pon": "Livelli ottici PON",
+      "ping": "Ping dal CPE",
+      "traceroute": "Traceroute dal CPE",
+      "speedtest": "Test di velocità",
+      "firmware": "Aggiornamento firmware (immagine)",
+      "firmware_cloud": "Firmware dal cloud TP-Link",
+      "syslog": "Syslog verso NSM",
+      "port_mapping": "Port forwarding e DMZ",
+      "upnp": "Stato UPnP",
+      "remote_access": "Accesso web remoto",
+      "reboot": "Riavvio",
+      "inform_interval": "Intervallo di Inform",
+      "config_snapshot": "Istantanea della configurazione",
+      "config_file": "File di configurazione del produttore",
+      "config_restore": "Ripristino da istantanea"
+    },
+    "writesYes": "sì, su richiesta",
+    "writesNo": "no"
   },
   "cambiumSyslog": {
     "title": "Syslog dell'ePMP",
@@ -6499,5 +6648,104 @@
     "working": "Collegamento all'ePMP…",
     "done": "Syslog configurato: i log arrivano entro qualche minuto.",
     "restored": "Valori precedenti ripristinati sull'ePMP."
+  },
+  "acsRestore": {
+    "title": "Ripristina sul CPE",
+    "intro": "Riporta sul CPE alcuni parametri di questa istantanea: prima vedi cosa cambierebbe, poi scegli tu cosa ripristinare.",
+    "prepare": "Prepara il ripristino",
+    "help": "Elenco dei soli parametri scrivibili il cui valore attuale (letto ora dall'ACS) è diverso dall'istantanea. Esclusi password e chiavi (non sono nelle istantanee), valori che cambiano da soli, il collegamento all'ACS (ManagementServer) e i parametri che avviano azioni (diagnostica, aggiornamenti, reset). NSM invia un solo comando setParameterValues e poi rilegge i parametri dal CPE.",
+    "skipped": "Già uguali: {{unchanged}} · non più presenti sul CPE: {{missing}} · non scrivibili: {{not_writable}} · esclusi: {{excluded}} · non convertibili: {{invalid}}.",
+    "nothing": "Nessun parametro da ripristinare: il CPE ha già i valori dell'istantanea.",
+    "all": "Seleziona tutti",
+    "columns": {
+      "path": "Parametro",
+      "current": "Valore attuale",
+      "snapshot": "Valore nell'istantanea"
+    },
+    "confirm": "Scrivi «{{name}}» per ripristinare {{count}} parametri",
+    "run": "Ripristina {{count}} parametri",
+    "noPermission": "Il ripristino richiede il permesso di modificare gli apparati.",
+    "queued": "Il CPE non ha risposto alla richiesta di connessione: il comando parte al prossimo contatto.",
+    "states": {
+      "requested": "Ripristino di {{count}} parametri inviato a GenieACS ({{when}}): in attesa che il CPE lo esegua.",
+      "verifying": "Parametri scritti: NSM li sta rileggendo dal CPE per verificarli.",
+      "verified": "Ripristino verificato ({{when}}): il CPE riporta i {{count}} valori dell'istantanea.",
+      "mismatch": "Ripristino eseguito, ma il CPE riporta valori diversi per questi parametri ({{when}}):",
+      "failed": "Il CPE ha rifiutato il ripristino (errore {{fault}}). Il comando è stato cancellato da GenieACS insieme all'errore: la coda del CPE non è bloccata.",
+      "unverified": "Parametri scritti, ma la rilettura dal CPE non è riuscita (errore {{fault}}).",
+      "unconfirmed": "Il CPE non ha eseguito il ripristino entro 30 minuti: il comando è stato cancellato da GenieACS."
+    }
+  },
+  "acsCampaigns": {
+    "title": "Campagne firmware TR-069",
+    "subtitle": "Aggiorna molti CPE dello stesso modello: prima un CPE pilota, poi a ondate, solo nella finestra oraria scelta. Al primo aggiornamento fallito o non confermato la campagna si ferma da sola.",
+    "back": "Torna al firmware",
+    "backList": "Tutte le campagne",
+    "new": "Nuova campagna",
+    "close": "Chiudi",
+    "newTitle": "Nuova campagna",
+    "newHelp": "Scegli un'immagine già in GenieACS (caricata dalla scheda Firmware di un CPE o dai cataloghi): la campagna riguarda i CPE collegati di quel modello. Viene creata in bozza: non parte nulla finché non la avvii scrivendo il suo nome.",
+    "chooseFile": "Scegli l'immagine…",
+    "noFiles": "Nessuna immagine firmware in GenieACS: caricala prima dalla scheda Firmware di un CPE.",
+    "pilotAuto": "Il primo per nome",
+    "createDraft": "Crea la bozza",
+    "selected": "{{count}} CPE {{model}} scelti su {{total}} collegati.",
+    "fields": {
+      "name": "Nome della campagna",
+      "file": "Immagine firmware",
+      "expected": "Versione attesa dopo l'aggiornamento",
+      "waveSize": "CPE per ondata",
+      "window": "Finestra oraria ({{tz}}): inizio e fine",
+      "pilot": "CPE pilota"
+    },
+    "columns": {
+      "name": "Campagna",
+      "state": "Stato",
+      "model": "Modello → versione",
+      "progress": "Avanzamento",
+      "created": "Creata",
+      "device": "CPE",
+      "customer": "Cliente",
+      "version": "Versione",
+      "when": "Quando",
+      "error": "Dettaglio"
+    },
+    "status": {
+      "draft": "Bozza",
+      "running": "In corso",
+      "paused": "In pausa",
+      "stopped": "Fermata",
+      "completed": "Completata",
+      "cancelled": "Annullata"
+    },
+    "device": {
+      "pending": "In attesa",
+      "requested": "In aggiornamento",
+      "verified": "Aggiornato",
+      "failed": "Fallito",
+      "unconfirmed": "Non confermato",
+      "skipped": "Saltato",
+      "cancelled": "Annullato"
+    },
+    "errors": {
+      "already": "già alla versione attesa",
+      "not_linked": "non più collegato a GenieACS",
+      "unexpected_version": "versione diversa da quella attesa",
+      "no_new_version": "nessuna nuova versione dopo 30 minuti",
+      "device_removed": "apparato eliminato"
+    },
+    "summary": "{{model}} → {{version}} · {{file}} · ondate da {{wave}} · finestra {{start}}–{{end}} ({{tz}})",
+    "rules": "Il pilota viene aggiornato da solo; le ondate successive partono solo quando l'ondata precedente è tutta verificata e solo nella finestra oraria. Gli aggiornamenti già inviati non si possono richiamare: pausa e annulla fermano solo i CPE non ancora partiti.",
+    "stopped": "Campagna fermata: {{reason}}. Controlla il CPE, poi riprendi la campagna per continuare con gli altri.",
+    "outsideWindow": "Fuori dalla finestra oraria: la prossima ondata partirà all'inizio della finestra.",
+    "confirmStart": "Scrivi «{{name}}» per avviare la campagna",
+    "confirmResume": "Scrivi «{{name}}» per riprendere la campagna",
+    "start": "Avvia la campagna",
+    "resume": "Riprendi",
+    "pause": "Pausa",
+    "cancel": "Annulla la campagna",
+    "pilot": "Pilota",
+    "wave": "Ondata {{number}}",
+    "empty": "Nessuna campagna ancora."
   }
 }

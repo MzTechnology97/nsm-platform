@@ -14,6 +14,7 @@ import { AcsWifi } from "../app/AcsWifi";
 import { AcsSnapshot } from "../app/AcsSnapshot";
 import { AcsPortMapping } from "../app/AcsPortMapping";
 import { AcsMonitor } from "../app/AcsMonitor";
+import { AcsCapabilities } from "../app/AcsCapabilities";
 import { CambiumBackup } from "../app/CambiumBackup";
 import { TplinkAccess } from "../app/TplinkAccess";
 import { TplinkSettings } from "../app/TplinkSettings";
@@ -177,6 +178,7 @@ export function DeviceGenieacs() {
         </section>
       )}
       {record.external_id && <AcsMonitor deviceId={deviceId} />}
+      {record.external_id && enabled && <AcsCapabilities deviceId={deviceId} />}
       {record.external_id && enabled && <AcsDiagnostics deviceId={deviceId} />}
       {record.external_id && enabled && <AcsSpeedtest deviceId={deviceId} />}
       {record.external_id && enabled && <AcsWifi deviceId={deviceId} deviceName={record.name} />}
