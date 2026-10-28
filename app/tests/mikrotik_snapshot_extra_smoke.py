@@ -13,6 +13,7 @@ from app.db import SessionLocal
 from app.entrypoint import app
 from app.input_errors import InputError
 from app.mikrotik_legacy_jobs import parse_legacy_snapshot
+from app.mikrotik_agent_generation import TARGET_AGENT_VERSION
 from app.mikrotik_snapshot_batch import queue_all_record
 from app.mikrotik_snapshot_capabilities import section_support
 from app.mikrotik_workspace import queue_snapshot_record
@@ -37,10 +38,10 @@ def sources():
     # Routing menus only appear inside :parse strings: a router without them still loads the Agent.
     assert "\n/routing" not in modern and " [/routing bgp" not in modern.replace('"', " ").replace("[/routing bgp session print", "").replace("[/routing bgp peer print", "")
     assert len(modern.encode()) < MAX_SOURCE, len(modern.encode())
-    assert '"agent_version"="0.49.25"' in modern
+    assert f'"agent_version"="{TARGET_AGENT_VERSION}"' in modern  # later Agent bumps must not break this test
     for routeros in ("7.12.1", "6.49.10"):
         source, transport, version = mikrotik_legacy._select_agent_source("https://nsm.example.test", DEVICE_ID, "CI-secret-not-for-production", routeros)
-        assert transport == "legacy" and version == "0.49.25-legacy"
+        assert transport == "legacy" and version == f"{TARGET_AGENT_VERSION}-legacy"
         assert len(source.encode()) < MAX_SOURCE, (routeros, len(source.encode()))
         for marker in ('"QS|"', '"QT|"', '"CE|"', '"BG|"', '"ON|"', "/routing bgp session print as-value", "/routing bgp peer print as-value"):
             assert marker in source, (routeros, marker)
