@@ -40,7 +40,7 @@ def sources():
     assert '"agent_version"="0.49.25"' in modern
     for routeros in ("7.12.1", "6.49.10"):
         source, transport, version = mikrotik_legacy._select_agent_source("https://nsm.example.test", DEVICE_ID, "CI-secret-not-for-production", routeros)
-        assert transport == "legacy" and version == "0.49.24-legacy"
+        assert transport == "legacy" and version == "0.49.25-legacy"
         assert len(source.encode()) < MAX_SOURCE, (routeros, len(source.encode()))
         for marker in ('"QS|"', '"QT|"', '"CE|"', '"BG|"', '"ON|"', "/routing bgp session print as-value", "/routing bgp peer print as-value"):
             assert marker in source, (routeros, marker)
