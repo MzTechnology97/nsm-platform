@@ -289,6 +289,7 @@ export interface IntegrationsHub {
   genieacs: { state: ConnectorState; linked: number; pending: number };
   cnmaestro: { state: ConnectorState; cambium: number; linked: number };
   ispbilling: { state: ConnectorState; customers: number; linked: number; details_pending: number };
+  bras?: { state: ConnectorState; online: number; offline: number };
   zabbix: { state: ConnectorState; version: string | null; linked: number; frontend: string | null };
 }
 

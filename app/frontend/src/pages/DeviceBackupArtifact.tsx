@@ -142,7 +142,7 @@ export function DeviceBackupArtifact() {
           <div className="ui-panel-header">
             <div>
               <h2>{t("backupArtifact.contentTitle")}</h2>
-              <p className="ui-muted">{t("backupArtifact.contentHelp")}</p>
+              <p className="ui-muted">{t(data.artifact_type === "tr069_parameters" ? "backupArtifact.contentHelpTr069" : "backupArtifact.contentHelp")}</p>
             </div>
           </div>
           <div className="ui-filter-bar">
