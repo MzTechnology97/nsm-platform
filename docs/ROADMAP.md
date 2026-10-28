@@ -317,6 +317,7 @@ Next steps:
 
 Telemetry of a device that goes offline must never be deleted: the last received values stay visible, with their timestamp. Retention cleanup always keeps the newest sample of each device and interface.
 - **Done in 0.49.43** for MikroTik metrics, interface traffic and UISP metrics.
+- **Done** for cnMaestro metrics, ICMP, wireless and the ACS history (Core 0.49.263: newest sample of each CPE and its newest optical reading; the ACS tab shows when the last sample arrived).
 - **Done in 0.49.266** for cnMaestro (Cambium): the retention keeps the newest sample of each device, a sync without statistics keeps the last values on the device, and the Monitor tab shows them with their time when the range has no samples.
 - **Still to do:** other connectors when they get history.
 
@@ -409,6 +410,8 @@ Normalize relevant Device identity and firmware fields from supported data model
 
 ### ACS-04 — parameter profiles
 
+**Implemented in `main` (Core 0.49.264)**: one map of the TR-098/TR-181 paths (`acs_profiles`) used by every ACS module, TP-Link vendor paths only where required, explicit unsupported entries with their reason, and the *Capacità NSM* view of each CPE (read only), tested on sanitized TP-Link TR-181 and Huawei TR-098 structures.
+
 - TR-098 / TR-181 mapping profiles;
 - vendor/model-specific profiles only where required;
 - explicit unsupported fields;
@@ -416,7 +419,7 @@ Normalize relevant Device identity and firmware fields from supported data model
 
 ### ACS-05 — monitoring/history
 
-**Implemented in `main` (Core 0.49.206, 0.49.211)**: state at every Inform (CPU, memory, WAN, Wi-Fi, LAN hosts, DSL), 90-day samples and charts on the device ACS tab, online/offline from the last Inform. Alerts on CPE offline, WAN down, WAN reconnections, reboots and DSL degradation (Core 0.49.226). Next: PON optical levels where CPEs expose them.
+**Implemented in `main` (Core 0.49.206, 0.49.211)**: state at every Inform (CPU, memory, WAN, Wi-Fi, LAN hosts, DSL), 90-day samples and charts on the device ACS tab, online/offline from the last Inform. Alerts on CPE offline, WAN down, WAN reconnections, reboots and DSL degradation (Core 0.49.226). PON optical levels (Rx/Tx, temperature, voltage, bias) from TR-181 `Device.Optical` and TR-098 vendor GPON objects, read hourly, with charts and a low-Rx alert (Core 0.49.263).
 
 Persist only supported, stable operational data with capability-aware unavailable states.
 
@@ -457,7 +460,7 @@ Read-only cnMaestro (cloud/on-premises) connector for Cambium radios: discovery 
 
 Import the customer registry and sites from the operator's billing system (ISPBilling, `https://ispbilling.it/api/docs`), then automate around it. Approved by the operator: (1) customers, (2) services → sites, (3) RADIUS accounts ↔ devices, (4) warehouse serials/MACs ↔ devices, (5) activities into the device logbook; invoices and payments stay out of NSM.
 
-**Step 1 implemented in `main` (Core 0.49.203)**: read-only connector, mirror refreshed by the worker, import page for customers and their installation addresses as sites (details in `IMPLEMENTED_CAPABILITIES.md` §13c). **Step 2 implemented (Core 0.49.209)**: RADIUS accounts matched to devices (PPPoE user, then static IP) and shown on the device page with their ISPBilling status. **Core 0.49.229**: also by the CPE's own PPPoE user (TR-069) and by the caller-id MAC/address of the PPP session on a concentrator in NSM; customer and site proposed for confirmation. Next: warehouse and activities.
+**Step 1 implemented in `main` (Core 0.49.203)**: read-only connector, mirror refreshed by the worker, import page for customers and their installation addresses as sites (details in `IMPLEMENTED_CAPABILITIES.md` §13c). **Step 2 implemented (Core 0.49.209)**: RADIUS accounts matched to devices (PPPoE user, then static IP) and shown on the device page with their ISPBilling status. **Core 0.49.229**: also by the CPE's own PPPoE user (TR-069) and by the caller-id MAC/address of the PPP session on a concentrator in NSM; customer and site proposed for confirmation. **Step 5 implemented (Core 0.49.262)**: ISPBilling activities of the device's place or customer in the device Activity tab, read on demand. Next: warehouse.
 
 ### TAUC-01 — TP-Link Aginet Unified Cloud connector (requested 2026-10-22)
 

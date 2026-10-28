@@ -27,3 +27,9 @@ class AcsMetricSample(Base):
     dsl_up_bps: Mapped[int | None] = mapped_column(BigInteger)
     dsl_snr_down_db: Mapped[float | None] = mapped_column(Float)
     dsl_attenuation_down_db: Mapped[float | None] = mapped_column(Float)
+    # PON optical levels (ACS-05, Core 0.49.263): last values read by the hourly provision.
+    pon_rx_dbm: Mapped[float | None] = mapped_column(Float)
+    pon_tx_dbm: Mapped[float | None] = mapped_column(Float)
+    pon_temperature_c: Mapped[float | None] = mapped_column(Float)
+    pon_voltage_v: Mapped[float | None] = mapped_column(Float)
+    pon_bias_ma: Mapped[float | None] = mapped_column(Float)
