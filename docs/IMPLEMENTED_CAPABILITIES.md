@@ -139,7 +139,7 @@ The whole operator interface is the React application served under `/app` (class
 - device list (0.49.177): CVE state per row (severe/open/clean/not assessable), CPU/RAM and uptime, readable vendor names, multi-select bar (CSV, backup now, firmware check, decommission/reactivate) and audited CSV export of the filtered list (`DEVICE_LIST_EXPORTED`);
 - dashboard (0.49.178, 0.49.186): offline devices by time down with the latest outages, five most loaded devices, CVE exposure of the inventory, refresh countdown, clickable vendor/model distributions, dark *Da guardare* column;
 - device page (0.49.179, 0.49.185, 0.49.188, 0.49.190): header card with status/CVE pills and actions (decommission included), ring tiles for CPU, memory, ping, 30-day availability (ping, maintenance excluded, against the customer SLA target), open CVEs, firmware and backup; CVE chips by severity; diagnostics with last run per card, ping RTT chart, traceroute hop latency bars and log level filters; RouterOS export viewer with syntax colours and a section index;
-- device logbook (0.49.180): operator entries per device (note, site visit, maintenance, replacement, customer contact; optional back-dating up to a year) in the *Attività* tab, merged on request with the device's recorded events; never edited, deleted only by the author or an administrator, audited (`DEVICE_LOG_ADDED` / `DEVICE_LOG_DELETED`); permission `logbook.write` (technician, operator); writable on decommissioned devices.
+- device logbook (0.49.180): operator entries per device (note, site visit, maintenance, replacement, customer contact; optional back-dating up to a year) in the *Attività* tab, merged on request with the device's recorded events; never edited, deleted only by the author or an administrator, audited (`DEVICE_LOG_ADDED` / `DEVICE_LOG_DELETED`); permission `logbook.write` (technician, operator); writable on decommissioned devices; with ISPBilling connected, the timeline also shows the ISPBilling activities of the device or its customer (0.49.262, §13c).
 
 ### Global search and manufacturer icons
 
@@ -509,6 +509,7 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 - when both installed and latest are present and comparable, the Device gets the recommended version and `update_available` or `current`, so Ubiquiti devices appear in the firmware worklist; nothing is inferred when UISP does not expose a latest version;
 - the UISP tab shows a *Firmware da UISP* panel and warns when UISP reports the installed firmware as not compatible;
 - upgrade through UISP (Core 0.49.252): Ubiquiti devices linked to UISP get the device *Firmware* tab (and *Aggiorna via UISP* in the firmware worklist). It offers the stable images UISP has for the device's airOS platform (`GET /firmwares`) newer than the installed one, the recommended version first. After typing the device name, NSM queues the upgrade in UISP (`POST /tasks` with device and version, now or in UISP's maintenance window); the token needs write permission. One upgrade at a time per device, followed on the page and by the worker (`uisp_firmware_follow`): *verified* when UISP reports the device on the requested version, *failed* when UISP marks that upgrade failed or canceled, *unconfirmed* after 60 minutes (48 hours in the maintenance window). The `upgrade` object of the UISP device record alone is not trusted: on the operator's console it still reported an older successful upgrade. Audit `UISP_FIRMWARE_UPGRADE_REQUESTED`, `UISP_FIRMWARE_UPGRADE_VERIFIED`, `UISP_FIRMWARE_UPGRADE_FAILED`.
+- bulk upgrade through UISP (Core 0.49.260): in the firmware worklist the rows with *Aggiorna via UISP* can be selected (up to 50) and upgraded together with *Aggiorna via UISP (N)*: each device's recommended version (NSM's recommendation when UISP offers it for the platform, else UISP's newest stable image) or one version for all, now or in the maintenance window, after typing `AGGIORNA N`. Every device goes through the same checks as the single upgrade (linked to UISP, no upgrade in progress, version offered for its platform); the ones that pass are queued in one `POST /tasks`, the others are reported per row with the reason. Then each device is followed as a single upgrade. Audit `UISP_FIRMWARE_UPGRADE_REQUESTED` per device and `UISP_FIRMWARE_BULK_UPGRADE` for the request.
 
 ### Monitoring (UBNT-02)
 
@@ -591,13 +592,24 @@ These future features must only be exposed when the actual vendor API capability
 
 ### Implemented (VEND-02)
 
-- read-only cnMaestro connector (cloud or on-premises): OAuth2 client credentials (encrypted), connection test, paged inventory and statistics;
+- read-only cnMaestro connector (cloud or on-premises, API v2 since Core 0.49.259): OAuth2 client credentials (encrypted), connection test, paged inventory and statistics;
 - linking by MAC (then serial) when a Cambium device is added in NSM: the device is created only if cnMaestro knows it exactly once;
 - sync every 15 minutes of identity, model, firmware, IP and status, metrics history (signal, SNR, throughput, CPU/memory, connected stations; 90 days) with graphs on the device *cnMaestro* tab;
 - bulk onboarding (Core 0.49.192): *Integrazioni → cnMaestro → Importa da cnMaestro*, the same flow as UISP — NSM state per device (new, to link, already in NSM, not importable with the reason), explicit Customer/Site, preview, commit from fresh cnMaestro data, existing Cambium records with the same MAC linked instead of duplicated; device type from product family and mode; `CNMAESTRO_BULK_ONBOARDING` audit;
 - compatibility check (Core 0.49.189), as for UISP, on `/devices` and `/devices/statistics`.
 
 Checked on the operator's cnMaestro on 2026-10-22 (Core 0.49.199): `/devices` and `/devices/statistics` field names confirmed; Wi-Fi access points (cnPilot) report clients and traffic per band, which NSM sums for the *stations* and *throughput* charts; cnMaestro sends no uptime, so NSM shows the time online (`status_time`) for online devices; the import groups devices by tower, else site, else network.
+
+### API v2 and adoption of hand-made records (Core 0.49.259)
+
+cnMaestro marks every v1 answer as deprecated (sunset 3.2.0). Checked with GET only on the operator's cnMaestro on-premises on 2026-10-23, the connector now reads the northbound API v2:
+
+- inventory `GET /api/v2/devices` and statistics `GET /api/v2/devices/statistics` (paged, no deprecation note); v2 adds `mode`, `ap_mac`, `overrides` and `config.version` to devices and gives Wi-Fi access points a `radios` list (with `band`) instead of `radio.24ghz`/`radio.5ghz`, which NSM reads for stations and throughput (the compatibility check looks for `radios.N.*`);
+- also present in v2, not used yet: `/api/v2/devices/{mac}`, `/api/v2/devices/{mac}/statistics`, `/api/v2/devices/{mac}/performance` (`start_time` required), `/api/v2/networks`, `/api/v2/alarms`, `/api/v2/jobs`; the aggregate `/api/v2/devices/performance` is retired (HTTP 301, device level only);
+- login `POST /api/v2/access/token`; the v2 token endpoint answers a GET like the v1 one, but the POST could not be tried read-only, so when v2 refuses it with anything but 401/403 NSM logs in on `/api/v1/access/token` — the only v1 call left;
+- a `deprecation` note in any cnMaestro answer is kept in the last sync result (and returned by *Sincronizza ora*).
+
+A Cambium device created by hand (for example added as generic and corrected to Cambium later) was linked by MAC on the sync but kept `management_source`/`inventory_source` `manual` and no external id, so it looked unmanaged and its IP was never refreshed from cnMaestro. The matching itself was correct (MAC normalised on both sides, serial also read from `msn`). Now a linked Cambium device with a manual (or empty) source becomes managed by cnMaestro — `management_source` and `inventory_source` `cnmaestro`, the cnMaestro MAC as external id — both on the sync and on the bulk-onboarding link; the change is audited once in `CNMAESTRO_DEVICE_LINKED` (`changes`). Other sources are never overwritten.
 
 ### Configuration backup over SSH (Core 0.49.251)
 
@@ -611,10 +623,23 @@ The cnMaestro API cannot export a device configuration. This was checked on the 
 - the backup capability of Cambium devices is *SSH (Cambium ePMP)*, executable when credentials and the management address are known;
 - audit `CAMBIUM_BACKUP_ARCHIVED`, `CAMBIUM_BACKUP_FAILED`, `CAMBIUM_SSH_CREDENTIALS_CHANGED`.
 
+### Remote syslog of ePMP devices over SSH (LOG-01, Core 0.49.265)
+
+`app/cambium_syslog.py`. The cnMaestro API v2 cannot set it: checked with GET only on the operator's cnMaestro on-premises on 2026-10-23, there is no device configuration or template endpoint (`/devices/{mac}/config`, `/templates`, `/configurations` are not routes) and the jobs it lists are only *configuration* jobs of Wi-Fi AP groups. NSM therefore uses the ePMP CLI over SSH with the credentials of the Cambium backups (shared, or per device) and the same host-key pinning:
+
+- the parameter names are read from the running configuration (`config show json`), not assumed: the first empty *syslog server* address (or the one already pointing at NSM), its port and the remote-syslog enable flag; a device whose server slots are all used by someone else is refused;
+- *Anteprima delle modifiche* lists every parameter NSM would change (current → new) without writing anything;
+- *Applica sull'ePMP*, after typing the device name, reads the configuration again (it must give the previewed plan), archives it as a Cambium backup (the restore point), runs `config set` for each change and `config commit` (no reboot), then reads the configuration back; values not confirmed by the device are reported (`unverified`). A command refused by the CLI stops before the commit and is recorded as failed;
+- *Ripristina i valori precedenti* sets back only the parameters NSM changed that still hold NSM's value;
+- identification modes as for UISP: `key` (default, `-NSM-<key>` appended to the device name), `customer_name` (ePMP name equal to the NSM customer, unique), `address` (management address, unique). The receiver accepts keyless lines of a Cambium device only in the last two modes, configured by NSM;
+- permissions: state `monitoring.read`, preview/apply/restore `devices.write`; audit `CAMBIUM_SYSLOG_CONFIGURED`, `CAMBIUM_SYSLOG_FAILED`, `CAMBIUM_SYSLOG_RESTORED`.
+
+Validation pending: the parameter names and the `config set`/`config commit` answers of a real ePMP (Force 400, 5.10.4) — the tests use a synthetic CLI.
+
 ### Not implemented yet
 
 - operations through cnMaestro (reboot, firmware) — only where the cnMaestro API supports them and they can be verified;
-- cnMaestro API v2: the connector still reads `/api/v1`, which the operator's console reports as deprecated (sunset 3.2.0).
+- per-device performance history from `/api/v2/devices/{mac}/performance` (NSM keeps its own samples from the statistics).
 
 ## 13c. ISPBilling (billing / CRM)
 
@@ -640,9 +665,17 @@ Accounts → CPEs and proposals (Core 0.49.229, operator decisions 2026-10-23):
 - nothing is applied without an operator (`devices.write`): *Assegna la sede* on the device page or in *Integrazioni → ISPBilling → Apparati da assegnare*, *Riassegna…* with a second confirmation for a device of another customer (its old site is cleared), *Ignora* to stop proposing an account for that device; audit `ISPBILLING_DEVICE_LINKED` (before/after) and `ISPBILLING_LINK_DISMISSED`;
 - the concentrator snapshot keeps at most 500 sessions and about 60 KB, so on a large concentrator part of the sessions may be missing.
 
+Activities in the device logbook (Core 0.49.262, ISPB-01 step 5):
+- the device *Attività* tab adds to its timeline the ISPBilling activities (installations, maintenance, visits) of the ISPBilling customer imported as the device's customer, with type, period (all-day shown as a date), teams, subject and description; *Pianificata* while it has not started, *Annullata* (with the reason) when ISPBilling cancelled it; a checkbox hides them;
+- an activity is the device's when its address is the address of a RADIUS account matched to the device or an address imported as the device's site; activities at another site or another device of the customer are left out; the others are shown as *attività del cliente*;
+- read on demand from `activities/activities` (cursor pagination, `filters` on `customer_id`) when the tab is opened, kept in memory 5 minutes, never stored; team names from `activities/teams`; the customer's name, phone number and e-mail returned by the API, and the team members, are dropped before anything reaches the browser; ISPBilling unreachable or the key without the Activities permission only shows a note, the logbook still works;
+- the numeric `status` of ISPBilling is not documented (every activity read on the operator's ISPBilling on 2026-10-23 had `0`), so NSM does not interpret it.
+
+Checked read-only on the operator's ISPBilling (2026-10-23): 118 activities over 6 cursor pages, 80 with a customer and an address; the `customer_id` filter returns only that customer's activities.
+
 ### Not implemented yet
 
-Warehouse serial numbers ↔ devices and ISPBilling activities in the device logbook (approved, next steps of ISPB-01).
+Warehouse serial numbers ↔ devices (approved, next step of ISPB-01).
 
 ## 13c. Moving NSM to another server address (Core 0.49.214)
 
@@ -711,6 +744,15 @@ TR-069 CPEs get the device *Firmware* tab like MikroTik devices: it shows the in
 
 TP-Link has no firmware API, so once a day (and with *Aggiorna* on *Firmware → Cataloghi*) NSM reads the official Italian download page of every TP-Link model in the inventory (`https://www.tp-link.com/it/support/download/<model>/`, or the `/v<hardware>/` page when the model has several hardware versions) for the hardware version its devices report (TR-069 `HardwareVersion`, e.g. `VX230v v1.0` → V1) and records each image of the *Firmware* tab as a catalog release (source *sito ufficiale*, platform = hardware version; images of other hardware versions are ignored). Versions compare by release number, then by build. The device overview, the firmware worklist and the device *Firmware* tab therefore show the newest version like for the other brands. On a TR-069 CPE with a newer release, *Scarica dal sito TP-Link nell'ACS* reads the page again, downloads that image's `.zip` (HTTPS from `static.tp-link.com` only, 128 MB at most), extracts its single `.bin`, stores it in GenieACS with the version (audit `ACS_FIRMWARE_FILE_FETCHED` with link and SHA-256) and selects it for the upgrade, which still needs the typed confirmation. The download is also automatic (operator decision 2026-10-23, on by default, *Amministrazione → ACS → Download automatico dei firmware*): after each catalog evaluation NSM loads into GenieACS the newer image of every TR-069 CPE, once per model, hardware version and version (at most 3 per run), so it is ready and preselected on the device's *Firmware* tab; nothing is installed (audit `ACS_FIRMWARE_FILE_FETCHED` with `trigger` auto/manual, `ACS_FIRMWARE_AUTO_CHANGED`). Checked on the operator's VX230v page (2026-10-23: `0.19.0 Build 260323`, V1, EU1).
 
+### MikroTik BRAS: customers' PPPoE sessions (BRAS-01, Core 0.49.261)
+
+The PPPoE concentrator is not managed by NSM: *Integrazioni → BRAS MikroTik* (`users.manage`) connects it with a **read-only RouterOS user** (group with `read,api,rest-api`, no write), through the RouterOS 7 REST API (`https://address`) or the RouterOS API (`api-ssl://address:8729`, `api://address:8728`, RouterOS 6.43+). Nothing is ever changed on the router.
+
+- every 5 minutes (configurable 1–60, and *Leggi ora*) the worker reads `/ppp/active` once and keeps one row per username (`bras_sessions`): online with address, caller-id MAC, uptime and start time, or offline since when; a failed read changes nothing;
+- the sessions feed the ISPBilling account matching that already existed (caller-id MAC → device MAC, session address → device management IP; several candidates mean no match); matching runs again after every read;
+- device page: each ISPBilling account of the device shows its PPPoE session (online since, IP, MAC, or offline since); customer page: *Connessioni PPPoE* lists the customer's RADIUS accounts with session state and the matched device;
+- audit `BRAS_CONFIG_SAVED`, `BRAS_SYNC_REQUESTED`.
+
 ### Firmware uploaded into the catalogs (VEND-01, Core 0.49.247)
 
 The manual *Aggiungi una release* form is gone (operator request 2026-10-23): on each catalog of *Firmware → Cataloghi* the operator (`firmware.execute`) uploads the image itself (`.bin`, `.img`, `.zip`; 64 KB–128 MB) and NSM reads what the official file says:
@@ -738,6 +780,16 @@ Once the operator has installed the NSM base templates (*Amministrazione → ACS
 
 Every 2 minutes the worker reads from GenieACS (read only, one NBI query per 20 CPEs) the state of every linked TR-069 CPE at its last Inform: CPU, memory, uptime, WAN (chosen by the connection-request address, PPP or public IP: state, type, address, time connected, last error), Wi-Fi radios and clients, LAN hosts, DSL line (rates, SNR margin, attenuation), for TR-181 and TR-098. It keeps the state on the device, stores one sample per new Inform for 90 days (WAN bit rates from the byte counters between two Informs; counters stuck at zero with the WAN up, as on the TP-Link VX230v, are reported as not available) and sets the device online/offline from the last Inform (three missed periodic Informs, at least 15 minutes). The device page and list show CPU/RAM/uptime as current when the last Inform is under 2 hours old; the *ACS* tab shows the line and Wi-Fi state and charts over 24 h / 7 / 30 / 90 days. The NSM provision declares these values with a 4-minute age so the CPE reports them at every periodic inform; NSM keeps the provision current itself (0.49.210).
 
+### Parameter profiles and CPE capabilities (ACS-04, Core 0.49.264)
+
+`acs_profiles` is the one map of the TR-098 / TR-181 paths NSM uses (identity, CPU and memory, ACS URL, WAN, Wi-Fi, DSL, optics, ping, traceroute, download/upload diagnostics, port mapping, UPnP, remote access), per data model; the diagnostics, speed test, Wi-Fi, syslog, TP-Link cloud firmware, firmware, snapshot and configuration-refresh modules take their object paths from it. Vendor paths are added only where a feature exists only as a vendor extension (TP-Link `X_TP_LogCfg`, `X_TP_CloudService`, `X_TP_UPnPCfg`). Unsupported fields are explicit, with the reason: CPU/memory on TR-098 (NSM reads them on TR-181 only), syslog and cloud firmware on TR-098 (TP-Link TR-181 extensions only), UPnP on TR-098 (no standard switch), the vendor configuration file (GenieACS has no `Upload` task). The *ACS* tab shows *Capacità NSM su questo CPE*: for every NSM function (identity, CPU/memory, WAN, Wi-Fi, DSL, PON, ping, traceroute, speed test, firmware image, TP-Link cloud firmware, syslog, port forwarding, UPnP, remote access, reboot, inform interval, snapshot, vendor file) whether it is available, a standard TR-069 RPC, not exposed by this CPE or not supported, why, the paths found and whether NSM writes to the CPE for it. It costs one read-only GenieACS GET of small objects and entry counts (about 10 KB on a VX230v), never the whole tree, and nothing is sent to the CPE. Checked read-only on the operator's VX230v and HB210 (2026-10-23): everything available except DSL on the HB210 and PON on both.
+
+### PON optical levels (ACS-05, Core 0.49.263)
+
+CPEs with a fibre port that expose their optics through TR-069 get the optical levels in the monitoring: received and transmitted power (dBm), module temperature (°C), supply voltage (V) and laser bias current (mA), with the PON state. Read from TR-181 `Device.Optical.Interface.{i}` (`OpticalSignalLevel` / `TransmitOpticalLevel` in 0.001 dBm, temperature, voltage and bias from vendor parameters of the same object) and from TR-098 vendor objects of a WAN device: Huawei `X_GponInterafceConfig` (spelled like that), `X_GponInterfaceConfig`, ZTE `X_ZTE-COM_WANPONInterfaceConfig`, `X_CT-COM_GponInterfaceConfig` / `X_CT-COM_EponInterfaceConfig`, `X_CMCC_GponInterfaceConfig`, `WANPONInterfaceConfig`. Vendors use different units, so NSM normalizes them (dBm, 0.001 dBm or 0.1 µW; °C or 1/256 °C; V, mV or 100 µV; mA, µA or 2 µA for CT-COM style objects) and leaves empty any value that fits none. The NSM base provision re-reads only these objects once an hour (`declare` of the values, never a refresh of the root); nothing is written to the CPE. Values go into the ACS history (`acs_metric_samples`, 90 days) with charts on the *ACS* tab (power, temperature, bias, voltage) and the current values in *Linea e Wi-Fi*. Alert `pon` in *Avvisi dei CPE*: received level under −27 dBm by default (GPON class B+ sensitivity; −40…0, 0 disables) on the last two optical readings. Checked read-only on the operator's GenieACS (2026-10-23): its two CPEs (TP-Link VX230v DSL, HB210 Ethernet) expose no optical object, so they show nothing; the parsing is tested on sanitized structures of the data models above.
+
+**MON-02 for the ACS.** The ACS history cleanup keeps, beyond 90 days, the newest sample of every CPE and its newest optical reading; the last state of a CPE that stopped contacting the ACS stays on the device, and the *ACS* tab says when the last sample arrived when the chosen range has none.
+
 ### Port forwarding, DMZ and UPnP (Core 0.49.228, monitoring only)
 
 At every monitoring read NSM also parses the CPE's port mappings (TR-181 `Device.NAT.PortMapping`, TR-098 `WANPPPConnection`/`WANIPConnection` `PortMapping`), a DMZ when the CPE reports one (any vendor object named `…DMZ…` under `Device.NAT`/`Device.Firewall` or a TR-098 WAN connection, e.g. `X_TP_DMZ`) and whether UPnP is on (`Device.UPnP.Device.Enable` or a vendor flag such as TP-Link `Device.NAT.X_TP_UPnPCfg.Enable`). The *ACS* tab shows them (protocol, external ports, internal host and port, allowed origin, description, on/off; DMZ host with a warning; UPnP), with *Rileggi dal CPE* (`devices.write`, a GenieACS `refreshObject` of `Device.NAT`, a read). Nothing is changed on the CPE. A change between two reads is audited `ACS_PORT_MAPPING_CHANGED` with the forwards added/removed, the DMZ and UPnP (warning when something new is exposed). The NSM base provision re-reads these objects every hour. Checked read-only on the operator's VX230v: no port mapping, UPnP on, no DMZ object in the data model.
@@ -749,8 +801,6 @@ Right after each monitoring read the worker (`acs_alerts`) evaluates every linke
 ### Not implemented
 
 - bulk ACS discovery/onboarding from the ACS side (this migration drives the CPEs, not GenieACS);
-- vendor-specific TR-098/TR-181 parameter profiles beyond identity and firmware;
-- vendor parameter profiles;
 - restore of a configuration through ACS;
 - firmware campaigns over many CPEs through ACS.
 
@@ -1027,7 +1077,7 @@ A production identifier must never be copied into a test merely because it repro
 The following are approved roadmap areas, not current runtime capabilities:
 
 - Ubiquiti firmware execution through UISP and operations through cnMaestro (only where the vendor API supports them and they are verified on a real console);
-- remote syslog configuration through the UISP and cnMaestro APIs (LOG-01 next step);
+- remote syslog configuration for vendors other than MikroTik, TP-Link (ACS), Ubiquiti (UISP) and Cambium ePMP (SSH) (LOG-01 next step);
 - ACS parameter profiles, monitoring, diagnostics, backup and firmware (ACS-04..08);
 - production DR/restore validation program;
 - additional vendor/connector capabilities beyond those explicitly described above.

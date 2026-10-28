@@ -25,13 +25,14 @@ from urllib.parse import quote
 import httpx
 from sqlalchemy import select
 
+from app import acs_profiles as profiles
 from app import acs_diagnostics as nbi
 from app import genieacs_connector as acs
 from app import main as core
 from app.db import SessionLocal
 from app.models import Device, utcnow
 
-ROOTS = ("Device", "InternetGatewayDevice")
+ROOTS = tuple(profiles.ROOT.values())
 SPLIT_ABOVE = 2000
 ROUND_BUDGET = 2500
 TIMEOUT = timedelta(minutes=90)

@@ -1288,7 +1288,39 @@
     "uispUpgrade": "Aggiorna via UISP",
     "uispRunning": "Aggiornamento UISP in corso",
     "preparing": "Verifica in corso…",
-    "preparingHelp": "Il piano si prepara da solo appena la verifica finisce."
+    "preparingHelp": "Il piano si prepara da solo appena la verifica finisce.",
+    "uispBulk": {
+      "label": "Aggiornamento in blocco via UISP",
+      "selectAll": "Seleziona gli apparati aggiornabili via UISP",
+      "select": "Seleziona {{name}}",
+      "selected_one": "{{count}} apparato selezionato (massimo {{max}})",
+      "selected_other": "{{count}} apparati selezionati (massimo {{max}})",
+      "target": "Versione",
+      "recommended": "Versione consigliata per ogni apparato",
+      "version": "{{version}} per tutti",
+      "maintenance": "Nella finestra di manutenzione UISP",
+      "confirm": "Scrivi {{phrase}} per confermare",
+      "help": "UISP riceve un solo task con tutti gli apparati selezionati e li aggiorna uno per uno. Scrivi {{phrase}} per confermare.",
+      "run": "Aggiorna via UISP ({{count}})",
+      "tooMany": "Al massimo {{max}} apparati per volta.",
+      "done_one": "Aggiornamento avviato in UISP per {{count}} apparato.",
+      "done_other": "Aggiornamento avviato in UISP per {{count}} apparati.",
+      "doneMaintenance_one": "Aggiornamento accodato in UISP per {{count}} apparato: partirà nella finestra di manutenzione.",
+      "doneMaintenance_other": "Aggiornamento accodato in UISP per {{count}} apparati: partirà nella finestra di manutenzione.",
+      "started": "Avviato verso {{version}}",
+      "skipped": {
+        "running": "Saltato: un aggiornamento è già in corso",
+        "no_version": "Saltato: UISP non ha versioni più recenti per la sua piattaforma",
+        "version_unavailable": "Saltato: versione non disponibile in UISP per la sua piattaforma",
+        "not_linked": "Saltato: non collegato a UISP",
+        "not_found": "Saltato: apparato non trovato"
+      },
+      "errors": {
+        "empty": "Seleziona almeno un apparato.",
+        "too_many": "Troppi apparati selezionati.",
+        "confirm": "Scrivi la frase di conferma esatta."
+      }
+    }
   },
   "vulns": {
     "title": "Vulnerabilità",
@@ -2355,6 +2387,7 @@
       "zabbix": "Zabbix",
       "cnmaestro": "cnMaestro",
       "ispbilling": "ISPBilling",
+      "bras": "BRAS MikroTik",
       "probe": "Sonda esterna",
       "threatLists": "Liste di minaccia"
     },
@@ -2363,6 +2396,12 @@
       "help": "Gestionale: anagrafica clienti e sedi, importata in NSM.",
       "customers": "Clienti letti",
       "linked": "In NSM"
+    },
+    "bras": {
+      "title": "BRAS MikroTik",
+      "help": "Concentratore PPPoE: sessioni dei clienti (sola lettura).",
+      "online": "Online",
+      "offline": "Offline"
     }
   },
   "syslogAdmin": {
@@ -4055,7 +4094,11 @@
       "signal": "Segnale radio",
       "capacity": "Capacità del link",
       "resources": "CPU e RAM",
-      "stations": "Stazioni collegate"
+      "stations": "Stazioni collegate",
+      "acs_pon_power": "Livelli ottici PON",
+      "acs_pon_temperature": "Temperatura del modulo ottico",
+      "acs_pon_bias": "Corrente di polarizzazione laser",
+      "acs_pon_voltage": "Tensione del modulo ottico"
     },
     "series": {
       "cpu_percent": "CPU",
@@ -4065,7 +4108,12 @@
       "uplink_capacity_bps": "Capacità uplink",
       "uptime_seconds": "Uptime",
       "frequency_mhz": "Frequenza",
-      "stations": "Stazioni collegate"
+      "stations": "Stazioni collegate",
+      "pon_rx_dbm": "Rx",
+      "pon_tx_dbm": "Tx",
+      "pon_temperature_c": "Temperatura",
+      "pon_bias_ma": "Bias",
+      "pon_voltage_v": "Tensione"
     },
     "metricsTitle": "Stato operativo da UISP",
     "metricsHelp": "Statistiche sulle ultime {{hours}} ore ({{count}} campioni); ultimo dato {{when}}.",
@@ -4322,7 +4370,8 @@
     "jumpTo": "Vai alla sezione…",
     "sectionOption_one": "{{path}} ({{count}} riga)",
     "sectionOption_other": "{{path}} ({{count}} righe)",
-    "sectionsFiltered": "Svuota la ricerca per saltare a una sezione."
+    "sectionsFiltered": "Svuota la ricerca per saltare a una sezione.",
+    "contentHelpTr069": "Sola lettura. Parametri di configurazione del CPE come li ha letti l'ACS (TR-069): senza password e senza valori che cambiano da soli (contatori, tempi)."
   },
   "restoreTests": {
     "title": "Storico restore test",
@@ -5081,6 +5130,18 @@
       "body": "Scrivi la nota (al massimo 4000 caratteri).",
       "occurred_at": "La data deve essere nell'ultimo anno e non nel futuro.",
       "forbidden": "Solo chi l'ha scritta o un amministratore può eliminarla."
+    },
+    "ispbilling": {
+      "show": "Mostra anche le attività di ISPBilling",
+      "source": "ISPBilling",
+      "untitled": "Attività",
+      "customerScope": "attività del cliente",
+      "states": {
+        "planned": "Pianificata",
+        "cancelled": "Annullata"
+      },
+      "reason": "Annullata: {{reason}}",
+      "error": "Attività di ISPBilling non disponibili: {{error}}"
     }
   },
   "sla": {
@@ -5279,9 +5340,14 @@
     "BACKUP_RESTORE_TEST_RECORDED": "Restore test registrato",
     "BACKUP_RETENTION_DELETED": "Backup vecchi rimossi dalla retention",
     "BACKUP_STALE_ATTEMPT_REPORT_IGNORED": "Esito di backup tardivo ignorato",
+    "BRAS_CONFIG_SAVED": "Connessione BRAS salvata",
+    "BRAS_SYNC_REQUESTED": "Lettura BRAS richiesta",
     "CAMBIUM_BACKUP_ARCHIVED": "Configurazione Cambium archiviata",
     "CAMBIUM_BACKUP_FAILED": "Backup Cambium non riuscito",
     "CAMBIUM_SSH_CREDENTIALS_CHANGED": "Credenziali SSH Cambium modificate",
+    "CAMBIUM_SYSLOG_CONFIGURED": "Syslog dell'ePMP configurato via SSH",
+    "CAMBIUM_SYSLOG_FAILED": "Configurazione del syslog dell'ePMP non riuscita",
+    "CAMBIUM_SYSLOG_RESTORED": "Syslog dell'ePMP riportato ai valori precedenti",
     "CNMAESTRO_BULK_ONBOARDING": "Importazione da cnMaestro",
     "CNMAESTRO_CONFIGURED": "Connettore cnMaestro configurato",
     "CNMAESTRO_DEVICE_LINKED": "Apparato collegato a cnMaestro",
@@ -5485,6 +5551,7 @@
     "UISP_DEVICE_ONBOARDED": "Apparato importato da UISP",
     "UISP_FIREWALL_CONFIGURED": "Regole firewall di gestione applicate tramite UISP",
     "UISP_FIREWALL_RESTORED": "Firewall del dispositivo ripristinato tramite UISP",
+    "UISP_FIRMWARE_BULK_UPGRADE": "Aggiornamento firmware UISP in blocco",
     "UISP_FIRMWARE_UPGRADE_FAILED": "Aggiornamento firmware UISP non riuscito",
     "UISP_FIRMWARE_UPGRADE_REQUESTED": "Aggiornamento firmware UISP richiesto",
     "UISP_FIRMWARE_UPGRADE_VERIFIED": "Aggiornamento firmware UISP verificato",
@@ -5699,7 +5766,19 @@
     "dslRate": "Velocità down / up",
     "dslSnr": "Margine SNR",
     "dslAttenuation": "Attenuazione",
-    "charts": "Storico dall'ACS"
+    "charts": "Storico dall'ACS",
+    "pon": {
+      "title": "Livelli ottici PON",
+      "rx_dbm": "Ricevuto (Rx)",
+      "tx_dbm": "Trasmesso (Tx)",
+      "temperature_c": "Temperatura del modulo",
+      "voltage_v": "Tensione di alimentazione",
+      "bias_ma": "Corrente di polarizzazione laser",
+      "status": "Stato PON",
+      "notExposed": "non riportato dal CPE",
+      "help": "Letti dal CPE ogni ora dalla provision NSM; ultima lettura {{when}} da"
+    },
+    "lastSample": "Nessun campione in questo periodo: l'ultimo ricevuto dal CPE è del {{when}}."
   },
   "serverMigration": {
     "subtitle": "Sposta NSM su un server con un altro indirizzo: questo server comunica il nuovo indirizzo ad agent MikroTik e CPE TR-069.",
@@ -6111,7 +6190,8 @@
       "reconnects_per_hour": "Riconnessioni WAN all'ora",
       "reboots_per_day": "Riavvii del CPE in 24 ore",
       "snr_min_db": "Margine SNR DSL minimo (dB)",
-      "dsl_rate_drop_percent": "Calo del downstream DSL rispetto alla mediana di 7 giorni (%)"
+      "dsl_rate_drop_percent": "Calo del downstream DSL rispetto alla mediana di 7 giorni (%)",
+      "pon_rx_min_dbm": "Livello PON ricevuto minimo (dBm, es. −27)"
     },
     "save": "Salva",
     "saved": "Salvato."
@@ -6419,6 +6499,153 @@
     "working": "UISP sta applicando…",
     "done": "Configurazione applicata: il CPE si riavvia e i log arrivano entro qualche minuto.",
     "restored": "Configurazione precedente applicata: il CPE si riavvia."
+  },
+  "bras": {
+    "title": "BRAS MikroTik",
+    "subtitle": "Concentratore PPPoE letto con un utente RouterOS di sola lettura: le sessioni dei clienti ogni pochi minuti, nulla viene modificato sul router.",
+    "online": "Online",
+    "onlineHint": "Sessioni PPPoE aperte ora",
+    "offline": "Offline",
+    "offlineHint": "Viste prima, ora non connesse",
+    "lastSync": "Ultima lettura",
+    "every": "Letto ogni {{minutes}} min",
+    "connection": "Connessione",
+    "connectionHelp": "https://indirizzo per l'API REST di RouterOS 7, oppure api-ssl://indirizzo:8729 (api://indirizzo:8728) per l'API RouterOS.",
+    "url": "Indirizzo",
+    "username": "Utente di sola lettura",
+    "password": "Password",
+    "passwordKeep": "invariata",
+    "interval": "Leggi ogni (minuti)",
+    "verifyTls": "Verifica il certificato TLS",
+    "enabled": "Attivo",
+    "save": "Salva",
+    "actions": "Verifica",
+    "userHint": "Sul BRAS, un utente che può solo leggere (esempio):",
+    "test": "Prova connessione",
+    "syncNow": "Leggi ora",
+    "synced": "{{sessions}} sessioni lette: {{came}} entrate online, {{went}} andate offline."
+  },
+  "pppoe": {
+    "title": "Connessioni PPPoE",
+    "help": "Account RADIUS del cliente (ISPBilling) e la loro sessione sul BRAS, letta {{when}}.",
+    "noBras": "Account RADIUS del cliente (ISPBilling). Collega il BRAS (Integrazioni) per vedere se sono online.",
+    "online": "Online",
+    "offline": "Offline",
+    "offlineSince": "da {{when}}",
+    "uptime": "connesso da {{value}}",
+    "never": "Mai vista sul BRAS",
+    "noDevice": "Nessun apparato abbinato"
+  },
+  "acsCapabilities": {
+    "title": "Capacità NSM su questo CPE",
+    "help": "Profilo parametri {{model}} · {{vendor}}, dal record GenieACS (ultimo Inform {{when}}). Letto senza inviare nulla al CPE.",
+    "notRead": "GenieACS non ha ancora letto il modello dati del CPE.",
+    "vendors": {
+      "tp-link": "estensioni TP-Link",
+      "generic": "solo parametri standard"
+    },
+    "columns": {
+      "capability": "Funzione",
+      "status": "Stato",
+      "why": "Perché / percorsi",
+      "writes": "Scrive sul CPE"
+    },
+    "status": {
+      "available": "Disponibile",
+      "rpc": "Disponibile (RPC TR-069)",
+      "not_exposed": "Non esposto",
+      "unsupported": "Non supportato"
+    },
+    "reasons": {
+      "found": "Il CPE espone i parametri:",
+      "not_reported": "Il CPE non riporta questi parametri (o GenieACS non li ha ancora letti).",
+      "no_dsl": "Nessuna linea DSL nel modello dati del CPE.",
+      "no_pon": "Il CPE non espone livelli ottici PON.",
+      "download_rpc": "RPC standard Download: serve un'immagine per il modello in GenieACS.",
+      "reboot_rpc": "RPC standard Reboot.",
+      "nsm_tr098": "In TR-098 CPU e memoria esistono solo su pochi CPE: NSM le legge solo in TR-181.",
+      "vendor_tr181": "Esiste solo come estensione TP-Link nel firmware TR-181 (Aginet).",
+      "vendor_tplink": "Esiste solo come estensione TP-Link (X_TP_*).",
+      "no_standard": "Nessun parametro standard in questo modello dati.",
+      "no_upload_task": "GenieACS non ha il task Upload: il file di configurazione del produttore non si può scaricare. NSM archivia i parametri.",
+      "snapshots": "{{count}} istantanee dei parametri archiviate.",
+      "no_snapshot": "Nessuna istantanea ancora: si crea dalla sezione Istantanea."
+    },
+    "caps": {
+      "identity": "Identità e firmware",
+      "resources": "CPU e memoria",
+      "wan": "Stato WAN",
+      "wifi": "Wi-Fi (lettura e modifica)",
+      "dsl": "Linea DSL",
+      "pon": "Livelli ottici PON",
+      "ping": "Ping dal CPE",
+      "traceroute": "Traceroute dal CPE",
+      "speedtest": "Test di velocità",
+      "firmware": "Aggiornamento firmware (immagine)",
+      "firmware_cloud": "Firmware dal cloud TP-Link",
+      "syslog": "Syslog verso NSM",
+      "port_mapping": "Port forwarding e DMZ",
+      "upnp": "Stato UPnP",
+      "remote_access": "Accesso web remoto",
+      "reboot": "Riavvio",
+      "inform_interval": "Intervallo di Inform",
+      "config_snapshot": "Istantanea della configurazione",
+      "config_file": "File di configurazione del produttore"
+    },
+    "writesYes": "sì, su richiesta",
+    "writesNo": "no"
+  },
+  "cambiumSyslog": {
+    "title": "Syslog dell'ePMP",
+    "hint": "cnMaestro non permette di cambiare la configurazione via API: NSM imposta il syslog dalla console SSH dell'ePMP con le credenziali dei backup Cambium. Prima mostra i parametri che cambierà; la configurazione letta subito prima resta come backup.",
+    "target": "Ricevitore NSM",
+    "noTarget": "non determinabile: imposta l'indirizzo pubblico in Amministrazione → Syslog",
+    "credentials": "Credenziali SSH",
+    "credentialSource": {
+      "device": "di questo apparato",
+      "shared": "comuni dei Cambium (Amministrazione → cnMaestro)",
+      "none": "non impostate"
+    },
+    "current": "Configurazione NSM",
+    "never": "non ancora configurato da NSM",
+    "status": {
+      "applied": "{{mode}} · applicata il {{when}} da {{by}}",
+      "unverified": "{{mode}} · applicata il {{when}} da {{by}}, valori non confermati dall'ePMP",
+      "failed": "non riuscita il {{when}} ({{mode}})",
+      "restored": "valori precedenti ripristinati (era: {{mode}})"
+    },
+    "error": "Errore",
+    "unverified": "Parametri non confermati",
+    "notReady": "Servono l'indirizzo di gestione dell'apparato, le credenziali SSH dei Cambium e l'indirizzo del ricevitore syslog.",
+    "modeTitle": "Come NSM riconosce i log",
+    "recommended": "consigliata",
+    "modes": {
+      "key": {
+        "label": "Chiave NSM nel nome dell'apparato",
+        "help": "NSM aggiunge -NSM-… al nome dell'ePMP, che compare in ogni riga di log: funziona anche se cambia IP o condivide il NAT."
+      },
+      "customer_name": {
+        "label": "Nome dell'ePMP uguale al cliente NSM",
+        "help": "Il nome dell'ePMP deve essere quello del cliente ({{customer}}), in qualsiasi ordine. Accettato solo se nessun altro apparato usa lo stesso nome."
+      },
+      "address": {
+        "label": "Indirizzo dell'apparato",
+        "help": "NSM riconosce i log dall'indirizzo di gestione dell'ePMP. Scartati se lo stesso IP è usato da altri apparati (NAT)."
+      }
+    },
+    "preview": "Anteprima delle modifiche",
+    "reading": "Lettura della configurazione…",
+    "nothing": "L'ePMP invia già i log a NSM in questa modalità: niente da cambiare.",
+    "param": "Parametro",
+    "before": "Attuale",
+    "after": "Nuovo",
+    "noReboot": "Le modifiche si applicano con config commit, senza riavvio.",
+    "confirm": "Per confermare scrivi il nome del dispositivo: {{name}}",
+    "configure": "Applica sull'ePMP",
+    "restore": "Ripristina i valori precedenti",
+    "working": "Collegamento all'ePMP…",
+    "done": "Syslog configurato: i log arrivano entro qualche minuto.",
+    "restored": "Valori precedenti ripristinati sull'ePMP."
   },
   "managementAccess": {
     "subtitle": "Reti di gestione autorizzate: gli indirizzi da cui si gestiscono gli apparati (NSM, Zabbix, NOC). La stessa lista vale per tutti i produttori: SNMP e SSH rispondono solo a queste reti, e ora e data vengono sincronizzate via NTP.",
