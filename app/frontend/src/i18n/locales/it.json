@@ -5060,6 +5060,18 @@
       "body": "Scrivi la nota (al massimo 4000 caratteri).",
       "occurred_at": "La data deve essere nell'ultimo anno e non nel futuro.",
       "forbidden": "Solo chi l'ha scritta o un amministratore può eliminarla."
+    },
+    "ispbilling": {
+      "show": "Mostra anche le attività di ISPBilling",
+      "source": "ISPBilling",
+      "untitled": "Attività",
+      "customerScope": "attività del cliente",
+      "states": {
+        "planned": "Pianificata",
+        "cancelled": "Annullata"
+      },
+      "reason": "Annullata: {{reason}}",
+      "error": "Attività di ISPBilling non disponibili: {{error}}"
     }
   },
   "sla": {

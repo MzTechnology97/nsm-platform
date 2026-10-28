@@ -5060,6 +5060,18 @@
       "body": "Escriba la entrada (como máximo 4000 caracteres).",
       "occurred_at": "La fecha debe estar en el último año y no en el futuro.",
       "forbidden": "Solo su autor o un administrador puede eliminarla."
+    },
+    "ispbilling": {
+      "show": "Mostrar también las actividades de ISPBilling",
+      "source": "ISPBilling",
+      "untitled": "Actividad",
+      "customerScope": "actividad del cliente",
+      "states": {
+        "planned": "Planificada",
+        "cancelled": "Cancelada"
+      },
+      "reason": "Cancelada: {{reason}}",
+      "error": "Actividades de ISPBilling no disponibles: {{error}}"
     }
   },
   "sla": {

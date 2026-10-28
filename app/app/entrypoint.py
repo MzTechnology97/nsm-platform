@@ -77,6 +77,7 @@ from app.acs_port_mapping import install_acs_port_mapping
 from app.ispbilling_cpe_link import install_ispbilling_cpe_link
 from app.tplink_access import install_tplink_access
 from app.tplink_settings import install_tplink_settings
+from app.ispbilling_activities import install_ispbilling_activities
 from app.acs_monitoring import install_acs_monitoring
 from app.monitor_sources import install_monitor_sources
 from app.ui_backup_policies import install_ui_backup_policies
@@ -146,7 +147,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.261"
+APP_VERSION = "0.49.262"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -298,6 +299,7 @@ install_acs_port_mapping(core.app)
 install_ispbilling_cpe_link(core.app)
 install_tplink_access(core.app)
 install_tplink_settings(core.app)
+install_ispbilling_activities(core.app)
 install_acs_monitoring(core.app)
 install_monitor_sources(core.app)
 install_ui_backup_policies(core.app)
