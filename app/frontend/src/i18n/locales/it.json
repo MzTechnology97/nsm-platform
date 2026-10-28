@@ -2356,7 +2356,8 @@
       "cnmaestro": "cnMaestro",
       "ispbilling": "ISPBilling",
       "probe": "Sonda esterna",
-      "threatLists": "Liste di minaccia"
+      "threatLists": "Liste di minaccia",
+      "abuseipdb": "AbuseIPDB"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5227,6 +5228,8 @@
     }
   },
   "eventTypes": {
+    "ABUSEIPDB_CONFIGURED": "Impostazioni AbuseIPDB modificate",
+    "ABUSEIPDB_LISTED": "Indirizzo segnalato su AbuseIPDB",
     "ACS_ACCESS_CHANGED": "Accesso remoto o Telnet del CPE modificato",
     "ACS_ALERT_OPENED": "Avviso CPE aperto",
     "ACS_ALERT_RESOLVED": "Avviso CPE risolto",
@@ -6672,5 +6675,56 @@
     "bulkQueued_other": "{{count}} dispositivi in coda.",
     "bulkSkipped_one": "{{count}} saltato (non supportato o già in corso).",
     "bulkSkipped_other": "{{count}} saltati (non supportati o già in corso)."
+  },
+  "abuseipdb": {
+    "title": "AbuseIPDB",
+    "subtitle": "Reputazione dei tuoi indirizzi pubblici: NSM controlla su AbuseIPDB i tuoi prefissi e gli IP pubblici degli apparati, dentro la quota del tuo piano. Escono da NSM solo indirizzi IP.",
+    "test": "Prova chiave",
+    "run": "Controlla ora",
+    "testOk": "Chiave valida: quota letta da AbuseIPDB.",
+    "ran": "Controlli eseguiti: {{calls}}; ancora da controllare: {{due}}.",
+    "statusTitle": "Stato e quota",
+    "waiting": "Quota esaurita: NSM riprende dopo il {{when}}.",
+    "endpoint": {
+      "check": "Controlli singoli IP",
+      "check-block": "Controlli di blocchi /24"
+    },
+    "quota": "Rimasti {{remaining}} su {{limit}} · reset {{when}}",
+    "quotaUnknown": "Quota non ancora letta (si legge alla prima chiamata).",
+    "coverage": "Da controllare: {{blocks}} blocchi /24 e {{addresses}} indirizzi fuori dai tuoi prefissi; già controllati: {{checked}}.",
+    "prefixes": "Prefissi: {{list}}.",
+    "noPrefixes": "Nessun prefisso dichiarato: vengono controllati solo gli IP pubblici degli apparati.",
+    "prefixesLink": "Modifica i prefissi",
+    "evaluated": "Ultima valutazione: {{when}}.",
+    "settingsTitle": "Impostazioni",
+    "enabled": "Modulo attivo",
+    "apiKey": "Chiave API",
+    "keySaved": "Chiave salvata (lascia vuoto per non cambiarla)",
+    "keyHelp": "Creala su abuseipdb.com → Account → API. Viene salvata cifrata e non viene più mostrata.",
+    "fields": {
+      "threshold": "Soglia di allarme (punteggio %)",
+      "max_age_days": "Segnalazioni degli ultimi giorni",
+      "recheck_hours": "Ricontrollo ogni (ore)",
+      "reserve_checks": "Controlli singoli da lasciare liberi",
+      "reserve_blocks": "Controlli di blocchi da lasciare liberi"
+    },
+    "saved": "Impostazioni salvate.",
+    "lookupTitle": "Controlla un indirizzo",
+    "lookup": "Controlla",
+    "score": "punteggio {{score}}%",
+    "reports_one": "{{count}} segnalazione",
+    "reports_other": "{{count}} segnalazioni",
+    "reportedTitle": "Indirizzi segnalati",
+    "reportedHelp": "Gli indirizzi con punteggio di almeno {{threshold}}% aprono una segnalazione nell'Action Center, che si chiude quando il punteggio scende.",
+    "noReported": "Nessun tuo indirizzo risulta segnalato.",
+    "unassigned": "Indirizzo tuo non assegnato",
+    "unknownHolder": "Nessun apparato noto",
+    "columns": {
+      "address": "Indirizzo",
+      "score": "Punteggio",
+      "holder": "Assegnato a (ora)",
+      "categories": "Categorie",
+      "last": "Ultima segnalazione"
+    }
   }
 }
