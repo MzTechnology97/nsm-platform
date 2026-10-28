@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.269 — 2026-10-28
+
+ACS: restore of TR-069 configuration snapshots
+
+### Added
+
+- Restore of a TR-069 configuration snapshot with preview and confirmation (ACS-07): on a snapshot's page NSM lists only the parameters still writable on the CPE whose current value differs (secrets, values that change by themselves, `ManagementServer` and action parameters left out); the technician ticks what to restore and types the device name; one `setParameterValues` task, then a `getParameterValues` read-back to verify. A faulted task is deleted together with its fault so the CPE's queue never stays blocked; leftover tasks are deleted after 30 minutes. Audit `ACS_CONFIG_RESTORE_REQUESTED`, `ACS_CONFIG_RESTORE_VERIFIED`, `ACS_CONFIG_RESTORE_FAILED`.
+
+### Changed
+
+- Includes the TR-069 snapshot comparison fix (older snapshots of the same CPE offered for comparison in the *Backup* tab).
 ## 0.49.268 — 2026-10-28
 
 MikroTik: queues, certificates and routing diagnostics
