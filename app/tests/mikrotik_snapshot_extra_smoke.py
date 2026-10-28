@@ -37,7 +37,7 @@ def sources():
     # Routing menus only appear inside :parse strings: a router without them still loads the Agent.
     assert "\n/routing" not in modern and " [/routing bgp" not in modern.replace('"', " ").replace("[/routing bgp session print", "").replace("[/routing bgp peer print", "")
     assert len(modern.encode()) < MAX_SOURCE, len(modern.encode())
-    assert '"agent_version"="0.49.24"' in modern
+    assert '"agent_version"="0.49.25"' in modern
     for routeros in ("7.12.1", "6.49.10"):
         source, transport, version = mikrotik_legacy._select_agent_source("https://nsm.example.test", DEVICE_ID, "CI-secret-not-for-production", routeros)
         assert transport == "legacy" and version == "0.49.24-legacy"
