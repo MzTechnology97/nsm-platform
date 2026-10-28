@@ -358,7 +358,9 @@
         "tr069": "Line and clients",
         "uisp": "Radio",
         "cnmaestro": "Radio"
-      }
+      },
+      "latestTitle": "Last values received",
+      "latestAt": "No data in this range: last sample from {{source}} on {{when}}"
     }
   },
   "syslog": {
@@ -3639,7 +3641,10 @@
       "firewall": "Firewall",
       "dhcp_leases": "DHCP",
       "ppp_active": "PPP / VPN",
-      "logs": "Warning/error log"
+      "logs": "Warning/error log",
+      "queues": "Queues",
+      "certificates": "Certificates",
+      "routing": "BGP / OSPF"
     },
     "resources": {
       "cpu_load": "CPU load",
@@ -3672,7 +3677,16 @@
       "sessions": "Sessions",
       "warning": "Warning",
       "error": "Error",
-      "critical": "Critical"
+      "critical": "Critical",
+      "simple": "Simple",
+      "tree": "Tree",
+      "saturated": "Saturated",
+      "valid": "Valid",
+      "expiring": "Expiring",
+      "expired": "Expired",
+      "revoked": "Revoked",
+      "bgp": "BGP",
+      "ospf": "OSPF"
     },
     "states": {
       "up": "up",
@@ -3688,7 +3702,12 @@
       "bound": "bound",
       "waiting": "waiting",
       "blocked": "blocked",
-      "offered": "offered"
+      "offered": "offered",
+      "saturated": "saturated",
+      "valid": "valid",
+      "expiring": "expiring",
+      "expired": "expired",
+      "revoked": "revoked"
     },
     "kinds": {
       "filter": "Filter",
@@ -3698,7 +3717,11 @@
       "l2tp": "L2TP",
       "pppoe": "PPPoE",
       "pptp": "PPTP",
-      "ovpn": "OVPN"
+      "ovpn": "OVPN",
+      "simple": "Simple queue",
+      "tree": "Queue tree",
+      "bgp": "BGP",
+      "ospf": "OSPF"
     },
     "search": "Search the section",
     "state": "State",
@@ -3744,7 +3767,20 @@
       "uptime": "Uptime",
       "time": "Time",
       "topics": "Topics",
-      "message": "Message"
+      "message": "Message",
+      "target": "Target",
+      "parent": "Parent",
+      "max_limit": "Max limit",
+      "rate": "Rate (up / down)",
+      "usage": "Usage",
+      "common_name": "Common name",
+      "issuer": "Issuer",
+      "not_after": "Valid until",
+      "days_left": "Days left",
+      "role": "Role",
+      "remote_as": "AS / area",
+      "session_state": "Session",
+      "prefixes": "Prefixes"
     },
     "historyTitle": "Configuration history",
     "historyHelp": "Archived RouterOS exports, approved baseline and automatically detected changes.",
@@ -3774,7 +3810,13 @@
     "view": "View",
     "diff": "Differences",
     "setBaseline": "Set as baseline",
-    "noExports": "No configuration export: the history appears after the first MikroTik backup in .rsc format."
+    "noExports": "No configuration export: the history appears after the first MikroTik backup in .rsc format.",
+    "unsupported": {
+      "no_transport": "Section not available: the agent transport has not been detected or validated.",
+      "transport": "Section not available with the legacy agent (RouterOS 6 / 7.12).",
+      "agent_outdated": "Section available from agent {{version}}: update or reinstall the agent from the Agent tab."
+    },
+    "unsupportedShort": "Not available with the installed agent"
   },
   "deviceReboot": {
     "title": "Controlled reboot",
@@ -4037,7 +4079,9 @@
       "acs_pon_power": "PON optical levels",
       "acs_pon_temperature": "Optical module temperature",
       "acs_pon_bias": "Laser bias current",
-      "acs_pon_voltage": "Optical module voltage"
+      "acs_pon_voltage": "Optical module voltage",
+      "snr": "SNR",
+      "throughput": "Throughput"
     },
     "series": {
       "cpu_percent": "CPU",
@@ -4052,7 +4096,10 @@
       "pon_tx_dbm": "Tx",
       "pon_temperature_c": "Temperature",
       "pon_bias_ma": "Bias",
-      "pon_voltage_v": "Voltage"
+      "pon_voltage_v": "Voltage",
+      "snr_db": "SNR",
+      "dl_throughput_bps": "Downlink",
+      "ul_throughput_bps": "Uplink"
     },
     "metricsTitle": "Operational state from UISP",
     "metricsHelp": "Statistics over the last {{hours}} hours ({{count}} samples); last value {{when}}.",
@@ -4121,7 +4168,8 @@
       "info": "Info",
       "warning": "Warning",
       "error": "Error"
-    }
+    },
+    "moreEvents": "Show more ({{shown}} of {{total}})"
   },
   "deviceCnmaestro": {
     "linked": "Linked to cnMaestro since {{when}} (MAC {{mac}}).",
@@ -4148,7 +4196,8 @@
       "uptime_seconds": "Uptime",
       "dl_throughput_bps": "Downlink throughput",
       "ul_throughput_bps": "Uplink throughput"
-    }
+    },
+    "metricsAt": "Values from {{when}}."
   },
   "deviceGenieacs": {
     "recordHelp": "Customer and site stay those of NSM: GenieACS does not change them.",
@@ -5068,6 +5117,18 @@
       "body": "Write the entry (at most 4000 characters).",
       "occurred_at": "The date must be within the last year and not in the future.",
       "forbidden": "Only its author or an administrator can delete it."
+    },
+    "ispbilling": {
+      "show": "Also show ISPBilling activities",
+      "source": "ISPBilling",
+      "untitled": "Activity",
+      "customerScope": "customer activity",
+      "states": {
+        "planned": "Planned",
+        "cancelled": "Cancelled"
+      },
+      "reason": "Cancelled: {{reason}}",
+      "error": "ISPBilling activities not available: {{error}}"
     }
   },
   "sla": {
@@ -5220,6 +5281,9 @@
     "ACS_ALERT_SETTINGS_CHANGED": "CPE alert settings changed",
     "ACS_CONFIG_REFRESH_COMPLETED": "CPE configuration read again",
     "ACS_CONFIG_REFRESH_REQUESTED": "CPE configuration re-read requested",
+    "ACS_CONFIG_RESTORE_FAILED": "CPE configuration restore failed",
+    "ACS_CONFIG_RESTORE_REQUESTED": "CPE configuration restore requested",
+    "ACS_CONFIG_RESTORE_VERIFIED": "CPE configuration restore verified",
     "ACS_CUSTOMER_TAG_SET": "CPE tagged with its customer in GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "ACS diagnostic completed",
     "ACS_DIAGNOSTIC_REQUESTED": "ACS diagnostic requested",
@@ -5271,6 +5335,9 @@
     "CAMBIUM_BACKUP_ARCHIVED": "Cambium configuration archived",
     "CAMBIUM_BACKUP_FAILED": "Cambium backup failed",
     "CAMBIUM_SSH_CREDENTIALS_CHANGED": "Cambium SSH credentials changed",
+    "CAMBIUM_SYSLOG_CONFIGURED": "ePMP syslog configured over SSH",
+    "CAMBIUM_SYSLOG_FAILED": "ePMP syslog configuration failed",
+    "CAMBIUM_SYSLOG_RESTORED": "ePMP syslog set back to the previous values",
     "CNMAESTRO_BULK_ONBOARDING": "cnMaestro import",
     "CNMAESTRO_CONFIGURED": "cnMaestro connector configured",
     "CNMAESTRO_DEVICE_LINKED": "Device linked to cnMaestro",
@@ -5479,6 +5546,8 @@
     "UISP_SYNC_COMPLETED": "UISP sync completed",
     "UISP_SYNC_CONFLICT": "UISP sync conflict",
     "UISP_SYNC_FAILED": "UISP sync failed",
+    "UISP_SYSLOG_CONFIGURED": "Device syslog configured through UISP",
+    "UISP_SYSLOG_RESTORED": "Device configuration restored through UISP",
     "USER_2FA_DISABLED": "Two-factor sign-in disabled",
     "USER_2FA_ENABLED": "Two-factor sign-in enabled",
     "USER_2FA_RECOVERY_REGENERATED": "Two-factor recovery codes renewed",
@@ -5504,10 +5573,7 @@
     "ZABBIX_HOST_IP_UPDATED": "Zabbix host IP updated",
     "ZABBIX_HOST_LINKED": "Device linked to an existing Zabbix host",
     "ZABBIX_SETTINGS_CHANGED": "Zabbix settings changed",
-    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested",
-    "ACS_CONFIG_RESTORE_REQUESTED": "CPE configuration restore requested",
-    "ACS_CONFIG_RESTORE_VERIFIED": "CPE configuration restore verified",
-    "ACS_CONFIG_RESTORE_FAILED": "CPE configuration restore failed"
+    "ZABBIX_SYNC_REQUESTED": "Zabbix sync requested"
   },
   "eventSources": {
     "portal": "interface",
@@ -6346,6 +6412,72 @@
       "unconfirmed": "Upgrade to {{version}} not confirmed."
     }
   },
+  "firmwareSchedule": {
+    "title": "Scheduled upgrade",
+    "help": "Choose when to upgrade, for example at night. At that time NSM runs every phase by itself with no further confirmation: check, pre-upgrade backup, approval, download, activation with reboot and version verification. If the device cannot be reached within 2 hours, the upgrade is not run.",
+    "when": "Date and time",
+    "schedule": "Schedule upgrade",
+    "move": "Move",
+    "cancel": "Cancel schedule",
+    "at": "for {{when}}",
+    "confirm": "Schedule the RouterOS upgrade (currently {{target}}) for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "confirmMany_one": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "confirmMany_other": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "selected_one": "{{count}} selected",
+    "selected_other": "{{count}} selected",
+    "scheduleMany": "Schedule upgrade",
+    "select": "Select {{name}}",
+    "done_one": "{{count}} upgrade scheduled.",
+    "done_other": "{{count}} upgrades scheduled.",
+    "skipped": "Not scheduled (RouterOS 7.13+ with the modern agent required): {{names}}.",
+    "states": {
+      "scheduled": "Scheduled",
+      "checking": "Checking",
+      "running": "Running",
+      "success": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "uispSyslog": {
+    "title": "Syslog through UISP",
+    "hint": "UISP sets the CPE to send its logs to the NSM receiver: it takes a configuration backup, changes only the syslog lines and applies it again. The backup taken right before is kept as the restore point.",
+    "target": "NSM receiver",
+    "noTarget": "cannot be determined: set the public address in Amministrazione → Syslog",
+    "inUisp": "In UISP",
+    "liveOn": "remote log on, towards {{server}}:{{port}}",
+    "liveOff": "remote log not configured",
+    "unsupported": "UISP does not manage this device's services: configure syslog from the airOS interface.",
+    "current": "NSM configuration",
+    "never": "not configured by NSM yet",
+    "status": {
+      "applied": "{{mode}} · applied {{when}} by {{by}}",
+      "restored": "previous configuration restored (was: {{mode}})"
+    },
+    "modeTitle": "How NSM recognises the logs",
+    "recommended": "recommended",
+    "modes": {
+      "key": {
+        "label": "NSM key in the device name",
+        "help": "UISP adds NSM-… to the CPE name (hostname): it works even if the IP changes or the NAT is shared."
+      },
+      "customer_name": {
+        "label": "CPE name equal to the NSM customer",
+        "help": "The CPE name in UISP must be the customer's ({{customer}}), in any order. Accepted only if no other device uses the same name."
+      },
+      "address": {
+        "label": "Device address",
+        "help": "NSM recognises the logs by the CPE IP as UISP sees it. Discarded if other devices use the same IP (NAT)."
+      }
+    },
+    "reboot": "Applying the configuration reboots the CPE: the customer is offline for 2–3 minutes.",
+    "confirm": "To confirm, type the device name: {{name}}",
+    "configure": "Configure through UISP",
+    "restore": "Restore previous configuration",
+    "working": "UISP is applying…",
+    "done": "Configuration applied: the CPE reboots and the logs arrive within a few minutes.",
+    "restored": "Previous configuration applied: the CPE reboots."
+  },
   "bras": {
     "title": "MikroTik BRAS",
     "subtitle": "PPPoE concentrator read with a read-only RouterOS user: customers' sessions every few minutes, nothing changed on the router.",
@@ -6381,33 +6513,6 @@
     "uptime": "connected for {{value}}",
     "never": "Never seen on the BRAS",
     "noDevice": "No device matched"
-  },
-  "firmwareSchedule": {
-    "title": "Scheduled upgrade",
-    "help": "Choose when to upgrade, for example at night. At that time NSM runs every phase by itself with no further confirmation: check, pre-upgrade backup, approval, download, activation with reboot and version verification. If the device cannot be reached within 2 hours, the upgrade is not run.",
-    "when": "Date and time",
-    "schedule": "Schedule upgrade",
-    "move": "Move",
-    "cancel": "Cancel schedule",
-    "at": "for {{when}}",
-    "confirm": "Schedule the RouterOS upgrade (currently {{target}}) for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
-    "confirmMany_one": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
-    "confirmMany_other": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
-    "selected_one": "{{count}} selected",
-    "selected_other": "{{count}} selected",
-    "scheduleMany": "Schedule upgrade",
-    "select": "Select {{name}}",
-    "done_one": "{{count}} upgrade scheduled.",
-    "done_other": "{{count}} upgrades scheduled.",
-    "skipped": "Not scheduled (RouterOS 7.13+ with the modern agent required): {{names}}.",
-    "states": {
-      "scheduled": "Scheduled",
-      "checking": "Checking",
-      "running": "Running",
-      "success": "Completed",
-      "failed": "Failed",
-      "cancelled": "Cancelled"
-    }
   },
   "acsCapabilities": {
     "title": "NSM capabilities on this CPE",
@@ -6469,6 +6574,58 @@
     },
     "writesYes": "yes, on request",
     "writesNo": "no"
+  },
+  "cambiumSyslog": {
+    "title": "ePMP syslog",
+    "hint": "cnMaestro cannot change the configuration through its API: NSM sets the syslog from the ePMP SSH console with the Cambium backup credentials. It first shows the parameters it will change; the configuration read right before is kept as a backup.",
+    "target": "NSM receiver",
+    "noTarget": "cannot be determined: set the public address in Amministrazione → Syslog",
+    "credentials": "SSH credentials",
+    "credentialSource": {
+      "device": "of this device",
+      "shared": "shared Cambium ones (Amministrazione → cnMaestro)",
+      "none": "not set"
+    },
+    "current": "NSM configuration",
+    "never": "not configured by NSM yet",
+    "status": {
+      "applied": "{{mode}} · applied {{when}} by {{by}}",
+      "unverified": "{{mode}} · applied {{when}} by {{by}}, values not confirmed by the ePMP",
+      "failed": "failed on {{when}} ({{mode}})",
+      "restored": "previous values restored (was: {{mode}})"
+    },
+    "error": "Error",
+    "unverified": "Parameters not confirmed",
+    "notReady": "The device management address, the Cambium SSH credentials and the syslog receiver address are needed.",
+    "modeTitle": "How NSM recognises the logs",
+    "recommended": "recommended",
+    "modes": {
+      "key": {
+        "label": "NSM key in the device name",
+        "help": "NSM appends -NSM-… to the ePMP name, which appears in every log line: it works even if the IP changes or the NAT is shared."
+      },
+      "customer_name": {
+        "label": "ePMP name equal to the NSM customer",
+        "help": "The ePMP name must be the customer's ({{customer}}), in any order. Accepted only if no other device uses the same name."
+      },
+      "address": {
+        "label": "Device address",
+        "help": "NSM recognises the logs by the ePMP management address. Discarded if other devices use the same IP (NAT)."
+      }
+    },
+    "preview": "Preview the changes",
+    "reading": "Reading the configuration…",
+    "nothing": "The ePMP already sends its logs to NSM in this mode: nothing to change.",
+    "param": "Parameter",
+    "before": "Current",
+    "after": "New",
+    "noReboot": "The changes are applied with config commit, without a reboot.",
+    "confirm": "To confirm, type the device name: {{name}}",
+    "configure": "Apply on the ePMP",
+    "restore": "Restore the previous values",
+    "working": "Connecting to the ePMP…",
+    "done": "Syslog configured: the logs arrive within a few minutes.",
+    "restored": "Previous values restored on the ePMP."
   },
   "acsRestore": {
     "title": "Restore on the CPE",

@@ -4,6 +4,205 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.268 — 2026-10-28
+
+MikroTik: queues, certificates and routing diagnostics
+
+### Added
+
+- MikroTik Configuration tab: three read-only sections for modern and legacy agents (RouterOS 6.48/6.49 and 7.12), Agent 0.49.24:
+  - **Queues**: simple queues and queue tree with the current rate against the max limit; a queue at 90% or more of its limit is flagged as saturated;
+  - **Certificates**: expiry date and days left, with expired, expiring within 30 days and revoked certificates first;
+  - **BGP / OSPF**: BGP sessions (RouterOS 7 sessions, RouterOS 6 peers) and OSPF neighbors, up or down, with remote address, AS or area, uptime and prefixes.
+- Bounded reads like the other sections (300 queues per menu, 100 certificates, 100 BGP sessions and 100 OSPF neighbors); the route table is never read, and a router without the routing menus still loads the agent.
+
+### Changed
+
+- Explicit capability gate per snapshot section and agent transport: an agent that cannot read a section is no longer asked for it. The Configuration tab marks those sections with the update or reinstall hint, *Refresh all* skips them, and a legacy job for a section the agent cannot read fails with the reason instead of an empty result.
+- MTK-01 (legacy snapshot pagination) evaluated against the production legacy snapshots: not needed for now; the evidence is in the roadmap.
+
+### Fixed
+
+- *Refresh all* no longer queues the exposed-services section on legacy agents, where it always failed.
+## 0.49.267 — 2026-10-28
+
+Security: CVE version matching beyond RouterOS
+
+### Added
+
+- Vulnerabilities: CVE version matching for vendors other than MikroTik (SEC-02, UBNT-07).
+  - Ubiquiti airMAX: NVD scopes most airOS CVEs to hardware families (`airmax_ac`, `airmax_m`, `airmax_m_xw`…). NSM now reads the family from the airOS platform (prefix of the full firmware string, or the platform UISP reports: WA/XC airMAX AC, XM/XW/TI airMAX M), never from the model name, evaluates the family firmware products too and compares the release without build numbers. Without the platform a family-limited CVE stays *unknown*; a model list from NVD that does not contain the device is *unknown* when the version is in range, never a guess. The finding evidence records the family.
+  - TP-Link: release, then build date when both sides have one (`1.1.4 Build 20230219`); a bound without a build covers all builds of its release.
+  - Product names are compared without punctuation (`airfiber_60-lr_firmware` matches *airFiber 60 LR*).
+
+### Changed
+
+- After the upgrade the next NVD matching cycle opens the Ubiquiti findings that were missed: on the operator's data (dry run) 41 high-confidence findings on the 30 airMAX radios (CVE-2026-21639 and CVE-2022-44565).
+
+## 0.49.266 — 2026-10-28
+
+cnMaestro graphs in the Monitor tab and last values of offline Cambium devices
+
+### Added
+- **Cambium devices have the same Monitor charts as every other device (MON-01).** The history NSM reads from cnMaestro fills the Monitor panels: CPU and memory, downlink/uplink throughput, the ping from NSM, then signal, SNR and connected stations. The charts use the common renderer, with current, minimum, average and maximum, and ranges from 1 hour to 90 days. Series and chart names are now translated.
+- **An offline Cambium device still shows what it last reported (MON-02).** When the chosen range has no samples, the Monitor tab shows *Ultimi valori ricevuti* with their date. The 90-day cleanup of the cnMaestro history always keeps the newest sample of each device.
+
+### Fixed
+- **A cnMaestro sync without statistics no longer clears the last values of a device.** When cnMaestro stopped sending statistics for a device (for example an offline radio), its *cnMaestro* tab lost every value. Now the last values stay, and the tab says when they were read.
+## 0.49.265 — 2026-10-28
+
+Remote syslog of Cambium ePMP devices
+
+### Added
+- **NSM can now set a Cambium ePMP to send its logs to the NSM receiver (LOG-01).** The cnMaestro API has no configuration endpoint, so NSM uses the ePMP SSH console with the credentials already saved for the Cambium backups. On the device *Syslog* tab, *Anteprima delle modifiche* reads the running configuration and lists every parameter NSM would change, with the current and the new value; nothing is written. *Applica sull'ePMP*, after typing the device name, archives the configuration as a Cambium backup (the restore point), runs `config set` for each change and `config commit` (no reboot), then reads the values back. *Ripristina i valori precedenti* sets back only the parameters NSM changed.
+- **Parameter names come from the device.** NSM picks the first free syslog server of the ePMP (or the one already pointing at NSM), its port and the remote syslog switch from `config show json`. If every server is used by someone else, or the configuration has no syslog server, NSM refuses and says so.
+- **Three ways to recognise the logs, as for UISP.** The NSM key appended to the device name (the default), the ePMP name equal to the NSM customer, or the management address. The receiver accepts lines without a key from a Cambium device only in the last two modes, configured by NSM, and only when the name or address belongs to that device alone.
+- Activity log: `CAMBIUM_SYSLOG_CONFIGURED`, `CAMBIUM_SYSLOG_FAILED`, `CAMBIUM_SYSLOG_RESTORED`.
+
+### Changed
+- The Cambium backup counts the content of the configuration sections, not only the top-level keys, when it checks that the ePMP returned a real configuration.
+## 0.49.264 — 2026-10-28
+
+ACS: parameter profiles for TR-069 CPEs
+
+### Added
+
+- Parameter profiles of TR-069 CPEs (ACS-04): `acs_profiles` is the one map of the TR-098 / TR-181 paths NSM uses, with TP-Link vendor paths only where a feature exists only as an extension and explicit unsupported entries with their reason (CPU/memory on TR-098, syslog and cloud firmware on TR-098, UPnP on TR-098, the vendor configuration file).
+- *Capacità NSM su questo CPE* on the device *ACS* tab: for every NSM function (Wi-Fi, diagnostics, speed test, firmware, PON, port forwarding, syslog, snapshot…) whether it is available, a standard RPC, not exposed by the CPE or not supported, why, the paths found and whether NSM writes to the CPE for it. One read-only GenieACS read of small objects; nothing is sent to the CPE.
+
+### Changed
+
+- The diagnostics, speed test, Wi-Fi, syslog, TP-Link cloud firmware, firmware, snapshot and configuration-refresh modules take their object paths from the profile map.
+## 0.49.263 — 2026-10-28
+
+ACS: PON optical levels of TR-069 CPEs and history of offline CPEs
+
+### Added
+
+- PON optical levels of TR-069 CPEs (ACS-05): received and transmitted power (dBm), module temperature, supply voltage and laser bias current, read from TR-181 `Device.Optical.Interface` and TR-098 vendor GPON/EPON objects (Huawei `X_GponInterafceConfig`, ZTE `X_ZTE-COM_WANPONInterfaceConfig`, CT-COM/CMCC, `WANPONInterfaceConfig`) with unit normalization. The NSM base provision re-reads these objects once an hour (values only, no refresh of the root); values are kept in the ACS history with charts on the device *ACS* tab.
+- ACS alert `pon`: received optical level under a threshold (default −27 dBm, *Amministrazione → ACS → Avvisi dei CPE*, 0 disables) on the last two readings.
+
+### Changed
+
+- MON-02 for the ACS: the history cleanup keeps the newest sample of every CPE and its newest optical reading; the *ACS* tab shows when the last sample arrived when the chosen range has none. Migration `0058_acs_pon_optics` adds the optical columns to `acs_metric_samples`.
+## 0.49.262 — 2026-10-28
+
+ISPBilling activities in the device logbook
+
+### Added
+
+- ISPBilling activities in the device logbook (ISPB-01, step 5): the device *Attività* tab shows, in the same timeline as the logbook entries, the installations, maintenance and visits that ISPBilling has for the device's customer, with type, date (a date only for all-day activities), teams, subject and description, *Pianificata* while not started and *Annullata* with its reason; a checkbox hides them.
+  - An activity is the device's when its ISPBilling address is the address of a RADIUS account matched to the device or an address imported as the device's site; activities at another site or another device of the same customer are left out, the others are marked *attività del cliente*.
+  - Read on demand from ISPBilling (`activities/activities`, cursor pagination, filtered by customer) when the tab is opened and kept in memory for 5 minutes; nothing is stored and nothing is written to ISPBilling. The customer's name, phone number and e-mail returned with each activity, and the team members, never reach the browser.
+  - ISPBilling's numeric activity status is not documented and is not interpreted; an error from ISPBilling only shows a note under the logbook.
+
+## 0.49.261 — 2026-10-23
+
+MikroTik BRAS: customers' PPPoE sessions
+
+### Added
+
+- MikroTik BRAS (*Integrazioni → BRAS MikroTik*): NSM reads the PPPoE concentrator with a read-only RouterOS user, through the RouterOS 7 REST API or the RouterOS API (`api-ssl`/`api`, RouterOS 6.43+), and never changes anything on it.
+  - Every 5 minutes (configurable) it reads the active PPP sessions: online with IP, caller-id MAC and uptime, or offline since when. A failed read changes nothing.
+  - The sessions feed the existing ISPBilling account matching (caller-id MAC or session address to a device; several candidates mean no match).
+  - The device page shows the PPPoE session of each account; the customer page lists its RADIUS accounts with their session state (*Connessioni PPPoE*).
+  - Migration 0057 (`bras_sessions`).
+## 0.49.260 — 2026-10-23
+
+Bulk Ubiquiti firmware upgrade through UISP
+
+### Added
+
+- Firmware worklist: bulk Ubiquiti upgrade through UISP. The rows with *Aggiorna via UISP* can be selected (up to 50) and upgraded together with *Aggiorna via UISP (N)*.
+  - Target: each device's recommended version (NSM's recommendation when UISP offers it for the platform, else UISP's newest stable image), or one version for all; now or in UISP's maintenance window; typed confirmation `AGGIORNA N`.
+  - Every device goes through the checks of the single upgrade (linked to UISP, no upgrade in progress, version offered for its platform). The ones that pass are queued in one UISP task (`POST /tasks`), the others are reported per row with the reason; then each device is followed and verified as a single upgrade.
+  - New route `POST /api/ui/v1/firmware/uisp-upgrade` (`devices.write`).
+  - New audit event: `UISP_FIRMWARE_BULK_UPGRADE`; `UISP_FIRMWARE_UPGRADE_REQUESTED` is still written for every device.
+## 0.49.259 — 2026-10-23
+
+cnMaestro API v2
+### Changed
+- **The cnMaestro connector now uses the API v2.** cnMaestro marked every v1 answer as deprecated ("must be changed to v2", sunset 3.2.0). NSM now reads the device list from `/api/v2/devices` and the statistics from `/api/v2/devices/statistics`, and logs in on `/api/v2/access/token`. It falls back to the v1 login only if a console refuses the v2 one. Nothing else uses v1.
+- **Wi-Fi access points (cnPilot) keep their charts.** API v2 sends each band as a `radios` list. NSM now reads that list for connected clients and throughput, and the compatibility check looks for these fields too.
+- **A deprecation notice from cnMaestro is now visible.** If an answer says an API is deprecated, the notice is kept in the last sync result and shown by *Sincronizza ora*, together with how many devices were adopted.
+
+### Fixed
+- **A Cambium device added by hand is now managed by cnMaestro once linked.** An ePMP added as a generic device and later corrected to Cambium was linked by MAC, but it stayed *manuale*: it had no external ID, and its IP was never updated from cnMaestro. Now, when the sync or the import links such a device, its source becomes cnMaestro and the cnMaestro MAC becomes its external ID, as for a device created through the connector. This is recorded once in the activity log (`CNMAESTRO_DEVICE_LINKED`). Devices with another source are left unchanged.
+## 0.49.258 — 2026-10-23
+
+TR-069 snapshots can be compared
+- **Fixed: "Confronta con" said "Nessun altro export testuale" on TR-069 snapshots** even when the device had several. The menu offered only RouterOS exports. Now it lists the older snapshots of the same CPE, so you can see what changed between two of them.
+- The text above a TR-069 snapshot no longer talks about RouterOS. It says the parameters are the ones read by the ACS, without passwords and without values that change by themselves.
+
+## 0.49.257 — 2026-10-23
+
+Syslog of Ubiquiti devices configured through UISP
+- **The *Syslog* tab of a Ubiquiti device linked to UISP has *Syslog tramite UISP*:** UISP sets the CPE to send its logs to NSM, so they no longer have to be set by hand on airOS.
+- **How it works:**
+  - UISP takes a backup of the configuration;
+  - NSM changes only the syslog lines (server and port 514);
+  - UISP applies it.
+  - The CPE restarts and the customer is offline for 2–3 minutes. It runs only when you ask, after typing the device name.
+  - The backup taken just before is kept: *Ripristina configurazione precedente* puts it back.
+- **How NSM recognises the logs, chosen per device:**
+  - *NSM key in the device name* (recommended): UISP adds NSM-… to the hostname. It also works if the IP changes or the NAT is shared.
+  - *CPE name equal to the NSM customer* (e.g. "RIZZO MICHELA" for the customer Michela Rizzo, words in any order). Accepted only if no other device uses that name.
+  - *Device address*, as UISP sees it. Discarded if other devices share the same IP.
+- Devices whose services UISP does not manage keep the manual instructions.
+
+## 0.49.256 — 2026-10-23
+
+Interface
+- **The UISP reboot form stays inside its panel.** Stacked forms next to another column no longer spill to the right of the panel. The same fix applies to every stacked form.
+- **UISP events are paged.** The *Eventi UISP* list shows 20 events at a time, with *Mostra altri*. Times are in local format, and device names appear without UISP's backticks.
+
+## 0.49.255 — 2026-10-23
+
+Scheduled firmware upgrades
+- **RouterOS upgrades can be scheduled, for example at night.**
+  - One device: *Aggiornamento programmato* in the *Firmware* tab.
+  - Several devices: select them in the *Firmware* list and press *Programma aggiornamento*.
+  - Default time: the next 03:00.
+- **One confirmation, when you schedule.** At the chosen time NSM runs every phase by itself, with no further confirmation:
+  1. update check;
+  2. a new backup before the upgrade;
+  3. approval;
+  4. download of the packages;
+  5. activation with reboot;
+  6. check of the installed version.
+- A plan prepared earlier is reused if its backup is less than 12 hours old, otherwise it is replaced.
+- If the device is not reachable within 2 hours of the scheduled time, the upgrade is not run, and the list says so. If a phase fails, the schedule stops with the reason.
+- The list and the device show the state: scheduled, checking, running, completed, failed. A schedule can be moved or cancelled until the download starts. Every phase is recorded in the activity log.
+
+## 0.49.254 — 2026-10-23
+
+RouterOS upgrade: one click to prepare, check from the device
+- **Fixed: *Prepara upgrade* answered "Esegui prima una verifica firmware recente" when the check was older than 6 hours or still running.** Now one click is enough: if the check is not recent, NSM runs it and prepares the plan by itself when the result arrives, within 1–2 minutes. The button shows *Verifica in corso…* meanwhile.
+- ***Verifica aggiornamenti* in the device's *Firmware* tab:** before, it was only in the *Firmware* menu list.
+- The *Firmware* tab updates by itself while a check or a plan preparation is running. If the plan cannot be prepared after the check (e.g. device offline), it says why.
+
+## 0.49.253 — 2026-10-23
+
+ACS: configuration re-read object by object
+
+### Fixed
+
+- TR-069 *Rileggi configurazione dal CPE*: on large CPEs (an HB210 has 8137 parameters), refreshing the whole root went over GenieACS's RPC limit. The task failed with `too_many_rpcs`, and the faulted task blocked the CPE's whole task queue, a syslog setting included.
+  - The configuration is now re-read object by object, in rounds of at most 2500 parameters per CWMP session; objects above 2000 parameters are split into their children.
+  - A faulted refresh task is deleted together with its fault, so the queue never stays blocked. On `too_many_rpcs` the object is split further when possible.
+  - NSM's leftover tasks are removed after 90 minutes.
+  - The page shows the progress (objects read and round).
+  - New audit event: `ACS_CONFIG_REFRESH_COMPLETED`.
+## 0.49.252 — 2026-10-23
+
+Ubiquiti firmware upgrade through UISP
+
+### Added
+
+- Ubiquiti firmware upgrade through UISP. Devices linked to UISP get the device *Firmware* tab, and the firmware worklist shows *Aggiorna via UISP*. The tab offers the stable images UISP has for the device's airOS platform that are newer than the installed one, with the recommended version first.
+- After typing the device name, NSM queues the upgrade in UISP, either now or in UISP's maintenance window. The UISP token needs write permission.
+- The upgrade is followed until UISP reports the device on the new version (*verified*). It ends as *failed* when UISP marks it failed or canceled, and as *unconfirmed* after 60 minutes (48 hours in the maintenance window).
+- Audit events: `UISP_FIRMWARE_UPGRADE_REQUESTED`, `UISP_FIRMWARE_UPGRADE_VERIFIED`, `UISP_FIRMWARE_UPGRADE_FAILED`.
 ## 0.49.251 — 2026-10-23
 
 Cambium: ePMP configuration backups over SSH
