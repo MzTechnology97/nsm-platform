@@ -4170,7 +4170,57 @@
       "warning": "Attention",
       "error": "Erreur"
     },
-    "moreEvents": "Afficher plus ({{shown}} sur {{total}})"
+    "moreEvents": "Afficher plus ({{shown}} sur {{total}})",
+    "diag": {
+      "stationsTitle": "Liaisons sans fil (UISP)",
+      "stationsHelp": "Lues à la demande : signal des deux côtés et par chaîne, bruit, link score, capacité et latence mesurés par UISP.",
+      "columns": {
+        "station": "Station",
+        "signal": "Signal (ici / distant)",
+        "noise": "Bruit",
+        "score": "Link score",
+        "capacity": "Capacité desc. / mont.",
+        "latency": "Latence",
+        "hints": "Diagnostic"
+      },
+      "chains": "chaînes {{rx}} · {{tx}}",
+      "airTime": "temps d'antenne {{value}} %",
+      "healthy": "Aucun problème relevé",
+      "hints": {
+        "weak_signal": "Signal faible",
+        "fair_signal": "Signal moyen",
+        "chain_imbalance": "Chaînes déséquilibrées",
+        "low_snr": "SNR bas",
+        "low_score": "Link score bas",
+        "high_airtime": "Temps d'antenne saturé",
+        "high_latency": "Latence élevée",
+        "disconnected": "Déconnectée",
+        "stale": "Données UISP anciennes"
+      },
+      "speedTest": "Test de débit",
+      "speedTestTitle": "Test de débit vers {{peer}}",
+      "speedTestHelp": "UISP exécute le test entre les deux radios : la liaison sans fil est saturée pendant toute la durée et les clients derrière elle sont ralentis.",
+      "direction": "Sens",
+      "duration": "Durée (secondes, 5–60)",
+      "directions": {
+        "downlink": "Descendant",
+        "uplink": "Montant",
+        "bidirectional": "Les deux sens"
+      },
+      "confirm": "Je comprends que la liaison sera saturée pendant {{seconds}} secondes",
+      "start": "Lancer le test",
+      "stop": "Arrêter le test",
+      "lastTest": "Test de débit vers {{peer}}",
+      "states": {
+        "running": "En cours",
+        "completed": "Terminé",
+        "stopped": "Arrêté",
+        "no_result": "Aucun résultat d'UISP",
+        "unconfirmed": "Non confirmé par UISP"
+      },
+      "result": "moyenne {{avg}}, pic {{max}}",
+      "noResult": "UISP n'a envoyé aucune mesure pour ce test."
+    }
   },
   "deviceCnmaestro": {
     "linked": "Relié à cnMaestro depuis le {{when}} (MAC {{mac}}).",
@@ -5565,6 +5615,9 @@
     "UISP_REBOOT_VERIFIED": "Redémarrage via UISP vérifié",
     "UISP_SITE_IGNORED": "Endpoint UISP ignoré",
     "UISP_SITE_LINKED": "Endpoint UISP lié à un client",
+    "UISP_SPEEDTEST_FINISHED": "Test de débit UISP terminé",
+    "UISP_SPEEDTEST_STARTED": "Test de débit UISP lancé",
+    "UISP_SPEEDTEST_STOPPED": "Test de débit UISP arrêté",
     "UISP_SYNC_COMPLETED": "Synchronisation UISP terminée",
     "UISP_SYNC_CONFLICT": "Conflit de synchronisation UISP",
     "UISP_SYNC_FAILED": "Échec de la synchronisation UISP",
@@ -6182,7 +6235,7 @@
   },
   "acsAlerts": {
     "title": "Alertes des CPE",
-    "help": "NSM ouvre un signalement dans le Centre d'actions, avec une notification, quand un CPE TR-069 ne contacte plus l'ACS, que sa WAN est coupée, que la WAN se reconnecte ou que le CPE redémarre trop souvent, que la ligne DSL se dégrade ou que le niveau PON reçu passe sous le seuil. Les signalements se ferment seuls quand le problème disparaît. 0 désactive un seuil.",
+    "help": "NSM ouvre un ticket dans le Centre d'actions, avec une notification, quand un CPE TR-069 ne contacte plus l'ACS, que sa WAN est coupée, que la WAN se reconnecte ou que le CPE redémarre trop souvent, ou que la ligne DSL se dégrade. Les tickets se ferment seuls quand le problème cesse. 0 désactive un seuil.",
     "fields": {
       "enabled": "Alertes des CPE TR-069 actives",
       "offline": "CPE qui ne contacte plus l'ACS (trois Inform périodiques manqués)",

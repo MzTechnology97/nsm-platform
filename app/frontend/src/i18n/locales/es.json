@@ -4170,7 +4170,57 @@
       "warning": "Atención",
       "error": "Error"
     },
-    "moreEvents": "Mostrar más ({{shown}} de {{total}})"
+    "moreEvents": "Mostrar más ({{shown}} de {{total}})",
+    "diag": {
+      "stationsTitle": "Enlaces inalámbricos (UISP)",
+      "stationsHelp": "Leídos bajo demanda: señal en ambos lados y por cadena, ruido, link score, capacidad y latencia medidos por UISP.",
+      "columns": {
+        "station": "Estación",
+        "signal": "Señal (aquí / remota)",
+        "noise": "Ruido",
+        "score": "Link score",
+        "capacity": "Capacidad bajada / subida",
+        "latency": "Latencia",
+        "hints": "Diagnóstico"
+      },
+      "chains": "cadenas {{rx}} · {{tx}}",
+      "airTime": "tiempo de aire {{value}}%",
+      "healthy": "Sin problemas detectados",
+      "hints": {
+        "weak_signal": "Señal débil",
+        "fair_signal": "Señal regular",
+        "chain_imbalance": "Cadenas desequilibradas",
+        "low_snr": "SNR bajo",
+        "low_score": "Link score bajo",
+        "high_airtime": "Tiempo de aire saturado",
+        "high_latency": "Latencia alta",
+        "disconnected": "Desconectada",
+        "stale": "Datos de UISP antiguos"
+      },
+      "speedTest": "Prueba de velocidad",
+      "speedTestTitle": "Prueba de velocidad hacia {{peer}}",
+      "speedTestHelp": "UISP ejecuta la prueba entre las dos radios: el enlace inalámbrico queda saturado durante toda la prueba y los clientes detrás de él van más lentos.",
+      "direction": "Dirección",
+      "duration": "Duración (segundos, 5–60)",
+      "directions": {
+        "downlink": "Bajada",
+        "uplink": "Subida",
+        "bidirectional": "Ambas direcciones"
+      },
+      "confirm": "Entiendo que el enlace quedará saturado durante {{seconds}} segundos",
+      "start": "Iniciar la prueba",
+      "stop": "Detener la prueba",
+      "lastTest": "Prueba de velocidad hacia {{peer}}",
+      "states": {
+        "running": "En curso",
+        "completed": "Completada",
+        "stopped": "Detenida",
+        "no_result": "Sin resultado de UISP",
+        "unconfirmed": "No confirmada por UISP"
+      },
+      "result": "media {{avg}}, pico {{max}}",
+      "noResult": "UISP no envió mediciones para esta prueba."
+    }
   },
   "deviceCnmaestro": {
     "linked": "Vinculado a cnMaestro desde el {{when}} (MAC {{mac}}).",
@@ -5565,6 +5615,9 @@
     "UISP_REBOOT_VERIFIED": "Reinicio mediante UISP verificado",
     "UISP_SITE_IGNORED": "Endpoint UISP ignorado",
     "UISP_SITE_LINKED": "Endpoint UISP vinculado a un cliente",
+    "UISP_SPEEDTEST_FINISHED": "Prueba de velocidad UISP terminada",
+    "UISP_SPEEDTEST_STARTED": "Prueba de velocidad UISP iniciada",
+    "UISP_SPEEDTEST_STOPPED": "Prueba de velocidad UISP detenida",
     "UISP_SYNC_COMPLETED": "Sincronización UISP completada",
     "UISP_SYNC_CONFLICT": "Conflicto en la sincronización UISP",
     "UISP_SYNC_FAILED": "Sincronización UISP fallida",
@@ -6182,7 +6235,7 @@
   },
   "acsAlerts": {
     "title": "Avisos de los CPE",
-    "help": "NSM abre una incidencia en el Centro de acciones, con una notificación, cuando un CPE TR-069 deja de contactar con el ACS, su WAN está caída, la WAN se reconecta o el CPE se reinicia con demasiada frecuencia, la línea DSL se degrada o el nivel PON recibido baja del umbral. Las incidencias se cierran solas cuando el problema termina. 0 desactiva un umbral.",
+    "help": "NSM abre una incidencia en el Centro de acciones, con una notificación, cuando un CPE TR-069 deja de contactar con el ACS, su WAN cae, la WAN se reconecta o el CPE se reinicia demasiado, o la línea DSL empeora. Las incidencias se cierran solas cuando el problema termina. 0 desactiva un umbral.",
     "fields": {
       "enabled": "Avisos de los CPE TR-069 activos",
       "offline": "CPE que ya no contacta con el ACS (tres Inform periódicos perdidos)",

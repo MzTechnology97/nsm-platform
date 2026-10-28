@@ -4170,7 +4170,57 @@
       "warning": "Warning",
       "error": "Error"
     },
-    "moreEvents": "Show more ({{shown}} of {{total}})"
+    "moreEvents": "Show more ({{shown}} of {{total}})",
+    "diag": {
+      "stationsTitle": "Wireless links (UISP)",
+      "stationsHelp": "Read on demand: signal on both sides and per chain, noise, link score, capacity and latency as UISP measured them.",
+      "columns": {
+        "station": "Station",
+        "signal": "Signal (here / remote)",
+        "noise": "Noise",
+        "score": "Link score",
+        "capacity": "Capacity down / up",
+        "latency": "Latency",
+        "hints": "Diagnosis"
+      },
+      "chains": "chains {{rx}} · {{tx}}",
+      "airTime": "air time {{value}}%",
+      "healthy": "No issue seen",
+      "hints": {
+        "weak_signal": "Weak signal",
+        "fair_signal": "Fair signal",
+        "chain_imbalance": "Chains unbalanced",
+        "low_snr": "Low SNR",
+        "low_score": "Low link score",
+        "high_airtime": "Air time saturated",
+        "high_latency": "High latency",
+        "disconnected": "Disconnected",
+        "stale": "Old UISP data"
+      },
+      "speedTest": "Speed test",
+      "speedTestTitle": "Speed test towards {{peer}}",
+      "speedTestHelp": "UISP runs the test between the two radios: the wireless link is saturated for the whole duration and the customers behind it are slowed down.",
+      "direction": "Direction",
+      "duration": "Duration (seconds, 5–60)",
+      "directions": {
+        "downlink": "Download",
+        "uplink": "Upload",
+        "bidirectional": "Both directions"
+      },
+      "confirm": "I understand that the link will be saturated for {{seconds}} seconds",
+      "start": "Start the test",
+      "stop": "Stop the test",
+      "lastTest": "Speed test towards {{peer}}",
+      "states": {
+        "running": "Running",
+        "completed": "Completed",
+        "stopped": "Stopped",
+        "no_result": "No result from UISP",
+        "unconfirmed": "Not confirmed by UISP"
+      },
+      "result": "average {{avg}}, peak {{max}}",
+      "noResult": "UISP sent no measurement for this test."
+    }
   },
   "deviceCnmaestro": {
     "linked": "Linked to cnMaestro since {{when}} (MAC {{mac}}).",
@@ -5565,6 +5615,9 @@
     "UISP_REBOOT_VERIFIED": "UISP reboot verified",
     "UISP_SITE_IGNORED": "UISP endpoint ignored",
     "UISP_SITE_LINKED": "UISP endpoint linked to a customer",
+    "UISP_SPEEDTEST_FINISHED": "UISP speed test finished",
+    "UISP_SPEEDTEST_STARTED": "UISP speed test started",
+    "UISP_SPEEDTEST_STOPPED": "UISP speed test stopped",
     "UISP_SYNC_COMPLETED": "UISP sync completed",
     "UISP_SYNC_CONFLICT": "UISP sync conflict",
     "UISP_SYNC_FAILED": "UISP sync failed",
@@ -6182,7 +6235,7 @@
   },
   "acsAlerts": {
     "title": "Alerts of the CPEs",
-    "help": "NSM opens an issue in the Action Center, with a notification, when a TR-069 CPE stops contacting the ACS, its WAN is down, the WAN reconnects or the CPE reboots too often, the DSL line degrades or the PON received level falls under the threshold. Issues close by themselves when the problem ends. 0 disables a threshold.",
+    "help": "NSM opens an issue in the Action Center, with a notification, when a TR-069 CPE stops contacting the ACS, its WAN is down, the WAN reconnects or the CPE reboots too often, or the DSL line degrades. Issues close by themselves when the problem ends. 0 disables a threshold.",
     "fields": {
       "enabled": "Alerts for TR-069 CPEs on",
       "offline": "CPE no longer contacting the ACS (three missed periodic Informs)",
