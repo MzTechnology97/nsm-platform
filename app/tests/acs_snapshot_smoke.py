@@ -79,8 +79,8 @@ def main():
     # A CPE whose tree GenieACS has not read yet: explained, nothing stored.
     response = client.post(f"/api/ui/v1/devices/{ids['fresh']}/acs/snapshot")
     assert response.status_code == 409 and "Rileggi" in response.json()["detail"]["message"]
-    assert client.post(f"/api/ui/v1/devices/{ids['fresh']}/acs/snapshot/refresh").json()["started"] is True
-    assert tasks[-1] == {"name": "refreshObject", "objectName": "Device"}
+    assert client.post(f"/api/ui/v1/devices/{ids['fresh']}/acs/snapshot/refresh").json()["refresh"]["status"] == "running"
+    assert tasks[-1] == {"name": "refreshObject", "objectName": "Device.DeviceInfo"}, "object by object, never the whole root (acs_config_refresh)"
 
     # Manual snapshot: archived as a text backup, secrets and changing values left out.
     first = client.post(f"/api/ui/v1/devices/{ids['cpe']}/acs/snapshot").json()
@@ -97,6 +97,8 @@ def main():
     second = client.post(f"/api/ui/v1/devices/{ids['cpe']}/acs/snapshot").json()
     with SessionLocal() as db:
         second_artifact = db.scalar(select(BackupArtifact).where(BackupArtifact.run_id == uuid.UUID(second["run_id"])))
+    page = client.get(f"/api/ui/v1/devices/{ids['cpe']}/backups/artifacts/{second_artifact.id}").json()
+    assert [c["id"] for c in page["candidates"]] == [str(artifact.id)] and page["artifact_type"] == "tr069_parameters", "the older snapshot is offered for comparison"
     view = client.get(f"/api/ui/v1/devices/{ids['cpe']}/backups/artifacts/{second_artifact.id}", params={"against": str(artifact.id)})
     assert view.status_code == 200, view.text
     changed = [(row["kind"], row["text"]) for row in view.json()["diff"]["rows"] if row["kind"] != "context" and not row["text"].startswith("#")]

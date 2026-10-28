@@ -8,6 +8,18 @@
   registered address when the customer has none). Never renames, moves or deletes anything already in NSM;
   a site whose address is already present on that NSM customer is linked instead of duplicated. Audited
   (``ISPBILLING_CUSTOMERS_IMPORTED``).
+
+**Automatic import** (``auto_import``, after each successful read when the administrator switched it on): what is
+new in ISPBilling since it was last handled — rows without ``handled_at`` (rows present when Core 0.49.235 was
+installed count as handled):
+
+- a ``new`` customer is created with its sites, once the addresses of all its services are read;
+- a new installation address of a ``linked`` customer becomes a site (or is linked to the site with that address);
+- a ``linkable`` customer (an NSM customer with the same code or name exists) is not touched: it is counted as
+  *to review* and linked from the import page, by hand.
+
+Imported and linked rows get ``handled_at``, so a site or customer deleted in NSM afterwards is not created again.
+Audited (``ISPBILLING_AUTO_IMPORTED``) when something was created.
 """
 from __future__ import annotations
 
@@ -17,10 +29,11 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
 
+from app import pagination
 from app import main as core
 from app.db import SessionLocal
 from app.ispbilling_connector import connection_row, normalized, site_name
-from app.ispbilling_models import IspbillingAddress, IspbillingCustomer
+from app.ispbilling_models import IspbillingAddress, IspbillingCustomer, IspbillingServiceInstance
 from app.models import Customer, Site, utcnow
 from app.ui_api import require_csrf, ui_user
 
@@ -88,7 +101,7 @@ def _row(item, state, customer, reason, addresses):
 
 
 @router.get("/customers")
-def customers(request: Request, state: str = "new", q: str = "", status: str = "", group: str = "", offset: int = 0):
+def customers(request: Request, state: str = "new", q: str = "", status: str = "", group: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         ui_user(request, db, PERMISSION)
         state = state if state in STATES else "new"
@@ -107,14 +120,14 @@ def customers(request: Request, state: str = "new", q: str = "", status: str = "
             counts[row_state] += 1
             if state in ("all", row_state):
                 rows.append((item, row_state, customer, reason))
-        offset = max(0, int(offset or 0))
+        offset, size = pagination.window(offset, limit, PAGE)
         connection = connection_row(db)
         return jsonable_encoder({
             "configured": connection is not None, "last_sync_at": connection.last_sync_at if connection else None,
             "details_pending": ((connection.settings or {}).get("last_sync") or {}).get("details_pending") if connection else None,
-            "counts": counts, "total": len(rows), "offset": offset, "limit": PAGE,
+            "counts": counts, "total": len(rows), "offset": offset, "limit": size,
             "statuses": sorted({m.status for m in mirror if m.status}), "groups": sorted({m.group_name for m in mirror if m.group_name}),
-            "items": [_row(item, row_state, customer, reason, addresses) for item, row_state, customer, reason in rows[offset:offset + PAGE]],
+            "items": [_row(item, row_state, customer, reason, addresses) for item, row_state, customer, reason in rows[offset:offset + size]],
         })
 
 
@@ -165,42 +178,83 @@ def preview(request: Request, body: dict = Body(default={})):
         return jsonable_encoder({"plan": [_public(entry) for entry in _plan(db, _selection(body))]})
 
 
+def _apply(db, plan, now, auto: bool = False) -> dict:
+    """Create or link the planned customers and their sites; marks the rows handled. ``auto`` adds only the sites of
+    addresses never handled (a site deleted in NSM is not created again). Caller audits and commits."""
+    result = {"created": 0, "linked": 0, "sites_created": 0, "sites_linked": 0, "skipped": []}
+    for entry in plan:
+        if entry["action"] == "skip":
+            result["skipped"].append({"external_id": entry["external_id"], "reason": entry["reason"]})
+            continue
+        item, customer = entry["_item"], entry["_customer"]
+        created = customer is None
+        if created:
+            customer = Customer(id=uuid.uuid4(), name=item.name, code=entry["_code"], notes=f"Importato da ISPBilling (cliente {item.external_id}).")
+            db.add(customer)
+            db.flush()
+            result["created"] += 1
+        elif entry["action"] == "link":
+            result["linked"] += 1
+        if item.nsm_customer_id != customer.id:
+            item.nsm_customer_id, item.linked_at = customer.id, now
+        item.handled_at = item.handled_at or now
+        for row, name, address, site in entry["_sites"]:
+            if auto and not created and (row is None or row.handled_at is not None):
+                continue  # registered address of a customer already in NSM, or an address already handled
+            if site is None:
+                site = Site(id=uuid.uuid4(), customer_id=customer.id, name=name, address=address)
+                db.add(site)
+                db.flush()  # the mirror row points to it: insert it first
+                result["sites_created"] += 1
+            elif row is not None and row.nsm_site_id != site.id:
+                result["sites_linked"] += 1
+            if row is not None:
+                row.nsm_site_id, row.handled_at = site.id, now
+        db.flush()
+    return result
+
+
 @router.post("/commit", dependencies=[Depends(require_csrf)])
 def commit(request: Request, body: dict = Body(default={})):
     with SessionLocal() as db:
         user = ui_user(request, db, PERMISSION)
-        now = utcnow()
-        result = {"created": 0, "linked": 0, "sites_created": 0, "sites_linked": 0, "skipped": []}
-        for entry in _plan(db, _selection(body)):
-            if entry["action"] == "skip":
-                result["skipped"].append({"external_id": entry["external_id"], "reason": entry["reason"]})
-                continue
-            item, customer = entry["_item"], entry["_customer"]
-            if customer is None:
-                customer = Customer(id=uuid.uuid4(), name=item.name, code=entry["_code"], notes=f"Importato da ISPBilling (cliente {item.external_id}).")
-                db.add(customer)
-                db.flush()
-                result["created"] += 1
-            elif entry["action"] == "link":
-                result["linked"] += 1
-            if item.nsm_customer_id != customer.id:
-                item.nsm_customer_id, item.linked_at = customer.id, now
-            for row, name, address, site in entry["_sites"]:
-                if site is None:
-                    site = Site(id=uuid.uuid4(), customer_id=customer.id, name=name, address=address)
-                    db.add(site)
-                    db.flush()  # the mirror row points to it: insert it first
-                    result["sites_created"] += 1
-                elif row is not None and row.nsm_site_id != site.id:
-                    result["sites_linked"] += 1
-                if row is not None:
-                    row.nsm_site_id = site.id
-            db.flush()
+        result = _apply(db, _plan(db, _selection(body)), utcnow())
         core.add_event(db, "ISPBILLING_CUSTOMERS_IMPORTED", actor=user, source="portal",
                        details={key: value for key, value in result.items() if key != "skipped"} | {"skipped": len(result["skipped"])})
         db.commit()
         result["imported_customers"] = int(db.scalar(select(func.count()).select_from(IspbillingCustomer).where(IspbillingCustomer.nsm_customer_id.is_not(None))) or 0)
         return result
+
+
+def auto_import(db, row, now=None) -> dict | None:
+    """After a successful read: import what is new in ISPBilling, when switched on (see the module notes). Commits."""
+    if row is None or not (row.settings or {}).get("auto_import"):
+        return None
+    now = now or utcnow()
+    mirror, addresses, nsm, linked_ids, by_code, by_name = _context(db)
+    # A customer whose service addresses are still being read waits for the next pass (its sites would be incomplete).
+    reading = set(db.scalars(select(IspbillingServiceInstance.customer_external_id).where(IspbillingServiceInstance.detail_read_at.is_(None))))
+    ids, review = [], 0
+    for item in mirror:
+        if item.external_id in reading:
+            continue
+        state, _customer, _reason = _match(item, nsm, linked_ids, by_code, by_name)
+        if state == "linked":
+            if any(a.handled_at is None for a in addresses.get(item.external_id, [])):
+                ids.append(item.external_id)
+        elif item.handled_at is None:
+            if state == "new":
+                ids.append(item.external_id)
+            else:
+                review += 1
+    result = _apply(db, _plan(db, ids[:MAX_SELECTION]), now, auto=True) if ids else {"created": 0, "linked": 0, "sites_created": 0, "sites_linked": 0}
+    summary = {"at": now.isoformat(), "created": result["created"], "sites_created": result["sites_created"],
+               "sites_linked": result["sites_linked"], "to_review": review}
+    if result["created"] or result["sites_created"] or result["sites_linked"]:
+        core.add_event(db, "ISPBILLING_AUTO_IMPORTED", source="ispbilling", details={k: v for k, v in summary.items() if k != "at"})
+    row.settings = {**(row.settings or {}), "last_auto_import": summary}
+    db.commit()
+    return summary
 
 
 def install_ispbilling_import(app) -> None:

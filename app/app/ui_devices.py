@@ -239,6 +239,7 @@ def list_devices(
         return {
             "total": total,
             "offset": offset,
+            "limit": limit,
             "items": [device_row(device, severe.get(device.id, 0), open_count.get(device.id, 0)) for device in rows],
             "counts": {
                 "all": _count(db, *scope),
@@ -301,7 +302,7 @@ def device_facets(request: Request):
     """Values for the filter menus (customers, their sites and vendors) within the user's scope."""
     with SessionLocal() as db:
         ui_user(request, db, "devices.read")
-        customers = [{"id": str(c.id), "name": c.name} for c in db.scalars(select(Customer).order_by(func.lower(Customer.name)))]
+        customers = [{"id": str(c.id), "name": c.name, "code": c.code} for c in db.scalars(select(Customer).order_by(func.lower(Customer.name)))]
         sites = [{"id": str(s.id), "name": s.name, "customer_id": str(s.customer_id)} for s in db.scalars(select(Site).order_by(func.lower(Site.name)))]
         vendors = sorted({v for v in db.scalars(select(Device.vendor).distinct()) if v})
         return {"customers": customers, "sites": sites, "vendors": vendors, "vendor_labels": {vendor: label(vendor) for vendor in vendors}}
@@ -310,13 +311,13 @@ def device_facets(request: Request):
 # Tabs of the device page: (key, condition).
 TABS = (
     ("overview", lambda d: True),
-    ("monitor", lambda d: d.vendor == "mikrotik"),
+    ("monitor", lambda d: True),  # MikroTik: agent metrics; others: their source (ACS, UISP, cnMaestro) and the ping from NSM
     ("logs", lambda d: True),
     ("exposure", lambda d: True),
     ("configuration", lambda d: d.vendor == "mikrotik"),
     ("diagnostics", lambda d: d.vendor == "mikrotik"),
     ("backups", lambda d: True),
-    ("firmware", lambda d: d.vendor == "mikrotik" or _tr069(d)),
+    ("firmware", lambda d: d.vendor == "mikrotik" or _tr069(d) or (d.vendor == "ubiquiti" and bool(d.external_device_id))),
     ("agent", lambda d: d.vendor == "mikrotik"),
     ("uisp", lambda d: d.vendor == "ubiquiti"),
     ("cnmaestro", lambda d: _cambium(d)),

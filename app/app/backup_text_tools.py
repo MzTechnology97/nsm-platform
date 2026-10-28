@@ -52,14 +52,15 @@ def _read_export(artifact: BackupArtifact) -> str:
     return raw.decode("utf-8", errors="replace")
 
 
-def _comparison_candidates(db, device_id: uuid.UUID, current_id: uuid.UUID):
+def _comparison_candidates(db, device_id: uuid.UUID, current_id: uuid.UUID, artifact_type: str = "mikrotik_export"):
+    """Older text files of the same device and kind (RouterOS exports with RouterOS exports, TR-069 snapshots with TR-069 snapshots)."""
     return list(
         db.execute(
             select(BackupArtifact, BackupRun)
             .join(BackupRun, BackupRun.id == BackupArtifact.run_id)
             .where(
                 BackupRun.device_id == device_id,
-                BackupArtifact.artifact_type == "mikrotik_export",
+                BackupArtifact.artifact_type == artifact_type,
                 BackupArtifact.deleted_at.is_(None),
                 BackupArtifact.id != current_id,
             )

@@ -8,9 +8,12 @@ catalog).  Sources, all official:
 - **vendor_api** — Ubiquiti's public firmware update service
   (``fw-update.ubnt.com``) for the airOS platforms found in the inventory
   (``XC``, ``WA``, ``XW``…, read from the installed firmware string);
-- **operator** — releases entered from the manufacturer's official download
-  page (TP-Link, Tenda, Cambium, Huawei, …): version, models, date, notes link
-  and whether it fixes security issues.  NSM never guesses a version.
+- **vendor_site** — TP-Link's official Italian download pages, read once a day
+  for the models and hardware versions in the inventory (``tplink_firmware``);
+- **operator** — images uploaded by the operator (``firmware_upload``): version,
+  models or platform and date are read from the official file name (and the
+  airOS header); only what cannot be read is asked.  The image is kept and,
+  for TR-069 CPEs, put in GenieACS.  NSM never guesses a version.
 
 Evaluation compares every device of the brand with the newest release that
 matches its model (and platform) and sets the firmware state used by the
@@ -35,11 +38,11 @@ from app.vendor_firmware_models import VendorFirmwareRelease
 
 UBNT_API = "https://fw-update.ubnt.com/api/firmware-latest"
 UBNT_REFRESH = timedelta(hours=24)
-SOURCE_LABELS = {"uisp": "UISP", "vendor_api": "API ufficiale", "operator": "operatore"}
+SOURCE_LABELS = {"uisp": "UISP", "vendor_api": "API ufficiale", "vendor_site": "sito ufficiale", "operator": "operatore"}
 # Official download / support pages shown next to each catalog.
 OFFICIAL_PAGES = {
     "ubiquiti": "https://www.ui.com/download",
-    "tp-link": "https://www.tp-link.com/support/download/",
+    "tp-link": "https://www.tp-link.com/it/support/download/",
     "cambium": "https://support.cambiumnetworks.com/files",
     "tenda": "https://www.tendacn.com/download",
     "huawei": "https://support.huawei.com/enterprise/",
@@ -52,7 +55,12 @@ _last_vendor_attempt: datetime | None = None
 
 
 def platform_of(device) -> str:
-    """airOS platform (WA, XW, XC…) from the full firmware string, else the platform UISP reports (its firmware string is only "8.7.15")."""
+    """airOS platform (WA, XW, XC…) from the full firmware string, else the platform UISP reports (its firmware string is only "8.7.15");
+    for TP-Link the hardware version (V1, V3.2…), since an image for another hardware version can damage the device."""
+    if vendor_cpe.brand(device) == "tp-link":
+        from app import tplink_firmware
+
+        return tplink_firmware.hardware_label(device) or ""
     match = _AIROS.match(str(device.firmware_version or ""))
     if match:
         return match.group(1)
@@ -61,6 +69,10 @@ def platform_of(device) -> str:
 
 
 def version_key(brand: str, value) -> tuple | None:
+    if brand == "tp-link":
+        from app import tplink_firmware
+
+        return tplink_firmware.version_key(value)
     text = str(value or "")
     match = _AIROS.match(text)
     if match:
@@ -94,11 +106,11 @@ def matches(release: VendorFirmwareRelease, device) -> bool:
         return False
     if release.platform and release.platform != platform_of(device):
         return False
-    pattern = (release.model_pattern or "").strip().lower()
-    if not pattern:
+    patterns = [p.strip() for p in (release.model_pattern or "").lower().split("|") if p.strip()]  # "|": several models (uploads)
+    if not patterns:
         return True
     model = str(device.model or "").strip().lower()
-    return bool(model) and (fnmatch.fnmatch(model, pattern) or (not any(c in pattern for c in "*?[") and pattern in model))
+    return bool(model) and any(fnmatch.fnmatch(model, p) or (not any(c in p for c in "*?[") and p in model) for p in patterns)
 
 
 def best_release(releases, device):
@@ -235,7 +247,11 @@ def run_scheduled(now=None, transport=None) -> dict:
             if not stats["vendor_api"]["platforms"]:
                 # Nothing to ask yet (e.g. the worker started before UISP reported the platforms): try again next cycle.
                 _last_vendor_attempt = None
+        from app import tplink_firmware
+
+        stats["tplink_site"] = tplink_firmware.refresh(db, now)
         stats["evaluation"] = evaluate(db, now)
+        stats["tplink_auto"] = tplink_firmware.auto_fetch(db, now)
         db.commit()
     return stats
 
@@ -296,6 +312,9 @@ def delete_release_record(db, user, release_id) -> None:
     if row is None or row.source != "operator":
         raise InputError("not_operator", "Si possono eliminare solo le release inserite dagli operatori.")
     core.add_event(db, "VENDOR_FIRMWARE_RELEASE_DELETED", actor=user, details={"brand": row.brand, "version": row.version}, source="portal")
+    from app import firmware_upload
+
+    firmware_upload.remove_files(row.id)
     db.delete(row)
     db.flush()
     evaluate(db)

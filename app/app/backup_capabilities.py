@@ -184,6 +184,24 @@ def capability_for_device(db, device, *, active_agent: bool | None = None) -> Ba
             artifact_types=("mikrotik_binary", "mikrotik_export"),
         )
 
+    if vendor == "cambium":
+        from app import cambium_backup
+
+        creds, source = cambium_backup.effective_credentials(db, device)
+        ready = creds is not None and bool(getattr(device, "management_ip", None))
+        return BackupCapability(
+            vendor=vendor,
+            method_key="cambium_ssh",
+            label="SSH (Cambium ePMP)",
+            status="available" if ready else "credentials_required",
+            executable=ready,
+            reason=("Configurazione completa letta in SSH dall'apparato (config show json) e archiviata in NSM; credenziali "
+                    + ("dell'apparato." if source == "device" else "comuni dei Cambium.")) if ready else
+                   "Imposta utente e password SSH dei Cambium (Amministrazione → cnMaestro) o dell'apparato, e l'indirizzo di gestione.",
+            policy_option_keys=("cambium_config",),
+            artifact_types=("cambium_config",),
+        )
+
     if vendor == "ubiquiti" and getattr(device, "external_device_id", None) and _uisp_enabled(db):
         return BackupCapability(
             vendor=vendor,
