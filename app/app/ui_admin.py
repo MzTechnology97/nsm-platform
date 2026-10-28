@@ -888,7 +888,8 @@ def admin_cnmaestro_test(request: Request):
 def admin_cnmaestro_sync(request: Request):
     def run(db, user):
         stats = cnmaestro_connector.sync(db)
-        return jsonable_encoder({key: stats.get(key) for key in ("status", "error", "cnmaestro_devices", "linked", "new_links", "unmatched", "samples")})
+        return jsonable_encoder({key: stats.get(key) for key in ("status", "error", "cnmaestro_devices", "linked", "new_links", "adopted",
+                                                                     "unmatched", "samples", "deprecation")})
 
     return _admin_write(request, run)
 

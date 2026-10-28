@@ -36,6 +36,7 @@ from app import vendor_firmware
 from app.input_errors import InputError
 from app import fleet_monitoring as fleet
 from app import zabbix_problems
+from app import firmware_schedule
 from app import mikrotik_firmware_readiness as firmware_readiness
 from app import main as core
 from app.db import SessionLocal
@@ -215,6 +216,7 @@ def firmware_row(device, can_execute: bool) -> dict:
         "channel": readiness.get("channel"), "readiness": readiness.get("status"),
         "firmware": device.firmware_version, "recommended": device.recommended_firmware_version, "newer": newer,
         "firmware_status": (device.firmware_status or "unknown").lower(), "verified_at": _iso(device.inventory_last_verified_at),
+        "schedule": firmware_schedule.api_state(device), "can_schedule": mikrotik and transport != "legacy" and can_execute,
         "can_check": mikrotik and online,
         "can_plan": mikrotik and online and newer and transport != "legacy" and can_execute,
         # Ubiquiti linked to UISP: the upgrade is queued in UISP from the device Firmware tab (uisp_firmware_upgrade).
@@ -225,6 +227,8 @@ def firmware_row(device, can_execute: bool) -> dict:
 
 @router.get("/firmware")
 def firmware(request: Request, q: str = "", customer: str = "", vendor: str = "", state: str = "attention", offset: int = 0, limit: int = 0):
+    from app import uisp_firmware_upgrade
+
     with SessionLocal() as db:
         user = ui_user(request, db, "firmware.read")
         state = state if state in FIRMWARE_STATES else "attention"
@@ -241,7 +245,7 @@ def firmware(request: Request, q: str = "", customer: str = "", vendor: str = ""
         can_execute = core.has_permission(user, "firmware.execute")
         return {"state": state, "total": total, "offset": offset, "limit": size,
                 "counts": firmware_worklist.state_counts(db, scope),
-                "items": [firmware_row(device, can_execute) for device in devices],
+                "items": [firmware_row(device, can_execute) for device in devices], "uisp_bulk_max": uisp_firmware_upgrade.MAX_BULK,
                 "links": {"catalogs": "/operations/firmware/catalogs", "suggestions": "/operations/firmware/suggestions"}}
 
 
