@@ -4033,7 +4033,11 @@
       "signal": "Señal de radio",
       "capacity": "Capacidad del enlace",
       "resources": "CPU y RAM",
-      "stations": "Estaciones conectadas"
+      "stations": "Estaciones conectadas",
+      "acs_pon_power": "Niveles ópticos PON",
+      "acs_pon_temperature": "Temperatura del módulo óptico",
+      "acs_pon_bias": "Corriente de polarización del láser",
+      "acs_pon_voltage": "Tensión del módulo óptico"
     },
     "series": {
       "cpu_percent": "CPU",
@@ -4043,7 +4047,12 @@
       "uplink_capacity_bps": "Capacidad de subida",
       "uptime_seconds": "Uptime",
       "frequency_mhz": "Frecuencia",
-      "stations": "Estaciones conectadas"
+      "stations": "Estaciones conectadas",
+      "pon_rx_dbm": "Rx",
+      "pon_tx_dbm": "Tx",
+      "pon_temperature_c": "Temperatura",
+      "pon_bias_ma": "Polarización",
+      "pon_voltage_v": "Tensión"
     },
     "metricsTitle": "Estado operativo desde UISP",
     "metricsHelp": "Estadísticas de las últimas {{hours}} horas ({{count}} muestras); último dato {{when}}.",
@@ -4112,7 +4121,8 @@
       "info": "Info",
       "warning": "Atención",
       "error": "Error"
-    }
+    },
+    "moreEvents": "Mostrar más ({{shown}} de {{total}})"
   },
   "deviceCnmaestro": {
     "linked": "Vinculado a cnMaestro desde el {{when}} (MAC {{mac}}).",
@@ -4299,7 +4309,8 @@
     "jumpTo": "Ir a la sección…",
     "sectionOption_one": "{{path}} ({{count}} línea)",
     "sectionOption_other": "{{path}} ({{count}} líneas)",
-    "sectionsFiltered": "Vacíe la búsqueda para ir a una sección."
+    "sectionsFiltered": "Vacíe la búsqueda para ir a una sección.",
+    "contentHelpTr069": "Solo lectura. Parámetros de configuración del CPE tal como los leyó el ACS (TR-069): sin contraseñas ni valores que cambian solos (contadores, tiempos)."
   },
   "restoreTests": {
     "title": "Historial de pruebas de restauración",
@@ -5058,6 +5069,18 @@
       "body": "Escriba la entrada (como máximo 4000 caracteres).",
       "occurred_at": "La fecha debe estar en el último año y no en el futuro.",
       "forbidden": "Solo su autor o un administrador puede eliminarla."
+    },
+    "ispbilling": {
+      "show": "Mostrar también las actividades de ISPBilling",
+      "source": "ISPBilling",
+      "untitled": "Actividad",
+      "customerScope": "actividad del cliente",
+      "states": {
+        "planned": "Planificada",
+        "cancelled": "Cancelada"
+      },
+      "reason": "Cancelada: {{reason}}",
+      "error": "Actividades de ISPBilling no disponibles: {{error}}"
     }
   },
   "sla": {
@@ -5670,7 +5693,19 @@
     "dslRate": "Velocidad bajada / subida",
     "dslSnr": "Margen SNR",
     "dslAttenuation": "Atenuación",
-    "charts": "Historial desde el ACS"
+    "charts": "Historial desde el ACS",
+    "pon": {
+      "title": "Niveles ópticos PON",
+      "rx_dbm": "Recibido (Rx)",
+      "tx_dbm": "Transmitido (Tx)",
+      "temperature_c": "Temperatura del módulo",
+      "voltage_v": "Tensión de alimentación",
+      "bias_ma": "Corriente de polarización del láser",
+      "status": "Estado PON",
+      "notExposed": "no informado por el CPE",
+      "help": "Leídos del CPE cada hora por la provisión de NSM; última lectura {{when}} desde"
+    },
+    "lastSample": "Ninguna muestra en este periodo: la última recibida del CPE es del {{when}}."
   },
   "serverMigration": {
     "subtitle": "Mueve NSM a un servidor con otra dirección: este servidor comunica la nueva dirección a los agentes MikroTik y a los CPE TR-069.",
@@ -6082,7 +6117,8 @@
       "reconnects_per_hour": "Reconexiones WAN por hora",
       "reboots_per_day": "Reinicios del CPE en 24 horas",
       "snr_min_db": "Margen SNR DSL mínimo (dB)",
-      "dsl_rate_drop_percent": "Caída del downstream DSL respecto a la mediana de 7 días (%)"
+      "dsl_rate_drop_percent": "Caída del downstream DSL respecto a la mediana de 7 días (%)",
+      "pon_rx_min_dbm": "Nivel PON recibido mínimo (dBm, p. ej. −27)"
     },
     "save": "Guardar",
     "saved": "Guardado."
@@ -6325,41 +6361,32 @@
       "unconfirmed": "Actualización a {{version}} no confirmada."
     }
   },
-  "bras": {
-    "title": "BRAS MikroTik",
-    "subtitle": "Concentrador PPPoE leído con un usuario RouterOS de solo lectura: sesiones de los clientes cada pocos minutos, nada se modifica en el router.",
-    "online": "En línea",
-    "onlineHint": "Sesiones PPPoE abiertas",
-    "offline": "Sin conexión",
-    "offlineHint": "Vistas antes, ahora sin conexión",
-    "lastSync": "Última lectura",
-    "every": "Leído cada {{minutes}} min",
-    "connection": "Conexión",
-    "connectionHelp": "https://dirección para la API REST de RouterOS 7, o api-ssl://dirección:8729 (api://dirección:8728) para la API RouterOS.",
-    "url": "Dirección",
-    "username": "Usuario de solo lectura",
-    "password": "Contraseña",
-    "passwordKeep": "sin cambios",
-    "interval": "Leer cada (minutos)",
-    "verifyTls": "Verificar el certificado TLS",
-    "enabled": "Activado",
-    "save": "Guardar",
-    "actions": "Comprobación",
-    "userHint": "En el BRAS, un usuario que solo puede leer (ejemplo):",
-    "test": "Probar conexión",
-    "syncNow": "Leer ahora",
-    "synced": "{{sessions}} sesiones leídas: {{came}} en línea, {{went}} sin conexión."
-  },
-  "pppoe": {
-    "title": "Conexiones PPPoE",
-    "help": "Cuentas RADIUS del cliente (ISPBilling) y su sesión en el BRAS, leída {{when}}.",
-    "noBras": "Cuentas RADIUS del cliente (ISPBilling). Conecta el BRAS (Integraciones) para ver si están en línea.",
-    "online": "En línea",
-    "offline": "Sin conexión",
-    "offlineSince": "desde {{when}}",
-    "uptime": "conectado desde hace {{value}}",
-    "never": "Nunca vista en el BRAS",
-    "noDevice": "Ningún equipo asociado"
+  "firmwareSchedule": {
+    "title": "Actualización programada",
+    "help": "Elige cuándo actualizar, por ejemplo de noche. A esa hora NSM ejecuta solo todas las fases sin más confirmaciones: comprobación, copia previa, aprobación, descarga, activación con reinicio y control de la versión. Si el dispositivo no es accesible en 2 horas, la actualización no se ejecuta.",
+    "when": "Fecha y hora",
+    "schedule": "Programar actualización",
+    "move": "Mover",
+    "cancel": "Cancelar programación",
+    "at": "para el {{when}}",
+    "confirm": "¿Programar la actualización de RouterOS (ahora {{target}}) para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "confirmMany_one": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "confirmMany_other": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "selected_one": "{{count}} seleccionado",
+    "selected_other": "{{count}} seleccionados",
+    "scheduleMany": "Programar actualización",
+    "select": "Seleccionar {{name}}",
+    "done_one": "{{count}} actualización programada.",
+    "done_other": "{{count}} actualizaciones programadas.",
+    "skipped": "No programados (se requiere RouterOS 7.13+ con el agente moderno): {{names}}.",
+    "states": {
+      "scheduled": "Programada",
+      "checking": "Comprobando",
+      "running": "En curso",
+      "success": "Completada",
+      "failed": "Fallida",
+      "cancelled": "Cancelada"
+    }
   },
   "uispSyslog": {
     "title": "Syslog mediante UISP",
@@ -6400,32 +6427,100 @@
     "done": "Configuración aplicada: el CPE se reinicia y los registros llegan en unos minutos.",
     "restored": "Configuración anterior aplicada: el CPE se reinicia."
   },
-  "firmwareSchedule": {
-    "title": "Actualización programada",
-    "help": "Elige cuándo actualizar, por ejemplo de noche. A esa hora NSM ejecuta solo todas las fases sin más confirmaciones: comprobación, copia previa, aprobación, descarga, activación con reinicio y control de la versión. Si el dispositivo no es accesible en 2 horas, la actualización no se ejecuta.",
-    "when": "Fecha y hora",
-    "schedule": "Programar actualización",
-    "move": "Mover",
-    "cancel": "Cancelar programación",
-    "at": "para el {{when}}",
-    "confirm": "¿Programar la actualización de RouterOS (ahora {{target}}) para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
-    "confirmMany_one": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
-    "confirmMany_other": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
-    "selected_one": "{{count}} seleccionado",
-    "selected_other": "{{count}} seleccionados",
-    "scheduleMany": "Programar actualización",
-    "select": "Seleccionar {{name}}",
-    "done_one": "{{count}} actualización programada.",
-    "done_other": "{{count}} actualizaciones programadas.",
-    "skipped": "No programados (se requiere RouterOS 7.13+ con el agente moderno): {{names}}.",
-    "states": {
-      "scheduled": "Programada",
-      "checking": "Comprobando",
-      "running": "En curso",
-      "success": "Completada",
-      "failed": "Fallida",
-      "cancelled": "Cancelada"
-    }
+  "bras": {
+    "title": "BRAS MikroTik",
+    "subtitle": "Concentrador PPPoE leído con un usuario RouterOS de solo lectura: sesiones de los clientes cada pocos minutos, nada se modifica en el router.",
+    "online": "En línea",
+    "onlineHint": "Sesiones PPPoE abiertas",
+    "offline": "Sin conexión",
+    "offlineHint": "Vistas antes, ahora sin conexión",
+    "lastSync": "Última lectura",
+    "every": "Leído cada {{minutes}} min",
+    "connection": "Conexión",
+    "connectionHelp": "https://dirección para la API REST de RouterOS 7, o api-ssl://dirección:8729 (api://dirección:8728) para la API RouterOS.",
+    "url": "Dirección",
+    "username": "Usuario de solo lectura",
+    "password": "Contraseña",
+    "passwordKeep": "sin cambios",
+    "interval": "Leer cada (minutos)",
+    "verifyTls": "Verificar el certificado TLS",
+    "enabled": "Activado",
+    "save": "Guardar",
+    "actions": "Comprobación",
+    "userHint": "En el BRAS, un usuario que solo puede leer (ejemplo):",
+    "test": "Probar conexión",
+    "syncNow": "Leer ahora",
+    "synced": "{{sessions}} sesiones leídas: {{came}} en línea, {{went}} sin conexión."
+  },
+  "pppoe": {
+    "title": "Conexiones PPPoE",
+    "help": "Cuentas RADIUS del cliente (ISPBilling) y su sesión en el BRAS, leída {{when}}.",
+    "noBras": "Cuentas RADIUS del cliente (ISPBilling). Conecta el BRAS (Integraciones) para ver si están en línea.",
+    "online": "En línea",
+    "offline": "Sin conexión",
+    "offlineSince": "desde {{when}}",
+    "uptime": "conectado desde hace {{value}}",
+    "never": "Nunca vista en el BRAS",
+    "noDevice": "Ningún equipo asociado"
+  },
+  "acsCapabilities": {
+    "title": "Funciones de NSM en este CPE",
+    "help": "Perfil de parámetros {{model}} · {{vendor}}, según el registro de GenieACS (último Inform {{when}}). Leído sin enviar nada al CPE.",
+    "notRead": "GenieACS aún no ha leído el modelo de datos del CPE.",
+    "vendors": {
+      "tp-link": "extensiones TP-Link",
+      "generic": "solo parámetros estándar"
+    },
+    "columns": {
+      "capability": "Función",
+      "status": "Estado",
+      "why": "Motivo / rutas",
+      "writes": "Escribe en el CPE"
+    },
+    "status": {
+      "available": "Disponible",
+      "rpc": "Disponible (RPC TR-069)",
+      "not_exposed": "No expuesto",
+      "unsupported": "No compatible"
+    },
+    "reasons": {
+      "found": "El CPE expone los parámetros:",
+      "not_reported": "El CPE no informa de estos parámetros (o GenieACS aún no los ha leído).",
+      "no_dsl": "No hay línea DSL en el modelo de datos del CPE.",
+      "no_pon": "El CPE no expone niveles ópticos PON.",
+      "download_rpc": "RPC estándar Download: necesita una imagen para el modelo en GenieACS.",
+      "reboot_rpc": "RPC estándar Reboot.",
+      "nsm_tr098": "En TR-098, CPU y memoria existen en pocos CPE: NSM solo las lee en TR-181.",
+      "vendor_tr181": "Solo existe como extensión TP-Link del firmware TR-181 (Aginet).",
+      "vendor_tplink": "Solo existe como extensión TP-Link (X_TP_*).",
+      "no_standard": "Ningún parámetro estándar en este modelo de datos.",
+      "no_upload_task": "GenieACS no tiene la tarea Upload: el archivo de configuración del fabricante no se puede descargar. NSM archiva los parámetros.",
+      "snapshots": "{{count}} instantáneas de parámetros archivadas.",
+      "no_snapshot": "Aún no hay instantáneas: cree una desde la sección Instantánea."
+    },
+    "caps": {
+      "identity": "Identidad y firmware",
+      "resources": "CPU y memoria",
+      "wan": "Estado WAN",
+      "wifi": "Wi-Fi (lectura y cambios)",
+      "dsl": "Línea DSL",
+      "pon": "Niveles ópticos PON",
+      "ping": "Ping desde el CPE",
+      "traceroute": "Traceroute desde el CPE",
+      "speedtest": "Test de velocidad",
+      "firmware": "Actualización de firmware (imagen)",
+      "firmware_cloud": "Firmware desde la nube de TP-Link",
+      "syslog": "Syslog hacia NSM",
+      "port_mapping": "Redirección de puertos y DMZ",
+      "upnp": "Estado UPnP",
+      "remote_access": "Acceso web remoto",
+      "reboot": "Reinicio",
+      "inform_interval": "Intervalo de Inform",
+      "config_snapshot": "Instantánea de la configuración",
+      "config_file": "Archivo de configuración del fabricante"
+    },
+    "writesYes": "sí, a petición",
+    "writesNo": "no"
   },
   "cambiumSyslog": {
     "title": "Syslog del ePMP",

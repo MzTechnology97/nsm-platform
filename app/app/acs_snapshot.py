@@ -31,6 +31,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 
+from app import acs_profiles as profiles
 from app import acs_diagnostics as nbi
 from app import genieacs_connector as acs
 from app import main as core
@@ -42,7 +43,7 @@ from app.ui_api import require_csrf, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 ARTIFACT_TYPE = "tr069_parameters"
-ROOTS = ("Device", "InternetGatewayDevice")
+ROOTS = tuple(profiles.ROOT.values())
 SECRET = re.compile(r"(pass|key|secret|psk|pin)", re.I)
 VOLATILE = re.compile(r"(\.Stats\.|Bytes|Packets|Uptime|UpTime|LastChange|Time$|Counter|NumberOfEntries$|CurrentLocalTime)")
 MIN_PARAMETERS = 20  # fewer means GenieACS has not read the CPE's configuration yet
