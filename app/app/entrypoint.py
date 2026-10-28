@@ -56,6 +56,8 @@ from app.maintenance_windows import install_maintenance_windows
 from app.connector_diagnostics import install_connector_diagnostics
 from app.server_migration import install_server_migration
 from app.acs_syslog import install_acs_syslog
+from app.uisp_syslog import install_uisp_syslog
+from app.cambium_syslog import install_cambium_syslog
 from app.lifecycle_web import install_lifecycle_web
 from app.cnmaestro_onboarding import install_cnmaestro_onboarding
 from app.uisp_auto_customer import install_uisp_auto_customer
@@ -73,6 +75,9 @@ from app.acs_firmware import install_acs_firmware
 from app.tplink_cloud_firmware import install_tplink_cloud_firmware
 from app.acs_alerts import install_acs_alerts
 from app.acs_port_mapping import install_acs_port_mapping
+from app.acs_profiles import install_acs_profiles
+from app.acs_config_restore import install_acs_config_restore
+from app.acs_firmware_campaigns import install_acs_firmware_campaigns
 from app.ispbilling_cpe_link import install_ispbilling_cpe_link
 from app.tplink_access import install_tplink_access
 from app.tplink_settings import install_tplink_settings
@@ -146,7 +151,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.251"
+APP_VERSION = "0.49.271"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -277,6 +282,8 @@ install_maintenance_windows(core.app)
 install_connector_diagnostics(core.app)
 install_server_migration(core.app)
 install_acs_syslog(core.app)
+install_uisp_syslog(core.app)
+install_cambium_syslog(core.app)
 install_lifecycle_web(core.app)
 install_cnmaestro_onboarding(core.app)
 install_uisp_auto_customer(core.app)
@@ -294,6 +301,9 @@ install_acs_firmware(core.app)
 install_tplink_cloud_firmware(core.app)
 install_acs_alerts(core.app)
 install_acs_port_mapping(core.app)
+install_acs_profiles(core.app)
+install_acs_config_restore(core.app)
+install_acs_firmware_campaigns(core.app)
 install_ispbilling_cpe_link(core.app)
 install_tplink_access(core.app)
 install_tplink_settings(core.app)

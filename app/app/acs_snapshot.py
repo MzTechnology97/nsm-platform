@@ -17,8 +17,8 @@ archive, viewable and comparable in the *Backup* tab like a RouterOS export.
   ``devices.write``) asks GenieACS to re-read the parameter tree object by object,
   in rounds (``acs_config_refresh``): one refresh of the whole root exceeds
   GenieACS's RPC cap on large CPEs and its fault blocked the CPE's task queue.
-- Not restorable with one click: the snapshot documents the configuration and
-  shows what changed; restoring is done by hand or with the Wi-Fi settings.
+- Restore: ``acs_config_restore`` writes back the parameters the operator picks
+  from a preview of what differs (typed confirmation, verified by reading back).
 """
 from __future__ import annotations
 
@@ -31,6 +31,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 
+from app import acs_profiles as profiles
 from app import acs_diagnostics as nbi
 from app import genieacs_connector as acs
 from app import main as core
@@ -42,7 +43,7 @@ from app.ui_api import require_csrf, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 ARTIFACT_TYPE = "tr069_parameters"
-ROOTS = ("Device", "InternetGatewayDevice")
+ROOTS = tuple(profiles.ROOT.values())
 SECRET = re.compile(r"(pass|key|secret|psk|pin)", re.I)
 VOLATILE = re.compile(r"(\.Stats\.|Bytes|Packets|Uptime|UpTime|LastChange|Time$|Counter|NumberOfEntries$|CurrentLocalTime)")
 MIN_PARAMETERS = 20  # fewer means GenieACS has not read the CPE's configuration yet

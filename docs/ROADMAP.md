@@ -100,6 +100,8 @@ After the current P0 gates are closed, continue MikroTik work in focused PRs.
 
 Trigger this PR only if normal-size physical RouterOS 7.12.x snapshot acceptance shows practical payload limits for real firewall/DHCP sections.
 
+**Not needed for now (evaluated 2026-10-23, Core 0.49.268)**: the production legacy fleet is one RouterOS 7.12 router (Agent 0.49.23-legacy). Its latest successful section reads are far below the 56 KB rows-v1 wire limit (largest: routes and logs about 2 KB of data each); no section other than `logs` was ever truncated, and `logs` is truncated by design (last 20 of the warning/error entries). The only failures were expired jobs and the `services` section, which the legacy Agent cannot read (now refused explicitly by the MTK-05 capability gate). Re-evaluate when a legacy router with large firewall/DHCP tables is enrolled: the job result keeps `total`, `limit` and `truncated` for that check.
+
 Scope:
 
 - bounded chunk/page protocol for allow-listed snapshot data;
@@ -159,7 +161,7 @@ Possible focused PRs:
 
 - richer ping/traceroute presentation and history — **done** (`app/mikrotik_diagnostic_views.py`);
 - structured neighbor/DHCP/log result presentation — **done**, for modern and legacy agents;
-- bounded additional read-only diagnostics with explicit capability gates;
+- bounded additional read-only diagnostics with explicit capability gates — **done** in Core 0.49.268 (Agent 0.49.24): queues, certificates and BGP/OSPF sessions for modern and legacy agents, per-section capability gate (`app/mikrotik_snapshot_capabilities.py`);
 - support snapshot on legacy agents — **done** in Core 0.49.82 (assembled from the read-only section jobs);
 - support-snapshot evidence: JSON download with audited SHA-256 — **done** in Core 0.49.88.
 
@@ -276,7 +278,7 @@ Next steps:
 - ~~interface errors and drops~~ — done in Core 0.49.83 (Agent 0.49.20, *Errori e drop* chart);
 - ~~latency series~~ — done in Core 0.49.85 (ICMP latency and loss from NSM for any vendor, unreachable alert);
 - ~~signal series (MikroTik wireless)~~ — done in Core 0.49.86 (Agent 0.49.21, *Segnale wireless* panel);
-- the same graphs for UISP devices (from `uisp_metric_samples`) and, later, cnMaestro;
+- ~~the same graphs for UISP devices and cnMaestro~~ — done in Core 0.49.242 (Monitor tab for every device) and 0.49.266 (cnMaestro history in the standard panels, last values of offline Cambium devices);
 - ~~graphs aggregated per customer and per site~~ — done in Core 0.49.72 (customer *Grafici* tab with site filter).
 
 ### LOG-01 — integrated syslog server and live device logs (requested 2026-10-07)
@@ -295,7 +297,7 @@ Next steps:
 **Step 2 done (Core 0.49.47, Agent 0.49.11).** The modern MikroTik agent configures remote syslog (action `nsm`: critical, error, warning, account), on demand, for all devices, or automatically.
 
 Next steps:
-- remote syslog setup for other vendors through their APIs (UISP/airOS, cnMaestro);
+- remote syslog setup for other vendors: ~~UISP/airOS~~ — done in 0.49.257 (UISP backup applied); ~~Cambium ePMP~~ — done in 0.49.265 over SSH (the cnMaestro API has no configuration endpoint; preview, typed confirmation, restore point); others with guided instructions;
 - ~~legacy agent support~~ — done in 0.49.67 (Agent 0.49.15, legacy-ops-v1 profile);
 - ~~incidents and reports built from the access events~~ — done in 0.49.50 (report section, incident evidence, incident from alert).
 
@@ -321,6 +323,8 @@ Next steps:
 
 Telemetry of a device that goes offline must never be deleted: the last received values stay visible, with their timestamp. Retention cleanup always keeps the newest sample of each device and interface.
 - **Done in 0.49.43** for MikroTik metrics, interface traffic and UISP metrics.
+- **Done** for cnMaestro metrics, ICMP, wireless and the ACS history (Core 0.49.263: newest sample of each CPE and its newest optical reading; the ACS tab shows when the last sample arrived).
+- **Done in 0.49.266** for cnMaestro (Cambium): the retention keeps the newest sample of each device, a sync without statistics keeps the last values on the device, and the Monitor tab shows them with their time when the range has no samples.
 - **Still to do:** other connectors when they get history.
 
 ### INV-07 — MikroTik devices without IP in the device list (bug)
@@ -412,6 +416,8 @@ Normalize relevant Device identity and firmware fields from supported data model
 
 ### ACS-04 — parameter profiles
 
+**Implemented in `main` (Core 0.49.264)**: one map of the TR-098/TR-181 paths (`acs_profiles`) used by every ACS module, TP-Link vendor paths only where required, explicit unsupported entries with their reason, and the *Capacità NSM* view of each CPE (read only), tested on sanitized TP-Link TR-181 and Huawei TR-098 structures.
+
 - TR-098 / TR-181 mapping profiles;
 - vendor/model-specific profiles only where required;
 - explicit unsupported fields;
@@ -419,7 +425,7 @@ Normalize relevant Device identity and firmware fields from supported data model
 
 ### ACS-05 — monitoring/history
 
-**Implemented in `main` (Core 0.49.206, 0.49.211)**: state at every Inform (CPU, memory, WAN, Wi-Fi, LAN hosts, DSL), 90-day samples and charts on the device ACS tab, online/offline from the last Inform. Alerts on CPE offline, WAN down, WAN reconnections, reboots and DSL degradation (Core 0.49.226). Next: PON optical levels where CPEs expose them.
+**Implemented in `main` (Core 0.49.206, 0.49.211)**: state at every Inform (CPU, memory, WAN, Wi-Fi, LAN hosts, DSL), 90-day samples and charts on the device ACS tab, online/offline from the last Inform. Alerts on CPE offline, WAN down, WAN reconnections, reboots and DSL degradation (Core 0.49.226). PON optical levels (Rx/Tx, temperature, voltage, bias) from TR-181 `Device.Optical` and TR-098 vendor GPON objects, read hourly, with charts and a low-Rx alert (Core 0.49.263).
 
 Persist only supported, stable operational data with capability-aware unavailable states.
 
@@ -429,13 +435,13 @@ Persist only supported, stable operational data with capability-aware unavailabl
 
 ### ACS-07 — backup/restore capability
 
-**Backup implemented in `main` (Core 0.49.217)** as configuration-parameter snapshots archived and comparable in the device Backup tab, scheduled by backup policy (GenieACS has no `Upload` task for the vendor file). Restore is not implemented.
+**Backup implemented in `main` (Core 0.49.217)** as configuration-parameter snapshots archived and comparable in the device Backup tab, scheduled by backup policy (GenieACS has no `Upload` task for the vendor file). **Restore implemented (Core 0.49.269)**: preview of the writable parameters that differ, operator selection, typed confirmation, one `setParameterValues` task, verification by reading back, faulted tasks deleted with their fault.
 
 Only expose backup/restore where the real CPE data model and connector expose a verifiable supported mechanism.
 
 ### ACS-08 — firmware workflow
 
-**Implemented in `main` (Core 0.49.219)** for one CPE at a time, on the device Firmware tab like the other devices (installed version against the catalog's newest release): vendor image loaded into GenieACS per model, `download` task after typed confirmation and model check, verified from the reported `SoftwareVersion`, faults and timeout reported, audited. Next: campaigns over many CPEs with staged rollout.
+**Implemented in `main` (Core 0.49.219)** for one CPE at a time, on the device Firmware tab like the other devices (installed version against the catalog's newest release): vendor image loaded into GenieACS per model, `download` task after typed confirmation and model check, verified from the reported `SoftwareVersion`, faults and timeout reported, audited. **Campaigns (Core 0.49.270)**: one pilot CPE, then waves (10 by default) inside a time window, automatic stop at the first failed or unconfirmed upgrade, typed confirmation, pause/resume/cancel, per-CPE state page.
 
 - firmware target/evidence model;
 - controlled ACS operation;
@@ -452,7 +458,7 @@ Release catalogs like the RouterOS one (versions per channel/model, release note
 ### VEND-02 — cnMaestro integration for Cambium (requested 2026-10-07)
 
 **Step 1 implemented in `main` (Core 0.49.70)**: OAuth2 client credentials, paged inventory and statistics, linking by MAC/serial, identity/firmware/IP/status sync every 15 minutes, metrics history (signal, SNR, throughput, CPU/memory, stations) with Cacti-style graphs on the device *cnMaestro* tab.
-**Step 2 implemented in `main`**: compatibility check on the real console (Core 0.49.189) and bulk onboarding like UISP (Core 0.49.192). Field names checked on the operator's cnMaestro (Core 0.49.199; Wi-Fi AP per-band clients and traffic, time online as uptime). **Core 0.49.251**: configuration backup of ePMP devices over SSH (`config show json`), because the cnMaestro API cannot export configurations; shared SSH credentials with per-device override; backup policy option. Next: operations where the cnMaestro API supports them, and the move to cnMaestro API v2 (v1 deprecated).
+**Step 2 implemented in `main`**: compatibility check on the real console (Core 0.49.189) and bulk onboarding like UISP (Core 0.49.192). Field names checked on the operator's cnMaestro (Core 0.49.199; Wi-Fi AP per-band clients and traffic, time online as uptime). **Core 0.49.251**: configuration backup of ePMP devices over SSH (`config show json`), because the cnMaestro API cannot export configurations; shared SSH credentials with per-device override; backup policy option. API v2 done in Core 0.49.259. **Core 0.49.265**: remote syslog of ePMP devices over SSH (the API has no configuration endpoint). **Core 0.49.266**: cnMaestro history in the Monitor tab, last values of offline devices (MON-02). **Core 0.49.271**: reboot through cnMaestro with typed confirmation and verification. Firmware upgrades are not offered: the cnMaestro API v2 has no software image or upgrade endpoint (checked GET-only).
 
 Read-only cnMaestro (cloud/on-premises) connector for Cambium radios: discovery and association like UISP, periodic sync, full monitoring and statistics (signal, link quality, capacity, interfaces, uptime, history) in the style of the MikroTik and UISP views; later operations only where the cnMaestro API supports them.
 
