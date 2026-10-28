@@ -4,6 +4,26 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.268 — 2026-10-28
+
+MikroTik: queues, certificates and routing diagnostics
+
+### Added
+
+- MikroTik Configuration tab: three read-only sections for modern and legacy agents (RouterOS 6.48/6.49 and 7.12), Agent 0.49.24:
+  - **Queues**: simple queues and queue tree with the current rate against the max limit; a queue at 90% or more of its limit is flagged as saturated;
+  - **Certificates**: expiry date and days left, with expired, expiring within 30 days and revoked certificates first;
+  - **BGP / OSPF**: BGP sessions (RouterOS 7 sessions, RouterOS 6 peers) and OSPF neighbors, up or down, with remote address, AS or area, uptime and prefixes.
+- Bounded reads like the other sections (300 queues per menu, 100 certificates, 100 BGP sessions and 100 OSPF neighbors); the route table is never read, and a router without the routing menus still loads the agent.
+
+### Changed
+
+- Explicit capability gate per snapshot section and agent transport: an agent that cannot read a section is no longer asked for it. The Configuration tab marks those sections with the update or reinstall hint, *Refresh all* skips them, and a legacy job for a section the agent cannot read fails with the reason instead of an empty result.
+- MTK-01 (legacy snapshot pagination) evaluated against the production legacy snapshots: not needed for now; the evidence is in the roadmap.
+
+### Fixed
+
+- *Refresh all* no longer queues the exposed-services section on legacy agents, where it always failed.
 ## 0.49.267 — 2026-10-28
 
 Security: CVE version matching beyond RouterOS
