@@ -417,6 +417,17 @@ def build_section_view(section: str, snapshots: dict, q: str = "", state: str = 
         base.update(_ppp_view(snapshot, q_normalized, state, kind))
     elif section == "logs":
         base.update(_logs_view(snapshot, q_normalized))
+    elif section in {"queues", "certificates", "routing"}:
+        from app import mikrotik_snapshot_extra_views as extra
+
+        data = _snapshot_data(snapshot)
+        if section == "queues":
+            base.update(extra.queues_view(data, q_normalized, state, kind))
+        elif section == "certificates":
+            read_at = (snapshot.completed_at or snapshot.created_at) if snapshot else None
+            base.update(extra.certificates_view(data, q_normalized, state, read_at=read_at))
+        else:
+            base.update(extra.routing_view(data, q_normalized, state, kind))
     return base
 
 

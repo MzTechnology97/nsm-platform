@@ -358,7 +358,9 @@
         "tr069": "Línea y clientes",
         "uisp": "Radio",
         "cnmaestro": "Radio"
-      }
+      },
+      "latestTitle": "Últimos valores recibidos",
+      "latestAt": "Sin datos en este intervalo: última muestra de {{source}} el {{when}}"
     }
   },
   "syslog": {
@@ -3640,7 +3642,10 @@
       "firewall": "Firewall",
       "dhcp_leases": "DHCP",
       "ppp_active": "PPP / VPN",
-      "logs": "Log warning/error"
+      "logs": "Log warning/error",
+      "queues": "Colas",
+      "certificates": "Certificados",
+      "routing": "BGP / OSPF"
     },
     "resources": {
       "cpu_load": "Carga de CPU",
@@ -3673,7 +3678,16 @@
       "sessions": "Sesiones",
       "warning": "Warning",
       "error": "Error",
-      "critical": "Critical"
+      "critical": "Critical",
+      "simple": "Simple",
+      "tree": "Árbol",
+      "saturated": "Saturadas",
+      "valid": "Válidos",
+      "expiring": "Por caducar",
+      "expired": "Caducados",
+      "revoked": "Revocados",
+      "bgp": "BGP",
+      "ospf": "OSPF"
     },
     "states": {
       "up": "activa",
@@ -3689,7 +3703,12 @@
       "bound": "asignada",
       "waiting": "en espera",
       "blocked": "bloqueada",
-      "offered": "ofrecida"
+      "offered": "ofrecida",
+      "saturated": "saturada",
+      "valid": "válido",
+      "expiring": "por caducar",
+      "expired": "caducado",
+      "revoked": "revocado"
     },
     "kinds": {
       "filter": "Filter",
@@ -3699,7 +3718,11 @@
       "l2tp": "L2TP",
       "pppoe": "PPPoE",
       "pptp": "PPTP",
-      "ovpn": "OVPN"
+      "ovpn": "OVPN",
+      "simple": "Queue simple",
+      "tree": "Queue tree",
+      "bgp": "BGP",
+      "ospf": "OSPF"
     },
     "search": "Buscar en la sección",
     "state": "Estado",
@@ -3745,7 +3768,20 @@
       "uptime": "Uptime",
       "time": "Hora",
       "topics": "Temas",
-      "message": "Mensaje"
+      "message": "Mensaje",
+      "target": "Destino",
+      "parent": "Padre",
+      "max_limit": "Límite máximo",
+      "rate": "Tráfico (subida / bajada)",
+      "usage": "Uso",
+      "common_name": "Nombre común",
+      "issuer": "Emisor",
+      "not_after": "Válido hasta",
+      "days_left": "Días restantes",
+      "role": "Rol",
+      "remote_as": "AS / área",
+      "session_state": "Sesión",
+      "prefixes": "Prefijos"
     },
     "historyTitle": "Historial de configuración",
     "historyHelp": "Exportaciones RouterOS archivadas, baseline aprobada y cambios detectados automáticamente.",
@@ -3775,7 +3811,13 @@
     "view": "Ver",
     "diff": "Diferencias",
     "setBaseline": "Fijar como baseline",
-    "noExports": "Ninguna exportación de configuración: el historial aparece tras la primera copia MikroTik en formato .rsc."
+    "noExports": "Ninguna exportación de configuración: el historial aparece tras la primera copia MikroTik en formato .rsc.",
+    "unsupported": {
+      "no_transport": "Sección no disponible: el transporte del agente no se ha detectado o validado.",
+      "transport": "Sección no disponible con el agente legacy (RouterOS 6 / 7.12).",
+      "agent_outdated": "Sección disponible desde el agente {{version}}: actualiza o reinstala el agente desde la pestaña Agente."
+    },
+    "unsupportedShort": "No disponible con el agente instalado"
   },
   "deviceReboot": {
     "title": "Reinicio controlado",
@@ -4038,7 +4080,9 @@
       "acs_pon_power": "Niveles ópticos PON",
       "acs_pon_temperature": "Temperatura del módulo óptico",
       "acs_pon_bias": "Corriente de polarización del láser",
-      "acs_pon_voltage": "Tensión del módulo óptico"
+      "acs_pon_voltage": "Tensión del módulo óptico",
+      "snr": "SNR",
+      "throughput": "Rendimiento"
     },
     "series": {
       "cpu_percent": "CPU",
@@ -4053,7 +4097,10 @@
       "pon_tx_dbm": "Tx",
       "pon_temperature_c": "Temperatura",
       "pon_bias_ma": "Polarización",
-      "pon_voltage_v": "Tensión"
+      "pon_voltage_v": "Tensión",
+      "snr_db": "SNR",
+      "dl_throughput_bps": "Bajada",
+      "ul_throughput_bps": "Subida"
     },
     "metricsTitle": "Estado operativo desde UISP",
     "metricsHelp": "Estadísticas de las últimas {{hours}} horas ({{count}} muestras); último dato {{when}}.",
@@ -4122,7 +4169,8 @@
       "info": "Info",
       "warning": "Atención",
       "error": "Error"
-    }
+    },
+    "moreEvents": "Mostrar más ({{shown}} de {{total}})"
   },
   "deviceCnmaestro": {
     "linked": "Vinculado a cnMaestro desde el {{when}} (MAC {{mac}}).",
@@ -4149,7 +4197,8 @@
       "uptime_seconds": "Uptime",
       "dl_throughput_bps": "Rendimiento de bajada",
       "ul_throughput_bps": "Rendimiento de subida"
-    }
+    },
+    "metricsAt": "Valores del {{when}}."
   },
   "deviceGenieacs": {
     "recordHelp": "Cliente y sede siguen siendo los de NSM: GenieACS no los modifica.",
@@ -5069,6 +5118,18 @@
       "body": "Escriba la entrada (como máximo 4000 caracteres).",
       "occurred_at": "La fecha debe estar en el último año y no en el futuro.",
       "forbidden": "Solo su autor o un administrador puede eliminarla."
+    },
+    "ispbilling": {
+      "show": "Mostrar también las actividades de ISPBilling",
+      "source": "ISPBilling",
+      "untitled": "Actividad",
+      "customerScope": "actividad del cliente",
+      "states": {
+        "planned": "Planificada",
+        "cancelled": "Cancelada"
+      },
+      "reason": "Cancelada: {{reason}}",
+      "error": "Actividades de ISPBilling no disponibles: {{error}}"
     }
   },
   "sla": {
@@ -5221,10 +5282,21 @@
     "ACS_ALERT_SETTINGS_CHANGED": "Ajustes de avisos de CPE modificados",
     "ACS_CONFIG_REFRESH_COMPLETED": "Configuración del CPE releída",
     "ACS_CONFIG_REFRESH_REQUESTED": "Relectura de la configuración del CPE solicitada",
+    "ACS_CONFIG_RESTORE_FAILED": "Restauración de la configuración del CPE fallida",
+    "ACS_CONFIG_RESTORE_REQUESTED": "Restauración de la configuración del CPE solicitada",
+    "ACS_CONFIG_RESTORE_VERIFIED": "Restauración de la configuración del CPE verificada",
     "ACS_CUSTOMER_TAG_SET": "CPE etiquetado con su cliente en GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnóstico ACS completado",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnóstico ACS solicitado",
     "ACS_FIRMWARE_AUTO_CHANGED": "Descarga automática de firmware modificada",
+    "ACS_FIRMWARE_CAMPAIGN_CANCELLED": "Campaña de firmware TR-069 cancelada",
+    "ACS_FIRMWARE_CAMPAIGN_COMPLETED": "Campaña de firmware TR-069 completada",
+    "ACS_FIRMWARE_CAMPAIGN_CREATED": "Campaña de firmware TR-069 creada",
+    "ACS_FIRMWARE_CAMPAIGN_PAUSED": "Campaña de firmware TR-069 en pausa",
+    "ACS_FIRMWARE_CAMPAIGN_RESUMED": "Campaña de firmware TR-069 reanudada",
+    "ACS_FIRMWARE_CAMPAIGN_STARTED": "Campaña de firmware TR-069 iniciada",
+    "ACS_FIRMWARE_CAMPAIGN_STOPPED": "Campaña de firmware TR-069 detenida",
+    "ACS_FIRMWARE_CAMPAIGN_WAVE_STARTED": "Oleada de una campaña de firmware iniciada",
     "ACS_FIRMWARE_FAILED": "Actualización de firmware del CPE fallida",
     "ACS_FIRMWARE_FILE_FETCHED": "Firmware descargado del fabricante en el ACS",
     "ACS_FIRMWARE_FILE_STORED": "Imagen de firmware cargada en el ACS",
@@ -5272,6 +5344,9 @@
     "CAMBIUM_BACKUP_ARCHIVED": "Configuración Cambium archivada",
     "CAMBIUM_BACKUP_FAILED": "Copia Cambium fallida",
     "CAMBIUM_SSH_CREDENTIALS_CHANGED": "Credenciales SSH Cambium modificadas",
+    "CAMBIUM_SYSLOG_CONFIGURED": "Syslog del ePMP configurado por SSH",
+    "CAMBIUM_SYSLOG_FAILED": "Configuración del syslog del ePMP fallida",
+    "CAMBIUM_SYSLOG_RESTORED": "Syslog del ePMP devuelto a los valores anteriores",
     "CNMAESTRO_BULK_ONBOARDING": "Importación desde cnMaestro",
     "CNMAESTRO_CONFIGURED": "Conector cnMaestro configurado",
     "CNMAESTRO_DEVICE_LINKED": "Equipo vinculado a cnMaestro",
@@ -5480,6 +5555,8 @@
     "UISP_SYNC_COMPLETED": "Sincronización UISP completada",
     "UISP_SYNC_CONFLICT": "Conflicto en la sincronización UISP",
     "UISP_SYNC_FAILED": "Sincronización UISP fallida",
+    "UISP_SYSLOG_CONFIGURED": "Syslog del dispositivo configurado mediante UISP",
+    "UISP_SYSLOG_RESTORED": "Configuración del dispositivo restaurada mediante UISP",
     "USER_2FA_DISABLED": "Acceso en dos pasos desactivado",
     "USER_2FA_ENABLED": "Acceso en dos pasos activado",
     "USER_2FA_RECOVERY_REGENERATED": "Códigos de recuperación 2FA regenerados",
@@ -5505,18 +5582,7 @@
     "ZABBIX_HOST_IP_UPDATED": "IP del host de Zabbix actualizada",
     "ZABBIX_HOST_LINKED": "Equipo vinculado a un host de Zabbix existente",
     "ZABBIX_SETTINGS_CHANGED": "Ajustes de Zabbix cambiados",
-    "ZABBIX_SYNC_REQUESTED": "Sincronización de Zabbix solicitada",
-    "ACS_CONFIG_RESTORE_REQUESTED": "Restauración de la configuración del CPE solicitada",
-    "ACS_CONFIG_RESTORE_VERIFIED": "Restauración de la configuración del CPE verificada",
-    "ACS_CONFIG_RESTORE_FAILED": "Restauración de la configuración del CPE fallida",
-    "ACS_FIRMWARE_CAMPAIGN_CREATED": "Campaña de firmware TR-069 creada",
-    "ACS_FIRMWARE_CAMPAIGN_STARTED": "Campaña de firmware TR-069 iniciada",
-    "ACS_FIRMWARE_CAMPAIGN_RESUMED": "Campaña de firmware TR-069 reanudada",
-    "ACS_FIRMWARE_CAMPAIGN_PAUSED": "Campaña de firmware TR-069 en pausa",
-    "ACS_FIRMWARE_CAMPAIGN_CANCELLED": "Campaña de firmware TR-069 cancelada",
-    "ACS_FIRMWARE_CAMPAIGN_STOPPED": "Campaña de firmware TR-069 detenida",
-    "ACS_FIRMWARE_CAMPAIGN_COMPLETED": "Campaña de firmware TR-069 completada",
-    "ACS_FIRMWARE_CAMPAIGN_WAVE_STARTED": "Oleada de una campaña de firmware iniciada"
+    "ZABBIX_SYNC_REQUESTED": "Sincronización de Zabbix solicitada"
   },
   "eventSources": {
     "portal": "interfaz",
@@ -6355,6 +6421,72 @@
       "unconfirmed": "Actualización a {{version}} no confirmada."
     }
   },
+  "firmwareSchedule": {
+    "title": "Actualización programada",
+    "help": "Elige cuándo actualizar, por ejemplo de noche. A esa hora NSM ejecuta solo todas las fases sin más confirmaciones: comprobación, copia previa, aprobación, descarga, activación con reinicio y control de la versión. Si el dispositivo no es accesible en 2 horas, la actualización no se ejecuta.",
+    "when": "Fecha y hora",
+    "schedule": "Programar actualización",
+    "move": "Mover",
+    "cancel": "Cancelar programación",
+    "at": "para el {{when}}",
+    "confirm": "¿Programar la actualización de RouterOS (ahora {{target}}) para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "confirmMany_one": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "confirmMany_other": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
+    "selected_one": "{{count}} seleccionado",
+    "selected_other": "{{count}} seleccionados",
+    "scheduleMany": "Programar actualización",
+    "select": "Seleccionar {{name}}",
+    "done_one": "{{count}} actualización programada.",
+    "done_other": "{{count}} actualizaciones programadas.",
+    "skipped": "No programados (se requiere RouterOS 7.13+ con el agente moderno): {{names}}.",
+    "states": {
+      "scheduled": "Programada",
+      "checking": "Comprobando",
+      "running": "En curso",
+      "success": "Completada",
+      "failed": "Fallida",
+      "cancelled": "Cancelada"
+    }
+  },
+  "uispSyslog": {
+    "title": "Syslog mediante UISP",
+    "hint": "UISP configura el CPE para enviar sus registros al receptor de NSM: toma una copia de la configuración, cambia solo las líneas de syslog y la vuelve a aplicar. La copia tomada justo antes queda como punto de restauración.",
+    "target": "Receptor NSM",
+    "noTarget": "no determinable: configura la dirección pública en Amministrazione → Syslog",
+    "inUisp": "En UISP",
+    "liveOn": "registro remoto activo hacia {{server}}:{{port}}",
+    "liveOff": "registro remoto no configurado",
+    "unsupported": "UISP no gestiona los servicios de este dispositivo: configura el syslog desde la interfaz airOS.",
+    "current": "Configuración NSM",
+    "never": "aún no configurado por NSM",
+    "status": {
+      "applied": "{{mode}} · aplicada el {{when}} por {{by}}",
+      "restored": "configuración anterior restaurada (era: {{mode}})"
+    },
+    "modeTitle": "Cómo reconoce NSM los registros",
+    "recommended": "recomendado",
+    "modes": {
+      "key": {
+        "label": "Clave NSM en el nombre del dispositivo",
+        "help": "UISP añade NSM-… al nombre (hostname) del CPE: funciona aunque cambie la IP o comparta el NAT."
+      },
+      "customer_name": {
+        "label": "Nombre del CPE igual al cliente NSM",
+        "help": "El nombre del CPE en UISP debe ser el del cliente ({{customer}}), en cualquier orden. Aceptado solo si ningún otro dispositivo usa el mismo nombre."
+      },
+      "address": {
+        "label": "Dirección del dispositivo",
+        "help": "NSM reconoce los registros por la IP del CPE tal como la ve UISP. Descartados si otros dispositivos usan la misma IP (NAT)."
+      }
+    },
+    "reboot": "Aplicar la configuración reinicia el CPE: el cliente queda sin conexión 2–3 minutos.",
+    "confirm": "Para confirmar escribe el nombre del dispositivo: {{name}}",
+    "configure": "Configurar mediante UISP",
+    "restore": "Restaurar configuración anterior",
+    "working": "UISP está aplicando…",
+    "done": "Configuración aplicada: el CPE se reinicia y los registros llegan en unos minutos.",
+    "restored": "Configuración anterior aplicada: el CPE se reinicia."
+  },
   "bras": {
     "title": "BRAS MikroTik",
     "subtitle": "Concentrador PPPoE leído con un usuario RouterOS de solo lectura: sesiones de los clientes cada pocos minutos, nada se modifica en el router.",
@@ -6390,33 +6522,6 @@
     "uptime": "conectado desde hace {{value}}",
     "never": "Nunca vista en el BRAS",
     "noDevice": "Ningún equipo asociado"
-  },
-  "firmwareSchedule": {
-    "title": "Actualización programada",
-    "help": "Elige cuándo actualizar, por ejemplo de noche. A esa hora NSM ejecuta solo todas las fases sin más confirmaciones: comprobación, copia previa, aprobación, descarga, activación con reinicio y control de la versión. Si el dispositivo no es accesible en 2 horas, la actualización no se ejecuta.",
-    "when": "Fecha y hora",
-    "schedule": "Programar actualización",
-    "move": "Mover",
-    "cancel": "Cancelar programación",
-    "at": "para el {{when}}",
-    "confirm": "¿Programar la actualización de RouterOS (ahora {{target}}) para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
-    "confirmMany_one": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
-    "confirmMany_other": "¿Programar la actualización de {{count}} MikroTik para el {{when}}? A esa hora todas las fases, reinicio incluido, empiezan sin más confirmaciones.",
-    "selected_one": "{{count}} seleccionado",
-    "selected_other": "{{count}} seleccionados",
-    "scheduleMany": "Programar actualización",
-    "select": "Seleccionar {{name}}",
-    "done_one": "{{count}} actualización programada.",
-    "done_other": "{{count}} actualizaciones programadas.",
-    "skipped": "No programados (se requiere RouterOS 7.13+ con el agente moderno): {{names}}.",
-    "states": {
-      "scheduled": "Programada",
-      "checking": "Comprobando",
-      "running": "En curso",
-      "success": "Completada",
-      "failed": "Fallida",
-      "cancelled": "Cancelada"
-    }
   },
   "acsCapabilities": {
     "title": "Funciones de NSM en este CPE",
@@ -6478,6 +6583,58 @@
     },
     "writesYes": "sí, a petición",
     "writesNo": "no"
+  },
+  "cambiumSyslog": {
+    "title": "Syslog del ePMP",
+    "hint": "cnMaestro no permite cambiar la configuración por su API: NSM configura el syslog desde la consola SSH del ePMP con las credenciales de los backups Cambium. Primero muestra los parámetros que cambiará; la configuración leída justo antes se guarda como backup.",
+    "target": "Receptor NSM",
+    "noTarget": "no determinable: define la dirección pública en Amministrazione → Syslog",
+    "credentials": "Credenciales SSH",
+    "credentialSource": {
+      "device": "de este equipo",
+      "shared": "comunes de los Cambium (Amministrazione → cnMaestro)",
+      "none": "no definidas"
+    },
+    "current": "Configuración NSM",
+    "never": "aún no configurado por NSM",
+    "status": {
+      "applied": "{{mode}} · aplicada el {{when}} por {{by}}",
+      "unverified": "{{mode}} · aplicada el {{when}} por {{by}}, valores no confirmados por el ePMP",
+      "failed": "fallida el {{when}} ({{mode}})",
+      "restored": "valores anteriores restaurados (era: {{mode}})"
+    },
+    "error": "Error",
+    "unverified": "Parámetros no confirmados",
+    "notReady": "Se necesitan la dirección de gestión del equipo, las credenciales SSH de los Cambium y la dirección del receptor syslog.",
+    "modeTitle": "Cómo reconoce NSM los registros",
+    "recommended": "recomendado",
+    "modes": {
+      "key": {
+        "label": "Clave NSM en el nombre del equipo",
+        "help": "NSM añade -NSM-… al nombre del ePMP, que aparece en cada línea: funciona aunque cambie la IP o se comparta el NAT."
+      },
+      "customer_name": {
+        "label": "Nombre del ePMP igual al cliente NSM",
+        "help": "El nombre del ePMP debe ser el del cliente ({{customer}}), en cualquier orden. Aceptado solo si ningún otro equipo usa el mismo nombre."
+      },
+      "address": {
+        "label": "Dirección del equipo",
+        "help": "NSM reconoce los registros por la dirección de gestión del ePMP. Descartados si otros equipos usan la misma IP (NAT)."
+      }
+    },
+    "preview": "Vista previa de los cambios",
+    "reading": "Leyendo la configuración…",
+    "nothing": "El ePMP ya envía sus registros a NSM en este modo: nada que cambiar.",
+    "param": "Parámetro",
+    "before": "Actual",
+    "after": "Nuevo",
+    "noReboot": "Los cambios se aplican con config commit, sin reinicio.",
+    "confirm": "Para confirmar escribe el nombre del equipo: {{name}}",
+    "configure": "Aplicar en el ePMP",
+    "restore": "Restaurar los valores anteriores",
+    "working": "Conectando con el ePMP…",
+    "done": "Syslog configurado: los registros llegan en unos minutos.",
+    "restored": "Valores anteriores restaurados en el ePMP."
   },
   "acsRestore": {
     "title": "Restaurar en el CPE",
