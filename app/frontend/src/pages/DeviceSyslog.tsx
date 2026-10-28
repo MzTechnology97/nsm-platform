@@ -10,6 +10,7 @@ import { Metric } from "./DeviceDetail";
 import { SyslogGuides } from "../app/SyslogGuides";
 import { AcsSyslogPanel } from "../app/AcsSyslog";
 import { UispSyslogPanel } from "../app/UispSyslog";
+import { CambiumSyslogPanel } from "../app/CambiumSyslog";
 
 const SEVERITY_FILTERS = ["", "4", "3", "2"] as const;
 
@@ -43,6 +44,7 @@ export function DeviceSyslog() {
       <IntegrityPanel id={deviceId} />
       <AcsSyslogPanel id={deviceId} />
       <UispSyslogPanel id={deviceId} />
+      <CambiumSyslogPanel id={deviceId} />
       {data && <SetupPanel id={deviceId} summary={data} />}
     </div>
   );

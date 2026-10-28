@@ -1,18 +1,37 @@
-"""cnMaestro connector for Cambium radios (VEND-02), read-only.
+"""cnMaestro connector for Cambium radios (VEND-02), read-only, on the northbound API **v2**.
+
+cnMaestro marks every v1 response as deprecated ("must be changed to v2", sunset
+3.2.0), so the connector uses ``/api/v2``. Checked with GET only on the
+operator's cnMaestro on-premises (2026-10-23): ``/api/v2/devices``,
+``/api/v2/devices/{mac}``, ``/api/v2/devices/statistics``,
+``/api/v2/devices/{mac}/statistics``, ``/api/v2/devices/{mac}/performance``
+(``start_time`` required), ``/api/v2/networks``, ``/api/v2/alarms`` and
+``/api/v2/jobs`` answer without the deprecation note; the aggregate
+``/api/v2/devices/performance`` is retired (HTTP 301, device level only).
 
 - **Authentication**: OAuth2 client credentials (*API Client* created in
-  cnMaestro → Services → API Client): ``POST /api/v1/access/token`` with the
-  client id/secret, Bearer token on every call.
-- **Inventory**: ``GET /api/v1/devices`` (paged): MAC, serial, name, IP,
-  status, product, software version, network and tower.
-- **Statistics**: ``GET /api/v1/devices/statistics`` (paged): CPU, memory,
+  cnMaestro → Services → API Client): ``POST /api/v2/access/token`` with the
+  client id/secret, Bearer token on every call. ``/api/v2/access/token``
+  answers a GET like the v1 one (OAuth ``invalid_request``), but the POST could
+  not be tried read-only: when v2 refuses it with anything but 401/403 the
+  connector logs in on ``/api/v1/access/token`` (still served), the only v1
+  endpoint left.
+- **Inventory**: ``GET /api/v2/devices`` (paged): MAC, serial (``msn``), name,
+  IP, status, product, software version, network and tower (v2 adds ``mode``,
+  ``ap_mac``, ``overrides`` and ``config.version``).
+- **Statistics**: ``GET /api/v2/devices/statistics`` (paged): CPU, memory,
   uptime, connected SMs/clients and radio signal, read defensively (field names
-  differ between ePMP, PMP 450 and cnPilot).
+  differ between ePMP, PMP 450 and cnPilot; v2 gives Wi-Fi APs a ``radios``
+  list with ``band`` instead of the v1 ``radio.24ghz``/``radio.5ghz``).
 
 Every ``SYNC_INTERVAL`` the worker links Cambium devices of NSM to cnMaestro by
 MAC (then serial), updates identity, firmware, IP and status, and stores a
 metrics sample (90 days; the newest sample of an offline device is kept).
-Customer and Site always stay those of NSM.
+A linked device created by hand (``management_source`` ``manual``, e.g. added
+as generic and corrected to Cambium later) becomes managed by cnMaestro like a
+device created through the connector, with the cnMaestro MAC as external id.
+Customer and Site always stay those of NSM. A ``deprecation`` note in a
+cnMaestro answer is kept in the last sync result.
 """
 from __future__ import annotations
 
@@ -38,7 +57,8 @@ from app.telemetry_retention import expire_keep_latest
 
 router = APIRouter()
 PROVIDER = "cnmaestro"
-API = "/api/v1"
+API = "/api/v2"
+API_V1 = "/api/v1"  # only the login fallback (see the module docstring)
 TIMEOUT = 20.0
 PAGE_SIZE = 100
 MAX_PAGES = 100
@@ -90,8 +110,9 @@ def normalize_base_url(value: str) -> str:
         if "non consentito" in str(exc):
             raise
     path = (parsed.path or "").rstrip("/")
-    if path.endswith(API):
-        path = path[: -len(API)]
+    for suffix in (API, API_V1):
+        if path.endswith(suffix):
+            path = path[: -len(suffix)]
     return f"{parsed.scheme}://{parsed.netloc}{path}"
 
 
@@ -99,10 +120,12 @@ def normalize_base_url(value: str) -> str:
 
 class Client:
     def __init__(self, base_url: str, client_id: str, client_secret: str, verify_tls: bool = True, transport=None):
-        self.base = base_url.rstrip("/") + API
+        self.root = base_url.rstrip("/")
+        self.base = self.root + API
         self.http = httpx.Client(timeout=TIMEOUT, verify=verify_tls, follow_redirects=False, transport=transport, headers={"Accept": "application/json"})
         self.client_id, self.client_secret = client_id, client_secret
         self.token = None
+        self.deprecation = None  # message of the last ``deprecation`` note cnMaestro sent
 
     def close(self):
         self.http.close()
@@ -112,11 +135,16 @@ class Client:
             raise CnMaestroError(f"cnMaestro ha negato {what}: verifica client id/secret e i permessi dell'API Client.")
         raise CnMaestroError(f"cnMaestro ha risposto HTTP {response.status_code} a {what}.")
 
-    def login(self):
+    def _token_request(self, api):
         try:
-            response = self.http.post(f"{self.base}/access/token", data={"grant_type": "client_credentials"}, auth=(self.client_id, self.client_secret))
+            return self.http.post(f"{self.root}{api}/access/token", data={"grant_type": "client_credentials"}, auth=(self.client_id, self.client_secret))
         except httpx.HTTPError as exc:
             raise CnMaestroError(f"cnMaestro non raggiungibile: {type(exc).__name__}.") from exc
+
+    def login(self):
+        response = self._token_request(API)
+        if response.status_code not in (200, 401, 403):  # v2 login not offered by this cnMaestro: the v1 one
+            response = self._token_request(API_V1)
         if response.status_code != 200:
             self._fail(response, "l'autenticazione")
         try:
@@ -134,9 +162,13 @@ class Client:
         if response.status_code != 200:
             self._fail(response, what)
         try:
-            return response.json()
+            payload = response.json()
         except ValueError as exc:
             raise CnMaestroError("cnMaestro ha restituito una risposta non valida.") from exc
+        note = payload.get("deprecation") if isinstance(payload, dict) else None
+        if note:
+            self.deprecation = str((note.get("message") if isinstance(note, dict) else note) or "")[:300] or None
+        return payload
 
     def paged(self, path, what):
         rows, offset = [], 0
@@ -207,10 +239,12 @@ def metrics(row: dict) -> dict:
             if low <= number <= high:
                 out[field] = int(number) if field in INTEGER_FIELDS else round(number, 2)
             break
-    # Wi-Fi access points (cnPilot) report clients and traffic per band (radio.24ghz, radio.5ghz…):
-    # stations are the clients of every band, downlink what the AP sends to them, uplink what it receives.
+    # Wi-Fi access points (cnPilot) report clients and traffic per band (v2: a ``radios`` list with ``band``;
+    # v1: radio.24ghz, radio.5ghz…): stations are the clients of every band, downlink what the AP sends to them,
+    # uplink what it receives.
     radio = row.get("radio") if isinstance(row.get("radio"), dict) else {}
     bands = [value for key, value in radio.items() if key.endswith("ghz") and isinstance(value, dict)]
+    bands += [value for value in (row.get("radios") if isinstance(row.get("radios"), list) else []) if isinstance(value, dict)]
     for field, key in (("stations", "num_clients"), ("dl_throughput_bps", "tx_bps"), ("ul_throughput_bps", "rx_bps")):
         values = [band[key] for band in bands if isinstance(band.get(key), (int, float)) and not isinstance(band.get(key), bool)]
         if field not in out and values and RANGE_LIMITS[field][0] <= sum(values) <= RANGE_LIMITS[field][1]:
@@ -233,6 +267,27 @@ def _link_key(device):
     return ((device.inventory_data or {}).get("cnmaestro") or {}).get("mac")
 
 
+MANUAL_SOURCES = (None, "", "manual")
+
+
+def adopt(device, mac: str, now) -> dict:
+    """A linked Cambium device created by hand becomes managed by cnMaestro, like one created through the connector:
+    management and inventory source ``cnmaestro`` and the cnMaestro MAC as external id. Returns the changed fields."""
+    changes = {}
+    if device.management_source in MANUAL_SOURCES:
+        changes["management_source"] = {"before": device.management_source, "after": PROVIDER}
+        device.management_source = PROVIDER
+    if device.inventory_source in MANUAL_SOURCES:
+        changes["inventory_source"] = {"before": device.inventory_source, "after": PROVIDER}
+        device.inventory_source = PROVIDER
+    if not device.external_device_id and mac:
+        changes["external_device_id"] = {"before": None, "after": mac}
+        device.external_device_id = mac
+    if device.inventory_source == PROVIDER:
+        device.inventory_last_verified_at = now
+    return changes
+
+
 def _find(candidates, device):
     linked = _link_key(device)
     if linked:
@@ -250,7 +305,7 @@ def sync(db, row=None, now=None, transport=None) -> dict:
     row = row or connection_row(db)
     if row is None or not row.is_enabled:
         return {"status": "disabled"}
-    stats = {"status": "success", "cnmaestro_devices": 0, "linked": 0, "new_links": 0, "samples": 0, "unmatched": 0}
+    stats = {"status": "success", "cnmaestro_devices": 0, "linked": 0, "new_links": 0, "adopted": 0, "samples": 0, "unmatched": 0}
     client = client_for(row, transport)
     try:
         candidates = [candidate(r) for r in client.paged("/devices", "l'elenco apparati")]
@@ -270,12 +325,17 @@ def sync(db, row=None, now=None, transport=None) -> dict:
                 continue
             data = dict(device.inventory_data or {})
             meta = dict(data.get("cnmaestro") or {})
-            if not meta.get("mac"):
+            new_link = not meta.get("mac")
+            if new_link:
                 meta["mac"] = found["mac"]
                 meta["linked_at"] = now.isoformat()
                 stats["new_links"] += 1
-                core.add_event(db, "CNMAESTRO_DEVICE_LINKED", customer_id=device.customer_id, device_id=device.id,
-                               details={"mac": found["mac"], "serial": found["serial"]}, source="cnmaestro")
+            adopted = adopt(device, found["mac"], now)
+            if adopted:
+                stats["adopted"] += 1
+            if new_link or adopted:
+                core.add_event(db, "CNMAESTRO_DEVICE_LINKED", customer_id=device.customer_id, device_id=device.id, source="cnmaestro",
+                               details={"mac": found["mac"], "serial": found["serial"], **({"changes": adopted} if adopted else {})})
             meta.update({"name": found["name"], "type": found["type"], "network": found["network"], "tower": found["tower"],
                          "status": found["status"], "last_sync_at": now.isoformat()})
             values = statistics.get(found["mac"]) or {}
@@ -301,6 +361,8 @@ def sync(db, row=None, now=None, transport=None) -> dict:
         stats = {"status": "failed", "error": str(exc)}
     finally:
         client.close()
+    if client.deprecation:
+        stats["deprecation"] = client.deprecation
     row.last_sync_at = now
     row.last_test_status = "failed" if stats["status"] == "failed" else "success"
     row.last_error = stats.get("error")
