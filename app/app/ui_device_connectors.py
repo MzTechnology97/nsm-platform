@@ -10,11 +10,17 @@
   re-read it (``uisp_connector.associate_record`` / ``refresh_record``);
 - ``POST .../uisp/reboot`` (``firmware.execute``, the device name typed),
   ``.../backup`` (``backup.execute``), ``.../interfaces`` and ``.../events``
-  (``devices.read``) go through ``uisp_operations``.
+  (``devices.read``) go through ``uisp_operations``;
+- diagnostics (``uisp_diagnostics``): ``POST .../uisp/stations`` (``devices.read``)
+  reads the airMAX stations; ``POST .../uisp/speedtest`` (``devices.write``,
+  ``confirm: true``) starts a speed test towards one of them,
+  ``POST .../uisp/speedtest-stop`` stops it, ``GET .../uisp/speedtest``
+  (``devices.read``) collects its progress while it runs.
 
 - ``GET /api/ui/v1/devices/{id}/cnmaestro`` (``devices.read``): link state and the
   last values read by the cnMaestro sync; ``GET .../cnmaestro/metrics``
-  (``monitoring.read``) the chart series;
+  (``monitoring.read``) the chart series; ``POST .../cnmaestro/reboot``
+  (``firmware.execute``, typed device name) through ``cnmaestro_operations``;
 - ``GET /api/ui/v1/devices/{id}/genieacs`` (``devices.read``, TR-069 CPEs):
   record, connector and inventory read from GenieACS; ``POST .../preview``
   (lookup by serial then MAC, read-only), ``.../associate`` and ``.../refresh``
@@ -56,12 +62,19 @@ def _name(device) -> str:
 
 @router.get("/devices/{device_id}/uisp")
 def device_uisp(request: Request, device_id: uuid.UUID):
-    from app import uisp_connector, uisp_metrics
+    from app import uisp_connector, uisp_diagnostics, uisp_metrics
 
     with SessionLocal() as db:
         user = ui_user(request, db, "devices.read")
         device = _ubiquiti(db, device_id)
         connection = uisp_connector._connection(db)
+        if (data_state := (device.inventory_data or {}).get("uisp_speedtest") or {}).get("status") == "running" and connection and connection.is_enabled:
+            try:
+                uisp_diagnostics.poll_speed_test(db, device)
+                db.commit()
+            except Exception:  # the page must open even when UISP does not answer
+                db.rollback()
+                device = _ubiquiti(db, device_id)
         data = device.inventory_data or {}
         view = uisp_metrics.view(db, device) if device.external_device_id else None
         last_backup = db.scalar(select(BackupRun).where(BackupRun.device_id == device.id, BackupRun.backup_type == "uisp_backup")
@@ -84,9 +97,29 @@ def device_uisp(request: Request, device_id: uuid.UUID):
             "last_backup": {"started_at": last_backup.started_at, "status": last_backup.status, "error": last_backup.error_message} if last_backup else None,
             "interfaces": data.get("uisp_interfaces"),
             "events": data.get("uisp_events"),
+            "stations": data.get("uisp_stations"),
+            "speedtest": uisp_diagnostics.view(device),
             "can": {"write": core.has_permission(user, "devices.write"), "reboot": core.has_permission(user, "firmware.execute"),
-                    "backup": core.has_permission(user, "backup.execute"), "metrics": core.has_permission(user, "monitoring.read")},
+                    "backup": core.has_permission(user, "backup.execute"), "metrics": core.has_permission(user, "monitoring.read"),
+                    "speedtest": core.has_permission(user, "devices.write")},
         })
+
+
+@router.get("/devices/{device_id}/uisp/speedtest")
+def device_uisp_speedtest(request: Request, device_id: uuid.UUID):
+    """Progress of the device's UISP speed test; while it runs, each call collects UISP's new points."""
+    from app import uisp_diagnostics, uisp_operations
+
+    with SessionLocal() as db:
+        ui_user(request, db, "devices.read")
+        device = _ubiquiti(db, device_id)
+        try:
+            uisp_diagnostics.poll_speed_test(db, device)
+        except (uisp_operations.UispOperationError, ValueError) as exc:
+            db.rollback()
+            raise _uisp_error(exc) from None
+        db.commit()
+        return jsonable_encoder(uisp_diagnostics.view(device))
 
 
 @router.get("/devices/{device_id}/uisp/metrics")
@@ -123,10 +156,11 @@ def device_uisp_preview(request: Request, device_id: uuid.UUID):
 
 @router.post("/devices/{device_id}/uisp/{action}", dependencies=[Depends(require_csrf)])
 def device_uisp_action(request: Request, device_id: uuid.UUID, action: str, body: dict = Body(default={})):
-    from app import uisp_connector, uisp_operations
+    from app import uisp_connector, uisp_diagnostics, uisp_operations
 
     permissions = {"associate": "devices.write", "refresh": "devices.write", "reboot": "firmware.execute", "backup": "backup.execute",
-                   "interfaces": "devices.read", "events": "devices.read"}
+                   "interfaces": "devices.read", "events": "devices.read", "stations": "devices.read",
+                   "speedtest": "devices.write", "speedtest-stop": "devices.write"}
     if action not in permissions:
         raise HTTPException(404)
     with SessionLocal() as db:
@@ -158,6 +192,22 @@ def device_uisp_action(request: Request, device_id: uuid.UUID, action: str, body
                 if run.status != "success":
                     raise HTTPException(422, {"code": "uisp", "message": run.error_message or "Backup non riuscito."})
                 return {"ok": True, "run_id": str(run.id)}
+            if action == "stations":
+                items = uisp_diagnostics.fetch_stations(db, device)
+                uisp_operations._store(device, "uisp_stations", items)
+                db.commit()
+                return {"ok": True, "count": len(items)}
+            if action == "speedtest":
+                if body.get("confirm") is not True:
+                    raise HTTPException(422, {"code": "confirm", "message": "Conferma il test: satura il collegamento wireless per la sua durata."})
+                duration = body.get("duration", uisp_diagnostics.DURATION_DEFAULT)
+                state = uisp_diagnostics.start_speed_test(db, device, user, str(body.get("peer") or ""), str(body.get("direction") or "downlink"), duration)
+                db.commit()
+                return {"ok": True, "id": state["id"]}
+            if action == "speedtest-stop":
+                uisp_diagnostics.stop_speed_test(db, device, user)
+                db.commit()
+                return {"ok": True}
             key = "uisp_interfaces" if action == "interfaces" else "uisp_events"
             items = (uisp_operations.fetch_interfaces if action == "interfaces" else uisp_operations.fetch_events)(db, device)
             uisp_operations._store(device, key, items)
@@ -188,12 +238,38 @@ def device_cnmaestro(request: Request, device_id: uuid.UUID):
         connection = cnm.connection_row(db)
         return jsonable_encoder({
             "linked": bool(meta.get("mac")),
-            "meta": {key: meta.get(key) for key in ("mac", "linked_at", "last_sync_at", "name", "type", "network", "tower", "status")},
+            "meta": {key: meta.get(key) for key in ("mac", "linked_at", "last_sync_at", "metrics_at", "name", "type", "network", "tower", "status")},
             "record": {"mac": device.primary_mac, "serial": device.serial_number},
             "metrics": [{"field": field, "unit": unit, "value": metrics.get(field)} for field, (_label, unit, _keys) in cnm.FIELDS.items()],
             "configured": connection is not None,
-            "can": {"metrics": core.has_permission(user, "monitoring.read"), "configure": core.has_permission(user, "users.manage")},
+            "name": _name(device),
+            "reboot": (device.inventory_data or {}).get("cnmaestro_reboot"),
+            "can": {"metrics": core.has_permission(user, "monitoring.read"), "configure": core.has_permission(user, "users.manage"),
+                    "reboot": bool(meta.get("mac") and connection is not None and connection.is_enabled and core.has_permission(user, "firmware.execute"))},
         })
+
+
+@router.post("/devices/{device_id}/cnmaestro/reboot", dependencies=[Depends(require_csrf)])
+def device_cnmaestro_reboot(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    """Reboot through cnMaestro with the device name typed as confirmation; the worker verifies it (cnmaestro_operations)."""
+    from app import cnmaestro_connector as cnm
+    from app import cnmaestro_operations as ops
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.execute")
+        device = db.get(Device, device_id)
+        if not device or not cnm.is_cambium(device):
+            raise HTTPException(404)
+        confirm = body.get("confirm_name")
+        if not isinstance(confirm, str) or confirm.strip() != _name(device):
+            raise HTTPException(422, {"code": "confirm_name", "message": "Il nome di conferma non corrisponde all'apparato."})
+        try:
+            state = ops.request_reboot(db, device, user)
+        except ops.CnMaestroOperationError as exc:
+            db.rollback()
+            raise HTTPException(422, {"code": "cnmaestro", "message": str(exc)}) from None
+        db.commit()
+        return {"ok": True, "reboot": state}
 
 
 @router.get("/devices/{device_id}/cnmaestro/metrics")

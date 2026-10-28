@@ -93,7 +93,7 @@ def main():
     assert client.post("/login", data={"username": f"ci-uo-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
     uisp_api = f"/api/ui/v1/devices/{ids['device']}/uisp"
     page = client.get(uisp_api).json()
-    assert page["can"] == {"write": True, "reboot": True, "backup": True, "metrics": True}, page["can"]
+    assert page["can"] == {"write": True, "reboot": True, "backup": True, "metrics": True, "speedtest": True}, page["can"]
     ui_headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
 
     def operation(action, device_key="device", **body):
@@ -122,6 +122,7 @@ def main():
         assert run.status == "success" and run.sha256 == hashlib.sha256(BACKUP).hexdigest(), run.error_message
         artifact = db.scalar(select(BackupArtifact).where(BackupArtifact.run_id == run.id))
         assert artifact.filename.endswith("_uisp.tar.gz") and (storage_root() / artifact.storage_path).read_bytes() == BACKUP
+        assert f"_{str(artifact.run_id)[:8]}_uisp" in artifact.filename, "the run id makes the name unique"
         assert ("GET", f"/devices/{uisp_id}/backups/b-1") in fake.calls, "the newly created backup is downloaded"
     assert client.get(uisp_api).json()["last_backup"]["status"] == "success"
 
