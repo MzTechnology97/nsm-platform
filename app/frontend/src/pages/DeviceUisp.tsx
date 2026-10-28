@@ -11,7 +11,7 @@ import { Loading } from "../app/States";
 import { MonitorLink } from "../app/MonitorLink";
 
 export const RANGES = ["24h", "7d", "30d", "90d"] as const;
-const UNIT: Record<string, Unit | undefined> = { "%": "%", dBm: "dBm", bps: "bps", "": "count" };
+const UNIT: Record<string, Unit | undefined> = { "%": "%", dBm: "dBm", dB: "dB", "°C": "°C", V: "V", mA: "mA", bps: "bps", "": "count" };
 const COLORS: ChartSeries["color"][] = ["a", "b", "c", "d"];
 
 function message(error: unknown) {
@@ -218,12 +218,19 @@ function Firmware({ data }: { data: UispTab }) {
   );
 }
 
+const EVENTS_PAGE = 20;
+
+/** UISP quotes device names with backticks (`RIZZO MICHELA` was restarted): plain text reads better. */
+const eventText = (message: string | null | undefined) => (message ?? "").replace(/`/g, "").trim();
+
 function Operations({ deviceId, data }: { deviceId: string; data: UispTab }) {
   const { t, i18n } = useTranslation();
   const eventKind = (kind: string | null | undefined) => (kind ? t(`deviceUisp.eventTypes.${kind}`, { defaultValue: kind }) : "");
   const backup = useUispAction(deviceId, "backup");
   const interfaces = useUispAction(deviceId, "interfaces");
   const events = useUispAction(deviceId, "events");
+  const [shownEvents, setShownEvents] = useState(EVENTS_PAGE);
+  const eventRows = data.events?.items ?? [];
   return (
     <>
       <section className="ui-panel ui-admin-section">
@@ -287,17 +294,25 @@ function Operations({ deviceId, data }: { deviceId: string; data: UispTab }) {
           <button type="button" className="ui-button ui-button-ghost" disabled={events.isPending} onClick={() => events.mutate(undefined)}>{t("deviceUisp.read")}</button>
         </div>
         {events.error && <div className="ui-alert ui-alert-danger">{message(events.error)}</div>}
-        {data.events?.items.length ? (
+        {eventRows.length ? (
           <ul className="ui-list">
-            {data.events.items.map((event, index) => (
+            {eventRows.slice(0, shownEvents).map((event, index) => (
               <li key={`${event.at}-${index}`}>
-                <span><strong>{event.message || eventKind(event.type)}</strong><small className="ui-muted ui-block">{[event.at, eventKind(event.type)].filter(Boolean).join(" · ")}</small></span>
+                <span><strong>{eventText(event.message) || eventKind(event.type)}</strong>
+                  <small className="ui-muted ui-block">{[event.at ? formatDateTime(event.at, i18n.language) : null, eventKind(event.type)].filter(Boolean).join(" · ")}</small></span>
                 <span />
                 <span className="ui-severity">{event.level ? t(`deviceUisp.levels.${event.level}`, { defaultValue: event.level }) : "—"}</span>
               </li>
             ))}
           </ul>
         ) : data.events ? <div className="ui-empty">{t("deviceUisp.noRows")}</div> : null}
+        {eventRows.length > shownEvents && (
+          <div className="ui-row-actions">
+            <button type="button" className="ui-button ui-button-ghost" onClick={() => setShownEvents(shownEvents + EVENTS_PAGE)}>
+              {t("deviceUisp.moreEvents", { shown: shownEvents, total: eventRows.length })}
+            </button>
+          </div>
+        )}
       </section>
     </>
   );

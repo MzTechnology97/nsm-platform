@@ -220,7 +220,7 @@ class Receiver:
         text = data.decode("utf-8", "replace") if isinstance(data, (bytes, bytearray)) else str(data)
         key, text = identity.extract_key(text)
         entry = parse(text)
-        device_id, reason = identity.resolve(self.index, source_ip, key, entry["hostname"])
+        device_id, reason = identity.resolve(self.index, source_ip, key, entry["hostname"], text)
         if device_id is None:
             self._reject(reason, source_ip)
             return

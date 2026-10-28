@@ -97,6 +97,8 @@ def main():
     second = client.post(f"/api/ui/v1/devices/{ids['cpe']}/acs/snapshot").json()
     with SessionLocal() as db:
         second_artifact = db.scalar(select(BackupArtifact).where(BackupArtifact.run_id == uuid.UUID(second["run_id"])))
+    page = client.get(f"/api/ui/v1/devices/{ids['cpe']}/backups/artifacts/{second_artifact.id}").json()
+    assert [c["id"] for c in page["candidates"]] == [str(artifact.id)] and page["artifact_type"] == "tr069_parameters", "the older snapshot is offered for comparison"
     view = client.get(f"/api/ui/v1/devices/{ids['cpe']}/backups/artifacts/{second_artifact.id}", params={"against": str(artifact.id)})
     assert view.status_code == 200, view.text
     changed = [(row["kind"], row["text"]) for row in view.json()["diff"]["rows"] if row["kind"] != "context" and not row["text"].startswith("#")]

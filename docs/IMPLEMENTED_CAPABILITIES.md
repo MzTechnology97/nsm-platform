@@ -554,6 +554,22 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 Validation pending: periodic sync against a real UISP instance (the consumed endpoint is the same one used by manual refresh).
 
+### Syslog through UISP (UBNT-09, Core 0.49.257)
+
+`app/uisp_syslog.py`. UISP 3.x reads an airOS device's services but cannot write them (`PUT /devices/{id}/services` → 501 *setServices is not implemented*). So NSM restores a configuration the way UISP itself does:
+1. a fresh backup (`POST /devices/{id}/backups`), kept as the restore point;
+2. `system.cfg` with only `syslog.remote.status/ip/port` changed (and, in key mode, `NSM-<key>` appended to `resolv.host.1.name`);
+3. the changed file uploaded (`PUT /devices/{id}/backups`, multipart) and applied (`POST …/{backupId}/apply`). The CPE reboots and is back in 2–3 minutes (checked on a LiteBeam 5AC, airOS 8.7.15).
+
+It runs only from the device *Syslog* tab, with the device name typed as confirmation (`devices.write`), never from the worker. *Ripristina configurazione precedente* applies the restore point. Devices whose services UISP does not expose (404) keep the manual guide.
+
+Identification per device:
+- `key`, the default: the NSM key in the hostname;
+- `customer_name`: the UISP hostname must equal the NSM customer's name, words in any order. The name is saved on the device (`match_name`) because the receiver's database account cannot read customers. A line is accepted only when exactly one device uses that name, and only among the first 160 characters of the line;
+- `address`: the management IP from UISP, accepted only when no other device uses it.
+
+Audit `UISP_SYSLOG_CONFIGURED`, `UISP_SYSLOG_RESTORED`.
+
 ### Device operations (UBNT-08 step 2)
 
 Reboot with uptime verification, configuration backup archived in NSM (manual and by policy), interfaces and UISP events on the device UISP tab. The read endpoints (`/devices`, `/devices/{id}`, interfaces, backups, `/logs`) were checked on the operator's console on 2026-10-22 (Core 0.49.199): the kind of a log entry comes from its `tags`; the serial number is not sent by UISP (devices are matched by MAC). Reboot and backup requests are not exercised on the real console yet.
@@ -606,6 +622,25 @@ The cnMaestro API cannot export a device configuration. This was checked on the 
 - run from the *cnMaestro* tab (`backup.execute`) or by backup policies with the new *Configurazione Cambium (SSH)* option (worker `cambium_scheduled_backups`; an unchanged configuration is not stored twice; failures are recorded as failed runs);
 - the backup capability of Cambium devices is *SSH (Cambium ePMP)*, executable when credentials and the management address are known;
 - audit `CAMBIUM_BACKUP_ARCHIVED`, `CAMBIUM_BACKUP_FAILED`, `CAMBIUM_SSH_CREDENTIALS_CHANGED`.
+
+### Remote syslog of ePMP devices over SSH (LOG-01, Core 0.49.265)
+
+`app/cambium_syslog.py`. The cnMaestro API v2 cannot set it: checked with GET only on the operator's cnMaestro on-premises on 2026-10-23, there is no device configuration or template endpoint (`/devices/{mac}/config`, `/templates`, `/configurations` are not routes) and the jobs it lists are only *configuration* jobs of Wi-Fi AP groups. NSM therefore uses the ePMP CLI over SSH with the credentials of the Cambium backups (shared, or per device) and the same host-key pinning:
+
+- the parameter names are read from the running configuration (`config show json`), not assumed: the first empty *syslog server* address (or the one already pointing at NSM), its port and the remote-syslog enable flag; a device whose server slots are all used by someone else is refused;
+- *Anteprima delle modifiche* lists every parameter NSM would change (current → new) without writing anything;
+- *Applica sull'ePMP*, after typing the device name, reads the configuration again (it must give the previewed plan), archives it as a Cambium backup (the restore point), runs `config set` for each change and `config commit` (no reboot), then reads the configuration back; values not confirmed by the device are reported (`unverified`). A command refused by the CLI stops before the commit and is recorded as failed;
+- *Ripristina i valori precedenti* sets back only the parameters NSM changed that still hold NSM's value;
+- identification modes as for UISP: `key` (default, `-NSM-<key>` appended to the device name), `customer_name` (ePMP name equal to the NSM customer, unique), `address` (management address, unique). The receiver accepts keyless lines of a Cambium device only in the last two modes, configured by NSM;
+- permissions: state `monitoring.read`, preview/apply/restore `devices.write`; audit `CAMBIUM_SYSLOG_CONFIGURED`, `CAMBIUM_SYSLOG_FAILED`, `CAMBIUM_SYSLOG_RESTORED`.
+
+Validation pending: the parameter names and the `config set`/`config commit` answers of a real ePMP (Force 400, 5.10.4) — the tests use a synthetic CLI.
+
+### Monitor graphs and last values (MON-01/MON-02, Core 0.49.266)
+
+The samples NSM reads from cnMaestro every 15 minutes (`cambium_metric_samples`) feed the device *Monitor* tab with the renderer every device uses (current/min/avg/max legend, gaps on missing data): *Risorse* (CPU, memory), *Traffico* (downlink/uplink throughput), ping from NSM, then *Radio* (signal, SNR, connected stations), ranges 1 h to 90 days.
+
+MON-02: the 90-day retention deletes old samples except the newest of each device, so a Cambium device offline for months keeps its last sample. When the chosen range has none, the Monitor tab shows *Ultimi valori ricevuti* with their time. A sync in which cnMaestro sends no statistics for a device no longer clears its last values on the *cnMaestro* tab, which also shows when they were read (`metrics_at`).
 
 ### Not implemented yet
 
@@ -751,6 +786,16 @@ Once the operator has installed the NSM base templates (*Amministrazione → ACS
 
 Every 2 minutes the worker reads from GenieACS (read only, one NBI query per 20 CPEs) the state of every linked TR-069 CPE at its last Inform: CPU, memory, uptime, WAN (chosen by the connection-request address, PPP or public IP: state, type, address, time connected, last error), Wi-Fi radios and clients, LAN hosts, DSL line (rates, SNR margin, attenuation), for TR-181 and TR-098. It keeps the state on the device, stores one sample per new Inform for 90 days (WAN bit rates from the byte counters between two Informs; counters stuck at zero with the WAN up, as on the TP-Link VX230v, are reported as not available) and sets the device online/offline from the last Inform (three missed periodic Informs, at least 15 minutes). The device page and list show CPU/RAM/uptime as current when the last Inform is under 2 hours old; the *ACS* tab shows the line and Wi-Fi state and charts over 24 h / 7 / 30 / 90 days. The NSM provision declares these values with a 4-minute age so the CPE reports them at every periodic inform; NSM keeps the provision current itself (0.49.210).
 
+### Parameter profiles and CPE capabilities (ACS-04, Core 0.49.264)
+
+`acs_profiles` is the one map of the TR-098 / TR-181 paths NSM uses (identity, CPU and memory, ACS URL, WAN, Wi-Fi, DSL, optics, ping, traceroute, download/upload diagnostics, port mapping, UPnP, remote access), per data model; the diagnostics, speed test, Wi-Fi, syslog, TP-Link cloud firmware, firmware, snapshot and configuration-refresh modules take their object paths from it. Vendor paths are added only where a feature exists only as a vendor extension (TP-Link `X_TP_LogCfg`, `X_TP_CloudService`, `X_TP_UPnPCfg`). Unsupported fields are explicit, with the reason: CPU/memory on TR-098 (NSM reads them on TR-181 only), syslog and cloud firmware on TR-098 (TP-Link TR-181 extensions only), UPnP on TR-098 (no standard switch), the vendor configuration file (GenieACS has no `Upload` task). The *ACS* tab shows *Capacità NSM su questo CPE*: for every NSM function (identity, CPU/memory, WAN, Wi-Fi, DSL, PON, ping, traceroute, speed test, firmware image, TP-Link cloud firmware, syslog, port forwarding, UPnP, remote access, reboot, inform interval, snapshot, vendor file) whether it is available, a standard TR-069 RPC, not exposed by this CPE or not supported, why, the paths found and whether NSM writes to the CPE for it. It costs one read-only GenieACS GET of small objects and entry counts (about 10 KB on a VX230v), never the whole tree, and nothing is sent to the CPE. Checked read-only on the operator's VX230v and HB210 (2026-10-23): everything available except DSL on the HB210 and PON on both.
+
+### PON optical levels (ACS-05, Core 0.49.263)
+
+CPEs with a fibre port that expose their optics through TR-069 get the optical levels in the monitoring: received and transmitted power (dBm), module temperature (°C), supply voltage (V) and laser bias current (mA), with the PON state. Read from TR-181 `Device.Optical.Interface.{i}` (`OpticalSignalLevel` / `TransmitOpticalLevel` in 0.001 dBm, temperature, voltage and bias from vendor parameters of the same object) and from TR-098 vendor objects of a WAN device: Huawei `X_GponInterafceConfig` (spelled like that), `X_GponInterfaceConfig`, ZTE `X_ZTE-COM_WANPONInterfaceConfig`, `X_CT-COM_GponInterfaceConfig` / `X_CT-COM_EponInterfaceConfig`, `X_CMCC_GponInterfaceConfig`, `WANPONInterfaceConfig`. Vendors use different units, so NSM normalizes them (dBm, 0.001 dBm or 0.1 µW; °C or 1/256 °C; V, mV or 100 µV; mA, µA or 2 µA for CT-COM style objects) and leaves empty any value that fits none. The NSM base provision re-reads only these objects once an hour (`declare` of the values, never a refresh of the root); nothing is written to the CPE. Values go into the ACS history (`acs_metric_samples`, 90 days) with charts on the *ACS* tab (power, temperature, bias, voltage) and the current values in *Linea e Wi-Fi*. Alert `pon` in *Avvisi dei CPE*: received level under −27 dBm by default (GPON class B+ sensitivity; −40…0, 0 disables) on the last two optical readings. Checked read-only on the operator's GenieACS (2026-10-23): its two CPEs (TP-Link VX230v DSL, HB210 Ethernet) expose no optical object, so they show nothing; the parsing is tested on sanitized structures of the data models above.
+
+**MON-02 for the ACS.** The ACS history cleanup keeps, beyond 90 days, the newest sample of every CPE and its newest optical reading; the last state of a CPE that stopped contacting the ACS stays on the device, and the *ACS* tab says when the last sample arrived when the chosen range has none.
+
 ### Port forwarding, DMZ and UPnP (Core 0.49.228, monitoring only)
 
 At every monitoring read NSM also parses the CPE's port mappings (TR-181 `Device.NAT.PortMapping`, TR-098 `WANPPPConnection`/`WANIPConnection` `PortMapping`), a DMZ when the CPE reports one (any vendor object named `…DMZ…` under `Device.NAT`/`Device.Firewall` or a TR-098 WAN connection, e.g. `X_TP_DMZ`) and whether UPnP is on (`Device.UPnP.Device.Enable` or a vendor flag such as TP-Link `Device.NAT.X_TP_UPnPCfg.Enable`). The *ACS* tab shows them (protocol, external ports, internal host and port, allowed origin, description, on/off; DMZ host with a warning; UPnP), with *Rileggi dal CPE* (`devices.write`, a GenieACS `refreshObject` of `Device.NAT`, a read). Nothing is changed on the CPE. A change between two reads is audited `ACS_PORT_MAPPING_CHANGED` with the forwards added/removed, the DMZ and UPnP (warning when something new is exposed). The NSM base provision re-reads these objects every hour. Checked read-only on the operator's VX230v: no port mapping, UPnP on, no DMZ object in the data model.
@@ -762,8 +807,6 @@ Right after each monitoring read the worker (`acs_alerts`) evaluates every linke
 ### Not implemented
 
 - bulk ACS discovery/onboarding from the ACS side (this migration drives the CPEs, not GenieACS);
-- vendor-specific TR-098/TR-181 parameter profiles beyond identity and firmware;
-- vendor parameter profiles;
 - restore of a configuration through ACS;
 - firmware campaigns over many CPEs through ACS.
 
@@ -1045,7 +1088,7 @@ A production identifier must never be copied into a test merely because it repro
 The following are approved roadmap areas, not current runtime capabilities:
 
 - Ubiquiti firmware execution through UISP and operations through cnMaestro (only where the vendor API supports them and they are verified on a real console);
-- remote syslog configuration through the UISP and cnMaestro APIs (LOG-01 next step);
+- remote syslog configuration for vendors other than MikroTik, TP-Link (ACS), Ubiquiti (UISP) and Cambium ePMP (SSH) (LOG-01 next step);
 - ACS parameter profiles, monitoring, diagnostics, backup and firmware (ACS-04..08);
 - production DR/restore validation program;
 - additional vendor/connector capabilities beyond those explicitly described above.
