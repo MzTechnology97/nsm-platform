@@ -99,6 +99,9 @@ function ConnectorOnboarding({ provider }: { provider: OnboardingProvider }) {
           <h1>{t("onboarding.title")}</h1>
           <p>{t("onboarding.subtitle")}</p>
         </div>
+        {provider === "uisp" && (
+          <div className="ui-actions"><Link className="ui-button ui-button-ghost" to="/integrations/uisp/customers">{t("uispCustomers.open")}</Link></div>
+        )}
       </header>
       {first?.error && <div className="ui-alert ui-alert-danger">{first.error}</div>}
       <div className="ui-chips" role="group" aria-label={t("onboarding.stateFilter")}>
