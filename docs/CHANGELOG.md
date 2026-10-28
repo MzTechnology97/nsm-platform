@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.272 — 2026-10-28
+
+UISP: diagnostics through the UISP API
+
+### Added
+
+- UISP diagnostics on the device UISP tab (UBNT-05). The UISP API has no ping or traceroute; NSM uses what it exposes for airMAX radios.
+  - *Collegamenti wireless (UISP)*, read on demand: for an access point its stations, for a station its access point, with signal on both sides and per chain, noise floor, link score and air time, capacity, latency, distance and the station's NSM device when its MAC is known. Plain hints: weak or fair signal, unbalanced chains, low SNR, low link score, saturated air time, high latency, disconnected, old UISP data; UISP's own advice is shown as it comes.
+  - Speed test between the device and one of its stations through UISP (download, upload or both, 5–60 seconds), with permission `devices.write` and an explicit confirmation that the link will be saturated; one test per device at a time, progress every 2 seconds, average and peak per direction, *Ferma il test*. Audited (`UISP_SPEEDTEST_STARTED`, `UISP_SPEEDTEST_FINISHED`, `UISP_SPEEDTEST_STOPPED`). Tested against a fake UISP: not yet run on real radios.
+
 ## 0.49.271 — 2026-10-28
 
 Reboot of Cambium devices through cnMaestro
