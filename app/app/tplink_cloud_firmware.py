@@ -32,6 +32,7 @@ import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from sqlalchemy import select
 
+from app import acs_profiles as profiles
 from app import acs_diagnostics as nbi
 from app import acs_firmware as fw
 from app import main as core
@@ -40,7 +41,7 @@ from app.models import Device, utcnow
 from app.ui_api import require_csrf, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
-CLOUD = "Device.X_TP_CloudService"
+CLOUD = profiles.vendor_path("tp-link", "tplink_cloud")
 INFO = f"{CLOUD}.FwUpgradeInfo"
 START = f"{INFO}.NeedStartUpgrade"
 ACTION = f"{CLOUD}.X_TP_Upgrade_Action"

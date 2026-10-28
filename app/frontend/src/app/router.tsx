@@ -525,6 +525,16 @@ const routerbootFleetRoute = createRoute({
   path: "/firmware/routerboot",
   component: lazyRouteComponent(() => import("../pages/MikrotikFleet"), "RouterbootFleetPage"),
 });
+const firmwareCampaignsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/firmware/campaigns",
+  component: lazyRouteComponent(() => import("../pages/AcsFirmwareCampaigns"), "AcsFirmwareCampaigns"),
+});
+const firmwareCampaignRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/firmware/campaigns/$campaignId",
+  component: lazyRouteComponent(() => import("../pages/AcsFirmwareCampaigns"), "AcsFirmwareCampaign"),
+});
 const firmwareSuggestionsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/firmware/suggestions",
@@ -614,6 +624,8 @@ export const routeTree = rootRoute.addChildren([
   routerbootFleetRoute,
   firmwareSuggestionsRoute,
   firmwareCatalogsRoute,
+  firmwareCampaignsRoute,
+  firmwareCampaignRoute,
   vulnerabilitiesRoute,
   vulnerabilityRoute,
   vulnerabilityFindingRoute,
