@@ -2357,7 +2357,8 @@
       "ispbilling": "ISPBilling",
       "probe": "External probe",
       "threatLists": "Threat lists",
-      "abuseipdb": "AbuseIPDB"
+      "abuseipdb": "AbuseIPDB",
+      "ripestat": "RIPEstat"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5444,6 +5445,8 @@
     "REPORT_SCHEDULE_ENABLED": "Report schedule enabled",
     "REPORT_SCHEDULE_FAILED": "Scheduled report failed",
     "REPORT_SCHEDULE_RECIPIENTS_CHANGED": "Report recipients changed",
+    "RIPESTAT_ALERT": "Routing or RPKI problem found by RIPEstat",
+    "RIPESTAT_CONFIGURED": "RIPEstat settings changed",
     "ROUTERBOOT_REBOOT_ACK": "RouterBOOT reboot accepted",
     "ROUTERBOOT_REBOOT_EXPIRED": "RouterBOOT reboot expired",
     "ROUTERBOOT_REBOOT_QUEUED": "RouterBOOT reboot queued",
@@ -6726,5 +6729,35 @@
       "categories": "Categories",
       "last": "Last report"
     }
+  },
+  "ripestat": {
+    "title": "RIPEstat",
+    "subtitle": "Your prefixes as the Internet sees them: who announces them in BGP, how visible they are and whether the RPKI ROAs are right. Public RIPE data, no account; NSM changes nothing at RIPE.",
+    "refresh": "Refresh now",
+    "statusTitle": "Status",
+    "refreshed": "Last read: {{when}}.",
+    "never": "Never read.",
+    "declared": "Declared prefixes: {{list}}.",
+    "noDeclared": "No prefix declared: only your ASNs' announcements are checked.",
+    "declaredLink": "Edit the prefixes",
+    "suggested": "Announced by your ASNs but not declared: {{list}}. Add them to the prefixes to check them with AbuseIPDB and the threat lists too.",
+    "declaredTitle": "Declared prefixes in BGP",
+    "announcedTitle": "Your ASNs' announcements and RPKI",
+    "nothing": "Nothing to show: save the ASNs and refresh.",
+    "ok": "OK",
+    "columns": {
+      "prefix": "Prefix",
+      "origins": "Origin AS",
+      "visibility": "Visibility (RIS peers)",
+      "state": "State",
+      "asn": "AS",
+      "rpki": "RPKI"
+    },
+    "settingsTitle": "Settings",
+    "enabled": "Module on",
+    "asns": "Your AS numbers",
+    "refreshHours": "Read every (hours)",
+    "help": "Example: AS64500 AS64501. The prefixes checked are the ones declared in Threat lists.",
+    "saved": "Settings saved."
   }
 }
