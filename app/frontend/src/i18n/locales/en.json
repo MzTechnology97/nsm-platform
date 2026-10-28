@@ -358,7 +358,9 @@
         "tr069": "Line and clients",
         "uisp": "Radio",
         "cnmaestro": "Radio"
-      }
+      },
+      "latestTitle": "Last values received",
+      "latestAt": "No data in this range: last sample from {{source}} on {{when}}"
     }
   },
   "syslog": {
@@ -4037,7 +4039,9 @@
       "acs_pon_power": "PON optical levels",
       "acs_pon_temperature": "Optical module temperature",
       "acs_pon_bias": "Laser bias current",
-      "acs_pon_voltage": "Optical module voltage"
+      "acs_pon_voltage": "Optical module voltage",
+      "snr": "SNR",
+      "throughput": "Throughput"
     },
     "series": {
       "cpu_percent": "CPU",
@@ -4052,7 +4056,10 @@
       "pon_tx_dbm": "Tx",
       "pon_temperature_c": "Temperature",
       "pon_bias_ma": "Bias",
-      "pon_voltage_v": "Voltage"
+      "pon_voltage_v": "Voltage",
+      "snr_db": "SNR",
+      "dl_throughput_bps": "Downlink",
+      "ul_throughput_bps": "Uplink"
     },
     "metricsTitle": "Operational state from UISP",
     "metricsHelp": "Statistics over the last {{hours}} hours ({{count}} samples); last value {{when}}.",
@@ -4149,7 +4156,8 @@
       "uptime_seconds": "Uptime",
       "dl_throughput_bps": "Downlink throughput",
       "ul_throughput_bps": "Uplink throughput"
-    }
+    },
+    "metricsAt": "Values from {{when}}."
   },
   "deviceGenieacs": {
     "recordHelp": "Customer and site stay those of NSM: GenieACS does not change them.",

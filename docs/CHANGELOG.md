@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.266 — 2026-10-28
+
+cnMaestro graphs in the Monitor tab and last values of offline Cambium devices
+
+### Added
+- **Cambium devices have the same Monitor charts as every other device (MON-01).** The history NSM reads from cnMaestro fills the Monitor panels: CPU and memory, downlink/uplink throughput, the ping from NSM, then signal, SNR and connected stations. The charts use the common renderer, with current, minimum, average and maximum, and ranges from 1 hour to 90 days. Series and chart names are now translated.
+- **An offline Cambium device still shows what it last reported (MON-02).** When the chosen range has no samples, the Monitor tab shows *Ultimi valori ricevuti* with their date. The 90-day cleanup of the cnMaestro history always keeps the newest sample of each device.
+
+### Fixed
+- **A cnMaestro sync without statistics no longer clears the last values of a device.** When cnMaestro stopped sending statistics for a device (for example an offline radio), its *cnMaestro* tab lost every value. Now the last values stay, and the tab says when they were read.
 ## 0.49.265 — 2026-10-28
 
 Remote syslog of Cambium ePMP devices

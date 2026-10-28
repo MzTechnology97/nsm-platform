@@ -358,7 +358,9 @@
         "tr069": "Ligne et clients",
         "uisp": "Radio",
         "cnmaestro": "Radio"
-      }
+      },
+      "latestTitle": "Dernières valeurs reçues",
+      "latestAt": "Aucune donnée sur cette période : dernier échantillon de {{source}} le {{when}}"
     }
   },
   "syslog": {
@@ -4037,7 +4039,9 @@
       "acs_pon_power": "Niveaux optiques PON",
       "acs_pon_temperature": "Température du module optique",
       "acs_pon_bias": "Courant de polarisation laser",
-      "acs_pon_voltage": "Tension du module optique"
+      "acs_pon_voltage": "Tension du module optique",
+      "snr": "SNR",
+      "throughput": "Débit"
     },
     "series": {
       "cpu_percent": "CPU",
@@ -4052,7 +4056,10 @@
       "pon_tx_dbm": "Tx",
       "pon_temperature_c": "Température",
       "pon_bias_ma": "Polarisation",
-      "pon_voltage_v": "Tension"
+      "pon_voltage_v": "Tension",
+      "snr_db": "SNR",
+      "dl_throughput_bps": "Descendant",
+      "ul_throughput_bps": "Montant"
     },
     "metricsTitle": "État opérationnel depuis UISP",
     "metricsHelp": "Statistiques sur les {{hours}} dernières heures ({{count}} échantillons) ; dernière valeur {{when}}.",
@@ -4149,7 +4156,8 @@
       "uptime_seconds": "Uptime",
       "dl_throughput_bps": "Débit descendant",
       "ul_throughput_bps": "Débit montant"
-    }
+    },
+    "metricsAt": "Valeurs du {{when}}."
   },
   "deviceGenieacs": {
     "recordHelp": "Client et site restent ceux de NSM : GenieACS ne les modifie pas.",

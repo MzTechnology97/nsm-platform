@@ -188,7 +188,7 @@ def device_cnmaestro(request: Request, device_id: uuid.UUID):
         connection = cnm.connection_row(db)
         return jsonable_encoder({
             "linked": bool(meta.get("mac")),
-            "meta": {key: meta.get(key) for key in ("mac", "linked_at", "last_sync_at", "name", "type", "network", "tower", "status")},
+            "meta": {key: meta.get(key) for key in ("mac", "linked_at", "last_sync_at", "metrics_at", "name", "type", "network", "tower", "status")},
             "record": {"mac": device.primary_mac, "serial": device.serial_number},
             "metrics": [{"field": field, "unit": unit, "value": metrics.get(field)} for field, (_label, unit, _keys) in cnm.FIELDS.items()],
             "configured": connection is not None,
