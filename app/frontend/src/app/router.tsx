@@ -441,6 +441,11 @@ const adminIspbillingRoute = createRoute({
   path: "/admin/integrations/ispbilling",
   component: lazyRouteComponent(() => import("../pages/AdminIspbilling"), "AdminIspbilling"),
 });
+const adminBrasRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/integrations/bras",
+  component: lazyRouteComponent(() => import("../pages/AdminBras"), "AdminBras"),
+});
 const ispbillingImportRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/integrations/ispbilling/import",
@@ -451,6 +456,11 @@ const ispbillingImportRoute = createRoute({
     ...(typeof search.group === "string" && search.group ? { group: search.group } : {}),
     ...(search.state === "new" || search.state === "linkable" || search.state === "linked" ? { state: search.state } : {}),
   }),
+});
+const uispCustomersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/integrations/uisp/customers",
+  component: lazyRouteComponent(() => import("../pages/UispCustomers"), "UispCustomers"),
 });
 const uispOnboardingRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -667,8 +677,10 @@ export const routeTree = rootRoute.addChildren([
   adminGenieacsRoute,
   adminUispRoute,
   uispOnboardingRoute,
+  uispCustomersRoute,
   cnmaestroOnboardingRoute,
   adminIspbillingRoute,
+  adminBrasRoute,
   ispbillingImportRoute,
   searchRoute,
   notificationsRoute,

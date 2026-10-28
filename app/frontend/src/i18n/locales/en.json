@@ -338,6 +338,27 @@
       "waiting": "Waiting for the first sample.",
       "last": "Last ping: {{rtt}}, {{loss}}% loss.",
       "globallyOff": "Ping monitoring is disabled for the whole platform (ICMP_MONITOR)."
+    },
+    "source": {
+      "none": "This device has no metrics source (NSM agent, ACS, UISP or cnMaestro): the ping from NSM is still available.",
+      "from_one": "Data from {{source}} · {{count}} sample",
+      "from_other": "Data from {{source}} · {{count}} samples",
+      "noResources": "{{source}} provides no CPU and memory for this device.",
+      "noTraffic": "{{source}} provides no traffic for this device.",
+      "pingOff": "Ping from NSM is off: turn it on in “Monitoring settings”.",
+      "chartsTitle": "Charts",
+      "chartsMoved": "The charts of this device are in the Monitor tab, laid out like every other device.",
+      "openMonitor": "Open Monitor",
+      "names": {
+        "tr069": "ACS (TR-069)",
+        "uisp": "UISP",
+        "cnmaestro": "cnMaestro"
+      },
+      "extra": {
+        "tr069": "Line and clients",
+        "uisp": "Radio",
+        "cnmaestro": "Radio"
+      }
     }
   },
   "syslog": {
@@ -1263,6 +1284,42 @@
       "checking": "Looking for the latest version…",
       "downloaded": "Downloaded, reboot to upgrade",
       "dnsError": "Error: update server name not resolved"
+    },
+    "uispUpgrade": "Upgrade via UISP",
+    "uispRunning": "UISP upgrade in progress",
+    "preparing": "Checking…",
+    "preparingHelp": "The plan is prepared by itself as soon as the check finishes.",
+    "uispBulk": {
+      "label": "Bulk upgrade via UISP",
+      "selectAll": "Select the devices that can be upgraded via UISP",
+      "select": "Select {{name}}",
+      "selected_one": "{{count}} device selected (at most {{max}})",
+      "selected_other": "{{count}} devices selected (at most {{max}})",
+      "target": "Version",
+      "recommended": "Recommended version for each device",
+      "version": "{{version}} for all",
+      "maintenance": "In the UISP maintenance window",
+      "confirm": "Type {{phrase}} to confirm",
+      "help": "UISP gets one task with all the selected devices and upgrades them one by one. Type {{phrase}} to confirm.",
+      "run": "Upgrade via UISP ({{count}})",
+      "tooMany": "At most {{max}} devices at a time.",
+      "done_one": "Upgrade started in UISP for {{count}} device.",
+      "done_other": "Upgrade started in UISP for {{count}} devices.",
+      "doneMaintenance_one": "Upgrade queued in UISP for {{count}} device: it will start in the maintenance window.",
+      "doneMaintenance_other": "Upgrade queued in UISP for {{count}} devices: they will start in the maintenance window.",
+      "started": "Started to {{version}}",
+      "skipped": {
+        "running": "Skipped: an upgrade is already in progress",
+        "no_version": "Skipped: UISP has no newer version for its platform",
+        "version_unavailable": "Skipped: version not available in UISP for its platform",
+        "not_linked": "Skipped: not linked to UISP",
+        "not_found": "Skipped: device not found"
+      },
+      "errors": {
+        "empty": "Select at least one device.",
+        "too_many": "Too many devices selected.",
+        "confirm": "Type the exact confirmation phrase."
+      }
     }
   },
   "vulns": {
@@ -2329,13 +2386,20 @@
       "genieacs": "GenieACS / TR-069",
       "zabbix": "Zabbix",
       "cnmaestro": "cnMaestro",
-      "ispbilling": "ISPBilling"
+      "ispbilling": "ISPBilling",
+      "bras": "MikroTik BRAS"
     },
     "ispbilling": {
       "title": "ISPBilling",
       "help": "Billing system: customer registry and sites, imported into NSM.",
       "customers": "Customers read",
       "linked": "In NSM"
+    },
+    "bras": {
+      "title": "MikroTik BRAS",
+      "help": "PPPoE concentrator: customers' sessions (read-only).",
+      "online": "Online",
+      "offline": "Offline"
     }
   },
   "syslogAdmin": {
@@ -3528,6 +3592,18 @@
     "pendingExternal": "Check in progress: the NSM server checks the ports within a minute.",
     "pendingAgent": "Check in progress: the agent sends services and firewall at the next heartbeat.",
     "never": "No check yet: it starts automatically once the device is connected, or with «Check now».",
+    "acl": {
+      "column": "ACL",
+      "help": "The check starts from the NSM server: a service filtered by an ACL that admits NSM (for example the ACS) looks open from here. If it is filtered for everyone else, declare it with the allowed addresses: it is then shown as limited, with who declared it.",
+      "declare": "Filtered by ACL…",
+      "allowed": "Allowed from",
+      "allowedPlaceholder": "e.g. 198.51.100.0/24, NOC",
+      "note": "Note (optional)",
+      "save": "Declare",
+      "remove": "Remove declaration",
+      "declared": "Declared by {{by}} on {{when}}",
+      "uncertainHint": "open towards NSM, to check"
+    },
     "internalOnly": "The device is not reachable from Internet ({{reason}}): the open services below answer from the internal network only. No alarm and no ACL rule proposed until it becomes public.",
     "uplinkIp": "WAN address of the device",
     "reach": {
@@ -3943,7 +4019,11 @@
       "blocked": "Upgrade not available.",
       "confirmation": "Invalid confirmation.",
       "backup_ack": "Confirm that you have a recent backup."
-    }
+    },
+    "checkNow": "Check for updates",
+    "checking": "Checking…",
+    "preparing": "Checking for updates: the plan is prepared by itself as soon as the result arrives (within 1–2 minutes).",
+    "prepareFailed": "Plan not prepared after the check: {{error}}"
   },
   "deviceUisp": {
     "recordTitle": "NSM record",
@@ -4004,7 +4084,11 @@
       "signal": "Radio signal",
       "capacity": "Link capacity",
       "resources": "CPU and RAM",
-      "stations": "Connected stations"
+      "stations": "Connected stations",
+      "acs_pon_power": "PON optical levels",
+      "acs_pon_temperature": "Optical module temperature",
+      "acs_pon_bias": "Laser bias current",
+      "acs_pon_voltage": "Optical module voltage"
     },
     "series": {
       "cpu_percent": "CPU",
@@ -4014,7 +4098,12 @@
       "uplink_capacity_bps": "Uplink capacity",
       "uptime_seconds": "Uptime",
       "frequency_mhz": "Frequency",
-      "stations": "Connected stations"
+      "stations": "Connected stations",
+      "pon_rx_dbm": "Rx",
+      "pon_tx_dbm": "Tx",
+      "pon_temperature_c": "Temperature",
+      "pon_bias_ma": "Bias",
+      "pon_voltage_v": "Voltage"
     },
     "metricsTitle": "Operational state from UISP",
     "metricsHelp": "Statistics over the last {{hours}} hours ({{count}} samples); last value {{when}}.",
@@ -4083,7 +4172,8 @@
       "info": "Info",
       "warning": "Warning",
       "error": "Error"
-    }
+    },
+    "moreEvents": "Show more ({{shown}} of {{total}})"
   },
   "deviceCnmaestro": {
     "linked": "Linked to cnMaestro since {{when}} (MAC {{mac}}).",
@@ -4270,7 +4360,8 @@
     "jumpTo": "Jump to section…",
     "sectionOption_one": "{{path}} ({{count}} line)",
     "sectionOption_other": "{{path}} ({{count}} lines)",
-    "sectionsFiltered": "Clear the search to jump to a section."
+    "sectionsFiltered": "Clear the search to jump to a section.",
+    "contentHelpTr069": "Read only. The CPE's configuration parameters as the ACS (TR-069) read them: no passwords and no values that change by themselves (counters, times)."
   },
   "restoreTests": {
     "title": "Restore test history",
@@ -4447,6 +4538,10 @@
       "verify_hash": {
         "title": "SHA-256",
         "help": "Records the integrity of the produced files."
+      },
+      "cambium_config": {
+        "title": "Cambium configuration (SSH)",
+        "help": "The ePMP running configuration read over SSH; needs the Cambium SSH credentials."
       }
     },
     "retention_daily": "Daily",
@@ -4844,7 +4939,31 @@
       "url": "The notes link must be an http(s) address.",
       "date": "Invalid release date.",
       "exists": "This release is already in the catalog.",
-      "not_operator": "Only releases entered by operators can be deleted."
+      "not_operator": "Only releases entered by operators can be deleted.",
+      "extension": "Upload the manufacturer's image (.bin, .img or .zip).",
+      "archive": "The .zip must contain exactly one image (.bin/.img): upload the image directly.",
+      "expired": "Upload expired: upload the file again.",
+      "too_large": "The file is too large.",
+      "too_small": "The file is too small to be a firmware image."
+    },
+    "upload": {
+      "button": "Upload {{label}} firmware",
+      "reading": "Reading the file…",
+      "hint": {
+        "tp-link": "The .zip of the official site or its .bin, with the official name (e.g. VX230v(EU1)_V1_0.19.0 Build 260323): model, hardware version, version and date are read from it.",
+        "ubiquiti": "The airOS .bin (e.g. XC.qca956x.v8.7.25…bin, WA…, XW…, XM…): platform, version and date are read from the name or the image header.",
+        "cambium": "The ePMP image (e.g. ePMP-AC-v4.8.1.img): version from the name, models from the family (AC, AX, GPS_Synced).",
+        "other": "The manufacturer's image with its official name: the version is read from it, the models are asked."
+      },
+      "staged": "{{name}} ({{size}}) uploaded.",
+      "read": "Version read: {{version}}.",
+      "models": "Models this image is for",
+      "modelsHint": "None selected = all models of the brand.",
+      "cancel": "Cancel",
+      "for": "Models: {{models}}.",
+      "inAcs_one": "ready in GenieACS for {{count}} product class",
+      "inAcs_other": "ready in GenieACS for {{count}} product classes",
+      "download": "image {{name}}"
     }
   },
   "incidentNew": {
@@ -5001,6 +5120,18 @@
       "body": "Write the entry (at most 4000 characters).",
       "occurred_at": "The date must be within the last year and not in the future.",
       "forbidden": "Only its author or an administrator can delete it."
+    },
+    "ispbilling": {
+      "show": "Also show ISPBilling activities",
+      "source": "ISPBilling",
+      "untitled": "Activity",
+      "customerScope": "customer activity",
+      "states": {
+        "planned": "Planned",
+        "cancelled": "Cancelled"
+      },
+      "reason": "Cancelled: {{reason}}",
+      "error": "ISPBilling activities not available: {{error}}"
     }
   },
   "sla": {
@@ -5147,9 +5278,11 @@
     }
   },
   "eventTypes": {
+    "ACS_ACCESS_CHANGED": "CPE remote access or Telnet changed",
     "ACS_ALERT_OPENED": "CPE alert opened",
     "ACS_ALERT_RESOLVED": "CPE alert resolved",
     "ACS_ALERT_SETTINGS_CHANGED": "CPE alert settings changed",
+    "ACS_CONFIG_REFRESH_COMPLETED": "CPE configuration read again",
     "ACS_CONFIG_REFRESH_REQUESTED": "CPE configuration re-read requested",
     "ACS_CUSTOMER_TAG_SET": "CPE tagged with its customer in GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "ACS diagnostic completed",
@@ -5165,11 +5298,13 @@
     "ACS_PORT_MAPPING_CHANGED": "CPE port forwarding changed",
     "ACS_REBOOT_REQUESTED": "CPE reboot requested",
     "ACS_REBOOT_VERIFIED": "CPE reboot verified",
+    "ACS_SETTINGS_CHANGED": "CPE advanced settings changed",
     "ACS_SNAPSHOT_ARCHIVED": "TR-069 configuration snapshot archived",
     "ACS_SPEEDTEST_COMPLETED": "CPE speed test completed",
     "ACS_SPEEDTEST_REQUESTED": "CPE speed test requested",
     "ACS_SPEEDTEST_SETTINGS_CHANGED": "CPE speed test settings changed",
     "ACS_SYSLOG_CONFIGURED": "CPE syslog configured via ACS",
+    "ACS_TELNET_DISABLED": "CPE LAN Telnet switched off by policy",
     "ACS_TEMPLATES_INSTALLED": "ACS templates installed",
     "ACS_TEMPLATES_UPDATED": "ACS templates updated by NSM",
     "ACS_WIFI_CHANGED": "Wi-Fi changed through the ACS",
@@ -5195,6 +5330,14 @@
     "BACKUP_RESTORE_TEST_RECORDED": "Restore test recorded",
     "BACKUP_RETENTION_DELETED": "Old backups removed by retention",
     "BACKUP_STALE_ATTEMPT_REPORT_IGNORED": "Late backup report ignored",
+    "BRAS_CONFIG_SAVED": "BRAS connection saved",
+    "BRAS_SYNC_REQUESTED": "BRAS read requested",
+    "CAMBIUM_BACKUP_ARCHIVED": "Cambium configuration archived",
+    "CAMBIUM_BACKUP_FAILED": "Cambium backup failed",
+    "CAMBIUM_SSH_CREDENTIALS_CHANGED": "Cambium SSH credentials changed",
+    "CAMBIUM_SYSLOG_CONFIGURED": "ePMP syslog configured over SSH",
+    "CAMBIUM_SYSLOG_FAILED": "ePMP syslog configuration failed",
+    "CAMBIUM_SYSLOG_RESTORED": "ePMP syslog set back to the previous values",
     "CNMAESTRO_BULK_ONBOARDING": "cnMaestro import",
     "CNMAESTRO_CONFIGURED": "cnMaestro connector configured",
     "CNMAESTRO_DEVICE_LINKED": "Device linked to cnMaestro",
@@ -5244,6 +5387,8 @@
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Monitored interfaces changed",
     "DEVICE_VENDOR_CORRECTED": "Device vendor corrected",
     "DIAGNOSTIC_EXPORTED": "Diagnostic exported",
+    "EXPOSURE_ACL_DECLARED": "Exposed service declared filtered by ACL",
+    "EXPOSURE_ACL_REMOVED": "ACL declaration removed",
     "EXPOSURE_CHECK_REQUESTED": "Exposure check requested",
     "EXPOSURE_EXTERNAL_CHECK": "External exposure check",
     "EXPOSURE_ISSUE_CLOSED_NOT_PUBLIC": "Exposure issue closed: device not reachable from Internet",
@@ -5263,6 +5408,11 @@
     "FIRMWARE_UPGRADE_PLAN_CANCELLED": "Upgrade plan cancelled",
     "FIRMWARE_UPGRADE_PLAN_CREATED": "Upgrade plan created",
     "FIRMWARE_UPGRADE_PLAN_EXPIRED": "Upgrade plan expired",
+    "FIRMWARE_UPGRADE_SCHEDULED": "Firmware upgrade scheduled",
+    "FIRMWARE_UPGRADE_SCHEDULE_CANCELLED": "Scheduled upgrade cancelled",
+    "FIRMWARE_UPGRADE_SCHEDULE_DONE": "Scheduled upgrade completed",
+    "FIRMWARE_UPGRADE_SCHEDULE_FAILED": "Scheduled upgrade failed",
+    "FIRMWARE_UPGRADE_SCHEDULE_STARTED": "Scheduled upgrade started",
     "FIRMWARE_UPGRADE_VERIFICATION_FAILED": "Upgrade verification failed",
     "FIRMWARE_UPGRADE_VERIFIED": "Upgrade verified",
     "GENIEACS_CONNECTOR_CONFIGURED": "GenieACS connector configured",
@@ -5376,6 +5526,8 @@
     "SYSLOG_AGENT_CONFIG_SKIPPED": "Syslog setup skipped",
     "SYSLOG_CHAIN_ANCHOR": "Syslog integrity checkpoint",
     "SYSLOG_SETTINGS_CHANGED": "Syslog settings changed",
+    "UISP_AUTO_CUSTOMERS_CHANGED": "UISP automatic import changed",
+    "UISP_AUTO_IMPORTED": "UISP devices imported automatically",
     "UISP_BACKUP_ARCHIVED": "UISP backup archived",
     "UISP_BACKUP_FAILED": "UISP backup failed",
     "UISP_BULK_ONBOARDING": "UISP import",
@@ -5384,14 +5536,22 @@
     "UISP_DEVICE_ASSOCIATED": "Device linked to UISP",
     "UISP_DEVICE_MISSING": "Device no longer in UISP",
     "UISP_DEVICE_ONBOARDED": "Device imported from UISP",
+    "UISP_FIRMWARE_BULK_UPGRADE": "UISP bulk firmware upgrade",
+    "UISP_FIRMWARE_UPGRADE_FAILED": "UISP firmware upgrade failed",
+    "UISP_FIRMWARE_UPGRADE_REQUESTED": "UISP firmware upgrade requested",
+    "UISP_FIRMWARE_UPGRADE_VERIFIED": "UISP firmware upgrade verified",
     "UISP_INVENTORY_REFRESHED": "UISP data refreshed",
     "UISP_INVENTORY_SYNCED": "UISP inventory synchronised",
     "UISP_REBOOT_FAILED": "UISP reboot failed",
     "UISP_REBOOT_REQUESTED": "Reboot requested through UISP",
     "UISP_REBOOT_VERIFIED": "UISP reboot verified",
+    "UISP_SITE_IGNORED": "UISP endpoint ignored",
+    "UISP_SITE_LINKED": "UISP endpoint linked to a customer",
     "UISP_SYNC_COMPLETED": "UISP sync completed",
     "UISP_SYNC_CONFLICT": "UISP sync conflict",
     "UISP_SYNC_FAILED": "UISP sync failed",
+    "UISP_SYSLOG_CONFIGURED": "Device syslog configured through UISP",
+    "UISP_SYSLOG_RESTORED": "Device configuration restored through UISP",
     "USER_2FA_DISABLED": "Two-factor sign-in disabled",
     "USER_2FA_ENABLED": "Two-factor sign-in enabled",
     "USER_2FA_RECOVERY_REGENERATED": "Two-factor recovery codes renewed",
@@ -5411,6 +5571,7 @@
     "VENDOR_FIRMWARE_RELEASE_ADDED": "Vendor firmware release added",
     "VENDOR_FIRMWARE_RELEASE_DELETED": "Vendor firmware release deleted",
     "VULNERABILITY_STATUS_CHANGED": "Vulnerability status changed",
+    "ZABBIX_CUSTOMER_SCOPE_CHANGED": "Customer added to or removed from Zabbix",
     "ZABBIX_DEVICE_IP_CHANGED": "Zabbix IP changed",
     "ZABBIX_DEVICE_SCOPE_CHANGED": "Device included or excluded in Zabbix",
     "ZABBIX_HOST_IP_UPDATED": "Zabbix host IP updated",
@@ -5587,7 +5748,19 @@
     "dslRate": "Down / up rate",
     "dslSnr": "SNR margin",
     "dslAttenuation": "Attenuation",
-    "charts": "History from the ACS"
+    "charts": "History from the ACS",
+    "pon": {
+      "title": "PON optical levels",
+      "rx_dbm": "Received (Rx)",
+      "tx_dbm": "Transmitted (Tx)",
+      "temperature_c": "Module temperature",
+      "voltage_v": "Supply voltage",
+      "bias_ma": "Laser bias current",
+      "status": "PON state",
+      "notExposed": "not reported by the CPE",
+      "help": "Read from the CPE every hour by the NSM provision; last reading {{when}} from"
+    },
+    "lastSample": "No sample in this period: the last one NSM received from the CPE is from {{when}}."
   },
   "serverMigration": {
     "subtitle": "Move NSM to a server with another address: this server tells MikroTik agents and TR-069 CPEs the new address.",
@@ -5725,7 +5898,13 @@
     "refreshStarted": "The ACS is reading the whole configuration: on a large CPE it takes a few minutes, then save the snapshot.",
     "refreshQueued": "The CPE did not accept the connection request: the configuration will be read at its next contact.",
     "saved": "Snapshot saved.",
-    "open": "Open the Backup tab"
+    "open": "Open the Backup tab",
+    "refreshState": {
+      "running": "The ACS is reading the configuration object by object: {{done}} of {{objects}} read (round {{round}}). Keep the page open or come back later, then save the snapshot.",
+      "done": "Configuration read again ({{objects}} objects): save the snapshot.",
+      "partial": "Configuration read again in part: {{done}} of {{objects}} objects."
+    },
+    "refreshFailed": "Not read (the task was removed so the CPE's queue is not blocked): {{list}}."
   },
   "acsSpeedtest": {
     "title": "Speed test from the CPE",
@@ -5807,7 +5986,21 @@
     "fetch": "Download {{version}} from the TP-Link site into the ACS",
     "fetching": "Downloading from TP-Link…",
     "fetched": "Image loaded into the ACS and selected below: confirm the upgrade when you are ready.",
-    "ready": "Version {{version}} is already in the ACS and selected below: confirm the upgrade when you are ready."
+    "ready": "Version {{version}} is already in the ACS and selected below: confirm the upgrade when you are ready.",
+    "cloud": {
+      "title": "Upgrade from TP-Link's cloud",
+      "help": "The CPE asks TP-Link's cloud for newer firmware by itself, as in the Online Upgrade box of its web page. NSM reads its answer daily and can start that upgrade: the CPE downloads the image from TP-Link, installs it and reboots.",
+      "newer": "TP-Link's cloud offers {{version}}.",
+      "current": "The CPE already runs the version offered by TP-Link's cloud.",
+      "released": "released {{date}}",
+      "none": "The CPE has not reported an answer from TP-Link's cloud yet.",
+      "checked": "Last read from the CPE: {{when}}.",
+      "neverChecked": "Read from the CPE once a day.",
+      "check": "Check now",
+      "checking": "Reading from the CPE…",
+      "warning": "The CPE downloads the image from TP-Link and reboots: the customer is offline for a few minutes. TP-Link firmware usually cannot be downgraded.",
+      "run": "Upgrade to {{version}} from TP-Link's cloud"
+    }
   },
   "acsSyslog": {
     "title": "Syslog via ACS (TR-069)",
@@ -5979,7 +6172,8 @@
       "reconnects_per_hour": "WAN reconnections per hour",
       "reboots_per_day": "CPE reboots in 24 hours",
       "snr_min_db": "Minimum DSL SNR margin (dB)",
-      "dsl_rate_drop_percent": "DSL downstream drop against the 7-day median (%)"
+      "dsl_rate_drop_percent": "DSL downstream drop against the 7-day median (%)",
+      "pon_rx_min_dbm": "Minimum PON received level (dBm, e.g. −27)"
     },
     "save": "Save",
     "saved": "Saved."
@@ -6055,6 +6249,385 @@
     "previous": "Previous page",
     "next": "Next page",
     "size": "Rows per page"
+  },
+  "zabbixScope": {
+    "addDevice": "Add to Zabbix",
+    "removeDevice": "Remove from Zabbix",
+    "working": "Sending to Zabbix…",
+    "addCustomer": "Add to Zabbix",
+    "removeCustomer": "Remove from Zabbix",
+    "notIncluded": "not included",
+    "customerSummary": "{{inZabbix}} of {{devices}} devices are in Zabbix",
+    "confirmAdd_one": "Add this customer's device to Zabbix? It is sent right away.",
+    "confirmAdd_other": "Add this customer's {{count}} devices to Zabbix? They are sent right away.",
+    "confirmRemove_one": "Remove this customer's device from Zabbix? Its host is disabled, not deleted.",
+    "confirmRemove_other": "Remove this customer's {{count}} devices from Zabbix? Their hosts are disabled, not deleted.",
+    "customerDone": "In Zabbix: {{inZabbix}} of {{devices}} devices · without an IP address: {{noIp}}",
+    "outcome": {
+      "pushed": "Created in Zabbix",
+      "linked": "Linked to the host already in Zabbix",
+      "no_ip": "No IP address: set an IP for Zabbix",
+      "factory_ip": "Factory LAN IP: set an address Zabbix can reach",
+      "pending": "Waiting for the next push"
+    }
+  },
+  "uispCustomers": {
+    "open": "UISP customers → NSM",
+    "title": "UISP customers",
+    "subtitle": "Each UISP endpoint (customer site) is matched to the NSM customer with the same name as its UISP CRM client or as the site; the others can be linked here. New devices of matched or linked endpoints are imported under that customer automatically. Infrastructure sites stay in the manual onboarding.",
+    "auto": "Import the devices of matched and linked endpoints automatically",
+    "imported": "{{created}} devices created and {{linked}} linked for {{customers}} customers.",
+    "states": {
+      "label": "Endpoint state",
+      "unmatched": "To check",
+      "matched": "Matched by name",
+      "linked": "Linked by hand",
+      "ignored": "Ignored"
+    },
+    "search": "UISP site, CRM client or NSM customer…",
+    "empty": "Nothing here.",
+    "columns": {
+      "site": "UISP endpoint",
+      "client": "UISP CRM client",
+      "customer": "NSM customer",
+      "devices": "Devices in NSM"
+    },
+    "parent": "under {{name}}",
+    "choose": "Link to a customer…",
+    "byName": "same name",
+    "ignore": "Ignore",
+    "reset": "Undo"
+  },
+  "tplinkAccess": {
+    "title": "Remote access and Telnet",
+    "help": "Read from the ACS; changes are sent to the CPE at once.",
+    "remoteTitle": "Remote web access",
+    "exposed": "The web page of the CPE ({{protocol}}, port {{port}}) can be reached from any Internet address.",
+    "restricted": "Remote web access is on ({{protocol}}, port {{port}}), limited by the CPE to some addresses.",
+    "remoteOff": "Remote web access is off.",
+    "enable": "Switch on remote access",
+    "disable": "Switch off remote access",
+    "protocol": "Protocol",
+    "port": "Port",
+    "apply": "Apply port and protocol",
+    "noAllowList": "Limiting it to some addresses is not available: on the TP-Link firmware tested it closes the page for everyone.",
+    "telnetTitle": "LAN Telnet",
+    "telnetOn": "Telnet is on in the LAN: NSM switches it off at the next daily check.",
+    "telnetAllowed": "Telnet is on in the LAN, allowed by hand on this device.",
+    "telnetOff": "Telnet is off in the LAN (NSM default).",
+    "telnetEnable": "Allow LAN Telnet on this device",
+    "telnetDisable": "Switch off LAN Telnet",
+    "sent": "Sent to the CPE.",
+    "readAt": "Last contact of the CPE: {{when}}."
+  },
+  "tplinkSettings": {
+    "title": "Advanced CPE settings",
+    "help": "Settings sent over TR-069, some of them not offered by the CPE's own web page. Only changed values are sent.",
+    "refresh": "Read from the CPE",
+    "reading": "Reading…",
+    "pagesHelp": "Pages the customer may change from the CPE's web page (unticked: read only).",
+    "adminHelp": "New password of the CPE's administrator account. NSM sends it once and never stores or shows it.",
+    "adminPassword": "New administrator password (8–64 characters)",
+    "save_one": "Send {{count}} change",
+    "save_other": "Send {{count}} changes",
+    "sent": "Sent to the CPE.",
+    "groups": {
+      "upgrades": "Firmware upgrades",
+      "network": "Network",
+      "pages": "Customer pages",
+      "admin": "Administrator credentials"
+    },
+    "fields": {
+      "upgrades_managed": "Firmware only from the ACS (the CPE does not upgrade by itself)",
+      "cloud_auto_upgrade": "Automatic upgrade from TP-Link's cloud",
+      "ntp_server_1": "NTP server 1",
+      "ntp_server_2": "NTP server 2",
+      "nat_timeouts": "Custom NAT session timeouts",
+      "nat_tcp_established": "TCP established timeout (s)",
+      "nat_udp": "UDP timeout (s)",
+      "nat_udp_stream": "UDP stream timeout (s)",
+      "reboot_schedule": "Scheduled reboot",
+      "reboot_hours": "Reboot hour",
+      "reboot_minutes": "Reboot minute"
+    },
+    "pages": {
+      "FirmwareUpgrade": "Firmware upgrade",
+      "BackupRestore": "Backup and restore",
+      "CWMPSettings": "CWMP (TR-069) settings",
+      "UserAccount": "User account",
+      "Internet": "Internet",
+      "WirelessSettings": "Wireless",
+      "LANSettings": "LAN"
+    }
+  },
+  "cambiumBackup": {
+    "title": "Configuration backup (SSH)",
+    "help": "cnMaestro cannot export device configurations, so NSM logs in to the ePMP over SSH, reads the running configuration (config show json) and archives it in the Backup tab, complete and restorable from the ePMP Backup/Restore page. Backup policies with the Cambium option run it on schedule.",
+    "run": "Back up now",
+    "running": "Reading the configuration…",
+    "done": "Configuration archived.",
+    "open": "Open the backups",
+    "source": {
+      "device": "Credentials: this device's.",
+      "shared": "Credentials: the shared Cambium ones ({{username}}).",
+      "none": "No SSH credentials: set the shared ones in Administration → cnMaestro or this device's below."
+    },
+    "noIp": "The management address of the device is not known.",
+    "last": "Last backup {{when}}: {{status}}.",
+    "status": {
+      "success": "archived",
+      "failed": "failed"
+    },
+    "hostKey": "SSH host key {{key}} (remembered at the first backup).",
+    "hostKeyChanged": "The SSH key of the device changed ({{key}}): backups are stopped until you accept it. Accept only if the device was replaced or reset.",
+    "acceptKey": "Accept the new key",
+    "own": "Credentials of this device",
+    "ownHelp": "Only when this device does not use the shared Cambium credentials.",
+    "username": "SSH user",
+    "password": "SSH password",
+    "keepPassword": "leave empty to keep it",
+    "port": "SSH port",
+    "save": "Save",
+    "saved": "Saved.",
+    "clear": "Use the shared ones",
+    "sharedTitle": "SSH credentials of the Cambium devices",
+    "sharedHelp": "Used by NSM to back up the configuration of every Cambium ePMP over SSH (cnMaestro cannot export it). A device can have its own credentials on its cnMaestro tab. Stored encrypted; the password is never shown again.",
+    "remove": "Remove"
+  },
+  "uispFirmware": {
+    "title": "Firmware upgrade through UISP",
+    "help": "UISP downloads the image and installs it on the device, as with UISP's own Upgrade; NSM follows the upgrade and verifies the new version reported by UISP. The UISP token needs write permission.",
+    "installed": "Installed",
+    "platform": "platform {{platform}}",
+    "recommended": "Recommended",
+    "recommendedTag": "recommended",
+    "version": "Version available in UISP",
+    "window": "Install in the maintenance window configured in UISP (otherwise now)",
+    "confirm": "Type {{name}} to confirm: the device reboots and the customer loses the connection for a few minutes.",
+    "start": "Upgrade to {{version}}",
+    "noNewer": "UISP has no newer stable firmware for this device.",
+    "progress": "UISP progress: {{percent}}%.",
+    "inWindow": "Scheduled in the UISP maintenance window.",
+    "requested": "Requested {{when}} by {{who}} (from {{from}})",
+    "states": {
+      "requested": "Upgrade to {{version}} in progress in UISP.",
+      "verified": "Upgrade to {{version}} verified.",
+      "failed": "Upgrade to {{version}} failed.",
+      "unconfirmed": "Upgrade to {{version}} not confirmed."
+    }
+  },
+  "firmwareSchedule": {
+    "title": "Scheduled upgrade",
+    "help": "Choose when to upgrade, for example at night. At that time NSM runs every phase by itself with no further confirmation: check, pre-upgrade backup, approval, download, activation with reboot and version verification. If the device cannot be reached within 2 hours, the upgrade is not run.",
+    "when": "Date and time",
+    "schedule": "Schedule upgrade",
+    "move": "Move",
+    "cancel": "Cancel schedule",
+    "at": "for {{when}}",
+    "confirm": "Schedule the RouterOS upgrade (currently {{target}}) for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "confirmMany_one": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "confirmMany_other": "Schedule the upgrade of {{count}} MikroTik for {{when}}? At that time every phase, reboot included, starts with no further confirmation.",
+    "selected_one": "{{count}} selected",
+    "selected_other": "{{count}} selected",
+    "scheduleMany": "Schedule upgrade",
+    "select": "Select {{name}}",
+    "done_one": "{{count}} upgrade scheduled.",
+    "done_other": "{{count}} upgrades scheduled.",
+    "skipped": "Not scheduled (RouterOS 7.13+ with the modern agent required): {{names}}.",
+    "states": {
+      "scheduled": "Scheduled",
+      "checking": "Checking",
+      "running": "Running",
+      "success": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "uispSyslog": {
+    "title": "Syslog through UISP",
+    "hint": "UISP sets the CPE to send its logs to the NSM receiver: it takes a configuration backup, changes only the syslog lines and applies it again. The backup taken right before is kept as the restore point.",
+    "target": "NSM receiver",
+    "noTarget": "cannot be determined: set the public address in Amministrazione → Syslog",
+    "inUisp": "In UISP",
+    "liveOn": "remote log on, towards {{server}}:{{port}}",
+    "liveOff": "remote log not configured",
+    "unsupported": "UISP does not manage this device's services: configure syslog from the airOS interface.",
+    "current": "NSM configuration",
+    "never": "not configured by NSM yet",
+    "status": {
+      "applied": "{{mode}} · applied {{when}} by {{by}}",
+      "restored": "previous configuration restored (was: {{mode}})"
+    },
+    "modeTitle": "How NSM recognises the logs",
+    "recommended": "recommended",
+    "modes": {
+      "key": {
+        "label": "NSM key in the device name",
+        "help": "UISP adds NSM-… to the CPE name (hostname): it works even if the IP changes or the NAT is shared."
+      },
+      "customer_name": {
+        "label": "CPE name equal to the NSM customer",
+        "help": "The CPE name in UISP must be the customer's ({{customer}}), in any order. Accepted only if no other device uses the same name."
+      },
+      "address": {
+        "label": "Device address",
+        "help": "NSM recognises the logs by the CPE IP as UISP sees it. Discarded if other devices use the same IP (NAT)."
+      }
+    },
+    "reboot": "Applying the configuration reboots the CPE: the customer is offline for 2–3 minutes.",
+    "confirm": "To confirm, type the device name: {{name}}",
+    "configure": "Configure through UISP",
+    "restore": "Restore previous configuration",
+    "working": "UISP is applying…",
+    "done": "Configuration applied: the CPE reboots and the logs arrive within a few minutes.",
+    "restored": "Previous configuration applied: the CPE reboots."
+  },
+  "bras": {
+    "title": "MikroTik BRAS",
+    "subtitle": "PPPoE concentrator read with a read-only RouterOS user: customers' sessions every few minutes, nothing changed on the router.",
+    "online": "Online",
+    "onlineHint": "PPPoE sessions open now",
+    "offline": "Offline",
+    "offlineHint": "Seen before, not connected now",
+    "lastSync": "Last read",
+    "every": "Read every {{minutes}} min",
+    "connection": "Connection",
+    "connectionHelp": "https://address for the RouterOS 7 REST API, or api-ssl://address:8729 (api://address:8728) for the RouterOS API.",
+    "url": "Address",
+    "username": "Read-only user",
+    "password": "Password",
+    "passwordKeep": "unchanged",
+    "interval": "Read every (minutes)",
+    "verifyTls": "Verify the TLS certificate",
+    "enabled": "Enabled",
+    "save": "Save",
+    "actions": "Check",
+    "userHint": "On the BRAS, a user that can only read (example):",
+    "test": "Test connection",
+    "syncNow": "Read now",
+    "synced": "{{sessions}} sessions read: {{came}} came online, {{went}} went offline."
+  },
+  "pppoe": {
+    "title": "PPPoE connections",
+    "help": "RADIUS accounts of the customer (ISPBilling) and their session on the BRAS, read {{when}}.",
+    "noBras": "RADIUS accounts of the customer (ISPBilling). Connect the BRAS (Integrations) to see whether they are online.",
+    "online": "Online",
+    "offline": "Offline",
+    "offlineSince": "since {{when}}",
+    "uptime": "connected for {{value}}",
+    "never": "Never seen on the BRAS",
+    "noDevice": "No device matched"
+  },
+  "acsCapabilities": {
+    "title": "NSM capabilities on this CPE",
+    "help": "{{model}} parameter profile · {{vendor}}, from the GenieACS record (last Inform {{when}}). Read without sending anything to the CPE.",
+    "notRead": "GenieACS has not read the CPE's data model yet.",
+    "vendors": {
+      "tp-link": "TP-Link extensions",
+      "generic": "standard parameters only"
+    },
+    "columns": {
+      "capability": "Feature",
+      "status": "State",
+      "why": "Why / paths",
+      "writes": "Writes to the CPE"
+    },
+    "status": {
+      "available": "Available",
+      "rpc": "Available (TR-069 RPC)",
+      "not_exposed": "Not exposed",
+      "unsupported": "Not supported"
+    },
+    "reasons": {
+      "found": "The CPE exposes the parameters:",
+      "not_reported": "The CPE does not report these parameters (or GenieACS has not read them yet).",
+      "no_dsl": "No DSL line in the CPE's data model.",
+      "no_pon": "The CPE exposes no PON optical levels.",
+      "download_rpc": "Standard Download RPC: needs an image for the model in GenieACS.",
+      "reboot_rpc": "Standard Reboot RPC.",
+      "nsm_tr098": "In TR-098 CPU and memory exist on few CPEs: NSM reads them on TR-181 only.",
+      "vendor_tr181": "Exists only as a TP-Link extension of the TR-181 (Aginet) firmware.",
+      "vendor_tplink": "Exists only as a TP-Link extension (X_TP_*).",
+      "no_standard": "No standard parameter in this data model.",
+      "no_upload_task": "GenieACS has no Upload task: the vendor configuration file cannot be downloaded. NSM archives the parameters.",
+      "snapshots": "{{count}} parameter snapshots archived.",
+      "no_snapshot": "No snapshot yet: take one from the Snapshot section."
+    },
+    "caps": {
+      "identity": "Identity and firmware",
+      "resources": "CPU and memory",
+      "wan": "WAN state",
+      "wifi": "Wi-Fi (read and change)",
+      "dsl": "DSL line",
+      "pon": "PON optical levels",
+      "ping": "Ping from the CPE",
+      "traceroute": "Traceroute from the CPE",
+      "speedtest": "Speed test",
+      "firmware": "Firmware upgrade (image)",
+      "firmware_cloud": "Firmware from TP-Link's cloud",
+      "syslog": "Syslog to NSM",
+      "port_mapping": "Port forwarding and DMZ",
+      "upnp": "UPnP state",
+      "remote_access": "Remote web access",
+      "reboot": "Reboot",
+      "inform_interval": "Inform interval",
+      "config_snapshot": "Configuration snapshot",
+      "config_file": "Vendor configuration file"
+    },
+    "writesYes": "yes, on request",
+    "writesNo": "no"
+  },
+  "cambiumSyslog": {
+    "title": "ePMP syslog",
+    "hint": "cnMaestro cannot change the configuration through its API: NSM sets the syslog from the ePMP SSH console with the Cambium backup credentials. It first shows the parameters it will change; the configuration read right before is kept as a backup.",
+    "target": "NSM receiver",
+    "noTarget": "cannot be determined: set the public address in Amministrazione → Syslog",
+    "credentials": "SSH credentials",
+    "credentialSource": {
+      "device": "of this device",
+      "shared": "shared Cambium ones (Amministrazione → cnMaestro)",
+      "none": "not set"
+    },
+    "current": "NSM configuration",
+    "never": "not configured by NSM yet",
+    "status": {
+      "applied": "{{mode}} · applied {{when}} by {{by}}",
+      "unverified": "{{mode}} · applied {{when}} by {{by}}, values not confirmed by the ePMP",
+      "failed": "failed on {{when}} ({{mode}})",
+      "restored": "previous values restored (was: {{mode}})"
+    },
+    "error": "Error",
+    "unverified": "Parameters not confirmed",
+    "notReady": "The device management address, the Cambium SSH credentials and the syslog receiver address are needed.",
+    "modeTitle": "How NSM recognises the logs",
+    "recommended": "recommended",
+    "modes": {
+      "key": {
+        "label": "NSM key in the device name",
+        "help": "NSM appends -NSM-… to the ePMP name, which appears in every log line: it works even if the IP changes or the NAT is shared."
+      },
+      "customer_name": {
+        "label": "ePMP name equal to the NSM customer",
+        "help": "The ePMP name must be the customer's ({{customer}}), in any order. Accepted only if no other device uses the same name."
+      },
+      "address": {
+        "label": "Device address",
+        "help": "NSM recognises the logs by the ePMP management address. Discarded if other devices use the same IP (NAT)."
+      }
+    },
+    "preview": "Preview the changes",
+    "reading": "Reading the configuration…",
+    "nothing": "The ePMP already sends its logs to NSM in this mode: nothing to change.",
+    "param": "Parameter",
+    "before": "Current",
+    "after": "New",
+    "noReboot": "The changes are applied with config commit, without a reboot.",
+    "confirm": "To confirm, type the device name: {{name}}",
+    "configure": "Apply on the ePMP",
+    "restore": "Restore the previous values",
+    "working": "Connecting to the ePMP…",
+    "done": "Syslog configured: the logs arrive within a few minutes.",
+    "restored": "Previous values restored on the ePMP."
   },
   "managementAccess": {
     "subtitle": "Authorized management networks: the addresses the devices are managed from (NSM, Zabbix, NOC). The same list applies to every vendor: SNMP and SSH answer only these networks, and date and time are synchronized through NTP.",

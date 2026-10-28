@@ -3,13 +3,15 @@ import { type FormEvent, type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IspbillingLinkProposal } from "../app/IspbillingLinks";
 
+import { PppoeSession } from "../app/PppoeSession";
 import { ApiError } from "../api/client";
 import { BrandIcon } from "../app/BrandIcon";
-import { type DeviceDetail as Detail, useDecommission, useDevice, useZabbixExclude, type DeviceIspbillingAccount } from "../api/device";
+import { type DeviceDetail as Detail, useDecommission, useDevice, type DeviceIspbillingAccount } from "../api/device";
 import { formatDateTime, formatDuration, formatRelative } from "../lib/format";
 import { InfoTip } from "../app/InfoTip";
 import { Resources } from "../app/Resources";
 import { DeviceZabbixPanel, ZabbixSeverity } from "../app/ZabbixProblems";
+import { DeviceZabbixButton } from "../app/ZabbixScope";
 import { Loading } from "../app/States";
 import { eventSource } from "../lib/events";
 import { PingToggleDialog } from "../app/PingToggle";
@@ -318,6 +320,7 @@ function IspbillingAccounts({ deviceId, accounts, canManage }: { deviceId: strin
               <small className="ui-muted ui-block">
                 {[account.profile, account.customer, t(`device.ispbilling.matched.${account.matched_by ?? "pppoe"}`)].filter(Boolean).join(" · ")}
               </small>
+              {account.session !== undefined && <PppoeSession session={account.session} />}
               {account.same_customer === false && <small className="ui-key-hint ui-block">{t("device.ispbilling.otherCustomer")}</small>}
               {canManage && account.link && <IspbillingLinkProposal deviceId={deviceId} account={account.account} link={account.link} />}
             </span>
@@ -405,8 +408,9 @@ function minutesLabel(value: number, locale: string): string {
 
 function ZabbixField({ deviceId, zabbix, canEdit }: { deviceId: string; zabbix: NonNullable<Detail["zabbix"]>; canEdit: boolean }) {
   const { t } = useTranslation();
-  const toggle = useZabbixExclude(deviceId);
-  const state = zabbix.excluded ? t("zabbixProblems.excluded") : zabbix.link ? t("zabbixProblems.open") : t("zabbixProblems.pending");
+  const inZabbix = !zabbix.excluded && zabbix.in_scope !== false;
+  const state = zabbix.excluded ? t("zabbixProblems.excluded") : zabbix.link ? t("zabbixProblems.open")
+    : zabbix.in_scope === false ? t("zabbixScope.notIncluded") : zabbix.outcome && zabbix.outcome !== "pending" ? t(`zabbixScope.outcome.${zabbix.outcome}`) : t("zabbixProblems.pending");
   return (
     <Field label="Zabbix" value={state}>
       {zabbix.link ? <a href={zabbix.link} target="_blank" rel="noopener noreferrer">{t("zabbixProblems.open")}</a> : state}
@@ -414,12 +418,9 @@ function ZabbixField({ deviceId, zabbix, canEdit }: { deviceId: string; zabbix: 
       {canEdit && (
         <>
           {" · "}
-          <button type="button" className="ui-link-button" disabled={toggle.isPending} onClick={() => toggle.mutate(!zabbix.excluded)}>
-            {zabbix.excluded ? t("zabbixProblems.include") : t("zabbixProblems.exclude")}
-          </button>
+          <DeviceZabbixButton deviceId={deviceId} inZabbix={inZabbix} />
         </>
       )}
-      {toggle.error && <small className="ui-text-danger ui-block">{(toggle.error as Error).message}</small>}
     </Field>
   );
 }

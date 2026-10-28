@@ -14,8 +14,9 @@ archive, viewable and comparable in the *Backup* tab like a RouterOS export.
   ``ACS_SNAPSHOT_ARCHIVED``. A scheduled snapshot identical to the previous one
   is not stored again.
 - *Rileggi configurazione dal CPE* (``POST .../acs/snapshot/refresh``,
-  ``devices.write``) asks GenieACS to re-read the whole parameter tree first; on
-  a large CPE that takes a few minutes in the background.
+  ``devices.write``) asks GenieACS to re-read the parameter tree object by object,
+  in rounds (``acs_config_refresh``): one refresh of the whole root exceeds
+  GenieACS's RPC cap on large CPEs and its fault blocked the CPE's task queue.
 - Not restorable with one click: the snapshot documents the configuration and
   shows what changed; restoring is done by hand or with the Wi-Fi settings.
 """
@@ -30,6 +31,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 
+from app import acs_profiles as profiles
 from app import acs_diagnostics as nbi
 from app import genieacs_connector as acs
 from app import main as core
@@ -41,7 +43,7 @@ from app.ui_api import require_csrf, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 ARTIFACT_TYPE = "tr069_parameters"
-ROOTS = ("Device", "InternetGatewayDevice")
+ROOTS = tuple(profiles.ROOT.values())
 SECRET = re.compile(r"(pass|key|secret|psk|pin)", re.I)
 VOLATILE = re.compile(r"(\.Stats\.|Bytes|Packets|Uptime|UpTime|LastChange|Time$|Counter|NumberOfEntries$|CurrentLocalTime)")
 MIN_PARAMETERS = 20  # fewer means GenieACS has not read the CPE's configuration yet
@@ -197,27 +199,43 @@ def device_acs_snapshot(request: Request, device_id: uuid.UUID):
         return {"run_id": str(run.id), "status": run.status}
 
 
+def _refresh_target(db, device_id):
+    device = db.get(Device, device_id)
+    if device is None or not acs.tr069_capable(device):
+        raise HTTPException(404)
+    connection = acs._connection(db)
+    if not device.external_device_id or connection is None or not connection.is_enabled:
+        raise HTTPException(409, {"code": "not_linked", "message": "Collega prima il CPE a GenieACS (scheda ACS)."})
+    return device, connection
+
+
+@router.get("/devices/{device_id}/acs/snapshot/refresh")
+def device_acs_snapshot_refresh_state(request: Request, device_id: uuid.UUID):
+    """Progress of the configuration re-read (advanced here too while the page is open)."""
+    from app import acs_config_refresh
+
+    with SessionLocal() as db:
+        ui_user(request, db, "devices.read")
+        device, connection = _refresh_target(db, device_id)
+        if acs_config_refresh.advance(db, device, connection):
+            db.commit()
+        return {"refresh": acs_config_refresh.view(device)}
+
+
 @router.post("/devices/{device_id}/acs/snapshot/refresh", dependencies=[Depends(require_csrf)])
 def device_acs_snapshot_refresh(request: Request, device_id: uuid.UUID):
-    """Ask GenieACS to re-read the CPE's whole parameter tree (minutes on a large CPE)."""
+    """Ask GenieACS to re-read the CPE's configuration object by object, in rounds (``acs_config_refresh``)."""
+    from app import acs_config_refresh
+
     with SessionLocal() as db:
         user = ui_user(request, db, "devices.write")
-        device = db.get(Device, device_id)
-        if device is None or not acs.tr069_capable(device):
-            raise HTTPException(404)
-        connection = acs._connection(db)
-        if not device.external_device_id or connection is None or not connection.is_enabled:
-            raise HTTPException(409, {"code": "not_linked", "message": "Collega prima il CPE a GenieACS (scheda ACS)."})
+        device, connection = _refresh_target(db, device_id)
         try:
-            record = nbi._read(connection, device.external_device_id, list(ROOTS))
-            root = "Device" if isinstance(record.get("Device"), dict) else "InternetGatewayDevice"
-            started = nbi._task(connection, device.external_device_id, {"name": "refreshObject", "objectName": root})
+            acs_config_refresh.start(db, device, connection, user)
         except nbi.AcsDiagnosticError as exc:
             raise HTTPException(422, {"code": "genieacs", "message": str(exc)}) from None
-        core.add_event(db, "ACS_CONFIG_REFRESH_REQUESTED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal",
-                       details={"root": root, "started": started})
         db.commit()
-        return {"started": started}
+        return {"refresh": acs_config_refresh.view(device)}
 
 
 def install_acs_snapshot(app) -> None:

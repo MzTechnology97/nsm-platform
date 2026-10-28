@@ -19,13 +19,13 @@ SECRET = "ci-cnmaestro-placeholder-secret"
 
 def fake(request: httpx.Request):
     path = request.url.path
-    if path == "/api/v1/access/token":
+    if path == "/api/v2/access/token":
         return httpx.Response(200, json={"access_token": "ci-token", "expires_in": 3600})
-    if path == "/api/v1/devices":
+    if path == "/api/v2/devices":
         rows = [{"mac": "02:CB:00:00:10:01", "serial_number": "CB-UI-1", "name": "AP-UI", "ip": "198.51.100.81", "status": "online", "product": "ePMP 3000"}]
         offset = int(request.url.params.get("offset", 0))
         return httpx.Response(200, json={"data": rows[offset:offset + 100], "paging": {"total": len(rows), "offset": offset}})
-    if path == "/api/v1/devices/statistics":
+    if path == "/api/v2/devices/statistics":
         return httpx.Response(200, json={"data": [], "paging": {"total": 0, "offset": 0}})
     return httpx.Response(404)
 

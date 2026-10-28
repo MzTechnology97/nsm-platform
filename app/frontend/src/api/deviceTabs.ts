@@ -46,6 +46,8 @@ export interface ExposureFinding {
   state: string;
   severity?: string;
   reason?: string;
+  /** Operator declaration: the service is filtered by an ACL on the device (external check only). */
+  acl?: { allowed: string; note: string | null; by: string | null; at: string | null };
 }
 
 export interface PortForward {
@@ -253,6 +255,10 @@ export interface FirmwarePlanTab {
   agent_transport: string | null;
   catalog: { channel?: string; latest_version?: string; released_at?: string; newer?: boolean | null; security?: boolean; security_reasons?: string[] } | null;
   can_execute: boolean;
+  /** A RouterOS update check is queued or running; *Prepara upgrade* asked while it runs (``error`` when the plan could not be opened). */
+  check_pending?: boolean;
+  preparing?: { at: string; error?: string } | null;
+  schedule?: import("../app/FirmwareSchedule").FirmwareSchedule | null;
   plan: {
     id: string;
     target_version: string;
@@ -277,14 +283,15 @@ export const useFirmwarePlan = (id: string) =>
   useQuery({
     queryKey: ["device", id, "firmware-plan"],
     queryFn: () => api<FirmwarePlanTab>(`${base(id)}/firmware-upgrade`),
-    refetchInterval: (q) => (["draft", "backup_pending", "staging", "activation_pending", "reboot_pending"].includes(q.state.data?.plan?.status ?? "") ? 15_000 : 60_000),
+    refetchInterval: (q) => (["draft", "backup_pending", "staging", "activation_pending", "reboot_pending"].includes(q.state.data?.plan?.status ?? "")
+      || q.state.data?.check_pending || (q.state.data?.preparing && !q.state.data.preparing.error) ? 10_000 : 60_000),
   });
 
 /** Plan steps (create, approve, stage, activate, cancel, legacy upgrade); the plan and the firmware worklist reload afterwards. */
 export function useFirmwareAction<TBody = object>(id: string, path: string) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (body?: TBody) => api<{ plan_id?: string }>(`${base(id)}/${path}`, { method: "POST", body: JSON.stringify(body ?? {}) }),
+    mutationFn: (body?: TBody) => api<{ plan_id?: string | null; checking?: boolean; state?: string }>(`${base(id)}/${path}`, { method: "POST", body: JSON.stringify(body ?? {}) }),
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ["device", id, "firmware-plan"] });
       void client.invalidateQueries({ queryKey: ["firmware"] });
@@ -350,6 +357,36 @@ export interface Logbook {
 /** Device logbook (operator entries) and, with ``events``, the device's recorded events. */
 export const useLogbook = (id: string, events: boolean) =>
   useQuery({ queryKey: ["device", id, "logbook", events], queryFn: () => api<Logbook>(`${base(id)}/logbook${events ? "?events=1" : ""}`), placeholderData: keepPreviousData });
+
+export interface IspbillingActivity {
+  id: string;
+  type: string | null;
+  kind: "onsite" | "maintenance" | "other";
+  color: string | null;
+  subject: string | null;
+  description: string | null;
+  start: string | null;
+  end: string | null;
+  all_day: boolean;
+  state: "planned" | "past" | "cancelled";
+  cancellation_reason: string | null;
+  status_code: string | null;
+  teams: string[];
+  scope: "device" | "customer";
+  customer: string | null;
+}
+
+export interface IspbillingActivities {
+  available: boolean;
+  linked: boolean;
+  activities: IspbillingActivity[];
+  error: string | null;
+}
+
+/** ISPBilling activities (interventions, installations) of the device or of its customer, read on demand from ISPBilling. */
+export const useIspbillingActivities = (id: string, enabled: boolean) =>
+  useQuery({ queryKey: ["device", id, "ispbilling-activities"], queryFn: () => api<IspbillingActivities>(`${base(id)}/ispbilling-activities`),
+    enabled, staleTime: 60_000, retry: false });
 
 export function useLogbookActions(id: string) {
   const client = useQueryClient();

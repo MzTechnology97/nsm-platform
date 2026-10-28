@@ -30,6 +30,7 @@ from urllib.parse import quote
 import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 
+from app import acs_profiles as profiles
 from app import genieacs_connector as acs
 from app import main as core
 from app.db import SessionLocal
@@ -47,13 +48,13 @@ TRANSPORT = None  # tests swap in an httpx.MockTransport
 # Object paths and settings per data model; values are (name, value, xsd type).
 MODELS = {
     "tr181": {
-        "ping": ("Device.IP.Diagnostics.IPPing", (("NumberOfRepetitions", 4, "xsd:unsignedInt"), ("Timeout", 2000, "xsd:unsignedInt"))),
-        "traceroute": ("Device.IP.Diagnostics.TraceRoute", (("MaxHopCount", 20, "xsd:unsignedInt"), ("NumberOfTries", 3, "xsd:unsignedInt"),
+        "ping": (profiles.path("tr181", "ping"), (("NumberOfRepetitions", 4, "xsd:unsignedInt"), ("Timeout", 2000, "xsd:unsignedInt"))),
+        "traceroute": (profiles.path("tr181", "traceroute"), (("MaxHopCount", 20, "xsd:unsignedInt"), ("NumberOfTries", 3, "xsd:unsignedInt"),
                                                             ("Timeout", 3000, "xsd:unsignedInt"))),
     },
     "tr098": {
-        "ping": ("InternetGatewayDevice.IPPingDiagnostics", (("NumberOfRepetitions", 4, "xsd:unsignedInt"), ("Timeout", 2000, "xsd:unsignedInt"))),
-        "traceroute": ("InternetGatewayDevice.TraceRouteDiagnostics", (("MaxHopCount", 20, "xsd:unsignedInt"), ("NumberOfTries", 3, "xsd:unsignedInt"),
+        "ping": (profiles.path("tr098", "ping"), (("NumberOfRepetitions", 4, "xsd:unsignedInt"), ("Timeout", 2000, "xsd:unsignedInt"))),
+        "traceroute": (profiles.path("tr098", "traceroute"), (("MaxHopCount", 20, "xsd:unsignedInt"), ("NumberOfTries", 3, "xsd:unsignedInt"),
                                                                        ("Timeout", 3000, "xsd:unsignedInt"))),
     },
 }
@@ -153,10 +154,10 @@ def parse_result(model: str, kind: str, record: dict) -> dict:
 
 
 def detect_model(connection, external_id: str) -> str | None:
-    record = _read(connection, external_id, ["Device.IP.Diagnostics.IPPing", "InternetGatewayDevice.IPPingDiagnostics"])
-    if _node(record, "Device.IP.Diagnostics.IPPing"):
+    record = _read(connection, external_id, [profiles.path("tr181", "ping"), profiles.path("tr098", "ping")])
+    if _node(record, profiles.path("tr181", "ping")):
         return "tr181"
-    if _node(record, "InternetGatewayDevice.IPPingDiagnostics"):
+    if _node(record, profiles.path("tr098", "ping")):
         return "tr098"
     return None
 

@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { type ChangeEvent, type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { api } from "../api/client";
 import { useCatalogAction, useVendorCatalogs, type VendorCatalog, type VendorRelease } from "../api/operations";
 import { BrandIcon } from "../app/BrandIcon";
-import { formatDate } from "../lib/format";
+import { formatBytes, formatDate } from "../lib/format";
 import { useFormError } from "./CustomerForm";
 import { Loading } from "../app/States";
 
@@ -87,7 +89,7 @@ function Catalog({ catalog, canExecute }: { catalog: VendorCatalog; canExecute: 
       ) : (
         <div className="ui-empty">{catalog.brand === "ubiquiti" ? t("firmwareCatalogs.emptyUbiquiti", { label: catalog.label }) : t("firmwareCatalogs.empty", { label: catalog.label })}</div>
       )}
-      {canExecute && <AddRelease catalog={catalog} />}
+      {canExecute && <UploadRelease catalog={catalog} />}
     </section>
   );
 }
@@ -103,13 +105,19 @@ function ReleaseRow({ release, canExecute, locale }: { release: VendorRelease; c
     <tr>
       <td><strong className="ui-mono">{release.version}</strong></td>
       <td>
-        {release.model_pattern ?? t("firmwareCatalogs.allModels")}
+        {release.model_pattern ? release.model_pattern.split("|").join(", ") : t("firmwareCatalogs.allModels")}
         {release.platform && <small className="ui-muted ui-block">{t("firmwareCatalogs.platform", { platform: release.platform })}</small>}
       </td>
       <td className="ui-nowrap">{formatDate(release.released_at, locale)}</td>
       <td><span className="ui-tag">{t(`firmwareCatalogs.sources.${release.source}`, { defaultValue: release.source })}</span></td>
       <td>{release.security ? <span className="ui-severity ui-severity-high">{t("firmwareCatalogs.securityTag")}</span> : "—"}</td>
       <td className="ui-break">
+        {release.file && (
+          <a href={`/api/ui/v1/firmware/catalogs/releases/${release.id}/file`} title={`SHA-256 ${release.file.sha256}`} download>
+            {t("firmwareCatalogs.upload.download", { name: release.file.name })}
+          </a>
+        )}
+        {release.file && release.file.acs_files.length > 0 && <small className="ui-muted ui-block">{t("firmwareCatalogs.upload.inAcs", { count: release.file.acs_files.length })}</small>}
         {release.notes_url && <a href={release.notes_url} target="_blank" rel="noopener noreferrer">{t("firmwareCatalogs.releaseNotes")}</a>}
         {release.notes && <small className="ui-muted ui-block">{release.notes}</small>}
       </td>
@@ -123,32 +131,131 @@ function ReleaseRow({ release, canExecute, locale }: { release: VendorRelease; c
   );
 }
 
-const EMPTY = { version: "", model_pattern: "", released_at: "", notes_url: "", security: false, notes: "" };
+interface Staged {
+  token: string;
+  original: string;
+  image: string;
+  size: number;
+  detected: { version: string | null; model_pattern: string; platform: string; released_at: string | null; family: string | null };
+  missing: ("version" | "models")[];
+  models: string[];
+  released_default: string;
+}
 
-function AddRelease({ catalog }: { catalog: VendorCatalog }) {
-  const { t } = useTranslation();
+interface Uploaded {
+  version: string;
+  model_pattern: string | null;
+  platform: string | null;
+  to_update: number;
+  acs_files: string[];
+  warnings: string[];
+}
+
+/** Upload the vendor image: NSM reads version, models/platform and date from it and asks only what it could not read. */
+function UploadRelease({ catalog }: { catalog: VendorCatalog }) {
+  const { t, i18n } = useTranslation();
   const errorText = useFormError();
-  const add = useCatalogAction<typeof EMPTY & { brand: string }, { version: string; to_update: number }>("/releases");
-  const [form, setForm] = useState(EMPTY);
-  const set = (key: keyof typeof EMPTY) => (event: { target: { value: string } }) => setForm({ ...form, [key]: event.target.value });
+  const client = useQueryClient();
+  const [security, setSecurity] = useState(false);
+  const [staged, setStaged] = useState<Staged | null>(null);
+  const [version, setVersion] = useState("");
+  const [models, setModels] = useState<string[]>([]);
+  const [released, setReleased] = useState("");
+  const done = (result: Uploaded) => {
+    setStaged(null);
+    setSecurity(false);
+    void client.invalidateQueries({ queryKey: ["firmware-catalogs"] });
+    void client.invalidateQueries({ queryKey: ["firmware"] });
+    return result;
+  };
+  const confirm = useMutation({
+    mutationFn: ({ token, body }: { token: string; body: Record<string, unknown> }) =>
+      api<Uploaded>(`/api/ui/v1/firmware/catalogs/upload/${token}`, { method: "POST", body: JSON.stringify(body) }).then(done),
+  });
+  const upload = useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("brand", catalog.brand);
+      form.append("image", file);
+      form.append("file_date", new Date(file.lastModified).toISOString().slice(0, 10));
+      return api<Staged>("/api/ui/v1/firmware/catalogs/upload", { method: "POST", body: form });
+    },
+    onSuccess: (data) => {
+      confirm.reset();
+      if (!data.missing.length) {
+        confirm.mutate({ token: data.token, body: { security } });
+        return;
+      }
+      setStaged(data);
+      setVersion(data.detected.version ?? "");
+      setModels([]);
+      setReleased(data.released_default);
+    },
+  });
+  const pick = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) upload.mutate(file);
+  };
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    add.mutate({ ...form, brand: catalog.brand }, { onSuccess: () => setForm(EMPTY) });
+    if (!staged) return;
+    const body: Record<string, unknown> = { security, released_at: released };
+    if (staged.missing.includes("version")) body.version = version;
+    if (staged.missing.includes("models")) body.models = models;
+    confirm.mutate({ token: staged.token, body });
   };
+  const busy = upload.isPending || confirm.isPending;
   return (
-    <details className="ui-section-gap">
-      <summary>{t("firmwareCatalogs.add", { label: catalog.label })}</summary>
-      <form className="ui-admin-form" onSubmit={submit}>
-        <label><span>{t("firmwareCatalogs.version")}</span><input value={form.version} onChange={set("version")} required maxLength={80} placeholder="1.2.3" /></label>
-        <label className="ui-admin-wide"><span>{t("firmwareCatalogs.models")}</span><input value={form.model_pattern} onChange={set("model_pattern")} maxLength={120} placeholder={t("firmwareCatalogs.modelsPlaceholder")} /></label>
-        <label><span>{t("firmwareCatalogs.released")}</span><input type="date" value={form.released_at} onChange={set("released_at")} /></label>
-        <label className="ui-admin-wide"><span>{t("firmwareCatalogs.notesUrl")}</span><input type="url" value={form.notes_url} onChange={set("notes_url")} maxLength={500} placeholder="https://" /></label>
-        <label className="ui-admin-wide"><span>{t("firmwareCatalogs.notes")}</span><input value={form.notes} onChange={set("notes")} maxLength={2000} /></label>
-        <label className="ui-with-brand"><input type="checkbox" checked={form.security} onChange={(event) => setForm({ ...form, security: event.target.checked })} /> <span>{t("firmwareCatalogs.fixesSecurity")}</span></label>
-        <button type="submit" className="ui-button ui-button-primary" disabled={add.isPending}>{t("firmwareCatalogs.addSubmit")}</button>
-      </form>
-      {add.isSuccess && <div className="ui-alert ui-alert-success">{t("firmwareCatalogs.added", { version: add.data.version, count: add.data.to_update })}</div>}
-      {add.error && <div className="ui-alert ui-alert-danger">{errorText(add.error, "firmwareCatalogs.errors")}</div>}
-    </details>
+    <div className="ui-section-gap ui-firmware-upload">
+      <div className="ui-actions">
+        <label className={`ui-button ui-button-primary${busy ? " is-disabled" : ""}`}>
+          {upload.isPending ? t("firmwareCatalogs.upload.reading") : confirm.isPending ? t("app.loading") : t("firmwareCatalogs.upload.button", { label: catalog.label })}
+          <input type="file" accept=".bin,.img,.zip,.tar,.gz,.npk,.pkg" hidden disabled={busy} onChange={pick} />
+        </label>
+        <label className="ui-with-brand">
+          <input type="checkbox" checked={security} onChange={(event) => setSecurity(event.target.checked)} /> <span>{t("firmwareCatalogs.fixesSecurity")}</span>
+        </label>
+      </div>
+      <small className="ui-muted ui-block">{t(`firmwareCatalogs.upload.hint.${catalog.brand}`, { defaultValue: t("firmwareCatalogs.upload.hint.other") })}</small>
+      {staged && (
+        <form className="ui-admin-form" onSubmit={submit}>
+          <p className="ui-admin-wide">
+            {t("firmwareCatalogs.upload.staged", { name: staged.image, size: formatBytes(staged.size, i18n.language) })}{" "}
+            {staged.detected.version && t("firmwareCatalogs.upload.read", { version: staged.detected.version })}
+          </p>
+          {staged.missing.includes("version") && (
+            <label><span>{t("firmwareCatalogs.version")}</span><input value={version} onChange={(event) => setVersion(event.target.value)} required maxLength={80} placeholder="1.2.3" /></label>
+          )}
+          {staged.missing.includes("models") && (
+            <fieldset className="ui-admin-wide">
+              <legend>{t("firmwareCatalogs.upload.models")}</legend>
+              {staged.models.map((model) => (
+                <label key={model} className="ui-with-brand">
+                  <input type="checkbox" checked={models.includes(model)}
+                    onChange={(event) => setModels(event.target.checked ? [...models, model] : models.filter((m) => m !== model))} /> <span>{model}</span>
+                </label>
+              ))}
+              <small className="ui-muted ui-block">{t("firmwareCatalogs.upload.modelsHint")}</small>
+            </fieldset>
+          )}
+          <label><span>{t("firmwareCatalogs.released")}</span><input type="date" value={released} onChange={(event) => setReleased(event.target.value)} /></label>
+          <div className="ui-actions ui-admin-wide">
+            <button type="submit" className="ui-button ui-button-primary" disabled={busy}>{t("firmwareCatalogs.addSubmit")}</button>
+            <button type="button" className="ui-button ui-button-ghost" disabled={busy} onClick={() => setStaged(null)}>{t("firmwareCatalogs.upload.cancel")}</button>
+          </div>
+        </form>
+      )}
+      {confirm.isSuccess && (
+        <div className={confirm.data.warnings.length ? "ui-alert ui-alert-warning" : "ui-alert ui-alert-success"}>
+          {t("firmwareCatalogs.added", { version: confirm.data.version, count: confirm.data.to_update })}{" "}
+          {confirm.data.model_pattern && t("firmwareCatalogs.upload.for", { models: confirm.data.model_pattern.split("|").join(", ") })}{" "}
+          {confirm.data.platform && t("firmwareCatalogs.platform", { platform: confirm.data.platform })}
+          {confirm.data.acs_files.length > 0 && <> · {t("firmwareCatalogs.upload.inAcs", { count: confirm.data.acs_files.length })}</>}
+          {confirm.data.warnings.map((warning) => <small key={warning} className="ui-block">{warning}</small>)}
+        </div>
+      )}
+      {(upload.error || confirm.error) && <div className="ui-alert ui-alert-danger">{errorText(upload.error ?? confirm.error, "firmwareCatalogs.errors")}</div>}
+    </div>
   );
 }
