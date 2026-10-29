@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.282 — 2026-10-29
+
+Zabbix: SNMP host interfaces for SNMP templates
+
+### Fixed
+
+- Zabbix: hosts whose template polls over SNMP failed to sync with "a host interface of type SNMP is required". This hit Ubiquiti with `AirOS8` and MikroTik with `Template Net Mikrotik SNMP` while the settings chose the agent interface. NSM now reads which interface types the chosen templates need and gives each host those interfaces: SNMPv2 with the configured community, agent, IPMI or JMX. Existing hosts get the missing interface before the template is linked, never a duplicate.
 ## 0.49.281 — 2026-10-29
 
 Roadmap: UniFi Network controller connector
