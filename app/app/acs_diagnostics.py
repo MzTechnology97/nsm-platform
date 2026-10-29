@@ -85,6 +85,11 @@ def _client(connection) -> httpx.Client:
 
 def _task(connection, external_id: str, task: dict) -> bool:
     """Queue a task with a connection request; True when the CPE ran it at once, False when it waits for the next contact."""
+    return _task_with_id(connection, external_id, task)[1]
+
+
+def _task_with_id(connection, external_id: str, task: dict) -> tuple[str, bool]:
+    """Like ``_task``, also returning the id GenieACS gave the task ("" when the answer has none), so it can be deleted later."""
     try:
         with _client(connection) as client:
             response = client.post(f"/devices/{quote(external_id, safe='')}/tasks", params={"connection_request": "", "timeout": TASK_TIMEOUT_MS},
@@ -95,7 +100,12 @@ def _task(connection, external_id: str, task: dict) -> bool:
         raise AcsDiagnosticError("Il CPE non è più presente in GenieACS.")
     if response.status_code not in (200, 202):
         raise AcsDiagnosticError(f"GenieACS ha rifiutato il comando (HTTP {response.status_code}).")
-    return response.status_code == 200
+    try:
+        body = response.json()
+        task_id = str(body.get("_id") or "") if isinstance(body, dict) else ""
+    except ValueError:
+        task_id = ""
+    return task_id, response.status_code == 200
 
 
 def _read(connection, external_id: str, paths: list[str]) -> dict:

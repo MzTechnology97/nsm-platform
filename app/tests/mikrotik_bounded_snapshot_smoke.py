@@ -4,6 +4,7 @@ import uuid
 from app import mikrotik_agent, mikrotik_legacy
 from app.entrypoint import app
 from app.mikrotik_bounded_rows import MAX_JSON_BODY, ROW_LIMITS
+from app.mikrotik_snapshot_agent import ROUTING_MENUS
 
 
 def block(source, job_type):
@@ -20,7 +21,13 @@ def main():
         assert f":local nsmIds [{menu} find]" in snapshot, menu
         assert f":set nsmIds [:pick $nsmIds 0 {limit}]" in snapshot, menu
         assert f"[{menu} get $nsmId]" in snapshot, menu
-    assert " print as-value]" not in snapshot.replace("/log print as-value", ""), "no table is materialized whole"
+    # BGP sessions and OSPF neighbors are small tables read whole inside :parse (MTK-05); the route table never is.
+    readers = [f"[{menu} print as-value]" for menus in ROUTING_MENUS.values() for menu in menus]
+    assert all(reader in snapshot for reader in readers)
+    bounded_only = snapshot.replace("/log print as-value", "")
+    for reader in readers:
+        bounded_only = bounded_only.replace(reader, "")
+    assert " print as-value]" not in bounded_only, "no table is materialized whole"
     assert "([:len $nsmDoneBody] <= 60000)" in snapshot and ":set nsmCap ($nsmCap / 2)" in snapshot
     assert snapshot.index(":while ($nsmFitting)") < snapshot.index("http-data=$nsmDoneBody")
 

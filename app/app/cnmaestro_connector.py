@@ -1,4 +1,5 @@
-"""cnMaestro connector for Cambium radios (VEND-02), read-only, on the northbound API **v2**.
+"""cnMaestro connector for Cambium radios (VEND-02), on the northbound API **v2**: read-only here; the one write
+call, the reboot, is in ``cnmaestro_operations``.
 
 cnMaestro marks every v1 response as deprecated ("must be changed to v2", sunset
 3.2.0), so the connector uses ``/api/v2``. Checked with GET only on the
@@ -26,7 +27,9 @@ operator's cnMaestro on-premises (2026-10-23): ``/api/v2/devices``,
 
 Every ``SYNC_INTERVAL`` the worker links Cambium devices of NSM to cnMaestro by
 MAC (then serial), updates identity, firmware, IP and status, and stores a
-metrics sample (90 days; the newest sample of an offline device is kept).
+metrics sample (90 days; the newest sample of an offline device is kept, MON-02,
+and so are the last values on the device: a sync without statistics does not clear them).
+The samples feed the device *Monitor* tab (``monitor_sources``) with the charts every device uses.
 A linked device created by hand (``management_source`` ``manual``, e.g. added
 as generic and corrected to Cambium later) becomes managed by cnMaestro like a
 device created through the connector, with the cnMaestro MAC as external id.
@@ -169,6 +172,21 @@ class Client:
         if note:
             self.deprecation = str((note.get("message") if isinstance(note, dict) else note) or "")[:300] or None
         return payload
+
+    def post(self, path, body=None, what="la richiesta"):
+        """Write call (device operations): any 2xx is accepted; the JSON answer, or {} when there is none."""
+        if self.token is None:
+            self.login()
+        try:
+            response = self.http.post(f"{self.base}{path}", json=body or {}, headers={"Authorization": f"Bearer {self.token}"})
+        except httpx.HTTPError as exc:
+            raise CnMaestroError(f"cnMaestro non raggiungibile: {type(exc).__name__}.") from exc
+        if not 200 <= response.status_code < 300:
+            self._fail(response, what)
+        try:
+            return response.json() if response.content else {}
+        except ValueError:
+            return {}
 
     def paged(self, path, what):
         rows, offset = [], 0
@@ -339,7 +357,9 @@ def sync(db, row=None, now=None, transport=None) -> dict:
             meta.update({"name": found["name"], "type": found["type"], "network": found["network"], "tower": found["tower"],
                          "status": found["status"], "last_sync_at": now.isoformat()})
             values = statistics.get(found["mac"]) or {}
-            meta["metrics"] = values
+            if values:  # MON-02: an offline device keeps showing the last values it reported, with their time
+                meta["metrics"] = values
+                meta["metrics_at"] = now.isoformat()
             data["cnmaestro"] = meta
             device.inventory_data = data
             device.model = device.model or found["model"]
@@ -406,7 +426,18 @@ def series(db, device, range_key="24h") -> dict:
             continue
         points = _bucket(samples, names)
         charts.append({"id": key, "title": title, "unit": unit, "series": [{"field": f, "label": label, "points": [[p["t"], p[f]] for p in points]} for f, label in fields]})
-    return {"range": range_key, "sample_count": len(samples), "charts": charts}
+    return {"range": range_key, "sample_count": len(samples), "charts": charts, "latest": latest(db, device)}
+
+
+def latest(db, device) -> dict | None:
+    """The newest sample of the device whatever its age (MON-02: kept by the retention), for a range without samples."""
+    sample = db.scalar(select(CambiumMetricSample).where(CambiumMetricSample.device_id == device.id)
+                       .order_by(CambiumMetricSample.observed_at.desc()).limit(1))
+    if sample is None:
+        return None
+    values = [{"field": field, "label": label, "unit": unit, "value": getattr(sample, field)}
+              for field, (label, unit, _keys) in FIELDS.items() if getattr(sample, field, None) is not None]
+    return {"observed_at": sample.observed_at.isoformat(), "values": values}
 
 
 def summary() -> dict:

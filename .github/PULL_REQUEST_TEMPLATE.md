@@ -1,48 +1,51 @@
 ## Objective
 
-<!-- One coherent operational objective. -->
+<!-- One coherent objective per PR (DEVELOPMENT_WORKFLOW §1). Link the roadmap entry or the operator request. -->
+
+## State
+
+**ACTIVE** <!-- ACTIVE | BLOCKED | READY FOR TEST | READY FOR MERGE — not READY FOR MERGE while a physical acceptance gate is open -->
 
 ## Confirmed bug / need
 
-<!-- Reproduction, missing capability or requirement. Keep data public-safe. -->
+<!-- What was observed or requested, with sanitized evidence. -->
 
-## Changes
+## Change
 
-<!-- What this PR actually changes. -->
+<!-- What this PR implements. -->
 
-## Scope boundary
+## Scope
 
-<!-- Explicitly state what this PR does NOT change. -->
+- [ ] Backend / data model (migration numbered without gaps, with downgrade)
+- [ ] Agent / connector execution path
+- [ ] UI
+- [ ] Permissions / capability checks
+- [ ] Audit / evidence
+- [ ] Action Center / notifications where actionable
+- [ ] Automated tests
+- [ ] Real-device / vendor validation where required
+- [ ] Documentation (`IMPLEMENTED_CAPABILITIES.md`, `ROADMAP.md`, `OPERATIONS.md` as needed)
 
-## Security / capability boundary
+Out of scope: <!-- what this PR deliberately does not touch -->
 
-<!-- Authentication, authorization, Agent/connector capability and ownership implications. -->
+## Release
 
-## Automated validation
+- Core version `0.49.N` (`APP_VERSION`) and a dated `## 0.49.N — YYYY-MM-DD` entry at the top of `docs/CHANGELOG.md`
+- MikroTik agent version: <!-- unchanged, or the new TARGET_AGENT_VERSION -->
 
-- [ ] focused regression/domain coverage
-- [ ] full required CI green
-- [ ] public-data-safety checks green
+## Tests
 
-Details:
+- [ ] Focused smoke tests: <!-- list -->
+- [ ] `release_discipline_smoke.py`, `public_data_safety_smoke.py`
+- [ ] Frontend build (`npm run build`) when the UI changes
+- [ ] CI green
 
-<!-- CI run / relevant tests. -->
+### Real-device / vendor validation
 
-## Physical / vendor validation
+<!-- Vendor, model, firmware, operation, sanitized result; or N/A with the reason. -->
 
-- [ ] not required
-- [ ] required and complete
-- [ ] required and pending
+## Blocker / next step
 
-<!-- For RouterOS/vendor tests: version/family, operation and sanitized outcome. Never include secrets or production identifiers. -->
+<!-- If BLOCKED: exact blocker, last successful step, failing command and sanitized error, whether user input or hardware is needed. Otherwise: the exact next action. -->
 
-## Documentation
-
-- [ ] `docs/IMPLEMENTED_CAPABILITIES.md` updated if product state changed
-- [ ] `docs/ROADMAP.md` updated if a gate changed
-- [ ] `docs/ARCHITECTURE.md` updated if a boundary changed
-- [ ] no documentation change required
-
-## Current status
-
-<!-- ACTIVE / BLOCKED / READY FOR TEST / READY FOR MERGE -->
+<!-- Public repository: synthetic data only (RFC 5737 addresses, 02: MACs, example.test). No credentials, customer names or real identifiers. -->
