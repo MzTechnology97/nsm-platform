@@ -43,6 +43,8 @@
   demo dataset (clearing requires typing DEMO), through ``demo_ui``;
 - ``GET /api/ui/v1/admin/integrations/cnmaestro``: connection (secret never
   returned) and last sync; ``POST`` save, test, sync (``cnmaestro_connector``);
+- ``GET /api/ui/v1/admin/integrations/unifi``: UniFi Network controller (API key never
+  returned), sites, last sync and device snapshot; ``POST`` save, test, sync (``unifi_connector``);
 - ``GET /api/ui/v1/admin/integrations/zabbix``: connection, host settings, last
   sync and problems, devices behind a shared IP; ``POST`` save, test, sync and
   the address Zabbix must use for a device (``zabbix_connector``);
@@ -94,6 +96,7 @@ from app import (
     routeros_catalog,
     secret_rotation,
     shared_ips,
+    unifi_connector,
     syslog_firewall,
     syslog_guides,
     syslog_identity,
@@ -543,6 +546,7 @@ def integrations(request: Request):
         user = ui_user(request, db)
         hub = integrations_hub.hub_state(db)
         acs, cnm, zbx = genieacs_connector.summary(), cnmaestro_connector.summary(), zabbix_connector.summary()
+        unifi = unifi_connector.summary()
         ispb = ispbilling_connector.summary(db)
         from app import mikrotik_bras
 
@@ -563,6 +567,8 @@ def integrations(request: Request):
                          "linked": acs["linked"], "pending": acs["pending"]},
             "cnmaestro": {"state": _connector_state(cnm["connection"], cnm["connection"].last_test_status if cnm["connection"] else None),
                           "cambium": cnm["cambium"], "linked": cnm["linked"]},
+            "unifi": {"state": _connector_state(unifi["connection"], unifi["connection"].last_test_status if unifi["connection"] else None),
+                      "devices": unifi["devices"], "linked": unifi["linked"], "version": unifi["last"].get("version")},
             "ispbilling": {"state": _connector_state(ispb["connection"], ((ispb["connection"].settings or {}).get("last_sync") or {}).get("status")
                                                       or ispb["connection"].last_test_status if ispb["connection"] else None),
                            "customers": ispb["customers"], "linked": ispb["linked"], "details_pending": ispb["details_pending"]},
@@ -890,6 +896,65 @@ def admin_cnmaestro_sync(request: Request):
         stats = cnmaestro_connector.sync(db)
         return jsonable_encoder({key: stats.get(key) for key in ("status", "error", "cnmaestro_devices", "linked", "new_links", "adopted",
                                                                      "unmatched", "samples", "deprecation")})
+
+    return _admin_write(request, run)
+
+
+def _unifi_payload(db) -> dict:
+    row = unifi_connector.connection_row(db)
+    settings = (row.settings or {}) if row else {}
+    last = settings.get("last_sync") or {}
+    return jsonable_encoder({
+        "configured": row is not None, "enabled": bool(row and row.is_enabled), "base_url": row.base_url if row else "",
+        "verify_tls": bool(row.verify_tls) if row else True, "sites": unifi_connector.selected_sites(row), "known_sites": settings.get("known_sites") or [],
+        "api_prefix": settings.get("api_prefix"), "last_test_status": row.last_test_status if row else None, "last_error": row.last_error if row else None,
+        "last_sync_at": row.last_sync_at if row else None,
+        "last_sync": {key: last.get(key) for key in ("status", "version", "sites", "unifi_devices", "linked", "new_links", "not_in_nsm", "statistics_error", "error")},
+        "devices": sorted(settings.get("devices") or [], key=lambda d: (str(d.get("site") or ""), str(d.get("kind") or ""), str(d.get("name") or ""))),
+        "brand": {"symbol": "brand-ubiquiti", "color": vendor_cpe.ICONS.get("ubiquiti"), "label": vendor_cpe.label("ubiquiti"), "known": "ubiquiti" in vendor_cpe.ICONS},
+    })
+
+
+@router.get("/admin/integrations/unifi")
+def admin_unifi(request: Request):
+    with SessionLocal() as db:
+        ui_user(request, db, "users.manage")
+        return _unifi_payload(db)
+
+
+@router.post("/admin/integrations/unifi", dependencies=[Depends(require_csrf)])
+def admin_unifi_save(request: Request, body: dict = Body(default={})):
+    def save(db, user):
+        sites = body.get("sites")
+        try:
+            unifi_connector.save_config(db, user, base_url=_text(body, "base_url"), api_key=_text(body, "api_key"),
+                                        verify_tls=body.get("verify_tls") is not False, enabled=body.get("enabled") is True,
+                                        sites=sites if isinstance(sites, list) else [])
+        except ValueError as error:
+            raise HTTPException(422, {"code": "invalid", "message": str(error)}) from None
+        db.flush()
+        return _unifi_payload(db)
+
+    return _admin_write(request, save)
+
+
+@router.post("/admin/integrations/unifi/test", dependencies=[Depends(require_csrf)])
+def admin_unifi_test(request: Request):
+    def run(db, user):
+        row = unifi_connector.connection_row(db)
+        if row is None:
+            raise HTTPException(422, {"code": "not_configured", "message": "Configura prima il controller UniFi."})
+        ok, message = unifi_connector.test_connection(row)
+        return {"ok": ok, "message": message}
+
+    return _admin_write(request, run)
+
+
+@router.post("/admin/integrations/unifi/sync", dependencies=[Depends(require_csrf)])
+def admin_unifi_sync(request: Request):
+    def run(db, user):
+        stats = unifi_connector.sync(db)
+        return jsonable_encoder({key: stats.get(key) for key in ("status", "error", "version", "sites", "unifi_devices", "linked", "new_links", "not_in_nsm")})
 
     return _admin_write(request, run)
 

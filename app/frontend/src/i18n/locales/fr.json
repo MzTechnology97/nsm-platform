@@ -2391,7 +2391,8 @@
       "zabbix": "Zabbix",
       "cnmaestro": "cnMaestro",
       "ispbilling": "ISPBilling",
-      "bras": "BRAS MikroTik"
+      "bras": "BRAS MikroTik",
+      "unifi": "UniFi Network"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -2404,6 +2405,12 @@
       "help": "Concentrateur PPPoE : sessions des clients (lecture seule).",
       "online": "En ligne",
       "offline": "Hors ligne"
+    },
+    "unifi": {
+      "title": "UniFi Network (Ubiquiti)",
+      "help": "Passerelles, commutateurs et points d'accès UniFi lus depuis le contrôleur UniFi Network en lecture seule : état, firmware, IP, CPU, mémoire et liaison montante.",
+      "devices": "Équipements dans le contrôleur",
+      "linked": "Associés à NSM"
     }
   },
   "syslogAdmin": {
@@ -5630,6 +5637,8 @@
     "UISP_SYSLOG_CONFIGURED": "Syslog de l'équipement configuré via UISP",
     "UISP_SYSLOG_LEVEL_CHANGED": "Niveau minimum de l'équipement modifié",
     "UISP_SYSLOG_RESTORED": "Configuration de l'équipement restaurée via UISP",
+    "UNIFI_CONFIGURED": "Connecteur UniFi Network configuré",
+    "UNIFI_DEVICE_LINKED": "Équipement associé au contrôleur UniFi",
     "USER_2FA_DISABLED": "Connexion à deux facteurs désactivée",
     "USER_2FA_ENABLED": "Connexion à deux facteurs activée",
     "USER_2FA_RECOVERY_REGENERATED": "Codes de secours 2FA renouvelés",
@@ -6903,5 +6912,44 @@
     "limited": "Premiers {{shown}} sur {{total}} équipements : affinez la recherche.",
     "allGood": "Tous les RouterBOOT sont à jour.",
     "empty": "Aucun MikroTik dans cet état."
+  },
+  "unifi": {
+    "title": "Intégrations · UniFi Network",
+    "subtitle": "Connecteur en lecture seule pour les équipements UniFi (passerelles/routeurs, commutateurs, points d'accès) gérés par un contrôleur UniFi Network : liste par site, association par MAC, état, firmware et statistiques toutes les 15 minutes.",
+    "lastSync": "Dernière synchronisation",
+    "controller": "Contrôleur",
+    "sites_one": "{{count}} site",
+    "sites_other": "{{count}} sites",
+    "inController": "Équipements dans le contrôleur",
+    "notInNsm_one": "{{count}} pas encore dans NSM",
+    "notInNsm_other": "{{count}} pas encore dans NSM",
+    "linked": "Associés à NSM",
+    "byMac": "équipements Ubiquiti NSM avec la même MAC",
+    "connectionHelp": "Dans le contrôleur : UniFi Network → Paramètres → Control Plane → Intégrations → créez une clé API. UniFi Network 9.3 ou ultérieur est requis. La clé a les droits de l'administrateur qui la crée : un administrateur en lecture seule suffit pour NSM.",
+    "url": "Adresse de la console ou du contrôleur",
+    "apiKey": "Clé API",
+    "tlsHelp": "Désactivez la vérification uniquement si le contrôleur utilise son certificat autosigné d'usine.",
+    "siteFilter": "Sites à lire",
+    "siteFilterHelp": "Aucun site sélectionné : NSM lit tous les sites du contrôleur.",
+    "saved": "Configuration UniFi enregistrée.",
+    "actionsHelp": "Le test lit la version et les sites. La synchronisation lit les équipements et associe les équipements Ubiquiti déjà présents dans NSM avec la même MAC. Rien n'est envoyé au contrôleur. Le client et le site restent ceux de NSM.",
+    "disabledConnector": "Le connecteur UniFi est désactivé.",
+    "synced": "Synchronisation terminée : {{devices}} équipements dans {{sites}} sites, {{linked}} associés à NSM ({{created}} nouveaux), {{missing}} pas encore dans NSM.",
+    "devicesTitle": "Équipements dans le contrôleur",
+    "filter": "Filtrer par nom, modèle, IP, MAC ou site",
+    "devicesHelp": "Liste lue lors de la dernière synchronisation. L'import dans NSM des équipements absents arrive à l'étape suivante.",
+    "noDevices": "Aucun équipement lu : lancez le test, puis la synchronisation.",
+    "columns": {
+      "site": "Site",
+      "device": "Équipement",
+      "type": "Type",
+      "ip": "IP",
+      "firmware": "Firmware",
+      "state": "État",
+      "nsm": "Dans NSM"
+    },
+    "updateAvailable": "mise à jour disponible",
+    "inNsm": "associé",
+    "missing": "absent de NSM"
   }
 }

@@ -2391,7 +2391,8 @@
       "zabbix": "Zabbix",
       "cnmaestro": "cnMaestro",
       "ispbilling": "ISPBilling",
-      "bras": "BRAS MikroTik"
+      "bras": "BRAS MikroTik",
+      "unifi": "UniFi Network"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -2404,6 +2405,12 @@
       "help": "Concentrador PPPoE: sesiones de los clientes (solo lectura).",
       "online": "En línea",
       "offline": "Sin conexión"
+    },
+    "unifi": {
+      "title": "UniFi Network (Ubiquiti)",
+      "help": "Gateways, switches y puntos de acceso UniFi leídos del controlador UniFi Network en solo lectura: estado, firmware, IP, CPU, memoria y enlace ascendente.",
+      "devices": "Equipos en el controlador",
+      "linked": "Vinculados a NSM"
     }
   },
   "syslogAdmin": {
@@ -5630,6 +5637,8 @@
     "UISP_SYSLOG_CONFIGURED": "Syslog del dispositivo configurado mediante UISP",
     "UISP_SYSLOG_LEVEL_CHANGED": "Nivel mínimo del dispositivo cambiado",
     "UISP_SYSLOG_RESTORED": "Configuración del dispositivo restaurada mediante UISP",
+    "UNIFI_CONFIGURED": "Conector UniFi Network configurado",
+    "UNIFI_DEVICE_LINKED": "Equipo vinculado al controlador UniFi",
     "USER_2FA_DISABLED": "Acceso en dos pasos desactivado",
     "USER_2FA_ENABLED": "Acceso en dos pasos activado",
     "USER_2FA_RECOVERY_REGENERATED": "Códigos de recuperación 2FA regenerados",
@@ -6903,5 +6912,44 @@
     "limited": "Primeros {{shown}} de {{total}} equipos: acota la búsqueda.",
     "allGood": "Todos los RouterBOOT están actualizados.",
     "empty": "Ningún MikroTik en este estado."
+  },
+  "unifi": {
+    "title": "Integraciones · UniFi Network",
+    "subtitle": "Conector de solo lectura para los equipos UniFi (gateways/routers, switches, puntos de acceso) gestionados por un controlador UniFi Network: lista por sitio, vinculación por MAC, estado, firmware y estadísticas cada 15 minutos.",
+    "lastSync": "Última sincronización",
+    "controller": "Controlador",
+    "sites_one": "{{count}} sitio",
+    "sites_other": "{{count}} sitios",
+    "inController": "Equipos en el controlador",
+    "notInNsm_one": "{{count}} aún no en NSM",
+    "notInNsm_other": "{{count}} aún no en NSM",
+    "linked": "Vinculados a NSM",
+    "byMac": "equipos Ubiquiti de NSM con la misma MAC",
+    "connectionHelp": "En el controlador: UniFi Network → Ajustes → Control Plane → Integraciones → cree una clave API. Se requiere UniFi Network 9.3 o posterior. La clave tiene los permisos del administrador que la crea: para NSM basta un administrador de solo lectura.",
+    "url": "Dirección de la consola o del controlador",
+    "apiKey": "Clave API",
+    "tlsHelp": "Desactive la verificación solo si el controlador usa su certificado autofirmado de fábrica.",
+    "siteFilter": "Sitios que leer",
+    "siteFilterHelp": "Ningún sitio seleccionado: NSM lee todos los sitios del controlador.",
+    "saved": "Configuración UniFi guardada.",
+    "actionsHelp": "La prueba lee la versión y los sitios. La sincronización lee los equipos y vincula los equipos Ubiquiti ya presentes en NSM con la misma MAC. No se envía nada al controlador. Cliente y sitio siguen siendo los de NSM.",
+    "disabledConnector": "El conector UniFi está desactivado.",
+    "synced": "Sincronización completada: {{devices}} equipos en {{sites}} sitios, {{linked}} vinculados a NSM ({{created}} nuevos), {{missing}} aún no en NSM.",
+    "devicesTitle": "Equipos en el controlador",
+    "filter": "Filtrar por nombre, modelo, IP, MAC o sitio",
+    "devicesHelp": "Lista leída en la última sincronización. La importación a NSM de los equipos que aún no están llega en el siguiente paso.",
+    "noDevices": "Ningún equipo leído: ejecute la prueba y luego la sincronización.",
+    "columns": {
+      "site": "Sitio",
+      "device": "Equipo",
+      "type": "Tipo",
+      "ip": "IP",
+      "firmware": "Firmware",
+      "state": "Estado",
+      "nsm": "En NSM"
+    },
+    "updateAvailable": "actualización disponible",
+    "inNsm": "vinculado",
+    "missing": "no está en NSM"
   }
 }

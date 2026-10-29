@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.283 — 2026-10-29
+
+UniFi Network: read-only connector for UniFi gateways, switches and access points (UBNT-09, step 1)
+- New page *Integrazioni → UniFi Network*:
+  - controller address and API key (created in UniFi Network → Settings → Control Plane → Integrations, UniFi Network 9.3 or later);
+  - TLS verification, and the sites to read (all by default).
+- *Test connessione* reads the controller version and its sites. NSM finds the API path by itself, both on a UniFi OS console (UDM, Cloud Key, UCG) and on a self-hosted Network Application.
+- Synchronization every 15 minutes, or on demand:
+  - the list of the controller devices by site, with type (router, switch, access point), IP, firmware (with *aggiornamento disponibile*) and state;
+  - Ubiquiti devices already in NSM with the same MAC are linked, with the latest CPU, memory, uptime and uplink rates.
+- A device managed through UISP keeps UISP as the source of its status, firmware and IP.
+- Nothing is sent to the controller: the connector only reads. Customer and Site stay those of NSM.
+- The UniFi Network card is added to the *Integrazioni* page.
+- Next steps: import of the devices not yet in NSM, history charts on *Monitor*, firmware.
 ## 0.49.282 — 2026-10-29
 
 Zabbix: SNMP host interfaces for SNMP templates

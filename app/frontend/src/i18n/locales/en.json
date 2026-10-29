@@ -2391,7 +2391,8 @@
       "zabbix": "Zabbix",
       "cnmaestro": "cnMaestro",
       "ispbilling": "ISPBilling",
-      "bras": "MikroTik BRAS"
+      "bras": "MikroTik BRAS",
+      "unifi": "UniFi Network"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -2404,6 +2405,12 @@
       "help": "PPPoE concentrator: customers' sessions (read-only).",
       "online": "Online",
       "offline": "Offline"
+    },
+    "unifi": {
+      "title": "UniFi Network (Ubiquiti)",
+      "help": "UniFi gateways, switches and access points read from the UniFi Network controller, read-only: status, firmware, IP, CPU, memory and uplink.",
+      "devices": "Devices in the controller",
+      "linked": "Linked to NSM"
     }
   },
   "syslogAdmin": {
@@ -5630,6 +5637,8 @@
     "UISP_SYSLOG_CONFIGURED": "Device syslog configured through UISP",
     "UISP_SYSLOG_LEVEL_CHANGED": "Device minimum level changed",
     "UISP_SYSLOG_RESTORED": "Device configuration restored through UISP",
+    "UNIFI_CONFIGURED": "UniFi Network connector configured",
+    "UNIFI_DEVICE_LINKED": "Device linked to the UniFi controller",
     "USER_2FA_DISABLED": "Two-factor sign-in disabled",
     "USER_2FA_ENABLED": "Two-factor sign-in enabled",
     "USER_2FA_RECOVERY_REGENERATED": "Two-factor recovery codes renewed",
@@ -6903,5 +6912,44 @@
     "limited": "First {{shown}} of {{total}} devices: narrow the search.",
     "allGood": "Every RouterBOOT is up to date.",
     "empty": "No MikroTik in this state."
+  },
+  "unifi": {
+    "title": "Integrations · UniFi Network",
+    "subtitle": "Read-only connector for UniFi devices (gateways/routers, switches, access points) managed by a UniFi Network controller: list per site, linking by MAC, status, firmware and statistics every 15 minutes.",
+    "lastSync": "Last synchronization",
+    "controller": "Controller",
+    "sites_one": "{{count}} site",
+    "sites_other": "{{count}} sites",
+    "inController": "Devices in the controller",
+    "notInNsm_one": "{{count}} not in NSM yet",
+    "notInNsm_other": "{{count}} not in NSM yet",
+    "linked": "Linked to NSM",
+    "byMac": "NSM Ubiquiti devices with the same MAC",
+    "connectionHelp": "In the controller: UniFi Network → Settings → Control Plane → Integrations → create an API key. UniFi Network 9.3 or later is required. The key has the permissions of the administrator who creates it: a read-only administrator is enough for NSM.",
+    "url": "Console or controller address",
+    "apiKey": "API key",
+    "tlsHelp": "Turn verification off only if the controller uses its factory self-signed certificate.",
+    "siteFilter": "Sites to read",
+    "siteFilterHelp": "No site selected: NSM reads every site of the controller.",
+    "saved": "UniFi configuration saved.",
+    "actionsHelp": "The test reads version and sites. The synchronization reads the devices and links the Ubiquiti devices already in NSM with the same MAC. Nothing is sent to the controller. Customer and Site stay those of NSM.",
+    "disabledConnector": "The UniFi connector is disabled.",
+    "synced": "Synchronization completed: {{devices}} devices in {{sites}} sites, {{linked}} linked to NSM ({{created}} new), {{missing}} not in NSM yet.",
+    "devicesTitle": "Devices in the controller",
+    "filter": "Filter by name, model, IP, MAC or site",
+    "devicesHelp": "List read at the last synchronization. Importing the devices not yet in NSM comes in the next step.",
+    "noDevices": "No device read yet: run the test, then the synchronization.",
+    "columns": {
+      "site": "Site",
+      "device": "Device",
+      "type": "Type",
+      "ip": "IP",
+      "firmware": "Firmware",
+      "state": "State",
+      "nsm": "In NSM"
+    },
+    "updateAvailable": "update available",
+    "inNsm": "linked",
+    "missing": "not in NSM"
   }
 }
