@@ -45,6 +45,7 @@ from app.ui_device_agent import install_ui_device_agent
 from app.ui_device_diagnostics import install_ui_device_diagnostics
 from app.ui_customers import install_ui_customers
 from app.ui_operations import install_ui_operations
+from app.mikrotik_fleet_readiness import install_mikrotik_fleet_readiness
 from app.ui_security import install_ui_security
 from app.ui_incidents import install_ui_incidents
 from app.ui_admin import install_ui_admin
@@ -76,6 +77,8 @@ from app.tplink_cloud_firmware import install_tplink_cloud_firmware
 from app.acs_alerts import install_acs_alerts
 from app.acs_port_mapping import install_acs_port_mapping
 from app.acs_profiles import install_acs_profiles
+from app.acs_config_restore import install_acs_config_restore
+from app.acs_firmware_campaigns import install_acs_firmware_campaigns
 from app.ispbilling_cpe_link import install_ispbilling_cpe_link
 from app.tplink_access import install_tplink_access
 from app.tplink_settings import install_tplink_settings
@@ -150,7 +153,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.265"
+APP_VERSION = "0.49.288"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -271,6 +274,7 @@ install_ui_device_agent(core.app)
 install_ui_device_diagnostics(core.app)
 install_ui_customers(core.app)
 install_ui_operations(core.app)
+install_mikrotik_fleet_readiness(core.app)
 install_ui_security(core.app)
 install_ui_incidents(core.app)
 install_ui_admin(core.app)
@@ -302,6 +306,8 @@ install_tplink_cloud_firmware(core.app)
 install_acs_alerts(core.app)
 install_acs_port_mapping(core.app)
 install_acs_profiles(core.app)
+install_acs_config_restore(core.app)
+install_acs_firmware_campaigns(core.app)
 install_ispbilling_cpe_link(core.app)
 install_tplink_access(core.app)
 install_tplink_settings(core.app)

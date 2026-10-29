@@ -56,8 +56,10 @@ def main():
     assert diagnostics["transport"] == "legacy" and diagnostics["support_snapshot"] is False
     assert str(diagnostic_id) in {job["id"] for job in diagnostics["jobs"]}
     ui_headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
-    snapshot_queued = client.post(f"/api/ui/v1/devices/{legacy_id}/configuration/refresh", headers=ui_headers, json={"section": "resources"})
-    assert snapshot_queued.status_code == 200, snapshot_queued.text
+    # A legacy agent older than 0.49.3 has no snapshot handler: the read is refused up front (MTK-05 capability gate).
+    snapshot_refused = client.post(f"/api/ui/v1/devices/{legacy_id}/configuration/refresh", headers=ui_headers, json={"section": "resources"})
+    assert snapshot_refused.status_code == 422 and snapshot_refused.json()["detail"]["code"] == "section_unsupported", snapshot_refused.text
+    assert "0.49.3" in snapshot_refused.json()["detail"]["message"]
     support_blocked = client.post(f"/api/ui/v1/devices/{legacy_id}/diagnostics/support_snapshot", headers=ui_headers)
     assert support_blocked.status_code == 409 and "Support snapshot non disponibile" in support_blocked.json()["detail"]["message"]
     detail = client.get(f"/api/ui/v1/devices/{legacy_id}/diagnostics/jobs/{diagnostic_id}/output")

@@ -15,7 +15,7 @@ An open PR does not count as implemented in `main`.
 - Server-side validation prevents assigning a Device to a Site owned by another Customer.
 - Device identity separates editable operator alias from observed device identity.
 - Customer list and customer profile workspaces.
-- Customer tabs/workspaces for Devices, Sites, Backups, Security and History.
+- Customer tabs/workspaces for Devices, Sites, Backups, Security and History. Since Core 0.49.277 the Devices, Backups and History tabs (and the overview shortcuts and site rows) stay inside the customer's page: the same lists as the global pages, scoped to that customer, without the customer picker and the cross-customer sections (`/app/customers/{id}/devices|backups|history`; the classic `/customers/{id}/…` addresses redirect there). Since Core 0.49.278 the customer also has *Segnalazioni*, *Incidenti* and *SLA* tabs (`/actions`, `/incidents`, `/sla`; shown with the permission of the matching global page: `issues.read`, `incidents.read`, `reports.read`), and the header *Incidenti* button, the SLA target link and the overview *Tutte* link of the issues open them. Since Core 0.49.279 the links of the *Sicurezza* tab open that customer's vulnerabilities (and a CVE's detail with only its devices), firmware and compliance views under the tab (`/security/vulnerabilities[/{advisory}]`, `/security/firmware`, `/security/compliance`), and *fuori supporto* opens its Devices tab filtered on end of life; the Security tab stays highlighted on them.
 - Global Device inventory with server-side filtering and pagination.
 - Device management/edit/delete workflows.
 - Customer/Site create/edit/delete workflows.
@@ -105,7 +105,7 @@ Audit history, notifications and Action Center are different concepts:
 
 ### Implemented
 
-A shared contextual-feedback pattern now covers the principal browser actions that previously could escape to raw FastAPI JSON pages. Current covered areas include:
+*Historical (classic interface, removed in R1, Core 0.49.168–0.49.174).* In the React interface every API error becomes an `ApiError` carrying the server's `{code, message}`, shown in context on the page that started the action; there is no page that falls back to raw JSON. The classic shared contextual-feedback pattern covered these browser actions:
 
 - MikroTik Agent reinstall/update-facing browser flows;
 - RouterOS firmware and RouterBOOT actions;
@@ -394,9 +394,16 @@ NSM monitoring is intentionally lightweight and does not attempt to replace a fu
 - **structured results (MTK-05)** for modern (`result.data`) and legacy agents (the `:tostr` output is parsed back into rows): ping with sent/received, loss, min/avg/max RTT, jitter and per-packet table; traceroute hop table with reached/not-reached; neighbors and DHCP leases linked to NSM Devices by MAC; logs newest first with level badges; the raw output stays available;
 - **history**: every ping/traceroute result lists the previous 10 runs towards the same target on the same Device; the diagnostics page lists the last 25 diagnostics with a one-line outcome (loss and average RTT, hops, events).
 
+### ISP sections and capability gate (MTK-05, Core 0.49.268, Agent 0.49.24)
+
+- three more read-only sections in the Configuration tab, for modern and legacy agents (RouterOS 6.48/6.49 and 7.12): **queues** (simple queues and queue tree, current rate against `max-limit`, a queue at 90% or more of its limit is flagged *saturated*), **certificates** (expiry from `invalid-after` in both RouterOS date formats or `expires-after`; expired, expiring within 30 days, revoked; soonest first) and **BGP / OSPF** (BGP sessions from `/routing bgp session` on RouterOS 7 or `/routing bgp peer` on RouterOS 6, OSPF neighbors; up/down, remote address and AS, uptime, prefixes);
+- bounded as the other sections: up to 300 queues per menu, 100 certificates, 100 BGP sessions and 100 OSPF neighbors; the full route table is never read; the routing menus are compiled at run time with `:parse`, so a router without them (or without the RouterOS 6 routing package) still loads the Agent and returns no rows;
+- only `print`/`get` reads; no command that changes state;
+- **explicit capability gate** per section and transport: an Agent that does not know a section is never asked for it (it would report an empty success). The new sections need Agent 0.49.24, `services` is modern-only; the single refresh is refused with the reason, *Refresh all* skips what the Agent cannot read, a legacy job for an unreadable section fails explicitly at delivery, and the Configuration tab marks the unavailable sections with the update/reinstall hint.
+
 ### Still incomplete
 
-- broader bounded advanced diagnostics;
+- broader bounded advanced diagnostics (SFP optical levels need `/interface ethernet monitor`, not a print; address lists and connection tracking can hold tens of thousands of entries);
 - complete real-device validation matrix across supported RouterOS families.
 
 ## 11. MikroTik backup transport
@@ -438,6 +445,11 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 - failed/partial tests open a device-scoped Action Center issue resolved by the next passed test; every record emits `BACKUP_RESTORE_TEST_RECORDED`;
 - Backup Explorer shows the latest restore result per artifact and per Device; device history page `/devices/{id}/backups/restore-tests`;
 - NSM never restores a production Device automatically.
+
+### Restore readiness of the fleet (Core 0.49.273)
+
+- *Backup → Pronti al ripristino* (`/backups/restore-readiness`, `backup.read`): for every MikroTik the first missing step towards a usable restore: no successful backup, backup older than 7 days, incomplete backup (a format the installed agent can produce is missing, e.g. `.backup` next to `.rsc`), last restore test not passed or recorded on a non-intact file, never tested, test older than 180 days, otherwise *ready*;
+- worklist with counters, customer and text filters; each row links to the device backups or to its restore tests to record a new one; read-only, nothing is restored (idea of the unmerged Core 0.50 *restore readiness* branch, rebuilt on MTK-03).
 
 ### RouterOS 7.12 legacy `.rsc` export (Agent 0.49.7)
 
@@ -483,6 +495,8 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 - RouterBOOT recovery: a flash job the Agent never ran closes the workflow as failed (staging offered again), an undelivered reboot returns to `staged` (reboot offered again), and a reboot with no post-reboot reading fails after the verify timeout;
 - contextual GUI feedback around browser actions;
 - pre-upgrade backup gates/controls where applicable;
+- **RouterBOOT of the fleet** (Core 0.49.273, idea of the unmerged Core 0.39 branch): *Firmware → RouterBOOT* (`/firmware/routerboot`, `firmware.read`) lists the MikroTiks whose RouterBOOT differs from the upgrade available after RouterOS, with the workflow state (to upgrade, in progress, failed, not read, up to date) and why it cannot run yet (legacy agent, unsuitable agent profile, offline); the action opens the existing per-device flash + reboot flow, there is no bulk flash;
+- **firmware policy guard** (Core 0.49.273, from the unmerged Core 0.37 branch): package staging, like activation, is refused before any job when the modern agent has no operational profile (`ops-v1`/`ops-v2`), with the reinstall hint;
 - **controlled reboot** (Agent 0.49.5, `firmware.execute`): *Riavvia* on every MikroTik header and `/devices/{id}/reboot` with mandatory reason and typed `RIAVVIA` confirmation; the Agent acknowledges the job to NSM before running `/system reboot` (no acknowledgement, no reboot); NSM marks it verified only when a later heartbeat reports an uptime shorter than the time since the acknowledgement, otherwise fails it after 15 minutes; refused while backup, firmware, RouterBOOT or self-update jobs are running; modern agents with an operational profile only (legacy agents are read-only); history and audit (`DEVICE_REBOOT_QUEUED/ACCEPTED/VERIFIED/FAILED`).
 
 ### RouterOS release catalog (MTK-04)
@@ -568,13 +582,20 @@ Identification per device:
 - `customer_name`: the UISP hostname must equal the NSM customer's name, words in any order. The name is saved on the device (`match_name`) because the receiver's database account cannot read customers. A line is accepted only when exactly one device uses that name, and only among the first 160 characters of the line;
 - `address`: the management IP from UISP, accepted only when no other device uses it.
 
-Audit `UISP_SYSLOG_CONFIGURED`, `UISP_SYSLOG_RESTORED`.
+Minimum level: airOS has no remote-syslog level, so it sends everything. The receiver keeps only that device's chosen level or worse (`syslog_identity.Index.min_severity`, default warning, Core 0.49.276). auth/authpriv lines and recognised logins are always kept for *Accessi*. The level is changed from the panel without reapplying the configuration (`POST …/syslog/uisp/level`). Audit `UISP_SYSLOG_CONFIGURED`, `UISP_SYSLOG_RESTORED`, `UISP_SYSLOG_LEVEL_CHANGED`.
 
 ### Device operations (UBNT-08 step 2)
 
 Reboot with uptime verification, configuration backup archived in NSM (manual and by policy), interfaces and UISP events on the device UISP tab. The read endpoints (`/devices`, `/devices/{id}`, interfaces, backups, `/logs`) were checked on the operator's console on 2026-10-22 (Core 0.49.199): the kind of a log entry comes from its `tags`; the serial number is not sent by UISP (devices are matched by MAC). Reboot and backup requests are not exercised on the real console yet.
 
 Firmware on real consoles: UISP sends only `firmware.compatible`, not the installed/latest versions. NSM therefore reads the airOS platform (`identification.platformId`: WA, XW, XC…) so the Ubiquiti update service can give the recommended version, and uses `overview.canUpgrade` to mark an otherwise unknown state as *update available*.
+
+### Diagnostics (UBNT-05, Core 0.49.272)
+
+The UISP API v2.1 has no ping or traceroute endpoint; NSM uses what it does expose for airMAX radios:
+- *Collegamenti wireless (UISP)* on the device UISP tab, read on demand (`GET /devices/airmaxes/{id}/stations`, read-only, `devices.read`): for an access point its stations, for a station its access point, with signal on both sides and per chain, noise floor, link score and air time, capacity, latency, distance, and the station's NSM device when its MAC is known. NSM adds plain hints: weak signal (below −75 dBm) or fair (below −65), chains more than 6 dB apart, SNR below 20 dB, link score below 50%, air time above 80%, latency above 100 ms, disconnected, UISP data older than one hour; UISP's own advice (`linkScoreHint`) is shown as it comes. Fields checked read-only on the operator's console (2026-10-23);
+- speed test between the device and one of its stations (`POST /speed-tests/start`, `GET /speed-tests`, `DELETE /speed-tests/{id}`; `devices.write`): direction (download, upload, both), 5–60 seconds, explicit confirmation that the link will be saturated, one test per device at a time. The page polls every 2 seconds and NSM keeps the points UISP reports while it lists the test, then shows average and peak per direction; *Nessun risultato* or *Non confermato* when UISP sent nothing. Audited (`UISP_SPEEDTEST_STARTED`, `UISP_SPEEDTEST_FINISHED`, `UISP_SPEEDTEST_STOPPED`). Tested against a fake UISP only: not yet run on the operator's radios, and the unit of `speed` (taken as bit/s) is to be confirmed there;
+- not used: the site survey (it makes the radio scan and drops its link), the cable test (EdgeSwitch ports only, none in the inventory), `/devices/{id}/statistics` (no ping series on the operator's console).
 
 ### Compatibility check (Core 0.49.189)
 
@@ -636,9 +657,27 @@ The cnMaestro API cannot export a device configuration. This was checked on the 
 
 Validation pending: the parameter names and the `config set`/`config commit` answers of a real ePMP (Force 400, 5.10.4) — the tests use a synthetic CLI.
 
+### Monitor graphs and last values (MON-01/MON-02, Core 0.49.266)
+
+The samples NSM reads from cnMaestro every 15 minutes (`cambium_metric_samples`) feed the device *Monitor* tab with the renderer every device uses (current/min/avg/max legend, gaps on missing data): *Risorse* (CPU, memory), *Traffico* (downlink/uplink throughput), ping from NSM, then *Radio* (signal, SNR, connected stations), ranges 1 h to 90 days.
+
+MON-02: the 90-day retention deletes old samples except the newest of each device, so a Cambium device offline for months keeps its last sample. When the chosen range has none, the Monitor tab shows *Ultimi valori ricevuti* with their time. A sync in which cnMaestro sends no statistics for a device no longer clears its last values on the *cnMaestro* tab, which also shows when they were read (`metrics_at`).
+
+### Reboot through cnMaestro (VEND-02 step 3, Core 0.49.271)
+
+`app/cnmaestro_operations.py`, operator decision 2026-10-23 (reboot and firmware). What the API v2 offers was checked with GET only on the operator's cnMaestro on-premises; action paths were tried only on a made-up MAC:
+
+- `/api/v2/devices/{mac}/reboot` is a route: a GET is answered `500 BAD REQUEST`, like the other device actions, while unknown paths answer a plain `Bad Request`. NSM sends `POST /api/v2/devices/{mac}/reboot` from the *cnMaestro* tab, with the device name typed as confirmation (`firmware.execute`), one reboot at a time per device. A refusal (for example an API client without write permission) is shown and nothing is recorded;
+- the worker (`cnmaestro_reboot_verification`) reads `GET /api/v2/devices/{mac}`. The reboot is *verified* when the time online (`status_time`) restarts after the request, when the device was seen offline and is back, or when `last_reboot_reason` changes. It is *failed* after 20 minutes without any of these;
+- audit `CNMAESTRO_REBOOT_REQUESTED`, `CNMAESTRO_REBOOT_VERIFIED`, `CNMAESTRO_REBOOT_FAILED`.
+
+**Firmware upgrade: not possible through the API.** There is no route for software images or upgrades (`/software`, `/firmware`, `/images`, `/devices/{mac}/upgrade`, `/devices/{mac}/software_update`), and the jobs cnMaestro lists are only *configuration* jobs of Wi-Fi AP groups. NSM does not offer it: upgrades are started from the cnMaestro interface, and NSM sees the new version at the next sync.
+
+Validation pending: the reboot POST on the real console. Only GET requests were sent; the tests use a mocked cnMaestro.
+
 ### Not implemented yet
 
-- operations through cnMaestro (reboot, firmware) — only where the cnMaestro API supports them and they can be verified;
+- firmware upgrades through cnMaestro (no API; see above);
 - per-device performance history from `/api/v2/devices/{mac}/performance` (NSM keeps its own samples from the statistics).
 
 ## 13c. ISPBilling (billing / CRM)
@@ -700,7 +739,7 @@ Warehouse serial numbers ↔ devices (approved, next step of ISPB-01).
 
 ### CPE syslog through the ACS (Core 0.49.220)
 
-TP-Link CPEs (Aginet firmware) keep their log settings in `Device.DeviceInfo.X_TP_LogCfg`; NSM writes `LogToRemote`, `ServerIP`, `ServerPort` (514) and `RemoteSeverity` through GenieACS, nothing else. From the device *Syslog* tab (applied at once via connection request), from *Amministrazione → ACS → Syslog dei CPE TR-069* for every associated TP-Link (applied at the next Inform), and by the worker for new CPEs when syslog *Configura automaticamente* is on. The receiver address is the syslog public address, else the host of `ACS_CWMP_URL`. TP-Link lines carry no NSM key: the key-only receiver accepts a keyless line only from the address of a TR-069 CPE that NSM itself configured this way: its management IP or, while its last Inform is less than 30 minutes old, the WAN address of that Inform (ConnectionRequestURL host, so dynamic IPs follow every PPP reconnection; Core 0.49.245); only when no other device uses that address, CGNAT included (`syslog_identity.Index.by_address`); every other keyless line is still discarded. NSM re-reads the management IP (WAN, from the connection-request URL) before configuring. Checked on a real VX230v. Audit `ACS_SYSLOG_CONFIGURED`.
+TP-Link CPEs (Aginet firmware) keep their log settings in `Device.DeviceInfo.X_TP_LogCfg`; NSM writes `LogToRemote`, `ServerIP`, `ServerPort` (514) and `RemoteSeverity` through GenieACS, nothing else. From the device *Syslog* tab (applied at once via connection request), from *Amministrazione → ACS → Syslog dei CPE TR-069* for every associated TP-Link (applied at the next Inform), and by the worker for new CPEs when syslog *Configura automaticamente* is on. The receiver address is the syslog public address, else the host of `ACS_CWMP_URL`. Default level warning (Core 0.49.276, operator decision 2026-10-23). The state records who set the level (`source`): the worker moves its own configurations, and older states still at the old default *info*, to warning; a technician's choice is kept. TP-Link lines carry no NSM key: the key-only receiver accepts a keyless line only from the address of a TR-069 CPE that NSM itself configured this way: its management IP or, while its last Inform is less than 30 minutes old, the WAN address of that Inform (ConnectionRequestURL host, so dynamic IPs follow every PPP reconnection; Core 0.49.245); only when no other device uses that address, CGNAT included (`syslog_identity.Index.by_address`); every other keyless line is still discarded. NSM re-reads the management IP (WAN, from the connection-request URL) before configuring. Checked on a real VX230v. Audit `ACS_SYSLOG_CONFIGURED`.
 
 ### Bulk migration to the self-hosted ACS (removed in Core 0.49.225)
 
@@ -740,9 +779,19 @@ TR-069 CPEs get the device *Firmware* tab like MikroTik devices: it shows the in
 
 **From TP-Link's cloud (Core 0.49.246, `tplink_cloud_firmware`).** TP-Link CPEs exposing `Device.X_TP_CloudService` ask TP-Link's cloud for newer firmware by themselves (the *Online Upgrade* box of their web page) and keep the answer in `FwUpgradeInfo` (`Version`, `ReleaseDate`, `ReleaseLog`, `Url`, `Progress`, `Status`). The *Firmware* box shows that offer with its release notes. The worker queues a read of it once a day for each TP-Link CPE, at its next periodic contact, and *Verifica ora* reads it at once. Technicians start the CPE's own upgrade by typing the device name: `FwUpgradeInfo.NeedStartUpgrade` and then `X_TP_Upgrade_Action` set to true, one `setParameterValues` task each, only when the offered version differs from the installed one. On a VX230v (2026-10-23) this took the CPE from 0.16.0 to 0.19.0 Build 260323 in about two minutes. The upgrade is followed and audited like an image upgrade (`ACS_FIRMWARE_REQUESTED` with `method: tplink_cloud`, then *verified*, *failed* or *unconfirmed*).
 
+**Campaigns over many CPEs (Core 0.49.270, operator decision 2026-10-23).** *Firmware → Campagne TR-069* (`firmware.read` to see, `firmware.execute` to act) upgrades the linked CPEs of one model with one image already in GenieACS, reusing the single-CPE upgrade (`request_upgrade` / `refresh_upgrade`, each CPE audited `ACS_FIRMWARE_*` as usual). A campaign is created as a draft (name, image, expected version — from the image by default —, CPEs of the image's product class, pilot, CPEs per wave 1–50, 10 by default, time window in `APP_TIMEZONE`, across midnight allowed) and started by typing its name. **First one pilot CPE**, then **waves**, each only when the previous one is fully verified and **only inside the window**; CPEs already on the expected version are skipped (checked again on GenieACS before each request; if the pilot is skipped the next CPE becomes the pilot). **Automatic stop at the first failed or unconfirmed upgrade** (GenieACS fault, no new version after 30 minutes, or a version not containing the expected one): CPEs already requested are still followed, nothing new starts until the operator resumes (typed name again; the failed CPEs stay failed). Pause and cancel at any time; upgrades already sent cannot be called back. The campaign page shows every CPE by wave with its state, versions and error. One CPE can be in only one open campaign. Worker `acs_firmware_campaigns` (once a minute). Tables `acs_firmware_campaigns` / `acs_firmware_campaign_devices` (migration `0059`). Audit `ACS_FIRMWARE_CAMPAIGN_CREATED`, `_STARTED`, `_WAVE_STARTED`, `_PAUSED`, `_RESUMED`, `_STOPPED`, `_CANCELLED`, `_COMPLETED`. Tested with a fake NBI only.
+
 ### TP-Link firmware from the official site (VEND-01, Core 0.49.227)
 
 TP-Link has no firmware API, so once a day (and with *Aggiorna* on *Firmware → Cataloghi*) NSM reads the official Italian download page of every TP-Link model in the inventory (`https://www.tp-link.com/it/support/download/<model>/`, or the `/v<hardware>/` page when the model has several hardware versions) for the hardware version its devices report (TR-069 `HardwareVersion`, e.g. `VX230v v1.0` → V1) and records each image of the *Firmware* tab as a catalog release (source *sito ufficiale*, platform = hardware version; images of other hardware versions are ignored). Versions compare by release number, then by build. The device overview, the firmware worklist and the device *Firmware* tab therefore show the newest version like for the other brands. On a TR-069 CPE with a newer release, *Scarica dal sito TP-Link nell'ACS* reads the page again, downloads that image's `.zip` (HTTPS from `static.tp-link.com` only, 128 MB at most), extracts its single `.bin`, stores it in GenieACS with the version (audit `ACS_FIRMWARE_FILE_FETCHED` with link and SHA-256) and selects it for the upgrade, which still needs the typed confirmation. The download is also automatic (operator decision 2026-10-23, on by default, *Amministrazione → ACS → Download automatico dei firmware*): after each catalog evaluation NSM loads into GenieACS the newer image of every TR-069 CPE, once per model, hardware version and version (at most 3 per run), so it is ready and preselected on the device's *Firmware* tab; nothing is installed (audit `ACS_FIRMWARE_FILE_FETCHED` with `trigger` auto/manual, `ACS_FIRMWARE_AUTO_CHANGED`). Checked on the operator's VX230v page (2026-10-23: `0.19.0 Build 260323`, V1, EU1).
+
+### Zabbix: interfaces required by the templates (ZBX-01 fix, Core 0.49.282)
+
+Zabbix refuses to link a template whose items poll through an interface type the host does not have (*a host interface of type SNMP is required*): with the global interface set to *agent*, the Ubiquiti (`AirOS8`) and MikroTik (`Template Net Mikrotik SNMP`) templates failed on host creation and on `host.massadd`. NSM now reads the item and discovery-rule types of the chosen templates and gives each host the interfaces they need (SNMPv2 with the configured community for SNMP items, agent for passive agent items, IPMI/JMX likewise); templates without such items keep the configured interface. Existing hosts get the missing interface before the template is added, never a second interface of the same type.
+
+### Section icons (GUI-02, Core 0.49.275)
+
+Every page header and empty state shows the icon of the section it belongs to (the sidebar icon set): the layout marks the main area with the section (`data-page-icon`, from the same section map as the sidebar and breadcrumbs) and a generated stylesheet (`styles/page-icons.css`, from `static/ui-icons.svg`) draws the icon as a CSS mask, so it follows the theme colours. Device and customer pages keep their own header (manufacturer icon).
 
 ### MikroTik BRAS: customers' PPPoE sessions (BRAS-01, Core 0.49.261)
 
@@ -766,7 +815,9 @@ Only what cannot be read is asked (version; models, chosen among the brand's mod
 
 ### Configuration snapshots (ACS-07, Core 0.49.217)
 
-GenieACS cannot download a CPE's vendor configuration file (no TR-069 `Upload` task), so NSM archives the CPE's writable parameters as GenieACS last read them: a text file `path = value` (sorted, commented header) in the device backup archive (`BackupRun`/`BackupArtifact`, type `tr069_parameters`), viewable and comparable in the *Backup* tab like a RouterOS export. Secrets (pass/key/secret/PSK/PIN names) and values that change by themselves (statistics, counters, times) are left out. Taken from the *ACS* tab (`backup.execute`) or by backup policies with the TR-069 option (worker `acs_scheduled_snapshots`, one per occurrence, not stored when identical to the previous one); TR-069 CPEs linked to an enabled GenieACS therefore have an executable backup method (*ACS / TR-069 (parametri)*). *Rileggi configurazione dal CPE* asks GenieACS to re-read the tree object by object (Core 0.49.253, `acs_config_refresh`). One refresh of the whole root exceeded GenieACS's RPC cap on the operator's HB210 (8137 parameters, fault `too_many_rpcs`), and the faulted task blocked the CPE's queue. Now: the root's objects, split into children above 2000 known parameters, are queued in rounds of at most 2500 parameters (one connection request per round); the next round starts when GenieACS has run the previous one (worker and page); a faulted refresh task is deleted with its fault, so the queue never stays blocked (on `too_many_rpcs` the object is split further when it has child objects, otherwise reported); NSM's leftover tasks are removed after 90 minutes. The page shows the progress. Audit `ACS_SNAPSHOT_ARCHIVED`, `ACS_CONFIG_REFRESH_REQUESTED`, `ACS_CONFIG_REFRESH_COMPLETED`. Not restorable with one click.
+GenieACS cannot download a CPE's vendor configuration file (no TR-069 `Upload` task), so NSM archives the CPE's writable parameters as GenieACS last read them: a text file `path = value` (sorted, commented header) in the device backup archive (`BackupRun`/`BackupArtifact`, type `tr069_parameters`), viewable and comparable in the *Backup* tab like a RouterOS export. Secrets (pass/key/secret/PSK/PIN names) and values that change by themselves (statistics, counters, times) are left out. Taken from the *ACS* tab (`backup.execute`) or by backup policies with the TR-069 option (worker `acs_scheduled_snapshots`, one per occurrence, not stored when identical to the previous one); TR-069 CPEs linked to an enabled GenieACS therefore have an executable backup method (*ACS / TR-069 (parametri)*). *Rileggi configurazione dal CPE* asks GenieACS to re-read the tree object by object (Core 0.49.253, `acs_config_refresh`). One refresh of the whole root exceeded GenieACS's RPC cap on the operator's HB210 (8137 parameters, fault `too_many_rpcs`), and the faulted task blocked the CPE's queue. Now: the root's objects, split into children above 2000 known parameters, are queued in rounds of at most 2500 parameters (one connection request per round); the next round starts when GenieACS has run the previous one (worker and page); a faulted refresh task is deleted with its fault, so the queue never stays blocked (on `too_many_rpcs` the object is split further when it has child objects, otherwise reported); NSM's leftover tasks are removed after 90 minutes. The page shows the progress. Audit `ACS_SNAPSHOT_ARCHIVED`, `ACS_CONFIG_REFRESH_REQUESTED`, `ACS_CONFIG_REFRESH_COMPLETED`. Older TR-069 snapshots of the same CPE are offered for comparison in the *Backup* tab (Core 0.49.258).
+
+**Restore with preview and confirmation (Core 0.49.269, operator decision 2026-10-23).** On a TR-069 snapshot's page, *Ripristina sul CPE → Prepara il ripristino* reads the CPE's current record from GenieACS (read only) and lists only the snapshot's parameters that are still writable on the CPE and differ from the current value, with both values; already equal, no longer present, not writable and left-out parameters are only counted. Left out: secrets (never in snapshots), values that change by themselves, the ACS link (`ManagementServer.*`, a wrong value would cut the CPE off) and parameters that start an action (diagnostics, upgrades, resets, TP-Link cloud). The technician (`devices.write` and `backup.read`) ticks the parameters (at most 300) and types the device name; NSM recomputes the difference and sends **one** `setParameterValues` task with the CPE's types and a connection request (queued until the next Inform when refused). When GenieACS has run it, NSM asks the CPE to read the restored parameters back (one `getParameterValues` task) and compares: *verified*, or *mismatch* with the parameters that differ. A task that ends in a GenieACS fault is deleted together with its fault, so the CPE's queue is never blocked (*failed* with the fault code); after 30 minutes the leftover task is deleted (*unconfirmed*). One restore at a time per CPE, never during a configuration re-read; followed by the page and the worker (`acs_config_restore`). Audit `ACS_CONFIG_RESTORE_REQUESTED` (parameter names), `ACS_CONFIG_RESTORE_VERIFIED`, `ACS_CONFIG_RESTORE_FAILED`. Tested with a fake NBI only.
 
 ### Wi-Fi settings and reboot (Core 0.49.216)
 
@@ -801,8 +852,6 @@ Right after each monitoring read the worker (`acs_alerts`) evaluates every linke
 ### Not implemented
 
 - bulk ACS discovery/onboarding from the ACS side (this migration drives the CPEs, not GenieACS);
-- restore of a configuration through ACS;
-- firmware campaigns over many CPEs through ACS.
 
 Until an actual connector is selected and implemented, roadmap documentation should stay technology-neutral where possible rather than accumulating unused third-party API references.
 
@@ -917,6 +966,11 @@ Until an actual connector is selected and implemented, roadmap documentation sho
 - manufacturers known to NSM: MikroTik, Ubiquiti and TP-Link by vendor, plus ~30 common brands (Cambium, Mimosa, Tenda, Huawei, ZTE, FiberHome, Teltonika, Ruckus, Siklu, Ceragon, Peplink, Ruijie, AVM, DrayTek, ASUS, Linksys, TOTOLINK, Cudy, Grandstream, Zyxel, D-Link, Netgear, Cisco, Juniper, Fortinet, Palo Alto, SonicWall, Aruba, Sophos) selectable as *Produttore* for manually added devices;
 - NVD is queried only for the brands and models present in the inventory (`<model>_firmware` CPE products plus OS families such as airOS, FortiOS, Junos, PAN-OS); a product that appears in the inventory gets its whole CVE history once, then the sync stays incremental;
 - a device is evaluated only with brand, model (or a single-OS family) and a readable firmware version; otherwise it is *unknown*, never exposed; *Integrazioni → NVD* shows the coverage per manufacturer and why devices cannot be evaluated; the customer device list shows CVE counts for every evaluable brand.
+- version matching per vendor (Core 0.49.267, SEC-02 / UBNT-07):
+  - Ubiquiti airMAX: NVD scopes most airOS CVEs to hardware families (`airmax_ac`, `airmax_m`, `airmax_m_xw`…) instead of models. NSM reads the family from the airOS platform, never from the model name: the prefix of the full firmware string (`WA.ar934x.v8.7.11…`) or the `platformId` UISP reports; WA/XC/2WA/2XC are airMAX AC, XM/XW/TI airMAX M. The family firmware products (`airmax_ac_firmware`, `airmax_m_xw_firmware`…) are then evaluated too, and the release is compared without the build numbers (`6.3.2-cs` = 6.3.2). Without the platform, a family-limited record stays *unknown*. NVD's model lists (`nsm5`, `locom5`…) do not use UISP's model names: a Ubiquiti device not in such a list is *not affected* when its version is outside the range and *unknown* when inside, never matched by guess. The finding evidence records the family;
+  - TP-Link: release, then build date when both sides have one (`1.1.4 Build 20230219`, six-digit builds read as `20yymmdd`); a bound without a build covers every build of its release; a bare build number is *unknown*;
+  - product names are compared without punctuation (`airfiber_60-lr_firmware` = model *airFiber 60 LR*); Cambium and the other brands keep the dotted comparison by model product;
+  - dry run on the operator's data (2026-10-23, nothing written): the 30 airMAX radios go from 0 to 41 findings, all high confidence — CVE-2026-21639 (AC before 8.7.21, M before 6.3.24) on all 30 and CVE-2022-44565 (AC before 8.7.11) on the 11 AC radios at 8.7.4; no NVD record yet for the inventory's TP-Link (HB210, VX230v) and Cambium (ePMP Force 400) models.
 
 ## 16. Lifecycle / EOL / EOS
 
@@ -1076,7 +1130,7 @@ A production identifier must never be copied into a test merely because it repro
 
 The following are approved roadmap areas, not current runtime capabilities:
 
-- Ubiquiti firmware execution through UISP and operations through cnMaestro (only where the vendor API supports them and they are verified on a real console);
+- Ubiquiti firmware execution through UISP and firmware upgrades through cnMaestro (only where the vendor API supports them and they are verified on a real console; the cnMaestro API v2 has none, the reboot is done in Core 0.49.271);
 - remote syslog configuration for vendors other than MikroTik, TP-Link (ACS), Ubiquiti (UISP) and Cambium ePMP (SSH) (LOG-01 next step);
 - ACS parameter profiles, monitoring, diagnostics, backup and firmware (ACS-04..08);
 - production DR/restore validation program;

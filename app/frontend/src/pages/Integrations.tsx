@@ -104,6 +104,12 @@ export function Integrations() {
             <Facts items={[[t("integrations.cnmaestro.cambium"), data.cnmaestro.cambium], [t("integrations.cnmaestro.linked"), data.cnmaestro.linked]]} />
           </Card>
 
+          <Card name="unifi" title={t("integrations.unifi.title")} help={t("integrations.unifi.help")} state={data.unifi.state} label={state(data.unifi.state)}
+            actions={data.can_admin && <Link className="ui-button ui-button-ghost ui-button-small" to="/admin/integrations/unifi">
+              {data.unifi.state !== "unconfigured" ? t("integrations.manage") : t("integrations.configure")}</Link>}>
+            <Facts items={[[t("integrations.unifi.devices"), data.unifi.devices ?? "—"], [t("integrations.unifi.linked"), data.unifi.linked]]} />
+          </Card>
+
           <Card name="ispbilling" title={t("integrations.ispbilling.title")} help={t("integrations.ispbilling.help")} state={data.ispbilling.state} label={state(data.ispbilling.state)}
             actions={<>
               {data.can_admin && data.ispbilling.state !== "unconfigured" && <Link className="ui-button ui-button-ghost ui-button-small" to="/integrations/ispbilling/import">{t("ispbilling.import")}</Link>}
