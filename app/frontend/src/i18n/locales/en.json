@@ -920,7 +920,10 @@
       "graphs": "Graphs",
       "backups": "Backup",
       "security": "Security",
-      "history": "Activity"
+      "history": "Activity",
+      "actions": "Issues",
+      "incidents": "Incidents",
+      "sla": "SLA"
     },
     "metrics": {
       "devices": "Devices online",

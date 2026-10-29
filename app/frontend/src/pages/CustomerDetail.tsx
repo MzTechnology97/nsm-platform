@@ -20,6 +20,9 @@ const MIGRATED_TABS = {
   graphs: "/customers/$customerId/graphs",
   backups: "/customers/$customerId/backups",
   security: "/customers/$customerId/security",
+  actions: "/customers/$customerId/actions",
+  incidents: "/customers/$customerId/incidents",
+  sla: "/customers/$customerId/sla",
   history: "/customers/$customerId/history",
 } as const;
 
@@ -56,7 +59,7 @@ function CustomerShell({ detail }: { detail: Detail }) {
           {customer.notes && <p className="ui-muted">{customer.notes}</p>}
           {customer.sla_target != null && (
             <p className="ui-muted">
-              <Link to="/sla" search={{ customer: customer.id }}>
+              <Link to="/customers/$customerId/sla" params={{ customerId: customer.id }}>
                 {t("sla.customerTarget", { value: new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 2 }).format(customer.sla_target) })}
               </Link>
             </p>
@@ -64,7 +67,7 @@ function CustomerShell({ detail }: { detail: Detail }) {
         </div>
         <div className="ui-actions">
           {detail.actions.incidents && (
-            <Link className="ui-button ui-button-ghost" to="/incidents" search={{ customer: customer.id, status: "all" }}>{t("customer.actions.incidents")}</Link>
+            <Link className="ui-button ui-button-ghost" to="/customers/$customerId/incidents" params={{ customerId: customer.id }} search={{ status: "all" }}>{t("customer.actions.incidents")}</Link>
           )}
           {detail.actions.edit && (
             <Link className="ui-button ui-button-ghost" to="/customers/$customerId/edit" params={{ customerId: customer.id }}>{t("customer.actions.edit")}</Link>
@@ -145,7 +148,7 @@ export function CustomerOverview() {
             <h2>{t("customer.issues.title")}</h2>
             <p className="ui-muted">{t("customer.issues.hint")}</p>
           </div>
-          <Link className="ui-button ui-button-ghost" to="/action-center" search={{ customer: data.customer.id }}>{t("customer.issues.all")}</Link>
+          <Link className="ui-button ui-button-ghost" to="/customers/$customerId/actions" params={{ customerId: data.customer.id }}>{t("customer.issues.all")}</Link>
         </div>
         {data.issues.length ? (
           <ul className="ui-list">

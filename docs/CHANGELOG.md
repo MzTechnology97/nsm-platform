@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.278 — 2026-10-28
+
+Customers
+- **Issues, Incidents and SLA tabs on the customer's page.** They show that customer's open issues, its incidents and its SLA for the month, with its devices already open, without leaving the customer. Each tab appears only to users who can open the matching global page. The header *Incidenti* button, the SLA target and the overview *Tutte* link of the issues open these tabs.
+
 ## 0.49.277 — 2026-10-28
 
 Customers
