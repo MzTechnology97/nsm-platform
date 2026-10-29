@@ -2399,7 +2399,8 @@
       "bras": "BRAS MikroTik",
       "unifi": "UniFi Network",
       "probe": "Sonde externe",
-      "threatLists": "Listes de menaces"
+      "threatLists": "Listes de menaces",
+      "abuseipdb": "AbuseIPDB"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5423,6 +5424,8 @@
     }
   },
   "eventTypes": {
+    "ABUSEIPDB_CONFIGURED": "Paramètres AbuseIPDB modifiés",
+    "ABUSEIPDB_LISTED": "Adresse signalée sur AbuseIPDB",
     "ACS_ACCESS_CHANGED": "Accès distant ou Telnet du CPE modifié",
     "ACS_ALERT_OPENED": "Alerte CPE ouverte",
     "ACS_ALERT_RESOLVED": "Alerte CPE résolue",
@@ -7186,11 +7189,11 @@
     "test": "Tester la sonde",
     "howTitle": "Installation sur le serveur externe",
     "how": {
-      "host": "Un serveur hors de votre réseau (par exemple un VPS Debian ou Ubuntu) avec une autre connexion Internet.",
-      "secret": "L'installateur génère le secret partagé et l'affiche à la fin (à nouveau avec « sudo bash install.sh show-secret »).",
-      "run": "Sur le serveur, lancez les commandes ci-dessous : elles installent Docker s'il manque, téléchargent la sonde et la démarrent.",
-      "sources": "Dans --allow indiquez l'IP publique de sortie du serveur NSM, ainsi personne d'autre ne peut l'utiliser. Avec --domain la sonde répond en HTTPS via Caddy.",
-      "connect": "Saisissez ici l'adresse, le nom et le secret affichés par l'installateur, enregistrez et cliquez sur « Tester la sonde »."
+      "host": "Un serveur hors de votre réseau, avec une autre connexion Internet, et Docker installé.",
+      "secret": "Générez un secret d'au moins 32 caractères (par exemple avec openssl rand -hex 32) : il va dans la sonde et ici.",
+      "run": "Copiez le dossier probe du dépôt et démarrez le conteneur avec les commandes ci-dessous.",
+      "sources": "Dans PROBE_ALLOWED_SOURCES indiquez l'IP publique de sortie du serveur NSM, ainsi personne d'autre ne peut l'utiliser.",
+      "connect": "Saisissez ici adresse, nom et secret, enregistrez et cliquez sur « Tester la sonde »."
     }
   },
   "cambiumFirmware": {
@@ -7474,5 +7477,56 @@
     "bulkQueued_other": "{{count}} équipements en file.",
     "bulkSkipped_one": "{{count}} ignoré (non pris en charge ou déjà en cours).",
     "bulkSkipped_other": "{{count}} ignorés (non pris en charge ou déjà en cours)."
+  },
+  "abuseipdb": {
+    "title": "AbuseIPDB",
+    "subtitle": "Réputation de vos adresses publiques : NSM vérifie vos préfixes et les IP publiques des équipements sur AbuseIPDB, dans le quota de votre offre. Seules des adresses IP quittent NSM.",
+    "test": "Tester la clé",
+    "run": "Vérifier maintenant",
+    "testOk": "Clé valide : quota lu depuis AbuseIPDB.",
+    "ran": "Vérifications effectuées : {{calls}} ; encore à vérifier : {{due}}.",
+    "statusTitle": "État et quota",
+    "waiting": "Quota épuisé : NSM reprend après le {{when}}.",
+    "endpoint": {
+      "check": "Vérifications d'IP",
+      "check-block": "Vérifications de blocs /24"
+    },
+    "quota": "{{remaining}} restants sur {{limit}} · réinitialisation {{when}}",
+    "quotaUnknown": "Quota pas encore lu (lu au premier appel).",
+    "coverage": "À vérifier : {{blocks}} blocs /24 et {{addresses}} adresses hors de vos préfixes ; déjà vérifiés : {{checked}}.",
+    "prefixes": "Préfixes : {{list}}.",
+    "noPrefixes": "Aucun préfixe déclaré : seules les IP publiques des équipements sont vérifiées.",
+    "prefixesLink": "Modifier les préfixes",
+    "evaluated": "Dernière évaluation : {{when}}.",
+    "settingsTitle": "Paramètres",
+    "enabled": "Module actif",
+    "apiKey": "Clé API",
+    "keySaved": "Clé enregistrée (laisser vide pour la conserver)",
+    "keyHelp": "Créez-la sur abuseipdb.com → Account → API. Elle est stockée chiffrée et n'est plus jamais affichée.",
+    "fields": {
+      "threshold": "Seuil d'alerte (score %)",
+      "max_age_days": "Signalements des derniers jours",
+      "recheck_hours": "Revérifier toutes les (heures)",
+      "reserve_checks": "Vérifications d'IP à garder libres",
+      "reserve_blocks": "Vérifications de blocs à garder libres"
+    },
+    "saved": "Paramètres enregistrés.",
+    "lookupTitle": "Vérifier une adresse",
+    "lookup": "Vérifier",
+    "score": "score {{score}} %",
+    "reports_one": "{{count}} signalement",
+    "reports_other": "{{count}} signalements",
+    "reportedTitle": "Adresses signalées",
+    "reportedHelp": "Les adresses avec un score d'au moins {{threshold}} % ouvrent un incident dans l'Action Center, fermé quand le score baisse.",
+    "noReported": "Aucune de vos adresses n'est signalée.",
+    "unassigned": "Votre adresse, non attribuée",
+    "unknownHolder": "Aucun équipement connu",
+    "columns": {
+      "address": "Adresse",
+      "score": "Score",
+      "holder": "Attribuée à (maintenant)",
+      "categories": "Catégories",
+      "last": "Dernier signalement"
+    }
   }
 }

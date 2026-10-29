@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.309 — 2026-10-29
+
+AbuseIPDB: reputation of the operator's own addresses, within the free plan (ABUSEIPDB-01)
+- New module *Integrazioni → AbuseIPDB*, off by default. The API key is stored encrypted and never shown again; *Prova chiave* checks it and reads the quota.
+- What NSM checks, only in the operator's own address space:
+  - the public prefixes declared in *Liste di minaccia*, one **/24 block check** each (one call returns every reported address of the block);
+  - the public addresses of the devices outside those prefixes, one **single check** each.
+- Each item is checked again after 24 hours (configurable); a few calls per minute spread the checks over the day. The **daily quota** is read from AbuseIPDB's answers, a reserve is kept for manual look-ups, and after *quota esaurita* (HTTP 429) NSM waits for the time AbuseIPDB gives. No plan limit is hard-coded.
+- An address with a score at or above the threshold (default 25%) opens an **Action Center issue** and a notification, with the device and customer holding it now, or *indirizzo non assegnato* for an address of the operator's prefixes held by no device. The issue closes when the score falls.
+- The page lists the reported addresses (score, reports, categories such as Port Scan, Brute-Force, SSH, last report, device and customer), the quota left and the coverage, and offers a manual look-up of one address.
+- Only IP addresses leave NSM. Looking up attackers from the logs and reporting to AbuseIPDB come later, opt-in.
 ## 0.49.308 — 2026-10-29
 
 UPnP on every device: where it is on, and turning it off from NSM, one device or many (ACCESS-02, Agent 0.49.28)
