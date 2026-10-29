@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.279 — 2026-10-29
+
+Customers
+- **Security views inside the customer.** On a customer's *Sicurezza* tab, the links open that customer's views without leaving its page:
+  - *Tutte le vulnerabilità* and each CVE, whose detail lists only the customer's devices;
+  - *Pagina firmware*;
+  - *Pagina compliance*;
+  - *fuori supporto*, which opens the customer's Devices tab filtered on end of life;
+  - *Action Center*, which opens the customer's Issues tab.
+  The *Sicurezza* tab stays highlighted while these views are open.
+
 ## 0.49.278 — 2026-10-28
 
 Customers
