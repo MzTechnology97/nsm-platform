@@ -19,6 +19,7 @@ from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_fin
 from app.mikrotik_telemetry import telemetry_cleanup
 from app.uisp_metrics import cleanup as uisp_metrics_cleanup
 from app.cnmaestro_connector import cleanup as cnmaestro_cleanup, scheduled_sync as cnmaestro_sync
+from app.unifi_connector import scheduled_sync as unifi_sync
 from app.ispbilling_connector import scheduled_sync as ispbilling_sync
 from app.mikrotik_bras import scheduled_sync as bras_sync
 from app.interface_traffic import cleanup as interface_traffic_cleanup
@@ -122,6 +123,7 @@ while True:
             run_task("interface_error_alerts", interface_error_alerts)
             run_task("zabbix_sync", zabbix_sync)
             run_task("cnmaestro_sync", cnmaestro_sync)
+            run_task("unifi_sync", unifi_sync)
             run_task("acs_customer_tags", acs_customer_tags)
             run_task("ispbilling_sync", ispbilling_sync)
             run_task("bras_sync", bras_sync)

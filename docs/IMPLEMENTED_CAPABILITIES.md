@@ -15,7 +15,7 @@ An open PR does not count as implemented in `main`.
 - Server-side validation prevents assigning a Device to a Site owned by another Customer.
 - Device identity separates editable operator alias from observed device identity.
 - Customer list and customer profile workspaces.
-- Customer tabs/workspaces for Devices, Sites, Backups, Security and History.
+- Customer tabs/workspaces for Devices, Sites, Backups, Security and History. Since Core 0.49.277 the Devices, Backups and History tabs (and the overview shortcuts and site rows) stay inside the customer's page: the same lists as the global pages, scoped to that customer, without the customer picker and the cross-customer sections (`/app/customers/{id}/devices|backups|history`; the classic `/customers/{id}/…` addresses redirect there). Since Core 0.49.278 the customer also has *Segnalazioni*, *Incidenti* and *SLA* tabs (`/actions`, `/incidents`, `/sla`; shown with the permission of the matching global page: `issues.read`, `incidents.read`, `reports.read`), and the header *Incidenti* button, the SLA target link and the overview *Tutte* link of the issues open them. Since Core 0.49.279 the links of the *Sicurezza* tab open that customer's vulnerabilities (and a CVE's detail with only its devices), firmware and compliance views under the tab (`/security/vulnerabilities[/{advisory}]`, `/security/firmware`, `/security/compliance`), and *fuori supporto* opens its Devices tab filtered on end of life; the Security tab stays highlighted on them.
 - Global Device inventory with server-side filtering and pagination.
 - Device management/edit/delete workflows.
 - Customer/Site create/edit/delete workflows.
@@ -105,7 +105,7 @@ Audit history, notifications and Action Center are different concepts:
 
 ### Implemented
 
-A shared contextual-feedback pattern now covers the principal browser actions that previously could escape to raw FastAPI JSON pages. Current covered areas include:
+*Historical (classic interface, removed in R1, Core 0.49.168–0.49.174).* In the React interface every API error becomes an `ApiError` carrying the server's `{code, message}`, shown in context on the page that started the action; there is no page that falls back to raw JSON. The classic shared contextual-feedback pattern covered these browser actions:
 
 - MikroTik Agent reinstall/update-facing browser flows;
 - RouterOS firmware and RouterBOOT actions;
@@ -582,7 +582,7 @@ Identification per device:
 - `customer_name`: the UISP hostname must equal the NSM customer's name, words in any order. The name is saved on the device (`match_name`) because the receiver's database account cannot read customers. A line is accepted only when exactly one device uses that name, and only among the first 160 characters of the line;
 - `address`: the management IP from UISP, accepted only when no other device uses it.
 
-Audit `UISP_SYSLOG_CONFIGURED`, `UISP_SYSLOG_RESTORED`.
+Minimum level: airOS has no remote-syslog level, so it sends everything. The receiver keeps only that device's chosen level or worse (`syslog_identity.Index.min_severity`, default warning, Core 0.49.276). auth/authpriv lines and recognised logins are always kept for *Accessi*. The level is changed from the panel without reapplying the configuration (`POST …/syslog/uisp/level`). Audit `UISP_SYSLOG_CONFIGURED`, `UISP_SYSLOG_RESTORED`, `UISP_SYSLOG_LEVEL_CHANGED`.
 
 ### Device operations (UBNT-08 step 2)
 
@@ -739,7 +739,7 @@ Warehouse serial numbers ↔ devices (approved, next step of ISPB-01).
 
 ### CPE syslog through the ACS (Core 0.49.220)
 
-TP-Link CPEs (Aginet firmware) keep their log settings in `Device.DeviceInfo.X_TP_LogCfg`; NSM writes `LogToRemote`, `ServerIP`, `ServerPort` (514) and `RemoteSeverity` through GenieACS, nothing else. From the device *Syslog* tab (applied at once via connection request), from *Amministrazione → ACS → Syslog dei CPE TR-069* for every associated TP-Link (applied at the next Inform), and by the worker for new CPEs when syslog *Configura automaticamente* is on. The receiver address is the syslog public address, else the host of `ACS_CWMP_URL`. TP-Link lines carry no NSM key: the key-only receiver accepts a keyless line only from the address of a TR-069 CPE that NSM itself configured this way: its management IP or, while its last Inform is less than 30 minutes old, the WAN address of that Inform (ConnectionRequestURL host, so dynamic IPs follow every PPP reconnection; Core 0.49.245); only when no other device uses that address, CGNAT included (`syslog_identity.Index.by_address`); every other keyless line is still discarded. NSM re-reads the management IP (WAN, from the connection-request URL) before configuring. Checked on a real VX230v. Audit `ACS_SYSLOG_CONFIGURED`.
+TP-Link CPEs (Aginet firmware) keep their log settings in `Device.DeviceInfo.X_TP_LogCfg`; NSM writes `LogToRemote`, `ServerIP`, `ServerPort` (514) and `RemoteSeverity` through GenieACS, nothing else. From the device *Syslog* tab (applied at once via connection request), from *Amministrazione → ACS → Syslog dei CPE TR-069* for every associated TP-Link (applied at the next Inform), and by the worker for new CPEs when syslog *Configura automaticamente* is on. The receiver address is the syslog public address, else the host of `ACS_CWMP_URL`. Default level warning (Core 0.49.276, operator decision 2026-10-23). The state records who set the level (`source`): the worker moves its own configurations, and older states still at the old default *info*, to warning; a technician's choice is kept. TP-Link lines carry no NSM key: the key-only receiver accepts a keyless line only from the address of a TR-069 CPE that NSM itself configured this way: its management IP or, while its last Inform is less than 30 minutes old, the WAN address of that Inform (ConnectionRequestURL host, so dynamic IPs follow every PPP reconnection; Core 0.49.245); only when no other device uses that address, CGNAT included (`syslog_identity.Index.by_address`); every other keyless line is still discarded. NSM re-reads the management IP (WAN, from the connection-request URL) before configuring. Checked on a real VX230v. Audit `ACS_SYSLOG_CONFIGURED`.
 
 ### Bulk migration to the self-hosted ACS (removed in Core 0.49.225)
 
@@ -784,6 +784,14 @@ TR-069 CPEs get the device *Firmware* tab like MikroTik devices: it shows the in
 ### TP-Link firmware from the official site (VEND-01, Core 0.49.227)
 
 TP-Link has no firmware API, so once a day (and with *Aggiorna* on *Firmware → Cataloghi*) NSM reads the official Italian download page of every TP-Link model in the inventory (`https://www.tp-link.com/it/support/download/<model>/`, or the `/v<hardware>/` page when the model has several hardware versions) for the hardware version its devices report (TR-069 `HardwareVersion`, e.g. `VX230v v1.0` → V1) and records each image of the *Firmware* tab as a catalog release (source *sito ufficiale*, platform = hardware version; images of other hardware versions are ignored). Versions compare by release number, then by build. The device overview, the firmware worklist and the device *Firmware* tab therefore show the newest version like for the other brands. On a TR-069 CPE with a newer release, *Scarica dal sito TP-Link nell'ACS* reads the page again, downloads that image's `.zip` (HTTPS from `static.tp-link.com` only, 128 MB at most), extracts its single `.bin`, stores it in GenieACS with the version (audit `ACS_FIRMWARE_FILE_FETCHED` with link and SHA-256) and selects it for the upgrade, which still needs the typed confirmation. The download is also automatic (operator decision 2026-10-23, on by default, *Amministrazione → ACS → Download automatico dei firmware*): after each catalog evaluation NSM loads into GenieACS the newer image of every TR-069 CPE, once per model, hardware version and version (at most 3 per run), so it is ready and preselected on the device's *Firmware* tab; nothing is installed (audit `ACS_FIRMWARE_FILE_FETCHED` with `trigger` auto/manual, `ACS_FIRMWARE_AUTO_CHANGED`). Checked on the operator's VX230v page (2026-10-23: `0.19.0 Build 260323`, V1, EU1).
+
+### Zabbix: interfaces required by the templates (ZBX-01 fix, Core 0.49.282)
+
+Zabbix refuses to link a template whose items poll through an interface type the host does not have (*a host interface of type SNMP is required*): with the global interface set to *agent*, the Ubiquiti (`AirOS8`) and MikroTik (`Template Net Mikrotik SNMP`) templates failed on host creation and on `host.massadd`. NSM now reads the item and discovery-rule types of the chosen templates and gives each host the interfaces they need (SNMPv2 with the configured community for SNMP items, agent for passive agent items, IPMI/JMX likewise); templates without such items keep the configured interface. Existing hosts get the missing interface before the template is added, never a second interface of the same type.
+
+### Section icons (GUI-02, Core 0.49.275)
+
+Every page header and empty state shows the icon of the section it belongs to (the sidebar icon set): the layout marks the main area with the section (`data-page-icon`, from the same section map as the sidebar and breadcrumbs) and a generated stylesheet (`styles/page-icons.css`, from `static/ui-icons.svg`) draws the icon as a CSS mask, so it follows the theme colours. Device and customer pages keep their own header (manufacturer icon).
 
 ### MikroTik BRAS: customers' PPPoE sessions (BRAS-01, Core 0.49.261)
 

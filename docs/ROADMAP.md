@@ -167,7 +167,7 @@ Possible focused PRs:
 
 ## 4. GUI quality and regression queue
 
-The contextual browser-feedback program is mostly implemented. Keep the GUI tracker focused on reproducible defects rather than broad rewrites.
+The classic contextual browser-feedback program ended with the removal of the classic interface (R1, Core 0.49.168–0.49.174); the React interface shows API errors in context (`ApiError`). Keep the GUI tracker focused on reproducible defects rather than broad rewrites.
 
 When a new GUI bug is found:
 
@@ -267,6 +267,24 @@ Bring Ubiquiti devices managed through the UISP API to the depth of the MikroTik
 - complete telemetry: signal/chain levels, noise, CCQ/airMAX quality, capacity, LAN/Ethernet interface state and speed, traffic, history;
 - device logs.
 
+### UBNT-09 — UniFi Network controller connector (requested 2026-10-23)
+
+**Step 1 done (Core 0.49.283)**: connector configurable in *Integrazioni → UniFi Network* (API key, sites to read, TLS), connection test (version, sites, base path of UniFi OS console or self-hosted application), read-only synchronization every 15 minutes: controller device list by site with type, IP, firmware and state, Ubiquiti devices of NSM linked by MAC with the latest CPU, memory, uptime and uplink rates. Real controller validation pending (operator API key). Next: import into NSM, history charts on *Monitor*, firmware.
+
+Ubiquiti UniFi devices (gateways/routers such as UDM, UCG, UXG and USG; USW switches; access points) are managed by a UniFi Network controller (UniFi OS console, Cloud Key or self-hosted Network Application), not by UISP. Build a connector on the controller API, alongside the UISP one:
+
+- connector settings per controller: address, API key (official UniFi Network integration API, sent in a header), TLS verification, sites to include; the legacy session API only where the integration API does not cover a need and the operator accepts it;
+- discovery of sites and devices, association with NSM Customers/Sites by preview and explicit confirmation, as in UBNT-03; NSM ownership stays authoritative;
+- inventory by device type: model, MAC, IP, firmware, uptime, adoption/connection state; switch ports (link, speed, PoE); AP radios, channels and client counts; gateway WAN state;
+- monitoring and history on the device *Monitor* tab with the shared renderer (CPU/RAM, port and WAN traffic, clients), offline devices keeping their last telemetry (MON-02);
+- firmware state from the controller (installed/available) in the firmware worklist, then upgrade execution through the controller with the existing planning, scheduling and verification;
+- operations the API exposes and that are verified on a real controller: restart, switch port PoE power cycle, AP locate;
+- configuration backup: settings live in the controller, so archive the controller backup (or the per-site configuration if exposed) as NSM evidence, never claiming a per-device backup the API does not provide;
+- remote syslog/SIEM server configured on the controller towards the NSM syslog server (LOG-01);
+- security/lifecycle correlation of UniFi models and versions with SEC-05, Zabbix hosts per ZBX-01.
+
+Every endpoint, field and write operation is checked on the operator's controller before it is enabled; writes need confirmation and audit events like the other connectors. Blocked on a reachable controller and an API key created by the operator.
+
 ### MON-01 — telemetry graphs and WAN/PPPoE traffic
 
 **Step 1 implemented in `main` (Core 0.49.43, Agent 0.49.9)**: MikroTik interface traffic graphs on the Monitor page. Since Core 0.49.65 every graph (CPU, memory, traffic, UISP) uses the same Cacti/Zabbix-style renderer.
@@ -336,7 +354,7 @@ Telemetry of a device that goes offline must never be deleted: the last received
 
 ### GUI-02 — visual refresh: Material icons and ISP/WISP background (requested 2026-10-07)
 
-**Implemented in `main` (Core 0.49.48)**: outlined Material-style icon set drawn for NSM (sprite `static/ui-icons.svg`), sidebar and topbar refresh, ISP/WISP line-art background (`static/bg-network.svg`). Next: icons in page headers and empty states.
+**Implemented in `main` (Core 0.49.48)**: outlined Material-style icon set drawn for NSM (sprite `static/ui-icons.svg`), sidebar and topbar refresh, ISP/WISP line-art background (`static/bg-network.svg`). **Core 0.49.275**: the section icon in every page header and empty state.
 
 - Replace the sidebar menu icons and the top notification icon with a consistent Material Design (or similar) icon set, self-hosted and CSP-safe.
 - Make the GUI more attractive.

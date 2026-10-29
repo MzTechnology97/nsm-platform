@@ -4,6 +4,95 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.283 — 2026-10-29
+
+UniFi Network: read-only connector for UniFi gateways, switches and access points (UBNT-09, step 1)
+- New page *Integrazioni → UniFi Network*:
+  - controller address and API key (created in UniFi Network → Settings → Control Plane → Integrations, UniFi Network 9.3 or later);
+  - TLS verification, and the sites to read (all by default).
+- *Test connessione* reads the controller version and its sites. NSM finds the API path by itself, both on a UniFi OS console (UDM, Cloud Key, UCG) and on a self-hosted Network Application.
+- Synchronization every 15 minutes, or on demand:
+  - the list of the controller devices by site, with type (router, switch, access point), IP, firmware (with *aggiornamento disponibile*) and state;
+  - Ubiquiti devices already in NSM with the same MAC are linked, with the latest CPU, memory, uptime and uplink rates.
+- A device managed through UISP keeps UISP as the source of its status, firmware and IP.
+- Nothing is sent to the controller: the connector only reads. Customer and Site stay those of NSM.
+- The UniFi Network card is added to the *Integrazioni* page.
+- Next steps: import of the devices not yet in NSM, history charts on *Monitor*, firmware.
+## 0.49.282 — 2026-10-29
+
+Zabbix: SNMP host interfaces for SNMP templates
+
+### Fixed
+
+- Zabbix: hosts whose template polls over SNMP failed to sync with "a host interface of type SNMP is required". This hit Ubiquiti with `AirOS8` and MikroTik with `Template Net Mikrotik SNMP` while the settings chose the agent interface. NSM now reads which interface types the chosen templates need and gives each host those interfaces: SNMPv2 with the configured community, agent, IPMI or JMX. Existing hosts get the missing interface before the template is linked, never a duplicate.
+## 0.49.281 — 2026-10-29
+
+Roadmap: UniFi Network controller connector
+- New roadmap item UBNT-09: a connector to the UniFi Network controller for Ubiquiti UniFi gateways/routers, switches and access points.
+- It covers discovery and association, inventory, monitoring, firmware, operations, the controller backup and syslog. Every endpoint is to be checked on the operator's controller first.
+## 0.49.280 — 2026-10-29
+
+TR-069 speed test: the speed the line holds, not the initial burst
+- A short test (25 MB) on a 100M plan with a PPPoE burst finished in about a second and measured the burst (e.g. 154 Mbit/s), not the plan.
+- When the CPE supports a time-based test (TR-143 *TimeBasedTestDuration*), NSM now runs it for 20 seconds, with a measurement every 2 seconds.
+- The result shows the **sustained** speed (median of the second half, once the burst is over), with average and peak beside it.
+- CPEs that accept the time-based test but return no incremental results (seen on a VX230v) are measured by NSM's own test server every 2 seconds, on the same transfer.
+- The RADIUS profile of the ISPBilling account matched to the CPE is shown beside the result, to compare it with the plan.
+- A test shorter than 8 seconds without intervals is marked as possibly inside the burst; a note in the panel explains why.
+## 0.49.279 — 2026-10-29
+
+Customers
+- **Security views inside the customer.** On a customer's *Sicurezza* tab, the links open that customer's views without leaving its page:
+  - *Tutte le vulnerabilità* and each CVE, whose detail lists only the customer's devices;
+  - *Pagina firmware*;
+  - *Pagina compliance*;
+  - *fuori supporto*, which opens the customer's Devices tab filtered on end of life;
+  - *Action Center*, which opens the customer's Issues tab.
+  The *Sicurezza* tab stays highlighted while these views are open.
+
+## 0.49.278 — 2026-10-28
+
+Customers
+- **Issues, Incidents and SLA tabs on the customer's page.** They show that customer's open issues, its incidents and its SLA for the month, with its devices already open, without leaving the customer. Each tab appears only to users who can open the matching global page. The header *Incidenti* button, the SLA target and the overview *Tutte* link of the issues open these tabs.
+
+## 0.49.277 — 2026-10-28
+
+Customers
+- **Devices, Backup and Activity stay inside the customer.** On a customer's page these tabs no longer open the global pages. They now show the same lists under the customer's header, with that customer's devices, backups and events only. The customer picker and the sections covering every customer are hidden.
+- **Customer links open the customer's own Devices tab.** This covers the overview shortcuts (offline, severe CVEs, updates, end of life), the site rows and the "all events" link. The Devices tab opens already filtered.
+- **Old addresses follow.** `/customers/<id>/devices`, `/backups` and `/history` now lead to these tabs.
+
+## 0.49.276 — 2026-10-28
+
+Syslog: warning and worse by default on every device
+- **TP-Link (through the ACS):**
+  - The default level is now *warning* instead of *info*.
+  - CPEs that NSM configured by itself move to warning automatically at their next contact.
+  - A level chosen by a technician on a device stays as it is. From now on NSM records who set the level.
+- **Ubiquiti airOS (through UISP):**
+  - airOS has no level setting and sends every log, so NSM keeps only *warning* and worse (default).
+  - The level is changed from the device's *Syslog* tab and applies at once, with no reboot.
+  - Logins are always kept, so the *Accessi* page still sees them.
+- **MikroTik:** unchanged. They already send warning and worse, plus logins for the *Accessi* page.
+- Note: TP-Links at warning probably no longer send their logins, which they usually log at info or notice. If you need them on a device, set its level to *Informazioni* from its *Syslog* tab.
+
+## 0.49.275 — 2026-10-28
+
+GUI: icons in page headers and empty states
+
+### Changed
+
+- Interface: every page header and every empty state now shows the icon of the section it belongs to, from the same icon set as the sidebar. It follows the light and dark theme. Device and customer pages keep their manufacturer icon.
+## 0.49.274 — 2026-10-28
+
+Docs: roadmap and README status sync
+
+### Changed
+
+- Documentation brought up to date:
+  - the README product status table, unchanged since 2026-09-30: incidents, compliance and reports are implemented, plus the TR-069/ACS, Cambium, ISPBilling and monitoring rows;
+  - the product scope check and priority order, recovered from the closed PR #60, now in `ARCHITECTURE.md`;
+  - the classic browser-feedback section marked as historical, now that the React interface shows errors in context.
 ## 0.49.273 — 2026-10-28
 
 MikroTik: ideas recovered from unmerged branches

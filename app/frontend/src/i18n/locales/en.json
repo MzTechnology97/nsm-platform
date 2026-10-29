@@ -920,7 +920,10 @@
       "graphs": "Graphs",
       "backups": "Backup",
       "security": "Security",
-      "history": "Activity"
+      "history": "Activity",
+      "actions": "Issues",
+      "incidents": "Incidents",
+      "sla": "SLA"
     },
     "metrics": {
       "devices": "Devices online",
@@ -1233,7 +1236,8 @@
       "none": "No policy configured."
     },
     "createPolicy": "Create policy",
-    "restoreReadiness": "Restore readiness"
+    "restoreReadiness": "Restore readiness",
+    "subtitleCustomer": "Backup protection of this customer's devices: policy, method that can run and outcome of the last run."
   },
   "firmware": {
     "title": "Firmware",
@@ -2387,7 +2391,8 @@
       "zabbix": "Zabbix",
       "cnmaestro": "cnMaestro",
       "ispbilling": "ISPBilling",
-      "bras": "MikroTik BRAS"
+      "bras": "MikroTik BRAS",
+      "unifi": "UniFi Network"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -2400,6 +2405,12 @@
       "help": "PPPoE concentrator: customers' sessions (read-only).",
       "online": "Online",
       "offline": "Offline"
+    },
+    "unifi": {
+      "title": "UniFi Network (Ubiquiti)",
+      "help": "UniFi gateways, switches and access points read from the UniFi Network controller, read-only: status, firmware, IP, CPU, memory and uplink.",
+      "devices": "Devices in the controller",
+      "linked": "Linked to NSM"
     }
   },
   "syslogAdmin": {
@@ -4949,7 +4960,7 @@
   },
   "firmwareCatalogs": {
     "title": "Firmware catalogs",
-    "subtitle": "One catalog per manufacturer in the inventory. Ubiquiti: versions from UISP and from the official update service; TP-Link: the official site; every brand: images uploaded by operators (version, models and date are read from the file). NSM never guesses versions. MikroTik has its own",
+    "subtitle": "One catalog per manufacturer in the inventory. Ubiquiti: versions from UISP and the official update service; other manufacturers: releases entered by operators from the official download page. NSM never guesses versions. MikroTik has its own",
     "routeros": "RouterOS catalog",
     "refresh": "Refresh sources and re-evaluate",
     "refreshed": "UISP: {{uisp}} new versions; Ubiquiti API: {{vendor_api}} new across {{platforms}} platforms; {{evaluated}} devices evaluated.",
@@ -4980,7 +4991,7 @@
     "releaseNotes": "notes ↗",
     "delete": "Delete",
     "deleteConfirm": "Delete release {{version}} from the catalog?",
-    "empty": "No release in the {{label}} catalog: upload the latest image from the official download page.",
+    "empty": "No release in the {{label}} catalog: add the latest release from the official download page.",
     "emptyUbiquiti": "No release in the {{label}} catalog: link the devices to UISP or refresh the sources.",
     "add": "Add a {{label}} release",
     "version": "Version",
@@ -4995,10 +5006,10 @@
     "added_other": "Release {{version}} added: {{count}} devices to update.",
     "errors": {
       "brand": "Catalogs exist only for manufacturers in the inventory.",
-      "version": "Version not recognised: give it in the manufacturer's format (e.g. 1.2.3 or 0.19.0 Build 260323).",
+      "version": "Unrecognised version: use the manufacturer's format (e.g. 1.2.3).",
       "url": "The notes link must be an http(s) address.",
       "date": "Invalid release date.",
-      "exists": "This release is already in the catalog with its image.",
+      "exists": "This release is already in the catalog.",
       "not_operator": "Only releases entered by operators can be deleted.",
       "extension": "Upload the manufacturer's image (.bin, .img or .zip).",
       "archive": "The .zip must contain exactly one image (.bin/.img): upload the image directly.",
@@ -5624,7 +5635,10 @@
     "UISP_SYNC_CONFLICT": "UISP sync conflict",
     "UISP_SYNC_FAILED": "UISP sync failed",
     "UISP_SYSLOG_CONFIGURED": "Device syslog configured through UISP",
+    "UISP_SYSLOG_LEVEL_CHANGED": "Device minimum level changed",
     "UISP_SYSLOG_RESTORED": "Device configuration restored through UISP",
+    "UNIFI_CONFIGURED": "UniFi Network connector configured",
+    "UNIFI_DEVICE_LINKED": "Device linked to the UniFi controller",
     "USER_2FA_DISABLED": "Two-factor sign-in disabled",
     "USER_2FA_ENABLED": "Two-factor sign-in enabled",
     "USER_2FA_RECOVERY_REGENERATED": "Two-factor recovery codes renewed",
@@ -6021,7 +6035,12 @@
       "save": "Save",
       "saved": "Saved."
     },
-    "short": "The server sent only {{bytes}} bytes instead of the file (redirect or refusal): use NSM or another test server."
+    "short": "The server sent only {{bytes}} bytes instead of the file (redirect or refusal): use NSM or another test server.",
+    "timedHelp": "On CPEs that support it the test lasts {{seconds}} seconds and measures the speed every 2 seconds.",
+    "plan": "Customer's ISPBilling plan: {{plans}}",
+    "breakdown": "sustained {{sustained}} · average {{average}} · peak {{peak}} Mbit/s",
+    "tooShort": "short test: it may measure the initial burst instead of the plan limit",
+    "burstNote": "The test reaches the NSM server through the BRAS: if the PPPoE profile has a burst, the first seconds run faster than the plan. Compare the sustained speed with the plan."
   },
   "acsFirmware": {
     "title": "Firmware",
@@ -6553,7 +6572,11 @@
     "restore": "Restore previous configuration",
     "working": "UISP is applying…",
     "done": "Configuration applied: the CPE reboots and the logs arrive within a few minutes.",
-    "restored": "Previous configuration applied: the CPE reboots."
+    "restored": "Previous configuration applied: the CPE reboots.",
+    "level": "Minimum level kept",
+    "saveLevel": "Save level",
+    "levelSaved": "Level saved: effective at once, no reboot.",
+    "levelHelp": "airOS sends every log: NSM keeps only the chosen level or worse (warning by default). Logins are still recorded for the Accessi page."
   },
   "bras": {
     "title": "MikroTik BRAS",
@@ -6889,5 +6912,44 @@
     "limited": "First {{shown}} of {{total}} devices: narrow the search.",
     "allGood": "Every RouterBOOT is up to date.",
     "empty": "No MikroTik in this state."
+  },
+  "unifi": {
+    "title": "Integrations · UniFi Network",
+    "subtitle": "Read-only connector for UniFi devices (gateways/routers, switches, access points) managed by a UniFi Network controller: list per site, linking by MAC, status, firmware and statistics every 15 minutes.",
+    "lastSync": "Last synchronization",
+    "controller": "Controller",
+    "sites_one": "{{count}} site",
+    "sites_other": "{{count}} sites",
+    "inController": "Devices in the controller",
+    "notInNsm_one": "{{count}} not in NSM yet",
+    "notInNsm_other": "{{count}} not in NSM yet",
+    "linked": "Linked to NSM",
+    "byMac": "NSM Ubiquiti devices with the same MAC",
+    "connectionHelp": "In the controller: UniFi Network → Settings → Control Plane → Integrations → create an API key. UniFi Network 9.3 or later is required. The key has the permissions of the administrator who creates it: a read-only administrator is enough for NSM.",
+    "url": "Console or controller address",
+    "apiKey": "API key",
+    "tlsHelp": "Turn verification off only if the controller uses its factory self-signed certificate.",
+    "siteFilter": "Sites to read",
+    "siteFilterHelp": "No site selected: NSM reads every site of the controller.",
+    "saved": "UniFi configuration saved.",
+    "actionsHelp": "The test reads version and sites. The synchronization reads the devices and links the Ubiquiti devices already in NSM with the same MAC. Nothing is sent to the controller. Customer and Site stay those of NSM.",
+    "disabledConnector": "The UniFi connector is disabled.",
+    "synced": "Synchronization completed: {{devices}} devices in {{sites}} sites, {{linked}} linked to NSM ({{created}} new), {{missing}} not in NSM yet.",
+    "devicesTitle": "Devices in the controller",
+    "filter": "Filter by name, model, IP, MAC or site",
+    "devicesHelp": "List read at the last synchronization. Importing the devices not yet in NSM comes in the next step.",
+    "noDevices": "No device read yet: run the test, then the synchronization.",
+    "columns": {
+      "site": "Site",
+      "device": "Device",
+      "type": "Type",
+      "ip": "IP",
+      "firmware": "Firmware",
+      "state": "State",
+      "nsm": "In NSM"
+    },
+    "updateAvailable": "update available",
+    "inNsm": "linked",
+    "missing": "not in NSM"
   }
 }
