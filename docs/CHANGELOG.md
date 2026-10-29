@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.305 — 2026-10-29
+
+Security
+- **Syslog rules (SIEM-01, step 1).** *Sicurezza → Accessi → Regole syslog*: the operator writes rules on the device logs, on top of the built-in access alerts.
+  - **Match:** vendor, maximum severity, topic or program, and a regular expression whose named groups (`ip`, `user`, `svc` or any other) become the alert fields.
+  - **Threshold:** N lines in T minutes, counted per device, address, user, or device and address; a rule can fire only after another rule matched shortly before, for example a success after failures.
+  - **Exceptions and throttling:** addresses or networks to ignore (NSM, technicians, monitoring) and at most one alert every N minutes.
+  - **Action:** an event in the audit log, a security notification, or an Action Center issue.
+- A **tester** shows which rules, and the one being edited, match a pasted log line, and which fields they extract, before saving.
+- **Templates:** RouterOS configuration changes (`changed by` lines, RouterOS 6 and 7), RouterOS login failures with a custom threshold, interface down, unexpected reboot.
+- Every change is audited with the rule before and after. The built-in access alerts are listed read-only. Rules start from the newest log line, so old logs never raise alerts.
+
 ## 0.49.304 — 2026-10-29
 
 Threat lists: your addresses checked against Spamhaus DROP (SEC-13, SIEM-02)
