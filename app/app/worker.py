@@ -19,6 +19,7 @@ from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_fin
 from app.mikrotik_telemetry import telemetry_cleanup
 from app.uisp_metrics import cleanup as uisp_metrics_cleanup
 from app.cnmaestro_connector import cleanup as cnmaestro_cleanup, scheduled_sync as cnmaestro_sync
+from app.unifi_connector import scheduled_sync as unifi_sync
 from app.ispbilling_connector import scheduled_sync as ispbilling_sync
 from app.mikrotik_bras import scheduled_sync as bras_sync
 from app.interface_traffic import cleanup as interface_traffic_cleanup
@@ -40,7 +41,9 @@ from app.acs_admin import auto_update as acs_templates_auto_update
 from app.acs_snapshot import scheduled_snapshots as acs_scheduled_snapshots
 from app.cambium_backup import scheduled_backups as cambium_scheduled_backups
 from app.acs_config_refresh import follow as acs_config_refresh_follow
+from app.acs_config_restore import follow as acs_config_restore_follow
 from app.acs_firmware import follow_upgrades as acs_firmware_follow
+from app.acs_firmware_campaigns import follow as acs_firmware_campaigns_follow
 from app.tplink_cloud_firmware import daily_refresh as tplink_cloud_refresh
 from app.acs_alerts import evaluate as acs_alerts_evaluate
 from app.tplink_access import enforce_telnet_policy as tplink_telnet_policy
@@ -52,6 +55,7 @@ from app.vendor_firmware import run_scheduled as run_vendor_firmware
 from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
 from app.mikrotik_device_reboot import verify_reboots
 from app.uisp_operations import scheduled_backups as uisp_scheduled_backups, verify_reboots as uisp_verify_reboots
+from app.cnmaestro_operations import verify_reboots as cnmaestro_verify_reboots
 from app.uisp_firmware_upgrade import follow_upgrades as uisp_firmware_follow
 from app.mikrotik_legacy_operations import verify_upgrades as verify_legacy_upgrades
 from app.report_schedules import run_report_schedules
@@ -103,6 +107,7 @@ while True:
             routerboot_stats = run_task("routerboot_verification", routerboot_verification_tick)
             reboot_stats = dict(run_task("device_reboot_verification", verify_reboots))
             run_task("uisp_reboot_verification", uisp_verify_reboots)
+            run_task("cnmaestro_reboot_verification", cnmaestro_verify_reboots)
             run_task("uisp_firmware_follow", uisp_firmware_follow)
             run_task("uisp_scheduled_backups", uisp_scheduled_backups)
             reboot_stats.update({f"upgrade_{k}": v for k, v in run_task("legacy_upgrade_verification", verify_legacy_upgrades).items()})
@@ -122,6 +127,7 @@ while True:
             run_task("interface_error_alerts", interface_error_alerts)
             run_task("zabbix_sync", zabbix_sync)
             run_task("cnmaestro_sync", cnmaestro_sync)
+            run_task("unifi_sync", unifi_sync)
             run_task("acs_customer_tags", acs_customer_tags)
             run_task("ispbilling_sync", ispbilling_sync)
             run_task("bras_sync", bras_sync)
@@ -132,7 +138,9 @@ while True:
             run_task("acs_scheduled_snapshots", acs_scheduled_snapshots)
             run_task("cambium_scheduled_backups", cambium_scheduled_backups)
             run_task("acs_config_refresh", acs_config_refresh_follow)
+            run_task("acs_config_restore", acs_config_restore_follow)
             run_task("acs_firmware_follow", acs_firmware_follow)
+            run_task("acs_firmware_campaigns", acs_firmware_campaigns_follow)
             run_task("tplink_cloud_firmware", tplink_cloud_refresh)
             run_task("acs_alerts", acs_alerts_evaluate)
             run_task("tplink_telnet_policy", tplink_telnet_policy)

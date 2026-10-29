@@ -17,8 +17,8 @@ archive, viewable and comparable in the *Backup* tab like a RouterOS export.
   ``devices.write``) asks GenieACS to re-read the parameter tree object by object,
   in rounds (``acs_config_refresh``): one refresh of the whole root exceeds
   GenieACS's RPC cap on large CPEs and its fault blocked the CPE's task queue.
-- Not restorable with one click: the snapshot documents the configuration and
-  shows what changed; restoring is done by hand or with the Wi-Fi settings.
+- Restore: ``acs_config_restore`` writes back the parameters the operator picks
+  from a preview of what differs (typed confirmation, verified by reading back).
 """
 from __future__ import annotations
 

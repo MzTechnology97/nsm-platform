@@ -41,6 +41,10 @@ router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 KEY = "uisp_syslog"
 MODES = ("key", "customer_name", "address")
 DEFAULT_MODE = "key"
+# airOS has no remote-syslog level (system.cfg: syslog.remote.status/ip/port only) and sends everything: the receiver keeps
+# the lines at this severity or worse (logins are still recorded for the Accessi page).
+LEVELS = {"error": 3, "warning": 4, "notice": 5, "info": 6, "debug": 7}
+DEFAULT_LEVEL = "warning"
 PORT = 514
 BACKUP_WAIT_SECONDS = 90
 HOSTNAME_MAX = 63
@@ -150,10 +154,28 @@ def _newest_backup(connection, device, known: set) -> dict | None:
     return sorted(fresh, key=lambda row: str(row.get("timestamp") or ""))[-1] if fresh else None
 
 
-def configure(db, user, device: Device, server: str, mode: str, confirmation: str) -> dict:
+def set_level(db, user, device: Device, level: str) -> dict:
+    """Minimum severity kept for this device (receiver side, no reboot); audited, commits."""
+    value = state_of(device)
+    if not value or value.get("status") != "applied":
+        raise UispSyslogError("none", "Configura prima il syslog tramite UISP.")
+    if level not in LEVELS:
+        raise UispSyslogError("level", "Livello non valido.")
+    data = dict(device.inventory_data or {})
+    data[KEY] = {**value, "level": level}
+    device.inventory_data = data
+    core.add_event(db, "UISP_SYSLOG_LEVEL_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal",
+                   details={"from": value.get("level") or DEFAULT_LEVEL, "to": level})
+    db.commit()
+    return data[KEY]
+
+
+def configure(db, user, device: Device, server: str, mode: str, confirmation: str, level: str = DEFAULT_LEVEL) -> dict:
     """Fresh backup (restore point), changed copy uploaded and applied through UISP; audited, commits."""
     if mode not in MODES:
         raise UispSyslogError("mode", "Modalità di riconoscimento non valida.")
+    if level not in LEVELS:
+        raise UispSyslogError("level", "Livello non valido.")
     if (confirmation or "").strip() != device_name(device):
         raise UispSyslogError("confirmation", f"Per confermare scrivi esattamente il nome del dispositivo: {device_name(device)}")
     if not server:
@@ -188,14 +210,14 @@ def configure(db, user, device: Device, server: str, mode: str, confirmation: st
         raise UispSyslogError("upload", "UISP non ha accettato la configurazione modificata.")
     _call(connection, "POST", f"/devices/{ext}/backups/{uploaded['id']}/apply", "l'applicazione della configurazione")
     now = utcnow()
-    value = {"mode": mode, "server": server, "port": PORT, "applied_at": now.isoformat(), "by": user.username if user else None,
+    value = {"mode": mode, "server": server, "port": PORT, "level": level, "applied_at": now.isoformat(), "by": user.username if user else None,
              "match_name": device.customer.name if mode == "customer_name" and device.customer else None,
              "backup_before": before["id"], "backup_applied": uploaded["id"], "status": "applied"}
     data = dict(device.inventory_data or {})
     data[KEY] = value
     device.inventory_data = data
     core.add_event(db, "UISP_SYSLOG_CONFIGURED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal",
-                   details={"mode": mode, "server": server, "port": PORT, "backup_before": before["id"], "backup_applied": uploaded["id"]})
+                   details={"mode": mode, "server": server, "port": PORT, "level": level, "backup_before": before["id"], "backup_applied": uploaded["id"]})
     db.commit()
     return value
 
@@ -245,8 +267,10 @@ def device_state(request: Request, device_id: uuid.UUID):
             live, linked = {"supported": None, "system_log": None}, False
         value = state_of(device)
         return {"linked": linked, "target": acs_syslog.target(db, request), "port": PORT, "modes": list(MODES), "default_mode": DEFAULT_MODE,
+                "levels": list(LEVELS), "default_level": DEFAULT_LEVEL,
                 "name": device_name(device), "customer": device.customer.name if device.customer else None,
-                "state": {k: value.get(k) for k in ("mode", "server", "port", "applied_at", "by", "status", "restored_at")} if value else None,
+                "state": {**{k: value.get(k) for k in ("mode", "server", "port", "applied_at", "by", "status", "restored_at")},
+                          "level": value.get("level") or DEFAULT_LEVEL} if value else None,
                 "can_restore": bool(value and value.get("backup_before")), **live,
                 "can_configure": core.has_permission(user, "devices.write")}
 
@@ -260,7 +284,19 @@ def device_configure(request: Request, device_id: uuid.UUID, body: dict = Body(d
         device = _ubiquiti(db, device_id)
         try:
             return {"state": configure(db, user, device, acs_syslog.target(db, request), str(body.get("mode") or DEFAULT_MODE),
-                                       str(body.get("confirmation") or ""))}
+                                       str(body.get("confirmation") or ""), str(body.get("level") or DEFAULT_LEVEL))}
+        except InputError as exc:
+            db.rollback()
+            _fail(exc)
+
+
+@router.post("/devices/{device_id}/syslog/uisp/level", dependencies=[Depends(require_csrf)])
+def device_level(request: Request, device_id: uuid.UUID, body: dict = Body(default={})):
+    with SessionLocal() as db:
+        user = ui_user(request, db, "devices.write")
+        device = _ubiquiti(db, device_id)
+        try:
+            return {"state": set_level(db, user, device, str(body.get("level") or ""))}
         except InputError as exc:
             db.rollback()
             _fail(exc)
