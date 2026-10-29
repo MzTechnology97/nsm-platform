@@ -214,6 +214,8 @@ def main():
                 "latest_version": "7.21.1",
                 "target_version": "7.21.1",
                 "reboot_required": True,
+                "package_ready": True,
+                "package_file": "routeros-7.21.1-mmips.npk",
             },
         },
     )
@@ -259,6 +261,9 @@ def main():
     assert activation_source.index("firmware-activate/") < activation_source.index("/system reboot")
     assert "/system routerboard upgrade" not in activation_source
     assert "/system package update install" not in activation_source
+    assert '/file find where name~("routeros-" . $nsmTarget . "-")' in activation_source
+    assert activation_source.index("staged package missing") < activation_source.index("firmware-activate/") < activation_source.index("/system reboot")
+    check_reboot_cancelled_without_package()
 
     # Bodyless bootstrap selects modern elevated policies only when the returned
     # agent source includes the modern activation handler. Legacy remains read/test.
@@ -269,6 +274,29 @@ def main():
     assert 'policy,password,sensitive' not in bootstrap
 
     print("Core 0.37 safe firmware activation and contextual UI feedback smoke passed")
+
+
+def check_reboot_cancelled_without_package():
+    """No staged package on the router: NSM refuses the acknowledgement, so the Agent does not reboot."""
+    username, device_id, plan_id, raw_secret = seed()
+    with SessionLocal() as db:
+        device = db.get(Device, device_id)
+        device.inventory_data = {**(device.inventory_data or {}), "agent_privilege_profile": "ops-v1"}
+        db.commit()
+    client = TestClient(app)
+    login(client, username)
+    assert plan_action(client, device_id, plan_id, "activate", "ACTIVATE 7.21.1").status_code == 200
+    with SessionLocal() as db:
+        job_id = db.scalar(select(DeviceJob.id).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "firmware_activate"))
+    agent = {"X-NSM-Device-ID": str(device_id), "X-NSM-Device-Secret": raw_secret}
+    ack = client.post(f"/api/v1/agents/mikrotik/firmware-activate/{job_id}/ack", headers=agent,
+                      json={"status": "accepted", "error": "", "result": {"installed_version": "7.20.0", "latest_version": "7.21.1", "target_version": "7.21.1",
+                                                                          "reboot_required": True, "package_ready": False, "staged_status": "New version is available"}})
+    assert ack.status_code == 409, "the Agent reboots only after a successful acknowledgement"
+    with SessionLocal() as db:
+        plan, job = db.get(FirmwareUpgradePlan, plan_id), db.get(DeviceJob, job_id)
+        assert plan.status == "failed" and job.status == "failed", (plan.status, job.status)
+        assert "Riavvio annullato" in plan.last_error and "New version is available" in plan.last_error, plan.last_error
 
 
 if __name__ == "__main__":

@@ -7,6 +7,11 @@ subsequent inventory heartbeat reports the approved target version.
 
 RouterBOOT is deliberately not upgraded here.  It remains a separate action so
 one RouterOS upgrade cannot silently turn into a second firmware operation.
+
+Agent 0.49.25 looks for the staged ``routeros-<target>-*.npk`` file (or the
+RouterOS *Downloaded* status) before acknowledging; NSM answers 409 to an
+acknowledgement without ``package_ready``, so the Agent cancels the reboot and
+the plan fails instead of rebooting into the same version.
 """
 from __future__ import annotations
 
@@ -40,7 +45,13 @@ _HANDLER = r'''
       :local nsmInstalled ""
       :local nsmLatest ""
       :local nsmUpdateStatus ""
+      :local nsmStagedStatus ""
+      :local nsmPackageFile ""
+      :local nsmPackageReady false
       :do {
+        :do { :set nsmStagedStatus [/system package update get status] } on-error={}
+        :foreach nsmF in=[/file find where name~("routeros-" . $nsmTarget . "-")] do={ :set nsmPackageFile [/file get $nsmF name] }
+        :if ($nsmStagedStatus ~ "Downloaded" || [:len $nsmPackageFile] > 0) do={ :set nsmPackageReady true }
         /system package update check-for-updates once
         :delay 3s
         :set nsmInstalled [/system package update get installed-version]
@@ -48,14 +59,15 @@ _HANDLER = r'''
         :set nsmUpdateStatus [/system package update get status]
         :if ($nsmInstalled = $nsmTarget) do={ :error "NSM target is already installed" }
         :if ($nsmLatest != $nsmTarget) do={ :error "NSM approved target no longer matches RouterOS latest-version" }
+        :if (!$nsmPackageReady) do={ :error "NSM staged package missing" }
       } on-error={
         :set nsmActivateOk false
-        :set nsmActivateError "RouterOS activation preflight failed or target changed"
+        :set nsmActivateError "RouterOS activation preflight failed, target changed or staged package missing"
       }
       :local nsmAckUrl ($nsmBase . "/api/v1/agents/mikrotik/firmware-activate/" . $nsmJobId . "/ack")
       :local nsmAckStatus "failed"
       :if ($nsmActivateOk) do={ :set nsmAckStatus "accepted" }
-      :local nsmAckBody [:serialize value={"status"=$nsmAckStatus;"error"=$nsmActivateError;"result"={"installed_version"=$nsmInstalled;"latest_version"=$nsmLatest;"update_status"=$nsmUpdateStatus;"target_version"=$nsmTarget;"reboot_required"=true}} to=json options=json.no-string-conversion]
+      :local nsmAckBody [:serialize value={"status"=$nsmAckStatus;"error"=$nsmActivateError;"result"={"installed_version"=$nsmInstalled;"latest_version"=$nsmLatest;"update_status"=$nsmUpdateStatus;"target_version"=$nsmTarget;"reboot_required"=true;"package_ready"=$nsmPackageReady;"package_file"=$nsmPackageFile;"staged_status"=$nsmStagedStatus}} to=json options=json.no-string-conversion]
       :local nsmAckResult {}
       :do {
         :set nsmAckResult [/tool fetch url=$nsmAckUrl http-method=post http-header-field=$nsmHeaders http-data=$nsmAckBody output=user as-value]
@@ -175,6 +187,14 @@ async def activation_ack(request: Request, job_id: uuid.UUID):
             raise HTTPException(400, "Stato attivazione non valido.")
         result = payload.get("result") if isinstance(payload.get("result"), dict) else {}
         error = str(payload.get("error") or "").strip()[:4000] or None
+        cancel_reboot = False
+        if result.get("package_ready") is not True:
+            # No staged package on the router: a reboot would come back on the same version.
+            cancel_reboot = status == "accepted"
+            status = "failed"
+            error = ("Riavvio annullato: il pacchetto RouterOS " + plan.target_version + " non è presente sul router"
+                     + (f" (RouterOS riporta «{result.get('staged_status')}»)" if result.get("staged_status") else "")
+                     + ". Ripeti il download dei pacchetti" + ("" if "package_ready" in result else " dopo aver aggiornato l'Agent") + ".")
         now = utcnow()
         job.result = result
         job.completed_at = now
@@ -233,6 +253,9 @@ async def activation_ack(request: Request, job_id: uuid.UUID):
             source="mikrotik_agent",
         )
         db.commit()
+    if cancel_reboot:
+        # The Agent reboots only after a successful acknowledgement: an HTTP error cancels it.
+        raise HTTPException(409, "Pacchetto RouterOS non presente: riavvio annullato.")
     return {"status": "ok"}
 
 

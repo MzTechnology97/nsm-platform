@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.284 — 2026-10-29
+
+MikroTik firmware: the package download is verified, and the router is never rebooted without it (Agent 0.49.25)
+- **Download.** The download of the RouterOS packages was reported as done right after it started: the package could be missing from *Files*, for example for lack of flash space on a 16 MB hEX. Now:
+  - the Agent waits up to 3 minutes for RouterOS to finish;
+  - it checks that the `routeros-<version>-*.npk` package is on the router;
+  - it reports the RouterOS status and the free flash space.
+- **If the package is not there**, the plan fails with what RouterOS reported and the free space. Devices with little flash get a hint to free space in *Files*.
+- **Activation.** The Agent checks that the downloaded package is present before rebooting. If it is missing, NSM cancels the reboot and the plan fails, instead of rebooting the router into the same version.
+- Agents before 0.49.25 cannot verify the download: they update themselves to 0.49.25, then the download can be repeated.
 ## 0.49.283 — 2026-10-29
 
 UniFi Network: read-only connector for UniFi gateways, switches and access points (UBNT-09, step 1)
