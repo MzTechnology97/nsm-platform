@@ -22,6 +22,8 @@ ROW_LIMITS = {
     "/ip firewall raw": 300,
     "/ip dhcp-server lease": 500,
     "/ppp active": 500,
+    "/queue simple": 300,
+    "/queue tree": 300,
 }
 TUNNEL_CLIENT_LIMIT = 100
 

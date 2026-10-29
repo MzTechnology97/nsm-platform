@@ -6,10 +6,12 @@ import { api, ApiError } from "../api/client";
 import { formatDateTime } from "../lib/format";
 
 type Mode = "key" | "customer_name" | "address";
+type Level = "error" | "warning" | "notice" | "info" | "debug";
 interface UispSyslogState {
   linked: boolean; target: string | null; port: number; modes: Mode[]; default_mode: Mode; name: string; customer: string | null;
+  levels: Level[]; default_level: Level;
   supported: boolean | null; system_log: { enabled: boolean | null; server: string | null; port: number | null } | null;
-  state: { mode: Mode; server: string; port: number; applied_at: string; by: string | null; status: string; restored_at?: string | null } | null;
+  state: { mode: Mode; server: string; port: number; level: Level; applied_at: string; by: string | null; status: string; restored_at?: string | null } | null;
   can_restore: boolean; can_configure: boolean;
 }
 
@@ -24,10 +26,15 @@ export function UispSyslogPanel({ id }: { id: string }) {
   const query = useQuery({ queryKey: ["device", id, "syslog-uisp"], queryFn: () => api<UispSyslogState>(`/api/ui/v1/devices/${id}/syslog/uisp`), retry: false });
   const [mode, setMode] = useState<Mode | "">("");
   const [typed, setTyped] = useState("");
+  const [level, setLevel] = useState<Level | "">("");
   const done = () => { setTyped(""); void client.invalidateQueries({ queryKey: ["device", id] }); };
   const configure = useMutation({
-    mutationFn: (body: { mode: Mode; confirmation: string }) => api(`/api/ui/v1/devices/${id}/syslog/uisp`, { method: "POST", body: JSON.stringify(body) }),
+    mutationFn: (body: { mode: Mode; confirmation: string; level: Level }) => api(`/api/ui/v1/devices/${id}/syslog/uisp`, { method: "POST", body: JSON.stringify(body) }),
     onSuccess: done,
+  });
+  const saveLevel = useMutation({
+    mutationFn: (value: Level) => api(`/api/ui/v1/devices/${id}/syslog/uisp/level`, { method: "POST", body: JSON.stringify({ level: value }) }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: ["device", id] }),
   });
   const restore = useMutation({
     mutationFn: (confirmation: string) => api(`/api/ui/v1/devices/${id}/syslog/uisp/restore`, { method: "POST", body: JSON.stringify({ confirmation }) }),
@@ -36,10 +43,12 @@ export function UispSyslogPanel({ id }: { id: string }) {
   const data = query.data;
   if (!data || !data.linked) return null;
   const chosen = (mode || data.state?.mode || data.default_mode) as Mode;
+  const chosenLevel = (level || data.state?.level || data.default_level) as Level;
+  const applied = data.state?.status === "applied";
   const live = data.system_log;
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    configure.mutate({ mode: chosen, confirmation: typed });
+    configure.mutate({ mode: chosen, confirmation: typed, level: chosenLevel });
   };
   const busy = configure.isPending || restore.isPending;
   return (
@@ -58,6 +67,20 @@ export function UispSyslogPanel({ id }: { id: string }) {
           ? t(`uispSyslog.status.${data.state.status}`, { mode: t(`uispSyslog.modes.${data.state.mode}.label`), when: formatDateTime(data.state.applied_at, i18n.language), by: data.state.by ?? "—" })
           : t("uispSyslog.never")}</dd></div>
       </dl>
+      {data.can_configure && applied && (
+        <div className="ui-row-actions">
+          <label><span className="ui-muted">{t("uispSyslog.level")}</span>{" "}
+            <select value={chosenLevel} onChange={(event) => setLevel(event.target.value as Level)} aria-label={t("uispSyslog.level")}>
+              {data.levels.map((key) => <option key={key} value={key}>{t(`acsSyslog.levels.${key}`)}</option>)}
+            </select></label>
+          <button type="button" className="ui-button" disabled={saveLevel.isPending || chosenLevel === data.state?.level} onClick={() => saveLevel.mutate(chosenLevel)}>
+            {t("uispSyslog.saveLevel")}
+          </button>
+          {saveLevel.isSuccess && <small className="ui-muted">{t("uispSyslog.levelSaved")}</small>}
+          {saveLevel.error && <small className="ui-backup-error">{message(saveLevel.error)}</small>}
+        </div>
+      )}
+      <p className="ui-muted">{t("uispSyslog.levelHelp")}</p>
       {data.can_configure && data.supported !== false && (
         <form className="ui-admin-form ui-admin-stack ui-danger-zone" onSubmit={submit}>
           <fieldset className="ui-admin-full">
@@ -72,6 +95,12 @@ export function UispSyslogPanel({ id }: { id: string }) {
               </label>
             ))}
           </fieldset>
+          {!applied && (
+            <label><span>{t("uispSyslog.level")}</span>
+              <select value={chosenLevel} onChange={(event) => setLevel(event.target.value as Level)}>
+                {data.levels.map((key) => <option key={key} value={key}>{t(`acsSyslog.levels.${key}`)}</option>)}
+              </select></label>
+          )}
           <p className="ui-alert ui-alert-warning">{t("uispSyslog.reboot")}</p>
           <label><span>{t("uispSyslog.confirm", { name: data.name })}</span>
             <input value={typed} onChange={(event) => setTyped(event.target.value)} autoComplete="off" /></label>

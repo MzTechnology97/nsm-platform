@@ -21,9 +21,14 @@ const SPEC: Record<string, Spec> = {
   ppp_active: { states: ["up", "down", "disabled"], columns: ["protocol", "name", "user", "state", "endpoint", "local_address", "remote_address", "uptime"],
     mono: ["local_address", "remote_address"] },
   logs: { columns: ["time", "topics", "message"] },
+  queues: { states: ["enabled", "saturated", "disabled", "invalid"], kinds: ["simple", "tree"],
+    columns: ["kind", "name", "target", "parent", "max_limit", "rate", "usage", "state", "comment"], mono: ["target", "max_limit", "rate"] },
+  certificates: { states: ["valid", "expiring", "expired", "revoked"], columns: ["name", "common_name", "issuer", "not_after", "days_left", "role", "state"] },
+  routing: { states: ["up", "down", "disabled"], kinds: ["bgp", "ospf"],
+    columns: ["protocol", "name", "remote_address", "remote_as", "session_state", "uptime", "prefixes", "state"], mono: ["remote_address"] },
 };
-const GOOD = new Set(["up", "active", "static", "bound", "enabled"]);
-const BAD = new Set(["down", "disabled", "invalid", "inactive", "blocked"]);
+const GOOD = new Set(["up", "active", "static", "bound", "enabled", "valid"]);
+const BAD = new Set(["down", "disabled", "invalid", "inactive", "blocked", "expired", "revoked"]);
 
 /** MikroTik Configuration tab: the latest agent read of each section, filtered by state, kind or text, with refresh requests. */
 export function DeviceConfiguration() {
@@ -41,7 +46,9 @@ export function DeviceConfiguration() {
   const spec = SPEC[data.section];
   const view = data.view;
   const pending = data.pending.includes(data.section);
-  const allPending = data.sections.every((section) => data.pending.includes(section.key));
+  const support = data.sections.find((section) => section.key === data.section)?.support;
+  const unsupported = support && !support.supported ? support : null;
+  const allPending = data.sections.every((section) => !section.support.supported || data.pending.includes(section.key));
   const select = (section: string) => { setFilters({ section }); setText(""); refresh.reset(); refreshAll.reset(); };
   const states = spec?.states ?? view.states ?? [];
   const kinds = spec?.kinds ?? view.kinds ?? [];
@@ -56,7 +63,7 @@ export function DeviceConfiguration() {
         <div className="ui-row-actions">
           {data.can_history && <Link to="/devices/$deviceId/configuration/history" params={{ deviceId }} className="ui-button ui-button-ghost">{t("deviceConfig.history")}</Link>}
           {data.can_refresh && (
-            <button type="button" className="ui-button" disabled={!data.online || pending || refresh.isPending} onClick={() => refresh.mutate(data.section)}
+            <button type="button" className="ui-button" disabled={!data.online || pending || refresh.isPending || !!unsupported} onClick={() => refresh.mutate(data.section)}
               title={data.online ? undefined : t("deviceConfig.offline")}>
               {pending ? t("deviceConfig.pending") : t("deviceConfig.refresh")}
             </button>
@@ -75,12 +82,16 @@ export function DeviceConfiguration() {
         <small className="ui-live">{refreshAll.data.queued ? t("deviceConfig.queuedAll", { count: refreshAll.data.sections?.length ?? 0 }) : t("deviceConfig.alreadyAll")}</small>
       )}
       {refreshAll.error && <small className="ui-backup-error">{refreshAll.error instanceof ApiError && refreshAll.error.code === "not_online" ? t("deviceConfig.offline") : (refreshAll.error as Error).message}</small>}
+      {unsupported && (
+        <div className="ui-alert ui-alert-warning">{t(`deviceConfig.unsupported.${unsupported.reason ?? "no_transport"}`, { version: unsupported.min_agent ?? "" })}</div>
+      )}
       <div className="ui-chips" role="tablist" aria-label={t("deviceConfig.title")}>
         {data.sections.map((section) => (
           <button key={section.key} type="button" role="tab" aria-selected={section.key === data.section}
             className={`ui-chip${section.key === data.section ? " is-active" : ""}`} onClick={() => select(section.key)}>
             {t(`deviceConfig.sections.${section.key}`)}
             {data.pending.includes(section.key) && <span className="ui-chip-count">…</span>}
+            {!section.support.supported && <span className="ui-chip-count" title={t("deviceConfig.unsupportedShort")}>—</span>}
           </button>
         ))}
       </div>
