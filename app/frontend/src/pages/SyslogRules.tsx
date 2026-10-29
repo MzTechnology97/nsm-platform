@@ -45,7 +45,7 @@ export function SyslogRules() {
         <Loading />
       ) : (
         <>
-          {editing && <RuleEditor key={editing.id ?? "new"} data={data} initial={editing} onChange={setDraft} onDone={close} />}
+          {editing && <RuleEditor key={editing.id ?? `new-${editing.pattern}`} data={data} initial={editing} onChange={setDraft} onDone={close} />}
           <RuleList data={data} onEdit={(rule) => setEditing(rule)} />
           <Tester draft={editing ? draft : null} />
           <section className="ui-panel ui-section-gap">
@@ -59,6 +59,30 @@ export function SyslogRules() {
                 </li>
               ))}
             </ul>
+            <h3>{t("syslogRules.patternsTitle")}</h3>
+            <p className="ui-muted">{t("syslogRules.patternsHelp")}</p>
+            <div className="ui-data-wrap">
+              <table className="ui-data-table">
+                <thead><tr>{["outcome", "service", "pattern", ""].map((key) => <th key={key}>{key && <span className="ui-th">{t(`syslogRules.patterns.${key}`)}</span>}</th>)}</tr></thead>
+                <tbody>
+                  {data.builtin_patterns.map((row) => (
+                    <tr key={row.pattern}>
+                      <td>{t(`syslogRules.outcomes.${row.outcome}`)}</td>
+                      <td>{row.service || t("syslogRules.patterns.anyService")}</td>
+                      <td className="ui-audit-details"><code title={row.pattern}>{row.pattern}</code></td>
+                      <td>
+                        {data.can_edit && (
+                          <button type="button" className="ui-button ui-button-ghost ui-button-small"
+                            onClick={() => { setEditing({ ...row.copy }); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                            {t("syslogRules.patterns.copy")}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         </>
       )}
@@ -248,6 +272,15 @@ function Tester({ draft }: { draft: SyslogRuleDraft | null }) {
         <button type="submit" className="ui-button" disabled={test.isPending || !line.message.trim()}>{t("syslogRules.tester.run")}</button>
       </form>
       {test.error && <div className="ui-alert ui-alert-danger">{(test.error as Error).message}</div>}
+      {test.data && (
+        <p className="ui-muted ui-section-gap">
+          <strong>{t("syslogRules.tester.builtin")}</strong>{" "}
+          {test.data.builtin
+            ? [t(`syslogRules.outcomes.${test.data.builtin.outcome}`), test.data.builtin.username && `user=${test.data.builtin.username}`,
+               test.data.builtin.remote_ip && `ip=${test.data.builtin.remote_ip}`, test.data.builtin.service && `svc=${test.data.builtin.service}`].filter(Boolean).join(" · ")
+            : t("syslogRules.tester.builtinNone")}
+        </p>
+      )}
       {test.data && (
         test.data.results.length ? (
           <ul className="ui-cap-list ui-section-gap">
