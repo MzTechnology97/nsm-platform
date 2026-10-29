@@ -12,12 +12,15 @@ import { eventLabel, eventSource } from "../lib/events";
 import { Loading } from "../app/States";
 import { CustomerZabbixButton } from "../app/ZabbixScope";
 
-/** Customer tabs already in the new interface; "devices" opens the device list filtered on the customer. */
+/** Customer tabs: every one stays inside the customer's page (the device, backup and activity lists are scoped to it). */
 const MIGRATED_TABS = {
   overview: "/customers/$customerId",
+  devices: "/customers/$customerId/devices",
   sites: "/customers/$customerId/sites",
   graphs: "/customers/$customerId/graphs",
+  backups: "/customers/$customerId/backups",
   security: "/customers/$customerId/security",
+  history: "/customers/$customerId/history",
 } as const;
 
 export function CustomerDetail() {
@@ -91,18 +94,6 @@ function CustomerShell({ detail }: { detail: Detail }) {
             >
               {t(`customer.tabs.${tab.key}`)}
             </Link>
-          ) : tab.key === "devices" ? (
-            <Link key={tab.key} to="/devices" search={{ customer: customer.id }} className="ui-tab">
-              {t("customer.tabs.devices")}
-            </Link>
-          ) : tab.key === "backups" ? (
-            <Link key={tab.key} to="/backups" search={{ customer: customer.id, view: "all" }} className="ui-tab">
-              {t("customer.tabs.backups")}
-            </Link>
-          ) : tab.key === "history" ? (
-            <Link key={tab.key} to="/events" search={{ customer: customer.id }} className="ui-tab">
-              {t("customer.tabs.history")}
-            </Link>
           ) : null,
         )}
       </nav>
@@ -140,10 +131,10 @@ export function CustomerOverview() {
       </div>
 
       <div className="ui-quick-links">
-        <Link to="/devices" search={{ customer: data.customer.id, status: "offline" }}>{t("customer.links.offline")}</Link>
-        <Link to="/devices" search={{ customer: data.customer.id, security: "severe" }}>{t("customer.links.severe")}</Link>
-        <Link to="/devices" search={{ customer: data.customer.id, firmware: "attention" }}>{t("customer.links.updates")}</Link>
-        <Link to="/devices" search={{ customer: data.customer.id, lifecycle: "eol" }}>{t("customer.links.lifecycle")}</Link>
+        <Link to="/customers/$customerId/devices" params={{ customerId: data.customer.id }} search={{ status: "offline" }}>{t("customer.links.offline")}</Link>
+        <Link to="/customers/$customerId/devices" params={{ customerId: data.customer.id }} search={{ security: "severe" }}>{t("customer.links.severe")}</Link>
+        <Link to="/customers/$customerId/devices" params={{ customerId: data.customer.id }} search={{ firmware: "attention" }}>{t("customer.links.updates")}</Link>
+        <Link to="/customers/$customerId/devices" params={{ customerId: data.customer.id }} search={{ lifecycle: "eol" }}>{t("customer.links.lifecycle")}</Link>
       </div>
 
       <CustomerPppoe customerId={data.customer.id} />
@@ -183,7 +174,7 @@ export function CustomerOverview() {
             <h2>{t("customer.events.title")}</h2>
             <p className="ui-muted">{t("customer.events.hint")}</p>
           </div>
-          <Link className="ui-button ui-button-ghost" to="/events" search={{ customer: data.customer.id }}>{t("customer.events.all")}</Link>
+          <Link className="ui-button ui-button-ghost" to="/customers/$customerId/history" params={{ customerId: data.customer.id }}>{t("customer.events.all")}</Link>
         </div>
         {data.events.length ? (
           <div className="ui-log-wrap ui-log-wrap-short">
@@ -268,12 +259,12 @@ export function CustomerSites() {
                   </td>
                   <td>{site.address ?? "—"}</td>
                   <td>
-                    <Link to="/devices" search={{ customer: data.customer.id, site: site.id }} className="ui-cell-link">
+                    <Link to="/customers/$customerId/devices" params={{ customerId: data.customer.id }} search={{ site: site.id }} className="ui-cell-link">
                       <strong>{site.devices}</strong> <small className="ui-muted">{t("customers.online", { count: site.online })}</small>
                     </Link>
                   </td>
                   <td>
-                    <Link to="/devices" search={{ customer: data.customer.id, site: site.id, status: "offline" }} className={`ui-cell-link${site.offline ? " is-danger" : ""}`}>
+                    <Link to="/customers/$customerId/devices" params={{ customerId: data.customer.id }} search={{ site: site.id, status: "offline" }} className={`ui-cell-link${site.offline ? " is-danger" : ""}`}>
                       <strong>{site.offline}</strong>
                     </Link>
                   </td>

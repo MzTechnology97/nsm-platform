@@ -290,19 +290,44 @@ const profileRoute = createRoute({
   component: lazyRouteComponent(() => import("../pages/Profile"), "Profile"),
 });
 const AUDIT_KEYS = ["event_type", "result", "severity", "customer", "device", "q", "from_date", "to_date"] as const;
+function parseAuditSearch(search: Record<string, unknown>): AuditFilters {
+  const out: AuditFilters = {};
+  for (const key of AUDIT_KEYS) {
+    const value = search[key];
+    if (typeof value === "string" && value) out[key] = value;
+  }
+  for (const key of ["from_date", "to_date"] as const) if (out[key] && !/^\d{4}-\d{2}-\d{2}$/.test(out[key] ?? "")) delete out[key];
+  return out;
+}
 const auditEventsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/events",
   component: lazyRouteComponent(() => import("../pages/AuditEvents"), "AuditEvents"),
-  validateSearch: (search: Record<string, unknown>): AuditFilters => {
-    const out: AuditFilters = {};
-    for (const key of AUDIT_KEYS) {
-      const value = search[key];
-      if (typeof value === "string" && value) out[key] = value;
-    }
-    for (const key of ["from_date", "to_date"] as const) if (out[key] && !/^\d{4}-\d{2}-\d{2}$/.test(out[key] ?? "")) delete out[key];
-    return out;
-  },
+  validateSearch: parseAuditSearch,
+});
+// The device, backup and activity lists as tabs of a customer: the same pages and filters, the customer fixed.
+const withoutCustomer = <T extends { customer?: string }>(search: T): T => {
+  const out = { ...search };
+  delete out.customer;
+  return out;
+};
+const customerDevicesRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/devices",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerDevices"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseDeviceSearch(search)),
+});
+const customerBackupsRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/backups",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerBackups"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseBackupOverviewSearch(search)),
+});
+const customerHistoryRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/history",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerHistory"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseAuditSearch(search)),
 });
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const slaRoute = createRoute({
@@ -673,7 +698,7 @@ export const routeTree = rootRoute.addChildren([
   notificationsRoute,
   profileRoute,
   customerNewRoute,
-  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute, customerDevicesManageRoute]),
+  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute, customerDevicesManageRoute, customerDevicesRoute, customerBackupsRoute, customerHistoryRoute]),
   deviceImportRoute,
   deviceRoute.addChildren([deviceOverviewRoute, deviceManageRoute, deviceExposureRoute, deviceComplianceRoute, deviceJobsRoute, deviceConfigurationRoute, deviceConfigurationHistoryRoute, deviceRebootRoute, deviceRouterbootRoute, deviceFirmwareRoute, deviceUispRoute, deviceCnmaestroRoute, deviceGenieacsRoute, deviceLifecycleRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceBackupArtifactRoute, deviceRestoreTestsRoute, deviceRestoreTestRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);

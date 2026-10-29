@@ -1233,7 +1233,8 @@
       "none": "Nessuna policy configurata."
     },
     "createPolicy": "Crea policy",
-    "restoreReadiness": "Pronti al ripristino"
+    "restoreReadiness": "Pronti al ripristino",
+    "subtitleCustomer": "Protezione backup degli apparati di questo cliente: policy, metodo eseguibile ed esito dell'ultima esecuzione."
   },
   "firmware": {
     "title": "Firmware",
@@ -4287,7 +4288,7 @@
     },
     "refresh": "Aggiorna da GenieACS",
     "refreshed": "Inventario aggiornato da GenieACS.",
-    "notYet": "Backup e aggiornamento firmware tramite ACS non sono ancora disponibili.",
+    "notYet": "Diagnostica, backup e aggiornamento firmware tramite ACS non sono ancora disponibili.",
     "verifyTitle": "Verifica corrispondenza",
     "searchTitle": "Cerca in GenieACS",
     "searchSerialMac": "NSM cerca il seriale {{serial}} e, se non lo trova, il MAC {{mac}}; la ricerca non modifica nulla.",
