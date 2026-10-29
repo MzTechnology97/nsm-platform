@@ -3,6 +3,13 @@
 This is deliberately a download-only phase.  It never calls `install`, never
 upgrades RouterBOOT, and never reboots the router.  The approved target is
 revalidated on the device immediately before download.
+
+Agent 0.49.25: ``/system package update download`` may return before the
+package is written (or fail for lack of flash space), so the Agent waits up to
+``DOWNLOAD_WAIT_SECONDS`` for RouterOS to report the download and looks for the
+``routeros-<target>-*.npk`` file.  Only a verified package (``package_verified``)
+marks the plan *staged*; otherwise the plan fails with what RouterOS reported and
+the free flash space.
 """
 from __future__ import annotations
 
@@ -23,6 +30,7 @@ from app.models import BackupRun, utcnow
 router = APIRouter()
 JOB_TYPE = "firmware_stage"
 MAX_RESULT_BODY = 64 * 1024
+DOWNLOAD_WAIT_SECONDS = 180  # 36 checks, 5 s apart (see _HANDLER)
 
 _HANDLER = r'''
     :if ($nsmJobType = "firmware_stage") do={
@@ -33,6 +41,12 @@ _HANDLER = r'''
       :local nsmInstalled ""
       :local nsmLatest ""
       :local nsmUpdateStatus ""
+      :local nsmStep "check"
+      :local nsmFreeBefore ""
+      :local nsmFreeAfter ""
+      :local nsmPackageFile ""
+      :local nsmPackageSize ""
+      :local nsmVerified false
       :do {
         /system package update check-for-updates once
         :delay 3s
@@ -41,12 +55,28 @@ _HANDLER = r'''
         :set nsmUpdateStatus [/system package update get status]
         :if ($nsmInstalled = $nsmTarget) do={ :error "NSM target is already installed" }
         :if ($nsmLatest != $nsmTarget) do={ :error "NSM approved target no longer matches RouterOS latest-version" }
-        /system package update download
-      } on-error={ :set nsmStageOk false; :set nsmStageError "RouterOS package staging failed or target changed" }
+        :set nsmFreeBefore [/system resource get free-hdd-space]
+        :set nsmStep "download"
+        :do { /system package update download } on-error={ :set nsmStep "download-command" }
+        :local nsmWait 0
+        :while (!$nsmVerified && $nsmWait < 36) do={
+          :delay 5s
+          :set nsmWait ($nsmWait + 1)
+          :do { :set nsmUpdateStatus [/system package update get status] } on-error={}
+          :foreach nsmF in=[/file find where name~("routeros-" . $nsmTarget . "-")] do={
+            :set nsmPackageFile [/file get $nsmF name]
+            :set nsmPackageSize [/file get $nsmF size]
+          }
+          :if ($nsmUpdateStatus ~ "Downloaded" || [:len $nsmPackageFile] > 0) do={ :set nsmVerified true }
+          :if ($nsmUpdateStatus ~ "(ERROR|rror|ailed|space)") do={ :set nsmWait 36 }
+        }
+        :do { :set nsmFreeAfter [/system resource get free-hdd-space] } on-error={}
+        :if (!$nsmVerified) do={ :set nsmStep "verify"; :error "NSM package not downloaded" }
+      } on-error={ :set nsmStageOk false; :set nsmStageError ("RouterOS package staging failed at " . $nsmStep . ": " . $nsmUpdateStatus) }
       :local nsmDoneUrl ($nsmBase . "/api/v1/agents/mikrotik/firmware-stage/" . $nsmJobId . "/complete")
       :local nsmDoneStatus "failed"
       :if ($nsmStageOk) do={ :set nsmDoneStatus "success" }
-      :local nsmDoneBody [:serialize value={"status"=$nsmDoneStatus;"error"=$nsmStageError;"result"={"installed_version"=$nsmInstalled;"latest_version"=$nsmLatest;"update_status"=$nsmUpdateStatus;"target_version"=$nsmTarget;"download_only"=true}} to=json options=json.no-string-conversion]
+      :local nsmDoneBody [:serialize value={"status"=$nsmDoneStatus;"error"=$nsmStageError;"result"={"installed_version"=$nsmInstalled;"latest_version"=$nsmLatest;"update_status"=$nsmUpdateStatus;"target_version"=$nsmTarget;"download_only"=true;"step"=$nsmStep;"package_verified"=$nsmVerified;"package_file"=$nsmPackageFile;"package_size"=$nsmPackageSize;"free_hdd_before"=$nsmFreeBefore;"free_hdd_after"=$nsmFreeAfter}} to=json options=json.no-string-conversion]
       :do { /tool fetch url=$nsmDoneUrl http-method=post http-header-field=$nsmHeaders http-data=$nsmDoneBody output=user as-value } on-error={ :log warning "NSM firmware staging report failed" }
     }
 '''
@@ -63,6 +93,36 @@ def _install_agent_handler():
         return source.replace(marker, _HANDLER + "\n" + marker, 1)
 
     agent_module._agent_source = source_with_staging
+
+
+def _number(value):
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def failure_message(target: str, result: dict, agent_error: str | None) -> str:
+    """What the operator reads on the plan when the package did not reach the router."""
+    status = str(result.get("update_status") or "").strip()
+    free = _number(result.get("free_hdd_after")) or _number(result.get("free_hdd_before"))
+    if "package_verified" not in result:
+        return ("Download del pacchetto RouterOS non verificato: l'Agent installato non controlla se il pacchetto è arrivato. "
+                "Aggiorna l'Agent (scheda Agent) e ripeti il download.")
+    parts = [f"Il pacchetto RouterOS {target} non risulta scaricato sul router"]
+    if result.get("step") == "check":
+        parts = [f"Controllo prima del download non riuscito (versione installata o disponibile cambiata) per RouterOS {target}"]
+    if status:
+        parts.append(f"RouterOS riporta «{status}»")
+    if free is not None:
+        parts.append(f"spazio libero {free / 1048576:.1f} MB")
+    message = ", ".join(parts) + "."
+    if free is not None and free < 16 * 1048576 and result.get("step") != "check":
+        message += (" Su apparati con poca flash (es. hEX, 16 MB) il pacchetto può non entrarci: libera spazio nella cartella Files "
+                    "(backup, export, pacchetti vecchi) e ripeti il download.")
+    if agent_error and not status:
+        message += f" Dettaglio Agent: {agent_error}"
+    return message[:4000]
 
 
 def _active_agent(db, device_id):
@@ -118,6 +178,11 @@ async def stage_complete(request: Request, job_id: uuid.UUID):
             raise HTTPException(400, "Stato staging non valido.")
         result = payload.get("result") if isinstance(payload.get("result"), dict) else {}
         error = str(payload.get("error") or "").strip()[:4000] or None
+        if status == "success" and result.get("package_verified") is not True:
+            # Agents before 0.49.25 reported success right after starting the download.
+            status = "failed"
+        if status == "failed":
+            error = failure_message(plan.target_version, result, error)
         job.status = status
         job.result = result
         job.last_error = error

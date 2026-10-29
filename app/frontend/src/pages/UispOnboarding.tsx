@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { SearchSelect, customerLabel } from "../app/SearchSelect";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 import { type OnboardingFilters, type OnboardingProvider, type OnboardingRow, useOnboarding, useOnboardingCommit, useOnboardingPreview } from "../api/admin";
 import { BrandIcon } from "../app/BrandIcon";
 import { useDebounced } from "../lib/hooks";
@@ -38,9 +40,11 @@ function ConnectorOnboarding({ provider }: { provider: OnboardingProvider }) {
   const q = useDebounced(text.trim());
   const state = search.state ?? "new";
   const groupValue = provider === "uisp" ? search.uisp_site : search.group;
-  const query = useOnboarding({ q: search.q, [config.group]: groupValue, state }, provider);
-  const first = query.data?.pages[0];
-  const items = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
+  const onboardingFilters = { q: search.q, [config.group]: groupValue, state };
+  const paging = usePaging(JSON.stringify(onboardingFilters));
+  const query = useOnboarding(onboardingFilters, provider, pageParams(paging));
+  const first = query.data;
+  const items = useMemo(() => query.data?.items ?? [], [query.data]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [customer, setCustomer] = useState(search.customer ?? "");
   const [site, setSite] = useState("");
@@ -95,6 +99,9 @@ function ConnectorOnboarding({ provider }: { provider: OnboardingProvider }) {
           <h1>{t("onboarding.title")}</h1>
           <p>{t("onboarding.subtitle")}</p>
         </div>
+        {provider === "uisp" && (
+          <div className="ui-actions"><Link className="ui-button ui-button-ghost" to="/integrations/uisp/customers">{t("uispCustomers.open")}</Link></div>
+        )}
       </header>
       {first?.error && <div className="ui-alert ui-alert-danger">{first.error}</div>}
       <div className="ui-chips" role="group" aria-label={t("onboarding.stateFilter")}>
@@ -154,12 +161,8 @@ function ConnectorOnboarding({ provider }: { provider: OnboardingProvider }) {
           </div>
           <div className="ui-table-foot">
             <span>{t("firmware.shown", { shown: items.length, total: first.total })}</span>
-            {query.hasNextPage && (
-              <button type="button" className="ui-button ui-button-ghost" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
-                {query.isFetchingNextPage ? t("app.loading") : t("firmware.more")}
-              </button>
-            )}
           </div>
+          <Pager total={first.total} paging={paging} busy={query.isFetching} />
           {selectable && (
             <div className="ui-row-actions">
               <button type="button" className="ui-button" disabled={!selected.size || !customer || selected.size > first.max_batch || preview.isPending}

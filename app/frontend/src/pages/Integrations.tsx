@@ -41,7 +41,7 @@ export function Integrations() {
   const when = (value: string | null) => (value ? formatDateTime(value, i18n.language) : t("adminUsers.never"));
   const state = (key: string) => t(`integrations.states.${key}`);
 
-  const manageRoute = (to: "/admin/integrations/cnmaestro" | "/admin/integrations/zabbix" | "/admin/integrations/genieacs" | "/admin/integrations/uisp" | "/admin/integrations/ispbilling", configured: boolean) =>
+  const manageRoute = (to: "/admin/integrations/cnmaestro" | "/admin/integrations/zabbix" | "/admin/integrations/genieacs" | "/admin/integrations/uisp" | "/admin/integrations/ispbilling" | "/admin/integrations/bras", configured: boolean) =>
     data?.can_admin ? <Link className="ui-button ui-button-ghost ui-button-small" to={to}>{configured ? t("integrations.manage") : t("integrations.configure")}</Link> : null;
 
   return (
@@ -117,6 +117,13 @@ export function Integrations() {
             </>}>
             <Facts items={[[t("integrations.ispbilling.customers"), data.ispbilling.customers], [t("integrations.ispbilling.linked"), data.ispbilling.linked]]} />
           </Card>
+
+          {data.bras && (
+            <Card name="bras" title={t("integrations.bras.title")} help={t("integrations.bras.help")} state={data.bras.state} label={state(data.bras.state)}
+              actions={manageRoute("/admin/integrations/bras", data.bras.state !== "unconfigured")}>
+              <Facts items={[[t("integrations.bras.online"), data.bras.online], [t("integrations.bras.offline"), data.bras.offline]]} />
+            </Card>
+          )}
 
           <Card name="zabbix" title={t("integrations.zabbix.title")} help={t("integrations.zabbix.help")} state={data.zabbix.state} label={state(data.zabbix.state)}
             actions={<>

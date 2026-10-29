@@ -6,7 +6,13 @@ connector creates or updates one Zabbix host:
 
 - technical name ``nsm-<id>`` (stable), visible name ``<device> · <customer>``;
 - host group ``<prefix>/<customer>`` (created when missing);
-- one interface (Zabbix agent, or SNMPv2 with a community macro);
+- the interfaces its templates need: SNMPv2 (community from the settings) for
+  SNMP items, Zabbix agent for passive agent items, IPMI/JMX likewise, read
+  from the template's items and discovery rules (``template_interfaces``);
+  with no such item (e.g. ICMP Ping) the interface chosen in the settings.
+  Zabbix refuses a template whose items need an interface type the host lacks
+  ("a host interface of type SNMP is required"); an existing host gets the
+  missing interfaces before its templates, never a second one of a type;
 - templates chosen per manufacturer (added, never unlinked: templates linked
   by hand in Zabbix are kept);
 - tags ``source=nsm``, ``nsm_device_id``, ``nsm_customer``, ``vendor`` and the
@@ -45,6 +51,7 @@ from sqlalchemy import select
 from app import main as core
 from app import vendor_cpe
 from app.db import SessionLocal
+from app.input_errors import InputError
 from app.integration_models import ConnectorIntegration
 from app.models import Customer, Device, Site, utcnow
 from app.secret_vault import decrypt_text, encrypt_text
@@ -206,17 +213,64 @@ def _valid_ip(value) -> str | None:
         return None
 
 
-def eligible(device, settings: dict) -> bool:
+def in_scope(device, settings: dict) -> bool:
+    """Whether the operator wants this device in Zabbix: every device, or its customer, or the device itself (*Aggiungi a Zabbix*)."""
     data = device.inventory_data or {}
-    if data.get("zabbix_exclude") or not (_valid_ip(data.get("zabbix_ip")) or _valid_ip(device.management_ip)):
+    if data.get("zabbix_exclude"):
         return False
     if settings.get("scope") == "customers":
-        return str(device.customer_id) in set(settings.get("customer_ids") or [])
+        return data.get("zabbix_include") is True or str(device.customer_id) in set(settings.get("customer_ids") or [])
     return True
+
+
+def address_of(device) -> str | None:
+    data = device.inventory_data or {}
+    return _valid_ip(data.get("zabbix_ip")) or _valid_ip(device.management_ip)
+
+
+def eligible(device, settings: dict) -> bool:
+    return bool(address_of(device)) and in_scope(device, settings)
 
 
 def _clip(value, size):
     return str(value or "")[:size]
+
+
+# Item type → host interface type it polls through (Zabbix: 1 agent, 2 SNMP, 3 IPMI, 4 JMX). 20 is SNMP since 5.4;
+# 1/4/6 are SNMPv1/v2c/v3 on older servers. Active agent, simple checks, calculated, trapper… need none.
+ITEM_INTERFACE = {0: 1, 20: 2, 1: 2, 4: 2, 6: 2, 12: 3, 16: 4}
+INTERFACE_PORTS = {1: "10050", 2: "161", 3: "623", 4: "12345"}
+
+
+def interface_for(kind: int, ip: str | None, settings: dict) -> dict:
+    """A main host interface of the given type at ``ip``."""
+    interface = {"type": kind, "main": 1, "useip": 1, "ip": ip, "dns": "", "port": INTERFACE_PORTS[kind]}
+    if kind == 2:
+        interface["details"] = {"version": 2, "bulk": 1, "community": settings.get("snmp_community") or "{$SNMP_COMMUNITY}"}
+    return interface
+
+
+def template_interfaces(client, template_ids) -> dict[str, set[int]]:
+    """Interface types each template's items and discovery rules poll through (inherited items included)."""
+    ids = sorted({str(t) for t in template_ids if t})
+    needed: dict[str, set[int]] = {tid: set() for tid in ids}
+    if not ids:
+        return needed
+    for method in ("item.get", "discoveryrule.get"):
+        for row in client.call(method, {"output": ["type", "hostid"], "templateids": ids}) or []:
+            kind = ITEM_INTERFACE.get(int(row.get("type") or -1))
+            if kind and str(row.get("hostid")) in needed:
+                needed[str(row["hostid"])].add(kind)
+    return needed
+
+
+def wanted_interfaces(payload: dict, needed: set[int], settings: dict) -> list[dict]:
+    """The interfaces the host must have: the types its templates need (the configured one first), else the configured one."""
+    configured = payload["interface"]
+    if not needed:
+        return [configured]
+    ordered = sorted(needed, key=lambda kind: (kind != configured["type"], kind))
+    return [configured if kind == configured["type"] else interface_for(kind, configured["ip"], settings) for kind in ordered]
 
 
 def host_payload(device, customer, site, settings: dict) -> dict:
@@ -224,11 +278,7 @@ def host_payload(device, customer, site, settings: dict) -> dict:
     name = device.display_name or device.device_identity or device.name
     customer_name = customer.name if customer else "Senza cliente"
     ip = _valid_ip((device.inventory_data or {}).get("zabbix_ip")) or _valid_ip(device.management_ip)
-    if settings.get("interface") == "snmp":
-        interface = {"type": 2, "main": 1, "useip": 1, "ip": ip, "dns": "", "port": "161",
-                     "details": {"version": 2, "bulk": 1, "community": settings.get("snmp_community") or "{$SNMP_COMMUNITY}"}}
-    else:
-        interface = {"type": 1, "main": 1, "useip": 1, "ip": ip, "dns": "", "port": "10050"}
+    interface = interface_for(2 if settings.get("interface") == "snmp" else 1, ip, settings)
     return {
         "host": host_name(device),
         "name": _clip(f"{name} · {customer_name}", 128),
@@ -407,23 +457,28 @@ def sync(db, row=None, now=None) -> dict:
         groups = _group_ids(client, {p["group"] for _d, p in wanted.values()}) if wanted else {}
         templates = _template_ids(client, {p["template"] for _d, p in wanted.values()})
         stats["missing_templates"] = sorted({p["template"] for _d, p in wanted.values() if p["template"] and p["template"] not in templates})
+        needs = template_interfaces(client, set(templates.values()))
         for name, (device, payload) in wanted.items():
             try:
                 template_ids = [{"templateid": templates[payload["template"]]}] if payload["template"] in templates else []
+                interfaces = wanted_interfaces(payload, needs.get(str(templates.get(payload["template"]))) or set(), settings)
                 common = {"name": payload["name"], "groups": [{"groupid": groups[payload["group"]]}], "tags": payload["tags"],
                           "inventory_mode": 0, "inventory": payload["inventory"]}
                 current = existing.get(name)
                 if current is None:
-                    hostid = _create(client, {"host": name, "status": 0, "interfaces": [payload["interface"]], "templates": template_ids, **common})
+                    hostid = _create(client, {"host": name, "status": 0, "interfaces": interfaces, "templates": template_ids, **common})
                     stats["created"] += 1
                 else:
                     hostid = current["hostid"]
                     client.call("host.update", {"hostid": hostid, "status": 0, **common})
-                    main = next((i for i in current.get("interfaces") or [] if str(i.get("main")) == "1" and str(i.get("type")) == str(payload["interface"]["type"])), None)
-                    if main is None:
-                        client.call("hostinterface.create", {"hostid": hostid, **payload["interface"]})
-                    elif main.get("ip") != payload["interface"]["ip"]:
-                        client.call("hostinterface.update", {"interfaceid": main["interfaceid"], "ip": payload["interface"]["ip"]})
+                    have = current.get("interfaces") or []
+                    for interface in interfaces:  # before the templates: Zabbix refuses SNMP items on a host without SNMP
+                        same = [i for i in have if str(i.get("type")) == str(interface["type"])]
+                        main = next((i for i in same if str(i.get("main")) == "1"), None)
+                        if not same:
+                            client.call("hostinterface.create", {"hostid": hostid, **interface})
+                        elif main is not None and main.get("ip") != interface["ip"]:
+                            client.call("hostinterface.update", {"interfaceid": main["interfaceid"], "ip": interface["ip"]})
                     if template_ids:
                         client.call("host.massadd", {"hosts": [{"hostid": hostid}], "templates": template_ids})
                     stats["updated"] += 1
@@ -583,6 +638,111 @@ def set_exclude_record(db, user, device, exclude: bool) -> bool:
     core.add_event(db, "ZABBIX_DEVICE_SCOPE_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id,
                    details={"exclude": data["zabbix_exclude"]}, source="portal")
     return data["zabbix_exclude"]
+
+
+# --- "Aggiungi a Zabbix" from the device and customer pages -----------------------------------------
+
+class ZabbixScopeError(InputError, ValueError):
+    pass
+
+
+def _enabled_row(db):
+    row = connection_row(db)
+    if row is None or not row.is_enabled:
+        raise ZabbixScopeError("not_configured", "Zabbix non è configurato o è disattivato (Integrazioni → Zabbix).")
+    return row
+
+
+def device_outcome(device) -> str:
+    """After a push: linked (operator host), pushed (nsm- host), or why it is not in Zabbix."""
+    data = device.inventory_data or {}
+    zbx = data.get("zabbix") or {}
+    if zbx.get("hostid"):
+        return "linked" if zbx.get("linked") else "pushed"
+    ip = address_of(device)
+    if not ip:
+        return "no_ip"
+    if ip in FACTORY_LAN_IPS and not _valid_ip(data.get("zabbix_ip")):
+        return "factory_ip"
+    return "pending"
+
+
+def _push(db, row) -> dict:
+    result = sync(db, row)
+    return {"status": result["status"], "error": (result.get("errors") or [None])[0] if result["status"] == "failed" else None}
+
+
+def add_device(db, user, device) -> dict:
+    """Put one device in Zabbix (also when its customer is not in the scope) and push it now; audited, commits."""
+    row = _enabled_row(db)
+    data = dict(device.inventory_data or {})
+    data["zabbix_include"] = True
+    data.pop("zabbix_exclude", None)
+    device.inventory_data = data
+    core.add_event(db, "ZABBIX_DEVICE_SCOPE_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id,
+                   details={"include": True, "exclude": False}, source="portal")
+    db.commit()
+    push = _push(db, row)
+    db.refresh(device)
+    return {**push, "outcome": device_outcome(device)}
+
+
+def remove_device(db, user, device) -> dict:
+    """Take one device out of Zabbix (its host is disabled, never deleted) and push now; audited, commits."""
+    row = _enabled_row(db)
+    data = dict(device.inventory_data or {})
+    data["zabbix_include"] = False
+    data["zabbix_exclude"] = True
+    device.inventory_data = data
+    core.add_event(db, "ZABBIX_DEVICE_SCOPE_CHANGED", actor=user, customer_id=device.customer_id, device_id=device.id,
+                   details={"include": False, "exclude": True}, source="portal")
+    db.commit()
+    return _push(db, row)
+
+
+def customer_state(db, customer) -> dict | None:
+    row = connection_row(db)
+    if row is None or not row.is_enabled:
+        return None
+    settings = settings_of(row)
+    devices = list(db.scalars(select(Device).where(Device.customer_id == customer.id)))
+    return {
+        "scope": settings.get("scope"),
+        "included": settings.get("scope") != "customers" or str(customer.id) in set(settings.get("customer_ids") or []),
+        "devices": len(devices),
+        "in_zabbix": sum(1 for d in devices if ((d.inventory_data or {}).get("zabbix") or {}).get("hostid")),
+        "selected": sum(1 for d in devices if in_scope(d, settings)),
+        "no_ip": sum(1 for d in devices if in_scope(d, settings) and not address_of(d)),
+    }
+
+
+def set_customer(db, user, customer, include: bool) -> dict:
+    """Add a customer's devices to Zabbix (or take them out) and push now; audited, commits.
+
+    With scope *customers* the customer joins (leaves) the list; its devices lose their own exclusion when added and
+    their own inclusion when removed. With scope *all* the devices only lose (gain) their own exclusion.
+    """
+    row = _enabled_row(db)
+    settings = settings_of(row)
+    if settings.get("scope") == "customers":
+        ids = [i for i in settings.get("customer_ids") or [] if i != str(customer.id)]
+        if include:
+            ids.append(str(customer.id))
+        row.settings = {**(row.settings or {}), "customer_ids": ids}
+    for device in db.scalars(select(Device).where(Device.customer_id == customer.id)):
+        data = dict(device.inventory_data or {})
+        if include:
+            data.pop("zabbix_exclude", None)
+        else:
+            data["zabbix_include"] = False
+            if settings.get("scope") != "customers":
+                data["zabbix_exclude"] = True
+        device.inventory_data = data
+    core.add_event(db, "ZABBIX_CUSTOMER_SCOPE_CHANGED", actor=user, customer_id=customer.id,
+                   details={"customer": customer.name, "include": include}, source="portal")
+    db.commit()
+    push = _push(db, row)
+    return {**push, **(customer_state(db, customer) or {})}
 
 
 def summary() -> dict:

@@ -52,6 +52,7 @@ from sqlalchemy import func, or_, select
 
 from datetime import timedelta
 
+from app import pagination
 from app import availability, crud_extension, customer_graphs, mikrotik_onboarding
 from app import main as core
 from app.customer_tabs import _backup_summary, _load_customer, security_data
@@ -106,7 +107,8 @@ def customer_rows(db, q: str = "") -> list[dict]:
 
 
 @router.get("/customers")
-def customers(request: Request, q: str = "", filter: str = "", sort: str = "name", dir: str = ""):
+def customers(request: Request, q: str = "", filter: str = "", sort: str = "name", dir: str = "", offset: int = 0, limit: int = 0):
+    offset, size = pagination.window(offset, limit, MAX_ROWS)
     with SessionLocal() as db:
         user = ui_user(request, db, "customers.read")
         rows = customer_rows(db, q)
@@ -121,12 +123,14 @@ def customers(request: Request, q: str = "", filter: str = "", sort: str = "name
         else:
             rows.sort(key=lambda row: (-row[sort] if descending else row[sort], row["name"].lower()))
         return {
-            "total": len(rows), "items": rows, "counts": counts,
+            "total": len(rows), "offset": offset, "limit": size, "items": rows[offset:offset + size], "counts": counts,
             "can_create": core.has_permission(user, "customers.write"),
         }
 
 
-CUSTOMER_TABS = ("overview", "devices", "sites", "graphs", "backups", "security", "history")
+CUSTOMER_TABS = ("overview", "devices", "sites", "graphs", "backups", "security", "actions", "incidents", "sla", "history")
+# Tabs that need a permission of their own: the customer's issues, incidents and SLA (same as the global pages).
+TAB_PERMISSIONS = {"actions": "issues.read", "incidents": "incidents.read", "sla": "reports.read"}
 
 
 def _iso(value):
@@ -169,7 +173,7 @@ def customer_detail(request: Request, customer_id: uuid.UUID):
             "actions": {"edit": core.has_permission(user, "customers.write"), "add_site": core.has_permission(user, "customers.write"),
                         "add_device": core.has_permission(user, "devices.write"), "incidents": core.has_permission(user, "incidents.read"),
                         "uisp_import": core.has_permission(user, "devices.write")},
-            "tabs": [{"key": key} for key in CUSTOMER_TABS],
+            "tabs": [{"key": key} for key in CUSTOMER_TABS if key not in TAB_PERMISSIONS or core.has_permission(user, TAB_PERMISSIONS[key])],
         }
 
 

@@ -13,12 +13,14 @@ interface AlertSettings {
   reboots_per_day: number;
   snr_min_db: number;
   dsl_rate_drop_percent: number;
+  pon_rx_min_dbm: number;
 }
 
 type Form = Omit<AlertSettings, "linked">;
 const PATH = "/api/ui/v1/admin/acs/alerts";
 const SWITCHES = ["enabled", "offline", "wan_down"] as const;
-const NUMBERS = [["reconnects_per_hour", 1], ["reboots_per_day", 1], ["snr_min_db", 0.5], ["dsl_rate_drop_percent", 5]] as const;
+const NUMBERS = [["reconnects_per_hour", 1, 0], ["reboots_per_day", 1, 0], ["snr_min_db", 0.5, 0], ["dsl_rate_drop_percent", 5, 0],
+  ["pon_rx_min_dbm", 0.5, -40]] as const;
 
 /** Alerts raised for TR-069 CPEs (Amministrazione → ACS): switches and thresholds; 0 disables a threshold. */
 export function AcsAlertSettings() {
@@ -52,10 +54,10 @@ export function AcsAlertSettings() {
             <span>{t(`acsAlerts.fields.${key}`)}</span>
           </label>
         ))}
-        {NUMBERS.map(([key, step]) => (
+        {NUMBERS.map(([key, step, min]) => (
           <label key={key}>
             <span>{t(`acsAlerts.fields.${key}`)}</span>
-            <input type="number" min={0} step={step} value={form[key]} onChange={(event) => setForm({ ...form, [key]: Number(event.target.value) })} />
+            <input type="number" min={min} step={step} value={form[key]} onChange={(event) => setForm({ ...form, [key]: Number(event.target.value) })} />
           </label>
         ))}
         <div className="ui-row-actions">

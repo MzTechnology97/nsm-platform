@@ -25,6 +25,9 @@ class FakeZabbix:
         self.groups, self.templates, self.hosts = {}, {"ICMP Ping": "10564", "MikroTik by SNMP": "10233"}, {}
         self.calls = []
         self.next_id = 100
+        # Item types of each template (20 = SNMP agent, 3 = simple check): like Zabbix, a template with SNMP items
+        # cannot be linked to a host without an SNMP interface.
+        self.template_items = {"10233": [20, 20, 3], "10564": [3]}
 
     def _new_id(self):
         self.next_id += 1
@@ -71,7 +74,20 @@ class FakeZabbix:
                  "interfaces": [{**i, "main": "1", "type": str(i["type"])} for i in h["interfaces"]]}
                 for h in self.hosts.values() if any(t == {"tag": "source", "value": "nsm"} for t in h["tags"])]
 
+    def item_get(self, params):
+        return [{"type": str(kind), "hostid": tid} for tid in params["templateids"] for kind in self.template_items.get(tid, [])]
+
+    def discoveryrule_get(self, params):
+        return []
+
+    def _check_interfaces(self, interfaces, templates):
+        for ref in templates:
+            if 20 in self.template_items.get(ref["templateid"], []) and not any(str(i["type"]) == "2" for i in interfaces):
+                raise _RpcError({"code": -32602, "message": "Invalid params.",
+                                 "data": 'Cannot inherit item with key "x" of template "t" to host "h", because a host interface of type "SNMP" is required.'})
+
     def host_create(self, params):
+        self._check_interfaces(params["interfaces"], params.get("templates", []))
         if any(h["name"] == params["name"] for h in self.hosts.values()):
             raise_error = {"code": -32602, "message": "Invalid params.", "data": f'Host with the same visible name "{params["name"]}" already exists.'}
             raise _RpcError(raise_error)
@@ -88,6 +104,7 @@ class FakeZabbix:
     def host_massadd(self, params):
         for ref in params["hosts"]:
             host = self.hosts[ref["hostid"]]
+            self._check_interfaces(host["interfaces"], params["templates"])
             for t in params["templates"]:
                 if t not in host["templates"]:
                     host["templates"].append(t)
@@ -178,7 +195,9 @@ def main():
     assert result["created"] == 2, result
     hosts = {h["host"]: h for h in fake6.hosts.values()}
     mt_host = hosts[f"nsm-{ids['mt'].hex[:16]}"]
-    assert mt_host["interfaces"][0]["ip"] == "203.0.113.40" and mt_host["interfaces"][0]["type"] == 1
+    # The settings say "agent", but the MikroTik template polls over SNMP: the host gets the SNMP interface Zabbix requires.
+    assert [(i["type"], i["port"], i["ip"]) for i in mt_host["interfaces"]] == [(2, "161", "203.0.113.40")], mt_host["interfaces"]
+    assert mt_host["interfaces"][0]["details"]["community"] == "{$SNMP_COMMUNITY}"
     assert mt_host["templates"] == [{"templateid": "10233"}] and mt_host["inventory"]["serialno_a"] == "ZBSER1" and mt_host["inventory"]["location"] == "Sede ZBX"
     assert {"tag": "nsm_device_id", "value": str(ids["mt"])} in mt_host["tags"] and f"NSM/CI Zabbix {suffix}" in fake6.groups
     cpe_host = hosts[f"nsm-{ids['cpe'].hex[:16]}"]
@@ -194,7 +213,19 @@ def main():
         db.commit()
         stats = zbx.sync(db)
     assert stats["status"] == "success" and stats["updated"] == 1 and stats["disabled"] == 1, stats
+
     assert mt_host["interfaces"][0]["ip"] == "203.0.113.44" and {"templateid": "99999"} in mt_host["templates"]
+    # A host created before the fix with only an agent interface (host.massadd failed in production): the SNMP interface
+    # is added before the template, and never twice.
+    mt_host["interfaces"] = [{"interfaceid": "7001", "type": 1, "main": 1, "useip": 1, "ip": "203.0.113.44", "dns": "", "port": "10050"}]
+    with SessionLocal() as db:
+        again = zbx.sync(db)
+        assert again["status"] == "success", again
+        zbx.sync(db)
+    kinds = sorted(int(i["type"]) for i in mt_host["interfaces"])
+    assert kinds == [1, 2] and {"templateid": "10233"} in mt_host["templates"], mt_host
+    snmp = next(i for i in mt_host["interfaces"] if int(i["type"]) == 2)
+    assert snmp["ip"] == "203.0.113.44" and snmp["port"] == "161"
     assert cpe_host["status"] == 1, "hosts of excluded devices are disabled, not deleted"
     assert "host.delete" not in fake6.calls
 
@@ -210,7 +241,8 @@ def main():
 
     detail = client.get(f"/api/ui/v1/devices/{ids['mt']}").json()["zabbix"]
     assert "zabbix.php?action=latest.view&hostids%5B%5D=" in detail["link"], detail
-    assert client.get(f"/api/ui/v1/devices/{ids['cpe']}").json()["zabbix"] == {"link": None, "excluded": True, "problems": None}
+    excluded = client.get(f"/api/ui/v1/devices/{ids['cpe']}").json()["zabbix"]
+    assert {k: excluded[k] for k in ("link", "excluded", "problems", "in_scope")} == {"link": None, "excluded": True, "problems": None, "in_scope": False}, excluded
     hub = client.get("/api/ui/v1/integrations").json()["zabbix"]
     assert hub["state"] == "active" and hub["version"] == "6.0.30", hub
 

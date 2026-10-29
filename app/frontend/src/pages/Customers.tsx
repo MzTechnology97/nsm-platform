@@ -7,6 +7,8 @@ import { type CustomerFilter, type CustomerFilters, type CustomerRow, type Custo
 import { can, useSession } from "../api/session";
 import type { DeviceFilters } from "../api/devices";
 import { useDebounced } from "../lib/hooks";
+import { pageParams, usePaging } from "../lib/paging";
+import { Pager } from "../app/Pager";
 import { Loading } from "../app/States";
 
 const CHIPS: { key: CustomerFilter; count: "all" | Exclude<CustomerFilter, ""> }[] = [
@@ -31,7 +33,8 @@ export function Customers() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  const query = useCustomers(search);
+  const paging = usePaging(JSON.stringify(search));
+  const query = useCustomers(search, pageParams(paging));
   const data = query.data;
   const sort = search.sort ?? "name";
   // Counters start from the largest, names from A.
@@ -100,6 +103,7 @@ export function Customers() {
               ))}
             </tbody>
           </table>
+          <Pager total={data.total} paging={paging} busy={query.isFetching} />
         </div>
       ) : (
         <div className="ui-empty">{search.q || search.filter ? t("customers.noMatch") : t("customers.empty")}</div>
