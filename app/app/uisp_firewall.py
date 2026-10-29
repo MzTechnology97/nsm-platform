@@ -273,13 +273,18 @@ def _system_cfg(data: bytes) -> str:
 
 
 def _repack(data: bytes, networks: list[str], services=DEFAULT_SERVICES) -> bytes:
+    return repack_with(data, lambda text: edit_config(text, networks, services))
+
+
+def repack_with(data: bytes, edit) -> bytes:
+    """The backup archive with ``system.cfg`` replaced by ``edit(text)``; every other member unchanged."""
     source = tarfile.open(fileobj=io.BytesIO(data), mode="r:*")
     out = io.BytesIO()
     target = tarfile.open(fileobj=out, mode="w:gz" if data[:2] == b"\x1f\x8b" else "w", format=source.format)
     for member in source.getmembers():
         content = source.extractfile(member).read() if member.isfile() else b""
         if member.name.lstrip("./") == "system.cfg":
-            content = edit_config(content.decode("utf-8"), networks, services).encode("utf-8")
+            content = edit(content.decode("utf-8")).encode("utf-8")
         info = tarfile.TarInfo(member.name)
         for attr in ("mode", "mtime", "uid", "gid", "uname", "gname", "type"):
             setattr(info, attr, getattr(member, attr))
@@ -316,11 +321,8 @@ def preview(db, device: Device, services=DEFAULT_SERVICES) -> dict:
     return {**plan(_system_cfg(data), _networks(db), services), "backup": {"id": newest.get("id"), "timestamp": newest.get("timestamp")}}
 
 
-def configure(db, user, device: Device, confirmation: str, services=DEFAULT_SERVICES) -> dict:
-    if (confirmation or "").strip() != base.device_name(device):
-        raise UispFirewallError("confirmation", f"Per confermare scrivi esattamente il nome del dispositivo: {base.device_name(device)}")
-    networks = _networks(db)
-    connection = base._connection(db, device)
+def restore_point(connection, device: Device) -> tuple[dict, bytes]:
+    """A fresh UISP backup of the device (the restore point) and its content."""
     ext = device.external_device_id
     known = {row.get("id") for row in base._call(connection, "GET", f"/devices/{ext}/backups", "l'elenco dei backup").json() or []}
     base._call(connection, "POST", f"/devices/{ext}/backups", "la creazione del backup")
@@ -332,16 +334,30 @@ def configure(db, user, device: Device, confirmation: str, services=DEFAULT_SERV
             waited += 5
     if before is None:
         raise UispFirewallError("backup", "UISP non ha completato il backup del dispositivo: riprova tra qualche minuto.")
-    original = base._call(connection, "GET", f"/devices/{ext}/backups/{before['id']}", "il download del backup").content
-    planned = plan(_system_cfg(original), networks, services)
-    if planned["blocker"]:
-        raise UispFirewallError("blocked", planned["blocker"])
-    changed = _repack(original, networks, services)
+    return before, base._call(connection, "GET", f"/devices/{ext}/backups/{before['id']}", "il download del backup").content
+
+
+def upload_and_apply(connection, device: Device, data: bytes, filename: str) -> str:
+    """Upload the edited backup to UISP and apply it (the CPE reboots); the id of the uploaded backup."""
+    ext = device.external_device_id
     uploaded = base._call(connection, "PUT", f"/devices/{ext}/backups", "il caricamento della configurazione",
-                          files={"file": ("nsm-firewall.tar.gz", changed, "application/octet-stream")}).json() or {}
+                          files={"file": (filename, data, "application/octet-stream")}).json() or {}
     if not uploaded.get("id"):
         raise UispFirewallError("upload", "UISP non ha accettato la configurazione modificata.")
     base._call(connection, "POST", f"/devices/{ext}/backups/{uploaded['id']}/apply", "l'applicazione della configurazione")
+    return uploaded["id"]
+
+
+def configure(db, user, device: Device, confirmation: str, services=DEFAULT_SERVICES) -> dict:
+    if (confirmation or "").strip() != base.device_name(device):
+        raise UispFirewallError("confirmation", f"Per confermare scrivi esattamente il nome del dispositivo: {base.device_name(device)}")
+    networks = _networks(db)
+    connection = base._connection(db, device)
+    before, original = restore_point(connection, device)
+    planned = plan(_system_cfg(original), networks, services)
+    if planned["blocker"]:
+        raise UispFirewallError("blocked", planned["blocker"])
+    uploaded = {"id": upload_and_apply(connection, device, _repack(original, networks, services), "nsm-firewall.tar.gz")}
     value = {"status": "applied", "applied_at": utcnow().isoformat(), "by": user.username if user else None, "networks": networks, "lan": planned["lan"],
              "services": list(services), "not_protected": planned["not_protected"],
              "rules_added": len(planned["add"]), "skipped": len(planned["skipped"]), "backup_before": before["id"], "backup_applied": uploaded["id"]}

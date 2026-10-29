@@ -27,13 +27,14 @@ Agent 0.49.24: read-only snapshot sections queues, certificates and routing (BGP
 Agent 0.49.25: firmware staging waits for and verifies the RouterOS package; activation reboots only with the package on the router.
 Agent 0.49.26: interface counters of Ethernet, VLAN and PPPoE too (no filter on the dynamic field, absent on those interfaces).
 Agent 0.49.27: management access (job management_configure): SNMP and SSH only from the authorized networks, NTP and time zone.
+Agent 0.49.28: UPnP turn-off (job upnp_disable, ACCESS-02): /ip upnp set enabled=no, state reported after.
 """
 from __future__ import annotations
 
 from app import mikrotik_agent_update as updater
 from app import mikrotik_agent_update_ui as update_ui
 
-TARGET_AGENT_VERSION = "0.49.27"
+TARGET_AGENT_VERSION = "0.49.28"
 SELF_UPDATE_MIN_VERSION = "0.49.0"
 
 

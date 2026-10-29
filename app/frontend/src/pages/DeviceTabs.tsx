@@ -7,6 +7,7 @@ import { type ExposureFinding, type ExposureTab, type IspbillingActivity, type J
   useDeviceCompliance, useDeviceExposure, useDeviceJobs, useExposureAction, useIspbillingActivities, useLogbook, useLogbookActions } from "../api/deviceTabs";
 import { BrandIcon } from "../app/BrandIcon";
 import { formatDate, formatDateTime, formatRelative, fromLocalInput, toLocalInput } from "../lib/format";
+import { UpnpDevicePanel } from "../app/UpnpPanel";
 import { useDebounced } from "../lib/hooks";
 import { eventLabel, eventSource } from "../lib/events";
 import { Loading } from "../app/States";
@@ -313,6 +314,7 @@ export function DeviceExposure() {
   const declarable = Boolean(exposure && exposure.source === "external" && data.can_remediate);
   return (
     <>
+      <UpnpDevicePanel id={deviceId} />
       <section className="ui-panel ui-admin-section">
         <div className="ui-page-header-row">
           <div>

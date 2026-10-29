@@ -5731,6 +5731,9 @@
     "UISP_SYSLOG_RESTORED": "Configurazione del dispositivo ripristinata tramite UISP",
     "UNIFI_CONFIGURED": "Connettore UniFi Network configurato",
     "UNIFI_DEVICE_LINKED": "Apparato collegato al controller UniFi",
+    "UPNP_DISABLED": "UPnP disattivato da NSM",
+    "UPNP_DISABLE_FAILED": "Disattivazione UPnP non riuscita",
+    "UPNP_DISABLE_REQUESTED": "Disattivazione UPnP richiesta",
     "USER_2FA_DISABLED": "Accesso a due fattori disattivato",
     "USER_2FA_ENABLED": "Accesso a due fattori attivato",
     "USER_2FA_RECOVERY_REGENERATED": "Codici di recupero 2FA rigenerati",
@@ -7420,5 +7423,56 @@
     },
     "dmz": "La DMZ è attiva: le porte non tra le eccezioni della DMZ vanno al dispositivo del cliente, non alla CPE. NSM non mette regole su quelle porte per non bloccare il cliente.",
     "notProtected": "Queste porte non vengono toccate perché la CPE le inoltra al cliente (port forward o DMZ): una regola lì bloccherebbe il servizio del cliente."
+  },
+  "upnp": {
+    "hint": "Con UPnP qualsiasi dispositivo della LAN del cliente può aprire porte verso Internet senza controllo. NSM consiglia di disattivarlo; non lo fa mai da solo.",
+    "on": "UPnP attivo",
+    "off": "UPnP disattivato",
+    "offByNsm": "Disattivato da NSM",
+    "unknown": "Non ancora letto",
+    "status": {
+      "queued": "In coda",
+      "running": "In corso",
+      "failed": "Non riuscita",
+      "stopped": "Fermata"
+    },
+    "source": {
+      "agent": "Letto dall'agent MikroTik (controllo esposizione)",
+      "tr069": "Letto via TR-069 (lettura oraria)",
+      "uisp": "Letto dall'ultimo backup UISP archiviato"
+    },
+    "method": {
+      "agent": "Agent MikroTik",
+      "tr069": "TR-069",
+      "uisp": "UISP (airOS)",
+      "null": "—"
+    },
+    "readAt": "lettura del {{when}}",
+    "devname": "porte aperte su {{name}}",
+    "done": "Disattivato il {{when}} da {{by}}.",
+    "waiting": "Comando inviato: il CPE lo applica al prossimo contatto con l'ACS.",
+    "reboot": "Su airOS la disattivazione passa da UISP e riavvia la CPE: il cliente resta senza connessione per 2–3 minuti. Il backup preso subito prima resta come punto di ripristino.",
+    "confirm": "Per confermare scrivi il nome del dispositivo: {{name}}",
+    "disable": "Disattiva UPnP",
+    "working": "Disattivazione in corso…",
+    "fleetHint": "Dispositivi con UPnP attivo, di ogni produttore. Scegli quali disattivare: MikroTik e TR-069 subito, le CPE airOS una al minuto (ognuna si riavvia); al primo errore su airOS le altre airOS della stessa richiesta si fermano.",
+    "counts": "Attivo: {{on}} · disattivato: {{off}} · non letto: {{unknown}} · in corso: {{in_progress}} · non riuscite: {{failed}}",
+    "none": "Nessun dispositivo con UPnP attivo.",
+    "all": "Seleziona tutti",
+    "columns": {
+      "device": "Dispositivo",
+      "customer": "Cliente",
+      "method": "Disattivazione tramite",
+      "state": "Stato"
+    },
+    "bulkReboot_one": "{{count}} CPE airOS si riavvierà (2–3 minuti senza connessione).",
+    "bulkReboot_other": "{{count}} CPE airOS si riavvieranno, una al minuto (2–3 minuti senza connessione ciascuna).",
+    "bulkConfirm": "Per confermare scrivi il numero di dispositivi scelti: {{count}}",
+    "bulkDisable_one": "Disattiva UPnP su {{count}} dispositivo",
+    "bulkDisable_other": "Disattiva UPnP su {{count}} dispositivi",
+    "bulkQueued_one": "{{count}} dispositivo in coda.",
+    "bulkQueued_other": "{{count}} dispositivi in coda.",
+    "bulkSkipped_one": "{{count}} saltato (non supportato o già in corso).",
+    "bulkSkipped_other": "{{count}} saltati (non supportati o già in corso)."
   }
 }

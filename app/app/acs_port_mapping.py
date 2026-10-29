@@ -6,7 +6,8 @@ The monitoring read (``acs_monitoring``) also parses, from the GenieACS record:
   ``WANDevice.*.WANConnectionDevice.*.WAN(PPP|IP)Connection.*.PortMapping.{i}``;
 - DMZ: any vendor object whose name contains ``DMZ`` under ``Device.NAT``/``Device.Firewall`` or a TR-098 WAN
   connection (e.g. ``X_TP_DMZ``), with its enable flag and host;
-- UPnP on/off: ``Device.UPnP.Device.Enable`` or a vendor flag (TP-Link ``Device.NAT.X_TP_UPnPCfg.Enable``).
+- UPnP on/off: ``Device.UPnP.Device.Enable`` or a vendor flag (TP-Link ``Device.NAT.X_TP_UPnPCfg.Enable``); the path of
+  the flag is kept (``upnp_path``) so that UPnP can be turned off from NSM (``upnp_control``, ACCESS-02).
 
 The result is kept in ``inventory_data["tr069"]["monitor"]["nat"]`` and shown on the *ACS* tab. When the
 mappings, the DMZ or UPnP change between two reads NSM records ``ACS_PORT_MAPPING_CHANGED`` with what was added
@@ -98,12 +99,13 @@ def _dmz(candidates) -> dict | None:
     return None
 
 
-def _upnp(candidates) -> bool | None:
-    for _path, node in candidates:
-        value = next((_value(node, n) for n in ("Enable", "Enabled") if _value(node, n) is not None), None)
-        if value is not None:
-            return _flag(value)
-    return None
+def _upnp(candidates) -> tuple[bool | None, str | None]:
+    """UPnP on/off and the path of the flag that says it."""
+    for path, node in candidates:
+        name = next((n for n in ("Enable", "Enabled") if _value(node, n) is not None), None)
+        if name:
+            return _flag(_value(node, name)), f"{path}.{name}"
+    return None, None
 
 
 def parse(row: dict) -> dict | None:
@@ -115,10 +117,10 @@ def parse(row: dict) -> dict | None:
             return None
         mappings = [_mapping(node, TR181_NAMES) for _k, node in _instances(nat.get("PortMapping"))]
         dmz = _dmz(_vendor_objects(nat, _DMZ, path="Device.NAT.") + _vendor_objects(root.get("Firewall"), _DMZ, path="Device.Firewall."))
-        upnp = _flag(_value((root.get("UPnP") or {}).get("Device") or {}, "Enable"))
+        upnp, upnp_path = _flag(_value((root.get("UPnP") or {}).get("Device") or {}, "Enable")), "Device.UPnP.Device.Enable"
         if upnp is None:
-            upnp = _upnp(_vendor_objects(nat, _UPNP, path="Device.NAT."))
-        return {"mappings": mappings[:MAX_MAPPINGS], "dmz": dmz, "upnp": upnp}
+            upnp, upnp_path = _upnp(_vendor_objects(nat, _UPNP, path="Device.NAT."))
+        return {"mappings": mappings[:MAX_MAPPINGS], "dmz": dmz, "upnp": upnp, "upnp_path": upnp_path}
     root = row.get("InternetGatewayDevice")
     if not isinstance(root, dict):
         return None
@@ -133,7 +135,8 @@ def parse(row: dict) -> dict | None:
                     dmz_candidates += _vendor_objects(conn, _DMZ, path=f"InternetGatewayDevice.WANDevice.{wan_key}.WANConnectionDevice.{cd_key}.{kind}.{conn_key}.")
     if not seen:
         return None
-    return {"mappings": mappings[:MAX_MAPPINGS], "dmz": _dmz(dmz_candidates), "upnp": _upnp(_vendor_objects(root, _UPNP, path="InternetGatewayDevice."))}
+    upnp, upnp_path = _upnp(_vendor_objects(root, _UPNP, path="InternetGatewayDevice."))
+    return {"mappings": mappings[:MAX_MAPPINGS], "dmz": _dmz(dmz_candidates), "upnp": upnp, "upnp_path": upnp_path}
 
 
 def _key(mapping: dict) -> str:
