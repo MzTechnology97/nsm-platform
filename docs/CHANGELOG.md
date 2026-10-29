@@ -4,6 +4,29 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.288 — 2026-10-29
+
+Exposure: alarms only for devices really reachable from Internet, checked again at every connectivity change (SCAN-02)
+- For every device NSM now knows how it reaches Internet:
+  - MikroTik: addresses on PPPoE/LTE/VPN interfaces and public addresses from the Agent;
+  - TP-Link and TR-069 CPEs: the WAN connection;
+  - UISP and cnMaestro: the console address;
+  - or the address set by the operator.
+- Each address is classified as public, CGNAT or private, and the device becomes:
+  - **public**: it holds at least one public address;
+  - **behind NAT / local network**: only private or CGNAT addresses;
+  - **unknown**.
+- **Only public devices** open Action Center issues and security notifications. On a device behind NAT the open services are shown as *solo rete interna*, with no alarm. The open issues of devices that are not public are closed automatically, with the reason.
+- The state is recomputed every minute from the data NSM already has, with no traffic to the devices. The service check runs again by itself when any of these happens:
+  - reboot;
+  - PPPoE/WAN reconnection;
+  - change of the public address (dynamic IP);
+  - switch between public and NAT;
+  - configuration change.
+
+  The daily check stays as it is. A device with several connections is public when any of them is.
+- The check from outside now probes the device's own public WAN address first (e.g. the current PPPoE address of a TR-069 CPE), so it follows a dynamic IP.
+- New *Raggiungibilità da Internet* panel on the device *Esposizione* tab: state, addresses with their source, last change and its reason. New *Solo rete interna* view on the *Esposizione* page.
 ## 0.49.287 — 2026-10-29
 
 Authorized management networks: SNMP, SSH and time on MikroTik (ACCESS-01, step 1, Agent 0.49.27)
