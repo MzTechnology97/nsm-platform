@@ -4,6 +4,42 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.286 — 2026-10-29
+
+Roadmap: open the device, management access, exposure and cybersecurity
+- **GUI-OPEN**: buttons to open a device where it is managed. The operator always types the credentials.
+  - its web interface, only when enabled, with the port discovered through UISP, TR-069 or the MikroTik Agent;
+  - *Open in Winbox* for MikroTik, with the address and Winbox port reported by the Agent;
+  - *Open in UISP / UniFi / cnMaestro / GenieACS / Zabbix*.
+- **ACCESS-01**: a single global list of authorized management addresses for every device, used for SNMP (community *public*, read-only), SSH and NTP (INRIM servers, Europe/Rome), applied automatically with per-device exclusion: MikroTik through the Agent (0.49.287), Ubiquiti airOS through UISP (firewall rules, airOS has no SNMP address list), TR-069 CPEs and Cambium per model. How many ACL entries each device accepts is to be measured.
+- **SCAN-02**: exposure alarms only for devices reachable from Internet (first step in 0.49.288). Next: a configurable external probe on a host outside the network, and optional Shodan/Censys data.
+- **SCAN-03**: extended port scanner beyond the vendor management ports: amplification, remote access, open databases, IoT/VoIP. Profiles *vendor*, *extended* and *full*.
+- **CYBER-01**: abuse and reputation toolkit for the operator's addresses, taking the open-source AbuseBox as reference:
+  - DNSBL with delisting tracking, AbuseIPDB;
+  - availability, alerts and history.
+  - each reputation event is attributed to the customer and device that had the IP at that moment, from an IP history (PPP sessions, WAN changes, RADIUS), only for public addresses (static, or public from a pool), from NSM's own data; behind NAT/CGNAT only the public IP is reported.
+- **ABUSEIPDB-01**: AbuseIPDB as its own module, built for the free plan first: daily quota read from the API and never exceeded, `check-block` per /24 of the public subnets, `check` for the other public IPs, score and categories kept with history, Action Center issue above a threshold with the customer found at the time of the reports. Looking up attackers from the logs and reporting to AbuseIPDB come later, opt-in. Only IP addresses leave NSM.
+- **RIPESTAT-01**: prefixes, BGP and RPKI of the operator through the free RIPEstat API (no key): public subnets proposed from the ASN, alerts for prefixes announced by another ASN, withdrawn or less visible, RPKI validity of every prefix, abuse contact, reverse DNS and geolocation checks. Read-only.
+- **SEC-10 Shadowserver**: subscription sent by the operator (2026-10-25), API key requested afterwards; once the key and secret arrive NSM downloads the daily reports through the API, matches every row to the device and customer and to NSM's own exposure findings, and opens Action Center issues.
+- **CROWDSEC-01**: CrowdSec to protect the NSM server and the probe (engine and bouncers). NSM reads its decisions and correlates them with the devices' syslog, and sends the brute-force attempts it sees as alerts. Customer IPs found in the community blocklist are flagged; the blocklist on MikroTik is optional, with confirmation.
+- **Public subnets**: every address of the operator's public subnets is monitored, assigned or not. A listed unassigned address is flagged on its own.
+- **ISP security services (SEC-10…SEC-20)**:
+  - Shadowserver reports;
+  - incoming abuse e-mails (ARF/X-ARF) and the abuse incident workflow;
+  - Spamhaus DROP/EDROP;
+  - BGP monitoring of the operator's prefixes (RPKI, route objects, hijacks);
+  - RIPE contact data;
+  - outbound abuse and inbound DDoS from NetFlow/IPFIX (optional RTBH);
+  - default credentials found from the configuration;
+  - honeypot on unused public addresses;
+  - periodic security report.
+- **MOD-01**: every integration, existing ones included (UISP, GenieACS, Zabbix, cnMaestro, ISPBilling, syslog…), and every security service becomes a module that each installation turns on or off, from a single *Moduli* section. Each module has its own page (guide, configuration, state, data, log), with a built-in guide in four languages explaining what it does and how it works, with no more duplicates between *Integrazioni* and *Amministrazione*. On existing installations the integrations in use stay on and new modules start off. A module that is off runs no task, collects nothing and sends nothing.
+- **DOC-01**: the complete platform manual, written in the third person, step by step, with screenshots and examples:
+  - creating customers, adding devices of each type;
+  - backups, monitoring, firmware, security, reports, API, operations.
+
+  Built into NSM and exportable as PDF. The screenshots are generated automatically from the demo data at every release. The module guides are its chapters.
+- **ACCESS-02**: UPnP checked on every device: MikroTik, airOS, TR-069 CPEs, Cambium, and SSDP from outside. *Disattiva UPnP* on one device or in bulk, audited and reversible, suggested and never imposed.
 ## 0.49.285 — 2026-10-29
 
 MikroTik Monitor: Ethernet ports, VLANs and PPPoE can be monitored, not only bridges (Agent 0.49.26)
