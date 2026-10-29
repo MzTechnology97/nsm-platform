@@ -7,8 +7,8 @@ What the cnMaestro northbound API v2 offers was checked with GET only on the ope
   device actions, while unknown paths answer a plain ``Bad Request``): NSM sends ``POST /api/v2/devices/{mac}/reboot``.
 - **Firmware**: no route for software images or upgrades (``/software``, ``/firmware``, ``/images``,
   ``/devices/{mac}/upgrade``, ``/devices/{mac}/software_update`` do not exist) and the jobs cnMaestro lists are only
-  *configuration* jobs of Wi-Fi AP groups. The API does not let NSM upgrade a Cambium device, so NSM does not offer it:
-  upgrades stay in the cnMaestro interface and NSM sees the new version at the next sync.
+  *configuration* jobs of Wi-Fi AP groups. The API does not let NSM upgrade a Cambium device through cnMaestro: the
+  ePMP upgrade goes over SSH instead (``cambium_firmware``), and NSM sees the new version at the next sync.
 
 Reboot, as for UISP (``uisp_operations``): only from the device *cnMaestro* tab with the device name typed as
 confirmation (``firmware.execute``). NSM records the device's time online before the request; the worker reads the

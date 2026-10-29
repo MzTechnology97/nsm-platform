@@ -671,13 +671,26 @@ MON-02: the 90-day retention deletes old samples except the newest of each devic
 - the worker (`cnmaestro_reboot_verification`) reads `GET /api/v2/devices/{mac}`. The reboot is *verified* when the time online (`status_time`) restarts after the request, when the device was seen offline and is back, or when `last_reboot_reason` changes. It is *failed* after 20 minutes without any of these;
 - audit `CNMAESTRO_REBOOT_REQUESTED`, `CNMAESTRO_REBOOT_VERIFIED`, `CNMAESTRO_REBOOT_FAILED`.
 
-**Firmware upgrade: not possible through the API.** There is no route for software images or upgrades (`/software`, `/firmware`, `/images`, `/devices/{mac}/upgrade`, `/devices/{mac}/software_update`), and the jobs cnMaestro lists are only *configuration* jobs of Wi-Fi AP groups. NSM does not offer it: upgrades are started from the cnMaestro interface, and NSM sees the new version at the next sync.
+**Firmware upgrade: not possible through the API.** There is no route for software images or upgrades (`/software`, `/firmware`, `/images`, `/devices/{mac}/upgrade`, `/devices/{mac}/software_update`), and the jobs cnMaestro lists are only *configuration* jobs of Wi-Fi AP groups. The ePMP upgrade goes over SSH instead (next section), and NSM sees the new version at the next sync.
 
 Validation pending: the reboot POST on the real console. Only GET requests were sent; the tests use a mocked cnMaestro.
 
+### Firmware upgrade of ePMP devices over SSH (Core 0.49.294)
+
+`app/cambium_firmware.py`, operator request 2026-10-24. The ePMP CLI has no `upgrade` command (CLI user guide: `config`, `show`, `ping`, `reboot`, `snmp`…), but it has an SNMP client (`snmp get|set [-v version] [-c community] <ip> <oid>`), and the ePMP MIB (CAMBIUM-PMP80211-MIB) documents the software update agent behind the web *Software Upgrade → URL*: `cambiumpmp80211SoftwareUpdate` (`.1.3.6.1.4.1.17713.21.4.7.0`) takes a remote http/https/ftp link and the device reboots by itself after a remote update; `cambiumpmp80211SoftwareUpdateStatus` (`…21.4.8.0`, 0 idle, 1-6/8 in progress, 7 finished) and `cambiumpmp80211SoftwareUpdateError` (`…21.4.13.0`, 0-11) with its text (`…21.4.18.0`) report the progress. NSM runs these on the radio's own console against `127.0.0.1`:
+
+- the image comes from the NSM catalog: an image uploaded on the Cambium catalog whose models include the device (an `ePMP-AC`/`ePMP-AX`/`GPS_Synced` image only for that family), newer than the installed version;
+- the ePMP downloads it from NSM through a signed link valid for 2 hours (`/cambium-firmware/{device}/{release}/{expires}/{signature}/{file}`, HMAC like the ACS speed test), at the address set for the ACS speed test (*NSM address for CPEs*) or else the syslog receiver address, on HTTP. The link carries no `?`, `!` or `|` (help, history and filter on the ePMP console). Every download is audited `CAMBIUM_FIRMWARE_IMAGE_SERVED`;
+- device *Firmware* tab of an ePMP (not the cnPilot Wi-Fi APs): installed and recommended version, catalog images, *Verifica prerequisiti* (read only over SSH: running configuration, read-write SNMP community present, SNMP answering on the radio, update agent state and last error, software information);
+- *Aggiorna* (`firmware.execute`, device name typed): SSH backup of the running configuration first (`cambium_backup.run_backup`; a failed backup stops everything), then `snmp set -v 2c -c <read-write community> 127.0.0.1 <SoftwareUpdate> s <link>` with the community read from the device's own configuration (`snmpReadWriteCommunity`), then the agent status for 45 seconds. NSM never changes the ePMP configuration: without SNMP or a usable read-write community it stops and says so. The community is never stored, logged or audited;
+- follow-up (worker `cambium_firmware_follow`, the page every 20 s): *verified* when cnMaestro reports the new `software_version` or the ePMP's software information shows it (agent idle); *failed* when the agent reports an error, or the image was never downloaded from NSM within 10 minutes; *unconfirmed* after 45 minutes;
+- audit `CAMBIUM_FIRMWARE_UPGRADE_REQUESTED`, `CAMBIUM_FIRMWARE_UPGRADE_VERIFIED`, `CAMBIUM_FIRMWARE_UPGRADE_FAILED`, `CAMBIUM_FIRMWARE_IMAGE_SERVED`.
+
+Validation pending: the CLI answers of a real ePMP (Force 400, 5.10.4) to `snmp get`/`snmp set` and the update agent on that release — the tests use a synthetic CLI and a mocked cnMaestro. Before the first real upgrade the operator saves the SSH credentials and runs *Verifica prerequisiti* (read only).
+
 ### Not implemented yet
 
-- firmware upgrades through cnMaestro (no API; see above);
+- firmware upgrades through cnMaestro (no API; the ePMP upgrade goes over SSH, see above), and of cnPilot Wi-Fi APs;
 - per-device performance history from `/api/v2/devices/{mac}/performance` (NSM keeps its own samples from the statistics).
 
 ## 13c. ISPBilling (billing / CRM)

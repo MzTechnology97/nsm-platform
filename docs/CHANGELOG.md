@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.294 — 2026-10-29
+
+Cambium ePMP: firmware upgrade over SSH from the NSM catalog
+
+### Added
+
+- Cambium ePMP firmware upgrade from the device *Firmware* tab. cnMaestro's API v2 has no upgrade endpoint, so NSM uses the ePMP console over SSH with the credentials of the Cambium backups. The ePMP CLI has no upgrade command. It does have an SNMP client, and the ePMP MIB documents the software update agent (`cambiumpmp80211SoftwareUpdate`, which takes a remote link; the device reboots by itself), so NSM runs `snmp set` against `127.0.0.1` with the device's own read-write community. The tab shows the installed version and the newer catalog images for the model, and *Verifica prerequisiti* reads the ePMP without writing anything. After the device name is typed, NSM backs up the configuration over SSH (a failed backup stops everything) and starts the agent with a signed NSM link to the image, valid for 2 hours. It then follows the upgrade: *verified* when cnMaestro (`software_version`) or the ePMP reports the new version, *failed* on an agent error or when the image is never downloaded, *unconfirmed* after 45 minutes. NSM never changes the ePMP configuration and never stores the community. Audit `CAMBIUM_FIRMWARE_UPGRADE_REQUESTED`/`_VERIFIED`/`_FAILED` and `CAMBIUM_FIRMWARE_IMAGE_SERVED`; permission `firmware.execute`.
 ## 0.49.293 — 2026-10-29
 
 Zabbix: a literal SNMP community is kept secret
