@@ -46,6 +46,7 @@ def record(ext, telnet=True, remote=True):
         device["UserInterface"] = {"RemoteAccess": {"_object": True, "Enable": value(True), "Port": value(20443), "Protocol": value("HTTPS"),
                                                     "SupportedProtocols": value("HTTP,HTTPS,SSH,TELNET", False), "X_TP_RemoteAll": value(True),
                                                     "X_TP_RemoteHost": value("")}}
+    device["X_TP_ISPRestore"] = {"_object": True, "ISPConfigFlag": value(True)}
     if telnet is not None:
         device["X_TP_AppCfg"] = {"TelnetCfg": {"_object": True, "TelnetLocalEnabled": value(telnet), "TelnetLocalPort": value(23)}}
     return {"_id": ext, "_lastInform": datetime.now(timezone.utc).isoformat(), "Device": device}
@@ -137,6 +138,18 @@ def main():
     fake.records[ext] = record(ext)
     fake.tasks.clear()
 
+    # ISP default: flag false then true saves the running configuration (as on the VX230v); stale after a later change.
+    info = auditor.get(url).json()["isp_default"]
+    assert info["saved"] is True and info["changed_since"] is True, "NSM changed the CPE above and never saved the default"
+    assert tech.post(url, json={"save_default": True, "confirm": "no"}).status_code == 422
+    tech.post(url, json={"save_default": True, "confirm": confirm}).raise_for_status()
+    assert [t["parameterValues"] for t in fake.tasks] == [[["Device.X_TP_ISPRestore.ISPConfigFlag", False, "xsd:boolean"]],
+                                                         [["Device.X_TP_ISPRestore.ISPConfigFlag", True, "xsd:boolean"]]], fake.tasks
+    fake.tasks.clear()
+    info = auditor.get(url).json()["isp_default"]
+    assert info["saved_at"] and info["saved_by"] == f"ci-tpa-technician-{suffix}" and info["changed_since"] is False
+    assert auditor.post(url, json={"save_default": True, "confirm": confirm}).status_code == 403
+
     # Daily Telnet policy: switched off at the next contact (no connection request), once a day, not where allowed by hand.
     tech.post(f"/api/ui/v1/devices/{hb_id}/acs/access", json={"telnet_lan": True}).raise_for_status()
     fake.tasks.clear()
@@ -165,7 +178,7 @@ def main():
 
     with SessionLocal() as db:
         kinds = sorted(e.event_type for e in db.scalars(select(AuditEvent).where(AuditEvent.device_id.in_([device_id, hb_id]))))
-        assert kinds.count("ACS_ACCESS_CHANGED") == 6 and kinds.count("ACS_TELNET_DISABLED") == 1, kinds
+        assert kinds.count("ACS_ACCESS_CHANGED") == 6 and kinds.count("ACS_TELNET_DISABLED") == 1 and kinds.count("ACS_ISP_DEFAULT_SAVED") == 1, kinds
 
     nbi.TRANSPORT = None
     with SessionLocal() as db:

@@ -17,8 +17,16 @@ interface RemoteAccess {
   allow_list_supported: boolean;
 }
 
+interface IspDefault {
+  saved: boolean;
+  saved_at?: string | null;
+  saved_by?: string | null;
+  changed_since?: boolean;
+}
+
 interface AccessData {
   remote: RemoteAccess | null;
+  isp_default?: IspDefault | null;
   telnet_lan: { enabled: boolean } | null;
   telnet_allowed: boolean;
   last_inform: string | null;
@@ -45,7 +53,7 @@ export function TplinkAccess({ deviceId }: { deviceId: string }) {
   useEffect(() => {
     if (remote) setForm({ protocol: remote.protocol ?? "", port: remote.port?.toString() ?? "" });
   }, [remote?.protocol, remote?.port]);
-  if (!data || (!data.remote && !data.telnet_lan && !data.error)) return null;
+  if (!data || (!data.remote && !data.telnet_lan && !data.isp_default && !data.error)) return null;
   const submit = (event: FormEvent) => {
     event.preventDefault();
     change.mutate({ protocol: form.protocol || undefined, port: form.port ? Number(form.port) : undefined });
@@ -113,6 +121,10 @@ export function TplinkAccess({ deviceId }: { deviceId: string }) {
           )}
         </>
       )}
+      {data.isp_default && (
+        <IspDefaultPanel info={data.isp_default} canEdit={data.can_edit} confirmName={data.confirm_name} pending={change.isPending}
+          onSave={(confirm) => change.mutate({ save_default: true, confirm })} />
+      )}
       {change.isSuccess && <small className="ui-live">{t("tplinkAccess.sent")}</small>}
       {change.error && <div className="ui-alert ui-alert-danger">{(change.error as Error).message}</div>}
       {data.last_inform && <small className="ui-muted">{t("tplinkAccess.readAt", { when: formatDateTime(data.last_inform, i18n.language) })}</small>}
@@ -169,5 +181,35 @@ function AllowList({ remote, confirmName, pending, onSubmit }: { remote: RemoteA
         )}
       </div>
     </form>
+  );
+}
+
+/** TP-Link Aginet Config: the configuration the CPE returns to after a reset; saved from NSM with typed confirmation. */
+function IspDefaultPanel({ info, canEdit, confirmName, pending, onSave }: {
+  info: IspDefault; canEdit: boolean; confirmName: string; pending: boolean; onSave: (confirm: string) => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const [confirm, setConfirm] = useState("");
+  return (
+    <>
+      <h3>{t("tplinkAccess.defaultTitle")}</h3>
+      <p className={info.saved ? "ui-muted" : "ui-alert ui-alert-warning"}>
+        {t(info.saved ? "tplinkAccess.defaultSaved" : "tplinkAccess.defaultMissing")}
+        {info.saved_at && <> {t("tplinkAccess.defaultSavedAt", { when: formatDateTime(info.saved_at, i18n.language), who: info.saved_by ?? "—" })}</>}
+      </p>
+      {info.changed_since && <p className="ui-alert ui-alert-warning">{t("tplinkAccess.defaultStale")}</p>}
+      {canEdit && (
+        <form className="ui-admin-form" onSubmit={(event) => { event.preventDefault(); onSave(confirm); setConfirm(""); }}>
+          <p className="ui-muted ui-admin-wide">{t("tplinkAccess.defaultHelp")}</p>
+          <label className="ui-admin-wide">
+            <span>{t("tplinkAccess.defaultConfirm", { name: confirmName })}</span>
+            <input value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="off" />
+          </label>
+          <div className="ui-row-actions ui-admin-wide">
+            <button type="submit" className="ui-button" disabled={pending || confirm.trim() !== confirmName}>{t("tplinkAccess.defaultSave")}</button>
+          </div>
+        </form>
+      )}
+    </>
   );
 }

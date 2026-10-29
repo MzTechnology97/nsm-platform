@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.298 — 2026-10-29
+
+TP-Link: save the current configuration as the default
+
+### Added
+
+- ACS tab of TP-Link CPEs: whether the CPE has an ISP default (*Aginet Config*), the configuration it returns to after a reset instead of the factory values.
+  - *Salva la configurazione attuale come default*, confirmed by typing the device name, saves the running configuration as that default over TR-069. NSM writes `X_TP_ISPRestore.ISPConfigFlag` false then true. This was checked on the operator's VX230v: a test value survived a factory reset.
+  - The tab warns when NSM changed the CPE after the last save.
+  - It reminds that the default holds PPPoE, Wi-Fi and admin credentials, so it should be cleared before the CPE is reused for another customer.
+  - Audit event `ACS_ISP_DEFAULT_SAVED`.
 ## 0.49.297 — 2026-10-29
 
 TP-Link remote access: allowed addresses

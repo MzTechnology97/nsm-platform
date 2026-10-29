@@ -5436,6 +5436,7 @@
     "ACS_FIRMWARE_REQUESTED": "Mise à jour du firmware du CPE demandée",
     "ACS_FIRMWARE_UNCONFIRMED": "Mise à jour du firmware du CPE non confirmée",
     "ACS_FIRMWARE_VERIFIED": "Mise à jour du firmware du CPE vérifiée",
+    "ACS_ISP_DEFAULT_SAVED": "Configuration du CPE enregistrée par défaut",
     "ACS_MIGRATION_COMPLETED": "Migration ACS terminée",
     "ACS_MIGRATION_STARTED": "Migration ACS démarrée",
     "ACS_PORT_MAPPING_CHANGED": "Redirection de ports du CPE modifiée",
@@ -6492,7 +6493,15 @@
     "allowApply_one": "Autoriser seulement cette adresse",
     "allowApply_other": "Autoriser seulement ces {{count}}",
     "allowAll": "Autoriser depuis toute adresse",
-    "allowAllConfirm": "Ouvrir la page de gestion du CPE à toute adresse Internet ?"
+    "allowAllConfirm": "Ouvrir la page de gestion du CPE à toute adresse Internet ?",
+    "defaultTitle": "Configuration par défaut (après une réinitialisation)",
+    "defaultSaved": "Défaut FAI enregistré : après une réinitialisation le CPE revient à la configuration enregistrée (PPPoE, ACS, accès distant…).",
+    "defaultMissing": "Aucun défaut FAI enregistré : après une réinitialisation le CPE revient aux valeurs d'usine TP-Link, sans PPPoE ni ACS.",
+    "defaultSavedAt": "Dernier enregistrement depuis NSM {{when}} ({{who}}).",
+    "defaultStale": "NSM a modifié ce CPE après le dernier enregistrement : réenregistrez le défaut pour conserver les modifications après une réinitialisation.",
+    "defaultHelp": "Enregistre la configuration en cours comme défaut du CPE, comme Aginet Config → Save current settings as default settings sur sa page. Rien ne redémarre. Le défaut contient aussi les identifiants PPPoE, le Wi-Fi et le mot de passe administrateur : une réinitialisation n'efface plus le CPE. Avant de le confier à un autre client, effacez-le depuis la page du CPE (Aginet Config → Restore all default settings to Vendor default value).",
+    "defaultConfirm": "Tapez {{name}} pour confirmer",
+    "defaultSave": "Enregistrer la configuration actuelle par défaut"
   },
   "tplinkSettings": {
     "title": "Paramètres avancés du CPE",
