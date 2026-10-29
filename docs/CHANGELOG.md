@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.297 — 2026-10-29
+
+TP-Link remote access: allowed addresses
+
+### Changed
+
+- TR-069 remote web access (ACS tab): the CPE's allow-list is now shown and editable. On the operator's VX230v the CPE's own page *Only the Following IP Addresses* stores `X_TP_RemoteAll` false and `X_TP_RemoteHost` as a comma-separated list of IPv4 networks in CIDR notation, and NSM now writes the same format. The earlier attempt used a single address without `/prefix`, which closed the page for everyone.
+  - The ACS tab shows *Allowed from: …*.
+  - Technicians can limit the page to up to 16 addresses or networks, confirmed by typing the device name, or open it to every address again.
+  - Each change is audited with the list before and after.
+- The exposure check names the allowed networks when the remote management port is limited by the CPE.
 ## 0.49.296 — 2026-10-29
 
 Roadmap
