@@ -1,6 +1,7 @@
 """TP-Link syslog via TR-069: target address, one CPE (management IP refreshed, four values written),
 unsupported firmware, non-TR-069 device, bulk queue, worker auto-configuration. GenieACS is mocked."""
 import json
+from datetime import timedelta
 import os
 import re
 import uuid
@@ -17,7 +18,7 @@ from app import syslog_receiver
 from app.db import SessionLocal
 from app.entrypoint import app
 from app.integration_models import ConnectorIntegration
-from app.models import AuditEvent, Customer, Device, User
+from app.models import AuditEvent, Customer, Device, User, utcnow
 from app.secret_vault import encrypt_text
 from app.security import hash_password
 
@@ -104,6 +105,33 @@ def main():
             assert db.get(Device, ids["old"]).inventory_data["tr069"]["syslog"]["failed_target"] == "198.51.100.30"
             events = [e.details for e in db.scalars(select(AuditEvent).where(AuditEvent.event_type == "ACS_SYSLOG_CONFIGURED", AuditEvent.device_id == ids["cpe"]))]
             assert len(events) >= 2 and all(set(e) == {"server_ip", "port", "level", "applied"} for e in events)
+            assert db.get(Device, ids["cpe"]).inventory_data["tr069"]["syslog"]["level"] == "warning", "a technician's level is kept"
+
+        # Default warning: NSM's own earlier choices move to warning, a technician's choice stays.
+        assert client.get(f"/api/ui/v1/devices/{ids['cpe']}/syslog/acs").json()["default_level"] == "warning"
+        with SessionLocal() as db:
+            customer_id = db.get(Device, ids["cpe"]).customer_id
+            states = {"legacy": {"server_ip": "198.51.100.30", "port": 514, "level": "info", "applied": True, "at": "2026-10-23T10:36:53+00:00"},
+                      "worker": {"server_ip": "198.51.100.30", "port": 514, "level": "info", "applied": True, "at": "2026-10-23T10:36:53+00:00", "source": "worker"},
+                      "chosen": {"server_ip": "198.51.100.30", "port": 514, "level": "debug", "applied": True, "at": "2026-10-23T10:36:53+00:00", "source": "portal"}}
+            levels = {}
+            for name, state in states.items():
+                device = Device(customer_id=customer_id, vendor="tp-link", device_type="router", name=f"CI220-L-{name}-{suffix}", status="online",
+                                management_source="tr069", external_device_id=f"8C86DD-VX230v-L{name}{suffix}", inventory_data={"tr069": {"syslog": state}})
+                db.add(device)
+                db.flush()
+                levels[name] = device.id
+            db.commit()
+        acs_syslog.auto_configure()
+        with SessionLocal() as db:
+            got = {name: db.get(Device, device_id).inventory_data["tr069"]["syslog"] for name, device_id in levels.items()}
+        assert got["legacy"]["level"] == "warning" and got["legacy"]["source"] == "worker", got["legacy"]
+        assert got["worker"]["level"] == "warning"
+        assert got["chosen"]["level"] == "debug" and got["chosen"]["source"] == "portal", "chosen by a technician: untouched"
+        with SessionLocal() as db:  # the mocked ACS gave them the same WAN address as the CPE above
+            for n, device_id in enumerate(levels.values()):
+                db.get(Device, device_id).management_ip = f"203.0.113.{120 + n}"
+            db.commit()
 
         # Receiver: TP-Link lines carry no key; accepted from the address of a CPE NSM pointed at itself, nowhere else.
         with SessionLocal() as db:
@@ -127,6 +155,33 @@ def main():
             db.commit()
             index = identity.build_index(db, {})
         assert identity.resolve(index, "203.0.113.87", None, None) == (None, "missing_key"), "two CPEs behind one address: no guess"
+
+        # Dynamic WAN IP: the address of the last Inform (ConnectionRequestURL host) counts while that Inform is recent.
+        with SessionLocal() as db:
+            for name in (f"CI220-TWIN-{suffix}",):
+                twin = db.scalar(select(Device).where(Device.name == name))
+                twin.management_ip = "203.0.113.91"
+            fresh = utcnow().isoformat()
+            dyn = Device(customer_id=customer_id, vendor="tp-link", device_type="router", name=f"CI220-DYN-{suffix}", status="online",
+                         management_source="tr069", management_ip="203.0.113.92",
+                         inventory_data={"tr069": {"syslog": {"server_ip": "198.51.100.30"}, "monitor": {"last_inform": fresh, "wan_address": "203.0.113.93"}}})
+            old_inform = Device(customer_id=customer_id, vendor="tp-link", device_type="router", name=f"CI220-OLD2-{suffix}", status="online",
+                                management_source="tr069", management_ip="203.0.113.94",
+                                inventory_data={"tr069": {"syslog": {"server_ip": "198.51.100.30"},
+                                                          "monitor": {"last_inform": (utcnow() - timedelta(hours=2)).isoformat(), "wan_address": "203.0.113.95"}}})
+            cgnat = [Device(customer_id=customer_id, vendor="tp-link", device_type="router", name=f"CI220-CGN{n}-{suffix}", status="online",
+                            management_source="tr069", management_ip=f"203.0.113.{96 + n}",
+                            inventory_data={"tr069": {"syslog": {"server_ip": "198.51.100.30"}, "monitor": {"last_inform": fresh, "wan_address": "203.0.113.99"}}})
+                     for n in (0, 1)]
+            db.add_all([dyn, old_inform, *cgnat])
+            db.commit()
+            dyn_id = dyn.id
+            index = identity.build_index(db, {})
+        assert identity.resolve(index, "203.0.113.93", None, None) == (dyn_id, None), "new WAN address from the last Inform"
+        assert identity.resolve(index, "203.0.113.92", None, None) == (dyn_id, None), "management IP still accepted"
+        assert identity.resolve(index, "203.0.113.95", None, None) == (None, "missing_key"), "an old Inform does not vouch for an address"
+        assert identity.resolve(index, "203.0.113.99", None, None) == (None, "missing_key"), "CGNAT: two CPEs on one public address"
+        assert "203.0.113.93" in index.known_ips, "allowed also without configured networks"
     finally:
         acs_diagnostics.TRANSPORT = None
         acs.lookup_by_external_id = original_lookup

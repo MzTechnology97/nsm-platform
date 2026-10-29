@@ -10,9 +10,10 @@ catalog).  Sources, all official:
   (``XC``, ``WA``, ``XW``…, read from the installed firmware string);
 - **vendor_site** — TP-Link's official Italian download pages, read once a day
   for the models and hardware versions in the inventory (``tplink_firmware``);
-- **operator** — releases entered from the manufacturer's official download
-  page (TP-Link, Tenda, Cambium, Huawei, …): version, models, date, notes link
-  and whether it fixes security issues.  NSM never guesses a version.
+- **operator** — images uploaded by the operator (``firmware_upload``): version,
+  models or platform and date are read from the official file name (and the
+  airOS header); only what cannot be read is asked.  The image is kept and,
+  for TR-069 CPEs, put in GenieACS.  NSM never guesses a version.
 
 Evaluation compares every device of the brand with the newest release that
 matches its model (and platform) and sets the firmware state used by the
@@ -105,11 +106,11 @@ def matches(release: VendorFirmwareRelease, device) -> bool:
         return False
     if release.platform and release.platform != platform_of(device):
         return False
-    pattern = (release.model_pattern or "").strip().lower()
-    if not pattern:
+    patterns = [p.strip() for p in (release.model_pattern or "").lower().split("|") if p.strip()]  # "|": several models (uploads)
+    if not patterns:
         return True
     model = str(device.model or "").strip().lower()
-    return bool(model) and (fnmatch.fnmatch(model, pattern) or (not any(c in pattern for c in "*?[") and pattern in model))
+    return bool(model) and any(fnmatch.fnmatch(model, p) or (not any(c in p for c in "*?[") and p in model) for p in patterns)
 
 
 def best_release(releases, device):
@@ -311,6 +312,9 @@ def delete_release_record(db, user, release_id) -> None:
     if row is None or row.source != "operator":
         raise InputError("not_operator", "Si possono eliminare solo le release inserite dagli operatori.")
     core.add_event(db, "VENDOR_FIRMWARE_RELEASE_DELETED", actor=user, details={"brand": row.brand, "version": row.version}, source="portal")
+    from app import firmware_upload
+
+    firmware_upload.remove_files(row.id)
     db.delete(row)
     db.flush()
     evaluate(db)

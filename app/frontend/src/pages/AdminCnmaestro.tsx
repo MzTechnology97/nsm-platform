@@ -8,6 +8,7 @@ import { ConnectorDiagnostics } from "../app/ConnectorDiagnostics";
 import { IntegrationTabs } from "../app/IntegrationTabs";
 import { formatDateTime } from "../lib/format";
 import { Loading } from "../app/States";
+import { CambiumSshSettings } from "../app/CambiumBackup";
 
 export function AdminCnmaestro() {
   const { t } = useTranslation();
@@ -38,6 +39,7 @@ export function AdminCnmaestro() {
             <Connection data={data} />
             <Actions data={data} />
           </div>
+          {data.configured && <CambiumSshSettings />}
           {data.configured && <ConnectorDiagnostics provider="cnmaestro" />}
         </>
       )}

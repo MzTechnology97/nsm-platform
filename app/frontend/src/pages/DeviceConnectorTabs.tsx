@@ -1,18 +1,23 @@
 import { Link, useParams } from "@tanstack/react-router";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
-import { type GenieacsCandidate, useCnmaestroMetrics, useDeviceCnmaestro, useDeviceGenieacs, useGenieacsAction } from "../api/deviceConnectors";
+import { type CnmaestroTab, type GenieacsCandidate, useCnmaestroReboot, useDeviceCnmaestro, useDeviceGenieacs, useGenieacsAction } from "../api/deviceConnectors";
 import { formatDateTime } from "../lib/format";
-import { metricValue, RANGES, SeriesCharts } from "./DeviceUisp";
+import { metricValue } from "./DeviceUisp";
 import { Loading } from "../app/States";
+import { MonitorLink } from "../app/MonitorLink";
 import { AcsDiagnostics } from "../app/AcsDiagnostics";
 import { AcsSpeedtest } from "../app/AcsSpeedtest";
 import { AcsWifi } from "../app/AcsWifi";
 import { AcsSnapshot } from "../app/AcsSnapshot";
 import { AcsPortMapping } from "../app/AcsPortMapping";
 import { AcsMonitor } from "../app/AcsMonitor";
+import { AcsCapabilities } from "../app/AcsCapabilities";
+import { CambiumBackup } from "../app/CambiumBackup";
+import { TplinkAccess } from "../app/TplinkAccess";
+import { TplinkSettings } from "../app/TplinkSettings";
 
 function message(error: unknown) {
   return error instanceof ApiError ? error.message : (error as Error | null)?.message;
@@ -23,9 +28,7 @@ export function DeviceCnmaestro() {
   const { t, i18n } = useTranslation();
   const { deviceId } = useParams({ from: "/devices/$deviceId/cnmaestro" });
   const query = useDeviceCnmaestro(deviceId);
-  const [range, setRange] = useState<(typeof RANGES)[number]>("24h");
   const data = query.data;
-  const metrics = useCnmaestroMetrics(deviceId, range, Boolean(data?.linked && data.can.metrics));
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
   if (!data) return <Loading />;
   const meta = data.meta;
@@ -38,6 +41,7 @@ export function DeviceCnmaestro() {
             ? t("deviceCnmaestro.linked", { when: formatDateTime(meta.linked_at, i18n.language), mac: meta.mac })
             : t("deviceCnmaestro.notLinked", { mac: data.record.mac ?? t("deviceCnmaestro.missing"), serial: data.record.serial ?? t("deviceCnmaestro.missing") })}
           {meta.last_sync_at && ` ${t("deviceCnmaestro.lastSync", { when: formatDateTime(meta.last_sync_at, i18n.language) })}`}
+          {meta.metrics_at && ` ${t("deviceCnmaestro.metricsAt", { when: formatDateTime(meta.metrics_at, i18n.language) })}`}
         </p>
         {!data.configured && (
           <div className="ui-alert ui-alert-warning">{t("deviceCnmaestro.notConfigured")}{" "}
@@ -67,10 +71,44 @@ export function DeviceCnmaestro() {
         )}
       </section>
       {data.linked && data.can.metrics && (
-        <SeriesCharts title={t("deviceCnmaestro.chartsTitle")} range={range} onRange={setRange} charts={metrics.data?.charts}
-          count={metrics.data?.sample_count ?? 0} pending={metrics.isPending} />
+        <MonitorLink deviceId={deviceId} />
       )}
+      <CambiumBackup deviceId={deviceId} />
+      {data.can.reboot && <CnmaestroReboot deviceId={deviceId} data={data} />}
     </>
+  );
+}
+
+/** Reboot through cnMaestro with the device name typed as confirmation; the worker checks it came back (time online restarted). */
+function CnmaestroReboot({ deviceId, data }: { deviceId: string; data: CnmaestroTab }) {
+  const { t, i18n } = useTranslation();
+  const reboot = useCnmaestroReboot(deviceId);
+  const [typed, setTyped] = useState("");
+  const state = data.reboot;
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    reboot.mutate(typed, { onSuccess: () => setTyped("") });
+  };
+  return (
+    <section className="ui-panel">
+      <form className="ui-admin-form ui-admin-stack ui-danger-zone" onSubmit={submit}>
+        <h3>{t("deviceCnmaestro.rebootTitle")}</h3>
+        <p className="ui-muted">{t("deviceCnmaestro.rebootHelp")}</p>
+        {state?.status && (
+          <small className={state.status === "failed" ? "ui-backup-error" : "ui-muted"}>
+            {t(`deviceCnmaestro.rebootStates.${state.status}`, { defaultValue: state.status })} · {formatDateTime(state.requested_at, i18n.language)}{state.detail ? ` · ${state.detail}` : ""}
+          </small>
+        )}
+        <label><span>{t("customerForm.confirmName", { name: data.name })}</span>
+          <input value={typed} onChange={(event) => setTyped(event.target.value)} required autoComplete="off" /></label>
+        <button type="submit" className="ui-button ui-button-danger" disabled={reboot.isPending || typed.trim() !== data.name || state?.status === "requested"}>
+          {t("deviceCnmaestro.reboot")}
+        </button>
+        {reboot.isSuccess && <small className="ui-live">{t("deviceCnmaestro.rebootSent")}</small>}
+        {reboot.error && <small className="ui-backup-error">{message(reboot.error)}</small>}
+        <p className="ui-muted">{t("deviceCnmaestro.firmwareNote")}</p>
+      </form>
+    </section>
   );
 }
 
@@ -140,11 +178,14 @@ export function DeviceGenieacs() {
         </section>
       )}
       {record.external_id && <AcsMonitor deviceId={deviceId} />}
+      {record.external_id && enabled && <AcsCapabilities deviceId={deviceId} />}
       {record.external_id && enabled && <AcsDiagnostics deviceId={deviceId} />}
       {record.external_id && enabled && <AcsSpeedtest deviceId={deviceId} />}
       {record.external_id && enabled && <AcsWifi deviceId={deviceId} deviceName={record.name} />}
       {record.external_id && enabled && <AcsSnapshot deviceId={deviceId} />}
       {record.external_id && <AcsPortMapping deviceId={deviceId} />}
+      {record.external_id && enabled && <TplinkAccess deviceId={deviceId} />}
+      {record.external_id && enabled && <TplinkSettings deviceId={deviceId} />}
       <section className="ui-panel ui-admin-section">
         <div className="ui-page-header-row">
           <div>

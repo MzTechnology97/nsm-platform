@@ -1,11 +1,11 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { api } from "../api/client";
 import type { UispChart } from "../api/deviceConnectors";
 import { formatDateTime } from "../lib/format";
-import { metricValue, RANGES, SeriesCharts } from "../pages/DeviceUisp";
+import { metricValue } from "../pages/DeviceUisp";
+import { MonitorLink } from "./MonitorLink";
 
 interface AcsState {
   data_model: string | null;
@@ -22,6 +22,18 @@ interface AcsState {
     snr_down_db: number | null; attenuation_down_db: number | null } | null;
   inform_interval: number | null;
   last_inform: string | null;
+  pon?: AcsPon | null;
+}
+
+interface AcsPon {
+  rx_dbm: number | null;
+  tx_dbm: number | null;
+  temperature_c: number | null;
+  voltage_v: number | null;
+  bias_ma: number | null;
+  status: string | null;
+  source: string | null;
+  read_at: string | null;
 }
 
 interface AcsMonitorData {
@@ -30,12 +42,35 @@ interface AcsMonitorData {
   range: string;
   sample_count: number;
   charts: UispChart[];
+  last_sample_at?: string | null;
+}
+
+const PON_FIELDS = [["rx_dbm", "dBm"], ["tx_dbm", "dBm"], ["temperature_c", "°C"], ["voltage_v", "V"], ["bias_ma", "mA"]] as const;
+
+/** PON optical levels of the CPE, re-read every hour by the NSM provision; empty fields are not exposed by the CPE. */
+function PonLevels({ pon }: { pon: AcsPon }) {
+  const { t, i18n } = useTranslation();
+  const number = (value: number) => new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 2 }).format(value);
+  return (
+    <>
+      <h3>{t("acsMonitor.pon.title")}</h3>
+      <dl className="ui-dl">
+        {PON_FIELDS.map(([field, unit]) => (
+          <div key={field}><dt>{t(`acsMonitor.pon.${field}`)}</dt><dd>{pon[field] != null ? `${number(pon[field] as number)} ${unit}` : t("acsMonitor.pon.notExposed")}</dd></div>
+        ))}
+        {pon.status && <div><dt>{t("acsMonitor.pon.status")}</dt><dd>{pon.status}</dd></div>}
+      </dl>
+      <p className="ui-muted">
+        {t("acsMonitor.pon.help", { when: formatDateTime(pon.read_at, i18n.language) })} <span className="ui-mono">{pon.source}</span>
+      </p>
+    </>
+  );
 }
 
 /** State of a TR-069 CPE at its last Inform (WAN, Wi-Fi, DSL) and its charts, read from GenieACS by the worker (ACS-05). */
 export function AcsMonitor({ deviceId }: { deviceId: string }) {
   const { t, i18n } = useTranslation();
-  const [range, setRange] = useState<(typeof RANGES)[number]>("24h");
+  const range = "24h";  // state only: the charts are in the Monitor tab
   const query = useQuery({
     queryKey: ["device", deviceId, "acs-monitor", range],
     queryFn: () => api<AcsMonitorData>(`/api/ui/v1/devices/${encodeURIComponent(deviceId)}/acs/monitor?range=${range}`),
@@ -95,10 +130,14 @@ export function AcsMonitor({ deviceId }: { deviceId: string }) {
                 <div><dt>{t("acsMonitor.dslAttenuation")}</dt><dd>{state.dsl.attenuation_down_db != null ? `${state.dsl.attenuation_down_db} dB` : "—"}</dd></div>
               </dl>
             )}
+            {state.pon ? <PonLevels pon={state.pon} /> : null}
           </>
         )}
       </section>
-      <SeriesCharts title={t("acsMonitor.charts")} range={range} onRange={setRange} charts={data.charts} count={data.sample_count} pending={query.isFetching} />
+      {data.sample_count === 0 && data.last_sample_at && (
+        <div className="ui-alert">{t("acsMonitor.lastSample", { when: formatDateTime(data.last_sample_at, i18n.language) })}</div>
+      )}
+      <MonitorLink deviceId={deviceId} />
     </>
   );
 }

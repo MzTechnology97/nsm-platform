@@ -68,7 +68,7 @@ function Vulnerabilities({ data, customerId }: { data: Data; customerId: string 
           <h2>{t("customerSecurity.cvesTitle")}</h2>
           <p className="ui-muted">{t("customerSecurity.cvesHelp")}</p>
         </div>
-        <Link to="/vulnerabilities" search={{ customer: customerId }}>{t("customerSecurity.allVulns")}</Link>
+        <Link to="/customers/$customerId/security/vulnerabilities" params={{ customerId }}>{t("customerSecurity.allVulns")}</Link>
       </div>
       {data.vulnerabilities.length ? (
         <div className="ui-data-wrap">
@@ -78,7 +78,7 @@ function Vulnerabilities({ data, customerId }: { data: Data; customerId: string 
               {data.vulnerabilities.map((row) => (
                 <tr key={row.id}>
                   <td>
-                    <Link to="/vulnerabilities/$advisoryId" params={{ advisoryId: row.advisory.id }} search={{ customer: customerId }} className="ui-cell-title ui-mono">
+                    <Link to="/customers/$customerId/security/vulnerabilities/$advisoryId" params={{ customerId, advisoryId: row.advisory.id }} className="ui-cell-title ui-mono">
                       {row.advisory.cve_id}
                     </Link>
                   </td>
@@ -107,7 +107,7 @@ function Firmware({ data, customerId }: { data: Data; customerId: string }) {
     <section className="ui-panel ui-admin-section">
       <div className="ui-page-header-row">
         <h2>{t("customerSecurity.firmwareTitle")}</h2>
-        <Link to="/firmware" search={{ customer: customerId }}>{t("customerSecurity.allFirmware")}</Link>
+        <Link to="/customers/$customerId/security/firmware" params={{ customerId }}>{t("customerSecurity.allFirmware")}</Link>
       </div>
       {data.firmware.length ? (
         <ul className="ui-list">
@@ -126,13 +126,13 @@ function Firmware({ data, customerId }: { data: Data; customerId: string }) {
   );
 }
 
-function Lifecycle({ data }: { data: Data; customerId: string }) {
+function Lifecycle({ data, customerId }: { data: Data; customerId: string }) {
   const { t, i18n } = useTranslation();
   return (
     <section className="ui-panel ui-admin-section">
       <div className="ui-page-header-row">
         <h2>{t("customerSecurity.lifecycleTitle")}</h2>
-        <Link to="/lifecycle">{t("customerSecurity.allLifecycle")}</Link>
+        <Link to="/customers/$customerId/devices" params={{ customerId }} search={{ lifecycle: "eol" }}>{t("customerSecurity.allLifecycle")}</Link>
       </div>
       {data.lifecycle.length ? (
         <ul className="ui-list">
@@ -160,7 +160,7 @@ function Issues({ data, customerId }: { data: Data; customerId: string }) {
     <section className="ui-panel ui-admin-section">
       <div className="ui-page-header-row">
         <h2>{t("customerSecurity.issuesTitle")}</h2>
-        <Link to="/action-center" search={{ customer: customerId }}>{t("nav.actionCenter")}</Link>
+        <Link to="/customers/$customerId/actions" params={{ customerId }}>{t("nav.actionCenter")}</Link>
       </div>
       {data.issues.length ? (
         <ul className="ui-list">
@@ -182,7 +182,7 @@ function Issues({ data, customerId }: { data: Data; customerId: string }) {
   );
 }
 
-function Compliance({ data }: { data: Data; customerId: string }) {
+function Compliance({ data, customerId }: { data: Data; customerId: string }) {
   const { t } = useTranslation();
   const compliance = data.compliance;
   if (!compliance) return null;
@@ -190,7 +190,7 @@ function Compliance({ data }: { data: Data; customerId: string }) {
     <section className="ui-panel ui-admin-section">
       <div className="ui-page-header-row">
         <h2>{t("customerSecurity.complianceTitle")}</h2>
-        <Link to="/compliance">{t("customerSecurity.allCompliance")}</Link>
+        <Link to="/customers/$customerId/security/compliance" params={{ customerId }}>{t("customerSecurity.allCompliance")}</Link>
       </div>
       <div className="ui-chips">
         {(["pass", "fail", "exception", "unknown"] as const).map((state) => (
