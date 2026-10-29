@@ -3,7 +3,8 @@
 So the GenieACS panel shows, and can filter, whose CPE it is. Every ``RUN_INTERVAL`` the worker (``acs_customer_tags``)
 reads the tags of the linked CPEs (one NBI query per ``BATCH``) and aligns the NSM tag with the device's NSM customer:
 
-- the tag is the customer name (whitespace collapsed, at most ``MAX_TAG`` characters);
+- the tag is the customer name and code, ``"Rossi Mario · C1234"`` (operator choice 2026-10-24: tells namesakes apart),
+  whitespace collapsed, at most ``MAX_TAG`` characters (the name is shortened, the code kept); just the name without a code;
 - after the link, or when the device moves to another customer, the new tag is added and the previous NSM tag removed;
 - a tag removed by hand in GenieACS is added again; other tags (set by hand or by provisions) are never touched;
 - NSM remembers the tag it set in ``inventory_data["tr069"]["customer_tag"]``; audited ``ACS_CUSTOMER_TAG_SET``.
@@ -34,7 +35,11 @@ _last_run = 0.0
 
 def tag_for(customer) -> str | None:
     name = " ".join(str(getattr(customer, "name", "") or "").split())
-    return name[:MAX_TAG] or None
+    code = " ".join(str(getattr(customer, "code", "") or "").split())
+    if not code:
+        return name[:MAX_TAG] or None
+    suffix = f" · {code}"[:MAX_TAG]
+    return f"{name[:MAX_TAG - len(suffix)].rstrip()}{suffix}" if name else code[:MAX_TAG]
 
 
 def _tag_request(connection, method: str, external_id: str, tag: str) -> None:

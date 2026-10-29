@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useConnectorAction, useZabbixAdmin, useZabbixTemplates, type ZabbixAdmin } from "../api/admin";
+import { useConnectorAction, useZabbixAdmin, useZabbixTemplates, isZabbixMacro, type ZabbixAdmin } from "../api/admin";
 import { AdminTabs } from "../app/AdminTabs";
 import { BrandIcon } from "../app/BrandIcon";
 import { IntegrationTabs } from "../app/IntegrationTabs";
@@ -151,7 +151,11 @@ function Connection({ data }: { data: ZabbixAdmin }) {
     setForm({ ...form, customer_ids: form.customer_ids.includes(id) ? form.customer_ids.filter((value) => value !== id) : [...form.customer_ids, id] });
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    save.mutate(form, { onSuccess: () => setForm({ ...form, token: "", password: "" }) });
+    const { snmp_community_secret: _stored, ...body } = form;
+    // A literal community is a secret like the password: clear it from the form once saved.
+    save.mutate(body as typeof form, {
+      onSuccess: () => setForm({ ...form, token: "", password: "", snmp_community: isZabbixMacro(form.snmp_community) ? form.snmp_community : "" }),
+    });
   };
   return (
     <section className="ui-panel ui-admin-section">
@@ -207,7 +211,13 @@ function Connection({ data }: { data: ZabbixAdmin }) {
             <option value="snmp">{t("zabbix.interfaceSnmp")}</option>
           </select>
         </label>
-        <label><span>{t("zabbix.community")}</span><input value={form.snmp_community} onChange={set("snmp_community")} /><small className="ui-muted">{t("zabbix.communityHelp")}</small></label>
+        <label>
+          <span>{t("zabbix.community")}</span>
+          <input type={form.snmp_community.trim().startsWith("{$") ? "text" : "password"}
+            value={form.snmp_community} autoComplete="off" placeholder={data.settings.snmp_community_secret ? t("notificationsAdmin.keepSecret") : "{$SNMP_COMMUNITY}"}
+            onChange={set("snmp_community")} />
+          <small className="ui-muted">{data.settings.snmp_community_secret ? t("zabbix.communityStored") : t("zabbix.communityHelp")}</small>
+        </label>
         <label><span>{t("zabbix.templates.mikrotik")}</span><input value={form.templates.mikrotik} list="zabbix-templates" placeholder="MikroTik by SNMP" onChange={setTemplate("mikrotik")} /></label>
         <label><span>{t("zabbix.templates.ubiquiti")}</span><input value={form.templates.ubiquiti} list="zabbix-templates" placeholder="ICMP Ping" onChange={setTemplate("ubiquiti")} /></label>
         <label>

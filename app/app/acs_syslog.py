@@ -37,7 +37,8 @@ from app.ui_api import require_csrf, ui_user
 ROOT = profiles.vendor_path("tp-link", "syslog")
 PROBE = f"{ROOT}.ServerIP"
 LEVELS = {"error": 3, "warning": 4, "notice": 5, "info": 6, "debug": 7}
-DEFAULT_LEVEL = "info"
+DEFAULT_LEVEL = "warning"  # operator decision 2026-10-23: warning and worse on every device
+OLD_DEFAULT_LEVEL = "info"
 PORT = 514
 AUTO_BATCH = 50
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
@@ -140,7 +141,7 @@ def configure(db, user, device: Device, server_ip: str, level: str = DEFAULT_LEV
             applied = False
     except (acs.GenieAcsConnectorError, acs_diagnostics.AcsDiagnosticError) as exc:
         raise AcsSyslogError("acs", str(exc)) from exc
-    state = {"server_ip": server_ip, "port": PORT, "level": level, "applied": bool(applied), "at": utcnow().isoformat()}
+    state = {"server_ip": server_ip, "port": PORT, "level": level, "applied": bool(applied), "at": utcnow().isoformat(), "source": source}
     data = dict(device.inventory_data or {})
     tr = dict(data.get("tr069") or {})
     tr["syslog"] = state
@@ -149,6 +150,12 @@ def configure(db, user, device: Device, server_ip: str, level: str = DEFAULT_LEV
     core.add_event(db, "ACS_SYSLOG_CONFIGURED", actor=user, customer_id=device.customer_id, device_id=device.id, source=source,
                    details={"server_ip": server_ip, "port": PORT, "level": level, "applied": bool(applied)})
     return state
+
+
+def follows_default_level(current: dict) -> bool:
+    """The level was set by NSM's own default (worker, or an older state still at the old default), not chosen by a technician."""
+    source = current.get("source")
+    return source == "worker" or (source is None and current.get("level") in (None, OLD_DEFAULT_LEVEL))
 
 
 def candidates(db) -> list[Device]:
@@ -186,10 +193,14 @@ def auto_configure(now: datetime | None = None) -> dict:
             if stats["queued"] + stats["failed"] >= AUTO_BATCH:
                 break
             current = state_of(device) or {}
-            if current.get("server_ip") == server_ip or current.get("failed_target") == server_ip:
+            follows_default = follows_default_level(current)
+            if current.get("failed_target") == server_ip:
+                continue
+            if current.get("server_ip") == server_ip and not (follows_default and current.get("level") != DEFAULT_LEVEL):
                 continue
             try:
-                configure(db, None, device, server_ip, current.get("level") or DEFAULT_LEVEL, immediate=False, source="worker")
+                level = DEFAULT_LEVEL if follows_default or not current.get("level") else current["level"]
+                configure(db, None, device, server_ip, level, immediate=False, source="worker")
                 stats["queued"] += 1
             except AcsSyslogError:
                 # Not supported or GenieACS refused: remember it for this target, the operator can retry by hand.

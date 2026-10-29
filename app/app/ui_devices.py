@@ -317,7 +317,7 @@ TABS = (
     ("configuration", lambda d: d.vendor == "mikrotik"),
     ("diagnostics", lambda d: d.vendor == "mikrotik"),
     ("backups", lambda d: True),
-    ("firmware", lambda d: d.vendor == "mikrotik" or _tr069(d) or (d.vendor == "ubiquiti" and bool(d.external_device_id))),
+    ("firmware", lambda d: d.vendor == "mikrotik" or _tr069(d) or (d.vendor == "ubiquiti" and bool(d.external_device_id)) or _epmp(d)),
     ("agent", lambda d: d.vendor == "mikrotik"),
     ("uisp", lambda d: d.vendor == "ubiquiti"),
     ("cnmaestro", lambda d: _cambium(d)),
@@ -332,6 +332,15 @@ def _cambium(device) -> bool:
         from app.cnmaestro_connector import is_cambium
 
         return bool(is_cambium(device))
+    except Exception:
+        return False
+
+
+def _epmp(device) -> bool:
+    try:
+        from app.cambium_firmware import is_epmp
+
+        return bool(is_epmp(device))
     except Exception:
         return False
 

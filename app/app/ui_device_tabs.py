@@ -267,7 +267,8 @@ def install_ui_device_tabs(app) -> None:
 
 # --- Configuration -------------------------------------------------------------------------------
 
-CONFIG_SECTIONS = ("resources", "interfaces", "ip_addresses", "routes", "firewall", "dhcp_leases", "ppp_active", "logs")
+CONFIG_SECTIONS = ("resources", "interfaces", "ip_addresses", "routes", "firewall", "dhcp_leases", "ppp_active", "logs",
+                   "queues", "certificates", "routing")
 
 
 def _mikrotik(db, device_id: uuid.UUID) -> Device:
@@ -282,6 +283,7 @@ def device_configuration(request: Request, device_id: uuid.UUID, section: str = 
                          action: str = "all"):
     from app import mikrotik_configuration_unified as unified
     from app import mikrotik_workspace as workspace
+    from app.mikrotik_snapshot_capabilities import section_support
 
     with SessionLocal() as db:
         user = ui_user(request, db, "devices.read")
@@ -293,7 +295,9 @@ def device_configuration(request: Request, device_id: uuid.UUID, section: str = 
         if "kinds" in view:
             view["kinds"] = [key for key, _label in view["kinds"]]
         return jsonable_encoder({
-            "sections": [{"key": key, "read_at": (snapshots[key].completed_at or snapshots[key].created_at) if key in snapshots else None} for key in CONFIG_SECTIONS],
+            # ``support``: whether the installed Agent can read the section (reason and minimum Agent otherwise).
+            "sections": [{"key": key, "read_at": (snapshots[key].completed_at or snapshots[key].created_at) if key in snapshots else None,
+                          "support": section_support(device, key)} for key in CONFIG_SECTIONS],
             "section": section,
             "read_at": (snapshot.completed_at or snapshot.created_at) if snapshot else None,
             "pending": sorted(workspace._pending_sections(db, device.id)),
@@ -344,12 +348,13 @@ def device_configuration_history(request: Request, device_id: uuid.UUID):
                 "id": str(artifact.id), "filename": artifact.filename, "size_bytes": artifact.size_bytes or 0, "sha256": (artifact.sha256 or "")[:12] or None,
                 "completed_at": (run.completed_at if run else None) or artifact.created_at, "previous_id": str(previous.id) if previous else None,
                 "summary": summary, "baseline": baseline is not None and str(baseline) == str(artifact.id),
+                "attribution": row["attribution"],
             })
         details = (issue.details or {}) if issue else {}
         return jsonable_encoder({
             "rows": rows, "baseline_id": str(baseline) if baseline else None,
             "drift": {"added": details.get("added", 0), "removed": details.get("removed", 0), "reference_kind": details.get("reference_kind"),
-                      "severity": issue.severity} if issue else None,
+                      "severity": issue.severity, "attribution": details.get("attribution")} if issue else None,
             "can_baseline": core.has_permission(user, "backup.configure"),
         })
 
