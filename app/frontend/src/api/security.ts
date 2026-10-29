@@ -1,4 +1,4 @@
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./client";
 import type { BrandRef } from "../app/BrandIcon";
@@ -71,12 +71,10 @@ function query(params: Record<string, string | number | undefined>): string {
   return text ? `?${text}` : "";
 }
 
-export const useVulnerabilities = (filters: VulnFilters) =>
-  useInfiniteQuery({
-    queryKey: ["vulnerabilities", filters],
-    queryFn: ({ pageParam }) => api<VulnPage>(`/api/ui/v1/vulnerabilities${query({ ...filters, offset: pageParam })}`),
-    initialPageParam: 0,
-    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+export const useVulnerabilities = (filters: VulnFilters, page: { offset: number; limit: number }) =>
+  useQuery({
+    queryKey: ["vulnerabilities", filters, page],
+    queryFn: () => api<VulnPage>(`/api/ui/v1/vulnerabilities${query({ ...filters, offset: page.offset, limit: page.limit })}`),
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
@@ -122,10 +120,10 @@ export interface ExposurePage {
   items: ExposureRow[];
 }
 
-export const useExposure = (filters: ExposureFilters) =>
+export const useExposure = (filters: ExposureFilters, page: { offset: number; limit: number }) =>
   useQuery({
-    queryKey: ["exposure", filters],
-    queryFn: () => api<ExposurePage>(`/api/ui/v1/exposure${query({ view: filters.view, customer: filters.customer })}`),
+    queryKey: ["exposure", filters, page],
+    queryFn: () => api<ExposurePage>(`/api/ui/v1/exposure${query({ view: filters.view, customer: filters.customer, offset: page.offset, limit: page.limit })}`),
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
@@ -176,12 +174,10 @@ export interface LifecyclePage {
   groups: { vendor: string | null; model: string | null; match: string | null; devices: number; customers: number }[];
 }
 
-export const useLifecycle = (filters: LifecycleFilters) =>
-  useInfiniteQuery({
-    queryKey: ["lifecycle", filters],
-    queryFn: ({ pageParam }) => api<LifecyclePage>(`/api/ui/v1/lifecycle${query({ ...filters, offset: pageParam })}`),
-    initialPageParam: 0,
-    getNextPageParam: (last) => (last.offset + Math.max(last.items.length, last.groups.length) < last.total ? last.offset + last.limit : undefined),
+export const useLifecycle = (filters: LifecycleFilters, page: { offset: number; limit: number }) =>
+  useQuery({
+    queryKey: ["lifecycle", filters, page],
+    queryFn: () => api<LifecyclePage>(`/api/ui/v1/lifecycle${query({ ...filters, offset: page.offset, limit: page.limit })}`),
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
@@ -215,12 +211,10 @@ export interface CompliancePage {
   }[];
 }
 
-export const useCompliance = (filters: ComplianceFilters) =>
-  useInfiniteQuery({
-    queryKey: ["compliance", filters],
-    queryFn: ({ pageParam }) => api<CompliancePage>(`/api/ui/v1/compliance${query({ ...filters, offset: pageParam })}`),
-    initialPageParam: 0,
-    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+export const useCompliance = (filters: ComplianceFilters, page: { offset: number; limit: number }) =>
+  useQuery({
+    queryKey: ["compliance", filters, page],
+    queryFn: () => api<CompliancePage>(`/api/ui/v1/compliance${query({ ...filters, offset: page.offset, limit: page.limit })}`),
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   });

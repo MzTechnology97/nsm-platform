@@ -29,6 +29,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
 
+from app import pagination
 from app import main as core
 from app.db import SessionLocal
 from app.ispbilling_connector import connection_row, normalized, site_name
@@ -100,7 +101,7 @@ def _row(item, state, customer, reason, addresses):
 
 
 @router.get("/customers")
-def customers(request: Request, state: str = "new", q: str = "", status: str = "", group: str = "", offset: int = 0):
+def customers(request: Request, state: str = "new", q: str = "", status: str = "", group: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         ui_user(request, db, PERMISSION)
         state = state if state in STATES else "new"
@@ -119,14 +120,14 @@ def customers(request: Request, state: str = "new", q: str = "", status: str = "
             counts[row_state] += 1
             if state in ("all", row_state):
                 rows.append((item, row_state, customer, reason))
-        offset = max(0, int(offset or 0))
+        offset, size = pagination.window(offset, limit, PAGE)
         connection = connection_row(db)
         return jsonable_encoder({
             "configured": connection is not None, "last_sync_at": connection.last_sync_at if connection else None,
             "details_pending": ((connection.settings or {}).get("last_sync") or {}).get("details_pending") if connection else None,
-            "counts": counts, "total": len(rows), "offset": offset, "limit": PAGE,
+            "counts": counts, "total": len(rows), "offset": offset, "limit": size,
             "statuses": sorted({m.status for m in mirror if m.status}), "groups": sorted({m.group_name for m in mirror if m.group_name}),
-            "items": [_row(item, row_state, customer, reason, addresses) for item, row_state, customer, reason in rows[offset:offset + PAGE]],
+            "items": [_row(item, row_state, customer, reason, addresses) for item, row_state, customer, reason in rows[offset:offset + size]],
         })
 
 

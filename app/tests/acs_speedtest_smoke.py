@@ -1,6 +1,7 @@
 """ACS-06: TR-143 speed test of TR-069 CPEs through GenieACS (fake NBI) and NSM's signed test file endpoints."""
 import json
 import re
+import time
 import uuid
 from datetime import timedelta
 from urllib.parse import unquote, urlsplit
@@ -31,6 +32,7 @@ class FakeNbi:
 
     def __init__(self):
         self.records, self.tasks, self.fail, self.mode = {}, [], None, "normal"
+        self.hidden, self.unreachable = {}, set()  # objects GenieACS has not walked yet; CPEs not answering connection requests
 
     def node(self, record, path):
         node = record
@@ -48,6 +50,13 @@ class FakeNbi:
             return httpx.Response(404)
         task = json.loads(request.content)
         self.tasks.append(task)
+        ext = unquote(match.group(1))
+        if ext in self.unreachable:
+            return httpx.Response(202, json={"_id": "t"})
+        if task["name"] == "refreshObject" and (ext, task["objectName"]) in self.hidden:
+            parent, _sep, name = task["objectName"].rpartition(".")
+            self.node(record, parent)[name] = self.hidden.pop((ext, task["objectName"]))
+            return httpx.Response(200, json={"_id": "t"})
         if task["name"] == "setParameterValues":
             for path, value, _kind in task["parameterValues"]:
                 self.node(record, path)["_value"] = value
@@ -63,7 +72,20 @@ class FakeNbi:
                     # The VX230v reports BOMTime an hour off; NSM falls back to the TCP open response.
                     obj["BOMTime"] = leaf("2026-10-22T11:00:00.300Z" if self.mode == "vx" else "2026-10-22T10:00:00.000000Z", False)
                     obj["EOMTime"] = leaf("2026-10-22T10:00:02.500000Z", False)
-                    if task["objectName"].endswith("DownloadDiagnostics"):
+                    if obj.get("TimeBasedTestDuration", {}).get("_value") == 20:
+                        # A 100M plan with a burst: 3 intervals at 150 Mbit/s, then 98.
+                        field = "TestBytesReceived" if task["objectName"].endswith("DownloadDiagnostics") else "TestBytesSent"
+                        rows, total = {}, 0
+                        for n in range(10):
+                            moved = int((150 if n < 3 else 98) * 1_000_000 / 8 * 2)
+                            total += moved
+                            rows[str(n + 1)] = {field: leaf(moved, False), "StartTime": leaf(f"2026-10-22T10:00:{2 * n:02d}.000Z", False),
+                                                "EndTime": leaf(f"2026-10-22T10:00:{2 * n + 2:02d}.000Z", False)}
+                        obj["IncrementalResult"] = rows
+                        obj[field] = leaf(total, False)
+                        obj["BOMTime"] = leaf("2026-10-22T10:00:00.000Z", False)
+                        obj["EOMTime"] = leaf("2026-10-22T10:00:20.000Z", False)
+                    elif task["objectName"].endswith("DownloadDiagnostics"):
                         obj["TestBytesReceived"] = leaf(585 if self.mode == "short" else 26214400, False)
                     else:
                         obj["TotalBytesSent"] = leaf(13107200, False)
@@ -176,9 +198,79 @@ def main():
     assert link.startswith(f"https://nsm.example.test/acs-speedtest/{device_id}/"), link
     auditor.get(url)
 
+    # A CPE GenieACS has not walked yet (real HB210): the diagnostics are read first, then the test starts.
+    fresh_ext = f"186945-HB210-P{suffix}"
+    fake.records[fresh_ext] = {"_id": fresh_ext, "Device": {"DeviceInfo": {"SoftwareVersion": leaf("1.0", False)},
+                                                            "ManagementServer": {"URL": leaf("http://198.51.100.20:7547/")}}}
+    fake.hidden[(fresh_ext, "Device.IP.Diagnostics")] = {
+        "DownloadDiagnostics": {"DownloadURL": leaf(""), "DiagnosticsState": leaf("None")},
+        "UploadDiagnostics": {"UploadURL": leaf(""), "TestFileLength": leaf(0), "DiagnosticsState": leaf("None")}}
+    quiet_ext = f"186945-HB210-Q{suffix}"
+    fake.records[quiet_ext] = {"_id": quiet_ext, "Device": {"DeviceInfo": {"SoftwareVersion": leaf("1.0", False)}}}
+    fake.unreachable.add(quiet_ext)
+    with SessionLocal() as db:
+        customer_id = db.get(Device, device_id).customer_id
+        fresh = Device(customer_id=customer_id, vendor="tp-link", device_type="router", name=f"TEST-ACSP-NEW-{suffix}", external_device_id=fresh_ext,
+                       management_source="tr069", status="online")
+        quiet = Device(customer_id=customer_id, vendor="tp-link", device_type="router", name=f"TEST-ACSP-QUIET-{suffix}", external_device_id=quiet_ext,
+                       management_source="tr069", status="online")
+        db.add_all([fresh, quiet])
+        db.commit()
+        fresh_id, quiet_id = fresh.id, quiet.id
+    started = tech.post(f"/api/ui/v1/devices/{fresh_id}/acs/speedtest/download")
+    assert started.status_code == 200, started.text
+    assert {"name": "refreshObject", "objectName": "Device.IP.Diagnostics"} in fake.tasks, "objects discovered before the test"
+    assert fake.tasks[-1]["name"] == "setParameterValues"
+    pending = tech.post(f"/api/ui/v1/devices/{quiet_id}/acs/speedtest/download")
+    assert pending.status_code == 409 and pending.json()["detail"]["code"] == "discovering", pending.text
+
+    # Time-based test (TR-143 TimeBasedTestDuration writable): 20 s, an interval every 2 s; the sustained speed ignores the burst.
+    timed_ext = f"186945-HB210-T{suffix}"
+    fake.records[timed_ext] = {"_id": timed_ext, "Device": {
+        "ManagementServer": {"URL": leaf("http://198.51.100.20:7547/")},
+        "IP": {"Diagnostics": {"DownloadDiagnostics": {"DownloadURL": leaf(""), "DiagnosticsState": leaf("None"), "TimeBasedTestDuration": leaf(0),
+                                                       "TimeBasedTestMeasurementInterval": leaf(0)},
+                               "UploadDiagnostics": {"UploadURL": leaf(""), "TestFileLength": leaf(0), "DiagnosticsState": leaf("None")}}}}}
+    with SessionLocal() as db:
+        timed_device = Device(customer_id=db.get(Device, device_id).customer_id, vendor="tp-link", device_type="router", name=f"TEST-ACSP-TIMED-{suffix}",
+                              external_device_id=timed_ext, management_source="tr069", status="online")
+        db.add(timed_device)
+        db.commit()
+        timed_id = timed_device.id
+    timed_url = f"/api/ui/v1/devices/{timed_id}/acs/speedtest"
+    started = tech.post(f"{timed_url}/download").json()
+    sent = {path: value for path, value, _ in fake.tasks[-1]["parameterValues"]}
+    assert sent[f"{BASE}.DownloadDiagnostics.TimeBasedTestDuration"] == 20 and sent[f"{BASE}.DownloadDiagnostics.TimeBasedTestMeasurementInterval"] == 2
+    assert f"/{4096 * 1024 * 1024}/" in sent[f"{BASE}.DownloadDiagnostics.DownloadURL"], "the link allows enough bytes for 20 s"
+    assert started["tests"]["download"]["seconds"] == 20
+    timed = auditor.get(timed_url).json()
+    result = timed["tests"]["download"]["result"]
+    assert result["sustained_mbps"] == 98.0 and result["peak_mbps"] == 150.0 and result["mbps"] == 113.6, result
+    assert len(result["intervals"]) == 10 and timed["timed_seconds"] == 20 and timed["plans"] == []
+    assert speed.sustained_of([150, 150, 98]) is None, "too few intervals"
+
+    # A CPE without incremental results: NSM's own 2-second measurements of the transfer it served.
+    tech.post(f"{url}/download").raise_for_status()
+    speed.save_server_intervals(str(device_id), "download", [160.0, 158.0, 101.0, 99.0, 99.0, 98.0])
+    measured = auditor.get(url).json()["tests"]["download"]["result"]
+    assert measured["intervals_source"] == "nsm" and measured["sustained_mbps"] == 99.0 and measured["peak_mbps"] == 160.0, measured
+
+    # A real transfer through NSM's test server is measured by NSM itself.
+    tech.post(f"{url}/download").raise_for_status()
+    link = urlsplit({path: value for path, value, _ in fake.tasks[-1]["parameterValues"]}[f"{BASE}.DownloadDiagnostics.DownloadURL"]).path
+    body = TestClient(app).get(link)
+    assert body.status_code == 200 and len(body.content) == 25 * 1024 * 1024
+    for _ in range(50):
+        with SessionLocal() as db:
+            if (db.get(Device, device_id).inventory_data["acs_speedtest"]["download"] or {}).get("server_intervals"):
+                break
+        time.sleep(0.1)
+    served = auditor.get(url).json()["tests"]["download"]["result"]
+    assert served["intervals_source"] == "nsm" and served["intervals"], served
+
     with SessionLocal() as db:
         kinds = sorted(e.event_type for e in db.scalars(select(AuditEvent).where(AuditEvent.device_id == device_id)))
-        assert kinds.count("ACS_SPEEDTEST_REQUESTED") == 6 and kinds.count("ACS_SPEEDTEST_COMPLETED") == 6, kinds
+        assert kinds.count("ACS_SPEEDTEST_REQUESTED") == 8 and kinds.count("ACS_SPEEDTEST_COMPLETED") == 8, kinds
         assert db.scalar(select(AuditEvent).where(AuditEvent.event_type == "ACS_SPEEDTEST_SETTINGS_CHANGED").order_by(AuditEvent.timestamp.desc()).limit(1))
 
     nbi.TRANSPORT = None

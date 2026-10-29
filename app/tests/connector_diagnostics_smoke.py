@@ -52,13 +52,13 @@ class FakeUisp:
 
 def fake_cnmaestro(req: httpx.Request):
     path = req.url.path
-    if path == "/api/v1/access/token":
+    if path == "/api/v2/access/token":
         return httpx.Response(200, json={"access_token": "ci-token"})
-    if path == "/api/v1/devices":
+    if path == "/api/v2/devices":
         return httpx.Response(200, json={"data": [{"mac": "02:6B:00:00:0D:02", "serial_number": "SN-2", "name": "ePMP", "ip": "198.51.100.40",
                                                    "status": "online", "product": "ePMP 3000", "software_version": "4.7.1", "type": "epmp"}],
                                          "paging": {"total": 1}})
-    if path == "/api/v1/devices/statistics":
+    if path == "/api/v2/devices/statistics":
         return httpx.Response(403, json={"error": "forbidden"})
     return httpx.Response(404)
 

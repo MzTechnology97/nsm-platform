@@ -117,7 +117,7 @@ def main():
     assert client.get("/devices", follow_redirects=False).headers["location"] == "/app/devices"
     assert client.get("/action-center", follow_redirects=False).headers["location"] == "/app/action-center"
     moved = client.get(f"/customers/{ids['customer_a']}/devices", follow_redirects=False)
-    assert moved.headers["location"] == f"/app/devices?customer={ids['customer_a']}"
+    assert moved.headers["location"] == f"/app/customers/{ids['customer_a']}/devices"
 
     print("Core 0.11 customer drilldown smoke test passed")
 

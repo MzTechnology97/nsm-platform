@@ -153,16 +153,19 @@ def api_device(device) -> dict | None:
     from app import zabbix_connector
 
     link = zabbix_connector.device_link(device)
+    with SessionLocal() as db:
+        row = zbx.connection_row(db)
+        configured = bool(row and row.is_enabled)
+        scope = {"in_scope": zabbix_connector.in_scope(device, zabbix_connector.settings_of(row)),
+                 "outcome": zabbix_connector.device_outcome(device)} if configured else {}
     if (device.inventory_data or {}).get("zabbix_exclude"):
-        return {"link": None, "excluded": True, "problems": None}
+        return {"link": None, "excluded": True, "problems": None, **scope}
     if not link:
-        with SessionLocal() as db:
-            row = zbx.connection_row(db)
-            configured = bool(row and row.is_enabled)
-        return {"link": None, "excluded": False, "problems": None} if configured else None
+        return {"link": None, "excluded": False, "problems": None, **scope} if configured else None
     problems = device_problems(device)
     linked = ((device.inventory_data or {}).get("zabbix") or {})
-    return {"link": link, "excluded": False, "linked": bool(linked.get("linked")), "match": linked.get("match"), "problems": None if problems is None else {
+    return {"link": link, "excluded": False, "linked": bool(linked.get("linked")), "match": linked.get("match"), **scope,
+            "problems": None if problems is None else {
         "items": [{"name": p["name"], "severity": int(p["severity"]), "since": p.get("since"), "acknowledged": bool(p.get("acknowledged"))}
                   for p in problems["items"]],
         "checked_at": problems["checked_at"], "stale": bool(problems["stale"])}}
