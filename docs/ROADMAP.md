@@ -469,7 +469,7 @@ Profiles: *vendor* (today's list), *extended* (the list above, default for publi
 ### CYBER-01 — abuse and reputation toolkit for the operator's addresses (requested 2026-10-23)
 
 A complete cybersecurity view for an ISP/WISP, taking as reference the open-source project AbuseBox (`bekkaze/abusebox`, MIT), re-implemented inside NSM on its own inventory:
-- **blacklists**: DNSBL checks (tens of providers) of the operator's public IPs (customers, CGNAT pool, servers) and of whole subnets (/24), with links to each provider's removal page and delisting tracking;
+- **blacklists**: DNSBL checks (tens of providers) of the operator's public IPs (customers, CGNAT pool, servers) and of whole subnets (/24), with links to each provider's removal page and delisting tracking; **DNSBL done (Core 0.49.313)**: *Integrazioni → Blacklist DNS*, IPv4 of the declared prefixes and of the inventory, removal links, Action Center issues with the holder; delisting tracking and charts still open.
 - **reputation**: AbuseIPDB score and reports (optional API key), correlated with the customer and device owning the address;
 - **availability**: DNS resolution, HTTP/HTTPS status and response time of the operator's public services;
 - out of scope for now (user, 2026-10-23): domains, SSL certificates and mail authentication (SPF/DKIM/DMARC);
