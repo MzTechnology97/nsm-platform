@@ -4,6 +4,22 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.287 — 2026-10-29
+
+Authorized management networks: SNMP, SSH and time on MikroTik (ACCESS-01, step 1, Agent 0.49.27)
+- New page *Amministrazione → Reti di gestione*: the addresses the devices are managed from (NSM, Zabbix, NOC).
+  - One list for every vendor; NSM proposes the NSM and Zabbix servers.
+  - SNMP community *public* (read-only), NTP servers (INRIM `ntp1.inrim.it`, `ntp2.inrim.it`) and time zone *Europe/Rome*.
+  - Optional limit of SSH to the same networks.
+- MikroTik with the Agent 0.49.27:
+  - the SNMP community answers only the listed networks and SNMP is turned on;
+  - the SSH service accepts only those networks: *available from* of `/ip service`, the router firewall is not touched;
+  - the NTP client and the time zone are set.
+- Applied automatically after the list is saved for the first time, and again whenever it changes. Nothing is written before.
+  - A failed attempt is not repeated by itself: *Applica ora* on the device, or *Applica ora a tutti*.
+  - A device can be excluded from its *Agent* tab, which also shows the router clock and the NTP state.
+- Make sure the list contains every address you reach the devices from: SSH and SNMP will answer only those. The Agent talks to NSM outbound and does not depend on the list.
+- Ubiquiti (through UISP: airOS firewall for SSH, discovery and SNMP), TR-069 CPEs and Cambium follow in the next steps.
 ## 0.49.286 — 2026-10-29
 
 Roadmap: open the device, management access, exposure and cybersecurity
