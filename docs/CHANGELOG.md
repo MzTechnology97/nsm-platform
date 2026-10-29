@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.299 — 2026-10-29
+
+GenieACS customer tag with the customer code
+
+### Changed
+
+- The tag NSM sets in GenieACS on every linked TR-069 CPE is now the customer name and code, such as `Rossi Mario · C1234`, so customers with the same name are told apart. It is just the name when the customer has no code. A long name is shortened and the code kept.
+  - CPEs tagged by 0.49.237 with the name only get the new tag on the next worker run (within 10 minutes); the old one is removed. Tags set by hand are never touched.
 ## 0.49.298 — 2026-10-29
 
 TP-Link: save the current configuration as the default

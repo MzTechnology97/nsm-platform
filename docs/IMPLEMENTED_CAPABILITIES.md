@@ -758,9 +758,9 @@ TP-Link CPEs (Aginet firmware) keep their log settings in `Device.DeviceInfo.X_T
 
 The tool that rewrote the CWMP ACS URL of a fleet of TP-Link CPEs over the management network (Core 0.49.202) was removed: on the operator's firmware the TP-Link web login could not be used. CPEs are pointed at the integrated GenieACS as described in *Amministrazione → ACS* (TP-Link guide).
 
-### Customer tag in GenieACS (Core 0.49.237)
+### Customer tag in GenieACS (Core 0.49.237, name and code since 0.49.299)
 
-Every 10 minutes the worker (`acs_customer_tags`) reads the tags of the TR-069 CPEs linked in NSM (one NBI query per 50 CPEs) and makes each carry its NSM customer's name as a GenieACS tag (whitespace collapsed, at most 100 characters), so the GenieACS panel shows and filters whose CPE it is: added after the link, moved when the device changes customer or the customer is renamed (the previous NSM tag is removed), added again if removed by hand; tags set by hand or by provisions are never touched. The tag NSM set is kept in `inventory_data["tr069"]["customer_tag"]`; audit `ACS_CUSTOMER_TAG_SET`. GenieACS encodes any character in tags, so names with spaces, apostrophes or accents are fine.
+Every 10 minutes the worker (`acs_customer_tags`) reads the tags of the TR-069 CPEs linked in NSM (one NBI query per 50 CPEs) and makes each carry its NSM customer as a GenieACS tag, `Name · code` such as `Rossi Mario · C1234` so namesakes are told apart, just the name when the customer has no code (whitespace collapsed, at most 100 characters: a long name is shortened, the code kept), so the GenieACS panel shows and filters whose CPE it is: added after the link, moved when the device changes customer or the customer is renamed or recoded (the previous NSM tag is removed; name-only tags from 0.49.237 are swapped on the first run), added again if removed by hand; tags set by hand or by provisions are never touched. The tag NSM set is kept in `inventory_data["tr069"]["customer_tag"]`; audit `ACS_CUSTOMER_TAG_SET`. GenieACS encodes any character in tags, so names with spaces, apostrophes or accents are fine.
 
 ### Diagnostics from the CPE (ACS-06, Core 0.49.206)
 
