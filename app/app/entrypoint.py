@@ -160,7 +160,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.308"
+APP_VERSION = "0.49.309"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
