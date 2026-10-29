@@ -5707,6 +5707,8 @@
     "UISP_DEVICE_ASSOCIATED": "Équipement lié à UISP",
     "UISP_DEVICE_MISSING": "Équipement absent d'UISP",
     "UISP_DEVICE_ONBOARDED": "Équipement importé depuis UISP",
+    "UISP_FIREWALL_CONFIGURED": "Règles de pare-feu de gestion appliquées via UISP",
+    "UISP_FIREWALL_RESTORED": "Pare-feu de l'équipement restauré via UISP",
     "UISP_FIRMWARE_BULK_UPGRADE": "Mise à jour groupée du firmware UISP",
     "UISP_FIRMWARE_UPGRADE_FAILED": "Échec de la mise à jour du firmware UISP",
     "UISP_FIRMWARE_UPGRADE_REQUESTED": "Mise à jour du firmware UISP demandée",
@@ -7383,5 +7385,40 @@
       "6": "6 info",
       "7": "7 débogage"
     }
+  },
+  "uispFirewall": {
+    "upToDate": "Règles NSM déjà appliquées et à jour ({{count}}) : rien à faire.",
+    "title": "Pare-feu de gestion (airOS)",
+    "hint": "NSM limite les services choisis de la CPE (SSH, gestion web, SNMP, découverte) aux réseaux de gestion autorisés et au LAN du client : règles ACCEPT pour ces réseaux, puis DROP pour tous les autres. Les règles existantes restent et les règles identiques ne sont pas dupliquées. Les ports redirigés vers le client (redirection de port, DMZ) ne sont pas modifiés.",
+    "applied": "Appliquées le {{when}} par {{by}} : {{added}} règles ajoutées, {{skipped}} déjà présentes.",
+    "restored": "Configuration précédente restaurée le {{when}}.",
+    "from": "Depuis la dernière sauvegarde UISP : mode {{mode}}, LAN {{lan}}, règles NSM déjà présentes : {{nsm}}.",
+    "openToAll": "Une règle existante accepte déjà tout le monde sur : {{services}}. Le DROP de NSM reste sans effet tant qu'elle existe.",
+    "columns": {
+      "target": "Action",
+      "service": "Service",
+      "source": "Source",
+      "comment": "Commentaire"
+    },
+    "everyoneElse": "tous les autres",
+    "nothingToAdd": "Aucune règle à ajouter : la CPE est déjà protégée.",
+    "skipped_one": "{{count}} règle déjà présente ne sera pas dupliquée",
+    "skipped_other": "{{count}} règles déjà présentes ne seront pas dupliquées",
+    "because": "{{rule}} le fait déjà",
+    "reboot": "Appliquer les règles redémarre la CPE : le client est hors ligne pendant 2 à 3 minutes. La sauvegarde prise juste avant reste comme point de restauration.",
+    "confirm": "Pour confirmer, saisissez le nom de l'équipement : {{name}}",
+    "apply": "Appliquer les règles via UISP",
+    "working": "UISP applique…",
+    "done": "Règles appliquées : la CPE redémarre.",
+    "restore": "Restaurer la configuration précédente",
+    "services": "Services à protéger",
+    "service": {
+      "ssh": "SSH",
+      "web": "Gestion web (HTTP/HTTPS)",
+      "snmp": "SNMP",
+      "discovery": "Découverte Ubiquiti"
+    },
+    "dmz": "La DMZ est active : les ports hors des exceptions de la DMZ vont vers l'équipement du client, pas vers la CPE. NSM ne met aucune règle sur ces ports pour ne pas bloquer le client.",
+    "notProtected": "Ces ports ne sont pas modifiés car la CPE les redirige vers le client (redirection de port ou DMZ) : une règle y bloquerait le service du client."
   }
 }

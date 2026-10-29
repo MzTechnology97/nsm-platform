@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.307 — 2026-10-29
+
+Ubiquiti airOS: SSH, web management, SNMP and discovery only from the management networks (ACCESS-01, firewall through UISP)
+- New *Firewall di gestione (airOS)* panel on the device *UISP* tab. airOS has no address list for these services, so NSM uses the airOS firewall:
+  - **ACCEPT** towards the chosen services — SSH (on the CPE's SSH port), web management (on its HTTP and HTTPS ports), SNMP (UDP 161), discovery (UDP 10001) — from the authorized management networks (*Amministrazione → Reti di gestione*) and from the **customer LAN**;
+  - the operator's own rules, unchanged and in their order;
+  - **DROP** towards the same ports from everybody else.
+- The operator chooses the services in the panel; SSH, SNMP and discovery are chosen by default.
+- **Port forwards and DMZ**: a port the CPE forwards to the customer (a port forward, or the DMZ when the port is not among its exceptions) is never touched, because a rule there would block the customer's own service. Those ports are listed as not protected, and the panel warns when the DMZ is on.
+- Rules NSM would add are **skipped** when an existing rule already does the same: same port and a network that contains it. NSM marks its own rules `NSM-ACL` and replaces them when applying again, so a change of the management networks is followed. When everything is already in place the panel says so, and applying is not offered, to avoid a useless reboot.
+- The panel shows the plan computed on the last UISP backup, without contacting the CPE: rules to add, rules already present, a warning if a rule accepts everybody.
+- Applying works like the syslog through UISP: a fresh backup as the restore point, the device name typed to confirm, the CPE rebooted (2–3 minutes), and *Ripristina* available.
+- CPEs in bridge mode (a different airOS firewall) and IPv6 networks are not handled yet, and are reported as such.
 ## 0.49.306 — 2026-10-29
 
 TR-069: WAN traffic also on CPEs whose interface counters are stuck

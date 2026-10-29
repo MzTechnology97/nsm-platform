@@ -9,6 +9,7 @@ import { type ChartSeries, TimeChart } from "../charts/TimeChart";
 import { formatDateTime } from "../lib/format";
 import { Loading } from "../app/States";
 import { MonitorLink } from "../app/MonitorLink";
+import { UispFirewallPanel } from "../app/UispFirewall";
 
 export const RANGES = ["24h", "7d", "30d", "90d"] as const;
 const UNIT: Record<string, Unit | undefined> = { "%": "%", dBm: "dBm", dB: "dB", "°C": "°C", V: "V", mA: "mA", bps: "bps", "": "count" };
@@ -71,6 +72,7 @@ export function DeviceUisp() {
       {linked && data.metrics && <Metrics data={data} />}
       {linked && <Firmware data={data} />}
       {linked && data.connection?.enabled && <Operations deviceId={deviceId} data={data} />}
+      {linked && data.connection?.enabled && <UispFirewallPanel id={deviceId} />}
     </>
   );
 }

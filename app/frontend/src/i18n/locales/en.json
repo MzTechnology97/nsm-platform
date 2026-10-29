@@ -5707,6 +5707,8 @@
     "UISP_DEVICE_ASSOCIATED": "Device linked to UISP",
     "UISP_DEVICE_MISSING": "Device no longer in UISP",
     "UISP_DEVICE_ONBOARDED": "Device imported from UISP",
+    "UISP_FIREWALL_CONFIGURED": "Management firewall rules applied through UISP",
+    "UISP_FIREWALL_RESTORED": "Device firewall restored through UISP",
     "UISP_FIRMWARE_BULK_UPGRADE": "UISP bulk firmware upgrade",
     "UISP_FIRMWARE_UPGRADE_FAILED": "UISP firmware upgrade failed",
     "UISP_FIRMWARE_UPGRADE_REQUESTED": "UISP firmware upgrade requested",
@@ -7383,5 +7385,40 @@
       "6": "6 info",
       "7": "7 debug"
     }
+  },
+  "uispFirewall": {
+    "upToDate": "NSM rules already applied and up to date ({{count}}): nothing to do.",
+    "title": "Management firewall (airOS)",
+    "hint": "NSM limits the chosen services of the CPE (SSH, web management, SNMP, discovery) to the authorized management networks and the customer LAN: ACCEPT rules for those networks, then DROP for everybody else. Existing rules stay and equal ones are not duplicated. Ports forwarded to the customer (port forward, DMZ) are left alone.",
+    "applied": "Applied on {{when}} by {{by}}: {{added}} rules added, {{skipped}} already present.",
+    "restored": "Previous configuration restored on {{when}}.",
+    "from": "From the last UISP backup: mode {{mode}}, LAN {{lan}}, NSM rules already present: {{nsm}}.",
+    "openToAll": "An existing rule already accepts everybody on: {{services}}. NSM's DROP has no effect while it stays.",
+    "columns": {
+      "target": "Action",
+      "service": "Service",
+      "source": "Source",
+      "comment": "Comment"
+    },
+    "everyoneElse": "everybody else",
+    "nothingToAdd": "No rule to add: the CPE is already protected.",
+    "skipped_one": "{{count}} rule already present will not be duplicated",
+    "skipped_other": "{{count}} rules already present will not be duplicated",
+    "because": "{{rule}} already does it",
+    "reboot": "Applying the rules reboots the CPE: the customer is offline for 2–3 minutes. The backup taken right before is kept as the restore point.",
+    "confirm": "To confirm, type the device name: {{name}}",
+    "apply": "Apply the rules through UISP",
+    "working": "UISP is applying…",
+    "done": "Rules applied: the CPE reboots.",
+    "restore": "Restore previous configuration",
+    "services": "Services to protect",
+    "service": {
+      "ssh": "SSH",
+      "web": "Web management (HTTP/HTTPS)",
+      "snmp": "SNMP",
+      "discovery": "Ubiquiti discovery"
+    },
+    "dmz": "The DMZ is on: ports not among the DMZ exceptions go to the customer's device, not to the CPE. NSM puts no rule on those ports so the customer is not blocked.",
+    "notProtected": "These ports are left alone because the CPE forwards them to the customer (port forward or DMZ): a rule there would block the customer's service."
   }
 }
