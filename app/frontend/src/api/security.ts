@@ -409,3 +409,52 @@ export const parseCatalogSearch = (search: Record<string, unknown>): CatalogFilt
   return out;
 };
 
+
+export const IP_ABUSE_SOURCES = ["abuseipdb", "dnsbl", "threat_lists"] as const;
+export type IpAbuseSourceKey = (typeof IP_ABUSE_SOURCES)[number];
+
+export interface IpAbuseFilters {
+  source?: IpAbuseSourceKey;
+  q?: string;
+}
+
+/** What one source says about an address: AbuseIPDB score and reports, DNS blacklists, or a threat-list network. */
+export type IpAbuseSource =
+  | { source: "abuseipdb"; score: number; reports: number; reporters: number | null; last: string | null; categories: { id: number; name: string }[];
+      country: string | null; whitelisted: boolean; over: boolean; checked_at: string | null; block: string | null }
+  | { source: "dnsbl"; zones: { zone: string; name: string; codes: string[]; removal: string }[]; since: string | null; checked_at: string | null }
+  | { source: "threat_lists"; list: string | null; network: string | null; reference: string | null };
+
+export interface IpAbuseRow {
+  address: string;
+  sources: IpAbuseSource[];
+  lists: number;
+  score: number | null;
+  reports: number;
+  reporters: number;
+  last_report: string | null;
+  first_seen: string | null;
+  unassigned: boolean;
+  holder: {
+    confidence: "exact" | "static" | "none";
+    username: string | null;
+    customer: { id: string; name: string } | null;
+    device: { id: string; name: string; brand?: BrandRef } | null;
+  };
+}
+
+export interface IpAbusePage {
+  items: IpAbuseRow[];
+  total: number;
+  prefixes: { prefix: string; list: string | null; network: string | null; reference: string | null }[];
+  modules: Record<IpAbuseSourceKey, { enabled: boolean; checked_at: string | null; route: string; threshold?: number }>;
+  counts: { addresses: number; max_score: number } & Record<IpAbuseSourceKey, number>;
+}
+
+export const useIpAbuse = (filters: IpAbuseFilters) =>
+  useQuery({
+    queryKey: ["ip-abuse", filters],
+    queryFn: () => api<IpAbusePage>(`/api/ui/v1/security/ip-abuse${query({ source: filters.source, q: filters.q })}`),
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  });

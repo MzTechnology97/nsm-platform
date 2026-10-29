@@ -128,6 +128,7 @@ from app.upnp_control import install_upnp_control
 from app.abuseipdb import install_abuseipdb
 from app.ripestat import install_ripestat
 from app.dnsbl import install_dnsbl
+from app.ip_abuse import install_ip_abuse
 from app.ip_attribution import install_ip_attribution
 from app.exposure_probe import install_exposure_probe
 from app.threat_lists import install_threat_lists
@@ -203,6 +204,7 @@ install_upnp_control(core.app)
 install_abuseipdb(core.app)
 install_ripestat(core.app)
 install_dnsbl(core.app)
+install_ip_abuse(core.app)
 install_ip_attribution(core.app)
 install_exposure_probe(core.app)
 install_threat_lists(core.app)

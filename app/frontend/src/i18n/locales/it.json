@@ -47,7 +47,8 @@
       "firmware_other": "{{count}} firmware da aggiornare",
       "issues_one": "{{count}} segnalazione aperta",
       "issues_other": "{{count}} segnalazioni aperte"
-    }
+    },
+    "ipAbuse": "Abusi IP"
   },
   "user": {
     "language": "Lingua",
@@ -7630,5 +7631,54 @@
     "lookupListed_other": "in {{count}} liste",
     "lookupClean": "in nessuna lista",
     "lookupFailed": "Non verificate: {{list}}."
+  },
+  "ipAbuse": {
+    "title": "Abusi IP",
+    "subtitle": "Tutto quello che le integrazioni segnalano sui tuoi indirizzi: AbuseIPDB, blacklist DNS e liste di minaccia, con punteggio, segnalazioni, date e a chi è assegnato ora ogni indirizzo.",
+    "tiles": {
+      "addresses": "Indirizzi segnalati",
+      "dnsbl": "In blacklist DNS",
+      "maxScore": "Punteggio AbuseIPDB massimo",
+      "prefixes": "Prefissi in liste di minaccia"
+    },
+    "sources": {
+      "abuseipdb": "AbuseIPDB",
+      "dnsbl": "Blacklist DNS",
+      "threat_lists": "Liste di minaccia"
+    },
+    "checked": "controllato {{when}}",
+    "notYet": "attivo, nessun controllo ancora",
+    "off": "spento",
+    "offHint": "Non attive: {{list}}. Attivale da Integrazioni per includerle nel riepilogo.",
+    "filter": "Filtra per fonte",
+    "all": "Tutte le fonti",
+    "search": "Cerca un indirizzo",
+    "columns": {
+      "address": "Indirizzo",
+      "lists": "Segnalato da",
+      "score": "Punteggio",
+      "reports": "Segnalazioni",
+      "last": "Ultima segnalazione",
+      "since": "In lista da",
+      "holder": "Assegnato a (ora)"
+    },
+    "reports_one": "{{count}} segnalazione",
+    "reports_other": "{{count}} segnalazioni",
+    "reporters_one": "da {{count}} utente",
+    "reporters_other": "da {{count}} utenti",
+    "removal": "pagina di rimozione",
+    "unassigned": "Indirizzo tuo non assegnato",
+    "unknown": "Nessun dispositivo noto",
+    "more_one": "Altro {{count}} indirizzo non mostrato: usa i filtri.",
+    "more_other": "Altri {{count}} indirizzi non mostrati: usa i filtri.",
+    "empty": "Nessun indirizzo segnalato dalle fonti attive.",
+    "emptyFiltered": "Nessun indirizzo con questi filtri.",
+    "prefixesTitle": "Prefissi in liste di minaccia",
+    "prefixesHelp": "Prefissi tuoi che si sovrappongono a una rete in lista (Spamhaus DROP): da far rimuovere subito, perché molti operatori ne scartano il traffico.",
+    "prefixColumns": {
+      "prefix": "Prefisso",
+      "list": "Lista",
+      "network": "Rete in lista"
+    }
   }
 }

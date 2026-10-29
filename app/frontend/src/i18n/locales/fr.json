@@ -47,7 +47,8 @@
       "firmware_other": "{{count}} firmwares à mettre à jour",
       "issues_one": "{{count}} signalement ouvert",
       "issues_other": "{{count}} signalements ouverts"
-    }
+    },
+    "ipAbuse": "Abus IP"
   },
   "user": {
     "language": "Langue",
@@ -7630,5 +7631,54 @@
     "lookupListed_other": "sur {{count}} listes",
     "lookupClean": "sur aucune liste",
     "lookupFailed": "Non vérifiées : {{list}}."
+  },
+  "ipAbuse": {
+    "title": "Abus IP",
+    "subtitle": "Tout ce que les intégrations signalent sur vos adresses : AbuseIPDB, listes noires DNS et listes de menaces, avec score, signalements, dates et qui détient chaque adresse maintenant.",
+    "tiles": {
+      "addresses": "Adresses signalées",
+      "dnsbl": "Sur listes noires DNS",
+      "maxScore": "Score AbuseIPDB maximal",
+      "prefixes": "Préfixes sur listes de menaces"
+    },
+    "sources": {
+      "abuseipdb": "AbuseIPDB",
+      "dnsbl": "Listes noires DNS",
+      "threat_lists": "Listes de menaces"
+    },
+    "checked": "vérifié {{when}}",
+    "notYet": "activé, pas encore vérifié",
+    "off": "désactivé",
+    "offHint": "Non actives : {{list}}. Activez-les dans Intégrations pour les inclure ici.",
+    "filter": "Filtrer par source",
+    "all": "Toutes les sources",
+    "search": "Rechercher une adresse",
+    "columns": {
+      "address": "Adresse",
+      "lists": "Signalée par",
+      "score": "Score",
+      "reports": "Signalements",
+      "last": "Dernier signalement",
+      "since": "Listée depuis",
+      "holder": "Attribuée à (maintenant)"
+    },
+    "reports_one": "{{count}} signalement",
+    "reports_other": "{{count}} signalements",
+    "reporters_one": "par {{count}} utilisateur",
+    "reporters_other": "par {{count}} utilisateurs",
+    "removal": "page de retrait",
+    "unassigned": "Votre adresse, non attribuée",
+    "unknown": "Aucun équipement connu",
+    "more_one": "{{count}} autre adresse non affichée : utilisez les filtres.",
+    "more_other": "{{count}} autres adresses non affichées : utilisez les filtres.",
+    "empty": "Aucune adresse signalée par les sources actives.",
+    "emptyFiltered": "Aucune adresse avec ces filtres.",
+    "prefixesTitle": "Préfixes sur listes de menaces",
+    "prefixesHelp": "Vos préfixes qui chevauchent un réseau listé (Spamhaus DROP) : à faire retirer tout de suite, car de nombreux opérateurs rejettent leur trafic.",
+    "prefixColumns": {
+      "prefix": "Préfixe",
+      "list": "Liste",
+      "network": "Réseau listé"
+    }
   }
 }

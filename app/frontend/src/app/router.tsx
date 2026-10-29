@@ -10,6 +10,8 @@ import {
   type ComplianceFilters,
   EXPOSURE_VIEWS,
   type ExposureFilters,
+  IP_ABUSE_SOURCES,
+  type IpAbuseFilters,
   LIFECYCLE_STATES,
   type LifecycleFilters,
   parseCatalogSearch,
@@ -631,6 +633,15 @@ const exposureRoute = createRoute({
     ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
   }),
 });
+const ipAbuseRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/ip-abuse",
+  component: lazyRouteComponent(() => import("../pages/IpAbuse"), "IpAbuse"),
+  validateSearch: (search: Record<string, unknown>): IpAbuseFilters => ({
+    ...(typeof search.source === "string" && (IP_ABUSE_SOURCES as readonly string[]).includes(search.source) ? { source: search.source as IpAbuseFilters["source"] } : {}),
+    ...(typeof search.q === "string" && search.q ? { q: search.q } : {}),
+  }),
+});
 const firmwareRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/firmware",
@@ -758,6 +769,7 @@ export const routeTree = rootRoute.addChildren([
   vulnerabilityRoute,
   vulnerabilityFindingRoute,
   exposureRoute,
+  ipAbuseRoute,
   accessRoute,
   syslogRulesRoute,
   lifecycleRoute,

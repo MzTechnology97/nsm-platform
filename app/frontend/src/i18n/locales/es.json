@@ -47,7 +47,8 @@
       "firmware_other": "{{count}} firmwares por actualizar",
       "issues_one": "{{count}} incidencia abierta",
       "issues_other": "{{count}} incidencias abiertas"
-    }
+    },
+    "ipAbuse": "Abusos IP"
   },
   "user": {
     "language": "Idioma",
@@ -7630,5 +7631,54 @@
     "lookupListed_other": "en {{count}} listas",
     "lookupClean": "en ninguna lista",
     "lookupFailed": "No verificadas: {{list}}."
+  },
+  "ipAbuse": {
+    "title": "Abusos IP",
+    "subtitle": "Todo lo que las integraciones informan sobre tus direcciones: AbuseIPDB, listas negras DNS y listas de amenazas, con puntuación, denuncias, fechas y quién tiene cada dirección ahora.",
+    "tiles": {
+      "addresses": "Direcciones denunciadas",
+      "dnsbl": "En listas negras DNS",
+      "maxScore": "Puntuación AbuseIPDB máxima",
+      "prefixes": "Prefijos en listas de amenazas"
+    },
+    "sources": {
+      "abuseipdb": "AbuseIPDB",
+      "dnsbl": "Listas negras DNS",
+      "threat_lists": "Listas de amenazas"
+    },
+    "checked": "comprobado {{when}}",
+    "notYet": "activo, aún sin comprobar",
+    "off": "desactivado",
+    "offHint": "No activas: {{list}}. Actívalas en Integraciones para incluirlas aquí.",
+    "filter": "Filtrar por fuente",
+    "all": "Todas las fuentes",
+    "search": "Buscar una dirección",
+    "columns": {
+      "address": "Dirección",
+      "lists": "Denunciada por",
+      "score": "Puntuación",
+      "reports": "Denuncias",
+      "last": "Última denuncia",
+      "since": "En lista desde",
+      "holder": "Asignada a (ahora)"
+    },
+    "reports_one": "{{count}} denuncia",
+    "reports_other": "{{count}} denuncias",
+    "reporters_one": "de {{count}} usuario",
+    "reporters_other": "de {{count}} usuarios",
+    "removal": "página de eliminación",
+    "unassigned": "Tu dirección, no asignada",
+    "unknown": "Ningún equipo conocido",
+    "more_one": "{{count}} dirección más no mostrada: usa los filtros.",
+    "more_other": "{{count}} direcciones más no mostradas: usa los filtros.",
+    "empty": "Ninguna dirección denunciada por las fuentes activas.",
+    "emptyFiltered": "Ninguna dirección con estos filtros.",
+    "prefixesTitle": "Prefijos en listas de amenazas",
+    "prefixesHelp": "Tus prefijos que se solapan con una red en lista (Spamhaus DROP): pide su eliminación enseguida, porque muchos operadores descartan su tráfico.",
+    "prefixColumns": {
+      "prefix": "Prefijo",
+      "list": "Lista",
+      "network": "Red en lista"
+    }
   }
 }
