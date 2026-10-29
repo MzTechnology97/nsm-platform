@@ -1483,7 +1483,8 @@
       "none": "Ninguna alerta de acceso.",
       "users": "usuarios: {{list}}",
       "openIncident": "Abrir incidente"
-    }
+    },
+    "rules": "Reglas syslog"
   },
   "lifecycle": {
     "title": "Ciclo de vida",
@@ -5696,6 +5697,9 @@
     "SYSLOG_AGENT_CONFIG_QUEUED": "Configuración syslog enviada al agente",
     "SYSLOG_AGENT_CONFIG_SKIPPED": "Configuración syslog omitida",
     "SYSLOG_CHAIN_ANCHOR": "Punto de control de integridad syslog",
+    "SYSLOG_RULE_DELETED": "Regla syslog eliminada",
+    "SYSLOG_RULE_MATCHED": "Regla syslog activada",
+    "SYSLOG_RULE_SAVED": "Regla syslog guardada",
     "SYSLOG_SETTINGS_CHANGED": "Ajustes de syslog cambiados",
     "THREAT_LISTS_CONFIGURED": "Listas de amenazas configuradas",
     "THREAT_LIST_MATCH": "Dirección del operador encontrada en una lista de amenazas",
@@ -7288,6 +7292,108 @@
     },
     "attempts_one": "{{count}} intento en {{devices}} equipos",
     "attempts_other": "{{count}} intentos en {{devices}} equipos"
+  },
+  "syslogRules": {
+    "title": "Reglas syslog",
+    "subtitle": "Sus propias reglas sobre los logs de los equipos, además de las alertas de acceso predefinidas: expresión regular, umbral en el tiempo, excepciones y acción. Pruébelas en una línea de log antes de guardarlas.",
+    "toAccess": "Accesos",
+    "new": "Nueva regla",
+    "listTitle": "Reglas del operador",
+    "none": "Ninguna regla: empiece desde una plantilla con «Nueva regla».",
+    "columns": {
+      "name": "Regla",
+      "match": "Coincidencia",
+      "correlation": "Umbral",
+      "level": "Nivel",
+      "alerts": "Alertas 24 h",
+      "actions": "Acciones"
+    },
+    "disabled": "desactivada",
+    "anyVendor": "cualquier fabricante",
+    "maxSeverity": "hasta severidad {{level}}",
+    "countIn": "{{count}} en {{minutes}} min, por {{group}}",
+    "single": "cada línea",
+    "afterRule": "después de «{{name}}» en {{minutes}} min",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "confirmDelete": "¿Eliminar la regla «{{name}}»?",
+    "editTitle": "Editar regla",
+    "newTitle": "Nueva regla",
+    "template": "Empezar desde una plantilla",
+    "templateNone": "— sin plantilla —",
+    "fields": {
+      "name": "Nombre",
+      "pattern": "Expresión regular sobre el mensaje",
+      "patternHelp": "Los grupos con nombre son los campos de la alerta: (?P<ip>…) dirección, (?P<user>…) usuario, (?P<svc>…) servicio. Sin cuantificadores anidados como (a+)+.",
+      "vendor": "Fabricante",
+      "maxSeverity": "Severidad hasta",
+      "topic": "Topic o programa contiene",
+      "count": "Líneas necesarias",
+      "countHelp": "1 = cada línea; más = umbral en la ventana.",
+      "window": "Ventana (minutos)",
+      "groupBy": "Contar por",
+      "afterRule": "Solo después de la regla",
+      "afterNone": "— ninguna —",
+      "afterMinutes": "En (minutos)",
+      "ignore": "Direcciones a ignorar",
+      "ignoreHelp": "IP o redes del grupo ip, una por línea (NSM, técnicos, monitorización).",
+      "throttle": "Como máximo una alerta cada (minutos)",
+      "level": "Nivel",
+      "action": "Acción",
+      "enabled": "Regla activa"
+    },
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "groups": {
+      "device": "equipo",
+      "ip": "dirección",
+      "user": "usuario",
+      "device_ip": "equipo y dirección"
+    },
+    "levels": {
+      "info": "info",
+      "warning": "advertencia",
+      "high": "alto",
+      "critical": "crítico"
+    },
+    "actions": {
+      "event": "solo evento",
+      "notification": "evento y notificación",
+      "issue": "notificación y Action Center"
+    },
+    "testerTitle": "Probar en una línea de log",
+    "testerHelp": "Pegue una línea del syslog de un equipo: vea qué reglas, y la que está editando, la capturan y qué campos extraen. No se guarda nada.",
+    "tester": {
+      "message": "Mensaje",
+      "severity": "Severidad",
+      "run": "Probar",
+      "draft": "borrador",
+      "matched": "coincide",
+      "notMatched": "no",
+      "noMatch": "no coincide",
+      "noFields": "sin campos",
+      "ignored": "dirección ignorada",
+      "firesAlone": "esta línea basta para la alerta",
+      "needsCorrelation": "necesita el umbral o la regla anterior",
+      "noRules": "No hay reglas para probar."
+    },
+    "builtinTitle": "Alertas de acceso predefinidas",
+    "builtinHelp": "Siempre activas en todos los equipos que envían syslog; no se modifican.",
+    "builtin": {
+      "brute_force": "Intentos de acceso fallidos",
+      "success_after_failures": "Acceso correcto tras intentos fallidos",
+      "new_public_source": "Acceso desde una nueva dirección pública"
+    },
+    "severities": {
+      "0": "0 emergencia",
+      "1": "1 alerta",
+      "2": "2 crítico",
+      "3": "3 error",
+      "4": "4 advertencia",
+      "5": "5 aviso",
+      "6": "6 info",
+      "7": "7 depuración"
+    }
   },
   "uispFirewall": {
     "upToDate": "Reglas NSM ya aplicadas y actualizadas ({{count}}): nada que hacer.",
