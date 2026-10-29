@@ -448,8 +448,14 @@
   margin-top: var(--space-4);
 }
 
-.ui-page > .ui-metrics {
+.ui-page > .ui-metrics,
+.ui-customer-list > .ui-metrics {
   margin-bottom: var(--space-4);
+}
+
+/* A global list shown as a tab of a customer (devices, backups, activity): under the tabs, no page title. */
+.ui-customer-list {
+  margin-top: var(--space-3);
 }
 
 .ui-clamp {

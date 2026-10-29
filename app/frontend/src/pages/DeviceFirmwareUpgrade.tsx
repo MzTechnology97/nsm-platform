@@ -7,6 +7,7 @@ import { useDevice } from "../api/device";
 import { type FirmwarePlanTab, useFirmwareAction, useFirmwarePlan } from "../api/deviceTabs";
 import { AcsFirmware } from "../app/AcsFirmware";
 import { UispFirmware } from "../app/UispFirmware";
+import { FirmwareSchedulePanel } from "../app/FirmwareSchedule";
 import { formatDateTime } from "../lib/format";
 import { Loading } from "../app/States";
 
@@ -84,6 +85,7 @@ function RouterosFirmwareUpgrade({ deviceId }: { deviceId: string }) {
   const { t, i18n } = useTranslation();
   const query = useFirmwarePlan(deviceId);
   const create = useFirmwareAction(deviceId, "firmware-upgrade/plan");
+  const check = useFirmwareAction(deviceId, "firmware-upgrade/check");
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
   if (!data) return <Loading />;
@@ -100,6 +102,9 @@ function RouterosFirmwareUpgrade({ deviceId }: { deviceId: string }) {
             <p className="ui-muted">{t("firmwarePlan.help")}</p>
           </div>
           <div className="ui-row-actions">
+            <button type="button" className="ui-button ui-button-ghost" disabled={check.isPending || data.check_pending} onClick={() => check.mutate(undefined)}>
+              {data.check_pending ? t("firmwarePlan.checking") : t("firmwarePlan.checkNow")}
+            </button>
             <Link to="/devices/$deviceId/routerboot" params={{ deviceId }} className="ui-button ui-button-ghost">RouterBOOT</Link>
             <Link to="/firmware" className="ui-button ui-button-ghost">{t("firmwarePlan.worklist")}</Link>
           </div>
@@ -120,7 +125,19 @@ function RouterosFirmwareUpgrade({ deviceId }: { deviceId: string }) {
           </p>
         )}
         <p className="ui-muted">{t("firmwarePlan.routerbootSeparate")}</p>
+        {check.data?.state && check.data.state !== "queued" && check.data.state !== "already_queued" && (
+          <small className="ui-backup-error ui-block">{t(`firmware.check.${check.data.state}`, { defaultValue: check.data.state })}</small>
+        )}
+        {check.error && <small className="ui-backup-error ui-block">{errorText(t, check.error)}</small>}
+        {data.preparing && (data.preparing.error
+          ? <div className="ui-alert ui-alert-warning">{t("firmwarePlan.prepareFailed", { error: data.preparing.error })}</div>
+          : <div className="ui-alert">{t("firmwarePlan.preparing")}</div>)}
       </section>
+
+      {!data.legacy && (data.schedule || data.can_execute) && (
+        <FirmwareSchedulePanel deviceId={deviceId} schedule={data.schedule} canExecute={data.can_execute}
+          target={data.readiness.latest_version ?? data.recommended} />
+      )}
 
       {data.legacy && (
         <section className="ui-panel ui-admin-section">

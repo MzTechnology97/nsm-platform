@@ -24,7 +24,10 @@ def main():
         assert "running=yes && dynamic=no && type!=\"ether\"" not in source, "old collector replaced"
         lines = [line for line in source.splitlines() if line.startswith(":do { :foreach nsmIf in=[/interface find where") and "nsmIfaces" in line]
         assert len(lines) == 4, lines
-        assert 'type="pppoe-out"' in lines[0] and 'dynamic=no && type="ether"]' in lines[1] and "dynamic=yes && running=yes" in lines[3]
+        assert 'type="pppoe-out"' in lines[0] and 'find where type="ether"]' in lines[1] and 'running=yes && (type="pppoe-in"' in lines[3]
+        # RouterOS has no "dynamic" field on Ethernet, VLAN and PPPoE interfaces: filtering on it kept only the bridges.
+        assert all("dynamic=" not in line for line in lines), lines
+        assert 'type!="loopback"' in lines[2] and 'type!="sstp-in"' in lines[2] and 'type!="ether"' in lines[2]
         for line in lines:
             # Each interface is read in its own on-error: one failure never hides the others.
             assert line.count("on-error={}") == 2 and f"[:len $nsmIfaces] < {cap})" in line

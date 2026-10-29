@@ -1,0 +1,15 @@
+# NSM external probe on a host outside the operator network.
+# 1. copy .env.example to .env and set PROBE_SECRET (the same secret goes in NSM) and PROBE_ALLOWED_SOURCES
+# 2. docker compose up -d --build   (run from this folder; the build context is the repository root)
+services:
+  nsm-probe:
+    build:
+      context: ..
+      dockerfile: probe/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8788:8788"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
