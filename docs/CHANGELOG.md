@@ -4,6 +4,10 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.314 — 2026-10-29
+
+TP-Link remote access panel laid out in one column
+- **Fixed:** on wide screens the *Accesso remoto e Telnet* panel of a TP-Link CPE spread its fields across the whole page. The allowed addresses, their confirmation and buttons, and the default-configuration form were scattered left and right. They now read top to bottom in one column, with each address next to its remove button.
 ## 0.49.313 — 2026-10-29
 
 DNS blacklists of the operator's addresses (CYBER-01)

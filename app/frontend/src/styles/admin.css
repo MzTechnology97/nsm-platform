@@ -690,3 +690,18 @@ a.ui-search-result:hover {
   font-size: 12px;
   font-weight: 500;
 }
+
+/* TP-Link remote access panel: one readable column, so address list, confirmation and buttons stay together on wide screens. */
+.ui-tplink-access > * {
+  max-width: 760px;
+}
+
+.ui-allow-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ui-allow-entry input {
+  flex: 1;
+}
