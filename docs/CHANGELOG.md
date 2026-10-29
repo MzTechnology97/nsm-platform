@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.301 — 2026-10-29
+
+Tests
+- **Syslog tab test across midnight.** `ui_device_syslog_smoke.py` stamped its log lines up to 10 minutes before the current time, so a CI run just after 00:00 UTC counted them on the previous day and failed. The lines now always fall inside the current UTC day.
+
 ## 0.49.300 — 2026-10-29
 
 Roadmap: evaluate Oktopus as an alternative ACS
