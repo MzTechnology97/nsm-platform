@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.312 — 2026-10-29
+
+Who held an IP address at a given time: PPPoE address history of the BRAS (CYBER-01)
+- Every read of the MikroTik BRAS now also keeps the address history: which PPPoE account had which public address, from when to when. A new session or a new address closes the previous record.
+- The history is kept for a configurable number of days (*BRAS MikroTik* settings, default 365), then deleted. It is operational data, not the legal traffic-data register.
+- New box *Chi aveva questo IP?* on the BRAS page. From an address and a date and time (for example those of an abuse report), it gives the PPPoE account, the customer and the device. When there is no session, it falls back to the static IP of an ISPBilling account. Every search is recorded in the activity log.
+- AbuseIPDB alerts go to the customer who had the address at the last report, not to whoever has it now.
+- Addresses behind NAT or CGNAT are not attributed.
+- Test fix: the cambium syslog smoke no longer fails at random when its random IPv6 test address has a group with a leading zero.
 ## 0.49.311 — 2026-10-29
 
 RIPEstat: the operator's prefixes, BGP origin, visibility and RPKI (RIPESTAT-01)
