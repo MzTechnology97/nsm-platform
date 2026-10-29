@@ -37,6 +37,7 @@ from app.threat_lists import tick as threat_lists_tick
 from app.upnp_control import tick as upnp_tick
 from app.abuseipdb import tick as abuseipdb_tick
 from app.ripestat import tick as ripestat_tick
+from app.dnsbl import tick as dnsbl_tick
 from app.zabbix_connector import scheduled_sync as zabbix_sync
 from app.acs_customer_tags import run as acs_customer_tags
 from app.zabbix_problems import scheduled_refresh as zabbix_problems_refresh
@@ -135,6 +136,7 @@ while True:
             run_task("upnp_control", upnp_tick)
             run_task("abuseipdb", abuseipdb_tick)
             run_task("ripestat", ripestat_tick)
+            run_task("dnsbl", dnsbl_tick)
             run_task("icmp_monitor", icmp_tick)
             run_task("interface_error_alerts", interface_error_alerts)
             run_task("zabbix_sync", zabbix_sync)

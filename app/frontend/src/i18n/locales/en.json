@@ -2401,7 +2401,8 @@
       "probe": "External probe",
       "threatLists": "Threat lists",
       "abuseipdb": "AbuseIPDB",
-      "ripestat": "RIPEstat"
+      "ripestat": "RIPEstat",
+      "dnsbl": "DNS blacklists"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5556,6 +5557,8 @@
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Monitored interfaces changed",
     "DEVICE_VENDOR_CORRECTED": "Device vendor corrected",
     "DIAGNOSTIC_EXPORTED": "Diagnostic exported",
+    "DNSBL_CONFIGURED": "DNS blacklist settings changed",
+    "DNSBL_LISTED": "Address on a DNS blacklist",
     "EXPOSURE_ACL_DECLARED": "Exposed service declared filtered by ACL",
     "EXPOSURE_ACL_REMOVED": "ACL declaration removed",
     "EXPOSURE_CHECK_REQUESTED": "Exposure check requested",
@@ -7576,5 +7579,56 @@
     "refreshHours": "Read every (hours)",
     "help": "Example: AS64500 AS64501. The prefixes checked are the ones declared in Threat lists.",
     "saved": "Settings saved."
+  },
+  "dnsbl": {
+    "title": "DNS blacklists",
+    "subtitle": "Checks whether your public IPv4 addresses are on the DNS blacklists (DNSBL). Free, no account: NSM only makes DNS queries and sends nothing to the lists.",
+    "test": "Test the lists",
+    "run": "Check now",
+    "waiting": "Full pass done: the next one starts after the re-check interval.",
+    "ran_one": "{{count}} address checked.",
+    "ran_other": "{{count}} addresses checked.",
+    "statusTitle": "Status",
+    "coverage": "Addresses to check: {{addresses}}; position in the current pass: {{position}}.",
+    "prefixes": "Your prefixes: {{list}}.",
+    "noPrefixes": "No prefixes declared: only the public addresses of the devices are checked.",
+    "prefixesLink": "Manage the prefixes",
+    "lastCycle": "Last full pass: {{when}}.",
+    "refused": "{{zone}} refuses the queries of this server ({{detail}}): usually the DNS resolver is public or the free limit is exceeded. Its results are not reliable.",
+    "zoneError": "{{zone}} does not answer correctly ({{detail}}): an error neither adds nor removes listings.",
+    "healthTitle": "List test ({{when}})",
+    "healthOk": "OK",
+    "state": {
+      "listed": "Listed",
+      "clean": "Does not answer the test",
+      "refused": "Refused",
+      "error": "Error"
+    },
+    "listedTitle": "Blacklisted addresses",
+    "listedHelp": "Every listed address opens an Action Center issue, with the customer and device that hold it now. It closes by itself when the address is on no list any more.",
+    "noListed": "No blacklisted addresses.",
+    "columns": {
+      "address": "Address",
+      "lists": "Lists",
+      "holder": "Assigned to",
+      "since": "Since"
+    },
+    "unassigned": "Your address, not assigned",
+    "unknownHolder": "No known device",
+    "removal": "Removal",
+    "settingsTitle": "Settings",
+    "enabled": "Module enabled",
+    "zones": "Lists to check",
+    "fields": {
+      "recheck_hours": "Re-check (hours)",
+      "per_run": "Addresses per run (every minute)"
+    },
+    "saved": "Saved.",
+    "lookupTitle": "Check an address",
+    "lookup": "Check",
+    "lookupListed_one": "on {{count}} list",
+    "lookupListed_other": "on {{count}} lists",
+    "lookupClean": "on no list",
+    "lookupFailed": "Not verified: {{list}}."
   }
 }

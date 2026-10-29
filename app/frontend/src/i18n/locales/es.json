@@ -2401,7 +2401,8 @@
       "probe": "Sonda externa",
       "threatLists": "Listas de amenazas",
       "abuseipdb": "AbuseIPDB",
-      "ripestat": "RIPEstat"
+      "ripestat": "RIPEstat",
+      "dnsbl": "Listas negras DNS"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5556,6 +5557,8 @@
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Interfaces monitorizadas modificadas",
     "DEVICE_VENDOR_CORRECTED": "Fabricante del dispositivo corregido",
     "DIAGNOSTIC_EXPORTED": "Diagnóstico exportado",
+    "DNSBL_CONFIGURED": "Ajustes de listas negras DNS modificados",
+    "DNSBL_LISTED": "Dirección en una lista negra DNS",
     "EXPOSURE_ACL_DECLARED": "Servicio expuesto declarado filtrado por ACL",
     "EXPOSURE_ACL_REMOVED": "Declaración ACL retirada",
     "EXPOSURE_CHECK_REQUESTED": "Comprobación de exposición solicitada",
@@ -7576,5 +7579,56 @@
     "refreshHours": "Leer cada (horas)",
     "help": "Ejemplo: AS64500 AS64501. Los prefijos comprobados son los declarados en Listas de amenazas.",
     "saved": "Ajustes guardados."
+  },
+  "dnsbl": {
+    "title": "Listas negras DNS",
+    "subtitle": "Comprueba si tus direcciones IPv4 públicas están en las listas negras DNS (DNSBL). Gratis, sin cuenta: NSM solo hace consultas DNS y no envía nada a las listas.",
+    "test": "Probar las listas",
+    "run": "Comprobar ahora",
+    "waiting": "Pasada completa terminada: la siguiente empieza tras el intervalo de nueva comprobación.",
+    "ran_one": "{{count}} dirección comprobada.",
+    "ran_other": "{{count}} direcciones comprobadas.",
+    "statusTitle": "Estado",
+    "coverage": "Direcciones por comprobar: {{addresses}}; posición en la pasada actual: {{position}}.",
+    "prefixes": "Tus prefijos: {{list}}.",
+    "noPrefixes": "Ningún prefijo declarado: solo se comprueban las direcciones públicas de los equipos.",
+    "prefixesLink": "Gestionar los prefijos",
+    "lastCycle": "Última pasada completa: {{when}}.",
+    "refused": "{{zone}} rechaza las consultas de este servidor ({{detail}}): normalmente el resolvedor DNS es público o se superó el límite gratuito. Sus resultados no son fiables.",
+    "zoneError": "{{zone}} no responde correctamente ({{detail}}): un error no añade ni quita inclusiones.",
+    "healthTitle": "Prueba de las listas ({{when}})",
+    "healthOk": "OK",
+    "state": {
+      "listed": "Incluida",
+      "clean": "No responde a la prueba",
+      "refused": "Rechazada",
+      "error": "Error"
+    },
+    "listedTitle": "Direcciones en lista negra",
+    "listedHelp": "Cada dirección incluida abre una incidencia en el Centro de acciones, con el cliente y el equipo que la tienen ahora. Se cierra sola cuando la dirección ya no está en ninguna lista.",
+    "noListed": "Ninguna dirección en lista negra.",
+    "columns": {
+      "address": "Dirección",
+      "lists": "Listas",
+      "holder": "Asignada a",
+      "since": "Desde"
+    },
+    "unassigned": "Tu dirección, no asignada",
+    "unknownHolder": "Ningún equipo conocido",
+    "removal": "Eliminación",
+    "settingsTitle": "Ajustes",
+    "enabled": "Módulo activo",
+    "zones": "Listas por comprobar",
+    "fields": {
+      "recheck_hours": "Nueva comprobación (horas)",
+      "per_run": "Direcciones por ejecución (cada minuto)"
+    },
+    "saved": "Guardado.",
+    "lookupTitle": "Comprobar una dirección",
+    "lookup": "Comprobar",
+    "lookupListed_one": "en {{count}} lista",
+    "lookupListed_other": "en {{count}} listas",
+    "lookupClean": "en ninguna lista",
+    "lookupFailed": "No verificadas: {{list}}."
   }
 }
