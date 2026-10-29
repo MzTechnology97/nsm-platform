@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.295 — 2026-10-29
+
+Security
+- **Installer for the external probe.** `probe/install.sh` sets up the external probe on a Debian or Ubuntu host outside the operator network with two commands (download, then `sudo bash install.sh --allow <NSM public IP>`):
+  - installs Docker Engine and the compose plugin from download.docker.com when they are missing;
+  - downloads the probe from this repository (`--ref` for a tag or branch, `--source` for a local checkout), so no clone is needed;
+  - writes `/opt/nsm-probe` with a generated shared secret (`.env`, mode 600), a healthcheck and rotated logs, and prints the address, name and secret to enter in NSM;
+  - `--domain` serves the probe over HTTPS through Caddy with a Let's Encrypt certificate, and Caddy accepts only the `--allow` addresses;
+  - `status`, `update`, `show-secret` and `uninstall` commands; rerunning `install` keeps the secret and the saved choices.
+  *Amministrazione → Integrazioni → Sonda esterna* now shows the installer commands.
+
 ## 0.49.294 — 2026-10-29
 
 Cambium ePMP: firmware upgrade over SSH from the NSM catalog

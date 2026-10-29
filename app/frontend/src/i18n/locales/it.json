@@ -7142,11 +7142,11 @@
     "test": "Prova la sonda",
     "howTitle": "Installazione sul server esterno",
     "how": {
-      "host": "Un server fuori dalla tua rete, con un'altra connessione Internet, e Docker installato.",
-      "secret": "Genera un segreto di almeno 32 caratteri (ad esempio con openssl rand -hex 32): va sia nella sonda sia qui.",
-      "run": "Copia la cartella probe del repository e avvia il container con i comandi qui sotto.",
-      "sources": "In PROBE_ALLOWED_SOURCES metti l'IP pubblico da cui esce il server NSM, così nessun altro può usarla.",
-      "connect": "Inserisci qui indirizzo, nome e segreto, salva e premi «Prova la sonda»."
+      "host": "Un server fuori dalla tua rete (ad esempio una VPS Debian o Ubuntu) con un'altra connessione Internet.",
+      "secret": "L'installer genera il segreto condiviso e lo stampa alla fine (di nuovo con «sudo bash install.sh show-secret»).",
+      "run": "Sul server esegui i comandi qui sotto: installa Docker se manca, scarica la sonda e la avvia.",
+      "sources": "In --allow metti l'IP pubblico da cui esce il server NSM, così nessun altro può usarla. Con --domain la sonda risponde in HTTPS tramite Caddy.",
+      "connect": "Inserisci qui indirizzo, nome e segreto stampati dall'installer, salva e premi «Prova la sonda»."
     }
   },
   "cambiumFirmware": {

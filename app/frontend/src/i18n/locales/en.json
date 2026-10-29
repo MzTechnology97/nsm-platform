@@ -7142,11 +7142,11 @@
     "test": "Test the probe",
     "howTitle": "Installation on the outside server",
     "how": {
-      "host": "A server outside your network, with another Internet connection, and Docker installed.",
-      "secret": "Generate a secret of at least 32 characters (e.g. with openssl rand -hex 32): it goes both in the probe and here.",
-      "run": "Copy the repository's probe folder and start the container with the commands below.",
-      "sources": "Set PROBE_ALLOWED_SOURCES to the public IP the NSM server goes out from, so nobody else can use it.",
-      "connect": "Enter address, name and secret here, save and press «Test the probe»."
+      "host": "A server outside your network (e.g. a Debian or Ubuntu VPS) with another Internet connection.",
+      "secret": "The installer generates the shared secret and prints it at the end (again with \"sudo bash install.sh show-secret\").",
+      "run": "On the server run the commands below: they install Docker if missing, download the probe and start it.",
+      "sources": "Put in --allow the public IP the NSM server goes out from, so nobody else can use it. With --domain the probe answers over HTTPS through Caddy.",
+      "connect": "Enter here the address, name and secret printed by the installer, save and press «Test the probe»."
     }
   },
   "cambiumFirmware": {
