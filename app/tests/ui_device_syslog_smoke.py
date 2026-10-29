@@ -44,8 +44,10 @@ def main():
         db.flush()
         previous = None
         lines = [(3, "interface ether1 link down"), (4, "pppoe-out1 reconnect"), (6, "user admin logged in from 203.0.113.9 via winbox"), (2, "watchdog reboot")]
+        # "today" counts lines since 00:00 UTC: just after midnight the lines would fall on the previous day.
+        logged = max(now, now.replace(hour=0, minute=15, second=0, microsecond=0))
         for index, (severity, message) in enumerate(lines):
-            entry = DeviceLogEntry(device_id=router.id, received_at=now - timedelta(minutes=10 - index), source_ip="198.51.100.40", severity=severity,
+            entry = DeviceLogEntry(device_id=router.id, received_at=logged - timedelta(minutes=10 - index), source_ip="198.51.100.40", severity=severity,
                                    topics="system,info", message=f"NSM-0123456789abcdef {message}")
             if syslog_integrity.chained(entry):
                 entry.chain_hash = previous = syslog_integrity.link(previous, router.id, entry)

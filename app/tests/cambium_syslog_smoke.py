@@ -240,7 +240,7 @@ def main():
         # 127.0.0.1 is the management address of all three test devices: not unique, so the address identifies nobody.
         assert identity.resolve(index, "127.0.0.1", None, None, "<14>Oct 23 11:14:11 x kernel: up") == (None, "missing_key")
         device = db.get(Device, ids["addr"])
-        own_address = f"2001:db8::{s[:4]}:{s[4:]}"  # unique to this run (the address mode needs an address no other device uses)
+        own_address = f"2001:db8::1{s[:3]}:1{s[3:]}"  # unique to this run; groups start with 1 so the text is already canonical (no leading zero)
         device.management_ip = own_address
         db.commit()
         index = identity.build_index(db, {})

@@ -146,8 +146,15 @@ export interface ConfigFilters {
   action?: string;
 }
 
+export interface SectionSupport {
+  supported: boolean;
+  reason: "no_transport" | "transport" | "agent_outdated" | null;
+  min_agent: string | null;
+}
+
 export interface ConfigView {
-  sections: { key: string; read_at: string | null }[];
+  /** ``support``: whether the installed agent can read the section (``reason`` and ``min_agent`` when it cannot). */
+  sections: { key: string; read_at: string | null; support: SectionSupport }[];
   section: string;
   read_at: string | null;
   pending: string[];
@@ -187,6 +194,18 @@ export function useConfigRefresh(id: string) {
   });
 }
 
+/** Who changed the configuration between two exports (SIEM-03): NSM, an operator who logged in, or unknown. */
+export type ChangeAuthor = "nsm" | "operator" | "unknown" | "mixed";
+
+export interface ChangeAttribution {
+  author: ChangeAuthor | null;
+  sections: { section: string; added: number; removed: number; author: Exclude<ChangeAuthor, "mixed">; nsm: string[] }[];
+  logins: { username: string | null; remote_ip: string | null; service: string | null; count: number; at: string; public: boolean }[];
+  alert: boolean;
+  since: string | null;
+  until: string;
+}
+
 export interface ConfigHistory {
   rows: {
     id: string;
@@ -197,9 +216,10 @@ export interface ConfigHistory {
     previous_id: string | null;
     summary: { added: number; removed: number; error?: boolean } | null;
     baseline: boolean;
+    attribution: ChangeAttribution | null;
   }[];
   baseline_id: string | null;
-  drift: { added: number; removed: number; reference_kind: string | null; severity: string } | null;
+  drift: { added: number; removed: number; reference_kind: string | null; severity: string; attribution: ChangeAttribution | null } | null;
   can_baseline: boolean;
 }
 
