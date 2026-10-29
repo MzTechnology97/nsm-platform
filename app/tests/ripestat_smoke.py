@@ -23,6 +23,7 @@ DECLARED = ["203.0.113.0/24", "192.0.2.0/24", "2001:db8::/32"]
 class FakeRipestat:
     def __init__(self):
         self.calls, self.down = [], False
+        self.failing = {}  # routing-status resource -> HTTP 500 answers still to give (-1: always)
         self.announced = {"AS64500": ["203.0.113.0/24", "198.51.100.0/24"]}
         self.routing = {"203.0.113.0/24": ([64500], 320, 322), "192.0.2.0/24": ([64666], 300, 322), "2001:db8::/32": ([], 0, 300)}
         self.rpki = {"203.0.113.0/24": "valid", "198.51.100.0/24": "unknown"}
@@ -36,6 +37,9 @@ class FakeRipestat:
         name = request.url.path.split("/")[2]
         if name == "announced-prefixes":
             data = {"prefixes": [{"prefix": p} for p in self.announced.get(params["resource"], [])]}
+        elif name == "routing-status" and self.failing.get(params["resource"]):
+            self.failing[params["resource"]] -= 1
+            return httpx.Response(500)
         elif name == "routing-status":
             origins, seeing, total = self.routing[params["resource"]]
             family = "v6" if ":" in params["resource"] else "v4"
@@ -62,6 +66,7 @@ def main():
 
     fake = FakeRipestat()
     ripestat.TRANSPORT = httpx.MockTransport(fake)
+    ripestat.SLEEP = lambda seconds: None
     s = uuid.uuid4().hex[:6]
     with SessionLocal() as db:
         db.execute(delete(ActionIssue).where(ActionIssue.category == ripestat.ISSUE_CATEGORY))
@@ -111,6 +116,16 @@ def main():
     assert stats["closed"] == 2 and stats["opened"] == 2, stats
     assert set(open_issues()) == {ripestat._title("203.0.113.0/24", "low_visibility"), ripestat._title("2001:db8::/32", "not_announced"),
                                   ripestat._title("198.51.100.0/24", "rpki_invalid")}
+
+    # A passing HTTP 500 is retried; a prefix still failing keeps its issues (not read is not solved).
+    fake.failing["2001:db8::/32"] = 1
+    stats = client.post(f"{url}/refresh").json()["stats"]
+    assert stats["closed"] == 0 and not client.get(url).json()["errors"], stats
+    fake.failing["2001:db8::/32"] = -1
+    stats = client.post(f"{url}/refresh").json()
+    assert "HTTP 500" in " ".join(stats["errors"]) and stats["stats"]["closed"] == 0, stats
+    assert ripestat._title("2001:db8::/32", "not_announced") in open_issues(), "the unread prefix keeps its issue"
+    fake.failing.clear()
 
     # RIPEstat down: the previous picture and its issues stay.
     fake.down = True

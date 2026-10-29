@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.316 — 2026-10-29
+
+RIPEstat: a passing server error no longer hides a prefix
+- **Fixed:** *Integrazioni → RIPEstat* showed "RIPEstat routing-status: HTTP 500" for some prefixes. RIPEstat answers that error now and then under load. NSM now tries again twice, 2 and 4 seconds apart, before giving up on a prefix.
+- **Fixed:** when a prefix could still not be read, its open alerts (origin AS, visibility, RPKI) were closed as "no longer present". A prefix RIPEstat did not answer for now keeps its alerts until it is read again.
 ## 0.49.315 — 2026-10-29
 
 Exposure check reads the firewall rules of Ubiquiti CPEs
