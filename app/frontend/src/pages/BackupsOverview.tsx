@@ -47,6 +47,7 @@ export function BackupsOverview() {
           <p>{t(scope ? "backupOverview.subtitleCustomer" : "backupOverview.subtitle")}</p>
         </div>
         <div className="ui-actions">
+          <Link to="/backups/restore-readiness" className="ui-button ui-button-ghost">{t("backupOverview.restoreReadiness")}</Link>
           {!scope && (
             <Link to="/backups/policies" className="ui-button">{t("backupPolicies.manage", { count: data?.policies.length ?? 0 })}</Link>
           )}

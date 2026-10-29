@@ -42,7 +42,7 @@ def seed():
             status="online",
             firmware_version="7.20.0",
             recommended_firmware_version="7.21.1",
-            inventory_data={"agent_transport": "modern"},
+            inventory_data={"agent_transport": "modern", "agent_privilege_profile": "ops-v2"},
         )
         db.add(device)
         db.flush()
