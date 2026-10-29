@@ -249,6 +249,8 @@ def capabilities(record: dict, snapshot_count: int = 0) -> dict:
     caps.append(_probe(record, "inform_interval", [p["inform_interval"]], writes=True, where="provision"))
     caps.append(_entry("config_snapshot", "available", list(ROOT[m] for m in (model,)), "snapshots" if snapshot_count else "no_snapshot",
                        where="snapshot"))
+    caps.append(_entry("config_restore", "available" if snapshot_count else "not_exposed", (), "restore_preview" if snapshot_count else "no_snapshot",
+                       True, "snapshot"))
     unsup("config_file", "snapshot")
     return {"data_model": model, "vendor_profile": vendor, "capabilities": caps, "reason": None}
 

@@ -1,8 +1,9 @@
-import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SearchSelect, customerLabel } from "../app/SearchSelect";
 import { Pager } from "../app/Pager";
+import { useListSearch } from "../app/CustomerScope";
 import { pageParams, usePaging } from "../lib/paging";
 
 import { useDeviceFacets } from "../api/devices";
@@ -21,8 +22,8 @@ const SEVERITY_TONE: Record<string, string> = {
 
 export function Incidents() {
   const { t } = useTranslation();
-  const search = useSearch({ from: "/incidents" });
-  const navigate = useNavigate({ from: "/incidents" });
+  // Globally or as a customer's "Incidenti" tab (the customer filter is then fixed and its picker hidden).
+  const { search, update, customer: scope } = useListSearch<IncidentFilters>();
   const [text, setText] = useState(search.q ?? "");
   const q = useDebounced(text.trim());
   const facets = useDeviceFacets();
@@ -31,7 +32,6 @@ export function Incidents() {
   const first = query.data;
   const items = useMemo(() => query.data?.items ?? [], [query.data]);
   const current: IncidentStatusFilter = search.status ?? "active";
-  const update = (patch: Partial<IncidentFilters>) => void navigate({ search: (previous: IncidentFilters) => ({ ...previous, ...patch }), replace: true });
 
   useEffect(() => {
     if ((search.q ?? "") !== q) update({ q: q || undefined });
@@ -39,14 +39,14 @@ export function Incidents() {
   }, [q]);
 
   return (
-    <section className="ui-page">
+    <section className={scope ? "ui-customer-list" : "ui-page"}>
       <header className="ui-page-header ui-page-header-row">
         <div>
-          <h1>{t("incidents.title")}</h1>
+          {!scope && <h1>{t("incidents.title")}</h1>}
           <p>{t("incidents.subtitle")}</p>
         </div>
         <div className="ui-row-actions">
-          {first?.can_write && <Link to="/incidents/new" className="ui-button">{t("incidents.new")}</Link>}
+          {first?.can_write && <Link to="/incidents/new" search={scope ? { customer: scope } : {}} className="ui-button">{t("incidents.new")}</Link>}
         </div>
       </header>
 
@@ -60,7 +60,7 @@ export function Incidents() {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("incidents.searchPlaceholder")} aria-label={t("incidents.search")} />
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        {!scope && <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />}
       </div>
 
       {query.error ? (
@@ -89,7 +89,7 @@ export function Incidents() {
           <Pager total={first.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
-        <div className="ui-empty">{search.q || search.customer || search.status ? t("incidents.empty") : t("incidents.noneActive")}</div>
+        <div className="ui-empty">{search.q || (search.customer && !scope) || search.status ? t("incidents.empty") : t("incidents.noneActive")}</div>
       )}
     </section>
   );

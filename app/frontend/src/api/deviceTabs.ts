@@ -146,8 +146,15 @@ export interface ConfigFilters {
   action?: string;
 }
 
+export interface SectionSupport {
+  supported: boolean;
+  reason: "no_transport" | "transport" | "agent_outdated" | null;
+  min_agent: string | null;
+}
+
 export interface ConfigView {
-  sections: { key: string; read_at: string | null }[];
+  /** ``support``: whether the installed agent can read the section (``reason`` and ``min_agent`` when it cannot). */
+  sections: { key: string; read_at: string | null; support: SectionSupport }[];
   section: string;
   read_at: string | null;
   pending: string[];

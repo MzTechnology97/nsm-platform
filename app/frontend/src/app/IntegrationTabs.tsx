@@ -8,6 +8,7 @@ const INTEGRATION_PAGES: { key: string; route: string }[] = [
   { key: "genieacs", route: "/admin/integrations/genieacs" },
   { key: "zabbix", route: "/admin/integrations/zabbix" },
   { key: "cnmaestro", route: "/admin/integrations/cnmaestro" },
+  { key: "unifi", route: "/admin/integrations/unifi" },
   { key: "ispbilling", route: "/admin/integrations/ispbilling" },
   { key: "bras", route: "/admin/integrations/bras" },
   { key: "probe", route: "/admin/integrations/probe" },
