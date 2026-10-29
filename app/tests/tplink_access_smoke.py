@@ -44,7 +44,9 @@ def record(ext, telnet=True, remote=True):
     device = {}
     if remote:
         device["UserInterface"] = {"RemoteAccess": {"_object": True, "Enable": value(True), "Port": value(20443), "Protocol": value("HTTPS"),
-                                                    "SupportedProtocols": value("HTTP,HTTPS,SSH,TELNET", False), "X_TP_RemoteAll": value(True)}}
+                                                    "SupportedProtocols": value("HTTP,HTTPS,SSH,TELNET", False), "X_TP_RemoteAll": value(True),
+                                                    "X_TP_RemoteHost": value("")}}
+    device["X_TP_ISPRestore"] = {"_object": True, "ISPConfigFlag": value(True)}
     if telnet is not None:
         device["X_TP_AppCfg"] = {"TelnetCfg": {"_object": True, "TelnetLocalEnabled": value(telnet), "TelnetLocalPort": value(23)}}
     return {"_id": ext, "_lastInform": datetime.now(timezone.utc).isoformat(), "Device": device}
@@ -85,7 +87,8 @@ def main():
 
     # Read from GenieACS only: an open page is reported, nothing is sent.
     state = auditor.get(url).json()
-    assert state["remote"] == {"enabled": True, "protocol": "HTTPS", "port": 20443, "open_to_all": True, "protocols": ["HTTP", "HTTPS"], "exposed": True}
+    assert state["remote"] == {"enabled": True, "protocol": "HTTPS", "port": 20443, "open_to_all": True, "protocols": ["HTTP", "HTTPS"], "exposed": True,
+                               "allowed": [], "allow_list_supported": True}, state["remote"]
     assert state["telnet_lan"] == {"enabled": True} and state["can_edit"] is False and fake.tasks == []
     assert auditor.post(url, json={"enabled": False}).status_code == 403
 
@@ -105,6 +108,47 @@ def main():
         [["Device.UserInterface.RemoteAccess.Enable", True, "xsd:boolean"]],
     ], fake.tasks
     fake.tasks.clear()
+
+    # Allow-list as the CPE's own page writes it (checked on a VX230v): RemoteAll false, RemoteHost a CIDR list.
+    confirm = state["confirm_name"]
+    assert tech.post(url, json={"allowed": ["203.0.113.0/24"], "confirm": "no"}).status_code == 422, "typed confirmation"
+    assert tech.post(url, json={"allowed": ["not-an-ip"], "confirm": confirm}).status_code == 422
+    assert tech.post(url, json={"allowed": ["2001:db8::/32"], "confirm": confirm}).status_code == 422, "IPv4 only"
+    assert tech.post(url, json={"allowed": [], "confirm": confirm}).status_code == 422
+    assert fake.tasks == []
+    done = tech.post(url, json={"allowed": ["203.0.113.7", "198.51.100.0/24", "198.51.100.9/24", "203.0.113.7/32"], "confirm": confirm})
+    assert done.status_code == 200, done.text
+    assert [t["parameterValues"] for t in fake.tasks] == [
+        [["Device.UserInterface.RemoteAccess.X_TP_RemoteHost", "203.0.113.7/32,198.51.100.0/24", "xsd:string"],
+         ["Device.UserInterface.RemoteAccess.X_TP_RemoteAll", False, "xsd:boolean"]],
+        [["Device.UserInterface.RemoteAccess.Enable", False, "xsd:boolean"]],
+        [["Device.UserInterface.RemoteAccess.Enable", True, "xsd:boolean"]],
+    ], "bare address gets /32, host bits cleared, duplicates dropped, then off and on again"
+    fake.tasks.clear()
+    with SessionLocal() as db:
+        event = db.scalar(select(AuditEvent).where(AuditEvent.device_id == device_id, AuditEvent.event_type == "ACS_ACCESS_CHANGED").order_by(AuditEvent.timestamp.desc()))
+        assert event.details["allowed_before"] == "tutti" and event.details["allowed_after"] == ["203.0.113.7/32", "198.51.100.0/24"]
+    # The CPE now reports the list: shown, not exposed; opening it again restores RemoteAll.
+    fake.records[ext]["Device"]["UserInterface"]["RemoteAccess"].update({"X_TP_RemoteAll": value(False), "X_TP_RemoteHost": value("203.0.113.7/32,198.51.100.0/24")})
+    limited = auditor.get(url).json()["remote"]
+    assert limited["exposed"] is False and limited["allowed"] == ["203.0.113.7/32", "198.51.100.0/24"]
+    tech.post(url, json={"allow_all": True}).raise_for_status()
+    assert fake.tasks[0]["parameterValues"] == [["Device.UserInterface.RemoteAccess.X_TP_RemoteAll", True, "xsd:boolean"],
+                                                ["Device.UserInterface.RemoteAccess.X_TP_RemoteHost", "", "xsd:string"]]
+    fake.records[ext] = record(ext)
+    fake.tasks.clear()
+
+    # ISP default: flag false then true saves the running configuration (as on the VX230v); stale after a later change.
+    info = auditor.get(url).json()["isp_default"]
+    assert info["saved"] is True and info["changed_since"] is True, "NSM changed the CPE above and never saved the default"
+    assert tech.post(url, json={"save_default": True, "confirm": "no"}).status_code == 422
+    tech.post(url, json={"save_default": True, "confirm": confirm}).raise_for_status()
+    assert [t["parameterValues"] for t in fake.tasks] == [[["Device.X_TP_ISPRestore.ISPConfigFlag", False, "xsd:boolean"]],
+                                                         [["Device.X_TP_ISPRestore.ISPConfigFlag", True, "xsd:boolean"]]], fake.tasks
+    fake.tasks.clear()
+    info = auditor.get(url).json()["isp_default"]
+    assert info["saved_at"] and info["saved_by"] == f"ci-tpa-technician-{suffix}" and info["changed_since"] is False
+    assert auditor.post(url, json={"save_default": True, "confirm": confirm}).status_code == 403
 
     # Daily Telnet policy: switched off at the next contact (no connection request), once a day, not where allowed by hand.
     tech.post(f"/api/ui/v1/devices/{hb_id}/acs/access", json={"telnet_lan": True}).raise_for_status()
@@ -134,7 +178,7 @@ def main():
 
     with SessionLocal() as db:
         kinds = sorted(e.event_type for e in db.scalars(select(AuditEvent).where(AuditEvent.device_id.in_([device_id, hb_id]))))
-        assert kinds.count("ACS_ACCESS_CHANGED") == 4 and kinds.count("ACS_TELNET_DISABLED") == 1, kinds
+        assert kinds.count("ACS_ACCESS_CHANGED") == 6 and kinds.count("ACS_TELNET_DISABLED") == 1 and kinds.count("ACS_ISP_DEFAULT_SAVED") == 1, kinds
 
     nbi.TRANSPORT = None
     with SessionLocal() as db:

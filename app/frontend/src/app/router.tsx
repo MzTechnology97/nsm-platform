@@ -194,6 +194,10 @@ export function parseVulnSearch(search: Record<string, unknown>): VulnFilters {
   return out;
 }
 
+function parseAdvisorySearch(search: Record<string, unknown>): Pick<VulnFilters, "customer" | "status"> {
+  const out = parseVulnSearch(search);
+  return { ...(out.customer ? { customer: out.customer } : {}), ...(out.status ? { status: out.status } : {}) };
+}
 const vulnerabilitiesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/vulnerabilities",
@@ -209,10 +213,7 @@ const vulnerabilityRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/vulnerabilities/$advisoryId",
   component: lazyRouteComponent(() => import("../pages/Vulnerabilities"), "VulnerabilityDetail"),
-  validateSearch: (search: Record<string, unknown>): Pick<VulnFilters, "customer" | "status"> => {
-    const out = parseVulnSearch(search);
-    return { ...(out.customer ? { customer: out.customer } : {}), ...(out.status ? { status: out.status } : {}) };
-  },
+  validateSearch: parseAdvisorySearch,
 });
 const complianceBaselinesRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -234,37 +235,46 @@ const complianceResultRoute = createRoute({
   path: "/compliance/results/$resultId",
   component: lazyRouteComponent(() => import("../pages/ComplianceResult"), "ComplianceResult"),
 });
+function parseComplianceSearch(search: Record<string, unknown>): ComplianceFilters {
+  return {
+    ...(typeof search.status === "string" && (COMPLIANCE_STATUSES as readonly string[]).includes(search.status) ? { status: search.status as ComplianceFilters["status"] } : {}),
+    ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
+    ...(typeof search.control === "string" && search.control ? { control: search.control } : {}),
+  };
+}
 const complianceRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/compliance",
   component: lazyRouteComponent(() => import("../pages/Compliance"), "Compliance"),
-  validateSearch: (search: Record<string, unknown>): ComplianceFilters => ({
-    ...(typeof search.status === "string" && (COMPLIANCE_STATUSES as readonly string[]).includes(search.status) ? { status: search.status as ComplianceFilters["status"] } : {}),
-    ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
-    ...(typeof search.control === "string" && search.control ? { control: search.control } : {}),
-  }),
+  validateSearch: parseComplianceSearch,
 });
-const actionCenterRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/action-center",
-  component: lazyRouteComponent(() => import("../pages/ActionCenter"), "ActionCenter"),
-  validateSearch: (search: Record<string, unknown>): IssueFilters => ({
+function parseIssueSearch(search: Record<string, unknown>): IssueFilters {
+  return {
     ...(typeof search.severity === "string" && search.severity ? { severity: search.severity } : {}),
     ...(typeof search.category === "string" && search.category ? { category: search.category } : {}),
     ...(typeof search.status === "string" && ISSUE_STATUSES.includes(search.status as never) ? { status: search.status as IssueFilters["status"] } : {}),
     ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
     ...(typeof search.device === "string" && search.device ? { device: search.device } : {}),
-  }),
+  };
+}
+const actionCenterRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/action-center",
+  component: lazyRouteComponent(() => import("../pages/ActionCenter"), "ActionCenter"),
+  validateSearch: parseIssueSearch,
 });
+function parseIncidentSearch(search: Record<string, unknown>): IncidentFilters {
+  return {
+    ...(typeof search.status === "string" && ([...INCIDENT_STATUSES, "all"] as string[]).includes(search.status) ? { status: search.status as IncidentFilters["status"] } : {}),
+    ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
+    ...(typeof search.q === "string" && search.q ? { q: search.q } : {}),
+  };
+}
 const incidentsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/incidents",
   component: lazyRouteComponent(() => import("../pages/Incidents"), "Incidents"),
-  validateSearch: (search: Record<string, unknown>): IncidentFilters => ({
-    ...(typeof search.status === "string" && ([...INCIDENT_STATUSES, "all"] as string[]).includes(search.status) ? { status: search.status as IncidentFilters["status"] } : {}),
-    ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
-    ...(typeof search.q === "string" && search.q ? { q: search.q } : {}),
-  }),
+  validateSearch: parseIncidentSearch,
 });
 const incidentNewRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -335,14 +345,61 @@ const customerHistoryRoute = createRoute({
   validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseAuditSearch(search)),
 });
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function parseSlaSearch(search: Record<string, unknown>): { month?: string; customer?: string } {
+  return {
+    ...(typeof search.month === "string" && /^\d{4}-\d{2}$/.test(search.month) ? { month: search.month } : {}),
+    ...(typeof search.customer === "string" && UUID_RE.test(search.customer) ? { customer: search.customer } : {}),
+  };
+}
 const slaRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/sla",
   component: lazyRouteComponent(() => import("../pages/Sla"), "Sla"),
-  validateSearch: (search: Record<string, unknown>): { month?: string; customer?: string } => ({
-    ...(typeof search.month === "string" && /^\d{4}-\d{2}$/.test(search.month) ? { month: search.month } : {}),
-    ...(typeof search.customer === "string" && UUID_RE.test(search.customer) ? { customer: search.customer } : {}),
-  }),
+  validateSearch: parseSlaSearch,
+});
+// Issues, incidents and SLA as tabs of a customer, like the device, backup and activity lists.
+const customerActionsRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/actions",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerActions"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseIssueSearch(search)),
+});
+const customerIncidentsRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/incidents",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerIncidents"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseIncidentSearch(search)),
+});
+// The security views of a customer: vulnerabilities (and a CVE's detail), firmware and compliance, under its Security tab.
+const customerVulnerabilitiesRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/security/vulnerabilities",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerVulnerabilities"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseVulnSearch(search)),
+});
+const customerVulnerabilityRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/security/vulnerabilities/$advisoryId",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerVulnerability"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseAdvisorySearch(search)),
+});
+const customerFirmwareRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/security/firmware",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerFirmware"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseFirmwareSearch(search)),
+});
+const customerComplianceRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/security/compliance",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerCompliance"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseComplianceSearch(search)),
+});
+const customerSlaRoute = createRoute({
+  getParentRoute: () => customerRoute,
+  path: "/sla",
+  component: lazyRouteComponent(() => import("../pages/CustomerLists"), "CustomerSla"),
+  validateSearch: (search: Record<string, unknown>) => withoutCustomer(parseSlaSearch(search)),
 });
 const reportsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -440,6 +497,11 @@ const adminCnmaestroRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin/integrations/cnmaestro",
   component: lazyRouteComponent(() => import("../pages/AdminCnmaestro"), "AdminCnmaestro"),
+});
+const adminUnifiRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/integrations/unifi",
+  component: lazyRouteComponent(() => import("../pages/AdminUnifi"), "AdminUnifi"),
 });
 const adminZabbixRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -570,6 +632,26 @@ const firmwareCatalogsRoute = createRoute({
   path: "/firmware/catalogs",
   component: lazyRouteComponent(() => import("../pages/FirmwareCatalogs"), "FirmwareCatalogs"),
 });
+const restoreReadinessRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/backups/restore-readiness",
+  component: lazyRouteComponent(() => import("../pages/MikrotikFleet"), "RestoreReadinessPage"),
+});
+const routerbootFleetRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/firmware/routerboot",
+  component: lazyRouteComponent(() => import("../pages/MikrotikFleet"), "RouterbootFleetPage"),
+});
+const firmwareCampaignsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/firmware/campaigns",
+  component: lazyRouteComponent(() => import("../pages/AcsFirmwareCampaigns"), "AcsFirmwareCampaigns"),
+});
+const firmwareCampaignRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/firmware/campaigns/$campaignId",
+  component: lazyRouteComponent(() => import("../pages/AcsFirmwareCampaigns"), "AcsFirmwareCampaign"),
+});
 const firmwareSuggestionsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/firmware/suggestions",
@@ -655,9 +737,13 @@ export const routeTree = rootRoute.addChildren([
   backupPolicyNewRoute,
   backupPolicyEditRoute,
   backupPolicyCloneRoute,
+  restoreReadinessRoute,
   firmwareRoute,
+  routerbootFleetRoute,
   firmwareSuggestionsRoute,
   firmwareCatalogsRoute,
+  firmwareCampaignsRoute,
+  firmwareCampaignRoute,
   vulnerabilitiesRoute,
   vulnerabilityRoute,
   vulnerabilityFindingRoute,
@@ -693,6 +779,7 @@ export const routeTree = rootRoute.addChildren([
   adminServerMigrationRoute,
   adminDemoRoute,
   adminCnmaestroRoute,
+  adminUnifiRoute,
   adminProbeRoute,
   adminThreatListsRoute,
   adminAbuseIpdbRoute,
@@ -710,7 +797,7 @@ export const routeTree = rootRoute.addChildren([
   notificationsRoute,
   profileRoute,
   customerNewRoute,
-  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute, customerDevicesManageRoute, customerDevicesRoute, customerBackupsRoute, customerHistoryRoute]),
+  customerRoute.addChildren([customerOverviewRoute, customerSitesRoute, customerGraphsRoute, customerEditRoute, customerSecurityRoute, customerDeviceNewRoute, customerDevicesManageRoute, customerDevicesRoute, customerBackupsRoute, customerHistoryRoute, customerActionsRoute, customerIncidentsRoute, customerSlaRoute, customerVulnerabilitiesRoute, customerVulnerabilityRoute, customerFirmwareRoute, customerComplianceRoute]),
   deviceImportRoute,
   deviceRoute.addChildren([deviceOverviewRoute, deviceManageRoute, deviceExposureRoute, deviceComplianceRoute, deviceJobsRoute, deviceConfigurationRoute, deviceConfigurationHistoryRoute, deviceRebootRoute, deviceRouterbootRoute, deviceFirmwareRoute, deviceUispRoute, deviceCnmaestroRoute, deviceGenieacsRoute, deviceLifecycleRoute, deviceMonitorRoute, deviceSyslogRoute, deviceBackupsRoute, deviceBackupArtifactRoute, deviceRestoreTestsRoute, deviceRestoreTestRoute, deviceAgentRoute, deviceDiagnosticsRoute]),
 ]);
