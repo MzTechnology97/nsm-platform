@@ -76,6 +76,9 @@ export interface ExposureTab {
     ports_checked?: number;
     checked_at?: string;
     private_target?: boolean;
+    /** Where the external check ran from (SCAN-02): the external probe or the NSM server; why the probe was not used. */
+    vantage?: { kind: "probe" | "nsm_server"; name: string | null } | null;
+    vantage_error?: string | null;
     shared_with?: string[];
     issue_skipped?: boolean;
     wan_interfaces?: string[];

@@ -473,6 +473,11 @@ const adminDemoRoute = createRoute({
   path: "/admin/demo",
   component: lazyRouteComponent(() => import("../pages/AdminDemo"), "AdminDemo"),
 });
+const adminProbeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/integrations/probe",
+  component: lazyRouteComponent(() => import("../pages/AdminProbe"), "AdminProbe"),
+});
 const adminCnmaestroRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin/integrations/cnmaestro",
@@ -760,6 +765,7 @@ export const routeTree = rootRoute.addChildren([
   adminDemoRoute,
   adminCnmaestroRoute,
   adminUnifiRoute,
+  adminProbeRoute,
   adminZabbixRoute,
   adminGenieacsRoute,
   adminUispRoute,

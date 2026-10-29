@@ -2396,7 +2396,8 @@
       "cnmaestro": "cnMaestro",
       "ispbilling": "ISPBilling",
       "bras": "MikroTik BRAS",
-      "unifi": "UniFi Network"
+      "unifi": "UniFi Network",
+      "probe": "External probe"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -3658,6 +3659,14 @@
         "config": "configuration changed"
       },
       "recheck": "At every change the service check runs again by itself."
+    },
+    "vantage": {
+      "label": "Checked from",
+      "probe": "external probe",
+      "server": "NSM server",
+      "probeHint": "outside the network: it sees what Internet sees",
+      "serverHint": "inside the network: it cannot see the border filters",
+      "fallback": "The external probe did not answer ({{error}}): the check ran from the NSM server."
     }
   },
   "deviceCompliance": {
@@ -5528,6 +5537,7 @@
     "EXPOSURE_EXTERNAL_CHECK": "External exposure check",
     "EXPOSURE_ISSUE_CLOSED_NOT_PUBLIC": "Exposure issue closed: device not reachable from Internet",
     "EXPOSURE_ISSUE_OPENED": "Exposed services reported",
+    "EXPOSURE_PROBE_CONFIGURED": "External probe configured",
     "EXPOSURE_TARGET_IP_CHANGED": "Public IP to check changed",
     "FIRMWARE_ACTIVATION_ACCEPTED": "Firmware activation accepted",
     "FIRMWARE_ACTIVATION_QUEUED": "Firmware activation queued",
@@ -7103,5 +7113,32 @@
     "enable": "Enable",
     "cancel": "Cancel",
     "confirm": "To delete, type the policy name: {{name}}"
+  },
+  "probeAdmin": {
+    "title": "Integrations · External probe",
+    "subtitle": "Checks the exposed ports from outside your network. The NSM server is inside the network and cannot see the border filters; the probe, installed on an outside server (e.g. a VPS), sees what Internet sees.",
+    "connection": "Connection",
+    "connectionHelp": "Requests are signed with the shared secret and carry only the inventory's public IPs and the planned ports. If the probe does not answer, NSM checks from its own server and says so.",
+    "url": "Probe address",
+    "name": "Name shown in the results",
+    "secret": "Shared secret (PROBE_SECRET)",
+    "enabled": "Use the probe for the checks from outside",
+    "saved": "Probe saved.",
+    "state": "State",
+    "notConfigured": "Not configured",
+    "off": "Disabled",
+    "ok": "Reachable",
+    "failed": "Not reachable",
+    "untested": "Not tested yet",
+    "lastTest": "Last test: {{when}}",
+    "test": "Test the probe",
+    "howTitle": "Installation on the outside server",
+    "how": {
+      "host": "A server outside your network, with another Internet connection, and Docker installed.",
+      "secret": "Generate a secret of at least 32 characters (e.g. with openssl rand -hex 32): it goes both in the probe and here.",
+      "run": "Copy the repository's probe folder and start the container with the commands below.",
+      "sources": "Set PROBE_ALLOWED_SOURCES to the public IP the NSM server goes out from, so nobody else can use it.",
+      "connect": "Enter address, name and secret here, save and press «Test the probe»."
+    }
   }
 }

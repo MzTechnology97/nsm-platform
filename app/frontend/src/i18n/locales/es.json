@@ -2396,7 +2396,8 @@
       "cnmaestro": "cnMaestro",
       "ispbilling": "ISPBilling",
       "bras": "BRAS MikroTik",
-      "unifi": "UniFi Network"
+      "unifi": "UniFi Network",
+      "probe": "Sonda externa"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -3658,6 +3659,14 @@
         "config": "configuración cambiada"
       },
       "recheck": "En cada cambio la comprobación de servicios vuelve a empezar sola."
+    },
+    "vantage": {
+      "label": "Verificado desde",
+      "probe": "sonda externa",
+      "server": "servidor NSM",
+      "probeHint": "fuera de la red: ve lo que ve Internet",
+      "serverHint": "dentro de la red: no ve los filtros de borde",
+      "fallback": "La sonda externa no respondió ({{error}}): la verificación se hizo desde el servidor NSM."
     }
   },
   "deviceCompliance": {
@@ -5528,6 +5537,7 @@
     "EXPOSURE_EXTERNAL_CHECK": "Comprobación de exposición externa",
     "EXPOSURE_ISSUE_CLOSED_NOT_PUBLIC": "Alerta de exposición cerrada: equipo no accesible desde Internet",
     "EXPOSURE_ISSUE_OPENED": "Servicios expuestos notificados",
+    "EXPOSURE_PROBE_CONFIGURED": "Sonda externa configurada",
     "EXPOSURE_TARGET_IP_CHANGED": "IP pública a comprobar cambiada",
     "FIRMWARE_ACTIVATION_ACCEPTED": "Activación de firmware aceptada",
     "FIRMWARE_ACTIVATION_QUEUED": "Activación de firmware en cola",
@@ -7103,5 +7113,32 @@
     "enable": "Activar",
     "cancel": "Cancelar",
     "confirm": "Para eliminar, escriba el nombre de la política: {{name}}"
+  },
+  "probeAdmin": {
+    "title": "Integraciones · Sonda externa",
+    "subtitle": "Verifica los puertos expuestos desde fuera de su red. El servidor NSM está dentro de la red y no ve los filtros de borde; la sonda, instalada en un servidor externo (por ejemplo un VPS), ve lo que ve Internet.",
+    "connection": "Conexión",
+    "connectionHelp": "Las peticiones van firmadas con el secreto compartido y contienen solo las IP públicas del inventario y los puertos previstos. Si la sonda no responde, NSM verifica desde su propio servidor y lo indica.",
+    "url": "Dirección de la sonda",
+    "name": "Nombre mostrado en los resultados",
+    "secret": "Secreto compartido (PROBE_SECRET)",
+    "enabled": "Usar la sonda para las verificaciones desde fuera",
+    "saved": "Sonda guardada.",
+    "state": "Estado",
+    "notConfigured": "No configurada",
+    "off": "Desactivada",
+    "ok": "Accesible",
+    "failed": "No accesible",
+    "untested": "Por probar",
+    "lastTest": "Última prueba: {{when}}",
+    "test": "Probar la sonda",
+    "howTitle": "Instalación en el servidor externo",
+    "how": {
+      "host": "Un servidor fuera de su red, con otra conexión a Internet, y Docker instalado.",
+      "secret": "Genere un secreto de al menos 32 caracteres (por ejemplo con openssl rand -hex 32): va en la sonda y aquí.",
+      "run": "Copie la carpeta probe del repositorio y arranque el contenedor con los comandos de abajo.",
+      "sources": "En PROBE_ALLOWED_SOURCES ponga la IP pública de salida del servidor NSM, así nadie más puede usarla.",
+      "connect": "Introduzca aquí dirección, nombre y secreto, guarde y pulse «Probar la sonda»."
+    }
   }
 }

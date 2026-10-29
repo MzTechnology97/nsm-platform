@@ -373,6 +373,9 @@ export function DeviceExposure() {
               <>
                 <div className="ui-metric"><span>{t("deviceExposure.checkedIp")}</span><strong className="ui-mono">{exposure.target_ip}</strong>
                   <small>{t("deviceExposure.portsChecked", { count: exposure.ports_checked ?? 0 })}</small></div>
+                <div className="ui-metric"><span>{t("deviceExposure.vantage.label")}</span>
+                  <strong>{exposure.vantage?.kind === "probe" ? exposure.vantage.name ?? t("deviceExposure.vantage.probe") : t("deviceExposure.vantage.server")}</strong>
+                  <small>{exposure.vantage?.kind === "probe" ? t("deviceExposure.vantage.probeHint") : t("deviceExposure.vantage.serverHint")}</small></div>
                 {exposure.uncertain ? <div className="ui-metric ui-metric-warning"><span>{t("deviceExposure.uncertain")}</span><strong>{exposure.uncertain}</strong>
                   <small>{t("deviceExposure.acl.uncertainHint")}</small></div> : null}
               </>
@@ -387,6 +390,7 @@ export function DeviceExposure() {
               <small>{t("deviceExposure.daily")}</small></div>
           </div>
           {exposure.source !== "external" && exposure.input_drop === false && <div className="ui-alert ui-alert-warning">{t("deviceExposure.noDrop")}</div>}
+          {exposure.vantage_error && <div className="ui-alert ui-alert-warning">{t("deviceExposure.vantage.fallback", { error: exposure.vantage_error })}</div>}
           {exposure.private_target && <div className="ui-alert ui-alert-warning">{t("deviceExposure.privateResult", { ip: exposure.target_ip })}</div>}
           {exposure.shared_with?.length ? <div className="ui-alert ui-alert-warning">{t("deviceExposure.sharedResult", { peers: exposure.shared_with.join(", ") })}</div> : null}
           {exposure.source === "external" && data.can_remediate && <p className="ui-muted">{t("deviceExposure.acl.help")}</p>}
