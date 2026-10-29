@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.290 — 2026-10-29
+
+Backup policies: their own page, always within reach
+- With many devices the list of backup policies ended up at the bottom of *Backup*, below the device table. It now has its own page, *Backup → Policy di backup*, opened from the button at the top of *Backup*.
+- Each policy shows its scope, schedule, how many devices it protects (protected, blocked, failed) and its state. Filters: all, active, disabled, and text.
+- The actions are on the row:
+  - edit or duplicate;
+  - turn on or off;
+  - delete, after typing the policy name.
+- In a customer's *Backup* tab only the policies that concern that customer are listed: its own, and the general ones that protect its devices.
 ## 0.49.289 — 2026-10-29
 
 Notifications: drop-down from the bell, without leaving the page
