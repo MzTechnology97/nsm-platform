@@ -4,6 +4,24 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.311 — 2026-10-29
+
+RIPEstat: the operator's prefixes, BGP origin, visibility and RPKI (RIPESTAT-01)
+- New module *Integrazioni → RIPEstat*, off by default and read-only. It uses the free RIPEstat API, with no account and no key. The operator gives its AS numbers; the prefixes checked are the ones declared in *Liste di minaccia*.
+- Every 6 hours (configurable), NSM reads:
+  - the prefixes each AS announces;
+  - for each declared prefix, who announces it and how many RIPE RIS peers see it;
+  - for each announcement, whether the RPKI ROAs match.
+- Action Center issues and notifications, each with what to do:
+  - **announced by another AS** (possible hijack, critical);
+  - **not announced**;
+  - **seen by less than half of the peers**;
+  - **RPKI invalid** (critical: routes may be dropped);
+  - **no ROA**.
+
+  An issue closes when the next read no longer shows the problem. When RIPEstat cannot be reached, the previous picture is kept.
+- Prefixes announced by the operator's ASs but not declared are suggested, so that AbuseIPDB and the threat lists cover them too.
+- NSM never changes anything at RIPE.
 ## 0.49.310 — 2026-10-29
 
 Device Exposure tab no longer fails with an error
