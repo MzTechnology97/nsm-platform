@@ -9,6 +9,8 @@ import { AGENT_STATES, type AgentFilters, type AgentRow, useAgentFleet } from ".
 import { formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { Loading } from "../app/States";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 
 /** Summary counter shown on each state chip. */
 const CHIP_COUNT: Record<(typeof AGENT_STATES)[number], string> = {
@@ -33,7 +35,8 @@ export function Agents() {
     if ((search.q ?? "") !== q) update({ q: q || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
-  const query = useAgentFleet(search);
+  const paging = usePaging(JSON.stringify(search));
+  const query = useAgentFleet(search, pageParams(paging));
   const data = query.data;
   const state = search.state ?? "attention";
   const summary = data?.summary;
@@ -96,7 +99,7 @@ export function Agents() {
               </tbody>
             </table>
           </div>
-          {data.total > data.items.length && <p className="ui-muted">{t("monitoring.limited", { shown: data.items.length, total: data.total })}</p>}
+          <Pager total={data.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
         <div className="ui-empty">{state === "attention" ? t("agents.allGood") : t("agents.empty")}</div>

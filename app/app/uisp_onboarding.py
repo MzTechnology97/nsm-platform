@@ -1,8 +1,10 @@
 """Bulk onboarding of UISP devices into NSM (UBNT-03).
 
 The operator picks UISP devices that are not in NSM yet, chooses the NSM
-Customer (and optional Site) explicitly, reviews a preview and confirms.  NSM
-never derives the Customer/Site from UISP metadata.  At confirmation the UISP
+Customer (and optional Site) explicitly, reviews a preview and confirms.  This
+manual flow never derives the Customer/Site from UISP metadata; the automatic
+import of customer endpoints by name lives in ``uisp_auto_customer`` (opt-out,
+new devices only, existing records keep their Customer).  At confirmation the UISP
 list is fetched again, so a device removed or changed in the meantime is
 reported instead of being created from stale data.  Devices already present
 with the same MAC but not yet linked are associated, never duplicated.

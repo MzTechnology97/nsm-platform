@@ -1,5 +1,7 @@
 import type { FleetZabbix } from "../app/ZabbixProblems";
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { withPage } from "../lib/paging";
 
 import { api } from "./client";
 import type { BrandRef } from "../app/BrandIcon";
@@ -55,8 +57,8 @@ export function monitoringUrl(filters: MonitoringFilters): string {
   return `/api/ui/v1/monitoring${query ? `?${query}` : ""}`;
 }
 
-export const useMonitoring = (filters: MonitoringFilters) =>
-  useQuery({ queryKey: ["monitoring", filters], queryFn: () => api<Monitoring>(monitoringUrl(filters)), placeholderData: keepPreviousData, staleTime: 20_000, refetchInterval: 60_000 });
+export const useMonitoring = (filters: MonitoringFilters, page: { offset: number; limit: number }) =>
+  useQuery({ queryKey: ["monitoring", filters, page], queryFn: () => api<Monitoring>(withPage(monitoringUrl(filters), page)), placeholderData: keepPreviousData, staleTime: 20_000, refetchInterval: 60_000 });
 
 export function useIcmpBulk() {
   const client = useQueryClient();
@@ -122,8 +124,8 @@ export function agentsUrl(filters: AgentFilters): string {
   return `/api/ui/v1/agents${query ? `?${query}` : ""}`;
 }
 
-export const useAgentFleet = (filters: AgentFilters) =>
-  useQuery({ queryKey: ["agents", filters], queryFn: () => api<AgentFleet>(agentsUrl(filters)), placeholderData: keepPreviousData, staleTime: 20_000, refetchInterval: 60_000 });
+export const useAgentFleet = (filters: AgentFilters, page: { offset: number; limit: number }) =>
+  useQuery({ queryKey: ["agents", filters, page], queryFn: () => api<AgentFleet>(withPage(agentsUrl(filters), page)), placeholderData: keepPreviousData, staleTime: 20_000, refetchInterval: 60_000 });
 
 export const BACKUP_VIEWS = ["attention", "failed", "blocked", "never", "no_policy", "protected", "all"] as const;
 export type BackupView = (typeof BACKUP_VIEWS)[number];
@@ -171,8 +173,8 @@ export function backupOverviewUrl(filters: BackupOverviewFilters): string {
   return `/api/ui/v1/backups${query ? `?${query}` : ""}`;
 }
 
-export const useBackupOverview = (filters: BackupOverviewFilters) =>
-  useQuery({ queryKey: ["backup-overview", filters], queryFn: () => api<BackupOverview>(backupOverviewUrl(filters)), placeholderData: keepPreviousData, staleTime: 30_000, refetchInterval: 120_000 });
+export const useBackupOverview = (filters: BackupOverviewFilters, page: { offset: number; limit: number }) =>
+  useQuery({ queryKey: ["backup-overview", filters, page], queryFn: () => api<BackupOverview>(withPage(backupOverviewUrl(filters), page)), placeholderData: keepPreviousData, staleTime: 30_000, refetchInterval: 120_000 });
 
 export const FIRMWARE_STATES = ["attention", "security", "critical", "unknown", "current", "all"] as const;
 export type FirmwareState = (typeof FIRMWARE_STATES)[number];
@@ -185,6 +187,8 @@ export interface FirmwareFilters {
 }
 
 export interface FirmwareRow {
+  schedule?: import("../app/FirmwareSchedule").FirmwareSchedule | null;
+  can_schedule?: boolean;
   id: string;
   name: string;
   brand?: BrandRef;
@@ -203,6 +207,8 @@ export interface FirmwareRow {
   verified_at: string | null;
   can_check: boolean;
   can_plan: boolean;
+  can_uisp_upgrade?: boolean;
+  uisp_upgrade?: string | null;
 }
 
 export interface FirmwarePage {
@@ -212,7 +218,25 @@ export interface FirmwarePage {
   limit: number;
   counts: Record<FirmwareState, number>;
   items: FirmwareRow[];
+  uisp_bulk_max?: number;
   links: { catalogs: string; suggestions: string };
+}
+
+export interface UispBulkResult {
+  target: string;
+  maintenance_window: boolean;
+  started: { id: string; name: string; version: string; from_version: string | null }[];
+  skipped: { id: string; name: string | null; code: string; message: string }[];
+}
+
+/** Ubiquiti upgrade through UISP for several devices of the worklist, in one UISP task. */
+export function useUispBulkUpgrade() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { device_ids: string[]; target: string; maintenance_window: boolean; confirm: string }) =>
+      api<UispBulkResult>("/api/ui/v1/firmware/uisp-upgrade", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["firmware"] }),
+  });
 }
 
 export function firmwareUrl(filters: FirmwareFilters, offset = 0): string {
@@ -226,12 +250,10 @@ export function firmwareUrl(filters: FirmwareFilters, offset = 0): string {
   return `/api/ui/v1/firmware${query ? `?${query}` : ""}`;
 }
 
-export const useFirmware = (filters: FirmwareFilters) =>
-  useInfiniteQuery({
-    queryKey: ["firmware", filters],
-    queryFn: ({ pageParam }) => api<FirmwarePage>(firmwareUrl(filters, pageParam)),
-    initialPageParam: 0,
-    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+export const useFirmware = (filters: FirmwareFilters, page: { offset: number; limit: number }) =>
+  useQuery({
+    queryKey: ["firmware", filters, page],
+    queryFn: () => api<FirmwarePage>(withPage(firmwareUrl(filters), page)),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   });
@@ -326,6 +348,7 @@ export interface VendorRelease {
   security: boolean;
   notes_url: string | null;
   notes: string | null;
+  file?: { name: string; size: number; sha256: string; acs_files: string[] } | null;
 }
 
 export interface VendorCatalog {

@@ -100,6 +100,8 @@ After the current P0 gates are closed, continue MikroTik work in focused PRs.
 
 Trigger this PR only if normal-size physical RouterOS 7.12.x snapshot acceptance shows practical payload limits for real firewall/DHCP sections.
 
+**Not needed for now (evaluated 2026-10-23, Core 0.49.268)**: the production legacy fleet is one RouterOS 7.12 router (Agent 0.49.23-legacy). Its latest successful section reads are far below the 56 KB rows-v1 wire limit (largest: routes and logs about 2 KB of data each); no section other than `logs` was ever truncated, and `logs` is truncated by design (last 20 of the warning/error entries). The only failures were expired jobs and the `services` section, which the legacy Agent cannot read (now refused explicitly by the MTK-05 capability gate). Re-evaluate when a legacy router with large firewall/DHCP tables is enrolled: the job result keeps `total`, `limit` and `truncated` for that check.
+
 Scope:
 
 - bounded chunk/page protocol for allow-listed snapshot data;
@@ -126,7 +128,7 @@ Do not present legacy backup as available before this is complete.
 
 Goal: prove that stored artifacts remain operationally useful without unsafe automatic production restore.
 
-**Implemented in `main`**, including report integration (last restore test per device in the backup report).
+**Implemented in `main`**, including report integration (last restore test per device in the backup report) and, from Core 0.49.273, the fleet *restore readiness* worklist (recent complete backup + recent passed restore test per MikroTik).
 
 Original scope:
 
@@ -159,13 +161,13 @@ Possible focused PRs:
 
 - richer ping/traceroute presentation and history — **done** (`app/mikrotik_diagnostic_views.py`);
 - structured neighbor/DHCP/log result presentation — **done**, for modern and legacy agents;
-- bounded additional read-only diagnostics with explicit capability gates;
+- bounded additional read-only diagnostics with explicit capability gates — **done** in Core 0.49.268 (Agent 0.49.24): queues, certificates and BGP/OSPF sessions for modern and legacy agents, per-section capability gate (`app/mikrotik_snapshot_capabilities.py`);
 - support snapshot on legacy agents — **done** in Core 0.49.82 (assembled from the read-only section jobs);
 - support-snapshot evidence: JSON download with audited SHA-256 — **done** in Core 0.49.88.
 
 ## 4. GUI quality and regression queue
 
-The contextual browser-feedback program is mostly implemented. Keep the GUI tracker focused on reproducible defects rather than broad rewrites.
+The classic contextual browser-feedback program ended with the removal of the classic interface (R1, Core 0.49.168–0.49.174); the React interface shows API errors in context (`ApiError`). Keep the GUI tracker focused on reproducible defects rather than broad rewrites.
 
 When a new GUI bug is found:
 
@@ -212,7 +214,7 @@ Original scope:
 
 ### UBNT-03 — bulk onboarding/association
 
-**Implemented in `main`** (`app/uisp_onboarding.py`): UISP list with NSM state, explicit Customer/Site, preview, re-read at confirmation.
+**Implemented in `main`** (`app/uisp_onboarding.py`): UISP list with NSM state, explicit Customer/Site, preview, re-read at confirmation. Customer endpoints: automatic import under the NSM customer with the same name, or the one the operator linked (`app/uisp_auto_customer.py`, Core 0.49.244); infrastructure sites stay manual (operator decision 2026-10-23).
 
 - bounded discovery list;
 - duplicate/conflict handling;
@@ -231,9 +233,11 @@ Do not fake coverage based only on a policy row.
 
 Implement only diagnostics actually exposed and validated by the integration contract. Normalize results into NSM rather than exposing opaque raw payloads as the primary UI.
 
+**Implemented (Core 0.49.272)**: the UISP API v2.1 exposes no ping or traceroute. NSM reads the airMAX wireless links (`/devices/airmaxes/{id}/stations`, checked read-only on the operator's console) with normalized values and hints, and runs UISP speed tests between two radios with confirmation (tested against a fake UISP; first run on a real link still to be done with the operator). Not used: site survey (disruptive), cable test (EdgeSwitch only).
+
 ### UBNT-06 — firmware workflow
 
-**Step 1 implemented in `main`** (`app/uisp_firmware.py`): installed/latest version and compatibility read from UISP at every sync, firmware state on the Device and in the firmware worklist. Checked on the operator's console (2026-10-22): it sends only `compatible`, so the recommended version comes from the Ubiquiti update service by airOS platform (`identification.platformId`) and `overview.canUpgrade` marks unknown states as update available (Core 0.49.199). Planning and execution remain open: upgrades are run from UISP.
+**Step 1 implemented in `main`** (`app/uisp_firmware.py`): installed/latest version and compatibility read from UISP at every sync, firmware state on the Device and in the firmware worklist. Checked on the operator's console (2026-10-22): it sends only `compatible`, so the recommended version comes from the Ubiquiti update service by airOS platform (`identification.platformId`) and `overview.canUpgrade` marks unknown states as update available (Core 0.49.199). **Step 2 (Core 0.49.252)**: upgrade started from NSM through UISP (`POST /tasks`, version chosen among UISP's stable images for the platform, typed confirmation, optional maintenance window), followed and verified on the version UISP reports (`app/uisp_firmware_upgrade.py`). **Bulk upgrades (Core 0.49.260)**: up to 50 devices selected in the firmware worklist, recommended version per device or one version for all, one UISP task, outcome per device.
 
 - read current/available state where supported;
 - planning/approval model;
@@ -243,6 +247,8 @@ Implement only diagnostics actually exposed and validated by the integration con
 - audit/evidence.
 
 ### UBNT-07 — security and lifecycle correlation
+
+**CVE part implemented (Core 0.49.267)**: airOS platform → NVD hardware family (airMAX AC / M / XW / XM / TI), release compared without build numbers, model lists never matched by guess. Lifecycle correlation is LIFE-02.
 
 - normalize Ubiquiti model/version identity;
 - correlate with the future advisory/lifecycle ingestion framework;
@@ -288,7 +294,7 @@ Next steps:
 - ~~interface errors and drops~~ — done in Core 0.49.83 (Agent 0.49.20, *Errori e drop* chart);
 - ~~latency series~~ — done in Core 0.49.85 (ICMP latency and loss from NSM for any vendor, unreachable alert);
 - ~~signal series (MikroTik wireless)~~ — done in Core 0.49.86 (Agent 0.49.21, *Segnale wireless* panel);
-- the same graphs for UISP devices (from `uisp_metric_samples`) and, later, cnMaestro;
+- ~~the same graphs for UISP devices and cnMaestro~~ — done in Core 0.49.242 (Monitor tab for every device) and 0.49.266 (cnMaestro history in the standard panels, last values of offline Cambium devices);
 - ~~graphs aggregated per customer and per site~~ — done in Core 0.49.72 (customer *Grafici* tab with site filter).
 
 ### LOG-01 — integrated syslog server and live device logs (requested 2026-10-07)
@@ -307,7 +313,7 @@ Next steps:
 **Step 2 done (Core 0.49.47, Agent 0.49.11).** The modern MikroTik agent configures remote syslog (action `nsm`: critical, error, warning, account), on demand, for all devices, or automatically.
 
 Next steps:
-- remote syslog setup for other vendors through their APIs (UISP/airOS, cnMaestro);
+- remote syslog setup for other vendors: ~~UISP/airOS~~ — done in 0.49.257 (UISP backup applied); ~~Cambium ePMP~~ — done in 0.49.265 over SSH (the cnMaestro API has no configuration endpoint; preview, typed confirmation, restore point); others with guided instructions;
 - ~~legacy agent support~~ — done in 0.49.67 (Agent 0.49.15, legacy-ops-v1 profile);
 - ~~incidents and reports built from the access events~~ — done in 0.49.50 (report section, incident evidence, incident from alert).
 
@@ -333,6 +339,8 @@ Next steps:
 
 Telemetry of a device that goes offline must never be deleted: the last received values stay visible, with their timestamp. Retention cleanup always keeps the newest sample of each device and interface.
 - **Done in 0.49.43** for MikroTik metrics, interface traffic and UISP metrics.
+- **Done** for cnMaestro metrics, ICMP, wireless and the ACS history (Core 0.49.263: newest sample of each CPE and its newest optical reading; the ACS tab shows when the last sample arrived).
+- **Done in 0.49.266** for cnMaestro (Cambium): the retention keeps the newest sample of each device, a sync without statistics keeps the last values on the device, and the Monitor tab shows them with their time when the range has no samples.
 - **Still to do:** other connectors when they get history.
 
 ### INV-07 — MikroTik devices without IP in the device list (bug)
@@ -344,7 +352,7 @@ Telemetry of a device that goes offline must never be deleted: the last received
 
 ### GUI-02 — visual refresh: Material icons and ISP/WISP background (requested 2026-10-07)
 
-**Implemented in `main` (Core 0.49.48)**: outlined Material-style icon set drawn for NSM (sprite `static/ui-icons.svg`), sidebar and topbar refresh, ISP/WISP line-art background (`static/bg-network.svg`). Next: icons in page headers and empty states.
+**Implemented in `main` (Core 0.49.48)**: outlined Material-style icon set drawn for NSM (sprite `static/ui-icons.svg`), sidebar and topbar refresh, ISP/WISP line-art background (`static/bg-network.svg`). **Core 0.49.275**: the section icon in every page header and empty state.
 
 - Replace the sidebar menu icons and the top notification icon with a consistent Material Design (or similar) icon set, self-hosted and CSP-safe.
 - Make the GUI more attractive.
@@ -361,6 +369,7 @@ Telemetry of a device that goes offline must never be deleted: the last received
 **Step 2 done (Core 0.49.60)**: the check from the NSM server on the public IP for the other manufacturers (and MikroTik without the modern agent), with the IP given by the operator when it cannot be determined.
 **Since Core 0.49.73** the operator can also target a private/CGNAT address (device reached directly, e.g. via VPN), with an explicit warning that the result is distorted when the device sits behind another router or NAT.
 **Step 3 done (Core 0.49.61)**: the fleet view *Security → Esposizione*, exposed services in the security newsletter and in the evidence report (section 3).
+**Core 0.49.239** (operator report 2026-10-23: a port filtered by an ACL that admits the NSM server looked exposed): an open CWMP port on a TR-069 CPE managed by NSM is *da verificare* (NSM is its ACS), the CPE's remote web management settings read via TR-069 decide *esposto*/*limitato* and its port is probed too, and the operator can declare any service filtered by an ACL with the allowed addresses. Operator decision (2026-10-23): ACLs are declared by hand; no second vantage point (no external port-check service, no probe from another site).
 
 A port/service scanner run from the NSM server against the WAN address of each managed device.
 - **Targets.** Any vendor, not only MikroTik. The target is the detected WAN/PPPoE address, and the operator can pick or override the correct WAN IP when it cannot be determined.
@@ -373,7 +382,7 @@ A port/service scanner run from the NSM server against the WAN address of each m
 
 ### ZBX-01 — Zabbix API integration (requested 2026-10-07)
 
-**Decided with the user (2026-10-08): NSM pushes its devices to Zabbix. Implemented in `main` (Core 0.49.51).** Hosts, groups per customer, templates per manufacturer, tags and inventory; 6.x and 7.x authentication; hosts disabled (not deleted) when devices leave NSM. Zabbix problems are shown inside NSM since Core 0.49.62 (device header and overview, Monitoring). **Since Core 0.49.205 (operator decision 2026-10-22)**: devices already monitored in the operator's Zabbix are linked to their existing host (same IP, else same name, only when exactly one matches) instead of getting a duplicate `nsm-` host; linked hosts are never modified except their interface IP, kept equal to the device address for dynamic public IPs/NAT (option); ambiguous matches are reported; the settings form suggests the templates found in Zabbix.
+**Decided with the user (2026-10-08): NSM pushes its devices to Zabbix. Implemented in `main` (Core 0.49.51).** Hosts, groups per customer, templates per manufacturer, tags and inventory; 6.x and 7.x authentication; hosts disabled (not deleted) when devices leave NSM. Zabbix problems are shown inside NSM since Core 0.49.62 (device header and overview, Monitoring). **Since Core 0.49.205 (operator decision 2026-10-22)**: devices already monitored in the operator's Zabbix are linked to their existing host (same IP, else same name, only when exactly one matches) instead of getting a duplicate `nsm-` host; linked hosts are never modified except their interface IP, kept equal to the device address for dynamic public IPs/NAT (option); ambiguous matches are reported; the settings form suggests the templates found in Zabbix. **Since Core 0.49.243 (operator request 2026-10-23)**: *Aggiungi a Zabbix* / *Rimuovi da Zabbix* on every device (opt-in kept on the device, also outside the customer scope) and on every customer (joins/leaves the scope with all its devices); each click pushes at once and reports the result (created, linked, no IP, factory LAN IP); removed hosts are disabled, never deleted; audited `ZABBIX_DEVICE_SCOPE_CHANGED` / `ZABBIX_CUSTOMER_SCOPE_CHANGED`.
 
 Integration with the operator's Zabbix (currently 6.x; support both the 6.x API and 7.x, where authentication moved to an API token in the `Authorization` header). How it applies to devices (import hosts/items, link NSM devices to Zabbix hosts, show problems and graphs, or push NSM devices to Zabbix) is to be decided with the user before implementation.
 
@@ -423,6 +432,8 @@ Normalize relevant Device identity and firmware fields from supported data model
 
 ### ACS-04 — parameter profiles
 
+**Implemented in `main` (Core 0.49.264)**: one map of the TR-098/TR-181 paths (`acs_profiles`) used by every ACS module, TP-Link vendor paths only where required, explicit unsupported entries with their reason, and the *Capacità NSM* view of each CPE (read only), tested on sanitized TP-Link TR-181 and Huawei TR-098 structures.
+
 - TR-098 / TR-181 mapping profiles;
 - vendor/model-specific profiles only where required;
 - explicit unsupported fields;
@@ -430,7 +441,7 @@ Normalize relevant Device identity and firmware fields from supported data model
 
 ### ACS-05 — monitoring/history
 
-**Implemented in `main` (Core 0.49.206, 0.49.211)**: state at every Inform (CPU, memory, WAN, Wi-Fi, LAN hosts, DSL), 90-day samples and charts on the device ACS tab, online/offline from the last Inform. Alerts on CPE offline, WAN down, WAN reconnections, reboots and DSL degradation (Core 0.49.226). Next: PON optical levels where CPEs expose them.
+**Implemented in `main` (Core 0.49.206, 0.49.211)**: state at every Inform (CPU, memory, WAN, Wi-Fi, LAN hosts, DSL), 90-day samples and charts on the device ACS tab, online/offline from the last Inform. Alerts on CPE offline, WAN down, WAN reconnections, reboots and DSL degradation (Core 0.49.226). PON optical levels (Rx/Tx, temperature, voltage, bias) from TR-181 `Device.Optical` and TR-098 vendor GPON objects, read hourly, with charts and a low-Rx alert (Core 0.49.263).
 
 Persist only supported, stable operational data with capability-aware unavailable states.
 
@@ -440,13 +451,13 @@ Persist only supported, stable operational data with capability-aware unavailabl
 
 ### ACS-07 — backup/restore capability
 
-**Backup implemented in `main` (Core 0.49.217)** as configuration-parameter snapshots archived and comparable in the device Backup tab, scheduled by backup policy (GenieACS has no `Upload` task for the vendor file). Restore is not implemented.
+**Backup implemented in `main` (Core 0.49.217)** as configuration-parameter snapshots archived and comparable in the device Backup tab, scheduled by backup policy (GenieACS has no `Upload` task for the vendor file). **Restore implemented (Core 0.49.269)**: preview of the writable parameters that differ, operator selection, typed confirmation, one `setParameterValues` task, verification by reading back, faulted tasks deleted with their fault.
 
 Only expose backup/restore where the real CPE data model and connector expose a verifiable supported mechanism.
 
 ### ACS-08 — firmware workflow
 
-**Implemented in `main` (Core 0.49.219)** for one CPE at a time, on the device Firmware tab like the other devices (installed version against the catalog's newest release): vendor image loaded into GenieACS per model, `download` task after typed confirmation and model check, verified from the reported `SoftwareVersion`, faults and timeout reported, audited. Next: campaigns over many CPEs with staged rollout.
+**Implemented in `main` (Core 0.49.219)** for one CPE at a time, on the device Firmware tab like the other devices (installed version against the catalog's newest release): vendor image loaded into GenieACS per model, `download` task after typed confirmation and model check, verified from the reported `SoftwareVersion`, faults and timeout reported, audited. **Campaigns (Core 0.49.270)**: one pilot CPE, then waves (10 by default) inside a time window, automatic stop at the first failed or unconfirmed upgrade, typed confirmation, pause/resume/cancel, per-CPE state page.
 
 - firmware target/evidence model;
 - controlled ACS operation;
@@ -456,14 +467,14 @@ Only expose backup/restore where the real CPE data model and connector expose a 
 
 ### VEND-01 — firmware catalogs for other vendors (requested 2026-10-07)
 
-**Implemented in `main` (Core 0.49.69)**: *Firmware → Cataloghi altri produttori* — Ubiquiti from UISP and from the official update service (`fw-update.ubnt.com`, airOS platform from the installed firmware string or from UISP; checked from the deployed instance in Core 0.49.199, where the request filters were corrected: the service files the platform code under `product` and the family `airmax` under `platform`), other brands from releases entered from the official download pages; device firmware state evaluated per model. **Core 0.49.227**: TP-Link from the official Italian download pages per model and hardware version, with one-click download into the ACS for TR-069 CPEs. Next: official machine-readable sources for other brands where they exist.
+**Implemented in `main` (Core 0.49.69)**: *Firmware → Cataloghi altri produttori* — Ubiquiti from UISP and from the official update service (`fw-update.ubnt.com`, airOS platform from the installed firmware string or from UISP; checked from the deployed instance in Core 0.49.199, where the request filters were corrected: the service files the platform code under `product` and the family `airmax` under `platform`), other brands from releases entered from the official download pages; device firmware state evaluated per model. **Core 0.49.227**: TP-Link from the official Italian download pages per model and hardware version, with one-click download into the ACS for TR-069 CPEs. **Core 0.49.247**: operator releases are uploaded images; version, models or platform and date are read from the official file name (airOS header too), and only the rest is asked. Next: official machine-readable sources for other brands where they exist.
 
 Release catalogs like the RouterOS one (versions per channel/model, release notes, security classification) for Ubiquiti, TP-Link, Tenda, Cambium and similar vendors. Each catalog is enabled only when the inventory contains devices of that brand, reads only official vendor sources and never guesses versions it cannot verify.
 
 ### VEND-02 — cnMaestro integration for Cambium (requested 2026-10-07)
 
 **Step 1 implemented in `main` (Core 0.49.70)**: OAuth2 client credentials, paged inventory and statistics, linking by MAC/serial, identity/firmware/IP/status sync every 15 minutes, metrics history (signal, SNR, throughput, CPU/memory, stations) with Cacti-style graphs on the device *cnMaestro* tab.
-**Step 2 implemented in `main`**: compatibility check on the real console (Core 0.49.189) and bulk onboarding like UISP (Core 0.49.192). Field names checked on the operator's cnMaestro (Core 0.49.199; Wi-Fi AP per-band clients and traffic, time online as uptime). Next: operations where the cnMaestro API supports them.
+**Step 2 implemented in `main`**: compatibility check on the real console (Core 0.49.189) and bulk onboarding like UISP (Core 0.49.192). Field names checked on the operator's cnMaestro (Core 0.49.199; Wi-Fi AP per-band clients and traffic, time online as uptime). **Core 0.49.251**: configuration backup of ePMP devices over SSH (`config show json`), because the cnMaestro API cannot export configurations; shared SSH credentials with per-device override; backup policy option. API v2 done in Core 0.49.259. **Core 0.49.265**: remote syslog of ePMP devices over SSH (the API has no configuration endpoint). **Core 0.49.266**: cnMaestro history in the Monitor tab, last values of offline devices (MON-02). **Core 0.49.271**: reboot through cnMaestro with typed confirmation and verification. Firmware upgrades are not offered: the cnMaestro API v2 has no software image or upgrade endpoint (checked GET-only).
 
 Read-only cnMaestro (cloud/on-premises) connector for Cambium radios: discovery and association like UISP, periodic sync, full monitoring and statistics (signal, link quality, capacity, interfaces, uptime, history) in the style of the MikroTik and UISP views; later operations only where the cnMaestro API supports them.
 
@@ -471,7 +482,7 @@ Read-only cnMaestro (cloud/on-premises) connector for Cambium radios: discovery 
 
 Import the customer registry and sites from the operator's billing system (ISPBilling, `https://ispbilling.it/api/docs`), then automate around it. Approved by the operator: (1) customers, (2) services → sites, (3) RADIUS accounts ↔ devices, (4) warehouse serials/MACs ↔ devices, (5) activities into the device logbook; invoices and payments stay out of NSM.
 
-**Step 1 implemented in `main` (Core 0.49.203)**: read-only connector, mirror refreshed by the worker, import page for customers and their installation addresses as sites (details in `IMPLEMENTED_CAPABILITIES.md` §13c). **Step 2 implemented (Core 0.49.209)**: RADIUS accounts matched to devices (PPPoE user, then static IP) and shown on the device page with their ISPBilling status. **Core 0.49.229**: also by the CPE's own PPPoE user (TR-069) and by the caller-id MAC/address of the PPP session on a concentrator in NSM; customer and site proposed for confirmation. Next: warehouse and activities.
+**Step 1 implemented in `main` (Core 0.49.203)**: read-only connector, mirror refreshed by the worker, import page for customers and their installation addresses as sites (details in `IMPLEMENTED_CAPABILITIES.md` §13c). **Step 2 implemented (Core 0.49.209)**: RADIUS accounts matched to devices (PPPoE user, then static IP) and shown on the device page with their ISPBilling status. **Core 0.49.229**: also by the CPE's own PPPoE user (TR-069) and by the caller-id MAC/address of the PPP session on a concentrator in NSM; customer and site proposed for confirmation. **Step 5 implemented (Core 0.49.262)**: ISPBilling activities of the device's place or customer in the device Activity tab, read on demand. Next: warehouse.
 
 ### TAUC-01 — TP-Link Aginet Unified Cloud connector (requested 2026-10-22)
 
@@ -497,7 +508,7 @@ External sources should be documented only after an adapter actually uses them.
 
 ### SEC-02 — Device ↔ advisory matching
 
-**Implemented in `main` for MikroTik RouterOS** (`app/advisory_matching.py`). Other vendors are not evaluated until their product/version mapping exists.
+**Implemented in `main` for MikroTik RouterOS** (`app/advisory_matching.py`). **Core 0.49.267**: version matching for the other vendors through `vendor_cpe` — Ubiquiti airMAX by hardware family from the airOS platform, TP-Link release and build, product names without punctuation; data that is not enough stays *unknown*.
 
 - vendor/product/model normalization;
 - version range evaluation;
