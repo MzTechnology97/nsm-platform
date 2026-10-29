@@ -7,7 +7,7 @@ import { api } from "../api/client";
 import { AdminTabs } from "../app/AdminTabs";
 import { IntegrationTabs } from "../app/IntegrationTabs";
 import { Loading } from "../app/States";
-import { formatDateTime } from "../lib/format";
+import { formatDateTime, fromLocalInput, toLocalInput } from "../lib/format";
 
 interface BrasAdmin {
   configured: boolean;
@@ -16,12 +16,18 @@ interface BrasAdmin {
   verify_tls: boolean;
   username: string | null;
   interval_minutes: number;
+  retention_days: number;
   last_sync: { status: string; at: string; sessions?: number; came_online?: number; went_offline?: number; error?: string } | null;
   last_sync_at: string | null;
   online: number;
   offline: number;
   last_test_status: string | null;
   last_error: string | null;
+}
+
+interface Attribution {
+  address: string; at: string; confidence: "exact" | "static" | "none"; username: string | null; from: string | null; to: string | null;
+  customer: { id: string; name: string } | null; device: { id: string; name: string } | null;
 }
 
 const PATH = "/api/ui/v1/admin/integrations/bras";
@@ -33,9 +39,9 @@ export function AdminBras() {
   const client = useQueryClient();
   const query = useQuery({ queryKey: KEY, queryFn: () => api<BrasAdmin>(PATH) });
   const data = query.data;
-  const [form, setForm] = useState({ url: "", username: "", password: "", verify_tls: false, enabled: true, interval_minutes: 5 });
+  const [form, setForm] = useState({ url: "", username: "", password: "", verify_tls: false, enabled: true, interval_minutes: 5, retention_days: 365 });
   useEffect(() => {
-    if (data) setForm((f) => ({ ...f, url: data.url, username: data.username ?? "", verify_tls: data.verify_tls, enabled: data.configured ? data.enabled : true, interval_minutes: data.interval_minutes }));
+    if (data) setForm((f) => ({ ...f, url: data.url, username: data.username ?? "", verify_tls: data.verify_tls, enabled: data.configured ? data.enabled : true, interval_minutes: data.interval_minutes, retention_days: data.retention_days }));
   }, [data]);
   const save = useMutation({
     mutationFn: () => api<BrasAdmin>(PATH, { method: "POST", body: JSON.stringify(form) }),
@@ -90,6 +96,7 @@ export function AdminBras() {
                 <label><span>{t("bras.password")}</span><input type="password" value={form.password} onChange={set("password")} autoComplete="new-password"
                   placeholder={data.configured ? t("bras.passwordKeep") : ""} required={!data.configured} /></label>
                 <label><span>{t("bras.interval")}</span><input type="number" min={1} max={60} value={form.interval_minutes} onChange={(e) => setForm({ ...form, interval_minutes: Number(e.target.value) })} /></label>
+                <label><span>{t("bras.retention")}</span><input type="number" min={30} max={3650} value={form.retention_days} onChange={(e) => setForm({ ...form, retention_days: Number(e.target.value) })} /></label>
                 <label className="ui-with-brand"><input type="checkbox" checked={form.verify_tls} onChange={(e) => setForm({ ...form, verify_tls: e.target.checked })} /> <span>{t("bras.verifyTls")}</span></label>
                 <label className="ui-with-brand"><input type="checkbox" checked={form.enabled} onChange={(e) => setForm({ ...form, enabled: e.target.checked })} /> <span>{t("bras.enabled")}</span></label>
                 <div className="ui-actions ui-admin-wide"><button type="submit" className="ui-button ui-button-primary" disabled={save.isPending}>{t("bras.save")}</button></div>
@@ -112,8 +119,47 @@ export function AdminBras() {
               {sync.error && <div className="ui-alert ui-alert-danger">{(sync.error as Error).message}</div>}
             </section>
           </div>
+          <WhoHad />
         </>
       )}
+    </section>
+  );
+}
+
+/** Who had a public address at a given time (CYBER-01): BRAS session history, else an ISPBilling static IP. Audited. */
+function WhoHad() {
+  const { t, i18n } = useTranslation();
+  const [address, setAddress] = useState("");
+  const [at, setAt] = useState(() => toLocalInput(null));
+  const lookup = useMutation({
+    mutationFn: () => api<Attribution>(`/api/ui/v1/security/ip-attribution?${new URLSearchParams({ address: address.trim(), at: fromLocalInput(at) ?? "" })}`),
+  });
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    lookup.mutate();
+  };
+  const result = lookup.data;
+  return (
+    <section className="ui-panel ui-admin-section">
+      <h2>{t("bras.whoHad.title")}</h2>
+      <p className="ui-muted">{t("bras.whoHad.help")}</p>
+      <form className="ui-admin-form" onSubmit={submit}>
+        <label><span>{t("bras.whoHad.address")}</span><input value={address} onChange={(e) => setAddress(e.target.value)} required placeholder="203.0.113.10" /></label>
+        <label><span>{t("bras.whoHad.at")}</span><input type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} required /></label>
+        <div className="ui-actions ui-admin-wide"><button type="submit" className="ui-button" disabled={lookup.isPending}>{t("bras.whoHad.search")}</button></div>
+      </form>
+      {lookup.error && <div className="ui-alert ui-alert-danger">{(lookup.error as Error).message}</div>}
+      {result && (result.confidence === "none" ? (
+        <div className="ui-alert ui-alert-warning">{t("bras.whoHad.none")}</div>
+      ) : (
+        <div className="ui-alert ui-alert-success">
+          <strong>{t(`bras.whoHad.${result.confidence}`)}</strong>{" "}
+          {result.customer ? <Link to="/customers/$customerId" params={{ customerId: result.customer.id }}>{result.customer.name}</Link> : t("bras.whoHad.noCustomer")}
+          {result.device && <> · <Link to="/devices/$deviceId" params={{ deviceId: result.device.id }}>{result.device.name}</Link></>}
+          {" · "}<span className="ui-mono">{result.username}</span>
+          {result.from && <> · {t("bras.whoHad.window", { from: formatDateTime(result.from, i18n.language), to: result.to ? formatDateTime(result.to, i18n.language) : t("bras.whoHad.stillOnline") })}</>}
+        </div>
+      ))}
     </section>
   );
 }

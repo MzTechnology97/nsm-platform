@@ -821,6 +821,14 @@ The PPPoE concentrator is not managed by NSM: *Integrazioni → BRAS MikroTik* (
 - device page: each ISPBilling account of the device shows its PPPoE session (online since, IP, MAC, or offline since); customer page: *Connessioni PPPoE* lists the customer's RADIUS accounts with session state and the matched device;
 - audit `BRAS_CONFIG_SAVED`, `BRAS_SYNC_REQUESTED`.
 
+### Who held an IP address at a given time (CYBER-01 first step, Core 0.49.312)
+
+- every BRAS read also writes the address history (`ip_assignments`): one row per PPPoE session and address, from the session start to the read that found it gone; a new session or a new address in the same session closes the row and opens another;
+- kept `retention_days` (BRAS settings, 30–3650, default 365), then purged by the worker; operational data, not the legal traffic-data register;
+- `who_had(address, time)`: *exact* from the BRAS history, else *static* from the static IP of an ISPBilling RADIUS account, else *none*; the username leads to the ISPBilling account, the NSM customer and the matched device; NAT/CGNAT addresses are not attributed;
+- *Integrazioni → BRAS MikroTik → Chi aveva questo IP?* (`GET /api/ui/v1/security/ip-attribution`, `customers.read`), every look-up audited as `IP_ATTRIBUTION_LOOKUP`;
+- AbuseIPDB issues are assigned to the customer and device that held the address at the last report (`details.attribution`), not to whoever has it now.
+
 ### Firmware uploaded into the catalogs (VEND-01, Core 0.49.247)
 
 The manual *Aggiungi una release* form is gone (operator request 2026-10-23): on each catalog of *Firmware → Cataloghi* the operator (`firmware.execute`) uploads the image itself (`.bin`, `.img`, `.zip`; 64 KB–128 MB) and NSM reads what the official file says:

@@ -5605,6 +5605,7 @@
     "INCIDENT_STATUS_CHANGED": "Incident status changed",
     "INTERFACE_ERRORS_DETECTED": "Interface errors detected",
     "INVENTORY_DISCOVERED": "Inventory read",
+    "IP_ATTRIBUTION_LOOKUP": "Look-up of who held an IP address",
     "ISPBILLING_AUTO_IMPORTED": "Customers imported automatically from ISPBilling",
     "ISPBILLING_AUTO_IMPORT_CHANGED": "ISPBilling automatic import changed",
     "ISPBILLING_CONFIGURED": "ISPBilling connector configured",
@@ -6723,7 +6724,21 @@
     "userHint": "On the BRAS, a user that can only read (example):",
     "test": "Test connection",
     "syncNow": "Read now",
-    "synced": "{{sessions}} sessions read: {{came}} came online, {{went}} went offline."
+    "synced": "{{sessions}} sessions read: {{came}} came online, {{went}} went offline.",
+    "retention": "Address history (days)",
+    "whoHad": {
+      "title": "Who had this IP?",
+      "help": "From a public address and a time (for example that of an abuse report), finds the BRAS PPPoE session that held it, then the customer and the device. The history starts when NSM began reading the BRAS; every look-up is recorded in the activity log.",
+      "address": "IP address",
+      "at": "Date and time",
+      "search": "Search",
+      "exact": "PPPoE session:",
+      "static": "Static IP of the account:",
+      "none": "No session or static IP for this address at that time. It may be a NAT/CGNAT address, unassigned, or older than the history.",
+      "noCustomer": "account without a linked customer",
+      "window": "from {{from}} to {{to}}",
+      "stillOnline": "now (still connected)"
+    }
   },
   "pppoe": {
     "title": "PPPoE connections",
