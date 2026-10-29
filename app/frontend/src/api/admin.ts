@@ -557,6 +557,11 @@ export function useConnectorAction<B extends object, R = unknown>(connector: str
   });
 }
 
+/** A Zabbix user macro ({$NAME} or {$NAME:context}): not a secret, shown as is. Same rule as the backend. */
+export function isZabbixMacro(value: string): boolean {
+  return /^\{\$[A-Za-z0-9_.]+(?::[^{}]*)?\}$/.test(value.trim());
+}
+
 export interface ZabbixAdmin {
   configured: boolean;
   enabled: boolean;
@@ -567,7 +572,8 @@ export interface ZabbixAdmin {
   settings: {
     group_prefix: string;
     interface: "agent" | "snmp";
-    snmp_community: string;
+    snmp_community: string; // only a Zabbix macro; a literal community is never sent back
+    snmp_community_secret: boolean;
     templates: { mikrotik: string; ubiquiti: string; default: string };
     scope: "all" | "customers";
     customer_ids: string[];

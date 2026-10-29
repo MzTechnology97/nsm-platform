@@ -2808,6 +2808,7 @@
     "interfaceSnmp": "SNMPv2 (161)",
     "community": "Communauté SNMP",
     "communityHelp": "De préférence une macro, par exemple {$SNMP_COMMUNITY}, définie dans Zabbix.",
+    "communityStored": "Communauté enregistrée chiffrée. Laisser vide pour la conserver, ou saisir une macro comme {$SNMP_COMMUNITY} pour utiliser la macro.",
     "templates": {
       "mikrotik": "Modèle MikroTik",
       "ubiquiti": "Modèle Ubiquiti",
@@ -5729,6 +5730,7 @@
     "ZABBIX_HOST_IP_UPDATED": "IP de l'hôte Zabbix mise à jour",
     "ZABBIX_HOST_LINKED": "Équipement lié à un hôte Zabbix existant",
     "ZABBIX_SETTINGS_CHANGED": "Paramètres Zabbix modifiés",
+    "ZABBIX_SNMP_COMMUNITY_ENCRYPTED": "Communauté SNMP Zabbix chiffrée",
     "ZABBIX_SYNC_REQUESTED": "Synchronisation Zabbix demandée"
   },
   "eventSources": {
