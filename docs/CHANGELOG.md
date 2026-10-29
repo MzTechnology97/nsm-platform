@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.306 — 2026-10-29
+
+TR-069: WAN traffic also on CPEs whose interface counters are stuck
+- Some firmwares report the maximum value (4294967295) for the WAN byte counters and never change it. It happens on the TP-Link HB210, whose *Traffico WAN* graph therefore stayed at zero.
+- NSM now treats that value as "not available" and reads the traffic from the layers below the WAN: the PPPoE connection, then the VLAN and the Ethernet link. The monitor records which one it used.
+- At every periodic Inform, GenieACS also reads those counters and the WAN connected time, which on some CPEs had stopped updating. A PPPoE reconnection is now seen, and the exposure check runs again after it.
+- The new GenieACS provisioning is installed by itself within 30 minutes of the update.
 ## 0.49.305 — 2026-10-29
 
 Security
