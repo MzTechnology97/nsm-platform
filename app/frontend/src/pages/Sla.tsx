@@ -1,4 +1,4 @@
-import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SearchSelect, customerLabel } from "../app/SearchSelect";
@@ -7,6 +7,7 @@ import { ApiError } from "../api/client";
 import { type MaintenanceWindowRow, type SlaRow, type SlaVerdict, slaExportUrl, useCustomerDevices, useMaintenance, useMaintenanceActions, useSetSlaTarget, useSla,
   useSlaCustomer } from "../api/sla";
 import { BrandIcon } from "../app/BrandIcon";
+import { useListSearch } from "../app/CustomerScope";
 import { InfoTip } from "../app/InfoTip";
 import { EmptyState, Loading } from "../app/States";
 import { formatDateTime, fromLocalInput } from "../lib/format";
@@ -29,17 +30,21 @@ function minutes(value: number | null | undefined, locale: string): string {
 /** Customer SLA: the availability target agreed with each customer, checked month by month on the ping measure. */
 export function Sla() {
   const { t, i18n } = useTranslation();
-  const search = useSearch({ from: "/sla" });
-  const navigate = useNavigate();
+  // Globally or as a customer's "SLA" tab: there only that customer's row, already open on its devices.
+  const { search, chosen, update, customer: scope } = useListSearch<{ month?: string; customer?: string }>();
   const query = useSla(search.month);
-  const data = query.data;
-  const setMonth = (month: string) => navigate({ to: "/sla", search: month ? { month } : {} });
-  const toggle = (customer: string) => navigate({ to: "/sla", search: { ...search, customer: search.customer === customer ? undefined : customer } });
+  const all = query.data;
+  const rows = all ? (scope ? all.rows.filter((row) => row.customer.id === scope) : all.rows) : [];
+  const data = all && scope
+    ? { ...all, rows, counts: { missed: 0, met: 0, not_measured: 0, no_target: 0, ...Object.fromEntries(rows.map((row) => [row.verdict, 1])) } }
+    : all;
+  const setMonth = (month: string) => update({ month: month || undefined });
+  const toggle = (customer: string) => update({ customer: chosen.customer === customer ? undefined : customer });
   return (
-    <section className="ui-page">
+    <section className={scope ? "ui-customer-list" : "ui-page"}>
       <header className="ui-page-header ui-page-header-row">
         <div>
-          <h1>{t("sla.title")}</h1>
+          {!scope && <h1>{t("sla.title")}</h1>}
           <p>{t("sla.subtitle")}</p>
         </div>
         {data && (
@@ -85,8 +90,8 @@ export function Sla() {
                 </thead>
                 <tbody>
                   {data.rows.map((row) => (
-                    <SlaLine key={row.customer.id} row={row} canEdit={data.can_edit} open={search.customer === row.customer.id} onToggle={() => toggle(row.customer.id)}
-                      month={search.month} />
+                    <SlaLine key={row.customer.id} row={row} canEdit={data.can_edit} open={Boolean(scope) || search.customer === row.customer.id}
+                      onToggle={() => toggle(row.customer.id)} month={search.month} scoped={Boolean(scope)} />
                   ))}
                 </tbody>
               </table>
@@ -107,16 +112,22 @@ function monthLabel(month: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(new Date(year, number - 1, 1));
 }
 
-function SlaLine({ row, canEdit, open, onToggle, month }: { row: SlaRow; canEdit: boolean; open: boolean; onToggle: () => void; month?: string }) {
+function SlaLine({ row, canEdit, open, onToggle, month, scoped = false }: {
+  row: SlaRow; canEdit: boolean; open: boolean; onToggle: () => void; month?: string; scoped?: boolean;
+}) {
   const { t, i18n } = useTranslation();
   return (
     <>
       <tr className={open ? "is-open" : undefined}>
         <td>
-          <button type="button" className="ui-link-button ui-sla-toggle" aria-expanded={open} onClick={onToggle} disabled={!row.devices}>
-            <span aria-hidden="true">{open ? "▾" : "▸"}</span> <strong>{row.customer.name}</strong>
-          </button>
-          <Link to="/customers/$customerId" params={{ customerId: row.customer.id }} className="ui-block ui-muted ui-sla-customer-link">{t("sla.openCustomer")}</Link>
+          {scoped ? <strong>{row.customer.name}</strong> : (
+            <>
+              <button type="button" className="ui-link-button ui-sla-toggle" aria-expanded={open} onClick={onToggle} disabled={!row.devices}>
+                <span aria-hidden="true">{open ? "▾" : "▸"}</span> <strong>{row.customer.name}</strong>
+              </button>
+              <Link to="/customers/$customerId" params={{ customerId: row.customer.id }} className="ui-block ui-muted ui-sla-customer-link">{t("sla.openCustomer")}</Link>
+            </>
+          )}
         </td>
         <td><TargetCell row={row} canEdit={canEdit} /></td>
         <td className="ui-nowrap">

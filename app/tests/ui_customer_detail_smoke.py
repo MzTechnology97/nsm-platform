@@ -3,6 +3,7 @@ import re
 import uuid
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from app import main as core
 from app.db import SessionLocal
@@ -63,7 +64,7 @@ def main():
     assert [s["name"] for s in body["sites"]] == ["Sede Ammiraglia", "Sede Nord"], "sites A to Z"
     north = next(s for s in body["sites"] if s["id"] == ids["north"])
     assert (north["devices"], north["online"], north["offline"], north["address"]) == (2, 1, 1, "Via di prova 1")
-    assert [t["key"] for t in body["tabs"]] == ["overview", "devices", "sites", "graphs", "backups", "security", "history"]
+    assert [t["key"] for t in body["tabs"]] == ["overview", "devices", "sites", "graphs", "backups", "security", "actions", "incidents", "sla", "history"]
     assert body["actions"] == {"edit": True, "add_site": True, "add_device": True, "incidents": True, "uisp_import": True}
     assert client.get(f"/api/ui/v1/customers/{uuid.uuid4()}").status_code == 404
 
@@ -73,6 +74,13 @@ def main():
     scoped = login(f"ci-cd-scoped-{suffix}")
     assert scoped.get(base).status_code == 404, "another customer's page is invisible"
     assert scoped.get(f"/api/ui/v1/customers/{ids['other']}").status_code == 200
+    # Issues, incidents and SLA tabs only with the permission of the matching global page.
+    with SessionLocal() as db:
+        technician = db.scalar(select(User).where(User.username == f"ci-cd-scoped-{suffix}"))
+        expected = [key for key, permission in (("actions", "issues.read"), ("incidents", "incidents.read"), ("sla", "reports.read"))
+                    if core.has_permission(technician, permission)]
+    tabs = [t["key"] for t in scoped.get(f"/api/ui/v1/customers/{ids['other']}").json()["tabs"]]
+    assert [key for key in tabs if key in ("actions", "incidents", "sla")] == expected, tabs
     assert client.get(f"/app/customers/{ids['mine']}/sites").status_code in (200, 503)  # 503 when the frontend is not built (CI integration)
     print("ui customer detail smoke ok")
 
