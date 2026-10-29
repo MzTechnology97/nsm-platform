@@ -887,6 +887,8 @@ Rules:
 
 #### SIEM-01 — configurable syslog rules with a rule tester
 
+**Step 1 done (Core 0.49.305)**: *Sicurezza → Accessi → Regole syslog*; operator rules (expression with named fields, vendor/severity/topic, N-in-T grouped by device/address/user, chained rule, ignored sources, throttling, event/notification/Action Center), a tester on a pasted line, templates, audited changes; the built-in access alerts are listed read-only. Next: the built-in patterns as an editable default rule set.
+
 Today the access patterns are fixed in the code. The operator gets rules editable from the portal:
 - **match**: vendor, severity, program/topic, regular expression with named fields (user, source IP, interface…);
 - **level** and the alert it raises (notification, Action Center issue, incident evidence);

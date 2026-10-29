@@ -1483,7 +1483,8 @@
       "none": "No access alert.",
       "users": "users: {{list}}",
       "openIncident": "Open incident"
-    }
+    },
+    "rules": "Syslog rules"
   },
   "lifecycle": {
     "title": "Lifecycle",
@@ -5697,6 +5698,9 @@
     "SYSLOG_AGENT_CONFIG_QUEUED": "Syslog setup sent to the agent",
     "SYSLOG_AGENT_CONFIG_SKIPPED": "Syslog setup skipped",
     "SYSLOG_CHAIN_ANCHOR": "Syslog integrity checkpoint",
+    "SYSLOG_RULE_DELETED": "Syslog rule deleted",
+    "SYSLOG_RULE_MATCHED": "Syslog rule matched",
+    "SYSLOG_RULE_SAVED": "Syslog rule saved",
     "SYSLOG_SETTINGS_CHANGED": "Syslog settings changed",
     "THREAT_LISTS_CONFIGURED": "Threat lists configured",
     "THREAT_LIST_MATCH": "Operator address found in a threat list",
@@ -7303,6 +7307,108 @@
     },
     "attempts_one": "{{count}} attempt on {{devices}} devices",
     "attempts_other": "{{count}} attempts on {{devices}} devices"
+  },
+  "syslogRules": {
+    "title": "Syslog rules",
+    "subtitle": "Your own rules on the device logs, on top of the built-in access alerts: regular expression, threshold over time, exceptions and action. Try them on a log line before saving.",
+    "toAccess": "Access",
+    "new": "New rule",
+    "listTitle": "Operator rules",
+    "none": "No rules: start from a template with «New rule».",
+    "columns": {
+      "name": "Rule",
+      "match": "Match",
+      "correlation": "Threshold",
+      "level": "Level",
+      "alerts": "Alerts 24 h",
+      "actions": "Actions"
+    },
+    "disabled": "disabled",
+    "anyVendor": "any vendor",
+    "maxSeverity": "up to severity {{level}}",
+    "countIn": "{{count}} in {{minutes}} min, per {{group}}",
+    "single": "every line",
+    "afterRule": "after «{{name}}» within {{minutes}} min",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirmDelete": "Delete the rule «{{name}}»?",
+    "editTitle": "Edit rule",
+    "newTitle": "New rule",
+    "template": "Start from a template",
+    "templateNone": "— no template —",
+    "fields": {
+      "name": "Name",
+      "pattern": "Regular expression on the message",
+      "patternHelp": "Named groups become the alert fields: (?P<ip>…) address, (?P<user>…) user, (?P<svc>…) service. No nested quantifiers such as (a+)+.",
+      "vendor": "Vendor",
+      "maxSeverity": "Severity up to",
+      "topic": "Topic or program contains",
+      "count": "Lines needed",
+      "countHelp": "1 = every line; more = threshold within the window.",
+      "window": "Window (minutes)",
+      "groupBy": "Count per",
+      "afterRule": "Only after the rule",
+      "afterNone": "— none —",
+      "afterMinutes": "Within (minutes)",
+      "ignore": "Addresses to ignore",
+      "ignoreHelp": "IPs or networks of the ip group, one per line (NSM, technicians, monitoring).",
+      "throttle": "At most one alert every (minutes)",
+      "level": "Level",
+      "action": "Action",
+      "enabled": "Rule enabled"
+    },
+    "save": "Save",
+    "cancel": "Cancel",
+    "groups": {
+      "device": "device",
+      "ip": "address",
+      "user": "user",
+      "device_ip": "device and address"
+    },
+    "levels": {
+      "info": "info",
+      "warning": "warning",
+      "high": "high",
+      "critical": "critical"
+    },
+    "actions": {
+      "event": "event only",
+      "notification": "event and notification",
+      "issue": "notification and Action Center"
+    },
+    "testerTitle": "Try on a log line",
+    "testerHelp": "Paste a line from a device syslog: see which rules, and the one you are editing, catch it and which fields they extract. Nothing is saved.",
+    "tester": {
+      "message": "Message",
+      "severity": "Severity",
+      "run": "Try",
+      "draft": "draft",
+      "matched": "matches",
+      "notMatched": "no",
+      "noMatch": "no match",
+      "noFields": "no fields",
+      "ignored": "address ignored",
+      "firesAlone": "this line alone raises the alert",
+      "needsCorrelation": "needs the threshold or the previous rule",
+      "noRules": "No rules to try."
+    },
+    "builtinTitle": "Built-in access alerts",
+    "builtinHelp": "Always on for every device that sends syslog; they cannot be changed.",
+    "builtin": {
+      "brute_force": "Failed login attempts",
+      "success_after_failures": "Successful login after failures",
+      "new_public_source": "Login from a new public address"
+    },
+    "severities": {
+      "0": "0 emergency",
+      "1": "1 alert",
+      "2": "2 critical",
+      "3": "3 error",
+      "4": "4 warning",
+      "5": "5 notice",
+      "6": "6 info",
+      "7": "7 debug"
+    }
   },
   "uispFirewall": {
     "upToDate": "NSM rules already applied and up to date ({{count}}): nothing to do.",

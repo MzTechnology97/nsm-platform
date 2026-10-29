@@ -4,6 +4,85 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.311 — 2026-10-29
+
+RIPEstat: the operator's prefixes, BGP origin, visibility and RPKI (RIPESTAT-01)
+- New module *Integrazioni → RIPEstat*, off by default and read-only. It uses the free RIPEstat API, with no account and no key. The operator gives its AS numbers; the prefixes checked are the ones declared in *Liste di minaccia*.
+- Every 6 hours (configurable), NSM reads:
+  - the prefixes each AS announces;
+  - for each declared prefix, who announces it and how many RIPE RIS peers see it;
+  - for each announcement, whether the RPKI ROAs match.
+- Action Center issues and notifications, each with what to do:
+  - **announced by another AS** (possible hijack, critical);
+  - **not announced**;
+  - **seen by less than half of the peers**;
+  - **RPKI invalid** (critical: routes may be dropped);
+  - **no ROA**.
+
+  An issue closes when the next read no longer shows the problem. When RIPEstat cannot be reached, the previous picture is kept.
+- Prefixes announced by the operator's ASs but not declared are suggested, so that AbuseIPDB and the threat lists cover them too.
+- NSM never changes anything at RIPE.
+## 0.49.310 — 2026-10-29
+
+Device Exposure tab no longer fails with an error
+- **Fixed:** the *Esposizione* tab of a device showed "Something went wrong! Cannot read properties of undefined (reading 'state')" as soon as the device had an exposure result. The page reads whether the device is reachable from Internet (added in 0.49.288), but the API of the tab did not send it. It does now.
+## 0.49.309 — 2026-10-29
+
+AbuseIPDB: reputation of the operator's own addresses, within the free plan (ABUSEIPDB-01)
+- New module *Integrazioni → AbuseIPDB*, off by default. The API key is stored encrypted and never shown again; *Prova chiave* checks it and reads the quota.
+- What NSM checks, only in the operator's own address space:
+  - the public prefixes declared in *Liste di minaccia*, one **/24 block check** each (one call returns every reported address of the block);
+  - the public addresses of the devices outside those prefixes, one **single check** each.
+- Each item is checked again after 24 hours (configurable); a few calls per minute spread the checks over the day. The **daily quota** is read from AbuseIPDB's answers, a reserve is kept for manual look-ups, and after *quota esaurita* (HTTP 429) NSM waits for the time AbuseIPDB gives. No plan limit is hard-coded.
+- An address with a score at or above the threshold (default 25%) opens an **Action Center issue** and a notification, with the device and customer holding it now, or *indirizzo non assegnato* for an address of the operator's prefixes held by no device. The issue closes when the score falls.
+- The page lists the reported addresses (score, reports, categories such as Port Scan, Brute-Force, SSH, last report, device and customer), the quota left and the coverage, and offers a manual look-up of one address.
+- Only IP addresses leave NSM. Looking up attackers from the logs and reporting to AbuseIPDB come later, opt-in.
+## 0.49.308 — 2026-10-29
+
+UPnP on every device: where it is on, and turning it off from NSM, one device or many (ACCESS-02, Agent 0.49.28)
+- With UPnP any device of the customer LAN can open ports of the router towards Internet without control. NSM now reads it on every kind of device, without contacting them:
+  - **MikroTik**: `/ip upnp` from the Agent snapshot of the exposure check;
+  - **TR-069 CPEs**: `Device.UPnP.Device.Enable` or the vendor flag (TP-Link `X_TP_UPnPCfg.Enable`), read every hour; NSM now also keeps where the flag is;
+  - **Ubiquiti airOS**: `upnpd.status` from the UISP backups NSM archives; the worker reads each archived backup once.
+- New *UPnP* panel on the device *Esposizione* tab: on/off, where it was read, and **Disattiva UPnP**:
+  - MikroTik: Agent job `upnp_disable` (**Agent 0.49.28**): `/ip upnp set enabled=no`, the router reports the state after;
+  - TR-069: one parameter write on the flag, applied at once or at the next contact of the CPE;
+  - airOS: through UISP like the firewall (fresh backup as the restore point, UPnP off, apply). The CPE reboots, so the device name is typed to confirm.
+- New *UPnP* list on the *Esposizione* page: the devices with UPnP on, every vendor, with a **bulk** turn-off (the number of devices typed to confirm). MikroTik and TR-069 go at once, airOS CPEs one per minute; the first airOS failure stops the other airOS devices of the same request.
+- NSM never turns UPnP off on its own. Every request and result is in the activity log (`UPNP_DISABLE_REQUESTED`, `UPNP_DISABLED`, `UPNP_DISABLE_FAILED`).
+- Cambium and the external SSDP check are not covered yet.
+## 0.49.307 — 2026-10-29
+
+Ubiquiti airOS: SSH, web management, SNMP and discovery only from the management networks (ACCESS-01, firewall through UISP)
+- New *Firewall di gestione (airOS)* panel on the device *UISP* tab. airOS has no address list for these services, so NSM uses the airOS firewall:
+  - **ACCEPT** towards the chosen services — SSH (on the CPE's SSH port), web management (on its HTTP and HTTPS ports), SNMP (UDP 161), discovery (UDP 10001) — from the authorized management networks (*Amministrazione → Reti di gestione*) and from the **customer LAN**;
+  - the operator's own rules, unchanged and in their order;
+  - **DROP** towards the same ports from everybody else.
+- The operator chooses the services in the panel; SSH, SNMP and discovery are chosen by default.
+- **Port forwards and DMZ**: a port the CPE forwards to the customer (a port forward, or the DMZ when the port is not among its exceptions) is never touched, because a rule there would block the customer's own service. Those ports are listed as not protected, and the panel warns when the DMZ is on.
+- Rules NSM would add are **skipped** when an existing rule already does the same: same port and a network that contains it. NSM marks its own rules `NSM-ACL` and replaces them when applying again, so a change of the management networks is followed. When everything is already in place the panel says so, and applying is not offered, to avoid a useless reboot.
+- The panel shows the plan computed on the last UISP backup, without contacting the CPE: rules to add, rules already present, a warning if a rule accepts everybody.
+- Applying works like the syslog through UISP: a fresh backup as the restore point, the device name typed to confirm, the CPE rebooted (2–3 minutes), and *Ripristina* available.
+- CPEs in bridge mode (a different airOS firewall) and IPv6 networks are not handled yet, and are reported as such.
+## 0.49.306 — 2026-10-29
+
+TR-069: WAN traffic also on CPEs whose interface counters are stuck
+- Some firmwares report the maximum value (4294967295) for the WAN byte counters and never change it. It happens on the TP-Link HB210, whose *Traffico WAN* graph therefore stayed at zero.
+- NSM now treats that value as "not available" and reads the traffic from the layers below the WAN: the PPPoE connection, then the VLAN and the Ethernet link. The monitor records which one it used.
+- At every periodic Inform, GenieACS also reads those counters and the WAN connected time, which on some CPEs had stopped updating. A PPPoE reconnection is now seen, and the exposure check runs again after it.
+- The new GenieACS provisioning is installed by itself within 30 minutes of the update.
+## 0.49.305 — 2026-10-29
+
+Security
+- **Syslog rules (SIEM-01, step 1).** *Sicurezza → Accessi → Regole syslog*: the operator writes rules on the device logs, on top of the built-in access alerts.
+  - **Match:** vendor, maximum severity, topic or program, and a regular expression whose named groups (`ip`, `user`, `svc` or any other) become the alert fields.
+  - **Threshold:** N lines in T minutes, counted per device, address, user, or device and address; a rule can fire only after another rule matched shortly before, for example a success after failures.
+  - **Exceptions and throttling:** addresses or networks to ignore (NSM, technicians, monitoring) and at most one alert every N minutes.
+  - **Action:** an event in the audit log, a security notification, or an Action Center issue.
+- A **tester** shows which rules, and the one being edited, match a pasted log line, and which fields they extract, before saving.
+- **Templates:** RouterOS configuration changes (`changed by` lines, RouterOS 6 and 7), RouterOS login failures with a custom threshold, interface down, unexpected reboot.
+- Every change is audited with the rule before and after. The built-in access alerts are listed read-only. Rules start from the newest log line, so old logs never raise alerts.
+
 ## 0.49.304 — 2026-10-29
 
 Threat lists: your addresses checked against Spamhaus DROP (SEC-13, SIEM-02)

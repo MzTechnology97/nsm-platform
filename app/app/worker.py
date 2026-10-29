@@ -29,6 +29,7 @@ from app.interface_error_alerts import evaluate as interface_error_alerts
 from app.mikrotik_wireless import cleanup as wireless_cleanup
 from app.syslog_receiver import cleanup as syslog_cleanup
 from app.syslog_security import evaluate as evaluate_access_alerts
+from app.syslog_rules import evaluate as evaluate_syslog_rules
 from app.mikrotik_syslog_config import auto_configure as auto_configure_syslog
 from app.management_access import auto_configure as auto_configure_management
 from app.reachability import refresh as reachability_refresh
@@ -126,6 +127,7 @@ while True:
             run_task("telegram_updates", poll_telegram_updates)
             run_task("vulnerability_digest", run_vulnerability_digest)
             run_task("syslog_access_alerts", evaluate_access_alerts)
+            run_task("syslog_rules", evaluate_syslog_rules)
             run_task("syslog_agent_config", auto_configure_syslog)
             run_task("management_access_auto", auto_configure_management)
             run_task("reachability", reachability_refresh)
