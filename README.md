@@ -4,7 +4,7 @@ NSM Platform is a customer-edge network operations, security, backup, firmware a
 
 Its primary scope is **equipment installed at customer premises or otherwise serving the customer edge**. It is designed to normalize operational state across vendors while preserving an auditable history of important actions and observations. It complements vendor controllers, monitoring systems and ACS platforms; it is not intended to replace an ISP backbone/core NMS.
 
-**Documentation snapshot:** 2026-09-30.  
+**Documentation snapshot:** 2026-10-23.  
 **Repository visibility:** public — committed examples, tests and documentation must contain synthetic/public-safe data only.
 
 ## Start here
@@ -38,15 +38,18 @@ Before implementing anything, also inspect **current `main` and all open PRs**. 
 | Audit / Action Center / Notifications | **Implemented** | Append-only operational evidence foundations, worklists and contextual browser actions. |
 | Backup framework | **Implemented** | Capability-aware policy hierarchy, scheduler/retry/retention, artifacts and device-scoped explorer. |
 | MikroTik modern Agent | **Implemented + validation pending** | Enrollment, heartbeat, jobs, telemetry, configuration, diagnostics, backup and firmware workflow are present; some backup hardening still requires physical acceptance. |
-| MikroTik legacy Agent | **Implemented + validation pending** | RouterOS 7.12.x enrollment/heartbeat/basic state and historical telemetry exist; structured configuration parity is under physical acceptance; backup parity is not implemented. |
-| Ubiquiti / UISP | **Implemented foundation** | Read-only connector, encrypted credential storage, MAC association, manual and periodic refresh with backoff/connector health, normalized inventory. Richer operations are planned. |
-| TR-069 / ACS CPE | **Planned foundation** | Capability/model placeholders exist; no production ACS connector is currently implemented. |
-| Firmware operations | **Implemented foundation** | Customer-aware worklist plus MikroTik readiness, approval, download-only staging, activation and RouterBOOT lifecycle. Vendor intelligence remains incomplete. |
-| Vulnerability / lifecycle | **Implemented foundation** | Data models and operator worklists exist. Automated source ingestion and reliable version matching remain planned. |
+| MikroTik legacy Agent | **Implemented + validation pending** | RouterOS 6.48/6.49 and 7.12.x: enrollment, heartbeat, telemetry, configuration sections, `.rsc` export and full backup over the FTP receiver; physical acceptance tracked in issue #128. |
+| Ubiquiti / UISP | **Implemented + validation pending** | Periodic sync, bulk onboarding, customer endpoints matched by name, metrics history, firmware state and catalog, reboot and configuration backup through UISP (not yet exercised on the operator's console), firmware upgrade through UISP (in the release queue). |
+| Cambium / cnMaestro | **Implemented** | cnMaestro connector, sync, metrics history, bulk onboarding; configuration backup over SSH and API v2 in the release queue. |
+| TR-069 / ACS CPE | **Implemented + validation pending** | GenieACS connector (optional in the stack): association, monitoring and alerts, diagnostics and speed tests, Wi-Fi settings, reboot, parameter snapshots as backups, firmware upgrade with TP-Link catalog, syslog. |
+| ISPBilling | **Implemented** | Customer/site import (manual and automatic), RADIUS accounts matched to devices, PPPoE↔CPE link proposals; MikroTik BRAS sessions in the release queue. |
+| Firmware operations | **Implemented** | Worklist for every vendor: MikroTik readiness, approval, staging, activation and RouterBOOT; vendor catalogs (Ubiquiti, TP-Link, uploads) and TR-069 upgrades. |
+| Vulnerability / lifecycle | **Implemented + validation pending** | NVD ingestion (live full load pending), RouterOS version matching, multi-vendor coverage, remediation lifecycle, EOL/EOS catalog with web lookup. |
+| Monitoring / syslog / exposure | **Implemented** | Telemetry and interface graphs, ICMP latency, Zabbix push, integrated syslog with access alerts, WAN exposure checks. |
 | Public read-only API | **Implemented** | API-key protected inventory, backup, vulnerability and firmware endpoints with scoping. |
-| Incident Timeline / Root Cause | **Planned** | Approved roadmap feature, not yet a runtime capability. |
-| Compliance Baseline | **Planned** | Approved roadmap feature, not yet a runtime capability. |
-| Executive / NIS2 reports | **Implemented foundation** | Manual and scheduled (monthly/quarterly/annual) PDF/CSV evidence reports with SHA-256 archive and audit. Delivery channels are planned. |
+| Incident Timeline / Root Cause | **Implemented** | Incident model, timeline, evidence, correlation with confirmed root cause, PDF export. |
+| Compliance Baseline | **Implemented** | Capability-aware controls (pass/fail/unknown/not applicable), findings with exceptions, report section. |
+| Executive / NIS2 reports | **Implemented** | Manual and scheduled PDF/CSV evidence reports with SHA-256 archive, delivered by e-mail, Telegram and Slack; SLA and planned maintenance. |
 
 See [`docs/IMPLEMENTED_CAPABILITIES.md`](docs/IMPLEMENTED_CAPABILITIES.md) for the detailed capability-by-capability truth table.
 

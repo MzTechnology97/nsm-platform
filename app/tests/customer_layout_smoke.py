@@ -35,11 +35,11 @@ def main():
 
     # Every classic customer tab opens the same view of the new interface.
     base = f"/app/customers/{customer_id}"
-    for suffix, target in (("", base), ("/devices", f"/app/devices?customer={customer_id}"), ("/sites", f"{base}/sites"),
-                           ("/backups", f"/app/backups?customer={customer_id}&view=all"), ("/security", f"{base}/security"),
-                           ("/history", f"/app/events?customer={customer_id}"), ("/devices/manage", f"{base}/devices/manage"),
+    for suffix, target in (("", base), ("/devices", f"{base}/devices"), ("/sites", f"{base}/sites"),
+                           ("/backups", f"{base}/backups"), ("/security", f"{base}/security"),
+                           ("/history", f"{base}/history"), ("/devices/manage", f"{base}/devices/manage"),
                            ("/devices/new", f"{base}/devices/new"), ("/sites/new", f"{base}/sites"), (f"/sites/{site_id}/edit", f"{base}/sites"),
-                           ("/edit", f"{base}/edit"), ("/graphs?site=x", f"{base}/graphs?site=x"), ("/devices?status=offline&page=2", f"/app/devices?customer={customer_id}&status=offline")):
+                           ("/edit", f"{base}/edit"), ("/graphs?site=x", f"{base}/graphs?site=x"), ("/devices?status=offline&page=2", f"{base}/devices?status=offline")):
         moved = client.get(f"/customers/{customer_id}{suffix}", follow_redirects=False)
         assert moved.status_code == 302 and moved.headers["location"] == target, (suffix, moved.headers.get("location"))
     for path, target in (("/customers?q=Nord&page=3", "/app/customers?q=Nord"), ("/customers/new/form", "/app/customers/new"), ("/sites", "/app/customers")):
