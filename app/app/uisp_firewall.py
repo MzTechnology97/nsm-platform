@@ -45,6 +45,7 @@ from app.ui_api import require_csrf, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 KEY = "uisp_firewall"
+READ_KEY = "uisp_firewall_read"  # rules read from the newest UISP backup, for the exposure check
 COMMENT = "NSM-ACL"
 TCP, UDP = 6, 17
 SERVICES = ("ssh", "web", "snmp", "discovery")
@@ -239,6 +240,42 @@ def plan(text: str, networks: list[str], services=DEFAULT_SERVICES) -> dict:
             "nsm_rules": sum(1 for r in rules_of(text) if str(r["fields"].get("comment") or "").startswith(COMMENT))}
 
 
+
+def firewall_summary(text: str) -> dict:
+    """What the exposure check needs of ``system.cfg``: mode, firewall on/off and the enabled rules in order."""
+    values = _values(text)
+    rules = [parse_cmd(r["fields"].get("cmd")) for r in rules_of(text) if r["fields"].get("status") == "enabled"]
+    return {"netmode": values.get("netmode"), "enabled": values.get("iptables.sys.fw.status") == "enabled",
+            "rules": [{k: r[k] for k in ("protocol", "src", "dport", "target")} for r in rules
+                      if not r["negated"] and r["target"] in ("ACCEPT", "DROP", "REJECT")]}
+
+
+def allowed_sources(summary: dict | None, proto: str, port: int) -> list[str] | None:
+    """The networks the airOS firewall admits to ``proto/port``, or None when it does not limit that port.
+
+    Rules apply in order: an ACCEPT from everybody leaves the port open, ACCEPTs from networks are collected, a DROP or
+    REJECT from everybody closes the list. Without that closing rule the port stays open, as with no rules at all.
+    Bridge mode (ebtables) and a firewall turned off limit nothing.
+    """
+    if not summary or not summary.get("enabled") or summary.get("netmode") != "router":
+        return None
+    number = TCP if proto == "tcp" else UDP
+    allowed = []
+    for rule in summary.get("rules") or []:
+        # shortcut: a port range (``20:25``) is not matched, so such a rule is ignored; parse ranges if operators use them.
+        if rule.get("protocol") not in (None, number) or rule.get("dport") not in (None, port):
+            continue
+        network = _network(rule.get("src"))
+        if network is None:
+            continue
+        if rule.get("target") == "ACCEPT":
+            if network.prefixlen == 0:
+                return None
+            allowed.append(str(network))
+        elif network.prefixlen == 0:
+            return allowed
+    return None
+
 def edit_config(text: str, networks: list[str], services=DEFAULT_SERVICES) -> str:
     """``system.cfg`` with NSM's ACCEPTs first, the operator's rules, NSM's DROPs last, firewall on; other lines unchanged."""
     planned = plan(text, networks, services)
@@ -320,6 +357,32 @@ def preview(db, device: Device, services=DEFAULT_SERVICES) -> dict:
     data = base._call(connection, "GET", f"/devices/{device.external_device_id}/backups/{newest['id']}", "il download del backup").content
     return {**plan(_system_cfg(data), _networks(db), services), "backup": {"id": newest.get("id"), "timestamp": newest.get("timestamp")}}
 
+
+
+def exposure_context(db, device: Device) -> dict | None:
+    """The airOS firewall of a UISP CPE for the exposure check, from the newest backup UISP already holds.
+
+    Nothing is asked to the CPE. The summary is kept in ``inventory_data[READ_KEY]`` with the backup id, so a check
+    downloads a backup only when UISP has a newer one. None when the device is not in UISP or UISP cannot answer:
+    the check then goes on without it.
+    """
+    if device.vendor != "ubiquiti" or not device.external_device_id:
+        return None
+    try:
+        connection = base._connection(db, device)
+        newest = base._newest_backup(connection, device, set())
+        if newest is None:
+            return None
+        cached = (device.inventory_data or {}).get(READ_KEY) or {}
+        if cached.get("backup_id") and cached.get("backup_id") == newest.get("id"):
+            return cached
+        data = base._call(connection, "GET", f"/devices/{device.external_device_id}/backups/{newest['id']}", "il download del backup").content
+        summary = firewall_summary(_system_cfg(data))
+    except (InputError, tarfile.TarError, UnicodeDecodeError):
+        return None
+    context = {**summary, "backup_id": newest.get("id"), "backup_at": newest.get("timestamp")}
+    device.inventory_data = {**(device.inventory_data or {}), READ_KEY: context}
+    return context
 
 def restore_point(connection, device: Device) -> tuple[dict, bytes]:
     """A fresh UISP backup of the device (the restore point) and its content."""
