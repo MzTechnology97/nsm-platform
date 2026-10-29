@@ -41,7 +41,7 @@ def seed():
             firmware_version="7.20.0",
             recommended_firmware_version="7.21.1",
             firmware_status="update_available",
-            inventory_data={"agent_transport": "modern", "agent_version": "0.20.0"},
+            inventory_data={"agent_transport": "modern", "agent_version": "0.20.0", "agent_privilege_profile": "ops-v2"},
         )
         db.add(device)
         db.flush()
@@ -104,7 +104,7 @@ def main():
     complete = client.post(
         f"/api/v1/agents/mikrotik/firmware-stage/{job_id}/complete",
         headers=headers,
-        json={"status": "success", "error": "", "result": {"installed_version": "7.20.0", "latest_version": "7.21.1", "target_version": "7.21.1", "download_only": True}},
+        json={"status": "success", "error": "", "result": {"installed_version": "7.20.0", "latest_version": "7.21.1", "target_version": "7.21.1", "download_only": True, "package_verified": True, "package_file": "routeros-7.21.1-mmips.npk", "package_size": 12058624, "step": "download", "free_hdd_before": 16777216, "free_hdd_after": 4718592}},
     )
     assert complete.status_code == 200
 
@@ -122,7 +122,56 @@ def main():
     with SessionLocal() as db:
         activation_jobs = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "firmware_activate")))
         assert activation_jobs == []
+    check_unverified_downloads()
     print("Core 0.32 download-only staging smoke passed with contextual UI feedback")
+
+
+def stage_and_report(report: dict):
+    """Queue the download of a new approved plan, then send the Agent report; returns the plan and the job."""
+    username, device_id, plan_id, raw_secret = seed()
+    client = TestClient(app)
+    login(client, username)
+    headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
+    api = f"/api/ui/v1/devices/{device_id}/firmware-upgrade"
+    assert client.post(f"{api}/{plan_id}/stage", headers=headers, json={"confirmation": "DOWNLOAD 7.21.1"}).status_code == 200
+    with SessionLocal() as db:
+        job_id = db.scalar(select(DeviceJob.id).where(DeviceJob.device_id == device_id, DeviceJob.job_type == "firmware_stage"))
+    agent = {"X-NSM-Device-ID": str(device_id), "X-NSM-Device-Secret": raw_secret}
+    assert client.post(f"/api/v1/agents/mikrotik/firmware-stage/{job_id}/complete", headers=agent, json=report).status_code == 200
+    with SessionLocal() as db:
+        return db.get(FirmwareUpgradePlan, plan_id), db.get(DeviceJob, job_id)
+
+
+def check_unverified_downloads():
+    # Agent 0.49.23 reported success right after starting the download, with the status read before it.
+    plan, job = stage_and_report({"status": "success", "error": "", "result": {"installed_version": "7.20.0", "latest_version": "7.21.1",
+                                  "target_version": "7.21.1", "update_status": "New version is available", "download_only": True}})
+    assert plan.status == "failed" and job.status == "failed" and "Aggiorna l'Agent" in plan.last_error, (plan.status, plan.last_error)
+
+    # Agent 0.49.25: RouterOS could not write the package (16 MB hEX).
+    plan, job = stage_and_report({"status": "failed", "error": "RouterOS package staging failed at verify: ERROR: not enough disk space",
+                                  "result": {"target_version": "7.21.1", "update_status": "ERROR: not enough disk space", "step": "verify",
+                                             "package_verified": False, "package_file": "", "free_hdd_before": 4980736, "free_hdd_after": 4980736}})
+    assert plan.status == "failed" and job.status == "failed", plan.status
+    assert "non risulta scaricato" in plan.last_error and "ERROR: not enough disk space" in plan.last_error and "4.8 MB" in plan.last_error, plan.last_error
+    assert "cartella Files" in plan.last_error, plan.last_error
+
+    # A changed target before the download is not a space problem.
+    plan, _ = stage_and_report({"status": "failed", "error": "RouterOS package staging failed at check: New version is available",
+                                "result": {"target_version": "7.21.1", "update_status": "New version is available", "step": "check",
+                                           "package_verified": False, "free_hdd_before": ""}})
+    assert plan.status == "failed" and "Controllo prima del download" in plan.last_error and "cartella Files" not in plan.last_error, plan.last_error
+
+    from app import mikrotik_agent as agent_module
+
+    source = agent_module._agent_source("https://nsm.example.net", uuid.uuid4(), "ci-secret", True)
+    start = source.index('nsmJobType = "firmware_stage"')
+    stage = source[start:source.index(':if ($nsmJobType = ', start)]
+    for needle in ('/system package update download', 'free-hdd-space', '/file find where name~("routeros-" . $nsmTarget . "-")',
+                   '"package_verified"=$nsmVerified', ':while (!$nsmVerified && $nsmWait < 36)'):
+        assert needle in stage, needle
+    assert stage.index('/system package update download') < stage.index('/file find where name~') < stage.index('/firmware-stage/')
+    assert "/system reboot" not in stage and "/system package update install" not in stage
 
 
 if __name__ == "__main__":

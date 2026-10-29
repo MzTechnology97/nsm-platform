@@ -10,6 +10,7 @@ const ADMIN_PAGES: { key: string; route: string }[] = [
   { key: "demo", route: "/admin/demo" },
   { key: "notifications", route: "/admin/notifications" },
   { key: "syslog", route: "/admin/syslog" },
+  { key: "managementAccess", route: "/admin/management-access" },
   { key: "acs", route: "/admin/acs" },
   { key: "system", route: "/admin/system" },
   { key: "serverMigration", route: "/admin/server-migration" },
