@@ -2,7 +2,8 @@
 
 - ``GET  /api/ui/v1/action-center``: open (or chosen) issues, most severe
   first, with category and severity counts, filtered by state, customer,
-  device, severity and category;
+  device, severity, category, ATT&CK tactic and framework; each issue carries
+  the techniques and requirements of its category (``attack_mapping``, SIEM-05);
 - ``POST /api/ui/v1/action-center/{issue_id}/ack``: take an issue in charge
   (``issues.ack``), audited like the classic button;
 - ``GET  /api/ui/v1/incidents``: incidents newest first with status counts and
@@ -19,7 +20,7 @@ import uuid
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from sqlalchemy import case, func, select
 
-from app import pagination
+from app import attack_mapping, pagination
 from app import incidents as incident_flow
 from app import main as core
 from app.db import SessionLocal
@@ -64,7 +65,8 @@ def device_ref(device) -> dict | None:
 
 
 @router.get("/action-center")
-def action_center(request: Request, severity: str = "", category: str = "", status: str = "", customer: str = "", device: str = "", offset: int = 0, limit: int = 0):
+def action_center(request: Request, severity: str = "", category: str = "", status: str = "", customer: str = "", device: str = "",
+                  tactic: str = "", framework: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         user = ui_user(request, db, "issues.read")
         customer_id = _uuid(customer)
@@ -74,6 +76,8 @@ def action_center(request: Request, severity: str = "", category: str = "", stat
         device_id = _uuid(device)
         if device_id:
             base.append(ActionIssue.device_id == device_id)
+        if tactic or framework:
+            base.append(ActionIssue.category.in_(sorted(attack_mapping.categories_for(tactic, framework))))
         # Severity chips count within state and customer; category chips also within the chosen severity.
         severities = {name or "info": int(count) for name, count in db.execute(
             select(ActionIssue.severity, func.count(ActionIssue.id)).where(*base).group_by(ActionIssue.severity)).all()}
@@ -94,11 +98,13 @@ def action_center(request: Request, severity: str = "", category: str = "", stat
             "categories": categories, "severities": severities,
             "can_ack": core.has_permission(user, "issues.ack"),
             "can_incident": core.has_permission(user, "incidents.write"),
+            "mapping": attack_mapping.options(),
             "items": [{
                 "id": str(i.id), "title": i.title, "severity": i.severity, "category": i.category or "system", "status": i.status,
                 "created_at": _iso(i.created_at), "updated_at": _iso(i.updated_at),
                 "device": device_ref(devices.get(i.device_id)),
                 "customer": {"id": str(i.customer_id), "name": customers[i.customer_id].name} if i.customer_id in customers else None,
+                **attack_mapping.describe(i.category),
             } for i in issues],
         }
 

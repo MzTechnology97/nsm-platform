@@ -72,6 +72,14 @@ export function ActionCenter() {
         <select value={search.status ?? ""} onChange={(event) => update({ status: (event.target.value || undefined) as IssueFilters["status"] })} aria-label={t("actionCenter.status")}>
           {STATUSES.map((value) => <option key={value} value={value}>{t(`actionCenter.statuses.${value || "active"}`)}</option>)}
         </select>
+        <select value={search.tactic ?? ""} onChange={(event) => update({ tactic: event.target.value || undefined })} aria-label={t("actionCenter.tactic")}>
+          <option value="">{t("actionCenter.allTactics")}</option>
+          {first?.mapping.tactics.map((tactic) => <option key={tactic.id} value={tactic.id}>{`${tactic.id} ${tactic.name}`}</option>)}
+        </select>
+        <select value={search.framework ?? ""} onChange={(event) => update({ framework: event.target.value || undefined })} aria-label={t("actionCenter.framework")}>
+          <option value="">{t("actionCenter.allFrameworks")}</option>
+          {first?.mapping.frameworks.map((framework) => <option key={framework} value={framework}>{t(`attack.frameworks.${framework}`)}</option>)}
+        </select>
         {!scope && <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />}
       </div>
 
@@ -101,7 +109,7 @@ export function ActionCenter() {
           <Pager total={first.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
-        <div className="ui-empty">{search.status || search.severity || search.category ? t("actionCenter.empty") : t("actionCenter.allGood")}</div>
+        <div className="ui-empty">{search.status || search.severity || search.category || search.tactic || search.framework ? t("actionCenter.empty") : t("actionCenter.allGood")}</div>
       )}
     </section>
   );
@@ -131,7 +139,19 @@ function Row({ row, canAck, canIncident }: { row: IssueRow; canAck: boolean; can
           <span className="ui-muted">{t("actionCenter.system")}</span>
         )}
       </td>
-      <td>{t(`actionCenter.categories.${row.category}`, { defaultValue: row.category })}</td>
+      <td>
+        {t(`actionCenter.categories.${row.category}`, { defaultValue: row.category })}
+        {row.techniques.length > 0 && (
+          <small className="ui-muted ui-block" title={row.techniques.map((technique) => `${technique.id} ${technique.name}`).join("\n")}>
+            {row.techniques.map((technique) => technique.id).join(" · ")}
+          </small>
+        )}
+        {row.requirements.length > 0 && (
+          <small className="ui-muted ui-block" title={row.requirements.map((req) => `${t(`attack.frameworks.${req.framework}`)} ${req.code}: ${t(`attack.requirements.${req.id}`)}`).join("\n")}>
+            {[...new Set(row.requirements.map((req) => t(`attack.frameworks.${req.framework}`)))].join(" · ")}
+          </small>
+        )}
+      </td>
       <td className="ui-nowrap" title={formatDateTime(row.created_at, i18n.language)}>{formatRelative(row.created_at, i18n.language)}</td>
       <td>{t(`actionCenter.state.${row.status}`, { defaultValue: row.status })}</td>
       <td>

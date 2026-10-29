@@ -1641,7 +1641,12 @@
       "integration": "Integraciones",
       "interface_errors": "Errores de interfaz",
       "configuration": "Configuración",
-      "acs": "CPE (ACS)"
+      "acs": "CPE (ACS)",
+      "syslog_rule": "Reglas syslog",
+      "threat_list": "Listas de amenazas",
+      "dnsbl": "Listas negras DNS",
+      "abuseipdb": "AbuseIPDB",
+      "ripestat": "Enrutamiento (RIPEstat)"
     },
     "state": {
       "open": "Abierto",
@@ -1649,7 +1654,11 @@
       "resolved": "Resuelto"
     },
     "deviceFilter": "Avisos de un solo equipo.",
-    "clearDevice": "Mostrar todos"
+    "clearDevice": "Mostrar todos",
+    "tactic": "Táctica ATT&CK",
+    "allTactics": "Todas las tácticas ATT&CK",
+    "framework": "Normativa",
+    "allFrameworks": "Todas las normativas"
   },
   "incidents": {
     "title": "Incidentes",
@@ -7679,6 +7688,32 @@
       "prefix": "Prefijo",
       "list": "Lista",
       "network": "Red en lista"
+    }
+  },
+  "attack": {
+    "frameworks": {
+      "nis2": "NIS2",
+      "iso27001": "ISO 27001",
+      "gdpr": "GDPR"
+    },
+    "requirements": {
+      "nis2_21_2_b": "Gestión de incidentes",
+      "nis2_21_2_c": "Continuidad de negocio, copias de seguridad y recuperación ante desastres",
+      "nis2_21_2_e": "Seguridad en la adquisición y el mantenimiento, gestión de vulnerabilidades",
+      "nis2_21_2_f": "Evaluación de la eficacia de las medidas",
+      "nis2_21_2_i": "Control de acceso y gestión de activos",
+      "iso_a_5_7": "Inteligencia de amenazas",
+      "iso_a_8_5": "Autenticación segura",
+      "iso_a_8_8": "Gestión de vulnerabilidades técnicas",
+      "iso_a_8_9": "Gestión de la configuración",
+      "iso_a_8_13": "Copia de seguridad de la información",
+      "iso_a_8_15": "Registro de eventos",
+      "iso_a_8_16": "Actividades de monitorización",
+      "iso_a_8_20": "Seguridad de redes",
+      "iso_a_8_32": "Gestión de cambios",
+      "gdpr_32_1_b": "Confidencialidad, integridad, disponibilidad y resiliencia",
+      "gdpr_32_1_c": "Restablecer la disponibilidad tras un incidente",
+      "gdpr_32_1_d": "Verificación periódica de la eficacia de las medidas"
     }
   }
 }

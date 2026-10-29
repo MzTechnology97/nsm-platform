@@ -257,6 +257,8 @@ function parseIssueSearch(search: Record<string, unknown>): IssueFilters {
     ...(typeof search.status === "string" && ISSUE_STATUSES.includes(search.status as never) ? { status: search.status as IssueFilters["status"] } : {}),
     ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
     ...(typeof search.device === "string" && search.device ? { device: search.device } : {}),
+    ...(typeof search.tactic === "string" && search.tactic ? { tactic: search.tactic } : {}),
+    ...(typeof search.framework === "string" && search.framework ? { framework: search.framework } : {}),
   };
 }
 const actionCenterRoute = createRoute({

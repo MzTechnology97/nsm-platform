@@ -1641,7 +1641,12 @@
       "integration": "Integrazioni",
       "interface_errors": "Errori interfaccia",
       "configuration": "Configurazione",
-      "acs": "CPE (ACS)"
+      "acs": "CPE (ACS)",
+      "syslog_rule": "Regole syslog",
+      "threat_list": "Liste di minacce",
+      "dnsbl": "Blacklist DNS",
+      "abuseipdb": "AbuseIPDB",
+      "ripestat": "Routing (RIPEstat)"
     },
     "state": {
       "open": "Aperta",
@@ -1649,7 +1654,11 @@
       "resolved": "Risolta"
     },
     "deviceFilter": "Segnalazioni di un solo apparato.",
-    "clearDevice": "Mostra tutte"
+    "clearDevice": "Mostra tutte",
+    "tactic": "Tattica ATT&CK",
+    "allTactics": "Tutte le tattiche ATT&CK",
+    "framework": "Normativa",
+    "allFrameworks": "Tutte le normative"
   },
   "incidents": {
     "title": "Incidenti",
@@ -7679,6 +7688,32 @@
       "prefix": "Prefisso",
       "list": "Lista",
       "network": "Rete in lista"
+    }
+  },
+  "attack": {
+    "frameworks": {
+      "nis2": "NIS2",
+      "iso27001": "ISO 27001",
+      "gdpr": "GDPR"
+    },
+    "requirements": {
+      "nis2_21_2_b": "Gestione degli incidenti",
+      "nis2_21_2_c": "Continuità operativa, backup e disaster recovery",
+      "nis2_21_2_e": "Sicurezza di acquisizione e manutenzione, gestione delle vulnerabilità",
+      "nis2_21_2_f": "Valutazione dell'efficacia delle misure",
+      "nis2_21_2_i": "Controllo degli accessi e gestione degli asset",
+      "iso_a_5_7": "Threat intelligence",
+      "iso_a_8_5": "Autenticazione sicura",
+      "iso_a_8_8": "Gestione delle vulnerabilità tecniche",
+      "iso_a_8_9": "Gestione della configurazione",
+      "iso_a_8_13": "Backup delle informazioni",
+      "iso_a_8_15": "Logging",
+      "iso_a_8_16": "Attività di monitoraggio",
+      "iso_a_8_20": "Sicurezza delle reti",
+      "iso_a_8_32": "Gestione dei cambiamenti",
+      "gdpr_32_1_b": "Riservatezza, integrità, disponibilità e resilienza",
+      "gdpr_32_1_c": "Ripristino della disponibilità dopo un incidente",
+      "gdpr_32_1_d": "Verifica regolare dell'efficacia delle misure"
     }
   }
 }

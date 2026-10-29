@@ -928,6 +928,8 @@ When an access rule fires (brute force, listed IP), NSM can block the source on 
 
 #### SIEM-05 — MITRE ATT&CK and regulatory mapping
 
+**Step 1 done (Core 0.49.320)**: every Action Center issue category carries its ATT&CK techniques and the NIS2 art. 21(2), ISO/IEC 27001:2022 Annex A and GDPR art. 32 requirements it evidences (`attack_mapping.py`); the Action Center shows them and filters by tactic and framework; a test fails when a new issue category has no mapping. Next: techniques chosen per syslog rule (SIEM-01), the same filters in *Sicurezza*, and the report per framework.
+
 - Every alert type, rule (SIEM-01) and compliance control (COMP-01) carries MITRE ATT&CK tactics/techniques (e.g. brute force T1110, valid accounts T1078, exposed remote services T1133) and the requirements it evidences: NIS2 (Italy: D.Lgs. 138/2024, art. 21 measures), ISO/IEC 27001:2022 Annex A, GDPR art. 32.
 - Filters by tactic and by framework in *Sicurezza* and the Action Center.
 - A report per framework (REP-01…04): for each requirement, the NSM controls that evidence it, their state in the period and the open gaps. It supports the operator's own assessment and is not a certification.
