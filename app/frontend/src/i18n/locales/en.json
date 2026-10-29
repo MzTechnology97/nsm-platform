@@ -2399,7 +2399,8 @@
       "bras": "MikroTik BRAS",
       "unifi": "UniFi Network",
       "probe": "External probe",
-      "threatLists": "Threat lists"
+      "threatLists": "Threat lists",
+      "abuseipdb": "AbuseIPDB"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5423,6 +5424,8 @@
     }
   },
   "eventTypes": {
+    "ABUSEIPDB_CONFIGURED": "AbuseIPDB settings changed",
+    "ABUSEIPDB_LISTED": "Address reported on AbuseIPDB",
     "ACS_ACCESS_CHANGED": "CPE remote access or Telnet changed",
     "ACS_ALERT_OPENED": "CPE alert opened",
     "ACS_ALERT_RESOLVED": "CPE alert resolved",
@@ -7186,11 +7189,11 @@
     "test": "Test the probe",
     "howTitle": "Installation on the outside server",
     "how": {
-      "host": "A server outside your network (e.g. a Debian or Ubuntu VPS) with another Internet connection.",
-      "secret": "The installer generates the shared secret and prints it at the end (again with \"sudo bash install.sh show-secret\").",
-      "run": "On the server run the commands below: they install Docker if missing, download the probe and start it.",
-      "sources": "Put in --allow the public IP the NSM server goes out from, so nobody else can use it. With --domain the probe answers over HTTPS through Caddy.",
-      "connect": "Enter here the address, name and secret printed by the installer, save and press «Test the probe»."
+      "host": "A server outside your network, with another Internet connection, and Docker installed.",
+      "secret": "Generate a secret of at least 32 characters (e.g. with openssl rand -hex 32): it goes both in the probe and here.",
+      "run": "Copy the repository's probe folder and start the container with the commands below.",
+      "sources": "Set PROBE_ALLOWED_SOURCES to the public IP the NSM server goes out from, so nobody else can use it.",
+      "connect": "Enter address, name and secret here, save and press «Test the probe»."
     }
   },
   "cambiumFirmware": {
@@ -7474,5 +7477,56 @@
     "bulkQueued_other": "{{count}} devices queued.",
     "bulkSkipped_one": "{{count}} skipped (not supported or already running).",
     "bulkSkipped_other": "{{count}} skipped (not supported or already running)."
+  },
+  "abuseipdb": {
+    "title": "AbuseIPDB",
+    "subtitle": "Reputation of your public addresses: NSM checks your prefixes and the devices' public IPs on AbuseIPDB, within your plan's quota. Only IP addresses leave NSM.",
+    "test": "Test key",
+    "run": "Check now",
+    "testOk": "Key valid: quota read from AbuseIPDB.",
+    "ran": "Checks run: {{calls}}; still to check: {{due}}.",
+    "statusTitle": "Status and quota",
+    "waiting": "Quota used up: NSM resumes after {{when}}.",
+    "endpoint": {
+      "check": "Single IP checks",
+      "check-block": "/24 block checks"
+    },
+    "quota": "{{remaining}} of {{limit}} left · reset {{when}}",
+    "quotaUnknown": "Quota not read yet (read at the first call).",
+    "coverage": "To check: {{blocks}} /24 blocks and {{addresses}} addresses outside your prefixes; checked so far: {{checked}}.",
+    "prefixes": "Prefixes: {{list}}.",
+    "noPrefixes": "No prefix declared: only the devices' public IPs are checked.",
+    "prefixesLink": "Edit the prefixes",
+    "evaluated": "Last evaluation: {{when}}.",
+    "settingsTitle": "Settings",
+    "enabled": "Module on",
+    "apiKey": "API key",
+    "keySaved": "Key saved (leave empty to keep it)",
+    "keyHelp": "Create it on abuseipdb.com → Account → API. It is stored encrypted and never shown again.",
+    "fields": {
+      "threshold": "Alert threshold (score %)",
+      "max_age_days": "Reports of the last days",
+      "recheck_hours": "Check again every (hours)",
+      "reserve_checks": "Single checks to keep free",
+      "reserve_blocks": "Block checks to keep free"
+    },
+    "saved": "Settings saved.",
+    "lookupTitle": "Check an address",
+    "lookup": "Check",
+    "score": "score {{score}}%",
+    "reports_one": "{{count}} report",
+    "reports_other": "{{count}} reports",
+    "reportedTitle": "Reported addresses",
+    "reportedHelp": "Addresses with a score of at least {{threshold}}% open an Action Center issue, closed when the score falls.",
+    "noReported": "None of your addresses is reported.",
+    "unassigned": "Your address, not assigned",
+    "unknownHolder": "No known device",
+    "columns": {
+      "address": "Address",
+      "score": "Score",
+      "holder": "Held by (now)",
+      "categories": "Categories",
+      "last": "Last report"
+    }
   }
 }

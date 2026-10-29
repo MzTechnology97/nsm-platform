@@ -2399,7 +2399,8 @@
       "bras": "BRAS MikroTik",
       "unifi": "UniFi Network",
       "probe": "Sonda esterna",
-      "threatLists": "Liste di minaccia"
+      "threatLists": "Liste di minaccia",
+      "abuseipdb": "AbuseIPDB"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5423,6 +5424,8 @@
     }
   },
   "eventTypes": {
+    "ABUSEIPDB_CONFIGURED": "Impostazioni AbuseIPDB modificate",
+    "ABUSEIPDB_LISTED": "Indirizzo segnalato su AbuseIPDB",
     "ACS_ACCESS_CHANGED": "Accesso remoto o Telnet del CPE modificato",
     "ACS_ALERT_OPENED": "Avviso CPE aperto",
     "ACS_ALERT_RESOLVED": "Avviso CPE risolto",
@@ -7186,11 +7189,11 @@
     "test": "Prova la sonda",
     "howTitle": "Installazione sul server esterno",
     "how": {
-      "host": "Un server fuori dalla tua rete (ad esempio una VPS Debian o Ubuntu) con un'altra connessione Internet.",
-      "secret": "L'installer genera il segreto condiviso e lo stampa alla fine (di nuovo con «sudo bash install.sh show-secret»).",
-      "run": "Sul server esegui i comandi qui sotto: installa Docker se manca, scarica la sonda e la avvia.",
-      "sources": "In --allow metti l'IP pubblico da cui esce il server NSM, così nessun altro può usarla. Con --domain la sonda risponde in HTTPS tramite Caddy.",
-      "connect": "Inserisci qui indirizzo, nome e segreto stampati dall'installer, salva e premi «Prova la sonda»."
+      "host": "Un server fuori dalla tua rete, con un'altra connessione Internet, e Docker installato.",
+      "secret": "Genera un segreto di almeno 32 caratteri (ad esempio con openssl rand -hex 32): va sia nella sonda sia qui.",
+      "run": "Copia la cartella probe del repository e avvia il container con i comandi qui sotto.",
+      "sources": "In PROBE_ALLOWED_SOURCES metti l'IP pubblico da cui esce il server NSM, così nessun altro può usarla.",
+      "connect": "Inserisci qui indirizzo, nome e segreto, salva e premi «Prova la sonda»."
     }
   },
   "cambiumFirmware": {
@@ -7474,5 +7477,56 @@
     "bulkQueued_other": "{{count}} dispositivi in coda.",
     "bulkSkipped_one": "{{count}} saltato (non supportato o già in corso).",
     "bulkSkipped_other": "{{count}} saltati (non supportati o già in corso)."
+  },
+  "abuseipdb": {
+    "title": "AbuseIPDB",
+    "subtitle": "Reputazione dei tuoi indirizzi pubblici: NSM controlla su AbuseIPDB i tuoi prefissi e gli IP pubblici degli apparati, dentro la quota del tuo piano. Escono da NSM solo indirizzi IP.",
+    "test": "Prova chiave",
+    "run": "Controlla ora",
+    "testOk": "Chiave valida: quota letta da AbuseIPDB.",
+    "ran": "Controlli eseguiti: {{calls}}; ancora da controllare: {{due}}.",
+    "statusTitle": "Stato e quota",
+    "waiting": "Quota esaurita: NSM riprende dopo il {{when}}.",
+    "endpoint": {
+      "check": "Controlli singoli IP",
+      "check-block": "Controlli di blocchi /24"
+    },
+    "quota": "Rimasti {{remaining}} su {{limit}} · reset {{when}}",
+    "quotaUnknown": "Quota non ancora letta (si legge alla prima chiamata).",
+    "coverage": "Da controllare: {{blocks}} blocchi /24 e {{addresses}} indirizzi fuori dai tuoi prefissi; già controllati: {{checked}}.",
+    "prefixes": "Prefissi: {{list}}.",
+    "noPrefixes": "Nessun prefisso dichiarato: vengono controllati solo gli IP pubblici degli apparati.",
+    "prefixesLink": "Modifica i prefissi",
+    "evaluated": "Ultima valutazione: {{when}}.",
+    "settingsTitle": "Impostazioni",
+    "enabled": "Modulo attivo",
+    "apiKey": "Chiave API",
+    "keySaved": "Chiave salvata (lascia vuoto per non cambiarla)",
+    "keyHelp": "Creala su abuseipdb.com → Account → API. Viene salvata cifrata e non viene più mostrata.",
+    "fields": {
+      "threshold": "Soglia di allarme (punteggio %)",
+      "max_age_days": "Segnalazioni degli ultimi giorni",
+      "recheck_hours": "Ricontrollo ogni (ore)",
+      "reserve_checks": "Controlli singoli da lasciare liberi",
+      "reserve_blocks": "Controlli di blocchi da lasciare liberi"
+    },
+    "saved": "Impostazioni salvate.",
+    "lookupTitle": "Controlla un indirizzo",
+    "lookup": "Controlla",
+    "score": "punteggio {{score}}%",
+    "reports_one": "{{count}} segnalazione",
+    "reports_other": "{{count}} segnalazioni",
+    "reportedTitle": "Indirizzi segnalati",
+    "reportedHelp": "Gli indirizzi con punteggio di almeno {{threshold}}% aprono una segnalazione nell'Action Center, che si chiude quando il punteggio scende.",
+    "noReported": "Nessun tuo indirizzo risulta segnalato.",
+    "unassigned": "Indirizzo tuo non assegnato",
+    "unknownHolder": "Nessun apparato noto",
+    "columns": {
+      "address": "Indirizzo",
+      "score": "Punteggio",
+      "holder": "Assegnato a (ora)",
+      "categories": "Categorie",
+      "last": "Ultima segnalazione"
+    }
   }
 }

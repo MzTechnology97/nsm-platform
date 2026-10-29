@@ -2399,7 +2399,8 @@
       "bras": "BRAS MikroTik",
       "unifi": "UniFi Network",
       "probe": "Sonda externa",
-      "threatLists": "Listas de amenazas"
+      "threatLists": "Listas de amenazas",
+      "abuseipdb": "AbuseIPDB"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5423,6 +5424,8 @@
     }
   },
   "eventTypes": {
+    "ABUSEIPDB_CONFIGURED": "Ajustes de AbuseIPDB modificados",
+    "ABUSEIPDB_LISTED": "Dirección denunciada en AbuseIPDB",
     "ACS_ACCESS_CHANGED": "Acceso remoto o Telnet del CPE modificado",
     "ACS_ALERT_OPENED": "Aviso de CPE abierto",
     "ACS_ALERT_RESOLVED": "Aviso de CPE resuelto",
@@ -7186,11 +7189,11 @@
     "test": "Probar la sonda",
     "howTitle": "Instalación en el servidor externo",
     "how": {
-      "host": "Un servidor fuera de su red (por ejemplo un VPS Debian o Ubuntu) con otra conexión a Internet.",
-      "secret": "El instalador genera el secreto compartido y lo muestra al final (de nuevo con «sudo bash install.sh show-secret»).",
-      "run": "En el servidor ejecute los comandos de abajo: instalan Docker si falta, descargan la sonda y la arrancan.",
-      "sources": "En --allow ponga la IP pública de salida del servidor NSM, así nadie más puede usarla. Con --domain la sonda responde en HTTPS a través de Caddy.",
-      "connect": "Introduzca aquí la dirección, el nombre y el secreto mostrados por el instalador, guarde y pulse «Probar la sonda»."
+      "host": "Un servidor fuera de su red, con otra conexión a Internet, y Docker instalado.",
+      "secret": "Genere un secreto de al menos 32 caracteres (por ejemplo con openssl rand -hex 32): va en la sonda y aquí.",
+      "run": "Copie la carpeta probe del repositorio y arranque el contenedor con los comandos de abajo.",
+      "sources": "En PROBE_ALLOWED_SOURCES ponga la IP pública de salida del servidor NSM, así nadie más puede usarla.",
+      "connect": "Introduzca aquí dirección, nombre y secreto, guarde y pulse «Probar la sonda»."
     }
   },
   "cambiumFirmware": {
@@ -7474,5 +7477,56 @@
     "bulkQueued_other": "{{count}} equipos en cola.",
     "bulkSkipped_one": "{{count}} omitido (no compatible o ya en curso).",
     "bulkSkipped_other": "{{count}} omitidos (no compatibles o ya en curso)."
+  },
+  "abuseipdb": {
+    "title": "AbuseIPDB",
+    "subtitle": "Reputación de sus direcciones públicas: NSM comprueba en AbuseIPDB sus prefijos y las IP públicas de los equipos, dentro de la cuota de su plan. Solo salen de NSM direcciones IP.",
+    "test": "Probar clave",
+    "run": "Comprobar ahora",
+    "testOk": "Clave válida: cuota leída de AbuseIPDB.",
+    "ran": "Comprobaciones hechas: {{calls}}; pendientes: {{due}}.",
+    "statusTitle": "Estado y cuota",
+    "waiting": "Cuota agotada: NSM reanuda después del {{when}}.",
+    "endpoint": {
+      "check": "Comprobaciones de IP",
+      "check-block": "Comprobaciones de bloques /24"
+    },
+    "quota": "Quedan {{remaining}} de {{limit}} · reinicio {{when}}",
+    "quotaUnknown": "Cuota aún no leída (se lee en la primera llamada).",
+    "coverage": "Por comprobar: {{blocks}} bloques /24 y {{addresses}} direcciones fuera de sus prefijos; ya comprobadas: {{checked}}.",
+    "prefixes": "Prefijos: {{list}}.",
+    "noPrefixes": "Ningún prefijo declarado: solo se comprueban las IP públicas de los equipos.",
+    "prefixesLink": "Editar los prefijos",
+    "evaluated": "Última evaluación: {{when}}.",
+    "settingsTitle": "Ajustes",
+    "enabled": "Módulo activo",
+    "apiKey": "Clave API",
+    "keySaved": "Clave guardada (deje vacío para mantenerla)",
+    "keyHelp": "Créela en abuseipdb.com → Account → API. Se guarda cifrada y no se vuelve a mostrar.",
+    "fields": {
+      "threshold": "Umbral de alerta (puntuación %)",
+      "max_age_days": "Denuncias de los últimos días",
+      "recheck_hours": "Volver a comprobar cada (horas)",
+      "reserve_checks": "Comprobaciones de IP a dejar libres",
+      "reserve_blocks": "Comprobaciones de bloques a dejar libres"
+    },
+    "saved": "Ajustes guardados.",
+    "lookupTitle": "Comprobar una dirección",
+    "lookup": "Comprobar",
+    "score": "puntuación {{score}} %",
+    "reports_one": "{{count}} denuncia",
+    "reports_other": "{{count}} denuncias",
+    "reportedTitle": "Direcciones denunciadas",
+    "reportedHelp": "Las direcciones con puntuación de al menos {{threshold}} % abren una incidencia en el Action Center, que se cierra cuando la puntuación baja.",
+    "noReported": "Ninguna de sus direcciones está denunciada.",
+    "unassigned": "Dirección suya, no asignada",
+    "unknownHolder": "Ningún equipo conocido",
+    "columns": {
+      "address": "Dirección",
+      "score": "Puntuación",
+      "holder": "Asignada a (ahora)",
+      "categories": "Categorías",
+      "last": "Última denuncia"
+    }
   }
 }

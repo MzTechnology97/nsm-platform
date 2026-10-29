@@ -13,6 +13,7 @@ const INTEGRATION_PAGES: { key: string; route: string }[] = [
   { key: "bras", route: "/admin/integrations/bras" },
   { key: "probe", route: "/admin/integrations/probe" },
   { key: "threatLists", route: "/admin/integrations/threat-lists" },
+  { key: "abuseipdb", route: "/admin/integrations/abuseipdb" },
 ];
 
 export function IntegrationTabs() {
