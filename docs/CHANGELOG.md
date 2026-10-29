@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.300 — 2026-10-29
+
+Roadmap: evaluate Oktopus as an alternative ACS
+
+### Documentation
+
+- Roadmap ACS-11: a feasibility study of Oktopus (open-source TR-369/USP controller with TR-069 support) as an alternative to GenieACS with its own dashboard, requested by the operator. It lists what to check on a lab instance: TR-069 coverage of the CPEs in use, an API NSM can use for its current ACS features, the dashboard, licence and maintenance, and a per-group migration with rollback. Dashboards on top of GenieACS were reviewed and not adopted. No change to the running ACS.
 ## 0.49.299 — 2026-10-29
 
 GenieACS customer tag with the customer code
