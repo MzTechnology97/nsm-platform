@@ -1,6 +1,7 @@
-import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useListSearch } from "../app/CustomerScope";
 import { SearchSelect, customerLabel } from "../app/SearchSelect";
 import { Pager } from "../app/Pager";
 import { pageParams, usePaging } from "../lib/paging";
@@ -22,20 +23,19 @@ const STATUSES = ["", "open", "acknowledged", "resolved"] as const;
 
 export function ActionCenter() {
   const { t } = useTranslation();
-  const search = useSearch({ from: "/action-center" });
-  const navigate = useNavigate({ from: "/action-center" });
+  // Globally or as a customer's "Segnalazioni" tab (the customer filter is then fixed and its picker hidden).
+  const { search, update, customer: scope } = useListSearch<IssueFilters>();
   const facets = useDeviceFacets();
   const paging = usePaging(JSON.stringify(search));
   const query = useIssues(search, pageParams(paging));
   const first = query.data;
   const items = useMemo(() => query.data?.items ?? [], [query.data]);
-  const update = (patch: Partial<IssueFilters>) => void navigate({ search: (previous: IssueFilters) => ({ ...previous, ...patch }), replace: true });
 
   return (
-    <section className="ui-page">
+    <section className={scope ? "ui-customer-list" : "ui-page"}>
       <header className="ui-page-header ui-page-header-row">
         <div>
-          <h1>{t("actionCenter.title")}</h1>
+          {!scope && <h1>{t("actionCenter.title")}</h1>}
           <p>{first ? t("actionCenter.subtitle", { count: first.scope_total }) : t("app.loading")}</p>
         </div>
       </header>
@@ -72,7 +72,7 @@ export function ActionCenter() {
         <select value={search.status ?? ""} onChange={(event) => update({ status: (event.target.value || undefined) as IssueFilters["status"] })} aria-label={t("actionCenter.status")}>
           {STATUSES.map((value) => <option key={value} value={value}>{t(`actionCenter.statuses.${value || "active"}`)}</option>)}
         </select>
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        {!scope && <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />}
       </div>
 
       {query.error ? (

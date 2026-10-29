@@ -20,6 +20,9 @@ SNAPSHOT_SECTIONS = {
     "dhcp_leases": "DHCP leases",
     "logs": "Warning / error log",
     "services": "Servizi esposti",
+    "queues": "Code (queue)",
+    "certificates": "Certificati",
+    "routing": "BGP / OSPF",
 }
 DIAGNOSTIC_TYPES = {
     "ping": "diagnostic_ping",
@@ -56,8 +59,9 @@ def _pending_sections(db, device_id):
 def queue_snapshot_record(db, user, device, section: str) -> bool:
     """Ask the agent for a fresh read of one configuration section (audited) and commit.
 
-    Returns False when the same section is already queued; ``InputError`` ``section_invalid`` (400) or
-    ``not_online`` (409, the device must be an online MikroTik).
+    Returns False when the same section is already queued; ``InputError`` ``section_invalid`` (400),
+    ``not_online`` (409, the device must be an online MikroTik) or ``section_unsupported`` (409, the installed
+    Agent cannot read the section: ``mikrotik_snapshot_capabilities``).
     """
     from app.input_errors import InputError
 
@@ -65,6 +69,11 @@ def queue_snapshot_record(db, user, device, section: str) -> bool:
         raise InputError("section_invalid", "Sezione snapshot non valida.")
     if device.vendor != "mikrotik" or device.status != "online":
         raise InputError("not_online", "Lo snapshot richiede un MikroTik online con agent NSM.", 409)
+    from app.mikrotik_snapshot_capabilities import section_support, unsupported_message
+
+    support = section_support(device, section)
+    if not support["supported"]:
+        raise InputError("section_unsupported", unsupported_message(support), 409)
     pending = list(db.scalars(select(DeviceJob).where(DeviceJob.device_id == device.id, DeviceJob.job_type == "snapshot_section", DeviceJob.status.in_(["pending", "delivered"]))))
     if any((job.payload or {}).get("section") == section for job in pending):
         return False

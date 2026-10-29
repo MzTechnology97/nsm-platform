@@ -8,8 +8,9 @@ At every full ISPBilling read the PPPoE accounts of *ISP Billing Radius 2.0* (``
 2. **CPE PPPoE user** (``cpe_pppoe``): a TR-069 CPE whose WAN logs in with the account's username, as GenieACS
    reports it (``acs_monitoring``, ``inventory_data["tr069"]["monitor"]["wan"]["username"]``);
 3. **static IP**: a device whose management IP is the account's static IP;
-4. **caller-id** (``caller_mac``): the account's active session on a PPPoE concentrator in NSM (MikroTik
-   ``/ppp active`` in the *Sessioni PPP* snapshot) comes from the MAC of a device (its primary MAC);
+4. **caller-id** (``caller_mac``): the account's active session on a PPPoE concentrator — the MikroTik BRAS read with a
+   read-only user (``mikrotik_bras``, ``bras_sessions``) or a MikroTik in NSM (``/ppp active`` in the *Sessioni PPP*
+   snapshot) — comes from the MAC of a device (its primary MAC);
 5. **session address** (``caller_ip``): that session's address is a device's management IP.
 
 An account matching several devices the same way is left unmatched. The device page then shows the account
@@ -103,6 +104,12 @@ def ppp_sessions(db) -> dict[str, list[tuple[str | None, str | None]]]:
                 mac = _mac(session.get("caller-id") or session.get("calling-station-id"))
                 address = str(session.get("address") or "").strip() or None
                 sessions.setdefault(user, []).append((mac, address))
+    from app.bras_models import BrasSession
+
+    # The BRAS read by mikrotik_bras: current sessions only (an offline account says nothing about who it is).
+    for user, mac, address in db.execute(select(BrasSession.username, BrasSession.mac, BrasSession.address).where(BrasSession.online.is_(True))):
+        if (_mac(mac), address) not in sessions.get(user, []):
+            sessions.setdefault(user, []).append((_mac(mac), address))
     return sessions
 
 
@@ -162,6 +169,10 @@ def device_accounts(db, device) -> list[dict]:
     from app.ispbilling_cpe_link import device_links
 
     links = device_links(db, device)
+    from app import mikrotik_bras
+
+    bras = mikrotik_bras.connection_row(db)
+    pppoe = mikrotik_bras.sessions_for(db, [a.username for a in accounts]) if bras is not None and bras.is_enabled else None
     out = []
     for account in accounts:
         customer = customers.get(account.customer_external_id or "")
@@ -171,5 +182,6 @@ def device_accounts(db, device) -> list[dict]:
             "matched_by": account.matched_by, "customer": customer.name if customer else None,
             # None when that ISPBilling customer is not imported in NSM yet.
             "same_customer": (customer.nsm_customer_id == device.customer_id) if customer and customer.nsm_customer_id else None,
+            **({"session": pppoe.get(account.username.lower())} if pppoe is not None else {}),  # only with a BRAS connected
         })
     return out

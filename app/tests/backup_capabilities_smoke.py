@@ -213,7 +213,7 @@ def main():
     assert {"CI10 MT Missing Agent", "CI10 Ubiquiti", "CI10 TP-Link"} <= set(blocked)
 
     moved = client.get(f"/customers/{ids['customer']}/backups", follow_redirects=False)
-    assert moved.status_code == 302 and moved.headers["location"] == f"/app/backups?customer={ids['customer']}&view=all"
+    assert moved.status_code == 302 and moved.headers["location"] == f"/app/customers/{ids['customer']}/backups"
     moved = client.get("/operations/backups", follow_redirects=False)
     assert moved.status_code == 302 and moved.headers["location"] == "/app/backups"
 
