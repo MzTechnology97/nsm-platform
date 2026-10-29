@@ -56,6 +56,8 @@ def grouped(data: dict) -> dict:
         "resources": next((c for c in charts if c["id"] in RESOURCES), None),
         "traffic": next((c for c in charts if c["id"] in TRAFFIC), None),
         "extra": [c for c in charts if c["id"] not in RESOURCES | TRAFFIC],
+        # MON-02: the newest sample whatever its age, so an offline device still shows what it last reported.
+        "latest": data.get("latest"),
     }
 
 
@@ -68,7 +70,7 @@ def device_monitor_source(request: Request, device_id: uuid.UUID, range: str = "
             raise HTTPException(404)
         source = source_of(device)
         if source is None:
-            return {"source": None, "range": range, "sample_count": 0, "resources": None, "traffic": None, "extra": []}
+            return {"source": None, "range": range, "sample_count": 0, "resources": None, "traffic": None, "extra": [], "latest": None}
         try:
             data = charts_of(db, device, source, range)
         except ValueError:
