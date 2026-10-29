@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.318 — 2026-10-29
+
+Security
+- **Syslog rules: built-in patterns (SIEM-01, step 2).** *Sicurezza → Accessi → Regole syslog* now lists the login patterns the built-in access alerts read, for every vendor: outcome, service and expression, read-only.
+  - **Copy as rule** opens the editor prefilled with the pattern, grouped by device and address, with the built-in threshold for failures (5 in 10 minutes, Action Center issue) and a notification for successes. Nothing is active until it is saved, and the copy can then be tuned like any other rule.
+- The **tester** also shows what the built-in patterns read from the pasted line (failed or successful login, user, address, service), next to the operator rules and the draft.
 ## 0.49.317 — 2026-10-29
 
 IP abuse: one page for every report about your addresses (CYBER-01)
