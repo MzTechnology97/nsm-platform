@@ -2400,7 +2400,8 @@
       "unifi": "UniFi Network",
       "probe": "Sonde externe",
       "threatLists": "Listes de menaces",
-      "abuseipdb": "AbuseIPDB"
+      "abuseipdb": "AbuseIPDB",
+      "ripestat": "RIPEstat"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5665,6 +5666,8 @@
     "REPORT_SCHEDULE_ENABLED": "Planification de rapport activée",
     "REPORT_SCHEDULE_FAILED": "Échec du rapport planifié",
     "REPORT_SCHEDULE_RECIPIENTS_CHANGED": "Destinataires du rapport modifiés",
+    "RIPESTAT_ALERT": "Problème de routage ou RPKI détecté par RIPEstat",
+    "RIPESTAT_CONFIGURED": "Paramètres RIPEstat modifiés",
     "ROUTERBOOT_REBOOT_ACK": "Redémarrage RouterBOOT accepté",
     "ROUTERBOOT_REBOOT_EXPIRED": "Redémarrage RouterBOOT expiré",
     "ROUTERBOOT_REBOOT_QUEUED": "Redémarrage RouterBOOT en file d'attente",
@@ -7528,5 +7531,35 @@
       "categories": "Catégories",
       "last": "Dernier signalement"
     }
+  },
+  "ripestat": {
+    "title": "RIPEstat",
+    "subtitle": "Vos préfixes vus depuis Internet : qui les annonce en BGP, leur visibilité et la validité des ROA RPKI. Données publiques RIPE, sans compte ; NSM ne modifie rien chez RIPE.",
+    "refresh": "Actualiser",
+    "statusTitle": "État",
+    "refreshed": "Dernière lecture : {{when}}.",
+    "never": "Jamais lu.",
+    "declared": "Préfixes déclarés : {{list}}.",
+    "noDeclared": "Aucun préfixe déclaré : seules les annonces de vos AS sont vérifiées.",
+    "declaredLink": "Modifier les préfixes",
+    "suggested": "Annoncés par vos AS mais non déclarés : {{list}}. Ajoutez-les aux préfixes pour les vérifier aussi avec AbuseIPDB et les listes de menaces.",
+    "declaredTitle": "Préfixes déclarés en BGP",
+    "announcedTitle": "Annonces de vos AS et RPKI",
+    "nothing": "Rien à afficher : enregistrez les AS et actualisez.",
+    "ok": "OK",
+    "columns": {
+      "prefix": "Préfixe",
+      "origins": "AS d'origine",
+      "visibility": "Visibilité (pairs RIS)",
+      "state": "État",
+      "asn": "AS",
+      "rpki": "RPKI"
+    },
+    "settingsTitle": "Paramètres",
+    "enabled": "Module actif",
+    "asns": "Vos numéros d'AS",
+    "refreshHours": "Lecture toutes les (heures)",
+    "help": "Exemple : AS64500 AS64501. Les préfixes vérifiés sont ceux déclarés dans Listes de menaces.",
+    "saved": "Paramètres enregistrés."
   }
 }

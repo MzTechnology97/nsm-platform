@@ -478,6 +478,11 @@ const adminThreatListsRoute = createRoute({
   path: "/admin/integrations/threat-lists",
   component: lazyRouteComponent(() => import("../pages/AdminThreatLists"), "AdminThreatLists"),
 });
+const adminRipestatRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/integrations/ripestat",
+  component: lazyRouteComponent(() => import("../pages/AdminRipestat"), "AdminRipestat"),
+});
 const adminAbuseIpdbRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin/integrations/abuseipdb",
@@ -784,6 +789,7 @@ export const routeTree = rootRoute.addChildren([
   adminProbeRoute,
   adminThreatListsRoute,
   adminAbuseIpdbRoute,
+  adminRipestatRoute,
   adminZabbixRoute,
   adminGenieacsRoute,
   adminUispRoute,

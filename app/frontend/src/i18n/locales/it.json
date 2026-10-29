@@ -2400,7 +2400,8 @@
       "unifi": "UniFi Network",
       "probe": "Sonda esterna",
       "threatLists": "Liste di minaccia",
-      "abuseipdb": "AbuseIPDB"
+      "abuseipdb": "AbuseIPDB",
+      "ripestat": "RIPEstat"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5665,6 +5666,8 @@
     "REPORT_SCHEDULE_ENABLED": "Pianificazione report attivata",
     "REPORT_SCHEDULE_FAILED": "Report pianificato fallito",
     "REPORT_SCHEDULE_RECIPIENTS_CHANGED": "Destinatari del report modificati",
+    "RIPESTAT_ALERT": "Problema di routing o RPKI rilevato da RIPEstat",
+    "RIPESTAT_CONFIGURED": "Impostazioni RIPEstat modificate",
     "ROUTERBOOT_REBOOT_ACK": "Riavvio RouterBOOT accettato",
     "ROUTERBOOT_REBOOT_EXPIRED": "Riavvio RouterBOOT scaduto",
     "ROUTERBOOT_REBOOT_QUEUED": "Riavvio RouterBOOT in coda",
@@ -7528,5 +7531,35 @@
       "categories": "Categorie",
       "last": "Ultima segnalazione"
     }
+  },
+  "ripestat": {
+    "title": "RIPEstat",
+    "subtitle": "I tuoi prefissi visti da Internet: chi li annuncia in BGP, quanto sono visibili e se i ROA RPKI sono corretti. Dati pubblici RIPE, senza account; NSM non modifica nulla presso RIPE.",
+    "refresh": "Aggiorna ora",
+    "statusTitle": "Stato",
+    "refreshed": "Ultima lettura: {{when}}.",
+    "never": "Mai letto.",
+    "declared": "Prefissi dichiarati: {{list}}.",
+    "noDeclared": "Nessun prefisso dichiarato: vengono controllati solo gli annunci dei tuoi AS.",
+    "declaredLink": "Modifica i prefissi",
+    "suggested": "Annunciati dai tuoi AS ma non dichiarati: {{list}}. Aggiungili ai prefissi per controllarli anche con AbuseIPDB e le liste di minaccia.",
+    "declaredTitle": "Prefissi dichiarati in BGP",
+    "announcedTitle": "Annunci dei tuoi AS e RPKI",
+    "nothing": "Niente da mostrare: salva gli AS e aggiorna.",
+    "ok": "OK",
+    "columns": {
+      "prefix": "Prefisso",
+      "origins": "AS di origine",
+      "visibility": "Visibilità (peer RIS)",
+      "state": "Stato",
+      "asn": "AS",
+      "rpki": "RPKI"
+    },
+    "settingsTitle": "Impostazioni",
+    "enabled": "Modulo attivo",
+    "asns": "I tuoi numeri AS",
+    "refreshHours": "Lettura ogni (ore)",
+    "help": "Esempio: AS64500 AS64501. I prefissi da controllare sono quelli dichiarati in Liste di minaccia.",
+    "saved": "Impostazioni salvate."
   }
 }
