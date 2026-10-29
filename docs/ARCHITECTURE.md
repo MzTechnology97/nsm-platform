@@ -29,6 +29,14 @@ Non-primary responsibilities:
 - backbone capacity engineering;
 - replacement of a full NMS.
 
+Scope check before selecting any new feature (product decision of 2026-09-28, recovered from the closed PR #60):
+
+> Does this capability improve management, tracking, maintenance, security, backup, lifecycle or compliance evidence for customer-installed devices?
+
+Priority order when choosing work: (1) reliable Customer/Site/Device inventory and identity; (2) vendor onboarding and synchronization; (3) monitoring and health of customer devices; (4) configuration backup, history and restore evidence; (5) firmware and lifecycle; (6) CVE/security correlation and remediation; (7) Action Center and incidents; (8) compliance baselines and evidence; (9) customer/executive/NIS2-oriented reporting; (10) additional vendor adapters and device families. Runtime defects and regressions always come first (`DEVELOPMENT_WORKFLOW.md`).
+
+NSM may read limited network information when it is directly needed for customer-edge devices — for example the PPPoE sessions of the BRAS (read-only, to know whether a customer is connected and which CPE serves it), the exposure check of a device's WAN address, or pushing devices to the operator's Zabbix — without turning into a backbone management subsystem. Expanding into ISP core/backbone management is an explicit, separately documented product decision, never a side effect of a customer-device feature.
+
 ## 2. Logical architecture
 
 ```mermaid

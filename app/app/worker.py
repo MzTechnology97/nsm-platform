@@ -19,6 +19,7 @@ from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_fin
 from app.mikrotik_telemetry import telemetry_cleanup
 from app.uisp_metrics import cleanup as uisp_metrics_cleanup
 from app.cnmaestro_connector import cleanup as cnmaestro_cleanup, scheduled_sync as cnmaestro_sync
+from app.unifi_connector import scheduled_sync as unifi_sync
 from app.ispbilling_connector import scheduled_sync as ispbilling_sync
 from app.mikrotik_bras import scheduled_sync as bras_sync
 from app.interface_traffic import cleanup as interface_traffic_cleanup
@@ -29,6 +30,8 @@ from app.mikrotik_wireless import cleanup as wireless_cleanup
 from app.syslog_receiver import cleanup as syslog_cleanup
 from app.syslog_security import evaluate as evaluate_access_alerts
 from app.mikrotik_syslog_config import auto_configure as auto_configure_syslog
+from app.management_access import auto_configure as auto_configure_management
+from app.reachability import refresh as reachability_refresh
 from app.zabbix_connector import scheduled_sync as zabbix_sync
 from app.acs_customer_tags import run as acs_customer_tags
 from app.zabbix_problems import scheduled_refresh as zabbix_problems_refresh
@@ -38,7 +41,9 @@ from app.acs_admin import auto_update as acs_templates_auto_update
 from app.acs_snapshot import scheduled_snapshots as acs_scheduled_snapshots
 from app.cambium_backup import scheduled_backups as cambium_scheduled_backups
 from app.acs_config_refresh import follow as acs_config_refresh_follow
+from app.acs_config_restore import follow as acs_config_restore_follow
 from app.acs_firmware import follow_upgrades as acs_firmware_follow
+from app.acs_firmware_campaigns import follow as acs_firmware_campaigns_follow
 from app.tplink_cloud_firmware import daily_refresh as tplink_cloud_refresh
 from app.acs_alerts import evaluate as acs_alerts_evaluate
 from app.tplink_access import enforce_telnet_policy as tplink_telnet_policy
@@ -118,10 +123,13 @@ while True:
             run_task("vulnerability_digest", run_vulnerability_digest)
             run_task("syslog_access_alerts", evaluate_access_alerts)
             run_task("syslog_agent_config", auto_configure_syslog)
+            run_task("management_access_auto", auto_configure_management)
+            run_task("reachability", reachability_refresh)
             run_task("icmp_monitor", icmp_tick)
             run_task("interface_error_alerts", interface_error_alerts)
             run_task("zabbix_sync", zabbix_sync)
             run_task("cnmaestro_sync", cnmaestro_sync)
+            run_task("unifi_sync", unifi_sync)
             run_task("acs_customer_tags", acs_customer_tags)
             run_task("ispbilling_sync", ispbilling_sync)
             run_task("bras_sync", bras_sync)
@@ -132,7 +140,9 @@ while True:
             run_task("acs_scheduled_snapshots", acs_scheduled_snapshots)
             run_task("cambium_scheduled_backups", cambium_scheduled_backups)
             run_task("acs_config_refresh", acs_config_refresh_follow)
+            run_task("acs_config_restore", acs_config_restore_follow)
             run_task("acs_firmware_follow", acs_firmware_follow)
+            run_task("acs_firmware_campaigns", acs_firmware_campaigns_follow)
             run_task("tplink_cloud_firmware", tplink_cloud_refresh)
             run_task("acs_alerts", acs_alerts_evaluate)
             run_task("tplink_telnet_policy", tplink_telnet_policy)

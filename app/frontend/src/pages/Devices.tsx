@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -14,6 +14,7 @@ import { can, useSession } from "../api/session";
 import { BrandIcon } from "../app/BrandIcon";
 import { Resources } from "../app/Resources";
 import { RingTile, type TileTone } from "../app/RingTile";
+import { useListSearch } from "../app/CustomerScope";
 import { EmptyState, Loading } from "../app/States";
 import { formatDuration, formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
@@ -47,15 +48,12 @@ const ROW_HEIGHT = 56;
 
 export function Devices() {
   const { t, i18n } = useTranslation();
-  const search = useSearch({ from: "/devices" }) as DeviceFilters;
-  const navigate = useNavigate({ from: "/devices" });
+  // Globally or as a customer's tab (the customer filter is then fixed and its picker hidden).
+  const { search, chosen, update, reset, customer: scope } = useListSearch<DeviceFilters>();
   const session = useSession();
   const [text, setText] = useState(search.q ?? "");
   const q = useDebounced(text);
   const facets = useDeviceFacets();
-
-  const update = (patch: Partial<DeviceFilters>) =>
-    void navigate({ search: (previous: DeviceFilters) => ({ ...previous, ...patch }), replace: true });
 
   useEffect(() => {
     if ((search.q ?? "") !== q) update({ q: q || undefined });
@@ -63,7 +61,7 @@ export function Devices() {
   }, [q]);
 
   const filters = useMemo<DeviceFilters>(() => ({ ...search, sort: search.sort ?? "name", dir: search.dir ?? "asc" }), [search]);
-  const activeFilters = Object.entries(search).filter(([key, value]) => value && key !== "sort" && key !== "dir").length;
+  const activeFilters = Object.entries(chosen).filter(([key, value]) => value && key !== "sort" && key !== "dir").length;
   const paging = usePaging(JSON.stringify(filters));
   const query = useDevices(filters, pageParams(paging));
   const rows = useMemo(() => query.data?.items ?? [], [query.data]);
@@ -94,27 +92,27 @@ export function Devices() {
 
   const canImport = can(session.data, "users.manage");
   const hub = useIntegrations();
-  const filtered = Object.keys(search).length > 0 || Boolean(text);
+  const filtered = Object.keys(chosen).length > 0 || Boolean(text);
   const resetFilters = () => {
     setText("");
-    void navigate({ search: {}, replace: true });
+    reset();
   };
 
   return (
-    <section className="ui-page ui-devices">
+    <section className={scope ? "ui-devices ui-customer-list" : "ui-page ui-devices"}>
       <header className="ui-page-header ui-page-header-row">
         <div>
-          <h1>{t("devices.title")}</h1>
+          {!scope && <h1>{t("devices.title")}</h1>}
           <p>{query.isPending ? t("app.loading") : t("devices.subtitle", { count: total })}</p>
         </div>
         <div className="ui-actions">
           {total > 0 && <a className="ui-button ui-button-ghost" href={devicesExportUrl(filters)} download>{t("devices.export")}</a>}
-          {canImport && <Link className="ui-button ui-button-ghost" to="/devices/import">{t("deviceImport.open")}</Link>}
+          {!scope && canImport && <Link className="ui-button ui-button-ghost" to="/devices/import">{t("deviceImport.open")}</Link>}
           {/* Onboarding from a connector only while it is enabled and its last sync or test succeeded (devices.write). */}
-          {can(session.data, "devices.write") && hub.data?.uisp.state === "active" && (
+          {!scope && can(session.data, "devices.write") && hub.data?.uisp.state === "active" && (
             <Link className="ui-button ui-button-ghost" to="/integrations/uisp/onboarding">{t("quickImport.uisp")}</Link>
           )}
-          {can(session.data, "devices.write") && hub.data?.cnmaestro.state === "active" && (
+          {!scope && can(session.data, "devices.write") && hub.data?.cnmaestro.state === "active" && (
             <Link className="ui-button ui-button-ghost" to="/integrations/cnmaestro/onboarding">{t("quickImport.cnmaestro")}</Link>
           )}
         </div>
@@ -169,7 +167,7 @@ export function Devices() {
           placeholder={t("devices.searchPlaceholder")}
           aria-label={t("devices.search")}
         />
-        <SearchSelect value={filters.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined, site: undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        {!scope && <SearchSelect value={filters.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined, site: undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />}
         <select value={filters.site ?? ""} onChange={(event) => update({ site: event.target.value || undefined })} aria-label={t("devices.site")} disabled={!sites.length}>
           <option value="">{t("devices.allSites")}</option>
           {sites.map((site) => (

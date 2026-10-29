@@ -21,6 +21,7 @@ interface Upgrade {
   by: string | null;
   started: boolean;
   fault: { code: string; message: string; at: string } | null;
+  task_removed?: boolean;
 }
 
 interface AcsFirmwareData {
@@ -132,6 +133,7 @@ export function AcsFirmware({ deviceId }: { deviceId: string }) {
           {running && !upgrade.started ? ` · ${t("acsFirmware.waitingContact")}` : ""}
           {upgrade.state === "verified" && upgrade.matches === false ? ` · ${t("acsFirmware.notExpected", { version: upgrade.expected_version })}` : ""}
           {upgrade.fault ? <span className="ui-mono"> · {upgrade.fault.code} {upgrade.fault.message}</span> : null}
+          {upgrade.task_removed ? ` · ${t("acsFirmware.taskRemoved")}` : ""}
           <small className="ui-muted"> · {upgrade.file_name}{upgrade.by ? ` · ${upgrade.by}` : ""}</small>
         </div>
       )}

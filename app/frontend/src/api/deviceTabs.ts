@@ -76,6 +76,9 @@ export interface ExposureTab {
     ports_checked?: number;
     checked_at?: string;
     private_target?: boolean;
+    /** Where the external check ran from (SCAN-02): the external probe or the NSM server; why the probe was not used. */
+    vantage?: { kind: "probe" | "nsm_server"; name: string | null } | null;
+    vantage_error?: string | null;
     shared_with?: string[];
     issue_skipped?: boolean;
     wan_interfaces?: string[];
@@ -91,6 +94,16 @@ export interface ExposureTab {
   check_mode: "agent" | "external";
   target: { ip: string | null; source: string; override: string; public: boolean };
   private_warning: string;
+  /** Internet reachability (SCAN-02): uplinks NSM knows, public or behind NAT, last change. */
+  reachability: {
+    state: "public" | "nat" | "unknown" | null;
+    reason: string | null;
+    public_addresses: string[];
+    uplinks: { source: string; interface: string | null; type: string | null; address: string; class: string | null; up: boolean | null }[];
+    changed_at: string | null;
+    change_reasons: string[];
+    checked_at: string | null;
+  };
   planned: { port: number; proto: string; label: string }[];
   shared_peers: { id: string; name: string; brand: BrandRef }[];
   forwards_in: PortForward[];
@@ -133,8 +146,15 @@ export interface ConfigFilters {
   action?: string;
 }
 
+export interface SectionSupport {
+  supported: boolean;
+  reason: "no_transport" | "transport" | "agent_outdated" | null;
+  min_agent: string | null;
+}
+
 export interface ConfigView {
-  sections: { key: string; read_at: string | null }[];
+  /** ``support``: whether the installed agent can read the section (``reason`` and ``min_agent`` when it cannot). */
+  sections: { key: string; read_at: string | null; support: SectionSupport }[];
   section: string;
   read_at: string | null;
   pending: string[];
@@ -347,6 +367,36 @@ export interface Logbook {
 /** Device logbook (operator entries) and, with ``events``, the device's recorded events. */
 export const useLogbook = (id: string, events: boolean) =>
   useQuery({ queryKey: ["device", id, "logbook", events], queryFn: () => api<Logbook>(`${base(id)}/logbook${events ? "?events=1" : ""}`), placeholderData: keepPreviousData });
+
+export interface IspbillingActivity {
+  id: string;
+  type: string | null;
+  kind: "onsite" | "maintenance" | "other";
+  color: string | null;
+  subject: string | null;
+  description: string | null;
+  start: string | null;
+  end: string | null;
+  all_day: boolean;
+  state: "planned" | "past" | "cancelled";
+  cancellation_reason: string | null;
+  status_code: string | null;
+  teams: string[];
+  scope: "device" | "customer";
+  customer: string | null;
+}
+
+export interface IspbillingActivities {
+  available: boolean;
+  linked: boolean;
+  activities: IspbillingActivity[];
+  error: string | null;
+}
+
+/** ISPBilling activities (interventions, installations) of the device or of its customer, read on demand from ISPBilling. */
+export const useIspbillingActivities = (id: string, enabled: boolean) =>
+  useQuery({ queryKey: ["device", id, "ispbilling-activities"], queryFn: () => api<IspbillingActivities>(`${base(id)}/ispbilling-activities`),
+    enabled, staleTime: 60_000, retry: false });
 
 export function useLogbookActions(id: string) {
   const client = useQueryClient();

@@ -156,6 +156,8 @@ def audit_events_export_csv(
         customer_map = {c.id: c for c in db.scalars(select(Customer).where(Customer.id.in_(customer_ids)))} if customer_ids else {}
         device_map = {d.id: d for d in db.scalars(select(Device).where(Device.id.in_(device_ids)))} if device_ids else {}
 
+        from app.zabbix_connector import mask_audit_details
+
         out = io.StringIO()
         writer = csv.writer(out)
         writer.writerow(["timestamp", "event_type", "severity", "result", "source", "customer", "device", "details"])
@@ -170,7 +172,7 @@ def audit_events_export_csv(
                 event.source,
                 customer_obj.name if customer_obj else "",
                 (device_obj.display_name or device_obj.device_identity or str(device_obj.id)) if device_obj else "",
-                str(event.details or {}),
+                str(mask_audit_details(event.event_type, event.details or {})),
             ])
         core.add_event(db, "AUDIT_EVENTS_EXPORTED", actor=user, details={"rows": len(events), "filters": _audit_params(event_type, result, severity, customer, device, q, from_date, to_date)}, source="portal")
         db.commit()

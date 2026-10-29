@@ -920,7 +920,10 @@
       "graphs": "Graphiques",
       "backups": "Sauvegardes",
       "security": "Sécurité",
-      "history": "Activité"
+      "history": "Activité",
+      "actions": "Signalements",
+      "incidents": "Incidents",
+      "sla": "SLA"
     },
     "metrics": {
       "devices": "Équipements en ligne",
@@ -1232,7 +1235,9 @@
       "off": "désactivée",
       "none": "Aucune politique configurée."
     },
-    "createPolicy": "Créer une politique"
+    "createPolicy": "Créer une politique",
+    "restoreReadiness": "Prêts à restaurer",
+    "subtitleCustomer": "Protection des sauvegardes des équipements de ce client : politique, méthode exécutable et résultat de la dernière exécution."
   },
   "firmware": {
     "title": "Firmware",
@@ -1321,7 +1326,9 @@
         "too_many": "Trop d'équipements sélectionnés.",
         "confirm": "Saisissez exactement la phrase de confirmation."
       }
-    }
+    },
+    "campaigns": "Campagnes TR-069",
+    "routerboot": "RouterBOOT"
   },
   "vulns": {
     "title": "Vulnérabilités",
@@ -1422,7 +1429,8 @@
       "setup": "À configurer",
       "clean": "Sans exposition",
       "pending": "Vérification en cours",
-      "all": "Tous"
+      "all": "Tous",
+      "internal": "Réseau interne uniquement"
     },
     "columns": {
       "device": "Équipement",
@@ -1442,7 +1450,9 @@
     "pending": "vérification en cours",
     "none": "aucune exposition",
     "allGood": "Aucun équipement n'expose de services sur Internet.",
-    "empty": "Aucun équipement dans cette vue."
+    "empty": "Aucun équipement dans cette vue.",
+    "internalRow_one": "{{count}} service joignable uniquement depuis le réseau interne (équipement derrière NAT)",
+    "internalRow_other": "{{count}} services joignables uniquement depuis le réseau interne (équipement derrière NAT)"
   },
   "access": {
     "title": "Accès",
@@ -1903,7 +1913,8 @@
       "syslog": "Syslog",
       "acs": "ACS",
       "system": "Système",
-      "serverMigration": "Migration du serveur"
+      "serverMigration": "Migration du serveur",
+      "managementAccess": "Réseaux de gestion"
     }
   },
   "adminUsers": {
@@ -2384,7 +2395,9 @@
       "zabbix": "Zabbix",
       "cnmaestro": "cnMaestro",
       "ispbilling": "ISPBilling",
-      "bras": "BRAS MikroTik"
+      "bras": "BRAS MikroTik",
+      "unifi": "UniFi Network",
+      "probe": "Sonde externe"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -2397,6 +2410,12 @@
       "help": "Concentrateur PPPoE : sessions des clients (lecture seule).",
       "online": "En ligne",
       "offline": "Hors ligne"
+    },
+    "unifi": {
+      "title": "UniFi Network (Ubiquiti)",
+      "help": "Passerelles, commutateurs et points d'accès UniFi lus depuis le contrôleur UniFi Network en lecture seule : état, firmware, IP, CPU, mémoire et liaison montante.",
+      "devices": "Équipements dans le contrôleur",
+      "linked": "Associés à NSM"
     }
   },
   "syslogAdmin": {
@@ -2789,6 +2808,7 @@
     "interfaceSnmp": "SNMPv2 (161)",
     "community": "Communauté SNMP",
     "communityHelp": "De préférence une macro, par exemple {$SNMP_COMMUNITY}, définie dans Zabbix.",
+    "communityStored": "Communauté enregistrée chiffrée. Laisser vide pour la conserver, ou saisir une macro comme {$SNMP_COMMUNITY} pour utiliser la macro.",
     "templates": {
       "mikrotik": "Modèle MikroTik",
       "ubiquiti": "Modèle Ubiquiti",
@@ -3181,7 +3201,12 @@
     "archiveRead_other": "Archiver les {{count}} lues",
     "noArchived": "Aucune notification archivée.",
     "maintenance": "pendant une maintenance planifiée",
-    "maintenanceHint": "Maintenance planifiée : {{reason}} (jusqu'au {{until}}). L'alerte est envoyée normalement."
+    "maintenanceHint": "Maintenance planifiée : {{reason}} (jusqu'au {{until}}). L'alerte est envoyée normalement.",
+    "menu": {
+      "seeAll": "Voir toutes les notifications",
+      "openDevice": "Ouvrir l'équipement",
+      "newTab": "Les liens s'ouvrent dans un nouvel onglet : la page que vous utilisez reste ouverte."
+    }
   },
   "profile": {
     "title": "Profil",
@@ -3568,7 +3593,8 @@
       "uncertain": "à vérifier",
       "disabled": "désactivé",
       "closed": "fermé",
-      "filtered": "filtré"
+      "filtered": "filtré",
+      "internal": "réseau interne uniquement"
     },
     "forwards": {
       "rule": "Règle / routeur",
@@ -3594,6 +3620,54 @@
       "remove": "Retirer la déclaration",
       "declared": "Déclaré par {{by}} le {{when}}",
       "uncertainHint": "ouverts vers NSM, à vérifier"
+    },
+    "internalOnly": "L'équipement n'est pas joignable depuis Internet ({{reason}}) : les services ouverts ci-dessous ne répondent que depuis le réseau interne. Aucune alerte ni règle ACL proposée tant qu'il ne devient pas public.",
+    "uplinkIp": "adresse WAN de l'équipement",
+    "reach": {
+      "title": "Joignabilité depuis Internet",
+      "help": "Les alertes d'exposition ne concernent que les équipements joignables depuis Internet. NSM vérifie à nouveau à chaque redémarrage, changement d'IP, reconnexion PPPoE, changement de configuration ou de connectivité, en plus du contrôle quotidien.",
+      "states": {
+        "public": "Public",
+        "nat": "Derrière NAT / réseau local",
+        "unknown": "Inconnu"
+      },
+      "columns": {
+        "address": "Adresse",
+        "class": "Type",
+        "interface": "Interface",
+        "source": "Source"
+      },
+      "classes": {
+        "public": "public",
+        "cgnat": "CGNAT (100.64/10)",
+        "private": "privé",
+        "other": "non routable"
+      },
+      "sources": {
+        "agent": "agent MikroTik",
+        "tr069": "TR-069 (WAN)",
+        "console": "console (UISP, cnMaestro…)",
+        "operator": "indiqué par l'opérateur"
+      },
+      "down": "connexion inactive",
+      "changed": "Dernier changement : {{when}} ({{reasons}}).",
+      "reasons": {
+        "first": "première détection",
+        "state": "public ↔ NAT",
+        "address": "adresse publique changée",
+        "reboot": "redémarrage",
+        "reconnect": "reconnexion WAN/PPPoE",
+        "config": "configuration modifiée"
+      },
+      "recheck": "À chaque changement, la vérification des services repart d'elle-même."
+    },
+    "vantage": {
+      "label": "Vérifié depuis",
+      "probe": "sonde externe",
+      "server": "serveur NSM",
+      "probeHint": "hors du réseau : elle voit ce que voit Internet",
+      "serverHint": "dans le réseau : il ne voit pas les filtres de bordure",
+      "fallback": "La sonde externe n'a pas répondu ({{error}}) : la vérification a été faite depuis le serveur NSM."
     }
   },
   "deviceCompliance": {
@@ -3641,7 +3715,10 @@
       "firewall": "Pare-feu",
       "dhcp_leases": "DHCP",
       "ppp_active": "PPP / VPN",
-      "logs": "Journal warning/error"
+      "logs": "Journal warning/error",
+      "queues": "Files d'attente",
+      "certificates": "Certificats",
+      "routing": "BGP / OSPF"
     },
     "resources": {
       "cpu_load": "Charge CPU",
@@ -3674,7 +3751,16 @@
       "sessions": "Sessions",
       "warning": "Warning",
       "error": "Error",
-      "critical": "Critical"
+      "critical": "Critical",
+      "simple": "Simple",
+      "tree": "Arbre",
+      "saturated": "Saturées",
+      "valid": "Valides",
+      "expiring": "Bientôt expirés",
+      "expired": "Expirés",
+      "revoked": "Révoqués",
+      "bgp": "BGP",
+      "ospf": "OSPF"
     },
     "states": {
       "up": "active",
@@ -3690,7 +3776,12 @@
       "bound": "attribué",
       "waiting": "en attente",
       "blocked": "bloqué",
-      "offered": "proposé"
+      "offered": "proposé",
+      "saturated": "saturée",
+      "valid": "valide",
+      "expiring": "expire bientôt",
+      "expired": "expiré",
+      "revoked": "révoqué"
     },
     "kinds": {
       "filter": "Filter",
@@ -3700,7 +3791,11 @@
       "l2tp": "L2TP",
       "pppoe": "PPPoE",
       "pptp": "PPTP",
-      "ovpn": "OVPN"
+      "ovpn": "OVPN",
+      "simple": "Queue simple",
+      "tree": "Queue tree",
+      "bgp": "BGP",
+      "ospf": "OSPF"
     },
     "search": "Rechercher dans la section",
     "state": "État",
@@ -3746,7 +3841,20 @@
       "uptime": "Uptime",
       "time": "Heure",
       "topics": "Sujets",
-      "message": "Message"
+      "message": "Message",
+      "target": "Cible",
+      "parent": "Parent",
+      "max_limit": "Limite max",
+      "rate": "Débit (up / down)",
+      "usage": "Utilisation",
+      "common_name": "Nom commun",
+      "issuer": "Émetteur",
+      "not_after": "Valide jusqu'au",
+      "days_left": "Jours restants",
+      "role": "Rôle",
+      "remote_as": "AS / zone",
+      "session_state": "Session",
+      "prefixes": "Préfixes"
     },
     "historyTitle": "Historique de configuration",
     "historyHelp": "Exports RouterOS archivés, baseline approuvée et changements détectés automatiquement.",
@@ -3776,7 +3884,13 @@
     "view": "Afficher",
     "diff": "Différences",
     "setBaseline": "Définir comme baseline",
-    "noExports": "Aucun export de configuration : l'historique apparaît après la première sauvegarde MikroTik au format .rsc."
+    "noExports": "Aucun export de configuration : l'historique apparaît après la première sauvegarde MikroTik au format .rsc.",
+    "unsupported": {
+      "no_transport": "Section indisponible : le transport de l'agent n'a pas été détecté ou validé.",
+      "transport": "Section indisponible avec l'agent legacy (RouterOS 6 / 7.12).",
+      "agent_outdated": "Section disponible à partir de l'agent {{version}} : mettez à jour ou réinstallez l'agent depuis l'onglet Agent."
+    },
+    "unsupportedShort": "Indisponible avec l'agent installé"
   },
   "deviceReboot": {
     "title": "Redémarrage contrôlé",
@@ -4036,6 +4150,10 @@
       "capacity": "Capacité du lien",
       "resources": "CPU et RAM",
       "stations": "Stations connectées",
+      "acs_pon_power": "Niveaux optiques PON",
+      "acs_pon_temperature": "Température du module optique",
+      "acs_pon_bias": "Courant de polarisation laser",
+      "acs_pon_voltage": "Tension du module optique",
       "snr": "SNR",
       "throughput": "Débit"
     },
@@ -4048,6 +4166,11 @@
       "uptime_seconds": "Uptime",
       "frequency_mhz": "Fréquence",
       "stations": "Stations connectées",
+      "pon_rx_dbm": "Rx",
+      "pon_tx_dbm": "Tx",
+      "pon_temperature_c": "Température",
+      "pon_bias_ma": "Polarisation",
+      "pon_voltage_v": "Tension",
       "snr_db": "SNR",
       "dl_throughput_bps": "Descendant",
       "ul_throughput_bps": "Montant"
@@ -4120,7 +4243,57 @@
       "warning": "Attention",
       "error": "Erreur"
     },
-    "moreEvents": "Afficher plus ({{shown}} sur {{total}})"
+    "moreEvents": "Afficher plus ({{shown}} sur {{total}})",
+    "diag": {
+      "stationsTitle": "Liaisons sans fil (UISP)",
+      "stationsHelp": "Lues à la demande : signal des deux côtés et par chaîne, bruit, link score, capacité et latence mesurés par UISP.",
+      "columns": {
+        "station": "Station",
+        "signal": "Signal (ici / distant)",
+        "noise": "Bruit",
+        "score": "Link score",
+        "capacity": "Capacité desc. / mont.",
+        "latency": "Latence",
+        "hints": "Diagnostic"
+      },
+      "chains": "chaînes {{rx}} · {{tx}}",
+      "airTime": "temps d'antenne {{value}} %",
+      "healthy": "Aucun problème relevé",
+      "hints": {
+        "weak_signal": "Signal faible",
+        "fair_signal": "Signal moyen",
+        "chain_imbalance": "Chaînes déséquilibrées",
+        "low_snr": "SNR bas",
+        "low_score": "Link score bas",
+        "high_airtime": "Temps d'antenne saturé",
+        "high_latency": "Latence élevée",
+        "disconnected": "Déconnectée",
+        "stale": "Données UISP anciennes"
+      },
+      "speedTest": "Test de débit",
+      "speedTestTitle": "Test de débit vers {{peer}}",
+      "speedTestHelp": "UISP exécute le test entre les deux radios : la liaison sans fil est saturée pendant toute la durée et les clients derrière elle sont ralentis.",
+      "direction": "Sens",
+      "duration": "Durée (secondes, 5–60)",
+      "directions": {
+        "downlink": "Descendant",
+        "uplink": "Montant",
+        "bidirectional": "Les deux sens"
+      },
+      "confirm": "Je comprends que la liaison sera saturée pendant {{seconds}} secondes",
+      "start": "Lancer le test",
+      "stop": "Arrêter le test",
+      "lastTest": "Test de débit vers {{peer}}",
+      "states": {
+        "running": "En cours",
+        "completed": "Terminé",
+        "stopped": "Arrêté",
+        "no_result": "Aucun résultat d'UISP",
+        "unconfirmed": "Non confirmé par UISP"
+      },
+      "result": "moyenne {{avg}}, pic {{max}}",
+      "noResult": "UISP n'a envoyé aucune mesure pour ce test."
+    }
   },
   "deviceCnmaestro": {
     "linked": "Relié à cnMaestro depuis le {{when}} (MAC {{mac}}).",
@@ -5078,6 +5251,18 @@
       "body": "Écrivez l'entrée (4000 caractères au maximum).",
       "occurred_at": "La date doit être dans la dernière année et pas dans le futur.",
       "forbidden": "Seul son auteur ou un administrateur peut la supprimer."
+    },
+    "ispbilling": {
+      "show": "Afficher aussi les activités ISPBilling",
+      "source": "ISPBilling",
+      "untitled": "Activité",
+      "customerScope": "activité du client",
+      "states": {
+        "planned": "Planifiée",
+        "cancelled": "Annulée"
+      },
+      "reason": "Annulée : {{reason}}",
+      "error": "Activités ISPBilling indisponibles : {{error}}"
     }
   },
   "sla": {
@@ -5230,14 +5415,26 @@
     "ACS_ALERT_SETTINGS_CHANGED": "Paramètres des alertes CPE modifiés",
     "ACS_CONFIG_REFRESH_COMPLETED": "Configuration du CPE relue",
     "ACS_CONFIG_REFRESH_REQUESTED": "Relecture de la configuration du CPE demandée",
+    "ACS_CONFIG_RESTORE_FAILED": "Restauration de la configuration du CPE échouée",
+    "ACS_CONFIG_RESTORE_REQUESTED": "Restauration de la configuration du CPE demandée",
+    "ACS_CONFIG_RESTORE_VERIFIED": "Restauration de la configuration du CPE vérifiée",
     "ACS_CUSTOMER_TAG_SET": "CPE étiqueté avec son client dans GenieACS",
     "ACS_DIAGNOSTIC_COMPLETED": "Diagnostic ACS terminé",
     "ACS_DIAGNOSTIC_REQUESTED": "Diagnostic ACS demandé",
     "ACS_FIRMWARE_AUTO_CHANGED": "Téléchargement automatique des firmwares modifié",
+    "ACS_FIRMWARE_CAMPAIGN_CANCELLED": "Campagne firmware TR-069 annulée",
+    "ACS_FIRMWARE_CAMPAIGN_COMPLETED": "Campagne firmware TR-069 terminée",
+    "ACS_FIRMWARE_CAMPAIGN_CREATED": "Campagne firmware TR-069 créée",
+    "ACS_FIRMWARE_CAMPAIGN_PAUSED": "Campagne firmware TR-069 en pause",
+    "ACS_FIRMWARE_CAMPAIGN_RESUMED": "Campagne firmware TR-069 reprise",
+    "ACS_FIRMWARE_CAMPAIGN_STARTED": "Campagne firmware TR-069 lancée",
+    "ACS_FIRMWARE_CAMPAIGN_STOPPED": "Campagne firmware TR-069 arrêtée",
+    "ACS_FIRMWARE_CAMPAIGN_WAVE_STARTED": "Vague d'une campagne firmware lancée",
     "ACS_FIRMWARE_FAILED": "Échec de la mise à jour du firmware du CPE",
     "ACS_FIRMWARE_FILE_FETCHED": "Firmware téléchargé du constructeur dans l'ACS",
     "ACS_FIRMWARE_FILE_STORED": "Image firmware chargée dans l'ACS",
     "ACS_FIRMWARE_REQUESTED": "Mise à jour du firmware du CPE demandée",
+    "ACS_FIRMWARE_UNCONFIRMED": "Mise à jour du firmware du CPE non confirmée",
     "ACS_FIRMWARE_VERIFIED": "Mise à jour du firmware du CPE vérifiée",
     "ACS_MIGRATION_COMPLETED": "Migration ACS terminée",
     "ACS_MIGRATION_STARTED": "Migration ACS démarrée",
@@ -5344,7 +5541,9 @@
     "EXPOSURE_ACL_REMOVED": "Déclaration ACL retirée",
     "EXPOSURE_CHECK_REQUESTED": "Vérification d'exposition demandée",
     "EXPOSURE_EXTERNAL_CHECK": "Vérification d'exposition externe",
+    "EXPOSURE_ISSUE_CLOSED_NOT_PUBLIC": "Alerte d'exposition fermée : équipement non joignable depuis Internet",
     "EXPOSURE_ISSUE_OPENED": "Services exposés signalés",
+    "EXPOSURE_PROBE_CONFIGURED": "Sonde externe configurée",
     "EXPOSURE_TARGET_IP_CHANGED": "IP publique à vérifier modifiée",
     "FIRMWARE_ACTIVATION_ACCEPTED": "Activation du firmware acceptée",
     "FIRMWARE_ACTIVATION_QUEUED": "Activation du firmware en file d'attente",
@@ -5416,6 +5615,9 @@
     "MAC_DISCOVERED": "Adresse MAC relevée",
     "MAINTENANCE_WINDOW_CREATED": "Fenêtre de maintenance créée",
     "MAINTENANCE_WINDOW_DELETED": "Fenêtre de maintenance supprimée",
+    "MANAGEMENT_ACCESS_CHANGED": "Réseaux de gestion autorisés modifiés",
+    "MANAGEMENT_ACCESS_EXCLUSION_CHANGED": "Exclusion des réseaux de gestion modifiée",
+    "MANAGEMENT_ACCESS_QUEUED": "Configuration SNMP, SSH et heure envoyée à l'équipement",
     "MIKROTIK_AGENT_PRIVILEGE_PROFILE_OBSERVED": "Droits de l'agent relevés",
     "MIKROTIK_AGENT_PRIVILEGE_PROFILE_SELECTED": "Profil de droits de l'agent choisi",
     "MIKROTIK_AGENT_TRANSPORT_SELECTED": "Transport de l'agent choisi",
@@ -5496,11 +5698,17 @@
     "UISP_REBOOT_VERIFIED": "Redémarrage via UISP vérifié",
     "UISP_SITE_IGNORED": "Endpoint UISP ignoré",
     "UISP_SITE_LINKED": "Endpoint UISP lié à un client",
+    "UISP_SPEEDTEST_FINISHED": "Test de débit UISP terminé",
+    "UISP_SPEEDTEST_STARTED": "Test de débit UISP lancé",
+    "UISP_SPEEDTEST_STOPPED": "Test de débit UISP arrêté",
     "UISP_SYNC_COMPLETED": "Synchronisation UISP terminée",
     "UISP_SYNC_CONFLICT": "Conflit de synchronisation UISP",
     "UISP_SYNC_FAILED": "Échec de la synchronisation UISP",
     "UISP_SYSLOG_CONFIGURED": "Syslog de l'équipement configuré via UISP",
+    "UISP_SYSLOG_LEVEL_CHANGED": "Niveau minimum de l'équipement modifié",
     "UISP_SYSLOG_RESTORED": "Configuration de l'équipement restaurée via UISP",
+    "UNIFI_CONFIGURED": "Connecteur UniFi Network configuré",
+    "UNIFI_DEVICE_LINKED": "Équipement associé au contrôleur UniFi",
     "USER_2FA_DISABLED": "Connexion à deux facteurs désactivée",
     "USER_2FA_ENABLED": "Connexion à deux facteurs activée",
     "USER_2FA_RECOVERY_REGENERATED": "Codes de secours 2FA renouvelés",
@@ -5526,6 +5734,7 @@
     "ZABBIX_HOST_IP_UPDATED": "IP de l'hôte Zabbix mise à jour",
     "ZABBIX_HOST_LINKED": "Équipement lié à un hôte Zabbix existant",
     "ZABBIX_SETTINGS_CHANGED": "Paramètres Zabbix modifiés",
+    "ZABBIX_SNMP_COMMUNITY_ENCRYPTED": "Communauté SNMP Zabbix chiffrée",
     "ZABBIX_SYNC_REQUESTED": "Synchronisation Zabbix demandée"
   },
   "eventSources": {
@@ -5697,7 +5906,19 @@
     "dslRate": "Débit desc. / mont.",
     "dslSnr": "Marge SNR",
     "dslAttenuation": "Atténuation",
-    "charts": "Historique depuis l'ACS"
+    "charts": "Historique depuis l'ACS",
+    "pon": {
+      "title": "Niveaux optiques PON",
+      "rx_dbm": "Reçu (Rx)",
+      "tx_dbm": "Émis (Tx)",
+      "temperature_c": "Température du module",
+      "voltage_v": "Tension d'alimentation",
+      "bias_ma": "Courant de polarisation laser",
+      "status": "État PON",
+      "notExposed": "non fourni par le CPE",
+      "help": "Lus sur le CPE toutes les heures par la provision NSM ; dernière lecture {{when}} depuis"
+    },
+    "lastSample": "Aucun échantillon sur cette période : le dernier reçu du CPE date du {{when}}."
   },
   "serverMigration": {
     "subtitle": "Déplacer NSM vers un serveur à une autre adresse : ce serveur communique la nouvelle adresse aux agents MikroTik et aux CPE TR-069.",
@@ -5885,7 +6106,12 @@
       "save": "Enregistrer",
       "saved": "Enregistré."
     },
-    "short": "Le serveur n'a envoyé que {{bytes}} octets au lieu du fichier (redirection ou refus) : utilisez NSM ou un autre serveur de test."
+    "short": "Le serveur n'a envoyé que {{bytes}} octets au lieu du fichier (redirection ou refus) : utilisez NSM ou un autre serveur de test.",
+    "timedHelp": "Sur les CPE qui le permettent le test dure {{seconds}} secondes et mesure le débit toutes les 2 secondes.",
+    "plan": "Offre ISPBilling du client : {{plans}}",
+    "breakdown": "soutenu {{sustained}} · moyen {{average}} · pic {{peak}} Mbit/s",
+    "tooShort": "test court : il peut mesurer le burst initial au lieu de la limite de l'offre",
+    "burstNote": "Le test va jusqu'au serveur NSM en passant par le BRAS : si le profil PPPoE a un burst, les premières secondes vont plus vite que l'offre. Comparez le débit soutenu avec l'offre."
   },
   "acsFirmware": {
     "title": "Firmware",
@@ -5907,6 +6133,7 @@
     "run": "Mettre à jour le firmware",
     "waitingContact": "il démarrera au prochain contact avec l'ACS",
     "notExpected": "ce n'est pas la version attendue {{version}}",
+    "taskRemoved": "la tâche de téléchargement a été retirée de la file du CPE dans GenieACS",
     "states": {
       "requested": "Mise à jour demandée le {{when}} depuis {{from}}, en attente de la nouvelle version du CPE",
       "verified": "Mis à jour le {{when}} : {{from}} → {{to}}",
@@ -6109,7 +6336,8 @@
       "reconnects_per_hour": "Reconnexions WAN par heure",
       "reboots_per_day": "Redémarrages du CPE en 24 heures",
       "snr_min_db": "Marge SNR DSL minimale (dB)",
-      "dsl_rate_drop_percent": "Baisse du débit DSL descendant par rapport à la médiane sur 7 jours (%)"
+      "dsl_rate_drop_percent": "Baisse du débit DSL descendant par rapport à la médiane sur 7 jours (%)",
+      "pon_rx_min_dbm": "Niveau PON reçu minimal (dBm, ex. −27)"
     },
     "save": "Enregistrer",
     "saved": "Enregistré."
@@ -6416,59 +6644,11 @@
     "restore": "Restaurer la configuration précédente",
     "working": "UISP applique…",
     "done": "Configuration appliquée : le CPE redémarre et les journaux arrivent sous quelques minutes.",
-    "restored": "Configuration précédente appliquée : le CPE redémarre."
-  },
-  "cambiumFirmware": {
-    "title": "Mise à jour du firmware via SSH",
-    "help": "cnMaestro ne permet pas la mise à jour par son API : NSM utilise donc la console de l'ePMP avec les identifiants SSH des sauvegardes Cambium. Il sauvegarde la configuration, demande à l'agent de mise à jour de la radio de télécharger l'image depuis NSM (lien signé valable 2 heures) puis vérifie la nouvelle version sur cnMaestro ou sur l'ePMP. L'image vient du catalogue Cambium (Firmware → Catalogues → Charger un firmware). L'ePMP doit avoir SNMP actif avec une communauté en lecture/écriture : NSM ne la modifie pas.",
-    "installed": "Installé",
-    "recommended": "Recommandé",
-    "server": "Adresse de NSM pour l'équipement",
-    "verifiedBy": "Vérification de la version",
-    "byCnmaestro": "cnMaestro (version logicielle), sinon SSH",
-    "bySsh": "SSH sur l'ePMP (non lié à cnMaestro)",
-    "noCredentials": "Définissez l'utilisateur et le mot de passe SSH des Cambium (Administration → cnMaestro) ou de cet équipement (onglet cnMaestro).",
-    "noServer": "NSM ne connaît pas l'adresse par laquelle l'équipement le joint : définissez-la dans Administration → ACS → Test de débit (adresse de NSM pour les CPE) ou dans Administration → Syslog.",
-    "check": "Vérifier les prérequis (lecture seule)",
-    "checkReady": "Prêt :",
-    "checkBusy": "Pas prêt :",
-    "checkAgent": "agent de mise à jour {{state}}",
-    "lastError": "dernière erreur : {{error}}",
-    "image": "Image du catalogue NSM",
-    "security": "sécurité",
-    "steps": {
-      "backup": "Sauvegarde SSH de la configuration en cours (une erreur arrête la mise à jour).",
-      "command": "L'ePMP télécharge l'image depuis {{server}} et l'installe.",
-      "reboot": "L'ePMP redémarre de lui-même : le client perd la connexion pendant quelques minutes.",
-      "verify": "NSM vérifie la nouvelle version (jusqu'à 45 minutes)."
-    },
-    "confirm": "Saisissez {{name}} pour confirmer : l'équipement redémarre et le client perd la connexion pendant quelques minutes.",
-    "start": "Mettre à jour vers {{version}}",
-    "running": "Sauvegarde et commande en cours…",
-    "noNewer": "Le catalogue n'a pas d'image plus récente que la version installée pour ce modèle.",
-    "noImages": "Aucune image Cambium pour ce modèle dans le catalogue : chargez-la depuis Firmware → Catalogues.",
-    "agent": "ePMP : {{state}}.",
-    "served": "Image téléchargée depuis NSM.",
-    "notServed": "Image pas encore téléchargée depuis NSM.",
-    "requested": "Demandée le {{when}} par {{who}} (depuis {{from}})",
-    "states": {
-      "requested": "Mise à jour vers {{version}} en cours.",
-      "verified": "Mise à jour vers {{version}} vérifiée.",
-      "failed": "Échec de la mise à jour vers {{version}}.",
-      "unconfirmed": "Mise à jour vers {{version}} non confirmée."
-    },
-    "agentStates": {
-      "idle": "inactif",
-      "downloading": "téléchargement de l'image",
-      "verifying": "vérification de la signature",
-      "pre_update": "script avant mise à jour",
-      "flashing": "écriture de la flash",
-      "uboot": "écriture d'U-Boot",
-      "post_update": "script après mise à jour",
-      "finished": "terminé, en attente du redémarrage",
-      "config_downgrade": "script de rétrogradation de la configuration",
-      "unknown": "inconnu"
-    }
+    "restored": "Configuration précédente appliquée : le CPE redémarre.",
+    "level": "Niveau minimum conservé",
+    "saveLevel": "Enregistrer le niveau",
+    "levelSaved": "Niveau enregistré : effectif immédiatement, sans redémarrage.",
+    "levelHelp": "airOS envoie tous les journaux : NSM ne garde que le niveau choisi ou plus grave (warning par défaut). Les connexions restent enregistrées pour la page Accessi."
   },
   "bras": {
     "title": "BRAS MikroTik",
@@ -6505,6 +6685,67 @@
     "uptime": "connecté depuis {{value}}",
     "never": "Jamais vue sur le BRAS",
     "noDevice": "Aucun équipement associé"
+  },
+  "acsCapabilities": {
+    "title": "Fonctions NSM sur ce CPE",
+    "help": "Profil de paramètres {{model}} · {{vendor}}, d'après l'enregistrement GenieACS (dernier Inform {{when}}). Lu sans rien envoyer au CPE.",
+    "notRead": "GenieACS n'a pas encore lu le modèle de données du CPE.",
+    "vendors": {
+      "tp-link": "extensions TP-Link",
+      "generic": "paramètres standard uniquement"
+    },
+    "columns": {
+      "capability": "Fonction",
+      "status": "État",
+      "why": "Pourquoi / chemins",
+      "writes": "Écrit sur le CPE"
+    },
+    "status": {
+      "available": "Disponible",
+      "rpc": "Disponible (RPC TR-069)",
+      "not_exposed": "Non exposé",
+      "unsupported": "Non pris en charge"
+    },
+    "reasons": {
+      "found": "Le CPE expose les paramètres :",
+      "not_reported": "Le CPE ne fournit pas ces paramètres (ou GenieACS ne les a pas encore lus).",
+      "no_dsl": "Aucune ligne DSL dans le modèle de données du CPE.",
+      "no_pon": "Le CPE n'expose aucun niveau optique PON.",
+      "download_rpc": "RPC standard Download : il faut une image pour le modèle dans GenieACS.",
+      "reboot_rpc": "RPC standard Reboot.",
+      "nsm_tr098": "En TR-098, CPU et mémoire n'existent que sur peu de CPE : NSM ne les lit qu'en TR-181.",
+      "vendor_tr181": "N'existe que comme extension TP-Link du firmware TR-181 (Aginet).",
+      "vendor_tplink": "N'existe que comme extension TP-Link (X_TP_*).",
+      "no_standard": "Aucun paramètre standard dans ce modèle de données.",
+      "no_upload_task": "GenieACS n'a pas de tâche Upload : le fichier de configuration du fabricant ne peut pas être téléchargé. NSM archive les paramètres.",
+      "snapshots": "{{count}} instantanés de paramètres archivés.",
+      "no_snapshot": "Aucun instantané : créez-en un depuis la section Instantané.",
+      "restore_preview": "Depuis la page de l'instantané : aperçu des différences et confirmation."
+    },
+    "caps": {
+      "identity": "Identité et firmware",
+      "resources": "CPU et mémoire",
+      "wan": "État WAN",
+      "wifi": "Wi-Fi (lecture et modification)",
+      "dsl": "Ligne DSL",
+      "pon": "Niveaux optiques PON",
+      "ping": "Ping depuis le CPE",
+      "traceroute": "Traceroute depuis le CPE",
+      "speedtest": "Test de débit",
+      "firmware": "Mise à jour du firmware (image)",
+      "firmware_cloud": "Firmware depuis le cloud TP-Link",
+      "syslog": "Syslog vers NSM",
+      "port_mapping": "Redirection de ports et DMZ",
+      "upnp": "État UPnP",
+      "remote_access": "Accès web distant",
+      "reboot": "Redémarrage",
+      "inform_interval": "Intervalle d'Inform",
+      "config_snapshot": "Instantané de la configuration",
+      "config_file": "Fichier de configuration du fabricant",
+      "config_restore": "Restauration depuis un instantané"
+    },
+    "writesYes": "oui, sur demande",
+    "writesNo": "non"
   },
   "cambiumSyslog": {
     "title": "Syslog de l'ePMP",
@@ -6557,5 +6798,407 @@
     "working": "Connexion à l'ePMP…",
     "done": "Syslog configuré : les journaux arrivent dans quelques minutes.",
     "restored": "Valeurs précédentes restaurées sur l'ePMP."
+  },
+  "acsRestore": {
+    "title": "Restaurer sur le CPE",
+    "intro": "Remettez sur le CPE certains paramètres de cet instantané : voyez d'abord ce qui changerait, puis choisissez ce qu'il faut restaurer.",
+    "prepare": "Préparer la restauration",
+    "help": "Seuls les paramètres modifiables dont la valeur actuelle (lue maintenant depuis l'ACS) diffère de l'instantané. Exclus : mots de passe et clés (absents des instantanés), valeurs qui changent seules, le lien avec l'ACS (ManagementServer) et les paramètres qui lancent des actions (diagnostics, mises à jour, réinitialisations). NSM envoie une seule commande setParameterValues, puis relit les paramètres sur le CPE.",
+    "skipped": "Déjà identiques : {{unchanged}} · absents du CPE : {{missing}} · non modifiables : {{not_writable}} · exclus : {{excluded}} · non convertibles : {{invalid}}.",
+    "nothing": "Rien à restaurer : le CPE a déjà les valeurs de l'instantané.",
+    "all": "Tout sélectionner",
+    "columns": {
+      "path": "Paramètre",
+      "current": "Valeur actuelle",
+      "snapshot": "Valeur dans l'instantané"
+    },
+    "confirm": "Saisissez « {{name}} » pour restaurer {{count}} paramètres",
+    "run": "Restaurer {{count}} paramètres",
+    "noPermission": "La restauration nécessite le droit de modifier les équipements.",
+    "queued": "Le CPE n'a pas répondu à la demande de connexion : la commande partira au prochain contact.",
+    "states": {
+      "requested": "Restauration de {{count}} paramètres envoyée à GenieACS ({{when}}) : en attente de l'exécution par le CPE.",
+      "verifying": "Paramètres écrits : NSM les relit sur le CPE pour les vérifier.",
+      "verified": "Restauration vérifiée ({{when}}) : le CPE indique les {{count}} valeurs de l'instantané.",
+      "mismatch": "Restauration effectuée, mais le CPE indique d'autres valeurs pour ces paramètres ({{when}}) :",
+      "failed": "Le CPE a refusé la restauration (erreur {{fault}}). La commande a été supprimée de GenieACS avec son erreur : la file du CPE n'est pas bloquée.",
+      "unverified": "Paramètres écrits, mais la relecture sur le CPE a échoué (erreur {{fault}}).",
+      "unconfirmed": "Le CPE n'a pas exécuté la restauration dans les 30 minutes : la commande a été supprimée de GenieACS."
+    }
+  },
+  "acsCampaigns": {
+    "title": "Campagnes firmware TR-069",
+    "subtitle": "Mettez à jour de nombreux CPE du même modèle : d'abord un CPE pilote, puis par vagues, uniquement dans la plage horaire choisie. La campagne s'arrête seule à la première mise à jour échouée ou non confirmée.",
+    "back": "Retour au firmware",
+    "backList": "Toutes les campagnes",
+    "new": "Nouvelle campagne",
+    "close": "Fermer",
+    "newTitle": "Nouvelle campagne",
+    "newHelp": "Choisissez une image déjà dans GenieACS (chargée depuis l'onglet Firmware d'un CPE ou depuis les catalogues) : la campagne porte sur les CPE liés de ce modèle. Elle est créée en brouillon : rien ne part tant que vous ne la lancez pas en saisissant son nom.",
+    "chooseFile": "Choisissez l'image…",
+    "noFiles": "Aucune image firmware dans GenieACS : chargez-en une depuis l'onglet Firmware d'un CPE.",
+    "pilotAuto": "Le premier par nom",
+    "createDraft": "Créer le brouillon",
+    "selected": "{{count}} CPE {{model}} choisis sur {{total}} liés.",
+    "fields": {
+      "name": "Nom de la campagne",
+      "file": "Image firmware",
+      "expected": "Version attendue après la mise à jour",
+      "waveSize": "CPE par vague",
+      "window": "Plage horaire ({{tz}}) : début et fin",
+      "pilot": "CPE pilote"
+    },
+    "columns": {
+      "name": "Campagne",
+      "state": "État",
+      "model": "Modèle → version",
+      "progress": "Avancement",
+      "created": "Créée",
+      "device": "CPE",
+      "customer": "Client",
+      "version": "Version",
+      "when": "Quand",
+      "error": "Détail"
+    },
+    "status": {
+      "draft": "Brouillon",
+      "running": "En cours",
+      "paused": "En pause",
+      "stopped": "Arrêtée",
+      "completed": "Terminée",
+      "cancelled": "Annulée"
+    },
+    "device": {
+      "pending": "En attente",
+      "requested": "En mise à jour",
+      "verified": "Mis à jour",
+      "failed": "Échec",
+      "unconfirmed": "Non confirmé",
+      "skipped": "Ignoré",
+      "cancelled": "Annulé"
+    },
+    "errors": {
+      "already": "déjà à la version attendue",
+      "not_linked": "plus lié à GenieACS",
+      "unexpected_version": "version différente de celle attendue",
+      "no_new_version": "aucune nouvelle version après 30 minutes",
+      "device_removed": "équipement supprimé"
+    },
+    "summary": "{{model}} → {{version}} · {{file}} · vagues de {{wave}} · plage {{start}}–{{end}} ({{tz}})",
+    "rules": "Le pilote est mis à jour seul ; les vagues suivantes partent seulement quand la vague précédente est entièrement vérifiée, et seulement dans la plage horaire. Les mises à jour déjà envoyées ne peuvent pas être rappelées : pause et annulation n'arrêtent que les CPE pas encore lancés.",
+    "stopped": "Campagne arrêtée : {{reason}}. Vérifiez le CPE, puis reprenez la campagne pour continuer avec les autres.",
+    "outsideWindow": "Hors plage horaire : la prochaine vague partira à l'ouverture de la plage.",
+    "confirmStart": "Saisissez « {{name}} » pour lancer la campagne",
+    "confirmResume": "Saisissez « {{name}} » pour reprendre la campagne",
+    "start": "Lancer la campagne",
+    "resume": "Reprendre",
+    "pause": "Pause",
+    "cancel": "Annuler la campagne",
+    "pilot": "Pilote",
+    "wave": "Vague {{number}}",
+    "empty": "Aucune campagne pour l'instant."
+  },
+  "restoreReadiness": {
+    "title": "MikroTik prêts à restaurer",
+    "subtitle": "Prêt à restaurer : une sauvegarde complète des {{backup}} derniers jours et un test de restauration réussi des {{test}} derniers jours, enregistré sur un fichier intact. Rien n'est restauré automatiquement.",
+    "back": "Sauvegardes",
+    "search": "Rechercher un équipement ou un client",
+    "states": {
+      "label": "Préparation à la restauration",
+      "attention": "À vérifier",
+      "no_backup": "Sans sauvegarde",
+      "backup_stale": "Sauvegarde ancienne",
+      "backup_incomplete": "Sauvegarde incomplète",
+      "restore_failed": "Test échoué",
+      "no_restore_test": "Jamais testé",
+      "restore_stale": "Test ancien",
+      "ready": "Prêts",
+      "all": "Tous"
+    },
+    "columns": {
+      "device": "Équipement",
+      "state": "Préparation",
+      "backup": "Dernière sauvegarde réussie",
+      "test": "Dernier test de restauration",
+      "next": "Étape suivante"
+    },
+    "formats": {
+      "mikrotik_binary": ".backup",
+      "mikrotik_export": ".rsc"
+    },
+    "missing": "Manquant : {{formats}}",
+    "never": "jamais",
+    "noTest": "aucun test",
+    "results": {
+      "passed": "Réussi",
+      "partial": "Partiel",
+      "failed": "Échoué"
+    },
+    "integrityFailed": "Intégrité du fichier non confirmée",
+    "openBackups": "Sauvegardes",
+    "recordTest": "Enregistrer un test",
+    "openTests": "Tests de restauration",
+    "limited": "Premiers {{shown}} sur {{total}} équipements : affinez la recherche.",
+    "allGood": "Tous les MikroTik sont prêts à restaurer.",
+    "empty": "Aucun MikroTik dans cet état."
+  },
+  "routerbootFleet": {
+    "title": "RouterBOOT MikroTik",
+    "subtitle": "Équipements dont le RouterBOOT diffère de la version disponible après la mise à jour RouterOS. La mise à jour reste par équipement : flash puis redémarrage, chacun confirmé et vérifié.",
+    "back": "Firmware",
+    "search": "Rechercher un équipement ou un client",
+    "states": {
+      "label": "État RouterBOOT",
+      "attention": "À vérifier",
+      "pending": "À mettre à jour",
+      "blocked": "Bloqués",
+      "in_progress": "En cours",
+      "failed": "Échoués",
+      "unknown": "Non lus",
+      "current": "À jour",
+      "all": "Tous"
+    },
+    "reasons": {
+      "not_modern": "Nécessite l'agent moderne (RouterOS 7.13+)",
+      "profile": "Profil d'agent inadapté : réinstallez l'agent",
+      "offline": "Équipement hors ligne",
+      "not_read": "Lancez une vérification firmware pour lire RouterBOOT"
+    },
+    "workflow": {
+      "staging": "flash en cours",
+      "staged": "flash effectué, redémarrage requis",
+      "reboot_pending": "redémarrage en file",
+      "rebooting": "redémarrage et vérification"
+    },
+    "columns": {
+      "device": "Équipement",
+      "state": "État",
+      "current": "Actuel",
+      "available": "Disponible",
+      "checked": "Dernière vérification",
+      "next": "Étape suivante"
+    },
+    "stale": "Vérification de plus de 24 h",
+    "upgrade": "Mettre à jour",
+    "open": "Ouvrir",
+    "limited": "Premiers {{shown}} sur {{total}} équipements : affinez la recherche.",
+    "allGood": "Tous les RouterBOOT sont à jour.",
+    "empty": "Aucun MikroTik dans cet état."
+  },
+  "unifi": {
+    "title": "Intégrations · UniFi Network",
+    "subtitle": "Connecteur en lecture seule pour les équipements UniFi (passerelles/routeurs, commutateurs, points d'accès) gérés par un contrôleur UniFi Network : liste par site, association par MAC, état, firmware et statistiques toutes les 15 minutes.",
+    "lastSync": "Dernière synchronisation",
+    "controller": "Contrôleur",
+    "sites_one": "{{count}} site",
+    "sites_other": "{{count}} sites",
+    "inController": "Équipements dans le contrôleur",
+    "notInNsm_one": "{{count}} pas encore dans NSM",
+    "notInNsm_other": "{{count}} pas encore dans NSM",
+    "linked": "Associés à NSM",
+    "byMac": "équipements Ubiquiti NSM avec la même MAC",
+    "connectionHelp": "Dans le contrôleur : UniFi Network → Paramètres → Control Plane → Intégrations → créez une clé API. UniFi Network 9.3 ou ultérieur est requis. La clé a les droits de l'administrateur qui la crée : un administrateur en lecture seule suffit pour NSM.",
+    "url": "Adresse de la console ou du contrôleur",
+    "apiKey": "Clé API",
+    "tlsHelp": "Désactivez la vérification uniquement si le contrôleur utilise son certificat autosigné d'usine.",
+    "siteFilter": "Sites à lire",
+    "siteFilterHelp": "Aucun site sélectionné : NSM lit tous les sites du contrôleur.",
+    "saved": "Configuration UniFi enregistrée.",
+    "actionsHelp": "Le test lit la version et les sites. La synchronisation lit les équipements et associe les équipements Ubiquiti déjà présents dans NSM avec la même MAC. Rien n'est envoyé au contrôleur. Le client et le site restent ceux de NSM.",
+    "disabledConnector": "Le connecteur UniFi est désactivé.",
+    "synced": "Synchronisation terminée : {{devices}} équipements dans {{sites}} sites, {{linked}} associés à NSM ({{created}} nouveaux), {{missing}} pas encore dans NSM.",
+    "devicesTitle": "Équipements dans le contrôleur",
+    "filter": "Filtrer par nom, modèle, IP, MAC ou site",
+    "devicesHelp": "Liste lue lors de la dernière synchronisation. L'import dans NSM des équipements absents arrive à l'étape suivante.",
+    "noDevices": "Aucun équipement lu : lancez le test, puis la synchronisation.",
+    "columns": {
+      "site": "Site",
+      "device": "Équipement",
+      "type": "Type",
+      "ip": "IP",
+      "firmware": "Firmware",
+      "state": "État",
+      "nsm": "Dans NSM"
+    },
+    "updateAvailable": "mise à jour disponible",
+    "inNsm": "associé",
+    "missing": "absent de NSM"
+  },
+  "managementAccess": {
+    "subtitle": "Réseaux de gestion autorisés : les adresses depuis lesquelles les équipements sont gérés (NSM, Zabbix, NOC). La même liste vaut pour tous les fabricants : SNMP et SSH ne répondent qu'à ces réseaux, et la date et l'heure sont synchronisées par NTP.",
+    "notSaved": "Liste pas encore enregistrée : tant qu'elle ne l'est pas, NSM ne modifie aucun équipement. Vérifiez les réseaux proposés et cliquez sur Enregistrer.",
+    "mikrotikTitle": "MikroTik (via l'agent)",
+    "applyAll": "Appliquer à tous maintenant",
+    "counts": {
+      "applied": "Configurés",
+      "pending_one": "{{count}} en cours",
+      "pending_other": "{{count}} en cours",
+      "failed": "Échecs",
+      "todo_one": "{{count}} à configurer",
+      "todo_other": "{{count}} à configurer",
+      "excluded": "Exclus",
+      "notEligible_one": "{{count}} avec un agent à mettre à jour ou legacy",
+      "notEligible_other": "{{count}} avec un agent à mettre à jour ou legacy"
+    },
+    "applied": "Configuration envoyée à {{queued}} équipements ({{skipped}} ignorés : exclus, non éligibles ou déjà en cours).",
+    "settingsTitle": "Paramètres",
+    "settingsHelp": "Avec l'application automatique, l'agent MikroTik applique les paramètres à chaque routeur dès sa mise à jour, puis à chaque changement.",
+    "networks": "Réseaux de gestion autorisés",
+    "networksHelp": "Un réseau par ligne, IPv4 ou IPv6, par exemple 198.51.100.10/32 ou 203.0.113.0/24. Au maximum {{max}}.",
+    "suggested": "Proposés par NSM : {{list}}.",
+    "lockoutWarning": "SSH et SNMP n'accepteront que ces réseaux : ajoutez toutes les adresses depuis lesquelles vous accédez aux équipements (NOC, VPN, bureau). L'agent communique avec NSM en sortie et ne dépend pas de cette liste.",
+    "community": "Communauté SNMP (lecture seule)",
+    "ntpServers": "Serveurs NTP",
+    "timezone": "Fuseau horaire",
+    "restrictSsh": "Limiter aussi l'accès SSH à ces réseaux",
+    "autoConfigure": "Appliquer automatiquement aux équipements",
+    "saved": "Paramètres enregistrés.",
+    "vendorsTitle": "Fabricants",
+    "vendors": {
+      "mikrotik": {
+        "name": "MikroTik",
+        "state": "via l'agent 0.49.27 : communauté SNMP limitée aux réseaux, service SSH avec « disponible depuis », client NTP et fuseau horaire."
+      },
+      "ubiquiti": {
+        "name": "Ubiquiti airOS",
+        "state": "étape suivante via UISP : pare-feu airOS avec règles pour SSH, découverte et SNMP (redémarre la CPE)."
+      },
+      "tr069": {
+        "name": "TP-Link et CPE TR-069",
+        "state": "étape suivante : NTP et fuseau horaire via TR-069 ; SNMP et ACL lorsque le modèle les expose."
+      },
+      "cambium": {
+        "name": "Cambium",
+        "state": "étape suivante via cnMaestro, à vérifier sur la console."
+      }
+    },
+    "device": {
+      "title": "SNMP, SSH et heure",
+      "hint": "Paramètres des réseaux de gestion autorisés (Administration → Réseaux de gestion).",
+      "states": {
+        "applied": "Appliqués",
+        "pending": "En cours",
+        "failed": "Échec",
+        "todo": "À appliquer",
+        "excluded": "Exclu",
+        "notEligible": "Non disponible"
+      },
+      "clock": "Horloge du routeur : {{date}} {{time}} ({{zone}}) · NTP : {{ntp}}",
+      "lastRun": "Dernière application : {{when}}",
+      "exclude": "Exclure cet équipement",
+      "apply": "Appliquer maintenant"
+    }
+  },
+  "backupPolicies": {
+    "title": "Politiques de sauvegarde",
+    "subtitle": "Toutes les politiques de sauvegarde avec les équipements qu'elles protègent : modifiez-les, dupliquez-les, activez-les ou désactivez-les et supprimez-les ici.",
+    "back": "Retour aux sauvegardes",
+    "manage_one": "Politiques de sauvegarde ({{count}})",
+    "manage_other": "Politiques de sauvegarde ({{count}})",
+    "overviewHint": "{{active}} actives sur {{count}}. Gérez-les toutes depuis la page Politiques de sauvegarde.",
+    "show": {
+      "all": "Toutes",
+      "on": "Actives",
+      "off": "Désactivées"
+    },
+    "filter": "Filtrer par nom, portée ou description",
+    "noMatch": "Aucune politique ne correspond au filtre.",
+    "columns": {
+      "name": "Politique",
+      "scope": "Portée",
+      "schedule": "Planification",
+      "devices": "Équipements",
+      "state": "État",
+      "actions": "Actions"
+    },
+    "shared": "politique générale : elle protège aussi des équipements d'autres clients",
+    "coverage": "{{protected}} protégés · {{blocked}} bloqués",
+    "failed_one": "{{count}} en échec",
+    "failed_other": "{{count}} en échec",
+    "edit": "Modifier",
+    "clone": "Dupliquer",
+    "disable": "Désactiver",
+    "enable": "Activer",
+    "cancel": "Annuler",
+    "confirm": "Pour supprimer, saisissez le nom de la politique : {{name}}"
+  },
+  "probeAdmin": {
+    "title": "Intégrations · Sonde externe",
+    "subtitle": "Vérifie les ports exposés depuis l'extérieur de votre réseau. Le serveur NSM est dans le réseau et ne voit pas les filtres de bordure ; la sonde, installée sur un serveur externe (par exemple un VPS), voit ce que voit Internet.",
+    "connection": "Connexion",
+    "connectionHelp": "Les requêtes sont signées avec le secret partagé et ne contiennent que les IP publiques de l'inventaire et les ports prévus. Si la sonde ne répond pas, NSM vérifie depuis son propre serveur et le signale.",
+    "url": "Adresse de la sonde",
+    "name": "Nom affiché dans les résultats",
+    "secret": "Secret partagé (PROBE_SECRET)",
+    "enabled": "Utiliser la sonde pour les vérifications depuis l'extérieur",
+    "saved": "Sonde enregistrée.",
+    "state": "État",
+    "notConfigured": "Non configurée",
+    "off": "Désactivée",
+    "ok": "Joignable",
+    "failed": "Non joignable",
+    "untested": "À tester",
+    "lastTest": "Dernier test : {{when}}",
+    "test": "Tester la sonde",
+    "howTitle": "Installation sur le serveur externe",
+    "how": {
+      "host": "Un serveur hors de votre réseau, avec une autre connexion Internet, et Docker installé.",
+      "secret": "Générez un secret d'au moins 32 caractères (par exemple avec openssl rand -hex 32) : il va dans la sonde et ici.",
+      "run": "Copiez le dossier probe du dépôt et démarrez le conteneur avec les commandes ci-dessous.",
+      "sources": "Dans PROBE_ALLOWED_SOURCES indiquez l'IP publique de sortie du serveur NSM, ainsi personne d'autre ne peut l'utiliser.",
+      "connect": "Saisissez ici adresse, nom et secret, enregistrez et cliquez sur « Tester la sonde »."
+    }
+  },
+  "cambiumFirmware": {
+    "title": "Mise à jour du firmware via SSH",
+    "help": "cnMaestro ne permet pas la mise à jour par son API : NSM utilise donc la console de l'ePMP avec les identifiants SSH des sauvegardes Cambium. Il sauvegarde la configuration, demande à l'agent de mise à jour de la radio de télécharger l'image depuis NSM (lien signé valable 2 heures) puis vérifie la nouvelle version sur cnMaestro ou sur l'ePMP. L'image vient du catalogue Cambium (Firmware → Catalogues → Charger un firmware). L'ePMP doit avoir SNMP actif avec une communauté en lecture/écriture : NSM ne la modifie pas.",
+    "installed": "Installé",
+    "recommended": "Recommandé",
+    "server": "Adresse de NSM pour l'équipement",
+    "verifiedBy": "Vérification de la version",
+    "byCnmaestro": "cnMaestro (version logicielle), sinon SSH",
+    "bySsh": "SSH sur l'ePMP (non lié à cnMaestro)",
+    "noCredentials": "Définissez l'utilisateur et le mot de passe SSH des Cambium (Administration → cnMaestro) ou de cet équipement (onglet cnMaestro).",
+    "noServer": "NSM ne connaît pas l'adresse par laquelle l'équipement le joint : définissez-la dans Administration → ACS → Test de débit (adresse de NSM pour les CPE) ou dans Administration → Syslog.",
+    "check": "Vérifier les prérequis (lecture seule)",
+    "checkReady": "Prêt :",
+    "checkBusy": "Pas prêt :",
+    "checkAgent": "agent de mise à jour {{state}}",
+    "lastError": "dernière erreur : {{error}}",
+    "image": "Image du catalogue NSM",
+    "security": "sécurité",
+    "steps": {
+      "backup": "Sauvegarde SSH de la configuration en cours (une erreur arrête la mise à jour).",
+      "command": "L'ePMP télécharge l'image depuis {{server}} et l'installe.",
+      "reboot": "L'ePMP redémarre de lui-même : le client perd la connexion pendant quelques minutes.",
+      "verify": "NSM vérifie la nouvelle version (jusqu'à 45 minutes)."
+    },
+    "confirm": "Saisissez {{name}} pour confirmer : l'équipement redémarre et le client perd la connexion pendant quelques minutes.",
+    "start": "Mettre à jour vers {{version}}",
+    "running": "Sauvegarde et commande en cours…",
+    "noNewer": "Le catalogue n'a pas d'image plus récente que la version installée pour ce modèle.",
+    "noImages": "Aucune image Cambium pour ce modèle dans le catalogue : chargez-la depuis Firmware → Catalogues.",
+    "agent": "ePMP : {{state}}.",
+    "served": "Image téléchargée depuis NSM.",
+    "notServed": "Image pas encore téléchargée depuis NSM.",
+    "requested": "Demandée le {{when}} par {{who}} (depuis {{from}})",
+    "states": {
+      "requested": "Mise à jour vers {{version}} en cours.",
+      "verified": "Mise à jour vers {{version}} vérifiée.",
+      "failed": "Échec de la mise à jour vers {{version}}.",
+      "unconfirmed": "Mise à jour vers {{version}} non confirmée."
+    },
+    "agentStates": {
+      "idle": "inactif",
+      "downloading": "téléchargement de l'image",
+      "verifying": "vérification de la signature",
+      "pre_update": "script avant mise à jour",
+      "flashing": "écriture de la flash",
+      "uboot": "écriture d'U-Boot",
+      "post_update": "script après mise à jour",
+      "finished": "terminé, en attente du redémarrage",
+      "config_downgrade": "script de rétrogradation de la configuration",
+      "unknown": "inconnu"
+    }
   }
 }
