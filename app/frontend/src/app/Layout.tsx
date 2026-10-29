@@ -49,6 +49,7 @@ function readCollapsed(): boolean {
 }
 
 export function Layout() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { t } = useTranslation();
   const session = useSession();
   const update = useUpdatePreferences();
@@ -201,7 +202,7 @@ export function Layout() {
             </form>
           </div>
         </header>
-        <main className="ui-content">
+        <main className="ui-content" data-page-icon={pageIcon(pathname)}>
           <Outlet />
         </main>
       </div>
@@ -259,6 +260,21 @@ function initials(name: string): string {
 }
 
 const PERSONAL_PAGES: Record<string, string> = { "/notifications": "notifications.title", "/profile": "profile.title" };
+
+/** Icon of the section the page belongs to, shown in the page header and in empty states (GUI-02). */
+function pageIcon(pathname: string): string | undefined {
+  const path = pathname.replace(/^\/app(?=\/|$)/, "") || "/";
+  if (path === "/notifications") return "bell";
+  if (path === "/profile") return "admin";
+  const matches = (section: Section) => {
+    if (section.route === "/") return path === "/";
+    const root = section.route.startsWith("/admin/") ? "/admin" : section.route;
+    return path === root || path.startsWith(`${root}/`);
+  };
+  // /admin/integrations/… belongs to the integrations, the rest of /admin to the administration.
+  if (path.startsWith("/admin/integrations")) return "integrations";
+  return SECTIONS.filter(matches).sort((a, b) => b.route.length - a.route.length)[0]?.icon;
+}
 
 /** Where the page sits: section group, then the section (a link back to it on the pages below it). */
 function Breadcrumbs({ sections }: { sections: Section[] }) {

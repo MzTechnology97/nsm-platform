@@ -1,7 +1,10 @@
-import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useListSearch } from "../app/CustomerScope";
 import { SearchSelect, customerLabel } from "../app/SearchSelect";
+import { Pager } from "../app/Pager";
+import { pageParams, usePaging } from "../lib/paging";
 
 import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
@@ -19,22 +22,22 @@ const DEVICE_TONE: Record<string, string> = { fail: "ui-severity ui-severity-hig
 
 export function Compliance() {
   const { t, i18n } = useTranslation();
-  const search = useSearch({ from: "/compliance" });
-  const navigate = useNavigate({ from: "/compliance" });
+  // Globally or inside a customer's security tab (the customer filter is then fixed and its picker hidden).
+  const { search, update, customer: scope } = useListSearch<ComplianceFilters>();
   const facets = useDeviceFacets();
-  const query = useCompliance(search);
+  const paging = usePaging(JSON.stringify(search));
+  const query = useCompliance(search, pageParams(paging));
   const evaluate = useComplianceEvaluate();
-  const first = query.data?.pages[0];
-  const items = useMemo(() => query.data?.pages.flatMap((page) => page.items) ?? [], [query.data]);
+  const first = query.data;
+  const items = useMemo(() => query.data?.items ?? [], [query.data]);
   const status = search.status ?? "fail";
-  const update = (patch: Partial<ComplianceFilters>) => void navigate({ search: (previous: ComplianceFilters) => ({ ...previous, ...patch }), replace: true });
   const chipCount = (key: string) => (!first ? "—" : key === "all" ? first.devices_total : key === "exception" ? first.totals.exception ?? 0 : first.device_counts[key] ?? 0);
 
   return (
-    <section className="ui-page">
+    <section className={scope ? "ui-customer-list" : "ui-page"}>
       <header className="ui-page-header ui-page-header-row">
         <div>
-          <h1>{t("compliance.title")}</h1>
+          {scope ? <h2>{t("compliance.title")}</h2> : <h1>{t("compliance.title")}</h1>}
           <p>{first?.last_eval ? t("compliance.lastEval", { when: formatDateTime(first.last_eval, i18n.language) }) : t("compliance.subtitle")}</p>
         </div>
         <div className="ui-actions">
@@ -65,7 +68,7 @@ export function Compliance() {
         ))}
       </div>
       <div className="ui-filter-bar">
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        {!scope && <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />}
         <select value={search.control ?? ""} onChange={(event) => update({ control: event.target.value || undefined })} aria-label={t("compliance.control")}>
           <option value="">{t("compliance.allControls")}</option>
           {first?.controls.map((control) => (
@@ -123,12 +126,8 @@ export function Compliance() {
           </div>
           <div className="ui-table-foot">
             <span>{t("firmware.shown", { shown: items.length, total: first.total })} · {t("compliance.legend")}</span>
-            {query.hasNextPage && (
-              <button type="button" className="ui-button ui-button-ghost" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
-                {query.isFetchingNextPage ? t("app.loading") : t("firmware.more")}
-              </button>
-            )}
           </div>
+          <Pager total={first.total} paging={paging} busy={query.isFetching} />
         </>
       ) : (
         <div className="ui-empty">{status === "fail" ? t("compliance.allGood") : t("compliance.empty")}</div>

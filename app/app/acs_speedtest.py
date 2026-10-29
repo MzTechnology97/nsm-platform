@@ -38,6 +38,7 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 
+from app import acs_profiles as profiles
 from app import acs_diagnostics as nbi
 from app import genieacs_connector as acs
 from app import main as core
@@ -106,11 +107,8 @@ def save_server_intervals(device_id: str, kind: str, intervals: list[float]) -> 
         _store(device, kind, entry)
         db.commit()
 
-OBJECTS = {
-    "tr181": {"download": "Device.IP.Diagnostics.DownloadDiagnostics", "upload": "Device.IP.Diagnostics.UploadDiagnostics"},
-    "tr098": {"download": "InternetGatewayDevice.DownloadDiagnostics", "upload": "InternetGatewayDevice.UploadDiagnostics"},
-}
-ACS_URL = {"tr181": "Device.ManagementServer.URL", "tr098": "InternetGatewayDevice.ManagementServer.URL"}
+OBJECTS = {model: {kind: profiles.path(model, kind) for kind in KINDS} for model in ("tr181", "tr098")}
+ACS_URL = {model: profiles.path(model, "acs_url") for model in ("tr181", "tr098")}
 
 
 # --- Settings ----------------------------------------------------------------------------------

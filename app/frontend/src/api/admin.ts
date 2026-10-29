@@ -1,5 +1,5 @@
 import type { SyslogGuide } from "../app/SyslogGuides";
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { BrandRef } from "../app/BrandIcon";
 import { api } from "./client";
@@ -46,12 +46,10 @@ export function queryString(params: Record<string, string | number | undefined>)
   return text ? `?${text}` : "";
 }
 
-export const useAuditEvents = (filters: AuditFilters) =>
-  useInfiniteQuery({
-    queryKey: ["audit-events", filters],
-    queryFn: ({ pageParam }) => api<AuditPage>(`/api/ui/v1/audit/events${queryString({ ...filters, offset: pageParam })}`),
-    initialPageParam: 0,
-    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+export const useAuditEvents = (filters: AuditFilters, page: { offset: number; limit: number }) =>
+  useQuery({
+    queryKey: ["audit-events", filters, page],
+    queryFn: () => api<AuditPage>(`/api/ui/v1/audit/events${queryString({ ...filters, offset: page.offset, limit: page.limit })}`),
     placeholderData: keepPreviousData,
     staleTime: 15_000,
   });
@@ -104,12 +102,10 @@ export interface ReportPage {
   schedules: ReportSchedule[];
 }
 
-export const useReports = () =>
-  useInfiniteQuery({
-    queryKey: ["reports"],
-    queryFn: ({ pageParam }) => api<ReportPage>(`/api/ui/v1/reports${queryString({ offset: pageParam })}`),
-    initialPageParam: 0,
-    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+export const useReports = (page: { offset: number; limit: number }) =>
+  useQuery({
+    queryKey: ["reports", page],
+    queryFn: () => api<ReportPage>(`/api/ui/v1/reports${queryString({ offset: page.offset, limit: page.limit })}`),
     staleTime: 15_000,
   });
 
@@ -293,6 +289,7 @@ export interface IntegrationsHub {
   genieacs: { state: ConnectorState; linked: number; pending: number };
   cnmaestro: { state: ConnectorState; cambium: number; linked: number };
   ispbilling: { state: ConnectorState; customers: number; linked: number; details_pending: number };
+  bras?: { state: ConnectorState; online: number; offline: number };
   zabbix: { state: ConnectorState; version: string | null; linked: number; frontend: string | null };
 }
 
@@ -655,12 +652,10 @@ export interface OnboardingPage {
   items: OnboardingRow[];
 }
 
-export const useOnboarding = (filters: OnboardingFilters, provider: OnboardingProvider = "uisp") =>
-  useInfiniteQuery({
-    queryKey: [`${provider}-onboarding`, filters],
-    queryFn: ({ pageParam }) => api<OnboardingPage>(`/api/ui/v1/integrations/${provider}/onboarding${queryString({ ...filters, customer: undefined, offset: pageParam })}`),
-    initialPageParam: 0,
-    getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.limit : undefined),
+export const useOnboarding = (filters: OnboardingFilters, provider: OnboardingProvider = "uisp", page: { offset: number; limit: number }) =>
+  useQuery({
+    queryKey: [`${provider}-onboarding`, filters, page],
+    queryFn: () => api<OnboardingPage>(`/api/ui/v1/integrations/${provider}/onboarding${queryString({ ...filters, customer: undefined, offset: page.offset, limit: page.limit })}`),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   });
