@@ -104,6 +104,31 @@ def main():
         last = db.scalar(select(AcsMetricSample).where(AcsMetricSample.device_id == ids["a"]).order_by(AcsMetricSample.observed_at.desc()))
         assert last.wan_rx_bps is None and last.cpu_percent == 12
 
+    # Counters stuck at the all-ones value on the IP interface (TP-Link HB210): the PPP layer below is used.
+    def stuck(inform, ppp_rx, ppp_tx):
+        record = tr181(inform, rx=4294967295, tx=4294967295)
+        ip = record["Device"]["IP"]["Interface"]["2"]
+        ip["LowerLayers"] = v("Device.PPP.Interface.1.")
+        ip.pop("LastChange")
+        ip["X_TP_Uptime"] = v(900)
+        record["Device"]["PPP"]["Interface"]["1"].update({"LowerLayers": v("Device.Ethernet.VLANTermination.1."), "Stats": {
+            "BytesReceived": v(ppp_rx), "BytesSent": v(ppp_tx)}})
+        record["Device"]["Ethernet"] = {"VLANTermination": {"1": {"Stats": {"BytesReceived": v(1), "BytesSent": v(1)}}}}
+        return record
+
+    records[ext181].update(stuck(t0 + timedelta(seconds=900), ppp_rx=10_000_000, ppp_tx=1_000_000))
+    mon.collect(now=t0 + timedelta(seconds=930), force=True)
+    records[ext181].update(stuck(t0 + timedelta(seconds=1200), ppp_rx=10_000_000 + 7_500_000, ppp_tx=1_000_000 + 750_000))
+    mon.collect(now=t0 + timedelta(seconds=1230), force=True)
+    with SessionLocal() as db:
+        state = db.get(Device, ids["a"]).inventory_data["tr069"]["monitor"]
+        assert state["wan"]["counters_source"] == "ppp" and state["counters"]["rx"] == 17_500_000, state
+        assert state["wan"]["connected_for"] == 900, "X_TP_Uptime when LastChange is missing"
+        last = db.scalar(select(AcsMetricSample).where(AcsMetricSample.device_id == ids["a"]).order_by(AcsMetricSample.observed_at.desc()))
+        assert last.wan_rx_bps == 200_000 and last.wan_tx_bps == 20_000, (last.wan_rx_bps, last.wan_tx_bps)
+    assert mon._counter({"Stats": {"BytesReceived": v(18446744073709551615), "BytesSent": v(5)}}) is None
+    assert mon._wan_counters({}, {"Stats": {"BytesReceived": v(4294967295), "BytesSent": v(4294967295)}})[1] is None, "no lower layer: no counters"
+
     # Device page: current resources from the monitor, the ACS tab state and charts.
     client = TestClient(app)
     token = re.search(r'name="csrf" value="([^"]+)"', client.get("/login").text).group(1)
@@ -111,12 +136,12 @@ def main():
     detail = client.get(f"/api/ui/v1/devices/{ids['a']}").json()["device"]
     assert detail["telemetry"] == {"cpu": 12.0, "ram": 75.0, "uptime_seconds": 86400} and detail["status"] == "online", detail["telemetry"]
     monitor = client.get(f"/api/ui/v1/devices/{ids['a']}/acs/monitor?range=24h").json()
-    assert monitor["state"]["wan"]["status"] == "Connected" and monitor["sample_count"] == 3, monitor
+    assert monitor["state"]["wan"]["status"] == "Connected" and monitor["sample_count"] == 5, monitor
     assert {c["id"] for c in monitor["charts"]} >= {"acs_wan", "resources", "acs_clients"}
     assert client.get(f"/api/ui/v1/devices/{ids['a']}/acs/monitor?range=1y").status_code == 400
 
     # Three missed periodic Informs: offline; values older than 2 hours are no longer "current".
-    mon.collect(now=t0 + timedelta(seconds=600) + timedelta(minutes=16), force=True)
+    mon.collect(now=t0 + timedelta(seconds=1200) + timedelta(minutes=16), force=True)
     with SessionLocal() as db:
         assert db.get(Device, ids["a"]).status == "offline"
     later = mon.CURRENT_MAX_AGE
