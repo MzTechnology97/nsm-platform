@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.308 — 2026-10-29
+
+UPnP on every device: where it is on, and turning it off from NSM, one device or many (ACCESS-02, Agent 0.49.28)
+- With UPnP any device of the customer LAN can open ports of the router towards Internet without control. NSM now reads it on every kind of device, without contacting them:
+  - **MikroTik**: `/ip upnp` from the Agent snapshot of the exposure check;
+  - **TR-069 CPEs**: `Device.UPnP.Device.Enable` or the vendor flag (TP-Link `X_TP_UPnPCfg.Enable`), read every hour; NSM now also keeps where the flag is;
+  - **Ubiquiti airOS**: `upnpd.status` from the UISP backups NSM archives; the worker reads each archived backup once.
+- New *UPnP* panel on the device *Esposizione* tab: on/off, where it was read, and **Disattiva UPnP**:
+  - MikroTik: Agent job `upnp_disable` (**Agent 0.49.28**): `/ip upnp set enabled=no`, the router reports the state after;
+  - TR-069: one parameter write on the flag, applied at once or at the next contact of the CPE;
+  - airOS: through UISP like the firewall (fresh backup as the restore point, UPnP off, apply). The CPE reboots, so the device name is typed to confirm.
+- New *UPnP* list on the *Esposizione* page: the devices with UPnP on, every vendor, with a **bulk** turn-off (the number of devices typed to confirm). MikroTik and TR-069 go at once, airOS CPEs one per minute; the first airOS failure stops the other airOS devices of the same request.
+- NSM never turns UPnP off on its own. Every request and result is in the activity log (`UPNP_DISABLE_REQUESTED`, `UPNP_DISABLED`, `UPNP_DISABLE_FAILED`).
+- Cambium and the external SSDP check are not covered yet.
 ## 0.49.307 — 2026-10-29
 
 Ubiquiti airOS: SSH, web management, SNMP and discovery only from the management networks (ACCESS-01, firewall through UISP)
