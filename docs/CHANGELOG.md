@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.304 — 2026-10-29
+
+Threat lists: your addresses checked against Spamhaus DROP (SEC-13, SIEM-02)
+- New page *Amministrazione → Integrazioni → Liste di minaccia*, off by default. When it is on, NSM downloads the public Spamhaus DROP lists (IPv4 and IPv6) every day and checks them against the operator's data, **without changing anything on the devices**:
+  - **your public prefixes**, entered on the page: if one overlaps a listed network, an Action Center issue and a notification ask you to request removal at once;
+  - **the public addresses of the devices**: a device inside a listed network gets an issue;
+  - **IPs trying to log in** to the devices in the last 7 days (from syslog): those in listed networks are shown with attempts and devices, as information.
+- Issues close by themselves when the network leaves the list. If a download fails, the previous copy is kept and the page shows the error. The list addresses can be changed.
+- It is the shared list store of the security modules: CrowdSec and AbuseIPDB will be added here.
 ## 0.49.303 — 2026-10-29
 
 Configuration

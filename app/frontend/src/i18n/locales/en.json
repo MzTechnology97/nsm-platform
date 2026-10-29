@@ -2397,7 +2397,8 @@
       "ispbilling": "ISPBilling",
       "bras": "MikroTik BRAS",
       "unifi": "UniFi Network",
-      "probe": "External probe"
+      "probe": "External probe",
+      "threatLists": "Threat lists"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5690,6 +5691,8 @@
     "SYSLOG_AGENT_CONFIG_SKIPPED": "Syslog setup skipped",
     "SYSLOG_CHAIN_ANCHOR": "Syslog integrity checkpoint",
     "SYSLOG_SETTINGS_CHANGED": "Syslog settings changed",
+    "THREAT_LISTS_CONFIGURED": "Threat lists configured",
+    "THREAT_LIST_MATCH": "Operator address found in a threat list",
     "UISP_AUTO_CUSTOMERS_CHANGED": "UISP automatic import changed",
     "UISP_AUTO_IMPORTED": "UISP devices imported automatically",
     "UISP_BACKUP_ARCHIVED": "UISP backup archived",
@@ -7232,5 +7235,47 @@
       "config_downgrade": "configuration downgrade script",
       "unknown": "unknown"
     }
+  },
+  "threatLists": {
+    "title": "Integrations · Threat lists",
+    "subtitle": "Public lists of networks to block (Spamhaus DROP), checked every day against your prefixes, the inventory's public IPs and the IPs trying to log in to the devices. Read-only: no device is changed.",
+    "refresh": "Refresh now",
+    "settingsTitle": "Settings",
+    "enabled": "Turn on the threat lists (daily update)",
+    "prefixes": "Operator's public prefixes",
+    "prefixesHelp": "One per line, e.g. 203.0.113.0/24. If one of them appears in a list, NSM opens an issue: ask for removal at once.",
+    "useSource": "Use this list",
+    "url": "List address",
+    "saved": "Settings saved.",
+    "sourcesTitle": "Lists",
+    "loaded_one": "{{count}} network · updated {{when}}",
+    "loaded_other": "{{count}} networks · updated {{when}}",
+    "never": "not downloaded yet",
+    "failed": "Last download failed ({{error}}): the previous copy is kept.",
+    "on": "on",
+    "off": "off",
+    "checked": "Last check: {{when}}",
+    "notChecked": "Not checked yet.",
+    "matchesTitle": "Your addresses in a list",
+    "matchesHelp": "Operator prefixes and device public IPs that are inside a listed network. Each one has an Action Center issue.",
+    "noMatches": "None of your addresses is listed.",
+    "operatorPrefix": "Operator prefix",
+    "columns": {
+      "what": "What",
+      "address": "Address",
+      "network": "Listed network",
+      "source": "List"
+    },
+    "attackersTitle": "Logins from listed networks (last 7 days)",
+    "attackersHelp": "IPs that tried to log in to the devices (from syslog) and belong to listed networks. Informational.",
+    "noAttackers": "No login attempt from listed networks.",
+    "attackerColumns": {
+      "ip": "IP",
+      "attempts": "Attempts",
+      "network": "Listed network",
+      "last": "Last"
+    },
+    "attempts_one": "{{count}} attempt on {{devices}} devices",
+    "attempts_other": "{{count}} attempts on {{devices}} devices"
   }
 }
