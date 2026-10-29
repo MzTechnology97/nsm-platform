@@ -483,6 +483,8 @@ A complete cybersecurity view for an ISP/WISP, taking as reference the open-sour
   - activity log, with history and charts of listings over time;
   - alerts through the existing NSM channels (email, Telegram, webhook) and Action Center issues; CSV export.
 
+**Step 1 done (Core 0.49.312)**: address history of the MikroTik BRAS PPPoE sessions (`ip_assignments`, retention configurable), *Chi aveva questo IP?* look-up (BRAS session, else ISPBilling static IP; audited), AbuseIPDB issues assigned to the holder at the report time. Next: RADIUS accounting, WAN changes of TR-069/Agent/UISP devices (*probable*), NAT pools.
+
 **IP attribution at the time of the incident (requested 2026-10-23):** every reputation event (AbuseIPDB report, DNSBL listing, CrowdSec decision, abuse e-mail) carries an IP and a time; NSM finds who had that IP *at that moment*, not now, because PPPoE addresses are dynamic:
 - **address history**: a table of assignments (IP, device, customer, source, from, to), fed by what NSM already sees:
   - PPP sessions of the concentrators: the MikroTik BRAS connector (BRAS-01, Core 0.49.261, read-only `/ppp/active` every 5 minutes) keeps only the current state per username, so it gets a **session log** (username, address, caller-id, start, end) written at every read; also the PPPoE login/logout lines in the concentrator syslog and the agent `/ppp active` snapshots;
