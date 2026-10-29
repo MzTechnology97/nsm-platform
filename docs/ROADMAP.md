@@ -885,11 +885,13 @@ The operator looked at Wazuh (`wazuh/wazuh`, open-source SIEM/XDR) and asked to 
 Rules:
 - Wazuh is GPLv2: its ideas are re-implemented, its code, decoders and rules are not copied.
 - Each item is a module (MOD-01): off by default unless it only reads data NSM already has, with its own *Guida*.
-- No Wazuh server, indexer or endpoint agent is part of these items. Endpoint monitoring of customers' PCs and servers through the Wazuh agent was discussed with the operator (2026-10-24) and is not on the roadmap until they decide.
+- No Wazuh server, indexer or endpoint agent is part of these items. Endpoint monitoring of customers' PCs and servers through the Wazuh agent was discussed with the operator (2026-10-24); on 2026-10-29 the operator declined it, so it is not planned.
 
 #### SIEM-01 — configurable syslog rules with a rule tester
 
 **Step 1 done (Core 0.49.305)**: *Sicurezza → Accessi → Regole syslog*; operator rules (expression with named fields, vendor/severity/topic, N-in-T grouped by device/address/user, chained rule, ignored sources, throttling, event/notification/Action Center), a tester on a pasted line, templates, audited changes; the built-in access alerts are listed read-only. Next: the built-in patterns as an editable default rule set.
+
+**Step 2 done (Core 0.49.318)**: the built-in login patterns are listed read-only on the same page, each copyable into an operator rule prefilled with the built-in threshold, and the tester also shows what the built-in patterns read from the line.
 
 Today the access patterns are fixed in the code. The operator gets rules editable from the portal:
 - **match**: vendor, severity, program/topic, regular expression with named fields (user, source IP, interface…);

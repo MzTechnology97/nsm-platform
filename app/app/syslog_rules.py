@@ -1,7 +1,8 @@
-"""Operator syslog rules with a rule tester (SIEM-01, step 1).
+"""Operator syslog rules with a rule tester (SIEM-01).
 
 The access alerts of ``syslog_security`` (brute force, success after failures, new public address) stay built in and
-are listed read-only. On top of them the operator writes rules that the worker applies to every new syslog line:
+are listed read-only with their login patterns; each pattern can be copied into an operator rule (step 2), and the
+tester reports whether the built-in patterns recognise a line. On top of them the operator writes rules that the worker applies to every new syslog line:
 
 - **match**: vendor, maximum severity (0 emergency … 7 debug), topic/program text, and a regular expression on the
   message, whose named groups (``(?P<ip>…)``, ``(?P<user>…)``, ``(?P<svc>…)`` or any other) become the alert fields;
@@ -26,6 +27,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import func, select
 
+from app import syslog_security
 from app.db import SessionLocal
 from app.input_errors import InputError
 from app.integration_models import ConnectorIntegration
@@ -68,6 +70,21 @@ TEMPLATES = [
 DEFAULT_RULE = {"name": "", "enabled": True, "vendor": "", "max_severity": 7, "topic": "", "pattern": "", "level": "warning", "count": 1,
                 "window_minutes": 10, "group_by": "device", "after_rule": "", "after_minutes": 60, "ignore_sources": [],
                 "throttle_minutes": 60, "action": "event"}
+
+
+def builtin_patterns() -> list[dict]:
+    """The built-in login patterns (``syslog_security.PATTERNS``), read-only, each with the operator rule its copy starts from."""
+    out = []
+    for outcome, service, pattern in syslog_security.PATTERNS:
+        failure = outcome == "failure"
+        label = "Accesso fallito" if failure else "Accesso riuscito"
+        copy = {**DEFAULT_RULE, "name": f"{label} ({service or 'tutti i servizi'}) - copia", "pattern": pattern.pattern, "group_by": "device_ip",
+                "level": "high" if failure else "warning", "action": "issue" if failure else "notification",
+                "throttle_minutes": int(syslog_security.REALERT_AFTER.total_seconds() // 60)}
+        if failure:  # the brute-force threshold of the built-in alert
+            copy.update(count=syslog_security.BRUTE_FORCE_FAILURES, window_minutes=int(syslog_security.BRUTE_FORCE_WINDOW.total_seconds() // 60))
+        out.append({"outcome": outcome, "service": service or "", "pattern": pattern.pattern, "copy": copy})
+    return out
 
 
 # --- Storage ------------------------------------------------------------------------------------

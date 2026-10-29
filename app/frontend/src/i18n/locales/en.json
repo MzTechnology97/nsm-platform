@@ -7394,10 +7394,12 @@
       "ignored": "address ignored",
       "firesAlone": "this line alone raises the alert",
       "needsCorrelation": "needs the threshold or the previous rule",
-      "noRules": "No rules to try."
+      "noRules": "No rules to try.",
+      "builtin": "Built-in alerts:",
+      "builtinNone": "no access pattern recognises the line."
     },
     "builtinTitle": "Built-in access alerts",
-    "builtinHelp": "Always on for every device that sends syslog; they cannot be changed.",
+    "builtinHelp": "Always on for every device that sends syslog; they cannot be changed, but each pattern can be copied into a rule of your own.",
     "builtin": {
       "brute_force": "Failed login attempts",
       "success_after_failures": "Successful login after failures",
@@ -7412,6 +7414,19 @@
       "5": "5 notice",
       "6": "6 info",
       "7": "7 debug"
+    },
+    "patternsTitle": "Recognised access patterns",
+    "patternsHelp": "The login lines the built-in alerts read, for every vendor. «Copy as rule» opens the editor prefilled with the pattern and the built-in threshold; nothing is active until you save.",
+    "patterns": {
+      "outcome": "Outcome",
+      "service": "Service",
+      "pattern": "Expression",
+      "anyService": "from the message",
+      "copy": "Copy as rule"
+    },
+    "outcomes": {
+      "failure": "failed login",
+      "success": "successful login"
     }
   },
   "uispFirewall": {

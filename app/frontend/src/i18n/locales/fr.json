@@ -7394,10 +7394,12 @@
       "ignored": "adresse ignorée",
       "firesAlone": "cette ligne seule déclenche l'alerte",
       "needsCorrelation": "il faut le seuil ou la règle précédente",
-      "noRules": "Aucune règle à tester."
+      "noRules": "Aucune règle à tester.",
+      "builtin": "Alertes intégrées :",
+      "builtinNone": "aucun motif d'accès ne reconnaît la ligne."
     },
     "builtinTitle": "Alertes d'accès intégrées",
-    "builtinHelp": "Toujours actives sur tous les équipements qui envoient le syslog ; elles ne se modifient pas.",
+    "builtinHelp": "Toujours actives sur tous les équipements qui envoient le syslog ; elles ne se modifient pas, mais chaque motif peut être copié dans une règle à vous.",
     "builtin": {
       "brute_force": "Tentatives de connexion échouées",
       "success_after_failures": "Connexion réussie après des échecs",
@@ -7412,6 +7414,19 @@
       "5": "5 notice",
       "6": "6 info",
       "7": "7 débogage"
+    },
+    "patternsTitle": "Motifs d'accès reconnus",
+    "patternsHelp": "Les lignes de connexion lues par les alertes intégrées, pour tous les fabricants. « Copier comme règle » ouvre l'éditeur avec le motif et le seuil intégré ; rien n'est actif avant l'enregistrement.",
+    "patterns": {
+      "outcome": "Résultat",
+      "service": "Service",
+      "pattern": "Expression",
+      "anyService": "d'après le message",
+      "copy": "Copier comme règle"
+    },
+    "outcomes": {
+      "failure": "connexion échouée",
+      "success": "connexion réussie"
     }
   },
   "uispFirewall": {

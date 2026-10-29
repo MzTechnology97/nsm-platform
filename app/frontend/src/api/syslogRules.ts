@@ -29,6 +29,8 @@ export interface SyslogRulesPage {
   rules: SyslogRule[];
   version: number;
   builtin: { key: string; level: string; description: string }[];
+  /** The built-in login patterns, read-only; ``copy`` is the operator rule a copy starts from. */
+  builtin_patterns: { outcome: "failure" | "success"; service: string; pattern: string; copy: SyslogRuleDraft }[];
   templates: (Partial<SyslogRuleDraft> & { key: string; name: string })[];
   default: SyslogRuleDraft;
   levels: SyslogRule["level"][];
@@ -69,10 +71,18 @@ export function useDeleteSyslogRule() {
   });
 }
 
+/** What the built-in access patterns read from a line (null: not a login line for them). */
+export interface BuiltinLogin {
+  outcome: "failure" | "success";
+  username: string | null;
+  remote_ip: string | null;
+  service: string | null;
+}
+
 /** The rule tester: which rules (and the draft) match one log line; nothing is stored. */
 export function useTestSyslogRule() {
   return useMutation({
     mutationFn: (body: { message: string; vendor: string; severity: number; topics: string; draft?: SyslogRuleDraft }) =>
-      api<{ results: SyslogRuleTestResult[] }>("/api/ui/v1/security/syslog-rules/test", { method: "POST", body: JSON.stringify(body) }),
+      api<{ results: SyslogRuleTestResult[]; builtin: BuiltinLogin | null }>("/api/ui/v1/security/syslog-rules/test", { method: "POST", body: JSON.stringify(body) }),
   });
 }
