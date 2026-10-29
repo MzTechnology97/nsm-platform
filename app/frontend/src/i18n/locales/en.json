@@ -1429,7 +1429,8 @@
       "setup": "To set up",
       "clean": "No exposure",
       "pending": "Check in progress",
-      "all": "All"
+      "all": "All",
+      "internal": "Internal network only"
     },
     "columns": {
       "device": "Device",
@@ -1449,7 +1450,9 @@
     "pending": "check in progress",
     "none": "no exposure",
     "allGood": "No device exposes services to the Internet.",
-    "empty": "No device in this view."
+    "empty": "No device in this view.",
+    "internalRow_one": "{{count}} service reachable from the internal network only (device behind NAT)",
+    "internalRow_other": "{{count}} services reachable from the internal network only (device behind NAT)"
   },
   "access": {
     "title": "Access",
@@ -3583,7 +3586,8 @@
       "uncertain": "to check",
       "disabled": "disabled",
       "closed": "closed",
-      "filtered": "filtered"
+      "filtered": "filtered",
+      "internal": "internal network only"
     },
     "forwards": {
       "rule": "Rule / router",
@@ -3609,6 +3613,46 @@
       "remove": "Remove declaration",
       "declared": "Declared by {{by}} on {{when}}",
       "uncertainHint": "open towards NSM, to check"
+    },
+    "internalOnly": "The device is not reachable from Internet ({{reason}}): the open services below answer from the internal network only. No alarm and no ACL rule proposed until it becomes public.",
+    "uplinkIp": "WAN address of the device",
+    "reach": {
+      "title": "Reachability from Internet",
+      "help": "Exposure alarms apply only to devices reachable from Internet. NSM checks again at every reboot, IP change, PPPoE reconnection, configuration or connectivity change, besides the daily check.",
+      "states": {
+        "public": "Public",
+        "nat": "Behind NAT / local network",
+        "unknown": "Unknown"
+      },
+      "columns": {
+        "address": "Address",
+        "class": "Type",
+        "interface": "Interface",
+        "source": "Source"
+      },
+      "classes": {
+        "public": "public",
+        "cgnat": "CGNAT (100.64/10)",
+        "private": "private",
+        "other": "not routable"
+      },
+      "sources": {
+        "agent": "MikroTik Agent",
+        "tr069": "TR-069 (WAN)",
+        "console": "console (UISP, cnMaestro…)",
+        "operator": "set by the operator"
+      },
+      "down": "connection not active",
+      "changed": "Last change: {{when}} ({{reasons}}).",
+      "reasons": {
+        "first": "first detection",
+        "state": "public ↔ NAT",
+        "address": "public address changed",
+        "reboot": "reboot",
+        "reconnect": "WAN/PPPoE reconnection",
+        "config": "configuration changed"
+      },
+      "recheck": "At every change the service check runs again by itself."
     }
   },
   "deviceCompliance": {
@@ -5477,6 +5521,7 @@
     "EXPOSURE_ACL_REMOVED": "ACL declaration removed",
     "EXPOSURE_CHECK_REQUESTED": "Exposure check requested",
     "EXPOSURE_EXTERNAL_CHECK": "External exposure check",
+    "EXPOSURE_ISSUE_CLOSED_NOT_PUBLIC": "Exposure issue closed: device not reachable from Internet",
     "EXPOSURE_ISSUE_OPENED": "Exposed services reported",
     "EXPOSURE_TARGET_IP_CHANGED": "Public IP to check changed",
     "FIRMWARE_ACTIVATION_ACCEPTED": "Firmware activation accepted",

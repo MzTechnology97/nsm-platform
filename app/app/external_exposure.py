@@ -141,11 +141,18 @@ def plan(device) -> list[str]:
 
 
 def target(device) -> tuple[str | None, str]:
-    """(IP to probe, origin): operator override (public, private or CGNAT) first, then a public management IP."""
+    """(IP to probe, origin): operator override (public, private or CGNAT) first, then the public address the device holds
+    on its WAN (SCAN-02: e.g. the current PPPoE address of a TR-069 CPE, which follows a dynamic IP), then a public management IP."""
+    from app import reachability
+
     data = device.inventory_data or {}
     override = str(data.get("exposure_target_ip") or "").strip()
     if override and allowed_target(override):
         return override, "operator"
+    own = [r["address"] for r in reachability.current(device).get("uplinks") or []
+           if r.get("source") in ("agent", "tr069") and r.get("class") == "public" and r.get("up") is not False]
+    if own:
+        return own[0], "uplink"
     if _public(device.management_ip):
         return str(device.management_ip).strip(), "management"
     return None, ""

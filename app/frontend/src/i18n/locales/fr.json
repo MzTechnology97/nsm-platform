@@ -1429,7 +1429,8 @@
       "setup": "À configurer",
       "clean": "Sans exposition",
       "pending": "Vérification en cours",
-      "all": "Tous"
+      "all": "Tous",
+      "internal": "Réseau interne uniquement"
     },
     "columns": {
       "device": "Équipement",
@@ -1449,7 +1450,9 @@
     "pending": "vérification en cours",
     "none": "aucune exposition",
     "allGood": "Aucun équipement n'expose de services sur Internet.",
-    "empty": "Aucun équipement dans cette vue."
+    "empty": "Aucun équipement dans cette vue.",
+    "internalRow_one": "{{count}} service joignable uniquement depuis le réseau interne (équipement derrière NAT)",
+    "internalRow_other": "{{count}} services joignables uniquement depuis le réseau interne (équipement derrière NAT)"
   },
   "access": {
     "title": "Accès",
@@ -3583,7 +3586,8 @@
       "uncertain": "à vérifier",
       "disabled": "désactivé",
       "closed": "fermé",
-      "filtered": "filtré"
+      "filtered": "filtré",
+      "internal": "réseau interne uniquement"
     },
     "forwards": {
       "rule": "Règle / routeur",
@@ -3609,6 +3613,46 @@
       "remove": "Retirer la déclaration",
       "declared": "Déclaré par {{by}} le {{when}}",
       "uncertainHint": "ouverts vers NSM, à vérifier"
+    },
+    "internalOnly": "L'équipement n'est pas joignable depuis Internet ({{reason}}) : les services ouverts ci-dessous ne répondent que depuis le réseau interne. Aucune alerte ni règle ACL proposée tant qu'il ne devient pas public.",
+    "uplinkIp": "adresse WAN de l'équipement",
+    "reach": {
+      "title": "Joignabilité depuis Internet",
+      "help": "Les alertes d'exposition ne concernent que les équipements joignables depuis Internet. NSM vérifie à nouveau à chaque redémarrage, changement d'IP, reconnexion PPPoE, changement de configuration ou de connectivité, en plus du contrôle quotidien.",
+      "states": {
+        "public": "Public",
+        "nat": "Derrière NAT / réseau local",
+        "unknown": "Inconnu"
+      },
+      "columns": {
+        "address": "Adresse",
+        "class": "Type",
+        "interface": "Interface",
+        "source": "Source"
+      },
+      "classes": {
+        "public": "public",
+        "cgnat": "CGNAT (100.64/10)",
+        "private": "privé",
+        "other": "non routable"
+      },
+      "sources": {
+        "agent": "agent MikroTik",
+        "tr069": "TR-069 (WAN)",
+        "console": "console (UISP, cnMaestro…)",
+        "operator": "indiqué par l'opérateur"
+      },
+      "down": "connexion inactive",
+      "changed": "Dernier changement : {{when}} ({{reasons}}).",
+      "reasons": {
+        "first": "première détection",
+        "state": "public ↔ NAT",
+        "address": "adresse publique changée",
+        "reboot": "redémarrage",
+        "reconnect": "reconnexion WAN/PPPoE",
+        "config": "configuration modifiée"
+      },
+      "recheck": "À chaque changement, la vérification des services repart d'elle-même."
     }
   },
   "deviceCompliance": {
@@ -5477,6 +5521,7 @@
     "EXPOSURE_ACL_REMOVED": "Déclaration ACL retirée",
     "EXPOSURE_CHECK_REQUESTED": "Vérification d'exposition demandée",
     "EXPOSURE_EXTERNAL_CHECK": "Vérification d'exposition externe",
+    "EXPOSURE_ISSUE_CLOSED_NOT_PUBLIC": "Alerte d'exposition fermée : équipement non joignable depuis Internet",
     "EXPOSURE_ISSUE_OPENED": "Services exposés signalés",
     "EXPOSURE_TARGET_IP_CHANGED": "IP publique à vérifier modifiée",
     "FIRMWARE_ACTIVATION_ACCEPTED": "Activation du firmware acceptée",

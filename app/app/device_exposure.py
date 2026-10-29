@@ -314,6 +314,21 @@ def queue_check(db, device) -> int:
 
 
 def _sync_issue(db, device, result: dict) -> bool:
+    from app import reachability
+
+    reach = reachability.current(device)
+    result["reachability"] = {"state": reach.get("state"), "reason": reach.get("reason"), "public_addresses": reach.get("public_addresses") or []}
+    if reach.get("state") != "public":
+        # Behind NAT, CGNAT or on a local network: the services are reachable from the internal network only (SCAN-02).
+        issue = db.scalar(select(ActionIssue).where(ActionIssue.device_id == device.id, ActionIssue.category == ISSUE_CATEGORY,
+                                                    ActionIssue.status.in_(["open", "acknowledged"])))
+        if issue:
+            issue.status = "resolved"
+            issue.resolved_at = utcnow()
+            issue.details = {**(issue.details or {}), "resolved_reason": f"non raggiungibile da Internet: {reach.get('reason')}"}
+            core.add_event(db, "EXPOSURE_ISSUE_CLOSED_NOT_PUBLIC", customer_id=device.customer_id, device_id=device.id,
+                           details={"reason": reach.get("reason"), "state": reach.get("state")}, source="worker")
+        return False
     severe = [f for f in result["findings"] if f["state"] == "exposed" and SEVERITY_RANK[f["severity"]] >= 3]
     severe += [{"label": f"port forward {', '.join(p['sensitive']) or 'tutte le porte'} verso {p['to_address']}", "proto": p["protocol"],
                 "port": p["public_ports"], "severity": "high"}
@@ -408,8 +423,18 @@ def page_state(db, device) -> dict:
         "target_override": data.get("exposure_target_ip") or "",
         "target_public": external_exposure._public(target[0]),
         "private_warning": external_exposure.PRIVATE_WARNING,
+        "reachability": _reachability_view(device),
         "planned": [external_exposure.CHECKS[k] for k in external_exposure.plan(device)] if check_mode == "external" else [],
     }
+
+
+def _reachability_view(device) -> dict:
+    from app import reachability
+
+    reach = reachability.current(device)
+    return {"state": reach.get("state"), "reason": reach.get("reason"), "public_addresses": reach.get("public_addresses") or [],
+            "uplinks": reach.get("uplinks") or [], "changed_at": reach.get("changed_at"), "change_reasons": reach.get("change_reasons") or [],
+            "checked_at": reach.get("checked_at")}
 
 
 def request_check_record(db, user, device) -> tuple[bool, str]:
@@ -478,7 +503,12 @@ def fleet(db, customer_id=None, device_ids=None) -> dict:
                      "port": p.get("public_ports"), "severity": p.get("severity")}
                     for p in exposure.get("port_forwards") or [] if p.get("certain") and p.get("severity") == "high"]
         exposed.sort(key=lambda f: -SEVERITY_RANK.get(f.get("severity") or "info", 0))
-        if exposed:
+        from app import reachability
+
+        reach = reachability.current(device)
+        if exposed and reach.get("state") != "public":
+            state = "internal"
+        elif exposed:
             state = "exposed"
         elif exposure.get("checked_at"):
             state = "clean"
@@ -494,11 +524,12 @@ def fleet(db, customer_id=None, device_ids=None) -> dict:
         rows.append({"device": device, "customer": customers.get(device.customer_id), "mode": mode(device), "state": state, "blocker": short,
                      "exposed": exposed, "worst": exposed[0].get("severity") if exposed else None, "checked_at": exposure.get("checked_at"),
                      "target_ip": exposure.get("target_ip"), "shared": bool(exposure.get("issue_skipped")),
-                     "private": bool(exposure.get("private_target"))})
+                     "private": bool(exposure.get("private_target")), "reachability": reach.get("state"),
+                     "reachability_reason": reach.get("reason")})
     rows.sort(key=lambda r: (r["state"] != "exposed", -SEVERITY_RANK.get(r["worst"] or "info", 0), -len(r["exposed"]),
                              (r["device"].display_name or r["device"].name or "").lower()))
-    counts = {key: sum(1 for r in rows if r["state"] == key) for key in ("exposed", "clean", "setup", "pending")}
-    counts["critical"] = sum(1 for r in rows if r["worst"] == "critical")
+    counts = {key: sum(1 for r in rows if r["state"] == key) for key in ("exposed", "internal", "clean", "setup", "pending")}
+    counts["critical"] = sum(1 for r in rows if r["worst"] == "critical" and r["state"] == "exposed")
     counts["total"] = len(rows)
     return {"rows": rows, "counts": counts}
 

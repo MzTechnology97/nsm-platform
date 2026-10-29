@@ -348,7 +348,7 @@ export function DeviceExposure() {
             <dl className="ui-dl">
               <div>
                 <dt>{t("deviceExposure.checkedIp")}</dt>
-                <dd>{data.target.ip ? <>{data.target.ip} <small className="ui-muted">{data.target.source === "operator" ? t("deviceExposure.byOperator") : t("deviceExposure.managementIp")}</small></> : "—"}</dd>
+                <dd>{data.target.ip ? <>{data.target.ip} <small className="ui-muted">{data.target.source === "operator" ? t("deviceExposure.byOperator") : data.target.source === "uplink" ? t("deviceExposure.uplinkIp") : t("deviceExposure.managementIp")}</small></> : "—"}</dd>
               </div>
               <div>
                 <dt>{t("deviceExposure.ports")}</dt>
@@ -361,6 +361,7 @@ export function DeviceExposure() {
           </>
         )}
       </section>
+      <Reachability data={data} />
       {exposure ? (
         <section className="ui-panel ui-admin-section">
           <div className="ui-metrics">
@@ -389,6 +390,9 @@ export function DeviceExposure() {
           {exposure.private_target && <div className="ui-alert ui-alert-warning">{t("deviceExposure.privateResult", { ip: exposure.target_ip })}</div>}
           {exposure.shared_with?.length ? <div className="ui-alert ui-alert-warning">{t("deviceExposure.sharedResult", { peers: exposure.shared_with.join(", ") })}</div> : null}
           {exposure.source === "external" && data.can_remediate && <p className="ui-muted">{t("deviceExposure.acl.help")}</p>}
+          {data.reachability.state && data.reachability.state !== "public" && exposure.exposed ? (
+            <div className="ui-alert">{t("deviceExposure.internalOnly", { reason: data.reachability.reason ?? "" })}</div>
+          ) : null}
           {exposure.findings?.length ? (
             <div className="ui-data-wrap">
               <table className="ui-data-table">
@@ -400,7 +404,8 @@ export function DeviceExposure() {
                       <td><strong>{finding.label}</strong>{finding.why && <small className="ui-muted ui-block">{finding.why}</small>}</td>
                       <td className="ui-mono">{finding.port ? `${finding.proto}/${finding.port}` : "—"}</td>
                       <td><span className={`ui-status ui-status-${finding.state === "exposed" ? "offline" : finding.state === "uncertain" ? "warning" : "online"}`}>
-                        {t(`deviceExposure.states.${finding.state}`, { defaultValue: finding.state })}</span></td>
+                        {finding.state === "exposed" && data.reachability.state !== "public" ? t("deviceExposure.states.internal")
+                          : t(`deviceExposure.states.${finding.state}`, { defaultValue: finding.state })}</span></td>
                       <td>{finding.state === "exposed" || finding.state === "uncertain"
                         ? <span className={SEVERITY_TONE[finding.severity ?? ""] ?? "ui-severity"}>{finding.severity}</span> : "—"}</td>
                       <td>{finding.reason}</td>
@@ -424,6 +429,49 @@ export function DeviceExposure() {
         <div className="ui-empty">{data.pending ? (external ? t("deviceExposure.pendingExternal") : t("deviceExposure.pendingAgent")) : t("deviceExposure.never")}</div>
       ) : null}
     </>
+  );
+}
+
+/** Internet reachability of the device (SCAN-02): only a public device raises exposure alarms. */
+function Reachability({ data }: { data: ExposureTab }) {
+  const { t, i18n } = useTranslation();
+  const r = data.reachability;
+  if (!r?.state) return null;
+  const tone = r.state === "public" ? "ui-status-offline" : r.state === "nat" ? "ui-status-online" : "ui-status-unknown";
+  return (
+    <section className="ui-panel ui-admin-section">
+      <div className="ui-page-header-row">
+        <div>
+          <h2>{t("deviceExposure.reach.title")}</h2>
+          <p className="ui-muted">{t("deviceExposure.reach.help")}</p>
+        </div>
+        <span className={`ui-status ${tone}`}>{t(`deviceExposure.reach.states.${r.state}`)}</span>
+      </div>
+      <p>{r.reason}</p>
+      {r.uplinks.length > 0 && (
+        <div className="ui-data-wrap">
+          <table className="ui-data-table">
+            <thead><tr>{["address", "class", "interface", "source"].map((key) => <th key={key}><span className="ui-th">{t(`deviceExposure.reach.columns.${key}`)}</span></th>)}</tr></thead>
+            <tbody>
+              {r.uplinks.map((row) => (
+                <tr key={`${row.source}-${row.address}`}>
+                  <td className="ui-mono">{row.address}</td>
+                  <td>{t(`deviceExposure.reach.classes.${row.class ?? "other"}`)}{row.up === false && <small className="ui-muted ui-block">{t("deviceExposure.reach.down")}</small>}</td>
+                  <td>{[row.interface, row.type].filter(Boolean).join(" · ") || "—"}</td>
+                  <td>{t(`deviceExposure.reach.sources.${row.source}`, { defaultValue: row.source })}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <small className="ui-muted ui-block">
+        {r.changed_at ? t("deviceExposure.reach.changed", {
+          when: formatDateTime(r.changed_at, i18n.language),
+          reasons: r.change_reasons.map((reason) => t(`deviceExposure.reach.reasons.${reason}`, { defaultValue: reason })).join(", "),
+        }) : null} {t("deviceExposure.reach.recheck")}
+      </small>
+    </section>
   );
 }
 
