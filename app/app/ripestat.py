@@ -18,6 +18,7 @@ anything at RIPE.
 from __future__ import annotations
 
 import ipaddress
+import time
 from datetime import timedelta
 
 import httpx
@@ -41,6 +42,8 @@ MAX_CALLS = 300
 MIN_VISIBILITY = 0.5
 DEFAULT_REFRESH_HOURS = 6
 TRANSPORT = None  # tests replace it
+SLEEP = time.sleep  # tests replace it
+RETRIES = 2  # RIPEstat answers HTTP 5xx now and then under load: two more tries, 2 s and 4 s apart
 PROBLEMS = {  # kind: (severity, title, what to do)
     "foreign_origin": ("critical", "annunciato da un altro AS", "Verifica subito: un altro AS annuncia il tuo prefisso (possibile hijack). Contatta il tuo upstream e crea/aggiorna i ROA."),
     "not_announced": ("warning", "non annunciato", "Il prefisso dichiarato non è visibile in BGP: se dovrebbe esserlo, controlla le sessioni BGP e i filtri dell'upstream."),
@@ -110,10 +113,18 @@ def save(db, user, body: dict) -> None:
 # --- Reads ---------------------------------------------------------------------------------------
 
 def call(client: httpx.Client, name: str, params: dict) -> dict:
-    try:
-        response = client.get(f"/{name}/data.json", params={**params, "sourceapp": "nsm"})
-    except httpx.HTTPError as exc:
-        raise RipestatError(f"RIPEstat non raggiungibile ({name}).") from exc
+    for attempt in range(RETRIES + 1):
+        try:
+            response = client.get(f"/{name}/data.json", params={**params, "sourceapp": "nsm"})
+        except httpx.HTTPError as exc:
+            if attempt < RETRIES:
+                SLEEP(2 * (attempt + 1))
+                continue
+            raise RipestatError(f"RIPEstat non raggiungibile ({name}).") from exc
+        if response.status_code >= 500 and attempt < RETRIES:
+            SLEEP(2 * (attempt + 1))
+            continue
+        break
     if response.status_code != 200:
         raise RipestatError(f"RIPEstat {name}: HTTP {response.status_code}.")
     body = response.json()
@@ -203,9 +214,14 @@ def sync_issues(db, result: dict) -> dict:
         db.add(Notification(severity=severity, category="security", title=title, message=advice, source_url="/admin/integrations/ripestat", is_active=True))
         core.add_event(db, "RIPESTAT_ALERT", severity="warning", source="worker", details={"prefix": prefix, "kind": kind})
         opened += 1
+    # A prefix RIPEstat could not answer for keeps its issues: not read is not solved.
+    unread = {(p["prefix"], "status") for p in result["prefixes"] if p.get("error")}
+    unread |= {(a["prefix"], "rpki") for a in result["announced"] if a.get("rpki") is None}
     closed = 0
     for issue in db.scalars(select(ActionIssue).where(ActionIssue.category == ISSUE_CATEGORY, ActionIssue.status.in_(["open", "acknowledged"]))):
-        if issue.title not in keep:
+        details = issue.details or {}
+        group = "rpki" if str(details.get("kind") or "").startswith("rpki") else "status"
+        if issue.title not in keep and (details.get("prefix"), group) not in unread:
             issue.status, issue.resolved_at = "resolved", utcnow()
             issue.details = {**(issue.details or {}), "resolved_reason": "non più presente all'ultima lettura RIPEstat"}
             closed += 1
