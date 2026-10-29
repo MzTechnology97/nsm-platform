@@ -267,6 +267,22 @@ Bring Ubiquiti devices managed through the UISP API to the depth of the MikroTik
 - complete telemetry: signal/chain levels, noise, CCQ/airMAX quality, capacity, LAN/Ethernet interface state and speed, traffic, history;
 - device logs.
 
+### UBNT-09 — UniFi Network controller connector (requested 2026-10-23)
+
+Ubiquiti UniFi devices (gateways/routers such as UDM, UCG, UXG and USG; USW switches; access points) are managed by a UniFi Network controller (UniFi OS console, Cloud Key or self-hosted Network Application), not by UISP. Build a connector on the controller API, alongside the UISP one:
+
+- connector settings per controller: address, API key (official UniFi Network integration API, sent in a header), TLS verification, sites to include; the legacy session API only where the integration API does not cover a need and the operator accepts it;
+- discovery of sites and devices, association with NSM Customers/Sites by preview and explicit confirmation, as in UBNT-03; NSM ownership stays authoritative;
+- inventory by device type: model, MAC, IP, firmware, uptime, adoption/connection state; switch ports (link, speed, PoE); AP radios, channels and client counts; gateway WAN state;
+- monitoring and history on the device *Monitor* tab with the shared renderer (CPU/RAM, port and WAN traffic, clients), offline devices keeping their last telemetry (MON-02);
+- firmware state from the controller (installed/available) in the firmware worklist, then upgrade execution through the controller with the existing planning, scheduling and verification;
+- operations the API exposes and that are verified on a real controller: restart, switch port PoE power cycle, AP locate;
+- configuration backup: settings live in the controller, so archive the controller backup (or the per-site configuration if exposed) as NSM evidence, never claiming a per-device backup the API does not provide;
+- remote syslog/SIEM server configured on the controller towards the NSM syslog server (LOG-01);
+- security/lifecycle correlation of UniFi models and versions with SEC-05, Zabbix hosts per ZBX-01.
+
+Every endpoint, field and write operation is checked on the operator's controller before it is enabled; writes need confirmation and audit events like the other connectors. Blocked on a reachable controller and an API key created by the operator.
+
 ### MON-01 — telemetry graphs and WAN/PPPoE traffic
 
 **Step 1 implemented in `main` (Core 0.49.43, Agent 0.49.9)**: MikroTik interface traffic graphs on the Monitor page. Since Core 0.49.65 every graph (CPU, memory, traffic, UISP) uses the same Cacti/Zabbix-style renderer.

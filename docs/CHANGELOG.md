@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.281 — 2026-10-29
+
+Roadmap: UniFi Network controller connector
+- New roadmap item UBNT-09: a connector to the UniFi Network controller for Ubiquiti UniFi gateways/routers, switches and access points.
+- It covers discovery and association, inventory, monitoring, firmware, operations, the controller backup and syslog. Every endpoint is to be checked on the operator's controller first.
 ## 0.49.280 — 2026-10-29
 
 TR-069 speed test: the speed the line holds, not the initial burst
