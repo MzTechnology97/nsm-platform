@@ -1,15 +1,15 @@
 """IP attribution: history of the addresses of the BRAS PPPoE sessions (CYBER-01).
 
-Revision ID: 0059_ip_assignments
-Revises: 0058_acs_pon_optics
+Revision ID: 0060_ip_assignments
+Revises: 0059_acs_firmware_campaigns
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
 
-revision: str = "0059_ip_assignments"
-down_revision: Union[str, None] = "0058_acs_pon_optics"
+revision: str = "0060_ip_assignments"
+down_revision: Union[str, None] = "0059_acs_firmware_campaigns"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
