@@ -93,7 +93,7 @@ def main():
     assert client.post("/login", data={"username": f"ci-uo-{suffix}", "password": PASSWORD, "csrf": csrf_from(client.get("/login").text)}, follow_redirects=False).status_code == 303
     uisp_api = f"/api/ui/v1/devices/{ids['device']}/uisp"
     page = client.get(uisp_api).json()
-    assert page["can"] == {"write": True, "reboot": True, "backup": True, "metrics": True}, page["can"]
+    assert page["can"] == {"write": True, "reboot": True, "backup": True, "metrics": True, "speedtest": True}, page["can"]
     ui_headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
 
     def operation(action, device_key="device", **body):

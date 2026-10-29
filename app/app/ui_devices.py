@@ -311,13 +311,13 @@ def device_facets(request: Request):
 # Tabs of the device page: (key, condition).
 TABS = (
     ("overview", lambda d: True),
-    ("monitor", lambda d: d.vendor == "mikrotik"),
+    ("monitor", lambda d: True),  # MikroTik: agent metrics; others: their source (ACS, UISP, cnMaestro) and the ping from NSM
     ("logs", lambda d: True),
     ("exposure", lambda d: True),
     ("configuration", lambda d: d.vendor == "mikrotik"),
     ("diagnostics", lambda d: d.vendor == "mikrotik"),
     ("backups", lambda d: True),
-    ("firmware", lambda d: d.vendor == "mikrotik" or _tr069(d)),
+    ("firmware", lambda d: d.vendor == "mikrotik" or _tr069(d) or (d.vendor == "ubiquiti" and bool(d.external_device_id))),
     ("agent", lambda d: d.vendor == "mikrotik"),
     ("uisp", lambda d: d.vendor == "ubiquiti"),
     ("cnmaestro", lambda d: _cambium(d)),
