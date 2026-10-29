@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.317 — 2026-10-29
+
+IP abuse: one page for every report about your addresses (CYBER-01)
+- New page *Sicurezza → Abusi IP*. It shows in one list every address of yours that an integration reports, with:
+  - **AbuseIPDB**: score, number of reports and of users who reported, date of the last report, categories;
+  - **DNS blacklists**: the lists that list it, with their removal page, and since when;
+  - **threat lists** (Spamhaus DROP): the listed network.
+- Each address shows who has it now: PPPoE session of the BRAS or static IP, otherwise the device with that address. An address of your prefixes that nobody holds is marked as unassigned.
+- The most reported addresses come first. You can filter by source and search an address. Your prefixes on a threat list are shown in a section of their own.
+- The page reads what the integrations already checked: it asks nothing to the services. It also shows whether each source is on and when it last checked.
 ## 0.49.316 — 2026-10-29
 
 RIPEstat: a passing server error no longer hides a prefix
