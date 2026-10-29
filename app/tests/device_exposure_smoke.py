@@ -162,6 +162,7 @@ def main():
     tab = lambda key: client.get(f"/api/ui/v1/devices/{ids[key]}/exposure").json()  # noqa: E731
     page = tab("gw")
     assert page["check_mode"] == "agent" and page["blocker"] is None and page["pending"] is False
+    assert page["reachability"]["state"] == "public", page.get("reachability")  # the tab reads reachability.state (0.49.313)
     assert "pppoe-out1" in json.dumps(page["exposure"]) and page["can_remediate"] is True
     headers = {"X-CSRF-Token": client.get("/api/ui/v1/session").json()["csrf_token"]}
     check = client.post(f"/api/ui/v1/devices/{ids['gw']}/exposure/check", headers=headers)

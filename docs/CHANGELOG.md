@@ -4,6 +4,10 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.310 — 2026-10-29
+
+Device Exposure tab no longer fails with an error
+- **Fixed:** the *Esposizione* tab of a device showed "Something went wrong! Cannot read properties of undefined (reading 'state')" as soon as the device had an exposure result. The page reads whether the device is reachable from Internet (added in 0.49.288), but the API of the tab did not send it. It does now.
 ## 0.49.309 — 2026-10-29
 
 AbuseIPDB: reputation of the operator's own addresses, within the free plan (ABUSEIPDB-01)
