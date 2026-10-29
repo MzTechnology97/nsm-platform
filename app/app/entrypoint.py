@@ -125,6 +125,10 @@ from app.mikrotik_device_reboot import install_mikrotik_device_reboot
 from app.mikrotik_syslog_config import install_mikrotik_syslog_config, install_syslog_on_enrollment
 from app.management_access import install_management_access
 from app.upnp_control import install_upnp_control
+from app.abuseipdb import install_abuseipdb
+from app.ripestat import install_ripestat
+from app.dnsbl import install_dnsbl
+from app.ip_attribution import install_ip_attribution
 from app.exposure_probe import install_exposure_probe
 from app.threat_lists import install_threat_lists
 from app.uisp_firewall import install_uisp_firewall
@@ -159,7 +163,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.308"
+APP_VERSION = "0.49.313"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -196,6 +200,10 @@ install_mikrotik_device_reboot(core.app)
 install_mikrotik_syslog_config(core.app)
 install_management_access(core.app)
 install_upnp_control(core.app)
+install_abuseipdb(core.app)
+install_ripestat(core.app)
+install_dnsbl(core.app)
+install_ip_attribution(core.app)
 install_exposure_probe(core.app)
 install_threat_lists(core.app)
 install_uisp_firewall(core.app)

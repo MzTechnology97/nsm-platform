@@ -2399,7 +2399,10 @@
       "bras": "MikroTik BRAS",
       "unifi": "UniFi Network",
       "probe": "External probe",
-      "threatLists": "Threat lists"
+      "threatLists": "Threat lists",
+      "abuseipdb": "AbuseIPDB",
+      "ripestat": "RIPEstat",
+      "dnsbl": "DNS blacklists"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5423,6 +5426,8 @@
     }
   },
   "eventTypes": {
+    "ABUSEIPDB_CONFIGURED": "AbuseIPDB settings changed",
+    "ABUSEIPDB_LISTED": "Address reported on AbuseIPDB",
     "ACS_ACCESS_CHANGED": "CPE remote access or Telnet changed",
     "ACS_ALERT_OPENED": "CPE alert opened",
     "ACS_ALERT_RESOLVED": "CPE alert resolved",
@@ -5552,6 +5557,8 @@
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Monitored interfaces changed",
     "DEVICE_VENDOR_CORRECTED": "Device vendor corrected",
     "DIAGNOSTIC_EXPORTED": "Diagnostic exported",
+    "DNSBL_CONFIGURED": "DNS blacklist settings changed",
+    "DNSBL_LISTED": "Address on a DNS blacklist",
     "EXPOSURE_ACL_DECLARED": "Exposed service declared filtered by ACL",
     "EXPOSURE_ACL_REMOVED": "ACL declaration removed",
     "EXPOSURE_CHECK_REQUESTED": "Exposure check requested",
@@ -5601,6 +5608,7 @@
     "INCIDENT_STATUS_CHANGED": "Incident status changed",
     "INTERFACE_ERRORS_DETECTED": "Interface errors detected",
     "INVENTORY_DISCOVERED": "Inventory read",
+    "IP_ATTRIBUTION_LOOKUP": "Look-up of who held an IP address",
     "ISPBILLING_AUTO_IMPORTED": "Customers imported automatically from ISPBilling",
     "ISPBILLING_AUTO_IMPORT_CHANGED": "ISPBilling automatic import changed",
     "ISPBILLING_CONFIGURED": "ISPBilling connector configured",
@@ -5662,6 +5670,8 @@
     "REPORT_SCHEDULE_ENABLED": "Report schedule enabled",
     "REPORT_SCHEDULE_FAILED": "Scheduled report failed",
     "REPORT_SCHEDULE_RECIPIENTS_CHANGED": "Report recipients changed",
+    "RIPESTAT_ALERT": "Routing or RPKI problem found by RIPEstat",
+    "RIPESTAT_CONFIGURED": "RIPEstat settings changed",
     "ROUTERBOOT_REBOOT_ACK": "RouterBOOT reboot accepted",
     "ROUTERBOOT_REBOOT_EXPIRED": "RouterBOOT reboot expired",
     "ROUTERBOOT_REBOOT_QUEUED": "RouterBOOT reboot queued",
@@ -6717,7 +6727,21 @@
     "userHint": "On the BRAS, a user that can only read (example):",
     "test": "Test connection",
     "syncNow": "Read now",
-    "synced": "{{sessions}} sessions read: {{came}} came online, {{went}} went offline."
+    "synced": "{{sessions}} sessions read: {{came}} came online, {{went}} went offline.",
+    "retention": "Address history (days)",
+    "whoHad": {
+      "title": "Who had this IP?",
+      "help": "From a public address and a time (for example that of an abuse report), finds the BRAS PPPoE session that held it, then the customer and the device. The history starts when NSM began reading the BRAS; every look-up is recorded in the activity log.",
+      "address": "IP address",
+      "at": "Date and time",
+      "search": "Search",
+      "exact": "PPPoE session:",
+      "static": "Static IP of the account:",
+      "none": "No session or static IP for this address at that time. It may be a NAT/CGNAT address, unassigned, or older than the history.",
+      "noCustomer": "account without a linked customer",
+      "window": "from {{from}} to {{to}}",
+      "stillOnline": "now (still connected)"
+    }
   },
   "pppoe": {
     "title": "PPPoE connections",
@@ -7186,11 +7210,11 @@
     "test": "Test the probe",
     "howTitle": "Installation on the outside server",
     "how": {
-      "host": "A server outside your network (e.g. a Debian or Ubuntu VPS) with another Internet connection.",
-      "secret": "The installer generates the shared secret and prints it at the end (again with \"sudo bash install.sh show-secret\").",
-      "run": "On the server run the commands below: they install Docker if missing, download the probe and start it.",
-      "sources": "Put in --allow the public IP the NSM server goes out from, so nobody else can use it. With --domain the probe answers over HTTPS through Caddy.",
-      "connect": "Enter here the address, name and secret printed by the installer, save and press «Test the probe»."
+      "host": "A server outside your network, with another Internet connection, and Docker installed.",
+      "secret": "Generate a secret of at least 32 characters (e.g. with openssl rand -hex 32): it goes both in the probe and here.",
+      "run": "Copy the repository's probe folder and start the container with the commands below.",
+      "sources": "Set PROBE_ALLOWED_SOURCES to the public IP the NSM server goes out from, so nobody else can use it.",
+      "connect": "Enter address, name and secret here, save and press «Test the probe»."
     }
   },
   "cambiumFirmware": {
@@ -7474,5 +7498,137 @@
     "bulkQueued_other": "{{count}} devices queued.",
     "bulkSkipped_one": "{{count}} skipped (not supported or already running).",
     "bulkSkipped_other": "{{count}} skipped (not supported or already running)."
+  },
+  "abuseipdb": {
+    "title": "AbuseIPDB",
+    "subtitle": "Reputation of your public addresses: NSM checks your prefixes and the devices' public IPs on AbuseIPDB, within your plan's quota. Only IP addresses leave NSM.",
+    "test": "Test key",
+    "run": "Check now",
+    "testOk": "Key valid: quota read from AbuseIPDB.",
+    "ran": "Checks run: {{calls}}; still to check: {{due}}.",
+    "statusTitle": "Status and quota",
+    "waiting": "Quota used up: NSM resumes after {{when}}.",
+    "endpoint": {
+      "check": "Single IP checks",
+      "check-block": "/24 block checks"
+    },
+    "quota": "{{remaining}} of {{limit}} left · reset {{when}}",
+    "quotaUnknown": "Quota not read yet (read at the first call).",
+    "coverage": "To check: {{blocks}} /24 blocks and {{addresses}} addresses outside your prefixes; checked so far: {{checked}}.",
+    "prefixes": "Prefixes: {{list}}.",
+    "noPrefixes": "No prefix declared: only the devices' public IPs are checked.",
+    "prefixesLink": "Edit the prefixes",
+    "evaluated": "Last evaluation: {{when}}.",
+    "settingsTitle": "Settings",
+    "enabled": "Module on",
+    "apiKey": "API key",
+    "keySaved": "Key saved (leave empty to keep it)",
+    "keyHelp": "Create it on abuseipdb.com → Account → API. It is stored encrypted and never shown again.",
+    "fields": {
+      "threshold": "Alert threshold (score %)",
+      "max_age_days": "Reports of the last days",
+      "recheck_hours": "Check again every (hours)",
+      "reserve_checks": "Single checks to keep free",
+      "reserve_blocks": "Block checks to keep free"
+    },
+    "saved": "Settings saved.",
+    "lookupTitle": "Check an address",
+    "lookup": "Check",
+    "score": "score {{score}}%",
+    "reports_one": "{{count}} report",
+    "reports_other": "{{count}} reports",
+    "reportedTitle": "Reported addresses",
+    "reportedHelp": "Addresses with a score of at least {{threshold}}% open an Action Center issue, closed when the score falls.",
+    "noReported": "None of your addresses is reported.",
+    "unassigned": "Your address, not assigned",
+    "unknownHolder": "No known device",
+    "columns": {
+      "address": "Address",
+      "score": "Score",
+      "holder": "Held by (now)",
+      "categories": "Categories",
+      "last": "Last report"
+    }
+  },
+  "ripestat": {
+    "title": "RIPEstat",
+    "subtitle": "Your prefixes as the Internet sees them: who announces them in BGP, how visible they are and whether the RPKI ROAs are right. Public RIPE data, no account; NSM changes nothing at RIPE.",
+    "refresh": "Refresh now",
+    "statusTitle": "Status",
+    "refreshed": "Last read: {{when}}.",
+    "never": "Never read.",
+    "declared": "Declared prefixes: {{list}}.",
+    "noDeclared": "No prefix declared: only your ASNs' announcements are checked.",
+    "declaredLink": "Edit the prefixes",
+    "suggested": "Announced by your ASNs but not declared: {{list}}. Add them to the prefixes to check them with AbuseIPDB and the threat lists too.",
+    "declaredTitle": "Declared prefixes in BGP",
+    "announcedTitle": "Your ASNs' announcements and RPKI",
+    "nothing": "Nothing to show: save the ASNs and refresh.",
+    "ok": "OK",
+    "columns": {
+      "prefix": "Prefix",
+      "origins": "Origin AS",
+      "visibility": "Visibility (RIS peers)",
+      "state": "State",
+      "asn": "AS",
+      "rpki": "RPKI"
+    },
+    "settingsTitle": "Settings",
+    "enabled": "Module on",
+    "asns": "Your AS numbers",
+    "refreshHours": "Read every (hours)",
+    "help": "Example: AS64500 AS64501. The prefixes checked are the ones declared in Threat lists.",
+    "saved": "Settings saved."
+  },
+  "dnsbl": {
+    "title": "DNS blacklists",
+    "subtitle": "Checks whether your public IPv4 addresses are on the DNS blacklists (DNSBL). Free, no account: NSM only makes DNS queries and sends nothing to the lists.",
+    "test": "Test the lists",
+    "run": "Check now",
+    "waiting": "Full pass done: the next one starts after the re-check interval.",
+    "ran_one": "{{count}} address checked.",
+    "ran_other": "{{count}} addresses checked.",
+    "statusTitle": "Status",
+    "coverage": "Addresses to check: {{addresses}}; position in the current pass: {{position}}.",
+    "prefixes": "Your prefixes: {{list}}.",
+    "noPrefixes": "No prefixes declared: only the public addresses of the devices are checked.",
+    "prefixesLink": "Manage the prefixes",
+    "lastCycle": "Last full pass: {{when}}.",
+    "refused": "{{zone}} refuses the queries of this server ({{detail}}): usually the DNS resolver is public or the free limit is exceeded. Its results are not reliable.",
+    "zoneError": "{{zone}} does not answer correctly ({{detail}}): an error neither adds nor removes listings.",
+    "healthTitle": "List test ({{when}})",
+    "healthOk": "OK",
+    "state": {
+      "listed": "Listed",
+      "clean": "Does not answer the test",
+      "refused": "Refused",
+      "error": "Error"
+    },
+    "listedTitle": "Blacklisted addresses",
+    "listedHelp": "Every listed address opens an Action Center issue, with the customer and device that hold it now. It closes by itself when the address is on no list any more.",
+    "noListed": "No blacklisted addresses.",
+    "columns": {
+      "address": "Address",
+      "lists": "Lists",
+      "holder": "Assigned to",
+      "since": "Since"
+    },
+    "unassigned": "Your address, not assigned",
+    "unknownHolder": "No known device",
+    "removal": "Removal",
+    "settingsTitle": "Settings",
+    "enabled": "Module enabled",
+    "zones": "Lists to check",
+    "fields": {
+      "recheck_hours": "Re-check (hours)",
+      "per_run": "Addresses per run (every minute)"
+    },
+    "saved": "Saved.",
+    "lookupTitle": "Check an address",
+    "lookup": "Check",
+    "lookupListed_one": "on {{count}} list",
+    "lookupListed_other": "on {{count}} lists",
+    "lookupClean": "on no list",
+    "lookupFailed": "Not verified: {{list}}."
   }
 }

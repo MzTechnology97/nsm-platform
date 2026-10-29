@@ -2399,7 +2399,10 @@
       "bras": "BRAS MikroTik",
       "unifi": "UniFi Network",
       "probe": "Sonda externa",
-      "threatLists": "Listas de amenazas"
+      "threatLists": "Listas de amenazas",
+      "abuseipdb": "AbuseIPDB",
+      "ripestat": "RIPEstat",
+      "dnsbl": "Listas negras DNS"
     },
     "ispbilling": {
       "title": "ISPBilling",
@@ -5423,6 +5426,8 @@
     }
   },
   "eventTypes": {
+    "ABUSEIPDB_CONFIGURED": "Ajustes de AbuseIPDB modificados",
+    "ABUSEIPDB_LISTED": "Dirección denunciada en AbuseIPDB",
     "ACS_ACCESS_CHANGED": "Acceso remoto o Telnet del CPE modificado",
     "ACS_ALERT_OPENED": "Aviso de CPE abierto",
     "ACS_ALERT_RESOLVED": "Aviso de CPE resuelto",
@@ -5552,6 +5557,8 @@
     "DEVICE_TRAFFIC_INTERFACES_CHANGED": "Interfaces monitorizadas modificadas",
     "DEVICE_VENDOR_CORRECTED": "Fabricante del dispositivo corregido",
     "DIAGNOSTIC_EXPORTED": "Diagnóstico exportado",
+    "DNSBL_CONFIGURED": "Ajustes de listas negras DNS modificados",
+    "DNSBL_LISTED": "Dirección en una lista negra DNS",
     "EXPOSURE_ACL_DECLARED": "Servicio expuesto declarado filtrado por ACL",
     "EXPOSURE_ACL_REMOVED": "Declaración ACL retirada",
     "EXPOSURE_CHECK_REQUESTED": "Comprobación de exposición solicitada",
@@ -5601,6 +5608,7 @@
     "INCIDENT_STATUS_CHANGED": "Estado del incidente cambiado",
     "INTERFACE_ERRORS_DETECTED": "Errores de interfaz detectados",
     "INVENTORY_DISCOVERED": "Inventario detectado",
+    "IP_ATTRIBUTION_LOOKUP": "Búsqueda de quién tenía una dirección IP",
     "ISPBILLING_AUTO_IMPORTED": "Clientes importados automáticamente desde ISPBilling",
     "ISPBILLING_AUTO_IMPORT_CHANGED": "Importación automática de ISPBilling modificada",
     "ISPBILLING_CONFIGURED": "Conector ISPBilling configurado",
@@ -5662,6 +5670,8 @@
     "REPORT_SCHEDULE_ENABLED": "Programación de informe activada",
     "REPORT_SCHEDULE_FAILED": "Informe programado fallido",
     "REPORT_SCHEDULE_RECIPIENTS_CHANGED": "Destinatarios del informe cambiados",
+    "RIPESTAT_ALERT": "Problema de enrutamiento o RPKI detectado por RIPEstat",
+    "RIPESTAT_CONFIGURED": "Ajustes de RIPEstat modificados",
     "ROUTERBOOT_REBOOT_ACK": "Reinicio RouterBOOT aceptado",
     "ROUTERBOOT_REBOOT_EXPIRED": "Reinicio RouterBOOT caducado",
     "ROUTERBOOT_REBOOT_QUEUED": "Reinicio RouterBOOT en cola",
@@ -6717,7 +6727,21 @@
     "userHint": "En el BRAS, un usuario que solo puede leer (ejemplo):",
     "test": "Probar conexión",
     "syncNow": "Leer ahora",
-    "synced": "{{sessions}} sesiones leídas: {{came}} en línea, {{went}} sin conexión."
+    "synced": "{{sessions}} sesiones leídas: {{came}} en línea, {{went}} sin conexión.",
+    "retention": "Historial de direcciones (días)",
+    "whoHad": {
+      "title": "¿Quién tenía esta IP?",
+      "help": "A partir de una dirección pública y una hora (por ejemplo la de un informe de abuso), encuentra la sesión PPPoE del BRAS que la tenía, y así el cliente y el equipo. El historial empieza cuando NSM comenzó a leer el BRAS; cada búsqueda queda registrada en el registro de actividad.",
+      "address": "Dirección IP",
+      "at": "Fecha y hora",
+      "search": "Buscar",
+      "exact": "Sesión PPPoE:",
+      "static": "IP estática de la cuenta:",
+      "none": "Ninguna sesión ni IP estática para esta dirección a esa hora. Puede ser una dirección de NAT/CGNAT, no asignada o anterior al historial.",
+      "noCustomer": "cuenta sin cliente vinculado",
+      "window": "del {{from}} al {{to}}",
+      "stillOnline": "ahora (aún conectado)"
+    }
   },
   "pppoe": {
     "title": "Conexiones PPPoE",
@@ -7186,11 +7210,11 @@
     "test": "Probar la sonda",
     "howTitle": "Instalación en el servidor externo",
     "how": {
-      "host": "Un servidor fuera de su red (por ejemplo un VPS Debian o Ubuntu) con otra conexión a Internet.",
-      "secret": "El instalador genera el secreto compartido y lo muestra al final (de nuevo con «sudo bash install.sh show-secret»).",
-      "run": "En el servidor ejecute los comandos de abajo: instalan Docker si falta, descargan la sonda y la arrancan.",
-      "sources": "En --allow ponga la IP pública de salida del servidor NSM, así nadie más puede usarla. Con --domain la sonda responde en HTTPS a través de Caddy.",
-      "connect": "Introduzca aquí la dirección, el nombre y el secreto mostrados por el instalador, guarde y pulse «Probar la sonda»."
+      "host": "Un servidor fuera de su red, con otra conexión a Internet, y Docker instalado.",
+      "secret": "Genere un secreto de al menos 32 caracteres (por ejemplo con openssl rand -hex 32): va en la sonda y aquí.",
+      "run": "Copie la carpeta probe del repositorio y arranque el contenedor con los comandos de abajo.",
+      "sources": "En PROBE_ALLOWED_SOURCES ponga la IP pública de salida del servidor NSM, así nadie más puede usarla.",
+      "connect": "Introduzca aquí dirección, nombre y secreto, guarde y pulse «Probar la sonda»."
     }
   },
   "cambiumFirmware": {
@@ -7474,5 +7498,137 @@
     "bulkQueued_other": "{{count}} equipos en cola.",
     "bulkSkipped_one": "{{count}} omitido (no compatible o ya en curso).",
     "bulkSkipped_other": "{{count}} omitidos (no compatibles o ya en curso)."
+  },
+  "abuseipdb": {
+    "title": "AbuseIPDB",
+    "subtitle": "Reputación de sus direcciones públicas: NSM comprueba en AbuseIPDB sus prefijos y las IP públicas de los equipos, dentro de la cuota de su plan. Solo salen de NSM direcciones IP.",
+    "test": "Probar clave",
+    "run": "Comprobar ahora",
+    "testOk": "Clave válida: cuota leída de AbuseIPDB.",
+    "ran": "Comprobaciones hechas: {{calls}}; pendientes: {{due}}.",
+    "statusTitle": "Estado y cuota",
+    "waiting": "Cuota agotada: NSM reanuda después del {{when}}.",
+    "endpoint": {
+      "check": "Comprobaciones de IP",
+      "check-block": "Comprobaciones de bloques /24"
+    },
+    "quota": "Quedan {{remaining}} de {{limit}} · reinicio {{when}}",
+    "quotaUnknown": "Cuota aún no leída (se lee en la primera llamada).",
+    "coverage": "Por comprobar: {{blocks}} bloques /24 y {{addresses}} direcciones fuera de sus prefijos; ya comprobadas: {{checked}}.",
+    "prefixes": "Prefijos: {{list}}.",
+    "noPrefixes": "Ningún prefijo declarado: solo se comprueban las IP públicas de los equipos.",
+    "prefixesLink": "Editar los prefijos",
+    "evaluated": "Última evaluación: {{when}}.",
+    "settingsTitle": "Ajustes",
+    "enabled": "Módulo activo",
+    "apiKey": "Clave API",
+    "keySaved": "Clave guardada (deje vacío para mantenerla)",
+    "keyHelp": "Créela en abuseipdb.com → Account → API. Se guarda cifrada y no se vuelve a mostrar.",
+    "fields": {
+      "threshold": "Umbral de alerta (puntuación %)",
+      "max_age_days": "Denuncias de los últimos días",
+      "recheck_hours": "Volver a comprobar cada (horas)",
+      "reserve_checks": "Comprobaciones de IP a dejar libres",
+      "reserve_blocks": "Comprobaciones de bloques a dejar libres"
+    },
+    "saved": "Ajustes guardados.",
+    "lookupTitle": "Comprobar una dirección",
+    "lookup": "Comprobar",
+    "score": "puntuación {{score}} %",
+    "reports_one": "{{count}} denuncia",
+    "reports_other": "{{count}} denuncias",
+    "reportedTitle": "Direcciones denunciadas",
+    "reportedHelp": "Las direcciones con puntuación de al menos {{threshold}} % abren una incidencia en el Action Center, que se cierra cuando la puntuación baja.",
+    "noReported": "Ninguna de sus direcciones está denunciada.",
+    "unassigned": "Dirección suya, no asignada",
+    "unknownHolder": "Ningún equipo conocido",
+    "columns": {
+      "address": "Dirección",
+      "score": "Puntuación",
+      "holder": "Asignada a (ahora)",
+      "categories": "Categorías",
+      "last": "Última denuncia"
+    }
+  },
+  "ripestat": {
+    "title": "RIPEstat",
+    "subtitle": "Sus prefijos vistos desde Internet: quién los anuncia en BGP, cuán visibles son y si los ROA RPKI son correctos. Datos públicos de RIPE, sin cuenta; NSM no cambia nada en RIPE.",
+    "refresh": "Actualizar ahora",
+    "statusTitle": "Estado",
+    "refreshed": "Última lectura: {{when}}.",
+    "never": "Nunca leído.",
+    "declared": "Prefijos declarados: {{list}}.",
+    "noDeclared": "Ningún prefijo declarado: solo se comprueban los anuncios de sus AS.",
+    "declaredLink": "Editar los prefijos",
+    "suggested": "Anunciados por sus AS pero no declarados: {{list}}. Añádalos a los prefijos para comprobarlos también con AbuseIPDB y las listas de amenazas.",
+    "declaredTitle": "Prefijos declarados en BGP",
+    "announcedTitle": "Anuncios de sus AS y RPKI",
+    "nothing": "Nada que mostrar: guarde los AS y actualice.",
+    "ok": "OK",
+    "columns": {
+      "prefix": "Prefijo",
+      "origins": "AS de origen",
+      "visibility": "Visibilidad (pares RIS)",
+      "state": "Estado",
+      "asn": "AS",
+      "rpki": "RPKI"
+    },
+    "settingsTitle": "Ajustes",
+    "enabled": "Módulo activo",
+    "asns": "Sus números de AS",
+    "refreshHours": "Leer cada (horas)",
+    "help": "Ejemplo: AS64500 AS64501. Los prefijos comprobados son los declarados en Listas de amenazas.",
+    "saved": "Ajustes guardados."
+  },
+  "dnsbl": {
+    "title": "Listas negras DNS",
+    "subtitle": "Comprueba si tus direcciones IPv4 públicas están en las listas negras DNS (DNSBL). Gratis, sin cuenta: NSM solo hace consultas DNS y no envía nada a las listas.",
+    "test": "Probar las listas",
+    "run": "Comprobar ahora",
+    "waiting": "Pasada completa terminada: la siguiente empieza tras el intervalo de nueva comprobación.",
+    "ran_one": "{{count}} dirección comprobada.",
+    "ran_other": "{{count}} direcciones comprobadas.",
+    "statusTitle": "Estado",
+    "coverage": "Direcciones por comprobar: {{addresses}}; posición en la pasada actual: {{position}}.",
+    "prefixes": "Tus prefijos: {{list}}.",
+    "noPrefixes": "Ningún prefijo declarado: solo se comprueban las direcciones públicas de los equipos.",
+    "prefixesLink": "Gestionar los prefijos",
+    "lastCycle": "Última pasada completa: {{when}}.",
+    "refused": "{{zone}} rechaza las consultas de este servidor ({{detail}}): normalmente el resolvedor DNS es público o se superó el límite gratuito. Sus resultados no son fiables.",
+    "zoneError": "{{zone}} no responde correctamente ({{detail}}): un error no añade ni quita inclusiones.",
+    "healthTitle": "Prueba de las listas ({{when}})",
+    "healthOk": "OK",
+    "state": {
+      "listed": "Incluida",
+      "clean": "No responde a la prueba",
+      "refused": "Rechazada",
+      "error": "Error"
+    },
+    "listedTitle": "Direcciones en lista negra",
+    "listedHelp": "Cada dirección incluida abre una incidencia en el Centro de acciones, con el cliente y el equipo que la tienen ahora. Se cierra sola cuando la dirección ya no está en ninguna lista.",
+    "noListed": "Ninguna dirección en lista negra.",
+    "columns": {
+      "address": "Dirección",
+      "lists": "Listas",
+      "holder": "Asignada a",
+      "since": "Desde"
+    },
+    "unassigned": "Tu dirección, no asignada",
+    "unknownHolder": "Ningún equipo conocido",
+    "removal": "Eliminación",
+    "settingsTitle": "Ajustes",
+    "enabled": "Módulo activo",
+    "zones": "Listas por comprobar",
+    "fields": {
+      "recheck_hours": "Nueva comprobación (horas)",
+      "per_run": "Direcciones por ejecución (cada minuto)"
+    },
+    "saved": "Guardado.",
+    "lookupTitle": "Comprobar una dirección",
+    "lookup": "Comprobar",
+    "lookupListed_one": "en {{count}} lista",
+    "lookupListed_other": "en {{count}} listas",
+    "lookupClean": "en ninguna lista",
+    "lookupFailed": "No verificadas: {{list}}."
   }
 }

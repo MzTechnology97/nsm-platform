@@ -469,7 +469,7 @@ Profiles: *vendor* (today's list), *extended* (the list above, default for publi
 ### CYBER-01 — abuse and reputation toolkit for the operator's addresses (requested 2026-10-23)
 
 A complete cybersecurity view for an ISP/WISP, taking as reference the open-source project AbuseBox (`bekkaze/abusebox`, MIT), re-implemented inside NSM on its own inventory:
-- **blacklists**: DNSBL checks (tens of providers) of the operator's public IPs (customers, CGNAT pool, servers) and of whole subnets (/24), with links to each provider's removal page and delisting tracking;
+- **blacklists**: DNSBL checks (tens of providers) of the operator's public IPs (customers, CGNAT pool, servers) and of whole subnets (/24), with links to each provider's removal page and delisting tracking; **DNSBL done (Core 0.49.313)**: *Integrazioni → Blacklist DNS*, IPv4 of the declared prefixes and of the inventory, removal links, Action Center issues with the holder; delisting tracking and charts still open.
 - **reputation**: AbuseIPDB score and reports (optional API key), correlated with the customer and device owning the address;
 - **availability**: DNS resolution, HTTP/HTTPS status and response time of the operator's public services;
 - out of scope for now (user, 2026-10-23): domains, SSL certificates and mail authentication (SPF/DKIM/DMARC);
@@ -482,6 +482,8 @@ A complete cybersecurity view for an ISP/WISP, taking as reference the open-sour
   - scheduled re-checks and a needs-attention view (listed, poor reputation, down);
   - activity log, with history and charts of listings over time;
   - alerts through the existing NSM channels (email, Telegram, webhook) and Action Center issues; CSV export.
+
+**Step 1 done (Core 0.49.312)**: address history of the MikroTik BRAS PPPoE sessions (`ip_assignments`, retention configurable), *Chi aveva questo IP?* look-up (BRAS session, else ISPBilling static IP; audited), AbuseIPDB issues assigned to the holder at the report time. Next: RADIUS accounting, WAN changes of TR-069/Agent/UISP devices (*probable*), NAT pools.
 
 **IP attribution at the time of the incident (requested 2026-10-23):** every reputation event (AbuseIPDB report, DNSBL listing, CrowdSec decision, abuse e-mail) carries an IP and a time; NSM finds who had that IP *at that moment*, not now, because PPPoE addresses are dynamic:
 - **address history**: a table of assignments (IP, device, customer, source, from, to), fed by what NSM already sees:

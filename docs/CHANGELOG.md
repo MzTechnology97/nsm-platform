@@ -4,6 +4,58 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.313 — 2026-10-29
+
+DNS blacklists of the operator's addresses (CYBER-01)
+- New module *Integrazioni → Blacklist DNS*. It checks whether your public IPv4 addresses are on the DNS blacklists (DNSBL). It is free and needs no account, and it is off until you turn it on.
+- Checked: every address of your prefixes (declared on the *Liste di minaccia* page) and the public addresses of the devices outside them. A few addresses run every minute, and a full pass runs again every 24 hours (configurable).
+- Lists on by default: SpamCop, PSBL, DroneBL, UCEPROTECT level 1, NiX Spam, Mailspike and SPFBL. Spamhaus ZEN and Barracuda are off: Spamhaus is free only for low volumes and never through public DNS resolvers, and Barracuda needs the resolver registered.
+- *Prova le liste* shows which lists answer this server. A list that refuses or fails is shown on the page and never adds or removes a listing.
+- An address on a list opens an Action Center alert. The alert shows who has the address now (PPPoE session of the BRAS or static IP, otherwise the device with that address) and links to the removal page of each list. An address of your prefixes that nobody holds is marked as unassigned. The alert closes by itself when the address is on no list any more.
+- You can also check any public IPv4 address by hand.
+- Only DNS queries leave NSM. Nothing is sent to the lists.
+## 0.49.312 — 2026-10-29
+
+Who held an IP address at a given time: PPPoE address history of the BRAS (CYBER-01)
+- Every read of the MikroTik BRAS now also keeps the address history: which PPPoE account had which public address, from when to when. A new session or a new address closes the previous record.
+- The history is kept for a configurable number of days (*BRAS MikroTik* settings, default 365), then deleted. It is operational data, not the legal traffic-data register.
+- New box *Chi aveva questo IP?* on the BRAS page. From an address and a date and time (for example those of an abuse report), it gives the PPPoE account, the customer and the device. When there is no session, it falls back to the static IP of an ISPBilling account. Every search is recorded in the activity log.
+- AbuseIPDB alerts go to the customer who had the address at the last report, not to whoever has it now.
+- Addresses behind NAT or CGNAT are not attributed.
+- Test fix: the cambium syslog smoke no longer fails at random when its random IPv6 test address has a group with a leading zero.
+## 0.49.311 — 2026-10-29
+
+RIPEstat: the operator's prefixes, BGP origin, visibility and RPKI (RIPESTAT-01)
+- New module *Integrazioni → RIPEstat*, off by default and read-only. It uses the free RIPEstat API, with no account and no key. The operator gives its AS numbers; the prefixes checked are the ones declared in *Liste di minaccia*.
+- Every 6 hours (configurable), NSM reads:
+  - the prefixes each AS announces;
+  - for each declared prefix, who announces it and how many RIPE RIS peers see it;
+  - for each announcement, whether the RPKI ROAs match.
+- Action Center issues and notifications, each with what to do:
+  - **announced by another AS** (possible hijack, critical);
+  - **not announced**;
+  - **seen by less than half of the peers**;
+  - **RPKI invalid** (critical: routes may be dropped);
+  - **no ROA**.
+
+  An issue closes when the next read no longer shows the problem. When RIPEstat cannot be reached, the previous picture is kept.
+- Prefixes announced by the operator's ASs but not declared are suggested, so that AbuseIPDB and the threat lists cover them too.
+- NSM never changes anything at RIPE.
+## 0.49.310 — 2026-10-29
+
+Device Exposure tab no longer fails with an error
+- **Fixed:** the *Esposizione* tab of a device showed "Something went wrong! Cannot read properties of undefined (reading 'state')" as soon as the device had an exposure result. The page reads whether the device is reachable from Internet (added in 0.49.288), but the API of the tab did not send it. It does now.
+## 0.49.309 — 2026-10-29
+
+AbuseIPDB: reputation of the operator's own addresses, within the free plan (ABUSEIPDB-01)
+- New module *Integrazioni → AbuseIPDB*, off by default. The API key is stored encrypted and never shown again; *Prova chiave* checks it and reads the quota.
+- What NSM checks, only in the operator's own address space:
+  - the public prefixes declared in *Liste di minaccia*, one **/24 block check** each (one call returns every reported address of the block);
+  - the public addresses of the devices outside those prefixes, one **single check** each.
+- Each item is checked again after 24 hours (configurable); a few calls per minute spread the checks over the day. The **daily quota** is read from AbuseIPDB's answers, a reserve is kept for manual look-ups, and after *quota esaurita* (HTTP 429) NSM waits for the time AbuseIPDB gives. No plan limit is hard-coded.
+- An address with a score at or above the threshold (default 25%) opens an **Action Center issue** and a notification, with the device and customer holding it now, or *indirizzo non assegnato* for an address of the operator's prefixes held by no device. The issue closes when the score falls.
+- The page lists the reported addresses (score, reports, categories such as Port Scan, Brute-Force, SSH, last report, device and customer), the quota left and the coverage, and offers a manual look-up of one address.
+- Only IP addresses leave NSM. Looking up attackers from the logs and reporting to AbuseIPDB come later, opt-in.
 ## 0.49.308 — 2026-10-29
 
 UPnP on every device: where it is on, and turning it off from NSM, one device or many (ACCESS-02, Agent 0.49.28)
