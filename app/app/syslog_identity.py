@@ -124,11 +124,15 @@ class Index:
     networks: list = field(default_factory=list)
     retired: set = field(default_factory=set)         # keys of decommissioned devices: their lines are dropped
     by_address: dict = field(default_factory=dict)    # ip -> device_id: TR-069 CPEs NSM pointed at itself (no key possible)
-    by_name: list = field(default_factory=list)       # (customer name words, device_id): Ubiquiti set through UISP in customer-name mode
+    by_name: list = field(default_factory=list)       # (customer name words, device_id): Ubiquiti/Cambium set by NSM in customer-name mode
+    min_severity: dict = field(default_factory=dict)  # device_id -> worst severity number kept (airOS cannot filter by itself)
     devices: int = 0
 
 
 TR069_FRESH = timedelta(minutes=30)
+UISP_LEVELS = {"error": 3, "warning": 4, "notice": 5, "info": 6, "debug": 7}  # same names as uisp_syslog.LEVELS
+# inventory_data keys of the syslog configuration NSM applied to a device (UISP for Ubiquiti, SSH for Cambium ePMP)
+CONFIGURED_BY_NSM = ("uisp_syslog", "cambium_syslog")
 
 
 def tr069_addresses(device, now) -> set[str]:
@@ -180,14 +184,17 @@ def build_index(db, settings: dict, now=None) -> Index:
             for ip in tr069_addresses(device, now):
                 keyless.setdefault(ip, set()).add(device.id)
                 index.known_ips.add(ip)
-        uisp_syslog = data.get("uisp_syslog") if isinstance(data.get("uisp_syslog"), dict) else {}
-        if device.vendor == "ubiquiti" and uisp_syslog.get("status") == "applied":
-            if uisp_syslog.get("mode") == "address" and _norm(device.management_ip):
+        # Ubiquiti set through UISP, Cambium ePMP set over SSH: NSM itself pointed them at the receiver, in the chosen mode.
+        configured = next((data[k] for k in CONFIGURED_BY_NSM if isinstance(data.get(k), dict)), {})
+        if configured.get("status") in ("applied", "unverified"):
+            if device.vendor == "ubiquiti" and configured is data.get("uisp_syslog"):
+                index.min_severity[device.id] = UISP_LEVELS.get(configured.get("level") or "warning", 4)
+            if configured.get("mode") == "address" and _norm(device.management_ip):
                 keyless.setdefault(_norm(device.management_ip), set()).add(device.id)
                 index.known_ips.add(_norm(device.management_ip))
-            elif uisp_syslog.get("mode") == "customer_name" and name_tokens(uisp_syslog.get("match_name")):
+            elif configured.get("mode") == "customer_name" and name_tokens(configured.get("match_name")):
                 # The customer's name saved when NSM configured the device: the receiver's account cannot read customers.
-                by_name.setdefault(name_tokens(uisp_syslog.get("match_name")), set()).add(device.id)
+                by_name.setdefault(name_tokens(configured.get("match_name")), set()).add(device.id)
         for ip in strong:
             norm = _norm(ip)
             if not norm:

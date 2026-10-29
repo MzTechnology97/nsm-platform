@@ -1,5 +1,6 @@
 import type { DeviceZabbix } from "../app/ZabbixProblems";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { PppoeSessionState } from "../app/PppoeSession";
 
 import type { IspbillingLinkState } from "../app/IspbillingLinks";
 import { api } from "./client";
@@ -90,4 +91,6 @@ export interface DeviceIspbillingAccount {
   customer: string | null;
   /** False when ISPBilling bills another NSM customer; null when that ISPBilling customer is not imported. */
   same_customer: boolean | null;
+  /** PPPoE session of the username on the MikroTik BRAS (mikrotik_bras); null when the BRAS never saw it. */
+  session?: PppoeSessionState | null;
 }

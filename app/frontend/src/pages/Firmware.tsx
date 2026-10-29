@@ -1,12 +1,13 @@
-import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useListSearch } from "../app/CustomerScope";
 import { SearchSelect, customerLabel } from "../app/SearchSelect";
 import type { TFunction } from "i18next";
 
 import { useDeviceFacets } from "../api/devices";
 import { BrandIcon } from "../app/BrandIcon";
-import { FIRMWARE_STATES, type FirmwareFilters, type FirmwareRow, useFirmware, useFirmwareCheck } from "../api/operations";
+import { FIRMWARE_STATES, type FirmwareFilters, type FirmwareRow, type UispBulkResult, useFirmware, useFirmwareCheck } from "../api/operations";
 import { useFirmwareAction } from "../api/deviceTabs";
 import { formatRelative } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
@@ -14,6 +15,7 @@ import { Loading } from "../app/States";
 import { Pager } from "../app/Pager";
 import { pageParams, usePaging } from "../lib/paging";
 import { ScheduleBadge, ScheduleBar } from "../app/FirmwareSchedule";
+import { UispBulkOutcome, UispBulkUpgrade, uispSelectable } from "../app/UispBulkUpgrade";
 
 const STATUS_TONE: Record<string, string> = {
   critical_security_update: "ui-severity ui-severity-critical",
@@ -24,12 +26,11 @@ const STATUS_TONE: Record<string, string> = {
 
 export function Firmware() {
   const { t } = useTranslation();
-  const search = useSearch({ from: "/firmware" });
-  const navigate = useNavigate({ from: "/firmware" });
+  // Globally or inside a customer's security tab (the customer filter is then fixed and its picker hidden).
+  const { search, update, customer: scope } = useListSearch<FirmwareFilters>();
   const facets = useDeviceFacets();
   const [text, setText] = useState(search.q ?? "");
   const q = useDebounced(text.trim());
-  const update = (patch: Partial<FirmwareFilters>) => void navigate({ search: (previous: FirmwareFilters) => ({ ...previous, ...patch }), replace: true });
   useEffect(() => {
     if ((search.q ?? "") !== q) update({ q: q || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -41,17 +42,23 @@ export function Firmware() {
   const state = search.state ?? "attention";
   const [selected, setSelected] = useState<string[]>([]);
   const toggle = (id: string) => setSelected((list) => (list.includes(id) ? list.filter((item) => item !== id) : [...list, id]));
+  // Ubiquiti devices linked to UISP among the selected rows: upgraded together in one UISP task.
+  const [bulk, setBulk] = useState<UispBulkResult>();
+  const uispSelected = selected.filter((id) => rows.some((row) => row.id === id && uispSelectable(row)));
+  const scheduleSelected = selected.filter((id) => rows.some((row) => row.id === id && row.can_schedule));
 
   return (
-    <section className="ui-page">
+    <section className={scope ? "ui-customer-list" : "ui-page"}>
       <header className="ui-page-header ui-page-header-row">
         <div>
-          <h1>{t("firmware.title")}</h1>
+          {scope ? <h2>{t("firmware.title")}</h2> : <h1>{t("firmware.title")}</h1>}
           <p>{t("firmware.subtitle")}</p>
         </div>
         <div className="ui-actions">
           <Link to="/firmware/suggestions" search={search.customer ? { customer: search.customer } : {}} className="ui-button ui-button-ghost">{t("firmware.suggestions")}</Link>
           <Link to="/firmware/catalogs" className="ui-button ui-button-ghost">{t("firmware.catalogs")}</Link>
+          <Link to="/firmware/routerboot" className="ui-button ui-button-ghost">{t("firmware.routerboot")}</Link>
+          <Link to="/firmware/campaigns" className="ui-button ui-button-ghost">{t("firmware.campaigns")}</Link>
         </div>
       </header>
 
@@ -69,14 +76,15 @@ export function Firmware() {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("firmware.search")} aria-label={t("firmware.search")} autoComplete="off" />
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        {!scope && <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />}
         <select value={search.vendor ?? ""} onChange={(event) => update({ vendor: event.target.value || undefined })} aria-label={t("devices.vendor")}>
           <option value="">{t("devices.allVendors")}</option>
           {facets.data?.vendors.map((vendor) => <option key={vendor} value={vendor}>{vendor}</option>)}
         </select>
       </div>
 
-      <ScheduleBar selected={selected} onDone={() => setSelected([])} />
+      <ScheduleBar selected={scheduleSelected} onDone={() => setSelected([])} />
+      <UispBulkUpgrade rows={rows} selected={uispSelected} max={first?.uisp_bulk_max ?? 50} onDone={(result) => { setBulk(result); setSelected([]); }} />
 
       {query.error ? (
         <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>
@@ -94,7 +102,7 @@ export function Firmware() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => <Row key={row.id} row={row} selected={selected.includes(row.id)} onSelect={() => toggle(row.id)} />)}
+                {rows.map((row) => <Row key={row.id} row={row} selected={selected.includes(row.id)} onSelect={() => toggle(row.id)} bulk={bulk} />)}
               </tbody>
             </table>
           </div>
@@ -107,7 +115,7 @@ export function Firmware() {
   );
 }
 
-function Row({ row, selected, onSelect }: { row: FirmwareRow; selected: boolean; onSelect: () => void }) {
+function Row({ row, selected, onSelect, bulk }: { row: FirmwareRow; selected: boolean; onSelect: () => void; bulk?: UispBulkResult }) {
   const { t, i18n } = useTranslation();
   const check = useFirmwareCheck();
   const checked = check.isSuccess && check.variables === row.id;
@@ -115,7 +123,7 @@ function Row({ row, selected, onSelect }: { row: FirmwareRow; selected: boolean;
     <tr>
       <td>
         <div className="ui-with-brand">
-          {row.can_schedule && <input type="checkbox" checked={selected} onChange={onSelect} aria-label={t("firmwareSchedule.select", { name: row.name })} />}
+          {(row.can_schedule || uispSelectable(row)) && <input type="checkbox" checked={selected} onChange={onSelect} aria-label={t("firmwareSchedule.select", { name: row.name })} />}
           <BrandIcon brand={row.brand} small />
           <span>
             <Link to="/devices/$deviceId" params={{ deviceId: row.id }} className="ui-cell-title">{row.name}</Link>
@@ -153,6 +161,7 @@ function Row({ row, selected, onSelect }: { row: FirmwareRow; selected: boolean;
           <Link className="ui-button ui-button-ghost ui-button-small" to="/devices/$deviceId/firmware-upgrade" params={{ deviceId: row.id }}>{t("firmware.plan")}</Link>
         </div>
         {check.error && check.variables === row.id && <small className="ui-backup-error">{(check.error as Error).message}</small>}
+        <UispBulkOutcome result={bulk} id={row.id} />
       </td>
     </tr>
   );

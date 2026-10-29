@@ -87,7 +87,7 @@ export const useAdvisory = (id: string, customer?: string, status?: VulnStatus) 
     staleTime: 60_000,
   });
 
-export const EXPOSURE_VIEWS = ["exposed", "setup", "clean", "pending", "all"] as const;
+export const EXPOSURE_VIEWS = ["exposed", "internal", "setup", "clean", "pending", "all"] as const;
 export type ExposureView = (typeof EXPOSURE_VIEWS)[number];
 
 export interface ExposureFilters {
@@ -102,7 +102,10 @@ export interface ExposureRow {
   vendor: string | null;
   customer: { id: string; name: string } | null;
   mode: "agent" | "external";
-  state: "exposed" | "clean" | "setup" | "pending";
+  state: "exposed" | "internal" | "clean" | "setup" | "pending";
+  /** Internet reachability (SCAN-02): only "public" devices raise alarms. */
+  reachability: "public" | "nat" | "unknown" | null;
+  reachability_reason: string | null;
   blocker: string | null;
   worst: string | null;
   checked_at: string | null;
@@ -116,7 +119,7 @@ export interface ExposurePage {
   view: ExposureView;
   total: number;
   limit: number;
-  counts: Record<"exposed" | "clean" | "setup" | "pending" | "critical" | "total", number>;
+  counts: Record<"exposed" | "internal" | "clean" | "setup" | "pending" | "critical" | "total", number>;
   items: ExposureRow[];
 }
 

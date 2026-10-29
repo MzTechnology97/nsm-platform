@@ -32,7 +32,7 @@ def main():
     cpe_id, open_id = f"202BC1-VX230v-X{suffix}", f"202BC1-VX230v-Y{suffix}"
     records = {
         cpe_id: {"_id": cpe_id, "Device": {"UserInterface": {"RemoteAccess": {
-            "Enable": leaf(True), "Port": leaf(20443), "Protocol": leaf("HTTPS"), "X_TP_RemoteAll": leaf(False), "X_TP_RemoteHost": leaf("198.51.100.10")}}}},
+            "Enable": leaf(True), "Port": leaf(20443), "Protocol": leaf("HTTPS"), "X_TP_RemoteAll": leaf(False), "X_TP_RemoteHost": leaf("198.51.100.10/32,203.0.113.0/24")}}}},
         open_id: {"_id": open_id, "Device": {"UserInterface": {"RemoteAccess": {
             "Enable": leaf(True), "Port": leaf(20443), "Protocol": leaf("HTTPS"), "X_TP_RemoteAll": leaf(True), "X_TP_RemoteHost": leaf("")}}}},
     }
@@ -66,7 +66,7 @@ def main():
         # CPE managed by NSM: CWMP open only because NSM is its ACS → to check, low; remote management limited to one host.
         found, result = check("cpe")
         assert found["tcp/7547"]["state"] == "uncertain" and found["tcp/7547"]["severity"] == "low" and "ACS" in found["tcp/7547"]["reason"]
-        assert found["tcp/20443"]["state"] == "restricted" and "198.51.100.10" in found["tcp/20443"]["reason"], found["tcp/20443"]
+        assert found["tcp/20443"]["state"] == "restricted" and "198.51.100.10/32, 203.0.113.0/24" in found["tcp/20443"]["reason"], found["tcp/20443"]
         # Common ports, CWMP for TP-Link, and the remote management port read from the CPE.
         assert found["tcp/20443"]["label"].startswith("Gestione web remota") and result["ports_checked"] == len(ext.COMMON) + 2
         assert found["tcp/22"]["state"] == "exposed" and result["exposed"] == 1 and result["worst"] == "medium"

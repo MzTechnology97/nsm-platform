@@ -11,7 +11,7 @@ import { Loading } from "../app/States";
 import { Pager } from "../app/Pager";
 import { pageParams, usePaging } from "../lib/paging";
 
-const VIEW_COUNT = { exposed: "exposed", setup: "setup", clean: "clean", pending: "pending", all: "total" } as const;
+const VIEW_COUNT = { exposed: "exposed", internal: "internal", setup: "setup", clean: "clean", pending: "pending", all: "total" } as const;
 
 export function Exposure() {
   const { t } = useTranslation();
@@ -107,6 +107,10 @@ function Row({ row }: { row: ExposureRow }) {
             ))}
             {row.findings.length > 6 && <small className="ui-muted">{t("exposure.more", { count: row.findings.length - 6 })}</small>}
           </span>
+        ) : row.state === "internal" ? (
+          <small className="ui-muted" title={row.reachability_reason ?? undefined}>
+            {t("exposure.internalRow", { count: row.findings.length })}
+          </small>
         ) : row.state === "setup" ? (
           <small className="ui-muted">{row.blocker}</small>
         ) : row.state === "pending" ? (
@@ -115,7 +119,7 @@ function Row({ row }: { row: ExposureRow }) {
           <span className="ui-status ui-status-online">{t("exposure.none")}</span>
         )}
       </td>
-      <td>{row.worst ? <span className={SEVERITY_TONE[row.worst] ?? "ui-severity"}>{t(`vulns.levels.${row.worst}`, { defaultValue: row.worst })}</span> : "—"}</td>
+      <td>{row.worst && row.state === "exposed" ? <span className={SEVERITY_TONE[row.worst] ?? "ui-severity"}>{t(`vulns.levels.${row.worst}`, { defaultValue: row.worst })}</span> : "—"}</td>
       <td className="ui-nowrap">{row.checked_at ? formatRelative(row.checked_at, i18n.language) : "—"}</td>
     </tr>
   );
