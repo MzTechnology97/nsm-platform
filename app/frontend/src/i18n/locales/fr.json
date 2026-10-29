@@ -7070,5 +7070,38 @@
       "exclude": "Exclure cet équipement",
       "apply": "Appliquer maintenant"
     }
+  },
+  "backupPolicies": {
+    "title": "Politiques de sauvegarde",
+    "subtitle": "Toutes les politiques de sauvegarde avec les équipements qu'elles protègent : modifiez-les, dupliquez-les, activez-les ou désactivez-les et supprimez-les ici.",
+    "back": "Retour aux sauvegardes",
+    "manage_one": "Politiques de sauvegarde ({{count}})",
+    "manage_other": "Politiques de sauvegarde ({{count}})",
+    "overviewHint": "{{active}} actives sur {{count}}. Gérez-les toutes depuis la page Politiques de sauvegarde.",
+    "show": {
+      "all": "Toutes",
+      "on": "Actives",
+      "off": "Désactivées"
+    },
+    "filter": "Filtrer par nom, portée ou description",
+    "noMatch": "Aucune politique ne correspond au filtre.",
+    "columns": {
+      "name": "Politique",
+      "scope": "Portée",
+      "schedule": "Planification",
+      "devices": "Équipements",
+      "state": "État",
+      "actions": "Actions"
+    },
+    "shared": "politique générale : elle protège aussi des équipements d'autres clients",
+    "coverage": "{{protected}} protégés · {{blocked}} bloqués",
+    "failed_one": "{{count}} en échec",
+    "failed_other": "{{count}} en échec",
+    "edit": "Modifier",
+    "clone": "Dupliquer",
+    "disable": "Désactiver",
+    "enable": "Activer",
+    "cancel": "Annuler",
+    "confirm": "Pour supprimer, saisissez le nom de la politique : {{name}}"
   }
 }

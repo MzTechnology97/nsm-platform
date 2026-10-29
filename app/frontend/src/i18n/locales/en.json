@@ -7070,5 +7070,38 @@
       "exclude": "Exclude this device",
       "apply": "Apply now"
     }
+  },
+  "backupPolicies": {
+    "title": "Backup policies",
+    "subtitle": "Every backup policy with the devices it protects: edit, duplicate, turn on or off and delete them here.",
+    "back": "Back to backups",
+    "manage_one": "Backup policies ({{count}})",
+    "manage_other": "Backup policies ({{count}})",
+    "overviewHint": "{{active}} active out of {{count}}. Manage them all from the Backup policies page.",
+    "show": {
+      "all": "All",
+      "on": "Active",
+      "off": "Disabled"
+    },
+    "filter": "Filter by name, scope or description",
+    "noMatch": "No policy matches the filter.",
+    "columns": {
+      "name": "Policy",
+      "scope": "Scope",
+      "schedule": "Schedule",
+      "devices": "Devices",
+      "state": "State",
+      "actions": "Actions"
+    },
+    "shared": "general policy: it also protects devices of other customers",
+    "coverage": "{{protected}} protected · {{blocked}} blocked",
+    "failed_one": "{{count}} failed",
+    "failed_other": "{{count}} failed",
+    "edit": "Edit",
+    "clone": "Duplicate",
+    "disable": "Disable",
+    "enable": "Enable",
+    "cancel": "Cancel",
+    "confirm": "To delete, type the policy name: {{name}}"
   }
 }

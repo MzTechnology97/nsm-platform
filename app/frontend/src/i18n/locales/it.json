@@ -7070,5 +7070,38 @@
       "exclude": "Escludi questo apparato",
       "apply": "Applica ora"
     }
+  },
+  "backupPolicies": {
+    "title": "Policy di backup",
+    "subtitle": "Tutte le policy di backup con gli apparati che proteggono: modificale, duplicale, attivale o disattivale ed eliminale da qui.",
+    "back": "Torna ai backup",
+    "manage_one": "Policy di backup ({{count}})",
+    "manage_other": "Policy di backup ({{count}})",
+    "overviewHint": "{{active}} attive su {{count}}. Le gestisci tutte dalla pagina Policy di backup.",
+    "show": {
+      "all": "Tutte",
+      "on": "Attive",
+      "off": "Disattivate"
+    },
+    "filter": "Filtra per nome, ambito o descrizione",
+    "noMatch": "Nessuna policy corrisponde al filtro.",
+    "columns": {
+      "name": "Policy",
+      "scope": "Ambito",
+      "schedule": "Pianificazione",
+      "devices": "Apparati",
+      "state": "Stato",
+      "actions": "Azioni"
+    },
+    "shared": "policy generale: protegge anche apparati di altri clienti",
+    "coverage": "{{protected}} protetti · {{blocked}} bloccati",
+    "failed_one": "{{count}} non riuscito",
+    "failed_other": "{{count}} non riusciti",
+    "edit": "Modifica",
+    "clone": "Duplica",
+    "disable": "Disattiva",
+    "enable": "Attiva",
+    "cancel": "Annulla",
+    "confirm": "Per eliminare scrivi il nome della policy: {{name}}"
   }
 }
