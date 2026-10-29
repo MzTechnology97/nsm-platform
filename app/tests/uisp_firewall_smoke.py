@@ -97,6 +97,33 @@ def main():
     smaller = fw.rules_of(fw.edit_config(edited, ["198.51.100.0/24"]))
     assert not any("203.0.113.10/32" in r["fields"]["cmd"] and r["fields"]["comment"].startswith("NSM-ACL") for r in smaller), "follows the list"
 
+    # Exposure check: which networks the rules admit per port (NSM ACCEPTs, the operator's, then the DROPs).
+    summary = fw.firewall_summary(edited)
+    assert set(fw.allowed_sources(summary, "tcp", 22)) == {"198.51.100.0/24", "192.0.2.0/24", "203.0.113.10/32"}
+    assert set(fw.allowed_sources(summary, "udp", 10001)) == {"198.51.100.0/24", "192.0.2.0/24", "203.0.113.10/32"}
+    assert fw.allowed_sources(summary, "tcp", 8080) == [], "the operator's DROP closes 8080 to everybody"
+    assert fw.allowed_sources(summary, "tcp", 80) is None, "no rule on 80: open as without rules"
+    assert fw.allowed_sources(fw.firewall_summary(CFG), "tcp", 22) is None, "firewall off: nothing limited"
+    assert fw.allowed_sources(fw.firewall_summary(edited.replace("netmode=router", "netmode=bridge")), "tcp", 22) is None, "bridge: not read"
+    opened = edited.replace("--src 198.51.100.0/24 --dport 22 -j ACCEPT", "--dport 22 -j ACCEPT")
+    assert fw.allowed_sources(fw.firewall_summary(opened), "tcp", 22) is None, "an ACCEPT from everybody before the DROP leaves it open"
+
+    from app import external_exposure as ext
+
+    def finding(service, proto, port):
+        return {"service": service, "proto": proto, "port": port, "state": "exposed", "severity": "high", "reason": "risponde da Internet"}
+
+    def checked(kind):
+        result = {"findings": [finding("discovery", "udp", 10001), finding("ssh", "tcp", 22), finding("http", "tcp", 80)],
+                  "uisp_firewall": {**summary, "backup_at": "2026-10-29T03:00:00Z"}, "vantage": {"kind": kind}}
+        return {f["port"]: f for f in ext.qualify(result, {})["findings"]}
+
+    inside = checked("nsm_server")
+    assert inside[10001]["state"] == "restricted" and inside[22]["state"] == "restricted" and inside[80]["state"] == "exposed"
+    assert "firewall della CPE" in inside[22]["reason"] and "203.0.113.10/32" in inside[22]["reason"] and "2026-10-29" in inside[22]["reason"]
+    outside = checked("probe")
+    assert all(f["state"] == "exposed" for f in outside.values()), "seen open from an external probe: the rules do not stop it"
+
     wide = fw.plan(CFG, ["203.0.113.0/24", "192.0.2.0/23"])
     assert not any(r["src"] == "192.0.2.0/24" for r in wide["add"]), "the LAN inside a management network adds no rule"
     assert {r["src"] for r in wide["add"] if r["target"] == "ACCEPT"} == {"203.0.113.0/24", "192.0.2.0/23"}
@@ -188,6 +215,27 @@ def main():
     page = client.get(url("router")).json()
     assert page["plan"]["nsm_rules"] == 12 and page["plan"]["up_to_date"] is True, "applied: nothing more to do, no useless reboot"
     assert fw.plan(applied_cfg, MGMT[:1])["up_to_date"] is False, "a changed list needs a new apply"
+
+    # The exposure check reads those rules from the newest UISP backup, downloading it only when UISP has a newer one.
+    downloads = []
+
+    def counting(req: httpx.Request):
+        if req.method == "GET" and re.search(r"/backups/[^/]+$", req.url.path):
+            downloads.append(req.url.path)
+        return fake(req)
+
+    ops._client = lambda connection: httpx.Client(transport=httpx.MockTransport(counting), headers={"x-auth-token": TOKEN})
+    with SessionLocal() as db:
+        router = db.get(Device, ids["router"])
+        context = fw.exposure_context(db, router)
+        assert context["enabled"] is True and context["netmode"] == "router" and context["backup_id"] == dev["backups"][-1][0]
+        assert set(fw.allowed_sources(context, "udp", 10001)) >= {"198.51.100.0/24", "203.0.113.10/32"}
+        assert fw.exposure_context(db, router)["backup_id"] == context["backup_id"] and len(downloads) == 1, downloads
+        assert fw.exposure_context(db, db.get(Device, ids["bridge"]))["netmode"] == "bridge"
+        router.vendor = "mikrotik"
+        assert fw.exposure_context(db, router) is None, "only Ubiquiti devices in UISP"
+        db.rollback()
+    ops._client = lambda connection: httpx.Client(transport=httpx.MockTransport(fake), headers={"x-auth-token": TOKEN})
 
     before = done["state"]["backup_before"]
     assert client.post(f"{url('router')}/restore", json={"confirmation": f"cpe-router-{s}"}).json()["state"]["status"] == "restored"

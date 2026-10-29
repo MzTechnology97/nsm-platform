@@ -22,6 +22,10 @@ Answers from the NSM server can be misleading when the device's ACL admits that 
 - for those CPEs NSM also reads the remote web management settings (``UserInterface.RemoteAccess``: enabled, port,
   protocol, TP-Link ``X_TP_RemoteAll``/``X_TP_RemoteHost``), probes that port too (e.g. 20443) and reports it as
   open to everyone or limited to the configured host;
+- for a Ubiquiti airOS CPE in UISP NSM reads the firewall rules (``iptables.*`` of ``system.cfg``) from the newest
+  backup UISP holds (``uisp_firewall.exposure_context``, downloaded again only when UISP has a newer backup): a port
+  the rules open only to some networks, closed to everybody else, is *limitato*. This holds only when the check ran
+  from the NSM server; when an external probe still sees the port open, the rules do not stop it;
 - the operator can declare a service *filtrata da ACL* with the allowed addresses (``inventory_data["exposure_acl"]``
   keyed ``proto/port``, ``security.remediate``, audited ``EXPOSURE_ACL_DECLARED``/``EXPOSURE_ACL_REMOVED``): the
   service is then *limitato* with who declared it and when. Each finding keeps the raw probe result (``probe``), so a
@@ -254,9 +258,15 @@ def remote_check(context: dict | None) -> dict:
 
 
 def qualify(result: dict, declarations: dict) -> dict:
-    """Apply what the probe from NSM cannot know: CWMP admitted for the ACS, the CPE's remote management settings, the operator's ACL declarations."""
+    """Apply what the probe from NSM cannot know: CWMP admitted for the ACS, the CPE's remote management settings, the airOS firewall, the operator's ACL declarations."""
+    from app import uisp_firewall
+
     context = result.get("tr069") or {}
     remote = context.get("remote") or {}
+    # The airOS firewall read via UISP: trusted only when the check ran from the NSM server, which those rules usually admit.
+    # An external probe that still sees the port open means the rules do not stop it.
+    firewall = result.get("uisp_firewall")
+    from_probe = (result.get("vantage") or {}).get("kind") == "probe"
     for finding in result["findings"]:
         probe = finding.get("probe") or {"state": finding["state"], "severity": finding["severity"], "reason": finding["reason"]}
         finding["probe"] = probe
@@ -272,6 +282,12 @@ def qualify(result: dict, declarations: dict) -> dict:
                 reason = f"il CPE ammette la gestione remota solo da {remote['host']} (configurazione letta via TR-069)"
             elif remote.get("all"):
                 reason = f"{reason}; il CPE ammette la gestione remota da qualsiasi indirizzo (configurazione letta via TR-069)"
+        if state in ("exposed", "uncertain") and firewall and not from_probe:
+            allowed = uisp_firewall.allowed_sources(firewall, finding["proto"], finding["port"])
+            if allowed is not None:
+                state, severity = "restricted", "info"
+                reason = (f"il firewall della CPE ammette solo {', '.join(allowed) or 'nessun indirizzo'} "
+                          f"(regole lette dal backup UISP del {str(firewall.get('backup_at') or '')[:10]})")
         declared = declarations.get(f"{finding['proto']}/{finding['port']}")
         if declared and state in ("exposed", "uncertain"):
             finding["acl"] = declared
@@ -306,7 +322,7 @@ def run_check(db, device, actor=None) -> dict:
     extra = remote_check(context)
     if extra and extra["remote-web"][0] in {CHECKS[k][0] for k in keys if CHECKS[k][1] == "tcp"}:
         extra = {}  # that port is already probed: the configuration qualifies its finding
-    from app import exposure_probe
+    from app import exposure_probe, uisp_firewall
 
     vantage, vantage_error, findings = {"kind": "nsm_server", "name": None}, None, None
     probe_row = exposure_probe.active(db) if _public(ip) else None
@@ -323,7 +339,7 @@ def run_check(db, device, actor=None) -> dict:
         "checked_at": utcnow().isoformat(), "source": "external", "target_ip": ip, "target_origin": origin, "vendor_key": vendor_key(device),
         "findings": findings, "ports_checked": len(keys) + len(extra), "exposed": 0, "uncertain": 0, "worst": None,
         "shared_with": sorted(shared)[:20], "port_forwards": [], "private_target": not _public(ip), "tr069": context,
-        "vantage": vantage, "vantage_error": vantage_error,
+        "vantage": vantage, "vantage_error": vantage_error, "uisp_firewall": uisp_firewall.exposure_context(db, device),
     }
     qualify(result, (device.inventory_data or {}).get("exposure_acl") or {})
     exposed = [f for f in result["findings"] if f["state"] == "exposed"]
