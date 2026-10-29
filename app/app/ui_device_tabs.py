@@ -267,7 +267,8 @@ def install_ui_device_tabs(app) -> None:
 
 # --- Configuration -------------------------------------------------------------------------------
 
-CONFIG_SECTIONS = ("resources", "interfaces", "ip_addresses", "routes", "firewall", "dhcp_leases", "ppp_active", "logs")
+CONFIG_SECTIONS = ("resources", "interfaces", "ip_addresses", "routes", "firewall", "dhcp_leases", "ppp_active", "logs",
+                   "queues", "certificates", "routing")
 
 
 def _mikrotik(db, device_id: uuid.UUID) -> Device:
@@ -282,6 +283,7 @@ def device_configuration(request: Request, device_id: uuid.UUID, section: str = 
                          action: str = "all"):
     from app import mikrotik_configuration_unified as unified
     from app import mikrotik_workspace as workspace
+    from app.mikrotik_snapshot_capabilities import section_support
 
     with SessionLocal() as db:
         user = ui_user(request, db, "devices.read")
@@ -293,7 +295,9 @@ def device_configuration(request: Request, device_id: uuid.UUID, section: str = 
         if "kinds" in view:
             view["kinds"] = [key for key, _label in view["kinds"]]
         return jsonable_encoder({
-            "sections": [{"key": key, "read_at": (snapshots[key].completed_at or snapshots[key].created_at) if key in snapshots else None} for key in CONFIG_SECTIONS],
+            # ``support``: whether the installed Agent can read the section (reason and minimum Agent otherwise).
+            "sections": [{"key": key, "read_at": (snapshots[key].completed_at or snapshots[key].created_at) if key in snapshots else None,
+                          "support": section_support(device, key)} for key in CONFIG_SECTIONS],
             "section": section,
             "read_at": (snapshot.completed_at or snapshot.created_at) if snapshot else None,
             "pending": sorted(workspace._pending_sections(db, device.id)),

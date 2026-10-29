@@ -20,6 +20,9 @@ def login(username):
 
 
 def main():
+    # These checks predate SCAN-02: every test device counts as reachable from Internet (reachability_smoke covers NAT).
+    from app import reachability
+    reachability.current = lambda device: {"state": "public", "reason": "test", "public_addresses": []}
     suffix = uuid.uuid4().hex[:6]
     now = utcnow().isoformat()
     with SessionLocal() as db:
@@ -55,7 +58,7 @@ def main():
     row = body["items"][0]
     assert row["mode"] == "agent" and row["worst"] == "high" and len(row["findings"]) == 2, row
     assert {f["label"] for f in row["findings"]} >= {"winbox"} and any(f["port"] == 8291 for f in row["findings"])
-    assert body["counts"] == {"exposed": 1, "clean": 1, "setup": 1, "pending": 0, "critical": 0, "total": 3}, body["counts"]
+    assert body["counts"] == {"exposed": 1, "internal": 0, "clean": 1, "setup": 1, "pending": 0, "critical": 0, "total": 3}, body["counts"]
     setup = client.get(f"{base}&view=setup").json()["items"]
     assert [r["id"] for r in setup] == [ids["setup"]] and setup[0]["blocker"]
     clean = client.get(f"{base}&view=clean").json()["items"]
