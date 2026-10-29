@@ -821,7 +821,7 @@ The PPPoE concentrator is not managed by NSM: *Integrazioni → BRAS MikroTik* (
 - device page: each ISPBilling account of the device shows its PPPoE session (online since, IP, MAC, or offline since); customer page: *Connessioni PPPoE* lists the customer's RADIUS accounts with session state and the matched device;
 - audit `BRAS_CONFIG_SAVED`, `BRAS_SYNC_REQUESTED`.
 
-### Who held an IP address at a given time (CYBER-01 first step, Core 0.49.311)
+### Who held an IP address at a given time (CYBER-01 first step, Core 0.49.312)
 
 - every BRAS read also writes the address history (`ip_assignments`): one row per PPPoE session and address, from the session start to the read that found it gone; a new session or a new address in the same session closes the row and opens another;
 - kept `retention_days` (BRAS settings, 30–3650, default 365), then purged by the worker; operational data, not the legal traffic-data register;
