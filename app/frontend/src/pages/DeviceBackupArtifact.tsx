@@ -7,6 +7,7 @@ import { ApiError } from "../api/client";
 import { formatBytes, formatDateTime } from "../lib/format";
 import { rscSections, tokenizeRsc } from "../lib/rsc";
 import { Loading } from "../app/States";
+import { AcsRestore } from "../app/AcsRestore";
 
 const SIGN = { added: "+", removed: "−", context: " " } as const;
 
@@ -94,6 +95,7 @@ export function DeviceBackupArtifact() {
           {!data.candidates.length && <small className="ui-muted">{t("backupArtifact.noCandidates")}</small>}
         </div>
       </section>
+      {data.artifact_type === "tr069_parameters" && <AcsRestore deviceId={deviceId} artifactId={artifactId} />}
 
       {diff && data.against ? (
         <section className="ui-panel">

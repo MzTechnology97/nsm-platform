@@ -2,6 +2,7 @@
 import json
 import re
 import uuid
+from types import SimpleNamespace
 from urllib.parse import unquote
 
 import httpx
@@ -59,37 +60,51 @@ def main():
             db.commit()
             ids = {"cpe": cpe.id, "rossi": rossi.id, "bianchi": bianchi.id}
 
+        # Format: "Name · code"; just the name without a code; a long name is shortened, the code kept.
+        assert tags.tag_for(SimpleNamespace(name=" Anna  Verdi ", code=None)) == "Anna Verdi"
+        long_tag = tags.tag_for(SimpleNamespace(name="X" * 150, code="C1234"))
+        assert len(long_tag) == tags.MAX_TAG and long_tag.endswith(" · C1234"), long_tag
+
         # After the link: each CPE gets its customer's name (whitespace collapsed); the operator's own tags stay.
         stats = tags.run(force=True)
         assert stats["devices"] == 2 and stats["changed"] == 2 and stats["errors"] == 0, stats
-        assert store[ext] == ["manuale", "rete-nord", f"Mario Rossi {suffix}"] and store[other] == [f"Lucia Bianchi {suffix}"], store
+        assert store[ext] == ["manuale", "rete-nord", f"Mario Rossi {suffix} · TR{suffix}"] and store[other] == [f"Lucia Bianchi {suffix} · TB{suffix}"], store
         assert tags.run(force=True)["changed"] == 0, "already aligned: nothing sent"
+
+        # A CPE tagged by 0.49.237 (name only): the old tag is swapped for "Name · code".
+        store[other] = [f"Lucia Bianchi {suffix}"]
+        with SessionLocal() as db:
+            ont_row = db.scalar(select(Device).where(Device.external_device_id == other))
+            ont_row.inventory_data = {"tr069": {"customer_tag": f"Lucia Bianchi {suffix}"}}
+            db.commit()
+        tags.run(force=True)
+        assert store[other] == [f"Lucia Bianchi {suffix} · TB{suffix}"], store[other]
 
         # The CPE moves to another customer: old NSM tag removed, new one added.
         with SessionLocal() as db:
             db.get(Device, ids["cpe"]).customer_id = ids["bianchi"]
             db.commit()
         tags.run(force=True)
-        assert store[ext] == ["manuale", "rete-nord", f"Lucia Bianchi {suffix}"], store[ext]
-        assert ("DELETE", ext, f"Mario Rossi {suffix}") in requests
+        assert store[ext] == ["manuale", "rete-nord", f"Lucia Bianchi {suffix} · TB{suffix}"], store[ext]
+        assert ("DELETE", ext, f"Mario Rossi {suffix} · TR{suffix}") in requests
 
         # Removed by hand in GenieACS: added again. A tag that only looks like a customer name set by hand is not removed.
-        store[ext].remove(f"Lucia Bianchi {suffix}")
+        store[ext].remove(f"Lucia Bianchi {suffix} · TB{suffix}")
         tags.run(force=True)
-        assert f"Lucia Bianchi {suffix}" in store[ext] and "manuale" in store[ext]
+        assert f"Lucia Bianchi {suffix} · TB{suffix}" in store[ext] and "manuale" in store[ext]
 
         # Renamed customer: the tag follows the name.
         with SessionLocal() as db:
             db.get(Customer, ids["bianchi"]).name = f"Lucia Bianchi Srl {suffix}"
             db.commit()
         tags.run(force=True)
-        assert f"Lucia Bianchi Srl {suffix}" in store[ext] and f"Lucia Bianchi {suffix}" not in store[ext], store[ext]
+        assert f"Lucia Bianchi Srl {suffix} · TB{suffix}" in store[ext] and f"Lucia Bianchi {suffix} · TB{suffix}" not in store[ext], store[ext]
 
         with SessionLocal() as db:
             device = db.get(Device, ids["cpe"])
-            assert device.inventory_data["tr069"]["customer_tag"] == f"Lucia Bianchi Srl {suffix}"
+            assert device.inventory_data["tr069"]["customer_tag"] == f"Lucia Bianchi Srl {suffix} · TB{suffix}"
             events = list(db.scalars(select(AuditEvent).where(AuditEvent.device_id == ids["cpe"], AuditEvent.event_type == "ACS_CUSTOMER_TAG_SET")))
-            assert len(events) == 4 and any(e.details["removed"] == f"Mario Rossi {suffix}" for e in events), [e.details for e in events]
+            assert len(events) == 4 and any(e.details["removed"] == f"Mario Rossi {suffix} · TR{suffix}" for e in events), [e.details for e in events]
             db.query(ConnectorIntegration).filter_by(provider="genieacs").delete()
             db.commit()
     finally:

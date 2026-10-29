@@ -16,6 +16,7 @@ import "./styles/backups.css";
 import "./styles/incident.css";
 import "./styles/admin.css";
 import "./styles/dashboard.css";
+import "./styles/page-icons.css";
 import "./styles/foundations.css";
 
 const queryClient = new QueryClient({

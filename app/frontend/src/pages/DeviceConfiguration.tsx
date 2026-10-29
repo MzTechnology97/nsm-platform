@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
-import { type ConfigFilters, useConfigHistory, useConfigRefresh, useDeviceConfiguration, useSetBaseline } from "../api/deviceTabs";
+import { type ChangeAttribution, type ConfigFilters, useConfigHistory, useConfigRefresh, useDeviceConfiguration, useSetBaseline } from "../api/deviceTabs";
 import { formatBytes, formatDateTime } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { Loading } from "../app/States";
@@ -21,9 +21,14 @@ const SPEC: Record<string, Spec> = {
   ppp_active: { states: ["up", "down", "disabled"], columns: ["protocol", "name", "user", "state", "endpoint", "local_address", "remote_address", "uptime"],
     mono: ["local_address", "remote_address"] },
   logs: { columns: ["time", "topics", "message"] },
+  queues: { states: ["enabled", "saturated", "disabled", "invalid"], kinds: ["simple", "tree"],
+    columns: ["kind", "name", "target", "parent", "max_limit", "rate", "usage", "state", "comment"], mono: ["target", "max_limit", "rate"] },
+  certificates: { states: ["valid", "expiring", "expired", "revoked"], columns: ["name", "common_name", "issuer", "not_after", "days_left", "role", "state"] },
+  routing: { states: ["up", "down", "disabled"], kinds: ["bgp", "ospf"],
+    columns: ["protocol", "name", "remote_address", "remote_as", "session_state", "uptime", "prefixes", "state"], mono: ["remote_address"] },
 };
-const GOOD = new Set(["up", "active", "static", "bound", "enabled"]);
-const BAD = new Set(["down", "disabled", "invalid", "inactive", "blocked"]);
+const GOOD = new Set(["up", "active", "static", "bound", "enabled", "valid"]);
+const BAD = new Set(["down", "disabled", "invalid", "inactive", "blocked", "expired", "revoked"]);
 
 /** MikroTik Configuration tab: the latest agent read of each section, filtered by state, kind or text, with refresh requests. */
 export function DeviceConfiguration() {
@@ -41,7 +46,9 @@ export function DeviceConfiguration() {
   const spec = SPEC[data.section];
   const view = data.view;
   const pending = data.pending.includes(data.section);
-  const allPending = data.sections.every((section) => data.pending.includes(section.key));
+  const support = data.sections.find((section) => section.key === data.section)?.support;
+  const unsupported = support && !support.supported ? support : null;
+  const allPending = data.sections.every((section) => !section.support.supported || data.pending.includes(section.key));
   const select = (section: string) => { setFilters({ section }); setText(""); refresh.reset(); refreshAll.reset(); };
   const states = spec?.states ?? view.states ?? [];
   const kinds = spec?.kinds ?? view.kinds ?? [];
@@ -56,7 +63,7 @@ export function DeviceConfiguration() {
         <div className="ui-row-actions">
           {data.can_history && <Link to="/devices/$deviceId/configuration/history" params={{ deviceId }} className="ui-button ui-button-ghost">{t("deviceConfig.history")}</Link>}
           {data.can_refresh && (
-            <button type="button" className="ui-button" disabled={!data.online || pending || refresh.isPending} onClick={() => refresh.mutate(data.section)}
+            <button type="button" className="ui-button" disabled={!data.online || pending || refresh.isPending || !!unsupported} onClick={() => refresh.mutate(data.section)}
               title={data.online ? undefined : t("deviceConfig.offline")}>
               {pending ? t("deviceConfig.pending") : t("deviceConfig.refresh")}
             </button>
@@ -75,12 +82,16 @@ export function DeviceConfiguration() {
         <small className="ui-live">{refreshAll.data.queued ? t("deviceConfig.queuedAll", { count: refreshAll.data.sections?.length ?? 0 }) : t("deviceConfig.alreadyAll")}</small>
       )}
       {refreshAll.error && <small className="ui-backup-error">{refreshAll.error instanceof ApiError && refreshAll.error.code === "not_online" ? t("deviceConfig.offline") : (refreshAll.error as Error).message}</small>}
+      {unsupported && (
+        <div className="ui-alert ui-alert-warning">{t(`deviceConfig.unsupported.${unsupported.reason ?? "no_transport"}`, { version: unsupported.min_agent ?? "" })}</div>
+      )}
       <div className="ui-chips" role="tablist" aria-label={t("deviceConfig.title")}>
         {data.sections.map((section) => (
           <button key={section.key} type="button" role="tab" aria-selected={section.key === data.section}
             className={`ui-chip${section.key === data.section ? " is-active" : ""}`} onClick={() => select(section.key)}>
             {t(`deviceConfig.sections.${section.key}`)}
             {data.pending.includes(section.key) && <span className="ui-chip-count">…</span>}
+            {!section.support.supported && <span className="ui-chip-count" title={t("deviceConfig.unsupportedShort")}>—</span>}
           </button>
         ))}
       </div>
@@ -185,6 +196,7 @@ export function DeviceConfigurationHistory() {
       {data.drift && (
         <div className="ui-alert ui-alert-warning">
           {t(data.drift.reference_kind === "baseline" ? "deviceConfig.driftBaseline" : "deviceConfig.driftPrevious", { added: data.drift.added, removed: data.drift.removed })}
+          {data.drift.attribution?.author && <> {t("deviceConfig.driftAuthor", { author: t(`deviceConfig.author.${data.drift.attribution.author}`) })}</>}
         </div>
       )}
       <div className="ui-metrics">
@@ -197,7 +209,7 @@ export function DeviceConfigurationHistory() {
       {data.rows.length ? (
         <div className="ui-data-wrap">
           <table className="ui-data-table">
-            <thead><tr>{["date", "file", "sha", "change", "state", "actions"].map((key) => <th key={key}><span className="ui-th">{t(`deviceConfig.historyColumns.${key}`)}</span></th>)}</tr></thead>
+            <thead><tr>{["date", "file", "sha", "change", "author", "state", "actions"].map((key) => <th key={key}><span className="ui-th">{t(`deviceConfig.historyColumns.${key}`)}</span></th>)}</tr></thead>
             <tbody>
               {data.rows.map((row, index) => (
                 <tr key={row.id}>
@@ -209,6 +221,7 @@ export function DeviceConfigurationHistory() {
                       : row.summary && !row.summary.error ? (row.summary.added || row.summary.removed ? `+${row.summary.added} / -${row.summary.removed}` : t("deviceConfig.noChange"))
                         : t("deviceConfig.notComparable")}
                   </td>
+                  <td>{row.attribution ? <ChangeAuthorCell attribution={row.attribution} /> : <span className="ui-muted">—</span>}</td>
                   <td>
                     {row.baseline ? <span className="ui-status ui-status-online">{t("deviceConfig.baselineBadge")}</span>
                       : index === 0 && data.drift ? <span className="ui-status ui-status-warning">{t("deviceConfig.toReview")}</span>
@@ -238,5 +251,32 @@ export function DeviceConfigurationHistory() {
         <div className="ui-empty">{t("deviceConfig.noExports")}</div>
       )}
     </section>
+  );
+}
+
+const AUTHOR_TONE: Record<string, string> = {
+  nsm: "ui-severity",
+  operator: "ui-severity ui-severity-medium",
+  unknown: "ui-severity ui-severity-high",
+  mixed: "ui-severity ui-severity-warning",
+};
+
+/** Who changed the configuration since the previous export: NSM (its own jobs), an operator who logged in, or unknown. */
+function ChangeAuthorCell({ attribution }: { attribution: ChangeAttribution }) {
+  const { t } = useTranslation();
+  if (!attribution.author) return <span className="ui-muted">—</span>;
+  const sections = attribution.sections.map((row) => `${row.section} (${t(`deviceConfig.author.${row.author}`)}: +${row.added} / -${row.removed})`).join("\n");
+  const logins = attribution.logins.map((login) => t("deviceConfig.loginLine", { user: login.username ?? "?", ip: login.remote_ip ?? "?", service: login.service ?? "?" })
+    + (login.count > 1 ? ` ×${login.count}` : "") + (login.public ? ` · ${t("deviceConfig.publicLogin")}` : ""));
+  return (
+    <>
+      <span className={AUTHOR_TONE[attribution.author]} title={sections}>{t(`deviceConfig.author.${attribution.author}`)}</span>
+      {attribution.author !== "nsm" && (logins.length
+        ? logins.slice(0, 3).map((line) => <small key={line} className="ui-muted ui-block">{line}</small>)
+        : <small className="ui-muted ui-block">{t("deviceConfig.noLogins")}</small>)}
+      {attribution.sections.some((row) => row.author === "nsm") && attribution.author !== "nsm" && (
+        <small className="ui-muted ui-block">{t("deviceConfig.partlyNsm")}</small>
+      )}
+    </>
   );
 }

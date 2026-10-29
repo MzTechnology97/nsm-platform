@@ -13,7 +13,11 @@
   ``SoftwareVersion`` after the request (``matches`` tells whether it is the
   expected one), ``failed`` when GenieACS records a fault for the CPE after the
   request, ``unconfirmed`` after ``GIVE_UP``. Audited ``ACS_FIRMWARE_VERIFIED`` /
-  ``ACS_FIRMWARE_FAILED``. State in ``inventory_data["acs_firmware"]``.
+  ``ACS_FIRMWARE_FAILED`` / ``ACS_FIRMWARE_UNCONFIRMED``. State in ``inventory_data["acs_firmware"]``.
+- A faulted or never-run ``download`` task is deleted from GenieACS with its fault
+  (the id GenieACS gave it is kept in the entry), otherwise it would stay queued
+  and block every later task of the CPE; ``task_removed`` / ``fault_removed`` in
+  the entry and in the audit say whether that worked.
 - ``request_upgrade`` and ``refresh_upgrade`` take no request, so campaigns
   over many CPEs can reuse them.
 """
@@ -122,14 +126,54 @@ def _faults_since(connection, external_id: str, since: datetime) -> list[dict]:
         return []
     out = []
     for fault in response.json() or []:
+        if not isinstance(fault, dict):
+            continue
         stamp = str(fault.get("timestamp") or "")
         try:
             when = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
         except ValueError:
             continue
         if when >= since:
-            out.append({"code": str(fault.get("code") or "")[:80], "message": str(fault.get("message") or "")[:300], "at": when.isoformat()})
+            out.append({"code": str(fault.get("code") or "")[:80], "message": str(fault.get("message") or "")[:300], "at": when.isoformat(),
+                        "channel": str(fault.get("channel") or "")[:120], "id": str(fault.get("_id") or "")[:300]})
     return out
+
+
+def _download_tasks(connection, external_id: str, file_name: str | None) -> set[str]:
+    """Ids of the ``download`` tasks of this image still queued in GenieACS for the CPE."""
+    with nbi._client(connection) as client:
+        response = client.get("/tasks", params={"query": json.dumps({"device": external_id})})
+    if response.status_code != 200:
+        raise nbi.AcsDiagnosticError(f"GenieACS ha risposto HTTP {response.status_code} leggendo i task.")
+    return {str(t.get("_id")) for t in response.json() or [] if isinstance(t, dict) and t.get("_id")
+            and t.get("name") == "download" and (not file_name or t.get("fileName") == file_name)}
+
+
+def _cleanup(connection, external_id: str, entry: dict, faults: list[dict]) -> dict:
+    """Delete NSM's download task (and its fault) from GenieACS, so a faulted or never-run upgrade does not block the CPE's queue.
+
+    A faulted GenieACS task stays queued and every later task of the CPE waits behind it (the HB210 on 2026-10-23,
+    ``too_many_rpcs``). Only NSM's own task is touched: its id saved at the request, else the queued ``download`` of the
+    same image. Returns ``{"task_removed", "fault_removed"}``; an unreachable GenieACS leaves both ``False``.
+    """
+    removed = {"task_removed": False, "fault_removed": False}
+    try:
+        queued = _download_tasks(connection, external_id, entry.get("file_name"))
+        known = str(entry.get("task_id") or "")
+        ids = {known} if known else set(queued)
+        with nbi._client(connection) as client:
+            for task_id in sorted(ids):
+                if task_id in queued:
+                    response = client.delete(f"/tasks/{quote(task_id, safe='')}")
+                    removed["task_removed"] |= response.status_code in (200, 204)
+                for fault in faults:
+                    if fault.get("channel") == f"task_{task_id}":
+                        response = client.delete(f"/faults/{quote(fault.get('id') or f'{external_id}:task_{task_id}', safe='')}")
+                        # GenieACS may already have dropped the fault together with its task.
+                        removed["fault_removed"] |= response.status_code in (200, 204, 404)
+    except (httpx.HTTPError, nbi.AcsDiagnosticError, ValueError):
+        pass
+    return removed
 
 
 def _store(device, entry: dict) -> None:
@@ -152,10 +196,10 @@ def request_upgrade(db, user, device, connection, file_name: str, expected_versi
         raise HTTPException(404, {"code": "no_file", "message": "Il file firmware non è (più) in GenieACS."})
     if chosen.get("product_class") and identity.get("product_class") and chosen["product_class"] != identity["product_class"]:
         raise HTTPException(422, {"code": "wrong_model", "message": f"Il file è per {chosen['product_class']}, il CPE è un {identity['product_class']}."})
-    started = nbi._task(connection, device.external_device_id, {"name": "download", "fileType": FILE_TYPE, "fileName": file_name})
+    task_id, started = nbi._task_with_id(connection, device.external_device_id, {"name": "download", "fileType": FILE_TYPE, "fileName": file_name})
     entry = {"state": "requested", "file_name": file_name, "expected_version": expected_version or chosen.get("version") or None,
              "from_version": software_version(record), "requested_at": now.isoformat(), "by": user.username if user else None,
-             "started": started, "to_version": None, "completed_at": None, "fault": None}
+             "started": started, "task_id": task_id or None, "to_version": None, "completed_at": None, "fault": None}
     _store(device, entry)
     core.add_event(db, "ACS_FIRMWARE_REQUESTED", actor=user, customer_id=device.customer_id, device_id=device.id, source="portal",
                    details={"file": file_name, "from_version": entry["from_version"], "expected_version": entry["expected_version"], "started": started})
@@ -182,11 +226,18 @@ def refresh_upgrade(db, device, connection, now: datetime | None = None) -> bool
         core.add_event(db, "ACS_FIRMWARE_VERIFIED", customer_id=device.customer_id, device_id=device.id, source="worker",
                        details={"from_version": entry.get("from_version"), "to_version": version, "file": entry.get("file_name")})
     elif faults:
-        entry.update({"state": "failed", "fault": faults[0], "completed_at": now.isoformat()})
+        # The fault of NSM's own task first, else the first one recorded after the request.
+        own = [f for f in faults if entry.get("task_id") and f.get("channel") == f"task_{entry['task_id']}"]
+        fault = (own or faults)[0]
+        removed = _cleanup(connection, device.external_device_id, entry, faults)
+        entry.update({"state": "failed", "fault": {k: fault[k] for k in ("code", "message", "at")}, "completed_at": now.isoformat(), **removed})
         core.add_event(db, "ACS_FIRMWARE_FAILED", customer_id=device.customer_id, device_id=device.id, source="worker", result="failure",
-                       details={"file": entry.get("file_name"), "code": faults[0]["code"]})
+                       details={"file": entry.get("file_name"), "code": fault["code"], "task_id": entry.get("task_id"), **removed})
     elif now - requested > GIVE_UP:
-        entry.update({"state": "unconfirmed", "completed_at": now.isoformat()})
+        removed = _cleanup(connection, device.external_device_id, entry, [])
+        entry.update({"state": "unconfirmed", "completed_at": now.isoformat(), **removed})
+        core.add_event(db, "ACS_FIRMWARE_UNCONFIRMED", customer_id=device.customer_id, device_id=device.id, source="worker", result="failure",
+                       severity="warning", details={"file": entry.get("file_name"), "task_id": entry.get("task_id"), **removed})
     else:
         return False
     _store(device, entry)
