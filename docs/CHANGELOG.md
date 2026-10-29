@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.316 — 2026-10-29
+
+RIPEstat: a passing server error no longer hides a prefix
+- **Fixed:** *Integrazioni → RIPEstat* showed "RIPEstat routing-status: HTTP 500" for some prefixes. RIPEstat answers that error now and then under load. NSM now tries again twice, 2 and 4 seconds apart, before giving up on a prefix.
+- **Fixed:** when a prefix could still not be read, its open alerts (origin AS, visibility, RPKI) were closed as "no longer present". A prefix RIPEstat did not answer for now keeps its alerts until it is read again.
+## 0.49.315 — 2026-10-29
+
+Exposure check reads the firewall rules of Ubiquiti CPEs
+- **Fixed:** on a Ubiquiti airOS CPE in UISP, the *Esposizione* tab reported SSH or discovery as exposed even when the CPE firewall (Network → Firewall, also the rules NSM writes from *Firewall ACL*) admits only some networks. The check runs from the NSM server, which those rules usually admit, so the port looked open.
+- NSM now reads the firewall rules from the newest backup UISP already holds: nothing is asked to the CPE, and the backup is downloaded again only when UISP has a newer one. A port the rules open only to some networks and close to everybody else is shown as *limitato*, with those networks and the date of the backup.
+- When an external probe still sees the port open, it stays *esposto*: the rules do not stop it.
+- Not read yet: CPEs in bridge mode (ebtables), and rules on a port range.
 ## 0.49.314 — 2026-10-29
 
 TP-Link remote access panel laid out in one column
