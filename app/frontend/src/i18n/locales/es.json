@@ -3857,7 +3857,7 @@
       "prefixes": "Prefijos"
     },
     "historyTitle": "Historial de configuración",
-    "historyHelp": "Exportaciones RouterOS archivadas, baseline aprobada y cambios detectados automáticamente.",
+    "historyHelp": "Exports RouterOS archivados, línea base aprobada y cambios detectados automáticamente, con quién los hizo: NSM, un operador que inició sesión o desconocido. Los scripts del agente NSM no se comparan.",
     "back": "Configuración",
     "driftBaseline": "Cambio por revisar: {{added}} líneas añadidas y {{removed}} eliminadas respecto a la baseline aprobada.",
     "driftPrevious": "Cambio por revisar: {{added}} líneas añadidas y {{removed}} eliminadas respecto a la exportación anterior.",
@@ -3873,7 +3873,8 @@
       "sha": "SHA-256",
       "change": "Cambio",
       "state": "Estado",
-      "actions": "Acciones"
+      "actions": "Acciones",
+      "author": "Autor"
     },
     "firstExport": "primera exportación",
     "noChange": "sin cambios",
@@ -3890,7 +3891,18 @@
       "transport": "Sección no disponible con el agente legacy (RouterOS 6 / 7.12).",
       "agent_outdated": "Sección disponible desde el agente {{version}}: actualiza o reinstala el agente desde la pestaña Agente."
     },
-    "unsupportedShort": "No disponible con el agente instalado"
+    "unsupportedShort": "No disponible con el agente instalado",
+    "author": {
+      "nsm": "NSM",
+      "operator": "Operador",
+      "unknown": "Desconocido",
+      "mixed": "Mixto"
+    },
+    "driftAuthor": "Último cambio: {{author}}.",
+    "loginLine": "{{user}} desde {{ip}} vía {{service}}",
+    "publicLogin": "dirección pública",
+    "noLogins": "ningún acceso registrado (necesita el syslog del equipo)",
+    "partlyNsm": "cambiado en parte por NSM"
   },
   "deviceReboot": {
     "title": "Reinicio controlado",
@@ -6501,7 +6513,8 @@
     "defaultStale": "NSM modificó este CPE tras el último guardado: vuelve a guardar el predeterminado para mantener los cambios tras un reinicio.",
     "defaultHelp": "Guarda la configuración en uso como predeterminada del CPE, como Aginet Config → Save current settings as default settings en su página. No reinicia nada. El predeterminado incluye también las credenciales PPPoE, el Wi-Fi y la contraseña de administrador: un reinicio ya no borra el CPE. Antes de darlo a otro cliente, bórralo desde la página del CPE (Aginet Config → Restore all default settings to Vendor default value).",
     "defaultConfirm": "Escribe {{name}} para confirmar",
-    "defaultSave": "Guardar la configuración actual como predeterminada"
+    "defaultSave": "Guardar la configuración actual como predeterminada",
+    "noAllowList": "La limitación a algunas direcciones no está disponible: en el firmware de TP-Link probado cierra la página a todos."
   },
   "tplinkSettings": {
     "title": "Ajustes avanzados del CPE",

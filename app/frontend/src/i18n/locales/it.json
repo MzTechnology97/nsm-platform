@@ -3857,7 +3857,7 @@
       "prefixes": "Prefissi"
     },
     "historyTitle": "Cronologia configurazione",
-    "historyHelp": "Export RouterOS archiviati, baseline approvata e variazioni rilevate automaticamente.",
+    "historyHelp": "Export RouterOS archiviati, baseline approvata e variazioni rilevate automaticamente, con chi le ha fatte: NSM, un operatore che ha effettuato l'accesso o sconosciuto. Gli script dell'agent NSM non sono confrontati.",
     "back": "Configurazione",
     "driftBaseline": "Variazione da verificare: {{added}} righe aggiunte e {{removed}} rimosse rispetto alla baseline approvata.",
     "driftPrevious": "Variazione da verificare: {{added}} righe aggiunte e {{removed}} rimosse rispetto all'export precedente.",
@@ -3873,7 +3873,8 @@
       "sha": "SHA-256",
       "change": "Variazione",
       "state": "Stato",
-      "actions": "Azioni"
+      "actions": "Azioni",
+      "author": "Autore"
     },
     "firstExport": "primo export",
     "noChange": "nessuna modifica",
@@ -3890,7 +3891,18 @@
       "transport": "Sezione non disponibile con l'agent legacy (RouterOS 6 / 7.12).",
       "agent_outdated": "Sezione disponibile dall'agent {{version}}: aggiorna o reinstalla l'agent dalla scheda Agent."
     },
-    "unsupportedShort": "Non disponibile con l'agent installato"
+    "unsupportedShort": "Non disponibile con l'agent installato",
+    "author": {
+      "nsm": "NSM",
+      "operator": "Operatore",
+      "unknown": "Sconosciuto",
+      "mixed": "Misto"
+    },
+    "driftAuthor": "Ultima modifica: {{author}}.",
+    "loginLine": "{{user}} da {{ip}} via {{service}}",
+    "publicLogin": "indirizzo pubblico",
+    "noLogins": "nessun accesso registrato (serve il syslog dell'apparato)",
+    "partlyNsm": "in parte modificato da NSM"
   },
   "deviceReboot": {
     "title": "Riavvio controllato",
@@ -6501,7 +6513,8 @@
     "defaultStale": "NSM ha modificato questo CPE dopo l'ultimo salvataggio: risalva il default per mantenere le modifiche dopo un reset.",
     "defaultHelp": "Salva la configurazione in uso come default del CPE, come Aginet Config → Save current settings as default settings nella sua pagina. Non riavvia nulla. Il default contiene anche credenziali PPPoE, Wi-Fi e password di amministrazione: un reset non cancella più il CPE. Prima di darlo a un altro cliente, cancellalo dalla pagina del CPE (Aginet Config → Restore all default settings to Vendor default value).",
     "defaultConfirm": "Scrivi {{name}} per confermare",
-    "defaultSave": "Salva la configurazione attuale come default"
+    "defaultSave": "Salva la configurazione attuale come default",
+    "noAllowList": "La limitazione ad alcuni indirizzi non è disponibile: sul firmware TP-Link provato chiude la pagina a tutti."
   },
   "tplinkSettings": {
     "title": "Impostazioni avanzate del CPE",

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
-import { type ConfigFilters, useConfigHistory, useConfigRefresh, useDeviceConfiguration, useSetBaseline } from "../api/deviceTabs";
+import { type ChangeAttribution, type ConfigFilters, useConfigHistory, useConfigRefresh, useDeviceConfiguration, useSetBaseline } from "../api/deviceTabs";
 import { formatBytes, formatDateTime } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { Loading } from "../app/States";
@@ -196,6 +196,7 @@ export function DeviceConfigurationHistory() {
       {data.drift && (
         <div className="ui-alert ui-alert-warning">
           {t(data.drift.reference_kind === "baseline" ? "deviceConfig.driftBaseline" : "deviceConfig.driftPrevious", { added: data.drift.added, removed: data.drift.removed })}
+          {data.drift.attribution?.author && <> {t("deviceConfig.driftAuthor", { author: t(`deviceConfig.author.${data.drift.attribution.author}`) })}</>}
         </div>
       )}
       <div className="ui-metrics">
@@ -208,7 +209,7 @@ export function DeviceConfigurationHistory() {
       {data.rows.length ? (
         <div className="ui-data-wrap">
           <table className="ui-data-table">
-            <thead><tr>{["date", "file", "sha", "change", "state", "actions"].map((key) => <th key={key}><span className="ui-th">{t(`deviceConfig.historyColumns.${key}`)}</span></th>)}</tr></thead>
+            <thead><tr>{["date", "file", "sha", "change", "author", "state", "actions"].map((key) => <th key={key}><span className="ui-th">{t(`deviceConfig.historyColumns.${key}`)}</span></th>)}</tr></thead>
             <tbody>
               {data.rows.map((row, index) => (
                 <tr key={row.id}>
@@ -220,6 +221,7 @@ export function DeviceConfigurationHistory() {
                       : row.summary && !row.summary.error ? (row.summary.added || row.summary.removed ? `+${row.summary.added} / -${row.summary.removed}` : t("deviceConfig.noChange"))
                         : t("deviceConfig.notComparable")}
                   </td>
+                  <td>{row.attribution ? <ChangeAuthorCell attribution={row.attribution} /> : <span className="ui-muted">—</span>}</td>
                   <td>
                     {row.baseline ? <span className="ui-status ui-status-online">{t("deviceConfig.baselineBadge")}</span>
                       : index === 0 && data.drift ? <span className="ui-status ui-status-warning">{t("deviceConfig.toReview")}</span>
@@ -249,5 +251,32 @@ export function DeviceConfigurationHistory() {
         <div className="ui-empty">{t("deviceConfig.noExports")}</div>
       )}
     </section>
+  );
+}
+
+const AUTHOR_TONE: Record<string, string> = {
+  nsm: "ui-severity",
+  operator: "ui-severity ui-severity-medium",
+  unknown: "ui-severity ui-severity-high",
+  mixed: "ui-severity ui-severity-warning",
+};
+
+/** Who changed the configuration since the previous export: NSM (its own jobs), an operator who logged in, or unknown. */
+function ChangeAuthorCell({ attribution }: { attribution: ChangeAttribution }) {
+  const { t } = useTranslation();
+  if (!attribution.author) return <span className="ui-muted">—</span>;
+  const sections = attribution.sections.map((row) => `${row.section} (${t(`deviceConfig.author.${row.author}`)}: +${row.added} / -${row.removed})`).join("\n");
+  const logins = attribution.logins.map((login) => t("deviceConfig.loginLine", { user: login.username ?? "?", ip: login.remote_ip ?? "?", service: login.service ?? "?" })
+    + (login.count > 1 ? ` ×${login.count}` : "") + (login.public ? ` · ${t("deviceConfig.publicLogin")}` : ""));
+  return (
+    <>
+      <span className={AUTHOR_TONE[attribution.author]} title={sections}>{t(`deviceConfig.author.${attribution.author}`)}</span>
+      {attribution.author !== "nsm" && (logins.length
+        ? logins.slice(0, 3).map((line) => <small key={line} className="ui-muted ui-block">{line}</small>)
+        : <small className="ui-muted ui-block">{t("deviceConfig.noLogins")}</small>)}
+      {attribution.sections.some((row) => row.author === "nsm") && attribution.author !== "nsm" && (
+        <small className="ui-muted ui-block">{t("deviceConfig.partlyNsm")}</small>
+      )}
+    </>
   );
 }

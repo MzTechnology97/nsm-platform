@@ -4,6 +4,17 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.303 — 2026-10-29
+
+Configuration
+- **Who changed the MikroTik configuration (SIEM-03, step 1).** The configuration history shows who made each change since the previous export:
+  - *NSM*, when one of its jobs or actions wrote that part in the same window (Agent update, syslog setup, firmware, RouterBOOT);
+  - *Operatore*, when someone logged in to the router in the window, with user, address and service from its syslog;
+  - *Sconosciuto*, when neither is recorded (a router without syslog cannot show its logins).
+- The NSM Agent scripts are no longer compared line by line: an Agent update is a one-line change instead of thousands. On a production router the difference from the baseline went from 1,193 lines to 21.
+- The Action Center issue *Configurazione MikroTik modificata* opens only for a new change that is unknown or made while someone logged in from a public address. A difference from the baseline that stays the same no longer raises a new event every night.
+- Backups of routers with the legacy Agent (RouterOS 6 / 7.12) are now checked for changes too.
+
 ## 0.49.302 — 2026-10-29
 
 Pull request template
