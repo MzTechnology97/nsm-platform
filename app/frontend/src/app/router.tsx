@@ -556,6 +556,11 @@ const cnmaestroOnboardingRoute = createRoute({
     ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
   }),
 });
+const syslogRulesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/access/rules",
+  component: lazyRouteComponent(() => import("../pages/SyslogRules"), "SyslogRules"),
+});
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/access",
@@ -739,6 +744,7 @@ export const routeTree = rootRoute.addChildren([
   vulnerabilityFindingRoute,
   exposureRoute,
   accessRoute,
+  syslogRulesRoute,
   lifecycleRoute,
   lifecycleCatalogRoute,
   lifecycleRecordNewRoute,
