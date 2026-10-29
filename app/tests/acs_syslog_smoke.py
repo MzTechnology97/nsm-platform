@@ -105,6 +105,33 @@ def main():
             assert db.get(Device, ids["old"]).inventory_data["tr069"]["syslog"]["failed_target"] == "198.51.100.30"
             events = [e.details for e in db.scalars(select(AuditEvent).where(AuditEvent.event_type == "ACS_SYSLOG_CONFIGURED", AuditEvent.device_id == ids["cpe"]))]
             assert len(events) >= 2 and all(set(e) == {"server_ip", "port", "level", "applied"} for e in events)
+            assert db.get(Device, ids["cpe"]).inventory_data["tr069"]["syslog"]["level"] == "warning", "a technician's level is kept"
+
+        # Default warning: NSM's own earlier choices move to warning, a technician's choice stays.
+        assert client.get(f"/api/ui/v1/devices/{ids['cpe']}/syslog/acs").json()["default_level"] == "warning"
+        with SessionLocal() as db:
+            customer_id = db.get(Device, ids["cpe"]).customer_id
+            states = {"legacy": {"server_ip": "198.51.100.30", "port": 514, "level": "info", "applied": True, "at": "2026-10-23T10:36:53+00:00"},
+                      "worker": {"server_ip": "198.51.100.30", "port": 514, "level": "info", "applied": True, "at": "2026-10-23T10:36:53+00:00", "source": "worker"},
+                      "chosen": {"server_ip": "198.51.100.30", "port": 514, "level": "debug", "applied": True, "at": "2026-10-23T10:36:53+00:00", "source": "portal"}}
+            levels = {}
+            for name, state in states.items():
+                device = Device(customer_id=customer_id, vendor="tp-link", device_type="router", name=f"CI220-L-{name}-{suffix}", status="online",
+                                management_source="tr069", external_device_id=f"8C86DD-VX230v-L{name}{suffix}", inventory_data={"tr069": {"syslog": state}})
+                db.add(device)
+                db.flush()
+                levels[name] = device.id
+            db.commit()
+        acs_syslog.auto_configure()
+        with SessionLocal() as db:
+            got = {name: db.get(Device, device_id).inventory_data["tr069"]["syslog"] for name, device_id in levels.items()}
+        assert got["legacy"]["level"] == "warning" and got["legacy"]["source"] == "worker", got["legacy"]
+        assert got["worker"]["level"] == "warning"
+        assert got["chosen"]["level"] == "debug" and got["chosen"]["source"] == "portal", "chosen by a technician: untouched"
+        with SessionLocal() as db:  # the mocked ACS gave them the same WAN address as the CPE above
+            for n, device_id in enumerate(levels.values()):
+                db.get(Device, device_id).management_ip = f"203.0.113.{120 + n}"
+            db.commit()
 
         # Receiver: TP-Link lines carry no key; accepted from the address of a CPE NSM pointed at itself, nowhere else.
         with SessionLocal() as db:

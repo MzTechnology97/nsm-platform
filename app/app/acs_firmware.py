@@ -32,6 +32,7 @@ import httpx
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Request, UploadFile
 from starlette.concurrency import run_in_threadpool
 
+from app import acs_profiles as profiles
 from app import acs_diagnostics as nbi
 from app import genieacs_connector as acs
 from app import main as core
@@ -45,7 +46,7 @@ MAX_IMAGE = 128 * 1024 * 1024
 MIN_IMAGE = 64 * 1024
 GIVE_UP = timedelta(minutes=30)
 UPLOAD_TIMEOUT = 300
-ROOTS = {"tr181": "Device", "tr098": "InternetGatewayDevice"}
+ROOTS = profiles.ROOT
 
 
 class FirmwareError(RuntimeError):

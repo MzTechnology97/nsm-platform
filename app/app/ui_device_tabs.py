@@ -267,7 +267,8 @@ def install_ui_device_tabs(app) -> None:
 
 # --- Configuration -------------------------------------------------------------------------------
 
-CONFIG_SECTIONS = ("resources", "interfaces", "ip_addresses", "routes", "firewall", "dhcp_leases", "ppp_active", "logs")
+CONFIG_SECTIONS = ("resources", "interfaces", "ip_addresses", "routes", "firewall", "dhcp_leases", "ppp_active", "logs",
+                   "queues", "certificates", "routing")
 
 
 def _mikrotik(db, device_id: uuid.UUID) -> Device:
@@ -282,6 +283,7 @@ def device_configuration(request: Request, device_id: uuid.UUID, section: str = 
                          action: str = "all"):
     from app import mikrotik_configuration_unified as unified
     from app import mikrotik_workspace as workspace
+    from app.mikrotik_snapshot_capabilities import section_support
 
     with SessionLocal() as db:
         user = ui_user(request, db, "devices.read")
@@ -293,7 +295,9 @@ def device_configuration(request: Request, device_id: uuid.UUID, section: str = 
         if "kinds" in view:
             view["kinds"] = [key for key, _label in view["kinds"]]
         return jsonable_encoder({
-            "sections": [{"key": key, "read_at": (snapshots[key].completed_at or snapshots[key].created_at) if key in snapshots else None} for key in CONFIG_SECTIONS],
+            # ``support``: whether the installed Agent can read the section (reason and minimum Agent otherwise).
+            "sections": [{"key": key, "read_at": (snapshots[key].completed_at or snapshots[key].created_at) if key in snapshots else None,
+                          "support": section_support(device, key)} for key in CONFIG_SECTIONS],
             "section": section,
             "read_at": (snapshot.completed_at or snapshot.created_at) if snapshot else None,
             "pending": sorted(workspace._pending_sections(db, device.id)),
@@ -467,6 +471,14 @@ def _plan_error(exc: HTTPException) -> HTTPException:
     return exc
 
 
+def _readiness_pending(db, device) -> bool:
+    from app.agent_models import DeviceJob
+    from app.mikrotik_firmware_readiness import JOB_TYPE
+
+    return bool(db.scalar(select(DeviceJob.id).where(DeviceJob.device_id == device.id, DeviceJob.job_type == JOB_TYPE,
+                                                      DeviceJob.status.in_(["pending", "delivered"])).limit(1)))
+
+
 def _firmware_device(db, device_id: uuid.UUID) -> Device:
     from app import firmware_upgrade_planner as planner
 
@@ -498,6 +510,9 @@ def device_firmware_upgrade(request: Request, device_id: uuid.UUID, plan: str = 
             "agent_transport": data.get("agent_transport"),
             "catalog": data.get("firmware_catalog"),
             "can_execute": core.has_permission(user, "firmware.execute"),
+            "check_pending": _readiness_pending(db, device),
+            "preparing": planner.prepare_state(device),
+            "schedule": __import__("app.firmware_schedule", fromlist=["api_state"]).api_state(device),
             "plan": None,
             "legacy": None,
         }
@@ -530,11 +545,24 @@ def device_firmware_plan(request: Request, device_id: uuid.UUID):
         user = ui_user(request, db, "firmware.execute")
         device = _firmware_device(db, device_id)
         try:
-            plan_id, created = planner.open_plan(db, device, user)
+            result = planner.request_plan(db, device, user)
         except HTTPException as exc:
             raise _plan_error(exc) from None
         db.commit()
-        return {"plan_id": str(plan_id), "created": created}
+        return result
+
+
+@router.post("/devices/{device_id}/firmware-upgrade/check", dependencies=[Depends(require_csrf)])
+def device_firmware_check(request: Request, device_id: uuid.UUID):
+    """*Verifica aggiornamenti* from the device Firmware tab (same check as the firmware worklist)."""
+    from app import mikrotik_firmware_readiness as readiness
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "firmware.read")
+        device = _firmware_device(db, device_id)
+        state = readiness.queue_readiness_job(db, device, user)
+        db.commit()
+        return {"state": state}
 
 
 @router.post("/devices/{device_id}/firmware-upgrade/{plan_id}/{action}", dependencies=[Depends(require_csrf)])

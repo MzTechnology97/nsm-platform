@@ -1,4 +1,4 @@
-import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SearchSelect, customerLabel } from "../app/SearchSelect";
@@ -12,35 +12,41 @@ import { useDebounced } from "../lib/hooks";
 import { Metric } from "./DeviceDetail";
 import { Loading } from "../app/States";
 import { Pager } from "../app/Pager";
+import { useListSearch } from "../app/CustomerScope";
 import { pageParams, usePaging } from "../lib/paging";
 
 const BUCKET_TONE = { protected: "ui-severity", blocked: "ui-severity ui-severity-warning", no_policy: "ui-severity ui-severity-high" } as const;
 
 export function BackupsOverview() {
   const { t, i18n } = useTranslation();
-  const search = useSearch({ from: "/backups" });
-  const navigate = useNavigate({ from: "/backups" });
+  // Globally or as a customer's "Backup" tab (the customer filter is then fixed and its picker hidden).
+  const { search, update, customer: scope } = useListSearch<BackupOverviewFilters>();
   const facets = useDeviceFacets();
   const [text, setText] = useState(search.q ?? "");
   const q = useDebounced(text.trim());
-  const update = (patch: Partial<BackupOverviewFilters>) => void navigate({ search: (previous: BackupOverviewFilters) => ({ ...previous, ...patch }), replace: true });
   useEffect(() => {
     if ((search.q ?? "") !== q) update({ q: q || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
   const paging = usePaging(JSON.stringify(search));
-  const query = useBackupOverview(search, pageParams(paging));
+  // A customer has few devices: its tab lists them all unless a view is chosen.
+  const view = search.view ?? (scope ? "all" : "attention");
+  const query = useBackupOverview({ ...search, view }, pageParams(paging));
   const data = query.data;
-  const view = search.view ?? "attention";
+  // Inside a customer the tiles are that customer's figures (the totals of the overview cover every customer).
+  const mine = scope ? data?.customers.find((row) => row.id === scope) : undefined;
+  const totals = data && scope ? { ...data.totals, devices: mine?.devices ?? 0, protected: mine?.protected ?? 0, blocked: mine?.blocked ?? 0,
+                                   no_policy: mine?.no_policy ?? 0, backup_alerts: mine?.backup_alerts ?? 0 } : data?.totals;
 
   return (
-    <section className="ui-page">
+    <section className={scope ? "ui-customer-list" : "ui-page"}>
       <header className="ui-page-header ui-page-header-row">
         <div>
-          <h1>{t("backupOverview.title")}</h1>
-          <p>{t("backupOverview.subtitle")}</p>
+          {!scope && <h1>{t("backupOverview.title")}</h1>}
+          <p>{t(scope ? "backupOverview.subtitleCustomer" : "backupOverview.subtitle")}</p>
         </div>
         <div className="ui-actions">
+          <Link to="/backups/restore-readiness" className="ui-button ui-button-ghost">{t("backupOverview.restoreReadiness")}</Link>
           {data?.can_configure && (
             <Link to="/backups/policies/new" search={search.customer ? { customer: search.customer } : {}} className="ui-button ui-button-primary">{t("backupOverview.newPolicy")}</Link>
           )}
@@ -49,11 +55,11 @@ export function BackupsOverview() {
 
       {data && (
         <div className="ui-metrics">
-          <Metric label={t("backupOverview.metrics.protected")} value={`${data.totals.protected}/${data.totals.devices}`} hint={t("backupOverview.hints.protected")} />
-          <Metric label={t("backupOverview.metrics.blocked")} value={String(data.totals.blocked)} hint={t("backupOverview.hints.blocked")} tone={data.totals.blocked ? "warning" : undefined} />
-          <Metric label={t("backupOverview.metrics.noPolicy")} value={String(data.totals.no_policy)} hint={t("backupOverview.hints.noPolicy")} tone={data.totals.no_policy ? "danger" : undefined} />
-          <Metric label={t("backupOverview.metrics.alerts")} value={String(data.totals.backup_alerts)} hint={t("backupOverview.hints.alerts")} tone={data.totals.backup_alerts ? "danger" : undefined} />
-          <Metric label={t("backupOverview.metrics.policies")} value={String(data.totals.active_policies)} hint={t("backupOverview.hints.policies", { count: data.policies.length })} />
+          <Metric label={t("backupOverview.metrics.protected")} value={`${totals!.protected}/${totals!.devices}`} hint={t("backupOverview.hints.protected")} />
+          <Metric label={t("backupOverview.metrics.blocked")} value={String(totals!.blocked)} hint={t("backupOverview.hints.blocked")} tone={totals!.blocked ? "warning" : undefined} />
+          <Metric label={t("backupOverview.metrics.noPolicy")} value={String(totals!.no_policy)} hint={t("backupOverview.hints.noPolicy")} tone={totals!.no_policy ? "danger" : undefined} />
+          <Metric label={t("backupOverview.metrics.alerts")} value={String(totals!.backup_alerts)} hint={t("backupOverview.hints.alerts")} tone={totals!.backup_alerts ? "danger" : undefined} />
+          <Metric label={t("backupOverview.metrics.policies")} value={String(totals!.active_policies)} hint={t("backupOverview.hints.policies", { count: data.policies.length })} />
         </div>
       )}
 
@@ -63,7 +69,7 @@ export function BackupsOverview() {
             key={key}
             type="button"
             className={`ui-chip${["failed", "blocked", "never", "no_policy"].includes(key) ? " ui-chip-warning" : ""}${view === key ? " is-active" : ""}`}
-            onClick={() => update({ view: key === "attention" ? undefined : key })}
+            onClick={() => update({ view: key === (scope ? "all" : "attention") ? undefined : key })}
           >
             {t(`backupOverview.views.${key}`)} <span className="ui-chip-count">{data ? data.counts[key] ?? 0 : "—"}</span>
           </button>
@@ -71,7 +77,7 @@ export function BackupsOverview() {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("backupOverview.search")} aria-label={t("backupOverview.search")} autoComplete="off" />
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        {!scope && <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />}
       </div>
 
       {query.error ? (
@@ -101,8 +107,8 @@ export function BackupsOverview() {
       )}
 
       {data && (
-        <div className="ui-two-columns ui-section-gap">
-          <section className="ui-panel">
+        <div className={scope ? "ui-section-gap" : "ui-two-columns ui-section-gap"}>
+          {!scope && <section className="ui-panel">
             <h2>{t("backupOverview.coverage.title")}</h2>
             <div className="ui-table-scroll">
               <table className="ui-stats-table">
@@ -128,7 +134,7 @@ export function BackupsOverview() {
                 </tbody>
               </table>
             </div>
-          </section>
+          </section>}
           <section className="ui-panel">
             <h2>{t("backupOverview.policies.title")}</h2>
             <p className="ui-muted">{t("backupOverview.policies.hint")}</p>
