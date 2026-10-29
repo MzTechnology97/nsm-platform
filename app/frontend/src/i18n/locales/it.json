@@ -1483,7 +1483,8 @@
       "none": "Nessun allarme sugli accessi.",
       "users": "utenti: {{list}}",
       "openIncident": "Apri incidente"
-    }
+    },
+    "rules": "Regole syslog"
   },
   "lifecycle": {
     "title": "Ciclo di vita",
@@ -5700,6 +5701,9 @@
     "SYSLOG_AGENT_CONFIG_QUEUED": "Configurazione syslog inviata all'agent",
     "SYSLOG_AGENT_CONFIG_SKIPPED": "Configurazione syslog saltata",
     "SYSLOG_CHAIN_ANCHOR": "Punto di controllo integrità syslog",
+    "SYSLOG_RULE_DELETED": "Regola syslog eliminata",
+    "SYSLOG_RULE_MATCHED": "Regola syslog scattata",
+    "SYSLOG_RULE_SAVED": "Regola syslog salvata",
     "SYSLOG_SETTINGS_CHANGED": "Impostazioni syslog modificate",
     "THREAT_LISTS_CONFIGURED": "Liste di minaccia configurate",
     "THREAT_LIST_MATCH": "Indirizzo dell'operatore trovato in una lista di minaccia",
@@ -7306,6 +7310,108 @@
     },
     "attempts_one": "{{count}} tentativo su {{devices}} apparati",
     "attempts_other": "{{count}} tentativi su {{devices}} apparati"
+  },
+  "syslogRules": {
+    "title": "Regole syslog",
+    "subtitle": "Regole tue sui log degli apparati, oltre agli avvisi di accesso predefiniti: espressione regolare, soglia nel tempo, eccezioni e azione. Provale su una riga di log prima di salvarle.",
+    "toAccess": "Accessi",
+    "new": "Nuova regola",
+    "listTitle": "Regole dell'operatore",
+    "none": "Nessuna regola: parti da un modello con «Nuova regola».",
+    "columns": {
+      "name": "Regola",
+      "match": "Corrispondenza",
+      "correlation": "Soglia",
+      "level": "Livello",
+      "alerts": "Avvisi 24 h",
+      "actions": "Azioni"
+    },
+    "disabled": "disattivata",
+    "anyVendor": "qualsiasi produttore",
+    "maxSeverity": "fino a severità {{level}}",
+    "countIn": "{{count}} in {{minutes}} min, per {{group}}",
+    "single": "ogni riga",
+    "afterRule": "dopo «{{name}}» entro {{minutes}} min",
+    "edit": "Modifica",
+    "delete": "Elimina",
+    "confirmDelete": "Eliminare la regola «{{name}}»?",
+    "editTitle": "Modifica regola",
+    "newTitle": "Nuova regola",
+    "template": "Parti da un modello",
+    "templateNone": "— nessun modello —",
+    "fields": {
+      "name": "Nome",
+      "pattern": "Espressione regolare sul messaggio",
+      "patternHelp": "I gruppi con nome diventano i campi dell'avviso: (?P<ip>…) indirizzo, (?P<user>…) utente, (?P<svc>…) servizio. Niente quantificatori annidati come (a+)+.",
+      "vendor": "Produttore",
+      "maxSeverity": "Severità fino a",
+      "topic": "Topic o programma contiene",
+      "count": "Righe necessarie",
+      "countHelp": "1 = ogni riga; di più = soglia nella finestra.",
+      "window": "Finestra (minuti)",
+      "groupBy": "Conta per",
+      "afterRule": "Solo dopo la regola",
+      "afterNone": "— nessuna —",
+      "afterMinutes": "Entro (minuti)",
+      "ignore": "Indirizzi da ignorare",
+      "ignoreHelp": "IP o reti del gruppo ip, uno per riga (NSM, tecnici, monitoraggio).",
+      "throttle": "Al massimo un avviso ogni (minuti)",
+      "level": "Livello",
+      "action": "Azione",
+      "enabled": "Regola attiva"
+    },
+    "save": "Salva",
+    "cancel": "Annulla",
+    "groups": {
+      "device": "apparato",
+      "ip": "indirizzo",
+      "user": "utente",
+      "device_ip": "apparato e indirizzo"
+    },
+    "levels": {
+      "info": "info",
+      "warning": "warning",
+      "high": "alto",
+      "critical": "critico"
+    },
+    "actions": {
+      "event": "solo evento",
+      "notification": "evento e notifica",
+      "issue": "notifica e Action Center"
+    },
+    "testerTitle": "Prova su una riga di log",
+    "testerHelp": "Incolla una riga dal syslog di un apparato: vedi quali regole, e quella che stai modificando, la prendono e quali campi estraggono. Non salva nulla.",
+    "tester": {
+      "message": "Messaggio",
+      "severity": "Severità",
+      "run": "Prova",
+      "draft": "bozza",
+      "matched": "corrisponde",
+      "notMatched": "no",
+      "noMatch": "non corrisponde",
+      "noFields": "nessun campo",
+      "ignored": "indirizzo ignorato",
+      "firesAlone": "basta questa riga per l'avviso",
+      "needsCorrelation": "serve la soglia o la regola precedente",
+      "noRules": "Nessuna regola da provare."
+    },
+    "builtinTitle": "Avvisi di accesso predefiniti",
+    "builtinHelp": "Sempre attivi su tutti gli apparati che mandano il syslog; non si modificano.",
+    "builtin": {
+      "brute_force": "Tentativi di accesso falliti",
+      "success_after_failures": "Accesso riuscito dopo tentativi falliti",
+      "new_public_source": "Accesso da un nuovo indirizzo pubblico"
+    },
+    "severities": {
+      "0": "0 emergenza",
+      "1": "1 allarme",
+      "2": "2 critico",
+      "3": "3 errore",
+      "4": "4 warning",
+      "5": "5 notice",
+      "6": "6 info",
+      "7": "7 debug"
+    }
   },
   "uispFirewall": {
     "upToDate": "Regole NSM già applicate e aggiornate ({{count}}): niente da fare.",

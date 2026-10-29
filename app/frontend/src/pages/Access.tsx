@@ -29,6 +29,9 @@ export function Access() {
           <h1>{t("access.title")}</h1>
           <p>{t("access.subtitle")}</p>
         </div>
+        <div className="ui-actions">
+          <Link to="/access/rules" className="ui-button ui-button-ghost">{t("access.rules")}</Link>
+        </div>
       </header>
       <div className="ui-monitor-toolbar">
         <div className="ui-segmented" role="group" aria-label={t("access.period")}>

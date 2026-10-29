@@ -117,6 +117,7 @@ def device_exposure_tab(request: Request, device_id: uuid.UUID):
             "planned": [{"port": port, "proto": proto, "label": label} for port, proto, label, *_ in state["planned"]],
             "shared_peers": [_peer(peer) for peer in state["shared_peers"]],
             "forwards_in": state["forwards_in"],
+            "reachability": state["reachability"],
             "can_remediate": core.has_permission(user, "security.remediate"),
         })
 
