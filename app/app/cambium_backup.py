@@ -185,6 +185,14 @@ def clean_output(raw: str, command: str) -> str:
     return "\n".join(lines).strip("\n")
 
 
+def _leaves(node) -> int:
+    if isinstance(node, dict):
+        return sum(_leaves(value) for value in node.values())
+    if isinstance(node, list):
+        return sum(_leaves(value) for value in node)
+    return 1
+
+
 def parse_config(text: str, command: str) -> str:
     """Normalised file content: sorted JSON for ``config show json``, the ``config set`` lines otherwise."""
     if command.endswith("json"):
@@ -195,7 +203,7 @@ def parse_config(text: str, command: str) -> str:
             data = json.loads(text[start:])
         except ValueError as exc:
             raise BackupError("Configurazione JSON dell'ePMP non leggibile.") from exc
-        if not isinstance(data, dict) or len(data) < 3:
+        if not isinstance(data, dict) or _leaves(data) < 3:  # sections such as device_props/template_props count by content
             raise BackupError("La configurazione JSON dell'ePMP è vuota.")
         return json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
     lines = [line for line in text.splitlines() if line.strip().startswith("config set")]
@@ -230,7 +238,9 @@ async def _read_until_prompt(process, timeout: float) -> str:
             return buffer
 
 
-async def _fetch_async(host, port, username, password, known_key):
+async def open_cli(host, port, username, password, known_key):
+    """SSH connection and interactive ePMP console, after the login banner: (connection, process, host key fingerprint).
+    The caller closes the connection (``async with conn``)."""
     import asyncssh
 
     try:
@@ -241,21 +251,35 @@ async def _fetch_async(host, port, username, password, known_key):
         raise BackupError("Accesso SSH negato: verifica utente e password dell'ePMP.") from exc
     except (OSError, asyncssh.Error, asyncio.TimeoutError) as exc:
         raise BackupError(f"Connessione SSH all'ePMP non riuscita ({type(exc).__name__}).") from exc
-    async with conn:
-        host_key = conn.get_server_host_key().get_fingerprint("sha256") if conn.get_server_host_key() else None
-        if known_key and host_key and host_key != known_key:
-            raise HostKeyChanged(host_key)
-        try:
-            process = await conn.create_process(term_type="vt100", term_size=(250, 50))
-        except asyncssh.Error as exc:
-            raise BackupError(f"L'ePMP non ha aperto la console SSH ({type(exc).__name__}).") from exc
+    host_key = conn.get_server_host_key().get_fingerprint("sha256") if conn.get_server_host_key() else None
+    if known_key and host_key and host_key != known_key:
+        conn.close()
+        raise HostKeyChanged(host_key)
+    try:
+        process = await conn.create_process(term_type="vt100", term_size=(250, 50))
         await _read_until_prompt(process, COMMAND_TIMEOUT)
+    except asyncssh.Error as exc:
+        conn.close()
+        raise BackupError(f"L'ePMP non ha aperto la console SSH ({type(exc).__name__}).") from exc
+    except BackupError:
+        conn.close()
+        raise
+    return conn, process, host_key
+
+
+async def cli_command(process, command: str, timeout: float = COMMAND_TIMEOUT) -> str:
+    """Output of one console command, without echo, prompt and pager markers."""
+    process.stdin.write(command + "\n")
+    return clean_output(await _read_until_prompt(process, timeout), command)
+
+
+async def _fetch_async(host, port, username, password, known_key):
+    conn, process, host_key = await open_cli(host, port, username, password, known_key)
+    async with conn:
         last_error = None
         for command in COMMANDS:
-            process.stdin.write(command + "\n")
-            raw = await _read_until_prompt(process, COMMAND_TIMEOUT)
             try:
-                return parse_config(clean_output(raw, command), command), command, host_key
+                return parse_config(await cli_command(process, command), command), command, host_key
             except BackupError as exc:
                 last_error = exc
         process.stdin.write("exit\n")
@@ -281,7 +305,7 @@ def _last_digest(db, device) -> str | None:
     return row[0] if row else None
 
 
-def _remember_key(device, host_key: str | None, mismatch: str | None = None) -> None:
+def remember_key(device, host_key: str | None, mismatch: str | None = None) -> None:
     data = dict(device.inventory_data or {})
     stored = dict(data.get("cambium_ssh") or {})
     if host_key and not stored.get("host_key"):
@@ -316,13 +340,20 @@ def run_backup(db, device, actor=None, policy=None, trigger="manual", now: datet
     try:
         text, command, host_key = fetch(device.management_ip, creds["port"], creds["username"], creds["password"], known)
     except HostKeyChanged as exc:
-        _remember_key(device, None, mismatch=exc.fingerprint)
+        remember_key(device, None, mismatch=exc.fingerprint)
         _fail(db, device, actor, policy, trigger, now, str(exc))
         raise
     except BackupError as exc:
         _fail(db, device, actor, policy, trigger, now, str(exc))
         raise
-    _remember_key(device, host_key)
+    remember_key(device, host_key)
+    return archive(db, device, text, command, actor=actor, policy=policy, trigger=trigger, now=now)
+
+
+def archive(db, device, text: str, command: str, actor=None, policy=None, trigger="manual", now: datetime | None = None) -> BackupRun | None:
+    """Store a configuration read from the ePMP as a backup run (caller commits); None for a scheduled copy identical to the last one.
+    Also used by the operations that change the ePMP (syslog) to keep the configuration they start from as the restore point."""
+    now = now or utcnow()
     digest = _body_digest(text)
     if trigger == "schedule" and _last_digest(db, device) == digest:
         return None

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { type AgentStatus, useAgent, useAgentReinstall, useAgentUpdate } from "../api/agent";
 import { EnrollmentCommand } from "../app/EnrollmentCommand";
+import { ManagementAccessPanel } from "../app/ManagementAccessPanel";
 import { formatDateTime, formatRelative } from "../lib/format";
 import { Metric } from "./DeviceDetail";
 import { eventSource } from "../lib/events";
@@ -53,6 +54,8 @@ export function DeviceAgent() {
       )}
 
       <UpdatePanel id={deviceId} data={data} />
+
+      <ManagementAccessPanel id={deviceId} />
 
       <section className="ui-panel">
         <div className="ui-panel-header">

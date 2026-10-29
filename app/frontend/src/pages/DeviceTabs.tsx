@@ -3,10 +3,10 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../api/client";
-import { type ExposureFinding, type ExposureTab, type JobFilters, type JournalEntry, type JournalKind, type PortForward, type DeviceEventRow, useDeviceCompliance, useDeviceExposure,
-  useDeviceJobs, useExposureAction, useLogbook, useLogbookActions } from "../api/deviceTabs";
+import { type ExposureFinding, type ExposureTab, type IspbillingActivity, type JobFilters, type JournalEntry, type JournalKind, type PortForward, type DeviceEventRow,
+  useDeviceCompliance, useDeviceExposure, useDeviceJobs, useExposureAction, useIspbillingActivities, useLogbook, useLogbookActions } from "../api/deviceTabs";
 import { BrandIcon } from "../app/BrandIcon";
-import { formatDateTime, formatRelative, fromLocalInput, toLocalInput } from "../lib/format";
+import { formatDate, formatDateTime, formatRelative, fromLocalInput, toLocalInput } from "../lib/format";
 import { useDebounced } from "../lib/hooks";
 import { eventLabel, eventSource } from "../lib/events";
 import { Loading } from "../app/States";
@@ -26,20 +26,26 @@ export function DeviceActivity() {
   );
 }
 
-type TimelineRow = { at: string; entry?: JournalEntry; event?: DeviceEventRow };
+type TimelineRow = { at: string; entry?: JournalEntry; event?: DeviceEventRow; activity?: IspbillingActivity };
 
 /** What people did on the device (site visits, replacements, customer contacts, notes), newest first; entries are never edited. */
 function DeviceLogbook({ deviceId }: { deviceId: string }) {
   const { t, i18n } = useTranslation();
   const [events, setEvents] = useState(false);
+  const [billing, setBilling] = useState(true);
   const query = useLogbook(deviceId, events);
+  const ispbilling = useIspbillingActivities(deviceId, billing);
   const data = query.data;
   if (query.error) return <div className="ui-alert ui-alert-danger">{(query.error as Error).message}</div>;
   if (!data) return <Loading />;
+  // ISPBilling is optional: its activities join the timeline when the connector is on and the customer was imported from it.
+  const billingData = ispbilling.data;
+  const billingLinked = !!billingData?.available && billingData.linked;
   const rows: TimelineRow[] = [
     ...data.entries.map((entry) => ({ at: entry.occurred_at, entry })),
     ...data.events.map((event) => ({ at: event.at, event })),
-  ].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+    ...(billing && billingLinked ? billingData!.activities.map((activity) => ({ at: activity.start ?? "", activity })) : []),
+  ].sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0));
   return (
     <section className="ui-panel ui-admin-section ui-logbook">
       <div className="ui-page-header-row">
@@ -53,9 +59,18 @@ function DeviceLogbook({ deviceId }: { deviceId: string }) {
         <input type="checkbox" checked={events} onChange={(event) => setEvents(event.target.checked)} />
         {t("logbook.showEvents")}
       </label>
+      {billingLinked && (
+        <label className="ui-with-brand ui-logbook-toggle">
+          <input type="checkbox" checked={billing} onChange={(event) => setBilling(event.target.checked)} />
+          {t("logbook.ispbilling.show")}
+        </label>
+      )}
+      {billing && billingLinked && billingData!.error && <p className="ui-muted">{t("logbook.ispbilling.error", { error: billingData!.error })}</p>}
       {rows.length ? (
         <ol className="ui-timeline">
-          {rows.map((row) => (row.entry ? <EntryItem key={`e-${row.entry.id}`} deviceId={deviceId} entry={row.entry} /> : (
+          {rows.map((row) => (row.entry ? <EntryItem key={`e-${row.entry.id}`} deviceId={deviceId} entry={row.entry} /> : row.activity ? (
+            <ActivityItem key={`i-${row.activity.id}`} activity={row.activity} />
+          ) : (
             <li key={`a-${row.event!.id}`} className="ui-timeline-item is-event">
               <span className="ui-timeline-dot" aria-hidden="true" />
               <div>
@@ -142,6 +157,30 @@ function EntryItem({ deviceId, entry }: { deviceId: string; entry: JournalEntry 
           )}
         </div>
         <p className="ui-logbook-body">{entry.body}</p>
+      </div>
+    </li>
+  );
+}
+
+/** An ISPBilling activity (installation, intervention…) of the device's place or of its customer; read-only here. */
+function ActivityItem({ activity }: { activity: IspbillingActivity }) {
+  const { t, i18n } = useTranslation();
+  const when = activity.all_day ? formatDate(activity.start, i18n.language) : formatDateTime(activity.start, i18n.language);
+  return (
+    <li className={`ui-timeline-item is-ispbilling is-${activity.kind}${activity.state === "cancelled" ? " is-cancelled" : ""}`}>
+      <span className="ui-timeline-dot" aria-hidden="true" />
+      <div>
+        <div className="ui-timeline-head">
+          <span className={`ui-logbook-tag is-${activity.kind}`}>{activity.type ?? t("logbook.ispbilling.untitled")}</span>
+          {activity.state !== "past" && <span className={`ui-logbook-state is-${activity.state}`}>{t(`logbook.ispbilling.states.${activity.state}`)}</span>}
+          <small className="ui-muted">
+            {[when, activity.teams.join(", "), activity.customer, activity.scope === "customer" ? t("logbook.ispbilling.customerScope") : null,
+              t("logbook.ispbilling.source")].filter(Boolean).join(" · ")}
+          </small>
+        </div>
+        {activity.subject && <strong className="ui-block">{activity.subject}</strong>}
+        {activity.description && <p className="ui-logbook-body">{activity.description}</p>}
+        {activity.cancellation_reason && <small className="ui-muted ui-block">{t("logbook.ispbilling.reason", { reason: activity.cancellation_reason })}</small>}
       </div>
     </li>
   );
@@ -309,7 +348,7 @@ export function DeviceExposure() {
             <dl className="ui-dl">
               <div>
                 <dt>{t("deviceExposure.checkedIp")}</dt>
-                <dd>{data.target.ip ? <>{data.target.ip} <small className="ui-muted">{data.target.source === "operator" ? t("deviceExposure.byOperator") : t("deviceExposure.managementIp")}</small></> : "—"}</dd>
+                <dd>{data.target.ip ? <>{data.target.ip} <small className="ui-muted">{data.target.source === "operator" ? t("deviceExposure.byOperator") : data.target.source === "uplink" ? t("deviceExposure.uplinkIp") : t("deviceExposure.managementIp")}</small></> : "—"}</dd>
               </div>
               <div>
                 <dt>{t("deviceExposure.ports")}</dt>
@@ -322,6 +361,7 @@ export function DeviceExposure() {
           </>
         )}
       </section>
+      <Reachability data={data} />
       {exposure ? (
         <section className="ui-panel ui-admin-section">
           <div className="ui-metrics">
@@ -333,6 +373,9 @@ export function DeviceExposure() {
               <>
                 <div className="ui-metric"><span>{t("deviceExposure.checkedIp")}</span><strong className="ui-mono">{exposure.target_ip}</strong>
                   <small>{t("deviceExposure.portsChecked", { count: exposure.ports_checked ?? 0 })}</small></div>
+                <div className="ui-metric"><span>{t("deviceExposure.vantage.label")}</span>
+                  <strong>{exposure.vantage?.kind === "probe" ? exposure.vantage.name ?? t("deviceExposure.vantage.probe") : t("deviceExposure.vantage.server")}</strong>
+                  <small>{exposure.vantage?.kind === "probe" ? t("deviceExposure.vantage.probeHint") : t("deviceExposure.vantage.serverHint")}</small></div>
                 {exposure.uncertain ? <div className="ui-metric ui-metric-warning"><span>{t("deviceExposure.uncertain")}</span><strong>{exposure.uncertain}</strong>
                   <small>{t("deviceExposure.acl.uncertainHint")}</small></div> : null}
               </>
@@ -347,9 +390,13 @@ export function DeviceExposure() {
               <small>{t("deviceExposure.daily")}</small></div>
           </div>
           {exposure.source !== "external" && exposure.input_drop === false && <div className="ui-alert ui-alert-warning">{t("deviceExposure.noDrop")}</div>}
+          {exposure.vantage_error && <div className="ui-alert ui-alert-warning">{t("deviceExposure.vantage.fallback", { error: exposure.vantage_error })}</div>}
           {exposure.private_target && <div className="ui-alert ui-alert-warning">{t("deviceExposure.privateResult", { ip: exposure.target_ip })}</div>}
           {exposure.shared_with?.length ? <div className="ui-alert ui-alert-warning">{t("deviceExposure.sharedResult", { peers: exposure.shared_with.join(", ") })}</div> : null}
           {exposure.source === "external" && data.can_remediate && <p className="ui-muted">{t("deviceExposure.acl.help")}</p>}
+          {data.reachability.state && data.reachability.state !== "public" && exposure.exposed ? (
+            <div className="ui-alert">{t("deviceExposure.internalOnly", { reason: data.reachability.reason ?? "" })}</div>
+          ) : null}
           {exposure.findings?.length ? (
             <div className="ui-data-wrap">
               <table className="ui-data-table">
@@ -361,7 +408,8 @@ export function DeviceExposure() {
                       <td><strong>{finding.label}</strong>{finding.why && <small className="ui-muted ui-block">{finding.why}</small>}</td>
                       <td className="ui-mono">{finding.port ? `${finding.proto}/${finding.port}` : "—"}</td>
                       <td><span className={`ui-status ui-status-${finding.state === "exposed" ? "offline" : finding.state === "uncertain" ? "warning" : "online"}`}>
-                        {t(`deviceExposure.states.${finding.state}`, { defaultValue: finding.state })}</span></td>
+                        {finding.state === "exposed" && data.reachability.state !== "public" ? t("deviceExposure.states.internal")
+                          : t(`deviceExposure.states.${finding.state}`, { defaultValue: finding.state })}</span></td>
                       <td>{finding.state === "exposed" || finding.state === "uncertain"
                         ? <span className={SEVERITY_TONE[finding.severity ?? ""] ?? "ui-severity"}>{finding.severity}</span> : "—"}</td>
                       <td>{finding.reason}</td>
@@ -385,6 +433,49 @@ export function DeviceExposure() {
         <div className="ui-empty">{data.pending ? (external ? t("deviceExposure.pendingExternal") : t("deviceExposure.pendingAgent")) : t("deviceExposure.never")}</div>
       ) : null}
     </>
+  );
+}
+
+/** Internet reachability of the device (SCAN-02): only a public device raises exposure alarms. */
+function Reachability({ data }: { data: ExposureTab }) {
+  const { t, i18n } = useTranslation();
+  const r = data.reachability;
+  if (!r?.state) return null;
+  const tone = r.state === "public" ? "ui-status-offline" : r.state === "nat" ? "ui-status-online" : "ui-status-unknown";
+  return (
+    <section className="ui-panel ui-admin-section">
+      <div className="ui-page-header-row">
+        <div>
+          <h2>{t("deviceExposure.reach.title")}</h2>
+          <p className="ui-muted">{t("deviceExposure.reach.help")}</p>
+        </div>
+        <span className={`ui-status ${tone}`}>{t(`deviceExposure.reach.states.${r.state}`)}</span>
+      </div>
+      <p>{r.reason}</p>
+      {r.uplinks.length > 0 && (
+        <div className="ui-data-wrap">
+          <table className="ui-data-table">
+            <thead><tr>{["address", "class", "interface", "source"].map((key) => <th key={key}><span className="ui-th">{t(`deviceExposure.reach.columns.${key}`)}</span></th>)}</tr></thead>
+            <tbody>
+              {r.uplinks.map((row) => (
+                <tr key={`${row.source}-${row.address}`}>
+                  <td className="ui-mono">{row.address}</td>
+                  <td>{t(`deviceExposure.reach.classes.${row.class ?? "other"}`)}{row.up === false && <small className="ui-muted ui-block">{t("deviceExposure.reach.down")}</small>}</td>
+                  <td>{[row.interface, row.type].filter(Boolean).join(" · ") || "—"}</td>
+                  <td>{t(`deviceExposure.reach.sources.${row.source}`, { defaultValue: row.source })}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <small className="ui-muted ui-block">
+        {r.changed_at ? t("deviceExposure.reach.changed", {
+          when: formatDateTime(r.changed_at, i18n.language),
+          reasons: r.change_reasons.map((reason) => t(`deviceExposure.reach.reasons.${reason}`, { defaultValue: reason })).join(", "),
+        }) : null} {t("deviceExposure.reach.recheck")}
+      </small>
+    </section>
   );
 }
 

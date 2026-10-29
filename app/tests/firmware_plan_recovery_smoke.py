@@ -174,7 +174,7 @@ def check_late_staging_report_cannot_resurrect_cancelled_plan(client, user_id):
     complete = client.post(
         f"/api/v1/agents/mikrotik/firmware-stage/{job_id}/complete",
         headers=headers,
-        json={"status": "success", "error": "", "result": {"target_version": TARGET, "download_only": True}},
+        json={"status": "success", "error": "", "result": {"target_version": TARGET, "download_only": True, "package_verified": True}},
     )
     assert complete.status_code == 200
     assert plan_status(plan_id) == "cancelled", "late staging success must not resurrect a cancelled plan"
