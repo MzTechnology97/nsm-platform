@@ -59,7 +59,7 @@ export function TplinkAccess({ deviceId }: { deviceId: string }) {
     change.mutate({ protocol: form.protocol || undefined, port: form.port ? Number(form.port) : undefined });
   };
   return (
-    <section className="ui-panel ui-admin-section">
+    <section className="ui-panel ui-admin-section ui-tplink-access">
       <h2>{t("tplinkAccess.title")}</h2>
       <p className="ui-muted">{t("tplinkAccess.help")}</p>
       {data.error && <div className="ui-alert ui-alert-warning">{data.error}</div>}
@@ -147,29 +147,29 @@ function AllowList({ remote, confirmName, pending, onSubmit }: { remote: RemoteA
     setConfirm("");
   };
   return (
-    <form className="ui-admin-form" onSubmit={submit}>
-      <h4 className="ui-admin-wide">{t("tplinkAccess.allowTitle")}</h4>
-      <p className="ui-muted ui-admin-wide">{t("tplinkAccess.allowHelp")}</p>
+    <form className="ui-admin-form ui-admin-stack" onSubmit={submit}>
+      <h4>{t("tplinkAccess.allowTitle")}</h4>
+      <p className="ui-muted">{t("tplinkAccess.allowHelp")}</p>
       {rows.map((row, index) => (
-        <label key={index} className="ui-admin-wide">
+        <label key={index}>
           <span>{t("tplinkAccess.allowEntry", { n: index + 1 })}</span>
-          <span className="ui-row-actions">
+          <span className="ui-allow-entry">
             <input value={row} placeholder="203.0.113.0/24" onChange={(event) => setRows(rows.map((r, i) => (i === index ? event.target.value : r)))} />
             <button type="button" className="ui-button ui-button-ghost ui-button-small" aria-label={t("tplinkAccess.allowRemove")}
               onClick={() => setRows(rows.length > 1 ? rows.filter((_r, i) => i !== index) : [""])}>×</button>
           </span>
         </label>
       ))}
-      <div className="ui-row-actions ui-admin-wide">
+      <div className="ui-row-actions">
         <button type="button" className="ui-button ui-button-ghost ui-button-small" disabled={rows.length >= 16} onClick={() => setRows([...rows, ""])}>
           {t("tplinkAccess.allowAdd")}
         </button>
       </div>
-      <label className="ui-admin-wide">
+      <label>
         <span>{t("tplinkAccess.allowConfirm", { name: confirmName })}</span>
         <input value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="off" />
       </label>
-      <div className="ui-row-actions ui-admin-wide">
+      <div className="ui-row-actions">
         <button type="submit" className="ui-button ui-button-danger" disabled={pending || !entries.length || confirm.trim() !== confirmName}>
           {t("tplinkAccess.allowApply", { count: entries.length })}
         </button>
@@ -199,13 +199,13 @@ function IspDefaultPanel({ info, canEdit, confirmName, pending, onSave }: {
       </p>
       {info.changed_since && <p className="ui-alert ui-alert-warning">{t("tplinkAccess.defaultStale")}</p>}
       {canEdit && (
-        <form className="ui-admin-form" onSubmit={(event) => { event.preventDefault(); onSave(confirm); setConfirm(""); }}>
-          <p className="ui-muted ui-admin-wide">{t("tplinkAccess.defaultHelp")}</p>
-          <label className="ui-admin-wide">
+        <form className="ui-admin-form ui-admin-stack" onSubmit={(event) => { event.preventDefault(); onSave(confirm); setConfirm(""); }}>
+          <p className="ui-muted">{t("tplinkAccess.defaultHelp")}</p>
+          <label>
             <span>{t("tplinkAccess.defaultConfirm", { name: confirmName })}</span>
             <input value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="off" />
           </label>
-          <div className="ui-row-actions ui-admin-wide">
+          <div className="ui-row-actions">
             <button type="submit" className="ui-button" disabled={pending || confirm.trim() !== confirmName}>{t("tplinkAccess.defaultSave")}</button>
           </div>
         </form>
