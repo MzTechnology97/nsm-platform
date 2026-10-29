@@ -47,7 +47,8 @@
       "firmware_other": "{{count}} firmware to update",
       "issues_one": "{{count}} open issue",
       "issues_other": "{{count}} open issues"
-    }
+    },
+    "ipAbuse": "IP abuse"
   },
   "user": {
     "language": "Language",
@@ -7630,5 +7631,54 @@
     "lookupListed_other": "on {{count}} lists",
     "lookupClean": "on no list",
     "lookupFailed": "Not verified: {{list}}."
+  },
+  "ipAbuse": {
+    "title": "IP abuse",
+    "subtitle": "Everything the integrations report about your addresses: AbuseIPDB, DNS blacklists and threat lists, with score, reports, dates and who holds each address now.",
+    "tiles": {
+      "addresses": "Reported addresses",
+      "dnsbl": "On DNS blacklists",
+      "maxScore": "Highest AbuseIPDB score",
+      "prefixes": "Prefixes on threat lists"
+    },
+    "sources": {
+      "abuseipdb": "AbuseIPDB",
+      "dnsbl": "DNS blacklists",
+      "threat_lists": "Threat lists"
+    },
+    "checked": "checked {{when}}",
+    "notYet": "on, not checked yet",
+    "off": "off",
+    "offHint": "Not active: {{list}}. Turn them on in Integrations to include them here.",
+    "filter": "Filter by source",
+    "all": "All sources",
+    "search": "Search an address",
+    "columns": {
+      "address": "Address",
+      "lists": "Reported by",
+      "score": "Score",
+      "reports": "Reports",
+      "last": "Last report",
+      "since": "Listed since",
+      "holder": "Assigned to (now)"
+    },
+    "reports_one": "{{count}} report",
+    "reports_other": "{{count}} reports",
+    "reporters_one": "by {{count}} user",
+    "reporters_other": "by {{count}} users",
+    "removal": "removal page",
+    "unassigned": "Your address, not assigned",
+    "unknown": "No known device",
+    "more_one": "{{count}} more address not shown: use the filters.",
+    "more_other": "{{count}} more addresses not shown: use the filters.",
+    "empty": "No address reported by the active sources.",
+    "emptyFiltered": "No address with these filters.",
+    "prefixesTitle": "Prefixes on threat lists",
+    "prefixesHelp": "Your prefixes that overlap a listed network (Spamhaus DROP): have them removed at once, because many operators drop their traffic.",
+    "prefixColumns": {
+      "prefix": "Prefix",
+      "list": "List",
+      "network": "Listed network"
+    }
   }
 }

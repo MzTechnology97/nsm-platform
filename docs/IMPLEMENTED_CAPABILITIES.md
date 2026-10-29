@@ -837,6 +837,18 @@ The PPPoE concentrator is not managed by NSM: *Integrazioni → BRAS MikroTik* (
 - lists: SpamCop, PSBL, DroneBL, UCEPROTECT level 1, NiX Spam, Mailspike, SPFBL on by default; Spamhaus ZEN (free only for low-volume non-commercial use, never through public resolvers) and Barracuda (resolver registration) off; *Prova le liste* queries the test entry `127.0.0.2` of every zone;
 - a listed address opens an Action Center issue (`dnsbl`; *high* on DroneBL or several lists, else *medium*) with the holder now (BRAS session or static IP from the CYBER-01 history, else the device with that address) or *unassigned* inside the operator's prefixes, the removal page of each list, a notification and `DNSBL_LISTED`; it closes when a pass finds the address on no list. Manual look-up of any public IPv4. Settings audited as `DNSBL_CONFIGURED`. Only DNS queries leave NSM.
 
+### IP abuse overview of the operator's addresses (CYBER-01, Core 0.49.317)
+
+- *Sicurezza → Abusi IP* (`/app/ip-abuse`, `security.read`): one row per address that a source reports, merged from what the modules already stored, with no call of its own:
+  - **AbuseIPDB**: score, reports, distinct reporters, last report, categories;
+  - **DNS blacklists**: the lists, their codes and removal pages, listed since;
+  - **threat lists** (Spamhaus DROP): network and SBL reference.
+- Each row shows who holds the address now (BRAS session or static IP, else the device with that address), or *unassigned* inside the operator's prefixes.
+- Order: most lists first, then the highest score. Filters by source and address.
+- The operator's prefixes that overlap a threat-list network are shown apart.
+- Each source shows whether it is on and when it last checked, with a link to its settings.
+- API: `GET /api/ui/v1/security/ip-abuse?source=&q=` (`app/ip_abuse.py`).
+
 ### Firmware uploaded into the catalogs (VEND-01, Core 0.49.247)
 
 The manual *Aggiungi una release* form is gone (operator request 2026-10-23): on each catalog of *Firmware → Cataloghi* the operator (`firmware.execute`) uploads the image itself (`.bin`, `.img`, `.zip`; 64 KB–128 MB) and NSM reads what the official file says:
