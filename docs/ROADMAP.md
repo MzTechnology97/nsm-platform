@@ -906,6 +906,8 @@ Source addresses of failed and successful logins and of logged firewall drops ar
 
 #### SIEM-03 — who changed the configuration
 
+**Step 1 done (Core 0.49.303)**: MikroTik exports, legacy Agents included; NSM jobs/actions and syslog logins as evidence; the Agent scripts are left out of the comparison; the Action Center issue only for unknown changes or logins from public addresses. Next: the exact author from RouterOS `changed by` lines (needs a new Agent forwarding `system,info`), TR-069 and UISP changes.
+
 Every configuration change NSM detects is attributed:
 - **by NSM**: matched with NSM's own audit (Agent update, profile push, restore, firmware, TR-069 set), e.g. a legacy router's export that grew after the Agent 0.49.23 update because the previous Agent script is kept for rollback;
 - **by an operator on the device**: from the device's log (RouterOS `… changed by <user> via winbox/ssh/web from <IP>`, the equivalent lines of the other vendors), with user, service and source address;
