@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.302 — 2026-10-29
+
+Pull request template
+
+### Documentation
+
+- `.github/PULL_REQUEST_TEMPLATE.md`, recovered from the closed PR #59 and aligned with `DEVELOPMENT_WORKFLOW.md`. It covers the PR state, the confirmed need, scope and out of scope, release version and CHANGELOG, tests, real-device validation, and blocker or next step. It also reminds that only synthetic data may go into the public repository.
 ## 0.49.301 — 2026-10-29
 
 Tests
