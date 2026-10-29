@@ -288,7 +288,9 @@ export interface IntegrationsHub {
   nvd: { state: ConnectorState; advisories: number; last_success_at: string | null };
   genieacs: { state: ConnectorState; linked: number; pending: number };
   cnmaestro: { state: ConnectorState; cambium: number; linked: number };
+  unifi: { state: ConnectorState; devices: number | null; linked: number; version: string | null };
   ispbilling: { state: ConnectorState; customers: number; linked: number; details_pending: number };
+  bras?: { state: ConnectorState; online: number; offline: number };
   zabbix: { state: ConnectorState; version: string | null; linked: number; frontend: string | null };
 }
 
@@ -516,6 +518,33 @@ export interface CnmaestroAdmin {
 export const useCnmaestroAdmin = () =>
   useQuery({ queryKey: ["admin-cnmaestro"], queryFn: () => api<CnmaestroAdmin>("/api/ui/v1/admin/integrations/cnmaestro") });
 
+export interface UnifiDevice {
+  id: string | null; mac: string | null; name: string | null; ip: string | null; model: string | null; firmware: string | null;
+  firmware_updatable: boolean; state: string | null; status: "online" | "offline" | null; kind: string; site_id: string | null; site: string | null; in_nsm: boolean;
+}
+
+export interface UnifiAdmin {
+  configured: boolean;
+  enabled: boolean;
+  base_url: string;
+  verify_tls: boolean;
+  /** Site ids to read; empty means every site. */
+  sites: string[];
+  known_sites: { id: string; name: string | null }[];
+  api_prefix: string | null;
+  last_test_status: string | null;
+  last_error: string | null;
+  last_sync_at: string | null;
+  last_sync: { status: string | null; version: string | null; sites: number | null; unifi_devices: number | null; linked: number | null; new_links: number | null;
+    not_in_nsm: number | null; statistics_error: string | null; error: string | null };
+  /** Controller devices read at the last synchronization. */
+  devices: UnifiDevice[];
+  brand: BrandRef;
+}
+
+export const useUnifiAdmin = () =>
+  useQuery({ queryKey: ["admin-unifi"], queryFn: () => api<UnifiAdmin>("/api/ui/v1/admin/integrations/unifi") });
+
 /** POST to a connector administration endpoint, then refresh its page and the integrations hub. */
 export function useConnectorAction<B extends object, R = unknown>(connector: string, path: string) {
   const client = useQueryClient();
@@ -528,6 +557,11 @@ export function useConnectorAction<B extends object, R = unknown>(connector: str
   });
 }
 
+/** A Zabbix user macro ({$NAME} or {$NAME:context}): not a secret, shown as is. Same rule as the backend. */
+export function isZabbixMacro(value: string): boolean {
+  return /^\{\$[A-Za-z0-9_.]+(?::[^{}]*)?\}$/.test(value.trim());
+}
+
 export interface ZabbixAdmin {
   configured: boolean;
   enabled: boolean;
@@ -538,7 +572,8 @@ export interface ZabbixAdmin {
   settings: {
     group_prefix: string;
     interface: "agent" | "snmp";
-    snmp_community: string;
+    snmp_community: string; // only a Zabbix macro; a literal community is never sent back
+    snmp_community_secret: boolean;
     templates: { mikrotik: string; ubiquiti: string; default: string };
     scope: "all" | "customers";
     customer_ids: string[];
