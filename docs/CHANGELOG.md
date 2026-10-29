@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.293 — 2026-10-29
+
+Zabbix: a literal SNMP community is kept secret
+
+### Fixed
+
+- Zabbix: a literal SNMP community typed in *Integrazioni → Zabbix* was stored in clear in the connector settings, sent back by the admin API and written to the `ZABBIX_SETTINGS_CHANGED` audit. It is now kept in the connector's encrypted secret next to the API credentials, so the key rotation re-encrypts it too. The API only says whether one is set, and the form treats it like the passwords: an empty field keeps it. The sync decrypts it only to build an SNMP interface. A Zabbix macro such as `{$SNMP_COMMUNITY}` (the default) is not a secret and stays visible.
+- A literal stored in clear by an older version moves to the encrypted secret the first time the admin page is opened, a sync runs or the settings are saved (audit `ZABBIX_SNMP_COMMUNITY_ENCRYPTED`, without the value). The audit now records only whether the community is a macro or a secret and whether it changed. Older audit entries that contain it are shown and exported with `***` in its place; the stored rows are not changed.
 ## 0.49.292 — 2026-10-29
 
 TR-069 firmware: a faulted upgrade no longer leaves the CPE's GenieACS queue blocked
