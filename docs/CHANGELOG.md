@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.296 — 2026-10-29
+
+Roadmap
+- **Detection ideas from Wazuh (SIEM-01 to SIEM-05).** Five items requested by the operator after looking at Wazuh, re-implemented in NSM and linked to the existing security items instead of duplicating them: configurable syslog rules with a rule tester, threat-intelligence IP lists on access and firewall logs, attribution of every configuration change (NSM, an operator on the device, unknown), opt-in active response on MikroTik through an address list with timeout, and MITRE ATT&CK plus NIS2 / ISO 27001 / GDPR mapping with a report per framework.
+
 ## 0.49.295 — 2026-10-29
 
 Security
