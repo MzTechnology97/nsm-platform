@@ -829,7 +829,7 @@ The PPPoE concentrator is not managed by NSM: *Integrazioni → BRAS MikroTik* (
 - *Integrazioni → BRAS MikroTik → Chi aveva questo IP?* (`GET /api/ui/v1/security/ip-attribution`, `customers.read`), every look-up audited as `IP_ATTRIBUTION_LOOKUP`;
 - AbuseIPDB issues are assigned to the customer and device that held the address at the last report (`details.attribution`), not to whoever has it now.
 
-### DNS blacklists of the operator's addresses (CYBER-01, Core 0.49.312)
+### DNS blacklists of the operator's addresses (CYBER-01, Core 0.49.313)
 
 *Integrazioni → Blacklist DNS* (MOD-01, off by default, no account), after the blacklist checks of AbuseBox (`bekkaze/abusebox`, MIT), re-implemented:
 - what is checked: every IPv4 address of the operator's prefixes (threat lists page) and the public IPv4 addresses of the inventory outside them (at most 4096); `per_run` addresses per worker run (default 100, every minute) round robin, a full pass again after `recheck_hours` (default 24);
