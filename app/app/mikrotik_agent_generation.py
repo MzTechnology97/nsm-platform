@@ -25,13 +25,14 @@ Agent 0.49.22: interface counters of every interface, each read on its own (moni
 Agent 0.49.23: the legacy Agent reports why a job failed (step and reason), e.g. a backup export read limit.
 Agent 0.49.24: read-only snapshot sections queues, certificates and routing (BGP/OSPF), modern and legacy (MTK-05).
 Agent 0.49.25: firmware staging waits for and verifies the RouterOS package; activation reboots only with the package on the router.
+Agent 0.49.26: interface counters of Ethernet, VLAN and PPPoE too (no filter on the dynamic field, absent on those interfaces).
 """
 from __future__ import annotations
 
 from app import mikrotik_agent_update as updater
 from app import mikrotik_agent_update_ui as update_ui
 
-TARGET_AGENT_VERSION = "0.49.25"
+TARGET_AGENT_VERSION = "0.49.26"
 SELF_UPDATE_MIN_VERSION = "0.49.0"
 
 

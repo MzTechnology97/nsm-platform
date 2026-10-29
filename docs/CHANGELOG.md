@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.285 — 2026-10-29
+
+MikroTik Monitor: Ethernet ports, VLANs and PPPoE can be monitored, not only bridges (Agent 0.49.26)
+- Until now only the bridges could be monitored on MikroTik routers: the Agent collected only the interfaces whose RouterOS *dynamic* field says "no". RouterOS does not set that field on Ethernet ports, VLANs, PPPoE clients and loopback, so they were never reported.
+- The Agent now chooses the interfaces by type:
+  1. WAN clients (PPPoE, LTE, VPN clients);
+  2. Ethernet ports;
+  3. VLANs, bridges, wireless, tunnels and the other interfaces (loopback excluded);
+  4. connected PPP sessions.
+- After the Agent updates itself to 0.49.26, the *Monitor* page lists every interface. Without a choice, PPPoE/WAN is the monitored one and gets the traffic graph.
 ## 0.49.284 — 2026-10-29
 
 MikroTik firmware: the package download is verified, and the router is never rebooted without it (Agent 0.49.25)
