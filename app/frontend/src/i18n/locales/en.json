@@ -1910,7 +1910,8 @@
       "syslog": "Syslog",
       "acs": "ACS",
       "system": "System",
-      "serverMigration": "Server migration"
+      "serverMigration": "Server migration",
+      "managementAccess": "Management networks"
     }
   },
   "adminUsers": {
@@ -5548,6 +5549,9 @@
     "MAC_DISCOVERED": "MAC address read",
     "MAINTENANCE_WINDOW_CREATED": "Maintenance window created",
     "MAINTENANCE_WINDOW_DELETED": "Maintenance window deleted",
+    "MANAGEMENT_ACCESS_CHANGED": "Authorized management networks changed",
+    "MANAGEMENT_ACCESS_EXCLUSION_CHANGED": "Management networks exclusion changed",
+    "MANAGEMENT_ACCESS_QUEUED": "SNMP, SSH and time configuration sent to the device",
     "MIKROTIK_AGENT_PRIVILEGE_PROFILE_OBSERVED": "Agent permissions read",
     "MIKROTIK_AGENT_PRIVILEGE_PROFILE_SELECTED": "Agent permission profile chosen",
     "MIKROTIK_AGENT_TRANSPORT_SELECTED": "Agent transport chosen",
@@ -6951,5 +6955,70 @@
     "updateAvailable": "update available",
     "inNsm": "linked",
     "missing": "not in NSM"
+  },
+  "managementAccess": {
+    "subtitle": "Authorized management networks: the addresses the devices are managed from (NSM, Zabbix, NOC). The same list applies to every vendor: SNMP and SSH answer only these networks, and date and time are synchronized through NTP.",
+    "notSaved": "List not saved yet: until you save it NSM changes no device. Check the proposed networks and press Save.",
+    "mikrotikTitle": "MikroTik (through the Agent)",
+    "applyAll": "Apply to all now",
+    "counts": {
+      "applied": "Configured",
+      "pending_one": "{{count}} in progress",
+      "pending_other": "{{count}} in progress",
+      "failed": "Failed",
+      "todo_one": "{{count}} to configure",
+      "todo_other": "{{count}} to configure",
+      "excluded": "Excluded",
+      "notEligible_one": "{{count}} with an Agent to update or legacy",
+      "notEligible_other": "{{count}} with an Agent to update or legacy"
+    },
+    "applied": "Configuration sent to {{queued}} devices ({{skipped}} skipped: excluded, not eligible or already in progress).",
+    "settingsTitle": "Settings",
+    "settingsHelp": "With automatic application the MikroTik Agent applies the settings to every router as soon as it is updated, and again when they change.",
+    "networks": "Authorized management networks",
+    "networksHelp": "One network per line, IPv4 or IPv6, for example 198.51.100.10/32 or 203.0.113.0/24. At most {{max}}.",
+    "suggested": "Proposed by NSM: {{list}}.",
+    "lockoutWarning": "SSH and SNMP will accept only these networks: add every address you reach the devices from (NOC, VPN, office network). The Agent talks to NSM outbound and does not depend on this list.",
+    "community": "SNMP community (read-only)",
+    "ntpServers": "NTP servers",
+    "timezone": "Time zone",
+    "restrictSsh": "Also limit SSH access to these networks",
+    "autoConfigure": "Apply automatically to the devices",
+    "saved": "Settings saved.",
+    "vendorsTitle": "Vendors",
+    "vendors": {
+      "mikrotik": {
+        "name": "MikroTik",
+        "state": "through Agent 0.49.27: SNMP community limited to the networks, SSH service with «available from», NTP client and time zone."
+      },
+      "ubiquiti": {
+        "name": "Ubiquiti airOS",
+        "state": "next step through UISP: airOS firewall with rules for SSH, discovery and SNMP (reboots the CPE)."
+      },
+      "tr069": {
+        "name": "TP-Link and TR-069 CPEs",
+        "state": "next step: NTP and time zone through TR-069; SNMP and ACL where the model exposes them."
+      },
+      "cambium": {
+        "name": "Cambium",
+        "state": "next step through cnMaestro, to be verified on the console."
+      }
+    },
+    "device": {
+      "title": "SNMP, SSH and time",
+      "hint": "Settings of the authorized management networks (Administration → Management networks).",
+      "states": {
+        "applied": "Applied",
+        "pending": "In progress",
+        "failed": "Failed",
+        "todo": "To apply",
+        "excluded": "Excluded",
+        "notEligible": "Not available"
+      },
+      "clock": "Router clock: {{date}} {{time}} ({{zone}}) · NTP: {{ntp}}",
+      "lastRun": "Last applied: {{when}}",
+      "exclude": "Exclude this device",
+      "apply": "Apply now"
+    }
   }
 }

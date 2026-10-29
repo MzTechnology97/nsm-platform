@@ -1910,7 +1910,8 @@
       "syslog": "Syslog",
       "acs": "ACS",
       "system": "Système",
-      "serverMigration": "Migration du serveur"
+      "serverMigration": "Migration du serveur",
+      "managementAccess": "Réseaux de gestion"
     }
   },
   "adminUsers": {
@@ -5548,6 +5549,9 @@
     "MAC_DISCOVERED": "Adresse MAC relevée",
     "MAINTENANCE_WINDOW_CREATED": "Fenêtre de maintenance créée",
     "MAINTENANCE_WINDOW_DELETED": "Fenêtre de maintenance supprimée",
+    "MANAGEMENT_ACCESS_CHANGED": "Réseaux de gestion autorisés modifiés",
+    "MANAGEMENT_ACCESS_EXCLUSION_CHANGED": "Exclusion des réseaux de gestion modifiée",
+    "MANAGEMENT_ACCESS_QUEUED": "Configuration SNMP, SSH et heure envoyée à l'équipement",
     "MIKROTIK_AGENT_PRIVILEGE_PROFILE_OBSERVED": "Droits de l'agent relevés",
     "MIKROTIK_AGENT_PRIVILEGE_PROFILE_SELECTED": "Profil de droits de l'agent choisi",
     "MIKROTIK_AGENT_TRANSPORT_SELECTED": "Transport de l'agent choisi",
@@ -6951,5 +6955,70 @@
     "updateAvailable": "mise à jour disponible",
     "inNsm": "associé",
     "missing": "absent de NSM"
+  },
+  "managementAccess": {
+    "subtitle": "Réseaux de gestion autorisés : les adresses depuis lesquelles les équipements sont gérés (NSM, Zabbix, NOC). La même liste vaut pour tous les fabricants : SNMP et SSH ne répondent qu'à ces réseaux, et la date et l'heure sont synchronisées par NTP.",
+    "notSaved": "Liste pas encore enregistrée : tant qu'elle ne l'est pas, NSM ne modifie aucun équipement. Vérifiez les réseaux proposés et cliquez sur Enregistrer.",
+    "mikrotikTitle": "MikroTik (via l'agent)",
+    "applyAll": "Appliquer à tous maintenant",
+    "counts": {
+      "applied": "Configurés",
+      "pending_one": "{{count}} en cours",
+      "pending_other": "{{count}} en cours",
+      "failed": "Échecs",
+      "todo_one": "{{count}} à configurer",
+      "todo_other": "{{count}} à configurer",
+      "excluded": "Exclus",
+      "notEligible_one": "{{count}} avec un agent à mettre à jour ou legacy",
+      "notEligible_other": "{{count}} avec un agent à mettre à jour ou legacy"
+    },
+    "applied": "Configuration envoyée à {{queued}} équipements ({{skipped}} ignorés : exclus, non éligibles ou déjà en cours).",
+    "settingsTitle": "Paramètres",
+    "settingsHelp": "Avec l'application automatique, l'agent MikroTik applique les paramètres à chaque routeur dès sa mise à jour, puis à chaque changement.",
+    "networks": "Réseaux de gestion autorisés",
+    "networksHelp": "Un réseau par ligne, IPv4 ou IPv6, par exemple 198.51.100.10/32 ou 203.0.113.0/24. Au maximum {{max}}.",
+    "suggested": "Proposés par NSM : {{list}}.",
+    "lockoutWarning": "SSH et SNMP n'accepteront que ces réseaux : ajoutez toutes les adresses depuis lesquelles vous accédez aux équipements (NOC, VPN, bureau). L'agent communique avec NSM en sortie et ne dépend pas de cette liste.",
+    "community": "Communauté SNMP (lecture seule)",
+    "ntpServers": "Serveurs NTP",
+    "timezone": "Fuseau horaire",
+    "restrictSsh": "Limiter aussi l'accès SSH à ces réseaux",
+    "autoConfigure": "Appliquer automatiquement aux équipements",
+    "saved": "Paramètres enregistrés.",
+    "vendorsTitle": "Fabricants",
+    "vendors": {
+      "mikrotik": {
+        "name": "MikroTik",
+        "state": "via l'agent 0.49.27 : communauté SNMP limitée aux réseaux, service SSH avec « disponible depuis », client NTP et fuseau horaire."
+      },
+      "ubiquiti": {
+        "name": "Ubiquiti airOS",
+        "state": "étape suivante via UISP : pare-feu airOS avec règles pour SSH, découverte et SNMP (redémarre la CPE)."
+      },
+      "tr069": {
+        "name": "TP-Link et CPE TR-069",
+        "state": "étape suivante : NTP et fuseau horaire via TR-069 ; SNMP et ACL lorsque le modèle les expose."
+      },
+      "cambium": {
+        "name": "Cambium",
+        "state": "étape suivante via cnMaestro, à vérifier sur la console."
+      }
+    },
+    "device": {
+      "title": "SNMP, SSH et heure",
+      "hint": "Paramètres des réseaux de gestion autorisés (Administration → Réseaux de gestion).",
+      "states": {
+        "applied": "Appliqués",
+        "pending": "En cours",
+        "failed": "Échec",
+        "todo": "À appliquer",
+        "excluded": "Exclu",
+        "notEligible": "Non disponible"
+      },
+      "clock": "Horloge du routeur : {{date}} {{time}} ({{zone}}) · NTP : {{ntp}}",
+      "lastRun": "Dernière application : {{when}}",
+      "exclude": "Exclure cet équipement",
+      "apply": "Appliquer maintenant"
+    }
   }
 }

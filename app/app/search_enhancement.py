@@ -103,6 +103,7 @@ PAGES = (
     ("Servizi esposti su Internet", "/security/exposure", "esposizione porte wan telnet ssh winbox scansione", "security.read"),
     ("Accessi ai dispositivi", "/security/access", "accessi login password brute force syslog tentativi", "security.read"),
     ("Syslog", "/admin/syslog", "syslog log server remoto", "users.manage"),
+    ("Reti di gestione", "/admin/management-access", "acl snmp ssh ntp ora fuso orario reti autorizzate gestione", "users.manage"),
     ("Zabbix", "/admin/integrations/zabbix", "zabbix monitoraggio host", "users.manage"),
     ("cnMaestro", "/admin/integrations/cnmaestro", "cambium epmp pmp cnpilot radio", "users.manage"),
     ("UniFi Network", "/admin/integrations/unifi", "ubiquiti unifi controller udm usw uap gateway switch access point", "users.manage"),
