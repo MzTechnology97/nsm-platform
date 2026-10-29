@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.313 — 2026-10-29
+
+DNS blacklists of the operator's addresses (CYBER-01)
+- New module *Integrazioni → Blacklist DNS*. It checks whether your public IPv4 addresses are on the DNS blacklists (DNSBL). It is free and needs no account, and it is off until you turn it on.
+- Checked: every address of your prefixes (declared on the *Liste di minaccia* page) and the public addresses of the devices outside them. A few addresses run every minute, and a full pass runs again every 24 hours (configurable).
+- Lists on by default: SpamCop, PSBL, DroneBL, UCEPROTECT level 1, NiX Spam, Mailspike and SPFBL. Spamhaus ZEN and Barracuda are off: Spamhaus is free only for low volumes and never through public DNS resolvers, and Barracuda needs the resolver registered.
+- *Prova le liste* shows which lists answer this server. A list that refuses or fails is shown on the page and never adds or removes a listing.
+- An address on a list opens an Action Center alert. The alert shows who has the address now (PPPoE session of the BRAS or static IP, otherwise the device with that address) and links to the removal page of each list. An address of your prefixes that nobody holds is marked as unassigned. The alert closes by itself when the address is on no list any more.
+- You can also check any public IPv4 address by hand.
+- Only DNS queries leave NSM. Nothing is sent to the lists.
 ## 0.49.312 — 2026-10-29
 
 Who held an IP address at a given time: PPPoE address history of the BRAS (CYBER-01)
