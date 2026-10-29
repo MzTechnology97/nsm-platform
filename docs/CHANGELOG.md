@@ -4,6 +4,14 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.292 — 2026-10-29
+
+TR-069 firmware: a faulted upgrade no longer leaves the CPE's GenieACS queue blocked
+
+### Fixed
+
+- TR-069 firmware upgrades, single and in campaigns: when the GenieACS `download` task ended in a fault, the task stayed in the CPE's queue and every later task waited behind it (on 2026-10-23 a `too_many_rpcs` fault blocked an HB210). NSM now keeps the id GenieACS gives the task and, when the upgrade turns out failed on a GenieACS fault, deletes that task and its fault, as the configuration refresh and the restore already did. After 30 minutes without a new version the task is deleted if it is still queued. Only NSM's own task is touched; for upgrades requested before this version it is found in the CPE's queue by name and image.
+- The removal is recorded on the upgrade (a note on the Firmware tab), in the `ACS_FIRMWARE_FAILED` audit, in the new `ACS_FIRMWARE_UNCONFIRMED` audit and in `ACS_FIRMWARE_CAMPAIGN_STOPPED`. A campaign still stops at the first failed or unconfirmed CPE.
 ## 0.49.291 — 2026-10-29
 
 Exposure: checks from an external probe, outside the operator network (SCAN-02)
