@@ -6026,7 +6026,12 @@
       "save": "Guardar",
       "saved": "Guardado."
     },
-    "short": "El servidor envió solo {{bytes}} bytes en lugar del archivo (redirección o rechazo): usa NSM u otro servidor de prueba."
+    "short": "El servidor envió solo {{bytes}} bytes en lugar del archivo (redirección o rechazo): usa NSM u otro servidor de prueba.",
+    "timedHelp": "En los CPE que lo admiten la prueba dura {{seconds}} segundos y mide la velocidad cada 2 segundos.",
+    "plan": "Plan ISPBilling del cliente: {{plans}}",
+    "breakdown": "sostenida {{sustained}} · media {{average}} · pico {{peak}} Mbit/s",
+    "tooShort": "prueba corta: puede medir el burst inicial en lugar del límite del plan",
+    "burstNote": "La prueba llega al servidor NSM pasando por el BRAS: si el perfil PPPoE tiene burst, los primeros segundos van más rápido que el plan. Compara la velocidad sostenida con el plan."
   },
   "acsFirmware": {
     "title": "Firmware",

@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.280 — 2026-10-29
+
+TR-069 speed test: the speed the line holds, not the initial burst
+- A short test (25 MB) on a 100M plan with a PPPoE burst finished in about a second and measured the burst (e.g. 154 Mbit/s), not the plan.
+- When the CPE supports a time-based test (TR-143 *TimeBasedTestDuration*), NSM now runs it for 20 seconds, with a measurement every 2 seconds.
+- The result shows the **sustained** speed (median of the second half, once the burst is over), with average and peak beside it.
+- CPEs that accept the time-based test but return no incremental results (seen on a VX230v) are measured by NSM's own test server every 2 seconds, on the same transfer.
+- The RADIUS profile of the ISPBilling account matched to the CPE is shown beside the result, to compare it with the plan.
+- A test shorter than 8 seconds without intervals is marked as possibly inside the burst; a note in the panel explains why.
 ## 0.49.279 — 2026-10-29
 
 Customers

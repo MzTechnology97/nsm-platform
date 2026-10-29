@@ -6026,7 +6026,12 @@
       "save": "Save",
       "saved": "Saved."
     },
-    "short": "The server sent only {{bytes}} bytes instead of the file (redirect or refusal): use NSM or another test server."
+    "short": "The server sent only {{bytes}} bytes instead of the file (redirect or refusal): use NSM or another test server.",
+    "timedHelp": "On CPEs that support it the test lasts {{seconds}} seconds and measures the speed every 2 seconds.",
+    "plan": "Customer's ISPBilling plan: {{plans}}",
+    "breakdown": "sustained {{sustained}} · average {{average}} · peak {{peak}} Mbit/s",
+    "tooShort": "short test: it may measure the initial burst instead of the plan limit",
+    "burstNote": "The test reaches the NSM server through the BRAS: if the PPPoE profile has a burst, the first seconds run faster than the plan. Compare the sustained speed with the plan."
   },
   "acsFirmware": {
     "title": "Firmware",
