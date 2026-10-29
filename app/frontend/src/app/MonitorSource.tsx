@@ -7,6 +7,8 @@ import type { UispChart } from "../api/deviceConnectors";
 import type { Range } from "../api/monitor";
 import type { Unit } from "../charts/format";
 import { type ChartSeries, TimeChart } from "../charts/TimeChart";
+import { formatDateTime } from "../lib/format";
+import { metricValue } from "../pages/DeviceUisp";
 
 interface SourceCharts {
   source: "tr069" | "uisp" | "cnmaestro" | null;
@@ -14,6 +16,7 @@ interface SourceCharts {
   resources: UispChart | null;
   traffic: UispChart | null;
   extra: UispChart[];
+  latest?: { observed_at: string; values: { field: string; label: string; unit: string; value: number | null }[] } | null;
 }
 
 const UNIT: Record<string, Unit> = { "%": "%", dBm: "dBm", bps: "bps", ms: "ms" };
@@ -53,7 +56,7 @@ function SourceChart({ chart, only, height, color }: { chart: UispChart; only?: 
 /** Monitor tab of a device without the NSM agent: its source's charts in the same panels and order as a MikroTik router
  * (resources, traffic, latency, then what only that source has). */
 export function SourcePanels({ id, range, latency }: { id: string; range: Range; latency: ReactNode }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const query = useMonitorSource(id, range);
   const data = query.data;
   if (!data) return null;
@@ -69,8 +72,24 @@ export function SourcePanels({ id, range, latency }: { id: string; range: Range;
     );
   }
   const name = t(`monitor.source.names.${data.source}`);
+  const latest = data.latest;
   return (
     <>
+      {data.sample_count === 0 && latest && (
+        // MON-02: nothing in the chosen range (device offline for a while), the last values it reported stay visible.
+        <section className="ui-panel">
+          <div className="ui-panel-header">
+            <h2>{t("monitor.source.latestTitle")}</h2>
+            <small className="ui-muted">{t("monitor.source.latestAt", { source: name, when: formatDateTime(latest.observed_at, i18n.language) })}</small>
+          </div>
+          <dl className="ui-dl">
+            {latest.values.map((item) => (
+              <div key={item.field}><dt>{t(`deviceUisp.series.${item.field}`, { defaultValue: item.label })}</dt>
+                <dd>{metricValue(item.field, item.unit, item.value, i18n.language)}</dd></div>
+            ))}
+          </dl>
+        </section>
+      )}
       <section className="ui-panel">
         <div className="ui-panel-header">
           <h2>{t("monitor.resources")}</h2>

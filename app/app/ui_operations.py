@@ -227,6 +227,8 @@ def firmware_row(device, can_execute: bool) -> dict:
 
 @router.get("/firmware")
 def firmware(request: Request, q: str = "", customer: str = "", vendor: str = "", state: str = "attention", offset: int = 0, limit: int = 0):
+    from app import uisp_firmware_upgrade
+
     with SessionLocal() as db:
         user = ui_user(request, db, "firmware.read")
         state = state if state in FIRMWARE_STATES else "attention"
@@ -243,7 +245,7 @@ def firmware(request: Request, q: str = "", customer: str = "", vendor: str = ""
         can_execute = core.has_permission(user, "firmware.execute")
         return {"state": state, "total": total, "offset": offset, "limit": size,
                 "counts": firmware_worklist.state_counts(db, scope),
-                "items": [firmware_row(device, can_execute) for device in devices],
+                "items": [firmware_row(device, can_execute) for device in devices], "uisp_bulk_max": uisp_firmware_upgrade.MAX_BULK,
                 "links": {"catalogs": "/operations/firmware/catalogs", "suggestions": "/operations/firmware/suggestions"}}
 
 

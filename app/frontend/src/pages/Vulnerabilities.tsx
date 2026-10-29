@@ -1,8 +1,9 @@
-import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { Link, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SearchSelect, customerLabel } from "../app/SearchSelect";
 import { Pager } from "../app/Pager";
+import { useListSearch } from "../app/CustomerScope";
 import { pageParams, usePaging } from "../lib/paging";
 
 import { ApiError } from "../api/client";
@@ -24,12 +25,11 @@ const STATUSES: VulnStatus[] = ["open", "resolved", "all"];
 
 export function Vulnerabilities() {
   const { t, i18n } = useTranslation();
-  const search = useSearch({ from: "/vulnerabilities" });
-  const navigate = useNavigate({ from: "/vulnerabilities" });
+  // Globally or inside a customer's security tab (the customer filter is then fixed and its picker hidden).
+  const { search, update, customer: scope } = useListSearch<VulnFilters>();
   const facets = useDeviceFacets();
   const [text, setText] = useState(search.q ?? "");
   const q = useDebounced(text.trim());
-  const update = (patch: Partial<VulnFilters>) => void navigate({ search: (previous: VulnFilters) => ({ ...previous, ...patch }), replace: true });
   useEffect(() => {
     if ((search.q ?? "") !== q) update({ q: q || undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -41,10 +41,10 @@ export function Vulnerabilities() {
   const severity = search.severity ?? "";
 
   return (
-    <section className="ui-page">
+    <section className={scope ? "ui-customer-list" : "ui-page"}>
       <header className="ui-page-header ui-page-header-row">
         <div>
-          <h1>{t("vulns.title")}</h1>
+          {scope ? <h2>{t("vulns.title")}</h2> : <h1>{t("vulns.title")}</h1>}
           <p>{first?.device ? t("vulns.forDevice", { name: first.device.name }) : t("vulns.subtitle")}</p>
         </div>
       </header>
@@ -71,7 +71,7 @@ export function Vulnerabilities() {
       </div>
       <div className="ui-filter-bar">
         <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("vulns.search")} aria-label={t("vulns.search")} autoComplete="off" />
-        <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+        {!scope && <SearchSelect value={search.customer ?? ""} options={(facets.data?.customers ?? []).map((customer) => ({ value: customer.id, label: customerLabel(customer) }))} onChange={(value) => update({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />}
         <select value={search.vendor ?? ""} onChange={(event) => update({ vendor: event.target.value || undefined })} aria-label={t("devices.vendor")}>
           <option value="">{t("devices.allVendors")}</option>
           {first?.vendors.map((vendor) => <option key={vendor} value={vendor}>{vendor}</option>)}
@@ -98,7 +98,9 @@ export function Vulnerabilities() {
                 {rows.map((row) => (
                   <tr key={row.id}>
                     <td>
-                      <Link to="/vulnerabilities/$advisoryId" params={{ advisoryId: row.id }} search={{ customer: search.customer, status: search.status }} className="ui-cell-title ui-mono">
+                      <Link to={scope ? "/customers/$customerId/security/vulnerabilities/$advisoryId" : "/vulnerabilities/$advisoryId"}
+                        params={{ advisoryId: row.id, customerId: scope ?? "" }} search={scope ? { status: search.status } : { customer: search.customer, status: search.status }}
+                        className="ui-cell-title ui-mono">
                         {row.cve_id}
                       </Link>
                       {row.summary && <small className="ui-muted ui-block ui-clamp" title={row.summary}>{row.summary}</small>}
@@ -132,9 +134,9 @@ export function Vulnerabilities() {
 
 export function VulnerabilityDetail() {
   const { t, i18n } = useTranslation();
-  const { advisoryId } = useParams({ from: "/vulnerabilities/$advisoryId" });
-  const search = useSearch({ from: "/vulnerabilities/$advisoryId" });
-  const navigate = useNavigate({ from: "/vulnerabilities/$advisoryId" });
+  const { advisoryId } = useParams({ strict: false }) as { advisoryId: string };
+  // Globally or inside a customer's security tab: there only that customer's affected devices.
+  const { search, update: set, customer: scope } = useListSearch<{ customer?: string; status?: VulnStatus }>();
   const query = useAdvisory(advisoryId, search.customer, search.status);
   const data = query.data;
   if (query.isError) {
@@ -142,12 +144,15 @@ export function VulnerabilityDetail() {
     return <div className="ui-empty">{status === 404 ? t("vulns.notFound") : t("app.error")}</div>;
   }
   if (!data) return <Loading />;
-  const set = (patch: { customer?: string; status?: VulnStatus }) => void navigate({ search: (previous: typeof search) => ({ ...previous, ...patch }), replace: true });
 
   return (
-    <section className="ui-page">
+    <section className={scope ? "ui-customer-list" : "ui-page"}>
       <nav className="ui-breadcrumbs" aria-label={t("device.breadcrumbs")}>
-        <Link to="/vulnerabilities">{t("vulns.title")}</Link>
+        {scope ? (
+          <Link to="/customers/$customerId/security/vulnerabilities" params={{ customerId: scope }}>{t("vulns.title")}</Link>
+        ) : (
+          <Link to="/vulnerabilities">{t("vulns.title")}</Link>
+        )}
         <span aria-hidden="true">›</span>
         <span>{data.cve_id}</span>
       </nav>
@@ -177,7 +182,7 @@ export function VulnerabilityDetail() {
         </dl>
       </section>
 
-      <Impacted data={data} onFilter={set} customer={search.customer} status={search.status ?? "open"} />
+      <Impacted data={data} onFilter={set} customer={search.customer} status={search.status ?? "open"} scoped={Boolean(scope)} />
 
       {data.unassessed.length > 0 && (
         <section className="ui-panel ui-section-gap">
@@ -209,7 +214,9 @@ export function VulnerabilityDetail() {
   );
 }
 
-function Impacted({ data, onFilter, customer, status }: { data: AdvisoryDetail; onFilter: (patch: { customer?: string; status?: VulnStatus }) => void; customer?: string; status: VulnStatus }) {
+function Impacted({ data, onFilter, customer, status, scoped = false }: {
+  data: AdvisoryDetail; onFilter: (patch: { customer?: string; status?: VulnStatus }) => void; customer?: string; status: VulnStatus; scoped?: boolean;
+}) {
   const { t, i18n } = useTranslation();
   return (
     <section className="ui-panel ui-section-gap">
@@ -219,7 +226,7 @@ function Impacted({ data, onFilter, customer, status }: { data: AdvisoryDetail; 
           <p className="ui-muted">{t("vulns.impacted.hint")}</p>
         </div>
         <div className="ui-actions">
-          <SearchSelect value={customer ?? ""} options={data.customers.map((row) => ({ value: row.id, label: `${customerLabel(row)} (${row.devices})` }))} onChange={(value) => onFilter({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />
+          {!scoped && <SearchSelect value={customer ?? ""} options={data.customers.map((row) => ({ value: row.id, label: `${customerLabel(row)} (${row.devices})` }))} onChange={(value) => onFilter({ customer: value || undefined })} emptyLabel={t("devices.allCustomers")} ariaLabel={t("devices.customer")} />}
           <div className="ui-segmented" role="group" aria-label={t("vulns.state")}>
             {STATUSES.map((value) => (
               <button key={value} type="button" className={status === value ? "is-active" : undefined} onClick={() => onFilter({ status: value === "open" ? undefined : value })}>

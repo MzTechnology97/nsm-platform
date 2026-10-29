@@ -1,4 +1,4 @@
-export type Unit = "bps" | "%" | "ms" | "dBm" | "count" | "bytes";
+export type Unit = "bps" | "%" | "ms" | "dBm" | "dB" | "°C" | "V" | "mA" | "count" | "bytes";
 
 /** Value with its unit, scaled like Cacti/Zabbix (kbit/s, Mbit/s…). */
 export function formatValue(value: number | null | undefined, unit: Unit, locale: string): string {

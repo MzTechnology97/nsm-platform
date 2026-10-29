@@ -30,6 +30,7 @@ from urllib.parse import quote
 import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 
+from app import acs_profiles as profiles
 from app import genieacs_connector as acs
 from app import main as core
 from app.db import SessionLocal
@@ -47,13 +48,13 @@ TRANSPORT = None  # tests swap in an httpx.MockTransport
 # Object paths and settings per data model; values are (name, value, xsd type).
 MODELS = {
     "tr181": {
-        "ping": ("Device.IP.Diagnostics.IPPing", (("NumberOfRepetitions", 4, "xsd:unsignedInt"), ("Timeout", 2000, "xsd:unsignedInt"))),
-        "traceroute": ("Device.IP.Diagnostics.TraceRoute", (("MaxHopCount", 20, "xsd:unsignedInt"), ("NumberOfTries", 3, "xsd:unsignedInt"),
+        "ping": (profiles.path("tr181", "ping"), (("NumberOfRepetitions", 4, "xsd:unsignedInt"), ("Timeout", 2000, "xsd:unsignedInt"))),
+        "traceroute": (profiles.path("tr181", "traceroute"), (("MaxHopCount", 20, "xsd:unsignedInt"), ("NumberOfTries", 3, "xsd:unsignedInt"),
                                                             ("Timeout", 3000, "xsd:unsignedInt"))),
     },
     "tr098": {
-        "ping": ("InternetGatewayDevice.IPPingDiagnostics", (("NumberOfRepetitions", 4, "xsd:unsignedInt"), ("Timeout", 2000, "xsd:unsignedInt"))),
-        "traceroute": ("InternetGatewayDevice.TraceRouteDiagnostics", (("MaxHopCount", 20, "xsd:unsignedInt"), ("NumberOfTries", 3, "xsd:unsignedInt"),
+        "ping": (profiles.path("tr098", "ping"), (("NumberOfRepetitions", 4, "xsd:unsignedInt"), ("Timeout", 2000, "xsd:unsignedInt"))),
+        "traceroute": (profiles.path("tr098", "traceroute"), (("MaxHopCount", 20, "xsd:unsignedInt"), ("NumberOfTries", 3, "xsd:unsignedInt"),
                                                                        ("Timeout", 3000, "xsd:unsignedInt"))),
     },
 }
@@ -84,6 +85,11 @@ def _client(connection) -> httpx.Client:
 
 def _task(connection, external_id: str, task: dict) -> bool:
     """Queue a task with a connection request; True when the CPE ran it at once, False when it waits for the next contact."""
+    return _task_with_id(connection, external_id, task)[1]
+
+
+def _task_with_id(connection, external_id: str, task: dict) -> tuple[str, bool]:
+    """Like ``_task``, also returning the id GenieACS gave the task ("" when the answer has none), so it can be deleted later."""
     try:
         with _client(connection) as client:
             response = client.post(f"/devices/{quote(external_id, safe='')}/tasks", params={"connection_request": "", "timeout": TASK_TIMEOUT_MS},
@@ -94,7 +100,12 @@ def _task(connection, external_id: str, task: dict) -> bool:
         raise AcsDiagnosticError("Il CPE non è più presente in GenieACS.")
     if response.status_code not in (200, 202):
         raise AcsDiagnosticError(f"GenieACS ha rifiutato il comando (HTTP {response.status_code}).")
-    return response.status_code == 200
+    try:
+        body = response.json()
+        task_id = str(body.get("_id") or "") if isinstance(body, dict) else ""
+    except ValueError:
+        task_id = ""
+    return task_id, response.status_code == 200
 
 
 def _read(connection, external_id: str, paths: list[str]) -> dict:
@@ -153,10 +164,10 @@ def parse_result(model: str, kind: str, record: dict) -> dict:
 
 
 def detect_model(connection, external_id: str) -> str | None:
-    record = _read(connection, external_id, ["Device.IP.Diagnostics.IPPing", "InternetGatewayDevice.IPPingDiagnostics"])
-    if _node(record, "Device.IP.Diagnostics.IPPing"):
+    record = _read(connection, external_id, [profiles.path("tr181", "ping"), profiles.path("tr098", "ping")])
+    if _node(record, profiles.path("tr181", "ping")):
         return "tr181"
-    if _node(record, "InternetGatewayDevice.IPPingDiagnostics"):
+    if _node(record, profiles.path("tr098", "ping")):
         return "tr098"
     return None
 

@@ -146,8 +146,15 @@ export interface ConfigFilters {
   action?: string;
 }
 
+export interface SectionSupport {
+  supported: boolean;
+  reason: "no_transport" | "transport" | "agent_outdated" | null;
+  min_agent: string | null;
+}
+
 export interface ConfigView {
-  sections: { key: string; read_at: string | null }[];
+  /** ``support``: whether the installed agent can read the section (``reason`` and ``min_agent`` when it cannot). */
+  sections: { key: string; read_at: string | null; support: SectionSupport }[];
   section: string;
   read_at: string | null;
   pending: string[];
@@ -360,6 +367,36 @@ export interface Logbook {
 /** Device logbook (operator entries) and, with ``events``, the device's recorded events. */
 export const useLogbook = (id: string, events: boolean) =>
   useQuery({ queryKey: ["device", id, "logbook", events], queryFn: () => api<Logbook>(`${base(id)}/logbook${events ? "?events=1" : ""}`), placeholderData: keepPreviousData });
+
+export interface IspbillingActivity {
+  id: string;
+  type: string | null;
+  kind: "onsite" | "maintenance" | "other";
+  color: string | null;
+  subject: string | null;
+  description: string | null;
+  start: string | null;
+  end: string | null;
+  all_day: boolean;
+  state: "planned" | "past" | "cancelled";
+  cancellation_reason: string | null;
+  status_code: string | null;
+  teams: string[];
+  scope: "device" | "customer";
+  customer: string | null;
+}
+
+export interface IspbillingActivities {
+  available: boolean;
+  linked: boolean;
+  activities: IspbillingActivity[];
+  error: string | null;
+}
+
+/** ISPBilling activities (interventions, installations) of the device or of its customer, read on demand from ISPBilling. */
+export const useIspbillingActivities = (id: string, enabled: boolean) =>
+  useQuery({ queryKey: ["device", id, "ispbilling-activities"], queryFn: () => api<IspbillingActivities>(`${base(id)}/ispbilling-activities`),
+    enabled, staleTime: 60_000, retry: false });
 
 export function useLogbookActions(id: string) {
   const client = useQueryClient();
