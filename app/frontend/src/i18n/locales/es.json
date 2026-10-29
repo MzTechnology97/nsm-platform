@@ -3199,7 +3199,12 @@
     "archiveRead_other": "Archivar las {{count}} leídas",
     "noArchived": "Ninguna notificación archivada.",
     "maintenance": "durante un mantenimiento programado",
-    "maintenanceHint": "Mantenimiento programado: {{reason}} (hasta el {{until}}). El aviso se envía igualmente."
+    "maintenanceHint": "Mantenimiento programado: {{reason}} (hasta el {{until}}). El aviso se envía igualmente.",
+    "menu": {
+      "seeAll": "Ver todas las notificaciones",
+      "openDevice": "Abrir equipo",
+      "newTab": "Los enlaces se abren en una pestaña nueva: la página que está usando sigue abierta."
+    }
   },
   "profile": {
     "title": "Perfil",

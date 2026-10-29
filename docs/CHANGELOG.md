@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.289 — 2026-10-29
+
+Notifications: drop-down from the bell, without leaving the page
+- The bell now opens a drop-down over the page in use, instead of the *Notifiche* page. A customer or device page stays open.
+- It lists the latest notifications, all or unread only, with the unread count; *Segna tutte come lette* is in the header.
+- Opening a notification shows it in full and **marks it read**. From there:
+  - *Archivia* removes it;
+  - *Apri apparato*, the vulnerability or the source open **in a new tab**.
+- *Vedi tutte le notifiche* leads to the full page. Esc or a click outside closes the drop-down. On phones it takes the width of the screen.
 ## 0.49.288 — 2026-10-29
 
 Exposure: alarms only for devices really reachable from Internet, checked again at every connectivity change (SCAN-02)
