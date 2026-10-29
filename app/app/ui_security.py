@@ -152,8 +152,8 @@ def vulnerability_detail(request: Request, advisory_id: uuid.UUID, customer: str
         }
 
 
-EXPOSURE_VIEWS = {"exposed": ("exposed",), "setup": ("setup",), "clean": ("clean",), "pending": ("pending",),
-                  "all": ("exposed", "clean", "setup", "pending")}
+EXPOSURE_VIEWS = {"exposed": ("exposed",), "internal": ("internal",), "setup": ("setup",), "clean": ("clean",), "pending": ("pending",),
+                  "all": ("exposed", "internal", "clean", "setup", "pending")}
 EXPOSURE_LIMIT = 500
 
 
@@ -172,6 +172,7 @@ def exposure(request: Request, view: str = "exposed", customer: str = "", offset
                 "vendor": r["device"].vendor, "customer": {"id": str(r["customer"].id), "name": r["customer"].name} if r["customer"] else None,
                 "mode": r["mode"], "state": r["state"], "blocker": r["blocker"], "worst": r["worst"], "checked_at": r["checked_at"],
                 "target_ip": r["target_ip"], "shared": r["shared"], "private": r["private"],
+                "reachability": r.get("reachability"), "reachability_reason": r.get("reachability_reason"),
                 "findings": [{"label": f.get("label"), "proto": f.get("proto"), "port": f.get("port"), "severity": f.get("severity") or "info"}
                              for f in r["exposed"]],
             } for r in rows[offset:offset + size]],

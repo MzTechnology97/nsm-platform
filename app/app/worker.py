@@ -19,6 +19,7 @@ from app.mikrotik_backup_finalization_cleanup import install_mikrotik_backup_fin
 from app.mikrotik_telemetry import telemetry_cleanup
 from app.uisp_metrics import cleanup as uisp_metrics_cleanup
 from app.cnmaestro_connector import cleanup as cnmaestro_cleanup, scheduled_sync as cnmaestro_sync
+from app.unifi_connector import scheduled_sync as unifi_sync
 from app.ispbilling_connector import scheduled_sync as ispbilling_sync
 from app.mikrotik_bras import scheduled_sync as bras_sync
 from app.interface_traffic import cleanup as interface_traffic_cleanup
@@ -29,6 +30,8 @@ from app.mikrotik_wireless import cleanup as wireless_cleanup
 from app.syslog_receiver import cleanup as syslog_cleanup
 from app.syslog_security import evaluate as evaluate_access_alerts
 from app.mikrotik_syslog_config import auto_configure as auto_configure_syslog
+from app.management_access import auto_configure as auto_configure_management
+from app.reachability import refresh as reachability_refresh
 from app.zabbix_connector import scheduled_sync as zabbix_sync
 from app.acs_customer_tags import run as acs_customer_tags
 from app.zabbix_problems import scheduled_refresh as zabbix_problems_refresh
@@ -52,6 +55,7 @@ from app.vendor_firmware import run_scheduled as run_vendor_firmware
 from app.routerboot_lifecycle import verification_tick as routerboot_verification_tick
 from app.mikrotik_device_reboot import verify_reboots
 from app.uisp_operations import scheduled_backups as uisp_scheduled_backups, verify_reboots as uisp_verify_reboots
+from app.cnmaestro_operations import verify_reboots as cnmaestro_verify_reboots
 from app.uisp_firmware_upgrade import follow_upgrades as uisp_firmware_follow
 from app.mikrotik_legacy_operations import verify_upgrades as verify_legacy_upgrades
 from app.report_schedules import run_report_schedules
@@ -103,6 +107,7 @@ while True:
             routerboot_stats = run_task("routerboot_verification", routerboot_verification_tick)
             reboot_stats = dict(run_task("device_reboot_verification", verify_reboots))
             run_task("uisp_reboot_verification", uisp_verify_reboots)
+            run_task("cnmaestro_reboot_verification", cnmaestro_verify_reboots)
             run_task("uisp_firmware_follow", uisp_firmware_follow)
             run_task("uisp_scheduled_backups", uisp_scheduled_backups)
             reboot_stats.update({f"upgrade_{k}": v for k, v in run_task("legacy_upgrade_verification", verify_legacy_upgrades).items()})
@@ -116,10 +121,13 @@ while True:
             run_task("vulnerability_digest", run_vulnerability_digest)
             run_task("syslog_access_alerts", evaluate_access_alerts)
             run_task("syslog_agent_config", auto_configure_syslog)
+            run_task("management_access_auto", auto_configure_management)
+            run_task("reachability", reachability_refresh)
             run_task("icmp_monitor", icmp_tick)
             run_task("interface_error_alerts", interface_error_alerts)
             run_task("zabbix_sync", zabbix_sync)
             run_task("cnmaestro_sync", cnmaestro_sync)
+            run_task("unifi_sync", unifi_sync)
             run_task("acs_customer_tags", acs_customer_tags)
             run_task("ispbilling_sync", ispbilling_sync)
             run_task("bras_sync", bras_sync)

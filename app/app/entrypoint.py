@@ -45,6 +45,7 @@ from app.ui_device_agent import install_ui_device_agent
 from app.ui_device_diagnostics import install_ui_device_diagnostics
 from app.ui_customers import install_ui_customers
 from app.ui_operations import install_ui_operations
+from app.mikrotik_fleet_readiness import install_mikrotik_fleet_readiness
 from app.ui_security import install_ui_security
 from app.ui_incidents import install_ui_incidents
 from app.ui_admin import install_ui_admin
@@ -56,6 +57,8 @@ from app.maintenance_windows import install_maintenance_windows
 from app.connector_diagnostics import install_connector_diagnostics
 from app.server_migration import install_server_migration
 from app.acs_syslog import install_acs_syslog
+from app.uisp_syslog import install_uisp_syslog
+from app.cambium_syslog import install_cambium_syslog
 from app.lifecycle_web import install_lifecycle_web
 from app.cnmaestro_onboarding import install_cnmaestro_onboarding
 from app.uisp_auto_customer import install_uisp_auto_customer
@@ -79,6 +82,7 @@ from app.acs_firmware_campaigns import install_acs_firmware_campaigns
 from app.ispbilling_cpe_link import install_ispbilling_cpe_link
 from app.tplink_access import install_tplink_access
 from app.tplink_settings import install_tplink_settings
+from app.ispbilling_activities import install_ispbilling_activities
 from app.acs_monitoring import install_acs_monitoring
 from app.monitor_sources import install_monitor_sources
 from app.ui_backup_policies import install_ui_backup_policies
@@ -117,6 +121,8 @@ from app.device_logs import install_device_logs
 from app.routerboot_lifecycle import install_routerboot_lifecycle
 from app.mikrotik_device_reboot import install_mikrotik_device_reboot
 from app.mikrotik_syslog_config import install_mikrotik_syslog_config, install_syslog_on_enrollment
+from app.management_access import install_management_access
+from app.exposure_probe import install_exposure_probe
 from app.zabbix_connector import install_zabbix_connector
 from app.ui_zabbix_scope import install_ui_zabbix_scope
 from app.device_exposure import install_device_exposure
@@ -148,7 +154,7 @@ from app.notification_delivery import install_notification_delivery
 from app.notification_chat import install_notification_chat
 from app.workflow_ui import install_workflow_ui
 
-APP_VERSION = "0.49.251"
+APP_VERSION = "0.49.291"
 core.APP_VERSION = APP_VERSION
 core.app.version = APP_VERSION
 core.templates.env.globals["app_version"] = APP_VERSION
@@ -183,6 +189,8 @@ install_firmware_activation(core.app)
 install_routerboot_lifecycle(core.app)
 install_mikrotik_device_reboot(core.app)
 install_mikrotik_syslog_config(core.app)
+install_management_access(core.app)
+install_exposure_probe(core.app)
 install_zabbix_connector(core.app)
 install_ui_zabbix_scope(core.app)
 install_device_exposure(core.app)
@@ -268,6 +276,7 @@ install_ui_device_agent(core.app)
 install_ui_device_diagnostics(core.app)
 install_ui_customers(core.app)
 install_ui_operations(core.app)
+install_mikrotik_fleet_readiness(core.app)
 install_ui_security(core.app)
 install_ui_incidents(core.app)
 install_ui_admin(core.app)
@@ -279,6 +288,8 @@ install_maintenance_windows(core.app)
 install_connector_diagnostics(core.app)
 install_server_migration(core.app)
 install_acs_syslog(core.app)
+install_uisp_syslog(core.app)
+install_cambium_syslog(core.app)
 install_lifecycle_web(core.app)
 install_cnmaestro_onboarding(core.app)
 install_uisp_auto_customer(core.app)
@@ -302,6 +313,7 @@ install_acs_firmware_campaigns(core.app)
 install_ispbilling_cpe_link(core.app)
 install_tplink_access(core.app)
 install_tplink_settings(core.app)
+install_ispbilling_activities(core.app)
 install_acs_monitoring(core.app)
 install_monitor_sources(core.app)
 install_ui_backup_policies(core.app)

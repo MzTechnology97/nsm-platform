@@ -66,12 +66,39 @@ export const usePolicyForm = (params: { policy?: string; clone?: boolean } & Pol
   useQuery({ queryKey: ["backup-policy-form", params], queryFn: () => api<PolicyForm>(policyFormUrl(params)), retry: false, staleTime: 0, gcTime: 0 });
 
 /** Create, update, toggle or delete; the Backup overview is refreshed afterwards. */
+export interface BackupPolicyRow {
+  id: string;
+  name: string;
+  description: string | null;
+  enabled: boolean;
+  scope_type: ScopeType;
+  scope: string;
+  schedule: string;
+  /** Customer of a customer/site/device policy; null for global and vendor policies (``shared``). */
+  customer_id: string | null;
+  shared: boolean;
+  /** Devices whose effective policy this is, by protection state and latest run. */
+  devices: number;
+  protected: number;
+  blocked: number;
+  failed: number;
+  never: number;
+}
+
+export const useBackupPolicies = (customer?: string) =>
+  useQuery({
+    queryKey: ["backup-policies", customer ?? ""],
+    queryFn: () => api<{ items: BackupPolicyRow[]; total: number; can_configure: boolean }>(`/api/ui/v1/backup-policies${customer ? `?customer=${encodeURIComponent(customer)}` : ""}`),
+    staleTime: 30_000,
+  });
+
 export function usePolicyWrite<B, R = { id: string; name: string }>(path: string, method: "POST" | "PUT" = "POST") {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (body: B) => api<R>(`/api/ui/v1/backup-policies${path}`, { method, body: JSON.stringify(body ?? {}) }),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["backup-overview"] });
+      client.invalidateQueries({ queryKey: ["backup-policies"] });
       client.invalidateQueries({ queryKey: ["backup-policy-form"] });
       client.invalidateQueries({ queryKey: ["backups"] });
     },

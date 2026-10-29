@@ -81,6 +81,9 @@ def unit_checks():
 
 
 def main():
+    # These checks predate SCAN-02: every test device counts as reachable from Internet (reachability_smoke covers NAT).
+    from app import reachability
+    reachability.current = lambda device: {"state": "public", "reason": "test", "public_addresses": []}
     unit_checks()
     device_id = uuid.UUID(int=94)
     modern, _, version = mikrotik_legacy._select_agent_source("https://nsm.example.test", device_id, "CI94-secret", "7.24.4")
