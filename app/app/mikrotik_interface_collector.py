@@ -15,6 +15,14 @@ This collector reads, each interface in its own ``:do on-error``:
 4. running dynamic interfaces (PPP server sessions such as ``<pppoe-user>``),
 
 in this order, so the most useful ones fit the size cap.
+
+Agent 0.49.26: no group filters on ``dynamic`` any more.  RouterOS sets that
+field only on some interfaces (bridges, PPP sessions): Ethernet ports, VLANs,
+PPPoE clients and loopback have no ``dynamic`` at all, so ``dynamic=no``
+matched only the bridges, the only interfaces that reached NSM (seen on a hEX
+with RouterOS 7.24.4, whose ``/interface`` rows carry ``dynamic`` only on the
+two bridges).  The groups are now chosen by type: PPP server sessions by their
+``-in`` type, loopback left out.
 """
 from __future__ import annotations
 
@@ -24,6 +32,8 @@ from app import mikrotik_agent as agent
 from app import mikrotik_legacy as legacy
 
 WAN = ("pppoe-out", "lte", "l2tp-out", "sstp-out", "ovpn-out", "pptp-out")
+SESSIONS = ("pppoe-in", "l2tp-in", "sstp-in", "ovpn-in", "pptp-in")
+SKIPPED = ("loopback",)
 CAPS = {1200: 2400, 6000: 12000}  # legacy header / modern JSON field
 _OLD = re.compile(
     r':do \{ :foreach nsmIf in=\[/interface find where running=yes && dynamic=no && type!="ether" && type!="vlan" && type!="bridge"\] do=\{ '
@@ -34,9 +44,10 @@ _OLD = re.compile(
 
 def collector(cap: int) -> str:
     wan = " || ".join(f'type="{kind}"' for kind in WAN)
-    not_wan = " && ".join(f'type!="{kind}"' for kind in (*WAN, "ether"))
+    sessions = " || ".join(f'type="{kind}"' for kind in SESSIONS)
+    other = " && ".join(f'type!="{kind}"' for kind in (*WAN, "ether", *SESSIONS, *SKIPPED))
     entry = '[/interface get $nsmIf name] . "|" . [/interface get $nsmIf type] . "|" . [/interface get $nsmIf rx-byte] . "|" . [/interface get $nsmIf tx-byte] . ";"'
-    groups = (f"dynamic=no && ({wan})", 'dynamic=no && type="ether"', f"dynamic=no && {not_wan}", "dynamic=yes && running=yes")
+    groups = (f"({wan})", 'type="ether"', other, f"running=yes && ({sessions})")
     return "".join(
         f':do {{ :foreach nsmIf in=[/interface find where {where}] do={{ :do {{ :if ([:len $nsmIfaces] < {cap}) do={{ '
         f':set nsmIfaces ($nsmIfaces . {entry}) }} }} on-error={{}} }} }} on-error={{}}\n'

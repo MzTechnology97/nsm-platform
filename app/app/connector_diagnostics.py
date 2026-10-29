@@ -84,16 +84,20 @@ CNM_DEVICE_FIELDS = {
     "modello": ("product", "hardware_version"), "firmware": ("software_version",), "tipo": ("type",), "rete": ("network",), "torre": ("tower",),
 }
 CNM_STAT_FIELDS = {"mac": ("mac",), **{label: keys for _field, (label, _unit, keys) in cnm.FIELDS.items()}}
-# Wi-Fi APs: per-band clients and traffic, summed by cnmaestro_connector.metrics; uptime from the time in the current status.
-for _label, _extra in (("Stazioni collegate", ("radio.24ghz.num_clients", "radio.5ghz.num_clients")),
-                       ("Throughput downlink", ("radio.24ghz.tx_bps", "radio.5ghz.tx_bps")),
-                       ("Throughput uplink", ("radio.24ghz.rx_bps", "radio.5ghz.rx_bps")), ("Uptime", ("status_time",))):
+# Wi-Fi APs: per-band clients and traffic (API v2: ``radios`` list), summed by cnmaestro_connector.metrics;
+# uptime from the time in the current status.
+for _label, _extra in (("Stazioni collegate", ("radios.0.num_clients", "radios.1.num_clients")),
+                       ("Throughput downlink", ("radios.0.tx_bps", "radios.1.tx_bps")),
+                       ("Throughput uplink", ("radios.0.rx_bps", "radios.1.rx_bps")), ("Uptime", ("status_time",))):
     CNM_STAT_FIELDS[_label] = tuple(CNM_STAT_FIELDS[_label]) + _extra
 
 
 def _dig(row, path: str):
     value = row
     for part in path.split("."):
+        if isinstance(value, list) and part.isdigit():  # list item by position (cnMaestro v2 ``radios``)
+            value = value[int(part)] if int(part) < len(value) else None
+            continue
         if not isinstance(value, dict):
             return None
         value = value.get(part)

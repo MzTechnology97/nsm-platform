@@ -19,6 +19,7 @@ import uuid
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 
 from app import backup_core
+from app import main as core
 from app.db import SessionLocal
 from app.input_errors import InputError
 from app.models import BackupPolicy, Customer
@@ -141,6 +142,61 @@ def delete_policy(request: Request, policy_id: uuid.UUID, body: dict = Body(defa
         except InputError as exc:
             raise _coded(exc) from exc
         return {"deleted": True}
+
+
+def _policy_customer(policy, settings, sites, devices):
+    """The customer a customer/site/device policy belongs to (None for global and vendor policies)."""
+    if policy.scope_type == "customer":
+        return policy.customer_id
+    if policy.scope_type == "site":
+        site = sites.get(settings.scope_site_id) if settings and settings.scope_site_id else None
+        return site.customer_id if site else None
+    if policy.scope_type == "device":
+        device = devices.get(policy.device_id)
+        return device.customer_id if device else None
+    return None
+
+
+@router.get("/backup-policies")
+def list_policies(request: Request, customer: str = ""):
+    """Every backup policy with the devices it is the effective policy of; ``customer`` keeps the policies of that
+    customer (its own, and global or vendor policies that protect some of its devices)."""
+    from app.backup_workspace_capabilities import backup_overview_state
+    from app.models import Site
+
+    with SessionLocal() as db:
+        user = ui_user(request, db, "backup.read")
+        state = backup_overview_state(db)
+        customer_id = _uuid(customer)
+        sites = {site.id: site for site in db.query(Site).all()}
+        devices = {device.id: device for device in state["devices"]}
+        covered: dict = {}
+        for row in state["device_rows"]:
+            if row["policy"] is None:
+                continue
+            entry = covered.setdefault(row["policy"].id, {"devices": 0, "protected": 0, "blocked": 0, "failed": 0, "never": 0, "customers": set()})
+            entry["devices"] += 1
+            entry["protected"] += 1 if row["bucket"] == "protected" else 0
+            entry["blocked"] += 1 if row["bucket"] == "blocked" else 0
+            entry["failed"] += 1 if row["state"] == "failed" else 0
+            entry["never"] += 1 if row["state"] == "never" else 0
+            entry["customers"].add(row["device"].customer_id)
+        items = []
+        for row in state["policy_rows"]:
+            policy = row["policy"]
+            entry = covered.get(policy.id) or {"devices": 0, "protected": 0, "blocked": 0, "failed": 0, "never": 0, "customers": set()}
+            owner = _policy_customer(policy, row["settings"], sites, devices)
+            if customer_id and owner != customer_id and customer_id not in entry["customers"]:
+                continue
+            items.append({
+                "id": str(policy.id), "name": policy.name, "description": (row["settings"].description if row["settings"] else None), "enabled": bool(policy.is_enabled),
+                "scope_type": policy.scope_type, "scope": row["scope"], "schedule": row["schedule"], "customer_id": str(owner) if owner else None,
+                "devices": entry["devices"], "protected": entry["protected"], "blocked": entry["blocked"], "failed": entry["failed"], "never": entry["never"],
+                "shared": owner is None,
+            })
+        order = {"device": 0, "site": 1, "customer": 2, "vendor": 3, "global": 4}
+        items.sort(key=lambda item: (not item["enabled"], order.get(item["scope_type"], 5), item["name"].lower()))
+        return {"items": items, "total": len(items), "can_configure": core.has_permission(user, "backup.configure")}
 
 
 def install_ui_backup_policies(app) -> None:

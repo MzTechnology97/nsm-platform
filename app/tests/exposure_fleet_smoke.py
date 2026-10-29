@@ -23,6 +23,9 @@ def csrf_from(html):
 
 
 def main():
+    # These checks predate SCAN-02: every test device counts as reachable from Internet (reachability_smoke covers NAT).
+    from app import reachability
+    reachability.current = lambda device: {"state": "public", "reason": "test", "public_addresses": []}
     ext._public = lambda value: str(value or "").strip() == PENDING_IP
     suffix = uuid.uuid4().hex[:6]
     now = utcnow()
@@ -55,7 +58,7 @@ def main():
         assert states == {ids["router"]: "exposed", ids["clean"]: "clean", ids["setup"]: "setup"}, states
         top = data["rows"][0]
         assert top["device"].id == ids["router"] and top["worst"] == "high" and len(top["exposed"]) == 2, "winbox + sensitive port forward"
-        assert data["counts"] == {"exposed": 1, "clean": 1, "setup": 1, "pending": 0, "critical": 0, "total": 3}
+        assert data["counts"] == {"exposed": 1, "internal": 0, "clean": 1, "setup": 1, "pending": 0, "critical": 0, "total": 3}
         assert expo.fleet(db)["counts"]["pending"] >= 1
 
         # Newsletter: the exposure lines are added (or sent alone when there are no new CVEs).

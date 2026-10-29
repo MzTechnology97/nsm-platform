@@ -33,6 +33,9 @@ def csrf_from(html):
 
 
 def main():
+    # This check predates SCAN-02: the shared address counts as reachable from Internet (reachability_smoke covers NAT).
+    from app import reachability
+    reachability.current = lambda device: {"state": "public", "reason": "test", "public_addresses": []}
     wan = ["pppoe-out1"]
     forwards = shared_ips.port_forwards(NAT, lambda rule: expo._interface_applies(rule, wan))
     by_target = {f["to_address"]: f for f in forwards}

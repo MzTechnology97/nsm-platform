@@ -3,11 +3,11 @@ import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useNavCounts, type NavCounts } from "../api/navCounts";
-import { useUnreadNotifications } from "../api/personal";
 import { can, useSession, useUpdatePreferences } from "../api/session";
 import i18n, { LANGUAGE_NAMES, LANGUAGES, pickLanguage, type Language } from "../i18n";
 import { CommandPalette, isApple } from "./CommandPalette";
 import { Icon } from "./Icon";
+import { NotificationMenu } from "./NotificationMenu";
 import { SECTIONS, type Section } from "./sections";
 
 const LANGUAGE_COOKIE = "nsm-lang";
@@ -49,6 +49,7 @@ function readCollapsed(): boolean {
 }
 
 export function Layout() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { t } = useTranslation();
   const session = useSession();
   const update = useUpdatePreferences();
@@ -167,7 +168,7 @@ export function Layout() {
             <kbd className="ui-kbd ui-hide-mobile">{isApple ? "⌘K" : "Ctrl K"}</kbd>
           </button>
           <div className="ui-topbar-actions">
-            <NotificationBell />
+            <NotificationMenu />
             <label className="ui-select-label">
               <span className="ui-visually-hidden">{t("user.language")}</span>
               <select
@@ -201,7 +202,7 @@ export function Layout() {
             </form>
           </div>
         </header>
-        <main className="ui-content">
+        <main className="ui-content" data-page-icon={pageIcon(pathname)}>
           <Outlet />
         </main>
       </div>
@@ -260,6 +261,21 @@ function initials(name: string): string {
 
 const PERSONAL_PAGES: Record<string, string> = { "/notifications": "notifications.title", "/profile": "profile.title" };
 
+/** Icon of the section the page belongs to, shown in the page header and in empty states (GUI-02). */
+function pageIcon(pathname: string): string | undefined {
+  const path = pathname.replace(/^\/app(?=\/|$)/, "") || "/";
+  if (path === "/notifications") return "bell";
+  if (path === "/profile") return "admin";
+  const matches = (section: Section) => {
+    if (section.route === "/") return path === "/";
+    const root = section.route.startsWith("/admin/") ? "/admin" : section.route;
+    return path === root || path.startsWith(`${root}/`);
+  };
+  // /admin/integrations/… belongs to the integrations, the rest of /admin to the administration.
+  if (path.startsWith("/admin/integrations")) return "integrations";
+  return SECTIONS.filter(matches).sort((a, b) => b.route.length - a.route.length)[0]?.icon;
+}
+
 /** Where the page sits: section group, then the section (a link back to it on the pages below it). */
 function Breadcrumbs({ sections }: { sections: Section[] }) {
   const { t } = useTranslation();
@@ -300,14 +316,3 @@ function Breadcrumbs({ sections }: { sections: Section[] }) {
   );
 }
 
-/** Bell with the unread count of the signed-in user, refreshed every minute. */
-function NotificationBell() {
-  const { t } = useTranslation();
-  const unread = useUnreadNotifications().data?.unread ?? 0;
-  return (
-    <Link to="/notifications" className="ui-icon-button ui-bell" aria-label={t("notifications.bell", { count: unread })} title={t("notifications.bell", { count: unread })}>
-      <Icon name="bell" />
-      {unread > 0 && <span className="ui-bell-count">{unread > 99 ? "99+" : unread}</span>}
-    </Link>
-  );
-}

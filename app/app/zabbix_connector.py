@@ -6,13 +6,30 @@ connector creates or updates one Zabbix host:
 
 - technical name ``nsm-<id>`` (stable), visible name ``<device> · <customer>``;
 - host group ``<prefix>/<customer>`` (created when missing);
-- one interface (Zabbix agent, or SNMPv2 with a community macro);
+- the interfaces its templates need: SNMPv2 (community from the settings, see
+  below) for
+  SNMP items, Zabbix agent for passive agent items, IPMI/JMX likewise, read
+  from the template's items and discovery rules (``template_interfaces``);
+  with no such item (e.g. ICMP Ping) the interface chosen in the settings.
+  Zabbix refuses a template whose items need an interface type the host lacks
+  ("a host interface of type SNMP is required"); an existing host gets the
+  missing interfaces before its templates, never a second one of a type;
 - templates chosen per manufacturer (added, never unlinked: templates linked
   by hand in Zabbix are kept);
 - tags ``source=nsm``, ``nsm_device_id``, ``nsm_customer``, ``vendor`` and the
   inventory (vendor, model, serial, MAC, firmware, site).
 
 Hosts whose NSM device was deleted or excluded are *disabled*, never deleted.
+
+SNMP community: a Zabbix user macro (``{$SNMP_COMMUNITY}``, the default) is not
+a secret and is stored and shown as is. A literal community is a secret: it is
+kept in the connector's encrypted secret next to the credentials (so the key
+rotation re-encrypts it too), ``settings["snmp_community"]`` is left empty and
+``settings["snmp_community_secret"]`` says one is set. The admin API only says
+whether one is set, the audit only says that it changed, and the sync decrypts
+it only when it builds an SNMP interface. A literal stored in clear by older versions
+is moved to the encrypted form the first time the admin page reads the
+settings, a sync runs or the settings are saved (``migrate_snmp_community``).
 
 Existing hosts (operator decision 2026-10-22): when Zabbix already monitors a
 device, NSM links to that host instead of creating ``nsm-<id>``. The link is
@@ -57,7 +74,8 @@ SYNC_INTERVAL = timedelta(minutes=15)
 DEFAULT_SETTINGS = {
     "group_prefix": "NSM",
     "interface": "agent",  # agent | snmp
-    "snmp_community": "{$SNMP_COMMUNITY}",
+    "snmp_community": "{$SNMP_COMMUNITY}",  # a Zabbix macro, or "" when a literal community is kept in the encrypted secret
+    "snmp_community_secret": False,
     "templates": {"mikrotik": "", "ubiquiti": "", "default": "ICMP Ping"},
     "scope": "all",  # all | customers
     "customer_ids": [],
@@ -75,6 +93,101 @@ FACTORY_LAN_IPS = frozenset({"192.168.0.1", "192.168.1.1", "192.168.2.1", "192.1
 
 class ZabbixError(RuntimeError):
     pass
+
+
+# --- SNMP community ------------------------------------------------------------------------------
+
+DEFAULT_COMMUNITY = "{$SNMP_COMMUNITY}"
+_MACRO = re.compile(r"\{\$[A-Za-z0-9_.]+(?::[^{}]*)?\}")  # {$NAME} or {$NAME:context}
+
+
+def is_macro(value) -> bool:
+    """A Zabbix user macro such as ``{$SNMP_COMMUNITY}`` or ``{$SNMP_COMMUNITY:"ctx"}``: a reference, not a secret."""
+    return bool(_MACRO.fullmatch(str(value or "").strip()))
+
+
+def _legacy_literal(settings) -> str:
+    """A literal community stored in clear in the settings by versions before 0.49.294 (see ``migrate_snmp_community``)."""
+    value = str((settings or {}).get("snmp_community") or "").strip()
+    return value if value and not is_macro(value) else ""
+
+
+def community_secret_set(settings) -> bool:
+    return bool((settings or {}).get("snmp_community_secret")) or bool(_legacy_literal(settings))
+
+
+def _secret_of(encrypted) -> dict:
+    """The connector's decrypted secret (credentials and the literal community); ZabbixError when the key cannot open it."""
+    if not encrypted:
+        return {}
+    try:
+        return json.loads(decrypt_text(encrypted))
+    except ValueError as exc:
+        raise ZabbixError("Credenziali Zabbix non decifrabili con la chiave attuale: reinseriscile.") from exc
+
+
+def snmp_community(settings: dict) -> str:
+    """The community of an SNMP interface: the macro, else the literal decrypted now from the connector secret, else the default.
+
+    ``settings`` come from ``sync_settings``: they carry the encrypted secret, never the literal in clear.
+    """
+    stored = str((settings or {}).get("snmp_community") or "").strip()
+    if is_macro(stored) or _legacy_literal(settings):  # a literal not migrated yet: the sync migrates it before building interfaces
+        return stored
+    if (settings or {}).get("snmp_community_secret"):
+        value = _secret_of(settings.get("secret_encrypted")).get("snmp_community")
+        if not value:
+            raise ZabbixError("Community SNMP non leggibile: reinseriscila in Integrazioni → Zabbix.")
+        return value
+    return DEFAULT_COMMUNITY
+
+
+def _stored_community(settings: dict, secret: dict) -> str:
+    """The community in force, from the settings and the already decrypted secret (for the audit comparison and 'kept')."""
+    if (settings or {}).get("snmp_community_secret"):
+        return str(secret.get("snmp_community") or "")
+    return _legacy_literal(settings) or str((settings or {}).get("snmp_community") or "").strip() or DEFAULT_COMMUNITY
+
+
+def community_fields(value: str, previous_settings: dict, previous_secret: dict) -> tuple[dict, str, str]:
+    """For the community typed in the form: (settings fields, literal for the secret or "", ``kept`` | ``macro`` | ``secret``).
+
+    Empty keeps a stored literal, like the passwords (one still in clear moves to the secret); with none, it means the default macro.
+    """
+    value = str(value or "").strip()[:128]
+    if not value:
+        old = _stored_community(previous_settings, previous_secret)
+        if old and not is_macro(old):
+            return {"snmp_community": "", "snmp_community_secret": True}, old, "kept"
+        value = DEFAULT_COMMUNITY
+    if is_macro(value):
+        return {"snmp_community": value, "snmp_community_secret": False}, "", "macro"
+    return {"snmp_community": "", "snmp_community_secret": True}, value, "secret"
+
+
+def migrate_snmp_community(db, row) -> bool:
+    """Move a literal community stored in clear by older versions into the encrypted secret, audited without the value. Caller commits."""
+    literal = _legacy_literal(row.settings) if row is not None else ""
+    if not literal:
+        return False
+    try:
+        secret = _secret_of(row.secret_encrypted)
+    except ZabbixError:
+        return False  # unreadable credentials must be entered again anyway; the API hides the value meanwhile
+    row.secret_encrypted = encrypt_text(json.dumps({**secret, "snmp_community": literal}, separators=(",", ":")))
+    row.settings = {**(row.settings or {}), "snmp_community": "", "snmp_community_secret": True}
+    core.add_event(db, "ZABBIX_SNMP_COMMUNITY_ENCRYPTED", details={"reason": "migrated_from_clear_text"}, source="system")
+    return True
+
+
+def mask_audit_details(event_type: str, details):
+    """Audit details safe to show: a literal community logged in clear by older versions reads ``***`` (the row is untouched)."""
+    if event_type != "ZABBIX_SETTINGS_CHANGED" or not isinstance(details, dict):
+        return details
+    value = details.get("snmp_community")
+    if isinstance(value, str) and value and not is_macro(value):
+        return {**details, "snmp_community": "***"}
+    return details
 
 
 # --- JSON-RPC client -----------------------------------------------------------------------------
@@ -185,11 +298,24 @@ def settings_of(row) -> dict:
     return merged
 
 
+def public_settings(row) -> dict:
+    """Host settings for the admin page: the community only when it is a macro, plus whether a literal one is stored."""
+    settings = settings_of(row)
+    community = str(settings.get("snmp_community") or "").strip()
+    return {
+        **{key: settings[key] for key in ("group_prefix", "interface", "templates", "scope", "customer_ids", "link_existing", "update_linked_ip")},
+        "snmp_community": community if is_macro(community) else "",
+        "snmp_community_secret": community_secret_set(settings),
+    }
+
+
+def sync_settings(row) -> dict:
+    """Settings for building hosts: they carry the encrypted secret, decrypted only for an SNMP interface (``snmp_community``)."""
+    return {**settings_of(row), "secret_encrypted": row.secret_encrypted}
+
+
 def client_for(row) -> ZabbixClient:
-    try:
-        secret = json.loads(decrypt_text(row.secret_encrypted)) if row.secret_encrypted else {}
-    except ValueError as exc:
-        raise ZabbixError("Credenziali Zabbix non decifrabili con la chiave attuale: reinseriscile.") from exc
+    secret = _secret_of(row.secret_encrypted)
     return ZabbixClient(row.base_url, token=secret.get("token", ""), username=secret.get("username", ""),
                         password=secret.get("password", ""), verify_tls=row.verify_tls)
 
@@ -230,16 +356,49 @@ def _clip(value, size):
     return str(value or "")[:size]
 
 
+# Item type → host interface type it polls through (Zabbix: 1 agent, 2 SNMP, 3 IPMI, 4 JMX). 20 is SNMP since 5.4;
+# 1/4/6 are SNMPv1/v2c/v3 on older servers. Active agent, simple checks, calculated, trapper… need none.
+ITEM_INTERFACE = {0: 1, 20: 2, 1: 2, 4: 2, 6: 2, 12: 3, 16: 4}
+INTERFACE_PORTS = {1: "10050", 2: "161", 3: "623", 4: "12345"}
+
+
+def interface_for(kind: int, ip: str | None, settings: dict) -> dict:
+    """A main host interface of the given type at ``ip``."""
+    interface = {"type": kind, "main": 1, "useip": 1, "ip": ip, "dns": "", "port": INTERFACE_PORTS[kind]}
+    if kind == 2:
+        interface["details"] = {"version": 2, "bulk": 1, "community": snmp_community(settings)}
+    return interface
+
+
+def template_interfaces(client, template_ids) -> dict[str, set[int]]:
+    """Interface types each template's items and discovery rules poll through (inherited items included)."""
+    ids = sorted({str(t) for t in template_ids if t})
+    needed: dict[str, set[int]] = {tid: set() for tid in ids}
+    if not ids:
+        return needed
+    for method in ("item.get", "discoveryrule.get"):
+        for row in client.call(method, {"output": ["type", "hostid"], "templateids": ids}) or []:
+            kind = ITEM_INTERFACE.get(int(row.get("type") or -1))
+            if kind and str(row.get("hostid")) in needed:
+                needed[str(row["hostid"])].add(kind)
+    return needed
+
+
+def wanted_interfaces(payload: dict, needed: set[int], settings: dict) -> list[dict]:
+    """The interfaces the host must have: the types its templates need (the configured one first), else the configured one."""
+    configured = payload["interface"]
+    if not needed:
+        return [configured]
+    ordered = sorted(needed, key=lambda kind: (kind != configured["type"], kind))
+    return [configured if kind == configured["type"] else interface_for(kind, configured["ip"], settings) for kind in ordered]
+
+
 def host_payload(device, customer, site, settings: dict) -> dict:
     brand_key = vendor_cpe.brand(device) or device.vendor or ""
     name = device.display_name or device.device_identity or device.name
     customer_name = customer.name if customer else "Senza cliente"
     ip = _valid_ip((device.inventory_data or {}).get("zabbix_ip")) or _valid_ip(device.management_ip)
-    if settings.get("interface") == "snmp":
-        interface = {"type": 2, "main": 1, "useip": 1, "ip": ip, "dns": "", "port": "161",
-                     "details": {"version": 2, "bulk": 1, "community": settings.get("snmp_community") or "{$SNMP_COMMUNITY}"}}
-    else:
-        interface = {"type": 1, "main": 1, "useip": 1, "ip": ip, "dns": "", "port": "10050"}
+    interface = interface_for(2 if settings.get("interface") == "snmp" else 1, ip, settings)
     return {
         "host": host_name(device),
         "name": _clip(f"{name} · {customer_name}", 128),
@@ -355,7 +514,8 @@ def sync(db, row=None, now=None) -> dict:
     row = row or connection_row(db)
     if row is None or not row.is_enabled:
         return {"status": "disabled"}
-    settings = settings_of(row)
+    migrate_snmp_community(db, row)
+    settings = sync_settings(row)
     stats = {"created": 0, "updated": 0, "disabled": 0, "skipped": 0, "errors": [], "missing_templates": [], "shared_ip": [],
              "linked": 0, "linked_new": 0, "ambiguous": [], "ip_updated": [], "factory_ip": []}
     client = client_for(row)
@@ -418,23 +578,28 @@ def sync(db, row=None, now=None) -> dict:
         groups = _group_ids(client, {p["group"] for _d, p in wanted.values()}) if wanted else {}
         templates = _template_ids(client, {p["template"] for _d, p in wanted.values()})
         stats["missing_templates"] = sorted({p["template"] for _d, p in wanted.values() if p["template"] and p["template"] not in templates})
+        needs = template_interfaces(client, set(templates.values()))
         for name, (device, payload) in wanted.items():
             try:
                 template_ids = [{"templateid": templates[payload["template"]]}] if payload["template"] in templates else []
+                interfaces = wanted_interfaces(payload, needs.get(str(templates.get(payload["template"]))) or set(), settings)
                 common = {"name": payload["name"], "groups": [{"groupid": groups[payload["group"]]}], "tags": payload["tags"],
                           "inventory_mode": 0, "inventory": payload["inventory"]}
                 current = existing.get(name)
                 if current is None:
-                    hostid = _create(client, {"host": name, "status": 0, "interfaces": [payload["interface"]], "templates": template_ids, **common})
+                    hostid = _create(client, {"host": name, "status": 0, "interfaces": interfaces, "templates": template_ids, **common})
                     stats["created"] += 1
                 else:
                     hostid = current["hostid"]
                     client.call("host.update", {"hostid": hostid, "status": 0, **common})
-                    main = next((i for i in current.get("interfaces") or [] if str(i.get("main")) == "1" and str(i.get("type")) == str(payload["interface"]["type"])), None)
-                    if main is None:
-                        client.call("hostinterface.create", {"hostid": hostid, **payload["interface"]})
-                    elif main.get("ip") != payload["interface"]["ip"]:
-                        client.call("hostinterface.update", {"interfaceid": main["interfaceid"], "ip": payload["interface"]["ip"]})
+                    have = current.get("interfaces") or []
+                    for interface in interfaces:  # before the templates: Zabbix refuses SNMP items on a host without SNMP
+                        same = [i for i in have if str(i.get("type")) == str(interface["type"])]
+                        main = next((i for i in same if str(i.get("main")) == "1"), None)
+                        if not same:
+                            client.call("hostinterface.create", {"hostid": hostid, **interface})
+                        elif main is not None and main.get("ip") != interface["ip"]:
+                            client.call("hostinterface.update", {"interfaceid": main["interfaceid"], "ip": interface["ip"]})
                     if template_ids:
                         client.call("host.massadd", {"hosts": [{"hostid": hostid}], "templates": template_ids})
                     stats["updated"] += 1
@@ -527,13 +692,17 @@ def save_config(db, user, *, api_url: str, auth_mode: str, token: str, username:
     settings = {
         "group_prefix": ((group_prefix or "NSM").strip() or "NSM")[:60],
         "interface": "snmp" if interface == "snmp" else "agent",
-        "snmp_community": ((snmp_community or "{$SNMP_COMMUNITY}").strip())[:128],
         "templates": {key: str((templates or {}).get(key) or "").strip()[:128] for key in ("mikrotik", "ubiquiti", "default")},
         "scope": "customers" if scope == "customers" else "all",
         "customer_ids": [str(v) for v in (customer_ids or [])][:500],
         "link_existing": bool(link_existing),
         "update_linked_ip": bool(update_linked_ip),
     }
+    old_settings = dict(row.settings or {}) if row else {}
+    community, literal, community_how = community_fields(snmp_community, old_settings, previous)
+    settings.update(community)
+    if literal:
+        secret["snmp_community"] = literal
     encrypted = encrypt_text(json.dumps(secret, separators=(",", ":")))
     if row is None:
         row = ConnectorIntegration(provider=PROVIDER, name="Zabbix", base_url=url, secret_encrypted=encrypted, verify_tls=verify_tls,
@@ -542,7 +711,10 @@ def save_config(db, user, *, api_url: str, auth_mode: str, token: str, username:
     else:
         keep = {k: v for k, v in (row.settings or {}).items() if k in ("version", "last_sync")}
         row.base_url, row.secret_encrypted, row.verify_tls, row.is_enabled, row.settings = url, encrypted, verify_tls, enabled, {**keep, **settings}
-    core.add_event(db, "ZABBIX_SETTINGS_CHANGED", actor=user, details={"url": url, "auth": mode, **{k: v for k, v in settings.items() if k != "customer_ids"}}, source="portal")
+    audit = {k: v for k, v in settings.items() if k not in ("customer_ids", "snmp_community", "snmp_community_secret")}
+    changed = community_how != "kept" and _stored_community(old_settings, previous) != (literal or settings["snmp_community"])
+    audit["snmp_community"] = {"kind": "secret" if literal else "macro", "changed": changed}  # never the value
+    core.add_event(db, "ZABBIX_SETTINGS_CHANGED", actor=user, details={"url": url, "auth": mode, **audit}, source="portal")
     return row
 
 
