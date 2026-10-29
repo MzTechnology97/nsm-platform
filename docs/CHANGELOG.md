@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.291 — 2026-10-29
+
+Exposure: checks from an external probe, outside the operator network (SCAN-02)
+- The NSM server sits inside the operator network: from there an open port may only be "open from inside", because the border filters are not crossed. The new **external probe** runs the same checks from a server outside the network (any VPS) and sees what Internet sees.
+- The probe is a small container, in the repository's `probe/` folder:
+  - it answers only requests signed with a shared secret, refuses replays and private, CGNAT or reserved addresses;
+  - it limits requests and can accept only the NSM server's address;
+  - it stores nothing and is read-only, without privileges.
+- New page *Amministrazione → Integrazioni → Sonda esterna*: address, name, shared secret (stored encrypted, never shown again), installation steps and *Prova la sonda*.
+- When the probe is on, the external check of public addresses goes through it. The device *Esposizione* tab shows **who checked**: the external probe with its name, or the NSM server. If the probe does not answer, NSM checks from its own server and says why. Action Center issues say which vantage point found the service.
 ## 0.49.290 — 2026-10-29
 
 Backup policies: their own page, always within reach
