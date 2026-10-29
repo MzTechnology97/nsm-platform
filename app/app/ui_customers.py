@@ -128,7 +128,9 @@ def customers(request: Request, q: str = "", filter: str = "", sort: str = "name
         }
 
 
-CUSTOMER_TABS = ("overview", "devices", "sites", "graphs", "backups", "security", "history")
+CUSTOMER_TABS = ("overview", "devices", "sites", "graphs", "backups", "security", "actions", "incidents", "sla", "history")
+# Tabs that need a permission of their own: the customer's issues, incidents and SLA (same as the global pages).
+TAB_PERMISSIONS = {"actions": "issues.read", "incidents": "incidents.read", "sla": "reports.read"}
 
 
 def _iso(value):
@@ -171,7 +173,7 @@ def customer_detail(request: Request, customer_id: uuid.UUID):
             "actions": {"edit": core.has_permission(user, "customers.write"), "add_site": core.has_permission(user, "customers.write"),
                         "add_device": core.has_permission(user, "devices.write"), "incidents": core.has_permission(user, "incidents.read"),
                         "uisp_import": core.has_permission(user, "devices.write")},
-            "tabs": [{"key": key} for key in CUSTOMER_TABS],
+            "tabs": [{"key": key} for key in CUSTOMER_TABS if key not in TAB_PERMISSIONS or core.has_permission(user, TAB_PERMISSIONS[key])],
         }
 
 

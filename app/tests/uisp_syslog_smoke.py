@@ -136,7 +136,7 @@ def main():
 
     # Key mode: restore point first, then the changed configuration uploaded and applied.
     done = client.post(url("cpe"), json={"mode": "key", "confirmation": name}).json()
-    assert done["state"]["status"] == "applied" and done["state"]["mode"] == "key", done
+    assert done["state"]["status"] == "applied" and done["state"]["mode"] == "key" and done["state"]["level"] == "warning", done
     dev = fake.devices[exts["cpe"]]
     assert dev["applied"] == [done["state"]["backup_applied"]] and done["state"]["backup_before"].startswith("b") and done["state"]["server"] == "198.51.100.28"
     applied_cfg = cfg_of(next(b[2] for b in dev["backups"] if b[0] == done["state"]["backup_applied"]))
@@ -162,6 +162,23 @@ def main():
         index = identity.build_index(db, {})
         assert identity.resolve(index, "203.0.113.200", None, None, f"<14>Oct 23 11:14:11 RIZZO MICHELA {s} syslog: started") == (None, "missing_key")
 
+    # Minimum level kept by the receiver (airOS sends everything): warning by default, logins kept, changeable without reboot.
+    from app import syslog_receiver as rx
+
+    applied_before = len(fake.devices[exts["addr"]]["applied"])
+    receiver = rx.Receiver()
+    receiver.refresh()
+    assert receiver.index.min_severity[ids["addr"]] == 4
+    receiver.handle(b"<14>Oct 23 11:14:11 cpe-addr syslog: dhcp lease renewed", "198.51.100.72")           # info: dropped
+    receiver.handle(b"<12>Oct 23 11:14:12 cpe-addr kernel: link flapping", "198.51.100.72")                # warning: kept
+    receiver.handle(b"<86>Oct 23 11:14:13 cpe-addr dropbear[1]: Password auth succeeded for 'ubnt'", "198.51.100.72")  # authpriv info: kept
+    assert receiver.stats["below_level"] == 1 and len(receiver.queue) == 2, (receiver.stats, len(receiver.queue))
+    changed = client.post(f"{url('addr')}/level", json={"level": "info"}).json()
+    assert changed["state"]["level"] == "info" and len(fake.devices[exts["addr"]]["applied"]) == applied_before, "no reapply, no reboot"
+    assert client.post(f"{url('addr')}/level", json={"level": "loud"}).json()["detail"]["code"] == "level"
+    receiver.refresh()
+    assert receiver.index.min_severity[ids["addr"]] == 6
+
     # Restore point.
     before = client.get(url("cpe")).json()
     restored = client.post(f"{url('cpe')}/restore", json={"confirmation": name}).json()
@@ -170,7 +187,7 @@ def main():
 
     with SessionLocal() as db:
         kinds = [e.event_type for e in db.scalars(select(AuditEvent).where(AuditEvent.device_id.in_([ids["cpe"], ids["addr"]])))]
-        assert kinds.count("UISP_SYSLOG_CONFIGURED") == 3 and kinds.count("UISP_SYSLOG_RESTORED") == 1, kinds
+        assert kinds.count("UISP_SYSLOG_CONFIGURED") == 3 and kinds.count("UISP_SYSLOG_RESTORED") == 1 and kinds.count("UISP_SYSLOG_LEVEL_CHANGED") == 1, kinds
         db.execute(delete(ConnectorIntegration).where(ConnectorIntegration.provider == "uisp"))
         db.commit()
     os.environ.pop("ACS_CWMP_URL", None)

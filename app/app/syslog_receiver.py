@@ -67,6 +67,7 @@ KEEP_SEVERITY = 4
 INFO_RETENTION_MAX = 90
 # Decided 2026-10-08: strict mode on, only allowed networks, unidentified lines are discarded.
 DEFAULTS = {"info_retention_days": INFO_RETENTION_MAX, "public_host": "", "auto_configure": True, "strict_mode": True, "allowed_networks": []}
+AUTH_FACILITIES = (4, 10)  # auth, authpriv
 SEVERITIES = ("emerg", "alert", "crit", "error", "warning", "notice", "info", "debug")
 
 _PRI = re.compile(r"^<(\d{1,3})>")
@@ -231,6 +232,10 @@ class Receiver:
         access = annotate(entry)
         if access:
             self.auth_queue.append({**access, "device_id": device_id, "occurred_at": entry["received_at"], "message": entry["message"][:500]})
+        if entry["severity"] > self.index.min_severity.get(device_id, 7) and not access and entry.get("facility") not in AUTH_FACILITIES:
+            # A device that cannot filter by itself (airOS): below its minimum level only logins (auth/authpriv) are kept.
+            self.stats["below_level"] = self.stats.get("below_level", 0) + 1
+            return
         self.queue.append(entry)
 
     def flush(self) -> int:
