@@ -229,7 +229,7 @@ def _push_to_acs(db, release, path: Path, original: str, digest: str) -> tuple[l
     stored, warnings = [], []
     for device in devices:
         try:
-            identity = fw._identity(nbi._read(connection, device.external_device_id, ["_deviceId"]))
+            identity = fw._identity(nbi._read(connection, device.external_device_id, fw.IDENTITY))
             name = fw.file_name_for(identity, original, digest)
             if name not in {f["name"] for f in fw.list_files(connection, identity.get("product_class"))}:
                 fw.store_file(connection, identity, name, str(path), release.version)

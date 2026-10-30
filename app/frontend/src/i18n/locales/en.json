@@ -6547,7 +6547,12 @@
     "defaultHelp": "Saves the running configuration as the CPE's default, like Aginet Config → Save current settings as default settings on its page. Nothing restarts. The default also holds the PPPoE credentials, Wi-Fi and admin password: a reset no longer wipes the CPE. Before giving it to another customer, clear it on the CPE's page (Aginet Config → Restore all default settings to Vendor default value).",
     "defaultConfirm": "Type {{name}} to confirm",
     "defaultSave": "Save the current configuration as default",
-    "noAllowList": "Limiting it to some addresses is not available: on the TP-Link firmware tested it closes the page for everyone."
+    "noAllowList": "Limiting it to some addresses is not available: on the TP-Link firmware tested it closes the page for everyone.",
+    "httpTitle": "Remote HTTP web page",
+    "httpOn": "This firmware also has an unencrypted HTTP web page (port {{port}}) reachable from the Internet: the password travels in clear text.",
+    "httpOff": "Remote HTTP web page is off.",
+    "httpDisable": "Turn remote HTTP off",
+    "httpEnable": "Turn remote HTTP on"
   },
   "tplinkSettings": {
     "title": "Advanced CPE settings",
@@ -7659,7 +7664,11 @@
     "lookupListed_one": "on {{count}} list",
     "lookupListed_other": "on {{count}} lists",
     "lookupClean": "on no list",
-    "lookupFailed": "Not verified: {{list}}."
+    "lookupFailed": "Not verified: {{list}}.",
+    "dqsKey": "Spamhaus DQS key",
+    "dqsKeySaved": "Key saved: leave empty to keep it",
+    "dqsKeyHelp": "Free for low-volume use (Data Query Service, sign up at spamhaus.com): with the key Spamhaus ZEN also answers through public DNS resolvers.",
+    "dqsHint": "Enter a free DQS key in the settings to use Spamhaus with any resolver."
   },
   "ipAbuse": {
     "title": "IP abuse",

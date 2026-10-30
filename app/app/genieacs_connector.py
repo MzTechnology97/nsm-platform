@@ -242,6 +242,17 @@ def _first_value(row: dict, paths):
     return None
 
 
+GENERIC_PRODUCT_CLASSES = {"device", "internetgatewaydevice"}
+
+
+def product_class(row: dict) -> str | None:
+    """``_ProductClass``, or the model name when the CPE reports only its data model root (``Device`` on an Archer VR1210v)."""
+    value = str((row.get("_deviceId") or {}).get("_ProductClass") or "").strip()
+    if value.lower() in GENERIC_PRODUCT_CLASSES:
+        value = str(_first_value(row, MODEL_PATHS) or "").strip() or value
+    return value or None
+
+
 def _usable_ipv4(value) -> str | None:
     try:
         address = ipaddress.IPv4Address(str(value).strip())
@@ -348,9 +359,9 @@ def candidate_from_genieacs(row: dict, connection: ConnectorIntegration, matched
     device_id = row.get("_deviceId") if isinstance(row.get("_deviceId"), dict) else {}
     serial = device_id.get("_SerialNumber")
     manufacturer = device_id.get("_Manufacturer")
-    product_class = device_id.get("_ProductClass")
+    model_class = product_class(row)
     macs = _macs(row, _mac_paths(connection))
-    model = _first_value(row, MODEL_PATHS) or product_class
+    model = _first_value(row, MODEL_PATHS) or model_class
     firmware = _first_value(row, SOFTWARE_PATHS)
     hardware = _first_value(row, HARDWARE_PATHS)
     management_ip = _management_ip(row)
@@ -363,7 +374,7 @@ def candidate_from_genieacs(row: dict, connection: ConnectorIntegration, matched
         "primary_mac": macs[0] if macs else None,
         "macs": macs,
         "manufacturer": str(manufacturer).strip()[:150] if manufacturer else None,
-        "product_class": str(product_class).strip()[:150] if product_class else None,
+        "product_class": model_class[:150] if model_class else None,
         "device_identity": " · ".join(str(part).strip() for part in identity_parts)[:200] if identity_parts else None,
         "model": str(model).strip()[:150] if model else None,
         "firmware_version": str(firmware).strip()[:150] if firmware else None,

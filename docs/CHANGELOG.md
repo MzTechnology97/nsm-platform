@@ -4,6 +4,24 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.323 — 2026-10-30
+
+Documentation
+- **Roadmap: counters on the other sidebar items (GUI-COUNTERS).** Today only Apparati, Monitoring, Firmware, Vulnerabilità and Action Center show one.
+- **Roadmap: closing open Action Center issues by hand (ISSUE-CLOSE).** Today an issue can only be taken in charge; it closes when the worker sees the condition end.
+## 0.49.322 — 2026-10-30
+
+Fixes
+- **Older TP-Link firmware (Archer VR1210v).** The device *ACS* tab now reports the unencrypted remote HTTP page of this firmware (`X_TP_AppCfg.HttpCfg.HttpRemoteEnabled`), which the remote access settings did not show, with a warning when it is on. Technicians can switch it off or on; each change is audited.
+- **Firmware updates of these CPEs were not detected.** NSM read `2.0.0 0.9 v6041.0 Build 221027` as release 2.0.0, so it considered the CPE newer than the catalog and never offered the update. The platform number in first position is now skipped.
+- **CPEs that report the generic product class `Device`** now use their model name for firmware files, firmware campaigns and the wrong-model check, so different models are not treated as one. Files already stored with the generic class are still accepted.
+## 0.49.321 — 2026-10-30
+
+DNS blacklists: Spamhaus DQS key, NiX Spam removed, checkboxes aligned
+- **Spamhaus ZEN through any DNS resolver:** *Integrazioni → Blacklist DNS* has a new field for the Spamhaus DQS key (Data Query Service, sign up at spamhaus.com). With the key, Spamhaus also answers servers that use a public resolver, instead of refusing them with `127.255.255.254`. The key is stored encrypted and never shown again; leave the field empty to keep it.
+- When Spamhaus refuses the queries and no key is saved, the warning says to enter one.
+- **NiX Spam removed:** the list closed in January 2025 and its zone only answers with errors. Its warning disappears from the page and it is no longer queried.
+- The checkboxes in the settings forms now line up with the first line of their label, so a list with a long description no longer looks attached to the next one.
 ## 0.49.320 — 2026-10-30
 
 Security
