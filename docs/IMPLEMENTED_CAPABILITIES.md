@@ -901,6 +901,10 @@ CPEs with a fibre port that expose their optics through TR-069 get the optical l
 
 **MON-02 for the ACS.** The ACS history cleanup keeps, beyond 90 days, the newest sample of every CPE and its newest optical reading; the last state of a CPE that stopped contacting the ACS stays on the device, and the *ACS* tab says when the last sample arrived when the chosen range has none.
 
+### The Esposizione page (Core 0.49.330)
+
+Three tabs instead of one long page: exposed services, CPE firewall and UPnP. The tab is kept in the address (`section`), and each one has the customer filter. In *Servizi esposti* the list is searched by device, address or customer (`q`) and filtered by service (`service`, with the number of devices beside each one); the worst severity comes first. The firewall and UPnP lists are searched and split in pages in the browser, because the API already returns them whole.
+
 ### Management firewall on many airOS CPEs (ACCESS-01, Core 0.49.328)
 
 From *Esposizione*, the panel lists the UISP CPEs (`wireless_cpe` only, never access points) that have no active rules as far as NSM knows: no earlier apply from NSM and, in the last read of a UISP backup, not a firewall with rules on and not bridge mode. CPEs never read stay in the list and are checked when their turn comes. The operator chooses the CPEs, the services, the start and the hours of the window (1–12, default 4), and types the count to confirm. Scheduling is the only confirmation; the window repeats every 24 hours until no CPE is left.

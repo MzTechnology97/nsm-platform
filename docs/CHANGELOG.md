@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.330 — 2026-10-30
+
+Esposizione page: tabs, search and service filter
+
+### Changed
+- Esposizione is split in three tabs: exposed services, CPE firewall and UPnP. They were one long page, with the UPnP list unpaged at the bottom.
+- The exposed services list has a search by device, address or customer, and a filter by service with the number of devices beside each one.
+- The worst severity is now the first column. A row shows up to 4 services, and the others are in a tooltip.
+- The firewall and UPnP tabs have summary tiles, a search and pages.
 ## 0.49.329 — 2026-10-30
 
 Scheduled airOS firewall: access points left out

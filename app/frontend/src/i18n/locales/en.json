@@ -1447,13 +1447,20 @@
     },
     "shared": "shared IP",
     "private": "private/CGNAT IP",
-    "more": "… and {{count}} more",
     "pending": "check in progress",
     "none": "no exposure",
     "allGood": "No device exposes services to the Internet.",
     "empty": "No device in this view.",
     "internalRow_one": "{{count}} service reachable from the internal network only (device behind NAT)",
-    "internalRow_other": "{{count}} services reachable from the internal network only (device behind NAT)"
+    "internalRow_other": "{{count}} services reachable from the internal network only (device behind NAT)",
+    "sections": {
+      "label": "Sections",
+      "services": "Exposed services",
+      "firewall": "CPE firewall",
+      "upnp": "UPnP"
+    },
+    "search": "Search device, IP or customer",
+    "allServices": "All services"
   },
   "access": {
     "title": "Access",
@@ -7526,7 +7533,6 @@
     "disable": "Turn UPnP off",
     "working": "Turning off…",
     "fleetHint": "Devices with UPnP on, every vendor. Choose which to turn off: MikroTik and TR-069 at once, airOS CPEs one per minute (each reboots); at the first airOS error the other airOS devices of the same request stop.",
-    "counts": "On: {{on}} · off: {{off}} · not read: {{unknown}} · running: {{in_progress}} · failed: {{failed}}",
     "none": "No device with UPnP on.",
     "all": "Select all",
     "columns": {
@@ -7543,7 +7549,14 @@
     "bulkQueued_one": "{{count}} device queued.",
     "bulkQueued_other": "{{count}} devices queued.",
     "bulkSkipped_one": "{{count}} skipped (not supported or already running).",
-    "bulkSkipped_other": "{{count}} skipped (not supported or already running)."
+    "bulkSkipped_other": "{{count}} skipped (not supported or already running).",
+    "metrics": {
+      "on": "UPnP on",
+      "off": "Off",
+      "unknown": "Not read",
+      "in_progress": "In progress",
+      "failed": "Failed"
+    }
   },
   "abuseipdb": {
     "title": "AbuseIPDB",
@@ -7757,9 +7770,7 @@
     }
   },
   "uispFirewallBulk": {
-    "title": "airOS management firewall in bulk",
     "hint": "airOS CPEs without active rules, as far as NSM knows. Choose which to protect and when: NSM applies the same rules as the device page, one CPE per minute, inside a window that repeats every night. The first CPE goes alone and the others wait until it is back online. If one fails or is not back online within 15 minutes, NSM stops the ones not started yet.",
-    "counts": "Without rules: {{candidate}} · rules applied by NSM: {{applied}} · in progress: {{active}} · with their own rules: {{own_rules}} · bridge, not handled: {{bridge}}",
     "none": "No airOS CPE without active rules.",
     "all_one": "Select the CPE without rules",
     "all_other": "Select all {{count}} CPEs without rules",
@@ -7804,6 +7815,14 @@
       "failed": "Failed",
       "stopped": "Stopped",
       "cancelled": "Cancelled"
-    }
+    },
+    "metrics": {
+      "candidate": "Without rules",
+      "applied": "Rules applied by NSM",
+      "active": "In progress",
+      "own_rules": "With their own rules",
+      "bridge": "Bridge, not handled"
+    },
+    "requests": "Scheduled requests"
   }
 }
