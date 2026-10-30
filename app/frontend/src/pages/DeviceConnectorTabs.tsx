@@ -174,7 +174,6 @@ export function DeviceGenieacs() {
             <div><dt>Hardware</dt><dd>{data.inventory.hardware_version || "—"}</dd></div>
             <div><dt>{t("deviceGenieacs.fields.lastInform")}</dt><dd>{formatDateTime(data.inventory.last_inform, i18n.language)}</dd></div>
           </dl>
-          <p className="ui-muted">{t("deviceGenieacs.notYet")}</p>
         </section>
       )}
       {record.external_id && <AcsMonitor deviceId={deviceId} />}

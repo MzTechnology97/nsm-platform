@@ -96,7 +96,6 @@ export function Integrations() {
           <Card name="genieacs" title={t("integrations.genieacs.title")} help={t("integrations.genieacs.help")} state={data.genieacs.state} label={state(data.genieacs.state)}
             actions={manageRoute("/admin/integrations/genieacs", data.genieacs.state !== "unconfigured")}>
             <Facts items={[[t("integrations.genieacs.linked"), data.genieacs.linked], [t("integrations.genieacs.pending"), data.genieacs.pending]]} />
-            <p className="ui-muted">{t("integrations.genieacs.limits")}</p>
           </Card>
 
           <Card name="cnmaestro" title={t("integrations.cnmaestro.title")} help={t("integrations.cnmaestro.help")} state={data.cnmaestro.state} label={state(data.cnmaestro.state)}

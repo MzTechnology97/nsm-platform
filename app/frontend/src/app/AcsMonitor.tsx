@@ -68,7 +68,10 @@ function PonLevels({ pon }: { pon: AcsPon }) {
   );
 }
 
-const decibels = (down?: number | null, up?: number | null) => (down == null && up == null ? "—" : `${down ?? "—"} / ${up ?? "—"} dB`);
+const decibels = (language: string, down?: number | null, up?: number | null) => {
+  const value = (db?: number | null) => (db == null ? "—" : new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(db));
+  return down == null && up == null ? "—" : `${value(down)} / ${value(up)} dB`;
+};
 
 /** State of a TR-069 CPE at its last Inform (WAN, Wi-Fi, DSL) and its charts, read from GenieACS by the worker (ACS-05). */
 export function AcsMonitor({ deviceId }: { deviceId: string }) {
@@ -132,8 +135,8 @@ export function AcsMonitor({ deviceId }: { deviceId: string }) {
                 {(state.dsl.down_max_bps != null || state.dsl.up_max_bps != null) && (
                   <div><dt>{t("acsMonitor.dslMaxRate")}</dt><dd>{metricValue("dsl", "bps", state.dsl.down_max_bps ?? null, i18n.language)} / {metricValue("dsl", "bps", state.dsl.up_max_bps ?? null, i18n.language)}</dd></div>
                 )}
-                <div><dt>{t("acsMonitor.dslSnr")}</dt><dd>{decibels(state.dsl.snr_down_db, state.dsl.snr_up_db)}</dd></div>
-                <div><dt>{t("acsMonitor.dslAttenuation")}</dt><dd>{decibels(state.dsl.attenuation_down_db, state.dsl.attenuation_up_db)}</dd></div>
+                <div><dt>{t("acsMonitor.dslSnr")}</dt><dd>{decibels(i18n.language, state.dsl.snr_down_db, state.dsl.snr_up_db)}</dd></div>
+                <div><dt>{t("acsMonitor.dslAttenuation")}</dt><dd>{decibels(i18n.language, state.dsl.attenuation_down_db, state.dsl.attenuation_up_db)}</dd></div>
               </dl>
             )}
             {state.pon ? <PonLevels pon={state.pon} /> : null}
