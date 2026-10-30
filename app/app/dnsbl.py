@@ -6,6 +6,9 @@ inventory. The module is off by default (MOD-01) and needs no account: a DNSBL i
 not listed. ``127.255.255.x`` is a refusal (Spamhaus answers it to queries through public resolvers or over the free
 limit) and any other answer means the zone or the resolver is unusable: neither counts as a listing.
 
+Spamhaus ZEN with the operator's free Data Query Service key (stored encrypted, never returned) is queried as
+``<reversed address>.<key>.zen.dq.spamhaus.net``, which answers through any resolver, public ones included.
+
 What is checked: every IPv4 address of the operator's prefixes (the list kept by the threat lists) and the public
 IPv4 addresses of the inventory outside them. ``per_run`` addresses per worker run, round robin; a full pass starts
 again after ``recheck_hours``.
@@ -18,6 +21,7 @@ NSM; nothing is ever sent to the lists.
 from __future__ import annotations
 
 import ipaddress
+import re
 import socket
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -33,6 +37,7 @@ from app import main as core
 from app.db import SessionLocal
 from app.integration_models import ConnectorIntegration
 from app.models import ActionIssue, Customer, Device, Notification, utcnow
+from app.secret_vault import decrypt_text, encrypt_text
 from app.ui_api import brand_icon, require_csrf, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
@@ -49,14 +54,15 @@ ZONES = {
     "dnsbl.dronebl.org": {"name": "DroneBL", "removal": "https://dronebl.org/lookup?ip={ip}", "default": True,
                           "note": "compromised hosts, open proxies, botnets"},
     "dnsbl-1.uceprotect.net": {"name": "UCEPROTECT level 1", "removal": "https://www.uceprotect.net/en/rblcheck.php?ipr={ip}", "default": True},
-    "ix.dnsbl.manitu.net": {"name": "NiX Spam", "removal": "https://www.dnsbl.manitu.net/lookup.php?value={ip}", "default": True},
     "bl.mailspike.net": {"name": "Mailspike", "removal": "https://mailspike.org/iplookup.html", "default": True},
     "dnsbl.spfbl.net": {"name": "SPFBL", "removal": "https://spfbl.net/en/delist/", "default": True},
     "zen.spamhaus.org": {"name": "Spamhaus ZEN", "removal": "https://check.spamhaus.org/results/?query={ip}", "default": False,
-                         "note": "free only for low-volume non-commercial use and never through public resolvers (8.8.8.8, 1.1.1.1…)"},
+                         "note": "free only for low-volume non-commercial use; through public resolvers (8.8.8.8, 1.1.1.1…) it needs a free DQS key"},
     "b.barracudacentral.org": {"name": "Barracuda", "removal": "https://www.barracudacentral.org/lookups/lookup-reputation", "default": False,
                                "note": "needs the server's DNS resolver registered (free) at barracudacentral.org"},
 }
+# Zones answered by Spamhaus' Data Query Service when the operator saved a DQS key.
+DQS_ZONES = {"zen.spamhaus.org": "zen.dq.spamhaus.net"}
 RESOLVE = None  # tests replace it: name -> list of IPv4 answers ([] = NXDOMAIN); raises OSError when the look-up fails
 
 
@@ -74,9 +80,19 @@ def load(db) -> dict:
     row = _row(db)
     saved = dict((row.settings or {}) if row else {})
     zones = [z for z in saved.get("zones", [z for z, info in ZONES.items() if info["default"]]) if z in ZONES]
+    # Zones dropped from the catalog (NiX Spam) leave no stale warning behind.
+    health = saved.get("health") or {}
+    if health.get("zones"):
+        health = {**health, "zones": {z: s for z, s in health["zones"].items() if z in ZONES}}
     return {"enabled": bool(row and row.is_enabled), "zones": zones, **{k: saved.get(k, v) for k, v in DEFAULTS.items()},
             "cursor": saved.get("cursor") or 0, "cycle_started_at": saved.get("cycle_started_at"), "last_cycle_at": saved.get("last_cycle_at"),
-            "listed": saved.get("listed") or {}, "zone_errors": saved.get("zone_errors") or {}, "health": saved.get("health") or {}}
+            "listed": saved.get("listed") or {}, "zone_errors": {z: e for z, e in (saved.get("zone_errors") or {}).items() if z in ZONES},
+            "health": health, "has_dqs_key": bool(row and row.secret_encrypted)}
+
+
+def _dqs_key(db) -> str | None:
+    row = _row(db)
+    return decrypt_text(row.secret_encrypted) if row is not None and row.secret_encrypted else None
 
 
 def _number(body: dict, key: str, low: int, high: int) -> int:
@@ -102,9 +118,15 @@ def save(db, user, body: dict) -> None:
     # Listings on a zone that is no longer checked are dropped (their issues close at the next evaluation).
     listed = {a: {**r, "zones": [z for z in r["zones"] if z["zone"] in settings["zones"]]} for a, r in (settings.get("listed") or {}).items()}
     settings["listed"] = {a: r for a, r in listed.items() if r["zones"]}
+    # An empty field keeps the saved key.
+    key = str(body.get("dqs_key") or "").strip().lower()
+    if key:
+        if not re.fullmatch(r"[a-z0-9]{20,64}", key):
+            raise InvalidSettings("Chiave DQS di Spamhaus non valida.")
+        row.secret_encrypted = encrypt_text(key)
     row.settings, row.is_enabled = settings, body.get("enabled") is True
     core.add_event(db, "DNSBL_CONFIGURED", actor=user, source="portal",
-                   details={"enabled": row.is_enabled, "zones": settings["zones"], **{k: settings[k] for k in DEFAULTS}})
+                   details={"enabled": row.is_enabled, "zones": settings["zones"], "dqs_key_changed": bool(key), **{k: settings[k] for k in DEFAULTS}})
 
 
 # --- DNS -----------------------------------------------------------------------------------------
@@ -120,9 +142,10 @@ def _resolve(name: str) -> list[str]:
         raise
 
 
-def query(address: str, zone: str) -> dict:
+def query(address: str, zone: str, dqs_key: str | None = None) -> dict:
     """``{"state": "listed"|"clean"|"refused"|"error", "codes": [...]}`` for one address on one zone."""
-    name = ".".join(reversed(address.split("."))) + "." + zone
+    reversed_address = ".".join(reversed(address.split(".")))
+    name = f"{reversed_address}.{dqs_key}.{DQS_ZONES[zone]}" if dqs_key and zone in DQS_ZONES else f"{reversed_address}.{zone}"
     try:
         answers = _resolve(name)
     except OSError as exc:
@@ -136,10 +159,10 @@ def query(address: str, zone: str) -> dict:
     return {"state": "error", "codes": answers, "message": "risposta fuori da 127.0.0.0/8"}
 
 
-def check(address: str, zones: list[str]) -> dict:
+def check(address: str, zones: list[str], dqs_key: str | None = None) -> dict:
     """{zone: query result} for one address, zones queried in parallel."""
     with ThreadPoolExecutor(max_workers=min(WORKERS, len(zones) or 1)) as pool:
-        return dict(zip(zones, pool.map(lambda z: query(address, z), zones)))
+        return dict(zip(zones, pool.map(lambda z: query(address, z, dqs_key), zones)))
 
 
 # --- What is checked -----------------------------------------------------------------------------
@@ -171,8 +194,9 @@ def run(db, row, now=None) -> dict:
         return {"status": "waiting", **evaluate(db, row, now, prefixes, holders, current)}
     batch = items[cursor:cursor + config["per_run"]]
     pairs = [(a, z) for a in batch for z in config["zones"]]
+    key = _dqs_key(db)
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
-        results = list(pool.map(lambda p: query(*p), pairs))
+        results = list(pool.map(lambda p: query(*p, key), pairs))
     listed, errors, by_address = dict(config["listed"]), dict(config["zone_errors"]), {}
     for (address, zone), result in zip(pairs, results):
         by_address.setdefault(address, {})[zone] = result
@@ -270,13 +294,13 @@ def tick(now=None) -> dict:
         return stats
 
 
-def health(zones: list[str]) -> dict:
+def health(zones: list[str], dqs_key: str | None = None) -> dict:
     """Every zone must list its test entry 127.0.0.2: proves that the zone and the server's resolver answer."""
     return {zone: {"ok": r["state"] == "listed", "state": r["state"], "codes": r["codes"], "message": r.get("message")}
-            for zone, r in check("127.0.0.2", zones).items()}
+            for zone, r in check("127.0.0.2", zones, dqs_key).items()}
 
 
-def lookup(address: str, zones: list[str]) -> dict:
+def lookup(address: str, zones: list[str], dqs_key: str | None = None) -> dict:
     try:
         valid = ipaddress.ip_address(address).version == 4 and abuseipdb.public(address)
     except ValueError:
@@ -284,7 +308,7 @@ def lookup(address: str, zones: list[str]) -> dict:
     if not valid:
         raise InvalidSettings("Indica un indirizzo IPv4 pubblico.")
     return {"address": address, "zones": [{"zone": z, "name": ZONES[z]["name"], **r, "removal": removal(z, address)}
-                                          for z, r in check(address, zones).items()]}
+                                          for z, r in check(address, zones, dqs_key).items()]}
 
 
 # --- Pages ---------------------------------------------------------------------------------------
@@ -304,7 +328,7 @@ def _payload(db) -> dict:
                      "customer": customers.get(device.customer_id) if device and device.customer_id else None,
                      "unassigned": device is None and abuseipdb._inside(address, prefixes)})
     return jsonable_encoder({
-        **{k: config[k] for k in ("enabled", "zones", "cycle_started_at", "last_cycle_at", "zone_errors", "health", *DEFAULTS)},
+        **{k: config[k] for k in ("enabled", "zones", "cycle_started_at", "last_cycle_at", "zone_errors", "health", "has_dqs_key", *DEFAULTS)},
         "catalog": [{"zone": z, "name": i["name"], "default": i["default"], "note": i.get("note")} for z, i in ZONES.items()],
         "prefixes": [str(p) for p in prefixes],
         "coverage": {"addresses": total, "position": min(config["cursor"], total)},
@@ -336,7 +360,7 @@ def admin_dnsbl_test(request: Request):
     """Test entry of every zone in the catalog, so the operator sees which lists this server's resolver can use."""
     with SessionLocal() as db:
         ui_user(request, db, "users.manage")
-        result = {"at": utcnow().isoformat(), "zones": health(list(ZONES))}
+        result = {"at": utcnow().isoformat(), "zones": health(list(ZONES), _dqs_key(db))}
         row = _row(db)
         if row is not None:
             row.settings = {**dict(row.settings or {}), "health": result}
@@ -361,7 +385,7 @@ def admin_dnsbl_lookup(request: Request, body: dict = Body(default={})):
     with SessionLocal() as db:
         ui_user(request, db, "users.manage")
         try:
-            return lookup(str((body or {}).get("address") or "").strip(), load(db)["zones"])
+            return lookup(str((body or {}).get("address") or "").strip(), load(db)["zones"], _dqs_key(db))
         except InvalidSettings as error:
             raise HTTPException(422, {"code": "address", "message": str(error)}) from None
 
