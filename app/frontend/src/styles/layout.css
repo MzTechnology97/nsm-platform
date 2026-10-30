@@ -159,10 +159,18 @@ p code {
   object-fit: contain;
 }
 
+/* A logo takes the width of the name: name and tagline go under it, on one line each. */
+.ui-brand-name:has(.ui-brand-logo) {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
 .ui-brand-words {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  max-width: 100%;
 }
 
 .ui-brand-tagline {
@@ -339,6 +347,19 @@ p code {
   color: var(--neutral-fill);
   content: "›";
   content: "›" / "";
+}
+
+/* Little room: the page only, whole, rather than both cut. */
+@media (max-width: 1200px) {
+  .ui-top-crumbs {
+    flex: none;
+    max-width: none;
+  }
+
+  .ui-top-crumbs li.ui-top-crumbs-group,
+  .ui-top-crumbs li + li::before {
+    display: none;
+  }
 }
 
 .ui-top-crumbs-group,
@@ -646,7 +667,7 @@ select:hover {
 }
 
 @media (min-width: 641px) and (max-width: 1100px) {
-  .ui-top-crumbs-group,
+  .ui-top-crumbs li.ui-top-crumbs-group,
   .ui-top-crumbs li + li::before {
     display: none;
   }
