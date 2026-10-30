@@ -4,6 +4,12 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.337 — 2026-10-30
+
+Interface
+- **Portal name and tagline are no longer cut in the sidebar when a logo is set.** They now sit under the logo.
+- On windows narrower than 1200 px the top bar shows the page name whole, without its menu group.
+- The *BRAS MikroTik* page no longer overflows the window: the command block wraps.
 ## 0.49.336 — 2026-10-30
 
 Fixes
