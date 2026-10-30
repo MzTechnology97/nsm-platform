@@ -7272,7 +7272,7 @@
   },
   "threatLists": {
     "title": "Integrations · Threat lists",
-    "subtitle": "Public lists of networks to block (Spamhaus DROP), checked every day against your prefixes, the inventory's public IPs and the IPs trying to log in to the devices. Read-only: no device is changed.",
+    "subtitle": "Public lists of networks to block (Spamhaus DROP, FireHOL level 1, abuse.ch Feodo), checked every day against your prefixes, the public IPs of the inventory and the IPs trying to log in to the devices. A successful login from a listed IP is a critical alert. No device is changed.",
     "refresh": "Refresh now",
     "settingsTitle": "Settings",
     "enabled": "Turn on the threat lists (daily update)",
@@ -7310,7 +7310,11 @@
       "last": "Last"
     },
     "attempts_one": "{{count}} attempt on {{devices}} devices",
-    "attempts_other": "{{count}} attempts on {{devices}} devices"
+    "attempts_other": "{{count}} attempts on {{devices}} devices",
+    "trusted": "Trusted addresses",
+    "trustedHelp": "IPs or networks (NSM, technicians, monitoring) whose logins to the devices never alert. One per line.",
+    "blocklist": "Operator blocklist",
+    "blocklistHelp": "Your own IPs or networks treated like the public lists: failed logins more severe, a successful login critical. One per line."
   },
   "syslogRules": {
     "title": "Syslog rules",

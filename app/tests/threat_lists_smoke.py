@@ -6,14 +6,15 @@ from datetime import timedelta
 
 import httpx
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 
 from app import reachability
+from app import syslog_security as sec
 from app import threat_lists as tl
 from app.db import SessionLocal
 from app.entrypoint import app
 from app.integration_models import ConnectorIntegration
-from app.models import ActionIssue, AuditEvent, Customer, Device, User, utcnow
+from app.models import ActionIssue, AuditEvent, Customer, Device, Notification, User, utcnow
 from app.security import hash_password
 from app.syslog_models import DeviceAuthEvent
 
@@ -26,6 +27,9 @@ reachability.classify = lambda value: "public" if str(value or "").startswith(("
 
 V4 = "; Spamhaus DROP List (test)\n203.0.113.0/26 ; SBL000001\n198.51.100.128/25 ; SBL000002\nnot-a-network ; SBL9\n"
 V6 = '{"cidr":"2001:db8:f00::/48","sblid":"SBL000003","rir":"ripencc"}\n{"type":"metadata","timestamp":1}\n'
+# FireHOL level 1 also carries the bogons: they must never match.
+FIREHOL = "# FireHOL level1 (test)\n0.0.0.0/8\n10.0.0.0/8\n203.0.113.64/27\n"  # public-data-safety: allow (bogons as FireHOL lists them)
+FEODO = "# abuse.ch Feodo Tracker (test)\n198.51.100.66\n198.51.100.67\n"
 
 
 class Lists:
@@ -38,6 +42,10 @@ class Lists:
             return httpx.Response(200, text=self.v4)
         if request.url.path.endswith("drop_v6.json"):
             return httpx.Response(503) if self.v6 is None else httpx.Response(200, text=self.v6)
+        if request.url.path.endswith("firehol_level1.netset"):
+            return httpx.Response(200, text=FIREHOL)
+        if request.url.path.endswith("ipblocklist_recommended.txt"):
+            return httpx.Response(200, text=FEODO)
         return httpx.Response(404)
 
 
@@ -71,7 +79,7 @@ def main():
             for n in range(count):
                 db.add(DeviceAuthEvent(device_id=clean.id, occurred_at=now - timedelta(hours=n + 1), outcome="failure", username="admin", remote_ip=ip))
         db.commit()
-        listed_id = listed.id
+        listed_id, clean_id = listed.id, clean.id
     assert tl.tick()["status"] == "disabled", "off by default (MOD-01)"
 
     admin, headers = login(f"ci-th-{suffix}")
@@ -84,9 +92,12 @@ def main():
     assert saved["enabled"] and saved["operator_prefixes"] == ["203.0.113.0/24", "2001:db8:aaaa::/48"]
 
     page = admin.post(f"{base}/refresh", headers=headers).json()
-    assert page["stats"]["status"] == "refreshed" and page["stats"]["entries"] == 3, page["stats"]
+    assert page["stats"]["status"] == "refreshed" and page["stats"]["entries"] == 6, "3 DROP + 1 FireHOL (bogons skipped) + 2 Feodo"
     sources = {s["key"]: s for s in page["sources"]}
     assert sources["spamhaus_drop_v4"]["count"] == 2 and sources["spamhaus_drop_v6"]["count"] == 1 and not sources["spamhaus_drop_v4"]["error"]
+    assert sources["firehol_level1"]["count"] == 3 and sources["feodo"]["count"] == 2 and sources["feodo"]["label"] == "abuse.ch Feodo Tracker"
+    with SessionLocal() as db:
+        assert tl.Index.of(tl.load(db)).find_ip("10.1.2.3") is None, "a bogon of FireHOL is no threat"  # public-data-safety: allow
     kinds = {(m["kind"], m["address"]) for m in page["matches"]}
     assert ("operator_prefix", "203.0.113.0/24") in kinds and ("device", "198.51.100.200") in kinds, kinds
     assert ("device", "198.51.100.20") not in kinds and ("operator_prefix", "2001:db8:aaaa::/48") not in kinds
@@ -110,7 +121,38 @@ def main():
         issue = db.scalar(select(ActionIssue).where(ActionIssue.category == tl.ISSUE_CATEGORY, ActionIssue.device_id == listed_id))
         assert issue.status == "resolved" and "non più presente" in issue.details["resolved_reason"]
     assert tl.tick()["status"] == "not_due", "once a day"
-    assert all(call.startswith("https://www.spamhaus.org/drop/") for call in lists.calls)
+    assert {call.split("/")[2] for call in lists.calls} == {"www.spamhaus.org", "raw.githubusercontent.com", "feodotracker.abuse.ch"}
+
+    # SIEM-02 step 2: operator lists and the access alerts of the syslog.
+    assert admin.post(base, headers=headers, json={"enabled": True, "trusted": "not-an-ip"}).status_code == 422
+    saved = admin.post(base, headers=headers, json={"enabled": True, "operator_prefixes": "203.0.113.0/24", "trusted": "198.51.100.67",
+                                                    "blocklist": "198.51.100.99\n198.51.100.99/32"}).json()
+    assert saved["trusted"] == ["198.51.100.67/32"] and saved["blocklist"] == ["198.51.100.99/32"], saved
+    sec.is_public = lambda ip: str(ip or "").startswith(("198.51.100.", "203.0.113."))
+    t = utcnow() - timedelta(minutes=5)
+    with SessionLocal() as db:
+        db.execute(update(DeviceAuthEvent).values(evaluated=True))
+        events = [("success", "198.51.100.66"), ("success", "198.51.100.99")]  # Feodo, operator blocklist
+        events += [("failure", "203.0.113.70")] * 5  # FireHOL: brute force one level up
+        events += [("failure", "198.51.100.67")] * 5 + [("success", "198.51.100.67")]  # on Feodo, but trusted
+        db.add_all([DeviceAuthEvent(device_id=clean_id, occurred_at=t + timedelta(seconds=n), outcome=outcome, username="admin", remote_ip=ip,
+                                    service="ssh") for n, (outcome, ip) in enumerate(events)])
+        db.commit()
+    stats = sec.evaluate()
+    assert stats["listed_source_success"] == 2 and stats["brute_force"] == 1 and stats["trusted"] == 6 and stats["new_public_source"] == 0, stats
+    with SessionLocal() as db:
+        issues = {i.title: i for i in db.scalars(select(ActionIssue).where(ActionIssue.category == sec.ISSUE_CATEGORY, ActionIssue.device_id == clean_id))}
+        feodo = issues["Accesso riuscito da un indirizzo in lista di minaccia 198.51.100.66"]
+        assert feodo.severity == "critical" and feodo.details["threat"] == {"list": "abuse.ch Feodo Tracker", "network": "198.51.100.66/32", "reference": ""}
+        own = issues["Accesso riuscito da un indirizzo in lista di minaccia 198.51.100.99"]
+        assert own.details["threat"]["list"] == tl.BLOCKLIST_LABEL
+        brute = issues["Tentativi di accesso falliti da 203.0.113.70"]
+        assert brute.severity == "critical" and brute.details["threat"]["network"] == "203.0.113.64/27", "public + listed: critical"
+        note = db.scalar(select(Notification).where(Notification.device_id == clean_id, Notification.title == brute.title))
+        assert note.severity == "critical" and "FireHOL level 1" in note.message
+        assert not any("198.51.100.67" in title for title in issues), "trusted source never alerts"
+    attackers = {a["ip"] for a in admin.post(f"{base}/refresh", headers=headers).json()["attackers"]}
+    assert {"198.51.100.66", "203.0.113.70"} <= attackers and "198.51.100.67" not in attackers, attackers
 
     tech, tech_headers = login(f"ci-th-tech-{suffix}")
     assert tech.get(base).status_code == 403 and tech.post(f"{base}/refresh", headers=tech_headers).status_code == 403

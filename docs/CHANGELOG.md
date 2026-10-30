@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.319 — 2026-10-30
+
+Threat lists on the login alerts: FireHOL, abuse.ch, trusted and blocked addresses (SIEM-02)
+- *Integrazioni → Liste di minaccia* adds two public lists to Spamhaus DROP: **FireHOL level 1** and **abuse.ch Feodo Tracker** (botnet servers). Each can be turned off or pointed to another URL. The private ranges that FireHOL also lists are ignored.
+- Two lists of your own on the same page:
+  - **trusted addresses** (NSM, technicians, monitoring): logins from them never raise an alert;
+  - **blocklist**: addresses treated like the public lists.
+- The login alerts from the devices' syslog now use the lists:
+  - repeated failed logins from a listed address are one level more severe (critical from a public address);
+  - a **successful** login from a listed address is a critical alert;
+  - the alert says which list holds the address, with the listed network.
+- Firewall drops are not checked yet: the syslog does not store them as events.
 ## 0.49.318 — 2026-10-29
 
 Security
