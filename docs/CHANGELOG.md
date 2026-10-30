@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.329 — 2026-10-30
+
+Scheduled airOS firewall: access points left out
+
+### Fixed
+- The bulk panel listed every UISP device, so access points could be scheduled and rebooted, taking their customers down with them. It now lists only CPEs.
+- An access point already in a scheduled request is skipped at its turn, without asking anything of the device.
 ## 0.49.328 — 2026-10-30
 
 Scheduled airOS management firewall on many CPEs

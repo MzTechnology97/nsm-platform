@@ -10,6 +10,7 @@ Every CPE reboots, so the pace protects the fleet:
 - one CPE per worker run (about one per minute), at most ``MAX_VERIFYING`` still coming back;
 - the first CPE of a request goes alone: the others wait until it is back online in UISP;
 - a CPE not back online within ``VERIFY_TIMEOUT``, or a failed apply, stops the CPEs still scheduled by that request;
+- only ``wireless_cpe`` devices: rebooting an access point would take its customers down with it;
 - a CPE offline in UISP, in bridge mode, not airOS or with nothing to add is skipped without a reboot, and the request
   goes on. A skipped, stopped or cancelled CPE can be scheduled again.
 
@@ -36,6 +37,7 @@ from app.ui_api import require_csrf, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 KEY = "uisp_firewall_schedule"
+CPE_TYPE = "wireless_cpe"
 MAX_BULK = 1000
 MAX_AHEAD = timedelta(days=30)
 MAX_WINDOW_HOURS = 12
@@ -67,8 +69,10 @@ def in_window(value: dict, now) -> bool:
 
 
 def classify(device: Device) -> str:
-    """``applied``, ``active``, ``bridge``, ``own_rules`` or ``candidate`` (no active rules as far as NSM knows)."""
+    """``not_cpe``, ``applied``, ``active``, ``bridge``, ``own_rules`` or ``candidate`` (no active rules as far as NSM knows)."""
     data = device.inventory_data or {}
+    if device.device_type != CPE_TYPE:
+        return "not_cpe"
     if schedule_of(device).get("status") in ACTIVE:
         return "active"
     if (data.get(fw.KEY) or {}).get("status") == "applied":
@@ -170,6 +174,11 @@ def _verify(db, rows: list[Device], now, stats: dict) -> None:
 def _start(db, device: Device, rows: list[Device], now, stats: dict) -> bool:
     """Start one CPE; False when it was offline (nothing asked of it, the next one can go in the same run)."""
     value = schedule_of(device)
+    if device.device_type != CPE_TYPE:
+        _save(device, status="skipped", error="Non è una CPE: le regole in massa non si applicano agli access point.")
+        stats["skipped"] += 1
+        db.commit()
+        return False
     try:
         if not _online(db, device):
             _save(device, status="skipped", error="La CPE non è online in UISP.")
@@ -245,7 +254,7 @@ def fleet_firewall(request: Request, customer: str = ""):
             except ValueError:
                 raise HTTPException(422, {"code": "customer", "message": "Cliente non valido."}) from None
         rows = list(db.execute(query.order_by(Device.name)).tuples())
-        counts = {"candidate": 0, "applied": 0, "active": 0, "bridge": 0, "own_rules": 0}
+        counts = {"candidate": 0, "applied": 0, "active": 0, "bridge": 0, "own_rules": 0, "not_cpe": 0}
         candidates, problems = [], []
         for device, name in rows:
             kind = classify(device)
