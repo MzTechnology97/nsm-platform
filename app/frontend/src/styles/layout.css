@@ -351,6 +351,11 @@ p code {
 
 /* Little room: the page only, whole, rather than both cut. */
 @media (max-width: 1200px) {
+  .ui-top-crumbs {
+    flex: none;
+    max-width: none;
+  }
+
   .ui-top-crumbs li.ui-top-crumbs-group,
   .ui-top-crumbs li + li::before {
     display: none;
