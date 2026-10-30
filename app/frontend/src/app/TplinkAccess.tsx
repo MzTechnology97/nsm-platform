@@ -26,6 +26,8 @@ interface IspDefault {
 
 interface AccessData {
   remote: RemoteAccess | null;
+  /** Older TP-Link firmware: a second, unencrypted page that the remote access settings above do not report. */
+  http_remote?: { enabled: boolean; port: number | null } | null;
   isp_default?: IspDefault | null;
   telnet_lan: { enabled: boolean } | null;
   telnet_allowed: boolean;
@@ -53,7 +55,7 @@ export function TplinkAccess({ deviceId }: { deviceId: string }) {
   useEffect(() => {
     if (remote) setForm({ protocol: remote.protocol ?? "", port: remote.port?.toString() ?? "" });
   }, [remote?.protocol, remote?.port]);
-  if (!data || (!data.remote && !data.telnet_lan && !data.isp_default && !data.error)) return null;
+  if (!data || (!data.remote && !data.http_remote && !data.telnet_lan && !data.isp_default && !data.error)) return null;
   const submit = (event: FormEvent) => {
     event.preventDefault();
     change.mutate({ protocol: form.protocol || undefined, port: form.port ? Number(form.port) : undefined });
@@ -102,6 +104,22 @@ export function TplinkAccess({ deviceId }: { deviceId: string }) {
                 <AllowList remote={remote} confirmName={data.confirm_name} pending={change.isPending} onSubmit={(body) => change.mutate(body)} />
               )}
             </>
+          )}
+        </>
+      )}
+      {data.http_remote && (
+        <>
+          <h3>{t("tplinkAccess.httpTitle")}</h3>
+          <p className={data.http_remote.enabled ? "ui-alert ui-alert-warning" : "ui-muted"}>
+            {data.http_remote.enabled ? t("tplinkAccess.httpOn", { port: data.http_remote.port ?? "—" }) : t("tplinkAccess.httpOff")}
+          </p>
+          {data.can_edit && (
+            <div className="ui-row-actions">
+              <button type="button" className={data.http_remote.enabled ? "ui-button ui-button-danger" : "ui-button"} disabled={change.isPending}
+                onClick={() => change.mutate({ http_remote: !data.http_remote?.enabled })}>
+                {data.http_remote.enabled ? t("tplinkAccess.httpDisable") : t("tplinkAccess.httpEnable")}
+              </button>
+            </div>
           )}
         </>
       )}

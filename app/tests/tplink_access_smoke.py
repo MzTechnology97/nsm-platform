@@ -176,9 +176,19 @@ def main():
     assert bare["remote"] is None and bare["telnet_lan"] is None
     assert tech.post(f"/api/ui/v1/devices/{hb_id}/acs/access", json={"enabled": True}).json()["detail"]["code"] == "unsupported"
 
+    # Older firmware (Archer VR1210v): a second, unencrypted remote page, reported and switched on its own.
+    assert tech.post(url, json={"http_remote": False}).json()["detail"]["code"] == "unsupported"
+    fake.records[other]["Device"]["X_TP_AppCfg"] = {"HttpCfg": {"_object": True, "HttpRemoteEnabled": value(True), "HttpRemotePort": value(80)}}
+    hb_url = f"/api/ui/v1/devices/{hb_id}/acs/access"
+    assert auditor.get(hb_url).json()["http_remote"] == {"enabled": True, "port": 80}
+    assert auditor.post(hb_url, json={"http_remote": False}).status_code == 403
+    fake.tasks.clear()
+    tech.post(hb_url, json={"http_remote": False}).raise_for_status()
+    assert [t["parameterValues"] for t in fake.tasks] == [[["Device.X_TP_AppCfg.HttpCfg.HttpRemoteEnabled", False, "xsd:boolean"]]], fake.tasks
+
     with SessionLocal() as db:
         kinds = sorted(e.event_type for e in db.scalars(select(AuditEvent).where(AuditEvent.device_id.in_([device_id, hb_id]))))
-        assert kinds.count("ACS_ACCESS_CHANGED") == 6 and kinds.count("ACS_TELNET_DISABLED") == 1 and kinds.count("ACS_ISP_DEFAULT_SAVED") == 1, kinds
+        assert kinds.count("ACS_ACCESS_CHANGED") == 7 and kinds.count("ACS_TELNET_DISABLED") == 1 and kinds.count("ACS_ISP_DEFAULT_SAVED") == 1, kinds
 
     nbi.TRANSPORT = None
     with SessionLocal() as db:

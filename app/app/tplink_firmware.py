@@ -49,6 +49,7 @@ _ENTRY_LINK = re.compile(r'class="download-resource-btn[^"]*"[^>]*href="([^"]+)"
 _DATE = re.compile(r"(\d{4}-\d{2}-\d{2})")
 _BUILD = re.compile(r"build\s*(\d+)", re.I)
 _DOTTED = re.compile(r"(\d+)\.(\d+)(?:\.(\d+))?")
+_PLATFORM_FIRST = re.compile(r"^\s*2\.0\.0\s+(?=\d+\.\d)")  # older firmware puts its platform first: 2.0.0 0.10 v6041.0 Build 260323
 
 
 class TplinkError(RuntimeError):
@@ -77,8 +78,8 @@ def hardware_label(device) -> str | None:
 
 
 def version_key(value) -> tuple | None:
-    """Release number then build: ``0.19.0 Build 260323`` → (0, 19, 0, 260323)."""
-    text = str(value or "")
+    """Release number then build: ``0.19.0 Build 260323`` and ``2.0.0 0.19 v6041.0 Build 260323`` → (0, 19, 0, 260323)."""
+    text = _PLATFORM_FIRST.sub("", str(value or ""))
     dotted = _DOTTED.search(text)
     if not dotted:
         return None
@@ -293,7 +294,7 @@ def store_release(db, device, connection, version: str, actor=None, trigger: str
             while chunk := image.read(1024 * 1024):
                 digest.update(chunk)
         size = os.path.getsize(path)
-        identity = fw._identity(nbi._read(connection, device.external_device_id, ["_deviceId"]))
+        identity = fw._identity(nbi._read(connection, device.external_device_id, fw.IDENTITY))
         name = fw.file_name_for(identity, original, digest.hexdigest())
         if name not in {f["name"] for f in fw.list_files(connection, identity.get("product_class"))}:
             fw.store_file(connection, identity, name, path, version)

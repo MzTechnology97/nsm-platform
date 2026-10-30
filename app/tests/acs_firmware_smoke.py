@@ -213,6 +213,12 @@ def main():
         events = [e.details for e in db.scalars(select(AuditEvent).where(AuditEvent.device_id == ont_id, AuditEvent.event_type == "ACS_FIRMWARE_UNCONFIRMED")
                                                 .order_by(AuditEvent.timestamp))]
         assert [e["task_removed"] for e in events] == [True, False], events
+        # A file stored with the generic class says nothing about the model: it is not refused as another model's.
+        fake.files["generic.bin"] = {"_id": "generic.bin", "length": 1, "uploadDate": datetime.now(timezone.utc).isoformat(),
+                                     "metadata": {"fileType": fw.FILE_TYPE, "oui": "202BC1", "productClass": "Device", "version": ""}}
+        fw._store(device, {})
+        assert fw.request_upgrade(db, None, device, connection, "generic.bin")["state"] == "requested"
+        db.commit()
 
     with SessionLocal() as db:
         kinds = sorted(e.event_type for e in db.scalars(select(AuditEvent).where(AuditEvent.device_id == device_id)))
