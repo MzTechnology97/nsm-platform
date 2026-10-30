@@ -19,7 +19,8 @@ interface AcsState {
   wifi_clients: number | null;
   lan_hosts: number | null;
   dsl: { status: string | null; link_status: string | null; standard: string | null; down_bps: number | null; up_bps: number | null;
-    snr_down_db: number | null; attenuation_down_db: number | null } | null;
+    down_max_bps?: number | null; up_max_bps?: number | null; snr_down_db: number | null; snr_up_db?: number | null;
+    attenuation_down_db: number | null; attenuation_up_db?: number | null } | null;
   inform_interval: number | null;
   last_inform: string | null;
   pon?: AcsPon | null;
@@ -66,6 +67,8 @@ function PonLevels({ pon }: { pon: AcsPon }) {
     </>
   );
 }
+
+const decibels = (down?: number | null, up?: number | null) => (down == null && up == null ? "—" : `${down ?? "—"} / ${up ?? "—"} dB`);
 
 /** State of a TR-069 CPE at its last Inform (WAN, Wi-Fi, DSL) and its charts, read from GenieACS by the worker (ACS-05). */
 export function AcsMonitor({ deviceId }: { deviceId: string }) {
@@ -126,8 +129,11 @@ export function AcsMonitor({ deviceId }: { deviceId: string }) {
               <dl className="ui-dl">
                 <div><dt>{t("acsMonitor.dsl")}</dt><dd>{[state.dsl.link_status ?? state.dsl.status, state.dsl.standard].filter(Boolean).join(" · ") || "—"}</dd></div>
                 <div><dt>{t("acsMonitor.dslRate")}</dt><dd>{metricValue("dsl", "bps", state.dsl.down_bps, i18n.language)} / {metricValue("dsl", "bps", state.dsl.up_bps, i18n.language)}</dd></div>
-                <div><dt>{t("acsMonitor.dslSnr")}</dt><dd>{state.dsl.snr_down_db != null ? `${state.dsl.snr_down_db} dB` : "—"}</dd></div>
-                <div><dt>{t("acsMonitor.dslAttenuation")}</dt><dd>{state.dsl.attenuation_down_db != null ? `${state.dsl.attenuation_down_db} dB` : "—"}</dd></div>
+                {(state.dsl.down_max_bps != null || state.dsl.up_max_bps != null) && (
+                  <div><dt>{t("acsMonitor.dslMaxRate")}</dt><dd>{metricValue("dsl", "bps", state.dsl.down_max_bps ?? null, i18n.language)} / {metricValue("dsl", "bps", state.dsl.up_max_bps ?? null, i18n.language)}</dd></div>
+                )}
+                <div><dt>{t("acsMonitor.dslSnr")}</dt><dd>{decibels(state.dsl.snr_down_db, state.dsl.snr_up_db)}</dd></div>
+                <div><dt>{t("acsMonitor.dslAttenuation")}</dt><dd>{decibels(state.dsl.attenuation_down_db, state.dsl.attenuation_up_db)}</dd></div>
               </dl>
             )}
             {state.pon ? <PonLevels pon={state.pon} /> : null}

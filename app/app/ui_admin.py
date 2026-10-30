@@ -1259,10 +1259,13 @@ def uisp_onboarding_commit(request: Request, body: dict = Body(default={})):
 @router.get("/dashboard")
 def dashboard(request: Request):
     with SessionLocal() as db:
-        ui_user(request, db)
+        user = ui_user(request, db)
         data = dashboard_ui.dashboard_data(db)
+        from app import ip_abuse
+
         return jsonable_encoder({
             **{key: value for key, value in data.items() if key not in ("recent_events", "latest_advisories")},
+            **({"ip_abuse": ip_abuse.summary(db)} if core.has_permission(user, "security.read") else {}),
             "recent_events": [{"id": str(e.id), "event_type": e.event_type, "label": core.event_label(e.event_type), "timestamp": e.timestamp,
                                "severity": e.severity, "result": e.result} for e in data["recent_events"]],
             "latest_advisories": [{"id": str(a.id), "cve_id": a.cve_id, "vendor": a.vendor, "product": a.product, "severity": a.severity,

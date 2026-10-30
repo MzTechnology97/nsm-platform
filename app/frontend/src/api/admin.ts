@@ -754,6 +754,8 @@ export interface Dashboard {
   /** Online devices with CPU or memory from 75% (warn) or 90% (hot), and the five most loaded of those reporting. */
   resource_pressure: { warn: number; hot: number; reporting: number; top: DeviceBrief[] };
   cve_posture: { severe: number; exposed: number; clean: number; unknown: number };
+  /** Addresses of the operator reported by the abuse sources; only for who may read the security pages. */
+  ip_abuse?: { addresses: number; abuseipdb: number; dnsbl: number; threat_lists: number; max_score: number; sources_enabled: number };
   recent_events: { id: string; event_type: string; label: string; timestamp: string; severity: string; result: string }[];
   latest_advisories: { id: string; cve_id: string; vendor: string | null; product: string | null; severity: string; published_at: string | null; affected: number }[];
   updated_at: string;

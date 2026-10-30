@@ -123,7 +123,7 @@ class Index:
     strict_shared: set = field(default_factory=set)   # addresses used by at least one strict device
     networks: list = field(default_factory=list)
     retired: set = field(default_factory=set)         # keys of decommissioned devices: their lines are dropped
-    by_address: dict = field(default_factory=dict)    # ip -> device_id: TR-069 CPEs NSM pointed at itself (no key possible)
+    by_address: dict = field(default_factory=dict)    # ip -> device_id: devices NSM pointed at itself that cannot send a key (TR-069, airOS)
     by_name: list = field(default_factory=list)       # (customer name words, device_id): Ubiquiti/Cambium set by NSM in customer-name mode
     min_severity: dict = field(default_factory=dict)  # device_id -> worst severity number kept (airOS cannot filter by itself)
     devices: int = 0
@@ -187,12 +187,14 @@ def build_index(db, settings: dict, now=None) -> Index:
         # Ubiquiti set through UISP, Cambium ePMP set over SSH: NSM itself pointed them at the receiver, in the chosen mode.
         configured = next((data[k] for k in CONFIGURED_BY_NSM if isinstance(data.get(k), dict)), {})
         if configured.get("status") in ("applied", "unverified"):
-            if device.vendor == "ubiquiti" and configured is data.get("uisp_syslog"):
+            airos = device.vendor == "ubiquiti" and configured is data.get("uisp_syslog")
+            if airos:
                 index.min_severity[device.id] = UISP_LEVELS.get(configured.get("level") or "warning", 4)
-            if configured.get("mode") == "address" and _norm(device.management_ip):
+            # airOS remote lines carry no hostname (seen on 8.7.4): in any mode, its address may be all the receiver gets.
+            if (airos or configured.get("mode") == "address") and _norm(device.management_ip):
                 keyless.setdefault(_norm(device.management_ip), set()).add(device.id)
                 index.known_ips.add(_norm(device.management_ip))
-            elif configured.get("mode") == "customer_name" and name_tokens(configured.get("match_name")):
+            if configured.get("mode") == "customer_name" and name_tokens(configured.get("match_name")):
                 # The customer's name saved when NSM configured the device: the receiver's account cannot read customers.
                 by_name.setdefault(name_tokens(configured.get("match_name")), set()).add(device.id)
         for ip in strong:
@@ -243,7 +245,8 @@ def resolve(index: Index, source_ip: str, key: str | None, hostname: str | None,
 
     Key only (operator decision 2026-10-09): a line is accepted only when it carries
     the key of a known device; lines without a key are discarded, except from the address
-    of a TR-069 CPE that NSM itself set to send syslog (TP-Link takes no key; ``Index.by_address``).
+    of a device that NSM itself set to send syslog and that cannot send a key (TP-Link over TR-069,
+    airOS through UISP; ``Index.by_address``).
     """
     if key:
         device_id = index.keys.get(key)

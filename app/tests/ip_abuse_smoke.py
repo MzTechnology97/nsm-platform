@@ -11,6 +11,7 @@ from sqlalchemy import delete
 
 from app import abuseipdb, dnsbl, threat_lists
 from app.bras_models import IpAssignment
+from app import main as core
 from app.db import SessionLocal
 from app.entrypoint import app
 from app.integration_models import ConnectorIntegration
@@ -104,6 +105,17 @@ def main():
     assert {r["address"] for r in only["items"]} == {"203.0.113.2", "203.0.113.5"} and only["counts"]["addresses"] == 4
     assert [r["address"] for r in client.get("/api/ui/v1/security/ip-abuse?q=192.0.2").json()["items"]] == ["192.0.2.50"]
     assert len(client.get("/api/ui/v1/security/ip-abuse?source=bogus").json()["items"]) == 4, "an unknown source filters nothing"
+
+    # The dashboard tile: the same counts, only for who may read the security pages.
+    tile = client.get("/api/ui/v1/dashboard").json()["ip_abuse"]
+    enabled = tile.pop("sources_enabled")
+    assert tile == page["counts"] and enabled >= 1, tile
+    core.ROLE_PERMISSIONS["ci-no-security"] = set()
+    with SessionLocal() as db:
+        db.add(User(username=f"ci-abuse-none-{s}", password_hash=hash_password(PASSWORD), role="ci-no-security", is_active=True))
+        db.commit()
+    assert "ip_abuse" not in login(f"ci-abuse-none-{s}").get("/api/ui/v1/dashboard").json()
+    del core.ROLE_PERMISSIONS["ci-no-security"]
 
     # Sources turned off are still shown (what they stored last), and the page says they are off.
     with SessionLocal() as db:

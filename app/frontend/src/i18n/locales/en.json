@@ -3159,7 +3159,9 @@
       "clean": "No known CVE",
       "unknown": "Not assessable"
     },
-    "live": "updated {{time}} · next in {{seconds}} s"
+    "live": "updated {{time}} · next in {{seconds}} s",
+    "ipAbuseNote": "AbuseIPDB {{abuseipdb}} · DNSBL {{dnsbl}} · lists {{lists}}",
+    "ipAbuseOff": "No source enabled"
   },
   "search": {
     "title": "Global search",
@@ -5951,8 +5953,8 @@
     "clients": "Clients",
     "dsl": "DSL line",
     "dslRate": "Down / up rate",
-    "dslSnr": "SNR margin",
-    "dslAttenuation": "Attenuation",
+    "dslSnr": "SNR margin down / up",
+    "dslAttenuation": "Attenuation down / up",
     "charts": "History from the ACS",
     "pon": {
       "title": "PON optical levels",
@@ -5965,7 +5967,8 @@
       "notExposed": "not reported by the CPE",
       "help": "Read from the CPE every hour by the NSM provision; last reading {{when}} from"
     },
-    "lastSample": "No sample in this period: the last one NSM received from the CPE is from {{when}}."
+    "lastSample": "No sample in this period: the last one NSM received from the CPE is from {{when}}.",
+    "dslMaxRate": "Maximum rate down / up"
   },
   "serverMigration": {
     "subtitle": "Move NSM to a server with another address: this server tells MikroTik agents and TR-069 CPEs the new address.",
@@ -6702,11 +6705,11 @@
     "modes": {
       "key": {
         "label": "NSM key in the device name",
-        "help": "UISP adds NSM-… to the CPE name (hostname): it works even if the IP changes or the NAT is shared."
+        "help": "UISP adds NSM-… to the CPE name (hostname). airOS does not send the name in its remote logs, so NSM recognises them by the CPE IP as UISP sees it."
       },
       "customer_name": {
         "label": "CPE name equal to the NSM customer",
-        "help": "The CPE name in UISP must be the customer's ({{customer}}), in any order. Accepted only if no other device uses the same name."
+        "help": "The CPE name in UISP must be the customer's ({{customer}}), in any order. Accepted only if no other device uses the same name. airOS does not send the name in its remote logs, so NSM recognises them by the CPE IP as UISP sees it."
       },
       "address": {
         "label": "Device address",

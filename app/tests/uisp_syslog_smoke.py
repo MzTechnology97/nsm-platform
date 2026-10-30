@@ -125,7 +125,7 @@ def main():
     url = lambda k: f"/api/ui/v1/devices/{ids[k]}/syslog/uisp"  # noqa: E731
 
     state = client.get(url("cpe")).json()
-    assert state["linked"] and state["supported"] is True and state["system_log"]["server"] is None and state["default_mode"] == "key"
+    assert state["linked"] and state["supported"] is True and state["system_log"]["server"] is None and state["default_mode"] == "address"
     assert client.get(url("old")).json()["supported"] is False
 
     name = f"RIZZO MICHELA {s}"
@@ -144,6 +144,10 @@ def main():
         key = db.get(Device, ids["cpe"]).inventory_data["syslog_key"]
     assert "syslog.remote.ip=" in applied_cfg and f"resolv.host.1.name={name} NSM-{key}" in applied_cfg and "wireless.1.ssid=example" in applied_cfg
     assert client.get(url("cpe")).json()["system_log"]["enabled"] is True
+    # airOS 8.7.4 sends no hostname at all: the key never reaches the receiver, the management IP identifies the CPE.
+    airos_line = "<86>Oct 30 10:00:00 dropbear[1234]: Login attempt for nonexistent user from 203.0.113.9:22"
+    with SessionLocal() as db:
+        assert identity.resolve(identity.build_index(db, {}), "198.51.100.71", None, None, airos_line) == (ids["cpe"], None)
 
     # Customer-name mode on the same CPE, address mode on another.
     assert client.post(url("cpe"), json={"mode": "customer_name", "confirmation": name}).json()["state"]["mode"] == "customer_name"
@@ -154,6 +158,7 @@ def main():
         assert identity.resolve(index, "203.0.113.200", None, None, f"<14>Oct 23 11:14:11 RIZZO MICHELA {s} syslog: started") == (ids["cpe"], None)
         assert identity.resolve(index, "198.51.100.72", None, None, "<14>Oct 23 11:14:11 cpe-addr syslog: x") == (ids["addr"], None)
         assert identity.resolve(index, "203.0.113.201", None, None, "<14>Oct 23 11:14:11 SOMEONE ELSE syslog: x") == (None, "missing_key")
+        assert identity.resolve(index, "198.51.100.71", None, None, airos_line) == (ids["cpe"], None)
         # A second device in customer-name mode with the same customer: the name no longer identifies anyone.
         twin = Device(customer_id=db.get(Device, ids["cpe"]).customer_id, vendor="ubiquiti", device_type="wireless_cpe", name=f"twin-{s}", status="online",
                       inventory_data={"uisp_syslog": {"status": "applied", "mode": "customer_name", "match_name": f"Michela Rizzo {s}"}})
@@ -161,6 +166,10 @@ def main():
         db.commit()
         index = identity.build_index(db, {})
         assert identity.resolve(index, "203.0.113.200", None, None, f"<14>Oct 23 11:14:11 RIZZO MICHELA {s} syslog: started") == (None, "missing_key")
+        # The same address on two configured CPEs identifies neither of them.
+        twin.management_ip = "198.51.100.71"
+        db.commit()
+        assert identity.resolve(identity.build_index(db, {}), "198.51.100.71", None, None, airos_line) == (None, "missing_key")
 
     # Minimum level kept by the receiver (airOS sends everything): warning by default, logins kept, changeable without reboot.
     from app import syslog_receiver as rx
@@ -172,7 +181,10 @@ def main():
     receiver.handle(b"<14>Oct 23 11:14:11 cpe-addr syslog: dhcp lease renewed", "198.51.100.72")           # info: dropped
     receiver.handle(b"<12>Oct 23 11:14:12 cpe-addr kernel: link flapping", "198.51.100.72")                # warning: kept
     receiver.handle(b"<86>Oct 23 11:14:13 cpe-addr dropbear[1]: Password auth succeeded for 'ubnt'", "198.51.100.72")  # authpriv info: kept
-    assert receiver.stats["below_level"] == 1 and len(receiver.queue) == 2, (receiver.stats, len(receiver.queue))
+    receiver.handle(b"<30>Oct 30 10:00:00 dnsmasq-dhcp[1234]: DHCPACK(br0) 192.0.2.10 02:00:00:00:00:01", "198.51.100.72")  # no hostname, info: dropped
+    receiver.handle(airos_line.encode(), "198.51.100.72")                                                  # no hostname, authpriv: kept
+    assert receiver.stats["below_level"] == 2 and len(receiver.queue) == 3, (receiver.stats, len(receiver.queue))
+    assert receiver.queue[-1]["program"] == "dropbear" and receiver.queue[-1]["hostname"] is None
     changed = client.post(f"{url('addr')}/level", json={"level": "info"}).json()
     assert changed["state"]["level"] == "info" and len(fake.devices[exts["addr"]]["applied"]) == applied_before, "no reapply, no reboot"
     assert client.post(f"{url('addr')}/level", json={"level": "loud"}).json()["detail"]["code"] == "level"

@@ -577,10 +577,10 @@ Validation pending: periodic sync against a real UISP instance (the consumed end
 
 It runs only from the device *Syslog* tab, with the device name typed as confirmation (`devices.write`), never from the worker. *Ripristina configurazione precedente* applies the restore point. Devices whose services UISP does not expose (404) keep the manual guide.
 
-Identification per device:
-- `key`, the default: the NSM key in the hostname;
-- `customer_name`: the UISP hostname must equal the NSM customer's name, words in any order. The name is saved on the device (`match_name`) because the receiver's database account cannot read customers. A line is accepted only when exactly one device uses that name, and only among the first 160 characters of the line;
-- `address`: the management IP from UISP, accepted only when no other device uses it.
+Identification per device. airOS 8.7.4 sends remote lines without a hostname (seen on production, Core 0.49.326), so in every mode the receiver also accepts the management IP from UISP, when no other device uses it. A line sent right after the CPE's address changed is discarded until UISP reports the new one. Key and name only help a firmware that does send the hostname:
+- `address`, the default: the address alone;
+- `key`: also the NSM key in the hostname;
+- `customer_name`: also the UISP hostname equal to the NSM customer's name, words in any order. The name is saved on the device (`match_name`) because the receiver's database account cannot read customers. A line is accepted only when exactly one device uses that name, and only among the first 160 characters of the line.
 
 Minimum level: airOS has no remote-syslog level, so it sends everything. The receiver keeps only that device's chosen level or worse (`syslog_identity.Index.min_severity`, default warning, Core 0.49.276). auth/authpriv lines and recognised logins are always kept for *Accessi*. The level is changed from the panel without reapplying the configuration (`POST …/syslog/uisp/level`). Audit `UISP_SYSLOG_CONFIGURED`, `UISP_SYSLOG_RESTORED`, `UISP_SYSLOG_LEVEL_CHANGED`.
 
@@ -888,6 +888,8 @@ Once the operator has installed the NSM base templates (*Amministrazione → ACS
 ### Monitoring and history of CPEs (ACS-05, Core 0.49.206 and 0.49.211)
 
 Every 2 minutes the worker reads from GenieACS (read only, one NBI query per 20 CPEs) the state of every linked TR-069 CPE at its last Inform: CPU, memory, uptime, WAN (chosen by the connection-request address, PPP or public IP: state, type, address, time connected, last error), Wi-Fi radios and clients, LAN hosts, DSL line (rates, SNR margin, attenuation), for TR-181 and TR-098. It keeps the state on the device, stores one sample per new Inform for 90 days (WAN bit rates from the byte counters between two Informs; counters stuck at zero with the WAN up, as on the TP-Link VX230v, are reported as not available) and sets the device online/offline from the last Inform (three missed periodic Informs, at least 15 minutes). The device page and list show CPU/RAM/uptime as current when the last Inform is under 2 hours old; the *ACS* tab shows the line and Wi-Fi state and charts over 24 h / 7 / 30 / 90 days. The NSM provision declares these values with a 4-minute age so the CPE reports them at every periodic inform; NSM keeps the provision current itself (0.49.210).
+
+**DSL lines (Core 0.49.324):** the rates come from the channel in use, not the first one (an Archer VR1210v has ADSL as channel 1, down, and VDSL as channel 2). The tab also shows the standard, the maximum attainable rates, and the SNR margin and attenuation in both directions.
 
 ### Parameter profiles and CPE capabilities (ACS-04, Core 0.49.264)
 
