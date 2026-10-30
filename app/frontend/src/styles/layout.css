@@ -166,6 +166,10 @@ p code {
   gap: var(--space-1);
 }
 
+.ui-brand-name:has(.ui-brand-logo) .ui-brand-tagline {
+  white-space: normal;
+}
+
 .ui-brand-words {
   display: flex;
   flex-direction: column;

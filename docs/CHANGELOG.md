@@ -4,6 +4,10 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.338 — 2026-10-30
+
+Interface
+- A long tagline under the portal logo now wraps instead of being cut.
 ## 0.49.337 — 2026-10-30
 
 Interface
