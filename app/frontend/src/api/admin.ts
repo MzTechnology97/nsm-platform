@@ -532,6 +532,9 @@ export interface UnifiAdmin {
   sites: string[];
   known_sites: { id: string; name: string | null }[];
   api_prefix: string | null;
+  /** api_key: UniFi OS console; password: classic self-hosted controller. */
+  auth: "api_key" | "password";
+  username: string;
   last_test_status: string | null;
   last_error: string | null;
   last_sync_at: string | null;

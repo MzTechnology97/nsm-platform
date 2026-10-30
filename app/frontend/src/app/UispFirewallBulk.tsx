@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { api, ApiError } from "../api/client";
 import { formatDateTime, fromLocalInput, toLocalInput } from "../lib/format";
+import { usePaging } from "../lib/paging";
+import { Pager } from "./Pager";
 
 interface Row { id: string; name: string; customer: string | null }
 interface Candidate extends Row { netmode: string | null }
@@ -36,7 +38,7 @@ function nextNight() {
 }
 
 /** Exposure page: firewall rules on many airOS CPEs without active rules, applied by the worker in a nightly window. */
-export function UispFirewallBulkPanel({ customer }: { customer?: string }) {
+export function UispFirewallBulkPanel({ customer, toolbar }: { customer?: string; toolbar?: ReactNode }) {
   const { t, i18n } = useTranslation();
   const client = useQueryClient();
   const query = useQuery({ queryKey: ["security", "uisp-firewall", customer ?? ""], queryFn: () => api<Fleet>(`/api/ui/v1/security/uisp-firewall${customer ? `?customer=${customer}` : ""}`) });
@@ -45,6 +47,8 @@ export function UispFirewallBulkPanel({ customer }: { customer?: string }) {
   const [when, setWhen] = useState(nextNight);
   const [hours, setHours] = useState<number | null>(null);
   const [typed, setTyped] = useState("");
+  const [text, setText] = useState("");
+  const paging = usePaging(`${text}|${customer ?? ""}`);
   const refresh = () => void client.invalidateQueries({ queryKey: ["security", "uisp-firewall"] });
   const data = query.data;
   const services = picked ?? data?.default_services ?? [];
@@ -62,35 +66,46 @@ export function UispFirewallBulkPanel({ customer }: { customer?: string }) {
   if (!data) return null;
   const toggleService = (service: string) => setPicked(services.includes(service) ? services.filter((s) => s !== service) : data.services.filter((s) => s === service || services.includes(s)));
   const toggle = (rowId: string) => setChosen(chosen.includes(rowId) ? chosen.filter((value) => value !== rowId) : [...chosen, rowId]);
-  const all = data.candidates.slice(0, data.max_bulk).map((row) => row.id);
+  const needle = text.trim().toLowerCase();
+  const visible = data.candidates.filter((row) => !needle || `${row.name} ${row.customer ?? ""}`.toLowerCase().includes(needle));
+  const all = visible.slice(0, data.max_bulk).map((row) => row.id);
   const submit = (event: FormEvent) => { event.preventDefault(); schedule.mutate(); };
   return (
     <section className="ui-panel ui-admin-section">
-      <h2>{t("uispFirewallBulk.title")}</h2>
       <p className="ui-muted">{t("uispFirewallBulk.hint")}</p>
-      <p>{t("uispFirewallBulk.counts", data.counts)}</p>
+      <div className="ui-metrics">
+        {(["candidate", "applied", "active", "own_rules", "bridge"] as const).map((name) => (
+          <div key={name} className={`ui-metric${name === "candidate" && data.counts.candidate > 0 ? " ui-metric-warning" : ""}`}>
+            <span>{t(`uispFirewallBulk.metrics.${name}`)}</span>
+            <strong>{data.counts[name]}</strong>
+          </div>
+        ))}
+      </div>
 
       {data.batches.length > 0 && (
-        <div className="ui-data-wrap">
-          <table className="ui-data-table">
-            <thead>
-              <tr>{["start", "window", "by", "progress", "actions"].map((name) => <th key={name}><span className="ui-th">{t(`uispFirewallBulk.batch.${name}`)}</span></th>)}</tr>
-            </thead>
-            <tbody>
-              {data.batches.map((batch) => (
-                <tr key={batch.batch}>
-                  <td>{formatDateTime(batch.at, i18n.language)}</td>
-                  <td>{t("uispFirewallBulk.batch.hours", { count: batch.hours })}</td>
-                  <td>{batch.by ?? "—"}</td>
-                  <td>{Object.entries(batch.counts).map(([status, count]) => `${t(`uispFirewallBulk.status.${status}`)}: ${count}`).join(" · ")}</td>
-                  <td>{data.can_schedule && (batch.counts.scheduled ?? 0) > 0 && (
-                    <button type="button" className="ui-button" disabled={cancel.isPending} onClick={() => cancel.mutate(batch.batch)}>{t("uispFirewallBulk.cancel")}</button>
-                  )}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <h3>{t("uispFirewallBulk.requests")}</h3>
+          <div className="ui-data-wrap">
+            <table className="ui-data-table">
+              <thead>
+                <tr>{["start", "window", "by", "progress", "actions"].map((name) => <th key={name}><span className="ui-th">{t(`uispFirewallBulk.batch.${name}`)}</span></th>)}</tr>
+              </thead>
+              <tbody>
+                {data.batches.map((batch) => (
+                  <tr key={batch.batch}>
+                    <td>{formatDateTime(batch.at, i18n.language)}</td>
+                    <td>{t("uispFirewallBulk.batch.hours", { count: batch.hours })}</td>
+                    <td>{batch.by ?? "—"}</td>
+                    <td>{Object.entries(batch.counts).map(([status, count]) => `${t(`uispFirewallBulk.status.${status}`)}: ${count}`).join(" · ")}</td>
+                    <td>{data.can_schedule && (batch.counts.scheduled ?? 0) > 0 && (
+                      <button type="button" className="ui-button" disabled={cancel.isPending} onClick={() => cancel.mutate(batch.batch)}>{t("uispFirewallBulk.cancel")}</button>
+                    )}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
       {cancel.error && <small className="ui-backup-error">{message(cancel.error)}</small>}
 
@@ -108,16 +123,20 @@ export function UispFirewallBulkPanel({ customer }: { customer?: string }) {
         </details>
       )}
 
-      {data.candidates.length === 0 ? (
+      <div className="ui-filter-bar">
+        <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("exposure.search")} aria-label={t("exposure.search")} autoComplete="off" />
+        {toolbar}
+      </div>
+      {visible.length === 0 ? (
         <div className="ui-empty">{t("uispFirewallBulk.none")}</div>
       ) : data.can_schedule && (
         <>
           <label>
-            <input type="checkbox" checked={chosen.length === all.length} onChange={(event) => setChosen(event.target.checked ? all : [])} />{" "}
+            <input type="checkbox" checked={all.every((rowId) => chosen.includes(rowId))} onChange={(event) => setChosen(event.target.checked ? all : [])} />{" "}
             {t("uispFirewallBulk.all", { count: all.length })}
           </label>
           <details>
-            <summary>{t("uispFirewallBulk.list", { count: data.candidates.length })}</summary>
+            <summary>{t("uispFirewallBulk.list", { count: visible.length })}</summary>
             <div className="ui-data-wrap">
               <table className="ui-data-table">
                 <thead>
@@ -127,7 +146,7 @@ export function UispFirewallBulkPanel({ customer }: { customer?: string }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.candidates.map((row) => (
+                  {visible.slice(paging.offset, paging.offset + paging.size).map((row) => (
                     <tr key={row.id}>
                       <td><input type="checkbox" checked={chosen.includes(row.id)} onChange={() => toggle(row.id)} aria-label={row.name} /></td>
                       <td><Link to="/devices/$deviceId/exposure" params={{ deviceId: row.id }}>{row.name}</Link></td>
@@ -138,6 +157,7 @@ export function UispFirewallBulkPanel({ customer }: { customer?: string }) {
                 </tbody>
               </table>
             </div>
+            <Pager total={visible.length} paging={paging} />
           </details>
         </>
       )}

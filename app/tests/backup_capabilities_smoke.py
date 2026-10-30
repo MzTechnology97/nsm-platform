@@ -1,15 +1,17 @@
+import gc
 import re
 from datetime import timedelta
 
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import event, select
 
 from app.agent_models import DeviceAgentCredential
-from app.backup_capabilities import backup_readiness
+from app.backup_capabilities import _uisp_enabled, backup_readiness
 from app.backup_models import BackupPolicySettings
 from app import backup_maintenance
-from app.db import SessionLocal
+from app.db import SessionLocal, engine
 from app.entrypoint import app
+from app.integration_models import ConnectorIntegration
 from app.models import BackupPolicy, Customer, Device, Site, User, utcnow
 from app.security import hash_password
 
@@ -141,6 +143,51 @@ def seed():
         }
 
 
+def check_uisp_row_read_once():
+    """The check runs for every device: one session reads the UISP row once, and still sees it change."""
+    uisp = select(ConnectorIntegration).where(ConnectorIntegration.provider == "uisp")
+    with SessionLocal() as db:
+        row = db.scalar(uisp)
+        created = row is None
+        was_enabled = row.is_enabled if row else False
+        if created:
+            row = ConnectorIntegration(provider="uisp", name="CI10 UISP", base_url="https://uisp.example.test", secret_encrypted="x")
+            db.add(row)
+        row.is_enabled = True
+        db.commit()
+    statements = []
+
+    def count(_conn, _cursor, statement, _params, _context, _many):
+        if "connector_integrations" in statement:
+            statements.append(statement)
+
+    event.listen(engine, "before_cursor_execute", count)
+    try:
+        with SessionLocal() as db:
+            for _ in range(5):
+                assert _uisp_enabled(db)
+                gc.collect()
+            assert len(statements) == 1, statements
+            db.scalar(uisp).is_enabled = False
+            assert not _uisp_enabled(db), "a change in this session is seen"
+            db.rollback()
+            assert _uisp_enabled(db), "a rollback is seen"
+            db.scalar(uisp).is_enabled = False
+            db.commit()
+            assert not _uisp_enabled(db), "a commit is seen"
+    finally:
+        event.remove(engine, "before_cursor_execute", count)
+    with SessionLocal() as db:
+        row = db.scalar(uisp)
+        if created:
+            db.delete(row)
+        else:
+            row.is_enabled = was_enabled
+        db.commit()
+    with SessionLocal() as db:
+        assert _uisp_enabled(db) is was_enabled, "no row, or the row back as it was"
+
+
 def main():
     ids = seed()
 
@@ -216,6 +263,8 @@ def main():
     assert moved.status_code == 302 and moved.headers["location"] == f"/app/customers/{ids['customer']}/backups"
     moved = client.get("/operations/backups", follow_redirects=False)
     assert moved.status_code == 302 and moved.headers["location"] == "/app/backups"
+
+    check_uisp_row_read_once()
 
     print("Core 0.10 backup capability registry smoke test passed")
 

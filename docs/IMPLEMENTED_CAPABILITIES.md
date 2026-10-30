@@ -568,6 +568,16 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 Validation pending: periodic sync against a real UISP instance (the consumed endpoint is the same one used by manual refresh).
 
+### UniFi Network: classic controller login (UBNT-09, Core 0.49.331)
+
+The classic self-hosted Network Application (port 8443) has no API key. *Integrazioni → UniFi Network* offers *Controller classico: utente e password*:
+
+- NSM logs in with a local account, reads `/api/self/sites` and `/api/s/{site}/stat/device`, and logs out; the only POSTs are login and logout;
+- every site the account can see is read, and the site filter works as with the API key;
+- the password is encrypted, never returned, and kept on save only while the address stays the same.
+
+Validated only against a simulated controller. Consoles reached through unifi.ui.com and accounts with two-factor authentication are not supported.
+
 ### Syslog through UISP (UBNT-09, Core 0.49.257)
 
 `app/uisp_syslog.py`. UISP 3.x reads an airOS device's services but cannot write them (`PUT /devices/{id}/services` → 501 *setServices is not implemented*). So NSM restores a configuration the way UISP itself does:
@@ -900,6 +910,10 @@ Every 2 minutes the worker reads from GenieACS (read only, one NBI query per 20 
 CPEs with a fibre port that expose their optics through TR-069 get the optical levels in the monitoring: received and transmitted power (dBm), module temperature (°C), supply voltage (V) and laser bias current (mA), with the PON state. Read from TR-181 `Device.Optical.Interface.{i}` (`OpticalSignalLevel` / `TransmitOpticalLevel` in 0.001 dBm, temperature, voltage and bias from vendor parameters of the same object) and from TR-098 vendor objects of a WAN device: Huawei `X_GponInterafceConfig` (spelled like that), `X_GponInterfaceConfig`, ZTE `X_ZTE-COM_WANPONInterfaceConfig`, `X_CT-COM_GponInterfaceConfig` / `X_CT-COM_EponInterfaceConfig`, `X_CMCC_GponInterfaceConfig`, `WANPONInterfaceConfig`. Vendors use different units, so NSM normalizes them (dBm, 0.001 dBm or 0.1 µW; °C or 1/256 °C; V, mV or 100 µV; mA, µA or 2 µA for CT-COM style objects) and leaves empty any value that fits none. The NSM base provision re-reads only these objects once an hour (`declare` of the values, never a refresh of the root); nothing is written to the CPE. Values go into the ACS history (`acs_metric_samples`, 90 days) with charts on the *ACS* tab (power, temperature, bias, voltage) and the current values in *Linea e Wi-Fi*. Alert `pon` in *Avvisi dei CPE*: received level under −27 dBm by default (GPON class B+ sensitivity; −40…0, 0 disables) on the last two optical readings. Checked read-only on the operator's GenieACS (2026-10-23): its two CPEs (TP-Link VX230v DSL, HB210 Ethernet) expose no optical object, so they show nothing; the parsing is tested on sanitized structures of the data models above.
 
 **MON-02 for the ACS.** The ACS history cleanup keeps, beyond 90 days, the newest sample of every CPE and its newest optical reading; the last state of a CPE that stopped contacting the ACS stays on the device, and the *ACS* tab says when the last sample arrived when the chosen range has none.
+
+### The Esposizione page (Core 0.49.330)
+
+Three tabs instead of one long page: exposed services, CPE firewall and UPnP. The tab is kept in the address (`section`), and each one has the customer filter. In *Servizi esposti* the list is searched by device, address or customer (`q`) and filtered by service (`service`, with the number of devices beside each one); the worst severity comes first. The firewall and UPnP lists are searched and split in pages in the browser, because the API already returns them whole.
 
 ### Management firewall on many airOS CPEs (ACCESS-01, Core 0.49.328)
 
