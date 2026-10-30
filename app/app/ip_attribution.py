@@ -39,42 +39,57 @@ def parse_when(value) -> datetime | None:
     return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
 
 
-def _account(db, username: str):
-    from app.ispbilling_models import IspbillingCustomer, IspbillingRadiusAccount
-
-    account = db.scalar(select(IspbillingRadiusAccount).where(func.lower(IspbillingRadiusAccount.username) == username.lower()).limit(1))
-    customer = None
-    if account is not None and account.customer_external_id:
-        link = db.scalar(select(IspbillingCustomer).where(IspbillingCustomer.external_id == account.customer_external_id))
-        customer = db.get(Customer, link.nsm_customer_id) if link and link.nsm_customer_id else None
-    return account, customer
-
-
 def who_had(db, address: str, at: datetime) -> dict:
     """The holder of ``address`` at ``at``: confidence ``exact`` / ``static`` / ``none``, with username, customer and device."""
-    entry = db.scalar(select(IpAssignment).where(IpAssignment.address == address, IpAssignment.started_at <= at,
-                                                 or_(IpAssignment.ended_at.is_(None), IpAssignment.ended_at >= at))
-                      .order_by(IpAssignment.started_at.desc()).limit(1))
-    out = {"address": address, "at": at.isoformat(), "confidence": "none", "username": None, "from": None, "to": None,
-           "customer": None, "device": None}
-    if entry is not None:
-        out.update({"confidence": "exact", "username": entry.username, "from": entry.started_at.isoformat(),
-                    "to": entry.ended_at.isoformat() if entry.ended_at else None})
-        account, customer = _account(db, entry.username)
-    else:
-        from app.ispbilling_models import IspbillingRadiusAccount
+    return who_had_many(db, [address], at)[address]
 
-        account = db.scalar(select(IspbillingRadiusAccount).where(IspbillingRadiusAccount.static_ip == address).limit(1))
-        if account is None:
-            return out
-        out.update({"confidence": "static", "username": account.username})
-        customer = _account(db, account.username)[1]
-    device = db.get(Device, account.nsm_device_id) if account is not None and account.nsm_device_id else None
-    if customer is None and device is not None and device.customer_id:
-        customer = db.get(Customer, device.customer_id)
-    out["customer"] = {"id": str(customer.id), "name": customer.name} if customer else None
-    out["device"] = {"id": str(device.id), "name": device.display_name or device.device_identity or device.name} if device else None
-    return out
+
+def who_had_many(db, addresses, at: datetime) -> dict:
+    """{address: ``who_had``} with six queries, however many addresses: the abuse page asks for over a thousand."""
+    from app.ispbilling_models import IspbillingCustomer, IspbillingRadiusAccount
+
+    addresses = list(dict.fromkeys(addresses))
+    entries = {}
+    for entry in db.scalars(select(IpAssignment).where(IpAssignment.address.in_(addresses), IpAssignment.started_at <= at,
+                                                       or_(IpAssignment.ended_at.is_(None), IpAssignment.ended_at >= at))
+                            .order_by(IpAssignment.started_at)):
+        entries[entry.address] = entry  # the latest start wins
+    statics = {}
+    for account in db.scalars(select(IspbillingRadiusAccount).where(IspbillingRadiusAccount.static_ip.in_([a for a in addresses if a not in entries]))):
+        statics.setdefault(account.static_ip, account)
+    names = {entry.username.lower() for entry in entries.values()} | {account.username.lower() for account in statics.values()}
+    accounts = {}
+    for account in db.scalars(select(IspbillingRadiusAccount).where(func.lower(IspbillingRadiusAccount.username).in_(list(names)))):
+        accounts.setdefault(account.username.lower(), account)
+    external_ids = [account.customer_external_id for account in accounts.values() if account.customer_external_id]
+    links = {link.external_id: link.nsm_customer_id for link in db.scalars(select(IspbillingCustomer).where(IspbillingCustomer.external_id.in_(external_ids)))}
+    device_ids = [account.nsm_device_id for account in [*accounts.values(), *statics.values()] if account.nsm_device_id]
+    devices = {device.id: device for device in db.scalars(select(Device).where(Device.id.in_(device_ids)))}
+    customer_ids = {*links.values(), *(device.customer_id for device in devices.values())} - {None}
+    customers = {customer.id: customer for customer in db.scalars(select(Customer).where(Customer.id.in_(list(customer_ids))))}
+
+    result = {}
+    for address in addresses:
+        out = result[address] = {"address": address, "at": at.isoformat(), "confidence": "none", "username": None, "from": None,
+                                 "to": None, "customer": None, "device": None}
+        entry = entries.get(address)
+        if entry is not None:
+            out.update({"confidence": "exact", "username": entry.username, "from": entry.started_at.isoformat(),
+                        "to": entry.ended_at.isoformat() if entry.ended_at else None})
+            account = accounts.get(entry.username.lower())
+        else:
+            account = statics.get(address)
+            if account is None:
+                continue
+            out.update({"confidence": "static", "username": account.username})
+        named = accounts.get(out["username"].lower())
+        customer = customers.get(links.get(named.customer_external_id)) if named is not None and named.customer_external_id else None
+        device = devices.get(account.nsm_device_id) if account is not None and account.nsm_device_id else None
+        if customer is None and device is not None and device.customer_id:
+            customer = customers.get(device.customer_id)
+        out["customer"] = {"id": str(customer.id), "name": customer.name} if customer else None
+        out["device"] = {"id": str(device.id), "name": device.display_name or device.device_identity or device.name} if device else None
+    return result
 
 
 @router.get("/security/ip-attribution")

@@ -17,6 +17,7 @@ import uuid
 
 from fastapi import APIRouter, Request
 from fastapi.encoders import jsonable_encoder
+from sqlalchemy import select
 
 from app import abuseipdb, dnsbl, ip_attribution, threat_lists
 from app.db import SessionLocal
@@ -97,12 +98,14 @@ def overview(db, source: str = "", q: str = "") -> dict:
     holders = abuseipdb._holders(db)
     customers: dict = {}
     items = []
-    for entry in data["rows"].values():
-        kinds = [s["source"] for s in entry["sources"]]
-        if (source and source not in kinds) or (q and q.strip() not in entry["address"]):
-            continue
-        held = ip_attribution.who_had(db, entry["address"], now)
-        device = db.get(Device, uuid.UUID(held["device"]["id"])) if held["device"] else holders.get(entry["address"])
+    selected = [entry for entry in data["rows"].values()
+                if (not source or any(s["source"] == source for s in entry["sources"])) and (not q or q.strip() in entry["address"])]
+    held_by = ip_attribution.who_had_many(db, [entry["address"] for entry in selected], now)
+    held_ids = [uuid.UUID(held["device"]["id"]) for held in held_by.values() if held["device"]]
+    held_devices = {device.id: device for device in db.scalars(select(Device).where(Device.id.in_(held_ids)))}
+    for entry in selected:
+        held = held_by[entry["address"]]
+        device = held_devices[uuid.UUID(held["device"]["id"])] if held["device"] else holders.get(entry["address"])
         customer = held["customer"]
         if customer is None and device is not None and device.customer_id:
             if device.customer_id not in customers:
