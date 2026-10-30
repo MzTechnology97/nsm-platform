@@ -8,14 +8,14 @@ from datetime import timedelta
 
 import httpx
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, select
+from sqlalchemy import delete, event as sa_event, select
 
 from app import abuseipdb
 from app import ip_attribution
 from app import ispbilling_radius
 from app import mikrotik_bras as bras
 from app.bras_models import BrasSession, IpAssignment
-from app.db import SessionLocal
+from app.db import SessionLocal, engine
 from app.entrypoint import app
 from app.integration_models import ConnectorIntegration
 from app.ispbilling_models import IspbillingCustomer, IspbillingRadiusAccount
@@ -84,6 +84,19 @@ def main():
         assert moved["username"] == users["bruno"] and moved["to"] is None, moved
         static = ip_attribution.who_had(db, STATIC, t0)
         assert static["confidence"] == "static" and static["customer"]["id"] == str(ids["carla"]), static
+        statements = []
+
+        def count(_conn, _cursor, statement, _params, _context, _many):
+            statements.append(statement)
+
+        sa_event.listen(engine, "before_cursor_execute", count)
+        many = ip_attribution.who_had_many(db, [ADDRESS, MOVED, STATIC, ADDRESS, "198.51.100.250"], t0 + timedelta(minutes=12))
+        sa_event.remove(engine, "before_cursor_execute", count)
+        assert len(statements) <= 6, statements
+        assert set(many) == {ADDRESS, MOVED, STATIC, "198.51.100.250"}, many
+        assert many[ADDRESS]["username"] == users["bruno"] and many[ADDRESS]["customer"]["id"] == str(ids["bruno"]), many
+        assert many[MOVED]["confidence"] == "none" and many["198.51.100.250"]["confidence"] == "none", many
+        assert many[STATIC] == ip_attribution.who_had(db, STATIC, t0 + timedelta(minutes=12)), many
 
     # Route: validation, result, audit.
     url = "/api/ui/v1/security/ip-attribution"

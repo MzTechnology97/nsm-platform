@@ -4,6 +4,10 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.333 — 2026-10-30
+
+Fixes
+- **The *Abusi IP* page opens in about 2 seconds instead of 12 or more.** The holder of each reported address was looked up one by one, with over 3500 queries. They are now read together, with the same result.
 ## 0.49.332 — 2026-10-30
 
 Fixes
