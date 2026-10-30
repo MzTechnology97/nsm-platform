@@ -726,6 +726,25 @@ Buttons on the device page (and in the device list menu) to reach the device whe
 
 **Implemented in `main`**: compact grouped suggestions with manufacturer icons, device status, matched field, CVE and page shortcuts, counts with *vedi tutti*, recent searches, `/` and Ctrl+K shortcuts; manufacturer icons replace the two-letter vendor badges.
 
+### GUI-COUNTERS — counters on the other sidebar items (requested 2026-10-30)
+
+**Planned.** Only five sidebar items show a counter today (`nav_counts.py`, `Layout.tsx`): Apparati (devices), Monitoring (offline), Firmware (needing attention), Vulnerabilità (devices with severe CVEs) and Action Center (open issues). The operator asked for counters on the other sections too.
+
+Candidate figures, to confirm before building:
+- Operazioni: Clienti (total), Agent (agents needing attention), Backup (failed or overdue), Incidenti (open).
+- Sicurezza: Accessi (open access alerts), Esposizione (devices exposed), Abusi IP (open reports), Lifecycle (devices past end of life).
+- Governance: Compliance (non-compliant devices).
+- Piattaforma: Integrazioni (connectors in error).
+- To decide whether a counter means anything: Dashboard, Eventi, Report, SLA clienti, Amministrazione.
+
+Keep the rules of the existing counters: only figures the user may see, no badge at zero, a tone that says how urgent it is. The endpoint is polled every 60 seconds by every open session, so each new figure must be cheap to compute.
+
+### ISSUE-CLOSE — close open Action Center issues by hand (requested 2026-10-30)
+
+**Planned.** Today an issue can only be taken in charge (`POST /api/ui/v1/action-center/{id}/ack`); it becomes *resolved* only when the worker that raised it sees the condition end. The operator asked to be able to close open issues.
+
+To decide when building: which permission, whether a reason is required, closing several at once from a filter, and what happens when the condition is still true at the next check (the issue reopens, or stays closed until the condition ends and comes back). Each closure is audited.
+
 ## 6. ACS / TR-069 CPE roadmap
 
 The selected ACS is **GenieACS** (as preferred in `PRODUCT_REQUIREMENTS.md`); NSM reads its NBI and never implements an ACS itself. GenieACS ships as an optional service set of the NSM Docker stack (`./manage.sh acs-enable`). ACS-01..03 are implemented in `main` (`app/genieacs_connector.py`); validation against a real GenieACS instance is pending.
