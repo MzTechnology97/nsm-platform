@@ -568,6 +568,16 @@ Physical acceptance on RouterOS 7.24.4 is tracked in issue #128.
 
 Validation pending: periodic sync against a real UISP instance (the consumed endpoint is the same one used by manual refresh).
 
+### UniFi Network: classic controller login (UBNT-09, Core 0.49.331)
+
+The classic self-hosted Network Application (port 8443) has no API key. *Integrazioni → UniFi Network* offers *Controller classico: utente e password*:
+
+- NSM logs in with a local account, reads `/api/self/sites` and `/api/s/{site}/stat/device`, and logs out; the only POSTs are login and logout;
+- every site the account can see is read, and the site filter works as with the API key;
+- the password is encrypted, never returned, and kept on save only while the address stays the same.
+
+Validated only against a simulated controller. Consoles reached through unifi.ui.com and accounts with two-factor authentication are not supported.
+
 ### Syslog through UISP (UBNT-09, Core 0.49.257)
 
 `app/uisp_syslog.py`. UISP 3.x reads an airOS device's services but cannot write them (`PUT /devices/{id}/services` → 501 *setServices is not implemented*). So NSM restores a configuration the way UISP itself does:

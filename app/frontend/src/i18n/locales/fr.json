@@ -7092,7 +7092,7 @@
     "notInNsm_other": "{{count}} pas encore dans NSM",
     "linked": "Associés à NSM",
     "byMac": "équipements Ubiquiti NSM avec la même MAC",
-    "connectionHelp": "Dans le contrôleur : UniFi Network → Paramètres → Control Plane → Intégrations → créez une clé API. UniFi Network 9.3 ou ultérieur est requis. La clé a les droits de l'administrateur qui la crée : un administrateur en lecture seule suffit pour NSM.",
+    "connectionHelp": "Créez la clé dans UniFi Network, à la rubrique Intégrations : selon la version, elle se trouve dans Paramètres → Control Plane, dans Paramètres ou à part dans le menu latéral. UniFi Network 9.3 ou ultérieur est requis. La clé a les droits de l'administrateur qui la crée.",
     "url": "Adresse de la console ou du contrôleur",
     "apiKey": "Clé API",
     "tlsHelp": "Désactivez la vérification uniquement si le contrôleur utilise son certificat autosigné d'usine.",
@@ -7117,7 +7117,13 @@
     },
     "updateAvailable": "mise à jour disponible",
     "inNsm": "associé",
-    "missing": "absent de NSM"
+    "missing": "absent de NSM",
+    "authMode": "Type de contrôleur",
+    "authApiKey": "Console UniFi OS ou UniFi OS Server : clé API",
+    "authPassword": "Contrôleur classique (port 8443) : utilisateur et mot de passe",
+    "username": "Utilisateur",
+    "password": "Mot de passe",
+    "classicHelp": "Adresse avec le port, par exemple https://controller.example.net:8443. Créez sur le contrôleur un administrateur local dédié, pas un compte Ubiquiti et sans authentification à deux facteurs, avec un accès en lecture seule aux sites à lire. NSM l'utilise uniquement pour lire et chiffre le mot de passe."
   },
   "managementAccess": {
     "subtitle": "Réseaux de gestion autorisés : les adresses depuis lesquelles les équipements sont gérés (NSM, Zabbix, NOC). La même liste vaut pour tous les fabricants : SNMP et SSH ne répondent qu'à ces réseaux, et la date et l'heure sont synchronisées par NTP.",

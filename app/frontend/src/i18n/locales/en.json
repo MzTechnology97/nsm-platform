@@ -7092,7 +7092,7 @@
     "notInNsm_other": "{{count}} not in NSM yet",
     "linked": "Linked to NSM",
     "byMac": "NSM Ubiquiti devices with the same MAC",
-    "connectionHelp": "In the controller: UniFi Network → Settings → Control Plane → Integrations → create an API key. UniFi Network 9.3 or later is required. The key has the permissions of the administrator who creates it: a read-only administrator is enough for NSM.",
+    "connectionHelp": "Create the key in UniFi Network, under Integrations: depending on the version it is in Settings → Control Plane, in Settings or on its own in the side menu. UniFi Network 9.3 or later is required. The key has the permissions of the administrator who creates it.",
     "url": "Console or controller address",
     "apiKey": "API key",
     "tlsHelp": "Turn verification off only if the controller uses its factory self-signed certificate.",
@@ -7117,7 +7117,13 @@
     },
     "updateAvailable": "update available",
     "inNsm": "linked",
-    "missing": "not in NSM"
+    "missing": "not in NSM",
+    "authMode": "Controller type",
+    "authApiKey": "UniFi OS console or UniFi OS Server: API key",
+    "authPassword": "Classic controller (port 8443): username and password",
+    "username": "Username",
+    "password": "Password",
+    "classicHelp": "Address with the port, for example https://controller.example.net:8443. Create a dedicated local administrator on the controller, not a Ubiquiti account and without two-factor authentication, with read-only access to the sites to read. NSM only reads with it and stores the password encrypted."
   },
   "managementAccess": {
     "subtitle": "Authorized management networks: the addresses the devices are managed from (NSM, Zabbix, NOC). The same list applies to every vendor: SNMP and SSH answer only these networks, and date and time are synchronized through NTP.",
