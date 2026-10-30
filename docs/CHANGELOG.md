@@ -4,6 +4,15 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.326 — 2026-10-30
+
+Ubiquiti syslog: airOS lines recognised by the device address
+
+### Fixed
+- airOS devices set through UISP never had a syslog line stored: airOS 8.7.4 sends remote lines without a hostname, so neither the NSM key nor the customer's name reaches the receiver and every line was discarded as "line without NSM key". In every mode the receiver now also recognises these devices by their management IP as UISP reports it, when no other device uses it. No CPE needs reconfiguring or rebooting.
+
+### Changed
+- The device address is now the default and recommended identification mode for Ubiquiti syslog. The panel explains why the key and the customer's name do not reach the receiver on airOS.
 ## 0.49.325 — 2026-10-30
 
 Security
