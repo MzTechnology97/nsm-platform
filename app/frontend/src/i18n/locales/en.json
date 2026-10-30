@@ -2388,10 +2388,9 @@
     },
     "genieacs": {
       "title": "TR-069 / ACS (GenieACS)",
-      "help": "CPEs managed through GenieACS (ONTs, home routers), read-only from the NBI.",
+      "help": "CPEs managed through GenieACS (ONTs, home routers): inventory, monitoring, diagnostics, parameter backup and firmware upgrade.",
       "linked": "Linked CPEs",
-      "pending": "TR-069 CPEs to link",
-      "limits": "Diagnostics, backups and updates through the ACS are not available yet and are shown as not executable."
+      "pending": "TR-069 CPEs to link"
     },
     "cnmaestro": {
       "title": "cnMaestro (Cambium)",
@@ -2875,7 +2874,7 @@
   },
   "genieacs": {
     "title": "Integrations · GenieACS / TR-069",
-    "subtitle": "Read-only connector to the GenieACS NBI for the inventory and the linking of TR-069 CPEs.",
+    "subtitle": "Connector to the GenieACS NBI for the inventory, monitoring and management of TR-069 CPEs.",
     "notIntegrated": "Built-in GenieACS not active: on the server run cd /srv/network-platform && sudo ./manage.sh acs-enable and NSM links itself. For an external GenieACS fill in the form below.",
     "integrated": "Built-in GenieACS",
     "inUse": "In use",
@@ -4396,7 +4395,6 @@
     },
     "refresh": "Refresh from GenieACS",
     "refreshed": "Inventory refreshed from GenieACS.",
-    "notYet": "Diagnostics, backup and firmware upgrade through the ACS are not available yet.",
     "verifyTitle": "Check the match",
     "searchTitle": "Search GenieACS",
     "searchSerialMac": "NSM looks up the serial {{serial}} and, if not found, the MAC {{mac}}; the lookup changes nothing.",

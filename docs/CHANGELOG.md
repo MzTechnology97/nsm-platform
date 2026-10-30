@@ -4,6 +4,19 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.336 — 2026-10-30
+
+Fixes
+- **ACS texts were out of date.** The *Integrazioni* page and the device's *ACS* tab said that diagnostics, backup and firmware upgrade through the ACS were not available, or that the connector was read-only. They are available, and the texts now say so.
+- SNR margin and attenuation in the *ACS* tab use the decimal separator of the language.
+## 0.49.335 — 2026-10-30
+
+Interface
+- **The dashboard tiles use red only for problems.** With a red brand, tiles that were fine looked like alarms, because they used the brand colour. They are now neutral, or green with no tint. *Backup protetti* follows the coverage: green from 95%, amber from 80%, red below. The nine tiles now sit in three even rows.
+## 0.49.334 — 2026-10-30
+
+Fixes
+- **The *Compliance* page is faster.** Device data, inventory included, was read again for every control of every device. It is now read once per device.
 ## 0.49.333 — 2026-10-30
 
 Fixes
