@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from collections import Counter
 from datetime import timedelta
 
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, UploadFile
@@ -157,16 +158,28 @@ EXPOSURE_VIEWS = {"exposed": ("exposed",), "internal": ("internal",), "setup": (
 EXPOSURE_LIMIT = 500
 
 
+def _exposure_text(row: dict) -> str:
+    device, customer = row["device"], row["customer"]
+    return " ".join(str(v) for v in (device.display_name, device.device_identity, device.name, row["target_ip"], customer.name if customer else None) if v).casefold()
+
+
 @router.get("/exposure")
-def exposure(request: Request, view: str = "exposed", customer: str = "", offset: int = 0, limit: int = 0):
+def exposure(request: Request, view: str = "exposed", customer: str = "", q: str = "", service: str = "", offset: int = 0, limit: int = 0):
     with SessionLocal() as db:
         offset, size = pagination.window(offset, limit, EXPOSURE_LIMIT)
         ui_user(request, db, "security.read")
         view = view if view in EXPOSURE_VIEWS else "exposed"
         data = device_exposure.fleet(db, _uuid(customer))
         rows = [r for r in data["rows"] if r["state"] in EXPOSURE_VIEWS[view]]
+        needle = q.strip().casefold()[:100]
+        if needle:
+            rows = [r for r in rows if needle in _exposure_text(r)]
+        services = Counter(label for r in rows for label in {f.get("label") for f in r["exposed"]} if label)
+        if service:
+            rows = [r for r in rows if any(f.get("label") == service for f in r["exposed"])]
         return {
             "view": view, "total": len(rows), "offset": offset, "limit": size, "counts": data["counts"],
+            "services": [{"label": label, "count": count} for label, count in services.most_common()],
             "items": [{
                 "id": str(r["device"].id), "name": r["device"].display_name or r["device"].device_identity or r["device"].name, "brand": brand_icon(r["device"]),
                 "vendor": r["device"].vendor, "customer": {"id": str(r["customer"].id), "name": r["customer"].name} if r["customer"] else None,
