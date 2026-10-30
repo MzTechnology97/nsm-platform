@@ -11,6 +11,10 @@
   name typed as confirmation (a wrong list locks the technicians out; recovery: open to all). Nothing changes by
   default (operator decision 2026-10-23): open pages are only reported. Every change of port, protocol or allow-list
   is applied with ``Enable`` false then true, as the CPE only re-reads its settings then (seen on the VX230v).
+- **Remote HTTP page of older firmware** (TP-Link ``Device.X_TP_AppCfg.HttpCfg.HttpRemoteEnabled``, seen on an Archer
+  VR1210v, 2.0.0 0.10 Build 260323): a second, unencrypted page that ``UserInterface.RemoteAccess`` does not report.
+  Shown with a warning when on, switched by technicians. Its ``RemoteHost`` is not used: nobody has checked the format
+  that firmware accepts, and a wrong value can lock the technicians out.
 - **LAN Telnet** (TP-Link ``Device.X_TP_AppCfg.TelnetCfg.TelnetLocalEnabled``): off by default. Once a day per
   TP-Link CPE the worker (``enforce_telnet_policy``) queues ``TelnetLocalEnabled`` false for the CPE's next contact
   when GenieACS shows it on, unless a technician allowed it on that device (``inventory_data["tplink_access"]``).
@@ -48,6 +52,8 @@ from app.ui_api import require_csrf, ui_user
 
 router = APIRouter(prefix="/api/ui/v1", tags=["ui"])
 REMOTE = "Device.UserInterface.RemoteAccess"
+HTTP_CFG = "Device.X_TP_AppCfg.HttpCfg"
+HTTP_REMOTE = f"{HTTP_CFG}.HttpRemoteEnabled"
 TELNET = "Device.X_TP_AppCfg.TelnetCfg"
 TELNET_LAN = f"{TELNET}.TelnetLocalEnabled"
 ISP_RESTORE = "Device.X_TP_ISPRestore"
@@ -90,7 +96,7 @@ def _confirm_name(device) -> str:
 
 
 def _read(connection, external_id: str) -> dict:
-    return nbi._read(connection, external_id, ["_lastInform", REMOTE, TELNET, ISP_RESTORE])
+    return nbi._read(connection, external_id, ["_lastInform", REMOTE, HTTP_CFG, TELNET, ISP_RESTORE])
 
 
 def _bool(value):
@@ -118,7 +124,9 @@ def state(record: dict) -> dict:
         remote["exposed"] = remote["enabled"] and remote["open_to_all"] is not False
     telnet = _bool(nbi._value(record, TELNET_LAN))
     flag = _bool(nbi._value(record, ISP_FLAG))
-    return {"remote": remote, "telnet_lan": None if telnet is None else {"enabled": telnet},
+    http = _bool(nbi._value(record, HTTP_REMOTE))
+    return {"remote": remote, "http_remote": None if http is None else {"enabled": http, "port": nbi._number(nbi._value(record, f"{HTTP_CFG}.HttpRemotePort"))},
+            "telnet_lan": None if telnet is None else {"enabled": telnet},
             "isp_default": None if flag is None else {"saved": flag}}
 
 
@@ -133,7 +141,7 @@ def _save_settings(device, values: dict) -> None:
 
 
 def _payload(device, connection, can_edit: bool) -> dict:
-    out = {"remote": None, "telnet_lan": None, "telnet_allowed": bool(_settings(device).get("telnet_lan_allowed")),
+    out = {"remote": None, "http_remote": None, "telnet_lan": None, "telnet_allowed": bool(_settings(device).get("telnet_lan_allowed")),
            "last_inform": None, "can_edit": can_edit, "error": None, "confirm_name": _confirm_name(device)}
     try:
         record = _read(connection, device.external_device_id)
@@ -180,6 +188,11 @@ def apply_change(db, user, device, connection, body: dict) -> dict:
         # Allowed by hand: the daily policy leaves it on; switched off: the policy keeps it off.
         _save_settings(device, {"telnet_lan_allowed": enabled})
         details["telnet_lan"] = enabled
+    elif "http_remote" in body:
+        if current["http_remote"] is None:
+            raise HTTPException(422, {"code": "unsupported", "message": "Questo CPE non espone la pagina web HTTP remota."})
+        enabled = bool(body["http_remote"])
+        details.update({"started": _spv(connection, device.external_device_id, [[HTTP_REMOTE, enabled, "xsd:boolean"]]), "http_remote": enabled})
     else:
         remote = current["remote"]
         if remote is None:

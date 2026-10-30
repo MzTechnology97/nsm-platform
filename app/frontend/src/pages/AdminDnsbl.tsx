@@ -20,11 +20,12 @@ interface Catalog { zone: string; name: string; default: boolean; note: string |
 interface Dnsbl {
   enabled: boolean; zones: string[]; recheck_hours: number; per_run: number; cycle_started_at: string | null; last_cycle_at: string | null;
   zone_errors: Record<string, ZoneState>; health: { at?: string; zones?: Record<string, ZoneState> }; catalog: Catalog[]; prefixes: string[];
-  coverage: { addresses: number; position: number }; listed: Listed[];
+  coverage: { addresses: number; position: number }; listed: Listed[]; has_dqs_key: boolean;
 }
 interface Lookup { address: string; zones: (ZoneHit & { state: string })[] }
 
 const URL = "/api/ui/v1/admin/integrations/dnsbl";
+const DQS_ZONE = "zen.spamhaus.org";
 
 /** DNS blacklists (CYBER-01): the operator's public IPv4 addresses checked on the DNSBLs, with the holder and removal links. */
 export function AdminDnsbl() {
@@ -71,6 +72,7 @@ export function AdminDnsbl() {
               {Object.entries(data.zone_errors).map(([zone, error]) => (
                 <div key={zone} className="ui-alert ui-alert-warning">
                   {t(error.state === "refused" ? "dnsbl.refused" : "dnsbl.zoneError", { zone: names[zone] ?? zone, detail: error.message || error.codes.join(", ") })}
+                  {zone === DQS_ZONE && !data.has_dqs_key && <> {t("dnsbl.dqsHint")}</>}
                 </div>
               ))}
               {data.health.zones && (
@@ -140,7 +142,7 @@ function Hits({ hits }: { hits: ZoneHit[] }) {
 
 function SettingsForm({ data, onSaved }: { data: Dnsbl; onSaved: (data: Dnsbl) => void }) {
   const { t } = useTranslation();
-  const [form, setForm] = useState({ enabled: data.enabled, zones: data.zones, recheck_hours: data.recheck_hours, per_run: data.per_run });
+  const [form, setForm] = useState({ enabled: data.enabled, zones: data.zones, recheck_hours: data.recheck_hours, per_run: data.per_run, dqs_key: "" });
   const save = useMutation({ mutationFn: (body: typeof form) => api<Dnsbl>(URL, { method: "POST", body: JSON.stringify(body) }), onSuccess: onSaved });
   const toggle = (zone: string, on: boolean) => setForm({ ...form, zones: on ? [...form.zones, zone] : form.zones.filter((z) => z !== zone) });
   const submit = (event: FormEvent) => {
@@ -161,6 +163,14 @@ function SettingsForm({ data, onSaved }: { data: Dnsbl; onSaved: (data: Dnsbl) =
             </label>
           ))}
         </fieldset>
+        {form.zones.includes(DQS_ZONE) && (
+          <label>
+            <span>{t("dnsbl.dqsKey")}</span>
+            <input type="password" value={form.dqs_key} autoComplete="new-password" placeholder={data.has_dqs_key ? t("dnsbl.dqsKeySaved") : ""}
+              onChange={(event) => setForm({ ...form, dqs_key: event.target.value })} />
+            <small className="ui-muted">{t("dnsbl.dqsKeyHelp")}</small>
+          </label>
+        )}
         {(["recheck_hours", "per_run"] as const).map((key) => (
           <label key={key}>
             <span>{t(`dnsbl.fields.${key}`)}</span>

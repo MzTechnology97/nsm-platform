@@ -57,9 +57,12 @@ class FirmwareError(RuntimeError):
     pass
 
 
+IDENTITY = ["_deviceId", *acs.MODEL_PATHS]
+
+
 def _identity(record: dict) -> dict:
     ident = record.get("_deviceId") or {}
-    return {"manufacturer": ident.get("_Manufacturer"), "oui": ident.get("_OUI"), "product_class": ident.get("_ProductClass"),
+    return {"manufacturer": ident.get("_Manufacturer"), "oui": ident.get("_OUI"), "product_class": acs.product_class(record),
             "serial": ident.get("_SerialNumber")}
 
 
@@ -73,7 +76,7 @@ def software_version(record: dict) -> str | None:
 
 
 def _read_device(connection, external_id: str) -> dict:
-    return nbi._read(connection, external_id, ["_deviceId", "_lastBoot", "_lastInform", "Device.DeviceInfo.SoftwareVersion",
+    return nbi._read(connection, external_id, [*IDENTITY, "_lastBoot", "_lastInform", "Device.DeviceInfo.SoftwareVersion",
                                                "InternetGatewayDevice.DeviceInfo.SoftwareVersion"])
 
 
@@ -194,7 +197,8 @@ def request_upgrade(db, user, device, connection, file_name: str, expected_versi
     chosen = files.get(file_name)
     if chosen is None:
         raise HTTPException(404, {"code": "no_file", "message": "Il file firmware non è (più) in GenieACS."})
-    if chosen.get("product_class") and identity.get("product_class") and chosen["product_class"] != identity["product_class"]:
+    # A file stored before the model name was used carries the generic class: it says nothing about the model.
+    if str(chosen.get("product_class") or "").lower() not in {"", *acs.GENERIC_PRODUCT_CLASSES} and identity.get("product_class") and chosen["product_class"] != identity["product_class"]:
         raise HTTPException(422, {"code": "wrong_model", "message": f"Il file è per {chosen['product_class']}, il CPE è un {identity['product_class']}."})
     task_id, started = nbi._task_with_id(connection, device.external_device_id, {"name": "download", "fileType": FILE_TYPE, "fileName": file_name})
     entry = {"state": "requested", "file_name": file_name, "expected_version": expected_version or chosen.get("version") or None,

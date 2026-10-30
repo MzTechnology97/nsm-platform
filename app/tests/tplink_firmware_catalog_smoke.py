@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app import acs_diagnostics as nbi
+from app import genieacs_connector as acs
 from app import tplink_firmware, vendor_firmware
 from app.db import SessionLocal
 from app.entrypoint import app
@@ -99,6 +100,15 @@ def main():
 
     assert tplink_firmware.version_key("0.19.0 Build 260323") > tplink_firmware.version_key(OLD)
     assert tplink_firmware.version_key("0.16.0 Build 240601") > tplink_firmware.version_key(OLD), "same release, later build"
+    # Older firmware puts its platform first (Archer VR1210v); newer firmware puts it second (VX230v).
+    assert tplink_firmware.version_key("2.0.0 0.9 v6041.0 Build 221027 Rel.12900n") == (0, 9, 0, 221027)
+    assert tplink_firmware.version_key("2.0.0 0.10 v6041.0 Build 260323 Rel.26884n") == tplink_firmware.version_key("0.10.0 Build 260323")
+    assert tplink_firmware.version_key("0.19.0 2.0.0 v606c.0 Build 260323 Rel.23006n") == tplink_firmware.version_key("0.19.0 Build 260323")
+    # A CPE that reports only its data model root is told apart by its model name.
+    model = {"Device": {"DeviceInfo": {"ModelName": {"_value": "Archer VR1210v"}}}}
+    assert acs.product_class({"_deviceId": {"_ProductClass": "Device"}, **model}) == "Archer VR1210v"
+    assert acs.product_class({"_deviceId": {"_ProductClass": "VX230v"}, **model}) == "VX230v"
+    assert acs.product_class({"_deviceId": {"_ProductClass": "Device"}}) == "Device"
     assert tplink_firmware.hardware_key("VX230v v1.0 00000000") == tplink_firmware.hardware_key("1") == (1, "")
     assert tplink_firmware.hardware_key("v3.20") == tplink_firmware.hardware_key("Archer C6 v3.2") == (3, "2")
 

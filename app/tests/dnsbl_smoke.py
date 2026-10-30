@@ -21,6 +21,7 @@ from app.security import hash_password
 
 PASSWORD = "CI-Dnsbl-2026!"
 ZONES = [z for z, i in dnsbl.ZONES.items() if i["default"]] + ["zen.spamhaus.org"]
+DQS_KEY = "ci0dqs0key0not0a0real0key0"
 
 
 class FakeDns:
@@ -38,6 +39,8 @@ class FakeDns:
         address, zone = ".".join(reversed(parts[:4])), ".".join(parts[4:])
         if zone == "zen.spamhaus.org":
             return ["127.255.255.254"]
+        if zone == f"{DQS_KEY}.zen.dq.spamhaus.net":
+            return ["127.0.0.2"] if address == "127.0.0.2" else self.listed.get((address, "zen.spamhaus.org"), [])
         if zone == "bl.mailspike.net" or (address, zone) in self.failing:
             raise OSError("timed out")
         if address == "127.0.0.2":
@@ -156,6 +159,28 @@ def main():
     assert client.post(f"{url}/lookup", json={"address": "2001:db8::1"}).status_code == 422
     looked = {z["zone"]: z for z in client.post(f"{url}/lookup", json={"address": "192.0.2.50"}).json()["zones"]}
     assert looked["dnsbl-1.uceprotect.net"]["state"] == "listed" and looked["bl.spamcop.net"]["state"] == "clean"
+
+    # Spamhaus DQS key: encrypted, never returned, used by the runs, the test and the look-up; an empty field keeps it.
+    assert client.post(url, json={"enabled": True, "zones": ZONES, "per_run": 10, "dqs_key": "not a key"}).status_code == 422
+    assert client.get(url).json()["has_dqs_key"] is False
+    page = client.post(url, json={"enabled": True, "zones": ZONES, "per_run": 10, "dqs_key": DQS_KEY.upper()}).json()
+    assert page["has_dqs_key"] is True and DQS_KEY not in str(page)
+    health = client.post(f"{url}/test").json()["health"]["zones"]
+    assert health["zen.spamhaus.org"]["ok"] and f"2.0.0.127.{DQS_KEY}.zen.dq.spamhaus.net" in fake.names
+    fake.listed[("203.0.113.3", "zen.spamhaus.org")] = ["127.0.0.4"]
+    looked = {z["zone"]: z for z in client.post(f"{url}/lookup", json={"address": "203.0.113.3"}).json()["zones"]}
+    assert looked["zen.spamhaus.org"]["state"] == "listed"
+    assert run(t0 + timedelta(hours=100))["status"] == "checked" and "203.0.113.3" in issues()
+    assert client.post(url, json={"enabled": True, "zones": ZONES, "per_run": 10}).json()["has_dqs_key"] is True
+    with SessionLocal() as db:
+        row = dnsbl._row(db)
+        assert DQS_KEY not in row.secret_encrypted and DQS_KEY not in str(row.settings) and dnsbl._dqs_key(db) == DQS_KEY
+        # A zone no longer in the catalog (NiX Spam) leaves no warning behind.
+        row.settings = {**row.settings, "zone_errors": {"ix.dnsbl.manitu.net": {"state": "error", "codes": []}},
+                        "health": {"at": "2026-01-01T00:00:00", "zones": {"ix.dnsbl.manitu.net": {"ok": False, "state": "error", "codes": []}}}}
+        db.commit()
+    page = client.get(url).json()
+    assert page["zone_errors"] == {} and page["health"]["zones"] == {}, page
 
     # A zone turned off takes its listings with it.
     client.post(url, json={"enabled": True, "zones": [z for z in ZONES if z != "dnsbl-1.uceprotect.net"], "per_run": 10})
