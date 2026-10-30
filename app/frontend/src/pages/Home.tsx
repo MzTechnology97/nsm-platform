@@ -134,7 +134,8 @@ function Kpis({ data }: { data: Dashboard }) {
       <Kpi to="/devices" search={{ status: "offline" }} label={t("dashboard.offline")} value={data.offline_count} note={t("dashboard.toCheck")}
         percent={share(data.offline_count)} tone={data.offline_count ? "danger" : "success"} />
       <Kpi to="/backups" label={t("dashboard.backupProtected")} value={data.backup_protected_count}
-        note={t("dashboard.coveragePercent", { percent: formatPercent(data.backup_coverage_percent, i18n.language) })} percent={data.backup_coverage_percent} tone="info" />
+        note={t("dashboard.coveragePercent", { percent: formatPercent(data.backup_coverage_percent, i18n.language) })} percent={data.backup_coverage_percent}
+        tone={!data.device_count ? undefined : data.backup_coverage_percent >= 95 ? "success" : data.backup_coverage_percent >= 80 ? "warning" : "danger"} />
       <Kpi to="/vulnerabilities" label={t("dashboard.severeCve")} value={data.severe_cve_device_count} note={t("dashboard.devicesInvolved")}
         percent={share(data.severe_cve_device_count)} tone={data.severe_cve_device_count ? "danger" : "success"} />
       <Kpi to="/firmware" label={t("dashboard.firmware")} value={data.firmware_attention_count} note={t("dashboard.firmwareNote")}
