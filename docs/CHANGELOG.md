@@ -4,6 +4,10 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.332 — 2026-10-30
+
+Fixes
+- **Dashboard and Backup pages are about three times faster.** The backup check of each device read the UISP connector from the database again: over 640 queries for one dashboard refresh. It is now read once. Reports, Compliance and the customer pages use the same check.
 ## 0.49.331 — 2026-10-30
 
 UniFi Network: classic self-hosted controllers
