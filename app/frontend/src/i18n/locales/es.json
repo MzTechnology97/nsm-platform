@@ -7281,7 +7281,7 @@
   },
   "threatLists": {
     "title": "Integraciones · Listas de amenazas",
-    "subtitle": "Listas públicas de redes a bloquear (Spamhaus DROP), comparadas cada día con sus prefijos, las IP públicas del inventario y las IP que intentan acceder a los equipos. Solo lectura: no se modifica ningún equipo.",
+    "subtitle": "Listas públicas de redes a bloquear (Spamhaus DROP, FireHOL nivel 1, abuse.ch Feodo), comparadas cada día con tus prefijos, las IP públicas del inventario y las IP que intentan acceder a los equipos. Un acceso correcto desde una IP en lista es una alerta crítica. No se modifica ningún equipo.",
     "refresh": "Actualizar ahora",
     "settingsTitle": "Ajustes",
     "enabled": "Activar las listas de amenazas (actualización diaria)",
@@ -7319,7 +7319,11 @@
       "last": "Último"
     },
     "attempts_one": "{{count}} intento en {{devices}} equipos",
-    "attempts_other": "{{count}} intentos en {{devices}} equipos"
+    "attempts_other": "{{count}} intentos en {{devices}} equipos",
+    "trusted": "Direcciones de confianza",
+    "trustedHelp": "IP o redes (NSM, técnicos, monitorización) cuyos accesos a los equipos nunca generan alertas. Una por línea.",
+    "blocklist": "Lista negra del operador",
+    "blocklistHelp": "Tus IP o redes tratadas como las listas públicas: accesos fallidos más graves, acceso correcto crítico. Una por línea."
   },
   "syslogRules": {
     "title": "Reglas syslog",
@@ -7403,10 +7407,12 @@
       "ignored": "dirección ignorada",
       "firesAlone": "esta línea basta para la alerta",
       "needsCorrelation": "necesita el umbral o la regla anterior",
-      "noRules": "No hay reglas para probar."
+      "noRules": "No hay reglas para probar.",
+      "builtin": "Alertas integradas:",
+      "builtinNone": "ningún patrón de acceso reconoce la línea."
     },
     "builtinTitle": "Alertas de acceso predefinidas",
-    "builtinHelp": "Siempre activas en todos los equipos que envían syslog; no se modifican.",
+    "builtinHelp": "Siempre activas en todos los equipos que envían syslog; no se modifican, pero cada patrón se puede copiar en una regla propia.",
     "builtin": {
       "brute_force": "Intentos de acceso fallidos",
       "success_after_failures": "Acceso correcto tras intentos fallidos",
@@ -7421,6 +7427,19 @@
       "5": "5 aviso",
       "6": "6 info",
       "7": "7 depuración"
+    },
+    "patternsTitle": "Patrones de acceso reconocidos",
+    "patternsHelp": "Las líneas de inicio de sesión que leen las alertas integradas, para todos los fabricantes. «Copiar como regla» abre el editor con el patrón y el umbral integrado; nada se activa hasta guardar.",
+    "patterns": {
+      "outcome": "Resultado",
+      "service": "Servicio",
+      "pattern": "Expresión",
+      "anyService": "del mensaje",
+      "copy": "Copiar como regla"
+    },
+    "outcomes": {
+      "failure": "acceso fallido",
+      "success": "acceso correcto"
     }
   },
   "uispFirewall": {

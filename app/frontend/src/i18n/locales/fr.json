@@ -7281,7 +7281,7 @@
   },
   "threatLists": {
     "title": "Intégrations · Listes de menaces",
-    "subtitle": "Listes publiques de réseaux à bloquer (Spamhaus DROP), comparées chaque jour à vos préfixes, aux IP publiques de l'inventaire et aux IP qui tentent de se connecter aux équipements. Lecture seule : aucun équipement n'est modifié.",
+    "subtitle": "Listes publiques de réseaux à bloquer (Spamhaus DROP, FireHOL niveau 1, abuse.ch Feodo), comparées chaque jour à vos préfixes, aux IP publiques de l'inventaire et aux IP qui tentent de se connecter aux équipements. Une connexion réussie depuis une IP listée est une alerte critique. Aucun équipement n'est modifié.",
     "refresh": "Mettre à jour",
     "settingsTitle": "Paramètres",
     "enabled": "Activer les listes de menaces (mise à jour quotidienne)",
@@ -7319,7 +7319,11 @@
       "last": "Dernière"
     },
     "attempts_one": "{{count}} tentative sur {{devices}} équipements",
-    "attempts_other": "{{count}} tentatives sur {{devices}} équipements"
+    "attempts_other": "{{count}} tentatives sur {{devices}} équipements",
+    "trusted": "Adresses de confiance",
+    "trustedHelp": "IP ou réseaux (NSM, techniciens, supervision) dont les connexions aux équipements ne déclenchent jamais d'alerte. Une par ligne.",
+    "blocklist": "Liste noire de l'opérateur",
+    "blocklistHelp": "Vos IP ou réseaux traités comme les listes publiques : échecs de connexion plus graves, connexion réussie critique. Une par ligne."
   },
   "syslogRules": {
     "title": "Règles syslog",
@@ -7403,10 +7407,12 @@
       "ignored": "adresse ignorée",
       "firesAlone": "cette ligne seule déclenche l'alerte",
       "needsCorrelation": "il faut le seuil ou la règle précédente",
-      "noRules": "Aucune règle à tester."
+      "noRules": "Aucune règle à tester.",
+      "builtin": "Alertes intégrées :",
+      "builtinNone": "aucun motif d'accès ne reconnaît la ligne."
     },
     "builtinTitle": "Alertes d'accès intégrées",
-    "builtinHelp": "Toujours actives sur tous les équipements qui envoient le syslog ; elles ne se modifient pas.",
+    "builtinHelp": "Toujours actives sur tous les équipements qui envoient le syslog ; elles ne se modifient pas, mais chaque motif peut être copié dans une règle à vous.",
     "builtin": {
       "brute_force": "Tentatives de connexion échouées",
       "success_after_failures": "Connexion réussie après des échecs",
@@ -7421,6 +7427,19 @@
       "5": "5 notice",
       "6": "6 info",
       "7": "7 débogage"
+    },
+    "patternsTitle": "Motifs d'accès reconnus",
+    "patternsHelp": "Les lignes de connexion lues par les alertes intégrées, pour tous les fabricants. « Copier comme règle » ouvre l'éditeur avec le motif et le seuil intégré ; rien n'est actif avant l'enregistrement.",
+    "patterns": {
+      "outcome": "Résultat",
+      "service": "Service",
+      "pattern": "Expression",
+      "anyService": "d'après le message",
+      "copy": "Copier comme règle"
+    },
+    "outcomes": {
+      "failure": "connexion échouée",
+      "success": "connexion réussie"
     }
   },
   "uispFirewall": {

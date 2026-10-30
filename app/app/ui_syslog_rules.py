@@ -1,9 +1,9 @@
 """Syslog rules page API (SIEM-01): list, rule tester, save and delete.
 
 - ``GET /api/ui/v1/security/syslog-rules`` (``security.read``): operator rules with their alerts in the last 24 hours,
-  the built-in access alerts (read-only) and the templates;
+  the built-in access alerts and their login patterns (read-only, each with the rule a copy starts from) and the templates;
 - ``POST /api/ui/v1/security/syslog-rules/test`` (``security.read``): which rules, and the draft being edited, match a
-  log line, with the extracted fields; nothing is stored;
+  log line, with the extracted fields, and what the built-in patterns read from it; nothing is stored;
 - ``POST /api/ui/v1/security/syslog-rules`` and ``POST …/{rule_id}/delete`` (``users.manage``): audited changes.
 """
 from __future__ import annotations
@@ -13,7 +13,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 
 from app import main as core
-from app import syslog_rules
+from app import syslog_rules, syslog_security
 from app.db import SessionLocal
 from app.input_errors import InputError
 from app.models import utcnow
@@ -36,6 +36,7 @@ def syslog_rules_page(request: Request):
             "rules": [{**rule, "alerts_24h": alerts.get(rule["id"], 0)} for rule in state["rules"]],
             "version": state["version"],
             "builtin": syslog_rules.BUILTIN,
+            "builtin_patterns": syslog_rules.builtin_patterns(),
             "templates": syslog_rules.TEMPLATES,
             "default": syslog_rules.DEFAULT_RULE,
             "levels": list(syslog_rules.LEVELS), "actions": list(syslog_rules.ACTIONS), "groups": list(syslog_rules.GROUPS),
@@ -53,8 +54,10 @@ def syslog_rules_test(request: Request, body: dict = Body(default={})):
     except (TypeError, ValueError):
         severity = 6
     draft = body.get("draft") if isinstance(body.get("draft"), dict) and (body["draft"].get("pattern") or "").strip() else None
-    return {"results": syslog_rules.test_line(rules, message=str(body.get("message") or "")[:2000], vendor=str(body.get("vendor") or "") or None,
-                                              severity=max(0, min(7, severity)), topics=str(body.get("topics") or ""), draft=draft)}
+    message = str(body.get("message") or "")[:2000]
+    return {"results": syslog_rules.test_line(rules, message=message, vendor=str(body.get("vendor") or "") or None,
+                                              severity=max(0, min(7, severity)), topics=str(body.get("topics") or ""), draft=draft),
+            "builtin": syslog_security.classify(message)}
 
 
 @router.post("/security/syslog-rules", dependencies=[Depends(require_csrf)])

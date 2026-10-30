@@ -7281,7 +7281,7 @@
   },
   "threatLists": {
     "title": "Integrazioni · Liste di minaccia",
-    "subtitle": "Liste pubbliche di reti da bloccare (Spamhaus DROP), confrontate ogni giorno con i tuoi prefissi, gli IP pubblici dell'inventario e gli IP che tentano l'accesso agli apparati. Solo lettura: nessun apparato viene modificato.",
+    "subtitle": "Liste pubbliche di reti da bloccare (Spamhaus DROP, FireHOL livello 1, abuse.ch Feodo), confrontate ogni giorno con i tuoi prefissi, gli IP pubblici dell'inventario e gli IP che tentano l'accesso agli apparati. Un accesso riuscito da un IP in lista è un avviso critico. Nessun apparato viene modificato.",
     "refresh": "Aggiorna ora",
     "settingsTitle": "Impostazioni",
     "enabled": "Attiva le liste di minaccia (aggiornamento giornaliero)",
@@ -7319,7 +7319,11 @@
       "last": "Ultimo"
     },
     "attempts_one": "{{count}} tentativo su {{devices}} apparati",
-    "attempts_other": "{{count}} tentativi su {{devices}} apparati"
+    "attempts_other": "{{count}} tentativi su {{devices}} apparati",
+    "trusted": "Indirizzi fidati",
+    "trustedHelp": "IP o reti (NSM, tecnici, monitoraggio) i cui accessi agli apparati non generano mai avvisi. Uno per riga.",
+    "blocklist": "Lista nera dell'operatore",
+    "blocklistHelp": "IP o reti tue da trattare come le liste pubbliche: accessi falliti più gravi, accesso riuscito critico. Uno per riga."
   },
   "syslogRules": {
     "title": "Regole syslog",
@@ -7403,10 +7407,12 @@
       "ignored": "indirizzo ignorato",
       "firesAlone": "basta questa riga per l'avviso",
       "needsCorrelation": "serve la soglia o la regola precedente",
-      "noRules": "Nessuna regola da provare."
+      "noRules": "Nessuna regola da provare.",
+      "builtin": "Avvisi predefiniti:",
+      "builtinNone": "nessuno schema di accesso riconosce la riga."
     },
     "builtinTitle": "Avvisi di accesso predefiniti",
-    "builtinHelp": "Sempre attivi su tutti gli apparati che mandano il syslog; non si modificano.",
+    "builtinHelp": "Sempre attivi su tutti gli apparati che mandano il syslog; non si modificano, ma ogni schema si può copiare in una regola tua.",
     "builtin": {
       "brute_force": "Tentativi di accesso falliti",
       "success_after_failures": "Accesso riuscito dopo tentativi falliti",
@@ -7421,6 +7427,19 @@
       "5": "5 notice",
       "6": "6 info",
       "7": "7 debug"
+    },
+    "patternsTitle": "Schemi di accesso riconosciuti",
+    "patternsHelp": "Le righe di login che gli avvisi predefiniti leggono, per tutti i produttori. «Copia come regola» apre l'editor già compilato con lo schema e la soglia predefinita; nulla è attivo finché non salvi.",
+    "patterns": {
+      "outcome": "Esito",
+      "service": "Servizio",
+      "pattern": "Espressione",
+      "anyService": "dal messaggio",
+      "copy": "Copia come regola"
+    },
+    "outcomes": {
+      "failure": "accesso fallito",
+      "success": "accesso riuscito"
     }
   },
   "uispFirewall": {

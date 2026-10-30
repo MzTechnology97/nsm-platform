@@ -4,6 +4,24 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.319 — 2026-10-30
+
+Threat lists on the login alerts: FireHOL, abuse.ch, trusted and blocked addresses (SIEM-02)
+- *Integrazioni → Liste di minaccia* adds two public lists to Spamhaus DROP: **FireHOL level 1** and **abuse.ch Feodo Tracker** (botnet servers). Each can be turned off or pointed to another URL. The private ranges that FireHOL also lists are ignored.
+- Two lists of your own on the same page:
+  - **trusted addresses** (NSM, technicians, monitoring): logins from them never raise an alert;
+  - **blocklist**: addresses treated like the public lists.
+- The login alerts from the devices' syslog now use the lists:
+  - repeated failed logins from a listed address are one level more severe (critical from a public address);
+  - a **successful** login from a listed address is a critical alert;
+  - the alert says which list holds the address, with the listed network.
+- Firewall drops are not checked yet: the syslog does not store them as events.
+## 0.49.318 — 2026-10-29
+
+Security
+- **Syslog rules: built-in patterns (SIEM-01, step 2).** *Sicurezza → Accessi → Regole syslog* now lists the login patterns the built-in access alerts read, for every vendor: outcome, service and expression, read-only.
+  - **Copy as rule** opens the editor prefilled with the pattern, grouped by device and address, with the built-in threshold for failures (5 in 10 minutes, Action Center issue) and a notification for successes. Nothing is active until it is saved, and the copy can then be tuned like any other rule.
+- The **tester** also shows what the built-in patterns read from the pasted line (failed or successful login, user, address, service), next to the operator rules and the draft.
 ## 0.49.317 — 2026-10-29
 
 IP abuse: one page for every report about your addresses (CYBER-01)

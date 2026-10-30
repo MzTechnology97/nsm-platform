@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app import syslog_rules as rules
+from app import syslog_security
 from app.db import SessionLocal
 from app.entrypoint import app
 from app.input_errors import InputError
@@ -66,6 +67,16 @@ def main():
     assert six["user"] == "admin" and "ip" not in six, six
     assert rules.match(change, message="address added by admin", vendor="ubiquiti", severity=6, topics="system,info") is None
 
+    # Step 2: every built-in login pattern can be copied into a valid operator rule that reads the same fields.
+    builtins = rules.builtin_patterns()
+    assert len(builtins) == len(syslog_security.PATTERNS)
+    for row in builtins:
+        rules.validate(row["copy"], [])
+    ssh_copy = next(row["copy"] for row in builtins if row["outcome"] == "failure" and "Failed (?:password" in row["pattern"])
+    assert ssh_copy["count"] == syslog_security.BRUTE_FORCE_FAILURES and ssh_copy["group_by"] == "device_ip" and ssh_copy["action"] == "issue"
+    copied = rules.match(ssh_copy, message="Failed password for invalid user root from 203.0.113.7 port 52211 ssh2", vendor="linux", severity=6, topics="")
+    assert copied["user"] == "root" and copied["ip"] == "203.0.113.7", copied
+
     suffix = uuid.uuid4().hex[:8]
     with SessionLocal() as db:
         admin = User(username=f"ci-rules-admin-{suffix}", password_hash=hash_password(PASSWORD), display_name="Rules admin", role="admin", is_active=True)
@@ -79,6 +90,7 @@ def main():
     client, headers = client_for(admin_name)
     page = client.get("/api/ui/v1/security/syslog-rules").json()
     assert page["can_edit"] and {b["key"] for b in page["builtin"]} == {"brute_force", "success_after_failures", "new_public_source"}
+    assert len(page["builtin_patterns"]) == len(syslog_security.PATTERNS) and page["builtin_patterns"][0]["copy"]["pattern"]
 
     failures = {"name": f"Failures {suffix}", "vendor": "mikrotik", "pattern": r"login failure for user (?P<user>\S+) from (?P<ip>[0-9.]+) via (?P<svc>\S+)",
                 "count": 3, "window_minutes": 10, "group_by": "device_ip", "level": "high", "action": "issue", "throttle_minutes": 60,
@@ -95,7 +107,9 @@ def main():
     # The tester: stored rules and the draft, with fields; the ignored address is reported.
     tested = client.post("/api/ui/v1/security/syslog-rules/test", headers=headers, json={
         "message": "login failure for user admin from 192.0.2.99 via winbox", "vendor": "mikrotik", "severity": 6, "topics": "system,error,critical",
-        "draft": {"name": "draft", "pattern": r"via (?P<svc>\w+)"}}).json()["results"]
+        "draft": {"name": "draft", "pattern": r"via (?P<svc>\w+)"}}).json()
+    assert tested["builtin"] == {"outcome": "failure", "username": "admin", "remote_ip": "192.0.2.99", "service": "winbox"}, tested["builtin"]
+    tested = tested["results"]
     by_name = {row["name"]: row for row in tested}
     assert by_name[failure_rule["name"]]["matched"] and by_name[failure_rule["name"]]["ignored"] and by_name[failure_rule["name"]]["fields"]["user"] == "admin"
     assert not by_name[success_rule["name"]]["matched"]

@@ -1,8 +1,10 @@
 """Threat lists (SEC-13, SIEM-02): public IP block lists checked against the operator's addresses, read-only.
 
-One list store shared by the security modules (CROWDSEC-01 and AbuseIPDB will add their sources here). The first
-source is Spamhaus DROP (IPv4 and IPv6; EDROP was merged into DROP in April 2024): networks hijacked or operated by
-criminals, which nobody should route.
+One list store shared by the security modules (CROWDSEC-01 and AbuseIPDB will add their sources here). Sources:
+Spamhaus DROP (IPv4 and IPv6; EDROP was merged into DROP in April 2024: networks hijacked or operated by criminals,
+which nobody should route), FireHOL level 1 (its bogons are ignored) and the abuse.ch Feodo Tracker botnet C2 list.
+The operator adds two lists of its own: **trusted** addresses (NSM, technicians, monitoring), whose logins never
+alert, and a **blocklist** matched like the public lists.
 
 Once a day (and on *Aggiorna ora*) NSM downloads the enabled lists and checks, without touching any device:
 
@@ -12,6 +14,9 @@ Once a day (and on *Aggiorna ora*) NSM downloads the enabled lists and checks, w
   Action Center issue on the device;
 - **sources of login attempts** seen in the devices' syslog (``device_auth_events``, last ``ATTACKER_WINDOW``): which
   of the IPs trying to log in belong to listed networks — informational, shown with the attempts and devices.
+
+The access alerts of the syslog (``syslog_security``) use ``access_check``: a failed login from a listed address raises
+the brute-force level, a successful one is a critical issue, with the list and the entry as evidence (SIEM-02).
 
 The module is off by default (MOD-01). A failed download keeps the previous copy of that list. The list format is
 read both as Spamhaus text (``CIDR ; SBLnnn``) and as JSON lines (``{"cidr": ..., "sblid": ...}``).
@@ -45,7 +50,12 @@ MAX_BODY = 8 * 1024 * 1024
 SOURCES = {
     "spamhaus_drop_v4": {"label": "Spamhaus DROP (IPv4)", "url": "https://www.spamhaus.org/drop/drop_v4.json"},
     "spamhaus_drop_v6": {"label": "Spamhaus DROP (IPv6)", "url": "https://www.spamhaus.org/drop/drop_v6.json"},
+    "firehol_level1": {"label": "FireHOL level 1", "url": "https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset"},
+    "feodo": {"label": "abuse.ch Feodo Tracker", "url": "https://feodotracker.abuse.ch/downloads/ipblocklist_recommended.txt"},
 }
+BLOCKLIST = "operator_blocklist"
+BLOCKLIST_LABEL = "Lista nera dell'operatore"
+MAX_OPERATOR_ENTRIES = 256
 
 
 class InvalidSettings(ValueError):
@@ -66,6 +76,7 @@ def load(db) -> dict:
         mine = (saved.get("sources") or {}).get(key) or {}
         sources[key] = {"label": meta["label"], "url": mine.get("url") or meta["url"], "enabled": mine.get("enabled", True)}
     return {"enabled": bool(row and row.is_enabled), "sources": sources, "operator_prefixes": saved.get("operator_prefixes") or [],
+            "trusted": saved.get("trusted") or [], "blocklist": saved.get("blocklist") or [],
             "entries": saved.get("entries") or {}, "fetched": saved.get("fetched") or {}, "matches": saved.get("matches") or [],
             "attackers": saved.get("attackers") or [], "checked_at": saved.get("checked_at")}
 
@@ -74,7 +85,7 @@ def public_network(network) -> bool:
     return network.is_global and not network.is_multicast
 
 
-def _parse_prefixes(raw) -> list[str]:
+def _parse_prefixes(raw, public_only=True, limit=MAX_PREFIXES, what="Prefissi") -> list[str]:
     values = raw if isinstance(raw, list) else str(raw or "").replace(",", "\n").splitlines()
     out, bad = [], []
     for value in (str(v).strip() for v in values):
@@ -85,15 +96,15 @@ def _parse_prefixes(raw) -> list[str]:
         except ValueError:
             bad.append(value[:60])
             continue
-        if not public_network(network):
+        if public_only and not public_network(network):
             bad.append(value[:60])
             continue
         out.append(str(network))
     if bad:
-        raise InvalidSettings("Prefissi non validi o non pubblici: " + ", ".join(bad))
+        raise InvalidSettings(f"{what} non validi{' o non pubblici' if public_only else ''}: " + ", ".join(bad))
     out = list(dict.fromkeys(out))
-    if len(out) > MAX_PREFIXES:
-        raise InvalidSettings(f"Al massimo {MAX_PREFIXES} prefissi.")
+    if len(out) > limit:
+        raise InvalidSettings(f"{what}: al massimo {limit}.")
     return out
 
 
@@ -117,9 +128,12 @@ def save(db, user, body: dict) -> None:
         sources[key] = {"url": _check_url(item.get("url") or meta["url"]), "enabled": item.get("enabled") is not False}
     settings["sources"] = sources
     settings["operator_prefixes"] = _parse_prefixes(body.get("operator_prefixes"))
+    settings["trusted"] = _parse_prefixes(body.get("trusted"), False, MAX_OPERATOR_ENTRIES, "Indirizzi fidati")
+    settings["blocklist"] = _parse_prefixes(body.get("blocklist"), False, MAX_OPERATOR_ENTRIES, "Indirizzi in lista nera")
     row.settings = settings
     row.is_enabled = body.get("enabled") is True
     core.add_event(db, "THREAT_LISTS_CONFIGURED", actor=user, details={"enabled": row.is_enabled, "operator_prefixes": settings["operator_prefixes"],
+                                                                      "trusted": settings["trusted"], "blocklist": settings["blocklist"],
                                                                       "sources": {k: v["enabled"] for k, v in sources.items()}}, source="portal")
 
 
@@ -186,16 +200,24 @@ def refresh_lists(db, row, now, transport=None) -> dict:
 # --- Evaluation ----------------------------------------------------------------------------------
 
 class Index:
-    def __init__(self, entries: dict, enabled: dict):
+    def __init__(self, entries: dict, enabled: dict, blocklist=()):
         self.rows = []
         for key, rows in entries.items():
             if not enabled.get(key, True):
                 continue
             for cidr, ref in rows:
                 try:
-                    self.rows.append((ipaddress.ip_network(cidr), ref, key))
+                    network = ipaddress.ip_network(cidr)
                 except ValueError:
                     continue
+                # FireHOL level 1 also lists the bogons (private, reserved): they are no threat by themselves.
+                if public_network(network):
+                    self.rows.append((network, ref, key))
+        self.rows += [(ipaddress.ip_network(cidr), "", BLOCKLIST) for cidr in blocklist]
+
+    @classmethod
+    def of(cls, config: dict) -> "Index":
+        return cls(config["entries"], {k: v["enabled"] for k, v in config["sources"].items()}, config["blocklist"])
 
     def find_ip(self, value):
         try:
@@ -207,6 +229,39 @@ class Index:
     def find_prefix(self, value):
         network = ipaddress.ip_network(value, strict=False)
         return [(str(n), ref, key) for n, ref, key in self.rows if n.version == network.version and n.overlaps(network)]
+
+
+def _labels(config: dict) -> dict:
+    return {**{k: v["label"] for k, v in config["sources"].items()}, BLOCKLIST: BLOCKLIST_LABEL}
+
+
+class AccessCheck:
+    """Trusted and listed login sources for the syslog access alerts, built once per evaluation batch."""
+
+    def __init__(self, config: dict):
+        self.trusted = [ipaddress.ip_network(n) for n in config["trusted"]]
+        self.index = Index.of(config)
+        self.labels = _labels(config)
+        self.cache = {}
+
+    def is_trusted(self, value) -> bool:
+        try:
+            ip = ipaddress.ip_address(str(value or "").strip())
+        except ValueError:
+            return False
+        return any(ip.version == n.version and ip in n for n in self.trusted)
+
+    def listed(self, value) -> dict | None:
+        """{'list', 'network', 'reference'} of the first list holding the address."""
+        if value not in self.cache:
+            hit = self.index.find_ip(value)
+            self.cache[value] = {"list": self.labels.get(hit[2], hit[2]), "network": hit[0], "reference": hit[1]} if hit else None
+        return self.cache[value]
+
+
+def access_check(db) -> AccessCheck | None:
+    config = load(db)
+    return AccessCheck(config) if config["enabled"] else None
 
 
 def _public_addresses(device) -> list[str]:
@@ -247,8 +302,8 @@ def evaluate(db, now) -> dict:
     from app.syslog_models import DeviceAuthEvent
 
     config = load(db)
-    index = Index(config["entries"], {k: v["enabled"] for k, v in config["sources"].items()})
-    labels = {k: v["label"] for k, v in config["sources"].items()}
+    check = AccessCheck(config)
+    index, labels = check.index, check.labels
     matches, keep = [], set()
     for prefix in config["operator_prefixes"]:
         for network, ref, key in index.find_prefix(prefix):
@@ -278,7 +333,7 @@ def evaluate(db, now) -> dict:
                       .group_by(DeviceAuthEvent.remote_ip)).all()
     for ip, attempts, devices, last in rows:
         hit = index.find_ip(ip)
-        if hit:
+        if hit and not check.is_trusted(ip):
             attackers.append({"ip": ip, "attempts": attempts, "devices": devices, "last": last.isoformat() if last else None,
                               "network": hit[0], "reference": hit[1], "source": labels.get(hit[2], hit[2])})
     attackers.sort(key=lambda a: -a["attempts"])
@@ -317,7 +372,8 @@ def _payload(db) -> dict:
                            "brand": brand_icon(devices[m["device_id"]])} if m.get("device_id") in devices else None}
                for m in config["matches"]]
     return jsonable_encoder({
-        "enabled": config["enabled"], "operator_prefixes": config["operator_prefixes"], "checked_at": config["checked_at"],
+        "enabled": config["enabled"], "operator_prefixes": config["operator_prefixes"], "trusted": config["trusted"],
+        "blocklist": config["blocklist"], "checked_at": config["checked_at"],
         "sources": [{"key": k, **v, **(config["fetched"].get(k) or {})} for k, v in config["sources"].items()],
         "matches": matches, "attackers": config["attackers"],
     })

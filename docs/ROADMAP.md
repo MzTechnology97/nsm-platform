@@ -885,11 +885,13 @@ The operator looked at Wazuh (`wazuh/wazuh`, open-source SIEM/XDR) and asked to 
 Rules:
 - Wazuh is GPLv2: its ideas are re-implemented, its code, decoders and rules are not copied.
 - Each item is a module (MOD-01): off by default unless it only reads data NSM already has, with its own *Guida*.
-- No Wazuh server, indexer or endpoint agent is part of these items. Endpoint monitoring of customers' PCs and servers through the Wazuh agent was discussed with the operator (2026-10-24) and is not on the roadmap until they decide.
+- No Wazuh server, indexer or endpoint agent is part of these items. Endpoint monitoring of customers' PCs and servers through the Wazuh agent was discussed with the operator (2026-10-24); on 2026-10-29 the operator declined it, so it is not planned.
 
 #### SIEM-01 — configurable syslog rules with a rule tester
 
 **Step 1 done (Core 0.49.305)**: *Sicurezza → Accessi → Regole syslog*; operator rules (expression with named fields, vendor/severity/topic, N-in-T grouped by device/address/user, chained rule, ignored sources, throttling, event/notification/Action Center), a tester on a pasted line, templates, audited changes; the built-in access alerts are listed read-only. Next: the built-in patterns as an editable default rule set.
+
+**Step 2 done (Core 0.49.318)**: the built-in login patterns are listed read-only on the same page, each copyable into an operator rule prefilled with the built-in threshold, and the tester also shows what the built-in patterns read from the line.
 
 Today the access patterns are fixed in the code. The operator gets rules editable from the portal:
 - **match**: vendor, severity, program/topic, regular expression with named fields (user, source IP, interface…);
@@ -900,6 +902,8 @@ Today the access patterns are fixed in the code. The operator gets rules editabl
 - the current built-in patterns become the default rule set, read-only and copyable; every change is audited and versioned.
 
 #### SIEM-02 — threat-intelligence IP lists on access and firewall logs
+
+**Step 2 done (Core 0.49.319)**: FireHOL level 1 and abuse.ch Feodo Tracker join Spamhaus DROP in the shared store; operator trusted list and blocklist; the access alerts skip trusted sources, raise a brute force from a listed address by one level and make a successful login from a listed address critical, with list and entry as evidence. Next: firewall drops (needs the syslog to store them as events), CrowdSec (CROWDSEC-01) and the AbuseIPDB score as sources.
 
 Source addresses of failed and successful logins and of logged firewall drops are matched against IP lists:
 - public lists, downloaded on a schedule: Spamhaus DROP/EDROP (shared with SEC-13), FireHOL level 1, abuse.ch;
