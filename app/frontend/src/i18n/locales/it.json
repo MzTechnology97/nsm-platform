@@ -3157,7 +3157,9 @@
       "clean": "Nessuna CVE nota",
       "unknown": "Non valutabili"
     },
-    "live": "aggiornata {{time}} · prossimo tra {{seconds}} s"
+    "live": "aggiornata {{time}} · prossimo tra {{seconds}} s",
+    "ipAbuseNote": "AbuseIPDB {{abuseipdb}} · DNSBL {{dnsbl}} · liste {{lists}}",
+    "ipAbuseOff": "Nessuna fonte attiva"
   },
   "search": {
     "title": "Ricerca globale",

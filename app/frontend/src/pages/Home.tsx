@@ -105,7 +105,7 @@ export function Home() {
   );
 }
 
-type KpiTarget = "/devices" | "/backups" | "/vulnerabilities" | "/firmware" | "/action-center" | "/lifecycle";
+type KpiTarget = "/devices" | "/backups" | "/vulnerabilities" | "/firmware" | "/action-center" | "/lifecycle" | "/ip-abuse";
 
 /** KPI tile: a link with a ring (share of the inventory), tinted by meaning. */
 function Kpi({ to, search, label, value, note, tone, percent }: { to: KpiTarget; search?: Record<string, string>; label: string; value: number; note: ReactNode;
@@ -144,6 +144,11 @@ function Kpis({ data }: { data: Dashboard }) {
         tone={data.critical_issue_count ? "danger" : data.open_issue_count ? "warning" : "success"} />
       <Kpi to="/lifecycle" label={t("dashboard.eol")} value={data.eol_count} note={t("dashboard.eolNote")}
         percent={share(data.eol_count)} tone={data.eol_count ? "warning" : "success"} />
+      {data.ip_abuse && (
+        <Kpi to="/ip-abuse" label={t("nav.ipAbuse")} value={data.ip_abuse.addresses}
+          note={data.ip_abuse.sources_enabled ? t("dashboard.ipAbuseNote", { abuseipdb: data.ip_abuse.abuseipdb, dnsbl: data.ip_abuse.dnsbl, lists: data.ip_abuse.threat_lists }) : t("dashboard.ipAbuseOff")}
+          percent={null} tone={!data.ip_abuse.sources_enabled ? undefined : data.ip_abuse.addresses ? "danger" : "success"} />
+      )}
     </div>
   );
 }

@@ -4,6 +4,10 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.325 — 2026-10-30
+
+Security
+- **IP abuse on the main dashboard.** A new tile shows how many of the operator's addresses are reported, with the figures per source (AbuseIPDB, DNS blacklists, threat lists), and opens the *Abusi IP* page. It is red when any address is reported, and says so when no source is enabled. Only users who may read the security pages see it.
 ## 0.49.324 — 2026-10-30
 
 Fixes
