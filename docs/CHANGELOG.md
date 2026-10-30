@@ -4,6 +4,10 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.334 — 2026-10-30
+
+Fixes
+- **The *Compliance* page is faster.** Device data, inventory included, was read again for every control of every device. It is now read once per device.
 ## 0.49.333 — 2026-10-30
 
 Fixes
