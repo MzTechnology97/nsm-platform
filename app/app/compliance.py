@@ -53,21 +53,21 @@ def _scope_label(db, baseline: ComplianceBaseline) -> str:
 def compliance_matrix(db, customer_id=None, control: str = "", now=None) -> dict:
     """Latest result of each control per device, totals per result, worst status per device."""
     now = now or utcnow()
-    query = select(ComplianceResult, Device).join(Device, Device.id == ComplianceResult.device_id).options(selectinload(Device.customer))
+    query = select(ComplianceResult)
     if customer_id:
-        query = query.where(Device.customer_id == customer_id)
+        query = query.join(Device, Device.id == ComplianceResult.device_id).where(Device.customer_id == customer_id)
     if control in CONTROLS:
         query = query.where(ComplianceResult.control_id == control)
     by_device: dict = defaultdict(dict)
-    devices = {}
     totals: Counter = Counter()
     device_status: dict = {}
     last_eval = None
-    for result, device in db.execute(query):
-        by_device[device.id][result.control_id] = result
-        devices[device.id] = device
+    for result in db.scalars(query):
+        by_device[result.device_id][result.control_id] = result
         totals["exception" if in_exception(result, now) else result.status] += 1
         last_eval = max(last_eval, result.evaluated_at) if last_eval else result.evaluated_at
+    # Read apart: joined to the results, the inventory of each device would travel once per control.
+    devices = {device.id: device for device in db.scalars(select(Device).options(selectinload(Device.customer)).where(Device.id.in_(list(by_device))))}
     for device_id, results in by_device.items():
         statuses = {r.status for r in results.values()}
         device_status[device_id] = next((s for s in STATUS_ORDER if s in statuses), "not_applicable")
