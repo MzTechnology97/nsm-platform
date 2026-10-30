@@ -1,5 +1,7 @@
 """ZBX-04: *Aggiungi a Zabbix* on a device and on a customer (scope "customers" with no customer, as in production),
-pushed at once to a fake Zabbix 6.4; removal disables the hosts; not configured → 422; audit."""
+pushed at once to a fake Zabbix 6.4; removal disables the hosts; not configured → 422; audit. Groups and hosts exist only
+for what was activated: a later device of an active customer stays out; ticking in the settings activates; hosts deleted in
+Zabbix are forgotten."""
 import importlib.util
 import pathlib
 import re
@@ -45,10 +47,9 @@ def main():
     assert client.get(f"/api/ui/v1/customers/{ids['alpha']}/zabbix").json()["configured"] is False
     assert client.post(f"/api/ui/v1/devices/{ids['cpe']}/zabbix/add").json()["detail"]["code"] == "not_configured"
 
-    saved = client.post("/api/ui/v1/admin/integrations/zabbix", json={"api_url": "https://zabbix.example.test/zabbix", "auth_mode": "token", "token": push.TOKEN,
-                                                                     "verify_tls": True, "group_prefix": "NSM", "interface": "agent",
-                                                                     "templates": {"mikrotik": "", "ubiquiti": "", "default": "ICMP Ping"},
-                                                                     "scope": "customers", "customer_ids": [], "enabled": True})
+    config = {"api_url": "https://zabbix.example.test/zabbix", "auth_mode": "token", "token": push.TOKEN, "verify_tls": True, "group_prefix": "NSM", "interface": "agent",
+              "templates": {"mikrotik": "", "ubiquiti": "", "default": "ICMP Ping"}, "scope": "customers", "customer_ids": [], "enabled": True}
+    saved = client.post("/api/ui/v1/admin/integrations/zabbix", json=config)
     assert saved.status_code == 200, saved.text
     fake = push.FakeZabbix("6.4.18")
     push.install(fake)
@@ -59,9 +60,13 @@ def main():
     detail = client.get(f"/api/ui/v1/devices/{ids['cpe']}").json()["zabbix"]
     assert detail["in_scope"] is False and detail["excluded"] is False
 
+    sync = lambda: client.post("/api/ui/v1/admin/integrations/zabbix/sync").json()  # noqa: E731
+    assert sync()["created"] == 0 and not fake.groups, "nothing activated: no host, no group"
+
     # One device of a customer outside the scope.
     added = client.post(f"/api/ui/v1/devices/{ids['cpe']}/zabbix/add").json()
     assert added["status"] == "success" and added["outcome"] == "pushed", added
+    assert list(fake.groups) == [f"NSM/CI243 Beta {s}"], fake.groups
     assert f"nsm-{ids['cpe'].hex[:16]}" in hosts() and f"nsm-{ids['router'].hex[:16]}" not in hosts()
     detail = client.get(f"/api/ui/v1/devices/{ids['cpe']}").json()["zabbix"]
     assert detail["in_scope"] is True and detail["link"]
@@ -74,6 +79,18 @@ def main():
         assert str(ids["alpha"]) in zbx.settings_of(zbx.connection_row(db))["customer_ids"]
     assert client.get(f"/api/ui/v1/devices/{ids['no_ip']}").json()["zabbix"]["outcome"] == "no_ip"
 
+    # A device added later to an active customer stays out until it is added.
+    with SessionLocal() as db:
+        late = Device(customer_id=ids["alpha"], vendor="tp-link", device_type="router", name=f"CI243-NEW-{s}", management_ip="203.0.113.44", status="online")
+        db.add(late)
+        db.commit()
+        late_host = f"nsm-{late.id.hex[:16]}"
+        late_id = late.id
+    assert sync()["created"] == 0 and late_host not in hosts(), "a new device never enters on its own"
+    state = client.get(f"/api/ui/v1/customers/{ids['alpha']}/zabbix").json()
+    assert state["included"] is True and state["devices"] == 3 and state["selected"] == 2, state
+    assert client.post(f"/api/ui/v1/devices/{late_id}/zabbix/add").json()["outcome"] == "pushed" and late_host in hosts()
+
     removed = client.post(f"/api/ui/v1/customers/{ids['alpha']}/zabbix/remove").json()
     assert removed["included"] is False and removed["status"] == "success"
     assert hosts()[f"nsm-{ids['router'].hex[:16]}"]["status"] == 1, "disabled, never deleted"
@@ -85,9 +102,24 @@ def main():
     again = client.post(f"/api/ui/v1/devices/{ids['cpe']}/zabbix/add").json()
     assert again["outcome"] == "pushed" and hosts()[f"nsm-{ids['cpe'].hex[:16]}"]["status"] == 0, "back in after an exclusion"
 
+    # Ticking a customer in the settings activates the devices it has; unticking takes them out.
+    router_host = f"nsm-{ids['router'].hex[:16]}"
+    assert client.post("/api/ui/v1/admin/integrations/zabbix", json={**config, "customer_ids": [str(ids["alpha"])]}).status_code == 200
+    sync()
+    assert hosts()[router_host]["status"] == 0, "ticked"
+    assert client.post("/api/ui/v1/admin/integrations/zabbix", json=config).status_code == 200
+    sync()
+    assert hosts()[router_host]["status"] == 1, "unticked"
+
+    # A host deleted in Zabbix: the device forgets it, and comes back as a new host when activated.
+    fake.hosts = {k: h for k, h in fake.hosts.items() if h["host"] != router_host}
+    sync()
+    assert client.get(f"/api/ui/v1/devices/{ids['router']}").json()["zabbix"]["link"] is None and router_host not in hosts()
+    assert client.post(f"/api/ui/v1/devices/{ids['router']}/zabbix/add").json()["outcome"] == "pushed" and hosts()[router_host]["status"] == 0
+
     with SessionLocal() as db:
         kinds = [e.event_type for e in db.scalars(select(AuditEvent).where(AuditEvent.customer_id.in_([ids["alpha"], ids["beta"]])))]
-        assert kinds.count("ZABBIX_CUSTOMER_SCOPE_CHANGED") == 2 and kinds.count("ZABBIX_DEVICE_SCOPE_CHANGED") == 3, kinds
+        assert kinds.count("ZABBIX_CUSTOMER_SCOPE_CHANGED") == 2 and kinds.count("ZABBIX_DEVICE_SCOPE_CHANGED") == 5, kinds
         row = zbx.connection_row(db)
         db.delete(row)
         db.commit()

@@ -50,8 +50,15 @@ export function CustomerZabbixButton({ customerId }: { customerId: string }) {
   const summary = t("zabbixScope.customerSummary", { inZabbix: data.in_zabbix ?? 0, devices: data.devices ?? 0 });
   const label = action.isPending ? t("zabbixScope.working") : included ? t("zabbixScope.removeCustomer") : t("zabbixScope.addCustomer");
   const confirmText = included ? t("zabbixScope.confirmRemove", { count: data.devices ?? 0 }) : t("zabbixScope.confirmAdd", { count: data.devices ?? 0 });
+  const others = included ? Math.max(0, (data.devices ?? 0) - (data.selected ?? 0)) : 0;
   return (
     <span className="ui-zabbix-scope">
+      {others > 0 && (
+        <button type="button" className="ui-button ui-button-ghost" disabled={action.isPending}
+          onClick={() => { if (window.confirm(t("zabbixScope.confirmAddOthers", { count: others }))) action.mutate(true); }}>
+          {t("zabbixScope.addOthers", { count: others })}
+        </button>
+      )}
       <button type="button" className="ui-button ui-button-ghost" title={summary} disabled={action.isPending || !data.devices}
         onClick={() => { if (window.confirm(confirmText)) action.mutate(!included); }}>
         {label}

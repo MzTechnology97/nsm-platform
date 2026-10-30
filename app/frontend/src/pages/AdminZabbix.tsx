@@ -142,6 +142,8 @@ function Connection({ data }: { data: ZabbixAdmin }) {
     api_url: data.api_url, auth_mode: data.auth_mode, token: "", username: data.username, password: "", verify_tls: data.verify_tls,
     enabled: data.configured ? data.enabled : true, ...data.settings, templates: { ...data.settings.templates }, customer_ids: [...data.settings.customer_ids],
   });
+  // Selected customers first, in the order of the page load: rows do not jump while ticking.
+  const [customers] = useState(() => [...data.customers].sort((a, b) => Number(data.settings.customer_ids.includes(b.id)) - Number(data.settings.customer_ids.includes(a.id))));
   const save = useConnectorAction<typeof form>("zabbix", "");
   const templates = useZabbixTemplates(data.configured && data.last_test_status === "success");
   const set = (key: keyof typeof form) => (event: { target: { value: string } }) => setForm({ ...form, [key]: event.target.value });
@@ -237,13 +239,16 @@ function Connection({ data }: { data: ZabbixAdmin }) {
           </select>
         </label>
         {form.scope === "customers" && (
-          <ul className="ui-incident-picker">
-            {data.customers.map((customer) => (
-              <li key={customer.id}>
-                <label className="ui-with-brand"><input type="checkbox" checked={form.customer_ids.includes(customer.id)} onChange={() => toggleCustomer(customer.id)} /> <span>{customer.name}</span></label>
-              </li>
-            ))}
-          </ul>
+          <>
+            <p className="ui-muted">{t("zabbix.scopeHelp")} {t("zabbix.scopeSelected", { selected: form.customer_ids.length })}</p>
+            <ul className="ui-incident-picker">
+              {customers.map((customer) => (
+                <li key={customer.id}>
+                  <label className="ui-with-brand"><input type="checkbox" checked={form.customer_ids.includes(customer.id)} onChange={() => toggleCustomer(customer.id)} /> <span>{customer.name}</span></label>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
         <label className="ui-with-brand"><input type="checkbox" checked={form.enabled} onChange={(event) => setForm({ ...form, enabled: event.target.checked })} /> <span>{t("cnmaestro.enabled")}</span></label>
         <button type="submit" className="ui-button" disabled={save.isPending}>{t("cnmaestro.save")}</button>

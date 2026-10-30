@@ -2833,7 +2833,7 @@
     "scopeTitle": "Équipements à envoyer",
     "scope": "Périmètre",
     "scopeAll": "Tous les équipements avec IP de gestion",
-    "scopeCustomers": "Seulement les clients sélectionnés",
+    "scopeCustomers": "Uniquement les clients et appareils choisis",
     "saved": "Configuration Zabbix enregistrée.",
     "actionsHelp": "Les hôtes de NSM portent le tag source=nsm et le nom technique nsm-…. Quand un équipement est supprimé ou exclu, son hôte est désactivé, pas supprimé.",
     "disabledConnector": "Intégration Zabbix non configurée ou désactivée.",
@@ -2862,7 +2862,9 @@
     "updateIp": "Mettre à jour l'IP des hôtes liés quand elle change",
     "updateIpHelp": "Pour les routeurs à IP publique dynamique ou derrière un NAT : NSM écrit l'adresse actuelle de l'équipement (IP publique du routeur ou celle depuis laquelle son agent se connecte) sur l'interface principale de l'hôte.",
     "templatesFromZabbix": "Suggestions : les {{count}} modèles de votre Zabbix.",
-    "factoryIp": "Absents de Zabbix, leur adresse est une IP LAN d'usine (ex. 192.168.1.1) que Zabbix ne joint pas : {{names}}. Indiquez l'adresse à utiliser pour Zabbix, ou donnez à l'hôte Zabbix le nom de l'équipement."
+    "factoryIp": "Absents de Zabbix, leur adresse est une IP LAN d'usine (ex. 192.168.1.1) que Zabbix ne joint pas : {{names}}. Indiquez l'adresse à utiliser pour Zabbix, ou donnez à l'hôte Zabbix le nom de l'équipement.",
+    "scopeHelp": "Le groupe et les hôtes sont créés uniquement lorsque vous activez un client ici ou avec Ajouter à Zabbix sur sa fiche. Les nouveaux appareils d'un client actif n'entrent pas d'eux-mêmes : ajoutez-les depuis leur fiche ou celle du client.",
+    "scopeSelected": "Clients sélectionnés : {{selected}}."
   },
   "genieacs": {
     "title": "Intégrations · GenieACS / TR-069",
@@ -6481,7 +6483,11 @@
       "no_ip": "Sans adresse IP : définissez une IP pour Zabbix",
       "factory_ip": "IP LAN d'usine : définissez une adresse joignable par Zabbix",
       "pending": "En attente du prochain envoi"
-    }
+    },
+    "addOthers_one": "Ajouter l'autre appareil à Zabbix",
+    "addOthers_other": "Ajouter les {{count}} autres appareils à Zabbix",
+    "confirmAddOthers_one": "Ajouter à Zabbix l'autre appareil de ce client ? Il est envoyé immédiatement.",
+    "confirmAddOthers_other": "Ajouter à Zabbix les {{count}} autres appareils de ce client ? Ils sont envoyés immédiatement."
   },
   "uispCustomers": {
     "open": "Clients UISP → NSM",

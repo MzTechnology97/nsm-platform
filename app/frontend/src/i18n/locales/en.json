@@ -2833,7 +2833,7 @@
     "scopeTitle": "Devices to push",
     "scope": "Scope",
     "scopeAll": "All devices with a management IP",
-    "scopeCustomers": "Only the selected customers",
+    "scopeCustomers": "Only the chosen customers and devices",
     "saved": "Zabbix configuration saved.",
     "actionsHelp": "NSM hosts carry the source=nsm tag and the technical name nsm-…. When a device is deleted or excluded its host is disabled, not deleted.",
     "disabledConnector": "Zabbix integration not configured or disabled.",
@@ -2862,7 +2862,9 @@
     "updateIp": "Update the IP of linked hosts when it changes",
     "updateIpHelp": "For routers with a dynamic public IP or behind NAT: NSM writes the device's current address (public address of the router, or the one its agent connects from) on the host's main interface.",
     "templatesFromZabbix": "Suggestions: the {{count}} templates of your Zabbix.",
-    "factoryIp": "Not in Zabbix, their address is a factory LAN address (e.g. 192.168.1.1) Zabbix cannot reach: {{names}}. Set the address Zabbix must use on the device page, or name the Zabbix host like the device."
+    "factoryIp": "Not in Zabbix, their address is a factory LAN address (e.g. 192.168.1.1) Zabbix cannot reach: {{names}}. Set the address Zabbix must use on the device page, or name the Zabbix host like the device.",
+    "scopeHelp": "The group and the hosts are created only when you activate a customer here or with Add to Zabbix on its page. New devices of an active customer do not enter on their own: add them from their page or the customer's.",
+    "scopeSelected": "Selected customers: {{selected}}."
   },
   "genieacs": {
     "title": "Integrations · GenieACS / TR-069",
@@ -6481,7 +6483,11 @@
       "no_ip": "No IP address: set an IP for Zabbix",
       "factory_ip": "Factory LAN IP: set an address Zabbix can reach",
       "pending": "Waiting for the next push"
-    }
+    },
+    "addOthers_one": "Add the other device to Zabbix",
+    "addOthers_other": "Add the other {{count}} devices to Zabbix",
+    "confirmAddOthers_one": "Add this customer's other device to Zabbix? It is sent right away.",
+    "confirmAddOthers_other": "Add this customer's other {{count}} devices to Zabbix? They are sent right away."
   },
   "uispCustomers": {
     "open": "UISP customers → NSM",

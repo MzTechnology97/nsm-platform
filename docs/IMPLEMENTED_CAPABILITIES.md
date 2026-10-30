@@ -1199,3 +1199,10 @@ The following are approved roadmap areas, not current runtime capabilities:
 Incident Timeline, Compliance Baseline, scheduled reports with delivery and delegated (customer-scoped) administration are implemented and described in their sections. MikroTik The Dude integration (DUDE-01) is excluded by the operator.
 
 See [`ROADMAP.md`](ROADMAP.md) for order, PR sizing and acceptance gates.
+
+## Zabbix: hosts and groups only for what is activated (ZBX-04, Core 0.49.327)
+- scope `customers` (default): a device is in Zabbix only with `zabbix_include`, set when the device is added or when its customer is activated (*Integrazioni → Zabbix* or *Aggiungi a Zabbix* on the customer page), for the devices the customer has at that moment;
+- a later device of an active customer stays out until added; the customer page offers *Aggiungi a Zabbix gli altri N apparati*;
+- groups are created only for hosts being pushed; deactivating disables the hosts and keeps the groups;
+- a host deleted in Zabbix is forgotten at the next sync;
+- migration `0061_zabbix_explicit_scope` activates the current devices of the customers already selected.

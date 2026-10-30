@@ -2833,7 +2833,7 @@
     "scopeTitle": "Equipos que enviar",
     "scope": "Ámbito",
     "scopeAll": "Todos los equipos con IP de gestión",
-    "scopeCustomers": "Solo los clientes seleccionados",
+    "scopeCustomers": "Solo los clientes y dispositivos elegidos",
     "saved": "Configuración de Zabbix guardada.",
     "actionsHelp": "Los hosts de NSM llevan la etiqueta source=nsm y el nombre técnico nsm-…. Si un equipo se elimina o se excluye, su host se deshabilita, no se borra.",
     "disabledConnector": "Integración con Zabbix sin configurar o deshabilitada.",
@@ -2862,7 +2862,9 @@
     "updateIp": "Actualizar la IP de los hosts vinculados cuando cambie",
     "updateIpHelp": "Para routers con IP pública dinámica o tras NAT: NSM escribe en la interfaz principal del host la dirección actual del equipo (IP pública del router o la desde la que se conecta su agente).",
     "templatesFromZabbix": "Sugerencias: las {{count}} plantillas de tu Zabbix.",
-    "factoryIp": "No en Zabbix, su dirección es una IP LAN de fábrica (p. ej. 192.168.1.1) que Zabbix no alcanza: {{names}}. Indica la dirección que debe usar Zabbix o da al host de Zabbix el nombre del equipo."
+    "factoryIp": "No en Zabbix, su dirección es una IP LAN de fábrica (p. ej. 192.168.1.1) que Zabbix no alcanza: {{names}}. Indica la dirección que debe usar Zabbix o da al host de Zabbix el nombre del equipo.",
+    "scopeHelp": "El grupo y los hosts se crean solo cuando activas un cliente aquí o con Añadir a Zabbix en su ficha. Los dispositivos nuevos de un cliente activo no entran solos: añádelos desde su ficha o la del cliente.",
+    "scopeSelected": "Clientes seleccionados: {{selected}}."
   },
   "genieacs": {
     "title": "Integraciones · GenieACS / TR-069",
@@ -6481,7 +6483,11 @@
       "no_ip": "Sin dirección IP: define una IP para Zabbix",
       "factory_ip": "IP LAN de fábrica: define una dirección accesible para Zabbix",
       "pending": "En espera del próximo envío"
-    }
+    },
+    "addOthers_one": "Añadir a Zabbix el otro dispositivo",
+    "addOthers_other": "Añadir a Zabbix los otros {{count}} dispositivos",
+    "confirmAddOthers_one": "¿Añadir a Zabbix el otro dispositivo de este cliente? Se envía de inmediato.",
+    "confirmAddOthers_other": "¿Añadir a Zabbix los otros {{count}} dispositivos de este cliente? Se envían de inmediato."
   },
   "uispCustomers": {
     "open": "Clientes UISP → NSM",
