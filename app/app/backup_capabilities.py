@@ -107,7 +107,12 @@ def _legacy_mikrotik_agent(device) -> bool:
 def _uisp_enabled(db) -> bool:
     from app.integration_models import ConnectorIntegration
 
-    row = db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == "uisp"))
+    # Asked once per device (over 600 queries per dashboard refresh): the session keeps the row, which a commit still refreshes.
+    row_id, _keep = db.info.get("uisp_integration", (None, None))
+    row = db.get(ConnectorIntegration, row_id) if row_id else None
+    if row is None:
+        row = db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == "uisp"))
+        db.info["uisp_integration"] = (row.id, row) if row else (None, None)
     return bool(row and row.is_enabled)
 
 
