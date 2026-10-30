@@ -64,6 +64,14 @@ def main():
     clean = client.get(f"{base}&view=clean").json()["items"]
     assert [r["id"] for r in clean] == [ids["clean"]] and clean[0]["mode"] == "external" and clean[0]["target_ip"] == "198.51.100.7"
     assert client.get(f"{base}&view=all").json()["total"] == 3
+    # Search and service filter: the service list counts what the search leaves, before the service is applied.
+    assert {s["label"]: s["count"] for s in body["services"]}["winbox"] == 1
+    other = next(f["label"] for f in row["findings"] if f["label"] != "winbox")
+    assert [r["id"] for r in client.get(f"{base}&service=winbox").json()["items"]] == [ids["router"]]
+    unknown = client.get(f"{base}&service=gopher").json()
+    assert unknown["items"] == [] and {s["label"] for s in unknown["services"]} >= {"winbox", other}
+    assert [r["id"] for r in client.get(f"{base}&view=all&q=198.51.100.7").json()["items"]] == [ids["clean"]]
+    assert client.get(f"{base}&q=nothing-like-this").json()["total"] == 0
     assert client.get(f"{base}&view=bogus").json()["view"] == "exposed"
 
     scoped = login(f"ci-ue-scoped-{suffix}").get("/api/ui/v1/exposure?view=all").json()

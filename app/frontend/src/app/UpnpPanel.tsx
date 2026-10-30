@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { api, ApiError } from "../api/client";
 import { formatDateTime } from "../lib/format";
+import { usePaging } from "../lib/paging";
+import { Pager } from "./Pager";
 
 type Method = "agent" | "tr069" | "uisp" | null;
 interface Action { status: string; method: Method; done_at: string | null; requested_at: string | null; by: string | null; error: string | null; applied?: boolean }
@@ -82,12 +84,14 @@ export function UpnpDevicePanel({ id }: { id: string }) {
 }
 
 /** Exposure page: devices with UPnP on, every vendor, and the bulk turn-off (the number of devices typed to confirm). */
-export function UpnpFleetPanel({ customer }: { customer?: string }) {
+export function UpnpFleetPanel({ customer, toolbar }: { customer?: string; toolbar?: ReactNode }) {
   const { t } = useTranslation();
   const client = useQueryClient();
   const query = useQuery({ queryKey: ["security", "upnp", customer ?? ""], queryFn: () => api<Fleet>(`/api/ui/v1/security/upnp${customer ? `?customer=${customer}` : ""}`) });
   const [chosen, setChosen] = useState<string[]>([]);
   const [typed, setTyped] = useState("");
+  const [text, setText] = useState("");
+  const paging = usePaging(`${text}|${customer ?? ""}`);
   const bulk = useMutation({
     mutationFn: () => api<{ queued: number; skipped: { id: string; name: string; reason: string }[] }>("/api/ui/v1/security/upnp/disable", {
       method: "POST", body: JSON.stringify({ device_ids: chosen, confirmation: typed }),
@@ -96,17 +100,30 @@ export function UpnpFleetPanel({ customer }: { customer?: string }) {
   });
   const data = query.data;
   if (!data) return null;
-  const selectable = data.items.filter((row) => row.enabled === true && !row.blocker && row.action?.status !== "queued" && row.action?.status !== "running");
+  const needle = text.trim().toLowerCase();
+  const visible = data.items.filter((row) => !needle || `${row.name} ${row.customer ?? ""}`.toLowerCase().includes(needle));
+  const selectable = visible.filter((row) => row.enabled === true && !row.blocker && row.action?.status !== "queued" && row.action?.status !== "running");
   const toggle = (rowId: string) => setChosen(chosen.includes(rowId) ? chosen.filter((value) => value !== rowId) : [...chosen, rowId]);
   const airos = data.items.filter((row) => chosen.includes(row.id) && row.method === "uisp").length;
   return (
     <section className="ui-panel ui-admin-section">
-      <h2>UPnP</h2>
       <p className="ui-muted">{t("upnp.fleetHint")}</p>
-      <p>{t("upnp.counts", data.counts)}</p>
-      {data.items.length === 0 ? (
+      <div className="ui-metrics">
+        {(["on", "off", "unknown", "in_progress", "failed"] as const).map((name) => (
+          <div key={name} className={`ui-metric${name === "on" && data.counts.on > 0 ? " ui-metric-warning" : name === "failed" && data.counts.failed > 0 ? " ui-metric-danger" : ""}`}>
+            <span>{t(`upnp.metrics.${name}`)}</span>
+            <strong>{data.counts[name]}</strong>
+          </div>
+        ))}
+      </div>
+      <div className="ui-filter-bar">
+        <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder={t("exposure.search")} aria-label={t("exposure.search")} autoComplete="off" />
+        {toolbar}
+      </div>
+      {visible.length === 0 ? (
         <div className="ui-empty">{t("upnp.none")}</div>
       ) : (
+        <>
         <div className="ui-data-wrap">
           <table className="ui-data-table">
             <thead>
@@ -119,7 +136,7 @@ export function UpnpFleetPanel({ customer }: { customer?: string }) {
               </tr>
             </thead>
             <tbody>
-              {data.items.map((row) => (
+              {visible.slice(paging.offset, paging.offset + paging.size).map((row) => (
                 <tr key={row.id}>
                   <td>{data.can_disable && selectable.includes(row) && <input type="checkbox" checked={chosen.includes(row.id)} onChange={() => toggle(row.id)} aria-label={row.name} />}</td>
                   <td><Link to="/devices/$deviceId/exposure" params={{ deviceId: row.id }}>{row.name}</Link></td>
@@ -131,6 +148,8 @@ export function UpnpFleetPanel({ customer }: { customer?: string }) {
             </tbody>
           </table>
         </div>
+        <Pager total={visible.length} paging={paging} />
+        </>
       )}
       {data.can_disable && chosen.length > 0 && (
         <form className="ui-admin-form ui-admin-stack" onSubmit={(event) => { event.preventDefault(); bulk.mutate(); }}>

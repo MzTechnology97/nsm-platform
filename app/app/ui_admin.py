@@ -907,7 +907,8 @@ def _unifi_payload(db) -> dict:
     return jsonable_encoder({
         "configured": row is not None, "enabled": bool(row and row.is_enabled), "base_url": row.base_url if row else "",
         "verify_tls": bool(row.verify_tls) if row else True, "sites": unifi_connector.selected_sites(row), "known_sites": settings.get("known_sites") or [],
-        "api_prefix": settings.get("api_prefix"), "last_test_status": row.last_test_status if row else None, "last_error": row.last_error if row else None,
+        "api_prefix": settings.get("api_prefix"), "auth": settings.get("auth") or "api_key", "username": settings.get("username") or "",
+        "last_test_status": row.last_test_status if row else None, "last_error": row.last_error if row else None,
         "last_sync_at": row.last_sync_at if row else None,
         "last_sync": {key: last.get(key) for key in ("status", "version", "sites", "unifi_devices", "linked", "new_links", "not_in_nsm", "statistics_error", "error")},
         "devices": sorted(settings.get("devices") or [], key=lambda d: (str(d.get("site") or ""), str(d.get("kind") or ""), str(d.get("name") or ""))),
@@ -929,7 +930,8 @@ def admin_unifi_save(request: Request, body: dict = Body(default={})):
         try:
             unifi_connector.save_config(db, user, base_url=_text(body, "base_url"), api_key=_text(body, "api_key"),
                                         verify_tls=body.get("verify_tls") is not False, enabled=body.get("enabled") is True,
-                                        sites=sites if isinstance(sites, list) else [])
+                                        sites=sites if isinstance(sites, list) else [],
+                                        auth=_text(body, "auth"), username=_text(body, "username"), password=_text(body, "password"))
         except ValueError as error:
             raise HTTPException(422, {"code": "invalid", "message": str(error)}) from None
         db.flush()
