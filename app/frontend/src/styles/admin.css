@@ -383,7 +383,7 @@ a.ui-search-result:hover {
 .ui-admin-form .ui-check-grid label,
 .ui-admin-form label.ui-with-brand {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-2);
   font-size: 13px;
   color: var(--text);
@@ -392,6 +392,7 @@ a.ui-search-result:hover {
 .ui-admin-form .ui-check-grid input,
 .ui-admin-form label.ui-with-brand input {
   min-height: auto;
+  margin-top: 3px;
 }
 
 /* Customer and site forms. */

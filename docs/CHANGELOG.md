@@ -4,6 +4,13 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.321 — 2026-10-30
+
+DNS blacklists: Spamhaus DQS key, NiX Spam removed, checkboxes aligned
+- **Spamhaus ZEN through any DNS resolver:** *Integrazioni → Blacklist DNS* has a new field for the Spamhaus DQS key (Data Query Service, sign up at spamhaus.com). With the key, Spamhaus also answers servers that use a public resolver, instead of refusing them with `127.255.255.254`. The key is stored encrypted and never shown again; leave the field empty to keep it.
+- When Spamhaus refuses the queries and no key is saved, the warning says to enter one.
+- **NiX Spam removed:** the list closed in January 2025 and its zone only answers with errors. Its warning disappears from the page and it is no longer queried.
+- The checkboxes in the settings forms now line up with the first line of their label, so a list with a long description no longer looks attached to the next one.
 ## 0.49.320 — 2026-10-30
 
 Security

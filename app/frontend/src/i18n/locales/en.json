@@ -7658,7 +7658,11 @@
     "lookupListed_one": "on {{count}} list",
     "lookupListed_other": "on {{count}} lists",
     "lookupClean": "on no list",
-    "lookupFailed": "Not verified: {{list}}."
+    "lookupFailed": "Not verified: {{list}}.",
+    "dqsKey": "Spamhaus DQS key",
+    "dqsKeySaved": "Key saved: leave empty to keep it",
+    "dqsKeyHelp": "Free for low-volume use (Data Query Service, sign up at spamhaus.com): with the key Spamhaus ZEN also answers through public DNS resolvers.",
+    "dqsHint": "Enter a free DQS key in the settings to use Spamhaus with any resolver."
   },
   "ipAbuse": {
     "title": "IP abuse",
