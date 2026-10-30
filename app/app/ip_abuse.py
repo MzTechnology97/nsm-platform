@@ -79,6 +79,17 @@ def collect(db) -> dict:
     }}
 
 
+def _counts(rows: list[dict]) -> dict:
+    return {"addresses": len(rows), **{s: sum(1 for r in rows if any(x["source"] == s for x in r["sources"])) for s in SOURCES},
+            "max_score": max((r["score"] or 0 for r in rows), default=0)}
+
+
+def summary(db) -> dict:
+    """The dashboard tile: the counts of the page, without looking up who holds each address."""
+    data = collect(db)
+    return {**_counts(list(data["rows"].values())), "sources_enabled": sum(1 for module in data["modules"].values() if module["enabled"])}
+
+
 def overview(db, source: str = "", q: str = "") -> dict:
     data = collect(db)
     now = utcnow()
@@ -105,11 +116,9 @@ def overview(db, source: str = "", q: str = "") -> dict:
                       "unassigned": held["confidence"] == "none" and device is None and abuseipdb._inside(entry["address"], operator_prefixes)})
     # Most lists first, then the highest score, then the latest report.
     items.sort(key=lambda r: (r["lists"], r["score"] or 0, str(r["last_report"] or "")), reverse=True)
-    rows = list(data["rows"].values())
     return {
         "items": items[:MAX_ROWS], "total": len(items), "prefixes": data["prefixes"], "modules": data["modules"],
-        "counts": {"addresses": len(rows), **{s: sum(1 for r in rows if any(x["source"] == s for x in r["sources"])) for s in SOURCES},
-                   "max_score": max((r["score"] or 0 for r in rows), default=0)},
+        "counts": _counts(list(data["rows"].values())),
     }
 
 

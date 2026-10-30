@@ -43,7 +43,23 @@ def tr181(inform, rx, tx, uptime=86400, clients=3):
     }
 
 
+def check_dsl_channel():
+    """The channel in use, not the first one: an Archer VR1210v has ADSL as channel 1 (down) and VDSL as channel 2."""
+    v = lambda value: {"_value": value}
+    line = {"Status": v("Up"), "LinkStatus": v("Up"), "X_TP_ModulationTypeUsed": v("VDSL2"), "DownstreamMaxBitRate": v(88232), "UpstreamMaxBitRate": v(27832),
+            "DownstreamNoiseMargin": v(58), "UpstreamNoiseMargin": v(83), "DownstreamAttenuation": v(30), "UpstreamAttenuation": v(54)}
+    channels = {"1": {"Status": v("Down"), "DownstreamCurrRate": v(0), "UpstreamCurrRate": v(0)},
+                "2": {"Status": v("Up"), "DownstreamCurrRate": v(77360), "UpstreamCurrRate": v(21599)}}
+    dsl = mon.read_state({"_id": "x", "Device": {"DSL": {"Line": {"1": line}, "Channel": channels}}})["dsl"]
+    assert dsl == {"status": "Up", "link_status": "Up", "standard": "VDSL2", "down_bps": 77_360_000, "up_bps": 21_599_000, "down_max_bps": 88_232_000, "up_max_bps": 27_832_000,
+                   "snr_down_db": 5.8, "snr_up_db": 8.3, "attenuation_down_db": 3.0, "attenuation_up_db": 5.4}, dsl
+    # Line down: no figures, whatever the channels report.
+    down = mon.read_state({"_id": "x", "Device": {"DSL": {"Line": {"1": {**line, "Status": v("Down")}}, "Channel": channels}}})["dsl"]
+    assert down["down_bps"] is None and down["down_max_bps"] is None and down["snr_up_db"] is None, down
+
+
 def main():
+    check_dsl_channel()
     suffix = uuid.uuid4().hex[:6].upper()
     t0 = utcnow().replace(microsecond=0) - timedelta(minutes=20)
     ext181, ext098 = f"202BC1-VX230v-H{suffix}", f"00259E-HG8245-H{suffix}"

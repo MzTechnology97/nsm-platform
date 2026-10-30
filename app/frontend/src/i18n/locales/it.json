@@ -3157,7 +3157,9 @@
       "clean": "Nessuna CVE nota",
       "unknown": "Non valutabili"
     },
-    "live": "aggiornata {{time}} · prossimo tra {{seconds}} s"
+    "live": "aggiornata {{time}} · prossimo tra {{seconds}} s",
+    "ipAbuseNote": "AbuseIPDB {{abuseipdb}} · DNSBL {{dnsbl}} · liste {{lists}}",
+    "ipAbuseOff": "Nessuna fonte attiva"
   },
   "search": {
     "title": "Ricerca globale",
@@ -5949,8 +5951,8 @@
     "clients": "Client",
     "dsl": "Linea DSL",
     "dslRate": "Velocità down / up",
-    "dslSnr": "Margine SNR",
-    "dslAttenuation": "Attenuazione",
+    "dslSnr": "Margine SNR down / up",
+    "dslAttenuation": "Attenuazione down / up",
     "charts": "Storico dall'ACS",
     "pon": {
       "title": "Livelli ottici PON",
@@ -5963,7 +5965,8 @@
       "notExposed": "non riportato dal CPE",
       "help": "Letti dal CPE ogni ora dalla provision NSM; ultima lettura {{when}} da"
     },
-    "lastSample": "Nessun campione in questo periodo: l'ultimo ricevuto dal CPE è del {{when}}."
+    "lastSample": "Nessun campione in questo periodo: l'ultimo ricevuto dal CPE è del {{when}}.",
+    "dslMaxRate": "Velocità massima down / up"
   },
   "serverMigration": {
     "subtitle": "Sposta NSM su un server con un altro indirizzo: questo server comunica il nuovo indirizzo ad agent MikroTik e CPE TR-069.",

@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.325 — 2026-10-30
+
+Security
+- **IP abuse on the main dashboard.** A new tile shows how many of the operator's addresses are reported, with the figures per source (AbuseIPDB, DNS blacklists, threat lists), and opens the *Abusi IP* page. It is red when any address is reported, and says so when no source is enabled. Only users who may read the security pages see it.
+## 0.49.324 — 2026-10-30
+
+Fixes
+- **DSL lines showed 0 bit/s on CPEs with more than one channel.** On an Archer VR1210v channel 1 is ADSL, down, and channel 2 is VDSL, in use. NSM read the first channel; it now reads the one that is up, so the device page, the charts and the rate-drop alert see the real speed.
+- The *ACS* tab now also shows the **standard** (for example VDSL2), the **maximum attainable rates**, and the **SNR margin and attenuation in both directions**. The GenieACS provision reads the new parameters at every inform.
+## 0.49.323 — 2026-10-30
+
+Documentation
+- **Roadmap: counters on the other sidebar items (GUI-COUNTERS).** Today only Apparati, Monitoring, Firmware, Vulnerabilità and Action Center show one.
+- **Roadmap: closing open Action Center issues by hand (ISSUE-CLOSE).** Today an issue can only be taken in charge; it closes when the worker sees the condition end.
 ## 0.49.322 — 2026-10-30
 
 Fixes

@@ -3157,7 +3157,9 @@
       "clean": "Ninguna CVE conocida",
       "unknown": "No evaluables"
     },
-    "live": "actualizado {{time}} · próximo en {{seconds}} s"
+    "live": "actualizado {{time}} · próximo en {{seconds}} s",
+    "ipAbuseNote": "AbuseIPDB {{abuseipdb}} · DNSBL {{dnsbl}} · listas {{lists}}",
+    "ipAbuseOff": "Ninguna fuente activa"
   },
   "search": {
     "title": "Búsqueda global",
@@ -5949,8 +5951,8 @@
     "clients": "Clientes",
     "dsl": "Línea DSL",
     "dslRate": "Velocidad bajada / subida",
-    "dslSnr": "Margen SNR",
-    "dslAttenuation": "Atenuación",
+    "dslSnr": "Margen SNR down / up",
+    "dslAttenuation": "Atenuación down / up",
     "charts": "Historial desde el ACS",
     "pon": {
       "title": "Niveles ópticos PON",
@@ -5963,7 +5965,8 @@
       "notExposed": "no informado por el CPE",
       "help": "Leídos del CPE cada hora por la provisión de NSM; última lectura {{when}} desde"
     },
-    "lastSample": "Ninguna muestra en este periodo: la última recibida del CPE es del {{when}}."
+    "lastSample": "Ninguna muestra en este periodo: la última recibida del CPE es del {{when}}.",
+    "dslMaxRate": "Velocidad máxima down / up"
   },
   "serverMigration": {
     "subtitle": "Mueve NSM a un servidor con otra dirección: este servidor comunica la nueva dirección a los agentes MikroTik y a los CPE TR-069.",
