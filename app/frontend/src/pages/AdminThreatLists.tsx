@@ -21,7 +21,9 @@ interface Match {
   device: { id: string; name: string; brand: BrandRef } | null;
 }
 interface Attacker { ip: string; attempts: number; devices: number; last: string | null; network: string; reference: string; source: string }
-interface ThreatLists { enabled: boolean; operator_prefixes: string[]; checked_at: string | null; sources: Source[]; matches: Match[]; attackers: Attacker[] }
+interface ThreatLists {
+  enabled: boolean; operator_prefixes: string[]; trusted: string[]; blocklist: string[]; checked_at: string | null; sources: Source[]; matches: Match[]; attackers: Attacker[];
+}
 
 const URL = "/api/ui/v1/admin/integrations/threat-lists";
 
@@ -136,7 +138,7 @@ export function AdminThreatLists() {
 function Settings({ data, onSaved }: { data: ThreatLists; onSaved: (data: ThreatLists) => void }) {
   const { t } = useTranslation();
   const [form, setForm] = useState({
-    enabled: data.enabled, operator_prefixes: data.operator_prefixes.join("\n"),
+    enabled: data.enabled, operator_prefixes: data.operator_prefixes.join("\n"), trusted: data.trusted.join("\n"), blocklist: data.blocklist.join("\n"),
     sources: Object.fromEntries(data.sources.map((s) => [s.key, { url: s.url, enabled: s.enabled }])) as Record<string, { url: string; enabled: boolean }>,
   });
   const save = useMutation({ mutationFn: (body: typeof form) => api<ThreatLists>(URL, { method: "POST", body: JSON.stringify(body) }), onSuccess: onSaved });
@@ -154,6 +156,13 @@ function Settings({ data, onSaved }: { data: ThreatLists; onSaved: (data: Threat
           <textarea rows={4} value={form.operator_prefixes} placeholder="203.0.113.0/24" onChange={(event) => setForm({ ...form, operator_prefixes: event.target.value })} />
         </label>
         <small className="ui-muted">{t("threatLists.prefixesHelp")}</small>
+        {(["trusted", "blocklist"] as const).map((key) => (
+          <label key={key}>
+            <span>{t(`threatLists.${key}`)}</span>
+            <textarea rows={3} value={form[key]} placeholder="198.51.100.7" onChange={(event) => setForm({ ...form, [key]: event.target.value })} />
+            <small className="ui-muted">{t(`threatLists.${key}Help`)}</small>
+          </label>
+        ))}
         {data.sources.map((source) => (
           <fieldset key={source.key} className="ui-admin-stack">
             <legend>{source.label}</legend>

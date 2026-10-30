@@ -849,6 +849,17 @@ The PPPoE concentrator is not managed by NSM: *Integrazioni → BRAS MikroTik* (
 - Each source shows whether it is on and when it last checked, with a link to its settings.
 - API: `GET /api/ui/v1/security/ip-abuse?source=&q=` (`app/ip_abuse.py`).
 
+### Threat lists on the access alerts (SIEM-02, Core 0.49.319)
+
+- Sources of *Integrazioni → Liste di minaccia*: Spamhaus DROP (IPv4, IPv6), FireHOL level 1 and the abuse.ch Feodo Tracker recommended list, each with its own switch and URL; the bogons FireHOL lists (private, reserved ranges) never match.
+- Operator lists on the same page: **trusted** addresses or networks (NSM, technicians, monitoring) and an own **blocklist**, at most 256 each, any address family, audited with `THREAT_LISTS_CONFIGURED`. The blocklist is matched like a public list.
+- With the module on, the syslog access alerts (`syslog_security`) use them:
+  - a login (failed or successful) from a trusted address never alerts and is left out of the attackers list;
+  - a brute force from a listed address is one level higher (public address: critical);
+  - a successful login from a listed address opens a critical issue *Accesso riuscito da un indirizzo in lista di minaccia* (rule `listed_source_success`).
+  The list, the network and the reference are in the issue details (`threat`) and in the notification text.
+- Not yet: firewall drops, because the syslog does not store them as events.
+
 ### Firmware uploaded into the catalogs (VEND-01, Core 0.49.247)
 
 The manual *Aggiungi una release* form is gone (operator request 2026-10-23): on each catalog of *Firmware → Cataloghi* the operator (`firmware.execute`) uploads the image itself (`.bin`, `.img`, `.zip`; 64 KB–128 MB) and NSM reads what the official file says:

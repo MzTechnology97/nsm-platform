@@ -14,6 +14,10 @@ preferences):
 - **new public address**: a successful login from a public address never seen
   for that device in the last ``KNOWN_SOURCE_DAYS`` days.
 
+With the threat lists on (SIEM-02): the operator's trusted addresses never alert,
+a brute force from a listed address is one level higher, and a successful login
+from a listed address is critical; the list and the entry are the evidence.
+
 Patterns cover RouterOS, OpenSSH/Dropbear (airOS, Cambium, Mimosa, Linux
 CPEs), Cisco IOS, Juniper Junos, FortiGate, Huawei VRP and generic web logins.
 """
@@ -137,10 +141,13 @@ def _name(device) -> str:
 def evaluate(now=None) -> dict:
     """Evaluate access events not yet processed; returns counters."""
     now = now or utcnow()
-    stats = {"events": 0, "brute_force": 0, "success_after_failures": 0, "new_public_source": 0}
+    from app import threat_lists  # lazy, as core: the syslog receiver process imports this module
+
+    stats = {"events": 0, "brute_force": 0, "success_after_failures": 0, "new_public_source": 0, "listed_source_success": 0, "trusted": 0}
     with SessionLocal() as db:
         events = list(db.scalars(select(DeviceAuthEvent).where(DeviceAuthEvent.evaluated.is_(False))
                                  .order_by(DeviceAuthEvent.id).limit(BATCH)))
+        check = threat_lists.access_check(db) if events else None
         devices = {}
         for ev in events:
             stats["events"] += 1
@@ -151,6 +158,12 @@ def evaluate(now=None) -> dict:
             devices[ev.device_id] = device
             source = ev.remote_ip or "indirizzo sconosciuto"
             where = "pubblico" if ev.remote_ip and is_public(ev.remote_ip) else "privato/locale"
+            if check and ev.remote_ip and check.is_trusted(ev.remote_ip):
+                stats["trusted"] += 1
+                continue
+            listed = check.listed(ev.remote_ip) if check and ev.remote_ip else None
+            evidence = {"threat": listed} if listed else {}
+            note = f" L'indirizzo è in {listed['list']} (rete {listed['network']}{', ' + listed['reference'] if listed['reference'] else ''})." if listed else ""
             if ev.outcome == "failure":
                 same = [DeviceAuthEvent.device_id == ev.device_id, DeviceAuthEvent.outcome == "failure",
                         DeviceAuthEvent.occurred_at > ev.occurred_at - BRUTE_FORCE_WINDOW, DeviceAuthEvent.occurred_at <= ev.occurred_at]
@@ -159,13 +172,23 @@ def evaluate(now=None) -> dict:
                 if failures >= BRUTE_FORCE_FAILURES:
                     users = sorted({u for u in db.scalars(select(DeviceAuthEvent.username).where(*same)) if u})[:10]
                     title = f"Tentativi di accesso falliti da {source}"
-                    if _raise(db, device, title, "high" if where == "pubblico" else "warning",
-                              f"{_name(device)}: {failures} accessi falliti in {int(BRUTE_FORCE_WINDOW.total_seconds() // 60)} minuti da {source} ({where}). "
+                    levels = ["warning", "high", "critical"]
+                    severity = levels[(1 if where == "pubblico" else 0) + (1 if listed else 0)]
+                    if _raise(db, device, title, severity,
+                              f"{_name(device)}: {failures} accessi falliti in {int(BRUTE_FORCE_WINDOW.total_seconds() // 60)} minuti da {source} ({where}).{note} "
                               f"Utenti provati: {', '.join(users) or 'n.d.'}. Verifica le regole firewall e i servizi esposti.",
-                              {"rule": "brute_force", "remote_ip": ev.remote_ip, "failures": failures, "users": users, "service": ev.service}, now):
+                              {"rule": "brute_force", "remote_ip": ev.remote_ip, "failures": failures, "users": users, "service": ev.service, **evidence}, now):
                         stats["brute_force"] += 1
                 continue
             # Successful login.
+            if listed:
+                title = f"Accesso riuscito da un indirizzo in lista di minaccia {ev.remote_ip}"
+                if _raise(db, device, title, "critical",
+                          f"{_name(device)}: l'utente {ev.username or 'n.d.'} è entrato da {ev.remote_ip} via {ev.service or 'n.d.'}.{note} "
+                          "Verifica subito l'accesso e cambia le credenziali.",
+                          {"rule": "listed_source_success", "remote_ip": ev.remote_ip, "user": ev.username, "service": ev.service, **evidence}, now):
+                    stats["listed_source_success"] += 1
+                continue
             if ev.remote_ip:
                 failed_before = db.scalar(select(func.count()).select_from(DeviceAuthEvent).where(
                     DeviceAuthEvent.device_id == ev.device_id, DeviceAuthEvent.outcome == "failure", DeviceAuthEvent.remote_ip == ev.remote_ip,

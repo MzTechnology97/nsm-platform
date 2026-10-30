@@ -903,6 +903,8 @@ Today the access patterns are fixed in the code. The operator gets rules editabl
 
 #### SIEM-02 — threat-intelligence IP lists on access and firewall logs
 
+**Step 2 done (Core 0.49.319)**: FireHOL level 1 and abuse.ch Feodo Tracker join Spamhaus DROP in the shared store; operator trusted list and blocklist; the access alerts skip trusted sources, raise a brute force from a listed address by one level and make a successful login from a listed address critical, with list and entry as evidence. Next: firewall drops (needs the syslog to store them as events), CrowdSec (CROWDSEC-01) and the AbuseIPDB score as sources.
+
 Source addresses of failed and successful logins and of logged firewall drops are matched against IP lists:
 - public lists, downloaded on a schedule: Spamhaus DROP/EDROP (shared with SEC-13), FireHOL level 1, abuse.ch;
 - the CrowdSec community blocklist when CROWDSEC-01 is on, and the AbuseIPDB score of CYBER-01 when its key is set;

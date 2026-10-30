@@ -7272,7 +7272,7 @@
   },
   "threatLists": {
     "title": "Integrazioni · Liste di minaccia",
-    "subtitle": "Liste pubbliche di reti da bloccare (Spamhaus DROP), confrontate ogni giorno con i tuoi prefissi, gli IP pubblici dell'inventario e gli IP che tentano l'accesso agli apparati. Solo lettura: nessun apparato viene modificato.",
+    "subtitle": "Liste pubbliche di reti da bloccare (Spamhaus DROP, FireHOL livello 1, abuse.ch Feodo), confrontate ogni giorno con i tuoi prefissi, gli IP pubblici dell'inventario e gli IP che tentano l'accesso agli apparati. Un accesso riuscito da un IP in lista è un avviso critico. Nessun apparato viene modificato.",
     "refresh": "Aggiorna ora",
     "settingsTitle": "Impostazioni",
     "enabled": "Attiva le liste di minaccia (aggiornamento giornaliero)",
@@ -7310,7 +7310,11 @@
       "last": "Ultimo"
     },
     "attempts_one": "{{count}} tentativo su {{devices}} apparati",
-    "attempts_other": "{{count}} tentativi su {{devices}} apparati"
+    "attempts_other": "{{count}} tentativi su {{devices}} apparati",
+    "trusted": "Indirizzi fidati",
+    "trustedHelp": "IP o reti (NSM, tecnici, monitoraggio) i cui accessi agli apparati non generano mai avvisi. Uno per riga.",
+    "blocklist": "Lista nera dell'operatore",
+    "blocklistHelp": "IP o reti tue da trattare come le liste pubbliche: accessi falliti più gravi, accesso riuscito critico. Uno per riga."
   },
   "syslogRules": {
     "title": "Regole syslog",
