@@ -106,7 +106,7 @@ export function AdminBras() {
             <section className="ui-panel">
               <h2>{t("bras.actions")}</h2>
               <p className="ui-muted">{t("bras.userHint")}</p>
-              <pre className="ui-code">{"/user group add name=nsm-read policy=read,api,rest-api,!write,!policy,!sensitive\n/user add name=nsm group=nsm-read password=…"}</pre>
+              <pre className="ui-code-block">{"/user group add name=nsm-read policy=read,api,rest-api,!write,!policy,!sensitive\n/user add name=nsm group=nsm-read password=…"}</pre>
               <div className="ui-row-actions">
                 <button type="button" className="ui-button" disabled={!data.configured || test.isPending} onClick={() => test.mutate()}>{t("bras.test")}</button>
                 <button type="button" className="ui-button ui-button-ghost" disabled={!data.configured || !data.enabled || sync.isPending} onClick={() => sync.mutate()}>{t("bras.syncNow")}</button>
