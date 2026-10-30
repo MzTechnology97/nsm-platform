@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.324 — 2026-10-30
+
+Fixes
+- **DSL lines showed 0 bit/s on CPEs with more than one channel.** On an Archer VR1210v channel 1 is ADSL, down, and channel 2 is VDSL, in use. NSM read the first channel; it now reads the one that is up, so the device page, the charts and the rate-drop alert see the real speed.
+- The *ACS* tab now also shows the **standard** (for example VDSL2), the **maximum attainable rates**, and the **SNR margin and attenuation in both directions**. The GenieACS provision reads the new parameters at every inform.
 ## 0.49.323 — 2026-10-30
 
 Documentation
