@@ -8,7 +8,7 @@ import { INCIDENT_STATUSES, type IncidentFilters, ISSUE_STATUSES, type IssueFilt
 import {
   COMPLIANCE_STATUSES,
   type ComplianceFilters,
-  EXPOSURE_VIEWS,
+  EXPOSURE_SECTIONS, EXPOSURE_VIEWS,
   type ExposureFilters,
   IP_ABUSE_SOURCES,
   type IpAbuseFilters,
@@ -631,6 +631,9 @@ const exposureRoute = createRoute({
   path: "/exposure",
   component: lazyRouteComponent(() => import("../pages/Exposure"), "Exposure"),
   validateSearch: (search: Record<string, unknown>): ExposureFilters => ({
+    ...(typeof search.section === "string" && (EXPOSURE_SECTIONS as readonly string[]).includes(search.section) ? { section: search.section as ExposureFilters["section"] } : {}),
+    ...(typeof search.q === "string" && search.q ? { q: search.q } : {}),
+    ...(typeof search.service === "string" && search.service ? { service: search.service } : {}),
     ...(typeof search.view === "string" && (EXPOSURE_VIEWS as readonly string[]).includes(search.view) ? { view: search.view as ExposureFilters["view"] } : {}),
     ...(typeof search.customer === "string" && search.customer ? { customer: search.customer } : {}),
   }),

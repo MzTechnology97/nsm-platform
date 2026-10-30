@@ -1,4 +1,5 @@
-"""UBNT-09: UniFi Network controller connector — API key, base path detection, sites and paged devices, linking by MAC, admin API."""
+"""UBNT-09: UniFi Network controller connector — API key, base path detection, sites and paged devices, linking by MAC, classic controller login, admin API."""
+import json
 import re
 import uuid
 
@@ -15,6 +16,7 @@ from app.security import hash_password
 
 PASSWORD = "CI-UI-UniFi-Admin-2026-Pass!"
 KEY = "ci-unifi-placeholder-key"
+CLASSIC_USER, CLASSIC_PASSWORD = "ci-nsm-reader", "CI-UniFi-Classic-Placeholder"
 SITE_A, SITE_B = "88f7af54-98f8-306a-a1c7-c9349722b1f6", "1f0a2c3d-0000-4000-8000-00000000000b"
 
 
@@ -63,6 +65,44 @@ class FakeController:
             return httpx.Response(200, json={"uptimeSec": 86400, "cpuUtilizationPct": 12.5, "memoryUtilizationPct": 41.2, "loadAverage1Min": 0.3,
                                              "uplink": {"txRateBps": 1200000, "rxRateBps": 8400000}})
         return httpx.Response(404)
+
+
+class FakeClassic:
+    """Classic Network Application on 8443: session cookie, sites by short name, raw device fields."""
+
+    def __init__(self):
+        self.calls, self.posts = [], []
+        self.devices = {
+            "default": [
+                {"_id": "c-gw", "mac": "02:0f:00:03:00:01", "name": "GW-Classic", "model": "UGW3", "type": "ugw", "ip": "198.51.100.95", "state": 1, "version": "4.4.57", "upgradable": True},
+                {"_id": "c-sw", "mac": "02:0f:00:03:00:02", "name": "SW-Classic", "model": "US8P150", "type": "usw", "ip": "198.51.100.96", "state": 0, "version": "6.6.61",
+                 "uptime": 86400, "system-stats": {"cpu": "12.5", "mem": "41.2"}, "sys_stats": {"loadavg_1": "0.3"}, "uplink": {"rx_bytes-r": 1050000, "tx_bytes-r": 150000}},
+            ],
+            "abc123": [{"_id": "c-ap", "mac": "02:0f:00:03:00:03", "name": "AP-Classic", "model": "BZ2", "type": "uap", "state": 6, "system-stats": {"cpu": "nan"}}],
+        }
+
+    def __call__(self, request: httpx.Request):
+        path = request.url.path
+        self.calls.append(path)
+        assert "x-api-key" not in request.headers, "no API key on a classic controller"
+        if request.method == "POST":
+            self.posts.append(path)
+            if path == "/logout":
+                return httpx.Response(200, json={"meta": {"rc": "ok"}, "data": []})
+            body = json.loads(request.content)
+            if body["username"] == "ci-with-2fa":
+                return httpx.Response(401, json={"meta": {"rc": "error", "msg": "api.err.Ubic2faTokenRequired"}})
+            if body != {"username": CLASSIC_USER, "password": CLASSIC_PASSWORD}:
+                return httpx.Response(400, json={"meta": {"rc": "error", "msg": "api.err.Invalid"}})
+            return httpx.Response(200, json={"meta": {"rc": "ok"}, "data": []}, headers={"Set-Cookie": "unifises=ci-session; Path=/; Secure; HttpOnly"})
+        if path == "/status":
+            return httpx.Response(200, json={"meta": {"rc": "ok", "up": True, "server_version": "8.6.9"}, "data": []})
+        if "unifises=ci-session" not in request.headers.get("cookie", ""):
+            return httpx.Response(401, json={"meta": {"rc": "error", "msg": "api.err.LoginRequired"}})
+        if path == "/api/self/sites":
+            return httpx.Response(200, json={"meta": {"rc": "ok"}, "data": [{"_id": "s1", "name": "default", "desc": "Sede"}, {"_id": "s2", "name": "abc123", "desc": "Filiale"}]})
+        match = re.fullmatch(r"/api/s/([^/]+)/stat/device", path)
+        return httpx.Response(200, json={"meta": {"rc": "ok"}, "data": self.devices[match.group(1)]}) if match else httpx.Response(404)
 
 
 def login(username):
@@ -178,6 +218,59 @@ def main():
     assert client.post(f"{base}/sync", headers=headers).json()["status"] == "failed"
     assert client.get(base).json()["last_test_status"] == "failed"
     assert client.get("/app/admin/integrations/unifi").status_code in (200, 503)  # 503 when the frontend is not built (CI integration)
+
+    # Classic controller on 8443: no API key, login with a local account.
+    assert "togli la verifica TLS" in str(unifi._unreachable(httpx.ConnectError("[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed")))
+    assert unifi._number("12.5") == 12.5 and unifi._number("nan") is None and unifi._number("x") is None and unifi._number(None) is None
+    classic = FakeClassic()
+    unifi.client_for = lambda row, transport_=None: original(row, httpx.MockTransport(classic))
+    classic_url = "https://198.51.100.20:8443"
+    form = {"base_url": classic_url, "auth": "password", "username": CLASSIC_USER, "enabled": True, "verify_tls": False}
+    assert client.post(base, headers=headers, json=form).status_code == 422, "the stored API key is no password"
+    assert client.post(base, headers=headers, json={**form, "username": "", "password": CLASSIC_PASSWORD}).status_code == 422, "user required"
+    saved = client.post(base, headers=headers, json={**form, "password": CLASSIC_PASSWORD})
+    assert saved.status_code == 200 and saved.json()["auth"] == "password" and saved.json()["username"] == CLASSIC_USER, saved.text
+    assert CLASSIC_PASSWORD not in client.get(base).text, "stored password never returned"
+    assert client.post(base, headers=headers, json=form).status_code == 200, "an empty password keeps the stored one"
+    assert client.post(base, headers=headers, json={**form, "base_url": "https://198.51.100.21:8443"}).status_code == 422, "a stored password never goes to a new address"
+    tested = client.post(f"{base}/test", headers=headers).json()
+    assert tested["ok"] and "8.6.9" in tested["message"] and "2 siti" in tested["message"], tested
+    page = client.get(base).json()
+    assert page["known_sites"] == [{"id": "default", "name": "Sede"}, {"id": "abc123", "name": "Filiale"}] and page["api_prefix"] is None, page
+    with SessionLocal() as db:
+        customer = db.scalar(select(Customer).where(Customer.code == f"UF{suffix}"))
+        classic_switch = Device(customer_id=customer.id, vendor="ubiquiti", device_type="switch", name=f"TEST-UF-CL-{suffix}", status="unknown", primary_mac="02:0f:00:03:00:02")
+        db.add(classic_switch)
+        db.commit()
+        classic_id = classic_switch.id
+        details = db.scalars(select(AuditEvent).where(AuditEvent.event_type == "UNIFI_CONFIGURED")).all()
+        assert all(CLASSIC_PASSWORD not in json.dumps(e.details or {}) for e in details), "the password stays out of the audit trail"
+    synced = client.post(f"{base}/sync", headers=headers).json()
+    assert synced["status"] == "success" and synced["unifi_devices"] == 3 and synced["linked"] == 1 and synced["version"] == "8.6.9", synced
+    assert set(classic.posts) == {"/api/login", "/logout"} and classic.posts.count("/api/login") == classic.posts.count("/logout"), classic.posts
+    rows = {d["id"]: d for d in client.get(base).json()["devices"]}
+    assert (rows["c-gw"]["kind"], rows["c-sw"]["kind"], rows["c-ap"]["kind"]) == ("router", "switch", "wireless_ap"), rows
+    assert (rows["c-gw"]["status"], rows["c-sw"]["status"], rows["c-ap"]["status"]) == ("online", "offline", "offline"), rows
+    assert rows["c-gw"]["firmware_updatable"] is True and rows["c-sw"]["firmware"] == "6.6.61" and rows["c-ap"]["site"] == "Filiale", rows
+    with SessionLocal() as db:
+        linked = db.get(Device, classic_id)
+        assert linked.status == "offline" and linked.management_ip == "198.51.100.96" and linked.firmware_version == "6.6.61"
+        assert linked.inventory_data["unifi"]["metrics"] == {"cpu_percent": 12.5, "ram_percent": 41.2, "uptime_seconds": 86400, "load_1m": 0.3,
+                                                             "uplink_rx_bps": 8400000, "uplink_tx_bps": 1200000}, linked.inventory_data["unifi"]["metrics"]
+    client.post(base, headers=headers, json={**form, "sites": ["abc123"]})
+    before = len(classic.calls)
+    assert client.post(f"{base}/sync", headers=headers).json()["unifi_devices"] == 1
+    assert "/api/s/default/stat/device" not in classic.calls[before:], classic.calls[before:]
+    client.post(base, headers=headers, json={**form, "password": "wrong-placeholder", "sites": []})
+    denied = client.post(f"{base}/test", headers=headers).json()
+    assert denied["ok"] is False and "utente o password" in denied["message"], denied
+    client.post(base, headers=headers, json={**form, "username": "ci-with-2fa", "password": CLASSIC_PASSWORD})
+    denied = client.post(f"{base}/test", headers=headers).json()
+    assert denied["ok"] is False and "due passaggi" in denied["message"], denied
+    back = client.post(base, headers=headers, json={"base_url": classic_url, "auth": "api_key", "enabled": True, "verify_tls": False})
+    assert back.status_code == 422, "the stored password is no API key"
+    back = client.post(base, headers=headers, json={"base_url": classic_url, "auth": "api_key", "api_key": KEY, "enabled": True, "verify_tls": False}).json()
+    assert back["auth"] == "api_key" and back["username"] == "", back
 
     tech, tech_headers = login(f"ci-uf-tech-{suffix}")
     assert tech.get(base).status_code == 403

@@ -1447,13 +1447,20 @@
     },
     "shared": "IP condiviso",
     "private": "IP privato/CGNAT",
-    "more": "… e altri {{count}}",
     "pending": "verifica in corso",
     "none": "nessuna esposizione",
     "allGood": "Nessun apparato espone servizi su Internet.",
     "empty": "Nessun apparato in questa vista.",
     "internalRow_one": "{{count}} servizio raggiungibile solo dalla rete interna (apparato dietro NAT)",
-    "internalRow_other": "{{count}} servizi raggiungibili solo dalla rete interna (apparato dietro NAT)"
+    "internalRow_other": "{{count}} servizi raggiungibili solo dalla rete interna (apparato dietro NAT)",
+    "sections": {
+      "label": "Sezioni",
+      "services": "Servizi esposti",
+      "firewall": "Firewall delle CPE",
+      "upnp": "UPnP"
+    },
+    "search": "Cerca apparato, IP o cliente",
+    "allServices": "Tutti i servizi"
   },
   "access": {
     "title": "Accessi",
@@ -7092,7 +7099,7 @@
     "notInNsm_other": "{{count}} non ancora in NSM",
     "linked": "Collegati a NSM",
     "byMac": "apparati Ubiquiti NSM con lo stesso MAC",
-    "connectionHelp": "Nel controller: UniFi Network → Impostazioni → Control Plane → Integrazioni → crea una chiave API. Serve UniFi Network 9.3 o successivo. La chiave ha i permessi dell'amministratore che la crea: per NSM basta un amministratore in sola lettura.",
+    "connectionHelp": "Crea la chiave in UniFi Network, nella voce Integrazioni: secondo la versione è in Impostazioni → Control Plane, in Impostazioni oppure a sé nel menu laterale. Serve UniFi Network 9.3 o successivo. La chiave ha i permessi dell'amministratore che la crea.",
     "url": "Indirizzo della console o del controller",
     "apiKey": "Chiave API",
     "tlsHelp": "Togli la verifica solo se il controller usa il certificato autofirmato di fabbrica.",
@@ -7117,7 +7124,13 @@
     },
     "updateAvailable": "aggiornamento disponibile",
     "inNsm": "collegato",
-    "missing": "non in NSM"
+    "missing": "non in NSM",
+    "authMode": "Tipo di controller",
+    "authApiKey": "Console UniFi OS o UniFi OS Server: chiave API",
+    "authPassword": "Controller classico (porta 8443): utente e password",
+    "username": "Utente",
+    "password": "Password",
+    "classicHelp": "Indirizzo con la porta, ad esempio https://controller.example.net:8443. Crea nel controller un amministratore locale dedicato, non un account Ubiquiti e senza verifica in due passaggi, con accesso in sola lettura ai siti da leggere. NSM lo usa solo per leggere e salva la password cifrata."
   },
   "managementAccess": {
     "subtitle": "Reti di gestione autorizzate: gli indirizzi da cui si gestiscono gli apparati (NSM, Zabbix, NOC). La stessa lista vale per tutti i produttori: SNMP e SSH rispondono solo a queste reti, e ora e data vengono sincronizzate via NTP.",
@@ -7526,7 +7539,6 @@
     "disable": "Disattiva UPnP",
     "working": "Disattivazione in corso…",
     "fleetHint": "Dispositivi con UPnP attivo, di ogni produttore. Scegli quali disattivare: MikroTik e TR-069 subito, le CPE airOS una al minuto (ognuna si riavvia); al primo errore su airOS le altre airOS della stessa richiesta si fermano.",
-    "counts": "Attivo: {{on}} · disattivato: {{off}} · non letto: {{unknown}} · in corso: {{in_progress}} · non riuscite: {{failed}}",
     "none": "Nessun dispositivo con UPnP attivo.",
     "all": "Seleziona tutti",
     "columns": {
@@ -7543,7 +7555,14 @@
     "bulkQueued_one": "{{count}} dispositivo in coda.",
     "bulkQueued_other": "{{count}} dispositivi in coda.",
     "bulkSkipped_one": "{{count}} saltato (non supportato o già in corso).",
-    "bulkSkipped_other": "{{count}} saltati (non supportati o già in corso)."
+    "bulkSkipped_other": "{{count}} saltati (non supportati o già in corso).",
+    "metrics": {
+      "on": "UPnP attivo",
+      "off": "Disattivato",
+      "unknown": "Non letto",
+      "in_progress": "In corso",
+      "failed": "Non riuscite"
+    }
   },
   "abuseipdb": {
     "title": "AbuseIPDB",
@@ -7757,9 +7776,7 @@
     }
   },
   "uispFirewallBulk": {
-    "title": "Firewall di gestione airOS in massa",
     "hint": "CPE airOS senza regole attive, per quanto risulta a NSM. Scegli quali proteggere e quando: NSM applica le stesse regole della pagina del dispositivo, una CPE al minuto, dentro la finestra che si ripete ogni notte. La prima CPE va da sola e le altre aspettano che torni online. Se una non riesce o non torna online entro 15 minuti, NSM ferma quelle non ancora iniziate.",
-    "counts": "Senza regole: {{candidate}} · con regole applicate da NSM: {{applied}} · in corso: {{active}} · con regole proprie: {{own_rules}} · bridge, non gestite: {{bridge}}",
     "none": "Nessuna CPE airOS senza regole attive.",
     "all_one": "Seleziona la CPE senza regole",
     "all_other": "Seleziona tutte le {{count}} CPE senza regole",
@@ -7804,6 +7821,14 @@
       "failed": "Non riuscita",
       "stopped": "Fermata",
       "cancelled": "Annullata"
-    }
+    },
+    "metrics": {
+      "candidate": "Senza regole",
+      "applied": "Regole applicate da NSM",
+      "active": "In corso",
+      "own_rules": "Con regole proprie",
+      "bridge": "Bridge, non gestite"
+    },
+    "requests": "Richieste programmate"
   }
 }

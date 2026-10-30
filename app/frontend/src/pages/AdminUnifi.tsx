@@ -69,11 +69,12 @@ function Connection({ data }: { data: UnifiAdmin }) {
   const { t } = useTranslation();
   const [form, setForm] = useState({
     base_url: data.base_url, api_key: "", verify_tls: data.verify_tls, enabled: data.configured ? data.enabled : true, sites: data.sites,
+    auth: data.auth as string, username: data.username, password: "",
   });
   const save = useConnectorAction<typeof form>("unifi", "");
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    save.mutate(form, { onSuccess: () => setForm({ ...form, api_key: "" }) });
+    save.mutate(form, { onSuccess: () => setForm({ ...form, api_key: "", password: "" }) });
   };
   const toggleSite = (id: string, on: boolean) => setForm({ ...form, sites: on ? [...form.sites, id] : form.sites.filter((site) => site !== id) });
   return (
@@ -82,14 +83,32 @@ function Connection({ data }: { data: UnifiAdmin }) {
         <h2>{t("cnmaestro.connection")}</h2>
         <span className={`ui-status ui-status-${data.enabled ? "online" : "offline"}`}>{data.enabled ? t("cnmaestro.active") : t("cnmaestro.inactive")}</span>
       </div>
-      <p className="ui-muted">{t("unifi.connectionHelp")}</p>
+      <p className="ui-muted">{t(form.auth === "password" ? "unifi.classicHelp" : "unifi.connectionHelp")}</p>
       <form className="ui-admin-form ui-admin-stack" onSubmit={submit} autoComplete="off">
-        <label><span>{t("unifi.url")}</span><input type="url" required value={form.base_url} placeholder="https://unifi.example.net" onChange={(event) => setForm({ ...form, base_url: event.target.value })} /></label>
         <label>
-          <span>{t("unifi.apiKey")}</span>
-          <input type="password" value={form.api_key} autoComplete="off" placeholder={data.configured ? t("notificationsAdmin.keepSecret") : ""}
-            onChange={(event) => setForm({ ...form, api_key: event.target.value })} />
+          <span>{t("unifi.authMode")}</span>
+          <select value={form.auth} onChange={(event) => setForm({ ...form, auth: event.target.value })}>
+            <option value="api_key">{t("unifi.authApiKey")}</option>
+            <option value="password">{t("unifi.authPassword")}</option>
+          </select>
         </label>
+        <label><span>{t("unifi.url")}</span><input type="url" required value={form.base_url} placeholder="https://unifi.example.net" onChange={(event) => setForm({ ...form, base_url: event.target.value })} /></label>
+        {form.auth === "password" ? (
+          <>
+            <label><span>{t("unifi.username")}</span><input value={form.username} autoComplete="off" onChange={(event) => setForm({ ...form, username: event.target.value })} /></label>
+            <label>
+              <span>{t("unifi.password")}</span>
+              <input type="password" value={form.password} autoComplete="new-password" placeholder={data.auth === "password" ? t("notificationsAdmin.keepSecret") : ""}
+                onChange={(event) => setForm({ ...form, password: event.target.value })} />
+            </label>
+          </>
+        ) : (
+          <label>
+            <span>{t("unifi.apiKey")}</span>
+            <input type="password" value={form.api_key} autoComplete="off" placeholder={data.auth === "api_key" && data.configured ? t("notificationsAdmin.keepSecret") : ""}
+              onChange={(event) => setForm({ ...form, api_key: event.target.value })} />
+          </label>
+        )}
         <label className="ui-with-brand"><input type="checkbox" checked={form.verify_tls} onChange={(event) => setForm({ ...form, verify_tls: event.target.checked })} /> <span>{t("cnmaestro.verifyTls")}</span></label>
         <small className="ui-muted">{t("unifi.tlsHelp")}</small>
         {data.known_sites.length > 0 && (

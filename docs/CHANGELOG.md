@@ -4,6 +4,31 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.333 — 2026-10-30
+
+Fixes
+- **The *Abusi IP* page opens in about 2 seconds instead of 12 or more.** The holder of each reported address was looked up one by one, with over 3500 queries. They are now read together, with the same result.
+## 0.49.332 — 2026-10-30
+
+Fixes
+- **Dashboard and Backup pages are about three times faster.** The backup check of each device read the UISP connector from the database again: over 640 queries for one dashboard refresh. It is now read once. Reports, Compliance and the customer pages use the same check.
+## 0.49.331 — 2026-10-30
+
+UniFi Network: classic self-hosted controllers
+- *Integrazioni → UniFi Network* now also works with the classic self-hosted controller on port 8443, which has no API key. Choose *Controller classico (porta 8443): utente e password* and enter a dedicated local account, not a Ubiquiti account and without two-factor authentication.
+- All the sites the account can see are read, and you can choose which ones after the connection test. Devices, firmware, state and statistics appear as with the API key.
+- NSM sends nothing to the controller other than login and logout. The password is encrypted, never shown again, and must be entered again if you change the address.
+- The API key help no longer sends you only to *Control Plane*: the Integrations entry changes place with the UniFi version.
+- A controller with a self-signed certificate now gets a clear message saying to turn off TLS verification.
+## 0.49.330 — 2026-10-30
+
+Esposizione page: tabs, search and service filter
+
+### Changed
+- Esposizione is split in three tabs: exposed services, CPE firewall and UPnP. They were one long page, with the UPnP list unpaged at the bottom.
+- The exposed services list has a search by device, address or customer, and a filter by service with the number of devices beside each one.
+- The worst severity is now the first column. A row shows up to 4 services, and the others are in a tooltip.
+- The firewall and UPnP tabs have summary tiles, a search and pages.
 ## 0.49.329 — 2026-10-30
 
 Scheduled airOS firewall: access points left out

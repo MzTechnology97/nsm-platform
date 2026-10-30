@@ -332,7 +332,7 @@ Bring Ubiquiti devices managed through the UISP API to the depth of the MikroTik
 
 ### UBNT-09 — UniFi Network controller connector (requested 2026-10-23)
 
-**Step 1 done (Core 0.49.283)**: connector configurable in *Integrazioni → UniFi Network* (API key, sites to read, TLS), connection test (version, sites, base path of UniFi OS console or self-hosted application), read-only synchronization every 15 minutes: controller device list by site with type, IP, firmware and state, Ubiquiti devices of NSM linked by MAC with the latest CPU, memory, uptime and uplink rates. Real controller validation pending (operator API key). Next: import into NSM, history charts on *Monitor*, firmware.
+**Step 1 done (Core 0.49.283)**: connector configurable in *Integrazioni → UniFi Network* (API key, sites to read, TLS), connection test (version, sites, base path of UniFi OS console or self-hosted application), read-only synchronization every 15 minutes: controller device list by site with type, IP, firmware and state, Ubiquiti devices of NSM linked by MAC with the latest CPU, memory, uptime and uplink rates. Classic self-hosted controllers (port 8443), which have no API key, are read with a local account (Core 0.49.331). Real controller validation pending. Next: import into NSM, history charts on *Monitor*, firmware.
 
 Ubiquiti UniFi devices (gateways/routers such as UDM, UCG, UXG and USG; USW switches; access points) are managed by a UniFi Network controller (UniFi OS console, Cloud Key or self-hosted Network Application), not by UISP. Build a connector on the controller API, alongside the UISP one:
 
