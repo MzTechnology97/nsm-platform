@@ -4,6 +4,18 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.320 — 2026-10-30
+
+Security
+- **MITRE ATT&CK and regulatory mapping (SIEM-05, step 1).** Each Action Center issue category is mapped to the ATT&CK techniques it can reveal and to the requirements its controls evidence, for example:
+  - access alerts: T1110 Brute Force and T1078 Valid Accounts; NIS2 art. 21(2)(b) and (i), ISO 27001 A.8.5 and A.8.16, GDPR art. 32(1)(b);
+  - exposure: T1133 External Remote Services and T1190;
+  - CVEs: T1190 Exploit Public-Facing Application;
+  - configuration changes: T1562 Impair Defenses, ISO A.8.9 and A.8.32;
+  - backups: NIS2 art. 21(2)(c), ISO A.8.13, GDPR art. 32(1)(c).
+- The **Action Center** shows the techniques and frameworks of each issue, with the full requirement titles on hover, and filters by **ATT&CK tactic** and by **framework** (NIS2, ISO 27001, GDPR).
+- The categories of the syslog rules, threat lists, DNS blacklists, AbuseIPDB and RIPEstat now have their own labels.
+- The mapping supports the operator's own assessment; it is not a certification.
 ## 0.49.319 — 2026-10-30
 
 Threat lists on the login alerts: FireHOL, abuse.ch, trusted and blocked addresses (SIEM-02)
