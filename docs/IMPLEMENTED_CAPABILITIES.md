@@ -901,6 +901,18 @@ CPEs with a fibre port that expose their optics through TR-069 get the optical l
 
 **MON-02 for the ACS.** The ACS history cleanup keeps, beyond 90 days, the newest sample of every CPE and its newest optical reading; the last state of a CPE that stopped contacting the ACS stays on the device, and the *ACS* tab says when the last sample arrived when the chosen range has none.
 
+### Management firewall on many airOS CPEs (ACCESS-01, Core 0.49.328)
+
+From *Esposizione*, the panel lists the UISP CPEs that have no active rules as far as NSM knows: no earlier apply from NSM and, in the last read of a UISP backup, not a firewall with rules on and not bridge mode. CPEs never read stay in the list and are checked when their turn comes. The operator chooses the CPEs, the services, the start and the hours of the window (1–12, default 4), and types the count to confirm. Scheduling is the only confirmation; the window repeats every 24 hours until no CPE is left.
+
+Each CPE gets the same change as the device page (`uisp_firewall.configure`): a fresh UISP backup as the restore point, then the edited configuration, then a reboot of 2–3 minutes. The pace:
+- one CPE per worker run (about one per minute), at most 5 still coming back. 240 CPEs fit in a 4-hour window;
+- the first CPE of a request goes alone; the others wait until it is online in UISP again;
+- a failed apply, or a CPE not online in UISP again within 15 minutes, stops the CPEs the request has not started;
+- a CPE offline in UISP, in bridge mode, not airOS or with nothing to add is skipped without a reboot and the request goes on. A skipped, stopped or cancelled CPE returns to the list.
+
+The request can be cancelled for the CPEs not started. A request needs a saved management list with at least one IPv4 network, because airOS rules are IPv4 only. Restoring stays per device, from the device page. State in `inventory_data.uisp_firewall_schedule`; audited as `UISP_FIREWALL_BULK_SCHEDULED`, `UISP_FIREWALL_BULK_FAILED`, `UISP_FIREWALL_BULK_CANCELLED` and, per CPE, `UISP_FIREWALL_CONFIGURED`.
+
 ### Port forwarding, DMZ and UPnP (Core 0.49.228, monitoring only)
 
 At every monitoring read NSM also parses the CPE's port mappings (TR-181 `Device.NAT.PortMapping`, TR-098 `WANPPPConnection`/`WANIPConnection` `PortMapping`), a DMZ when the CPE reports one (any vendor object named `…DMZ…` under `Device.NAT`/`Device.Firewall` or a TR-098 WAN connection, e.g. `X_TP_DMZ`) and whether UPnP is on (`Device.UPnP.Device.Enable` or a vendor flag such as TP-Link `Device.NAT.X_TP_UPnPCfg.Enable`). The *ACS* tab shows them (protocol, external ports, internal host and port, allowed origin, description, on/off; DMZ host with a warning; UPnP), with *Rileggi dal CPE* (`devices.write`, a GenieACS `refreshObject` of `Device.NAT`, a read). Nothing is changed on the CPE. A change between two reads is audited `ACS_PORT_MAPPING_CHANGED` with the forwards added/removed, the DMZ and UPnP (warning when something new is exposed). The NSM base provision re-reads these objects every hour. Checked read-only on the operator's VX230v: no port mapping, UPnP on, no DMZ object in the data model.

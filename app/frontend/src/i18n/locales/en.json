@@ -5731,6 +5731,9 @@
     "UISP_DEVICE_ASSOCIATED": "Device linked to UISP",
     "UISP_DEVICE_MISSING": "Device no longer in UISP",
     "UISP_DEVICE_ONBOARDED": "Device imported from UISP",
+    "UISP_FIREWALL_BULK_CANCELLED": "Scheduled firewall rules: request cancelled",
+    "UISP_FIREWALL_BULK_FAILED": "Scheduled firewall rules: CPE failed, request stopped",
+    "UISP_FIREWALL_BULK_SCHEDULED": "Management firewall rules scheduled on several CPEs",
     "UISP_FIREWALL_CONFIGURED": "Management firewall rules applied through UISP",
     "UISP_FIREWALL_RESTORED": "Device firewall restored through UISP",
     "UISP_FIRMWARE_BULK_UPGRADE": "UISP bulk firmware upgrade",
@@ -7751,6 +7754,56 @@
       "gdpr_32_1_b": "Confidentiality, integrity, availability and resilience",
       "gdpr_32_1_c": "Restoring availability after an incident",
       "gdpr_32_1_d": "Regularly testing the effectiveness of the measures"
+    }
+  },
+  "uispFirewallBulk": {
+    "title": "airOS management firewall in bulk",
+    "hint": "airOS CPEs without active rules, as far as NSM knows. Choose which to protect and when: NSM applies the same rules as the device page, one CPE per minute, inside a window that repeats every night. The first CPE goes alone and the others wait until it is back online. If one fails or is not back online within 15 minutes, NSM stops the ones not started yet.",
+    "counts": "Without rules: {{candidate}} · rules applied by NSM: {{applied}} · in progress: {{active}} · with their own rules: {{own_rules}} · bridge, not handled: {{bridge}}",
+    "none": "No airOS CPE without active rules.",
+    "all_one": "Select the CPE without rules",
+    "all_other": "Select all {{count}} CPEs without rules",
+    "list_one": "Show {{count}} CPE",
+    "list_other": "Show {{count}} CPEs",
+    "columns": {
+      "device": "Device",
+      "customer": "Customer",
+      "mode": "Mode"
+    },
+    "modeUnknown": "not read yet",
+    "reboot_one": "{{count}} CPE will reboot: the customer has no connection for 2–3 minutes.",
+    "reboot_other": "{{count}} CPEs will reboot, one at a time: each customer has no connection for 2–3 minutes.",
+    "start": "Start",
+    "hours": "Hours of each night's window (1 to {{max}})",
+    "estimate_one": "About {{count}} night, if all goes well.",
+    "estimate_other": "About {{count}} nights, if all goes well.",
+    "confirm": "To confirm, type the number of CPEs chosen: {{count}}",
+    "schedule_one": "Schedule {{count}} CPE",
+    "schedule_other": "Schedule {{count}} CPEs",
+    "queued_one": "{{count}} CPE scheduled.",
+    "queued_other": "{{count}} CPEs scheduled.",
+    "skipped_one": "{{count}} skipped because it is no longer without rules.",
+    "skipped_other": "{{count}} skipped because they are no longer without rules.",
+    "cancel": "Cancel the ones not started",
+    "problems_one": "{{count}} CPE to check",
+    "problems_other": "{{count}} CPEs to check",
+    "batch": {
+      "start": "Start",
+      "window": "Window",
+      "by": "Scheduled by",
+      "progress": "Progress",
+      "actions": "Actions",
+      "hours_one": "{{count}} hour",
+      "hours_other": "{{count}} hours"
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "verifying": "Rebooting",
+      "done": "Done",
+      "skipped": "Skipped",
+      "failed": "Failed",
+      "stopped": "Stopped",
+      "cancelled": "Cancelled"
     }
   }
 }

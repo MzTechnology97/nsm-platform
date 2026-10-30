@@ -4,6 +4,20 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.328 — 2026-10-30
+
+Scheduled airOS management firewall on many CPEs
+
+### Added
+- Esposizione has a new panel for the UISP CPEs without active firewall rules. An operator chooses the CPEs, the services, the start and the hours of a window that repeats every night, and types the count to confirm.
+- At that time the worker applies the same rules as the device page: a fresh UISP backup as the restore point, then the change, then a reboot of 2–3 minutes.
+- The first CPE of a request goes alone and the others wait until it is back online in UISP. After it, one CPE per minute, with at most 5 still coming back.
+- A failed apply, or a CPE not back online within 15 minutes, stops the CPEs the request has not started.
+- A CPE offline in UISP, in bridge mode, not airOS or with nothing to add is skipped without a reboot, and the request goes on.
+- A request can be cancelled for the CPEs not started.
+
+### Changed
+- A UISP backup without `system.cfg` now returns the error code `not_airos` instead of `backup`, so a request can skip that device.
 ## 0.49.327 — 2026-10-30
 
 Zabbix: hosts and groups only for what you activate

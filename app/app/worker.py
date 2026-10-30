@@ -34,6 +34,7 @@ from app.mikrotik_syslog_config import auto_configure as auto_configure_syslog
 from app.management_access import auto_configure as auto_configure_management
 from app.reachability import refresh as reachability_refresh
 from app.threat_lists import tick as threat_lists_tick
+from app.uisp_firewall_bulk import tick as uisp_firewall_bulk_tick
 from app.upnp_control import tick as upnp_tick
 from app.abuseipdb import tick as abuseipdb_tick
 from app.ripestat import tick as ripestat_tick
@@ -134,6 +135,7 @@ while True:
             run_task("reachability", reachability_refresh)
             run_task("threat_lists", threat_lists_tick)
             run_task("upnp_control", upnp_tick)
+            run_task("uisp_firewall_bulk", uisp_firewall_bulk_tick)
             run_task("abuseipdb", abuseipdb_tick)
             run_task("ripestat", ripestat_tick)
             run_task("dnsbl", dnsbl_tick)
