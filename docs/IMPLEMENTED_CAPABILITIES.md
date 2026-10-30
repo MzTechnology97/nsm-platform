@@ -907,7 +907,7 @@ Three tabs instead of one long page: exposed services, CPE firewall and UPnP. Th
 
 ### Management firewall on many airOS CPEs (ACCESS-01, Core 0.49.328)
 
-From *Esposizione*, the panel lists the UISP CPEs that have no active rules as far as NSM knows: no earlier apply from NSM and, in the last read of a UISP backup, not a firewall with rules on and not bridge mode. CPEs never read stay in the list and are checked when their turn comes. The operator chooses the CPEs, the services, the start and the hours of the window (1–12, default 4), and types the count to confirm. Scheduling is the only confirmation; the window repeats every 24 hours until no CPE is left.
+From *Esposizione*, the panel lists the UISP CPEs (`wireless_cpe` only, never access points) that have no active rules as far as NSM knows: no earlier apply from NSM and, in the last read of a UISP backup, not a firewall with rules on and not bridge mode. CPEs never read stay in the list and are checked when their turn comes. The operator chooses the CPEs, the services, the start and the hours of the window (1–12, default 4), and types the count to confirm. Scheduling is the only confirmation; the window repeats every 24 hours until no CPE is left.
 
 Each CPE gets the same change as the device page (`uisp_firewall.configure`): a fresh UISP backup as the restore point, then the edited configuration, then a reboot of 2–3 minutes. The pace:
 - one CPE per worker run (about one per minute), at most 5 still coming back. 240 CPEs fit in a 4-hour window;
