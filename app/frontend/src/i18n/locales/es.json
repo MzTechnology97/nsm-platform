@@ -1447,13 +1447,20 @@
     },
     "shared": "IP compartida",
     "private": "IP privada/CGNAT",
-    "more": "… y {{count}} más",
     "pending": "verificación en curso",
     "none": "sin exposición",
     "allGood": "Ningún equipo expone servicios a Internet.",
     "empty": "Ningún equipo en esta vista.",
     "internalRow_one": "{{count}} servicio accesible solo desde la red interna (equipo detrás de NAT)",
-    "internalRow_other": "{{count}} servicios accesibles solo desde la red interna (equipo detrás de NAT)"
+    "internalRow_other": "{{count}} servicios accesibles solo desde la red interna (equipo detrás de NAT)",
+    "sections": {
+      "label": "Secciones",
+      "services": "Servicios expuestos",
+      "firewall": "Cortafuegos de las CPE",
+      "upnp": "UPnP"
+    },
+    "search": "Buscar equipo, IP o cliente",
+    "allServices": "Todos los servicios"
   },
   "access": {
     "title": "Accesos",
@@ -7532,7 +7539,6 @@
     "disable": "Desactivar UPnP",
     "working": "Desactivando…",
     "fleetHint": "Equipos con UPnP activo, de cualquier fabricante. Elija cuáles desactivar: MikroTik y TR-069 enseguida, las CPE airOS una por minuto (cada una se reinicia); al primer error en airOS las demás airOS de la misma solicitud se detienen.",
-    "counts": "Activo: {{on}} · desactivado: {{off}} · no leído: {{unknown}} · en curso: {{in_progress}} · fallidas: {{failed}}",
     "none": "Ningún equipo con UPnP activo.",
     "all": "Seleccionar todos",
     "columns": {
@@ -7549,7 +7555,14 @@
     "bulkQueued_one": "{{count}} equipo en cola.",
     "bulkQueued_other": "{{count}} equipos en cola.",
     "bulkSkipped_one": "{{count}} omitido (no compatible o ya en curso).",
-    "bulkSkipped_other": "{{count}} omitidos (no compatibles o ya en curso)."
+    "bulkSkipped_other": "{{count}} omitidos (no compatibles o ya en curso).",
+    "metrics": {
+      "on": "UPnP activo",
+      "off": "Desactivado",
+      "unknown": "Sin leer",
+      "in_progress": "En curso",
+      "failed": "Fallidas"
+    }
   },
   "abuseipdb": {
     "title": "AbuseIPDB",
@@ -7763,9 +7776,7 @@
     }
   },
   "uispFirewallBulk": {
-    "title": "Cortafuegos de gestión airOS en masa",
     "hint": "CPE airOS sin reglas activas, según le consta a NSM. Elija cuáles proteger y cuándo: NSM aplica las mismas reglas que la página del equipo, una CPE por minuto, dentro de una ventana que se repite cada noche. La primera CPE va sola y las demás esperan a que vuelva a estar en línea. Si una falla o no vuelve en línea en 15 minutos, NSM detiene las que no han empezado.",
-    "counts": "Sin reglas: {{candidate}} · reglas aplicadas por NSM: {{applied}} · en curso: {{active}} · con reglas propias: {{own_rules}} · bridge, no gestionadas: {{bridge}}",
     "none": "Ninguna CPE airOS sin reglas activas.",
     "all_one": "Seleccionar la CPE sin reglas",
     "all_other": "Seleccionar las {{count}} CPE sin reglas",
@@ -7810,6 +7821,14 @@
       "failed": "Fallida",
       "stopped": "Detenida",
       "cancelled": "Cancelada"
-    }
+    },
+    "metrics": {
+      "candidate": "Sin reglas",
+      "applied": "Reglas aplicadas por NSM",
+      "active": "En curso",
+      "own_rules": "Con reglas propias",
+      "bridge": "Bridge, no gestionadas"
+    },
+    "requests": "Solicitudes programadas"
   }
 }

@@ -89,10 +89,15 @@ export const useAdvisory = (id: string, customer?: string, status?: VulnStatus) 
 
 export const EXPOSURE_VIEWS = ["exposed", "internal", "setup", "clean", "pending", "all"] as const;
 export type ExposureView = (typeof EXPOSURE_VIEWS)[number];
+export const EXPOSURE_SECTIONS = ["services", "firewall", "upnp"] as const;
+export type ExposureSection = (typeof EXPOSURE_SECTIONS)[number];
 
 export interface ExposureFilters {
+  section?: ExposureSection;
   view?: ExposureView;
   customer?: string;
+  q?: string;
+  service?: string;
 }
 
 export interface ExposureRow {
@@ -120,13 +125,14 @@ export interface ExposurePage {
   total: number;
   limit: number;
   counts: Record<"exposed" | "internal" | "clean" | "setup" | "pending" | "critical" | "total", number>;
+  services: { label: string; count: number }[];
   items: ExposureRow[];
 }
 
 export const useExposure = (filters: ExposureFilters, page: { offset: number; limit: number }) =>
   useQuery({
     queryKey: ["exposure", filters, page],
-    queryFn: () => api<ExposurePage>(`/api/ui/v1/exposure${query({ view: filters.view, customer: filters.customer, offset: page.offset, limit: page.limit })}`),
+    queryFn: () => api<ExposurePage>(`/api/ui/v1/exposure${query({ view: filters.view, customer: filters.customer, q: filters.q, service: filters.service, offset: page.offset, limit: page.limit })}`),
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
