@@ -2388,10 +2388,9 @@
     },
     "genieacs": {
       "title": "TR-069 / ACS (GenieACS)",
-      "help": "CPE gérés via GenieACS (ONT, routeurs résidentiels), lus depuis la NBI en lecture seule.",
+      "help": "CPE gérés via GenieACS (ONT, routeurs résidentiels) : inventaire, supervision, diagnostic, sauvegarde des paramètres et mise à jour du firmware.",
       "linked": "CPE associés",
-      "pending": "CPE TR-069 à associer",
-      "limits": "Diagnostic, sauvegardes et mises à jour via l'ACS ne sont pas encore disponibles et restent indiqués comme non exécutables."
+      "pending": "CPE TR-069 à associer"
     },
     "cnmaestro": {
       "title": "cnMaestro (Cambium)",
@@ -2875,7 +2874,7 @@
   },
   "genieacs": {
     "title": "Intégrations · GenieACS / TR-069",
-    "subtitle": "Connecteur en lecture seule vers la NBI de GenieACS pour l'inventaire et l'association des CPE TR-069.",
+    "subtitle": "Connecteur vers la NBI de GenieACS pour l'inventaire, la supervision et la gestion des CPE TR-069.",
     "notIntegrated": "GenieACS intégré inactif : sur le serveur, exécutez cd /srv/network-platform && sudo ./manage.sh acs-enable et NSM se reliera tout seul. Pour un GenieACS externe, remplissez le formulaire ci-dessous.",
     "integrated": "GenieACS intégré",
     "inUse": "Utilisé",
@@ -4396,7 +4395,6 @@
     },
     "refresh": "Actualiser depuis GenieACS",
     "refreshed": "Inventaire actualisé depuis GenieACS.",
-    "notYet": "Diagnostic, sauvegarde et mise à jour firmware via l'ACS ne sont pas encore disponibles.",
     "verifyTitle": "Vérifier la correspondance",
     "searchTitle": "Chercher dans GenieACS",
     "searchSerialMac": "NSM cherche le numéro de série {{serial}} puis, à défaut, le MAC {{mac}} ; la recherche ne modifie rien.",

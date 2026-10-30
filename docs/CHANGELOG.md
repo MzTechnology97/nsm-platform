@@ -4,6 +4,11 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.336 — 2026-10-30
+
+Fixes
+- **ACS texts were out of date.** The *Integrazioni* page and the device's *ACS* tab said that diagnostics, backup and firmware upgrade through the ACS were not available, or that the connector was read-only. They are available, and the texts now say so.
+- SNR margin and attenuation in the *ACS* tab use the decimal separator of the language.
 ## 0.49.335 — 2026-10-30
 
 Interface
