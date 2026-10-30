@@ -12,6 +12,9 @@ UniFi Network integration API:
   (paged with ``offset``/``limit``/``totalCount``) and, for the devices linked to NSM,
   ``GET /v1/sites/{site}/devices/{id}/statistics/latest`` (CPU, memory, uptime, uplink rates).
 
+The classic self-hosted Network Application (port 8443) has no API key: ``ClassicClient`` logs in
+with a local account and reads ``/api/self/sites`` and ``/api/s/{site}/stat/device``.
+
 Every ``SYNC_INTERVAL`` the worker reads the controller, keeps a snapshot of its devices
 for the administration page and links the Ubiquiti devices of NSM by MAC. A device
 already managed through UISP keeps UISP as the source of its status, firmware and IP.
@@ -21,8 +24,9 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import math
 from datetime import timedelta
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 import httpx
 from sqlalchemy import select
@@ -47,6 +51,10 @@ OFFLINE = {"OFFLINE", "CONNECTION_INTERRUPTED", "ISOLATED"}
 GATEWAY_PREFIXES = ("UDM", "UDR", "UCG", "UXG", "USG", "UGW", "UX", "UDW", "EFG", "UCK-G2-PLUS-GW")
 SWITCH_PREFIXES = ("USW", "US", "USF", "USL", "USM", "ECS", "UACC-")
 AP_PREFIXES = ("U6", "U7", "UAP", "UAL", "UAC", "UAE", "U5", "UBB", "UWB", "E7", "UK-")
+# Classic API: numeric device state and device class, in the terms of the integration API.
+CLASSIC_STATES = {"0": "OFFLINE", "1": "ONLINE", "2": "PENDING_ADOPTION", "3": "FIRMWARE_MISMATCH", "4": "UPDATING", "5": "PROVISIONING", "6": "CONNECTION_INTERRUPTED",
+                  "7": "ADOPTING", "8": "DELETING", "9": "INFORM_ERROR", "10": "ADOPTION_FAILED", "11": "ISOLATED"}
+CLASSIC_FEATURES = {"uap": ["accessPoint"], "usw": ["switching"], "ugw": ["gateway"], "udm": ["gateway"], "uxg": ["gateway"]}
 METRICS = {  # NSM field -> keys in statistics/latest
     "cpu_percent": "cpuUtilizationPct", "ram_percent": "memoryUtilizationPct", "uptime_seconds": "uptimeSec",
     "load_1m": "loadAverage1Min", "uplink_rx_bps": "uplink.rxRateBps", "uplink_tx_bps": "uplink.txRateBps",
@@ -85,6 +93,12 @@ def normalize_base_url(value: str) -> str:
 
 # --- API client ----------------------------------------------------------------------------------
 
+def _unreachable(exc) -> UnifiError:
+    if "CERTIFICATE_VERIFY_FAILED" in str(exc):
+        return UnifiError("Certificato del controller UniFi non verificabile: se è quello autofirmato di fabbrica, togli la verifica TLS.")
+    return UnifiError(f"Controller UniFi non raggiungibile: {type(exc).__name__}.")
+
+
 class Client:
     def __init__(self, base_url: str, api_key: str, verify_tls: bool = True, prefix: str | None = None, transport=None):
         self.base = base_url.rstrip("/")
@@ -99,12 +113,12 @@ class Client:
         try:
             return self.http.get(url, params=params)
         except httpx.HTTPError as exc:
-            raise UnifiError(f"Controller UniFi non raggiungibile: {type(exc).__name__}.") from exc
+            raise _unreachable(exc) from exc
 
     @staticmethod
     def _fail(response, what):
         if response.status_code in (401, 403):
-            raise UnifiError(f"Il controller UniFi ha negato {what}: verifica la chiave API (UniFi Network → Impostazioni → Control Plane → Integrazioni).")
+            raise UnifiError(f"Il controller UniFi ha negato {what}: verifica la chiave API (voce Integrazioni di UniFi Network).")
         raise UnifiError(f"Il controller UniFi ha risposto HTTP {response.status_code} a {what}.")
 
     def detect(self) -> str:
@@ -123,9 +137,9 @@ class Client:
             if response.status_code in (401, 403):
                 self._fail(response, "l'accesso")
             last = response
-        if last is not None and last.status_code not in (200, 404):
+        if last is not None and last.status_code not in (200, 301, 302, 303, 307, 308, 404):
             self._fail(last, "la lettura della versione")
-        raise UnifiError("API di integrazione UniFi non trovata a questo indirizzo: serve UniFi Network 9.3 o successivo e l'indirizzo della console (o del controller).")
+        raise UnifiError("API di integrazione UniFi non trovata a questo indirizzo: serve UniFi Network 9.3 o successivo e l'indirizzo della console. Per un controller classico (porta 8443) scegli utente e password.")
 
     def get(self, path, params=None, what="la richiesta"):
         if self.prefix is None:
@@ -151,19 +165,113 @@ class Client:
         return rows
 
 
+def _number(value):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
+
+
+class ClassicClient(Client):
+    """Classic Network Application: session login with a local account, answers in the shape of the integration API. Login and logout are its only POSTs."""
+
+    def __init__(self, base_url: str, username: str, password: str, verify_tls: bool = True, transport=None):
+        super().__init__(base_url, "", verify_tls, None, transport)
+        del self.http.headers["X-API-KEY"]
+        self.credentials = {"username": username, "password": password}
+        self.logged_in = False
+        self.statistics = {}
+
+    def _login(self):
+        try:
+            response = self.http.post(f"{self.base}/api/login", json=self.credentials, headers={"Referer": f"{self.base}/login"})
+        except httpx.HTTPError as exc:
+            raise _unreachable(exc) from exc
+        if response.status_code == 200:
+            self.logged_in = True
+            return
+        if "2fa" in response.text.lower():
+            raise UnifiError("L'account UniFi ha la verifica in due passaggi: usa un account locale senza.")
+        if response.status_code == 429:
+            raise UnifiError("Troppi tentativi di accesso al controller UniFi: riprova tra qualche minuto.")
+        if response.status_code in (400, 401, 403):
+            raise UnifiError("Il controller UniFi ha rifiutato utente o password: serve un account locale, non l'account Ubiquiti.")
+        raise UnifiError(f"Accesso al controller UniFi non riuscito (HTTP {response.status_code}): le console UniFi OS usano la chiave API.")
+
+    @staticmethod
+    def _fail(response, what):
+        if response.status_code in (401, 403):
+            raise UnifiError(f"Il controller UniFi ha negato {what}: controlla che l'account abbia accesso ai siti.")
+        raise UnifiError(f"Il controller UniFi ha risposto HTTP {response.status_code} a {what}.")
+
+    def detect(self) -> str:
+        if not self.logged_in:
+            self._login()
+        try:
+            version = self._request(f"{self.base}/status").json()["meta"]["server_version"]
+        except (ValueError, KeyError, TypeError):
+            version = None
+        return str(version or "—")
+
+    def _rows(self, path, what):
+        if not self.logged_in:
+            self._login()
+        response = self._request(f"{self.base}{path}")
+        if response.status_code != 200:
+            self._fail(response, what)
+        try:
+            rows = response.json().get("data")
+        except (ValueError, AttributeError) as exc:
+            raise UnifiError("Il controller UniFi ha restituito una risposta non valida.") from exc
+        return [r for r in rows or [] if isinstance(r, dict)]
+
+    def _device(self, row):
+        # Bytes per second in the classic API, bits in the integration API.
+        rate = lambda key: None if (value := _number(_get(row, f"uplink.{key}_bytes-r") or _get(row, f"uplink.{key}_bytes_r"))) is None else value * 8
+        self.statistics[str(row.get("_id"))] = {
+            "cpuUtilizationPct": _number(_get(row, "system-stats.cpu")), "memoryUtilizationPct": _number(_get(row, "system-stats.mem")),
+            "uptimeSec": _number(row.get("uptime")), "loadAverage1Min": _number(_get(row, "sys_stats.loadavg_1")),
+            "uplink": {"rxRateBps": rate("rx"), "txRateBps": rate("tx")},
+        }
+        return {"id": row.get("_id"), "macAddress": row.get("mac"), "name": row.get("name"), "ipAddress": row.get("ip"), "model": row.get("model"),
+                "firmwareVersion": row.get("version"), "firmwareUpdatable": row.get("upgradable"), "state": CLASSIC_STATES.get(str(row.get("state"))),
+                "features": CLASSIC_FEATURES.get(str(row.get("type")), [])}
+
+    def paged(self, path, what):
+        if path == "/sites":  # the site id of the classic API is its short name
+            return [{"id": s.get("name"), "name": s.get("desc") or s.get("name")} for s in self._rows("/api/self/sites", what)]
+        site = path.split("/")[2]
+        return [self._device(r) for r in self._rows(f"/api/s/{quote(site, safe='')}/stat/device", what)]
+
+    def get(self, path, params=None, what="la richiesta"):
+        return self.statistics.get(path.split("/")[4], {})  # read with the device list
+
+    def close(self):
+        if self.logged_in:  # a session per sync would pile up on the controller; a failed logout must not fail the sync
+            try:
+                self.http.post(f"{self.base}/logout", headers={"Referer": f"{self.base}/login"})
+            except httpx.HTTPError:
+                pass
+        super().close()
+
+
 def connection_row(db):
     return db.scalar(select(ConnectorIntegration).where(ConnectorIntegration.provider == PROVIDER))
 
 
-def _api_key(row) -> str:
+def _secret(row) -> dict:
     try:
-        return json.loads(decrypt_text(row.secret_encrypted)).get("api_key", "")
+        return json.loads(decrypt_text(row.secret_encrypted))
     except (ValueError, TypeError) as exc:
-        raise UnifiError("Chiave API UniFi non leggibile: salvala di nuovo.") from exc
+        raise UnifiError("Credenziali UniFi non leggibili: salvale di nuovo.") from exc
 
 
 def client_for(row, transport=None) -> Client:
-    return Client(row.base_url, _api_key(row), bool(row.verify_tls), (row.settings or {}).get("api_prefix"), transport)
+    settings = row.settings or {}
+    if settings.get("auth") == "password":
+        return ClassicClient(row.base_url, settings.get("username", ""), _secret(row).get("password", ""), bool(row.verify_tls), transport)
+    return Client(row.base_url, _secret(row).get("api_key", ""), bool(row.verify_tls), settings.get("api_prefix"), transport)
 
 
 def selected_sites(row) -> list[str]:
@@ -348,29 +456,44 @@ def summary() -> dict:
 
 # --- Administration ------------------------------------------------------------------------------
 
-def save_config(db, user, *, base_url: str, api_key: str, verify_tls: bool, enabled: bool, sites: list | None = None):
-    """Store the connection (API key encrypted, kept when empty), audited. ValueError with the reason. Caller commits."""
+def save_config(db, user, *, base_url: str, api_key: str = "", verify_tls: bool, enabled: bool, sites: list | None = None,
+                auth: str = "api_key", username: str = "", password: str = ""):
+    """Store the connection (API key or password encrypted, kept when empty), audited. ValueError with the reason. Caller commits."""
     row = connection_row(db)
     url = normalize_base_url(base_url)
-    key = (api_key or "").strip()
-    if not key and row:
+    stored = {}
+    if row:
         try:
-            key = _api_key(row)
+            stored = _secret(row)
         except UnifiError:
-            key = ""
-    if not key:
-        raise ValueError("Indica la chiave API creata nel controller UniFi (Impostazioni → Control Plane → Integrazioni).")
+            pass
+    mode = "password" if auth == "password" else "api_key"
+    if mode == "password":
+        name = (username or "").strip()
+        # A stored password never goes to an address it was not entered for.
+        secret = {"password": password or (stored.get("password", "") if row and row.base_url == url else "")}
+        if not name or not secret["password"]:
+            raise ValueError("Indica utente e password di un account locale del controller UniFi.")
+    else:
+        secret = {"api_key": (api_key or "").strip() or stored.get("api_key", "")}
+        if not secret["api_key"]:
+            raise ValueError("Indica la chiave API creata nel controller UniFi (voce Integrazioni di UniFi Network).")
     chosen = sorted({str(s).strip() for s in sites or [] if str(s).strip()})
     if row is None:
         row = ConnectorIntegration(provider=PROVIDER, name="UniFi Network", base_url=url, secret_encrypted="", settings={})
         db.add(row)
     settings = dict(row.settings or {})
-    if row.base_url != url:
+    if row.base_url != url or settings.get("auth", "api_key") != mode:
         settings.pop("api_prefix", None)
+    settings["auth"] = mode
+    if mode == "password":
+        settings["username"] = name
+    else:
+        settings.pop("username", None)
     settings["sites"] = chosen
     row.base_url, row.verify_tls, row.is_enabled, row.settings = url, verify_tls, enabled, settings
-    row.secret_encrypted = encrypt_text(json.dumps({"api_key": key}))
-    core.add_event(db, "UNIFI_CONFIGURED", actor=user, details={"base_url": url, "enabled": row.is_enabled, "sites": len(chosen)}, source="portal")
+    row.secret_encrypted = encrypt_text(json.dumps(secret))
+    core.add_event(db, "UNIFI_CONFIGURED", actor=user, details={"base_url": url, "enabled": row.is_enabled, "sites": len(chosen), "auth": mode}, source="portal")
     return row
 
 

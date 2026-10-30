@@ -7099,7 +7099,7 @@
     "notInNsm_other": "{{count}} non ancora in NSM",
     "linked": "Collegati a NSM",
     "byMac": "apparati Ubiquiti NSM con lo stesso MAC",
-    "connectionHelp": "Nel controller: UniFi Network → Impostazioni → Control Plane → Integrazioni → crea una chiave API. Serve UniFi Network 9.3 o successivo. La chiave ha i permessi dell'amministratore che la crea: per NSM basta un amministratore in sola lettura.",
+    "connectionHelp": "Crea la chiave in UniFi Network, nella voce Integrazioni: secondo la versione è in Impostazioni → Control Plane, in Impostazioni oppure a sé nel menu laterale. Serve UniFi Network 9.3 o successivo. La chiave ha i permessi dell'amministratore che la crea.",
     "url": "Indirizzo della console o del controller",
     "apiKey": "Chiave API",
     "tlsHelp": "Togli la verifica solo se il controller usa il certificato autofirmato di fabbrica.",
@@ -7124,7 +7124,13 @@
     },
     "updateAvailable": "aggiornamento disponibile",
     "inNsm": "collegato",
-    "missing": "non in NSM"
+    "missing": "non in NSM",
+    "authMode": "Tipo di controller",
+    "authApiKey": "Console UniFi OS o UniFi OS Server: chiave API",
+    "authPassword": "Controller classico (porta 8443): utente e password",
+    "username": "Utente",
+    "password": "Password",
+    "classicHelp": "Indirizzo con la porta, ad esempio https://controller.example.net:8443. Crea nel controller un amministratore locale dedicato, non un account Ubiquiti e senza verifica in due passaggi, con accesso in sola lettura ai siti da leggere. NSM lo usa solo per leggere e salva la password cifrata."
   },
   "managementAccess": {
     "subtitle": "Reti di gestione autorizzate: gli indirizzi da cui si gestiscono gli apparati (NSM, Zabbix, NOC). La stessa lista vale per tutti i produttori: SNMP e SSH rispondono solo a queste reti, e ora e data vengono sincronizzate via NTP.",
