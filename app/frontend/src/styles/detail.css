@@ -143,14 +143,16 @@
   color: var(--success);
 }
 
-.ui-metric-info {
-  border-color: var(--tone-info-border);
-  background: var(--tone-info-bg);
-}
-
+/* Neutral, not the brand accent: with a red brand a figure that is fine looked like an alarm. */
 .ui-metric-info > span:first-child:not(.ui-kpi-icon),
 .ui-metric-info .ui-kpi-body > span:first-child {
-  color: var(--accent-text);
+  color: var(--muted);
+}
+
+/* Only what needs attention keeps a tinted background. */
+.ui-ring-tile.ui-metric-success {
+  border-color: var(--border);
+  background: var(--panel);
 }
 
 /* Small progress ring of a tile (SVG attributes only: <circle class="ui-tile-ring-track|ui-tile-ring-value">). */
@@ -181,6 +183,10 @@
 
 .ui-metric-success .ui-tile-ring-value {
   stroke: var(--success-fill);
+}
+
+.ui-metric-info .ui-tile-ring-value {
+  stroke: var(--muted);
 }
 
 /* Tile with a ring on the left (RingTile): label in the tone colour, big figure, short note. */
@@ -223,7 +229,7 @@
 }
 
 .ui-metric-info .ui-ring-tile-body > span:first-child {
-  color: var(--accent-text);
+  color: var(--muted);
 }
 
 .ui-ring-tile-body strong {
