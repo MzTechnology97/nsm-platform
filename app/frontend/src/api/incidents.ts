@@ -11,6 +11,9 @@ export interface IssueFilters {
   status?: (typeof ISSUE_STATUSES)[number];
   customer?: string;
   device?: string;
+  /** ATT&CK tactic (e.g. TA0006) and framework (nis2, iso27001, gdpr) of the issue categories (SIEM-05). */
+  tactic?: string;
+  framework?: string;
 }
 
 export interface IssueRow {
@@ -23,6 +26,8 @@ export interface IssueRow {
   updated_at: string | null;
   device: { id: string; name: string; brand?: BrandRef; vendor: string | null; status: string } | null;
   customer: { id: string; name: string } | null;
+  techniques: { id: string; name: string; tactics: string[] }[];
+  requirements: { id: string; framework: string; code: string }[];
 }
 
 export interface IssuePage {
@@ -34,6 +39,7 @@ export interface IssuePage {
   severities: Record<string, number>;
   can_ack: boolean;
   can_incident: boolean;
+  mapping: { tactics: { id: string; name: string }[]; frameworks: string[] };
   items: IssueRow[];
 }
 

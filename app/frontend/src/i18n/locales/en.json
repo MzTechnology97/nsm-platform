@@ -1641,7 +1641,12 @@
       "integration": "Integrations",
       "interface_errors": "Interface errors",
       "configuration": "Configuration",
-      "acs": "CPE (ACS)"
+      "acs": "CPE (ACS)",
+      "syslog_rule": "Syslog rules",
+      "threat_list": "Threat lists",
+      "dnsbl": "DNS blacklists",
+      "abuseipdb": "AbuseIPDB",
+      "ripestat": "Routing (RIPEstat)"
     },
     "state": {
       "open": "Open",
@@ -1649,7 +1654,11 @@
       "resolved": "Resolved"
     },
     "deviceFilter": "Issues of a single device.",
-    "clearDevice": "Show all"
+    "clearDevice": "Show all",
+    "tactic": "ATT&CK tactic",
+    "allTactics": "All ATT&CK tactics",
+    "framework": "Framework",
+    "allFrameworks": "All frameworks"
   },
   "incidents": {
     "title": "Incidents",
@@ -7698,6 +7707,32 @@
       "prefix": "Prefix",
       "list": "List",
       "network": "Listed network"
+    }
+  },
+  "attack": {
+    "frameworks": {
+      "nis2": "NIS2",
+      "iso27001": "ISO 27001",
+      "gdpr": "GDPR"
+    },
+    "requirements": {
+      "nis2_21_2_b": "Incident handling",
+      "nis2_21_2_c": "Business continuity, backup and disaster recovery",
+      "nis2_21_2_e": "Security in acquisition and maintenance, vulnerability handling",
+      "nis2_21_2_f": "Assessing the effectiveness of the measures",
+      "nis2_21_2_i": "Access control and asset management",
+      "iso_a_5_7": "Threat intelligence",
+      "iso_a_8_5": "Secure authentication",
+      "iso_a_8_8": "Management of technical vulnerabilities",
+      "iso_a_8_9": "Configuration management",
+      "iso_a_8_13": "Information backup",
+      "iso_a_8_15": "Logging",
+      "iso_a_8_16": "Monitoring activities",
+      "iso_a_8_20": "Networks security",
+      "iso_a_8_32": "Change management",
+      "gdpr_32_1_b": "Confidentiality, integrity, availability and resilience",
+      "gdpr_32_1_c": "Restoring availability after an incident",
+      "gdpr_32_1_d": "Regularly testing the effectiveness of the measures"
     }
   }
 }
