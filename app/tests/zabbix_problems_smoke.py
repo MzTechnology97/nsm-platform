@@ -57,9 +57,9 @@ def main():
         customer = Customer(name=f"CI ZbxProb {suffix}", code=f"ZP{suffix}")
         db.add(customer)
         db.flush()
-        router = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-ZP-RTR-{suffix}", management_ip="198.51.100.61", status="online")
-        cpe = Device(customer_id=customer.id, vendor="ubiquiti", device_type="wireless_cpe", name=f"TEST-ZP-CPE-{suffix}", management_ip="198.51.100.62", status="online")
-        quiet = Device(customer_id=customer.id, vendor="generic", device_type="switch", name=f"TEST-ZP-SW-{suffix}", management_ip="198.51.100.63", status="online")
+        router = Device(customer_id=customer.id, vendor="mikrotik", device_type="router", name=f"TEST-ZP-RTR-{suffix}", management_ip="198.51.100.61", status="online", inventory_data={"zabbix_include": True})
+        cpe = Device(customer_id=customer.id, vendor="ubiquiti", device_type="wireless_cpe", name=f"TEST-ZP-CPE-{suffix}", management_ip="198.51.100.62", status="online", inventory_data={"zabbix_include": True})
+        quiet = Device(customer_id=customer.id, vendor="generic", device_type="switch", name=f"TEST-ZP-SW-{suffix}", management_ip="198.51.100.63", status="online", inventory_data={"zabbix_include": True})
         db.add_all([router, cpe, quiet])
         db.add(User(username=f"ci-zp-{suffix}", password_hash=hash_password(PASSWORD), role="admin", is_active=True))
         db.add(ConnectorIntegration(provider="zabbix", name="Zabbix", base_url="https://zabbix.example.test/api_jsonrpc.php", verify_tls=True, is_enabled=True,

@@ -77,7 +77,7 @@ DEFAULT_SETTINGS = {
     "snmp_community": "{$SNMP_COMMUNITY}",  # a Zabbix macro, or "" when a literal community is kept in the encrypted secret
     "snmp_community_secret": False,
     "templates": {"mikrotik": "", "ubiquiti": "", "default": "ICMP Ping"},
-    "scope": "all",  # all | customers
+    "scope": "customers",  # customers: only what the operator activated | all
     "customer_ids": [],
     "link_existing": True,  # link to hosts already monitored in Zabbix instead of creating nsm-<id>
     "update_linked_ip": True,  # keep a linked host's interface IP equal to the device address
@@ -334,12 +334,12 @@ def _valid_ip(value) -> str | None:
 
 
 def in_scope(device, settings: dict) -> bool:
-    """Whether the operator wants this device in Zabbix: every device, or its customer, or the device itself (*Aggiungi a Zabbix*)."""
+    """Whether the operator wants this device in Zabbix: every device, or the ones activated (itself or its customer, when it was done)."""
     data = device.inventory_data or {}
     if data.get("zabbix_exclude"):
         return False
     if settings.get("scope") == "customers":
-        return data.get("zabbix_include") is True or str(device.customer_id) in set(settings.get("customer_ids") or [])
+        return data.get("zabbix_include") is True
     return True
 
 
@@ -568,6 +568,11 @@ def sync(db, row=None, now=None) -> dict:
         stats["ip_updated"] = sorted(stats["ip_updated"])[:200]
         existing = {h["host"]: h for h in client.call("host.get", {"output": ["hostid", "host", "name", "status"], "tags": [{"tag": "source", "value": "nsm", "operator": 1}],
                                                                     "selectInterfaces": ["interfaceid", "ip", "type", "main"]})}
+        for device in devices:  # hosts deleted in Zabbix: the device must not keep pointing at them
+            data = device.inventory_data or {}
+            ref = data.get("zabbix") or {}
+            if ref.get("host") and not ref.get("linked") and ref["host"] not in existing and host_name(device) not in wanted:
+                device.inventory_data = {k: v for k, v in data.items() if k not in ("zabbix", "zabbix_problems")}
         for same in addresses.values():
             if len(same) > 1:
                 # Several hosts on one address (customer NAT): Zabbix reaches only the edge router.
@@ -693,12 +698,28 @@ def save_config(db, user, *, api_url: str, auth_mode: str, token: str, username:
         "group_prefix": ((group_prefix or "NSM").strip() or "NSM")[:60],
         "interface": "snmp" if interface == "snmp" else "agent",
         "templates": {key: str((templates or {}).get(key) or "").strip()[:128] for key in ("mikrotik", "ubiquiti", "default")},
-        "scope": "customers" if scope == "customers" else "all",
+        "scope": "all" if scope == "all" else "customers",
         "customer_ids": [str(v) for v in (customer_ids or [])][:500],
         "link_existing": bool(link_existing),
         "update_linked_ip": bool(update_linked_ip),
     }
     old_settings = dict(row.settings or {}) if row else {}
+    if settings["scope"] == "customers":
+        # A ticked customer activates the devices it has now; later ones are added one by one.
+        before = set(old_settings.get("customer_ids") or []) if old_settings.get("scope") == "customers" else set()
+        after = set(settings["customer_ids"])
+        if before != after:
+            for device in db.scalars(select(Device)):
+                customer = str(device.customer_id)
+                data = dict(device.inventory_data or {})
+                if customer in after - before:
+                    data["zabbix_include"] = True
+                    data.pop("zabbix_exclude", None)
+                elif customer in before - after:
+                    data["zabbix_include"] = False
+                else:
+                    continue
+                device.inventory_data = data
     community, literal, community_how = community_fields(snmp_community, old_settings, previous)
     settings.update(community)
     if literal:
@@ -847,8 +868,8 @@ def customer_state(db, customer) -> dict | None:
 def set_customer(db, user, customer, include: bool) -> dict:
     """Add a customer's devices to Zabbix (or take them out) and push now; audited, commits.
 
-    With scope *customers* the customer joins (leaves) the list; its devices lose their own exclusion when added and
-    their own inclusion when removed. With scope *all* the devices only lose (gain) their own exclusion.
+    With scope *customers* the customer joins (leaves) the list and the devices it has now are activated (deactivated);
+    a device added later stays out until it is added. With scope *all* the devices only lose (gain) their own exclusion.
     """
     row = _enabled_row(db)
     settings = settings_of(row)
@@ -860,6 +881,7 @@ def set_customer(db, user, customer, include: bool) -> dict:
     for device in db.scalars(select(Device).where(Device.customer_id == customer.id)):
         data = dict(device.inventory_data or {})
         if include:
+            data["zabbix_include"] = True
             data.pop("zabbix_exclude", None)
         else:
             data["zabbix_include"] = False

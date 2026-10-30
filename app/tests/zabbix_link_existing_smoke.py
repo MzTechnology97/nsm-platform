@@ -62,7 +62,7 @@ def main():
         db.query(ConnectorIntegration).filter_by(provider="zabbix").delete()
         db.add(ConnectorIntegration(provider="zabbix", name="Zabbix", base_url="https://zabbix.example.test/api_jsonrpc.php",
                                     secret_encrypted=zbx.encrypt_text('{"token": "%s"}' % push.TOKEN), verify_tls=True, is_enabled=True,
-                                    settings={"templates": {"mikrotik": "", "ubiquiti": "", "default": "Template ICMP Ping"}}))
+                                    settings={"scope": "all", "templates": {"mikrotik": "", "ubiquiti": "", "default": "Template ICMP Ping"}}))
         customer = Customer(name=f"CI Zabbix Link {suffix}", code=f"ZL{suffix}")
         db.add(customer)
         db.flush()

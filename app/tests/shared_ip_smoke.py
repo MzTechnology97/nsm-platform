@@ -89,6 +89,9 @@ def main():
         if existing:
             db.delete(existing)
             db.flush()
+        for device_id in ids.values():
+            device = db.get(Device, device_id)
+            device.inventory_data = {**(device.inventory_data or {}), "zabbix_include": True}
         db.add(ConnectorIntegration(provider="zabbix", name="Zabbix", base_url="https://zabbix.example.test/api_jsonrpc.php", verify_tls=True, is_enabled=True,
                                     secret_encrypted=encrypt_text('{"token": "test-only-zabbix-token"}'),
                                     settings={"scope": "customers", "customer_ids": [str(db.get(Device, ids["router"]).customer_id)]}))
