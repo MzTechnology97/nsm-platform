@@ -4,6 +4,16 @@ NSM Core follows `0.49.x`: every release promoted to `deploy` increases the
 patch number in `app/app/entrypoint.py` (`APP_VERSION`, shown in the sidebar).
 MikroTik Agent versions are independent (`mikrotik_agent_generation.py`).
 
+## 0.49.327 — 2026-10-30
+
+Zabbix: hosts and groups only for what you activate
+- With *Solo i clienti e gli apparati scelti*, NSM creates a host group and hosts on Zabbix only when you activate a customer or a device. You can do it in *Integrazioni → Zabbix* or with *Aggiungi a Zabbix* on the customer or device page.
+- **A new device no longer enters Zabbix on its own**, even when its customer is already active. The customer page shows *Aggiungi a Zabbix gli altri N apparati*, and the device page keeps its own button.
+- After the upgrade, the devices of the customers already selected stay in Zabbix, except those you removed one by one.
+- New installations start with this scope instead of *all devices*. Installations already on *all devices* do not change.
+- *Integrazioni → Zabbix* lists the selected customers first, shows how many there are and explains the rule.
+- A host deleted by hand in Zabbix is forgotten at the next sync, so the device page no longer links to it. If the device is still active, NSM creates the host again.
+- Hosts and groups created earlier are not removed by this update.
 ## 0.49.326 — 2026-10-30
 
 Ubiquiti syslog: airOS lines recognised by the device address
