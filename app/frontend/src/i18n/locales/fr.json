@@ -7663,7 +7663,11 @@
     "lookupListed_one": "sur {{count}} liste",
     "lookupListed_other": "sur {{count}} listes",
     "lookupClean": "sur aucune liste",
-    "lookupFailed": "Non vérifiées : {{list}}."
+    "lookupFailed": "Non vérifiées : {{list}}.",
+    "dqsKey": "Clé DQS Spamhaus",
+    "dqsKeySaved": "Clé enregistrée : laissez vide pour la conserver",
+    "dqsKeyHelp": "Gratuite pour un faible volume (Data Query Service, inscription sur spamhaus.com) : avec la clé, Spamhaus ZEN répond aussi via des résolveurs DNS publics.",
+    "dqsHint": "Saisissez une clé DQS gratuite dans les paramètres pour utiliser Spamhaus avec n'importe quel résolveur."
   },
   "ipAbuse": {
     "title": "Abus IP",
